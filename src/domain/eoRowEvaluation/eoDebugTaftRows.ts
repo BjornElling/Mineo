@@ -154,8 +154,8 @@ export const buildEODebugTaftRows = (
 
   // 1) Periode-rækker fra tabellen.
   // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge) afgøres af den delte,
-  // autoritative TAF-periode-validering — samme funktion som eoBlockingValidation kalder (jf.
-  // B9), så beskederne er identiske. Debug RENDERER kun resultatet.
+  // autoritative TAF-periode-validering i domænets validerings-lag (`tafPeriodeValidation`) — ÉN
+  // sandhedskilde (jf. B9). Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF.
   const tafEvaluations = evaluateTafPerioder(perioder, {
     skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,

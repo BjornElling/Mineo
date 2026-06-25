@@ -1,5 +1,5 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,

@@ -3,7 +3,7 @@
  */
 
 import type { DebugModelInput } from '../../../domain/debug/eoDebugCoreModel';
-import type { DebugDay } from '../../../domain/debug/eoDebugTypes';
+import type { DebugDay } from '../../../domain/eoRowEvaluation/eoDebugTypes';
 import { buildDebugCoreModel } from '../../../domain/debug/eoDebugCoreModel';
 import { buildDebugTabelViewModel } from '../../../domain/debug/eoDebugViewModel';
 import type { ISODateString } from '../../../types/branded';

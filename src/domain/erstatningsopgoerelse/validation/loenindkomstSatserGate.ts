@@ -7,10 +7,11 @@ import { resolveOverenskomstSatsBindings } from '../helpers/loenindkomstSatser';
 /**
  * Satser-blokerings-gate for et lønindkomst-ansættelsesforhold: returnerer navnet på det første
  * sats-felt, der afviger fra den forventede (overenskomst-/lov-bundne) sats per den anvendte
- * reguleringsdato — eller null. Driver `loenindkomst.<af>.satserSkadestidspunkt`-debug-rækken OG
- * (jf. B9) det autoritative `eoBlockingValidation`, så blokeringen er ÉN sandhedskilde.
+ * reguleringsdato — eller null. Driver `loenindkomst.<af>.satserSkadestidspunkt`-rækken i den
+ * autoritative række-evaluerings-motor (`domain/eoRowEvaluation/`, jf. B9), hvis `error`-rækker
+ * gater produktions-PDF-download — så blokeringen er ÉN sandhedskilde.
  *
- * Flyttet verbatim fra `domain/debug/eoDebugIndkomstModel.ts` (adfærdsbevarende).
+ * Genbruges af motor-helperen `eoDebugIndkomstModel.ts` (adfærdsbevarende udskillelse).
  *
  * NB: Dette overlapper delvist med `loenindkomstSatsValidation.validateAllSatserForAnsaettelsesforhold`
  * (A1) — sidstnævnte driver felt-fejl i Loenindkomst-VM'en og dækker IKKE Store Bededagstillæg.

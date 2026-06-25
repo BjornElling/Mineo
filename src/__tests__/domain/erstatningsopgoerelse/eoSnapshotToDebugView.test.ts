@@ -9,7 +9,7 @@ const {
   executeEODebugBuilderEntriesBySectionMock: vi.fn((..._args: unknown[]) => new Map()),
 }));
 
-vi.mock('../../../domain/debug/eoDebugBuilderRegistry', () => ({
+vi.mock('../../../domain/eoRowEvaluation/eoDebugBuilderRegistry', () => ({
   EO_DEBUG_BUILDERS: [
     {
       section: 'stamdata',

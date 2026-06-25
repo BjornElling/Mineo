@@ -2,12 +2,12 @@ import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
 
 /**
- * Neutrale dato-/streng-validerings-helpers (uden afhængighed af debug-laget), så både
- * det autoritative blokerings-modul (`eoBlockingValidation`, jf. B9) og debug-visningen
- * kan dele præcis samme besked-konstruktion — ÉN sandhedskilde for ordlyden.
+ * Neutrale dato-/streng-validerings-helpers, så den autoritative række-evaluerings-motor
+ * (`domain/eoRowEvaluation/`, jf. B9) og dens delte periode-/sats-evaluatorer deler præcis samme
+ * besked-konstruktion — ÉN sandhedskilde for ordlyden.
  *
- * Flyttet ud af `domain/debug/eoDebugCommon.ts`: domæne-validering må ikke importere fra
- * `domain/debug/` (isolations-invariant A), og disse helpers er ren validerings-tekst.
+ * Oprindeligt udskilt af motor-helperen `eoDebugCommon.ts` (som re-eksporterer herfra), så
+ * domæne-validering ikke afhænger af det nedstrøms DEV-debug-lag (`domain/debug/`).
  */
 
 export const isNonEmptyString = (value: string | undefined): value is string => {

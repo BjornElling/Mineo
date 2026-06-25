@@ -5,7 +5,7 @@ import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 import type { ISODateString } from '../../types/branded';
 
-import type { DebugCellValue } from './eoDebugTypes';
+import type { DebugCellValue } from '../eoRowEvaluation/eoDebugTypes';
 import { formatIsoValue, formatAmountDisplay, formatDecimal, formatPercent } from './eoDebugFormat';
 import type { RegulationIndexTimeline } from './eoDebugRegulationTypes';
 import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';

@@ -3,7 +3,7 @@
  */
 
 import type { ISODateString } from '../../../types/branded';
-import type { DateRange } from '../../../domain/debug/eoDebugTypes';
+import type { DateRange } from '../../../domain/eoRowEvaluation/eoDebugTypes';
 import { toISODateString } from '../../../types/branded';
 import {
   compareIso,

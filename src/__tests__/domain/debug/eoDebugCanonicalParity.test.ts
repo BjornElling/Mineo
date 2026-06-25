@@ -5,11 +5,11 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/debug/eoDebugContextBuilders';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/eoRowEvaluation/eoDebugContextBuilders';
 import {
   buildEODebugSvieSmerteRows,
   buildEODebugTaftRows,
-} from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+} from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 import { formatCurrency } from '../../../utils/formatUtils';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';

@@ -1,7 +1,7 @@
-import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
-import type { EODebugExecutionContext } from '../../../domain/debug/eoDebugExecutionContext';
-import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
-import * as Registry from '../../../domain/debug/eoDebugBuilderRegistry';
+import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import type { EODebugExecutionContext } from '../../../domain/eoRowEvaluation/eoDebugExecutionContext';
+import { collectAllDebugRows } from '../../../domain/eoRowEvaluation/eoDebugRowAggregator';
+import * as Registry from '../../../domain/eoRowEvaluation/eoDebugBuilderRegistry';
 import type { FieldErrorBySource } from '../../../types/fieldErrors';
 import type { PersistedSectionMap } from '../../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -19,7 +19,7 @@ type MockRegistry = {
   __resetBuilderRuns: () => void;
 };
 
-vi.mock('../../../domain/debug/eoDebugBuilderRegistry', () => {
+vi.mock('../../../domain/eoRowEvaluation/eoDebugBuilderRegistry', () => {
   let builders: Builder[] = [];
   const builderRuns = new Map<string, number>();
 

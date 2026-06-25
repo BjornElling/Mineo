@@ -5,7 +5,7 @@ import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/sv
 import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { buildEODebugModel } from './eoDebugModel';
-import type { DebugDay } from './eoDebugTypes';
+import type { DebugDay } from '../eoRowEvaluation/eoDebugTypes';
 import {
   buildEODebugSammentaellingModel,
   buildSammentaellingDisplayTables,

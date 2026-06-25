@@ -1,6 +1,6 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEODebugOevrigeKravRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugOevrigeKravRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);

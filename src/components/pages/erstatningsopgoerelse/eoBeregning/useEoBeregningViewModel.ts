@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBlockingFieldIdsBySuffixForSection, useFieldErrorsBySourceForSection } from '../../../../hooks/useFormFieldErrors';
-import { collectAllDebugRows } from '../../../../domain/debug/eoDebugRowAggregator';
-import type { DebugRowWithNavigation } from '../../../../domain/debug/eoDebugRowAggregator';
-import type { NavigationTarget } from '../../../../domain/debug/eoDebugNavigationMap';
+import { collectAllDebugRows } from '../../../../domain/eoRowEvaluation/eoDebugRowAggregator';
+import type { DebugRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoDebugRowAggregator';
+import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoDebugNavigationMap';
 import { scrollToSection } from '../../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../../utils/scrollToDebugRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';

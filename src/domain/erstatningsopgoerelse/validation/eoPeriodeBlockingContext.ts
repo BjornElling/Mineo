@@ -5,10 +5,11 @@ import { resolveMidlertidigEetDatoHvisAktiv } from './tafPeriodConstraints';
 
 /**
  * Afledning af de dato-/afgørelses-grænser som periode-blokeringen (svie/smerte, TAF, ferie)
- * afhænger af — ud fra committed stamdata + EO-input. React-/debug-fri, så både det
- * autoritative `eoBlockingValidation` og debug-visningen kan dele samme afledning (jf. B9).
+ * afhænger af — ud fra committed stamdata + EO-input. React-/visnings-fri, så den autoritative
+ * række-evaluerings-motor (`domain/eoRowEvaluation/`, jf. B9) og dens periode-evaluatorer deler
+ * samme afledning — ÉN sandhedskilde.
  *
- * Flyttet fra `domain/debug/eoDebugContextBuilders.ts`, der nu re-eksporterer herfra.
+ * Genbruges af motor-helperen `eoDebugContextBuilders.ts`, der re-eksporterer herfra.
  */
 
 type StamdataValues = PersistedSectionMap['stamdata'];

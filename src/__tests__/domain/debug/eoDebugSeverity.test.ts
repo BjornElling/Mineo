@@ -1,5 +1,5 @@
-import { IntegrityInvariant, type IntegrityIssue } from '../../../domain/debug/eoDebugTypes';
-import { maxDebugStatusFromIntegrityIssues, toDebugStatusRank } from '../../../domain/debug/eoDebugSeverity';
+import { IntegrityInvariant, type IntegrityIssue } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import { maxDebugStatusFromIntegrityIssues, toDebugStatusRank } from '../../../domain/eoRowEvaluation/eoDebugSeverity';
 
 describe('eoDebugSeverity', () => {
   it('returns rank in expected order', () => {

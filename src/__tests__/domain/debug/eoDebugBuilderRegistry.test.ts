@@ -1,10 +1,10 @@
-import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
-import type { EODebugExecutionContext } from '../../../domain/debug/eoDebugExecutionContext';
-import type { EODebugBuilderEntry } from '../../../domain/debug/eoDebugBuilderRegistry';
+import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import type { EODebugExecutionContext } from '../../../domain/eoRowEvaluation/eoDebugExecutionContext';
+import type { EODebugBuilderEntry } from '../../../domain/eoRowEvaluation/eoDebugBuilderRegistry';
 import {
   executeEODebugBuilderEntries,
   executeEODebugBuilderEntriesBySection,
-} from '../../../domain/debug/eoDebugBuilderRegistry';
+} from '../../../domain/eoRowEvaluation/eoDebugBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
+import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import type { EODebugDisplayTable } from '../../../domain/debug/eoDebugPageViewModel';

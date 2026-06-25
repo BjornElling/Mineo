@@ -1,5 +1,5 @@
 import { resolveBilagWarning } from '../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
-import { buildEODebugBilagsnumreRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugBilagsnumreRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,

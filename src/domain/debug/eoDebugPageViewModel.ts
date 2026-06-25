@@ -1,7 +1,7 @@
 import type { AppSettings } from '../../settings/appSettingsSchema';
-import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from './eoDebugIndkomstModel';
+import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from '../eoRowEvaluation/eoDebugIndkomstModel';
 import type { RegulationDebugSection } from './eoDebugRegulationViewModel';
-import type { DebugRowModel } from './eoDebugTypes';
+import type { DebugRowModel } from '../eoRowEvaluation/eoDebugTypes';
 import type { EoDebugViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
 import { buildOffentligeYdelserReguleringTableData } from '../erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
 import { resolveArbejdsstedDisplayName } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';

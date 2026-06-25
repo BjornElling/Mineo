@@ -8,7 +8,7 @@
 import type { ISODateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
 import { collectIsoDatesInclusive } from '../../utils/isoDateHelpers';
-import type { DateRange, OverlapResult } from './eoDebugTypes';
+import type { DateRange, OverlapResult } from '../eoRowEvaluation/eoDebugTypes';
 
 /**
  * Parser en ukendt værdi til ISODateString, eller undefined hvis ugyldig.

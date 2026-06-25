@@ -1,5 +1,5 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEODebugTaftRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugTaftRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);

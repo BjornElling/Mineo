@@ -6,7 +6,7 @@ import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildEODebugSvieSmerteRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 
 const iso = (value: string) => toISODateString(value);
 

@@ -5,7 +5,7 @@
  * Dette undgår setTimeout-baserede gæt der kan fejle sporadisk pga. React rendering timing.
  */
 
-import type { SectionId } from '../domain/debug/eoDebugNavigationMap';
+import type { SectionId } from '../domain/eoRowEvaluation/eoDebugNavigationMap';
 import { scrollWithRetry } from './scrollWithRetry';
 
 /**

@@ -2,7 +2,7 @@ import {
   buildIndkomstSectionStatuses,
   buildOffentligeYdelserDebugRows,
   isLoenindkomstAnsaettelsesforholdEffectivelyEmpty,
-} from '../../../domain/debug/eoDebugIndkomstModel';
+} from '../../../domain/eoRowEvaluation/eoDebugIndkomstModel';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildLoenindkomstZeroArbejdsdageMessage } from '../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';

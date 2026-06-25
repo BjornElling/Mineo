@@ -16,7 +16,7 @@
  * Beskeder kan indlejre en dags-dato-afhængig øvre grænse; derfor normaliseres alle
  * dato-tokens til ⟨dato⟩ før sammenligning.
  */
-import { collectAllDebugRows } from '../../domain/debug/eoDebugRowAggregator';
+import { collectAllDebugRows } from '../../domain/eoRowEvaluation/eoDebugRowAggregator';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -209,10 +209,6 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
               "message": "-",
             },
             {
-              "id": "erstatningsopgoerelse.helbredsstatus",
-              "message": "-",
-            },
-            {
               "id": "loenindkomst.af-1.satserSkadestidspunkt",
               "message": "Forkert værdi indtastet i Store Bededagstillæg",
             },
@@ -222,10 +218,6 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
         "taf:gyldig": {
           "debugErrors": [
             {
-              "id": "erstatningsopgoerelse.helbredsstatus",
-              "message": "-",
-            },
-            {
               "id": "loenindkomst.af-1.satserSkadestidspunkt",
               "message": "Forkert værdi indtastet i Store Bededagstillæg",
             },
@@ -234,10 +226,6 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
         },
         "taf:periodeEfterDifferencekrav": {
           "debugErrors": [
-            {
-              "id": "erstatningsopgoerelse.helbredsstatus",
-              "message": "-",
-            },
             {
               "id": "loenindkomst.af-1.satserSkadestidspunkt",
               "message": "Forkert værdi indtastet i Store Bededagstillæg",
@@ -251,10 +239,6 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
         },
         "taf:periodeFraFoerSkadedato": {
           "debugErrors": [
-            {
-              "id": "erstatningsopgoerelse.helbredsstatus",
-              "message": "-",
-            },
             {
               "id": "loenindkomst.af-1.satserSkadestidspunkt",
               "message": "Forkert værdi indtastet i Store Bededagstillæg",
@@ -291,15 +275,14 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
     expect(debugErrors).toEqual([]);
   });
 
-  it('empirisk fund: selv en nominelt gyldig TAF-basissag (projektion=ok) bærer debug-only gates', () => {
-    // Afslører to gates som håndlæsning ikke fandt — golden master fanger detaljen:
-    //  - erstatningsopgoerelse.helbredsstatus: blokerer skønt svie/smerte='Nej' (over-block, jf. §2D)
-    //  - loenindkomst.<af>.satserSkadestidspunkt: værdi-afledt satser-fejl på et default-AF
+  it('empirisk fund: selv en nominelt gyldig TAF-basissag (projektion=ok) bærer et debug-only gate', () => {
+    // Efter over-block-fixet (§2D) blokerer helbredsforhold ikke længere en TAF-only-sag
+    // (svie/smerte='Nej'). Tilbage står den værdi-afledte satser-fejl på et default-AF:
+    //  - loenindkomst.<af>.satserSkadestidspunkt: Store Bededagstillæg mangler på et default-AF.
     const c = CASES.find((entry) => entry.name === 'taf:gyldig')!;
     const { projectionKind, debugErrors } = probe(c.build());
     expect(projectionKind).toBe('ok');
     expect(debugErrors.map((e) => e.id)).toEqual([
-      'erstatningsopgoerelse.helbredsstatus',
       'loenindkomst.af-1.satserSkadestidspunkt',
     ]);
   });

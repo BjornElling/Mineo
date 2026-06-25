@@ -56,9 +56,9 @@ export const buildEODebugSvieSmerteRows = (
   const perioder = periodeErSynlig ? (values.svieSmertePerioder ?? []) : [];
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til || p.tilstand);
   // Periode-blokering (komplethed, dato-grænser, overlap, rækkefølge) afgøres af den delte,
-  // autoritative validering — samme funktion som eoBlockingValidation kalder, så beskederne er
-  // identiske by construction. Debug RENDERER kun resultatet (jf. B9). Overlap afvises altid
-  // (også samme tilstand), jf. periodisering-contract §7.
+  // autoritative validering i domænets validerings-lag (`svieSmertePeriodeValidation`) — ÉN
+  // sandhedskilde. Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF-download
+  // (jf. B9). Overlap afvises altid (også samme tilstand), jf. periodisering-contract §7.
   const periodeEvaluations = evaluateSvieSmertePerioder(perioder, {
     skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,

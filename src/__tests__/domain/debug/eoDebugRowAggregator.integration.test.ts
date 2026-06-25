@@ -1,4 +1,4 @@
-import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
+import { collectAllDebugRows } from '../../../domain/eoRowEvaluation/eoDebugRowAggregator';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';

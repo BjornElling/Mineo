@@ -13,11 +13,12 @@ import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMes
  * AUTORITATIV kilde til om en TAF-periode blokerer (komplethed, dato-grænser, cutoff efter
  * differencekrav/EET-afgørelse, overlap, rækkefølge) og med hvilken besked — jf. B9. Tjekkene
  * findes IKKE i `erstatningsopgoerelseValidator` (kun komplethed/rækkefølge/overlap), så uden
- * denne udskillelse var dato-grænse- og cutoff-blokeringen kun håndhævet inde i DEV-debug-
- * builderens display-formattering.
+ * denne udskillelse var dato-grænse- og cutoff-blokeringen kun håndhævet inde i en builders
+ * display-formattering.
  *
- * `buildEODebugTaftRows` og det kommende `eoBlockingValidation` kalder begge denne funktion, så
- * fejl-beskederne er identiske by construction (adfærdsbevarende relokering).
+ * Den autoritative række-evaluerings-motors TAF-periode-builder (`buildEODebugTaftRows`) delegerer
+ * hertil, så blokerings-afgørelsen er ÉN sandhedskilde og dens `error`-rækker — der gater
+ * produktions-PDF-download — ikke kan flyttes af display-formattering (adfærdsbevarende relokering).
  */
 
 export type TafPeriodeRowInput = Readonly<{

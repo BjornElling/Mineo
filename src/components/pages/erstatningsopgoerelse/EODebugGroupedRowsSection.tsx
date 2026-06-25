@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
+import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import { DEBUG_ROW_LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoDebugRowRendering';
 
 type GroupedRowsSection = Readonly<{

@@ -21,7 +21,7 @@
  * autoritativt andre steder. B9 er derfor IKKE en ren strukturel refaktor — en del af
  * valideringen skal flyttes ind i den autoritative validator (forelæggelses-pligtigt).
  */
-import { collectAllDebugRows } from '../../domain/debug/eoDebugRowAggregator';
+import { collectAllDebugRows } from '../../domain/eoRowEvaluation/eoDebugRowAggregator';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
@@ -106,20 +106,21 @@ describe('B9 afklaring: debug-lagets unikke bidrag til PDF-gaten', () => {
     expect(debugOnlyErrorIds(values)).toContain('sviesmerte.periode.ss-1');
   });
 
-  it('FUND #2 (krævet felt): tom tafArbejdsstatus passerer validatoren (projektion=ok) men blokeres KUN af debug', () => {
+  it('FUND #2 (krævet felt): tom svieSmerteHelbredsstatus passerer validatoren (projektion=ok) men blokeres KUN af debug', () => {
     const values = buildValidSvieSmerteOnlyValues();
-    values.tafArbejdsstatus = undefined;
+    // Helbredsforhold er tomt OG svie/smerte beregnes (kravPaaSvieSmerteGodtgoerelse='Ja'), så
+    // feltet er relevant og gater PDF. Efter over-block-fixet (§2D) gater krævede felter kun, når
+    // den tilhørende beregning faktisk kræves — derfor bruges her det relevante felt.
+    values.svieSmerteHelbredsstatus = undefined;
 
     expect(project(values)).toBe('ok');
-    // Bemærk: dette blokerer selv når TAF ikke beregnes (kravPaaTabtArbejdsfortjeneste='Nej')
-    // — den relevans-filtrering der fjerner taf.*-rækker rammer ikke denne række.
-    expect(debugOnlyErrorIds(values)).toContain('erstatningsopgoerelse.arbejdsstatus');
+    expect(debugOnlyErrorIds(values)).toContain('erstatningsopgoerelse.helbredsstatus');
   });
 
   it('SAMMENFATNING: mindst ét debug-only-gate findes i en sag hvor projektionen er ok (B9 ≠ ren strukturel refaktor)', () => {
     // Sag der er autoritativt gyldig (projektion=ok) men bærer flere debug-only-fejl.
     const values = buildValidSvieSmerteOnlyValues();
-    values.tafArbejdsstatus = undefined;
+    values.svieSmerteHelbredsstatus = undefined;
     values.svieSmertePerioder = [
       { id: 'ss-1', fra: toISODateString('2024-05-01'), til: toISODateString('2024-08-01'), tilstand: 'sygemeldt' },
     ];

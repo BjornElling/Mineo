@@ -1,10 +1,9 @@
 # B9 — Træk produktions-blokerings-validering ud af debug-laget (plan til forelæggelse)
 
-**Dato:** 2026-06-24
-**Status:** UDKAST TIL GODKENDELSE — ingen produktionskode ændret endnu.
-**Forudgående afklaring:** `src/__tests__/quality/eoDebugGateUniqueContribution.test.ts` (4 grønne cases) + kode-verificeret kortlægning af alle `status:'error'`-stier i debug-builderne krydset mod den autoritative validator.
+**Dato:** 2026-06-24 (oprindelig plan) · **Afsluttet:** 2026-06-25
+**Status:** ✅ **GENNEMFØRT** — men IKKE via den oprindelige plan (parallel `eoBlockingValidation`). Brugeren valgte i stedet **single-source-relocation (approach B)**: række-evaluerings-motoren er flyttet UD af `domain/debug/` til den autoritative placering `src/domain/eoRowEvaluation/`, så download-gaten drives af ÉN autoritativ kilde uden parallel logik eller paritets-risiko. Se **§8 Gennemførelse (2026-06-25)** nederst — den supersederer §3-7's `eoBlockingValidation`-centrerede design.
 
-> **Forelæggelse jf. AGENTS.md:** Punktet rører produktions-PDF-gaten (hvornår en download blokeres) og blokerings-tekster → beregnings-/valideringsnært + UI-tekst. Det må ikke implementeres uden brugerens godkendelse. Målet er **nul synlig forskel** for brugeren.
+> **Forelæggelse jf. AGENTS.md:** Punktet rørte produktions-PDF-gaten (hvornår en download blokeres) → beregnings-/valideringsnært. Brugeren godkendte (1) arkitektur + faseplan, (2) over-block-fixet, og (3) approach B (relocation) frem for parallel re-derivation. Målet var **nul synlig forskel** ud over det godkendte over-block-fix.
 
 ---
 
@@ -133,3 +132,22 @@ Golden-master-suiten (fase 1) + de 457 debug-tests er holdt grønne gennem hele 
 **Bevidst standset før fase 4-5 (gate-omstilling + over-block-fix + værn-erstatning):** `eoBlockingValidation` er endnu ikke komplet nok til sikkert at drive den trust-kritiske PDF-gate (mangler loenudvikling/regulering/offentlige-ydelser/SFGG/EET + felt-fejl-familierne; se fase 4-noten). Gaten er uændret. At fuldføre kræver at dække de resterende familier + bevise fuld paritet (boolean + besked + felt-fejl) — og bør bekræftes pga. trust-kritikaliteten.
 
 **Note (midlertidig "ubrugt" produktionskode):** `eoBlockingValidation` med familie-moduler kaldes pt. kun fra ækvivalens-værnet (ikke fra produktions-gaten endnu). Det er bevidst infrastruktur for fase 4 — ikke død kode — men bør enten wires (fase 4) eller genovervejes, hvis fase 4 ikke fuldføres.
+
+---
+
+## 8. Gennemførelse (2026-06-25) — via single-source relocation (approach B)
+
+Da fase 4 skulle gennemføres, viste kode-niveau-kortlægningen at den oprindelige plans `eoBlockingValidation`-vej (parallel re-derivation af ALLE blokerings-familier) var (a) et fler-dages refaktor, (b) en duplikering af store dele af 5+ buildere = præcis den parallelle logik konvergens-princippet advarer imod, og (c) bærer af irreducibel under-blokerings-risiko (korpus kan ikke bevise udtømmende paritet). **Brugeren valgte i stedet approach B: single-source relocation.** Det opnår B9's mål uden parallel logik og uden paritets-risiko.
+
+**Det egentlige problem (præciseret):** Den trust-kritiske download-gate hang på `collectAllDebugRows`, der lå i `domain/debug/` — et lag der nominelt er "DEV". Isolations-invariant A (intet domæne-modul må importere `domain/debug/`) gjorde at en autoritativ validator IKKE kunne genbruge motoren uden enten at flytte den eller duplikere den.
+
+**Hvad blev gjort:**
+1. **Over-block-fix (§2D, godkendt).** `arbejdsstatus`/`helbredsstatus` blokerer nu kun download, når den tilhørende beregning faktisk kræves — håndhævet i den delte relevans-filtrering (`isRowRelevantForEoValues`). Golden-master (`eoBlockingGateCatalog.test`) opdateret: diffen er afgrænset til netop disse to felter (helbredsforhold forsvinder fra TAF-only-sager). Eneste bruger-synlige ændring.
+2. **Relocation.** Hele gate-closuren (20 filer: aggregator + builder-registry + alle `buildEODebug…Rows` + delte typer/helpers) er flyttet `domain/debug/` → **`src/domain/eoRowEvaluation/`** (autoritativ, debug-fri). De 21 tilbageværende `domain/debug/`-filer er ren DEV-visning (tabeller, CSV, parity, integritet, sammentælling) og er nu NEDSTRØMS: de importerer motoren, aldrig omvendt.
+3. **Gaten** (`useEoBeregningViewModel`) importerer nu motoren fra `eoRowEvaluation` — ikke `domain/debug/`. Adfærd uændret (samme `collectAllDebugRows(...).errors`-sti).
+4. **Retireret parallel kode.** `eoBlockingValidation` + `beregningsgrundlagBlockingValidation` + `eoBlockingValidationTypes` + ækvivalens-værnet er slettet — de var kun brugt af deres egen test og drev aldrig gaten. De delte per-familie-evaluatorer (`svieSmertePeriodeValidation`, `tafPeriodeValidation`, `ferieperiodeValidation`, `loenindkomstSatserGate`, `eoPeriodeBlockingContext`) består — motorens buildere delegerer fortsat til dem (ÉN sandhedskilde).
+5. **Værnet** (`debugLayerIsolation.test.ts`) omskrevet: invariant A bevaret (kun de to snapshot-broer importerer `domain/debug`), NY **ENGINE**-invariant (`eoRowEvaluation` er debug-fri, så gatens kilde ikke kan forurenes af display-formattering), og invariant C inverteret — gaten konsumerer den AUTORITATIVE motor og må IKKE importere `domain/debug`.
+
+**Verifikation:** typecheck (src + test) ✓, lint ✓, fuld testsuite ✓ (efter rettelse af 5 forældede `vi.mock`-stier som relocationen ramte).
+
+**Udestående følge-op (adfærds-neutralt, typecheck-værnet, lav risiko — bevidst ikke gjort i samme ombæring som den trust-kritiske relocation):** motor-filerne bærer endnu historiske `eoDebug…`-navne, og de offentlige symboler hedder fortsat `collectAllDebugRows`/`DebugRowModel`/`executeAllEODebugBuilders`/`hasBlockingDebugErrors` osv. Et rent navne-skift (filer + symboler → autoritative navne) fjerner den sidste rest af "debug"-mislabelen. Det er en selvstændig, mekanisk oprydning.

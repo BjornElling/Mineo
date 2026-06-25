@@ -1,9 +1,9 @@
-import { resolveDebugRowPresentation } from '../../../domain/debug/eoDebugRowPresentation';
+import { resolveDebugRowPresentation } from '../../../domain/eoRowEvaluation/eoDebugRowPresentation';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugIndkomstRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 
 describe('resolveDebugRowPresentation', () => {
   it('extracts structured message from Fejl (...) as default fallback', () => {

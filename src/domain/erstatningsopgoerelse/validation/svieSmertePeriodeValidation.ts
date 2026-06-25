@@ -13,11 +13,12 @@ import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMes
  * dato-grænser, overlap, rækkefølge) og med hvilken besked — jf. B9
  * (`docs/review/b9-blokeringsvalidering-plan.md`). Tjekkene findes IKKE i
  * `erstatningsopgoerelseValidator` (kun rækkefølge + ménafgørelse-bound), så uden denne
- * udskillelse var de kun håndhævet inde i DEV-debug-builderens display-formattering.
+ * udskillelse var de kun håndhævet inde i en builders display-formattering.
  *
- * `buildEODebugSvieSmerteRows` og det kommende `eoBlockingValidation` kalder begge denne
- * funktion, så fejl-beskederne er identiske by construction. Beskeder er bevidst de samme
- * strenge som debug-builderen producerede før udskillelsen (adfærdsbevarende).
+ * Den autoritative række-evaluerings-motors periode-builder (`buildEODebugSvieSmerteRows`)
+ * delegerer hertil, så blokerings-afgørelsen er ÉN sandhedskilde og dens `error`-rækker — der
+ * gater produktions-PDF-download — ikke kan flyttes af display-formattering. Beskeder er bevidst
+ * de samme strenge som builderen producerede før udskillelsen (adfærdsbevarende).
  */
 
 export type SvieSmertePeriodeRowInput = Readonly<{

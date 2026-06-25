@@ -2,35 +2,36 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Arkitektur-værn for EO-debug-laget (`src/domain/debug/`).
+ * Arkitektur-værn for grænsen mellem den AUTORITATIVE EO-række-evaluerings-motor og DEV-debug-laget.
  *
- * Baggrund (jf. arkitektur-genopbygning-kandidater.md B9): EO-debug-laget blev længe omtalt som
- * en "DEV-only projektion". Det er kun halvt sandt. Laget har to roller:
+ * Baggrund (arkitektur-kandidat B9, afsluttet 2026-06-25): Motoren der producerer EO-status-/fejl-
+ * rækker (`collectAllDebugRows` → `executeAllEODebugBuilders` → `buildEODebug…Rows`) er
+ * trust-kritisk: dens `error`-rækker driver produktions-PDF-download-gaten i
+ * `useEoBeregningViewModel`. Tidligere lå den i `src/domain/debug/` og blev fejlagtigt omtalt som
+ * "DEV-only". Den er nu flyttet til en autoritativ placering, `src/domain/eoRowEvaluation/`, så den
+ * trust-kritiske gate ikke længere afhænger af et lag der nominelt er DEV-debug.
  *
- *   1. DEV-inspektion  — EODebug-siden viser snapshot'et som tabeller til divergens-eftersyn.
- *   2. PRODUKTIONS-VALIDERING — `collectAllDebugRows` (→ `executeAllEODebugBuilders`, dvs. de samme
- *      `buildEODebug…Rows`-buildere) producerer `error`-rækker, der i `useEoBeregningViewModel`
- *      bliver til `hasBlockingDebugErrors` og **blokerer produktions-PDF-download**.
+ * Rollefordeling efter relokeringen:
+ *   - `src/domain/eoRowEvaluation/` — AUTORITATIV motor. Debug-fri. Driver download-gaten OG fødes
+ *     ind i DEV-visningen. (Filerne bærer endnu historiske `eoDebug…`-navne; et rent navne-skift er
+ *     en separat, adfærds-neutral oprydning.)
+ *   - `src/domain/debug/` — ren DEV-visning (tabeller, CSV, parity, integritet, sammentælling). Den
+ *     er NEDSTRØMS: den må importere motoren, aldrig omvendt.
  *
- * Laget er altså trust-kritisk, ikke "bare debug". Og debug er IKKE strengt nedstrøms: den
- * kanoniske `eoSnapshot` *indlejrer* bevidst debug-output (`debugSnapshot`-feltet + control-mismatch-
- * beskeder), og `eoSnapshotToDebugView` bygger DEV-sidens view. Dette værn pinner de tre invarianter,
- * der gør rollefordelingen forsvarlig:
- *
- *   A. Domæne→debug-koblingen er INDESLUTTET til de to navngivne bro-filer i snapshot-laget
- *      (`eoSnapshot.ts`, `eoSnapshotToDebugView.ts`). Ingen engine, validator, helper eller andet
- *      domæne-modul må importere `src/domain/debug/`. Koblingen må ikke sprede sig.
- *   B. De AUTORITATIVE totaler (`eoCanonicalOutput.ts`) er debug-frie. Debug er en projektion af
- *      beregningens output — aldrig en kilde til det autoritative tal (jf. B8/4.14: ikke en parallel
- *      beregning der fødes tilbage).
- *   C. Builderne ER produktions-load-bearing: PDF-gaten i `useEoBeregningViewModel` afhænger af
- *      `collectAllDebugRows`. Værnet dokumenterer dette, så laget ikke fejlagtigt nedlægges som
- *      dødt DEV-only-kode.
+ * Dette værn pinner de invarianter, der holder rollefordelingen forsvarlig:
+ *   A. Domæne→DEV-debug-koblingen er INDESLUTTET til de to navngivne snapshot-bro-filer. Ingen
+ *      anden domæne-fil må importere `src/domain/debug/`.
+ *   ENGINE. Den autoritative motor (`src/domain/eoRowEvaluation/`) er debug-fri — gatens kilde kan
+ *      ikke forurenes af DEV-visnings-formattering.
+ *   B. De AUTORITATIVE totaler (`eoCanonicalOutput.ts`) er debug-frie.
+ *   C. Gaten (`useEoBeregningViewModel`) konsumerer den AUTORITATIVE motor — IKKE DEV-debug-laget.
+ *      Det er kernen i B9: download-gating hænger på autoritativ validering, ikke på et DEV-lag.
  */
 
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
 const DOMAIN_ROOT = path.resolve(SRC_ROOT, 'domain');
 const DEBUG_ROOT = path.resolve(DOMAIN_ROOT, 'debug');
+const ENGINE_ROOT = path.resolve(DOMAIN_ROOT, 'eoRowEvaluation');
 
 const CANONICAL_OUTPUT_PATH = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/snapshot/eoCanonicalOutput.ts');
 const BEREGNING_VM_PATH = path.resolve(
@@ -39,7 +40,7 @@ const BEREGNING_VM_PATH = path.resolve(
 );
 
 /**
- * De ENESTE domæne-filer der må importere debug-laget: snapshot-assembly-broerne.
+ * De ENESTE domæne-filer der må importere DEV-debug-laget: snapshot-assembly-broerne.
  * `eoSnapshot.ts` indlejrer debug-snapshotten; `eoSnapshotToDebugView.ts` bygger DEV-sidens view.
  */
 const SANCTIONED_BRIDGE_FILES: ReadonlyArray<string> = [
@@ -71,7 +72,7 @@ const collectSourceFiles = (root: string): string[] => {
 const IMPORT_SPECIFIER = /(?:from|import)\s+['"]([^'"]+)['"]/g;
 
 /**
- * Tekstuelt sti-segment for debug-laget i et import-specifier. Import-stier skrives altid med
+ * Tekstuelt sti-segment for DEV-debug-laget i et import-specifier. Import-stier skrives altid med
  * forward-slash uanset OS, så vi matcher mod den form (ikke `path.sep`).
  */
 const DEBUG_SPECIFIER_SEGMENT = 'domain/debug';
@@ -83,9 +84,10 @@ const DEBUG_SPECIFIER_SEGMENT = 'domain/debug';
  * To former dækkes, så værnet ikke bliver blindt hvis projektet senere indfører en path-alias:
  *  - **relative** specifiers opløses mod `fromDir` og tjekkes mod `DEBUG_ROOT`.
  *  - **ikke-relative** specifiers (alias som `@/domain/debug/…`, absolut `src/domain/debug/…`, eller
- *    et bart modul) kan ikke opløses uden alias-config, men ENHVER der indeholder `domain/debug`-
- *    segmentet peger pr. konstruktion ind i laget og flagges. (I dag bruger projektet ingen aliaser,
- *    så dette er rent forebyggende — men det er netop dér den tidligere relative-only-scanner var skør.)
+ *    et bart modul) flagges hvis de indeholder `domain/debug`-segmentet.
+ *
+ * Bemærk: `src/domain/eoRowEvaluation/` (den autoritative motor) matcher IKKE — den er en lovlig
+ * import for både gate, snapshot og DEV-visning.
  */
 const findDebugImports = (source: string, fromDir: string): string[] => {
   const hits: string[] = [];
@@ -132,6 +134,19 @@ describe('debugLayerIsolation', () => {
     }
   });
 
+  it('ENGINE: den autoritative række-evaluerings-motor (src/domain/eoRowEvaluation) er debug-fri', () => {
+    // Motoren driver den trust-kritiske download-gate. Importerede den DEV-debug-laget, ville
+    // gatens kilde kunne forurenes af display-formattering — netop koblingen B9 brød.
+    const violations: string[] = [];
+    for (const absolutePath of collectSourceFiles(ENGINE_ROOT)) {
+      const source = fs.readFileSync(absolutePath, 'utf8');
+      for (const specifier of findDebugImports(source, path.dirname(absolutePath))) {
+        violations.push(`${path.relative(process.cwd(), absolutePath)}: ${specifier}`);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
   it('B: de autoritative totaler (eoCanonicalOutput) er debug-frie', () => {
     const source = fs.readFileSync(CANONICAL_OUTPUT_PATH, 'utf8');
     expect(findDebugImports(source, path.dirname(CANONICAL_OUTPUT_PATH))).toEqual([]);
@@ -139,10 +154,11 @@ describe('debugLayerIsolation', () => {
 
   it('selvtest: scanneren fanger faktisk et forbudt debug-import (ikke vacuous-pass)', () => {
     const fromDir = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/engines');
-    const offendingSource = "import { collectAllDebugRows } from '../../debug/eoDebugRowAggregator';";
-    const cleanSource = "import { sumMaanedsbroekForInterval } from './periodiseringsMotor';";
+    const offendingSource = "import { buildEODebugSnapshot } from '../../debug/eoDebugSnapshot';";
+    const cleanSource = "import { collectAllDebugRows } from '../../eoRowEvaluation/eoDebugRowAggregator';";
 
-    expect(findDebugImports(offendingSource, fromDir)).toEqual(['../../debug/eoDebugRowAggregator']);
+    expect(findDebugImports(offendingSource, fromDir)).toEqual(['../../debug/eoDebugSnapshot']);
+    // Import af den autoritative motor er lovlig og må IKKE flagges.
     expect(findDebugImports(cleanSource, fromDir)).toEqual([]);
   });
 
@@ -150,24 +166,29 @@ describe('debugLayerIsolation', () => {
     const fromDir = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/engines');
     // Disse former findes ikke i projektet i dag (ingen path-aliaser), men værnet skal fange dem
     // hvis en alias senere indføres — ellers ville koblingen kunne snige sig ind usynligt.
-    expect(findDebugImports("import { x } from '@/domain/debug/eoDebugRowAggregator';", fromDir)).toEqual([
-      '@/domain/debug/eoDebugRowAggregator',
+    expect(findDebugImports("import { x } from '@/domain/debug/eoDebugSnapshot';", fromDir)).toEqual([
+      '@/domain/debug/eoDebugSnapshot',
     ]);
-    expect(findDebugImports("import { x } from 'src/domain/debug/eoDebugRowAggregator';", fromDir)).toEqual([
-      'src/domain/debug/eoDebugRowAggregator',
+    expect(findDebugImports("import { x } from 'src/domain/debug/eoDebugSnapshot';", fromDir)).toEqual([
+      'src/domain/debug/eoDebugSnapshot',
     ]);
     // Ikke-relativt modul uden for debug-laget rører ikke værnet.
     expect(findDebugImports("import { z } from '@mui/material';", fromDir)).toEqual([]);
   });
 
-  it('C: EO-debug-builderne er produktions-load-bearing — de gater PDF-download (ikke kun DEV)', () => {
+  it('C: download-gaten konsumerer den AUTORITATIVE motor — ikke DEV-debug-laget', () => {
     const source = fs.readFileSync(BEREGNING_VM_PATH, 'utf8');
 
-    // Produktions-stien forbruger de samme buildere som EODebug-siden, via aggregatoren.
-    expect(source).toContain("import { collectAllDebugRows } from '../../../../domain/debug/eoDebugRowAggregator'");
+    // Produktions-gaten henter sine fejl-rækker fra den autoritative motor i eoRowEvaluation …
+    expect(source).toContain(
+      "import { collectAllDebugRows } from '../../../../domain/eoRowEvaluation/eoDebugRowAggregator'"
+    );
 
-    // …og deres fejl-rækker driver download-gaten. Hvis denne kobling fjernes, skal det være
-    // et bevidst valg — ikke et utilsigtet resultat af at behandle laget som "bare debug".
+    // … og må IKKE længere afhænge af DEV-debug-laget. Dette er kernen i B9: hvis denne kobling
+    // genopstår, er den trust-kritiske gate igen bundet til et nominelt DEV-lag.
+    expect(findDebugImports(source, path.dirname(BEREGNING_VM_PATH))).toEqual([]);
+
+    // …og motorens fejl-rækker driver fortsat download-gaten.
     expect(source).toContain('hasBlockingDebugErrors');
     expect(source).toContain("eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors");
   });

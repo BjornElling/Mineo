@@ -1,11 +1,16 @@
 /**
- * Data-aggregering for Beregning-fanen
+ * `collectAllDebugRows` — den AUTORITATIVE EO-række-evaluerings-aggregator (jf. B9).
  *
- * Samler alle DebugRowModel fra centraliseret builder-registry og tilføjer navigation-metadata.
- * Returnerer grupperet efter status (error/warning) til visning i Beregning-fanen.
+ * Samler alle status-rækker fra builder-registret, tilføjer navigation-metadata, anvender
+ * relevans-filtrering (`isRowRelevantForEoValues`) + dependency-suppression, og grupperer efter
+ * status (error/warning). Dens `error`-rækker DRIVER produktions-PDF-download-gaten i
+ * `useEoBeregningViewModel` — dette er derfor trust-kritisk produktions-validering, ikke "bare debug".
  *
- * Bruger samme builder-registry som EO-debug siden for rå debug-rækker.
- * EO-debug siden og Beregning-fanen har stadig forskellig post-processing oven på disse rækker.
+ * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, debug-frit), ikke i
+ * `src/domain/debug/`. DEV-debug-siden er nedstrøms: den konsumerer de samme buildere til visning,
+ * men kan aldrig flytte gaten via display-formattering (jf. `debugLayerIsolation.test.ts`). (NB:
+ * filer/symboler bærer endnu historiske `eoDebug…`-navne; et rent navne-skift er en separat,
+ * adfærds-neutral oprydning.)
  */
 
 import type { DebugRowModel } from './eoDebugTypes';
@@ -195,6 +200,17 @@ const isRowRelevantForEoValues = (
     return false;
   }
   if (values.kravPaaOevrigeErstatningskrav !== 'Ja' && row.id.startsWith('oevrigekrav.')) {
+    return false;
+  }
+  // Over-block-fix (B9 §2D, brugergodkendt 2026-06-24): de to krævede oversigtsfelter må kun
+  // blokere, når den tilhørende beregning faktisk kræves. 'Arbejdssituation' (tafArbejdsstatus)
+  // indgår udelukkende i TAF-fremstillingen; 'Helbredsforhold' (svieSmerteHelbredsstatus) kun i
+  // svie/smerte. Tidligere blokerede de PDF-download uanset relevans, fordi deres id'er ikke matcher
+  // de prefiks-baserede regler nedenfor — fx blokerede tom Arbejdssituation selv med TAF='Nej'.
+  if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja' && row.id === 'erstatningsopgoerelse.arbejdsstatus') {
+    return false;
+  }
+  if (values.kravPaaSvieSmerteGodtgoerelse !== 'Ja' && row.id === 'erstatningsopgoerelse.helbredsstatus') {
     return false;
   }
   if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') {

@@ -1,4 +1,4 @@
-import { buildEODebugSygeferiegodtgoerelseRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugSygeferiegodtgoerelseRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import * as loenudviklingBeregningModule from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import * as systemIssueReporterModule from '../../../utils/systemIssueReporter';

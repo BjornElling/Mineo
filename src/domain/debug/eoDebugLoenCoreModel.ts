@@ -12,7 +12,7 @@ import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish, toISODateString } from '../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
-import type { DebugDay } from './eoDebugTypes';
+import type { DebugDay } from '../eoRowEvaluation/eoDebugTypes';
 import type { LoenTimeline, DailyLoen, LoenComponent, DailySvieSmerte } from './eoDebugLoenTypes';
 import {
   getEffektiveSatserForDato,

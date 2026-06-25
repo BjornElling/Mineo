@@ -1,4 +1,4 @@
-import { buildEODebugForligRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugForligRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 

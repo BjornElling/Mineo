@@ -1,4 +1,4 @@
-import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugIndkomstRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,

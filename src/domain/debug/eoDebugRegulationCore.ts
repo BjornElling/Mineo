@@ -5,7 +5,7 @@ import { minISO, startOfYearIso } from '../../utils/isoDateHelpers';
 
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish, toISODateString, dateToISO, isISODateString } from '../../types/branded';
-import type { DebugDay } from './eoDebugTypes';
+import type { DebugDay } from '../eoRowEvaluation/eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { RegulationIndexTimeline, IndeksEntry, AnsaettelsesforholdIndeks } from './eoDebugRegulationTypes';

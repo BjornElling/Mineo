@@ -2,13 +2,13 @@ import type { AppSettings } from '../../../settings/appSettingsSchema';
 import {
   EO_DEBUG_BUILDERS,
   executeEODebugBuilderEntriesBySection,
-} from '../../debug/eoDebugBuilderRegistry';
-import type { EODebugExecutionContext } from '../../debug/eoDebugExecutionContext';
+} from '../../eoRowEvaluation/eoDebugBuilderRegistry';
+import type { EODebugExecutionContext } from '../../eoRowEvaluation/eoDebugExecutionContext';
 import { buildRegulationTimeline } from '../../debug/eoDebugRegulationCore';
 import type { RegulationDebugSection } from '../../debug/eoDebugRegulationViewModel';
 import { buildRegulationDebugSections } from '../../debug/eoDebugRegulationViewModel';
-import type { SectionId } from '../../debug/eoDebugNavigationMap';
-import type { DebugRowModel } from '../../debug/eoDebugTypes';
+import type { SectionId } from '../../eoRowEvaluation/eoDebugNavigationMap';
+import type { DebugRowModel } from '../../eoRowEvaluation/eoDebugTypes';
 import type { EoCanonicalOutput } from './eoCanonicalOutput';
 import type { EoModel } from './eoPresentationModel';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';

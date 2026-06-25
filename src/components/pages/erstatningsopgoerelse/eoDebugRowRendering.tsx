@@ -10,7 +10,7 @@
 
 import * as React from 'react';
 import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
-import type { DebugStatus } from '../../../domain/debug/eoDebugTypes';
+import type { DebugStatus } from '../../../domain/eoRowEvaluation/eoDebugTypes';
 
 /** Fælles label-bredde for debug-label/værdi-rækker. */
 export const DEBUG_ROW_LABEL_WIDTH = '320px';
