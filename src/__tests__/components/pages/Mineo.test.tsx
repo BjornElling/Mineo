@@ -140,20 +140,35 @@ describe('Mineo - License Modal Integration', () => {
       expect(screen.getByText('Teknisk')).toBeInTheDocument();
       expect(screen.getByText('Persondata')).toBeInTheDocument();
       expect(screen.getByText('Licensvilkår')).toBeInTheDocument();
-      expect(screen.getByText('Kontakt')).toBeInTheDocument();
       expect(screen.getByText('Status')).toBeInTheDocument();
     });
 
-    test('kontakt er nederste sektion på siden', () => {
+    test('søskendeside-footeren er nederst på siden', () => {
       renderMineo();
 
-      const headings = screen.getAllByText(/^(Programmet|Teknisk|Persondata|Licensvilkår|Status|Kontakt)$/);
-      expect(headings[headings.length - 1]).toHaveTextContent('Kontakt');
+      const boxes = Array.from(document.querySelectorAll('.content-box'));
+      expect(boxes[boxes.length - 1]).toHaveAttribute('aria-label', 'Søskendesider og kontakt');
+      expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).toHaveAttribute('href', 'mailto:bel@fho.dk');
+      expect(screen.getByText('minEO.dk').closest('[aria-current="page"]')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'minProcesrente.dk' })).toHaveAttribute('href', 'https://minprocesrente.dk');
     });
 
     test('viser version nummer', () => {
       renderMineo();
       expect(screen.getByText(/Aktuel version:/i)).toBeInTheDocument();
+    });
+
+    test('viser GitHub-linket i status-boksen og ikke den gamle kontaktboks', () => {
+      renderMineo();
+
+      const versionText = screen.getByText(/Aktuel version:/i);
+      const statusBox = versionText.closest('.content-box');
+
+      expect(statusBox).not.toBeNull();
+      expect(within(statusBox as HTMLElement).getByRole('link', { name: 'github.com/BjornElling/Mineo' }))
+        .toHaveAttribute('href', 'https://github.com/BjornElling/Mineo');
+      expect(screen.queryByText('Bjørn Elling')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'mineo.dk' })).not.toBeInTheDocument();
     });
 
     test('teknisk-boksen viser toggle for standardside', () => {

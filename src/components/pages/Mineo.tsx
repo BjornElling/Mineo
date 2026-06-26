@@ -3,15 +3,12 @@ import { Box, Typography } from '@mui/material';
 import { VERSION } from '../../config/buildInfo';
 import { requestPwaInstall } from '../../utils/pwaInstallPrompt';
 import ContentBox from '../layout/ContentBox';
+import SiblingSitesFooter from '../layout/SiblingSitesFooter';
 import LicenseModal from '../ui/LicenseModal';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../types/fieldEvents';
 import { useAppSettings } from '../../contexts/useAppSettings';
 
-// Import af MUI ikoner til kontakt-sektionen
-import PersonIcon from '@mui/icons-material/Person';
-import EmailIcon from '@mui/icons-material/Email';
-import LanguageIcon from '@mui/icons-material/Language';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import BrowserUpdatedIcon from '@mui/icons-material/BrowserUpdated';
 
@@ -231,66 +228,21 @@ const Mineo = React.memo(() => {
           Aktuel version: {VERSION}
         </Typography>
 
-      </ContentBox>
-
-      {/* ------------------------------------------------------ */}
-      {/* Kontakt */}
-      {/* ------------------------------------------------------ */}
-      <ContentBox className="content-box flow--16">
-        <Typography className="section-header">Kontakt</Typography>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-          {/* Udvikler (ikke link) */}
-          <Box className="icon-text-row">
-            <PersonIcon fontSize="small" sx={{ flexShrink: 0 }} />
-            <Typography className="row--text">
-              Bjørn Elling
-            </Typography>
-          </Box>
-
-          {/* Email (link) */}
-          <Box className="icon-text-row">
-            <EmailIcon fontSize="small" sx={{ flexShrink: 0 }} />
-            <Typography
-              className="row--text icon-text-link"
-              component="a"
-              href="mailto:bel@fho.dk"
-            >
-              bel@fho.dk
-            </Typography>
-          </Box>
-
-          {/* Hjemmeside (link) */}
-          <Box className="icon-text-row">
-            <LanguageIcon fontSize="small" sx={{ flexShrink: 0 }} />
-            <Typography
-              className="row--text icon-text-link"
-              component="a"
-              href="https://mineo.dk"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              mineo.dk
-            </Typography>
-          </Box>
-
-          {/* GitHub (link) */}
-          <Box className="icon-text-row">
-            <GitHubIcon fontSize="small" sx={{ flexShrink: 0 }} />
-            <Typography
-              className="row--text icon-text-link"
-              component="a"
-              href="https://github.com/BjornElling/Mineo"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              github.com/BjornElling/Mineo
-            </Typography>
-          </Box>
-
+        <Box className="icon-text-row" sx={{ padding: '0 12px' }}>
+          <GitHubIcon fontSize="small" sx={{ flexShrink: 0 }} />
+          <Typography
+            className="row--text icon-text-link"
+            component="a"
+            href="https://github.com/BjornElling/Mineo"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            github.com/BjornElling/Mineo
+          </Typography>
         </Box>
       </ContentBox>
+
+      <SiblingSitesFooter currentSite="mineo" />
 
     </Box>
   );
