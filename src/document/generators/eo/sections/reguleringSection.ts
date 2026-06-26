@@ -526,7 +526,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       safeAddWrappedText("KRL's sats-tabeller kan genfindes på https://www.krl.dk/#/sats");
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KL-lønaftaler') {
       writer.addSectionSpacer();
-      safeAddWrappedText('Regulering foretages på baggrund af de kommunale lønaftaler (KL). Lønnen opreguleres trinvist til hver reguleringssats, og den beregnede løn afrundes til to decimaler efter hvert trin, inden næste regulering foretages.');
+      safeAddWrappedText('Regulering foretages på baggrund af de kommunale lønaftaler, der er indgået med KL.');
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Statistik') {
       const statistikLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
       const statistikModelId = resolveStatistikModelIdFromLabel(statistikLabel);
