@@ -52,7 +52,7 @@ export const eoSnapshotToTafPerYearOpreguleretDocument = (
   if (!presentation || presentation.years.length === 0) {
     const message = snapshot.data.engines.tafNetto.harTafPerioder
       ? 'TAF opreguleret til beregningsåret kan ikke genereres, fordi TAF ikke kan fordeles på år.'
-      : 'TAF opreguleret til beregningsåret kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
+      : 'Dokumentet kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
     return { kind: 'blocked', message, invariants: [] };
   }
 

@@ -311,7 +311,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') throw new Error('forventede blocked');
     expect(projection.message).toBe(
-      'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.'
+      'Dokumentet kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.'
     );
   });
 

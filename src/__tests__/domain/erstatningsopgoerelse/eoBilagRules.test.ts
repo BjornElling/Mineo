@@ -29,7 +29,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.loenindkomst.enabled).toBe(false);
-    expect(result.loenindkomst.disabledReason).toBe('Der er ingen fejlfrie lønrækker med beløb inden for det valgte bilagsfilter.');
+    expect(result.loenindkomst.disabledReason).toBe('Der er ikke indtastet lønrækker inden for den relevante periode.');
   });
 
   it('aktiverer lønindkomst når mindst én lønrække har beløbsinput', () => {
@@ -95,7 +95,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.offentligeYdelser.enabled).toBe(false);
-    expect(result.offentligeYdelser.disabledReason).toBe('Der er ingen fejlfrie ydelsesrækker med beløb inden for det valgte bilagsfilter.');
+    expect(result.offentligeYdelser.disabledReason).toBe('Der er ikke indtastet ydelsesrækker inden for den relevante periode.');
   });
 
   it('deaktiverer offentlige ydelser når der kun er delvis indtastning uden beløb', () => {
@@ -145,7 +145,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.midlertidigEet.enabled).toBe(false);
-    expect(result.midlertidigEet.disabledReason).toBe('Forudsætter at midlertidigt EET indsættes fra Erhvervsevnetab-siden.');
+    expect(result.midlertidigEet.disabledReason).toBe('Forudsætter, at indstillingen "Midlertidigt EET indsættes..." er slået til på fanen med Offentlige Ydelser');
   });
 
   it('aktiverer midlertidig EET når togglen "Midlertidigt EET fra Erhvervsevnetab-siden" er aktiveret', () => {

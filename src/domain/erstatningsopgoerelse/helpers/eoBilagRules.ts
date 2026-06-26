@@ -237,7 +237,7 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : 'Der er ingen fejlfrie lønrækker med beløb inden for det valgte bilagsfilter.',
+            : 'Der er ikke indtastet lønrækker inden for den relevante periode.',
         },
     offentligeYdelser: harOffentligeYdelser
       ? { enabled: true }
@@ -245,13 +245,13 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : 'Der er ingen fejlfrie ydelsesrækker med beløb inden for det valgte bilagsfilter.',
+            : 'Der er ikke indtastet ydelsesrækker inden for den relevante periode.',
         },
     midlertidigEet: midlertidigtEetFraEetSiden
       ? { enabled: true }
       : {
           enabled: false,
-          disabledReason: 'Forudsætter at midlertidigt EET indsættes fra Erhvervsevnetab-siden.',
+          disabledReason: 'Forudsætter, at indstillingen "Midlertidigt EET indsættes..." er slået til på fanen med Offentlige Ydelser',
         },
     regulering: kanViseIndkomstOgYdelserBilag && harRegulering
       ? { enabled: true }

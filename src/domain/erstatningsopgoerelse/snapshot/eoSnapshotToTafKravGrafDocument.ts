@@ -275,7 +275,7 @@ export const eoSnapshotToTafKravGrafDocument = (
     // en anden (og hyppigere) situation end at en faktisk TAF-beregning ikke kan fordeles på år.
     const message = engines.tafNetto.harTafPerioder
       ? 'Visuel graf over indtægtsniveau kan ikke genereres, fordi TAF ikke kan fordeles på år.'
-      : 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
+      : 'Dokumentet kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
     return { kind: 'blocked', message, invariants: [] };
   }
 

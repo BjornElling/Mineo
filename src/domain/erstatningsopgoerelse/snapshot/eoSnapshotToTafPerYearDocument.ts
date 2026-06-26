@@ -63,7 +63,7 @@ export const eoSnapshotToTafPerYearDocument = (snapshot: EoSnapshot): TafPerYear
   if (!presentation || presentation.years.length === 0) {
     const message = snapshot.data.engines.tafNetto.harTafPerioder
       ? 'TAF-krav fordelt på kalenderår kan ikke genereres, fordi TAF ikke kan fordeles på år.'
-      : 'TAF-krav fordelt på kalenderår kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
+      : 'Dokumentet kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
     return { kind: 'blocked', message, invariants: [] };
   }
 
