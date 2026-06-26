@@ -33,9 +33,28 @@ const renderMineo = () => {
   );
 };
 
+const mockDisplayModeMatchMedia = (standalone: boolean): void => {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query === '(display-mode: standalone)' ? standalone : false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as typeof window.matchMedia;
+};
+
 describe('Mineo - License Modal Integration', () => {
+  const originalMatchMedia = window.matchMedia;
+
   beforeEach(() => {
     writeLocalStorage(LOCAL_STORAGE_KEY, '');
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
   });
 
   test('modal er lukket som standard (anti-regression)', () => {
@@ -150,7 +169,19 @@ describe('Mineo - License Modal Integration', () => {
       expect(boxes[boxes.length - 1]).toHaveAttribute('aria-label', 'Søskendesider og kontakt');
       expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).toHaveAttribute('href', 'mailto:bel@fho.dk');
       expect(screen.getByText('minEO.dk').closest('[aria-current="page"]')).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'minProcesrente.dk' })).toHaveAttribute('href', 'https://minprocesrente.dk');
+      const minProcesrenteLink = screen.getByRole('link', { name: 'minProcesrente.dk' });
+      expect(minProcesrenteLink).toHaveAttribute('href', 'https://minprocesrente.dk');
+      expect(minProcesrenteLink).not.toHaveAttribute('target');
+    });
+
+    test('søskendeside-links åbner uden for PWA-vinduet i installeret PWA', () => {
+      mockDisplayModeMatchMedia(true);
+      renderMineo();
+
+      const minProcesrenteLink = screen.getByRole('link', { name: 'minProcesrente.dk' });
+      expect(minProcesrenteLink).toHaveAttribute('target', '_blank');
+      expect(minProcesrenteLink).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).not.toHaveAttribute('target');
     });
 
     test('viser version nummer', () => {
