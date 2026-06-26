@@ -4,7 +4,10 @@ import type {
   TafPerYearResult,
   TafYearEntry,
 } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
-import { buildTafPerYearOpreguleretBuildOutcome } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
+import {
+  buildTafPerYearOpreguleretBuildOutcome,
+  TAF_OPREGULERET_DELTA_PCT_DECIMALS,
+} from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
 import { reguleringssats } from '../../../data/lovbestemteRates';
 import { opregulerMedAkkumuleretReguleringssats } from '../../../domain/satser/opreguleringsmotorer';
 import { roundByMethod } from '../../../utils/rounding';
@@ -32,10 +35,10 @@ const makeResult = (years: TafYearEntry[]): TafPerYearResult => {
 };
 
 // Forventet opregulering svarende til engine-logikken (akkumuleret reguleringssats):
-// deltaPct = round(motor.deltaPct, 2); opreguleret = toOre(roundKroner(baseKroner * (1 + deltaPct/100)))
+// deltaPct = round(motor.deltaPct, 4); opreguleret = toOre(roundKroner(baseKroner * (1 + deltaPct/100)))
 const expectedOpregulering = (yearTafOre: number, year: number, beregningsAar: number): { deltaPct: number; opreguleretOre: number } => {
   const motor = opregulerMedAkkumuleretReguleringssats({ kildeAar: year, maalAar: beregningsAar });
-  const deltaPct = roundByMethod(motor.deltaPct, 2, 'halfAwayFromZero');
+  const deltaPct = roundByMethod(motor.deltaPct, TAF_OPREGULERET_DELTA_PCT_DECIMALS, 'halfAwayFromZero');
   const opreguleretKroner = roundByMethod((yearTafOre / 100) * (1 + deltaPct / 100), 2, 'halfAwayFromZero');
   return { deltaPct, opreguleretOre: Math.round(opreguleretKroner * 100) };
 };
@@ -78,8 +81,23 @@ describe('buildTafPerYearOpreguleretBuildOutcome', () => {
     if (outcome.kind !== 'ok') return;
     const forventetFaktor =
       (1 + reguleringssats[2022] / 100) * (1 + reguleringssats[2023] / 100) * (1 + reguleringssats[2024] / 100);
-    const forventetDeltaPct = roundByMethod((forventetFaktor - 1) * 100, 2, 'halfAwayFromZero');
+    const forventetDeltaPct = roundByMethod(
+      (forventetFaktor - 1) * 100,
+      TAF_OPREGULERET_DELTA_PCT_DECIMALS,
+      'halfAwayFromZero'
+    );
     expect(outcome.result.years[0].deltaPct).toBe(forventetDeltaPct);
+  });
+
+  it('beregner opreguleret beløb med deltaprocent afrundet til fire decimaler', () => {
+    const result = makeResult([makeYear(2024, 287_763_00)]);
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2026-03-01'));
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+
+    const y2024 = outcome.result.years[0];
+    expect(y2024.deltaPct).toBe(8.8872);
+    expect(y2024.yearTafOpreguleretOre).toBe(313_337_07);
   });
 
   it('giver deltaPct 0 og uændret beløb når året er beregningsåret', () => {

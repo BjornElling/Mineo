@@ -114,6 +114,8 @@ const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): 
         dagsloenOre: last.dagsloenOre,
         deltaPct: last.deltaPct,
         amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+        // Samme deltaPct og enhedsløn → samme regulerede løn (KL); bevar den.
+        ...(last.reguleretLoenOre !== undefined ? { reguleretLoenOre: last.reguleretLoenOre } : {}),
       };
       continue;
     }
@@ -127,6 +129,7 @@ const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): 
         maanedsloenOre: last.maanedsloenOre,
         deltaPct: last.deltaPct,
         amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+        ...(last.reguleretLoenOre !== undefined ? { reguleretLoenOre: last.reguleretLoenOre } : {}),
       };
       continue;
     }
@@ -514,19 +517,23 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         const segmentsForDisplay = mergeLoenudviklingSegments(segments);
         for (const segment of segmentsForDisplay) {
           flushForventetIndkomstSpacer();
-          const factorText = formatReguleringFactorText(segment.deltaPct);
+          // KL-lønaftaler: reguleringen sker trinvist på lønnen, så enhedsløn vises som
+          // den allerede regulerede løn uden faktor-tekst. Øvrige modeller viser basisløn
+          // × (100 % + delta %). Se docs/domain/taf/kl-loenaftaler-regulering.md.
+          const erReguleretLoen = segment.reguleretLoenOre !== undefined;
+          const factorText = erReguleretLoen ? '' : formatReguleringFactorText(segment.deltaPct);
           const fraDisplay = formatDateShort(segment.fra);
           const tilDisplay = formatDateShort(segment.til);
           let leftText = '';
           if (segment.kind === 'arbejdsdage') {
             const arbejdsdageText = formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
-            const dagsloenText = formatCurrencyFromOre(segment.dagsloenOre);
+            const dagsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.dagsloenOre);
             const unitText = labels.unitDag ? `${labels.unitDag} ` : '';
             leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} á ${unitText}${dagsloenText}${NBSP}kr.${factorText} =`;
           } else {
             const roundedMaaneder = roundByMethod(segment.maaneder, 4, 'halfAwayFromZero');
             const maanederText = formatMaanederTrimmed(roundedMaaneder);
-            const maanedsloenText = formatCurrencyFromOre(segment.maanedsloenOre);
+            const maanedsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.maanedsloenOre);
             const unitText = labels.unitMaaned ? `${labels.unitMaaned} ` : '';
             leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(roundedMaaneder) ? 'måned' : 'måneder'} á ${unitText}${maanedsloenText}${NBSP}kr.${factorText} =`;
           }

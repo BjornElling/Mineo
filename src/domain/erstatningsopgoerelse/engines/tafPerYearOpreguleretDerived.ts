@@ -15,9 +15,10 @@
  *   motor `opregulerMedAkkumuleretReguleringssats`.
  *
  *   Faktoren udtrykkes som en deltaprocent (deltaPct), så PDF'en kan vise
- *   "x (100 % + d %)" på samme måde som lønudviklingssegmenterne. Det
- *   opregulerede beløb beregnes konsistent med den VISTE (afrundede) deltaPct, så
- *   visning og tal stemmer overens.
+ *   "x (100 % + d %)" på samme måde som lønudviklingssegmenterne. Den særskilte
+ *   opreguleringsfaktor afrundes til fire decimaler, og det opregulerede beløb
+ *   beregnes konsistent med den VISTE (afrundede) deltaPct, så visning og tal
+ *   stemmer overens.
  *
  * FAIL-CLOSED:
  *   Mangler reguleringssats for et af de mellemliggende år (frem til
@@ -35,11 +36,13 @@ import type { TafPerYearResult } from './tafPerYearDerived';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
+export const TAF_OPREGULERET_DELTA_PCT_DECIMALS = 4;
+
 export type TafOpreguleretYearEntry = Readonly<{
   year: number;
   /** Det oprindelige TAF-nettobeløb for året (før opregulering). */
   yearTafOre: MoneyOre;
-  /** Opreguleringsfaktor udtrykt som deltaprocent (afrundet til 2 decimaler). */
+  /** Opreguleringsfaktor udtrykt som deltaprocent (afrundet til fire decimaler). */
   deltaPct: number;
   /** Det opregulerede TAF-nettobeløb for året. */
   yearTafOpreguleretOre: MoneyOre;
@@ -128,7 +131,7 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
       continue;
     }
 
-    const deltaPct = roundByMethod(opregulering.deltaPct, 2, 'halfAwayFromZero');
+    const deltaPct = roundByMethod(opregulering.deltaPct, TAF_OPREGULERET_DELTA_PCT_DECIMALS, 'halfAwayFromZero');
     // Beregn det opregulerede beløb konsistent med den viste deltaPct, så
     // visning og tal stemmer overens (parallelt med segmentAmountOre).
     const baseKroner = yearEntry.yearTafOre / 100;

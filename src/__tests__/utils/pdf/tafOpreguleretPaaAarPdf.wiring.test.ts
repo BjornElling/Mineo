@@ -1,7 +1,10 @@
 /// <reference types="vitest/globals" />
 
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
-import type { TafPerYearOpreguleretResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
+import {
+  buildTafPerYearOpreguleretBuildOutcome,
+  type TafPerYearOpreguleretResult,
+} from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import { toISODateString } from '../../../types/branded';
@@ -125,10 +128,10 @@ const FAKE_PRESENTATION: TafPerYearResult = {
 const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
   beregningsAar: 2026,
   years: [
-    { year: 2024, yearTafOre: 37500000 as MoneyOre, deltaPct: 5, yearTafOpreguleretOre: 39375000 as MoneyOre },
-    { year: 2025, yearTafOre: 37500000 as MoneyOre, deltaPct: 2.5, yearTafOpreguleretOre: 38437500 as MoneyOre },
+    { year: 2024, yearTafOre: 37500000 as MoneyOre, deltaPct: 5.1234, yearTafOpreguleretOre: 39421275 as MoneyOre },
+    { year: 2025, yearTafOre: 37500000 as MoneyOre, deltaPct: 2.5678, yearTafOpreguleretOre: 38462925 as MoneyOre },
   ],
-  sumOpreguleretOre: 77812500 as MoneyOre,
+  sumOpreguleretOre: 77884200 as MoneyOre,
 };
 
 const FAKE_DOCUMENT: TafPerYearOpreguleretDocument = {
@@ -180,16 +183,47 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     // Beregnet-krav-beløbet skal IKKE være fed (kun den efterfølgende opregulerings-linje).
     const beregnetKravBeloeb = recorded.find((e) => e.text.replace(/\s/g, ' ') === '375.000,00 kr.');
     expect(beregnetKravBeloeb?.style).toBe('normal');
-    expect(texts.some((t) => t.startsWith('Opreguleret til 2026'))).toBe(true);
+    expect(texts.some((t) => t.startsWith('Opreguleret til 2026-værdi (100 % + 5,1234 %)'))).toBe(true);
     expect(texts).toContain('Samlet TAF opreguleret til 2026');
     // Opregulerings-beløbet er fed.
-    const opreguleretBeloeb = recorded.find((e) => e.text.replace(/\s/g, ' ') === '393.750,00 kr.');
+    const opreguleretBeloeb = recorded.find((e) => e.text.replace(/\s/g, ' ') === '394.212,75 kr.');
     expect(opreguleretBeloeb?.style).toBe('bold');
     // Beløbslinjen bruger non-breaking space før "kr."; sammenlign mellemrumsuafhængigt.
-    expect(normalized).toContain('778.125,00 kr.');
+    expect(normalized).toContain('778.842,00 kr.');
     // Ingen bilag-side-titler (de starter en ny side via addPage + writeTitle)
     expect(texts).not.toContain('Sygeferiegodtgørelse');
     expect(lastInstance()?.save).toHaveBeenCalledWith('TAF opreguleret til beregningsår.pdf');
+  });
+
+  it('viser og beregner opreguleringslinjen med fire-decimalers faktor fra beregningsmotoren', () => {
+    const baseTafOre = 28776300 as MoneyOre;
+    const presentation: TafPerYearResult = {
+      ...FAKE_PRESENTATION,
+      years: [makeYearEntry(2024, baseTafOre)],
+      sumYearTafOre: baseTafOre,
+      samletTafKravOre: baseTafOre,
+    };
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(presentation, toISODateString('2026-03-01'));
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+
+    expect(outcome.result.years[0]?.deltaPct).toBe(8.8872);
+    expect(outcome.result.years[0]?.yearTafOpreguleretOre).toBe(31333707);
+
+    generate({
+      document: {
+        model: FAKE_MODEL as never,
+        presentation,
+        opreguleret: outcome.result,
+      },
+    });
+
+    const recorded = lastInstance()?.recorded ?? [];
+    const normalized = recorded.map((entry) => entry.text.replace(/\s/g, ' '));
+    expect(normalized).toContain('Opreguleret til 2026-værdi (100 % + 8,8872 %) =');
+    expect(normalized).toContain('313.337,07 kr.');
+    expect(normalized).not.toContain('Opreguleret til 2026-værdi (100 % + 8,89 %) =');
+    expect(normalized).not.toContain('313.345,13 kr.');
   });
 
   it('viser "Ingen" når der ikke er TAF-perioder', () => {

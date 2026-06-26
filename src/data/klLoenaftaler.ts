@@ -1,23 +1,34 @@
 /**
- * KL-lønaftaler – akkumulerede reguleringssatser fra de kommunale lønaftaler.
+ * KL-lønaftaler – periodevise reguleringssatser fra de kommunale lønaftaler.
  *
- * Modellen er en enkelt indeksserie (modsat KRL-satstabellen, der har fire
- * delserier). Hver række beskriver én aftalt regulering på en given dato med
- * den akkumulerede indeksværdi efter reguleringen (fx 1,124454).
+ * SÆRLIG KL-LOGIK — denne model regulerer trinvist på selve lønnen og har andre
+ * visninger end de øvrige reguleringsmodeller. Normativt overblik:
+ * docs/domain/taf/kl-loenaftaler-regulering.md
  *
- * To afledte repræsentationer bygges fra den samme kilde:
- *  - `klLoenaftaleRaekker`: alle linjer (også ikke-regulerende og delkomponenter
- *    på samme dato) til brug i det dokument brugeren kan downloade.
- *  - `klSatstabelVaerdier`: den deduplikerede satstabel beregningsmotoren bruger,
- *    hvor flere reguleringer på samme dato er slået sammen til den endelige
- *    akkumulerede værdi, og rene ikke-regulerende datoer er udeladt.
+ * Modellen er en enkelt serie af periode-reguleringer (modsat KRL-satstabellen,
+ * der har fire delserier). Hver række beskriver én reguleringsprocent på en given
+ * dato (fx 1,40 % pr. 1. januar 2006). Der lagres bevidst INGEN akkumuleret
+ * regulering i kilden — den akkumulerede serie beregnes af programmet (se
+ * `klSatstabelVaerdier` nedenfor), og selve reguleringen mellem to datoer beregnes
+ * af reguleringsmotoren i forbindelse med erstatningsberegningen, præcis som for
+ * KRL-satstabellen, statistikmodellerne og overenskomsterne (forholdet mellem
+ * indeks på segment- og basisdatoen).
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * NOTE TIL FREMADRETTET VEDLIGEHOLDELSE (tilføjelse af nye satser):
+ *
+ *  - Reguleringsværdierne fremkommer ved at tage den procentvise fremskrivning i
+ *    akkumuleret regulering og afrunde til nærmeste 0,05 %.
+ *  - Værdierne er derfor beregningsteknisk unøjagtige. De indgår bevidst alligevel,
+ *    fordi formålet er at lave en parallel til Erstatningsnævnets (forkerte)
+ *    reguleringssatser — ikke at ramme den matematisk korrekte lønudvikling.
+ *
+ * Nye rækker tilføjes kronologisk (ældste først) som [dato, periode-procent].
+ * ─────────────────────────────────────────────────────────────────────────────
  *
  * Beregning i Mineo kan kun foretages fra 1. januar 2005, så serien starter ved
- * den akkumulerede værdi pr. 1. april 2005 (basis-indekset for 2005-vinduet).
- *
- * Reguleringsprocent følger samme konvention som KRL: `(indeks − 1) × 100`
- * (fx indeks 1,124454 → 12,4454). De afledte procenter er identiske med KRL's
- * "KTO (kommuner)"-serie, fordi de bygger på de samme kommunale lønaftaler.
+ * 1. april 2005, der fungerer som basisdato (0,00 % — intet akkumuleret indeks
+ * fremført fra før 2005).
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
@@ -29,18 +40,14 @@ import { roundByMethod } from '../utils/rounding';
 /** Én linje i KL-lønaftalernes oversigt (kilde til download-dokumentet). */
 export interface KLLoenaftaleRow {
   readonly fraDato: DanishDateString;
-  /** Reguleringens art, fx "Generelle stigninger" eller "Ingen regulering". */
-  readonly regulering: string;
-  /** Reguleringens procentsats som vist, fx "1,30%" — tom streng når der ikke reguleres. */
-  readonly procent: string;
-  /** Akkumuleret indeksværdi efter linjen, fx 1,124454. */
-  readonly indeks: number;
+  /** Periode-reguleringsprocent, fx 1.40 (= 1,40 %). */
+  readonly reguleringPct: number;
 }
 
-/** Én deduplikeret reguleringssats brugt af beregningsmotoren. */
+/** Én reguleringssats brugt af beregningsmotoren (akkumuleret, afledt af kilden). */
 export interface KLSatsVaerdi {
   readonly fraDato: DanishDateString;
-  /** Reguleringsprocent, fx 12.4454 (= (indeks − 1) × 100). */
+  /** Akkumuleret reguleringsprocent, fx 12.4454 (= (akkumuleret indeks − 1) × 100). */
   readonly reguleringsPct: number;
 }
 
@@ -56,161 +63,107 @@ const d = (dateStr: string): DanishDateString => toDanishDateString(dateStr);
 // ===== KILDE-DATA (kronologisk, ældste først) =====
 
 /**
- * Samlet rå-tabel: [fraDato, regulering, procent, akkumuleret indeks].
+ * Periode-reguleringssatser: [fraDato, periode-procent].
  *
- * Reguleringens art og procentsats holdes i hver sin kolonne (datoen står i sin egen
- * kolonne). Nummerering og "pr. den <dato>"-halen fra lønaftalerne er udeladt.
- * Procenten er tom streng på linjer uden regulering.
+ * 1. april 2005 (0,00 %) er basisdatoen. Hver efterfølgende sats er den realiserede
+ * regulering i den pågældende periode (ikke en akkumuleret værdi).
  */
-const klLoenaftaleRaekkerData: ReadonlyArray<readonly [fraDato: string, regulering: string, procent: string, indeks: number]> = [
-  ['01-04-2005', 'Ingen regulering (trinprojektet)',                       '',         1.124454],
-  ['01-01-2006', 'Generelle stigninger',                                   '0,69%',    1.132213],
-  ['01-01-2006', 'Særlig aftalt regulering',                               '0,70%',    1.140138],
-  ['01-10-2006', 'Særlig regulering',                                      '1,00%',    1.151539],
-  ['01-04-2007', 'Generelle stigninger',                                   '0,80%',    1.160535],
-  ['01-10-2007', 'Særlig regulering',                                      '0,41%',    1.165293],
-  ['01-04-2008', 'Generelle stigninger',                                   '4,09%',    1.212953],
-  ['01-10-2008', 'Særlig regulering',                                      '1,47%',    1.230783],
-  ['01-04-2009', 'Generelle stigninger',                                   '0,20%',    1.233114],
-  ['01-10-2009', 'Generelle stigninger',                                   '0,68%',    1.241038],
-  ['01-10-2009', 'Særlig regulering',                                      '0,48%',    1.246995],
-  ['01-04-2010', 'Generelle stigninger',                                   '0,50%',    1.252821],
-  ['01-04-2010', 'Særlig aftalt regulering',                               '-0,32%',   1.248812],
-  ['01-10-2010', 'Ingen regulering',                                       '',         1.248812],
-  ['01-04-2011', 'Ingen regulering',                                       '',         1.248812],
-  ['01-01-2012', 'Særlig regulering',                                      '-0,08%',   1.247813],
-  ['01-01-2012', 'Generelle stigninger',                                   '1,71%',    1.268904],
-  ['01-10-2012', 'Generelle stigninger',                                   '0,20%',    1.271371],
-  ['01-10-2012', 'Særlig regulering',                                      '-0,05%',   1.270735],
-  ['01-04-2013', 'Generelle stigninger',                                   '0,50%',    1.277089],
-  ['01-10-2013', 'Generelle stigninger',                                   '0,60%',    1.284713],
-  ['01-10-2013', 'Særlig regulering',                                      '-0,48%',   1.278546],
-  ['01-01-2014', 'Generelle stigninger',                                   '0,50%',    1.284900],
-  ['01-10-2014', 'Generelle stigninger',                                   '0,37%',    1.289602],
-  ['01-10-2014', 'Særlig regulering',                                      '0,26%',    1.292955],
-  ['01-04-2015', 'Generelle stigninger',                                   '0,96%',    1.305367],
-  ['01-10-2015', 'Generelle stigninger',                                   '0,35%',    1.309892],
-  ['01-10-2015', 'Særlig regulering',                                      '0,11%',    1.311333],
-  ['01-01-2016', 'Generelle stigninger',                                   '0,50%',    1.317798],
-  ['01-10-2016', 'Generelle stigninger',                                   '1,00%',    1.330728],
-  ['01-10-2016', 'Særlig regulering',                                      '-0,12%',   1.329131],
-  ['01-01-2017', 'Generelle stigninger',                                   '1,20%',    1.344646],
-  ['01-10-2017', 'Generelle stigninger',                                   '0,80%',    1.354990],
-  ['01-10-2017', 'Særlig regulering',                                      '-0,60%',   1.346860],
-  ['01-04-2018', 'Generelle stigninger',                                   '1,10%',    1.361675],
-  ['01-10-2018', 'Generelle stigninger',                                   '1,30%',    1.379184],
-  ['01-10-2018', 'Særlig regulering',                                      '-0,14%',   1.377253],
-  ['01-04-2019', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.377253],
-  ['01-10-2019', 'Generelle stigninger',                                   '1,00%',    1.390722],
-  ['01-10-2019', 'Særlig regulering',                                      '0,01%',    1.390861],
-  ['01-01-2020', 'Generelle stigninger',                                   '1,60%',    1.412411],
-  ['01-04-2020', 'Generelle stigninger',                                   '0,40%',    1.417798],
-  ['01-10-2020', 'Generelle stigninger',                                   '0,70%',    1.427226],
-  ['01-10-2020', 'Særlig regulering',                                      '0,09%',    1.428511],
-  ['01-04-2021', 'Generelle stigninger',                                   '1,00%',    1.442796],
-  ['01-10-2021', 'Generelle stigninger',                                   '1,01%',    1.457224],
-  ['01-10-2021', 'Særlig regulering',                                      '-0,02%',   1.456933],
-  ['01-04-2022', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.456933],
-  ['01-10-2022', 'Generelle stigninger',                                   '1,90%',    1.484075],
-  ['01-10-2022', 'Særlig regulering',                                      '0,67%',    1.494018],
-  ['01-04-2023', 'Generelle stigninger',                                   '0,30%',    1.498304],
-  ['01-10-2023', 'Generelle stigninger',                                   '0,81%',    1.509875],
-  ['01-10-2023', 'Særlig regulering',                                      '0,47%',    1.516971],
-  ['01-04-2024', 'Generelle stigninger',                                   '4,00%',    1.577650],
-  ['01-10-2024', 'Særlig regulering',                                      '1,30%',    1.598159],
-  ['01-04-2025', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.598159],
-  ['01-10-2025', 'Generelle stigninger',                                   '0,24%',    1.601800],
-  ['01-10-2025', 'Særlig regulering',                                      '0,07%',    1.602921],
-  ['01-11-2025', 'Generelle stigninger',                                   '0,20%',    1.605955],
-  ['01-11-2025', 'Særlig regulering (sfa. ultimo-forhandlingen)',          '0,54%',    1.614627],
-  ['01-04-2026', 'Generelle stigninger, inkl. teknisk korrektion (0,20%)', '2,40%',    1.653378],
-  ['01-10-2026', 'Generelle stigninger',                                   '0,70%',    1.664680],
-  ['01-10-2026', 'Særlig regulering',                                      '-0,16%',   1.662017],
-  ['01-04-2027', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.662017],
+const klReguleringsraekkerData: ReadonlyArray<readonly [fraDato: string, reguleringPct: number]> = [
+  ['01-04-2005', 0.00],
+  ['01-01-2006', 1.40],
+  ['01-10-2006', 1.00],
+  ['01-04-2007', 0.80],
+  ['01-10-2007', 0.40],
+  ['01-04-2008', 4.10],
+  ['01-10-2008', 1.45],
+  ['01-04-2009', 0.20],
+  ['01-10-2009', 1.15],
+  ['01-04-2010', 0.15],
+  ['01-01-2012', 1.60],
+  ['01-10-2012', 0.15],
+  ['01-04-2013', 0.50],
+  ['01-10-2013', 0.10],
+  ['01-01-2014', 0.50],
+  ['01-10-2014', 0.65],
+  ['01-04-2015', 0.95],
+  ['01-10-2015', 0.45],
+  ['01-01-2016', 0.50],
+  ['01-10-2016', 0.85],
+  ['01-01-2017', 1.15],
+  ['01-10-2017', 0.15],
+  ['01-04-2018', 1.10],
+  ['01-10-2018', 1.15],
+  ['01-10-2019', 1.00],
+  ['01-01-2020', 1.55],
+  ['01-04-2020', 0.40],
+  ['01-10-2020', 0.75],
+  ['01-04-2021', 1.00],
+  ['01-10-2021', 1.00],
+  ['01-10-2022', 2.55],
+  ['01-04-2023', 0.30],
+  ['01-10-2023', 1.25],
+  ['01-04-2024', 4.00],
+  ['01-10-2024', 1.30],
+  ['01-10-2025', 0.30],
+  ['01-11-2025', 0.75],
+  ['01-04-2026', 2.40],
+  ['01-10-2026', 0.50],
 ];
 
 /**
  * Alle linjer i KL-lønaftalerne, kronologisk (ældste først).
  * Bruges til det dokument brugeren downloader.
  */
-export const klLoenaftaleRaekker: ReadonlyArray<KLLoenaftaleRow> = klLoenaftaleRaekkerData.map(
-  ([fraDato, regulering, procent, indeks]) => ({ fraDato: d(fraDato), regulering, procent, indeks })
+export const klLoenaftaleRaekker: ReadonlyArray<KLLoenaftaleRow> = klReguleringsraekkerData.map(
+  ([fraDato, reguleringPct]) => ({ fraDato: d(fraDato), reguleringPct })
 );
 
 // ===== AFLEDT SATSTABEL (beregning) =====
+
+/**
+ * Akkumuleret indeksserie ([dato, akkumuleret indeks], ældste først), beregnet af
+ * programmet ved at kæde periode-satserne fra basisdatoen:
+ *   indeks_0 = 1            (basisdato, 0,00 %)
+ *   indeks_n = indeks_{n−1} × (1 + periode-procent_n / 100)
+ *
+ * Indekset holdes råt (fuld præcision) her, så periodeforholdet i motoren beregnes
+ * uden akkumuleret afrundingstab.
+ */
+const akkumuleretIndeksSerie: ReadonlyArray<readonly [DanishDateString, number]> = (() => {
+  const serie: Array<readonly [DanishDateString, number]> = [];
+  let acc = 1;
+  for (const { fraDato, reguleringPct } of klLoenaftaleRaekker) {
+    acc *= 1 + reguleringPct / 100;
+    serie.push([fraDato, acc] as const);
+  }
+  return serie;
+})();
 
 const indeksTilReguleringsPct = (indeks: number): number =>
   roundByMethod((indeks - 1) * 100, 4, 'halfAwayFromZero');
 
 /**
- * Deduplikeret kronologisk indeksserie ([dato, akkumuleret indeks], ældste først):
- *  - flere reguleringer på samme dato slås sammen til datoens endelige indeks
- *    (sidste linje på datoen vinder),
- *  - rene ikke-regulerende datoer (uændret indeks ift. forrige) udelades,
- *  - basis-indekset (første dato) bevares altid.
- *
- * Både satstabellen og den periodevise reguleringsprocent afledes fra denne ene
- * serie, så de to repræsentationer altid er indbyrdes konsistente. Indekset holdes
- * råt (6 decimaler) her, så periodeforholdet beregnes uden afrundingstab.
- */
-const dedupedIndeksSerie: ReadonlyArray<readonly [DanishDateString, number]> = (() => {
-  // Endelig akkumuleret indeks pr. dato (sidste linje på datoen vinder).
-  const finalIndeksByDato = new Map<DanishDateString, number>();
-  for (const row of klLoenaftaleRaekker) {
-    finalIndeksByDato.set(row.fraDato, row.indeks);
-  }
-
-  const serie: Array<readonly [DanishDateString, number]> = [];
-  let prevIndeks: number | undefined;
-  for (const [dato, indeks] of finalIndeksByDato) {
-    // Udelad datoer der ikke ændrer det akkumulerede indeks (men bevar første).
-    if (prevIndeks !== undefined && indeks === prevIndeks) continue;
-    serie.push([dato, indeks] as const);
-    prevIndeks = indeks;
-  }
-  return serie;
-})();
-
-/**
  * KL-lønaftalernes satstabel, sorteret nyeste først (som KRL-satstabellen).
- * Reguleringsprocenter, fx 65.3378 = 65,3378 %.
+ * Akkumulerede reguleringsprocenter, fx 65.3378 = 65,3378 %.
  */
-export const klSatstabelVaerdier: ReadonlyArray<KLSatsVaerdi> = dedupedIndeksSerie
+export const klSatstabelVaerdier: ReadonlyArray<KLSatsVaerdi> = akkumuleretIndeksSerie
   .map(([fraDato, indeks]) => ({ fraDato, reguleringsPct: indeksTilReguleringsPct(indeks) }))
   .reverse();
 
 // ===== PERIODEVIS REGULERINGSPROCENT =====
 
 /**
- * Den realiserede regulering pr. dato, afledt af forholdet mellem datoens
- * akkumulerede indeks og den forrige regulerende datos indeks:
- * (indeks_nu / indeks_forrige − 1) × 100, afrundet til 2 decimaler.
- *
- * Dette er den korrekte perioderegulering — ikke en sammenlægning af de nominelle
- * aftaletrin på datoen. De nominelle trin ganger ikke rent op til det akkumulerede
- * indeks (fx 1.10.2022: nominelt 1,90 % + 0,67 % = 2,57 %, men det akkumulerede
- * indeks svarer til +2,55 %), og det akkumulerede indeks er den autoritative kilde.
- * Ved at aflede procenten fra indeksforholdet er "Regulering"-kolonnen altid
- * konsistent med "Akkumuleret regulering": kæder man periodernes regulering fra
- * basis, rammer man indekset igen. Basisdatoen (første linje) har ingen forudgående
- * periode og udelades derfor.
+ * Den indtastede periode-reguleringsprocent pr. dato (kilde-værdien som vist).
+ * Bruges i reguleringsværdi-oversigten.
  */
-const klPeriodeReguleringPctByDato: ReadonlyMap<DanishDateString, number> = (() => {
-  const map = new Map<DanishDateString, number>();
-  let prevIndeks: number | undefined;
-  for (const [dato, indeks] of dedupedIndeksSerie) {
-    if (prevIndeks !== undefined) {
-      map.set(dato, roundByMethod((indeks / prevIndeks - 1) * 100, 2, 'halfAwayFromZero'));
-    }
-    prevIndeks = indeks;
-  }
-  return map;
-})();
+const klPeriodeReguleringPctByDato: ReadonlyMap<DanishDateString, number> = new Map(
+  klLoenaftaleRaekker.map((row) => [row.fraDato, row.reguleringPct])
+);
 
 /**
- * Returnerer den realiserede reguleringsprocent for en given dato (procentpoint),
- * afledt af det akkumulerede indeks. undefined for basisdatoen og for datoer der
- * ikke er en regulerende dato i KL-lønaftalerne.
+ * Returnerer den indtastede periode-reguleringsprocent for en given dato
+ * (procentpoint). undefined for datoer der ikke er en regulerende dato i
+ * KL-lønaftalerne.
  */
 export const getKLReguleringPctForDato = (fraDato: DanishDateString): number | undefined =>
   klPeriodeReguleringPctByDato.get(fraDato);

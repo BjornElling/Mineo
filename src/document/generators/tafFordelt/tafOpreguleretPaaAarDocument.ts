@@ -37,6 +37,7 @@ import {
 } from '../../layout/documentFormatUtils';
 import { parseOptionalIsoDate } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveLoenSkadedatoText } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
+import { TAF_OPREGULERET_DELTA_PCT_DECIMALS } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
 import type { Calculable, MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
@@ -270,15 +271,18 @@ export const generateTafOpreguleretPaaAarDocument = (
       writer.writeWrappedText('Ingen');
     }
     for (const segment of yearEntry.segments) {
-      const factorText = formatReguleringFactorText(segment.deltaPct);
+      // KL-lønaftaler: enhedsløn vises som den allerede regulerede løn uden faktor-tekst.
+      // Se docs/domain/taf/kl-loenaftaler-regulering.md.
+      const erReguleretLoen = segment.reguleretLoenOre !== undefined;
+      const factorText = erReguleretLoen ? '' : formatReguleringFactorText(segment.deltaPct);
       let leftText = '';
       if (segment.kind === 'arbejdsdage') {
         const arbejdsdageText = formatCountWithUnit(segment.quantity, 'arbejdsdag', 'arbejdsdage');
-        const dagsloenText = formatCurrencyFromOre(segment.unitAmountOre);
+        const dagsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.unitAmountOre);
         leftText = `${formatDateShort(segment.fra)} - ${formatDateShort(segment.til)}: ${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
       } else {
         const maanederText = `${formatMaanederTrimmed(segment.quantity)} ${isSingularCount(segment.quantity) ? 'måned' : 'måneder'}`;
-        const maanedsloenText = formatCurrencyFromOre(segment.unitAmountOre);
+        const maanedsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.unitAmountOre);
         leftText = `${formatDateShort(segment.fra)} - ${formatDateShort(segment.til)}: ${maanederText} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
       }
       const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(segment.amountOre));
@@ -332,9 +336,12 @@ export const generateTafOpreguleretPaaAarDocument = (
     const opreguleretEntry = opreguleretByYear.get(yearEntry.year);
     if (opreguleretEntry) {
       writer.writeUnderlinedSubheader('Opreguleret til beregningsåret');
-      // factorText har formen " x (100 % + 16,08 %)"; her ønskes "-værdi (100 % + 16,08 %)"
+      // factorText har formen " x (100 % + 16,0800 %)"; her ønskes "-værdi (100 % + 16,0800 %)"
       // uden multiplikations-tegnet, så " x " strippes for netop denne linje.
-      const factorText = formatReguleringFactorText(opreguleretEntry.deltaPct).replace(/^ x /, ' ');
+      const factorText = formatReguleringFactorText(
+        opreguleretEntry.deltaPct,
+        TAF_OPREGULERET_DELTA_PCT_DECIMALS
+      ).replace(/^ x /, ' ');
       const opreguleretLeftText = `Opreguleret til ${beregningsAar}-værdi${factorText} =`;
       const opreguleretRightText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleretEntry.yearTafOpreguleretOre));
       safeAddLeftRightText(opreguleretLeftText, opreguleretRightText, rightMaxWidth, { rightFontStyle: 'bold' });

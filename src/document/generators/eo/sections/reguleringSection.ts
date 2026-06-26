@@ -285,24 +285,45 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       return;
     }
 
-    const tableRows: RowInput[] = [
-      [
+    // KL-lønaftaler: trinvis kæde-opregulering vises uden indeksberegning; i stedet
+    // ses lønudviklingen og den resulterende, afrundede måneds-/dagsløn for perioden.
+    // Se docs/domain/taf/kl-loenaftaler-regulering.md.
+    const isKlTable = rows.some((row) => row.reguleretLoen !== undefined);
+
+    const tableRows: RowInput[] = [];
+    if (isKlTable) {
+      const reguleretLoenHeader = tafBeregnesSom === 'Måneder' ? 'Reguleret månedsløn' : 'Reguleret dagsløn';
+      tableRows.push([
+        createDocumentTableHeaderCell('Fra-dato', 'center'),
+        createDocumentTableHeaderCell('Til-dato', 'center'),
+        createDocumentTableHeaderCell('Lønudvikling', 'center'),
+        createDocumentTableHeaderCell(reguleretLoenHeader, 'center'),
+      ]);
+      for (const row of rows) {
+        tableRows.push([
+          createDocumentTableCell(row.fraDato, { halign: 'center' }),
+          createDocumentTableCell(row.tilDato, { halign: 'center' }),
+          createDocumentTableCell(row.loenudvikling, { halign: 'center' }),
+          createDocumentTableCell(row.reguleretLoen ?? '', { halign: 'center' }),
+        ]);
+      }
+    } else {
+      tableRows.push([
         createDocumentTableHeaderCell('Fra-dato', 'center'),
         createDocumentTableHeaderCell('Til-dato', 'center'),
         createDocumentTableHeaderCell('Indeksberegning', 'center'),
         createDocumentTableHeaderCell('Indeks', 'center'),
         createDocumentTableHeaderCell('Lønudvikling', 'center'),
-      ],
-    ];
-
-    for (const row of rows) {
-      tableRows.push([
-        createDocumentTableCell(row.fraDato, { halign: 'center' }),
-        createDocumentTableCell(row.tilDato, { halign: 'center' }),
-        createDocumentTableCell(row.indeksberegning, { halign: 'center' }),
-        createDocumentTableCell(row.indeks, { halign: 'right' }),
-        createDocumentTableCell(row.loenudvikling, { halign: 'right' }),
       ]);
+      for (const row of rows) {
+        tableRows.push([
+          createDocumentTableCell(row.fraDato, { halign: 'center' }),
+          createDocumentTableCell(row.tilDato, { halign: 'center' }),
+          createDocumentTableCell(row.indeksberegning, { halign: 'center' }),
+          createDocumentTableCell(row.indeks, { halign: 'right' }),
+          createDocumentTableCell(row.loenudvikling, { halign: 'right' }),
+        ]);
+      }
     }
 
     const doc = writer.getDoc();
@@ -311,6 +332,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       doc,
       startY,
       body: tableRows,
+      columnStyles: isKlTable ? createDocumentDistributedColumnStyles(4, { defaultHalign: 'center' }) : undefined,
     });
     writer.setY(resolveDocumentSectionEndY(finalY, startY));
   };
@@ -504,7 +526,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       safeAddWrappedText("KRL's sats-tabeller kan genfindes på https://www.krl.dk/#/sats");
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KL-lønaftaler') {
       writer.addSectionSpacer();
-      safeAddWrappedText('Regulering foretages på baggrund af de akkumulerede reguleringssatser i de kommunale lønaftaler (KL).');
+      safeAddWrappedText('Regulering foretages på baggrund af de kommunale lønaftaler (KL). Lønnen opreguleres trinvist til hver reguleringssats, og den beregnede løn afrundes til to decimaler efter hvert trin, inden næste regulering foretages.');
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Statistik') {
       const statistikLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
       const statistikModelId = resolveStatistikModelIdFromLabel(statistikLabel);

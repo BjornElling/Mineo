@@ -172,13 +172,67 @@ describe('buildLoenudviklingModel', () => {
       { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2026-03-31') }] }
     );
 
-    // Basisindeks = 01-04-2024 (57,7650). Basissegmentet har deltaPct 0.
+    // Basisdato = 01-04-2024. Basissegmentet har deltaPct 0.
     const baseSegment = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-04-01'));
     expect(baseSegment?.deltaPct).toBe(0);
 
-    // 01-10-2024 (59,8159): ((100+59,8159)/(100+57,7650) − 1) × 100 = 1,30.
+    // 01-10-2024: eneste periode-sats mellem basis og segment er 1,30 %, så
+    // forholdet mellem de akkumulerede indeks giver deltaPct 1,30.
     const segmentOkt2024 = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-10-01'));
     expect(segmentOkt2024?.deltaPct).toBe(1.30);
+  });
+
+  it('KL: opregulerer lønnen trinvist og afrunder til to decimaler på hvert trin', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-04-01');
+    values.tafPerioder = [{
+      id: 'taf-kl-chain',
+      fra: iso('2024-04-01'),
+      til: iso('2026-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-04-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2026-12-31') }] }
+    );
+
+    // Den kæde-opregulerede, afrundede løn pr. reguleringsdato. Hvert trin afrundes
+    // til to decimaler, og den afrundede værdi opreguleres til næste sats:
+    //   30.000,00 →(1,30%) 30.390,00 →(0,30%) 30.481,17 →(0,75%) 30.709,78
+    //            →(2,40%) 31.446,81 →(0,50%) 31.604,04
+    const reguleretLoenFor = (fra: string): number | undefined => {
+      const segment = model.beregnedeSegmenter.find((s) => s.fra === iso(fra));
+      if (!segment || segment.kind !== 'maaneder') return undefined;
+      return Math.round((segment.maanedsloenOre / 100) * (1 + segment.deltaPct / 100) * 100) / 100;
+    };
+
+    // Basislønnen bevares som enhedsløn på alle segmenter (regulering ligger i deltaPct).
+    expect(model.beregnedeSegmenter.every((s) => s.kind === 'maaneder' && s.maanedsloenOre === 3_000_000)).toBe(true);
+
+    expect(reguleretLoenFor('2024-04-01')).toBe(30_000.00);
+    expect(reguleretLoenFor('2024-10-01')).toBe(30_390.00);
+    expect(reguleretLoenFor('2025-10-01')).toBe(30_481.17);
+    expect(reguleretLoenFor('2025-11-01')).toBe(30_709.78);
+    expect(reguleretLoenFor('2026-04-01')).toBe(31_446.81);
+    expect(reguleretLoenFor('2026-10-01')).toBe(31_604.04);
+
+    // TAF-beløbet for et segment bruger den afrundede løn: beløb = afrund(løn × måneder).
+    const novemberSegment = model.beregnedeSegmenter.find((s) => s.fra === iso('2025-11-01'));
+    expect(novemberSegment?.kind).toBe('maaneder');
+    if (novemberSegment?.kind === 'maaneder') {
+      const forventetOre = Math.round(30_709.78 * novemberSegment.maaneder * 100);
+      expect(novemberSegment.amountOre).toBe(forventetOre);
+    }
   });
 
   it('springer over manuelle reguleringssegmenter uden TAF-arbejdsdage', () => {

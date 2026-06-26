@@ -8,6 +8,8 @@ import type { OevrigeKravCanonicalInput } from './eoPresentationModel';
 
 const isoDateSchema = isoDateString;
 
+// reguleretLoenOre er valgfrit og sættes kun for KL-lønaftaler (trinvis kæde-opregulering).
+// Se docs/domain/taf/kl-loenaftaler-regulering.md.
 const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('maaneder'),
@@ -17,6 +19,7 @@ const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
     maanedsloenOre: moneyOreSchema,
     deltaPct: z.number(),
     amountOre: moneyOreSchema,
+    reguleretLoenOre: moneyOreSchema.optional(),
   }).strict(),
   z.object({
     kind: z.literal('arbejdsdage'),
@@ -26,6 +29,7 @@ const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
     dagsloenOre: moneyOreSchema,
     deltaPct: z.number(),
     amountOre: moneyOreSchema,
+    reguleretLoenOre: moneyOreSchema.optional(),
   }).strict(),
 ]);
 

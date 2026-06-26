@@ -158,15 +158,18 @@ export const generateTafFordeltPaaAarDocument = (
 
     // Segmenter (identisk format med EO-pdf)
     for (const segment of yearEntry.segments) {
-      const factorText = formatReguleringFactorText(segment.deltaPct);
+      // KL-lønaftaler: enhedsløn vises som den allerede regulerede løn uden faktor-tekst.
+      // Se docs/domain/taf/kl-loenaftaler-regulering.md.
+      const erReguleretLoen = segment.reguleretLoenOre !== undefined;
+      const factorText = erReguleretLoen ? '' : formatReguleringFactorText(segment.deltaPct);
       let leftText = '';
       if (segment.kind === 'arbejdsdage') {
         const arbejdsdageText = formatCountWithUnit(segment.quantity, 'arbejdsdag', 'arbejdsdage');
-        const dagsloenText = formatCurrencyFromOre(segment.unitAmountOre);
+        const dagsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.unitAmountOre);
         leftText = `${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
       } else {
         const maanederText = `${formatMaanederTrimmed(segment.quantity)} ${isSingularCount(segment.quantity) ? 'måned' : 'måneder'}`;
-        const maanedsloenText = formatCurrencyFromOre(segment.unitAmountOre);
+        const maanedsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.unitAmountOre);
         leftText = `${maanederText} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
       }
 

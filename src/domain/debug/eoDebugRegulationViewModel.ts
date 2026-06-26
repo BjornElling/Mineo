@@ -338,14 +338,29 @@ export function buildRegulationDebugSections(
         tafBeregningsenhed: computeTafBeregningsenhed(eoValues),
       });
       if (indeksRows.length > 0) {
-        tables.push({
-          id: `${sectionId}:beregnet`,
-          columns: ['Fra-dato', 'Til-dato', 'Indeksberegning', 'Indeks', 'Lønudvikling'],
-          rows: indeksRows.map((row, rowIndex) => ({
-            id: `${sectionId}:beregnet:${rowIndex}`,
-            cells: [row.fraDato, row.tilDato, row.indeksberegning, row.indeks, row.loenudvikling],
-          })),
-        });
+        // KL-lønaftaler: trinvis kæde-opregulering vises uden indeksberegning; i stedet
+        // ses lønudviklingen og den resulterende, afrundede måneds-/dagsløn.
+        // Se docs/domain/taf/kl-loenaftaler-regulering.md.
+        const isKlTable = indeksRows.some((row) => row.reguleretLoen !== undefined);
+        const reguleretLoenHeader =
+          computeTafBeregningsenhed(eoValues) === 'Måneder' ? 'Reguleret månedsløn' : 'Reguleret dagsløn';
+        tables.push(isKlTable
+          ? {
+              id: `${sectionId}:beregnet`,
+              columns: ['Fra-dato', 'Til-dato', 'Lønudvikling', reguleretLoenHeader],
+              rows: indeksRows.map((row, rowIndex) => ({
+                id: `${sectionId}:beregnet:${rowIndex}`,
+                cells: [row.fraDato, row.tilDato, row.loenudvikling, row.reguleretLoen ?? ''],
+              })),
+            }
+          : {
+              id: `${sectionId}:beregnet`,
+              columns: ['Fra-dato', 'Til-dato', 'Indeksberegning', 'Indeks', 'Lønudvikling'],
+              rows: indeksRows.map((row, rowIndex) => ({
+                id: `${sectionId}:beregnet:${rowIndex}`,
+                cells: [row.fraDato, row.tilDato, row.indeksberegning, row.indeks, row.loenudvikling],
+              })),
+            });
       }
     }
 

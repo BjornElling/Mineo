@@ -71,10 +71,10 @@ const FAKE_PRESENTATION: TafPerYearResult = {
 const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
   beregningsAar: 2026,
   years: [
-    { year: 2024, yearTafOre: 37500000 as MoneyOre, deltaPct: 5, yearTafOpreguleretOre: 39375000 as MoneyOre },
-    { year: 2025, yearTafOre: 37500000 as MoneyOre, deltaPct: 2.5, yearTafOpreguleretOre: 38437500 as MoneyOre },
+    { year: 2024, yearTafOre: 37500000 as MoneyOre, deltaPct: 5.1234, yearTafOpreguleretOre: 39421275 as MoneyOre },
+    { year: 2025, yearTafOre: 37500000 as MoneyOre, deltaPct: 2.5678, yearTafOpreguleretOre: 38462925 as MoneyOre },
   ],
-  sumOpreguleretOre: 77812500 as MoneyOre,
+  sumOpreguleretOre: 77884200 as MoneyOre,
 };
 
 const FAKE_DOCUMENT: TafPerYearOpreguleretDocument = {
@@ -94,6 +94,7 @@ describe('tafOpreguleretPaaAar → Word-indhold', () => {
     expect(text).toContain('2024');
     expect(text).toContain('2025');
     expect(text).toContain('Opreguleret til beregningsåret');
+    expect(text).toContain('Opreguleret til 2026-værdi (100 % + 5,1234 %)');
     expect(text).toContain('Samlet TAF opreguleret til 2026');
   });
 });

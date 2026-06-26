@@ -72,6 +72,9 @@ export type ReguleringIndexRow = Readonly<{
   indeksberegning: string;
   indeks: string;
   loenudvikling: string;
+  // KL-lønaftaler: den kæde-opregulerede, afrundede måneds-/dagsløn for perioden.
+  // Kun udfyldt for KL — øvrige modeller lader den være undefined.
+  reguleretLoen?: string;
 }>;
 
 export type ReguleringValuesTableData = Readonly<{
@@ -963,19 +966,18 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const vaerdier = getKLSatstabelVaerdier();
     if (vaerdier.length === 0) return null;
 
-    // KL-lønaftaler vises i indeks-form (fx 1,124454), modsat KRL's procent-form.
-    const formatKlIndeks = (reguleringsPct: number): string =>
-      formatAsAmount((100 + reguleringsPct) / 100, 6);
-
-    // Periodens realiserede regulering (afledt af forholdet mellem akkumulerede indeks) vises altid med fortegn.
-    const formatKlSignedPct = (value: number): string =>
-      `${value < 0 ? '-' : '+'}${formatAsAmount(Math.abs(value), 2)} %`;
+    // KL-lønaftaler vises som periode-reguleringssats (kilde-værdien). Der vises bevidst
+    // ingen akkumuleret regulering — KL-modellen kender ikke akkumuleret regulering;
+    // reguleringen sker trinvist på lønnen (jf. "Beregnet regulering"-tabellen og
+    // docs/domain/taf/kl-loenaftaler-regulering.md).
+    const formatKlPct = (value: number): string =>
+      `${formatAsAmount(value, 2)} %`;
 
     const periodStarts = vaerdier
       .map((v) => {
         const startIso = parseDanishToISO(v.fraDato);
         if (!startIso) return null;
-        return { startIso, fraDato: v.fraDato, reguleringsPct: v.reguleringsPct };
+        return { startIso, fraDato: v.fraDato };
       })
       .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
       .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
@@ -993,16 +995,16 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const rows: string[][] = finalDates.flatMap((iso) => {
       const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
       if (!period && anvendtReguleringsdato === iso) {
-        return [[formatDateShort(iso), '-', '-']];
+        return [[formatDateShort(iso), '-']];
       }
       if (!period) return [];
       const danishDato = isoToDanish(iso);
       const reguleringPct = danishDato ? getKLReguleringPctForDato(danishDato) : undefined;
-      const reguleringDisplay = reguleringPct === undefined ? '-' : formatKlSignedPct(reguleringPct);
-      return [[formatDateShort(iso), reguleringDisplay, formatKlIndeks(period.reguleringsPct)]];
+      const reguleringDisplay = reguleringPct === undefined ? '-' : formatKlPct(reguleringPct);
+      return [[formatDateShort(iso), reguleringDisplay]];
     });
     return {
-      columns: ['Fra-dato', 'Regulering', 'Akkumuleret regulering'],
+      columns: ['Fra-dato', 'Regulering'],
       rows: mergeConsecutiveValueRows(rows, {
         preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
       }),
@@ -1044,6 +1046,43 @@ export const buildReguleringIndexRows = (params: Readonly<{
   })();
   const finalizeIndexRows = (rows: readonly IndexRowWithIso[]): readonly ReguleringIndexRow[] =>
     mergeConsecutiveRowsWithSameCalculation(rows, { preserveStartIsos: preserveBoundaryStartIsos });
+
+  if (isKL) {
+    // KL-lønaftaler: trinvis kæde-opregulering med afrunding på hvert trin (se
+    // docs/domain/taf/kl-loenaftaler-regulering.md). KL kender ikke akkumuleret
+    // regulering — "Lønudvikling"-kolonnen gentager periodens
+    // reguleringssats (som i reguleringsværdi-tabellen), og "Reguleret løn" er den
+    // forudgående regulerede løn forhøjet med periodens sats og afrundet til to
+    // decimaler. Segmentets deltaPct ER den akkumulerede regulering afledt af den
+    // kæde-opregulerede løn, så basisløn × (1 + deltaPct/100) reproducerer den.
+    const klRows: IndexRowWithIso[] = segments.map((segment) => {
+      const unitLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
+      const reguleretLoen = roundByMethod((unitLoenOre / 100) * (1 + segment.deltaPct / 100), 2, 'halfAwayFromZero');
+      const reguleretLoenDisplay = formatAsAmount(reguleretLoen, 2);
+      // Periodens reguleringssats — kun på regulerende datoer efter reguleringsdatoen
+      // (basisperioden har ingen sats).
+      const danishDato = isoToDanish(segment.fra);
+      const periodePct =
+        danishDato && (!anvendtReguleringsdato || segment.fra > anvendtReguleringsdato)
+          ? getKLReguleringPctForDato(danishDato)
+          : undefined;
+      const loenudvikling = periodePct === undefined ? '' : `${formatAsAmount(periodePct, 2)} %`;
+      const signature = `${loenudvikling}|${reguleretLoenDisplay}`;
+      return {
+        fraIso: segment.fra,
+        tilIso: segment.til,
+        fraDato: formatDateShort(segment.fra),
+        tilDato: formatDateShort(segment.til),
+        indeksberegning: '',
+        indeks: '',
+        loenudvikling,
+        reguleretLoen: reguleretLoenDisplay,
+        signature,
+      };
+    });
+    return finalizeIndexRows(klRows);
+  }
+
   const manualRowsContext = loenudviklingBasis === 'Manuelt angivet'
     ? resolveManualRowsContext(ansaettelsesforhold.loenudviklingManuelTableData ?? [])
     : null;

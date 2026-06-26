@@ -23,6 +23,11 @@ describe('pdfFormatUtils', () => {
       expect(formatReguleringFactorText(0.005)).toBe(' x (100 % + 0,01 %)');
     });
 
+    it('kan vise faktortekst med fast fire-decimalers regulering', () => {
+      expect(formatReguleringFactorText(8.8872, 4)).toBe(' x (100 % + 8,8872 %)');
+      expect(formatReguleringFactorText(2.5, 4)).toBe(' x (100 % + 2,5000 %)');
+    });
+
     it('returnerer tom streng for ikke-endelige værdier', () => {
       expect(formatReguleringFactorText(NaN)).toBe('');
       expect(formatReguleringFactorText(Infinity)).toBe('');

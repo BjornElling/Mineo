@@ -221,6 +221,11 @@ export type IndkomstSkadestidspunktModel = Readonly<{
   beregningsgrundlagMellemregningResultat: string | null;
 }>;
 
+// reguleretLoenOre: kun sat for KL-lønaftaler, hvor reguleringen sker trinvist på
+// selve lønnen. Det er den opregulerede, afrundede enhedsløn (måneds-/dagsløn) for
+// perioden. Når den er sat, viser indkomst-linjerne "antal á reguleret løn = beløb"
+// uden faktor-tekst (modsat øvrige modeller, der viser basisløn × (100 % + delta %)).
+// Se docs/domain/taf/kl-loenaftaler-regulering.md.
 export type LoenudviklingSegment =
   | Readonly<{
     kind: 'maaneder';
@@ -230,6 +235,7 @@ export type LoenudviklingSegment =
     maanedsloenOre: MoneyOre;
     deltaPct: number;
     amountOre: MoneyOre;
+    reguleretLoenOre?: MoneyOre;
   }>
   | Readonly<{
     kind: 'arbejdsdage';
@@ -239,6 +245,7 @@ export type LoenudviklingSegment =
     dagsloenOre: MoneyOre;
     deltaPct: number;
     amountOre: MoneyOre;
+    reguleretLoenOre?: MoneyOre;
   }>;
 
 export type LoenudviklingModel = Readonly<{

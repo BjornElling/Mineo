@@ -259,6 +259,32 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     );
   });
 
+  it('viser KL-lønaftaler-indkomst som "antal á reguleret løn" uden faktor-tekst', () => {
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadedato = iso('2024-04-01');
+    eo.beregnesUdFra = 'Angivet månedsløn';
+    eo.maanedsloenenUdgoer = asAmountValue(30000);
+    eo.angivetMaanedsloenOpreguleresFraDato = iso('2024-04-01');
+    eo.vedroererPeriodeFra = iso('2024-04-01');
+    eo.vedroererPeriodeTil = iso('2025-12-31');
+    eo.tafBeregningsperiodeFra = iso('2024-04-01');
+    eo.tafBeregningsperiodeTil = iso('2025-12-31');
+    eo.tafPerioder = [{ id: 'taf-kl', fra: iso('2024-04-01'), til: iso('2025-12-31'), loseFeriedage: undefined }];
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const indkomstLinjer = getTextsBetween(texts, 'Forventet indkomst', 'Indtægter i erstatningsperioden');
+
+    // Basisperioden vises med den uregulerede løn, efterfølgende periode med den
+    // kæde-opregulerede løn (30.000 × 1,013 = 30.390,00) — begge uden faktor-tekst.
+    expect(indkomstLinjer.some((linje) => linje.includes('á ') && linje.includes('30.000,00') && linje.trimEnd().endsWith('='))).toBe(true);
+    expect(indkomstLinjer.some((linje) => linje.includes('á ') && linje.includes('30.390,00') && linje.trimEnd().endsWith('='))).toBe(true);
+    // Ingen "x (100 % + d %)"-faktor for KL.
+    expect(indkomstLinjer.some((linje) => linje.includes('(100 %'))).toBe(false);
+  });
+
   it('tilpasser ferieoplysning under indkomst uden skade når der kun er løse feriedage i erstatningsperioden', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.beregnesUdFra = 'Angivet dagsløn';

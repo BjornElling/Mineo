@@ -55,6 +55,7 @@ import {
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
 import { computeFormulaValue } from './reguleringFormulaUtils';
+import { buildKlReguleretLoenResolver } from './klReguleretLoen';
 import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 
@@ -1353,9 +1354,28 @@ export const buildLoenudviklingModel = (
       throw new Error('Loenudvikling kan ikke beregnes: ingen reguleringssegmenter');
     }
 
+    // KL-lønaftaler regulerer trinvist med afrunding på hvert trin (jf. klReguleretLoen.ts
+    // og docs/domain/taf/kl-loenaftaler-regulering.md), modsat det enkelt-indeksforhold de
+    // øvrige modeller bruger. For KL erstattes segmentets deltaPct derfor med den akkumulerede
+    // regulering afledt af den kæde-opregulerede, afrundede løn — i fuld præcision, så
+    // TAF-beløbet bliver præcis afrund(løn × antal). deltaPct holdes som intern repræsentation
+    // (korrekt for tafPerYearDerived og sygeferiegodtgørelse); den vises aldrig som akkumuleret.
+    const konsolideretForBase = strategiData.konsolideret;
+    const klReguleretLoenResolver =
+      konsolideretForBase?.strategi === 'kl' && konsolideretForBase.reguleringsdato
+        ? buildKlReguleretLoenResolver(baseLoenRounded, konsolideretForBase.reguleringsdato)
+        : null;
+
     const beregnedeSegmenter: Array<LoenudviklingModel['beregnedeSegmenter'][number]> = [];
     for (const segment of loenreguleringssegmenter) {
-      const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
+      const roundedDeltaPct = klReguleretLoenResolver
+        ? klReguleretLoenResolver.deltaPctAt(segment.fra)
+        : roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
+      // KL: den opregulerede, afrundede enhedsløn for perioden — bæres med på segmentet,
+      // så indkomst-linjerne kan vise "antal á reguleret løn = beløb" uden faktor-tekst.
+      const klReguleretLoenOre = klReguleretLoenResolver
+        ? toOre(klReguleretLoenResolver.loenAt(segment.fra))
+        : undefined;
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
         const maanederStats = beregnArbejdsdageOgMaaneder(
           segment.fra,
@@ -1376,6 +1396,7 @@ export const buildLoenudviklingModel = (
           maanedsloenOre: baseLoenOre,
           deltaPct: roundedDeltaPct,
           amountOre: segmentAmountOre(baseLoenRounded, maaneder, roundedDeltaPct),
+          ...(klReguleretLoenOre !== undefined ? { reguleretLoenOre: klReguleretLoenOre } : {}),
         });
       } else {
         if (!tafArbejdageSet) {
@@ -1394,6 +1415,7 @@ export const buildLoenudviklingModel = (
           dagsloenOre: baseLoenOre,
           deltaPct: roundedDeltaPct,
           amountOre: segmentAmountOre(baseLoenRounded, arbejdsdage, roundedDeltaPct),
+          ...(klReguleretLoenOre !== undefined ? { reguleretLoenOre: klReguleretLoenOre } : {}),
         });
       }
     }

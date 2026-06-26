@@ -9,7 +9,8 @@ type MutableReguleringSectionContext = {
 };
 type AutoTableTestOptions = {
   startY?: number;
-  body?: Array<Array<{ content: string }>>;
+  body?: Array<Array<{ content: string; styles?: { halign?: string } }>>;
+  columnStyles?: Record<number, { cellWidth?: number; halign?: string }>;
   didParseCell?: (data: { cell: { styles: { halign?: string; cellPadding?: unknown } } }) => void;
 };
 
@@ -538,5 +539,81 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
     firstCall?.didParseCell?.(headerData as never);
     expect(headerData.cell.styles.halign).toBe('center');
     expect(headerData.cell.styles.cellPadding).toBeUndefined();
+  });
+});
+
+describe('renderReguleringSection – KL-lønaftaler Beregnet regulering', () => {
+  it('bruger fire lige brede og centrerede kolonner', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-kl-layout',
+        navnPaaArbejdssted: 'KL-sted',
+        loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2022-06-01'),
+      sidste: iso('2025-06-30'),
+    }));
+    ctx.buildReguleringIndexRows = vi.fn(() => [
+      {
+        fraDato: '01-06-2022',
+        tilDato: '30-09-2022',
+        indeksberegning: '',
+        indeks: '',
+        loenudvikling: '',
+        reguleretLoen: '41.593,87',
+      },
+      {
+        fraDato: '01-10-2022',
+        tilDato: '31-03-2023',
+        indeksberegning: '',
+        indeks: '',
+        loenudvikling: '2,55 %',
+        reguleretLoen: '42.654,51',
+      },
+    ]);
+
+    renderReguleringSection(ctx);
+
+    const tableCall = autoTableMock.mock.calls.find(([, options]) => {
+      const headerRow = options.body?.[0];
+      return headerRow?.some((cell) => cell.content === 'Reguleret månedsløn') ?? false;
+    })?.[1];
+
+    expect(tableCall).toBeDefined();
+    expect(tableCall?.body?.[0]?.map((cell) => cell.styles?.halign)).toEqual([
+      'center',
+      'center',
+      'center',
+      'center',
+    ]);
+    expect(tableCall?.body?.slice(1).flat().map((cell) => cell.styles?.halign)).toEqual([
+      'center',
+      'center',
+      'center',
+      'center',
+      'center',
+      'center',
+      'center',
+      'center',
+    ]);
+
+    const columnStyles = tableCall?.columnStyles;
+    expect(columnStyles).toBeDefined();
+    const widths = Object.values(columnStyles ?? {}).map((style) => style.cellWidth);
+    expect(widths).toHaveLength(4);
+    expect(new Set(widths).size).toBe(1);
+    expect(Object.values(columnStyles ?? {}).map((style) => style.halign)).toEqual([
+      'center',
+      'center',
+      'center',
+      'center',
+    ]);
   });
 });

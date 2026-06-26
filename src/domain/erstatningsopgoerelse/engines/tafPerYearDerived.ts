@@ -74,6 +74,10 @@ export type TafYearSegment = Readonly<{
   unitAmountOre: MoneyOre;
   deltaPct: number;
   amountOre: MoneyOre;
+  // KL-lønaftaler: den opregulerede, afrundede enhedsløn for perioden (jf.
+  // LoenudviklingSegment.reguleretLoenOre og docs/domain/taf/kl-loenaftaler-regulering.md).
+  // Vises i stedet for unitAmountOre × faktor.
+  reguleretLoenOre?: MoneyOre;
 }>;
 
 export type TafYearDeduction = Readonly<{
@@ -163,6 +167,7 @@ const buildSubSegment = (
       unitAmountOre: original.dagsloenOre,
       deltaPct: original.deltaPct,
       amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
+      ...(original.reguleretLoenOre !== undefined ? { reguleretLoenOre: original.reguleretLoenOre } : {}),
     };
   }
 
@@ -178,6 +183,7 @@ const buildSubSegment = (
     unitAmountOre: original.maanedsloenOre,
     deltaPct: original.deltaPct,
     amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
+    ...(original.reguleretLoenOre !== undefined ? { reguleretLoenOre: original.reguleretLoenOre } : {}),
   };
 };
 

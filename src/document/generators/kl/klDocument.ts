@@ -1,11 +1,14 @@
 /**
  * Dokument-generator for KL-lønaftaler
  *
- * Genererer ét dokument med alle linjer i de kommunale lønaftaler fra 2005 og frem.
- * Tre kolonner: Dato | Tekst | Akkumuleret regulering (indeks-form, fx 1,124454).
+ * Genererer ét dokument med periode-reguleringssatserne fra de kommunale lønaftaler
+ * fra 2005 og frem. To kolonner: Dato | Regulering (periode-procent, fx 1,40 %).
  *
- * Modsat KRL-dokumentet (fire satstabel-kolonner) er dette en enkelt indeksserie,
- * og alle linjer vises — også ikke-regulerende datoer og delkomponenter på samme dato.
+ * Modsat KRL-dokumentet (fire satstabel-kolonner) er dette en enkelt serie. Der
+ * vises bevidst ingen akkumuleret regulering — den beregnes af programmet i
+ * forbindelse med erstatningsberegningen.
+ *
+ * SÆRLIG KL-LOGIK — se docs/domain/taf/kl-loenaftaler-regulering.md.
  */
 
 import type { RowInput } from 'jspdf-autotable';
@@ -31,7 +34,7 @@ const KL_DOCUMENT_TITLE = 'KL-lønaftaler';
 export const buildKLDocumentFilename = (journalnr?: string): string =>
   resolveDocumentArtifactFileName(KL_DOCUMENT_TITLE, false, journalnr);
 
-const formatIndeks = (value: number): string => formatAsAmount(value, 6);
+const formatReguleringPct = (value: number): string => `${formatAsAmount(value, 2)} %`;
 
 export const generateKLDocument = (params: KLPdfParams): void => {
   const { visBrevhoved = false, stamdata = null } = params;
@@ -47,32 +50,27 @@ export const generateKLDocument = (params: KLPdfParams): void => {
 
   const headerRow: RowInput = [
     createDocumentTableHeaderCell('Dato', 'left'),
-    createDocumentTableHeaderCell('Regulering', 'left'),
-    createDocumentTableHeaderCell('Procent', 'right'),
-    createDocumentTableHeaderCell('Akkumuleret regulering', 'right'),
+    createDocumentTableHeaderCell('Regulering', 'right'),
   ];
 
   const bodyRows: RowInput[] = klLoenaftaleRaekker.map((row) => [
     createDocumentTableCell(row.fraDato, { halign: 'left' }),
-    createDocumentTableCell(row.regulering, { halign: 'left' }),
-    createDocumentTableCell(row.procent, { halign: 'right' }),
-    createDocumentTableCell(formatIndeks(row.indeks), { halign: 'right' }),
+    createDocumentTableCell(formatReguleringPct(row.reguleringPct), { halign: 'right' }),
   ]);
 
   if (bodyRows.length === 0) {
     bodyRows.push([
       createDocumentTableCell('Ingen lønaftaler tilgængelige.', { halign: 'left' }),
-      createDocumentTableCell('', { halign: 'left' }),
-      createDocumentTableCell('', { halign: 'right' }),
       createDocumentTableCell('', { halign: 'right' }),
     ]);
   }
 
-  const tableWidth = PDF_CONTENT_WIDTH_MM;
-  const datoWidth = 22;
-  const procentWidth = 24;
-  const akkumuleretWidth = 38;
-  const reguleringWidth = tableWidth - datoWidth - procentWidth - akkumuleretWidth;
+  // Kun to smalle kolonner: render en kompakt, venstrestillet tabel i stedet for at
+  // strække den over hele sidebredden (ellers presses procenten helt ud til højre
+  // kant med stor tom afstand til datoen).
+  const datoWidth = 26;
+  const reguleringWidth = 26;
+  const tableWidth = Math.min(PDF_CONTENT_WIDTH_MM, datoWidth + reguleringWidth);
   const tableRows: RowInput[] = [headerRow, ...bodyRows];
 
   const finalY = renderDocumentTable({
@@ -82,9 +80,7 @@ export const generateKLDocument = (params: KLPdfParams): void => {
     tableWidth,
     columnStyles: {
       0: { cellWidth: datoWidth, halign: 'left' },
-      1: { cellWidth: reguleringWidth, halign: 'left' },
-      2: { cellWidth: procentWidth, halign: 'right' },
-      3: { cellWidth: akkumuleretWidth, halign: 'right' },
+      1: { cellWidth: reguleringWidth, halign: 'right' },
     },
   });
 

@@ -465,24 +465,69 @@ describe('reguleringsPresentation', () => {
     expect(row?.slice(1)).toEqual(['131,65', '12,5 %', '0 %', '12,5 %', '0,45 %', '10,5 %']);
   });
 
-  it('viser KL-lønaftaler med dato, periodens realiserede regulering (med fortegn) og akkumuleret indeks', () => {
+  it('viser KL-lønaftaler med dato og periode-reguleringssats (ingen akkumuleret kolonne)', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2021-10-01'),
-      tafFra: iso('2021-10-01'),
-      tafTil: iso('2022-03-31'),
+      anvendtReguleringsdato: iso('2024-04-01'),
+      tafFra: iso('2024-04-01'),
+      tafTil: iso('2026-12-31'),
       tafBeregningsenhed: 'Måneder',
     });
 
-    expect(table?.columns).toEqual(['Fra-dato', 'Regulering', 'Akkumuleret regulering']);
-    // 01-10-2021: periodens realiserede regulering afledes af indeksforholdet
-    // 1,456933 / 1,442796 = +0,98 % (ikke den nominelle sum 1,01 % − 0,02 % = 0,99 %).
-    const row = table?.rows.find((entry) => entry[0] === '01-10-2021');
-    expect(row).toEqual(['01-10-2021', '+0,98 %', '1,456933']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Regulering']);
+    expect(table?.rows.find((r) => r[0] === '01-10-2024')).toEqual(['01-10-2024', '1,30 %']);
+    expect(table?.rows.find((r) => r[0] === '01-10-2025')).toEqual(['01-10-2025', '0,30 %']);
+  });
+
+  it('Beregnet regulering for KL: lønudvikling gentager periodesatsen, reguleret løn er kæde-opreguleret', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+
+    // Segmenter som motoren ville bygge: enhedsløn = basisløn, deltaPct = den akkumulerede
+    // regulering afledt af den kæde-opregulerede (trinvist afrundede) løn.
+    const klSegment = (fra: string, til: string, reguleretLoen: number): LoenudviklingSegment => ({
+      kind: 'maaneder',
+      fra: iso(fra),
+      til: iso(til),
+      maaneder: 6,
+      maanedsloenOre: 3_000_000,
+      deltaPct: (reguleretLoen / 30000 - 1) * 100,
+      amountOre: Math.round(reguleretLoen * 6 * 100),
+    });
+    const segments = [
+      klSegment('2024-04-01', '2024-09-30', 30_000.00),
+      klSegment('2024-10-01', '2025-09-30', 30_390.00),
+      klSegment('2025-10-01', '2025-10-31', 30_481.17),
+      klSegment('2025-11-01', '2026-03-31', 30_709.78),
+    ];
+
+    const rows = buildReguleringIndexRows({
+      segments,
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-04-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    // Basisperioden (reguleringsdatoen): ingen sats, lønnen er uændret.
+    const base = rows.find((r) => r.fraDato === '01-04-2024');
+    expect(base?.loenudvikling).toBe('');
+    expect(base?.reguleretLoen).toBe('30.000,00');
+
+    // Lønudvikling gentager periodens reguleringssats (ikke akkumuleret), og reguleret løn
+    // er den forudgående løn forhøjet med satsen og afrundet: 30.481,17 × 1,0075 = 30.709,78.
+    const okt2024 = rows.find((r) => r.fraDato === '01-10-2024');
+    expect(okt2024?.loenudvikling).toBe('1,30 %');
+    expect(okt2024?.reguleretLoen).toBe('30.390,00');
+    expect(okt2024?.indeksberegning).toBe('');
+
+    const nov2025 = rows.find((r) => r.fraDato === '01-11-2025');
+    expect(nov2025?.loenudvikling).toBe('0,75 %');
+    expect(nov2025?.reguleretLoen).toBe('30.709,78');
   });
 
   it.each([

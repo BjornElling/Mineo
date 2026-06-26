@@ -74,16 +74,21 @@ export const formatPercentDelta = (value: number): string => {
  * Bygger den kanoniske regulerings-faktortekst til segment-linjer i EO-/TAF-PDF'er:
  * `" x (100 % + X,XX %)"` / `" x (100 % - X,XX %)"`.
  *
- * `deltaPct` afrundes til 2 decimaler (`halfAwayFromZero`); afrunder den til `0,00 %`
- * undertrykkes faktoren helt (returnerer `''`), så near-nul-regulering ikke giver en
- * støjende `"x (100 % + 0,00 %)"`-linje. Denne ene helper sikrer at faktorteksten er
- * ens i hovedopgørelsen, offentlige-ydelser-bilaget og TAF-fordelt-på-år.
+ * `deltaPct` afrundes til `decimals` decimaler (`halfAwayFromZero`, default 2); afrunder
+ * den til `0`-faktor undertrykkes faktoren helt (returnerer `''`), så near-nul-regulering
+ * ikke giver en støjende `"x (100 % + 0 %)"`-linje. Denne ene helper sikrer at
+ * faktorteksten er ens i hovedopgørelsen, offentlige-ydelser-bilaget og TAF-fordelt-på-år.
+ *
+ * `decimals` overstyres til 4 for opreguleringsfaktoren i "TAF opreguleret til
+ * beregningsåret", hvor faktoren bevidst vises (og beregnes) med fire decimaler. Ved 2
+ * decimaler bevares den trimmede visning; ved flere vises et fast antal decimaler.
  */
-export const formatReguleringFactorText = (deltaPct: number): string => {
+export const formatReguleringFactorText = (deltaPct: number, decimals: number = 2): string => {
   if (!Number.isFinite(deltaPct)) return '';
-  const rounded = roundByMethod(deltaPct, 2, 'halfAwayFromZero');
+  const rounded = roundByMethod(deltaPct, decimals, 'halfAwayFromZero');
   if (rounded === 0) return '';
-  return ` x (100 % ${rounded > 0 ? '+' : '-'} ${formatPercentDelta(rounded)} %)`;
+  const pctText = decimals === 2 ? formatPercentDelta(rounded) : formatAsAmount(Math.abs(rounded), decimals);
+  return ` x (100 % ${rounded > 0 ? '+' : '-'} ${pctText} %)`;
 };
 
 /**
