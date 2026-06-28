@@ -265,7 +265,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         onClearAll={resetForm}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
-      <SiblingSitesFooter currentSite="minprocesrente" compactOnNarrowScreens />
+      <SiblingSitesFooter currentSite="minprocesrente" />
     </Box>
   );
 });
