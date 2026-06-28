@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { isoDateString } from '../../../schemas/formSchemas/baseSchemas';
-import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, scaleMoneyOre } from '../shared/eoMoney';
+import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, roundKroner, scaleMoneyOre, toOre } from '../shared/eoMoney';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import type { Calculable, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
@@ -31,7 +31,18 @@ const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
     amountOre: moneyOreSchema,
     reguleretLoenOre: moneyOreSchema.optional(),
   }).strict(),
-]);
+]).superRefine((segment, ctx) => {
+  if (segment.reguleretLoenOre === undefined) return;
+  const quantity = segment.kind === 'maaneder' ? segment.maaneder : segment.arbejdsdage;
+  const expectedAmountOre = toOre(roundKroner((segment.reguleretLoenOre / 100) * quantity));
+  if (segment.amountOre !== expectedAmountOre) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['reguleretLoenOre'],
+      message: 'reguleretLoenOre kræver at amountOre er beregnet fra den regulerede enhedsløn',
+    });
+  }
+});
 
 const eoCanonicalOutputSchema = z.object({
   totals: z.object({

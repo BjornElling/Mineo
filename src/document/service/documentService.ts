@@ -15,7 +15,7 @@ import {
   loadAarsloenDocumentModule,
   loadErstatningsopgoerelseDocumentModule,
   loadKRLDocumentModule,
-  loadKLDocumentModule,
+  loadKlLoenaftalerDocumentModule,
   loadLoebendeYdelserDocumentModule,
   loadKapitaliseringDocumentModule,
   loadEfterEalDocumentModule,
@@ -493,23 +493,23 @@ export const downloadKrlDokument = async (params: Readonly<{
   }
 };
 
-export const downloadKlDokument = async (params: Readonly<{
+export const downloadKlLoenaftalerDokument = async (params: Readonly<{
   settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, persistedStamdata } = params;
   // Bevidst UX: KL-lønaftaler bruger samme brevhoved-indstilling som regulering (ingen separat toggle).
   const common = buildCommonPdfContext(settings, 'regulering', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKlDokument');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKlLoenaftalerDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
-    const { generateKLDocument } = await loadKLDocumentModule();
+    const { generateKlLoenaftalerDocument } = await loadKlLoenaftalerDocumentModule();
     return await runSelectedDocumentFormat(settings, () => {
-      generateKLDocument(common);
+      generateKlLoenaftalerDocument(common);
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KL-PDF'), 'pdfService.downloadKlDokument', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KL-lønaftaler-PDF'), 'pdfService.downloadKlLoenaftalerDokument', error);
   }
 };
 

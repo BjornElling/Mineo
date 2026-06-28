@@ -7,7 +7,7 @@ type DocumentModuleMap = {
   aarsloen: typeof import('../generators/aarsloen/aarsloenDocument');
   regulering: typeof import('../generators/eo/reguleringDocument');
   krl: typeof import('../generators/krl/krlDocument');
-  kl: typeof import('../generators/kl/klDocument');
+  klLoenaftaler: typeof import('../generators/klLoenaftaler/klLoenaftalerDocument');
   erstatningsopgoerelse: typeof import('../generators/eo/erstatningsopgoerelseDocument');
   tafFordeltPaaAar: typeof import('../generators/tafFordelt/tafFordeltPaaAarDocument');
   tafOpreguleretPaaAar: typeof import('../generators/tafFordelt/tafOpreguleretPaaAarDocument');
@@ -30,7 +30,7 @@ const moduleLoaders: { [K in keyof DocumentModuleMap]: () => Promise<DocumentMod
   aarsloen: () => import('../generators/aarsloen/aarsloenDocument'),
   regulering: () => import('../generators/eo/reguleringDocument'),
   krl: () => import('../generators/krl/krlDocument'),
-  kl: () => import('../generators/kl/klDocument'),
+  klLoenaftaler: () => import('../generators/klLoenaftaler/klLoenaftalerDocument'),
   erstatningsopgoerelse: () => import('../generators/eo/erstatningsopgoerelseDocument'),
   tafFordeltPaaAar: () => import('../generators/tafFordelt/tafFordeltPaaAarDocument'),
   tafOpreguleretPaaAar: () => import('../generators/tafFordelt/tafOpreguleretPaaAarDocument'),
@@ -64,7 +64,7 @@ export const loadSHDageDocumentModule = () => loadModule('shDage');
 export const loadAarsloenDocumentModule = () => loadModule('aarsloen');
 export const loadReguleringDocumentModule = () => loadModule('regulering');
 export const loadKRLDocumentModule = () => loadModule('krl');
-export const loadKLDocumentModule = () => loadModule('kl');
+export const loadKlLoenaftalerDocumentModule = () => loadModule('klLoenaftaler');
 export const loadErstatningsopgoerelseDocumentModule = () => loadModule('erstatningsopgoerelse');
 export const loadTafFordeltPaaAarDocumentModule = () => loadModule('tafFordeltPaaAar');
 export const loadTafOpreguleretPaaAarDocumentModule = () => loadModule('tafOpreguleretPaaAar');

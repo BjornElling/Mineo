@@ -5,7 +5,7 @@ import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { isOffentligOverenskomstId, getReguleringsDatoIntervalForOverenskomst } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
-import { getReguleringsDatoIntervalForKL } from '../../data/klLoenaftaler';
+import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -390,7 +390,7 @@ export const buildEoIndkomstRows = (
         };
       }
       if (loenudviklingBasis === 'KL-lønaftaler') {
-        const interval = getReguleringsDatoIntervalForKL();
+        const interval = getReguleringsDatoIntervalForKlLoenaftaler();
         if (!interval) return {} as ReguleringsRange;
         return {
           min: parseDanishToIsoDebug(interval.fraDato),

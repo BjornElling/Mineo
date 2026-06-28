@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateKLDocument } from '../../../document/generators/kl/klDocument';
+import { generateKlLoenaftalerDocument } from '../../../document/generators/klLoenaftaler/klLoenaftalerDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for KL-lønaftaler: kører den rigtige generator gennem
@@ -8,7 +8,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('kl → Word-indhold', () => {
   it('skriver titel og periode-reguleringssatser til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateKLDocument({ visBrevhoved: false });
+      generateKlLoenaftalerDocument({ visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -27,7 +27,7 @@ describe('kl → Word-indhold', () => {
 
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     const { documentXml } = await renderWordDocument(() => {
-      generateKLDocument({
+      generateKlLoenaftalerDocument({
         visBrevhoved: true,
         stamdata: { journalnr: '7788', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });

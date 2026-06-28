@@ -158,6 +158,9 @@ const buildSubSegment = (
     const quantity = countTafArbejdsdageInRange(tafArbejdsdageSet, subFra, subTil);
     if (quantity <= 0) return null;
     const baseLoenKroner = original.dagsloenOre / 100;
+    const amountOre = original.reguleretLoenOre !== undefined
+      ? toOre(roundKroner((original.reguleretLoenOre / 100) * quantity))
+      : segmentAmountOre(baseLoenKroner, quantity, original.deltaPct);
     return {
       fra: subFra,
       til: subTil,
@@ -166,7 +169,7 @@ const buildSubSegment = (
       sourceLabel,
       unitAmountOre: original.dagsloenOre,
       deltaPct: original.deltaPct,
-      amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
+      amountOre,
       ...(original.reguleretLoenOre !== undefined ? { reguleretLoenOre: original.reguleretLoenOre } : {}),
     };
   }
@@ -174,6 +177,9 @@ const buildSubSegment = (
   const quantity = beregnMaanederUdenFridage(subFra, subTil);
   if (quantity <= 0) return null;
   const baseLoenKroner = original.maanedsloenOre / 100;
+  const amountOre = original.reguleretLoenOre !== undefined
+    ? toOre(roundKroner((original.reguleretLoenOre / 100) * quantity))
+    : segmentAmountOre(baseLoenKroner, quantity, original.deltaPct);
   return {
     fra: subFra,
     til: subTil,
@@ -182,7 +188,7 @@ const buildSubSegment = (
     sourceLabel,
     unitAmountOre: original.maanedsloenOre,
     deltaPct: original.deltaPct,
-    amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
+    amountOre,
     ...(original.reguleretLoenOre !== undefined ? { reguleretLoenOre: original.reguleretLoenOre } : {}),
   };
 };

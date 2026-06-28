@@ -8,7 +8,7 @@ import { buildSHDageDocumentFilename } from '../../../document/generators/aarslo
 import { buildSatserDocumentFilename } from '../../../document/generators/satser/satserDocument';
 import { buildReguleringDocumentFilename } from '../../../document/generators/eo/reguleringDocument';
 import { buildKRLDocumentFilename } from '../../../document/generators/krl/krlDocument';
-import { buildKLDocumentFilename } from '../../../document/generators/kl/klDocument';
+import { buildKlLoenaftalerDocumentFilename } from '../../../document/generators/klLoenaftaler/klLoenaftalerDocument';
 import { resolveDocumentArtifactFileName } from '../../../document/layout/documentFormatUtils';
 import { toDanishDateString } from '../../../types/branded';
 
@@ -110,13 +110,13 @@ describe('pdf filename builders', () => {
     });
   });
 
-  describe('buildKLDocumentFilename', () => {
+  describe('buildKlLoenaftalerDocumentFilename', () => {
     it('bygger KL-filnavn via kanonisk helper', () => {
-      expect(buildKLDocumentFilename()).toBe('KL-lønaftaler.pdf');
+      expect(buildKlLoenaftalerDocumentFilename()).toBe('KL-lønaftaler.pdf');
     });
 
     it('prefixer med journalnr når journalnr er udfyldt', () => {
-      expect(buildKLDocumentFilename('1234')).toBe('1234 - KL-lønaftaler.pdf');
+      expect(buildKlLoenaftalerDocumentFilename('1234')).toBe('1234 - KL-lønaftaler.pdf');
     });
   });
 

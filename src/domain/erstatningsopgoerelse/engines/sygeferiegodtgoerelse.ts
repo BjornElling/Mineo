@@ -1038,6 +1038,18 @@ const resolveLoenudviklingSegment = (
 ): LoenudviklingSegment | undefined =>
   loenudvikling?.beregnedeSegmenter.find((entry) => iso >= entry.fra && iso <= entry.til);
 
+const assertKlSegmentDeltaMatchesReguleretLoen = (segment: LoenudviklingSegment): void => {
+  if (segment.reguleretLoenOre === undefined) return;
+  const baseLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
+  if (baseLoenOre <= 0) {
+    throw new Error('SFGG kan ikke beregnes: KL-lønaftaler-segment mangler positiv basisløn');
+  }
+  const reproducedOre = toOre(roundKroner((baseLoenOre / 100) * (1 + segment.deltaPct / 100)));
+  if (Math.abs(reproducedOre - segment.reguleretLoenOre) > 0) {
+    throw new Error('SFGG kan ikke beregnes: KL-lønaftaler-segmentets interne regulering matcher ikke den regulerede løn');
+  }
+};
+
 const resolveAdjustedRate = (
   iso: ISODateString,
   baseRateOre: MoneyOre,
@@ -1051,6 +1063,7 @@ const resolveAdjustedRate = (
   if (!segment) {
     return { satsOre: baseRateOre, reguleringsindeks: null };
   }
+  assertKlSegmentDeltaMatchesReguleretLoen(segment);
   // I referenceperiode-sporet skal SFGG følge samme procentuelle udvikling
   // og samme reguleringsdatoer som lønnen.
   return {

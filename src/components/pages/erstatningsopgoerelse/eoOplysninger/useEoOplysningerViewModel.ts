@@ -43,9 +43,9 @@ import {
 } from '../../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
-import { getReguleringsDatoIntervalForKL } from '../../../../data/klLoenaftaler';
+import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
-import { downloadKlDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
+import { downloadKlLoenaftalerDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -378,7 +378,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
       return getReguleringsDatoIntervalForKRL(eoLoenudvikling.loenudviklingKRLSatstabel as KRLSatstabelId);
     }
     if (loenudviklingBasis === 'KL-lønaftaler') {
-      return getReguleringsDatoIntervalForKL();
+      return getReguleringsDatoIntervalForKlLoenaftaler();
     }
     return undefined;
   }, [eoLoenudvikling.loenudviklingKRLSatstabel, eoLoenudvikling.loenudviklingStatistikModel, eoLoenudvikling.overenskomstId, loenudviklingBasis, shouldShowReguleringsDatoInterval]);
@@ -404,8 +404,8 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     });
   }, [persistedStamdata, settings]);
 
-  const handleDownloadKLPdf = React.useCallback(async () => {
-    await downloadKlDokument({
+  const handleDownloadKlLoenaftalerPdf = React.useCallback(async () => {
+    await downloadKlLoenaftalerDokument({
       settings,
       persistedStamdata,
     });
@@ -533,7 +533,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     angivetLoenOpreguleringLabel,
     handleDownloadReguleringPdf,
     handleDownloadKRLPdf,
-    handleDownloadKLPdf,
+    handleDownloadKlLoenaftalerPdf,
 
     // Forlig / ansvarsgrad
     forligFejl,

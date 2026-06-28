@@ -275,10 +275,13 @@ export function buildRegulationDebugSections(
     ];
 
     const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);
+    const isKlLoenaftalerAnsaettelsesforhold = ansaettelsesforhold?.loenudviklingBeregningsgrundlag === 'KL-lønaftaler';
     const canonicalSegments = canonicalSegmentsByEmploymentId.get(af.ansaettelsesforholdId) ?? [];
     const segmentsForDebug = canonicalSegments.length > 0
       ? canonicalSegments
-      : buildFallbackSegmentsFromTimeline({
+      : isKlLoenaftalerAnsaettelsesforhold
+        ? []
+        : buildFallbackSegmentsFromTimeline({
           entries: af.entries,
           tafBeregningsenhed: timeline.tafBeregningsenhed,
           tafRanges,
@@ -313,6 +316,18 @@ export function buildRegulationDebugSections(
           cells: row,
         })),
       });
+    } else if (isKlLoenaftalerAnsaettelsesforhold) {
+      tables.push({
+        id: `${sectionId}:vaerdier`,
+        columns: ['Dato', 'Regulering'],
+        rows: af.entries.map((entry) => ({
+          id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
+          cells: [
+            { rawValue: entry.effectiveFrom, displayValue: formatIsoValue(entry.effectiveFrom) },
+            formatPercent(entry.grundloen, 2),
+          ],
+        })),
+      });
     } else {
       const visibleColumns = COLUMN_DEFS.filter((column) =>
         column.key !== 'arbejdsdage' &&
@@ -341,10 +356,10 @@ export function buildRegulationDebugSections(
         // KL-lønaftaler: trinvis kæde-opregulering vises uden indeksberegning; i stedet
         // ses lønudviklingen og den resulterende, afrundede måneds-/dagsløn.
         // Se docs/domain/taf/kl-loenaftaler-regulering.md.
-        const isKlTable = indeksRows.some((row) => row.reguleretLoen !== undefined);
+        const isKlLoenaftalerTable = indeksRows.some((row) => row.reguleretLoen !== undefined);
         const reguleretLoenHeader =
           computeTafBeregningsenhed(eoValues) === 'Måneder' ? 'Reguleret månedsløn' : 'Reguleret dagsløn';
-        tables.push(isKlTable
+        tables.push(isKlLoenaftalerTable
           ? {
               id: `${sectionId}:beregnet`,
               columns: ['Fra-dato', 'Til-dato', 'Lønudvikling', reguleretLoenHeader],

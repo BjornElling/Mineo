@@ -41,7 +41,7 @@ import {
   getReguleringsDatoIntervalForStatistikModel,
 } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
-import { getReguleringsDatoIntervalForKL } from '../../../../data/klLoenaftaler';
+import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import {
   hasSfggSelectedOverenskomst,
@@ -177,7 +177,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     handleMoveDown,
     handleDownloadReguleringPdf,
     handleDownloadKRLPdf,
-    handleDownloadKLPdf,
+    handleDownloadKlLoenaftalerPdf,
   } = useLoenindkomstVm();
   const { openLoentrinFinder } = loentrinFinder;
 
@@ -223,7 +223,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       return getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel as KRLSatstabelId);
     }
     if (loenudviklingBasis === 'KL-lønaftaler') {
-      return getReguleringsDatoIntervalForKL();
+      return getReguleringsDatoIntervalForKlLoenaftaler();
     }
     return undefined;
   })();
@@ -916,7 +916,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                             return;
                           }
                           if (loenudviklingBasis === 'KL-lønaftaler') {
-                            void handleDownloadKLPdf();
+                            void handleDownloadKlLoenaftalerPdf();
                             return;
                           }
                           if (

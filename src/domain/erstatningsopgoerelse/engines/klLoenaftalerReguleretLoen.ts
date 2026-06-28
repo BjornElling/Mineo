@@ -1,12 +1,13 @@
 /**
  * KL-lønaftaler: trinvis (kæde-)opregulering af løn med afrunding på hvert trin.
  *
- * SÆRLIG KL-LOGIK — se det normative overblik i
- * docs/domain/taf/kl-loenaftaler-regulering.md (forklarer hvorfor KL har en anden
- * beregningsmetode og andre visninger end de øvrige reguleringsmodeller).
+ * SÆRLIG KL-LØNAFTALER-LOGIK — se det normative overblik i
+ * docs/domain/taf/kl-loenaftaler-regulering.md (forklarer hvorfor denne
+ * reguleringsform har en anden beregningsmetode og andre visninger end de øvrige
+ * reguleringsmodeller).
  *
  * Modsat de øvrige reguleringsmodeller (der fremskriver via ét samlet indeksforhold
- * fra basisdatoen) regulerer KL-modellen skadelidtes løn trin for trin:
+ * fra basisdatoen) regulerer KL-lønaftaler-modellen skadelidtes løn trin for trin:
  *
  *   løn_0 = basisløn (på reguleringsdatoen)
  *   løn_i = afrund_til_2_decimaler( løn_{i-1} × (1 + periodesats_i / 100) )
@@ -16,17 +17,18 @@
  * er bevidst beregningsteknisk unøjagtigt (afrundingen akkumulerer), men afspejler
  * den fremgangsmåde, der ønskes for KL-lønaftalerne.
  *
- * Resolveren bruges både af beregningsmotoren (TAF-beløb pr. segment) og af
- * præsentationslaget (visning af den regulerede løn og den akkumulerede regulering).
+ * Resolveren bruges af beregningsmotoren og præsentationslaget til den regulerede
+ * løn. `deltaPctAt` er kun en intern bro til eksisterende segmentforbrugere;
+ * reguleringsformen KL-lønaftaler må ikke vise akkumuleret regulering brugervendt.
  */
 
 import type { DanishDateString, ISODateString } from '../../../types/branded';
 import { roundByMethod } from '../../../utils/rounding';
 import { roundKroner } from '../shared/eoMoney';
 import { parseDanishToIso } from '../helpers/eoSharedUtils';
-import { getKLReguleringPctForDato, getKLSatstabelVaerdier } from '../../../data/klLoenaftaler';
+import { getKlLoenaftalerReguleringPctForDato, klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 
-export type KlReguleretLoenResolver = Readonly<{
+export type KlLoenaftalerReguleretLoenResolver = Readonly<{
   /** Den opregulerede, afrundede løn (kroner, 2 decimaler) der gælder på en given dato. */
   loenAt: (iso: ISODateString) => number;
   /**
@@ -38,27 +40,27 @@ export type KlReguleretLoenResolver = Readonly<{
 }>;
 
 /**
- * Bygger en KL-kæde-resolver fra en basisløn (på reguleringsdatoen) og frem over
+ * Bygger en KL-lønaftaler-kæde-resolver fra en basisløn (på reguleringsdatoen) og frem over
  * KL-lønaftalernes reguleringsdatoer. Reguleringsdatoer på eller før selve
  * reguleringsdatoen springes over — basislønnen afspejler allerede lønniveauet dér.
  */
-export const buildKlReguleretLoenResolver = (
+export const buildKlLoenaftalerReguleretLoenResolver = (
   baseLoenRounded: number,
   reguleringsdatoIso: ISODateString
-): KlReguleretLoenResolver => {
-  const klDatoerAsc = getKLSatstabelVaerdier()
+): KlLoenaftalerReguleretLoenResolver => {
+  const klLoenaftalerDatoerAsc = klLoenaftalerRaekker
     .map((entry) => ({ iso: parseDanishToIso(entry.fraDato), da: entry.fraDato }))
     .filter((entry): entry is Readonly<{ iso: ISODateString; da: DanishDateString }> => Boolean(entry.iso))
     .sort((a, b) => a.iso.localeCompare(b.iso));
 
-  // Kæden: basis ved reguleringsdatoen, derefter ét trin pr. efterfølgende KL-dato.
+  // Kæden: basis ved reguleringsdatoen, derefter ét trin pr. efterfølgende KL-lønaftaler-dato.
   const chain: Array<Readonly<{ fromIso: ISODateString; loen: number }>> = [
     { fromIso: reguleringsdatoIso, loen: baseLoenRounded },
   ];
   let current = baseLoenRounded;
-  for (const { iso, da } of klDatoerAsc) {
+  for (const { iso, da } of klLoenaftalerDatoerAsc) {
     if (iso <= reguleringsdatoIso) continue;
-    const pct = getKLReguleringPctForDato(da);
+    const pct = getKlLoenaftalerReguleringPctForDato(da);
     if (pct === undefined) continue;
     current = roundKroner(current * (1 + pct / 100));
     chain.push({ fromIso: iso, loen: current });

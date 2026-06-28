@@ -288,10 +288,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     // KL-lønaftaler: trinvis kæde-opregulering vises uden indeksberegning; i stedet
     // ses lønudviklingen og den resulterende, afrundede måneds-/dagsløn for perioden.
     // Se docs/domain/taf/kl-loenaftaler-regulering.md.
-    const isKlTable = rows.some((row) => row.reguleretLoen !== undefined);
+    const isKlLoenaftalerTable = rows.some((row) => row.reguleretLoen !== undefined);
 
     const tableRows: RowInput[] = [];
-    if (isKlTable) {
+    if (isKlLoenaftalerTable) {
       const reguleretLoenHeader = tafBeregnesSom === 'Måneder' ? 'Reguleret månedsløn' : 'Reguleret dagsløn';
       tableRows.push([
         createDocumentTableHeaderCell('Fra-dato', 'center'),
@@ -332,7 +332,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       doc,
       startY,
       body: tableRows,
-      columnStyles: isKlTable ? createDocumentDistributedColumnStyles(4, { defaultHalign: 'center' }) : undefined,
+      columnStyles: isKlLoenaftalerTable ? createDocumentDistributedColumnStyles(4, { defaultHalign: 'center' }) : undefined,
     });
     writer.setY(resolveDocumentSectionEndY(finalY, startY));
   };

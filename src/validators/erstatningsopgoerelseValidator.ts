@@ -22,7 +22,7 @@ import { isISODateString, type ISODateString } from '../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../data/krlRates';
-import { getReguleringsDatoIntervalForKL } from '../data/klLoenaftaler';
+import { getReguleringsDatoIntervalForKlLoenaftaler } from '../data/klLoenaftaler';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
@@ -921,7 +921,7 @@ const validateLoenudviklingDataCoverage = (
   const coverage = grundlag === 'Statistik'
     ? getReguleringsDatoIntervalForStatistikModel(af.loenudviklingStatistikModel ?? '')
     : grundlag === 'KL-lønaftaler'
-      ? getReguleringsDatoIntervalForKL()
+      ? getReguleringsDatoIntervalForKlLoenaftaler()
       : isKRLSatstabelId(af.loenudviklingKRLSatstabel)
         ? getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)
         : undefined;

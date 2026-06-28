@@ -21,7 +21,7 @@ const {
   mockLoadRentePdfModule,
   mockLoadReguleringPdfModule,
   mockLoadKRLPdfModule,
-  mockLoadKLPdfModule,
+  mockLoadKlLoenaftalerPdfModule,
   mockLoadLoebendeYdelserPdfModule,
   mockLoadKapitaliseringPdfModule,
   mockLoadEfterEalPdfModule,
@@ -37,7 +37,7 @@ const {
   mockGenerateRentePdf,
   mockGenerateReguleringPdf,
   mockGenerateKRLPdf,
-  mockGenerateKLPdf,
+  mockGenerateKlLoenaftalerPdf,
   mockGenerateLoebendeYdelserPdf,
   mockGenerateKapitaliseringPdf,
   mockGenerateEfterEalPdf,
@@ -59,7 +59,7 @@ const {
   mockLoadRentePdfModule: vi.fn(),
   mockLoadReguleringPdfModule: vi.fn(),
   mockLoadKRLPdfModule: vi.fn(),
-  mockLoadKLPdfModule: vi.fn(),
+  mockLoadKlLoenaftalerPdfModule: vi.fn(),
   mockLoadLoebendeYdelserPdfModule: vi.fn(),
   mockLoadKapitaliseringPdfModule: vi.fn(),
   mockLoadEfterEalPdfModule: vi.fn(),
@@ -75,7 +75,7 @@ const {
   mockGenerateRentePdf: vi.fn(),
   mockGenerateReguleringPdf: vi.fn(),
   mockGenerateKRLPdf: vi.fn(),
-  mockGenerateKLPdf: vi.fn(),
+  mockGenerateKlLoenaftalerPdf: vi.fn(),
   mockGenerateLoebendeYdelserPdf: vi.fn(),
   mockGenerateKapitaliseringPdf: vi.fn(),
   mockGenerateEfterEalPdf: vi.fn(),
@@ -102,7 +102,7 @@ vi.mock('../../../document/service/documentLoader', () => ({
   loadRenteDocumentModule: mockLoadRentePdfModule,
   loadReguleringDocumentModule: mockLoadReguleringPdfModule,
   loadKRLDocumentModule: mockLoadKRLPdfModule,
-  loadKLDocumentModule: mockLoadKLPdfModule,
+  loadKlLoenaftalerDocumentModule: mockLoadKlLoenaftalerPdfModule,
   loadLoebendeYdelserDocumentModule: mockLoadLoebendeYdelserPdfModule,
   loadKapitaliseringDocumentModule: mockLoadKapitaliseringPdfModule,
   loadEfterEalDocumentModule: mockLoadEfterEalPdfModule,
@@ -138,7 +138,7 @@ import {
   downloadRenteDokument,
   downloadReguleringDokument,
   downloadKrlDokument,
-  downloadKlDokument,
+  downloadKlLoenaftalerDokument,
   downloadLoebendeYdelserDokument,
   downloadKapitaliseringDokument,
   downloadEfterEalDokument,
@@ -167,7 +167,7 @@ beforeEach(() => {
   mockLoadRentePdfModule.mockReset();
   mockLoadReguleringPdfModule.mockReset();
   mockLoadKRLPdfModule.mockReset();
-  mockLoadKLPdfModule.mockReset();
+  mockLoadKlLoenaftalerPdfModule.mockReset();
   mockLoadLoebendeYdelserPdfModule.mockReset();
   mockLoadKapitaliseringPdfModule.mockReset();
   mockLoadEfterEalPdfModule.mockReset();
@@ -183,7 +183,7 @@ beforeEach(() => {
   mockGenerateRentePdf.mockReset();
   mockGenerateReguleringPdf.mockReset();
   mockGenerateKRLPdf.mockReset();
-  mockGenerateKLPdf.mockReset();
+  mockGenerateKlLoenaftalerPdf.mockReset();
   mockGenerateLoebendeYdelserPdf.mockReset();
   mockGenerateKapitaliseringPdf.mockReset();
   mockGenerateEfterEalPdf.mockReset();
@@ -203,7 +203,7 @@ beforeEach(() => {
   mockLoadRentePdfModule.mockImplementation(async () => ({ generateRenteDocument: mockGenerateRentePdf }));
   mockLoadReguleringPdfModule.mockImplementation(async () => ({ generateReguleringDocument: mockGenerateReguleringPdf }));
   mockLoadKRLPdfModule.mockImplementation(async () => ({ generateKRLDocument: mockGenerateKRLPdf }));
-  mockLoadKLPdfModule.mockImplementation(async () => ({ generateKLDocument: mockGenerateKLPdf }));
+  mockLoadKlLoenaftalerPdfModule.mockImplementation(async () => ({ generateKlLoenaftalerDocument: mockGenerateKlLoenaftalerPdf }));
   mockLoadLoebendeYdelserPdfModule.mockImplementation(async () => ({ generateLoebendeYdelserDocument: mockGenerateLoebendeYdelserPdf }));
   mockLoadKapitaliseringPdfModule.mockImplementation(async () => ({ generateKapitaliseringDocument: mockGenerateKapitaliseringPdf }));
   mockLoadEfterEalPdfModule.mockImplementation(async () => ({ generateEfterEalDocument: mockGenerateEfterEalPdf }));
@@ -378,13 +378,13 @@ describe('downloadKrlDokument', () => {
   });
 });
 
-// ─── downloadKlDokument ───────────────────────────────────────────────────────────
+// ─── downloadKlLoenaftalerDokument ───────────────────────────────────────────────────────────
 
-describe('downloadKlDokument', () => {
+describe('downloadKlLoenaftalerDokument', () => {
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadKlDokument({ settings, persistedStamdata: null });
+    const result = await downloadKlLoenaftalerDokument({ settings, persistedStamdata: null });
     expect(result.success).toBe(true);
-    expect(mockGenerateKLPdf).toHaveBeenCalled();
+    expect(mockGenerateKlLoenaftalerPdf).toHaveBeenCalled();
   });
 
   it('arver brevhoved-indstilling 1-til-1 fra regulering', async () => {
@@ -395,16 +395,16 @@ describe('downloadKlDokument', () => {
         regulering: true,
       },
     };
-    const result = await downloadKlDokument({ settings: settingsWithReguleringBrevhoved, persistedStamdata: stamdata });
+    const result = await downloadKlLoenaftalerDokument({ settings: settingsWithReguleringBrevhoved, persistedStamdata: stamdata });
     expect(result.success).toBe(true);
 
-    const lastCall = mockGenerateKLPdf.mock.calls.at(-1);
+    const lastCall = mockGenerateKlLoenaftalerPdf.mock.calls.at(-1);
     expect(lastCall?.[0]).toMatchObject({ visBrevhoved: true });
   });
 
   it('returnerer success=false ved generator-fejl', async () => {
-    mockGenerateKLPdf.mockImplementationOnce(() => { throw new Error('KL fejl'); });
-    const result = await downloadKlDokument({ settings, persistedStamdata: null });
+    mockGenerateKlLoenaftalerPdf.mockImplementationOnce(() => { throw new Error('KL-lønaftaler fejl'); });
+    const result = await downloadKlLoenaftalerDokument({ settings, persistedStamdata: null });
     expect(result.success).toBe(false);
   });
 });

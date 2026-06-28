@@ -1,18 +1,17 @@
 /**
  * KL-lønaftaler – periodevise reguleringssatser fra de kommunale lønaftaler.
  *
- * SÆRLIG KL-LOGIK — denne model regulerer trinvist på selve lønnen og har andre
+ * SÆRLIG KL-LØNAFTALER-LOGIK — denne model regulerer trinvist på selve lønnen og har andre
  * visninger end de øvrige reguleringsmodeller. Normativt overblik:
  * docs/domain/taf/kl-loenaftaler-regulering.md
  *
  * Modellen er en enkelt serie af periode-reguleringer (modsat KRL-satstabellen,
  * der har fire delserier). Hver række beskriver én reguleringsprocent på en given
- * dato (fx 1,40 % pr. 1. januar 2006). Der lagres bevidst INGEN akkumuleret
- * regulering i kilden — den akkumulerede serie beregnes af programmet (se
- * `klSatstabelVaerdier` nedenfor), og selve reguleringen mellem to datoer beregnes
- * af reguleringsmotoren i forbindelse med erstatningsberegningen, præcis som for
- * KRL-satstabellen, statistikmodellerne og overenskomsterne (forholdet mellem
- * indeks på segment- og basisdatoen).
+ * dato (fx 1,40 % pr. 1. januar 2006). Der lagres og eksporteres bevidst INGEN
+ * akkumuleret regulering: beregningen kæder disse periodesatser direkte på lønnen
+ * og afrunder lønnen efter hvert trin. Reguleringsformen KL-lønaftaler må derfor
+ * ikke modelleres som et almindeligt indeksforhold i beregnings- eller
+ * præsentationslaget.
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * NOTE TIL FREMADRETTET VEDLIGEHOLDELSE (tilføjelse af nye satser):
@@ -33,25 +32,17 @@
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
 import { formatDanishDate, getInclusivePeriodEndByMonths, parseDanishDate } from '../utils/dateUtils';
-import { roundByMethod } from '../utils/rounding';
 
 // ===== TYPER =====
 
 /** Én linje i KL-lønaftalernes oversigt (kilde til download-dokumentet). */
-export interface KLLoenaftaleRow {
+export interface KlLoenaftalerRow {
   readonly fraDato: DanishDateString;
   /** Periode-reguleringsprocent, fx 1.40 (= 1,40 %). */
   readonly reguleringPct: number;
 }
 
-/** Én reguleringssats brugt af beregningsmotoren (akkumuleret, afledt af kilden). */
-export interface KLSatsVaerdi {
-  readonly fraDato: DanishDateString;
-  /** Akkumuleret reguleringsprocent, fx 12.4454 (= (akkumuleret indeks − 1) × 100). */
-  readonly reguleringsPct: number;
-}
-
-export type KLReguleringsDatoInterval = Readonly<{
+export type KlLoenaftalerReguleringsDatoInterval = Readonly<{
   fraDato: DanishDateString;
   tilDato: DanishDateString;
 }>;
@@ -114,41 +105,9 @@ const klReguleringsraekkerData: ReadonlyArray<readonly [fraDato: string, reguler
  * Alle linjer i KL-lønaftalerne, kronologisk (ældste først).
  * Bruges til det dokument brugeren downloader.
  */
-export const klLoenaftaleRaekker: ReadonlyArray<KLLoenaftaleRow> = klReguleringsraekkerData.map(
+export const klLoenaftalerRaekker: ReadonlyArray<KlLoenaftalerRow> = klReguleringsraekkerData.map(
   ([fraDato, reguleringPct]) => ({ fraDato: d(fraDato), reguleringPct })
 );
-
-// ===== AFLEDT SATSTABEL (beregning) =====
-
-/**
- * Akkumuleret indeksserie ([dato, akkumuleret indeks], ældste først), beregnet af
- * programmet ved at kæde periode-satserne fra basisdatoen:
- *   indeks_0 = 1            (basisdato, 0,00 %)
- *   indeks_n = indeks_{n−1} × (1 + periode-procent_n / 100)
- *
- * Indekset holdes råt (fuld præcision) her, så periodeforholdet i motoren beregnes
- * uden akkumuleret afrundingstab.
- */
-const akkumuleretIndeksSerie: ReadonlyArray<readonly [DanishDateString, number]> = (() => {
-  const serie: Array<readonly [DanishDateString, number]> = [];
-  let acc = 1;
-  for (const { fraDato, reguleringPct } of klLoenaftaleRaekker) {
-    acc *= 1 + reguleringPct / 100;
-    serie.push([fraDato, acc] as const);
-  }
-  return serie;
-})();
-
-const indeksTilReguleringsPct = (indeks: number): number =>
-  roundByMethod((indeks - 1) * 100, 4, 'halfAwayFromZero');
-
-/**
- * KL-lønaftalernes satstabel, sorteret nyeste først (som KRL-satstabellen).
- * Akkumulerede reguleringsprocenter, fx 65.3378 = 65,3378 %.
- */
-export const klSatstabelVaerdier: ReadonlyArray<KLSatsVaerdi> = akkumuleretIndeksSerie
-  .map(([fraDato, indeks]) => ({ fraDato, reguleringsPct: indeksTilReguleringsPct(indeks) }))
-  .reverse();
 
 // ===== PERIODEVIS REGULERINGSPROCENT =====
 
@@ -157,7 +116,7 @@ export const klSatstabelVaerdier: ReadonlyArray<KLSatsVaerdi> = akkumuleretIndek
  * Bruges i reguleringsværdi-oversigten.
  */
 const klPeriodeReguleringPctByDato: ReadonlyMap<DanishDateString, number> = new Map(
-  klLoenaftaleRaekker.map((row) => [row.fraDato, row.reguleringPct])
+  klLoenaftalerRaekker.map((row) => [row.fraDato, row.reguleringPct])
 );
 
 /**
@@ -165,13 +124,10 @@ const klPeriodeReguleringPctByDato: ReadonlyMap<DanishDateString, number> = new 
  * (procentpoint). undefined for datoer der ikke er en regulerende dato i
  * KL-lønaftalerne.
  */
-export const getKLReguleringPctForDato = (fraDato: DanishDateString): number | undefined =>
+export const getKlLoenaftalerReguleringPctForDato = (fraDato: DanishDateString): number | undefined =>
   klPeriodeReguleringPctByDato.get(fraDato);
 
 // ===== OPSLAG =====
-
-/** Returnerer KL-lønaftalernes satstabel (nyeste først). */
-export const getKLSatstabelVaerdier = (): ReadonlyArray<KLSatsVaerdi> => klSatstabelVaerdier;
 
 /**
  * Returnerer dato-intervallet for KL-lønaftalerne.
@@ -180,12 +136,11 @@ export const getKLSatstabelVaerdier = (): ReadonlyArray<KLSatsVaerdi> => klSatst
  * tilDato = nyeste regulerings-startdato + 6 måneder − 1 dag
  *           (satserne behandles som 6-måneders perioder i Mineo, som KRL)
  */
-export const getReguleringsDatoIntervalForKL = (): KLReguleringsDatoInterval | undefined => {
-  if (klSatstabelVaerdier.length === 0) return undefined;
+export const getReguleringsDatoIntervalForKlLoenaftaler = (): KlLoenaftalerReguleringsDatoInterval | undefined => {
+  if (klLoenaftalerRaekker.length === 0) return undefined;
 
-  // Værdier er sorteret nyeste først.
-  const nyeste = klSatstabelVaerdier[0];
-  const aeldste = klSatstabelVaerdier[klSatstabelVaerdier.length - 1];
+  const aeldste = klLoenaftalerRaekker[0];
+  const nyeste = klLoenaftalerRaekker[klLoenaftalerRaekker.length - 1];
 
   const nyesteDate = parseDanishDate(nyeste.fraDato);
   if (!nyesteDate) return undefined;

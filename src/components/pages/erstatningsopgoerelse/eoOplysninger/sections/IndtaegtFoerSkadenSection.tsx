@@ -67,7 +67,7 @@ export default function IndtaegtFoerSkadenSection() {
     reguleringsDatoIntervalData,
     reguleringsDatoIntervalDisplay,
     handleDownloadKRLPdf,
-    handleDownloadKLPdf,
+    handleDownloadKlLoenaftalerPdf,
     handleDownloadReguleringPdf,
     showEoAnciennitetstillaegSection,
     handleEoAnciennitetstillaegToggleCommit,
@@ -645,7 +645,7 @@ export default function IndtaegtFoerSkadenSection() {
                                       return;
                                     }
                                     if (loenudviklingBasis === 'KL-lønaftaler') {
-                                      void handleDownloadKLPdf();
+                                      void handleDownloadKlLoenaftalerPdf();
                                       return;
                                     }
                                     if (loenudviklingBasis !== 'Overenskomst' && loenudviklingBasis !== 'Statistik') {

@@ -131,7 +131,7 @@ describe('buildLoenudviklingModel', () => {
     expectOnlyPositiveArbejdsdagssegmenter(values);
   });
 
-  it('springer over KL-segmenter uden TAF-arbejdsdage', () => {
+  it('springer over KL-lønaftaler-segmenter uden TAF-arbejdsdage', () => {
     const values = setupAngivetDagsloen();
     values.tafPerioder = [{
       id: 'taf-easter',
@@ -148,7 +148,7 @@ describe('buildLoenudviklingModel', () => {
     expectOnlyPositiveArbejdsdagssegmenter(values);
   });
 
-  it('beregner KL-deltaPct som indeksforhold til basisdatoen', () => {
+  it('beregner KL-deltaPct fra den trinvist regulerede løn', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
@@ -172,14 +172,15 @@ describe('buildLoenudviklingModel', () => {
       { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2026-03-31') }] }
     );
 
-    // Basisdato = 01-04-2024. Basissegmentet har deltaPct 0.
+    // Basisdato = 01-04-2024. Basissegmentet har deltaPct 0 og reguleret løn = basisløn.
     const baseSegment = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-04-01'));
     expect(baseSegment?.deltaPct).toBe(0);
+    expect(baseSegment?.reguleretLoenOre).toBe(3_000_000);
 
-    // 01-10-2024: eneste periode-sats mellem basis og segment er 1,30 %, så
-    // forholdet mellem de akkumulerede indeks giver deltaPct 1,30.
+    // 01-10-2024: lønnen reguleres ét trin med periodesatsen 1,30 %.
     const segmentOkt2024 = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-10-01'));
     expect(segmentOkt2024?.deltaPct).toBe(1.30);
+    expect(segmentOkt2024?.reguleretLoenOre).toBe(3_039_000);
   });
 
   it('KL: opregulerer lønnen trinvist og afrunder til to decimaler på hvert trin', () => {
@@ -212,8 +213,8 @@ describe('buildLoenudviklingModel', () => {
     //            →(2,40%) 31.446,81 →(0,50%) 31.604,04
     const reguleretLoenFor = (fra: string): number | undefined => {
       const segment = model.beregnedeSegmenter.find((s) => s.fra === iso(fra));
-      if (!segment || segment.kind !== 'maaneder') return undefined;
-      return Math.round((segment.maanedsloenOre / 100) * (1 + segment.deltaPct / 100) * 100) / 100;
+      if (!segment || segment.kind !== 'maaneder' || segment.reguleretLoenOre === undefined) return undefined;
+      return segment.reguleretLoenOre / 100;
     };
 
     // Basislønnen bevares som enhedsløn på alle segmenter (regulering ligger i deltaPct).

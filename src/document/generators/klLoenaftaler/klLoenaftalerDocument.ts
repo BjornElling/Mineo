@@ -5,10 +5,10 @@
  * fra 2005 og frem. To kolonner: Dato | Regulering (periode-procent, fx 1,40 %).
  *
  * Modsat KRL-dokumentet (fire satstabel-kolonner) er dette en enkelt serie. Der
- * vises bevidst ingen akkumuleret regulering — den beregnes af programmet i
- * forbindelse med erstatningsberegningen.
+ * vises bevidst ingen akkumuleret regulering — erstatningsberegningen kæder
+ * periodesatserne på lønnen.
  *
- * SÆRLIG KL-LOGIK — se docs/domain/taf/kl-loenaftaler-regulering.md.
+ * SÆRLIG KL-LØNAFTALER-LOGIK — se docs/domain/taf/kl-loenaftaler-regulering.md.
  */
 
 import type { RowInput } from 'jspdf-autotable';
@@ -22,38 +22,38 @@ import {
   createDocumentTableHeaderCell,
   renderDocumentTable,
 } from '../../layout/documentTableRenderer';
-import { klLoenaftaleRaekker } from '../../../data/klLoenaftaler';
+import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 
-type KLPdfParams = DocumentCommonOptions;
+type KlLoenaftalerPdfParams = DocumentCommonOptions;
 
-const KL_DOCUMENT_TITLE = 'KL-lønaftaler';
+const KL_LOENAFTALER_DOCUMENT_TITLE = 'KL-lønaftaler';
 
-export const buildKLDocumentFilename = (journalnr?: string): string =>
-  resolveDocumentArtifactFileName(KL_DOCUMENT_TITLE, false, journalnr);
+export const buildKlLoenaftalerDocumentFilename = (journalnr?: string): string =>
+  resolveDocumentArtifactFileName(KL_LOENAFTALER_DOCUMENT_TITLE, false, journalnr);
 
 const formatReguleringPct = (value: number): string => `${formatAsAmount(value, 2)} %`;
 
-export const generateKLDocument = (params: KLPdfParams): void => {
+export const generateKlLoenaftalerDocument = (params: KlLoenaftalerPdfParams): void => {
   const { visBrevhoved = false, stamdata = null } = params;
 
-  const writer = initStandardDocumentWriter({ title: KL_DOCUMENT_TITLE });
+  const writer = initStandardDocumentWriter({ title: KL_LOENAFTALER_DOCUMENT_TITLE });
   const doc = writer.getDoc();
 
   if (visBrevhoved) {
     writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
-  writer.writeTitle(KL_DOCUMENT_TITLE);
+  writer.writeTitle(KL_LOENAFTALER_DOCUMENT_TITLE);
 
   const headerRow: RowInput = [
     createDocumentTableHeaderCell('Dato', 'left'),
     createDocumentTableHeaderCell('Regulering', 'right'),
   ];
 
-  const bodyRows: RowInput[] = klLoenaftaleRaekker.map((row) => [
+  const bodyRows: RowInput[] = klLoenaftalerRaekker.map((row) => [
     createDocumentTableCell(row.fraDato, { halign: 'left' }),
     createDocumentTableCell(formatReguleringPct(row.reguleringPct), { halign: 'right' }),
   ]);
@@ -87,5 +87,5 @@ export const generateKLDocument = (params: KLPdfParams): void => {
   writer.setY(resolveDocumentSectionEndY(finalY, writer.getY()));
 
   writer.addFooter();
-  writer.save(buildKLDocumentFilename(stamdata?.journalnr));
+  writer.save(buildKlLoenaftalerDocumentFilename(stamdata?.journalnr));
 };

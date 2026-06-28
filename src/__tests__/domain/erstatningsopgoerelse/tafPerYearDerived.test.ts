@@ -13,7 +13,7 @@ import {
   type TafPerYearSource,
   type TafPerYearResult,
 } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { splitIsoRangeByCalendarYearsInclusive } from '../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
@@ -50,7 +50,7 @@ const EMPTY_SFGG_RESULT = {
   firstExcludedDate: null,
 } as const;
 
-const emptyOffentligeYdelserUdvikling = (beregningsenhed = TAF_BEREGNES_SOM.ARBEJDSDAGE) => ({
+const emptyOffentligeYdelserUdvikling = (beregningsenhed: TafBeregningsenhed = TAF_BEREGNES_SOM.ARBEJDSDAGE) => ({
   reguleringsLabel: '',
   reguleringsBaseIso: undefined,
   beregningsenhed,
@@ -1228,6 +1228,51 @@ describe('buildTafPerYearResult', () => {
     expect(outcome.kind).not.toBe('ok');
   });
 
+  it('KL-subsegmenter beregner årsbeløb fra reguleretLoenOre frem for deltaPct', () => {
+    const source: TafPerYearSource = {
+      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
+      loenudvikling: {
+        loenudviklingTotal: { status: 'ok', value: 3_100_000 },
+        beregnedeSegmenter: [
+          {
+            kind: 'maaneder',
+            fra: toISODateString('2024-01-01'),
+            til: toISODateString('2024-01-31'),
+            maaneder: 1,
+            maanedsloenOre: 3_000_000,
+            deltaPct: 0,
+            reguleretLoenOre: 3_100_000,
+            amountOre: 3_100_000,
+          },
+        ],
+        beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+        loenudviklingLabel: 'KL-lønaftaler',
+        perAnsaettelse: [],
+      },
+      tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+      tabtArbejdsfortjenesteOre: 3_100_000,
+      tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
+      sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
+      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(TAF_BEREGNES_SOM.MAANEDER),
+      forligFactor: null,
+    };
+    const eoValues = makeValues({
+      tafPerioder: [
+        { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: undefined },
+      ],
+    });
+
+    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: tafRangesFromValues(eoValues) });
+
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+    const segment = outcome.result.years[0]?.segments[0];
+    expect(segment?.reguleretLoenOre).toBe(3_100_000);
+    expect(segment?.amountOre).toBe(3_100_000);
+    expect(outcome.result.years[0]?.yearIncomeOre).toBe(3_100_000);
+  });
+
   it('segmenter med kind="arbejdsdage" springes over når tafBeregningsenhed=Måneder (tafArbejdsdageSet er null)', () => {
     // Inkonsistent tilstand: beregningsenhed=MAANEDER men segmenter har kind='arbejdsdage'
     // Forventer at buildSubSegment returnerer null → segment springes over
@@ -1514,4 +1559,3 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
     expect(outcome.reason).toBe('missing_taf_indtaegter');
   });
 });
-

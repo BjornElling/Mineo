@@ -31,7 +31,7 @@ import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../
 import { useReconcileInvalidDraftScopes } from '../../../../hooks/tableInput';
 import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
-import { downloadKlDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
+import { downloadKlLoenaftalerDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
 import { hasIndtastetLoenoplysninger } from '../../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
@@ -914,9 +914,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     [settings]
   );
 
-  const handleDownloadKLPdf = React.useCallback(
+  const handleDownloadKlLoenaftalerPdf = React.useCallback(
     async () => {
-      await downloadKlDokument({
+      await downloadKlLoenaftalerDokument({
         settings,
         persistedStamdata: getPersistedSectionSnapshot('stamdata'),
       });
@@ -1111,6 +1111,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     handleMoveDown,
     handleDownloadReguleringPdf,
     handleDownloadKRLPdf,
-    handleDownloadKLPdf,
+    handleDownloadKlLoenaftalerPdf,
   };
 }

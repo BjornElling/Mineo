@@ -33,7 +33,7 @@ import {
 } from '../../../data/offentligLoenTypes';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../../data/krlRates';
-import { getKLSatstabelVaerdier } from '../../../data/klLoenaftaler';
+import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../config/indskudteLoentillaeg';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from '../helpers/angivetLoenHelpers';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
@@ -55,7 +55,7 @@ import {
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
 import { computeFormulaValue } from './reguleringFormulaUtils';
-import { buildKlReguleretLoenResolver } from './klReguleretLoen';
+import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
 import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 
@@ -102,7 +102,7 @@ export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateStrin
   return count;
 };
 
-type LoenudviklingStrategi = 'ingen' | 'statistik' | 'overenskomst' | 'manual' | 'krl' | 'kl';
+type LoenudviklingStrategi = 'ingen' | 'statistik' | 'overenskomst' | 'manual' | 'krl' | 'klLoenaftaler';
 type LoenreguleringsSegment = Readonly<IsoRange & { deltaPct: number }>;
 type LoenudviklingAf = LoenudviklingSource;
 type LoenudviklingManualRow = NonNullable<LoenudviklingAf['loenudviklingManuelTableData']>[number];
@@ -161,8 +161,8 @@ type KonsolideretLoenudvikling =
     tafRanges: readonly IsoRange[];
   }>
   | Readonly<{
-    // KL-lønaftaler: enkelt indeksserie (ingen delserie-id, modsat KRL).
-    strategi: 'kl';
+    // KL-lønaftaler: enkelt periodesatsserie (ingen delserie-id, modsat KRL).
+    strategi: 'klLoenaftaler';
     label: string;
     reguleringsdato: ISODateString | undefined;
     tafRanges: readonly IsoRange[];
@@ -386,7 +386,7 @@ const resolveReguleringsStrategi = (
       : basis === 'Overenskomst' ? 'overenskomst'
         : basis === 'Manuelt angivet' ? 'manual'
           : basis === 'KRL satstabel' ? 'krl'
-            : basis === 'KL-lønaftaler' ? 'kl'
+            : basis === 'KL-lønaftaler' ? 'klLoenaftaler'
               : 'ingen';
 
   // Beløb-tilstand bruger ikke feriePct (tillæg er indtastet som beløb), så feriePct kræves ikke der.
@@ -468,7 +468,7 @@ const resolveReguleringsStrategi = (
         ? (active[0].loenudviklingManuelNavn?.trim() || 'Manuelt angivet')
         : strategi === 'krl'
           ? (active[0].loenudviklingKRLSatstabel ?? '-')
-          : strategi === 'kl'
+          : strategi === 'klLoenaftaler'
             ? 'KL-lønaftaler'
             : basis;
 
@@ -582,7 +582,7 @@ const resolveReguleringsStrategi = (
     };
   }
 
-  if (strategi === 'kl') {
+  if (strategi === 'klLoenaftaler') {
     return {
       strategi,
       label,
@@ -767,44 +767,30 @@ const buildLoenudviklingFromKRL = (
   return segments;
 };
 
-const buildLoenudviklingFromKL = (
+const buildLoenudviklingFromKlLoenaftaler = (
   konsolideret: KonsolideretLoenudvikling
 ): ReadonlyArray<LoenreguleringsSegment> => {
-  if (konsolideret.strategi !== 'kl') {
-    throw new Error('Loenudvikling kan ikke beregnes: KL-strategi mangler');
+  if (konsolideret.strategi !== 'klLoenaftaler') {
+    throw new Error('Loenudvikling kan ikke beregnes: KL-lønaftaler-strategi mangler');
   }
   if (!konsolideret.reguleringsdato) {
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
-  const vaerdier = getKLSatstabelVaerdier();
-  if (vaerdier.length === 0) {
+  if (klLoenaftalerRaekker.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: KL-lønaftaler mangler');
   }
-  // Bevidst parity med KRL-strategien: KL-lønaftaler modellerer kun selve
-  // indeksserien. Store Bededag indgår derfor ikke som separat breakpoint.
+  // KL-lønaftaler-segmentbyggeren ejer kun brudpunkterne. Selve reguleringen må ikke
+  // beregnes som indeksforhold her; den sættes senere fra KL-lønaftaler-kæde-resolveren,
+  // så den trinvise afrunding på lønnen er eneste beregningssandhed.
 
-  // Byg sorteret liste af periodestarter med ISO-datoer
-  const periodStarts = vaerdier
+  const periodStarts = klLoenaftalerRaekker
     .map((v) => {
       const startIso = parseDanishToIso(v.fraDato);
       if (!startIso) return null;
-      return { startIso, reguleringsPct: v.reguleringsPct };
+      return { startIso };
     })
-    .filter((entry): entry is Readonly<{ startIso: ISODateString; reguleringsPct: number }> => Boolean(entry))
+    .filter((entry): entry is Readonly<{ startIso: ISODateString }> => Boolean(entry))
     .sort((a, b) => a.startIso.localeCompare(b.startIso));
-
-  // Find basisindeks ved reguleringsdato
-  const effectiveBase = resolveEffectiveBaseEntry(
-    periodStarts,
-    konsolideret.reguleringsdato,
-    'kl',
-    'Loenudvikling kan ikke beregnes: mangler KL basisindeks'
-  );
-  const basePct = effectiveBase.entry.reguleringsPct;
-  if (!Number.isFinite(basePct) || (100 + basePct) <= 0) {
-    throw new Error('Loenudvikling kan ikke beregnes: ugyldigt KL basisindeks');
-  }
-  const effectiveBaseStartIso = effectiveBase.entry.startIso;
 
   // Byg segmenter for hvert taf-interval
   const segments: LoenreguleringsSegment[] = [];
@@ -814,24 +800,11 @@ const buildLoenudviklingFromKL = (
       if (entry.startIso > range.fra && entry.startIso <= range.til) starts.add(entry.startIso);
     }
     for (const segment of buildSegmentsFromStartDates(range, starts)) {
-      if (segment.fra < effectiveBaseStartIso) {
-        segments.push(buildZeroDeltaSegment(segment));
-        continue;
-      }
-      const idxEntry = findLatestByDateInSortedList(periodStarts, segment.fra, 'kl:segment');
-      if (!idxEntry) {
-        throw new Error('Intern fejl: mangler KL-indeks efter effective base');
-      }
-      if (!Number.isFinite(idxEntry.reguleringsPct) || (100 + idxEntry.reguleringsPct) <= 0) {
-        throw new Error('Loenudvikling kan ikke beregnes: ugyldigt KL indeks for segment');
-      }
-      // Indeksforhold: deltaPct = ((100 + periodePct) / (100 + basePct) - 1) * 100
-      const deltaPct = roundByMethod(((100 + idxEntry.reguleringsPct) / (100 + basePct) - 1) * 100, 2, 'halfAwayFromZero');
-      segments.push({ ...segment, deltaPct });
+      segments.push(buildZeroDeltaSegment(segment));
     }
   }
   if (segments.length === 0) {
-    throw new Error('Loenudvikling kan ikke beregnes: ingen KL segmenter');
+    throw new Error('Loenudvikling kan ikke beregnes: ingen KL-lønaftaler-segmenter');
   }
   return segments;
 };
@@ -1346,7 +1319,7 @@ export const buildLoenudviklingModel = (
       if (konsolideret.strategi === 'overenskomst') return buildLoenudviklingFromOverenskomst(konsolideret);
       if (konsolideret.strategi === 'manual') return buildLoenudviklingFromManual(konsolideret);
       if (konsolideret.strategi === 'krl') return buildLoenudviklingFromKRL(konsolideret);
-      if (konsolideret.strategi === 'kl') return buildLoenudviklingFromKL(konsolideret);
+      if (konsolideret.strategi === 'klLoenaftaler') return buildLoenudviklingFromKlLoenaftaler(konsolideret);
       throw new Error('Loenudvikling kan ikke beregnes: ukendt strategi');
     })();
 
@@ -1354,27 +1327,27 @@ export const buildLoenudviklingModel = (
       throw new Error('Loenudvikling kan ikke beregnes: ingen reguleringssegmenter');
     }
 
-    // KL-lønaftaler regulerer trinvist med afrunding på hvert trin (jf. klReguleretLoen.ts
+    // KL-lønaftaler regulerer trinvist med afrunding på hvert trin (jf. klLoenaftalerReguleretLoen.ts
     // og docs/domain/taf/kl-loenaftaler-regulering.md), modsat det enkelt-indeksforhold de
-    // øvrige modeller bruger. For KL erstattes segmentets deltaPct derfor med den akkumulerede
+    // øvrige modeller bruger. For KL-lønaftaler erstattes segmentets deltaPct derfor med den akkumulerede
     // regulering afledt af den kæde-opregulerede, afrundede løn — i fuld præcision, så
     // TAF-beløbet bliver præcis afrund(løn × antal). deltaPct holdes som intern repræsentation
     // (korrekt for tafPerYearDerived og sygeferiegodtgørelse); den vises aldrig som akkumuleret.
     const konsolideretForBase = strategiData.konsolideret;
-    const klReguleretLoenResolver =
-      konsolideretForBase?.strategi === 'kl' && konsolideretForBase.reguleringsdato
-        ? buildKlReguleretLoenResolver(baseLoenRounded, konsolideretForBase.reguleringsdato)
+    const klLoenaftalerReguleretLoenResolver =
+      konsolideretForBase?.strategi === 'klLoenaftaler' && konsolideretForBase.reguleringsdato
+        ? buildKlLoenaftalerReguleretLoenResolver(baseLoenRounded, konsolideretForBase.reguleringsdato)
         : null;
 
     const beregnedeSegmenter: Array<LoenudviklingModel['beregnedeSegmenter'][number]> = [];
     for (const segment of loenreguleringssegmenter) {
-      const roundedDeltaPct = klReguleretLoenResolver
-        ? klReguleretLoenResolver.deltaPctAt(segment.fra)
+      const roundedDeltaPct = klLoenaftalerReguleretLoenResolver
+        ? klLoenaftalerReguleretLoenResolver.deltaPctAt(segment.fra)
         : roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
-      // KL: den opregulerede, afrundede enhedsløn for perioden — bæres med på segmentet,
+      // KL-lønaftaler: den opregulerede, afrundede enhedsløn for perioden — bæres med på segmentet,
       // så indkomst-linjerne kan vise "antal á reguleret løn = beløb" uden faktor-tekst.
-      const klReguleretLoenOre = klReguleretLoenResolver
-        ? toOre(klReguleretLoenResolver.loenAt(segment.fra))
+      const klLoenaftalerReguleretLoenOre = klLoenaftalerReguleretLoenResolver
+        ? toOre(klLoenaftalerReguleretLoenResolver.loenAt(segment.fra))
         : undefined;
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
         const maanederStats = beregnArbejdsdageOgMaaneder(
@@ -1396,7 +1369,7 @@ export const buildLoenudviklingModel = (
           maanedsloenOre: baseLoenOre,
           deltaPct: roundedDeltaPct,
           amountOre: segmentAmountOre(baseLoenRounded, maaneder, roundedDeltaPct),
-          ...(klReguleretLoenOre !== undefined ? { reguleretLoenOre: klReguleretLoenOre } : {}),
+          ...(klLoenaftalerReguleretLoenOre !== undefined ? { reguleretLoenOre: klLoenaftalerReguleretLoenOre } : {}),
         });
       } else {
         if (!tafArbejdageSet) {
@@ -1415,7 +1388,7 @@ export const buildLoenudviklingModel = (
           dagsloenOre: baseLoenOre,
           deltaPct: roundedDeltaPct,
           amountOre: segmentAmountOre(baseLoenRounded, arbejdsdage, roundedDeltaPct),
-          ...(klReguleretLoenOre !== undefined ? { reguleretLoenOre: klReguleretLoenOre } : {}),
+          ...(klLoenaftalerReguleretLoenOre !== undefined ? { reguleretLoenOre: klLoenaftalerReguleretLoenOre } : {}),
         });
       }
     }

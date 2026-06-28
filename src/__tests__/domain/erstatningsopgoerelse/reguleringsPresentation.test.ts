@@ -483,7 +483,7 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.find((r) => r[0] === '01-10-2025')).toEqual(['01-10-2025', '0,30 %']);
   });
 
-  it('Beregnet regulering for KL: lønudvikling gentager periodesatsen, reguleret løn er kæde-opreguleret', () => {
+  it('Beregnet regulering for KL-lønaftaler: lønudvikling gentager periodesatsen, reguleret løn er kæde-opreguleret', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';

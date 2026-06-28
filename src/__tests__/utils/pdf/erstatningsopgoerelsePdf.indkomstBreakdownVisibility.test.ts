@@ -281,7 +281,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     // kæde-opregulerede løn (30.000 × 1,013 = 30.390,00) — begge uden faktor-tekst.
     expect(indkomstLinjer.some((linje) => linje.includes('á ') && linje.includes('30.000,00') && linje.trimEnd().endsWith('='))).toBe(true);
     expect(indkomstLinjer.some((linje) => linje.includes('á ') && linje.includes('30.390,00') && linje.trimEnd().endsWith('='))).toBe(true);
-    // Ingen "x (100 % + d %)"-faktor for KL.
+    // Ingen "x (100 % + d %)"-faktor for KL-lønaftaler.
     expect(indkomstLinjer.some((linje) => linje.includes('(100 %'))).toBe(false);
   });
 
