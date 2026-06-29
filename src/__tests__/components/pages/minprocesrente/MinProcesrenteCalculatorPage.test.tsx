@@ -97,7 +97,7 @@ describe('MinProcesrenteCalculatorPage', () => {
     expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).toHaveAttribute('href', 'mailto:bel@fho.dk');
     expect(screen.getByRole('navigation', { name: 'Søskendesider' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'minEO.dk' })).toHaveAttribute('href', 'https://mineo.dk');
-    expect(screen.getByText('minProcesrente.dk').closest('[aria-current="page"]')).toBeInTheDocument();
+    expect(screen.getAllByText('minProcesrente.dk').some((element) => element.closest('[aria-current="page"]'))).toBe(true);
   });
 
   it('bruger standalone PDF-adapteren uden Mineo-sagskontekst', async () => {

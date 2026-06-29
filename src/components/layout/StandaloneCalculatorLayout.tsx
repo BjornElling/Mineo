@@ -10,6 +10,14 @@ const StandaloneCalculatorLayout = React.memo(({ children }: StandaloneCalculato
     scrollSx={{
       padding: { xs: '24px 16px', sm: '32px 24px', md: '40px 32px' },
       backgroundColor: 'var(--color-surface)',
+      '@media (pointer: coarse)': {
+        // Standalone MinProcesrente skal bruge browserens normale sidescroll på mobil.
+        // Containerens desktop-scrollfelt giver ellers et mærkbart stop, når den indre
+        // scroller når bunden, før næste swipe overtages af body/root.
+        height: 'auto',
+        minHeight: '100vh',
+        overflow: 'visible',
+      },
     }}
     contentSx={{
       width: '100%',

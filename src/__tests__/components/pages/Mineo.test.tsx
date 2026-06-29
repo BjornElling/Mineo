@@ -168,7 +168,7 @@ describe('Mineo - License Modal Integration', () => {
       const boxes = Array.from(document.querySelectorAll('.content-box'));
       expect(boxes[boxes.length - 1]).toHaveAttribute('aria-label', 'Søskendesider og kontakt');
       expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).toHaveAttribute('href', 'mailto:bel@fho.dk');
-      expect(screen.getByText('minEO.dk').closest('[aria-current="page"]')).toBeInTheDocument();
+      expect(screen.getAllByText('minEO.dk').some((element) => element.closest('[aria-current="page"]'))).toBe(true);
       const minProcesrenteLink = screen.getByRole('link', { name: 'minProcesrente.dk' });
       expect(minProcesrenteLink).toHaveAttribute('href', 'https://minprocesrente.dk');
       expect(minProcesrenteLink).not.toHaveAttribute('target');
