@@ -11,6 +11,11 @@ import { useAuthoritativeSnapshotEpochSelector } from '../useFormPersistenceSele
 import { isRestoreFocusInProgress } from '../../utils/historyTargetRestore';
 import { useCellInvalidDraftChannel } from './useCellInvalidDraftChannel';
 import type { TableInputAdapter } from './tableInputAdapter';
+import {
+  mapSelectionThroughDraftNormalization,
+  restoreInputSelectionAfterControlledChange,
+  type NormalizedSelection,
+} from '../../utils/inputSelectionUtils';
 
 export type TableInputChangeEvent<TValue> = Readonly<{ target: Readonly<{ value: TValue }> }>;
 
@@ -110,6 +115,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   const inputElRef = React.useRef<HTMLInputElement | null>(null);
   const draftRef = React.useRef<string>(draft);
+  const pendingSelectionRef = React.useRef<NormalizedSelection | null>(null);
   const pendingDraftCommitRef = React.useRef(false);
   // Post-commit-guard mod silent-rollback/flicker: efter et vellykket commit der ÆNDRER værdien står
   // draften optimistisk på den committede repræsentation, mens `value`-proppen (og evt. invalidDraft-
@@ -141,6 +147,15 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   React.useEffect(() => {
     draftRef.current = draft;
+  }, [draft]);
+
+  React.useLayoutEffect(() => {
+    const pendingSelection = pendingSelectionRef.current;
+    if (pendingSelection === null) return;
+    pendingSelectionRef.current = null;
+
+    const el = inputElRef.current;
+    restoreInputSelectionAfterControlledChange(el, pendingSelection);
   }, [draft]);
 
   const writeInvalidDraft = React.useCallback(
@@ -371,10 +386,22 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (isReadOnly) return;
       const rawDraft = e.target.value ?? '';
-      const nextDraft = latest.current.adapter.normalizeDraftChange?.(rawDraft) ?? rawDraft;
+      const normalizeDraftChange = latest.current.adapter.normalizeDraftChange;
+      const nextDraft = normalizeDraftChange?.(rawDraft) ?? rawDraft;
       if (latest.current.adapter.clearTouchedOnEmptyDraft && nextDraft === '') {
         setTouched(false);
       }
+      pendingSelectionRef.current = normalizeDraftChange
+        ? mapSelectionThroughDraftNormalization(
+            rawDraft,
+            nextDraft,
+            {
+              selectionStart: e.currentTarget.selectionStart,
+              selectionEnd: e.currentTarget.selectionEnd,
+            },
+            normalizeDraftChange
+          )
+        : null;
       // Mens brugeren taster, divergerer draft fra den ikke-committbare rå draft → input-fejlen
       // skjules automatisk (afledt). Selve `invalidDrafts`-entryet ryddes først ved (gyldigt) commit.
       pendingCommitRef.current = null;

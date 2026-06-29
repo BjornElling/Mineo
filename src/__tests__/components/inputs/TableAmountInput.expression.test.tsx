@@ -381,6 +381,40 @@ describe('TableAmountInput expression behavior', () => {
     expect(input).toHaveValue('12,3,4');
   }, TEST_TIMEOUT_MS);
 
+  it('bevarer caret-position når Delete fjerner decimalciffer i grupperet beløb', async () => {
+    const user = userEvent.setup();
+    const { input } = setup({ kind: 'number', value: 30183.15 });
+
+    act(() => {
+      input.focus();
+      input.setSelectionRange(7, 7);
+    });
+    await user.keyboard('{Delete}');
+
+    expect(input).toHaveValue('30183,5');
+    await waitFor(() => {
+      expect(input.selectionStart).toBe(6);
+      expect(input.selectionEnd).toBe(6);
+    });
+  });
+
+  it('bevarer caret-position når Backspace fjerner komma i grupperet beløb', async () => {
+    const user = userEvent.setup();
+    const { input } = setup({ kind: 'number', value: 30183.15 });
+
+    act(() => {
+      input.focus();
+      input.setSelectionRange(7, 7);
+    });
+    await user.keyboard('{Backspace}');
+
+    expect(input).toHaveValue('3018315');
+    await waitFor(() => {
+      expect(input.selectionStart).toBe(5);
+      expect(input.selectionEnd).toBe(5);
+    });
+  });
+
   it('genopretter click-caret når edit-start genrenderer samme beløbstekst', async () => {
     const { input, setEditingCell } = setup({ kind: 'number', value: 12.34 });
     const setSelectionRangeSpy = vi.spyOn(input, 'setSelectionRange');

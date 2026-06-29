@@ -4,6 +4,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
+import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
 
 type AllowedInputAttributes = Pick<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -55,7 +56,7 @@ export type StyledTextFieldBaseProps = {
   placeholder?: string;
 
   draft: string;
-  onDraftChange: (draft: string) => void;
+  onDraftChange: (draft: string, selection: InputSelectionSnapshot) => void;
 
   inputRef?: React.Ref<HTMLInputElement>;
 
@@ -145,7 +146,10 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
 
     const handleChange = React.useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        onDraftChange(e.target.value);
+        onDraftChange(e.target.value, {
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
       },
       [onDraftChange]
     );

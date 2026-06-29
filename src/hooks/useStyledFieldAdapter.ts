@@ -7,6 +7,12 @@ import {
 import { useFieldInvalidDraftChannel } from './useFormFieldErrors';
 import type { FieldErrorReporter } from '../types/fieldErrors';
 import { readClipboardText } from '../utils/clipboardUtils';
+import {
+  mapSelectionThroughDraftNormalization,
+  restoreInputSelectionAfterControlledChange,
+  type InputSelectionSnapshot,
+  type NormalizedSelection,
+} from '../utils/inputSelectionUtils';
 
 /**
  * Delt commit-/redigerings-skelet for de syv single-`<input>` "blur-commit"-felter
@@ -167,6 +173,7 @@ export const useStyledFieldAdapter = <TModel>(
 
   const inputElementRef = React.useRef<HTMLInputElement>(null);
   const skipNextBlurCommitRef = React.useRef(false);
+  const pendingSelectionRef = React.useRef<NormalizedSelection | null>(null);
 
   const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
@@ -204,15 +211,27 @@ export const useStyledFieldAdapter = <TModel>(
   });
 
   const handleDraftChange = React.useCallback(
-    (nextDraft: string) => {
+    (nextDraft: string, selection?: InputSelectionSnapshot) => {
       const transformed = transformDraftOnChange(nextDraft);
       skipNextBlurCommitRef.current = false;
       onDraftChangeSideEffect?.();
+      pendingSelectionRef.current = selection
+        ? mapSelectionThroughDraftNormalization(nextDraft, transformed, selection, transformDraftOnChange)
+        : null;
       setDraft(transformed);
       onDraftChange?.(transformed);
     },
     [onDraftChange, onDraftChangeSideEffect, setDraft, transformDraftOnChange]
   );
+
+  React.useLayoutEffect(() => {
+    const pendingSelection = pendingSelectionRef.current;
+    if (pendingSelection === null) return;
+    pendingSelectionRef.current = null;
+
+    const el = inputElementRef.current;
+    restoreInputSelectionAfterControlledChange(el, pendingSelection);
+  }, [draft]);
 
   const activation = useTwoStageInputActivation<HTMLElement>({
     disabled: Boolean(disabled || blocked),
