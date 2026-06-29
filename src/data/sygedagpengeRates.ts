@@ -21,12 +21,17 @@ import { toISODateString } from '../types/branded';
  * ATP (videreført eller ny) og OP-procent. Insert-vinduet for "Indsæt maksimal sygedagpengesats"
  * følger automatisk første/sidste række.
  *
- * Det kommunale ATP-bidrag opgøres som 37 x det samlede ATP-timebidrag x 1/3, afundet til nul
- * decimaler x 2. De historiske satser for timebidraget har været:
+ * Det kommunale ATP-bidrag opgøres som:
+ *   round(37 x samlet ATP-timebidrag x 1/3) x 2
+ *
+ * Afrunding sker til nærmeste hele krone på modtagerens 1/3-andel,
+ * hvorefter kommunens bidrag udgør det dobbelte af det afrundede beløb.
+ *
+ * De historiske samlede ATP-timebidrag ved kommunale sygedagpenge har været:
  *  1998-2005: 3,24
  *  2006-2008: 3,48
  *  2009-2015: 3,84
- *  2016-2023: 4,08
+ *  2016-2023: 4,02
  *  2024-    : 4,26
  */
 
