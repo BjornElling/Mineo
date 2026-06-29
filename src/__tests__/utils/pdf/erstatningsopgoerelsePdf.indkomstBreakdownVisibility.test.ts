@@ -1505,11 +1505,13 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   it('viser ikke SFGG-kolonner i reguleringsbilaget for differentieret overenskomst', () => {
     autoTableMock.mockClear();
     const { stamdata, eo } = buildBaseInput();
-    const document = buildProjectedDocument(stamdata, eo);
     const renderValues = structuredClone(eo);
+    stamdata.skadedato = iso('2023-07-01');
+    renderValues.vedroererPeriodeFra = iso('2023-07-01');
     renderValues.vedroererPeriodeTil = iso('2025-02-01');
-    renderValues.tafBeregningsperiodeTil = iso('2025-02-01');
-    renderValues.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-26'), til: iso('2025-02-01'), loseFeriedage: undefined }];
+    renderValues.tafBeregningsperiodeFra = iso('2023-07-01');
+    renderValues.tafBeregningsperiodeTil = iso('2023-07-31');
+    renderValues.tafPerioder = [{ id: 'taf-1', fra: iso('2023-07-01'), til: iso('2025-02-01'), loseFeriedage: undefined }];
     renderValues.loenindkomstAnsaettelsesforhold[0] = createEmployment({
       id: 'af-1',
       navnPaaArbejdssted: 'Byggearbejde',
@@ -1521,10 +1523,10 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       indtaegtsoplysningerTableData: [
         {
           id: 'row-1',
-          col0_maaned: '',
-          col1_maaned: '',
-          col0_uge: '4',
-          col1_uge: '2024',
+          col0_maaned: '7',
+          col1_maaned: '2023',
+          col0_uge: '',
+          col1_uge: '',
           col0_dag: undefined,
           col1_dag: undefined,
           col2: asAmountValue(10000),
@@ -1552,7 +1554,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       regulering: true,
     }, {
       visUdkastStempel: false,
-      document,
+      document: buildProjectedDocument(stamdata, renderValues),
     });
 
     const firstTableCall = autoTableMock.mock.calls[0]?.[1];
