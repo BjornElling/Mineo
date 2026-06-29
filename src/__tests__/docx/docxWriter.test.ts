@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { withDocumentGenerationContext } from '../../document/documentGenerationContext';
+import { clearDocumentFooterImageCacheForTests } from '../../document/layout/documentFooterImage';
 import { createDocxWriter } from '../../docx/infrastructure/docxWriter';
 import { toISODateString } from '../../types/branded';
 import {
@@ -113,6 +114,58 @@ describe('createDocxWriter', () => {
     expect(documentXml).toContain('1.234 kr.');
     expect(coreXml).toContain('Testdokument');
     expect(coreXml).toContain('mineo.dk');
+  });
+
+  it('forankrer versions-footeren tæt ved højrekanten', async () => {
+    clearDocumentFooterImageCacheForTests();
+    const capture = captureDownload();
+    const originalCreateElement = document.createElement.bind(document);
+    const mockContext = {
+      clearRect: vi.fn(),
+      fillRect: vi.fn(),
+      save: vi.fn(),
+      translate: vi.fn(),
+      rotate: vi.fn(),
+      fillText: vi.fn(),
+      restore: vi.fn(),
+      measureText: vi.fn(() => ({ width: 84 })),
+      font: '',
+      fillStyle: '',
+      textAlign: 'center' as const,
+      textBaseline: 'middle' as const,
+    };
+    const mockCanvas = {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => mockContext),
+      toDataURL: vi.fn(() => 'data:image/jpeg;base64,AA=='),
+    };
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockImplementation(((tagName: string) => {
+        if (tagName.toLowerCase() === 'canvas') {
+          return mockCanvas as unknown as HTMLCanvasElement;
+        }
+        return originalCreateElement(tagName as keyof HTMLElementTagNameMap);
+      }) as typeof document.createElement);
+
+    try {
+      await withDocumentGenerationContext('word', () => {
+        const writer = createDocxWriter();
+        writer.writeWrappedText('Indhold');
+        writer.save('Footer.pdf');
+      });
+    } finally {
+      createElementSpy.mockRestore();
+      clearDocumentFooterImageCacheForTests();
+      capture.restore();
+    }
+
+    const zip = await JSZip.loadAsync(capture.getBlob()!);
+    const footerFiles = Object.keys(zip.files).filter((name) => /word\/footer\d+\.xml$/.test(name));
+    expect(footerFiles.length).toBeGreaterThan(0);
+    const footerXml = (await zip.file(footerFiles[0])?.async('string')) ?? '';
+    expect(footerXml).toMatch(/<wp:positionH[^>]*relativeFrom="page"[\s\S]*?<wp:posOffset>7373110<\/wp:posOffset>/);
   });
 
   // GDPR / kontrakt §4.3: Word-output må ikke indeholde eksterne relationer,

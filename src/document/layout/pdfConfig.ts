@@ -96,4 +96,7 @@ export const PDF_BREVHOVED_FONT_SIZE = 9; // pt
 // Footer-konstanter
 export const PDF_FOOTER_FONT_SIZE = 6; // pt
 export const PDF_FOOTER_TEXT_COLOR: PdfColor = COLORS.footerText;
-export const PDF_FOOTER_MARGIN_MM = 5; // mm fra sidens kant
+export const PDF_FOOTER_MARGIN_MM = 5; // mm fra sidens bund
+// Versionsmærket er et smalt, roteret billede. Horisontalt forankres det helt mod
+// højre kant, så billedets venstre/startkant ligger cirka 5 mm fra sidekanten.
+export const PDF_FOOTER_RIGHT_MARGIN_MM = 0;

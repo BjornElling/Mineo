@@ -36,7 +36,7 @@ import {
   buildDocumentFooterText,
   getDocumentFooterImage,
 } from '../../document/layout/documentFooterImage';
-import { PDF_FOOTER_MARGIN_MM } from '../../document/layout/pdfConfig';
+import { PDF_FOOTER_MARGIN_MM, PDF_FOOTER_RIGHT_MARGIN_MM } from '../../document/layout/pdfConfig';
 import { registerPendingDocumentDownload } from '../../document/documentGenerationContext';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
 import {
@@ -469,8 +469,8 @@ const emuFromMm = (mm: number): number => roundByMethod(mm * EMU_PER_MM, 0, 'hal
 // Versions-footeren genbruger NØJAGTIG samme roterede billede som PDF-kanalen
 // (documentFooterImage.ts), så "<brand> // <version>" står med samme lysegrå farve,
 // skrift, lodrette orientering og placering i begge kanaler. Billedet floates frit,
-// forankret til SIDEN, så nederste-højre hjørne sidder PDF_FOOTER_MARGIN_MM fra sidens
-// nederste-højre hjørne — identisk med PDF'ens addImage-placering. Footeren gentages
+// forankret til SIDEN, så højre kant følger PDF_FOOTER_RIGHT_MARGIN_MM og bundkanten
+// følger PDF_FOOTER_MARGIN_MM — identisk med PDF'ens addImage-placering. Footeren gentages
 // automatisk på alle sider, fordi den ligger i sektionens footer-slot.
 const buildVersionFooter = (pageWidthDxa: number, pageHeightDxa: number): Footer => {
   const footerText = buildDocumentFooterText();
@@ -486,7 +486,7 @@ const buildVersionFooter = (pageWidthDxa: number, pageHeightDxa: number): Footer
 
   const imageWidthEmu = emuFromMm(image.widthMm);
   const imageHeightEmu = emuFromMm(image.heightMm);
-  const horizontalOffsetEmu = pageWidthDxa * EMU_PER_DXA - emuFromMm(PDF_FOOTER_MARGIN_MM) - imageWidthEmu;
+  const horizontalOffsetEmu = pageWidthDxa * EMU_PER_DXA - emuFromMm(PDF_FOOTER_RIGHT_MARGIN_MM) - imageWidthEmu;
   const verticalOffsetEmu = pageHeightDxa * EMU_PER_DXA - emuFromMm(PDF_FOOTER_MARGIN_MM) - imageHeightEmu;
 
   return new Footer({

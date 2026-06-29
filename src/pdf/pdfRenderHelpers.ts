@@ -17,6 +17,7 @@ import {
   PDF_FONT_STYLES,
   PDF_FOOTER_FONT_SIZE,
   PDF_FOOTER_MARGIN_MM,
+  PDF_FOOTER_RIGHT_MARGIN_MM,
   PDF_FOOTER_TEXT_COLOR,
   PDF_SECTION_HEADING_GAP,
 } from '../document/layout/pdfConfig';
@@ -75,7 +76,7 @@ export const addFooter = (doc: PdfDocumentAdapter): void => {
       doc.addImage(
         footerImage.dataUrl,
         footerImage.format,
-        pageWidth - PDF_FOOTER_MARGIN_MM - footerImage.widthMm,
+        pageWidth - PDF_FOOTER_RIGHT_MARGIN_MM - footerImage.widthMm,
         pageHeight - PDF_FOOTER_MARGIN_MM - footerImage.heightMm,
         footerImage.widthMm,
         footerImage.heightMm,
@@ -88,6 +89,6 @@ export const addFooter = (doc: PdfDocumentAdapter): void => {
     doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     doc.setFontSize(PDF_FOOTER_FONT_SIZE);
     doc.setTextColor(...PDF_FOOTER_TEXT_COLOR);
-    doc.text(footerText, pageWidth - PDF_FOOTER_MARGIN_MM, pageHeight - PDF_FOOTER_MARGIN_MM, { angle: 90 });
+    doc.text(footerText, pageWidth - PDF_FOOTER_RIGHT_MARGIN_MM, pageHeight - PDF_FOOTER_MARGIN_MM, { angle: 90 });
   }
 };

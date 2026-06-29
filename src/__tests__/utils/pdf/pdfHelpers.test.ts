@@ -9,7 +9,7 @@ import {
   formatAmount,
   formatPercent,
 } from '../../../document/layout/documentLayoutHelpers';
-import { MARGINS } from '../../../document/layout/pdfConfig';
+import { MARGINS, PDF_FOOTER_MARGIN_MM, PDF_FOOTER_RIGHT_MARGIN_MM } from '../../../document/layout/pdfConfig';
 import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
 
 /**
@@ -144,13 +144,15 @@ describe('addFooter', () => {
     expect(mockCanvas.height).toBe(576);
     expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.85);
     expect(doc.addImage).toHaveBeenCalledTimes(1);
+    const footerWidthMm = 5.2;
+    const footerHeightMm = (576 / 120) * footerWidthMm;
     expect(doc.addImage).toHaveBeenCalledWith(
       'data:image/jpeg;base64,mock-footer',
       'JPEG',
-      expect.any(Number),
-      expect.any(Number),
-      expect.any(Number),
-      expect.any(Number),
+      210 - PDF_FOOTER_RIGHT_MARGIN_MM - footerWidthMm,
+      297 - PDF_FOOTER_MARGIN_MM - footerHeightMm,
+      footerWidthMm,
+      footerHeightMm,
       'mineo_footer_version',
       'FAST'
     );
@@ -233,8 +235,8 @@ describe('addFooter', () => {
     expect(doc.setTextColor).toHaveBeenCalledWith(200, 200, 200);
     expect(doc.text).toHaveBeenCalledWith(
       expect.stringContaining('mineo.dk'),
-      expect.any(Number),
-      expect.any(Number),
+      210 - PDF_FOOTER_RIGHT_MARGIN_MM,
+      297 - PDF_FOOTER_MARGIN_MM,
       expect.objectContaining({ angle: 90 })
     );
   });

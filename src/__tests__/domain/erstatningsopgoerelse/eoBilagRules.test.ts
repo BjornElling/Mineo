@@ -29,7 +29,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.loenindkomst.enabled).toBe(false);
-    expect(result.loenindkomst.disabledReason).toBe('Der er ikke indtastet lønoplysninger i den relevante periode.');
+    expect(result.loenindkomst.disabledReason).toBe('Der er ikke indtastet lønoplysninger i TAF-perioden');
   });
 
   it('aktiverer lønindkomst når mindst én lønrække har beløbsinput', () => {
@@ -95,7 +95,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.offentligeYdelser.enabled).toBe(false);
-    expect(result.offentligeYdelser.disabledReason).toBe('Der er ikke indtastet offentlige ydelser i den relevante periode.');
+    expect(result.offentligeYdelser.disabledReason).toBe('Der er ikke indtastet offentlige ydelser i TAF-perioden');
   });
 
   it('deaktiverer offentlige ydelser når der kun er delvis indtastning uden beløb', () => {
