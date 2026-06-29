@@ -237,7 +237,7 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : 'Der er ikke indtastet lønrækker inden for den relevante periode.',
+            : 'Der er ikke indtastet lønoplysninger i den relevante periode.',
         },
     offentligeYdelser: harOffentligeYdelser
       ? { enabled: true }
@@ -245,7 +245,7 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : 'Der er ikke indtastet ydelsesrækker inden for den relevante periode.',
+            : 'Der er ikke indtastet offentlige ydelser i den relevante periode.',
         },
     midlertidigEet: midlertidigtEetFraEetSiden
       ? { enabled: true }
