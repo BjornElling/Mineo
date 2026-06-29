@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateVarigeMenDocument } from '../../../document/generators/varigemen/varigeMenDocument';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 
 import { renderBrevhoved } from '../../../pdf/infrastructure/pdfBrevhovedRenderer';

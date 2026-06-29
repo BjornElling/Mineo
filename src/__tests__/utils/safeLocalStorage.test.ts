@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { getSafeLocalStorage } from '../../utils/safeLocalStorage';
 
 // ─── getSafeLocalStorage ──────────────────────────────────────────────────────

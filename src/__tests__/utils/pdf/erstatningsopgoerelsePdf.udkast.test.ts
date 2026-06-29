@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';

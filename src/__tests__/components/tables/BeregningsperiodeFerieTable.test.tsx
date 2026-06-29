@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import type { FerieperiodeRow } from '../../../schemas/formSchemas';
 import type { FerieDraftRow } from '../../../domain/erstatningsopgoerelse/tables/tableDraftRows';

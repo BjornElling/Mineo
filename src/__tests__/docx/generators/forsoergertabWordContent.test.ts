@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateForsoergertabDocument } from '../../../document/generators/forsoergertab/forsoergertabDocument';
 import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';

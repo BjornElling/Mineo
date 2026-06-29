@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 
 import { PDF_CONTENT_WIDTH_MM } from '../../../document/layout/pdfConfig';

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import MinProcesrenteApp from '../../../apps/minprocesrente/MinProcesrenteApp';
 

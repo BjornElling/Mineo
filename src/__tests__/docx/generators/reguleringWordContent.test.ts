@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateReguleringDocument } from '../../../document/generators/eo/reguleringDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';

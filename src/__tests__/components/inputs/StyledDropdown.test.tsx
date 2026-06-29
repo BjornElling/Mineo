@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
 import { createEvent, fireEvent, render, screen } from '@testing-library/react';

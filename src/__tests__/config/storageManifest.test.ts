@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import {
   STORAGE_KEYS,
   UI_STORAGE_KEYS,

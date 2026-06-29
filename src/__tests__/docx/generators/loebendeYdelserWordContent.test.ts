@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateLoebendeYdelserDocument } from '../../../document/generators/loebendeYdelser/loebendeYdelserDocument';
 import type { EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';

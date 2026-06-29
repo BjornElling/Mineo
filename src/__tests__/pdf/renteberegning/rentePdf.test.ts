@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { generateRenteDocument } from '../../../document/generators/renteberegning/renteDocument';
 
 describe('generateRenteDocument', () => {

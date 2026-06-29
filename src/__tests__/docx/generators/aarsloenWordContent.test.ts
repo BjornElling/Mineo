@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateAarsloenDocument } from '../../../document/generators/aarsloen/aarsloenDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { decryptFromString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';

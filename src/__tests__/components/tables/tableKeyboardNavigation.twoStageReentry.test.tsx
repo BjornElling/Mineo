@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 // Regressionstest for fokus-autoritets-ændringen i commit 48dfbec5 ("ny samlet tabel-navigation").
 //
 // `handleTablePointerDownCapture` læste tidligere den fokuserede celle fra den modul-globale

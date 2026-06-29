@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * UI Tests for EODebugRegulationSections (Phase 4.5)
  *

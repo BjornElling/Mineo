@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateSHDageDocument } from '../../../document/generators/aarsloen/shDageDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';

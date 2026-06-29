@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateKRLDocument } from '../../../document/generators/krl/krlDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';

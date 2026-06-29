@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import type { StorageKey } from '../../config/storageManifest';

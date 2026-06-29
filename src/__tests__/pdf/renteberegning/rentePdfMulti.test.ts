@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { writeRenteDocumentContent, generateRenteDocument } from '../../../document/generators/renteberegning/renteDocument';
 import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';

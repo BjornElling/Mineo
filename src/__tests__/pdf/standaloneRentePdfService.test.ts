@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
 
 const {

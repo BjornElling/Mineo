@@ -1,7 +1,9 @@
+// @vitest-environment jsdom
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LoenindkomstTab from '../../../../components/pages/erstatningsopgoerelse/LoenindkomstTab';
+import { resolveSatserHeading } from '../../../../components/pages/erstatningsopgoerelse/loenindkomst/AnsaettelsesforholdCard';
 import { toISODateString } from '../../../../types/branded';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
@@ -68,20 +70,34 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     </MemoryRouter>
   );
 
-  it('viser satser på skadedatoen når anvendt reguleringsdato er skadedato ved arbejdsulykke', () => {
-    mockStamdata.skadedato = toISODateString('2024-01-01');
-    mockStamdata.skadestype = 'Arbejdsulykke';
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesUdFra = 'Angivet månedsløn';
-    eoValues.loenindkomstAnsaettelsesforhold = [{
-      ...createDefaultLoenindkomstAnsaettelsesforhold(),
-      ansatPaaSkadestidspunktet: true,
-      saerligFraDatoRegulering: undefined,
-    }];
+  it('viser satsoverskrift for skadedato, anmeldelsesdato, beregningsperiode og anden dato', () => {
+    expect(resolveSatserHeading({
+      anvendtReguleringsdato: toISODateString('2024-01-01'),
+      skadedato: toISODateString('2024-01-01'),
+      skadestype: 'Arbejdsulykke',
+      beregningsperiodeTil: undefined,
+    })).toBe('Satser på skadedatoen (01-01-2024)');
 
-    renderLoenindkomstTab(eoValues);
+    expect(resolveSatserHeading({
+      anvendtReguleringsdato: toISODateString('2024-01-01'),
+      skadedato: toISODateString('2024-01-01'),
+      skadestype: 'Erhvervssygdom',
+      beregningsperiodeTil: undefined,
+    })).toBe('Satser på anmeldelsesdatoen (01-01-2024)');
 
-    expect(screen.getByText('Satser på skadedatoen (01-01-2024)')).toBeInTheDocument();
+    expect(resolveSatserHeading({
+      anvendtReguleringsdato: toISODateString('2024-12-31'),
+      skadedato: toISODateString('2024-01-01'),
+      skadestype: 'Arbejdsulykke',
+      beregningsperiodeTil: toISODateString('2024-12-31'),
+    })).toBe('Satser ved beregningsperiodens udløb (31-12-2024)');
+
+    expect(resolveSatserHeading({
+      anvendtReguleringsdato: toISODateString('2024-03-15'),
+      skadedato: toISODateString('2024-01-01'),
+      skadestype: 'Arbejdsulykke',
+      beregningsperiodeTil: undefined,
+    })).toBe('Satser den 15. marts 2024');
   });
 
   it('viser kun SFGG-valget for ansættelsesforhold hvor skadelidte var ansat på skadestidspunktet', () => {
@@ -140,39 +156,6 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     expect(screen.queryByText(SIX_MONTH_NOTE)).not.toBeInTheDocument();
   });
 
-  it('viser satser på anmeldelsesdatoen når anvendt reguleringsdato er skadedato ved erhvervssygdom', () => {
-    mockStamdata.skadedato = toISODateString('2024-01-01');
-    mockStamdata.skadestype = 'Erhvervssygdom';
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesUdFra = 'Angivet månedsløn';
-    eoValues.loenindkomstAnsaettelsesforhold = [{
-      ...createDefaultLoenindkomstAnsaettelsesforhold(),
-      ansatPaaSkadestidspunktet: true,
-      saerligFraDatoRegulering: undefined,
-    }];
-
-    renderLoenindkomstTab(eoValues);
-
-    expect(screen.getByText('Satser på anmeldelsesdatoen (01-01-2024)')).toBeInTheDocument();
-  });
-
-  it('viser Satser ved beregningsperiodens udløb når anvendt reguleringsdato er tafBeregningsperiodeTil', () => {
-    mockStamdata.skadedato = toISODateString('2024-01-01');
-    mockStamdata.skadestype = 'Arbejdsulykke';
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.tafBeregningsperiodeTil = toISODateString('2024-12-31');
-    eoValues.loenindkomstAnsaettelsesforhold = [{
-      ...createDefaultLoenindkomstAnsaettelsesforhold(),
-      ansatPaaSkadestidspunktet: true,
-      saerligFraDatoRegulering: undefined,
-    }];
-
-    renderLoenindkomstTab(eoValues);
-
-    expect(screen.getByText('Satser ved beregningsperiodens udløb (31-12-2024)')).toBeInTheDocument();
-  });
-
   it('autofastsætter overenskomstsatser ud fra beregningsperiodens slutdato og ikke skadedatoen', async () => {
     mockStamdata.skadedato = toISODateString('2023-02-01');
     mockStamdata.skadestype = 'Arbejdsulykke';
@@ -220,21 +203,6 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
 
     expect(screen.getByDisplayValue('01-01-2024')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('01-02-2023')).not.toBeInTheDocument();
-  });
-
-  it('viser satser den med lang dato når anvendt reguleringsdato er en anden dato', () => {
-    mockStamdata.skadedato = toISODateString('2024-01-01');
-    mockStamdata.skadestype = 'Arbejdsulykke';
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.loenindkomstAnsaettelsesforhold = [{
-      ...createDefaultLoenindkomstAnsaettelsesforhold(),
-      ansatPaaSkadestidspunktet: true,
-      saerligFraDatoRegulering: toISODateString('2024-03-15'),
-    }];
-
-    renderLoenindkomstTab(eoValues);
-
-    expect(screen.getByText('Satser den 15. marts 2024')).toBeInTheDocument();
   });
 
   it('viser "Ingen overenskomst valgt" og skjuler efterfølgende SFGG-linjer når overenskomst ikke er valgt ovenfor', () => {

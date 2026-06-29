@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import * as React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';

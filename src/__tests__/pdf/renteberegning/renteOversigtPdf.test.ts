@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { writeRenteOversigtDocumentContent, buildRenteOversigtDocumentFilename, type RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import { toISODateString } from '../../../types/branded';

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { Mock } from 'vitest';
 
 vi.mock('../../utils/logStorage', () => ({

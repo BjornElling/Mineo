@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook } from '@testing-library/react';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';

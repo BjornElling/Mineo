@@ -79,6 +79,15 @@ describe('persistenceCommittedMirrorIsolation', () => {
     for (const root of SCAN_ROOTS) {
       for (const absolutePath of collectSourceFiles(root)) {
         const source = fs.readFileSync(absolutePath, 'utf8');
+        if (!source.includes('useState')) continue;
+        if (
+          !source.includes('usePersistedSectionSelector') &&
+          !source.includes('getPersistedSectionSnapshot') &&
+          !source.includes('usePersistedForm')
+        ) {
+          continue;
+        }
+
         const sourceFile = ts.createSourceFile(absolutePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
         const relativePath = toRepoRelativePath(absolutePath);
 

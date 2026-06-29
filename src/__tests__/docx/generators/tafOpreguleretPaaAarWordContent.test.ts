@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import type { TafPerYearOpreguleretResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderShDageSection } from '../../../../../document/generators/eo/sections/shDageSection';
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString, isISODateString } from '../../../../../types/branded';

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 const loadMonitor = async () => {
   vi.resetModules();
   return await import('../../utils/devtoolsMonitor');

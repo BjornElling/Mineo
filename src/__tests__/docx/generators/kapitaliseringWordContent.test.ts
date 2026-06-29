@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateKapitaliseringDocument } from '../../../document/generators/kapitalisering/kapitaliseringDocument';
 import type {

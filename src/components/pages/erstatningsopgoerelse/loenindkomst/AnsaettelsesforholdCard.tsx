@@ -72,7 +72,7 @@ const formatIsoDateShortLabel = (value: ISODateString | undefined): string | und
   return formatDanishDate(parsed);
 };
 
-const resolveSatserHeading = (params: Readonly<{
+export const resolveSatserHeading = (params: Readonly<{
   anvendtReguleringsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
   skadestype: string | undefined;

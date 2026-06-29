@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { toISODateString } from '../../../types/branded';
 import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
 /// <reference types="vitest/globals" />

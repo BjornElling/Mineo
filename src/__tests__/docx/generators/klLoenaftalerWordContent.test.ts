@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateKlLoenaftalerDocument } from '../../../document/generators/klLoenaftaler/klLoenaftalerDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';

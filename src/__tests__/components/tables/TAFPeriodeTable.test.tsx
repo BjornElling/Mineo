@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
 import type { TafDraftRow } from '../../../domain/erstatningsopgoerelse/tables/tableDraftRows';

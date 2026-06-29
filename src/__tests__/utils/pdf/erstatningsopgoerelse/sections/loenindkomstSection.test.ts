@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { getStandardLoenTableHeaders } from '../../../../../domain/aarsloen/standardLoenTableColumns';
 import { toISODateString } from '../../../../../types/branded';

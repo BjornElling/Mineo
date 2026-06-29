@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import RenteberegningTab from '../../../components/pages/renteberegning/RenteberegningTab';
 import ContentBoxFrame from '../../../components/layout/ContentBoxFrame';

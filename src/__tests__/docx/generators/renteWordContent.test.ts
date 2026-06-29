@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateRenteDocument } from '../../../document/generators/renteberegning/renteDocument';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';

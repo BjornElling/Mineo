@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import BeregnetRenteTable from '../../../components/tables/BeregnetRenteTable';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';

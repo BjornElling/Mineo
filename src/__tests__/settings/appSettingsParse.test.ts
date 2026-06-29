@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { loadInitialSettings, mergeAppSettings, parseStoredSettings, resolveAppSettings } from '../../settings/appSettingsParse';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 import { writeLocalStorage, LOCAL_STORAGE_KEY } from '../../settings/appSettingsStorage';

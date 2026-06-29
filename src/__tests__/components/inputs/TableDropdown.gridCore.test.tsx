@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import * as React from 'react';
 import { act, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';

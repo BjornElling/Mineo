@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import * as React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';

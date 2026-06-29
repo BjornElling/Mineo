@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';

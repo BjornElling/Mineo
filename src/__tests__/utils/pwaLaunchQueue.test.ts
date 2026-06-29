@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import {
   Mineo_PWA_FILE_OPEN_EVENT,
   clearPendingPwaFileOpenRequest,

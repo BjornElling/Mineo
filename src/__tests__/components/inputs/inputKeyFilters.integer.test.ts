@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { ClipboardEvent, KeyboardEvent } from 'react';
 import { filterIntegerKeyDown, filterIntegerPaste } from '../../../components/inputs/inputKeyFilters';
 

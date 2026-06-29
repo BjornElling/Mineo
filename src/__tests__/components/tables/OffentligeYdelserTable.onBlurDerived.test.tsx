@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -24,14 +25,19 @@ const setDraftValue = (input: HTMLElement, value: string) => {
   fireEvent.change(input, { target: { value } });
 };
 
-const openInputEditing = async (user: ReturnType<typeof userEvent.setup>, input: HTMLElement, startKey = '1') => {
-  await user.click(input);
+const openInputEditing = async (input: HTMLElement, startKey = '1') => {
+  input.focus();
   if (input.hasAttribute('readonly')) {
-    await user.keyboard(startKey);
+    fireEvent.keyDown(input, { key: startKey });
   }
   await waitFor(() => {
     expect(input).not.toHaveAttribute('readonly');
   });
+};
+
+const clearFocusedCell = async (input: HTMLElement, key: 'Backspace' | 'Delete') => {
+  input.focus();
+  fireEvent.keyDown(input, { key });
 };
 
 const makeRow = (overrides: Partial<OffentligeYdelserRow>): OffentligeYdelserRow => ({
@@ -127,7 +133,6 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   });
 
   it('recomputes ydelse/dag when clearing ydelse via Backspace in focus-only mode', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(
@@ -147,8 +152,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
 
     const input = getYdelseInput();
-    await user.click(input);
-    await user.keyboard('{Backspace}');
+    await clearFocusedCell(input, 'Backspace');
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
@@ -162,7 +166,6 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   }, TEST_TIMEOUT_MS);
 
   it('bevarer fokus i samme celleposition når sidste værdi slettes i række med min. 2 rækker', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(
@@ -184,8 +187,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     );
 
     const input = getYdelseInput();
-    await user.click(input);
-    await user.keyboard('{Delete}');
+    await clearFocusedCell(input, 'Delete');
 
     await waitFor(() => {
       const cellsNow = getFirstDataRowCells();
@@ -196,14 +198,13 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   }, TEST_TIMEOUT_MS);
 
   it('bevarer fokus når værdi oprettes og efterfølgende slettes i ellers tom tabel', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(<DerivedHarness onPersist={onPersist} initial={[makeRow({})]} />);
 
     const input = getYdelseInput();
 
-    await openInputEditing(user, input);
+    await openInputEditing(input);
     setDraftValue(input, '100');
     fireEvent.blur(input);
 
@@ -211,8 +212,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
 
-    await user.click(getYdelseInput());
-    await user.keyboard('{Delete}');
+    await clearFocusedCell(getYdelseInput(), 'Delete');
 
     await waitFor(() => {
       const cellsNow = getFirstDataRowCells();
@@ -222,7 +222,6 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   }, TEST_TIMEOUT_MS);
 
   it('bevarer fokus i dropdown-felt når valgt ydelsestype ryddes med Delete', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(
@@ -245,7 +244,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       combobox.focus();
     });
     expect(document.activeElement).toBe(combobox);
-    await user.keyboard('{Delete}');
+    fireEvent.keyDown(combobox, { key: 'Delete' });
 
     await waitFor(() => {
       const focusedCombobox = getYdelsestypeCombobox();
@@ -254,7 +253,6 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   }, TEST_TIMEOUT_MS);
 
   it('updates derived cells only on blur when entering an already-canonical amount (no normalization delta)', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(
@@ -274,7 +272,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
 
     const input = getYdelseInput();
-    await openInputEditing(user, input);
+    await openInputEditing(input);
     setDraftValue(input, '100,00');
 
     expect(input).toHaveValue('100,00');
@@ -290,7 +288,6 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   }, TEST_TIMEOUT_MS);
 
   it('recomputes ydelse/dag when clearing tillæg (tillæg-only -> empty)', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(
@@ -311,8 +308,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '5,00 kr.' });
 
     const input = getTillaegInput();
-    await user.click(input);
-    await user.keyboard('{Delete}');
+    await clearFocusedCell(input, 'Delete');
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
@@ -326,7 +322,6 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   }, TEST_TIMEOUT_MS);
 
   it('recomputes ydelse/dag when clearing a date dependency (tilDato -> invalid period)', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(
@@ -346,8 +341,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
 
     const input = getTilDatoInput();
-    await user.click(input);
-    await user.keyboard('{Backspace}');
+    await clearFocusedCell(input, 'Backspace');
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
@@ -379,7 +373,6 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   });
 
   it('recomputes ydelse/dag on blur when entering an already-canonical date (no normalization delta)', async () => {
-    const user = setupUser();
     const onPersist = vi.fn();
 
     render(
@@ -399,7 +392,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '', ydelsePerDagDisplay: '' });
 
     const input = getFraDatoInput();
-    await openInputEditing(user, input);
+    await openInputEditing(input);
     setDraftValue(input, '01-01-2024');
 
     expect(input).toHaveValue('01-01-2024');
@@ -435,7 +428,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     const input = getFraDatoInput();
     const outsideButton = screen.getByRole('button', { name: 'Udenfor' });
 
-    await openInputEditing(user, input);
+    await openInputEditing(input);
     setDraftValue(input, '1-1-2024');
 
     expect(input).toHaveFocus();

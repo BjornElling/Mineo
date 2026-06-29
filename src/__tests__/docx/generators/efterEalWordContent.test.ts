@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateEfterEalDocument } from '../../../document/generators/eet/eetEfterEalDocument';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';

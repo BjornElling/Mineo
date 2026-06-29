@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderReguleringSection } from '../../../../../document/generators/eo/sections/reguleringSection';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';

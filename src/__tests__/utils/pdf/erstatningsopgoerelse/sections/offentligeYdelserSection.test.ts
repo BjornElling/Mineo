@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   buildIncomeForRanges,

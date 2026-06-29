@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';

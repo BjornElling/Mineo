@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { useTableSort, type TableSortColumn } from '../../../components/tables/useTableSort';
 

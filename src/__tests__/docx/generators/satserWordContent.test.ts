@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateSatserDocument } from '../../../document/generators/satser/satserDocument';
 import { getSatserForYear } from '../../../data/lovbestemteRates';

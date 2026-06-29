@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import JSZip from 'jszip';
 import { withDocumentGenerationContext } from '../../document/documentGenerationContext';
 import { clearDocumentFooterImageCacheForTests } from '../../document/layout/documentFooterImage';

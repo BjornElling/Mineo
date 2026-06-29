@@ -40,6 +40,25 @@ const ALLOWED_PROMISE_RESOLVE_TICKS = new Map<string, readonly string[]>([
   ],
 ]);
 
+let commitSensitiveSourceCache: Array<Readonly<{ absolutePath: string; relativePath: string; source: string }>> | null = null;
+
+const readCommitSensitiveSources = (): Array<Readonly<{ absolutePath: string; relativePath: string; source: string }>> => {
+  if (commitSensitiveSourceCache) return commitSensitiveSourceCache;
+
+  const entries: Array<Readonly<{ absolutePath: string; relativePath: string; source: string }>> = [];
+  for (const root of COMMIT_SENSITIVE_ROOTS) {
+    for (const absolutePath of collectSourceFiles(root)) {
+      entries.push({
+        absolutePath,
+        relativePath: toRepoRelativePath(absolutePath),
+        source: fs.readFileSync(absolutePath, 'utf8'),
+      });
+    }
+  }
+  commitSensitiveSourceCache = entries;
+  return entries;
+};
+
 const isUseEffectCall = (node: ts.CallExpression): boolean => {
   const { expression } = node;
   return (
@@ -80,27 +99,26 @@ describe('formContractIsolation', () => {
   it('forbyder persisted writes fra React-effects uden eksplicit dokumenteret undtagelse', { timeout: 20000 }, () => {
     const violations: string[] = [];
 
-    for (const root of COMMIT_SENSITIVE_ROOTS) {
-      for (const absolutePath of collectSourceFiles(root)) {
-        const relativePath = toRepoRelativePath(absolutePath);
-        const source = fs.readFileSync(absolutePath, 'utf8');
-        const effectWindows = getEffectWindows(source, absolutePath);
-        const effectWindowsWithForbiddenWrites = effectWindows.filter((windowText) =>
-          EFFECT_WRITE_PATTERNS.some((pattern) => windowText.includes(pattern))
-        );
-        if (effectWindowsWithForbiddenWrites.length === 0) continue;
+    for (const { absolutePath, relativePath, source } of readCommitSensitiveSources()) {
+      if (!source.includes('useEffect')) continue;
+      if (!EFFECT_WRITE_PATTERNS.some((pattern) => source.includes(pattern))) continue;
 
-        const allowedMarkers = ALLOWED_EFFECT_WRITES.get(relativePath);
-        if (!allowedMarkers) {
-          violations.push(relativePath);
-          continue;
-        }
+      const effectWindows = getEffectWindows(source, absolutePath);
+      const effectWindowsWithForbiddenWrites = effectWindows.filter((windowText) =>
+        EFFECT_WRITE_PATTERNS.some((pattern) => windowText.includes(pattern))
+      );
+      if (effectWindowsWithForbiddenWrites.length === 0) continue;
 
-        for (const marker of allowedMarkers) {
-          expect(effectWindowsWithForbiddenWrites.some((windowText) => windowText.includes(marker)),
-            `${relativePath} mangler beslutningsnote i samme useEffect-vindue som tilladt effect-write`
-          ).toBe(true);
-        }
+      const allowedMarkers = ALLOWED_EFFECT_WRITES.get(relativePath);
+      if (!allowedMarkers) {
+        violations.push(relativePath);
+        continue;
+      }
+
+      for (const marker of allowedMarkers) {
+        expect(effectWindowsWithForbiddenWrites.some((windowText) => windowText.includes(marker)),
+          `${relativePath} mangler beslutningsnote i samme useEffect-vindue som tilladt effect-write`
+        ).toBe(true);
       }
     }
 
@@ -114,24 +132,20 @@ describe('formContractIsolation', () => {
     // auditeret som infrastrukturel undtagelse.
     const violations: string[] = [];
 
-    for (const root of COMMIT_SENSITIVE_ROOTS) {
-      for (const absolutePath of collectSourceFiles(root)) {
-        const relativePath = toRepoRelativePath(absolutePath);
-        const source = fs.readFileSync(absolutePath, 'utf8');
-        if (!source.includes('queueMicrotask(')) continue;
+    for (const { relativePath, source } of readCommitSensitiveSources()) {
+      if (!source.includes('queueMicrotask(')) continue;
 
-        const allowedMarkers = ALLOWED_QUEUE_MICROTASK_CALLS.get(relativePath);
-        if (!allowedMarkers) {
-          violations.push(relativePath);
-          continue;
-        }
+      const allowedMarkers = ALLOWED_QUEUE_MICROTASK_CALLS.get(relativePath);
+      if (!allowedMarkers) {
+        violations.push(relativePath);
+        continue;
+      }
 
-        for (const marker of allowedMarkers) {
-          expect(
-            source.includes(marker),
-            `${relativePath} mangler beslutningsnote for tilladt queueMicrotask`
-          ).toBe(true);
-        }
+      for (const marker of allowedMarkers) {
+        expect(
+          source.includes(marker),
+          `${relativePath} mangler beslutningsnote for tilladt queueMicrotask`
+        ).toBe(true);
       }
     }
 
@@ -141,27 +155,23 @@ describe('formContractIsolation', () => {
   it('forbyder Promise-ticks i commit-sensitive kode uden eksplicit infrastruktureundtagelse', () => {
     const violations: string[] = [];
 
-    for (const root of COMMIT_SENSITIVE_ROOTS) {
-      for (const absolutePath of collectSourceFiles(root)) {
-        const relativePath = toRepoRelativePath(absolutePath);
-        const source = fs.readFileSync(absolutePath, 'utf8');
-        const usesPromiseTick =
-          source.includes('await Promise.resolve();') ||
-          source.includes('Promise.resolve().then(');
-        if (!usesPromiseTick) continue;
+    for (const { relativePath, source } of readCommitSensitiveSources()) {
+      const usesPromiseTick =
+        source.includes('await Promise.resolve();') ||
+        source.includes('Promise.resolve().then(');
+      if (!usesPromiseTick) continue;
 
-        const allowedMarkers = ALLOWED_PROMISE_RESOLVE_TICKS.get(relativePath);
-        if (!allowedMarkers) {
-          violations.push(relativePath);
-          continue;
-        }
+      const allowedMarkers = ALLOWED_PROMISE_RESOLVE_TICKS.get(relativePath);
+      if (!allowedMarkers) {
+        violations.push(relativePath);
+        continue;
+      }
 
-        for (const marker of allowedMarkers) {
-          expect(
-            source.includes(marker),
-            `${relativePath} mangler beslutningsnote for tilladt Promise-tick`
-          ).toBe(true);
-        }
+      for (const marker of allowedMarkers) {
+        expect(
+          source.includes(marker),
+          `${relativePath} mangler beslutningsnote for tilladt Promise-tick`
+        ).toBe(true);
       }
     }
 
