@@ -170,6 +170,31 @@ export const buildBeregningsperiodeRange = (
   return validateIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil);
 };
 
+export const buildIncomeInputRanges = (
+  values: ErstatningsopgoerelseValues
+): IsoRange[] => {
+  const ranges: IsoRange[] = [];
+
+  for (const af of values.loenindkomstAnsaettelsesforhold ?? []) {
+    for (const row of af.indtaegtsoplysningerTableData ?? []) {
+      if (isLoenRowEffectivelyEmptyForLoenperiode(row, af.loenperiode)) continue;
+      const interval = parseAarsloenRowInterval(row, af.loenperiode);
+      const fra = interval ? dateToISO(interval.start) : undefined;
+      const til = interval ? dateToISO(interval.end) : undefined;
+      if (fra && til) ranges.push({ fra, til });
+    }
+  }
+
+  for (const row of values.offentligeYdelserRows ?? []) {
+    const interval = parseOffentligInterval(row);
+    const fra = interval ? dateToISO(interval.start) : undefined;
+    const til = interval ? dateToISO(interval.end) : undefined;
+    if (fra && til) ranges.push({ fra, til });
+  }
+
+  return mergeIsoDateRanges(ranges, { mergeAdjacent: true });
+};
+
 const resolveIncomeBounds = (
   values: ErstatningsopgoerelseValues,
   ranges: readonly IsoRange[]

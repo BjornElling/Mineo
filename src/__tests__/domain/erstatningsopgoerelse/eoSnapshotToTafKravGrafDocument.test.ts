@@ -290,6 +290,126 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     });
   });
 
+  it('medtager indkomstbilag mellem beregningsperioden og TAF-perioden', () => {
+    const snapshot = buildSnapshot();
+    const model = {
+      ...snapshot.data?.pdfModel,
+      tafRanges: [
+        { fra: iso('2026-02-23'), til: iso('2026-06-21') },
+      ],
+      tabtArbejdsfortjeneste: {
+        ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste,
+        indkomstSkadestidspunkt: {
+          ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste.indkomstSkadestidspunkt,
+          skadedato: iso('2025-01-01'),
+          periodeTilBeregning: { fra: iso('2025-01-01'), til: iso('2025-12-31') },
+        },
+      },
+    } as unknown as EoModel;
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: {
+        ...snapshot.data,
+        pdfModel: model,
+      } as EoSnapshotComputedData,
+      input: {
+        ...snapshot.input,
+        erstatningsopgoerelse: {
+          ...snapshot.input.erstatningsopgoerelse,
+          offentligeYdelserRows: [
+            {
+              id: 'oy-jan',
+              fraDato: iso('2026-01-01'),
+              tilDato: iso('2026-01-25'),
+              ydelse: { kind: 'number', value: 15912 },
+              tillaeg: { kind: 'number', value: 332 },
+              ydelsestype: 'sygedagpenge',
+            },
+          ],
+        } as EoSnapshot['input']['erstatningsopgoerelse'],
+      },
+    });
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    expect(projection.document.timeWindows).toEqual([
+      { fra: iso('2025-01-01'), til: iso('2026-06-21') },
+    ]);
+    expect(projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments).toContainEqual({
+      fra: iso('2026-01-01'),
+      til: iso('2026-01-31'),
+      amountOre: 19_000_00,
+    });
+  });
+
+  it('stabiliserer isolerede SH-dyk i sygedagpenge-serien uden at ændre andre måneder', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    ctxMock.mockImplementation(() => ({
+      boundsFra: iso('2026-03-01'),
+      boundsTil: iso('2026-05-31'),
+      arbejdsdageSet: new Set(),
+      shDaysForYdelser: new Set([iso('2026-04-03')]),
+      loenErrorRowIdsByEmploymentId: new Map(),
+    }));
+    incomeMock.mockImplementation((_values, ranges) => {
+      const range = ranges[0];
+      if (!range) return { employers: [], benefits: [] };
+      const amount = range.fra.startsWith('2026-04') ? 5_000 : 10_000;
+      return {
+        employers: [],
+        benefits: [{ typeKey: 'sygedagpenge', label: 'Sygedagpenge', amount }],
+      };
+    });
+
+    const snapshot = buildSnapshot();
+    const model = {
+      ...snapshot.data?.pdfModel,
+      tafRanges: [
+        { fra: iso('2026-03-01'), til: iso('2026-05-31') },
+      ],
+      tabtArbejdsfortjeneste: {
+        ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste,
+        indkomstSkadestidspunkt: {
+          ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste.indkomstSkadestidspunkt,
+          periodeTilBeregning: undefined,
+        },
+      },
+    } as unknown as EoModel;
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: {
+        ...snapshot.data,
+        pdfModel: model,
+      } as EoSnapshotComputedData,
+    });
+
+    if (originalCtx) ctxMock.mockImplementation(originalCtx);
+    if (originalIncome) incomeMock.mockImplementation(originalIncome);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    const sygedagpengeSegments = projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments ?? [];
+    expect(sygedagpengeSegments).toContainEqual({
+      fra: iso('2026-03-01'),
+      til: iso('2026-03-31'),
+      amountOre: 10_000_00,
+    });
+    expect(sygedagpengeSegments).toContainEqual({
+      fra: iso('2026-04-01'),
+      til: iso('2026-04-30'),
+      amountOre: 10_000_00,
+    });
+    expect(sygedagpengeSegments).toContainEqual({
+      fra: iso('2026-05-01'),
+      til: iso('2026-05-31'),
+      amountOre: 10_000_00,
+    });
+  });
+
   const buildSnapshotUdenAarsfordeling = (harTafPerioder: boolean): EoSnapshot => {
     const snapshot = buildSnapshot();
     return {

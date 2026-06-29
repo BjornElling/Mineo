@@ -15,6 +15,7 @@ import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import {
   buildIncomeCalculationContext,
   buildIncomeForRanges,
+  buildIncomeInputRanges,
   type IncomeCalculationContext,
   resolveArbejdsstedDisplayName,
   roundIncomeBenefitAmountKroner,
@@ -255,6 +256,56 @@ const appendIncomeSegment = (
   seriesByLabel.set(label, { segments: [segment], rank });
 };
 
+const hasShDay = (
+  segment: TafKravGrafSeriesSegment,
+  context: IncomeCalculationContext | null
+): boolean => {
+  if (!context) return false;
+  let found = false;
+  iterateIsoDatesInclusive(segment.fra, segment.til, (iso) => {
+    if (context.shDaysForYdelser.has(iso)) {
+      found = true;
+    }
+  });
+  return found;
+};
+
+const areAdjacentOrOverlapping = (
+  left: TafKravGrafSeriesSegment,
+  right: TafKravGrafSeriesSegment
+): boolean => {
+  const dayAfterLeft = getDayAfterIso(left.til);
+  return Boolean(dayAfterLeft && right.fra <= dayAfterLeft);
+};
+
+const stabilizeSygedagpengeShDips = (
+  series: TafKravGrafSeries,
+  context: IncomeCalculationContext | null
+): TafKravGrafSeries => {
+  const segments = [...series.segments].sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
+  let changed = false;
+  const normalized = segments.map((segment, index) => {
+    const previous = segments[index - 1];
+    const next = segments[index + 1];
+    if (!previous || !next) return segment;
+    if (!areAdjacentOrOverlapping(previous, segment) || !areAdjacentOrOverlapping(segment, next)) return segment;
+    if (!hasShDay(segment, context)) return segment;
+    const neighborFloor = Math.min(previous.amountOre, next.amountOre);
+    if (segment.amountOre >= neighborFloor * 0.9) return segment;
+
+    changed = true;
+    return {
+      ...segment,
+      // Visuel graf: et isoleret SH-dyk i en ellers aktiv sygedagpenge-række må ikke
+      // ligne et reelt indkomstfald. De autoritative TAF-/fradragstal beregnes fortsat
+      // i indkomstmotoren; kun grafens niveau udfyldes med nabogennemsnittet.
+      amountOre: roundOre((previous.amountOre + next.amountOre) / 2),
+    };
+  });
+
+  return changed ? { ...series, segments: normalized } : series;
+};
+
 export const eoSnapshotToTafKravGrafDocument = (
   snapshot: EoSnapshot
 ): TafKravGrafDocumentProjection => {
@@ -285,7 +336,8 @@ export const eoSnapshotToTafKravGrafDocument = (
   ) ?? null;
   const tafRanges = model.tafRanges.map((range) => ({ fra: range.fra, til: range.til }));
   const skadeIso = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt?.skadedato ?? null;
-  const timeWindows = buildTimeWindows(tafRanges, beregningsperiode, skadeIso);
+  const incomeRanges = buildIncomeInputRanges(snapshot.input.erstatningsopgoerelse);
+  const timeWindows = buildTimeWindows([...tafRanges, ...incomeRanges], beregningsperiode, skadeIso);
   if (timeWindows.length === 0) {
     return { kind: 'blocked', message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er en TAF-periode.', invariants: [] };
   }
@@ -293,7 +345,7 @@ export const eoSnapshotToTafKravGrafDocument = (
   const unit = model.tabtArbejdsfortjeneste.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
     ? 'arbejdsdag'
     : 'maaned';
-  const sourceRanges = beregningsperiode ? [beregningsperiode, ...tafRanges] : tafRanges;
+  const sourceRanges = timeWindows;
   const incomeContext = buildIncomeCalculationContext(snapshot.input.erstatningsopgoerelse, sourceRanges);
   const useWholeKronerForMidlertidigtEet = snapshot.input.erstatningsopgoerelse.midlertidigtEetFraEetSiden === 'Ja';
   const seriesByLabel = new Map<string, SeriesAccumulator>();
@@ -352,9 +404,12 @@ export const eoSnapshotToTafKravGrafDocument = (
       };
       // Kun arbejdsdags-grundlaget kan få nul-arbejdsdags-huller (månedsløn har
       // altid positiv divisor); månedsløns-grafen er derved urørt af ferie/SH.
-      return unit === 'arbejdsdag'
+      const bridged = unit === 'arbejdsdag'
         ? bridgeZeroWorkdayMonths(base, timeWindows, (range) => countArbejsdageInRange(range, incomeContext))
         : base;
+      return label === 'Sygedagpenge'
+        ? stabilizeSygedagpengeShDips(bridged, incomeContext)
+        : bridged;
     });
 
   if (series.length === 0) {

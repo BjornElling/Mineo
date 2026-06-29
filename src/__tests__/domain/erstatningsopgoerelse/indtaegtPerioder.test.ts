@@ -12,6 +12,7 @@ import {
   buildTafRanges,
   buildBeregningsperiodeRange,
   buildIncomeCalculationContext,
+  buildIncomeInputRanges,
   resolveArbejdsstedDisplayName,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
@@ -102,6 +103,35 @@ describe('buildBeregningsperiodeRange', () => {
     expect(range).toBeDefined();
     expect(range!.fra).toBe(iso('2023-06-15'));
     expect(range!.til).toBe(iso('2023-06-15'));
+  });
+});
+
+describe('buildIncomeInputRanges', () => {
+  it('medtager indtastede offentlige ydelser uafhængigt af TAF- og beregningsperioden', () => {
+    const eo = makeEo({
+      tafBeregningsperiodeFra: iso('2025-01-01'),
+      tafBeregningsperiodeTil: iso('2025-12-31'),
+      vedroererPeriodeFra: iso('2026-02-23'),
+      vedroererPeriodeTil: iso('2026-06-21'),
+      tafPerioder: [
+        { id: 'taf1', fra: iso('2026-02-23'), til: iso('2026-06-21'), loseFeriedage: 0 },
+      ],
+      loenindkomstAnsaettelsesforhold: [],
+      offentligeYdelserRows: [
+        {
+          id: 'oy1',
+          fraDato: iso('2026-01-01'),
+          tilDato: iso('2026-01-25'),
+          ydelse: asAmount(15912),
+          tillaeg: asAmount(332),
+          ydelsestype: 'sygedagpenge',
+        },
+      ],
+    });
+
+    expect(buildIncomeInputRanges(eo)).toEqual([
+      { fra: iso('2026-01-01'), til: iso('2026-01-25') },
+    ]);
   });
 });
 

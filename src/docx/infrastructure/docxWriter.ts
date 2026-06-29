@@ -370,11 +370,10 @@ const createSignatureTable = (
 
 // Bredde og placering af den fikserede brevhoved-tekstrude. Ruden er forankret
 // til SIDEN (FrameAnchorType.PAGE), så den bliver liggende øverst til højre uanset
-// hvad der sker med den øvrige tekst i dokumentet. Venstre kant sidder 12 cm fra
-// sidens venstre kant, og toppen sidder 1 cm fra sidens top.
+// hvad der sker med den øvrige tekst i dokumentet. X-positionen beregnes ud fra
+// den aktuelle sidebredde, så ruden også ligger korrekt på landscape-sider.
 const BREVHOVED_FRAME_WIDTH_DXA = dxaFromCentimeters(7);
 const BREVHOVED_FRAME_HEIGHT_DXA = dxaFromCentimeters(1);
-const BREVHOVED_FRAME_X_DXA = dxaFromCentimeters(12);
 const BREVHOVED_FRAME_Y_DXA = dxaFromCentimeters(1);
 
 // Indhold matcher PDF-brevhovedet (renderBrevhoved): "J.nr. <nr> <advokat>/<sagsbehandler>"
@@ -402,16 +401,17 @@ const buildBrevhovedLines = (data: BrevhovedData): string[] => {
   return lines;
 };
 
-const buildBrevhovedParagraphs = (data: BrevhovedData): Paragraph[] => {
+const buildBrevhovedParagraphs = (data: BrevhovedData, pageWidthDxa: number): Paragraph[] => {
   const lines = buildBrevhovedLines(data);
   if (lines.length === 0) return [];
+  const frameX = pageWidthDxa - PAGE_HORIZONTAL_MARGIN_DXA - BREVHOVED_FRAME_WIDTH_DXA;
 
   // Hele brevhovedet samles i ÉT afsnit med eksplicitte linjeskift, så det udgør
   // én sammenhængende tekstrude. Kun det afsnit, der bærer frame-egenskaben,
   // forankres; derfor må linjerne ikke splittes ud i flere afsnit.
   const frame: IFrameOptions = {
     type: 'absolute',
-    position: { x: BREVHOVED_FRAME_X_DXA, y: BREVHOVED_FRAME_Y_DXA },
+    position: { x: frameX, y: BREVHOVED_FRAME_Y_DXA },
     width: BREVHOVED_FRAME_WIDTH_DXA,
     height: BREVHOVED_FRAME_HEIGHT_DXA,
     anchor: { horizontal: FrameAnchorType.PAGE, vertical: FrameAnchorType.PAGE },
@@ -611,8 +611,12 @@ export const createDocxWriter = (params?: Readonly<{
             titlePage: hasBrevhoved,
             page: {
               size: {
-                width: pageWidthDxa,
-                height: pageHeightDxa,
+                // docx-biblioteket bytter selv w/h ved PageOrientation.LANDSCAPE.
+                // Derfor sendes A4-basismålene ind her, mens vores egne flydende
+                // elementer (brevhoved/footer) fortsat bruger de fysiske sidemål
+                // fra pageWidthDxa/pageHeightDxa ovenfor.
+                width: PAGE_WIDTH_DXA,
+                height: PAGE_HEIGHT_DXA,
                 orientation: isLandscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
               },
               margin: {
@@ -710,7 +714,7 @@ export const createDocxWriter = (params?: Readonly<{
       blocks.push(createSignatureTable(dateLine, sigLine, skadelidteNavn));
     },
     writeBrevhoved: (brevhovedData) => {
-      brevhovedParagraphs = buildBrevhovedParagraphs(brevhovedData);
+      brevhovedParagraphs = buildBrevhovedParagraphs(brevhovedData, pageWidthDxa);
       if (brevhovedParagraphs.length > 0) {
         hasBrevhoved = true;
       }

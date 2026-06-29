@@ -15,14 +15,16 @@ vi.mock('../../../document/generators/tafFordelt/tafKravGrafChart', async (impor
   return { ...actual, renderTafKravGrafChartPng: () => PNG_1X1 };
 });
 
-const FAKE_DOCUMENT = {
+const FAKE_DOCUMENT_BASE = {
   model: { titel: 'Visuel graf over indtægtsniveau', brevhoved: null },
   unit: 'maaned',
   series: [],
   timeWindows: [],
   beregningsperiode: null,
   skadeMarker: null,
-} as never;
+};
+
+const FAKE_DOCUMENT = FAKE_DOCUMENT_BASE as never;
 
 describe('tafKravGraf → Word-indhold', () => {
   it('indlejrer grafen som billede og sætter dokumenttitlen i .docx', async () => {
@@ -39,5 +41,31 @@ describe('tafKravGraf → Word-indhold', () => {
     // Grafen skal være indlejret som et billede i pakken.
     const mediaFiles = Object.keys(zip.files).filter((name) => /^word\/media\//.test(name));
     expect(mediaFiles.length).toBeGreaterThan(0);
+  });
+
+  it('bruger liggende side og placerer brevhovedruden efter landscape-bredden', async () => {
+    const { generateTafKravGrafDocument } = await import('../../../document/generators/tafFordelt/tafKravGrafDocument');
+
+    const documentWithBrevhoved = {
+      ...FAKE_DOCUMENT_BASE,
+      model: {
+        titel: 'Visuel graf over indtægtsniveau',
+        brevhoved: {
+          journalnr: '123',
+          advokat: 'AB',
+          sagsbehandler: 'CD',
+          dagsDatoISO: '2026-06-29',
+        },
+      },
+    } as never;
+    const { documentXml } = await renderWordDocument(() => {
+      generateTafKravGrafDocument({ document: documentWithBrevhoved, visBrevhoved: true });
+    });
+
+    expect(documentXml).toContain('w:orient="landscape"');
+    expect(documentXml).toContain('w:w="16838"');
+    expect(documentXml).toContain('w:h="11906"');
+    const frameX = Number(/<w:framePr\b[^>]*\bw:x="(\d+)"/.exec(documentXml)?.[1] ?? 0);
+    expect(frameX).toBeGreaterThan(11_000);
   });
 });
