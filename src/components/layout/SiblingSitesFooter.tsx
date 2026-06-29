@@ -28,6 +28,34 @@ const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps)
     ? { target: '_blank', rel: 'noopener noreferrer' }
     : {};
 
+  const renderFooterLink = (site: (typeof SIBLING_SITES)[number]) => {
+    const isCurrentSite = site.key === currentSite;
+    const content = (
+      <Box component="span">{site.label}</Box>
+    );
+
+    return isCurrentSite ? (
+      <Box
+        key={site.key}
+        className="site-footer__link site-footer__link--active"
+        component="span"
+        aria-current="page"
+      >
+        {content}
+      </Box>
+    ) : (
+      <Box
+        key={site.key}
+        className="site-footer__link"
+        component="a"
+        href={site.href}
+        {...siteLinkTargetProps}
+      >
+        {content}
+      </Box>
+    );
+  };
+
   return (
     <Box
       className="content-box site-footer-box"
@@ -117,6 +145,9 @@ const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps)
             gap: 0,
             marginLeft: 'auto',
           },
+          '& .site-footer__nav--mobile': {
+            display: 'none',
+          },
           '& .site-footer__link': {
             display: 'inline-flex',
             alignItems: 'center',
@@ -175,20 +206,44 @@ const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps)
             '& .site-footer': {
               flexDirection: 'column',
               alignItems: 'stretch',
-              gap: '14px',
+              gap: '10px',
             },
-            '& .site-footer__nav': {
+            '& .site-footer__nav--desktop': {
+              display: 'none',
+            },
+            '& .site-footer__nav--mobile': {
+              display: 'flex',
               flexDirection: 'column',
-              alignItems: 'stretch',
+              alignItems: 'flex-start',
+              rowGap: '3px',
+            },
+            '& .site-footer__mobile-row': {
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              maxWidth: '100%',
+            },
+            '& .site-footer__mobile-sep': {
+              width: '4px',
+              height: '4px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(0, 0, 0, 0.28)',
+              flex: '0 0 auto',
             },
             '& .site-footer__link': {
               justifyContent: 'flex-start',
+              minHeight: '28px',
+              padding: '2px 0',
             },
             '& .site-footer__link + .site-footer__link': {
               marginLeft: 0,
             },
             '& .site-footer__link + .site-footer__link::before': {
               display: 'none',
+            },
+            '& .site-footer__link span:last-child': {
+              overflowWrap: 'normal',
+              whiteSpace: 'nowrap',
             },
           },
           '@media (max-width: 899px)': {
@@ -215,34 +270,21 @@ const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps)
 
         <Box className="site-footer__sep" aria-hidden="true" />
 
-        <Box className="site-footer__nav" component="nav" aria-label="Søskendesider">
-          {SIBLING_SITES.map((site) => {
-            const isCurrentSite = site.key === currentSite;
-            const content = (
-              <Box component="span">{site.label}</Box>
-            );
+        <Box className="site-footer__nav site-footer__nav--desktop" component="nav" aria-label="Søskendesider">
+          {SIBLING_SITES.map(renderFooterLink)}
+        </Box>
 
-            return isCurrentSite ? (
-              <Box
-                key={site.key}
-                className="site-footer__link site-footer__link--active"
-                component="span"
-                aria-current="page"
-              >
-                {content}
-              </Box>
-            ) : (
-              <Box
-                key={site.key}
-                className="site-footer__link"
-                component="a"
-                href={site.href}
-                {...siteLinkTargetProps}
-              >
-                {content}
-              </Box>
-            );
-          })}
+        <Box className="site-footer__nav site-footer__nav--mobile" component="nav" aria-label="Søskendesider">
+          <Box className="site-footer__mobile-row">
+            {renderFooterLink(SIBLING_SITES[0])}
+            <Box className="site-footer__mobile-sep" component="span" aria-hidden="true" />
+            {renderFooterLink(SIBLING_SITES[2])}
+          </Box>
+          <Box className="site-footer__mobile-row">
+            {renderFooterLink(SIBLING_SITES[1])}
+            <Box className="site-footer__mobile-sep" component="span" aria-hidden="true" />
+            {renderFooterLink(SIBLING_SITES[3])}
+          </Box>
         </Box>
       </Box>
     </Box>
