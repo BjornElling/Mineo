@@ -120,7 +120,12 @@ if (hasDomEnvironment) {
       if (handle === undefined) return;
       const callback = rafCallbacks.get(handle);
       if (!callback || !rafCallbacks.delete(handle)) return;
-      callback(performance.now());
+      // Den hurtige MessageChannel-baserede rAF kører uden for Reacts normale test-act-vindue.
+      // Tabelkomponenter bruger rAF til fokus- og editor-sync, så callbacken skal act-wrappes
+      // ved selve test-scheduleren frem for at hver test skal kende den interne frame.
+      act(() => {
+        callback(performance.now());
+      });
     };
     const fastRaf = (callback: FrameRequestCallback): number => {
       rafHandle += 1;
