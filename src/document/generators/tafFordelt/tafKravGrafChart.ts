@@ -1,6 +1,7 @@
 import { createDate, dateToISO, parseISODate, type ISODateString } from '../../../types/branded';
 import { diffUtcDays } from '../../../utils/utcDayMath';
 import { getDayAfterIso, getDayBeforeIso, isoYear } from '../../../utils/isoDateHelpers';
+import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { roundByMethod } from '../../../utils/rounding';
 import { formatMoneyOreWithKrTrimmed } from '../../layout/documentFormatUtils';
 import type {
@@ -21,7 +22,7 @@ const CANVAS_WIDTH = TAF_KRAV_GRAF_CANVAS.width;
 const CANVAS_HEIGHT = TAF_KRAV_GRAF_CANVAS.height;
 
 const PLOT_LEFT = 196;
-const PLOT_RIGHT = CANVAS_WIDTH - 70;
+const PLOT_RIGHT = CANVAS_WIDTH - 90;
 const PLOT_TOP = 150;
 const PLOT_BOTTOM = 1118;
 const BREAK_WIDTH = 60;
@@ -36,6 +37,8 @@ const COLOR_BEREGNING_LABEL = '#30638E';
 const COLOR_SKADE = '#9B2F2F';
 
 const MONTHS_DA = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'] as const;
+const X_LABEL_MIN_GAP = 16;
+const X_LABEL_FONT = '400 28px Arial, sans-serif';
 
 export type TafKravGrafChartOptions = Readonly<{
   // Antal måneder i glidende gennemsnit (kantbevidst: udglatter kun inden for
@@ -120,6 +123,17 @@ const buildDateTicks = (window: TafKravGrafTimeWindow): ISODateString[] => {
     }
   }
   return [...new Set(dates)].sort();
+};
+
+const canAppendTerminalDateLabel = (
+  x: number,
+  labelWidth: number,
+  lastAutomaticLabelRight: number,
+  canvasRight: number = CANVAS_WIDTH
+): boolean => {
+  const halfWidth = labelWidth / 2;
+  return x - halfWidth >= lastAutomaticLabelRight + X_LABEL_MIN_GAP
+    && x + halfWidth <= canvasRight;
 };
 
 // ---------------------------------------------------------------------------
@@ -561,24 +575,48 @@ const drawTimeBreaks = (ctx: CanvasRenderingContext2D, layout: WindowLayout): vo
   }
 };
 
-const drawLegend = (ctx: CanvasRenderingContext2D, document: TafKravGrafDocument): void => {
+type LegendEntry = { label: string; draw: (x: number, y: number) => void };
+
+const drawLegendRow = (ctx: CanvasRenderingContext2D, entries: readonly LegendEntry[], y: number): void => {
+  if (entries.length === 0) return;
   const swatch = 26;
   const gap = 18;
   const itemGap = 56;
-  const entries: { label: string; draw: (x: number, y: number) => void }[] = [];
+  ctx.font = '400 30px Arial, sans-serif';
+  const widths = entries.map((entry) => swatch + 12 + gap + ctx.measureText(entry.label).width);
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0) + itemGap * (entries.length - 1);
+  let x = PLOT_LEFT + Math.max(0, (PLOT_RIGHT - PLOT_LEFT - totalWidth) / 2);
 
-  for (const series of document.series) {
-    entries.push({
-      label: series.label,
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  entries.forEach((entry, index) => {
+    entry.draw(x, y);
+    ctx.fillStyle = COLOR_TEXT;
+    ctx.fillText(entry.label, x + swatch + 12 + gap, y);
+    x += widths[index] + itemGap;
+  });
+};
+
+const drawLegend = (ctx: CanvasRenderingContext2D, document: TafKravGrafDocument): void => {
+  const swatch = 26;
+  const seriesEntries: LegendEntry[] = [];
+  const markerEntries: LegendEntry[] = [];
+
+  if (document.skadeMarker) {
+    markerEntries.push({
+      label: document.skadeMarker.label,
       draw: (x, y) => {
-        ctx.fillStyle = series.color;
-        roundRectPath(ctx, x, y - swatch + 4, swatch, swatch, 6);
-        ctx.fill();
+        ctx.strokeStyle = COLOR_SKADE;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + swatch / 2, y - swatch + 4);
+        ctx.lineTo(x + swatch / 2, y + 4);
+        ctx.stroke();
       },
     });
   }
   if (document.beregningsperiode) {
-    entries.push({
+    markerEntries.push({
       label: 'Beregningsperiode',
       draw: (x, y) => {
         ctx.fillStyle = COLOR_BEREGNING_TINT;
@@ -591,34 +629,23 @@ const drawLegend = (ctx: CanvasRenderingContext2D, document: TafKravGrafDocument
       },
     });
   }
-  if (document.skadeMarker) {
-    entries.push({
-      label: document.skadeMarker.label,
+  for (const series of document.series) {
+    seriesEntries.push({
+      label: series.label,
       draw: (x, y) => {
-        ctx.strokeStyle = COLOR_SKADE;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(x + swatch / 2, y - swatch + 4);
-        ctx.lineTo(x + swatch / 2, y + 4);
-        ctx.stroke();
+        ctx.fillStyle = series.color;
+        roundRectPath(ctx, x, y - swatch + 4, swatch, swatch, 6);
+        ctx.fill();
       },
     });
   }
 
-  ctx.font = '400 30px Arial, sans-serif';
-  const widths = entries.map((entry) => swatch + 12 + gap + ctx.measureText(entry.label).width);
-  const totalWidth = widths.reduce((sum, width) => sum + width, 0) + itemGap * (entries.length - 1);
-  let x = PLOT_LEFT + Math.max(0, (PLOT_RIGHT - PLOT_LEFT - totalWidth) / 2);
-  const y = CANVAS_HEIGHT - 70;
-
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  entries.forEach((entry, index) => {
-    entry.draw(x, y);
-    ctx.fillStyle = COLOR_TEXT;
-    ctx.fillText(entry.label, x + swatch + 12 + gap, y);
-    x += widths[index] + itemGap;
-  });
+  if (markerEntries.length > 0) {
+    drawLegendRow(ctx, markerEntries, CANVAS_HEIGHT - 118);
+    drawLegendRow(ctx, seriesEntries, CANVAS_HEIGHT - 58);
+    return;
+  }
+  drawLegendRow(ctx, seriesEntries, CANVAS_HEIGHT - 70);
 };
 
 // ---------------------------------------------------------------------------
@@ -706,7 +733,7 @@ export const renderTafKravGrafChartPng = (
 
   // Y-labels
   ctx.fillStyle = COLOR_TEXT_MUTED;
-  ctx.font = '400 28px Arial, sans-serif';
+  ctx.font = X_LABEL_FONT;
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
   for (const tick of ticks) {
@@ -714,9 +741,10 @@ export const renderTafKravGrafChartPng = (
   }
 
   // X-labels pr. vindue, med kollisionsbeskyttelse
+  ctx.font = X_LABEL_FONT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  for (const entry of layout) {
+  layout.forEach((entry, index) => {
     let lastLabelRight = -Infinity;
     for (const tickDate of buildDateTicks(entry.window)) {
       const x = mapDate(tickDate);
@@ -729,12 +757,25 @@ export const renderTafKravGrafChartPng = (
       ctx.stroke();
       const label = formatMonthYear(tickDate);
       const halfWidth = ctx.measureText(label).width / 2;
-      if (x - halfWidth < lastLabelRight + 16) continue;
+      if (x - halfWidth < lastLabelRight + X_LABEL_MIN_GAP) continue;
       ctx.fillStyle = COLOR_TEXT_MUTED;
       ctx.fillText(label, x, PLOT_BOTTOM + 48);
       lastLabelRight = x + halfWidth;
     }
-  }
+    if (index !== layout.length - 1) return;
+    const x = mapDate(entry.window.til);
+    if (x === null) return;
+    const label = formatISOToDanish(entry.window.til);
+    if (!label || !canAppendTerminalDateLabel(x, ctx.measureText(label).width, lastLabelRight)) return;
+    ctx.strokeStyle = COLOR_AXIS;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, PLOT_BOTTOM);
+    ctx.lineTo(x, PLOT_BOTTOM + 11);
+    ctx.stroke();
+    ctx.fillStyle = COLOR_TEXT_MUTED;
+    ctx.fillText(label, x, PLOT_BOTTOM + 48);
+  });
 
   drawLegend(ctx, document);
 
@@ -750,4 +791,6 @@ export const __tafKravGrafChartTestables = {
   buildNiceMoneyTicks,
   smoothWithinActiveRuns,
   buildWindowLayout,
+  buildDateTicks,
+  canAppendTerminalDateLabel,
 };

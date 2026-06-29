@@ -1,7 +1,7 @@
 import { __tafKravGrafChartTestables } from '../../document/generators/tafFordelt/tafKravGrafChart';
 import { toISODateString } from '../../types/branded';
 
-const { niceCeil, buildNiceMoneyTicks, smoothWithinActiveRuns, buildWindowLayout } =
+const { niceCeil, buildNiceMoneyTicks, smoothWithinActiveRuns, buildWindowLayout, buildDateTicks, canAppendTerminalDateLabel } =
   __tafKravGrafChartTestables;
 
 // Rene tegne-/sampling-helpers fra TAF-kravgrafen. De er præsentationsgeometri (de tal
@@ -128,5 +128,27 @@ describe('tafKravGrafChart — buildWindowLayout', () => {
     ]);
     // Andet vindue starter efter første vindues højre kant (x + bredde) plus brud-mellemrum.
     expect(layout[1].x).toBeGreaterThan(layout[0].x + layout[0].width);
+  });
+});
+
+describe('tafKravGrafChart — x-akse slutdato', () => {
+  const win = (fra: string, til: string) => ({ fra: toISODateString(fra), til: toISODateString(til) });
+
+  it('medtager ikke slutdatoen blandt de automatisk genererede måned/år-labels', () => {
+    const ticks = buildDateTicks(win('2024-01-17', '2024-12-31'));
+
+    expect(ticks).not.toContain(toISODateString('2024-12-31'));
+  });
+
+  it('tillader slutdato-label når den ikke overlapper den seneste automatiske label', () => {
+    expect(canAppendTerminalDateLabel(500, 120, 300, 650)).toBe(true);
+  });
+
+  it('afviser slutdato-label når den overlapper den seneste automatiske label', () => {
+    expect(canAppendTerminalDateLabel(500, 120, 430, 650)).toBe(false);
+  });
+
+  it('afviser slutdato-label når den ville blive klippet i højre side', () => {
+    expect(canAppendTerminalDateLabel(500, 140, 300, 560)).toBe(false);
   });
 });
