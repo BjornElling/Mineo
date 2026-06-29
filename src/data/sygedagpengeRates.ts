@@ -1,75 +1,97 @@
 import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
+import { roundByMethod } from '../utils/rounding';
 
 /**
  * Kanonisk, samlet oversigt over sygedagpenge pr. satsår.
  *
  * Hvert satsår løber fra den første mandag i året til dagen før den første mandag i næste
  * år, og hver række samler ALT for det år, så tabellen opdateres ét sted én gang om året:
- * - `sygedagpengePrDagMax`: maksimal sygedagpengesats pr. dag.
- * - `egetAtpPrKalenderuge` / `kommunaltAtpPrKalenderuge`: ATP-bidrag for en fuld
- *   kalenderuge (ATP beregnes ikke pr. dag). Ved delvise uger fordeles den fulde uges
- *   eget-andel forholdsmæssigt efter antallet af sygedagpenge-arbejdsdage og afrundes til
- *   hele kroner; den kommunale andel er altid dobbelt af den afrundede eget-andel. ATP
- *   ændres sjældent, men gentages bevidst på hver række, så satsåret er fuldt selvindeholdt.
+ * - `sygedagpengeTimesats`: maksimal sygedagpengesats pr. time.
+ * - `atpTimebidrag`: samlet ATP-timebidrag ved kommunale sygedagpenge. Dagpengemodtagerens
+ *   eget ATP-bidrag er 1/3 af timebidraget afrundet pr. uge, og kommunens bidrag er
+ *   det dobbelte af den afrundede egenandel.
  * - `obligatoriskPensionProcent`: OP-procentsats (§ 67 a), fx 0.3 for 0,3 pct. OP beregnes
  *   på grundlag af sygedagpengene efter fradrag for dagpengemodtagerens eget ATP-bidrag
  *   (§ 67, stk. 2) og afrundes til hele kroner pr. uge. Før ordningens ikrafttræden er den 0
  *   (ordningen fandtes ikke før det satsår, der starter 6. januar 2020).
  *
- * Sådan opdateres tabellen årligt: tilføj én række med årets fra-/til-dato, sygedagpengesats,
- * ATP (videreført eller ny) og OP-procent. Insert-vinduet for "Indsæt maksimal sygedagpengesats"
+ * Sygedagpenge-indsættelsen periodiserer en uge som 37 timer:
+ * - mandag-torsdag: 8 timer pr. dag
+ * - fredag: 5 timer
+ * - lørdag-søndag: 0 timer
+ *
+ * Afrunding sker altid pr. kalenderuge (mandag-søndag), også når brugerens valgte periode
+ * dækker flere uger eller kun dele af en uge:
+ * - sygedagpenge for ugen = round(ugeTimer x sygedagpengeTimesats)
+ * - eget ATP for ugen = round(ugeTimer x atpTimebidrag x 1/3)
+ * - kommunalt ATP for ugen = eget ATP x 2
+ * - OP for ugen = round((OP-procent / 100) x (ugesygedagpenge - eget ATP))
+ *
+ * Sådan opdateres tabellen årligt: tilføj én række med årets fra-/til-dato, timesats,
+ * ATP-timebidrag (videreført eller ny) og OP-procent. Insert-vinduet for "Indsæt maksimal sygedagpengesats"
  * følger automatisk første/sidste række.
- *
- * Det kommunale ATP-bidrag opgøres som:
- *   round(37 x samlet ATP-timebidrag x 1/3) x 2
- *
- * Afrunding sker til nærmeste hele krone på modtagerens 1/3-andel,
- * hvorefter kommunens bidrag udgør det dobbelte af det afrundede beløb.
- *
- * De historiske samlede ATP-timebidrag ved kommunale sygedagpenge har været:
- *  1998-2005: 3,24
- *  2006-2008: 3,48
- *  2009-2015: 3,84
- *  2016-2023: 4,02
- *  2024-    : 4,26
  */
 
 export type DatedSygedagpengeRate = Readonly<{
   fraDato: ISODateString;
   tilDato: ISODateString;
-  sygedagpengePrDagMax: number;
-  egetAtpPrKalenderuge: number;
-  kommunaltAtpPrKalenderuge: number;
+  sygedagpengeTimesats: number;
+  atpTimebidrag: number;
   /** OP-procentsats (fx 0.3 for 0,3 pct.); 0 før ordningens ikrafttræden 6. januar 2020. */
   obligatoriskPensionProcent: number;
 }>;
 
 const iso = (value: string): ISODateString => toISODateString(value);
 
+export const SYGEDAGPENGE_TIMER_PR_FULD_UGE = 37;
+
+export const resolveSygedagpengeTimerForUtcWeekday = (weekday: number): number => {
+  switch (weekday) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return 8;
+    case 5:
+      return 5;
+    default:
+      return 0;
+  }
+};
+
+export const beregnSygedagpengeForTimer = (rate: DatedSygedagpengeRate, timer: number): number =>
+  roundByMethod(timer * rate.sygedagpengeTimesats, 0, 'halfAwayFromZero');
+
+export const beregnEgetAtpBidragForTimer = (rate: DatedSygedagpengeRate, timer: number): number =>
+  roundByMethod(timer * rate.atpTimebidrag * (1 / 3), 0, 'halfAwayFromZero');
+
+export const beregnKommunaltAtpBidragForTimer = (rate: DatedSygedagpengeRate, timer: number): number =>
+  beregnEgetAtpBidragForTimer(rate, timer) * 2;
+
 export const sygedagpengeRates: readonly DatedSygedagpengeRate[] = [
-  { fraDato: iso('2005-01-03'), tilDato: iso('2006-01-01'), sygedagpengePrDagMax: 655, egetAtpPrKalenderuge: 40, kommunaltAtpPrKalenderuge: 80, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2006-01-02'), tilDato: iso('2006-12-31'), sygedagpengePrDagMax: 665, egetAtpPrKalenderuge: 43, kommunaltAtpPrKalenderuge: 86, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2007-01-01'), tilDato: iso('2008-01-06'), sygedagpengePrDagMax: 678, egetAtpPrKalenderuge: 43, kommunaltAtpPrKalenderuge: 86, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2008-01-07'), tilDato: iso('2009-01-04'), sygedagpengePrDagMax: 703, egetAtpPrKalenderuge: 43, kommunaltAtpPrKalenderuge: 86, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2009-01-05'), tilDato: iso('2010-01-03'), sygedagpengePrDagMax: 725, egetAtpPrKalenderuge: 47, kommunaltAtpPrKalenderuge: 94, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2010-01-04'), tilDato: iso('2011-01-02'), sygedagpengePrDagMax: 738, egetAtpPrKalenderuge: 47, kommunaltAtpPrKalenderuge: 94, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2011-01-03'), tilDato: iso('2012-01-01'), sygedagpengePrDagMax: 766, egetAtpPrKalenderuge: 47, kommunaltAtpPrKalenderuge: 94, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2012-01-02'), tilDato: iso('2013-01-06'), sygedagpengePrDagMax: 788, egetAtpPrKalenderuge: 47, kommunaltAtpPrKalenderuge: 94, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2013-01-07'), tilDato: iso('2014-01-05'), sygedagpengePrDagMax: 801, egetAtpPrKalenderuge: 47, kommunaltAtpPrKalenderuge: 94, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2014-01-06'), tilDato: iso('2015-01-04'), sygedagpengePrDagMax: 815, egetAtpPrKalenderuge: 47, kommunaltAtpPrKalenderuge: 94, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2015-01-05'), tilDato: iso('2016-01-03'), sygedagpengePrDagMax: 827, egetAtpPrKalenderuge: 47, kommunaltAtpPrKalenderuge: 94, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2016-01-04'), tilDato: iso('2017-01-01'), sygedagpengePrDagMax: 836, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2017-01-02'), tilDato: iso('2017-12-31'), sygedagpengePrDagMax: 849, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2018-01-01'), tilDato: iso('2019-01-06'), sygedagpengePrDagMax: 860, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2019-01-07'), tilDato: iso('2020-01-05'), sygedagpengePrDagMax: 871, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 0 },
-  { fraDato: iso('2020-01-06'), tilDato: iso('2021-01-03'), sygedagpengePrDagMax: 881, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 0.3 },
-  { fraDato: iso('2021-01-04'), tilDato: iso('2022-01-02'), sygedagpengePrDagMax: 892, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 0.6 },
-  { fraDato: iso('2022-01-03'), tilDato: iso('2023-01-01'), sygedagpengePrDagMax: 893, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 0.9 },
-  { fraDato: iso('2023-01-02'), tilDato: iso('2023-12-31'), sygedagpengePrDagMax: 910, egetAtpPrKalenderuge: 50, kommunaltAtpPrKalenderuge: 100, obligatoriskPensionProcent: 1.2 },
-  { fraDato: iso('2024-01-01'), tilDato: iso('2025-01-05'), sygedagpengePrDagMax: 939, egetAtpPrKalenderuge: 53, kommunaltAtpPrKalenderuge: 106, obligatoriskPensionProcent: 1.5 },
-  { fraDato: iso('2025-01-06'), tilDato: iso('2026-01-04'), sygedagpengePrDagMax: 973, egetAtpPrKalenderuge: 53, kommunaltAtpPrKalenderuge: 106, obligatoriskPensionProcent: 1.8 },
-  { fraDato: iso('2026-01-05'), tilDato: iso('2027-01-03'), sygedagpengePrDagMax: 1017, egetAtpPrKalenderuge: 53, kommunaltAtpPrKalenderuge: 106, obligatoriskPensionProcent: 2.1 },
+  { fraDato: iso('2005-01-03'), tilDato: iso('2006-01-01'), sygedagpengeTimesats: 88.51, atpTimebidrag: 3.24, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2006-01-02'), tilDato: iso('2006-12-31'), sygedagpengeTimesats: 89.86, atpTimebidrag: 3.48, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2007-01-01'), tilDato: iso('2008-01-06'), sygedagpengeTimesats: 91.62, atpTimebidrag: 3.48, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2008-01-07'), tilDato: iso('2009-01-04'), sygedagpengeTimesats: 95.00, atpTimebidrag: 3.48, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2009-01-05'), tilDato: iso('2010-01-03'), sygedagpengeTimesats: 97.97, atpTimebidrag: 3.84, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2010-01-04'), tilDato: iso('2011-01-02'), sygedagpengeTimesats: 99.73, atpTimebidrag: 3.84, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2011-01-03'), tilDato: iso('2012-01-01'), sygedagpengeTimesats: 103.51, atpTimebidrag: 3.84, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2012-01-02'), tilDato: iso('2013-01-06'), sygedagpengeTimesats: 106.49, atpTimebidrag: 3.84, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2013-01-07'), tilDato: iso('2014-01-05'), sygedagpengeTimesats: 108.24, atpTimebidrag: 3.84, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2014-01-06'), tilDato: iso('2015-01-04'), sygedagpengeTimesats: 110.14, atpTimebidrag: 3.84, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2015-01-05'), tilDato: iso('2016-01-03'), sygedagpengeTimesats: 111.76, atpTimebidrag: 3.84, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2016-01-04'), tilDato: iso('2017-01-01'), sygedagpengeTimesats: 112.97, atpTimebidrag: 4.02, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2017-01-02'), tilDato: iso('2017-12-31'), sygedagpengeTimesats: 114.73, atpTimebidrag: 4.02, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2018-01-01'), tilDato: iso('2019-01-06'), sygedagpengeTimesats: 116.22, atpTimebidrag: 4.02, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2019-01-07'), tilDato: iso('2020-01-05'), sygedagpengeTimesats: 117.70, atpTimebidrag: 4.02, obligatoriskPensionProcent: 0 },
+  { fraDato: iso('2020-01-06'), tilDato: iso('2021-01-03'), sygedagpengeTimesats: 119.05, atpTimebidrag: 4.02, obligatoriskPensionProcent: 0.3 },
+  { fraDato: iso('2021-01-04'), tilDato: iso('2022-01-02'), sygedagpengeTimesats: 120.54, atpTimebidrag: 4.02, obligatoriskPensionProcent: 0.6 },
+  { fraDato: iso('2022-01-03'), tilDato: iso('2023-01-01'), sygedagpengeTimesats: 120.68, atpTimebidrag: 4.02, obligatoriskPensionProcent: 0.9 },
+  { fraDato: iso('2023-01-02'), tilDato: iso('2023-12-31'), sygedagpengeTimesats: 122.97, atpTimebidrag: 4.02, obligatoriskPensionProcent: 1.2 },
+  { fraDato: iso('2024-01-01'), tilDato: iso('2025-01-05'), sygedagpengeTimesats: 126.89, atpTimebidrag: 4.26, obligatoriskPensionProcent: 1.5 },
+  { fraDato: iso('2025-01-06'), tilDato: iso('2026-01-04'), sygedagpengeTimesats: 131.49, atpTimebidrag: 4.26, obligatoriskPensionProcent: 1.8 },
+  { fraDato: iso('2026-01-05'), tilDato: iso('2027-01-03'), sygedagpengeTimesats: 137.43, atpTimebidrag: 4.26, obligatoriskPensionProcent: 2.1 },
 ] as const;
 
 const firstSygedagpengeRate = sygedagpengeRates[0];
@@ -88,22 +110,15 @@ export const SYGEDAGPENGE_INSERT_MAX_DATE: ISODateString = SYGEDAGPENGE_RATE_MAX
 
 /** Dagpengemodtagerens ugentlige ATP-bidrag for satsåret. */
 export const resolveEgetAtpBidragPrKalenderuge = (rate: DatedSygedagpengeRate): number =>
-  rate.egetAtpPrKalenderuge;
+  beregnEgetAtpBidragForTimer(rate, SYGEDAGPENGE_TIMER_PR_FULD_UGE);
 
 /** OP-procentsatsen for satsåret (0 før ordningens ikrafttræden 6. januar 2020). */
 export const resolveObligatoriskPensionProcent = (rate: DatedSygedagpengeRate): number =>
   rate.obligatoriskPensionProcent;
 
 /**
- * Kommunens ugentlige ATP-bidrag for satsåret. Håndhæver fail-closed invarianten om, at det
- * kommunale bidrag altid er præcis dobbelt af dagpengemodtagerens eget bidrag.
+ * Kommunens ugentlige ATP-bidrag for satsåret. Det kommunale bidrag er altid præcis
+ * dobbelt af dagpengemodtagerens afrundede eget-bidrag.
  */
-export const resolveKommunaltAtpBidragPrKalenderuge = (rate: DatedSygedagpengeRate): number => {
-  const expectedKommunaltBidragPrKalenderuge = rate.egetAtpPrKalenderuge * 2;
-  if (rate.kommunaltAtpPrKalenderuge !== expectedKommunaltBidragPrKalenderuge) {
-    throw new Error(
-      'CRITICAL: Sygedagpenge-rater forventer at kommunalt ATP-bidrag for fuld kalenderuge altid er dobbelt af eget ATP-bidrag.'
-    );
-  }
-  return expectedKommunaltBidragPrKalenderuge;
-};
+export const resolveKommunaltAtpBidragPrKalenderuge = (rate: DatedSygedagpengeRate): number =>
+  beregnKommunaltAtpBidragForTimer(rate, SYGEDAGPENGE_TIMER_PR_FULD_UGE);

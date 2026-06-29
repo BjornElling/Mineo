@@ -104,9 +104,19 @@ Denne regel skal håndhæves centralt samme sted for:
 
 - dagtælling
 - beløbsperiodisering
-- ugeopdeling til ATP-beregning
+- ugeopdeling til indsættelse af maksimal sygedagpengesats, ATP og obligatorisk pension
 
-Det er arkitektonisk fejl, hvis forskellige sygedagpenge-flow kan nå forskellige dagtal for samme interval.
+Ved "Indsæt maksimal sygedagpengesats" beregnes sygedagpenge på timer pr. kalenderuge:
+
+- en fuld uge er altid 37 timer
+- mandag-torsdag tæller hver 8 timer
+- fredag tæller 5 timer
+- lørdag-søndag tæller 0 timer
+- SH-dage følger cutoff-reglen ovenfor og bidrager med 0 timer, når de ikke medregnes
+
+Afrunding sker altid pr. kalenderuge (mandag-søndag), aldrig pr. dag og aldrig samlet for en længere brugerperiode. Samme ugegrundlag skal bruges til sygedagpenge, ATP og obligatorisk pension.
+
+Det er arkitektonisk fejl, hvis forskellige sygedagpenge-flow kan nå forskellige dagtal eller timegrundlag for samme interval.
 
 ---
 

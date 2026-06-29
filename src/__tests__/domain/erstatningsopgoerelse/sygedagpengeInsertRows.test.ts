@@ -1,4 +1,6 @@
 import {
+  beregnEgetAtpBidragForTimer,
+  beregnSygedagpengeForTimer,
   resolveEgetAtpBidragPrKalenderuge,
   resolveKommunaltAtpBidragPrKalenderuge,
   resolveObligatoriskPensionProcent,
@@ -10,7 +12,7 @@ import {
 } from '../../../data/sygedagpengeRates';
 import { toISODateString } from '../../../types/branded';
 import { parseAmountInput } from '../../../utils/expressionAmount';
-import { buildSygedagpengeArbejdsdagePrKalenderuge } from '../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
+import { buildSygedagpengeGrundlagPrKalenderuge } from '../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 import {
   assertSygedagpengeRangeFullyCovered,
   buildSygedagpengeRowsForRange,
@@ -30,23 +32,22 @@ const evalExpression = (expression: string): number => {
 /**
  * Bygger den UKOMPRIMEREDE uge-for-uge form af et tillæg-udtryk direkte fra rådata,
  * uafhængigt af produktionskoden, så den kan sammenholdes med den komprimerede form.
- * Spejler bevidst formlen i buildTillaegExpression (eget ATP afrundet pr. uge, OP afrundet
- * pr. uge på grundlag af ugesygedagpenge minus eget ATP).
+ * Spejler bevidst formlen i buildTillaegExpression (sygedagpenge og eget ATP afrundet
+ * pr. uge, OP afrundet pr. uge på grundlag af ugesygedagpenge minus eget ATP).
  */
 const buildUncompressedTillaeg = (fraDato: string, tilDato: string): string => {
   const rate = sygedagpengeRates.find(
     (r) => r.fraDato <= toISODateString(fraDato) && r.tilDato >= toISODateString(tilDato)
   );
   if (!rate) throw new Error('Testperiode skal ligge i ét rate-segment');
-  const eget = resolveEgetAtpBidragPrKalenderuge(rate);
   const opProcent = resolveObligatoriskPensionProcent(rate);
-  const uger = buildSygedagpengeArbejdsdagePrKalenderuge(toISODateString(fraDato), toISODateString(tilDato));
+  const uger = buildSygedagpengeGrundlagPrKalenderuge(toISODateString(fraDato), toISODateString(tilDato));
   return uger
     .map((uge) => {
-      const egetBidrag = Math.round((uge.arbejdsdage * eget) / 5);
+      const egetBidrag = beregnEgetAtpBidragForTimer(rate, uge.timer);
       const led = `${egetBidrag}*2`;
       if (opProcent <= 0) return led;
-      const opBidrag = Math.round((opProcent / 100) * (uge.arbejdsdage * rate.sygedagpengePrDagMax - egetBidrag));
+      const opBidrag = Math.round((opProcent / 100) * (beregnSygedagpengeForTimer(rate, uge.timer) - egetBidrag));
       return `${led}+${opBidrag}`;
     })
     .join('+');
@@ -82,7 +83,7 @@ describe('sygedagpengeInsertRows', () => {
     });
     expect(rows[0]?.ydelse).toEqual({
       kind: 'expression',
-      expression: '5*973',
+      expression: '1*4865',
       value: 4865,
     });
     // Tillæg = kommunalt ATP (53*2) + obligatorisk pension for ugen.
@@ -109,18 +110,22 @@ describe('sygedagpengeInsertRows', () => {
     const rows = buildSygedagpengeRowsForRange(toISODateString('2025-01-09'), toISODateString('2025-01-14'));
 
     expect(rows).toHaveLength(1);
-    // To delvise uger med hver 2 arbejdsdage: eget ATP = round(2*53/5) = 21 pr. uge.
-    // OP (1,8 pct.) på grundlag af sygedagpenge minus eget ATP: round(0,018*(2*973-21)) = 35 pr. uge.
-    // De to identiske uge-led komprimeres til 2*(21*2+35).
+    // Første deluge er torsdag-fredag (13 timer), næste deluge er mandag-tirsdag (16 timer).
+    // ATP og OP afrundes derfor forskelligt pr. kalenderuge og kan ikke beregnes pr. dag.
+    expect(rows[0]?.ydelse).toEqual({
+      kind: 'expression',
+      expression: '1709+2104',
+      value: 3813,
+    });
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '2*(21*2+35)',
-      value: 154,
+      expression: '18*2+30+23*2+37',
+      value: 149,
     });
   });
 
   it('komprimerer gentagne identiske fulde uger til antal*(uge-led)', () => {
-    // 8 fulde uger i 2023 (sats 910, eget 50, OP 1,2 %): hver uge giver leddet 50*2+54.
+    // 8 fulde uger i 2023 (ugeydelse 4.550, eget 50, OP 1,2 %): hver uge giver leddet 50*2+54.
     // Perioden 2023-02-06 (mandag) til 2023-03-31 (fredag) rummer 8 hele arbejdsuger uden helligdage.
     const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-06'), toISODateString('2023-03-31'));
 
@@ -133,16 +138,16 @@ describe('sygedagpengeInsertRows', () => {
   });
 
   it('bevarer delvise uger for sig og komprimerer kun de identiske fulde uger imellem', () => {
-    // Start midt i en uge (onsdag 2023-02-08) → første uge er delvis (3 dage), derefter 3 fulde uger.
+    // Start midt i en uge (onsdag 2023-02-08) → første uge er delvis, derefter 3 fulde uger.
     const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-08'), toISODateString('2023-03-03'));
 
     expect(rows).toHaveLength(1);
-    // Delvis uge (3 dage): eget = round(3*50/5) = 30, OP = round(0,012*(3*910-30)) = 32 → 30*2+32.
+    // Delvis uge (onsdag-fredag = 21 timer): eget = 28, OP = round(0,012*(2582-28)) = 31.
     // Derefter tre fulde uger: 3*(50*2+54).
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '30*2+32+3*(50*2+54)',
-      value: 30 * 2 + 32 + 3 * (50 * 2 + 54),
+      expression: '28*2+31+3*(50*2+54)',
+      value: 28 * 2 + 31 + 3 * (50 * 2 + 54),
     });
   });
 
@@ -159,9 +164,9 @@ describe('sygedagpengeInsertRows', () => {
     });
   });
 
-  it('forudsætter at kommunalt ATP-bidrag i rate-tabellen er dobbelt af eget ugentlige bidrag', () => {
+  it('forudsætter at kommunalt ATP-bidrag er dobbelt af eget ugentlige bidrag', () => {
     for (const rate of sygedagpengeRates) {
-      expect(rate.kommunaltAtpPrKalenderuge).toBe(rate.egetAtpPrKalenderuge * 2);
+      expect(resolveKommunaltAtpBidragPrKalenderuge(rate)).toBe(resolveEgetAtpBidragPrKalenderuge(rate) * 2);
     }
   });
 
@@ -208,8 +213,8 @@ describe('sygedagpengeInsertRows', () => {
 
     expect(rowsFoerCutoff[0]?.ydelse).toEqual({
       kind: 'expression',
-      expression: '1*788',
-      value: 788,
+      expression: '1*852',
+      value: 852,
     });
     expect(rowsEfterCutoff).toHaveLength(0);
   });
@@ -288,8 +293,8 @@ describe('sygedagpengeInsertRows', () => {
   });
 
   it('OP-formlen: bidrag = round(procent/100 * (ugesygedagpenge - eget ATP)) pr. uge', () => {
-    // Eksplicit formel-forankring for én fuld uge i 2023 (sats 910, eget 50, OP 1,2 %).
-    // Forventet: eget = round(5*50/5) = 50; ugesygedagpenge = 5*910 = 4550;
+    // Eksplicit formel-forankring for én fuld uge i 2023 (37 timer, eget 50, OP 1,2 %).
+    // Forventet: eget = round(37*4,02/3) = 50; ugesygedagpenge = round(37*122,97) = 4550;
     // OP = round(0,012 * (4550 - 50)) = round(54) = 54 → tillæg-led = 50*2+54.
     const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-06'), toISODateString('2023-02-10'));
     expect(rows).toHaveLength(1);

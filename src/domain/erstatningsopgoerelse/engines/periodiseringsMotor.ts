@@ -5,10 +5,11 @@ import { addDays } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import { iterateDatesInclusive, iterateIsoDatesInclusive } from '../../../utils/isoDateHelpers';
 import type { Periodisering } from '../../../data/ydelsestyper';
+import { resolveSygedagpengeTimerForUtcWeekday } from '../../../data/sygedagpengeRates';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from '../helpers/tafBeregningsenhed';
 import { SYGEDAGPENGE_SH_CUTOFF } from '../helpers/eoConstants';
-import { beregnSHDageForDatoSet, buildSHDageSetForIsoRange } from '../../dates/shDageBeregning';
+import { buildSHDageSetForIsoRange } from '../../dates/shDageBeregning';
 import { roundByMethod } from '../../../utils/rounding';
 import { type DateInterval, type IsoRange } from '../../../utils/isoDateHelpers';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
@@ -33,6 +34,8 @@ import { assertNever } from '../../../utils/assertNever';
  * - Offentlige ydelser:
  *   - Periodiseres efter den centralt definerede ydelsestype-regel.
  *   - Særregel: sygedagpenge før 2. juli 2012 periodiseres uden SH-fradrag.
+ *   - Sygedagpenge-indsættelsen bruger samme centrale datoudvælgelse til kalenderugers
+ *     timegrundlag: mandag-torsdag 8 timer, fredag 5 timer, weekend 0 timer.
  * - Månedsoptælling:
  *   - Hver kalenderdag tæller som 1/x af måned (x = dage i måneden), uden ferie/SH-fradrag.
  *   - Øvrigt fravær i beregningsperioden fratrækkes med 4,8% måned pr. dag.
@@ -52,6 +55,12 @@ export { SYGEDAGPENGE_SH_CUTOFF, TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../he
 export type KalenderugeArbejdsdage = Readonly<{
   ugeStart: ISODateString;
   arbejdsdage: number;
+}>;
+
+export type KalenderugeSygedagpengeGrundlag = Readonly<{
+  ugeStart: ISODateString;
+  arbejdsdage: number;
+  timer: number;
 }>;
 
 export const buildLoenArbejdsdageSet = (
@@ -275,11 +284,24 @@ export const buildSygedagpengeArbejdsdagePrKalenderuge = (
   tilDato: ISODateString,
   options?: Readonly<{ sygedagpengeShCutoff?: ISODateString }>
 ): readonly KalenderugeArbejdsdage[] => {
+  return buildSygedagpengeGrundlagPrKalenderuge(fraDato, tilDato, options).map(({ ugeStart, arbejdsdage }) => ({
+    ugeStart,
+    arbejdsdage,
+  }));
+};
+
+export const buildSygedagpengeGrundlagPrKalenderuge = (
+  fraDato: ISODateString,
+  tilDato: ISODateString,
+  options?: Readonly<{ sygedagpengeShCutoff?: ISODateString }>
+): readonly KalenderugeSygedagpengeGrundlag[] => {
   const fra = parseISODate(fraDato);
   const til = parseISODate(tilDato);
   if (!fra || !til || fra > til) return [];
 
-  const uger = new Map<ISODateString, Set<ISODateString>>();
+  const fratraekSH = tilDato >= (options?.sygedagpengeShCutoff ?? SYGEDAGPENGE_SH_CUTOFF);
+  const shDage = fratraekSH ? buildSHDageSetForIsoRange(fraDato, tilDato) : new Set<ISODateString>();
+  const uger = new Map<ISODateString, { arbejdsdage: number; timer: number }>();
   iterateDatesInclusive(fra, til, (current) => {
     const weekday = current.getUTCDay();
     if (weekday >= 1 && weekday <= 5) {
@@ -287,21 +309,19 @@ export const buildSygedagpengeArbejdsdagePrKalenderuge = (
       const ugeStart = dateToISO(addDays(current, -weekdayOffset));
       const iso = dateToISO(current);
       if (ugeStart && iso) {
-        const datoer = uger.get(ugeStart) ?? new Set<ISODateString>();
-        datoer.add(iso);
-        uger.set(ugeStart, datoer);
+        if (shDage.has(iso)) return;
+        const uge = uger.get(ugeStart) ?? { arbejdsdage: 0, timer: 0 };
+        uge.arbejdsdage += 1;
+        uge.timer += resolveSygedagpengeTimerForUtcWeekday(weekday);
+        uger.set(ugeStart, uge);
       }
     }
   });
 
-  const fratraekSH = tilDato >= (options?.sygedagpengeShCutoff ?? SYGEDAGPENGE_SH_CUTOFF);
-
-  const result: KalenderugeArbejdsdage[] = [];
-  for (const [ugeStart, datoer] of uger) {
-    const hverdage = datoer.size;
-    const arbejdsdage = fratraekSH ? hverdage - beregnSHDageForDatoSet(datoer) : hverdage;
-    if (arbejdsdage > 0) {
-      result.push({ ugeStart, arbejdsdage });
+  const result: KalenderugeSygedagpengeGrundlag[] = [];
+  for (const [ugeStart, uge] of uger) {
+    if (uge.arbejdsdage > 0 && uge.timer > 0) {
+      result.push({ ugeStart, arbejdsdage: uge.arbejdsdage, timer: uge.timer });
     }
   }
   return result;

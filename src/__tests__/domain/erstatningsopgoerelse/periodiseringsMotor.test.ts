@@ -3,6 +3,7 @@ import {
   buildOffentligYdelsePeriodiseringsGrundlag,
   buildLoenArbejdsdageSet,
   buildSygedagpengeArbejdsdagePrKalenderuge,
+  buildSygedagpengeGrundlagPrKalenderuge,
   countOffentligYdelsePeriodiseringsdage,
   isOffentligYdelseDatoMedregnet,
   optaelArbejdsdage,
@@ -125,6 +126,14 @@ describe('periodiseringsMotor', () => {
     expect(result).toEqual([
       { ugeStart: iso('2025-01-06'), arbejdsdage: 2 },
       { ugeStart: iso('2025-01-13'), arbejdsdage: 2 },
+    ]);
+  });
+
+  it('buildSygedagpengeGrundlagPrKalenderuge fordeler timer som 8/8/8/8/5 pr. uge', () => {
+    const result = buildSygedagpengeGrundlagPrKalenderuge(iso('2025-01-09'), iso('2025-01-14'));
+    expect(result).toEqual([
+      { ugeStart: iso('2025-01-06'), arbejdsdage: 2, timer: 13 },
+      { ugeStart: iso('2025-01-13'), arbejdsdage: 2, timer: 16 },
     ]);
   });
 

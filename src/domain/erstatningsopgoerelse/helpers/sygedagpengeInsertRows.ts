@@ -1,6 +1,6 @@
 import {
-  resolveEgetAtpBidragPrKalenderuge,
-  resolveKommunaltAtpBidragPrKalenderuge,
+  beregnEgetAtpBidragForTimer,
+  beregnSygedagpengeForTimer,
   resolveObligatoriskPensionProcent,
   sygedagpengeRates,
   SYGEDAGPENGE_INSERT_MAX_DATE,
@@ -13,7 +13,9 @@ import { parseAmountInput } from '../../../utils/expressionAmount';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { maxISO, minISO } from '../../../utils/isoDateHelpers';
 import {
-  buildSygedagpengeArbejdsdagePrKalenderuge, countOffentligYdelsePeriodiseringsdage, } from '../engines/periodiseringsMotor';
+  buildSygedagpengeGrundlagPrKalenderuge,
+  type KalenderugeSygedagpengeGrundlag,
+} from '../engines/periodiseringsMotor';
 import type { ISODateString } from '../../../types/branded';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
@@ -21,7 +23,7 @@ type SygedagpengeSegment = Readonly<{
   fraDato: ISODateString;
   tilDato: ISODateString;
   rate: DatedSygedagpengeRate;
-  arbejdsdage: number;
+  ugeGrundlag: readonly KalenderugeSygedagpengeGrundlag[];
 }>;
 
 const toExpressionAmount = (expression: string) => {
@@ -34,10 +36,6 @@ const toExpressionAmount = (expression: string) => {
     throw new Error(`CRITICAL: Kunne ikke parse sygedagpenge-udtryk "${expression}"`);
   }
   return parsed.value;
-};
-
-const buildSegmentExpression = (arbejdsdage: number, satsPrDag: number): string => {
-  return `${arbejdsdage}*${satsPrDag}`;
 };
 
 /**
@@ -72,14 +70,25 @@ const compressUgeBidrag = (ugeLed: readonly string[]): string => {
   return grupper.join('+');
 };
 
+const buildYdelseExpression = (segment: SygedagpengeSegment): string => {
+  const ugeYdelser = segment.ugeGrundlag.map((uge) =>
+    beregnSygedagpengeForTimer(segment.rate, uge.timer).toString()
+  );
+
+  if (ugeYdelser.length === 0) {
+    throw new Error('CRITICAL: Sygedagpenge-segment med timer gav ingen ydelsesuger');
+  }
+
+  const compressed = compressUgeBidrag(ugeYdelser);
+  return compressed.includes('+') || compressed.includes('*') ? compressed : `1*${compressed}`;
+};
+
 const buildTillaegExpression = (segment: SygedagpengeSegment): string => {
-  const egetAtpPrKalenderuge = resolveEgetAtpBidragPrKalenderuge(segment.rate);
-  const kommunaltFaktor = resolveKommunaltAtpBidragPrKalenderuge(segment.rate) / egetAtpPrKalenderuge;
   const opProcent = resolveObligatoriskPensionProcent(segment.rate);
-  const ugeBidrag = buildSygedagpengeArbejdsdagePrKalenderuge(segment.fraDato, segment.tilDato).map((uge) => {
-    const egetBidrag = roundByMethod((uge.arbejdsdage * egetAtpPrKalenderuge) / 5, 0, 'halfAwayFromZero');
+  const ugeBidrag = segment.ugeGrundlag.map((uge) => {
+    const egetBidrag = beregnEgetAtpBidragForTimer(segment.rate, uge.timer);
     // Det kommunale ATP-bidrag er altid eget bidrag gange forholdet kommunalt/eget (= 2).
-    const kommunaltAtpLed = `${egetBidrag}*${kommunaltFaktor}`;
+    const kommunaltAtpLed = `${egetBidrag}*2`;
 
     if (opProcent <= 0) {
       return kommunaltAtpLed;
@@ -87,7 +96,7 @@ const buildTillaegExpression = (segment: SygedagpengeSegment): string => {
 
     // Obligatorisk pension (§ 67 stk. 2): procentsats på grundlag af sygedagpengene
     // efter fradrag for dagpengemodtagerens eget ATP-bidrag, afrundet til hele kroner pr. uge.
-    const ugeSygedagpenge = uge.arbejdsdage * segment.rate.sygedagpengePrDagMax;
+    const ugeSygedagpenge = beregnSygedagpengeForTimer(segment.rate, uge.timer);
     const opGrundlag = ugeSygedagpenge - egetBidrag;
     const opBidrag = roundByMethod((opProcent / 100) * opGrundlag, 0, 'halfAwayFromZero');
 
@@ -95,7 +104,7 @@ const buildTillaegExpression = (segment: SygedagpengeSegment): string => {
   });
 
   if (ugeBidrag.length === 0) {
-    throw new Error('CRITICAL: Sygedagpenge-segment med arbejdsdage gav intet tillæg pr. kalenderuge');
+    throw new Error('CRITICAL: Sygedagpenge-segment med timer gav intet tillæg pr. kalenderuge');
   }
 
   return compressUgeBidrag(ugeBidrag);
@@ -112,19 +121,14 @@ export const splitSygedagpengeRateSegments = (
 
     const segmentFra = maxISO(fraDato, rate.fraDato);
     const segmentTil = minISO(tilDato, rate.tilDato);
-    const arbejdsdage = countOffentligYdelsePeriodiseringsdage({
-      fra: segmentFra,
-      til: segmentTil,
-      periodisering: 'arbejdsdage',
-      ydelsestypeKey: 'sygedagpenge',
-    });
-    if (!arbejdsdage || arbejdsdage <= 0) continue;
+    const ugeGrundlag = buildSygedagpengeGrundlagPrKalenderuge(segmentFra, segmentTil);
+    if (ugeGrundlag.length === 0) continue;
 
     segments.push({
       fraDato: segmentFra,
       tilDato: segmentTil,
       rate,
-      arbejdsdage,
+      ugeGrundlag,
     });
   }
 
@@ -148,7 +152,7 @@ export class SygedagpengeCoverageError extends Error {
  * Bekræfter at HELE [fraDato, tilDato] er dækket af definerede satser, og kaster en
  * `SygedagpengeCoverageError` med klar brugerbesked hvis bare én dag mangler dækning.
  *
- * Hver satsrække samler sygedagpengesats, ATP og OP-procent for satsåret, så
+ * Hver satsrække samler sygedagpenge-timesats, ATP-timebidrag og OP-procent for satsåret, så
  * satsdækning medfører altid ATP- og OP-dækning. Det er derfor tilstrækkeligt at
  * kontrollere, at hele perioden ligger i [INSERT_MIN, INSERT_MAX]. Tabellen er pr.
  * konstruktion kontinuert (ingen interne huller), hvilket `sygedagpengeRates.test.ts`
@@ -177,13 +181,14 @@ export const buildSygedagpengeRowsForRange = (
   const segments = splitSygedagpengeRateSegments(fraDato, tilDato);
 
   return segments.map((segment) => {
+    const ydelseExpression = buildYdelseExpression(segment);
     const tillaegExpression = buildTillaegExpression(segment);
 
     return {
       id: generateOffentligYdelseRowId(),
       fraDato: segment.fraDato,
       tilDato: segment.tilDato,
-      ydelse: toExpressionAmount(buildSegmentExpression(segment.arbejdsdage, segment.rate.sygedagpengePrDagMax)),
+      ydelse: toExpressionAmount(ydelseExpression),
       tillaeg: toExpressionAmount(tillaegExpression),
       ydelsestype: 'sygedagpenge',
     };
@@ -193,15 +198,14 @@ export const buildSygedagpengeRowsForRange = (
 /**
  * Sygedagpenge-rækker genereres som almindelige persisted brugerinputrækker:
  * - Hver overlapperiode splittes eksplicit i samme sats-intervaller som rate-tabellen.
- * - Beløbene gemmes som udtryk (`arbejdsdage*sats`) frem for præudregnede tal,
- *   så tabellen viser og persisterer dem på samme måde som manuel brugerindtastning.
+ * - Beløbene gemmes som komprimerede uge-udtryk, så afrunding pr. kalenderuge bevares
+ *   og persisteres som almindeligt brugerinput.
  *
  * Vigtigt om dagtælling:
  * - Fra og med 2. juli 2012 medregnes SH-dage ikke længere for sygedagpenge.
  * - Til og med 1. juli 2012 medregnes SH-dage fortsat.
- * - Særreglen håndhæves centralt af `countOffentligYdelsePeriodiseringsdage(...)`
- *   og `buildSygedagpengeArbejdsdagePrKalenderuge`, så ydelse og ATP-tillæg altid
- *   anvender samme cutoff-regel på de samme datoer.
+ * - Særreglen håndhæves centralt af `buildSygedagpengeGrundlagPrKalenderuge`, så
+ *   ydelse, ATP og OP altid anvender samme cutoff-regel på de samme datoer.
  *
  * Vigtigt om feriedage:
  * - Disse indsatte sygedagpenge-rækker følger samme regel som øvrige sygedagpenge-rækker i EO:
@@ -211,12 +215,10 @@ export const buildSygedagpengeRowsForRange = (
  *
  * Vigtigt om ATP:
  * - Tillægget indeholder det kommunale ATP-bidrag og (fra 6. januar 2020) obligatorisk pension.
- * - Rate-tabellen indeholder ugentlige ATP-satser; ATP beregnes ikke pr. dag.
- * - Beregningen grupperer derfor arbejdsdage pr. kalenderuge, afrunder først dagpengemodtagerens
- *   andel af den ugentlige sats til hele kroner, og ganger derefter med forholdet mellem
- *   kommunalt og eget bidrag for at få den kommunale andel i rækkens tillæg.
- * - `resolveKommunaltAtpBidragPrKalenderuge` håndhæver invarianten om at kommunalt bidrag altid
- *   er præcis dobbelt af eget bidrag i rate-tabellen.
+ * - Rate-tabellen indeholder ATP-timebidrag; ATP beregnes pr. kalenderuge på samme timer
+ *   som sygedagpengene og aldrig pr. dag eller samlet for hele indsættelsesperioden.
+ * - Beregningen afrunder først dagpengemodtagerens 1/3-andel til hele kroner pr. uge,
+ *   hvorefter kommunens 2/3-andel er dobbelt af det afrundede eget-bidrag.
  *
  * Vigtigt om obligatorisk pension (§ 67 / § 67 a):
  * - Fra og med 6. januar 2020 tillægges OP-bidraget oven i det kommunale ATP-bidrag i samme tillæg-felt.
@@ -226,7 +228,7 @@ export const buildSygedagpengeRowsForRange = (
  * - Udtrykket gemmes derfor pr. uge som `egetBidrag*2+opBidrag`, hvor `opBidrag` er det
  *   forudberegnede, uge-afrundede OP-beløb.
  * - Procentsatserne resolves af `resolveObligatoriskPensionProcent` fra `sygedagpengeRates.ts`,
- *   hvor de står sammen med ATP-satserne.
+ *   hvor de står sammen med ATP-timebidragene.
  *
  * Vigtigt om udtryks-komprimering:
  * - Fulde uger i et satssegment giver identiske uge-led; for at undgå unødigt lange udtryk

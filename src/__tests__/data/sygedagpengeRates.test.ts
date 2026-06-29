@@ -1,11 +1,15 @@
 import {
+  beregnEgetAtpBidragForTimer,
+  beregnKommunaltAtpBidragForTimer,
+  beregnSygedagpengeForTimer,
   sygedagpengeRates,
   resolveObligatoriskPensionProcent,
   resolveEgetAtpBidragPrKalenderuge,
   resolveKommunaltAtpBidragPrKalenderuge,
+  resolveSygedagpengeTimerForUtcWeekday,
+  SYGEDAGPENGE_TIMER_PR_FULD_UGE,
   SYGEDAGPENGE_RATE_MIN_DATE,
   SYGEDAGPENGE_RATE_MAX_DATE,
-  type DatedSygedagpengeRate,
 } from '../../data/sygedagpengeRates';
 import { toISODateString } from '../../types/branded';
 import { getDayAfterIso } from '../../utils/isoDateHelpers';
@@ -30,15 +34,51 @@ describe('sygedagpengeRates – samlet satstabel', () => {
     }
   });
 
-  it('kommunalt ATP-bidrag er altid dobbelt af eget ATP-bidrag', () => {
+  it('kommunalt ATP-bidrag er altid dobbelt af eget afrundede ATP-bidrag', () => {
     for (const rate of sygedagpengeRates) {
-      expect(rate.kommunaltAtpPrKalenderuge).toBe(rate.egetAtpPrKalenderuge * 2);
+      expect(resolveKommunaltAtpBidragPrKalenderuge(rate)).toBe(resolveEgetAtpBidragPrKalenderuge(rate) * 2);
     }
   });
 
   it('eksponerer min/max-datoer fra første og sidste satsår', () => {
     expect(SYGEDAGPENGE_RATE_MIN_DATE).toBe(toISODateString('2005-01-03'));
     expect(SYGEDAGPENGE_RATE_MAX_DATE).toBe(toISODateString('2027-01-03'));
+  });
+});
+
+describe('sygedagpengeRates – timegrundlag og ugeafrunding', () => {
+  it('fordeler fuld uge som 8 timer mandag-torsdag og 5 timer fredag', () => {
+    expect(resolveSygedagpengeTimerForUtcWeekday(1)).toBe(8);
+    expect(resolveSygedagpengeTimerForUtcWeekday(2)).toBe(8);
+    expect(resolveSygedagpengeTimerForUtcWeekday(3)).toBe(8);
+    expect(resolveSygedagpengeTimerForUtcWeekday(4)).toBe(8);
+    expect(resolveSygedagpengeTimerForUtcWeekday(5)).toBe(5);
+    expect(resolveSygedagpengeTimerForUtcWeekday(6)).toBe(0);
+    expect(resolveSygedagpengeTimerForUtcWeekday(0)).toBe(0);
+    expect([1, 2, 3, 4, 5].reduce((sum, weekday) => sum + resolveSygedagpengeTimerForUtcWeekday(weekday), 0))
+      .toBe(SYGEDAGPENGE_TIMER_PR_FULD_UGE);
+  });
+
+  it('fuld uge beregnes som round(37 × timesats) for kendte satsår', () => {
+    const expectedWeeklyRates: Record<string, number> = {
+      '2005-01-03': 3275,
+      '2018-01-01': 4300,
+      '2025-01-06': 4865,
+      '2026-01-05': 5085,
+    };
+
+    for (const [fraDato, expected] of Object.entries(expectedWeeklyRates)) {
+      const rate = sygedagpengeRates.find((candidate) => candidate.fraDato === toISODateString(fraDato));
+      expect(rate).toBeDefined();
+      expect(beregnSygedagpengeForTimer(rate!, SYGEDAGPENGE_TIMER_PR_FULD_UGE)).toBe(expected);
+    }
+  });
+
+  it('delvis uge afrundes på ugens timer, ikke på enkeltdage', () => {
+    const rate2025 = sygedagpengeRates.find((rate) => rate.fraDato === toISODateString('2025-01-06'));
+    expect(rate2025).toBeDefined();
+    // Torsdag + fredag er 13 timer: round(13 × 131,49) = 1.709.
+    expect(beregnSygedagpengeForTimer(rate2025!, 13)).toBe(1709);
   });
 });
 
@@ -84,20 +124,17 @@ describe('resolveEgetAtpBidragPrKalenderuge / resolveKommunaltAtpBidragPrKalende
     for (const rate of sygedagpengeRates) {
       const eget = resolveEgetAtpBidragPrKalenderuge(rate);
       const kommunalt = resolveKommunaltAtpBidragPrKalenderuge(rate);
-      expect(eget).toBe(rate.egetAtpPrKalenderuge);
       expect(kommunalt).toBe(eget * 2);
+      expect(eget).toBe(beregnEgetAtpBidragForTimer(rate, SYGEDAGPENGE_TIMER_PR_FULD_UGE));
+      expect(kommunalt).toBe(beregnKommunaltAtpBidragForTimer(rate, SYGEDAGPENGE_TIMER_PR_FULD_UGE));
     }
   });
 
-  it('fail-closed: kaster hvis kommunalt ATP ikke er dobbelt af eget', () => {
-    const ugyldigt: DatedSygedagpengeRate = {
-      fraDato: toISODateString('2024-01-01'),
-      tilDato: toISODateString('2025-01-05'),
-      sygedagpengePrDagMax: 939,
-      egetAtpPrKalenderuge: 53,
-      kommunaltAtpPrKalenderuge: 100, // ikke 2 × 53
-      obligatoriskPensionProcent: 1.5,
-    };
-    expect(() => resolveKommunaltAtpBidragPrKalenderuge(ugyldigt)).toThrow(/dobbelt/);
+  it('beregner delvis ATP på timer og afrunder eget-bidrag før kommunal fordobling', () => {
+    const rate2025 = sygedagpengeRates.find((rate) => rate.fraDato === toISODateString('2025-01-06'));
+    expect(rate2025).toBeDefined();
+    // Torsdag + fredag er 13 timer: eget = round(13 × 4,26 × 1/3) = 18, kommunalt = 36.
+    expect(beregnEgetAtpBidragForTimer(rate2025!, 13)).toBe(18);
+    expect(beregnKommunaltAtpBidragForTimer(rate2025!, 13)).toBe(36);
   });
 });
