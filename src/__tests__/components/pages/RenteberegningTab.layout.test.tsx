@@ -25,7 +25,9 @@ import RenteberegningTab from '../../../components/pages/renteberegning/Renteber
 import { toISODateString } from '../../../types/branded';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 
-const TestContentBox = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
+const TestContentBox = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+  <div className={className}>{children}</div>
+);
 
 describe('RenteberegningTab', () => {
   it('renderer beregningsdato-rækken som standard hover-row med label til venstre og input til højre', () => {
@@ -55,7 +57,7 @@ describe('RenteberegningTab', () => {
     expect(screen.getByTestId('beregningsdato-input').closest('.row--label-right-hover__content')).not.toBeNull();
   });
 
-  it('renderer beregningstekniske forudsætninger som hover-rækker', () => {
+  it('renderer beregningstekniske forudsætninger som almindelig brødtekst', () => {
     render(
       <RenteberegningTab
         beregningsdato={toISODateString('2026-04-18')}
@@ -77,10 +79,13 @@ describe('RenteberegningTab', () => {
       />
     );
 
-    expect(screen.getByText('Rente beregnes i henhold til renteloven.').closest('.row--label-right-hover')).not.toBeNull();
-    expect(screen.getByText('Som beregningsprincip anvendes 365 årlige rentedage (366 i skudår).').closest('.row--label-right-hover')).not.toBeNull();
-    expect(screen.getByText('Rentesatsen udgør nationalbankens udlånsrente + 8 % (ved forfaldsdato før 01-03-2013 dog + 7 %)').closest('.row--label-right-hover')).not.toBeNull();
-    expect(screen.getByText('Der beregnes ikke renters rente.').closest('.row--label-right-hover')).not.toBeNull();
+    const firstPrinciple = screen.getByText('Rente beregnes i henhold til renteloven.');
+    expect(firstPrinciple).toHaveClass('row--text');
+    expect(firstPrinciple.closest('.flow--16')).not.toBeNull();
+    expect(firstPrinciple.closest('.row--label-right-hover')).toBeNull();
+    expect(screen.getByText('Som beregningsprincip anvendes 365 årlige rentedage (366 i skudår).').closest('.row--label-right-hover')).toBeNull();
+    expect(screen.getByText('Rentesatsen udgør nationalbankens udlånsrente + 8 % (ved forfaldsdato før 01-03-2013 dog + 7 %)').closest('.row--label-right-hover')).toBeNull();
+    expect(screen.getByText('Der beregnes ikke renters rente.').closest('.row--label-right-hover')).toBeNull();
   });
 
   it('viser "Slet alle indtastninger" på desktop og kalder onClearAll efter bekræftelse', () => {

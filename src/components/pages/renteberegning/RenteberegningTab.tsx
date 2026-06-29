@@ -29,14 +29,11 @@ interface TechnicalAssumptionsListProps {
 }
 
 const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
-  <Box>
+  <>
     {items.map((item) => (
-      <Box className="row--label-right-hover" key={item}>
-        <Typography className="row--text">{item}</Typography>
-        <Box className="row--label-right-hover__content" />
-      </Box>
+      <Typography className="row--text" key={item}>{item}</Typography>
     ))}
-  </Box>
+  </>
 );
 
 export interface RenteberegningTabProps {
@@ -364,7 +361,7 @@ const RenteberegningTab = React.memo(({
         />
       </ContentBoxComponent>
 
-      <ContentBoxComponent className="content-box">
+      <ContentBoxComponent className="content-box flow--16">
         <Typography className="section-header">Beregningstekniske forudsætninger</Typography>
         <TechnicalAssumptionsList items={RENTE_CALCULATION_PRINCIPLES} />
       </ContentBoxComponent>
