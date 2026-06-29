@@ -1,14 +1,15 @@
 /**
- * B9 — FASE 1: empirisk katalog + golden-master baseline.
+ * B9 — empirisk katalog + golden-master baseline.
  *
- * Formål: låse PRÆCIST hvad debug-laget i dag gater UNIKT (cases hvor snapshot-
+ * Formål: låse PRÆCIST hvad række-evalueringsmotoren gater UNIKT (cases hvor snapshot-
  * projektionen er `ok`, men `collectAllEoRows` — kørt UDEN felt-fejl — alligevel
  * producerer `status:'error'`). Det er den autoritative, reachability-rene liste over
- * den blokering, der i fase 2 skal flyttes til det nye `eoBlockingValidation`-modul.
+ * de værdi-afledte EO-rækker der fortsat skal blokere download, selv når snapshot-
+ * projektionen isoleret set er ok.
  *
  * Golden master (`toMatchInlineSnapshot`) fanger id + (dato-normaliseret) besked for
- * hver fejl-række, så enhver utilsigtet adfærds-/ordlyds-diff under relokeringen i fase
- * 2 bliver en rød test, ikke en accept.
+ * hver fejl-række, så enhver utilsigtet adfærds-/ordlyds-diff i den autoritative motor
+ * bliver en rød test, ikke en accept.
  *
  * Determinisme: korpusset bruger faste række-id'er og 2024-datoer. Perturbationerne er
  * altid NEDRE-grænse (fra < skadedato) eller cutoff-baserede (faste datoer) — aldrig
@@ -101,18 +102,18 @@ const normalizeMessage = (message: string | undefined): string =>
     .replace(/\d{1,2}-\d{1,2}-\d{4}/g, '⟨dato⟩');
 
 /**
- * Kører gaten "som produktionen": snapshot-projektion + debug-fejl UDEN felt-fejl.
- * Returnerer projektions-kind og de værdi-afledte (debug-only) fejl-rækker.
+ * Kører gaten "som produktionen": snapshot-projektion + EO-række-fejl UDEN felt-fejl.
+ * Returnerer projektions-kind og de værdi-afledte EO-række-fejl.
  */
 const probe = (eoValues: EoValues) => {
   const withSfgg = withSfggIngenForEmployments(eoValues);
   const snapshot = computeEoSnapshot({ revision: 'b9-catalog', stamdataValues: STAMDATA, eoValues: withSfgg });
   const projectionKind = eoSnapshotToEoDocument(snapshot).kind;
-  const debug = collectAllEoRows(STAMDATA, {}, withSfgg, {}, {}, undefined, snapshot.data?.canonicalOutput);
-  const debugErrors = debug.errors
+  const rowEvaluation = collectAllEoRows(STAMDATA, {}, withSfgg, {}, {}, undefined, snapshot.data?.canonicalOutput);
+  const eoRowErrors = rowEvaluation.errors
     .map((row) => ({ id: row.id, message: normalizeMessage(row.message ?? row.displayValue) }))
     .sort((a, b) => a.id.localeCompare(b.id));
-  return { projectionKind, debugErrors };
+  return { projectionKind, eoRowErrors };
 };
 
 type Case = { name: string; build: () => EoValues };
@@ -169,19 +170,19 @@ const CASES: Case[] = [
   },
 ];
 
-describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master)', () => {
-  it('alle korpus-sager: projektion-kind + debug-only fejl-rækker', () => {
+describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden master)', () => {
+  it('alle korpus-sager: projektion-kind + EO-række-fejl', () => {
     const catalog = Object.fromEntries(
       CASES.map((c) => {
-        const { projectionKind, debugErrors } = probe(c.build());
-        return [c.name, { projectionKind, debugErrors }];
+        const { projectionKind, eoRowErrors } = probe(c.build());
+        return [c.name, { projectionKind, eoRowErrors }];
       })
     );
 
     expect(catalog).toMatchInlineSnapshot(`
       {
         "svieSmerte:fraFoerSkadedato": {
-          "debugErrors": [
+          "eoRowErrors": [
             {
               "id": "sviesmerte.periode.ss-1",
               "message": "Dato skal være mellem ⟨dato⟩ og ⟨dato⟩",
@@ -190,11 +191,11 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
           "projectionKind": "ok",
         },
         "svieSmerte:gyldig": {
-          "debugErrors": [],
+          "eoRowErrors": [],
           "projectionKind": "ok",
         },
         "svieSmerte:helbredsstatusTom": {
-          "debugErrors": [
+          "eoRowErrors": [
             {
               "id": "erstatningsopgoerelse.helbredsstatus",
               "message": "-",
@@ -203,7 +204,7 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
           "projectionKind": "ok",
         },
         "taf:arbejdsstatusTom": {
-          "debugErrors": [
+          "eoRowErrors": [
             {
               "id": "erstatningsopgoerelse.arbejdsstatus",
               "message": "-",
@@ -216,7 +217,7 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
           "projectionKind": "ok",
         },
         "taf:gyldig": {
-          "debugErrors": [
+          "eoRowErrors": [
             {
               "id": "loenindkomst.af-1.satserSkadestidspunkt",
               "message": "Forkert værdi indtastet i Store Bededagstillæg",
@@ -225,7 +226,7 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
           "projectionKind": "ok",
         },
         "taf:periodeEfterDifferencekrav": {
-          "debugErrors": [
+          "eoRowErrors": [
             {
               "id": "loenindkomst.af-1.satserSkadestidspunkt",
               "message": "Forkert værdi indtastet i Store Bededagstillæg",
@@ -238,7 +239,7 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
           "projectionKind": "ok",
         },
         "taf:periodeFraFoerSkadedato": {
-          "debugErrors": [
+          "eoRowErrors": [
             {
               "id": "loenindkomst.af-1.satserSkadestidspunkt",
               "message": "Forkert værdi indtastet i Store Bededagstillæg",
@@ -254,35 +255,35 @@ describe('B9 fase 1: katalog over debug-lagets unikke gate-bidrag (golden master
     `);
   });
 
-  it('invariant: hver debug-only fejl optræder i en sag hvor projektionen er ok (= reelt unikt gate-bidrag)', () => {
-    // Sager hvis NAVN markerer en debug-only-fejl skal have projektion=ok (ellers ville
-    // snapshottet allerede blokere, og fejlen var ikke et unikt debug-bidrag).
+  it('invariant: hver EO-række-fejl optræder i en sag hvor projektionen er ok (= reelt unikt gate-bidrag)', () => {
+    // Sager hvis NAVN markerer en EO-række-fejl skal have projektion=ok (ellers ville
+    // snapshottet allerede blokere, og fejlen var ikke et unikt række-evalueringsbidrag).
     const debugOnlyCaseNames = CASES.map((c) => c.name).filter(
       (name) => name !== 'svieSmerte:gyldig' && name !== 'taf:gyldig'
     );
     for (const name of debugOnlyCaseNames) {
       const c = CASES.find((entry) => entry.name === name)!;
-      const { projectionKind, debugErrors } = probe(c.build());
+      const { projectionKind, eoRowErrors } = probe(c.build());
       expect(projectionKind, `${name}: projektion skal være ok`).toBe('ok');
-      expect(debugErrors.length, `${name}: skal have mindst én debug-only fejl`).toBeGreaterThan(0);
+      expect(eoRowErrors.length, `${name}: skal have mindst én EO-række-fejl`).toBeGreaterThan(0);
     }
   });
 
-  it('ren anker (probe ikke vacuous): svieSmerte:gyldig giver projektion=ok og INGEN debug-only fejl', () => {
+  it('ren anker (probe ikke vacuous): svieSmerte:gyldig giver projektion=ok og INGEN EO-række-fejl', () => {
     const c = CASES.find((entry) => entry.name === 'svieSmerte:gyldig')!;
-    const { projectionKind, debugErrors } = probe(c.build());
+    const { projectionKind, eoRowErrors } = probe(c.build());
     expect(projectionKind).toBe('ok');
-    expect(debugErrors).toEqual([]);
+    expect(eoRowErrors).toEqual([]);
   });
 
-  it('empirisk fund: selv en nominelt gyldig TAF-basissag (projektion=ok) bærer et debug-only gate', () => {
+  it('empirisk fund: selv en nominelt gyldig TAF-basissag (projektion=ok) bærer en EO-række-gate', () => {
     // Efter over-block-fixet (§2D) blokerer helbredsforhold ikke længere en TAF-only-sag
     // (svie/smerte='Nej'). Tilbage står den værdi-afledte satser-fejl på et default-AF:
     //  - loenindkomst.<af>.satserSkadestidspunkt: Store Bededagstillæg mangler på et default-AF.
     const c = CASES.find((entry) => entry.name === 'taf:gyldig')!;
-    const { projectionKind, debugErrors } = probe(c.build());
+    const { projectionKind, eoRowErrors } = probe(c.build());
     expect(projectionKind).toBe('ok');
-    expect(debugErrors.map((e) => e.id)).toEqual([
+    expect(eoRowErrors.map((e) => e.id)).toEqual([
       'loenindkomst.af-1.satserSkadestidspunkt',
     ]);
   });

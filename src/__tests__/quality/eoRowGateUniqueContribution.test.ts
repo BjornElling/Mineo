@@ -1,7 +1,7 @@
 /**
- * AFKLARINGS-TEST (arkitektur-kandidat B9 — forundersøgelse).
+ * AFKLARINGS-TEST (B9 — række-evaluerings-gate).
  *
- * Spørgsmål: Bidrager debug-laget noget UNIKT til produktions-PDF-gaten, eller er
+ * Spørgsmål: Bidrager række-evalueringsmotoren noget UNIKT til produktions-PDF-gaten, eller er
  * `hasBlockingEoRowErrors` redundant med (snapshot-projektionen ∪ felt-fejl)?
  *
  * Produktions-gaten i `useEoBeregningViewModel` er:
@@ -11,15 +11,15 @@
  * Probe: Kør `collectAllEoRows` med TOMME felt-fejl-maps. Enhver `status:'error'`-
  * række der så optræder, er beregnet udelukkende fra committed værdier (ikke fra en
  * felt-fejl og ikke fra den autoritative validator/snapshot). Optræder en sådan fejl i
- * en sag hvor snapshot-projektionen samtidig er `ok`, så er det et GENUINT debug-only-
+ * en sag hvor snapshot-projektionen samtidig er `ok`, så er det et GENUINT række-evaluerings-
  * gate-bidrag: PDF'en er blokeret i dag, men ville slippe igennem hvis gaten kun byggede
  * på snapshot + felt-fejl.
  *
  * KONKLUSION (jf. eoRowSvieSmerteRows.ts:100-103, som eksplicit dokumenterer at
- * felt-fejl "typisk er tom for disse felter" og at debug derfor re-deriverer dato-
- * grænserne): debug-laget bærer genuin produktions-validering der ikke findes
- * autoritativt andre steder. B9 er derfor IKKE en ren strukturel refaktor — en del af
- * valideringen skal flyttes ind i den autoritative validator (forelæggelses-pligtigt).
+ * felt-fejl "typisk er tom for disse felter" og at række-evalueringen derfor re-deriverer
+ * datogrænserne): row-motoren bærer genuin produktions-validering der ikke findes i
+ * snapshot-valideringen alene. B9's løsning er derfor, at row-motoren selv er flyttet til
+ * et autoritativt, debug-frit domænelag (`src/domain/eoRowEvaluation/`) og driver gaten direkte.
  */
 import { collectAllEoRows } from '../../domain/eoRowEvaluation/eoRowAggregator';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -43,7 +43,7 @@ const STAMDATA: PersistedSectionMap['stamdata'] = {
 /**
  * Gyldig svie/smerte-only-sag: TAF + øvrige krav slået fra, så kun svie/smerte kan
  * blokere. Datoer ligger inden for [skadedato, dags dato]. Denne sag giver
- * projektion=ok OG ingen debug-errors (se kontrol-testen nedenfor).
+ * projektion=ok OG ingen EO-række-errors (se kontrol-testen nedenfor).
  */
 const buildValidSvieSmerteOnlyValues = (): PersistedSectionMap['erstatningsopgoerelse'] => {
   const values = createErstatningsopgoerelseInitialValues();
@@ -76,20 +76,20 @@ const project = (eoValues: PersistedSectionMap['erstatningsopgoerelse']) => {
   return eoSnapshotToEoDocument(snapshot).kind;
 };
 
-// Debug-errors udledt UDEN felt-fejl-input → rene værdi-afledte (debug-only) fejl.
-const debugOnlyErrorIds = (eoValues: PersistedSectionMap['erstatningsopgoerelse']): string[] =>
+// EO-række-errors udledt UDEN felt-fejl-input → rene værdi-afledte gate-fejl.
+const eoRowErrorIds = (eoValues: PersistedSectionMap['erstatningsopgoerelse']): string[] =>
   collectAllEoRows(STAMDATA, {}, eoValues, {})
     .errors.map((row) => row.id)
     .sort((a, b) => a.localeCompare(b));
 
-describe('B9 afklaring: debug-lagets unikke bidrag til PDF-gaten', () => {
-  it('kontrol: gyldig svie/smerte-sag → projektion=ok OG ingen debug-errors (probe er ikke vacuous)', () => {
+describe('B9 afklaring: række-evalueringens unikke bidrag til PDF-gaten', () => {
+  it('kontrol: gyldig svie/smerte-sag → projektion=ok OG ingen EO-række-errors (probe er ikke vacuous)', () => {
     const values = buildValidSvieSmerteOnlyValues();
     expect(project(values)).toBe('ok');
-    expect(debugOnlyErrorIds(values)).toEqual([]);
+    expect(eoRowErrorIds(values)).toEqual([]);
   });
 
-  it('FUND #1 (dato-grænse): svie/smerte fra-dato FØR skadedato passerer validatoren (projektion=ok) men blokeres KUN af debug', () => {
+  it('FUND #1 (dato-grænse): svie/smerte fra-dato FØR skadedato passerer validatoren (projektion=ok) men blokeres KUN af row-motoren', () => {
     const values = buildValidSvieSmerteOnlyValues();
     // fra < skadedato, men fra <= til og ingen overlap → validator-reglerne
     // (komplethed, rækkefølge, ménafgørelse-bound, overlap) er alle opfyldt.
@@ -103,10 +103,10 @@ describe('B9 afklaring: debug-lagets unikke bidrag til PDF-gaten', () => {
     ];
 
     expect(project(values)).toBe('ok');
-    expect(debugOnlyErrorIds(values)).toContain('sviesmerte.periode.ss-1');
+    expect(eoRowErrorIds(values)).toContain('sviesmerte.periode.ss-1');
   });
 
-  it('FUND #2 (krævet felt): tom svieSmerteHelbredsstatus passerer validatoren (projektion=ok) men blokeres KUN af debug', () => {
+  it('FUND #2 (krævet felt): tom svieSmerteHelbredsstatus passerer validatoren (projektion=ok) men blokeres KUN af row-motoren', () => {
     const values = buildValidSvieSmerteOnlyValues();
     // Helbredsforhold er tomt OG svie/smerte beregnes (kravPaaSvieSmerteGodtgoerelse='Ja'), så
     // feltet er relevant og gater PDF. Efter over-block-fixet (§2D) gater krævede felter kun, når
@@ -114,11 +114,11 @@ describe('B9 afklaring: debug-lagets unikke bidrag til PDF-gaten', () => {
     values.svieSmerteHelbredsstatus = undefined;
 
     expect(project(values)).toBe('ok');
-    expect(debugOnlyErrorIds(values)).toContain('erstatningsopgoerelse.helbredsstatus');
+    expect(eoRowErrorIds(values)).toContain('erstatningsopgoerelse.helbredsstatus');
   });
 
-  it('SAMMENFATNING: mindst ét debug-only-gate findes i en sag hvor projektionen er ok (B9 ≠ ren strukturel refaktor)', () => {
-    // Sag der er autoritativt gyldig (projektion=ok) men bærer flere debug-only-fejl.
+  it('SAMMENFATNING: mindst én row-gate findes i en sag hvor projektionen er ok (B9 ≠ ren strukturel refaktor)', () => {
+    // Sag der er autoritativt gyldig (projektion=ok) men bærer flere EO-række-fejl.
     const values = buildValidSvieSmerteOnlyValues();
     values.svieSmerteHelbredsstatus = undefined;
     values.svieSmertePerioder = [
@@ -126,9 +126,9 @@ describe('B9 afklaring: debug-lagets unikke bidrag til PDF-gaten', () => {
     ];
 
     expect(project(values)).toBe('ok');
-    const ids = debugOnlyErrorIds(values);
-    // Disse fejl gater PDF i dag, men findes hverken i validatoren eller som felt-fejl
-    // → de skal flyttes ind i en autoritativ validering for at gaten kan løsrives fra debug.
+    const ids = eoRowErrorIds(values);
+    // Disse fejl gater PDF, men findes hverken i snapshot-valideringen eller som felt-fejl.
+    // Row-motoren skal derfor forblive autoritativ og debug-fri.
     expect(ids.length).toBeGreaterThan(0);
   });
 });

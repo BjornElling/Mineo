@@ -22,11 +22,11 @@ const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } 
   };
 });
 
-const { collectAllDebugRowsMock } = vi.hoisted(() => ({
-  collectAllDebugRowsMock: vi.fn((): BeregningErrorSummary => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
+const { collectAllEoRowsMock } = vi.hoisted(() => ({
+  collectAllEoRowsMock: vi.fn((): BeregningErrorSummary => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
 }));
 
-const emptyDebugRows = (): BeregningErrorSummary => ({ errors: [], warnings: [], allRows: [], relevantRows: [] });
+const emptyEoRows = (): BeregningErrorSummary => ({ errors: [], warnings: [], allRows: [], relevantRows: [] });
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
@@ -34,7 +34,7 @@ vi.mock('../../../../hooks/useFormFieldErrors', () => ({
 }));
 
 vi.mock('../../../../domain/eoRowEvaluation/eoRowAggregator', () => ({
-  collectAllEoRows: collectAllDebugRowsMock,
+  collectAllEoRows: collectAllEoRowsMock,
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({
@@ -55,8 +55,8 @@ describe('EOberegningTab PDF-afslutning', () => {
     downloadTafFordeltPaaAarPdfMock.mockReset();
     downloadErstatningsopgoerelsePdfMock.mockResolvedValue({ success: true });
     downloadTafFordeltPaaAarPdfMock.mockResolvedValue({ success: true });
-    collectAllDebugRowsMock.mockReset();
-    collectAllDebugRowsMock.mockReturnValue(emptyDebugRows());
+    collectAllEoRowsMock.mockReset();
+    collectAllEoRowsMock.mockReturnValue(emptyEoRows());
 
     eoValuesFromForm = createErstatningsopgoerelseInitialValues();
     eoValuesFromForm.kravPaaSvieSmerteGodtgoerelse = 'Nej';
@@ -125,7 +125,7 @@ describe('EOberegningTab PDF-afslutning', () => {
   });
 
   it('blokerer PDF-download med generel tooltip når Beregning-fanen har brugerfejl', async () => {
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'forlig.dato',
         label: 'Evt. dato for forlig',

@@ -180,8 +180,9 @@ const TO_LOCALE_STRING_ALLOWLIST = new Set([
   'utils/logger.ts',
   'utils/logStorage.ts',
   'utils/devtoolsMonitor.ts',
-  // Debug-output — kun synligt via devtools, ikke i produktionsflow
-  'domain/debug/eoRowErstatningsopgoerelseModel.ts',
+  // Række-evalueringsoutput — driver EO-gaten, men brugen her er kun dansk displayformatteret
+  // diagnostiktekst; ingen finansiel beregning må lægges på toLocaleString.
+  'domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel.ts',
   'domain/debug/eoDebugSammentaelling.ts',
   // DevTools-fejlmeddelelse: viser dato (ikke beløb) til udvikler
   'components/errors/DevtoolsIssueNotice.tsx',
@@ -295,7 +296,7 @@ describe('Afrundingsnorm-guard', () => {
         'domain/erstatningsopgoerelse/engines/tafDaySets.ts',
         'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
         'domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts',
-        'domain/debug/eoRowErstatningsopgoerelseModel.ts',
+        'domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel.ts',
         'domain/debug/eoDebugCoreModel.ts',
         'domain/debug/eoDebugRegulationCore.ts',
         'domain/dates/shDageBeregning.ts',

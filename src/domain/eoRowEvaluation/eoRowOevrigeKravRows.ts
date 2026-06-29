@@ -10,7 +10,7 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
 
 /**
- * Bygger debug-rækker for Øvrige erstatningskrav
+ * Bygger EO-rækker for Øvrige erstatningskrav.
  */
 export const buildEoOevrigeKravRows = (
   values: ErstatningsopgoerelseValues,
@@ -147,7 +147,7 @@ type BilagEntry = {
 };
 
 /**
- * Bygger debug-rækker for Bilagsnumre.
+ * Bygger EO-rækker for Bilagsnumre.
  * Returnerer tom liste hvis visBilagsnumre !== 'Ja'.
  */
 export const buildEoBilagsnumreRows = (
@@ -191,4 +191,3 @@ export const buildEoBilagsnumreRows = (
     };
   });
 };
-

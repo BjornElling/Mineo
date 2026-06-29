@@ -185,6 +185,54 @@ describe('collectAllEoRows', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('filtrerer B9-overblock-felter efter den beregning de hører til', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('erstatningsopgoerelse.arbejdsstatus', 'error'),
+          makeRow('erstatningsopgoerelse.helbredsstatus', 'error'),
+        ],
+      },
+    ]);
+
+    const svieSmerteOnlyValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      kravPaaTabtArbejdsfortjeneste: 'Nej' as const,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
+    };
+    const svieSmerteOnly = collectAllEoRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      svieSmerteOnlyValues,
+      eoErrors
+    );
+    expect(svieSmerteOnly.relevantRows.map((row) => row.id)).toEqual([
+      'erstatningsopgoerelse.helbredsstatus',
+    ]);
+    expect(svieSmerteOnly.errors.map((row) => row.id)).toEqual([
+      'erstatningsopgoerelse.helbredsstatus',
+    ]);
+
+    const tafOnlyValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
+      kravPaaSvieSmerteGodtgoerelse: 'Nej' as const,
+    };
+    const tafOnly = collectAllEoRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      tafOnlyValues,
+      eoErrors
+    );
+    expect(tafOnly.relevantRows.map((row) => row.id)).toEqual([
+      'erstatningsopgoerelse.arbejdsstatus',
+    ]);
+    expect(tafOnly.errors.map((row) => row.id)).toEqual([
+      'erstatningsopgoerelse.arbejdsstatus',
+    ]);
+  });
+
   it('filters midlertidigt EET-rows when midlertidig EET afgørelse er "Nej"', () => {
     registry.__setBuilders([
       {
@@ -325,7 +373,7 @@ describe('collectAllEoRows', () => {
         createErstatningsopgoerelseInitialValues(),
         eoErrors
       )
-    ).toThrow('Duplikat-id fundet i debug-rows');
+    ).toThrow('Duplikat-id fundet i EO-rækker');
   });
 
   it('does not suppress child error when parent has warning', () => {
@@ -504,7 +552,7 @@ describe('collectAllEoRows', () => {
         createErstatningsopgoerelseInitialValues(),
         eoErrors
       )
-    ).toThrow('Debug dependency cycle detected');
+    ).toThrow('EO row dependency cycle detected');
   });
 
   it('throws on duplicate ids even when one duplicate row is irrelevant for current values', () => {
@@ -528,7 +576,7 @@ describe('collectAllEoRows', () => {
         eoValues,
         eoErrors
       )
-    ).toThrow('Duplikat-id fundet i debug-rows');
+    ).toThrow('Duplikat-id fundet i EO-rækker');
   });
 
   it('throws on cycle among rows that remain relevant after filtering', () => {
@@ -553,7 +601,7 @@ describe('collectAllEoRows', () => {
         eoValues,
         eoErrors
       )
-    ).toThrow('Debug dependency cycle detected');
+    ).toThrow('EO row dependency cycle detected');
   });
 
   it('treats unknown status values as non-blocking severity', () => {

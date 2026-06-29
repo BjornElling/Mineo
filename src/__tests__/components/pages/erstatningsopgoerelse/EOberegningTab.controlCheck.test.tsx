@@ -13,8 +13,8 @@ import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapsh
 import { toISODateString } from '../../../../types/branded';
 import { withSfggIngenForEmployments } from '../../../utils/sfggTestSupport';
 
-const { collectAllDebugRowsMock } = vi.hoisted(() => ({
-  collectAllDebugRowsMock: vi.fn(),
+const { collectAllEoRowsMock } = vi.hoisted(() => ({
+  collectAllEoRowsMock: vi.fn(),
 }));
 
 const { scrollToSectionMock, scrollToDebugRowMock } = vi.hoisted(() => ({
@@ -32,7 +32,7 @@ vi.mock('../../../../hooks/useFormFieldErrors', () => ({
 }));
 
 vi.mock('../../../../domain/eoRowEvaluation/eoRowAggregator', () => ({
-  collectAllEoRows: collectAllDebugRowsMock,
+  collectAllEoRows: collectAllEoRowsMock,
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({
@@ -73,10 +73,10 @@ describe('EOberegningTab kontroltjek', () => {
   beforeEach(() => {
     baseSetEoValues.mockReset();
     reportSystemIssueMock.mockReset();
-    collectAllDebugRowsMock.mockReset();
+    collectAllEoRowsMock.mockReset();
     scrollToSectionMock.mockReset();
     scrollToDebugRowMock.mockReset();
-    collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
+    collectAllEoRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
   });
 
   it('samler kontroluoverensstemmelse i én contentbox for fejl og advarsler', () => {
@@ -131,7 +131,7 @@ describe('EOberegningTab kontroltjek', () => {
   // EET-siden, og når togglen er deaktiveret, er bilaget alligevel disabled (jf. getEoBilagAvailability).
 
   it('viser brugerens manglende indtastning som navigerbar fejl og ikke som systemfejl', () => {
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'loenindkomst.af1.regulering.valgtRegulering',
         label: 'Valgt regulering',
@@ -190,7 +190,7 @@ describe('EOberegningTab kontroltjek', () => {
   });
 
   it('viser custom fejltekst for manglende SFGG-overenskomst i fejlboksen', () => {
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'sfgg.overenskomst.af1',
         label: 'Overenskomst (angivet ovenfor)',
@@ -228,7 +228,7 @@ describe('EOberegningTab kontroltjek', () => {
   it('navigerer SFGG-fejl direkte til ansættelsesforholdet i lønindkomst-fanen', async () => {
     const user = (await import('@testing-library/user-event')).default.setup();
 
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'sfgg.overenskomst.af1',
         label: 'Overenskomst (angivet ovenfor)',
@@ -280,7 +280,7 @@ describe('EOberegningTab kontroltjek', () => {
   });
 
   it('viser overlap-fejl uden label-prefiks for beregningsperioden', () => {
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'taf.beregningsgrundlag.beregningsperiode',
         label: 'Periode til beregning af før-løn',
@@ -319,7 +319,7 @@ describe('EOberegningTab kontroltjek', () => {
   });
 
   it('viser TAF-periode-range-fejl med kort brugertekst', () => {
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'taf.periode.1',
         label: 'Periode (24-05-2023 - 21-12-2025)',
@@ -362,7 +362,7 @@ describe('EOberegningTab kontroltjek', () => {
       { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2025-01-01'), loseFeriedage: 0 },
     ];
 
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'taf.periode.taf-1',
         label: 'Periode (01-01-2024 - 01-01-2025)',
@@ -419,7 +419,7 @@ describe('EOberegningTab kontroltjek', () => {
   });
 
   it('viser svie/smerte-range-fejl med korrekt brugertekst og uden systemfejl', () => {
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [{
         id: 'sviesmerte.periode.1',
         label: 'Periode (24-05-2023 - 21-04-2025)',
@@ -482,7 +482,7 @@ describe('EOberegningTab kontroltjek', () => {
       { id: 'ss-1', fra: toISODateString('2024-01-01'), til: toISODateString('2025-01-01'), tilstand: 'sygemeldt' },
     ];
 
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [],
       warnings: [],
       allRows: [],
@@ -521,7 +521,7 @@ describe('EOberegningTab kontroltjek', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
 
-    collectAllDebugRowsMock.mockReturnValue({
+    collectAllEoRowsMock.mockReturnValue({
       errors: [],
       warnings: [{
         id: 'sviesmerte.satserAar',

@@ -1,11 +1,11 @@
 /**
- * Typer for EODebug domain layer
+ * Typer for EO-række-evaluering og den nedstrøms EODebug-visning.
  */
 
 import type { ISODateString } from '../../types/branded';
 
 /**
- * Status for debug-rækker og integrity-checks
+ * Status for EO-rækker og integrity-checks
  *
  * - 'ok': Alt er konsistent og korrekt
  * - 'warning': Bør give anledning til overvejelse, men blokerer ikke beregning
@@ -92,10 +92,10 @@ export type OverlapResult = {
 export type SvieSmerte = 'Ingen' | 'Delvis' | 'Fuld';
 
 /**
- * Debug row model - Bruges af alle EODebug builders
+ * EO row model - bruges af både download-gaten og EODebug.
  *
  * VIGTIGT: id skal være semantisk stabil (tied to field identity, ikke label eller array order).
- * Dette sikrer React key stability og gør debug output auditable.
+ * Dette sikrer React key stability og gør række-output auditérbart.
  */
 export type EoRowGroup =
   | 'aes.varigeMen'

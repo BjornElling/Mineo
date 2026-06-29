@@ -9,8 +9,8 @@ import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataIni
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import type { EoInvariant } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 
-const { collectAllDebugRowsMock } = vi.hoisted(() => ({
-  collectAllDebugRowsMock: vi.fn(() => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
+const { collectAllEoRowsMock } = vi.hoisted(() => ({
+  collectAllEoRowsMock: vi.fn(() => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
 }));
 
 const { navigateMock } = vi.hoisted(() => ({
@@ -31,7 +31,7 @@ vi.mock('../../../../hooks/useFormFieldErrors', () => ({
 }));
 
 vi.mock('../../../../domain/eoRowEvaluation/eoRowAggregator', () => ({
-  collectAllEoRows: collectAllDebugRowsMock,
+  collectAllEoRows: collectAllEoRowsMock,
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({
@@ -115,8 +115,8 @@ const makeEetInvariant = (severity: 'error' | 'warning'): EoInvariant => ({
 
 describe('EOberegningTab EET-issues', () => {
   beforeEach(() => {
-    collectAllDebugRowsMock.mockReset();
-    collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
+    collectAllEoRowsMock.mockReset();
+    collectAllEoRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
     navigateMock.mockReset();
     downloadErstatningsopgoerelsePdfMock.mockClear();
     downloadTafFordeltPaaAarPdfMock.mockClear();

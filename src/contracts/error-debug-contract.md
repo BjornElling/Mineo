@@ -207,7 +207,8 @@ devtools-/bug-report-flow. `EOberegningTab` må højst vise en neutral inline-r�
 formatvalget findes i `src/contracts/document-format-contract.md`.
 
 EO-specifik præcisering:
-- I EO er det typisk `collectAllDebugRows`, der eksponerer de blokerende feltfejl til brugerfladen.
+- I EO eksponerer den autoritative række-evalueringsmotor `collectAllEoRows` de blokerende
+  EO-rækker til brugerfladen og download-gaten.
 - `EOBeregningTab` er den centrale visning, hvor disse blokeringer aggregeres og vises.
 - EO-specifikke snapshot-invariants og outputblokeringer må gerne give yderligere forklaring i UI, men de må ikke redefinere de tværgående gate-kriterier.
 

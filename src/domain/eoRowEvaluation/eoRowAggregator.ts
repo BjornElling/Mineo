@@ -7,7 +7,7 @@
  * `useEoBeregningViewModel` — dette er derfor trust-kritisk produktions-validering, ikke "bare debug".
  *
  * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, debug-frit), ikke i
- * `src/domain/debug/`. DEV-debug-siden er nedstrøms: den konsumerer de samme buildere til visning,
+ * `src/domain/debug/`. DEV-debug-siden er nedstrøms: den konsumerer de samme row-buildere til visning,
  * men kan aldrig flytte gaten via display-formattering (jf. `debugLayerIsolation.test.ts`).
  */
 
@@ -224,7 +224,7 @@ const isRowRelevantForEoValues = (
   }
   if (values.midlertidigtEETAfgorelse === 'Nej') {
     // NOTE:
-    // EET-relaterede debug-rows filtreres, når der ikke foreligger
+    // EET-relaterede EO-rækker filtreres, når der ikke foreligger
     // midlertidig/endelig erhvervsevnetabsafgørelse.
     // EET-debug må ikke producere fejl eller warnings,
     // når afgørelsen eksplicit er "Nej".
@@ -251,9 +251,9 @@ const isRowRelevantForEoValues = (
 
 
 /**
- * Samler alle debug-rows fra registry og tilføjer navigation
+ * Samler alle EO-rækker fra registry og tilføjer navigation
  *
- * Bruger samme builder-registry som EO-debug siden for rå debug-rækker.
+ * Bruger samme builder-registry som EO-debug siden for rå EO-rækker.
  * EO-debug siden og Beregning-fanen har stadig forskellig post-processing.
  *
  * @param stamdataValues - Stamdata-værdier fra FormPersistence
@@ -291,8 +291,8 @@ export const collectAllEoRows = (
   const duplicateIds = findDuplicateIds(rowsWithNavigation);
   if (duplicateIds.length > 0) {
     throw new Error(
-      `Duplikat-id fundet i debug-rows: ${duplicateIds.join(', ')}. ` +
-        'Debug-ids skal være entydige for at sikre korrekt suppression.'
+      `Duplikat-id fundet i EO-rækker: ${duplicateIds.join(', ')}. ` +
+        'EO-række-id’er skal være entydige for at sikre korrekt suppression.'
     );
   }
   const relevantRows = rowsWithNavigation.filter((row) =>
@@ -307,7 +307,7 @@ export const collectAllEoRows = (
       .sort((a, b) => a.localeCompare(b))
       .slice(0, 10);
     const suffix = inCycle.size > idsPreview.length ? ' …' : '';
-    const message = `Debug dependency cycle detected (no suppression applied for cycle nodes): ${idsPreview.join(
+    const message = `EO row dependency cycle detected (no suppression applied for cycle nodes): ${idsPreview.join(
       ', '
     )}${suffix}`;
     // Fail-closed i alle miljøer: cyklusser gør suppression ikke-deterministisk.

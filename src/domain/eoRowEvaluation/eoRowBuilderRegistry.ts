@@ -30,15 +30,15 @@ export type EoRowBuilderEntry = {
 };
 
 /**
- * Centraliseret registry af alle EODebug builders
+ * Centraliseret registry af alle EO row-buildere
  *
- * SINGLE SOURCE OF TRUTH - alle steder der bruger EODebug skal hente herfra.
- * Builders er visningsprojektioner og skal foretrække canonical output frem for
+ * SINGLE SOURCE OF TRUTH - både download-gaten og EODebug skal hente herfra.
+ * Builders er rækkeprojektioner og skal foretrække canonical output frem for
  * at genkalde tunge motorer. Se docs/architecture/debug-builder-architecture.md.
  *
  * Rækkefølge: Samme som i original EODebug.tsx for konsistens i visning.
  *
- * VIGTIGT: Nye builders skal registreres her og gennemgå den fulde debug-builder
+ * VIGTIGT: Nye builders skal registreres her og gennemgå den fulde række-evaluerings-
  * tjekliste i docs/architecture/debug-builder-architecture.md §14.
  */
 export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
@@ -218,7 +218,7 @@ export const executeEoRowBuilderEntries = (
  * Udfører builders og returnerer rows grupperet pr. section
  *
  * Bruges af EO-debug siden, som har brug for sektioneret output
- * men stadig skal dele samme exception-isolation som resten af debug-laget.
+ * men stadig skal dele samme exception-isolation som download-gaten.
  */
 export const executeEoRowBuilderEntriesBySection = (
   entries: ReadonlyArray<EoRowBuilderEntry>,

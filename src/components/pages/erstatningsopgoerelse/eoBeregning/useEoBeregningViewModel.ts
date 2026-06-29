@@ -61,11 +61,11 @@ export type EetIssueRow = Readonly<{
   onAction: () => void;
 }>;
 
-type DebugRowsMemoResult = Readonly<{
+type EoRowsMemoResult = Readonly<{
   errors: ReadonlyArray<EoRowWithNavigation>;
   warnings: ReadonlyArray<EoRowWithNavigation>;
   relevantRows: ReadonlyArray<EoRowWithNavigation>;
-  debugAggregationErrorMessage: string | null;
+  eoRowAggregationErrorMessage: string | null;
 }>;
 
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
@@ -174,7 +174,7 @@ const buildInvariantDiagnostics = (
   return baseContext;
 };
 
-const getCustomDebugRowMessage = (
+const getCustomEoRowMessage = (
   row: Pick<EoRowWithNavigation, 'id' | 'label' | 'message' | 'displayValue'>
 ): string | null => {
   const message = row.message?.trim() ?? '';
@@ -259,13 +259,13 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     [beregningView]
   );
 
-  const { errors, warnings, relevantRows, debugAggregationErrorMessage } = React.useMemo<DebugRowsMemoResult>(() => {
+  const { errors, warnings, relevantRows, eoRowAggregationErrorMessage } = React.useMemo<EoRowsMemoResult>(() => {
     if (!isActive) {
-      return { errors: [], warnings: [], relevantRows: [], debugAggregationErrorMessage: null };
+      return { errors: [], warnings: [], relevantRows: [], eoRowAggregationErrorMessage: null };
     }
     // Return tom liste hvis data ikke er loaded endnu
     if (!eoValues) {
-      return { errors: [], warnings: [], relevantRows: [], debugAggregationErrorMessage: null };
+      return { errors: [], warnings: [], relevantRows: [], eoRowAggregationErrorMessage: null };
     }
 
     const result = safeCompute(
@@ -286,11 +286,11 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         errors: [],
         warnings: [],
         relevantRows: [],
-        debugAggregationErrorMessage: 'Beregningens fejloverblik kan ikke vises på grund af en intern fejl.',
+        eoRowAggregationErrorMessage: 'Beregningens fejloverblik kan ikke vises på grund af en intern fejl.',
       };
     }
 
-    return { ...result.value, debugAggregationErrorMessage: null };
+    return { ...result.value, eoRowAggregationErrorMessage: null };
   }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoDocument(eoSnapshot) : null),
@@ -349,26 +349,26 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     [eetLoebendeIssueRows]
   );
 
-  const firstBlockingDebugErrorMessage = React.useMemo(() => {
-    if (debugAggregationErrorMessage) {
-      return debugAggregationErrorMessage;
+  const firstBlockingEoRowErrorMessage = React.useMemo(() => {
+    if (eoRowAggregationErrorMessage) {
+      return eoRowAggregationErrorMessage;
     }
     const firstError = errors[0];
     if (firstError) {
       const normalizedMessage = firstError.message?.trim() || '';
-      return getCustomDebugRowMessage(firstError) ?? (normalizedMessage || firstError.label);
+      return getCustomEoRowMessage(firstError) ?? (normalizedMessage || firstError.label);
     }
     const firstEetError = eetLoebendeErrorRows[0];
     if (firstEetError) {
       return firstEetError.message;
     }
     return null;
-  }, [debugAggregationErrorMessage, errors, eetLoebendeErrorRows]);
+  }, [eoRowAggregationErrorMessage, errors, eetLoebendeErrorRows]);
 
-  const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || debugAggregationErrorMessage !== null;
+  const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || eoRowAggregationErrorMessage !== null;
   const eoPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingDebugErrorMessage) {
-      return firstBlockingDebugErrorMessage;
+    if (firstBlockingEoRowErrorMessage) {
+      return firstBlockingEoRowErrorMessage;
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
@@ -381,11 +381,11 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       return eoPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, firstBlockingDebugErrorMessage]);
+  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, firstBlockingEoRowErrorMessage]);
 
   const tafPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingDebugErrorMessage) {
-      return firstBlockingDebugErrorMessage;
+    if (firstBlockingEoRowErrorMessage) {
+      return firstBlockingEoRowErrorMessage;
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
@@ -398,11 +398,11 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       return tafPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection, firstBlockingDebugErrorMessage]);
+  }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection, firstBlockingEoRowErrorMessage]);
 
   const tafOpreguleretPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingDebugErrorMessage) {
-      return firstBlockingDebugErrorMessage;
+    if (firstBlockingEoRowErrorMessage) {
+      return firstBlockingEoRowErrorMessage;
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
@@ -415,11 +415,11 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       return tafOpreguleretPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, tafOpreguleretPdfProjection, firstBlockingDebugErrorMessage]);
+  }, [authoritativeBlockingInvariants, eoSnapshot, tafOpreguleretPdfProjection, firstBlockingEoRowErrorMessage]);
 
   const tafKravGrafPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingDebugErrorMessage) {
-      return firstBlockingDebugErrorMessage;
+    if (firstBlockingEoRowErrorMessage) {
+      return firstBlockingEoRowErrorMessage;
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
@@ -432,7 +432,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       return tafKravGrafPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, tafKravGrafPdfProjection, firstBlockingDebugErrorMessage]);
+  }, [authoritativeBlockingInvariants, eoSnapshot, tafKravGrafPdfProjection, firstBlockingEoRowErrorMessage]);
 
   const eoPdfGate = React.useMemo(
     () => createPdfGate(
@@ -540,10 +540,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       }
     }
 
-    if (debugAggregationErrorMessage) {
+    if (eoRowAggregationErrorMessage) {
       pushIssue({
-        id: 'debug-aggregation-failed',
-        message: debugAggregationErrorMessage,
+        id: 'eo-row-aggregation-failed',
+        message: eoRowAggregationErrorMessage,
         actionLabel: 'Debug tabel',
         onAction: () => setActiveTab('debug_tabel'),
       });
@@ -573,7 +573,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     authoritativeBlockingInvariants,
     eoPdfBlockingInvariants,
     eoSnapshot,
-    debugAggregationErrorMessage,
+    eoRowAggregationErrorMessage,
     isSystemInvariant,
     setActiveTab,
     tafPdfProjection,
@@ -860,7 +860,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   }, [canDownloadSnapshotTafKravGrafPdf, eoSnapshot, eoValues, settings]);
 
   const getCustomSummaryText = React.useCallback((row: (typeof errors)[number]): string | null => {
-    return getCustomDebugRowMessage(row);
+    return getCustomEoRowMessage(row);
   }, []);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {

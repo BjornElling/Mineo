@@ -147,7 +147,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     formatSummaryText,
   } = vm;
 
-  const renderDebugRows = React.useCallback((
+  const renderEoRows = React.useCallback((
     rows: ReadonlyArray<(typeof errors)[number]>,
     severity: 'error' | 'warning'
   ) => {
@@ -370,9 +370,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             </Box>
           )}
           {renderSystemIssueRows(systemIssueRows)}
-          {renderDebugRows(errors, 'error')}
+          {renderEoRows(errors, 'error')}
           {renderEetLoebendeIssueRows(eetLoebendeErrorRows)}
-          {renderDebugRows(warnings, 'warning')}
+          {renderEoRows(warnings, 'warning')}
           {renderEetLoebendeIssueRows(eetLoebendeWarningRows)}
         </ContentBox>
       )}

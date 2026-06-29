@@ -17,7 +17,7 @@ export type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<Erstatning
 export type LoenindkomstManuelReguleringInputErrors = Readonly<Record<string, true>>;
 
 /**
- * Fælles execution-context for alle EODebug builders
+ * Fælles execution-context for alle EO row-buildere
  *
  * Dette er ENESTE input til registry.
  * Let at udvide, nem at mocke i tests.
