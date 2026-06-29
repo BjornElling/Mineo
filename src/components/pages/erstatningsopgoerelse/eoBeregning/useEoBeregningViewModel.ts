@@ -680,8 +680,13 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
   ), [eoValues.eoBilagSelection]);
   const bilagAvailability = React.useMemo(
-    () => getEoBilagAvailability({ eoValues, skadedatoISO: stamdataValues.skadedato }),
-    [eoValues, stamdataValues.skadedato]
+    () => getEoBilagAvailability({
+      eoValues,
+      skadedatoISO: stamdataValues.skadedato,
+      loenudvikling: eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling,
+      offentligeYdelserUdvikling: eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling,
+    }),
+    [eoValues, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling, stamdataValues.skadedato]
   );
   const selectedElements = React.useMemo(() => {
     const next = { ...baseSelectedElements };

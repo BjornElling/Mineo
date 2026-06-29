@@ -8,6 +8,7 @@ import type {
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatToISO } from '../../../utils/dateFormatting';
 import { coerceToISODateString, type ISODateString } from '../../../types/branded';
+import { differsFromZero } from '../../../utils/numberComparison';
 import { isStandardLoenRowEffectivelyEmpty } from '../../aarsloen/standardLoenRowCalculations';
 import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
@@ -16,6 +17,7 @@ import { buildPeriodRangeGroups, type PeriodRangeGroup, type IsoRange } from '..
 import { parseOptionalIsoDate } from '../helpers/eoSharedUtils';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { getOffentligeYdelserErrorRowIdSet, getStandardLoenErrorRowIdSet } from '../validation/indkomstRowValidation';
+import type { LoenudviklingModel, LoenudviklingSegment, OffentligeYdelserUdviklingModel } from '../shared/eoTypes';
 
 // Overlap er inklusiv begge endepunkter.
 const isIsoRangeOverlap = (a: IsoRange, b: IsoRange): boolean => a.fra <= b.til && b.fra <= a.til;
@@ -100,6 +102,8 @@ const EO_BILAG_PERIOD_FILTER_REASON =
 const EO_BILAG_INGEN_TAF_KRAV_REASON =
   'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden. Skift bilag til "Alle" for at medtage oplysningerne.';
 
+const EO_BILAG_INGEN_REGULERING_I_TAF_REASON = 'Der sker ingen regulering i TAF-perioden';
+
 export const shouldRenderEoIndkomstOgYdelserBilag = (
   eoValues: ErstatningsopgoerelseValues,
   mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar
@@ -166,8 +170,31 @@ const hasReguleringSelection = (values: ErstatningsopgoerelseValues): boolean =>
   return false;
 };
 
-export const hasLoenReguleringEoBilagData = (values: ErstatningsopgoerelseValues): boolean => {
-  return hasReguleringSelection(values) && shouldIncludeEoReguleringBilag(values);
+export const hasReguleringInSegments = (segments: readonly LoenudviklingSegment[]): boolean => {
+  return segments.some((segment) => differsFromZero(segment.deltaPct));
+};
+
+export const hasLoenReguleringInModel = (
+  loenudvikling: LoenudviklingModel | null | undefined
+): boolean => {
+  if (!loenudvikling) return false;
+  return hasReguleringInSegments(loenudvikling.beregnedeSegmenter) ||
+    loenudvikling.perAnsaettelse.some((entry) => hasReguleringInSegments(entry.beregnedeSegmenter));
+};
+
+export const hasOffentligeYdelserReguleringInModel = (
+  offentligeYdelserUdvikling: OffentligeYdelserUdviklingModel | null | undefined
+): boolean => {
+  if (!offentligeYdelserUdvikling || offentligeYdelserUdvikling.reguleringsLabel === 'Ingen') return false;
+  return offentligeYdelserUdvikling.entries.some((entry) => hasReguleringInSegments(entry.beregnedeSegmenter));
+};
+
+export const hasLoenReguleringEoBilagData = (
+  values: ErstatningsopgoerelseValues,
+  loenudvikling?: LoenudviklingModel | null
+): boolean => {
+  if (!hasReguleringSelection(values) || !shouldIncludeEoReguleringBilag(values)) return false;
+  return loenudvikling === undefined ? true : hasLoenReguleringInModel(loenudvikling);
 };
 
 const hasSygeferiegodtgoerelseEoBilagData = (values: ErstatningsopgoerelseValues): boolean => {
@@ -180,10 +207,14 @@ const hasSygeferiegodtgoerelseEoBilagData = (values: ErstatningsopgoerelseValues
 export const hasOffentligeYdelserReguleringData = (params: Readonly<{
   values: ErstatningsopgoerelseValues;
   skadedatoISO?: ISODateString | undefined;
+  offentligeYdelserUdvikling?: OffentligeYdelserUdviklingModel | null;
 }>): boolean => {
-  const { values, skadedatoISO } = params;
+  const { values, skadedatoISO, offentligeYdelserUdvikling } = params;
   if (values.beregnesUdFra !== 'Beregningsperiode') return false;
   if (values.regulerOffentligeYdelser !== 'Ja') return false;
+  if (offentligeYdelserUdvikling !== undefined) {
+    return hasOffentligeYdelserReguleringInModel(offentligeYdelserUdvikling);
+  }
   const beregningsperiodeRange = buildBeregningsperiodeRange(values);
   if (!beregningsperiodeRange) return false;
   const tafRanges = buildTafRanges(values);
@@ -195,8 +226,10 @@ export const hasOffentligeYdelserReguleringData = (params: Readonly<{
 export const getEoBilagAvailability = (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   skadedatoISO?: ISODateString | undefined;
+  loenudvikling?: LoenudviklingModel | null;
+  offentligeYdelserUdvikling?: OffentligeYdelserUdviklingModel | null;
 }>): EoBilagAvailabilityMap => {
-  const { eoValues, skadedatoISO } = params;
+  const { eoValues, skadedatoISO, loenudvikling, offentligeYdelserUdvikling } = params;
   const eoBilagMode = eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
 
   // Uden TAF-krav findes der ingen erstatningsperiode at filtrere bilag efter, og alle disse
@@ -224,9 +257,13 @@ export const getEoBilagAvailability = (params: Readonly<{
   const harOffentligeYdelserRegulering = hasOffentligeYdelserReguleringData({
     values: eoValues,
     skadedatoISO,
+    offentligeYdelserUdvikling,
   });
-  const harLoenRegulering = hasLoenReguleringEoBilagData(eoValues);
+  const harLoenRegulering = hasLoenReguleringEoBilagData(eoValues, loenudvikling);
   const harRegulering = harLoenRegulering || harOffentligeYdelserRegulering;
+  const harValgtReguleringMedBeregnetGrundlag =
+    (hasReguleringSelection(eoValues) && loenudvikling !== undefined) ||
+    (eoValues.regulerOffentligeYdelser === 'Ja' && offentligeYdelserUdvikling !== undefined && offentligeYdelserUdvikling !== null);
   const harSygeferiegodtgoerelse = hasSygeferiegodtgoerelseEoBilagData(eoValues);
   const midlertidigtEetFraEetSiden = eoValues.midlertidigtEetFraEetSiden === 'Ja';
 
@@ -259,7 +296,9 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : 'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.',
+            : harValgtReguleringMedBeregnetGrundlag
+              ? EO_BILAG_INGEN_REGULERING_I_TAF_REASON
+              : 'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.',
         },
     shDage: tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       ? { enabled: true }

@@ -8,6 +8,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
+import type { LoenudviklingModel, OffentligeYdelserUdviklingModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
@@ -17,6 +18,49 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): Erstatnin
     ...patch,
   };
 };
+
+const makeLoenudviklingModel = (deltaPct: number): LoenudviklingModel => ({
+  loenudviklingLabel: 'Statistik',
+  loenudviklingTotal: { status: 'ok', value: 100000 },
+  beregningsenhed: 'Måneder',
+  beregnedeSegmenter: [
+    {
+      kind: 'maaneder',
+      fra: toISODateString('2024-02-01'),
+      til: toISODateString('2024-02-29'),
+      maaneder: 1,
+      maanedsloenOre: 100000,
+      deltaPct,
+      amountOre: 100000,
+    },
+  ],
+  perAnsaettelse: [],
+});
+
+const makeOffentligeYdelserUdviklingModel = (deltaPct: number): OffentligeYdelserUdviklingModel => ({
+  reguleringsLabel: 'Statslig regulering per 1. januar',
+  reguleringsBaseIso: toISODateString('2024-01-31'),
+  beregningsenhed: 'Måneder',
+  entries: [
+    {
+      typeKey: 'dagpenge',
+      label: 'Dagpenge',
+      total: { status: 'ok', value: 100000 },
+      beregnedeSegmenter: [
+        {
+          kind: 'maaneder',
+          fra: toISODateString('2024-02-01'),
+          til: toISODateString('2024-02-29'),
+          maaneder: 1,
+          maanedsloenOre: 100000,
+          deltaPct,
+          amountOre: 100000,
+        },
+      ],
+    },
+  ],
+  total: { status: 'ok', value: 100000 },
+});
 
 describe('getEoBilagAvailability', () => {
   it('deaktiverer lønindkomst når der ikke er indtastet lønoplysninger i tabellen', () => {
@@ -188,6 +232,45 @@ describe('getEoBilagAvailability', () => {
     expect(result.regulering.enabled).toBe(true);
   });
 
+  it('deaktiverer regulering når valgt lønregulering ikke giver regulering i TAF-perioden', () => {
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold();
+    employment.loenudviklingBeregningsgrundlag = 'Statistik';
+
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+        tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],
+        loenindkomstAnsaettelsesforhold: [employment],
+      }),
+      loenudvikling: makeLoenudviklingModel(0),
+      offentligeYdelserUdvikling: null,
+    });
+
+    expect(result.regulering.enabled).toBe(false);
+    expect(result.regulering.disabledReason).toBe('Der sker ingen regulering i TAF-perioden');
+  });
+
+  it('aktiverer regulering når valgt lønregulering giver regulering i TAF-perioden', () => {
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold();
+    employment.loenudviklingBeregningsgrundlag = 'Statistik';
+
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+        tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],
+        loenindkomstAnsaettelsesforhold: [employment],
+      }),
+      loenudvikling: makeLoenudviklingModel(2.5),
+      offentligeYdelserUdvikling: null,
+    });
+
+    expect(result.regulering.enabled).toBe(true);
+  });
+
   it('aktiverer regulering ved beregningsperiode når der kun findes regulering af offentlige ydelser', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
@@ -211,6 +294,34 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.regulering.enabled).toBe(true);
+  });
+
+  it('deaktiverer regulering når offentlige ydelser er valgt reguleret men ikke reguleres i TAF-perioden', () => {
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        regulerOffentligeYdelser: 'Ja',
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+        tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],
+        loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
+        offentligeYdelserRows: [
+          {
+            id: 'row-1',
+            fraDato: toISODateString('2024-01-01'),
+            tilDato: toISODateString('2024-01-31'),
+            ydelse: { kind: 'number', value: 1000 },
+            tillaeg: undefined,
+            ydelsestype: 'dagpenge',
+          },
+        ],
+      }),
+      loenudvikling: null,
+      offentligeYdelserUdvikling: makeOffentligeYdelserUdviklingModel(0),
+    });
+
+    expect(result.regulering.enabled).toBe(false);
+    expect(result.regulering.disabledReason).toBe('Der sker ingen regulering i TAF-perioden');
   });
 
   it('deaktiverer filtrerede bilag når Perioden er valgt uden TAF-perioder', () => {

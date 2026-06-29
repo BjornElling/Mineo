@@ -32,6 +32,7 @@ import {
   shouldIncludeLoenRowInEoBilag,
   shouldIncludeOffentligYdelseRowInEoBilag,
   hasLoenReguleringEoBilagData,
+  hasOffentligeYdelserReguleringInModel,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import { parseOptionalIsoDate } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../../utils/dateFormatting';
@@ -406,7 +407,11 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
 
   // Bilagsvalget "Regulering" styrer både lønregulering og regulering af offentlige ydelser.
   // De to sektioner renderes fortsat kun, når deres eget datagrundlag faktisk findes.
-  if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && hasLoenReguleringEoBilagData(eoValues)) {
+  if (
+    selectedElements.regulering &&
+    skalViseIndkomstOgYdelserBilag &&
+    hasLoenReguleringEoBilagData(eoValues, model.tabtArbejdsfortjeneste.loenudvikling)
+  ) {
     renderReguleringSection({
       eoValues,
       stamdataValues,
@@ -436,7 +441,8 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     selectedElements.regulering &&
     eoValues.regulerOffentligeYdelser === 'Ja' &&
     offentligeYdelserUdvikling &&
-    offentligeYdelserUdvikling.entries.length > 0
+    offentligeYdelserUdvikling.entries.length > 0 &&
+    hasOffentligeYdelserReguleringInModel(offentligeYdelserUdvikling)
   ) {
     startEoBilagPage('Regulering af offentlige ydelser');
     const reguleringsBaseDato = offentligeYdelserUdvikling.reguleringsBaseIso
