@@ -120,15 +120,15 @@ describe('sygedagpengeInsertRows', () => {
   });
 
   it('komprimerer gentagne identiske fulde uger til antal*(uge-led)', () => {
-    // 8 fulde uger i 2023 (sats 910, eget 48, OP 1,2 %): hver uge giver leddet 48*2+54.
+    // 8 fulde uger i 2023 (sats 910, eget 50, OP 1,2 %): hver uge giver leddet 50*2+54.
     // Perioden 2023-02-06 (mandag) til 2023-03-31 (fredag) rummer 8 hele arbejdsuger uden helligdage.
     const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-06'), toISODateString('2023-03-31'));
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '8*(48*2+54)',
-      value: 8 * (48 * 2 + 54),
+      expression: '8*(50*2+54)',
+      value: 8 * (50 * 2 + 54),
     });
   });
 
@@ -137,25 +137,25 @@ describe('sygedagpengeInsertRows', () => {
     const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-08'), toISODateString('2023-03-03'));
 
     expect(rows).toHaveLength(1);
-    // Delvis uge (3 dage): eget = round(3*48/5) = 29, OP = round(0,012*(3*910-29)) = 32 → 29*2+32.
-    // Derefter tre fulde uger: 3*(48*2+54).
+    // Delvis uge (3 dage): eget = round(3*50/5) = 30, OP = round(0,012*(3*910-30)) = 32 → 30*2+32.
+    // Derefter tre fulde uger: 3*(50*2+54).
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '29*2+32+3*(48*2+54)',
-      value: 29 * 2 + 32 + 3 * (48 * 2 + 54),
+      expression: '30*2+32+3*(50*2+54)',
+      value: 30 * 2 + 32 + 3 * (50 * 2 + 54),
     });
   });
 
   it('komprimerer fulde uger uden OP (før 2020) som antal*led uden parentes', () => {
-    // 8 fulde uger i 2019 (eget 44, ingen OP): hver uge er leddet 44*2. Uden et +-led er
-    // multiplikation associativ, så komprimeringen skrives som 8*44*2 (ingen parentes).
+    // 8 fulde uger i 2019 (eget 50, ingen OP): hver uge er leddet 50*2. Uden et +-led er
+    // multiplikation associativ, så komprimeringen skrives som 8*50*2 (ingen parentes).
     const rows = buildSygedagpengeRowsForRange(toISODateString('2019-02-04'), toISODateString('2019-03-29'));
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '8*44*2',
-      value: 8 * 44 * 2,
+      expression: '8*50*2',
+      value: 8 * 50 * 2,
     });
   });
 
@@ -170,10 +170,11 @@ describe('sygedagpengeInsertRows', () => {
       const rate = sygedagpengeRates.find((r) => r.fraDato === toISODateString(fraDato))!;
       return [resolveEgetAtpBidragPrKalenderuge(rate), resolveKommunaltAtpBidragPrKalenderuge(rate)];
     };
-    // De fire historiske ATP-niveauer skal stå korrekt på de respektive satsår.
-    expect(atpForFraDato('2005-01-03')).toEqual([38, 76]);
-    expect(atpForFraDato('2008-01-07')).toEqual([44, 88]);
-    expect(atpForFraDato('2020-01-06')).toEqual([48, 96]);
+    // De historiske ATP-niveauer skal stå korrekt på de respektive satsår.
+    expect(atpForFraDato('2005-01-03')).toEqual([40, 80]);
+    expect(atpForFraDato('2008-01-07')).toEqual([43, 86]);
+    expect(atpForFraDato('2009-01-05')).toEqual([47, 94]);
+    expect(atpForFraDato('2020-01-06')).toEqual([50, 100]);
     expect(atpForFraDato('2026-01-05')).toEqual([53, 106]);
   });
 
@@ -184,8 +185,8 @@ describe('sygedagpengeInsertRows', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '44*2',
-      value: 88,
+      expression: '50*2',
+      value: 100,
     });
   });
 
@@ -207,8 +208,8 @@ describe('sygedagpengeInsertRows', () => {
 
     expect(rowsFoerCutoff[0]?.ydelse).toEqual({
       kind: 'expression',
-      expression: '1*768',
-      value: 768,
+      expression: '1*788',
+      value: 788,
     });
     expect(rowsEfterCutoff).toHaveLength(0);
   });
@@ -287,13 +288,13 @@ describe('sygedagpengeInsertRows', () => {
   });
 
   it('OP-formlen: bidrag = round(procent/100 * (ugesygedagpenge - eget ATP)) pr. uge', () => {
-    // Eksplicit formel-forankring for én fuld uge i 2023 (sats 910, eget 48, OP 1,2 %).
-    // Forventet: eget = round(5*48/5) = 48; ugesygedagpenge = 5*910 = 4550;
-    // OP = round(0,012 * (4550 - 48)) = round(54,024) = 54 → tillæg-led = 48*2+54.
+    // Eksplicit formel-forankring for én fuld uge i 2023 (sats 910, eget 50, OP 1,2 %).
+    // Forventet: eget = round(5*50/5) = 50; ugesygedagpenge = 5*910 = 4550;
+    // OP = round(0,012 * (4550 - 50)) = round(54) = 54 → tillæg-led = 50*2+54.
     const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-06'), toISODateString('2023-02-10'));
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.tillaeg).toEqual({ kind: 'expression', expression: '48*2+54', value: 48 * 2 + 54 });
-    expect(48 * 2 + 54).toBe(150);
+    expect(rows[0]?.tillaeg).toEqual({ kind: 'expression', expression: '50*2+54', value: 50 * 2 + 54 });
+    expect(50 * 2 + 54).toBe(154);
   });
 
   it('trimmer delvist overlap til den del af perioden hvor der findes satser', () => {
