@@ -165,7 +165,43 @@ describe('createDocxWriter', () => {
     const footerFiles = Object.keys(zip.files).filter((name) => /word\/footer\d+\.xml$/.test(name));
     expect(footerFiles.length).toBeGreaterThan(0);
     const footerXml = (await zip.file(footerFiles[0])?.async('string')) ?? '';
-    expect(footerXml).toMatch(/<wp:positionH[^>]*relativeFrom="page"[\s\S]*?<wp:posOffset>7373110<\/wp:posOffset>/);
+    expect(footerXml).toMatch(/<wp:positionH[^>]*relativeFrom="page"[\s\S]*?<wp:posOffset>7283110<\/wp:posOffset>/);
+  });
+
+  it('lægger versions-footeren i både default- og first-footer ved brevhoved', async () => {
+    clearDocumentFooterImageCacheForTests();
+    const capture = captureDownload();
+
+    await withDocumentGenerationContext('word', () => {
+      const writer = createDocxWriter();
+      writer.writeBrevhoved({
+        journalnr: '24-0024',
+        advokat: 'BEL',
+        sagsbehandler: 'cgf',
+        dagsDatoISO: toISODateString('2026-04-18'),
+      });
+      writer.writeWrappedText('Indhold');
+      writer.save('BrevhovedFooter.pdf');
+    });
+
+    capture.restore();
+
+    const zip = await JSZip.loadAsync(capture.getBlob()!);
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+    expect(documentXml).toContain('<w:titlePg');
+    expect(documentXml).toMatch(/<w:footerReference w:type="default"/);
+    expect(documentXml).toMatch(/<w:footerReference w:type="first"/);
+
+    const footerFiles = Object.keys(zip.files).filter((name) => /word\/footer\d+\.xml$/.test(name));
+    expect(footerFiles.length).toBeGreaterThanOrEqual(2);
+    let footersWithVersion = 0;
+    for (const footerFile of footerFiles) {
+      const footerXml = (await zip.file(footerFile)?.async('string')) ?? '';
+      if (footerXml.includes('mineo.dk //')) {
+        footersWithVersion += 1;
+      }
+    }
+    expect(footersWithVersion).toBeGreaterThanOrEqual(2);
   });
 
   // GDPR / kontrakt §4.3: Word-output må ikke indeholde eksterne relationer,
@@ -429,7 +465,9 @@ describe('createDocxWriter', () => {
 
     // Udseendet bor i styles.xml (basisfont + de navngivne typografier).
     expect(stylesXml).toContain('w:styleId="Normal"');
+    expect(stylesXml).toMatch(/w:styleId="Normal"[\s\S]*?<w:spacing[^>]*w:after="40"/);
     expect(stylesXml).toContain('w:styleId="Title"');
+    expect(stylesXml).toMatch(/w:styleId="Title"[\s\S]*?<w:sz w:val="36"/);
     expect(stylesXml).toContain('w:styleId="Heading1"');
     expect(stylesXml).not.toMatch(/w:styleId="Mineo/);
     expect(stylesXml).toContain('Calibri');
@@ -469,21 +507,21 @@ describe('createDocxWriter', () => {
     expect(documentXml).toContain('<w:framePr');
     expect(documentXml).toMatch(/w:framePr[^>]*w:hAnchor="page"/);
     expect(documentXml).toMatch(/w:framePr[^>]*w:vAnchor="page"/);
-    // 7 cm bred, mindst 1 cm høj og fortsat højrejusteret mod tekstfeltets højrekant.
+    // 7 cm bred, mindst 1 cm høj, 12 cm fra venstre sidekant og 1 cm fra toppen.
     expect(documentXml).toMatch(/w:framePr[^>]*w:w="3969"/);
     expect(documentXml).toMatch(/w:framePr[^>]*w:h="567"/);
-    expect(documentXml).toMatch(/w:framePr[^>]*w:x="6497"/);
+    expect(documentXml).toMatch(/w:framePr[^>]*w:x="6803"/);
+    expect(documentXml).toMatch(/w:framePr[^>]*w:y="567"/);
     expect(stylesXml).toMatch(/w:styleId="Header"[\s\S]*?<w:sz w:val="20"/);
+    expect(documentXml).toMatch(/<w:pgMar[^>]*w:top="1440"[^>]*w:right="1134"[^>]*w:bottom="1440"[^>]*w:left="1134"/);
 
-    // "Anden første side" er aktiv (titlePg), og første side har sin egen
-    // first-header (som gøres højere af tomme afsnit).
+    // "Anden første side" er aktiv (titlePg), men uden tom first-header-padding.
     expect(documentXml).toContain('<w:titlePg');
-    expect(documentXml).toMatch(/<w:headerReference w:type="first"/);
+    expect(documentXml).not.toMatch(/<w:headerReference w:type="first"/);
   });
 
-  // Brevhovedet aktiverer Words "anden første side". Første side får sin egen,
-  // højere first-header (fyldt med tomme afsnit). Da default-headeren kun gælder
-  // side 2+, skal vandmærket også ligge i first-headeren, så side 1 beholder det.
+  // Brevhovedet aktiverer Words "anden første side". Da default-headeren kun gælder
+  // side 2+, skal udkast-vandmærket også ligge i first-headeren, så side 1 beholder det.
   it('lægger vandmærket i både default- og first-header ved brevhoved + udkast', async () => {
     const capture = captureDownload();
 
@@ -508,22 +546,16 @@ describe('createDocxWriter', () => {
     const headerFiles = Object.keys(zip.files).filter((name) => /word\/header\d+\.xml$/.test(name));
     expect(headerFiles.length).toBeGreaterThanOrEqual(2);
     let watermarkHeaders = 0;
-    let paddedHeader: string | null = null;
     for (const headerFile of headerFiles) {
       const headerXml = (await zip.file(headerFile)?.async('string')) ?? '';
       if (headerXml.includes('_x0000_t136') && /string="UDKAST"/.test(headerXml)) {
         watermarkHeaders += 1;
       }
-      // First-headeren er fyldt ud med tomme afsnit for at gøre den højere.
-      if ((headerXml.match(/<w:p\b/g) ?? []).length >= 5) {
-        paddedHeader = headerXml;
-      }
+      expect((headerXml.match(/<w:p\b/g) ?? []).length).toBeLessThan(5);
       // Wrapperen fra forrige fix må stadig ikke optræde.
       expect(headerXml).not.toContain('<undefined>');
     }
     expect(watermarkHeaders).toBeGreaterThanOrEqual(2);
-    // Den højere first-header findes (mindst 5 afsnit som højde-fyld).
-    expect(paddedHeader).not.toBeNull();
 
     // Sektionen refererer både default- og first-header, og titlePg er sat.
     expect(documentXml).toContain('<w:titlePg');

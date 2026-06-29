@@ -34,6 +34,7 @@ const BODY_SIZE = 22;
 /** Mindste linjeafstand i dxa (14 pt). */
 const MIN_LINE_SPACING_DXA = 280;
 const MIN_LINE_SPACING = { line: MIN_LINE_SPACING_DXA, lineRule: LineRuleType.AT_LEAST } as const;
+const NORMAL_PARAGRAPH_AFTER_DXA = 40; // 2 pt
 
 /**
  * Rækkefølge i hurtigtypografi-galleriet. Lavere `uiPriority` står først. Kun
@@ -130,7 +131,7 @@ const buildDocDefaults = (): XmlComponent =>
     ]),
     rawXmlElement('w:pPrDefault', null, [
       rawXmlElement('w:pPr', null, [
-        rawXmlElement('w:spacing', { 'w:after': '60', 'w:line': String(MIN_LINE_SPACING_DXA), 'w:lineRule': 'atLeast' }),
+        rawXmlElement('w:spacing', { 'w:after': String(NORMAL_PARAGRAPH_AFTER_DXA), 'w:line': String(MIN_LINE_SPACING_DXA), 'w:lineRule': 'atLeast' }),
       ]),
     ]),
   ]);
@@ -169,7 +170,7 @@ export const buildDocxStyles = (): IStylesOptions => ({
       quickFormat: true,
       uiPriority: GALLERY_UI_PRIORITY.normal,
       run: { font: DOCX_FONT, size: BODY_SIZE },
-      paragraph: { spacing: { after: 60, ...MIN_LINE_SPACING } },
+      paragraph: { spacing: { after: NORMAL_PARAGRAPH_AFTER_DXA, ...MIN_LINE_SPACING } },
     },
     {
       id: DOCX_STYLE.title,
@@ -178,7 +179,7 @@ export const buildDocxStyles = (): IStylesOptions => ({
       next: DOCX_STYLE.normal,
       quickFormat: true,
       uiPriority: GALLERY_UI_PRIORITY.title,
-      run: { bold: true, size: 32 },
+      run: { bold: true, size: 36 },
       paragraph: { spacing: { before: 480, after: 120, ...MIN_LINE_SPACING } },
     },
     {

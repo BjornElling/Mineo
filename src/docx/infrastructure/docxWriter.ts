@@ -52,9 +52,10 @@ import { DOCX_STYLE, buildDocxStyles, type DocxStyleId } from './docxStyles';
 
 const PAGE_WIDTH_DXA = 11906;
 const PAGE_HEIGHT_DXA = 16838;
-const PAGE_MARGIN_DXA = 1440;
-const CONTENT_WIDTH_DXA = PAGE_WIDTH_DXA - PAGE_MARGIN_DXA * 2;
-const LANDSCAPE_CONTENT_WIDTH_DXA = PAGE_HEIGHT_DXA - PAGE_MARGIN_DXA * 2;
+const PAGE_HORIZONTAL_MARGIN_DXA = 1134; // 2 cm
+const PAGE_VERTICAL_MARGIN_DXA = 1440; // tidligere top-/bundmargin
+const CONTENT_WIDTH_DXA = PAGE_WIDTH_DXA - PAGE_HORIZONTAL_MARGIN_DXA * 2;
+const LANDSCAPE_CONTENT_WIDTH_DXA = PAGE_HEIGHT_DXA - PAGE_HORIZONTAL_MARGIN_DXA * 2;
 const TABLE_CELL_MARGIN_DXA = 90;
 const dxaFromCentimeters = (centimeters: number): number =>
   roundByMethod((centimeters / 2.54) * 1440, 0, 'halfAwayFromZero');
@@ -369,12 +370,12 @@ const createSignatureTable = (
 
 // Bredde og placering af den fikserede brevhoved-tekstrude. Ruden er forankret
 // til SIDEN (FrameAnchorType.PAGE), så den bliver liggende øverst til højre uanset
-// hvad der sker med den øvrige tekst i dokumentet. Højre kant af ruden flugter med
-// højre tekstmargin (PAGE_WIDTH - margin - bredde), og toppen sidder ved topmargin.
+// hvad der sker med den øvrige tekst i dokumentet. Venstre kant sidder 12 cm fra
+// sidens venstre kant, og toppen sidder 1 cm fra sidens top.
 const BREVHOVED_FRAME_WIDTH_DXA = dxaFromCentimeters(7);
 const BREVHOVED_FRAME_HEIGHT_DXA = dxaFromCentimeters(1);
-const BREVHOVED_FRAME_X_DXA = PAGE_WIDTH_DXA - PAGE_MARGIN_DXA - BREVHOVED_FRAME_WIDTH_DXA;
-const BREVHOVED_FRAME_Y_DXA = PAGE_MARGIN_DXA;
+const BREVHOVED_FRAME_X_DXA = dxaFromCentimeters(12);
+const BREVHOVED_FRAME_Y_DXA = dxaFromCentimeters(1);
 
 // Indhold matcher PDF-brevhovedet (renderBrevhoved): "J.nr. <nr> <advokat>/<sagsbehandler>"
 // på linje 1 og den lange danske dato på linje 2.
@@ -427,22 +428,10 @@ const buildBrevhovedParagraphs = (data: BrevhovedData): Paragraph[] => {
   ];
 };
 
-// Førstesidens sidehoved gøres højere ved at fylde det med nogle få tomme afsnit.
-// Det er bevidst en omtrentlig ekstra højde (ikke en eksakt cm-værdi). Headeren
-// er kun på første side (jf. titlePage), så de øvrige sider er upåvirkede.
-const FIRST_PAGE_HEADER_PADDING_PARAGRAPHS = 5;
-
 const buildFirstPageHeaderChildren = (
   visUdkastStempel: boolean
 ): Paragraph[] => {
-  const children: Paragraph[] = [];
-  for (let i = 0; i < FIRST_PAGE_HEADER_PADDING_PARAGRAPHS; i += 1) {
-    children.push(paragraph('', { style: DOCX_STYLE.normal }));
-  }
-  if (visUdkastStempel) {
-    children.push(createUdkastWatermarkParagraph());
-  }
-  return children;
+  return visUdkastStempel ? [createUdkastWatermarkParagraph()] : [];
 };
 
 // Tomt afstands-afsnit mellem blokke (sektion/tabel).
@@ -581,18 +570,24 @@ export const createDocxWriter = (params?: Readonly<{
   };
 
   const build = async (): Promise<Blob> => {
-    const footer = buildVersionFooter(pageWidthDxa, pageHeightDxa);
+    const footers = hasBrevhoved
+      ? {
+          default: buildVersionFooter(pageWidthDxa, pageHeightDxa),
+          first: buildVersionFooter(pageWidthDxa, pageHeightDxa),
+        }
+      : { default: buildVersionFooter(pageWidthDxa, pageHeightDxa) };
 
     // Med "anden første side" (titlePage) gælder default-headeren kun side 2+.
-    // Første side får sin egen, HØJERE first-header: nogle få tomme afsnit fylder
-    // headerområdet ud, så det bliver højere på første side. Vandmærket lægges i
-    // begge headere, så det også er på side 1. Hver header-slot SKAL have sin egen
-    // Header/paragraph-instans (docx-komponenter må ikke deles mellem slots).
+    // Første side får kun sin egen first-header når udkast-vandmærket skal vises
+    // dér; tomme header-afsnit bruges ikke, så brødteksten starter højt på side 1.
+    // Samme gælder versions-footeren:
+    // titlePage får Word til at bruge en særskilt first-footer på side 1.
+    // Hver slot SKAL have sin egen instans (docx-komponenter må ikke deles).
     const visUdkastStempel = params?.visUdkastStempel ?? false;
     const defaultHeader = visUdkastStempel
       ? new Header({ children: [createUdkastWatermarkParagraph()] })
       : undefined;
-    const firstHeader = hasBrevhoved
+    const firstHeader = hasBrevhoved && visUdkastStempel
       ? new Header({ children: buildFirstPageHeaderChildren(visUdkastStempel) })
       : undefined;
     const headers = defaultHeader || firstHeader
@@ -610,7 +605,7 @@ export const createDocxWriter = (params?: Readonly<{
       sections: [
         {
           headers,
-          footers: { default: footer },
+          footers,
           properties: {
             // "Anden første side": første side har sit eget (højere) sidehoved.
             titlePage: hasBrevhoved,
@@ -621,10 +616,10 @@ export const createDocxWriter = (params?: Readonly<{
                 orientation: isLandscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
               },
               margin: {
-                top: PAGE_MARGIN_DXA,
-                right: PAGE_MARGIN_DXA,
-                bottom: PAGE_MARGIN_DXA,
-                left: PAGE_MARGIN_DXA,
+                top: PAGE_VERTICAL_MARGIN_DXA,
+                right: PAGE_HORIZONTAL_MARGIN_DXA,
+                bottom: PAGE_VERTICAL_MARGIN_DXA,
+                left: PAGE_HORIZONTAL_MARGIN_DXA,
               },
             },
           },
