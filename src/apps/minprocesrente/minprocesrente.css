@@ -7,12 +7,18 @@
  * Kun aktiv på touch-enheder (pointer:coarse). Desktop-visningen er upåvirket.
  */
 @media (pointer: coarse) {
+  html,
+  body {
+    background-color: var(--color-surface);
+  }
+
   body {
     overflow: auto;
     height: auto;
   }
 
   #root {
+    background-color: var(--color-surface);
     overflow: auto;
     height: auto;
     min-height: 100vh;
