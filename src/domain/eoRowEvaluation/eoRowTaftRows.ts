@@ -14,6 +14,7 @@ import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
 import { formatDebugCount, formatDebugMonths } from './eoRowShared';
+import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 
 const resolveFolkepensionsdato = (
   fodselsdato: ISODateString | undefined,
@@ -77,7 +78,8 @@ export const buildEoTaftRows = (
     values.opgørelseLavetDen
   );
 
-  const lastTafKravDato = (() => {
+  const tafKravDatoer = (() => {
+    let earliest: ISODateString | undefined = undefined;
     let latest: ISODateString | undefined = undefined;
     for (const periode of values.tafPerioder ?? []) {
       const valid = getValidTafRange(periode);
@@ -85,13 +87,27 @@ export const buildEoTaftRows = (
       const clamped = clampTafRange(valid, tafBounds);
       if (!clamped) continue;
       clampedTafById.set(periode.id, clamped);
+      if (!earliest || clamped.fra < earliest) earliest = clamped.fra;
       if (!latest || clamped.til > latest) latest = clamped.til;
     }
-    return latest;
+    return { first: earliest, last: latest };
   })();
+  const firstTafKravDato = tafKravDatoer.first;
+  const lastTafKravDato = tafKravDatoer.last;
+  const manglerTafVedStartAfIkkeFoersteEo =
+    !erDetteFoersteErstatningsopgoerelse(values.eoNummer) &&
+    firstTafKravDato !== undefined &&
+    values.vedroererPeriodeFra !== undefined &&
+    firstTafKravDato > values.vedroererPeriodeFra;
 
   const tafOphoerSkyldes = (() => {
     if (!lastTafKravDato) return tafIkkeRejstLabel;
+
+    // Ved EO 2+ er manglende TAF i starten af EO-perioden også et fravalg af TAF
+    // for hele perioden. Første EO beholder den hidtidige ophørsbaserede advarsel.
+    if (manglerTafVedStartAfIkkeFoersteEo) {
+      return tafIkkeRejstLabel;
+    }
 
     const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
     if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
@@ -117,6 +133,7 @@ export const buildEoTaftRows = (
 
   const tafOphoerSkyldesDatoISO = (() => {
     if (!lastTafKravDato) return undefined;
+    if (manglerTafVedStartAfIkkeFoersteEo) return undefined;
 
     const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
     if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
@@ -328,4 +345,3 @@ export const buildEoTaftRows = (
 
   return rows;
 };
-

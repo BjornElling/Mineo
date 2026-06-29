@@ -70,6 +70,96 @@ describe('buildEoTaftRows overlap parity', () => {
     expect(ophoerRow?.displayValue).toContain('Erstatningsperiodens ophør');
   });
 
+  it('beholder EO 1-adfærd uden advarsel når TAF først starter efter EO-periodens start', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      eoNummer: '1',
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-12-31'),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-02-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadedatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
+    const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
+
+    expect(ophoerRow?.status).toBe('ok');
+    expect(ophoerRow?.displayValue).toContain('Erstatningsperiodens ophør');
+  });
+
+  it('advarer ved EO 2 når TAF først starter efter EO-periodens start', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      eoNummer: '2',
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-12-31'),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-02-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadedatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
+    const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
+
+    expect(ophoerRow?.status).toBe('warning');
+    expect(ophoerRow?.displayValue).toBe('Ikke rejst TAF-krav for hele perioden');
+  });
+
+  it('advarer ikke ved EO 2 når TAF-perioden starter før EO-perioden og clampes til start', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      eoNummer: '2',
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-12-31'),
+      tafPerioder: [
+        { id: 'a', fra: iso('2023-12-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadedatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
+    const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
+
+    expect(ophoerRow?.status).toBe('ok');
+    expect(ophoerRow?.displayValue).toContain('Erstatningsperiodens ophør');
+  });
+
   it('bruger flertalslabel for ferie-rækker når mere end én ferieperiode er udfyldt', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),
