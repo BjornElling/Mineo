@@ -27,3 +27,31 @@ export const getPhysicalScreenShortestSide = (): number | null => {
   if (height === null) return width;
   return Math.min(width, height);
 };
+
+export const getViewportShortestSide = (): number | null => {
+  if (typeof window === 'undefined') return null;
+  const visualViewportWidth = readPositiveFiniteNumber(window.visualViewport?.width);
+  const visualViewportHeight = readPositiveFiniteNumber(window.visualViewport?.height);
+  const width = visualViewportWidth ?? readPositiveFiniteNumber(window.innerWidth);
+  const height = visualViewportHeight ?? readPositiveFiniteNumber(window.innerHeight);
+  if (width === null) return height;
+  if (height === null) return width;
+  return Math.min(width, height);
+};
+
+const getStableCssShortestSide = (): number | null => {
+  const sides = [getPhysicalScreenShortestSide(), getViewportShortestSide()]
+    .filter((value): value is number => value !== null);
+  if (sides.length === 0) return null;
+  return Math.min(...sides);
+};
+
+export const isTouchLikeDeviceWithShortestSideAtMost = (maxShortestSidePx: number): boolean => {
+  if (!isTouchLikeDevice()) return false;
+  const shortestSide = getStableCssShortestSide();
+  // Nogle mobile browsere rapporterer screen.* i fysiske device-pixels. Derfor bruges
+  // den mindste brugbare kortside fra screen og viewport, så samme touch-enhed ikke
+  // skifter klassifikation ved rotation eller høj devicePixelRatio.
+  if (shortestSide === null) return true;
+  return shortestSide <= maxShortestSidePx;
+};

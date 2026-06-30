@@ -97,12 +97,14 @@ const configureDevice = ({
   screenWidth = 1024,
   screenHeight = 768,
   viewportWidth = 1024,
+  viewportHeight = 768,
   coarsePointer = false,
 }: {
   maxTouchPoints?: number;
   screenWidth?: number;
   screenHeight?: number;
   viewportWidth?: number;
+  viewportHeight?: number;
   coarsePointer?: boolean;
 } = {}): void => {
   Object.defineProperty(navigator, 'maxTouchPoints', {
@@ -116,6 +118,14 @@ const configureDevice = ({
   Object.defineProperty(window.screen, 'height', {
     configurable: true,
     value: screenHeight,
+  });
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: viewportWidth,
+  });
+  Object.defineProperty(window, 'innerHeight', {
+    configurable: true,
+    value: viewportHeight,
   });
   window.matchMedia = vi.fn((query: string) => {
     const maxWidth = /\(max-width:\s*([\d.]+)px\)/.exec(query);
@@ -166,6 +176,22 @@ describe('MinProcesrenteCalculatorPage', () => {
       screenWidth: 844,
       screenHeight: 390,
       viewportWidth: 844,
+      viewportHeight: 390,
+      coarsePointer: true,
+    });
+
+    render(<MinProcesrenteCalculatorPage />);
+
+    expect(screen.getByTestId('is-mobile')).toHaveTextContent('true');
+  });
+
+  it('fastholder mobil-layout når screen API returnerer fysiske device-pixels', () => {
+    configureDevice({
+      maxTouchPoints: 5,
+      screenWidth: 2556,
+      screenHeight: 1179,
+      viewportWidth: 844,
+      viewportHeight: 390,
       coarsePointer: true,
     });
 

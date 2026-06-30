@@ -44,7 +44,7 @@ const SpecifikationDownloadBox = React.memo(({
               onClick={() => { void onDownloadAll(); }}
               sx={{ fontSize: '13px', '& .MuiButton-startIcon svg': { fontSize: '16px' } }}
             >
-              Download alle som {formatLabel}
+              Download som {formatLabel}
             </Button>
           </span>
         </Tooltip>

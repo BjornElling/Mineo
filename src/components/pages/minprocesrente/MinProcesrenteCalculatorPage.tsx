@@ -16,7 +16,7 @@ import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 import { useUndoRedoShortcuts } from '../../../hooks/useUndoRedoShortcuts';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
-import { getPhysicalScreenShortestSide, isTouchLikeDevice } from '../../../utils/clientDevice';
+import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
 
 const MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX = 599;
 
@@ -42,12 +42,7 @@ const MinProcesrenteTitle = React.memo(() => (
 MinProcesrenteTitle.displayName = 'MinProcesrenteTitle';
 
 const isStandalonePhoneLikeDevice = (): boolean => {
-  if (!isTouchLikeDevice()) return false;
-  const shortestSide = getPhysicalScreenShortestSide();
-  // Hvis browseren skjuler fysisk skærmstørrelse på en touch-enhed, er mobil-layoutet det
-  // mindst risikable fallback: det bevarer scroll og kompakte kolonner i stedet for desktopfladen.
-  if (shortestSide === null) return true;
-  return shortestSide <= MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX;
+  return isTouchLikeDeviceWithShortestSideAtMost(MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX);
 };
 
 const MinProcesrenteCalculatorPage = React.memo(() => {
@@ -148,11 +143,8 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         // false`), så denne @media-styling er variant-lokal og kun aktiv i standalone-buildet —
         // den rammer aldrig Mineos desktop-only-flade. Jf. app-shell-contract.md §5.
         // Re-evaluering hvis standalone en dag gøres desktop-only.
-        // Kun desktop-neutrale regler her — alle mobile overrides i @media (max-width: 599px)
-        '& .content-box': {
-          width: '100%',
-          maxWidth: '100%',
-        },
+        // Kun desktop-neutrale regler her — mobilens .content-box-bredde ejes af
+        // minprocesrente.css, så den kan vinde deterministisk over global layout.css.
         // page-title: sm/md-størrelser fra designet (overrider global 34px)
         '& .page-title': {
           lineHeight: 'var(--line-height-base)',
