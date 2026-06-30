@@ -22,6 +22,7 @@ export interface RateEntry {
 
 const referenceRatesTable: ReadonlyArray<readonly [effectiveDate: string, ratePct: number]> = [
   // dato              │ Rentesats
+  ['01-07-2026',            2.0],
   ['01-01-2026',            1.75],
   ['01-07-2025',            1.75],
   ['01-01-2025',            2.75],
