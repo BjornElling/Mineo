@@ -264,10 +264,10 @@ const analyzeAslRowsAtBeregningsdato = (
   }
 
   if (!hasAnyResolvedRows) {
-    issues.push(toIssue('asl-afgoerelser-empty', 'Ingen ASL-afgørelser er indtastet.'));
+    issues.push(toIssue('asl-afgoerelser-empty', 'Ingen ASL-afgørelser er indtastet'));
   }
   if (hasAnyResolvedRows && !hasAnyKnownRows) {
-    issues.push(toIssue('no-asl-afgoerelser-known-at-beregningsdato', 'Der er ingen ASL-afgørelser med virkningsdato på eller før beregningsdatoen.'));
+    issues.push(toIssue('no-asl-afgoerelser-known-at-beregningsdato', 'Der er ingen ASL-afgørelser med virkningsdato på eller før beregningsdatoen'));
     return {
       hasAnyEnteredRows,
       hasAnyResolvedRows,
@@ -276,13 +276,13 @@ const analyzeAslRowsAtBeregningsdato = (
     };
   }
   if (hasAfgoerelsesdatoAfterBeregningsdato) {
-    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen.'));
+    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen'));
   }
   if (hasVirkningsdatoAfterBeregningsdato) {
-    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen.'));
+    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen'));
   }
   if (hasKapDatoAfterBeregningsdato) {
-    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen.'));
+    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen'));
   }
   return {
     hasAnyEnteredRows,
@@ -311,7 +311,7 @@ const computeProformaKapitalisering = (
   const { loebendeEetPct, beregningsdato, skadedato, fodselsdato } = args;
 
   if (!args.koen && beregningsdato < SKAERING_2015_03_01) {
-    issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives.'));
+    issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives'));
     return null;
   }
 
@@ -337,14 +337,14 @@ const computeProformaKapitalisering = (
   if (!tabelvalg) {
     issues.push(toIssue(
       'proforma-kapitaliseringstabel-missing',
-      'Ingen kapitaliseringstabel matcher skadedato og fødselsdato på beregningsdatoen.'
+      'Ingen kapitaliseringstabel matcher skadedato og fødselsdato på beregningsdatoen'
     ));
     return null;
   }
 
   const age = calculateAgeYearsMonths(fodselsdato, beregningsdato);
   if (!age) {
-    issues.push(toIssue('proforma-kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på beregningsdatoen.'));
+    issues.push(toIssue('proforma-kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på beregningsdatoen'));
     return null;
   }
 
@@ -359,7 +359,7 @@ const computeProformaKapitalisering = (
     if (saerfaktor === null) {
       issues.push(toIssue(
         'proforma-kapitaliseringsfaktor-unresolved',
-        'Særfaktor mangler for proformakapitalisering under 2 år til folkepension.'
+        'Særfaktor mangler for proformakapitalisering under 2 år til folkepension'
       ));
       return null;
     }
@@ -371,7 +371,7 @@ const computeProformaKapitalisering = (
     const factorRows = factorTableResult.rows;
     if (!factorRows || factorRows.length === 0) {
       if (factorTableResult.reason === 'missing-koen') {
-        issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives.'));
+        issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives'));
       } else {
         issues.push(toIssue('proforma-kapitaliseringstabel-missing', `Ingen kapitaliseringsfaktorer for tabel ${tabelvalg.tabel}.`));
       }
@@ -407,7 +407,7 @@ const computeProformaKapitalisering = (
       if (saerfaktor === null) {
         issues.push(toIssue(
           'proforma-kapitaliseringsfaktor-unresolved',
-          'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler.'
+          'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler'
         ));
         return null;
       }

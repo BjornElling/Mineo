@@ -53,7 +53,7 @@ export const parseCommittedPercent = (raw: number | undefined): number | undefin
 export const hasTextValue = (raw: string | number | undefined): boolean =>
   typeof raw === 'number' ? Number.isFinite(raw) : typeof raw === 'string' && raw.trim() !== '';
 
-const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.';
+const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato';
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
@@ -290,7 +290,7 @@ const validateDateNotBeforeSkadedato = (
   if (!skadedato) return undefined;
   const dateIso = coerceToISODateString(dateRaw);
   if (dateIso === undefined) return undefined;
-  if (dateIso < skadedato) return `Der er indtastet en ${fieldLabel} før skadedatoen.`;
+  if (dateIso < skadedato) return `Der er indtastet en ${fieldLabel} før skadedatoen`;
   return undefined;
 };
 
@@ -484,7 +484,7 @@ export const collectIncompleteRowIssues = (
 
   const hasMissingAfgoerelsesdato = startedRows.some((row) => !coerceToISODateString(row.afgoerelsesDato));
   if (hasMissingAfgoerelsesdato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelsesdato, message: 'Der er en afgørelse uden afgørelsesdato.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelsesdato, message: 'Der er en afgørelse uden afgørelsesdato' });
   }
 
   const hasMissingEetPct = startedRows.some((row) => {
@@ -492,12 +492,12 @@ export const collectIncompleteRowIssues = (
     return pct === undefined || pct === 0;
   });
   if (hasMissingEetPct) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, message: 'Der er en afgørelse uden EET %.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, message: 'Der er en afgørelse uden EET %' });
   }
 
   const hasMissingAfgoerelseType = startedRows.some((row) => !row.afgoerelseType);
   if (hasMissingAfgoerelseType) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelseType, message: 'Der er en afgørelse uden afgørelsestype.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelseType, message: 'Der er en afgørelse uden afgørelsestype' });
   }
 
   const hasEndeligUnder50MissingKap = startedRows.some((row) => {
@@ -507,21 +507,21 @@ export const collectIncompleteRowIssues = (
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });
   if (hasEndeligUnder50MissingKap) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap, message: 'Endelig afgørelse under 50 % mangler oplysninger om kapitalisering.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap, message: 'Endelig afgørelse under 50 % mangler oplysninger om kapitalisering' });
   }
 
   const hasVirkningsdatoAfterTidlKapDato = startedRows.some(
     (row) => validateVirkningsDatoByTidlKapDato(row) !== undefined
   );
   if (hasVirkningsdatoAfterTidlKapDato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.virkningsdatoAfterTidlKapDato, message: 'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.virkningsdatoAfterTidlKapDato, message: 'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives' });
   }
 
   const hasKapDatoNotAfterTidlKapDato = startedRows.some(
     (row) => validateKapDatoByTidlKapDato(row) !== undefined
   );
   if (hasKapDatoNotAfterTidlKapDato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoNotAfterTidlKapDato, message: 'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoNotAfterTidlKapDato, message: 'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives' });
   }
 
   const hasKapDatoWithoutKapPct = startedRows.some(
@@ -532,7 +532,7 @@ export const collectIncompleteRowIssues = (
       row.afgoerelseType !== 'Midlertidig'
   );
   if (hasKapDatoWithoutKapPct) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct, message: 'Der er indtastet kapitaliseringsdato men ikke -procent.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct, message: 'Der er indtastet kapitaliseringsdato men ikke -procent' });
   }
 
   const hasKapPctWithoutKapDato = startedRows.some(
@@ -543,7 +543,7 @@ export const collectIncompleteRowIssues = (
       row.afgoerelseType !== 'Midlertidig'
   );
   if (hasKapPctWithoutKapDato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato, message: 'Der er indtastet kapitaliseringsprocent men ikke -dato.' });
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato, message: 'Der er indtastet kapitaliseringsprocent men ikke -dato' });
   }
 
   return issues;

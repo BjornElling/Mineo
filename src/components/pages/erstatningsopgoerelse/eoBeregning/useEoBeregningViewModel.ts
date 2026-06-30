@@ -244,7 +244,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         errors: [],
         warnings: [],
         relevantRows: [],
-        eoRowAggregationErrorMessage: 'Beregningens fejloverblik kan ikke vises på grund af en intern fejl.',
+        eoRowAggregationErrorMessage: 'Beregningens fejloverblik kan ikke vises på grund af en intern fejl',
       };
     }
 
@@ -354,10 +354,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'Opgørelsen kan ikke hentes for den aktuelle sag.';
+      return eoSnapshot.invariants[0]?.message ?? 'Opgørelsen kan ikke hentes for den aktuelle sag';
     }
     if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
+      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
     }
     if (eoPdfProjection?.kind === 'blocked') {
       return eoPdfProjection.message;
@@ -371,10 +371,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag.';
+      return eoSnapshot.invariants[0]?.message ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag';
     }
     if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
+      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
     }
     if (tafPdfProjection?.kind === 'blocked') {
       return tafPdfProjection.message;
@@ -388,10 +388,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag.';
+      return eoSnapshot.invariants[0]?.message ?? 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag';
     }
     if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
+      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
     }
     if (tafOpreguleretPdfProjection?.kind === 'blocked') {
       return tafOpreguleretPdfProjection.message;
@@ -405,10 +405,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.';
+      return eoSnapshot.invariants[0]?.message ?? 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag';
     }
     if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
+      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
     }
     if (tafKravGrafPdfProjection?.kind === 'blocked') {
       return tafKravGrafPdfProjection.message;
@@ -420,7 +420,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     () => createPdfGate(
       eoPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       eoPdfDisabledReason,
-      'Opgørelsen kan ikke hentes for den aktuelle sag.'
+      'Opgørelsen kan ikke hentes for den aktuelle sag'
     ),
     [eoPdfDisabledReason, eoPdfProjection, hasBlockingEoRowErrors]
   );
@@ -428,7 +428,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     () => createPdfGate(
       tafPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       tafPdfDisabledReason,
-      'TAF fordelt på år kan ikke genereres for den aktuelle sag.'
+      'TAF fordelt på år kan ikke genereres for den aktuelle sag'
     ),
     [hasBlockingEoRowErrors, tafPdfDisabledReason, tafPdfProjection]
   );
@@ -436,7 +436,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     () => createPdfGate(
       tafOpreguleretPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       tafOpreguleretPdfDisabledReason,
-      'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag.'
+      'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag'
     ),
     [hasBlockingEoRowErrors, tafOpreguleretPdfDisabledReason, tafOpreguleretPdfProjection]
   );
@@ -444,7 +444,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     () => createPdfGate(
       tafKravGrafPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       tafKravGrafPdfDisabledReason,
-      'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.'
+      'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag'
     ),
     [hasBlockingEoRowErrors, tafKravGrafPdfDisabledReason, tafKravGrafPdfProjection]
   );
@@ -507,7 +507,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
           // så UI-kontrakten ikke er implicit koblet til catch-blokken.
           pushIssue({
             id: 'snapshot-fail-closed-runtime',
-            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres på grund af en intern runtimefejl.',
+            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres på grund af en intern runtimefejl',
           });
           break;
         case 'invariant_guard':
@@ -516,7 +516,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
           // Neutral fejlbesked uden BugReportButton for deterministiske fail_closed-tilstande.
           pushIssue({
             id: 'snapshot-fail-closed',
-            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres — ret manglende eller ugyldige felter.',
+            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres — ret manglende eller ugyldige felter',
           });
           break;
       }

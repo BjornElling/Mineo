@@ -225,7 +225,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     ],
     summaryText: (row, message) => {
       if (message === 'Ikke alle felter udfyldt') {
-        return 'Der mangler indtastninger i perioden til beregning af før-løn.';
+        return 'Der mangler indtastninger i perioden til beregning af før-løn';
       }
       // Øvrige beskeder (overlap, rækkefølge, ugyldig dato) er allerede selvstændige sætninger.
       return message || fallbackIssueText(row, message);

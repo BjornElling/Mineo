@@ -152,7 +152,7 @@ export const resolveKapitaliseringAarsydelseBreakdown = (
     // kapitaliseringsaar >= 2024: opregulér grundydelse til 2024-niveau
     const opreguleringTil2024Pct = reguleringsprocentErhvervsevnetabFoer2024[2024];
     if (!Number.isFinite(opreguleringTil2024Pct)) {
-      issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
+      issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024'));
       return null;
     }
 
@@ -205,7 +205,7 @@ const collectResolvedRows = (
     issues.push(
       toIssue(
         'asl-afgoerelser-empty',
-        'Ingen ASL-afgørelser er indtastet.'
+        'Ingen ASL-afgørelser er indtastet'
       )
     );
     return result;
@@ -219,7 +219,7 @@ const collectResolvedRows = (
     issues.push(
       toIssue(
         'no-endelig-afgoerelser',
-        'Ingen endelig eller delvist endelig afgørelser indtastet.'
+        'Ingen endelig eller delvist endelig afgørelser indtastet'
       )
     );
   }
@@ -255,7 +255,7 @@ const collectResolvedRows = (
   if (hasDelvistEndeligWithoutKapInfo) {
     issues.push(toIssue(
       'delvist-endelig-missing-kapitalisering',
-      'Der er angivet en delvist endelig afgørelse uden kapitalisering.'
+      'Der er angivet en delvist endelig afgørelse uden kapitalisering'
     ));
   }
 
@@ -298,7 +298,7 @@ const collectResolvedRows = (
   });
 
   if (startedRows.length > 0 && !hasAnyKapInput && !hasForcedEndeligUnderTwoYears) {
-    issues.push(toWarning(WARN_NO_KAP_INPUT_ID, 'Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse.'));
+    issues.push(toWarning(WARN_NO_KAP_INPUT_ID, 'Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse'));
   }
 
   if (
@@ -317,7 +317,7 @@ const collectResolvedRows = (
 
   const hasKapPctUnder15 = result.some((row) => row.kapPct > 0 && row.kapPct < 15);
   if (hasKapPctUnder15) {
-    issues.push(toWarning('warn-kap-pct-under-15', 'Der er angivet kapitalisering med mindre end 15 %.'));
+    issues.push(toWarning('warn-kap-pct-under-15', 'Der er angivet kapitalisering med mindre end 15 %'));
   }
 
   return result.sort((a, b) => {
@@ -342,15 +342,15 @@ export const computeEetKapitaliseringCalculation = (
   const aarsloen = amountValueToNumber(values.aslAarsloen);
 
   if (!Number.isFinite(aarsloen)) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt.'));
+    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
   } else if (aarsloen === 0) {
-    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
+    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr'));
   }
   if (!fodselsdato) {
-    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
+    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
   }
   if (!skadedato) {
-    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
+    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
   }
 
   const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues, skadedato, fodselsdato);
@@ -378,7 +378,7 @@ export const computeEetKapitaliseringCalculation = (
   const amFaktor = from2011 ? 0.92 : 1;
   const needsKoen = resolvedRows.some((row) => row.kapDato !== null && row.kapDato < SKAERING_2015_03_01);
   if (needsKoen && !values.koen) {
-    issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives.'));
+    issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives'));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
@@ -435,7 +435,7 @@ export const computeEetKapitaliseringCalculation = (
 
     const controlAge = calculateAgeYearsMonths(fodselsdato, controlDate);
     if (!controlAge) {
-      issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes for kontroltidspunktet.'));
+      issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes for kontroltidspunktet'));
       continue;
     }
 
@@ -457,7 +457,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsfaktor-unresolved',
-            'Særfaktor mangler for kapitalisering under 2 år til folkepension.'
+            'Særfaktor mangler for kapitalisering under 2 år til folkepension'
           )
         );
         continue;
@@ -501,7 +501,7 @@ export const computeEetKapitaliseringCalculation = (
       resolvedSaerfaktor = resolveSaerfaktor(effectiveData, skadedato);
       const effectiveAge = calculateAgeYearsMonths(fodselsdato, effectiveKapDato);
       if (!effectiveAge) {
-        issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på kapitaliseringstidspunktet.'));
+        issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på kapitaliseringstidspunktet'));
         continue;
       }
       ageForFactor = effectiveAge;
@@ -551,7 +551,7 @@ export const computeEetKapitaliseringCalculation = (
           issues.push(
             toIssue(
               'kapitaliseringsfaktor-unresolved',
-              'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler.'
+              'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler'
             )
           );
           continue;

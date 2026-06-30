@@ -234,7 +234,7 @@ const collectWarnings = (
   issues: EetIssue[]
 ): void => {
   if (afgoerelser.some((row) => row.eetPct < 15)) {
-    issues.push(toWarning('warn-asl-eet-under-15', 'Der er indtastet en afgørelse med < 15 % erhvervsevnetab.'));
+    issues.push(toWarning('warn-asl-eet-under-15', 'Der er indtastet en afgørelse med under 15 % erhvervsevnetab'));
   }
 
   const firstInvalidPctAfter2024 = skadedato >= SKAERING_2024_07_01
@@ -272,15 +272,15 @@ const collectWarnings = (
   }
 
   if (afgoerelser.some((row) => row.afgoerelsesdato > beregningsdato)) {
-    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen.'));
+    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen'));
   }
 
   if (afgoerelser.some((row) => row.virkningsdato > beregningsdato)) {
-    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen.'));
+    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen'));
   }
 
   if (afgoerelser.some((row) => row.kapDato !== undefined && row.kapDato > beregningsdato)) {
-    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen.'));
+    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen'));
   }
 };
 
@@ -298,7 +298,7 @@ const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: E
     issues.push(
       toIssue(
         'delvist-endelig-missing-kapitalisering',
-        'Der er angivet en delvist endelig afgørelse uden kapitalisering.'
+        'Der er angivet en delvist endelig afgørelse uden kapitalisering'
       )
     );
   }
@@ -306,7 +306,7 @@ const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: E
   if (hasIdenticalAfgoerelser(rows)) {
     issues.push(toIssue(
       ASL_IDENTICAL_AFGOERELSER_ID,
-      'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.'
+      'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato'
     ));
   }
 };
@@ -606,18 +606,18 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
 
   if (!Number.isFinite(aslAarsloenRaw)) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt.'));
+    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
   } else if (aslAarsloenRaw === 0) {
-    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
+    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr'));
   }
   if (!fodselsdato) {
-    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
+    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
   }
   if (!beregningsdato) {
-    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
+    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt'));
   }
   if (!skadedato) {
-    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
+    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
   }
 
   collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues);
@@ -625,7 +625,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const resolvedAfgoerelser = collectResolvedAfgoerelser(input.erhvervsevnetab.aslAfgoerelser);
   const allRowsEmpty = input.erhvervsevnetab.aslAfgoerelser.every((row) => isAslAfgoerelseRowEmpty(row));
   if (allRowsEmpty) {
-    issues.push(toIssue('asl-afgoerelser-empty', 'Ingen ASL-afgørelser er indtastet.'));
+    issues.push(toIssue('asl-afgoerelser-empty', 'Ingen ASL-afgørelser er indtastet'));
   }
 
   if (
@@ -653,7 +653,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 
   const ealAarsloenInput = amountValueToNumber(input.erhvervsevnetab.ealAarsloen);
   if ((ealAarsloenInput === undefined || !Number.isFinite(ealAarsloenInput)) && aslAarsloen === maxAarsloenISkadesaar) {
-    issues.push(toWarning('warn-asl-aarsloen-is-max', 'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.'));
+    issues.push(toWarning('warn-asl-aarsloen-is-max', 'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL'));
   }
 
   const before2024Skade = skadedato < SKAERING_2024_07_01;

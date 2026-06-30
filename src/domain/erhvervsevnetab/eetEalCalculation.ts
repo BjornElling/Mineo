@@ -245,31 +245,31 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const ealAarsloenRaw = amountValueToNumber(values.ealAarsloen);
   const aslAarsloenRaw = amountValueToNumber(values.aslAarsloen);
   if (ealAarsloenRaw === 0) {
-    issues.push(toIssue('eal-aarsloen-zero', 'EAL-årsløn må ikke være 0 kr.'));
+    issues.push(toIssue('eal-aarsloen-zero', 'EAL-årsløn må ikke være 0 kr'));
   } else if (aslAarsloenRaw === 0) {
-    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
+    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr'));
   } else if (aarsloen.value === null || aarsloen.source === null) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt.'));
+    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
   }
 
   if (hasIdenticalAfgoerelser(values.aslAfgoerelser ?? [])) {
-    issues.push(toIssue(ASL_IDENTICAL_AFGOERELSER_ID, 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.'));
+    issues.push(toIssue(ASL_IDENTICAL_AFGOERELSER_ID, 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato'));
   }
 
   const eetPctResolution = resolveEetPct(values);
   issues.push(...eetPctResolution.issues);
   if (!eetPctResolution.resolved && eetPctResolution.issues.length === 0) {
-    issues.push(toIssue('eet-pct-missing', 'Erhvervsevnetabsprocent er ikke udfyldt.'));
+    issues.push(toIssue('eet-pct-missing', 'Erhvervsevnetabsprocent er ikke udfyldt'));
   }
 
   if (!fodselsdato) {
-    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
+    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
   }
   if (!beregningsdato) {
-    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
+    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt'));
   }
   if (!skadedato) {
-    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
+    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
   }
 
   const hasBlockingIssues = issues.some((issue) => issue.severity === 'error');
@@ -287,7 +287,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     issues.push(
       toWarning(
         'warn-beregningsdato-foer-skadedato',
-        'Beregningsdatoen ligger før skadedatoen. Kravet opreguleres ikke — kontrollér datoerne.'
+        'Beregningsdatoen ligger før skadedatoen. Kravet opreguleres ikke — kontrollér datoerne'
       )
     );
   }
@@ -311,13 +311,13 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const alderVedSkade = calculateAgeInWholeYears(fodselsdato, skadedato);
   if (alderVedSkade === null) {
-    issues.push(toIssue('alder-unresolved', 'Alder på skadestidspunkt kan ikke beregnes.'));
+    issues.push(toIssue('alder-unresolved', 'Alder på skadestidspunkt kan ikke beregnes'));
   }
 
   const blockingIssues = issues.some((issue) => issue.severity === 'error');
 
   if (values.ealEetPct !== undefined && values.ealEetPct !== 0 && values.ealEetPct < 15) {
-    issues.push(toWarning('warn-eal-eet-under-15', 'Der er angivet et EET efter EAL på mindre end 15 %.'));
+    issues.push(toWarning('warn-eal-eet-under-15', 'Der er angivet et EET efter EAL på mindre end 15 %'));
   }
 
   if (
@@ -325,13 +325,13 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     eetPctResolution.resolved?.source === 'asl' &&
     eetPctResolution.resolved.value < 15
   ) {
-    issues.push(toWarning('warn-asl-eet-under-15', 'Der er angivet et EET på mindre end 15 %.'));
+    issues.push(toWarning('warn-asl-eet-under-15', 'Der er angivet et EET på mindre end 15 %'));
   }
 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);
   const maxAarsloenForSkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar, input.aarsloenAslMax);
   const maxAarsloenWarningMessage =
-    'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.';
+    'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL';
   const isSkadeFraJuli2024EllerSenere = skadedato >= SKAERING_2024_07_01;
 
   if (

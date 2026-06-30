@@ -96,7 +96,7 @@ const safeBuildProjection = <TComputation>(
       },
     });
     return {
-      issues: createRuntimeExceptionIssue('Beregningen kan ikke gennemføres på grund af en intern beregningsfejl.'),
+      issues: createRuntimeExceptionIssue('Beregningen kan ikke gennemføres på grund af en intern beregningsfejl'),
       hasBlockingErrors: true,
       computation: null,
     };
@@ -194,13 +194,13 @@ const resolveForligBlocking = (forlig: EetForligInput | undefined): Readonly<{
   if (forlig.hasInvalidDraft) {
     return {
       forligFactor: null,
-      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: 'Forlig om ansvarsgrad indeholder en ugyldig værdi.' },
+      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: 'Forlig om ansvarsgrad indeholder en ugyldig værdi' },
     };
   }
   if (evaluation.status === 'invalid') {
     return {
       forligFactor: null,
-      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: `Forlig om ansvarsgrad: ${evaluation.message}.` },
+      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: `Forlig om ansvarsgrad: ${evaluation.message}` },
     };
   }
   return { forligFactor: evaluation.status === 'valid' ? evaluation.forlig : null, issue: null };

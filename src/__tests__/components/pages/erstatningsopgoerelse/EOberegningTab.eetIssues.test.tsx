@@ -109,8 +109,8 @@ const makeEetInvariant = (severity: 'error' | 'warning'): EoInvariant => ({
   severity,
   source: 'validation',
   message: severity === 'error'
-    ? 'Årsløn er ikke udfyldt.'
-    : 'Der er indtastet en afgørelse med < 15 % erhvervsevnetab.',
+    ? 'Årsløn er ikke udfyldt'
+    : 'Der er indtastet en afgørelse med under 15 % erhvervsevnetab',
   evidence: ['erhvervsevnetab'],
   blocksAuthoritativeComputation: severity === 'error',
   blocksOutputs: severity === 'error' ? ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] : [],
@@ -133,14 +133,14 @@ describe('EOberegningTab EET-issues', () => {
   it('viser EET-fejl fra snapshot-invarianter når togglen er aktiv', () => {
     renderTab({ invariants: [makeEetInvariant('error')] });
 
-    expect(screen.getByText('Årsløn er ikke udfyldt.')).toBeInTheDocument();
+    expect(screen.getByText('Årsløn er ikke udfyldt')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'EET oplysninger' })).toBeInTheDocument();
   });
 
   it('viser EET-advarsler fra snapshot-invarianter når togglen er aktiv', () => {
     renderTab({ invariants: [makeEetInvariant('warning')] });
 
-    expect(screen.getByText('Der er indtastet en afgørelse med < 15 % erhvervsevnetab.')).toBeInTheDocument();
+    expect(screen.getByText('Der er indtastet en afgørelse med under 15 % erhvervsevnetab')).toBeInTheDocument();
   });
 
   it('skjuler EET-issues når togglen ikke er aktiv', () => {
@@ -150,7 +150,7 @@ describe('EOberegningTab EET-issues', () => {
     };
     renderTab({ eoValues, invariants: [makeEetInvariant('error')] });
 
-    expect(screen.queryByText('Årsløn er ikke udfyldt.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Årsløn er ikke udfyldt')).not.toBeInTheDocument();
   });
 
   it('navigerer til Erhvervsevnetab-sidens inputfane når brugeren klikker på linket', () => {
