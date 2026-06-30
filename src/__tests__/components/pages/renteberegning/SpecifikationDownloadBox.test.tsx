@@ -22,7 +22,7 @@ describe('SpecifikationDownloadBox', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /download alle som PDF/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download som PDF/i })).toBeInTheDocument();
   });
 
   it('aktiverer onDownloadAll ved klik på knappen', async () => {
@@ -39,7 +39,7 @@ describe('SpecifikationDownloadBox', () => {
       />
     );
 
-    await user.click(screen.getByRole('button', { name: /download alle som PDF/i }));
+    await user.click(screen.getByRole('button', { name: /download som PDF/i }));
 
     expect(onDownloadAll).toHaveBeenCalledTimes(1);
   });
@@ -69,7 +69,7 @@ describe('SpecifikationDownloadBox', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /download alle som PDF/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /download som PDF/i })).toBeDisabled();
   });
 
   it('viser fejlbesked selv om disabled=true', () => {
