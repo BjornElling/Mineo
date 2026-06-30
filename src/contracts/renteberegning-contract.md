@@ -3,7 +3,7 @@
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-06-20
+**Senest verificeret mod kode:** 2026-06-30
 
 ---
 
@@ -20,7 +20,7 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 1. Renteberegning må kun bruge committed input, og kun via de autoritative moduler i §1.
 2. Dato- og dagtælling følger `date-contract.md`.
 3. Beløb og afrunding følger `amount-contract.md`, medmindre rentedomænet får en mere specifik dokumenteret regel.
-4. PDF-download og nulstilling ("Slet alle indtastninger") kræver begge en eksplicit, auditerbar gate beregnet fra committed input (jf. `downloadAllDisabled`/`oversigtDownloadDisabled`/`clearAllDisabled` i `RenteberegningTab.tsx`), ikke implicit tabelcontext.
+4. PDF-download og nulstilling ("Slet alle indtastninger") kræver begge en eksplicit, auditerbar gate beregnet fra committed input, ikke implicit tabelcontext. Download-gaten bygges på det fælles `documentGateTypes`-primitiv (jf. `document-output-contract.md §A2`) via de rene domæne-funktioner `evaluateDownloadAllGate`/`evaluateOversigtDownloadGate` (`src/domain/renteberegning/renteberegningDownloadGate.ts`), som `RenteberegningTab.tsx` forbruger til `downloadAllDisabled`/`oversigtDownloadDisabled`. Nulstillings-gaten (`clearAllDisabled`) udledes fortsat committed-only i `RenteberegningTab.tsx`.
 5. Renderer-fejl må ikke være primær gate for ugyldigt brugerinput.
 
 ---

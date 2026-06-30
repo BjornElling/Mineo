@@ -3,7 +3,7 @@
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-06-30
 
 ---
 
@@ -19,7 +19,7 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
 
 1. Siden må læse `stamdata` og egen `varigemen`-sektion.
 2. Beregning må ikke læse draft-state eller lokal UI-state, og må kun ske via det autoritative engine-modul i §1.
-3. PDF-download skal gates før renderer-kald.
+3. PDF-download skal gates før renderer-kald. Gaten bygges på det fælles `documentGateTypes`-primitiv (jf. `document-output-contract.md §A2`) via den rene domæne-funktion `evaluateVarigeMenDownloadGate` (`src/domain/varigemen/varigeMenDownloadGate.ts`), som `MenberegningTab.tsx` forbruger; den udledes committed-only.
 4. Runtimefejl må ikke give gyldige totals eller PDF-projektion.
 
 ---
