@@ -950,7 +950,7 @@ describe('computeEetLoebendeYdelser', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.message === 'Der er indtastet kapitaliseringsdato men ikke -procent.')).toBe(true);
+    expect(result.issues.some((issue) => issue.message === 'Der er indtastet kapitaliseringsdato men ikke -procent')).toBe(true);
   });
 
   it('fortsætter løbende beregning når endelig afgørelse under 50 % ikke kapitaliseres', () => {
@@ -1765,7 +1765,7 @@ describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
     expect(result.issues).toContainEqual({
       id: 'beregningsdato-missing',
       severity: 'error',
-      message: 'Beregningsdato er ikke udfyldt.',
+      message: 'Beregningsdato er ikke udfyldt',
     });
   });
 

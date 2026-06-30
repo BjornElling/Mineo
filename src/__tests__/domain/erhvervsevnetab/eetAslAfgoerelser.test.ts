@@ -403,7 +403,7 @@ describe('validateDuplicateAfgoerelse', () => {
     const secondError = validateDuplicateAfgoerelse(second, [first, second]);
 
     expect(firstError).toBeUndefined();
-    expect(secondError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.');
+    expect(secondError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato');
   });
 
   it('giver fejl selvom afgørelsestype er forskellig', () => {
@@ -421,7 +421,7 @@ describe('validateDuplicateAfgoerelse', () => {
     });
 
     const secondError = validateDuplicateAfgoerelse(second, [first, second]);
-    expect(secondError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.');
+    expect(secondError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato');
   });
 
   it('giver ingen fejl når virkningsdato er forskellig', () => {

@@ -192,7 +192,7 @@ describe('computeEetEalCalculation', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.message === 'Erhvervsevnetabsprocent er ikke udfyldt.')).toBe(true);
+    expect(result.issues.some((issue) => issue.message === 'Erhvervsevnetabsprocent er ikke udfyldt')).toBe(true);
   });
 
   it('giver fejl når reguleringssats mangler for et nødvendigt år', () => {

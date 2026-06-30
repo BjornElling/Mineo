@@ -60,7 +60,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'asl-afgoerelser-empty',
       severity: 'error',
-      message: 'Ingen ASL-afgørelser er indtastet.',
+      message: 'Ingen ASL-afgørelser er indtastet',
     });
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsesdato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsestype')).toBe(false);
@@ -94,7 +94,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'asl-afgoerelser-empty',
       severity: 'error',
-      message: 'Ingen ASL-afgørelser er indtastet.',
+      message: 'Ingen ASL-afgørelser er indtastet',
     });
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsesdato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsestype')).toBe(false);
@@ -154,7 +154,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'kap-dato-without-kap-pct',
       severity: 'error',
-      message: 'Der er indtastet kapitaliseringsdato men ikke -procent.',
+      message: 'Der er indtastet kapitaliseringsdato men ikke -procent',
     });
     expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
@@ -186,7 +186,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'kap-pct-without-kap-dato',
       severity: 'error',
-      message: 'Der er indtastet kapitaliseringsprocent men ikke -dato.',
+      message: 'Der er indtastet kapitaliseringsprocent men ikke -dato',
     });
     expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
@@ -219,7 +219,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'no-endelig-afgoerelser',
       severity: 'error',
-      message: 'Ingen endelig eller delvist endelig afgørelser indtastet.',
+      message: 'Ingen endelig eller delvist endelig afgørelser indtastet',
     });
     expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
@@ -249,8 +249,8 @@ describe('computeEetKapitaliseringCalculation', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden afgørelsesdato.')).toBe(true);
-    expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden EET %.')).toBe(false);
+    expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden afgørelsesdato')).toBe(true);
+    expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden EET %')).toBe(false);
   });
 
   it('beregner delvis kapitalisering med tabelinterpolation for en moderne bekendtgørelse', () => {
@@ -497,7 +497,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'missing-koen',
       severity: 'error',
-      message: 'Ved kapitalisering før 1. marts 2015 skal køn angives.',
+      message: 'Ved kapitalisering før 1. marts 2015 skal køn angives',
     });
   });
 
