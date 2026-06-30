@@ -531,7 +531,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <SnapshotDownloadButton
               canDownload={canDownloadSnapshotTafPdf}
               onClick={handleDownloadTafFordeltPdf}
-              reason={tafPdfDisabledReason}
+              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafPdfDisabledReason}
               fallbackTitle="TAF fordelt på år kan ikke genereres for den aktuelle sag."
             />
           </Box>
@@ -546,7 +546,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <SnapshotDownloadButton
               canDownload={canDownloadSnapshotTafOpreguleretPdf}
               onClick={handleDownloadTafOpreguleretPdf}
-              reason={tafOpreguleretPdfDisabledReason}
+              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafOpreguleretPdfDisabledReason}
               fallbackTitle="TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag."
             />
           </Box>
@@ -560,7 +560,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <SnapshotDownloadButton
               canDownload={canDownloadSnapshotTafKravGrafPdf}
               onClick={handleDownloadTafKravGrafPdf}
-              reason={tafKravGrafPdfDisabledReason}
+              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafKravGrafPdfDisabledReason}
               fallbackTitle="Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag."
             />
           </Box>
