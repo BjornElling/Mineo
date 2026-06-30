@@ -188,10 +188,18 @@ const splitWindowByMonths = (window: TafKravGrafTimeWindow): TafKravGrafTimeWind
   return result;
 };
 
-const sumSeriesInRange = (series: TafKravGrafSeries, fra: ISODateString, til: ISODateString): number =>
+const amountAtIso = (series: TafKravGrafSeries, iso: ISODateString): number =>
   series.segments
-    .filter((segment) => segment.fra <= til && segment.til >= fra)
+    .filter((segment) => segment.fra <= iso && segment.til >= iso)
     .reduce((sum, segment) => sum + segment.amountOre, 0);
+
+const midpointIso = (range: TafKravGrafTimeWindow): ISODateString => {
+  const start = parseISODate(range.fra);
+  if (!start) return range.fra;
+  const result = new Date(start.getTime());
+  result.setUTCDate(result.getUTCDate() + Math.floor(daysBetween(range.fra, range.til) / 2));
+  return dateToISO(result) ?? range.fra;
+};
 
 // Kantbevidst glidende gennemsnit: udglatter kun inden for hver sammenhængende
 // aktive strækning (måneder med beløb > 0). Nul-måneder før en series start og
@@ -220,36 +228,10 @@ const smoothWithinActiveRuns = (values: readonly number[], window: number): numb
   return result;
 };
 
-// Tidligste segment-start / seneste segment-slut blandt seriens segmenter, der
-// overlapper en given måned. Bruges til at forankre start/slut-ankre på den
-// faktiske grænsedato frem for måneds-midtpunktet.
-const firstSegmentStartInMonth = (
-  series: TafKravGrafSeries,
-  month: TafKravGrafTimeWindow
-): ISODateString | null => {
-  let earliest: ISODateString | null = null;
-  for (const segment of series.segments) {
-    if (segment.fra <= month.til && segment.til >= month.fra) {
-      if (earliest === null || segment.fra < earliest) earliest = segment.fra;
-    }
-  }
-  return earliest;
-};
+type SampleColumn = { x: number; order: number; values: number[] };
 
-const lastSegmentEndInMonth = (
-  series: TafKravGrafSeries,
-  month: TafKravGrafTimeWindow
-): ISODateString | null => {
-  let latest: ISODateString | null = null;
-  for (const segment of series.segments) {
-    if (segment.fra <= month.til && segment.til >= month.fra) {
-      if (latest === null || segment.til > latest) latest = segment.til;
-    }
-  }
-  return latest;
-};
-
-type SampleColumn = { x: number; values: number[] };
+const buildValuesAtIso = (document: TafKravGrafDocument, iso: ISODateString): number[] =>
+  document.series.map((series) => amountAtIso(series, iso));
 
 const buildWindowSamples = (
   document: TafKravGrafDocument,
@@ -259,112 +241,58 @@ const buildWindowSamples = (
 ): WindowSamples[] =>
   layout.map((entry) => {
     const months = splitWindowByMonths(entry.window);
-    const monthMidX = months.map((month) => {
+    const columns: SampleColumn[] = months.map((month, index) => {
       const x1 = mapDate(month.fra);
       const x2 = mapDate(month.til);
-      return x1 !== null && x2 !== null ? (x1 + x2) / 2 : entry.x;
-    });
-    const smoothedBySeries = document.series.map((series) => {
-      const raw = months.map((month) => sumSeriesInRange(series, month.fra, month.til));
-      return smoothWithinActiveRuns(raw, smoothingWindow);
+      return {
+        x: x1 !== null && x2 !== null ? (x1 + x2) / 2 : entry.x,
+        order: 1_000 + index,
+        values: buildValuesAtIso(document, midpointIso(month)),
+      };
     });
 
-    // Find hvilken måned en given dato falder i (til at vælge de øvrige seriers
-    // niveau i en anker-kolonne).
-    const monthIndexContaining = (iso: ISODateString): number => {
-      const index = months.findIndex((month) => iso >= month.fra && iso <= month.til);
-      return index >= 0 ? index : 0;
-    };
-
-    // Start-/slut-ankre: hvor en serie går inaktiv→aktiv (eller aktiv→inaktiv)
-    // inde i vinduet, skal overgangen være et lodret spring på den faktiske
-    // grænsedato — ikke en blød opletning/nedtoning, der visuelt smitter ind i
-    // nabomånederne. Det opnås ved at lægge BÅDE et nul-punkt og et aktiv-værdi-
-    // punkt på samme x (grænsedatoen): tilkomst får nul→værdi (lodret op), ophør
-    // får værdi→nul (lodret ned). Den almindelige bløde kurve mellem fortløbende
-    // måneder er urørt. Grupperes pr. dato, så flere serier kan dele samme anker.
-    // `starts`/`ends` afbilder serie-index → den aktive måneds index (kilden til
-    // aktiv-værdien).
-    type AnchorEntry = {
-      x: number;
-      monthIndex: number;
-      starts: Map<number, number>;
-      ends: Map<number, number>;
-    };
-    const anchorByIso = new Map<ISODateString, AnchorEntry>();
-    const ensureAnchor = (iso: ISODateString | null): AnchorEntry | null => {
-      if (!iso) return null;
-      const existing = anchorByIso.get(iso);
-      if (existing) return existing;
-      const x = mapDate(iso);
-      if (x === null) return null;
-      const entry: AnchorEntry = { x, monthIndex: monthIndexContaining(iso), starts: new Map(), ends: new Map() };
-      anchorByIso.set(iso, entry);
-      return entry;
-    };
-    smoothedBySeries.forEach((values, seriesIndex) => {
-      for (let i = 1; i < values.length; i += 1) {
-        const active = values[i] > 0;
-        const prevActive = values[i - 1] > 0;
-        if (active && !prevActive) {
-          // Tilkomst inde i vinduet: forankr på seriens faktiske segment-start.
-          ensureAnchor(firstSegmentStartInMonth(document.series[seriesIndex], months[i]))?.starts.set(seriesIndex, i);
-        } else if (!active && prevActive) {
-          // Ophør inde i vinduet: forankr på dagen efter seriens seneste segment-slut.
-          const end = lastSegmentEndInMonth(document.series[seriesIndex], months[i - 1]);
-          ensureAnchor(end ? getDayAfterIso(end) : null)?.ends.set(seriesIndex, i - 1);
+    // Segmentgrænser er autoritative for visuel tilstedeværelse. Måneds-midtpunkter
+    // alene kan få en kort løn-/ydelsesperiode til at fylde hele måneden visuelt.
+    // Derfor lægges der før/efter-kolonner på hver faktisk start og dagen efter
+    // hver faktisk slutdato, så kurven springer på brugerens indtastede datoer.
+    const transitionDates = new Set<ISODateString>([entry.window.fra]);
+    for (const series of document.series) {
+      for (const segment of series.segments) {
+        if (segment.til < entry.window.fra || segment.fra > entry.window.til) continue;
+        transitionDates.add(segment.fra < entry.window.fra ? entry.window.fra : segment.fra);
+        const afterEnd = getDayAfterIso(segment.til);
+        if (afterEnd && afterEnd >= entry.window.fra && afterEnd <= entry.window.til) {
+          transitionDates.add(afterEnd);
         }
       }
-    });
-
-    const columns: SampleColumn[] = months.map((_, j) => ({
-      x: monthMidX[j],
-      values: smoothedBySeries.map((values) => values[j]),
-    }));
-    // Kolonnerne pushes i den rækkefølge de skal optræde fra venstre mod højre;
-    // en stabil sortering (ES2019+) bevarer rækkefølgen for ens x, så aktiv-side
-    // og nul-side lander på den rigtige side af springet.
-    for (const { x, monthIndex, starts, ends } of anchorByIso.values()) {
-      // Aktiv-side for ophør: lægges FØR nul-kolonnen → lodret fald.
-      if (ends.size > 0) {
-        columns.push({
-          x,
-          values: smoothedBySeries.map((values, seriesIndex) => {
-            const endMonth = ends.get(seriesIndex);
-            if (endMonth !== undefined) return values[endMonth];
-            if (starts.has(seriesIndex)) return 0;
-            return values[monthIndex];
-          }),
-        });
-      }
-      // Nul-kolonne på selve grænsedatoen: alle skiftende serier er 0.
-      columns.push({
-        x,
-        values: smoothedBySeries.map((values, seriesIndex) =>
-          starts.has(seriesIndex) || ends.has(seriesIndex) ? 0 : values[monthIndex]
-        ),
-      });
-      // Aktiv-side for tilkomst: lægges EFTER nul-kolonnen → lodret stigning.
-      if (starts.size > 0) {
-        columns.push({
-          x,
-          values: smoothedBySeries.map((values, seriesIndex) => {
-            const startMonth = starts.get(seriesIndex);
-            if (startMonth !== undefined) return values[startMonth];
-            if (ends.has(seriesIndex)) return 0;
-            return values[monthIndex];
-          }),
-        });
-      }
     }
-    columns.sort((a, b) => a.x - b.x);
+    let transitionOrder = 0;
+    for (const iso of [...transitionDates].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+      const x = mapDate(iso);
+      if (x === null) continue;
+      const afterValues = buildValuesAtIso(document, iso);
+      const beforeIso = getDayBeforeIso(iso);
+      const beforeValues = beforeIso && beforeIso >= entry.window.fra
+        ? buildValuesAtIso(document, beforeIso)
+        : null;
+      if (beforeValues && beforeValues.some((value, index) => value !== afterValues[index])) {
+        columns.push({ x, order: transitionOrder, values: beforeValues });
+        transitionOrder += 1;
+      }
+      columns.push({ x, order: transitionOrder, values: afterValues });
+      transitionOrder += 1;
+    }
+    columns.sort((a, b) => a.x - b.x || a.order - b.order);
+    const smoothedBySeries = document.series.map((_, seriesIndex) =>
+      smoothWithinActiveRuns(columns.map((column) => column.values[seriesIndex] ?? 0), smoothingWindow)
+    );
 
     return {
       window: entry.window,
       sampleX: columns.map((column) => column.x),
       leftX: entry.x,
       rightX: entry.x + entry.width,
-      valuesBySeries: document.series.map((_, seriesIndex) => columns.map((column) => column.values[seriesIndex])),
+      valuesBySeries: smoothedBySeries,
     };
   });
 
@@ -791,6 +719,8 @@ export const __tafKravGrafChartTestables = {
   buildNiceMoneyTicks,
   smoothWithinActiveRuns,
   buildWindowLayout,
+  buildXMapper,
+  buildWindowSamples,
   buildDateTicks,
   canAppendTerminalDateLabel,
 };

@@ -16,6 +16,7 @@ import {
   buildIncomeCalculationContext,
   buildIncomeForRanges,
   buildIncomeInputRanges,
+  buildIncomeSourceRanges,
   type IncomeCalculationContext,
   resolveArbejdsstedDisplayName,
   roundIncomeBenefitAmountKroner,
@@ -168,7 +169,43 @@ const splitRangeByCalendarMonths = (range: TafKravGrafTimeWindow): TafKravGrafTi
   return result;
 };
 
-const countArbejsdageInRange = (
+const splitRangeByGraphSamples = (
+  range: TafKravGrafTimeWindow,
+  incomeSourceRanges: readonly TafKravGrafTimeWindow[]
+): TafKravGrafTimeWindow[] => {
+  const boundaries = new Set<ISODateString>([range.fra]);
+  const dayAfterRange = getDayAfterIso(range.til);
+  if (dayAfterRange) boundaries.add(dayAfterRange);
+
+  for (const month of splitRangeByCalendarMonths(range)) {
+    boundaries.add(month.fra);
+    const afterMonth = getDayAfterIso(month.til);
+    if (afterMonth) boundaries.add(afterMonth);
+  }
+
+  for (const source of incomeSourceRanges) {
+    const fra = maxISO(source.fra, range.fra);
+    const til = minISO(source.til, range.til);
+    if (fra > til) continue;
+    boundaries.add(fra);
+    const afterSource = getDayAfterIso(til);
+    if (afterSource) boundaries.add(afterSource);
+  }
+
+  const sorted = [...boundaries].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const result: TafKravGrafTimeWindow[] = [];
+  for (let index = 0; index < sorted.length; index += 1) {
+    const fra = sorted[index];
+    const next = sorted[index + 1];
+    if (!fra) continue;
+    const til = next ? getDayBeforeIso(next) : range.til;
+    if (!til || fra > til || fra > range.til || til < range.fra) continue;
+    result.push({ fra: maxISO(fra, range.fra), til: minISO(til, range.til) });
+  }
+  return result;
+};
+
+const countArbejdsdageInRange = (
   range: TafKravGrafTimeWindow,
   context: IncomeCalculationContext | null
 ): number => {
@@ -188,7 +225,7 @@ const resolveUnitDivisor = (
   context: IncomeCalculationContext | null
 ): number => {
   if (unit === 'arbejdsdag') {
-    return countArbejsdageInRange(range, context);
+    return countArbejdsdageInRange(range, context);
   }
   return beregnArbejdsdageOgMaaneder(range.fra, range.til, new Set(), new Set()).maaneder;
 };
@@ -336,6 +373,7 @@ export const eoSnapshotToTafKravGrafDocument = (
   ) ?? null;
   const tafRanges = model.tafRanges.map((range) => ({ fra: range.fra, til: range.til }));
   const skadeIso = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt?.skadedato ?? null;
+  const incomeSourceRanges = buildIncomeSourceRanges(snapshot.input.erstatningsopgoerelse);
   const incomeRanges = buildIncomeInputRanges(snapshot.input.erstatningsopgoerelse);
   const timeWindows = buildTimeWindows([...tafRanges, ...incomeRanges], beregningsperiode, skadeIso);
   if (timeWindows.length === 0) {
@@ -352,7 +390,7 @@ export const eoSnapshotToTafKravGrafDocument = (
   const benefitRankByLabel = new Map<string, number>();
 
   for (const sourceRange of sourceRanges) {
-    for (const sampleRange of splitRangeByCalendarMonths(sourceRange)) {
+    for (const sampleRange of splitRangeByGraphSamples(sourceRange, incomeSourceRanges)) {
       const divisor = resolveUnitDivisor(sampleRange, unit, incomeContext);
       if (divisor <= 0) continue;
       const income = buildIncomeForRanges(
@@ -405,7 +443,7 @@ export const eoSnapshotToTafKravGrafDocument = (
       // Kun arbejdsdags-grundlaget kan få nul-arbejdsdags-huller (månedsløn har
       // altid positiv divisor); månedsløns-grafen er derved urørt af ferie/SH.
       const bridged = unit === 'arbejdsdag'
-        ? bridgeZeroWorkdayMonths(base, timeWindows, (range) => countArbejsdageInRange(range, incomeContext))
+        ? bridgeZeroWorkdayMonths(base, timeWindows, (range) => countArbejdsdageInRange(range, incomeContext))
         : base;
       return label === 'Sygedagpenge'
         ? stabilizeSygedagpengeShDips(bridged, incomeContext)

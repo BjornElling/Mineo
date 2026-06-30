@@ -170,7 +170,7 @@ export const buildBeregningsperiodeRange = (
   return validateIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil);
 };
 
-export const buildIncomeInputRanges = (
+export const buildIncomeSourceRanges = (
   values: ErstatningsopgoerelseValues
 ): IsoRange[] => {
   const ranges: IsoRange[] = [];
@@ -192,8 +192,12 @@ export const buildIncomeInputRanges = (
     if (fra && til) ranges.push({ fra, til });
   }
 
-  return mergeIsoDateRanges(ranges, { mergeAdjacent: true });
+  return ranges.sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : a.til < b.til ? -1 : a.til > b.til ? 1 : 0));
 };
+
+export const buildIncomeInputRanges = (
+  values: ErstatningsopgoerelseValues
+): IsoRange[] => mergeIsoDateRanges(buildIncomeSourceRanges(values), { mergeAdjacent: true });
 
 const resolveIncomeBounds = (
   values: ErstatningsopgoerelseValues,

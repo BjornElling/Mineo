@@ -1,7 +1,17 @@
 import { __tafKravGrafChartTestables } from '../../document/generators/tafFordelt/tafKravGrafChart';
+import type { TafKravGrafDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import { toISODateString } from '../../types/branded';
 
-const { niceCeil, buildNiceMoneyTicks, smoothWithinActiveRuns, buildWindowLayout, buildDateTicks, canAppendTerminalDateLabel } =
+const {
+  niceCeil,
+  buildNiceMoneyTicks,
+  smoothWithinActiveRuns,
+  buildWindowLayout,
+  buildXMapper,
+  buildWindowSamples,
+  buildDateTicks,
+  canAppendTerminalDateLabel,
+} =
   __tafKravGrafChartTestables;
 
 // Rene tegne-/sampling-helpers fra TAF-kravgrafen. De er præsentationsgeometri (de tal
@@ -128,6 +138,44 @@ describe('tafKravGrafChart — buildWindowLayout', () => {
     ]);
     // Andet vindue starter efter første vindues højre kant (x + bredde) plus brud-mellemrum.
     expect(layout[1].x).toBeGreaterThan(layout[0].x + layout[0].width);
+  });
+});
+
+describe('tafKravGrafChart — buildWindowSamples', () => {
+  const win = (fra: string, til: string) => ({ fra: toISODateString(fra), til: toISODateString(til) });
+
+  it('lader ikke en kort lønperiode smitte visuelt frem til månedens midtpunkt', () => {
+    const document = {
+      model: { titel: 'Visuel graf over indtægtsniveau' },
+      unit: 'arbejdsdag',
+      timeWindows: [win('2023-10-01', '2023-10-31')],
+      beregningsperiode: win('2023-10-02', '2023-10-08'),
+      skadeMarker: null,
+      series: [
+        {
+          id: 'loen',
+          label: 'Løn',
+          color: '#2F6B9A',
+          segments: [{ fra: toISODateString('2023-10-02'), til: toISODateString('2023-10-08'), amountOre: 10_000 }],
+        },
+        {
+          id: 'sygedagpenge',
+          label: 'Sygedagpenge',
+          color: '#4F8A5B',
+          segments: [{ fra: toISODateString('2023-10-09'), til: toISODateString('2023-10-22'), amountOre: 20_000 }],
+        },
+      ],
+    } as unknown as TafKravGrafDocument;
+    const layout = buildWindowLayout(document.timeWindows);
+    const mapDate = buildXMapper(layout);
+    const sample = buildWindowSamples(document, layout, mapDate, 1)[0];
+    if (!sample) throw new Error('forventede sample');
+    const expectedMidX = ((mapDate(toISODateString('2023-10-01')) ?? 0) + (mapDate(toISODateString('2023-10-31')) ?? 0)) / 2;
+    const midIndex = sample.sampleX.findIndex((x) => Math.abs(x - expectedMidX) < 0.0001);
+
+    expect(midIndex).toBeGreaterThanOrEqual(0);
+    expect(sample.valuesBySeries[0]?.[midIndex]).toBe(0);
+    expect(sample.valuesBySeries[1]?.[midIndex]).toBe(20_000);
   });
 });
 

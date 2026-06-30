@@ -7,8 +7,10 @@ import type { EoSnapshot, EoSnapshotComputedData } from '../../../domain/erstatn
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { toISODateString } from '../../../types/branded';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const iso = (value: string) => toISODateString(value);
+const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 vi.mock('../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder')>();
@@ -290,6 +292,141 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     });
   });
 
+  it('afgrænser løn og sygedagpenge på de faktiske skiftedatoer ved arbejdsdagsgraf', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    ctxMock.mockImplementation(() => ({
+      boundsFra: iso('2023-10-01'),
+      boundsTil: iso('2023-10-31'),
+      arbejdsdageSet: new Set([
+        iso('2023-10-02'),
+        iso('2023-10-03'),
+        iso('2023-10-04'),
+        iso('2023-10-05'),
+        iso('2023-10-06'),
+        iso('2023-10-09'),
+        iso('2023-10-10'),
+        iso('2023-10-11'),
+        iso('2023-10-12'),
+        iso('2023-10-13'),
+        iso('2023-10-16'),
+        iso('2023-10-17'),
+        iso('2023-10-18'),
+        iso('2023-10-19'),
+        iso('2023-10-20'),
+      ]),
+      shDaysForYdelser: new Set(),
+      loenErrorRowIdsByEmploymentId: new Map(),
+    }));
+    incomeMock.mockImplementation((_values, ranges) => {
+      const range = ranges[0];
+      if (!range) return { employers: [], benefits: [] };
+      if (range.fra === iso('2023-10-02') && range.til === iso('2023-10-08')) {
+        return {
+          employers: [{ id: 'af-1', index: 0, name: 'Arbejdsgiver A', amount: 500, breakdown: {} as never }],
+          benefits: [],
+        };
+      }
+      if (range.fra === iso('2023-10-09') && range.til === iso('2023-10-22')) {
+        return {
+          employers: [],
+          benefits: [{ typeKey: 'sygedagpenge', label: 'Sygedagpenge', amount: 1_000 }],
+        };
+      }
+      return { employers: [], benefits: [] };
+    });
+
+    const snapshot = buildSnapshot();
+    const model = {
+      ...snapshot.data?.pdfModel,
+      tafRanges: [
+        { fra: iso('2023-10-09'), til: iso('2023-10-31') },
+      ],
+      tabtArbejdsfortjeneste: {
+        ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste,
+        tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+        indkomstSkadestidspunkt: {
+          ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste.indkomstSkadestidspunkt,
+          skadedato: iso('2023-10-09'),
+          periodeTilBeregning: { fra: iso('2023-10-02'), til: iso('2023-10-08') },
+        },
+      },
+    } as unknown as EoModel;
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: {
+        ...snapshot.data,
+        pdfModel: model,
+      } as EoSnapshotComputedData,
+      input: {
+        ...snapshot.input,
+        stamdata: { skadedato: iso('2023-10-09') } as EoSnapshot['input']['stamdata'],
+        erstatningsopgoerelse: {
+          ...snapshot.input.erstatningsopgoerelse,
+          beregnesUdFra: 'Beregningsperiode',
+          tafBeregningsperiodeFra: iso('2023-10-02'),
+          tafBeregningsperiodeTil: iso('2023-10-08'),
+          loenindkomstAnsaettelsesforhold: [
+            {
+              id: 'af-1',
+              navnPaaArbejdssted: 'Arbejdsgiver A',
+              loenperiode: 'dag',
+              tillaegAngivesSom: 'procent',
+              loenPaaHelligdage: 'SH-udbetaling',
+              fuldLoenUnderFerie: 'Nej',
+              feriePct: 0,
+              fritvalgPct: 0,
+              shSoPct: 0,
+              storeBededagPct: 0,
+              pensionPct: 0,
+              indtaegtsoplysningerTableData: [
+                {
+                  id: 'loen-okt',
+                  col0_maaned: '',
+                  col1_maaned: '',
+                  col0_uge: '',
+                  col1_uge: '',
+                  col0_dag: iso('2023-10-02'),
+                  col1_dag: iso('2023-10-08'),
+                  col2: asAmount(500),
+                  col3: undefined,
+                  col4: undefined,
+                  col5: undefined,
+                },
+              ],
+            },
+          ],
+          offentligeYdelserRows: [
+            {
+              id: 'sdp-okt',
+              fraDato: iso('2023-10-09'),
+              tilDato: iso('2023-10-22'),
+              ydelse: asAmount(1_000),
+              tillaeg: undefined,
+              ydelsestype: 'sygedagpenge',
+            },
+          ],
+        } as EoSnapshot['input']['erstatningsopgoerelse'],
+      },
+    });
+
+    if (originalCtx) ctxMock.mockImplementation(originalCtx);
+    if (originalIncome) incomeMock.mockImplementation(originalIncome);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    expect(projection.document.unit).toBe('arbejdsdag');
+    expect(projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments).toEqual([
+      { fra: iso('2023-10-02'), til: iso('2023-10-08'), amountOre: 10_000 },
+    ]);
+    expect(projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments).toEqual([
+      { fra: iso('2023-10-09'), til: iso('2023-10-22'), amountOre: 10_000 },
+    ]);
+  });
+
   it('medtager indkomstbilag mellem beregningsperioden og TAF-perioden', () => {
     const snapshot = buildSnapshot();
     const model = {
@@ -337,8 +474,8 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     ]);
     expect(projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments).toContainEqual({
       fra: iso('2026-01-01'),
-      til: iso('2026-01-31'),
-      amountOre: 19_000_00,
+      til: iso('2026-01-25'),
+      amountOre: 23_560_00,
     });
   });
 
