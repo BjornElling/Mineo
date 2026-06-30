@@ -593,6 +593,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
   it('videresender midlertidigt EET-grupper til generatoren', async () => {
     const midlertidigtEetGroups = [{
       afgoerelsesdato: toISODateString('2024-01-01'),
+      eetPct: 20,
       rows: [{
         id: 'oy-1',
         fraDato: toISODateString('2024-01-01'),

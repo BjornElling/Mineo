@@ -4,7 +4,7 @@ import {
   buildIncomeForRanges,
   roundIncomeBenefitAmountKroner,
 } from '../../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { roundHeleKroner } from '../../../../../domain/erstatningsopgoerelse/shared/eoMoney';
+import { buildEoValuesWithTransientMidlertidigtEet } from '../../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
 import {
   buildMidlertidigtEetPdfGroupsForTafRanges,
   renderMidlertidigtEetSection,
@@ -233,105 +233,129 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
 });
 
 describe('renderMidlertidigtEetSection TAF-clamping', () => {
-  it('bygger PDF-perioder med samme periodiserede total som TAF-fradraget for Midlertidigt EET', () => {
+  it('afrunder hver Midlertidig EET-PDF-række efter rækkens egen månedsbrøk', () => {
     const tafRanges = [
       { fra: iso('2024-01-01'), til: iso('2024-01-05') },
       { fra: iso('2024-01-11'), til: iso('2024-01-15') },
     ];
     const groups = [{
       afgoerelsesdato: iso('2024-01-01'),
+      eetPct: 20,
       rows: [],
       perioder: [
         {
           fra: iso('2024-01-01'),
           til: iso('2024-01-10'),
           satsAar: 2024,
-          maanederPraecis: 0.101,
+          maanederPraecis: 10 / 31,
           grundydelseAfrundet: 1000,
           reguleringPct: 0,
           maanedligYdelse: 1000,
-          beregnetEet: 101,
+          beregnetEet: 323,
         },
         {
           fra: iso('2024-01-11'),
           til: iso('2024-01-20'),
           satsAar: 2024,
-          maanederPraecis: 0.101,
+          maanederPraecis: 10 / 31,
           grundydelseAfrundet: 1000,
           reguleringPct: 0,
           maanedligYdelse: 1000,
-          beregnetEet: 101,
+          beregnetEet: 323,
         },
       ],
     }];
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.midlertidigtEetFraEetSiden = 'Ja';
-    eoValues.offentligeYdelserRows = [
-      {
-        id: 'midlertidigt-eet-1',
-        fraDato: toISODateString('2024-01-01'),
-        tilDato: toISODateString('2024-01-10'),
-        ydelsestype: 'midlertidigt_eet',
-        ydelse: { kind: 'number', value: 101 },
-        tillaeg: undefined,
-      },
-      {
-        id: 'midlertidigt-eet-2',
-        fraDato: toISODateString('2024-01-11'),
-        tilDato: toISODateString('2024-01-20'),
-        ydelsestype: 'midlertidigt_eet',
-        ydelse: { kind: 'number', value: 101 },
-        tillaeg: undefined,
-      },
-    ];
 
     const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
-    const pdfTotal = clampedGroups.flatMap((group) => group.perioder).reduce((sum, row) => sum + row.beregnetEet, 0);
-    const tafBenefit = buildIncomeForRanges(eoValues, tafRanges).benefits.find((entry) => entry.typeKey === 'midlertidigt_eet');
+    const rows = clampedGroups.flatMap((group) => group.perioder);
 
     expect(clampedGroups).toHaveLength(1);
-    expect(clampedGroups[0]?.perioder.map((row) => [row.fra, row.til])).toEqual([
-      [iso('2024-01-01'), iso('2024-01-05')],
-      [iso('2024-01-11'), iso('2024-01-15')],
+    expect(rows.map((row) => [row.fra, row.til, row.beregnetEet])).toEqual([
+      [iso('2024-01-01'), iso('2024-01-05'), 161],
+      [iso('2024-01-11'), iso('2024-01-15'), 161],
     ]);
-    expect(pdfTotal).toBe(roundHeleKroner(tafBenefit?.amount ?? 0));
-    expect(pdfTotal).toBe(101);
   });
 
   it('afrunder Midlertidigt EET i hele kroner ligesom TAF-indtægtslinjen når togglen er slået til', () => {
     const tafRanges = [{ fra: iso('2024-01-01'), til: iso('2024-01-05') }];
     const groups = [{
       afgoerelsesdato: iso('2024-01-01'),
+      eetPct: 20,
       rows: [],
       perioder: [{
         fra: iso('2024-01-01'),
         til: iso('2024-01-10'),
         satsAar: 2024,
-        maanederPraecis: 0.101,
+        maanederPraecis: 10 / 31,
         grundydelseAfrundet: 1000,
         reguleringPct: 0,
         maanedligYdelse: 1000,
-        beregnetEet: 101,
+        beregnetEet: 323,
       }],
     }];
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.midlertidigtEetFraEetSiden = 'Ja';
-    eoValues.offentligeYdelserRows = [{
-      id: 'midlertidigt-eet-1',
-      fraDato: toISODateString('2024-01-01'),
-      tilDato: toISODateString('2024-01-10'),
-      ydelsestype: 'midlertidigt_eet',
-      ydelse: { kind: 'number', value: 101 },
-      tillaeg: undefined,
-    }];
 
     const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
     const pdfTotal = clampedGroups.flatMap((group) => group.perioder).reduce((sum, row) => sum + row.beregnetEet, 0);
-    const tafBenefit = buildIncomeForRanges(eoValues, tafRanges).benefits.find((entry) => entry.typeKey === 'midlertidigt_eet');
+    const effectiveValues = buildEoValuesWithTransientMidlertidigtEet(eoValues, groups);
+    const tafBenefit = buildIncomeForRanges(effectiveValues, tafRanges).benefits.find((entry) => entry.typeKey === 'midlertidigt_eet');
 
-    expect(tafBenefit?.amount).toBe(50.5);
-    expect(pdfTotal).toBe(51);
+    expect(tafBenefit?.amount).toBeCloseTo(1000 * (5 / 31), 10);
+    expect(pdfTotal).toBe(161);
     expect(pdfTotal).toBe(roundIncomeBenefitAmountKroner(tafBenefit?.typeKey ?? '', tafBenefit?.amount ?? 0, true));
+  });
+
+  it('viser 11-12 januar som 2/31 måned i Midlertidig EET-bilaget', () => {
+    const groups = [{
+      afgoerelsesdato: iso('2025-07-16'),
+      eetPct: 60,
+      rows: [],
+      perioder: [{
+        fra: iso('2025-01-01'),
+        til: iso('2025-12-31'),
+        satsAar: 2025,
+        maanederPraecis: 12,
+        grundydelseAfrundet: 248764.43,
+        reguleringPct: 3.9,
+        maanedligYdelse: 21539,
+        beregnetEet: 258468,
+      }],
+    }];
+
+    const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, [
+      { fra: iso('2025-01-11'), til: iso('2025-01-12') },
+    ]);
+    const row = clampedGroups[0]?.perioder[0];
+
+    expect(row?.maanederPraecis).toBeCloseTo(2 / 31, 10);
+    expect(row?.beregnetEet).toBe(1390);
+  });
+
+  it('afrunder 13. januar til 31. maj 2025 med 8.975 kr./md. til 41.401 kr.', () => {
+    const groups = [{
+      afgoerelsesdato: iso('2025-08-29'),
+      eetPct: 25,
+      rows: [],
+      perioder: [{
+        fra: iso('2025-01-13'),
+        til: iso('2025-05-31'),
+        satsAar: 2025,
+        maanederPraecis: 4.612903225806452,
+        grundydelseAfrundet: 103651.85,
+        reguleringPct: 3.9,
+        maanedligYdelse: 8975,
+        beregnetEet: 41401,
+      }],
+    }];
+
+    const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, [
+      { fra: iso('2025-01-13'), til: iso('2025-05-31') },
+    ]);
+    const row = clampedGroups[0]?.perioder[0];
+
+    expect(row?.maanederPraecis).toBeCloseTo((19 / 31) + 4, 10);
+    expect(row?.beregnetEet).toBe(41401);
   });
 
   it('bevarer 2-decimal-afrunding for manuelt indtastede midlertidigt_eet-rækker når togglen er slået fra', () => {
@@ -340,38 +364,35 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     expect(rounded).toBe(50.5);
   });
 
-  it('lægger afrundingsdelta på den største række så små rækker ikke kan blive negative', () => {
-    // To rækker med vidt forskellige beløb: lille række (≈ 1 kr) og stor (≈ 1000 kr).
-    // Hvis delta blev lagt på sidste række (her: lille), kunne den hypotetisk gå negativ.
-    // Strategien "største række modtager delta" garanterer, at delta absorberes uden
-    // tab af bilag-rækker.
+  it('omfordeler ikke afrundingsdifference mellem synlige Midlertidig EET-rækker', () => {
     const tafRanges = [
-      { fra: iso('2024-01-01'), til: iso('2024-01-31') },
-      { fra: iso('2024-02-01'), til: iso('2024-02-01') },
+      { fra: iso('2025-01-11'), til: iso('2025-01-12') },
+      { fra: iso('2025-01-13'), til: iso('2025-05-31') },
     ];
     const groups = [{
-      afgoerelsesdato: iso('2024-01-01'),
+      afgoerelsesdato: iso('2025-08-29'),
+      eetPct: 25,
       rows: [],
       perioder: [
         {
-          fra: iso('2024-01-01'),
-          til: iso('2024-01-31'),
-          satsAar: 2024,
-          maanederPraecis: 1,
-          grundydelseAfrundet: 1000,
-          reguleringPct: 0,
-          maanedligYdelse: 1000,
-          beregnetEet: 1000.4,
+          fra: iso('2025-01-11'),
+          til: iso('2025-01-12'),
+          satsAar: 2025,
+          maanederPraecis: 2 / 31,
+          grundydelseAfrundet: 248764.43,
+          reguleringPct: 3.9,
+          maanedligYdelse: 21539,
+          beregnetEet: 1390,
         },
         {
-          fra: iso('2024-02-01'),
-          til: iso('2024-02-01'),
-          satsAar: 2024,
-          maanederPraecis: 0.0333,
-          grundydelseAfrundet: 1000,
-          reguleringPct: 0,
-          maanedligYdelse: 1000,
-          beregnetEet: 33.3,
+          fra: iso('2025-01-13'),
+          til: iso('2025-05-31'),
+          satsAar: 2025,
+          maanederPraecis: 4.612903225806452,
+          grundydelseAfrundet: 103651.85,
+          reguleringPct: 3.9,
+          maanedligYdelse: 8975,
+          beregnetEet: 41401,
         },
       ],
     }];
@@ -379,9 +400,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
     const allRows = clampedGroups.flatMap((group) => group.perioder);
 
-    // Alle rækker skal være positive (ingen drop pga. delta-håndtering).
-    expect(allRows.length).toBe(2);
-    expect(allRows.every((row) => row.beregnetEet > 0)).toBe(true);
+    expect(allRows.map((row) => row.beregnetEet)).toEqual([1390, 41401]);
   });
 
   it('renderer ikke Midlertidig EET-bilaget når EET-perioder ikke overlapper TAF-perioden', () => {
@@ -392,6 +411,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     renderMidlertidigtEetSection({
       groups: [{
         afgoerelsesdato: iso('2024-01-01'),
+        eetPct: 20,
         rows: [],
         perioder: [{
           fra: iso('2024-01-01'),
@@ -420,5 +440,45 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     });
 
     expect(autoTableMock).not.toHaveBeenCalled();
+  });
+
+  it('viser EET-procenten i parentes efter afgørelsesdatoen', () => {
+    autoTableMock.mockClear();
+    const doc = createMockPdfDoc();
+    let y = 0;
+    const renderSubheader = vi.fn();
+
+    renderMidlertidigtEetSection({
+      groups: [{
+        afgoerelsesdato: iso('2025-07-16'),
+        eetPct: 60,
+        rows: [],
+        perioder: [{
+          fra: iso('2025-01-11'),
+          til: iso('2025-01-12'),
+          satsAar: 2025,
+          maanederPraecis: 2 / 31,
+          grundydelseAfrundet: 248764.43,
+          reguleringPct: 3.9,
+          maanedligYdelse: 21539,
+          beregnetEet: 1390,
+        }],
+      }],
+      tafRanges: [{ fra: iso('2025-01-11'), til: iso('2025-01-12') }],
+      startEoBilagPage: vi.fn(),
+      renderSubheader,
+      formatAfgoerelsesdato: () => '16. juli 2025',
+      writer: {
+        addSectionSpacer: vi.fn(),
+        addSpacer: vi.fn(),
+        setY: vi.fn((nextY: number) => {
+          y = nextY;
+        }),
+        getY: vi.fn(() => y),
+        getDoc: vi.fn(() => doc as never),
+      },
+    });
+
+    expect(renderSubheader).toHaveBeenCalledWith('Afgørelse 16. juli 2025 (60 %)', undefined, { addTopSpacing: false });
   });
 });

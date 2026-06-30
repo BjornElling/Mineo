@@ -4,6 +4,9 @@ import type { ISODateString } from '../../../types/branded';
 import { isAslAfgoerelseRowEmpty } from '../../erhvervsevnetab/eetAslAfgoerelser';
 import { buildMidlertidigtEetAfgoerelseGroupsFromComputation, type MidlertidigtEetAfgoerelseGroup, type MidlertidigtEetInsertSource } from './midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser, EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
+import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import { sumMaanedsbroekForInterval } from '../engines/periodiseringsMotor';
+import { splitIsoRangeByCalendarMonthsInclusive } from '../engines/periodRangeGroups';
 
 export type MidlertidigtEetTransientResult = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
@@ -86,7 +89,7 @@ export const buildEoValuesWithTransientMidlertidigtEet = (
   const baseRows = (eoValues.offentligeYdelserRows ?? []).filter(
     (row) => row.ydelsestype?.trim() !== 'midlertidigt_eet'
   );
-  const virtualRows = groups.flatMap((g) => g.rows);
+  const virtualRows = buildMidlertidigtEetCalculationRows(groups);
   if (virtualRows.length === 0) {
     if (baseRows.length === (eoValues.offentligeYdelserRows ?? []).length) return eoValues;
     return { ...eoValues, offentligeYdelserRows: baseRows };
@@ -95,4 +98,38 @@ export const buildEoValuesWithTransientMidlertidigtEet = (
     ...eoValues,
     offentligeYdelserRows: [...baseRows, ...virtualRows],
   };
+};
+
+export const buildMidlertidigtEetCalculationRows = (
+  groups: readonly MidlertidigtEetAfgoerelseGroup[]
+): readonly OffentligeYdelserRow[] => {
+  const rows: OffentligeYdelserRow[] = [];
+
+  groups.forEach((group, groupIndex) => {
+    group.perioder.forEach((periode, periodeIndex) => {
+      const monthRanges = splitIsoRangeByCalendarMonthsInclusive(periode.fra, periode.til);
+      monthRanges.forEach((range, monthIndex) => {
+        const maaneder = sumMaanedsbroekForInterval(range.fra, range.til);
+        const ydelse = maaneder * periode.maanedligYdelse;
+        if (!Number.isFinite(ydelse) || ydelse <= 0) return;
+        // Importeret EET er en månedsydelse. Internt splittes den derfor pr.
+        // kalendermåned, så den eksisterende kalenderdagsperiodisering inden for
+        // rækken svarer til x/dage-i-måneden og ikke til gennemsnitsdage over en
+        // længere EET-periode.
+        rows.push({
+          id: `midlertidigt_eet_calc_${groupIndex}_${periodeIndex}_${monthIndex}_${range.fra}_${range.til}`,
+          fraDato: range.fra,
+          tilDato: range.til,
+          ydelse: {
+            kind: 'number',
+            value: ydelse,
+          },
+          tillaeg: undefined,
+          ydelsestype: 'midlertidigt_eet',
+        });
+      });
+    });
+  });
+
+  return rows;
 };

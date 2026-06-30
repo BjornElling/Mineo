@@ -9,7 +9,11 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildMidlertidigtEetSourceResult } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
+import {
+  buildEoValuesWithTransientMidlertidigtEet,
+  buildMidlertidigtEetSourceResult,
+} from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
@@ -130,6 +134,34 @@ describe('midlertidigt EET transient injection', () => {
     expect(midlertidigtEetEntry?.amountOre).toBeGreaterThan(0);
     expect(snapshot.debugSnapshot?.eoValues.offentligeYdelserRows.some((row) => row.ydelsestype === 'midlertidigt_eet')).toBe(true);
     expect(snapshot.input.erstatningsopgoerelse?.offentligeYdelserRows).toEqual([]);
+  });
+
+  it('fordeler importeret midlertidigt EET efter faktisk månedsbrøk ved delvist overlap', () => {
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+    };
+    const groups = [{
+      afgoerelsesdato: iso('2024-01-01'),
+      eetPct: 20,
+      rows: [],
+      perioder: [{
+        fra: iso('2024-01-01'),
+        til: iso('2024-02-29'),
+        satsAar: 2024,
+        maanederPraecis: 2,
+        grundydelseAfrundet: 12000,
+        reguleringPct: 0,
+        maanedligYdelse: 1000,
+        beregnetEet: 2000,
+      }],
+    }];
+
+    const effectiveValues = buildEoValuesWithTransientMidlertidigtEet(eoValues, groups);
+    const income = buildIncomeForRanges(effectiveValues, [{ fra: iso('2024-01-11'), til: iso('2024-01-12') }]);
+    const midlertidigtEet = income.benefits.find((entry) => entry.typeKey === 'midlertidigt_eet');
+
+    expect(midlertidigtEet?.amount).toBeCloseTo(1000 * (2 / 31), 10);
   });
 
   it('afgrænser importeret midlertidigt EET efter TAF-periodens udløb og ikke EET-beregningsdatoen', () => {

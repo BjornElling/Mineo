@@ -2,7 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange, buildTafRanges } from '../helpers/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
-import { startOfYearIso, endOfYearIso, type IsoRange } from '../../../utils/isoDateHelpers';
+import { endOfMonthIso, startOfMonthIso, startOfYearIso, endOfYearIso, type IsoRange } from '../../../utils/isoDateHelpers';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
@@ -10,6 +10,7 @@ type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues
 export type { IsoRange };
 
 export type CalendarYearIsoRange = IsoRange & Readonly<{ year: number }>;
+export type CalendarMonthIsoRange = IsoRange & Readonly<{ year: number; month: number }>;
 
 export type PeriodRangeGroup = Readonly<{
   label: string | null;
@@ -48,6 +49,48 @@ export const splitIsoRangeByCalendarYearsInclusive = (
       til: year === tilYear ? til : yearEnd,
       year,
     });
+  }
+  return result;
+};
+
+export const splitIsoRangeByCalendarMonthsInclusive = (
+  fra: ISODateString,
+  til: ISODateString
+): readonly CalendarMonthIsoRange[] => {
+  if (fra > til) {
+    throw new Error(`splitIsoRangeByCalendarMonthsInclusive: fra (${fra}) > til (${til})`);
+  }
+
+  const fraYear = Number.parseInt(fra.slice(0, 4), 10);
+  const fraMonth = Number.parseInt(fra.slice(5, 7), 10);
+  const tilYear = Number.parseInt(til.slice(0, 4), 10);
+  const tilMonth = Number.parseInt(til.slice(5, 7), 10);
+  if (
+    !Number.isInteger(fraYear) ||
+    !Number.isInteger(fraMonth) ||
+    !Number.isInteger(tilYear) ||
+    !Number.isInteger(tilMonth)
+  ) {
+    throw new Error('splitIsoRangeByCalendarMonthsInclusive: ugyldig måned');
+  }
+
+  const result: CalendarMonthIsoRange[] = [];
+  for (let year = fraYear, month = fraMonth; year < tilYear || (year === tilYear && month <= tilMonth);) {
+    const monthStart = startOfMonthIso(year, month);
+    const monthEnd = endOfMonthIso(year, month);
+    result.push({
+      fra: year === fraYear && month === fraMonth ? fra : monthStart,
+      til: year === tilYear && month === tilMonth ? til : monthEnd,
+      year,
+      month,
+    });
+
+    if (month === 12) {
+      year += 1;
+      month = 1;
+    } else {
+      month += 1;
+    }
   }
   return result;
 };

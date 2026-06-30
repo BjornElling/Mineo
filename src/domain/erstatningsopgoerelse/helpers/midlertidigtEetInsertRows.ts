@@ -23,6 +23,7 @@ export type MidlertidigtEetInsertSource = Readonly<{
  */
 export type MidlertidigtEetAfgoerelseGroup = Readonly<{
   afgoerelsesdato: ISODateString;
+  eetPct: number;
   rows: readonly OffentligeYdelserRow[];
   perioder: readonly EetLoebendePeriodeRow[];
 }>;
@@ -60,6 +61,7 @@ export const buildMidlertidigtEetAfgoerelseGroupsFromComputation = (
     if (rows.length > 0) {
       groups.push({
         afgoerelsesdato: afgoerelse.afgoerelsesdato,
+        eetPct: afgoerelse.eetPct,
         rows,
         perioder: afgoerelse.perioder,
       });

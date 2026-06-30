@@ -8,11 +8,12 @@ import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../..
 import type { ISODateString } from '../../../../types/branded';
 import { parseISODate } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { periodiserBeloebForOffentligYdelse } from '../../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
+import { sumMaanedsbroekForInterval } from '../../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 import { roundHeleKroner } from '../../../../domain/erstatningsopgoerelse/shared/eoMoney';
 import { cellRight, createDocumentDistributedColumnStyles, createDocumentTableCell, renderDocumentTable } from '../../../layout/documentTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import { formatPct } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatMaaneder4, formatReguleringPct, formatKr } from '../../../layout/documentFormatUtils';
 import type { DocumentWriter } from '../../../writer';
@@ -185,6 +186,7 @@ type MidlertidigtEetSectionContext = Readonly<{
 type ClampedMidlertidigtEetRow = MidlertidigtEetAfgoerelseGroup['perioder'][number];
 type ClampedMidlertidigtEetGroup = Readonly<{
   afgoerelsesdato: MidlertidigtEetAfgoerelseGroup['afgoerelsesdato'];
+  eetPct: MidlertidigtEetAfgoerelseGroup['eetPct'];
   perioder: readonly ClampedMidlertidigtEetRow[];
 }>;
 
@@ -193,8 +195,6 @@ type PendingClampedMidlertidigtEetRow = Readonly<{
   row: ClampedMidlertidigtEetRow;
   rawBeregnetEet: number;
 }>;
-
-const emptyShDays = new Set<ISODateString>();
 
 const clampIsoRange = (range: IsoRange, fra: ISODateString, til: ISODateString): IsoRange | null => {
   const clampedFra = range.fra > fra ? range.fra : fra;
@@ -211,6 +211,7 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
   const pendingRows: PendingClampedMidlertidigtEetRow[] = [];
   const outputGroups = groups.map((group) => ({
     afgoerelsesdato: group.afgoerelsesdato,
+    eetPct: group.eetPct,
     perioder: [] as ClampedMidlertidigtEetRow[],
   }));
 
@@ -229,14 +230,8 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
         const clampedEnd = parseISODate(clamped.til);
         if (!clampedStart || !clampedEnd || clampedStart > clampedEnd) continue;
 
-        const rawBeregnetEet = periodiserBeloebForOffentligYdelse({
-          totalBeloeb: row.beregnetEet,
-          interval: { start: rowStart, end: rowEnd },
-          range: clamped,
-          periodisering: ydelsestyper.midlertidigt_eet.periodisering,
-          ydelsestypeKey: 'midlertidigt_eet',
-          shDays: emptyShDays,
-        });
+        const maanederPraecis = sumMaanedsbroekForInterval(clamped.fra, clamped.til);
+        const rawBeregnetEet = maanederPraecis * row.maanedligYdelse;
         if (!Number.isFinite(rawBeregnetEet) || rawBeregnetEet <= 0) continue;
 
         const roundedBeregnetEet = roundHeleKroner(rawBeregnetEet);
@@ -244,9 +239,6 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
         // ville ellers indgå i delta-justeringen som en "modtager" der ikke kan
         // bære delta uden at gå negativ.
         if (roundedBeregnetEet <= 0) continue;
-        const maanederPraecis = row.maanedligYdelse > 0
-          ? roundedBeregnetEet / row.maanedligYdelse
-          : row.maanederPraecis;
         pendingRows.push({
           groupIndex,
           rawBeregnetEet,
@@ -264,35 +256,8 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
 
   if (pendingRows.length === 0) return [];
 
-  const targetRoundedTotal = roundHeleKroner(pendingRows.reduce((sum, row) => sum + row.rawBeregnetEet, 0));
-  const roundedRowsTotal = pendingRows.reduce((sum, row) => sum + row.row.beregnetEet, 0);
-  const roundingDelta = targetRoundedTotal - roundedRowsTotal;
-
-  // Læg delta'en på den største række frem for "sidste række".
-  // Største-række-strategien er stabil under sortering og garanterer, at delta
-  // ikke kan gøre en lille bær-række negativ — typisk delta er ≤ 0,5 kr, og største
-  // række har her allerede ≥ 1 kr (jf. `roundedBeregnetEet > 0`-filteret ovenfor),
-  // så `nextBeregnetEet > 0` er bevaret. Hvis to rækker har samme beregnetEet, vinder
-  // den første (deterministisk fra `findIndex`).
-  const deltaRecipientIndex = pendingRows.reduce(
-    (bestIndex, entry, index) =>
-      entry.row.beregnetEet > pendingRows[bestIndex].row.beregnetEet ? index : bestIndex,
-    0
-  );
-
-  pendingRows.forEach((entry, index) => {
-    const nextBeregnetEet = index === deltaRecipientIndex
-      ? entry.row.beregnetEet + roundingDelta
-      : entry.row.beregnetEet;
-    if (nextBeregnetEet <= 0) return;
-    const adjustedRow: ClampedMidlertidigtEetRow = {
-      ...entry.row,
-      beregnetEet: nextBeregnetEet,
-      maanederPraecis: entry.row.maanedligYdelse > 0
-        ? nextBeregnetEet / entry.row.maanedligYdelse
-        : entry.row.maanederPraecis,
-    };
-    outputGroups[entry.groupIndex]?.perioder.push(adjustedRow);
+  pendingRows.forEach((entry) => {
+    outputGroups[entry.groupIndex]?.perioder.push(entry.row);
   });
 
   return outputGroups.filter((group) => group.perioder.length > 0);
@@ -327,7 +292,8 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     bilagIndex++;
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
-    renderSubheader(`Afgørelse ${datoText}`, undefined, { addTopSpacing: bilagIndex > 1 });
+    const pctText = Number.isFinite(group.eetPct) ? ` (${formatPct(group.eetPct)})` : '';
+    renderSubheader(`Afgørelse ${datoText}${pctText}`, undefined, { addTopSpacing: bilagIndex > 1 });
 
     const body: RowInput[] = [
       ydelserHeader,

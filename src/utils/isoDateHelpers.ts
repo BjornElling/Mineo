@@ -63,6 +63,22 @@ export const endOfYearIso = (year: number): ISODateString => {
   return iso;
 };
 
+export const startOfMonthIso = (year: number, month: number): ISODateString => {
+  const iso = dateToISO(createDate(year, month - 1, 1));
+  if (!iso) {
+    throw new Error(`Could not construct ISO start-of-month date for year/month: ${year}-${month}`);
+  }
+  return iso;
+};
+
+export const endOfMonthIso = (year: number, month: number): ISODateString => {
+  const iso = dateToISO(createDate(year, month, 0));
+  if (!iso) {
+    throw new Error(`Could not construct ISO end-of-month date for year/month: ${year}-${month}`);
+  }
+  return iso;
+};
+
 export function getDayBeforeIso(isoDate: ISODateString): ISODateString;
 export function getDayBeforeIso(isoDate: ISODateString | undefined): ISODateString | undefined;
 export function getDayBeforeIso(isoDate: ISODateString | undefined): ISODateString | undefined {
