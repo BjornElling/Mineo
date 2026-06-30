@@ -9,6 +9,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { buildMidlertidigtEetSourceResult } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
@@ -156,6 +157,66 @@ describe('midlertidigt EET transient injection', () => {
     expect(snapshot.data).not.toBeNull();
     expect(snapshot.data?.midlertidigtEetGroups.flatMap((group) => group.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
     expect(importedRows.at(-1)?.tilDato).toBe(toISODateString('2024-04-30'));
+  });
+
+  it('importerer midlertidigt EET uden EET-beregningsdato ved at bruge TAF-slutdatoen som fallback', () => {
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+    };
+
+    const snapshot = computeEoSnapshot({
+      revision: 'midlertidigt-eet-uden-beregningsdato',
+      stamdataValues: stamdata,
+      eoValues,
+      midlertidigtEetInsertSource: {
+        eetValues: {
+          ...eetValues,
+          beregningsdato: undefined,
+        },
+        skadedato: stamdata.skadedato,
+      },
+    });
+    const importedRows = snapshot.debugSnapshot?.eoValues.offentligeYdelserRows.filter(
+      (row) => row.ydelsestype === 'midlertidigt_eet'
+    ) ?? [];
+
+    // Manglende EET-beregningsdato må ikke længere blokere EO-importen.
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.invariants.some((invariant) => invariant.id === 'midlertidigt_eet_source:beregningsdato-missing')).toBe(false);
+    // De importerede rækker afgrænses af TAF-periodens slutdato (capped af EO-periodens slutdato).
+    expect(snapshot.data?.midlertidigtEetGroups.flatMap((group) => group.perioder).length).toBeGreaterThan(0);
+    expect(snapshot.data?.midlertidigtEetGroups.flatMap((group) => group.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
+    expect(importedRows.at(-1)?.tilDato).toBe(toISODateString('2024-04-30'));
+  });
+
+  it('blokerer fortsat midlertidigt EET-import uden beregningsdato når der ingen TAF-periode findes til fallback', () => {
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+      tafPerioder: [],
+    };
+
+    const snapshot = computeEoSnapshot({
+      revision: 'midlertidigt-eet-uden-beregningsdato-uden-taf',
+      stamdataValues: stamdata,
+      eoValues,
+      midlertidigtEetInsertSource: {
+        eetValues: {
+          ...eetValues,
+          beregningsdato: undefined,
+        },
+        skadedato: stamdata.skadedato,
+      },
+    });
+
+    // Uden TAF-periode findes ingen fallback-slutdato; importen fail-closer på manglende beregningsdato.
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants).toContainEqual(expect.objectContaining({
+      id: 'midlertidigt_eet_source:beregningsdato-missing',
+      severity: 'error',
+      blocksAuthoritativeComputation: true,
+    }));
   });
 
   it('holder Midlertidig EET-bilagets sammentælling identisk med TAF-fradraget', () => {
@@ -352,6 +413,40 @@ describe('midlertidigt EET transient injection', () => {
       severity: 'error',
       blocksAuthoritativeComputation: true,
     }));
+  });
+
+  it('undertrykker de beregningsdato-relative advarsler i EO-importen, men beholder øvrige EET-advarsler', () => {
+    const result = buildMidlertidigtEetSourceResult(
+      {
+        eetValues: {
+          ...eetValues,
+          beregningsdato: undefined,
+          aslAfgoerelser: [
+            {
+              id: 'asl-1',
+              afgoerelsesDato: iso('2024-02-01'),
+              // Virkningsdato efter den effektive beregningsdato (TAF-slutdato) → udløser
+              // warn-virkningsdato-after-beregningsdato, som skal undertrykkes i EO-konteksten.
+              virkningsDato: iso('2024-05-01'),
+              // EET under 15 % → udløser warn-asl-eet-under-15, som er kontekst-uafhængig og bevares.
+              eetPct: 10,
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Midlertidig',
+              tidlKapDato: undefined,
+              fsTilbageholdtEet: 'Nej',
+            },
+          ],
+        },
+        skadedato: iso('2024-01-01'),
+      },
+      { loebendeYdelserSlutdatoOverride: iso('2024-04-30') }
+    );
+
+    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-asl-eet-under-15')).toBe(true);
   });
 
   it('blokerer autoritativ EO-beregning når EET-kilden ikke matcher schema', () => {

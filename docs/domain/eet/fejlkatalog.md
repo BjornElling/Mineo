@@ -65,7 +65,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F2, F4, F5 |
 | Navigationslink | EET oplysninger → Grundlæggende oplysninger |
-| Betingelse | `!beregningsdato`. F3 bruger ikke beregningsdato. |
+| Betingelse | `!beregningsdato`. F3 bruger ikke beregningsdato. Når F2-beregningen køres fra erstatningsopgørelsens midlertidigt EET-import, leveres TAF-slutdatoen som fallback-beregningsdato (`loebendeYdelserSlutdatoOverride`), så fejlen kun emitteres dér, hvis både beregningsdato og fallback-slutdato mangler. Se `eo-snapshot-contract.md` §13. |
 
 #### `beregningsdato-invalid` — "Beregningsdato er ugyldig."
 | Felt | Værdi |
@@ -391,7 +391,7 @@ Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1
 | Type | Advarsel |
 | Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Mindst én afgørelses afgørelsesdato er efter beregningsdato |
+| Betingelse | Mindst én afgørelses afgørelsesdato er efter beregningsdato. Undertrykkes i erstatningsopgørelsens midlertidigt EET-import (beregningsdato = TAF-slutdato dér) — se `eo-snapshot-contract.md` §13. |
 
 #### `warn-virkningsdato-after-beregningsdato` — "Der er angivet en virkningsdato efter beregningsdatoen."
 | Felt | Værdi |
@@ -399,7 +399,7 @@ Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1
 | Type | Advarsel |
 | Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Mindst én afgørelses virkningsdato er efter beregningsdato |
+| Betingelse | Mindst én afgørelses virkningsdato er efter beregningsdato. Undertrykkes i erstatningsopgørelsens midlertidigt EET-import (beregningsdato = TAF-slutdato dér) — se `eo-snapshot-contract.md` §13. |
 
 #### `warn-kap-dato-after-beregningsdato` — "Der er angivet en kapitaliseringsdato efter beregningsdatoen."
 | Felt | Værdi |
@@ -407,7 +407,7 @@ Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1
 | Type | Advarsel |
 | Vises på | F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Mindst én afgørelses kap.dato er udfyldt og er efter beregningsdato |
+| Betingelse | Mindst én afgørelses kap.dato er udfyldt og er efter beregningsdato. Undertrykkes i erstatningsopgørelsens midlertidigt EET-import (beregningsdato = TAF-slutdato dér) — se `eo-snapshot-contract.md` §13. |
 
 #### `warn-ingen-kap-input` — "Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse."
 | Felt | Værdi |

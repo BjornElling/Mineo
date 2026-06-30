@@ -103,6 +103,19 @@ type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
+  /**
+   * Slutdato for de løbende ydelser i erstatningsopgørelse-konteksten (midlertidigt EET-import).
+   *
+   * Leveres kun af EO-importen (`buildMidlertidigtEetSourceResult`) som TAF-periodens clampede
+   * slutdato (allerede capped af EO-periodens slutdato via `buildTafRanges`). Den dato er per
+   * definition den dato, EET beregnes til i EO-konteksten, og har to roller:
+   *   1. Den afgrænser de løbende ydelsers slutdato (ophørsårsag `beregningsdato`).
+   *   2. Den fungerer som fallback for `beregningsdato`, når brugeren ikke har udfyldt en
+   *      beregningsdato på erhvervsevnetab-siden — så EO-importen ikke kræver en beregningsdato.
+   *
+   * På erhvervsevnetab-siden (og i differencekrav-kaldet) er feltet altid `undefined`, så hverken
+   * slutdato-afgrænsningen eller beregningsdato-fallback'en påvirker beregningerne dér.
+   */
   loebendeYdelserSlutdatoOverride?: ISODateString;
 }>;
 
@@ -196,6 +209,23 @@ const collectResolvedAfgoerelser = (
 
   return sortResolvedAfgoerelser(resolved);
 };
+
+/**
+ * EET-løbende-ydelser-advarsler der sammenligner en afgørelses datoer mod beregningsdatoen.
+ *
+ * De er kun meningsfulde på erhvervsevnetab-siden, hvor beregningsdatoen er den dato, brugeren
+ * bevidst beregner EET *til*. I erstatningsopgørelsens midlertidigt EET-import er "beregningsdatoen"
+ * blot TAF-slutdatoen, og en EET-afgørelse med virkning efter erstatningsperiodens udløb er helt
+ * normal (fx en opgørelse lavet — evt. revideret — før EET-afgørelsen er truffet). Derfor
+ * undertrykkes netop disse advarsler i EO-import-konteksten. Filtreringen sker ved EO-import-grænsen
+ * (`buildMidlertidigtEetSourceResult`), så erhvervsevnetab-sidens egen visning er upåvirket.
+ * Se `eo-snapshot-contract.md` §13.
+ */
+export const EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS: ReadonlySet<string> = new Set([
+  'warn-afgoerelsesdato-after-beregningsdato',
+  'warn-virkningsdato-after-beregningsdato',
+  'warn-kap-dato-after-beregningsdato',
+]);
 
 const collectWarnings = (
   skadedato: ISODateString,
@@ -564,7 +594,12 @@ const toAfgoerelseLabel = (
 export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationResult => {
   const issues: EetIssue[] = [];
 
-  const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
+  const beregningsdatoInput = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
+  // I EO-importens kontekst (midlertidigt EET) er beregningsdatoen ikke påkrævet: mangler den,
+  // bruges den leverede TAF-slutdato-override (capped af EO-periodens slutdato) som beregningsdato.
+  // Override leveres kun af EO-importen, så fallback'en kan aldrig smitte af på erhvervsevnetab-siden,
+  // hvor override altid er undefined og beregningsdatoen forbliver påkrævet. Se Input-typens JSDoc.
+  const beregningsdato = beregningsdatoInput ?? input.loebendeYdelserSlutdatoOverride;
   const skadedato = input.skadedato;
   const fodselsdato = input.skadelidteFodselsdato;
 

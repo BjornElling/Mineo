@@ -1739,3 +1739,70 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
     expect(vis.showRest2024).toBe(false);
   });
 });
+
+describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
+  const midlertidigRow = testRow({
+    id: 'a1',
+    afgoerelsesDato: toISODateString('2024-02-01'),
+    virkningsDato: toISODateString('2024-01-01'),
+    eetPct: 20,
+    afgoerelseType: 'Midlertidig',
+  });
+
+  it('blokerer med beregningsdato-missing når både beregningsdato og override mangler (erhvervsevnetab-siden)', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: undefined,
+        aslAarsloen: asAmount(300000),
+        aslAfgoerelser: [midlertidigRow],
+      },
+      skadedato: toISODateString('2024-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'beregningsdato-missing',
+      severity: 'error',
+      message: 'Beregningsdato er ikke udfyldt.',
+    });
+  });
+
+  it('bruger override som beregningsdato når beregningsdato mangler (EO-import)', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: undefined,
+        aslAarsloen: asAmount(300000),
+        aslAfgoerelser: [midlertidigRow],
+      },
+      skadedato: toISODateString('2024-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      loebendeYdelserSlutdatoOverride: toISODateString('2024-04-30'),
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'beregningsdato-missing')).toBe(false);
+    expect(result.computation).not.toBeNull();
+    expect(result.computation?.beregningsdato).toBe(toISODateString('2024-04-30'));
+    expect(result.computation?.afgoerelser.flatMap((a) => a.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
+  });
+
+  it('lader override afgrænse slutdatoen, mens en udfyldt beregningsdato bevares til advarsler', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2024-12-31'),
+        aslAarsloen: asAmount(300000),
+        aslAfgoerelser: [midlertidigRow],
+      },
+      skadedato: toISODateString('2024-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      loebendeYdelserSlutdatoOverride: toISODateString('2024-04-30'),
+    });
+
+    // Udfyldt beregningsdato bevares i computation, men override vinder for selve slutdatoen.
+    expect(result.computation?.beregningsdato).toBe(toISODateString('2024-12-31'));
+    expect(result.computation?.afgoerelser.flatMap((a) => a.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
+  });
+});

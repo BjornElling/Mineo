@@ -3,7 +3,7 @@ import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import type { ISODateString } from '../../../types/branded';
 import { isAslAfgoerelseRowEmpty } from '../../erhvervsevnetab/eetAslAfgoerelser';
 import { buildMidlertidigtEetAfgoerelseGroupsFromComputation, type MidlertidigtEetAfgoerelseGroup, type MidlertidigtEetInsertSource } from './midlertidigtEetInsertRows';
-import { computeEetLoebendeYdelser } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { computeEetLoebendeYdelser, EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
 
 export type MidlertidigtEetTransientResult = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
@@ -41,6 +41,11 @@ export const buildMidlertidigtEetSourceResult = (
     skadelidteFodselsdato: source.eetValues.skadelidteFodselsdato,
     loebendeYdelserSlutdatoOverride: options?.loebendeYdelserSlutdatoOverride,
   });
+  // EO-import-relevansfiltrering: de beregningsdato-relative advarsler giver ikke mening i
+  // erstatningsopgørelsen, hvor "beregningsdatoen" blot er TAF-slutdatoen. Se konstantens JSDoc.
+  const issues = result.issues.filter(
+    (issue) => !EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS.has(issue.id)
+  );
   let groups: readonly MidlertidigtEetAfgoerelseGroup[];
   try {
     groups = buildMidlertidigtEetAfgoerelseGroupsFromComputation(result.computation);
@@ -49,7 +54,7 @@ export const buildMidlertidigtEetSourceResult = (
     return {
       groups: [],
       issues: [
-        ...result.issues,
+        ...issues,
         {
           id: 'midlertidigt-eet-import-invariant',
           severity: 'error',
@@ -60,7 +65,7 @@ export const buildMidlertidigtEetSourceResult = (
   }
   return {
     groups,
-    issues: result.issues,
+    issues,
   };
 };
 

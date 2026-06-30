@@ -392,6 +392,14 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 - EO-importen bruger EET-løbende-ydelser-beregningen med TAF-periodens seneste clampede
   slutdato som slutdato for de virtuelle midlertidigt EET-rækker. EET-sidens egen
   løbende-ydelser-visning bruger fortsat EET-beregningsdatoen.
+- **Beregningsdato-fallback (kun EO-import):** Når brugeren ikke har udfyldt en beregningsdato
+  på erhvervsevnetab-siden, bruger EO-importen TAF-periodens clampede slutdato (capped af
+  EO-periodens slutdato, `vedroererPeriodeTil`) *også* som beregningsdato, så manglende
+  EET-beregningsdato ikke blokerer importen. Fallback'en leveres teknisk via
+  `loebendeYdelserSlutdatoOverride` til `computeEetLoebendeYdelser` og gælder udelukkende
+  EO-importen — erhvervsevnetab-siden og differencekrav-kaldet sender ingen override, så
+  beregningsdatoen forbliver påkrævet dér. Findes der ingen TAF-periode (ingen fallback-slutdato),
+  fail-closer importen fortsat på manglende beregningsdato.
 - Hver beregnet EET-løbende-ydelsesrække fra midlertidige og delvist endelige afgørelser bliver
   til præcis én virtuel EO-række. Perioder og periodetotalbeløb bevares uændret, fordi EET
   er beregnet på kalenderdage og EO først periodiserer mod TAF-ranges i sin egen indkomstpipeline.
@@ -410,11 +418,22 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   (samme adfærd som eksisterende `errors`-array).
 - Når togglen er `'Nej'`, vises EET-issues ikke (de er irrelevante for EO-beregningen, fordi
   koblingen er deaktiveret).
-- EET-issues overføres bevidst ukritisk og uden EO-specifik relevansfiltrering. Det betyder,
-  at en EET-fejl kan blokere EO/TAF-output, selv om den konkrete importregel ikke bruger
-  det pågældende EET-input som beregningsafgrænsning. Eksempel: manglende EET-beregningsdato
-  kan stadig blokere, selv om EO-importens midlertidigt EET-rækker afgrænses af TAF-perioden.
-  Dette er et bevidst designvalg for at undgå manuel klassificering af hver enkelt EET-issue.
+- EET-issues overføres som udgangspunkt ukritisk. Det betyder, at en EET-fejl kan blokere
+  EO/TAF-output, selv om den konkrete importregel ikke bruger det pågældende EET-input som
+  beregningsafgrænsning. Eksempel: en ugyldig EET-procent blokerer importen, selv om den ikke
+  i sig selv handler om TAF-afgrænsningen. Dette er et bevidst designvalg for at undgå manuel
+  klassificering af hver enkelt EET-issue.
+- **To bevidste undtagelser fra den ukritiske propagation:**
+  1. *Manglende EET-beregningsdato* blokerer ikke længere, fordi EO-importen falder tilbage på
+     TAF-slutdatoen som beregningsdato (se beregningsdato-fallback ovenfor).
+  2. *De beregningsdato-relative advarsler* — afgørelsesdato/virkningsdato/kapitaliseringsdato
+     efter beregningsdatoen — undertrykkes i EO-konteksten. På EO-siden er "beregningsdatoen"
+     blot TAF-slutdatoen, og en EET-afgørelse med virkning efter erstatningsperiodens udløb er
+     helt normal (fx en opgørelse lavet før EET-afgørelsen). Filtreringen sker ved
+     EO-import-grænsen i `buildMidlertidigtEetSourceResult` via den eksporterede konstant
+     `EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS`; erhvervsevnetab-sidens egen visning
+     er upåvirket. Øvrige EET-advarsler (under 15 %, ugyldig EET-procent efter 1.7.2024,
+     midlertidig/delvist endelig efter endelig) er kontekst-uafhængige og vises fortsat begge steder.
 - Hver ny eller ændret EET-issue-type skal revurdere denne EO-konsekvens og opdatere
   `eet-snapshot-contract.md` og dette afsnit, hvis propagation ikke længere er sikker.
 - "Ingen relevante EET-rækker" og "EET-kilden kunne ikke bygges schema-sikkert" er forskellige
