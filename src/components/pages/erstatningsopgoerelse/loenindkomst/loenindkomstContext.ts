@@ -11,7 +11,6 @@ import { useLoenindkomstViewModel } from './useLoenindkomstViewModel';
 export type LoenindkomstVm = ReturnType<typeof useLoenindkomstViewModel> & Readonly<{
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   tafBeregningsperiodeTil: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];
-  eoValues: ErstatningsopgoerelseValues;
   sfggSixMonthWarningEmploymentIds: readonly string[];
   onNavigateToTabtArbejdsfortjeneste: () => void;
 }>;

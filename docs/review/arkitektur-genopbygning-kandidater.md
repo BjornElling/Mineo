@@ -62,9 +62,9 @@ Bevidst IKKE ændret drive-by (dokumenteret som opfølgning):
 
 | # | Verdict | Vurdering (kode-verificeret) |
 |---|---|---|
-| **A1** | 🟡 ikke-ideelt | `useEoOplysningerViewModel` er en troværdig kompositions-rod (handlere i sub-hooks). Men `useLoenindkomstViewModel` er en **1211-linjers god-hook flyttet bag en kontekst** (Tab-diff: 2067 sletninger / 42 indsættelser = verbatim relokering); begge VM'er **lækker rå store-adgang** (`values/setValues/setFieldValue` returneres direkte, kommenteret "Rå form-state") og **ingen af dem har isolations-tests** — den primære gevinst ved et VM-lag (test af afledning uden React-render) er ikke realiseret. God-class-problemet er delvist *flyttet*, ikke løst. **Status nedjusteret ✅→🟡.** |
+| **A1** | ✅ lukket 2026-06-30 | (Historik:) `useLoenindkomstViewModel` var en god-hook flyttet bag en kontekst uden isolations-tests, og VM'en lækkede rå `eoValues`. **Lukket 2026-06-30:** den fulde afledning er udskilt til en React-fri `deriveLoenindkomstVm`, rå `eoValues` er fjernet fra konteksten, og 19 isolations-tests realiserer VM-lagets primære gevinst (afledning testbar uden render). Se A1-status ovenfor. |
 | **B9** | ✅ implementeret | Lukket 2026-06-25 via single-source relocation: række-evaluerings-motoren er flyttet fra `domain/debug/` til autoritativt `domain/eoRowEvaluation/`, gaten bruger den derfra, DEV-debug er nedstrøms, over-block-fixet er anvendt, og parallel `eoBlockingValidation` er fjernet. Eftergennemgang 2026-06-29 lukkede status-/kontraktdrift og tilføjede direkte regressionstest. |
-| **A4** | 🟡 overstated claim | Dato-grænser + felt-fejl er ægte centraliseret. Men "download-gate korrekthed allerede ens by construction" er overstated: `RenteberegningTab` og `MenberegningTab` håndruller rå-boolean-gates **uden for** det delte `documentGateTypes`-primitiv — committed-reglen er dér håndhævet af en kommentar, ikke af konstruktion. |
+| **A4** | ✅ lukket 2026-06-30 | (Historik:) `RenteberegningTab` og `MenberegningTab` håndrullede rå-boolean-gates uden for det delte `documentGateTypes`-primitiv — committed-reglen var dér håndhævet af en kommentar, ikke af konstruktion. **Lukket 2026-06-30:** begge gates bygges nu på primitivet via rene domæne-funktioner (`renteberegningDownloadGate.ts`, `varigeMenDownloadGate.ts`); committed-reglen er konstruktion, og sandhedstabel-tests pinner adfærdsbevarelse. Se A4-status ovenfor. |
 | **B8** | 🟡 smallere end ✅ antyder | Type-seglet er ægte (`Omit`, ingen cast/`any`), men `buildEoComputedTotals` **viderebringer** engine/sektion-totaler (clamp + forlig-skalering), den **re-deriverer dem ikke uafhængigt**. Seglet stopper divergens-ved-tastefejl/parallel-genberegning — ikke divergens-ved-engine-fejl (et forkert engine-tal flyder identisk til begge). Ingen yderligere indsats berettiget (ægte krydsudledning = en anden engine, ikke berettiget mod låst flade). |
 | **C17** | ✅ residual rettet | `initStandardDocumentWriter` + creator-brand-fix er korrekt. Den verbatim-identiske `writeRows` (aarsloen + varigemen; satsers string-par-variant) er nu løftet til delt `writeLabelValueRows` i `documentGeneratorSetup.ts` (satser mapper ved callsite). Lukket 2026-06-24. |
 | Øvrige | ✅ | A2, A3, A5, B6, B7 (merge-forkastelse + residual-fix), B10, B11, B12, C13, C14, C15, C16 er på bedst-muligt slutprodukt givet den låste feature-flade. Flere forkastelser (A5, B7-merge, C14, C16) er blandt doc'ens bedst-begrundede — genåbn dem ikke. |
@@ -72,8 +72,8 @@ Bevidst IKKE ændret drive-by (dokumenteret som opfølgning):
 ### Hvor et større/breaking snit faktisk er værd det (rangordnet)
 
 1. **B9 — træk produktions-blokerings-validering UD af debug-laget.** ✅ **GENNEMFØRT 2026-06-25** — men via **single-source relocation** (ikke en parallel `eoBlockingValidation`): række-evaluerings-motoren er flyttet `domain/debug/` → `src/domain/eoRowEvaluation/` (autoritativ, debug-fri), gaten konsumerer den derfra, DEV-debug-laget er nedstrøms, og isolations-værnet er omskrevet (ENGINE-invariant + inverteret invariant C). Over-block-fixet (arbejdsstatus/helbredsstatus kun-når-relevant) er anvendt. Den parallelle `eoBlockingValidation`-infrastruktur er retireret som død kode. Motor-filer/symboler er omdøbt `eoDebug…`/`collectAllDebugRows` → `eoRow…`/`collectAllEoRows` (autoritativ identitet). Se `b9-blokeringsvalidering-plan.md` §8.
-2. **A1 — gør `useLoenindkomstViewModel` til et ægte VM** (medium værdi, lav risiko). Split god-hooken i en ren `deriveLoenindkomstVm(committed, settings): FlatModel` (testbar uden React) + en tynd state/handler-hook; stop med at returnere `setValues`/refs gennem konteksten; tilføj isolations-tests. ~1-2 dage. **Delvist gjort 2026-06-24:** den rene sats-validering (`validateFeriePct`/`validateOverenskomstSats`/`validateAllSatserForAnsaettelsesforhold` + `SatsErrorState`/`OverenskomstSatsField`-dubletten) er løftet ud af god-hooken til `domain/erstatningsopgoerelse/validation/loenindkomstSatsValidation.ts` — React-fri, dækket af nye isolations-tests (`loenindkomstSatsValidation.test.ts`, 14 cases). Det realiserer A1's primære gevinst (afledning testbar uden render) for sats-laget; hooken kalder nu ind via en tynd binding. Udestående: den fulde `deriveLoenindkomstVm: FlatModel`-udskillelse af de øvrige afledte maps + stop med at eksponere rå `eoValues` gennem konteksten.
-3. **A4 — migrér de to rå-boolean-download-gates** (`RenteberegningTab` + `MenberegningTab`) til `documentGateTypes`-primitivet, så committed-reglen er konstruktion ikke kommentar. Timer. **UX-nær → kræver forelæggelse.**
+2. **A1 — gør `useLoenindkomstViewModel` til et ægte VM** (medium værdi, lav risiko). Split god-hooken i en ren `deriveLoenindkomstVm(committed, settings): FlatModel` (testbar uden React) + en tynd state/handler-hook; stop med at returnere `setValues`/refs gennem konteksten; tilføj isolations-tests. ~1-2 dage. **Delvist gjort 2026-06-24:** den rene sats-validering (`validateFeriePct`/`validateOverenskomstSats`/`validateAllSatserForAnsaettelsesforhold` + `SatsErrorState`/`OverenskomstSatsField`-dubletten) er løftet ud af god-hooken til `domain/erstatningsopgoerelse/validation/loenindkomstSatsValidation.ts` — React-fri, dækket af nye isolations-tests (`loenindkomstSatsValidation.test.ts`, 14 cases). Det realiserer A1's primære gevinst (afledning testbar uden render) for sats-laget; hooken kalder nu ind via en tynd binding. Udestående: den fulde `deriveLoenindkomstVm: FlatModel`-udskillelse af de øvrige afledte maps + stop med at eksponere rå `eoValues` gennem konteksten. **✅ FÆRDIGGJORT 2026-06-30:** den fulde `deriveLoenindkomstVm`-udskillelse er gennemført (`viewModel/loenindkomstDerivations.ts`, React-fri, 19 isolations-tests), og rå `eoValues` er fjernet fra konteksten. A1 er hermed helt lukket.
+3. **A4 — migrér de to rå-boolean-download-gates** (`RenteberegningTab` + `MenberegningTab`) til `documentGateTypes`-primitivet, så committed-reglen er konstruktion ikke kommentar. Timer. **UX-nær → kræver forelæggelse.** **✅ FÆRDIGGJORT 2026-06-30:** begge gates bygges nu på primitivet via rene domæne-funktioner (`renteberegningDownloadGate.ts`, `varigeMenDownloadGate.ts`); adfærdsbevarende (sandhedstabel-tests). Ingen synlig UI/UX-ændring — download-knappernes disabled/tooltip/shake-adfærd er byte-for-byte uændret.
 4. **C17 — løft tripleret `writeRows` ind i `documentGeneratorSetup.ts`.** ✅ Gjort 2026-06-24 (`writeLabelValueRows`).
 
 Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen yderligere stor ændring er berettiget.
@@ -82,7 +82,26 @@ Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen 
 
 ## Klasse A — høj værdi, forsvarligt omfang/risiko
 
-### A1. Manglende view-model-lag under fagsiderne (god-class-tabs) — 🟡 DELVIST (nedjusteret 2026-06-24; oprindeligt ✅ 2026-06-21)
+### A1. Manglende view-model-lag under fagsiderne (god-class-tabs) — ✅ IMPLEMENTERET (2026-06-30; tidl. 🟡 DELVIST 2026-06-24, oprindeligt ✅ 2026-06-21)
+
+> **Status (afsluttet 2026-06-30):** Shortlist-punkt 2 er nu helt løst for `useLoenindkomstViewModel`.
+> Den fulde afledning er udskilt til en **React-fri** ren funktion `deriveLoenindkomstVm(input): LoenindkomstFlatModel`
+> i [`src/domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations.ts`](../../src/domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations.ts)
+> (modstykke til den allerede udskilte `validation/loenindkomstSatsValidation.ts`). Den ejer alle de
+> resterende afledte maps (`satserByAfId`, `derivedCalculatorByAfId`, `manualBaseRowErrorsByAfId`,
+> `aarsloenExternalCellErrorMessagesByAfId`) + de per-af rene afledninger (anvendt-reguleringsdato,
+> sfgg-availability, loenudviklings-basedato, offentlig-løn-readiness, overenskomst-label/-filter) + de
+> kort-afledninger der tidligere blev udregnet inde i `AnsaettelsesforholdCard` FRA rå `eoValues`
+> (sygeferiegodtgørelse-synlighed, sfgg-række-opslag, `firstTafFraDato`, `sfggReferenceperiodeMaxDate`).
+> Hooken kalder funktionen i ÉT `React.useMemo` og beholder kun React-state/effekter/handlers +
+> stabilitets-optimeringerne (`afIds`-proxy, `React.memo`-stabile callback-maps). **Rå `eoValues` er
+> fjernet fra konteksten** (`LoenindkomstVm`-typen + provider-injektionen + kort-forbruget) — intet
+> komponentlag når længere rå committed EO-state gennem VM'en. Drive-by-dedup: kortets inline
+> `firstTafFraDato`-reduktion er erstattet af den kanoniske `getFirstIndtastedeTafFraDato`-helper.
+> Ny React-fri isolations-test
+> [`loenindkomstDerivations.test.ts`](../../src/__tests__/domain/erstatningsopgoerelse/loenindkomstDerivations.test.ts)
+> (19 cases) realiserer VM-lagets primære gevinst (afledning testbar uden render). Adfærdsbevarende;
+> fuld suite grøn (5767 tests). **Status opjusteret 🟡→✅.** Den oprindelige historik bevares nedenfor.
 
 > **Efter-review-note (2026-06-24):** Nedjusteret ✅→🟡. Begge halvdele af mekanikken er på plads, men
 > `useLoenindkomstViewModel` er en **1211-linjers god-hook flyttet bag en kontekst** (verbatim
@@ -150,7 +169,22 @@ Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen 
 
 **Gevinst 4 · Omfang 2 · Risiko 2** — lukker en bekræftet stille-datatab-risiko (fejl der ikke blokerer Gem), lille indgreb.
 
-### A4. Side-laget genimplementerer fejl-gating, download-gate og dato-grænser — 🟡 STORT SET LØST / NEDJUSTERET (2026-06-21)
+### A4. Side-laget genimplementerer fejl-gating, download-gate og dato-grænser — ✅ IMPLEMENTERET (2026-06-30; tidl. 🟡 2026-06-21)
+
+> **Status (afsluttet 2026-06-30).** Det sidste udestående A4-snit (shortlist-punkt 3) er nu løst:
+> de to håndrullede rå-boolean-download-gates er flyttet onto det fælles `documentGateTypes`-primitiv,
+> så committed-only-reglen er **konstruktion** (et typet `DocumentDownloadGateResult` med auditerbare
+> årsagskoder, jf. dokument-output-kontrakt §A2) frem for en kommentar. Gate-beslutningen er udskilt til
+> rene, React-frie domæne-funktioner:
+> [`renteberegningDownloadGate.ts`](../../src/domain/renteberegning/renteberegningDownloadGate.ts)
+> (`evaluateDownloadAllGate` + `evaluateOversigtDownloadGate`) og
+> [`varigeMenDownloadGate.ts`](../../src/domain/varigemen/varigeMenDownloadGate.ts)
+> (`evaluateVarigeMenDownloadGate`). `RenteberegningTab` og `MenberegningTab` driver nu deres
+> `disabled`/shake-adfærd af `gate.canDownload`. **Adfærdsbevarende:** nye sandhedstabel-tests pinner
+> `!canDownload` til præcis de tidligere boolean-udtryk, så download-knappernes synlige adfærd (disabled,
+> tooltip, shake, fokus-til-første-fejl) er byte-for-byte uændret. Concern #1 (dato-grænser) og #2
+> (felt-fejl) var allerede lukkede; #3 (download-gate) er nu også. **Status opjusteret 🟡→✅.** Den
+> oprindelige verifikations-tekst bevares nedenfor som historik.
 
 > **Status (verificeret 2026-06-21).** To af de tre concerns var allerede løst af tidligere arbejde,
 > og den tredje viste sig at være stilistisk frem for reel duplikering:
@@ -497,10 +531,10 @@ Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen 
 
 | # | Kandidat | Gevinst | Omfang | Risiko | Forelæggelse |
 |---|---|:---:|:---:|:---:|:---:|
-| A1 🟡 | View-model-lag under fagsiderne — mekanik på plads, men `useLoenindkomstViewModel` er en god-hook flyttet bag kontekst (lækker rå store-adgang); nedjusteret 2026-06-24. **Delvis fremdrift 2026-06-24:** ren sats-validering udskilt til `loenindkomstSatsValidation.ts` (React-fri + isolations-tests); resten af `deriveLoenindkomstVm` + rå `eoValues`-kontekst udestår | 5 | 5 | 3 | Nej (ren refaktor) |
+| A1 ✅ | View-model-lag under fagsiderne — **lukket 2026-06-30:** fuld `deriveLoenindkomstVm` udskilt React-frit (`viewModel/loenindkomstDerivations.ts`), rå `eoValues` fjernet fra konteksten, 19 isolations-tests; sats-validering var allerede udskilt 2026-06-24 | 5 | 5 | 3 | Nej (ren refaktor) |
 | A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
-| A4 🟡 | Side-byggeklodser (gate/download/dato-grænser) — NB: 2 sider (`RenteberegningTab`/`MenberegningTab`) håndruller download-gates uden for `documentGateTypes`-primitivet; committed-regel er kommentar ikke konstruktion (se Kritisk efter-review) | 4 | 3 | 3 | Delvis |
+| A4 ✅ | Side-byggeklodser (gate/download/dato-grænser) — **lukket 2026-06-30:** de 2 sider (`RenteberegningTab`/`MenberegningTab`) bygger nu download-gates på `documentGateTypes`-primitivet via rene domæne-funktioner; committed-regel er konstruktion; adfærdsbevarende (sandhedstabel-tests) | 4 | 3 | 3 | Nej (adfærdsbevarende) |
 | B6 ✅ | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
 | B7 🟡 | Samlet felt-tilstand (fejl/draft/undo) — struktur allerede samlet; orphan-datatab rettet | 4 | 5 | 5 | Nej |
 | B8 ✅ | Tvungne grænser i EO snapshot→presentation (NB: seglet er forwarding af canonical-totaler, ikke uafhængig krydsudledning — stopper divergens-ved-tastefejl, ikke -ved-engine-fejl; se Kritisk efter-review) | 4 | 4 | 3 | Nej |
@@ -516,7 +550,7 @@ Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen 
 
 **Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B9 er nu lukket: gennemført 2026-06-25 via single-source relocation og eftergennemgået 2026-06-29.
 
-**Status:** Alle kandidater i prioritetstabellen er behandlet (implementeret, delvist løst, eller verificeret-og-nedjusteret/forkastet). B9 er ikke længere åben. Tilbage som åbne, ikke-haste opfølgninger er **A1** (gør `useLoenindkomstViewModel` til et ægte VM) og **A4** (migrér 2 download-gates til primitivet — forelæggelses-pligtig).
+**Status:** Alle kandidater i prioritetstabellen er behandlet og lukkede (implementeret eller verificeret-og-nedjusteret/forkastet). Pr. 2026-06-30 er de to sidste åbne opfølgninger lukket: **A1** (fuld React-fri `deriveLoenindkomstVm` + rå `eoValues` fjernet fra konteksten) og **A4** (begge download-gates flyttet onto `documentGateTypes`-primitivet, adfærdsbevarende). Der er ingen åbne arkitektur-kandidater tilbage. De tilbageværende 🟡-markeringer (B7, C14, C16, C17) er bevidste delvise/forkastede udfald, ikke åbne handlinger.
 
 ---
 

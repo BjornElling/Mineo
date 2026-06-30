@@ -43,11 +43,7 @@ import {
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
-import {
-  hasSfggSelectedOverenskomst,
-  resolveSfggReferenceperiodeMaxDate,
-} from '../../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
-import { shouldRequireSygeferiegodtgoerelseInput } from '../../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
+import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import { DAY_COUNT_MAX } from '../../../../schemas/formSchemas/baseSchemas';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
@@ -122,7 +118,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const {
     beregnesUdFra,
     tafBeregningsperiodeTil,
-    eoValues,
     sfggSixMonthWarningEmploymentIds,
     onNavigateToTabtArbejdsfortjeneste,
     stamdataValues,
@@ -148,6 +143,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     isOffentligLoenSelectionReady,
     resolveOverenskomstLabel,
     getFilteredOverenskomsterForAnsaettelsesforhold,
+    showSygeferiegodtgoerelseSection: showSygeferiegodtgoerelseSectionFor,
+    getSfggRowForAf,
+    firstTafFraDato,
+    sfggReferenceperiodeMaxDate,
     updateSfggAnsaettelsesforhold,
     handleTextCommit,
     handleToggleChange,
@@ -236,8 +235,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const headerText = af.navnPaaArbejdssted
     ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
     : baseHeaderText;
-  const showSygeferiegodtgoerelseSection = shouldRequireSygeferiegodtgoerelseInput(eoValues, af);
-  const sfggRow = eoValues.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === af.id);
+  const showSygeferiegodtgoerelseSection = showSygeferiegodtgoerelseSectionFor(af);
+  const sfggRow = getSfggRowForAf(af);
   const sfggPolicy = af.overenskomstId
     ? getOverenskomstSfggPolicy(af.overenskomstId)
     : undefined;
@@ -268,14 +267,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       ? 'Referenceperioden indeholder ingen kalenderdage.'
       : 'Referenceperioden indeholder ingen arbejdsdage.'
     : '';
-  const firstTafFraDato = (eoValues.tafPerioder ?? [])
-    .map((tafRow) => tafRow.fra)
-    .filter((value): value is ISODateString => value !== undefined)
-    .reduce<ISODateString | undefined>((earliest, current) => {
-      if (!earliest) return current;
-      return current < earliest ? current : earliest;
-    }, undefined);
-  const sfggReferenceperiodeMaxDate = resolveSfggReferenceperiodeMaxDate(eoValues);
   const sfggReferenceperiodeFravaersdageMax = Math.min(
     referenceperiodeAvailability.maxFravaersdage ?? DAY_COUNT_MAX,
     DAY_COUNT_MAX

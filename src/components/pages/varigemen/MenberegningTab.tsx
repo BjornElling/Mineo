@@ -25,6 +25,7 @@ import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { downloadVarigeMenDokument } from '../../../document/service/documentService';
+import { evaluateVarigeMenDownloadGate } from '../../../domain/varigemen/varigeMenDownloadGate';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { resolveStamdataDatoLabel } from '../../../domain/policies/stamdataCalculations';
 
@@ -130,10 +131,24 @@ const beregningsResultat = React.useMemo(() => {
   return resultat;
 }, [values, stamValues.skadelidteFodselsdato, stamValues.skadedato, beregningsFejl, manglendeFelter]);
 
+  // Download-gaten bygges på det fælles documentGateTypes-primitiv (dokument-output-
+  // kontrakt §A2): et samlet gate-resultat med auditerbare årsagskoder i stedet for et
+  // inline-boolean-udtryk. Alle tre indgange er committed-afledte (onBlur-felt-fejl,
+  // committed stamdata/værdier, autoritativ engine), så committed-only-reglen er
+  // konstruktion frem for kommentar.
+  const downloadGate = React.useMemo(
+    () => evaluateVarigeMenDownloadGate({
+      hasBlockingFieldErrors: beregningsFejl !== null,
+      hasMissingFields: manglendeFelter !== null,
+      hasBeregningsResultat: beregningsResultat !== undefined,
+    }),
+    [beregningsFejl, manglendeFelter, beregningsResultat],
+  );
+
   // PDF download handler
   const handlePdfDownload = React.useCallback(async () => {
     // Tjek om der er fejl eller manglende felter
-    if (beregningsFejl || manglendeFelter || !beregningsResultat) {
+    if (!downloadGate.canDownload) {
       setPdfErrorMessage(null);
       // Trigger rystebevægelse
       setDownloadShake(true);
@@ -172,6 +187,13 @@ const beregningsResultat = React.useMemo(() => {
       return;
     }
 
+    // gate.canDownload garanterer hasBeregningsResultat=true; denne guard narrower
+    // typen (VarigeMenBeregningResult | undefined → VarigeMenBeregningResult) og er
+    // ellers et no-op, da gaten allerede har blokeret det udefinerede tilfælde.
+    if (beregningsResultat === undefined) {
+      return;
+    }
+
     const result = await downloadVarigeMenDokument({
       fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato),
       skadedato: coerceToISODateString(stamValues.skadedato),
@@ -182,7 +204,7 @@ const beregningsResultat = React.useMemo(() => {
       persistedStamdata: stamValues,
     });
     setPdfErrorMessage(result.success ? null : result.error);
-  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues, fodselsdatoError, mengradError, beregningsdatoError, settings, navigate]);
+  }, [downloadGate, beregningsResultat, values, stamValues, fodselsdatoError, mengradError, beregningsdatoError, settings, navigate]);
 
   const skadedatoLabel = React.useMemo(
     () => resolveStamdataDatoLabel(stamValues),

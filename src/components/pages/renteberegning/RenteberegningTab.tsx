@@ -17,6 +17,7 @@ import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraf
 import type { RentePdfContext } from '../../tables/BeregnetRenteTable';
 import { computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
 import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
+import { evaluateDownloadAllGate, evaluateOversigtDownloadGate } from '../../../domain/renteberegning/renteberegningDownloadGate';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
@@ -141,23 +142,23 @@ const RenteberegningTab = React.memo(({
   // hasValidPdfContexts: mindst én række med fuldt beregnet pdfContext (belob + renterFra gyldige og beregning ok)
   const hasValidPdfContexts = pdfContexts.size > 0;
 
-  const downloadAllDisabled =
-    !hasValidPdfContexts ||
-    anyRowHasError ||
-    beregningsdatoHasError ||
-    downloadAllIsLoading;
+  // Begge download-gates bygges på det fælles documentGateTypes-primitiv (dokument-
+  // output-kontrakt §A2): committed-only-reglen er nu konstruktion, ikke kommentar.
+  // Gate-funktionerne er rene og committed-afledte; loading-tilstanden er en separat
+  // UI-transient der OR'es på download-alle-knappens disabled nedenfor.
+  const downloadAllGate = React.useMemo(
+    () => evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError }),
+    [hasValidPdfContexts, anyRowHasError, beregningsdatoHasError],
+  );
+  const downloadAllDisabled = !downloadAllGate.canDownload || downloadAllIsLoading;
 
   const showDownloadAllBox = isMobile && onDownloadAllSpecifikationer !== undefined;
 
-  // Oversigts-download-gate:
-  //  a) beregningsdato udfyldt og gyldig
-  //  b) mindst én gyldig rente-linje
-  //  c) ingen rente-linje med indtastning er ugyldig
-  const oversigtDownloadDisabled =
-    beregningsdato === undefined ||
-    beregningsdatoHasError ||
-    !hasValidPdfContexts ||
-    anyRowHasError;
+  const oversigtDownloadGate = React.useMemo(
+    () => evaluateOversigtDownloadGate({ beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError }),
+    [beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError],
+  );
+  const oversigtDownloadDisabled = !oversigtDownloadGate.canDownload;
 
   const handleDownloadOversigt = React.useCallback(async () => {
     if (!onDownloadOversigt || beregningsdato === undefined) return;

@@ -1,7 +1,6 @@
 import React from 'react';
 import type { CommitEvent, CommitHandler } from '../../../../types/fieldEvents';
 import { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
-import { type StandardLoenTableSatser } from '../../../tables/StandardLoenTable';
 import {
   loenPaaHelligdageEnum,
   tillaegAngivesSomEnum,
@@ -13,20 +12,14 @@ import {
   type OffentligLoenTypeLabel,
   type ErstatningsopgoerelseValues,
 } from '../../../../schemas/formSchemas';
-import type { ISODateString } from '../../../../types/branded';
-import { parseISODate } from '../../../../types/branded';
-import { formatDanishDate } from '../../../../utils/dateUtils';
 import { isLoenperiodeValue } from '../../../../utils/zodTypeGuards';
 import { scrollTargetIntoView } from '../../../../utils/scrollTargetIntoView';
 import type { StandardLoenTableValidationSummary } from '../../../../types/table';
 import {
   getAlleLoenmodtagerOrg,
   getAlleArbejdsgiverOrg,
-  getOverenskomsterByOrg,
-  getOverenskomstMetaById,
   isOffentligOverenskomstId,
 } from '../../../../data/overenskomstRates';
-import { toLoentrin } from '../../../../data/offentligLoenTypes';
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../../hooks/useFormPersistenceSelectors';
 import { useReconcileInvalidDraftScopes } from '../../../../hooks/tableInput';
 import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
@@ -43,33 +36,20 @@ import {
   syncManualBaseRowSatser,
   type OverenskomstSatsField,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
-import { getAngivetLoenOpreguleresFraDato } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import {
-  normalizeOptionalFreeText,
-  resolveAnvendtReguleringsdato,
-} from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import {
-  resolveSfggSource,
-  resolveSfggReferenceperiodeDayCount,
-} from '../../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
-import {
-  buildStandardLoenZeroArbejdsdageCellErrorMessages,
-  type AarsloenZeroArbejdsdageValidationInput,
-} from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
-import {
-  validateLoenudviklingManualBaseRowSatser,
-  type ManualBaseRowCellErrors,
-} from '../../../../domain/erstatningsopgoerelse/validation/loenudviklingManuelBaseRowValidation';
+import { normalizeOptionalFreeText } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   validateFeriePct,
   validateOverenskomstSats,
   validateAllSatserForAnsaettelsesforhold as validateAllSatser,
   type SatsErrorState,
 } from '../../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsValidation';
+import {
+  deriveLoenindkomstVm,
+  type LoenindkomstFlatModel,
+} from '../../../../domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations';
 import { useDynamicFormFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
 import { updateValidationFlagById } from '../../../../utils/validationFlagMap';
 import { type SetValuesUpdater } from '../../../../hooks/usePersistedForm';
-import { calculateLoenindkomstRowDerived } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
 import { useLoentrinFinder } from './useLoentrinFinder';
 
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
@@ -164,6 +144,49 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   );
   useReconcileInvalidDraftScopes('erstatningsopgoerelse', AF_SCOPED_CELL_TABLE_IDS, liveAfIds);
 
+  // Hele den rene afledning (maps + per-af-funktioner) bor i domænets view-model-lag, så den er
+  // testbar uden React-render (jf. A1). Hooken ejer kun React-state/effekter/handlers og kalder
+  // ind i den her. Dep-listen er præcis de committede input afledningen bruger — ingen regression
+  // i re-render-granularitet ift. de tidligere separate memos.
+  const derived: LoenindkomstFlatModel = React.useMemo(
+    () => deriveLoenindkomstVm({
+      loenindkomstAnsaettelsesforhold,
+      beregnesUdFra,
+      tafBeregningsperiodeFra,
+      tafBeregningsperiodeTil,
+      ferieperioder,
+      fravaerPerioder,
+      eoValues,
+      skadedato: stamdataValues?.skadedato,
+    }),
+    [
+      loenindkomstAnsaettelsesforhold,
+      beregnesUdFra,
+      tafBeregningsperiodeFra,
+      tafBeregningsperiodeTil,
+      ferieperioder,
+      fravaerPerioder,
+      eoValues,
+      stamdataValues?.skadedato,
+    ]
+  );
+  const {
+    satserByAfId,
+    derivedCalculatorByAfId,
+    manualBaseRowErrorsByAfId,
+    aarsloenExternalCellErrorMessagesByAfId,
+    getAnvendtReguleringsdatoForAnsaettelsesforhold,
+    getSfggReferenceperiodeAvailability,
+    getLoenudviklingBaseDate,
+    isOffentligLoenSelectionReady,
+    resolveOverenskomstLabel,
+    getFilteredOverenskomsterForAnsaettelsesforhold,
+    showSygeferiegodtgoerelseSection,
+    getSfggRowForAf,
+    firstTafFraDato,
+    sfggReferenceperiodeMaxDate,
+  } = derived;
+
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
@@ -179,65 +202,8 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const [standardLoenTableHasErrorsByAfId, setStandardLoenTableHasErrorsByAfId] = React.useState<Record<string, true>>({});
   const [manuelReguleringHasErrorsByAfId, setManuelReguleringHasErrorsByAfId] = React.useState<Record<string, true>>({});
   const loentrinFinder = useLoentrinFinder(loenindkomstAnsaettelsesforhold);
-  const manualBaseRowErrorsByAfId = React.useMemo<Record<string, ManualBaseRowCellErrors>>(() => {
-    const result: Record<string, ManualBaseRowCellErrors> = {};
-    for (const af of loenindkomstAnsaettelsesforhold) {
-      if (af.loenudviklingBeregningsgrundlag !== 'Manuelt angivet') continue;
-      result[af.id] = validateLoenudviklingManualBaseRowSatser(
-        af.loenudviklingManuelTableData?.[0],
-        {
-          feriePct: af.feriePct,
-          fritvalgPct: af.fritvalgPct,
-          shSoPct: af.shSoPct,
-          pensionPct: af.pensionPct,
-        }
-      );
-    }
-    return result;
-  }, [loenindkomstAnsaettelsesforhold]);
-  const aarsloenZeroArbejdsdageValidationInput = React.useMemo<AarsloenZeroArbejdsdageValidationInput>(() => ({
-    beregnesUdFra: beregnesUdFra,
-    tafBeregningsperiodeFra: tafBeregningsperiodeFra,
-    tafBeregningsperiodeTil: tafBeregningsperiodeTil,
-    loenindkomstAnsaettelsesforhold: loenindkomstAnsaettelsesforhold,
-    ferieperioder: ferieperioder,
-    fravaerPerioder: fravaerPerioder,
-  }), [
-    beregnesUdFra,
-    ferieperioder,
-    fravaerPerioder,
-    loenindkomstAnsaettelsesforhold,
-    tafBeregningsperiodeFra,
-    tafBeregningsperiodeTil,
-  ]);
-  const aarsloenExternalCellErrorMessagesByAfId = React.useMemo<Record<string, Readonly<Record<string, string>>>>(() => {
-    const result: Record<string, Readonly<Record<string, string>>> = {};
-    for (const af of loenindkomstAnsaettelsesforhold) {
-      const messages = buildStandardLoenZeroArbejdsdageCellErrorMessages(aarsloenZeroArbejdsdageValidationInput, af.id);
-      if (Object.keys(messages).length > 0) {
-        result[af.id] = messages;
-      }
-    }
-    return result;
-  // loenindkomstAnsaettelsesforhold medtages eksplicit som forsvar mod fremtidige ændringer
-  // i aarsloenZeroArbejdsdageValidationInput's dep-chain: memo'et itererer selv over listen
-  // for at bygge map'et per af.id, så listen er en direkte dep uanset om validationInput
-  // invalideriseres først.
-  }, [aarsloenZeroArbejdsdageValidationInput, loenindkomstAnsaettelsesforhold]);
   const syncedLoenindkomstErrorIdsRef = React.useRef<ReadonlySet<string>>(new Set());
 
-
-  const getAnvendtReguleringsdatoForAnsaettelsesforhold = React.useCallback(
-    (af: Pick<Ansaettelsesforhold, 'saerligFraDatoRegulering'>): ISODateString | undefined =>
-      resolveAnvendtReguleringsdato({
-        beregnesUdFra,
-        angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
-        saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-        beregningsperiodeTil: tafBeregningsperiodeTil,
-        skadedato: stamdataValues?.skadedato,
-      }),
-    [beregnesUdFra, eoValues, tafBeregningsperiodeTil, stamdataValues?.skadedato]
-  );
   // Tynd React-binding over den rene sats-validering: leverér den anvendte reguleringsdato (afledt af
   // committed EO/stamdata) + beregningsgrundlaget; selve afledningen bor i validation-laget (jf. A1).
   const validateAllSatserForAnsaettelsesforhold = React.useCallback(
@@ -322,67 +288,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   ) => {
     setEOValues((prev) => updateSfggAnsaettelsesforholdRow(prev, ansaettelsesforholdId, updater), origin);
   }, [setEOValues]);
-
-  const getSfggReferenceperiodeAvailability = React.useCallback((
-    employment: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
-    row: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number] | undefined
-  ): Readonly<{
-    maxFravaersdage: number | undefined;
-    hasNoRelevantDaysError: boolean;
-    dayLabel: 'kalenderdage' | 'arbejdsdage' | null;
-  }> => {
-    const source = resolveSfggSource(row, employment);
-    const referenceDayCount = resolveSfggReferenceperiodeDayCount(eoValues, row, source);
-    if (!referenceDayCount) {
-      return { maxFravaersdage: undefined, hasNoRelevantDaysError: false, dayLabel: null };
-    }
-    const maxFravaersdage = referenceDayCount.divisorLabel === 'kalenderdage'
-      ? referenceDayCount.kalenderdage
-      : referenceDayCount.divisorDage;
-    return {
-      maxFravaersdage,
-      hasNoRelevantDaysError: maxFravaersdage <= 0,
-      dayLabel: referenceDayCount.divisorLabel,
-    };
-  }, [eoValues]);
-
-  const getLoenudviklingBaseDate = React.useCallback(
-    (af: Ansaettelsesforhold) => {
-      const iso = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
-      if (!iso) {
-        return { display: '', iso: undefined, errorMessage: 'Skadedato er ikke udfyldt' };
-      }
-      const parsed = parseISODate(iso);
-      if (!parsed) {
-        return { display: '', iso: undefined, errorMessage: 'Skadedato er ikke udfyldt' };
-      }
-      return { display: formatDanishDate(parsed), iso, errorMessage: undefined };
-    },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold]
-  );
-
-  const isOffentligLoenSelectionReady = React.useCallback((af: Ansaettelsesforhold): boolean => {
-    const overenskomstId = af.overenskomstId?.trim();
-    if (!overenskomstId || !isOffentligOverenskomstId(overenskomstId)) return true;
-
-    const loenTypeParsed = offentligLoenTypeEnum.safeParse(af.offentligLoenType ?? 'Månedsløn');
-    if (!loenTypeParsed.success) return false;
-
-    const trinValue = af.offentligLoenTrin;
-    if (typeof trinValue !== 'number') return false;
-    try {
-      toLoentrin(trinValue);
-    } catch {
-      return false;
-    }
-
-    const gruppeValue = af.offentligLoenGruppe;
-    if (typeof gruppeValue !== 'number') return false;
-    if (gruppeValue < 0 || gruppeValue > 4) return false;
-
-    return true;
-  }, []);
-
 
   // Hent alle organisationer
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
@@ -821,15 +726,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     []
   );
 
-  const resolveOverenskomstLabel = React.useCallback((overenskomstId: string | undefined): string => {
-    if (!overenskomstId || overenskomstId.trim() === '') return 'Ingen valgt';
-    const meta = getOverenskomstMetaById(overenskomstId);
-    if (!meta) return overenskomstId;
-    const loenPart = meta.loenmodtagerOrg[0] || '';
-    const arbPart = meta.arbejdsgiverOrg[0] || '';
-    return `${meta.navn} (${loenPart} / ${arbPart})`;
-  }, []);
-
   const handleAddConfirm = React.useCallback(() => {
     const newAf = createDefaultLoenindkomstAnsaettelsesforhold(settings);
     onAnsaettelsesforholdChange((prev) => [...prev, newAf]);
@@ -943,63 +839,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     [updateAnsaettelsesforhold]
   );
 
-  // Hent filtrerede overenskomster for hvert Ansættelsesforhold (bruger persisted filter fra sagsdata)
-  const getFilteredOverenskomsterForAnsaettelsesforhold = React.useCallback(
-    (af: Ansaettelsesforhold) => {
-      // overenskomstFilter er nu altid til stede (ikke-optional i schema)
-      return getOverenskomsterByOrg(af.overenskomstFilter.loenmodtager, af.overenskomstFilter.arbejdsgiver);
-    },
-    []
-  );
-
   const totalAnsaettelsesforhold = loenindkomstAnsaettelsesforhold.length;
   const cannotAddMore = totalAnsaettelsesforhold >= MAX_ANSAETTELSESFORHOLD;
   const showDeleteButton = totalAnsaettelsesforhold > 0;
-
-  // Stabile props pr. af til React.memo'd StandardLoenTable.
-  const satserByAfId = React.useMemo(() => {
-    const map = new Map<string, StandardLoenTableSatser>();
-    for (const af of loenindkomstAnsaettelsesforhold) {
-      map.set(af.id, {
-        ferie: af.feriePct,
-        fritvalg: af.fritvalgPct,
-        shSo: af.shSoPct,
-        bededag: af.storeBededagPct,
-        pension: af.pensionPct,
-      } satisfies StandardLoenTableSatser);
-    }
-    return map;
-  }, [loenindkomstAnsaettelsesforhold]);
-
-  const derivedCalculatorByAfId = React.useMemo(() => {
-    const map = new Map<string, (row: Ansaettelsesforhold['indtaegtsoplysningerTableData'][number]) => ReturnType<typeof calculateLoenindkomstRowDerived>>();
-    for (const af of loenindkomstAnsaettelsesforhold) {
-      map.set(af.id, (row) => {
-        return calculateLoenindkomstRowDerived({
-          row,
-          ansaettelsesforhold: af,
-          context: {
-            beregnesUdFra,
-            tafBeregningsperiodeFra,
-            tafBeregningsperiodeTil,
-            loenindkomstAnsaettelsesforhold,
-            ferieperioder,
-            fravaerPerioder,
-          },
-          skadedato: stamdataValues?.skadedato,
-        });
-      });
-    }
-    return map;
-  }, [
-    beregnesUdFra,
-    ferieperioder,
-    fravaerPerioder,
-    loenindkomstAnsaettelsesforhold,
-    stamdataValues?.skadedato,
-    tafBeregningsperiodeFra,
-    tafBeregningsperiodeTil,
-  ]);
 
   // Callback-maps afhænger kun af id-listen, ikke af tabeldata.
   // Ids ændrer sig kun ved tilføj/slet af ansaettelsesforhold — ikke ved normale dataredits.
@@ -1073,6 +915,13 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     isOffentligLoenSelectionReady,
     resolveOverenskomstLabel,
     getFilteredOverenskomsterForAnsaettelsesforhold,
+
+    // Kort-afledninger (committed-only) som tidligere blev udledt inde i kortet fra rå eoValues.
+    // Eksponeres her, så kortet ikke længere behøver rå committed EO-state via konteksten (jf. A1).
+    showSygeferiegodtgoerelseSection,
+    getSfggRowForAf,
+    firstTafFraDato,
+    sfggReferenceperiodeMaxDate,
 
     // SFGG-opdatering
     updateSfggAnsaettelsesforhold,

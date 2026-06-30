@@ -76,7 +76,6 @@ const LoenindkomstTab = React.memo(({
     ...vm,
     beregnesUdFra,
     tafBeregningsperiodeTil,
-    eoValues,
     sfggSixMonthWarningEmploymentIds,
     onNavigateToTabtArbejdsfortjeneste,
   };
