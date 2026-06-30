@@ -211,6 +211,23 @@ EO-specifik præcisering:
   EO-rækker til brugerfladen og download-gaten.
 - `EOBeregningTab` er den centrale visning, hvor disse blokeringer aggregeres og vises.
 - EO-specifikke snapshot-invariants og outputblokeringer må gerne give yderligere forklaring i UI, men de må ikke redefinere de tværgående gate-kriterier.
+- EO-fejl i "Fejl og advarsler" skal gå gennem et domænenært issue-katalog
+  (`src/domain/eoRowEvaluation/eoRowIssueCatalog.ts`) for målrettet brugertekst,
+  parent-child-suppression og primært focus target. Row-builderne må fortsat beregne
+  status og rå domæneårsag, men Beregning-fanen må ikke have egne label-baserede
+  specialtekster for EO-række-fejl.
+- Når en EO-række-fejl blokerer download, skal den have navigation-metadata. Linket i
+  højre side må vise fane/sektion som overordnet sti, men selve klikhandlingen skal
+  først forsøge at scrolle til katalogets konkrete felt-/cellemål (`data-mineo-field-path`
+  eller `data-mineo-undo-field-path`) og først derefter falde tilbage til række- eller
+  sektionsmål.
+- Fejl/advarsler der peger ud af EO-siden, skal sætte både route og konkret inputfane
+  før navigationen. Det er ikke nok at navigere til siden, fordi faner er session-persistede
+  og ellers kan efterlade brugeren på en tidligere aktiv, men forkert, fane.
+- Hvis en overordnet fejl forklarer en afledt fejl, skal den overordnede fejl undertrykke
+  den afledte via den deterministiske dependency-graf. Nye målrettede fejltyper skal
+  derfor enten have en eksplicit katalogrelation eller en lokal `dependsOn`, hvis de
+  kan forårsage afledte fejl i samme visning.
 
 **Dokument-download-fejl:** Kan dokumentet alligevel ikke genereres (runtime-undtagelse i
 PDF- eller Word-laget), er det en systemteknisk fejl — ikke en brugerrettelig valideringsfejl.

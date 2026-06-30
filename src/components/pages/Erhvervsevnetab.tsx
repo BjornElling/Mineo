@@ -20,6 +20,10 @@ import { useAppSettings } from '../../contexts/useAppSettings';
 import {
   collectEetAslAfgoerelseValidationIssues,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import {
+  ERHVERVSEVNETAB_TAB_KEYS,
+  type ErhvervsevnetabTabKey,
+} from '../../domain/erhvervsevnetab/eetIssueNavigation';
 import { computeEetSnapshot } from '../../domain/erhvervsevnetab/eetSnapshot';
 import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
 import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
@@ -30,15 +34,8 @@ import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReport
 
 // ─── Fane-konstanter ─────────────────────────────────────────────────────────
 
-const TAB_KEYS = {
-  EET_OPLYSNINGER: 'eet-oplysninger',
-  LOEBENDE_YDELSER: 'loebende-ydelser',
-  KAPITALISERING: 'kapitalisering',
-  EET_EAL: 'eet-eal',
-  DIFFERENCEKRAV: 'differencekrav',
-} as const;
-
-type TabKey = (typeof TAB_KEYS)[keyof typeof TAB_KEYS];
+const TAB_KEYS = ERHVERVSEVNETAB_TAB_KEYS;
+type TabKey = ErhvervsevnetabTabKey;
 
 const ErhvervsevnetabPage = React.memo(() => {
   const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({

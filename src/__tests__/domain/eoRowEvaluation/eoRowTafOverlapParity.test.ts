@@ -127,7 +127,7 @@ describe('buildEoTaftRows overlap parity', () => {
     const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
 
     expect(ophoerRow?.status).toBe('warning');
-    expect(ophoerRow?.displayValue).toBe('Ikke rejst TAF-krav for hele perioden');
+    expect(ophoerRow?.displayValue).toBe('Der er ikke rejst TAF-krav for hele EO-perioden');
   });
 
   it('advarer ikke ved EO 2 når TAF-perioden starter før EO-perioden og clampes til start', () => {

@@ -175,7 +175,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                 className="row--text icon-text-link"
                 component="button"
                 type="button"
-                onClick={() => handleNavigate(row.navigation, row.id)}
+                onClick={() => {
+                  if (row.focusTarget) handleNavigate(row.navigation, row.id, row.focusTarget);
+                  else handleNavigate(row.navigation, row.id);
+                }}
                 sx={{
                   cursor: 'pointer',
                   border: 0,
@@ -198,7 +201,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                 className="row--text icon-text-link"
                 component="button"
                 type="button"
-                onClick={() => handleNavigate(row.navigation, row.id)}
+                onClick={() => {
+                  if (row.focusTarget) handleNavigate(row.navigation, row.id, row.focusTarget);
+                  else handleNavigate(row.navigation, row.id);
+                }}
                 sx={{
                   cursor: 'pointer',
                   border: 0,
@@ -282,7 +288,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
         <Typography className="row--text">{row.message}</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
           <Typography className="row--text">
-            Erhvervsevnetab {'->'}{' '}
+            {row.navigation.pageName} {'->'}{' '}
           </Typography>
           <Typography
             className="row--text icon-text-link"
@@ -298,7 +304,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
               font: 'inherit',
             }}
           >
-            Løbende ydelser
+            {row.navigation.kind === 'erhvervsevnetab-tab'
+              ? row.navigation.tabName
+              : row.navigation.sectionTitle}
           </Typography>
           {row.severity === 'error' ? (
             <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />

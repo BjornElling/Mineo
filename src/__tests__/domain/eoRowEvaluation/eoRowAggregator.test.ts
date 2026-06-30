@@ -420,6 +420,28 @@ describe('collectAllEoRows', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('suppresses derived rows via the EO issue catalog', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('erstatningsopgoerelse.vedroererPeriode', 'error'),
+          makeRow('sviesmerte.beregnetPeriode', 'error'),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllEoRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      createErstatningsopgoerelseInitialValues(),
+      eoErrors
+    );
+
+    expect(errors.map((row) => row.id)).toEqual(['erstatningsopgoerelse.vedroererPeriode']);
+    expect(warnings).toEqual([]);
+  });
+
   it('suppresses child warning when parent has warning', () => {
     registry.__setBuilders([
       {

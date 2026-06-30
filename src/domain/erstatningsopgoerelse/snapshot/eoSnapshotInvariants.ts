@@ -60,7 +60,7 @@ export const buildMidlertidigtEetSourceInvariants = (
     passed: false,
     severity: issue.severity,
     source: 'validation' as const,
-    message: `Midlertidigt EET fra Erhvervsevnetab-siden: ${issue.message}`,
+    message: issue.message,
     evidence: ['erhvervsevnetab'],
     blocksAuthoritativeComputation: issue.severity === 'error',
     blocksOutputs: issue.severity === 'error' ? VALIDATION_BLOCKED_OUTPUTS : [],

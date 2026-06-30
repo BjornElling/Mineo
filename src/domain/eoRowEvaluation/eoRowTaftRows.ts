@@ -61,7 +61,7 @@ export const buildEoTaftRows = (
     skadedatoISO: context.skadedatoISO,
   });
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
-  const tafIkkeRejstLabel = 'Ikke rejst TAF-krav for hele perioden';
+  const tafIkkeRejstLabel = 'Der er ikke rejst TAF-krav for hele EO-perioden';
   const authoritativeTafRanges = canonicalOutput?.periodiseringer.tafPerioder;
   const hasValidTafPerioder = perioder.some((periode) => Boolean(getValidTafRange(periode)));
   if (authoritativeTafRanges && authoritativeTafRanges.length === 0 && hasValidTafPerioder) {

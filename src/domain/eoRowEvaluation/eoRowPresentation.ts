@@ -1,8 +1,15 @@
 import type { EoRowModel } from './eoRowTypes';
+import {
+  resolveEoIssueFocusTarget,
+  resolveEoIssueMessage,
+  resolveEoIssueSummaryText,
+} from './eoRowIssueCatalog';
 
 export type EoRowPresentation = Readonly<{
   message?: string;
+  summaryText?: string;
   summaryDisplay: 'default' | 'messageOnly';
+  focusTarget?: EoRowModel['focusTarget'];
 }>;
 
 const ERROR_PREFIX = 'Fejl';
@@ -32,9 +39,13 @@ const resolveSummaryDisplay = (row: EoRowModel): 'default' | 'messageOnly' => {
 };
 
 export const resolveEoRowPresentation = (row: EoRowModel): EoRowPresentation => {
-  const message = row.message ?? extractStructuredMessage(row.status, row.displayValue);
+  const message = row.message ?? resolveEoIssueMessage(row) ?? extractStructuredMessage(row.status, row.displayValue);
+  const summaryDisplay = resolveSummaryDisplay(row);
+  const rowWithPresentation = { ...row, message, summaryDisplay };
   return {
     message,
-    summaryDisplay: resolveSummaryDisplay(row),
+    summaryText: row.summaryText ?? resolveEoIssueSummaryText(rowWithPresentation),
+    summaryDisplay,
+    focusTarget: row.focusTarget ?? resolveEoIssueFocusTarget(rowWithPresentation),
   };
 };

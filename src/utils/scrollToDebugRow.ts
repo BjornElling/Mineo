@@ -5,6 +5,7 @@
  * samme mønstre virker uden ekstra konfiguration.
  */
 import { scrollWithRetry } from './scrollWithRetry';
+import type { EoIssueFocusTarget } from '../domain/eoRowEvaluation/eoRowTypes';
 
 const resolveAnchorIdFromDebugRowId = (debugRowId: string): string | null => {
   const loenindkomstMatch = debugRowId.match(/^loenindkomst\.([^.]+)(?:\.|$)/);
@@ -44,16 +45,55 @@ const findElementByMineoRowId = (rowId: string): HTMLElement | null => {
   return all.find((el) => el.getAttribute('data-mineo-row-id') === rowId) ?? null;
 };
 
+const isVisible = (element: HTMLElement): boolean => {
+  if (element.getClientRects().length === 0) return false;
+  const style = window.getComputedStyle(element);
+  return style.display !== 'none' && style.visibility !== 'hidden';
+};
+
+const findElementByAttribute = (name: string, value: string): HTMLElement | null => {
+  if (typeof document === 'undefined') return null;
+
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    const escaped = CSS.escape(value);
+    const bySelector = document.querySelector<HTMLElement>(`[${name}="${escaped}"]`);
+    if (bySelector && isVisible(bySelector)) return bySelector;
+  }
+
+  const all = Array.from(document.querySelectorAll<HTMLElement>(`[${name}]`));
+  return all.find((el) => el.getAttribute(name) === value && isVisible(el)) ?? null;
+};
+
+const findElementByFocusTarget = (target: EoIssueFocusTarget | undefined): HTMLElement | null => {
+  if (!target) return null;
+  if (target.kind === 'rowId') return findElementByMineoRowId(target.rowId);
+
+  const segments = target.fieldPath.split(':');
+  const gridCellKeyFallback = segments.length >= 3
+    ? segments.slice(-2).join(':')
+    : null;
+
+  // Almindelige tekst-/datofelter og tabelceller har `data-mineo-field-path`.
+  // Dropdowns/toggles/radiofelter har historisk kun `data-mineo-undo-field-path`,
+  // så den er en nødvendig fallback for at kunne ramme konkrete valgfelter.
+  return (
+    findElementByAttribute('data-mineo-field-path', target.fieldPath) ??
+    findElementByAttribute('data-mineo-undo-field-path', target.fieldPath) ??
+    (gridCellKeyFallback ? findElementByAttribute('data-mineo-undo-field-path', gridCellKeyFallback) : null)
+  );
+};
+
 export const scrollToDebugRow = (
   debugRowId: string,
   options: {
+    focusTarget?: EoIssueFocusTarget;
     maxRetries?: number;
     onSuccess?: () => void;
     onFailure?: (reason: string) => void;
   } = {}
 ): void => {
   const anchorId = resolveAnchorIdFromDebugRowId(debugRowId);
-  if (!anchorId) {
+  if (!anchorId && !options.focusTarget) {
     options.onFailure?.(`No row anchor could be resolved from debugRowId="${debugRowId}"`);
     return;
   }
@@ -62,10 +102,10 @@ export const scrollToDebugRow = (
 
   scrollWithRetry({
     maxRetries,
-    findTarget: () => findElementByMineoRowId(anchorId),
+    findTarget: () => findElementByFocusTarget(options.focusTarget) ?? (anchorId ? findElementByMineoRowId(anchorId) : null),
     // behavior udelades bevidst: scrollTargetIntoView afleder den fra prefers-reduced-motion.
     onSuccess,
     onFailure,
-    failureMessage: `Could not find data-mineo-row-id="${anchorId}" for debugRowId="${debugRowId}"`,
+    failureMessage: `Could not find focus target or data-mineo-row-id="${anchorId ?? ''}" for debugRowId="${debugRowId}"`,
   });
 };

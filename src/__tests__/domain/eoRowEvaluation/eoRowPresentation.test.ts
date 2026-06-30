@@ -42,6 +42,18 @@ describe('resolveEoRowPresentation', () => {
     expect(presentation.message).toBe('Ingen indkomst i beregningsperioden (01-01-2025 - 31-01-2025)');
     expect(presentation.summaryDisplay).toBe('messageOnly');
   });
+
+  it('viser TAF-ophør-advarsel uden label-prefiks i summary', () => {
+    const presentation = resolveEoRowPresentation({
+      id: 'taf.ophoerSkyldes',
+      label: 'TAF-ophør skyldes',
+      status: 'warning',
+      displayValue: 'Der er ikke rejst TAF-krav for hele EO-perioden',
+    });
+
+    expect(presentation.summaryText).toBe('Der er ikke rejst TAF-krav for hele EO-perioden');
+    expect(presentation.summaryDisplay).toBe('messageOnly');
+  });
 });
 
 describe('manual regulering message', () => {

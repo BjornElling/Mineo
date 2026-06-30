@@ -370,7 +370,7 @@ describe('midlertidigt EET transient injection', () => {
         issues: [{
           id: 'midlertidigt-eet-source-schema-invalid',
           severity: 'error',
-          message: 'Erhvervsevnetab-data kunne ikke valideres og kan derfor ikke importeres som midlertidigt EET.',
+          message: 'Der mangler en afgørelse med EET-procent.',
         }],
       },
     });
@@ -379,6 +379,7 @@ describe('midlertidigt EET transient injection', () => {
     expect(snapshot.invariants).toContainEqual(expect.objectContaining({
       id: 'midlertidigt_eet_source:midlertidigt-eet-source-schema-invalid',
       severity: 'error',
+      message: 'Der mangler en afgørelse med EET-procent.',
       blocksAuthoritativeComputation: true,
     }));
   });

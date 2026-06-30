@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBlockingFieldIdsBySuffixForSection, useFieldErrorsBySourceForSection } from '../../../../hooks/useFormFieldErrors';
+import { setActiveTabForPage } from '../../../../hooks/usePersistedActiveTab';
 import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import type { EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowNavigationMap';
+import { resolveEoIssueSummaryText } from '../../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import { scrollToSection } from '../../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../../utils/scrollToDebugRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
@@ -34,6 +36,11 @@ import {
   getEoBilagAvailability,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../../../../document/layout/documentGateTypes';
+import type { EoIssueFocusTarget } from '../../../../domain/eoRowEvaluation/eoRowTypes';
+import {
+  resolveMidlertidigtEetIssueNavigation,
+  type EetIssueNavigationTarget,
+} from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 
 export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -58,6 +65,7 @@ export type EetIssueRow = Readonly<{
   id: string;
   message: string;
   severity: 'error' | 'warning';
+  navigation: EetIssueNavigationTarget;
   onAction: () => void;
 }>;
 
@@ -86,6 +94,14 @@ const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
 
 const isDevtoolsReportableInvariant = (invariant: EoInvariant): boolean =>
   invariant.source === 'system' && DEVTOOLS_REPORTABLE_INVARIANT_IDS.has(invariant.id);
+
+const scrollToRowIssueTarget = (debugRowId: string, focusTarget: EoIssueFocusTarget | undefined): void => {
+  if (focusTarget) {
+    scrollToDebugRow(debugRowId, { focusTarget });
+    return;
+  }
+  scrollToDebugRow(debugRowId);
+};
 
 const buildInvariantDiagnostics = (
   invariant: EoInvariant,
@@ -172,64 +188,6 @@ const buildInvariantDiagnostics = (
   }
 
   return baseContext;
-};
-
-const getCustomEoRowMessage = (
-  row: Pick<EoRowWithNavigation, 'id' | 'label' | 'message' | 'displayValue'>
-): string | null => {
-  const message = row.message?.trim() ?? '';
-  if (
-    row.label === 'Periode til beregning af før-løn'
-    && message.startsWith('Der er overlap mellem beregningsperioden (')
-  ) {
-    return message;
-  }
-
-  if (
-    row.label.startsWith('Periode (')
-    && message.startsWith('Dato skal være mellem ')
-  ) {
-    const prefix = row.id.startsWith('sviesmerte.periode.')
-      ? 'Svie/smerte-perioden'
-      : 'TAF-perioden';
-    return `${prefix} skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
-  }
-
-  if (
-    row.label.startsWith('Periode (')
-    && (
-      message.startsWith('Der er angivet tabt arbejdsfortjeneste efter ')
-      || message.startsWith('Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort ')
-    )
-  ) {
-    return message;
-  }
-
-  if (row.label === 'Valgt regulering' && message === 'Lønudvikling beregnes ud fra mangler') {
-    return 'Angivelse af lønudvikling mangler';
-  }
-
-  if (row.label === 'Valgt regulering' && message === 'Overenskomst er ikke valgt') {
-    return 'Regulering er sat til \'Overenskomst\', men ingen overenskomst er valgt';
-  }
-
-  if (row.label === 'Periode til beregning af før-løn' && message === 'Ikke alle felter udfyldt') {
-    return 'Der mangler indtastninger i perioden til beregning af før-løn.';
-  }
-
-  if (row.id === 'forlig.dato' && message === 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk') {
-    return 'Der er indtastet forligsdato, men ikke forligsprocent eller -brøk';
-  }
-
-  if (row.id.startsWith('sfgg.beregningskilde.') && message === 'Intet valgt') {
-    return 'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt';
-  }
-
-  if (row.id.startsWith('sfgg.overenskomst.') && message === 'Ingen overenskomst valgt') {
-    return 'Det er angivet, at SFGG fastsættes efter overenskomst, men ingen overenskomst er valgt';
-  }
-
-  return null;
 };
 
 /**
@@ -331,14 +289,31 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     if (!midlertidigtEetFraEetSiden) return [];
     return (eoSnapshot?.invariants ?? [])
       .filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:'))
-      .map((invariant) => ({
-        id: invariant.id,
-        message: invariant.message,
-        severity: invariant.severity,
-        onAction: () => {
-          navigate('/erhvervsevnetab');
-        },
-      }));
+      .map((invariant) => {
+        const sourceIssueId = invariant.id.replace(/^midlertidigt_eet_source:/, '');
+        const navigation = resolveMidlertidigtEetIssueNavigation({ id: sourceIssueId });
+        return {
+          id: invariant.id,
+          message: invariant.message,
+          severity: invariant.severity,
+          navigation,
+          onAction: () => {
+            switch (navigation.kind) {
+              case 'erhvervsevnetab-tab':
+                setActiveTabForPage('erhvervsevnetab', navigation.tabKey);
+                navigate('/erhvervsevnetab');
+                break;
+              case 'stamdata-page':
+                navigate('/stamdata');
+                break;
+              default: {
+                const _exhaustive: never = navigation;
+                return _exhaustive;
+              }
+            }
+          },
+        };
+      });
   }, [eoSnapshot, midlertidigtEetFraEetSiden, navigate]);
   const eetLoebendeErrorRows = React.useMemo(
     () => eetLoebendeIssueRows.filter((row) => row.severity === 'error'),
@@ -356,7 +331,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     const firstError = errors[0];
     if (firstError) {
       const normalizedMessage = firstError.message?.trim() || '';
-      return getCustomEoRowMessage(firstError) ?? (normalizedMessage || firstError.label);
+      return firstError.summaryText ?? resolveEoIssueSummaryText(firstError) ?? (normalizedMessage || firstError.label);
     }
     const firstEetError = eetLoebendeErrorRows[0];
     if (firstEetError) {
@@ -582,21 +557,23 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const [pendingNavigation, setPendingNavigation] = React.useState<{
     target: NavigationTarget;
     debugRowId: string;
+    focusTarget?: EoIssueFocusTarget;
   } | null>(null);
 
   const handleNavigate = React.useCallback(
-    (target: NavigationTarget, debugRowId: string) => {
+    (target: NavigationTarget, debugRowId: string, focusTarget?: EoIssueFocusTarget) => {
       switch (target.kind) {
         case 'erstatningsopgoerelse-tab':
           // Switch til korrekt fane
           setActiveTab(target.tabId);
           // Scroll til specifik række + evt. sektion når fanen er aktiv
-          setPendingNavigation({ target, debugRowId });
+          setPendingNavigation({ target, debugRowId, focusTarget });
           break;
 
         case 'stamdata-page':
           // Naviger til Stamdata-siden
           navigate('/stamdata');
+          scrollToRowIssueTarget(debugRowId, focusTarget);
           setPendingNavigation(null);
           break;
 
@@ -626,7 +603,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     let cancelled = false;
     const runRowScroll = () => {
       if (cancelled) return;
-      scrollToDebugRow(pendingNavigation.debugRowId);
+      scrollToRowIssueTarget(pendingNavigation.debugRowId, pendingNavigation.focusTarget);
     };
 
     const isLoenindkomstEmploymentDebugRow =
@@ -859,14 +836,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     setPdfDownloadErrorMessage(result.success ? null : result.error);
   }, [canDownloadSnapshotTafKravGrafPdf, eoSnapshot, eoValues, settings]);
 
-  const getCustomSummaryText = React.useCallback((row: (typeof errors)[number]): string | null => {
-    return getCustomEoRowMessage(row);
-  }, []);
-
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
+    const issueSummaryText = row.summaryText ?? resolveEoIssueSummaryText(row);
+    if (issueSummaryText) return issueSummaryText;
     const message = toReadableSummaryMessage(row.message ?? '');
-    const customSummaryText = getCustomSummaryText(row);
-    if (customSummaryText) return customSummaryText;
     if (row.summaryDisplay === 'messageOnly') {
       if (message !== '') return message;
       return row.label;
@@ -874,7 +847,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     if (message === '') return row.label;
     if (message.startsWith('mangler')) return `${row.label} ${message}`;
     return `${row.label}: ${message}`;
-  }, [getCustomSummaryText]);
+  }, []);
 
   return {
     // Debug-/issue-rækker

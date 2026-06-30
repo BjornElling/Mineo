@@ -108,6 +108,10 @@ export type DependencySpec =
   | Readonly<{ kind: 'id'; id: string }>
   | Readonly<{ kind: 'prefix'; prefix: string }>;
 
+export type EoIssueFocusTarget =
+  | Readonly<{ kind: 'fieldPath'; fieldPath: string }>
+  | Readonly<{ kind: 'rowId'; rowId: string }>;
+
 export type EoRowModel = {
   id: string;
   label: string;
@@ -118,6 +122,10 @@ export type EoRowModel = {
   message?: string;
   // Optional præsentationshint til Beregning-fanen.
   summaryDisplay?: 'default' | 'messageOnly';
+  // Optional færdig fejl-/advarselslinje til "Fejl og advarsler".
+  summaryText?: string;
+  // Optional primært DOM-mål for fejl-/advarselslink. Bruges før række-/sektionsfallback.
+  focusTarget?: EoIssueFocusTarget;
   group?: EoRowGroup;
   dependsOn?: ReadonlyArray<DependencySpec>;
 };

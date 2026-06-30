@@ -9,8 +9,51 @@ import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../domain/aslEalAarsloen/faelle
 import { formPersistenceStore } from '../stores/formPersistenceStore';
 import type { MidlertidigtEetInsertSource } from '../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import type { EetIssue } from '../domain/erhvervsevnetab/eetTypes';
+import type { z } from 'zod';
 
 const subscribeToFormPersistenceStore = formPersistenceStore.subscribe;
+
+const hasIssueAtPath = (issues: readonly z.ZodIssue[], path: readonly (string | number)[]): boolean =>
+  issues.some((issue) =>
+    issue.path.length === path.length &&
+    path.every((segment, index) => issue.path[index] === segment)
+  );
+
+const hasIssueUnderPath = (issues: readonly z.ZodIssue[], path: readonly (string | number)[]): boolean =>
+  issues.some((issue) =>
+    issue.path.length >= path.length &&
+    path.every((segment, index) => issue.path[index] === segment)
+  );
+
+const hasSectionLevelIssue = (issues: readonly z.ZodIssue[]): boolean =>
+  issues.some((issue) => issue.path.length === 0);
+
+const resolveErhvervsevnetabImportSchemaMessage = (issues: readonly z.ZodIssue[]): string => {
+  const eetPctInvalid = hasIssueUnderPath(issues, ['aslAfgoerelser'])
+    && issues.some((issue) => issue.path[2] === 'eetPct');
+
+  if (eetPctInvalid || hasIssueAtPath(issues, ['ealEetPct'])) {
+    return 'EET-procenten er ikke gyldig.';
+  }
+
+  if (hasSectionLevelIssue(issues) || hasIssueAtPath(issues, ['aslAfgoerelser'])) {
+    return 'Der mangler en afgørelse med EET-procent.';
+  }
+
+  return 'Afgørelsen er ikke gyldigt udfyldt.';
+};
+
+const resolveFaellesAarsloenImportSchemaMessage = (issues: readonly z.ZodIssue[]): string => {
+  if (hasIssueAtPath(issues, ['aslAarsloen'])) {
+    return 'Årslønnen er ikke gyldig.';
+  }
+
+  if (hasSectionLevelIssue(issues)) {
+    return 'Årsløn er ikke indtastet.';
+  }
+
+  return 'Årslønnen er ikke gyldigt udfyldt.';
+};
 
 let cachedSnapshot:
   | {
@@ -44,14 +87,14 @@ const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource =
     sourceIssues.push({
       id: 'midlertidigt-eet-source-schema-invalid',
       severity: 'error',
-      message: 'Erhvervsevnetab-data kunne ikke valideres og kan derfor ikke importeres som midlertidigt EET.',
+      message: resolveErhvervsevnetabImportSchemaMessage(parsedErhvervsevnetab.error.issues),
     });
   }
   if (!parsedFaellesAarsloen.success) {
     sourceIssues.push({
       id: 'midlertidigt-eet-faelles-aarsloen-schema-invalid',
       severity: 'error',
-      message: 'Fælles årsløn-data kunne ikke valideres og kan derfor ikke importeres som midlertidigt EET.',
+      message: resolveFaellesAarsloenImportSchemaMessage(parsedFaellesAarsloen.error.issues),
     });
   }
   if (!parsedStamdata.success) {

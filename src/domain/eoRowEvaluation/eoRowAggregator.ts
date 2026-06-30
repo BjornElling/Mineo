@@ -24,6 +24,7 @@ import type {
 import { getNavigationTargetFromRowId } from './eoRowNavigationMap';
 import { executeAllEoRowBuilders } from './eoRowBuilderRegistry';
 import { resolveEoRowPresentation } from './eoRowPresentation';
+import { resolveCatalogSuppressionParents } from './eoRowIssueCatalog';
 import { toEoRowStatusRank } from './eoRowSeverity';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 
@@ -51,9 +52,13 @@ type EoRowStatus = EoRowModel['status'];
 const resolveDependencyIds = (
   row: EoRowWithNavigation,
   allIdsSorted: ReadonlyArray<string>,
-  rowIdSet: ReadonlySet<string>
+  rowIdSet: ReadonlySet<string>,
+  rows: ReadonlyArray<EoRowWithNavigation>
 ): ReadonlyArray<string> => {
-  const specs = row.dependsOn ?? [];
+  const specs = [
+    ...(row.dependsOn ?? []),
+    ...resolveCatalogSuppressionParents(row, rows),
+  ];
   const resolved = new Set<string>();
   for (const spec of specs) {
     if (spec.kind === 'id') {
@@ -80,7 +85,7 @@ const buildDependencyGraph = (
   const rowIdSet = new Set(allIdsSorted);
   const depsById = new Map<string, ReadonlyArray<string>>();
   rows.forEach((row) => {
-    depsById.set(row.id, resolveDependencyIds(row, allIdsSorted, rowIdSet));
+    depsById.set(row.id, resolveDependencyIds(row, allIdsSorted, rowIdSet, rows));
   });
   return depsById;
 };

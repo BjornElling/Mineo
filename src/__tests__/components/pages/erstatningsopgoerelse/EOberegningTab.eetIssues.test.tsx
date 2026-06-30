@@ -9,6 +9,8 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import type { EoInvariant } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
+import { createActiveTabStorageKey } from '../../../../config/storageManifest';
+import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 
 const { collectAllEoRowsMock } = vi.hoisted(() => ({
   collectAllEoRowsMock: vi.fn(() => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
@@ -107,8 +109,8 @@ const makeEetInvariant = (severity: 'error' | 'warning'): EoInvariant => ({
   severity,
   source: 'validation',
   message: severity === 'error'
-    ? 'Midlertidigt EET fra Erhvervsevnetab-siden: Årsløn er ikke udfyldt.'
-    : 'Midlertidigt EET fra Erhvervsevnetab-siden: Der er indtastet en afgørelse med < 15 % erhvervsevnetab.',
+    ? 'Årsløn er ikke udfyldt.'
+    : 'Der er indtastet en afgørelse med < 15 % erhvervsevnetab.',
   evidence: ['erhvervsevnetab'],
   blocksAuthoritativeComputation: severity === 'error',
   blocksOutputs: severity === 'error' ? ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] : [],
@@ -116,6 +118,7 @@ const makeEetInvariant = (severity: 'error' | 'warning'): EoInvariant => ({
 
 describe('EOberegningTab EET-issues', () => {
   beforeEach(() => {
+    sessionStorage.clear();
     collectAllEoRowsMock.mockReset();
     collectAllEoRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
     navigateMock.mockReset();
@@ -130,14 +133,14 @@ describe('EOberegningTab EET-issues', () => {
   it('viser EET-fejl fra snapshot-invarianter når togglen er aktiv', () => {
     renderTab({ invariants: [makeEetInvariant('error')] });
 
-    expect(screen.getByText('Midlertidigt EET fra Erhvervsevnetab-siden: Årsløn er ikke udfyldt.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Løbende ydelser' })).toBeInTheDocument();
+    expect(screen.getByText('Årsløn er ikke udfyldt.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'EET oplysninger' })).toBeInTheDocument();
   });
 
   it('viser EET-advarsler fra snapshot-invarianter når togglen er aktiv', () => {
     renderTab({ invariants: [makeEetInvariant('warning')] });
 
-    expect(screen.getByText('Midlertidigt EET fra Erhvervsevnetab-siden: Der er indtastet en afgørelse med < 15 % erhvervsevnetab.')).toBeInTheDocument();
+    expect(screen.getByText('Der er indtastet en afgørelse med < 15 % erhvervsevnetab.')).toBeInTheDocument();
   });
 
   it('skjuler EET-issues når togglen ikke er aktiv', () => {
@@ -147,14 +150,21 @@ describe('EOberegningTab EET-issues', () => {
     };
     renderTab({ eoValues, invariants: [makeEetInvariant('error')] });
 
-    expect(screen.queryByText('Midlertidigt EET fra Erhvervsevnetab-siden: Årsløn er ikke udfyldt.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Årsløn er ikke udfyldt.')).not.toBeInTheDocument();
   });
 
-  it('navigerer til Erhvervsevnetab-siden når brugeren klikker på Løbende ydelser-linket', () => {
+  it('navigerer til Erhvervsevnetab-sidens inputfane når brugeren klikker på linket', () => {
+    sessionStorage.setItem(
+      createActiveTabStorageKey('erhvervsevnetab'),
+      ERHVERVSEVNETAB_TAB_KEYS.EET_EAL
+    );
     renderTab({ invariants: [makeEetInvariant('error')] });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Løbende ydelser' }));
+    fireEvent.click(screen.getByRole('button', { name: 'EET oplysninger' }));
 
+    expect(sessionStorage.getItem(createActiveTabStorageKey('erhvervsevnetab'))).toBe(
+      ERHVERVSEVNETAB_TAB_KEYS.EET_OPLYSNINGER
+    );
     expect(navigateMock).toHaveBeenCalledWith('/erhvervsevnetab');
   });
 
@@ -165,7 +175,7 @@ describe('EOberegningTab EET-issues', () => {
     renderTab({ invariants: [makeEetInvariant('error')] });
 
     const disabledDownloadBoxes = screen.getAllByLabelText(
-      'Midlertidigt EET fra Erhvervsevnetab-siden: Årsløn er ikke udfyldt.'
+      'Årsløn er ikke udfyldt.'
     );
     expect(disabledDownloadBoxes.length).toBeGreaterThan(0);
     disabledDownloadBoxes.forEach((box) => fireEvent.click(box));
