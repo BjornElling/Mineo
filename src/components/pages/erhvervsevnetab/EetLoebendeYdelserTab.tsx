@@ -142,7 +142,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
             const ingenLoebendeYdelse = afgoerelse.perioder.length === 0;
             return (
               <ContentBox key={afgoerelse.rowId} className="content-box">
-                <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`}</Typography>
+                <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)} (${formatPct(afgoerelse.eetPct)})`}</Typography>
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Type</Typography>
