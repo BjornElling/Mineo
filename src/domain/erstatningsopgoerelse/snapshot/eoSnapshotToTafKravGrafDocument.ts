@@ -445,6 +445,9 @@ const stabilizeSygedagpengeShDips = (
 export const eoSnapshotToTafKravGrafDocument = (
   snapshot: EoSnapshot
 ): TafKravGrafDocumentProjection => {
+  // Bevidst delt gate: Visuel graf over indtægtsniveau visualiserer netop TAF-per-år-dataene, så den
+  // deler blokerings-target med taf_per_year_pdf — er TAF ikke kan fordeles på år, kan grafen heller
+  // ikke genereres. Derfor intet særskilt 'taf_krav_graf_pdf'-target (jf. eo-snapshot-contract.md).
   const blockingInvariants = getBlockingInvariantsForOutput(snapshot.invariants, 'taf_per_year_pdf');
   const blockedMessage = buildBlockingMessageForOutput(
     snapshot.invariants,

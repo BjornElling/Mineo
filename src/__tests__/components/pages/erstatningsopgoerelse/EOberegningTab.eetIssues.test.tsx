@@ -41,19 +41,35 @@ vi.mock('../../../../utils/scrollToSection', () => ({
   scrollToSection: vi.fn(),
 }));
 
-const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } = vi.hoisted(() => ({
-  downloadErstatningsopgoerelsePdfMock: vi.fn(async () => ({ success: true as const })),
-  downloadTafFordeltPaaAarPdfMock: vi.fn(async () => ({ success: true as const })),
+const {
+  downloadErstatningsopgoerelseDokumentMock,
+  downloadTafFordeltPaaAarDokumentMock,
+  downloadTafOpreguleretPaaAarDokumentMock,
+  downloadTafKravGrafDokumentMock,
+} = vi.hoisted(() => ({
+  downloadErstatningsopgoerelseDokumentMock: vi.fn(async () => ({ success: true as const })),
+  downloadTafFordeltPaaAarDokumentMock: vi.fn(async () => ({ success: true as const })),
+  downloadTafOpreguleretPaaAarDokumentMock: vi.fn(async () => ({ success: true as const })),
+  downloadTafKravGrafDokumentMock: vi.fn(async () => ({ success: true as const })),
 }));
 
 vi.mock('../../../../document/service/documentService', () => ({
-  downloadErstatningsopgoerelseDokument: downloadErstatningsopgoerelsePdfMock,
-  downloadTafFordeltPaaAarDokument: downloadTafFordeltPaaAarPdfMock,
+  downloadErstatningsopgoerelseDokument: downloadErstatningsopgoerelseDokumentMock,
+  downloadTafFordeltPaaAarDokument: downloadTafFordeltPaaAarDokumentMock,
+  downloadTafOpreguleretPaaAarDokument: downloadTafOpreguleretPaaAarDokumentMock,
+  downloadTafKravGrafDokument: downloadTafKravGrafDokumentMock,
 }));
 
-const { eoSnapshotToEoDocumentMock, eoSnapshotToTafPerYearDocumentMock } = vi.hoisted(() => ({
+const {
+  eoSnapshotToEoDocumentMock,
+  eoSnapshotToTafPerYearDocumentMock,
+  eoSnapshotToTafPerYearOpreguleretDocumentMock,
+  eoSnapshotToTafKravGrafDocumentMock,
+} = vi.hoisted(() => ({
   eoSnapshotToEoDocumentMock: vi.fn(),
   eoSnapshotToTafPerYearDocumentMock: vi.fn(),
+  eoSnapshotToTafPerYearOpreguleretDocumentMock: vi.fn(),
+  eoSnapshotToTafKravGrafDocumentMock: vi.fn(),
 }));
 
 vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument', () => ({
@@ -62,6 +78,14 @@ vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocumen
 
 vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument', () => ({
   eoSnapshotToTafPerYearDocument: eoSnapshotToTafPerYearDocumentMock,
+}));
+
+vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument', () => ({
+  eoSnapshotToTafPerYearOpreguleretDocument: eoSnapshotToTafPerYearOpreguleretDocumentMock,
+}));
+
+vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument', () => ({
+  eoSnapshotToTafKravGrafDocument: eoSnapshotToTafKravGrafDocumentMock,
 }));
 
 const renderTab = (params: Readonly<{
@@ -122,12 +146,18 @@ describe('EOberegningTab EET-issues', () => {
     collectAllEoRowsMock.mockReset();
     collectAllEoRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
     navigateMock.mockReset();
-    downloadErstatningsopgoerelsePdfMock.mockClear();
-    downloadTafFordeltPaaAarPdfMock.mockClear();
+    downloadErstatningsopgoerelseDokumentMock.mockClear();
+    downloadTafFordeltPaaAarDokumentMock.mockClear();
+    downloadTafOpreguleretPaaAarDokumentMock.mockClear();
+    downloadTafKravGrafDokumentMock.mockClear();
     eoSnapshotToEoDocumentMock.mockReset();
     eoSnapshotToTafPerYearDocumentMock.mockReset();
+    eoSnapshotToTafPerYearOpreguleretDocumentMock.mockReset();
+    eoSnapshotToTafKravGrafDocumentMock.mockReset();
     eoSnapshotToEoDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
     eoSnapshotToTafPerYearDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+    eoSnapshotToTafPerYearOpreguleretDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+    eoSnapshotToTafKravGrafDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
   });
 
   it('viser EET-fejl fra snapshot-invarianter når togglen er aktiv', () => {
@@ -168,9 +198,13 @@ describe('EOberegningTab EET-issues', () => {
     expect(navigateMock).toHaveBeenCalledWith('/erhvervsevnetab');
   });
 
-  it('blokerer download af EO- og TAF-PDF når der er en EET-fejl, selv hvis PDF-projektionerne er ok', async () => {
+  it('blokerer download af alle fire Beregning-fane-dokumenter ved en EET-fejl, selv når alle projektioner er ok', async () => {
+    // Alle fire projektioner sættes til ok, så det ENESTE der blokerer er EET-fejlen (række-/issue-gaten).
+    // Tidligere dækkede testen kun EO + TAF-fordelt; nu verificeres også TAF-opreguleret + Visuel graf.
     eoSnapshotToEoDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
     eoSnapshotToTafPerYearDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
+    eoSnapshotToTafPerYearOpreguleretDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
+    eoSnapshotToTafKravGrafDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
 
     renderTab({ invariants: [makeEetInvariant('error')] });
 
@@ -179,7 +213,9 @@ describe('EOberegningTab EET-issues', () => {
     );
     expect(disabledDownloadBoxes.length).toBeGreaterThan(0);
     disabledDownloadBoxes.forEach((box) => fireEvent.click(box));
-    expect(downloadErstatningsopgoerelsePdfMock).not.toHaveBeenCalled();
-    expect(downloadTafFordeltPaaAarPdfMock).not.toHaveBeenCalled();
+    expect(downloadErstatningsopgoerelseDokumentMock).not.toHaveBeenCalled();
+    expect(downloadTafFordeltPaaAarDokumentMock).not.toHaveBeenCalled();
+    expect(downloadTafOpreguleretPaaAarDokumentMock).not.toHaveBeenCalled();
+    expect(downloadTafKravGrafDokumentMock).not.toHaveBeenCalled();
   });
 });

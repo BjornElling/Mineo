@@ -7,7 +7,7 @@ import { isTafRowEmpty } from '../helpers/rowEmpty';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
-import type { Calculable, MoneyOre, OevrigeKravCanonicalInput, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteModel } from '../shared/eoTypes';
+import type { Calculable, MoneyOre, OevrigeKravCanonicalInput, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteSectionPresentation } from '../shared/eoTypes';
 import { asCalculable, ensureMoneyOre } from '../shared/eoMoney';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
@@ -209,7 +209,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     tafRanges: readonly { fra: ISODateString; til: ISODateString }[];
     skadedatoISO?: ISODateString;
   }>
-): TabtArbejdsfortjenesteModel => {
+): TabtArbejdsfortjenesteSectionPresentation => {
   const beregnes = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
   const skjul = values.kravPaaTabtArbejdsfortjeneste === 'Skjul';
   if (!beregnes) {
@@ -230,8 +230,6 @@ export const buildTabtArbejdsfortjenesteModel = (
       tafIndtaegter: null,
       tidligereModtagetTaf: asCalculable(ensureMoneyOre(0)),
       sygeferiegodtgoerelse: { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null },
-      tabtArbejdsfortjenesteFoerForligOre: ensureMoneyOre(0),
-      tabtArbejdsfortjenesteOre: ensureMoneyOre(0),
     };
   }
 
@@ -409,10 +407,10 @@ export const buildTabtArbejdsfortjenesteModel = (
     tafIndtaegter: tafMonetary.tafIndtaegter,
     tidligereModtagetTaf: tafMonetary.tidligereModtagetTaf,
     sygeferiegodtgoerelse: tafMonetary.sygeferiegodtgoerelse,
-    // Begge felter sættes til netto-værdien. buildErstatningsopgoerelsePdfModelFromComputed
-    // applicerer forligskalering på tabtArbejdsfortjenesteOre; FoerForlig bevarer udgangspunktet.
-    tabtArbejdsfortjenesteFoerForligOre: tafMonetary.tabtArbejdsfortjenesteOre,
-    tabtArbejdsfortjenesteOre: tafMonetary.tabtArbejdsfortjenesteOre,
+    // TAF-totalerne (FoerForlig + post-forlig) ejes udelukkende af canonical (buildEoComputedTotals)
+    // og injiceres i PDF-modellen af buildErstatningsopgoerelsePdfModelFromComputed. Section-byggeren
+    // bærer dem derfor IKKE — returtypen er TabtArbejdsfortjenesteSectionPresentation (Omit), så et
+    // section-afledt total ikke kan lække til output (B8, jf. eo-snapshot-contract.md §1).
   };
 };
 

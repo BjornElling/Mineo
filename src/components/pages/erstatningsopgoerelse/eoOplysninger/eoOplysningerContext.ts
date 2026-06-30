@@ -3,8 +3,9 @@ import { useEoOplysningerViewModel } from './useEoOplysningerViewModel';
 
 /**
  * Den flade view-model som Erstatningsopgørelse-oplysninger-fanen og dens sektion-komponenter
- * deler. Konteksten er den smalle kanal A1 foreskriver: sektionerne forbruger modellen via
- * `useEoOplysningerVm()` i stedet for at modtage et stort antal props (ingen prop-boring).
+ * deler. Konteksten fjerner prop-boring, men er fortsat en bred kanal: sektionerne læser stadig
+ * rå `values` og form-settere via modellen. Det er en bevidst A1-rest, ikke samme lukkede form som
+ * Lønindkomsts React-fri afledningsmodel.
  */
 export type EoOplysningerVm = ReturnType<typeof useEoOplysningerViewModel>;
 

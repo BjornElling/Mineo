@@ -25,7 +25,6 @@ import { useReconcileInvalidDraftScopes } from '../../../../hooks/tableInput';
 import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { downloadKlLoenaftalerDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
-import { hasIndtastetLoenoplysninger } from '../../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   applyAnsaettelsesforholdToggleCleanup,
@@ -38,8 +37,6 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { normalizeOptionalFreeText } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
-  validateFeriePct,
-  validateOverenskomstSats,
   validateAllSatserForAnsaettelsesforhold as validateAllSatser,
   type SatsErrorState,
 } from '../../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsValidation';
@@ -57,10 +54,6 @@ type Ansaettelsesforhold = AnsaettelsesforholdList[number];
 
 const MAX_ANSAETTELSESFORHOLD = 10;
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
-
-// Sats-valideringen (typer + ren afledning) bor i domænets validation-lag, så den er testbar uden
-// React-render (jf. A1). Re-eksportér typen her for bagudkompatible callsites.
-export type { SatsErrorState };
 
 const updateSfggAnsaettelsesforholdRow = (
   prev: ErstatningsopgoerelseValues,
@@ -197,8 +190,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     return target?.navnPaaArbejdssted?.trim() ?? '';
   }, [deleteTargetId, loenindkomstAnsaettelsesforhold]);
 
-  // State til fejlmeddelelser per Ansættelsesforhold
-  const [satsErrors, setSatsErrors] = React.useState<Record<string, SatsErrorState>>({});
   const [standardLoenTableHasErrorsByAfId, setStandardLoenTableHasErrorsByAfId] = React.useState<Record<string, true>>({});
   const [manuelReguleringHasErrorsByAfId, setManuelReguleringHasErrorsByAfId] = React.useState<Record<string, true>>({});
   const loentrinFinder = useLoentrinFinder(loenindkomstAnsaettelsesforhold);
@@ -215,18 +206,21 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     [getAnvendtReguleringsdatoForAnsaettelsesforhold, beregnesUdFra]
   );
 
-  // Valider alle Ansættelsesforhold ved ændringer i datagrundlaget
-  React.useEffect(() => {
+  // Sats-fejlene er en REN afledning af committed state (ansættelsesforhold + anvendt
+  // reguleringsdato), ikke en parallel imperativ fejlmodel. Tidligere blev de holdt i en useState der
+  // både en effekt OG hver handler skrev til — handlerne revaliderede mod closure-state (det stale
+  // committede ansættelsesforhold + kun det ene ændrede felt), hvilket kunne afvige fra den faktisk
+  // committede værdi (auto-satser/synkroniseret basisrække). Som ren useMemo afspejler fejlene altid
+  // præcis committed state, i tråd med form-kernereglen "valider kun fra committed".
+  const satsErrors = React.useMemo<Record<string, SatsErrorState>>(() => {
     const allErrors: Record<string, SatsErrorState> = {};
-
     loenindkomstAnsaettelsesforhold.forEach((af) => {
       const errors = validateAllSatserForAnsaettelsesforhold(af);
       if (Object.keys(errors).length > 0) {
         allErrors[af.id] = errors;
       }
     });
-
-    setSatsErrors(allErrors);
+    return allErrors;
   }, [loenindkomstAnsaettelsesforhold, validateAllSatserForAnsaettelsesforhold]);
 
   React.useEffect(() => {
@@ -308,20 +302,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     [onAnsaettelsesforholdChange]
   );
 
-  const setSatsErrorsForAnsaettelsesforhold = React.useCallback(
-    (id: string, af: Ansaettelsesforhold) => {
-      const errors = validateAllSatserForAnsaettelsesforhold(af);
-      setSatsErrors((prev) => {
-        if (Object.keys(errors).length === 0) {
-          const { [id]: _, ...rest } = prev;
-          return rest;
-        }
-        return { ...prev, [id]: errors };
-      });
-    },
-    [validateAllSatserForAnsaettelsesforhold]
-  );
-
   const handleTextCommit = React.useCallback(
     (id: string, field: keyof Pick<Ansaettelsesforhold, 'navnPaaArbejdssted' | 'loenudviklingManuelNavn'>) =>
       (event: CommitEvent<string | undefined>) => {
@@ -363,18 +343,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         }, { fieldPath: `${id}:overenskomstId` });
-
-        // Revalider alle satser når overenskomst ændres
-        const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
-        if (ansaettelsesforhold) {
-          const updatedAf = {
-            ...ansaettelsesforhold,
-            overenskomstId: nextOverenskomstId,
-          };
-          setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
-        }
+        // Sats-fejlene revalideres automatisk af satErrors-memo'en fra den nye committede værdi.
       },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold]
   );
 
   const handleOffentligLoenTypeChange = React.useCallback(
@@ -439,14 +410,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           const next = { ...prev, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         }, { fieldPath: `${id}:saerligFraDatoRegulering` });
-
-        const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
-        if (!ansaettelsesforhold) return;
-
-        const updatedAf = { ...ansaettelsesforhold, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
-        setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
+        // Sats-fejlene revalideres automatisk af satsErrors-memo'en (anvendt reguleringsdato ændres).
       },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold]
   );
 
   const handleAnciennitetstillaegDatoCommit = React.useCallback(
@@ -479,27 +445,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string) =>
       (event: CommitEvent<number | undefined>) => {
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, feriePct: event.target.value }), { fieldPath: `${id}:feriePct` });
-
-        const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
-        if (!ansaettelsesforhold) return;
-
-        const kræverFeriePct = beregnesUdFra === 'Beregningsperiode'
-          && hasIndtastetLoenoplysninger(ansaettelsesforhold.indtaegtsoplysningerTableData ?? []);
-        const errorMsg = validateFeriePct(ansaettelsesforhold.fuldLoenUnderFerie, event.target.value, kræverFeriePct);
-        setSatsErrors((prev) => {
-          const afErrors = prev[id] || {};
-          if (errorMsg) {
-            return { ...prev, [id]: { ...afErrors, feriePct: errorMsg } };
-          }
-          const { feriePct: _, ...rest } = afErrors;
-          if (Object.keys(rest).length === 0) {
-            const { [id]: __, ...restAf } = prev;
-            return restAf;
-          }
-          return { ...prev, [id]: rest };
-        });
+        // feriePct-fejlen revalideres automatisk af satsErrors-memo'en fra committed state.
       },
-    [updateAnsaettelsesforhold, beregnesUdFra, loenindkomstAnsaettelsesforhold]
+    [updateAnsaettelsesforhold]
   );
 
   /**
@@ -511,37 +459,10 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       field: OverenskomstSatsField
     ) =>
       (event: CommitEvent<number | undefined>) => {
-        // Opdater værdien
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: event.target.value }), { fieldPath: `${id}:${field}` });
-
-        // Valider værdien
-        const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find(af => af.id === id);
-        if (!ansaettelsesforhold) return;
-
-        const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(ansaettelsesforhold);
-        const errorMsg = validateOverenskomstSats(
-          ansaettelsesforhold,
-          field,
-          event.target.value,
-          anvendtReguleringsdato
-        );
-
-        // Opdater fejl-state
-        setSatsErrors((prev) => {
-          const afErrors = prev[id] || {};
-          if (errorMsg) {
-            return { ...prev, [id]: { ...afErrors, [field]: errorMsg } };
-          } else {
-            const { [field]: _, ...rest } = afErrors;
-            if (Object.keys(rest).length === 0) {
-              const { [id]: __, ...restAf } = prev;
-              return restAf;
-            }
-            return { ...prev, [id]: rest };
-          }
-        });
+        // Overenskomst-sats-fejlen revalideres automatisk af satsErrors-memo'en fra committed state.
       },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [updateAnsaettelsesforhold]
   );
 
   const handleLoenperiodeChange = React.useCallback(
@@ -559,20 +480,10 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
         const parsed = tillaegAngivesSomEnum.safeParse(event.target.value);
         if (!parsed.success) return;
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, tillaegAngivesSom: parsed.data }), { fieldPath: `${id}:tillaegAngivesSom` });
-        // Beløb-tilstand bruger ikke satserne; ryd evt. sats-fejl, så stale røde kanter ikke bliver
-        // hængende. Skifter man tilbage til Procent, revalideres satserne.
-        if (parsed.data === 'beloeb') {
-          setSatsErrors((prev) => {
-            if (!prev[id]) return prev;
-            const { [id]: _removed, ...rest } = prev;
-            return rest;
-          });
-        } else {
-          const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
-          if (ansaettelsesforhold) setSatsErrorsForAnsaettelsesforhold(id, ansaettelsesforhold);
-        }
+        // Beløb-tilstand bruger ikke satserne; satsErrors-memo'en returnerer {} for det
+        // ansættelsesforhold, så røde kanter ryddes automatisk. Skift tilbage til Procent revaliderer.
       },
-    [updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold]
+    [updateAnsaettelsesforhold]
   );
 
   const handleFuldLoenUnderFerieChange = React.useCallback(
@@ -580,27 +491,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: CommitEvent<boolean>) => {
         const nextValue: Ansaettelsesforhold['fuldLoenUnderFerie'] = event.target.value ? 'Ja' : 'Nej';
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, fuldLoenUnderFerie: nextValue }), { fieldPath: `${id}:fuldLoenUnderFerie` });
-
-        const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
-        if (!ansaettelsesforhold) return;
-
-        const kræverFeriePct = beregnesUdFra === 'Beregningsperiode'
-          && hasIndtastetLoenoplysninger(ansaettelsesforhold.indtaegtsoplysningerTableData ?? []);
-        const errorMsg = validateFeriePct(nextValue, ansaettelsesforhold.feriePct, kræverFeriePct);
-        setSatsErrors((prev) => {
-          const afErrors = prev[id] || {};
-          if (errorMsg) {
-            return { ...prev, [id]: { ...afErrors, feriePct: errorMsg } };
-          }
-          const { feriePct: _, ...rest } = afErrors;
-          if (Object.keys(rest).length === 0) {
-            const { [id]: __, ...restAf } = prev;
-            return restAf;
-          }
-          return { ...prev, [id]: rest };
-        });
+        // feriePct-fejlen revalideres automatisk af satsErrors-memo'en fra committed state.
       },
-    [updateAnsaettelsesforhold, beregnesUdFra, loenindkomstAnsaettelsesforhold]
+    [updateAnsaettelsesforhold]
   );
 
   const handleLoenPaaHelligdageChange = React.useCallback(
@@ -612,15 +505,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           const next = { ...prev, loenPaaHelligdage: parsed.data };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         }, { fieldPath: `${id}:loenPaaHelligdage` });
-
-        // Revalider alle satser når "Løn på helligdage" ændres.
-        const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
-        if (!ansaettelsesforhold) return;
-
-        const updatedAf = { ...ansaettelsesforhold, loenPaaHelligdage: parsed.data };
-        setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
+        // Sats-fejlene revalideres automatisk af satsErrors-memo'en fra den nye committede værdi.
       },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold]
   );
 
   const handleTableDataChange = React.useCallback(
@@ -728,7 +615,11 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
 
   const handleAddConfirm = React.useCallback(() => {
     const newAf = createDefaultLoenindkomstAnsaettelsesforhold(settings);
-    onAnsaettelsesforholdChange((prev) => [...prev, newAf]);
+    // Maks-grænsen håndhæves i selve commit-updateren (ikke kun i UI'ets cannotAddMore), så et
+    // imperativt/dialog-kald aldrig kan persistere mere end MAX_ANSAETTELSESFORHOLD.
+    onAnsaettelsesforholdChange((prev) =>
+      prev.length >= MAX_ANSAETTELSESFORHOLD ? prev : [...prev, newAf]
+    );
 
     setAddDialogOpen(false);
   }, [onAnsaettelsesforholdChange, settings]);
@@ -877,8 +768,11 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   }, [afIds, handleAarsloenValidationChange]);
 
   return {
-    // Persisteret/afledt kontekst som JSX'en læser
-    stamdataValues,
+    // Kun de stamdata-felter kortet faktisk læser eksponeres — ikke hele den rå stamdata-sektion
+    // gennem konteksten (samme A1-princip som for rå eoValues: intet komponentlag får bredere
+    // committed-adgang end nødvendigt).
+    skadedato: stamdataValues?.skadedato,
+    skadestype: stamdataValues?.skadestype,
 
     // Lokal UI-state (dialoger)
     addDialogOpen,

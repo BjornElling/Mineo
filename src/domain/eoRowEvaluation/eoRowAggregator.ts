@@ -27,6 +27,7 @@ import { resolveEoRowPresentation } from './eoRowPresentation';
 import { resolveCatalogSuppressionParents } from './eoRowIssueCatalog';
 import { toEoRowStatusRank } from './eoRowSeverity';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 
 /**
  * EoRowModel udvidet med navigation-metadata
@@ -265,6 +266,11 @@ const isRowRelevantForEoValues = (
  * @param stamdataErrors - Stamdata field-fejl pr. kilde
  * @param erstatningsopgoerelseValues - Erstatningsopgørelse-værdier fra FormPersistence
  * @param erstatningsopgoerelseErrors - Erstatningsopgørelse field-fejl pr. kilde
+ * @param canonicalOutputOverride - Autoritative totaler fra snapshot (canonical)
+ * @param pdfModelOverride - Præsentationsmodellen fra snapshot. SKAL gives, så de SFGG-rækker
+ *   der afhænger af det beregnede resultat (fx `sfgg.dagssats.*`/`sfgg.referencesats.*`-fejl) også
+ *   evalueres af download-gaten. Uden den var gaten blind for de samme fejl, DEV-debug-fanen viste
+ *   som blokerende — en fail-open-asymmetri (jf. eoSnapshotToDebugView, der altid sætter pdfModel).
  * @returns Grupperet efter status (errors, warnings)
  */
 export const collectAllEoRows = (
@@ -274,7 +280,8 @@ export const collectAllEoRows = (
   erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource,
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
   appSettings: AppSettings = DEFAULT_APP_SETTINGS,
-  canonicalOutputOverride?: EoCanonicalOutput
+  canonicalOutputOverride?: EoCanonicalOutput,
+  pdfModelOverride?: EoModel
 ): BeregningErrorSummary => {
   // Opret execution context
   const ctx: EoRowEvaluationContext = {
@@ -285,6 +292,7 @@ export const collectAllEoRows = (
     loenindkomstManuelReguleringInputErrors,
     appSettings,
     canonicalOutput: canonicalOutputOverride,
+    pdfModel: pdfModelOverride,
   };
 
   // Udfør alle builders fra registry

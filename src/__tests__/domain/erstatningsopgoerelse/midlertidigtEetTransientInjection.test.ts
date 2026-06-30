@@ -13,8 +13,8 @@ import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetSourceResult,
 } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
+import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
 import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 

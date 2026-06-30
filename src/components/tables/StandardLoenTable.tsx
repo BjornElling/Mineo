@@ -14,6 +14,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
   StandardLoenTableColumnKey,
   StandardLoenTableFirstErrorCell,
+  StandardLoenTableSatser,
   StandardLoenTableValidationSummary,
   TableError,
 } from '../../types/table';
@@ -51,13 +52,7 @@ import {
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
-export type StandardLoenTableSatser = {
-  ferie?: number;
-  fritvalg?: number;
-  shSo?: number;
-  bededag?: number;
-  pension?: number;
-};
+export type { StandardLoenTableSatser };
 
 export type StandardLoenTableProps = {
   loenperiode: Loenperiode;

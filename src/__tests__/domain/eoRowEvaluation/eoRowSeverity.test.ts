@@ -8,7 +8,7 @@ describe('eoRowSeverity', () => {
     expect(toEoRowStatusRank('error')).toBe(2);
   });
 
-  it('returns max debug status from integrity issues', () => {
+  it('returns max EO row status from integrity issues', () => {
     const issues: IntegrityIssue[] = [
       {
         severity: 'warning',

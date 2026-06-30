@@ -120,7 +120,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     tafBeregningsperiodeTil,
     sfggSixMonthWarningEmploymentIds,
     onNavigateToTabtArbejdsfortjeneste,
-    stamdataValues,
+    skadedato,
+    skadestype,
     satsErrors,
     manualBaseRowErrorsByAfId,
     aarsloenExternalCellErrorMessagesByAfId,
@@ -188,8 +189,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
   const satserHeading = resolveSatserHeading({
     anvendtReguleringsdato,
-    skadedato: stamdataValues?.skadedato,
-    skadestype: stamdataValues?.skadestype,
+    skadedato: skadedato,
+    skadestype: skadestype,
     beregningsperiodeTil: beregnesUdFra === 'Beregningsperiode' ? tafBeregningsperiodeTil : undefined,
   });
   const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
@@ -272,7 +273,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     DAY_COUNT_MAX
   );
   const showSharedSfggBefore2015 = Boolean(
-    stamdataValues?.skadedato && stamdataValues.skadedato < '2015-01-01'
+    skadedato && skadedato < '2015-01-01'
   );
   const showSfggSixMonthWarning = sfggSixMonthWarningEmploymentIds.includes(af.id);
 
@@ -840,8 +841,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             const baseDateTooltipText =
               loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
                 ? undefined
-                : anvendtReguleringsdato === stamdataValues?.skadedato
-                  ? (stamdataValues?.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
+                : anvendtReguleringsdato === skadedato
+                  ? (skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
                   : (
                       beregnesUdFra === 'Beregningsperiode'
                       && anvendtReguleringsdato === tafBeregningsperiodeTil
@@ -990,10 +991,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   <StyledDateField
                     name={`${af.id}:anciennitetstillaegDato`}
                     value={af.anciennitetstillaegDato}
-                    minDate={stamdataValues?.skadedato}
+                    minDate={skadedato}
                     specialRangeErrors={{
-                      minBoundKind: stamdataValues?.skadedato ? 'skadedato' : undefined,
-                      minBoundReferenceISO: stamdataValues?.skadedato,
+                      minBoundKind: skadedato ? 'skadedato' : undefined,
+                      minBoundReferenceISO: skadedato,
                     }}
                     onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
                   />

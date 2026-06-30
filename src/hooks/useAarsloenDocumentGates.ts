@@ -1,12 +1,13 @@
 /**
- * Custom hook for årsløn PDF download gates
+ * Custom hook for årsløn dokument-download-gates
  *
  * Ansvar:
- * - Konsolideret PDF-eligibility check
+ * - Konsolideret dokument-eligibility check
  * - Trigger download shake animation
- * - Håndtering af PDF downloads
+ * - Håndtering af dokument-downloads
  *
- * Dette hook samler alle PDF-relaterede gates ét sted for nem vedligeholdelse.
+ * Dette hook samler alle dokument-download-gates ét sted for nem vedligeholdelse. Outputtet er
+ * format-agnostisk (PDF eller Word afhængigt af documentDownloadFormat).
  */
 
 import React from 'react';
@@ -52,10 +53,10 @@ type UseAarsloenDocumentGatesReturn = {
 // ============================================================================
 
 /**
- * Hook der håndterer PDF download gates og downloads
+ * Hook der håndterer dokument-download-gates og downloads
  *
  * @param props - Se UseAarsloenDocumentGatesProps
- * @returns PDF download state og handlers
+ * @returns Dokument-download state og handlers
  */
 export const useAarsloenDocumentGates = ({
   values,
@@ -110,13 +111,13 @@ export const useAarsloenDocumentGates = ({
   }, []);
 
   // ============================================================================
-  // PDF ELIGIBILITY GATES
+  // DOKUMENT-ELIGIBILITY GATES
   // ============================================================================
 
   /**
-   * Hovedfunktion: Evaluér om PDF kan downloades
+   * Hovedfunktion: Evaluér om dokumentet kan downloades
    *
-   * VIGTIGT: Dette er single source of truth for PDF-eligibility.
+   * VIGTIGT: Dette er single source of truth for dokument-eligibility.
    * Alle gates samlet ét sted for nem vedligeholdelse.
    */
   const getDocumentEligibility = React.useMemo((): DocumentDownloadGateResult => {
@@ -173,7 +174,7 @@ export const useAarsloenDocumentGates = ({
   const canDownloadDocument = getDocumentEligibility.canDownload;
 
   /**
-   * Evaluér om SH-dage PDF kan downloades
+   * Evaluér om SH-dage-dokumentet kan downloades
    */
   const canDownloadSHDageDocument = React.useMemo((): boolean => {
     if (!periodeData) return false;
@@ -183,7 +184,7 @@ export const useAarsloenDocumentGates = ({
   }, [periodeData, shDageAntal]);
 
   /**
-   * Håndter PDF download for årslønsberegning
+   * Håndter dokument-download for årslønsberegning
    *
    * VIGTIGT: Denne funktion udfører ALLE gates før download.
    */
@@ -262,7 +263,7 @@ export const useAarsloenDocumentGates = ({
   ]);
 
   /**
-   * Håndter PDF download for SH-dage
+   * Håndter dokument-download for SH-dage
    */
   const handleSHDageDocumentDownload = React.useCallback(async () => {
     // Gates

@@ -13,7 +13,10 @@ const EO_SECTION_PERSISTED_PATTERNS = [
   /\busePersistedSection\s*\(\s*['"]erstatningsopgoerelse['"]\s*\)/,
   /\bgetPersistedData\s*\(\s*['"]erstatningsopgoerelse['"]\s*\)/,
 ];
-const EO_PDF_DOWNLOAD_FILE_PATTERN = /\b(downloadErstatningsopgoerelseDokument|downloadTafFordeltPaaAarDokument|downloadTafOpreguleretPaaAarDokument)\s*\(/;
+// Alle FIRE EO-snapshot-downloads fra Beregning-fanen skal dækkes — også graf-downloaden, der
+// kaldes fra useEoBeregningViewModel (downloadTafKravGrafDokument). Udeladelse ville lade
+// guarden overse persisted stamdata/EO-reads i graf-downloadens callsites.
+const EO_PDF_DOWNLOAD_FILE_PATTERN = /\b(downloadErstatningsopgoerelseDokument|downloadTafFordeltPaaAarDokument|downloadTafOpreguleretPaaAarDokument|downloadTafKravGrafDokument)\s*\(/;
 const EO_PDF_CRITICAL_PERSISTED_PATTERNS = [
   ...EO_SECTION_PERSISTED_PATTERNS,
   /\busePersistedSection\s*\(\s*['"]stamdata['"]\s*\)/,
@@ -86,6 +89,10 @@ describe('pdfDownloadCommittedStateGuard', () => {
     expect(eoMatches.length).toBeGreaterThan(0);
     // Regexerne skal kende det nye navneskema (Dokument), ikke kun det gamle (Pdf).
     expect(PDF_DOWNLOAD_CALL_PATTERN.test('downloadSatserDokument(')).toBe(true);
+    // Alle fire EO-snapshot-downloads skal matche EO-mønstret (ingen udeladt).
     expect(EO_PDF_DOWNLOAD_FILE_PATTERN.test('downloadErstatningsopgoerelseDokument(')).toBe(true);
+    expect(EO_PDF_DOWNLOAD_FILE_PATTERN.test('downloadTafFordeltPaaAarDokument(')).toBe(true);
+    expect(EO_PDF_DOWNLOAD_FILE_PATTERN.test('downloadTafOpreguleretPaaAarDokument(')).toBe(true);
+    expect(EO_PDF_DOWNLOAD_FILE_PATTERN.test('downloadTafKravGrafDokument(')).toBe(true);
   });
 });

@@ -12,11 +12,20 @@ import { TODAY } from '../../../config/dateRanges';
 import type { DocumentWriter } from '../../../document/writer';
 
 /**
- * Optagende fake-writer der kun implementerer de metoder `documentGeneratorSetup`
- * faktisk kalder. Castet er beviseligt sikkert: `initStandardDocumentWriter` kalder
- * udelukkende `setDisplayMode` + `setProperties`, og `writeLabelValueRows` kalder
- * udelukkende `writeLeftRightText`. Vi tester dette moduls kontrakt — ikke jsPDF.
+ * Optagende fake-writer der kun implementerer de metoder `documentGeneratorSetup` faktisk kalder
+ * (`initStandardDocumentWriter` → setDisplayMode + setProperties; `writeLabelValueRows` →
+ * writeLeftRightText). Vi tester dette moduls kontrakt — ikke jsPDF.
+ *
+ * Objekt-literalen type-tjekkes mod de RIGTIGE DocumentWriter-signaturer via `satisfies Pick<…>`, så
+ * en signatur-drift i de tre kaldte metoder fanges af typecheck i stedet for at gemmes bag et bredt
+ * cast. Det efterfølgende `as unknown as DocumentWriter` er afgrænset til denne ene grænse, hvor fake'n
+ * leveres til kode der forventer hele writer-fladen.
  */
+type RecordedWriterMethods = Pick<
+  DocumentWriter,
+  'setDisplayMode' | 'setProperties' | 'writeLeftRightText'
+>;
+
 type LeftRightCall = Readonly<{
   left: string;
   right: string;
@@ -24,24 +33,20 @@ type LeftRightCall = Readonly<{
 }>;
 
 const createRecordingWriter = () => {
-  const displayModes: string[] = [];
+  const displayModes: Parameters<DocumentWriter['setDisplayMode']>[0][] = [];
   const properties: Parameters<DocumentWriter['setProperties']>[0][] = [];
   const leftRight: LeftRightCall[] = [];
   const writer = {
-    setDisplayMode: (mode: string) => {
+    setDisplayMode: (mode) => {
       displayModes.push(mode);
     },
-    setProperties: (props: Parameters<DocumentWriter['setProperties']>[0]) => {
+    setProperties: (props) => {
       properties.push(props);
     },
-    writeLeftRightText: (
-      left: string,
-      right: string,
-      options?: Parameters<DocumentWriter['writeLeftRightText']>[2],
-    ) => {
+    writeLeftRightText: (left, right, options) => {
       leftRight.push({ left, right, options });
     },
-  } as unknown as DocumentWriter;
+  } satisfies RecordedWriterMethods as unknown as DocumentWriter;
   return { writer, displayModes, properties, leftRight };
 };
 

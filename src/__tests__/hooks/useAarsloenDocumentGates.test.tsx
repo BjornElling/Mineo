@@ -14,16 +14,16 @@ vi.mock('../../utils/logger', () => ({
   logInfo: vi.fn(),
 }));
 
-// ─── PDF service mock ─────────────────────────────────────────────────────────
+// ─── Dokument-service mock ─────────────────────────────────────────────────────────
 
-const { downloadAarsloenPdfMock, downloadSHDagePdfMock } = vi.hoisted(() => ({
-  downloadAarsloenPdfMock: vi.fn(async (): Promise<{ success: true } | { success: false; error: string }> => ({ success: true })),
-  downloadSHDagePdfMock: vi.fn(async () => ({ success: true as const })),
+const { downloadAarsloenDokumentMock, downloadSHDageDokumentMock } = vi.hoisted(() => ({
+  downloadAarsloenDokumentMock: vi.fn(async (): Promise<{ success: true } | { success: false; error: string }> => ({ success: true })),
+  downloadSHDageDokumentMock: vi.fn(async () => ({ success: true as const })),
 }));
 
 vi.mock('../../document/service/documentService', () => ({
-  downloadAarsloenDokument: downloadAarsloenPdfMock,
-  downloadSHDageDokument: downloadSHDagePdfMock,
+  downloadAarsloenDokument: downloadAarsloenDokumentMock,
+  downloadSHDageDokument: downloadSHDageDokumentMock,
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -89,10 +89,10 @@ const renderHook = (props: ReturnType<typeof makeBaseProps>): CapturedHook => {
 };
 
 beforeEach(() => {
-  downloadAarsloenPdfMock.mockReset();
-  downloadSHDagePdfMock.mockReset();
-  downloadAarsloenPdfMock.mockImplementation(async () => ({ success: true as const }));
-  downloadSHDagePdfMock.mockImplementation(async () => ({ success: true as const }));
+  downloadAarsloenDokumentMock.mockReset();
+  downloadSHDageDokumentMock.mockReset();
+  downloadAarsloenDokumentMock.mockImplementation(async () => ({ success: true as const }));
+  downloadSHDageDokumentMock.mockImplementation(async () => ({ success: true as const }));
 });
 
 // ─── canDownloadDocument (getDocumentEligibility) ──────────────────────────────────────
@@ -168,9 +168,9 @@ describe('useAarsloenDocumentGates — canDownloadSHDageDocument', () => {
   });
 });
 
-describe('useAarsloenDocumentGates — runtime PDF-fejl', () => {
-  it('trigger ikke shake ved teknisk PDF-fejl, så den centrale fejlvisning kan tage over', async () => {
-    downloadAarsloenPdfMock.mockResolvedValueOnce({
+describe('useAarsloenDocumentGates — runtime dokument-fejl', () => {
+  it('trigger ikke shake ved teknisk dokument-fejl, så den centrale fejlvisning kan tage over', async () => {
+    downloadAarsloenDokumentMock.mockResolvedValueOnce({
       success: false as const,
       error: 'Udviklingsserveren svarer ikke længere.',
     });

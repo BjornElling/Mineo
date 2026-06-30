@@ -211,6 +211,11 @@ opregulerings-specifik fejl kun blokerer den opregulerede PDF:
   `['taf_per_year_opreguleret_pdf']` — den påvirker ikke EO-PDF eller den ikke-opregulerede
   TAF-per-år-PDF.
 
+**Visuel graf over indtægtsniveau** har bevidst *ikke* et eget projektions-target. Grafen
+visualiserer netop TAF-per-år-dataene, så `eoSnapshotToTafKravGrafDocument` deler blokerings-target
+med `taf_per_year_pdf`: kan TAF ikke fordeles på år, kan grafen heller ikke genereres. Et særskilt
+`taf_krav_graf_pdf`-target ville derfor kun duplikere den eksisterende per-år-gate.
+
 ### 3.3 Engine-throws er forbudt som primær fejlmåde
 
 Engine-throws på forventelige brugerinputfejl er huller i preflight-dækningen.
@@ -414,8 +419,10 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 **Issues fra EET-løbende-ydelser:**
 - Når togglen er `'Ja'`, kalder EOberegningTab samme `buildMidlertidigtEetSourceResult`-helper
   som snapshot-laget og viser EET-issues (errors og warnings) i "Fejl og advarsler" med link
-  til Erhvervsevnetab-siden. Errors blokerer download af både EO-PDF og TAF-fordelt-PDF
-  (samme adfærd som eksisterende `errors`-array).
+  til Erhvervsevnetab-siden. Errors blokerer download af **alle fire** Beregning-fane-dokumenter
+  (erstatningsopgørelse, TAF fordelt på år, TAF opreguleret til beregningsåret og Visuel graf over
+  indtægtsniveau) via `hasBlockingEoRowErrors` — samme adfærd som det øvrige `errors`-array fra
+  rækkeevalueringen.
 - Når togglen er `'Nej'`, vises EET-issues ikke (de er irrelevante for EO-beregningen, fordi
   koblingen er deaktiveret).
 - EET-issues overføres som udgangspunkt ukritisk. Det betyder, at en EET-fejl kan blokere

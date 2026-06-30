@@ -10,6 +10,19 @@ export type StandardLoenTableColumnKey =
   | 'fpFvShSoBeloeb'
   | 'pensionBeloeb';
 
+/**
+ * De fem satser (procent) StandardLoenTable bruger til at beregne tillæg pr. række. Datatypen bor i
+ * type-laget (ikke i tabel-komponenten), så det React-frie view-model-/afledningslag kan referere den
+ * uden at importere fra `components/` (domæne→UI-kobling). Jf. domain-boundary-contract.
+ */
+export type StandardLoenTableSatser = {
+  ferie?: number;
+  fritvalg?: number;
+  shSo?: number;
+  bededag?: number;
+  pension?: number;
+};
+
 export type OffentligeYdelserTableColumnKey = 'fraDato' | 'tilDato' | 'ydelse' | 'tillaeg' | 'ydelsestype';
 
 export type OffentligeYdelserTableCellErrorMap = Readonly<Record<string, true>>;

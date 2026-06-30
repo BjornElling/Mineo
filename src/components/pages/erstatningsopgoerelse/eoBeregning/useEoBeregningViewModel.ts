@@ -234,7 +234,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         eoErrors,
         manuelReguleringInputErrors,
         settings,
-        beregningView?.canonicalOutput
+        beregningView?.canonicalOutput,
+        // pdfModel SKAL med, så download-gaten ser de samme resultat-afhængige SFGG-fejlrækker
+        // som DEV-debug-fanen (jf. collectAllEoRows-doc). Uden den var gaten fail-open for dem.
+        eoSnapshot?.data?.pdfModel
       ),
       'EOberegningTab.collectAllEoRows',
       { code: 'eo_debug:aggregation_failed' }
@@ -249,7 +252,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
 
     return { ...result.value, eoRowAggregationErrorMessage: null };
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView]);
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView, eoSnapshot?.data?.pdfModel]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoDocument(eoSnapshot) : null),
     [eoSnapshot]

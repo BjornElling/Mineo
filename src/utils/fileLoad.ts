@@ -18,9 +18,9 @@ import {
 import type { LoadFileResult, LoadIssue } from '../types/fileOperations';
 import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { CalculationError } from './errorMessages';
-import { sanitizePersistedValueForSchema, type UnknownPath } from './persistenceLoadSanitization';
+import { type UnknownPath } from './persistenceLoadSanitization';
 import { formatAsAmount } from './formatUtils';
-import { migratePersistedSectionValue } from './persistenceMigrations';
+import { parseInboundPersistedSection } from './inboundPersistedSection';
 import { formatZodIssues } from './zodIssueFormatting';
 
 import { isRecord } from './typeGuards';
@@ -128,19 +128,17 @@ const processDecryptedContainer = (args: {
       continue;
     }
 
-    const schema = persistenceSchemas[sectionKey];
-    // En migrator flytter/omsætter kendte gamle felter til current struktur. Det er en vellykket
-    // indlæsning (data bevares), ikke et tab — derfor hverken tælles eller vises migreringer i preflight.
-    const migrated = migratePersistedSectionValue(sectionKey, rawValue);
-    const stripped = sanitizePersistedValueForSchema(schema, migrated.value);
-
-    const parsedSection = schema.safeParse(stripped.sanitized);
-    if (parsedSection.success) {
+    // Den trust-kritiske inbound-kæde (migrator → sanitize → schema-parse) deles med session-hydrering
+    // via parseInboundPersistedSection, så samme rå sektionsdata aldrig kan transformeres forskelligt
+    // afhængigt af kilden. En migrator flytter/omsætter kendte gamle felter til current struktur — det er
+    // en vellykket indlæsning (data bevares), ikke et tab, og tælles/vises derfor ikke i preflight.
+    const parsedSection = parseInboundPersistedSection(sectionKey, rawValue);
+    if (parsedSection.ok) {
       snapshot[sectionKey] = parsedSection.data;
       // Strippede felter er gemt brugerdata, som denne version ikke længere kender. Værdien kan ikke
       // indlæses og feltet får sin standardværdi → rapportér det til brugeren (ikke et stille tab).
-      for (const path of stripped.unknownPaths) {
-        lostFromFileCount += countMeaningfulFields(getValueAtPath(migrated.value, path));
+      for (const path of parsedSection.unknownPaths) {
+        lostFromFileCount += countMeaningfulFields(getValueAtPath(parsedSection.migratedValue, path));
         dataLossIssues.push({
           kind: 'strippedUnknownField',
           path: toLoadIssuePath(sectionKey, path),

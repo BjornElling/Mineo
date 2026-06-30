@@ -5,7 +5,7 @@ import type {
 import type { ISODateString } from '../../../types/branded';
 import { parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
-import type { StandardLoenTableSatser } from '../../../components/tables/StandardLoenTable';
+import type { StandardLoenTableSatser } from '../../../types/table';
 import {
   getOverenskomstMetaById,
   getOverenskomsterByOrg,

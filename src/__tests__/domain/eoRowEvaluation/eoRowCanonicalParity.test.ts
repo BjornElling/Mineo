@@ -17,7 +17,7 @@ import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 const iso = (value: string) => toISODateString(value);
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-describe('eoDebug canonical parity', () => {
+describe('eoRow canonical parity', () => {
   it('læser sviesmerte.beregnetBeloeb fra canonical totals.svieSmerteOre', () => {
     const initial = createErstatningsopgoerelseInitialValues();
     const eoValues = {

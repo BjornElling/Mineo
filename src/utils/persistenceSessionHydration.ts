@@ -5,14 +5,12 @@ import {
 } from '../config/storageManifest';
 import {
   PERSISTED_SECTION_KEYS,
-  persistenceSchemas,
   type HydratedPersistedSectionsSnapshot,
   type PersistedSectionMap,
 } from '../config/persistenceRegistry';
 import type { PersistedData } from '../types/persistence';
-import { sanitizePersistedValueForSchema } from './persistenceLoadSanitization';
+import { parseInboundPersistedSection } from './inboundPersistedSection';
 import { readSessionStorageValue } from './safeSessionStorage';
-import { migratePersistedSectionValue } from './persistenceMigrations';
 import { getInvalidDraftsStorageKey } from '../config/storageManifest';
 import { readInvalidDraftsFromStorage } from './invalidDraftsStorage';
 import type { InvalidDraftsCache } from '../stores/formPersistenceStore';
@@ -145,26 +143,28 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
       continue;
     }
 
-    const schema = persistenceSchemas[pageKey];
-    const migrated = migratePersistedSectionValue(pageKey, parsed.data);
-    const stripped = sanitizePersistedValueForSchema(schema, migrated.value);
-    const validated = schema.safeParse(stripped.sanitized);
+    // Samme trust-kritiske inbound-kæde (migrator → sanitize → schema-parse) som .eo-load deler via
+    // parseInboundPersistedSection — så en sektion aldrig kan transformeres forskelligt afhængigt af
+    // kilden. Rapporteringen herunder er bevidst forskellig fra fil-load (coarse kategorisering vs.
+    // felt-baseret preflight-tabsoptælling).
+    const result = parseInboundPersistedSection(pageKey, parsed.data);
 
-    if (!validated.success) {
+    if (!result.ok) {
       keysToRemove.push(storageKey);
       summary.incompatibleSections.push(pageKey);
       continue;
     }
 
-    assignSection(sections, pageKey, validated.data);
+    assignSection(sections, pageKey, result.data);
 
-    // Fremtidige strukturelt inkompatible versioner skal tilføje et eksplicit migrator-trin her
-    // før validering. Et version-mismatch alene betyder kun, at sektionen blev bevaret som den var
-    // efter sanitization + validering mod nuværende schema; det indebærer ikke, at en migration kørte.
+    // Fremtidige strukturelt inkompatible versioner skal tilføje et eksplicit migrator-trin
+    // (i migratePersistedSectionValue) før validering. Et version-mismatch alene betyder kun, at
+    // sektionen blev bevaret som den var efter sanitization + validering mod nuværende schema; det
+    // indebærer ikke, at en migration kørte.
     if (parsed.version !== PERSISTED_DATA_VERSION) {
       summary.versionMismatchedSections.push(pageKey);
     }
-    summary.strippedUnknownFieldCount += stripped.unknownPaths.length;
+    summary.strippedUnknownFieldCount += result.unknownPaths.length;
   }
 
   const invalidDraftsResult = readInvalidDraftsFromStorage();

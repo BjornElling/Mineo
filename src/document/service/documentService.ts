@@ -513,6 +513,18 @@ export const downloadKlLoenaftalerDokument = async (params: Readonly<{
   }
 };
 
+// Gate-model for de fire EO-snapshot-downloads (erstatningsopgørelse + de tre TAF-varianter):
+// Disse funktioner re-tjekker dokument-PROJEKTIONEN (eoSnapshotToXxxDocument → 'blocked'), hvilket
+// dækker al snapshot-invariant-/fail_closed-blokering (inkl. EET-fejl med blocksAuthoritativeComputation,
+// der nuller snapshot.data og dermed gør projektionen 'blocked').
+//
+// De ekstra række-niveau EO-fejl (collectAllEoRows) + EET-løbende-fejl, der OGSÅ gater download i
+// useEoBeregningViewModel (fail-closed knap), re-evalueres bevidst IKKE her: collectAllEoRows kræver
+// runtime-felt-fejl, fuld AppSettings og manuel-regulerings-input-fejl, som ikke indgår i det committede
+// snapshot (kun DocumentSettings + snapshot er tilgængeligt på grænsen). Gaten håndhæves derfor upstream
+// i view-modellen. En fuldt selv-fail-closed service-grænse kræver, at snapshot/issue-laget leverer ét
+// output-gate-resultat pr. dokument (arkitektur-kandidat A5) — det er en forelæggelses-pligtig
+// arkitekturændring og er IKKE løst her.
 export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
