@@ -62,6 +62,7 @@ export type EoRowId =
   | 'taf.beregningsgrundlag.maaneder'
   | 'taf.beregnesSom'
   | 'taf.ophoerSkyldes'
+  | 'taf.ingenTafIEoPerioden'
   | `taf.periode.${string}`
   | `taf.folkepensionsalder.${string}`
   | `taf.ferie.${string}`

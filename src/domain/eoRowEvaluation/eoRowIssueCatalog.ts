@@ -204,6 +204,15 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     summaryText: (_row, message) => periodSummaryText('Svie/smerte-perioden', message),
   },
   {
+    key: 'taf-ingen-i-eo-perioden',
+    match: { kind: 'id', id: 'taf.ingenTafIEoPerioden' },
+    when: 'Der er angivet krav på TAF, men ingen TAF-perioder er registreret; sekundær advarsel om ufuldstændig dækning vises ikke.',
+    suppresses: [
+      { kind: 'id', id: 'taf.ophoerSkyldes' },
+    ],
+    summaryText: (_row, message) => message || 'Der er ikke angivet nogen TAF-periode i EO-perioden',
+  },
+  {
     key: 'taf-period-row',
     match: { kind: 'prefix', prefix: 'taf.periode.' },
     when: 'En TAF-række er delvist udfyldt, ugyldig, overlapper eller ligger efter en cutoff-dato.',

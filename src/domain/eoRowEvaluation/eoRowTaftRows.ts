@@ -47,12 +47,21 @@ export const buildEoTaftRows = (
   const periodeLabel = synligeTafPerioder.length === 1 ? 'Periode' : 'Perioder';
 
   if (!harPerioder) {
-    return [{
-      id: 'taf.periode.empty',
-      label: periodeLabel,
-      displayValue: 'Ingen',
-      status: 'ok',
-    }];
+    return [
+      {
+        id: 'taf.ingenTafIEoPerioden',
+        label: 'Advarsel',
+        displayValue: 'Advarsel (Der er ikke angivet nogen TAF-periode i EO-perioden)',
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+      },
+      {
+        id: 'taf.periode.empty',
+        label: periodeLabel,
+        displayValue: 'Ingen',
+        status: 'ok',
+      },
+    ];
   }
 
   const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: context.skadedatoISO });
@@ -100,36 +109,39 @@ export const buildEoTaftRows = (
     values.vedroererPeriodeFra !== undefined &&
     firstTafKravDato > values.vedroererPeriodeFra;
 
-  const tafOphoerSkyldes = (() => {
-    if (!lastTafKravDato) return tafIkkeRejstLabel;
+  // `tafOphoerSkyldes` beregnes kun, når der er TAF inden for EO-perioden.
+  // Er der ingen TAF i EO-perioden (lastTafKravDato === undefined), vises
+  // i stedet taf.perioder.clampedAway og taf.ophoerSkyldes emitteres ikke.
+  const tafOphoerSkyldes = lastTafKravDato
+    ? (() => {
+        // Ved EO 2+ er manglende TAF i starten af EO-perioden også et fravalg af TAF
+        // for hele perioden. Første EO beholder den hidtidige ophørsbaserede advarsel.
+        if (manglerTafVedStartAfIkkeFoersteEo) {
+          return tafIkkeRejstLabel;
+        }
 
-    // Ved EO 2+ er manglende TAF i starten af EO-perioden også et fravalg af TAF
-    // for hele perioden. Første EO beholder den hidtidige ophørsbaserede advarsel.
-    if (manglerTafVedStartAfIkkeFoersteEo) {
-      return tafIkkeRejstLabel;
-    }
+        const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
+        if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
+          return 'Endelig EET-afgørelse';
+        }
 
-    const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
-    if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
-      return 'Endelig EET-afgørelse';
-    }
+        const midlertidigEetMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
+        if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
+          return 'Midlertidig EET-afgørelse';
+        }
 
-    const midlertidigEetMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
-    if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
-      return 'Midlertidig EET-afgørelse';
-    }
+        const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
+        if (!context.verserendeKlageEet && differencekravMinus1 && differencekravMinus1 === lastTafKravDato) {
+          return 'Differencekrav opgjort';
+        }
 
-    const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
-    if (!context.verserendeKlageEet && differencekravMinus1 && differencekravMinus1 === lastTafKravDato) {
-      return 'Differencekrav opgjort';
-    }
+        if (values.vedroererPeriodeTil && values.vedroererPeriodeTil <= lastTafKravDato) {
+          return 'Erstatningsperiodens ophør';
+        }
 
-    if (values.vedroererPeriodeTil && values.vedroererPeriodeTil <= lastTafKravDato) {
-      return 'Erstatningsperiodens ophør';
-    }
-
-    return tafIkkeRejstLabel;
-  })();
+        return tafIkkeRejstLabel;
+      })()
+    : undefined;
 
   const tafOphoerSkyldesDatoISO = (() => {
     if (!lastTafKravDato) return undefined;
@@ -157,17 +169,18 @@ export const buildEoTaftRows = (
     return undefined;
   })();
 
-  const tafOphoerSkyldesDisplayValue = (() => {
+  if (tafOphoerSkyldes !== undefined) {
     const dateDanish = tafOphoerSkyldesDatoISO ? isoToDanish(tafOphoerSkyldesDatoISO) : undefined;
-    return dateDanish ? `${tafOphoerSkyldes} (${dateDanish})` : tafOphoerSkyldes;
-  })();
-
-  rows.push({
-    id: 'taf.ophoerSkyldes',
-    label: 'TAF-ophør skyldes',
-    displayValue: tafOphoerSkyldesDisplayValue,
-    status: tafOphoerSkyldes === tafIkkeRejstLabel ? 'warning' : 'ok',
-  });
+    const tafOphoerSkyldesDisplayValue = dateDanish
+      ? `${tafOphoerSkyldes} (${dateDanish})`
+      : tafOphoerSkyldes;
+    rows.push({
+      id: 'taf.ophoerSkyldes',
+      label: 'TAF-ophør skyldes',
+      displayValue: tafOphoerSkyldesDisplayValue,
+      status: tafOphoerSkyldes === tafIkkeRejstLabel ? 'warning' : 'ok',
+    });
+  }
 
   // 1) Periode-rækker fra tabellen.
   // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge) afgøres af den delte,
