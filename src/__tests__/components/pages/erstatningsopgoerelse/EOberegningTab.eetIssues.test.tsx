@@ -175,7 +175,7 @@ describe('EOberegningTab EET-issues', () => {
     renderTab({ invariants: [makeEetInvariant('error')] });
 
     const disabledDownloadBoxes = screen.getAllByLabelText(
-      'Årsløn er ikke udfyldt.'
+      'Opgørelse kan ikke hentes, når der er fejl ovenfor'
     );
     expect(disabledDownloadBoxes.length).toBeGreaterThan(0);
     disabledDownloadBoxes.forEach((box) => fireEvent.click(box));

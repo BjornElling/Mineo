@@ -6,6 +6,7 @@ import {
 import type { EoSnapshot, EoSnapshotComputedData } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
@@ -326,6 +327,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
           ...snapshot.input.erstatningsopgoerelse,
           loenindkomstAnsaettelsesforhold: [
             {
+              ...createDefaultLoenindkomstAnsaettelsesforhold(),
               id: 'af-1',
               navnPaaArbejdssted: 'Arbejdsgiver A',
               loenperiode: 'dag',
@@ -414,6 +416,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
           ferieperioder: ferieperioder.map((p, index) => ({ id: `ferie-${index}`, fra: iso(p.fra), til: iso(p.til) })),
           loenindkomstAnsaettelsesforhold: [
             {
+              ...createDefaultLoenindkomstAnsaettelsesforhold(),
               id: 'af-1',
               navnPaaArbejdssted: 'Arbejdsgiver A',
               loenperiode: 'dag',
@@ -610,6 +613,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
           tafBeregningsperiodeTil: iso('2023-10-08'),
           loenindkomstAnsaettelsesforhold: [
             {
+              ...createDefaultLoenindkomstAnsaettelsesforhold(),
               id: 'af-1',
               navnPaaArbejdssted: 'Arbejdsgiver A',
               loenperiode: 'dag',
