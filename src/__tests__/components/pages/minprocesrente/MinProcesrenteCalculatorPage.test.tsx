@@ -49,9 +49,11 @@ vi.mock('../../../../components/pages/renteberegning/RenteberegningTab', () => (
       periods: readonly [];
       latestReferenceRateDate?: string;
     }) => Promise<void>;
+    isMobile?: boolean;
   }) => (
     <div>
       <div>MOCK_BEREGNINGSTAB</div>
+      <output data-testid="is-mobile">{String(props.isMobile)}</output>
       <button
         onClick={() => {
           props.onKommentarerCommit({ target: { value: '  Standalone kommentar  ' } });
@@ -79,9 +81,66 @@ vi.mock('../../../../components/pages/renteberegning/RenteberegningTab', () => (
 import MinProcesrenteCalculatorPage from '../../../../components/pages/minprocesrente/MinProcesrenteCalculatorPage';
 import { toISODateString } from '../../../../types/branded';
 
+const createMediaQueryList = (matches: boolean, media = ''): MediaQueryList => ({
+  matches,
+  media,
+  onchange: null,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  addListener: vi.fn(),
+  removeListener: vi.fn(),
+  dispatchEvent: vi.fn(),
+});
+
+const configureDevice = ({
+  maxTouchPoints = 0,
+  screenWidth = 1024,
+  screenHeight = 768,
+  viewportWidth = 1024,
+  coarsePointer = false,
+}: {
+  maxTouchPoints?: number;
+  screenWidth?: number;
+  screenHeight?: number;
+  viewportWidth?: number;
+  coarsePointer?: boolean;
+} = {}): void => {
+  Object.defineProperty(navigator, 'maxTouchPoints', {
+    configurable: true,
+    value: maxTouchPoints,
+  });
+  Object.defineProperty(window.screen, 'width', {
+    configurable: true,
+    value: screenWidth,
+  });
+  Object.defineProperty(window.screen, 'height', {
+    configurable: true,
+    value: screenHeight,
+  });
+  window.matchMedia = vi.fn((query: string) => {
+    const maxWidth = /\(max-width:\s*([\d.]+)px\)/.exec(query);
+    const matches =
+      query === '(pointer: coarse)'
+        ? coarsePointer
+        : query === '(hover: none)'
+          ? coarsePointer
+          : maxWidth
+            ? viewportWidth <= Number(maxWidth[1])
+            : false;
+    return createMediaQueryList(matches, query);
+  });
+};
+
 describe('MinProcesrenteCalculatorPage', () => {
+  const originalMatchMedia = window.matchMedia;
+
   beforeEach(() => {
     mockDownloadStandaloneRentePdf.mockReset();
+    configureDevice();
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
   });
 
   it('viser kun procesrente-beregneren uden rentesatser-tab', () => {
@@ -99,6 +158,20 @@ describe('MinProcesrenteCalculatorPage', () => {
     expect(screen.getByRole('navigation', { name: 'Søskendesider' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'minEO.dk' })).toHaveAttribute('href', 'https://mineo.dk');
     expect(screen.getAllByText('minProcesrente.dk').some((element) => element.closest('[aria-current="page"]'))).toBe(true);
+  });
+
+  it('fastholder mobil-layout på telefon i landskab', () => {
+    configureDevice({
+      maxTouchPoints: 5,
+      screenWidth: 844,
+      screenHeight: 390,
+      viewportWidth: 844,
+      coarsePointer: true,
+    });
+
+    render(<MinProcesrenteCalculatorPage />);
+
+    expect(screen.getByTestId('is-mobile')).toHaveTextContent('true');
   });
 
   it('bruger standalone PDF-adapteren uden Mineo-sagskontekst', async () => {

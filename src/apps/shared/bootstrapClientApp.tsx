@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import UnsupportedDevicePage from '../../components/system/UnsupportedDevicePage';
+import { getPhysicalScreenWidth, isTouchLikeDevice } from '../../utils/clientDevice';
 import { suppressPwaInstallPrompt } from '../../utils/pwaInstallPrompt';
 
 const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
@@ -14,26 +15,6 @@ export type ClientAppBootstrapOptions = Readonly<{
   capturePwaInstallPrompt: boolean;
   enforceUnsupportedDeviceGate?: boolean;
 }>;
-
-const isTouchLikeDevice = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const touchPoints = typeof navigator !== 'undefined' ? navigator.maxTouchPoints ?? 0 : 0;
-  if (typeof window.matchMedia !== 'function') {
-    return touchPoints > 0;
-  }
-  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
-  const noHover = window.matchMedia('(hover: none)').matches;
-  return touchPoints > 0 && (coarsePointer || noHover);
-};
-
-const getPhysicalScreenWidth = (): number | null => {
-  if (typeof window === 'undefined') return null;
-  const screenWidth = window.screen?.width;
-  if (typeof screenWidth === 'number' && Number.isFinite(screenWidth) && screenWidth > 0) {
-    return screenWidth;
-  }
-  return null;
-};
 
 const isUnsupportedDevice = (): boolean => {
   if (typeof window === 'undefined') return false;

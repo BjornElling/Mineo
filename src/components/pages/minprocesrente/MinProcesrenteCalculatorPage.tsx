@@ -16,6 +16,9 @@ import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 import { useUndoRedoShortcuts } from '../../../hooks/useUndoRedoShortcuts';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
+import { getPhysicalScreenShortestSide, isTouchLikeDevice } from '../../../utils/clientDevice';
+
+const MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX = 599;
 
 const ignoreStandaloneForwardedError = (): void => {
   // MinProcesrente viser PDF-fejl lokalt og har ingen overliggende Mineo-fejlkanal.
@@ -38,9 +41,20 @@ const MinProcesrenteTitle = React.memo(() => (
 
 MinProcesrenteTitle.displayName = 'MinProcesrenteTitle';
 
+const isStandalonePhoneLikeDevice = (): boolean => {
+  if (!isTouchLikeDevice()) return false;
+  const shortestSide = getPhysicalScreenShortestSide();
+  // Hvis browseren skjuler fysisk skærmstørrelse på en touch-enhed, er mobil-layoutet det
+  // mindst risikable fallback: det bevarer scroll og kompakte kolonner i stedet for desktopfladen.
+  if (shortestSide === null) return true;
+  return shortestSide <= MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX;
+};
+
 const MinProcesrenteCalculatorPage = React.memo(() => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isViewportMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isPhoneLikeDevice] = React.useState(isStandalonePhoneLikeDevice);
+  const isMobile = isViewportMobile || isPhoneLikeDevice;
   const mobileContentFontSize = '12px';
   const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
   const { values, setValues, setFieldValue, resetForm, formVersion } = usePersistedForm(
@@ -174,8 +188,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         '@media (min-width: 900px)': {
           '& .page-title': { fontSize: '32px', marginBottom: '32px' },
         },
-        // Alle mobile ændringer — rammer ikke sm+ (600px+)
-        '@media (max-width: 599px)': {
+        ...(isMobile && {
           // CSS custom properties for rækkehøjde og linjeafstand
           '--min-height-row': '28px',
           '--spacing-row-vertical': '2px',
@@ -226,7 +239,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
           '& .row--label-right-hover > .MuiTypography-root.row--text': {
             flex: '1 1 auto',
           },
-        },
+        }),
         // Touch-enheder: fjern hover-baggrundsfarve
         '@media (pointer: coarse)': {
           '& .row--label-right-hover': {
