@@ -1,4 +1,4 @@
-export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>;
 
 const getSessionStorageInstance = (): StorageLike => {
   if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -46,6 +46,18 @@ export const removeSessionStorageValue = (key: string): void => {
   } catch (error) {
     throw normalizeStorageWriteError(error);
   }
+};
+
+export const listSessionStorageKeys = (): string[] => {
+  const storage = getSessionStorageInstance();
+  const keys: string[] = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key !== null) {
+      keys.push(key);
+    }
+  }
+  return keys;
 };
 
 export const readOptionalSessionStorageValue = (key: string): string | null => {

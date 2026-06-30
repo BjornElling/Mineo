@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   type StorageKey,
+  getKnownStorageKeys,
   getStorageKey,
 } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
@@ -32,6 +33,7 @@ import {
 import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
 import {
   readSessionStorageValue,
+  listSessionStorageKeys,
   removeSessionStorageValue,
   writeSessionStorageValue,
 } from '../utils/safeSessionStorage';
@@ -537,7 +539,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   }, [emitUserNotice]);
 
   /**
-   * Slet alle gemte Mineo data
+   * Slet alle gemte Mineo-data og Mineo-ejet session-UI-state.
    *
    * Bruger manifest til kun at slette kendte keys.
    */
@@ -545,13 +547,14 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     const backup = new Map<string, string | null>();
     let rollbackSnapshot: StoreRollbackSnapshot | null = null;
     try {
-      // Kun domæne-data keys + invalidDrafts-recovery-nøglen — UI-state (filnavn, sidebar, overlay) bevares bevidst.
-      const domainKeys = [...PERSISTED_SECTION_KEYS.map(getStorageKey), getInvalidDraftsStorageKey()];
-      for (const key of domainKeys) {
+      // Slet alt skal føles som en frisk browser-session for Mineo. Derfor ryddes også UI-sessionstate
+      // som aktive faner; ellers kan brugeren lande på en tidligere fane efter et fuldt reset.
+      const storageKeys = getKnownStorageKeys(listSessionStorageKeys());
+      for (const key of storageKeys) {
         backup.set(key, readSessionStorageValue(key));
       }
       rollbackSnapshot = captureStoreRollbackSnapshot();
-      domainKeys.forEach(key => {
+      storageKeys.forEach(key => {
         removeSessionStorageValue(key);
       });
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() });

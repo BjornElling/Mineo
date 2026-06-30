@@ -5,6 +5,7 @@ import {
   getStorageKey,
   isValidStorageKey,
   createActiveTabStorageKey,
+  getKnownStorageKeys,
   setStorageNamespace,
   getStorageNamespace,
 } from '../../config/storageManifest';
@@ -100,6 +101,25 @@ describe('createActiveTabStorageKey', () => {
   it('genererede keys er gyldige iht. isValidStorageKey', () => {
     const key = createActiveTabStorageKey('aarsloen');
     expect(isValidStorageKey(key)).toBe(true);
+  });
+});
+
+describe('getKnownStorageKeys', () => {
+  it('medtager dynamiske activeTab-keys fra aktuelt namespace', () => {
+    const activeTabKey = createActiveTabStorageKey('erstatningsopgoerelse');
+
+    expect(getKnownStorageKeys([activeTabKey])).toContain(activeTabKey);
+  });
+
+  it('ignorerer keys fra andre namespaces', () => {
+    setStorageNamespace('minprocesrente');
+    try {
+      expect(getKnownStorageKeys(['mineo_ui_activeTab_erstatningsopgoerelse'])).not.toContain(
+        'mineo_ui_activeTab_erstatningsopgoerelse'
+      );
+    } finally {
+      setStorageNamespace('mineo');
+    }
   });
 });
 

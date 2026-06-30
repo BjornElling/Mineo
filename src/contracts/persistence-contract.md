@@ -147,6 +147,7 @@ Der holdes ikke legacy runtime-kode eller kompatibilitetslag alene for at bevare
    - Brugeren skal have synlig dansk fejlfeedback; normal drift skal være console-silent.
 6. Skjult persisted sagsinput skal forblive i `sessionStorage`, indtil brugeren eksplicit ændrer eller sletter det; ren visningslogik må ikke strippe det.
 7. Afviste/korrupte storage-nøgler fra startup-hydrering må ryddes som efterfølgende cleanup. Runtime-apply af det hydrerede snapshot skal stadig være atomisk; cleanup-vinduet må ikke anvende afviste nøgler i runtime.
+8. `Slet alt` / `clearAllData` er et fuldt session-reset for Mineo-ejede nøgler: domænesektioner, `invalidDrafts`, statiske UI-keys og dynamiske UI-prefix-keys (fx aktive faner) ryddes atomisk. Fil-load / `replaceAllPersistedData` må fortsat kun erstatte sagsdata og `invalidDrafts`, så indlæsning af en `.eo` ikke ændrer uafhængig UI-sessionstate.
 
 SessionStorage keys ejes af `src/config/storageManifest.ts`. Manifestet er eneste registry for domæne-keys, UI-state keys og dynamiske prefix-keys. Rename eller fjernelse af en Mineo-key kræver eksplicit obsolete-key politik: rydning, migration eller bevidst bevarelse.
 

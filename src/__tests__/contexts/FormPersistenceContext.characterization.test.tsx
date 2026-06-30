@@ -4,7 +4,7 @@ import { act, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
-import { getStorageKey } from '../../config/storageManifest';
+import { UI_STORAGE_KEYS, createActiveTabStorageKey, getStorageKey } from '../../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedData } from '../../types/persistence';
 import type { PersistedSectionsSnapshot } from '../../config/persistenceRegistry';
@@ -258,6 +258,26 @@ describe('FormPersistenceContext characterization', () => {
     expect(getCtx()!.getSectionRevision('satser')).toBe(beforeSatserRevision + 1);
     expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
     expect(getCtx()!.getPersistedData('satser')).toBeNull();
+  });
+
+  it('clearAllData rydder Mineo-ejet UI-sessionstate inkl. aktive faner', async () => {
+    const { getCtx } = renderProvider();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+
+    const activeTabKey = createActiveTabStorageKey('erstatningsopgoerelse');
+    sessionStorage.setItem(activeTabKey, 'beregning');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, 'sag.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.sideMenuExpanded, 'false');
+    sessionStorage.setItem('fremmed_session_key', 'bevares');
+
+    await act(async () => {
+      getCtx()!.clearAllData();
+    });
+
+    expect(sessionStorage.getItem(activeTabKey)).toBeNull();
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename)).toBeNull();
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.sideMenuExpanded)).toBeNull();
+    expect(sessionStorage.getItem('fremmed_session_key')).toBe('bevares');
   });
 
   it('bevarer feltfejl over unmount/remount og rydder dem først ved clearAllData', async () => {

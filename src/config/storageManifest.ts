@@ -89,6 +89,31 @@ export const createActiveTabStorageKey = (pageId: string): string => ns(`${ACTIV
  */
 export const getInvalidDraftsStorageKey = (): string => ns(INVALID_DRAFTS_SUFFIX);
 
+const isValidStorageKeyForCurrentNamespace = (key: string): boolean => {
+  const domainKeys = Object.values(STORAGE_KEYS) as string[];
+  const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
+  return domainKeys.includes(key)
+    || uiKeys.includes(key)
+    || key === ns(INVALID_DRAFTS_SUFFIX)
+    || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
+};
+
+export const getKnownStaticStorageKeys = (): string[] => [
+  ...Object.values(STORAGE_KEYS),
+  ...Object.values(UI_STORAGE_KEYS),
+  getInvalidDraftsStorageKey(),
+];
+
+export const getKnownStorageKeys = (existingStorageKeys: readonly string[] = []): string[] => {
+  // Active-tab keys er dynamiske pr. side og kan derfor kun findes ved at filtrere de keys,
+  // der faktisk findes i sessionStorage. Static keys medtages altid, så clear/backup også
+  // dækker fraværende keys og dermed kan rulle sikkert tilbage.
+  return Array.from(new Set([
+    ...getKnownStaticStorageKeys(),
+    ...existingStorageKeys.filter(isValidStorageKeyForCurrentNamespace),
+  ]));
+};
+
 /**
  * Type-safe storage key type
  *
@@ -117,10 +142,5 @@ export const getStorageKey = (pageKey: StorageKey): string => {
  * @returns true hvis key er en kendt key for den aktive variant
  */
 export const isValidStorageKey = (key: string): boolean => {
-  const domainKeys = Object.values(STORAGE_KEYS) as string[];
-  const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
-  return domainKeys.includes(key)
-    || uiKeys.includes(key)
-    || key === ns(INVALID_DRAFTS_SUFFIX)
-    || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
+  return isValidStorageKeyForCurrentNamespace(key);
 };
