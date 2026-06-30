@@ -143,7 +143,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [createEmptyRow, isRowEmpty]
     );
 
-    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist, getUndoFieldPathAliases } =
       useGridRowPersistenceCore<StandardLoenTableRow>({
         tableData: tableData && tableData.length > 0 ? tableData : defaultTableData,
         onTableDataChange,
@@ -616,6 +616,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <TableIntegerInput
                       key={`${row.id}-col0-${loenperiode}`}
                       gridCell={{ rowId: row.id, colIndex: 0 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
                       inputRef={registerCellRef(row.id, 0)}
                       value={row.col0_maaned}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_maaned', e.target.value)}
@@ -629,6 +630,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <TableWeekInput
                       key={`${row.id}-col0-${loenperiode}`}
                       gridCell={{ rowId: row.id, colIndex: 0 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
                       inputRef={registerCellRef(row.id, 0)}
                       value={row.col0_uge}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_uge', e.target.value)}
@@ -641,6 +643,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <TableDateInput
                       key={`${row.id}-col0-${loenperiode}`}
                       gridCell={{ rowId: row.id, colIndex: 0 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
                       inputRef={registerCellRef(row.id, 0)}
                       value={row.col0_dag}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_dag', e.target.value)}
@@ -663,6 +666,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <TableYearInput
                       key={`${row.id}-col1-${loenperiode}`}
                       gridCell={{ rowId: row.id, colIndex: 1 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
                       inputRef={registerCellRef(row.id, 1)}
                       value={row.col1_maaned}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_maaned', e.target.value)}
@@ -675,6 +679,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <TableWeekInput
                       key={`${row.id}-col1-${loenperiode}`}
                       gridCell={{ rowId: row.id, colIndex: 1 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
                       inputRef={registerCellRef(row.id, 1)}
                       value={row.col1_uge}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_uge', e.target.value)}
@@ -687,6 +692,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <TableDateInput
                       key={`${row.id}-col1-${loenperiode}`}
                       gridCell={{ rowId: row.id, colIndex: 1 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
                       inputRef={registerCellRef(row.id, 1)}
                       value={row.col1_dag}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_dag', e.target.value)}
@@ -711,6 +717,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     >
                       <TableAmountInput
                         gridCell={{ rowId: row.id, colIndex: colIdx }}
+                        undoFieldPathAliases={getUndoFieldPathAliases(row.id, colIdx)}
                         inputRef={registerCellRef(row.id, colIdx)}
                         value={row[colKey]}
                         onBlur={(e) => handleFieldBlur(row.id, colKey, e.target.value)}
@@ -729,6 +736,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   >
                     <TableAmountInput
                       gridCell={{ rowId: row.id, colIndex: 6 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 6)}
                       inputRef={registerCellRef(row.id, 6)}
                       value={row.fpFvShSoBeloeb}
                       onBlur={(e) => handleFieldBlur(row.id, 'fpFvShSoBeloeb', e.target.value)}
@@ -756,6 +764,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   >
                     <TableAmountInput
                       gridCell={{ rowId: row.id, colIndex: 7 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 7)}
                       inputRef={registerCellRef(row.id, 7)}
                       value={row.pensionBeloeb}
                       onBlur={(e) => handleFieldBlur(row.id, 'pensionBeloeb', e.target.value)}

@@ -64,6 +64,19 @@ const getDerivedTexts = (): Pick<Derived, 'antalDageDisplay' | 'ydelsePerDagDisp
   };
 };
 
+const buildDerivedByRowId = (rows: readonly OffentligeYdelserRow[]): ReadonlyMap<string, Derived> => {
+  const map = new Map<string, Derived>();
+  for (const row of rows) {
+    const derived = deriveOffentligeYdelserRow(row);
+    map.set(row.id, {
+      periodiseringLabel: derived.periodiseringLabel,
+      antalDageDisplay: derived.antalDage !== null ? formatAntalDage(derived.antalDage) : '',
+      ydelsePerDagDisplay: derived.ydelsePerDag !== null ? formatKr(derived.ydelsePerDag, 2) : '',
+    });
+  }
+  return map;
+};
+
 const getYdelseInput = (): HTMLInputElement => {
   const cells = getFirstDataRowCells();
   return within(cells[2]!).getByRole('textbox') as HTMLInputElement;
@@ -92,18 +105,7 @@ const getYdelsestypeCombobox = (): HTMLElement => {
 const DerivedHarness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[]; onPersist: (next: OffentligeYdelserRow[]) => void }) => {
   const [tableData, setTableData] = React.useState<OffentligeYdelserRow[]>(initial);
 
-  const derivedByRowId = React.useMemo(() => {
-    const map = new Map<string, Derived>();
-    for (const row of tableData) {
-      const derived = deriveOffentligeYdelserRow(row);
-      map.set(row.id, {
-        periodiseringLabel: derived.periodiseringLabel,
-        antalDageDisplay: derived.antalDage !== null ? formatAntalDage(derived.antalDage) : '',
-        ydelsePerDagDisplay: derived.ydelsePerDag !== null ? formatKr(derived.ydelsePerDag, 2) : '',
-      });
-    }
-    return map;
-  }, [tableData]);
+  const derivedByRowId = React.useMemo(() => buildDerivedByRowId(tableData), [tableData]);
 
   const handleTableDataChange = React.useCallback(
     (next: OffentligeYdelserRow[]) => {
@@ -370,6 +372,39 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     );
 
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '100,00 kr.' });
+  });
+
+  it('bevarer afledte celler når resync får et andet committed row-id end den renderede række', async () => {
+    const oldRow = makeRow({
+      id: 'old-render-id',
+      fraDato: asDate('01-01-2024'),
+      tilDato: asDate('10-01-2024'),
+      ydelsestype: 'flextilskud',
+      ydelse: asAmount(100),
+    });
+    const newRow = { ...oldRow, id: 'new-committed-id', ydelse: asAmount(200) };
+
+    const { rerender } = render(
+      <OffentligeYdelserTable
+        tableData={[oldRow]}
+        derivedByRowId={buildDerivedByRowId([oldRow])}
+        onTableDataChange={vi.fn()}
+      />
+    );
+
+    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
+
+    rerender(
+      <OffentligeYdelserTable
+        tableData={[newRow]}
+        derivedByRowId={buildDerivedByRowId([newRow])}
+        onTableDataChange={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '20,00 kr.' });
+    });
   });
 
   it('recomputes ydelse/dag on blur when entering an already-canonical date (no normalization delta)', async () => {

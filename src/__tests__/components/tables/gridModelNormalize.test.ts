@@ -1,6 +1,6 @@
 import {
   normalizeGridRows,
-  reconcileRowIdsByPosition,
+  reconcileGridRowIdentityForRestore,
 } from '../../../components/tables/gridCore/gridModel';
 import { createEmptyRowId } from '../../../utils/rowId';
 
@@ -12,12 +12,12 @@ import { createEmptyRowId } from '../../../utils/rowId';
  * To alvorlige fejl er observeret historisk:
  *   1. RNG i setState-updater → divergerende id over StrictMode-dobbeltkald → datatab.
  *      (Se project_table_row_id_persist_desync — fikset med deterministisk createEmptyRowId.)
- *   2. reconcileRowIdsByPosition graftede et id ind så det duplikerede et senere incoming-id.
+ *   2. resync-reconcile flyttede/aliaserede et id ind så det duplikerede et senere incoming-id.
  *      (Se project_reconcile_rowid_dup — fikset med uniqueness-guard.)
  *
  * Denne fil håndhæver invarianterne UDTØMMENDE og generisk (inkl. fuzz), så ingen af de to
  * klasser — eller varianter af dem — kan genopstå ubemærket i nogen af de fire grid-tabeller,
- * der alle deler normalizeGridRows/reconcileRowIdsByPosition.
+ * der alle deler normalizeGridRows/reconcileGridRowIdentityForRestore.
  */
 
 type Row = { id: string; v?: string };
@@ -138,30 +138,34 @@ describe('normalizeGridRows — invarianter', () => {
   });
 });
 
-describe('reconcileRowIdsByPosition — invarianter', () => {
+const reconcile = (incoming: readonly Row[], current: readonly Row[]) =>
+  reconcileGridRowIdentityForRestore({ incoming, current, getRowId, isRowEmpty, withRowId });
+
+describe('reconcileGridRowIdentityForRestore — invarianter', () => {
   it('producerer aldrig dubletter uanset positionsforskydning ved indsættelse', () => {
     // Den præcise produktionsfejl: incoming længere end current, og current's trailing-tomme-id
     // ville ellers blive graftet ind oven på en indsat række, mens samme id stadig stod senere.
     const current = [filled('a'), empty('row_empty_3')];
     const incoming = [filled('a'), filled('ny'), empty('row_empty_3')];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    assertUnique(result);
+    const result = reconcile(incoming, current);
+    assertUnique(result.rows);
   });
 
-  it('bevarer DOM-identitet positionelt når der IKKE er kollisionsrisiko', () => {
+  it('bevarer ikke-tomme data-id og bruger alias til tidligere position', () => {
     const current = [filled('R'), empty('T')];
     const incoming = [filled('fresh-1'), empty('fresh-2')];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    expect(ids(result)).toEqual(['R', 'T']);
+    const result = reconcile(incoming, current);
+    expect(ids(result.rows)).toEqual(['fresh-1', 'T']);
+    expect(result.undoAliasRowIdsByRowId.get('fresh-1')).toEqual(['R']);
   });
 
   it('er idempotent: anvendt to gange giver samme resultat', () => {
     const current = [filled('a'), empty('row_empty_3')];
     const incoming = [filled('a'), filled('ny'), empty('row_empty_3')];
-    const once = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    const twice = reconcileRowIdsByPosition({ incoming: once, current, getRowId, withRowId });
-    expect(ids(twice)).toEqual(ids(once));
-    assertUnique(twice);
+    const once = reconcile(incoming, current);
+    const twice = reconcile(once.rows, current);
+    expect(ids(twice.rows)).toEqual(ids(once.rows));
+    assertUnique(twice.rows);
   });
 });
 
@@ -169,7 +173,7 @@ describe('kombineret pipeline (insert → normalize → reconcile) — fuzz', ()
   // Modellerer den FAKTISKE sekvens en tabel kører ved enhver mutation:
   //   1. en insert/edit producerer en ny rækkeliste (evt. med længdeændring),
   //   2. normalizeGridRows kører (StrictMode: to gange — vi kører den to gange og kræver lighed),
-  //   3. reconcileRowIdsByPosition resynkroniserer mod committed-state.
+  //   3. reconcileGridRowIdentityForRestore resynkroniserer mod committed-state.
   // Invariant gennem HELE sekvensen: outputtet har altid unikke id'er.
 
   const insertBeforeTrailingEmpty = (existing: readonly Row[], inserted: readonly Row[]): Row[] => {
@@ -227,15 +231,10 @@ describe('kombineret pipeline (insert → normalize → reconcile) — fuzz', ()
         assertUnique(normA);
 
         // reconcile mod committed (forrige state) — den fulde resync-sti.
-        const reconciled = reconcileRowIdsByPosition({
-          incoming: normA,
-          current: committed,
-          getRowId,
-          withRowId,
-        });
-        assertUnique(reconciled);
+        const reconciled = reconcile(normA, committed);
+        assertUnique(reconciled.rows);
 
-        committed = reconciled;
+        committed = reconciled.rows;
       }
     }
   });

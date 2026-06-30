@@ -13,6 +13,7 @@ export type TableTextInputChangeEvent = { target: { value: string } };
 
 export type TableTextInputProps = Readonly<{
   gridCell: GridCellCoord;
+  undoFieldPathAliases?: readonly string[];
   locked?: boolean;
   value?: string;
   placeholder?: string;
@@ -27,6 +28,7 @@ export type TableTextInputProps = Readonly<{
 const TableTextInput = React.memo(
   ({
     gridCell,
+    undoFieldPathAliases,
     locked = false,
     value,
     placeholder = '',
@@ -41,6 +43,7 @@ const TableTextInput = React.memo(
     const core = useTableInputCore({
       adapter: textTableInputAdapter,
       gridCell,
+      undoFieldPathAliases,
       value: value ?? '',
       locked,
       onChange,
@@ -72,6 +75,7 @@ const TableTextInput = React.memo(
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'data-mineo-undo-focus-token': core.undoFocusToken,
               'data-mineo-undo-field-path': core.gridCellKey ?? undefined,
+              'data-mineo-undo-field-path-aliases': core.undoFieldPathAliasesAttr,
               'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
               'aria-describedby': core.showError ? core.a11yErrorId : undefined,
             }}

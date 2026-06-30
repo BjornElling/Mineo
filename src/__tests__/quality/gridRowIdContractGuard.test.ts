@@ -5,7 +5,7 @@
 //      setState-updater. StrictMode dobbelt-invokerer updateren → de to kørsler giver divergerende
 //      id'er → id-følsomt persist-fingerprint divergerer → ryddet celle gemmes aldrig (datatab).
 //      (project_table_row_id_persist_desync — fikset med deterministisk createEmptyRowId.)
-//   2. reconcileRowIdsByPosition graftede et id ind så det duplikerede et senere incoming-id →
+//   2. resync-reconcile flyttede/aliaserede et id ind så det duplikerede et senere incoming-id →
 //      to rækker med samme id → React duplicate-key + datakorruption.
 //      (project_reconcile_rowid_dup — fikset med uniqueness-guard i selve funktionen.)
 //
@@ -14,14 +14,14 @@
 // ubemærket:
 //   A. Enhver tabel der bruger normalizeGridRows SKAL danne sine tomme rækker via createEmptyRowId
 //      (deterministisk), og må ikke bruge en RNG-id-kilde i sin createEmptyRow.
-//   B. Uniqueness-guarden i reconcileRowIdsByPosition skal være intakt (verificeret adfærdsmæssigt
+//   B. Uniqueness-guarden i reconcileGridRowIdentityForRestore skal være intakt (verificeret adfærdsmæssigt
 //      i gridModelNormalize.test.ts / gridModelReconcile.test.ts — her kun en eksistens-vagt på
 //      kildemønstret, så en refaktor der fjerner guarden bliver bemærket).
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   normalizeGridRows,
-  reconcileRowIdsByPosition,
+  reconcileGridRowIdentityForRestore,
 } from '../../components/tables/gridCore/gridModel';
 import { createEmptyRowId } from '../../utils/rowId';
 
@@ -111,7 +111,7 @@ describe('grid row-id-kontrakt (struktur-guard)', () => {
     expect(offenders, `Grid-tabeller med ikke-deterministisk tom-række-id:\n${offenders.join('\n')}`).toEqual([]);
   });
 
-  it('reconcileRowIdsByPosition har stadig sin uniqueness-guard (kildemønster)', () => {
+  it('reconcileGridRowIdentityForRestore har stadig sin uniqueness-guard (kildemønster)', () => {
     const source = readFileSync(
       join(process.cwd(), 'src', 'components', 'tables', 'gridCore', 'gridModel.ts'),
       'utf8'
@@ -119,7 +119,7 @@ describe('grid row-id-kontrakt (struktur-guard)', () => {
     // Guarden består i at springe en graft over når mål-id'et enten tilhører en anden
     // incoming-række (ville stjæle dens identitet) eller allerede er brugt som graft-mål.
     expect(/incomingIds\.has\(/.test(source)).toBe(true);
-    expect(/usedGraftTargets\.has\(/.test(source)).toBe(true);
+    expect(/usedTransferredIds\.has\(/.test(source)).toBe(true);
   });
 
   // Selv-test: bevis at mønstrene faktisk fanger overtrædelser OG accepterer ren kode (vacuous-pass-værn).
@@ -161,8 +161,8 @@ describe('grid row-id-kontrakt (struktur-guard)', () => {
     const current: Row[] = [{ id: 'a', v: 'x' }, { id: 'row_empty_3' }];
     const inserted: Row[] = [...current.slice(0, 1), { id: 'ny', v: 'y' }, current[1]];
     const normalized = normalizeGridRows({ rows: inserted, minRows: 2, getRowId, isRowEmpty, createEmptyRow });
-    const reconciled = reconcileRowIdsByPosition({ incoming: normalized, current, getRowId, withRowId });
-    const idList = reconciled.map(getRowId);
+    const reconciled = reconcileGridRowIdentityForRestore({ incoming: normalized, current, getRowId, isRowEmpty, withRowId });
+    const idList = reconciled.rows.map(getRowId);
     expect(new Set(idList).size).toBe(idList.length);
   });
 });

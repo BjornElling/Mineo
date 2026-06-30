@@ -116,7 +116,7 @@ const EetAslAfgoerelserTable = React.memo(
       []
     );
 
-    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist, getUndoFieldPathAliases } =
       useGridRowPersistenceCore<AslAfgoerelseRow>({
         tableData: tableData.length > 0 ? tableData : defaultTableData,
         onTableDataChange,
@@ -262,6 +262,7 @@ const EetAslAfgoerelserTable = React.memo(
                 <TableCell>
                   <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 0 }}
+                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
                     value={row.afgoerelsesDato}
                     onBlur={(e) => commitRowUpdate(row.id, { afgoerelsesDato: e.target.value })}
                     minDate={skadedatoMin}
@@ -273,6 +274,7 @@ const EetAslAfgoerelserTable = React.memo(
                 <TableCell>
                   <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 1 }}
+                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
                     value={row.virkningsDato}
                     onBlur={(e) => commitRowUpdate(row.id, { virkningsDato: e.target.value })}
                     minDate={skadedatoMin}
@@ -284,6 +286,7 @@ const EetAslAfgoerelserTable = React.memo(
                 <TableCell>
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 2 }}
+                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 2)}
                     value={row.eetPct}
                     allowDecimals={false}
                     minValue={0}
@@ -296,6 +299,7 @@ const EetAslAfgoerelserTable = React.memo(
                 <TableCell>
                   <TableDropdown
                     gridCell={{ rowId: row.id, colIndex: 3 }}
+                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 3)}
                     value={row.afgoerelseType}
                     allowEmpty={true}
                     onChange={(e) =>
@@ -321,6 +325,7 @@ const EetAslAfgoerelserTable = React.memo(
                     return (
                       <TableDateInput
                         gridCell={{ rowId: row.id, colIndex: 4 }}
+                        undoFieldPathAliases={getUndoFieldPathAliases(row.id, 4)}
                         value={row.kapDato}
                         onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value })}
                         minDate={hasValidRange ? kapDatoMin : undefined}
@@ -334,6 +339,7 @@ const EetAslAfgoerelserTable = React.memo(
                 <TableCell>
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 5 }}
+                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 5)}
                     value={row.kapPct}
                     allowDecimals={false}
                     minValue={0}
@@ -356,6 +362,7 @@ const EetAslAfgoerelserTable = React.memo(
                     return (
                       <TableDateInput
                         gridCell={{ rowId: row.id, colIndex: 6 }}
+                        undoFieldPathAliases={getUndoFieldPathAliases(row.id, 6)}
                         value={row.tidlKapDato}
                         onBlur={(e) => commitRowUpdate(row.id, { tidlKapDato: e.target.value })}
                         minDate={hasValidRange ? skadedatoMin : undefined}
@@ -369,6 +376,7 @@ const EetAslAfgoerelserTable = React.memo(
                 <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
                   <TableDropdown
                     gridCell={{ rowId: row.id, colIndex: 7 }}
+                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 7)}
                     value={row.fsTilbageholdtEet ?? 'Nej'}
                     allowEmpty={false}
                     onChange={(e) =>

@@ -7,8 +7,8 @@
  * persist-fingerprints (datatab). Se determinisme-kontrakten i `gridModel.normalizeGridRows`.
  *
  * `__empty__`-segmentet adskiller transiente tomme-række-id'er fra persisterede UUID-id'er
- * (`<prefix>_<uuid>`), så de aldrig kolliderer. Id'erne er transiente og re-stabiliseres af
- * `reconcileRowIdsByPosition` ved næste prop-resync.
+ * (`<prefix>_<uuid>`), så de aldrig kolliderer. Id'erne er transiente og kan re-stabiliseres af
+ * grid-resync for tomme rækker ved næste prop-resync.
  */
 export const createEmptyRowId = (prefix: string, index: number): string => {
   return `${prefix}_empty_${index}`;
@@ -30,4 +30,3 @@ export const createRowId = (prefix: string): string => {
   }
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 };
-

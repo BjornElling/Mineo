@@ -2,6 +2,7 @@ import { type HistoryFrame } from '../stores/undoRedoStore';
 import { scrollTargetIntoView } from './scrollTargetIntoView';
 
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
+const attrTokenSelector = (attr: string, value: string): string => `[${attr}~=${JSON.stringify(value)}]`;
 
 const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 15;
 
@@ -34,6 +35,7 @@ const findRestoredField = (frame: HistoryFrame): HTMLElement | null => {
   const selectors: string[] = [];
   if (frame.origin.fieldPath) {
     selectors.push(attrSelector('data-mineo-undo-field-path', frame.origin.fieldPath));
+    selectors.push(attrTokenSelector('data-mineo-undo-field-path-aliases', frame.origin.fieldPath));
   }
   if (frame.origin.focusToken) {
     selectors.push(attrSelector('data-mineo-undo-focus-token', frame.origin.focusToken));

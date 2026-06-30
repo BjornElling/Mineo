@@ -23,6 +23,7 @@ export type TableDateSanitizeCallback = (value: string) => ISODateString | undef
 
 export type TableDateInputProps = Readonly<{
   gridCell: GridCellCoord;
+  undoFieldPathAliases?: readonly string[];
   locked?: boolean;
   value?: ISODateString;
   minDate?: string;
@@ -75,6 +76,7 @@ const normalizeDateBoundConfig = (value: string | undefined): ISODateString | un
 const TableDateInput = React.memo(
   ({
     gridCell,
+    undoFieldPathAliases,
     locked = false,
     value,
     onChange,
@@ -143,6 +145,7 @@ const TableDateInput = React.memo(
     const core = useTableInputCore({
       adapter,
       gridCell,
+      undoFieldPathAliases,
       value,
       locked,
       onChange,
@@ -212,6 +215,7 @@ const TableDateInput = React.memo(
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'data-mineo-undo-focus-token': core.undoFocusToken,
               'data-mineo-undo-field-path': core.gridCellKey ?? undefined,
+              'data-mineo-undo-field-path-aliases': core.undoFieldPathAliasesAttr,
               'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
               'aria-describedby': showError ? core.a11yErrorId : undefined,
             }}

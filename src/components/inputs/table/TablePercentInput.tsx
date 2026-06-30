@@ -21,6 +21,7 @@ export type TablePercentInputCommitEvent = { target: { value: number | undefined
 
 export type TablePercentInputProps = Readonly<{
   gridCell: GridCellCoord;
+  undoFieldPathAliases?: readonly string[];
   locked?: boolean;
   value?: TablePercentInputModel;
   allowNegative?: boolean;
@@ -43,6 +44,7 @@ export type TablePercentInputProps = Readonly<{
 const TablePercentInput = React.memo(
   ({
     gridCell,
+    undoFieldPathAliases,
     locked = false,
     value,
     allowNegative = false,
@@ -91,6 +93,7 @@ const TablePercentInput = React.memo(
     const core = useTableInputCore({
       adapter,
       gridCell,
+      undoFieldPathAliases,
       value: committedValue,
       locked,
       onChange,
@@ -142,6 +145,7 @@ const TablePercentInput = React.memo(
                 'data-mineo-grid-locked': locked ? 'true' : undefined,
                 'data-mineo-undo-focus-token': core.undoFocusToken,
                 'data-mineo-undo-field-path': core.gridCellKey ?? undefined,
+                'data-mineo-undo-field-path-aliases': core.undoFieldPathAliasesAttr,
                 'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
                 'aria-describedby': core.showError ? core.a11yErrorId : undefined,
               }}

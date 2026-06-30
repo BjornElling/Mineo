@@ -2,7 +2,7 @@
 //
 // Regression for undo/redo-fokus i Standard løn-tabellen (StandardLoenTable, Årsløn-siden).
 //
-// Bug: StandardLoenTable manglede `reconcileRowIdsByPosition` ved prop-resync (modsat de øvrige
+// Bug: StandardLoenTable manglede row-id-reconcile ved prop-resync (modsat de øvrige
 // grid-tabeller). Når undo reverterer tabellen til en tilstand, hvor normaliseringen regenererer
 // rækkernes id'er på den fokuserede position, mistede den redigerede celle sin undo-identitet
 // (`data-mineo-undo-field-path = rowId:colIndex`), så fokus faldt til <body> i stedet for at lande

@@ -22,6 +22,7 @@ export type TableInputChangeEvent<TValue> = Readonly<{ target: Readonly<{ value:
 export type UseTableInputCoreOptions<TModel, TCanonical extends string, TFingerprint extends string> = Readonly<{
   adapter: TableInputAdapter<TModel, TCanonical, TFingerprint>;
   gridCell: GridCellCoord;
+  undoFieldPathAliases?: readonly string[];
   value: TModel;
   locked?: boolean;
   onChange?: (e: TableInputChangeEvent<string>) => void;
@@ -47,6 +48,7 @@ export type UseTableInputCoreResult = Readonly<{
   inputRefCallback: (el: HTMLInputElement | null) => void;
   undoFocusToken: string;
   gridCellKey: string;
+  undoFieldPathAliasesAttr: string | undefined;
   /**
    * Fuldt kvalificeret `fieldPath` for cellen (`invalidDrafts`-recovery-kanalen), eller `undefined`
    * når cellen er ubunden (uden scope/provider — fx isolerede tabel-tests). Sættes som
@@ -69,6 +71,7 @@ export type UseTableInputCoreResult = Readonly<{
 export const useTableInputCore = <TModel, TCanonical extends string, TFingerprint extends string>({
   adapter,
   gridCell,
+  undoFieldPathAliases = [],
   value,
   locked = false,
   onChange,
@@ -83,6 +86,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const isReadOnly = locked || !isEditing;
 
   const resolvedGridCellKey = gridCellKey(gridCell);
+  const undoFieldPathAliasesAttr = undoFieldPathAliases.length > 0 ? undoFieldPathAliases.join(' ') : undefined;
 
   // `invalidDrafts`-kanal: bundet når cellen er inde i en CellInvalidDraftScopeProvider OG en
   // FormPersistenceProvider. Ellers ubunden (lokal fallback). Kun adaptere med `useSaveError`
@@ -642,6 +646,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     inputRefCallback,
     undoFocusToken,
     gridCellKey: resolvedGridCellKey,
+    undoFieldPathAliasesAttr,
     invalidDraftFieldPath: channelFieldPath,
     a11yInputId,
     htmlInputName: resolvedGridCellKey,

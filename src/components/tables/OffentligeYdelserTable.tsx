@@ -120,7 +120,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       [createEmptyRow]
     );
 
-    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist, getUndoFieldPathAliases } =
       useGridRowPersistenceCore<OffentligeYdelserRow>({
         tableData: tableData.length > 0 ? tableData : defaultTableData,
         onTableDataChange,
@@ -407,6 +407,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                   <td style={getStandardGridCellStyle({ align: 'center' })}>
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 0 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
                       value={row.fraDato}
                       onBlur={(e) => commitRowUpdate(row.id, { fraDato: e.target.value }, 0)}
                       onErrorChange={handleErrorChange(row.id, 'fraDato')}
@@ -422,6 +423,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                   <td style={getStandardGridCellStyle({ align: 'center' })}>
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 1 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
                       value={row.tilDato}
                       onBlur={(e) => commitRowUpdate(row.id, { tilDato: e.target.value }, 1)}
                       onErrorChange={handleErrorChange(row.id, 'tilDato')}
@@ -437,6 +439,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                   <td style={getStandardGridCellStyle({ align: 'center' })}>
                     <TableAmountInput
                       gridCell={{ rowId: row.id, colIndex: 2 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 2)}
                       value={row.ydelse}
                       onBlur={(e) => commitRowUpdate(row.id, { ydelse: e.target.value }, 2)}
                       onErrorChange={handleErrorChange(row.id, 'ydelse')}
@@ -448,6 +451,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                   <td style={getStandardGridCellStyle({ align: 'center' })}>
                     <TableAmountInput
                       gridCell={{ rowId: row.id, colIndex: 3 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 3)}
                       value={row.tillaeg}
                       onBlur={(e) => commitRowUpdate(row.id, { tillaeg: e.target.value }, 3)}
                       onErrorChange={handleErrorChange(row.id, 'tillaeg')}
@@ -459,6 +463,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                   <td style={getStandardGridCellStyle({ align: 'center' })}>
                     <TableDropdown
                       gridCell={{ rowId: row.id, colIndex: 4 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 4)}
                       value={row.ydelsestype}
                       allowEmpty={true}
                       onChange={(e) => commitRowUpdate(row.id, { ydelsestype: e.target.value || '' }, 4)}

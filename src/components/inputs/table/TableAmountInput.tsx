@@ -23,6 +23,7 @@ export type TableAmountInputCommitEvent = { target: { value: TableAmountInputVal
 
 export type TableAmountInputProps = Readonly<{
   gridCell: GridCellCoord;
+  undoFieldPathAliases?: readonly string[];
   locked?: boolean;
   /**
    * Tabelcelle-værdier persisteres som committede beløbsværdier.
@@ -46,6 +47,7 @@ export type TableAmountInputProps = Readonly<{
 const TableAmountInput = React.memo(
   ({
     gridCell,
+    undoFieldPathAliases,
     locked = false,
     value,
     canBeNegative = true,
@@ -68,6 +70,7 @@ const TableAmountInput = React.memo(
     const core = useTableInputCore({
       adapter,
       gridCell,
+      undoFieldPathAliases,
       value,
       locked,
       onChange,
@@ -147,6 +150,7 @@ const TableAmountInput = React.memo(
                 'data-mineo-grid-locked': locked ? 'true' : undefined,
                 'data-mineo-undo-focus-token': core.undoFocusToken,
                 'data-mineo-undo-field-path': core.gridCellKey ?? undefined,
+                'data-mineo-undo-field-path-aliases': core.undoFieldPathAliasesAttr,
                 'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
                 'aria-describedby': core.showError ? core.a11yErrorId : undefined,
               }}

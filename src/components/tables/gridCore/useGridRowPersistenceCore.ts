@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { reconcileRowIdsByPosition } from './gridModel';
+import { reconcileGridRowIdentityForRestore } from './gridModel';
 
 /**
  * Fælles persist-/resync-kerne for de tabel-lokale grid-tabeller (Standard løn, Offentlige ydelser,
@@ -8,7 +8,7 @@ import { reconcileRowIdsByPosition } from './gridModel';
  * (hvert `Table*Input` ejer sin draft indtil blur), og delte tidligere den samme — men subtilt
  * divergerende — pipeline til at gemme og resynkronisere. Divergenserne var utilsigtet drift:
  *
- * - Standard løn manglede `reconcileRowIdsByPosition` ved resync → undo/redo kunne miste celle-fokus
+ * - Standard løn manglede row-id-reconcile ved resync → undo/redo kunne miste celle-fokus
  *   (fokus-målet `rowId:colIndex` pegede på et id der var regenereret). De øvrige reconcilede.
  * - Tre tabeller persisterede den syntetiske efterfølgende tomme række; EET strippede den. Kun
  *   bruger-indtastede rækker bør gemmes (jf. save/load-kontrakten "Persistér kun brugerindtastet data").
@@ -16,8 +16,8 @@ import { reconcileRowIdsByPosition } from './gridModel';
  *
  * Denne kerne samler de tre ting ét sted, så adfærden er ufravigeligt ens på tværs af tabellerne:
  * 1) **Strip tomme rækker ved persist** — kun non-empty rækker sendes til `onTableDataChange`.
- * 2) **Reconcile ved resync** — indgående rækker arver nuværende rækkers id positionelt, så en
- *    celles undo-fokus-identitet overlever udfyldt↔tom-overgange.
+ * 2) **Reconcile ved resync** — ikke-tomme indgående rækker beholder deres committed id, mens
+ *    tomme syntetiske rækker kan arve et tidligere id, og ikke-tomme id-skift får undo-fokus-alias.
  * 3) **Fingerprint-bevogtet flush** — det køede payload persisteres kun, hvis dets fingerprint
  *    stadig matcher den aktuelle (strippede) state; ellers droppes det (stale).
  *
@@ -62,6 +62,8 @@ export type UseGridRowPersistenceCoreApi<TRow> = Readonly<{
   getStrippedFingerprint: (rows: readonly TRow[]) => string;
   /** Kø et normaliseret commit-resultat til persistering (strippes ved flush). Udelad fieldPath ved reorder. */
   queuePersist: (normalizedRows: readonly TRow[], fieldPath?: string) => void;
+  /** Fokus-aliaser for en celle efter undo/redo-resync. Må kun bruges til restore-attributter. */
+  getUndoFieldPathAliases: (rowId: string, colIndex: number) => readonly string[];
 }>;
 
 const stripPersistableRows = <TRow>(
@@ -94,8 +96,21 @@ export const useGridRowPersistenceCore = <TRow>(
   const incomingNormalized = React.useMemo(() => normalizeRows(tableData), [normalizeRows, tableData]);
 
   const [internalTableData, setInternalTableData] = React.useState<TRow[]>(() => incomingNormalized);
+  const [undoAliasRowIdsByRowId, setUndoAliasRowIdsByRowId] = React.useState<ReadonlyMap<string, readonly string[]>>(
+    () => new Map()
+  );
+  const internalTableDataRef = React.useRef<TRow[]>(incomingNormalized);
   const lastPersistedFingerprintRef = React.useRef<string | null>(getStrippedFingerprint(incomingNormalized));
   const pendingPersistRef = React.useRef<GridRowPersistencePending<TRow> | null>(null);
+
+  React.useLayoutEffect(() => {
+    internalTableDataRef.current = internalTableData;
+  }, [internalTableData]);
+
+  const setInternalTableDataPublic = React.useCallback<React.Dispatch<React.SetStateAction<TRow[]>>>((action) => {
+    setUndoAliasRowIdsByRowId((current) => (current.size === 0 ? current : new Map()));
+    setInternalTableData(action);
+  }, []);
 
   const queuePersist = React.useCallback((normalizedRows: readonly TRow[], fieldPath?: string) => {
     const { isRowEmpty: empty, getStrippedFingerprint: fp, keepLeadingRows: keep } = stableRef.current;
@@ -105,6 +120,15 @@ export const useGridRowPersistenceCore = <TRow>(
       fieldPath,
     };
   }, []);
+
+  const getUndoFieldPathAliases = React.useCallback(
+    (rowId: string, colIndex: number): readonly string[] => {
+      const aliasRowIds = undoAliasRowIdsByRowId.get(rowId);
+      if (!aliasRowIds || aliasRowIds.length === 0) return [];
+      return aliasRowIds.map((aliasRowId) => `${aliasRowId}:${colIndex}`);
+    },
+    [undoAliasRowIdsByRowId]
+  );
 
   // Flush: persistér kun det køede payload, hvis det stadig matcher den aktuelle strippede state.
   React.useEffect(() => {
@@ -130,16 +154,23 @@ export const useGridRowPersistenceCore = <TRow>(
     if (fingerprintValue === lastPersistedFingerprintRef.current) return;
     lastPersistedFingerprintRef.current = fingerprintValue;
     pendingPersistRef.current = null;
-    setInternalTableData((current) =>
-      reconcileRowIdsByPosition({ incoming: incomingNormalized, current, getRowId: rowId, withRowId: setRowId })
-    );
+    const reconciled = reconcileGridRowIdentityForRestore({
+      incoming: incomingNormalized,
+      current: internalTableDataRef.current,
+      getRowId: rowId,
+      isRowEmpty: stableRef.current.isRowEmpty,
+      withRowId: setRowId,
+    });
+    setUndoAliasRowIdsByRowId(reconciled.undoAliasRowIdsByRowId);
+    setInternalTableData(reconciled.rows);
   }, [incomingNormalized]);
 
   return {
     internalTableData,
-    setInternalTableData,
+    setInternalTableData: setInternalTableDataPublic,
     lastPersistedFingerprintRef,
     getStrippedFingerprint,
     queuePersist,
+    getUndoFieldPathAliases,
   };
 };

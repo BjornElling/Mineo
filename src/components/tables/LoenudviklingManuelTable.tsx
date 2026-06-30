@@ -272,7 +272,7 @@ const LoenudviklingManuelTable = React.memo(
     // keepLeadingRows=1: basisrækken (indeks 0) strippes aldrig — den er en strukturel anker-række,
     // og hvis en tom basisrække blev fjernet fra det persisterede, ville rows[0] på næste load være
     // en tail-række og blive fejltolket som basis.
-    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist, getUndoFieldPathAliases } =
       useGridRowPersistenceCore<LoenudviklingManuelRow>({
         tableData: tableData.length > 0 ? tableData : defaultTableData,
         onTableDataChange,
@@ -479,6 +479,7 @@ const LoenudviklingManuelTable = React.memo(
                   ) : (
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 0 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
                       value={row.dato}
                       onBlur={(e) => commitRowUpdate(row.id, { dato: e.target.value }, 0)}
                       onErrorChange={handleErrorChange(row.id, 'dato')}
@@ -489,6 +490,7 @@ const LoenudviklingManuelTable = React.memo(
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
                   <TableAmountInput
                     gridCell={{ rowId: row.id, colIndex: 1 }}
+                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
                     value={row.grundloen}
                     onBlur={(e) => commitRowUpdate(row.id, { grundloen: e.target.value }, 1)}
                     onErrorChange={handleErrorChange(row.id, 'grundloen')}
@@ -508,6 +510,7 @@ const LoenudviklingManuelTable = React.memo(
                   ) : (
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 2 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 2)}
                       value={row.feriepenge}
                       onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value }, 2)}
                       onErrorChange={handleErrorChange(row.id, 'feriepenge')}
@@ -529,6 +532,7 @@ const LoenudviklingManuelTable = React.memo(
                   ) : (
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 3 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 3)}
                       value={row.shSoSats}
                       onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value }, 3)}
                       onErrorChange={handleErrorChange(row.id, 'shSoSats')}
@@ -550,6 +554,7 @@ const LoenudviklingManuelTable = React.memo(
                   ) : (
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 4 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 4)}
                       value={row.fritvalg}
                       onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value }, 4)}
                       onErrorChange={handleErrorChange(row.id, 'fritvalg')}
@@ -571,6 +576,7 @@ const LoenudviklingManuelTable = React.memo(
                   ) : (
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 5 }}
+                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 5)}
                       value={row.agPension}
                       onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value }, 5)}
                       onErrorChange={handleErrorChange(row.id, 'agPension')}

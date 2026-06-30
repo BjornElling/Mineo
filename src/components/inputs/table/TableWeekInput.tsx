@@ -13,6 +13,7 @@ export type TableWeekInputChangeEvent = { target: { value: string } };
 
 export type TableWeekInputProps = Readonly<{
   gridCell: GridCellCoord;
+  undoFieldPathAliases?: readonly string[];
   locked?: boolean;
   value?: string | undefined;
   minYear?: number;
@@ -35,6 +36,7 @@ export type TableWeekInputProps = Readonly<{
 const TableWeekInput = React.memo(
   ({
     gridCell,
+    undoFieldPathAliases,
     locked = false,
     value,
     minYear,
@@ -69,6 +71,7 @@ const TableWeekInput = React.memo(
     const core = useTableInputCore({
       adapter,
       gridCell,
+      undoFieldPathAliases,
       value: value ?? '',
       locked,
       onChange,
@@ -102,6 +105,7 @@ const TableWeekInput = React.memo(
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'data-mineo-undo-focus-token': core.undoFocusToken,
               'data-mineo-undo-field-path': core.gridCellKey ?? undefined,
+              'data-mineo-undo-field-path-aliases': core.undoFieldPathAliasesAttr,
               'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
               'aria-describedby': core.showError ? core.a11yErrorId : undefined,
             }}

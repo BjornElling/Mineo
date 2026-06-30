@@ -64,7 +64,7 @@ describe('useGridRowPersistenceCore', () => {
     expect(origin).toEqual({ fieldPath: 'r1:0' });
   });
 
-  it('reconcile-resync: en prop-resync bevarer den nuværende rækkes id positionelt (undo-fokus-invariant)', async () => {
+  it('reconcile-resync: en prop-resync til tom række kan bevare tidligere id (undo-fokus-invariant)', async () => {
     const onChange = vi.fn();
     // Start med én udfyldt række (id r1); efter commit er internal = [r1(udfyldt), trailing-empty].
     const { ref, rerender } = renderCore([{ id: 'r1', value: 'a' }], onChange);
@@ -88,6 +88,18 @@ describe('useGridRowPersistenceCore', () => {
 
     expect(ref.api.internalTableData[0]!.id).toBe('r1');
     expect(isRowEmpty(ref.api.internalTableData[0]!)).toBe(true);
+  });
+
+  it('reconcile-resync: en ikke-tom incoming-række beholder data-id og får fokus-alias', async () => {
+    const onChange = vi.fn();
+    const { ref, rerender } = renderCore([{ id: 'old-id', value: 'a' }], onChange);
+
+    await act(async () => {
+      rerender([{ id: 'new-id', value: 'b' }]);
+    });
+
+    expect(ref.api.internalTableData[0]).toEqual({ id: 'new-id', value: 'b' });
+    expect(ref.api.getUndoFieldPathAliases('new-id', 0)).toEqual(['old-id:0']);
   });
 
   it('keepLeadingRows: en låst ledende række gemmes altid, selv når den er tom', async () => {

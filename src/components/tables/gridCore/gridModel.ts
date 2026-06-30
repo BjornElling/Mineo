@@ -114,61 +114,64 @@ export const sortGridRows = <TRow>(params: Readonly<{
   return [...sorted, ...emptyRows];
 };
 
+export type GridRowIdentityReconciliation<TRow> = Readonly<{
+  rows: TRow[];
+  undoAliasRowIdsByRowId: ReadonlyMap<string, readonly string[]>;
+}>;
+
 /**
- * Bevar rækkernes DOM-identitet (id) positionelt når en tabel resynkroniseres fra en ny
- * committed kilde (fx undo/redo-restore).
+ * Resynkronisér en grid-tabel fra committed state uden at omskrive persisted række-id'er.
  *
- * Hvorfor: tabel-lokale modeller (uden row-draft-isolation) genererer friske row-id'er når en
- * tom/normaliseret rækkeliste bygges. Ved undo der tømmer en række erstattes den udfyldte rækkes
- * id derfor med et nyt — og undo-fokus-målet `rowId:colIndex` peger pludselig på et element der
- * ikke længere findes. Ved at genbruge den nuværende rækkes id på samme position bevares cellens
- * identitet hen over udfyldt↔tom-overgangen, så fokus-restore kan finde cellen igen.
+ * Tidligere graftede vi `current[i].id` direkte ind i `incoming[i].id` for at redde undo-fokus, når
+ * en række skiftede mellem udfyldt og tom. Det gjorde `row.id` til både datanøgle og UI-alias. I
+ * tabeller med afledte/locked celler (fx Offentlige ydelser) slog forælderen derefter stadig afledte
+ * værdier op på committed id, mens tabellen renderede et graftet id, og cellerne blev tomme.
  *
- * Identitet bindes positionelt: indgående række `i` arver `current[i]`'s id hvis den findes.
- * Det matcher den visuelle rækkeorden (ikke-tomme rækker først, derefter den efterfølgende tomme),
- * så "den første række" forbliver det samme DOM-element uanset om den er udfyldt eller tom.
+ * Reglen er derfor:
+ * - Ikke-tomme incoming-rækker beholder ALTID deres committed id.
+ * - Tomme syntetiske rækker må arve et tidligere id, fordi de ikke persisteres som brugerdata.
+ * - Hvor et ikke-tomt id ikke kan graftes, oprettes i stedet et undo-fokus-alias (`oldId -> row.id`).
  *
- * Uniqueness-invariant (kritisk): grafting må ALDRIG introducere et duplikeret id. Når `incoming`
- * er længere end `current` (fx rækker indsat før den efterfølgende tomme, ELLER en undo der
- * gendanner en slettet række, så `current` er kortere og positionerne forskydes), kunne et tidligere
- * mønster grafte et current-id ind på position `i`, mens det SAMME id (eller et incoming-id en
- * SENERE række beholder) endte med at stå to steder — to rækker fik da samme id. Det gav React
- * duplicate-key og — værre — datakorruption, fordi to logisk forskellige rækker kollapsede til
- * samme identitet.
- *
- * Invarianten håndhæves med én enkel regel: **et graft må kun bruge et current-id, der ikke i
- * forvejen er et incoming-id.** Hver incoming-række er garanteret unik (id'erne kommer fra committed
- * data) og "ejer" sit eget id; et graft må derfor aldrig stjæle et id, en anden incoming-række
- * beholder. Resultatet er bevisligt dup-frit: bevarede incoming-id'er er indbyrdes unikke, og
- * graftede id'er er hverken incoming-id'er eller genbrugte graft-mål. Den række der ikke kan arve
- * et current-id, beholder blot sit eget (datasikre) incoming-id — fokus-bevarelse er best-effort og
- * nedprioriteres bevidst i de sjældne længde-mismatch-tilfælde frem for at risikere en kollision.
+ * Aliaset er kun til `data-mineo-undo-field-path`-restore. Validering, beregning, sortering,
+ * persistence og `invalidDrafts` bruger fortsat den faktiske række-id.
  */
-export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
+export const reconcileGridRowIdentityForRestore = <TRow>(params: Readonly<{
   incoming: readonly TRow[];
   current: readonly TRow[];
   getRowId: (row: TRow) => string;
+  isRowEmpty: (row: TRow) => boolean;
   withRowId: (row: TRow, id: string) => TRow;
-}>): TRow[] => {
-  const { incoming, current, getRowId, withRowId } = params;
+}>): GridRowIdentityReconciliation<TRow> => {
+  const { incoming, current, getRowId, isRowEmpty, withRowId } = params;
 
   // Hvert incoming-id er reserveret til sin egen række — et graft må aldrig overtage det.
   const incomingIds = new Set<string>(incoming.map(getRowId));
-  // Værn mod at to positioner grafter samme current-id (kan ikke ske med unikke current-id'er,
-  // men holder invarianten lokal og eksplicit).
-  const usedGraftTargets = new Set<string>();
+  const usedTransferredIds = new Set<string>();
+  const undoAliasRowIdsByRowId = new Map<string, string[]>();
 
-  return incoming.map((row, index) => {
+  const rows = incoming.map((row, index) => {
     const currentRow = current[index];
     if (!currentRow) return row;
     const currentId = getRowId(currentRow);
-    if (currentId === getRowId(row)) return row;
-    // Graft kun et current-id der ikke tilhører en anden incoming-række og ikke allerede er grafted.
+    const incomingId = getRowId(row);
+    if (currentId === incomingId) return row;
+    // Hver incoming-række ejer sit id. Et tidligere id må kun flyttes/aliaseres, hvis det ikke
+    // allerede findes som en rigtig incoming-række, ellers ville fokus-restore kunne ramme forkert.
     if (incomingIds.has(currentId)) return row;
-    if (usedGraftTargets.has(currentId)) return row;
-    usedGraftTargets.add(currentId);
-    return withRowId(row, currentId);
+    if (usedTransferredIds.has(currentId)) return row;
+    usedTransferredIds.add(currentId);
+
+    if (isRowEmpty(row)) {
+      return withRowId(row, currentId);
+    }
+
+    const aliases = undoAliasRowIdsByRowId.get(incomingId) ?? [];
+    aliases.push(currentId);
+    undoAliasRowIdsByRowId.set(incomingId, aliases);
+    return row;
   });
+
+  return { rows, undoAliasRowIdsByRowId };
 };
 
 /**
@@ -183,8 +186,8 @@ export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
  *
  * Derfor SKAL `createEmptyRow` være ren: id'et udledes deterministisk af `seed`-argumentet, ikke af
  * en RNG. To kørsler med samme input giver da identiske rækker. De deterministiske id'er er bevidst
- * transiente — `reconcileRowIdsByPosition` re-stabiliserer dem ved næste prop-resync, og fokus-systemet
- * adresserer celler positionelt (`rowId:colIndex`).
+ * transiente — `reconcileGridRowIdentityForRestore` kan re-stabilisere tomme rækker ved næste
+ * prop-resync, og fokus-systemet kan bruge separate aliaser uden at omskrive ikke-tomme data-id'er.
  *
  * `seed` er et monotont tal (0, 1, 2 …) pr. tom række oprettet i denne normalisering, så de
  * deterministiske id'er er unikke indbyrdes og ikke kolliderer.

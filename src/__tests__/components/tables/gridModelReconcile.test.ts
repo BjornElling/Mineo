@@ -1,85 +1,93 @@
-import { reconcileRowIdsByPosition } from '../../../components/tables/gridCore/gridModel';
+import { reconcileGridRowIdentityForRestore } from '../../../components/tables/gridCore/gridModel';
 
 type Row = { id: string; v?: string };
 
 const getRowId = (row: Row) => row.id;
+const isRowEmpty = (row: Row) => row.v === undefined || row.v === '';
 const withRowId = (row: Row, id: string): Row => ({ ...row, id });
 
-describe('reconcileRowIdsByPosition', () => {
-  it('genbruger nuværende rækkes id positionelt så DOM-identitet bevares', () => {
+const reconcile = (incoming: readonly Row[], current: readonly Row[]) =>
+  reconcileGridRowIdentityForRestore({ incoming, current, getRowId, isRowEmpty, withRowId });
+
+const aliasesFor = (result: ReturnType<typeof reconcile>, rowId: string): readonly string[] =>
+  result.undoAliasRowIdsByRowId.get(rowId) ?? [];
+
+describe('reconcileGridRowIdentityForRestore', () => {
+  it('bevarer ikke-tomme incoming-id og opretter fokus-alias fra tidligere position', () => {
     const incoming: Row[] = [
-      { id: 'fresh-1', v: undefined },
+      { id: 'fresh-1', v: 'committed' },
       { id: 'fresh-2', v: undefined },
     ];
     const current: Row[] = [
-      { id: 'R', v: 'udfyldt' },
+      { id: 'R', v: 'tidligere' },
       { id: 'T', v: undefined },
     ];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    expect(result.map((r) => r.id)).toEqual(['R', 'T']);
-    // Værdier kommer fra incoming (committed), kun id'et arves.
-    expect(result[0].v).toBeUndefined();
+
+    const result = reconcile(incoming, current);
+
+    expect(result.rows.map((r) => r.id)).toEqual(['fresh-1', 'T']);
+    expect(result.rows[0].v).toBe('committed');
+    expect(aliasesFor(result, 'fresh-1')).toEqual(['R']);
+  });
+
+  it('tomme syntetiske rækker må arve nuværende id for at bevare invalidDraft/fokus', () => {
+    const incoming: Row[] = [{ id: 'fresh-empty', v: undefined }];
+    const current: Row[] = [{ id: 'R', v: 'før' }];
+
+    const result = reconcile(incoming, current);
+
+    expect(result.rows.map((r) => r.id)).toEqual(['R']);
+    expect(result.undoAliasRowIdsByRowId.size).toBe(0);
   });
 
   it('beholder incoming-id når der ikke findes en nuværende række på positionen', () => {
     const incoming: Row[] = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
     const current: Row[] = [{ id: 'R' }];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    expect(result.map((r) => r.id)).toEqual(['R', 'b', 'c']);
+
+    const result = reconcile(incoming, current);
+
+    expect(result.rows.map((r) => r.id)).toEqual(['R', 'b', 'c']);
   });
 
   it('er en no-op når id allerede matcher på positionen', () => {
     const incoming: Row[] = [{ id: 'R', v: 'ny' }];
     const current: Row[] = [{ id: 'R', v: 'gammel' }];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    expect(result[0]).toBe(incoming[0]); // samme reference, ingen unødig kopi
+
+    const result = reconcile(incoming, current);
+
+    expect(result.rows[0]).toBe(incoming[0]);
+    expect(result.undoAliasRowIdsByRowId.size).toBe(0);
   });
 
-  it('håndterer tom current (første resync) ved at returnere incoming uændret', () => {
+  it('håndterer tom current ved at returnere incoming uændret', () => {
     const incoming: Row[] = [{ id: 'a' }, { id: 'b' }];
-    const result = reconcileRowIdsByPosition({ incoming, current: [], getRowId, withRowId });
-    expect(result.map((r) => r.id)).toEqual(['a', 'b']);
+
+    const result = reconcile(incoming, []);
+
+    expect(result.rows.map((r) => r.id)).toEqual(['a', 'b']);
+    expect(result.undoAliasRowIdsByRowId.size).toBe(0);
   });
 
-  // Regressionsværn (2026-06-03, duplicate-key-fejl ved sygedagpenge-indsættelse):
-  // Når incoming er længere end current (fx rækker indsat før den efterfølgende tomme),
-  // må positionel id-grafting ALDRIG flytte et current-id ind på en position, hvor det
-  // kolliderer med et incoming-id der allerede står på en SENERE position. Det gav to rækker
-  // med samme id (offentlig_ydelse_empty_N) → React duplicate-key + datakorruption.
-  it('grafter ALDRIG et id ind så det kolliderer med et incoming-id senere i listen', () => {
-    // current: én udfyldt + efterfølgende tom (seed 3).
+  it('grafter/aliaserer aldrig et id der kolliderer med et incoming-id senere i listen', () => {
     const current: Row[] = [
       { id: 'filled_A', v: 'a' },
       { id: 'offentlig_ydelse_empty_3', v: undefined },
     ];
-    // incoming: to nye rækker indsat før den efterfølgende tomme, som beholder sit id.
     const incoming: Row[] = [
       { id: 'filled_A', v: 'a' },
       { id: 'syg_1', v: 'ny' },
       { id: 'offentlig_ydelse_empty_3', v: undefined },
     ];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    const ids = result.map((r) => r.id);
-    expect(new Set(ids).size).toBe(ids.length); // ingen duplikater
-    // Den nyindsatte række beholder sin egen identitet (bliver ikke grafted til den tommes id).
-    expect(ids).toEqual(['filled_A', 'syg_1', 'offentlig_ydelse_empty_3']);
-  });
 
-  it('bevarer unikke id når current-rækker indbyrdes bytter id-position', () => {
-    // Begge positioner grafter (current[i] ≠ incoming[i]); resultatet skal stadig være unikt.
-    const current: Row[] = [{ id: 'A' }, { id: 'X' }];
-    const incoming: Row[] = [{ id: 'X' }, { id: 'fresh' }];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    const ids = result.map((r) => r.id);
+    const result = reconcile(incoming, current);
+    const ids = result.rows.map((r) => r.id);
+
     expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(['filled_A', 'syg_1', 'offentlig_ydelse_empty_3']);
+    expect(result.undoAliasRowIdsByRowId.size).toBe(0);
   });
 
-  // Regressionsværn (slet-række + undo, 2026-06-20): efter sletning af en udfyldt række er
-  // `current` kortere end den incoming-liste en undo gendanner, og positionerne forskydes. Et
-  // graft af `current[0]`'s id ('B') ind på incoming[0] ('A') må ALDRIG kollidere med incoming[1]
-  // der stadig hedder 'B' — det gav `Encountered two children with the same key`-fejlen og
-  // datakorruption i lønindkomst-tabellen.
-  it('grafter ikke et current-id der tilhører en senere incoming-række (slet+undo)', () => {
+  it('aliaserer ikke et current-id der tilhører en senere incoming-række (slet+undo)', () => {
     const current: Row[] = [
       { id: 'B', v: 'data-B' },
       { id: 'row_empty_0', v: undefined },
@@ -89,11 +97,13 @@ describe('reconcileRowIdsByPosition', () => {
       { id: 'B', v: 'data-B' },
       { id: 'row_empty_0', v: undefined },
     ];
-    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
-    const ids = result.map((r) => r.id);
-    expect(new Set(ids).size).toBe(ids.length); // ingen duplikater
-    // Hver række beholder sin egen committed-identitet (ingen graft stjæler 'B').
+
+    const result = reconcile(incoming, current);
+    const ids = result.rows.map((r) => r.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual(['A', 'B', 'row_empty_0']);
-    expect(result.map((r) => r.v)).toEqual(['data-A', 'data-B', undefined]);
+    expect(result.rows.map((r) => r.v)).toEqual(['data-A', 'data-B', undefined]);
+    expect(result.undoAliasRowIdsByRowId.size).toBe(0);
   });
 });

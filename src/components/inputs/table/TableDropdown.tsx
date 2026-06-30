@@ -56,6 +56,7 @@ type TableDropdownPropsNoEmpty = Readonly<{
 export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPropsNoEmpty) &
   Readonly<{
     gridCell?: GridCellCoord;
+    undoFieldPathAliases?: readonly string[];
     readOnly?: boolean;
     /**
      * Visuel stil-variant.
@@ -78,6 +79,7 @@ const TABLE_DROPDOWN_RESERVED_ICON_WIDTH = '24px';
 const TableDropdown = React.memo(
   ({
     gridCell,
+    undoFieldPathAliases = [],
     value,
     readOnly = false,
     appearance = 'grid',
@@ -358,6 +360,7 @@ const TableDropdown = React.memo(
     // tekst-celle-kernen og editor-registret i useGridCoreController bruger). Lokal null-gren fordi
     // `gridCell` her er valgfri (util'en kræver en koordinat). Re-derivér IKKE `rowId:colIndex` inline.
     const resolvedGridCellKey = gridCell ? gridCellKey(gridCell) : null;
+    const undoFieldPathAliasesAttr = undoFieldPathAliases.length > 0 ? undoFieldPathAliases.join(' ') : undefined;
     React.useEffect(() => {
       if (!gridCell) return;
       grid.registerEditor(gridCell, editorHandle);
@@ -394,6 +397,7 @@ const TableDropdown = React.memo(
             allowEmpty ? (
               <StyledDropdown
                 name={resolvedGridCellKey ?? undefined}
+                inputProps={{ 'data-mineo-undo-field-path-aliases': undoFieldPathAliasesAttr }}
                 width="100%"
                 value={(value ?? '') === '' ? undefined : value}
                 allowEmpty
@@ -414,6 +418,7 @@ const TableDropdown = React.memo(
             ) : (
               <StyledDropdown
                 name={resolvedGridCellKey ?? undefined}
+                inputProps={{ 'data-mineo-undo-field-path-aliases': undoFieldPathAliasesAttr }}
                 width="100%"
                 value={value ?? ''}
                 allowEmpty={false}
@@ -490,6 +495,7 @@ const TableDropdown = React.memo(
                 // input og ringen vises aldrig.
                 'data-mineo-undo-focus-token': undoFocusToken,
                 'data-mineo-undo-field-path': resolvedGridCellKey ?? undefined,
+                'data-mineo-undo-field-path-aliases': undoFieldPathAliasesAttr,
               } as React.HTMLAttributes<HTMLDivElement>}
               size="small"
               variant="standard"
