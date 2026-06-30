@@ -53,9 +53,12 @@ const extractStatusMessage = (row: Pick<EoRowModel, 'status' | 'displayValue' | 
 };
 
 const fallbackIssueText = (row: Pick<EoRowModel, 'label' | 'summaryDisplay'>, message: string): string => {
-  if (message === '') return `${row.label} mangler`;
+  if (message === '') return `${row.label} er ikke angivet`;
   if (row.summaryDisplay === 'messageOnly') return message;
-  if (message.startsWith('mangler')) return `${row.label} ${message}`;
+  // Fortsættelses-fraser limes direkte på label uden kolon ("Reguleringsværdi … er ikke angivet").
+  if (/^(mangler|er ikke angivet|er ikke valgt|er ikke udfyldt)\b/.test(message)) {
+    return `${row.label} ${message}`;
+  }
   return `${row.label}: ${message}`;
 };
 
@@ -74,9 +77,18 @@ const tableFieldPath = (
 
 const inferDateColumn = (message: string): 0 | 1 => {
   const lower = message.toLocaleLowerCase('da-DK');
-  if (lower.includes('til-dato') || lower.includes('til og med') || lower.includes('efter ')) return 1;
+  if (lower.includes('til-dato') || lower.includes('til og med')) return 1;
   return 0;
 };
+
+/**
+ * Vælg fra-/til-kolonnen ud fra rækkens strukturelle felt-hint (sat af row-builderen fra
+ * valideringsresultatet). Hintet er autoritativt, fordi det ved præcis hvilket input fejlen
+ * vedrører — fx en fra-dato efter en cutoff, som en ren ordlyd-baseret gæt ville henføre til
+ * til-cellen. Uden hint falder vi tilbage til ordlyd-heuristikken (`inferDateColumn`).
+ */
+const dateColumnFromHint = (hint: EoRowModel['focusFieldHint'], message: string): 0 | 1 =>
+  hint === 'fra' ? 0 : hint === 'til' ? 1 : inferDateColumn(message);
 
 const normalField = (fieldPath: string): EoIssueFocusTarget => ({ kind: 'fieldPath', fieldPath });
 
@@ -120,33 +132,53 @@ const exactFieldTargets: Readonly<Record<string, EoIssueFocusTarget>> = {
 };
 
 const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget | undefined => {
+  const hint = row.focusFieldHint;
+
   const svieSmerteRowId = rowIdSuffix(row.id, 'sviesmerte.periode.');
   if (svieSmerteRowId) {
+    if (hint === 'tilstand') return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 3);
+    if (hint === 'fra') return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 0);
+    if (hint === 'til') return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 1);
     const lower = message.toLocaleLowerCase('da-DK');
     if (lower.includes('tilstand')) return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 3);
     return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, inferDateColumn(message));
   }
 
   const tafRowId = rowIdSuffix(row.id, 'taf.periode.');
-  if (tafRowId) return tableFieldPath(CELL_TABLE_IDS.eoTafPeriode, tafRowId, inferDateColumn(message));
+  if (tafRowId) return tableFieldPath(CELL_TABLE_IDS.eoTafPeriode, tafRowId, dateColumnFromHint(hint, message));
 
   const tafFerieRowId = rowIdSuffix(row.id, 'taf.ferie.');
-  if (tafFerieRowId) return tableFieldPath(CELL_TABLE_IDS.eoFerieperiode, tafFerieRowId, inferDateColumn(message));
+  if (tafFerieRowId) return tableFieldPath(CELL_TABLE_IDS.eoFerieperiode, tafFerieRowId, dateColumnFromHint(hint, message));
 
   const beregningsFerieRowId = rowIdSuffix(row.id, 'taf.beregningsgrundlag.ferie.');
   if (beregningsFerieRowId) {
-    return tableFieldPath(CELL_TABLE_IDS.eoBeregningsperiodeFerie, beregningsFerieRowId, inferDateColumn(message));
+    return tableFieldPath(CELL_TABLE_IDS.eoBeregningsperiodeFerie, beregningsFerieRowId, dateColumnFromHint(hint, message));
   }
 
   const oevrigeKravRowId = rowIdSuffix(row.id, 'oevrigekrav.');
   if (oevrigeKravRowId) {
     const lower = message.toLocaleLowerCase('da-DK');
-    if (lower.includes('beløb')) return tableFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, oevrigeKravRowId, 2);
+    // Beskrivelse tjekkes før beløb, så "Beskrivelse og beløb mangler" peger på beskrivelsescellen.
     if (lower.includes('beskrivelse')) return tableFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, oevrigeKravRowId, 1);
+    if (lower.includes('beløb')) return tableFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, oevrigeKravRowId, 2);
     return tableFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, oevrigeKravRowId, 0);
   }
 
   return exactFieldTargets[row.id];
+};
+
+/**
+ * Selvstændig fejltekst for en periode-/tabelrække. Validatorerne leverer allerede
+ * selvstændige, felt-specifikke beskeder ("Til-dato mangler", "Til-dato skal være efter fra-dato",
+ * "Der er overlappende perioder", TAF-cutoff-tekster m.fl.), så de vises uændret. Den eneste
+ * besked der ikke er selvforklarende er det generiske datointerval ("Dato skal være mellem …"),
+ * der derfor får perioden navngivet, så brugeren ved hvilken tabel fejlen hører til.
+ */
+const periodSummaryText = (entity: string, message: string): string => {
+  if (message.startsWith('Dato skal være mellem ')) {
+    return `${entity} skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
+  }
+  return message;
 };
 
 const CATALOG: readonly EoIssueCatalogEntry[] = [
@@ -169,12 +201,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       { kind: 'id', id: 'sviesmerte.antalDage' },
       { kind: 'id', id: 'sviesmerte.beregnetBeloeb' },
     ],
-    summaryText: (_row, message) => {
-      if (message.startsWith('Dato skal være mellem ')) {
-        return `Svie/smerte-perioden skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
-      }
-      return undefined;
-    },
+    summaryText: (_row, message) => periodSummaryText('Svie/smerte-perioden', message),
   },
   {
     key: 'taf-period-row',
@@ -184,18 +211,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       { kind: 'id', id: 'taf.ophoerSkyldes' },
       { kind: 'prefix', prefix: 'taf.folkepensionsalder.' },
     ],
-    summaryText: (_row, message) => {
-      if (
-        message.startsWith('Der er angivet tabt arbejdsfortjeneste efter ') ||
-        message.startsWith('Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort ')
-      ) {
-        return message;
-      }
-      if (message.startsWith('Dato skal være mellem ')) {
-        return `TAF-perioden skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
-      }
-      return undefined;
-    },
+    summaryText: (_row, message) => periodSummaryText('TAF-perioden', message),
   },
   {
     key: 'taf-beregningsperiode',
@@ -211,8 +227,8 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       if (message === 'Ikke alle felter udfyldt') {
         return 'Der mangler indtastninger i perioden til beregning af før-løn.';
       }
-      if (message.startsWith('Der er overlap mellem beregningsperioden (')) return message;
-      return fallbackIssueText(row, message);
+      // Øvrige beskeder (overlap, rækkefølge, ugyldig dato) er allerede selvstændige sætninger.
+      return message || fallbackIssueText(row, message);
     },
   },
   {
@@ -239,27 +255,90 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     when: 'Reguleringsmetoden for lønudvikling mangler eller peger på et ikke-valgt grundlag.',
     summaryText: (_row, message) => {
       if (message === 'Lønudvikling beregnes ud fra mangler' || message === 'Lønudvikling beregnes ud fra er ikke valgt') {
-        return 'Angivelse af lønudvikling mangler';
+        return 'Lønudvikling er ikke angivet';
       }
       if (message === 'Overenskomst er ikke valgt') {
         return 'Regulering er sat til \'Overenskomst\', men ingen overenskomst er valgt';
       }
+      if (message === 'Statistisk beregningsmodel er ikke valgt') {
+        return 'Regulering er sat til \'Statistik\', men ingen statistisk beregningsmodel er valgt';
+      }
+      if (message === 'KRL satstabel er ikke valgt') {
+        return 'Regulering er sat til \'KRL\', men ingen KRL-satstabel er valgt';
+      }
       return undefined;
     },
+  },
+  {
+    key: 'loenindkomst-offentlig-loen',
+    match: { kind: 'regex', regex: /^(loenindkomst\.[^.]+\.regulering|taf\.beregningsgrundlag\.loenudvikling\.[^.]+)\.offentligLoenoplysninger$/ },
+    when: 'KL-/RLTN-lønoplysninger (ansættelse, løntrin eller gruppe) mangler eller er uden for gyldigt interval.',
+    // Builderens beskeder ("Ansættelse er ikke valgt", "Løntrin mangler", "Gruppe skal være mellem 0 og 4"
+    // m.fl.) er allerede selvstændige og specifikke; de vises uændret uden label-præfiks.
+    summaryText: (_row, message) => message || undefined,
   },
   {
     key: 'sfgg-root',
     match: { kind: 'regex', regex: /^sfgg\.(beregningskilde|overenskomst|satsvalg)\.[^.]+$/ },
     when: 'Sygeferiegodtgørelse kræver et valgt beregningsgrundlag, overenskomst eller satsvalg for ansættelsesforholdet.',
     summaryText: (row, message) => {
-      if (row.id.startsWith('sfgg.beregningskilde.') && message === 'Intet valgt') {
-        return 'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt';
+      if (row.id.startsWith('sfgg.beregningskilde.')) {
+        if (message === 'Intet valgt') return 'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt';
+        if (message === 'Ukendt overenskomst-ID') return 'Den valgte overenskomst for sygeferiegodtgørelse er ukendt';
       }
       if (row.id.startsWith('sfgg.overenskomst.') && message === 'Ingen overenskomst valgt') {
         return 'Det er angivet, at SFGG fastsættes efter overenskomst, men ingen overenskomst er valgt';
       }
+      if (row.id.startsWith('sfgg.satsvalg.') && message === 'Intet valgt') {
+        return 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt';
+      }
       return undefined;
     },
+  },
+  {
+    key: 'taf-ferieperiode-row',
+    match: { kind: 'prefix', prefix: 'taf.ferie.' },
+    when: 'En ferieperiode i TAF-tabellen er delvist udfyldt, ugyldig eller overlapper.',
+    summaryText: (_row, message) => periodSummaryText('Ferieperioden', message),
+  },
+  {
+    key: 'taf-beregningsgrundlag-ferieperiode-row',
+    match: { kind: 'prefix', prefix: 'taf.beregningsgrundlag.ferie.' },
+    when: 'En ferieperiode i beregningsgrundlaget er delvist udfyldt, ugyldig, overlapper eller ligger uden for beregningsperioden.',
+    summaryText: (_row, message) => periodSummaryText('Ferieperioden', message),
+  },
+  {
+    key: 'oevrige-krav-row',
+    match: { kind: 'prefix', prefix: 'oevrigekrav.' },
+    when: 'Et øvrigt erstatningskrav mangler beskrivelse, beløb eller dato.',
+    // Builderen leverer en selvstændig besked ("Beskrivelse og beløb mangler", "Beløb mangler",
+    // "Dato mangler"); den vises uændret. Det højrestillede link angiver placeringen.
+    summaryText: (_row, message) => message || undefined,
+  },
+  {
+    key: 'aes-men-afgoerelsesdato',
+    match: { kind: 'id', id: 'aes.menAfgoerelseDato' },
+    when: 'Varige mén er sat til Ja, men ménafgørelsens dato mangler.',
+    summaryText: (_row, message) =>
+      message === 'Afgørelsesdato mangler' ? 'Dato for ménafgørelse er ikke angivet' : undefined,
+  },
+  {
+    key: 'aes-midlertidig-eet-dato',
+    match: { kind: 'id', id: 'aes.midlertidigEETAfgoerelseDato' },
+    when: 'Midlertidigt EET er sat til Ja, men hverken afgørelses- eller virkningsdato er angivet.',
+    summaryText: (_row, message) =>
+      message === 'Afgørelsesdato eller virkningsdato mangler'
+        ? 'Afgørelses- eller virkningsdato for midlertidig EET-afgørelse er ikke angivet'
+        : undefined,
+  },
+  {
+    key: 'aes-endelig-eet-dato',
+    match: { kind: 'id', id: 'aes.endeligEETAfgoerelseDato' },
+    when: 'Endeligt EET er sat til Ja, men hverken afgørelses- eller virkningsdato er angivet.',
+    summaryText: (_row, message) =>
+      message === 'Afgørelsesdato eller virkningsdato mangler'
+        ? 'Afgørelses- eller virkningsdato for endelig EET-afgørelse er ikke angivet'
+        : undefined,
   },
 ];
 

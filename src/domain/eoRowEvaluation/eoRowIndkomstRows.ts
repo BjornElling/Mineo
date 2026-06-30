@@ -230,7 +230,7 @@ export const buildEoIndkomstRows = (
         offentligMessage = 'Ansættelse er ikke valgt';
       } else if (typeof trinValue !== 'number') {
         offentligStatus = 'error';
-        offentligMessage = 'Løntrin mangler';
+        offentligMessage = 'Løntrin er ikke angivet';
       } else {
         try {
           toLoentrin(trinValue);
@@ -243,7 +243,7 @@ export const buildEoIndkomstRows = (
       if (offentligStatus === 'ok') {
         if (typeof gruppeValue !== 'number') {
           offentligStatus = 'error';
-          offentligMessage = 'Gruppe mangler';
+          offentligMessage = 'Gruppe er ikke valgt';
         } else if (gruppeValue < 0 || gruppeValue > 4) {
           offentligStatus = 'error';
           offentligMessage = 'Gruppe skal være mellem 0 og 4';

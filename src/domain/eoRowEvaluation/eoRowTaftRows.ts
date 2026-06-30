@@ -206,6 +206,7 @@ export const buildEoTaftRows = (
         label: periodeRowLabel,
         displayValue: `Fejl (${evaluation.message})`,
         status: 'error',
+        focusFieldHint: evaluation.field,
       });
       return;
     }
@@ -298,6 +299,7 @@ export const buildEoTaftRows = (
           label: ferieperiodeLabel,
           displayValue: `Fejl (${evaluation.message})`,
           status: 'error',
+          focusFieldHint: evaluation.field,
         });
         return;
       }

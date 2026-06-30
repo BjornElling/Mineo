@@ -41,7 +41,11 @@ const evaluateOne = (
   const hasTil = isNonEmptyString(periode.til);
   const filledCount = [hasFra, hasTil].filter(Boolean).length;
   if (filledCount === 0) return { kind: 'skip' };
-  if (filledCount !== 2) return { kind: 'error', message: 'Ikke alle felter udfyldt' };
+  if (filledCount !== 2) {
+    return hasFra
+      ? { kind: 'error', message: 'Til-dato er ikke angivet', field: 'til' }
+      : { kind: 'error', message: 'Fra-dato er ikke angivet', field: 'fra' };
+  }
 
   const fraISO = periode.fra;
   const tilISO = periode.til;
@@ -88,14 +92,20 @@ const evaluateOne = (
     return result.isValid ? undefined : result.errorMessage;
   };
 
-  const computedRangeMessages = [
-    validateRowDate(fraISO, bounds.fra.min, bounds.fra.max, fraNoValidRangeCause),
-    validateRowDate(tilISO, bounds.til.min, bounds.til.max, tilNoValidRangeCause),
-  ].filter((m): m is string => typeof m === 'string' && m.trim() !== '');
+  const fraRangeMessage = validateRowDate(fraISO, bounds.fra.min, bounds.fra.max, fraNoValidRangeCause);
+  const tilRangeMessage = validateRowDate(tilISO, bounds.til.min, bounds.til.max, tilNoValidRangeCause);
+  const computedRangeMessages = [fraRangeMessage, tilRangeMessage].filter(
+    (m): m is string => typeof m === 'string' && m.trim() !== ''
+  );
 
   if (hasOverlap || computedRangeMessages.length > 0) {
     const message = hasOverlap ? 'Der er overlappende perioder' : computedRangeMessages.join('; ');
-    return { kind: 'error', message };
+    const field: 'fra' | 'til' | undefined = hasOverlap
+      ? undefined
+      : fraRangeMessage
+        ? 'fra'
+        : 'til';
+    return { kind: 'error', message, field };
   }
 
   return { kind: 'ok' };

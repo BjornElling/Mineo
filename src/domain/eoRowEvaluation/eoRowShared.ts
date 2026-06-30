@@ -196,7 +196,7 @@ export const buildReguleringsMangelMessage = (
 ): string | undefined => {
   if (status === 'ok') return undefined;
   const trimmed = displayValue.trim();
-  if (trimmed === '' || trimmed === '-' || trimmed === 'Nej') return 'mangler';
-  if (trimmed.startsWith('Nej')) return `mangler${trimmed.slice(3)}`;
+  if (trimmed === '' || trimmed === '-' || trimmed === 'Nej') return 'er ikke angivet';
+  if (trimmed.startsWith('Nej')) return `er ikke angivet${trimmed.slice(3)}`;
   return trimmed;
 };

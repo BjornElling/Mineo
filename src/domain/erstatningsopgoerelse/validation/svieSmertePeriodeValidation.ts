@@ -40,8 +40,19 @@ export type SvieSmertePeriodeEvaluation =
   | Readonly<{ kind: 'skip' }>
   /** Gyldig række. */
   | Readonly<{ kind: 'ok' }>
-  /** Blokerende fejl. `message` er den indre besked (uden "Fejl (...)"-indpakning). */
-  | Readonly<{ kind: 'error'; message: string }>;
+  /**
+   * Blokerende fejl. `message` er den indre besked (uden "Fejl (...)"-indpakning). `field`
+   * angiver hvilket input fejlen er forankret til (fra-/til-dato eller tilstand), så UI'et kan
+   * pege på den korrekte celle uden at gætte kolonnen ud fra beskedens ordlyd.
+   */
+  | Readonly<{ kind: 'error'; message: string; field?: 'fra' | 'til' | 'tilstand' }>;
+
+const joinManglerFelter = (parts: ReadonlyArray<string>): string => {
+  if (parts.length <= 1) return parts[0] ?? '';
+  const head = parts.slice(0, -1).map((p, i) => (i === 0 ? p : p.toLocaleLowerCase('da-DK')));
+  const tail = parts[parts.length - 1].toLocaleLowerCase('da-DK');
+  return `${head.join(', ')} og ${tail}`;
+};
 
 const evaluateOne = (
   periode: SvieSmertePeriodeRowInput,
@@ -120,14 +131,26 @@ const evaluateOne = (
   const harFejl = computedRangeMessages.length > 0 || hasOverlap;
 
   if (!allFilled) {
-    return { kind: 'error', message: 'Ikke alle felter udfyldt' };
+    const manglerFelter: string[] = [];
+    if (!hasFra) manglerFelter.push('Fra-dato');
+    if (!hasTil) manglerFelter.push('Til-dato');
+    if (!hasTilstand) manglerFelter.push('Tilstand');
+    const field: 'fra' | 'til' | 'tilstand' = !hasFra ? 'fra' : !hasTil ? 'til' : 'tilstand';
+    return { kind: 'error', message: `${joinManglerFelter(manglerFelter)} er ikke angivet`, field };
   }
 
   if (harFejl) {
     const fraFoerTilError = fraISO && tilISO && fraISO > tilISO ? DATE_ORDER_ERROR_MESSAGE : undefined;
     const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
     const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? allMessages.join('; '));
-    return { kind: 'error', message: errorMessages };
+    const field: 'fra' | 'til' | undefined = hasOverlap
+      ? undefined
+      : fraFoerTilError
+        ? 'til'
+        : fraRangeErrorMessage
+          ? 'fra'
+          : 'til';
+    return { kind: 'error', message: errorMessages, field };
   }
 
   return { kind: 'ok' };

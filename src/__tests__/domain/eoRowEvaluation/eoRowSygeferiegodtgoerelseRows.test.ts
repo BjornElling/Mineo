@@ -651,7 +651,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
           id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
           label: 'Dagssats',
           status: 'error',
-          message: 'Dagssats mangler',
+          message: 'Dagssats er ikke angivet',
         }),
       ])
     );
@@ -686,7 +686,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
           id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
           label: 'Dagssats',
           status: 'error',
-          message: 'Dagssats mangler',
+          message: 'Dagssats er ikke angivet',
         }),
       ])
     );

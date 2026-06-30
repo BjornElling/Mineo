@@ -112,6 +112,14 @@ export type EoIssueFocusTarget =
   | Readonly<{ kind: 'fieldPath'; fieldPath: string }>
   | Readonly<{ kind: 'rowId'; rowId: string }>;
 
+/**
+ * Hvilket konkret input i en periode-/tabelrække en fejl er forankret til. Sættes af row-builderne
+ * ud fra valideringsresultatet og bruges af issue-kataloget til at vælge den korrekte celle som
+ * primært fokus-mål — i stedet for at gætte kolonnen ud fra fejlbeskedens ordlyd (som ikke kan
+ * skelne fx en fra-dato efter en cutoff fra en til-dato-fejl).
+ */
+export type EoIssueFieldHint = 'fra' | 'til' | 'tilstand';
+
 export type EoRowModel = {
   id: string;
   label: string;
@@ -126,6 +134,9 @@ export type EoRowModel = {
   summaryText?: string;
   // Optional primært DOM-mål for fejl-/advarselslink. Bruges før række-/sektionsfallback.
   focusTarget?: EoIssueFocusTarget;
+  // Optional hint om hvilket felt i en periode-/tabelrække fejlen vedrører (fra/til/tilstand).
+  // Kataloget bruger det til at vælge den korrekte celle som fokus-mål.
+  focusFieldHint?: EoIssueFieldHint;
   group?: EoRowGroup;
   dependsOn?: ReadonlyArray<DependencySpec>;
 };

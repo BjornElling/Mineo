@@ -70,32 +70,36 @@ export const buildEoOevrigeKravRows = (
       const udgiftOgBeloebUdfyldt = hasUdgiftTil && hasBeloeb;
 
       // Status er fejl hvis udgiftTil ELLER beløb mangler (når der er noget udfyldt i rækken)
-      // Status er advarsel hvis kun dato mangler
+      // Status er advarsel hvis kun dato mangler.
+      // Selve fejl-/advarselsteksten lægges i `message` (ikke bagt ind i label/displayValue med
+      // et "Fejl:"-præfiks): "Fejl og advarsler" viser `message` som en selvstændig, specifik
+      // sætning, og det højrestillede link angiver placeringen. `messageOnly` sikrer, at netop
+      // `message` vises uden label-præfiks.
       let status: EoRowStatus = 'ok';
       let label = '';
       let displayValue = '';
+      let message: string | undefined;
 
       if (!udgiftOgBeloebUdfyldt) {
-        // Fejl: Enten beskrivelse eller beløb mangler
+        // Fejl: Enten beskrivelse eller beløb (eller begge) mangler
         status = 'error';
 
         if (!hasUdgiftTil && !hasBeloeb) {
-          // Begge mangler
-          label = 'Fejl: Beskrivelse mangler';
-          displayValue = 'Fejl: Beløb mangler';
+          label = 'Øvrigt erstatningskrav';
+          message = 'Beskrivelse og beløb er ikke udfyldt';
         } else if (!hasUdgiftTil) {
-          // Kun beskrivelse mangler
-          label = 'Fejl: Beskrivelse mangler';
-          displayValue = formatCurrency(amountValueToNumber(krav.beloeb));
+          label = 'Øvrigt erstatningskrav';
+          message = 'Beskrivelse er ikke udfyldt';
         } else {
-          // Kun beløb mangler
-          label = krav.udgiftTil ?? '';
-          displayValue = 'Fejl: Beløb mangler';
+          label = krav.udgiftTil ?? 'Øvrigt erstatningskrav';
+          message = 'Beløb er ikke angivet';
         }
+        displayValue = `Fejl (${message})`;
       } else if (!hasDato) {
         // Advarsel: Kun dato mangler
         status = 'warning';
-        label = `${krav.udgiftTil} (dato mangler)`;
+        label = krav.udgiftTil ?? 'Øvrigt erstatningskrav';
+        message = 'Dato er ikke angivet';
         displayValue = formatCurrency(amountValueToNumber(krav.beloeb));
       } else {
         // Alt udfyldt korrekt
@@ -108,6 +112,8 @@ export const buildEoOevrigeKravRows = (
         label,
         displayValue,
         status,
+        message,
+        summaryDisplay: status !== 'ok' ? 'messageOnly' : undefined,
       });
     });
   }

@@ -189,7 +189,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
     if (sfggSource.kind === 'manuel' && result && result.sfggReferencesats.status !== 'ok') {
       sfggManuelDagssatsMangler = result.sfggReferencesats.reason;
     } else if (sfggSource.kind === 'manuel' && !result && amountValueToNumber(row?.sfggManuelDagssats) === undefined) {
-      sfggManuelDagssatsMangler = 'Dagssats mangler';
+      sfggManuelDagssatsMangler = 'Dagssats er ikke angivet';
     }
 
     let direkteOverenskomstDagssatsMangler: string | undefined;

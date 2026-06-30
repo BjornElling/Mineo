@@ -37,7 +37,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(startRow).toBeDefined();
     expect(slutRow).toBeDefined();
     expect(reguleringsvaerdiRow?.status).toBe('error');
-    expect(reguleringsvaerdiRow?.message).toMatch(/^mangler/);
+    expect(reguleringsvaerdiRow?.message).toMatch(/^er ikke angivet/);
   });
 
   it('markerer manglende slutdækning for manuel regulering med konkret slutdato', () => {
@@ -68,7 +68,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(slutRow).toBeDefined();
     expect(slutRow?.status).toBe('error');
     expect(slutRow?.displayValue).toMatch(/^Nej \(kun indtil /);
-    expect(slutRow?.message).toMatch(/^mangler \(kun indtil /);
+    expect(slutRow?.message).toMatch(/^er ikke angivet \(kun indtil /);
   });
 
   it('behandler præcis udløbsgrænse som ikke-ok (< grænse er tilladt, = grænse er ikke)', () => {

@@ -99,6 +99,7 @@ export const buildEoSvieSmerteRows = (
           label: periodeLabel,
           displayValue,
           status: 'error',
+          focusFieldHint: evaluation.field,
         });
         return;
       }
@@ -177,7 +178,7 @@ export const buildEoSvieSmerteRows = (
     hasSatserForOpgoerelsePlusOneMonthYear;
 
   const satserAarDisplay = (() => {
-    if (satserAarMangler) return 'Fejl (Indtastet sygeperiode men ikke år for sats)';
+    if (satserAarMangler) return 'Fejl (Årstal for svie/smerte-satser er ikke angivet)';
     if (shouldShowSatsYearSuggestionWarning && opgoerelsePlusOneMonthYear !== undefined) {
       return `Svie/smerte-satsen for ${opgoerelsePlusOneMonthYear} kan anvendes.`;
     }
@@ -196,7 +197,7 @@ export const buildEoSvieSmerteRows = (
     status: satserAarStatus,
     message:
       satserAarMangler
-        ? 'Indtastet sygeperiode men ikke år for sats'
+        ? 'Årstal for svie/smerte-satser er ikke angivet'
         : shouldShowSatsYearSuggestionWarning
           ? satserAarDisplay
           : undefined,
@@ -215,7 +216,7 @@ export const buildEoSvieSmerteRows = (
       return `Fejl (${parts.join('; ')})`;
     }
     if (delvisSygemeldingSatsMangler) {
-      return 'Fejl (Sats ved delvis sygemelding mangler)';
+      return 'Fejl (Sats ved delvis sygemelding er ikke valgt)';
     }
     return delvisSygemeldingSatsValue === 'fuld' ? 'Fuld sats' : 'Halv sats';
   })();
@@ -229,6 +230,8 @@ export const buildEoSvieSmerteRows = (
     label: 'Svie/smerte-sats ved delvis sygemelding',
     displayValue: delvisSygemeldingSatsDisplay,
     status: delvisSygemeldingSatsStatus,
+    message: delvisSygemeldingSatsMangler ? 'Sats ved delvis sygemelding er ikke valgt' : undefined,
+    summaryDisplay: delvisSygemeldingSatsMangler ? 'messageOnly' : undefined,
   });
 
   // 3c) Satser per dag/max (opslag fra lovbestemteRates)
@@ -315,7 +318,7 @@ export const buildEoSvieSmerteRows = (
     const periodeTil = values.vedroererPeriodeTil;
 
     if (!periodeFra || !periodeTil) {
-      return { displayValue: 'Fejl (Vedrører perioden mangler)', status: 'error' as EoRowStatus };
+      return { displayValue: 'Fejl (Vedrører perioden er ikke angivet)', status: 'error' as EoRowStatus };
     }
 
     // Parse menAfgoerelseDato hvis udfyldt - men kun hvis feltet er synligt og der ikke er verserende klage

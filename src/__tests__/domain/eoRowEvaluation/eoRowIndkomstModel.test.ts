@@ -70,7 +70,7 @@ describe('buildIndkomstSectionStatuses', () => {
     const result = buildIndkomstSectionStatuses(values, undefined);
 
     expect(result[0]?.tableStatus).toBe('error');
-    expect(result[0]?.tableMessage).toBe('År mangler');
+    expect(result[0]?.tableMessage).toBe('År er ikke angivet');
   });
 
   it('giver præcis fejltekst ved ugyldig periodeværdi', () => {
@@ -207,7 +207,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const result = buildOffentligeYdelserDebugRows(rows);
 
     expect(result[0]?.status).toBe('error');
-    expect(result[0]?.message).toBe('Dato mangler');
+    expect(result[0]?.message).toBe('Dato er ikke angivet');
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
   });
 
@@ -226,7 +226,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
 
     expect(result[0]?.status).toBe('error');
     expect(result[0]?.label).toBe('Uspecificeret');
-    expect(result[0]?.message).toBe('Ydelsestype mangler');
+    expect(result[0]?.message).toBe('Ydelsestype er ikke valgt');
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
   });
 
@@ -280,7 +280,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const result = buildOffentligeYdelserDebugRows(rows);
 
     expect(result[0]?.status).toBe('warning');
-    expect(result[0]?.message).toBe('Beløb mangler');
+    expect(result[0]?.message).toBe('Beløb er ikke angivet');
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
   });
 

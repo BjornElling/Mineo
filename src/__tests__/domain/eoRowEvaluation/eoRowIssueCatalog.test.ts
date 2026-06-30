@@ -21,7 +21,7 @@ describe('eoRowIssueCatalog', () => {
       displayValue: '-',
     });
 
-    expect(resolveEoIssueSummaryText(row)).toBe('Skadedato mangler');
+    expect(resolveEoIssueSummaryText(row)).toBe('Skadedato er ikke angivet');
   });
 
   it('danner målrettet TAF-periodebesked for datointervalfejl', () => {

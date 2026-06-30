@@ -213,11 +213,11 @@ export const buildIndkomstSectionStatuses = (
       tableStatus = 'error';
       const firstErrorCell = tableValidation.summary.firstErrorCell;
       if (!firstErrorCell) {
-        tableMessage = 'Fejl i indtastning';
+        tableMessage = 'Der er en ugyldig værdi i lønoplysningerne';
       } else if (firstErrorCell.reason === 'input') {
         tableMessage = `Ugyldig værdi i ${resolveStandardLoenColumnLabel(firstErrorCell.colKey)}`;
       } else {
-        tableMessage = `${resolveStandardLoenColumnLabel(firstErrorCell.colKey)} mangler`;
+        tableMessage = `${resolveStandardLoenColumnLabel(firstErrorCell.colKey)} er ikke angivet`;
       }
     } else if (tableValidation.summary.hasWarnings) {
       tableStatus = 'warning';
@@ -292,15 +292,17 @@ export const buildOffentligeYdelserDebugRows = (
           const firstInvalidColumn = OFFENTLIGE_YDELSER_COLUMN_ORDER.find((colKey) => rowErrorKeys.has(colKey));
           group.firstErrorMessage = firstInvalidColumn
             ? `Ugyldig værdi i ${resolveOffentligeYdelserColumnLabel(firstInvalidColumn)}`
-            : 'Fejl i indtastning';
+            : 'Der er en ugyldig værdi i ydelsesrækken';
         } else {
           const state = getOffentligeYdelserRowFilledState(row);
           if (!state.periodComplete) {
-            group.firstErrorMessage = 'Dato mangler';
+            group.firstErrorMessage = 'Dato er ikke angivet';
           } else if (!state.ydelsestypeSelected) {
-            group.firstErrorMessage = 'Ydelsestype mangler';
+            group.firstErrorMessage = 'Ydelsestype er ikke valgt';
           } else {
-            group.firstErrorMessage = 'Manglende indtastning';
+            // Uopnåelig restklasse (en ikke-input-fejl kræver manglende periode eller ydelsestype,
+            // begge fanget ovenfor) — men hold teksten specifik frem for generisk, hvis den nås.
+            group.firstErrorMessage = 'Dato eller ydelsestype er ikke angivet';
           }
         }
       }
@@ -324,8 +326,8 @@ export const buildOffentligeYdelserDebugRows = (
     }
     if (row.warningCount > 0) {
       const warningMessage = row.warningCount === 1
-        ? 'Beløb mangler'
-        : `Beløb mangler (${row.warningCount} perioder)`;
+        ? 'Beløb er ikke angivet'
+        : `Beløb er ikke angivet (${row.warningCount} perioder)`;
       return {
         id: row.id,
         label: row.label,

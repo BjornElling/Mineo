@@ -228,6 +228,23 @@ EO-specifik præcisering:
   den afledte via den deterministiske dependency-graf. Nye målrettede fejltyper skal
   derfor enten have en eksplicit katalogrelation eller en lokal `dependsOn`, hvis de
   kan forårsage afledte fejl i samme visning.
+- Hver fejl-/advarselslinje skal være KORT, SPECIFIK og SELVSTÆNDIG: den skal navngive det
+  konkrete problem (fx "Til-dato er ikke angivet", ikke "Ikke alle felter udfyldt"; "Beregningsgrundlag
+  for sygeferiegodtgørelse er ikke valgt", ikke "Intet valgt") og må ikke bære et `Label:`-præfiks
+  (det højrestillede link angiver placeringen). Generiske catch-all-fraser er forbudt som vist
+  tekst. To kanoniske mekanismer: (1) en katalog-`summaryText`-gren der returnerer en selvstændig
+  streng, eller (2) at row-builderen sætter en selvstændig `message` + `summaryDisplay: 'messageOnly'`.
+  `fallbackIssueText` (`${label}: …`) er kun et sikkerhedsnet for ukatalogiserede rækker, ikke
+  normalvejen. Værnet er `eoRowIssueCatalogCoverage.test.ts`.
+- Et standalone "`<felt> mangler`" som vist tekst er forbudt: det kan læses som om VÆRDIEN er
+  forsvundet i programmet, ikke at brugeren mangler at indtaste den. Brug i stedet "er ikke angivet"
+  / "er ikke udfyldt" / "er ikke valgt" (eller en form med flere ord, fx "Der mangler en …",
+  "mangler at blive angivet"). Værnet (`eoRowIssueCatalogCoverage.test.ts`) afviser en vist tekst,
+  der ender på " mangler".
+- Fejlens fokus-celle i en periode-/tabelrække vælges ud fra rækkens strukturelle `focusFieldHint`
+  (`fra`/`til`/`tilstand`), sat af row-builderen fra valideringsresultatet — IKKE ud fra en
+  ordlyd-gætning på beskedteksten (som ikke kan skelne fx en fra-dato efter en cutoff fra en
+  til-dato-fejl). Ordlyd-heuristikken (`inferDateColumn`) er kun fallback, når hintet mangler.
 
 **Dokument-download-fejl:** Kan dokumentet alligevel ikke genereres (runtime-undtagelse i
 PDF- eller Word-laget), er det en systemteknisk fejl — ikke en brugerrettelig valideringsfejl.

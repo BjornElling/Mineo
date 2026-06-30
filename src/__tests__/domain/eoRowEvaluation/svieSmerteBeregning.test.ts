@@ -296,8 +296,8 @@ describe('Svie/smerte beregning', () => {
       );
 
       expect(row?.status).toBe('error');
-      expect(row?.displayValue).toBe('Fejl (Indtastet sygeperiode men ikke år for sats)');
-      expect(row?.message).toBe('Indtastet sygeperiode men ikke år for sats');
+      expect(row?.displayValue).toBe('Fejl (Årstal for svie/smerte-satser er ikke angivet)');
+      expect(row?.message).toBe('Årstal for svie/smerte-satser er ikke angivet');
       expect(row?.summaryDisplay).toBe('messageOnly');
     });
 

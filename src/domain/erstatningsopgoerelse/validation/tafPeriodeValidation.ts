@@ -41,7 +41,11 @@ export type TafPeriodeBoundsContext = Readonly<{
 export type TafPeriodeEvaluation =
   | Readonly<{ kind: 'skip' }>
   | Readonly<{ kind: 'ok' }>
-  | Readonly<{ kind: 'error'; message: string }>;
+  /**
+   * Blokerende fejl. `field` angiver hvilket input fejlen er forankret til (fra-/til-dato), så
+   * UI'et kan pege på den korrekte celle uden at gætte kolonnen ud fra beskedens ordlyd.
+   */
+  | Readonly<{ kind: 'error'; message: string; field?: 'fra' | 'til' }>;
 
 /**
  * Den kombinerede øvre til-dato-grænse fra differencekrav/EET-afgørelses-datoer (hver minus
@@ -97,7 +101,11 @@ const evaluateOne = (
   const hasTil = isNonEmptyString(periode.til);
   const filledCount = [hasFra, hasTil].filter(Boolean).length;
   if (filledCount === 0) return { kind: 'skip' };
-  if (filledCount !== 2) return { kind: 'error', message: 'Ikke alle felter udfyldt' };
+  if (filledCount !== 2) {
+    return hasFra
+      ? { kind: 'error', message: 'Til-dato er ikke angivet', field: 'til' }
+      : { kind: 'error', message: 'Fra-dato er ikke angivet', field: 'fra' };
+  }
 
   const fraISO = periode.fra;
   const tilISO = periode.til;
@@ -176,7 +184,18 @@ const evaluateOne = (
       hasOverlap && rangeOrCutoffErrorMessage
         ? `${rangeOrCutoffErrorMessage}; Der er overlappende perioder`
         : (rangeOrCutoffErrorMessage || 'Der er overlappende perioder');
-    return { kind: 'error', message: errorMessages };
+    // Forankr fejlen til det konkrete felt: en cutoff-/interval-fejl på fra-datoen peger på
+    // fra-cellen (ikke til-cellen, som en ordlyd-baseret gæt ville gøre), rækkefølgefejl peger på
+    // til-datoen, og en ren overlap-fejl har intet entydigt felt (kataloget falder da til fra).
+    const field: 'fra' | 'til' | undefined =
+      preferredFieldErrorMessages.length > 0
+        ? (fraCutoffError ? 'fra' : 'til')
+        : fraFoerTilError
+          ? 'til'
+          : computedRangeMessages.length > 0
+            ? (fraRangeErrorMessage ? 'fra' : 'til')
+            : undefined;
+    return { kind: 'error', message: errorMessages, field };
   }
 
   return { kind: 'ok' };
