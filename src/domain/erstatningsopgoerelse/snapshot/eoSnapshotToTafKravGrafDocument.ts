@@ -11,6 +11,8 @@ import {
 import { diffUtcDays } from '../../../utils/utcDayMath';
 import { roundByMethod } from '../../../utils/rounding';
 import { beregnArbejdsdageOgMaaneder } from '../engines/arbejdsdageMaaneder';
+import { buildDatoSetInclusive, buildFerieDageSet, isWeekdayUtc } from '../engines/tafDaySets';
+import type { FerieperiodeRow } from '../../../schemas/formSchemas';
 import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import {
   buildIncomeCalculationContext,
@@ -61,6 +63,10 @@ export type TafKravGrafDocument = Readonly<{
   timeWindows: readonly TafKravGrafTimeWindow[];
   beregningsperiode: TafKravGrafTimeWindow | null;
   skadeMarker: TafKravGrafMarker | null;
+  // Ferieperioder uden indtastet indkomst af mindst 3 sammenhængende arbejdsdages
+  // varighed (weekend/SH bryder ikke sammenhængen). Markeres med et tonet bånd, og
+  // der bygges bevidst IKKE bro over dem (jf. bridgeZeroWorkdayGaps) — dykket vises.
+  ferieAbsenceMarkers: readonly TafKravGrafTimeWindow[];
 }>;
 
 export type TafKravGrafDocumentProjection =
@@ -230,46 +236,139 @@ const resolveUnitDivisor = (
   return beregnArbejdsdageOgMaaneder(range.fra, range.til, new Set(), new Set()).maaneder;
 };
 
-// Bygger bro over kalendermåneder der kun mangler et segment, fordi de IKKE har
-// nogen arbejdsdage (hele måneden er ferie/SH/fravær). Dagslønnen er en rate pr.
-// arbejdsdag og er per definition uændret af en sådan måned, så et hul ville være
-// et falsk visuelt dyk. Den foregående måneds rate holdes hen over hullet.
+// Bygger bro over interne huller mellem to på hinanden følgende segmenter, når
+// hullet UDELUKKENDE består af ikke-arbejdsdage (weekend/helligdag/ferie/fravær).
+// Dagslønnen er en rate pr. arbejdsdag og er per definition uændret af en sådan dag,
+// så et hul ville være et falsk visuelt dyk — det gælder både en hel ferie-måned og
+// en enkelt søndag, der isoleres som et dag-fragment på en måneds-/segmentgrænse.
+// Den foregående periodes rate holdes hen over hullet.
 //
 // Kun for arbejdsdags-grundlaget: månedsløn har aldrig nul-divisor. Et ægte
-// indkomsthul (måned MED arbejdsdage, men uden ansættelse) har arbejdsdage > 0 og
+// indkomsthul (dage MED arbejdsdage, men uden ansættelse) har arbejdsdage > 0 og
 // bygges der bevidst IKKE bro over — det er et reelt dyk. Broen begrænses til ét
-// tidsvindue ad gangen, så akse-brud aldrig overskrides.
-const bridgeZeroWorkdayMonths = (
+// tidsvindue ad gangen, så akse-brud aldrig overskrides, og strækker sig aldrig før
+// første eller efter sidste segment (kun mellem to faktiske segmenter).
+const bridgeZeroWorkdayGaps = (
   series: TafKravGrafSeries,
   timeWindows: readonly TafKravGrafTimeWindow[],
-  workdaysInRange: (range: TafKravGrafTimeWindow) => number
+  workdaysInRange: (range: TafKravGrafTimeWindow) => number,
+  protectedRanges: readonly TafKravGrafTimeWindow[]
 ): TafKravGrafSeries => {
-  const segmentInMonth = (month: TafKravGrafTimeWindow): TafKravGrafSeriesSegment | undefined =>
-    series.segments.find((segment) => segment.fra <= month.til && segment.til >= month.fra);
-
+  const sorted = [...series.segments].sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
   const bridged: TafKravGrafSeriesSegment[] = [];
-  for (const window of timeWindows) {
-    const months = splitRangeByCalendarMonths(window);
-    const lastCoveredIndex = months.reduce((acc, month, index) => (segmentInMonth(month) ? index : acc), -1);
-    if (lastCoveredIndex < 0) continue;
-    let lastAmountOre: MoneyOre | null = null;
-    for (let index = 0; index <= lastCoveredIndex; index += 1) {
-      const existing = segmentInMonth(months[index]);
-      if (existing) {
-        lastAmountOre = existing.amountOre;
-        continue;
-      }
-      // Indre måned uden segment: byg kun bro hvis den mangler pga. nul arbejdsdage.
-      if (lastAmountOre === null) continue;
-      if (workdaysInRange(months[index]) > 0) continue;
-      bridged.push({ fra: months[index].fra, til: months[index].til, amountOre: lastAmountOre });
-    }
+  for (let index = 0; index + 1 < sorted.length; index += 1) {
+    const current = sorted[index];
+    const next = sorted[index + 1];
+    const gapFra = getDayAfterIso(current.til);
+    const gapTil = getDayBeforeIso(next.fra);
+    // Tilstødende eller overlappende segmenter har intet hul at bygge bro over.
+    if (!gapFra || !gapTil || gapFra > gapTil) continue;
+    // Hullet skal ligge helt inden for ét tidsvindue, så en bro aldrig krydser et akse-brud.
+    if (!timeWindows.some((window) => window.fra <= gapFra && gapTil <= window.til)) continue;
+    // Reelt indkomsthul (mindst én arbejdsdag uden ansættelse) bevares som et ægte dyk.
+    if (workdaysInRange({ fra: gapFra, til: gapTil }) > 0) continue;
+    // Markeret ferie uden løn skal vises som et dyk, ikke fyldes ud.
+    if (protectedRanges.some((range) => gapFra <= range.til && gapTil >= range.fra)) continue;
+    bridged.push({ fra: gapFra, til: gapTil, amountOre: current.amountOre });
   }
   if (bridged.length === 0) return series;
   return {
     ...series,
     segments: [...series.segments, ...bridged].sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0)),
   };
+};
+
+// Finder ferieperioder uden indtastet indkomst, der varer mindst 3 sammenhængende
+// arbejdsdage. "Sammenhængende" brydes ikke af weekend- eller SH-dage, men nok af en
+// mellemliggende arbejds-/ledig hverdag. Sådanne ferier markeres visuelt og fyldes IKKE
+// ud i grafen (jf. protectedRanges i bridgeZeroWorkdayGaps). Fuld løn under ferie giver
+// indkomst på dagene og udelukker dem derfor (intet hul at markere).
+// Kun relevant for arbejdsdags-grundlag: ved månedsløn periodiseres ferie på kalenderdage,
+// så der opstår intet ferie-hul.
+const FERIE_MIN_ARBEJDSDAGE = 3;
+
+const buildFerieAbsenceMarkers = (
+  ferieperioder: readonly FerieperiodeRow[],
+  timeWindows: readonly TafKravGrafTimeWindow[],
+  incomeSegments: readonly TafKravGrafSeriesSegment[],
+  shDays: ReadonlySet<ISODateString>
+): TafKravGrafTimeWindow[] => {
+  if (ferieperioder.length === 0) return [];
+
+  // Ferie-hverdage (ekskl. weekend og SH) inden for tidsvinduerne.
+  const ferieWeekdays = new Set<ISODateString>();
+  for (const window of timeWindows) {
+    const datoSet = buildDatoSetInclusive(window.fra, window.til);
+    for (const iso of buildFerieDageSet(ferieperioder, datoSet)) ferieWeekdays.add(iso);
+  }
+
+  const hasIncomeOn = (iso: ISODateString): boolean =>
+    incomeSegments.some((segment) => segment.fra <= iso && segment.til >= iso);
+  // Kun ferie uden indtastet indkomst tæller med.
+  const candidates = [...ferieWeekdays].filter((iso) => !hasIncomeOn(iso)).sort();
+  if (candidates.length === 0) return [];
+
+  const isWeekdayNonSh = (iso: ISODateString): boolean => {
+    const date = parseISODate(iso);
+    return date ? isWeekdayUtc(date) && !shDays.has(iso) : false;
+  };
+  // To ferie-hverdage hører til samme ferie, hvis der kun ligger weekend-/SH-dage imellem.
+  const isConnected = (earlier: ISODateString, later: ISODateString): boolean => {
+    const from = getDayAfterIso(earlier);
+    const to = getDayBeforeIso(later);
+    if (!from || !to || from > to) return true;
+    // En enkelt mellemliggende arbejds-/ledig hverdag bryder sammenhængen.
+    let broken = false;
+    iterateIsoDatesInclusive(from, to, (iso) => {
+      if (isWeekdayNonSh(iso)) broken = true;
+    });
+    return !broken;
+  };
+
+  // En tilstødende dag hører med i båndet, hvis den er en weekend- eller SH-dag uden
+  // indkomst — så dykket markeres fra arbejdsophør til arbejdets genoptagelse. En
+  // arbejdsdag (med eller uden indkomst) eller en indkomstdag stopper udvidelsen.
+  const isWeekendOrShWithoutIncome = (iso: ISODateString): boolean => {
+    const date = parseISODate(iso);
+    if (!date) return false;
+    return (!isWeekdayUtc(date) || shDays.has(iso)) && !hasIncomeOn(iso);
+  };
+  const windowFor = (iso: ISODateString): TafKravGrafTimeWindow | undefined =>
+    timeWindows.find((window) => window.fra <= iso && iso <= window.til);
+
+  const markers: TafKravGrafTimeWindow[] = [];
+  let runStart = candidates[0];
+  let runEnd = candidates[0];
+  let runCount = 1;
+  const flush = (): void => {
+    if (runCount < FERIE_MIN_ARBEJDSDAGE) return;
+    const window = windowFor(runStart);
+    let fra = runStart;
+    let til = runEnd;
+    if (window) {
+      for (let prev = getDayBeforeIso(fra); prev && prev >= window.fra && isWeekendOrShWithoutIncome(prev); prev = getDayBeforeIso(fra)) {
+        fra = prev;
+      }
+      for (let next = getDayAfterIso(til); next && next <= window.til && isWeekendOrShWithoutIncome(next); next = getDayAfterIso(til)) {
+        til = next;
+      }
+    }
+    markers.push({ fra, til });
+  };
+  for (let index = 1; index < candidates.length; index += 1) {
+    const day = candidates[index];
+    if (isConnected(runEnd, day)) {
+      runEnd = day;
+      runCount += 1;
+    } else {
+      flush();
+      runStart = day;
+      runEnd = day;
+      runCount = 1;
+    }
+  }
+  flush();
+  return markers;
 };
 
 // Sorteringsrang afgør seriernes rækkefølge (og dermed farve + stak-lagdeling):
@@ -431,6 +530,17 @@ export const eoSnapshotToTafKravGrafDocument = (
       }
     }
   }
+  // Ferie uden løn (≥3 sammenhængende arbejdsdage) udledes af de rå indkomstsegmenter
+  // FØR bro-bygningen, så markeringen afspejler de faktisk indtastede indkomster.
+  const ferieAbsenceMarkers = unit === 'arbejdsdag'
+    ? buildFerieAbsenceMarkers(
+      snapshot.input.erstatningsopgoerelse.ferieperioder ?? [],
+      timeWindows,
+      [...seriesByLabel.values()].flatMap((accumulator) => accumulator.segments),
+      incomeContext?.shDaysForYdelser ?? new Set<ISODateString>()
+    )
+    : [];
+
   const series = [...seriesByLabel.entries()]
     .sort(([, a], [, b]) => a.rank - b.rank)
     .map(([label, accumulator], index): TafKravGrafSeries => {
@@ -443,7 +553,7 @@ export const eoSnapshotToTafKravGrafDocument = (
       // Kun arbejdsdags-grundlaget kan få nul-arbejdsdags-huller (månedsløn har
       // altid positiv divisor); månedsløns-grafen er derved urørt af ferie/SH.
       const bridged = unit === 'arbejdsdag'
-        ? bridgeZeroWorkdayMonths(base, timeWindows, (range) => countArbejdsdageInRange(range, incomeContext))
+        ? bridgeZeroWorkdayGaps(base, timeWindows, (range) => countArbejdsdageInRange(range, incomeContext), ferieAbsenceMarkers)
         : base;
       return label === 'Sygedagpenge'
         ? stabilizeSygedagpengeShDips(bridged, incomeContext)
@@ -469,6 +579,7 @@ export const eoSnapshotToTafKravGrafDocument = (
       timeWindows,
       beregningsperiode,
       skadeMarker,
+      ferieAbsenceMarkers,
     },
   };
 };

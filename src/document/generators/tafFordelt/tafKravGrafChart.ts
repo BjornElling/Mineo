@@ -35,6 +35,8 @@ const COLOR_PLOT_BG = '#FAFBFC';
 const COLOR_BEREGNING_TINT = 'rgba(48, 99, 142, 0.07)';
 const COLOR_BEREGNING_LABEL = '#30638E';
 const COLOR_SKADE = '#9B2F2F';
+const COLOR_FERIE_TINT = 'rgba(90, 100, 115, 0.13)';
+const COLOR_FERIE_LABEL = '#5A6473';
 
 const MONTHS_DA = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'] as const;
 const X_LABEL_MIN_GAP = 16;
@@ -253,8 +255,8 @@ const buildWindowSamples = (
 
     // Segmentgrænser er autoritative for visuel tilstedeværelse. Måneds-midtpunkter
     // alene kan få en kort løn-/ydelsesperiode til at fylde hele måneden visuelt.
-    // Derfor lægges der før/efter-kolonner på hver faktisk start og dagen efter
-    // hver faktisk slutdato, så kurven springer på brugerens indtastede datoer.
+    // Derfor samples der ekstra på hver faktisk start og dagen efter hver faktisk
+    // slutdato, så kurven rammer brugerens indtastede datoer.
     const transitionDates = new Set<ISODateString>([entry.window.fra]);
     for (const series of document.series) {
       for (const segment of series.segments) {
@@ -275,9 +277,28 @@ const buildWindowSamples = (
       const beforeValues = beforeIso && beforeIso >= entry.window.fra
         ? buildValuesAtIso(document, beforeIso)
         : null;
-      if (beforeValues && beforeValues.some((value, index) => value !== afterValues[index])) {
-        columns.push({ x, order: transitionOrder, values: beforeValues });
-        transitionOrder += 1;
+      const hasChange = !beforeValues || afterValues.some((value, index) => value !== beforeValues[index]);
+      // Uden for et faktisk skift (typisk en måneds-/segmentgrænse hvor niveauet er
+      // uændret) tilføjes ingen kolonne: måneds-midtpunkterne bærer niveauet, og
+      // ekstra kolonner ville blot fortætte samplingen og udvande udglatningen.
+      if (!hasChange) continue;
+      if (beforeValues) {
+        // Et lodret spring må KUN tegnes hvor en serie starter (0→beløb) eller
+        // ophører (beløb→0). Et rent niveauskift (begge sider > 0) skal forblive en
+        // blød bue, så den side håndteres alene af midtpunkter + udglatning. Derfor
+        // får før-kolonnen kun en afvigende værdi for serier med en nul-kant; øvrige
+        // serier bærer efter-værdien og giver dermed ingen lodret kant.
+        const edgeBySeries = afterValues.map(
+          (after, index) => (beforeValues[index] === 0) !== (after === 0)
+        );
+        if (edgeBySeries.some(Boolean)) {
+          columns.push({
+            x,
+            order: transitionOrder,
+            values: afterValues.map((after, index) => (edgeBySeries[index] ? beforeValues[index] : after)),
+          });
+          transitionOrder += 1;
+        }
       }
       columns.push({ x, order: transitionOrder, values: afterValues });
       transitionOrder += 1;
@@ -462,6 +483,35 @@ const drawBeregningsperiode = (
   ctx.setLineDash([]);
 };
 
+// Tonet bånd over ferieperioder uden indtastet løn (≥3 sammenhængende arbejdsdage).
+// Båndet dækker [fra, dagen-efter-til], så det flugter med det dyk til nul, kurven
+// allerede viser i perioden (der bygges bevidst ikke bro over disse huller).
+const drawFerieMarkers = (
+  ctx: CanvasRenderingContext2D,
+  document: TafKravGrafDocument,
+  mapDate: (iso: ISODateString) => number | null
+): void => {
+  for (const marker of document.ferieAbsenceMarkers ?? []) {
+    const x1 = mapDate(marker.fra);
+    const endIso = getDayAfterIso(marker.til);
+    const x2 = (endIso ? mapDate(endIso) : null) ?? mapDate(marker.til);
+    if (x1 === null || x2 === null) continue;
+    const width = Math.max(3, x2 - x1);
+    ctx.fillStyle = COLOR_FERIE_TINT;
+    ctx.fillRect(x1, PLOT_TOP, width, PLOT_BOTTOM - PLOT_TOP);
+    ctx.strokeStyle = COLOR_FERIE_LABEL;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 7]);
+    ctx.beginPath();
+    ctx.moveTo(x1, PLOT_TOP);
+    ctx.lineTo(x1, PLOT_BOTTOM);
+    ctx.moveTo(x1 + width, PLOT_TOP);
+    ctx.lineTo(x1 + width, PLOT_BOTTOM);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+};
+
 const drawSkadeMarker = (
   ctx: CanvasRenderingContext2D,
   document: TafKravGrafDocument,
@@ -557,6 +607,20 @@ const drawLegend = (ctx: CanvasRenderingContext2D, document: TafKravGrafDocument
       },
     });
   }
+  if ((document.ferieAbsenceMarkers ?? []).length > 0) {
+    markerEntries.push({
+      label: 'Ferie uden løn',
+      draw: (x, y) => {
+        ctx.fillStyle = COLOR_FERIE_TINT;
+        ctx.fillRect(x, y - swatch + 4, swatch + 6, swatch);
+        ctx.strokeStyle = COLOR_FERIE_LABEL;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 5]);
+        ctx.strokeRect(x, y - swatch + 4, swatch + 6, swatch);
+        ctx.setLineDash([]);
+      },
+    });
+  }
   for (const series of document.series) {
     seriesEntries.push({
       label: series.label,
@@ -644,6 +708,7 @@ export const renderTafKravGrafChartPng = (
   roundRectPath(ctx, PLOT_LEFT, PLOT_TOP, PLOT_RIGHT - PLOT_LEFT, PLOT_BOTTOM - PLOT_TOP, 16);
   ctx.clip();
   drawBeregningsperiode(ctx, document, mapDate);
+  drawFerieMarkers(ctx, document, mapDate);
   drawStackedBands(ctx, document, samples, yForAmount);
   drawSkadeMarker(ctx, document, mapDate);
   ctx.restore();

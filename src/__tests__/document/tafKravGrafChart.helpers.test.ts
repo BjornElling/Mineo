@@ -177,6 +177,103 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
     expect(sample.valuesBySeries[0]?.[midIndex]).toBe(0);
     expect(sample.valuesBySeries[1]?.[midIndex]).toBe(20_000);
   });
+
+  it('tegner et rent niveauskift som ét punkt (blød bue), ikke et lodret spring', () => {
+    const document = {
+      model: { titel: 'x' },
+      unit: 'maaned',
+      timeWindows: [win('2023-01-01', '2023-02-28')],
+      beregningsperiode: null,
+      skadeMarker: null,
+      series: [
+        {
+          id: 'loen',
+          label: 'Løn',
+          color: '#2F6B9A',
+          segments: [
+            { fra: toISODateString('2023-01-01'), til: toISODateString('2023-01-31'), amountOre: 30_000 },
+            { fra: toISODateString('2023-02-01'), til: toISODateString('2023-02-28'), amountOre: 35_000 },
+          ],
+        },
+      ],
+    } as unknown as TafKravGrafDocument;
+    const layout = buildWindowLayout(document.timeWindows);
+    const mapDate = buildXMapper(layout);
+    const sample = buildWindowSamples(document, layout, mapDate, 1)[0];
+    if (!sample) throw new Error('forventede sample');
+
+    const xFeb1 = mapDate(toISODateString('2023-02-01')) ?? -1;
+    const columnsAtFeb1 = sample.sampleX.filter((x) => Math.abs(x - xFeb1) < 0.0001);
+    // Begge niveauer er > 0 → ingen før/efter-dublet på samme x → ingen lodret kant.
+    expect(columnsAtFeb1).toHaveLength(1);
+  });
+
+  it('tegner start og ophør som lodrette spring (før/efter-dublet på samme x)', () => {
+    const document = {
+      model: { titel: 'x' },
+      unit: 'maaned',
+      timeWindows: [win('2023-01-01', '2023-01-31')],
+      beregningsperiode: null,
+      skadeMarker: null,
+      series: [
+        {
+          id: 'loen',
+          label: 'Løn',
+          color: '#2F6B9A',
+          segments: [{ fra: toISODateString('2023-01-10'), til: toISODateString('2023-01-20'), amountOre: 30_000 }],
+        },
+      ],
+    } as unknown as TafKravGrafDocument;
+    const layout = buildWindowLayout(document.timeWindows);
+    const mapDate = buildXMapper(layout);
+    const sample = buildWindowSamples(document, layout, mapDate, 1)[0];
+    if (!sample) throw new Error('forventede sample');
+
+    const valuesAt = (date: string): number[] => {
+      const x = mapDate(toISODateString(date)) ?? -1;
+      return sample.sampleX
+        .map((sx, index) => ({ sx, value: sample.valuesBySeries[0]?.[index] ?? 0 }))
+        .filter((column) => Math.abs(column.sx - x) < 0.0001)
+        .map((column) => column.value);
+    };
+
+    // Start 10/1: 0 → 30000 på samme x (lodret op).
+    expect(valuesAt('2023-01-10')).toEqual([0, 30_000]);
+    // Ophør dagen efter 20/1 = 21/1: 30000 → 0 på samme x (lodret ned).
+    expect(valuesAt('2023-01-21')).toEqual([30_000, 0]);
+  });
+
+  it('bevarer fuld højde på det lodrette ophørs-spring ved produktionens udglatning (window=3)', () => {
+    // Et konstant niveau udglattes til sig selv, så ophøret skal falde fra fuld
+    // højde (30000 → 0) selv med aktiv udglatning — nul-siden bryder den aktive
+    // strækning og trækker ikke kanten ned.
+    const document = {
+      model: { titel: 'x' },
+      unit: 'maaned',
+      timeWindows: [win('2024-01-01', '2024-04-30')],
+      beregningsperiode: null,
+      skadeMarker: null,
+      series: [
+        {
+          id: 'loen',
+          label: 'Løn',
+          color: '#2F6B9A',
+          segments: [{ fra: toISODateString('2024-01-01'), til: toISODateString('2024-03-31'), amountOre: 30_000 }],
+        },
+      ],
+    } as unknown as TafKravGrafDocument;
+    const layout = buildWindowLayout(document.timeWindows);
+    const mapDate = buildXMapper(layout);
+    const sample = buildWindowSamples(document, layout, mapDate, 3)[0];
+    if (!sample) throw new Error('forventede sample');
+
+    const xApr1 = mapDate(toISODateString('2024-04-01')) ?? -1;
+    const valuesAtApr1 = sample.sampleX
+      .map((sx, index) => ({ sx, value: sample.valuesBySeries[0]?.[index] ?? 0 }))
+      .filter((column) => Math.abs(column.sx - xApr1) < 0.0001)
+      .map((column) => column.value);
+    expect(valuesAtApr1).toEqual([30_000, 0]);
+  });
 });
 
 describe('tafKravGrafChart — x-akse slutdato', () => {

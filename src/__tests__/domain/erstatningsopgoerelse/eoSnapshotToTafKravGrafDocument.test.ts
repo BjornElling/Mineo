@@ -274,6 +274,245 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     expect(juli).toEqual({ fra: iso('2024-07-01'), til: iso('2024-07-31'), amountOre: juni!.amountOre });
   });
 
+  it('bygger bro over en enkelt ikke-arbejdsdag isoleret på en måneds-/segmentgrænse (intet falsk hul)', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    // Kontinuerlig løn 18-09 → 08-10-2023. 1. oktober er en søndag (ingen arbejdsdag)
+    // og isoleres som dag-fragment mellem måneds-grænsen (1/10) og næste kildeperiode (2/10).
+    ctxMock.mockImplementation(() => ({
+      boundsFra: iso('2023-09-18'),
+      boundsTil: iso('2023-10-08'),
+      arbejdsdageSet: new Set([
+        iso('2023-09-18'), iso('2023-09-19'), iso('2023-09-20'), iso('2023-09-21'), iso('2023-09-22'),
+        iso('2023-09-25'), iso('2023-09-26'), iso('2023-09-27'), iso('2023-09-28'), iso('2023-09-29'),
+        iso('2023-10-02'), iso('2023-10-03'), iso('2023-10-04'), iso('2023-10-05'), iso('2023-10-06'),
+      ]),
+      shDaysForYdelser: new Set(),
+      loenErrorRowIdsByEmploymentId: new Map(),
+    }));
+    incomeMock.mockImplementation((_values, ranges) => {
+      const range = ranges[0];
+      if (!range || !range.fra.startsWith('2023')) return { employers: [], benefits: [] };
+      return {
+        employers: [{ id: 'af-1', index: 0, name: 'Arbejdsgiver A', amount: 1_000, breakdown: {} as never }],
+        benefits: [],
+      };
+    });
+
+    const snapshot = buildSnapshot();
+    const model = {
+      ...snapshot.data?.pdfModel,
+      tafRanges: [{ fra: iso('2023-09-18'), til: iso('2023-10-08') }],
+      tabtArbejdsfortjeneste: {
+        ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste,
+        tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+        indkomstSkadestidspunkt: {
+          ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste.indkomstSkadestidspunkt,
+          skadedato: iso('2023-09-18'),
+          periodeTilBeregning: undefined,
+        },
+      },
+    } as unknown as EoModel;
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: { ...snapshot.data, pdfModel: model } as EoSnapshotComputedData,
+      input: {
+        ...snapshot.input,
+        stamdata: { skadedato: iso('2023-09-18') } as EoSnapshot['input']['stamdata'],
+        erstatningsopgoerelse: {
+          ...snapshot.input.erstatningsopgoerelse,
+          loenindkomstAnsaettelsesforhold: [
+            {
+              id: 'af-1',
+              navnPaaArbejdssted: 'Arbejdsgiver A',
+              loenperiode: 'dag',
+              tillaegAngivesSom: 'procent',
+              loenPaaHelligdage: 'SH-udbetaling',
+              fuldLoenUnderFerie: 'Nej',
+              feriePct: 0,
+              fritvalgPct: 0,
+              shSoPct: 0,
+              storeBededagPct: 0,
+              pensionPct: 0,
+              indtaegtsoplysningerTableData: [
+                {
+                  id: 'loen-sep', col0_maaned: '', col1_maaned: '', col0_uge: '', col1_uge: '',
+                  col0_dag: iso('2023-09-18'), col1_dag: iso('2023-10-01'),
+                  col2: asAmount(1_000), col3: undefined, col4: undefined, col5: undefined,
+                },
+                {
+                  id: 'loen-okt', col0_maaned: '', col1_maaned: '', col0_uge: '', col1_uge: '',
+                  col0_dag: iso('2023-10-02'), col1_dag: iso('2023-10-08'),
+                  col2: asAmount(1_000), col3: undefined, col4: undefined, col5: undefined,
+                },
+              ],
+            },
+          ],
+          offentligeYdelserRows: [],
+        } as EoSnapshot['input']['erstatningsopgoerelse'],
+      },
+    });
+
+    if (originalCtx) ctxMock.mockImplementation(originalCtx);
+    if (originalIncome) incomeMock.mockImplementation(originalIncome);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    const loenSegments = projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments ?? [];
+    // Søndag 1/10 er broet over → den dækkes af et segment (intet hul).
+    expect(loenSegments.some((segment) => segment.fra <= iso('2023-10-01') && segment.til >= iso('2023-10-01'))).toBe(true);
+  });
+
+  const buildFerieSnapshot = (
+    arbejdsdage: readonly string[],
+    incomeRows: ReadonlyArray<{ fra: string; til: string }>,
+    ferieperioder: ReadonlyArray<{ fra: string; til: string }>
+  ) => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    ctxMock.mockImplementation(() => ({
+      boundsFra: iso('2024-06-01'),
+      boundsTil: iso('2024-06-30'),
+      arbejdsdageSet: new Set(arbejdsdage.map(iso)),
+      shDaysForYdelser: new Set(),
+      loenErrorRowIdsByEmploymentId: new Map(),
+    }));
+    incomeMock.mockImplementation((_values, ranges) => {
+      const range = ranges[0];
+      if (!range || !range.fra.startsWith('2024-06')) return { employers: [], benefits: [] };
+      return {
+        employers: [{ id: 'af-1', index: 0, name: 'Arbejdsgiver A', amount: 1_000, breakdown: {} as never }],
+        benefits: [],
+      };
+    });
+
+    const snapshot = buildSnapshot();
+    const model = {
+      ...snapshot.data?.pdfModel,
+      tafRanges: [{ fra: iso('2024-06-01'), til: iso('2024-06-30') }],
+      tabtArbejdsfortjeneste: {
+        ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste,
+        tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+        indkomstSkadestidspunkt: {
+          ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste.indkomstSkadestidspunkt,
+          skadedato: iso('2024-06-01'),
+          periodeTilBeregning: undefined,
+        },
+      },
+    } as unknown as EoModel;
+    return eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: { ...snapshot.data, pdfModel: model } as EoSnapshotComputedData,
+      input: {
+        ...snapshot.input,
+        stamdata: { skadedato: iso('2024-06-01') } as EoSnapshot['input']['stamdata'],
+        erstatningsopgoerelse: {
+          ...snapshot.input.erstatningsopgoerelse,
+          ferieperioder: ferieperioder.map((p, index) => ({ id: `ferie-${index}`, fra: iso(p.fra), til: iso(p.til) })),
+          loenindkomstAnsaettelsesforhold: [
+            {
+              id: 'af-1',
+              navnPaaArbejdssted: 'Arbejdsgiver A',
+              loenperiode: 'dag',
+              tillaegAngivesSom: 'procent',
+              loenPaaHelligdage: 'SH-udbetaling',
+              fuldLoenUnderFerie: 'Nej',
+              feriePct: 0,
+              fritvalgPct: 0,
+              shSoPct: 0,
+              storeBededagPct: 0,
+              pensionPct: 0,
+              indtaegtsoplysningerTableData: incomeRows.map((row, index) => ({
+                id: `loen-${index}`, col0_maaned: '', col1_maaned: '', col0_uge: '', col1_uge: '',
+                col0_dag: iso(row.fra), col1_dag: iso(row.til),
+                col2: asAmount(1_000), col3: undefined, col4: undefined, col5: undefined,
+              })),
+            },
+          ],
+          offentligeYdelserRows: [],
+        } as EoSnapshot['input']['erstatningsopgoerelse'],
+      },
+    });
+  };
+
+  it('markerer ferie uden løn på ≥3 sammenhængende arbejdsdage (henover weekend) og bygger ikke bro over den', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    // Ferie 13.-18. juni (to-tu, hen over weekend 15.-16.) uden indtastet løn → 4 arbejdsdage.
+    const projection = buildFerieSnapshot(
+      ['2024-06-03', '2024-06-04', '2024-06-05', '2024-06-06', '2024-06-07', '2024-06-10', '2024-06-11', '2024-06-12',
+        '2024-06-19', '2024-06-20', '2024-06-21', '2024-06-24', '2024-06-25', '2024-06-26', '2024-06-27', '2024-06-28'],
+      [{ fra: '2024-06-01', til: '2024-06-12' }, { fra: '2024-06-19', til: '2024-06-30' }],
+      [{ fra: '2024-06-13', til: '2024-06-18' }]
+    );
+
+    if (originalCtx) ctxMock.mockImplementation(originalCtx);
+    if (originalIncome) incomeMock.mockImplementation(originalIncome);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    expect(projection.document.ferieAbsenceMarkers).toEqual([{ fra: iso('2024-06-13'), til: iso('2024-06-18') }]);
+    // Ferien er IKKE broet over: ingen segmenter dækker ferie-/weekend-dagene i hullet.
+    const loenSegments = projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments ?? [];
+    for (const dag of [iso('2024-06-13'), iso('2024-06-15'), iso('2024-06-18')]) {
+      expect(loenSegments.some((segment) => segment.fra <= dag && segment.til >= dag)).toBe(false);
+    }
+  });
+
+  it('udvider ferie-båndet til at dække tilstødende weekend-/SH-dage uden indkomst', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    // Løn til og med fredag 14/6, ferie man-fre 17.-21., løn igen fra mandag 24/6.
+    // Båndet skal dække forudgående weekend 15.-16. + ferien + efterfølgende weekend 22.-23.
+    const projection = buildFerieSnapshot(
+      ['2024-06-03', '2024-06-04', '2024-06-05', '2024-06-06', '2024-06-07', '2024-06-10', '2024-06-11', '2024-06-12', '2024-06-13', '2024-06-14',
+        '2024-06-24', '2024-06-25', '2024-06-26', '2024-06-27', '2024-06-28'],
+      [{ fra: '2024-06-01', til: '2024-06-14' }, { fra: '2024-06-24', til: '2024-06-30' }],
+      [{ fra: '2024-06-17', til: '2024-06-21' }]
+    );
+
+    if (originalCtx) ctxMock.mockImplementation(originalCtx);
+    if (originalIncome) incomeMock.mockImplementation(originalIncome);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    expect(projection.document.ferieAbsenceMarkers).toEqual([{ fra: iso('2024-06-15'), til: iso('2024-06-23') }]);
+  });
+
+  it('markerer ikke kort ferie (<3 arbejdsdage) og bygger fortsat bro over den', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    // Ferie 13.-14. juni (kun 2 arbejdsdage) uden løn → under tærsklen.
+    const projection = buildFerieSnapshot(
+      ['2024-06-03', '2024-06-04', '2024-06-05', '2024-06-06', '2024-06-07', '2024-06-10', '2024-06-11', '2024-06-12',
+        '2024-06-17', '2024-06-18', '2024-06-19', '2024-06-20', '2024-06-21', '2024-06-24', '2024-06-25', '2024-06-26', '2024-06-27', '2024-06-28'],
+      [{ fra: '2024-06-01', til: '2024-06-12' }, { fra: '2024-06-17', til: '2024-06-30' }],
+      [{ fra: '2024-06-13', til: '2024-06-14' }]
+    );
+
+    if (originalCtx) ctxMock.mockImplementation(originalCtx);
+    if (originalIncome) incomeMock.mockImplementation(originalIncome);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    expect(projection.document.ferieAbsenceMarkers).toEqual([]);
+    // Kort ferie bygges der bro over: hullet 13.-16. juni dækkes af et segment.
+    const loenSegments = projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments ?? [];
+    expect(loenSegments.some((segment) => segment.fra <= iso('2024-06-13') && segment.til >= iso('2024-06-14'))).toBe(true);
+  });
+
   it('tegner faktiske indkomstsegmenter helt frem til TAF-periodens sidste indtastede ydelse', () => {
     const projection = eoSnapshotToTafKravGrafDocument(buildLongSnapshot());
 
