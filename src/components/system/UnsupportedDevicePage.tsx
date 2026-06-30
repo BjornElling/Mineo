@@ -1,6 +1,33 @@
 import React, { useEffect } from 'react';
 import { VERSION } from '../../config/buildInfo';
 
+const pageTitleStyle: React.CSSProperties = {
+  color: 'rgba(0, 0, 0, 0.87)',
+  fontSize: '20px',
+  fontWeight: 500,
+  lineHeight: 1.4,
+  margin: '0 0 16px',
+  padding: 0,
+};
+
+const pageTitleMainStyle: React.CSSProperties = {
+  color: 'rgba(0, 0, 0, 0.87)',
+};
+
+const pageTitlePrefixStyle: React.CSSProperties = {
+  color: 'rgba(0, 0, 0, 0.42)',
+};
+
+const UnsupportedDeviceTitle = () => (
+  <h1 aria-label="minEO.dk" style={pageTitleStyle}>
+    <span style={pageTitlePrefixStyle}>min</span>
+    <span style={pageTitleMainStyle}>EO</span>
+    <span style={pageTitlePrefixStyle}>.dk</span>
+  </h1>
+);
+
+UnsupportedDeviceTitle.displayName = 'UnsupportedDeviceTitle';
+
 /**
  * NOTE (bevidst undtagelse):
  * Denne side er en hard-stop gate for mobil/tablet og er derfor designet til at være
@@ -66,18 +93,7 @@ const UnsupportedDevicePage = () => {
             width: '100%',
           }}
         >
-          <h1
-            style={{
-              color: 'rgba(0, 0, 0, 0.87)',
-              fontSize: '20px',
-              fontWeight: 500,
-              lineHeight: 1.4,
-              margin: '0 0 16px',
-              padding: 0,
-            }}
-          >
-            Mineo
-          </h1>
+          <UnsupportedDeviceTitle />
 
           <div
             style={{
