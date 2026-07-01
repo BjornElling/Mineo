@@ -3,7 +3,14 @@ import { renderReguleringSection } from '../../../../../document/generators/eo/s
 import { ILON12_DISCONTINUED_NOTE } from '../../../../../document/generators/eo/reguleringNotes';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
+import { PDF_CONTENT_WIDTH_MM } from '../../../../../document/layout/pdfConfig';
+import { resolveDynamicRightAlignedInset } from '../../../../../document/layout/documentTableRenderer';
 import { toISODateString } from '../../../../../types/branded';
+
+// Spejler reguleringSection's REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM (maks-insettet for
+// Beregnet regulering med synlig Indeksberegnings-kolonne). Konstanten er modul-privat i
+// kilden; den dynamiske skalering verificeres relativt til dette maks.
+const REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM_FOR_TEST = 8;
 
 type ReguleringSectionContext = Parameters<typeof renderReguleringSection>[0];
 type MutableReguleringSectionContext = {
@@ -674,7 +681,7 @@ describe('renderReguleringSection – Beregnet regulering kolonnefordeling', () 
     expect(new Set(widths).size).toBe(1); // hele bredden deles ligeligt
   });
 
-  it('øvrige modeller: Indeksberegning får fast bred kolonne, de øvrige deler resten ligeligt', () => {
+  it('øvrige modeller: Indeksberegning er grow-kolonne (bredest), de øvrige deler resten ligeligt', () => {
     autoTableMock.mockClear();
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
@@ -700,8 +707,53 @@ describe('renderReguleringSection – Beregnet regulering kolonnefordeling', () 
     expect(headerContents(call)).toEqual(['Fra-dato', 'Til-dato', 'Indeksberegning', 'Indeks', 'Lønudvikling']);
     const widths = orderedWidths(call);
     expect(widths).toHaveLength(5);
-    // Indeksberegning (index 2) er den brede, faste kolonne; de øvrige fire deler resten (170 - 70) / 4 = 25.
-    expect(widths[2]).toBe(70);
-    expect([widths[0], widths[1], widths[3], widths[4]]).toEqual([25, 25, 25, 25]);
+    // Indeksberegning (index 2) er grow-kolonnen: den er bredest, mens de øvrige fire deler
+    // resten ligeligt. (Denne test-harness kan ikke måle tekst, så den statiske grow-baseline
+    // bruges — den indholdsbestemte omfordeling verificeres i pdfTableRenderer.layout-testen.)
+    const others = [widths[0], widths[1], widths[3], widths[4]].map((width) => width ?? 0);
+    expect(widths[2] ?? 0).toBeGreaterThan(Math.max(...others));
+    expect(new Set(others).size).toBe(1); // de fire øvrige er lige brede
+    const total = widths.reduce<number>((sum, width) => sum + (width ?? 0), 0);
+    expect(total).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
+  });
+
+  it('Beregnet regulering: Indeks/Lønudvikling får dynamisk højre-indrykning skaleret efter kolonnebredden', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-inset-dynamik',
+        navnPaaArbejdssted: 'Manuelt angivet',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({ foerste: iso('2024-01-01'), sidste: iso('2025-12-31') }));
+    ctx.buildReguleringIndexRows = vi.fn(() => [
+      { fraDato: '01-01-2024', tilDato: '31-12-2024', indeksberegning: '100,00', indeks: '100,00', loenudvikling: '' },
+      { fraDato: '01-01-2025', tilDato: '31-12-2025', indeksberegning: '(27.000,00 / 25.000,00)', indeks: '108,00', loenudvikling: '+ 8,00 %' },
+    ]);
+
+    renderReguleringSection(ctx);
+
+    const call = findBeregnetReguleringCall();
+    expect(call).toBeDefined();
+    // Indeks (index 3) og Lønudvikling (index 4) er de højrejusterede tal-kolonner.
+    const indeksWidth = call?.columnStyles?.[3]?.cellWidth ?? 0;
+    const expectedInset = resolveDynamicRightAlignedInset(indeksWidth, REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM_FOR_TEST);
+
+    const data = {
+      row: { index: 1 },
+      column: { index: 3 },
+      cell: { styles: { halign: 'center' } },
+    };
+    call?.didParseCell?.(data as never);
+    expect(data.cell.styles.halign).toBe('right');
+    // Den anvendte indrykning matcher den dynamiske beregning ud fra kolonnens faktiske bredde,
+    // og er dermed reduceret i forhold til det fulde maks-inset (kolonnen er smallere end grow-kolonnen).
+    expect((data.cell.styles as { cellPadding?: { right?: number } }).cellPadding?.right).toBeCloseTo(expectedInset, 6);
+    expect(expectedInset).toBeLessThan(REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM_FOR_TEST);
   });
 });

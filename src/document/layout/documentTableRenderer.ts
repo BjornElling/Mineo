@@ -38,6 +38,12 @@ type PdfDistributedColumnLayoutMeta = Readonly<{
   tableWidth: number;
   fixedColumnIndices: readonly number[];
   distributedColumnIndices: readonly number[];
+  // Valgfri "grow-column"-tilstand: én kolonne (typisk en formel-/tekstkolonne med
+  // meget varierende indhold) skal fylde så meget plads, den kan få, mens de øvrige
+  // kolonner kun garanteres deres indholdsbestemte min-bredde. Er der plads til overs
+  // (grow-kolonnens indhold er kortere end den ledige plads), fordeles overskuddet
+  // ligeligt mellem ALLE kolonner. Uden dette felt bruges standard-surplus-overførslen.
+  growColumnIndex?: number;
 }>;
 type PdfMeasuredDoc = jsPDF & Readonly<{
   getFont?: () => Readonly<{ fontName: string; fontStyle: string }>;
@@ -266,6 +272,66 @@ const measurePdfTextWidthMm = (
   return width;
 };
 
+// Grow-column-fordeling: giv de øvrige kolonner deres indholdsbestemte min-bredde og
+// lad grow-kolonnen fylde resten. Har grow-kolonnen ikke brug for al den ledige plads,
+// fordeles overskuddet ligeligt mellem alle kolonner. Bevarer eventuelle halign-styles
+// og tabellens samlede bredde. Falder fail-closed tilbage til de originale styles, hvis
+// de øvrige kolonners min-bredder alene overstiger tabelbredden (grow-kolonnen ville da
+// få ≤ 0 mm — vi gætter hellere ikke en fordeling end at rendere en umulig tabel).
+const resolveGrowColumnStyles = (
+  columnStyles: PdfTableColumnStyles,
+  layoutMeta: PdfDistributedColumnLayoutMeta,
+  growColumnIndex: number,
+  requiredWidths: ReadonlyMap<number, number>
+): PdfTableColumnStyles | undefined => {
+  if (!columnStyles) {
+    return columnStyles;
+  }
+
+  const indices = layoutMeta.distributedColumnIndices;
+  if (!indices.includes(growColumnIndex)) {
+    return columnStyles;
+  }
+
+  const otherIndices = indices.filter((index) => index !== growColumnIndex);
+  const othersRequiredTotal = otherIndices.reduce((sum, index) => sum + (requiredWidths.get(index) ?? 0), 0);
+  const remainingForGrow = layoutMeta.tableWidth - othersRequiredTotal;
+  if (remainingForGrow <= PDF_WIDTH_EPSILON) {
+    // De øvrige kolonners indhold fylder alene hele tabelbredden — ingen meningsfuld
+    // plads at give grow-kolonnen. Behold de statiske styles.
+    return columnStyles;
+  }
+
+  const growRequired = requiredWidths.get(growColumnIndex) ?? 0;
+  const resolvedWidths = new Map<number, number>();
+  if (growRequired <= remainingForGrow) {
+    // Grow-kolonnen har plads til alt sit indhold. Fordel resten ligeligt mellem alle.
+    const share = (remainingForGrow - growRequired) / indices.length;
+    for (const index of otherIndices) {
+      resolvedWidths.set(index, (requiredWidths.get(index) ?? 0) + share);
+    }
+    resolvedWidths.set(growColumnIndex, growRequired + share);
+  } else {
+    // Grow-kolonnens indhold er bredere end den ledige plads — den får al resten og
+    // ombryder inde i kolonnen; de øvrige holdes på deres min-bredde.
+    for (const index of otherIndices) {
+      resolvedWidths.set(index, requiredWidths.get(index) ?? 0);
+    }
+    resolvedWidths.set(growColumnIndex, remainingForGrow);
+  }
+
+  const nextStyles: Record<number, PdfColumnStyle> = {};
+  for (const [rawIndex, style] of Object.entries(columnStyles)) {
+    const index = Number(rawIndex);
+    nextStyles[index] = {
+      cellWidth: resolvedWidths.get(index) ?? (typeof style?.cellWidth === 'number' ? style.cellWidth : 0),
+      ...(style?.halign ? { halign: style.halign as PdfCellAlign } : {}),
+    };
+  }
+
+  return attachPdfColumnLayoutMeta(nextStyles, layoutMeta);
+};
+
 const resolveAdaptiveDistributedColumnStyles = (
   doc: jsPDF,
   body: RowInput[],
@@ -333,6 +399,16 @@ const resolveAdaptiveDistributedColumnStyles = (
 
       columnIndex += colSpan;
     }
+  }
+
+  // Grow-column-tilstand (jf. PdfDistributedColumnLayoutMeta.growColumnIndex):
+  // de øvrige kolonner får deres indholdsbestemte min-bredde, grow-kolonnen får al
+  // den resterende plads. Er grow-kolonnens indhold smallere end den ledige plads,
+  // fordeles overskuddet ligeligt mellem alle kolonner. Beregnet separat fra
+  // surplus-overførslen nedenfor, fordi intentionen er en anden: her prioriteres én
+  // kolonne bevidst, i stedet for at balancere alle distribuerede kolonner ligeligt.
+  if (typeof layoutMeta.growColumnIndex === 'number') {
+    return resolveGrowColumnStyles(columnStyles, layoutMeta, layoutMeta.growColumnIndex, requiredWidths);
   }
 
   const deficits = layoutMeta.distributedColumnIndices
@@ -683,6 +759,74 @@ export const createDocumentDistributedColumnStyles = (
   });
 };
 
+// Kolonnebredder til en tabel med én "grow-kolonne": grow-kolonnen fylder så meget
+// plads, dens indhold kan få, mens de øvrige kolonner kun garanteres deres
+// indholdsbestemte min-bredde. Er der plads til overs, fordeles overskuddet ligeligt
+// mellem alle kolonner (jf. resolveGrowColumnStyles, som gør det ved render-tid, hvor
+// indholdet kan måles). De statiske bredder her er kun en fallback, når teksten ikke
+// kan måles (fx en degraderet jsPDF eller Word-kanalen, der ignorerer mm-bredder):
+// grow-kolonnen får `growFraction` af bredden, resten deles ligeligt.
+export const createDocumentGrowColumnStyles = (
+  columnCount: number,
+  growColumnIndex: number,
+  options?: Readonly<{
+    tableWidth?: number;
+    growFraction?: number;
+  }>
+): Record<number, PdfColumnStyle> => {
+  if (!Number.isInteger(columnCount) || columnCount <= 1) {
+    throw new Error(`Ugyldigt kolonneantal for PDF-grow-tabel: ${String(columnCount)}.`);
+  }
+  if (!Number.isInteger(growColumnIndex) || growColumnIndex < 0 || growColumnIndex >= columnCount) {
+    throw new Error(`Ugyldigt grow-kolonneindex for PDF-tabel: ${String(growColumnIndex)}.`);
+  }
+
+  const tableWidth = options?.tableWidth ?? PDF_CONTENT_WIDTH_MM;
+  if (!Number.isFinite(tableWidth) || tableWidth <= 0) {
+    throw new Error(`Ugyldig tabelbredde for PDF-grow-tabel: ${String(tableWidth)}.`);
+  }
+
+  const growFraction = options?.growFraction ?? 0.4;
+  if (!Number.isFinite(growFraction) || growFraction <= 0 || growFraction >= 1) {
+    throw new Error(`Ugyldig grow-fraktion for PDF-tabel: ${String(growFraction)}.`);
+  }
+
+  const growBaseline = tableWidth * growFraction;
+  const otherBaseline = (tableWidth - growBaseline) / (columnCount - 1);
+  const styles = Object.fromEntries(
+    Array.from({ length: columnCount }, (_, index) => [
+      index,
+      { cellWidth: index === growColumnIndex ? growBaseline : otherBaseline },
+    ])
+  ) as Record<number, PdfColumnStyle>;
+
+  return attachPdfColumnLayoutMeta(styles, {
+    tableWidth,
+    fixedColumnIndices: [],
+    distributedColumnIndices: Array.from({ length: columnCount }, (_, index) => index),
+    growColumnIndex,
+  });
+};
+
+// Dynamisk højre-indrykning for højrejusterede tal-kolonner. Insettet skaleres med
+// kolonnens faktiske bredde, så en smal kolonne (fx når en nabo-grow-kolonne har taget
+// det meste af pladsen) ikke spilder plads på et stort, fast inset — og et højt inset
+// ikke presser talværdien til ombrydning. Ved brede kolonner rammes `maxInset`, så det
+// hidtidige, luftige udseende bevares. Falder tilbage til `maxInset`, når bredden ikke
+// kendes (Word-kanalen sætter ingen mm-bredder, og en degraderet jsPDF kan ikke måle).
+export const resolveDynamicRightAlignedInset = (
+  columnWidth: number | undefined,
+  maxInset: number,
+  options?: Readonly<{ minInset?: number; widthFraction?: number }>
+): number => {
+  const minInset = options?.minInset ?? 2;
+  const widthFraction = options?.widthFraction ?? 0.2;
+  if (typeof columnWidth !== 'number' || !Number.isFinite(columnWidth) || columnWidth <= 0) {
+    return maxInset;
+  }
+  return Math.max(minInset, Math.min(maxInset, columnWidth * widthFraction));
+};
+
 // Udleder kolonne→justering for data-rækker, som Word-broen kan anvende, så
 // .docx-tabeller matcher PDF'ens justering. PDF'en udleder selv justering fra
 // `columnStyles` og `didParseCell`; broen kan kun se cellernes egen halign, så
@@ -732,7 +876,9 @@ export const renderDocumentTable = (params: Readonly<{
   // [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }]
   underlinedCellPositions?: readonly PdfTableCellPosition[];
   estimatedRowHeight?: number;
-  didParseCell?: (data: CellHookData) => void;
+  // `resolvedColumnWidths` er de endeligt fordelte kolonnebredder i mm (index→bredde),
+  // så hook'en kan skalere fx en højre-indrykning efter kolonnens faktiske bredde.
+  didParseCell?: (data: CellHookData, resolvedColumnWidths: ReadonlyMap<number, number>) => void;
   didDrawCell?: NonNullable<Parameters<typeof autoTable>[1]>['didDrawCell'];
   // Justering pr. kolonne for data-rækker, som ikke fremgår af de enkelte celler
   // (typisk en `didParseCell`-hook der højrejusterer en talkolonne). Bruges KUN
@@ -786,6 +932,18 @@ export const renderDocumentTable = (params: Readonly<{
   const resolvedStartY = remainingHeight < requiredHeight ? MARGINS.top : startY;
   const resolvedColumnStyles = resolveAdaptiveDistributedColumnStyles(doc, body, columnStyles, hasHeaderRow);
 
+  // De endeligt fordelte kolonnebredder (i mm) gøres tilgængelige for kalderens
+  // didParseCell-hook, så fx en højre-indrykning kan skaleres efter den bredde, en
+  // kolonne faktisk får i dokumentet. Kun numeriske bredder tages med (autos springes
+  // over — der er ingen kendt mm-bredde at skalere efter).
+  const resolvedColumnWidths = new Map<number, number>();
+  for (const [rawIndex, style] of Object.entries(resolvedColumnStyles ?? {})) {
+    const cellWidth = (style as PdfColumnStyle | undefined)?.cellWidth;
+    if (typeof cellWidth === 'number' && Number.isFinite(cellWidth)) {
+      resolvedColumnWidths.set(Number(rawIndex), cellWidth);
+    }
+  }
+
   if (resolvedStartY === MARGINS.top && remainingHeight < requiredHeight) {
     doc.addPage();
   }
@@ -824,7 +982,7 @@ export const renderDocumentTable = (params: Readonly<{
       }
 
       if (didParseCell) {
-        didParseCell(data);
+        didParseCell(data, resolvedColumnWidths);
       }
     },
     didDrawCell: (data) => {

@@ -2,9 +2,11 @@ import type { RowInput } from 'jspdf-autotable';
 import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import {
   createDocumentDistributedColumnStyles,
+  createDocumentGrowColumnStyles,
   createDocumentTableCell,
   createDocumentTableHeaderCell,
   renderDocumentTable,
+  resolveDynamicRightAlignedInset,
 } from '../../../layout/documentTableRenderer';
 import {
   getEffektiveSatserForDato,
@@ -46,11 +48,12 @@ const REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM = 6;
 // inset, udelades i Word).
 const MANUEL_PROCENTSATS_NUMBER_INSET_MM = 13;
 const MANUEL_PROCENTSATS_NUMBER_HEADERS = new Set(['procent', 'indeks', 'akkumuleret']);
-// "Beregnet regulering": Indeksberegnings-kolonnen (index 2) rummer normalt lange formler og gives
-// derfor en fast, bred kolonne, mens de øvrige kolonner deler den resterende bredde ligeligt. Når
-// kolonnen udelades (manuel procentsats), deler de fire tilbageværende kolonner hele tabelbredden.
+// "Beregnet regulering": Indeksberegnings-kolonnen (index 2) rummer meget varierende indhold — fra
+// et enkelt indekstal til lange, ombrudte formler. Den behandles derfor som "grow-kolonne": de øvrige
+// kolonner garanteres kun deres indholdsbestemte min-bredde, og Indeksberegning får al den resterende
+// plads (med ligelig fordeling af et evt. overskud mellem alle kolonner). Når kolonnen udelades
+// (manuel procentsats), deler de fire tilbageværende kolonner hele tabelbredden ligeligt.
 const BEREGNET_REGULERING_INDEKSBEREGNING_COLUMN_INDEX = 2;
-const BEREGNET_REGULERING_INDEKSBEREGNING_WIDTH_MM = 70;
 const RIGHT_ALIGNED_REGULERINGS_HEADERS = new Set([
   'feriepenge',
   'sh/so',
@@ -369,19 +372,22 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       [indeksColumnIndex]: 'right',
       [loenudviklingColumnIndex]: 'right',
     };
-    // Manuel procentsats (uden indeksberegnings-kolonne): Indeks/Lønudvikling får samme indrykning som
-    // Reguleringsværdier-tabellens tal-kolonner. De øvrige, tættere modeller beholder den lille indrykning.
-    const rightInset = hideIndeksberegning
+    // Indeks/Lønudvikling højrejusteres med en indrykning, der skaleres dynamisk efter den
+    // bredde, kolonnen faktisk får (jf. resolveDynamicRightAlignedInset): et kort Indeksberegnings-
+    // indhold giver brede tal-kolonner og dermed den fulde, luftige indrykning (maxInset), mens en
+    // lang formel (Indeksberegning som grow-kolonne) presser tal-kolonnerne sammen og reducerer
+    // indrykningen tilsvarende. maxInset følger de hidtidige faste værdier: den lidt større manuel-
+    // procentsats-indrykning uden indeksberegnings-kolonne, ellers Reguleringsværdier-tabellens.
+    const rightInsetMax = hideIndeksberegning
       ? MANUEL_PROCENTSATS_NUMBER_INSET_MM
       : REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM;
 
-    // Fordel bredden: Indeksberegning får en fast bred kolonne, de øvrige deler resten ligeligt.
+    // Fordel bredden: Indeksberegning er grow-kolonne (fylder resten efter de øvriges min-bredde),
+    // de øvrige garanteres deres indholdsbestemte min-bredde, og et evt. overskud deles ligeligt.
     // Uden Indeksberegning-kolonnen deler de fire tilbageværende kolonner hele tabelbredden ligeligt.
     const columnStyles = hideIndeksberegning
       ? createDocumentDistributedColumnStyles(columnCount)
-      : createDocumentDistributedColumnStyles(columnCount, {
-          fixedColumns: { [BEREGNET_REGULERING_INDEKSBEREGNING_COLUMN_INDEX]: BEREGNET_REGULERING_INDEKSBEREGNING_WIDTH_MM },
-        });
+      : createDocumentGrowColumnStyles(columnCount, BEREGNET_REGULERING_INDEKSBEREGNING_COLUMN_INDEX);
 
     const finalY = renderDocumentTable({
       doc,
@@ -389,10 +395,14 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       body: tableRows,
       columnStyles,
       dataRowColumnHalign,
-      didParseCell: (data) => {
+      didParseCell: (data, resolvedColumnWidths) => {
         const isDataRow = data.row.index >= 1;
         if (!isDataRow || !rightAlignedColumnIndices.has(data.column.index)) return;
         data.cell.styles.halign = 'right';
+        const rightInset = resolveDynamicRightAlignedInset(
+          resolvedColumnWidths.get(data.column.index),
+          rightInsetMax
+        );
         data.cell.styles.cellPadding = {
           top: 1.5,
           bottom: 1.5,

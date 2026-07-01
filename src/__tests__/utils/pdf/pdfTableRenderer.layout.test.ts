@@ -302,6 +302,110 @@ describe('renderDocumentTable adaptive column widths', () => {
     expect(styles[3]?.cellWidth).toBeCloseTo(initialWidth, 6);
   });
 
+  it('grow-kolonne: øvrige kolonner holdes på deres min-bredde, grow-kolonnen får resten', async () => {
+    const { createDocumentGrowColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
+
+    const doc = new MockJsPDF();
+
+    renderDocumentTable({
+      doc: doc as never,
+      startY: 40,
+      body: [
+        [
+          createDocumentTableHeaderCell('Fra-dato', 'center'),
+          createDocumentTableHeaderCell('Til-dato', 'center'),
+          createDocumentTableHeaderCell('Indeksberegning', 'center'),
+          createDocumentTableHeaderCell('Indeks', 'center'),
+          createDocumentTableHeaderCell('Lønudvikling', 'center'),
+        ],
+        [
+          createDocumentTableCell('01-01-2024', { halign: 'center' }),
+          createDocumentTableCell('31-12-2024', { halign: 'center' }),
+          createDocumentTableCell(
+            '(41.593,87 x (100,00 % + 12,50 % + 1,00 % + 0,90 %)) / (38.000,00 x (100,00 % + 8,00 %))',
+            { halign: 'center' }
+          ),
+          createDocumentTableCell('108,00', { halign: 'right' }),
+          createDocumentTableCell('+ 8,00 %', { halign: 'right' }),
+        ],
+      ],
+      columnStyles: createDocumentGrowColumnStyles(5, 2),
+    });
+
+    const call = autoTableMock.mock.calls[0]?.[1];
+    const styles = call?.columnStyles as Record<number, { cellWidth: number }>;
+    const totalWidth = Object.values(styles).reduce((sum, style) => sum + style.cellWidth, 0);
+
+    // Indeksberegning (grow-kolonnen) er bredest — bredere end alle øvrige kolonner.
+    expect(styles[2]?.cellWidth).toBeGreaterThan(styles[0]?.cellWidth);
+    expect(styles[2]?.cellWidth).toBeGreaterThan(styles[1]?.cellWidth);
+    expect(styles[2]?.cellWidth).toBeGreaterThan(styles[3]?.cellWidth);
+    expect(styles[2]?.cellWidth).toBeGreaterThan(styles[4]?.cellWidth);
+    // Ingen kolonne under nul, og hele tabelbredden er brugt.
+    for (const style of Object.values(styles)) {
+      expect(style.cellWidth).toBeGreaterThan(0);
+    }
+    expect(totalWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
+  });
+
+  it('grow-kolonne: kort indhold → overskuddet fordeles ligeligt mellem alle kolonner', async () => {
+    const { createDocumentGrowColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
+
+    const doc = new MockJsPDF();
+
+    renderDocumentTable({
+      doc: doc as never,
+      startY: 40,
+      body: [
+        [
+          createDocumentTableHeaderCell('A', 'center'),
+          createDocumentTableHeaderCell('B', 'center'),
+          createDocumentTableHeaderCell('C', 'center'),
+          createDocumentTableHeaderCell('D', 'center'),
+          createDocumentTableHeaderCell('E', 'center'),
+        ],
+        [
+          createDocumentTableCell('x', { halign: 'center' }),
+          createDocumentTableCell('x', { halign: 'center' }),
+          createDocumentTableCell('100,00', { halign: 'center' }),
+          createDocumentTableCell('x', { halign: 'center' }),
+          createDocumentTableCell('x', { halign: 'center' }),
+        ],
+      ],
+      columnStyles: createDocumentGrowColumnStyles(5, 2),
+    });
+
+    const call = autoTableMock.mock.calls[0]?.[1];
+    const styles = call?.columnStyles as Record<number, { cellWidth: number }>;
+    const widths = Object.values(styles).map((style) => style.cellWidth);
+    const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+
+    // Alt indhold er kort; overskuddet fordeles ligeligt, så differencen mellem
+    // bredeste og smalleste kolonne kun skyldes de smalle indholds-min-bredder —
+    // ingen kolonne sluger hele overskuddet.
+    const min = Math.min(...widths);
+    const max = Math.max(...widths);
+    expect(max - min).toBeLessThan(PDF_CONTENT_WIDTH_MM / 5);
+    expect(totalWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
+  });
+
+  it('resolveDynamicRightAlignedInset: skalerer med bredden og klemmes mellem min og max', async () => {
+    const { resolveDynamicRightAlignedInset } = await import('../../../document/layout/documentTableRenderer');
+
+    // Bred kolonne → fuldt (maks) inset.
+    expect(resolveDynamicRightAlignedInset(60, 8)).toBe(8);
+    // Smal kolonne → reduceret inset (bredde × 0,2).
+    expect(resolveDynamicRightAlignedInset(20, 8)).toBeCloseTo(4, 6);
+    // Meget smal kolonne → gulvet (min).
+    expect(resolveDynamicRightAlignedInset(8, 8)).toBe(2);
+    // Ukendt bredde (Word-kanal / ikke-målende jsPDF) → falder tilbage til maks.
+    expect(resolveDynamicRightAlignedInset(undefined, 8)).toBe(8);
+    // Monotont ikke-aftagende i bredden.
+    expect(resolveDynamicRightAlignedInset(15, 8)).toBeLessThan(resolveDynamicRightAlignedInset(25, 8));
+  });
+
   it('fejler fail-closed når body er tom i stedet for at rendere en blank tabel', async () => {
     const { renderDocumentTable } = await import('../../../document/layout/documentTableRenderer');
 
