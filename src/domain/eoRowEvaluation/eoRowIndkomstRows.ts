@@ -271,7 +271,7 @@ export const buildEoIndkomstRows = (
       if (!loenudviklingBasis) {
         return { displayValue: 'Nej', status: 'error' as EoRowStatus };
       }
-      if (loenudviklingBasis !== 'Manuelt angivet') {
+      if (loenudviklingBasis !== 'Manuelt angivet' && loenudviklingBasis !== 'Manuel procentsats') {
         return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
       }
 
@@ -280,6 +280,21 @@ export const buildEoIndkomstRows = (
           displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
           message: 'Værdier mangler at blive udfyldt for manuel regulering',
           status: 'error' as EoRowStatus,
+        };
+      }
+
+      if (loenudviklingBasis === 'Manuel procentsats') {
+        const procentsatsRows = (ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
+        const aktiveRows = procentsatsRows.filter((row) =>
+          row.dato !== undefined || (typeof row.procent === 'number' && Number.isFinite(row.procent))
+        );
+        const ok = aktiveRows.every((row) =>
+          row.dato !== undefined && typeof row.procent === 'number' && Number.isFinite(row.procent)
+        );
+        return {
+          displayValue: ok ? 'Ja' : 'Nej',
+          message: ok ? undefined : 'Værdier mangler at blive udfyldt for manuel regulering',
+          status: ok ? 'ok' : 'error' as EoRowStatus,
         };
       }
 
@@ -399,6 +414,12 @@ export const buildEoIndkomstRows = (
       }
       if (loenudviklingBasis === 'Manuelt angivet') {
         return getRangeForManualReguleringDebug(anvendtReguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
+      }
+      if (loenudviklingBasis === 'Manuel procentsats') {
+        return {
+          min: anvendtReguleringsdato,
+          max: tafBoundaryDates.last ?? anvendtReguleringsdato,
+        };
       }
       return {} as ReguleringsRange;
     })();
@@ -532,4 +553,3 @@ export const buildEoOffentligeYdelserRows = (
 
   return rows;
 };
-

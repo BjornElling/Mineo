@@ -65,6 +65,7 @@ import {
   buildPrivateOverenskomstFormulaComponents,
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
+import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
 
 export type ReguleringIndexRow = Readonly<{
   fraDato: string;
@@ -225,6 +226,15 @@ export const resolveLoenSkadedatoText = (params: {
 
 const formatIndexValue = (value: number): string =>
   formatAsAmount(value, 2);
+
+const formatManuelProcentsatsIndex = (value: number): string =>
+  formatAsAmount(value, 2);
+
+const formatManuelProcentsatsAkkumuleretPct = (value: number): string => {
+  const sign = value >= 0 ? '+ ' : '- ';
+  // Altid to decimaler (også ",00") — procentværdierne i Reguleringsværdier-tabellen vises fast med to decimaler.
+  return `${sign}${formatAsAmount(Math.abs(value), 2)} %`;
+};
 
 const formatLoenudviklingFromIndex = (indexValue: number): string => {
   if (!Number.isFinite(indexValue)) return '';
@@ -771,6 +781,25 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     };
   }
 
+  if (grundlag === 'Manuel procentsats') {
+    const entries = buildManuelProcentsatsEntries({
+      anvendtReguleringsdato,
+      rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
+    });
+    const relevantRows = entries.filter((entry) => entry.isBase || entry.startIso <= tafTil);
+    if (relevantRows.length === 0) return null;
+    return {
+      columns: ['Dato', 'Procent', 'Indeks', 'Akkumuleret'],
+      rows: relevantRows.map((entry) => [
+        formatDateShort(entry.startIso),
+        // Fast to decimaler (også ",00") på procentkolonnen.
+        `${formatAsAmount(entry.procent, 2)} %`,
+        formatManuelProcentsatsIndex(entry.indeks),
+        formatManuelProcentsatsAkkumuleretPct(entry.akkumuleretPct),
+      ]),
+    };
+  }
+
   if (grundlag === 'Manuelt angivet') {
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isEffectivelyZero(ansaettelsesforhold.feriePct);
@@ -1031,7 +1060,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
   const isStatistik = loenudviklingBasis === 'Statistik';
   const isKRL = loenudviklingBasis === 'KRL satstabel';
   const isKlLoenaftaler = loenudviklingBasis === 'KL-lønaftaler';
-  const isSimpleIndex = isStatistik || isKRL;
+  const isManualProcentsats = loenudviklingBasis === 'Manuel procentsats';
+  const isSimpleIndex = isStatistik || isKRL || isManualProcentsats;
   const preserveBoundaryStartIsos = (() => {
     const shouldPreserveStoreBededagBoundary =
       tafStartIso < STORE_BEDEDAG_START &&
@@ -1548,6 +1578,19 @@ export const buildReguleringIndexRows = (params: Readonly<{
         visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
       };
     }
+    if (isManualProcentsats) {
+      return {
+        components: {
+          baseValue: 100,
+          feriePct: 0,
+          fritvalgPct: 0,
+          shSoPct: 0,
+          pensionPct: 0,
+          storeBededagPct: 0,
+        },
+        visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
+      };
+    }
     if (isKlLoenaftaler) {
       // KL-lønaftaler håndteres af specialgrenen ovenfor. Den generiske indeksfallback må
       // ikke opfinde en akkumuleret KL-lønaftaler-model.
@@ -1733,6 +1776,24 @@ export const buildReguleringIndexRows = (params: Readonly<{
         .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
       return periodStarts.map((period) => ({
         ...period,
+        visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
+      }));
+    }
+    if (isManualProcentsats) {
+      const entries = buildManuelProcentsatsEntries({
+        anvendtReguleringsdato,
+        rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
+      });
+      return entries.map((entry) => ({
+        startIso: entry.startIso,
+        components: {
+          baseValue: entry.indeks,
+          feriePct: 0,
+          fritvalgPct: 0,
+          shSoPct: 0,
+          pensionPct: 0,
+          storeBededagPct: 0,
+        },
         visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
       }));
     }

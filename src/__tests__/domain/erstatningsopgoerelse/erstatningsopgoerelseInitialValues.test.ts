@@ -102,6 +102,7 @@ describe('createErstatningsopgoerelseInitialValues – schema-afledte objekt-def
       loenudviklingKRLSatstabel: undefined,
       loenudviklingManuelNavn: undefined,
       loenudviklingManuelTableData: [],
+      loenudviklingManuelProcentsatsTableData: [],
       // new-data-default (schema-default er bevidst undefined):
       offentligLoenType: 'Månedsløn',
       offentligLoenTrin: undefined,

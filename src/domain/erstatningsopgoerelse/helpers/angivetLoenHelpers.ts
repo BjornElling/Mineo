@@ -100,6 +100,7 @@ export const resolveLoenudviklingKilde = (
     loenudviklingKRLSatstabel: eo.loenudviklingKRLSatstabel,
     loenudviklingManuelNavn: eo.loenudviklingManuelNavn,
     loenudviklingManuelTableData: eo.loenudviklingManuelTableData,
+    loenudviklingManuelProcentsatsTableData: eo.loenudviklingManuelProcentsatsTableData,
     offentligLoenType: eo.offentligLoenType,
     offentligLoenTrin: eo.offentligLoenTrin,
     offentligLoenGruppe: eo.offentligLoenGruppe,

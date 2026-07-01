@@ -49,7 +49,10 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Opdateret 2026-06-23: loenudviklingBeregningsgrundlagEnum udvidet med 'KL-lønaftaler' (ny
 // lønudviklings-model). PERSISTED_DATA_VERSION bumpet til 3.6 (reel persisted schema-ændring;
 // enum-værdimængde udvidet).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-218e48fa';
+// Opdateret 2026-07-01: loenudviklingBeregningsgrundlagEnum udvidet med 'Manuel procentsats'
+// og nyt felt loenudviklingManuelProcentsatsTableData på lønudviklingsgruppen.
+// PERSISTED_DATA_VERSION bumpet til 3.7 (reel persisted schema-ændring; enum + nye inputrækker).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-75086904';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

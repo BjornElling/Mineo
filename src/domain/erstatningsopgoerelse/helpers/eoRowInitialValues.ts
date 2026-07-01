@@ -1,4 +1,4 @@
-import type { LoenudviklingManuelRow, OffentligeYdelserRow, StandardLoenTableRow } from '../../../schemas/formSchemas';
+import type { LoenudviklingManuelProcentsatsRow, LoenudviklingManuelRow, OffentligeYdelserRow, StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { createRowId } from '../../../utils/rowId';
 
 /**
@@ -81,4 +81,13 @@ export const initialLoenudviklingManuelRow: Omit<LoenudviklingManuelRow, 'id'> &
   shSoSats: undefined,
   fritvalg: undefined,
   agPension: undefined,
+};
+
+/**
+ * Initial tom lønudvikling (manuel procentsats) række.
+ */
+export const initialLoenudviklingManuelProcentsatsRow: Omit<LoenudviklingManuelProcentsatsRow, 'id'> & { id: '' } = {
+  id: '',
+  dato: undefined,
+  procent: undefined,
 };

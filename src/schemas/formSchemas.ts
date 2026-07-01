@@ -78,6 +78,8 @@ export {
   type OffentligeYdelserRow,
   loenudviklingManuelRowSchema,
   type LoenudviklingManuelRow,
+  loenudviklingManuelProcentsatsRowSchema,
+  type LoenudviklingManuelProcentsatsRow,
   loenudviklingOgSatserSchema,
   eoLoenudviklingOgSatserSchema,
   type LoenudviklingOgSatser,

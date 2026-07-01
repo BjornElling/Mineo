@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateReguleringDocument } from '../../../document/generators/eo/reguleringDocument';
+import { ILON12_DISCONTINUED_NOTE } from '../../../document/generators/eo/reguleringNotes';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 import type { DanishDateString } from '../../../types/branded';
 
@@ -58,5 +59,22 @@ describe('regulering → Word-indhold', () => {
 
     const text = xmlToPlainText(documentXml);
     expect(text).toContain('7711');
+  });
+
+  it('skriver ILON12-ophørsbemærkning efter tabellen', async () => {
+    const { documentXml } = await renderWordDocument(() => {
+      generateReguleringDocument({
+        overenskomstLabel: '',
+        loenudviklingBasis: 'Statistik',
+        overenskomstId: undefined,
+        statistikModelLabel: 'ILON12 (Danmarks Statistik)',
+        interval,
+        applyAlmindeligLoenPaaShDageRegel: false,
+        visBrevhoved: false,
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain(ILON12_DISCONTINUED_NOTE);
   });
 });

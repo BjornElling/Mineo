@@ -878,6 +878,26 @@ function validateLoenudviklingsKravForAktivKilde(
         });
       }
     }
+
+    if (grundlag === 'Manuel procentsats') {
+      const rows = (af.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
+      const aktiveRows = rows.filter((row) =>
+        row.dato !== undefined || (typeof row.procent === 'number' && Number.isFinite(row.procent))
+      );
+      if (aktiveRows.some((row) => row.dato === undefined)) {
+        errors.push({
+          path: path('loenudviklingManuelProcentsatsTableData'),
+          message: 'Dato skal udfyldes på alle manuelle procentsatsrækker',
+          severity: 'error',
+        });
+      } else if (aktiveRows.some((row) => typeof row.procent !== 'number' || !Number.isFinite(row.procent))) {
+        errors.push({
+          path: path('loenudviklingManuelProcentsatsTableData'),
+          message: 'Procent skal udfyldes på alle manuelle procentsatsrækker',
+          severity: 'error',
+        });
+      }
+    }
   });
 
   return errors;

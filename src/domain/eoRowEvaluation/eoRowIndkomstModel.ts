@@ -104,6 +104,15 @@ const isManualReguleringRowEffectivelyEmpty = (
   );
 };
 
+const isManualProcentsatsRowEffectivelyEmpty = (
+  row: NonNullable<Ansaettelsesforhold['loenudviklingManuelProcentsatsTableData']>[number]
+): boolean => {
+  const isManualPercentEmpty = (value: number | undefined): boolean =>
+    typeof value !== 'number' || !Number.isFinite(value);
+
+  return row.dato === undefined && isManualPercentEmpty(row.procent);
+};
+
 export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
   af: Ansaettelsesforhold,
   appSettings: AppSettings = DEFAULT_APP_SETTINGS
@@ -112,6 +121,7 @@ export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
   const defaultOverenskomstFilter = resolveDefaultOverenskomstFilter(appSettings);
   const hasAnyLoenRowInput = (af.indtaegtsoplysningerTableData ?? []).some((row) => !isLoenRowEffectivelyEmpty(row, af.loenperiode));
   const hasAnyManualReguleringInput = (af.loenudviklingManuelTableData ?? []).some((row) => !isManualReguleringRowEffectivelyEmpty(row));
+  const hasAnyManualProcentsatsInput = (af.loenudviklingManuelProcentsatsTableData ?? []).some((row) => !isManualProcentsatsRowEffectivelyEmpty(row));
   const overenskomstFilter = af.overenskomstFilter ?? { loenmodtager: undefined, arbejdsgiver: undefined };
   const hasNonDefaultOverenskomstFilter =
     overenskomstFilter.loenmodtager !== defaultOverenskomstFilter.loenmodtager ||
@@ -146,6 +156,7 @@ export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
     af.loenudviklingKRLSatstabel !== undefined ||
     (af.loenudviklingManuelNavn?.trim() ?? '') !== '' ||
     hasAnyManualReguleringInput ||
+    hasAnyManualProcentsatsInput ||
     af.offentligLoenType !== 'Månedsløn' ||
     af.offentligLoenTrin !== undefined ||
     af.offentligLoenGruppe !== undefined ||

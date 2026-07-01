@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LoenindkomstTab from '../../../../components/pages/erstatningsopgoerelse/LoenindkomstTab';
-import { resolveSatserHeading } from '../../../../components/pages/erstatningsopgoerelse/loenindkomst/AnsaettelsesforholdCard';
+import { resolveSatserHeading } from '../../../../components/pages/erstatningsopgoerelse/loenindkomst/resolveSatserHeading';
 import { toISODateString } from '../../../../types/branded';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,

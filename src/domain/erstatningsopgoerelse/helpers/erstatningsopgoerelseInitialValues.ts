@@ -69,6 +69,7 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
     loenudviklingKRLSatstabel: undefined,
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
+    loenudviklingManuelProcentsatsTableData: [],
     offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,

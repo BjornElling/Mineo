@@ -44,6 +44,10 @@ export type EoLoenudviklingHandlers = Readonly<{
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData'],
     origin?: { fieldPath?: string }
   ) => void;
+  handleLoenudviklingManuelProcentsatsTableChange: (
+    tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelProcentsatsTableData'],
+    origin?: { fieldPath?: string }
+  ) => void;
   handleLoenudviklingManuelInputErrorChange: (hasError: boolean) => void;
 }>;
 
@@ -179,6 +183,16 @@ export const useEoLoenudviklingHandlers = ({
     }), origin);
   }, [updateEoLoenudvikling]);
 
+  const handleLoenudviklingManuelProcentsatsTableChange = React.useCallback((
+    tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelProcentsatsTableData'],
+    origin?: { fieldPath?: string }
+  ) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      loenudviklingManuelProcentsatsTableData: tableData,
+    }), origin);
+  }, [updateEoLoenudvikling]);
+
   const handleLoenudviklingManuelInputErrorChange = React.useCallback((hasError: boolean) => {
     reportDynamicFieldError(
       `${EO_ANGIVET_LOEN_ID}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`,
@@ -201,6 +215,7 @@ export const useEoLoenudviklingHandlers = ({
     handleEoAnciennitetstillaegSatsCommit,
     handleLoenudviklingManuelNavnCommit,
     handleLoenudviklingManuelTableChange,
+    handleLoenudviklingManuelProcentsatsTableChange,
     handleLoenudviklingManuelInputErrorChange,
   };
 };

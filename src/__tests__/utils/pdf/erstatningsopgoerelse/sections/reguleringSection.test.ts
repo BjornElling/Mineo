@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { renderReguleringSection } from '../../../../../document/generators/eo/sections/reguleringSection';
+import { ILON12_DISCONTINUED_NOTE } from '../../../../../document/generators/eo/reguleringNotes';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../../../types/branded';
@@ -275,6 +276,13 @@ describe('renderReguleringSection – statistik-noter', () => {
     renderReguleringSection(ctx);
 
     expect(safeAddWrappedText).toHaveBeenCalledWith(expect.stringContaining('ILON12'));
+    expect(safeAddWrappedText).toHaveBeenCalledWith(ILON12_DISCONTINUED_NOTE);
+    const textCalls = safeAddWrappedText.mock.calls.map(([text]) => text);
+    const ilon12ExplanationIndex = textCalls.findIndex(
+      (text) => typeof text === 'string' && text.startsWith('Det Implicitte Lønindeks')
+    );
+    expect(ilon12ExplanationIndex).toBeGreaterThanOrEqual(0);
+    expect(textCalls[ilon12ExplanationIndex + 1]).toBe(ILON12_DISCONTINUED_NOTE);
   });
 
   it('viser SBLON2-note når resolveStatistikModelIdFromLabel returnerer "SBLON2"', () => {
@@ -616,5 +624,84 @@ describe('renderReguleringSection – KL-lønaftaler Beregnet regulering', () =>
       'center',
       'center',
     ]);
+  });
+});
+
+describe('renderReguleringSection – Beregnet regulering kolonnefordeling', () => {
+  const findBeregnetReguleringCall = () =>
+    autoTableMock.mock.calls.find(([, options]) => {
+      const headerRow = options.body?.[0];
+      return headerRow?.some((cell) => cell.content === 'Lønudvikling') ?? false;
+    })?.[1];
+
+  const headerContents = (call: AutoTableTestOptions | undefined) =>
+    call?.body?.[0]?.map((cell) => ('content' in cell ? cell.content : ''));
+
+  const orderedWidths = (call: AutoTableTestOptions | undefined): (number | undefined)[] => {
+    const styles = call?.columnStyles ?? {};
+    return Object.keys(styles)
+      .map((key) => Number(key))
+      .sort((a, b) => a - b)
+      .map((index) => styles[index]?.cellWidth);
+  };
+
+  it('manuel procentsats: fire lige brede kolonner, Indeksberegning udeladt', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-mp-layout',
+        navnPaaArbejdssted: 'Manuel procentsats',
+        loenudviklingBeregningsgrundlag: 'Manuel procentsats',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({ foerste: iso('2024-01-01'), sidste: iso('2025-12-31') }));
+    ctx.buildReguleringIndexRows = vi.fn(() => [
+      { fraDato: '01-01-2024', tilDato: '31-12-2024', indeksberegning: '', indeks: '100,00', loenudvikling: '' },
+      { fraDato: '01-01-2025', tilDato: '31-12-2025', indeksberegning: '', indeks: '110,00', loenudvikling: '+ 10,00 %' },
+    ]);
+
+    renderReguleringSection(ctx);
+
+    const call = findBeregnetReguleringCall();
+    expect(call).toBeDefined();
+    expect(headerContents(call)).toEqual(['Fra-dato', 'Til-dato', 'Indeks', 'Lønudvikling']);
+    const widths = orderedWidths(call);
+    expect(widths).toHaveLength(4);
+    expect(new Set(widths).size).toBe(1); // hele bredden deles ligeligt
+  });
+
+  it('øvrige modeller: Indeksberegning får fast bred kolonne, de øvrige deler resten ligeligt', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-manuel-layout',
+        navnPaaArbejdssted: 'Manuelt angivet',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({ foerste: iso('2024-01-01'), sidste: iso('2025-12-31') }));
+    ctx.buildReguleringIndexRows = vi.fn(() => [
+      { fraDato: '01-01-2024', tilDato: '31-12-2024', indeksberegning: '100,00', indeks: '100,00', loenudvikling: '' },
+      { fraDato: '01-01-2025', tilDato: '31-12-2025', indeksberegning: '(27.000,00 / 25.000,00)', indeks: '108,00', loenudvikling: '+ 8,00 %' },
+    ]);
+
+    renderReguleringSection(ctx);
+
+    const call = findBeregnetReguleringCall();
+    expect(call).toBeDefined();
+    expect(headerContents(call)).toEqual(['Fra-dato', 'Til-dato', 'Indeksberegning', 'Indeks', 'Lønudvikling']);
+    const widths = orderedWidths(call);
+    expect(widths).toHaveLength(5);
+    // Indeksberegning (index 2) er den brede, faste kolonne; de øvrige fire deler resten (170 - 70) / 4 = 25.
+    expect(widths[2]).toBe(70);
+    expect([widths[0], widths[1], widths[3], widths[4]]).toEqual([25, 25, 25, 25]);
   });
 });

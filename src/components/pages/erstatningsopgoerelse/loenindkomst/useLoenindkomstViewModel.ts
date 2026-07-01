@@ -107,7 +107,11 @@ export type UseLoenindkomstViewModelParams = Readonly<{
  */
 // De eneste celle-tabeller der kvalificeres med et ansættelsesforhold-id som rowScope. Modul-konstant
 // (stabil identitet) så scope-reconcile-effekten ikke kører ved hver render.
-const AF_SCOPED_CELL_TABLE_IDS = [CELL_TABLE_IDS.eoStandardLoen, CELL_TABLE_IDS.eoLoenudvikling] as const;
+const AF_SCOPED_CELL_TABLE_IDS = [
+  CELL_TABLE_IDS.eoStandardLoen,
+  CELL_TABLE_IDS.eoLoenudvikling,
+  CELL_TABLE_IDS.eoLoenudviklingManuelProcentsats,
+] as const;
 
 export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams) {
   const {
@@ -552,7 +556,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
         const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(raw);
         if (!parsed.success) return;
 
-        if (parsed.data !== 'Manuelt angivet') {
+        if (parsed.data !== 'Manuelt angivet' && parsed.data !== 'Manuel procentsats') {
           setManuelReguleringHasErrorsByAfId((prev) => {
             const next = { ...prev };
             delete next[id];
@@ -601,6 +605,14 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string) =>
       (newTableData: Ansaettelsesforhold['loenudviklingManuelTableData'], origin?: { fieldPath?: string }) => {
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelTableData: newTableData }), origin);
+      },
+    [updateAnsaettelsesforhold]
+  );
+
+  const handleLoenudviklingManuelProcentsatsTableChange = React.useCallback(
+    (id: string) =>
+      (newTableData: Ansaettelsesforhold['loenudviklingManuelProcentsatsTableData'], origin?: { fieldPath?: string }) => {
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelProcentsatsTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
   );
@@ -851,6 +863,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     handleLoenudviklingStatistikModelChange,
     handleLoenudviklingKRLSatstabelChange,
     handleLoenudviklingManuelTableChange,
+    handleLoenudviklingManuelProcentsatsTableChange,
     handleManuelReguleringInputErrorChange,
     handleFilterChange,
 

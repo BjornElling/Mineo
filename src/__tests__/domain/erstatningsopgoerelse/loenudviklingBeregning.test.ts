@@ -274,6 +274,45 @@ describe('buildLoenudviklingModel', () => {
     expectOnlyPositiveArbejdsdagssegmenter(values);
   });
 
+  it('akkumulerer manuel procentsats som kædet indeks', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-07-01');
+    values.tafPerioder = [{
+      id: 'taf-manuel-procentsats',
+      fra: iso('2024-07-01'),
+      til: iso('2026-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Manuel procentsats',
+      loenudviklingManuelProcentsatsTableData: [
+        { id: 'base', dato: undefined, procent: 0 },
+        { id: 'pct-2025', dato: iso('2025-01-01'), procent: 10 },
+        { id: 'pct-2026', dato: iso('2026-01-01'), procent: 10 },
+      ],
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-07-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-07-01'), til: iso('2026-12-31') }] }
+    );
+
+    expect(model.beregnedeSegmenter.map((segment) => ({
+      fra: segment.fra,
+      deltaPct: segment.deltaPct,
+    }))).toEqual([
+      { fra: iso('2024-07-01'), deltaPct: 0 },
+      { fra: iso('2025-01-01'), deltaPct: 10 },
+      { fra: iso('2026-01-01'), deltaPct: 21 },
+    ]);
+  });
+
   it('beregner negativ manuel Store Bededag-regulering for TAF-segmenter før 2024', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';

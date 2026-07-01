@@ -37,15 +37,30 @@ import {
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { isGreaterThanWithTolerance } from '../../../../utils/numberComparison';
 import { parsePercentPointString } from '../../../../utils/numberParsing';
+import { ILON12_DISCONTINUED_NOTE } from '../reguleringNotes';
 
 const REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM = 8;
 const REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM = 6;
+// Manuel procentsats-tabellernes tal-kolonner deler samme lille højre-indrykning: Reguleringsværdier
+// (Procent/Indeks/Akkumuleret) og Beregnet regulering (Indeks/Lønudvikling) er ens (rent visuelt
+// inset, udelades i Word).
+const MANUEL_PROCENTSATS_NUMBER_INSET_MM = 13;
+const MANUEL_PROCENTSATS_NUMBER_HEADERS = new Set(['procent', 'indeks', 'akkumuleret']);
+// "Beregnet regulering": Indeksberegnings-kolonnen (index 2) rummer normalt lange formler og gives
+// derfor en fast, bred kolonne, mens de øvrige kolonner deler den resterende bredde ligeligt. Når
+// kolonnen udelades (manuel procentsats), deler de fire tilbageværende kolonner hele tabelbredden.
+const BEREGNET_REGULERING_INDEKSBEREGNING_COLUMN_INDEX = 2;
+const BEREGNET_REGULERING_INDEKSBEREGNING_WIDTH_MM = 70;
 const RIGHT_ALIGNED_REGULERINGS_HEADERS = new Set([
   'feriepenge',
   'sh/so',
   'fritvalg',
   'store bededag',
   'ag pens. bidrag',
+  // Manuel procentsats-tabellens tal-kolonner: højrejusteres (med større indrykning, se resolver nedenfor).
+  'procent',
+  'indeks',
+  'akkumuleret',
 ]);
 
 type ReguleringSectionContext = Readonly<{
@@ -118,9 +133,10 @@ const normalizeReguleringColumnHeader = (value: string): string =>
   value.toLocaleLowerCase('da-DK').replace(/\s+/g, ' ').trim();
 
 const resolveReguleringsvaerdierRightInset = (columnHeader: string): number => {
-  return normalizeReguleringColumnHeader(columnHeader) === 'sh/so'
-    ? REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM
-    : REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM;
+  const normalized = normalizeReguleringColumnHeader(columnHeader);
+  if (normalized === 'sh/so') return REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM;
+  if (MANUEL_PROCENTSATS_NUMBER_HEADERS.has(normalized)) return MANUEL_PROCENTSATS_NUMBER_INSET_MM;
+  return REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM;
 };
 
 const stripEmptyReguleringsColumns = (
@@ -279,7 +295,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     return `${conversion.displayText} fra ${datoDisplay}`;
   };
 
-  const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {
+  const renderReguleringIndeksTable = (
+    rows: readonly ReguleringIndexRow[],
+    options?: Readonly<{ hideIndeksberegning?: boolean }>
+  ) => {
     if (rows.length === 0) {
       safeAddWrappedText('Ingen reguleringsrækker i perioden.');
       return;
@@ -290,15 +309,17 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     // Se docs/domain/taf/kl-loenaftaler-regulering.md.
     const isKlLoenaftalerTable = rows.some((row) => row.reguleretLoen !== undefined);
 
-    const tableRows: RowInput[] = [];
+    const doc = writer.getDoc();
+    const startY = writer.getY();
+
     if (isKlLoenaftalerTable) {
       const reguleretLoenHeader = tafBeregnesSom === 'Måneder' ? 'Reguleret månedsløn' : 'Reguleret dagsløn';
-      tableRows.push([
+      const tableRows: RowInput[] = [[
         createDocumentTableHeaderCell('Fra-dato', 'center'),
         createDocumentTableHeaderCell('Til-dato', 'center'),
         createDocumentTableHeaderCell('Lønudvikling', 'center'),
         createDocumentTableHeaderCell(reguleretLoenHeader, 'center'),
-      ]);
+      ]];
       for (const row of rows) {
         tableRows.push([
           createDocumentTableCell(row.fraDato, { halign: 'center' }),
@@ -307,32 +328,78 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
           createDocumentTableCell(row.reguleretLoen ?? '', { halign: 'center' }),
         ]);
       }
-    } else {
-      tableRows.push([
-        createDocumentTableHeaderCell('Fra-dato', 'center'),
-        createDocumentTableHeaderCell('Til-dato', 'center'),
-        createDocumentTableHeaderCell('Indeksberegning', 'center'),
-        createDocumentTableHeaderCell('Indeks', 'center'),
-        createDocumentTableHeaderCell('Lønudvikling', 'center'),
-      ]);
-      for (const row of rows) {
-        tableRows.push([
-          createDocumentTableCell(row.fraDato, { halign: 'center' }),
-          createDocumentTableCell(row.tilDato, { halign: 'center' }),
-          createDocumentTableCell(row.indeksberegning, { halign: 'center' }),
-          createDocumentTableCell(row.indeks, { halign: 'right' }),
-          createDocumentTableCell(row.loenudvikling, { halign: 'right' }),
-        ]);
-      }
+      const finalY = renderDocumentTable({
+        doc,
+        startY,
+        body: tableRows,
+        columnStyles: createDocumentDistributedColumnStyles(4, { defaultHalign: 'center' }),
+      });
+      writer.setY(resolveDocumentSectionEndY(finalY, startY));
+      return;
     }
 
-    const doc = writer.getDoc();
-    const startY = writer.getY();
+    // Manuel procentsats: indeksberegnings-kolonnen udelades (kildeprocenten er selve reguleringen,
+    // ikke en indeksbrøk). De øvrige modeller viser fortsat indeksberegningen.
+    const hideIndeksberegning = options?.hideIndeksberegning === true;
+    const tableRows: RowInput[] = [[
+      createDocumentTableHeaderCell('Fra-dato', 'center'),
+      createDocumentTableHeaderCell('Til-dato', 'center'),
+      ...(hideIndeksberegning ? [] : [createDocumentTableHeaderCell('Indeksberegning', 'center')]),
+      createDocumentTableHeaderCell('Indeks', 'center'),
+      createDocumentTableHeaderCell('Lønudvikling', 'center'),
+    ]];
+    for (const row of rows) {
+      tableRows.push([
+        createDocumentTableCell(row.fraDato, { halign: 'center' }),
+        createDocumentTableCell(row.tilDato, { halign: 'center' }),
+        ...(hideIndeksberegning ? [] : [createDocumentTableCell(row.indeksberegning, { halign: 'center' })]),
+        createDocumentTableCell(row.indeks, { halign: 'right' }),
+        createDocumentTableCell(row.loenudvikling, { halign: 'right' }),
+      ]);
+    }
+
+    // Indeks + Lønudvikling højrejusteres med samme lille indrykning som Reguleringsværdier-tabellens
+    // pct-kolonner (genbrug af inset-konstanten). Insettet er rent visuelt og udelades i Word, mens
+    // dataRowColumnHalign giver Word samme højrejustering.
+    const columnCount = 4 + (hideIndeksberegning ? 0 : 1);
+    const indeksColumnIndex = columnCount - 2;
+    const loenudviklingColumnIndex = columnCount - 1;
+    const rightAlignedColumnIndices = new Set([indeksColumnIndex, loenudviklingColumnIndex]);
+    const dataRowColumnHalign: Record<number, 'right'> = {
+      [indeksColumnIndex]: 'right',
+      [loenudviklingColumnIndex]: 'right',
+    };
+    // Manuel procentsats (uden indeksberegnings-kolonne): Indeks/Lønudvikling får samme indrykning som
+    // Reguleringsværdier-tabellens tal-kolonner. De øvrige, tættere modeller beholder den lille indrykning.
+    const rightInset = hideIndeksberegning
+      ? MANUEL_PROCENTSATS_NUMBER_INSET_MM
+      : REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM;
+
+    // Fordel bredden: Indeksberegning får en fast bred kolonne, de øvrige deler resten ligeligt.
+    // Uden Indeksberegning-kolonnen deler de fire tilbageværende kolonner hele tabelbredden ligeligt.
+    const columnStyles = hideIndeksberegning
+      ? createDocumentDistributedColumnStyles(columnCount)
+      : createDocumentDistributedColumnStyles(columnCount, {
+          fixedColumns: { [BEREGNET_REGULERING_INDEKSBEREGNING_COLUMN_INDEX]: BEREGNET_REGULERING_INDEKSBEREGNING_WIDTH_MM },
+        });
+
     const finalY = renderDocumentTable({
       doc,
       startY,
       body: tableRows,
-      columnStyles: isKlLoenaftalerTable ? createDocumentDistributedColumnStyles(4, { defaultHalign: 'center' }) : undefined,
+      columnStyles,
+      dataRowColumnHalign,
+      didParseCell: (data) => {
+        const isDataRow = data.row.index >= 1;
+        if (!isDataRow || !rightAlignedColumnIndices.has(data.column.index)) return;
+        data.cell.styles.halign = 'right';
+        data.cell.styles.cellPadding = {
+          top: 1.5,
+          bottom: 1.5,
+          left: 1.5,
+          right: rightInset,
+        };
+      },
     });
     writer.setY(resolveDocumentSectionEndY(finalY, startY));
   };
@@ -503,7 +570,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       ansaettelsesforhold,
       anvendtReguleringsdato,
     });
-    renderReguleringIndeksTable(reguleringTableRows);
+    renderReguleringIndeksTable(reguleringTableRows, {
+      hideIndeksberegning: ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Manuel procentsats',
+    });
 
     const loenudviklingGrundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
     if ((loenudviklingGrundlag === 'Overenskomst' || loenudviklingGrundlag === 'Manuelt angivet') && coverageBounds) {
@@ -533,6 +602,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       if (statistikModelId === 'ILON12') {
         writer.addSectionSpacer();
         safeAddWrappedText('Det Implicitte Lønindeks fra Danmarks Statistik (ILON12) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2005 = indeksværdi 100), uden sæsonkorrektion.');
+        safeAddWrappedText(ILON12_DISCONTINUED_NOTE);
       } else if (statistikModelId === 'SBLON2') {
         writer.addSectionSpacer();
         safeAddWrappedText('Det Standardberegnede Lønindeks fra Danmarks Statistik (SBLON2) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2016 = indeksværdi 100).');

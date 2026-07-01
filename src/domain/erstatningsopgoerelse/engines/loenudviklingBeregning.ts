@@ -58,6 +58,7 @@ import { computeFormulaValue } from './reguleringFormulaUtils';
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
 import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
+import { buildManuelProcentsatsEntries, findManuelProcentsatsEntryForDate } from './manuelProcentsatsRegulering';
 
 // =============================================================================
 // INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.
@@ -102,10 +103,11 @@ export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateStrin
   return count;
 };
 
-type LoenudviklingStrategi = 'ingen' | 'statistik' | 'overenskomst' | 'manual' | 'krl' | 'klLoenaftaler';
+type LoenudviklingStrategi = 'ingen' | 'statistik' | 'overenskomst' | 'manual' | 'manualProcentsats' | 'krl' | 'klLoenaftaler';
 type LoenreguleringsSegment = Readonly<IsoRange & { deltaPct: number }>;
 type LoenudviklingAf = LoenudviklingSource;
 type LoenudviklingManualRow = NonNullable<LoenudviklingAf['loenudviklingManuelTableData']>[number];
+type LoenudviklingManualProcentsatsRow = NonNullable<LoenudviklingAf['loenudviklingManuelProcentsatsTableData']>[number];
 type OffentligLoenSelection = Readonly<{
   overenskomstType: OffentligOverenskomstType;
   loenType: OffentligLoenType;
@@ -151,6 +153,13 @@ type KonsolideretLoenudvikling =
     // Se note ved 'overenskomst': i Beløb-tilstand neutraliseres tillægslaget i deltaPct-beregningen.
     tillaegNeutraliseret: boolean;
     manualRows: readonly LoenudviklingManualRow[];
+    tafRanges: readonly IsoRange[];
+  }>
+  | Readonly<{
+    strategi: 'manualProcentsats';
+    label: string;
+    reguleringsdato: ISODateString | undefined;
+    manualProcentsatsRows: readonly LoenudviklingManualProcentsatsRow[];
     tafRanges: readonly IsoRange[];
   }>
   | Readonly<{
@@ -212,6 +221,14 @@ const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string =>
     shSoSats: row.shSoSats ?? '',
     fritvalg: row.fritvalg ?? '',
     agPension: row.agPension ?? '',
+  }));
+  return JSON.stringify(normalized);
+};
+
+const normalizeManualProcentsatsRows = (rows: readonly LoenudviklingManualProcentsatsRow[]): string => {
+  const normalized = rows.map((row) => ({
+    dato: row.dato ?? '',
+    procent: row.procent ?? '',
   }));
   return JSON.stringify(normalized);
 };
@@ -385,9 +402,10 @@ const resolveReguleringsStrategi = (
     basis === 'Statistik' ? 'statistik'
       : basis === 'Overenskomst' ? 'overenskomst'
         : basis === 'Manuelt angivet' ? 'manual'
-          : basis === 'KRL satstabel' ? 'krl'
-            : basis === 'KL-lønaftaler' ? 'klLoenaftaler'
-              : 'ingen';
+          : basis === 'Manuel procentsats' ? 'manualProcentsats'
+            : basis === 'KRL satstabel' ? 'krl'
+              : basis === 'KL-lønaftaler' ? 'klLoenaftaler'
+                : 'ingen';
 
   // Beløb-tilstand bruger ikke feriePct (tillæg er indtastet som beløb), så feriePct kræves ikke der.
   const kræverFeriePctVedBeregningsperiode =
@@ -450,6 +468,8 @@ const resolveReguleringsStrategi = (
         );
       }
     }
+  } else if (strategi === 'manualProcentsats') {
+    assertUniform(active, (af) => normalizeManualProcentsatsRows(af.loenudviklingManuelProcentsatsTableData ?? []), 'manuelle procentsatsraekker');
   } else if (strategi === 'krl') {
     assertUniform(active, (af) => af.loenudviklingKRLSatstabel ?? '', 'KRL satstabel');
   }
@@ -466,11 +486,13 @@ const resolveReguleringsStrategi = (
       ? ((active[0].loenudviklingStatistikModel ?? '').trim() || '-')
       : strategi === 'manual'
         ? (active[0].loenudviklingManuelNavn?.trim() || 'Manuelt angivet')
-        : strategi === 'krl'
-          ? (active[0].loenudviklingKRLSatstabel ?? '-')
-          : strategi === 'klLoenaftaler'
-            ? 'KL-lønaftaler'
-            : basis;
+        : strategi === 'manualProcentsats'
+          ? 'Manuel procentsats'
+          : strategi === 'krl'
+            ? (active[0].loenudviklingKRLSatstabel ?? '-')
+            : strategi === 'klLoenaftaler'
+              ? 'KL-lønaftaler'
+              : basis;
 
   if (strategi === 'statistik') {
     return {
@@ -564,6 +586,20 @@ const resolveReguleringsStrategi = (
         // og de skal derfor indgå i reguleringen i begge tilstande.
         tillaegNeutraliseret: false,
         manualRows: active[0].loenudviklingManuelTableData ?? [],
+        tafRanges,
+      },
+    };
+  }
+
+  if (strategi === 'manualProcentsats') {
+    return {
+      strategi,
+      label,
+      konsolideret: {
+        strategi,
+        label,
+        reguleringsdato: anvendtReguleringsdato,
+        manualProcentsatsRows: active[0].loenudviklingManuelProcentsatsTableData ?? [],
         tafRanges,
       },
     };
@@ -768,6 +804,47 @@ const buildLoenudviklingFromKRL = (
   }
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen KRL segmenter');
+  }
+  return segments;
+};
+
+const buildLoenudviklingFromManualProcentsats = (
+  konsolideret: KonsolideretLoenudvikling
+): ReadonlyArray<LoenreguleringsSegment> => {
+  if (konsolideret.strategi !== 'manualProcentsats') {
+    throw new Error('Loenudvikling kan ikke beregnes: manuel procentsats-strategi mangler');
+  }
+  if (!konsolideret.reguleringsdato) {
+    throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
+  }
+
+  const entries = buildManuelProcentsatsEntries({
+    anvendtReguleringsdato: konsolideret.reguleringsdato,
+    rows: konsolideret.manualProcentsatsRows,
+  });
+  if (entries.length === 0) {
+    throw new Error('Loenudvikling kan ikke beregnes: manuel procentsats mangler basisindeks');
+  }
+
+  const segments: LoenreguleringsSegment[] = [];
+  for (const range of konsolideret.tafRanges) {
+    const starts = new Set<ISODateString>();
+    for (const entry of entries) {
+      if (entry.startIso > range.fra && entry.startIso <= range.til) starts.add(entry.startIso);
+    }
+    for (const segment of buildSegmentsFromStartDates(range, starts)) {
+      const entry = findManuelProcentsatsEntryForDate(entries, segment.fra);
+      if (!entry) {
+        throw new Error('Intern fejl: mangler manuel procentsatsindeks for segment');
+      }
+      segments.push({
+        ...segment,
+        deltaPct: roundByMethod(entry.akkumuleretPct, 2, 'halfAwayFromZero'),
+      });
+    }
+  }
+  if (segments.length === 0) {
+    throw new Error('Loenudvikling kan ikke beregnes: ingen manuel procentsats-segmenter');
   }
   return segments;
 };
@@ -1326,6 +1403,7 @@ export const buildLoenudviklingModel = (
       if (konsolideret.strategi === 'statistik') return buildLoenudviklingFromStatistik(konsolideret);
       if (konsolideret.strategi === 'overenskomst') return buildLoenudviklingFromOverenskomst(konsolideret);
       if (konsolideret.strategi === 'manual') return buildLoenudviklingFromManual(konsolideret);
+      if (konsolideret.strategi === 'manualProcentsats') return buildLoenudviklingFromManualProcentsats(konsolideret);
       if (konsolideret.strategi === 'krl') return buildLoenudviklingFromKRL(konsolideret);
       if (konsolideret.strategi === 'klLoenaftaler') return buildLoenudviklingFromKlLoenaftaler(konsolideret);
       throw new Error('Loenudvikling kan ikke beregnes: ukendt strategi');

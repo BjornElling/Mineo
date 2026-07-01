@@ -59,7 +59,7 @@ export type LoenPaaHelligdage = z.infer<typeof loenPaaHelligdageEnum>;
 export const offentligLoenTypeEnum = z.enum(['Månedsløn', 'Timeløn']);
 export type OffentligLoenTypeLabel = z.infer<typeof offentligLoenTypeEnum>;
 
-export const loenudviklingBeregningsgrundlagEnum = z.enum(['Overenskomst', 'Statistik', 'KRL satstabel', 'KL-lønaftaler', 'Manuelt angivet', 'Ingen']);
+export const loenudviklingBeregningsgrundlagEnum = z.enum(['Overenskomst', 'Statistik', 'KRL satstabel', 'KL-lønaftaler', 'Manuelt angivet', 'Manuel procentsats', 'Ingen']);
 export type LoenudviklingBeregningsgrundlag = z.infer<typeof loenudviklingBeregningsgrundlagEnum>;
 
 export const loenudviklingStatistikModelEnum = z.enum([

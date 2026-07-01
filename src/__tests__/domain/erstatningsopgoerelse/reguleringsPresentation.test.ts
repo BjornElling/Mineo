@@ -28,6 +28,7 @@ const cloneInitialValues = () => ({
     ...af,
     indtaegtsoplysningerTableData: [...af.indtaegtsoplysningerTableData],
     loenudviklingManuelTableData: [...af.loenudviklingManuelTableData],
+    loenudviklingManuelProcentsatsTableData: [...af.loenudviklingManuelProcentsatsTableData],
   })),
 });
 
@@ -672,6 +673,50 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     // SH/SO og Fritvalg er undefined på alle rækker → kolonnerne vises ikke
     expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'Store Bededag', 'AG pens. bidrag']);
+  });
+
+  it('viser manuel procentsats med indeks og akkumuleret procent i reguleringsværdier', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuel procentsats';
+    af.loenudviklingManuelProcentsatsTableData = [
+      { id: 'base', dato: undefined, procent: 0 },
+      { id: 'pct-2025', dato: iso('2025-01-01'), procent: 10 },
+      { id: 'pct-2026', dato: iso('2026-01-01'), procent: 10 },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-07-01'),
+      tafFra: iso('2024-07-01'),
+      tafTil: iso('2026-12-31'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table?.columns).toEqual(['Dato', 'Procent', 'Indeks', 'Akkumuleret']);
+    // Procent, Indeks og Akkumuleret vises alle fast med to decimaler (også ",00").
+    expect(table?.rows).toEqual([
+      ['01-07-2024', '0,00 %', '100,00', '+ 0,00 %'],
+      ['01-01-2025', '10,00 %', '110,00', '+ 10,00 %'],
+      ['01-01-2026', '10,00 %', '121,00', '+ 21,00 %'],
+    ]);
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        { kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-12-31'), maaneder: 6, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 18000000 },
+        { kind: 'maaneder', fra: iso('2025-01-01'), til: iso('2025-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 10, amountOre: 39600000 },
+        { kind: 'maaneder', fra: iso('2026-01-01'), til: iso('2026-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 21, amountOre: 43560000 },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-07-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows.map((row) => [row.fraDato, row.indeks, row.loenudvikling])).toEqual([
+      ['01-07-2024', '100,00', ''],
+      ['01-01-2025', '110,00', '+ 10,00 %'],
+      ['01-01-2026', '121,00', '+ 21,00 %'],
+    ]);
   });
 
   it('skjuler manuel Fritvalg-kolonne når alle rækker har fritvalg = 0', () => {

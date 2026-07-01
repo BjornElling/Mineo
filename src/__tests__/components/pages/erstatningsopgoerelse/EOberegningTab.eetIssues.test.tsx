@@ -13,7 +13,9 @@ import { createActiveTabStorageKey } from '../../../../config/storageManifest';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 
 const { collectAllEoRowsMock } = vi.hoisted(() => ({
-  collectAllEoRowsMock: vi.fn(() => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
+  collectAllEoRowsMock: vi.fn<() => import('../../../../domain/eoRowEvaluation/eoRowAggregator').BeregningErrorSummary>(
+    () => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })
+  ),
 }));
 
 const { navigateMock } = vi.hoisted(() => ({

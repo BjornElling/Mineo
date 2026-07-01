@@ -1122,6 +1122,43 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(makeBeloebManual(undefined), 'Grundløn skal udfyldes')).toBe(true);
   });
 
+  it('tillader manuel procentsats uden ekstra reguleringsrækker', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuel procentsats',
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'base', dato: undefined, procent: 0 },
+        ],
+      },
+    });
+
+    expect(hasError(values, 'manuel procentsats')).toBe(false);
+  });
+
+  it('fanger delvist udfyldte manuelle procentsatsrækker', () => {
+    const makeManualProcentsats = (
+      row: ErstatningsopgoerelseValues['eoAngivetLoenLoenudvikling']['loenudviklingManuelProcentsatsTableData'][number]
+    ): ErstatningsopgoerelseValues => makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuel procentsats',
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'base', dato: undefined, procent: 0 },
+          row,
+        ],
+      },
+    });
+
+    expect(hasError(makeManualProcentsats({ id: 'missing-date', dato: undefined, procent: 10 }), 'Dato skal udfyldes')).toBe(true);
+    expect(hasError(makeManualProcentsats({ id: 'missing-pct', dato: toISODateString('2025-01-01'), procent: undefined }), 'Procent skal udfyldes')).toBe(true);
+    expect(hasError(makeManualProcentsats({ id: 'ok', dato: toISODateString('2025-01-01'), procent: 10 }), 'procentsatsrækker')).toBe(false);
+  });
+
   it('tillader særskilt startdato for regulering pr. ansættelsesforhold', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',

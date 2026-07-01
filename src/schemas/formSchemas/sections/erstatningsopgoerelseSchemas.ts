@@ -115,6 +115,14 @@ export const loenudviklingManuelRowSchema = z.object({
 
 export type LoenudviklingManuelRow = z.infer<typeof loenudviklingManuelRowSchema>;
 
+export const loenudviklingManuelProcentsatsRowSchema = z.object({
+  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  dato: tableIsoDateCellString,
+  procent: percentageDecimal,
+}).strict();
+
+export type LoenudviklingManuelProcentsatsRow = z.infer<typeof loenudviklingManuelProcentsatsRowSchema>;
+
 const aesAfgoerelserSchema = z.object({
   varigeMenAfgorelse: jaNejEnum.default('Nej'),
   menAfgoerelseDato: optionalIsoDateString,
@@ -267,6 +275,7 @@ const createLoenudviklingOgSatserSchema = <TLoenPaaHelligdage extends z.ZodTypeA
   loenudviklingKRLSatstabel: z.preprocess(normalizeEmptyToUndefined, krlSatstabelEnum.optional()),
   loenudviklingManuelNavn: optionalString,
   loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
+  loenudviklingManuelProcentsatsTableData: z.array(loenudviklingManuelProcentsatsRowSchema).default([]),
   offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
   offentligLoenTrin: offentligLoenTrinSchema,
   offentligLoenGruppe: offentligLoenGruppeSchema,

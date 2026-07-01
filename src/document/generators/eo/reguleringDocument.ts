@@ -43,6 +43,7 @@ import {
 import type { DanishDateString } from '../../../types/branded';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../layout/documentFormatUtils';
+import { ILON12_DISCONTINUED_NOTE } from './reguleringNotes';
 
 type ReguleringDocumentParams = Readonly<{
   overenskomstLabel: string;
@@ -426,6 +427,10 @@ export const generateReguleringDocument = (params: ReguleringDocumentParams): vo
     const startY = writer.getY();
     const nextY = addReguleringTable(doc, tableData.columns, tableData.rows, startY);
     writer.setY(nextY);
+  }
+
+  if (loenudviklingBasis === 'Statistik' && resolveStatistikModelId(statistikModelLabel) === 'ILON12') {
+    writer.writeWrappedText(ILON12_DISCONTINUED_NOTE);
   }
 
   writer.addFooter();

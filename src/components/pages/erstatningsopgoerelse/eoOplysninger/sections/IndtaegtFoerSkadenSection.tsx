@@ -11,6 +11,7 @@ import StyledTextField from '../../../../inputs/StyledTextField';
 import StyledIntegerField from '../../../../inputs/StyledIntegerField';
 import BeregningsperiodeFerieTable from '../../../../tables/BeregningsperiodeFerieTable';
 import LoenudviklingManuelTable from '../../../../tables/LoenudviklingManuelTable';
+import LoenudviklingManuelProcentsatsTable from '../../../../tables/LoenudviklingManuelProcentsatsTable';
 import { CellInvalidDraftScopeProvider } from '../../../../../contexts/CellInvalidDraftScopeContext';
 import { CELL_TABLE_IDS } from '../../../../../config/cellInvalidDraftScopes';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
@@ -60,6 +61,7 @@ export default function IndtaegtFoerSkadenSection() {
     handleLoenudviklingKRLSatstabelChange,
     handleLoenudviklingManuelNavnCommit,
     handleLoenudviklingManuelTableChange,
+    handleLoenudviklingManuelProcentsatsTableChange,
     handleLoenudviklingManuelInputErrorChange,
     loenudviklingBaseDateDisplay,
     loenudviklingBaseDateISO,
@@ -328,6 +330,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
                       <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
                       <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
+                      <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
                       <MenuItem value="Ingen">Ingen</MenuItem>
                     </StyledDropdown>
                   </Box>
@@ -609,6 +612,22 @@ export default function IndtaegtFoerSkadenSection() {
                       baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadedato er ikke udfyldt' : undefined}
                       useSmallFont={true}
                     />
+                    </CellInvalidDraftScopeProvider>
+                  </Box>
+                ) : null}
+
+                {loenudviklingBasis === 'Manuel procentsats' ? (
+                  <Box sx={{ mt: 1 }}>
+                    <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoAngivetLoenudviklingManuelProcentsats}>
+                      <LoenudviklingManuelProcentsatsTable
+                        tableData={eoLoenudvikling.loenudviklingManuelProcentsatsTableData}
+                        onTableDataChange={handleLoenudviklingManuelProcentsatsTableChange}
+                        onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
+                        baseDateDisplay={loenudviklingBaseDateDisplay}
+                        baseDateISO={loenudviklingBaseDateISO}
+                        baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadedato er ikke udfyldt' : undefined}
+                        useSmallFont={true}
+                      />
                     </CellInvalidDraftScopeProvider>
                   </Box>
                 ) : null}

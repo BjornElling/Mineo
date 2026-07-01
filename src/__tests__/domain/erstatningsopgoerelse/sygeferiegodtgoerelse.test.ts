@@ -52,6 +52,7 @@ const createEmployment = (
   offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
   indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
   ...patch,
+  loenudviklingManuelProcentsatsTableData: patch.loenudviklingManuelProcentsatsTableData ?? [],
 });
 
 describe('computeSygeferiegodtgoerelse', () => {

@@ -86,7 +86,7 @@ describe('LoenudviklingManuelTable fokus-gendannelse', () => {
     expect(pensionInput).toHaveValue('9,00 %');
   });
 
-  it('viser placeholder "0 %" for ikke-udfyldte base-procentfelter, men 0,00 % for eksplicit nul', () => {
+  it('viser placeholder "0,00 %" for ikke-udfyldte base-procentfelter, men 0,00 % for eksplicit nul', () => {
     render(
       <LoenudviklingManuelTable
         tableData={[
@@ -106,7 +106,7 @@ describe('LoenudviklingManuelTable fokus-gendannelse', () => {
 
     // Ikke-udfyldt felt: tom værdi, men placeholder vises i stedet for et tomt felt.
     expect(fritvalgInput).toHaveValue('');
-    expect(fritvalgInput).toHaveAttribute('placeholder', '0 %');
+    expect(fritvalgInput).toHaveAttribute('placeholder', '0,00 %');
 
     // Eksplicit nul må ikke kollapse til placeholder.
     expect(shSoInput).toHaveValue('0,00 %');

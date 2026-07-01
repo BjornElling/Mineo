@@ -178,6 +178,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     handleEoAnciennitetstillaegSatsCommit,
     handleLoenudviklingManuelNavnCommit,
     handleLoenudviklingManuelTableChange,
+    handleLoenudviklingManuelProcentsatsTableChange,
     handleLoenudviklingManuelInputErrorChange,
   } = useEoLoenudviklingHandlers({ updateEoLoenudvikling, reportDynamicFieldError });
 
@@ -515,6 +516,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     handleEoAnciennitetstillaegSatsCommit,
     handleLoenudviklingManuelNavnCommit,
     handleLoenudviklingManuelTableChange,
+    handleLoenudviklingManuelProcentsatsTableChange,
     handleLoenudviklingManuelInputErrorChange,
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,

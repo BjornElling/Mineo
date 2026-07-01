@@ -43,6 +43,7 @@ import {
 } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
+import { buildManuelProcentsatsEntries } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
@@ -239,6 +240,50 @@ const buildManualEntries = (args: Readonly<{
   });
 
   return { referenceValue, entries };
+};
+
+const buildManualProcentsatsEntries = (args: Readonly<{
+  af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+  eoFra: ISODateString;
+  eoTil: ISODateString;
+  referenceIso: ISODateString;
+  shDageSet: ReadonlySet<ISODateString>;
+  ferieDageSet: ReadonlySet<ISODateString>;
+}>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
+  const manualEntries = buildManuelProcentsatsEntries({
+    anvendtReguleringsdato: args.referenceIso,
+    rows: args.af.loenudviklingManuelProcentsatsTableData ?? [],
+  });
+  if (manualEntries.length === 0) return null;
+
+  const dates = new Set<ISODateString>([args.referenceIso]);
+  for (const entry of manualEntries) {
+    if (entry.startIso >= args.eoFra && entry.startIso <= args.eoTil) dates.add(entry.startIso);
+  }
+
+  const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
+  const entries = sortedDates.flatMap((iso, index) => {
+    const entry = manualEntries
+      .filter((candidate) => candidate.startIso <= iso)
+      .sort((a, b) => b.startIso.localeCompare(a.startIso))[0];
+    if (!entry) return [];
+    const tidsenhed = getTidsenhedsvaerdier(index, sortedDates, args.eoTil, args.shDageSet, args.ferieDageSet);
+    return [{
+      effectiveFrom: iso,
+      grundloen: entry.indeks,
+      feriePct: 0,
+      shSoPct: 0,
+      fritvalgPct: 0,
+      storeBededagPct: 0,
+      pensionPct: 0,
+      packageValue: entry.indeks,
+      index: entry.indeks,
+      arbejdsdage: tidsenhed.arbejdsdage,
+      maaneder: tidsenhed.maaneder,
+    } satisfies IndeksEntry];
+  });
+
+  return { referenceValue: 100, entries };
 };
 
 const buildStatistikEntries = (args: Readonly<{
@@ -960,13 +1005,15 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const built =
       grundlag === 'Manuelt angivet'
         ? buildManualEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
-        : grundlag === 'Statistik'
-          ? buildStatistikEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
-          : grundlag === 'KRL satstabel'
-            ? buildKrlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
-            : grundlag === 'KL-lønaftaler'
-              ? buildKlLoenaftalerEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
-              : null;
+        : grundlag === 'Manuel procentsats'
+          ? buildManualProcentsatsEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+          : grundlag === 'Statistik'
+            ? buildStatistikEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+            : grundlag === 'KRL satstabel'
+              ? buildKrlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+              : grundlag === 'KL-lønaftaler'
+                ? buildKlLoenaftalerEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+                : null;
     if (!built || built.entries.length === 0) {
       const shouldKeepPlaceholder =
         (grundlag === 'Statistik'

@@ -15,6 +15,7 @@ import StyledToggleSwitch from '../../../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../../../inputs/StyledIntegerField';
 import StandardLoenTable from '../../../tables/StandardLoenTable';
 import LoenudviklingManuelTable from '../../../tables/LoenudviklingManuelTable';
+import LoenudviklingManuelProcentsatsTable from '../../../tables/LoenudviklingManuelProcentsatsTable';
 import { CellInvalidDraftScopeProvider } from '../../../../contexts/CellInvalidDraftScopeContext';
 import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
 import FloatingActionButton from '../../../ui/FloatingActionButton';
@@ -25,10 +26,7 @@ import {
   type ErstatningsopgoerelseValues,
 } from '../../../../schemas/formSchemas';
 import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
-import type { ISODateString } from '../../../../types/branded';
-import { parseISODate } from '../../../../types/branded';
-import { formatDanishDate } from '../../../../utils/dateUtils';
-import { formatIsoDateLong } from '../../../../utils/dateFormatting';
+import { resolveSatserHeading } from './resolveSatserHeading';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import {
   getOverenskomstMetaById,
@@ -59,42 +57,6 @@ const getCheckedJaNej = (value: 'Ja' | 'Nej'): boolean => value === 'Ja';
 const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: string }): string => {
   if (!interval) return '';
   return `${interval.fraDato} - ${interval.tilDato}`;
-};
-
-const formatIsoDateShortLabel = (value: ISODateString | undefined): string | undefined => {
-  if (!value) return undefined;
-  const parsed = parseISODate(value);
-  if (!parsed) return undefined;
-  return formatDanishDate(parsed);
-};
-
-export const resolveSatserHeading = (params: Readonly<{
-  anvendtReguleringsdato: ISODateString | undefined;
-  skadedato: ISODateString | undefined;
-  skadestype: string | undefined;
-  beregningsperiodeTil: ISODateString | undefined;
-}>): string => {
-  const { anvendtReguleringsdato, skadedato, skadestype, beregningsperiodeTil } = params;
-  if (!anvendtReguleringsdato) return 'Satser';
-
-  const shortDate = formatIsoDateShortLabel(anvendtReguleringsdato);
-  const longDate = formatIsoDateLong(anvendtReguleringsdato);
-
-  if (skadedato && anvendtReguleringsdato === skadedato && shortDate) {
-    return skadestype === 'Erhvervssygdom'
-      ? `Satser på anmeldelsesdatoen (${shortDate})`
-      : `Satser på skadedatoen (${shortDate})`;
-  }
-
-  if (beregningsperiodeTil && anvendtReguleringsdato === beregningsperiodeTil && shortDate) {
-    return `Satser ved beregningsperiodens udløb (${shortDate})`;
-  }
-
-  if (longDate) {
-    return `Satser den ${longDate}`;
-  }
-
-  return 'Satser';
 };
 
 const getOffentligLoenEkstraGrundloenSuffix = (
@@ -171,6 +133,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     handleLoenudviklingStatistikModelChange,
     handleLoenudviklingKRLSatstabelChange,
     handleLoenudviklingManuelTableChange,
+    handleLoenudviklingManuelProcentsatsTableChange,
     handleManuelReguleringInputErrorChange,
     handleFilterChange,
     handleMoveUp,
@@ -690,6 +653,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 basisrækkens tillægsprocenter op (de angives ikke ovenfor), og reguleringen bruger
                 dem — modsat de øvrige strategier, der neutraliserer tillæg i Beløb-tilstand. */}
             <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
+            <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
             <MenuItem value="Ingen">Ingen</MenuItem>
           </StyledDropdown>
         </Box>
@@ -842,13 +806,16 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 ? undefined
                 : anvendtReguleringsdato === skadedato
                   ? (skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
-                  : (
-                      beregnesUdFra === 'Beregningsperiode'
-                      && anvendtReguleringsdato === tafBeregningsperiodeTil
-                      && af.saerligFraDatoRegulering === undefined
-                    )
-                    ? 'Beregningsperiode slutdato'
-                    : undefined;
+                  // Manuelt indtastet dato fra "Evt. særlig fra-dato for regulering" (≠ skadedato).
+                  : af.saerligFraDatoRegulering !== undefined && anvendtReguleringsdato === af.saerligFraDatoRegulering
+                    ? 'Manuelt angivet reguleringsdato'
+                    : (
+                        beregnesUdFra === 'Beregningsperiode'
+                        && anvendtReguleringsdato === tafBeregningsperiodeTil
+                        && af.saerligFraDatoRegulering === undefined
+                      )
+                      ? 'Beregningsperiode slutdato'
+                      : undefined;
             return (
               <>
                 <Box className="row--label-right-hover">
@@ -880,6 +847,43 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 />
                 </CellInvalidDraftScopeProvider>
               </>
+            );
+          })()}
+        </Box>
+      ) : null}
+
+      {loenudviklingBasis === 'Manuel procentsats' ? (
+        <Box sx={{ mt: 1 }}>
+          {(() => {
+            const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
+            const baseDateTooltipText =
+              loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
+                ? undefined
+                : anvendtReguleringsdato === skadedato
+                  ? (skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
+                  // Manuelt indtastet dato fra "Evt. særlig fra-dato for regulering" (≠ skadedato).
+                  : af.saerligFraDatoRegulering !== undefined && anvendtReguleringsdato === af.saerligFraDatoRegulering
+                    ? 'Manuelt angivet reguleringsdato'
+                    : (
+                        beregnesUdFra === 'Beregningsperiode'
+                        && anvendtReguleringsdato === tafBeregningsperiodeTil
+                        && af.saerligFraDatoRegulering === undefined
+                      )
+                      ? 'Beregningsperiode slutdato'
+                      : undefined;
+            return (
+              <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoLoenudviklingManuelProcentsats} rowScope={af.id}>
+                <LoenudviklingManuelProcentsatsTable
+                  tableData={af.loenudviklingManuelProcentsatsTableData}
+                  onTableDataChange={handleLoenudviklingManuelProcentsatsTableChange(af.id)}
+                  onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
+                  baseDateDisplay={loenudviklingBaseDate.display}
+                  baseDateISO={loenudviklingBaseDate.iso}
+                  baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
+                  baseDateInfoTooltipText={baseDateTooltipText}
+                  useSmallFont={true}
+                />
+              </CellInvalidDraftScopeProvider>
             );
           })()}
         </Box>

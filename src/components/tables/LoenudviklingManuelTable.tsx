@@ -1,15 +1,9 @@
 import * as React from 'react';
-import { InputBase, Tooltip } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material/styles';
 
 import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import TablePercentInput from '../inputs/table/TablePercentInput';
 import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
-import { assignRef } from '../../utils/refUtils';
-import { useGridCoreApi } from './useGridCore';
-import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTypes';
-import { gridCellKey } from './gridCore/gridCoreUtils';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
@@ -29,9 +23,9 @@ import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatPercentDisplay } from '../../utils/percentDraftCore';
-import { DEFAULT_PERCENT_PLACEHOLDER } from '../../utils/percentInputUtils';
+import { TWO_DECIMAL_PERCENT_PLACEHOLDER } from '../../utils/percentInputUtils';
 import { INPUT_UNIT_SUFFIX, appendInputUnitSuffix, withInputUnitPlaceholderSuffix } from '../../utils/inputUnit';
-import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
+import { GridReadOnlyLockedCell as ReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 
 export type LoenudviklingManuelTableProps = Readonly<{
   tableData: LoenudviklingManuelRow[];
@@ -95,135 +89,12 @@ const parsePercentForSort = (raw: number | undefined): number | undefined => {
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : undefined;
 };
 
-/**
- * Skrivebeskyttet, fokuserbar grid-celle (basisrækkens dato- og procent-felter). Cellen er
- * registreret i grid-core som låst editor, så keyboard-navigation springer den over, men den
- * deltager stadig i fokus-rækkefølge og fejl-tooltip. Kalderen leverer den færdigformaterede
- * `displayValue` og justeringen, så date- og percent-varianten deler præcis samme implementering.
- */
-const ReadOnlyLockedCell = React.memo(
-  ({
-    gridCell,
-    displayValue,
-    align,
-    errorMessage,
-    infoTooltipText,
-    placeholder,
-    inputRef,
-    sx,
-  }: {
-    gridCell: GridCellCoord;
-    displayValue: string;
-    align: 'center' | 'right';
-    errorMessage?: string;
-    infoTooltipText?: string;
-    placeholder?: string;
-    inputRef?: React.Ref<HTMLInputElement>;
-    sx?: SxProps<Theme>;
-  }) => {
-    const grid = useGridCoreApi();
-    const inputElRef = React.useRef<HTMLInputElement | null>(null);
-
-    const showError = Boolean(errorMessage && errorMessage.trim() !== '');
-    const tooltipText = showError ? (errorMessage ?? '') : (infoTooltipText ?? '');
-
-    const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
-      return {
-        getElement: () => inputElRef.current,
-        getIsLocked: () => true,
-        // Locked: intet at committe, men handle-kontrakten kræver true (= "ingen pending commit").
-        commitCurrent: () => true,
-        clearAndCommit: () => {
-          // Locked: no-op
-        },
-        cancelEdit: () => {
-          grid.closeEditing();
-        },
-        prepareEditFromKey: () => false,
-        selectAll: () => {
-          // no-op
-        },
-      };
-    }, [grid]);
-
-    React.useEffect(() => {
-      grid.registerEditor(gridCell, editorHandle);
-      return () => {
-        grid.unregisterEditor(gridCell);
-      };
-    }, [editorHandle, grid, gridCell]);
-
-    const a11yErrorId = React.useId();
-    const a11yInputId = React.useId();
-    const htmlInputName = gridCellKey(gridCell);
-
-    return (
-      <Tooltip title={tooltipText} arrow placement="top" disableHoverListener={tooltipText.trim() === ''}>
-        <span style={{ display: 'block', width: '100%', height: '100%' }}>
-          <InputBase
-            inputRef={(el) => {
-              inputElRef.current = el;
-              assignRef(inputRef, el);
-            }}
-            value={displayValue}
-            readOnly
-            inputProps={{
-              id: a11yInputId,
-              name: htmlInputName,
-              readOnly: true,
-              inputMode: 'text',
-              'data-mineo-grid-locked': 'true',
-              'aria-describedby': showError ? a11yErrorId : undefined,
-            }}
-            placeholder={placeholder ?? ''}
-            sx={{
-              width: '100%',
-              height: '100%',
-              font: 'inherit',
-              fontSize: 'inherit',
-              fontFamily: 'inherit',
-              lineHeight: 'inherit',
-              color: 'inherit',
-              fontFeatureSettings: '"tnum"',
-              paddingLeft: '8px',
-              paddingRight: '8px',
-              borderRadius: '4px',
-              border: '1px solid',
-              borderColor: showError ? 'var(--color-input-border-error)' : 'transparent',
-              '&:focus-within': {
-                borderColor: 'var(--color-input-border-focus)',
-              },
-              '& .MuiInputBase-input': {
-                font: 'inherit',
-                fontSize: 'inherit',
-                lineHeight: 'inherit',
-                color: 'var(--mineo-color-grid-derived)',
-                textAlign: align,
-                cursor: 'default',
-                caretColor: 'transparent',
-              },
-              ...sx,
-            }}
-          />
-          {showError ? (
-            <span id={a11yErrorId} style={visuallyHiddenStyle}>
-              {errorMessage}
-            </span>
-          ) : null}
-        </span>
-      </Tooltip>
-    );
-  }
-);
-
-ReadOnlyLockedCell.displayName = 'ReadOnlyLockedCell';
-
 // Read-only spejl af en procentcelle: samme enheds-suffiks som de redigerbare felter (utils/inputUnit).
 const formatLockedPercentDisplay = (value: number | undefined): string =>
   appendInputUnitSuffix(formatPercentDisplay(value, true), INPUT_UNIT_SUFFIX.percent);
 
-// Placeholder for en tom låst procentcelle — matcher procentfelternes idle-placeholder ("0 %").
-const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(DEFAULT_PERCENT_PLACEHOLDER, INPUT_UNIT_SUFFIX.percent);
+// Placeholder for en tom låst procentcelle — matcher procentfelternes idle-placeholder ("0,00 %").
+const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(TWO_DECIMAL_PERCENT_PLACEHOLDER, INPUT_UNIT_SUFFIX.percent);
 
 const LoenudviklingManuelTable = React.memo(
   ({
@@ -512,6 +383,7 @@ const LoenudviklingManuelTable = React.memo(
                       gridCell={{ rowId: row.id, colIndex: 2 }}
                       undoFieldPathAliases={getUndoFieldPathAliases(row.id, 2)}
                       value={row.feriepenge}
+                      placeholder={TWO_DECIMAL_PERCENT_PLACEHOLDER}
                       onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value }, 2)}
                       onErrorChange={handleErrorChange(row.id, 'feriepenge')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
@@ -534,6 +406,7 @@ const LoenudviklingManuelTable = React.memo(
                       gridCell={{ rowId: row.id, colIndex: 3 }}
                       undoFieldPathAliases={getUndoFieldPathAliases(row.id, 3)}
                       value={row.shSoSats}
+                      placeholder={TWO_DECIMAL_PERCENT_PLACEHOLDER}
                       onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value }, 3)}
                       onErrorChange={handleErrorChange(row.id, 'shSoSats')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
@@ -556,6 +429,7 @@ const LoenudviklingManuelTable = React.memo(
                       gridCell={{ rowId: row.id, colIndex: 4 }}
                       undoFieldPathAliases={getUndoFieldPathAliases(row.id, 4)}
                       value={row.fritvalg}
+                      placeholder={TWO_DECIMAL_PERCENT_PLACEHOLDER}
                       onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value }, 4)}
                       onErrorChange={handleErrorChange(row.id, 'fritvalg')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
@@ -578,6 +452,7 @@ const LoenudviklingManuelTable = React.memo(
                       gridCell={{ rowId: row.id, colIndex: 5 }}
                       undoFieldPathAliases={getUndoFieldPathAliases(row.id, 5)}
                       value={row.agPension}
+                      placeholder={TWO_DECIMAL_PERCENT_PLACEHOLDER}
                       onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value }, 5)}
                       onErrorChange={handleErrorChange(row.id, 'agPension')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}

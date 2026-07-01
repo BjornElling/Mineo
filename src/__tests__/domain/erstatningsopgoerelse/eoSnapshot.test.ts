@@ -53,6 +53,7 @@ const createEmployment = (
   },
   indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
   ...patch,
+  loenudviklingManuelProcentsatsTableData: patch.loenudviklingManuelProcentsatsTableData ?? [],
 });
 
 describe('computeEoSnapshot', () => {
