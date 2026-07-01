@@ -104,10 +104,15 @@ const Renteberegning = React.memo(() => {
   );
 
   const handleDownloadOversigt = React.useCallback(
-    async (rows: readonly RenteOversigtRow[], beregningsdato: ISODateString) => {
+    async (
+      rows: readonly RenteOversigtRow[],
+      beregningsdato: ISODateString,
+      latestReferenceRateDate: ISODateString | null,
+    ) => {
       const result = await downloadRenteOversigtDokument({
         beregningsdato,
         rows,
+        latestReferenceRateDate,
         kommentarer: values.kommentarer,
         settings,
         persistedStamdata,

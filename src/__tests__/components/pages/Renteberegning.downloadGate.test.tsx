@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import RenteberegningTab from '../../../components/pages/renteberegning/RenteberegningTab';
 import ContentBoxFrame from '../../../components/layout/ContentBoxFrame';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
 import { rentekravDraftToCommittedRow } from '../../../domain/renteberegning/rentekravTableModel';
-import { referenceRates, surchargeRates } from '../../../data/interestRates';
+import { referenceRates, surchargeRates, type RateEntry } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 import { toISODateString } from '../../../types/branded';
 
@@ -46,6 +48,9 @@ const renderTab = (args: {
   draftRows: RentekravDraftRow[];
   committedById: ReadonlyMap<string, RentekravRow>;
   beregningsdato?: ReturnType<typeof toISODateString>;
+  referenceRates?: readonly RateEntry[];
+  surchargeRates?: readonly RateEntry[];
+  onDownloadOversigt?: ComponentProps<typeof RenteberegningTab>['onDownloadOversigt'];
 }) => {
   return render(
     <RenteberegningTab
@@ -61,10 +66,10 @@ const renderTab = (args: {
       committedRentekravById={args.committedById}
       onError={() => undefined}
       pdfErrorMessage={null}
-      referenceRates={referenceRates}
-      surchargeRates={surchargeRates}
+      referenceRates={args.referenceRates ?? referenceRates}
+      surchargeRates={args.surchargeRates ?? surchargeRates}
       ContentBoxComponent={ContentBoxFrame}
-      onDownloadOversigt={async () => undefined}
+      onDownloadOversigt={args.onDownloadOversigt ?? (async () => undefined)}
       oversigtErrorMessage={null}
       showOversigtBox
       documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
@@ -115,5 +120,26 @@ describe('Renteberegning download-gate (§2.4: udledt fra committed input)', () 
     });
 
     expect(getOversigtButton()).toBeEnabled();
+  });
+
+  it('sender seneste referenceperiode-slutdato med ved samlet oversigt', async () => {
+    const onDownloadOversigt = vi.fn(async () => undefined);
+    const committed = makeCommittedRow('r1', { belob: '1000,00', renterFra: '01-01-2024' });
+    renderTab({
+      draftRows: [makeDraftRow('r1', { belob: '1.000,00', renterFra: '01-01-2024' })],
+      committedById: new Map([['r1', committed]]),
+      beregningsdato: toISODateString('2024-07-01'),
+      referenceRates: [{ effectiveDate: toISODateString('2024-01-01'), ratePct: 1 }],
+      surchargeRates: [{ effectiveDate: toISODateString('2024-01-01'), ratePct: 8 }],
+      onDownloadOversigt,
+    });
+
+    await userEvent.click(getOversigtButton());
+
+    expect(onDownloadOversigt).toHaveBeenCalledWith(
+      [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: expect.any(Number) }],
+      toISODateString('2024-07-01'),
+      toISODateString('2024-06-30')
+    );
   });
 });

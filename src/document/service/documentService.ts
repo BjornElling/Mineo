@@ -431,11 +431,12 @@ export const downloadRenteDokument = async (params: Readonly<{
 export const downloadRenteOversigtDokument = async (params: Readonly<{
   beregningsdato: ISODateString;
   rows: ReadonlyArray<RenteOversigtRow>;
+  latestReferenceRateDate: ISODateString | null;
   kommentarer?: string;
   settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
-  const { beregningsdato, rows, kommentarer, settings, persistedStamdata } = params;
+  const { beregningsdato, rows, latestReferenceRateDate, kommentarer, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'renteberegning', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRenteOversigtDokument');
   if (preflightFailure) return preflightFailure;
@@ -443,7 +444,7 @@ export const downloadRenteOversigtDokument = async (params: Readonly<{
   try {
     const { generateRenteOversigtDocument } = await loadRenteOversigtDocumentModule();
     return await runSelectedDocumentFormat(settings, () => {
-      generateRenteOversigtDocument(beregningsdato, rows, { ...common, kommentarer });
+      generateRenteOversigtDocument(beregningsdato, rows, { ...common, kommentarer, latestReferenceRateDate });
     });
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-oversigt-PDF'), 'pdfService.downloadRenteOversigtDokument', error);

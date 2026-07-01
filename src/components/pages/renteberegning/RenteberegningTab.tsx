@@ -58,7 +58,11 @@ export interface RenteberegningTabProps {
   isMobile?: boolean;
   onDownloadAllSpecifikationer?: (contexts: RentekravPdfContextMap) => Promise<void>;
   downloadAllErrorMessage?: string | null;
-  onDownloadOversigt?: (rows: readonly RenteOversigtRow[], beregningsdato: ISODateString) => Promise<void>;
+  onDownloadOversigt?: (
+    rows: readonly RenteOversigtRow[],
+    beregningsdato: ISODateString,
+    latestReferenceRateDate: ISODateString | null,
+  ) => Promise<void>;
   oversigtErrorMessage?: string | null;
   showOversigtBox?: boolean;
   /**
@@ -162,13 +166,20 @@ const RenteberegningTab = React.memo(({
 
   const handleDownloadOversigt = React.useCallback(async () => {
     if (!onDownloadOversigt || beregningsdato === undefined) return;
+    let latestReferenceRateDate: ISODateString | null = null;
     const rows: RenteOversigtRow[] = Array.from(pdfContexts.values()).map((ctx) => ({
       beloeb: ctx.beloeb,
       renterFra: ctx.actualInterestDate,
       beregnetRente: ctx.calculatedInterest,
     }));
+    for (const ctx of pdfContexts.values()) {
+      if (ctx.latestReferenceRateDate === null) continue;
+      if (latestReferenceRateDate === null || ctx.latestReferenceRateDate > latestReferenceRateDate) {
+        latestReferenceRateDate = ctx.latestReferenceRateDate;
+      }
+    }
     if (rows.length === 0) return;
-    await onDownloadOversigt(rows, beregningsdato);
+    await onDownloadOversigt(rows, beregningsdato, latestReferenceRateDate);
   }, [onDownloadOversigt, pdfContexts, beregningsdato]);
 
   // Vis kun oversigts-linjen på desktop (kalderen sætter showOversigtBox).

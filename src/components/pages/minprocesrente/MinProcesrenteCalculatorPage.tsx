@@ -129,8 +129,14 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   const handleDownloadOversigt = React.useCallback(async (
     rows: readonly RenteOversigtRow[],
     beregningsdato: ISODateString,
+    latestReferenceRateDate: ISODateString | null,
   ) => {
-    const result = await downloadStandaloneRenteOversigtPdf({ beregningsdato, rows, kommentarer: values.kommentarer });
+    const result = await downloadStandaloneRenteOversigtPdf({
+      beregningsdato,
+      rows,
+      latestReferenceRateDate,
+      kommentarer: values.kommentarer,
+    });
     setOversigtErrorMessage(result.success ? null : result.error);
   }, [values.kommentarer]);
 

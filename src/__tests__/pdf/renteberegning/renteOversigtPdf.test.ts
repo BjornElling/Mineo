@@ -39,6 +39,30 @@ describe('writeRenteOversigtDocumentContent', () => {
     }).not.toThrow();
   });
 
+  it('skriver hypotetisk-advarsel med samme tekst som rente-specifikationen', () => {
+    const writer = createPdfChannelWriter();
+    const warningSpy = vi.spyOn(writer, 'writeBoldWrappedText');
+
+    writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [makeRow()], {
+      latestReferenceRateDate: toISODateString('2024-01-31'),
+    });
+
+    expect(warningSpy).toHaveBeenCalledWith(
+      'Der er kun fastsat procesrente frem til 31-01-2024. Beregning derefter er hypotetisk!'
+    );
+  });
+
+  it('udelader hypotetisk-advarsel når beregningsdatoen er dækket af procesrentesatser', () => {
+    const writer = createPdfChannelWriter();
+    const warningSpy = vi.spyOn(writer, 'writeBoldWrappedText');
+
+    writeRenteOversigtDocumentContent(writer, toISODateString('2024-01-31'), [makeRow()], {
+      latestReferenceRateDate: toISODateString('2024-01-31'),
+    });
+
+    expect(warningSpy).not.toHaveBeenCalled();
+  });
+
   it('kalder ikke addFooter eller save — det er kalderens ansvar', () => {
     const writer = createPdfChannelWriter();
     const saveSpy = vi.spyOn(writer, 'save');

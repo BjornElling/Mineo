@@ -20,6 +20,7 @@ const {
   mockReportSystemIssue,
   mockLoadSatserPdfModule,
   mockLoadRentePdfModule,
+  mockLoadRenteOversigtPdfModule,
   mockLoadReguleringPdfModule,
   mockLoadKRLPdfModule,
   mockLoadKlLoenaftalerPdfModule,
@@ -36,6 +37,7 @@ const {
   mockLoadSHDagePdfModule,
   mockGenerateSatserPdf,
   mockGenerateRentePdf,
+  mockGenerateRenteOversigtPdf,
   mockGenerateReguleringPdf,
   mockGenerateKRLPdf,
   mockGenerateKlLoenaftalerPdf,
@@ -58,6 +60,7 @@ const {
   mockReportSystemIssue: vi.fn(),
   mockLoadSatserPdfModule: vi.fn(),
   mockLoadRentePdfModule: vi.fn(),
+  mockLoadRenteOversigtPdfModule: vi.fn(),
   mockLoadReguleringPdfModule: vi.fn(),
   mockLoadKRLPdfModule: vi.fn(),
   mockLoadKlLoenaftalerPdfModule: vi.fn(),
@@ -74,6 +77,7 @@ const {
   mockLoadSHDagePdfModule: vi.fn(),
   mockGenerateSatserPdf: vi.fn(),
   mockGenerateRentePdf: vi.fn(),
+  mockGenerateRenteOversigtPdf: vi.fn(),
   mockGenerateReguleringPdf: vi.fn(),
   mockGenerateKRLPdf: vi.fn(),
   mockGenerateKlLoenaftalerPdf: vi.fn(),
@@ -101,6 +105,7 @@ vi.mock('../../../utils/systemIssueReporter', () => ({
 vi.mock('../../../document/service/documentLoader', () => ({
   loadSatserDocumentModule: mockLoadSatserPdfModule,
   loadRenteDocumentModule: mockLoadRentePdfModule,
+  loadRenteOversigtDocumentModule: mockLoadRenteOversigtPdfModule,
   loadReguleringDocumentModule: mockLoadReguleringPdfModule,
   loadKRLDocumentModule: mockLoadKRLPdfModule,
   loadKlLoenaftalerDocumentModule: mockLoadKlLoenaftalerPdfModule,
@@ -137,6 +142,7 @@ import { toISODateString } from '../../../types/branded';
 import {
   downloadSatserDokument,
   downloadRenteDokument,
+  downloadRenteOversigtDokument,
   downloadReguleringDokument,
   downloadKrlDokument,
   downloadKlLoenaftalerDokument,
@@ -166,6 +172,7 @@ beforeEach(() => {
   mockReportSystemIssue.mockReset();
   mockLoadSatserPdfModule.mockReset();
   mockLoadRentePdfModule.mockReset();
+  mockLoadRenteOversigtPdfModule.mockReset();
   mockLoadReguleringPdfModule.mockReset();
   mockLoadKRLPdfModule.mockReset();
   mockLoadKlLoenaftalerPdfModule.mockReset();
@@ -182,6 +189,7 @@ beforeEach(() => {
   mockLoadSHDagePdfModule.mockReset();
   mockGenerateSatserPdf.mockReset();
   mockGenerateRentePdf.mockReset();
+  mockGenerateRenteOversigtPdf.mockReset();
   mockGenerateReguleringPdf.mockReset();
   mockGenerateKRLPdf.mockReset();
   mockGenerateKlLoenaftalerPdf.mockReset();
@@ -202,6 +210,7 @@ beforeEach(() => {
   mockEoSnapshotToTafPerYearOpreguleretDocument.mockReset();
   mockLoadSatserPdfModule.mockImplementation(async () => ({ generateSatserDocument: mockGenerateSatserPdf }));
   mockLoadRentePdfModule.mockImplementation(async () => ({ generateRenteDocument: mockGenerateRentePdf }));
+  mockLoadRenteOversigtPdfModule.mockImplementation(async () => ({ generateRenteOversigtDocument: mockGenerateRenteOversigtPdf }));
   mockLoadReguleringPdfModule.mockImplementation(async () => ({ generateReguleringDocument: mockGenerateReguleringPdf }));
   mockLoadKRLPdfModule.mockImplementation(async () => ({ generateKRLDocument: mockGenerateKRLPdf }));
   mockLoadKlLoenaftalerPdfModule.mockImplementation(async () => ({ generateKlLoenaftalerDocument: mockGenerateKlLoenaftalerPdf }));
@@ -305,6 +314,27 @@ describe('downloadRenteDokument', () => {
       persistedStamdata: null,
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('downloadRenteOversigtDokument', () => {
+  it('videresender seneste procesrente-dato til oversigtsgeneratoren', async () => {
+    const result = await downloadRenteOversigtDokument({
+      beregningsdato: toISODateString('2024-02-01'),
+      rows: [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 12.5 }],
+      latestReferenceRateDate: toISODateString('2024-01-31'),
+      settings,
+      persistedStamdata: null,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockGenerateRenteOversigtPdf).toHaveBeenCalledWith(
+      toISODateString('2024-02-01'),
+      [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 12.5 }],
+      expect.objectContaining({
+        latestReferenceRateDate: toISODateString('2024-01-31'),
+      })
+    );
   });
 });
 

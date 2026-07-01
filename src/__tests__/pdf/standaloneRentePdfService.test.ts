@@ -146,6 +146,7 @@ describe('downloadStandaloneRenteOversigtPdf', () => {
     const result = await downloadStandaloneRenteOversigtPdf({
       beregningsdato: toISODateString('2024-07-01'),
       rows: [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 60.87 }],
+      latestReferenceRateDate: toISODateString('2024-06-30'),
       kommentarer: 'Oversigt',
     });
 
@@ -157,6 +158,7 @@ describe('downloadStandaloneRenteOversigtPdf', () => {
         visBrevhoved: false,
         stamdata: null,
         kommentarer: 'Oversigt',
+        latestReferenceRateDate: toISODateString('2024-06-30'),
         metadata: {
           subject: 'Renteberegning',
           author: 'minprocesrente.dk',

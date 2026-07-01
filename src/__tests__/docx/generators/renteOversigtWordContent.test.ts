@@ -42,4 +42,17 @@ describe('renteOversigt → Word-indhold', () => {
     expect(text).toContain('Beregningsprincipper');
     expect(text).toContain('Rente beregnes i henhold til renteloven.');
   });
+
+  it('skriver hypotetisk-advarsel til .docx når beregningsdatoen ligger efter seneste procesrente', async () => {
+    const { documentXml } = await renderWordDocument(() => {
+      generateRenteOversigtDocument(toISODateString('2024-02-01'), [makeRow()], {
+        latestReferenceRateDate: toISODateString('2024-01-31'),
+      });
+    });
+    const text = xmlToPlainText(documentXml);
+
+    expect(text).toContain(
+      'Der er kun fastsat procesrente frem til 31-01-2024. Beregning derefter er hypotetisk!'
+    );
+  });
 });

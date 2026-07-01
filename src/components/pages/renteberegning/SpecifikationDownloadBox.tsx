@@ -25,7 +25,7 @@ const SpecifikationDownloadBox = React.memo(({
 
   return (
     <ContentBoxComponent className="content-box">
-      <Typography className="section-header">Download specifikationer</Typography>
+      <Typography className="section-header">Specifikationer</Typography>
       {errorMessage && (
         <Box className="row--label-right-hover">
           <Typography className="row--text" sx={{ color: 'error.main' }}>

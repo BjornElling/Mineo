@@ -73,9 +73,10 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
 export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
   beregningsdato: ISODateString;
   rows: ReadonlyArray<RenteOversigtRow>;
+  latestReferenceRateDate?: ISODateString | null;
   kommentarer?: string;
 }>): Promise<DocumentDownloadResult> => {
-  const { beregningsdato, rows, kommentarer } = params;
+  const { beregningsdato, rows, latestReferenceRateDate = null, kommentarer } = params;
 
   if (rows.length === 0) {
     return { success: false, error: 'Ingen renteberegninger at downloade' };
@@ -88,6 +89,7 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
         visBrevhoved: false,
         stamdata: null,
         kommentarer,
+        latestReferenceRateDate,
         metadata: MINPROCESRENTE_PDF_METADATA,
       });
     }, { createWriter: createPdfChannelWriter });

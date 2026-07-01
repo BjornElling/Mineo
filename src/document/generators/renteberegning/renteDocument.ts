@@ -47,6 +47,22 @@ const RIGHT_ALIGNED_INSET_RENTESATS_MM = 8;
 const COLUMN_INDEX_RENTEDAGE = 1;
 const COLUMN_INDEX_RENTESATS = 2;
 
+export const addHypotheticalInterestWarning = (
+  writer: DocumentWriter,
+  endDate: Date,
+  latestReferenceRateDate: Date | null,
+): boolean => {
+  if (latestReferenceRateDate === null || endDate <= latestReferenceRateDate) {
+    return false;
+  }
+
+  writer.writeBoldWrappedText(
+    `Der er kun fastsat procesrente frem til ${formatDanishDate(latestReferenceRateDate)}. Beregning derefter er hypotetisk!`
+  );
+  writer.addSectionSpacer();
+  return true;
+};
+
 export const buildRenteDocumentFilename = (
   baseTitle: string,
   journalnr?: string
@@ -101,8 +117,6 @@ const addSpecificationTable = (
     ]);
   }
 
-  const isHypothetical = latestReferenceRateDate !== null && endDate > latestReferenceRateDate;
-
   const totalRow = createDocumentTableSummedTotalRow(
     'Samlet rentebeløb',
     periods.map((period) => period.interest),
@@ -120,11 +134,7 @@ const addSpecificationTable = (
 
   let tableStartY = startY;
 
-  if (isHypothetical && latestReferenceRateDate !== null) {
-    writer.writeBoldWrappedText(
-      `Der er kun fastsat procesrente frem til ${formatDanishDate(latestReferenceRateDate)}. Beregning derefter er hypotetisk!`
-    );
-    writer.addSectionSpacer();
+  if (addHypotheticalInterestWarning(writer, endDate, latestReferenceRateDate)) {
     tableStartY = writer.getY();
   }
 

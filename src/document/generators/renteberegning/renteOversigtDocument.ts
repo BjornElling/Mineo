@@ -27,8 +27,8 @@ import {
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import type { ISODateString } from '../../../types/branded';
-import { addCalculationPrinciples } from './renteDocument';
+import { parseISODate, type ISODateString } from '../../../types/branded';
+import { addCalculationPrinciples, addHypotheticalInterestWarning } from './renteDocument';
 
 const PDF_TITLE = 'Procesrente – oversigt';
 
@@ -44,6 +44,7 @@ export type RenteOversigtRow = Readonly<{
 type RenteOversigtDocumentOptions = DocumentCommonOptions & Readonly<{
   stamdata?: DocumentStamdata | null;
   kommentarer?: string;
+  latestReferenceRateDate?: ISODateString | null;
   metadata?: StandardDocumentMetadata;
 }>;
 
@@ -59,9 +60,11 @@ const addDateLine = (writer: DocumentWriter, beregningsdato: ISODateString): voi
 const addOversigtTable = (
   writer: DocumentWriter,
   rows: ReadonlyArray<RenteOversigtRow>,
+  beregningsdato: ISODateString,
+  latestReferenceRateDate: ISODateString | null,
 ): void => {
   const doc = writer.getDoc();
-  const startY = writer.getY();
+  let startY = writer.getY();
   const tableData: RowInput[] = [];
 
   tableData.push([
@@ -91,6 +94,14 @@ const addOversigtTable = (
   const totalRowIndex = totalRow ? tableData.length : null;
   if (totalRow) {
     tableData.push(totalRow.row);
+  }
+
+  const endDate = parseISODate(beregningsdato);
+  const latestRateDate = latestReferenceRateDate ? parseISODate(latestReferenceRateDate) : undefined;
+  if (endDate && latestRateDate) {
+    if (addHypotheticalInterestWarning(writer, endDate, latestRateDate)) {
+      startY = writer.getY();
+    }
   }
 
   const finalY = renderDocumentTable({
@@ -125,7 +136,7 @@ export const writeRenteOversigtDocumentContent = (
     throw new Error('Ingen renteberegninger fundet for oversigt');
   }
 
-  const { visBrevhoved = false, stamdata = null, kommentarer } = options;
+  const { visBrevhoved = false, stamdata = null, kommentarer, latestReferenceRateDate = null } = options;
 
   if (visBrevhoved) {
     writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
@@ -133,7 +144,7 @@ export const writeRenteOversigtDocumentContent = (
 
   writer.writeTitle(PDF_TITLE);
   addDateLine(writer, beregningsdato);
-  addOversigtTable(writer, rows);
+  addOversigtTable(writer, rows, beregningsdato, latestReferenceRateDate);
   addCalculationPrinciples(writer, kommentarer);
 };
 
