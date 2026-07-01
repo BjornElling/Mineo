@@ -29,7 +29,7 @@ import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engine
 import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudviklingKilde, resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
+import { isFeriePctRequiredForBlocking } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatserGate';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import {
   getFirstIndtastedeTafFraDato,
@@ -803,16 +803,13 @@ function validateLoenudviklingsKravForAktivKilde(
     }
     if (grundlag === 'Ingen') return;
 
-    // Beløb-tilstand bruger ikke satserne (tillæg indtastes som beløb), så feriePct kræves ikke.
-    const kræverFeriePct = af.tillaegAngivesSom !== 'beloeb'
-      && values.beregnesUdFra === 'Beregningsperiode'
-      && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
-
     if (grundlag === 'Overenskomst') {
       if (!af.overenskomstId) {
         errors.push({ path: path('overenskomstId'), message: 'Overenskomst skal vælges', severity: 'error' });
       }
-      if (kræverFeriePct && !Number.isFinite(af.feriePct)) {
+      // Ét sandt sted for feriegodtgørelses-kravet: samme prædikat driver den synlige
+      // `satserSkadestidspunkt`-fejlrække, så en blokeret download altid har en besked i boksen.
+      if (isFeriePctRequiredForBlocking(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }
       if (!af.loenPaaHelligdage) {
@@ -840,10 +837,10 @@ function validateLoenudviklingsKravForAktivKilde(
     errors.push(...validateLoenudviklingDataCoverage(values, af, index, path, options));
 
     // 'Manuelt angivet' er tilgængelig i begge tilstande. Kravet om grundløn > 0 på alle aktive
-    // rækker gælder ens; feriePct kræves kun i Procent-tilstand (kræverFeriePct er allerede false i
-    // Beløb-tilstand, hvor basisrækkens tillæg angives direkte i tabellen).
+    // rækker gælder ens; feriePct kræves kun i Procent-tilstand (isFeriePctRequiredForBlocking er
+    // allerede false i Beløb-tilstand, hvor basisrækkens tillæg angives direkte i tabellen).
     if (grundlag === 'Manuelt angivet') {
-      if (kræverFeriePct && !Number.isFinite(af.feriePct)) {
+      if (isFeriePctRequiredForBlocking(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }
 

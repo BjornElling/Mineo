@@ -219,3 +219,72 @@ describe('EOberegningTab EET-issues', () => {
     expect(downloadTafKravGrafDokumentMock).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Sikkerhedsnet-garanti: download må ALDRIG blokeres uden en synlig fejl i "Fejl og advarsler".
+ *
+ * En autoritativt-blokerende validerings-invariant (kilde: `erstatningsopgoerelseValidator`) blokerer
+ * download. Den forventes reproduceret som en synlig `collectAllEoRows`-række, men hvis en row-builder
+ * ikke dækker reglen — eller `eoSnapshot.data` er null, så en resultat-afhængig række ikke kan dannes —
+ * skal invariantens besked i stedet vises af sikkerhedsnettet i view-modellen. Her mockes
+ * `collectAllEoRows` til tom, så vi rammer netop denne "boksen ville ellers være tom"-tilstand.
+ */
+const makeValidationInvariant = (message: string): EoInvariant => ({
+  id: 'validation:regulerOffentligeYdelser',
+  passed: false,
+  severity: 'error',
+  source: 'validation',
+  message,
+  evidence: ['regulerOffentligeYdelser'],
+  blocksAuthoritativeComputation: true,
+  blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
+});
+
+describe('EOberegningTab download-blokerings-sikkerhedsnet', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    collectAllEoRowsMock.mockReset();
+    collectAllEoRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
+    navigateMock.mockReset();
+    eoSnapshotToEoDocumentMock.mockReset();
+    eoSnapshotToTafPerYearDocumentMock.mockReset();
+    eoSnapshotToTafPerYearOpreguleretDocumentMock.mockReset();
+    eoSnapshotToTafKravGrafDocumentMock.mockReset();
+    eoSnapshotToEoDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+    eoSnapshotToTafPerYearDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+    eoSnapshotToTafPerYearOpreguleretDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+    eoSnapshotToTafKravGrafDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+  });
+
+  it('viser en blokerende validerings-invariant i boksen, når ingen række ellers forklarer blokeringen', () => {
+    const message = 'Offentlige ydelser kan ikke reguleres efter 2027, fordi reguleringssatsen mangler';
+    renderTab({ invariants: [makeValidationInvariant(message)] });
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+  });
+
+  it('dubler IKKE beskeden, når collectAllEoRows allerede giver en synlig fejlrække', () => {
+    const invariantMessage = 'Offentlige ydelser kan ikke reguleres efter 2027, fordi reguleringssatsen mangler';
+    collectAllEoRowsMock.mockReturnValue({
+      errors: [
+        {
+          id: 'loenindkomst.af-1.satserSkadestidspunkt',
+          label: 'Satser på skadestidspunktet',
+          displayValue: 'Fejl (Feriegodtgørelse/-tillæg er ikke udfyldt)',
+          status: 'error',
+          navigation: { kind: 'unsupported', reason: 'test', displayPath: 'Lønindkomst' },
+        },
+      ],
+      warnings: [],
+      allRows: [],
+      relevantRows: [],
+    });
+
+    renderTab({ invariants: [makeValidationInvariant(invariantMessage)] });
+
+    // Den målrettede rækkefejl vises …
+    expect(screen.getByText(/Feriegodtgørelse\/-tillæg er ikke udfyldt/)).toBeInTheDocument();
+    // … og sikkerhedsnettet dublerer ikke invariant-beskeden.
+    expect(screen.queryByText(invariantMessage)).not.toBeInTheDocument();
+  });
+});

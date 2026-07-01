@@ -1,24 +1,80 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
+import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { isWithinTolerance } from '../../../utils/numberComparison';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../config/indskudteLoentillaeg';
 import { resolveOverenskomstSatsBindings } from '../helpers/loenindkomstSatser';
+import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 
 /**
- * Satser-blokerings-gate for et lønindkomst-ansættelsesforhold: returnerer navnet på det første
- * sats-felt, der afviger fra den forventede (overenskomst-/lov-bundne) sats per den anvendte
- * reguleringsdato — eller null. Driver `loenindkomst.<af>.satserSkadestidspunkt`-rækken i den
- * autoritative række-evaluerings-motor (`domain/eoRowEvaluation/`, jf. B9), hvis `error`-rækker
- * gater produktions-PDF-download — så blokeringen er ÉN sandhedskilde.
+ * Satser-blokerings-gate for et lønindkomst-ansættelsesforhold: returnerer det første sats-felt, der
+ * enten mangler en påkrævet værdi eller afviger fra den forventede (overenskomst-/lov-bundne) sats per
+ * den anvendte reguleringsdato — eller null. Driver `loenindkomst.<af>.satserSkadestidspunkt`-rækken i
+ * den autoritative række-evaluerings-motor (`domain/eoRowEvaluation/`, jf. B9), hvis `error`-rækker
+ * gater produktions-PDF-download — så blokeringen er ÉN sandhedskilde og altid har en synlig fejlrække.
  *
  * Genbruges af motor-helperen `eoRowIndkomstModel.ts` (adfærdsbevarende udskillelse).
  *
  * NB: Dette overlapper delvist med `loenindkomstSatsValidation.validateAllSatserForAnsaettelsesforhold`
  * (A1) — sidstnævnte driver felt-fejl i Loenindkomst-VM'en og dækker IKKE Store Bededagstillæg.
  * De to satser-valideringer bør på sigt konvergere; det er en separat, adfærds-følsom opgave.
+ *
+ * Feriegodtgørelses-kravet (`isFeriePctRequiredForBlocking`) deles nu ORDRET med
+ * `erstatningsopgoerelseValidator`, så validatorens blokerende invariant og denne rækkes fejl aldrig
+ * kan drifte fra hinanden (ellers ville download kunne blokeres uden en besked i boksen).
  */
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+
+/**
+ * Ét sandt sted for "kræver dette ansættelsesforhold en udfyldt feriegodtgørelses-/tillægs-procent
+ * for at den autoritative beregning må køre?".
+ *
+ * Betingelsen deles ORDRET med `erstatningsopgoerelseValidator` (som konverterer den manglende sats
+ * til en blokerende snapshot-invariant → blokerer download) OG med række-evaluerings-motoren
+ * (`resolveSatserErrorField` → `loenindkomst.<af>.satserSkadestidspunkt`-rækken → "Fejl og advarsler"-
+ * boksen). Hvis de to drev betingelsen hver for sig, kunne de drifte fra hinanden, så download blev
+ * blokeret UDEN en synlig fejl i boksen. Denne fælles kilde forhindrer netop det.
+ *
+ * Beløb-tilstand bruger ikke satserne (tillæg indtastes som beløb), og feriegodtgørelsen kræves kun,
+ * når lønudviklingen reguleres via overenskomst ELLER manuelt angivet grundlag (validatoren håndhæver
+ * kravet i begge disse grene, men IKKE for 'Statistik'/'KRL satstabel'/'Ingen'), og der faktisk er
+ * indtastet lønoplysninger i beregningsperioden.
+ */
+export const isFeriePctRequiredForBlocking = (
+  af: Pick<
+    Ansaettelsesforhold,
+    'tillaegAngivesSom' | 'loenudviklingBeregningsgrundlag' | 'indtaegtsoplysningerTableData'
+  >,
+  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra']
+): boolean => {
+  const grundlag = af.loenudviklingBeregningsgrundlag;
+  const grundlagKraeverFeriePct = grundlag === 'Overenskomst' || grundlag === 'Manuelt angivet';
+  return (
+    af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB
+    && beregnesUdFra === 'Beregningsperiode'
+    && grundlagKraeverFeriePct
+    && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? [])
+  );
+};
+
+/**
+ * En blokerende sats-fejl for et ansættelsesforhold: hvilket sats-felt der fejler + den selvstændige
+ * besked, der vises i "Fejl og advarsler"-boksen. `kind` skelner "ikke udfyldt" (manglende
+ * påkrævet værdi) fra "afvigelse" (forkert indtastet værdi), så beskeden ikke fejlagtigt påstår, at
+ * en tom værdi er "forkert indtastet".
+ */
+export type SatserError = Readonly<{
+  field: string;
+  message: string;
+  kind: 'missing' | 'deviation';
+}>;
+
+const deviation = (field: string): SatserError => ({
+  field,
+  message: `Forkert værdi indtastet i ${field}`,
+  kind: 'deviation',
+});
 
 const hasStoreBededagSatserAfvigelse = (
   loenPaaHelligdage: string,
@@ -65,22 +121,32 @@ const hasOverenskomstSatsAfvigelse = (
 
 export const resolveSatserErrorField = (
   af: Ansaettelsesforhold,
-  anvendtReguleringsdato: ISODateString | undefined
-): string | null => {
+  anvendtReguleringsdato: ISODateString | undefined,
+  feriePctRequired: boolean
+): SatserError | null => {
+  // Manglende påkrævet feriegodtgørelse blokerer download (via validator-invarianten) og SKAL derfor
+  // også optræde som en synlig fejlrække — med en "ikke udfyldt"-besked, ikke "forkert indtastet".
+  if (feriePctRequired && !Number.isFinite(af.feriePct)) {
+    return {
+      field: 'Feriegodtgørelse/-tillæg',
+      message: 'Feriegodtgørelse/-tillæg er ikke udfyldt',
+      kind: 'missing',
+    };
+  }
   if (hasFeriePctAfvigelse(af.feriePct)) {
-    return 'Feriegodtgørelse/-tillæg';
+    return deviation('Feriegodtgørelse/-tillæg');
   }
   if (hasOverenskomstSatsAfvigelse(af, 'fritvalgPct', af.fritvalgPct, anvendtReguleringsdato)) {
-    return 'Fritvalg';
+    return deviation('Fritvalg');
   }
   if (hasOverenskomstSatsAfvigelse(af, 'shSoPct', af.shSoPct, anvendtReguleringsdato)) {
-    return 'SH/SO-sats';
+    return deviation('SH/SO-sats');
   }
   if (hasStoreBededagSatserAfvigelse(af.loenPaaHelligdage, af.storeBededagPct, anvendtReguleringsdato)) {
-    return 'Store Bededagstillæg';
+    return deviation('Store Bededagstillæg');
   }
   if (hasOverenskomstSatsAfvigelse(af, 'pensionPct', af.pensionPct, anvendtReguleringsdato)) {
-    return 'Arbejdsgivers pensionsbidrag';
+    return deviation('Arbejdsgivers pensionsbidrag');
   }
   return null;
 };

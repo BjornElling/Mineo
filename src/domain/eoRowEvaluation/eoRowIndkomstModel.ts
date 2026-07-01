@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { resolveSatserErrorField } from '../erstatningsopgoerelse/validation/loenindkomstSatserGate';
+import { resolveSatserErrorField, isFeriePctRequiredForBlocking } from '../erstatningsopgoerelse/validation/loenindkomstSatserGate';
 import {
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,
@@ -190,9 +190,10 @@ export const buildIndkomstSectionStatuses = (
       beregningsperiodeTil: values.tafBeregningsperiodeTil,
       skadedato,
     });
-    const satserErrorField = resolveSatserErrorField(af, anvendtReguleringsdato);
-    const satserStatus: EoRowStatus = satserErrorField ? 'error' : 'ok';
-    const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : 'Ok';
+    const feriePctRequired = isFeriePctRequiredForBlocking(af, values.beregnesUdFra);
+    const satserError = resolveSatserErrorField(af, anvendtReguleringsdato, feriePctRequired);
+    const satserStatus: EoRowStatus = satserError ? 'error' : 'ok';
+    const satserMessage = satserError ? satserError.message : 'Ok';
 
     const tableRows = af.indtaegtsoplysningerTableData ?? [];
     const cellErrors = buildStandardLoenCellErrors(tableRows, af.loenperiode);

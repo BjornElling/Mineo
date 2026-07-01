@@ -508,12 +508,37 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         });
       });
 
+    // SIKKERHEDSNET (garanti: download må ALDRIG blokeres uden en synlig fejl i "Fejl og advarsler").
+    // En autoritativt-blokerende validerings-invariant blokerer download. Den forventes normalt
+    // reproduceret som en synlig række af `collectAllEoRows`, men hvis en row-builder ikke dækker
+    // reglen — eller `eoSnapshot.data` er null, så en resultat-afhængig række ikke kan dannes — ville
+    // download ellers være blokeret med en tom fejlboks. Vises kun når boksen ellers er tom for
+    // error-niveau-indhold, så dette aldrig dublerer en allerede vist, målrettet fejl. Beskeden er
+    // validatorens egen brugervendte tekst.
+    const hasErrorLevelContent =
+      rows.length > 0
+      || errors.length > 0
+      || eetLoebendeErrorRows.length > 0
+      || eoRowAggregationErrorMessage !== null;
+    if (!hasErrorLevelContent) {
+      authoritativeBlockingInvariants
+        // EET-kilde-invarianter har deres egen visningskanal (`eetLoebendeIssueRows`) med samme
+        // toggle-styrede synlighed som deres oprettelse (kun når midlertidigt-EET-import er aktiv),
+        // så de er aldrig en usynlig-blokerings-risiko og må ikke dubleres her.
+        .filter((invariant) => !invariant.id.startsWith('midlertidigt_eet_source:'))
+        .forEach((invariant) => {
+          pushIssue({ id: `blocking-invariant:${invariant.id}`, message: invariant.message });
+        });
+    }
+
     return rows;
   }, [
     authoritativeBlockingInvariants,
     eoPdfBlockingInvariants,
     eoSnapshot,
     eoRowAggregationErrorMessage,
+    errors,
+    eetLoebendeErrorRows,
     isSystemInvariant,
     setActiveTab,
     tafPdfProjection,
