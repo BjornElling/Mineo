@@ -52,8 +52,6 @@ import {
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
-export type { StandardLoenTableSatser };
-
 export type StandardLoenTableProps = {
   loenperiode: Loenperiode;
   satser: StandardLoenTableSatser;

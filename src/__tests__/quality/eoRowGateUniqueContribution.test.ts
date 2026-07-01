@@ -8,7 +8,8 @@
  *     eoPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors
  * hvor `hasBlockingEoRowErrors` udledes af `collectAllEoRows(...).errors`.
  *
- * Probe: Kør `collectAllEoRows` med TOMME felt-fejl-maps. Enhver `status:'error'`-
+ * Probe: Kør `collectAllEoRows` med TOMME felt-fejl-maps og snapshotets
+ * canonical/pdfModel. Enhver `status:'error'`-
  * række der så optræder, er beregnet udelukkende fra committed værdier (ikke fra en
  * felt-fejl og ikke fra den autoritative validator/snapshot). Optræder en sådan fejl i
  * en sag hvor snapshot-projektionen samtidig er `ok`, så er det et GENUINT række-evaluerings-
@@ -76,11 +77,26 @@ const project = (eoValues: PersistedSectionMap['erstatningsopgoerelse']) => {
   return eoSnapshotToEoDocument(snapshot).kind;
 };
 
-// EO-række-errors udledt UDEN felt-fejl-input → rene værdi-afledte gate-fejl.
-const eoRowErrorIds = (eoValues: PersistedSectionMap['erstatningsopgoerelse']): string[] =>
-  collectAllEoRows(STAMDATA, {}, eoValues, {})
+// EO-række-errors udledt uden felt-fejl-input, men med samme snapshot-data som produktionen.
+const eoRowErrorIds = (eoValues: PersistedSectionMap['erstatningsopgoerelse']): string[] => {
+  const snapshot = computeEoSnapshot({
+    revision: 'b9-row-gate',
+    stamdataValues: STAMDATA,
+    eoValues,
+  });
+  return collectAllEoRows(
+    STAMDATA,
+    {},
+    eoValues,
+    {},
+    {},
+    undefined,
+    snapshot.data?.canonicalOutput,
+    snapshot.data?.pdfModel
+  )
     .errors.map((row) => row.id)
     .sort((a, b) => a.localeCompare(b));
+};
 
 describe('B9 afklaring: række-evalueringens unikke bidrag til PDF-gaten', () => {
   it('kontrol: gyldig svie/smerte-sag → projektion=ok OG ingen EO-række-errors (probe er ikke vacuous)', () => {

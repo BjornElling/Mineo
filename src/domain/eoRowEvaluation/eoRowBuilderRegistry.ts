@@ -181,7 +181,7 @@ export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
   },
 ] as const;
 
-const executeEODebugBuilderEntry = (
+const executeEoRowBuilderEntry = (
   entry: EoRowBuilderEntry,
   ctx: EoRowEvaluationContext
 ): EoRowModel[] => {
@@ -191,9 +191,9 @@ const executeEODebugBuilderEntry = (
     const message = error instanceof Error && error.message.trim() !== '' ? error.message : 'Ukendt fejl';
     return [
       {
-        id: `debug.builder.${entry.section}.exception`,
-        label: `Fejl i debug-builder (${entry.section})`,
-        displayValue: `Fejl (Builder-fejl: ${message})`,
+        id: `eo.rowBuilder.${entry.section}.exception`,
+        label: `Fejl i række-builder (${entry.section})`,
+        displayValue: `Fejl (Række-builder-fejl: ${message})`,
         status: 'error',
       },
     ];
@@ -211,7 +211,7 @@ export const executeEoRowBuilderEntries = (
   entries: ReadonlyArray<EoRowBuilderEntry>,
   ctx: EoRowEvaluationContext
 ): EoRowModel[] => {
-  return entries.flatMap((entry) => executeEODebugBuilderEntry(entry, ctx));
+  return entries.flatMap((entry) => executeEoRowBuilderEntry(entry, ctx));
 };
 
 /**
@@ -226,7 +226,7 @@ export const executeEoRowBuilderEntriesBySection = (
 ): ReadonlyMap<SectionId, readonly EoRowModel[]> => {
   const map = new Map<SectionId, readonly EoRowModel[]>();
   entries.forEach((entry) => {
-    map.set(entry.section, executeEODebugBuilderEntry(entry, ctx));
+    map.set(entry.section, executeEoRowBuilderEntry(entry, ctx));
   });
   return map;
 };

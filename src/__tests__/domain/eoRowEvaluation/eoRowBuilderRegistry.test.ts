@@ -26,7 +26,7 @@ const ctx: EoRowEvaluationContext = {
 };
 
 describe('executeEoRowBuilderEntries', () => {
-  it('isolates builder exceptions and returns an error row', () => {
+  it('isolerer builder-fejl og returnerer en fejl-række', () => {
     const entries: EoRowBuilderEntry[] = [
       {
         section: 'stamdata',
@@ -43,13 +43,13 @@ describe('executeEoRowBuilderEntries', () => {
     const rows = executeEoRowBuilderEntries(entries, ctx);
 
     expect(rows.some((row) => row.id === 'stamdata.journalnr')).toBe(true);
-    expect(rows.some((row) => row.id === 'debug.builder.aes.exception')).toBe(true);
-    const errorRow = rows.find((row) => row.id === 'debug.builder.aes.exception');
+    expect(rows.some((row) => row.id === 'eo.rowBuilder.aes.exception')).toBe(true);
+    const errorRow = rows.find((row) => row.id === 'eo.rowBuilder.aes.exception');
     expect(errorRow?.status).toBe('error');
     expect(errorRow?.displayValue).toContain('Test-fejl');
   });
 
-  it('returns rows grouped by section with the same exception isolation', () => {
+  it('returnerer rækker grupperet pr. sektion med samme fejl-isolation', () => {
     const entries: EoRowBuilderEntry[] = [
       {
         section: 'stamdata',
@@ -68,7 +68,7 @@ describe('executeEoRowBuilderEntries', () => {
     expect(rowsBySection.get('stamdata')).toEqual([makeRow('stamdata.journalnr', 'ok')]);
     expect(rowsBySection.get('taf')).toEqual([
       expect.objectContaining({
-        id: 'debug.builder.taf.exception',
+        id: 'eo.rowBuilder.taf.exception',
         status: 'error',
         displayValue: expect.stringContaining('Sektion fejlede'),
       }),

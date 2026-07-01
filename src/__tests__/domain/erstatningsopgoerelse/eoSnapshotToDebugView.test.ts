@@ -2,11 +2,11 @@
 const {
   buildRegulationTimelineMock,
   buildRegulationDebugSectionsMock,
-  executeEODebugBuilderEntriesBySectionMock,
+  executeEoRowBuilderEntriesBySectionMock,
 } = vi.hoisted(() => ({
   buildRegulationTimelineMock: vi.fn(() => ({ ansaettelser: [] })),
   buildRegulationDebugSectionsMock: vi.fn(() => []),
-  executeEODebugBuilderEntriesBySectionMock: vi.fn((..._args: unknown[]) => new Map()),
+  executeEoRowBuilderEntriesBySectionMock: vi.fn((..._args: unknown[]) => new Map()),
 }));
 
 vi.mock('../../../domain/eoRowEvaluation/eoRowBuilderRegistry', () => ({
@@ -24,7 +24,7 @@ vi.mock('../../../domain/eoRowEvaluation/eoRowBuilderRegistry', () => ({
       },
     },
   ],
-  executeEoRowBuilderEntriesBySection: executeEODebugBuilderEntriesBySectionMock,
+  executeEoRowBuilderEntriesBySection: executeEoRowBuilderEntriesBySectionMock,
 }));
 
 vi.mock('../../../domain/debug/eoDebugRegulationCore', () => ({
@@ -43,8 +43,8 @@ import { toISODateString } from '../../../types/branded';
 
 describe('eoSnapshotToDebugView', () => {
   beforeEach(() => {
-    executeEODebugBuilderEntriesBySectionMock.mockReset();
-    executeEODebugBuilderEntriesBySectionMock.mockReturnValue(new Map());
+    executeEoRowBuilderEntriesBySectionMock.mockReset();
+    executeEoRowBuilderEntriesBySectionMock.mockReturnValue(new Map());
     buildRegulationTimelineMock.mockClear();
     buildRegulationTimelineMock.mockReturnValue({ ansaettelser: [] });
     buildRegulationDebugSectionsMock.mockClear();
@@ -52,15 +52,15 @@ describe('eoSnapshotToDebugView', () => {
   });
 
   it('bruger strukturerede snapshot-data og delegerer builder-kørslen til registry', () => {
-    executeEODebugBuilderEntriesBySectionMock.mockReturnValue(new Map([
+    executeEoRowBuilderEntriesBySectionMock.mockReturnValue(new Map([
       ['stamdata', [
         { id: 'stamdata.journalnr', label: 'Journalnr', displayValue: 'J-1', status: 'ok' },
       ]],
       ['taf', [
         {
-          id: 'debug.builder.taf.exception',
-          label: 'Fejl i debug-builder (taf)',
-          displayValue: 'Fejl (Builder-fejl: Builder sprængte)',
+          id: 'eo.rowBuilder.taf.exception',
+          label: 'Fejl i række-builder (taf)',
+          displayValue: 'Fejl (Række-builder-fejl: Builder sprængte)',
           status: 'error',
         },
       ]],
@@ -134,14 +134,14 @@ describe('eoSnapshotToDebugView', () => {
     ]);
     expect(view.rowsBySection.get('taf')).toEqual([
       {
-        id: 'debug.builder.taf.exception',
-        label: 'Fejl i debug-builder (taf)',
-        displayValue: 'Fejl (Builder-fejl: Builder sprængte)',
+        id: 'eo.rowBuilder.taf.exception',
+        label: 'Fejl i række-builder (taf)',
+        displayValue: 'Fejl (Række-builder-fejl: Builder sprængte)',
         status: 'error',
       },
     ]);
-    expect(executeEODebugBuilderEntriesBySectionMock).toHaveBeenCalledTimes(1);
-    const [entriesArg, ctxArg] = executeEODebugBuilderEntriesBySectionMock.mock.calls[0] ?? [];
+    expect(executeEoRowBuilderEntriesBySectionMock).toHaveBeenCalledTimes(1);
+    const [entriesArg, ctxArg] = executeEoRowBuilderEntriesBySectionMock.mock.calls[0] ?? [];
     expect(entriesArg).toEqual(expect.any(Array));
     expect(ctxArg).toMatchObject({
       stamdataValues: debugSnapshot.stamdataValues,

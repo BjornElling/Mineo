@@ -2,7 +2,8 @@
  * B9 — empirisk katalog + golden-master baseline.
  *
  * Formål: låse PRÆCIST hvad række-evalueringsmotoren gater UNIKT (cases hvor snapshot-
- * projektionen er `ok`, men `collectAllEoRows` — kørt UDEN felt-fejl — alligevel
+ * projektionen er `ok`, men `collectAllEoRows` — kørt uden felt-fejl og med
+ * snapshotets canonical/pdfModel — alligevel
  * producerer `status:'error'`). Det er den autoritative, reachability-rene liste over
  * de værdi-afledte EO-rækker der fortsat skal blokere download, selv når snapshot-
  * projektionen isoleret set er ok.
@@ -102,14 +103,24 @@ const normalizeMessage = (message: string | undefined): string =>
     .replace(/\d{1,2}-\d{1,2}-\d{4}/g, '⟨dato⟩');
 
 /**
- * Kører gaten "som produktionen": snapshot-projektion + EO-række-fejl UDEN felt-fejl.
+ * Kører gaten "som produktionen": snapshot-projektion + EO-række-fejl uden felt-fejl,
+ * men med snapshotets canonical/pdfModel.
  * Returnerer projektions-kind og de værdi-afledte EO-række-fejl.
  */
 const probe = (eoValues: EoValues) => {
   const withSfgg = withSfggIngenForEmployments(eoValues);
   const snapshot = computeEoSnapshot({ revision: 'b9-catalog', stamdataValues: STAMDATA, eoValues: withSfgg });
   const projectionKind = eoSnapshotToEoDocument(snapshot).kind;
-  const rowEvaluation = collectAllEoRows(STAMDATA, {}, withSfgg, {}, {}, undefined, snapshot.data?.canonicalOutput);
+  const rowEvaluation = collectAllEoRows(
+    STAMDATA,
+    {},
+    withSfgg,
+    {},
+    {},
+    undefined,
+    snapshot.data?.canonicalOutput,
+    snapshot.data?.pdfModel
+  );
   const eoRowErrors = rowEvaluation.errors
     .map((row) => ({ id: row.id, message: normalizeMessage(row.message ?? row.displayValue) }))
     .sort((a, b) => a.id.localeCompare(b.id));
