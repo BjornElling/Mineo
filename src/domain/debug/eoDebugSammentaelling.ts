@@ -17,6 +17,10 @@ import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engin
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import type {
+  SammentaellingControl,
+  SammentaellingDisplayRow,
+} from '../erstatningsopgoerelse/control/eoControlMismatch';
 
 export type SvieSmerteContext = Readonly<{
   skadedatoISO: ISODateString | undefined;
@@ -33,26 +37,19 @@ export type TaftContext = Readonly<{
   verserendeKlageEet: boolean;
 }>;
 
-export type SammentaellingControl = Readonly<{
-  beregnetDisplay: string;
-  tabelDisplay: string;
-  beregnetValue: number | null;
-  tabelValue: number | null;
-  loseFeriedage: number;
-  oevrigeFravaersdage: number;
-  ferieDageCount?: number | null;
-  dateredeFerieDageCount?: number | null;
-  loseFerieDageCount?: number | null;
-  shDageCount?: number | null;
-}>;
-
-export type SammentaellingControlStatus = 'ok' | 'error';
-
-export type SammentaellingDisplayRow = Readonly<{
-  key: string;
-  label: string;
-  control: SammentaellingControl;
-}>;
+// Kontrol-/audit-kontrakten (sammenlignings-status + besked-format + række-typer) ejes nu af
+// produktionslaget i `domain/erstatningsopgoerelse/control/eoControlMismatch.ts`, så
+// snapshot-invarianten `debug:control_mismatch` ikke importerer sin gate-logik fra debug.
+// Debug-laget *bygger* rækkerne nedenfor og re-eksporterer kontrakten for bagudkompatible importører.
+export {
+  getSammentaellingControlStatus,
+  collectSammentaellingControlMismatchMessages,
+} from '../erstatningsopgoerelse/control/eoControlMismatch';
+export type {
+  SammentaellingControl,
+  SammentaellingControlStatus,
+  SammentaellingDisplayRow,
+} from '../erstatningsopgoerelse/control/eoControlMismatch';
 
 export type SammentaellingModel = Readonly<{
   beregningsenhed: TafBeregningsenhed;
@@ -102,28 +99,6 @@ export const buildTaftContext = (
     differencekravDato: eoValues.differencekravDato,
     verserendeKlageEet,
   };
-};
-
-export const getSammentaellingControlStatus = (control: SammentaellingControl): SammentaellingControlStatus => {
-  // Eksplicit domænevalg: lille tolerance (0.005) for floating-afrunding; 0 og null behandles som tomt ("-") i UI.
-  const EPS = 0.005;
-  const normalizedBeregnet = control.beregnetValue === null || control.beregnetValue === 0 ? null : control.beregnetValue;
-  const normalizedTabel = control.tabelValue === null || control.tabelValue === 0 ? null : control.tabelValue;
-
-  if (normalizedBeregnet === null && normalizedTabel === null) {
-    return 'ok';
-  }
-
-  if (
-    typeof normalizedBeregnet === 'number' &&
-    typeof normalizedTabel === 'number' &&
-    Number.isFinite(normalizedBeregnet) &&
-    Number.isFinite(normalizedTabel) &&
-    Math.abs(normalizedBeregnet - normalizedTabel) <= EPS
-  ) {
-    return 'ok';
-  }
-  return 'error';
 };
 
 export type SammentaellingDisplayTables = Readonly<{
@@ -209,14 +184,6 @@ export const flattenSammentaellingDisplayTables = (
   tables: SammentaellingDisplayTables
 ): readonly SammentaellingDisplayRow[] => {
   return [...tables.basis, ...tables.beregningsperiode, ...tables.taf, ...tables.sfgg];
-};
-
-export const collectSammentaellingControlMismatchMessages = (
-  rows: readonly SammentaellingDisplayRow[]
-): readonly string[] => {
-  return rows
-    .filter((row) => getSammentaellingControlStatus(row.control) === 'error')
-    .map((row) => `${row.label}: beregnet=${row.control.beregnetDisplay}, tabel=${row.control.tabelDisplay}`);
 };
 
 /**

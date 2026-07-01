@@ -8,6 +8,7 @@ import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/
 import { gridCellKey } from '../../tables/gridCore/gridCoreUtils';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../StyledDropdown';
+import { findTypeaheadMatchIndex, isClearKey, isTypeaheadCharKey } from '../dropdownInteractionCore';
 import { getTableInputBorderAppearance, TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
 
 /**
@@ -224,7 +225,7 @@ const TableDropdown = React.memo(
         const expanded = expandedHost?.getAttribute('aria-expanded') === 'true';
         if (expanded) return;
 
-        if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (isClearKey(e)) {
           // I tabel-kontekst håndteres Delete normalt først på table-capture-niveau.
           // Behold dette som en defensiv fallback til isoleret brug uden for tabel.
           if (!allowEmpty) return;
@@ -234,32 +235,21 @@ const TableDropdown = React.memo(
           return;
         }
 
-        if (e.altKey || e.ctrlKey || e.metaKey) return;
-        if (e.key.length !== 1) return;
+        if (!isTypeaheadCharKey(e)) return;
         const trimmedKey = e.key.trim();
-        if (trimmedKey.length !== 1) return;
 
-        const normalizedKey = trimmedKey.toLocaleLowerCase('da-DK');
-        const matchingIndices: number[] = [];
-        options.forEach((opt, index) => {
-          if (isDividerOption(opt)) return;
-          if (opt.disabled) return;
-          const label = opt.label.trim();
-          if (label.length === 0) return;
-          const firstChar = label.charAt(0).toLocaleLowerCase('da-DK');
-          if (firstChar === normalizedKey) {
-            matchingIndices.push(index);
-          }
-        });
-
-        if (matchingIndices.length === 0) return;
-
+        // Tom streng for ikke-matchbare pladser (dividers/disabled), så den delte typeahead-kerne
+        // springer dem over — parallelt til StyledDropdowns visualOptionLabels.
+        const labels = options.map((opt) =>
+          isDividerOption(opt) || opt.disabled ? '' : opt.label
+        );
         const currentIndex = typeof value === 'string'
           ? options.findIndex((opt) => !isDividerOption(opt) && opt.value === value)
           : -1;
-        const currentPos = matchingIndices.indexOf(currentIndex);
-        const nextPos = currentPos === -1 ? 0 : (currentPos + 1) % matchingIndices.length;
-        const nextOption = options[matchingIndices[nextPos]];
+        const nextIndex = findTypeaheadMatchIndex(labels, trimmedKey, currentIndex);
+        if (nextIndex < 0) return;
+
+        const nextOption = options[nextIndex];
         if (!nextOption || isDividerOption(nextOption)) return;
         const nextValue = nextOption.value;
         if (typeof nextValue !== 'string') return;

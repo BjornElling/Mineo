@@ -5,24 +5,16 @@ import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../sch
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { coerceToISODateString } from '../../../types/branded';
-import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import {
-  formatKapitaliseringsPct,
-} from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
-import {
-  buildKapitaliseringAarsydelseExpression,
-  buildKapitaliseringGrundydelseExpression,
-  buildKapitaliseringGrundydelseLabel,
-  buildKapitaliseringOpreguleringTil2024Expression,
-} from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
+  buildKapitaliseringAfgoerelseRows,
+  type KapitaliseringRow,
+} from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
 import { downloadKapitaliseringDokument } from '../../../document/service/documentService';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
-import { formatKr } from '../../../utils/formatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
@@ -31,6 +23,55 @@ type Props = Readonly<{
   snapshot: EetSnapshot['kapitalisering'];
 }>;
 
+
+/**
+ * Renderer de delte kapitaliserings-rækker i UI-idiomet (label-venstre/værdi-højre hover-rækker).
+ * Sekvensen/synligheden ejes af `buildKapitaliseringAfgoerelseRows`; her oversættes hver række-`kind`
+ * til JSX. Den første underoverskrift ("Grundydelse og regulering") har bevidst ingen top-margen,
+ * modsat de efterfølgende — bevaret fra den oprindelige inline-JSX.
+ */
+const renderKapitaliseringRows = (rows: readonly KapitaliseringRow[]): React.ReactNode => {
+  let seenSubheading = false;
+  return rows.map((row, index) => {
+    switch (row.kind) {
+      case 'subheading': {
+        const isFirstSubheading = !seenSubheading;
+        seenSubheading = true;
+        return (
+          <Typography
+            key={`sub-${index}`}
+            className="row--subheading"
+            sx={isFirstSubheading ? undefined : { mt: 2 }}
+          >
+            {row.text}
+          </Typography>
+        );
+      }
+      case 'labelValue':
+        return (
+          <Box key={`lv-${index}`} className="row--label-right-hover">
+            <Typography className="row--text">{row.label}</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className={row.bold ? 'row--text text-bold' : 'row--text'}>{row.value}</Typography>
+            </Box>
+          </Box>
+        );
+      case 'grundydelse':
+        return (
+          <Box key={`gy-${index}`} className="row--label-right-hover">
+            <Typography className="row--text">{row.label}</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{row.expressionWithResult}</Typography>
+            </Box>
+          </Box>
+        );
+      default: {
+        const _exhaustive: never = row;
+        return _exhaustive;
+      }
+    }
+  });
+};
 
 const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
@@ -87,6 +128,8 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
               Afgørelse {formatIsoDateLong(afgoerelse.afgoerelsesdato)}
             </Typography>
 
+            {/* Beregningsdato stammer fra de løse formværdier (ikke fra afgørelses-beregningen) og er
+                bevidst kun i UI'en — derfor uden for den delte præsentationsmodel. */}
             <Box className="row--label-right-hover">
               <Typography className="row--text">Beregningsdato</Typography>
               <Box className="row--label-right-hover__content">
@@ -94,157 +137,14 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
               </Box>
             </Box>
 
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Kapitaliseringsdato</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatISOToDanish(afgoerelse.kapitaliseringsdato)}</Typography>
-              </Box>
-            </Box>
-
-            <Typography className="row--subheading">Grundydelse og regulering</Typography>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Kapitalisering</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)}</Typography>
-              </Box>
-            </Box>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">
-                {buildKapitaliseringGrundydelseLabel(
-                  formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
-                  afgoerelse.amBidragPct
-                )}
-              </Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">
-                  {buildKapitaliseringGrundydelseExpression(
-                    formatKr(afgoerelse.grundloen, 0),
-                    formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
-                    afgoerelse.erstatningsniveauPct,
-                    afgoerelse.amBidragPct,
-                    formatKr(afgoerelse.grundydelse, 2)
-                  )}
-                </Typography>
-              </Box>
-            </Box>
-
-            {afgoerelse.grundydelse2024 !== null && afgoerelse.opreguleringTil2024PctRounded4 !== null && (
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">
-                  {buildKapitaliseringOpreguleringTil2024Expression(
-                    formatKr(afgoerelse.grundydelse, 2),
-                    formatAsAmountTrimmed(1 + afgoerelse.opreguleringTil2024PctRounded4 / 100, 4),
-                    `${formatAsAmountTrimmed(afgoerelse.opreguleringTil2024PctRounded4, 4)} %`
-                  )}
-                </Typography>
-                <Box className="row--label-right-hover__content">
-                  <Typography className="row--text">{formatKr(afgoerelse.grundydelse2024, 2)}</Typography>
-                </Box>
-              </Box>
+            {renderKapitaliseringRows(
+              buildKapitaliseringAfgoerelseRows(afgoerelse, {
+                koen: values.koen ?? undefined,
+                koenRowMode: 'always',
+                saerfaktorLabel: 'Særfaktor (< 2 år til folkepension)',
+                formatReguleringsdato: formatIsoDateLong,
+              })
             )}
-
-            {afgoerelse.aarsydelseReguleringsPctRounded4 !== null && (
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Reguleringsprocent ({formatIsoDateLong(afgoerelse.kapitaliseringsdato)})</Typography>
-                <Box className="row--label-right-hover__content">
-                  <Typography className="row--text">{`${formatAsAmountTrimmed(afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`}</Typography>
-                </Box>
-              </Box>
-            )}
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">
-                {buildKapitaliseringAarsydelseExpression(
-                  formatKr(afgoerelse.aarsydelseGrundlag, 2),
-                  afgoerelse.aarsydelseReguleringsPctRounded4 === null
-                    ? null
-                    : `${formatAsAmountTrimmed(100 + afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`
-                )}
-              </Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(afgoerelse.aarsydelse, 2)}</Typography>
-              </Box>
-            </Box>
-
-            <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitaliseringsbekendtgørelse og tabel</Typography>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Kapitaliseringsbekendtgørelse</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{afgoerelse.kapitaliseringsbekendtgoerelseLabel}</Typography>
-              </Box>
-            </Box>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Alder ved kapitalisering</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{`${afgoerelse.alderAar} år, ${afgoerelse.alderMaaneder} måneder`}</Typography>
-              </Box>
-            </Box>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Folkepensionsalder</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{afgoerelse.folkepensionsalderLabel}</Typography>
-              </Box>
-            </Box>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Kapitaliseret pga. &lt; 2 år til folkepension?</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatJaNej(afgoerelse.kapitaliseretPgaUnderToAarTilFp)}</Typography>
-              </Box>
-            </Box>
-
-            {afgoerelse.kapitaliseretPgaUnderToAarTilFp && (
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Særfaktor (&lt; 2 år til folkepension)</Typography>
-                <Box className="row--label-right-hover__content">
-                  <Typography className="row--text">{afgoerelse.saerfaktor === null ? '-' : formatFaktor(afgoerelse.saerfaktor)}</Typography>
-                </Box>
-              </Box>
-            )}
-
-            {!afgoerelse.kapitaliseretPgaUnderToAarTilFp && (
-              <>
-                <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitaliseringsfaktor</Typography>
-
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Faktor måneds-afhængig?</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{afgoerelse.faktorMaanedsAfhaengig ? 'Ja' : 'Nej'}</Typography>
-                  </Box>
-                </Box>
-
-                {afgoerelse.koenOpdelt && (
-                  <Box className="row--label-right-hover">
-                    <Typography className="row--text">Køn</Typography>
-                    <Box className="row--label-right-hover__content">
-                      {/* koenOpdelt forudsætter at køn er sat; ?? '' undgår at vise teksten "undefined" hvis typen er løs. */}
-                      <Typography className="row--text">{values.koen ?? ''}</Typography>
-                    </Box>
-                  </Box>
-                )}
-
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Kapitaliseringsfaktor</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatFaktor(afgoerelse.kapitaliseringsfaktor)}</Typography>
-                  </Box>
-                </Box>
-              </>
-            )}
-
-            <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitalbeløb</Typography>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">{`Beregnet kapitalbeløb (${formatKr(afgoerelse.aarsydelse, 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`}</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text text-bold">{formatKr(afgoerelse.kapitalbelob, 0)}</Typography>
-              </Box>
-            </Box>
           </ContentBox>
         ))}
     </Box>

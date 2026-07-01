@@ -8,21 +8,13 @@
 import type { DocumentWriter } from '../../writer';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
-import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import type {
   EetKapitaliseringAfgoerelseComputation,
   EetKapitaliseringComputation,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
-import { formatKapitaliseringsPct } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
-import {
-  buildKapitaliseringAarsydelseExpression,
-  buildKapitaliseringGrundydelseExpression,
-  buildKapitaliseringGrundydelseLabel,
-  buildKapitaliseringOpreguleringTil2024Expression,
-} from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
+import { buildKapitaliseringAfgoerelseRows } from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetDocumentUtils';
 
 export const buildKapitaliseringDocumentFilename = (journalnr?: string): string =>
   resolveDocumentArtifactFileName('Kapitalisering (EET)', false, journalnr);
@@ -61,128 +53,36 @@ export const addKapitaliseringAfgoerelseSection = (
   );
 
   const rowOpts = { rightFontStyle: 'normal' as const };
+  const boldRowOpts = { rightFontStyle: 'bold' as const };
 
-  writer.writeLeftRightText(
-    'Kapitaliseringsdato',
-    formatISOToDanish(afgoerelse.kapitaliseringsdato),
-    rowOpts
-  );
+  // Sekvens, felt-udvælgelse og synlighed ejes af den delte præsentationsmodel; dokumentet renderer
+  // hver række i sit eget idiom. Bevidste dokument-forskelle: kort dansk reguleringsdato,
+  // særfaktor-etiket med `≤`, og Køn-rækken kun når køn faktisk er sat.
+  const rows = buildKapitaliseringAfgoerelseRows(afgoerelse, {
+    koen,
+    koenRowMode: 'whenPresent',
+    saerfaktorLabel: 'Særfaktor (≤ 2 år til folkepension)',
+    formatReguleringsdato: formatISOToDanish,
+  });
 
-  writer.writeBoldSubheader('Grundydelse og regulering');
-
-  writer.writeLeftRightText(
-    'Kapitalisering',
-    formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
-    rowOpts
-  );
-
-  writer.writeWrappedTextContinued(
-    `${buildKapitaliseringGrundydelseLabel(
-      formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
-      afgoerelse.amBidragPct
-    )} =`
-  );
-  writer.writeLeftRightText(
-    buildKapitaliseringGrundydelseExpression(
-      formatKr(afgoerelse.grundloen, 0),
-      formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
-      afgoerelse.erstatningsniveauPct,
-      afgoerelse.amBidragPct
-    ),
-    formatKr(afgoerelse.grundydelse, 2),
-    rowOpts
-  );
-
-  if (afgoerelse.grundydelse2024 !== null && afgoerelse.opreguleringTil2024PctRounded4 !== null) {
-    writer.writeLeftRightText(
-      buildKapitaliseringOpreguleringTil2024Expression(
-        formatKr(afgoerelse.grundydelse, 2),
-        formatAsAmountTrimmed(1 + afgoerelse.opreguleringTil2024PctRounded4 / 100, 4),
-        `${formatAsAmountTrimmed(afgoerelse.opreguleringTil2024PctRounded4, 4)} %`
-      ),
-      formatKr(afgoerelse.grundydelse2024, 2),
-      rowOpts
-    );
-  }
-
-  if (afgoerelse.aarsydelseReguleringsPctRounded4 !== null) {
-    writer.writeLeftRightText(
-      `Reguleringsprocent (${formatISOToDanish(afgoerelse.kapitaliseringsdato)})`,
-      `${formatAsAmountTrimmed(afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`,
-      rowOpts
-    );
-  }
-
-  writer.writeLeftRightText(
-    buildKapitaliseringAarsydelseExpression(
-      formatKr(afgoerelse.aarsydelseGrundlag, 2),
-      afgoerelse.aarsydelseReguleringsPctRounded4 === null
-        ? null
-        : `${formatAsAmountTrimmed(100 + afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`
-    ),
-    formatKr(afgoerelse.aarsydelse, 2),
-    rowOpts
-  );
-
-  writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel');
-
-  writer.writeLeftRightText(
-    'Kapitaliseringsbekendtgørelse',
-    afgoerelse.kapitaliseringsbekendtgoerelseLabel,
-    rowOpts
-  );
-
-  writer.writeLeftRightText(
-    'Alder ved kapitalisering',
-    `${afgoerelse.alderAar} år, ${afgoerelse.alderMaaneder} måneder`,
-    rowOpts
-  );
-
-  writer.writeLeftRightText(
-    'Folkepensionsalder',
-    afgoerelse.folkepensionsalderLabel,
-    rowOpts
-  );
-
-  writer.writeLeftRightText(
-    PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
-    formatJaNej(afgoerelse.kapitaliseretPgaUnderToAarTilFp),
-    rowOpts
-  );
-
-  if (afgoerelse.kapitaliseretPgaUnderToAarTilFp) {
-    writer.writeLeftRightText(
-      'Særfaktor (≤ 2 år til folkepension)',
-      afgoerelse.saerfaktor === null ? '-' : formatFaktor(afgoerelse.saerfaktor),
-      rowOpts
-    );
-  } else {
-    writer.writeBoldSubheader('Kapitaliseringsfaktor');
-
-    writer.writeLeftRightText(
-      'Faktor måneds-afhængig?',
-      formatJaNej(afgoerelse.faktorMaanedsAfhaengig),
-      rowOpts
-    );
-
-    if (afgoerelse.koenOpdelt && koen) {
-      writer.writeLeftRightText('Køn', koen, rowOpts);
+  for (const row of rows) {
+    switch (row.kind) {
+      case 'subheading':
+        writer.writeBoldSubheader(row.text);
+        break;
+      case 'labelValue':
+        writer.writeLeftRightText(row.label, row.value, row.bold ? boldRowOpts : rowOpts);
+        break;
+      case 'grundydelse':
+        writer.writeWrappedTextContinued(`${row.label} =`);
+        writer.writeLeftRightText(row.expressionWithoutResult, row.grundydelseFormatted, rowOpts);
+        break;
+      default: {
+        const _exhaustive: never = row;
+        return _exhaustive;
+      }
     }
-
-    writer.writeLeftRightText(
-      'Kapitaliseringsfaktor',
-      formatFaktor(afgoerelse.kapitaliseringsfaktor),
-      rowOpts
-    );
   }
-
-  writer.writeBoldSubheader('Kapitalbeløb');
-
-  writer.writeLeftRightText(
-    `Beregnet kapitalbeløb (${formatKr(afgoerelse.aarsydelse, 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`,
-    formatKr(afgoerelse.kapitalbelob, 0),
-    { rightFontStyle: 'bold' as const }
-  );
 };
 
 // ============================================================================

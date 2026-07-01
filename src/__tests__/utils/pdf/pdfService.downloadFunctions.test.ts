@@ -547,6 +547,39 @@ describe('downloadErstatningsopgoerelseDokument', () => {
     expect(mockGenerateErstatningsopgoerelsePdf).not.toHaveBeenCalled();
   });
 
+  it('fail-closer på et blokerende output-gate selv når dokument-projektionen er ok (A5: række-fejl)', async () => {
+    // Projektionen er ok (default mock), men det autoritative gate blokerer pga. en række-niveau
+    // EO-fejl (collectAllEoRows) som IKKE er en snapshot-invariant — tidligere var grænsen fail-open
+    // for præcis denne klasse. Beviser at gaten håndhæves uafhængigt af projektionen.
+    const result = await downloadErstatningsopgoerelseDokument({
+      stamdataValues: stamdata,
+      eoValues,
+      selectedElements: {} as never,
+      settings,
+      snapshot: eoSnapshot,
+      gate: {
+        canDownload: false,
+        reasons: [{ code: 'erstatningsopgoerelse:pdf-blocked', message: 'Sygeferiegodtgørelse: dagssats mangler' }],
+      },
+    });
+
+    expect(result).toEqual({ success: false, error: 'Sygeferiegodtgørelse: dagssats mangler' });
+    expect(mockGenerateErstatningsopgoerelsePdf).not.toHaveBeenCalled();
+  });
+
+  it('genererer fortsat når gaten tillader download (gate.canDownload=true)', async () => {
+    const result = await downloadErstatningsopgoerelseDokument({
+      stamdataValues: stamdata,
+      eoValues,
+      selectedElements: {} as never,
+      settings,
+      snapshot: eoSnapshot,
+      gate: { canDownload: true, reasons: [] },
+    });
+    expect(result.success).toBe(true);
+    expect(mockGenerateErstatningsopgoerelsePdf).toHaveBeenCalled();
+  });
+
   it('tilpasser blokeret-besked til det aktive format (Word) så signalet matcher downloaden', async () => {
     mockEoSnapshotToEoDocument.mockReturnValue({
       kind: 'blocked',

@@ -4,6 +4,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUtils';
 import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
+import { findTypeaheadMatchIndex, isClearKey, isTypeaheadCharKey } from './dropdownInteractionCore';
 
 /**
  * StyledDropdown (combobox-trigger + popover-listbox)
@@ -296,27 +297,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   }, [getOptionLabel, visualOptions]);
 
   const findNextMatchIndex = React.useCallback(
-    (key: string, currentIndex: number) => {
-      const normalizedKey = key.toLocaleLowerCase('da-DK');
-      const matchingIndices: number[] = [];
-
-      visualOptionLabels.forEach((label, index) => {
-        const trimmed = label.trim();
-        if (trimmed.length === 0) return;
-        const firstChar = trimmed.charAt(0).toLocaleLowerCase('da-DK');
-        if (firstChar === normalizedKey) {
-          matchingIndices.push(index);
-        }
-      });
-
-      if (matchingIndices.length === 0) return -1;
-
-      const currentPos = matchingIndices.indexOf(currentIndex);
-      if (currentPos === -1) return matchingIndices[0];
-
-      const nextPos = (currentPos + 1) % matchingIndices.length;
-      return matchingIndices[nextPos];
-    },
+    (key: string, currentIndex: number) => findTypeaheadMatchIndex(visualOptionLabels, key, currentIndex),
     [visualOptionLabels]
   );
 
@@ -450,12 +431,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const handleTypeahead = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
-      if (event.altKey || event.ctrlKey || event.metaKey) return false;
-      if (event.key.length !== 1) return false;
+      if (!isTypeaheadCharKey(event)) return false;
 
       const trimmedKey = event.key.trim();
-      if (trimmedKey.length !== 1) return false;
-
       const currentIndex = open ? (highlightedIndex >= 0 ? highlightedIndex : selectedIndex) : selectedIndex;
       const nextIndex = findNextMatchIndex(trimmedKey, currentIndex);
       if (nextIndex < 0) return false;
@@ -716,7 +694,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
             }
           }
 
-          if (e.key === 'Backspace' || e.key === 'Delete') {
+          if (isClearKey(e)) {
             if (allowEmpty) {
               e.preventDefault();
               e.stopPropagation();

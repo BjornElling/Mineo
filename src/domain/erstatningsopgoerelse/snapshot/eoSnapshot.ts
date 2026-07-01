@@ -41,7 +41,7 @@ import {
   type EoInvariant,
 } from './eoSnapshotInvariants';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
-import { collectSammentaellingControlMismatchMessages } from '../../debug/eoDebugSammentaelling';
+import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
 
 export type EoSnapshotComputedData = Readonly<{
   engines: Readonly<{

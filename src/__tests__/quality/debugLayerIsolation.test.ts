@@ -33,6 +33,8 @@ const DEBUG_ROOT = path.resolve(DOMAIN_ROOT, 'debug');
 const ENGINE_ROOT = path.resolve(DOMAIN_ROOT, 'eoRowEvaluation');
 
 const CANONICAL_OUTPUT_PATH = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/snapshot/eoCanonicalOutput.ts');
+const CONTROL_MISMATCH_PATH = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/control/eoControlMismatch.ts');
+const EO_SNAPSHOT_PATH = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/snapshot/eoSnapshot.ts');
 const BEREGNING_VM_PATH = path.resolve(
   SRC_ROOT,
   'components/pages/erstatningsopgoerelse/eoBeregning/useEoBeregningViewModel.ts'
@@ -151,6 +153,25 @@ describe('debugLayerIsolation', () => {
     expect(findDebugImports(source, path.dirname(CANONICAL_OUTPUT_PATH))).toEqual([]);
   });
 
+  it('CONTROL: kontrol-/audit-kernen (eoControlMismatch) er produktions-ejet og debug-fri', () => {
+    // Den trust-kritiske sammenlignings-semantik bag snapshot-invarianten `debug:control_mismatch`
+    // ejes af produktionslaget, IKKE af domain/debug. Hvis denne fil begyndte at importere debug,
+    // ville gate-logikken igen være bundet til et nominelt DEV-lag.
+    expect(fs.existsSync(CONTROL_MISMATCH_PATH), `kontrol-fil mangler: ${CONTROL_MISMATCH_PATH}`).toBe(true);
+    const source = fs.readFileSync(CONTROL_MISMATCH_PATH, 'utf8');
+    expect(findDebugImports(source, path.dirname(CONTROL_MISMATCH_PATH))).toEqual([]);
+  });
+
+  it('CONTROL: snapshot-invarianten henter kontrol-mismatch fra produktion — ikke fra debug', () => {
+    const source = fs.readFileSync(EO_SNAPSHOT_PATH, 'utf8');
+    // Gate-logikken importeres fra den produktions-ejede kontrol-kerne …
+    expect(source).toContain(
+      "import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch'"
+    );
+    // … og må ikke (gen)importeres fra sammentællings-filen i debug-laget.
+    expect(source).not.toContain("collectSammentaellingControlMismatchMessages } from '../../debug");
+  });
+
   it('selvtest: scanneren fanger faktisk et forbudt debug-import (ikke vacuous-pass)', () => {
     const fromDir = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/engines');
     const offendingSource = "import { buildEODebugSnapshot } from '../../debug/eoDebugSnapshot';";
@@ -187,8 +208,10 @@ describe('debugLayerIsolation', () => {
     // genopstår, er den trust-kritiske gate igen bundet til et nominelt DEV-lag.
     expect(findDebugImports(source, path.dirname(BEREGNING_VM_PATH))).toEqual([]);
 
-    // …og motorens fejl-rækker driver fortsat download-gaten.
+    // …og motorens fejl-rækker driver fortsat download-gaten via det fælles, autoritative
+    // output-gate (arkitektur-kandidat A5): række-blokeringen fødes ind som `hasBlockingRows`.
     expect(source).toContain('hasBlockingEoRowErrors');
-    expect(source).toContain("eoPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors");
+    expect(source).toContain('evaluateEoDocumentDownloadGate');
+    expect(source).toContain('hasBlockingRows: hasBlockingEoRowErrors');
   });
 });

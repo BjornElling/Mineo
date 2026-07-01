@@ -5,8 +5,8 @@ import {
   roundIncomeBenefitAmountKroner,
 } from '../../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { buildEoValuesWithTransientMidlertidigtEet } from '../../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
+import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
 import {
-  buildMidlertidigtEetPdfGroupsForTafRanges,
   renderMidlertidigtEetSection,
   renderOffentligeYdelserSection,
 } from '../../../../../document/generators/eo/sections/offentligeYdelserSection';

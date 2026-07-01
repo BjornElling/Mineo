@@ -44,6 +44,7 @@ import { eoSnapshotToEoDocument } from '../../domain/erstatningsopgoerelse/snaps
 import { eoSnapshotToTafPerYearDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
 import { eoSnapshotToTafPerYearOpreguleretDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import { eoSnapshotToTafKravGrafDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
+import type { DocumentDownloadGateResult } from '../layout/documentGateTypes';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { logWarning } from '../../utils/logger';
 import { asError } from '../../utils/typeGuards';
@@ -514,17 +515,27 @@ export const downloadKlLoenaftalerDokument = async (params: Readonly<{
 };
 
 // Gate-model for de fire EO-snapshot-downloads (erstatningsopgørelse + de tre TAF-varianter):
-// Disse funktioner re-tjekker dokument-PROJEKTIONEN (eoSnapshotToXxxDocument → 'blocked'), hvilket
-// dækker al snapshot-invariant-/fail_closed-blokering (inkl. EET-fejl med blocksAuthoritativeComputation,
-// der nuller snapshot.data og dermed gør projektionen 'blocked').
+// To uafhængige, fail-closed lag (arkitektur-kandidat A5, lukket):
+//  1. Dokument-PROJEKTIONEN (eoSnapshotToXxxDocument → 'blocked') re-tjekkes her ved grænsen. Den
+//     dækker al snapshot-invariant-/fail_closed-blokering (inkl. EET-fejl med
+//     blocksAuthoritativeComputation, der nuller snapshot.data og dermed gør projektionen 'blocked').
+//  2. Det autoritative output-gate-resultat (`gate`) videregives fra view-modellen. Det er ÉT gate
+//     pr. dokument, beregnet af den fælles `evaluateEoDocumentDownloadGate`, og dækker de række-niveau
+//     EO-fejl (collectAllEoRows, fx resultat-afhængige SFGG-fejlrækker) der IKKE er snapshot-invarianter
+//     og derfor ikke fanges af projektionen alene. Tidligere blev de kun gatet upstream på knappen, så
+//     service-grænsen var fail-OPEN for dem; nu fail-closer grænsen også på dem.
 //
-// De ekstra række-niveau EO-fejl (collectAllEoRows) + EET-løbende-fejl, der OGSÅ gater download i
-// useEoBeregningViewModel (fail-closed knap), re-evalueres bevidst IKKE her: collectAllEoRows kræver
-// runtime-felt-fejl, fuld AppSettings og manuel-regulerings-input-fejl, som ikke indgår i det committede
-// snapshot (kun DocumentSettings + snapshot er tilgængeligt på grænsen). Gaten håndhæves derfor upstream
-// i view-modellen. En fuldt selv-fail-closed service-grænse kræver, at snapshot/issue-laget leverer ét
-// output-gate-resultat pr. dokument (arkitektur-kandidat A5) — det er en forelæggelses-pligtig
-// arkitekturændring og er IKKE løst her.
+// Række-evalueringen kan ikke gentages her uden fuld AppSettings + runtime-felt-fejl (som C15-grænsen
+// bevidst holder ude af dokument-laget); derfor leveres dens resultat som det færdige `gate`. `gate` er
+// valgfri, så service-isolerede enhedstests kan teste projektions-laget alene.
+const blockedByGate = (
+  settings: DocumentSettings,
+  gate: DocumentDownloadGateResult | undefined
+): DocumentDownloadResult | null => {
+  if (!gate || gate.canDownload) return null;
+  const reason = gate.reasons[0]?.message ?? 'Dokumentet kan ikke hentes for den aktuelle sag';
+  return { success: false, error: buildDocumentFailureMessage(settings, reason) };
+};
 export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
@@ -532,9 +543,12 @@ export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
   settings: DocumentSettings;
   snapshot: EoSnapshot;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
+  gate?: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { selectedElements, settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+  const gateFailure = blockedByGate(settings, params.gate);
+  if (gateFailure) return gateFailure;
   const eoDocument = eoSnapshotToEoDocument(snapshot);
   if (eoDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, eoDocument.message) };
@@ -567,9 +581,12 @@ export const downloadTafFordeltPaaAarDokument = async (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   settings: DocumentSettings;
   snapshot: EoSnapshot;
+  gate?: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+  const gateFailure = blockedByGate(settings, params.gate);
+  if (gateFailure) return gateFailure;
   const tafDocument = eoSnapshotToTafPerYearDocument(snapshot);
   if (tafDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, tafDocument.message) };
@@ -602,9 +619,12 @@ export const downloadTafOpreguleretPaaAarDokument = async (params: Readonly<{
   settings: DocumentSettings;
   snapshot: EoSnapshot;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
+  gate?: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot, selectedElements } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+  const gateFailure = blockedByGate(settings, params.gate);
+  if (gateFailure) return gateFailure;
   const tafOpreguleretDocument = eoSnapshotToTafPerYearOpreguleretDocument(snapshot);
   if (tafOpreguleretDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, tafOpreguleretDocument.message) };
@@ -638,9 +658,12 @@ export const downloadTafKravGrafDokument = async (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   settings: DocumentSettings;
   snapshot: EoSnapshot;
+  gate?: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+  const gateFailure = blockedByGate(settings, params.gate);
+  if (gateFailure) return gateFailure;
   const tafKravGrafDocument = eoSnapshotToTafKravGrafDocument(snapshot);
   if (tafKravGrafDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, tafKravGrafDocument.message) };

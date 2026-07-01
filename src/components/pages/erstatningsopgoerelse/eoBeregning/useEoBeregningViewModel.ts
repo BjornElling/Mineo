@@ -35,7 +35,8 @@ import {
   EO_BILAG_DYNAMIC_SELECTION_KEYS,
   getEoBilagAvailability,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
-import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../../../../document/layout/documentGateTypes';
+import { type DocumentDownloadGateResult } from '../../../../document/layout/documentGateTypes';
+import { evaluateEoDocumentDownloadGate } from '../../../../domain/erstatningsopgoerelse/snapshot/eoDocumentDownloadGate';
 import type { EoIssueFocusTarget } from '../../../../domain/eoRowEvaluation/eoRowTypes';
 import {
   resolveMidlertidigtEetIssueNavigation,
@@ -77,15 +78,6 @@ type EoRowsMemoResult = Readonly<{
 }>;
 
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
-
-const createPdfGate = (canDownload: boolean, reason: string | null, fallbackReason: string): DocumentDownloadGateResult => {
-  return canDownload
-    ? allowDocumentDownload()
-    : blockDocumentDownload({
-      code: 'erstatningsopgoerelse:pdf-blocked',
-      message: reason ?? fallbackReason,
-    });
-};
 
 const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
   'debug:control_mismatch',
@@ -351,106 +343,69 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   }, [eoRowAggregationErrorMessage, errors, eetLoebendeErrorRows]);
 
   const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || eoRowAggregationErrorMessage !== null;
-  const eoPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingEoRowErrorMessage) {
-      return firstBlockingEoRowErrorMessage;
-    }
-    if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
-    if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'Opgørelsen kan ikke hentes for den aktuelle sag';
-    }
-    if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
-    }
-    if (eoPdfProjection?.kind === 'blocked') {
-      return eoPdfProjection.message;
-    }
-    return null;
-  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, firstBlockingEoRowErrorMessage]);
 
-  const tafPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingEoRowErrorMessage) {
-      return firstBlockingEoRowErrorMessage;
-    }
-    if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
-    if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag';
-    }
-    if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
-    }
-    if (tafPdfProjection?.kind === 'blocked') {
-      return tafPdfProjection.message;
-    }
-    return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection, firstBlockingEoRowErrorMessage]);
-
-  const tafOpreguleretPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingEoRowErrorMessage) {
-      return firstBlockingEoRowErrorMessage;
-    }
-    if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
-    if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag';
-    }
-    if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
-    }
-    if (tafOpreguleretPdfProjection?.kind === 'blocked') {
-      return tafOpreguleretPdfProjection.message;
-    }
-    return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, tafOpreguleretPdfProjection, firstBlockingEoRowErrorMessage]);
-
-  const tafKravGrafPdfDisabledReason = React.useMemo(() => {
-    if (firstBlockingEoRowErrorMessage) {
-      return firstBlockingEoRowErrorMessage;
-    }
-    if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
-    if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag';
-    }
-    if (authoritativeBlockingInvariants.length > 0) {
-      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller';
-    }
-    if (tafKravGrafPdfProjection?.kind === 'blocked') {
-      return tafKravGrafPdfProjection.message;
-    }
-    return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, tafKravGrafPdfProjection, firstBlockingEoRowErrorMessage]);
-
+  // Ét autoritativt output-gate-resultat pr. dokument (arkitektur-kandidat A5). Den fælles, rene
+  // domæne-funktion ejer beslutnings-præcedensen; her leveres de live-inputs (række-/EET-blokering,
+  // snapshot, projektion). Samme gate videregives til service-grænsen, så dokument-genereringen
+  // fail-closer på præcis samme beslutning som download-knappen.
   const eoPdfGate = React.useMemo(
-    () => createPdfGate(
-      eoPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
-      eoPdfDisabledReason,
-      'Opgørelsen kan ikke hentes for den aktuelle sag'
-    ),
-    [eoPdfDisabledReason, eoPdfProjection, hasBlockingEoRowErrors]
+    () => evaluateEoDocumentDownloadGate({
+      snapshot: eoSnapshot,
+      projection: eoPdfProjection,
+      authoritativeBlockingInvariants,
+      blockingRowMessage: firstBlockingEoRowErrorMessage,
+      hasBlockingRows: hasBlockingEoRowErrors,
+      failClosedFallback: 'Opgørelsen kan ikke hentes for den aktuelle sag',
+      gateFallback: 'Opgørelsen kan ikke hentes for den aktuelle sag',
+    }),
+    [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors]
   );
   const tafPdfGate = React.useMemo(
-    () => createPdfGate(
-      tafPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
-      tafPdfDisabledReason,
-      'TAF fordelt på år kan ikke genereres for den aktuelle sag'
-    ),
-    [hasBlockingEoRowErrors, tafPdfDisabledReason, tafPdfProjection]
+    () => evaluateEoDocumentDownloadGate({
+      snapshot: eoSnapshot,
+      projection: tafPdfProjection,
+      authoritativeBlockingInvariants,
+      blockingRowMessage: firstBlockingEoRowErrorMessage,
+      hasBlockingRows: hasBlockingEoRowErrors,
+      failClosedFallback: 'TAF fordelt på år kan ikke genereres for den aktuelle sag',
+      gateFallback: 'TAF fordelt på år kan ikke genereres for den aktuelle sag',
+    }),
+    [authoritativeBlockingInvariants, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors, tafPdfProjection]
   );
   const tafOpreguleretPdfGate = React.useMemo(
-    () => createPdfGate(
-      tafOpreguleretPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
-      tafOpreguleretPdfDisabledReason,
-      'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag'
-    ),
-    [hasBlockingEoRowErrors, tafOpreguleretPdfDisabledReason, tafOpreguleretPdfProjection]
+    () => evaluateEoDocumentDownloadGate({
+      snapshot: eoSnapshot,
+      projection: tafOpreguleretPdfProjection,
+      authoritativeBlockingInvariants,
+      blockingRowMessage: firstBlockingEoRowErrorMessage,
+      hasBlockingRows: hasBlockingEoRowErrors,
+      failClosedFallback: 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag',
+      gateFallback: 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag',
+    }),
+    [authoritativeBlockingInvariants, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors, tafOpreguleretPdfProjection]
   );
   const tafKravGrafPdfGate = React.useMemo(
-    () => createPdfGate(
-      tafKravGrafPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
-      tafKravGrafPdfDisabledReason,
-      'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag'
-    ),
-    [hasBlockingEoRowErrors, tafKravGrafPdfDisabledReason, tafKravGrafPdfProjection]
+    () => evaluateEoDocumentDownloadGate({
+      snapshot: eoSnapshot,
+      projection: tafKravGrafPdfProjection,
+      authoritativeBlockingInvariants,
+      blockingRowMessage: firstBlockingEoRowErrorMessage,
+      hasBlockingRows: hasBlockingEoRowErrors,
+      failClosedFallback: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag',
+      gateFallback: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag',
+    }),
+    [authoritativeBlockingInvariants, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors, tafKravGrafPdfProjection]
   );
+
+  // disabledReason til tooltips udledes nu af gaten (ikke-null præcis når gaten blokerer) — samme
+  // værdi som tidligere, men én kilde.
+  const gateDisabledReason = (gate: DocumentDownloadGateResult): string | null =>
+    gate.canDownload ? null : (gate.reasons[0]?.message ?? null);
+  const eoPdfDisabledReason = gateDisabledReason(eoPdfGate);
+  const tafPdfDisabledReason = gateDisabledReason(tafPdfGate);
+  const tafOpreguleretPdfDisabledReason = gateDisabledReason(tafOpreguleretPdfGate);
+  const tafKravGrafPdfDisabledReason = gateDisabledReason(tafKravGrafPdfGate);
+
   const canDownloadSnapshotEoPdf = eoPdfGate.canDownload;
   const canDownloadSnapshotTafPdf = tafPdfGate.canDownload;
   const canDownloadSnapshotTafOpreguleretPdf = tafOpreguleretPdfGate.canDownload;
@@ -793,9 +748,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       settings,
       snapshot: eoSnapshot,
       midlertidigtEetGroups,
+      gate: eoPdfGate,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups]);
+  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups, eoPdfGate]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafPdf) {
@@ -809,9 +765,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: tafPdfGate,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotTafPdf, eoSnapshot, stamdataValues, eoValues, settings]);
+  }, [canDownloadSnapshotTafPdf, eoSnapshot, stamdataValues, eoValues, settings, tafPdfGate]);
 
   const handleDownloadTafOpreguleretPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafOpreguleretPdf) {
@@ -827,9 +784,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       settings,
       snapshot: eoSnapshot,
       midlertidigtEetGroups,
+      gate: tafOpreguleretPdfGate,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotTafOpreguleretPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups]);
+  }, [canDownloadSnapshotTafOpreguleretPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups, tafOpreguleretPdfGate]);
 
   const handleDownloadTafKravGrafPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafKravGrafPdf) {
@@ -842,9 +800,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: tafKravGrafPdfGate,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotTafKravGrafPdf, eoSnapshot, eoValues, settings]);
+  }, [canDownloadSnapshotTafKravGrafPdf, eoSnapshot, eoValues, settings, tafKravGrafPdfGate]);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
     const issueSummaryText = row.summaryText ?? resolveEoIssueSummaryText(row);
