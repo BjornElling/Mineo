@@ -716,15 +716,23 @@ Kontroller:
 
 ## Åbne godkendelsespunkter
 
-Disse punkter er kendte fra tidligere arbejde og skal forelægges, når reviewet
-rammer det relevante område. De må ikke lukkes teknisk uden brugerens beslutning.
+Ingen åbne godkendelsespunkter pt.
 
-| ID | Punkt | Emne | Forelægges som brugeroplevelse |
+Nye punkter registreres her, når reviewet finder en ændring der kræver brugerens
+beslutning. De må ikke lukkes teknisk uden brugerens beslutning.
+
+### Ratificerede godkendelsespunkter (besluttet + implementeret + verificeret)
+
+Følgende punkter var overført fra tidligere arbejde. Ved review 2026-07-01 blev de
+verificeret som fuldt implementeret og testdækket, forelagt som konkret
+brugeroplevelse og ratificeret af brugeren. De er ikke længere udestående.
+
+| ID | Punkt | Emne | Verificeret tilstand |
 |---|---|---|---|
-| G1 | 10 | PDF/Word: "TAF opreguleret til beregningsår" | Nyt download-dokument; indhold, metode og afrunding skal bekræftes. |
-| G2 | 10 | EO-output med Ja/Nej/Skjul og afslutningsvalg | Hvad brugeren ser i dokumentet, og hvad der tæller med i samlet krav. |
-| G3 | 11 | Indstillinger: "Beregningsteknisk" | Device-lokal toggle/dropdown og konsekvens for beregningsoutput. |
-| G4 | 3 | Sygedagpenge OP/ATP-model | Tre-leds-model med sats, ATP og OP skal bekræftes. |
+| G1 | 10 | PDF/Word: "TAF opreguleret til beregningsår" | Download-dokument implementeret; metode = akkumuleret reguleringssats til beregningsår (år fra *opgørelse lavet den*); delta vist med 4 decimaler, beløb i hele kr., sum-diff >1 kr. blokerer; fail-closed ved manglende sats. |
+| G2 | 10 | EO-output med Ja/Nej/Skjul og afslutningsvalg | Ja = medregnes+vises; Nej = vises som "Ingen", ikke medregnet; Skjul = sektion fjernet, ikke medregnet (Nej/Skjul beregner identisk). Afslutningsvalg: Bekræftet godkendt / Underskrift-linje / Ingen. |
+| G3 | 11 | Indstillinger: "Beregningsteknisk" | Device-lokale kontroller (localStorage, ikke .eo); ændrer kun valideringsstrenghed (rød fejl vs. gul advarsel), ikke tal. Brugergodkendt 2026-06-19 jf. `app-settings.md`. |
+| G4 | 3 | Sygedagpenge OP/ATP-model | Tre-leds pr. satsår (sats + kommunal ATP + OP) i én samlet tabel; OP = 0 % før 6-1-2020; afrunding pr. uge. |
 
 ## Udskudte fund
 

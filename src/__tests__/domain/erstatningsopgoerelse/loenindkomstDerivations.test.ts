@@ -191,6 +191,17 @@ describe('deriveLoenindkomstVm', () => {
       // Posten findes (selv hvis der ikke er nogen celle-fejl) — afledningen kører for manuelt-sporet.
       expect(Object.prototype.hasOwnProperty.call(model.manualBaseRowErrorsByAfId, af.id)).toBe(true);
     });
+
+    it('udelader manuelt angivet i Beløb-tilstand (basisrækkens tillæg er brugerindtastede, ikke spejlet)', () => {
+      const af: Ansaettelsesforhold = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        tillaegAngivesSom: 'beloeb',
+        feriePct: 12.5,
+      };
+      const model = deriveLoenindkomstVm(buildInput([af]));
+      expect(Object.prototype.hasOwnProperty.call(model.manualBaseRowErrorsByAfId, af.id)).toBe(false);
+    });
   });
 
   describe('getFilteredOverenskomsterForAnsaettelsesforhold', () => {

@@ -344,6 +344,34 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(firstEntry?.packageValue).toBeCloseTo(100.45, 6);
   });
 
+  it('inkluderer manuelle tillægsprocenter i Beløb-tilstand (neutraliserer IKKE — lockstep med motoren)', () => {
+    // Manuel regulering neutraliserer aldrig tillægslaget, heller ikke i Beløb-tilstand. Var det
+    // stadig neutraliseret, ville feriePct være 0 og packageValue == grundløn. 'Ingen' løn på
+    // helligdage isolerer feriepenge-bidraget fra Store Bededag.
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].tillaegAngivesSom = 'beloeb';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.INGEN;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData = [
+      {
+        id: 'row-1',
+        dato: '',
+        grundloen: { value: 100 } as any,
+        feriepenge: 10,
+        shSoSats: 0,
+        fritvalg: 0,
+        agPension: 0,
+      } as any,
+    ];
+
+    const result = buildRegulationTimeline(input);
+    const firstEntry = result.ansaettelser[0]?.entries[0];
+
+    expect(firstEntry?.feriePct).toBeCloseTo(0.10, 6);
+    expect(firstEntry?.packageValue).toBeCloseTo(110, 6);
+  });
+
   it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet dagsløn og statistikgrundlag', () => {
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet dagsløn';

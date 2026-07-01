@@ -3,9 +3,49 @@ import {
   buildLoenindkomstRateSegments,
   isOverenskomstSatsFieldLocked,
   resolveAutoStoreBededagPct,
+  syncManualBaseRowSatser,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
+
+// ─── syncManualBaseRowSatser ──────────────────────────────────────────────────
+
+describe('syncManualBaseRowSatser', () => {
+  const makeManualAf = (tillaegAngivesSom: 'procent' | 'beloeb') => ({
+    ...createDefaultLoenindkomstAnsaettelsesforhold(),
+    loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
+    tillaegAngivesSom,
+    feriePct: 12.5,
+    fritvalgPct: 4,
+    shSoPct: 1.5,
+    pensionPct: 12,
+    loenudviklingManuelTableData: [
+      { id: 'base', dato: undefined, grundloen: undefined, feriepenge: 99, shSoSats: 99, fritvalg: 99, agPension: 99 },
+    ],
+  });
+
+  it('spejler satsfelterne ind i basisrækken i Procent-tilstand', () => {
+    const result = syncManualBaseRowSatser(makeManualAf('procent'));
+    const baseRow = result.loenudviklingManuelTableData?.[0];
+    expect(baseRow?.feriepenge).toBe(12.5);
+    expect(baseRow?.shSoSats).toBe(1.5);
+    expect(baseRow?.fritvalg).toBe(4);
+    expect(baseRow?.agPension).toBe(12);
+  });
+
+  it('rører ALDRIG basisrækken i Beløb-tilstand (brugerindtastede tillæg bevares, no-op)', () => {
+    const af = makeManualAf('beloeb');
+    const result = syncManualBaseRowSatser(af);
+    // Samme reference tilbage (ingen ændring), og de brugerindtastede procenter er urørte.
+    expect(result).toBe(af);
+    expect(result.loenudviklingManuelTableData?.[0]?.feriepenge).toBe(99);
+  });
+
+  it('rører ikke ansættelsesforhold uden manuelt angivet lønudvikling', () => {
+    const af = { ...createDefaultLoenindkomstAnsaettelsesforhold(), loenudviklingBeregningsgrundlag: 'Overenskomst' as const };
+    expect(syncManualBaseRowSatser(af)).toBe(af);
+  });
+});
 
 // ─── resolveAutoStoreBededagPct ───────────────────────────────────────────────
 

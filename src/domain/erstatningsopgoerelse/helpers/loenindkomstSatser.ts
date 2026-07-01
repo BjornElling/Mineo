@@ -306,6 +306,10 @@ const formatManualBaseRowPercent = (value: number | undefined): number | undefin
  */
 export const syncManualBaseRowSatser = (af: LoenindkomstAnsaettelsesforhold): LoenindkomstAnsaettelsesforhold => {
   if (af.loenudviklingBeregningsgrundlag !== 'Manuelt angivet') return af;
+  // Beløb-tilstand: basisrækkens tillægsprocenter er brugerindtastede (basisrækken er låst op i
+  // tabellen), så de må ALDRIG overskrives af satsfelterne ovenfor. Synk kun i Procent-tilstand,
+  // hvor basisrækken spejler felterne ovenfor.
+  if (af.tillaegAngivesSom === 'beloeb') return af;
 
   const currentRows = af.loenudviklingManuelTableData ?? [];
   const currentBaseRow = currentRows[0]

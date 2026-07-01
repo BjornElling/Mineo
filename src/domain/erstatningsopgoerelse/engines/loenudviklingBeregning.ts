@@ -557,7 +557,12 @@ const resolveReguleringsStrategi = (
         reguleringsdato: anvendtReguleringsdato,
         loenPaaHelligdage: active[0].loenPaaHelligdage ?? '',
         feriePct,
-        tillaegNeutraliseret: active[0].tillaegAngivesSom === 'beloeb',
+        // Manuel regulering neutraliserer ALDRIG tillægslaget — heller ikke i Beløb-tilstand.
+        // I modsætning til de øvrige strategier (som ikke har per-dato tillægsinput i Beløb-
+        // tilstand og derfor neutraliserer) angiver brugeren her tillægsprocenterne eksplicit i
+        // de manuelle rækker (basisrækken låses op i Beløb-tilstand, jf. LoenudviklingManuelTable),
+        // og de skal derfor indgå i reguleringen i begge tilstande.
+        tillaegNeutraliseret: false,
         manualRows: active[0].loenudviklingManuelTableData ?? [],
         tafRanges,
       },
@@ -1183,8 +1188,11 @@ const buildLoenudviklingFromManual = (
   if (konsolideret.strategi !== 'manual') {
     throw new Error('Loenudvikling kan ikke beregnes: manuel strategi mangler');
   }
-  // Beløb-tilstand: tillægslaget neutraliseres (jf. note i buildLoenudviklingFromOverenskomst), så
-  // deltaPct alene afspejler grundløns-progressionen i de manuelle rækker.
+  // Manuel regulering neutraliserer ALDRIG tillægslaget (tillaegNeutraliseret er altid false, jf.
+  // resolveReguleringsStrategi): brugeren angiver tillægsprocenterne eksplicit i de manuelle rækker,
+  // også i Beløb-tilstand hvor basisrækken låses op. deltaPct afspejler derfor hele pakkeværdien
+  // (grundløn × (1 + tillæg)) i begge tilstande. Feltet bevares for at dele signatur/formler med de
+  // øvrige strategier, hvor det stadig er load-bearing.
   const neutraliser = konsolideret.tillaegNeutraliseret;
   const manualRows = konsolideret.manualRows;
   const baseRow = manualRows[0];

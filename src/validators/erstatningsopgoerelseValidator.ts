@@ -839,9 +839,10 @@ function validateLoenudviklingsKravForAktivKilde(
 
     errors.push(...validateLoenudviklingDataCoverage(values, af, index, path, options));
 
-    // Beløb-tilstand skjuler 'Manuelt angivet' (procent-baseret); en evt. bevaret manuel-tilstand
-    // valideres derfor ikke her (felterne kan ikke redigeres, og motoren neutraliserer tillægslaget).
-    if (grundlag === 'Manuelt angivet' && af.tillaegAngivesSom !== 'beloeb') {
+    // 'Manuelt angivet' er tilgængelig i begge tilstande. Kravet om grundløn > 0 på alle aktive
+    // rækker gælder ens; feriePct kræves kun i Procent-tilstand (kræverFeriePct er allerede false i
+    // Beløb-tilstand, hvor basisrækkens tillæg angives direkte i tabellen).
+    if (grundlag === 'Manuelt angivet') {
       if (kræverFeriePct && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }

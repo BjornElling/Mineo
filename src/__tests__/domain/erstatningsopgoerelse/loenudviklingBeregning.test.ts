@@ -411,11 +411,27 @@ describe('buildLoenudviklingModel', () => {
   });
 });
 
-describe('buildLoenudviklingModel — Beløb-tilstand (rate-only regulering)', () => {
-  // Verificerer at tillægslaget (her: Store Bededag) neutraliseres i Beløb-tilstand, så deltaPct
-  // bliver ren grundløns-/sats-regulering. Samme opsætning i Procent-tilstand giver Store Bededag-
-  // bidraget (-0,45 % før 2024), jf. testen "beregner negativ manuel Store Bededag-regulering".
-  const buildManualBeregningsperiode = (tillaegAngivesSom: 'procent' | 'beloeb'): ErstatningsopgoerelseValues => {
+describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg regulerer)', () => {
+  // Manuel regulering neutraliserer ALDRIG tillægslaget — heller ikke i Beløb-tilstand. Brugeren
+  // angiver tillægsprocenterne eksplicit i de manuelle rækker (basisrækken låses op i Beløb-tilstand),
+  // så deltaPct afspejler hele pakkeværdien. Modsat de øvrige strategier (fx Overenskomst), der stadig
+  // neutraliserer i Beløb-tilstand, fordi de ikke har per-dato tillægsinput.
+  //
+  // rows: hvis udeladt bruges én basisrække (grundløn 1000, alle tillæg = 0).
+  type ManualRowInput = Readonly<{
+    id: string;
+    dato: string;
+    grundloen: number;
+    feriepenge?: number;
+    shSoSats?: number;
+    fritvalg?: number;
+    agPension?: number;
+  }>;
+
+  const buildManualBeregningsperiode = (
+    tillaegAngivesSom: 'procent' | 'beloeb',
+    options?: Readonly<{ loenPaaHelligdage?: 'Almindelig løn' | 'SH-udbetaling' | 'Ingen'; rows?: readonly ManualRowInput[] }>
+  ): ErstatningsopgoerelseValues => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.tafBeregningsperiodeFra = iso('2023-01-01');
@@ -426,28 +442,29 @@ describe('buildLoenudviklingModel — Beløb-tilstand (rate-only regulering)', (
       til: iso('2024-09-30'),
       loseFeriedage: 0,
     }];
+    const rows = options?.rows ?? [{ id: 'manual-base', dato: '2023-01-01', grundloen: 1000 }];
     const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
     values.loenindkomstAnsaettelsesforhold = [{
       ...baseAf,
       id: 'af-beloeb',
       tillaegAngivesSom,
-      // Beløb: sæt satserne til ikke-nul for at bevise, at de IKKE påvirker deltaPct (neutraliseres).
-      // Procent: feriePct=0 så deltaPct alene afspejler Store Bededag-bidraget (-0,45 %).
-      feriePct: tillaegAngivesSom === 'beloeb' ? 12.5 : 0,
-      fritvalgPct: tillaegAngivesSom === 'beloeb' ? 4 : undefined,
-      shSoPct: tillaegAngivesSom === 'beloeb' ? 2.7 : undefined,
-      pensionPct: tillaegAngivesSom === 'beloeb' ? 8.15 : undefined,
-      loenPaaHelligdage: 'Almindelig løn',
+      // Sæt af-satserne til ikke-nul for at bevise, at deltaPct drives af de MANUELLE rækkers
+      // procenter — ikke af satsfelterne ovenfor (som ikke findes i Beløb-tilstand).
+      feriePct: tillaegAngivesSom === 'beloeb' ? 99 : 0,
+      fritvalgPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
+      shSoPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
+      pensionPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
+      loenPaaHelligdage: options?.loenPaaHelligdage ?? 'Almindelig løn',
       loenudviklingBeregningsgrundlag: 'Manuelt angivet',
-      loenudviklingManuelTableData: [{
-        id: 'manual-base',
-        dato: toISODateString('2023-01-01'),
-        grundloen: asAmount(1000),
-        feriepenge: 0,
-        shSoSats: 0,
-        fritvalg: 0,
-        agPension: 0,
-      }],
+      loenudviklingManuelTableData: rows.map((row) => ({
+        id: row.id,
+        dato: toISODateString(row.dato),
+        grundloen: asAmount(row.grundloen),
+        feriepenge: row.feriepenge ?? 0,
+        shSoSats: row.shSoSats ?? 0,
+        fritvalg: row.fritvalg ?? 0,
+        agPension: row.agPension ?? 0,
+      })),
       indtaegtsoplysningerTableData: [{
         id: 'r1',
         col0_maaned: '1',
@@ -480,11 +497,31 @@ describe('buildLoenudviklingModel — Beløb-tilstand (rate-only regulering)', (
     return model.beregnedeSegmenter.find((segment) => segment.fra === iso(fra))?.deltaPct;
   };
 
-  it('neutraliserer Store Bededag i Beløb-tilstand (deltaPct = 0 før 2024)', () => {
-    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01')).toBe(0);
+  it('inkluderer Store Bededag i Beløb-tilstand — som Procent-tilstand (deltaPct = -0,45 før 2024)', () => {
+    // Tidligere neutraliserede Beløb-tilstand tillægslaget (deltaPct = 0). Efter ændringen indgår
+    // Store Bededag nu, præcis som i Procent-tilstand: referencepakken (ved 2024-09-30) bærer
+    // Store Bededag-tillægget, mens 2023-segmentet ikke gør → deltaPct = -0,45 %.
+    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01')).toBe(-0.45);
   });
 
-  it('Procent-tilstand bevarer Store Bededag-bidraget (deltaPct = -0,45 før 2024)', () => {
-    expect(deltaForSegment(buildManualBeregningsperiode('procent'), '2023-01-01')).toBe(-0.45);
+  it('giver identisk deltaPct i Beløb- og Procent-tilstand for samme manuelle rækker', () => {
+    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01'))
+      .toBe(deltaForSegment(buildManualBeregningsperiode('procent'), '2023-01-01'));
+  });
+
+  it('lader de manuelle rækkers tillægsprocenter drive deltaPct i Beløb-tilstand', () => {
+    // Isolér tillægseffekten: 'Ingen' løn på helligdage → intet Store Bededag-bidrag. Grundløn er
+    // konstant (1000), så deltaPct afspejler ALENE ændringen i feriepenge-procenten (10 % → 20 %):
+    // pakke_basis = 1000 × 1,10 = 1100 ; pakke_seg = 1000 × 1,20 = 1200 ; delta = 1200/1100 − 1 = 9,09 %.
+    const values = buildManualBeregningsperiode('beloeb', {
+      loenPaaHelligdage: 'Ingen',
+      rows: [
+        { id: 'base', dato: '2023-01-01', grundloen: 1000, feriepenge: 10 },
+        { id: 'r2', dato: '2024-01-01', grundloen: 1000, feriepenge: 20 },
+      ],
+    });
+    // Basissegmentet (uændret tillæg) regulerer ikke; det senere segment bærer tillægsstigningen.
+    expect(deltaForSegment(values, '2023-01-01')).toBe(0);
+    expect(deltaForSegment(values, '2024-01-01')).toBe(9.09);
   });
 });

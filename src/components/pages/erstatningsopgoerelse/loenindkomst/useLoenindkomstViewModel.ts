@@ -479,7 +479,14 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = tillaegAngivesSomEnum.safeParse(event.target.value);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, tillaegAngivesSom: parsed.data }), { fieldPath: `${id}:tillaegAngivesSom` });
+        updateAnsaettelsesforhold(id, (prev) => {
+          const next = { ...prev, tillaegAngivesSom: parsed.data };
+          // Skift til Procent: gen-etablér procent-tilstands-invarianten, så den manuelle
+          // basisrække igen spejler satsfelterne ovenfor (den kan have brugerindtastede værdier
+          // fra Beløb-tilstand). Skift til Beløb: ingen synk — basisrækken låses op (guardet i
+          // syncManualBaseRowSatser), så brugerens start-tillæg bevares.
+          return parsed.data === 'procent' ? syncManualBaseRowSatser(next) : next;
+        }, { fieldPath: `${id}:tillaegAngivesSom` });
         // Beløb-tilstand bruger ikke satserne; satsErrors-memo'en returnerer {} for det
         // ansættelsesforhold, så røde kanter ryddes automatisk. Skift tilbage til Procent revaliderer.
       },

@@ -1092,6 +1092,36 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(values, 'Grundløn skal være større end 0')).toBe(true);
   });
 
+  it('validerer manuel reguleringsrække i Beløb-tilstand (grundløn kræves, feriePct kræves ikke)', () => {
+    const makeBeloebManual = (grundloen: ReturnType<typeof asAmount> | undefined): ErstatningsopgoerelseValues =>
+      makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
+            id: 'af-1',
+            tillaegAngivesSom: 'beloeb',
+            // feriePct bevidst udeladt: i Beløb-tilstand må det IKKE kræves.
+            feriePct: undefined,
+            loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+            loenudviklingManuelTableData: [
+              { id: 'base', dato: toISODateString('2023-01-01'), grundloen, feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: undefined },
+            ],
+          },
+        ],
+      });
+
+    // Udfyldt grundløn: ingen grundløns- eller feriePct-fejl (branchen kører nu også i Beløb-tilstand).
+    const okValues = makeBeloebManual(asAmount(30000));
+    expect(hasError(okValues, 'Grundløn skal udfyldes')).toBe(false);
+    expect(hasError(okValues, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
+
+    // Manglende grundløn: fanges også i Beløb-tilstand.
+    expect(hasError(makeBeloebManual(undefined), 'Grundløn skal udfyldes')).toBe(true);
+  });
+
   it('tillader særskilt startdato for regulering pr. ansættelsesforhold', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',

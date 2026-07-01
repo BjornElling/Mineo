@@ -173,8 +173,12 @@ const buildManualEntries = (args: Readonly<{
   shDageSet: ReadonlySet<ISODateString>;
   ferieDageSet: ReadonlySet<ISODateString>;
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
-  // Beløb-tilstand: tillægslaget neutraliseres, så indekset alene afspejler grundløns-progressionen.
-  const neutraliser = args.af.tillaegAngivesSom === 'beloeb';
+  // Manuel regulering neutraliserer ALDRIG tillægslaget — heller ikke i Beløb-tilstand — fordi
+  // brugeren angiver tillægsprocenterne eksplicit i de manuelle rækker (basisrækken låses op i
+  // Beløb-tilstand). Skal holdes i lockstep med loenudviklingBeregning.ts (buildLoenudviklingFromManual),
+  // ellers udløser control-mismatch-invarianten og blokerer PDF'en. Overenskomst-sporet (buildOverenskomstEntries)
+  // neutraliserer stadig i Beløb-tilstand, da det ikke har per-dato tillægsinput.
+  const neutraliser = false;
   const rows = args.af.loenudviklingManuelTableData ?? [];
   const baseRow = rows[0];
   const baseGrundloen = amountValueToNumber(baseRow?.grundloen);
