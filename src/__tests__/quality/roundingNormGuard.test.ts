@@ -297,7 +297,6 @@ describe('Afrundingsnorm-guard', () => {
         'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
         'domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts',
         'domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel.ts',
-        'domain/eoInspektion/eoInspektionCoreModel.ts',
         'domain/eoInspektion/eoInspektionRegulationCore.ts',
         'domain/dates/shDageBeregning.ts',
         'document/generators/aarsloen/shDagePdf.ts',

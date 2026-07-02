@@ -14,7 +14,7 @@ import path from 'node:path';
  * Rollefordeling efter relokeringen:
  *   - `src/domain/eoRowEvaluation/` — AUTORITATIV motor (`eoRow…`-filer, `collectAllEoRows` mv.).
  *     Inspektionsfri. Driver download-gaten OG fødes ind i DEV-visningen.
- *   - `src/domain/eoInspektion/` — rent inspektions-/kontrollag (DEV-synligt) (tabeller, CSV, parity, integritet, sammentælling). Den
+ *   - `src/domain/eoInspektion/` — rent inspektions-/kontrollag (DEV-synligt) (tabeller, CSV, sammentælling, view-model, snapshot). Den
  *     er NEDSTRØMS: den må importere motoren, aldrig omvendt.
  *
  * Dette værn pinner de invarianter, der holder rollefordelingen forsvarlig:

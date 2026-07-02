@@ -14,7 +14,6 @@ import type { ISODateString } from '../../types/branded';
  * VIGTIGT: Denne type er canonical for hele Mineo.
  * Andre lag må IKKE definere egen status-type.
  *
- * @see eoInspektionIntegrity.ts - Validering der producerer IntegrityIssue[]
  * @see eoRowCommon.ts - Helper-funktioner der mapper issues til status
  */
 export type EoRowStatus = 'ok' | 'warning' | 'error';

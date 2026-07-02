@@ -4,7 +4,6 @@ export type SystemIssueSeverity = 'error' | 'warning';
 
 export type SystemIssueArea =
   | 'eo'
-  | 'debug'
   | 'react'
   | 'calculation'
   | 'document'
