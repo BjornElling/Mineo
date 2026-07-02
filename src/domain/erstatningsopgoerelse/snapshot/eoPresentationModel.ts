@@ -101,7 +101,7 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   // Single source of truth: PDF-modellen genberegner IKKE EO-totaler. Den læser de
   // autoritative, allerede-clampede/-skalerede totaler fra snapshot-orkestreringens
   // buildEoComputedTotals (eoCanonicalOutput.ts), jf. eo-snapshot-contract.md §1
-  // ("Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller debug-lag").
+  // ("Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller gennemsyns-/kontrollag").
   totals: EoComputedTotals;
 }>): EoModel => {
   // Alle section-totaler injiceres fra canonical (`args.totals`) — section-inputtet bærer dem ikke.

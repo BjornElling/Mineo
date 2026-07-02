@@ -8,7 +8,7 @@ import { buildTafCutoffErrorMessage } from './tafPeriodConstraints';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 
 /**
- * Ren (React-/debug-fri) blokerings-afgørelse for TAF-periode-rækker.
+ * Ren (React-/gennemsyns-frit) blokerings-afgørelse for TAF-periode-rækker.
  *
  * AUTORITATIV kilde til om en TAF-periode blokerer (komplethed, dato-grænser, cutoff efter
  * differencekrav/EET-afgørelse, overlap, rækkefølge) og med hvilken besked — jf. B9. Tjekkene

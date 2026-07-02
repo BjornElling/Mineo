@@ -109,7 +109,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/domain/erstatningsopgoerelse/eoSnapshot.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/eoSnapshotPdfProjection.test.ts',
-      'src/__tests__/domain/erstatningsopgoerelse/eoSnapshotToDebugView.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/eoSnapshotToInspektionView.test.ts',
     ],
   },
   {
@@ -177,9 +177,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
-    contractPath: 'src/contracts/error-debug-contract.md',
+    contractPath: 'src/contracts/error-contract.md',
     requiredTestPaths: [
-      'src/__tests__/quality/errorDebugContractIsolation.test.ts',
+      'src/__tests__/quality/errorContractIsolation.test.ts',
       'src/__tests__/hooks/useFormFieldErrors.test.tsx',
     ],
   },

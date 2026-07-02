@@ -133,7 +133,7 @@ const buildSnapshot = (): EoSnapshot => {
     status: 'ok',
     invariants: [],
     data,
-    debugSnapshot: null,
+    inspektionSnapshot: null,
     input: {
       stamdata: { skadedato: iso('2024-01-01') } as EoSnapshot['input']['stamdata'],
       erstatningsopgoerelse: {

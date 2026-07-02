@@ -155,7 +155,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 ## 8. EO-felter for midlertidigt/endeligt EET
 
 1. Felterne i `EOOplysningerTab` for midlertidigt/endeligt EET er aktive felter i EO-domænet.
-2. `EODebug` og EO-PDF må bruge disse felter via EO-data (`erstatningsopgoerelse`), fordi de er en del af EO-opgørelsen.
+2. `EOInspektion` og EO-PDF må bruge disse felter via EO-data (`erstatningsopgoerelse`), fordi de er en del af EO-opgørelsen.
 3. Disse EO-felter må aldrig kobles til persisted data fra siden `Erhvervsevnetab`.
 4. Navnelighed mellem felter og sidenavn giver ingen implicit datakontrakt.
 
@@ -204,7 +204,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    - autoritative inputsektioner
    - autoritative forbrugere
    - status-/issue-model
-   - PDF/debug-projektioner
+   - PDF/gennemsyns-/kontrol-projektioner
    - runtime fail-closed-semantik
 5. Page-boundary quality-tests er et sikkerhedsnet, ikke fuld statisk sikkerhed. Aliasering, dynamiske imports og nye facade-hooks kræver stadig manuel review mod denne kontrakt.
 

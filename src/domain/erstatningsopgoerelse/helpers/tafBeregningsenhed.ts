@@ -74,7 +74,7 @@ const employmentHasOverlappendeIndtastetLoen = (
  *
  * Hvorfor denne afgrænsning er central
  * - Den påvirker fremtidige beregningsprincipper (fx hvordan "løse feriedage" og andre fraværsdage prissættes).
- * - Den skal kunne anvendes bredt i domænelogikken (beregning, debug/audit, PDF), uden afhængighed af UI-state.
+ * - Den skal kunne anvendes bredt i domænelogikken (beregning, gennemsyn/audit, PDF), uden afhængighed af UI-state.
  *
  * Regler (normative, implementeres præcist som angivet)
  *

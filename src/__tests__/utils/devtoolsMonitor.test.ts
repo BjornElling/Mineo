@@ -132,7 +132,7 @@ describe('devtoolsMonitor', () => {
         systemIssue: {
           schemaVersion: 1,
           kind: 'system_issue',
-          code: 'debug:control_mismatch',
+          code: 'control:sammentaelling_mismatch',
           area: 'eo',
           severity: 'error',
           context: 'EOberegningTab',
@@ -148,7 +148,7 @@ describe('devtoolsMonitor', () => {
     const issue = monitor.getDevtoolsIssueSnapshot().issues[0];
     expect(issue?.message).toBe('Systemfejl registreret: EO mismatch');
     expect(issue?.systemIssue).toEqual(expect.objectContaining({
-      code: 'debug:control_mismatch',
+      code: 'control:sammentaelling_mismatch',
       revision: 'rev-7',
     }));
 

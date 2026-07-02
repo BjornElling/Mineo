@@ -39,11 +39,21 @@ export const resolveAppSettings = (raw: unknown): AppSettings => {
 export const parseStoredSettings = (raw: unknown): AppSettings => {
   if (!isRecord(raw)) return createDefaultAppSettings();
 
+  // Ét-vejs migration af omdøbte nøgler før merge/parse. `appSettingsSchema` er `.strict()`,
+  // så en gammel nøgle ellers ville blive strippet og brugerens valg tabt.
+  // `showEODebugMenu` blev omdøbt til `showEOInspektionMenu` (sproglig oprydning: fanerne er
+  // gennemsyns-/kontrolfaner, ikke fejlsøgning). Bevar en tidligere gemt boolean-værdi.
+  const migrated: Record<string, unknown> = { ...raw };
+  if (!('showEOInspektionMenu' in migrated) && typeof migrated.showEODebugMenu === 'boolean') {
+    migrated.showEOInspektionMenu = migrated.showEODebugMenu;
+  }
+  delete migrated.showEODebugMenu;
+
   // Tolerant mod manglende keys (fremtidig schema-evolution).
   // Vi håndhæver stadig korrekte typer via Zod.
   const merged: unknown = {
     ...createDefaultAppSettings(),
-    ...raw,
+    ...migrated,
     brevhovedIndstillinger: isRecord(raw.brevhovedIndstillinger)
       ? {
         ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,

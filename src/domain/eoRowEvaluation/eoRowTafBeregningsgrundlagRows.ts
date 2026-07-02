@@ -15,7 +15,7 @@ import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato } from '../e
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
-import { formatDebugCount, formatDebugMonths, calculateElapsedWholeMonthsDebug } from './eoRowShared';
+import { formatRowCount, formatRowMonths, calculateElapsedWholeMonths } from './eoRowShared';
 
 export const buildEoTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
@@ -179,7 +179,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     if (!periodeTilDate) return false;
     const inclusivePeriodeEnd = dateToISO(addDays(periodeTilDate, 1));
     if (!inclusivePeriodeEnd) return false;
-    return calculateElapsedWholeMonthsDebug(periodeFra, inclusivePeriodeEnd) >= 6;
+    return calculateElapsedWholeMonths(periodeFra, inclusivePeriodeEnd) >= 6;
   })();
   const hasNoUspecificeredeFerieFridageValue = values.uspecificeredeFerieFridage === undefined;
 
@@ -302,7 +302,7 @@ export const buildEoTafBeregningsgrundlagRows = (
       rows.push({
         id: `taf.beregningsgrundlag.ferie.${periode.id}`,
         label: periodeLabel,
-        displayValue: feriedage === null ? '-' : `${formatDebugCount(feriedage)} feriedage`,
+        displayValue: feriedage === null ? '-' : `${formatRowCount(feriedage)} feriedage`,
         status: feriedage === null ? 'error' : 'ok',
       });
     });
@@ -315,7 +315,7 @@ export const buildEoTafBeregningsgrundlagRows = (
       label: 'Uspecificerede ferie-/feriefridage',
       displayValue:
         typeof uspecificeredeFerie === 'number'
-          ? `${formatDebugCount(uspecificeredeFerie)} dage`
+          ? `${formatRowCount(uspecificeredeFerie)} dage`
           : '-',
       status: 'ok',
     });
@@ -338,7 +338,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     if (oevrigeFravaersdage === 0) {
       return { displayValue: 'Advarsel (Antal fraværsdage er 0)', status: 'warning' as EoRowStatus, message: 'Antal fraværsdage er sat til 0' };
     }
-    return { displayValue: `${formatDebugCount(oevrigeFravaersdage)} dage`, status: 'ok' as EoRowStatus, message: undefined };
+    return { displayValue: `${formatRowCount(oevrigeFravaersdage)} dage`, status: 'ok' as EoRowStatus, message: undefined };
   })();
 
   if (oevrigtFravaerAktivt) {
@@ -410,9 +410,9 @@ export const buildEoTafBeregningsgrundlagRows = (
       { value: breakdown.oevrigeFravaersdage, label: 'øvrige fraværsdage' },
     ];
     const parts = components
-      .map((component) => `${formatDebugCount(component.value)} ${component.label}`);
+      .map((component) => `${formatRowCount(component.value)} ${component.label}`);
     const label = `${parts.join(' - ')} =`;
-    const displayValue = `${formatDebugCount(samletArbejdsdage)} arbejdsdage`;
+    const displayValue = `${formatRowCount(samletArbejdsdage)} arbejdsdage`;
 
     return { label, displayValue, status: 'ok' as EoRowStatus };
   })();
@@ -466,10 +466,10 @@ export const buildEoTafBeregningsgrundlagRows = (
       ? `fraværsdage pga. ${fravaerBeskrivelse}`
       : 'fraværsdage';
     const label = oevrigeFravaersdageValue === 0
-      ? `Beregningsperiode: ${formatDebugMonths(totalMaaneder)} måneder (0 ${fravaerLabelTekst} uden løn) =`
-      : `Beregningsperiode: ${formatDebugMonths(totalMaaneder)} - ${formatDebugMonths(fravaerMaaneder)} måneder (${formatDebugCount(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned) =`;
+      ? `Beregningsperiode: ${formatRowMonths(totalMaaneder)} måneder (0 ${fravaerLabelTekst} uden løn) =`
+      : `Beregningsperiode: ${formatRowMonths(totalMaaneder)} - ${formatRowMonths(fravaerMaaneder)} måneder (${formatRowCount(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned) =`;
     const maanederEfterFradrag = Math.max(0, totalMaaneder - fravaerMaaneder);
-    const formatted = formatDebugMonths(maanederEfterFradrag);
+    const formatted = formatRowMonths(maanederEfterFradrag);
     const displayValue = `${formatted} måneder`;
 
     return { label, displayValue, status: 'ok' as EoRowStatus };

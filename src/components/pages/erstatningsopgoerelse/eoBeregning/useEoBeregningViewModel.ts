@@ -7,7 +7,7 @@ import type { EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoR
 import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowNavigationMap';
 import { resolveEoIssueSummaryText } from '../../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import { scrollToSection } from '../../../../utils/scrollToSection';
-import { scrollToDebugRow } from '../../../../utils/scrollToDebugRow';
+import { scrollToEoRow } from '../../../../utils/scrollToEoRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
@@ -43,7 +43,7 @@ import {
   type EetIssueNavigationTarget,
 } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 
-export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
+export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'inspektion' | 'kontroltabel';
 
 export interface EOberegningTabProps {
   activeTab: TabKey;
@@ -80,19 +80,19 @@ type EoRowsMemoResult = Readonly<{
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
-  'debug:control_mismatch',
+  'control:sammentaelling_mismatch',
   'taf_per_year:afrunding_over_100',
 ]);
 
 const isDevtoolsReportableInvariant = (invariant: EoInvariant): boolean =>
   invariant.source === 'system' && DEVTOOLS_REPORTABLE_INVARIANT_IDS.has(invariant.id);
 
-const scrollToRowIssueTarget = (debugRowId: string, focusTarget: EoIssueFocusTarget | undefined): void => {
+const scrollToRowIssueTarget = (rowId: string, focusTarget: EoIssueFocusTarget | undefined): void => {
   if (focusTarget) {
-    scrollToDebugRow(debugRowId, { focusTarget });
+    scrollToEoRow(rowId, { focusTarget });
     return;
   }
-  scrollToDebugRow(debugRowId);
+  scrollToEoRow(rowId);
 };
 
 const buildInvariantDiagnostics = (
@@ -145,8 +145,8 @@ const buildInvariantDiagnostics = (
     };
   }
 
-  if (invariant.id === 'debug:control_mismatch') {
-    const mismatchRows = snapshot.debugSnapshot?.sammentaellingRows
+  if (invariant.id === 'control:sammentaelling_mismatch') {
+    const mismatchRows = snapshot.inspektionSnapshot?.sammentaellingRows
       .filter((row) => (invariant.evidence ?? []).some((message) => message.startsWith(`${row.label}:`)))
       .map((row) => ({
         key: row.key,
@@ -161,11 +161,11 @@ const buildInvariantDiagnostics = (
 
     return {
       ...baseContext,
-      debugControlMismatch: {
+      inspektionControlMismatch: {
         mismatchCount: invariant.evidence?.length ?? 0,
         mismatches: invariant.evidence ?? [],
         matchedRows: mismatchRows,
-        allSammentaellingRowCount: snapshot.debugSnapshot?.sammentaellingRows.length ?? 0,
+        allSammentaellingRowCount: snapshot.inspektionSnapshot?.sammentaellingRows.length ?? 0,
       },
       tafContext: {
         harTafPerioder: snapshot.data.engines.tafNetto.harTafPerioder,
@@ -185,7 +185,7 @@ const buildInvariantDiagnostics = (
 /**
  * View-model-laget for Erstatningsopgørelse-beregningsfanen.
  *
- * Ejer al afledt visningstilstand: debug-rækker med navigation, snapshot-projektioner og
+ * Ejer al afledt visningstilstand: gennemsyns-/kontrol-rækker med navigation, snapshot-projektioner og
  * download-gates, system-/EET-issue-rækker, bilag-valg, opsummeringslinjer og PDF-download-handlers.
  * Returnerer én flad model; fanen beholder kun præsentations-render-helpers + selve JSX'en — jf.
  * arkitektur-kandidat A1 (view-model-lag under fagsiderne). Adfærdsbevarende: logikken er flyttet
@@ -228,11 +228,11 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         settings,
         beregningView?.canonicalOutput,
         // pdfModel SKAL med, så download-gaten ser de samme resultat-afhængige SFGG-fejlrækker
-        // som DEV-debug-fanen (jf. collectAllEoRows-doc). Uden den var gaten fail-open for dem.
+        // som DEV-gennemsyns-/kontrolfanerne (jf. collectAllEoRows-doc). Uden den var gaten fail-open for dem.
         eoSnapshot?.data?.pdfModel
       ),
       'EOberegningTab.collectAllEoRows',
-      { code: 'eo_debug:aggregation_failed' }
+      { code: 'eo_inspektion:aggregation_failed' }
     );
     if (isErr(result)) {
       return {
@@ -303,7 +303,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
                 // Land på det konkrete felt, hvis issuet peger på ét (parallelt til EO-rækkernes
                 // stamdata-sti). Den generiske schema-invalid har intet enkelt felt → kun navigation.
                 if (navigation.focusFieldPath) {
-                  scrollToDebugRow('', {
+                  scrollToEoRow('', {
                     focusTarget: { kind: 'fieldPath', fieldPath: navigation.focusFieldPath },
                   });
                 }
@@ -484,8 +484,8 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       pushIssue({
         id: 'eo-row-aggregation-failed',
         message: eoRowAggregationErrorMessage,
-        actionLabel: 'Debug tabel',
-        onAction: () => setActiveTab('debug_tabel'),
+        actionLabel: 'Kontroltabel',
+        onAction: () => setActiveTab('kontroltabel'),
       });
     }
 
@@ -501,9 +501,9 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         pushIssue({
           id: invariant.id,
           message: invariant.message,
-          actionLabel: invariant.id === 'debug:control_mismatch' ? 'Debug tabel' : undefined,
-          onAction: invariant.id === 'debug:control_mismatch'
-            ? () => setActiveTab('debug_tabel')
+          actionLabel: invariant.id === 'control:sammentaelling_mismatch' ? 'Kontroltabel' : undefined,
+          onAction: invariant.id === 'control:sammentaelling_mismatch'
+            ? () => setActiveTab('kontroltabel')
             : undefined,
         });
       });
@@ -546,24 +546,24 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
   const [pendingNavigation, setPendingNavigation] = React.useState<{
     target: NavigationTarget;
-    debugRowId: string;
+    rowId: string;
     focusTarget?: EoIssueFocusTarget;
   } | null>(null);
 
   const handleNavigate = React.useCallback(
-    (target: NavigationTarget, debugRowId: string, focusTarget?: EoIssueFocusTarget) => {
+    (target: NavigationTarget, rowId: string, focusTarget?: EoIssueFocusTarget) => {
       switch (target.kind) {
         case 'erstatningsopgoerelse-tab':
           // Switch til korrekt fane
           setActiveTab(target.tabId);
           // Scroll til specifik række + evt. sektion når fanen er aktiv
-          setPendingNavigation({ target, debugRowId, focusTarget });
+          setPendingNavigation({ target, rowId, focusTarget });
           break;
 
         case 'stamdata-page':
           // Naviger til Stamdata-siden
           navigate('/stamdata');
-          scrollToRowIssueTarget(debugRowId, focusTarget);
+          scrollToRowIssueTarget(rowId, focusTarget);
           setPendingNavigation(null);
           break;
 
@@ -593,17 +593,17 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     let cancelled = false;
     const runRowScroll = () => {
       if (cancelled) return;
-      scrollToRowIssueTarget(pendingNavigation.debugRowId, pendingNavigation.focusTarget);
+      scrollToRowIssueTarget(pendingNavigation.rowId, pendingNavigation.focusTarget);
     };
 
-    const isLoenindkomstEmploymentDebugRow =
+    const isLoenindkomstEmploymentInspektionRow =
       pendingNavigation.target.tabId === 'loenindkomst' &&
       (
-        pendingNavigation.debugRowId.startsWith('loenindkomst.')
-        || pendingNavigation.debugRowId.startsWith('sfgg.')
+        pendingNavigation.rowId.startsWith('loenindkomst.')
+        || pendingNavigation.rowId.startsWith('sfgg.')
       );
 
-    if (isLoenindkomstEmploymentDebugRow) {
+    if (isLoenindkomstEmploymentInspektionRow) {
       runRowScroll();
       setPendingNavigation(null);
       return () => {
@@ -844,7 +844,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   }, []);
 
   return {
-    // Debug-/issue-rækker
+    // Gennemsyns-/kontrol-/issue-rækker
     errors,
     warnings,
     eetLoebendeIssueRows,

@@ -89,7 +89,7 @@ Et visningsvalg er et visningsønske, ikke en ret til at overstyre semantisk fra
 
 1. Hvis download var korrekt gated, men selve dokument-genereringen fejler ved runtime, er det en systemteknisk fejl.
 2. Brugeren må ikke mødes af en `BugReportButton` inline i sideflowet eller i en download-dialog.
-3. Fejlen routes via den centrale fejlrapportering jf. `error-debug-contract.md`.
+3. Fejlen routes via den centrale fejlrapportering jf. `error-contract.md`.
 
 Lokale fejlbeskeder må kun bruges til forventelige brugerrettelige gate-/preflight-tilstande eller DEV-specifik dev-server-nedetid. Uventede runtime-fejl under en godkendt download er systemfejl.
 

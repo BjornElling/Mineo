@@ -18,7 +18,7 @@ const baseSettings: AppSettings = {
   themeMode: 'light',
   defaultStartsideErStamdata: false,
   showContentBoxReportButton: false,
-  showEODebugMenu: false,
+  showEOInspektionMenu: false,
   fontStyleColorDebug: false,
   showStamdataTestTab: false,
   erstatningsopgoerelseAfsluttesMed: 'Bekræftet godkendt',

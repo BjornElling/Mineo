@@ -18,9 +18,9 @@ const { collectAllEoRowsMock } = vi.hoisted(() => ({
   collectAllEoRowsMock: vi.fn(),
 }));
 
-const { scrollToSectionMock, scrollToDebugRowMock } = vi.hoisted(() => ({
+const { scrollToSectionMock, scrollToEoRowMock } = vi.hoisted(() => ({
   scrollToSectionMock: vi.fn(),
-  scrollToDebugRowMock: vi.fn(),
+  scrollToEoRowMock: vi.fn(),
 }));
 
 const { reportSystemIssueMock } = vi.hoisted(() => ({
@@ -40,8 +40,8 @@ vi.mock('../../../../utils/scrollToSection', () => ({
   scrollToSection: scrollToSectionMock,
 }));
 
-vi.mock('../../../../utils/scrollToDebugRow', () => ({
-  scrollToDebugRow: scrollToDebugRowMock,
+vi.mock('../../../../utils/scrollToEoRow', () => ({
+  scrollToEoRow: scrollToEoRowMock,
 }));
 
 vi.mock('../../../../utils/systemIssueReporter', () => ({
@@ -76,7 +76,7 @@ describe('EOberegningTab kontroltjek', () => {
     reportSystemIssueMock.mockReset();
     collectAllEoRowsMock.mockReset();
     scrollToSectionMock.mockReset();
-    scrollToDebugRowMock.mockReset();
+    scrollToEoRowMock.mockReset();
     collectAllEoRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
   });
 
@@ -95,7 +95,7 @@ describe('EOberegningTab kontroltjek', () => {
         stamdata: baseStamdataValues,
         erstatningsopgoerelse: baseEoValues,
       },
-      debugSnapshot: null,
+      inspektionSnapshot: null,
     };
 
     renderTab({
@@ -110,16 +110,16 @@ describe('EOberegningTab kontroltjek', () => {
 
     expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
     expect(screen.getByText('Der er konstateret kontroluoverensstemmelser i EO-beregningen.')).toBeInTheDocument();
-    const debugTableLink = screen.getByRole('button', { name: 'Debug tabel' });
-    expect(debugTableLink).toBeInTheDocument();
-    fireEvent.click(debugTableLink);
-    expect(setActiveTab).toHaveBeenCalledWith('debug_tabel');
+    const kontrolTableLink = screen.getByRole('button', { name: 'Kontroltabel' });
+    expect(kontrolTableLink).toBeInTheDocument();
+    fireEvent.click(kontrolTableLink);
+    expect(setActiveTab).toHaveBeenCalledWith('kontroltabel');
     expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
     expect(screen.queryByText('Beregning blokeret')).not.toBeInTheDocument();
     expect(reportSystemIssueMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        code: 'debug:control_mismatch',
+        code: 'control:sammentaelling_mismatch',
         context: 'EOberegningTab',
         revision: 'rev-1',
       })
@@ -169,7 +169,7 @@ describe('EOberegningTab kontroltjek', () => {
         stamdata: baseStamdataValues,
         erstatningsopgoerelse: baseEoValues,
       },
-      debugSnapshot: null,
+      inspektionSnapshot: null,
     };
 
     renderTab({
@@ -276,7 +276,7 @@ describe('EOberegningTab kontroltjek', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ansættelsesforhold' }));
 
-    expect(scrollToDebugRowMock).toHaveBeenCalledWith('sfgg.overenskomst.af1');
+    expect(scrollToEoRowMock).toHaveBeenCalledWith('sfgg.overenskomst.af1');
     expect(scrollToSectionMock).not.toHaveBeenCalled();
   });
 
@@ -615,7 +615,7 @@ describe('EOberegningTab kontroltjek', () => {
         stamdata: baseStamdataValues,
         erstatningsopgoerelse: baseEoValues,
       },
-      debugSnapshot: null,
+      inspektionSnapshot: null,
     };
 
     renderTab({

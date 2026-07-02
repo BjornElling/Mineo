@@ -201,8 +201,8 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     forligDato: values.forligDato,
   });
 
-  // Fejlrapportering til debug/diagnostik (kun runtime).
-  // Disse rapporteres bevidst til den centrale field-error-model, så EODebug kan afspejle aktuelle ugyldige inputs
+  // Fejlrapportering til diagnostik (kun runtime).
+  // Disse rapporteres bevidst til den centrale field-error-model, så EOInspektion kan afspejle aktuelle ugyldige inputs
   // selv når den committede, persisterede værdi forbliver uændret (draft ≠ committed).
   const reportVedroererPeriodeFraInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'vedroererPeriodeFra', {
     severity: 'error',

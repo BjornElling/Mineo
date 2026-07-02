@@ -183,7 +183,7 @@ const TO_LOCALE_STRING_ALLOWLIST = new Set([
   // Række-evalueringsoutput — driver EO-gaten, men brugen her er kun dansk displayformatteret
   // diagnostiktekst; ingen finansiel beregning må lægges på toLocaleString.
   'domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel.ts',
-  'domain/debug/eoDebugSammentaelling.ts',
+  'domain/eoInspektion/eoInspektionSammentaelling.ts',
   // DevTools-fejlmeddelelse: viser dato (ikke beløb) til udvikler
   'components/errors/DevtoolsIssueNotice.tsx',
 ]);
@@ -297,8 +297,8 @@ describe('Afrundingsnorm-guard', () => {
         'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
         'domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts',
         'domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel.ts',
-        'domain/debug/eoDebugCoreModel.ts',
-        'domain/debug/eoDebugRegulationCore.ts',
+        'domain/eoInspektion/eoInspektionCoreModel.ts',
+        'domain/eoInspektion/eoInspektionRegulationCore.ts',
         'domain/dates/shDageBeregning.ts',
         'document/generators/aarsloen/shDagePdf.ts',
         // Logging/rapport — timestamp, ikke dato-aritmetik
@@ -307,7 +307,7 @@ describe('Afrundingsnorm-guard', () => {
         'utils/logger.ts',
         'utils/logStorage.ts',
         'utils/fileSave.ts',
-        'domain/debug/eoDebugSnapshot.ts',
+        'domain/eoInspektion/eoInspektionSnapshot.ts',
         // EO-oplysninger view-model: formatLabelDayAfterIsoDate bruger new Date(dateObj) —
         // kopi af UTC Date fra isoDateToDate(), ikke string-parsing.
         'components/pages/erstatningsopgoerelse/eoOplysninger/useEoOplysningerViewModel.ts',
@@ -351,7 +351,7 @@ describe('Afrundingsnorm-guard', () => {
         'utils/devtoolsMonitor.ts',
         'utils/bugReport.ts',
         'utils/fileSave.ts',
-        'domain/debug/eoDebugSnapshot.ts',
+        'domain/eoInspektion/eoInspektionSnapshot.ts',
       ]),
       /\.toISOString\s*\(\s*\)\s*\.\s*(slice|substring)\s*\(/,
     );

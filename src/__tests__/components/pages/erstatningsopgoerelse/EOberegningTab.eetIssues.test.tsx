@@ -103,7 +103,7 @@ const renderTab = (params: Readonly<{
     status: 'error',
     invariants: params.invariants,
     data: null,
-    debugSnapshot: null,
+    inspektionSnapshot: null,
     input: {
       stamdata: STAMDATA_INITIAL_VALUES,
       erstatningsopgoerelse: eoValues,
@@ -139,7 +139,7 @@ const makeEetInvariant = (severity: 'error' | 'warning'): EoInvariant => ({
     : 'Der er indtastet en afgørelse med under 15 % erhvervsevnetab',
   evidence: ['erhvervsevnetab'],
   blocksAuthoritativeComputation: severity === 'error',
-  blocksOutputs: severity === 'error' ? ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] : [],
+  blocksOutputs: severity === 'error' ? ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf'] : [],
 });
 
 describe('EOberegningTab EET-issues', () => {
@@ -239,7 +239,7 @@ const makeValidationInvariant = (message: string): EoInvariant => ({
   message,
   evidence: ['regulerOffentligeYdelser'],
   blocksAuthoritativeComputation: true,
-  blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
+  blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
 });
 
 describe('EOberegningTab download-blokerings-sikkerhedsnet', () => {

@@ -2,13 +2,13 @@
  * Produktions-ejet kontrol-/audit-kerne for EO-sammentællingen.
  *
  * Dette er den trust-kritiske sammenlignings-semantik som snapshot-invarianten
- * `debug:control_mismatch` afhænger af (gater produktions-output). Den bor bevidst i
- * domæne-/produktionslaget — IKKE i `domain/debug` — så `eoSnapshot.ts` ikke importerer
- * sin gate-logik fra debug-laget (jf. arkitektur-kandidat "adskil produktions-kontrol-model
- * fra domain/debug").
+ * `control:sammentaelling_mismatch` afhænger af (gater produktions-output). Den bor bevidst i
+ * domæne-/produktionslaget — IKKE i `domain/eoInspektion` — så `eoSnapshot.ts` ikke importerer
+ * sin gate-logik fra gennemsyns-/kontrollaget (jf. arkitektur-kandidat "adskil produktions-kontrol-model
+ * fra domain/eoInspektion").
  *
- * Debug-laget (`eoDebugSammentaelling.ts`) *bygger* sammentællings-rækkerne (den "tabel"-side
- * der læses fra den committede EO-debug-tabel-projektion) og *forbruger* denne kontrakt; det
+ * Gennemsyns-/kontrollaget (`eoInspektionSammentaelling.ts`) *bygger* sammentællings-rækkerne (den "tabel"-side
+ * der læses fra den committede EO-kontroltabel-projektion) og *forbruger* denne kontrakt; det
  * definerer den ikke. Selve afgørelsen "er der en uoverensstemmelse" + besked-formatet ejes her.
  */
 

@@ -83,7 +83,7 @@ Regler:
 - Den flyder ad den normale committed-tier-vej: store → `sessionStorage` → undo/redo-snapshot. Den overlever derfor `F5` og kan undo/redo'es som alt andet committed input.
 - Den ekskluderes fra `.eo` (se `persistence-contract.md`). Da Gem blokeres ved enhver `invalidDrafts`-entry, kan en gemt fil per definition aldrig indeholde et entry.
 - Et vellykket commit på feltet rydder dets `invalidDrafts`-entry; et fejlende commit skriver/opdaterer det. Skrivning sker **kun** ved commit (blur/Enter), aldrig i `onChange` (no-live-preview).
-- Feltets rød kant + tooltip for parse-fejl er en **afledt** visning af `invalidDrafts` (jf. `error-debug-contract.md`). Range/rule/schema-fejl forbliver i `fieldErrors`.
+- Feltets rød kant + tooltip for parse-fejl er en **afledt** visning af `invalidDrafts` (jf. `error-contract.md`). Range/rule/schema-fejl forbliver i `fieldErrors`.
 
 ---
 
@@ -217,7 +217,7 @@ Rationale:
   state findes og er gyldig.
 - Dette skel skal bevares ved fremtidige refactors for at undgå regression i save-flowet.
 
-`blocksSave` er normativt defineret i `error-debug-contract.md`. Save-gating følger commitbarhed, ikke `severity` alene. Konkret blokeres Gem af: (1) enhver `invalidDrafts`-entry (ikke-committbart input, jf. §2.4), og (2) enhver blokerende `fieldErrors`-entry med `severity:'error'` og `blocksSave!==false` (typisk `rule`/`schema`-fejl). Range/bounds-fejl (`blocksSave:false`) blokerer aldrig.
+`blocksSave` er normativt defineret i `error-contract.md`. Save-gating følger commitbarhed, ikke `severity` alene. Konkret blokeres Gem af: (1) enhver `invalidDrafts`-entry (ikke-committbart input, jf. §2.4), og (2) enhver blokerende `fieldErrors`-entry med `severity:'error'` og `blocksSave!==false` (typisk `rule`/`schema`-fejl). Range/bounds-fejl (`blocksSave:false`) blokerer aldrig.
 
 ---
 
@@ -256,7 +256,7 @@ Tables er rene UI-komponenter.
 - De to felter har identisk domænebetydning.
 - Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i løngrundlaget.
 - Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af lønindtastningen.
-- UI-tekster, PDF-headere, debug-visninger og tests skal afspejle denne regel.
+- UI-tekster, PDF-headere, gennemsyns-/kontrolvisninger og tests skal afspejle denne regel.
 
 ### 5.4 Offentlige ydelser-tabel
 
@@ -264,7 +264,7 @@ Tables er rene UI-komponenter.
 - De to felter har identisk domænebetydning.
 - Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i én samlet ydelse.
 - Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af ydelsesindtastningen.
-- UI-tekster, PDF-headere, debug-visninger og tests skal afspejle denne regel.
+- UI-tekster, PDF-headere, gennemsyns-/kontrolvisninger og tests skal afspejle denne regel.
 
 ---
 

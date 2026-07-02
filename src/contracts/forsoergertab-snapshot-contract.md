@@ -44,7 +44,7 @@ Snapshot skal mindst deklarere:
 
 Forventelige brugerinputtilstande skal give feltfejl eller issues. Uventede runtimefejl må aldrig give gyldige totals eller PDF-projektion.
 
-Runtimefejl skal routes efter `error-debug-contract.md` og give dansk blokerende brugerbesked.
+Runtimefejl skal routes efter `error-contract.md` og give dansk blokerende brugerbesked.
 
 ---
 

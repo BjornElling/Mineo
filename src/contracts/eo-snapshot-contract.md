@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-02
 
 ---
 
@@ -22,19 +22,19 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 
 Alle visninger er projektioner af snapshot:
 - `eoSnapshotToBeregningView`
-- `eoSnapshotToDebugView`
+- `eoSnapshotToInspektionView`
 - `eoSnapshotToEoPdfDocument`
 - `eoSnapshotToTafPerYearPdfDocument`
 - `eoSnapshotToTafPerYearOpreguleretPdfDocument` (projektion for beregningsformen "TAF opreguleret til beregningsår"; forwarder både per-år-resultatet og det opregulerede resultat uden ny domæneberegning)
 
-For projektionsfelter, der fødes videre til debug/PDF uden ny domæneberegning, er feltsemantikken bindende.
+For projektionsfelter, der fødes videre til gennemsyn/PDF uden ny domæneberegning, er feltsemantikken bindende.
 Dette gælder blandt andet `sygeferiegodtgoerelse.perAnsaettelsesforhold[].sfggVisningsperiode`, som normativt er
 de autoritative arbejdsforløbs-ranges efter fradrag af første undtagne TAF-dag (når den faktisk gælder for det
 konkrete ansættelsesforhold), 4-månedersgrænse, ansættelsesophør og eventuelt bortfald under
 arbejdsgiverbetalt sygeløn, men før feriesubtraktion til SFGG-segmentering.
 
 **Ufravigelige regler:**
-- Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller debug-lag.
+- Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller gennemsyns-/kontrollag.
 - Engines arbejder altid på de clampede værdier som snapshot-orchestreringen leverer.
 - Committed form-state ændres aldrig af clamping.
 
@@ -66,7 +66,7 @@ Stille clamping sker **kun** mod EO-periodens grænser:
 - Svie/smerte til-dato `> vedroererPeriodeTil` → clampes til `vedroererPeriodeTil`
 
 Disse clampings giver **ingen fejlindikation** i felt, EOBeregningTab eller snapshot-invariants.
-Snapshot og EODebug bruger de clampede værdier som om de var de committede værdier.
+Snapshot og EOInspektion bruger de clampede værdier som om de var de committede værdier.
 
 **Der er ingen andre bounds der clampes stille.** Enhver ny clamping-regel kræver en eksplicit
 kontraktændring med begrundelse.
@@ -145,7 +145,7 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
    fejl, medmindre en kontrakt udtrykkeligt kræver afvigende merge-semantik.
 
 5. **Ethvert svie/smerte-overlap afvises** — også overlap mellem perioder med samme tilstand.
-   Validator og `svieSmerteEngine` afviser ethvert overlap, og tabel-/debug-laget markerer det
+   Validator og `svieSmerteEngine` afviser ethvert overlap, og tabel-/kontrollaget markerer det
    synligt før gem. Der findes ingen "samme tilstand er tilladt"-undtagelse.
 
 6. **Ingen parallelle fallback-totaler.** EO-domænet kan have flere tekniske TAF-forbrugere
@@ -157,18 +157,18 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
 Clamping sker pre-snapshot i `computeEoSnapshot`. Engines arbejder **altid** på clampede
 værdier — også når der vises fejl for fejlgivende bounds (§2.2).
 
-`debugSnapshot` bygges eksplicit med de clampede ranges efter `buildTafRanges` er kaldt i
-`computeEoSnapshot`, så EODebug aldrig viser TAF-dage der ikke indgik i beregningen.
+`inspektionSnapshot` bygges eksplicit med de clampede ranges efter `buildTafRanges` er kaldt i
+`computeEoSnapshot`, så EOInspektion aldrig viser TAF-dage der ikke indgik i beregningen.
 
-I validerings-fejl-stien (autoritative totaler/PDF'er bygges ikke) bygges `debugSnapshot`
+I validerings-fejl-stien (autoritative totaler/PDF'er bygges ikke) bygges `inspektionSnapshot`
 stadig med de **sektions-uafhængige** engine-data der kan beregnes sikkert: svie/smerte-engine
 (afhænger ikke af løn-/TAF-validering) samt clampede TAF-ranges for de rækker der stadig kan
-parses. Det giver EODebug samme clamping-billede for gyldige rækker, uden at vise dagtal der
+parses. Det giver EOInspektion samme clamping-billede for gyldige rækker, uden at vise dagtal der
 ikke indgik i en autoritativ beregning. Er alle rækker ugyldige eller clampes bort, er `[]`
-den forventede fail-closed debug-basis. I `fail_closed`-stien (uventet runtime-exception) er
-`debugSnapshot` derimod `null`.
-Debug-laget må ikke lave nye fallback-enginekald for sektions-**afhængige** delresultater
-(TAF-totaler, løn-afledte beløb). Når autoritativt engine-output mangler, skal debug vise
+den forventede fail-closed gennemsyns-/kontrol-basis. I `fail_closed`-stien (uventet runtime-exception) er
+`inspektionSnapshot` derimod `null`.
+Gennemsyns-/kontrollaget må ikke lave nye fallback-enginekald for sektions-**afhængige** delresultater
+(TAF-totaler, løn-afledte beløb). Når autoritativt engine-output mangler, skal gennemsyns-/kontrollaget vise
 tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
 
 ---
@@ -194,7 +194,7 @@ Snapshot beregnes stadig på de clampede værdier og `data` er tilgængeligt.
 ### 3.2 `blocksOutputs`
 
 Projektions-targets (`EoProjectionTarget` i `eoSnapshotInvariants.ts`) er:
-`'beregning' | 'debug' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf'`.
+`'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf'`.
 Det opregulerede target dækker beregningsformen "TAF opreguleret til beregningsår", der bygger
 oven på per-år-resultatet.
 
@@ -234,13 +234,13 @@ Snapshot-status sættes deterministisk:
 
 | Status | Betingelse |
 |---|---|
-| `fail_closed` | System-/schema-/runtime-tilstand hvor snapshot-build ikke må levere autoritativ beregning. `data: null`, `failClosedReason` skal være sat, og PDF/debug må ikke bruge totals. |
-| `error` med `data: null` | Forventelig bruger-/validatorblokering før autoritativ beregning, herunder `blocksAuthoritativeComputation`. Debug må kun bruge sikre delprojektioner. |
+| `fail_closed` | System-/schema-/runtime-tilstand hvor snapshot-build ikke må levere autoritativ beregning. `data: null`, `failClosedReason` skal være sat, og PDF/gennemsyn må ikke bruge totals. |
+| `error` med `data: null` | Forventelig bruger-/validatorblokering før autoritativ beregning, herunder `blocksAuthoritativeComputation`. Gennemsyns-/kontrollaget må kun bruge sikre delprojektioner. |
 | `error` med `data` | Output-specifikke fejl der ikke stopper beregningen, men blokerer relevante outputs (fx kontroluoverensstemmelse, TAF-per-år-afstemningsfejl over 100 øre). Bounds-violations (§2.2) sætter ikke snapshot til `error` — de eksponeres som feltfejl der blokerer download via EOBeregningTab. |
 | `warning` | Ingen errors, men mindst én warning-invariant er brudt |
 | `ok` | Ingen brudte invariants |
 
-Projektioner må ikke gætte på statusnavn alene. De skal også respektere `data`, `debugSnapshot` og `failClosedReason`. Ved `fail_closed` er totals og mellemregninger utilgængelige og må ikke vises som gyldige.
+Projektioner må ikke gætte på statusnavn alene. De skal også respektere `data`, `inspektionSnapshot` og `failClosedReason`. Ved `fail_closed` er totals og mellemregninger utilgængelige og må ikke vises som gyldige.
 
 ---
 
@@ -254,7 +254,7 @@ Snapshot er bundet til en committed revision.
 - Hvis `snapshot.revision !== currentCommittedRevision`, er snapshot stale og må ikke bruges
   som grundlag for at konstatere kontroluoverensstemmelse eller anden blokering, der
   forudsætter et friskt snapshot.
-- Ved visning af Beregning, EODebug og EODebugTabel skal et stale snapshot erstattes af en ny
+- Ved visning af Beregning, EOInspektion og EOKontrolTabel skal et stale snapshot erstattes af en ny
   snapshot-build før normal visning fortsætter.
 - Stale state er et refresh-behov, ikke en systemfejl.
 
@@ -263,19 +263,19 @@ input, ellers risikerer systemet at blokere på baggrund af forældede mellemres
 
 ---
 
-## 6. EODebug og EODebugTabel — altid-kan-dannes garanti
+## 6. EOInspektion og EOKontrolTabel — altid-kan-dannes garanti
 
-EODebug og EODebugTabel **kan altid dannes** fra snapshot-data.
+EOInspektion og EOKontrolTabel **kan altid dannes** fra snapshot-data.
 
 **Manglende datoer er forventelig adfærd:** Manglende fra- eller til-datoer på
 TAF/svie-smerte-rækker betyder blot, at brugeren endnu ikke har udfyldt dem. Det er
-ikke en systemfejl. EODebug viser de clampede værdier korrekt. Ingen `BugReportButton`
-vises i EODebug eller EODebugTabel.
+ikke en systemfejl. EOInspektion viser de clampede værdier korrekt. Ingen `BugReportButton`
+vises i EOInspektion eller EOKontrolTabel.
 
 Validator og snapshot-invariants klassificerer manglende datoer som fejl — det sker
-i EOBeregningTab, ikke i EODebug-visningen.
+i EOBeregningTab, ikke i EOInspektion-visningen.
 
-Hvis `debugSnapshot` er `null` (ved `fail_closed` før engines kørte), vises en passende
+Hvis `inspektionSnapshot` er `null` (ved `fail_closed` før engines kørte), vises en passende
 tom-/fejltilstand uden at forsøge at rendere beregningsindhold.
 
 ---
@@ -284,7 +284,7 @@ tom-/fejltilstand uden at forsøge at rendere beregningsindhold.
 
 Tom committed værdi (`undefined`) for `tidligereModtagetTaf` repræsenterer semantisk `0 kr`.
 
-**Regel:** I snapshot/totals og alle projektioner (Beregning-tab, EODebug, PDF) skal dette
+**Regel:** I snapshot/totals og alle projektioner (Beregning-tab, EOInspektion, PDF) skal dette
 normaliseres til numerisk `0` (MoneyOre). `null` eller `undefined` må ikke propagere som
 resultat af at feltet er tomt.
 
@@ -296,7 +296,7 @@ Der er ingen semantisk forskel på "0" og "tomt" for dette felt.
 
 ## 8. Fejlrapportering og PDF-output
 
-1. `BugReportButton` i EO-scope styres normativt af `src/contracts/error-debug-contract.md`.
+1. `BugReportButton` i EO-scope styres normativt af `src/contracts/error-contract.md`.
 2. PDF-download-gating, toggle-guards og semantisk fravalg styres normativt af `src/contracts/document-output-contract.md` (afsnit A).
 
 ---
@@ -341,7 +341,7 @@ Ufravigelige regler:
 - EO's TAF-beregningsperiode må aldrig bruges som fallback, default, visningsgate eller beregningsinput for SFGG-referenceperioden.
 - SFGG-referenceperioden må aldrig bruges som fallback, default, visningsgate eller beregningsinput for TAF-beregningsperioden.
 - At perioderne i en konkret sag tilfældigvis er identiske giver ingen implicit kobling i kode eller projektioner.
-- PDF-, debug- og view-lag må ikke betinge SFGG-referenceperiode-indhold på `values.beregnesUdFra === 'Beregningsperiode'`.
+- PDF-, gennemsyns-/kontrol- og view-lag må ikke betinge SFGG-referenceperiode-indhold på `values.beregnesUdFra === 'Beregningsperiode'`.
 
 Tilladte relationer:
 - SFGG må gerne forholde sig til TAF-forløbet som sygeforløb, fx ved kravet om at SFGG-referenceperioden skal ligge før første TAF-dag/periode.
@@ -391,7 +391,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 - Når togglen er `'Ja'`, bygges en effektiv `offentligeYdelserRows` ved at:
   1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra committed form-state (defensiv håndhævelse af invariant 6.1 i implementeringsplanen).
   2. Tilføje virtuelle rækker fra `buildMidlertidigtEetSourceResult(...).groups`.
-- Engines, debug-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
+- Engines, inspektions-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
 - `snapshot.input.erstatningsopgoerelse` indeholder altid den oprindelige committed form-state
   (uden virtuelle rækker), så save/load round-trip og UI-visning er upåvirkede.
 - EO-importen bruger EET-løbende-ydelser-beregningen med TAF-periodens seneste clampede
@@ -457,7 +457,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 ## 14. Neutralisering af irrelevante (skjulte) input
 
 Efter den transiente EET-injection (§13) neutraliseres irrelevante input i `effectiveEoValues`
-via `neutralizeIrrelevantEoInputs` (`helpers/eoInputRelevance.ts`), før engines, debug-snapshot,
+via `neutralizeIrrelevantEoInputs` (`helpers/eoInputRelevance.ts`), før engines, inspektions-snapshot,
 presentation-model og PDF-model bygges. Afsnittet er normativt.
 
 **Princip:** Et felt eller en række er *relevant*, hvis den er synlig i UI'en, fordi den

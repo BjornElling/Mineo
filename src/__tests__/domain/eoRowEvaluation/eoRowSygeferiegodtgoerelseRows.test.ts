@@ -183,7 +183,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     }
   });
 
-  it('viser valgt overenskomstnavn som separat debug-række ved overenskomstbaseret SFGG', () => {
+  it('viser valgt overenskomstnavn som separat gennemsyns-/kontrol-række ved overenskomstbaseret SFGG', () => {
     const values = createValues();
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
@@ -221,7 +221,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser overenskomstens referenceperiode som separat debug-række ved overenskomstbaseret SFGG', () => {
+  it('viser overenskomstens referenceperiode som separat gennemsyns-/kontrol-række ved overenskomstbaseret SFGG', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -356,7 +356,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     expect(referencesatsIndex).toBeGreaterThan(periodeIndex);
   });
 
-  it('viser ikke SH-dage i debug-label når referenceperioden opgøres på kalenderdage', () => {
+  it('viser ikke SH-dage i gennemsyns-/kontrol-label når referenceperioden opgøres på kalenderdage', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -473,7 +473,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser Ingen for SFGG-perioden i debug når der ikke er nogen periode med sygeferiegodtgørelse', () => {
+  it('viser Ingen for SFGG-perioden i gennemsyn/kontrol når der ikke er nogen periode med sygeferiegodtgørelse', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -760,7 +760,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser ikke særskilt overenskomstforklaring om sygeløn i debug når reglen allerede er markeret som Ja', () => {
+  it('viser ikke særskilt overenskomstforklaring om sygeløn i gennemsyn/kontrol når reglen allerede er markeret som Ja', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
@@ -833,7 +833,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser Nej for sygelønsreglen i debug når SFGG beregnes efter ferieloven selv om lønudviklingen følger overenskomst', () => {
+  it('viser Nej for sygelønsreglen i gennemsyn/kontrol når SFGG beregnes efter ferieloven selv om lønudviklingen følger overenskomst', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -896,7 +896,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser Ansættelsesforholdet ophørt som Nej i debug når ansættelsen ikke er ophørt', () => {
+  it('viser Ansættelsesforholdet ophørt som Nej i gennemsyn/kontrol når ansættelsen ikke er ophørt', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -941,7 +941,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser Ansættelsesforholdet ophørt som dato og uden ophørsforklaring i debug når ansættelsen er ophørt', () => {
+  it('viser Ansættelsesforholdet ophørt som dato og uden ophørsforklaring i gennemsyn/kontrol når ansættelsen er ophørt', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -999,7 +999,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser ikke 4-måneders-tabellen i debug', () => {
+  it('viser ikke 4-måneders-tabellen i gennemsyn/kontrol', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1042,7 +1042,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser ikke præ-2015-bemærkningen om at samtlige TAF-perioder skal være indtastet i debug', () => {
+  it('viser ikke præ-2015-bemærkningen om at samtlige TAF-perioder skal være indtastet i gennemsyn/kontrol', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1367,7 +1367,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,46 | 11,34 | + 10 % | 5 | 62,37');
   });
 
-  it('viser arbejdsdags-SFGG med kalenderdagsstart efter årsskifte i debug-tabellen når 1. januar ikke er arbejdsdag', () => {
+  it('viser arbejdsdags-SFGG med kalenderdagsstart efter årsskifte i kontroltabellen når 1. januar ikke er arbejdsdag', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
@@ -1606,7 +1606,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
   it('viser satsvalg-fejlen som blokerende rod-årsag ved differentieret direkte overenskomstsats uden satsvalg', () => {
     // Manglende satsvalg for en differentieret direkte overenskomstsats er nu en blokerende
     // valideringsfejl ("Satsvalg mangler"), så den autoritative beregning standses (snapshot.data
-    // = null). EO-debug viser derfor satsvalg-fejlrækken (den handlingsanvisende rod-årsag), mens
+    // = null). EO-gennemsyn/kontrol viser derfor satsvalg-fejlrækken (den handlingsanvisende rod-årsag), mens
     // den tidligere afledte "Dagssats kunne ikke fastsættes"-række ikke længere produceres — den
     // forudsatte et beregnet SFGG-resultat, som blokeringen forhindrer. Jf. SFGG-fail-closed (4.13).
     const values = createValues();
@@ -1660,7 +1660,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     expect(rows.find((row) => row.id === `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
   });
 
-  it('fejler ikke hele SFGG-debug når lønudviklingsmodellen mangler beregningsgrundlag', () => {
+  it('fejler ikke hele SFGG-gennemsyn/kontrol når lønudviklingsmodellen mangler beregningsgrundlag', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1859,7 +1859,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser ikke længere sygeferiegodtgørelse fordelt på år i debug', () => {
+  it('viser ikke længere sygeferiegodtgørelse fordelt på år i gennemsyn/kontrol', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';

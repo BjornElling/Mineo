@@ -38,7 +38,9 @@ const BLUR_COMMIT_FIELDS = [
 const ALL_FORM_WIDGETS = [...IMMEDIATE_COMMIT_WIDGETS, ...BLUR_COMMIT_FIELDS] as const;
 
 // Filer/mønstre der ikke er sags-input og derfor ikke deltager i undo/redo.
-const EXCLUDED_FILE_PATTERNS = [/Debug/, /Indstillinger/, /Mineo\.tsx$/];
+// `TestTab` dækker den DEV-only Stamdata-test-fane (tidligere `StamdataDebugTab`); dens
+// widgets er ren dev-afprøvning, ikke sagsinput.
+const EXCLUDED_FILE_PATTERNS = [/TestTab/, /Indstillinger/, /Mineo\.tsx$/];
 // Transiente widgets der ikke committer til persisteret state (lokal modal-state).
 const TRANSIENT_REFS = [/ref=\{loentrinFinder/];
 // Persist-veje: hvis onCommit-handleren refererer en af disse, committer feltet til undo-bærende state.

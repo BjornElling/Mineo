@@ -238,7 +238,7 @@ En tab kan være:
 
 - input-tab
 - beregnings-/resultat-tab
-- debug-/hjælpetab
+- gennemsyns-/kontrol-/hjælpetab
 - ren informationssektion
 
 Kontrakten må ikke antage, at alle tabs passer i kun to kategorier.
@@ -274,7 +274,7 @@ Tabs må enten:
 
 Normativ beslutningsregel:
 
-- **Committed data-integritet og persisterede feltfejl må aldrig afhænge af mount-strategien.** I Mineo er disse garanteret centralt: committed input lever i `formPersistenceStore` (ikke i tab-komponenten), tab-skift blur'er den aktive editor så gyldigt input committes og ikke-committbart input persisteres til `invalidDrafts` (jf. `form-contract.md` §2.4), og feltfejl ejes af den centrale fejl-model (`error-debug-contract.md`). Et draft-capable tab kan derfor mountes betinget uden datatab. "Draft-capable" betyder mindst ét felt eller tabelsystem baseret på `useDraftField`, `useRowDrafts`, `useTableInputCore` eller tilsvarende field/table engine.
+- **Committed data-integritet og persisterede feltfejl må aldrig afhænge af mount-strategien.** I Mineo er disse garanteret centralt: committed input lever i `formPersistenceStore` (ikke i tab-komponenten), tab-skift blur'er den aktive editor så gyldigt input committes og ikke-committbart input persisteres til `invalidDrafts` (jf. `form-contract.md` §2.4), og feltfejl ejes af den centrale fejl-model (`error-contract.md`). Et draft-capable tab kan derfor mountes betinget uden datatab. "Draft-capable" betyder mindst ét felt eller tabelsystem baseret på `useDraftField`, `useRowDrafts`, `useTableInputCore` eller tilsvarende field/table engine.
 - Mount-strategien er dermed et **frit implementeringsvalg styret af render-omkostning og UX** (fx undgå tung initial render af et stort tab ved at holde det mounted efter første besøg), ikke et korrekthedskrav.
 - **Forbudt:** at lade committed input, en persisteret feltfejl eller en runtime-fejl-tilstand overleve *kun* i lokal mounted state. Hvis noget kun overlever ved hold-mounted, er det et arkitekturproblem og skal flyttes til central store/model/snapshot — ikke maskeres ved at undlade at unmounte.
 
@@ -340,7 +340,7 @@ Sider skal bruge de etablerede layout-byggesten, hvor de passer til sidetypen:
 - `ContentBox` til indholdsbokse
 - `page-title`
 - etablerede række-klasser og input-komponenter
-- etablerede tabeltyper; nye ad hoc-tabelformater i pages og debug-visninger kræver eksplicit kontraktændring
+- etablerede tabeltyper; nye ad hoc-tabelformater i pages og gennemsyns-/kontrolvisninger kræver eksplicit kontraktændring
 - for `StandardDisplayTable` er samlet tabelbredde centralt styret til 100 %; callsites må gerne lade kolonnebredder være automatiske eller sætte dem manuelt pr. kolonne, men må ikke selv overstyre den samlede tabelbredde
 
 Kontrakten er konsistens i brugeroplevelse og struktur, ikke pixel-identisk kopi af én referencefil.
@@ -373,7 +373,7 @@ Undtagelser kan accepteres i globale infrastrukturlag som `MainLayout`, hvor com
 En side må eje page-lokale hjælpeflows som:
 
 - dokument-download
-- debug-view
+- gennemsyns-/kontrol-view
 - lokale modal-dialoger
 - sideinterne søge-/hjælpeværktøjer
 

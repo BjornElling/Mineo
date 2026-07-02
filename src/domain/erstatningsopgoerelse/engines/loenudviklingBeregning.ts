@@ -739,7 +739,7 @@ const buildLoenudviklingFromKRL = (
   if (!tabel || tabel.vaerdier.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: KRL satstabel mangler');
   }
-  // Bevidst parity med eoDebugRegulationCore:
+  // Bevidst parity med eoInspektionRegulationCore:
   // KRL strategien modellerer kun selve KRL-indeksserien.
   // Store Bededag indgår derfor ikke som separat breakpoint i denne strategi.
 
@@ -1146,9 +1146,9 @@ const buildLoenudviklingFromOverenskomst = (
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
 
-  // Bevidst adskilt fra eoDebugRegulationCore:
+  // Bevidst adskilt fra eoInspektionRegulationCore:
   // denne motor bygger relative deltaPct-segmenter til TAF-beregning,
-  // mens debug-motoren bygger absolutte indeks-entries til visning.
+  // mens gennemsyns-/kontrolmotoren bygger absolutte indeks-entries til visning.
   const segments: LoenreguleringsSegment[] = [];
   for (const range of konsolideret.tafRanges) {
     const fraDa = isoToDanish(range.fra);

@@ -66,7 +66,7 @@ describe('computeEoSnapshot — runtime_exception fail-closed', () => {
     expect(runtimeInv!.source).toBe('system');
     expect(runtimeInv!.blocksAuthoritativeComputation).toBe(true);
     expect(runtimeInv!.blocksOutputs).toEqual(
-      expect.arrayContaining(['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'])
+      expect.arrayContaining(['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf'])
     );
     // Evidensen indeholder den faktiske fejlbesked (auditbarhed).
     expect(runtimeInv!.evidence).toContain('Injiceret engine-fejl');

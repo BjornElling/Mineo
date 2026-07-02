@@ -3,7 +3,7 @@
 **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt  
 **Scope:** Global undo/redo for committed brugerinput i Mineo
 
-Bindende regler ligger i `src/contracts/undo-redo-contract.md`, `src/contracts/persistence-contract.md`, `src/contracts/form-contract.md` og `src/contracts/error-debug-contract.md`.
+Bindende regler ligger i `src/contracts/undo-redo-contract.md`, `src/contracts/persistence-contract.md`, `src/contracts/form-contract.md` og `src/contracts/error-contract.md`.
 
 Dette dokument beskriver den implementerede undo/redo-arkitektur. Det er ikke en implementeringsplan.
 
@@ -190,7 +190,7 @@ Den globale undo/redo-wiring (restore + focus-tracker + tastatur-genvej) deles a
 
 ## 12. Debug
 
-Undo/redo har ikke noget dedikeret debug-loggingslag. Normal drift er console-tavs efter konsol-politikken i `AGENTS.md`. Fejl i restore-flowet rapporteres via den centrale systemfejlrapportering (jf. `error-debug-contract.md`), ikke via ad hoc undo-specifik logging.
+Undo/redo har ikke noget dedikeret debug-loggingslag. Normal drift er console-tavs efter konsol-politikken i `AGENTS.md`. Fejl i restore-flowet rapporteres via den centrale systemfejlrapportering (jf. `error-contract.md`), ikke via ad hoc undo-specifik logging.
 
 ## 13. Vigtige filer
 

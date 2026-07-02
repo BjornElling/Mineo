@@ -305,7 +305,7 @@ export type OevrigeKravModel = Readonly<{
  * Fordi præsentations-inputtet ikke længere *har* total-felterne, er det en compile-fejl at
  * forwarde et section-afledt total ind i den rendrede model — en re-derivation kan ikke længere
  * lække til PDF/Word-output uden at TypeScript fanger det (jf. eo-snapshot-contract.md §1:
- * "Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller debug-lag").
+ * "Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller gennemsyns-/kontrollag").
  */
 export type SvieSmerteSectionPresentation = Omit<SvieSmerteModel, 'totalOre'>;
 export type TabtArbejdsfortjenesteSectionPresentation = Omit<

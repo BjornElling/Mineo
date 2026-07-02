@@ -1,5 +1,5 @@
 /**
- * Navigation-mapping for EODebug rows til Beregning-fanen
+ * Navigation-mapping for EOInspektion rows til Beregning-fanen
  *
  * Dette modul håndterer mapping fra EoRowId til navigation-targets (sider/faner/sektioner)
  * for at understøtte klikbare links i Beregning-fanen.
@@ -17,7 +17,7 @@
  * Stamdata.tsx og LoenindkomstTab.tsx). Bemærk at ikke alle medlemmer p.t. bruges
  * som scroll-mål: rækker i fanerne `erstatningsopgoerelse`/`offentligeYdelser`
  * navigerer kun til fanen (uden `sectionId`) og scroller derefter direkte til
- * selve debug-rækken. De medlemmer bevares for at dokumentere de mulige sektioner
+ * selve gennemsyns-/kontrol-rækken. De medlemmer bevares for at dokumentere de mulige sektioner
  * og holde navnerummet i sync med builder-sektionsnøglerne.
  */
 export type SectionId =

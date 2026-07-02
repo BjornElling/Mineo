@@ -106,7 +106,7 @@ const FEJL_ADVARSLER_ROW_SX = {
 } as const;
 
 const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
-  // View-model-laget ejer al afledt visningstilstand: debug-/issue-rækker, snapshot-projektioner,
+  // View-model-laget ejer al afledt visningstilstand: gennemsyns-/kontrol-/issue-rækker, snapshot-projektioner,
   // download-gates, bilag-valg og PDF-handlers (jf. A1). Fanen beholder kun præsentations-render-helpers
   // + selve JSX'en.
   const vm = useEoBeregningViewModel(props);

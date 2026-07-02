@@ -42,7 +42,7 @@ describe('standardLoenTableColumns', () => {
     ]);
   });
 
-  it('giver de nye labels for col2 og col3 i fejl- og debugkontekster', () => {
+  it('giver de nye labels for col2 og col3 i fejl- og inspektionkontekster', () => {
     expect(resolveStandardLoenColumnLabel('col2')).toBe('Løn');
     expect(resolveStandardLoenColumnLabel('col3')).toBe('Løn (2)');
   });

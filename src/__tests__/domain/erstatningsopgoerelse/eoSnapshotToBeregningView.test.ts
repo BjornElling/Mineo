@@ -15,7 +15,7 @@ describe('eoSnapshotToBeregningView', () => {
           source: 'validation' as const,
           message: 'Autoritativ fejl',
           blocksAuthoritativeComputation: true,
-          blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'],
+          blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf'],
         },
         buildControlMismatchInvariant(['Mismatch']),
         buildTafPerYearAfrundingInvariant({
@@ -25,7 +25,7 @@ describe('eoSnapshotToBeregningView', () => {
         }),
       ],
       data: null,
-      debugSnapshot: null,
+      inspektionSnapshot: null,
       input: {
         stamdata: null,
         erstatningsopgoerelse: null,

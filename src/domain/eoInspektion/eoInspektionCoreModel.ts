@@ -1,0 +1,294 @@
+/**
+ * Core kontrol-model - bygger RowDay[] tidslinje
+ *
+ * VIGTIGT: Dette er kalender-sandhed, ikke beregnings-sandhed.
+ * Ingen løn, ingen beløb, ingen regulering.
+ */
+
+import type { ISODateString } from '../../types/branded';
+import type {
+  ErstatningsopgoerelseValues,
+  StamdataValues,
+  TafPeriodeRow,
+  SvieSmertePeriodeRow,
+} from '../../schemas/formSchemas';
+import type { RowDay, SvieSmerte } from '../eoRowEvaluation/eoRowTypes';
+import { getIsoRange, minDate, maxDate, tryParseIso } from './dateUtils';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
+
+/**
+ * Input til kontrol-core-model
+ */
+export type InspektionModelInput = {
+  readonly stamdataValues: StamdataValues;
+  readonly erstatningsopgoerelseValues: ErstatningsopgoerelseValues;
+};
+
+/**
+ * Udtræk alle relevante datoer fra input
+ *
+ * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
+ */
+const extractDateSources = (
+  input: InspektionModelInput
+): { start: ISODateString; end: ISODateString } | undefined => {
+  const dates: ISODateString[] = [];
+
+  // Skadedato (allerede ISO-format)
+  const skadedato = tryParseIso(input.stamdataValues.skadedato);
+  if (skadedato) dates.push(skadedato);
+
+  // Erstatningsopgørelse periode (allerede ISO-format)
+  const eoFra = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeFra);
+  const eoTil = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeTil);
+  if (eoFra) dates.push(eoFra);
+  if (eoTil) dates.push(eoTil);
+
+  const erstatningsRange = eoFra && eoTil && eoFra <= eoTil ? { fra: eoFra, til: eoTil } : undefined;
+
+  const menStopDato =
+    input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
+    input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
+      ? getDayBeforeIso(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      : undefined;
+
+  // TAF-perioder (allerede ISO-format, men afgrænses af erstatningsperioden)
+  const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
+  const eo = input.erstatningsopgoerelseValues;
+  const tafConstraintSource = {
+    vedroererPeriodeFra: eoFra,
+    vedroererPeriodeTil: eoTil,
+    differencekravDato: tryParseIso(eo.differencekravDato),
+    endeligtEETAfgorelse: eo.endeligtEETAfgorelse,
+    endeligEETVirkningsdato: tryParseIso(eo.endeligEETVirkningsdato),
+    endeligEETAfgoerelseDato: tryParseIso(eo.endeligEETAfgoerelseDato),
+    midlertidigtEETAfgorelse: eo.midlertidigtEETAfgorelse,
+    midlertidigEETVirkningsdato: tryParseIso(eo.midlertidigEETVirkningsdato),
+    midlertidigEETAfgoerelseDato: tryParseIso(eo.midlertidigEETAfgoerelseDato),
+    verserendeKlageEet: eo.verserendeKlageEet,
+    skadedatoISO: tryParseIso(input.stamdataValues.skadedato),
+  };
+  const tafBounds = resolveTafConstraintBounds(tafConstraintSource);
+  for (const periode of tafPerioder) {
+    const fra = tryParseIso(periode.fra);
+    const til = tryParseIso(periode.til);
+    if (!fra || !til || fra > til) continue;
+    const clamped = clampTafRange({ fra, til }, tafBounds) ?? { fra, til };
+    dates.push(clamped.fra);
+    dates.push(clamped.til);
+  }
+
+  // Svie/smerte-perioder (allerede ISO-format, men afgrænses af erstatningsperioden)
+  const ssPerioder = input.erstatningsopgoerelseValues.svieSmertePerioder ?? [];
+  for (const periode of ssPerioder) {
+    const fra = tryParseIso(periode.fra);
+    const til = tryParseIso(periode.til);
+    if (!fra || !til || fra > til) continue;
+    let clampedFra = fra;
+    let clampedTil = til;
+    if (erstatningsRange) {
+      if (clampedFra < erstatningsRange.fra) clampedFra = erstatningsRange.fra;
+      if (clampedTil > erstatningsRange.til) clampedTil = erstatningsRange.til;
+    }
+    if (menStopDato && clampedTil > menStopDato) clampedTil = menStopDato;
+    if (clampedFra > clampedTil) continue;
+    dates.push(clampedFra);
+    dates.push(clampedTil);
+  }
+
+  if (dates.length === 0) return undefined;
+
+  const start = minDate(dates);
+  const end = maxDate(dates);
+
+  if (!start || !end) return undefined;
+
+  return { start, end };
+};
+
+/**
+ * Byg TAF-periode map: ISO → Set<periode-ID>
+ *
+ * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
+ */
+const buildTafPeriodeMap = (
+  tafPerioder: readonly TafPeriodeRow[],
+  tafBounds: Readonly<{ minStart?: ISODateString; maxEnd?: ISODateString }>
+): ReadonlyMap<ISODateString, Set<string>> => {
+  const map = new Map<ISODateString, Set<string>>();
+
+  for (const periode of tafPerioder) {
+    const fra = tryParseIso(periode.fra);
+    const til = tryParseIso(periode.til);
+
+    if (!fra || !til) continue;
+    if (fra > til) continue;
+
+    const clamped = clampTafRange({ fra, til }, tafBounds);
+    if (!clamped) continue;
+    const isoRange = getIsoRange(clamped.fra, clamped.til);
+
+    for (const iso of isoRange) {
+      if (!map.has(iso)) {
+        map.set(iso, new Set());
+      }
+      map.get(iso)!.add(periode.id);
+    }
+  }
+
+  return map;
+};
+
+/**
+ * Byg svie/smerte map: ISO → niveau
+ *
+ * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
+ */
+const buildSvieSmerte = (
+  ssPerioder: readonly SvieSmertePeriodeRow[],
+  bounds: Readonly<{ erstatningsRange?: Readonly<{ fra: ISODateString; til: ISODateString }>; menStopDato?: ISODateString }>
+): ReadonlyMap<ISODateString, SvieSmerte> => {
+  const map = new Map<ISODateString, SvieSmerte>();
+
+  for (const periode of ssPerioder) {
+    const fra = tryParseIso(periode.fra);
+    const til = tryParseIso(periode.til);
+
+    if (!fra || !til) continue;
+    if (fra > til) continue;
+
+    let clampedFra = fra;
+    let clampedTil = til;
+    if (bounds.erstatningsRange) {
+      if (clampedFra < bounds.erstatningsRange.fra) clampedFra = bounds.erstatningsRange.fra;
+      if (clampedTil > bounds.erstatningsRange.til) clampedTil = bounds.erstatningsRange.til;
+    }
+    if (bounds.menStopDato && clampedTil > bounds.menStopDato) clampedTil = bounds.menStopDato;
+    if (clampedFra > clampedTil) continue;
+
+    let niveau: SvieSmerte;
+    switch (periode.tilstand) {
+      case 'sygemeldt':
+        niveau = 'Fuld';
+        break;
+      case 'delvist-sygemeldt':
+        niveau = 'Delvis';
+        break;
+      default:
+        niveau = 'Ingen';
+    }
+
+    const isoRange = getIsoRange(clampedFra, clampedTil);
+
+    for (const iso of isoRange) {
+      // Højeste niveau vinder ved overlap
+      const existing = map.get(iso);
+      if (!existing || niveau === 'Fuld' || (niveau === 'Delvis' && existing === 'Ingen')) {
+        map.set(iso, niveau);
+      }
+    }
+  }
+
+  return map;
+};
+
+/**
+ * Byg RowDay[] tidslinje
+ *
+ * Bygger en kalender-baseret tidslinje over alle dage i EO-perioden med:
+ * - Weekday/weekend-klassifikation
+ * - Søgnehelligdage
+ * - Arbejdsdag-klassifikation
+ * - TAF-perioder (markering)
+ * - Svie/smerte-status
+ *
+ * Indeholder ikke løn, beløb, regulering eller offentlige ydelser.
+ *
+ * @param input - Formularværdier
+ * @returns Array af RowDay (tom hvis ingen gyldige datoer)
+ */
+export function buildInspektionCoreModel(input: InspektionModelInput): readonly RowDay[] {
+  // Udtræk dato-interval
+  const dateRange = extractDateSources(input);
+
+  if (!dateRange) {
+    return [];
+  }
+
+  const { start, end } = dateRange;
+
+  // Byg søgnehelligdage-set
+  const sognehelligdageSet = buildShDageSetFromIsoRange(start, end);
+
+  // Byg TAF-periode map
+  const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
+  const erstatningsFra = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeFra);
+  const erstatningsTil = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeTil);
+  const eo2 = input.erstatningsopgoerelseValues;
+  const tafConstraintSource2 = {
+    vedroererPeriodeFra: erstatningsFra,
+    vedroererPeriodeTil: erstatningsTil,
+    differencekravDato: tryParseIso(eo2.differencekravDato),
+    endeligtEETAfgorelse: eo2.endeligtEETAfgorelse,
+    endeligEETVirkningsdato: tryParseIso(eo2.endeligEETVirkningsdato),
+    endeligEETAfgoerelseDato: tryParseIso(eo2.endeligEETAfgoerelseDato),
+    midlertidigtEETAfgorelse: eo2.midlertidigtEETAfgorelse,
+    midlertidigEETVirkningsdato: tryParseIso(eo2.midlertidigEETVirkningsdato),
+    midlertidigEETAfgoerelseDato: tryParseIso(eo2.midlertidigEETAfgoerelseDato),
+    verserendeKlageEet: eo2.verserendeKlageEet,
+    skadedatoISO: tryParseIso(input.stamdataValues.skadedato),
+  };
+  const tafBounds = resolveTafConstraintBounds(tafConstraintSource2);
+  const tafMap = buildTafPeriodeMap(tafPerioder, tafBounds);
+
+  // Byg svie/smerte map
+  const ssPerioder = input.erstatningsopgoerelseValues.svieSmertePerioder ?? [];
+  const erstatningsRange =
+    erstatningsFra && erstatningsTil && erstatningsFra <= erstatningsTil ? { fra: erstatningsFra, til: erstatningsTil } : undefined;
+  const menStopDato =
+    input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
+    input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
+      ? getDayBeforeIso(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      : undefined;
+  const ssMap = buildSvieSmerte(ssPerioder, { erstatningsRange, menStopDato });
+
+  // Generer alle dage i intervallet
+  const isoRange = getIsoRange(start, end);
+  const inspektionDays: RowDay[] = [];
+
+  for (const iso of isoRange) {
+    // Parse til Date for weekday-beregning
+    const [year, month, day] = iso.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const weekday = date.getUTCDay(); // 0=søndag, 1=mandag, ..., 6=lørdag
+
+    // Weekend-check
+    const isWeekend = weekday === 0 || weekday === 6;
+
+    // Søgnehelligdag-check
+    const isSognehelligdag = sognehelligdageSet.has(iso);
+
+    // Arbejdsdag = hverdag (man-fre) OG ikke søgnehelligdag
+    const isArbejdsdag = !isWeekend && !isSognehelligdag;
+
+    // TAF-flags
+    const tafFlags = tafMap.get(iso) ?? new Set<string>();
+
+    // Svie/smerte
+    const svieSmerte = ssMap.get(iso) ?? 'Ingen';
+
+    inspektionDays.push({
+      iso,
+      weekday: weekday as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+      isWeekend,
+      isSognehelligdag,
+      isArbejdsdag,
+      tafFlags,
+      svieSmerte,
+    });
+  }
+
+  return inspektionDays;
+}

@@ -13,7 +13,7 @@ import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferie
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
-import { formatDebugCount, formatDebugMonths } from './eoRowShared';
+import { formatRowCount, formatRowMonths } from './eoRowShared';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 
 const resolveFolkepensionsdato = (
@@ -248,9 +248,9 @@ export const buildEoTaftRows = (
       displayTil,
       0
     );
-    const maanederDisplay = antalMaaneder === null ? '-' : `${formatDebugMonths(antalMaaneder)} måneder`;
+    const maanederDisplay = antalMaaneder === null ? '-' : `${formatRowMonths(antalMaaneder)} måneder`;
     const arbejdsdageDisplay = breakdown
-      ? `${formatDebugCount(breakdown.arbejdsdage)} hverdage - ${formatDebugCount(breakdown.shDage)} SH-dage - ${formatDebugCount(breakdown.feriedage)} feriedage - ${formatDebugCount(breakdown.loseFeriedage)} løse feriedage = ${formatDebugCount(breakdown.tafDage)} arbejdsdage`
+      ? `${formatRowCount(breakdown.arbejdsdage)} hverdage - ${formatRowCount(breakdown.shDage)} SH-dage - ${formatRowCount(breakdown.feriedage)} feriedage - ${formatRowCount(breakdown.loseFeriedage)} løse feriedage = ${formatRowCount(breakdown.tafDage)} arbejdsdage`
       : '-';
 
     const visMaaneder = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER;
@@ -283,7 +283,7 @@ export const buildEoTaftRows = (
   const ferieperiodeLabel = ferieperioder.filter((p) => p.fra || p.til).length === 1 ? 'Ferieperiode' : 'Ferieperioder';
 
   // Ferieperiode-blokering (komplethed, dato-grænser, overlap) afgøres af den delte, autoritative
-  // validering (jf. B9); debug RENDERER kun resultatet.
+  // validering (jf. B9); gennemsyns-/kontrollaget RENDERER kun resultatet.
   const ferieEvaluations = evaluateFerieperioder(ferieperioder, {
     skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,

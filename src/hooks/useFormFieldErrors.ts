@@ -113,7 +113,7 @@ const createFieldErrorUndoOrigin = (
  *
  * Foretrukken brug:
  * - Bind denne reporter på det call-site, der ejer fejlen (typisk en input-adapter).
- * - Driv den fra samme commit-/valideringslivscyklus som feltet (se `src/contracts/error-debug-contract.md`).
+ * - Driv den fra samme commit-/valideringslivscyklus som feltet (se `src/contracts/error-contract.md`).
  */
 export const useFormFieldErrorReporter = <K extends StorageKey>(
   pageKey: K,

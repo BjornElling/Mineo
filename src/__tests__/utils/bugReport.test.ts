@@ -110,7 +110,7 @@ describe('bugReport', () => {
           systemIssue: {
             schemaVersion: 1,
             kind: 'system_issue',
-            code: 'debug:control_mismatch',
+            code: 'control:sammentaelling_mismatch',
             area: 'eo',
             severity: 'error',
             context: 'EOberegningTab',
@@ -128,7 +128,7 @@ describe('bugReport', () => {
     const report = await generateBugReport(5);
 
     expect(report).toContain('=== Systemfejl payloads ===');
-    expect(report).toContain('debug:control_mismatch');
+    expect(report).toContain('control:sammentaelling_mismatch');
     expect(report).toContain('Ansættelsesforhold: beregnet=100, tabel=90');
   });
 

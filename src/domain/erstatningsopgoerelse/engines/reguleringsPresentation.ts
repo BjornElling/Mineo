@@ -301,7 +301,7 @@ const resolveReguleringsvaerdierLoenHeader = (
   // `grundloenAngivetPer`, ikke de øvrige runtime-afledte visningsprincipper i EO.
   // Det er tilsigtet, fordi tabellen her dokumenterer kildedata for regulering, ikke den
   // beregnede præsentationsenhed fra andre flows. Hvis dette ændres, skal både EO-PDF og
-  // EODebug vurderes samlet, da de deler denne builder.
+  // EOInspektion vurderes samlet, da de deler denne builder.
   if (loenudviklingBeregningsgrundlag === 'Overenskomst' && overenskomstId) {
     const tafBeregnesSom = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
     const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(overenskomstId, tafBeregnesSom);

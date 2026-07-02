@@ -69,9 +69,9 @@ const buildReguleringsSegments = (
 /**
  * Bygger den rene visningstabel for offentlige ydelsers statslige regulering.
  *
- * Kan kaste ved manglende reguleringssatser. Kald fra render-/debug-lag skal
+ * Kan kaste ved manglende reguleringssatser. Kald fra render-/gennemsyns-/kontrollag skal
  * håndtere det defensivt, så et edge-case i tabelvisningen ikke vælter hele
- * PDF- eller debug-genereringen.
+ * PDF- eller gennemsyns-/kontrol-genereringen.
  */
 export const buildOffentligeYdelserReguleringTableData = (
   model: OffentligeYdelserUdviklingModel

@@ -730,7 +730,7 @@ describe('reguleringsPresentation', () => {
     expect(rows.some((row) => row.fraDato === '01-03-2024' && row.indeks !== '100,00')).toBe(true);
   });
 
-  it('bruger samme første tabelkolonner som eodebug for manuel arbejdsdagsbaseret regulering', () => {
+  it('bruger samme første tabelkolonner som eo-gennemsyn/kontrol for manuel arbejdsdagsbaseret regulering', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';

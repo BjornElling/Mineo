@@ -7,7 +7,7 @@ import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 
 /**
- * Ren (React-/debug-fri) blokerings-afgørelse for én svie/smerte-periode-række.
+ * Ren (React-/gennemsyns-frit) blokerings-afgørelse for én svie/smerte-periode-række.
  *
  * Dette er den AUTORITATIVE kilde til, om en periode-række blokerer (komplethed,
  * dato-grænser, overlap, rækkefølge) og med hvilken besked — jf. B9

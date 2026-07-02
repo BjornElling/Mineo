@@ -12,9 +12,9 @@ import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerels
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
 import type { ErstatningsopgoerelseValues, StamdataValues } from './eoRowShared';
-import { formatDebugCount, formatStatusMessage } from './eoRowShared';
+import { formatRowCount, formatStatusMessage } from './eoRowShared';
 
-const formatDebugIsoRange = (range: Readonly<{ fra: ISODateString; til: ISODateString }>): string =>
+const formatIsoRange = (range: Readonly<{ fra: ISODateString; til: ISODateString }>): string =>
   `${isoToDanish(range.fra) ?? range.fra} - ${isoToDanish(range.til) ?? range.til}`;
 
 
@@ -42,7 +42,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       : 'Ingen overenskomst valgt';
     const hasKnownPublicOverenskomst = Boolean(employment.overenskomstId && isOffentligOverenskomstId(employment.overenskomstId));
     const hasKnownPrivateOverenskomstPolicy = Boolean(employment.overenskomstId && getOverenskomstSfggPolicy(employment.overenskomstId));
-    // Når harOverenskomst=false, behandler både beregning og debug bevidst valget "Overenskomst"
+    // Når harOverenskomst=false, behandler både beregning og gennemsyns-/kontrollaget bevidst valget "Overenskomst"
     // som et ferielov-spor uden policy-opslag. Et hængende eller frit tekst-ID skal derfor ikke
     // udløse "ukendt overenskomst-ID" i det spor.
     const hasActivePrivateOverenskomst = employment.harOverenskomst && !!employment.overenskomstId && !hasKnownPublicOverenskomst;
@@ -78,7 +78,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    // Når brugeren har valgt "Overenskomst" uden faktisk overenskomst-ID, stopper debug-sporet her.
+    // Når brugeren har valgt "Overenskomst" uden faktisk overenskomst-ID, stopper gennemsyns-/kontrol-sporet her.
     // Det er bevidst: alle efterfølgende overenskomstafledte rækker, inkl. før-2015-bemærkningen,
     // ville ellers fremstå som om beregningssporet var konfigureret.
     if (kilde === 'Overenskomst' && !hasSelectedOverenskomst) {
@@ -169,7 +169,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
         id: `sfgg.periode.${employment.id}`,
         label: result.sfggVisningsperiode.length === 1 ? 'Periode' : 'Perioder',
         displayValue: result.sfggVisningsperiode.length > 0
-          ? result.sfggVisningsperiode.map(formatDebugIsoRange).join('\n')
+          ? result.sfggVisningsperiode.map(formatIsoRange).join('\n')
           : 'Ingen',
         status: 'ok',
       });
@@ -247,7 +247,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       rows.push({
         id: `sfgg.referenceperiodeantal.${employment.id}`,
         label: arbejdsdageLabel,
-        displayValue: `${formatDebugCount(result.sfggReferencesatsFormula.divisorDage)} ${result.sfggReferencesatsFormula.divisorLabel}`,
+        displayValue: `${formatRowCount(result.sfggReferencesatsFormula.divisorDage)} ${result.sfggReferencesatsFormula.divisorLabel}`,
         status: 'ok',
       });
     }
@@ -258,7 +258,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
 
     if (result?.sfggReferencesats.status === 'ok') {
       const divisorText = result.sfggReferencesatsFormula
-        ? `${formatDebugCount(result.sfggReferencesatsFormula.divisorDage)} ${result.sfggReferencesatsFormula.divisorLabel}`
+        ? `${formatRowCount(result.sfggReferencesatsFormula.divisorDage)} ${result.sfggReferencesatsFormula.divisorLabel}`
         : 'arbejdsdage';
       const referenceSatsLabel = result.sfggReferencesatsFormula
         ? `Referencesats (${formatCurrency(result.sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner)} x ${formatPercent(result.sfggReferencesatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`

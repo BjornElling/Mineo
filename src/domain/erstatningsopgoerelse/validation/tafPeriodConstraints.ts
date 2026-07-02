@@ -129,7 +129,7 @@ export const resolveTafEoPeriodeBounds = (values: TafConstraintSource): TafConst
 
 /**
  * Kombineret bounds-resolver der returnerer strengeste grænse fra alle kilder.
- * Bruges af debug-visninger og UI-komponenter der skal vise den endelige clampede dato.
+ * Bruges af gennemsyns-/kontrolvisninger og UI-komponenter der skal vise den endelige clampede dato.
  *
  * Til `buildTafRanges` bruges i stedet `resolveTafFejlgivendeBounds` + `resolveTafEoPeriodeBounds`
  * separat, da rækkefølgen af clampingen her er semantisk vigtig.

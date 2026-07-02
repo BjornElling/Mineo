@@ -7,9 +7,9 @@ import { addDays, addMonths } from '../../utils/dateUtils';
 import type { EoRowStatus } from './eoRowTypes';
 
 /**
- * Debug-row-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
+ * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
  *
- * Dette beskytter React-key-stabilitet og gør debug-output auditerbart.
+ * Dette beskytter React-key-stabilitet og gør gennemsyns-/kontrol-output auditerbart.
  */
 export type EoRowId =
   | 'erstatningsopgoerelse.eoNummer'
@@ -125,8 +125,8 @@ export type ErstatningsopgoerelseFieldName = Extract<keyof Erstatningsopgoerelse
 export type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
 export type StamdataValues = PersistedSectionMap['stamdata'];
 
-export const formatDebugCount = (value: number): string => formatAsAmountTrimmed(value, 0);
-export const formatDebugMonths = (value: number): string => formatAsAmountTrimmed(value, 4);
+export const formatRowCount = (value: number): string => formatAsAmountTrimmed(value, 0);
+export const formatRowMonths = (value: number): string => formatAsAmountTrimmed(value, 4);
 
 export const formatStatusMessage = (status: EoRowStatus, message: string): string => {
   if (status === 'ok') return '-';
@@ -142,12 +142,12 @@ export type ReguleringsRange = Readonly<{
   max?: ISODateString;
 }>;
 
-export const parseDanishToIsoDebug = (value: string | undefined): ISODateString | undefined => {
+export const parseDanishToIso = (value: string | undefined): ISODateString | undefined => {
   if (!value || value.trim() === '') return undefined;
   return coerceToISODateString(value.trim());
 };
 
-export const getRangeForManualReguleringDebug = (
+export const getRangeForManualRegulering = (
   baseIso: ISODateString | undefined,
   rows: ReadonlyArray<{ dato?: string | undefined }>
 ): ReguleringsRange => {
@@ -155,7 +155,7 @@ export const getRangeForManualReguleringDebug = (
   if (baseIso) dates.push(baseIso);
 
   rows.forEach((row) => {
-    const iso = parseDanishToIsoDebug(row.dato);
+    const iso = parseDanishToIso(row.dato);
     if (iso) dates.push(iso);
   });
 
@@ -175,7 +175,7 @@ export const getRangeForManualReguleringDebug = (
   return { min, max: adjustedMax };
 };
 
-export const calculateElapsedWholeMonthsDebug = (fromIso: ISODateString, toIso: ISODateString): number => {
+export const calculateElapsedWholeMonths = (fromIso: ISODateString, toIso: ISODateString): number => {
   if (toIso <= fromIso) return 0;
   const fromDate = parseISODate(fromIso);
   const toDate = parseISODate(toIso);

@@ -12,7 +12,7 @@ import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
 import ContentBox from '../layout/ContentBox';
-const StamdataDebugTab = React.lazy(async () => import('./StamdataDebugTab'));
+const StamdataTestTab = React.lazy(async () => import('./StamdataTestTab'));
 
 // Afled dropdown-valgmulighederne fra schemaets enum, så UI og validering aldrig kan komme ud af sync.
 const SKADESTYPER = skadestypeEnum.options;
@@ -211,7 +211,7 @@ const Stamdata = React.memo(() => {
             sx={{ display: activeTab === 'test' ? 'block' : 'none' }}
           >
             <React.Suspense fallback={<CircularProgress />}>
-              <StamdataDebugTab />
+              <StamdataTestTab />
             </React.Suspense>
           </Box>
         )}

@@ -20,7 +20,7 @@
  * felt-fejl "typisk er tom for disse felter" og at række-evalueringen derfor re-deriverer
  * datogrænserne): row-motoren bærer genuin produktions-validering der ikke findes i
  * snapshot-valideringen alene. B9's løsning er derfor, at row-motoren selv er flyttet til
- * et autoritativt, debug-frit domænelag (`src/domain/eoRowEvaluation/`) og driver gaten direkte.
+ * et autoritativt, gennemsyns-/kontrol-frit domænelag (`src/domain/eoRowEvaluation/`) og driver gaten direkte.
  */
 import { collectAllEoRows } from '../../domain/eoRowEvaluation/eoRowAggregator';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -144,7 +144,7 @@ describe('B9 afklaring: række-evalueringens unikke bidrag til PDF-gaten', () =>
     expect(project(values)).toBe('ok');
     const ids = eoRowErrorIds(values);
     // Disse fejl gater PDF, men findes hverken i snapshot-valideringen eller som felt-fejl.
-    // Row-motoren skal derfor forblive autoritativ og debug-fri.
+    // Row-motoren skal derfor forblive autoritativ og gennemsyns-/kontrol-fri.
     expect(ids.length).toBeGreaterThan(0);
   });
 });

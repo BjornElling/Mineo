@@ -174,7 +174,7 @@ diagnostik — se nuancen ovenfor):
 ### C. TVIVLSOM — parity-kontrol med arvet visnings-prefiks (kontraktnær)
 
 - **Invariant-id `debug:control_mismatch`** (`eoControlMismatch.ts`,
-  `eoSnapshotInvariants.ts`; **defineret i `error-debug-contract.md` §8.4**). Selve
+  `eoSnapshotInvariants.ts`; **defineret i `error-contract.md` §8.4**). Selve
   kontrollen er ægte parity (motor ↔ committed tabel-projektion) og er en
   **produktions-invariant** der kan fail-close. Men `debug:`-prefikset binder et
   produktionskritisk sikkerhedstjek til ordet "debug". Kandidat til fx
@@ -223,7 +223,7 @@ Skal opdateres i takt med omdøbningen (jf. `AGENTS.md` §133 og
 
 | Fil | Binding |
 |---|---|
-| `src/contracts/error-debug-contract.md` | **Titel** + invariant-id `debug:control_mismatch` (§8.4) + EODebug-regler (§7, §8.2, §8.2a). Filnavn i topology-JSON + coverage-matrix. |
+| `src/contracts/error-contract.md` | **Titel** + invariant-id `debug:control_mismatch` (§8.4) + EODebug-regler (§7, §8.2, §8.2a). Filnavn i topology-JSON + coverage-matrix. |
 | `docs/architecture/debug-builder-architecture.md` | **Filnavn** (i topology-JSON) + gennemgående "EO-debug"-prosa + fallback-id + bevarede DEV-symboler. |
 | `src/contracts/eo-snapshot-contract.md` | `eoSnapshotToDebugView`, `debugSnapshot`-felt, projektions-target `'debug'`, "EODebug altid-kan-dannes"-garanti (§6). |
 | `src/contracts/domain-boundary-contract.md`, `snapshot-contract.md` | "UI, PDF og debug"-projektionssprog. |
@@ -258,7 +258,7 @@ fra lavrisiko/isoleret mod kontraktnært/brugervendt.
    kontrol-navne.
 6. **Snapshot-projektion & kontrakter (F).** Felt `debugSnapshot`, `EODebugSnapshot`,
    projektions-enum `'debug'`, invariant-id `debug:control_mismatch`. Opdatér
-   `error-debug-contract.md`, `eo-snapshot-contract.md`, `domain-boundary`/`snapshot`,
+   `error-contract.md`, `eo-snapshot-contract.md`, `domain-boundary`/`snapshot`,
    `contract-topology.json`, coverage-matrix og `debugLayerIsolation` **samtidig**.
    Filomdøbning af de to debug-dokumenter følger `contract-topology-procedure.md`.
 7. **Persisterede settings (migration).** `showEODebugMenu` (+ evt. `fontStyleColorDebug`)

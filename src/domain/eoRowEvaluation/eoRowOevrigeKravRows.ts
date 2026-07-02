@@ -122,7 +122,7 @@ export const buildEoOevrigeKravRows = (
 };
 
 /**
- * Bygger debug-række for Særlige kommentarer
+ * Bygger gennemsyns-/kontrol-række for Særlige kommentarer
  */
 export const buildEoSaerligeKommentarerRows = (
   values: ErstatningsopgoerelseValues,

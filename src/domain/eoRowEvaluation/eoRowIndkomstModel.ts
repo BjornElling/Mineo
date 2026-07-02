@@ -37,7 +37,7 @@ export type IndkomstSectionStatus = Readonly<{
   tableMessage: string;
 }>;
 
-export type OffentligeYdelserDebugRow = Readonly<{
+export type OffentligeYdelserStatusRow = Readonly<{
   id: string;
   label: string;
   status: EoRowStatus;
@@ -254,9 +254,9 @@ export const buildIndkomstSectionStatuses = (
   });
 };
 
-export const buildOffentligeYdelserDebugRows = (
+export const buildOffentligeYdelserStatusRows = (
   rows: ReadonlyArray<OffentligeYdelserRow>
-): ReadonlyArray<OffentligeYdelserDebugRow> => {
+): ReadonlyArray<OffentligeYdelserStatusRow> => {
   if (rows.length === 0) return [];
 
   const cellErrors = buildOffentligeYdelserCellErrors(rows);
@@ -267,15 +267,15 @@ export const buildOffentligeYdelserDebugRows = (
   });
   const issuesByRowId = new Map(validation.summary.rowIssues.map((issue) => [issue.rowId, issue]));
 
-  type OffentligeYdelserDebugRowDraft = {
+  type OffentligeYdelserStatusRowDraft = {
     id: string;
     label: string;
     firstErrorMessage?: string;
     warningCount: number;
   };
 
-  const result: OffentligeYdelserDebugRowDraft[] = [];
-  const grouped = new Map<string, OffentligeYdelserDebugRowDraft>();
+  const result: OffentligeYdelserStatusRowDraft[] = [];
+  const grouped = new Map<string, OffentligeYdelserStatusRowDraft>();
 
   for (const row of rows) {
     const { hasAnyFilled } = getOffentligeYdelserRowFilledState(row);

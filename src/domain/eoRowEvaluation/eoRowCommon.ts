@@ -4,7 +4,7 @@ import type { EoRowStatus } from './eoRowTypes';
 
 // Neutrale validerings-tekst-/streng-helpers bor nu i domænets validerings-lag, så de kan
 // deles med det autoritative blokerings-modul (B9). Re-eksporteres her, så eksisterende
-// debug-importer er uændrede.
+// gennemsyns-/kontrol-importer er uændrede.
 export {
   isNonEmptyString,
   formatISODateForTooltip,

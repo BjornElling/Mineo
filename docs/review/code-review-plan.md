@@ -25,7 +25,7 @@ gælder `src/contracts/*.md` over denne plan.
   Afledte værdier gemmes ikke som brugerinput.
 - Beregningsrefaktorering skal bevise tal-identitet med tests. Ændrer tallene sig,
   er det beregningslogik og kræver forelæggelse.
-- Normal drift er console-tavs. Logs skal følge `error-debug-contract.md`.
+- Normal drift er console-tavs. Logs skal følge `error-contract.md`.
 - Brugervendt tekst, kontrakter, kommentarer og docs følger sprogpolitikken i
   `AGENTS.md`.
 

@@ -11,7 +11,7 @@ export type TafDerivedResult = Readonly<{
   beregningsenhed: TafBeregningsenhed;
 }>;
 
-// UI/debug per-row afledninger:
+// UI/gennemsyn per-row afledninger:
 // Bevarer én værdi per indtastet række og merger IKKE overlappende perioder.
 // Samlede/aggregerede TAF-beregninger håndteres i `tafBeregningsEngine.ts`.
 export const buildTafDerived = (args: {

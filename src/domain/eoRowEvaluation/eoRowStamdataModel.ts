@@ -5,9 +5,9 @@ import { collectPresentFieldErrors, isNonEmptyString, resolveEoRowDisplay } from
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 
 /**
- * Debug-row-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
+ * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
  *
- * Dette beskytter React-key-stabilitet og gør debug-output auditerbart.
+ * Dette beskytter React-key-stabilitet og gør gennemsyns-/kontrol-output auditerbart.
  */
 export type EoRowId =
   | 'stamdata.journalnr'

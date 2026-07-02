@@ -9,7 +9,9 @@ export type Periodisering = 'kalenderdage' | 'arbejdsdage';
 
 export interface YdelsestypeConfig {
   label: string;
-  debugLabel?: string;
+  // Alternativ visnings-label med linjeskift til smalle tabelkolonner (kontrol-/gennemsynstabellen).
+  // Falder tilbage til `label`, når den ikke er sat.
+  tabelLabel?: string;
   periodisering: Periodisering;
   periodiseringLabel: string;  // Vises i readonly-kolonne
 }
@@ -47,7 +49,7 @@ const ydelsestyperLiteral = {
   },
   ledighedsydelse: {
     label: 'Ledighedsydelse',
-    debugLabel: 'Ledigheds-\nydelse',
+    tabelLabel: 'Ledigheds-\nydelse',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
@@ -68,7 +70,7 @@ const ydelsestyperLiteral = {
   },
   revalideringsydelse: {
     label: 'Revalideringsydelse',
-    debugLabel: 'Revaliderings-\nydelse',
+    tabelLabel: 'Revaliderings-\nydelse',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
@@ -84,7 +86,7 @@ const ydelsestyperLiteral = {
   },
   uddannelseshjaelp: {
     label: 'Uddannelseshjælp',
-    debugLabel: 'Uddannelses-\nhjælp',
+    tabelLabel: 'Uddannelses-\nhjælp',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },

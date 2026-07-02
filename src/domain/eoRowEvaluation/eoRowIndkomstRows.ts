@@ -11,16 +11,16 @@ import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveManuelProcentsatsRowsFoerBasis } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
-import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoRowIndkomstModel';
+import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
-import { formatStatusMessage, parseDanishToIsoDebug, getRangeForManualReguleringDebug, calculateElapsedWholeMonthsDebug, buildReguleringsMangelMessage } from './eoRowShared';
+import { formatStatusMessage, parseDanishToIso, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 /**
  * Konsistens-advarsel: midlertidig EET-afgørelse angivet, men ingen midlertidige EET-ydelser
- * indtastet i et interval hvor de burde findes. Bygges som en del af offentlige-ydelser-debugrækkerne
+ * indtastet i et interval hvor de burde findes. Bygges som en del af offentlige-ydelser-gennemsyns-/kontrolrækkerne
  * (eneste forbruger) og hører derfor sammen med indkomst-byggeren, ikke oevrigeKrav-byggeren.
  */
 export const buildEoMidlertidigtEetKonsistensRows = (
@@ -419,16 +419,16 @@ export const buildEoIndkomstRows = (
         const interval = getReguleringsDatoIntervalForOverenskomst(ansaettelsesforhold.overenskomstId ?? '');
         if (!interval) return {} as ReguleringsRange;
         return {
-          min: parseDanishToIsoDebug(interval.fraDato),
-          max: parseDanishToIsoDebug(interval.tilDato),
+          min: parseDanishToIso(interval.fraDato),
+          max: parseDanishToIso(interval.tilDato),
         };
       }
       if (loenudviklingBasis === 'Statistik') {
         const interval = getReguleringsDatoIntervalForStatistikModel(ansaettelsesforhold.loenudviklingStatistikModel ?? '');
         if (!interval) return {} as ReguleringsRange;
         return {
-          min: parseDanishToIsoDebug(interval.fraDato),
-          max: parseDanishToIsoDebug(interval.tilDato),
+          min: parseDanishToIso(interval.fraDato),
+          max: parseDanishToIso(interval.tilDato),
         };
       }
       if (loenudviklingBasis === 'KRL satstabel') {
@@ -437,20 +437,20 @@ export const buildEoIndkomstRows = (
         const interval = getReguleringsDatoIntervalForKRL(krlId);
         if (!interval) return {} as ReguleringsRange;
         return {
-          min: parseDanishToIsoDebug(interval.fraDato),
-          max: parseDanishToIsoDebug(interval.tilDato),
+          min: parseDanishToIso(interval.fraDato),
+          max: parseDanishToIso(interval.tilDato),
         };
       }
       if (loenudviklingBasis === 'KL-lønaftaler') {
         const interval = getReguleringsDatoIntervalForKlLoenaftaler();
         if (!interval) return {} as ReguleringsRange;
         return {
-          min: parseDanishToIsoDebug(interval.fraDato),
-          max: parseDanishToIsoDebug(interval.tilDato),
+          min: parseDanishToIso(interval.fraDato),
+          max: parseDanishToIso(interval.tilDato),
         };
       }
       if (loenudviklingBasis === 'Manuelt angivet') {
-        return getRangeForManualReguleringDebug(anvendtReguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
+        return getRangeForManualRegulering(anvendtReguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
       }
       if (loenudviklingBasis === 'Manuel procentsats') {
         return {
@@ -493,7 +493,7 @@ export const buildEoIndkomstRows = (
       if (!tafEndIso || !reguleringsRange.max) return { displayValue: '-', status: 'error' as EoRowStatus };
       if (reguleringsRange.max >= tafEndIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
 
-      const maanederSidenUdloeb = calculateElapsedWholeMonthsDebug(reguleringsRange.max, tafEndIso);
+      const maanederSidenUdloeb = calculateElapsedWholeMonths(reguleringsRange.max, tafEndIso);
       if (maanederSidenUdloeb < overenskomstUdloebMaanederGraense) {
         return {
           displayValue: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
@@ -555,9 +555,9 @@ export const buildEoOffentligeYdelserRows = (
   skadedatoISO?: ISODateString
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
-  const debugRows = buildOffentligeYdelserDebugRows(values.offentligeYdelserRows ?? []);
+  const statusRows = buildOffentligeYdelserStatusRows(values.offentligeYdelserRows ?? []);
 
-  debugRows.forEach((row) => {
+  statusRows.forEach((row) => {
     rows.push({
       id: `offentligeYdelser.${row.id}`,
       label: row.label,

@@ -53,7 +53,7 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
    Ingen fejlindikation. Sker EFTER fejlgivende clamping.
 
-7. De resulterende ranges lægges til grund for beregning i EODebug, EODebugTabel og
+7. De resulterende ranges lægges til grund for beregning i EO-gennemsyn/kontrol, Kontroltabel og
    EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
 
 Bemærk om projektioner: EO-domænet kan have flere tekniske TAF-forbrugere, fx en
@@ -89,7 +89,7 @@ beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle f
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
    Ingen fejlindikation. Sker EFTER fejlgivende clamping.
 
-6. De resulterende ranges lægges til grund for beregning i EODebug, EODebugTabel og
+6. De resulterende ranges lægges til grund for beregning i EO-gennemsyn/kontrol, Kontroltabel og
    EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
 
 Implementeringen bruger parallelle constraint-typer (`SvieSmerteConstraintBounds`,
@@ -98,7 +98,7 @@ Implementeringen bruger parallelle constraint-typer (`SvieSmerteConstraintBounds
 
 > **Bemærk om overlap (svie/smerte):** Ethvert overlap mellem svie/smerte-perioder afvises —
 > også overlap mellem perioder med samme tilstand. Validator og `svieSmerteEngine` afviser
-> ethvert overlap (engine returnerer `null` ved `overlap.size > 0`), og tabel-/debug-laget
+> ethvert overlap (engine returnerer `null` ved `overlap.size > 0`), og tabel-/kontrollaget
 > markerer ethvert overlap rødt, så fejlen er synlig før gem. Der findes ikke længere en
 > "samme tilstand er tilladt"-undtagelse.
 

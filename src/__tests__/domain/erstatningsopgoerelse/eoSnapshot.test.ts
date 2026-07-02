@@ -103,7 +103,7 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('schema_guard');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).toBeNull();
+    expect(snapshot.inspektionSnapshot).toBeNull();
   });
 
   it('returnerer error uden data ved overlappende TAF-perioder', () => {
@@ -125,7 +125,7 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('taf_perioder:overlap:'))).toBe(true);
   });
 
@@ -171,7 +171,7 @@ describe('computeEoSnapshot', () => {
 
     // Snapshot: data tilgængeligt (beregnet på clampet range), ingen snapshot-invariant for differencekravDato-bound.
     expect(snapshot.data).not.toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((inv) => inv.id.includes('taf_perioder:upper_bound:differencekrav'))).toBe(false);
     // Snapshot bruger den clampede range (til 2024-06-30 = dagen før differencekravDato)
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
@@ -226,7 +226,7 @@ describe('computeEoSnapshot', () => {
     // Svie/smerte til-dato >= ménafgørelsesdato er en FEJLGIVENDE bound (ikke stille clamping).
     // jf. eo-snapshot-contract.md §2.2 og form-contract.md §13.2.
     // Validator rapporterer fejl → blocksAuthoritativeComputation: true → data: null.
-    // Snapshot status er 'error', debugSnapshot er tilgængeligt (bygges i validerings-fejl-stien).
+    // Snapshot status er 'error', inspektionSnapshot er tilgængeligt (bygges i validerings-fejl-stien).
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
     eoValues.vedroererPeriodeTil = toISODateString('2025-12-21');
@@ -253,8 +253,8 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
     expect(snapshot.failClosedReason).toBeUndefined();
-    // debugSnapshot bygges i validerings-fejl-stien
-    expect(snapshot.debugSnapshot).not.toBeNull();
+    // inspektionSnapshot bygges i validerings-fejl-stien
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(false);
     // Fejl-invariant er til stede
     const tilFejl = snapshot.invariants.find((inv) => inv.evidence?.some((e) => e.includes('svieSmertePerioder')));
@@ -345,7 +345,7 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id.includes('taf_perioder:lose_feriedage:'))).toBe(true);
   });
 
@@ -365,7 +365,7 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id === 'beregningsperiode:uspecificerede_feriefridage')).toBe(true);
   });
 
@@ -408,7 +408,7 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.status).toBe('error');
     expect(snapshot.failClosedReason).toBeUndefined();
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) =>
       invariant.id === 'validation:loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag'
     )).toBe(true);
@@ -459,10 +459,10 @@ describe('computeEoSnapshot', () => {
     expect(pdfModel.samlet.oevrigeKravOre).toBe(totals.oevrigeKravOre);
   });
 
-  it('schema_guard: fail_closed har debugSnapshot null (parsing nåede aldrig try-blokken)', () => {
+  it('schema_guard: fail_closed har inspektionSnapshot null (parsing nåede aldrig try-blokken)', () => {
     // Bekræfter fail_closed-strukturen for schema_guard-stien: parsingen fejler, try-blokken
-    // (hvor debugSnapshot ellers bygges) nås aldrig, så debugSnapshot er null.
-    // runtime_exception-stien (debugSnapshot bygges delvist, men nulstilles fail-closed) er
+    // (hvor inspektionSnapshot ellers bygges) nås aldrig, så inspektionSnapshot er null.
+    // runtime_exception-stien (inspektionSnapshot bygges delvist, men nulstilles fail-closed) er
     // dækket i eoSnapshot.runtimeException.test.ts, hvor en engine tvinges til at kaste.
     const snapshot = computeEoSnapshot({
       revision: 'schema-fail-2',
@@ -471,11 +471,11 @@ describe('computeEoSnapshot', () => {
     });
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('schema_guard');
-    expect(snapshot.debugSnapshot).toBeNull();
+    expect(snapshot.inspektionSnapshot).toBeNull();
   });
 
-  it('validerings-fejl-sti: debugSnapshot bygges med clampede tafRanges for gyldige TAF-rækker', () => {
-    // Når validering fejler, kører autoritative totaler ikke. Debug må dog stadig vise
+  it('validerings-fejl-sti: inspektionSnapshot bygges med clampede tafRanges for gyldige TAF-rækker', () => {
+    // Når validering fejler, kører autoritative totaler ikke. Gennemsyns-/kontrollaget må dog stadig vise
     // clampede TAF-ranges for de rækker der kan parses sikkert.
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
@@ -495,9 +495,9 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    // debugSnapshot skal altid bygges i validerings-fejl-stien
-    expect(snapshot.debugSnapshot).not.toBeNull();
-    expect(snapshot.debugSnapshot!.model).toBeDefined();
+    // inspektionSnapshot skal altid bygges i validerings-fejl-stien
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot!.model).toBeDefined();
   });
 
   it('validerings-fejl-sti: urelateret svie/smerte-fejl undertrykker ikke TAF-sammentælling', () => {
@@ -551,13 +551,13 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
-    expect(snapshot.debugSnapshot!.sammentaelling.taf.beregnetValue).not.toBeNull();
-    expect(snapshot.debugSnapshot!.sammentaelling.taf.tabelValue).not.toBeNull();
-    expect(snapshot.debugSnapshot!.sammentaelling.tafIndtaegter).toHaveLength(1);
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot!.sammentaelling.taf.beregnetValue).not.toBeNull();
+    expect(snapshot.inspektionSnapshot!.sammentaelling.taf.tabelValue).not.toBeNull();
+    expect(snapshot.inspektionSnapshot!.sammentaelling.tafIndtaegter).toHaveLength(1);
   });
 
-  it('validerings-fejl-sti: urelateret TAF-fejl undertrykker ikke svie/smerte i debug-sammentælling', () => {
+  it('validerings-fejl-sti: urelateret TAF-fejl undertrykker ikke svie/smerte i kontrol-sammentælling', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-26');
     eoValues.vedroererPeriodeTil = toISODateString('2025-11-02');
@@ -585,17 +585,17 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
-    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteSygedage.beregnetValue).toBe(311);
-    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteSygedage.tabelValue).toBe(311);
-    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteDelvise.beregnetValue).toBe(41);
-    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteDelvise.tabelValue).toBe(41);
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot!.sammentaelling.svieSmerteSygedage.beregnetValue).toBe(311);
+    expect(snapshot.inspektionSnapshot!.sammentaelling.svieSmerteSygedage.tabelValue).toBe(311);
+    expect(snapshot.inspektionSnapshot!.sammentaelling.svieSmerteDelvise.beregnetValue).toBe(41);
+    expect(snapshot.inspektionSnapshot!.sammentaelling.svieSmerteDelvise.tabelValue).toBe(41);
   });
 
   it('SFGG-valideringsfejl blokerer autoritativ snapshot-data som andre obligatoriske felter', () => {
     // SFGG-inputfejl behandles fail-closed på linje med øvrige validator-fejl (severity 'error'):
     // blocksAuthoritativeComputation: true → data: null, og download af EO/TAF-PDF blokeres.
-    // debugSnapshot er fortsat tilgængeligt (bygges i validerings-fejl-stien).
+    // inspektionSnapshot er fortsat tilgængeligt (bygges i validerings-fejl-stien).
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
     eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
@@ -619,12 +619,12 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
     const sfggInvariant = snapshot.invariants.find((invariant) => invariant.message === 'Beregningsgrundlag for SFGG ikke valgt');
     expect(sfggInvariant).toEqual(expect.objectContaining({
       source: 'validation',
       blocksAuthoritativeComputation: true,
-      blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
+      blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
     }));
   });
 

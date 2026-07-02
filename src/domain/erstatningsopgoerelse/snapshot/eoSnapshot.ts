@@ -3,7 +3,7 @@ import { erstatningsopgoerelseSchema, stamdataSchema, type Erstatningsopgoerelse
 import type { ISODateString } from '../../../types/branded';
 import type { FieldErrorsForSection } from '../../../types/fieldErrors';
 import { erstatningsopgoerelseValidator } from '../../../validators/erstatningsopgoerelseValidator';
-import { buildEODebugSnapshot, type EODebugSnapshot } from '../../debug/eoDebugSnapshot';
+import { buildEOInspektionSnapshot, type EOInspektionSnapshot } from '../../eoInspektion/eoInspektionSnapshot';
 import { parseForligsgrad } from '../engines/forligsgrad';
 import type { MidlertidigtEetAfgoerelseGroup, MidlertidigtEetInsertSource } from '../helpers/midlertidigtEetInsertRows';
 import {
@@ -79,7 +79,7 @@ export type EoSnapshot = Readonly<{
   status: 'ok' | 'warning' | 'error' | 'fail_closed';
   invariants: readonly EoInvariant[];
   data: EoSnapshotComputedData | null;
-  debugSnapshot: EODebugSnapshot | null;
+  inspektionSnapshot: EOInspektionSnapshot | null;
   input: Readonly<{
     stamdata: StamdataValues | null;
     erstatningsopgoerelse: ErstatningsopgoerelseValues | null;
@@ -123,7 +123,7 @@ const buildCanonicalOutput = (args: Readonly<{
   });
 };
 
-const buildDebugSnapshotForComputed = (args: Readonly<{
+const buildInspektionSnapshotForComputed = (args: Readonly<{
   revision: string;
   stamdata: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
@@ -133,8 +133,8 @@ const buildDebugSnapshotForComputed = (args: Readonly<{
   svieSmerteEngine?: SvieSmerteEngineOutput;
   canonicalOutput?: EoCanonicalOutput;
   sfggResult?: TafNettoBeregningResult['sygeferiegodtgoerelse'];
-}>): EODebugSnapshot => {
-  return buildEODebugSnapshot({
+}>): EOInspektionSnapshot => {
+  return buildEOInspektionSnapshot({
     revision: args.revision,
     stamdataValues: args.stamdata,
     eoValues: args.eoValues,
@@ -199,10 +199,10 @@ export const computeEoSnapshot = (args: Readonly<{
         source: 'system' as const,
         message,
         blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
+        blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       })),
       data: null,
-      debugSnapshot: null,
+      inspektionSnapshot: null,
       input: {
         stamdata: parsedStamdata.success ? parsedStamdata.data : null,
         erstatningsopgoerelse: parsedEo.success ? parsedEo.data : null,
@@ -256,10 +256,10 @@ export const computeEoSnapshot = (args: Readonly<{
         source: 'system' as const,
         message: 'EO-beregningen kan ikke gennemføres på grund af en intern datafejl i angivet løn. Genindlæs sagen eller vælg beregningsgrundlaget igen.',
         blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
+        blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       }],
       data: null,
-      debugSnapshot: null,
+      inspektionSnapshot: null,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
@@ -277,34 +277,34 @@ export const computeEoSnapshot = (args: Readonly<{
   ];
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
     // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
-    // Debug-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
+    // Gennemsyns-/kontrol-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
     // Vi beregner derfor svie/smerte-engine separat her, fordi den ikke afhænger af løn/TAF-validering.
-    // TAF-ranges bygges fra de rækker der stadig kan parses, så debug kan vise den samme clamping
+    // TAF-ranges bygges fra de rækker der stadig kan parses, så gennemsyns-/kontrollaget kan vise den samme clamping
     // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
-    // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed debug-basis.
-    const svieSmerteForDebug = computeSvieSmerteEngine({
+    // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed gennemsyns-/kontrol-basis.
+    const svieSmerteForInspektion = computeSvieSmerteEngine({
       erstatningsopgoerelse: effectiveEoValues,
       stamdata: {
         skadedato: parsedStamdata.data.skadedato,
         skadestype: parsedStamdata.data.skadestype,
       },
     });
-    const tafRangesForDebug = buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
-    const debugSnapshotForValidationError = buildDebugSnapshotForComputed({
+    const tafRangesForInspektion = buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
+    const inspektionSnapshotForValidationError = buildInspektionSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,
       eoValues: effectiveEoValues,
       stamdataErrors,
       eoErrors,
-      tafRanges: tafRangesForDebug,
-      svieSmerteEngine: svieSmerteForDebug,
+      tafRanges: tafRangesForInspektion,
+      svieSmerteEngine: svieSmerteForInspektion,
     });
     return {
       revision: args.revision,
       status: 'error',
       invariants: validationInvariants,
       data: null,
-      debugSnapshot: debugSnapshotForValidationError,
+      inspektionSnapshot: inspektionSnapshotForValidationError,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
@@ -312,9 +312,9 @@ export const computeEoSnapshot = (args: Readonly<{
     };
   }
 
-  // debugSnapshot deklareres her så catch-blokken har adgang til den,
+  // inspektionSnapshot deklareres her så catch-blokken har adgang til den,
   // selv hvis en fejl opstår efter at den er bygget inde i try-blokken.
-  let debugSnapshot: EODebugSnapshot | null = null;
+  let inspektionSnapshot: EOInspektionSnapshot | null = null;
 
   try {
     const tafRanges = buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
@@ -359,7 +359,7 @@ export const computeEoSnapshot = (args: Readonly<{
       tafNetto,
       totals,
     });
-    debugSnapshot = buildDebugSnapshotForComputed({
+    inspektionSnapshot = buildInspektionSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,
       eoValues: effectiveEoValues,
@@ -386,12 +386,12 @@ export const computeEoSnapshot = (args: Readonly<{
       invariants.push(buildTafPerYearOpreguleretManglendeReguleringssatsInvariant(tafPerYearOpreguleretOutcome.manglendeAar));
     }
 
-    // Denne invariant er bevidst udledt af debug-tabellens sammentælling-model.
-    // Den krydstjekker autoritative engine-outputs mod den committede EO-debug-tabel-projektion,
-    // så den afhænger af debug-infrastruktur efter design frem for at være et rent engine-til-engine-check.
-    // Invariant: debugSnapshot er altid non-null her, da den sættes tidligt i try-blokken inden engine-kald.
-    if (!debugSnapshot) throw new Error('debugSnapshot mangler ved kontrol-mismatch-check — invariant brudt');
-    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(debugSnapshot.sammentaellingRows);
+    // Denne invariant er bevidst udledt af kontroltabellens sammentælling-model.
+    // Den krydstjekker autoritative engine-outputs mod den committede EO-gennemsyn/kontrol-tabel-projektion,
+    // så den afhænger af gennemsyns-/kontrol-infrastruktur efter design frem for at være et rent engine-til-engine-check.
+    // Invariant: inspektionSnapshot er altid non-null her, da den sættes tidligt i try-blokken inden engine-kald.
+    if (!inspektionSnapshot) throw new Error('inspektionSnapshot mangler ved kontrol-mismatch-check — invariant brudt');
+    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(inspektionSnapshot.sammentaellingRows);
     if (controlMismatchMessages.length > 0) {
       invariants.push(buildControlMismatchInvariant(controlMismatchMessages));
     }
@@ -444,7 +444,7 @@ export const computeEoSnapshot = (args: Readonly<{
       status,
       invariants,
       data,
-      debugSnapshot,
+      inspektionSnapshot,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
@@ -461,9 +461,9 @@ export const computeEoSnapshot = (args: Readonly<{
       error: normalizedError,
       diagnostics: {
         errorName: normalizedError.name,
-        // Diagnostisk: var en (delvist bygget) debug-snapshot tilgængelig, da exception ramte?
-        // Selve snapshot-resultatet sætter debugSnapshot til null i fail_closed-stien (se nedenfor).
-        debugSnapshotAvailable: debugSnapshot !== null,
+        // Diagnostisk: var en (delvist bygget) gennemsyns-/kontrol-snapshot tilgængelig, da exception ramte?
+        // Selve snapshot-resultatet sætter inspektionSnapshot til null i fail_closed-stien (se nedenfor).
+        inspektionSnapshotAvailable: inspektionSnapshot !== null,
       },
     });
     return {
@@ -477,15 +477,15 @@ export const computeEoSnapshot = (args: Readonly<{
         message: 'EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl.',
         evidence: [normalizedError.message],
         blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
+        blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       }],
       data: null,
       // Kontrakt eo-snapshot-contract.md §2.4: i fail_closed-stien (uventet runtime-exception)
-      // er debugSnapshot null. En delvist bygget debug-snapshot fra en kørsel der efterfølgende
+      // er inspektionSnapshot null. En delvist bygget gennemsyns-/kontrol-snapshot fra en kørsel der efterfølgende
       // kastede, må ikke surfaces som om den var et gyldigt beregningsgrundlag — også selvom
-      // eoSnapshotToDebugView allerede router fail_closed til en blokeret tilstand uafhængigt af
-      // debugSnapshot. Fail-closed = ingen semi-autoritativ debug-visning.
-      debugSnapshot: null,
+      // eoSnapshotToInspektionView allerede router fail_closed til en blokeret tilstand uafhængigt af
+      // inspektionSnapshot. Fail-closed = ingen semi-autoritativ gennemsyns-/kontrolvisning.
+      inspektionSnapshot: null,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,

@@ -5,7 +5,7 @@ import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
 
-export type EoProjectionTarget = 'beregning' | 'debug' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
+export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
 
 /**
  * source klassificerer invariantens oprindelse:
@@ -23,7 +23,7 @@ export type EoInvariant = Readonly<{
   blocksOutputs?: ReadonlyArray<EoProjectionTarget>;
 }>;
 
-const VALIDATION_BLOCKED_OUTPUTS: readonly EoProjectionTarget[] = ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'];
+const VALIDATION_BLOCKED_OUTPUTS: readonly EoProjectionTarget[] = ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'];
 
 const buildValidationInvariantId = (error: ValidationError, index: number): string => {
   const path = error.path ?? `${index}`;
@@ -114,7 +114,7 @@ export const buildTafPerYearUnavailableInvariant = (reason: 'missing_loenudvikli
 });
 
 export const buildControlMismatchInvariant = (messages: readonly string[]): EoInvariant => ({
-  id: 'debug:control_mismatch',
+  id: 'control:sammentaelling_mismatch',
   passed: false,
   severity: 'error',
   source: 'system',

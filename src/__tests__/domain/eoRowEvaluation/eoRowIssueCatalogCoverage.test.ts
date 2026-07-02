@@ -6,7 +6,7 @@ import {
 import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 
 /**
- * Systematik-værn for EO-fejl/advarselstekster (jf. error-debug-contract.md).
+ * Systematik-værn for EO-fejl/advarselstekster (jf. error-contract.md).
  *
  * Formålet er at sikre, at hver fejlkilde i Beregning-fanen har en KORT, SPECIFIK og SELVSTÆNDIG
  * tekst — uden generiske catch-all-fraser og uden label-præfiks (det højrestillede link angiver

@@ -7,7 +7,7 @@ import { isoToDanish } from '../../../types/branded';
  * besked-konstruktion — ÉN sandhedskilde for ordlyden.
  *
  * Oprindeligt udskilt af motor-helperen `eoRowCommon.ts` (som re-eksporterer herfra), så
- * domæne-validering ikke afhænger af det nedstrøms DEV-debug-lag (`domain/debug/`).
+ * domæne-validering ikke afhænger af det nedstrøms DEV-gennemsyns-/kontrollag (`domain/eoInspektion/`).
  */
 
 export const isNonEmptyString = (value: string | undefined): value is string => {

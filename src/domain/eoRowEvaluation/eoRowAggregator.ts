@@ -4,11 +4,11 @@
  * Samler alle status-rækker fra builder-registret, tilføjer navigation-metadata, anvender
  * relevans-filtrering (`isRowRelevantForEoValues`) + dependency-suppression, og grupperer efter
  * status (error/warning). Dens `error`-rækker DRIVER produktions-PDF-download-gaten i
- * `useEoBeregningViewModel` — dette er derfor trust-kritisk produktions-validering, ikke "bare debug".
+ * `useEoBeregningViewModel` — dette er derfor trust-kritisk produktions-validering, ikke "bare gennemsyn/kontrol".
  *
- * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, debug-frit), ikke i
- * `src/domain/debug/`. DEV-debug-siden er nedstrøms: den konsumerer de samme row-buildere til visning,
- * men kan aldrig flytte gaten via display-formattering (jf. `debugLayerIsolation.test.ts`).
+ * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, gennemsyns-/kontrol-frit), ikke i
+ * `src/domain/eoInspektion/`. DEV-gennemsyns-/kontrolsiden er nedstrøms: den konsumerer de samme row-buildere til visning,
+ * men kan aldrig flytte gaten via display-formattering (jf. `inspektionLayerIsolation.test.ts`).
  */
 
 import type { EoRowModel } from './eoRowTypes';
@@ -222,7 +222,7 @@ const isRowRelevantForEoValues = (
     // loenindkomst.* filtreres sammen med TAF, da lønindkomst
     // udelukkende anvendes til Tabt Arbejdsfortjeneste.
     // Hvis lønindkomst senere bliver et selvstændigt domæne,
-    // skal denne filtrering og EODebug UI genovervejes.
+    // skal denne filtrering og EOInspektion UI genovervejes.
     if (row.id.startsWith('taf.')) return false;
     if (row.id.startsWith('sfgg.')) return false;
     // Lønindkomst-sektionen er kun relevant når TAF beregnes.
@@ -232,7 +232,7 @@ const isRowRelevantForEoValues = (
     // NOTE:
     // EET-relaterede EO-rækker filtreres, når der ikke foreligger
     // midlertidig/endelig erhvervsevnetabsafgørelse.
-    // EET-debug må ikke producere fejl eller warnings,
+    // EET-gennemsyn/kontrol må ikke producere fejl eller warnings,
     // når afgørelsen eksplicit er "Nej".
     if (
       row.id === 'aes.midlertidigEETAfgoerelseDato' ||
@@ -259,8 +259,8 @@ const isRowRelevantForEoValues = (
 /**
  * Samler alle EO-rækker fra registry og tilføjer navigation
  *
- * Bruger samme builder-registry som EO-debug siden for rå EO-rækker.
- * EO-debug siden og Beregning-fanen har stadig forskellig post-processing.
+ * Bruger samme builder-registry som EO-gennemsyn-siden for rå EO-rækker.
+ * EO-gennemsyn-siden og Beregning-fanen har stadig forskellig post-processing.
  *
  * @param stamdataValues - Stamdata-værdier fra FormPersistence
  * @param stamdataErrors - Stamdata field-fejl pr. kilde
@@ -269,8 +269,8 @@ const isRowRelevantForEoValues = (
  * @param canonicalOutputOverride - Autoritative totaler fra snapshot (canonical)
  * @param pdfModelOverride - Præsentationsmodellen fra snapshot. SKAL gives, så de SFGG-rækker
  *   der afhænger af det beregnede resultat (fx `sfgg.dagssats.*`/`sfgg.referencesats.*`-fejl) også
- *   evalueres af download-gaten. Uden den var gaten blind for de samme fejl, DEV-debug-fanen viste
- *   som blokerende — en fail-open-asymmetri (jf. eoSnapshotToDebugView, der altid sætter pdfModel).
+ *   evalueres af download-gaten. Uden den var gaten blind for de samme fejl, DEV-gennemsyns-/kontrolfanen viste
+ *   som blokerende — en fail-open-asymmetri (jf. eoSnapshotToInspektionView, der altid sætter pdfModel).
  * @returns Grupperet efter status (errors, warnings)
  */
 export const collectAllEoRows = (

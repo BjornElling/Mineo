@@ -1,4 +1,4 @@
-import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
+import type { RegulationInspektionSection } from '../../../domain/eoInspektion/eoInspektionRegulationViewModel';
 
 // Kolonner der indeholder numeriske værdier og skal højrestilles med indrykning.
 // 'Grundløn' og 'Pension' er udeladt: resolveHeaderLabel mapper dem til 'Månedsløn'/'Timeløn'
@@ -6,7 +6,7 @@ import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegula
 const NUMERIC_COLUMNS = new Set(['Månedsløn', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag', 'Reguleringsprocent']);
 const INDEKS_COLUMNS = new Set(['Indeks', 'Lønudvikling']);
 
-export const getRegulationTableColumns = (table: NonNullable<RegulationDebugSection['tables']>[number]) => {
+export const getRegulationTableColumns = (table: NonNullable<RegulationInspektionSection['tables']>[number]) => {
   const isBeregnetTabel = table.columns.includes('Indeksberegning');
   const hasArbejdsdageColumn = table.columns.includes('Arbejdsdag') || table.columns.includes('Arbejdsdage');
   const hasMaanederColumn = table.columns.includes('Måned') || table.columns.includes('Måneder');

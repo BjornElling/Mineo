@@ -1,6 +1,6 @@
 import {
   buildIndkomstSectionStatuses,
-  buildOffentligeYdelserDebugRows,
+  buildOffentligeYdelserStatusRows,
   isLoenindkomstAnsaettelsesforholdEffectivelyEmpty,
 } from '../../../domain/eoRowEvaluation/eoRowIndkomstModel';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -175,7 +175,7 @@ describe('isLoenindkomstAnsaettelsesforholdEffectivelyEmpty', () => {
   });
 });
 
-describe('buildOffentligeYdelserDebugRows', () => {
+describe('buildOffentligeYdelserStatusRows', () => {
   it('viser "Ok" ved korrekt udfyldt offentlig ydelse i stedet for beregnet sum', () => {
     const rows = [
       {
@@ -187,7 +187,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       },
     ];
 
-    const result = buildOffentligeYdelserDebugRows(rows);
+    const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('ok');
     expect(result[0]?.message).toBe('Ok');
@@ -204,7 +204,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       },
     ];
 
-    const result = buildOffentligeYdelserDebugRows(rows);
+    const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('error');
     expect(result[0]?.message).toBe('Dato er ikke angivet');
@@ -222,7 +222,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       },
     ];
 
-    const result = buildOffentligeYdelserDebugRows(rows);
+    const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('error');
     expect(result[0]?.label).toBe('Uspecificeret');
@@ -241,7 +241,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       },
     ];
 
-    const result = buildOffentligeYdelserDebugRows(rows);
+    const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('error');
     expect(result[0]?.message).toBe('Ugyldig værdi i Ydelse');
@@ -260,7 +260,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       },
     ];
 
-    const result = buildOffentligeYdelserDebugRows(rows);
+    const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('error');
     expect(result[0]?.message).toBe('Ugyldig værdi i Ydelse (2)');
@@ -277,7 +277,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       },
     ];
 
-    const result = buildOffentligeYdelserDebugRows(rows);
+    const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('warning');
     expect(result[0]?.message).toBe('Beløb er ikke angivet');
@@ -295,7 +295,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       },
     ];
 
-    const result = buildOffentligeYdelserDebugRows(rows);
+    const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('ok');
     expect(result[0]?.message).toBe('Ok');

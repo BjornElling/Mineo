@@ -25,7 +25,7 @@ describe('offentligeYdelserTableColumns', () => {
     ]);
   });
 
-  it('giver de nye labels for ydelse og det andet ydelsesfelt i fejl- og debugkontekster', () => {
+  it('giver de nye labels for ydelse og det andet ydelsesfelt i fejl- og inspektionkontekster', () => {
     expect(resolveOffentligeYdelserColumnLabel('ydelse')).toBe('Ydelse');
     expect(resolveOffentligeYdelserColumnLabel('tillaeg')).toBe('Ydelse (2)');
   });

@@ -23,8 +23,8 @@ import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
 import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
-import EODebug from './erstatningsopgoerelse/EODebug';
-import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
+import EOInspektion from './erstatningsopgoerelse/EOInspektion';
+import EOKontrolTabel from './erstatningsopgoerelse/EOKontrolTabel';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
@@ -34,8 +34,8 @@ const TAB_KEYS = {
   LOENINDKOMST: 'loenindkomst',
   OFFENTLIGE_YDELSER: 'offentlige_ydelser',
   BEREGNING: 'beregning',
-  DEBUG: 'debug',
-  DEBUG_TABEL: 'debug_tabel',
+  INSPEKTION: 'inspektion',
+  KONTROLTABEL: 'kontroltabel',
 } as const;
 
 type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
@@ -47,7 +47,7 @@ const EO_SNAPSHOT_VERSION = 'eo-snapshot-v1';
  */
 const Erstatningsopgoerelse = React.memo(() => {
   const { settings } = useAppSettings();
-  const showDebugTab = settings.showEODebugMenu;
+  const showInspektionTab = settings.showEOInspektionMenu;
 
   const allowedTabs = React.useMemo(() => {
     const tabs: TabKey[] = [
@@ -56,9 +56,9 @@ const Erstatningsopgoerelse = React.memo(() => {
       TAB_KEYS.OFFENTLIGE_YDELSER,
       TAB_KEYS.BEREGNING,
     ];
-    if (showDebugTab) tabs.push(TAB_KEYS.DEBUG, TAB_KEYS.DEBUG_TABEL);
+    if (showInspektionTab) tabs.push(TAB_KEYS.INSPEKTION, TAB_KEYS.KONTROLTABEL);
     return tabs;
-  }, [showDebugTab]);
+  }, [showInspektionTab]);
 
   const defaultTab = TAB_KEYS.EO_OPLYSNINGER;
   const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
@@ -95,7 +95,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
 
   // Bevidst opdeling: useSectionRevisionSelector/useFieldErrorRevisionSelector (hooks) abonnerer på
-  // store-ændringer og udløser re-renders når revisioner ændrer sig. buildDebugRevision og buildDebugSnapshot
+  // store-ændringer og udløser re-renders når revisioner ændrer sig. buildInspektionRevision og buildInspektionSnapshot
   // bruger snapshot-funktioner (getState()-læsninger) i stedet for hooks — det giver konsistent state på
   // call-tidspunktet uden at skabe hook-afhængigheder. Slå dem ikke sammen til hook-læsninger: hooks inde i
   // en useCallback ville være ulovligt, og at læse hook-værdier via closure ville give forældede snapshots.
@@ -105,7 +105,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   // brugeren ændrer noget på EET-siden, uanset hvilken tilstand togglen er i. Den lille
   // ekstra rebuild ved EET-ændringer mens togglen er 'Nej' er bevidst valgt fremfor en
   // toggle-betinget revisions-sammensætning, som ville være vanskeligere at ræsonnere om.
-  const buildDebugRevision = React.useCallback((): string => {
+  const buildInspektionRevision = React.useCallback((): string => {
     return [
       EO_SNAPSHOT_VERSION,
       getSectionRevisionSnapshot('stamdata'),
@@ -117,11 +117,11 @@ const Erstatningsopgoerelse = React.memo(() => {
     ].join('-');
   }, []);
 
-  const buildDebugSnapshot = React.useCallback((): EoSnapshot => {
+  const buildInspektionSnapshot = React.useCallback((): EoSnapshot => {
     const persistedStamdata = getPersistedSectionSnapshot('stamdata');
     const persistedEO = getPersistedSectionSnapshot('erstatningsopgoerelse');
 
-    const revision = buildDebugRevision();
+    const revision = buildInspektionRevision();
 
     return computeEoSnapshot({
       revision,
@@ -131,12 +131,12 @@ const Erstatningsopgoerelse = React.memo(() => {
       eoErrors: getFieldErrorsBySourceSnapshot('erstatningsopgoerelse'),
       midlertidigtEetInsertSource,
     });
-  }, [buildDebugRevision, initialValues, midlertidigtEetInsertSource]);
+  }, [buildInspektionRevision, initialValues, midlertidigtEetInsertSource]);
 
-  const buildDebugSnapshotRef = React.useRef(buildDebugSnapshot);
+  const buildInspektionSnapshotRef = React.useRef(buildInspektionSnapshot);
   React.useEffect(() => {
-    buildDebugSnapshotRef.current = buildDebugSnapshot;
-  }, [buildDebugSnapshot]);
+    buildInspektionSnapshotRef.current = buildInspektionSnapshot;
+  }, [buildInspektionSnapshot]);
 
   const persistedStamdata = usePersistedSectionSelector('stamdata');
   const stamdataValuesForBeregningTab = React.useMemo<StamdataValues>(() => {
@@ -151,7 +151,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   const faellesAarsloenRevision = useSectionRevisionSelector('faellesAarsloen');
   const stamdataErrorRevision = useFieldErrorRevisionSelector('stamdata');
   const eoErrorRevision = useFieldErrorRevisionSelector('erstatningsopgoerelse');
-  const currentDebugRevision = React.useMemo(
+  const currentInspektionRevision = React.useMemo(
     () => [
       EO_SNAPSHOT_VERSION,
       stamdataRevision,
@@ -164,13 +164,13 @@ const Erstatningsopgoerelse = React.memo(() => {
     [eoErrorRevision, eoRevision, erhvervsevnetabRevision, faellesAarsloenRevision, stamdataErrorRevision, stamdataRevision]
   );
   const isSnapshotTabActive =
-    activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.DEBUG || activeTab === TAB_KEYS.DEBUG_TABEL;
+    activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.INSPEKTION || activeTab === TAB_KEYS.KONTROLTABEL;
 
   React.useEffect(() => {
     if (!isSnapshotTabActive) return;
-    if (eoSnapshot?.revision === currentDebugRevision) return;
-    setEoSnapshot(buildDebugSnapshotRef.current());
-  }, [currentDebugRevision, eoSnapshot?.revision, isSnapshotTabActive]);
+    if (eoSnapshot?.revision === currentInspektionRevision) return;
+    setEoSnapshot(buildInspektionSnapshotRef.current());
+  }, [currentInspektionRevision, eoSnapshot?.revision, isSnapshotTabActive]);
 
   const handleOffentligeYdelserRowsChange = React.useCallback(
     (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>, origin?: { fieldPath?: string }) => {
@@ -209,7 +209,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [scrollToSectionWithRetry, setActiveTab]);
 
   React.useEffect(() => {
-    // Hvis debug-fanen slås fra mens den aktuelt er aktiv, falder vi deterministisk tilbage.
+    // Hvis gennemsyns-/kontrolfanerne slås fra mens en af dem aktuelt er aktiv, falder vi deterministisk tilbage.
     if (!isAllowedTab(activeTab)) {
       setActiveTab(defaultTab);
     }
@@ -268,14 +268,14 @@ const Erstatningsopgoerelse = React.memo(() => {
         </Box>
       </Box>
 
-      {/* Fane-indhold med debug-fane i højre side */}
+      {/* Fane-indhold med gennemsyns-/kontrolfaner i højre side */}
       <Box sx={{ position: 'relative' }}>
-        {/* Debug-fane (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
-        {showDebugTab && (
+        {/* Gennemsyns-/kontrolfaner (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
+        {showInspektionTab && (
           <>
             <Box
-              onClick={() => setActiveTab(TAB_KEYS.DEBUG)}
-              className={activeTab === TAB_KEYS.DEBUG ? 'tab-item side-tab active' : 'tab-item side-tab'}
+              onClick={() => setActiveTab(TAB_KEYS.INSPEKTION)}
+              className={activeTab === TAB_KEYS.INSPEKTION ? 'tab-item side-tab active' : 'tab-item side-tab'}
               sx={{
                 position: 'absolute',
                 left: '1200px',
@@ -296,11 +296,11 @@ const Erstatningsopgoerelse = React.memo(() => {
                 letterSpacing: '0.02857em',
               }}
             >
-              EO debug
+              EO-gennemsyn
             </Box>
             <Box
-              onClick={() => setActiveTab(TAB_KEYS.DEBUG_TABEL)}
-              className={activeTab === TAB_KEYS.DEBUG_TABEL ? 'tab-item side-tab active' : 'tab-item side-tab'}
+              onClick={() => setActiveTab(TAB_KEYS.KONTROLTABEL)}
+              className={activeTab === TAB_KEYS.KONTROLTABEL ? 'tab-item side-tab active' : 'tab-item side-tab'}
               sx={{
                 position: 'absolute',
                 left: '1200px',
@@ -321,7 +321,7 @@ const Erstatningsopgoerelse = React.memo(() => {
                 letterSpacing: '0.02857em',
               }}
             >
-              Debug tabel
+              Kontroltabel
             </Box>
           </>
         )}
@@ -392,24 +392,24 @@ const Erstatningsopgoerelse = React.memo(() => {
             />
           </Box>
         )}
-        {showDebugTab && (visitedTabs[TAB_KEYS.DEBUG] || activeTab === TAB_KEYS.DEBUG) ? (
+        {showInspektionTab && (visitedTabs[TAB_KEYS.INSPEKTION] || activeTab === TAB_KEYS.INSPEKTION) ? (
           <Box
             role="tabpanel"
-            hidden={activeTab !== TAB_KEYS.DEBUG}
-            sx={{ display: activeTab === TAB_KEYS.DEBUG ? 'block' : 'none' }}
+            hidden={activeTab !== TAB_KEYS.INSPEKTION}
+            sx={{ display: activeTab === TAB_KEYS.INSPEKTION ? 'block' : 'none' }}
           >
-            <EODebug eoSnapshot={activeTab === TAB_KEYS.DEBUG ? eoSnapshot : null} />
+            <EOInspektion eoSnapshot={activeTab === TAB_KEYS.INSPEKTION ? eoSnapshot : null} />
           </Box>
         ) : null}
-        {showDebugTab && (visitedTabs[TAB_KEYS.DEBUG_TABEL] || activeTab === TAB_KEYS.DEBUG_TABEL) ? (
+        {showInspektionTab && (visitedTabs[TAB_KEYS.KONTROLTABEL] || activeTab === TAB_KEYS.KONTROLTABEL) ? (
           <Box
             role="tabpanel"
-            hidden={activeTab !== TAB_KEYS.DEBUG_TABEL}
-            sx={{ display: activeTab === TAB_KEYS.DEBUG_TABEL ? 'block' : 'none' }}
+            hidden={activeTab !== TAB_KEYS.KONTROLTABEL}
+            sx={{ display: activeTab === TAB_KEYS.KONTROLTABEL ? 'block' : 'none' }}
           >
-            <EODebugTabel
-              isActive={activeTab === TAB_KEYS.DEBUG_TABEL}
-              debugSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoSnapshot?.debugSnapshot ?? null : null}
+            <EOKontrolTabel
+              isActive={activeTab === TAB_KEYS.KONTROLTABEL}
+              inspektionSnapshot={activeTab === TAB_KEYS.KONTROLTABEL ? eoSnapshot?.inspektionSnapshot ?? null : null}
             />
           </Box>
         ) : null}

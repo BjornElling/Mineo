@@ -273,7 +273,7 @@ resolveMidlertidigEetDatoHvisAktiv(values): ISODateString | undefined
 //   når midlertidigtEetAfgorelse = 'Ja' OG skadedato < 2011-06-16
 //   Checker IKKE verserendeKlageEet — det gøres af kalderne.
 
-// Kombineret (bruges af debug og UI):
+// Kombineret (bruges af gennemsyn/kontrol og UI):
 resolveTafConstraintBounds(values): TafConstraintBounds
 // → strengeste af alle grænser
 ```

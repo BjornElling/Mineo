@@ -142,7 +142,7 @@ Følgende er ikke tilladt:
 - parallelle arbejdsdagsdefinitioner for samme domæne
 - lokale SH-regler udenom den centrale motor
 - særskilt fradrag for ferie/SH i UI-komponenter eller PDF-renderere
-- forskellig dagtælling mellem beregning, debug og PDF for samme semantik
+- forskellig dagtælling mellem beregning, gennemsyn/kontrol og PDF for samme semantik
 
 ---
 

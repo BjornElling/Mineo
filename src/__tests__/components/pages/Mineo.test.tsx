@@ -225,7 +225,7 @@ describe('Mineo - License Modal Integration', () => {
         themeMode: DEFAULT_APP_SETTINGS.themeMode,
         defaultStartsideErStamdata: true,
         showContentBoxReportButton: DEFAULT_APP_SETTINGS.showContentBoxReportButton,
-        showEODebugMenu: DEFAULT_APP_SETTINGS.showEODebugMenu,
+        showEOInspektionMenu: DEFAULT_APP_SETTINGS.showEOInspektionMenu,
         fontStyleColorDebug: DEFAULT_APP_SETTINGS.fontStyleColorDebug,
       });
     });

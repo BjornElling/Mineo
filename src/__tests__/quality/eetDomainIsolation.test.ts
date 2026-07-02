@@ -16,9 +16,9 @@ const readEoOplysningerSectionSources = (): string => {
   }
   return files.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 };
-const EO_DEBUG_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EODebug.tsx');
-const EO_DEBUG_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/debug/eoDebugPageViewModel.ts');
-const EO_DEBUG_SNAPSHOT_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView.ts');
+const EO_DEBUG_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EOInspektion.tsx');
+const EO_DEBUG_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/eoInspektion/eoInspektionPageViewModel.ts');
+const EO_DEBUG_SNAPSHOT_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts');
 const EO_PDF_MODEL_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoPresentationModel.ts');
 const EO_PDF_BUILDERS_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoPresentationSectionBuilders.ts');
 const ERHVERVSEVNETAB_PAGE_PATH = path.resolve(SRC_ROOT, 'components/pages/Erhvervsevnetab.tsx');
@@ -81,8 +81,8 @@ describe('eetDomainIsolation', () => {
     expect(source).toContain('checked={getChecked(values.verserendeKlageEet)}');
   });
 
-  it('læser EET-oplysninger i debug/PDF fra EO-values (ikke fra erhvervsevnetab-side)', () => {
-    const debugSource = [
+  it('læser EET-oplysninger i gennemsyn/PDF fra EO-values (ikke fra erhvervsevnetab-side)', () => {
+    const inspektionSource = [
       fs.readFileSync(EO_DEBUG_PATH, 'utf8'),
       fs.readFileSync(EO_DEBUG_VIEW_PATH, 'utf8'),
       fs.readFileSync(EO_DEBUG_SNAPSHOT_VIEW_PATH, 'utf8'),
@@ -91,8 +91,8 @@ describe('eetDomainIsolation', () => {
     const pdfBuildersSource = fs.readFileSync(EO_PDF_BUILDERS_PATH, 'utf8');
     const pdfSource = `${pdfModelSource}\n${pdfBuildersSource}`;
 
-    expect(debugSource).toContain('erstatningsopgoerelseValues.midlertidigtEETAfgorelse');
-    expect(debugSource).toContain('erstatningsopgoerelseValues.endeligtEETAfgorelse');
+    expect(inspektionSource).toContain('erstatningsopgoerelseValues.midlertidigtEETAfgorelse');
+    expect(inspektionSource).toContain('erstatningsopgoerelseValues.endeligtEETAfgorelse');
     expect(pdfSource).toContain('values.midlertidigtEETAfgorelse');
     expect(pdfSource).toContain('values.endeligtEETAfgorelse');
   });

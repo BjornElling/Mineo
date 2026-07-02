@@ -269,10 +269,10 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
   it('invariant: hver EO-række-fejl optræder i en sag hvor projektionen er ok (= reelt unikt gate-bidrag)', () => {
     // Sager hvis NAVN markerer en EO-række-fejl skal have projektion=ok (ellers ville
     // snapshottet allerede blokere, og fejlen var ikke et unikt række-evalueringsbidrag).
-    const debugOnlyCaseNames = CASES.map((c) => c.name).filter(
+    const inspektionOnlyCaseNames = CASES.map((c) => c.name).filter(
       (name) => name !== 'svieSmerte:gyldig' && name !== 'taf:gyldig'
     );
-    for (const name of debugOnlyCaseNames) {
+    for (const name of inspektionOnlyCaseNames) {
       const c = CASES.find((entry) => entry.name === name)!;
       const { projectionKind, eoRowErrors } = probe(c.build());
       expect(projectionKind, `${name}: projektion skal være ok`).toBe('ok');

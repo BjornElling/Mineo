@@ -1,5 +1,5 @@
 /**
- * Typer for EO-række-evaluering og den nedstrøms EODebug-visning.
+ * Typer for EO-række-evaluering og den nedstrøms EOInspektion-visning.
  */
 
 import type { ISODateString } from '../../types/branded';
@@ -14,7 +14,7 @@ import type { ISODateString } from '../../types/branded';
  * VIGTIGT: Denne type er canonical for hele Mineo.
  * Andre lag må IKKE definere egen status-type.
  *
- * @see eoDebugIntegrity.ts - Validering der producerer IntegrityIssue[]
+ * @see eoInspektionIntegrity.ts - Validering der producerer IntegrityIssue[]
  * @see eoRowCommon.ts - Helper-funktioner der mapper issues til status
  */
 export type EoRowStatus = 'ok' | 'warning' | 'error';
@@ -50,14 +50,14 @@ export type CellValue<T extends PrimitiveCell> = {
 };
 
 /**
- * Debug-celle kan være enten structured (med raw+display) eller ren tekst
+ * Række-celle kan være enten structured (med raw+display) eller ren tekst
  */
-export type DebugCellValue =
+export type RowCellValue =
   | CellValue<PrimitiveCell>
   | string;
 
 /**
- * Integrity-problem fundet i debug-model
+ * Integrity-problem fundet i kontrol-model
  */
 export type IntegrityIssue = {
   readonly severity: IntegritySeverity;
@@ -92,7 +92,7 @@ export type OverlapResult = {
 export type SvieSmerte = 'Ingen' | 'Delvis' | 'Fuld';
 
 /**
- * EO row model - bruges af både download-gaten og EODebug.
+ * EO row model - bruges af både download-gaten og EOInspektion.
  *
  * VIGTIGT: id skal være semantisk stabil (tied to field identity, ikke label eller array order).
  * Dette sikrer React key stability og gør række-output auditérbart.
@@ -142,7 +142,7 @@ export type EoRowModel = {
 };
 
 /**
- * Debug-dag – én dag i debug-tidslinjen
+ * Række-dag – én dag i række-tidslinjen
  *
  * FASE 2 SCOPE:
  * - Tidslinje-basis (dato, ugedag, weekend)
@@ -155,7 +155,7 @@ export type EoRowModel = {
  * - Løn-komponenter (kommer i senere fase)
  * - Offentlige ydelser (kommer i senere fase)
  */
-export type DebugDay = {
+export type RowDay = {
   readonly iso: ISODateString;
   readonly weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=søndag, 1=mandag, ..., 6=lørdag
   readonly isWeekend: boolean;
