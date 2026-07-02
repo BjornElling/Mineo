@@ -3,9 +3,15 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
+import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { toISODateString } from '../../../types/branded';
+import {
+  getEffektiveSatserForDato,
+  getEffektiveSatserForPeriode,
+  type OverenskomstPeriodeSats,
+} from '../../../data/overenskomstRates';
+import { isoToDanish, toISODateString } from '../../../types/branded';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -591,9 +597,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     expect(deltaForSegment(values, '2023-01-01')).toBe(9.09);
   });
 
-  it('neutraliserer skjulte top-satsfelter i Beløb-tilstand for overenskomst-regulering', () => {
-    // I Beløb-tilstand er tillæggene allerede indtastet som faktiske beløb i løntabellen. Derfor
-    // må overenskomstindekset ikke lægge de skjulte top-satsfelter oven i reguleringen.
+  it('inkluderer overenskomstens tillæg i Beløb-tilstand for overenskomst-regulering', () => {
     const buildOverenskomst = (tillaegAngivesSom: 'procent' | 'beloeb'): ErstatningsopgoerelseValues => {
       const values = buildManualBeregningsperiode(tillaegAngivesSom);
       const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -603,8 +607,6 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
         overenskomstId: 'bygge-anlaeg',
         loenPaaHelligdage: 'Almindelig løn',
         loenudviklingBeregningsgrundlag: 'Overenskomst',
-        // Identiske skjulte satsfelter i Beløb-tilstand må ikke gøre reguleringen identisk med
-        // Procent-tilstand.
         feriePct: 12.5,
         fritvalgPct: undefined,
         shSoPct: undefined,
@@ -629,12 +631,189 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     const beloebSegments = segmentsFor(buildOverenskomst('beloeb'));
     const procentSegments = segmentsFor(buildOverenskomst('procent'));
 
-    expect(beloebSegments).not.toEqual(procentSegments);
-    // Mindst ét Beløb-segment skal stadig regulere efter overenskomstens grundløn, så testen ikke
-    // kun beviser at alle tillæg er nulstillet.
+    expect(beloebSegments).toEqual(procentSegments);
     expect(beloebSegments.some(([, deltaPct]) => deltaPct !== 0)).toBe(true);
-    expect(procentSegments.some(([fra, deltaPct]) => (
-      beloebSegments.find(([beloebFra]) => beloebFra === fra)?.[1] !== deltaPct
-    ))).toBe(true);
   });
+
+  it.each([
+    ['Beregningsperiode', 'beloeb'],
+    ['Beregningsperiode', 'procent'],
+    ['Angivet månedsløn', 'beloeb'],
+    ['Angivet månedsløn', 'procent'],
+  ] as const)(
+    'giver samme regulerede TAF-beløb som Bygge-/anlægsoverenskomsten når manuel regulering udfyldes med samme satser ved %s i %s-tilstand',
+    (beregnesUdFra, tillaegAngivesSom) => {
+      const stableFeriePct = 12.5;
+      const overenskomstValues = buildByggeAnlaegParityValues(
+        tillaegAngivesSom,
+        'Overenskomst',
+        stableFeriePct,
+        beregnesUdFra
+      );
+      const manualValues = buildByggeAnlaegParityValues(
+        tillaegAngivesSom,
+        'Manuelt angivet',
+        stableFeriePct,
+        beregnesUdFra
+      );
+
+      const overenskomstTaf = buildParityTafNettoBeregning(overenskomstValues);
+      const manualTaf = buildParityTafNettoBeregning(manualValues);
+
+      expect(manualTaf.tabtArbejdsfortjenesteOre).toBe(overenskomstTaf.tabtArbejdsfortjenesteOre);
+      expect(manualTaf.loenudvikling?.loenudviklingTotal).toEqual(overenskomstTaf.loenudvikling?.loenudviklingTotal);
+    }
+  );
 });
+
+const BYGGE_ANLAEG_ID = 'bygge-anlaeg' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'];
+
+const danishToIso = (dato: string): ReturnType<typeof iso> => {
+  const [day, month, year] = dato.split('-');
+  return iso(`${year}-${month}-${day}`);
+};
+
+const pctPointFromDecimal = (value: number | null): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return value * 100;
+};
+
+const buildManualRowFromByggeAnlaegSats = (
+  id: string,
+  dato: ReturnType<typeof iso>,
+  sats: OverenskomstPeriodeSats,
+  stableFeriePct: number
+): NonNullable<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]['loenudviklingManuelTableData']>[number] => ({
+  id,
+  dato,
+  grundloen: asAmount(sats.grundloen ?? 0),
+  feriepenge: stableFeriePct,
+  shSoSats: pctPointFromDecimal(sats.shSoSats),
+  fritvalg: pctPointFromDecimal(sats.fritvalg),
+  agPension: pctPointFromDecimal(sats.agPension),
+});
+
+const buildByggeAnlaegManualRows = (
+  baseIso: ReturnType<typeof iso>,
+  tafFra: ReturnType<typeof iso>,
+  tafTil: ReturnType<typeof iso>,
+  stableFeriePct: number
+): NonNullable<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]['loenudviklingManuelTableData']> => {
+  const baseDa = isoToDanish(baseIso);
+  const tafFraDa = isoToDanish(tafFra);
+  const tafTilDa = isoToDanish(tafTil);
+  if (!baseDa || !tafFraDa || !tafTilDa) throw new Error('Testopsætning har ugyldige datoer');
+
+  const baseSats = getEffektiveSatserForDato({
+    overenskomstId: BYGGE_ANLAEG_ID,
+    dato: baseDa,
+    applyAlmindeligLoenPaaShDageRegel: true,
+  });
+  if (!baseSats) throw new Error('Testopsætning mangler basis-sats for Bygge-/anlægsoverenskomsten');
+
+  const periodSatser = getEffektiveSatserForPeriode({
+    overenskomstId: BYGGE_ANLAEG_ID,
+    fraDato: tafFraDa,
+    tilDato: tafTilDa,
+    applyAlmindeligLoenPaaShDageRegel: true,
+  })
+    .slice()
+    .sort((left, right) => danishToIso(left.fraDato).localeCompare(danishToIso(right.fraDato)))
+    .filter((sats) => danishToIso(sats.fraDato) > baseIso);
+
+  return [
+    buildManualRowFromByggeAnlaegSats('manual-base', baseIso, baseSats, stableFeriePct),
+    ...periodSatser.map((sats, index) =>
+      buildManualRowFromByggeAnlaegSats(`manual-${index}`, danishToIso(sats.fraDato), sats, stableFeriePct)
+    ),
+  ];
+};
+
+const buildByggeAnlaegParityValues = (
+  tillaegAngivesSom: 'procent' | 'beloeb',
+  basis: 'Overenskomst' | 'Manuelt angivet',
+  stableFeriePct: number,
+  beregnesUdFra: 'Beregningsperiode' | 'Angivet månedsløn'
+): ErstatningsopgoerelseValues => {
+  const values = createErstatningsopgoerelseInitialValues();
+  const baseIso = iso('2022-12-31');
+  const tafFra = iso('2023-01-01');
+  const tafTil = iso('2024-09-30');
+  const indkomstDato = iso('2022-01-01');
+  const indkomstSatsDato = isoToDanish(indkomstDato);
+  if (!indkomstSatsDato) throw new Error('Testopsætning har ugyldig indkomstdato');
+  const indkomstSats = getEffektiveSatserForDato({
+    overenskomstId: BYGGE_ANLAEG_ID,
+    dato: indkomstSatsDato,
+    applyAlmindeligLoenPaaShDageRegel: true,
+  });
+  if (!indkomstSats) throw new Error('Testopsætning mangler indkomstsats for Bygge-/anlægsoverenskomsten');
+  const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
+  values.beregnesUdFra = beregnesUdFra;
+  if (beregnesUdFra === 'Beregningsperiode') {
+    values.tafBeregningsperiodeFra = iso('2022-01-01');
+    values.tafBeregningsperiodeTil = baseIso;
+  } else {
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenBaseretPaa = 'Testgrundlag';
+    values.angivetMaanedsloenOpreguleresFraDato = baseIso;
+  }
+  values.tafPerioder = [{ id: 'taf-bygge-anlaeg-paritet', fra: tafFra, til: tafTil, loseFeriedage: 0 }];
+  const manualRows = basis === 'Manuelt angivet'
+    ? buildByggeAnlaegManualRows(baseIso, tafFra, tafTil, stableFeriePct)
+    : [];
+
+  if (beregnesUdFra === 'Angivet månedsløn') {
+    values.loenindkomstAnsaettelsesforhold = [];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      overenskomstId: 'bygge-anlaeg',
+      feriePct: stableFeriePct,
+      loenPaaHelligdage: 'Almindelig løn',
+      loenudviklingBeregningsgrundlag: basis,
+      loenudviklingManuelTableData: manualRows,
+    };
+    return values;
+  }
+
+  values.loenindkomstAnsaettelsesforhold = [{
+    ...baseAf,
+    id: `af-${basis}-${tillaegAngivesSom}`,
+    navnPaaArbejdssted: 'Bygge-/anlæg',
+    tillaegAngivesSom,
+    harOverenskomst: true,
+    overenskomstId: 'bygge-anlaeg',
+    feriePct: stableFeriePct,
+    fritvalgPct: tillaegAngivesSom === 'procent' ? pctPointFromDecimal(indkomstSats.fritvalg) : undefined,
+    shSoPct: tillaegAngivesSom === 'procent' ? pctPointFromDecimal(indkomstSats.shSoSats) : undefined,
+    pensionPct: tillaegAngivesSom === 'procent' ? pctPointFromDecimal(indkomstSats.agPension) : undefined,
+    loenPaaHelligdage: 'Almindelig løn',
+    loenudviklingBeregningsgrundlag: basis,
+    loenudviklingManuelTableData: manualRows,
+    indtaegtsoplysningerTableData: [{
+      id: 'indkomst-2022',
+      col0_maaned: '1',
+      col1_maaned: '2022',
+      col0_uge: '',
+      col1_uge: '',
+      col0_dag: undefined,
+      col1_dag: undefined,
+      col2: asAmount(30000),
+      col3: undefined,
+      col4: undefined,
+      col5: undefined,
+      fpFvShSoBeloeb: tillaegAngivesSom === 'beloeb' ? asAmount(4000) : undefined,
+      pensionBeloeb: tillaegAngivesSom === 'beloeb' ? asAmount(2000) : undefined,
+    }],
+  }];
+  return values;
+};
+
+const buildParityTafNettoBeregning = (values: ErstatningsopgoerelseValues) => {
+  const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') };
+  return computeTafNettoBeregning(
+    values,
+    stamdata,
+    { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-09-30') }] }
+  );
+};

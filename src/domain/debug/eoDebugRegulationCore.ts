@@ -502,14 +502,13 @@ const buildEntryForDate = (args: {
   feriePct: number;
   loenPaaHelligdage: LoenPaaHelligdage | undefined;
   referenceValue: number;
-  neutraliserTillaeg: boolean;
 }): IndeksEntry | null => {
   if (args.sats.grundloen === null) return null;
-  const shSoPct = args.neutraliserTillaeg ? 0 : args.sats.shSoSats ?? 0;
-  const fritvalgPct = args.neutraliserTillaeg ? 0 : args.sats.fritvalg ?? 0;
-  const pensionPct = args.neutraliserTillaeg ? 0 : args.sats.agPension ?? 0;
-  const feriePct = args.neutraliserTillaeg ? 0 : args.feriePct;
-  const storeBededagPct = args.neutraliserTillaeg ? 0 : getStoreBededagPct(args.iso, args.loenPaaHelligdage);
+  const shSoPct = args.sats.shSoSats ?? 0;
+  const fritvalgPct = args.sats.fritvalg ?? 0;
+  const pensionPct = args.sats.agPension ?? 0;
+  const feriePct = args.feriePct;
+  const storeBededagPct = getStoreBededagPct(args.iso, args.loenPaaHelligdage);
 
   const packageValue = computePackageValueDecimal({
     grundloen: args.sats.grundloen,
@@ -696,8 +695,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const timelineStartIso = minISO(referenceIso, eoRange.fra);
     const shDageSet = buildSHDageSet(timelineStartIso, eoRange.til);
     const ferieDageSet = buildFerieDageSet(input.eoValues, shDageSet, timelineStartIso, eoRange.til);
-    const neutraliserOverenskomstTillaeg = af.tillaegAngivesSom === 'beloeb';
-
     const offentligSelection = grundlag === 'Overenskomst' ? resolveOffentligLoenSelection(af) : null;
     if (grundlag === 'Overenskomst' && offentligSelection) {
       const overenskomstId = af.overenskomstId;
@@ -742,11 +739,11 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           : referenceResult.timeLoen;
       const referenceValue = computePackageValueDecimal({
         grundloen: referenceBase + offentligLoenEkstraGrundloen,
-        feriePct: neutraliserOverenskomstTillaeg ? 0 : feriePct,
-        shSoPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.shSoSats, af.shSoPct),
-        fritvalgPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.fritvalg, af.fritvalgPct),
-        storeBededagPct: neutraliserOverenskomstTillaeg ? 0 : getStoreBededagPct(referenceIso, loenPaaHelligdage),
-        pensionPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.agPension, af.pensionPct),
+        feriePct,
+        shSoPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.shSoSats, af.shSoPct),
+        fritvalgPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.fritvalg, af.fritvalgPct),
+        storeBededagPct: getStoreBededagPct(referenceIso, loenPaaHelligdage),
+        pensionPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.agPension, af.pensionPct),
       });
       if (!Number.isFinite(referenceValue) || referenceValue <= 0) continue;
 
@@ -784,7 +781,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         }
       }
       if (
-        !neutraliserOverenskomstTillaeg &&
         applyAlmindeligLoenPaaShDageRegel &&
         timelineStartIso < STORE_BEDEDAG_START &&
         eoRange.til >= STORE_BEDEDAG_START
@@ -817,11 +813,11 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           (offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen) + offentligLoenEkstraGrundloen;
         const packageValue = computePackageValueDecimal({
           grundloen,
-          feriePct: neutraliserOverenskomstTillaeg ? 0 : feriePct,
-          shSoPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
-          fritvalgPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
-          storeBededagPct: neutraliserOverenskomstTillaeg ? 0 : getStoreBededagPct(iso, loenPaaHelligdage),
-          pensionPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
+          feriePct,
+          shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
+          fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
+          storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
+          pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
         });
         const index = referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0;
 
@@ -846,11 +842,11 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         entries.push({
           effectiveFrom: iso,
           grundloen,
-          feriePct: neutraliserOverenskomstTillaeg ? 0 : feriePct,
-          shSoPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
-          fritvalgPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
-          storeBededagPct: neutraliserOverenskomstTillaeg ? 0 : getStoreBededagPct(iso, loenPaaHelligdage),
-          pensionPct: neutraliserOverenskomstTillaeg ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
+          feriePct,
+          shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
+          fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
+          storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
+          pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
           packageValue,
           index,
           arbejdsdage,
@@ -909,7 +905,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         feriePct,
         loenPaaHelligdage,
         referenceValue: 1,
-        neutraliserTillaeg: neutraliserOverenskomstTillaeg,
       });
       if (!referenceEntry) continue;
       const referenceValue = referenceEntry.packageValue;
@@ -937,7 +932,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       dates.add(referenceIso);
 
       if (eoRange.fra <= STORE_BEDEDAG_START && eoRange.til >= STORE_BEDEDAG_START) {
-        if (!neutraliserOverenskomstTillaeg && loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG) {
+        if (loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG) {
           dates.add(STORE_BEDEDAG_START as ISODateString);
         }
       }
@@ -962,7 +957,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           feriePct,
           loenPaaHelligdage,
           referenceValue,
-          neutraliserTillaeg: neutraliserOverenskomstTillaeg,
         });
         if (!entry) continue;
         const tidsenhed = getTidsenhedsvaerdier(i, sortedDates, eoRange.til, shDageSet, ferieDageSet);

@@ -135,8 +135,9 @@ const SygeferiegodtgoerelseSection = ({
             }}
           >
             <MenuItem value="Overenskomst">Overenskomst</MenuItem>
-            <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
             <MenuItem value="Ferieloven">Ferieloven</MenuItem>
+            <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
+            <StyledDropdown.Divider />
             <MenuItem value="Ingen">Ingen</MenuItem>
           </StyledDropdown>
         </Box>

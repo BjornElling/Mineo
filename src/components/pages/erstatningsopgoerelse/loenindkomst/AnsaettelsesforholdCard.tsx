@@ -649,8 +649,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <MenuItem value="Statistik">Statistik</MenuItem>
             <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
             <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
+            <StyledDropdown.Divider />
             <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
             <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
+            <StyledDropdown.Divider />
             <MenuItem value="Ingen">Ingen</MenuItem>
           </StyledDropdown>
         </Box>

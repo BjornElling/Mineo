@@ -256,7 +256,7 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows[0]).toEqual(['01-01-2020', '-', '12,5 %', '2,7 %', '-', '0 %', '8,15 %']);
   });
 
-  it('skjuler overenskomstens top-satskolonner i Beløb-tilstand', () => {
+  it('viser overenskomstens tillægskolonner i Beløb-tilstand', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.tillaegAngivesSom = 'beloeb';
@@ -276,8 +276,8 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn']);
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
   it('bygger reguleringsindeks-rækker selv når segmenter starter før første overenskomstdækning', () => {
@@ -317,7 +317,7 @@ describe('reguleringsPresentation', () => {
     expect(rows[0]?.indeks).toBe('100,00');
   });
 
-  it('viser overenskomstindeks uden skjulte top-satser i Beløb-tilstand', () => {
+  it('viser overenskomstindeks med tillæg i Beløb-tilstand', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.tillaegAngivesSom = 'beloeb';
@@ -343,9 +343,9 @@ describe('reguleringsPresentation', () => {
       tafBeregningsenhed: 'Måneder',
     });
 
-    expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(false);
-    expect(rows[0]?.indeksberegning).not.toContain('%');
-    expect(rows[0]?.indeksberegning).not.toContain('×');
+    expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(true);
+    expect(rows[0]?.indeksberegning).toContain('%');
+    expect(rows[0]?.indeksberegning).toContain('x');
   });
 
   it('indregner indtastede satser som basis når privat overenskomst mangler på reguleringsdatoen', () => {

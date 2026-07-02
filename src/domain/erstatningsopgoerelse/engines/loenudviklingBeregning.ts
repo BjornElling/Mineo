@@ -132,9 +132,6 @@ type KonsolideretLoenudvikling =
     fritvalgPct: number;
     shSoPct: number;
     pensionPct: number;
-    // Beløb-tilstand: løntabellens beregnede løn indeholder allerede tillægsbeløbene, så
-    // overenskomstindekset må ikke lægge de skjulte top-satsfelter oven i reguleringsforholdet.
-    tillaegNeutraliseret: boolean;
     tafBeregningsenhed: TafBeregningsenhed;
     harAnciennitetstillaegEfterSkadedatoen: boolean;
     anciennitetstillaegDato: ISODateString | undefined;
@@ -545,7 +542,6 @@ const resolveReguleringsStrategi = (
         fritvalgPct,
         shSoPct,
         pensionPct,
-        tillaegNeutraliseret: active[0].tillaegAngivesSom === 'beloeb',
         tafBeregningsenhed,
         harAnciennitetstillaegEfterSkadedatoen: active[0].harAnciennitetstillaegEfterSkadedatoen,
         anciennitetstillaegDato: isISODateString(active[0].anciennitetstillaegDato) ? active[0].anciennitetstillaegDato : undefined,
@@ -892,7 +888,6 @@ const buildLoenudviklingFromOverenskomst = (
   if (!konsolideret.reguleringsdato) {
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
-  const neutraliserTillaeg = konsolideret.tillaegNeutraliseret;
   const reguleringsdatoIso = konsolideret.reguleringsdato;
   const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
     konsolideret.overenskomstId,
@@ -998,7 +993,7 @@ const buildLoenudviklingFromOverenskomst = (
       ? offentligEffectiveBase.result.maanedsLoen
       : offentligEffectiveBase.result.timeLoen) + offentligLoenEkstraGrundloen;
     const baseLoen = ensurePositiveFiniteNumber(baseLoenRaw, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
-    const basePackage = neutraliserTillaeg ? baseLoen : computePackageValuePct({
+    const basePackage = computePackageValuePct({
       grundloen: baseLoen,
       feriePct,
       shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, konsolideret.shSoPct),
@@ -1041,7 +1036,7 @@ const buildLoenudviklingFromOverenskomst = (
         const startIso = parseDanishToIso(sats.fraDato);
         if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
       }
-      if (!neutraliserTillaeg && applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+      if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
         starts.add(STORE_BEDEDAG_START);
       }
       // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
@@ -1095,7 +1090,7 @@ const buildLoenudviklingFromOverenskomst = (
         const grundloenForSegment = anciennitetAktiv && anciennitetForIndex
           ? grundloenForSegmentBase + anciennitetForIndex.supplementValue
           : grundloenForSegmentBase;
-        const packageValue = neutraliserTillaeg ? grundloenForSegment : computePackageValuePct({
+        const packageValue = computePackageValuePct({
           grundloen: grundloenForSegment,
           feriePct,
           shSoPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.shSoSats, konsolideret.shSoPct),
@@ -1146,7 +1141,7 @@ const buildLoenudviklingFromOverenskomst = (
     dateIso: reguleringsdatoIso,
     applyAlmindeligLoenPaaShDageRegel: applyShRegel,
   });
-  const basePackage = neutraliserTillaeg ? basePackageComponents.baseValue : computeFormulaValue(basePackageComponents);
+  const basePackage = computeFormulaValue(basePackageComponents);
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
@@ -1174,7 +1169,7 @@ const buildLoenudviklingFromOverenskomst = (
       const startIso = parseDanishToIso(sats.fraDato);
       if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
     }
-    if (!neutraliserTillaeg && applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+    if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
     // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
@@ -1232,7 +1227,7 @@ const buildLoenudviklingFromOverenskomst = (
         baseValueSupplement: anciennitetAktiv && anciennitetForIndex ? anciennitetForIndex.supplementValue : 0,
         applyAlmindeligLoenPaaShDageRegel: applyShRegel,
       });
-      const packageValue = neutraliserTillaeg ? segmentComponents.baseValue : computeFormulaValue(segmentComponents);
+      const packageValue = computeFormulaValue(segmentComponents);
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }
