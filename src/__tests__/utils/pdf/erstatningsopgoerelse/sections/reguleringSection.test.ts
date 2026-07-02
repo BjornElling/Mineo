@@ -692,6 +692,40 @@ describe('renderReguleringSection – KL-lønaftaler Beregnet regulering', () =>
       'center',
     ]);
   });
+
+  it('viser bindestreg i stedet for tom Lønudvikling-celle i første periode', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-kl-dash',
+        navnPaaArbejdssted: 'KL-sted',
+        loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2022-06-01'),
+      sidste: iso('2025-06-30'),
+    }));
+    ctx.buildReguleringIndexRows = vi.fn(() => [
+      { fraDato: '01-06-2022', tilDato: '30-09-2022', indeksberegning: '', indeks: '', loenudvikling: '', reguleretLoen: '41.593,87' },
+      { fraDato: '01-10-2022', tilDato: '31-03-2023', indeksberegning: '', indeks: '', loenudvikling: '2,55 %', reguleretLoen: '42.654,51' },
+    ]);
+
+    renderReguleringSection(ctx);
+
+    const tableCall = autoTableMock.mock.calls.find(([, options]) =>
+      options.body?.[0]?.some((cell) => cell.content === 'Reguleret månedsløn') ?? false
+    )?.[1];
+    // Første datarække: Lønudvikling (kolonneindeks 2) var tom → vises som bindestreg.
+    expect(tableCall?.body?.[1]?.[2]?.content).toBe('-');
+    // Udfyldte celler bevares uændret.
+    expect(tableCall?.body?.[1]?.[3]?.content).toBe('41.593,87');
+    expect(tableCall?.body?.[2]?.[2]?.content).toBe('2,55 %');
+  });
 });
 
 describe('renderReguleringSection – Beregnet regulering kolonnefordeling', () => {

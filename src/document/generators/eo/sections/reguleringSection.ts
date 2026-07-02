@@ -133,6 +133,14 @@ const isPopulatedReguleringsCell = (value: string | undefined): boolean => {
   return normalized !== '' && normalized !== '-';
 };
 
+// Tomme celler vises som bindestreg, så reguleringstabellerne ikke fremstår med visuelle "huller"
+// (fx den første periodes tomme Lønudvikling-celle). Rent visuelt — påvirker ikke beregning eller
+// kolonne-filtreringen, der behandler både '' og '-' som ikke-udfyldt.
+const cellOrDash = (value: string | undefined): string => {
+  const normalized = (value ?? '').trim();
+  return normalized === '' ? '-' : value!;
+};
+
 const normalizeReguleringColumnHeader = (value: string): string =>
   value.toLocaleLowerCase('da-DK').replace(/\s+/g, ' ').trim();
 
@@ -326,10 +334,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       ]];
       for (const row of rows) {
         tableRows.push([
-          createDocumentTableCell(row.fraDato, { halign: 'center' }),
-          createDocumentTableCell(row.tilDato, { halign: 'center' }),
-          createDocumentTableCell(row.loenudvikling, { halign: 'center' }),
-          createDocumentTableCell(row.reguleretLoen ?? '', { halign: 'center' }),
+          createDocumentTableCell(cellOrDash(row.fraDato), { halign: 'center' }),
+          createDocumentTableCell(cellOrDash(row.tilDato), { halign: 'center' }),
+          createDocumentTableCell(cellOrDash(row.loenudvikling), { halign: 'center' }),
+          createDocumentTableCell(cellOrDash(row.reguleretLoen), { halign: 'center' }),
         ]);
       }
       const finalY = renderDocumentTable({
@@ -354,11 +362,11 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     ]];
     for (const row of rows) {
       tableRows.push([
-        createDocumentTableCell(row.fraDato, { halign: 'center' }),
-        createDocumentTableCell(row.tilDato, { halign: 'center' }),
-        ...(hideIndeksberegning ? [] : [createDocumentTableCell(row.indeksberegning, { halign: 'center' })]),
-        createDocumentTableCell(row.indeks, { halign: 'right' }),
-        createDocumentTableCell(row.loenudvikling, { halign: 'right' }),
+        createDocumentTableCell(cellOrDash(row.fraDato), { halign: 'center' }),
+        createDocumentTableCell(cellOrDash(row.tilDato), { halign: 'center' }),
+        ...(hideIndeksberegning ? [] : [createDocumentTableCell(cellOrDash(row.indeksberegning), { halign: 'center' })]),
+        createDocumentTableCell(cellOrDash(row.indeks), { halign: 'right' }),
+        createDocumentTableCell(cellOrDash(row.loenudvikling), { halign: 'right' }),
       ]);
     }
 
@@ -433,7 +441,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const tableRows: RowInput[] = [
       normalizedTableData.columns.map((column) => createDocumentTableHeaderCell(column, 'center')),
       ...normalizedTableData.rows.map((row) =>
-        row.map((value) => createDocumentTableCell(value, { halign: 'center' }))
+        row.map((value) => createDocumentTableCell(cellOrDash(value), { halign: 'center' }))
       ),
     ];
 
