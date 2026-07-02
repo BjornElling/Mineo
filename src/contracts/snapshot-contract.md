@@ -40,7 +40,7 @@ Et snapshot-entrypoint skal eksplicit deklarere de projektioner, som dets forbru
 Minimum for alle snapshot-former:
 
 1. autoritativ inputpakke og hvilke persisted sektioner den må læse,
-2. projections der må forbruges af UI, PDF og gennemsyns-/kontrolvisning,
+2. projections der må forbruges af UI, PDF og kontrolvisning,
 3. gating-/statusfelter,
 4. issue-/fejlklassifikation,
 5. runtime fail-closed adfærd,
@@ -117,14 +117,14 @@ Når et af de tre domæner (eller et fremtidigt domæne, der reelt udløser oven
 
 ## 6A. Runtimefejl
 
-Uventede runtimefejl i snapshot-entrypoints må aldrig give gyldige totals, PDF-projektioner eller gennemsyns-/kontrol-output, der ligner autoritativ beregning.
+Uventede runtimefejl i snapshot-entrypoints må aldrig give gyldige totals, PDF-projektioner eller kontrol-output, der ligner autoritativ beregning.
 
 Runtimefejl skal:
 
 1. fail-close i domænets egen status-/issue-model,
 2. rapporteres efter `error-contract.md`,
 3. give dansk blokerende brugerbesked,
-4. undgå fallback-beregninger i UI/PDF/gennemsyn.
+4. undgå fallback-beregninger i UI/PDF/kontrol.
 
 ---
 

@@ -277,11 +277,11 @@ export const computeEoSnapshot = (args: Readonly<{
   ];
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
     // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
-    // Gennemsyns-/kontrol-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
+    // Kontrol-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
     // Vi beregner derfor svie/smerte-engine separat her, fordi den ikke afhænger af løn/TAF-validering.
-    // TAF-ranges bygges fra de rækker der stadig kan parses, så gennemsyns-/kontrollaget kan vise den samme clamping
+    // TAF-ranges bygges fra de rækker der stadig kan parses, så kontrollaget kan vise den samme clamping
     // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
-    // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed gennemsyns-/kontrol-basis.
+    // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
     const svieSmerteForInspektion = computeSvieSmerteEngine({
       erstatningsopgoerelse: effectiveEoValues,
       stamdata: {
@@ -387,8 +387,8 @@ export const computeEoSnapshot = (args: Readonly<{
     }
 
     // Denne invariant er bevidst udledt af kontroltabellens sammentælling-model.
-    // Den krydstjekker autoritative engine-outputs mod den committede EO-gennemsyn/kontrol-tabel-projektion,
-    // så den afhænger af gennemsyns-/kontrol-infrastruktur efter design frem for at være et rent engine-til-engine-check.
+    // Den krydstjekker autoritative engine-outputs mod den committede EO-kontrol-tabel-projektion,
+    // så den afhænger af kontrol-infrastruktur efter design frem for at være et rent engine-til-engine-check.
     // Invariant: inspektionSnapshot er altid non-null her, da den sættes tidligt i try-blokken inden engine-kald.
     if (!inspektionSnapshot) throw new Error('inspektionSnapshot mangler ved kontrol-mismatch-check — invariant brudt');
     const controlMismatchMessages = collectSammentaellingControlMismatchMessages(inspektionSnapshot.sammentaellingRows);
@@ -461,7 +461,7 @@ export const computeEoSnapshot = (args: Readonly<{
       error: normalizedError,
       diagnostics: {
         errorName: normalizedError.name,
-        // Diagnostisk: var en (delvist bygget) gennemsyns-/kontrol-snapshot tilgængelig, da exception ramte?
+        // Diagnostisk: var en (delvist bygget) kontrol-snapshot tilgængelig, da exception ramte?
         // Selve snapshot-resultatet sætter inspektionSnapshot til null i fail_closed-stien (se nedenfor).
         inspektionSnapshotAvailable: inspektionSnapshot !== null,
       },
@@ -481,10 +481,10 @@ export const computeEoSnapshot = (args: Readonly<{
       }],
       data: null,
       // Kontrakt eo-snapshot-contract.md §2.4: i fail_closed-stien (uventet runtime-exception)
-      // er inspektionSnapshot null. En delvist bygget gennemsyns-/kontrol-snapshot fra en kørsel der efterfølgende
+      // er inspektionSnapshot null. En delvist bygget kontrol-snapshot fra en kørsel der efterfølgende
       // kastede, må ikke surfaces som om den var et gyldigt beregningsgrundlag — også selvom
       // eoSnapshotToInspektionView allerede router fail_closed til en blokeret tilstand uafhængigt af
-      // inspektionSnapshot. Fail-closed = ingen semi-autoritativ gennemsyns-/kontrolvisning.
+      // inspektionSnapshot. Fail-closed = ingen semi-autoritativ kontrolvisning.
       inspektionSnapshot: null,
       input: {
         stamdata: parsedStamdata.data,

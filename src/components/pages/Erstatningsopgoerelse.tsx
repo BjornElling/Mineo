@@ -209,7 +209,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [scrollToSectionWithRetry, setActiveTab]);
 
   React.useEffect(() => {
-    // Hvis gennemsyns-/kontrolfanerne slås fra mens en af dem aktuelt er aktiv, falder vi deterministisk tilbage.
+    // Hvis kontrolfanerne slås fra mens en af dem aktuelt er aktiv, falder vi deterministisk tilbage.
     if (!isAllowedTab(activeTab)) {
       setActiveTab(defaultTab);
     }
@@ -268,9 +268,9 @@ const Erstatningsopgoerelse = React.memo(() => {
         </Box>
       </Box>
 
-      {/* Fane-indhold med gennemsyns-/kontrolfaner i højre side */}
+      {/* Fane-indhold med kontrolfaner i højre side */}
       <Box sx={{ position: 'relative' }}>
-        {/* Gennemsyns-/kontrolfaner (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
+        {/* Kontrolfaner (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
         {showInspektionTab && (
           <>
             <Box
@@ -296,7 +296,7 @@ const Erstatningsopgoerelse = React.memo(() => {
                 letterSpacing: '0.02857em',
               }}
             >
-              EO-gennemsyn
+              EO-kontrol
             </Box>
             <Box
               onClick={() => setActiveTab(TAB_KEYS.KONTROLTABEL)}

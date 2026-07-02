@@ -185,7 +185,7 @@ const buildInvariantDiagnostics = (
 /**
  * View-model-laget for Erstatningsopgørelse-beregningsfanen.
  *
- * Ejer al afledt visningstilstand: gennemsyns-/kontrol-rækker med navigation, snapshot-projektioner og
+ * Ejer al afledt visningstilstand: kontrol-rækker med navigation, snapshot-projektioner og
  * download-gates, system-/EET-issue-rækker, bilag-valg, opsummeringslinjer og PDF-download-handlers.
  * Returnerer én flad model; fanen beholder kun præsentations-render-helpers + selve JSX'en — jf.
  * arkitektur-kandidat A1 (view-model-lag under fagsiderne). Adfærdsbevarende: logikken er flyttet
@@ -228,7 +228,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         settings,
         beregningView?.canonicalOutput,
         // pdfModel SKAL med, så download-gaten ser de samme resultat-afhængige SFGG-fejlrækker
-        // som DEV-gennemsyns-/kontrolfanerne (jf. collectAllEoRows-doc). Uden den var gaten fail-open for dem.
+        // som DEV-kontrolfanerne (jf. collectAllEoRows-doc). Uden den var gaten fail-open for dem.
         eoSnapshot?.data?.pdfModel
       ),
       'EOberegningTab.collectAllEoRows',
@@ -844,7 +844,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   }, []);
 
   return {
-    // Gennemsyns-/kontrol-/issue-rækker
+    // Kontrol-/issue-rækker
     errors,
     warnings,
     eetLoebendeIssueRows,

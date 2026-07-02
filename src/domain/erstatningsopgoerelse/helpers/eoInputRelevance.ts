@@ -105,7 +105,7 @@ export const erBilagsnumreRelevant = (values: ErstatningsopgoerelseValues): bool
  * mutateres ikke — kun den effektive beregningskopi.
  *
  * Bruges af `computeEoSnapshot` til at danne `effectiveEoValues`, som alle motorer,
- * præsentation og gennemsyns-/kontrollaget læser fra. Se moduldokumentationen for den bevidste
+ * præsentation og kontrollaget læser fra. Se moduldokumentationen for den bevidste
  * komprimerings-undtagelse, der bevidst IKKE neutraliseres her.
  */
 export const neutralizeIrrelevantEoInputs = (
@@ -115,7 +115,7 @@ export const neutralizeIrrelevantEoInputs = (
 
   // Array-felter blankes kun, når de faktisk indeholder ikke-tomt indhold. Tomme
   // placeholder-rækker (fra ensure*Rows) påvirker ikke beregning, og at fjerne dem ville
-  // blot give unødig afvigelse i gennemsyn/præsentation.
+  // blot give unødig afvigelse i kontrol/præsentation.
   const harIndhold = <T>(rows: readonly T[], isEmpty: (row: T) => boolean): boolean =>
     rows.some((row) => !isEmpty(row));
 

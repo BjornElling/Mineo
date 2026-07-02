@@ -44,18 +44,18 @@ describe('EOInspektion', () => {
     eoSnapshotToInspektionViewMock.mockReset();
   });
 
-  it('viser blocked-alert fra gennemsyns-/kontrol-view-projektionen', () => {
+  it('viser blocked-alert fra kontrol-view-projektionen', () => {
     eoSnapshotToInspektionViewMock.mockReturnValue({
       kind: 'blocked',
       severity: 'info',
-      title: 'EO-gennemsyn kræver et friskt snapshot',
-      message: 'Åbn gennemsynsfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
+      title: 'EO-kontrol kræver et friskt snapshot',
+      message: 'Åbn kontrolfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
     });
 
     renderComponent(null);
 
-    expect(screen.getByText('EO-gennemsyn kræver et friskt snapshot')).toBeInTheDocument();
-    expect(screen.getByText('Åbn gennemsynsfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.')).toBeInTheDocument();
+    expect(screen.getByText('EO-kontrol kræver et friskt snapshot')).toBeInTheDocument();
+    expect(screen.getByText('Åbn kontrolfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.')).toBeInTheDocument();
   });
 
   it('renderer projekterede sektioner og sammentælling', () => {

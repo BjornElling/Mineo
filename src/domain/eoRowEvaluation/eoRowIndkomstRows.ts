@@ -20,7 +20,7 @@ import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMid
 
 /**
  * Konsistens-advarsel: midlertidig EET-afgørelse angivet, men ingen midlertidige EET-ydelser
- * indtastet i et interval hvor de burde findes. Bygges som en del af offentlige-ydelser-gennemsyns-/kontrolrækkerne
+ * indtastet i et interval hvor de burde findes. Bygges som en del af offentlige-ydelser-kontrolrækkerne
  * (eneste forbruger) og hører derfor sammen med indkomst-byggeren, ikke oevrigeKrav-byggeren.
  */
 export const buildEoMidlertidigtEetKonsistensRows = (

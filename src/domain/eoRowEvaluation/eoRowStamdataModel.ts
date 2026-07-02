@@ -7,7 +7,7 @@ import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 /**
  * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
  *
- * Dette beskytter React-key-stabilitet og gør gennemsyns-/kontrol-output auditerbart.
+ * Dette beskytter React-key-stabilitet og gør kontrol-output auditerbart.
  */
 export type EoRowId =
   | 'stamdata.journalnr'

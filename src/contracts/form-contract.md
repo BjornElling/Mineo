@@ -256,7 +256,7 @@ Tables er rene UI-komponenter.
 - De to felter har identisk domænebetydning.
 - Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i løngrundlaget.
 - Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af lønindtastningen.
-- UI-tekster, PDF-headere, gennemsyns-/kontrolvisninger og tests skal afspejle denne regel.
+- UI-tekster, PDF-headere, kontrolvisninger og tests skal afspejle denne regel.
 
 ### 5.4 Offentlige ydelser-tabel
 
@@ -264,7 +264,7 @@ Tables er rene UI-komponenter.
 - De to felter har identisk domænebetydning.
 - Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i én samlet ydelse.
 - Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af ydelsesindtastningen.
-- UI-tekster, PDF-headere, gennemsyns-/kontrolvisninger og tests skal afspejle denne regel.
+- UI-tekster, PDF-headere, kontrolvisninger og tests skal afspejle denne regel.
 
 ---
 

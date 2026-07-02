@@ -6,7 +6,7 @@ type Props = Readonly<{
   text: string;
   /** Vis teksten som understreget underoverskrift i stedet for almindelig tekst. */
   underlined?: boolean;
-  /** Valgfri styling på selve tekstlinjen (fx indrykning i gennemsyns-/kontrolvisninger). */
+  /** Valgfri styling på selve tekstlinjen (fx indrykning i kontrolvisninger). */
   textSx?: SxProps<Theme>;
 }>;
 

@@ -41,7 +41,7 @@ export function formatDanishValue(danish: DanishDateString | null): string {
 }
 
 /**
- * Formaterer beløb til kontrol-/gennemsyns-display med dansk format.
+ * Formaterer beløb til kontrol-display med dansk format.
  *
  * @param amount - Beløb (kr.) eller null
  * @returns Formateret beløb (fx "1.234,56") eller '-'

@@ -1148,7 +1148,7 @@ const buildLoenudviklingFromOverenskomst = (
 
   // Bevidst adskilt fra eoInspektionRegulationCore:
   // denne motor bygger relative deltaPct-segmenter til TAF-beregning,
-  // mens gennemsyns-/kontrolmotoren bygger absolutte indeks-entries til visning.
+  // mens kontrolmotoren bygger absolutte indeks-entries til visning.
   const segments: LoenreguleringsSegment[] = [];
   for (const range of konsolideret.tafRanges) {
     const fraDa = isoToDanish(range.fra);

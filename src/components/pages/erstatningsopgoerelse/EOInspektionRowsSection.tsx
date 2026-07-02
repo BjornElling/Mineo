@@ -14,7 +14,7 @@ const EOInspektionRowsSection = React.memo<{
 }>(({ title, rows, tables = [] }) => {
   // Render-contract: en sektion med 0 rækker skal være helt skjult.
   // Det gør komponenten sikker som fallback, selv om de primære show/hide-beslutninger
-  // normalt træffes højere oppe i EO-gennemsyns-/kontrol-viewmodellen.
+  // normalt træffes højere oppe i EO-kontrol-viewmodellen.
   if (rows.length === 0 && tables.length === 0) {
     return null;
   }

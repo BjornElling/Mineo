@@ -475,7 +475,7 @@ describe('computeEoSnapshot', () => {
   });
 
   it('validerings-fejl-sti: inspektionSnapshot bygges med clampede tafRanges for gyldige TAF-rækker', () => {
-    // Når validering fejler, kører autoritative totaler ikke. Gennemsyns-/kontrollaget må dog stadig vise
+    // Når validering fejler, kører autoritative totaler ikke. Kontrollaget må dog stadig vise
     // clampede TAF-ranges for de rækker der kan parses sikkert.
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');

@@ -4,10 +4,10 @@
  * Samler alle status-rækker fra builder-registret, tilføjer navigation-metadata, anvender
  * relevans-filtrering (`isRowRelevantForEoValues`) + dependency-suppression, og grupperer efter
  * status (error/warning). Dens `error`-rækker DRIVER produktions-PDF-download-gaten i
- * `useEoBeregningViewModel` — dette er derfor trust-kritisk produktions-validering, ikke "bare gennemsyn/kontrol".
+ * `useEoBeregningViewModel` — dette er derfor trust-kritisk produktions-validering, ikke "bare kontrol".
  *
- * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, gennemsyns-/kontrol-frit), ikke i
- * `src/domain/eoInspektion/`. DEV-gennemsyns-/kontrolsiden er nedstrøms: den konsumerer de samme row-buildere til visning,
+ * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, kontrol-frit), ikke i
+ * `src/domain/eoInspektion/`. DEV-kontrolsiden er nedstrøms: den konsumerer de samme row-buildere til visning,
  * men kan aldrig flytte gaten via display-formattering (jf. `inspektionLayerIsolation.test.ts`).
  */
 
@@ -232,7 +232,7 @@ const isRowRelevantForEoValues = (
     // NOTE:
     // EET-relaterede EO-rækker filtreres, når der ikke foreligger
     // midlertidig/endelig erhvervsevnetabsafgørelse.
-    // EET-gennemsyn/kontrol må ikke producere fejl eller warnings,
+    // EET-kontrol må ikke producere fejl eller warnings,
     // når afgørelsen eksplicit er "Nej".
     if (
       row.id === 'aes.midlertidigEETAfgoerelseDato' ||
@@ -259,8 +259,8 @@ const isRowRelevantForEoValues = (
 /**
  * Samler alle EO-rækker fra registry og tilføjer navigation
  *
- * Bruger samme builder-registry som EO-gennemsyn-siden for rå EO-rækker.
- * EO-gennemsyn-siden og Beregning-fanen har stadig forskellig post-processing.
+ * Bruger samme builder-registry som EO-kontrol-siden for rå EO-rækker.
+ * EO-kontrol-siden og Beregning-fanen har stadig forskellig post-processing.
  *
  * @param stamdataValues - Stamdata-værdier fra FormPersistence
  * @param stamdataErrors - Stamdata field-fejl pr. kilde
@@ -269,7 +269,7 @@ const isRowRelevantForEoValues = (
  * @param canonicalOutputOverride - Autoritative totaler fra snapshot (canonical)
  * @param pdfModelOverride - Præsentationsmodellen fra snapshot. SKAL gives, så de SFGG-rækker
  *   der afhænger af det beregnede resultat (fx `sfgg.dagssats.*`/`sfgg.referencesats.*`-fejl) også
- *   evalueres af download-gaten. Uden den var gaten blind for de samme fejl, DEV-gennemsyns-/kontrolfanen viste
+ *   evalueres af download-gaten. Uden den var gaten blind for de samme fejl, DEV-kontrolfanen viste
  *   som blokerende — en fail-open-asymmetri (jf. eoSnapshotToInspektionView, der altid sætter pdfModel).
  * @returns Grupperet efter status (errors, warnings)
  */

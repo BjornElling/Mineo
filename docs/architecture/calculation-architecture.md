@@ -33,15 +33,15 @@ Regler:
 
 ## 2A. Orkestrering og adgang
 
-Engines er rene domænefunktioner, men UI, PDF og gennemsyn/kontrol må ikke kalde selvstændige engines direkte, når domænet har snapshot- eller projection-entrypoint.
+Engines er rene domænefunktioner, men UI, PDF og kontrol må ikke kalde selvstændige engines direkte, når domænet har snapshot- eller projection-entrypoint.
 
 For snapshot-first-domæner er den kanoniske adgang:
 
-`CommittedInput -> compute<Domain>Snapshot(...) -> UI/PDF/gennemsyns-/kontrol-projektion`
+`CommittedInput -> compute<Domain>Snapshot(...) -> UI/PDF/kontrol-projektion`
 
 Direkte engine-kald fra UI/hooks/PDF er et kontraktbrud, medmindre en domænekontrakt eksplicit legitimerer et smallere section-lokalt flow. Se `src/contracts/snapshot-contract.md`.
 
-Snapshot-first gælder de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §5`. Årsløn, renteberegning og varige mén kører bevidst et section-lokalt engine-flow — det er deres slutarkitektur, ikke en tilstand der skal løftes til snapshot. For disse er den kanoniske adgang ét beregnings-entry (hook/komponent), hvis resultat genbruges af PDF/gennemsyn/kontrol uden genberegning.
+Snapshot-first gælder de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §5`. Årsløn, renteberegning og varige mén kører bevidst et section-lokalt engine-flow — det er deres slutarkitektur, ikke en tilstand der skal løftes til snapshot. For disse er den kanoniske adgang ét beregnings-entry (hook/komponent), hvis resultat genbruges af PDF/kontrol uden genberegning.
 
 ## 3. Input- og output-regler
 

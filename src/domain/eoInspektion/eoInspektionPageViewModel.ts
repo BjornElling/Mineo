@@ -182,7 +182,7 @@ export const buildEOInspektionPageViewModel = (
   appSettings: AppSettings
 ): EOInspektionPageViewModel => {
   const { erstatningsopgoerelseValues, rowsBySection, regulationSections } = view;
-  // 'Nej' og 'Skjul' har begge ingen beregning — gennemsyns-/kontrollaget viser kun emnet ved 'Ja'.
+  // 'Nej' og 'Skjul' har begge ingen beregning — kontrollaget viser kun emnet ved 'Ja'.
   const viserSvieSmerte = erstatningsopgoerelseValues.kravPaaSvieSmerteGodtgoerelse === 'Ja';
   const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.kravPaaTabtArbejdsfortjeneste === 'Ja';
   const viserOevrigeKrav = erstatningsopgoerelseValues.kravPaaOevrigeErstatningskrav === 'Ja';

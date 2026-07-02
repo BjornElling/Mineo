@@ -42,7 +42,7 @@ export const parseStoredSettings = (raw: unknown): AppSettings => {
   // Ét-vejs migration af omdøbte nøgler før merge/parse. `appSettingsSchema` er `.strict()`,
   // så en gammel nøgle ellers ville blive strippet og brugerens valg tabt.
   // `showEODebugMenu` blev omdøbt til `showEOInspektionMenu` (sproglig oprydning: fanerne er
-  // gennemsyns-/kontrolfaner, ikke fejlsøgning). Bevar en tidligere gemt boolean-værdi.
+  // kontrolfaner, ikke fejlsøgning). Bevar en tidligere gemt boolean-værdi.
   const migrated: Record<string, unknown> = { ...raw };
   if (!('showEOInspektionMenu' in migrated) && typeof migrated.showEODebugMenu === 'boolean') {
     migrated.showEOInspektionMenu = migrated.showEODebugMenu;

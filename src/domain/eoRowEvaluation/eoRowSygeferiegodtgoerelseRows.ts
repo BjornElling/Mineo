@@ -42,7 +42,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       : 'Ingen overenskomst valgt';
     const hasKnownPublicOverenskomst = Boolean(employment.overenskomstId && isOffentligOverenskomstId(employment.overenskomstId));
     const hasKnownPrivateOverenskomstPolicy = Boolean(employment.overenskomstId && getOverenskomstSfggPolicy(employment.overenskomstId));
-    // Når harOverenskomst=false, behandler både beregning og gennemsyns-/kontrollaget bevidst valget "Overenskomst"
+    // Når harOverenskomst=false, behandler både beregning og kontrollaget bevidst valget "Overenskomst"
     // som et ferielov-spor uden policy-opslag. Et hængende eller frit tekst-ID skal derfor ikke
     // udløse "ukendt overenskomst-ID" i det spor.
     const hasActivePrivateOverenskomst = employment.harOverenskomst && !!employment.overenskomstId && !hasKnownPublicOverenskomst;
@@ -78,7 +78,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    // Når brugeren har valgt "Overenskomst" uden faktisk overenskomst-ID, stopper gennemsyns-/kontrol-sporet her.
+    // Når brugeren har valgt "Overenskomst" uden faktisk overenskomst-ID, stopper kontrol-sporet her.
     // Det er bevidst: alle efterfølgende overenskomstafledte rækker, inkl. før-2015-bemærkningen,
     // ville ellers fremstå som om beregningssporet var konfigureret.
     if (kilde === 'Overenskomst' && !hasSelectedOverenskomst) {

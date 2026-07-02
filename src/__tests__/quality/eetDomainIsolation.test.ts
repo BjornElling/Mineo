@@ -81,7 +81,7 @@ describe('eetDomainIsolation', () => {
     expect(source).toContain('checked={getChecked(values.verserendeKlageEet)}');
   });
 
-  it('læser EET-oplysninger i gennemsyn/PDF fra EO-values (ikke fra erhvervsevnetab-side)', () => {
+  it('læser EET-oplysninger i kontrol/PDF fra EO-values (ikke fra erhvervsevnetab-side)', () => {
     const inspektionSource = [
       fs.readFileSync(EO_DEBUG_PATH, 'utf8'),
       fs.readFileSync(EO_DEBUG_VIEW_PATH, 'utf8'),

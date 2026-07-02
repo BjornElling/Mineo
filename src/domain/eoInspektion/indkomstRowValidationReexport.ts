@@ -1,6 +1,6 @@
 // Compat wrapper:
 // Rækkevalidering er et domæneansvar og ejes af indkomstRowValidation.
-// Gennemsyns-/kontrollaget re-eksporterer kun for eksisterende imports.
+// Kontrollaget re-eksporterer kun for eksisterende imports.
 export {
   buildStandardLoenCellErrors,
   buildOffentligeYdelserCellErrors,

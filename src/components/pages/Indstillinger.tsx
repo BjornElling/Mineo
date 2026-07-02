@@ -568,7 +568,7 @@ const Indstillinger = React.memo(() => {
       </ContentBox>
 
       <ContentBox className="content-box">
-        <Typography className="section-header">Gennemsyn og kontrol</Typography>
+        <Typography className="section-header">Kontrol</Typography>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Vis knap til at rapportere fejl og forbedringsønsker på indholdsbokse</Typography>
@@ -581,7 +581,7 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Vis gennemsyns- og kontrolfaner på Erstatningsopgørelse-side</Typography>
+          <Typography className="row--text">Vis kontrolfaner på Erstatningsopgørelse-side</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
               checked={settings.showEOInspektionMenu}

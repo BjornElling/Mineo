@@ -36,7 +36,7 @@ vi.mock('../../../../components/pages/erstatningsopgoerelse/EOberegningTab', () 
 }));
 
 vi.mock('../../../../components/pages/erstatningsopgoerelse/EOInspektion', () => ({
-  default: () => <div>EO-gennemsyn indhold</div>,
+  default: () => <div>EO-kontrol indhold</div>,
 }));
 
 vi.mock('../../../../components/pages/erstatningsopgoerelse/EOKontrolTabel', () => ({
@@ -47,7 +47,7 @@ vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot', () => ({
   computeEoSnapshot: computeEoSnapshotMock,
 }));
 
-describe('Erstatningsopgoerelse gennemsyns-/kontrol snapshot-refresh', () => {
+describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
   beforeEach(() => {
     sessionStorage.clear();
     computeEoSnapshotMock.mockClear();

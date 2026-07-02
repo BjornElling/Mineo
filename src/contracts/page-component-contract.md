@@ -238,7 +238,7 @@ En tab kan være:
 
 - input-tab
 - beregnings-/resultat-tab
-- gennemsyns-/kontrol-/hjælpetab
+- kontrol-/hjælpetab
 - ren informationssektion
 
 Kontrakten må ikke antage, at alle tabs passer i kun to kategorier.
@@ -340,7 +340,7 @@ Sider skal bruge de etablerede layout-byggesten, hvor de passer til sidetypen:
 - `ContentBox` til indholdsbokse
 - `page-title`
 - etablerede række-klasser og input-komponenter
-- etablerede tabeltyper; nye ad hoc-tabelformater i pages og gennemsyns-/kontrolvisninger kræver eksplicit kontraktændring
+- etablerede tabeltyper; nye ad hoc-tabelformater i pages og kontrolvisninger kræver eksplicit kontraktændring
 - for `StandardDisplayTable` er samlet tabelbredde centralt styret til 100 %; callsites må gerne lade kolonnebredder være automatiske eller sætte dem manuelt pr. kolonne, men må ikke selv overstyre den samlede tabelbredde
 
 Kontrakten er konsistens i brugeroplevelse og struktur, ikke pixel-identisk kopi af én referencefil.
@@ -373,7 +373,7 @@ Undtagelser kan accepteres i globale infrastrukturlag som `MainLayout`, hvor com
 En side må eje page-lokale hjælpeflows som:
 
 - dokument-download
-- gennemsyns-/kontrol-view
+- kontrol-view
 - lokale modal-dialoger
 - sideinterne søge-/hjælpeværktøjer
 

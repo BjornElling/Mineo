@@ -10,7 +10,7 @@
 
 import type { ISODateString } from '../../types/branded';
 
-// LOCKED: Løn/TAF gennemsyns-/kontrol-clusteret er færdig‑porteret.
+// LOCKED: Løn/TAF kontrol-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
 /**
  * Loenkomponent-type (grundloenspakke)

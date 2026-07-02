@@ -20,7 +20,7 @@ import { buildLoenindkomstRateSegments } from '../erstatningsopgoerelse/helpers/
 import { type DateInterval, iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 import { sumFloat64Array, isWithinIntegrityTolerance } from './mathUtils';
 
-// LOCKED: Løn/TAF gennemsyns-/kontrol-clusteret er færdig‑porteret.
+// LOCKED: Løn/TAF kontrol-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
 export type KontrolTabelColumnData = Readonly<{
   id: KontrolTabelColumnId;

@@ -415,7 +415,7 @@ Hvis brugeren vælger `Ingen`:
 #### 9.1. Tabelvisning
 
 SFGG-beregningen skal kunne vises:
-- nederst på EO-gennemsyn/kontrol
+- nederst på EO-kontrol
 - som særskilt side i erstatningsopgørelse-PDF'en, hvis brugeren har valgt bilaget på EOBeregningTab
 
 Tabellen skal have kolonnerne:
@@ -467,7 +467,7 @@ Advarselsteksten skal være:
 
 `Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.`
 
-Ved valg af `Ingen` skal EO-gennemsyn/kontrol stadig vise én linje med den valgte værdi og ikke yderligere SFGG-indhold.
+Ved valg af `Ingen` skal EO-kontrol stadig vise én linje med den valgte værdi og ikke yderligere SFGG-indhold.
 
 ---
 
@@ -492,7 +492,7 @@ SFGG er implementeret ende til ende med:
 - UI i EO-oplysninger
 - validering
 - domæneberegning
-- gennemsyns-/kontrolvisning
+- kontrolvisning
 - PDF-visning
 - testdækning på centrale dele
 
@@ -558,7 +558,7 @@ Der er implementeret beregning for:
 - bortfald under arbejdsgiverbetalt sygeløn
 - seksmånedersadvarsel
 
-#### 4a. Reguleringstabeller i EO-gennemsyn/kontrol og EO-PDF
+#### 4a. Reguleringstabeller i EO-kontrol og EO-PDF
 
 Den øverste reguleringstabel følger nu samme grundstruktur som den generelle reguleringstabel i EO:
 - tabellen viser de reelle reguleringsdatoer for de viste værdier
@@ -580,10 +580,10 @@ Der er indført eksplicit SFGG-policy pr. overenskomst med felter for:
 
 Der er også runtime-assert for fuld policy-dækning af overenskomsterne.
 
-#### 6. Gennemsyn/kontrol og PDF
+#### 6. Kontrol og PDF
 
 SFGG er koblet på:
-- EO-gennemsyn/kontrol
+- EO-kontrol
 - EO's nettoflow
 - PDF-generatoren
 - bilagsvalg på EOBeregningTab
@@ -598,7 +598,7 @@ Der findes tests for blandt andet:
 - præ-2015-4-månedersgrænse
 - seksmånedersadvarsel
 - validatorregler
-- gennemsyns-/kontrol-rækker
+- kontrol-rækker
 - PDF-accept af valgt SFGG-bilag
 
 ### Afvigelser fra den normative forretningslogik
@@ -634,13 +634,13 @@ Den aktuelle kode viser kun `I alt`-rækken, når der er mere end én datalinje 
 
 Eksempel:
 - én sammenhængende SFGG-periode giver én datalinje
-- her vises ingen `I alt`-række i hverken EO-gennemsyn/kontrol eller PDF
+- her vises ingen `I alt`-række i hverken EO-kontrol eller PDF
 
 Denne dokumentation er nu opdateret til at afspejle den aktuelle visningslogik.
 
 #### 4. Seksmånedersadvarsel er ikke fuldt verificeret på EOBeregningTab
 
-Der findes beregning og gennemsyns-/kontrolvisning af seksmånedersadvarslen.
+Der findes beregning og kontrolvisning af seksmånedersadvarslen.
 Ved denne gennemgang er den konkrete slutbrugerplacering på EOBeregningTab ikke verificeret som selvstændig advarsel uden for debug.
 
 #### 5. SFGG-bilaget er aktivt i UI

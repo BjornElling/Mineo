@@ -16,7 +16,7 @@ export type OffentligYdelseCoreColumn = Readonly<{
   amountsByIndex: Float64Array;
 }>;
 
-// LOCKED: Offentlige ydelser gennemsyns-/kontrol-clusteret er færdig‑porteret.
+// LOCKED: Offentlige ydelser kontrol-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
 export const parseOffentligDato = (value: string | undefined): ISODateString | undefined => {
   const trimmed = (value ?? '').trim();

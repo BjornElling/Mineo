@@ -1,7 +1,7 @@
 # Dato-/interval-performance
 
 **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt
-**Primært scope:** Datohelpers, periodisering, regulering, gennemsyn/kontrol og øvrig beregningskode der tæller eller bygger dato-intervaller
+**Primært scope:** Datohelpers, periodisering, regulering, kontrol og øvrig beregningskode der tæller eller bygger dato-intervaller
 
 Bindende regler ligger i `src/contracts/date-contract.md` og, for EO-periodisering, `src/contracts/periodisering-contract.md`. Ved konflikt har kontrakterne forrang.
 

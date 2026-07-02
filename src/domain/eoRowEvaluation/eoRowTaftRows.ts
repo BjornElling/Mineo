@@ -283,7 +283,7 @@ export const buildEoTaftRows = (
   const ferieperiodeLabel = ferieperioder.filter((p) => p.fra || p.til).length === 1 ? 'Ferieperiode' : 'Ferieperioder';
 
   // Ferieperiode-blokering (komplethed, dato-grænser, overlap) afgøres af den delte, autoritative
-  // validering (jf. B9); gennemsyns-/kontrollaget RENDERER kun resultatet.
+  // validering (jf. B9); kontrollaget RENDERER kun resultatet.
   const ferieEvaluations = evaluateFerieperioder(ferieperioder, {
     skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,

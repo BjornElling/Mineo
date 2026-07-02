@@ -193,7 +193,7 @@ describe('buildTafRanges', () => {
     expect(ranges).toHaveLength(2);
   });
 
-  it('matcher kombinerede gennemsyns-/kontrol-bounds efter samme merge-semantik', () => {
+  it('matcher kombinerede kontrol-bounds efter samme merge-semantik', () => {
     const eo = makeEo({
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-01-31'),

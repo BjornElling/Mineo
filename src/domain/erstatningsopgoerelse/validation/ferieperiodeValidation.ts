@@ -11,11 +11,11 @@ import {
 } from './tafPeriodeValidation';
 
 /**
- * Ren (React-/gennemsyns-frit) blokerings-afgørelse for TAF-ferieperiode-rækker (`taf.ferie.*`).
+ * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-ferieperiode-rækker (`taf.ferie.*`).
  *
  * AUTORITATIV kilde til om en ferieperiode blokerer (komplethed, dato-grænser, overlap) — disse
  * tjek findes IKKE i `erstatningsopgoerelseValidator` (som slet ikke validerer ferieperioder), så
- * de var hidtil kun håndhævet inde i DEV-gennemsyn/kontrol-builderens display-formattering (jf. B9).
+ * de var hidtil kun håndhævet inde i DEV-kontrol-builderens display-formattering (jf. B9).
  *
  * Deler dato-grænserne (`computeTafCombinedExtraMaxDate`, skadedato-min) med TAF-periode-
  * valideringen. Bemærk de bevidste forskelle fra TAF-perioder, der bevares 1:1:

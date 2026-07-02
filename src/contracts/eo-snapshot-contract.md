@@ -27,14 +27,14 @@ Alle visninger er projektioner af snapshot:
 - `eoSnapshotToTafPerYearPdfDocument`
 - `eoSnapshotToTafPerYearOpreguleretPdfDocument` (projektion for beregningsformen "TAF opreguleret til beregningsår"; forwarder både per-år-resultatet og det opregulerede resultat uden ny domæneberegning)
 
-For projektionsfelter, der fødes videre til gennemsyn/PDF uden ny domæneberegning, er feltsemantikken bindende.
+For projektionsfelter, der fødes videre til kontrol/PDF uden ny domæneberegning, er feltsemantikken bindende.
 Dette gælder blandt andet `sygeferiegodtgoerelse.perAnsaettelsesforhold[].sfggVisningsperiode`, som normativt er
 de autoritative arbejdsforløbs-ranges efter fradrag af første undtagne TAF-dag (når den faktisk gælder for det
 konkrete ansættelsesforhold), 4-månedersgrænse, ansættelsesophør og eventuelt bortfald under
 arbejdsgiverbetalt sygeløn, men før feriesubtraktion til SFGG-segmentering.
 
 **Ufravigelige regler:**
-- Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller gennemsyns-/kontrollag.
+- Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller kontrollag.
 - Engines arbejder altid på de clampede værdier som snapshot-orchestreringen leverer.
 - Committed form-state ændres aldrig af clamping.
 
@@ -165,10 +165,10 @@ stadig med de **sektions-uafhængige** engine-data der kan beregnes sikkert: svi
 (afhænger ikke af løn-/TAF-validering) samt clampede TAF-ranges for de rækker der stadig kan
 parses. Det giver EOInspektion samme clamping-billede for gyldige rækker, uden at vise dagtal der
 ikke indgik i en autoritativ beregning. Er alle rækker ugyldige eller clampes bort, er `[]`
-den forventede fail-closed gennemsyns-/kontrol-basis. I `fail_closed`-stien (uventet runtime-exception) er
+den forventede fail-closed kontrol-basis. I `fail_closed`-stien (uventet runtime-exception) er
 `inspektionSnapshot` derimod `null`.
-Gennemsyns-/kontrollaget må ikke lave nye fallback-enginekald for sektions-**afhængige** delresultater
-(TAF-totaler, løn-afledte beløb). Når autoritativt engine-output mangler, skal gennemsyns-/kontrollaget vise
+Kontrollaget må ikke lave nye fallback-enginekald for sektions-**afhængige** delresultater
+(TAF-totaler, løn-afledte beløb). Når autoritativt engine-output mangler, skal kontrollaget vise
 tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
 
 ---
@@ -234,8 +234,8 @@ Snapshot-status sættes deterministisk:
 
 | Status | Betingelse |
 |---|---|
-| `fail_closed` | System-/schema-/runtime-tilstand hvor snapshot-build ikke må levere autoritativ beregning. `data: null`, `failClosedReason` skal være sat, og PDF/gennemsyn må ikke bruge totals. |
-| `error` med `data: null` | Forventelig bruger-/validatorblokering før autoritativ beregning, herunder `blocksAuthoritativeComputation`. Gennemsyns-/kontrollaget må kun bruge sikre delprojektioner. |
+| `fail_closed` | System-/schema-/runtime-tilstand hvor snapshot-build ikke må levere autoritativ beregning. `data: null`, `failClosedReason` skal være sat, og PDF/kontrol må ikke bruge totals. |
+| `error` med `data: null` | Forventelig bruger-/validatorblokering før autoritativ beregning, herunder `blocksAuthoritativeComputation`. Kontrollaget må kun bruge sikre delprojektioner. |
 | `error` med `data` | Output-specifikke fejl der ikke stopper beregningen, men blokerer relevante outputs (fx kontroluoverensstemmelse, TAF-per-år-afstemningsfejl over 100 øre). Bounds-violations (§2.2) sætter ikke snapshot til `error` — de eksponeres som feltfejl der blokerer download via EOBeregningTab. |
 | `warning` | Ingen errors, men mindst én warning-invariant er brudt |
 | `ok` | Ingen brudte invariants |
@@ -341,7 +341,7 @@ Ufravigelige regler:
 - EO's TAF-beregningsperiode må aldrig bruges som fallback, default, visningsgate eller beregningsinput for SFGG-referenceperioden.
 - SFGG-referenceperioden må aldrig bruges som fallback, default, visningsgate eller beregningsinput for TAF-beregningsperioden.
 - At perioderne i en konkret sag tilfældigvis er identiske giver ingen implicit kobling i kode eller projektioner.
-- PDF-, gennemsyns-/kontrol- og view-lag må ikke betinge SFGG-referenceperiode-indhold på `values.beregnesUdFra === 'Beregningsperiode'`.
+- PDF-, kontrol- og view-lag må ikke betinge SFGG-referenceperiode-indhold på `values.beregnesUdFra === 'Beregningsperiode'`.
 
 Tilladte relationer:
 - SFGG må gerne forholde sig til TAF-forløbet som sygeforløb, fx ved kravet om at SFGG-referenceperioden skal ligge før første TAF-dag/periode.

@@ -204,7 +204,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    - autoritative inputsektioner
    - autoritative forbrugere
    - status-/issue-model
-   - PDF/gennemsyns-/kontrol-projektioner
+   - PDF/kontrol-projektioner
    - runtime fail-closed-semantik
 5. Page-boundary quality-tests er et sikkerhedsnet, ikke fuld statisk sikkerhed. Aliasering, dynamiske imports og nye facade-hooks kræver stadig manuel review mod denne kontrakt.
 

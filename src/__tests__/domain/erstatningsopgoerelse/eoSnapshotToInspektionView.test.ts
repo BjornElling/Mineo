@@ -159,7 +159,7 @@ describe('eoSnapshotToInspektionView', () => {
     });
   });
 
-  it('returnerer blocked-view ved fail_closed snapshot uden gennemsyns-/kontrol-data', () => {
+  it('returnerer blocked-view ved fail_closed snapshot uden kontrol-data', () => {
     const view = eoSnapshotToInspektionView({
       snapshot: {
         revision: 'rev-fail',
@@ -185,7 +185,7 @@ describe('eoSnapshotToInspektionView', () => {
     expect(view).toEqual({
       kind: 'blocked',
       severity: 'error',
-      title: 'EO-gennemsyn er blokeret',
+      title: 'EO-kontrol er blokeret',
       message: 'Intern fejl',
     });
   });

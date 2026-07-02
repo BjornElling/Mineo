@@ -81,7 +81,7 @@ describe('buildEOInspektionPageViewModel', () => {
     }]);
   });
 
-  it('bevarer gennemsyns-/kontrolvisningen hvis reguleringstabel for offentlige ydelser ikke kan bygges', () => {
+  it('bevarer kontrolvisningen hvis reguleringstabel for offentlige ydelser ikke kan bygges', () => {
     mockBuildOffentligeYdelserReguleringTableData.mockImplementation(() => {
       throw new Error('Reguleringssats mangler');
     });

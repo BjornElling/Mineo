@@ -141,7 +141,7 @@ Når et nyt persisted felt tilføjes, skal man altid gennemgå følgende typer s
 
 5. **Beregningslag (BETINGET)**
    - relevante domain engines / snapshots / output-projektioner
-   - påkrævet hvis feltet påvirker beregning, gennemsyn/kontrol eller afledte resultater
+   - påkrævet hvis feltet påvirker beregning, kontrol eller afledte resultater
 
 6. **PDF-lag (BETINGET)**
    - relevante PDF-projektioner/renderere

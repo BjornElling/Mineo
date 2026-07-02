@@ -9,7 +9,7 @@ export type Periodisering = 'kalenderdage' | 'arbejdsdage';
 
 export interface YdelsestypeConfig {
   label: string;
-  // Alternativ visnings-label med linjeskift til smalle tabelkolonner (kontrol-/gennemsynstabellen).
+  // Alternativ visnings-label med linjeskift til smalle tabelkolonner (kontrol-/kontroltabellen).
   // Falder tilbage til `label`, når den ikke er sat.
   tabelLabel?: string;
   periodisering: Periodisering;

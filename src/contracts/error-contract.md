@@ -1,10 +1,10 @@
-# Mineo – Error- og gennemsyns-/kontrolkontrakt
+# Mineo – Error- og kontrolkontrakt
 
 **Status:** Gældende arkitektur (runtime-only)
 **Type:** Tværgående kontrakt
 **Senest verificeret mod kode:** 2026-07-02
 
-Dette dokument beskriver den **normative** model for felt-fejl (errors) og gennemsyns-/kontrolvisning i Mineo.
+Dette dokument beskriver den **normative** model for felt-fejl (errors) og kontrolvisning i Mineo.
 
 Formålet er at sikre:
 - deterministisk og auditérbar fejlhåndtering
@@ -65,7 +65,7 @@ Hvor `FormFieldError` mindst indeholder:
 **Invariants (normative):**
 - `fieldErrors` er **runtime-only** og må aldrig persisteres. (`invalidDrafts` er en separat persisteret kanal og hører under `persistence-contract.md`, ikke her.)
 - En `message` må aldrig være tom/whitespace efter normalisering.
-- Gennemsyns-/kontrolvisningen må aldrig “gætte” fejl – den må kun læse modellen.
+- Kontrolvisningen må aldrig “gætte” fejl – den må kun læse modellen.
 - UI må aldrig være timing-afhængig: “hvad vises” skal komme fra en deterministisk resolver.
 
 ---
@@ -122,7 +122,7 @@ Dette sker i `usePersistedForm`/persistence-laget.
 Producenter bør bruge:
 - `useFormFieldErrorReporter(pageKey, fieldName, { source, severity })`
 
-Gennemsyn/diagnostik kan læse:
+Kontrol/diagnostik kan læse:
 - `useFormFieldErrors(pageKey)` → resolved (aktiv fejl pr felt)
 - `useFormFieldErrorsBySource(pageKey)` → rå pr source
 
@@ -139,9 +139,9 @@ Når en fejltekst henviser til en anden side, må kun selve sidens brugervendte 
 
 ---
 
-## 6. Strategier for gennemsyns-/kontrolvisning (vælg bevidst)
+## 6. Strategier for kontrolvisning (vælg bevidst)
 
-Der findes to gyldige strategier for gennemsyns-/kontrolvisninger:
+Der findes to gyldige strategier for kontrolvisninger:
 
 ### A) “Hvad er aktivt lige nu?”
 - Brug resolved view: `useFormFieldErrors(pageKey)`
@@ -151,7 +151,7 @@ Der findes to gyldige strategier for gennemsyns-/kontrolvisninger:
 - Brug by-source view: `useFormFieldErrorsBySource(pageKey)`
 - Viser input/schema/rule samtidig og gør prioritet synlig
 
-Strategi **B** er normativ default for gennemsyns-/kontrolvisninger, medmindre en domænekontrakt eksplicit vælger strategi A.
+Strategi **B** er normativ default for kontrolvisninger, medmindre en domænekontrakt eksplicit vælger strategi A.
 
 ---
 
@@ -268,15 +268,15 @@ EOInspektion og EOKontrolTabel **kan altid dannes** fra snapshot-data (clampede 
 **Manglende fra- eller til-datoer** på TAF/svie-smerte-rækker er **forventelig adfærd**
 (brugeren har ikke udfyldt dem endnu). Det er ikke en systemfejl, og det må ikke:
 - Udløse en `BugReportButton` i EOInspektion
-- Forhindre gennemsynsvisningen i at dannes
+- Forhindre kontrolvisningen i at dannes
 - Klassificeres som runtime-fejl
 
 Validator og snapshot-invariants klassificerer manglende datoer som fejl og viser dem
 i EOBeregningTab — ikke i EOInspektion-visningen.
 
-I validerings-fejl-stien, hvor snapshot ikke har autoritativt engine-output, må gennemsyns-/kontrollaget
+I validerings-fejl-stien, hvor snapshot ikke har autoritativt engine-output, må kontrollaget
 ikke lave nye fallback-enginekald for at udfylde svie/smerte-tal, TAF-tal eller andre
-delresultater. Gennemsyns-/kontrollaget skal i stedet vise tom/ikke-beregnet tilstand for sådanne felter.
+delresultater. Kontrollaget skal i stedet vise tom/ikke-beregnet tilstand for sådanne felter.
 
 Hvis `inspektionSnapshot` er `null` (ved `fail_closed` inden engines kørte), vises en passende
 tom-/fejltilstand uden at forsøge at rendere beregningsindhold. Dette er forventelig adfærd.
@@ -286,7 +286,7 @@ tom-/fejltilstand uden at forsøge at rendere beregningsindhold. Dette er forven
 EOInspektion må ikke introducere nye ad hoc-tabeltyper i komponenter eller row-builders.
 
 Regler:
-- Hvis gennemsyns-/kontrolindhold skal vises som tabel, skal det renderes via en eksisterende, forhåndsdefineret tabeltype.
+- Hvis kontrolindhold skal vises som tabel, skal det renderes via en eksisterende, forhåndsdefineret tabeltype.
 - For rene visningstabeller i EOInspektion er den kanoniske tabeltype `StandardDisplayTable`.
 - For `StandardDisplayTable` i EOInspektion er samlet tabelbredde centralt styret til 100 %; kolonnebredder må gerne være automatiske eller sættes manuelt pr. kolonne, men den samlede bredde må ikke overstyres lokalt.
 - Row-builders må ikke opfinde nye tabel-layouts som fritekstblokke, pseudo-tabeller eller specialmarkup, når indholdet semantisk er en tabel.

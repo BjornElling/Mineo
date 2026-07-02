@@ -46,7 +46,7 @@ const buildCanonicalForValues = (values: ErstatningsopgoerelseValues) => {
 };
 
 /**
- * Helper til at ekstrahere beregnet beløb fra gennemsyns-/kontrol-rows
+ * Helper til at ekstrahere beregnet beløb fra kontrol-rows
  */
 const getBeregnetBeloeb = (values: ErstatningsopgoerelseValues): string => {
   const context = {
@@ -82,7 +82,7 @@ const getBeregnetBeloeb = (values: ErstatningsopgoerelseValues): string => {
 };
 
 /**
- * Helper til at ekstrahere antal dage fra gennemsyns-/kontrol-rows
+ * Helper til at ekstrahere antal dage fra kontrol-rows
  */
 const getAntalDage = (values: ErstatningsopgoerelseValues): string => {
   const context = {

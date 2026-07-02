@@ -1,38 +1,38 @@
-# Række-evaluerings- & gennemsyns-/kontrol-arkitektur
+# Række-evaluerings- & kontrol-arkitektur
 
 **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt
-**Primært scope:** `src/domain/eoRowEvaluation/*` (række-evaluerings-motoren), `src/domain/eoInspektion/*` (gennemsyns-/kontrollag, DEV-synligt), `src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts`, `src/components/pages/erstatningsopgoerelse/EOInspektion.tsx`
+**Primært scope:** `src/domain/eoRowEvaluation/*` (række-evaluerings-motoren), `src/domain/eoInspektion/*` (kontrollag, DEV-synligt), `src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts`, `src/components/pages/erstatningsopgoerelse/EOInspektion.tsx`
 
-Dette dokument er et arbejdsredskab for ændringer i EO-række-evaluering og EO-gennemsyn/kontrol. Bindende fejl-/diagnostikregler ligger i `src/contracts/error-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
+Dette dokument er et arbejdsredskab for ændringer i EO-række-evaluering og EO-kontrol. Bindende fejl-/diagnostikregler ligger i `src/contracts/error-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
 
-> **Lagfordeling — læs dette først.** Række-evaluerings-motoren (builder-registry + alle `buildEo…Rows` + aggregator + delte typer/helpers) ligger i den autoritative placering **`src/domain/eoRowEvaluation/`**, fordi den driver den trust-kritiske download-gate og derfor ikke må ligge i et nominelt "DEV"-lag. Dette er resultatet af arkitektur-kandidat B9 (2026-06-25), der flyttede motoren ud af det tidligere `src/domain/debug/`-lag og omdøbte symbolerne `eoDebug…`→`eoRow…` (fx `collectAllDebugRows`→`collectAllEoRows`, `DebugRowModel`→`EoRowModel`, `EO_DEBUG_BUILDERS`→`EO_ROW_BUILDERS`). I **`src/domain/eoInspektion/`** ligger det rene gennemsyns-/kontrollag (page-/regulerings-viewmodel, CSV, integritet, parity, sammentælling) — det importerer motoren, aldrig omvendt. Den sproglige oprydning (2026-07-02) omdøbte dette lag fra `debug` til `eoInspektion` og dets brugervendte faner til "EO-gennemsyn" og "Kontroltabel", fordi de er inspektions-/kontrolvisninger, ikke fejlsøgningsværktøjer. Generiske række-format-helpere i motoren bærer ikke længere et `Debug`-suffiks (fx `RowDay`, `RowCellValue`, `parseDanishToIso`); den private exception-isolerings-helper hedder `executeEoRowBuilderEntry`, og fallback-rækkens id er `eo.rowBuilder.<section>.exception`.
+> **Lagfordeling — læs dette først.** Række-evaluerings-motoren (builder-registry + alle `buildEo…Rows` + aggregator + delte typer/helpers) ligger i den autoritative placering **`src/domain/eoRowEvaluation/`**, fordi den driver den trust-kritiske download-gate og derfor ikke må ligge i et nominelt "DEV"-lag. Dette er resultatet af arkitektur-kandidat B9 (2026-06-25), der flyttede motoren ud af det tidligere `src/domain/debug/`-lag og omdøbte symbolerne `eoDebug…`→`eoRow…` (fx `collectAllDebugRows`→`collectAllEoRows`, `DebugRowModel`→`EoRowModel`, `EO_DEBUG_BUILDERS`→`EO_ROW_BUILDERS`). I **`src/domain/eoInspektion/`** ligger det rene kontrollag (page-/regulerings-viewmodel, CSV, integritet, parity, sammentælling) — det importerer motoren, aldrig omvendt. Den sproglige oprydning (2026-07-02) omdøbte dette lag fra `debug` til `eoInspektion` og dets brugervendte faner til "EO-kontrol" og "Kontroltabel", fordi de er inspektions-/kontrolvisninger, ikke fejlsøgningsværktøjer. Generiske række-format-helpere i motoren bærer ikke længere et `Debug`-suffiks (fx `RowDay`, `RowCellValue`, `parseDanishToIso`); den private exception-isolerings-helper hedder `executeEoRowBuilderEntry`, og fallback-rækkens id er `eo.rowBuilder.<section>.exception`.
 
 ---
 
 ## 1. Formål
 
-EO-gennemsyn/kontrol skal vise committed, auditérbare og forklarlige oplysninger om sagen.
+EO-kontrol skal vise committed, auditérbare og forklarlige oplysninger om sagen.
 
-EO-gennemsyn/kontrol er et visnings- og forklaringslag. Det er ikke den autoritative beregningspipeline.
+EO-kontrol er et visnings- og forklaringslag. Det er ikke den autoritative beregningspipeline.
 
 Konsekvens:
-- gennemsyns-/kontrollaget må gerne projektere, forklare og strukturere motorens resultater
-- gennemsyns-/kontrollaget må ikke indføre alternative beregningsforudsætninger i strid med motoren
-- gennemsyns-/kontrollaget må ikke gøre lovlige committed input "forkerte" ved at kalde delmotorer på et for bredt eller forkert grundlag
-- gennemsyns-/kontrollaget må gerne have fallback-visning uden `canonicalOutput`, men fallback må være tydeligt begrænset til forklaring og ikke udgive sig for at være autoritativ beregning
+- kontrollaget må gerne projektere, forklare og strukturere motorens resultater
+- kontrollaget må ikke indføre alternative beregningsforudsætninger i strid med motoren
+- kontrollaget må ikke gøre lovlige committed input "forkerte" ved at kalde delmotorer på et for bredt eller forkert grundlag
+- kontrollaget må gerne have fallback-visning uden `canonicalOutput`, men fallback må være tydeligt begrænset til forklaring og ikke udgive sig for at være autoritativ beregning
 
 ---
 
 ## 2. Faktisk systemstruktur
 
-Den nuværende EO-gennemsyn/kontrol består af to parallelle outputspor:
+Den nuværende EO-kontrol består af to parallelle outputspor:
 
 1. Builder-baserede `EoRowModel[]`
 2. Reguleringssektioner (`RegulationInspektionSection[]`)
 
 Det er vigtigt, fordi registry kun dækker spor 1.
 
-### Dataflow for EO-gennemsyn-siden
+### Dataflow for EO-kontrol-siden
 
 ```text
 EoSnapshot
@@ -82,12 +82,12 @@ errors / warnings / allRows / relevantRows
 
 ### Konsekvens
 
-`EO_ROW_BUILDERS` er single source of truth for række-rækkerne, men ikke for hele EO-gennemsyns-/kontrolvisningen.
+`EO_ROW_BUILDERS` er single source of truth for række-rækkerne, men ikke for hele EO-kontrolvisningen.
 
 Det er derfor forkert at antage:
-- at alt gennemsyns-/kontrol-output går gennem registry
-- at en ny gennemsyns-/kontrol-sektion altid kun kræver én ændring i registry
-- at EO-gennemsyn/kontrol og Beregning-fanen er identiske consumers af række-output
+- at alt kontrol-output går gennem registry
+- at en ny kontrol-sektion altid kun kræver én ændring i registry
+- at EO-kontrol og Beregning-fanen er identiske consumers af række-output
 
 De deler samme builder-kilde, men har forskellig efterbehandling.
 
@@ -103,13 +103,13 @@ De deler samme builder-kilde, men har forskellig efterbehandling.
 
 Kun når `inspektionSnapshot` findes, returneres `kind: 'ready'`.
 
-Ved `ready` bruger viewet altid værdierne fra `inspektionSnapshot` som committed gennemsyns-/kontrolgrundlag:
+Ved `ready` bruger viewet altid værdierne fra `inspektionSnapshot` som committed kontrolgrundlag:
 - `inspektionSnapshot.stamdataValues`
 - `inspektionSnapshot.eoValues`
 - `inspektionSnapshot.fieldErrors`
 - `inspektionSnapshot.inspektionDays`
 
-Det er korrekt og vigtigt, fordi gennemsyns-/kontrollaget ikke må læse "stale" input direkte fra `snapshot.input`, hvis snapshot allerede indeholder et konsistent committed gennemsyns-/kontrolgrundlag.
+Det er korrekt og vigtigt, fordi kontrollaget ikke må læse "stale" input direkte fra `snapshot.input`, hvis snapshot allerede indeholder et konsistent committed kontrolgrundlag.
 
 Der findes test for dette i `src/__tests__/domain/erstatningsopgoerelse/eoSnapshotToInspektionView.test.ts`.
 
@@ -148,7 +148,7 @@ Dette følges konsekvent i registry og i Beregning-fanen.
 
 Registryet eksponerer to udførelsesfunktioner:
 - `executeEoRowBuilderEntries` — flat `EoRowModel[]`, bruges af Beregning-fanen
-- `executeEoRowBuilderEntriesBySection` — `Map<SectionId, EoRowModel[]>`, bruges af EO-gennemsyn-siden
+- `executeEoRowBuilderEntriesBySection` — `Map<SectionId, EoRowModel[]>`, bruges af EO-kontrol-siden
 
 Registryet ejer ikke:
 - reguleringssektioner
@@ -178,7 +178,7 @@ Registryet ejer ikke:
 
 Fejl i en enkelt builder isoleres via `executeEoRowBuilderEntry` (privat helper i registry), som bruges af:
 - `executeEoRowBuilderEntries` (flat output til Beregning-fanen)
-- `executeEoRowBuilderEntriesBySection` (sektioneret output til EO-gennemsyn-siden)
+- `executeEoRowBuilderEntriesBySection` (sektioneret output til EO-kontrol-siden)
 
 `eoSnapshotToInspektionView` bruger `executeEoRowBuilderEntriesBySection(EO_ROW_BUILDERS, ctx)` og har ikke sin egen kopi af exception-isolationen.
 
@@ -187,18 +187,18 @@ Fallback-rækken er:
 - label: `Fejl i række-builder (<section>)`
 - status: `error`
 
-Forventelige brugerinputtilstande må ikke kaste. Uventede builder-exceptions skal både isoleres som gennemsyns-/kontrol-række og rapporteres via central systemfejlrapportering med sanitiseret payload efter `error-contract.md`.
+Forventelige brugerinputtilstande må ikke kaste. Uventede builder-exceptions skal både isoleres som kontrol-række og rapporteres via central systemfejlrapportering med sanitiseret payload efter `error-contract.md`.
 
 ---
 
 ## 7. Hovedregel for `canonicalOutput`
 
-Hvis en oplysning allerede findes i `canonicalOutput`, skal gennemsyns-/kontrollaget læse den derfra frem for at genberegne.
+Hvis en oplysning allerede findes i `canonicalOutput`, skal kontrollaget læse den derfra frem for at genberegne.
 
 Rationale:
-- reducerer divergens mellem gennemsyn/kontrol og motor
-- reducerer sandsynligheden for, at gennemsyns-/kontrollaget kalder delmotorer med forkert gating
-- gør koblingen mellem autoritativ beregning og gennemsyns-/kontrol-forklaring eksplicit
+- reducerer divergens mellem kontrol og motor
+- reducerer sandsynligheden for, at kontrollaget kalder delmotorer med forkert gating
+- gør koblingen mellem autoritativ beregning og kontrol-forklaring eksplicit
 
 ### Nuværende builders med canonical-output-kobling
 
@@ -212,23 +212,23 @@ Rationale:
 
 ### Vigtig præcisering
 
-Ikke alle gennemsyns-/kontrol-oplysninger findes i `canonicalOutput`, og ikke alle builders skal have `canonicalOutput`.
+Ikke alle kontrol-oplysninger findes i `canonicalOutput`, og ikke alle builders skal have `canonicalOutput`.
 
 Reglen er:
-- "når den autoritative værdi allerede findes i canonical output, skal gennemsyns-/kontrollaget bruge den"
+- "når den autoritative værdi allerede findes i canonical output, skal kontrollaget bruge den"
 
 ---
 
-## 8. Hvornår gennemsyns-/kontrollaget må kalde en motor direkte
+## 8. Hvornår kontrollaget må kalde en motor direkte
 
-Direkte motorkald i gennemsyns-/kontrollaget er kun forsvarligt når alle disse betingelser er opfyldt:
+Direkte motorkald i kontrollaget er kun forsvarligt når alle disse betingelser er opfyldt:
 
 1. Den nødvendige information findes ikke allerede i `canonicalOutput`.
 2. Builderen kan afgøre samme domæneforudsætninger som motoren kræver.
 3. Gatingen sker på konkret domænesemantik, ikke på løse korrelationer.
 4. Der findes regressionstest for lovlige edge cases, hvor motoren ikke må kaldes.
 
-### Konkrete nuværende motorkald/faglige helpers i gennemsyns-/kontrollaget
+### Konkrete nuværende motorkald/faglige helpers i kontrollaget
 
 - `buildEoSygeferiegodtgoerelseRows`
   - kalder `buildLoenudviklingModel(...)` og `computeSygeferiegodtgoerelse(...)`
@@ -239,18 +239,18 @@ Direkte motorkald i gennemsyns-/kontrollaget er kun forsvarligt når alle disse 
 - `buildRegulationInspektionSections`
   - kalder `buildReguleringIndexRows(...)`
 
-At gennemsyns-/kontrollaget bruger disse helpers er ikke i sig selv et problem. Problemet opstår først, hvis gennemsyns-/kontrollaget bruger dem med bredere eller andre forudsætninger end de autoritative flows.
+At kontrollaget bruger disse helpers er ikke i sig selv et problem. Problemet opstår først, hvis kontrollaget bruger dem med bredere eller andre forudsætninger end de autoritative flows.
 
-### Særlig undtagelse: regulerings-gennemsyn/kontrol genbruger regulerings-præsentationens rækkebygger
+### Særlig undtagelse: regulerings-kontrol genbruger regulerings-præsentationens rækkebygger
 
 `buildRegulationInspektionSections` (`src/domain/eoInspektion/eoInspektionRegulationViewModel.ts`) importerer `buildReguleringIndexRows(...)` fra regulerings-præsentationslaget `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`. (Dette modul hed tidligere `pdf/eoPdfRegulering.ts`, men er konsolideret ind i `engines/` ved review 10.5 — det er domæne-præsentationslogik der bygger tabel-data, ikke jsPDF-rendering.)
 
 Det er et andet mønster end SFGG-builderen:
-- her genbruges regulerings-præsentationslogikken direkte i gennemsyns-/kontrollaget
+- her genbruges regulerings-præsentationslogikken direkte i kontrollaget
 - der er ikke tilsvarende dokumenteret, domænespecifik gating foran kaldet
 
 Aktuel vurdering:
-- dette er ikke nødvendigvis forkert, fordi gennemsyns-/kontrollaget her forsøger at forklare samme reguleringssegmenter som resten af systemet
+- dette er ikke nødvendigvis forkert, fordi kontrollaget her forsøger at forklare samme reguleringssegmenter som resten af systemet
 - men det er en arkitektonisk undtagelse, som bør behandles eksplicit
 - på sigt bør det enten formaliseres som accepteret delt domain-helper eller flyttes ud af PDF-engine-modulet til et neutralt domænemodul
 
@@ -262,7 +262,7 @@ Builders må ikke beslutte motorkald ud fra indirekte metadata, hvis metadataen 
 
 Forkert mønster:
 - "overenskomsten har reguleringsdata"
-- derfor: "gennemsyns-/kontrollaget må bygge lønudviklingsmodel"
+- derfor: "kontrollaget må bygge lønudviklingsmodel"
 
 Det er forkert, hvis en delmængde af disse overenskomster i virkeligheden bruger direkte sats og derfor ikke skal gennem lønudviklingsmodellen.
 
@@ -292,7 +292,7 @@ const requiresLoenudviklingModel = ...
 
 Arkitektonisk vurdering:
 - dette matcher dokumentets oprindelige hensigt
-- dette er et godt mønster at kopiere ved fremtidige motorkald i gennemsyns-/kontrollaget
+- dette er et godt mønster at kopiere ved fremtidige motorkald i kontrollaget
 - der findes regressionstest, som specifikt beskytter mod at kalde lønudviklingsmodellen for direkte sats-sporet
 
 ---
@@ -381,20 +381,20 @@ Builders producerer rå række-data. Hver consumer laver sin relevante post-proc
 
 ### Det der ikke er fuldt konsistent
 
-- regulerings-gennemsyn/kontrol ligger uden for builder-registryet og er ikke en `EoRowModel`-sektion
+- regulerings-kontrol ligger uden for builder-registryet og er ikke en `EoRowModel`-sektion
 - `eoInspektionPageViewModel.ts` parser ansættelsesforhold-id via regex på row-ids — det er en skjult string-kontrakt uden typesikring
-- registry er single source of truth for selve række-rækkerne, men ikke for hele EO-gennemsyns-/kontrolvisningen (regulerings-sektioner, viewmodel-sammensætning og navigation ligger udenfor); en ny builder-sektion kræver derfor typisk ændringer flere steder (jf. §14–§15)
+- registry er single source of truth for selve række-rækkerne, men ikke for hele EO-kontrolvisningen (regulerings-sektioner, viewmodel-sammensætning og navigation ligger udenfor); en ny builder-sektion kræver derfor typisk ændringer flere steder (jf. §14–§15)
 
 ---
 
 ## 14. Praktisk tjekliste ved ændringer
 
-Før du ændrer eller tilføjer gennemsyns-/kontrol-output:
+Før du ændrer eller tilføjer kontrol-output:
 
 1. Find ud af, om ændringen er en `EoRowModel`-sektion eller en `RegulationInspektionSection`-agtig særstruktur.
 2. Hvis værdien allerede findes i `canonicalOutput`, brug den derfra.
 3. Hvis ikke: undersøg om der findes en eksisterende ren helper før du kalder en tung motor.
-4. Hvis gennemsyns-/kontrollaget skal kalde en motor, dokumentér den konkrete gating og skriv regressionstest.
+4. Hvis kontrollaget skal kalde en motor, dokumentér den konkrete gating og skriv regressionstest.
 5. Vurder om `dependsOn` skal sættes for at undgå dobbeltfejl i Beregning-fanen.
 6. Kontroller at `id` er semantisk stabilt og navigerbart eller bevidst `unsupported`.
 7. Kontroller begge consumers:
@@ -416,9 +416,9 @@ En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmod
 
 ## 16. Udestående teknisk gæld
 
-### A. `buildReguleringIndexRows` deles mellem PDF og gennemsyn/kontrol
+### A. `buildReguleringIndexRows` deles mellem PDF og kontrol
 
-Se afsnit 8: `buildRegulationInspektionSections` genbruger `buildReguleringIndexRows` fra `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`. Ved review 10.5 blev dette modul flyttet ud af det tidligere `pdf/`-lag og ind i `engines/`, hvilket afklarer ejerskabet: det er domæne-præsentationslogik (tabel-data), der bevidst deles af både EO-PDF-projektionen og regulerings-gennemsyn/kontrol. Det er dermed ikke længere en uafklaret afhængighed til "PDF-laget".
+Se afsnit 8: `buildRegulationInspektionSections` genbruger `buildReguleringIndexRows` fra `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`. Ved review 10.5 blev dette modul flyttet ud af det tidligere `pdf/`-lag og ind i `engines/`, hvilket afklarer ejerskabet: det er domæne-præsentationslogik (tabel-data), der bevidst deles af både EO-PDF-projektionen og regulerings-kontrol. Det er dermed ikke længere en uafklaret afhængighed til "PDF-laget".
 
 ### B. Regex-baseret id-parsing i `eoInspektionPageViewModel.ts`
 

@@ -290,7 +290,7 @@ const buildStatistikEntries = (args: Readonly<{
   const modelLabel = (args.af.loenudviklingStatistikModel ?? '').trim();
   if (modelLabel === '') return null;
 
-  // Intentional: gennemsyns-/kontrollaget viser basis-/reguleringsdatoen som første entry,
+  // Intentional: kontrollaget viser basis-/reguleringsdatoen som første entry,
   // også når den ligger før EO-periodens første data-start.
   // Arbejdsdage og måneder afgrænses stadig til EO-perioden via getTidsenhedsvaerdier.
   const dates = new Set<ISODateString>([args.referenceIso]);
@@ -389,7 +389,7 @@ const buildKrlEntries = (args: Readonly<{
 
   // Intentional parity med statistik-path og PDF-motor:
   // KRL-entries starter ved reference-/reguleringsdatoen, ikke eoFra.
-  // Gennemsyns-/kontrollaget viser dermed basisindekset på reguleringsdatoen, mens tidsenhederne
+  // Kontrollaget viser dermed basisindekset på reguleringsdatoen, mens tidsenhederne
   // fortsat afgrænses til EO-perioden via getTidsenhedsvaerdier.
   const dates = new Set<ISODateString>([args.referenceIso]);
   for (const entry of valuesByIso) {
@@ -462,8 +462,8 @@ const buildKlLoenaftalerEntries = (args: Readonly<{
       feriePct: 0,
       shSoPct: 0,
       fritvalgPct: 0,
-      // KL-lønaftaler-gennemsyn/kontrol bruger kun periodesatsen til "Reguleringsværdier". Den beregnede
-      // reguleringstabel kommer fra canonical KL-lønaftaler-segmenter, så gennemsyns-/kontrollaget må ikke genindføre
+      // KL-lønaftaler-kontrol bruger kun periodesatsen til "Reguleringsværdier". Den beregnede
+      // reguleringstabel kommer fra canonical KL-lønaftaler-segmenter, så kontrollaget må ikke genindføre
       // en akkumuleret indeksmodel her.
       storeBededagPct: 0,
       pensionPct: 0,
@@ -923,7 +923,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       const dates = new Set<ISODateString>();
       for (const sats of satser) {
         // Brug den guardede danske→ISO-parser (som de øvrige fraDato-konverteringer her),
-        // så en malformet sats-dato giver et spring frem for at kaste i gennemsyns-/kontrol-pipelinen.
+        // så en malformet sats-dato giver et spring frem for at kaste i kontrol-pipelinen.
         const iso = parseDanishToIso(sats.fraDato);
         if (iso && iso >= eoRange.fra && iso <= eoRange.til) {
           dates.add(iso);

@@ -38,7 +38,7 @@ describe('parseForligsgrad', () => {
   });
 
   // Lås label-format for decimal-procent. forligLabel er brugervendt (vises i
-  // svie/smerte-PDF-suffix og EO-gennemsyn/kontrol), og decimaler tillades af StyledPercentField.
+  // svie/smerte-PDF-suffix og EO-kontrol), og decimaler tillades af StyledPercentField.
   // Label bruger den kanoniske formatPercent → dansk konvention (komma-decimal + mellemrum).
   it('label for decimal-procent bruger kanonisk dansk format ("12,5 %")', () => {
     expect(parseForligsgrad({ forligAnsvarsgradProcent: 12.5, forligAnsvarsgradBroek: '' })).toEqual({

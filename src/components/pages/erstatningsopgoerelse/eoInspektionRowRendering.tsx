@@ -1,5 +1,5 @@
 /**
- * Delte render-hjælpere til EO-gennemsyns-/kontrol-rækkekomponenter.
+ * Delte render-hjælpere til EO-kontrol-rækkekomponenter.
  *
  * Samler de byggesten der ellers var dupliceret verbatim på tværs af
  * EOInspektionRowsSection, EOInspektionGroupedRowsSection og EOInspektionEmploymentSections:
@@ -12,7 +12,7 @@ import * as React from 'react';
 import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import type { EoRowStatus } from '../../../domain/eoRowEvaluation/eoRowTypes';
 
-/** Fælles label-bredde for gennemsyns-/kontrol-label/værdi-rækker. */
+/** Fælles label-bredde for kontrol-label/værdi-rækker. */
 export const INSPEKTION_ROW_LABEL_WIDTH = '320px';
 
 /**
@@ -24,7 +24,7 @@ export const INSPEKTION_ROW_LABEL_WIDTH = '320px';
  */
 export const INSPEKTION_REGULATION_ROW_LABEL_WIDTH = '250px';
 
-/** Statusikon for en gennemsyns-/kontrol-række ud fra dens max-severity. */
+/** Statusikon for en kontrol-række ud fra dens max-severity. */
 export const getStatusIcon = (status: EoRowStatus): React.ReactElement => {
   switch (status) {
     case 'error':

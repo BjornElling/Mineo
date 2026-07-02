@@ -39,8 +39,8 @@ export type TaftContext = Readonly<{
 
 // Kontrol-/audit-kontrakten (sammenlignings-status + besked-format + række-typer) ejes nu af
 // produktionslaget i `domain/erstatningsopgoerelse/control/eoControlMismatch.ts`, så
-// snapshot-invarianten `control:sammentaelling_mismatch` ikke importerer sin gate-logik fra gennemsyns-/kontrollaget.
-// Gennemsyns-/kontrollaget *bygger* rækkerne nedenfor og re-eksporterer kontrakten for bagudkompatible importører.
+// snapshot-invarianten `control:sammentaelling_mismatch` ikke importerer sin gate-logik fra kontrollaget.
+// Kontrollaget *bygger* rækkerne nedenfor og re-eksporterer kontrakten for bagudkompatible importører.
 export {
   getSammentaellingControlStatus,
   collectSammentaellingControlMismatchMessages,

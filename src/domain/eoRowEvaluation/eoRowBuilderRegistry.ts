@@ -217,7 +217,7 @@ export const executeEoRowBuilderEntries = (
 /**
  * Udfører builders og returnerer rows grupperet pr. section
  *
- * Bruges af EO-gennemsyn-siden, som har brug for sektioneret output
+ * Bruges af EO-kontrol-siden, som har brug for sektioneret output
  * men stadig skal dele samme exception-isolation som download-gaten.
  */
 export const executeEoRowBuilderEntriesBySection = (

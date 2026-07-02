@@ -44,8 +44,8 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
     return {
       kind: 'blocked',
       severity: 'info',
-      title: 'EO-gennemsyn kræver et friskt snapshot',
-      message: 'Åbn gennemsynsfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
+      title: 'EO-kontrol kræver et friskt snapshot',
+      message: 'Åbn kontrolfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
     };
   }
 
@@ -54,7 +54,7 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
     return {
       kind: 'blocked',
       severity: 'error',
-      title: 'EO-gennemsyn er blokeret',
+      title: 'EO-kontrol er blokeret',
       message: snapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.',
     };
   }
@@ -103,7 +103,7 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
   return {
     kind: 'blocked',
     severity: 'info',
-    title: 'EO-gennemsyn kræver et gyldigt inspektions-snapshot',
-    message: 'Ret valideringsfejlene i sagen og åbn gennemsynsfanen igen for at bygge gennemsynet på korrekt committede data.',
+    title: 'EO-kontrol kræver et gyldigt kontrol-snapshot',
+    message: 'Ret valideringsfejlene i sagen og åbn kontrolfanen igen for at bygge kontrolvisningen på korrekt committede data.',
   };
 };
