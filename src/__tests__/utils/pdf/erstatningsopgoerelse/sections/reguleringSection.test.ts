@@ -434,6 +434,66 @@ describe('renderReguleringSection – reguleringstekst', () => {
   });
 });
 
+describe('renderReguleringSection – note om manglende sats på reguleringsdatoen', () => {
+  it('viser note med den tidligste sats-dato når kilden ikke har satser på/før reguleringsdatoen', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-note',
+        navnPaaArbejdssted: 'Sen dækning',
+        loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+      },
+    ];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2020-04-01'),
+      sidste: iso('2024-04-30'),
+    }));
+    ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
+      columns: ['Fra-dato', 'Regulering'],
+      rows: [['01-03-2023', '2,55 %']],
+      tidligsteSatsGaelderFra: iso('2023-03-01'),
+    }));
+
+    renderReguleringSection(ctx);
+
+    expect(safeAddWrappedText).toHaveBeenCalledWith(
+      'Reguleringsgrundlaget indeholder ingen satser før den tidligste registrerede sats, der gælder fra den 1. marts 2023 og anvendes som udgangspunkt for reguleringen.'
+    );
+  });
+
+  it('viser ingen note når kilden har en sats på/før reguleringsdatoen', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-uden-note',
+        navnPaaArbejdssted: 'Tidlig dækning',
+        loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+      },
+    ];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2022-06-01'),
+      sidste: iso('2024-04-30'),
+    }));
+    ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
+      columns: ['Fra-dato', 'Regulering'],
+      rows: [['01-10-2021', '1,00 %']],
+    }));
+
+    renderReguleringSection(ctx);
+
+    const noteCalls = safeAddWrappedText.mock.calls
+      .map(([text]) => text)
+      .filter((text) => typeof text === 'string' && text.startsWith('Reguleringsgrundlaget indeholder ingen satser'));
+    expect(noteCalls).toHaveLength(0);
+  });
+});
+
 describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => {
   it('skjuler kolonner hvor alle værdier er tomme eller "-"', () => {
     autoTableMock.mockClear();

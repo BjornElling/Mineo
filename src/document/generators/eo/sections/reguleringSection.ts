@@ -28,6 +28,7 @@ import {
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../config/indskudteLoentillaeg';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
+import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import {
@@ -572,6 +573,16 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
           })
         : null;
     renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
+
+    // Note når kilden ikke har satser på/før reguleringsdatoen: tabellen tager afsæt i den
+    // tidligste registrerede sats. Uden noten kunne det se ud som en fejl, at tabellen først
+    // begynder efter reguleringsdatoen.
+    if (reguleringsvaerdierTableData?.tidligsteSatsGaelderFra) {
+      writer.addSectionSpacer();
+      safeAddWrappedText(
+        `Reguleringsgrundlaget indeholder ingen satser før den tidligste registrerede sats, der gælder fra den ${formatIsoDateLong(reguleringsvaerdierTableData.tidligsteSatsGaelderFra)} og anvendes som udgangspunkt for reguleringen.`
+      );
+    }
 
     writer.writeUnderlinedSubheader('Beregnet regulering');
 

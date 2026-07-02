@@ -182,7 +182,7 @@ describe('reguleringsPresentation', () => {
     })).toBe('lønnen opgjort per 2. maj 2017');
   });
 
-  it('viser reference-række før første tilgængelige overenskomstdato ved manglende tidlig dækning', () => {
+  it('viser tidligste faktiske sats uden reguleringsdato-række og sætter note ved manglende tidlig dækning', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -198,14 +198,16 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     expect(table?.rows.length).toBeGreaterThan(0);
-    // Referencerækken: placeholder for datoen før første overenskomstdækning.
-    // Kolonnerne bestemmes af laasesmedeoverenskomstens satser (Timeløn, Fritvalg, Store Bededag, AG pens. bidrag).
-    // SH/SO vises ikke fordi laasesmedeoverenskomsten har shSoSats = 0 i alle perioder.
+    // Ingen syntetisk række på reguleringsdatoen (01-01-2020) — den opgivne "referencerække" er fjernet.
+    expect(table?.rows.some((row) => row[0] === '01-01-2020')).toBe(false);
+    // Første række er laasesmedeoverenskomstens tidligste faktiske satsdato.
     // Hvis overenskomstdata ændres, skal denne forventning opdateres.
-    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '0 %', '-']);
+    expect(table?.rows[0]?.[0]).toBe('01-03-2023');
+    // Store Bededag-grænsen bevares fortsat som særskilt række.
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
-    // 01-03-2024 er fortsat første egentlige overenskomstsatsdato i testdata.
     expect(table?.rows.some((row) => row[0] === '01-03-2024')).toBe(true);
+    // Noten oplyser, at reguleringen tager afsæt i den tidligste registrerede sats.
+    expect(table?.tidligsteSatsGaelderFra).toBe(iso('2023-03-01'));
   });
 
   it('skjuler Fritvalg-kolonne for overenskomst hvor fritvalg er 0 i alle perioder', () => {
@@ -235,7 +237,7 @@ describe('reguleringsPresentation', () => {
     expect(table?.columns).toContain('AG pens. bidrag');
   });
 
-  it('viser indtastede satser på reference-række før første private overenskomstdækning', () => {
+  it('viser tidligste faktiske private overenskomstsats uden reguleringsdato-række og sætter note', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -253,7 +255,12 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '12,5 %', '2,7 %', '-', '0 %', '8,15 %']);
+    // Ingen syntetisk række på reguleringsdatoen (01-01-2020).
+    expect(table?.rows.some((row) => row[0] === '01-01-2020')).toBe(false);
+    // Første række er den tidligste faktiske overenskomstsats med de indtastede tillæg.
+    expect(table?.rows[0]?.[0]).toBe('01-03-2023');
+    expect(table?.rows[0]?.[1]).toBe('131,65');
+    expect(table?.tidligsteSatsGaelderFra).toBe(iso('2023-03-01'));
   });
 
   it('viser overenskomstens tillægskolonner i Beløb-tilstand', () => {
@@ -537,6 +544,29 @@ describe('reguleringsPresentation', () => {
     expect(table?.columns).toEqual(['Fra-dato', 'Regulering']);
     expect(table?.rows.find((r) => r[0] === '01-10-2024')).toEqual(['01-10-2024', '1,30 %']);
     expect(table?.rows.find((r) => r[0] === '01-10-2025')).toEqual(['01-10-2025', '0,30 %']);
+  });
+
+  it('injicerer ingen streg-række på KL-reguleringsdatoen når den ligger midt i en periode', () => {
+    // Regression: reguleringsdato 31-05-2022 lå mellem to KL-satser (01-10-2021 og 01-10-2022) og gav
+    // tidligere en støjrække "31-05-2022 | -". Nu vises kun den gældende sats ved vinduets start.
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2022-05-31'),
+      tafFra: iso('2022-05-31'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.some((row) => row[0] === '31-05-2022')).toBe(false);
+    // Første række er den senest gældende KL-sats før reguleringsvinduets start.
+    expect(table?.rows[0]).toEqual(['01-10-2021', '1,00 %']);
+    // Sats gælder på/før reguleringsdatoen → ingen note.
+    expect(table?.tidligsteSatsGaelderFra).toBeUndefined();
   });
 
   it('Beregnet regulering for KL-lønaftaler: lønudvikling gentager periodesatsen, reguleret løn er kæde-opreguleret', () => {
@@ -1549,7 +1579,7 @@ describe('reguleringsPresentation', () => {
     ]);
   });
 
-  it('viser statistik-reference før første kendte periode og derefter første reelle række', () => {
+  it('viser tidligste kendte statistik-periode uden reguleringsdato-række og sætter note', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Statistik';
@@ -1564,11 +1594,12 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows[0]).toEqual(['-', '01-01-2000', '-']);
-    expect(table?.rows[1]?.[0]).toBe('2005K1');
+    // Ingen syntetisk streg-række på reguleringsdatoen; første række er den tidligste kendte periode.
+    expect(table?.rows[0]).toEqual(['2005K1', '01-01-2005', '100,0']);
+    expect(table?.tidligsteSatsGaelderFra).toBe(iso('2005-01-01'));
   });
 
-  it('viser KRL-reference før første kendte periode og derefter første reelle række', () => {
+  it('viser tidligste kendte KRL-sats uden reguleringsdato-række og sætter note', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
@@ -1583,11 +1614,14 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows[0]).toEqual(['01-01-2000', '-']);
-    expect(table?.rows[1]?.[0]).toBe('01-04-2001');
+    // Ingen syntetisk streg-række på reguleringsdatoen; første række er den tidligste kendte sats.
+    expect(table?.rows[0]).toEqual(['01-04-2001', '4,0662 %']);
+    expect(table?.tidligsteSatsGaelderFra).toBe(iso('2001-04-01'));
   });
 
-  it('bevarer en særskilt KRL-række på reguleringsdatoen selv når reguleringsprocenten er uændret', () => {
+  it('tilføjer ingen særskilt række på reguleringsdatoen når en KRL-sats allerede gælder', () => {
+    // Tidligere blev reguleringsdatoen injiceret som en ekstra række (også ved uændret sats). Nu viser
+    // tabellen kun de faktiske KRL-satser; reguleringsdatoen 15-04-2001 ligger inden for 01-04-2001-satsen.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
@@ -1602,7 +1636,9 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows.map((row) => row[0])).toEqual(['01-04-2001', '15-04-2001']);
+    expect(table?.rows.map((row) => row[0])).toEqual(['01-04-2001']);
+    // Sats findes på/før reguleringsdatoen → ingen note.
+    expect(table?.tidligsteSatsGaelderFra).toBeUndefined();
   });
 
   it('finder senest gældende sats ved single-day TAF uden eksakt satsdato', () => {

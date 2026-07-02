@@ -81,6 +81,13 @@ export type ReguleringIndexRow = Readonly<{
 export type ReguleringValuesTableData = Readonly<{
   columns: readonly string[];
   rows: ReadonlyArray<ReadonlyArray<string>>;
+  /**
+   * Sat når reguleringskilden ikke har nogen registreret sats på/før reguleringsdatoen, og
+   * tabellen derfor tager afsæt i den tidligste registrerede sats (pr. denne dato). Renderlaget
+   * viser i så fald en forklarende note. Udeladt i det normale tilfælde, hvor der findes en sats
+   * på/før reguleringsdatoen.
+   */
+  tidligsteSatsGaelderFra?: ISODateString;
 }>;
 
 type IndexRowWithIso = ReguleringIndexRow & Readonly<{
@@ -308,10 +315,20 @@ const resolveReguleringsvaerdierLoenHeader = (
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
 const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
 
-const buildPlaceholderValueRow = (
-  label: string,
-  columns: readonly string[]
-): string[] => [label, ...columns.slice(1).map(() => '-')];
+/**
+ * Afgør, om Reguleringsværdier-tabellen skal ledsages af en note om, at kilden ikke har satser
+ * på/før reguleringsdatoen. Noten sættes kun, når den tidligste faktiske sats i tabellen først
+ * gælder EFTER reguleringsdatoen — dvs. reguleringen tager afsæt i en senere sats, fordi der ingen
+ * findes på reguleringsdatoen. `foersteRealSatsIso` er datoen for tabellens første egentlige
+ * satsrække (ikke en syntetisk grænse-/placeholderrække som fx Store Bededag før overenskomstdækning).
+ */
+const resolveTidligsteSatsGaelderFra = (
+  foersteRealSatsIso: ISODateString | undefined,
+  anvendtReguleringsdato: ISODateString | undefined
+): ISODateString | undefined =>
+  foersteRealSatsIso && anvendtReguleringsdato && foersteRealSatsIso > anvendtReguleringsdato
+    ? foersteRealSatsIso
+    : undefined;
 
 const buildPlaceholderValueRowWithCells = (
   label: string,
@@ -621,35 +638,21 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         tafTil
       );
       if (relevantRealDates.length === 0) return null;
-      const anvendtReguleringsdatoDa = anvendtReguleringsdato ? isoToDanish(anvendtReguleringsdato) : undefined;
-      const includeAnvendtReguleringsdato = Boolean(
-        anvendtReguleringsdato &&
-        anvendtReguleringsdatoDa &&
-        !getOffentligLoenForDato(offentligType, anvendtReguleringsdatoDa, loentrin, gruppeValue)
-      );
-      const finalDates = sortIsoDates(
-        includeAnvendtReguleringsdato && anvendtReguleringsdato
-          ? [...relevantRealDates, anvendtReguleringsdato]
-          : relevantRealDates
-      );
-      for (const iso of finalDates) {
+      // Tabellen viser den sats, der gælder ved reguleringsvinduets start (seneste sats på/før
+      // start via resolveRelevantRealDatesForTafScope) plus hver satsændring frem til slut. Der
+      // injiceres bevidst ingen syntetisk række på selve reguleringsdatoen — findes der ingen sats
+      // på/før reguleringsdatoen, viser tabellen den tidligste faktiske sats og ledsages af en note.
+      for (const iso of relevantRealDates) {
         const danish = isoToDanish(iso);
         if (!danish) continue;
         const loen = getOffentligLoenForDato(offentligType, danish, loentrin, gruppeValue);
-        if (loen) {
-          addRow(iso, loen.maanedsLoen, loen.timeLoen);
-        } else if (anvendtReguleringsdato === iso) {
-          rows.push(buildPlaceholderValueRow(formatDateShort(iso), columns));
-        }
+        if (loen) addRow(iso, loen.maanedsLoen, loen.timeLoen);
       }
 
       return {
         columns,
-        rows: mergeConsecutiveValueRows(rows, {
-          preserveFirstColumnValues: includeAnvendtReguleringsdato
-            ? buildPreservedDateLabels(anvendtReguleringsdato)
-            : undefined,
-        }),
+        rows: mergeConsecutiveValueRows(rows),
+        tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(relevantRealDates[0], anvendtReguleringsdato),
       };
     }
 
@@ -738,27 +741,19 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       tafTil
     );
     if (relevantRealDates.length === 0) return null;
-    const anvendtReguleringsdatoDa = anvendtReguleringsdato ? isoToDanish(anvendtReguleringsdato) : undefined;
-    const includeAnvendtReguleringsdato = Boolean(
-      anvendtReguleringsdato &&
-      anvendtReguleringsdatoDa &&
-      !getEffektiveSatserForDato({
-        overenskomstId: ref.baseId,
-        dato: anvendtReguleringsdatoDa,
-        applyAlmindeligLoenPaaShDageRegel,
-      })
-    );
-    const finalDates = sortIsoDates(
-      includeAnvendtReguleringsdato && anvendtReguleringsdato
-        ? [...relevantRealDates, anvendtReguleringsdato]
-        : relevantRealDates
-    );
-    const rows = finalDates
+    // Ingen syntetisk reguleringsdato-række (jf. den offentlige gren). Store Bededag-grænsen før
+    // overenskomstdækning bevares som placeholder, men tæller ikke som den "tidligste faktiske sats"
+    // i note-vurderingen — derfor spores kun den første egentlige overenskomstsatsrække.
+    let foersteRealSatsIso: ISODateString | undefined;
+    const rows = relevantRealDates
       .flatMap((iso) => {
         const danish = isoToDanish(iso);
         if (!danish) return [];
         const row = buildPrivateOverenskomstRow(iso, danish, danish);
-        if (row) return [row];
+        if (row) {
+          if (!foersteRealSatsIso) foersteRealSatsIso = iso;
+          return [row];
+        }
         const isStoreBededagBeforeCoverage =
           showStoreBededagColumn &&
           applyAlmindeligLoenPaaShDageRegel &&
@@ -767,18 +762,12 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         if (isStoreBededagBeforeCoverage) {
           return [buildPrivatePlaceholderRow(iso, danish)];
         }
-        if (anvendtReguleringsdato === iso) {
-          return [buildPrivatePlaceholderRow(iso, formatDateShort(iso))];
-        }
         return [];
       });
     return {
       columns,
-      rows: mergeConsecutiveValueRows(rows, {
-        preserveFirstColumnValues: includeAnvendtReguleringsdato
-          ? buildPreservedDateLabels(anvendtReguleringsdato)
-          : undefined,
-      }),
+      rows: mergeConsecutiveValueRows(rows),
+      tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(foersteRealSatsIso, anvendtReguleringsdato),
     };
   }
 
@@ -934,18 +923,19 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       tafTil
     );
     if (relevantRealDates.length === 0) return null;
-    const finalDates = sortIsoDates(
-      anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
-    );
-    const rows: string[][] = finalDates.flatMap((iso) => {
+    // Ingen syntetisk reguleringsdato-række; tabellen viser indeksperioden ved reguleringsvinduets
+    // start og hver efterfølgende periode. Findes ingen periode på/før reguleringsdatoen, viser
+    // tabellen den tidligste kendte periode og ledsages af en note.
+    const rows: string[][] = relevantRealDates.flatMap((iso) => {
       const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
-      if (!period && anvendtReguleringsdato === iso) {
-        return [['-', formatDateShort(iso), '-']];
-      }
       if (!period) return [];
       return [[period.kvartal, formatDateShort(iso), formatIndex(period.indeksvaerdi)]];
     });
-    return { columns: ['Kvartal', 'Startdato', 'Indeksværdi'], rows: mergeConsecutiveValueRows(rows) };
+    return {
+      columns: ['Kvartal', 'Startdato', 'Indeksværdi'],
+      rows: mergeConsecutiveValueRows(rows),
+      tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(relevantRealDates[0], anvendtReguleringsdato),
+    };
   }
 
   if (grundlag === 'KRL satstabel') {
@@ -973,22 +963,18 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       tafTil
     );
     if (relevantRealDates.length === 0) return null;
-    const finalDates = sortIsoDates(
-      anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
-    );
-    const rows: string[][] = finalDates.flatMap((iso) => {
+    // Ingen syntetisk reguleringsdato-række; tabellen viser reguleringsprocenten ved
+    // reguleringsvinduets start og hver efterfølgende ændring. Findes ingen sats på/før
+    // reguleringsdatoen, viser tabellen den tidligste kendte sats og ledsages af en note.
+    const rows: string[][] = relevantRealDates.flatMap((iso) => {
       const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
-      if (!period && anvendtReguleringsdato === iso) {
-        return [[formatDateShort(iso), '-']];
-      }
       if (!period) return [];
       return [[formatDateShort(iso), formatKrlPct(period.reguleringsPct)]];
     });
     return {
       columns: ['Fra-dato', 'Reguleringsprocent'],
-      rows: mergeConsecutiveValueRows(rows, {
-        preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
-      }),
+      rows: mergeConsecutiveValueRows(rows),
+      tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(relevantRealDates[0], anvendtReguleringsdato),
     };
   }
 
@@ -1018,14 +1004,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       tafTil
     );
     if (relevantRealDates.length === 0) return null;
-    const finalDates = sortIsoDates(
-      anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
-    );
-    const rows: string[][] = finalDates.flatMap((iso) => {
+    // Ingen syntetisk reguleringsdato-række; tabellen viser reguleringssatsen ved reguleringsvinduets
+    // start og hver efterfølgende ændring. Findes ingen sats på/før reguleringsdatoen, viser tabellen
+    // den tidligste kendte sats og ledsages af en note.
+    const rows: string[][] = relevantRealDates.flatMap((iso) => {
       const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
-      if (!period && anvendtReguleringsdato === iso) {
-        return [[formatDateShort(iso), '-']];
-      }
       if (!period) return [];
       const danishDato = isoToDanish(iso);
       const reguleringPct = danishDato ? getKlLoenaftalerReguleringPctForDato(danishDato) : undefined;
@@ -1034,9 +1017,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     });
     return {
       columns: ['Fra-dato', 'Regulering'],
-      rows: mergeConsecutiveValueRows(rows, {
-        preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
-      }),
+      rows: mergeConsecutiveValueRows(rows),
+      tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(relevantRealDates[0], anvendtReguleringsdato),
     };
   }
 
