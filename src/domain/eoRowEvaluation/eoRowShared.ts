@@ -46,6 +46,7 @@ export type EoRowId =
   | 'sviesmerte.antalDage'
   | 'sviesmerte.beregnetBeloeb'
   | 'sviesmerte.ophoerSkyldes'
+  | 'sviesmerte.ingenSvieSmerteIEoPerioden'
   | 'taf.beregningsgrundlag.beregnesUdFra'
   | 'taf.beregningsgrundlag.beregningsperiode'
   | `taf.beregningsgrundlag.ferie.${string}`

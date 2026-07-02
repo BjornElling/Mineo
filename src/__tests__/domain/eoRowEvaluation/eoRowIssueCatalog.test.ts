@@ -24,6 +24,36 @@ describe('eoRowIssueCatalog', () => {
     expect(resolveEoIssueSummaryText(row)).toBe('Skadedato er ikke angivet');
   });
 
+  it('sætter apostroffer om et flerords-label i den generiske fallbacktekst', () => {
+    const row = makeErrorRow({
+      id: 'ukatalogiseret.felt',
+      label: 'Vedrører perioden',
+      displayValue: '-',
+    });
+
+    expect(resolveEoIssueSummaryText(row)).toBe("'Vedrører perioden' er ikke angivet");
+  });
+
+  it('lader et enkeltords-label være uændret i den generiske fallbacktekst', () => {
+    const row = makeErrorRow({
+      id: 'ukatalogiseret.felt',
+      label: 'Skadestype',
+      displayValue: '-',
+    });
+
+    expect(resolveEoIssueSummaryText(row)).toBe('Skadestype er ikke angivet');
+  });
+
+  it('sætter apostroffer om et flerords-label når en fortsættelses-frase limes på', () => {
+    const row = makeErrorRow({
+      id: 'ukatalogiseret.felt',
+      label: 'Angivet månedsløn',
+      displayValue: 'Fejl (er ikke angivet for perioden)',
+    });
+
+    expect(resolveEoIssueSummaryText(row)).toBe("'Angivet månedsløn' er ikke angivet for perioden");
+  });
+
   it('danner målrettet TAF-periodebesked for datointervalfejl', () => {
     const row = makeErrorRow({
       id: 'taf.periode.taf-1',

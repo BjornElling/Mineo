@@ -153,6 +153,27 @@ export const buildEoSvieSmerteRows = (
 
   const harPeriodeFejl = periodeFejlBeskeder.length > 0;
 
+  // 2b) Særskilt advarsel når der slet ikke er angivet svie/smerte-perioder i EO-perioden.
+  // Parallelt til `taf.ingenTafIEoPerioden`: den erstatter — og undertrykker via kataloget — den
+  // sekundære "Ikke rejst svie/smerte-krav for hele perioden"-advarsel på `sviesmerte.ophoerSkyldes`,
+  // så brugeren ikke får to sprogligt overlappende advarsler for samme rod-tilfælde. Vises kun når
+  // svie/smerte faktisk kræves ('Ja'), periode-tabellen er synlig (tidligereSsMax = 'Nej') og
+  // skadelidte ikke er raskmeldt (raskmeldt giver sin egen selvstændige ophørsårsag, ikke advarslen).
+  const ingenSvieSmertePerioderIEoPerioden =
+    values.kravPaaSvieSmerteGodtgoerelse === 'Ja' &&
+    periodeErSynlig &&
+    !harPerioder &&
+    values.svieSmerteHelbredsstatus !== 'Raskmeldt';
+  if (ingenSvieSmertePerioderIEoPerioden) {
+    rows.push({
+      id: 'sviesmerte.ingenSvieSmerteIEoPerioden',
+      label: 'Advarsel',
+      displayValue: 'Advarsel (Der er ikke angivet nogen svie/smerte-periode i EO-perioden)',
+      status: 'warning',
+      summaryDisplay: 'messageOnly',
+    });
+  }
+
   // 3) Hvilket års svie/smerte satser lægges til grund?
   const satserAarValue = values.svieSmerteSatserAar !== undefined ? String(values.svieSmerteSatserAar) : undefined;
   const satserAarResolved = resolveEoRowDisplay({

@@ -52,12 +52,22 @@ const extractStatusMessage = (row: Pick<EoRowModel, 'status' | 'displayValue' | 
   return trimmed;
 };
 
+/**
+ * Når en generisk frase (linje herunder) limes efter et label, sætter vi apostroffer om labelen,
+ * hvis den består af to eller flere ord (indeholder mindst ét mellemrum). Uden det kan et
+ * flerords-label læse sammen med frasen til én uklar sætning ("Vedrører perioden er ikke angivet"
+ * → "'Vedrører perioden' er ikke angivet"). Enkeltords-labels ("Skadestype") lades urørt.
+ * Reglen gælder kun her — forhåndsskrevne katalog-`summaryText`-sætninger rammes aldrig.
+ */
+const quoteLabelIfMultiWord = (label: string): string =>
+  label.includes(' ') ? `'${label}'` : label;
+
 const fallbackIssueText = (row: Pick<EoRowModel, 'label' | 'summaryDisplay'>, message: string): string => {
-  if (message === '') return `${row.label} er ikke angivet`;
+  if (message === '') return `${quoteLabelIfMultiWord(row.label)} er ikke angivet`;
   if (row.summaryDisplay === 'messageOnly') return message;
   // Fortsættelses-fraser limes direkte på label uden kolon ("Reguleringsværdi … er ikke angivet").
   if (/^(mangler|er ikke angivet|er ikke valgt|er ikke udfyldt)\b/.test(message)) {
-    return `${row.label} ${message}`;
+    return `${quoteLabelIfMultiWord(row.label)} ${message}`;
   }
   return `${row.label}: ${message}`;
 };
@@ -191,6 +201,15 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       { kind: 'id', id: 'sviesmerte.antalDage' },
       { kind: 'prefix', prefix: 'taf.periode.' },
     ],
+  },
+  {
+    key: 'svie-smerte-ingen-i-eo-perioden',
+    match: { kind: 'id', id: 'sviesmerte.ingenSvieSmerteIEoPerioden' },
+    when: 'Der er angivet krav på svie/smerte, men ingen svie/smerte-perioder er registreret; sekundær advarsel om ufuldstændig dækning vises ikke.',
+    suppresses: [
+      { kind: 'id', id: 'sviesmerte.ophoerSkyldes' },
+    ],
+    summaryText: (_row, message) => message || 'Der er ikke angivet nogen svie/smerte-periode i EO-perioden',
   },
   {
     key: 'svie-smerte-period-row',
