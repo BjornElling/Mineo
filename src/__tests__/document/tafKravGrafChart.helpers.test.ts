@@ -5,7 +5,7 @@ import { toISODateString } from '../../types/branded';
 const {
   niceCeil,
   buildNiceMoneyTicks,
-  smoothWithinActiveRuns,
+  appendSmoothCurve,
   buildWindowLayout,
   buildXMapper,
   buildWindowSamples,
@@ -13,6 +13,23 @@ const {
   canAppendTerminalDateLabel,
 } =
   __tafKravGrafChartTestables;
+
+// Optager de tegnekommandoer appendSmoothCurve udsteder, så vi kan hævde kurvens
+// invarianter uden et rigtigt canvas (jsdom har intet 2D-API).
+type DrawCommand =
+  | { op: 'lineTo'; x: number; y: number }
+  | { op: 'bezierCurveTo'; c1x: number; c1y: number; c2x: number; c2y: number; x: number; y: number };
+
+const recordCurve = (points: readonly { x: number; y: number }[]): DrawCommand[] => {
+  const commands: DrawCommand[] = [];
+  const ctx = {
+    lineTo: (x: number, y: number) => commands.push({ op: 'lineTo', x, y }),
+    bezierCurveTo: (c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number) =>
+      commands.push({ op: 'bezierCurveTo', c1x, c1y, c2x, c2y, x, y }),
+  } as unknown as CanvasRenderingContext2D;
+  appendSmoothCurve(ctx, points);
+  return commands;
+};
 
 // Rene tegne-/sampling-helpers fra TAF-kravgrafen. De er præsentationsgeometri (de tal
 // brugeren stoler på står i TAF-tabellerne med egne tests), men er rene og deterministiske,
@@ -74,38 +91,77 @@ describe('tafKravGrafChart — buildNiceMoneyTicks', () => {
   });
 });
 
-describe('tafKravGrafChart — smoothWithinActiveRuns', () => {
-  it('lader idel-nul-serier forblive nul', () => {
-    expect(smoothWithinActiveRuns([0, 0, 0, 0], 3)).toEqual([0, 0, 0, 0]);
+describe('tafKravGrafChart — appendSmoothCurve', () => {
+  it('går gennem alle datapunkter (interpolerende — ekstremer bevares i fuld højde)', () => {
+    const points = [
+      { x: 0, y: 100 },
+      { x: 10, y: 40 },
+      { x: 20, y: 90 },
+      { x: 30, y: 10 },
+    ];
+    const commands = recordCurve(points);
+    const beziers = commands.filter((c) => c.op === 'bezierCurveTo');
+    // Ét bezier-segment pr. interval; hvert segments endepunkt er det næste datapunkt.
+    expect(beziers).toHaveLength(points.length - 1);
+    beziers.forEach((bezier, index) => {
+      if (bezier.op !== 'bezierCurveTo') throw new Error('forventede bezier');
+      expect(bezier.x).toBeCloseTo(points[index + 1].x, 6);
+      expect(bezier.y).toBeCloseTo(points[index + 1].y, 6);
+    });
   });
 
-  it('bevarer nul-måneder (intet visuelt tilbageløb før start / efter ophør)', () => {
-    const result = smoothWithinActiveRuns([0, 0, 100, 100, 100, 0, 0], 3);
-    expect(result[0]).toBe(0);
-    expect(result[1]).toBe(0);
-    expect(result[5]).toBe(0);
-    expect(result[6]).toBe(0);
+  it('bevarer et lodret spring som en skarp, ret linje (start/ophør af ydelse)', () => {
+    // To punkter på samme x = en ydelse der starter/ophører. Springet skal tegnes som
+    // en ret lineTo, ALDRIG som en blød bue.
+    const points = [
+      { x: 0, y: 200 },
+      { x: 50, y: 200 },
+      { x: 50, y: 0 }, // lodret fald: ophør
+      { x: 90, y: 0 },
+    ];
+    const commands = recordCurve(points);
+    // Selve springet (200 → 0 på x=50) er en lineTo, ikke en bezier.
+    const verticalDrop = commands.find((c) => c.op === 'lineTo' && c.x === 50 && c.y === 0);
+    expect(verticalDrop).toBeDefined();
+    // Ingen bezier må have et endepunkt oven i springet fra oven (blød afrunding af kanten).
+    const bezierAtDrop = commands.find(
+      (c) => c.op === 'bezierCurveTo' && c.x === 50 && c.y === 0
+    );
+    expect(bezierAtDrop).toBeUndefined();
   });
 
-  it('holder en konstant aktiv strækning konstant (fladt gennemsnit = fladt)', () => {
-    const result = smoothWithinActiveRuns([0, 100, 100, 100, 0], 3);
-    expect(result[1]).toBe(100);
-    expect(result[2]).toBe(100);
-    expect(result[3]).toBe(100);
+  it('buer ud mellem punkterne (rund bue, ikke ret linje) ved et niveauskift', () => {
+    // Et rent niveauskift 100 → 300 (faldende y i pixels) med naboer, så tangenten
+    // ved skiftet ikke er nul: kurven skal bue ud forbi den rette forbindelse.
+    const points = [
+      { x: 0, y: 300 },
+      { x: 10, y: 300 },
+      { x: 20, y: 100 },
+      { x: 30, y: 100 },
+    ];
+    const commands = recordCurve(points);
+    const bows = commands.filter(
+      (c) => c.op === 'bezierCurveTo' && (c.c1y !== c.y || c.c2y !== c.y)
+    );
+    // Mindst ét segment har kontrolpunkter der afviger fra en ret linje = en bue.
+    expect(bows.length).toBeGreaterThan(0);
   });
 
-  it('window ≤ 1 efterlader de aktive værdier uændrede (radius 0)', () => {
-    expect(smoothWithinActiveRuns([0, 40, 0, 90, 0], 1)).toEqual([0, 40, 0, 90, 0]);
-  });
-
-  it('smitter ikke på tværs af to adskilte aktive strækninger', () => {
-    // To runs adskilt af en nul-måned: den lave run må ikke trække den høje runs niveau ned/op.
-    const result = smoothWithinActiveRuns([10, 10, 0, 1000, 1000], 3);
-    expect(result[0]).toBe(10);
-    expect(result[1]).toBe(10);
-    expect(result[2]).toBe(0);
-    expect(result[3]).toBe(1000);
-    expect(result[4]).toBe(1000);
+  it('holder en konstant strækning fladt (ingen bue på et fladt niveau)', () => {
+    const points = [
+      { x: 0, y: 150 },
+      { x: 10, y: 150 },
+      { x: 20, y: 150 },
+    ];
+    const commands = recordCurve(points);
+    const beziers = commands.filter((c) => c.op === 'bezierCurveTo');
+    // Alle kontrolpunkter ligger på samme y som endepunkterne → ingen bue, ren vandret.
+    for (const bezier of beziers) {
+      if (bezier.op !== 'bezierCurveTo') continue;
+      expect(bezier.c1y).toBeCloseTo(150, 6);
+      expect(bezier.c2y).toBeCloseTo(150, 6);
+      expect(bezier.y).toBeCloseTo(150, 6);
+    }
   });
 });
 
@@ -168,7 +224,7 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
     } as unknown as TafKravGrafDocument;
     const layout = buildWindowLayout(document.timeWindows);
     const mapDate = buildXMapper(layout);
-    const sample = buildWindowSamples(document, layout, mapDate, 1)[0];
+    const sample = buildWindowSamples(document, layout, mapDate)[0];
     if (!sample) throw new Error('forventede sample');
     const expectedMidX = ((mapDate(toISODateString('2023-10-01')) ?? 0) + (mapDate(toISODateString('2023-10-31')) ?? 0)) / 2;
     const midIndex = sample.sampleX.findIndex((x) => Math.abs(x - expectedMidX) < 0.0001);
@@ -178,7 +234,7 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
     expect(sample.valuesBySeries[1]?.[midIndex]).toBe(20_000);
   });
 
-  it('tegner et rent niveauskift som ét punkt (blød bue), ikke et lodret spring', () => {
+  it('tilføjer ingen grænse-kolonne ved et rent niveauskift (blød bue mellem midtpunkter)', () => {
     const document = {
       model: { titel: 'x' },
       unit: 'maaned',
@@ -199,13 +255,15 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
     } as unknown as TafKravGrafDocument;
     const layout = buildWindowLayout(document.timeWindows);
     const mapDate = buildXMapper(layout);
-    const sample = buildWindowSamples(document, layout, mapDate, 1)[0];
+    const sample = buildWindowSamples(document, layout, mapDate)[0];
     if (!sample) throw new Error('forventede sample');
 
     const xFeb1 = mapDate(toISODateString('2023-02-01')) ?? -1;
     const columnsAtFeb1 = sample.sampleX.filter((x) => Math.abs(x - xFeb1) < 0.0001);
-    // Begge niveauer er > 0 → ingen før/efter-dublet på samme x → ingen lodret kant.
-    expect(columnsAtFeb1).toHaveLength(1);
+    // Begge niveauer er > 0 → ingen kolonne på grænsedatoen. Skiftet 30000 → 35000
+    // bæres alene af de to måneds-midtpunkter, så kurven glider blødt derimellem
+    // (intet fladt plateau, ingen lodret kant).
+    expect(columnsAtFeb1).toHaveLength(0);
   });
 
   it('tegner start og ophør som lodrette spring (før/efter-dublet på samme x)', () => {
@@ -226,7 +284,7 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
     } as unknown as TafKravGrafDocument;
     const layout = buildWindowLayout(document.timeWindows);
     const mapDate = buildXMapper(layout);
-    const sample = buildWindowSamples(document, layout, mapDate, 1)[0];
+    const sample = buildWindowSamples(document, layout, mapDate)[0];
     if (!sample) throw new Error('forventede sample');
 
     const valuesAt = (date: string): number[] => {
@@ -243,10 +301,9 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
     expect(valuesAt('2023-01-21')).toEqual([30_000, 0]);
   });
 
-  it('bevarer fuld højde på det lodrette ophørs-spring ved produktionens udglatning (window=3)', () => {
-    // Et konstant niveau udglattes til sig selv, så ophøret skal falde fra fuld
-    // højde (30000 → 0) selv med aktiv udglatning — nul-siden bryder den aktive
-    // strækning og trækker ikke kanten ned.
+  it('bevarer fuld højde på det lodrette ophørs-spring', () => {
+    // Værdierne udglattes ikke, så ophøret falder fra fuld højde (30000 → 0): før/efter-
+    // dubletten på samme x bærer den skarpe kant uafhængigt af kurve-interpolationen.
     const document = {
       model: { titel: 'x' },
       unit: 'maaned',
@@ -264,7 +321,7 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
     } as unknown as TafKravGrafDocument;
     const layout = buildWindowLayout(document.timeWindows);
     const mapDate = buildXMapper(layout);
-    const sample = buildWindowSamples(document, layout, mapDate, 3)[0];
+    const sample = buildWindowSamples(document, layout, mapDate)[0];
     if (!sample) throw new Error('forventede sample');
 
     const xApr1 = mapDate(toISODateString('2024-04-01')) ?? -1;

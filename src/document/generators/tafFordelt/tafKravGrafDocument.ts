@@ -8,10 +8,6 @@ import { renderTafKravGrafChartPng, TAF_KRAV_GRAF_CANVAS } from './tafKravGrafCh
 
 const FILE_BASE_NAME = 'Visuel graf over indtægtsniveau';
 
-// Glidende 3-måneders gennemsnit: dæmper måned-til-måned-støj uden at fjerne grafen
-// for langt fra de faktiske indkomstniveauer. De præcise tal står i TAF-tabellerne.
-const SMOOTHING_WINDOW_MONTHS = 3;
-
 interface TafKravGrafPdfOptions {
   document: TafKravGrafDocument;
   visBrevhoved?: boolean;
@@ -50,7 +46,7 @@ export const generateTafKravGrafDocument = (options: TafKravGrafPdfOptions): voi
     writer.writeBrevhoved(brevhovedData);
   }
 
-  const imageDataUrl = renderTafKravGrafChartPng(document, { smoothingWindow: SMOOTHING_WINDOW_MONTHS });
+  const imageDataUrl = renderTafKravGrafChartPng(document);
   const imageWidth = writer.getContentWidthMm();
   const imageHeight = Math.min(142, (imageWidth * TAF_KRAV_GRAF_CANVAS.height) / TAF_KRAV_GRAF_CANVAS.width);
   writer.ensureSpace(imageHeight + 8);

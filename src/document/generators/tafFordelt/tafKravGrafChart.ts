@@ -42,12 +42,6 @@ const MONTHS_DA = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.'
 const X_LABEL_MIN_GAP = 16;
 const X_LABEL_FONT = '400 28px Arial, sans-serif';
 
-export type TafKravGrafChartOptions = Readonly<{
-  // Antal måneder i glidende gennemsnit (kantbevidst: udglatter kun inden for
-  // sammenhængende aktive strækninger). 1 (eller mindre) = ingen udglatning.
-  smoothingWindow?: number;
-}>;
-
 type Point = Readonly<{ x: number; y: number }>;
 
 type WindowSamples = Readonly<{
@@ -203,33 +197,6 @@ const midpointIso = (range: TafKravGrafTimeWindow): ISODateString => {
   return dateToISO(result) ?? range.fra;
 };
 
-// Kantbevidst glidende gennemsnit: udglatter kun inden for hver sammenhængende
-// aktive strækning (måneder med beløb > 0). Nul-måneder før en series start og
-// efter dens ophør trækkes aldrig ind i gennemsnittet, så et nyt beløb ikke
-// "smitter" visuelt bagud før sin faktiske startdato (eller frem efter ophør).
-const smoothWithinActiveRuns = (values: readonly number[], window: number): number[] => {
-  const radius = window <= 1 ? 0 : Math.floor(window / 2);
-  const result = values.map(() => 0);
-  let runStart = 0;
-  while (runStart < values.length) {
-    if (values[runStart] <= 0) {
-      runStart += 1;
-      continue;
-    }
-    let runEnd = runStart;
-    while (runEnd + 1 < values.length && values[runEnd + 1] > 0) runEnd += 1;
-    for (let i = runStart; i <= runEnd; i += 1) {
-      const from = Math.max(runStart, i - radius);
-      const to = Math.min(runEnd, i + radius);
-      let sum = 0;
-      for (let j = from; j <= to; j += 1) sum += values[j];
-      result[i] = sum / (to - from + 1);
-    }
-    runStart = runEnd + 1;
-  }
-  return result;
-};
-
 type SampleColumn = { x: number; order: number; values: number[] };
 
 const buildValuesAtIso = (document: TafKravGrafDocument, iso: ISODateString): number[] =>
@@ -238,8 +205,7 @@ const buildValuesAtIso = (document: TafKravGrafDocument, iso: ISODateString): nu
 const buildWindowSamples = (
   document: TafKravGrafDocument,
   layout: WindowLayout,
-  mapDate: (iso: ISODateString) => number | null,
-  smoothingWindow: number
+  mapDate: (iso: ISODateString) => number | null
 ): WindowSamples[] =>
   layout.map((entry) => {
     const months = splitWindowByMonths(entry.window);
@@ -272,40 +238,40 @@ const buildWindowSamples = (
     for (const iso of [...transitionDates].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
       const x = mapDate(iso);
       if (x === null) continue;
-      const afterValues = buildValuesAtIso(document, iso);
       const beforeIso = getDayBeforeIso(iso);
       const beforeValues = beforeIso && beforeIso >= entry.window.fra
         ? buildValuesAtIso(document, beforeIso)
         : null;
-      const hasChange = !beforeValues || afterValues.some((value, index) => value !== beforeValues[index]);
-      // Uden for et faktisk skift (typisk en måneds-/segmentgrænse hvor niveauet er
-      // uændret) tilføjes ingen kolonne: måneds-midtpunkterne bærer niveauet, og
-      // ekstra kolonner ville blot fortætte samplingen og udvande udglatningen.
-      if (!hasChange) continue;
-      if (beforeValues) {
-        // Et lodret spring må KUN tegnes hvor en serie starter (0→beløb) eller
-        // ophører (beløb→0). Et rent niveauskift (begge sider > 0) skal forblive en
-        // blød bue, så den side håndteres alene af midtpunkter + udglatning. Derfor
-        // får før-kolonnen kun en afvigende værdi for serier med en nul-kant; øvrige
-        // serier bærer efter-værdien og giver dermed ingen lodret kant.
-        const edgeBySeries = afterValues.map(
-          (after, index) => (beforeValues[index] === 0) !== (after === 0)
-        );
-        if (edgeBySeries.some(Boolean)) {
-          columns.push({
-            x,
-            order: transitionOrder,
-            values: afterValues.map((after, index) => (edgeBySeries[index] ? beforeValues[index] : after)),
-          });
-          transitionOrder += 1;
-        }
-      }
+      // Vinduets start (intet "før") bæres af venstre-ankeret + måneds-midtpunkterne.
+      if (!beforeValues) continue;
+      const afterValues = buildValuesAtIso(document, iso);
+      // Der tilføjes KUN en kolonne, hvor en serie starter (0→beløb) eller ophører
+      // (beløb→0) — dét er de skarpe lodrette kanter, der skal bevares. Et rent
+      // niveauskift (begge sider > 0) må IKKE give en kolonne på grænsedatoen: en
+      // sådan grænse-kolonne har samme værdi som månedens midtpunkt og skabte et
+      // fladt "plateau" pr. måned med kun afrundede skuldre. I stedet bæres
+      // niveauskiftet nu af én blød bue mellem to måneds-midtpunkter.
+      const edgeBySeries = afterValues.map(
+        (after, index) => (beforeValues[index] === 0) !== (after === 0)
+      );
+      if (!edgeBySeries.some(Boolean)) continue;
+      // Før-kolonnen giver kun den skarpe kant for kant-serierne; øvrige serier bærer
+      // efter-værdien, så de ikke får en kunstig lodret kant.
+      columns.push({
+        x,
+        order: transitionOrder,
+        values: afterValues.map((after, index) => (edgeBySeries[index] ? beforeValues[index] : after)),
+      });
+      transitionOrder += 1;
       columns.push({ x, order: transitionOrder, values: afterValues });
       transitionOrder += 1;
     }
     columns.sort((a, b) => a.x - b.x || a.order - b.order);
-    const smoothedBySeries = document.series.map((_, seriesIndex) =>
-      smoothWithinActiveRuns(columns.map((column) => column.values[seriesIndex] ?? 0), smoothingWindow)
+    // Ingen udglatning af værdierne: hver serie tegnes med de faktiske niveauer, så
+    // høje peaks og lave lavpunkter bevares i fuld højde. Afrundingen af overgangene
+    // sker alene i kurve-interpolationen (appendSmoothCurve), ikke ved at ændre tallene.
+    const valuesBySeries = document.series.map((_, seriesIndex) =>
+      columns.map((column) => column.values[seriesIndex] ?? 0)
     );
 
     return {
@@ -313,7 +279,7 @@ const buildWindowSamples = (
       sampleX: columns.map((column) => column.x),
       leftX: entry.x,
       rightX: entry.x + entry.width,
-      valuesBySeries: smoothedBySeries,
+      valuesBySeries,
     };
   });
 
@@ -331,30 +297,59 @@ const maxStackedTotalOre = (samples: readonly WindowSamples[]): number => {
 };
 
 // ---------------------------------------------------------------------------
-// Monotone kubisk interpolation (Fritsch–Carlson) — bløde kurver uden overshoot
+// Blød kubisk interpolation (cardinal-/Catmull–Rom-spline)
 // ---------------------------------------------------------------------------
 
-const appendMonotoneCurve = (ctx: CanvasRenderingContext2D, points: readonly Point[]): void => {
-  const n = points.length;
-  if (n === 0) return;
-  if (n === 1) {
-    ctx.lineTo(points[0].x, points[0].y);
+// Kurven buer *igennem* datapunkterne frem for at følge den rette forbindelse tæt.
+// Det giver runde buer ved ændringer i indtægtsgrundlaget i stedet for de spidse,
+// abrupte savtakker, en monoton (overshoot-fri) kurve gav. Kurven rammer ALTID
+// datapunkterne, så høje peaks og lave lavpunkter bevares i fuld højde — der
+// udglattes ingen ekstremer. Nabopunkter bruges kun til at bestemme tangenternes
+// retning, ikke til at ændre det enkelte punkts værdi.
+//
+// Et lodret spring (to på hinanden følgende punkter med samme x, forskellig y) er en
+// skarp kant, hvor en ydelse starter eller ophører, og MÅ ikke afrundes. Sådanne
+// spring bryder splinen i selvstændige strækninger, der forbindes med en ret,
+// lodret linje — kanten forbliver dermed knivskarp.
+
+// Overshoot tillades bevidst (det er dét, der giver den runde bue), men dæmpes, så et
+// enkelt ekstremt udsving ikke får tangenten til at slå så voldsomt ud, at stablede
+// bånd krydser hinanden. Grænsen er tangentens længde ift. den tilstødende sekant.
+const CURVE_OVERSHOOT_LIMIT = 3;
+// Vandret afstand (px) under hvilken to punkter regnes som samme x = en lodret kant.
+const VERTICAL_BREAK_EPS = 0.5;
+
+// Tegner én sammenhængende strækning [from, to] (uden interne lodrette spring) som en
+// cardinal-spline. Tangenterne er centrerede nabo-differenser med nonuniform
+// x-afstand, så forløbet er blødt selv ved uens punktafstand nær segment-/måneds-grænser.
+const appendCardinalRun = (
+  ctx: CanvasRenderingContext2D,
+  points: readonly Point[],
+  from: number,
+  to: number
+): void => {
+  if (to <= from) {
+    if (to === from) ctx.lineTo(points[from].x, points[from].y);
     return;
   }
   const dx: number[] = [];
   const slope: number[] = [];
-  for (let i = 0; i < n - 1; i += 1) {
-    dx[i] = points[i + 1].x - points[i].x;
-    slope[i] = dx[i] === 0 ? 0 : (points[i + 1].y - points[i].y) / dx[i];
+  for (let i = from; i < to; i += 1) {
+    const h = points[i + 1].x - points[i].x;
+    dx[i] = h;
+    slope[i] = h === 0 ? 0 : (points[i + 1].y - points[i].y) / h;
   }
-  const tangent: number[] = new Array(n);
-  tangent[0] = slope[0];
-  tangent[n - 1] = slope[n - 2];
-  for (let i = 1; i < n - 1; i += 1) {
-    tangent[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  const tangent: number[] = [];
+  tangent[from] = slope[from];
+  tangent[to] = slope[to - 1];
+  for (let i = from + 1; i < to; i += 1) {
+    const hPrev = dx[i - 1];
+    const hNext = dx[i];
+    tangent[i] = (hNext * slope[i - 1] + hPrev * slope[i]) / (hPrev + hNext);
   }
-  for (let i = 0; i < n - 1; i += 1) {
+  for (let i = from; i < to; i += 1) {
     if (slope[i] === 0) {
+      // Konstant niveau holdes vandret (ingen bue på en flad top eller et fladt dyk).
       tangent[i] = 0;
       tangent[i + 1] = 0;
       continue;
@@ -362,13 +357,13 @@ const appendMonotoneCurve = (ctx: CanvasRenderingContext2D, points: readonly Poi
     const a = tangent[i] / slope[i];
     const b = tangent[i + 1] / slope[i];
     const h = Math.hypot(a, b);
-    if (h > 3) {
-      const factor = 3 / h;
+    if (h > CURVE_OVERSHOOT_LIMIT) {
+      const factor = CURVE_OVERSHOOT_LIMIT / h;
       tangent[i] = factor * a * slope[i];
       tangent[i + 1] = factor * b * slope[i];
     }
   }
-  for (let i = 0; i < n - 1; i += 1) {
+  for (let i = from; i < to; i += 1) {
     const p1 = points[i];
     const p2 = points[i + 1];
     const c1x = p1.x + dx[i] / 3;
@@ -377,6 +372,24 @@ const appendMonotoneCurve = (ctx: CanvasRenderingContext2D, points: readonly Poi
     const c2y = p2.y - (tangent[i + 1] * dx[i]) / 3;
     ctx.bezierCurveTo(c1x, c1y, c2x, c2y, p2.x, p2.y);
   }
+};
+
+const appendSmoothCurve = (ctx: CanvasRenderingContext2D, points: readonly Point[]): void => {
+  const n = points.length;
+  if (n === 0) return;
+  if (n === 1) {
+    ctx.lineTo(points[0].x, points[0].y);
+    return;
+  }
+  let runStart = 0;
+  for (let i = 1; i < n; i += 1) {
+    if (Math.abs(points[i].x - points[i - 1].x) > VERTICAL_BREAK_EPS) continue;
+    // Skarp lodret kant: afslut den bløde strækning og spring lodret til næste punkt.
+    appendCardinalRun(ctx, points, runStart, i - 1);
+    ctx.lineTo(points[i].x, points[i].y);
+    runStart = i;
+  }
+  appendCardinalRun(ctx, points, runStart, n - 1);
 };
 
 // ---------------------------------------------------------------------------
@@ -443,11 +456,11 @@ const drawStackedBands = (
       ctx.fillStyle = document.series[seriesIndex].color;
       ctx.beginPath();
       ctx.moveTo(upper[0].x, upper[0].y);
-      appendMonotoneCurve(ctx, upper);
+      appendSmoothCurve(ctx, upper);
       if (lower) {
         const reversed = [...lower].reverse();
         ctx.lineTo(reversed[0].x, reversed[0].y);
-        appendMonotoneCurve(ctx, reversed);
+        appendSmoothCurve(ctx, reversed);
       } else {
         ctx.lineTo(upper.at(-1)!.x, baselineY);
         ctx.lineTo(upper[0].x, baselineY);
@@ -644,10 +657,7 @@ const drawLegend = (ctx: CanvasRenderingContext2D, document: TafKravGrafDocument
 // Hovedrenderer
 // ---------------------------------------------------------------------------
 
-export const renderTafKravGrafChartPng = (
-  document: TafKravGrafDocument,
-  options: TafKravGrafChartOptions = {}
-): string => {
+export const renderTafKravGrafChartPng = (document: TafKravGrafDocument): string => {
   if (typeof globalThis.document === 'undefined') {
     throw new Error('Grafen kræver browserens dokument-API.');
   }
@@ -658,7 +668,6 @@ export const renderTafKravGrafChartPng = (
   if (!ctx) {
     throw new Error('Grafen kunne ikke oprette et canvas.');
   }
-  const smoothingWindow = Math.max(1, options.smoothingWindow ?? 1);
 
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -679,7 +688,7 @@ export const renderTafKravGrafChartPng = (
 
   const layout = buildWindowLayout(document.timeWindows);
   const mapDate = buildXMapper(layout);
-  const samples = buildWindowSamples(document, layout, mapDate, smoothingWindow);
+  const samples = buildWindowSamples(document, layout, mapDate);
 
   const maxTotal = maxStackedTotalOre(samples);
   const ticks = buildNiceMoneyTicks(maxTotal);
@@ -782,7 +791,7 @@ export const renderTafKravGrafChartPng = (
 export const __tafKravGrafChartTestables = {
   niceCeil,
   buildNiceMoneyTicks,
-  smoothWithinActiveRuns,
+  appendSmoothCurve,
   buildWindowLayout,
   buildXMapper,
   buildWindowSamples,
