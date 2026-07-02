@@ -16,6 +16,23 @@ export type ManuelProcentsatsEntry = Readonly<{
 const isFinitePct = (value: number | undefined): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
+/**
+ * Rækker dateret FØR den anvendte reguleringsdato indgår ikke i akkumuleringen (basisrækken
+ * repræsenterer allerede niveauet/indeks 100 pr. reguleringsdatoen). De ignoreres i beregningen
+ * og rapporteres i stedet som en advarsel via `resolveManuelProcentsatsRowsFoerBasis`.
+ * Rækker dateret PRÆCIS på reguleringsdatoen er tilladt og gælder fra reguleringsdatoen.
+ */
+export const resolveManuelProcentsatsRowsFoerBasis = (args: Readonly<{
+  anvendtReguleringsdato: ISODateString | undefined;
+  rows: readonly LoenudviklingManuelProcentsatsRow[];
+}>): readonly LoenudviklingManuelProcentsatsRow[] => {
+  const baseIso = args.anvendtReguleringsdato;
+  if (!baseIso) return [];
+  return args.rows
+    .slice(1)
+    .filter((row) => isISODateString(row.dato) && row.dato < baseIso);
+};
+
 export const buildManuelProcentsatsEntries = (args: Readonly<{
   anvendtReguleringsdato: ISODateString | undefined;
   rows: readonly LoenudviklingManuelProcentsatsRow[];
@@ -40,6 +57,10 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
     .filter((entry): entry is Readonly<{ row: LoenudviklingManuelProcentsatsRow & { dato: ISODateString; procent: number }; originalIndex: number }> =>
       isISODateString(entry.row.dato) && isFinitePct(entry.row.procent)
     )
+    // Rækker før reguleringsdatoen ignoreres (se resolveManuelProcentsatsRowsFoerBasis) — de ville
+    // ellers både forvride den akkumulerede procent og bryde entries-listens sortering, som
+    // findManuelProcentsatsEntryForDate forudsætter.
+    .filter((entry) => entry.row.dato >= baseIso)
     .sort((a, b) => {
       const byDate = a.row.dato.localeCompare(b.row.dato);
       return byDate === 0 ? a.originalIndex - b.originalIndex : byDate;
@@ -60,6 +81,10 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
   return entries;
 };
 
+// Forudsætter at entries er sorteret stigende på startIso — det garanterer
+// buildManuelProcentsatsEntries ved konstruktion (basisrækken først, brugerrækker ≥ basisdato
+// i datoorden). En række dateret præcis på basisdatoen ligger EFTER basis-entryen og vinder
+// derfor opslaget fra og med reguleringsdatoen (bevidst: reguleringen gælder fra dag ét).
 export const findManuelProcentsatsEntryForDate = (
   entries: readonly ManuelProcentsatsEntry[],
   iso: ISODateString

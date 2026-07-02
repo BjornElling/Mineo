@@ -1092,8 +1092,24 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(values, 'Grundløn skal være større end 0')).toBe(true);
   });
 
-  it('validerer manuel reguleringsrække i Beløb-tilstand (grundløn kræves, feriePct kræves ikke)', () => {
-    const makeBeloebManual = (grundloen: ReturnType<typeof asAmount> | undefined): ErstatningsopgoerelseValues =>
+  it('validerer manuel reguleringsrække i Beløb-tilstand (grundløn og feriePct kræves som i Procent-tilstand)', () => {
+    const loenoplysningsRow = {
+      id: 'row-1',
+      col0_maaned: '',
+      col1_maaned: '',
+      col0_uge: '',
+      col1_uge: '',
+      col0_dag: undefined,
+      col1_dag: undefined,
+      col2: asAmount(1000),
+      col3: undefined,
+      col4: undefined,
+      col5: undefined,
+    };
+    const makeBeloebManual = (
+      grundloen: ReturnType<typeof asAmount> | undefined,
+      options?: Readonly<{ feriePct?: number; medLoenoplysninger?: boolean }>
+    ): ErstatningsopgoerelseValues =>
       makeValues({
         beregnesUdFra: 'Beregningsperiode',
         tafBeregningsperiodeFra: iso('2023-01-01'),
@@ -1103,23 +1119,58 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
             ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af-1',
             tillaegAngivesSom: 'beloeb',
-            // feriePct bevidst udeladt: i Beløb-tilstand må det IKKE kræves.
-            feriePct: undefined,
+            feriePct: options?.feriePct,
             loenudviklingBeregningsgrundlag: 'Manuelt angivet',
             loenudviklingManuelTableData: [
               { id: 'base', dato: toISODateString('2023-01-01'), grundloen, feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: undefined },
             ],
+            indtaegtsoplysningerTableData: options?.medLoenoplysninger ? [loenoplysningsRow] : [],
           },
         ],
       });
 
-    // Udfyldt grundløn: ingen grundløns- eller feriePct-fejl (branchen kører nu også i Beløb-tilstand).
-    const okValues = makeBeloebManual(asAmount(30000));
+    // Udfyldt grundløn + feriePct: ingen fejl.
+    const okValues = makeBeloebManual(asAmount(30000), { feriePct: 12.5, medLoenoplysninger: true });
     expect(hasError(okValues, 'Grundløn skal udfyldes')).toBe(false);
     expect(hasError(okValues, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
 
     // Manglende grundløn: fanges også i Beløb-tilstand.
     expect(hasError(makeBeloebManual(undefined), 'Grundløn skal udfyldes')).toBe(true);
+
+    // feriePct indgår i reguleringsformlen i begge tillægs-tilstande og kræves derfor også i
+    // Beløb-tilstand, når der er indtastet lønoplysninger.
+    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: true }), 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(true);
+    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: false }), 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
+  });
+
+  it('kræver dato på alle aktive manuelle reguleringsrækker efter basisrækken', () => {
+    const makeManualMedRaekke = (
+      row: ErstatningsopgoerelseValues['eoAngivetLoenLoenudvikling']['loenudviklingManuelTableData'][number]
+    ): ErstatningsopgoerelseValues => makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelTableData: [
+          // Basisrækken har låst dato (= reguleringsdatoen) og er undtaget dato-kravet.
+          { id: 'base', dato: undefined, grundloen: asAmount(30000), feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined },
+          row,
+        ],
+      },
+    });
+
+    // Række med grundløn men uden dato ville ellers blive droppet stille af motoren
+    // (reguleringen udebliver) — den SKAL blokeres.
+    expect(hasError(
+      makeManualMedRaekke({ id: 'no-date', dato: undefined, grundloen: asAmount(32000), feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined }),
+      'Dato skal udfyldes på alle manuelle reguleringsrækker'
+    )).toBe(true);
+
+    expect(hasError(
+      makeManualMedRaekke({ id: 'with-date', dato: toISODateString('2025-01-01'), grundloen: asAmount(32000), feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined }),
+      'Dato skal udfyldes på alle manuelle reguleringsrækker'
+    )).toBe(false);
   });
 
   it('tillader manuel procentsats uden ekstra reguleringsrækker', () => {

@@ -502,8 +502,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
       </Box>
 
-      {af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB && (
-        <>
+      {/* Tillægs-procentsatserne vises i BEGGE tillægs-tilstande: i Beløb-tilstand angives
+          tillæggene som beløb i lønrækkerne, men procentsatserne indgår fortsat i
+          lønudviklings-reguleringsformlen (jf. buildLoenudviklingFromOverenskomst). */}
       <Typography className="row--subheading">{satserHeading}</Typography>
 
       {/* Første række: 3 felter */}
@@ -610,8 +611,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           </Box>
         </Box>
       </Box>
-        </>
-      )}
 
       <Typography className="row--subheading">Indtægtsoplysninger</Typography>
 
@@ -649,9 +648,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <MenuItem value="Statistik">Statistik</MenuItem>
             <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
             <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
-            {/* 'Manuelt angivet' er tilgængelig i begge tilstande. I Beløb-tilstand låses
-                basisrækkens tillægsprocenter op (de angives ikke ovenfor), og reguleringen bruger
-                dem — modsat de øvrige strategier, der neutraliserer tillæg i Beløb-tilstand. */}
             <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
             <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
             <MenuItem value="Ingen">Ingen</MenuItem>
@@ -839,10 +835,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
                   baseDateInfoTooltipText={baseDateTooltipText}
                   baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}
-                  // Procent-tilstand: basisrækkens tillægsprocenter spejler felterne ovenfor og er
-                  // låst. Beløb-tilstand: felterne ovenfor findes ikke, så basisrækken låses op og
-                  // brugeren angiver start-tillæggene direkte i tabellen.
-                  readOnlyBaseRowPercentFields={af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB}
+                  // Basisrækkens tillægsprocenter spejler satsfelterne ovenfor og er låst — i begge
+                  // tillægs-tilstande (satsfelterne vises også i Beløb-tilstand).
+                  readOnlyBaseRowPercentFields
                   useSmallFont={true}
                 />
                 </CellInvalidDraftScopeProvider>

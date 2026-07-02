@@ -81,13 +81,17 @@ describe('validateAllSatserForAnsaettelsesforhold', () => {
     beregnesUdFra: 'Beregningsperiode' as const,
   });
 
-  it('giver ingen fejl i beløb-tilstand (satserne bruges ikke)', () => {
+  it('validerer satserne også i beløb-tilstand (de indgår i reguleringsformlen)', () => {
+    // 2026-07-02: Beløb-neutraliseringen fjernet — satserne er reguleringens fælles kilde i
+    // begge tillægs-tilstande og valideres derfor ens.
     const af = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB,
-      feriePct: 5, // ville ellers udløse ferie-fejl
+      fuldLoenUnderFerie: 'Nej' as const,
+      feriePct: 5, // udløser ferie-fejl som i Procent-tilstand
     };
-    expect(validateAllSatserForAnsaettelsesforhold(af, ctx())).toEqual({});
+    const errors = validateAllSatserForAnsaettelsesforhold(af, ctx());
+    expect(errors.feriePct).toBeDefined();
   });
 
   it('udløser ferie-fejl i procent-tilstand når feriePct er under 12 %', () => {

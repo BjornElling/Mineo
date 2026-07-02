@@ -197,8 +197,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         writeLabelValueLine('Overenskomst', resolveOverenskomstNameOnlyDisplay(overenskomstId));
         writer.addSectionSpacer();
       }
-      // Beløb-tilstand: satserne bruges ikke (tillæg er indtastet som beløb i tabellen) og udelades.
-      if (selectedElements.okSatser && ansaettelsesforhold.tillaegAngivesSom !== 'beloeb') {
+      // Satserne indgår i reguleringsformlen i begge tillægs-tilstande og vises derfor også
+      // i Beløb-tilstand (hvor selve tillæggene er indtastet som beløb i tabellen).
+      if (selectedElements.okSatser) {
         if (!isZeroPct(ansaettelsesforhold.feriePct)) {
           writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
         }

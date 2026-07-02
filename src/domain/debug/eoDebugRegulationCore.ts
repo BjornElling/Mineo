@@ -174,12 +174,6 @@ const buildManualEntries = (args: Readonly<{
   shDageSet: ReadonlySet<ISODateString>;
   ferieDageSet: ReadonlySet<ISODateString>;
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
-  // Manuel regulering neutraliserer ALDRIG tillægslaget — heller ikke i Beløb-tilstand — fordi
-  // brugeren angiver tillægsprocenterne eksplicit i de manuelle rækker (basisrækken låses op i
-  // Beløb-tilstand). Skal holdes i lockstep med loenudviklingBeregning.ts (buildLoenudviklingFromManual),
-  // ellers udløser control-mismatch-invarianten og blokerer PDF'en. Overenskomst-sporet (buildOverenskomstEntries)
-  // neutraliserer stadig i Beløb-tilstand, da det ikke har per-dato tillægsinput.
-  const neutraliser = false;
   const rows = args.af.loenudviklingManuelTableData ?? [];
   const baseRow = rows[0];
   const baseGrundloen = amountValueToNumber(baseRow?.grundloen);
@@ -192,7 +186,7 @@ const buildManualEntries = (args: Readonly<{
     fritvalgPct: parsePercentToDecimal(row?.fritvalg),
     storeBededagPct: getStoreBededagPct(iso, args.af.loenPaaHelligdage),
     pensionPct: parsePercentToDecimal(row?.agPension),
-  }, neutraliser);
+  });
 
   const referenceValue = buildPackageValueDecimal(args.referenceIso, baseGrundloen, baseRow);
   if (!Number.isFinite(referenceValue) || referenceValue <= 0) return null;
@@ -204,7 +198,6 @@ const buildManualEntries = (args: Readonly<{
     if (iso >= args.eoFra && iso <= args.eoTil) dates.add(iso);
   }
   if (
-    !neutraliser &&
     args.af.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG &&
     args.eoFra <= STORE_BEDEDAG_START &&
     args.eoTil >= STORE_BEDEDAG_START
@@ -227,11 +220,11 @@ const buildManualEntries = (args: Readonly<{
     return {
       effectiveFrom: iso,
       grundloen,
-      feriePct: neutraliser ? 0 : resolveManualFeriePctDecimal(matchingRow?.feriepenge, args.af.feriePct),
-      shSoPct: neutraliser ? 0 : parsePercentToDecimal(matchingRow?.shSoSats),
-      fritvalgPct: neutraliser ? 0 : parsePercentToDecimal(matchingRow?.fritvalg),
-      storeBededagPct: neutraliser ? 0 : getStoreBededagPct(iso, args.af.loenPaaHelligdage),
-      pensionPct: neutraliser ? 0 : parsePercentToDecimal(matchingRow?.agPension),
+      feriePct: resolveManualFeriePctDecimal(matchingRow?.feriepenge, args.af.feriePct),
+      shSoPct: parsePercentToDecimal(matchingRow?.shSoSats),
+      fritvalgPct: parsePercentToDecimal(matchingRow?.fritvalg),
+      storeBededagPct: getStoreBededagPct(iso, args.af.loenPaaHelligdage),
+      pensionPct: parsePercentToDecimal(matchingRow?.agPension),
       packageValue,
       index: referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0,
       arbejdsdage: tidsenhed.arbejdsdage,
@@ -498,9 +491,7 @@ const computePackageValueDecimal = (args: {
   fritvalgPct: number;
   storeBededagPct: number;
   pensionPct: number;
-}, neutraliser = false): number => {
-  // Beløb-tilstand: tillægslaget indgår ikke i reguleringsindekset (ren grundløns-/sats-ratio).
-  if (neutraliser) return args.grundloen;
+}): number => {
   const totalPct = args.feriePct + args.shSoPct + args.fritvalgPct + args.storeBededagPct;
   return args.grundloen * (1 + totalPct) * (1 + args.pensionPct);
 };
@@ -511,15 +502,13 @@ const buildEntryForDate = (args: {
   feriePct: number;
   loenPaaHelligdage: LoenPaaHelligdage | undefined;
   referenceValue: number;
-  neutraliser?: boolean;
 }): IndeksEntry | null => {
   if (args.sats.grundloen === null) return null;
-  const neutraliser = args.neutraliser ?? false;
-  const shSoPct = neutraliser ? 0 : (args.sats.shSoSats ?? 0);
-  const fritvalgPct = neutraliser ? 0 : (args.sats.fritvalg ?? 0);
-  const pensionPct = neutraliser ? 0 : (args.sats.agPension ?? 0);
-  const feriePct = neutraliser ? 0 : args.feriePct;
-  const storeBededagPct = neutraliser ? 0 : getStoreBededagPct(args.iso, args.loenPaaHelligdage);
+  const shSoPct = args.sats.shSoSats ?? 0;
+  const fritvalgPct = args.sats.fritvalg ?? 0;
+  const pensionPct = args.sats.agPension ?? 0;
+  const feriePct = args.feriePct;
+  const storeBededagPct = getStoreBededagPct(args.iso, args.loenPaaHelligdage);
 
   const packageValue = computePackageValueDecimal({
     grundloen: args.sats.grundloen,
@@ -528,7 +517,7 @@ const buildEntryForDate = (args: {
     fritvalgPct,
     storeBededagPct,
     pensionPct,
-  }, neutraliser);
+  });
 
   const index = args.referenceValue > 0 ? (packageValue / args.referenceValue) * 100 : 0;
 
@@ -663,9 +652,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const loenPaaHelligdage = af.loenPaaHelligdage;
     const grundlag = af.loenudviklingBeregningsgrundlag;
     if (!grundlag || grundlag === 'Ingen') continue;
-    // Beløb-tilstand: tillægslaget neutraliseres, så reguleringsbilaget viser ren grundløns-/sats-regulering
-    // i takt med selve TAF-beregningen (jf. buildLoenudviklingFromOverenskomst).
-    const neutraliser = af.tillaegAngivesSom === 'beloeb';
     const saerligFraDatoRegulering = parseOptionalIso(af.saerligFraDatoRegulering);
     const referenceIso = resolveAnvendtReguleringsdato({
       beregnesUdFra: input.eoValues.beregnesUdFra,
@@ -759,7 +745,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         fritvalgPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.fritvalg, af.fritvalgPct),
         storeBededagPct: getStoreBededagPct(referenceIso, loenPaaHelligdage),
         pensionPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.agPension, af.pensionPct),
-      }, neutraliser);
+      });
       if (!Number.isFinite(referenceValue) || referenceValue <= 0) continue;
 
       const eoFraDanish = toDanishOrUndefined(eoRange.fra);
@@ -796,7 +782,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         }
       }
       if (
-        !neutraliser &&
         applyAlmindeligLoenPaaShDageRegel &&
         timelineStartIso < STORE_BEDEDAG_START &&
         eoRange.til >= STORE_BEDEDAG_START
@@ -834,7 +819,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
           storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
           pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
-        }, neutraliser);
+        });
         const index = referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0;
 
         let arbejdsdage: number | null = null;
@@ -858,11 +843,11 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         entries.push({
           effectiveFrom: iso,
           grundloen,
-          feriePct: neutraliser ? 0 : feriePct,
-          shSoPct: neutraliser ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
-          fritvalgPct: neutraliser ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
-          storeBededagPct: neutraliser ? 0 : getStoreBededagPct(iso, loenPaaHelligdage),
-          pensionPct: neutraliser ? 0 : resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
+          feriePct,
+          shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
+          fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
+          storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
+          pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
           packageValue,
           index,
           arbejdsdage,
@@ -921,7 +906,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         feriePct,
         loenPaaHelligdage,
         referenceValue: 1,
-        neutraliser,
       });
       if (!referenceEntry) continue;
       const referenceValue = referenceEntry.packageValue;
@@ -948,7 +932,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       }
       dates.add(referenceIso);
 
-      if (!neutraliser && eoRange.fra <= STORE_BEDEDAG_START && eoRange.til >= STORE_BEDEDAG_START) {
+      if (eoRange.fra <= STORE_BEDEDAG_START && eoRange.til >= STORE_BEDEDAG_START) {
         if (loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG) {
           dates.add(STORE_BEDEDAG_START as ISODateString);
         }
@@ -974,7 +958,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           feriePct,
           loenPaaHelligdage,
           referenceValue,
-          neutraliser,
         });
         if (!entry) continue;
         const tidsenhed = getTidsenhedsvaerdier(i, sortedDates, eoRange.til, shDageSet, ferieDageSet);

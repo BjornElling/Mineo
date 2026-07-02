@@ -994,7 +994,10 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.map((row) => row[0])).toEqual(['26-01-2024', '01-03-2024']);
   });
 
-  it('viser senest gældende manuel ændringsrække på reference-dato før tafFra', () => {
+  it('viser basisrækken på reference-datoen — rækker dateret før reguleringsdatoen ignoreres', () => {
+    // 2026-07-02 (brugerbeslutning): rækker med dato før den anvendte reguleringsdato indgår ikke
+    // i reguleringen (de udløser en advarsel i række-evalueringen). Basis er altid basisrækken —
+    // spejler buildLoenudviklingFromManual i motoren.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
@@ -1040,12 +1043,13 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     // SH/SO og Fritvalg er undefined på alle rækker → kolonner vises ikke
     // loenPaaHelligdage defaulter til 'Almindelig løn' → Store Bededag-kolonne vises
+    // Rækken pr. 2023-06-01 (før reguleringsdatoen 31-12-2023) ignoreres → basisrækkens værdier.
     expect(table?.rows.find((row) => row[0] === '31-12-2023')).toEqual([
       '31-12-2023',
-      '125,00',
+      '100,00',
       '16,95 %',
       '0 %',
-      '12,00 %',
+      '10,00 %',
     ]);
   });
 
@@ -1097,7 +1101,9 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.map((row) => row[0])).toEqual(['28-02-2025', '01-03-2025', '01-05-2025']);
   });
 
-  it('bevarer manuel reference-række når brugeren har angivet en særskilt reguleringsdato med identiske værdier', () => {
+  it('viser kun reguleringsdato-rækken når den eneste ændringsrække ligger før reguleringsdatoen', () => {
+    // 2026-07-02 (brugerbeslutning): rækken pr. 10-01-2024 (før den særskilte reguleringsdato
+    // 26-01-2024) ignoreres i beregning og visning; reguleringsdato-rækken bærer basisrækkens værdier.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
@@ -1132,7 +1138,7 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows.map((row) => row[0])).toEqual(['10-01-2024', '26-01-2024']);
+    expect(table?.rows.map((row) => row[0])).toEqual(['26-01-2024']);
   });
 
   it('overskriver ikke en eksplicit manuel række på reguleringsdatoen med første manuelle række', () => {
@@ -1255,7 +1261,9 @@ describe('reguleringsPresentation', () => {
     expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(true);
   });
 
-  it('bruger den senest gældende manuelle række som indeksbasis og periodebasis efter en tidligere manuel ændringsdato', () => {
+  it('bruger basisrækken som indeksbasis — rækker dateret før reguleringsdatoen ignoreres', () => {
+    // 2026-07-02 (brugerbeslutning): rækken pr. 2024-04-01 (før reguleringsdatoen 2024-05-01)
+    // indgår ikke; indeksbasis er basisrækken (100), og rækken pr. 2024-06-01 giver indeks 120.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
@@ -1301,7 +1309,7 @@ describe('reguleringsPresentation', () => {
 
     expect(rows).toHaveLength(2);
     expect(rows[0]?.indeks).toBe('100,00');
-    expect(rows[1]?.indeks).toBe('109,09');
+    expect(rows[1]?.indeks).toBe('120,00');
   });
 
   it('sammenklapper uændrede manuelle reguleringsværdier til én periode i første tabel', () => {

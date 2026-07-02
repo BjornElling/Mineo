@@ -10,10 +10,14 @@ export const applyAnsaettelsesforholdToggleCleanup = (
   nextValue: boolean
 ): Ansaettelsesforhold => ({ ...prev, [field]: nextValue });
 
-export const applyLoenudviklingBeregningsgrundlagChange = (
-  current: Ansaettelsesforhold,
+// Generisk over feltbæreren, så både loenindkomst-ansættelsesforhold og EO-angivet-løn-kilden
+// (EOAngivetLoenLoenudvikling) deler samme bevarings-semantik ved grundlagsskift.
+export const applyLoenudviklingBeregningsgrundlagChange = <
+  T extends Pick<Ansaettelsesforhold, 'loenudviklingBeregningsgrundlag'>
+>(
+  current: T,
   nextBeregningsgrundlag: LoenudviklingBeregningsgrundlag
-): Ansaettelsesforhold => ({
+): T => ({
   // Skjulte lønudvikling-felter (statistikModel, KRL-satstabel, manuelNavn, manuelTableData)
   // er fortsat committed brugerinput og skal bevares i runtime-state, sessionStorage og
   // .eo-save/load. Beregningsmotoren og validatoren gater eksplicit på

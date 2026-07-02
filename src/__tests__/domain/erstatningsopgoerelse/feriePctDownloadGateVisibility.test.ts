@@ -96,11 +96,14 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
     }
   );
 
-  it('kræver ikke feriegodtgørelse i beløb-tilstand — hverken blokering eller fejlrække', () => {
+  it('kræver feriegodtgørelse også i beløb-tilstand — med blokering OG synlig fejlrække', () => {
+    // 2026-07-02: Beløb-neutraliseringen fjernet — feriegodtgørelsen indgår i reguleringsformlen
+    // i begge tillægs-tilstande og kræves derfor ens. Invarianten (blokering ⟺ synlig fejl)
+    // skal fortsat holde.
     const values = buildScenario({ grundlag: 'Overenskomst', tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB });
-    expect(feriePctBlocksInValidator(values)).toBe(false);
-    expect(feriePctShownInRow(values)).toBe(false);
-    expect(isFeriePctRequiredForBlocking(values.loenindkomstAnsaettelsesforhold[0], values.beregnesUdFra)).toBe(false);
+    expect(feriePctBlocksInValidator(values)).toBe(true);
+    expect(feriePctShownInRow(values)).toBe(true);
+    expect(isFeriePctRequiredForBlocking(values.loenindkomstAnsaettelsesforhold[0], values.beregnesUdFra)).toBe(true);
   });
 
   it('kræver ikke feriegodtgørelse uden indtastede lønoplysninger', () => {

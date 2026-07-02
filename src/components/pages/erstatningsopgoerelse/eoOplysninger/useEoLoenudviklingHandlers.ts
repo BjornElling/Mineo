@@ -9,6 +9,7 @@ import {
   offentligLoenTypeEnum,
 } from '../../../../schemas/formSchemas';
 import { EO_ANGIVET_LOEN_ID } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { applyLoenudviklingBeregningsgrundlagChange } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { normalizeOptionalFreeText } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { isOffentligOverenskomstId } from '../../../../data/overenskomstRates';
 
@@ -64,11 +65,18 @@ export const useEoLoenudviklingHandlers = ({
 }: Params): EoLoenudviklingHandlers => {
   const handleLoenudviklingBeregningsgrundlagChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      loenudviklingBeregningsgrundlag: parsed.success ? parsed.data : undefined,
-    }), { fieldPath: 'loenudviklingBeregningsgrundlag' });
-  }, [updateEoLoenudvikling]);
+    const next = parsed.success ? parsed.data : undefined;
+    // Paritet med useLoenindkomstViewModel: når de manuelle reguleringstabeller afmonteres,
+    // ryddes deres input-fejlflag — et efterladt ':loenindkomst'-flag ville ellers blokere
+    // Gem som et usynligt spøgelses-mål.
+    if (next !== 'Manuelt angivet' && next !== 'Manuel procentsats') {
+      reportDynamicFieldError(`${EO_ANGIVET_LOEN_ID}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`, undefined);
+    }
+    updateEoLoenudvikling(
+      (prev) => applyLoenudviklingBeregningsgrundlagChange(prev, next),
+      { fieldPath: 'loenudviklingBeregningsgrundlag' }
+    );
+  }, [reportDynamicFieldError, updateEoLoenudvikling]);
 
   const handleLoenudviklingStatistikModelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = loenudviklingStatistikModelEnum.safeParse(event.target.value);

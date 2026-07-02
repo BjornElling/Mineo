@@ -163,10 +163,6 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
   const manualBaseRowErrorsByAfId: Record<string, ManualBaseRowCellErrors> = {};
   for (const af of loenindkomstAnsaettelsesforhold) {
     if (af.loenudviklingBeregningsgrundlag !== 'Manuelt angivet') continue;
-    // Beløb-tilstand: basisrækkens tillægsprocenter er brugerindtastede (låst op) og skal IKKE
-    // spejle satsfelterne ovenfor — den procent-tilstands-invariant, denne validering håndhæver,
-    // gælder ikke der.
-    if (af.tillaegAngivesSom === 'beloeb') continue;
     manualBaseRowErrorsByAfId[af.id] = validateLoenudviklingManualBaseRowSatser(
       af.loenudviklingManuelTableData?.[0],
       {

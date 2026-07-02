@@ -366,7 +366,8 @@ type ManualRowsContext = Readonly<{
 }>;
 
 const resolveManualRowsContext = (
-  rows: readonly LoenudviklingManuelRow[]
+  rows: readonly LoenudviklingManuelRow[],
+  anvendtReguleringsdato: ISODateString | undefined
 ): ManualRowsContext | null => {
   const baseRow = rows[0];
   if (!baseRow) return null;
@@ -377,6 +378,9 @@ const resolveManualRowsContext = (
       return startIso ? { startIso, row } : null;
     })
     .filter((entry): entry is ManualRowStart => Boolean(entry))
+    // Rækker dateret før reguleringsdatoen indgår ikke i reguleringen (spejler
+    // buildLoenudviklingFromManual i motoren) og må derfor heller ikke vises/bruges her.
+    .filter((entry) => !anvendtReguleringsdato || entry.startIso >= anvendtReguleringsdato)
     .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
   return { baseRow, datedRowStarts };
 };
@@ -806,7 +810,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasStoreBededagPct = resolveAutoStoreBededagPct(ansaettelsesforhold, tafTil) > 0;
     const needsStoreBededagBoundaryRow = hasStoreBededagPct && tafFra < STORE_BEDEDAG_START && tafTil >= STORE_BEDEDAG_START;
     const manualRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
-    const manualRowsContext = resolveManualRowsContext(manualRows);
+    const manualRowsContext = resolveManualRowsContext(manualRows, anvendtReguleringsdato);
     const datedStarts = sortIsoDates((manualRowsContext?.datedRowStarts ?? []).map((entry) => entry.startIso));
     const scopeDates = resolveRelevantManualDatesForTafScope(datedStarts, tafFra, tafTil, anvendtReguleringsdato);
     const normalizedRowsByIso = new Map<ISODateString, NonNullable<typeof manualRows>[number]>();
@@ -1113,7 +1117,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
   }
 
   const manualRowsContext = loenudviklingBasis === 'Manuelt angivet'
-    ? resolveManualRowsContext(ansaettelsesforhold.loenudviklingManuelTableData ?? [])
+    ? resolveManualRowsContext(ansaettelsesforhold.loenudviklingManuelTableData ?? [], anvendtReguleringsdato)
     : null;
   const isAslModel = isStatistik && isAslStatistikModel(statistikModelLabel);
   const statDecimalPlaces = (() => {

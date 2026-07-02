@@ -451,10 +451,11 @@ describe('buildLoenudviklingModel', () => {
 });
 
 describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg regulerer)', () => {
-  // Manuel regulering neutraliserer ALDRIG tillægslaget — heller ikke i Beløb-tilstand. Brugeren
-  // angiver tillægsprocenterne eksplicit i de manuelle rækker (basisrækken låses op i Beløb-tilstand),
-  // så deltaPct afspejler hele pakkeværdien. Modsat de øvrige strategier (fx Overenskomst), der stadig
-  // neutraliserer i Beløb-tilstand, fordi de ikke har per-dato tillægsinput.
+  // Tillægslaget indgår i reguleringen i BEGGE tillægs-tilstande (Procent og Beløb) — for manuel
+  // regulering via de manuelle rækkers tillægsprocenter, så deltaPct afspejler hele pakkeværdien.
+  //
+  // Beregningsperioden slutter 2022-12-31 (= anvendt reguleringsdato); TAF-perioden ligger efter.
+  // Rækker dateret FØR reguleringsdatoen ignoreres i beregningen (se separat test nedenfor).
   //
   // rows: hvis udeladt bruges én basisrække (grundløn 1000, alle tillæg = 0).
   type ManualRowInput = Readonly<{
@@ -473,22 +474,22 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
   ): ErstatningsopgoerelseValues => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
-    values.tafBeregningsperiodeFra = iso('2023-01-01');
-    values.tafBeregningsperiodeTil = iso('2024-09-30');
+    values.tafBeregningsperiodeFra = iso('2022-01-01');
+    values.tafBeregningsperiodeTil = iso('2022-12-31');
     values.tafPerioder = [{
       id: 'taf-cross-store-bededag',
       fra: iso('2023-01-01'),
       til: iso('2024-09-30'),
       loseFeriedage: 0,
     }];
-    const rows = options?.rows ?? [{ id: 'manual-base', dato: '2023-01-01', grundloen: 1000 }];
+    const rows = options?.rows ?? [{ id: 'manual-base', dato: '2022-12-31', grundloen: 1000 }];
     const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
     values.loenindkomstAnsaettelsesforhold = [{
       ...baseAf,
       id: 'af-beloeb',
       tillaegAngivesSom,
       // Sæt af-satserne til ikke-nul for at bevise, at deltaPct drives af de MANUELLE rækkers
-      // procenter — ikke af satsfelterne ovenfor (som ikke findes i Beløb-tilstand).
+      // procenter — ikke af satsfelterne ovenfor.
       feriePct: tillaegAngivesSom === 'beloeb' ? 99 : 0,
       fritvalgPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
       shSoPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
@@ -507,7 +508,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
       indtaegtsoplysningerTableData: [{
         id: 'r1',
         col0_maaned: '1',
-        col1_maaned: '2023',
+        col1_maaned: '2022',
         col0_uge: '',
         col1_uge: '',
         col0_dag: undefined,
@@ -536,16 +537,16 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     return model.beregnedeSegmenter.find((segment) => segment.fra === iso(fra))?.deltaPct;
   };
 
-  it('inkluderer Store Bededag i Beløb-tilstand — som Procent-tilstand (deltaPct = -0,45 før 2024)', () => {
-    // Tidligere neutraliserede Beløb-tilstand tillægslaget (deltaPct = 0). Efter ændringen indgår
-    // Store Bededag nu, præcis som i Procent-tilstand: referencepakken (ved 2024-09-30) bærer
-    // Store Bededag-tillægget, mens 2023-segmentet ikke gør → deltaPct = -0,45 %.
-    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01')).toBe(-0.45);
+  it('inkluderer Store Bededag i Beløb-tilstand — som Procent-tilstand (deltaPct = +0,45 fra 2024)', () => {
+    // Basispakken evalueres pr. reguleringsdatoen (2022-12-31, før Store Bededag-tillæggets
+    // ikrafttræden) og bærer derfor ikke tillægget; segmentet fra 2024-01-01 gør → deltaPct = +0,45 %.
+    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01')).toBe(0);
+    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2024-01-01')).toBe(0.45);
   });
 
   it('giver identisk deltaPct i Beløb- og Procent-tilstand for samme manuelle rækker', () => {
-    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01'))
-      .toBe(deltaForSegment(buildManualBeregningsperiode('procent'), '2023-01-01'));
+    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2024-01-01'))
+      .toBe(deltaForSegment(buildManualBeregningsperiode('procent'), '2024-01-01'));
   });
 
   it('lader de manuelle rækkers tillægsprocenter drive deltaPct i Beløb-tilstand', () => {
@@ -555,12 +556,79 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     const values = buildManualBeregningsperiode('beloeb', {
       loenPaaHelligdage: 'Ingen',
       rows: [
-        { id: 'base', dato: '2023-01-01', grundloen: 1000, feriepenge: 10 },
+        { id: 'base', dato: '2022-12-31', grundloen: 1000, feriepenge: 10 },
         { id: 'r2', dato: '2024-01-01', grundloen: 1000, feriepenge: 20 },
       ],
     });
     // Basissegmentet (uændret tillæg) regulerer ikke; det senere segment bærer tillægsstigningen.
     expect(deltaForSegment(values, '2023-01-01')).toBe(0);
     expect(deltaForSegment(values, '2024-01-01')).toBe(9.09);
+  });
+
+  it('ignorerer manuelle rækker dateret før den anvendte reguleringsdato', () => {
+    // Rækken pr. 2022-06-01 ligger før reguleringsdatoen (2022-12-31) og er i konflikt med
+    // basisrækken (som repræsenterer lønniveauet pr. reguleringsdatoen). Den ignoreres i
+    // beregningen (og rapporteres som advarsel i række-evalueringen) — deltaPct forbliver 0.
+    const values = buildManualBeregningsperiode('beloeb', {
+      loenPaaHelligdage: 'Ingen',
+      rows: [
+        { id: 'base', dato: '2022-12-31', grundloen: 1000, feriepenge: 10 },
+        { id: 'foer-basis', dato: '2022-06-01', grundloen: 2000, feriepenge: 50 },
+      ],
+    });
+    expect(deltaForSegment(values, '2023-01-01')).toBe(0);
+  });
+
+  it('anvender en række dateret præcis på reguleringsdatoen fra dag ét', () => {
+    const values = buildManualBeregningsperiode('beloeb', {
+      loenPaaHelligdage: 'Ingen',
+      rows: [
+        { id: 'base', dato: '2022-12-31', grundloen: 1000, feriepenge: 10 },
+        { id: 'paa-basis', dato: '2022-12-31', grundloen: 1000, feriepenge: 20 },
+      ],
+    });
+    // 1200/1100 − 1 = 9,09 % allerede fra TAF-periodens start.
+    expect(deltaForSegment(values, '2023-01-01')).toBe(9.09);
+  });
+
+  it('giver identisk deltaPct i Beløb- og Procent-tilstand for overenskomst-regulering', () => {
+    // Overenskomst-sporet må ikke neutralisere tillægslaget i Beløb-tilstand: reguleringen skal
+    // medregne stigninger i tillægsprocenterne (ferie/fritvalg/SH/pension/Store Bededag) i begge
+    // tilstande, med satsfelterne som fælles kilde.
+    const buildOverenskomst = (tillaegAngivesSom: 'procent' | 'beloeb'): ErstatningsopgoerelseValues => {
+      const values = buildManualBeregningsperiode(tillaegAngivesSom);
+      const af = values.loenindkomstAnsaettelsesforhold[0];
+      values.loenindkomstAnsaettelsesforhold = [{
+        ...af,
+        harOverenskomst: true,
+        overenskomstId: 'bygge-anlaeg',
+        loenPaaHelligdage: 'Almindelig løn',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        // Identiske satsfelter i begge tilstande — de indgår i reguleringsformlen begge steder.
+        feriePct: 12.5,
+        fritvalgPct: undefined,
+        shSoPct: undefined,
+        pensionPct: undefined,
+      }];
+      return values;
+    };
+
+    const segmentsFor = (values: ErstatningsopgoerelseValues): ReadonlyArray<readonly [string, number]> => {
+      const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') };
+      const indkomst = buildIndkomstSkadestidspunkt(values, stamdata, TAF_BEREGNES_SOM.MAANEDER);
+      const model = buildLoenudviklingModel(
+        values,
+        stamdata,
+        TAF_BEREGNES_SOM.MAANEDER,
+        indkomst,
+        { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-09-30') }] }
+      );
+      return model.beregnedeSegmenter.map((segment) => [segment.fra, segment.deltaPct] as const);
+    };
+
+    const beloebSegments = segmentsFor(buildOverenskomst('beloeb'));
+    expect(beloebSegments).toEqual(segmentsFor(buildOverenskomst('procent')));
+    // Mindst ét segment skal faktisk regulere — ellers beviser identiteten ingenting.
+    expect(beloebSegments.some(([, deltaPct]) => deltaPct !== 0)).toBe(true);
   });
 });

@@ -836,9 +836,10 @@ function validateLoenudviklingsKravForAktivKilde(
 
     errors.push(...validateLoenudviklingDataCoverage(values, af, index, path, options));
 
-    // 'Manuelt angivet' er tilgængelig i begge tilstande. Kravet om grundløn > 0 på alle aktive
-    // rækker gælder ens; feriePct kræves kun i Procent-tilstand (isFeriePctRequiredForBlocking er
-    // allerede false i Beløb-tilstand, hvor basisrækkens tillæg angives direkte i tabellen).
+    // 'Manuelt angivet' er tilgængelig i begge tillægs-tilstande, og kravene gælder ens:
+    // grundløn > 0 på alle aktive rækker, dato på alle aktive rækker efter basisrækken
+    // (basisrækkens dato er låst til reguleringsdatoen), og feriePct når der er indtastet
+    // lønoplysninger (feriePct indgår i reguleringsformlen i begge tilstande).
     if (grundlag === 'Manuelt angivet') {
       if (isFeriePctRequiredForBlocking(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
@@ -858,6 +859,11 @@ function validateLoenudviklingsKravForAktivKilde(
         );
       });
 
+      // Basisrækken (rows[0]) har låst dato (= reguleringsdatoen); dato-kravet gælder derfor kun
+      // de efterfølgende rækker. Uden dato ville motoren ellers stille droppe rækken, og
+      // reguleringen ville udeblive uden synlig fejl.
+      const aktiveRowsEfterBasis = rows.slice(1).filter((row) => aktiveRows.includes(row));
+
       if (aktiveRows.length === 0) {
         errors.push({
           path: path('loenudviklingManuelTableData'),
@@ -874,6 +880,12 @@ function validateLoenudviklingsKravForAktivKilde(
         errors.push({
           path: path('loenudviklingManuelTableData'),
           message: 'Grundløn skal være større end 0 på alle manuelle reguleringsrækker',
+          severity: 'error',
+        });
+      } else if (aktiveRowsEfterBasis.some((row) => row.dato === undefined)) {
+        errors.push({
+          path: path('loenudviklingManuelTableData'),
+          message: 'Dato skal udfyldes på alle manuelle reguleringsrækker',
           severity: 'error',
         });
       }

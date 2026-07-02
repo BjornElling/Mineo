@@ -1,6 +1,5 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { isWithinTolerance } from '../../../utils/numberComparison';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../config/indskudteLoentillaeg';
 import { resolveOverenskomstSatsBindings } from '../helpers/loenindkomstSatser';
@@ -36,23 +35,22 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
  * boksen). Hvis de to drev betingelsen hver for sig, kunne de drifte fra hinanden, så download blev
  * blokeret UDEN en synlig fejl i boksen. Denne fælles kilde forhindrer netop det.
  *
- * Beløb-tilstand bruger ikke satserne (tillæg indtastes som beløb), og feriegodtgørelsen kræves kun,
- * når lønudviklingen reguleres via overenskomst ELLER manuelt angivet grundlag (validatoren håndhæver
- * kravet i begge disse grene, men IKKE for 'Statistik'/'KRL satstabel'/'Ingen'), og der faktisk er
- * indtastet lønoplysninger i beregningsperioden.
+ * Feriegodtgørelsen indgår i reguleringsformlen i begge tillægs-tilstande (Procent og Beløb) og
+ * kræves, når lønudviklingen reguleres via overenskomst ELLER manuelt angivet grundlag (validatoren
+ * håndhæver kravet i begge disse grene, men IKKE for 'Statistik'/'KRL satstabel'/'Ingen'), og der
+ * faktisk er indtastet lønoplysninger i beregningsperioden.
  */
 export const isFeriePctRequiredForBlocking = (
   af: Pick<
     Ansaettelsesforhold,
-    'tillaegAngivesSom' | 'loenudviklingBeregningsgrundlag' | 'indtaegtsoplysningerTableData'
+    'loenudviklingBeregningsgrundlag' | 'indtaegtsoplysningerTableData'
   >,
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra']
 ): boolean => {
   const grundlag = af.loenudviklingBeregningsgrundlag;
   const grundlagKraeverFeriePct = grundlag === 'Overenskomst' || grundlag === 'Manuelt angivet';
   return (
-    af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB
-    && beregnesUdFra === 'Beregningsperiode'
+    beregnesUdFra === 'Beregningsperiode'
     && grundlagKraeverFeriePct
     && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? [])
   );

@@ -33,12 +33,15 @@ describe('syncManualBaseRowSatser', () => {
     expect(baseRow?.agPension).toBe(12);
   });
 
-  it('rører ALDRIG basisrækken i Beløb-tilstand (brugerindtastede tillæg bevares, no-op)', () => {
-    const af = makeManualAf('beloeb');
-    const result = syncManualBaseRowSatser(af);
-    // Samme reference tilbage (ingen ændring), og de brugerindtastede procenter er urørte.
-    expect(result).toBe(af);
-    expect(result.loenudviklingManuelTableData?.[0]?.feriepenge).toBe(99);
+  it('spejler satsfelterne ind i basisrækken også i Beløb-tilstand', () => {
+    // Satsfelterne vises og er reguleringens fælles kilde i begge tillægs-tilstande
+    // (2026-07-02: Beløb-neutraliseringen fjernet), så basisrækken spejler dem altid.
+    const result = syncManualBaseRowSatser(makeManualAf('beloeb'));
+    const baseRow = result.loenudviklingManuelTableData?.[0];
+    expect(baseRow?.feriepenge).toBe(12.5);
+    expect(baseRow?.shSoSats).toBe(1.5);
+    expect(baseRow?.fritvalg).toBe(4);
+    expect(baseRow?.agPension).toBe(12);
   });
 
   it('rører ikke ansættelsesforhold uden manuelt angivet lønudvikling', () => {

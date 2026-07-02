@@ -344,10 +344,55 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(firstEntry?.packageValue).toBeCloseTo(100.45, 6);
   });
 
+  it('inkluderer overenskomst-tillæg i Beløb-tilstand (lockstep med motoren)', () => {
+    // Tillægslaget indgår i reguleringen i begge tillægs-tilstande. Var Beløb-tilstanden stadig
+    // neutraliseret, ville feriePct være 0 og packageValue == grundløn.
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].tillaegAngivesSom = 'beloeb';
+
+    const result = buildRegulationTimeline(input);
+    const firstEntry = result.ansaettelser[0]?.entries[0];
+
+    expect(firstEntry?.feriePct).toBeCloseTo(0.125, 6);
+    expect(firstEntry?.packageValue ?? 0).toBeGreaterThan(firstEntry?.grundloen ?? Number.POSITIVE_INFINITY);
+  });
+
+  it('bygger manuel procentsats-sektion med akkumuleret indeks', () => {
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuel procentsats';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelProcentsatsTableData = [
+      { id: 'base', dato: undefined, procent: 0 },
+      { id: 'r1', dato: iso('2024-06-01') as any, procent: 10 },
+    ] as any;
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(result.ansaettelser[0]?.referenceValue).toBe(100);
+    expect(entries.map((entry) => entry.effectiveFrom)).toEqual([iso('2024-01-01'), iso('2024-06-01')]);
+    expect(entries[0]?.index).toBe(100);
+    expect(entries[1]?.index).toBeCloseTo(110, 6);
+  });
+
+  it('bygger KL-lønaftaler-sektion med entries fra reguleringsdatoen', () => {
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries[0]?.effectiveFrom).toBe(iso('2024-01-01'));
+    // KL-lønaftaler-debug viser periodesatsen (ikke en akkumuleret indeksmodel).
+    expect(entries.every((entry) => entry.index === 100)).toBe(true);
+  });
+
   it('inkluderer manuelle tillægsprocenter i Beløb-tilstand (neutraliserer IKKE — lockstep med motoren)', () => {
-    // Manuel regulering neutraliserer aldrig tillægslaget, heller ikke i Beløb-tilstand. Var det
-    // stadig neutraliseret, ville feriePct være 0 og packageValue == grundløn. 'Ingen' løn på
-    // helligdage isolerer feriepenge-bidraget fra Store Bededag.
+    // Tillægslaget indgår i reguleringen i begge tillægs-tilstande — for manuel regulering via de
+    // manuelle rækkers tillægsprocenter. Var det neutraliseret, ville feriePct være 0 og
+    // packageValue == grundløn. 'Ingen' løn på helligdage isolerer feriepenge-bidraget fra Store Bededag.
     const input = makeInput();
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuelt angivet';

@@ -9,6 +9,7 @@ import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaft
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
+import { resolveManuelProcentsatsRowsFoerBasis } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
@@ -264,6 +265,14 @@ export const buildEoIndkomstRows = (
       });
     }
 
+    const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+      saerligFraDatoRegulering: isISODateString(ansaettelsesforhold.saerligFraDatoRegulering) ? ansaettelsesforhold.saerligFraDatoRegulering : undefined,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
+      skadedato,
+    });
+
     const alleReguleringsvaerdierRow = (() => {
       if (loenudviklingBasis === 'Ingen') {
         return { displayValue: 'Ingen', status: 'ok' as EoRowStatus };
@@ -324,6 +333,14 @@ export const buildEoIndkomstRows = (
 
       const grundloenOk = aktiveRows.every((row) => row.grundloen !== undefined);
 
+      // Basisrækken (index 0) har låst dato (= reguleringsdatoen); dato-kravet gælder kun de
+      // efterfølgende rækker. Uden dato dropper motoren ellers rækken stille, og reguleringen
+      // udebliver uden synlig fejl. Spejler validatorens tilsvarende krav.
+      const datoOk = manuelRows
+        .slice(1)
+        .filter((row) => aktiveRows.includes(row))
+        .every((row) => (row.dato ?? '').trim() !== '');
+
       const supplementFields = [
         'feriepenge',
         'shSoSats',
@@ -338,7 +355,7 @@ export const buildEoIndkomstRows = (
         aktiveRows.every((row) => hasManualPercentValue(row[field]))
       );
 
-      const ok = grundloenOk && supplementsOk;
+      const ok = grundloenOk && supplementsOk && datoOk;
       return {
         displayValue: ok ? 'Ja' : 'Nej',
         message: ok ? undefined : 'Værdier mangler at blive udfyldt for manuel regulering',
@@ -360,6 +377,34 @@ export const buildEoIndkomstRows = (
       });
     }
 
+    // Rækker dateret før reguleringsdatoen ignoreres i reguleringen (basisrækken repræsenterer
+    // allerede niveauet pr. reguleringsdatoen, jf. buildManuelProcentsatsEntries og
+    // buildLoenudviklingFromManual). Ikke-blokerende advarsel, så brugeren kan se, at rækkerne
+    // ikke tæller med.
+    if (
+      anvendtReguleringsdato &&
+      (loenudviklingBasis === 'Manuelt angivet' || loenudviklingBasis === 'Manuel procentsats')
+    ) {
+      const rowsFoerBasis = loenudviklingBasis === 'Manuel procentsats'
+        ? resolveManuelProcentsatsRowsFoerBasis({
+          anvendtReguleringsdato,
+          rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
+        })
+        : (ansaettelsesforhold.loenudviklingManuelTableData ?? [])
+          .slice(1)
+          .filter((row) => isISODateString(row.dato) && row.dato < anvendtReguleringsdato);
+      if (rowsFoerBasis.length > 0) {
+        rows.push({
+          id: `${loenudviklingRowPrefix}.raekkerFoerReguleringsdato`,
+          label: 'Advarsel',
+          displayValue: `Advarsel (Der er ${rowsFoerBasis.length === 1 ? 'en reguleringsrække' : 'reguleringsrækker'} med dato før reguleringsdatoen (${isoToDanish(anvendtReguleringsdato)}). ${rowsFoerBasis.length === 1 ? 'Rækken' : 'Rækkerne'} indgår ikke i reguleringen.)`,
+          status: 'warning',
+          summaryDisplay: 'messageOnly',
+          dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+        });
+      }
+    }
+
     const showReguleringDetails =
       harGyldigValgtRegulering &&
       alleReguleringsvaerdierRow.status === 'ok' &&
@@ -368,14 +413,6 @@ export const buildEoIndkomstRows = (
     if (!showReguleringDetails || !loenudviklingBasis || loenudviklingBasis === 'Ingen') {
       return;
     }
-
-    const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
-      beregnesUdFra: values.beregnesUdFra,
-      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
-      saerligFraDatoRegulering: isISODateString(ansaettelsesforhold.saerligFraDatoRegulering) ? ansaettelsesforhold.saerligFraDatoRegulering : undefined,
-      beregningsperiodeTil: values.tafBeregningsperiodeTil,
-      skadedato,
-    });
 
     const reguleringsRange = (() => {
       if (loenudviklingBasis === 'Overenskomst') {
