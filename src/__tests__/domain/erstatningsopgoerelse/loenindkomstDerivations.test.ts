@@ -192,9 +192,9 @@ describe('deriveLoenindkomstVm', () => {
       expect(Object.prototype.hasOwnProperty.call(model.manualBaseRowErrorsByAfId, af.id)).toBe(true);
     });
 
-    it('medtager manuelt angivet også i Beløb-tilstand (basisrækken spejler satsfelterne i begge tilstande)', () => {
-      // 2026-07-02: Beløb-neutraliseringen fjernet — basisrække-spejlingen (og dens validering)
-      // gælder i begge tillægs-tilstande.
+    it('udelader basisrække-fejl i Beløb-tilstand', () => {
+      // Beløb-tilstand bruger tabelcellernes egne satser, og de skjulte top-satsfelter må ikke
+      // producere synlige basisrække-fejl.
       const af: Ansaettelsesforhold = {
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
@@ -202,7 +202,7 @@ describe('deriveLoenindkomstVm', () => {
         feriePct: 12.5,
       };
       const model = deriveLoenindkomstVm(buildInput([af]));
-      expect(Object.prototype.hasOwnProperty.call(model.manualBaseRowErrorsByAfId, af.id)).toBe(true);
+      expect(model.manualBaseRowErrorsByAfId[af.id]).toBeUndefined();
     });
   });
 

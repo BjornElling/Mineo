@@ -502,115 +502,116 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
       </Box>
 
-      {/* Tillægs-procentsatserne vises i BEGGE tillægs-tilstande: i Beløb-tilstand angives
-          tillæggene som beløb i lønrækkerne, men procentsatserne indgår fortsat i
-          lønudviklings-reguleringsformlen (jf. buildLoenudviklingFromOverenskomst). */}
-      <Typography className="row--subheading">{satserHeading}</Typography>
+      {af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB ? (
+        <>
+          <Typography className="row--subheading">{satserHeading}</Typography>
 
-      {/* Første række: 3 felter */}
-      <Box className="row--label-right-hover">
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography className="row--text" sx={{ minWidth: '160px' }}>
-              Feriegodtgørelse/-tillæg:
-            </Typography>
-            <StyledPercentField
-              name={`${af.id}:feriePct`}
-              value={af.feriePct}
-              onCommit={handleFeriePctCommit(af.id)}
-              placeholder="0"
-              useDefaultPercentRange
-              error={Boolean(satsErrors[af.id]?.feriePct)}
-              helperText={satsErrors[af.id]?.feriePct}
-              sx={{ width: '100px' }}
-            />
+          {/* Første række: 3 felter */}
+          <Box className="row--label-right-hover">
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'center',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography className="row--text" sx={{ minWidth: '160px' }}>
+                  Feriegodtgørelse/-tillæg:
+                </Typography>
+                <StyledPercentField
+                  name={`${af.id}:feriePct`}
+                  value={af.feriePct}
+                  onCommit={handleFeriePctCommit(af.id)}
+                  placeholder="0"
+                  useDefaultPercentRange
+                  error={Boolean(satsErrors[af.id]?.feriePct)}
+                  helperText={satsErrors[af.id]?.feriePct}
+                  sx={{ width: '100px' }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
+                <StyledPercentField
+                  name={`${af.id}:fritvalgPct`}
+                  value={af.fritvalgPct}
+                  onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
+                  placeholder="0"
+                  useDefaultPercentRange
+                  disabled={fritvalgLocked}
+                  disabledAppearance={fritvalgLocked ? 'locked' : 'default'}
+                  error={Boolean(satsErrors[af.id]?.fritvalgPct)}
+                  helperText={satsErrors[af.id]?.fritvalgPct}
+                  sx={LOCKED_SATS_FIELD_SX}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography className="row--text" sx={{ minWidth: '140px' }}>
+                  SH/SO-sats:
+                </Typography>
+                <StyledPercentField
+                  name={`${af.id}:shSoPct`}
+                  value={af.shSoPct}
+                  onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
+                  placeholder="0"
+                  useDefaultPercentRange
+                  disabled={shSoLocked}
+                  disabledAppearance={shSoLocked ? 'locked' : 'default'}
+                  error={Boolean(satsErrors[af.id]?.shSoPct)}
+                  helperText={satsErrors[af.id]?.shSoPct}
+                  sx={LOCKED_SATS_FIELD_SX}
+                />
+              </Box>
+            </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
-            <StyledPercentField
-              name={`${af.id}:fritvalgPct`}
-              value={af.fritvalgPct}
-              onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
-              placeholder="0"
-              useDefaultPercentRange
-              disabled={fritvalgLocked}
-              disabledAppearance={fritvalgLocked ? 'locked' : 'default'}
-              error={Boolean(satsErrors[af.id]?.fritvalgPct)}
-              helperText={satsErrors[af.id]?.fritvalgPct}
-              sx={LOCKED_SATS_FIELD_SX}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography className="row--text" sx={{ minWidth: '140px' }}>
-              SH/SO-sats:
-            </Typography>
-            <StyledPercentField
-              name={`${af.id}:shSoPct`}
-              value={af.shSoPct}
-              onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
-              placeholder="0"
-              useDefaultPercentRange
-              disabled={shSoLocked}
-              disabledAppearance={shSoLocked ? 'locked' : 'default'}
-              error={Boolean(satsErrors[af.id]?.shSoPct)}
-              helperText={satsErrors[af.id]?.shSoPct}
-              sx={LOCKED_SATS_FIELD_SX}
-            />
-          </Box>
-        </Box>
-      </Box>
 
-      {/* Anden række: 2 felter */}
-      <Box className="row--label-right-hover">
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography className="row--text" sx={{ minWidth: '160px' }}>
-              Store Bededagstillæg:
-            </Typography>
-            <StyledPercentField
-              name={`${af.id}:storeBededagPct`}
-              value={af.storeBededagPct}
-              onCommit={undefined}
-              placeholder="0"
-              useDefaultPercentRange
-              disabled
-              disabledAppearance="locked"
-              error={Boolean(satsErrors[af.id]?.storeBededagPct)}
-              helperText={satsErrors[af.id]?.storeBededagPct}
-              sx={LOCKED_SATS_FIELD_SX}
-            />
+          {/* Anden række: 2 felter */}
+          <Box className="row--label-right-hover">
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'center',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography className="row--text" sx={{ minWidth: '160px' }}>
+                  Store Bededagstillæg:
+                </Typography>
+                <StyledPercentField
+                  name={`${af.id}:storeBededagPct`}
+                  value={af.storeBededagPct}
+                  onCommit={undefined}
+                  placeholder="0"
+                  useDefaultPercentRange
+                  disabled
+                  disabledAppearance="locked"
+                  error={Boolean(satsErrors[af.id]?.storeBededagPct)}
+                  helperText={satsErrors[af.id]?.storeBededagPct}
+                  sx={LOCKED_SATS_FIELD_SX}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography className="row--text" sx={{ minWidth: '190px' }}>
+                  Arbejdsgivers pensionsbidrag:
+                </Typography>
+                <StyledPercentField
+                  name={`${af.id}:pensionPct`}
+                  value={af.pensionPct}
+                  onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
+                  placeholder="0"
+                  useDefaultPercentRange
+                  disabled={pensionLocked}
+                  disabledAppearance={pensionLocked ? 'locked' : 'default'}
+                  error={Boolean(satsErrors[af.id]?.pensionPct)}
+                  helperText={satsErrors[af.id]?.pensionPct}
+                  sx={LOCKED_SATS_FIELD_SX}
+                />
+              </Box>
+            </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography className="row--text" sx={{ minWidth: '190px' }}>
-              Arbejdsgivers pensionsbidrag:
-            </Typography>
-            <StyledPercentField
-              name={`${af.id}:pensionPct`}
-              value={af.pensionPct}
-              onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
-              placeholder="0"
-              useDefaultPercentRange
-              disabled={pensionLocked}
-              disabledAppearance={pensionLocked ? 'locked' : 'default'}
-              error={Boolean(satsErrors[af.id]?.pensionPct)}
-              helperText={satsErrors[af.id]?.pensionPct}
-              sx={LOCKED_SATS_FIELD_SX}
-            />
-          </Box>
-        </Box>
-      </Box>
+        </>
+      ) : null}
 
       <Typography className="row--subheading">Indtægtsoplysninger</Typography>
 
@@ -835,9 +836,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
                   baseDateInfoTooltipText={baseDateTooltipText}
                   baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}
-                  // Basisrækkens tillægsprocenter spejler satsfelterne ovenfor og er låst — i begge
-                  // tillægs-tilstande (satsfelterne vises også i Beløb-tilstand).
-                  readOnlyBaseRowPercentFields
+                  // Procent-tilstand spejler satsfelterne ovenfor. I Beløb-tilstand er de skjulte,
+                  // og brugeren indtaster basisrækkens tillægsprocenter direkte i tabellen.
+                  readOnlyBaseRowPercentFields={af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB}
                   useSmallFont={true}
                 />
                 </CellInvalidDraftScopeProvider>

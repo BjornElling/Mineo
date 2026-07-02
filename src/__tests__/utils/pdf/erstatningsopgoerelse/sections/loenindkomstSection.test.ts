@@ -139,6 +139,31 @@ describe('renderLoenindkomstSection – gate', () => {
 });
 
 describe('renderLoenindkomstSection opsigelseslinje', () => {
+  it('udelader skjulte satsfelter i Beløb-tilstand selv når OK-satser er valgt til PDF', () => {
+    const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0] = {
+      ...ctx.eoValues.loenindkomstAnsaettelsesforhold[0],
+      tillaegAngivesSom: 'beloeb',
+      feriePct: 12.5,
+      fritvalgPct: 4,
+      shSoPct: 1.5,
+      pensionPct: 12,
+    };
+
+    renderLoenindkomstSection({
+      ...ctx,
+      selectedElements: { ...selectedElements, okSatser: true },
+    });
+
+    expect(ctx.writeLabelValueLine).not.toHaveBeenCalledWith(
+      'Feriegodtgørelse/-tillæg:',
+      expect.anything()
+    );
+    expect(ctx.writeLabelValueLine).not.toHaveBeenCalledWith('Fritvalg:', expect.anything());
+    expect(ctx.writeLabelValueLine).not.toHaveBeenCalledWith('SH/SO-sats:', expect.anything());
+    expect(ctx.writeLabelValueLine).not.toHaveBeenCalledWith('Arbejdsgivers pensionsbidrag:', expect.anything());
+  });
+
   it('viser opsigelseslinje efter lønindkomsttabellen når ansættelsesforhold er opsagt', () => {
     const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet = true;

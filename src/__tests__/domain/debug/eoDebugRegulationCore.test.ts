@@ -344,17 +344,21 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(firstEntry?.packageValue).toBeCloseTo(100.45, 6);
   });
 
-  it('inkluderer overenskomst-tillæg i Beløb-tilstand (lockstep med motoren)', () => {
-    // Tillægslaget indgår i reguleringen i begge tillægs-tilstande. Var Beløb-tilstanden stadig
-    // neutraliseret, ville feriePct være 0 og packageValue == grundløn.
+  it('neutraliserer overenskomst-tillæg i Beløb-tilstand (lockstep med motoren)', () => {
+    // Løntabellens beløb indeholder allerede tillæggene i Beløb-tilstand; debug-timelinen må derfor
+    // ikke lægge de skjulte top-satsfelter oven i overenskomstindekset.
     const input = makeInput();
     input.eoValues.loenindkomstAnsaettelsesforhold[0].tillaegAngivesSom = 'beloeb';
 
     const result = buildRegulationTimeline(input);
     const firstEntry = result.ansaettelser[0]?.entries[0];
 
-    expect(firstEntry?.feriePct).toBeCloseTo(0.125, 6);
-    expect(firstEntry?.packageValue ?? 0).toBeGreaterThan(firstEntry?.grundloen ?? Number.POSITIVE_INFINITY);
+    expect(firstEntry?.feriePct).toBe(0);
+    expect(firstEntry?.shSoPct).toBe(0);
+    expect(firstEntry?.fritvalgPct).toBe(0);
+    expect(firstEntry?.storeBededagPct).toBe(0);
+    expect(firstEntry?.pensionPct).toBe(0);
+    expect(firstEntry?.packageValue).toBe(firstEntry?.grundloen);
   });
 
   it('bygger manuel procentsats-sektion med akkumuleret indeks', () => {

@@ -836,10 +836,8 @@ function validateLoenudviklingsKravForAktivKilde(
 
     errors.push(...validateLoenudviklingDataCoverage(values, af, index, path, options));
 
-    // 'Manuelt angivet' er tilgængelig i begge tillægs-tilstande, og kravene gælder ens:
-    // grundløn > 0 på alle aktive rækker, dato på alle aktive rækker efter basisrækken
-    // (basisrækkens dato er låst til reguleringsdatoen), og feriePct når der er indtastet
-    // lønoplysninger (feriePct indgår i reguleringsformlen i begge tilstande).
+    // 'Manuelt angivet' er tilgængelig i begge tillægs-tilstande. Grundløn/dato-krav gælder ens;
+    // i Beløb-tilstand kommer basis-satserne fra første tabelrække, ikke fra det skjulte feriePct-felt.
     if (grundlag === 'Manuelt angivet') {
       if (isFeriePctRequiredForBlocking(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });

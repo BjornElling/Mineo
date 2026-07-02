@@ -197,9 +197,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         writeLabelValueLine('Overenskomst', resolveOverenskomstNameOnlyDisplay(overenskomstId));
         writer.addSectionSpacer();
       }
-      // Satserne indgår i reguleringsformlen i begge tillægs-tilstande og vises derfor også
-      // i Beløb-tilstand (hvor selve tillæggene er indtastet som beløb i tabellen).
-      if (selectedElements.okSatser) {
+      // Beløb-tilstand: de skjulte top-satsfelter er ikke dokumentkilde; relevante satser står i
+      // lønoplysningerne/manuelle reguleringsrækker, hvor brugeren har indtastet dem.
+      if (selectedElements.okSatser && ansaettelsesforhold.tillaegAngivesSom !== 'beloeb') {
         if (!isZeroPct(ansaettelsesforhold.feriePct)) {
           writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
         }

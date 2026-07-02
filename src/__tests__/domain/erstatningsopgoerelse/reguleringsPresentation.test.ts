@@ -256,6 +256,30 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows[0]).toEqual(['01-01-2020', '-', '12,5 %', '2,7 %', '-', '0 %', '8,15 %']);
   });
 
+  it('skjuler overenskomstens top-satskolonner i Beløb-tilstand', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.tillaegAngivesSom = 'beloeb';
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laasesmedeoverenskomsten';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 12.5;
+    af.shSoPct = 2.7;
+    af.pensionPct = 8.15;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2020-01-01'),
+      tafFra: iso('2020-04-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn']);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
+  });
+
   it('bygger reguleringsindeks-rækker selv når segmenter starter før første overenskomstdækning', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -291,6 +315,37 @@ describe('reguleringsPresentation', () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0]?.fraDato).toBe('01-04-2020');
     expect(rows[0]?.indeks).toBe('100,00');
+  });
+
+  it('viser overenskomstindeks uden skjulte top-satser i Beløb-tilstand', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.tillaegAngivesSom = 'beloeb';
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'bygge-anlaeg';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 12.5;
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        {
+          kind: 'maaneder',
+          fra: iso('2023-06-01'),
+          til: iso('2024-03-31'),
+          maaneder: 10,
+          maanedsloenOre: 100000,
+          deltaPct: 0,
+          amountOre: 100000,
+        },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-05-24'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(false);
+    expect(rows[0]?.indeksberegning).not.toContain('%');
+    expect(rows[0]?.indeksberegning).not.toContain('×');
   });
 
   it('indregner indtastede satser som basis når privat overenskomst mangler på reguleringsdatoen', () => {

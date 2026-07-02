@@ -1092,7 +1092,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(values, 'Grundløn skal være større end 0')).toBe(true);
   });
 
-  it('validerer manuel reguleringsrække i Beløb-tilstand (grundløn og feriePct kræves som i Procent-tilstand)', () => {
+  it('validerer manuel reguleringsrække i Beløb-tilstand uden skjult feriePct-krav', () => {
     const loenoplysningsRow = {
       id: 'row-1',
       col0_maaned: '',
@@ -1129,17 +1129,17 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
         ],
       });
 
-    // Udfyldt grundløn + feriePct: ingen fejl.
-    const okValues = makeBeloebManual(asAmount(30000), { feriePct: 12.5, medLoenoplysninger: true });
+    // Udfyldt grundløn: ingen top-satsfejl, selv om skjult feriePct ikke er udfyldt.
+    const okValues = makeBeloebManual(asAmount(30000), { medLoenoplysninger: true });
     expect(hasError(okValues, 'Grundløn skal udfyldes')).toBe(false);
     expect(hasError(okValues, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
 
     // Manglende grundløn: fanges også i Beløb-tilstand.
     expect(hasError(makeBeloebManual(undefined), 'Grundløn skal udfyldes')).toBe(true);
 
-    // feriePct indgår i reguleringsformlen i begge tillægs-tilstande og kræves derfor også i
-    // Beløb-tilstand, når der er indtastet lønoplysninger.
-    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: true }), 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(true);
+    // Skjult feriePct er ikke et krav i Beløb-tilstand; relevante satser hentes fra første
+    // manuelle tabelrække.
+    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: true }), 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
     expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: false }), 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
   });
 

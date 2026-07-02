@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
+import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { isWithinTolerance } from '../../../utils/numberComparison';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../config/indskudteLoentillaeg';
 import { resolveOverenskomstSatsBindings } from '../helpers/loenindkomstSatser';
@@ -35,22 +36,21 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
  * boksen). Hvis de to drev betingelsen hver for sig, kunne de drifte fra hinanden, så download blev
  * blokeret UDEN en synlig fejl i boksen. Denne fælles kilde forhindrer netop det.
  *
- * Feriegodtgørelsen indgår i reguleringsformlen i begge tillægs-tilstande (Procent og Beløb) og
- * kræves, når lønudviklingen reguleres via overenskomst ELLER manuelt angivet grundlag (validatoren
- * håndhæver kravet i begge disse grene, men IKKE for 'Statistik'/'KRL satstabel'/'Ingen'), og der
- * faktisk er indtastet lønoplysninger i beregningsperioden.
+ * Beløb-tilstand bruger ikke de skjulte top-satsfelter; ved manuel regulering angives basis-satserne
+ * i første tabelrække, og ved øvrige reguleringsformer må de skjulte felter ikke blokere.
  */
 export const isFeriePctRequiredForBlocking = (
   af: Pick<
     Ansaettelsesforhold,
-    'loenudviklingBeregningsgrundlag' | 'indtaegtsoplysningerTableData'
+    'tillaegAngivesSom' | 'loenudviklingBeregningsgrundlag' | 'indtaegtsoplysningerTableData'
   >,
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra']
 ): boolean => {
   const grundlag = af.loenudviklingBeregningsgrundlag;
   const grundlagKraeverFeriePct = grundlag === 'Overenskomst' || grundlag === 'Manuelt angivet';
   return (
-    beregnesUdFra === 'Beregningsperiode'
+    af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB
+    && beregnesUdFra === 'Beregningsperiode'
     && grundlagKraeverFeriePct
     && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? [])
   );
@@ -122,6 +122,7 @@ export const resolveSatserErrorField = (
   anvendtReguleringsdato: ISODateString | undefined,
   feriePctRequired: boolean
 ): SatserError | null => {
+  if (af.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return null;
   // Manglende påkrævet feriegodtgørelse blokerer download (via validator-invarianten) og SKAL derfor
   // også optræde som en synlig fejlrække — med en "ikke udfyldt"-besked, ikke "forkert indtastet".
   if (feriePctRequired && !Number.isFinite(af.feriePct)) {

@@ -2,6 +2,7 @@ import {
   type ErstatningsopgoerelseValues,
   type LoenindkomstAnsaettelsesforhold,
 } from '../../../schemas/formSchemas';
+import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { type ISODateString, parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
@@ -90,14 +91,15 @@ export type SatsValidationContext = Readonly<{
 
 /**
  * Valider alle satser for ét ansættelsesforhold ud fra dets committede værdier + den anvendte
- * reguleringsdato. Satserne indgår i reguleringsformlen i begge tillægs-tilstande (Procent og
- * Beløb) og valideres derfor ens.
+ * reguleringsdato. Beløb-tilstand bruger de indtastede tillægsbeløb/rækkeprocenter i stedet for de
+ * skjulte top-satsfelter, så disse felter må ikke give feltfejl der.
  */
 export const validateAllSatserForAnsaettelsesforhold = (
   af: LoenindkomstAnsaettelsesforhold,
   ctx: SatsValidationContext
 ): SatsErrorState => {
   const errors: SatsErrorState = {};
+  if (af.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return errors;
   const { anvendtReguleringsdato, beregnesUdFra } = ctx;
   const kraeverFeriePct = beregnesUdFra === 'Beregningsperiode'
     && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);

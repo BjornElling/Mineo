@@ -485,8 +485,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
         if (!parsed.success) return;
         updateAnsaettelsesforhold(id, (prev) => {
           const next = { ...prev, tillaegAngivesSom: parsed.data };
-          // Satsfelterne (og dermed basisrække-spejlingen) gælder i begge tillægs-tilstande;
-          // synk altid, så den manuelle basisrække afspejler satsfelterne ovenfor.
+          // I Beløb-tilstand er basisrækkens procentsatser brugerinput; sync-helperen bevarer dem.
           return syncManualBaseRowSatser(next);
         }, { fieldPath: `${id}:tillaegAngivesSom` });
       },

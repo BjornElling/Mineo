@@ -132,6 +132,9 @@ type KonsolideretLoenudvikling =
     fritvalgPct: number;
     shSoPct: number;
     pensionPct: number;
+    // Beløb-tilstand: løntabellens beregnede løn indeholder allerede tillægsbeløbene, så
+    // overenskomstindekset må ikke lægge de skjulte top-satsfelter oven i reguleringsforholdet.
+    tillaegNeutraliseret: boolean;
     tafBeregningsenhed: TafBeregningsenhed;
     harAnciennitetstillaegEfterSkadedatoen: boolean;
     anciennitetstillaegDato: ISODateString | undefined;
@@ -402,13 +405,12 @@ const resolveReguleringsStrategi = (
               : basis === 'KL-lønaftaler' ? 'klLoenaftaler'
                 : 'ingen';
 
-  // feriePct indgår i reguleringsformlen i begge tillægs-tilstande (Procent og Beløb) og kræves
-  // derfor, så snart der er indtastet lønoplysninger i beregningsperioden.
   const kræverFeriePctVedBeregningsperiode =
     values.beregnesUdFra === 'Beregningsperiode'
-    && active.some((af) => hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []));
+    && active.some((af) => af.tillaegAngivesSom !== 'beloeb' && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []));
 
   const activeMedLoenoplysninger = active.filter((af) => hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []));
+  const activeMedSynligeSatserOgLoenoplysninger = activeMedLoenoplysninger.filter((af) => af.tillaegAngivesSom !== 'beloeb');
 
   if (strategi === 'statistik') {
     assertUniform(active, (af) => (af.loenudviklingStatistikModel ?? '').trim(), 'statistikmodel');
@@ -428,9 +430,9 @@ const resolveReguleringsStrategi = (
       'sats for anciennitetstillæg'
     );
     if (!angivetLoen) {
-      if (activeMedLoenoplysninger.length > 1) {
+      if (activeMedSynligeSatserOgLoenoplysninger.length > 1) {
         assertUniform(
-          activeMedLoenoplysninger,
+          activeMedSynligeSatserOgLoenoplysninger,
           (af) => (typeof af.feriePct === 'number' ? af.feriePct : null),
           'feriepct'
         );
@@ -456,9 +458,9 @@ const resolveReguleringsStrategi = (
   } else if (strategi === 'manual') {
     assertUniform(active, (af) => normalizeManualRows(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
     if (!angivetLoen) {
-      if (activeMedLoenoplysninger.length > 1) {
+      if (activeMedSynligeSatserOgLoenoplysninger.length > 1) {
         assertUniform(
-          activeMedLoenoplysninger,
+          activeMedSynligeSatserOgLoenoplysninger,
           (af) => (typeof af.feriePct === 'number' ? af.feriePct : null),
           'feriepct'
         );
@@ -509,7 +511,7 @@ const resolveReguleringsStrategi = (
       throw new Error('Loenudvikling kan ikke beregnes: overenskomst mangler');
     }
     if (kræverFeriePctVedBeregningsperiode && active.some((af) =>
-      hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []) && typeof af.feriePct !== 'number'
+      af.tillaegAngivesSom !== 'beloeb' && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []) && typeof af.feriePct !== 'number'
     )) {
       throw new Error('Loenudvikling kan ikke beregnes: feriepct mangler');
     }
@@ -543,6 +545,7 @@ const resolveReguleringsStrategi = (
         fritvalgPct,
         shSoPct,
         pensionPct,
+        tillaegNeutraliseret: active[0].tillaegAngivesSom === 'beloeb',
         tafBeregningsenhed,
         harAnciennitetstillaegEfterSkadedatoen: active[0].harAnciennitetstillaegEfterSkadedatoen,
         anciennitetstillaegDato: isISODateString(active[0].anciennitetstillaegDato) ? active[0].anciennitetstillaegDato : undefined,
@@ -560,7 +563,7 @@ const resolveReguleringsStrategi = (
 
   if (strategi === 'manual') {
     if (kræverFeriePctVedBeregningsperiode && active.some((af) =>
-      hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []) && typeof af.feriePct !== 'number'
+      af.tillaegAngivesSom !== 'beloeb' && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []) && typeof af.feriePct !== 'number'
     )) {
       throw new Error('Loenudvikling kan ikke beregnes: feriepct mangler');
     }
@@ -889,6 +892,7 @@ const buildLoenudviklingFromOverenskomst = (
   if (!konsolideret.reguleringsdato) {
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
+  const neutraliserTillaeg = konsolideret.tillaegNeutraliseret;
   const reguleringsdatoIso = konsolideret.reguleringsdato;
   const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
     konsolideret.overenskomstId,
@@ -994,7 +998,7 @@ const buildLoenudviklingFromOverenskomst = (
       ? offentligEffectiveBase.result.maanedsLoen
       : offentligEffectiveBase.result.timeLoen) + offentligLoenEkstraGrundloen;
     const baseLoen = ensurePositiveFiniteNumber(baseLoenRaw, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
-    const basePackage = computePackageValuePct({
+    const basePackage = neutraliserTillaeg ? baseLoen : computePackageValuePct({
       grundloen: baseLoen,
       feriePct,
       shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, konsolideret.shSoPct),
@@ -1037,7 +1041,7 @@ const buildLoenudviklingFromOverenskomst = (
         const startIso = parseDanishToIso(sats.fraDato);
         if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
       }
-      if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+      if (!neutraliserTillaeg && applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
         starts.add(STORE_BEDEDAG_START);
       }
       // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
@@ -1091,7 +1095,7 @@ const buildLoenudviklingFromOverenskomst = (
         const grundloenForSegment = anciennitetAktiv && anciennitetForIndex
           ? grundloenForSegmentBase + anciennitetForIndex.supplementValue
           : grundloenForSegmentBase;
-        const packageValue = computePackageValuePct({
+        const packageValue = neutraliserTillaeg ? grundloenForSegment : computePackageValuePct({
           grundloen: grundloenForSegment,
           feriePct,
           shSoPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.shSoSats, konsolideret.shSoPct),
@@ -1142,7 +1146,7 @@ const buildLoenudviklingFromOverenskomst = (
     dateIso: reguleringsdatoIso,
     applyAlmindeligLoenPaaShDageRegel: applyShRegel,
   });
-  const basePackage = computeFormulaValue(basePackageComponents);
+  const basePackage = neutraliserTillaeg ? basePackageComponents.baseValue : computeFormulaValue(basePackageComponents);
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
@@ -1170,7 +1174,7 @@ const buildLoenudviklingFromOverenskomst = (
       const startIso = parseDanishToIso(sats.fraDato);
       if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
     }
-    if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+    if (!neutraliserTillaeg && applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
     // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
@@ -1228,7 +1232,7 @@ const buildLoenudviklingFromOverenskomst = (
         baseValueSupplement: anciennitetAktiv && anciennitetForIndex ? anciennitetForIndex.supplementValue : 0,
         applyAlmindeligLoenPaaShDageRegel: applyShRegel,
       });
-      const packageValue = computeFormulaValue(segmentComponents);
+      const packageValue = neutraliserTillaeg ? segmentComponents.baseValue : computeFormulaValue(segmentComponents);
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }

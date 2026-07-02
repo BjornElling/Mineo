@@ -591,10 +591,9 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     expect(deltaForSegment(values, '2023-01-01')).toBe(9.09);
   });
 
-  it('giver identisk deltaPct i Beløb- og Procent-tilstand for overenskomst-regulering', () => {
-    // Overenskomst-sporet må ikke neutralisere tillægslaget i Beløb-tilstand: reguleringen skal
-    // medregne stigninger i tillægsprocenterne (ferie/fritvalg/SH/pension/Store Bededag) i begge
-    // tilstande, med satsfelterne som fælles kilde.
+  it('neutraliserer skjulte top-satsfelter i Beløb-tilstand for overenskomst-regulering', () => {
+    // I Beløb-tilstand er tillæggene allerede indtastet som faktiske beløb i løntabellen. Derfor
+    // må overenskomstindekset ikke lægge de skjulte top-satsfelter oven i reguleringen.
     const buildOverenskomst = (tillaegAngivesSom: 'procent' | 'beloeb'): ErstatningsopgoerelseValues => {
       const values = buildManualBeregningsperiode(tillaegAngivesSom);
       const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -604,7 +603,8 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
         overenskomstId: 'bygge-anlaeg',
         loenPaaHelligdage: 'Almindelig løn',
         loenudviklingBeregningsgrundlag: 'Overenskomst',
-        // Identiske satsfelter i begge tilstande — de indgår i reguleringsformlen begge steder.
+        // Identiske skjulte satsfelter i Beløb-tilstand må ikke gøre reguleringen identisk med
+        // Procent-tilstand.
         feriePct: 12.5,
         fritvalgPct: undefined,
         shSoPct: undefined,
@@ -627,8 +627,14 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     };
 
     const beloebSegments = segmentsFor(buildOverenskomst('beloeb'));
-    expect(beloebSegments).toEqual(segmentsFor(buildOverenskomst('procent')));
-    // Mindst ét segment skal faktisk regulere — ellers beviser identiteten ingenting.
+    const procentSegments = segmentsFor(buildOverenskomst('procent'));
+
+    expect(beloebSegments).not.toEqual(procentSegments);
+    // Mindst ét Beløb-segment skal stadig regulere efter overenskomstens grundløn, så testen ikke
+    // kun beviser at alle tillæg er nulstillet.
     expect(beloebSegments.some(([, deltaPct]) => deltaPct !== 0)).toBe(true);
+    expect(procentSegments.some(([fra, deltaPct]) => (
+      beloebSegments.find(([beloebFra]) => beloebFra === fra)?.[1] !== deltaPct
+    ))).toBe(true);
   });
 });

@@ -81,17 +81,21 @@ describe('validateAllSatserForAnsaettelsesforhold', () => {
     beregnesUdFra: 'Beregningsperiode' as const,
   });
 
-  it('validerer satserne også i beløb-tilstand (de indgår i reguleringsformlen)', () => {
-    // 2026-07-02: Beløb-neutraliseringen fjernet — satserne er reguleringens fælles kilde i
-    // begge tillægs-tilstande og valideres derfor ens.
+  it('validerer ikke de skjulte satsfelter i Beløb-tilstand', () => {
+    // Beløb-tilstand bruger løntabellens beløb og den manuelle lønudviklingstabel som kilde;
+    // de skjulte top-satsfelter må derfor ikke give blokeringer.
     const af = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB,
       fuldLoenUnderFerie: 'Nej' as const,
-      feriePct: 5, // udløser ferie-fejl som i Procent-tilstand
+      feriePct: 5,
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      loenPaaHelligdage: 'Almindelig løn' as const,
+      fritvalgPct: 3,
     };
     const errors = validateAllSatserForAnsaettelsesforhold(af, ctx());
-    expect(errors.feriePct).toBeDefined();
+    expect(errors).toEqual({});
   });
 
   it('udløser ferie-fejl i procent-tilstand når feriePct er under 12 %', () => {
