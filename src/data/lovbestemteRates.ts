@@ -324,6 +324,46 @@ export const aarsloenAslMax: YearlyRate = {
   2005: 387000,
 };
 
+/**
+ * Kontinuitets-guard for ASL-årslønsmaksimum (fail-closed ved ægte datafejl).
+ *
+ * ASL-lønudviklingsreguleringen (`buildLoenudviklingFromStatistik`, ASL-grenen) opdeler
+ * TAF-perioden i kalenderår og slår maks-satsen op for HVERT år
+ * (`resolveAslAarsloensmaksimumForAar`). Dækningsvalideringen
+ * (`validateLoenudviklingDataCoverage`) er derimod endepunkts-baseret:
+ * `opregulerMedAslAarsloensmaksimum` er per kontrakt et rent forhold
+ * idx[målår]/idx[kildeår] og tjekker KUN de to endepunktsår. Et hul MIDT i tabellen
+ * ville derfor passere valideringen, men få compute-motoren til at kaste for det
+ * manglende års segment → `fail_closed`/`runtime_exception` i stedet for en synlig,
+ * målrettet feltfejl.
+ *
+ * Vi kræver derfor at hvert kalenderår fra ældste til nyeste er repræsenteret. Guarden
+ * er tal-neutral for den nuværende (sammenhængende) tabel og fyrer kun ved en ægte
+ * datafejl (et tabt år). Modstykke til `assertStatistikAarKontinuitet`
+ * (`statistiskeRates.ts`), der lukker det tilsvarende S6-hul for statistik-kvartalsserien.
+ *
+ * BEMÆRK: gælder KUN maksimum-tabellen. `aarsloenAslMin` udelader bevidst 2024 (se
+ * nedenfor) og må ikke kontinuitets-tjekkes. Guarden ser kun på år-nøglens tilstedeværelse
+ * (et hul), ikke på om værdien er positiv — den værn (positiv-finit) bor i
+ * `resolveAslAarsloensmaksimumForAar`.
+ */
+export const assertAarsloenAslMaxKontinuitet = (indeks: YearlyRate = aarsloenAslMax): void => {
+  const bounds = getYearBoundsForYearlyRate(indeks);
+  if (!bounds) return;
+  for (let year = bounds.minYear; year <= bounds.maxYear; year += 1) {
+    const value = indeks[year];
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(
+        `ASL-årslønsmaksimum mangler år ${year} i serien (${bounds.minYear}–${bounds.maxYear}); ` +
+          'et hul midt i serien ville passere dækningsvalideringen (endepunkts-baseret) og først ' +
+          'kaste i lønudviklingsmotoren → fail_closed i stedet for en synlig dækningsfejl'
+      );
+    }
+  }
+};
+
+assertAarsloenAslMaxKontinuitet();
+
 // Maks. årsløn pr. 1/1-2024 (§ 24). Udledt af aarsloenAslMax[2024] for at holde én
 // sandhedskilde; fail-closed hvis 2024 nogensinde fjernes fra tabellen.
 export const ASL_MAX_AARSLOEN_2024: number = (() => {

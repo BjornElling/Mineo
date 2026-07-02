@@ -355,14 +355,19 @@ const resolveEffectiveBaseEntry = <T extends { startIso: ISODateString }>(
   date: ISODateString,
   context: string,
   missingMessage: string
-): Readonly<{ entry: T; usedFallback: boolean }> => {
+): T => {
+  // Anker basis til seneste sats <= reguleringsdato. Ligger reguleringsdatoen før
+  // første sats, ankres til ældste sats (fallback); denne "før første sats"-tilstand
+  // er ikke en motorfejl, men gates synligt og blokerende i række-laget
+  // (eoRowIndkomstRows: reguleringsvaerdi-error, aligned med tabellens fraDato).
+  // Se reguleringSilentPathAlignment.test.ts, der pinner den alignment.
   const baseEntry = findLatestByDateInSortedList(sortedItems, date, `${context}:base`);
-  if (baseEntry) return { entry: baseEntry, usedFallback: false };
+  if (baseEntry) return baseEntry;
   const firstEntry = sortedItems[0];
   if (!firstEntry) {
     throw new Error(missingMessage);
   }
-  return { entry: firstEntry, usedFallback: true };
+  return firstEntry;
 };
 
 const resolveReguleringsStrategi = (
@@ -695,8 +700,8 @@ const buildLoenudviklingFromStatistik = (
     'statistik',
     'Loenudvikling kan ikke beregnes: mangler basisindeks'
   );
-  ensurePositiveFiniteNumber(effectiveBase.entry.indeksvaerdi, 'Loenudvikling kan ikke beregnes: ugyldigt basisindeks');
-  const effectiveBaseStartIso = effectiveBase.entry.startIso;
+  ensurePositiveFiniteNumber(effectiveBase.indeksvaerdi, 'Loenudvikling kan ikke beregnes: ugyldigt basisindeks');
+  const effectiveBaseStartIso = effectiveBase.startIso;
 
   const segments: LoenreguleringsSegment[] = [];
   for (const range of konsolideret.tafRanges) {
@@ -716,7 +721,7 @@ const buildLoenudviklingFromStatistik = (
       ensurePositiveFiniteNumber(idxEntry.indeksvaerdi, 'Loenudvikling kan ikke beregnes: ugyldigt indeks for segment');
       segments.push({
         ...segment,
-        deltaPct: roundByMethod((idxEntry.indeksvaerdi / effectiveBase.entry.indeksvaerdi - 1) * 100, 2, 'halfAwayFromZero'),
+        deltaPct: roundByMethod((idxEntry.indeksvaerdi / effectiveBase.indeksvaerdi - 1) * 100, 2, 'halfAwayFromZero'),
       });
     }
   }
@@ -760,11 +765,11 @@ const buildLoenudviklingFromKRL = (
     'krl',
     'Loenudvikling kan ikke beregnes: mangler KRL basisindeks'
   );
-  const basePct = effectiveBase.entry.reguleringsPct;
+  const basePct = effectiveBase.reguleringsPct;
   if (!Number.isFinite(basePct) || (100 + basePct) <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ugyldigt KRL basisindeks');
   }
-  const effectiveBaseStartIso = effectiveBase.entry.startIso;
+  const effectiveBaseStartIso = effectiveBase.startIso;
 
   // Byg segmenter for hvert taf-interval
   const segments: LoenreguleringsSegment[] = [];

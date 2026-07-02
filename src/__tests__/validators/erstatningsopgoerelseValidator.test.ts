@@ -4,6 +4,7 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { calculateTafArbejdsdageBreakdown } from '../../domain/erstatningsopgoerelse/engines/tafCalculations';
+import { aarsloenAslMax } from '../../data/lovbestemteRates';
 
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -986,6 +987,35 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'tafBeregningsperiodeTil',
       message: expect.stringContaining('ASL-maks-sats mangler for 2004'),
+      severity: 'error',
+    }));
+  });
+
+  it('fanger ASL-årslønsmaksimum-regulering efter sidste tilgængelige indeksår', () => {
+    // Modstykke til før-første-år-testen: en TAF-periode i året efter ASL-tabellens
+    // sidste år har intet indeks. Motoren slår eksakt år op (ingen carry-forward), så
+    // det SKAL fanges af den blokerende dæknings-validering — ikke ende som en tavs
+    // runtime_exception i compute-motoren.
+    const maxYear = Math.max(...Object.keys(aarsloenAslMax).map(Number));
+    const efterMax = maxYear + 1;
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso(`${efterMax}-01-01`),
+      tafBeregningsperiodeTil: iso(`${efterMax}-01-31`),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
+        },
+      ],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'tafBeregningsperiodeTil',
+      message: expect.stringContaining(`ASL-maks-sats mangler for ${efterMax}`),
       severity: 'error',
     }));
   });

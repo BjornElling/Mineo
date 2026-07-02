@@ -2,7 +2,17 @@ import {
   statistiskLoenudvikling,
   getStatistiskLoenudvikling,
   getReguleringsDatoIntervalForStatistikModel,
+  assertStatistikAarKontinuitet,
+  type Kvartal,
+  type StatistiskLoenudvikling,
+  type StatistiskLoenudviklingId,
 } from '../../data/statistiskeRates';
+
+// Byg en syntetisk model uden at gå gennem de (ikke-eksporterede) brand-helpers.
+const makeModel = (id: string, rows: ReadonlyArray<readonly [string, number]>): StatistiskLoenudvikling => ({
+  meta: { id: id as StatistiskLoenudviklingId, navn: id, hjaelpetekst: '' },
+  indeksvaerdier: rows.map(([kvartal, indeksvaerdi]) => ({ kvartal: kvartal as Kvartal, indeksvaerdi })),
+});
 
 // ─── Dataintegritet ───────────────────────────────────────────────────────────
 
@@ -136,5 +146,62 @@ describe('getReguleringsDatoIntervalForStatistikModel', () => {
     const interval = getReguleringsDatoIntervalForStatistikModel('ASL-årslønsmaksimum');
     // Enten defineret eller undefined – vi kontrollerer bare at det ikke kaster
     expect(interval === undefined || typeof interval === 'object').toBe(true);
+  });
+});
+
+// ─── assertStatistikAarKontinuitet (kontinuitets-guard, silent-path S6) ─────────
+//
+// Guarden er fail-closed-værnet mod et interiort hul i kvartalsserien: mangler et
+// helt kalenderår midt i serien, ville motorens "seneste indeks ≤ dato"-opslag
+// stiltiende videreføre det forrige års indeks i det manglende års segment (tavs
+// under-regulering). Guarden gør et sådant hul umuligt ved modul-load.
+
+describe('assertStatistikAarKontinuitet', () => {
+  it('de faktiske modeller (ILON12, SBLON2) har sammenhængende års-dækning og kaster ikke', () => {
+    for (const model of statistiskLoenudvikling) {
+      expect(() => assertStatistikAarKontinuitet(model)).not.toThrow();
+    }
+  });
+
+  it('en sammenhængende serie (år uden huller) kaster ikke', () => {
+    const model = makeModel('X', [
+      ['2020K1', 100],
+      ['2021K1', 105],
+      ['2022K1', 110],
+    ]);
+    expect(() => assertStatistikAarKontinuitet(model)).not.toThrow();
+  });
+
+  it('flere kvartaler i samme år (fx K1 + K4) er tilladt — året er repræsenteret', () => {
+    // Spejler ILON12's faktiske form: 2025 optræder som både K1 og K4.
+    const model = makeModel('X', [
+      ['2024K1', 156.1],
+      ['2025K1', 161.5],
+      ['2025K4', 165.2],
+    ]);
+    expect(() => assertStatistikAarKontinuitet(model)).not.toThrow();
+  });
+
+  it('FAIL-CLOSED: et helt manglende år midt i serien kaster (hul-midt-i-serien)', () => {
+    // 2021 mangler helt mellem 2020 og 2022. Uden guarden ville et TAF-segment i
+    // 2021 stiltiende bruge 2020-indekset (100) → tavs under-regulering.
+    const model = makeModel('X', [
+      ['2020K1', 100],
+      ['2022K1', 110],
+    ]);
+    expect(() => assertStatistikAarKontinuitet(model)).toThrow(/mangler år 2021/);
+  });
+
+  it('FAIL-CLOSED: et flerårigt hul rapporterer det første manglende år', () => {
+    const model = makeModel('X', [
+      ['2018K1', 100],
+      ['2022K1', 120],
+    ]);
+    expect(() => assertStatistikAarKontinuitet(model)).toThrow(/mangler år 2019/);
+  });
+
+  it('tom serie kaster ikke (ingen års-span at kontrollere)', () => {
+    const model = makeModel('X', []);
+    expect(() => assertStatistikAarKontinuitet(model)).not.toThrow();
   });
 });

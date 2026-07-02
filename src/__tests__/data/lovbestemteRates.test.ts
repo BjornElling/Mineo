@@ -16,6 +16,7 @@ import {
   reguleringsprocentErhvervsevnetabFra2024,
   ASL_MAX_AARSLOEN_2024,
   aarsloenAslMax,
+  assertAarsloenAslMaxKontinuitet,
 } from '../../data/lovbestemteRates';
 import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
 import type { YearlyRate } from '../../data/lovbestemteRates';
@@ -318,6 +319,41 @@ describe('varigeMenPrGradYearBounds', () => {
 describe('ASL_MAX_AARSLOEN_2024 invariant', () => {
   it('er udledt af aarsloenAslMax[2024] (én sandhedskilde, ingen drift)', () => {
     expect(ASL_MAX_AARSLOEN_2024).toBe(aarsloenAslMax[2024]);
+  });
+});
+
+describe('assertAarsloenAslMaxKontinuitet (S6-hul-guard for ASL-regulering)', () => {
+  it('den faktiske tabel er sammenhængende (guarden passerer for produktionsdata)', () => {
+    expect(() => assertAarsloenAslMaxKontinuitet()).not.toThrow();
+  });
+
+  it('accepterer en sammenhængende syntetisk serie', () => {
+    expect(() => assertAarsloenAslMaxKontinuitet({ 2020: 1, 2021: 2, 2022: 3 })).not.toThrow();
+  });
+
+  it('accepterer et enkelt år og en tom tabel (intet hul muligt)', () => {
+    expect(() => assertAarsloenAslMaxKontinuitet({ 2024: 100 })).not.toThrow();
+    expect(() => assertAarsloenAslMaxKontinuitet({})).not.toThrow();
+  });
+
+  it('fail-closer ved et enkelt manglende år midt i serien', () => {
+    // 2021 mangler mellem 2020 og 2022 — ville passere den endepunkts-baserede
+    // dækningsvalidering, men få compute-motoren til at kaste for 2021-segmentet.
+    expect(() => assertAarsloenAslMaxKontinuitet({ 2020: 1, 2022: 3 })).toThrow(/mangler år 2021/);
+  });
+
+  it('fail-closer ved flere manglende år (rapporterer det første hul)', () => {
+    expect(() => assertAarsloenAslMaxKontinuitet({ 2018: 1, 2021: 2 })).toThrow(/mangler år 2019/);
+  });
+
+  it('behandler et ikke-finit år som et hul (NaN-værdi)', () => {
+    expect(() => assertAarsloenAslMaxKontinuitet({ 2020: 1, 2021: Number.NaN, 2022: 3 })).toThrow(/mangler år 2021/);
+  });
+
+  it('behandler en 0-værdi som TILSTEDE (et hul er en manglende år-nøgle, ikke en dårlig værdi)', () => {
+    // 0 er en dårlig sats (fanges af resolveAslAarsloensmaksimumForAar → undefined),
+    // men er IKKE et hul i serien. Kontinuitets-guarden må kun fange manglende år.
+    expect(() => assertAarsloenAslMaxKontinuitet({ 2020: 1, 2021: 0, 2022: 3 })).not.toThrow();
   });
 });
 

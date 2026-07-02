@@ -12,6 +12,8 @@ import {
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
 import { isoToDanish, toISODateString } from '../../../types/branded';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { roundByMethod } from '../../../utils/rounding';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -430,6 +432,188 @@ describe('buildLoenudviklingModel', () => {
     ]);
   });
 
+  // ─── Statistik ASL-årslønsmaksimum (punkt 4) ────────────────────────────────
+  //
+  // ASL-grenen opdeler TAF-perioden i kalenderår og slår maks-satsen op for HVERT år
+  // (eksakt år-opslag, IKKE "seneste ≤ dato"-carry-forward som DST-kvartalsindeks).
+  // deltaPct[år] = (idx[år] / idx[basisår] − 1) × 100 via den fælles opreguleringsmotor.
+  // Fordi opslaget er eksakt-år, fail-closer et manglende år (interiort hul ELLER efter
+  // sidste år) hårdt i motoren — der findes derfor ingen tavs under-regulering her.
+  const buildAslModel = (regDato: string, range: { fra: string; til: string }) => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso(regDato);
+    values.tafPerioder = [{ id: 'taf-asl', fra: iso(range.fra), til: iso(range.til), loseFeriedage: 0 }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Statistik',
+      loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
+    };
+    return buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso(regDato) },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso(range.fra), til: iso(range.til) }] }
+    );
+  };
+
+  const aslDelta = (segmentAar: number, basisAar: number): number =>
+    roundByMethod((aarsloenAslMax[segmentAar] / aarsloenAslMax[basisAar] - 1) * 100, 2, 'halfAwayFromZero');
+
+  it('ASL: per-år-split med indeksforhold idx[år]/idx[basisår] (normalsti)', () => {
+    // Basisår = reguleringsdatoens år (2020). Ét segment pr. kalenderår; basisårets
+    // segment er 0 (målår == kildeår), de følgende bærer det akkumulerede indeksforhold.
+    const model = buildAslModel('2020-06-01', { fra: '2020-06-01', til: '2022-12-31' });
+    const deltaFor = (fra: string) => model.beregnedeSegmenter.find((s) => s.fra === iso(fra))?.deltaPct;
+
+    expect(deltaFor('2020-06-01')).toBe(0);
+    expect(deltaFor('2021-01-01')).toBe(aslDelta(2021, 2020));
+    expect(deltaFor('2022-01-01')).toBe(aslDelta(2022, 2020));
+    // Sanity: reguleringen er faktisk positiv (maks-satsen stiger år for år).
+    expect(aslDelta(2021, 2020)).toBeGreaterThan(0);
+    expect(aslDelta(2022, 2020)).toBeGreaterThan(aslDelta(2021, 2020));
+  });
+
+  it('ASL: segment før basisåret giver bevidst zero-delta (regulering gælder først fra reguleringsdatoen)', () => {
+    // Reguleringsdato i 2022, men TAF-perioden rækker bagud til 2021. 2021-segmentet
+    // (år < basisår) er zero-delta; 2023-segmentet (år > basisår) regulerer normalt.
+    const model = buildAslModel('2022-06-01', { fra: '2021-01-01', til: '2023-12-31' });
+    const deltaFor = (fra: string) => model.beregnedeSegmenter.find((s) => s.fra === iso(fra))?.deltaPct;
+
+    expect(deltaFor('2021-01-01')).toBe(0);
+    expect(deltaFor('2022-01-01')).toBe(0); // basisåret selv
+    expect(deltaFor('2023-01-01')).toBe(aslDelta(2023, 2022));
+    expect(aslDelta(2023, 2022)).toBeGreaterThan(0);
+  });
+
+  it('ASL: fail-lukker (kaster) når TAF-perioden rækker ud over sidste dækkede år (ingen carry-forward)', () => {
+    // Modsat DST-kvartalsindeks (der carry-forwarder inden for et dæknings-vindue) slår
+    // ASL eksakt år op. Et segment i året efter tabellens sidste år (maxYear+1) har intet
+    // indeks → motoren kaster (fail-closed) frem for stille at videreføre sidste års sats.
+    const maxYear = Math.max(...Object.keys(aarsloenAslMax).map(Number));
+    expect(() => buildAslModel(
+      `${maxYear}-01-01`,
+      { fra: `${maxYear}-01-01`, til: `${maxYear + 1}-06-30` }
+    )).toThrow(/ASL indeks/);
+  });
+
+  // ─── Privat overenskomst (punkt 5): robusthed / ingen tavs runtime_exception ──
+  //
+  // Privat overenskomst har ingen realistisk throw-sti for valid input: basen opløses
+  // altid (fallback til overenskomstens første sats via resolvePrivateOverenskomstBaseContext),
+  // og `getSatserForDatoFromList` carry-forwarder den seneste sats ≤ dato — så et interiort
+  // hul er umuligt, og en TAF-periode UD OVER sidste sats giver carry-forward (ikke throw).
+  // De eneste zero-delta-stier er "før dækning"/"før basis", der er gated i row-laget (S2).
+  it('privat overenskomst: TAF-periode ud over sidste sats carry-forwarder uden at kaste (ingen tavs runtime_exception)', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2023-01-01');
+    values.tafPerioder = [{ id: 'taf-ok-carry', fra: iso('2023-01-01'), til: iso('2035-12-31'), loseFeriedage: 0 }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      overenskomstId: 'bygge-anlaeg',
+      loenPaaHelligdage: 'Ingen',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+    };
+
+    // Motoren fail-closer ALDRIG her: den producerer en model med carry-forward af sidste
+    // sats. Øvre-grænse-gaten (efter sidste sats) ejes af row-/validator-laget (punkt 12/13),
+    // ikke af en motor-throw.
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2035-12-31') }] }
+    );
+    expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
+    // Reguleringen er reel (satsen steg inden for dækningen) og videreføres derefter.
+    expect(model.beregnedeSegmenter.some((s) => s.deltaPct > 0)).toBe(true);
+  });
+
+  // ─── Statistik (DST-kvartalsindeks: ILON12 / SBLON2) ────────────────────────
+  //
+  // deltaPct = (idx[segment] / idx[base] − 1) × 100, afrundet halfAwayFromZero til
+  // to decimaler. Base = seneste kvartalsindeks ≤ reguleringsdato. Grænserne (før
+  // første kvartal, efter sidste kvartal, hul midt i serien) er reviewets fokus.
+  const buildStatistikModel = (
+    model: string,
+    regDato: string,
+    range: { fra: string; til: string }
+  ) => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso(regDato);
+    values.tafPerioder = [{ id: 'taf-stat', fra: iso(range.fra), til: iso(range.til), loseFeriedage: 0 }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Statistik',
+      loenudviklingStatistikModel: model as typeof values.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel,
+    };
+    return buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso(regDato) },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso(range.fra), til: iso(range.til) }] }
+    );
+  };
+
+  const statistikDeltas = (model: string, regDato: string, range: { fra: string; til: string }) =>
+    buildStatistikModel(model, regDato, range).beregnedeSegmenter.map((s) => ({ fra: s.fra, deltaPct: s.deltaPct }));
+
+  it('Statistik (ILON12): normal beregning — deltaPct = idx[segment]/idx[base] − 1', () => {
+    // Base = 2020K1 (140,1). 2021K1=142,9 → +2,00 %; 2022K1=146,1 → +4,28 %.
+    expect(statistikDeltas('ILON12 (Danmarks Statistik)', '2020-06-01', { fra: '2020-06-01', til: '2022-12-31' })).toEqual([
+      { fra: iso('2020-06-01'), deltaPct: 0 },
+      { fra: iso('2021-01-01'), deltaPct: 2.0 },
+      { fra: iso('2022-01-01'), deltaPct: 4.28 },
+    ]);
+  });
+
+  it('Statistik (ILON12): base-clamp — reguleringsdato før første kvartal → zero-delta før basen (S1)', () => {
+    // reguleringsdato 2004-06-01 ligger før ILON12's første kvartal (2005K1).
+    // Motoren ankrer basen til ældste kvartal (2005K1 = 100) og giver zero-delta for
+    // segmentet før basen. På produkt-niveau blokeres dette af en synlig, blokerende
+    // reguleringsvaerdi-row-error (eoRowIndkomstRows.ts:472), aligned med basen — jf.
+    // punkt 1's S1-afgørelse (bekræftet korrekt, gated). Her verificeres motor-adfærden.
+    expect(statistikDeltas('ILON12 (Danmarks Statistik)', '2004-06-01', { fra: '2004-06-01', til: '2006-12-31' })).toEqual([
+      { fra: iso('2004-06-01'), deltaPct: 0 }, // før effektiv base (2005K1) → zero-delta
+      { fra: iso('2005-01-01'), deltaPct: 0 }, // basen selv
+      { fra: iso('2006-01-01'), deltaPct: 2.9 }, // 102,9 / 100
+    ]);
+  });
+
+  it('Statistik (ILON12): efter sidste kvartal — sidste indeks videreføres inden for dæknings-vinduet (S6-endepunkt)', () => {
+    // Base = 2024K1 (156,1). 2025K1=161,5 → +3,46 %. Sidste kvartal er 2025K4 (165,2);
+    // dets indeks videreføres for segmentet der rækker ind i 2026 (+5,83 %). Dette er
+    // bevidst carry-forward inden for det 12-måneders dæknings-vindue (tilDato =
+    // sidste kvartalsstart + 12 mdr − 1 dag = 30-09-2026). Rækker TAF-perioden UD OVER
+    // tilDato, fail-closer endDate-row-gaten (ejes af punkt 12/13), ikke motoren.
+    expect(statistikDeltas('ILON12 (Danmarks Statistik)', '2024-06-01', { fra: '2024-06-01', til: '2026-06-30' })).toEqual([
+      { fra: iso('2024-06-01'), deltaPct: 0 },
+      { fra: iso('2025-01-01'), deltaPct: 3.46 },
+      { fra: iso('2025-10-01'), deltaPct: 5.83 }, // 2025K4-indeks videreført ind i 2026
+    ]);
+  });
+
+  it('Statistik: hul midt i serien er umuligt — assertStatistikAarKontinuitet fail-closer ved modul-load (S6-interiort)', () => {
+    // Et interiort hul (helt manglende kalenderår) ville få motorens
+    // findLatestByDateInSortedList til stiltiende at videreføre det forrige års indeks.
+    // Det gøres umuligt af kontinuitets-guarden i statistiskeRates.ts, der kaster ved
+    // modul-load hvis et år mangler. Se statistiskeRates.test.ts for guardens egne
+    // fail-closed-tests; her bekræftes blot at de faktiske modeller er hul-frie, så
+    // motoren aldrig kan møde et interiort hul.
+    for (const modelLabel of ['ILON12 (Danmarks Statistik)', 'SBLON2 (Danmarks Statistik)']) {
+      expect(() => statistikDeltas(modelLabel, '2020-06-01', { fra: '2020-06-01', til: '2020-12-31' })).not.toThrow();
+    }
+  });
+
   it('returnerer 0 kr. når arbejdsdage-sporet ikke har TAF-arbejdsdage', () => {
     const values = setupAngivetDagsloen();
     values.tafPerioder = [{
@@ -817,3 +1001,163 @@ const buildParityTafNettoBeregning = (values: ErstatningsopgoerelseValues) => {
     { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-09-30') }] }
   );
 };
+
+// ---------------------------------------------------------------------------
+// Regulering punkt 2 — Form: Ingen
+//
+// Invarianter under review-punkt 2 (docs/review/regulering-2-form-ingen.md):
+//   (a) alle-Ingen → strategi 'ingen' → ÆGTE nul-regulering: deltaPct 0 på hvert
+//       segment, men den fulde basisløn bæres videre (deltaPct 0 ≠ nul beløb).
+//   (b) uvalgt/tom strategi → throw (fail-closed), IKKE stiltiende nul-regulering.
+//   (c) blandet 'Ingen' + aktiv form i multi-ansættelse (Beregningsperiode-grenen)
+//       → 'Ingen'-forholdet maskerer/fortrænger IKKE reguleringen på det aktive
+//       ansættelsesforhold; hver af reguleres uafhængigt og summeres.
+// ---------------------------------------------------------------------------
+describe('buildLoenudviklingModel — Form: Ingen (review-punkt 2)', () => {
+  const buildMaanedIndkomstRow = (id: string) => ({
+    id,
+    col0_maaned: '1',
+    col1_maaned: '2022',
+    col0_uge: '',
+    col1_uge: '',
+    col0_dag: undefined,
+    col1_dag: undefined,
+    col2: asAmount(30000),
+    col3: undefined,
+    col4: undefined,
+    col5: undefined,
+    fpFvShSoBeloeb: undefined,
+    pensionBeloeb: undefined,
+  });
+
+  it('(a) alle-Ingen giver strategi "Ingen" med deltaPct 0 og fuld basisløn (ægte nul-regulering, ikke nul beløb)', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenBaseretPaa = 'Testgrundlag';
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-01-01');
+    values.tafPerioder = [{ id: 'taf-ingen', fra: iso('2024-01-01'), til: iso('2024-06-30'), loseFeriedage: 0 }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenPaaHelligdage: 'Almindelig løn',
+      loenudviklingBeregningsgrundlag: 'Ingen',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-06-30') }] }
+    );
+
+    expect(model.loenudviklingLabel).toBe('Ingen');
+    expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
+    expect(model.beregnedeSegmenter.every((segment) => segment.deltaPct === 0)).toBe(true);
+    // Ægte nul-regulering: basisløn (30.000 kr = 3.000.000 øre) bæres uændret på hvert segment.
+    expect(model.beregnedeSegmenter.every((segment) => segment.kind === 'maaneder' && segment.maanedsloenOre === 3_000_000)).toBe(true);
+    // ...og totalen er dermed den fulde ikke-regulerede løn — IKKE nul.
+    expect(model.loenudviklingTotal.status).toBe('ok');
+    if (model.loenudviklingTotal.status === 'ok') {
+      expect(model.loenudviklingTotal.value).toBeGreaterThan(0);
+    }
+  });
+
+  it('(b) uvalgt strategi (intet beregningsgrundlag) fail-closer med throw — ikke stiltiende nul', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenBaseretPaa = 'Testgrundlag';
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-01-01');
+    values.tafPerioder = [{ id: 'taf-uvalgt', fra: iso('2024-01-01'), til: iso('2024-06-30'), loseFeriedage: 0 }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenPaaHelligdage: 'Almindelig løn',
+      // Bevidst uvalgt: hverken 'Ingen' eller en aktiv form. Skal fail-close.
+      loenudviklingBeregningsgrundlag: undefined,
+    };
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-06-30') }] }
+    )).toThrow(/ikke valgt/);
+  });
+
+  it('(c) blandet Ingen + aktiv form (multi-af, Beregningsperiode): Ingen maskerer IKKE reguleringen på det aktive forhold', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2022-01-01');
+    values.tafBeregningsperiodeTil = iso('2022-12-31'); // reguleringsdato = beregningsperiodens slut
+    values.tafPerioder = [{ id: 'taf-mix', fra: iso('2023-01-01'), til: iso('2024-12-31'), loseFeriedage: 0 }];
+
+    const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
+    values.loenindkomstAnsaettelsesforhold = [
+      {
+        ...baseAf,
+        id: 'af-ingen',
+        navnPaaArbejdssted: 'Ingen-forhold',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [buildMaanedIndkomstRow('indk-ingen')],
+      },
+      {
+        ...baseAf,
+        id: 'af-aktiv',
+        navnPaaArbejdssted: 'Aktivt-forhold',
+        loenudviklingBeregningsgrundlag: 'Manuel procentsats',
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'p-base', dato: iso('2022-12-31'), procent: 0 },
+          { id: 'p-2024', dato: iso('2024-01-01'), procent: 10 },
+        ],
+        indtaegtsoplysningerTableData: [buildMaanedIndkomstRow('indk-aktiv')],
+      },
+    ];
+
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') };
+    const indkomst = buildIndkomstSkadestidspunkt(values, stamdata, TAF_BEREGNES_SOM.MAANEDER);
+    const model = buildLoenudviklingModel(
+      values,
+      stamdata,
+      TAF_BEREGNES_SOM.MAANEDER,
+      indkomst,
+      { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-12-31') }] }
+    );
+
+    // Begge ansættelsesforhold er repræsenteret hver for sig (ingen bliver slugt).
+    expect(model.perAnsaettelse.length).toBe(2);
+    expect(model.loenudviklingLabel).toBe('Flere reguleringstyper');
+
+    const ingenEntry = model.perAnsaettelse.find((entry) => entry.ansaettelsesforholdId === 'af-ingen');
+    const aktivEntry = model.perAnsaettelse.find((entry) => entry.ansaettelsesforholdId === 'af-aktiv');
+    expect(ingenEntry).toBeDefined();
+    expect(aktivEntry).toBeDefined();
+
+    // Ingen-forholdet: ægte nul-regulering (deltaPct 0), men bidrager sin fulde basisløn.
+    expect(ingenEntry?.beregnedeSegmenter.every((segment) => segment.deltaPct === 0)).toBe(true);
+    expect(ingenEntry?.loenudviklingTotal.status).toBe('ok');
+    if (ingenEntry?.loenudviklingTotal.status === 'ok') {
+      expect(ingenEntry.loenudviklingTotal.value).toBeGreaterThan(0);
+    }
+
+    // Det AKTIVE forhold beholder sin regulering: segmentet fra 2024-01-01 har +10 %.
+    // (Var reguleringen fortrængt af Ingen-forholdet, ville deltaPct være 0.)
+    const aktiv2024 = aktivEntry?.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-01-01'));
+    const aktiv2023 = aktivEntry?.beregnedeSegmenter.find((segment) => segment.fra === iso('2023-01-01'));
+    expect(aktiv2023?.deltaPct).toBe(0);
+    expect(aktiv2024?.deltaPct).toBe(10);
+
+    // Totalen er summen af begge forhold (ingen maskering på compute-niveau).
+    expect(model.loenudviklingTotal.status).toBe('ok');
+    if (
+      model.loenudviklingTotal.status === 'ok'
+      && ingenEntry?.loenudviklingTotal.status === 'ok'
+      && aktivEntry?.loenudviklingTotal.status === 'ok'
+    ) {
+      expect(model.loenudviklingTotal.value).toBe(
+        ingenEntry.loenudviklingTotal.value + aktivEntry.loenudviklingTotal.value
+      );
+    }
+  });
+});

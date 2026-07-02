@@ -44,12 +44,30 @@ De tre led i reviewet — for **hver** reguleringsform:
    grænse (før første sats, efter sidste sats, huller midt i en serie) — dækket
    af meningsfulde invariant-tests?
 
+**Reviewet må aldrig stoppe ved ét led i kæden.** Hvert punkt følger den korrekte
+reguleringsværdi **hele vejen** — fra brugerens valide input, gennem strategivalg,
+datakilde-opslag, reguleringsdato-forankring, segment-/indeks-beregning, akkumulering,
+afrunding, aggregering på tværs af ansættelsesforhold/år, snapshot, validator/gate,
+og helt frem til det **færdige produkt, brugeren ser** (skærm-visning, PDF og Word).
+Formålet er ikke at inspicere ét led isoleret, men aktivt at lede efter **hvert sted i
+kæden hvor den korrekte reguleringsværdi kan gå tabt, blive erstattet, afrundet væk,
+maskeret eller stille falde tilbage til nul/forældet** — så en værdi der var rigtig ét
+sted alligevel ikke ender rigtigt i sidste ende. Et led der isoleret er korrekt, men
+hvis output nedstrøms tabes, forvanskes eller ikke vises, er stadig en fejl i kæden.
+
 ## Ikke-forhandlingsbare review-principper
 
 - **Fail-closed frem for tavs regulering-nul.** Manglende/ugyldig sats i en periode
   med et beløb, der skulle reguleres, skal give en synlig blokerende fejl (row-
   status `error`, validator-fejl eller `fail_closed`/`runtime_exception`), aldrig et
   stiltiende `deltaPct = 0` eller en carry-forward af en forældet sats.
+- **Kæden ejes fra input til færdigt produkt.** Ansvaret for en reguleringsform
+  slutter først, når den korrekte værdi er verificeret hele vejen frem til det
+  brugeren ser (skærm, PDF, Word) — ikke når beregningsmotoren returnerer det rette
+  tal. Hvert led nedstrøms (snapshot, aggregering, præsentation, output-generatorer)
+  skal bekræftes for ikke at tabe, overskrive, dobbelt-afrunde, filtrere eller
+  undlade at vise værdien. En korrekt værdi der ikke når frem til produktet er lige
+  så alvorlig som en forkert beregning.
 - **Reguleringsdatoen er fundamentet.** Basisindekset (indeks 100 / basispakke)
   afhænger fuldstændigt af den anvendte reguleringsdato. Enhver form skal anvende
   **samme** reguleringsdato-opløsning, og enhver afvigelse er en fejl.
@@ -82,7 +100,7 @@ angivet, Manuel procentsats, KRL satstabel, KL-lønaftaler }`
 (`src/schemas/formSchemas/enumSchemas.ts:62`). Strategivalg og cross-ansættelse-
 ensartethed i `resolveReguleringsStrategi`
 (`src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts:368`);
-dispatch i `buildLoenudviklingModel` (samme fil, ~`:1385`).
+dispatch i `buildLoenudviklingModel` (samme fil, `:1347`; strategi-switch `:1385–1391`).
 
 **Familie 2 — År-til-år opregulering** (beløb i ét prisniveau → et andet).
 To kanoniske motorer i `src/domain/satser/opreguleringsmotorer.ts`, plus EET-
@@ -111,12 +129,12 @@ afgøre dette eksplicit og teste udfaldet.
 
 | # | Sti | Lokation | Foreløbig vurdering |
 |---|---|---|---|
-| S1 | `resolveEffectiveBaseEntry` beregner `usedFallback` (reguleringsdato før første sats → anker til ældste sats), men compute-motoren **handler ikke** på flaget; kun præsentationen viser `tidligsteSatsGaelderFra`-note | `loenudviklingBeregning.ts:353–366`; statistik `:692`, KRL `:757` | Muligt tavst base-skift |
-| S2 | Overenskomst (privat) segment uden sats / før dækning → stille `deltaPct 0` | `loenudviklingBeregning.ts:~1204`, `~1209` | Bevidst for før-dækning; interior-hul skal verificeres |
+| S1 | `resolveEffectiveBaseEntry` beregner `usedFallback` (reguleringsdato før første sats → anker til ældste sats), men compute-motoren **handler ikke** på flaget; kun præsentationen viser `tidligsteSatsGaelderFra`-note | `loenudviklingBeregning.ts:353–366`; statistik `:692`, KRL `:757` | **✅ BEKRÆFTET KORREKT (punkt 1):** gated af synlig, blokerende `reguleringsvaerdi`-error i række-laget (`eoRowIndkomstRows.ts:472`), der fyrer aligned med `usedFallback`. `usedFallback` er dead code (F1); to-stedet beregning bør robusthedssikres (F2). Ingen beregningsændring. |
+| S2 | Overenskomst (privat) segment uden sats / før dækning → stille `deltaPct 0` | `loenudviklingBeregning.ts:~1209`, `~1214` | **✅ BEKRÆFTET KORREKT (punkt 5):** `getSatserForDatoFromList` carry-forwarder (seneste sats ≤ dato) → `!sats` kan **kun** ramme før-dækning, aldrig et interiort segment (interiort hul umuligt). Før-dækning zero-delta er gated af `reguleringsvaerdi`-row-error (`interval.fraDato` = ældste sats = motorens `effectiveBase.startIso`), aligned og nu ende-til-ende-testet. Ingen beregningsændring. |
 | S3 | Overenskomst (offentlig) segment uden lønrække → stille `deltaPct 0` | `loenudviklingBeregning.ts:~1075` | Samme som S2 |
 | S4 | KL-lønaftaler-kæden `continue`-springer et trin hvis en KL-dato mangler pct | `klLoenaftalerReguleretLoen.ts:63–64` | Muligt tavst spring af reguleringstrin |
 | S5 | Manuel procentsats dropper stille rækker med uparsbar pct | `manuelProcentsatsRegulering.ts:56–59` | Kan reducere akkumuleret regulering uden hård fejl |
-| S6 | Data carry-forward: TAF-periode der rækker ud over sidste kendte sats bruger `findLatest…` → sidste sats videreføres uden fejl | statistik/KRL/KL/overenskomst-lookups | Staleness-risiko; skal fail-close ved manglende nyere sats |
+| S6 | Data carry-forward: TAF-periode der rækker ud over sidste kendte sats bruger `findLatest…` → sidste sats videreføres uden fejl | statistik/KRL/KL/overenskomst-lookups | Staleness-risiko; skal fail-close ved manglende nyere sats. **Statistik-interiort hul lukket (punkt 3):** `assertStatistikAarKontinuitet` (tal-neutral). **ASL lukket (punkt 4):** ASL slår indeks op **eksakt pr. år** (ingen carry-forward) → interiort hul OG efter-sidste-år fail-closer i motoren; validator/motor-endepunkts-asymmetri lukket med `assertAarsloenAslMaxKontinuitet` (tal-neutral). **Overenskomst (privat) lukket (punkt 5):** carry-forward ⇒ interiort hul umuligt; endepunkt = bevidst carry-forward gated af `endDate`-row. Endepunkt (efter sidste kvartal, DST) = bevidst carry-forward inden for 12-mdr-vindue, gated af `endDate`-row (punkt 12/13). KRL/KL-huller: deres punkter. |
 | S7 | `getSatserForYear` er fail-open (`null`/`''`) — kun display, må ikke lække ind i beregningssti | `data/lovbestemteRates.ts:858` | Verificér at reguleringssti ikke bruger den |
 
 Bemærk: `loenudviklingBeregning.ts:63–70` dokumenterer, at **alle `throw` i filen er
@@ -129,8 +147,13 @@ sådan throw/blokerende gate.
 
 ### Reviewets faser (pr. punkt)
 
-1. **Kortlæg** formens trigger, datakilde, reguleringsdato-brug, segment-/indeks-
-   logik og alle exit-stier (throw, warning, zero-delta, carry-forward).
+1. **Kortlæg hele kæden** for formen: trigger og strategivalg, datakilde,
+   reguleringsdato-brug, segment-/indeks-logik, akkumulering, afrunding, aggregering
+   (tværs af ansættelsesforhold/år), snapshot, validator/gate, og **hvordan værdien
+   ender i det færdige produkt** (skærm-visning, PDF, Word). Notér alle exit-stier
+   (throw, warning, zero-delta, carry-forward, drop) *ved hvert led*, ikke kun i
+   beregningsmotoren. Følg konkret ét gyldigt input-eksempel gennem alle led og
+   bekræft, at den korrekte reguleringsværdi overlever hele vejen ud.
 2. **Læs** relevante kontrakter og domænedocs før kodeændring
    (`docs/domain/taf/`, eo-snapshot-, periodiserings-, amount-, date-kontrakter).
    Er en kontrakt forkert eller i vejen, opdateres den først.
@@ -161,7 +184,17 @@ sådan throw/blokerende gate.
   er nedstrøms og bliver aldrig domænesandhed.
 - **Multi-ansættelse:** kan ét ansættelsesforholds manglende dækning maskeres af et
   andets succes i den aggregerede status?
+- **Hele kæden (obligatorisk):** følg den korrekte reguleringsværdi fra input til
+  færdigt produkt. Ved *hvert* led nedstrøms for beregningen — aggregering på tværs
+  af ansættelsesforhold/år, snapshot, validator/gate, skærm-præsentation, PDF- og
+  Word-generatorer — kan værdien da tabes, overskrives, dobbelt-afrundes, filtreres
+  bort, maskeres af et andet ansættelsesforhold, eller stille falde tilbage til
+  nul/forældet? Ender det tal brugeren faktisk ser identisk med det beregningen
+  producerede? Hvis værdien ikke vises, hvorfor — bevidst udeladelse eller tabt led?
 - **Tests:** findes en meningsfuld invariant-test for både normalsti og fail-closed?
+  Findes der mindst én test der binder formen **ende-til-ende** — fra input helt frem
+  til produkt-output (snapshot/model → PDF/Word-render) — så et tabt eller forvansket
+  led i kæden fanges, ikke kun beregningsmotoren isoleret?
 
 ### Delegation
 
@@ -195,10 +228,30 @@ Hvert punkt opretter/opdaterer `docs/review/regulering-[punkt]-[slug].md`:
 **Afhængigheder læst:** [filer]
 **Tests kørt:** [kommando + resultat]
 
+## Kæde fra input til færdigt produkt
+
+Ét gyldigt input-eksempel fulgt gennem alle led (angiv forventet reguleringsværdi
+og bekræft den er intakt ved hvert trin):
+
+| Led | Hvad sker med værdien | Risiko for tab/forvanskning | Bekræftet intakt? |
+|---|---|---|---|
+| Input + strategivalg | | | |
+| Datakilde-opslag | | | |
+| Reguleringsdato-forankring | | | |
+| Segment/indeks/akkumulering | | | |
+| Afrunding | | | |
+| Aggregering (af/år) | | | |
+| Snapshot | | | |
+| Validator/gate | | | |
+| Skærm-præsentation | | | |
+| PDF-output | | | |
+| Word-output | | | |
+
 ## Dækningsanalyse (led 2 — tavs under-regulering)
 
-For hver exit-sti i formen:
-- Sti: [throw | warning | zero-delta | carry-forward | drop]
+For hver exit-sti i formen (i **alle** led, ikke kun beregningsmotoren):
+- Sti: [throw | warning | zero-delta | carry-forward | drop | tabt/ikke-vist nedstrøms]
+- Led i kæden: [hvor i input→produkt-kæden ligger stien]
 - Kan valid input ramme den? [ja/nej + hvordan]
 - Bevidst korrekt eller fejl? [begrundelse]
 - Udfald: [uændret / fail-closed indført / parkeret til godkendelse]
@@ -239,12 +292,12 @@ persistence- eller bredt-påvirkende ændringer og før commit.
 
 | Punkt | Navn | Familie | Primært formål | Status |
 |---|---|---|---|---|
-| 0 | Baseline og reguleringskort | — | Arbejdstræ, testbaseline, komplet form-/fil-inventar, trigger-kæde | ⬜ |
-| 1 | Fælles fundament | begge | Reguleringsdato, coverage, segment-byggeri, effective-base (S1), afrunding | ⬜ |
-| 2 | Form: Ingen | 1 | Bekræft ægte nul-regulering og at "Ingen" ikke maskerer manglende valg | ⬜ |
-| 3 | Form: Statistik (ILON12/SBLON2) | 1 | Kvartalsindeks, base-clamp (S1), hul-i-serie (S6) | ⬜ |
-| 4 | Form: Statistik ASL-årslønsmaksimum | 1+2 | ASL-indeksmotor, per-år-split, manglende indeks fail-closed | ⬜ |
-| 5 | Form: Overenskomst — privat | 1 | Pakke-indeks, dækningsstart, segment-zero-delta (S2) | ⬜ |
+| 0 | Baseline og reguleringskort | — | Arbejdstræ, testbaseline, komplet form-/fil-inventar, trigger-kæde | ✅ ([review](regulering-0-baseline.md)) |
+| 1 | Fælles fundament | begge | Reguleringsdato, coverage, segment-byggeri, effective-base (S1), afrunding | ✅ ([review](regulering-1-faelles-fundament.md)) |
+| 2 | Form: Ingen | 1 | Bekræft ægte nul-regulering og at "Ingen" ikke maskerer manglende valg | ✅ ([review](regulering-2-form-ingen.md)) |
+| 3 | Form: Statistik (ILON12/SBLON2) | 1 | Kvartalsindeks, base-clamp (S1), hul-i-serie (S6) | ✅ ([review](regulering-3-form-statistik.md)) |
+| 4 | Form: Statistik ASL-årslønsmaksimum | 1+2 | ASL-indeksmotor, per-år-split, manglende indeks fail-closed | ✅ ([review](regulering-4-form-statistik-asl.md)) |
+| 5 | Form: Overenskomst — privat | 1 | Pakke-indeks, dækningsstart, segment-zero-delta (S2) | ✅ ([review](regulering-5-form-overenskomst-privat.md)) |
 | 6 | Form: Overenskomst — offentlig (KL/RLTN) | 1 | Løntrin-tabeller, base-fallback, segment-zero-delta (S3) | ⬜ |
 | 7 | Form: Manuelt angivet | 1 | Daterede lønrækker, før-basis-drop, base-forankring | ⬜ |
 | 8 | Form: Manuel procentsats | 1 | Akkumuleret indeks, uparsbar-pct-drop (S5), før-basis | ⬜ |
@@ -492,8 +545,12 @@ Særligt fokus (led 2 — **S6, kernen i det trust-kritiske**):
   og dækker den **alle** former, ikke kun statistik/KRL?
 - **S7:** bekræft at den fail-open `getSatserForYear` kun bruges til display, aldrig i
   en reguleringsberegning.
-- De fire separate `getReguleringsDatoIntervalFor…`-implementeringer med kopieret
-  "+6 måneder − 1 dag"-aritmetik: konsolidér til én kanonisk helper.
+- `getReguleringsDatoIntervalFor…`-familien (5 funktioner): tre kopierer
+  "+6 måneder − 1 dag"-aritmetikken via `getInclusivePeriodEndByMonths(…,6)`
+  (`krlRates.ts:197`, `klLoenaftaler.ts:139`, `offentligLoenLookup.ts:289`) og skal
+  konsolideres mod den kanoniske helper. `…ForStatistikModel` (`statistiskeRates.ts:221`)
+  bruger "+12 måneder − 1 dag" (ILON/SBLON) hhv. år-grænser (ASL) og er en egen sats;
+  `…ForOverenskomst` (`overenskomstRates.ts:1686`) delegerer allerede til offentlig-varianten.
 - Excel-genererede tabeller er kun kildeartefakter; runtime læser kun de genererede
   `.ts`-filer; integritets-guards (duplikat-trin, rækkefølge) fail-closer ved load.
 
@@ -547,11 +604,16 @@ Kendte testhuller at lukke (fra kortlægningen):
 2. Hul-midt-i-serie for statistik og KRL (punkt 3, 9).
 3. KL-lønaftaler missing-rate / efter-sidste-sats fail-closed (punkt 10).
 4. Nær-nul og negativt beløb i TAF-opreguleret med manglende sats (punkt 11).
-5. Ende-til-ende: manglende overenskomst-sats → `computeEoSnapshot`
-   `runtime_exception` (punkt 5).
+5. ~~Ende-til-ende: manglende overenskomst-sats → `computeEoSnapshot`
+   `runtime_exception`~~ **(punkt 5 — OMDEFINERET/LUKKET):** privat overenskomst har
+   ingen realistisk `runtime_exception`-sti (basen falder altid tilbage til første sats;
+   `getSatserForDatoFromList` carry-forwarder). Den reelle trust-binding — før-dækning →
+   synlig blokerende `reguleringsvaerdi`-row-error — er nu dækket ende-til-ende
+   (`reguleringSilentPathAlignment.test.ts`, S2-blok). Den forventede `runtime_exception`
+   (manglende løntrin/basissats) hører til den **offentlige** gren (punkt 6).
 6. Multi-af partiel dækning i coverage-gate (punkt 13).
 
-Konvergens: konsolidér de fire `getReguleringsDatoIntervalFor…`-varianter og det
+Konvergens: konsolidér de tre `+6 mdr`-kopier af `getReguleringsDatoIntervalFor…` og det
 duplikerede `reguleringssats`-opslag; fjern død kode/forældede kommentarer; bekræft
 at hver form deler det fælles fundament.
 
@@ -568,13 +630,17 @@ brugerens beslutning.
 
 | ID | Fundet i punkt | Behandles i punkt | Fund | Status |
 |---|---|---|---|---|
-| - | - | - | Ingen registreret endnu. | - |
+| U1 | 0 | 11 | `offentligeYdelserUdviklingBeregning.ts` har to per-år-satsopslag: motoren (`:32`, `:38–41`) og et råt `reguleringssats[year]`-loop (`:99–103`). Begge kaster ved manglende sats (adfærd i dag ens), men opslaget bør konsolideres til motoren. | Åben |
+| U2 | 0 | 13 | Multi-ansættelse-asymmetri: `Beregningsperiode`-grenen (`:1478`) kalder `resolveReguleringsStrategi` pr. af med ét-element-array, så `assertUniform` er inaktiv; cross-af-uniformitet håndhæves kun i angivet-løn-grenen (`:1604`). Aggregeret status-masking skal testes i row-laget. | Åben |
 
 ## Afslutningskrav for hvert punkt
 
 Et punkt markeres kun `✅ Gennemgået`, når:
 
 - reguleringsformens exit-stier alle er afgjort (bevidst korrekt eller fail-closed);
+- den korrekte reguleringsværdi er fulgt **hele vejen fra input til det færdige
+  produkt** (skærm, PDF, Word), og hvert nedstrøms-led er bekræftet for ikke at tabe,
+  overskrive, dobbelt-afrunde, filtrere eller undlade at vise værdien;
 - alle silent-path-poster under punktet er lukket eller parkeret i denne plan;
 - relevante kontrakter/domænedocs er opdateret eller bekræftet;
 - normalsti **og** fail-closed-sti er dækket af meningsfulde tests, og resultatet er

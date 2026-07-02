@@ -197,6 +197,44 @@ for (const model of statistiskLoenudvikling) {
   statistiskLoenudviklingById.set(model.meta.id, model);
 }
 
+/**
+ * Kontinuitets-guard (fail-closed ved ægte datafejl).
+ *
+ * En statistisk indeksserie er en årlig trinfunktion: hvert kalenderår er
+ * repræsenteret med (mindst) ét kvartal (typisk K1), og et ekstra kvartal i det
+ * seneste år er tilladt (fx ILON12 med både 2025K1 og 2025K4). Segment-opslaget i
+ * lønudviklingsmotoren bruger "seneste indeks ≤ dato"
+ * (`findLatestByDateInSortedList`) — hvis et helt kalenderår mangler midt i serien,
+ * ville motoren stiltiende videreføre det forrige års indeks i det manglende års
+ * segment i stedet for at fejle. Det er en tavs under-regulering (jf. silent-path
+ * S6, interiort hul).
+ *
+ * Vi kræver derfor at hvert kalenderår fra ældste til nyeste år i serien er
+ * repræsenteret. Flere kvartaler i samme år er tilladt; kun et helt manglende år
+ * (et ægte hul) fejler. Guarden fyrer aldrig ved valid drift: nye kvartaler
+ * tilføjes altid i forlængelse af serien og bevarer års-kontinuiteten. Den fanger
+ * udelukkende en faktisk datafejl, hvor et helt år er tabt.
+ */
+export const assertStatistikAarKontinuitet = (model: StatistiskLoenudvikling): void => {
+  if (model.indeksvaerdier.length === 0) return;
+  const years = model.indeksvaerdier.map((v) => Number.parseInt(v.kvartal.slice(0, 4), 10));
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...years);
+  const present = new Set(years);
+  for (let year = minYear; year <= maxYear; year += 1) {
+    if (!present.has(year)) {
+      throw new Error(
+        `Statistisk lønindeks "${model.meta.id}" mangler år ${year} i serien (${minYear}–${maxYear}); ` +
+          'et hul midt i serien ville give tavs under-regulering'
+      );
+    }
+  }
+};
+
+for (const model of statistiskLoenudvikling) {
+  assertStatistikAarKontinuitet(model);
+}
+
 // ===== OPSLAGS-FUNKTIONER =====
 
 /**
