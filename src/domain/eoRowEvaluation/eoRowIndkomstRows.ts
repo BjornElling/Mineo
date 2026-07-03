@@ -2,10 +2,8 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
-import { isOffentligOverenskomstId, getReguleringsDatoIntervalForOverenskomst } from '../../data/overenskomstRates';
-import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
-import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
-import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';
+import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import { resolveKildeReguleringsIntervalIso } from '../erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -15,7 +13,7 @@ import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from '
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
-import { formatStatusMessage, parseDanishToIso, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
+import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 /**
@@ -415,39 +413,12 @@ export const buildEoIndkomstRows = (
     }
 
     const reguleringsRange = (() => {
-      if (loenudviklingBasis === 'Overenskomst') {
-        const interval = getReguleringsDatoIntervalForOverenskomst(ansaettelsesforhold.overenskomstId ?? '');
-        if (!interval) return {} as ReguleringsRange;
-        return {
-          min: parseDanishToIso(interval.fraDato),
-          max: parseDanishToIso(interval.tilDato),
-        };
-      }
-      if (loenudviklingBasis === 'Statistik') {
-        const interval = getReguleringsDatoIntervalForStatistikModel(ansaettelsesforhold.loenudviklingStatistikModel ?? '');
-        if (!interval) return {} as ReguleringsRange;
-        return {
-          min: parseDanishToIso(interval.fraDato),
-          max: parseDanishToIso(interval.tilDato),
-        };
-      }
-      if (loenudviklingBasis === 'KRL satstabel') {
-        const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
-        if (!krlId) return {} as ReguleringsRange;
-        const interval = getReguleringsDatoIntervalForKRL(krlId);
-        if (!interval) return {} as ReguleringsRange;
-        return {
-          min: parseDanishToIso(interval.fraDato),
-          max: parseDanishToIso(interval.tilDato),
-        };
-      }
-      if (loenudviklingBasis === 'KL-lønaftaler') {
-        const interval = getReguleringsDatoIntervalForKlLoenaftaler();
-        if (!interval) return {} as ReguleringsRange;
-        return {
-          min: parseDanishToIso(interval.fraDato),
-          max: parseDanishToIso(interval.tilDato),
-        };
+      // Interval-baserede kilder (Overenskomst/Statistik/KRL/KL) deler én autoritativ coverage-opslag
+      // — samme kilde-`fraDato`/`tilDato` som note-laget (reguleringsPresentation) og validatoren
+      // bruger — så start/slut-dækning og note ikke kan komme i utakt.
+      const kildeInterval = resolveKildeReguleringsIntervalIso(ansaettelsesforhold);
+      if (kildeInterval) {
+        return { min: kildeInterval.fraIso, max: kildeInterval.tilIso };
       }
       if (loenudviklingBasis === 'Manuelt angivet') {
         return getRangeForManualRegulering(anvendtReguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
@@ -544,6 +515,30 @@ export const buildEoIndkomstRows = (
         ),
         dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
       });
+
+      // Samlet, ikke-blokerende advarsel når reguleringskilden ikke dækker hele TAF-perioden, men
+      // hullet er tolereret (start/slut-status er 'warning', ikke blokerende 'error'). De tekniske
+      // start/slut-rækker ovenfor bevares; denne række giver den samlede, brugervendte formulering.
+      const daekningStartWarning = startDateRowStatus.status === 'warning';
+      const daekningSlutWarning = endDateRowStatus.status === 'warning';
+      if (daekningStartWarning || daekningSlutWarning) {
+        const startDato = reguleringsRange.min ? (isoToDanish(reguleringsRange.min) ?? reguleringsRange.min) : undefined;
+        const slutDato = reguleringsRange.max ? (isoToDanish(reguleringsRange.max) ?? reguleringsRange.max) : undefined;
+        const detaljer = [
+          daekningStartWarning && startDato ? `først fra ${startDato}` : undefined,
+          daekningSlutWarning && slutDato ? `kun til og med ${slutDato}` : undefined,
+        ].filter((part): part is string => Boolean(part));
+        if (detaljer.length > 0) {
+          rows.push({
+            id: `${loenudviklingRowPrefix}.daekningAdvarsel`,
+            label: 'Advarsel',
+            displayValue: `Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden — ${detaljer.join(' og ')}.)`,
+            status: 'warning',
+            summaryDisplay: 'messageOnly',
+            dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+          });
+        }
+      }
     }
   });
 

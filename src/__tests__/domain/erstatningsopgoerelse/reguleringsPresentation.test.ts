@@ -1619,6 +1619,53 @@ describe('reguleringsPresentation', () => {
     expect(table?.tidligsteSatsGaelderFra).toBe(iso('2001-04-01'));
   });
 
+  it('sætter IKKE note når KRL-kilden har satser før reguleringsdatoen, selv om TAF starter senere (regression)', () => {
+    // Fejlen: reguleringsdato 01-01-2020 (KTO kommuner har satser her + tilbage til 2001), men
+    // TAF-perioden starter i Q2/Q3 2020. Den TAF-scopede første række blev 01-04-2020 og udløste
+    // fejlagtigt noten "ingen satser før 01-04-2020". Note skal nu være undefined.
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2020-01-01'),
+      tafFra: iso('2020-06-01'),
+      tafTil: iso('2021-12-31'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    // Tabellen viser stadig den TAF-relevante første række (satsen der gælder ved TAF-start).
+    expect(table?.rows[0]?.[0]).toBe('01-04-2020');
+    // Men noten fyrer IKKE, fordi kilden har satser længe før reguleringsdatoen.
+    expect(table?.tidligsteSatsGaelderFra).toBeUndefined();
+  });
+
+  it('sætter note til kildens uscopede coverage-start (KRL regioner starter reelt 01-10-2018)', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (regioner)';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2015-01-01'),
+      tafFra: iso('2015-01-01'),
+      tafTil: iso('2020-12-31'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    // Kilden har reelt ingen satser før 01-10-2018 → note og første række begge = 01-10-2018.
+    const note = table?.tidligsteSatsGaelderFra;
+    expect(table?.rows[0]?.[0]).toBe('01-10-2018');
+    expect(note).toBe(iso('2018-10-01'));
+    // Invariant: noten (når sat) er aldrig senere end tabellens første viste række.
+    expect(Boolean(note && note <= iso('2018-10-01'))).toBe(true);
+  });
+
   it('tilføjer ingen særskilt række på reguleringsdatoen når en KRL-sats allerede gælder', () => {
     // Tidligere blev reguleringsdatoen injiceret som en ekstra række (også ved uændret sats). Nu viser
     // tabellen kun de faktiske KRL-satser; reguleringsdatoen 15-04-2001 ligger inden for 01-04-2001-satsen.

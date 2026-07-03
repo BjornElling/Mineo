@@ -197,4 +197,94 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(startRow).toBeUndefined();
     expect(slutRow).toBeUndefined();
   });
+
+  it('viser samlet ikke-blokerende dæknings-advarsel ved start-hul (allow=true)', () => {
+    const values = cloneInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.vedroererPeriodeFra = iso('2009-01-01');
+    values.vedroererPeriodeTil = iso('2012-12-31');
+    values.tafPerioder = [{ id: 'taf-1', fra: iso('2009-01-01'), til: iso('2012-12-31'), loseFeriedage: undefined }];
+
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laerer-overenskomsten';
+    af.offentligLoenType = 'Månedsløn';
+    af.offentligLoenTrin = 31;
+    af.offentligLoenGruppe = 2;
+
+    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
+    const rows = buildEoIndkomstRows(values, iso('2009-01-01'), {}, appSettings);
+    const prefix = `loenindkomst.${af.id}.regulering`;
+    const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
+
+    expect(daekningRow).toBeDefined();
+    expect(daekningRow?.status).toBe('warning');
+    expect(daekningRow?.displayValue).toMatch(/Der er ikke reguleringsværdier for hele TAF-perioden — først fra /);
+    expect(daekningRow?.displayValue).not.toMatch(/kun til og med/);
+  });
+
+  it('viser IKKE samlet dæknings-advarsel når hullet er blokerende (allow=false)', () => {
+    const values = cloneInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.vedroererPeriodeFra = iso('2009-01-01');
+    values.vedroererPeriodeTil = iso('2012-12-31');
+    values.tafPerioder = [{ id: 'taf-1', fra: iso('2009-01-01'), til: iso('2012-12-31'), loseFeriedage: undefined }];
+
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laerer-overenskomsten';
+    af.offentligLoenType = 'Månedsløn';
+    af.offentligLoenTrin = 31;
+    af.offentligLoenGruppe = 2;
+
+    const rows = buildEoIndkomstRows(values, iso('2009-01-01'));
+    const prefix = `loenindkomst.${af.id}.regulering`;
+    const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
+
+    expect(daekningRow).toBeUndefined();
+  });
+
+  it('viser samlet dæknings-advarsel ved slut-hul (KRL, allow=true)', () => {
+    const values = cloneInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.vedroererPeriodeFra = iso('2020-01-01');
+    values.vedroererPeriodeTil = iso('2030-12-31');
+    values.tafPerioder = [{ id: 'taf-1', fra: iso('2020-01-01'), til: iso('2030-12-31'), loseFeriedage: undefined }];
+
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+
+    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
+    const rows = buildEoIndkomstRows(values, iso('2020-01-01'), {}, appSettings);
+    const prefix = `loenindkomst.${af.id}.regulering`;
+    const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
+
+    expect(daekningRow).toBeDefined();
+    expect(daekningRow?.status).toBe('warning');
+    expect(daekningRow?.displayValue).toMatch(/Der er ikke reguleringsværdier for hele TAF-perioden — kun til og med /);
+    expect(daekningRow?.displayValue).not.toMatch(/først fra/);
+  });
+
+  it('viser samlet dæknings-advarsel ved hul i både start og slut (KRL regioner, allow=true)', () => {
+    const values = cloneInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.vedroererPeriodeFra = iso('2010-01-01');
+    values.vedroererPeriodeTil = iso('2030-12-31');
+    values.tafPerioder = [{ id: 'taf-1', fra: iso('2010-01-01'), til: iso('2030-12-31'), loseFeriedage: undefined }];
+
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (regioner)';
+
+    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
+    const rows = buildEoIndkomstRows(values, iso('2010-01-01'), {}, appSettings);
+    const prefix = `loenindkomst.${af.id}.regulering`;
+    const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
+
+    expect(daekningRow).toBeDefined();
+    expect(daekningRow?.status).toBe('warning');
+    // KTO (regioner) starter reelt 01-10-2018 og slutter (nyeste + 6 mdr − 1 dag) længe før 2030.
+    expect(daekningRow?.displayValue).toMatch(/først fra 01-10-2018 og kun til og med /);
+  });
 });
