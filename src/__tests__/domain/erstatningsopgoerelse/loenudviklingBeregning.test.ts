@@ -141,6 +141,141 @@ describe('buildLoenudviklingModel', () => {
     expectOnlyPositiveArbejdsdagssegmenter(values);
   });
 
+  it('KRL: beregner deltaPct som indeksforhold ((100+segmentPct)/(100+basePct)-1)*100', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-04-01');
+    values.tafPerioder = [{
+      id: 'taf-krl',
+      fra: iso('2024-04-01'),
+      til: iso('2026-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KRL satstabel',
+      loenudviklingKRLSatstabel: 'KTO (kommuner)',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-04-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2026-12-31') }] }
+    );
+
+    // Basis = KTO-kommuner-sats pr. 01-04-2024 = 57,7650.
+    // deltaPct = ((100 + segmentPct) / (100 + 57,7650) - 1) * 100, afrundet 2 dec.
+    const deltaFor = (fra: string) =>
+      model.beregnedeSegmenter.find((s) => s.fra === iso(fra))?.deltaPct;
+    expect(deltaFor('2024-04-01')).toBe(0);        // base → base
+    expect(deltaFor('2024-10-01')).toBe(1.30);     // 59,8159
+    expect(deltaFor('2025-10-01')).toBe(1.60);     // 60,2921
+    expect(deltaFor('2025-11-01')).toBe(2.34);     // 61,4627
+    expect(deltaFor('2026-04-01')).toBe(4.80);     // 65,3378
+  });
+
+  it('KRL (S1 base-clamp): reguleringsdato før første sats ankrer til ældste sats, segmenter før basen = zero-delta', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    // Før KTO-kommuner-seriens første sats (01-04-2001).
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2000-01-01');
+    values.tafPerioder = [{
+      id: 'taf-krl-clamp',
+      fra: iso('2000-01-01'),
+      til: iso('2002-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KRL satstabel',
+      loenudviklingKRLSatstabel: 'KTO (kommuner)',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2000-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2000-01-01'), til: iso('2002-12-31') }] }
+    );
+
+    // Effektiv base = ældste sats 01-04-2001 (4,0662). Segmentet før basen er zero-delta;
+    // fra og med basen beregnes deltaPct mod 4,0662. (Denne stille clamp gates blokerende
+    // i række-laget — se reguleringSilentPathAlignment.test.ts, S1-blok.)
+    const deltaFor = (fra: string) =>
+      model.beregnedeSegmenter.find((s) => s.fra === iso(fra))?.deltaPct;
+    expect(deltaFor('2000-01-01')).toBe(0);   // før basen → zero-delta
+    expect(deltaFor('2001-04-01')).toBe(0);   // base → base
+    expect(deltaFor('2001-10-01')).toBe(1.01); // 5,1157 mod 4,0662
+    expect(deltaFor('2002-04-01')).toBe(2.01); // 6,1566 mod 4,0662
+  });
+
+  it('KRL (S6-endepunkt): TAF ud over sidste KRL-dato viderefører sidste sats (carry-forward, gated af endDate-row)', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2025-01-01');
+    // TAF rækker langt ud over sidste KRL-dato (01-04-2026).
+    values.tafPerioder = [{
+      id: 'taf-krl-endpoint',
+      fra: iso('2025-01-01'),
+      til: iso('2027-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KRL satstabel',
+      loenudviklingKRLSatstabel: 'KTO (kommuner)',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2027-12-31') }] }
+    );
+
+    // Sidste segment starter 01-04-2026 (sidste KRL-sats 65,3378) og løber ubrudt til
+    // 2027-12-31 — sidste sats videreføres uden throw. Den øvre-grænse-gate (row-lagets
+    // endDate: nyeste + 6 mdr − 1 dag = 30-09-2026) ejes af punkt 12/13.
+    const sidste = model.beregnedeSegmenter[model.beregnedeSegmenter.length - 1];
+    expect(sidste?.fra).toBe(iso('2026-04-01'));
+    expect(sidste?.til).toBe(iso('2027-12-31'));
+    // deltaPct = ((165,3378) / (159,8159) - 1) * 100 = 3,46 (base = 01-01-2025 = 59,8159).
+    expect(sidste?.deltaPct).toBe(3.46);
+  });
+
+  it('KRL (fail-closed): KRL-strategi uden valgt satstabel kaster', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-04-01');
+    values.tafPerioder = [{
+      id: 'taf-krl-mangler',
+      fra: iso('2024-04-01'),
+      til: iso('2024-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KRL satstabel',
+      loenudviklingKRLSatstabel: undefined,
+    };
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-04-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2024-12-31') }] }
+    )).toThrow(/KRL satstabel mangler/);
+  });
+
   it('springer over KL-lønaftaler-segmenter uden TAF-arbejdsdage', () => {
     const values = setupAngivetDagsloen();
     values.tafPerioder = [{

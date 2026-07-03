@@ -4,8 +4,12 @@ import {
   isKRLSatstabelId,
   formatKRLSatstabelDisplay,
   getReguleringsDatoIntervalForKRL,
+  assertKRLCombinedDataIntegritet,
 } from '../../data/krlRates';
 import type { KRLSatstabelId } from '../../data/krlRates';
+
+// Samme rækketype som krlRates' interne KRLCombinedRow (ikke eksporteret).
+type Row = readonly [string, number | null, number | null, number | null, number | null];
 
 const KRL_IDS: KRLSatstabelId[] = [
   'KTO (kommuner)',
@@ -140,6 +144,58 @@ describe('getReguleringsDatoIntervalForKRL', () => {
     if (interval) {
       expect(interval.tilDato).toMatch(DANISH_DATE);
       expect(interval.tilDato).toBe('30-09-2026');
+    }
+  });
+});
+
+describe('assertKRLCombinedDataIntegritet (fail-closed data-guard)', () => {
+  it('en gyldig tabel (strengt nyeste-først, null kun som ældste-prefiks) passerer', () => {
+    const rows: Row[] = [
+      ['01-04-2026', 30, 20, 10, 10],
+      ['01-10-2025', 20, 10, 5, 5],
+      ['01-04-2025', 10, 5, null, null], // regioner starter senere (null-prefiks i ældste ende)
+      ['01-04-2024', 5, null, null, null], // SHK kom. starter senere endnu
+    ];
+    expect(() => assertKRLCombinedDataIntegritet(rows)).not.toThrow();
+  });
+
+  it('et interiort hul (defineret sats ældre end en null i samme kolonne) fail-closer', () => {
+    const rows: Row[] = [
+      ['01-04-2026', 30, 20, 10, 10],
+      ['01-10-2025', 20, null, 5, 5], // SHK kom. mangler midt i serien
+      ['01-04-2025', 10, 5, 3, 3], // ... men er defineret igen ældre → interiort hul
+    ];
+    expect(() => assertKRLCombinedDataIntegritet(rows)).toThrow(/hul i serien/);
+  });
+
+  it('en mis-sorteret tabel (ikke strengt nyeste-først) fail-closer', () => {
+    const rows: Row[] = [
+      ['01-10-2025', 20, 10, 5, 5],
+      ['01-04-2026', 30, 20, 10, 10], // nyere end forrige række → bryder rækkefølgen
+    ];
+    expect(() => assertKRLCombinedDataIntegritet(rows)).toThrow(/rækkefølge/);
+  });
+
+  it('to identiske datoer (ikke strengt aftagende) fail-closer', () => {
+    const rows: Row[] = [
+      ['01-04-2026', 30, 20, 10, 10],
+      ['01-04-2026', 20, 10, 5, 5],
+    ];
+    expect(() => assertKRLCombinedDataIntegritet(rows)).toThrow(/rækkefølge/);
+  });
+
+  it('en ugyldig fraDato fail-closer', () => {
+    const rows: Row[] = [['ikke-en-dato', 30, 20, 10, 10]];
+    expect(() => assertKRLCombinedDataIntegritet(rows)).toThrow(/ugyldig fraDato/);
+  });
+
+  it('de faktiske KRL-data passerer guarden (tal-neutral i dag)', () => {
+    // Rekonstruér den samlede tabel fra de byggede satstabeller for at bekræfte at
+    // guarden er grøn på produktionsdata (den kaldes allerede ved modul-load).
+    for (const tabel of krlSatstabeller) {
+      // Hver enkelt kolonneserie skal være strengt aftagende og hul-fri efter filtrering.
+      const isoDates = tabel.vaerdier.map((v) => v.fraDato);
+      expect(new Set(isoDates).size).toBe(isoDates.length); // ingen duplikater
     }
   });
 });

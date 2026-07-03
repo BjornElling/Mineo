@@ -135,6 +135,72 @@ const KRL_IDS: ReadonlyArray<{ id: KRLSatstabelId; colIndex: 1 | 2 | 3 | 4 }> = 
   { id: 'SHK (regioner)', colIndex: 4 },
 ];
 
+/**
+ * Integritets-guard for den samlede KRL-tabel (fail-closed ved ægte datafejl).
+ *
+ * En KRL-reguleringsprocent er et *akkumuleret* indeks: hver defineret dato bærer
+ * den samlede regulering fra seriens start frem til den dato. Lønudviklingsmotoren
+ * slår op med "seneste sats ≤ dato" (`findLatestByDateInSortedList`) og
+ * carry-forwarder derfor den seneste kendte procent. To latente antagelser skal
+ * håndhæves, for at det er sikkert:
+ *
+ * (1) **Rækkefølge — strengt nyeste-først.** Både `getReguleringsDatoIntervalForKRL`
+ *     (ældste = sidste række, nyeste = første række) og null-prefiks-kontrollen
+ *     nedenfor forudsætter denne rækkefølge. En mis-sorteret tabel ville give et
+ *     forkert reguleringsdato-interval i række-laget (row-gatens `min`/`max`, der
+ *     gater S1/S6) og kunne maskere et hul.
+ *
+ * (2) **Ingen interiort hul pr. kolonne.** `buildSatstabelFromCombined` frafiltrerer
+ *     null-felter. Et hul *midt* i en kolonnes serie (en manglende procent mellem to
+ *     definerede datoer) ville derfor forsvinde lydløst: motoren ville videreføre den
+ *     forrige — lavere — akkumulerede procent i det manglende trins segment i stedet
+ *     for at fejle. Det er en tavs under-regulering (jf. silent-path S6, interiort
+ *     hul). Null må derfor kun optræde som en sammenhængende *prefiks* i de ældste
+ *     datoer (før en organisations serie starter); når en kolonne først er defineret,
+ *     skal alle nyere datoer også være det.
+ *
+ * Guarden er tal-neutral for eksisterende data (alle fire kolonner er hul-frie og
+ * korrekt sorterede i dag) og fyrer aldrig ved valid drift (nye satser tilføjes altid
+ * i forlængelse, nyeste først). Den fanger udelukkende en faktisk datafejl.
+ */
+export const assertKRLCombinedDataIntegritet = (
+  rows: ReadonlyArray<KRLCombinedRow>
+): void => {
+  // (1) Strengt nyeste-først + gyldige datoer.
+  let prevTime: number | null = null;
+  for (const row of rows) {
+    const parsed = parseDanishDate(row[0]);
+    if (!parsed) {
+      throw new Error(`KRL-satstabel: ugyldig fraDato "${row[0]}"`);
+    }
+    const time = parsed.getTime();
+    if (prevTime !== null && time >= prevTime) {
+      throw new Error(
+        `KRL-satstabel: rækkerne skal være sorteret strengt nyeste-først; "${row[0]}" bryder rækkefølgen`
+      );
+    }
+    prevTime = time;
+  }
+
+  // (2) Ingen interiort hul: pr. kolonne må null kun være en prefiks i de ældste datoer.
+  for (const { id, colIndex } of KRL_IDS) {
+    let sawNull = false;
+    for (const row of rows) {
+      const pct = row[colIndex];
+      if (pct === null) {
+        sawNull = true;
+      } else if (sawNull) {
+        throw new Error(
+          `KRL-satstabel "${id}" har et hul i serien: en defineret sats (${row[0]}) ligger ` +
+            'ældre end en manglende (null) sats; et interiort hul ville give tavs under-regulering'
+        );
+      }
+    }
+  }
+};
+
+assertKRLCombinedDataIntegritet(krlCombinedData);
+
 export const isKRLSatstabelId = (value: string | undefined): value is KRLSatstabelId => {
   const trimmed = value?.trim();
   if (!trimmed) return false;

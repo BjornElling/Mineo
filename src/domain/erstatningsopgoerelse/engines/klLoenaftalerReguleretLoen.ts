@@ -22,11 +22,11 @@
  * reguleringsformen KL-lønaftaler må ikke vise akkumuleret regulering brugervendt.
  */
 
-import type { DanishDateString, ISODateString } from '../../../types/branded';
+import type { ISODateString } from '../../../types/branded';
 import { roundByMethod } from '../../../utils/rounding';
 import { roundKroner } from '../shared/eoMoney';
 import { parseDanishToIso } from '../helpers/eoSharedUtils';
-import { getKlLoenaftalerReguleringPctForDato, klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
+import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 
 export type KlLoenaftalerReguleretLoenResolver = Readonly<{
   /** Den opregulerede, afrundede løn (kroner, 2 decimaler) der gælder på en given dato. */
@@ -48,9 +48,21 @@ export const buildKlLoenaftalerReguleretLoenResolver = (
   baseLoenRounded: number,
   reguleringsdatoIso: ISODateString
 ): KlLoenaftalerReguleretLoenResolver => {
-  const klLoenaftalerDatoerAsc = klLoenaftalerRaekker
-    .map((entry) => ({ iso: parseDanishToIso(entry.fraDato), da: entry.fraDato }))
-    .filter((entry): entry is Readonly<{ iso: ISODateString; da: DanishDateString }> => Boolean(entry.iso))
+  // Kæden bygges direkte fra kilde-rækkerne (dato OG periodesats fra samme række), så
+  // de to aldrig kan komme ud af sync via et separat opslag. Rækkerne sorteres eksplicit
+  // ældste-først, uafhængigt af kildens lagringsrækkefølge.
+  const klLoenaftalerTrinAsc = klLoenaftalerRaekker
+    .map((entry) => {
+      const iso = parseDanishToIso(entry.fraDato);
+      // Fail-closed: en KL-lønaftaler-række med uparsbar dato må aldrig stille springes
+      // over — det ville tabe et reguleringstrin (tavs under-regulering). Alle kilde-datoer
+      // er valide danske datoer (jf. data/klLoenaftaler.ts + test), så dette er en defensiv
+      // invariant, der fanges som runtime_exception (jf. loenudviklingBeregning.ts:63–70).
+      if (!iso) {
+        throw new Error('Loenudvikling kan ikke beregnes: uparsbar KL-lønaftaler-dato');
+      }
+      return { iso, pct: entry.reguleringPct };
+    })
     .sort((a, b) => a.iso.localeCompare(b.iso));
 
   // Kæden: basis ved reguleringsdatoen, derefter ét trin pr. efterfølgende KL-lønaftaler-dato.
@@ -58,10 +70,15 @@ export const buildKlLoenaftalerReguleretLoenResolver = (
     { fromIso: reguleringsdatoIso, loen: baseLoenRounded },
   ];
   let current = baseLoenRounded;
-  for (const { iso, da } of klLoenaftalerDatoerAsc) {
+  for (const { iso, pct } of klLoenaftalerTrinAsc) {
+    // Reguleringsdatoer på/før selve reguleringsdatoen springes bevidst over — basislønnen
+    // afspejler allerede lønniveauet dér.
     if (iso <= reguleringsdatoIso) continue;
-    const pct = getKlLoenaftalerReguleringPctForDato(da);
-    if (pct === undefined) continue;
+    // Fail-closed: en ikke-finit periodesats må aldrig stille springes over (samme
+    // under-regulerings-risiko som ovenfor). Defensiv invariant.
+    if (!Number.isFinite(pct)) {
+      throw new Error('Loenudvikling kan ikke beregnes: ikke-finit KL-lønaftaler-periodesats');
+    }
     current = roundKroner(current * (1 + pct / 100));
     chain.push({ fromIso: iso, loen: current });
   }

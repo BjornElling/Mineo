@@ -460,3 +460,81 @@ describe('regulering (manuel procentsats) — før-basis-rækker vises som synli
     expect(warningRow?.status).toBe('warning');
   });
 });
+
+/**
+ * S6 — KL-lønaftaler: TAF-periode der rækker ud over sidste KL-sats.
+ *
+ * KL-lønaftaler-kæde-resolveren (`buildKlLoenaftalerReguleretLoenResolver.loenAt`) viderefører
+ * den sidst regulerede løn for enhver dato efter sidste KL-dato (01-10-2026) — en bevidst
+ * carry-forward UDEN throw i selve resolveren. Den staleness-risiko MÅ være gated af den
+ * synlige `slutvaerdi`-row: row-gatens `reguleringsRange.max` =
+ * `getReguleringsDatoIntervalForKlLoenaftaler().tilDato` = 31-03-2027 (nyeste + 6 mdr − 1 dag),
+ * og en TAF-slutdato der ligger mere end `allowReguleringMedUdloebMedMaaneder` (default 6) måneder
+ * efter dét markeres blokerende `error`. Denne test binder motorens stille carry-forward til den
+ * blokerende row-gate (analog til S1/S2/S3 for før-dækning; her for efter-sidste-sats).
+ */
+describe('regulering S6 — KL-lønaftaler efter sidste sats: motor carry-forwarder stille MEN row-gate fyrer error', () => {
+  const REG_DATO = '2024-04-01';
+  const TAF_FRA_KL = '2024-04-01';
+  // Langt efter KL-dækningens tilDato (31-03-2027) + 6-mdr-vinduet → blokerende error.
+  const TAF_TIL_KL = '2028-12-31';
+
+  it('motoren producerer segmenter uden at kaste (bevidst carry-forward efter sidste KL-sats)', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso(REG_DATO);
+    values.tafPerioder = [{ id: 'taf-s6-kl', fra: iso(TAF_FRA_KL), til: iso(TAF_TIL_KL), loseFeriedage: 0 }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+    };
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso(REG_DATO) },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso(TAF_FRA_KL), til: iso(TAF_TIL_KL) }] }
+    );
+    expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
+    // Segmenter efter sidste KL-dato (01-10-2026) bærer den sidst regulerede løn (carry-forward),
+    // ikke basisløn og ikke en throw. 30.000 kæde-opreguleret → 31.604,04 = 3.160.404 øre.
+    const efterSidste = model.beregnedeSegmenter.find((s) => s.fra >= iso('2026-10-01'));
+    expect(efterSidste?.reguleretLoenOre).toBe(3_160_404);
+  });
+
+  it('row-gaten (slutvaerdi) fyrer error når TAF-slutdatoen ligger efter KL-dækningen + udløbsvinduet', () => {
+    const rowValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
+    };
+    rowValues.beregnesUdFra = 'Beregningsperiode';
+    rowValues.tafBeregningsperiodeTil = iso(REG_DATO);
+    rowValues.vedroererPeriodeFra = iso(TAF_FRA_KL);
+    rowValues.vedroererPeriodeTil = iso(TAF_TIL_KL);
+    rowValues.tafPerioder = [{ id: 'taf-s6-kl', fra: iso(TAF_FRA_KL), til: iso(TAF_TIL_KL), loseFeriedage: undefined }];
+    const af = rowValues.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+    const rows = buildEoIndkomstRows(rowValues, iso(REG_DATO));
+    const slutRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.slutvaerdi`);
+    expect(slutRow?.status).toBe('error');
+  });
+
+  it('row-gaten (slutvaerdi) er ok når TAF-slutdatoen ligger inden for KL-dækningen', () => {
+    const rowValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
+    };
+    rowValues.beregnesUdFra = 'Beregningsperiode';
+    rowValues.tafBeregningsperiodeTil = iso(REG_DATO);
+    // Slutdato 31-03-2027 = KL-dækningens tilDato → inden for dækning, ingen error.
+    rowValues.vedroererPeriodeFra = iso(TAF_FRA_KL);
+    rowValues.vedroererPeriodeTil = iso('2027-03-31');
+    rowValues.tafPerioder = [{ id: 'taf-s6-kl-ok', fra: iso(TAF_FRA_KL), til: iso('2027-03-31'), loseFeriedage: undefined }];
+    const af = rowValues.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+    const rows = buildEoIndkomstRows(rowValues, iso(REG_DATO));
+    const slutRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.slutvaerdi`);
+    expect(slutRow?.status).toBe('ok');
+  });
+});
