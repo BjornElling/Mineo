@@ -2116,6 +2116,52 @@ describe('eoPdfModel', () => {
     expect(indkomst?.beregningsgrundlagMellemregningResultat).toBeNull();
   });
 
+  it('bruger præcise måneder til månedsløn og viser månedstallet med dokumentpræcision', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-01-04'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2024-02-29'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          fuldLoenUnderFerie: 'Ja',
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'r1',
+              col0_maaned: '1',
+              col1_maaned: '2024',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
+              col2: asAmountValue(3100),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
+    const samletOre = indkomst?.samletBeregningsgrundlagOre ?? null;
+
+    expect(samletOre).not.toBeNull();
+    expect(indkomst?.maaneder).toBeCloseTo(4 / 31, 10);
+    expect(indkomst?.maanedsloen).toEqual({ status: 'ok', value: Math.round((samletOre ?? 0) / (4 / 31)) });
+    expect(indkomst?.maanedsloen).not.toEqual({ status: 'ok', value: Math.round((samletOre ?? 0) / 0.13) });
+    expect(indkomst?.beregningsgrundlagMellemregningLabel).toBe('I perioden var der 0,12903 måneder.');
+  });
+
   it('bruger ental i måneder-mellemregning ved 1 fraværsdag', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
@@ -3110,4 +3156,3 @@ describe('eoPdfModel', () => {
     }
   });
 });
-

@@ -14,7 +14,7 @@ import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatni
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
 import { formatPct } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatISOToDanish } from '../../../../utils/dateFormatting';
-import { formatMaaneder4, formatReguleringPct, formatKr } from '../../../layout/documentFormatUtils';
+import { formatMaanederFixed, formatReguleringPct, formatKr } from '../../../layout/documentFormatUtils';
 import type { DocumentWriter } from '../../../writer';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
@@ -223,7 +223,7 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
         (row): RowInput => [
           createDocumentTableCell(formatISOToDanish(row.fra), { halign: 'center' }),
           createDocumentTableCell(formatISOToDanish(row.til), { halign: 'center' }),
-          cellRight(formatMaaneder4(row.maanederPraecis)),
+          cellRight(formatMaanederFixed(row.maanederPraecis)),
           cellRight(formatKr(row.grundydelseAfrundet, 2)),
           cellRight(formatReguleringPct(row.reguleringPct)),
           cellRight(formatKr(row.maanedligYdelse)),

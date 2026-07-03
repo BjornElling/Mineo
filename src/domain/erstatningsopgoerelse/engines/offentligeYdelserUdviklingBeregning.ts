@@ -140,15 +140,14 @@ const buildSegmentsForBenefit = (params: Readonly<{
       if (!Number.isFinite(maanederRaw) || maanederRaw <= 0) {
         throw new Error('Offentlige ydelser kan ikke beregnes: ugyldigt månedssegment');
       }
-      const maaneder = roundByMethod(maanederRaw, 4, 'halfAwayFromZero');
       segments.push({
         kind: 'maaneder',
         fra: segment.fra,
         til: segment.til,
-        maaneder,
+        maaneder: maanederRaw,
         maanedsloenOre: baseSatsOre,
         deltaPct: segment.deltaPct,
-        amountOre: segmentAmountOre(params.baseSatsKroner, maaneder, segment.deltaPct),
+        amountOre: segmentAmountOre(params.baseSatsKroner, maanederRaw, segment.deltaPct),
       });
     } else {
       if (!params.tafArbejdsdageSet) {

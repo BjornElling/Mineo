@@ -1,16 +1,16 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { formatAsAmount, formatAsAmountTrimmed, formatPercent, isSingularCount } from '../../../utils/formatUtils';
+import { formatAsAmount, formatPercent, isSingularCount } from '../../../utils/formatUtils';
 import { parsePercentPointString } from '../../../utils/numberParsing';
-import { roundByMethod } from '../../../utils/rounding';
 import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { buildIncomeForRanges, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
-import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
+import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
 import { sumMaanedsbroekForInterval } from '../engines/periodiseringsMotor';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
+import { formatDocumentMaanederTrimmed } from '../../../utils/documentMaanederFormatting';
 import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
 import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { formatPercentFixed2, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
@@ -241,10 +241,10 @@ export const buildIndkomstSkadestidspunkt = (
         : 0;
     if (periodeTilBeregning) {
       const formatDaNumber = (value: number): string => formatAsAmount(value, 0);
-      const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 2);
+      const formatMaaneder = formatDocumentMaanederTrimmed;
       const dagOrd = (value: number, singular: string, plural: string): string => (isSingularCount(value) ? singular : plural);
 
-      const maanederResult = calculateTafAntalMaaneder(
+      const maanederResult = calculateTafAntalMaanederPraecis(
         periodeTilBeregning.fra,
         periodeTilBeregning.til,
         oevrigeFravaersdage
@@ -259,18 +259,12 @@ export const buildIndkomstSkadestidspunkt = (
         const oevrigeFravaersdageValue = oevrigeFravaersdage;
         // Samme "antal måneder ud fra dage"-princip som beregningsgrundlaget; brug den kanoniske
         // motor-helper i stedet for en lokal dag-for-dag-løkke (ingen materialiseret dag-Set, og
-        // de to implementeringer kan ikke længere drive fra hinanden). Resultatet er identisk
-        // efter den 2-decimal-afrunding nedenfor.
+        // de to implementeringer kan ikke længere drive fra hinanden).
         const totalMaaneder = sumMaanedsbroekForInterval(periodeTilBeregning.fra, periodeTilBeregning.til);
         const fravaerMaaneder = oevrigeFravaersdageValue * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
-        const roundedTotalMaaneder = roundByMethod(totalMaaneder, 2, 'halfAwayFromZero');
-        const roundedFravaerMaaneder = roundByMethod(fravaerMaaneder, 2, 'halfAwayFromZero');
-        const maanederEfterFradrag = Math.max(
-          0,
-          roundByMethod(roundedTotalMaaneder - roundedFravaerMaaneder, 2, 'halfAwayFromZero')
-        );
+        const maanederEfterFradrag = Math.max(0, totalMaaneder - fravaerMaaneder);
         if (oevrigeFravaersdageValue === 0) {
-          const maanedsOrd = dagOrd(roundedTotalMaaneder, 'måned', 'måneder');
+          const maanedsOrd = dagOrd(totalMaaneder, 'måned', 'måneder');
           beregningsgrundlagMellemregningLabel = `I perioden var der ${formatMaaneder(totalMaaneder)} ${maanedsOrd}.`;
           beregningsgrundlagMellemregningResultat = null;
         } else {

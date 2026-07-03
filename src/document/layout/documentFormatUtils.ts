@@ -1,6 +1,11 @@
 import { formatCurrency, formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { roundByMethod } from '../../utils/rounding';
 import { round4 } from '../../utils/roundingShortcuts';
+import {
+  DOCUMENT_MAANEDER_DECIMALS,
+  formatDocumentMaanederFixed,
+  formatDocumentMaanederTrimmed,
+} from '../../utils/documentMaanederFormatting';
 import { resolveDocumentFileName, sanitizeFilenamePart } from '../documentFileName';
 
 const NBSP = '\u00A0';
@@ -25,8 +30,7 @@ export const resolveDocumentArtifactFileName = (baseTitle: string, isDraft: bool
 
 export const formatMaanederTrimmed = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
-  const rounded = roundByMethod(value, 4, 'halfAwayFromZero');
-  return formatAsAmountTrimmed(rounded, 4);
+  return formatDocumentMaanederTrimmed(value);
 };
 
 /** Indsætter NBSP efter minus i negative beløb, så PDF-renderere ikke bryder midt i et negativt tal. */
@@ -92,19 +96,21 @@ export const formatReguleringFactorText = (deltaPct: number, decimals: number = 
 };
 
 /**
- * Formaterer måneder med præcis 4 decimaler (ingen trimming af trailing zeros).
+ * Formaterer måneder med dokumentets fælles månedspræcision (ingen trimming af trailing zeros).
  * Trailing zeros bevares for visuel rækkekonsistens i tabeller, fx i EET-periodetabellen,
- * hvor "1,0000" og "2,5000" skal flugte i samme kolonne.
+ * hvor "1,00000" og "2,50000" skal flugte i samme kolonne.
  * Brug formatMaanederTrimmed i stedet, hvis trailing zeros er uønskede.
  *
- * BEVIDST UNDTAGELSE fra "vist tal = beregnet tal"-princippet: antal måneder VISES med 4
- * decimaler, men beregningen bruger månederne i FULD præcision (jf.
+ * BEVIDST UNDTAGELSE fra "vist tal = beregnet tal"-princippet: antal måneder VISES med
+ * dokumentets fælles månedspræcision, men beregningen bruger månederne i FULD præcision (jf.
  * `sumMaanedsbroekForInterval`). Det er den eneste tilladte afvigelse fra kravet om at
  * brugeren altid kan efterregne de viste tal. Beslutningen må ikke omgøres uden specifik
  * stillingtagen. Alle øvrige afrundede tal skal indgå i beregningen med netop den viste,
  * afrundede værdi.
  */
-export const formatMaaneder4 = (value: number): string => formatAsAmount(round4(value), 4);
+export const formatMaanederFixed = (value: number): string => formatDocumentMaanederFixed(value);
+
+export { DOCUMENT_MAANEDER_DECIMALS };
 
 /**
  * Formaterer et reguleringsprocent-tal med fortegn: "+ X,YZ %" eller "- X,YZ %".

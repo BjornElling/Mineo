@@ -50,7 +50,7 @@ import { startOfYearIso, endOfYearIso } from '../../../utils/isoDateHelpers';
 const MAX_AFRUNDING_AFVIGELSE_ORE = 100 as MoneyOre;
 
 /**
- * Beregner antal måneder i et inklusivt range uden SH-/feriedagsjusteringer.
+ * Beregner præcist antal måneder i et inklusivt range uden SH-/feriedagsjusteringer.
  * Semantisk identisk med EO-modellen (beregnArbejdsdageOgMaaneder med tomme sets),
  * men med en eksplicit navn der ejer kontrakten, så ændringer i
  * beregnArbejdsdageOgMaaneder fanges af tests her.
@@ -62,7 +62,7 @@ const beregnMaanederUdenFridage = (fra: ISODateString, til: ISODateString): numb
     new Set<ISODateString>(),
     new Set<ISODateString>()
   );
-  return roundByMethod(stats.maaneder, 4, 'halfAwayFromZero');
+  return stats.maaneder;
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────

@@ -1433,15 +1433,14 @@ export const buildLoenudviklingModel = (
         if (!Number.isFinite(maanederRaw) || maanederRaw <= 0) {
           throw new Error('Loenudvikling kan ikke beregnes: ugyldigt maanedssegment');
         }
-        const maaneder = roundByMethod(maanederRaw, 4, 'halfAwayFromZero');
         beregnedeSegmenter.push({
           kind: 'maaneder',
           fra: segment.fra,
           til: segment.til,
-          maaneder,
+          maaneder: maanederRaw,
           maanedsloenOre: baseLoenOre,
           deltaPct: roundedDeltaPct,
-          amountOre: segmentAmountOre(baseLoenRounded, maaneder, roundedDeltaPct),
+          amountOre: segmentAmountOre(baseLoenRounded, maanederRaw, roundedDeltaPct),
           ...(klLoenaftalerReguleretLoenOre !== undefined ? { reguleretLoenOre: klLoenaftalerReguleretLoenOre } : {}),
         });
       } else {
@@ -1509,11 +1508,12 @@ export const buildLoenudviklingModel = (
               kind: 'maaneder',
               fra: range.fra,
               til: range.til,
-              maaneder: roundByMethod(
-                beregnArbejdsdageOgMaaneder(range.fra, range.til, new Set<ISODateString>(), new Set<ISODateString>()).maaneder,
-                4,
-                'halfAwayFromZero'
-              ),
+              maaneder: beregnArbejdsdageOgMaaneder(
+                range.fra,
+                range.til,
+                new Set<ISODateString>(),
+                new Set<ISODateString>()
+              ).maaneder,
               maanedsloenOre: 0,
               deltaPct: 0,
               amountOre: 0,

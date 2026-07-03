@@ -34,7 +34,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { resolveDocumentArtifactFileName, formatMaaneder4, formatReguleringPct } from '../../layout/documentFormatUtils';
+import { resolveDocumentArtifactFileName, formatMaanederFixed, formatReguleringPct } from '../../layout/documentFormatUtils';
 import { round4 } from '../../../utils/roundingShortcuts';
 import {
   ASL_MAX_AARSLOEN_2003,
@@ -156,7 +156,7 @@ export const addLoebendeAfgoerelseSection = (
         (row): RowInput => [
           createDocumentTableCell(formatISOToDanish(row.fra), { halign: 'center' }),
           createDocumentTableCell(formatISOToDanish(row.til), { halign: 'center' }),
-          cellRight(formatMaaneder4(row.maanederPraecis)),
+          cellRight(formatMaanederFixed(row.maanederPraecis)),
           cellRight(formatKr(row.grundydelseAfrundet, 2)),
           cellRight(formatReguleringPct(row.reguleringPct)),
           cellRight(formatKr(row.maanedligYdelse)),

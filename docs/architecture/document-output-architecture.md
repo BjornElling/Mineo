@@ -482,7 +482,7 @@ sanitizeFilenamePart(text): string   // (i src/document/documentFileName.ts)
 // Fjerner ulovlige Windows-filnavnstegn og kontroltegn
 
 formatMaanederTrimmed(value): string
-// Dansk lokalformat med op til 4 decimaler; fjerner unødvendige nuller
+// Dansk lokalformat med EO-dokumentets fælles månedspræcision; fjerner unødvendige nuller
 
 formatCurrencyFromOre(ore): string
 // Konverterer øre til kroner og formaterer som dansk beløb (ingen kr.-suffiks)

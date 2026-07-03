@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 
-import { formatReguleringFactorText, formatReguleringPct } from '../../document/layout/documentFormatUtils';
+import {
+  DOCUMENT_MAANEDER_DECIMALS,
+  formatMaanederFixed,
+  formatMaanederTrimmed,
+  formatReguleringFactorText,
+  formatReguleringPct,
+} from '../../document/layout/documentFormatUtils';
 
 describe('pdfFormatUtils', () => {
   describe('formatReguleringFactorText', () => {
@@ -57,6 +63,14 @@ describe('pdfFormatUtils', () => {
 
     it('beholder negativt fortegn når størrelsen ikke afrundes til nul', () => {
       expect(formatReguleringPct(-0.0001)).toBe('- 0,0001 %');
+    });
+  });
+
+  describe('månedsformattering', () => {
+    it('bruger dokumentets fælles 5-decimalers månedspræcision', () => {
+      expect(DOCUMENT_MAANEDER_DECIMALS).toBe(5);
+      expect(formatMaanederTrimmed(1 / 31)).toBe('0,03226');
+      expect(formatMaanederFixed(1)).toBe('1,00000');
     });
   });
 });

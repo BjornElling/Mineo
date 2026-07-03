@@ -4,14 +4,12 @@ import { formatReguleringFactorText } from '../../../layout/documentFormatUtils'
 import {
   getDayAfterIso,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import { round4 as roundToFourDecimals } from '../../../../utils/roundingShortcuts';
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
 import { buildForligIndgaaetSaetning } from '../../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import type { Calculable, LoenudviklingSegment, MoneyOre, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
-import { roundByMethod } from '../../../../utils/rounding';
 import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } from './tafBeregningsgrundlagSection';
 
 type OpgorelseSectionContext = Readonly<{
@@ -125,7 +123,7 @@ const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): 
         kind: 'maaneder',
         fra: last.fra,
         til: segment.til,
-        maaneder: roundToFourDecimals(last.maaneder + segment.maaneder),
+        maaneder: last.maaneder + segment.maaneder,
         maanedsloenOre: last.maanedsloenOre,
         deltaPct: last.deltaPct,
         amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
@@ -531,11 +529,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             const unitText = labels.unitDag ? `${labels.unitDag} ` : '';
             leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} á ${unitText}${dagsloenText}${NBSP}kr.${factorText} =`;
           } else {
-            const roundedMaaneder = roundByMethod(segment.maaneder, 4, 'halfAwayFromZero');
-            const maanederText = formatMaanederTrimmed(roundedMaaneder);
+            const maanederText = formatMaanederTrimmed(segment.maaneder);
             const maanedsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.maanedsloenOre);
             const unitText = labels.unitMaaned ? `${labels.unitMaaned} ` : '';
-            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(roundedMaaneder) ? 'måned' : 'måneder'} á ${unitText}${maanedsloenText}${NBSP}kr.${factorText} =`;
+            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(segment.maaneder) ? 'måned' : 'måneder'} á ${unitText}${maanedsloenText}${NBSP}kr.${factorText} =`;
           }
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
