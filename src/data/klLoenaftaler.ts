@@ -31,7 +31,7 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { formatDanishDate, getInclusivePeriodEndByMonths, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
 
 // ===== TYPER =====
 
@@ -109,6 +109,63 @@ export const klLoenaftalerRaekker: ReadonlyArray<KlLoenaftalerRow> = klRegulerin
   ([fraDato, reguleringPct]) => ({ fraDato: d(fraDato), reguleringPct })
 );
 
+/**
+ * Integritets-guard for KL-lønaftaler-serien (fail-closed ved ægte datafejl).
+ *
+ * KL-lønaftaler-formen regulerer trinvist på lønnen: kæde-resolveren anvender hver
+ * reguleringsdato sekventielt (`buildKlLoenaftalerReguleretLoenResolver`), og
+ * `getReguleringsDatoIntervalForKlLoenaftaler` udleder row-gatens dæknings-interval
+ * positionelt (`[0]` = ældste, `[length-1]` = nyeste). Tre latente antagelser skal
+ * håndhæves, for at det er sikkert:
+ *
+ * (1) **Ikke-tom serie.** En tom tabel ville give et udefineret interval og ingen
+ *     regulering uden fejl. Kilden skal altid have mindst basis-datoen (01-04-2005).
+ * (2) **Strengt ældste-først + unikke, parsbare datoer.** Interval-udledningen stoler
+ *     på rækkefølgen; en mis-sorteret eller duplikeret dato ville give et forkert
+ *     dæknings-interval (row-gatens `min`/`max`, der gater S1/S6) og kunne maskere et
+ *     tabt trin. (Kæde-resolveren sorterer selv defensivt, men interval-udledningen gør
+ *     ikke — derfor håndhæves rækkefølgen her ved kilden.)
+ * (3) **Finit periodesats pr. række.** En ikke-finit sats ville få kæde-resolveren til
+ *     at fail-close (`runtime_exception`) i stedet for en synlig dæknings-/datafejl;
+ *     her fanges den allerede ved load som en målrettet datafejl.
+ *
+ * Guarden er tal-neutral for eksisterende data (serien er hul-fri, sorteret og finit i
+ * dag) og fyrer aldrig ved valid drift (nye satser tilføjes i forlængelse, ældste-først).
+ * Den fanger udelukkende en faktisk datafejl.
+ */
+export const assertKlLoenaftalerDataIntegritet = (
+  raekker: ReadonlyArray<KlLoenaftalerRow>
+): void => {
+  if (raekker.length === 0) {
+    throw new Error('KL-lønaftaler: serien er tom (mindst basis-datoen kræves)');
+  }
+
+  let prevTime: number | null = null;
+  for (const row of raekker) {
+    const parsed = parseDanishDate(row.fraDato);
+    if (!parsed) {
+      throw new Error(`KL-lønaftaler: ugyldig fraDato "${row.fraDato}"`);
+    }
+    const time = parsed.getTime();
+    if (prevTime !== null && time <= prevTime) {
+      throw new Error(
+        `KL-lønaftaler: rækkerne skal være sorteret strengt ældste-først med unikke datoer; ` +
+          `"${row.fraDato}" bryder rækkefølgen`
+      );
+    }
+    prevTime = time;
+
+    if (!Number.isFinite(row.reguleringPct)) {
+      throw new Error(
+        `KL-lønaftaler: ikke-finit periodesats for "${row.fraDato}"; ` +
+          'et sprunget reguleringstrin ville give tavs under-regulering'
+      );
+    }
+  }
+};
+
+assertKlLoenaftalerDataIntegritet(klLoenaftalerRaekker);
+
 // ===== PERIODEVIS REGULERINGSPROCENT =====
 
 /**
@@ -142,10 +199,8 @@ export const getReguleringsDatoIntervalForKlLoenaftaler = (): KlLoenaftalerRegul
   const aeldste = klLoenaftalerRaekker[0];
   const nyeste = klLoenaftalerRaekker[klLoenaftalerRaekker.length - 1];
 
-  const nyesteDate = parseDanishDate(nyeste.fraDato);
-  if (!nyesteDate) return undefined;
-
-  const tilDato = formatDanishDate(getInclusivePeriodEndByMonths(nyesteDate, 6));
+  const tilDato = getInclusivePeriodEndDanishDate(nyeste.fraDato, 6);
+  if (!tilDato) return undefined;
 
   return {
     fraDato: aeldste.fraDato,

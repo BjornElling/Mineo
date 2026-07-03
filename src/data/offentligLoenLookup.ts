@@ -6,7 +6,7 @@
  */
 
 import { type DanishDateString } from '../types/branded';
-import { formatDanishDate, getInclusivePeriodEndByMonths, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
 import type {
   OffentligOverenskomstType,
   Loengruppe,
@@ -51,10 +51,27 @@ const lookupEntry = (lookup: EntryLookup, loentrin: Loentrin): OffentligLoenEntr
   return lookup.byTrin.get(loentrin);
 };
 
+/**
+ * Fail-closed ved modul-load: en tom løntabel ville få alle opslag til at returnere
+ * undefined (ingen regulering) og et udefineret dæknings-interval — dvs. tavs
+ * under-regulering uden en synlig fejl. En genereret KL/RLTN-tabel skal altid have
+ * mindst én regulering. Tal-neutral (fyrer kun hvis den genererede tabel er tom).
+ */
+export const assertOffentligLoenTabelIkkeTom = (
+  satser: ReadonlyArray<OffentligLoenRegulering>,
+  label: string
+): void => {
+  if (satser.length === 0) {
+    throw new Error(`${label}: Lønsatser-tabellen er tom (mindst én regulering kræves).`);
+  }
+};
+
 const buildReguleringLookups = (
   satser: ReadonlyArray<OffentligLoenRegulering>,
   label: string
 ): ReadonlyArray<ReguleringMedLookup> => {
+  assertOffentligLoenTabelIkkeTom(satser, label);
+
   const lookups = satser.map((reg) => {
     const byTrin = new Map<number, OffentligLoenEntry>();
     let plus55: OffentligLoenEntry | undefined;
@@ -296,10 +313,8 @@ export const getReguleringsDatoIntervalForOffentligLoen = (
   const nyeste = lookups[0];
   const aeldste = lookups[lookups.length - 1];
 
-  const nyesteDate = parseDanishDate(nyeste.effectiveDate);
-  if (!nyesteDate) return undefined;
-
-  const tilDato = formatDanishDate(getInclusivePeriodEndByMonths(nyesteDate, 6));
+  const tilDato = getInclusivePeriodEndDanishDate(nyeste.effectiveDate, 6);
+  if (!tilDato) return undefined;
 
   return {
     fraDato: aeldste.effectiveDate,

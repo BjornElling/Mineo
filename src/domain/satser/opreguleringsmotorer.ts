@@ -77,6 +77,31 @@ const nonIntegerYears = (kildeAar: number, maalAar: number): number[] => {
 };
 
 /**
+ * Kanonisk opslag af den årlige reguleringssats (EAL § 15 / ASL § 25 — "tilpasnings-
+ * procenten plus to procent") for ét år. Returnerer satsen hvis året er dækket af en
+ * finit sats, ellers `undefined`.
+ *
+ * Dette er ÉN fail-closed-opslagsadfærd for reguleringssats — parallelt med
+ * `resolveAslAarsloensmaksimumForAar`. Den akkumulerede motors dæknings-check deler
+ * den med det RÅ per-år-satsdisplay (offentlige ydelsers reguleringstabel, der viser
+ * den enkelte års-sats i "Regulering"-kolonnen — et andet concern end motorens
+ * akkumulerede faktor, men samme datakilde-opslag). Så et manglende års-sats behandles
+ * identisk fail-closed, uanset om det rammer beregningen eller visningen, og der findes
+ * ingen parallel rå `reguleringssats[year]`-opslagssti udenfor dette modul.
+ *
+ * `satser` kan injiceres (default = `reguleringssats`), så motor- og test-stier deler
+ * samme opslags-semantik mod et alternativt år→sats-map.
+ */
+export const resolveReguleringssatsForAar = (
+  aar: number,
+  satser: YearlyRate = reguleringssats
+): number | undefined => {
+  if (!Number.isInteger(aar)) return undefined;
+  const sats = satser[aar];
+  return typeof sats === 'number' && Number.isFinite(sats) ? sats : undefined;
+};
+
+/**
  * Metode 1 — ASL-årslønsmaksimum-indeks.
  *
  * Faktor = idx[målår] / idx[kildeår] (idx = `aarsloenAslMax`).
@@ -125,8 +150,7 @@ export const opregulerMedAkkumuleretReguleringssats = (
   const fraAar = Math.min(kildeAar, maalAar);
   const tilAar = Math.max(kildeAar, maalAar);
   for (let year = fraAar; year <= tilAar; year += 1) {
-    const sats = satser[year];
-    if (typeof sats !== 'number' || !Number.isFinite(sats)) {
+    if (resolveReguleringssatsForAar(year, satser) === undefined) {
       manglendeAar.push(year);
     }
   }
@@ -135,6 +159,8 @@ export const opregulerMedAkkumuleretReguleringssats = (
   }
   if (maalAar <= kildeAar) return NO_OPREGULERING;
 
+  // Dæknings-loopet ovenfor har verificeret hvert mellemår, så det rå opslag her er
+  // garanteret finit.
   let faktor = 1;
   for (let year = kildeAar + 1; year <= maalAar; year += 1) {
     faktor *= 1 + satser[year] / 100;

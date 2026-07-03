@@ -7,12 +7,22 @@ import {
   resolveEgetAtpBidragPrKalenderuge,
   resolveKommunaltAtpBidragPrKalenderuge,
   resolveSygedagpengeTimerForUtcWeekday,
+  assertSygedagpengeRatesIntegritet,
   SYGEDAGPENGE_TIMER_PR_FULD_UGE,
   SYGEDAGPENGE_RATE_MIN_DATE,
   SYGEDAGPENGE_RATE_MAX_DATE,
 } from '../../data/sygedagpengeRates';
+import type { DatedSygedagpengeRate } from '../../data/sygedagpengeRates';
 import { toISODateString } from '../../types/branded';
 import { getDayAfterIso } from '../../utils/isoDateHelpers';
+
+const rate = (fraDato: string, tilDato: string): DatedSygedagpengeRate => ({
+  fraDato: toISODateString(fraDato),
+  tilDato: toISODateString(tilDato),
+  sygedagpengeTimesats: 100,
+  atpTimebidrag: 4,
+  obligatoriskPensionProcent: 0,
+});
 
 const dagEfter = (iso: string): string => getDayAfterIso(toISODateString(iso));
 
@@ -43,6 +53,38 @@ describe('sygedagpengeRates – samlet satstabel', () => {
   it('eksponerer min/max-datoer fra første og sidste satsår', () => {
     expect(SYGEDAGPENGE_RATE_MIN_DATE).toBe(toISODateString('2005-01-03'));
     expect(SYGEDAGPENGE_RATE_MAX_DATE).toBe(toISODateString('2027-01-03'));
+  });
+});
+
+describe('assertSygedagpengeRatesIntegritet (fail-closed data-guard)', () => {
+  it('de faktiske sygedagpengesatser passerer guarden (tal-neutral i dag)', () => {
+    expect(() => assertSygedagpengeRatesIntegritet(sygedagpengeRates)).not.toThrow();
+  });
+
+  it('en kontinuert serie (næste fraDato = dagen efter forrige tilDato) passerer', () => {
+    const rates = [rate('2005-01-03', '2006-01-01'), rate('2006-01-02', '2006-12-31')];
+    expect(() => assertSygedagpengeRatesIntegritet(rates)).not.toThrow();
+  });
+
+  it('en tom serie fail-closer', () => {
+    expect(() => assertSygedagpengeRatesIntegritet([])).toThrow(/Ingen sygedagpengesatser/);
+  });
+
+  it('et hul mellem to satsår fail-closer', () => {
+    // 2006-01-02 mangler → hul mellem 2006-01-01 og 2006-01-03
+    const rates = [rate('2005-01-03', '2006-01-01'), rate('2006-01-03', '2006-12-31')];
+    expect(() => assertSygedagpengeRatesIntegritet(rates)).toThrow(/hul eller overlap/);
+  });
+
+  it('et overlap mellem to satsår fail-closer', () => {
+    // næste fraDato = samme dag som forrige tilDato → overlap
+    const rates = [rate('2005-01-03', '2006-01-01'), rate('2006-01-01', '2006-12-31')];
+    expect(() => assertSygedagpengeRatesIntegritet(rates)).toThrow(/hul eller overlap/);
+  });
+
+  it('en række med fraDato > tilDato fail-closer', () => {
+    const rates = [rate('2006-01-01', '2005-01-03')];
+    expect(() => assertSygedagpengeRatesIntegritet(rates)).toThrow(/> tilDato/);
   });
 });
 

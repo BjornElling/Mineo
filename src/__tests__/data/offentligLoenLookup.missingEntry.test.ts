@@ -25,8 +25,28 @@ describe('offentligLoenLookup - manglende løntrin', () => {
       ],
     }));
 
+    // RLTN er irrelevant for denne test (vi tester KL's manglende-løntrin-sti), men
+    // må ikke være tom: den nye load-guard `assertOffentligLoenTabelIkkeTom` fail-closer
+    // en tom genereret tabel. Giv derfor RLTN én valid regulering, så guarden ikke fyrer
+    // på den tabel vi ikke er interesserede i.
     vi.doMock('../../data/RLTN/rltnLoenSatser', () => ({
-      rltnLoenSatser: [],
+      rltnLoenSatser: [
+        {
+          effectiveDate: toDanishDateString('01-01-2024'),
+          entries: [
+            {
+              loentrin: toLoentrin(1),
+              maanedsLoen: { 0: 100, 1: 100, 2: 100, 3: 100, 4: 100 },
+              timeLoen: { 0: 10, 1: 10, 2: 10, 3: 10, 4: 10 },
+            },
+            {
+              loentrin: toLoentrin('55+'),
+              maanedsLoen: { 0: 200, 1: 200, 2: 200, 3: 200, 4: 200 },
+              timeLoen: { 0: 20, 1: 20, 2: 20, 3: 20, 4: 20 },
+            },
+          ],
+        },
+      ],
     }));
 
     const { getOffentligLoenForDato } = await import('../../data/offentligLoenLookup');

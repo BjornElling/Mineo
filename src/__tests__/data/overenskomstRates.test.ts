@@ -15,10 +15,25 @@ import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
   getOverenskomstSfggPolicy,
+  assertOverenskomstSatserNyesteFoerst,
 } from '../../data/overenskomstRates';
+import type { OverenskomstPeriodeSats } from '../../data/overenskomstRates';
 import { toDanishDateString } from '../../types/branded';
 
 const d = (s: string) => toDanishDateString(s);
+
+const sats = (fraDato: string): OverenskomstPeriodeSats => ({
+  fraDato: d(fraDato),
+  grundloen: 100,
+  shSoSats: null,
+  fritvalg: null,
+  agPension: null,
+  sfgg: null,
+  sfggFaglKbh: null,
+  sfggFaglProv: null,
+  sfggUfaglKbh: null,
+  sfggUfaglProv: null,
+});
 
 // ─── Dataintegritet ───────────────────────────────────────────────────────────
 
@@ -37,6 +52,35 @@ describe('overenskomster – dataintegritet', () => {
     for (const o of overenskomster) {
       expect(o.satser.length).toBeGreaterThan(0);
     }
+  });
+
+  describe('assertOverenskomstSatserNyesteFoerst (fail-closed data-guard)', () => {
+    const id = overenskomster[0]!.meta.id;
+
+    it('alle faktiske overenskomst-serier passerer guarden (tal-neutral i dag)', () => {
+      for (const o of overenskomster) {
+        expect(() => assertOverenskomstSatserNyesteFoerst(o.satser, o.meta.id)).not.toThrow();
+      }
+    });
+
+    it('en nyeste-først serie passerer', () => {
+      const satser = [sats('01-03-2024'), sats('01-01-2024'), sats('01-01-2012')];
+      expect(() => assertOverenskomstSatserNyesteFoerst(satser, id)).not.toThrow();
+    });
+
+    it('en tom serie fail-closer', () => {
+      expect(() => assertOverenskomstSatserNyesteFoerst([], id)).toThrow(/tom/);
+    });
+
+    it('en mis-sorteret serie (ikke strengt nyeste-først) fail-closer', () => {
+      const satser = [sats('01-01-2012'), sats('01-03-2024')];
+      expect(() => assertOverenskomstSatserNyesteFoerst(satser, id)).toThrow(/rækkefølgen/);
+    });
+
+    it('to identiske datoer (ikke strengt faldende) fail-closer', () => {
+      const satser = [sats('01-03-2024'), sats('01-03-2024')];
+      expect(() => assertOverenskomstSatserNyesteFoerst(satser, id)).toThrow(/rækkefølgen/);
+    });
   });
 
   it('alle satser har finite grundloen eller null', () => {

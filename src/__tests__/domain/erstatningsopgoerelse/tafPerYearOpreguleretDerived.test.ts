@@ -140,4 +140,47 @@ describe('buildTafPerYearOpreguleretBuildOutcome', () => {
     expect(y1999.deltaPct).toBe(0);
     expect(y1999.yearTafOpreguleretOre).toBe(0);
   });
+
+  it('fail-closer for et nær-nul (1 øre) beløbsår med manglende reguleringssats', () => {
+    // 0-beløbs-undtagelsen er STRIKT === 0. Et nær-nul positivt beløb påvirker totalen
+    // (om end minimalt) og skal derfor kræve fuld satsdækning frem for tavs under-regulering.
+    const result = makeResult([makeYear(1999, 1)]);
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-03-03'));
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind !== 'error') return;
+    expect(outcome.reason).toBe('manglende_reguleringssats');
+    expect(outcome.manglendeAar).toContain(2000);
+  });
+
+  it('fail-closer for et negativt beløbsår med manglende reguleringssats', () => {
+    // Et negativt årsbeløb er ikke undtaget (≠ 0) og skal fail-close ved manglende sats,
+    // ikke stiltiende videreføres uændret (som ville under-regulere et fradrag).
+    const result = makeResult([makeYear(1999, -10_000_00)]);
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-03-03'));
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind !== 'error') return;
+    expect(outcome.reason).toBe('manglende_reguleringssats');
+    expect(outcome.manglendeAar).toContain(2000);
+  });
+
+  it('opregulerer et nær-nul (1 øre) beløbsår normalt når satsdækningen findes', () => {
+    // Med fuld dækning behandles nær-nul beløb som ethvert andet beløb (ingen undtagelse).
+    const result = makeResult([makeYear(2020, 1)]);
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-06-01'));
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+    const exp = expectedOpregulering(1, 2020, 2024);
+    expect(outcome.result.years[0].deltaPct).toBe(exp.deltaPct);
+    expect(outcome.result.years[0].yearTafOpreguleretOre).toBe(exp.opreguleretOre);
+  });
+
+  it('blokerer et helt krav hvis ét ikke-nul år mangler sats, selv når et 0-beløbs-år er fint', () => {
+    // Multi-år: 0-beløbs-året (1999) er undtaget, men det ikke-nul år (2000) mangler stadig
+    // sats og skal fail-close hele opgørelsen — ingen delvis/tavs opregulering.
+    const result = makeResult([makeYear(1999, 0), makeYear(2000, 5_000_00)]);
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-03-03'));
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind !== 'error') return;
+    expect(outcome.manglendeAar).toContain(2000);
+  });
 });

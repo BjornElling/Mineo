@@ -6,6 +6,7 @@ import {
   getOffentligLoenForPeriode,
   getReguleringsDatoer,
   getReguleringsDatoIntervalForOffentligLoen,
+  assertOffentligLoenTabelIkkeTom,
 } from '../../data/offentligLoenLookup';
 import { klLoenSatser } from '../../data/KL/klLoenSatser';
 import { rltnLoenSatser } from '../../data/RLTN/rltnLoenSatser';
@@ -26,6 +27,17 @@ describe('offentligLoenLookup', () => {
         expect(satser.length).toBeGreaterThan(0);
       }
     );
+
+    describe('assertOffentligLoenTabelIkkeTom (fail-closed data-guard)', () => {
+      it('de faktiske KL/RLTN-tabeller passerer guarden (tal-neutral i dag)', () => {
+        expect(() => assertOffentligLoenTabelIkkeTom(klLoenSatser, 'KL')).not.toThrow();
+        expect(() => assertOffentligLoenTabelIkkeTom(rltnLoenSatser, 'RLTN')).not.toThrow();
+      });
+
+      it('en tom løntabel fail-closer', () => {
+        expect(() => assertOffentligLoenTabelIkkeTom([], 'KL')).toThrow(/tom/);
+      });
+    });
 
     it.each<OffentligOverenskomstType>(['KL', 'RLTN'])(
       '%s: hver regulering har 56 løntrin',

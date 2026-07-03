@@ -1455,6 +1455,52 @@ offentligeOverenskomster.forEach((meta) =>
   assertValidSfggPolicy(meta, offentligOverenskomstSatserById.get(meta.id)?.satser)
 );
 
+/**
+ * Integritets-guard for en overenskomsts satsserie (fail-closed ved ægte datafejl).
+ *
+ * `getSatserForDatoFromList` returnerer den FØRSTE sats i array-rækkefølge hvor
+ * `fraDato ≤ dato` — dvs. den forudsætter strengt nyeste-først sortering for at
+ * carry-forwarde den korrekte (nyeste gældende) sats. En mis-sorteret serie ville få
+ * opslaget til at returnere en ældre sats for en dato, hvor en nyere gælder → tavs
+ * forkert regulering. Desuden udleder `getReguleringsDatoIntervalForOverenskomst`
+ * dæknings-intervallet positionelt (`[0]` = nyeste, `[length-1]` = ældste), som gater
+ * S1/S6 i række-laget. Vi håndhæver derfor ved kilden: ikke-tom serie, strengt
+ * nyeste-først (faldende), og unikke, parsbare datoer.
+ *
+ * Tal-neutral for eksisterende data (alle serier er nyeste-først i dag) og fyrer kun
+ * ved en faktisk datafejl.
+ */
+export const assertOverenskomstSatserNyesteFoerst = (
+  satser: ReadonlyArray<OverenskomstPeriodeSats>,
+  id: OverenskomstId
+): void => {
+  if (satser.length === 0) {
+    throw new Error(`Overenskomst "${id}": satsserien er tom`);
+  }
+  let prevTime: number | null = null;
+  for (const sats of satser) {
+    const parsed = parseDanishDate(sats.fraDato);
+    if (!parsed) {
+      throw new Error(`Overenskomst "${id}": ugyldig fraDato "${sats.fraDato}"`);
+    }
+    const time = parsed.getTime();
+    if (prevTime !== null && time >= prevTime) {
+      throw new Error(
+        `Overenskomst "${id}": satser skal være sorteret strengt nyeste-først med unikke ` +
+          `datoer; "${sats.fraDato}" bryder rækkefølgen`
+      );
+    }
+    prevTime = time;
+  }
+};
+
+overenskomster.forEach((overenskomst) =>
+  assertOverenskomstSatserNyesteFoerst(overenskomst.satser, overenskomst.meta.id)
+);
+offentligeOverenskomstSatser.forEach((entry) =>
+  assertOverenskomstSatserNyesteFoerst(entry.satser, entry.id)
+);
+
 // ===== OPSLAGS-FUNKTIONER =====
 
 /**

@@ -2,8 +2,15 @@ import {
   klLoenaftalerRaekker,
   getKlLoenaftalerReguleringPctForDato,
   getReguleringsDatoIntervalForKlLoenaftaler,
+  assertKlLoenaftalerDataIntegritet,
 } from '../../data/klLoenaftaler';
-import { toDanishDateString } from '../../types/branded';
+import type { KlLoenaftalerRow } from '../../data/klLoenaftaler';
+import { toDanishDateString, type DanishDateString } from '../../types/branded';
+
+const row = (fraDato: string, reguleringPct: number): KlLoenaftalerRow => ({
+  fraDato: toDanishDateString(fraDato),
+  reguleringPct,
+});
 
 const DANISH_DATE = /^\d{2}-\d{2}-\d{4}$/;
 
@@ -64,5 +71,40 @@ describe('getReguleringsDatoIntervalForKlLoenaftaler', () => {
     expect(interval).toBeDefined();
     expect(interval?.fraDato).toBe('01-04-2005');
     expect(interval?.tilDato).toBe('31-03-2027');
+  });
+});
+
+describe('assertKlLoenaftalerDataIntegritet (fail-closed data-guard)', () => {
+  it('de faktiske KL-lønaftaler-data passerer guarden (tal-neutral i dag)', () => {
+    expect(() => assertKlLoenaftalerDataIntegritet(klLoenaftalerRaekker)).not.toThrow();
+  });
+
+  it('en gyldig serie (ældste-først, unikke datoer, finit pct) passerer', () => {
+    const raekker = [row('01-04-2005', 0), row('01-01-2006', 1.4), row('01-10-2006', 1.0)];
+    expect(() => assertKlLoenaftalerDataIntegritet(raekker)).not.toThrow();
+  });
+
+  it('en tom serie fail-closer', () => {
+    expect(() => assertKlLoenaftalerDataIntegritet([])).toThrow(/tom/);
+  });
+
+  it('en mis-sorteret serie (ikke strengt ældste-først) fail-closer', () => {
+    const raekker = [row('01-01-2006', 1.4), row('01-04-2005', 0)];
+    expect(() => assertKlLoenaftalerDataIntegritet(raekker)).toThrow(/rækkefølgen/);
+  });
+
+  it('to identiske datoer (ikke strengt stigende) fail-closer', () => {
+    const raekker = [row('01-04-2005', 0), row('01-04-2005', 1.4)];
+    expect(() => assertKlLoenaftalerDataIntegritet(raekker)).toThrow(/rækkefølgen/);
+  });
+
+  it('en ikke-finit periodesats fail-closer', () => {
+    const raekker = [row('01-04-2005', 0), row('01-01-2006', Number.NaN)];
+    expect(() => assertKlLoenaftalerDataIntegritet(raekker)).toThrow(/ikke-finit/);
+  });
+
+  it('en ugyldig fraDato fail-closer (bypasser branding for at simulere korrupt data)', () => {
+    const raekker = [{ fraDato: 'ikke-en-dato' as unknown as DanishDateString, reguleringPct: 0 }];
+    expect(() => assertKlLoenaftalerDataIntegritet(raekker)).toThrow(/ugyldig fraDato/);
   });
 });

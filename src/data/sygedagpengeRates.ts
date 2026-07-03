@@ -1,6 +1,7 @@
 import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
 import { roundByMethod } from '../utils/rounding';
+import { getDayAfterIso } from '../utils/isoDateHelpers';
 
 /**
  * Kanonisk, samlet oversigt over sygedagpenge pr. satsår.
@@ -100,6 +101,50 @@ const lastSygedagpengeRate = sygedagpengeRates[sygedagpengeRates.length - 1];
 if (!firstSygedagpengeRate || !lastSygedagpengeRate) {
   throw new Error('CRITICAL: Ingen sygedagpengesatser er defineret');
 }
+
+/**
+ * Integritets-guard for sygedagpenge-satstabellen (fail-closed ved ægte datafejl).
+ *
+ * Opslaget (`splitSygedagpengeRateSegments`) matcher en dato mod hver rækkes EGET
+ * `[fraDato;tilDato]`-interval (ikke carry-forward), og hele perioden gates fail-closed
+ * mod ydergrænserne (`assertSygedagpengeRangeFullyCovered`). Der er derfor ingen
+ * carry-forward-staleness-risiko. Den eneste tavse fejlklasse er et INTERIORT hul eller
+ * overlap mellem to satsår: et hul ville lade dage i hullet falde ud af segmenteringen
+ * uden en fejl (tavs under-dækning), og et overlap ville dobbelttælle en dag.
+ *
+ * Kontinuitet + ikke-overlap var hidtil kun håndhævet af en unit-test. Denne guard
+ * flytter håndhævelsen til modul-load, så et fremtidigt hul fanges uanset om testen
+ * køres. Kravet er: rækkerne er sorteret stigende, hver `fraDato ≤ tilDato`, og hvert
+ * satsår starter præcis dagen efter det forrige satsårs `tilDato` (ingen hul, intet
+ * overlap). Tal-neutral for eksisterende data (tabellen er kontinuert i dag).
+ */
+export const assertSygedagpengeRatesIntegritet = (
+  rates: readonly DatedSygedagpengeRate[]
+): void => {
+  if (rates.length === 0) {
+    throw new Error('CRITICAL: Ingen sygedagpengesatser er defineret');
+  }
+  for (let i = 0; i < rates.length; i += 1) {
+    const rate = rates[i]!;
+    if (rate.fraDato > rate.tilDato) {
+      throw new Error(
+        `Sygedagpenge-satstabel: satsår med fraDato "${rate.fraDato}" > tilDato "${rate.tilDato}"`
+      );
+    }
+    if (i === 0) continue;
+    const forrige = rates[i - 1]!;
+    const forventetFraDato = getDayAfterIso(forrige.tilDato);
+    if (rate.fraDato !== forventetFraDato) {
+      throw new Error(
+        `Sygedagpenge-satstabel: hul eller overlap mellem satsår "${forrige.tilDato}" og ` +
+          `"${rate.fraDato}" (forventet fraDato ${forventetFraDato}); ` +
+          'et hul ville give tavs under-dækning, et overlap ville dobbelttælle en dag'
+      );
+    }
+  }
+};
+
+assertSygedagpengeRatesIntegritet(sygedagpengeRates);
 
 export const SYGEDAGPENGE_RATE_MIN_DATE: ISODateString = firstSygedagpengeRate.fraDato;
 export const SYGEDAGPENGE_RATE_MAX_DATE: ISODateString = lastSygedagpengeRate.tilDato;

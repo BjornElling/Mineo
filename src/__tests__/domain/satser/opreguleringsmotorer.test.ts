@@ -3,6 +3,7 @@
 import {
   opregulerMedAslAarsloensmaksimum,
   opregulerMedAkkumuleretReguleringssats,
+  resolveReguleringssatsForAar,
 } from '../../../domain/satser/opreguleringsmotorer';
 import { aarsloenAslMax, reguleringssats } from '../../../data/lovbestemteRates';
 
@@ -169,6 +170,40 @@ describe('opreguleringsmotorer', () => {
       const withDefault = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2021, maalAar: 2025 });
       const withExplicit = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2021, maalAar: 2025 }, reguleringssats);
       expect(withDefault).toEqual(withExplicit);
+    });
+  });
+
+  describe('resolveReguleringssatsForAar (delt fail-closed per-år-opslag)', () => {
+    it('returnerer den finitte sats for et dækket år', () => {
+      expect(resolveReguleringssatsForAar(2024)).toBe(reguleringssats[2024]);
+      expect(resolveReguleringssatsForAar(2005)).toBe(reguleringssats[2005]);
+    });
+
+    it('returnerer undefined for et udækket år (fail-closed opslag)', () => {
+      expect(resolveReguleringssatsForAar(2004)).toBeUndefined();
+      expect(resolveReguleringssatsForAar(2100)).toBeUndefined();
+    });
+
+    it('returnerer undefined for ikke-heltallige år uden opslag', () => {
+      expect(resolveReguleringssatsForAar(Number.NaN)).toBeUndefined();
+      expect(resolveReguleringssatsForAar(2024.5)).toBeUndefined();
+    });
+
+    it('behandler ikke-finit sats i et injiceret map som manglende', () => {
+      expect(resolveReguleringssatsForAar(2024, { 2024: Number.NaN })).toBeUndefined();
+      expect(resolveReguleringssatsForAar(2024, { 2024: Number.POSITIVE_INFINITY })).toBeUndefined();
+      // 0 er en gyldig sats (ikke manglende).
+      expect(resolveReguleringssatsForAar(2024, { 2024: 0 })).toBe(0);
+    });
+
+    it('er den samme kilde motorens dæknings-check bygger på (manglendeAar spejler undefined)', () => {
+      // Motorens manglendeAar for et interval = netop de år hvor gateway'en giver undefined.
+      const res = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2003, maalAar: 2006 });
+      const forventetManglende: number[] = [];
+      for (let year = 2003; year <= 2006; year += 1) {
+        if (resolveReguleringssatsForAar(year) === undefined) forventetManglende.push(year);
+      }
+      expect(res.manglendeAar).toEqual(forventetManglende);
     });
   });
 

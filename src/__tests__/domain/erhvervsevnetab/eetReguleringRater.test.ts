@@ -83,6 +83,30 @@ describe('resolveAslReguleringRateForAar', () => {
     });
   });
 
+  it('år lige over 2024 (2025) og lige under (2023) rammer hver sin tabel ved skade før 2024-07-01', () => {
+    // Tabel-split-grænsen: 2023 → tidligere indeks (60,1 %), 2025 → Fra2024-indeks (3,9 %).
+    // 2024 selv er referenceår (dækket ovenfor). Bekræfter at splittet sker netop ved årsskiftet.
+    const i2023: EetIssue[] = [];
+    const i2025: EetIssue[] = [];
+    expect(resolveAslReguleringRateForAar(2023, true, i2023, 'id')).toEqual({ factor: 1 + 60.1 / 100, reguleringPct: 60.1 });
+    expect(resolveAslReguleringRateForAar(2025, true, i2025, 'id')).toEqual({ factor: 1 + 3.9 / 100, reguleringPct: 3.9 });
+    expect(i2023).toHaveLength(0);
+    expect(i2025).toHaveLength(0);
+  });
+
+  it('ukendt/ikke-heltalligt år fail-closer med blokerende issue og null', () => {
+    // Defensivt: et år uden dækning (uanset skade-flag) må aldrig degradere til en tavs
+    // "ingen regulering"-faktor 1 — det skal give en blokerende feltfejl.
+    const iUkendt: EetIssue[] = [];
+    expect(resolveAslReguleringRateForAar(2099, false, iUkendt, 'id')).toBeNull();
+    expect(iUkendt).toHaveLength(1);
+    expect(iUkendt[0]!.severity).toBe('error');
+
+    const iNaN: EetIssue[] = [];
+    expect(resolveAslReguleringRateForAar(Number.NaN, false, iNaN, 'id')).toBeNull();
+    expect(iNaN).toHaveLength(1);
+  });
+
   it('invariant: 2024-special-behandling adskiller before2024Skade fra ikke-before for år 2023', () => {
     // Samme år (2023), forskellig skade-flag → forskelligt resultat. Dette er kerne-invarianten.
     const beforeIssues: EetIssue[] = [];

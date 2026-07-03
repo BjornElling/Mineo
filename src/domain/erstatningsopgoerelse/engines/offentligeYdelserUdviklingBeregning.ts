@@ -1,5 +1,7 @@
-import { reguleringssats } from '../../../data/lovbestemteRates';
-import { opregulerMedAkkumuleretReguleringssats } from '../../satser/opreguleringsmotorer';
+import {
+  opregulerMedAkkumuleretReguleringssats,
+  resolveReguleringssatsForAar,
+} from '../../satser/opreguleringsmotorer';
 import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
@@ -34,11 +36,12 @@ export const resolveOffentligeYdelserAkkumuleretReguleringPct = (
   baseYear: number
 ): number => {
   // Akkumuleret reguleringssats ("tilpasningsprocenten plus to procent") via den
-  // fælles motor. Bevarer den eksisterende throw-kontrakt ved manglende sats.
-  const { deltaPct, manglendeAar } = opregulerMedAkkumuleretReguleringssats(
-    { kildeAar: baseYear, maalAar: segmentYear },
-    reguleringssats
-  );
+  // fælles motor (default-satser = reguleringssats). Bevarer den eksisterende
+  // throw-kontrakt ved manglende sats.
+  const { deltaPct, manglendeAar } = opregulerMedAkkumuleretReguleringssats({
+    kildeAar: baseYear,
+    maalAar: segmentYear,
+  });
   if (manglendeAar.length > 0) {
     throw new Error(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler for ${manglendeAar[0]}`);
   }
@@ -101,8 +104,11 @@ export const buildOffentligeYdelserReguleringTableData = (
 
   const rows: string[][] = [];
   for (let year = baseYear + 1; year <= sidsteYear; year += 1) {
-    const sats = reguleringssats[year];
-    if (typeof sats !== 'number' || !Number.isFinite(sats)) {
+    // Rå per-år-sats til "Regulering"-kolonnen (et andet concern end den akkumulerede
+    // faktor) — men samme fail-closed opslag som motorens dæknings-check via den delte
+    // gateway, så et manglende års-sats behandles identisk i beregning og visning.
+    const sats = resolveReguleringssatsForAar(year);
+    if (sats === undefined) {
       throw new Error(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler for ${year}`);
     }
     // Statslig regulering af offentlige ydelser sker årligt per 1. januar.

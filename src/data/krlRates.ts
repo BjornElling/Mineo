@@ -17,7 +17,7 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { formatDanishDate, getInclusivePeriodEndByMonths, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -270,10 +270,8 @@ export const getReguleringsDatoIntervalForKRL = (
   const nyeste = tabel.vaerdier[0];
   const aeldste = tabel.vaerdier[tabel.vaerdier.length - 1];
 
-  const nyesteDate = parseDanishDate(nyeste.fraDato);
-  if (!nyesteDate) return undefined;
-
-  const tilDato = formatDanishDate(getInclusivePeriodEndByMonths(nyesteDate, 6));
+  const tilDato = getInclusivePeriodEndDanishDate(nyeste.fraDato, 6);
+  if (!tilDato) return undefined;
 
   return {
     fraDato: aeldste.fraDato,

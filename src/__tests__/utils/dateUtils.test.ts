@@ -1,4 +1,4 @@
-import { toISODateString } from '../../types/branded';
+import { toDanishDateString, toISODateString, type DanishDateString } from '../../types/branded';
 import {
   addDays,
   addMonths,
@@ -6,6 +6,8 @@ import {
   formatDanishDate,
   formatToISO,
   getDaysInYear,
+  getInclusivePeriodEndByMonths,
+  getInclusivePeriodEndDanishDate,
   getTodayLocalISO,
   isLeapYear,
   parseDanishDate,
@@ -13,6 +15,33 @@ import {
 } from '../../utils/dateUtils';
 
 describe('dateUtils', () => {
+  describe('getInclusivePeriodEndDanishDate (kanonisk reguleringsinterval-tilDato)', () => {
+    it('matcher den tidligere inline-aritmetik for de tre +6-mdr-kilder (tal-identitet)', () => {
+      // Nyeste sats-datoer for KRL (01-04-2026), KL-lønaftaler (01-10-2026) og et RLTN-eksempel.
+      const nyesteDatoer = ['01-04-2026', '01-10-2026', '01-10-2025', '01-01-2012'];
+      for (const raw of nyesteDatoer) {
+        const dato = toDanishDateString(raw);
+        const parsed = parseDanishDate(dato)!;
+        const forventet = formatDanishDate(getInclusivePeriodEndByMonths(parsed, 6));
+        expect(getInclusivePeriodEndDanishDate(dato, 6)).toBe(forventet);
+      }
+    });
+
+    it('giver de kendte interval-slutdatoer (KRL 30-09-2026, KL 31-03-2027)', () => {
+      expect(getInclusivePeriodEndDanishDate(toDanishDateString('01-04-2026'), 6)).toBe('30-09-2026');
+      expect(getInclusivePeriodEndDanishDate(toDanishDateString('01-10-2026'), 6)).toBe('31-03-2027');
+    });
+
+    it('håndterer clamp til månedsslut (31-08-2026 + 6 mdr − 1 dag = 27-02-2027)', () => {
+      // addMonths clamper 31-08 → 28-02 (2027 ikke skudår), −1 dag → 27-02-2027.
+      expect(getInclusivePeriodEndDanishDate(toDanishDateString('31-08-2026'), 6)).toBe('27-02-2027');
+    });
+
+    it('returnerer undefined for en uparsbar dato (fail-closed)', () => {
+      expect(getInclusivePeriodEndDanishDate('ikke-en-dato' as unknown as DanishDateString, 6)).toBeUndefined();
+    });
+  });
+
   describe('parseDanishDate', () => {
     it('roundtrip: parse + format giver samme dato', () => {
       const parsed = parseDanishDate('15-03-2025');

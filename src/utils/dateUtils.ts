@@ -9,10 +9,10 @@
  */
 
 import type { DateInterval } from '../types/calculation';
-import type { ISODateString } from '../types/branded';
-import { createDate, toISODateString } from '../types/branded';
+import type { DanishDateString, ISODateString } from '../types/branded';
+import { createDate, parseDanishDate, toISODateString } from '../types/branded';
 
-import { formatCopenhagenISODate } from './dateFormatting';
+import { formatCopenhagenISODate, formatDanishDate } from './dateFormatting';
 
 export { createDate } from '../types/branded';
 export { parseDanishDate } from '../types/branded';
@@ -116,6 +116,27 @@ export const calculateUtcAgeInWholeYears = (birthDate: Date, referenceDate: Date
  */
 export const getInclusivePeriodEndByMonths = (startDate: Date, months: number): Date => {
   return addDays(addMonths(startDate, months), -1);
+};
+
+/**
+ * Kanonisk helper for reguleringsdato-intervallernes `tilDato`:
+ * "nyeste regulerings-startdato + N måneder − 1 dag", som dansk dato-streng.
+ *
+ * Parser start-datoen, lægger N måneder til, trækker én dag fra (inklusiv slutdato) og
+ * formaterer tilbage til dansk format. Returnerer `undefined` hvis start-datoen ikke kan
+ * parses (fail-closed for kilde-opslag — kalderen returnerer da et udefineret interval).
+ *
+ * Ét sted for parse → +N mdr − 1 dag → format, så KRL-satstabellen, KL-lønaftalerne og
+ * offentlig løn deler nøjagtig samme aritmetik (tidligere tre identiske inline-kopier via
+ * `getInclusivePeriodEndByMonths(…, 6)`).
+ */
+export const getInclusivePeriodEndDanishDate = (
+  fraDato: DanishDateString,
+  months: number
+): DanishDateString | undefined => {
+  const parsed = parseDanishDate(fraDato);
+  if (!parsed) return undefined;
+  return formatDanishDate(getInclusivePeriodEndByMonths(parsed, months));
 };
 
 /**
