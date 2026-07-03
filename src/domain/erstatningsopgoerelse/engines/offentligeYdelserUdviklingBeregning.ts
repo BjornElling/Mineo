@@ -62,7 +62,11 @@ const buildReguleringsSegments = (
   return split.map((segment) => ({
     fra: segment.fra,
     til: segment.til,
-    deltaPct: resolveOffentligeYdelserAkkumuleretReguleringPct(segment.year, baseYear),
+    // Rund den akkumulerede reguleringsprocent til 2 decimaler FØR den både bruges i
+    // segmentbeløbet og vises som faktor ("+ X,XX %"). Ellers regnes beløbet med den fulde
+    // (typisk >2-decimalers) akkumulerede sats, mens brugeren kun ser 2 decimaler og ikke kan
+    // efterregne beløbet. Samme mønster som lønudvikling (loenudviklingBeregning: roundedDeltaPct).
+    deltaPct: roundByMethod(resolveOffentligeYdelserAkkumuleretReguleringPct(segment.year, baseYear), 2, 'halfAwayFromZero'),
   }));
 };
 

@@ -71,11 +71,12 @@ const FAKE_RESULT: TafPerYearResult = {
       ],
       deductions: [
         { label: 'Sygedagpenge', amountOre: 10000000 as MoneyOre },
-        { label: 'Allerede betalt TAF', amountOre: 2500000 as MoneyOre },
       ],
       yearIncomeOre: 50000000 as MoneyOre,
-      yearDeductionsOre: 12500000 as MoneyOre,
-      yearTafFoerForligOre: 37500000 as MoneyOre,
+      yearDeductionsOre: 10000000 as MoneyOre,
+      // "Allerede betalt TAF" bæres separat (uden for forlig-faktoren), ikke i deductions.
+      yearTidligereModtagetTafOre: 2500000 as MoneyOre,
+      yearTafFoerForligOre: 40000000 as MoneyOre,
       yearTafOre: 37500000 as MoneyOre,
     },
   ],
@@ -277,6 +278,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
           years: [
             {
               ...FAKE_RESULT.years[0],
+              yearTidligereModtagetTafOre: 0 as MoneyOre,
               yearTafFoerForligOre: 37500000 as MoneyOre,
               yearTafOre: 18750000 as MoneyOre,
             },

@@ -84,12 +84,16 @@ type RowEligibility = 'empty' | 'invalid' | 'valid';
  * Afrunding af benefit-beløb til "Indtægter i erstatningsperioden"-linjen og TAF-fordeling.
  *
  * `useWholeKronerForMidlertidigtEet` skal sættes når togglen
- * `midlertidigtEetFraEetSiden === 'Ja'` er aktiv. Det bringer afrundingen i
- * overensstemmelse med PDF-bilaget "Midlertidig EET", der altid runder i hele
- * kroner — så TAF-fradraget for `midlertidigt_eet` matcher bilags-totalen bit for bit.
+ * `midlertidigtEetFraEetSiden === 'Ja'` er aktiv, og runder importeret midlertidigt EET i
+ * hele kroner (øvrige benefits/manuelle rækker: 2 decimaler).
  *
- * Når togglen er `'Nej'` (eller flaget ikke leveres), bruger manuelt
- * indtastede `midlertidigt_eet`-rækker fortsat almindelig 2-decimal-afrunding.
+ * VIGTIGT: Denne funktion runder den urundede TOTALSUM én gang og bruges kun på de RÅ stier
+ * (EO-inspektionens sammentælling/kontroltabel og beregningsperiode-projektionen). Det
+ * AUTORITATIVE midlertidigt EET-FRADRAG bruger IKKE denne funktion — det hentes fra den
+ * kanoniske, pr.-periode-afrundede bilagskilde via
+ * `sumMidlertidigtEetBeregnetEetKronerForTafRanges`, så fradraget matcher "Midlertidig EET"-
+ * bilagets sammentælling bit for bit (jf. `midlertidigtEetBilagGroups.ts`). Bland ikke de to:
+ * total-runding her ≠ pr.-periode-runding i bilaget, og dét var netop 42.790/42.791-fejlen.
  */
 export const roundIncomeBenefitAmountKroner = (
   typeKey: string,

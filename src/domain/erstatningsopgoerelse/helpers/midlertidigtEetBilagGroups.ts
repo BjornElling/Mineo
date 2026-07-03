@@ -16,7 +16,6 @@ export type ClampedMidlertidigtEetGroup = Readonly<{
 type PendingClampedMidlertidigtEetRow = Readonly<{
   groupIndex: number;
   row: ClampedMidlertidigtEetRow;
-  rawBeregnetEet: number;
 }>;
 
 const clampIsoRange = (range: IsoRange, fra: ISODateString, til: ISODateString): IsoRange | null => {
@@ -26,11 +25,17 @@ const clampIsoRange = (range: IsoRange, fra: ISODateString, til: ISODateString):
 };
 
 /**
- * Bygger de rækker der vises i bilaget "Midlertidig EET".
+ * Bygger de rækker der vises i bilaget "Midlertidig EET" — og som samtidig er den
+ * KANONISKE kilde til midlertidigt EET-fradraget i TAF-beregningen.
  *
- * Afledningen ligger i domæne-helper-laget, fordi den også låser paritet med TAF-fradraget:
- * rækkerne klippes mod de autoritative TAF-ranges og afrundes til hele kroner på samme måde
- * som den importerede EET-kilde. Dokumentlaget renderer kun de færdige rækker.
+ * Hver (afgørelses-periode × TAF-range)-clamp afrundes til hele kroner PR. PERIODE
+ * (`roundHeleKroner`). Både bilaget (dokumentlaget) og TAF-fradraget
+ * (`sumMidlertidigtEetBeregnetEetKronerForTafRanges` → `buildTafIndtaegterModel` /
+ * `tafPerYearDerived`) afleder deres tal herfra, så den viste bilagssum og det beløb
+ * der faktisk trækkes fra er identiske bit for bit. Tidligere summerede fradraget de
+ * urundede periodebeløb og rundede ÉN gang til sidst, hvilket kunne give 1 kr.'s
+ * afvigelse fra bilaget (fx bilag 1.390 + 41.401 = 42.791 mod fradrag 42.790).
+ * Se `eo-snapshot-contract.md` §13.
  */
 export const buildMidlertidigtEetPdfGroupsForTafRanges = (
   groups: readonly MidlertidigtEetAfgoerelseGroup[],
@@ -70,7 +75,6 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
         if (roundedBeregnetEet <= 0) continue;
         pendingRows.push({
           groupIndex,
-          rawBeregnetEet,
           row: {
             ...row,
             fra: clamped.fra,
@@ -91,3 +95,22 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
 
   return outputGroups.filter((group) => group.perioder.length > 0);
 };
+
+/**
+ * Den kanoniske midlertidigt EET-fradragssum i hele kroner: summen af de pr.-periode-afrundede
+ * `beregnetEet` fra {@link buildMidlertidigtEetPdfGroupsForTafRanges}, klippet mod de angivne
+ * TAF-ranges. Bruges af TAF-fradraget (`buildTafIndtaegterModel`) og af per-år-fordelingen
+ * (`tafPerYearDerived`), så fradraget altid er identisk med bilagets sammentælling.
+ *
+ * Fordi der afrundes pr. periode og lægges sammen bagefter, giver et kald pr. år (med
+ * år-klippede ranges) ikke nødvendigvis nøjagtig samme sum som ét samlet kald over de fulde
+ * ranges, når en periode krydser et årsskifte. Den residual absorberes af afrundingslinjen i
+ * TAF fordelt på år (jf. `eo-snapshot-contract.md` §10).
+ */
+export const sumMidlertidigtEetBeregnetEetKronerForTafRanges = (
+  groups: readonly MidlertidigtEetAfgoerelseGroup[],
+  tafRanges: readonly IsoRange[]
+): number =>
+  buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges)
+    .flatMap((group) => group.perioder)
+    .reduce((sum, row) => sum + row.beregnetEet, 0);

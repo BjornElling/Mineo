@@ -114,6 +114,7 @@ const makeYearEntry = (
   ],
   yearIncomeOre: 50000000 as MoneyOre,
   yearDeductionsOre: 12500000 as MoneyOre,
+  yearTidligereModtagetTafOre: 0 as MoneyOre,
   yearTafFoerForligOre: amountOre,
   yearTafOre: amountOre,
   ...overrides,

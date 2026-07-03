@@ -20,6 +20,7 @@ const makeYear = (year: number, yearTafOre: number): TafYearEntry => ({
   deductions: [],
   yearIncomeOre: yearTafOre as MoneyOre,
   yearDeductionsOre: 0 as MoneyOre,
+  yearTidligereModtagetTafOre: 0 as MoneyOre,
   yearTafFoerForligOre: yearTafOre as MoneyOre,
   yearTafOre: yearTafOre as MoneyOre,
 });

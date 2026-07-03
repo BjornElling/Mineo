@@ -96,6 +96,13 @@ export const formatReguleringFactorText = (deltaPct: number, decimals: number = 
  * Trailing zeros bevares for visuel rækkekonsistens i tabeller, fx i EET-periodetabellen,
  * hvor "1,0000" og "2,5000" skal flugte i samme kolonne.
  * Brug formatMaanederTrimmed i stedet, hvis trailing zeros er uønskede.
+ *
+ * BEVIDST UNDTAGELSE fra "vist tal = beregnet tal"-princippet: antal måneder VISES med 4
+ * decimaler, men beregningen bruger månederne i FULD præcision (jf.
+ * `sumMaanedsbroekForInterval`). Det er den eneste tilladte afvigelse fra kravet om at
+ * brugeren altid kan efterregne de viste tal. Beslutningen må ikke omgøres uden specifik
+ * stillingtagen. Alle øvrige afrundede tal skal indgå i beregningen med netop den viste,
+ * afrundede værdi.
  */
 export const formatMaaneder4 = (value: number): string => formatAsAmount(round4(value), 4);
 

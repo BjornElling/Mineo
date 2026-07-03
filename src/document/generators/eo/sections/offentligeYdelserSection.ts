@@ -2,6 +2,7 @@ import type { RowInput } from 'jspdf-autotable';
 import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
 import { formatAsAmount } from '../../../../utils/formatUtils';
+import { roundByMethod } from '../../../../utils/rounding';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
@@ -58,7 +59,10 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
     for (const row of groupRows) {
       const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
       const ydelse2Value = amountValueToNumber(row.tillaeg) ?? 0;
-      const samletValue = ydelseValue + ydelse2Value;
+      // "Samlet" skal være summen af de VISTE (2-decimal-afrundede) ydelse- og tillæg-tal, så
+      // kolonnen kan efterregnes fra de to viste beløb (ikke summen af de rå udtryksværdier).
+      const samletValue =
+        roundByMethod(ydelseValue, 2, 'halfAwayFromZero') + roundByMethod(ydelse2Value, 2, 'halfAwayFromZero');
       const samletDisplay = row.ydelse !== undefined || row.tillaeg !== undefined ? formatAsAmount(samletValue, 2) : '';
       const rowValues = [
         formatISOToDanish(row.fraDato) || row.fraDato?.trim() || '',

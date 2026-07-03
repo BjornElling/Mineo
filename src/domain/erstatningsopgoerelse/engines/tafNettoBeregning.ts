@@ -25,6 +25,8 @@ import type {
   TafIndtaegterModel,
 } from '../shared/eoTypes';
 import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
+import { sumMidlertidigtEetBeregnetEetKronerForTafRanges } from '../helpers/midlertidigtEetBilagGroups';
+import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
@@ -61,7 +63,8 @@ export const buildSfggLoenudviklingMap = (
 
 const buildTafIndtaegterModel = (
   values: ErstatningsopgoerelseValues,
-  ranges: readonly IsoRange[]
+  ranges: readonly IsoRange[],
+  midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[]
 ): TafIndtaegterModel => {
   const indtaegter = buildIncomeForRanges(values, ranges);
   const useWholeKronerForMidlertidigtEet = values.midlertidigtEetFraEetSiden === 'Ja';
@@ -73,7 +76,14 @@ const buildTafIndtaegterModel = (
   const benefitEntries = indtaegter.benefits
     .map((entry) => ({
       label: entry.label,
-      amountOre: toOre(roundIncomeBenefitAmountKroner(entry.typeKey, entry.amount, useWholeKronerForMidlertidigtEet)),
+      // Midlertidigt EET fra EET-siden: fradraget skal være identisk med "Midlertidig EET"-bilagets
+      // sammentælling, som afrunder PR. PERIODE. Vi henter derfor det kanoniske pr.-periode-afrundede
+      // beløb i stedet for at runde den urundede totalsum én gang (som ellers kan give 1 kr.'s afvigelse
+      // fra bilaget). Se midlertidigtEetBilagGroups.ts.
+      amountOre:
+        entry.typeKey === 'midlertidigt_eet' && useWholeKronerForMidlertidigtEet
+          ? toOre(sumMidlertidigtEetBeregnetEetKronerForTafRanges(midlertidigtEetGroups, ranges))
+          : toOre(roundIncomeBenefitAmountKroner(entry.typeKey, entry.amount, useWholeKronerForMidlertidigtEet)),
     }))
     .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
   const entries = [...employerEntries, ...benefitEntries];
@@ -139,9 +149,13 @@ export type TafNettoBeregningResult = Readonly<{
 export const computeTafNettoBeregning = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
-  options: Readonly<{ tafRanges: readonly IsoRange[] }>
+  options: Readonly<{
+    tafRanges: readonly IsoRange[];
+    midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
+  }>
 ): TafNettoBeregningResult => {
   const tafRanges = options.tafRanges;
+  const midlertidigtEetGroups = options.midlertidigtEetGroups ?? [];
   const beregnes = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
   const harTafPerioder = beregnes && tafRanges.length > 0;
   const tafBeregningsenhed = computeTafBeregningsenhed(values);
@@ -184,7 +198,7 @@ export const computeTafNettoBeregning = (
         reguleringsBaseIso: offentligeYdelserReguleringsBaseIso,
       })
       : null;
-  const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
+  const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges, midlertidigtEetGroups) : null;
   const sygeferiegodtgoerelse = harTafPerioder
     ? computeSygeferiegodtgoerelse({
       values,

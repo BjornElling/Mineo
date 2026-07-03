@@ -341,7 +341,9 @@ describe('buildTafPerYearResult', () => {
 
     expect(forligPaidResult.years).toHaveLength(1);
     expect(forligPaidResult.years[0].yearTafFoerForligOre).toBe(baseResult.years[0].yearTafOre);
-    expect(forligPaidResult.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF')?.amountOre).toBe(500);
+    // "Allerede betalt TAF" bæres separat (uden for forlig-faktoren), ikke som et forlig-skaleret fradrag.
+    expect(forligPaidResult.years[0].yearTidligereModtagetTafOre).toBe(500);
+    expect(forligPaidResult.years[0].deductions.some((d) => d.label === 'Allerede betalt TAF')).toBe(false);
     expect(forligPaidResult.years[0].yearTafOre).toBe(Math.round(baseResult.years[0].yearTafOre * 0.5) - 500);
   });
 
@@ -1403,8 +1405,7 @@ describe('buildTafPerYearResult', () => {
     if (outcome.kind !== 'ok') return;
     const result = outcome.result;
     // Hele beløbet tildeles det første år (allWeights=0 fallback)
-    const allPaid = result.years.flatMap((y) => y.deductions).filter((d) => d.label === 'Allerede betalt TAF');
-    const totalPaidOre = allPaid.reduce((s, d) => s + d.amountOre, 0);
+    const totalPaidOre = result.years.reduce((s, y) => s + y.yearTidligereModtagetTafOre, 0);
     expect(totalPaidOre).toBe(100);
     // Invariant stadig gyldig
     expect(result.sumYearTafOre + result.afrundingOre).toBe(result.samletTafKravOre);
@@ -1435,15 +1436,9 @@ describe('buildTafPerYearResult', () => {
     assertTotals(result, snapshotData.pdfModel);
     expect(result.years).toHaveLength(2);
 
-    const firstYearPaid = result.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF');
-    const secondYearPaid = result.years[1].deductions.find((d) => d.label === 'Allerede betalt TAF');
-
-    expect(firstYearPaid?.amountOre).toBe(5000);
-    expect(secondYearPaid?.amountOre).toBe(5000);
-    const totalPaidOre = result.years
-      .flatMap((year) => year.deductions)
-      .filter((d) => d.label === 'Allerede betalt TAF')
-      .reduce((sum, d) => sum + d.amountOre, 0);
+    expect(result.years[0].yearTidligereModtagetTafOre).toBe(5000);
+    expect(result.years[1].yearTidligereModtagetTafOre).toBe(5000);
+    const totalPaidOre = result.years.reduce((sum, year) => sum + year.yearTidligereModtagetTafOre, 0);
     expect(totalPaidOre).toBe(10000);
   });
 
@@ -1472,15 +1467,9 @@ describe('buildTafPerYearResult', () => {
     assertTotals(result, snapshotData.pdfModel);
     expect(result.years).toHaveLength(2);
 
-    const firstYearPaid = result.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF');
-    const secondYearPaid = result.years[1].deductions.find((d) => d.label === 'Allerede betalt TAF');
-
-    expect(firstYearPaid?.amountOre).toBe(15000);
-    expect(secondYearPaid?.amountOre).toBe(15000);
-    const totalPaidOre = result.years
-      .flatMap((year) => year.deductions)
-      .filter((d) => d.label === 'Allerede betalt TAF')
-      .reduce((sum, d) => sum + d.amountOre, 0);
+    expect(result.years[0].yearTidligereModtagetTafOre).toBe(15000);
+    expect(result.years[1].yearTidligereModtagetTafOre).toBe(15000);
+    const totalPaidOre = result.years.reduce((sum, year) => sum + year.yearTidligereModtagetTafOre, 0);
     expect(totalPaidOre).toBe(30000);
   });
 });

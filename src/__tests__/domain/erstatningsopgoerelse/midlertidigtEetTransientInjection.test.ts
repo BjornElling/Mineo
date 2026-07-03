@@ -11,10 +11,16 @@ import {
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
   buildEoValuesWithTransientMidlertidigtEet,
+  buildMidlertidigtEetCalculationRows,
   buildMidlertidigtEetSourceResult,
 } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
-import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
+import {
+  buildMidlertidigtEetPdfGroupsForTafRanges,
+  sumMidlertidigtEetBeregnetEetKronerForTafRanges,
+} from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
 import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { roundHeleKroner } from '../../../domain/erstatningsopgoerelse/shared/eoMoney';
+import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
@@ -279,6 +285,60 @@ describe('midlertidigt EET transient injection', () => {
     expect(snapshot.data).not.toBeNull();
     expect(tafEntry).toBeDefined();
     expect(pdfTotalKroner * 100).toBe(tafEntry?.amountOre);
+  });
+
+  it('gør fradraget lig bilagets pr.-periode-sum, ikke den totalrundede råsum (42.791 vs 42.790)', () => {
+    // Reproducerer brugerens sag: en kort sub-måneds-periode + en flermåneders periode, hvor
+    // pr.-periode-afrunding (bilag) og total-afrunding (rå fradrag) divergerer med 1 kr.
+    const groups: MidlertidigtEetAfgoerelseGroup[] = [
+      {
+        afgoerelsesdato: iso('2025-07-16'),
+        eetPct: 60,
+        rows: [],
+        perioder: [{
+          fra: iso('2025-01-11'),
+          til: iso('2025-01-12'),
+          satsAar: 2025,
+          maanederPraecis: 2 / 31,
+          grundydelseAfrundet: 0,
+          reguleringPct: 3.9,
+          maanedligYdelse: 21539,
+          beregnetEet: 0,
+        }],
+      },
+      {
+        afgoerelsesdato: iso('2025-08-29'),
+        eetPct: 25,
+        rows: [],
+        perioder: [{
+          fra: iso('2025-01-13'),
+          til: iso('2025-05-31'),
+          satsAar: 2025,
+          maanederPraecis: 0,
+          grundydelseAfrundet: 0,
+          reguleringPct: 3.9,
+          maanedligYdelse: 8975,
+          beregnetEet: 0,
+        }],
+      },
+    ];
+    const tafRanges = [{ fra: iso('2025-01-11'), til: iso('2025-05-31') }];
+
+    // Bilaget runder pr. periode: 1.390 + 41.401 = 42.791.
+    const bilag = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
+    expect(bilag.flatMap((g) => g.perioder).map((p) => p.beregnetEet)).toEqual([1390, 41401]);
+
+    // Den kanoniske fradragskilde giver netop bilagssummen.
+    expect(sumMidlertidigtEetBeregnetEetKronerForTafRanges(groups, tafRanges)).toBe(42791);
+
+    // Den gamle rå vej (injicerede rækker → periodisering → runding én gang) gav 42.790.
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), midlertidigtEetFraEetSiden: 'Ja' as const };
+    const rows = buildMidlertidigtEetCalculationRows(groups);
+    const income = buildIncomeForRanges({ ...eoValues, offentligeYdelserRows: [...rows] }, tafRanges);
+    const raw = income.benefits.find((b) => b.typeKey === 'midlertidigt_eet')?.amount ?? 0;
+    expect(roundHeleKroner(raw)).toBe(42790);
+    // Divergensen er reel — derfor må fradraget bruge den kanoniske kilde, ikke råvejen.
+    expect(sumMidlertidigtEetBeregnetEetKronerForTafRanges(groups, tafRanges)).not.toBe(roundHeleKroner(raw));
   });
 
   it('bevarer 2-decimal-afrunding af manuelle midlertidigt_eet-rækker når togglen er slået fra', () => {

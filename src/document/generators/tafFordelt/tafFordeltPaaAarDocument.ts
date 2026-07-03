@@ -185,19 +185,54 @@ export const generateTafFordeltPaaAarDocument = (
       writer.writeLeftRightText(deduction.label, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
     }
 
-    // I alt for året
-    const iAltRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
-    const iAltLeftText = (() => {
-      if (!model.forlig.erIndgaaet) return 'I alt';
-      const foerForligOre = yearEntry.yearTafFoerForligOre;
-      return `I alt (${model.forlig.label} af ${formatMoneyOreWithKr(foerForligOre)})`;
-    })();
-    writer.writeLeftRightText(iAltLeftText, iAltRightText, {
-      rightFontStyle: 'normal',
-      lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-      lineAboveRightOffset: 4,
-      minRightColumnWidth: rightMaxWidth,
-    });
+    // "Allerede betalt TAF" trækkes fra UDEN FOR forlig-faktoren (som i hovedopgørelsen), så
+    // ligningen kan efterregnes. Den vises derfor efter den forlig-skalerede subtotal, ikke som
+    // et fradrag der indgår i forligsgrundlaget.
+    const tidligereOre = yearEntry.yearTidligereModtagetTafOre;
+    const iAltTotalRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
+    const renderTidligereLinje = (): void => {
+      if (tidligereOre <= 0) return;
+      writer.writeLeftRightText(
+        'Allerede betalt TAF',
+        ensureNonBreakingKr(`- ${formatMoneyOreWithKr(tidligereOre)}`),
+        { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth }
+      );
+    };
+    if (!model.forlig.erIndgaaet) {
+      renderTidligereLinje();
+      writer.writeLeftRightText('I alt', iAltTotalRightText, {
+        rightFontStyle: 'normal',
+        lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
+        lineAboveRightOffset: 4,
+        minRightColumnWidth: rightMaxWidth,
+      });
+    } else {
+      const forligSubtotalLabel = `I alt (${model.forlig.label} af ${formatMoneyOreWithKr(yearEntry.yearTafFoerForligOre)})`;
+      if (tidligereOre > 0) {
+        // Forlig-skaleret subtotal (før fradrag af allerede betalt TAF) = yearTafOre + tidligere.
+        const forligSubtotalOre = (yearEntry.yearTafOre + tidligereOre) as typeof yearEntry.yearTafOre;
+        writer.writeLeftRightText(forligSubtotalLabel, ensureNonBreakingKr(formatMoneyOreWithKr(forligSubtotalOre)), {
+          rightFontStyle: 'normal',
+          lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
+          lineAboveRightOffset: 4,
+          minRightColumnWidth: rightMaxWidth,
+        });
+        renderTidligereLinje();
+        writer.writeLeftRightText('I alt', iAltTotalRightText, {
+          rightFontStyle: 'normal',
+          lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
+          lineAboveRightOffset: 4,
+          minRightColumnWidth: rightMaxWidth,
+        });
+      } else {
+        writer.writeLeftRightText(forligSubtotalLabel, iAltTotalRightText, {
+          rightFontStyle: 'normal',
+          lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
+          lineAboveRightOffset: 4,
+          minRightColumnWidth: rightMaxWidth,
+        });
+      }
+    }
   }
 
   // ─── Samlet ──────────────────────────────────────────────────────────

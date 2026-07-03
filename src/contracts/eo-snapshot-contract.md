@@ -405,9 +405,26 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   EO-importen — erhvervsevnetab-siden og differencekrav-kaldet sender ingen override, så
   beregningsdatoen forbliver påkrævet dér. Findes der ingen TAF-periode (ingen fallback-slutdato),
   fail-closer importen fortsat på manglende beregningsdato.
-- Hver beregnet EET-løbende-ydelsesrække fra midlertidige og delvist endelige afgørelser bliver
-  til præcis én virtuel EO-række. Perioder og periodetotalbeløb bevares uændret, fordi EET
-  er beregnet på kalenderdage og EO først periodiserer mod TAF-ranges i sin egen indkomstpipeline.
+- Hver beregnet EET-løbende-ydelsesrække fra midlertidige og delvist endelige afgørelser splittes
+  internt pr. kalendermåned til virtuelle EO-rækker (`buildMidlertidigtEetCalculationRows`), så den
+  eksisterende kalenderdags-periodisering inden for rækken svarer til x/dage-i-måneden og ikke et
+  gennemsnit over hele EET-perioden. Periodernes samlede beløb bevares.
+
+**Autoritativt midlertidigt EET-fradrag (kanonisk kilde):**
+- Det beløb der faktisk trækkes fra i TAF-beregningen for `midlertidigt_eet` afledes af den
+  KANONISKE, pr.-periode-afrundede bilagskilde
+  `sumMidlertidigtEetBeregnetEetKronerForTafRanges` (bygget på
+  `buildMidlertidigtEetPdfGroupsForTafRanges`), IKKE af den urundede totalsum rundet én gang.
+  Både hovedopgørelsens "Indtægter i erstatningsperioden"-linje (`buildTafIndtaegterModel`) og
+  per-år-fordelingen (`tafPerYearDerived`) bruger denne kilde, så det fradragne beløb er identisk
+  med "Midlertidig EET"-bilagets sammentælling bit for bit. (Runding pr. periode ≠ runding af
+  totalen; forskellen var 42.790/42.791-fejlen.)
+- De virtuelle rækker (`buildEoValuesWithTransientMidlertidigtEet`) bevares og fødes fortsat RÅT
+  (urundet) til EO-inspektionens sammentælling/kontroltabel og til beregningsperiode-projektionen
+  (`buildOffentligeYdelserUdviklingModel`). Disse rå stier er bevidst uafhængige af den kanoniske
+  fradragsrunding: sammentællingen verificerer periodiseringen (rå = rå), og
+  beregningsperiode-projektionen er en anden størrelse (hypotetisk fremskrevet indkomst lagt TIL
+  TAF, ikke et fradrag). De må ikke kanoniseres til bilagssummen.
 
 **PDF-bilag:**
 - "Midlertidig EET"-bilaget renderes kun når togglen er `'Ja'` *og* der findes afgørelser fra EET-siden.

@@ -18,6 +18,7 @@ import { isSvieSmerteRowEmpty } from '../helpers/rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
 import type { MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
+import { roundByMethod } from '../../../utils/rounding';
 import { mergeDateRanges } from './periodMerging';
 
 export type SvieSmerteConstrainedPeriod = Readonly<{
@@ -263,7 +264,12 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     }
     const perDagKroner = fromOre(satserPerDagOre);
     const maxKroner = fromOre(satserMaxOre);
-    const rawKroner = (sygedage * perDagKroner) + (delviseSygedage * delvisFaktor * perDagKroner);
+    // Delvis-dagssatsen afrundes til hel øre PR. DAG (samme afrunding som den viste delvis-sats i
+    // eoPresentationSectionBuilders.roundDelvisSatsOre), så totalen kan efterregnes fra det viste
+    // "N delvise sygedage á [delvis-sats]". Ellers bruger totalen den uafrundede perDag × faktor
+    // (typisk en halv øre efter forlig), som afviger fra den viste sats.
+    const delvisSatsKroner = fromOre(ensureMoneyOre(roundByMethod(satserPerDagOre * delvisFaktor, 0, 'halfAwayFromZero')));
+    const rawKroner = (sygedage * perDagKroner) + (delviseSygedage * delvisSatsKroner);
     const tidligereValue = tidligereKroner ?? 0;
     const allerede = aktuelKroner ?? 0;
     const restPlads = maxKroner - tidligereValue;

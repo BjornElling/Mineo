@@ -39,6 +39,8 @@ import {
 } from '../snapshot/eoPresentationModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { buildIncomeCalculationContext, buildIncomeForRanges, roundIncomeBenefitAmountKroner } from '../helpers/indtaegtPerioder';
+import { sumMidlertidigtEetBeregnetEetKronerForTafRanges } from '../helpers/midlertidigtEetBilagGroups';
+import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { roundByMethod } from '../../../utils/rounding';
 import { scaleMoneyOre } from '../shared/eoMoney';
@@ -88,9 +90,13 @@ export type TafYearDeduction = Readonly<{
 export type TafYearEntry = Readonly<{
   year: number;
   segments: readonly TafYearSegment[];
+  // Kun indtægter i erstatningsperioden (løn, ydelser, sygeferiegodtgørelse). "Allerede betalt TAF"
+  // indgår IKKE her — den trækkes fra UDEN FOR forlig-faktoren og bæres separat i
+  // `yearTidligereModtagetTafOre`, så "Beregnet krav"-ligningen er aritmetisk korrekt.
   deductions: readonly TafYearDeduction[];
   yearIncomeOre: MoneyOre;
   yearDeductionsOre: MoneyOre;
+  yearTidligereModtagetTafOre: MoneyOre;
   yearTafFoerForligOre: MoneyOre;
   yearTafOre: MoneyOre;
 }>;
@@ -265,8 +271,12 @@ const allocateOreByWeight = (
 export const buildTafPerYearBuildOutcome = (
   source: TafPerYearSource,
   eoValues: ErstatningsopgoerelseValues,
-  options: Readonly<{ tafRanges: readonly { fra: ISODateString; til: ISODateString }[] }>
+  options: Readonly<{
+    tafRanges: readonly { fra: ISODateString; til: ISODateString }[];
+    midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
+  }>
 ): TafPerYearBuildOutcome => {
+  const midlertidigtEetGroups = options.midlertidigtEetGroups ?? [];
   const loenudvikling = source.loenudvikling;
   if (!loenudvikling || loenudvikling.beregnedeSegmenter.length === 0) {
     return { kind: 'not_applicable', reason: 'missing_loenudvikling' };
@@ -392,6 +402,16 @@ export const buildTafPerYearBuildOutcome = (
     );
     for (const ben of sortedBenefits) {
       if (ben.amount <= 0) continue;
+      // Midlertidigt EET fra EET-siden: per-år-fradraget hentes fra den kanoniske pr.-periode-afrundede
+      // bilagskilde (klippet til årets ranges), så år-linjerne summerer mod bilaget/hovedopgørelsen.
+      // Residual fra perioder der krydser årsskifte absorberes af afrundingslinjen nedenfor.
+      if (ben.typeKey === 'midlertidigt_eet' && useWholeKronerForMidlertidigtEet) {
+        const kanoniskKroner = sumMidlertidigtEetBeregnetEetKronerForTafRanges(midlertidigtEetGroups, yearClippedRanges);
+        if (kanoniskKroner > 0) {
+          deductions.push({ label: ben.label, amountOre: toOre(kanoniskKroner) });
+        }
+        continue;
+      }
       const amountOre = toOre(roundIncomeBenefitAmountKroner(ben.typeKey, ben.amount, useWholeKronerForMidlertidigtEet));
       deductions.push({ label: ben.label, amountOre });
     }
@@ -402,13 +422,11 @@ export const buildTafPerYearBuildOutcome = (
       });
     }
     const yearIncomeOre = segments.reduce((sum, s) => sum + s.amountOre, 0) as MoneyOre;
-    const yearPreForligDeductionsOre = deductions.reduce((sum, d) => sum + d.amountOre, 0) as MoneyOre;
-    const yearTidligereModtagetTafOre = tidligereModtagetTafByYear.get(year) ?? (0 as MoneyOre);
-    if (yearTidligereModtagetTafOre > 0) {
-      deductions.push({ label: 'Allerede betalt TAF', amountOre: yearTidligereModtagetTafOre });
-    }
+    // `deductions` = kun indtægter i erstatningsperioden. "Allerede betalt TAF" holdes UDE af
+    // fradragslisten og bæres separat, fordi den trækkes fra uden for forlig-faktoren.
     const yearDeductionsOre = deductions.reduce((sum, d) => sum + d.amountOre, 0) as MoneyOre;
-    const yearTafFoerForligOre = (yearIncomeOre - yearPreForligDeductionsOre) as MoneyOre;
+    const yearTidligereModtagetTafOre = tidligereModtagetTafByYear.get(year) ?? (0 as MoneyOre);
+    const yearTafFoerForligOre = (yearIncomeOre - yearDeductionsOre) as MoneyOre;
     const yearTafEfterForligOre = forligFactor !== null
       ? scaleMoneyOre(yearTafFoerForligOre, forligFactor)
       : yearTafFoerForligOre;
@@ -420,6 +438,7 @@ export const buildTafPerYearBuildOutcome = (
       deductions,
       yearIncomeOre,
       yearDeductionsOre,
+      yearTidligereModtagetTafOre,
       yearTafFoerForligOre,
       yearTafOre,
     });
@@ -434,16 +453,11 @@ export const buildTafPerYearBuildOutcome = (
       yearTafFoerForligOre: 0 as MoneyOre,
       yearTafOre: 0 as MoneyOre,
     }))
-    : years.length === 1
-      ? (() => {
-        const [onlyYear] = years;
-        if (!onlyYear) return years;
-        return [{
-          ...onlyYear,
-          yearTafOre: samletTafKravOre,
-        }] satisfies TafYearEntry[];
-      })()
-      : years;
+    // Ét år behandles som flere år: årets beregnede yearTafOre bevares, og en evt. residual
+    // mod den autoritative total vises ærligt via afrundingslinjen (jf. eo-snapshot-contract.md §10).
+    // Tidligere blev ét-års-totalen lydløst overskrevet til facit, så dellinjerne ikke gik op og
+    // ingen afrundingslinje afslørede forskellen.
+    : years;
 
   const sumYearTafOre = reconciledYears.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
   const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;

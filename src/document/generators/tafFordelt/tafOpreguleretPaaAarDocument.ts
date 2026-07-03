@@ -326,9 +326,15 @@ export const generateTafOpreguleretPaaAarDocument = (
     const expressionText = yearEntry.yearDeductionsOre !== 0
       ? `${positiveLed} - ${formatCurrencyFromOre(yearEntry.yearDeductionsOre)}${NBSP}kr.`
       : `${positiveLed}${NBSP}kr.`;
+    // "Allerede betalt TAF" trækkes fra UDEN FOR forlig-faktoren (som i hovedopgørelsen), så
+    // ligningen giver netop yearTafOre. Tidligere lå beløbet fejlagtigt blandt de forlig-skalerede
+    // fradrag, hvilket gjorde ligningen aritmetisk falsk ved forlig + allerede betalt TAF.
+    const tidligereSuffix = yearEntry.yearTidligereModtagetTafOre > 0
+      ? ` - ${formatMoneyOreWithKr(yearEntry.yearTidligereModtagetTafOre)}`
+      : '';
     const beregnetKravLeftText = model.forlig.erIndgaaet
-      ? `${model.forlig.label} x (${expressionText}) =`
-      : `${expressionText} =`;
+      ? `${model.forlig.label} x (${expressionText})${tidligereSuffix} =`
+      : `${expressionText}${tidligereSuffix} =`;
     const beregnetKravRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
     safeAddLeftRightText(beregnetKravLeftText, beregnetKravRightText, rightMaxWidth, { rightFontStyle: 'normal' });
 

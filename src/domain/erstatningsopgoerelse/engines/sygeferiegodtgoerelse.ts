@@ -990,13 +990,17 @@ const resolveSfggBaseRate = (
     };
   }
   const arbejdsdage = sfggReferenceperiodeDayCount.divisorDage;
-  const loenPlusLoen2PlusIkkePensLoenKroner = calculator
+  const loenPlusLoen2PlusIkkePensLoenKronerRaw = calculator
     ? calculator.sumLoenInRangesKroner([{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }])
     : sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
       employment,
       [{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }],
       values.ferieperioder ?? []
     );
+  // Referencesatsen beregnes af den AFRUNDEDE løn (2 decimaler) — samme værdi som vises i bilaget
+  // ("Lønnen i referenceperioden udgør X kr."), så brugeren kan efterregne
+  // "referencesats = round(X × 12,5 % / N dage)" fra det viste tal.
+  const loenPlusLoen2PlusIkkePensLoenKroner = roundKroner(loenPlusLoen2PlusIkkePensLoenKronerRaw);
   // SFGG-referencesatsen beregnes altid med den lovbestemte feriepengesats (12,5 %),
   // aldrig med den feriepengesats brugeren har indtastet for lønindkomsten.
   const feriePctDecimal = SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL;

@@ -58,6 +58,7 @@ const makeYearEntry = (year: number, amountOre: MoneyOre): TafPerYearResult['yea
   deductions: [{ label: 'Sygedagpenge', amountOre: 12500000 as MoneyOre }],
   yearIncomeOre: 50000000 as MoneyOre,
   yearDeductionsOre: 12500000 as MoneyOre,
+  yearTidligereModtagetTafOre: 0 as MoneyOre,
   yearTafFoerForligOre: amountOre,
   yearTafOre: amountOre,
 });

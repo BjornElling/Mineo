@@ -329,6 +329,7 @@ export const computeEoSnapshot = (args: Readonly<{
     });
     const tafNetto = computeTafNettoBeregning(effectiveEoValues, parsedStamdata.data, {
       tafRanges,
+      midlertidigtEetGroups,
     });
     const oevrigeKrav = buildOevrigeKravModel(effectiveEoValues);
     const totals = buildEoComputedTotals({
@@ -346,7 +347,7 @@ export const computeEoSnapshot = (args: Readonly<{
         forligFactor,
       }),
       effectiveEoValues,
-      { tafRanges }
+      { tafRanges, midlertidigtEetGroups }
     );
     const tafPerYearResult = tafPerYearOutcome.kind === 'ok' ? tafPerYearOutcome.result : null;
     const tafPerYearOpreguleretOutcome = buildTafPerYearOpreguleretBuildOutcome(

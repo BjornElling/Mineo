@@ -176,17 +176,26 @@ export const buildIndkomstSkadestidspunkt = (
         sums.atp += entry.breakdown.atp;
         sums.samlet += recalculatedBreakdown.samlet;
 
+        // "I alt:" skal kunne efterregnes fra de viste komponentlinjer. Summér derfor de
+        // AFRUNDEDE komponent-ører (samme værdier som vises), i stedet for at runde den præcise
+        // sum én gang — ellers kan Σ(viste linjer) afvige fra "I alt:" med nogle få øre.
+        const loenPlusLoen2PlusIkkePensLoenOre = toOre(roundKroner(entry.breakdown.loenPlusLoen2PlusIkkePensLoen));
+        const fpFvShSoOre = toOre(roundKroner(recalculatedBreakdown.fpFvShSo));
+        const pensionOre = toOre(roundKroner(recalculatedBreakdown.pension));
+        const atpOre = toOre(roundKroner(entry.breakdown.atp));
         arbejdssteder.push({
           navn,
           fpLabel,
           pensionLabel,
           breakdown: {
             loenPlusLoen2Ore: toOre(roundKroner(entry.breakdown.loenPlusLoen2)),
-            loenPlusLoen2PlusIkkePensLoenOre: toOre(roundKroner(entry.breakdown.loenPlusLoen2PlusIkkePensLoen)),
-            fpFvShSoOre: toOre(roundKroner(recalculatedBreakdown.fpFvShSo)),
-            pensionOre: toOre(roundKroner(recalculatedBreakdown.pension)),
-            atpOre: toOre(roundKroner(entry.breakdown.atp)),
-            samletOre: clampMoneyOreToZero(toOre(roundKroner(recalculatedBreakdown.samlet))),
+            loenPlusLoen2PlusIkkePensLoenOre,
+            fpFvShSoOre,
+            pensionOre,
+            atpOre,
+            samletOre: clampMoneyOreToZero(
+              ensureMoneyOre(loenPlusLoen2PlusIkkePensLoenOre + fpFvShSoOre + pensionOre + atpOre)
+            ),
           },
         });
       }
@@ -204,7 +213,11 @@ export const buildIndkomstSkadestidspunkt = (
           fpFvShSoOre: toOre(roundKroner(sums.fpFvShSo)),
           pensionOre: toOre(roundKroner(sums.pension)),
           atpOre: toOre(roundKroner(sums.atp)),
-          samletOre: clampMoneyOreToZero(toOre(roundKroner(sums.samlet))),
+          // Samlet beregningsgrundlag summerer de allerede-afrundede arbejdssted-totaler, så
+          // "Månedsløn: (A + B + …) / N" er efterregnelig fra de viste arbejdssted-"I alt:"-beløb.
+          samletOre: clampMoneyOreToZero(
+            ensureMoneyOre(arbejdssteder.reduce((sum, a) => sum + a.breakdown.samletOre, 0))
+          ),
         };
       }
 

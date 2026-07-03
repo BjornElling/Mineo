@@ -53,6 +53,7 @@ const FAKE_TAF_PER_YEAR_RESULT: TafPerYearResult = {
       deductions: [],
       yearIncomeOre: 0 as MoneyOre,
       yearDeductionsOre: 0 as MoneyOre,
+      yearTidligereModtagetTafOre: 0 as MoneyOre,
       yearTafFoerForligOre: 0 as MoneyOre,
       yearTafOre: 0 as MoneyOre,
     },

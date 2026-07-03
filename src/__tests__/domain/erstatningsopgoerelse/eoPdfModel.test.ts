@@ -2393,6 +2393,16 @@ describe('eoPdfModel', () => {
     expect(indkomst?.arbejdssteder[0]?.breakdown.samletOre).toBe(2484900);
     expect(indkomst?.totalBreakdown?.pensionOre).toBe(225900);
     expect(indkomst?.samletBeregningsgrundlagOre).toBe(2484900);
+
+    // Invariant: "I alt" skal være summen af de VISTE (afrundede) komponentlinjer, så brugeren kan
+    // efterregne den — ikke round(præcis sum). Guard mod regression.
+    for (const arbejdssted of indkomst?.arbejdssteder ?? []) {
+      const b = arbejdssted.breakdown;
+      expect(b.samletOre).toBe(b.loenPlusLoen2PlusIkkePensLoenOre + b.fpFvShSoOre + b.pensionOre + b.atpOre);
+    }
+    // Nævneren i "Månedsløn: (A + B + …) / N" = summen af de viste arbejdssted-totaler.
+    const summenAfArbejdssteder = (indkomst?.arbejdssteder ?? []).reduce((sum, a) => sum + a.breakdown.samletOre, 0);
+    expect(indkomst?.totalBreakdown?.samletOre).toBe(summenAfArbejdssteder);
   });
 
   it.each([
