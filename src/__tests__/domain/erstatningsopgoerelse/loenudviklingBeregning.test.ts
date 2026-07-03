@@ -11,7 +11,9 @@ import {
   getEffektiveSatserForPeriode,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
-import { isoToDanish, toISODateString } from '../../../types/branded';
+import { getOffentligLoenForDato } from '../../../data/offentligLoenLookup';
+import { toLoentrin } from '../../../data/offentligLoenTypes';
+import { isoToDanish, toDanishDateString, toISODateString } from '../../../types/branded';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { roundByMethod } from '../../../utils/rounding';
 
@@ -848,6 +850,48 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
       expect(manualTaf.loenudvikling?.loenudviklingTotal).toEqual(overenskomstTaf.loenudvikling?.loenudviklingTotal);
     }
   );
+
+  // Review-punkt 7 — carry-forward og fail-closed for manuelt angivet.
+  it('carry-forwarder seneste dateret række til efterfølgende segmenter (intet interiort hul, ingen efter-sidste-nulstilling)', () => {
+    // Tre daterede rækker; 'Ingen' løn på helligdage isolerer carry-forward fra Store Bededag-split.
+    // Hvert segment bruger seneste dateret række <= segment.fra (findLatestByDateInSortedList):
+    //   [reg..2023-05-31] = basis (delta 0); [2023-06-01..2023-12-31] = 1100 (delta 10) — mellem to
+    //   rækker; [2024-01-01..TAF-slut 2024-09-30] = 1210 (delta 21) — videreført forbi sidste række.
+    // Beviser at et interiort segment aldrig falder tilbage til basis, og at reguleringen efter sidste
+    // række hverken nulstilles eller kaster.
+    const values = buildManualBeregningsperiode('beloeb', {
+      loenPaaHelligdage: 'Ingen',
+      rows: [
+        { id: 'base', dato: '2022-12-31', grundloen: 1000 },
+        { id: 'r2', dato: '2023-06-01', grundloen: 1100 },
+        { id: 'r3', dato: '2024-01-01', grundloen: 1210 },
+      ],
+    });
+    expect(deltaForSegment(values, '2023-01-01')).toBe(0);
+    expect(deltaForSegment(values, '2023-06-01')).toBe(10);
+    expect(deltaForSegment(values, '2024-01-01')).toBe(21);
+  });
+
+  it('fejler lukket (throw) når basisrækkens grundløn giver en ugyldig basispakke', () => {
+    // Basispakke = 0 → motoren kaster i stedet for at producere en tavs 0-regulering
+    // (throw → computeEoSnapshot fail_closed / runtime_exception, jf. invariant-noten).
+    const values = buildManualBeregningsperiode('beloeb', {
+      loenPaaHelligdage: 'Ingen',
+      rows: [{ id: 'base', dato: '2022-12-31', grundloen: 0 }],
+    });
+    expect(() => deltaForSegment(values, '2023-01-01')).toThrow(/ugyldig manuel basispakke/);
+  });
+
+  it('fejler lukket (throw) når en dateret rækkes grundløn giver en ugyldig pakkeværdi', () => {
+    const values = buildManualBeregningsperiode('beloeb', {
+      loenPaaHelligdage: 'Ingen',
+      rows: [
+        { id: 'base', dato: '2022-12-31', grundloen: 1000 },
+        { id: 'r2', dato: '2023-06-01', grundloen: 0 },
+      ],
+    });
+    expect(() => deltaForSegment(values, '2023-01-01')).toThrow(/ugyldig manuel pakkevaerdi/);
+  });
 });
 
 const BYGGE_ANLAEG_ID = 'bygge-anlaeg' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'];
@@ -1159,5 +1203,91 @@ describe('buildLoenudviklingModel — Form: Ingen (review-punkt 2)', () => {
         ingenEntry.loenudviklingTotal.value + aktivEntry.loenudviklingTotal.value
       );
     }
+  });
+});
+
+/**
+ * Form: Overenskomst — offentlig (KL/RLTN) (review-punkt 6).
+ *
+ * Den offentlige gren i `buildLoenudviklingFromOverenskomst` slår grundlønnen op i
+ * KL/RLTN-løntabellerne via `getOffentligLoenForDato` (carry-forward: nyeste
+ * regulering med effectiveDate ≤ dato). Da `kl-overenskomst`/`rltn-overenskomst`
+ * ikke har autoritative tillægssatser, og vi sætter feriePct = 0 og
+ * loenPaaHelligdage = 'Ingen', reduceres lønpakken til den rene månedsløn, så
+ * `deltaPct = (segment-månedsløn / basis-månedsløn − 1) × 100`.
+ */
+describe('buildLoenudviklingModel — Overenskomst offentlig (KL) (review-punkt 6)', () => {
+  const byggOffentligModel = (regDatoIso: string, tafFra: string, tafTil: string) => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenBaseretPaa = 'Testgrundlag';
+    values.angivetMaanedsloenOpreguleresFraDato = iso(regDatoIso);
+    values.tafPerioder = [{ id: 'taf-off', fra: iso(tafFra), til: iso(tafTil), loseFeriedage: 0 }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      overenskomstId: 'kl-overenskomst',
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: 1,
+      offentligLoenGruppe: 0,
+      loenPaaHelligdage: 'Ingen',
+      feriePct: 0,
+    };
+    return buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso(regDatoIso) },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso(tafFra), til: iso(tafTil) }] }
+    );
+  };
+
+  it('normalsti: regulerer månedslønnen efter KL-løntabellen hen over en satsændring', () => {
+    // Basisdato 01-04-2024: trin 1, gruppe 0 = 19.351,75 kr/md.
+    // 01-10-2024: 19.603,25 kr/md → deltaPct = (19603.25/19351.75 − 1)×100 = 1,30 %.
+    const model = byggOffentligModel('2024-04-01', '2024-04-01', '2026-03-31');
+
+    const baseSegment = model.beregnedeSegmenter.find((s) => s.fra === iso('2024-04-01'));
+    expect(baseSegment?.deltaPct).toBe(0);
+    // Enhedslønnen (angivet 30.000 kr) bæres uændret; reguleringen ligger i deltaPct.
+    expect(baseSegment?.kind === 'maaneder' && baseSegment.maanedsloenOre).toBe(3_000_000);
+
+    const segmentOkt2024 = model.beregnedeSegmenter.find((s) => s.fra === iso('2024-10-01'));
+    expect(segmentOkt2024?.deltaPct).toBe(1.30);
+    expect(segmentOkt2024?.kind === 'maaneder' && segmentOkt2024.maanedsloenOre).toBe(3_000_000);
+    // Reguleret månedsløn = 30.000 × (1 + 1,30 %) = 30.390 kr.
+    if (segmentOkt2024?.kind === 'maaneder') {
+      const reguleretMaanedsloenOre = Math.round(segmentOkt2024.maanedsloenOre * (1 + segmentOkt2024.deltaPct / 100));
+      expect(reguleretMaanedsloenOre).toBe(3_039_000);
+    }
+
+    // Regulering blev reelt anvendt (ikke stiltiende nul).
+    expect(model.beregnedeSegmenter.some((s) => s.deltaPct > 0)).toBe(true);
+  });
+
+  it('invariant: hvert segments deltaPct = (opslået segment-månedsløn / basis-månedsløn − 1) × 100', () => {
+    const model = byggOffentligModel('2024-04-01', '2024-04-01', '2026-03-31');
+    const baseLoen = getOffentligLoenForDato('KL', toDanishDateString('01-04-2024'), toLoentrin(1), 0)?.maanedsLoen;
+    expect(typeof baseLoen).toBe('number');
+
+    for (const segment of model.beregnedeSegmenter) {
+      const segDato = isoToDanish(segment.fra);
+      if (!segDato) throw new Error('ugyldig segmentdato i test');
+      const segLoen = getOffentligLoenForDato('KL', segDato, toLoentrin(1), 0)?.maanedsLoen;
+      expect(typeof segLoen).toBe('number');
+      const forventet = roundByMethod((segLoen! / baseLoen! - 1) * 100, 2, 'halfAwayFromZero');
+      expect(segment.deltaPct).toBe(forventet);
+    }
+  });
+
+  it('S3 / før dækning: reguleringsdato før ældste KL-sats (01-01-2012) → kun zero-delta-segmenter, ingen throw', () => {
+    // Reguleringsdato + TAF før KL-dækningens start. Motoren falder tilbage til
+    // ældste sats som effektiv base (start = 01-01-2012), og alle segmenter før
+    // basen sættes til zero-delta. INGEN throw — den blokerende fejl leveres i
+    // stedet af reguleringsvaerdi-row-gaten (se reguleringSilentPathAlignment S3).
+    const model = byggOffentligModel('1900-01-01', '1900-01-01', '1900-12-31');
+    expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
+    expect(model.beregnedeSegmenter.every((s) => s.deltaPct === 0)).toBe(true);
   });
 });
