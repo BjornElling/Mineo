@@ -481,27 +481,33 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   };
 
   const ansaettelser = resolveLoenudviklingKilde(eoValues);
-  startEoBilagPage('Regulering');
+  const reguleredeAnsaettelser = ansaettelser
+    .map((ansaettelsesforhold, originalIndex) => ({ ansaettelsesforhold, originalIndex }))
+    .filter(({ ansaettelsesforhold }) => {
+      const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
+      return grundlag !== undefined && grundlag !== 'Ingen';
+    });
 
-  if (ansaettelser.length === 0) {
-    safeAddWrappedText('Ingen ansættelsesforhold.');
+  if (reguleredeAnsaettelser.length === 0) {
     return;
   }
+
+  startEoBilagPage('Regulering');
 
   const tafBounds = resolveTafDateBounds(eoValues, { skadedatoISO: stamdataValues.skadedato });
   writer.addSectionSpacer();
 
-  for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
+  for (const [visibleIndex, { ansaettelsesforhold, originalIndex }] of reguleredeAnsaettelser.entries()) {
     const perAnsaettelseSegments = resolveLoenudviklingSegmenterForKilde({
       perAnsaettelse: modelLoenudviklingPerAnsaettelse,
       globaleSegmenter: modelLoenudviklingGlobaleSegmenter,
       ansaettelsesforholdId: ansaettelsesforhold.id,
     });
     const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
-    const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
+    const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${originalIndex + 1}`;
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
     if (visUnderoverskrift) {
-      renderSubheader(underoverskrift, undefined, { addTopSpacing: index > 0 });
+      renderSubheader(underoverskrift, undefined, { addTopSpacing: visibleIndex > 0 });
     }
 
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
@@ -523,13 +529,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
           && anvendtReguleringsdato === eoValues.tafBeregningsperiodeTil
         ),
     });
-
-    if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
-      writeLabelValueLine('Regulering', valgtReguleringForSection);
-      writeLabelValueLine('Opgøres på baggrund af', capitalizeFirstCharDa(loenSkadedatoText));
-      writer.addSectionSpacer();
-      continue;
-    }
 
     writeLabelValueLine(
       'Beregnes som',

@@ -96,6 +96,12 @@ const makeContext = (
 describe('renderReguleringSection – startEoBilagPage', () => {
   it('kalder startEoBilagPage med "Regulering"', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        loenudviklingBeregningsgrundlag: 'Statistik',
+      },
+    ];
     const { startEoBilagPage, ctx } = makeContext(eoValues);
 
     renderReguleringSection(ctx);
@@ -105,20 +111,21 @@ describe('renderReguleringSection – startEoBilagPage', () => {
 });
 
 describe('renderReguleringSection – ingen ansættelsesforhold', () => {
-  it('viser "Ingen ansættelsesforhold" når der ikke er ansættelsesforhold', () => {
+  it('opretter ikke reguleringsside når der ikke er ansættelsesforhold', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [];
-    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    const { startEoBilagPage, safeAddWrappedText, ctx } = makeContext(eoValues);
 
     renderReguleringSection(ctx);
 
-    expect(safeAddWrappedText).toHaveBeenCalledWith('Ingen ansættelsesforhold.');
+    expect(startEoBilagPage).not.toHaveBeenCalled();
+    expect(safeAddWrappedText).not.toHaveBeenCalledWith('Ingen ansættelsesforhold.');
   });
 });
 
-describe('renderReguleringSection – ansættelsesforhold med ingen regulering', () => {
-  it('kalder writeLabelValueLine med "Regulering" for hvert ansættelsesforhold', () => {
+describe('renderReguleringSection – ansættelsesforhold uden regulering', () => {
+  it('opretter ikke reguleringsside når alle indtægtskilder har reguleringsformen Ingen', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
@@ -129,13 +136,43 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
         loenudviklingBeregningsgrundlag: 'Ingen',
       },
     ];
-    const { writeLabelValueLine, ctx } = makeContext(eoValues);
+    const { startEoBilagPage, renderSubheader, writeLabelValueLine, ctx } = makeContext(eoValues);
 
     renderReguleringSection(ctx);
 
-    expect(writeLabelValueLine).toHaveBeenCalledWith('Regulering', expect.any(String));
+    expect(startEoBilagPage).not.toHaveBeenCalled();
+    expect(renderSubheader).not.toHaveBeenCalled();
+    expect(writeLabelValueLine).not.toHaveBeenCalled();
   });
 
+  it('udelader kun Ingen-kilder når andre indtægtskilder har regulering', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-ingen',
+        navnPaaArbejdssted: 'Uden regulering',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-reguleret',
+        navnPaaArbejdssted: 'Med regulering',
+        loenudviklingBeregningsgrundlag: 'Statistik',
+      },
+    ];
+    const { startEoBilagPage, renderSubheader, ctx } = makeContext(eoValues);
+
+    renderReguleringSection(ctx);
+
+    expect(startEoBilagPage).toHaveBeenCalledWith('Regulering');
+    expect(renderSubheader).toHaveBeenCalledTimes(1);
+    expect(renderSubheader).toHaveBeenCalledWith('Med regulering', undefined, { addTopSpacing: false });
+  });
+});
+
+describe('renderReguleringSection – ansættelsesforhold med regulering', () => {
   it('bruger ansættelsesstedets navn som underoverskrift', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
@@ -144,7 +181,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-2',
         navnPaaArbejdssted: 'Kerteminde Kommune',
-        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingBeregningsgrundlag: 'Statistik',
       },
     ];
     const { renderSubheader, ctx } = makeContext(eoValues);
@@ -162,7 +199,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-3',
         navnPaaArbejdssted: '',
-        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingBeregningsgrundlag: 'Statistik',
       },
     ];
     const { renderSubheader, ctx } = makeContext(eoValues);
@@ -180,7 +217,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'custom-id',
         navnPaaArbejdssted: 'EO-oplysninger',
-        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingBeregningsgrundlag: 'Statistik',
       },
     ];
     const { renderSubheader, ctx } = makeContext(eoValues);
@@ -200,7 +237,7 @@ describe('renderReguleringSection – loenSkadedatoText input', () => {
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-raw-dato',
         navnPaaArbejdssted: 'Test',
-        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingBeregningsgrundlag: 'Statistik',
         saerligFraDatoRegulering: undefined,
       },
     ];
@@ -226,7 +263,7 @@ describe('renderReguleringSection – loenSkadedatoText input', () => {
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-beregningsperiode-efter-eo',
         navnPaaArbejdssted: 'Test',
-        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingBeregningsgrundlag: 'Statistik',
         saerligFraDatoRegulering: undefined,
       },
     ];
