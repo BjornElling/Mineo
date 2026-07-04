@@ -184,11 +184,17 @@ const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklin
   resolveStatistikModelId(label);
 
 /**
- * Beregner samlet lønpakkeværdi for reguleringsindeks i PDF-modellen.
+ * Beregner samlet lønpakkeværdi (grundløn × tillægsfaktorer) for reguleringsindeks.
  *
- * Procent-konvention i denne funktion:
- * - Alle procentsatser angives som hele pct-tal (fx `17.3` for 17,3 %).
- * - Funktionen dividerer derfor procentsatser med 100 internt.
+ * Tynd adapter over den kanoniske `computeFormulaValue` (reguleringFormulaUtils): mapper
+ * domænenavnet `grundloen` → `baseValue` og deler dermed præcis samme matematik og
+ * finite-semantik som privat overenskomst-grenen (der kalder `computeFormulaValue` direkte).
+ * Tidligere var dette en parallel kopi af samme formel — konsolideret så der kun er ét
+ * sted for lønpakke-formlen (jf. reguleringsreview U5).
+ *
+ * Procent-konvention: alle procentsatser angives som hele pct-tal (fx `17.3` for 17,3 %).
+ * Callsites gater resultatet (`!Number.isFinite || <= 0` → throw), så en ugyldig pakkeværdi
+ * fail-closer synligt frem for at drive en forkert regulering.
  */
 const computePackageValuePct = (args: {
   grundloen: number;
@@ -197,10 +203,15 @@ const computePackageValuePct = (args: {
   fritvalgPct: number;
   pensionPct: number;
   storeBededagPct: number;
-}): number => {
-  const tillaegPct = args.feriePct + args.shSoPct + args.fritvalgPct + args.storeBededagPct;
-  return args.grundloen * (1 + tillaegPct / 100) * (1 + args.pensionPct / 100);
-};
+}): number =>
+  computeFormulaValue({
+    baseValue: args.grundloen,
+    feriePct: args.feriePct,
+    fritvalgPct: args.fritvalgPct,
+    shSoPct: args.shSoPct,
+    pensionPct: args.pensionPct,
+    storeBededagPct: args.storeBededagPct,
+  });
 
 const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string => {
   const normalized = rows.map((row) => ({
@@ -878,10 +889,6 @@ const buildLoenudviklingFromOverenskomst = (
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
   const reguleringsdatoIso = konsolideret.reguleringsdato;
-  const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
-    konsolideret.overenskomstId,
-    reguleringsdatoIso
-  );
   const overenskomstRef = konsolideret.overenskomstId ? resolveOverenskomstRef(konsolideret.overenskomstId) : undefined;
   const reguleringsdatoDa = isoToDanish(reguleringsdatoIso);
   if (!overenskomstRef) {
@@ -1104,6 +1111,16 @@ const buildLoenudviklingFromOverenskomst = (
 
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
   const feriePct = konsolideret.feriePct;
+
+  // Privat overenskomst clamper basen til dækningsstart via max(reguleringsdato, dækningsstart).
+  // Bevidst adskilt fra den offentlige grens clamp (resolveOffentligEffectiveBase, ovenfor), der
+  // har sin egen base-fallback til første dækkede interval (proxy-sats før dækning for Store
+  // Bededag). To forskellige clamp-mekanismer for hver sin datamodel — foren dem ikke (jf. U4).
+  // Beregnes her (ikke øverst) så den offentlige gren ikke betaler for et ubrugt opslag.
+  const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
+    konsolideret.overenskomstId,
+    reguleringsdatoIso
+  );
 
   const privateBaseContext = resolvePrivateOverenskomstBaseContext({
     overenskomstId: overenskomstRef.baseId,

@@ -40,6 +40,29 @@ describe('dateUtils', () => {
     it('returnerer undefined for en uparsbar dato (fail-closed)', () => {
       expect(getInclusivePeriodEndDanishDate('ikke-en-dato' as unknown as DanishDateString, 6)).toBeUndefined();
     });
+
+    // +12-mdr-varianten driver de statistiske ILON/SBLON-kvartalsserier og privat overenskomst
+    // (samt manuel reguleringsintervals øvre grænse i ISO-domænet via getInclusivePeriodEndByMonths).
+    // Efter konsolideringen (regulering-review U10) deler alle disse den samme aritmetik her.
+    it('matcher den tidligere inline-aritmetik for +12-mdr-kilderne (tal-identitet)', () => {
+      const nyesteDatoer = ['01-01-2005', '01-10-2025', '01-04-2026', '15-06-2020'];
+      for (const raw of nyesteDatoer) {
+        const dato = toDanishDateString(raw);
+        const parsed = parseDanishDate(dato)!;
+        const forventet = formatDanishDate(getInclusivePeriodEndByMonths(parsed, 12));
+        expect(getInclusivePeriodEndDanishDate(dato, 12)).toBe(forventet);
+      }
+    });
+
+    it('giver de kendte +12-mdr-slutdatoer (01-01-2005 → 31-12-2005; 01-10-2025 → 30-09-2026)', () => {
+      expect(getInclusivePeriodEndDanishDate(toDanishDateString('01-01-2005'), 12)).toBe('31-12-2005');
+      expect(getInclusivePeriodEndDanishDate(toDanishDateString('01-10-2025'), 12)).toBe('30-09-2026');
+    });
+
+    it('+12 mdr clamper skudårs-grænse (01-03-2023 + 12 mdr − 1 dag = 29-02-2024)', () => {
+      // addMonths 01-03-2023 → 01-03-2024, −1 dag → 29-02-2024 (2024 er skudår).
+      expect(getInclusivePeriodEndDanishDate(toDanishDateString('01-03-2023'), 12)).toBe('29-02-2024');
+    });
   });
 
   describe('parseDanishDate', () => {

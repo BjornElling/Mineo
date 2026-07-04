@@ -12,7 +12,7 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { addDays, addMonths, formatDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
 import { getReguleringsDatoIntervalForOffentligLoen } from './offentligLoenLookup';
 import type { OffentligOverenskomstType } from './offentligLoenTypes';
 
@@ -1747,10 +1747,10 @@ export const getReguleringsDatoIntervalForOverenskomst = (rawId: string): Regule
   const nyesteDato = satser[0].fraDato;
   const aeldsteDato = satser[satser.length - 1].fraDato;
 
-  const nyesteDate = parseDanishDate(nyesteDato);
-  if (!nyesteDate) return undefined;
-
-  const tilDato = formatDanishDate(addDays(addMonths(nyesteDate, 12), -1));
+  // Privat overenskomst dækker 12 måneder frem fra den nyeste sats' startdato
+  // (kanonisk "+N mdr − 1 dag"-aritmetik, delt med de øvrige reguleringsdato-intervaller).
+  const tilDato = getInclusivePeriodEndDanishDate(nyesteDato, 12);
+  if (!tilDato) return undefined;
 
   return { fraDato: aeldsteDato, tilDato };
 };

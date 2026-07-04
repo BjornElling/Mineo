@@ -12,7 +12,7 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { addDays, addMonths, formatDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
 import { aarsloenAslMax, getYearBoundsForYearlyRate } from './lovbestemteRates';
 
 // ===== TYPE DEFINITIONER =====
@@ -294,9 +294,10 @@ export const getReguleringsDatoIntervalForStatistikModel = (rawModel: string): R
 
   const fraDato = kvartalToStartDato(minKvartal);
   const maxStartDato = kvartalToStartDato(maxKvartal);
-  const maxStartDate = parseDanishDate(maxStartDato);
-  if (!maxStartDate) return undefined;
 
-  const tilDato = formatDanishDate(addDays(addMonths(maxStartDate, 12), -1));
+  // ILON/SBLON-kvartalsserien dækker 12 måneder frem fra det seneste kvartals startdato
+  // (kanonisk "+N mdr − 1 dag"-aritmetik, delt med de øvrige reguleringsdato-intervaller).
+  const tilDato = getInclusivePeriodEndDanishDate(maxStartDato, 12);
+  if (!tilDato) return undefined;
   return { fraDato, tilDato };
 };

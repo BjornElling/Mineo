@@ -3,7 +3,7 @@ import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
-import { addDays, addMonths } from '../../utils/dateUtils';
+import { getInclusivePeriodEndByMonths } from '../../utils/dateUtils';
 import type { EoRowStatus } from './eoRowTypes';
 
 /**
@@ -178,7 +178,9 @@ export const getRangeForManualRegulering = (
   const maxDate = parseISODate(max);
   if (!maxDate) return { min };
 
-  const adjustedMax = dateToISO(addDays(addMonths(maxDate, 12), -1));
+  // Manuel reguleringsintervals øvre grænse = seneste rækkedato + 12 mdr − 1 dag (kanonisk
+  // "+N mdr − 1 dag"-aritmetik, delt med de øvrige reguleringsdato-intervaller; her i ISO-domænet).
+  const adjustedMax = dateToISO(getInclusivePeriodEndByMonths(maxDate, 12));
   return { min, max: adjustedMax };
 };
 
