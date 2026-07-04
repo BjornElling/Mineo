@@ -139,7 +139,10 @@ under-regulerings-sti i selve beregningen.
 
 ## Tilfældighedsfund
 
-- **[Punkt 13/14]** endDate-grace vs. ASL-throw display-inkonsistens (Fund 3).
+- **[Punkt 13/14 → LUKKET som U11, 2026-07-04]** endDate-grace vs. ASL-throw display-inkonsistens
+  (Fund 3). Blev ikke samlet op i hverken punkt 13 eller 14; lukket ved opsamling: bekræftet
+  fail-closed (validator-block, punkt 4-test) — rækkens `ok` er en bevidst, sikker display-tolerance,
+  nu dokumenteret ved callsite i `eoRowIndkomstRows.ts`. Se plan-tabellen (U11).
 - **[Punkt 12]** Samme kontinuitets-mønster bør bekræftes for øvrige år-baserede satskilder
   (`reguleringssats` bruges dog af den **akkumulerede** motor, der allerede loop-tjekker hvert
   mellemår — så den har ikke ASL's endepunkts-asymmetri). Statistik (punkt 3) og ASL (nu) er lukket.

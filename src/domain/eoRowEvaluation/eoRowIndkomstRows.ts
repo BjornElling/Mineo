@@ -457,6 +457,14 @@ export const buildEoIndkomstRows = (
 
       const maanederSidenUdloeb = calculateElapsedWholeMonths(reguleringsRange.max, tafEndIso);
       if (maanederSidenUdloeb < overenskomstUdloebMaanederGraense) {
+        // Grace-vinduet er BEVIDST form-agnostisk: en TAF-slutdato kort efter sidste sats vises 'ok',
+        // fordi de carry-forward-former (overenskomst/KRL/KL/statistik-DST) legitimt viderefører sidste
+        // sats inden for vinduet. For former der ALDRIG carry-forwarder (statistik ASL: motoren kaster
+        // efter sidste indeksår) er denne 'ok' en display-tolerance — den autoritative, blokerende fejl
+        // for det tilfælde leveres af validatoren (`validateLoenudviklingDataCoverage` → "ASL-maks-sats
+        // mangler for {år}", testet i regulering-4). Nettoresultatet er derfor fail-closed (download
+        // blokeres med synlig fejl); rækkens 'ok' er en bevidst, sikker asymmetri, ikke tavs
+        // under-regulering. Jf. regulering-review-plan U11.
         return {
           displayValue: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
           status: 'ok' as EoRowStatus,

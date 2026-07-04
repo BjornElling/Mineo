@@ -174,6 +174,9 @@ Der er intet at forelægge brugeren fra punkt 7.
   permissive. Harmløst for tavs under-regulering (pre-basis-segmenter er legitimt zero-delta for
   ALLE former, og manuel har ingen ekstern tabel-dækning at maskere), men semantisk skævt: `min`
   burde konceptuelt være reguleringsdatoen. Notér til punkt 13's row-gate-gennemgang.
+  **[LUKKET som U12, 2026-07-04]** Blev ikke samlet op i punkt 13; lukket ved opsamling — bekræftet
+  sikkert (semantisk fix ville være tal-neutralt), nu dokumenteret ved callsite i `eoRowShared.ts`.
+  Se plan-tabellen (U12).
 - Ingen død kode, fejlplacerede filer eller kontraktdrift i manuel-compute-stien.
 
 ## Sammenfatning

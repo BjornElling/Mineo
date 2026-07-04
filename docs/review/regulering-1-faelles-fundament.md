@@ -92,7 +92,7 @@ Eksempel: statistik-form (ILON12), `Beregningsperiode`, `saerligFraDatoRegulerin
 ## Tilfældighedsfund
 
 - **[Punkt 7]** `buildLoenudviklingFromManual` fail-closer ikke på undefined reguleringsdato (bruger basisrækken som niveau). Bevidst afvigelse fra de øvrige strategier; egen validering. Noteret til punkt 7.
-- **[Punkt 14]** `tidligsteSatsGaelderFra` beregnes selvstændigt i præsentationen (`resolveTidligsteSatsGaelderFra`) — kandidat til konsolidering med motorens (dead) `usedFallback`-signal, jf. Fund 2(b).
+- **[Punkt 14 → MOOT/LUKKET 2026-07-04]** `tidligsteSatsGaelderFra` beregnes selvstændigt i præsentationen (`resolveTidligsteSatsGaelderFra`) — var kandidat til konsolidering med motorens (dead) `usedFallback`-signal, jf. Fund 2(b). Bortfaldet: `usedFallback` blev **fjernet** i Fund 2 (mulighed a), så der er intet konkurrerende motor-signal tilbage at konsolidere. Punkt 14 bekræftede `resolveTidligsteSatsGaelderFra` som korrekt single-source (note bygget på kildens uscopede coverage-`fraDato`). Ingen handling.
 - Ingen død kode ud over Fund 2, ingen fejlplacerede filer, ingen kontraktdrift fundet i fundament-stien.
 
 ## FORSLAG TIL GODKENDELSE

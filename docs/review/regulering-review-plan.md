@@ -116,7 +116,8 @@ rateopslag i `src/domain/erhvervsevnetab/eetReguleringRater.ts`.
   (`loenudviklingBeregning.ts:296–366`).
 - Løn-pakke-formel: `reguleringFormulaUtils.ts`; privat-overenskomst-kontekst
   `overenskomstReguleringShared.ts`.
-- Præsentation: `reguleringsPresentation.ts` (+ debug `eoDebugRegulation*`).
+- Præsentation: `reguleringsPresentation.ts` (+ nedstrøms DEV-inspektionslag
+  `domain/eoInspektion/eoInspektionRegulation*`, tidl. `debug/eoDebugRegulation*`).
 - Output: `document/generators/eo/sections/reguleringSection.ts`,
   `reguleringDocument.ts`, `tafFordelt/tafOpreguleretPaaAarDocument.ts`.
 
@@ -480,7 +481,7 @@ utilsigtet hul, og at en TAF-periode ud over sidste KRL-dato fail-closer.
 
 Kontroller: `deltaPct = ((100+segmentPct)/(100+basePct) − 1)×100`; `100+pct ≤ 0` →
 throw; Store Bededag bevidst *ikke* brudpunkt her (parity med
-`eoDebugRegulationCore`); tom/manglende tabel → throw.
+`eoInspektionRegulationCore`, tidl. `eoDebugRegulationCore`); tom/manglende tabel → throw.
 
 Tests: tilføj hul-i-serie- og efter-sidste-dato-test.
 
@@ -671,6 +672,8 @@ Asymmetrien er nu dokumenteret ved callsite (kommentar) så den ikke fjernes som
 | U8 | 10 | 14 | KL-lønaftaler-præsentationen (`reguleringsPresentation.ts:1072`, `buildReguleringIndexRows`) **genberegner** den viste regulerede løn fra `deltaPct` i stedet for at bruge segmentets autoritative `reguleretLoenOre` (som PDF/Word-indkomstlinjerne gør). Tal-identisk i dag pga. §5.2, men en unødig anden kilde til samme værdi — bør læse `segment.reguleretLoenOre` direkte (single source of truth). Harmløs. **LUKKET (punkt 14):** KL "Beregnet regulering"-tabellen læser nu segmentets autoritative `reguleretLoenOre` direkte (defensiv `deltaPct`-fallback bevaret, tal-identisk pr. KL-doc §2). Single source of truth med indkomst-linjerne; visnings-neutralt, pinnet af `reguleringsPresentation.test.ts` + KL ende-til-ende Word-test. | Lukket |
 | U9 | 11 | 14 | Offentlige ydelsers reguleringstabel (`offentligeYdelserUdviklingBeregning.ts:113`, `buildOffentligeYdelserReguleringTableData`) bygger "Akkumuleret regulering"-kolonnen fra den rå u-afrundede akkumulerede pct, ikke fra den 2-decimal-afrundede `segment.deltaPct` der driver selve beløbet. Bevidst (visning af akkumuleret sats), beløb upåvirket — men samme klasse som U8 (vist tal ≠ tal-der-driver-beløb). Bør bekræftes/afstemmes i præsentations-paritet. Harmløs. **LUKKET (punkt 14):** bekræftet uden synlig forskel — `formatPercent` afrunder selv til 2 decimaler ved visning, så den viste "Akkumuleret regulering" = den værdi beløbet drives af. Ingen ændring. | Lukket |
 | U10 | 12 | 15 | To bevidst forskellige `+12 mdr − 1 dag`-inline-varianter af `getReguleringsDatoIntervalFor…` (`statistiskeRates.ts` ILON/SBLON + privat `overenskomstRates.ts`) kan tal-neutralt adoptere den nye kanoniske `getInclusivePeriodEndDanishDate(fraDato, 12)` (`utils/dateUtils.ts`) — samme konsolidering som de tre `+6 mdr`-kopier (punkt 12). Kun de forskellige `months`-argumenter adskiller dem. Harmløs. | Åben |
+| U11 | 4 | 13/14 | ASL endDate-grace vs. validator-block display-inkonsistens: endDate-row-gatens grace-vindue (`eoRowIndkomstRows.ts`, `maanederSidenUdloeb < overenskomstUdloebMaanederGraense` → `ok`) er form-agnostisk. For carry-forward-former er `ok` aligned med motorens carry-forward; for **statistik ASL** (motoren kaster efter sidste indeksår, ingen carry-forward) er `ok` en display-tolerance mens den blokerende fejl leveres af validatoren. **Var noteret som tilfældighedsfund i punkt 4 ("parkeret til punkt 13/14") men aldrig løftet til denne tabel — hverken punkt 13 eller 14 samlede den op (glemt). LUKKET (opsamling 2026-07-04):** nettoresultatet er fail-closed (download blokeres med synlig validator-fejl, testet i punkt 4); rækkens `ok` er en bevidst, sikker asymmetri (ikke tavs under-regulering). Dokumenteret ved callsite (`eoRowIndkomstRows.ts` grace-vindue) + her. Ingen beregnings-/gate-ændring. | Lukket |
+| U12 | 7 | 13 | `getRangeForManualRegulering` (`eoRowShared.ts`) beregner row-gatens `min` som den *tidligste* dato blandt {reguleringsdato, alle rækkedatoer}; en før-basis-række kan trække `min` FØR reguleringsdatoen og gøre start/reguleringsvaerdi-checkene mere permissive. **Var noteret som tilfældighedsfund i punkt 7 ("[Lav — punkt 13]") men aldrig løftet til denne tabel og ikke behandlet i punkt 13 (glemt). LUKKET (opsamling 2026-07-04):** sikkert for tavs under-regulering — manuel regulering har ingen ekstern tabel-dækning at maskere, og før-basis-segmenter er legitimt zero-delta for alle former. Semantisk kunne `min` være reguleringsdatoen, men da ville intet tal ændre sig. Dokumenteret ved callsite. Ingen beregnings-/gate-ændring. | Lukket |
 
 ## Afslutningskrav for hvert punkt
 
