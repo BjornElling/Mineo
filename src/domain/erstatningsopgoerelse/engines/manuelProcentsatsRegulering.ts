@@ -1,6 +1,7 @@
 import type { LoenudviklingManuelProcentsatsRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
+import { hasFinitePct } from '../helpers/manuelReguleringRowPredicates';
 
 export const MANUEL_PROCENTSATS_BASE_INDEX = 100;
 
@@ -12,9 +13,6 @@ export type ManuelProcentsatsEntry = Readonly<{
   akkumuleretPct: number;
   isBase: boolean;
 }>;
-
-const isFinitePct = (value: number | undefined): value is number =>
-  typeof value === 'number' && Number.isFinite(value);
 
 /**
  * Rækker dateret FØR den anvendte reguleringsdato indgår ikke i akkumuleringen (basisrækken
@@ -55,7 +53,7 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
     .slice(1)
     .map((row, originalIndex) => ({ row, originalIndex }))
     .filter((entry): entry is Readonly<{ row: LoenudviklingManuelProcentsatsRow & { dato: ISODateString; procent: number }; originalIndex: number }> =>
-      isISODateString(entry.row.dato) && isFinitePct(entry.row.procent)
+      isISODateString(entry.row.dato) && hasFinitePct(entry.row.procent)
     )
     // Rækker før reguleringsdatoen ignoreres (se resolveManuelProcentsatsRowsFoerBasis) — de ville
     // ellers både forvride den akkumulerede procent og bryde entries-listens sortering, som

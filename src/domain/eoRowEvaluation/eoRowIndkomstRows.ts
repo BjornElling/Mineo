@@ -8,6 +8,14 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offent
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveManuelProcentsatsRowsFoerBasis } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
+import {
+  MANUEL_ANGIVET_SUPPLEMENT_FELTER,
+  hasFinitePct,
+  isManuelAngivetRowAktiv,
+  isManuelAngivetRowDatoUdfyldt,
+  isManuelProcentsatsRowAktiv,
+  isManuelProcentsatsRowKomplet,
+} from '../erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
@@ -292,12 +300,8 @@ export const buildEoIndkomstRows = (
 
       if (loenudviklingBasis === 'Manuel procentsats') {
         const procentsatsRows = (ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
-        const aktiveRows = procentsatsRows.filter((row) =>
-          row.dato !== undefined || (typeof row.procent === 'number' && Number.isFinite(row.procent))
-        );
-        const ok = aktiveRows.every((row) =>
-          row.dato !== undefined && typeof row.procent === 'number' && Number.isFinite(row.procent)
-        );
+        const aktiveRows = procentsatsRows.filter(isManuelProcentsatsRowAktiv);
+        const ok = aktiveRows.every(isManuelProcentsatsRowKomplet);
         return {
           displayValue: ok ? 'Ja' : 'Nej',
           message: ok ? undefined : 'Værdier mangler at blive udfyldt for manuel regulering',
@@ -306,20 +310,8 @@ export const buildEoIndkomstRows = (
       }
 
       const manuelRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
-      const hasManualPercentValue = (value: number | undefined): boolean =>
-        typeof value === 'number' && Number.isFinite(value);
 
-      const aktiveRows = manuelRows.filter((row) => {
-        const dato = row.dato ?? '';
-        return (
-          dato.trim() !== '' ||
-          hasManualPercentValue(row.feriepenge) ||
-          hasManualPercentValue(row.shSoSats) ||
-          hasManualPercentValue(row.fritvalg) ||
-          hasManualPercentValue(row.agPension) ||
-          row.grundloen !== undefined
-        );
-      });
+      const aktiveRows = manuelRows.filter(isManuelAngivetRowAktiv);
 
       if (aktiveRows.length === 0) {
         return {
@@ -337,20 +329,19 @@ export const buildEoIndkomstRows = (
       const datoOk = manuelRows
         .slice(1)
         .filter((row) => aktiveRows.includes(row))
-        .every((row) => (row.dato ?? '').trim() !== '');
+        .every(isManuelAngivetRowDatoUdfyldt);
 
-      const supplementFields = [
-        'feriepenge',
-        'shSoSats',
-        'fritvalg',
-        'agPension',
-      ] as const;
-
-      const usedSupplements = supplementFields.filter((field) =>
-        aktiveRows.some((row) => hasManualPercentValue(row[field]))
+      // Supplement-konsistens: bruges et tillæg (feriepenge/SH-SO/fritvalg/AG-pension) på nogle
+      // aktive rækker, kræves det udfyldt på ALLE aktive rækker — ellers markeres rækken rød.
+      // BEVIDST strengere end validatoren og motoren (som tolker et blankt tillæg som 0 / base-
+      // fallback): brugerens beslutning 2026-07-04 (regulering-review G13-1) er, at et tomt tillæg
+      // ikke må falde stille tilbage til basissatsen uden en synlig markering. Fjern ikke dette som
+      // "unødig" streng-hed — asymmetrien er tilsigtet, ikke drift.
+      const usedSupplements = MANUEL_ANGIVET_SUPPLEMENT_FELTER.filter((field) =>
+        aktiveRows.some((row) => hasFinitePct(row[field]))
       );
       const supplementsOk = usedSupplements.every((field) =>
-        aktiveRows.every((row) => hasManualPercentValue(row[field]))
+        aktiveRows.every((row) => hasFinitePct(row[field]))
       );
 
       const ok = grundloenOk && supplementsOk && datoOk;

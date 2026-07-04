@@ -1076,8 +1076,17 @@ export const buildReguleringIndexRows = (params: Readonly<{
     // decimaler. Segmentets deltaPct ER den akkumulerede regulering afledt af den
     // kæde-opregulerede løn, så basisløn × (1 + deltaPct/100) reproducerer den.
     const klRows: IndexRowWithIso[] = segments.map((segment) => {
+      // Single source of truth: den kæde-opregulerede, afrundede enhedsløn bæres autoritativt på
+      // segmentet som reguleretLoenOre (nøjagtig samme værdi som indkomst-linjerne viser via
+      // reguleretLoenOre — jf. tafOpreguleretPaaAarDocument / opgoerelseSection). Vi må derfor IKKE
+      // genberegne den fra deltaPct her, da det ville være en anden kilde til samme værdi (U8).
+      // Defensiv fallback: skulle et KL-lønaftaler-segment mod forventning mangle reguleretLoenOre,
+      // reproducerer basisløn × (1 + deltaPct/100) den trinvist afrundede løn tal-identisk (jf.
+      // docs/domain/taf/kl-loenaftaler-regulering.md §2 — deltaPct er i fuld præcision netop for det).
       const unitLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
-      const reguleretLoen = roundByMethod((unitLoenOre / 100) * (1 + segment.deltaPct / 100), 2, 'halfAwayFromZero');
+      const reguleretLoen = segment.reguleretLoenOre !== undefined
+        ? segment.reguleretLoenOre / 100
+        : roundByMethod((unitLoenOre / 100) * (1 + segment.deltaPct / 100), 2, 'halfAwayFromZero');
       const reguleretLoenDisplay = formatAsAmount(reguleretLoen, 2);
       // Periodens reguleringssats — kun på regulerende datoer efter reguleringsdatoen
       // (basisperioden har ingen sats).

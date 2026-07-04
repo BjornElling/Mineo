@@ -305,8 +305,8 @@ persistence- eller bredt-påvirkende ændringer og før commit.
 | 10 | Form: KL-lønaftaler | 1 | Trinvis kæde-opregulering, trin-spring (S4), særvisninger | ✅ ([review](regulering-10-form-kl-loenaftaler.md)) |
 | 11 | Familie 2: opregulerings-motorer | 2 | `opreguleringsmotorer`, TAF-opreguleret, offentlige ydelser, EET-rater | ✅ ([review](regulering-11-familie2-motorer.md)) |
 | 12 | Datakomplethed og staleness | — | Alle satskilders dækningsgrænser, carry-forward (S6), Excel-generering | ✅ ([review](regulering-12-datakomplethed-staleness.md)) |
-| 13 | Coverage-gate, validator og escape-hatch | — | Row-evaluation, validator, `allowReguleringMedOverenskomst…`, multi-af | ⬜ |
-| 14 | Præsentation og output-paritet | — | Reguleringsværdier/-tabeller, PDF/Word, `tidligsteSatsGaelderFra`-note | ⬜ |
+| 13 | Coverage-gate, validator og escape-hatch | — | Row-evaluation, validator, `allowReguleringMedOverenskomst…`, multi-af | ✅ ([review](regulering-13-coverage-gate-validator.md)) |
+| 14 | Præsentation og output-paritet | — | Reguleringsværdier/-tabeller, PDF/Word, `tidligsteSatsGaelderFra`-note | ✅ ([review](regulering-14-praesentation-output-paritet.md)) |
 | 15 | Testdækning og konvergens | — | Luk testhuller, konsolidér duplikering, endelig gate | ⬜ |
 
 ## Punktdetaljer
@@ -583,7 +583,8 @@ Formål: sikre at det, brugeren *ser* om regulering (tabeller, indeks, noter) og
 der *skrives* i PDF/Word, matcher beregningen — og at forkert visning ikke skjuler en
 beregningsfejl.
 
-Primært scope: `reguleringsPresentation.ts`; `debug/eoDebugRegulation*`;
+Primært scope: `reguleringsPresentation.ts`; regulerings-inspektionslaget
+(`domain/eoInspektion/eoInspektionRegulation*` — nedstrøms DEV-kontrollag, tidl. `debug/eoDebugRegulation*`);
 `document/generators/eo/sections/reguleringSection.ts`, `reguleringDocument.ts`,
 `reguleringNotes.ts`; `tafFordelt/tafOpreguleretPaaAarDocument.ts`;
 `klLoenaftaler/klLoenaftalerDocument.ts`; relevante PDF/Word-tests.
@@ -627,7 +628,7 @@ Kendte testhuller at lukke (fra kortlægningen):
    data-integritets-invariant, ikke en sti valid input rammer. Nu bundet ende-til-ende af tre nye tests:
    S3-alignment (før-dækning → row-error), normalsti/invariant, og manglende-løntrin (mocket) →
    motor-throw (`loenudviklingOffentligFailClosed.test.ts`).
-6. Multi-af partiel dækning i coverage-gate (punkt 13).
+6. ~~Multi-af partiel dækning i coverage-gate (punkt 13).~~ **LUKKET (punkt 13):** maskering er strukturelt umulig (ingen aggregeret regulerings-status; per-af fail-closed), bundet af ende-til-ende-test (af A fuld dækning skjuler ikke af B's hul).
 
 Konvergens: ~~konsolidér de tre `+6 mdr`-kopier af `getReguleringsDatoIntervalFor…` og det
 duplikerede `reguleringssats`-opslag~~ **DELVIS LUKKET:** de tre `+6 mdr`-kopier er konsolideret mod
@@ -642,23 +643,33 @@ kataloget fuldt afgjort (hver post: bekræftet korrekt / rettet / godkendelsespa
 
 ## Åbne godkendelsespunkter
 
-Ingen åbne godkendelsespunkter pt. Nye punkter registreres her, når reviewet finder
-en beregningsændring der kræver brugerens beslutning. De lukkes ikke teknisk uden
+Nye punkter registreres her, når reviewet finder en beregningsændring eller
+gate-strengheds-ændring der kræver brugerens beslutning. De lukkes ikke teknisk uden
 brugerens beslutning.
+
+Ingen åbne godkendelsespunkter pt.
+
+**✅ AFGJORT — G13-1 (punkt 13) — Supplement-konsistens: row-laget strengere end validator + motor.**
+Row-laget (`eoRowIndkomstRows.ts`, `supplementsOk`) markerer `alleVaerdier` = rød (Nej), hvis et
+tillægsfelt (feriepenge / SH-SO / fritvalg / AG-pension) er udfyldt på nogle aktive
+manuel-angivet-rækker, men blankt på andre — bevidst strengere end motoren (blankt tillæg = 0 /
+base-fallback) og validatoren. **Brugerbeslutning 2026-07-04: BEHOLD den røde markering** — et tomt
+tillæg må ikke falde stille tilbage til basissatsen uden synlig markering. Ingen tal berørt.
+Asymmetrien er nu dokumenteret ved callsite (kommentar) så den ikke fjernes som apparent drift.
 
 ## Udskudte fund
 
 | ID | Fundet i punkt | Behandles i punkt | Fund | Status |
 |---|---|---|---|---|
 | U1 | 0 | 11 | `offentligeYdelserUdviklingBeregning.ts` har to per-år-satsopslag: motoren (`:32`, `:38–41`) og et råt `reguleringssats[year]`-loop (`:99–103`). Begge kaster ved manglende sats (adfærd i dag ens), men opslaget bør konsolideres til motoren. **LUKKET (punkt 11):** udtrukket delt gateway `resolveReguleringssatsForAar` (`opreguleringsmotorer.ts`, parallel til `resolveAslAarsloensmaksimumForAar`); både motorens dæknings-check OG display-loopet slår nu op via den (display bevarer sit legitime rå-per-år-sats-concern, men deler fail-closed-opslaget). Tal-neutralt, bevist ved uændrede tests. | Lukket |
-| U2 | 0 | 13 | Multi-ansættelse-asymmetri: `Beregningsperiode`-grenen (`:1478`) kalder `resolveReguleringsStrategi` pr. af med ét-element-array, så `assertUniform` er inaktiv; cross-af-uniformitet håndhæves kun i angivet-løn-grenen (`:1604`). Aggregeret status-masking skal testes i row-laget. | Åben |
-| U3 | 6 | 14/15 | `resolveOffentligLoenSelection` findes i tre varianter: compute (`loenudviklingBeregning.ts:234`, kaster) + to inspektions-/visnings-varianter (`eoInspektion/eoInspektionRegulationCore.ts:88`, `eoInspektionLoenCoreModel.ts:76`, returnerer `null`). Throw-vs-null-semantikken er bevidst, men den rene input-parsing bør udtrækkes til én delt helper med tynde wrappers. | Åben |
+| U2 | 0 | 13 | Multi-ansættelse-asymmetri: `Beregningsperiode`-grenen (`:1478`) kalder `resolveReguleringsStrategi` pr. af med ét-element-array, så `assertUniform` er inaktiv; cross-af-uniformitet håndhæves kun i angivet-løn-grenen (`:1604`). Aggregeret status-masking skal testes i row-laget. **LUKKET (punkt 13):** maskering er **strukturelt umulig** — der er ingen aggregeret regulerings-status; row-laget og compute er per-af fail-closed, og `assertUniform` er bevidst inaktiv i `Beregningsperiode`-grenen netop fordi hvert af beregnes selvstændigt (ét af's hul kan aldrig skjules af et andets dækning). Bekræftet med ende-til-ende-test (af A fuld dækning skjuler ikke af B's hul). | Lukket |
+| U3 | 6 | 14/15 | `resolveOffentligLoenSelection` findes i tre varianter: compute (`loenudviklingBeregning.ts:234`, kaster) + to inspektions-/visnings-varianter (`eoInspektion/eoInspektionRegulationCore.ts:88`, `eoInspektionLoenCoreModel.ts:76`, returnerer `null`). Throw-vs-null-semantikken er bevidst, men den rene input-parsing bør udtrækkes til én delt helper med tynde wrappers. **LUKKET (punkt 14):** rén parsing udtrukket til `helpers/offentligLoenSelection.ts` (`parseOffentligLoenSelection` → diskrimineret `{ok, reason}`-resultat). Compute mapper `reason` → uændrede feltspecifikke throw-beskeder i bevaret rækkefølge (fail-closed); begge inspektions-varianter returnerer `null` ved enhver `reason`. Tal-/adfærds-neutralt, dækket af `offentligLoenSelection.test.ts`. | Lukket |
 | U4 | 6 | 15 | `effectiveReguleringsdatoIso` (`loenudviklingBeregning.ts:897`) beregnes ubetinget men bruges kun i privat-grenen; offentlig gren clamper via `resolveOffentligEffectiveBase`-fallback. To clamp-mekanismer for samme concern — kandidat til konsolidering. Harmløs. | Åben |
-| U5 | 7 | 15 | `computePackageValuePct` (`loenudviklingBeregning.ts:199–209`, brugt af manuel + offentlig overenskomst) duplikerer den kanoniske `computeFormulaValue` (`reguleringFormulaUtils.ts:83`, brugt af privat overenskomst + præsentation) — samme matematik, to funktioner. Afrunding deles reelt; formel-funktionerne bør konsolideres. **Nuance:** ikke trivielt ombyttelige — `computeFormulaValue` coercer ikke-finite input → 0, mens `computePackageValuePct` propagerer `NaN`/`Infinity` (→ callsite-throw). Konsolidering skal afstemme finite-guards for at bevare fail-closed. Tal-identiske for valid input. Rører offentlig-grenen (6) + præsentation (14). | Åben |
-| U6 | 8 | 13/15 | "Aktiv-række + begge-felter-krævet"-prædikatet for manuel regulering findes i tre parallelle kopier: compute-drop (`manuelProcentsatsRegulering.ts:56–59` / `buildLoenudviklingFromManual`), validator (`erstatningsopgoerelseValidator.ts:894–908`) og row-lag (`eoRowIndkomstRows.ts:297–302`). Validator + row-lag deler bogstaveligt identisk kode. Gælder både manuel procentsats og manuel angivet (punkt 7). Alle alignet i dag, men drift-risiko (gate/motor ude af sync). Konsolidér til én delt helper. Desuden: `alleVaerdier`-row giver `ok` ved nul aktive rækker for procentsats men `error` for angivet — bekræft bevidst domæneforskel; og en før-basis-række uden procent dobbelt-signalerer (error + warning). | Åben |
+| U5 | 7 | 15 | `computePackageValuePct` (`loenudviklingBeregning.ts:199–209`, brugt af manuel + offentlig overenskomst) duplikerer den kanoniske `computeFormulaValue` (`reguleringFormulaUtils.ts:83`, brugt af privat overenskomst + præsentation) — samme matematik, to funktioner. Afrunding deles reelt; formel-funktionerne bør konsolideres. **Nuance:** ikke trivielt ombyttelige — `computeFormulaValue` coercer ikke-finite input → 0, mens `computePackageValuePct` propagerer `NaN`/`Infinity` (→ callsite-throw). Konsolidering skal afstemme finite-guards for at bevare fail-closed. Tal-identiske for valid input. Rører offentlig-grenen (6) + præsentation (14). **Bekræftet uændret i punkt 14** (ikke et paritet-problem; ikke forceret under præsentations-review). Anbefalet fix (punkt 15): gør `computePackageValuePct` til en tynd wrapper der finite-guarder (throw ved ikke-finit) og delegerer til `computeFormulaValue`. | Åben |
+| U6 | 8 | 13/15 | "Aktiv-række + begge-felter-krævet"-prædikatet for manuel regulering findes i tre parallelle kopier: compute-drop (`manuelProcentsatsRegulering.ts:56–59` / `buildLoenudviklingFromManual`), validator (`erstatningsopgoerelseValidator.ts:894–908`) og row-lag (`eoRowIndkomstRows.ts:297–302`). Validator + row-lag deler bogstaveligt identisk kode. Gælder både manuel procentsats og manuel angivet (punkt 7). Alle alignet i dag, men drift-risiko (gate/motor ude af sync). Konsolidér til én delt helper. Desuden: `alleVaerdier`-row giver `ok` ved nul aktive rækker for procentsats men `error` for angivet — bekræft bevidst domæneforskel; og en før-basis-række uden procent dobbelt-signalerer (error + warning). **LUKKET (punkt 13):** de tre kopier konsolideret til `helpers/manuelReguleringRowPredicates.ts` (`isManuelProcentsatsRowAktiv/Komplet`, `isManuelAngivetRowAktiv`, `isManuelAngivetRowDatoUdfyldt`, `hasFinitePct`); compute-drop + validator + row-lag kalder nu helperen, bevist byte-ækvivalent (`row.dato !== undefined` = de tidligere `trim`/`isISODateString`-varianter på det committed domæne). `alleVaerdier`-domæneforskellen bekræftet bevidst; før-basis-dobbeltsignaleringen dokumenteret som fail-closed (ikke fejl). | Lukket |
 | U7 | 9 | — | ~~Pre-eksisterende testfejl på `main` (`loenudviklingOffentligFailClosed.test.ts`, 43 fejl på 9 filer)~~ **KUNNE IKKE REPRODUCERES / FALSK ALARM (verificeret af hovedtråden):** ren baseline (`git stash -u`) → `npx vitest run loenudviklingOffentligFailClosed` = 1/1 grøn; fuld suite med alle punkt-9/10-ændringer = **496 filer / 5859 tests, alle grønne**. Punkt-9-subagentens "43 fejl"-observation skyldtes formentlig en transient mid-run-tilstand (samtidig kørende punkt-10-subagent, der redigerede working tree). Intet fund. | Lukket |
-| U8 | 10 | 14 | KL-lønaftaler-præsentationen (`reguleringsPresentation.ts:1072`, `buildReguleringIndexRows`) **genberegner** den viste regulerede løn fra `deltaPct` i stedet for at bruge segmentets autoritative `reguleretLoenOre` (som PDF/Word-indkomstlinjerne gør). Tal-identisk i dag pga. §5.2, men en unødig anden kilde til samme værdi — bør læse `segment.reguleretLoenOre` direkte (single source of truth). Harmløs. | Åben |
-| U9 | 11 | 14 | Offentlige ydelsers reguleringstabel (`offentligeYdelserUdviklingBeregning.ts:113`, `buildOffentligeYdelserReguleringTableData`) bygger "Akkumuleret regulering"-kolonnen fra den rå u-afrundede akkumulerede pct, ikke fra den 2-decimal-afrundede `segment.deltaPct` der driver selve beløbet. Bevidst (visning af akkumuleret sats), beløb upåvirket — men samme klasse som U8 (vist tal ≠ tal-der-driver-beløb). Bør bekræftes/afstemmes i præsentations-paritet. Harmløs. | Åben |
+| U8 | 10 | 14 | KL-lønaftaler-præsentationen (`reguleringsPresentation.ts:1072`, `buildReguleringIndexRows`) **genberegner** den viste regulerede løn fra `deltaPct` i stedet for at bruge segmentets autoritative `reguleretLoenOre` (som PDF/Word-indkomstlinjerne gør). Tal-identisk i dag pga. §5.2, men en unødig anden kilde til samme værdi — bør læse `segment.reguleretLoenOre` direkte (single source of truth). Harmløs. **LUKKET (punkt 14):** KL "Beregnet regulering"-tabellen læser nu segmentets autoritative `reguleretLoenOre` direkte (defensiv `deltaPct`-fallback bevaret, tal-identisk pr. KL-doc §2). Single source of truth med indkomst-linjerne; visnings-neutralt, pinnet af `reguleringsPresentation.test.ts` + KL ende-til-ende Word-test. | Lukket |
+| U9 | 11 | 14 | Offentlige ydelsers reguleringstabel (`offentligeYdelserUdviklingBeregning.ts:113`, `buildOffentligeYdelserReguleringTableData`) bygger "Akkumuleret regulering"-kolonnen fra den rå u-afrundede akkumulerede pct, ikke fra den 2-decimal-afrundede `segment.deltaPct` der driver selve beløbet. Bevidst (visning af akkumuleret sats), beløb upåvirket — men samme klasse som U8 (vist tal ≠ tal-der-driver-beløb). Bør bekræftes/afstemmes i præsentations-paritet. Harmløs. **LUKKET (punkt 14):** bekræftet uden synlig forskel — `formatPercent` afrunder selv til 2 decimaler ved visning, så den viste "Akkumuleret regulering" = den værdi beløbet drives af. Ingen ændring. | Lukket |
 | U10 | 12 | 15 | To bevidst forskellige `+12 mdr − 1 dag`-inline-varianter af `getReguleringsDatoIntervalFor…` (`statistiskeRates.ts` ILON/SBLON + privat `overenskomstRates.ts`) kan tal-neutralt adoptere den nye kanoniske `getInclusivePeriodEndDanishDate(fraDato, 12)` (`utils/dateUtils.ts`) — samme konsolidering som de tre `+6 mdr`-kopier (punkt 12). Kun de forskellige `months`-argumenter adskiller dem. Harmløs. | Åben |
 
 ## Afslutningskrav for hvert punkt

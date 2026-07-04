@@ -222,4 +222,61 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     // Lønudviklingen mellem ASL-maks 2022 (570.000) og 2023 (588.000) er +3,16 %.
     expect(text).toContain('3,16');
   });
+
+  // Ende-til-ende-paritet (led 3, punkt 14): binder KL-lønaftaler-formen fra input → snapshot/model
+  // → færdigt Word-produkt, og bekræfter at den kæde-opregulerede løn (segmentets autoritative
+  // reguleretLoenOre) når IDENTISK ud i BÅDE Forventet indkomst-linjen (opgoerelse-sektionen) OG
+  // Beregnet regulering-tabellen (regulering-bilaget). Begge forbrugere læser nu samme kilde (U8),
+  // så et tabt/forvansket nedstrøms-led ville få mindst én af værdierne til at forsvinde.
+  it('KL-lønaftaler: reguleret løn er identisk i Forventet indkomst og Beregnet regulering (paritet)', async () => {
+    const stamdata: StamdataValues = {
+      ...structuredClone(STAMDATA_INITIAL_VALUES),
+      skadestype: 'Arbejdsulykke',
+      skadedato: toISODateString('2024-04-01'),
+    };
+    const eo = createErstatningsopgoerelseInitialValues();
+    eo.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    eo.beregnesUdFra = 'Angivet månedsløn';
+    eo.maanedsloenenUdgoer = asAmountValue(30000);
+    eo.angivetMaanedsloenOpreguleresFraDato = toISODateString('2024-04-01');
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+    eo.vedroererPeriodeFra = toISODateString('2024-04-01');
+    eo.vedroererPeriodeTil = toISODateString('2026-03-31');
+    eo.tafBeregningsperiodeFra = toISODateString('2024-04-01');
+    eo.tafBeregningsperiodeTil = toISODateString('2026-03-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: toISODateString('2024-04-01'), til: toISODateString('2026-03-31'), loseFeriedage: undefined }];
+
+    const preparedEo = withSfggIngenForEmployments(eo);
+    const klSelected = {
+      opgoerelse: true,
+      loenindkomst: false,
+      offentligeYdelser: false,
+      shDage: false,
+      regulering: true,
+      okSatser: false,
+      sygeferiegodtgoerelse: false,
+      midlertidigEet: false,
+    };
+
+    const { documentXml } = await renderWordDocument(() => {
+      generateErstatningsopgoerelseDocument(stamdata, preparedEo, klSelected, {
+        visUdkastStempel: false,
+        document: buildProjectedDocument(stamdata, preparedEo),
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+    // KL-lønaftaler-grenen er nået i Beregnet regulering-tabellen (særlig visning: reguleret løn, ingen indeks).
+    expect(text).toContain('Beregnet regulering');
+    expect(text).toContain('Reguleret månedsløn');
+    expect(text).not.toContain('Ingen reguleringsrækker i perioden.');
+
+    // Den kæde-opregulerede, afrundede månedsløn (base 30.000 fra 01-04-2024):
+    //   01-10-2024 (+1,30 %) → 30.390,00 ; 01-11-2025 (+0,75 %) → 30.709,78.
+    // Værdierne skal optræde i BÅDE Forventet indkomst-linjen og Beregnet regulering-tabellen —
+    // dvs. mindst to forekomster hver, hvilket beviser at ingen af de to nedstrøms-led taber værdien.
+    const countOccurrences = (needle: string): number => text.split(needle).length - 1;
+    expect(countOccurrences('30.390,00')).toBeGreaterThanOrEqual(2);
+    expect(countOccurrences('30.709,78')).toBeGreaterThanOrEqual(2);
+  });
 });

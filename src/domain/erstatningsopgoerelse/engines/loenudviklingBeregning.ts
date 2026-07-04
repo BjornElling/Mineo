@@ -24,13 +24,13 @@ import {
 } from '../../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
 import {
-  resolveOffentligLoenTypeFromLabel,
-  toLoentrin,
   type OffentligOverenskomstType,
-  type OffentligLoenType,
-  type Loengruppe,
-  type Loentrin,
 } from '../../../data/offentligLoenTypes';
+import {
+  parseOffentligLoenSelection,
+  type OffentligLoenSelection,
+  type OffentligLoenSelectionFailure,
+} from '../helpers/offentligLoenSelection';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../../data/krlRates';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
@@ -108,12 +108,6 @@ type LoenreguleringsSegment = Readonly<IsoRange & { deltaPct: number }>;
 type LoenudviklingAf = LoenudviklingSource;
 type LoenudviklingManualRow = NonNullable<LoenudviklingAf['loenudviklingManuelTableData']>[number];
 type LoenudviklingManualProcentsatsRow = NonNullable<LoenudviklingAf['loenudviklingManuelProcentsatsTableData']>[number];
-type OffentligLoenSelection = Readonly<{
-  overenskomstType: OffentligOverenskomstType;
-  loenType: OffentligLoenType;
-  loentrin: Loentrin;
-  loengruppe: Loengruppe;
-}>;
 type KonsolideretLoenudvikling =
   | Readonly<{
     strategi: 'statistik';
@@ -231,41 +225,31 @@ const normalizeManualProcentsatsRows = (rows: readonly LoenudviklingManualProcen
 type UniformPrimitive = string | number | boolean | null;
 type AnvendtReguleringsdatoInput = Readonly<{ saerligFraDatoRegulering?: string }>;
 
+// Feltspecifikke throw-beskeder (fail-closed) — beregningsstien må aldrig degradere til
+// zero-delta ved manglende/ugyldig indplacering. Mapper den delte parsers `reason` til de
+// hidtidige beskeder, så adfærd og ordlyd er uændret.
+const OFFENTLIG_LOEN_SELECTION_THROW_MESSAGE: Readonly<Record<OffentligLoenSelectionFailure, string>> = {
+  'loentype-mangler': 'Loenudvikling kan ikke beregnes: ansættelse er ikke valgt',
+  'trin-mangler': 'Loenudvikling kan ikke beregnes: løntrin mangler',
+  'trin-ugyldig': 'Loenudvikling kan ikke beregnes: løntrin skal være mellem 1 og 55',
+  'gruppe-mangler': 'Loenudvikling kan ikke beregnes: gruppe mangler',
+  'gruppe-ugyldig': 'Loenudvikling kan ikke beregnes: gruppe skal være mellem 0 og 4',
+};
+
 const resolveOffentligLoenSelection = (
   af: LoenudviklingAf,
   offentligType: OffentligOverenskomstType
 ): OffentligLoenSelection => {
-  const loenType = resolveOffentligLoenTypeFromLabel(af.offentligLoenType);
-  if (!loenType) {
-    throw new Error('Loenudvikling kan ikke beregnes: ansættelse er ikke valgt');
+  const result = parseOffentligLoenSelection({
+    offentligType,
+    offentligLoenType: af.offentligLoenType,
+    offentligLoenTrin: af.offentligLoenTrin,
+    offentligLoenGruppe: af.offentligLoenGruppe,
+  });
+  if (!result.ok) {
+    throw new Error(OFFENTLIG_LOEN_SELECTION_THROW_MESSAGE[result.reason]);
   }
-
-  const trinValue = af.offentligLoenTrin;
-  if (typeof trinValue !== 'number') {
-    throw new Error('Loenudvikling kan ikke beregnes: løntrin mangler');
-  }
-
-  let loentrin: Loentrin;
-  try {
-    loentrin = toLoentrin(trinValue);
-  } catch {
-    throw new Error('Loenudvikling kan ikke beregnes: løntrin skal være mellem 1 og 55');
-  }
-
-  const gruppeValue = af.offentligLoenGruppe;
-  if (typeof gruppeValue !== 'number') {
-    throw new Error('Loenudvikling kan ikke beregnes: gruppe mangler');
-  }
-  if (gruppeValue < 0 || gruppeValue > 4) {
-    throw new Error('Loenudvikling kan ikke beregnes: gruppe skal være mellem 0 og 4');
-  }
-
-  return {
-    overenskomstType: offentligType,
-    loenType,
-    loentrin,
-    loengruppe: gruppeValue as Loengruppe,
-  };
+  return result.selection;
 };
 
 const assertUniform = (

@@ -21,7 +21,10 @@ import {
   getOffentligTillaegsSatserForDato,
 } from '../../data/overenskomstRates';
 import { getOffentligLoenForDato } from '../../data/offentligLoenLookup';
-import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
+import {
+  parseOffentligLoenSelection,
+  type OffentligLoenSelection,
+} from '../erstatningsopgoerelse/helpers/offentligLoenSelection';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/lovbestemteRates';
@@ -66,13 +69,8 @@ const toDanishOrUndefined = (iso: ISODateString): DanishDateString | undefined =
   return isoToDanish(iso) ?? undefined;
 };
 
-type OffentligLoenSelection = Readonly<{
-  overenskomstType: NonNullable<ReturnType<typeof getOffentligOverenskomstTypeById>>;
-  loenType: NonNullable<ReturnType<typeof resolveOffentligLoenTypeFromLabel>>;
-  loentrin: ReturnType<typeof toLoentrin>;
-  loengruppe: Loengruppe;
-}>;
-
+// Inspektions-/visnings-variant: enhver manglende/ugyldig indplacering giver `null`
+// (modsat beregningsmotoren, der kaster). Deler den rene parsing via parseOffentligLoenSelection (U3).
 const resolveOffentligLoenSelection = (
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined
 ): OffentligLoenSelection | null => {
@@ -80,26 +78,13 @@ const resolveOffentligLoenSelection = (
   const offentligType = getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId);
   if (!offentligType) return null;
 
-  const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
-  if (!loenType) return null;
-
-  const trinValue = ansaettelsesforhold.offentligLoenTrin;
-  const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
-  if (typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
-  if (gruppeValue < 0 || gruppeValue > 4) return null;
-
-  try {
-    const loentrin = toLoentrin(trinValue);
-    const loengruppe = gruppeValue as Loengruppe;
-    return {
-      overenskomstType: offentligType,
-      loenType,
-      loentrin,
-      loengruppe,
-    };
-  } catch {
-    return null;
-  }
+  const result = parseOffentligLoenSelection({
+    offentligType,
+    offentligLoenType: ansaettelsesforhold.offentligLoenType,
+    offentligLoenTrin: ansaettelsesforhold.offentligLoenTrin,
+    offentligLoenGruppe: ansaettelsesforhold.offentligLoenGruppe,
+  });
+  return result.ok ? result.selection : null;
 };
 
 const getPrimaryAnsaettelsesforhold = (

@@ -616,6 +616,39 @@ describe('reguleringsPresentation', () => {
     expect(nov2025?.reguleretLoen).toBe('30.709,78');
   });
 
+  it('Beregnet regulering for KL-lønaftaler bruger segmentets autoritative reguleretLoenOre (single source of truth, U8)', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+
+    // Motoren sætter reguleretLoenOre = den kæde-opregulerede, afrundede enhedsløn (autoritativ,
+    // samme værdi indkomst-linjerne viser). deltaPct er den intern afledte akkumulerede regulering.
+    // Her sættes reguleretLoenOre BEVIDST til en værdi, som IKKE stemmer med basisløn × (1 + deltaPct/100),
+    // så testen beviser at "Reguleret løn"-kolonnen læser reguleretLoenOre — ikke genberegner fra deltaPct.
+    const segments: LoenudviklingSegment[] = [
+      {
+        kind: 'maaneder',
+        fra: iso('2024-04-01'),
+        til: iso('2024-09-30'),
+        maaneder: 6,
+        maanedsloenOre: 3_000_000,
+        deltaPct: 0,
+        amountOre: 18_000_000,
+        // deltaPct-genberegning ville give 30.000,00 — den autoritative kilde siger 31.234,56.
+        reguleretLoenOre: 3_123_456,
+      },
+    ];
+
+    const rows = buildReguleringIndexRows({
+      segments,
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-04-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows[0]?.reguleretLoen).toBe('31.234,56');
+  });
+
   it.each([
     'Ingen',
     'Manuelt angivet',

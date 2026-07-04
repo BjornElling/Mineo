@@ -28,6 +28,12 @@ import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../d
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
 import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudviklingKilde, resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import {
+  hasFinitePct,
+  isManuelAngivetRowAktiv,
+  isManuelAngivetRowDatoUdfyldt,
+  isManuelProcentsatsRowAktiv,
+} from '../domain/erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { isFeriePctRequiredForBlocking } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatserGate';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
@@ -844,18 +850,7 @@ function validateLoenudviklingsKravForAktivKilde(
       }
 
       const rows = af.loenudviklingManuelTableData ?? [];
-      const hasManualPercentValue = (value: number | undefined): boolean =>
-        typeof value === 'number' && Number.isFinite(value);
-      const aktiveRows = rows.filter((row) => {
-        return (
-          row.dato !== undefined ||
-          hasManualPercentValue(row.feriepenge) ||
-          hasManualPercentValue(row.shSoSats) ||
-          hasManualPercentValue(row.fritvalg) ||
-          hasManualPercentValue(row.agPension) ||
-          row.grundloen !== undefined
-        );
-      });
+      const aktiveRows = rows.filter(isManuelAngivetRowAktiv);
 
       // Basisrækken (rows[0]) har låst dato (= reguleringsdatoen); dato-kravet gælder derfor kun
       // de efterfølgende rækker. Uden dato ville motoren ellers stille droppe rækken, og
@@ -880,7 +875,7 @@ function validateLoenudviklingsKravForAktivKilde(
           message: 'Grundløn skal være større end 0 på alle manuelle reguleringsrækker',
           severity: 'error',
         });
-      } else if (aktiveRowsEfterBasis.some((row) => row.dato === undefined)) {
+      } else if (aktiveRowsEfterBasis.some((row) => !isManuelAngivetRowDatoUdfyldt(row))) {
         errors.push({
           path: path('loenudviklingManuelTableData'),
           message: 'Dato skal udfyldes på alle manuelle reguleringsrækker',
@@ -891,16 +886,14 @@ function validateLoenudviklingsKravForAktivKilde(
 
     if (grundlag === 'Manuel procentsats') {
       const rows = (af.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
-      const aktiveRows = rows.filter((row) =>
-        row.dato !== undefined || (typeof row.procent === 'number' && Number.isFinite(row.procent))
-      );
+      const aktiveRows = rows.filter(isManuelProcentsatsRowAktiv);
       if (aktiveRows.some((row) => row.dato === undefined)) {
         errors.push({
           path: path('loenudviklingManuelProcentsatsTableData'),
           message: 'Dato skal udfyldes på alle manuelle procentsatsrækker',
           severity: 'error',
         });
-      } else if (aktiveRows.some((row) => typeof row.procent !== 'number' || !Number.isFinite(row.procent))) {
+      } else if (aktiveRows.some((row) => !hasFinitePct(row.procent))) {
         errors.push({
           path: path('loenudviklingManuelProcentsatsTableData'),
           message: 'Procent skal udfyldes på alle manuelle procentsatsrækker',
