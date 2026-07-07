@@ -9,6 +9,7 @@ import { roundByMethod } from '../../../utils/rounding';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
+import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 import { createDate } from '../../../utils/dateUtils';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
@@ -275,29 +276,6 @@ const buildSegmentsFromStartDates = (
     segments.push({ fra, til });
   }
   return segments;
-};
-
-const assertSortedByStartIso = <T extends { startIso: ISODateString }>(
-  items: readonly T[],
-  context: string
-): void => {
-  for (let i = 1; i < items.length; i += 1) {
-    if (items[i - 1].startIso > items[i].startIso) {
-      throw new Error(`Intern fejl: usorteret startdato-liste (${context})`);
-    }
-  }
-};
-
-const findLatestByDateInSortedList = <T extends { startIso: ISODateString }>(
-  sortedItems: readonly T[],
-  date: ISODateString,
-  context: string
-): T | undefined => {
-  assertSortedByStartIso(sortedItems, context);
-  for (let i = sortedItems.length - 1; i >= 0; i -= 1) {
-    if (sortedItems[i].startIso <= date) return sortedItems[i];
-  }
-  return undefined;
 };
 
 const buildZeroDeltaSegment = (segment: IsoRange): LoenreguleringsSegment => ({

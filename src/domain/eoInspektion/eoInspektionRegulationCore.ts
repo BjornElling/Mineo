@@ -47,6 +47,7 @@ import {
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { buildManuelProcentsatsEntries } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
+import { findLatestByDateInSortedList } from '../erstatningsopgoerelse/engines/reguleringSeriesLookup';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
@@ -241,9 +242,7 @@ const buildManualProcentsatsEntries = (args: Readonly<{
 
   const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
   const entries = sortedDates.flatMap((iso, index) => {
-    const entry = manualEntries
-      .filter((candidate) => candidate.startIso <= iso)
-      .sort((a, b) => b.startIso.localeCompare(a.startIso))[0];
+    const entry = findLatestByDateInSortedList(manualEntries, iso, 'manuelProcentsats:inspektion');
     if (!entry) return [];
     const tidsenhed = getTidsenhedsvaerdier(index, sortedDates, args.eoTil, args.shDageSet, args.ferieDageSet);
     return [{
@@ -309,12 +308,14 @@ const buildStatistikEntries = (args: Readonly<{
     }
   }
 
-  const resolveValueAt = (iso: ISODateString): number | null => {
-    const candidates = Array.from(valuesByIso.entries())
-      .filter(([startIso]) => startIso <= iso)
-      .sort((a, b) => b[0].localeCompare(a[0]));
-    return candidates[0]?.[1] ?? null;
-  };
+  // Carry-forward-opslag over indeks-/satsværdierne (samme delte primitiv som motor og
+  // præsentation, regulering-redesign R3). Map-nøglerne er unikke, så én stigende sortering
+  // ved konstruktion er nok til at opslaget kan reverse-scanne.
+  const sortedValueEntries = Array.from(valuesByIso.entries())
+    .map(([startIso, value]) => ({ startIso, value }))
+    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  const resolveValueAt = (iso: ISODateString): number | null =>
+    findLatestByDateInSortedList(sortedValueEntries, iso, 'statistik:inspektion')?.value ?? null;
 
   const referenceValue = resolveValueAt(args.referenceIso);
   if (referenceValue === null || !Number.isFinite(referenceValue) || referenceValue <= 0) return null;

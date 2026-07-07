@@ -66,6 +66,7 @@ import {
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
 import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
+import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 
 export type ReguleringIndexRow = Readonly<{
   fraDato: string;
@@ -932,7 +933,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     // start og hver efterfølgende periode. Findes ingen periode på/før reguleringsdatoen, viser
     // tabellen den tidligste kendte periode og ledsages af en note.
     const rows: string[][] = relevantRealDates.flatMap((iso) => {
-      const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
+      const period = findLatestByDateInSortedList(periodStarts, iso, 'statistik:presentation');
       if (!period) return [];
       return [[period.kvartal, formatDateShort(iso), formatIndex(period.indeksvaerdi)]];
     });
@@ -973,7 +974,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     // reguleringsvinduets start og hver efterfølgende ændring. Findes ingen sats på/før
     // reguleringsdatoen, viser tabellen den tidligste kendte sats og ledsages af en note.
     const rows: string[][] = relevantRealDates.flatMap((iso) => {
-      const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
+      const period = findLatestByDateInSortedList(periodStarts, iso, 'krl:presentation');
       if (!period) return [];
       return [[formatDateShort(iso), formatKrlPct(period.reguleringsPct)]];
     });
@@ -1015,7 +1016,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     // start og hver efterfølgende ændring. Findes ingen sats på/før reguleringsdatoen, viser tabellen
     // den tidligste kendte sats og ledsages af en note.
     const rows: string[][] = relevantRealDates.flatMap((iso) => {
-      const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
+      const period = findLatestByDateInSortedList(periodStarts, iso, 'kl:presentation');
       if (!period) return [];
       const danishDato = isoToDanish(iso);
       const reguleringPct = danishDato ? getKlLoenaftalerReguleringPctForDato(danishDato) : undefined;

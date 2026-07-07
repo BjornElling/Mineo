@@ -2,6 +2,7 @@ import type { LoenudviklingManuelProcentsatsRow } from '../../../schemas/formSch
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
 import { hasFinitePct } from '../helpers/manuelReguleringRowPredicates';
+import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 
 export const MANUEL_PROCENTSATS_BASE_INDEX = 100;
 
@@ -83,12 +84,12 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
 // buildManuelProcentsatsEntries ved konstruktion (basisrækken først, brugerrækker ≥ basisdato
 // i datoorden). En række dateret præcis på basisdatoen ligger EFTER basis-entryen og vinder
 // derfor opslaget fra og med reguleringsdatoen (bevidst: reguleringen gælder fra dag ét).
+//
+// Deler det fælles carry-forward-opslag (regulering-redesign R3); den ene afvigelse fra det
+// generiske opslag er fallback: ligger `iso` før alle entries, anvendes basisrækken (`entries[0]`,
+// indeks 100) frem for `undefined` — basisrækken repræsenterer altid niveauet pr. reguleringsdatoen.
 export const findManuelProcentsatsEntryForDate = (
   entries: readonly ManuelProcentsatsEntry[],
   iso: ISODateString
-): ManuelProcentsatsEntry | undefined => {
-  for (let i = entries.length - 1; i >= 0; i -= 1) {
-    if (entries[i].startIso <= iso) return entries[i];
-  }
-  return entries[0];
-};
+): ManuelProcentsatsEntry | undefined =>
+  findLatestByDateInSortedList(entries, iso, 'manuelProcentsats:lookup') ?? entries[0];

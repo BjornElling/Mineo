@@ -146,6 +146,34 @@ samme snapshot (som B9 allerede bevægede det mod: kontrol-laget må aldrig bliv
 
 ### R3 — Ét tidsserie-opslag med deklareret carry-forward-politik
 
+> **Status (2026-07-07): IMPLEMENTERET (migrations-skridt 3).** Kortlægningen viste, at det
+> genuint duplikerede var ét enkelt opslag: carry-forward "seneste post med `startIso <= dato`"
+> over en `ISODateString`-serie. Det fandtes i **~7 kopier over tre lag** — motorens
+> `findLatestByDateInSortedList`, `findManuelProcentsatsEntryForDate`, tre `.filter(<=iso).at(-1)`
+> i præsentationen (statistik/KRL/KL) og to `.filter(<=iso).sort(desc)[0]` i inspektionen — hvor
+> **fire af re-derivationerne manglede sorterings-invarianten** (`.at(-1)`/`sort()[0]` gav kun
+> korrekt svar hvis listen tilfældigvis var sorteret). De er nu ét delt primitiv,
+> `engines/reguleringSeriesLookup.ts` (`findLatestByDateInSortedList` + `assertSortedByStartIso`),
+> som alle tre lag kalder; opslaget kaster nu synligt på usorteret serie i stedet for at drive et
+> tavst forkert svar. Tal-neutralt (byte-identitet pinnet af beregnings-, præsentations-/render-
+> og inspektions-suiten; nyt fokuseret primitiv-testsæt). **Bevidste afvigelser fra greenfield-
+> visionen nedenfor:** (1) ingen `RateSeries<T>`-klasse blev indført — et frit primitiv fjerner
+> den reelle duplikering uden et lag til hypotetisk R1/R4-genbrug (jf. `AGENTS.md` Konvergens).
+> (2) Datalagets `DanishDateString`-opslag (`getSatserForDatoFromList` i overenskomst,
+> `findNewestReguleringOnOrBefore` — binærsøgning over en to-lags løntrin-`Map` i offentlig løn)
+> blev **ikke** foldet ind: anden nøgletype (dansk dato/heltal), modsat sorteringsorden (nyeste
+> først), andet søgealgoritme, og deres eneste fælles bekymring — sorterings-invarianten — er
+> allerede single-sourcet i `rateSeriesIntegrity.ts` (R5). At tvinge dem sammen ville kræve en
+> parametriseret komparator/nøgle-udtrækning for to kaldsteder uden at fjerne reel duplikering.
+> (3) De carry-forward-FRIE modeller (ASL/lovbestemte pr.-år-eksakt, sygedagpenge lukkede
+> intervaller, afsnit 2) blev heller ikke medtaget — en policy-enum der spænder over dem ville
+> netop sløre den carry-forward-vs.-må-ikke-carry-forward-sikkerhedsskelnen, guardrails'ene
+> bygger på. (4) R3's afledte R1/R4-gevinst — at forene motorens base-anker og row-gaten til ét
+> *entry*-returnerende opslag — leveres ikke her: motoren slår op i lokalt materialiserede
+> periode-lister, mens gaten læser `resolveKildeReguleringsIntervalIso`; at samle dem kræver at
+> periode-liste-konstruktionen flytter ind i opslaget, hvilket er R1/R2-territorie (form-moduler /
+> autoritativt segment) — konsistent med R4-status-noten. Fuld suite grøn.
+
 **Nuværende tilstand.** "Find seneste sats ≤ dato" er implementeret i ~5 parallelle funktioner:
 `findLatestByDateInSortedList` ([loenudviklingBeregning.ts:321](../../src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts#L321)),
 `getSatserForDatoFromList` (overenskomst privat), `getOffentligLoenForDato`→`findNewestReguleringOnOrBefore`
@@ -367,7 +395,7 @@ Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt 
 
 1. **R5** (load-kontrakt) og **R7** (færdiggør primitiver) først — lav risiko, ren gevinst, ingen tal-ændring. **✅ Udført 2026-07-07** (R7 fuldt; R5's delte primitiver + completeness-test, med fuld type-strukturel håndhævelse udskudt til R3 — se status-noterne i afsnit 4).
 2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur. **◑ Delvist udført 2026-07-07** (validatorens dispatch routet gennem den delte resolver; den strukturelle motor↔gate-forening + fuld `CoverageStatus` afventer R3 — se status-noten i afsnit 4).
-3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt.
+3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt. **✅ Udført 2026-07-07** (det duplikerede `ISODateString`-carry-forward-opslag samlet i ét delt primitiv på tværs af motor/præsentation/inspektion; datalagets `DanishDateString`-opslag og de carry-forward-frie modeller bevidst udenfor — se status-noten i afsnit 4).
 4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament.
 5. **R2** (autoritativt segment) og **R6** (familie-split) — oven på R1's kontrakt.
 6. **R8** (afrunding) — sidst og forsigtigst, da det er det eneste der kan ændre tal; kræver forelæggelse.
