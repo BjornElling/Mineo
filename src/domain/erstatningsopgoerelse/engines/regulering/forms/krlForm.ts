@@ -6,8 +6,8 @@ import {
   isKRLSatstabelId,
   type KRLSatstabelId,
 } from '../../../../../data/krlRates';
-import { parseDanishToIso } from '../../../helpers/eoSharedUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
+import { buildKrlIndexEntries } from '../../krlRegulering';
 import {
   assertUniform,
   buildSegmentsFromStartDates,
@@ -63,15 +63,9 @@ const byggSegmenter = (
   // KRL strategien modellerer kun selve KRL-indeksserien.
   // Store Bededag indgår derfor ikke som separat breakpoint i denne strategi.
 
-  // Byg sorteret liste af periodestarter med ISO-datoer
-  const periodStarts = tabel.vaerdier
-    .map((v) => {
-      const startIso = parseDanishToIso(v.fraDato);
-      if (!startIso) return null;
-      return { startIso, reguleringsPct: v.reguleringsPct };
-    })
-    .filter((entry): entry is Readonly<{ startIso: ISODateString; reguleringsPct: number }> => Boolean(entry))
-    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  // R2: samme delte periodeserie som motoren emitterer som forløb og præsentationen læser
+  // (buildKrlIndexEntries) — én kilde, så vist reguleringsprocent = den motoren afleder deltaPct fra.
+  const periodStarts = buildKrlIndexEntries(konsolideret.krlSatstabelId);
 
   // Find basisindeks ved reguleringsdato
   const effectiveBase = resolveEffectiveBaseEntry(

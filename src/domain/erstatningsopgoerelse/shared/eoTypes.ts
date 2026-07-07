@@ -8,7 +8,7 @@ import type {
   SfggReferencesatsCalculable,
   SfggReferencesatsFormula,
 } from '../engines/sygeferiegodtgoerelse';
-import type { ReguleringForloeb } from '../engines/manuelProcentsatsRegulering';
+import type { ReguleringForloeb } from '../engines/reguleringForloeb';
 
 export type MoneyOre = number;
 export type MoneyKroner = number;

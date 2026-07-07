@@ -44,7 +44,7 @@ import {
 } from '../../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
-import { getKRLSatstabel, isKRLSatstabelId } from '../../../data/krlRates';
+import { isKRLSatstabelId } from '../../../data/krlRates';
 import { getKlLoenaftalerReguleringPctForDato, klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { getStatistiskLoenudvikling } from '../../../data/statistiskeRates';
 import { STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
@@ -65,7 +65,9 @@ import {
   buildPrivateOverenskomstFormulaComponents,
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
-import { buildManuelProcentsatsEntries, type ReguleringForloeb } from './manuelProcentsatsRegulering';
+import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
+import { buildKrlIndexEntries } from './krlRegulering';
+import type { ReguleringForloeb } from './reguleringForloeb';
 import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 
 export type ReguleringIndexRow = Readonly<{
@@ -953,20 +955,13 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   if (grundlag === 'KRL satstabel') {
     const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
     if (!krlId || !isKRLSatstabelId(krlId)) return null;
-    const tabel = getKRLSatstabel(krlId);
-    if (!tabel || tabel.vaerdier.length === 0) return null;
 
     const formatKrlPct = (value: number): string =>
       formatAsAmount(value, 4) + ' %';
 
-    const periodStarts = tabel.vaerdier
-      .map((v) => {
-        const startIso = parseDanishToISO(v.fraDato);
-        if (!startIso) return null;
-        return { startIso, fraDato: v.fraDato, reguleringsPct: v.reguleringsPct };
-      })
-      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-      .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+    // R2 — læs det motor-emitterede forløb (KRL-periodeserien); ellers (inspektion, uden
+    // motor-model) re-derivér byte-identisk via samme delte builder som motoren bruger.
+    const periodStarts = forloeb?.kind === 'krl' ? forloeb.entries : buildKrlIndexEntries(krlId);
     if (periodStarts.length === 0) return null;
 
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
@@ -1558,16 +1553,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
     if (isKRL) {
       const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
       if (!krlId || !isKRLSatstabelId(krlId)) return null;
-      const tabel = getKRLSatstabel(krlId);
-      if (!tabel || tabel.vaerdier.length === 0) return null;
-      const periodStarts = tabel.vaerdier
-        .map((v) => {
-          const startIso = parseDanishToISO(v.fraDato);
-          if (!startIso) return null;
-          return { startIso, reguleringsPct: v.reguleringsPct };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-        .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+      // R2 — læs motor-forløbet (KRL-periodeserien); ellers re-derivér byte-identisk via builderen.
+      const periodStarts = forloeb?.kind === 'krl' ? forloeb.entries : buildKrlIndexEntries(krlId);
       if (periodStarts.length === 0) return null;
       let candidate = periodStarts[0];
       for (const period of periodStarts) {
@@ -1762,28 +1749,18 @@ export const buildReguleringIndexRows = (params: Readonly<{
     if (isKRL) {
       const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
       if (!krlId || !isKRLSatstabelId(krlId)) return [];
-      const tabel = getKRLSatstabel(krlId);
-      if (!tabel || tabel.vaerdier.length === 0) return [];
-      const periodStarts = tabel.vaerdier
-        .map((v) => {
-          const startIso = parseDanishToISO(v.fraDato);
-          if (!startIso) return null;
-          return {
-            startIso,
-            components: {
-              baseValue: 100 + v.reguleringsPct,
-              feriePct: 0,
-              fritvalgPct: 0,
-              shSoPct: 0,
-              pensionPct: 0,
-              storeBededagPct: 0,
-            },
-          };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-        .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
-      return periodStarts.map((period) => ({
-        ...period,
+      // R2 — læs motor-forløbet (KRL-periodeserien); ellers re-derivér byte-identisk via builderen.
+      const entries = forloeb?.kind === 'krl' ? forloeb.entries : buildKrlIndexEntries(krlId);
+      return entries.map((entry) => ({
+        startIso: entry.startIso,
+        components: {
+          baseValue: 100 + entry.reguleringsPct,
+          feriePct: 0,
+          fritvalgPct: 0,
+          shSoPct: 0,
+          pensionPct: 0,
+          storeBededagPct: 0,
+        },
         visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
       }));
     }

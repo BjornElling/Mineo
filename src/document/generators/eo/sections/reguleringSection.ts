@@ -37,7 +37,7 @@ import {
   type ReguleringIndexRow,
   type ReguleringValuesTableData,
 } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
-import type { ReguleringForloeb } from '../../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
+import type { ReguleringForloeb } from '../../../../domain/erstatningsopgoerelse/engines/reguleringForloeb';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { isGreaterThanWithTolerance } from '../../../../utils/numberComparison';
 import { parsePercentPointString } from '../../../../utils/numberParsing';

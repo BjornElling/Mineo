@@ -3,6 +3,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
+import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -469,6 +470,38 @@ describe('buildLoenudviklingModel', () => {
     });
   });
 
+  it('KRL: motoren emitterer det autoritative KRL-forløb byte-identisk med den delte builder', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2015-01-01');
+    values.tafPerioder = [{
+      id: 'taf-krl',
+      fra: iso('2015-01-01'),
+      til: iso('2018-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KRL satstabel',
+      loenudviklingKRLSatstabel: 'KTO (kommuner)',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2015-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2015-01-01'), til: iso('2018-12-31') }] }
+    );
+
+    // Forløbet er den delte KRL-periodeserie motoren afleder deltaPct fra — samme kilde som
+    // præsentationen læser (ingen re-derivation → ingen drift).
+    expect(model.forloeb).toEqual({ kind: 'krl', entries: buildKrlIndexEntries('KTO (kommuner)') });
+    const entries = model.forloeb?.kind === 'krl' ? model.forloeb.entries : [];
+    expect(entries.length).toBeGreaterThan(0);
+  });
+
   it('beregner negativ manuel Store Bededag-regulering for TAF-segmenter før 2024', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -512,7 +545,7 @@ describe('buildLoenudviklingModel', () => {
     expect(segment2023?.deltaPct).toBe(-0.45);
     expect(segment2024?.deltaPct).toBe(0);
 
-    // R2 — kun manuel procentsats er migreret; øvrige former bærer intet forløb (undefined).
+    // R2 — 'Manuelt angivet' er ikke migreret (kun manuel procentsats + KRL); den bærer intet forløb.
     expect(model.forloeb).toBeUndefined();
   });
 

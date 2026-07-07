@@ -13,7 +13,9 @@ import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, Loen
 import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared } from '../helpers/eoSharedUtils';
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
-import { buildManuelProcentsatsEntries, type ReguleringForloeb } from './manuelProcentsatsRegulering';
+import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
+import { buildKrlIndexEntries } from './krlRegulering';
+import type { ReguleringForloeb } from './reguleringForloeb';
 import { assertUniform } from './regulering/reguleringFormPrimitives';
 import { FORM_REGISTRY, byggReguleringsSegmenter } from './regulering/reguleringFormRegistry';
 import type { FormKonsoliderContext, LoenreguleringsSegment, ResolvedStrategi } from './regulering/reguleringForm';
@@ -176,17 +178,25 @@ export const buildLoenudviklingModel = (
 
     // R2 — autoritativt visnings-forløb, emitteret på modellen så præsentation/inspektion
     // formatterer samme entries som motoren afleder deltaPct fra (ingen re-derivation → ingen drift).
-    // Pt. kun manuel procentsats; entries er byte-identiske med det byggSegmenter allerede beregner.
-    const forloeb: ReguleringForloeb | undefined =
-      konsolideretForBase?.strategi === 'manualProcentsats'
-        ? {
-          kind: 'manuelProcentsats',
-          entries: buildManuelProcentsatsEntries({
-            anvendtReguleringsdato: konsolideretForBase.reguleringsdato,
-            rows: konsolideretForBase.manualProcentsatsRows,
-          }),
-        }
-        : undefined;
+    // Migrerede former: manuel procentsats + KRL. Entries er byte-identiske med det byggSegmenter
+    // allerede beregner deltaPct fra; øvrige former re-deriverer fortsat (forloeb = undefined).
+    const forloeb: ReguleringForloeb | undefined = (() => {
+      if (!konsolideretForBase) return undefined;
+      switch (konsolideretForBase.strategi) {
+        case 'manualProcentsats':
+          return {
+            kind: 'manuelProcentsats',
+            entries: buildManuelProcentsatsEntries({
+              anvendtReguleringsdato: konsolideretForBase.reguleringsdato,
+              rows: konsolideretForBase.manualProcentsatsRows,
+            }),
+          };
+        case 'krl':
+          return { kind: 'krl', entries: buildKrlIndexEntries(konsolideretForBase.krlSatstabelId) };
+        default:
+          return undefined;
+      }
+    })();
 
     const beregnedeSegmenter: Array<LoenudviklingModel['beregnedeSegmenter'][number]> = [];
     for (const segment of loenreguleringssegmenter) {

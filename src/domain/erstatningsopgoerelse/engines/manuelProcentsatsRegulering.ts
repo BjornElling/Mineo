@@ -15,16 +15,6 @@ export type ManuelProcentsatsEntry = Readonly<{
   isBase: boolean;
 }>;
 
-// R2 — det autoritative regulerings-visnings-forløb, emitteret af motoren (LoenudviklingModel)
-// og LÆST af præsentation/inspektion, så det viste forløb er samme kilde som beløbet.
-// Diskrimineret union pr. reguleringsform; kun 'manuelProcentsats' er migreret indtil videre
-// (jf. docs/review/regulering-arkitektur-redesign.md R2 skridt 6). De øvrige former re-deriverer
-// fortsat og repræsenteres ved fravær (undefined) på modellen, indtil de migreres.
-export type ReguleringForloeb = Readonly<{
-  kind: 'manuelProcentsats';
-  entries: readonly ManuelProcentsatsEntry[];
-}>;
-
 /**
  * Rækker dateret FØR den anvendte reguleringsdato indgår ikke i akkumuleringen (basisrækken
  * repræsenterer allerede niveauet/indeks 100 pr. reguleringsdatoen). De ignoreres i beregningen

@@ -7,6 +7,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import type { LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
+import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
 import {
   getAngivetLoenOpreguleresFraDato,
   resolveAktivEllerFoersteLoenudviklingKilde,
@@ -874,6 +875,36 @@ describe('reguleringsPresentation', () => {
 
     const rowsUden = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder' });
     const rowsMed = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder', forloeb });
+    expect(rowsMed).toEqual(rowsUden);
+  });
+
+  // R2 (KRL) — samme kobling som manuel procentsats: præsentationen skal producere byte-identisk
+  // output uanset om det motor-emitterede KRL-forløb sendes med (PDF-kanalen) eller udelades
+  // (inspektion, der re-deriverer via samme delte buildKrlIndexEntries).
+  it('KRL: output er byte-identisk med og uden motor-emitteret forløb', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+    const anvendtReguleringsdato = iso('2015-01-01');
+    const forloeb = { kind: 'krl' as const, entries: buildKrlIndexEntries('KTO (kommuner)') };
+    const segments: LoenudviklingSegment[] = [
+      { kind: 'maaneder', fra: iso('2015-01-01'), til: iso('2016-12-31'), maaneder: 24, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 72000000 },
+      { kind: 'maaneder', fra: iso('2017-01-01'), til: iso('2018-12-31'), maaneder: 24, maanedsloenOre: 3000000, deltaPct: 5, amountOre: 75600000 },
+    ];
+
+    const vaerdierUden = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2015-01-01'), tafTil: iso('2018-12-31'), tafBeregningsenhed: 'Måneder',
+    });
+    const vaerdierMed = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2015-01-01'), tafTil: iso('2018-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
+    });
+    expect(vaerdierMed).not.toBeNull();
+    expect(vaerdierMed).toEqual(vaerdierUden);
+
+    const rowsUden = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder' });
+    const rowsMed = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder', forloeb });
+    expect(rowsMed.length).toBeGreaterThan(0);
     expect(rowsMed).toEqual(rowsUden);
   });
 
