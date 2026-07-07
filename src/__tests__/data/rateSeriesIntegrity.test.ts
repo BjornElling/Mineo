@@ -11,7 +11,7 @@ import { assertAarsloenAslMaxKontinuitet } from '../../data/lovbestemteRates';
 import { assertKRLCombinedDataIntegritet } from '../../data/krlRates';
 import { assertKlLoenaftalerDataIntegritet } from '../../data/klLoenaftaler';
 import { assertOverenskomstSatserNyesteFoerst } from '../../data/overenskomstRates';
-import { assertOffentligLoenTabelIkkeTom } from '../../data/offentligLoenLookup';
+import { assertOffentligLoenDataIntegritet } from '../../data/offentligLoenLookup';
 import { assertSygedagpengeRatesIntegritet } from '../../data/sygedagpengeRates';
 
 describe('rateSeriesIntegrity — delte integritets-primitiver', () => {
@@ -143,7 +143,7 @@ describe('reguleringssatskilder — komplet load-guard-dækning', () => {
     { kilde: 'KRL-satstabel', guard: assertKRLCombinedDataIntegritet },
     { kilde: 'KL-lønaftaler', guard: assertKlLoenaftalerDataIntegritet },
     { kilde: 'Overenskomst-satser (privat + offentlig)', guard: assertOverenskomstSatserNyesteFoerst },
-    { kilde: 'Offentlige lønsatser (KL/RLTN)', guard: assertOffentligLoenTabelIkkeTom },
+    { kilde: 'Offentlige lønsatser (KL/RLTN)', guard: assertOffentligLoenDataIntegritet },
     { kilde: 'Sygedagpengesatser', guard: assertSygedagpengeRatesIntegritet },
   ];
 

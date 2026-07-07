@@ -1,15 +1,16 @@
 # Regulering — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-04
-**Status:** Analyse / oplæg (ingen kodeændringer foretaget)
+**Status:** Analyse / migrationsnotat (R3/R4/R5/R7 delvist implementeret; R1 ikke påbegyndt)
 **Baggrund:** Syntese efter det fulde regulering-review (`regulering-review-plan.md`, punkt 0–15, alle ✅).
 **Formål:** Vurdere hvilke arkitektoniske og strukturelle valg jeg ville træffe anderledes,
 hvis reguleringsdomænet skulle designes helt fra bunden med den viden reviewet har givet os —
 uden at være bundet af den nuværende kode. Breaking ændringer er tilladt og overvejet.
 
-> Dette er et **beslutningsoplæg**, ikke en implementeringsplan. Hvert forslag angiver
+> Dette er et **beslutningsoplæg og migrationsnotat**, ikke en fuld implementeringsplan. Hvert forslag angiver
 > potentiel gevinst, arbejde ved at ændre fra nuværende, og risiko ved at ændre.
-> Ingen af forslagene er igangsat. Forslag der kan ændre producerede tal er eksplicit markeret
+> De statusmarkerede deltrin i R3/R4/R5/R7 er allerede udført tal-neutralt; R1/R2/R6/R8/R9
+> er fortsat fremadrettede forslag. Forslag der kan ændre producerede tal er eksplicit markeret
 > og kræver forelæggelse jf. `AGENTS.md`.
 
 ---
@@ -25,9 +26,10 @@ med tests i stedet for at eliminere ved konstruktion.
 Den centrale diagnose er ét struktur-problem, der forgrener sig til alt andet:
 
 > **Strategi-dispatch × lag = duplikering i anden potens.**
-> De 7 reguleringsformer dispatches uafhængigt i **mindst 4–5 lag** (motor, validator, row-evaluering,
+> De 7 værdier i reguleringsgrundlaget (6 aktive former + "Ingen") dispatches uafhængigt i
+> **mindst 4–5 lag** (motor, validator, row-evaluering,
 > præsentation, inspektion), og hvert lag har sin **egen kopi** af base-opslag, interval-udledning og
-> segment-byggeri. At tilføje eller ændre én form kræver koordinerede ændringer på tværs af ~4.500
+> segment-byggeri. At ændre én eksisterende form kræver koordinerede ændringer på tværs af ~4.500
 > linjer i tre store filer ([loenudviklingBeregning.ts](../../src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts) 1676,
 > [reguleringsPresentation.ts](../../src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts) 1848,
 > [eoInspektionRegulationCore.ts](../../src/domain/eoInspektion/eoInspektionRegulationCore.ts) 1023).
@@ -74,11 +76,11 @@ Rangeret efter forholdet gevinst/risiko. Detaljer i afsnit 4.
 
 | # | Forslag | Potentiel gevinst | Arbejde ved ændring | Risiko ved ændring |
 |---|---|---|---|---|
-| **R1** | **Reguleringsform som selvindeholdt strategi-modul** (plugin-registry; dispatch ét sted) | **Stor** — ny/ændret form rører ét modul i stedet for 5 lag; fjerner rod-årsagen til al parallel-dispatch | **Stor** — definér `ReguleringForm`-kontrakt; flyt 7 formers grene ud af motor+validator+præsentation+inspektion | **Middel** — rører alle lag, men kan gøres tal-neutralt (flyt, ikke omregn); byte-identitet testbar |
+| **R1** | **Reguleringsform som selvindeholdt strategi-modul** (låst form-register; dispatch ét sted) | **Stor** — ændret eksisterende form rører ét modul i stedet for 5 lag; fjerner rod-årsagen til al parallel-dispatch | **Stor** — definér `ReguleringForm`-kontrakt; flyt de 6 aktive formers grene + "Ingen"-no-op ud af motor+validator+præsentation+inspektion | **Middel** — rører alle lag, men kan gøres tal-neutralt (flyt, ikke omregn); byte-identitet testbar |
 | **R2** | **Ét autoritativt segment-resultat; præsentation/inspektion formatterer kun** (ingen re-derivation) | **Stor** — eliminerer ~2.900 linjers parallel genberegning; dræber "vist tal ≠ tal-der-driver-beløb"-klassen (U8/U9) ved konstruktion | **Stor** — segment skal bære alle visnings-felter; omskriv præsentation til ren formattering | **Middel** — præsentations-tal er allerede test-pinnet; KL/ASL-særvisninger skal bevares nøje |
 | **R3** | **Ét tidsserie-opslag med deklareret carry-forward-politik** (`TimeSeries<T>`) | **Stor** — erstatter 5 parallelle lookups + 2 afvigere; interiort-hul-bevis ét sted; ASL's "ingen carry-forward" bliver en politik | **Middel-stor** — abstraktion + refactor af data-lags opslag | **Middel** — kræver byte-identitet pr. kilde; sygedagpenge (lukkede intervaller) + lovbestemte (år-bounds) er afvigende modeller |
 | **R4** | **Coverage-status som ét autoritativt objekt** som motor, gate, validator og note alle *læser* | **Stor (trust)** — "før første/efter sidste sats" beregnes ét sted; drift bliver strukturelt umulig frem for test-fanget (S1) | **Middel** — udbyg `resolveKildeReguleringsIntervalIso` til fuld `CoverageStatus`; refactor row-lag/validator | **Lav-middel** — tal-neutralt; alignment er allerede bevist, dette gør den strukturel |
-| **R5** | **Datakomplethed som deklarativ, ensartet load-kontrakt** (hver kilde deklarerer sine invarianter) | **Middel-stor (trust)** — ingen kilde kan "mangle" et værn; ensartet load-guard + obligatorisk selvtest | **Middel** — generalisér de 7 ad-hoc `assert…Integritet` til én ramme | **Lav** — rent boundary/load; kaster kun ved korrupt data; ingen tal-ændring |
+| **R5** | **Datakomplethed som deklarativ, ensartet load-kontrakt** (hver kilde deklarerer sine invarianter) | **Middel-stor (trust)** — ingen kilde kan "mangle" et værn; ensartet load-guard + obligatorisk selvtest | **Middel** — generalisér de 7 kilde-guards til én ramme | **Lav** — rent boundary/load; kaster kun ved korrupt data; ingen tal-ændring |
 | **R6** | **Adskil Familie A/B med eksplicit krydsnings-adapter; split overenskomst i to former** | **Middel** — fjerner den længste gren (~370 linjer, offentlig+privat i én funktion); gør ASL-krydsningen eksplicit | **Middel** — del `buildLoenudviklingFromOverenskomst`; wrap ASL-motorkald i adapter | **Lav-middel** — tal-neutralt flyt |
 | **R7** | **Delte primitiver: prædikat-/formel-/interval-bibliotek** (færdiggør påbegyndt konsolidering) | **Middel** — fjerner sidste drift-flader | **Lille-middel** — meget er allerede gjort (`manuelReguleringRowPredicates`, `getInclusivePeriodEndByMonths`, `computePackageValuePct`-adapter) | **Lav** |
 | **R8** | **Afrunding som typet politik på ét arkitektonisk punkt** (unit-typed money + decimal-politik) | **Middel** — de 5 afrundingsmekanismer bliver eksplicitte politikker; forhindrer dobbelt-afrunding/konventionsbrud | **Middel** — `MoneyOre` findes; formalisér decimal-politik pr. visning | **Middel** — rører afrundingssti → kan ændre tal ved fejl; kræver omhyggelig byte-identitet |
@@ -90,8 +92,8 @@ Rangeret efter forholdet gevinst/risiko. Detaljer i afsnit 4.
 
 ### R1 — Reguleringsform som selvindeholdt strategi-modul
 
-**Nuværende tilstand.** Enum'en `loenudviklingBeregningsgrundlag` (7 værdier) dispatches uafhængigt i
-mindst fire lag: motor ([loenudviklingBeregning.ts:396](../../src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts#L396) + `:1391`),
+**Nuværende tilstand.** Enum'en `loenudviklingBeregningsgrundlag` (7 værdier: 6 aktive former + "Ingen")
+dispatches uafhængigt i mindst fire lag: motor ([loenudviklingBeregning.ts:396](../../src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts#L396) + `:1391`),
 validator ([erstatningsopgoerelseValidator.ts:812](../../src/validators/erstatningsopgoerelseValidator.ts#L812)),
 præsentation ([reguleringsPresentation.ts:501](../../src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts#L501)),
 row-evaluering ([eoRowIndkomstRows.ts:187](../../src/domain/eoRowEvaluation/eoRowIndkomstRows.ts#L187)) —
@@ -108,7 +110,7 @@ interface ReguleringForm<TKonsolideret> {
   aktivRaekkePraedikat?(række): boolean;            // fodrer R7 (delt af gate+validator+motor)
   praesentation: FormPresentationMeta;              // fodrer R2 (kolonner, faktor-tekst, decimaler)
 }
-const FORM_REGISTRY: Record<LoenudviklingGrundlag, ReguleringForm<unknown>>;
+const FORM_REGISTRY: Readonly<Record<LoenudviklingGrundlag, ReguleringForm<unknown>>>;
 ```
 
 Dispatch sker **ét sted** (`FORM_REGISTRY[grundlag]`); validator, row-lag og præsentation kalder samme
@@ -116,10 +118,14 @@ registers metoder i stedet for at gentage switch'en. KL-lønaftaler forbliver et
 `byggSegmenter` (trinvis kæde) og `praesentation` (ingen akkumuleret kolonne) — særlogikken er *indkapslet*
 i modulet frem for spredt over ~13 filer.
 
+**Vigtig afgrænsning.** Registeret er **ikke** et plugin- eller udvidelsespunkt til nye beregningstyper.
+Feature-fladen er låst; formålet er at samle de eksisterende former i ét statisk, exhaustivt register,
+så R1 reducerer drift og switch-duplikering uden at optimere for hypotetiske fremtidige former.
+
 | Kolonne | Vurdering |
 |---|---|
-| **Potentiel gevinst** | Stor. Fjerner rod-årsagen til hele "align-by-test"-familien. Ny form = ét modul der implementerer kontrakten; det er umuligt at glemme et lag, fordi kontrakten kræver alle metoder. Monster-filen falder fra 1676 til en tynd orkestrator + 7 fokuserede moduler. |
-| **Arbejde** | Stor. Kontrakt-design + flyt af 7 formers logik ud af 4 store filer. Realistisk et fler-ugers arbejde delt i ét modul ad gangen. |
+| **Potentiel gevinst** | Stor. Fjerner rod-årsagen til hele "align-by-test"-familien. En ændring i en eksisterende form sker i dens modul; det er umuligt at glemme et lag, fordi kontrakten kræver alle metoder. Monster-filen falder fra 1676 til en tynd orkestrator + 6 aktive formmoduler + ét no-op-modul for "Ingen". |
+| **Arbejde** | Stor. Kontrakt-design + flyt af de 6 aktive formers logik (og "Ingen"-no-op) ud af 4 store filer. Realistisk et fler-ugers arbejde delt i ét modul ad gangen. |
 | **Risiko** | Middel. Rører alle lag, men hvert træk er et *flyt* (samme matematik, ny placering), bevist byte-identisk med eksisterende beregnings- og render-tests. Højeste risiko er præsentations-særvisninger (KL/ASL) — mitigeres af R2's autoritative segment. |
 
 ### R2 — Ét autoritativt segment-resultat; præsentation formatterer kun
@@ -251,21 +257,22 @@ strukturel — der er kun ét tal — frem for to der test-bevises ens.
 
 > **Status (2026-07-07): DELVIST IMPLEMENTERET (migrations-skridt 1).** Den delte mekaniske
 > logik er konsolideret i `src/data/rateSeriesIntegrity.ts` med to primitiver:
-> `assertStrictlyMonotonicByDanishDate` (afløser de tre kopier i KRL/KL/overenskomst) og
+> `assertStrictlyMonotonicByDanishDate` (afløser kopier i KRL/KL/overenskomst/offentlig løn) og
 > `assertNoInteriorYearGap` (afløser de to kopier i statistik/ASL). De fem berørte guards
-> komponerer nu primitiverne; `assertOffentligLoenTabelIkkeTom` (kun ikke-tom) og
-> `assertSygedagpengeRatesIntegritet` (lukket-interval-kontinuitet, ét brugssted) er bevidst
-> IKKE trukket ind — ingen duplikering at fjerne. Completeness + vacuous-pass-værn ligger i
+> komponerer nu primitiverne; offentlig løn har én samlet `assertOffentligLoenDataIntegritet`
+> (ikke-tom + strengt nyeste-først/unik effectiveDate), mens
+> `assertSygedagpengeRatesIntegritet` (lukket-interval-kontinuitet, ét brugssted) bevidst
+> IKKE er trukket ind — ingen duplikering at fjerne. Completeness + vacuous-pass-værn ligger i
 > `rateSeriesIntegrity.test.ts` (kanonisk liste over alle 7 kilder + selvtest af primitiverne).
 > **Bevidst afvigelse fra greenfield-visionen nedenfor:** den fulde `RateSeries`-baserede,
-> type-strukturelle håndhævelse ("en ny kilde *kan ikke* tilføjes uden at deklarere sin
+> type-strukturelle håndhævelse ("en kilde *kan ikke* stå uden deklareret
 > dæknings-model") afventer R3 — den kræver `RateSeries<T>`-abstraktionen. Uden R3 håndhæves
 > komplethed på test-niveau (den kanoniske liste), ikke af typesystemet. Et produktions-registry,
 > der kun tjener testen, blev fravalgt (jf. `AGENTS.md` Konvergens). Tal-neutralt, fuld suite grøn.
 
-**Nuværende tilstand.** Load-guards blev tilføjet **ad hoc pr. form**: `assertStatistikAarKontinuitet`,
+**Nuværende tilstand.** Load-guards blev tilføjet **ad hoc pr. kilde**: `assertStatistikAarKontinuitet`,
 `assertAarsloenAslMaxKontinuitet`, `assertKRLCombinedDataIntegritet`, `assertKlLoenaftalerDataIntegritet`,
-`assertOverenskomstSatserNyesteFoerst`, `assertOffentligLoenTabelIkkeTom`, `assertSygedagpengeRatesIntegritet`.
+`assertOverenskomstSatserNyesteFoerst`, `assertOffentligLoenDataIntegritet`, `assertSygedagpengeRatesIntegritet`.
 Nogle kilder havde dem tidligt (statistik), andre manglede dem helt indtil punkt 12. Der var intet
 *krav* om at hver satskilde skal have en load-guard — og flere invarianter (sortering, kontinuitet) var
 kun test-håndhævet, så et fremtidigt datahul ville passere typecheck/lint og give tavs under-dækning.
@@ -273,13 +280,13 @@ kun test-håndhævet, så et fremtidigt datahul ville passere typecheck/lint og 
 **Greenfield-design.** Datakomplethed er en systematisk kontrakt, ikke noget hver kilde genopfinder.
 Hver `RateSeries` (R3) deklarerer sine invarianter (`sorteret: 'nyeste-først'`, `ingenInteriortHul: true`,
 `ikkeTom: true`, `finit: true`), og en fælles ramme håndhæver load-guard + **obligatorisk selvtest**
-(vacuous-pass-værn, jf. guard-selvtest-princippet, punkt 12). En ny satskilde *kan ikke* tilføjes uden
-at deklarere sin dæknings-model.
+(vacuous-pass-værn, jf. guard-selvtest-princippet, punkt 12). Hver satskilde skal have en deklareret
+dæknings-model.
 
 | Kolonne | Vurdering |
 |---|---|
 | **Potentiel gevinst** | Middel-stor (trust). Ensartet, udtømmende håndhævelse: ingen kilde kan mangle et værn, og invarianter flyttes fra "test håber det holder" til "load kaster hvis det brydes". |
-| **Arbejde** | Middel. Generalisér de 7 eksisterende guards til én ramme; det meste logik findes allerede og skal blot samles + deklareres. |
+| **Arbejde** | Middel. Generalisér de 7 kilde-guards til én ramme; det meste logik findes allerede og skal blot samles + deklareres. |
 | **Risiko** | Lav. Rent boundary/load; guards kaster kun ved korrupt data. Ingen tal-ændring for valide data. |
 
 ### R6 — Adskil Familie A/B; split overenskomst i to former
@@ -409,10 +416,12 @@ fjerde kopi af invariant-tjekket, som R5's `assertStrictlyMonotonicByDanishDate`
 KRL/KL/overenskomst. R5-status-noten (afsnit 4, R5) regnede kun `assertOffentligLoenTabelIkkeTom`
 (ikke-tom) som offentlig-løns integritets-tjek og overså denne inline-kopi.
 
-**Efter.** Inline-løkken er erstattet af `assertStrictlyMonotonicByDanishDate(..., order: 'descending')`.
-Tal-neutralt: `danishDateToNumber` bruger samme `parseDanishDate`, så ordningen er identisk, og strengt
-monotont faldende afviser duplikerede datoer præcis som det tidligere `Set`-tjek. `assertOffentligLoenTabelIkkeTom`
-(ikke-tom) forbliver kildens navngivne load-guard i den kanoniske R5-liste. Berørt: `offentligLoenLookup.ts`.
+**Efter.** Inline-løkken er erstattet af `assertStrictlyMonotonicByDanishDate(..., order: 'descending')`
+og pakket sammen med ikke-tom-værnet i `assertOffentligLoenDataIntegritet`. Tal-neutralt:
+`danishDateToNumber` bruger samme `parseDanishDate`, så ordningen er identisk, og strengt monotont
+faldende afviser duplikerede datoer præcis som det tidligere `Set`-tjek. Den kanoniske R5-liste peger
+nu på den samlede guard, så completeness-testen dækker offentlig løns faktiske integritet i stedet for
+kun ikke-tomhed. Berørt: `offentligLoenLookup.ts`.
 
 Reviewet viste også, hvad der allerede er godt designet — det bør et redesign bevare og *udvide fra*,
 ikke rive ned:

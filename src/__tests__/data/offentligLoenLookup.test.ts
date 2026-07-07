@@ -6,6 +6,7 @@ import {
   getOffentligLoenForPeriode,
   getReguleringsDatoer,
   getReguleringsDatoIntervalForOffentligLoen,
+  assertOffentligLoenDataIntegritet,
   assertOffentligLoenTabelIkkeTom,
 } from '../../data/offentligLoenLookup';
 import { klLoenSatser } from '../../data/KL/klLoenSatser';
@@ -36,6 +37,19 @@ describe('offentligLoenLookup', () => {
 
       it('en tom løntabel fail-closer', () => {
         expect(() => assertOffentligLoenTabelIkkeTom([], 'KL')).toThrow(/tom/);
+      });
+    });
+
+    describe('assertOffentligLoenDataIntegritet (samlet load-guard)', () => {
+      it('de faktiske KL/RLTN-tabeller passerer den samlede guard', () => {
+        expect(() => assertOffentligLoenDataIntegritet(klLoenSatser, 'KL')).not.toThrow();
+        expect(() => assertOffentligLoenDataIntegritet(rltnLoenSatser, 'RLTN')).not.toThrow();
+      });
+
+      it('fail-closer ved tom, mis-sorteret eller duplikeret løntabel', () => {
+        expect(() => assertOffentligLoenDataIntegritet([], 'KL')).toThrow(/tom/);
+        expect(() => assertOffentligLoenDataIntegritet(klLoenSatser.slice().reverse(), 'KL')).toThrow(/rækkefølgen/);
+        expect(() => assertOffentligLoenDataIntegritet([klLoenSatser[0], klLoenSatser[0]], 'KL')).toThrow(/rækkefølgen/);
       });
     });
 

@@ -67,21 +67,31 @@ export const assertOffentligLoenTabelIkkeTom = (
   }
 };
 
-const buildReguleringLookups = (
+/**
+ * Samlet load-guard for de offentlige løntabeller.
+ *
+ * Ikke-tomhed og strengt nyeste-først/unik effectiveDate hører sammen: en tom tabel
+ * fjerner hele dækningsintervallet, mens en mis-sorteret/duplikeret tabel får
+ * carry-forward-opslaget til at vælge forkert sats. Hold guarden samlet, så R5's
+ * completeness-test peger på den faktiske data-integritet og ikke kun ikke-tomhed.
+ */
+export const assertOffentligLoenDataIntegritet = (
   satser: ReadonlyArray<OffentligLoenRegulering>,
   label: string
-): ReadonlyArray<ReguleringMedLookup> => {
+): void => {
   assertOffentligLoenTabelIkkeTom(satser, label);
-  // Strengt nyeste-først + unikke datoer via det fælles integritets-primitiv (samme guard
-  // som KRL/KL/overenskomst bruger, jf. regulering-redesign R5). En mis-sorteret eller
-  // duplikeret dato ville få carry-forward-opslaget (`findNewestReguleringOnOrBefore`) til
-  // at returnere en forkert sats. `danishDateToNumber` bruger samme `parseDanishDate`, så
-  // ordningen er identisk med det tidligere inline-tjek — tal-neutralt.
   assertStrictlyMonotonicByDanishDate(satser, {
     getDato: (reg) => reg.effectiveDate,
     order: 'descending',
     label: `${label}: lønsatser`,
   });
+};
+
+const buildReguleringLookups = (
+  satser: ReadonlyArray<OffentligLoenRegulering>,
+  label: string
+): ReadonlyArray<ReguleringMedLookup> => {
+  assertOffentligLoenDataIntegritet(satser, label);
 
   const lookups = satser.map((reg) => {
     const byTrin = new Map<number, OffentligLoenEntry>();

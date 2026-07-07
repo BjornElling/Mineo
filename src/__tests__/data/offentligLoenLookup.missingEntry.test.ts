@@ -26,9 +26,8 @@ describe('offentligLoenLookup - manglende løntrin', () => {
     }));
 
     // RLTN er irrelevant for denne test (vi tester KL's manglende-løntrin-sti), men
-    // må ikke være tom: den nye load-guard `assertOffentligLoenTabelIkkeTom` fail-closer
-    // en tom genereret tabel. Giv derfor RLTN én valid regulering, så guarden ikke fyrer
-    // på den tabel vi ikke er interesserede i.
+    // skal stadig passere den samlede offentlig-løn-load-guard. Giv derfor RLTN én valid
+    // regulering, så guarden ikke fyrer på den tabel vi ikke er interesserede i.
     vi.doMock('../../data/RLTN/rltnLoenSatser', () => ({
       rltnLoenSatser: [
         {
