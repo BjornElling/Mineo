@@ -36,6 +36,19 @@ const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklin
 const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray<IsoRange & { year: number }> =>
   ranges.flatMap((range) => [...splitIsoRangeByCalendarYearsInclusive(range.fra, range.til)]);
 
+// Familie A→B-krydsning: statistik-formen (Familie A, per-segment deltaPct) fodrer ASL-
+// årslønsmaksimums-opreguleringen (Familie B, år-til-år) og oversætter dens
+// {deltaPct, manglendeAar}-resultat til et afrundet segment-delta. Dette er det eneste sted de
+// to familier krydser; hold krydsningen navngivet og fail-closed (kast på manglende ASL-indeks
+// mellem basisår og segmentår) frem for et inline motorkald, så familie-grænsen er synlig.
+const aslIndeksTilSegmentDelta = (kildeAar: number, maalAar: number): number => {
+  const { deltaPct, manglendeAar } = opregulerMedAslAarsloensmaksimum({ kildeAar, maalAar });
+  if (manglendeAar.length > 0) {
+    throw new Error(`Loenudvikling kan ikke beregnes: mangler ASL indeks for ${manglendeAar.join(', ')}`);
+  }
+  return roundByMethod(deltaPct, 2, 'halfAwayFromZero');
+};
+
 const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   const { active, anvendtReguleringsdato, tafRanges } = ctx;
   assertUniform(active, (af) => (af.loenudviklingStatistikModel ?? '').trim(), 'statistikmodel');
@@ -82,14 +95,7 @@ const byggSegmenter = (
         if (segment.year < baseYear) {
           return buildZeroDeltaSegment(segment);
         }
-        const { deltaPct, manglendeAar } = opregulerMedAslAarsloensmaksimum({
-          kildeAar: baseYear,
-          maalAar: segment.year,
-        });
-        if (manglendeAar.length > 0) {
-          throw new Error(`Loenudvikling kan ikke beregnes: mangler ASL indeks for ${manglendeAar.join(', ')}`);
-        }
-        return { fra: segment.fra, til: segment.til, deltaPct: roundByMethod(deltaPct, 2, 'halfAwayFromZero') };
+        return { fra: segment.fra, til: segment.til, deltaPct: aslIndeksTilSegmentDelta(baseYear, segment.year) };
       });
     return aslSegments;
   }

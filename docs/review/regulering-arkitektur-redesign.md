@@ -1,7 +1,7 @@
 # Regulering — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-04
-**Status:** Analyse / migrationsnotat (R3/R5/R7 + R1-fundament implementeret; R4 delvist; R2/R6/R8/R9 fremadrettede)
+**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1-fundament implementeret; R4 delvist; R2/R8/R9 fremadrettede)
 **Baggrund:** Syntese efter det fulde regulering-review (`regulering-review-plan.md`, punkt 0–15, alle ✅).
 **Formål:** Vurdere hvilke arkitektoniske og strukturelle valg jeg ville træffe anderledes,
 hvis reguleringsdomænet skulle designes helt fra bunden med den viden reviewet har givet os —
@@ -320,6 +320,27 @@ dæknings-model.
 
 ### R6 — Adskil Familie A/B; split overenskomst i to former
 
+> **Status (2026-07-07): IMPLEMENTERET (migrations-skridt 5).** Begge dele af R6 er udført,
+> tal- og UI-neutralt. (1) **Overenskomst-split:** den 368-linjers `byggSegmenter` — der rummede
+> privat pakke-indeks og offentlig løntrin i én funktionskrop delt langs `konsolideret.offentlig` —
+> er delt i to selvindeholdte segment-byggere: `forms/overenskomstOffentligSegmenter.ts` og
+> `forms/overenskomstPrivatSegmenter.ts`. Det de *faktisk* deler ligger nu i
+> `forms/overenskomstSegmentContext.ts` (fælles preamble: reference-opslag + anciennitetstillæg) —
+> plus pakke-formlen (`reguleringFormulaUtils`/`overenskomstReguleringShared`) og primitiverne, der
+> allerede var delte. `overenskomstForm.ts` er nu en facade (fra 537 → 159 linjer): `konsolider` og
+> `coverageInterval` forbliver dér, fordi de er *ægte* delte (samme uniformitetskontrakt, samme
+> dæknings-interval), og `byggSegmenter` dispatcher til hver sin bygger. De to bevidst forskellige
+> U4-clamps (offentlig base-fallback vs. privat `max(regdato, dækningsstart)`) bor nu hver i sin
+> bygger med bevaret "foren dem ikke"-kommentar. (2) **ASL-adapter:** det inline Familie-B-motorkald
+> i `statistikForm.byggSegmenter` er wrappet i en navngivet adapter `aslIndeksTilSegmentDelta`, så
+> Familie A→B-krydsningen er ét synligt, fail-closed sømpunkt frem for et inline kald. **Bevidst
+> afgrænsning fra greenfield-visionen nedenfor:** splittet er på *modul*-niveau bag den ene
+> `'Overenskomst'`-enumværdi — IKKE to enum-værdier. To enum-værdier ville ændre brugerens dropdown
+> og bryde `.eo`-load (feature-flade + save/load), hvilket kræver forelæggelse; modul-splittet er
+> tal- og UI-neutralt og fjerner den længste funktion uden at røre feature-fladen. Byte-identitet
+> pinnet af beregnings-, præsentations-, inspektions-, PDF/Word- og canonical-parity-suiten (fuld
+> suite grøn på nær den kendte urelaterede `generateBuildInfo`-subproces-timeout).
+
 **Nuværende tilstand.** De to reguleringsfamilier (per-segment `deltaPct` vs. år-til-år opregulering)
 er koblet netop ét sted: ASL-statistik-grenen i Familie A kalder Familie B's motor inline
 ([loenudviklingBeregning.ts:661](../../src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts#L661)).
@@ -478,7 +499,7 @@ Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt 
 2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur. **◑ Delvist udført 2026-07-07** (validatorens dispatch routet gennem den delte resolver; den strukturelle motor↔gate-forening + fuld `CoverageStatus` afventer R3 — se status-noten i afsnit 4).
 3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt. **✅ Udført 2026-07-07** (det duplikerede `ISODateString`-carry-forward-opslag samlet i ét delt primitiv på tværs af motor/præsentation/inspektion; datalagets `DanishDateString`-opslag og de carry-forward-frie modeller bevidst udenfor — se status-noten i afsnit 4).
 4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament. **✅ Fundament udført 2026-07-07** (kontrakt + `FORM_REGISTRY`; motorens dispatch + coverage routet gennem registeret, tal-neutralt; validatorens/row-gatens felt-dispatch + R2's præsentations-re-derivation er opfølgende skiver — se status-noten i afsnit 4).
-5. **R2** (autoritativt segment) og **R6** (familie-split) — oven på R1's kontrakt.
+5. **R6** (familie-split) og **R2** (autoritativt segment) — oven på R1's kontrakt. **R6 ✅ udført 2026-07-07** (overenskomst delt i offentlig/privat segment-byggere bag facaden; ASL-krydsningen wrappet i den navngivne `aslIndeksTilSegmentDelta`-adapter; tal- og UI-neutralt, modul-split uden enum-ændring — se status-noten i afsnit 4). R2 (autoritativt segment) er fortsat fremadrettet: kræver segmenttype-udvidelse + omskrivning af præsentation/inspektion til ren formattering.
 6. **R8** (afrunding) — sidst og forsigtigst, da det er det eneste der kan ændre tal; kræver forelæggelse.
 
 Hvert skridt bevises byte-identisk med de eksisterende beregnings- og render-tests (557+ beregningstests,
