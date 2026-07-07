@@ -1,7 +1,7 @@
 # Regulering — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-04
-**Status:** Analyse / migrationsnotat (R3/R4/R5/R7 delvist implementeret; R1 ikke påbegyndt)
+**Status:** Analyse / migrationsnotat (R3/R5/R7 + R1-fundament implementeret; R4 delvist; R2/R6/R8/R9 fremadrettede)
 **Baggrund:** Syntese efter det fulde regulering-review (`regulering-review-plan.md`, punkt 0–15, alle ✅).
 **Formål:** Vurdere hvilke arkitektoniske og strukturelle valg jeg ville træffe anderledes,
 hvis reguleringsdomænet skulle designes helt fra bunden med den viden reviewet har givet os —
@@ -91,6 +91,35 @@ Rangeret efter forholdet gevinst/risiko. Detaljer i afsnit 4.
 ## 4. Forslagene i detaljer
 
 ### R1 — Reguleringsform som selvindeholdt strategi-modul
+
+> **Status (2026-07-07): IMPLEMENTERET (fundament / migrations-skridt 4).** `ReguleringForm`-
+> kontrakten + `FORM_REGISTRY` (keyet på enum-værdien, exhaustivt `Record` — compile-fejl at
+> glemme en form) er indført i `src/domain/erstatningsopgoerelse/engines/regulering/`. Hvert af de
+> 7 grundlag (6 aktive + "Ingen") har nu ét modul (`forms/*Form.ts`), der **samler** de tre steder
+> en form tidligere var defineret: `konsolider` (uniformitet + `KonsolideretLoenudvikling`-
+> konstruktion, før spredt i `resolveReguleringsStrategi`), `byggSegmenter` (før de frie
+> `buildLoenudviklingFrom*`) og `coverageInterval` (før `resolveKildeReguleringsIntervalIso`s egen
+> switch). Motoren er nu en tynd orkestrator: den udregner de fælles, form-agnostiske værdier én
+> gang og dispatcher til `FORM_REGISTRY[basis].konsolider(ctx)`; segment-byggeriet dispatches via
+> `byggReguleringsSegmenter(konsolideret)`. `loenudviklingBeregning.ts` faldt fra 1676 til ~430
+> linjer. `resolveKildeReguleringsIntervalIso` delegerer nu til `FORM_REGISTRY[grundlag].
+> coverageInterval`, så **validator og row-gate forbruger registeret transitivt** — den reelle
+> cross-lag-duplikering (de to divergerende per-form allow-lists + coverage-switchen) er dermed
+> single-sourcet, ikke bare flyttet. Delte primitiver (`buildSegmentsFromStartDates`,
+> `resolveEffectiveBaseEntry`, `assertUniform`, `resolveOffentligLoenSelection`,
+> `buildZeroDeltaSegment`, `ensurePositiveFiniteNumber`, `toKildeReguleringsIntervalIso`) ligger i
+> `reguleringFormPrimitives.ts`. Tal-neutralt (byte-identitet pinnet af beregnings-,
+> validator-, inspektions- og PDF/Word-render-suiten; fuld suite grøn på nær én ikke-relateret
+> MinProcesrente-render-timeout, der består isoleret). **Bevidste afgrænsninger fra greenfield-
+> visionen nedenfor:** (1) `praesentation: FormPresentationMeta` og `aktivRaekkePraedikat?` blev
+> IKKE lagt på kontrakten — de har endnu ingen konsument (jf. `AGENTS.md` Konvergens: ingen felter
+> til hypotetisk brug); at fjerne præsentations-/inspektions-*re-derivationen* er **R2**, ikke R1.
+> (2) `coverageInterval` returnerer det eksisterende `KildeReguleringsInterval`, ikke en fuld
+> `CoverageStatus` — det er fortsat R4, gated på R3's entry-returnerende opslag. (3) Validatorens
+> *felt-tilstedeværelses*-dispatch og row-gatens *ledsagefelt*-dispatch (de per-form `if`-kæder,
+> ikke coverage) er endnu ikke routet gennem registeret; det er en opfølgende skive. Registeret
+> ejer i dag konsolider/byggSegmenter/coverageInterval. (4) "Ingen"-formens konsolider/byggSegmenter
+> er defensive: orkestratoren kortslutter alle-ingen og bygger zero-delta direkte fra tafRanges.
 
 **Nuværende tilstand.** Enum'en `loenudviklingBeregningsgrundlag` (7 værdier: 6 aktive former + "Ingen")
 dispatches uafhængigt i mindst fire lag: motor ([loenudviklingBeregning.ts:396](../../src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts#L396) + `:1391`),
@@ -448,7 +477,7 @@ Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt 
 1. **R5** (load-kontrakt) og **R7** (færdiggør primitiver) først — lav risiko, ren gevinst, ingen tal-ændring. **✅ Udført 2026-07-07** (R7 fuldt; R5's delte primitiver + completeness-test, med fuld type-strukturel håndhævelse udskudt til R3 — se status-noterne i afsnit 4).
 2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur. **◑ Delvist udført 2026-07-07** (validatorens dispatch routet gennem den delte resolver; den strukturelle motor↔gate-forening + fuld `CoverageStatus` afventer R3 — se status-noten i afsnit 4).
 3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt. **✅ Udført 2026-07-07** (det duplikerede `ISODateString`-carry-forward-opslag samlet i ét delt primitiv på tværs af motor/præsentation/inspektion; datalagets `DanishDateString`-opslag og de carry-forward-frie modeller bevidst udenfor — se status-noten i afsnit 4).
-4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament.
+4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament. **✅ Fundament udført 2026-07-07** (kontrakt + `FORM_REGISTRY`; motorens dispatch + coverage routet gennem registeret, tal-neutralt; validatorens/row-gatens felt-dispatch + R2's præsentations-re-derivation er opfølgende skiver — se status-noten i afsnit 4).
 5. **R2** (autoritativt segment) og **R6** (familie-split) — oven på R1's kontrakt.
 6. **R8** (afrunding) — sidst og forsigtigst, da det er det eneste der kan ændre tal; kræver forelæggelse.
 
