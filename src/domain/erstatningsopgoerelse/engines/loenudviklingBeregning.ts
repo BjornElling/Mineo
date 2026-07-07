@@ -15,6 +15,9 @@ import { resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared } 
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
 import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
 import { buildKrlIndexEntries } from './krlRegulering';
+import { buildStatistikIndexEntries } from './statistikRegulering';
+import { buildKlLoenaftalerIndexEntries } from './klLoenaftalerRegulering';
+import { isAslStatistikModel, resolveStatistikModelId } from '../helpers/eoSharedUtils';
 import type { ReguleringForloeb } from './reguleringForloeb';
 import { assertUniform } from './regulering/reguleringFormPrimitives';
 import { FORM_REGISTRY, byggReguleringsSegmenter } from './regulering/reguleringFormRegistry';
@@ -193,6 +196,18 @@ export const buildLoenudviklingModel = (
           };
         case 'krl':
           return { kind: 'krl', entries: buildKrlIndexEntries(konsolideretForBase.krlSatstabelId) };
+        case 'statistik': {
+          const modelLabel = konsolideretForBase.statistikModel.trim();
+          // ASL bruger et per-år-opslag (resolveAslAarsloensmaksimumForAar), ikke kvartals-
+          // indeksserien; repræsenteres ved fravær (præsentationen re-deriverer det direkte
+          // data-opslag uændret — ingen periodeserie at single-source).
+          if (isAslStatistikModel(modelLabel)) return undefined;
+          const modelId = resolveStatistikModelId(modelLabel);
+          if (!modelId) return undefined;
+          return { kind: 'statistik', entries: buildStatistikIndexEntries(modelId) };
+        }
+        case 'klLoenaftaler':
+          return { kind: 'klLoenaftaler', entries: buildKlLoenaftalerIndexEntries() };
         default:
           return undefined;
       }

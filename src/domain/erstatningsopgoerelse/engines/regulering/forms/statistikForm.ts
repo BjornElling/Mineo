@@ -1,12 +1,11 @@
 import type { ISODateString } from '../../../../../types/branded';
-import { dateToISO } from '../../../../../types/branded';
 import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import { roundByMethod } from '../../../../../utils/rounding';
-import { createDate } from '../../../../../utils/dateUtils';
 import { getStatistiskLoenudvikling, getReguleringsDatoIntervalForStatistikModel, type StatistiskLoenudviklingId } from '../../../../../data/statistiskeRates';
 import { opregulerMedAslAarsloensmaksimum } from '../../../../satser/opreguleringsmotorer';
 import { splitIsoRangeByCalendarYearsInclusive } from '../../periodRangeGroups';
 import { isAslStatistikModel, resolveStatistikModelId } from '../../../helpers/eoSharedUtils';
+import { buildStatistikIndexEntries } from '../../statistikRegulering';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
 import {
   assertUniform,
@@ -102,22 +101,14 @@ const byggSegmenter = (
 
   const modelId = resolveStatistikModelIdFromLabel(modelLabel);
   const statistikModel = modelId ? getStatistiskLoenudvikling(modelId) : undefined;
-  if (!statistikModel) {
+  if (!modelId || !statistikModel) {
     throw new Error('Loenudvikling kan ikke beregnes: ukendt statistikmodel');
   }
 
-  const periodStarts = statistikModel.indeksvaerdier
-    .map((entry) => {
-      const match = entry.kvartal.match(/^(\d{4})K([1-4])$/);
-      if (!match) return null;
-      const year = Number.parseInt(match[1], 10);
-      const quarter = Number.parseInt(match[2], 10);
-      const startIso = dateToISO(createDate(year, (quarter - 1) * 3, 1));
-      if (!startIso) return null;
-      return { startIso, indeksvaerdi: entry.indeksvaerdi };
-    })
-    .filter((entry): entry is Readonly<{ startIso: ISODateString; indeksvaerdi: number }> => Boolean(entry))
-    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  // R2 — samme delte kvartals-indeksserie som motoren emitterer som forløb og præsentationen
+  // læser (buildStatistikIndexEntries) — én kilde, så vist indeksværdi = den motoren afleder
+  // deltaPct fra. byggSegmenter bruger kun startIso + indeksvaerdi (kvartal ignoreres her).
+  const periodStarts = buildStatistikIndexEntries(modelId);
 
   const effectiveBase = resolveEffectiveBaseEntry(
     periodStarts,

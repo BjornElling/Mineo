@@ -8,6 +8,9 @@ import {
 import type { LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
+import { buildStatistikIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
+import { buildKlLoenaftalerIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/klLoenaftalerRegulering';
+import { resolveStatistikModelId } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   getAngivetLoenOpreguleresFraDato,
   resolveAktivEllerFoersteLoenudviklingKilde,
@@ -898,6 +901,69 @@ describe('reguleringsPresentation', () => {
     });
     const vaerdierMed = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2015-01-01'), tafTil: iso('2018-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
+    });
+    expect(vaerdierMed).not.toBeNull();
+    expect(vaerdierMed).toEqual(vaerdierUden);
+
+    const rowsUden = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder' });
+    const rowsMed = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder', forloeb });
+    expect(rowsMed.length).toBeGreaterThan(0);
+    expect(rowsMed).toEqual(rowsUden);
+  });
+
+  // R2 (Statistik) — samme kobling som manuel procentsats/KRL: præsentationen skal producere
+  // byte-identisk output uanset om det motor-emitterede statistik-forløb (kvartalsserien) sendes
+  // med (PDF-kanalen) eller udelades (inspektion, der re-deriverer via samme delte builder).
+  it('statistik: output er byte-identisk med og uden motor-emitteret forløb', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Statistik';
+    af.loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
+    const anvendtReguleringsdato = iso('2005-01-01');
+    const modelId = resolveStatistikModelId('ILON12 (Danmarks Statistik)');
+    expect(modelId).toBeDefined();
+    const forloeb = { kind: 'statistik' as const, entries: buildStatistikIndexEntries(modelId!) };
+    const segments: LoenudviklingSegment[] = [
+      { kind: 'maaneder', fra: iso('2005-01-01'), til: iso('2005-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 36000000 },
+      { kind: 'maaneder', fra: iso('2006-01-01'), til: iso('2006-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 3, amountOre: 37080000 },
+      { kind: 'maaneder', fra: iso('2007-01-01'), til: iso('2007-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 6, amountOre: 38160000 },
+    ];
+
+    const vaerdierUden = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'), tafBeregningsenhed: 'Måneder',
+    });
+    const vaerdierMed = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
+    });
+    expect(vaerdierMed).not.toBeNull();
+    expect(vaerdierMed).toEqual(vaerdierUden);
+
+    const rowsUden = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder' });
+    const rowsMed = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder', forloeb });
+    expect(rowsMed.length).toBeGreaterThan(0);
+    expect(rowsMed).toEqual(rowsUden);
+  });
+
+  // R2 (KL-lønaftaler) — reguleringsværdi-tabellen viser nu satsen fra det motor-emitterede forløb
+  // (KL-periodeserien); output skal være byte-identisk med og uden forløb (inspektion re-deriverer
+  // via samme delte builder). "Beregnet regulering"-tabellen læser fortsat segmentets autoritative
+  // reguleretLoenOre (U8) og er dermed uafhængig af forløbet — den skal også være uændret.
+  it('KL-lønaftaler: output er byte-identisk med og uden motor-emitteret forløb', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+    const anvendtReguleringsdato = iso('2024-04-01');
+    const forloeb = { kind: 'klLoenaftaler' as const, entries: buildKlLoenaftalerIndexEntries() };
+    const segments: LoenudviklingSegment[] = [
+      { kind: 'maaneder', fra: iso('2024-04-01'), til: iso('2024-09-30'), maaneder: 6, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 18000000, reguleretLoenOre: 3000000 },
+      { kind: 'maaneder', fra: iso('2024-10-01'), til: iso('2025-09-30'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 1.3, amountOre: 39468000, reguleretLoenOre: 3039000 },
+    ];
+
+    const vaerdierUden = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-04-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder',
+    });
+    const vaerdierMed = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-04-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
     });
     expect(vaerdierMed).not.toBeNull();
     expect(vaerdierMed).toEqual(vaerdierUden);

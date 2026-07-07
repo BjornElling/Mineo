@@ -1,6 +1,6 @@
 import type { ISODateString } from '../../../../../types/branded';
 import { klLoenaftalerRaekker, getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../../data/klLoenaftaler';
-import { parseDanishToIso } from '../../../helpers/eoSharedUtils';
+import { buildKlLoenaftalerIndexEntries } from '../../klLoenaftalerRegulering';
 import {
   buildSegmentsFromStartDates,
   buildZeroDeltaSegment,
@@ -45,14 +45,9 @@ const byggSegmenter = (
   // beregnes som indeksforhold her; den sættes senere fra KL-lønaftaler-kæde-resolveren,
   // så den trinvise afrunding på lønnen er eneste beregningssandhed.
 
-  const periodStarts = klLoenaftalerRaekker
-    .map((v) => {
-      const startIso = parseDanishToIso(v.fraDato);
-      if (!startIso) return null;
-      return { startIso };
-    })
-    .filter((entry): entry is Readonly<{ startIso: ISODateString }> => Boolean(entry))
-    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  // R2 — samme delte periodeserie som motoren emitterer som forløb og præsentationen læser
+  // (buildKlLoenaftalerIndexEntries); byggSegmenter bruger kun startIso til brudpunkter.
+  const periodStarts = buildKlLoenaftalerIndexEntries();
 
   // Byg segmenter for hvert taf-interval
   const segments: LoenreguleringsSegment[] = [];

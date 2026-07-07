@@ -4,6 +4,9 @@ import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsa
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
+import { buildStatistikIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
+import { buildKlLoenaftalerIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/klLoenaftalerRegulering';
+import { resolveStatistikModelId } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -502,6 +505,71 @@ describe('buildLoenudviklingModel', () => {
     expect(entries.length).toBeGreaterThan(0);
   });
 
+  it('statistik: motoren emitterer den autoritative kvartals-indeksserie byte-identisk med den delte builder', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2005-01-01');
+    values.tafPerioder = [{
+      id: 'taf-statistik',
+      fra: iso('2005-01-01'),
+      til: iso('2007-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Statistik',
+      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2005-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2005-01-01'), til: iso('2007-12-31') }] }
+    );
+
+    const modelId = resolveStatistikModelId('ILON12 (Danmarks Statistik)');
+    expect(modelId).toBeDefined();
+    // Forløbet er den delte statistik-kvartalsserie motoren afleder deltaPct fra — samme kilde som
+    // præsentationen læser (ingen re-derivation → ingen drift).
+    expect(model.forloeb).toEqual({ kind: 'statistik', entries: buildStatistikIndexEntries(modelId!) });
+    const entries = model.forloeb?.kind === 'statistik' ? model.forloeb.entries : [];
+    expect(entries.length).toBeGreaterThan(0);
+  });
+
+  it('KL-lønaftaler: motoren emitterer den autoritative KL-periodeserie byte-identisk med den delte builder', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-04-01');
+    values.tafPerioder = [{
+      id: 'taf-kl',
+      fra: iso('2024-04-01'),
+      til: iso('2025-12-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-04-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2025-12-31') }] }
+    );
+
+    // Forløbet er den delte KL-periodeserie motoren afleder brudpunkterne fra — samme kilde som
+    // reguleringsværdi-tabellen viser (ingen re-derivation → ingen drift).
+    expect(model.forloeb).toEqual({ kind: 'klLoenaftaler', entries: buildKlLoenaftalerIndexEntries() });
+    const entries = model.forloeb?.kind === 'klLoenaftaler' ? model.forloeb.entries : [];
+    expect(entries.length).toBeGreaterThan(0);
+  });
+
   it('beregner negativ manuel Store Bededag-regulering for TAF-segmenter før 2024', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -545,7 +613,7 @@ describe('buildLoenudviklingModel', () => {
     expect(segment2023?.deltaPct).toBe(-0.45);
     expect(segment2024?.deltaPct).toBe(0);
 
-    // R2 — 'Manuelt angivet' er ikke migreret (kun manuel procentsats + KRL); den bærer intet forløb.
+    // R2 — 'Manuelt angivet' er ikke migreret (kun manuel procentsats, KRL, statistik non-ASL); den bærer intet forløb.
     expect(model.forloeb).toBeUndefined();
   });
 

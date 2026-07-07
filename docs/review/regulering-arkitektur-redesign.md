@@ -1,7 +1,7 @@
 # Regulering — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-04
-**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1-fundament implementeret; R4 delvist; R2 påbegyndt (fundament/pilot); R8/R9 fremadrettede)
+**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1-fundament implementeret; R4 delvist; R2 påbegyndt — 4 af 6 former migreret (manuel procentsats, KRL, statistik non-ASL, KL); overenskomst + manuelt angivet fremadrettede; R8/R9 fremadrettede)
 **Baggrund:** Syntese efter det fulde regulering-review (`regulering-review-plan.md`, punkt 0–15, alle ✅).
 **Formål:** Vurdere hvilke arkitektoniske og strukturelle valg jeg ville træffe anderledes,
 hvis reguleringsdomænet skulle designes helt fra bunden med den viden reviewet har givet os —
@@ -159,6 +159,46 @@ så R1 reducerer drift og switch-duplikering uden at optimere for hypotetiske fr
 
 ### R2 — Ét autoritativt segment-resultat; præsentation formatterer kun
 
+> **Status (2026-07-07): fire former migreret (migrations-skridt 6–9); to bevidst udskudt.**
+> **Skridt 8 ('Statistik', non-ASL):** migreret end-to-end. Motorens `statistikForm.byggSegmenter`
+> og præsentationens TRE re-derivationer (kilde-satstabel, base-indeks, periode-indeks) bygger nu
+> alle den delte `buildStatistikIndexEntries` (`engines/statistikRegulering.ts`) — kvartal→ISO-
+> parsing + stigende sortering ét sted; motoren emitterer `{kind:'statistik', entries}` og
+> præsentationen læser det. **ASL-statistik-grenen** er bevidst ved fravær (`forloeb: undefined`):
+> den bruger et per-år-opslag (`resolveAslAarsloensmaksimumForAar`), ikke en kvartals-periodeserie,
+> så der er ingen re-deriveret serie at single-source (jf. `AGENTS.md` Konvergens).
+> **Skridt 9 ('KL-lønaftaler'):** migreret via den delte `buildKlLoenaftalerIndexEntries`
+> (`engines/klLoenaftalerRegulering.ts`) — periode-satsserien parse+sort, som motorens
+> `byggSegmenter` (brudpunkter) og reguleringsværdi-tabellen (vist reguleringssats) før byggede
+> uafhængigt af `klLoenaftalerRaekker`. Motoren emitterer `{kind:'klLoenaftaler', entries}`, og
+> reguleringsværdi-tabellen viser nu satsen fra forløbets entry (byte-identisk med det tidligere
+> `getKlLoenaftalerReguleringPctForDato`-opslag, fordi hver relevant dato er præcis en periode-
+> startdato). "Beregnet regulering"-tabellen læser fortsat segmentets autoritative
+> `reguleretLoenOre` (U8) og er uændret. Begge skridt tal- og UI-neutrale (pinnet af beregnings-,
+> præsentations-, reguleringSection-render-, inspektions- og canonical-parity-suiten + nye
+> fallback-paritetstests med/uden forløb og motor-emissionstests; fuld regulering/inspektion/PDF-
+> suite grøn: 1701 tests).
+> **Bevidst udskudt — 'Manuelt angivet':** value-tabellen læser de RÅ manuelle rækker
+> (`loenudviklingManuelTableData`) direkte — ingen re-deriveret serie, ingen drift. Index-rækkerne
+> re-deriverer lønpakke-komponenterne via display-parsere (`parsePercentInput`, `parseAmount`,
+> `resolveFeriePctForFormula`), der er ANDRE funktioner end motorens
+> (`parseManualPercentToPct`, `amountValueToNumber`, `resolveManualFeriePctPct`). Et forløb ville
+> enten kun bære de rå rækker (ingen gevinst) eller kræve forening af de to parser-sæt — ikke
+> byte-identitets-trivielt og beregnings-berørende. Udskudt; parser-divergensen noteret som
+> selvstændigt oprydnings-fund.
+> **Bevidst udskudt — 'Overenskomst' (offentlig+privat), fortsat den største/mest følsomme:**
+> privat-grenen deler allerede `buildPrivateOverenskomstFormulaComponents` +
+> `resolvePrivateOverenskomstBaseContext` mellem motor og præsentation (R6/R7 lukkede driften ved
+> konstruktion). Offentlig-grenen bygger komponenterne inline i BEGGE lag, men fra identiske delte
+> data-opslag (`getOffentligLoenForDato`/`getOffentligTillaegsSatserForDato`/
+> `resolvePctPointFromSatsOrInput`) — samme resultat, parallel kode, ikke aktiv drift. Et
+> autoritativt forløb ville bære per-segment `FormulaComponents` + base, men kræver at
+> præsentationen mapper sine videre-splittede segmenter (anciennitet/Store Bededag) til motorens
+> forløbs-entries og fortsat selv udleder `visibility` + formel-tekst; det er en stor, skrøbelig
+> byte-identitets-flade i den mest brugte, trust-kritiske form (mange fallback-grene). Anbefales
+> som ét dedikeret skridt med parity-test + fuld render-suite som værn — ikke bundtet med
+> entries-swap-formerne.
+>
 > **Status (2026-07-07): PÅBEGYNDT — fundament/pilot + anden form migreret (migrations-skridt 6+7).**
 > **Skridt 7-tilføjelse:** **'KRL satstabel'** er nu migreret end-to-end efter samme opskrift.
 > Det autoritative KRL-forløb er kildens periodeserie `{startIso, reguleringsPct}` — præcis det
@@ -544,7 +584,7 @@ Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt 
 2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur. **◑ Delvist udført 2026-07-07** (validatorens dispatch routet gennem den delte resolver; den strukturelle motor↔gate-forening + fuld `CoverageStatus` afventer R3 — se status-noten i afsnit 4).
 3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt. **✅ Udført 2026-07-07** (det duplikerede `ISODateString`-carry-forward-opslag samlet i ét delt primitiv på tværs af motor/præsentation/inspektion; datalagets `DanishDateString`-opslag og de carry-forward-frie modeller bevidst udenfor — se status-noten i afsnit 4).
 4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament. **✅ Fundament udført 2026-07-07** (kontrakt + `FORM_REGISTRY`; motorens dispatch + coverage routet gennem registeret, tal-neutralt; validatorens/row-gatens felt-dispatch + R2's præsentations-re-derivation er opfølgende skiver — se status-noten i afsnit 4).
-5. **R6** (familie-split) og **R2** (autoritativt segment) — oven på R1's kontrakt. **R6 ✅ udført 2026-07-07** (overenskomst delt i offentlig/privat segment-byggere bag facaden; ASL-krydsningen wrappet i den navngivne `aslIndeksTilSegmentDelta`-adapter; tal- og UI-neutralt, modul-split uden enum-ændring — se status-noten i afsnit 4). **R2 (autoritativt segment) ◑ påbegyndt 2026-07-07** (fundament/pilot: motor-emitteret `ReguleringForloeb` via motor-kanalen, IKKE i den auditerede canonical-kerne; 'Manuel procentsats' (skridt 6) + 'KRL satstabel' (skridt 7) migreret end-to-end i PDF-præsentationen, byte-identisk; de øvrige 5 former + inspektions-konsolidering er opfølgende skiver — se status-noten i afsnit 4). De højeste-værdi/mest følsomme skridt (overenskomst) er fortsat fremadrettede.
+5. **R6** (familie-split) og **R2** (autoritativt segment) — oven på R1's kontrakt. **R6 ✅ udført 2026-07-07** (overenskomst delt i offentlig/privat segment-byggere bag facaden; ASL-krydsningen wrappet i den navngivne `aslIndeksTilSegmentDelta`-adapter; tal- og UI-neutralt, modul-split uden enum-ændring — se status-noten i afsnit 4). **R2 (autoritativt segment) ◑ påbegyndt 2026-07-07** (fundament/pilot: motor-emitteret `ReguleringForloeb` via motor-kanalen, IKKE i den auditerede canonical-kerne; **fire former migreret end-to-end i PDF-præsentationen, byte-identisk:** 'Manuel procentsats' (skridt 6), 'KRL satstabel' (skridt 7), 'Statistik' non-ASL (skridt 8), 'KL-lønaftaler' (skridt 9). 'Manuelt angivet' + ASL bevidst udskudt (ingen motor-emitteret periodeserie / parser-divergens); inspektions-konsolidering er en opfølgende skive — se status-noten i afsnit 4). Det højeste-værdi/mest følsomme skridt (**overenskomst**) er fortsat fremadrettet og anbefales som ét dedikeret skridt.
 6. **R8** (afrunding) — sidst og forsigtigst, da det er det eneste der kan ændre tal; kræver forelæggelse.
 
 Hvert skridt bevises byte-identisk med de eksisterende beregnings- og render-tests (557+ beregningstests,

@@ -67,6 +67,8 @@ import {
 } from './overenskomstReguleringShared';
 import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
 import { buildKrlIndexEntries } from './krlRegulering';
+import { buildStatistikIndexEntries } from './statistikRegulering';
+import { buildKlLoenaftalerIndexEntries } from './klLoenaftalerRegulering';
 import type { ReguleringForloeb } from './reguleringForloeb';
 import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 
@@ -911,19 +913,9 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const model = getStatistiskLoenudvikling(modelId);
     if (!model) return null;
 
-    const periodStarts = model.indeksvaerdier
-      .flatMap((value) => {
-        const match = value.kvartal.match(/^(\d{4})K([1-4])$/);
-        if (!match) return [];
-        const year = Number(match[1]);
-        const quarter = Number(match[2]);
-        if (!Number.isFinite(year) || !Number.isFinite(quarter)) return [];
-        const month = (quarter - 1) * 3 + 1;
-        const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
-        if (!startIso) return [];
-        return [{ kvartal: value.kvartal, startIso, indeksvaerdi: value.indeksvaerdi }];
-      })
-      .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+    // R2 — læs det motor-emitterede forløb (statistik-kvartalsserien); ellers (inspektion, uden
+    // motor-model) re-derivér byte-identisk via samme delte builder som motoren bruger.
+    const periodStarts = forloeb?.kind === 'statistik' ? forloeb.entries : buildStatistikIndexEntries(modelId);
     if (periodStarts.length === 0) return null;
 
     const decimals = detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
@@ -996,14 +988,10 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const formatKlPct = (value: number): string =>
       `${formatAsAmount(value, 2)} %`;
 
-    const periodStarts = klLoenaftalerRaekker
-      .map((v) => {
-        const startIso = parseDanishToISO(v.fraDato);
-        if (!startIso) return null;
-        return { startIso, fraDato: v.fraDato };
-      })
-      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-      .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+    // R2 — læs det motor-emitterede forløb (KL-periodeserien); ellers (inspektion, uden motor-
+    // model) re-derivér byte-identisk via samme delte builder som motoren bruger. Den viste
+    // reguleringssats er nu samme kilde som de brudpunkter beløbet bygger på.
+    const periodStarts = forloeb?.kind === 'klLoenaftaler' ? forloeb.entries : buildKlLoenaftalerIndexEntries();
     if (periodStarts.length === 0) return null;
 
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
@@ -1014,14 +1002,13 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     if (relevantRealDates.length === 0) return null;
     // Ingen syntetisk reguleringsdato-række; tabellen viser reguleringssatsen ved reguleringsvinduets
     // start og hver efterfølgende ændring. Findes ingen sats på/før reguleringsdatoen, viser tabellen
-    // den tidligste kendte sats og ledsages af en note.
+    // den tidligste kendte sats og ledsages af en note. Hver relevant dato er præcis en periode-
+    // startdato (resolveRelevantRealDatesForTafScope filtrerer kun periodStarts), så den fundne
+    // entry's reguleringsPct er den samme værdi getKlLoenaftalerReguleringPctForDato tidligere slog op.
     const rows: string[][] = relevantRealDates.flatMap((iso) => {
       const period = findLatestByDateInSortedList(periodStarts, iso, 'kl:presentation');
       if (!period) return [];
-      const danishDato = isoToDanish(iso);
-      const reguleringPct = danishDato ? getKlLoenaftalerReguleringPctForDato(danishDato) : undefined;
-      const reguleringDisplay = reguleringPct === undefined ? '-' : formatKlPct(reguleringPct);
-      return [[formatDateShort(iso), reguleringDisplay]];
+      return [[formatDateShort(iso), formatKlPct(period.reguleringsPct)]];
     });
     return {
       columns: ['Fra-dato', 'Regulering'],
@@ -1517,21 +1504,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
       }
       const modelId = resolveStatistikModelIdFromLabel(statistikModelLabel);
       if (!modelId) return null;
-      const model = getStatistiskLoenudvikling(modelId);
-      if (!model) return null;
-      const periodStarts = model.indeksvaerdier
-        .flatMap((value) => {
-          const match = value.kvartal.match(/^(\d{4})K([1-4])$/);
-          if (!match) return [];
-          const year = Number(match[1]);
-          const quarter = Number(match[2]);
-          if (!Number.isFinite(year) || !Number.isFinite(quarter)) return [];
-          const month = (quarter - 1) * 3 + 1;
-          const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
-          if (!startIso) return [];
-          return [{ startIso, indeksvaerdi: value.indeksvaerdi }];
-        })
-        .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+      // R2 — læs motor-forløbet (statistik-kvartalsserien); ellers re-derivér byte-identisk via builderen.
+      const periodStarts = forloeb?.kind === 'statistik' ? forloeb.entries : buildStatistikIndexEntries(modelId);
       if (periodStarts.length === 0) return null;
       let candidate = periodStarts[0];
       for (const period of periodStarts) {
@@ -1716,33 +1690,18 @@ export const buildReguleringIndexRows = (params: Readonly<{
       }
       const modelId = resolveStatistikModelIdFromLabel(statistikModelLabel);
       if (!modelId) return [];
-      const model = getStatistiskLoenudvikling(modelId);
-      if (!model) return [];
-      const periodStarts = model.indeksvaerdier
-        .flatMap((value) => {
-          const match = value.kvartal.match(/^(\d{4})K([1-4])$/);
-          if (!match) return [];
-          const year = Number(match[1]);
-          const quarter = Number(match[2]);
-          if (!Number.isFinite(year) || !Number.isFinite(quarter)) return [];
-          const month = (quarter - 1) * 3 + 1;
-          const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
-          if (!startIso) return [];
-          return [{
-            startIso,
-            components: {
-              baseValue: value.indeksvaerdi,
-              feriePct,
-              fritvalgPct,
-              shSoPct,
-              pensionPct,
-              storeBededagPct: 0,
-            },
-          }];
-        })
-        .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
-      return periodStarts.map((period) => ({
-        ...period,
+      // R2 — læs motor-forløbet (statistik-kvartalsserien); ellers re-derivér byte-identisk via builderen.
+      const entries = forloeb?.kind === 'statistik' ? forloeb.entries : buildStatistikIndexEntries(modelId);
+      return entries.map((entry) => ({
+        startIso: entry.startIso,
+        components: {
+          baseValue: entry.indeksvaerdi,
+          feriePct,
+          fritvalgPct,
+          shSoPct,
+          pensionPct,
+          storeBededagPct: 0,
+        },
         visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
       }));
     }
