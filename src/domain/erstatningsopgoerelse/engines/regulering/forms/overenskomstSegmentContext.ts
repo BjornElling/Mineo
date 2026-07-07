@@ -22,7 +22,15 @@ export type KonsolideretOverenskomst = Extract<KonsolideretLoenudvikling, { stra
 
 /** Anciennitetstillæg der er aktivt fra en given dato, delt af begge segment-byggere. */
 export type AnciennitetForIndex = Readonly<{
+  // Segment-gate + brudpunkt: clampet op til TAF-start (et anciennitetstillæg dateret før
+  // TAF-perioden slår igennem fra første TAF-dag). Bruges til segment-splitting og pr.-segment-gate.
   activeFromIso: ISODateString;
+  // Basis-gate: den rå (u-clampede) anciennitetsdato. Basis/referenceniveauet skal indeholde
+  // tillægget, hvis det allerede gælder på (den effektive) reguleringsdato — dvs. sammenlignet med
+  // den rå dato, ikke den TAF-clampede (jf. bruger-beslutning 2026-07-07: "basis skal indeholde
+  // tillægget"). Uden dette regnede motoren tillægget som lønudvikling oven på en basis uden det,
+  // så det udbetalte beløb ikke matchede det viste reguleringsindeks.
+  rawActiveFromIso: ISODateString;
   supplementValue: number;
 }>;
 
@@ -69,6 +77,7 @@ const resolveAnciennitetForIndex = (konsolideret: KonsolideretOverenskomst): Anc
   if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;
   return {
     activeFromIso: anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato,
+    rawActiveFromIso: anciennitetDato,
     supplementValue: roundedSupplement,
   };
 };

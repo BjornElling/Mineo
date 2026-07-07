@@ -199,6 +199,22 @@ så R1 reducerer drift og switch-duplikering uden at optimere for hypotetiske fr
 > som ét dedikeret skridt med parity-test + fuld render-suite som værn — ikke bundtet med
 > entries-swap-formerne.
 >
+> **Forudsætning afklaret + rettet (2026-07-07): anciennitetstillæg i basis.** Kortlægningen af
+> overenskomst-R2 afslørede en reel, hidtil utestet divergens: motoren udelod anciennitetstillægget
+> fra basis-pakken (`overenskomstPrivatSegmenter`/`overenskomstOffentligSegmenter`), mens
+> præsentationens reguleringsindeks-tabel inkluderede det i basen, når det allerede gjaldt på den
+> effektive reguleringsdato (`effectiveReguleringsdato >= anciennitetsdato`). Det udbetalte beløb
+> (motorens `deltaPct`) og det viste indeks blev dermed afledt af forskellige baser og kunne afvige
+> for schema-gyldigt input (bl.a. dæknings-clamp eller en reguleringsdato efter anciennitetsdatoen).
+> **Bruger-beslutning 2026-07-07: "basis skal indeholde tillægget"** — referenceniveauet (indeks 100)
+> indeholder et anciennitetstillæg, der allerede gælder på reguleringsdatoen; tillægget er en del af
+> referencen, ikke lønudvikling oven på den. Motoren er rettet tilsvarende (basis-gate på den rå
+> anciennitetsdato, lig præsentationen), så beløb og vist indeks nu deler samme basis. Tal-ændring
+> KUN i denne edge-case (beløbet var før for højt); alt andet byte-identisk. Ny cross-lag-invariant-
+> test (`reguleringsPresentation.test.ts`: vist indeks = 100 + motorens `deltaPct`) + fuld suite grøn.
+> Dette **oplåser** det strukturelle R2-skridt: motor og præsentation er nu numerisk enige, så en
+> shared per-segment-computation kan single-source basen uden at flytte et tal.
+>
 > **Status (2026-07-07): PÅBEGYNDT — fundament/pilot + anden form migreret (migrations-skridt 6+7).**
 > **Skridt 7-tilføjelse:** **'KRL satstabel'** er nu migreret end-to-end efter samme opskrift.
 > Det autoritative KRL-forløb er kildens periodeserie `{startIso, reguleringsPct}` — præcis det

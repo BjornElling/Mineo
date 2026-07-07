@@ -11,6 +11,8 @@ import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engi
 import { buildStatistikIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
 import { buildKlLoenaftalerIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/klLoenaftalerRegulering';
 import { resolveStatistikModelId } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   getAngivetLoenOpreguleresFraDato,
   resolveAktivEllerFoersteLoenudviklingKilde,
@@ -97,6 +99,71 @@ describe('reguleringsPresentation', () => {
         ansaettelsesforholdId: 'af-2',
       });
       expect(segments).toEqual([]);
+    });
+  });
+
+  describe('overenskomst — vist reguleringsindeks matcher det udbetalte (anciennitetstillæg på/før reguleringsdatoen)', () => {
+    // Bruger-beslutning 2026-07-07 ("basis skal indeholde tillægget"): et anciennitetstillæg,
+    // der allerede gælder på (den effektive) reguleringsdato, er en del af referenceniveauet
+    // (indeks 100), ikke lønudvikling oven på det. Motoren udelod tidligere tillægget fra basen,
+    // så det udbetalte beløb (deltaPct) blev afledt af en anden basis end det viste indeks. Denne
+    // test binder de to sider: for hvert vist indeks skal der findes et motorsegment med
+    // deltaPct = indeks − 100. Den fejlede før rettelsen (motorens basis manglede tillægget).
+    const parseDaNumber = (value: string): number =>
+      Number(value.replace(/\./g, '').replace(',', '.'));
+
+    it('privat overenskomst: vist indeks = 100 + motorens deltaPct når tillægget indgår i basis', () => {
+      const REG = '2023-01-01';
+      // Fælles reguleringskonfiguration, så motorens (angivet-løn) og præsentationens
+      // (ansættelsesforhold) input er identiske for de regulerende felter.
+      const overenskomstFelter = {
+        loenudviklingBeregningsgrundlag: 'Overenskomst' as const,
+        overenskomstId: 'bygge-anlaeg' as const,
+        loenPaaHelligdage: 'Ingen' as const,
+        feriePct: 12.5,
+        harAnciennitetstillaegEfterSkadedatoen: true,
+        // Anciennitetsdato FØR reguleringsdatoen (skadedato ≤ dato pr. UI-min) → tillægget gælder
+        // allerede på reguleringsdatoen og indgår derfor i basen.
+        anciennitetstillaegDato: iso('2020-06-01'),
+        anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+        anciennitetstillaegSats: asAmountValue(1000),
+      };
+      const values = cloneInitialValues();
+      values.beregnesUdFra = 'Angivet månedsløn';
+      values.maanedsloenenUdgoer = asAmountValue(30000);
+      values.angivetMaanedsloenOpreguleresFraDato = iso(REG);
+      values.tafPerioder = [{ id: 'taf-anc', fra: iso(REG), til: iso('2025-12-31'), loseFeriedage: 0 }];
+      values.eoAngivetLoenLoenudvikling = {
+        ...values.eoAngivetLoenLoenudvikling,
+        ...overenskomstFelter,
+      };
+      const afForPraesentation = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        ...overenskomstFelter,
+      };
+      const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2020-01-01') };
+      const tafRanges = [{ fra: iso(REG), til: iso('2025-12-31') }];
+
+      const model = buildLoenudviklingModel(values, stamdata, TAF_BEREGNES_SOM.MAANEDER, null, { tafRanges });
+      const indexRows = buildReguleringIndexRows({
+        segments: model.beregnedeSegmenter,
+        ansaettelsesforhold: afForPraesentation,
+        anvendtReguleringsdato: iso(REG),
+        tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+      });
+
+      // Distinkte indeksværdier på hver side (præsentationen fletter nabosegmenter med samme
+      // beregning, så distinkte mængder — ikke rækker 1:1 — er det korrekte sammenligningsgrundlag).
+      const motorIndeks = new Set(model.beregnedeSegmenter.map((s) => (100 + s.deltaPct).toFixed(2)));
+      const vistIndeks = new Set(
+        indexRows
+          .filter((row) => row.indeks !== '-' && row.indeks !== '')
+          .map((row) => parseDaNumber(row.indeks).toFixed(2))
+      );
+
+      // Meningsfuldhed: der ER reel regulering (ellers ville alt være 100,00 og testen triviel).
+      expect([...motorIndeks].some((v) => v !== '100.00')).toBe(true);
+      expect(vistIndeks).toEqual(motorIndeks);
     });
   });
 
