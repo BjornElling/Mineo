@@ -1,7 +1,7 @@
 # Regulering — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-04
-**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1-fundament implementeret; R4 delvist; R2/R8/R9 fremadrettede)
+**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1-fundament implementeret; R4 delvist; R2 påbegyndt (fundament/pilot); R8/R9 fremadrettede)
 **Baggrund:** Syntese efter det fulde regulering-review (`regulering-review-plan.md`, punkt 0–15, alle ✅).
 **Formål:** Vurdere hvilke arkitektoniske og strukturelle valg jeg ville træffe anderledes,
 hvis reguleringsdomænet skulle designes helt fra bunden med den viden reviewet har givet os —
@@ -9,9 +9,9 @@ uden at være bundet af den nuværende kode. Breaking ændringer er tilladt og o
 
 > Dette er et **beslutningsoplæg og migrationsnotat**, ikke en fuld implementeringsplan. Hvert forslag angiver
 > potentiel gevinst, arbejde ved at ændre fra nuværende, og risiko ved at ændre.
-> De statusmarkerede deltrin i R3/R4/R5/R7 er allerede udført tal-neutralt; R1/R2/R6/R8/R9
-> er fortsat fremadrettede forslag. Forslag der kan ændre producerede tal er eksplicit markeret
-> og kræver forelæggelse jf. `AGENTS.md`.
+> De statusmarkerede deltrin i R1/R3/R5/R6/R7 er allerede udført tal-neutralt, R4 delvist og R2
+> påbegyndt (fundament/pilot); R8/R9 er fortsat fremadrettede forslag. Forslag der kan ændre
+> producerede tal er eksplicit markeret og kræver forelæggelse jf. `AGENTS.md`.
 
 ---
 
@@ -158,6 +158,38 @@ så R1 reducerer drift og switch-duplikering uden at optimere for hypotetiske fr
 | **Risiko** | Middel. Rører alle lag, men hvert træk er et *flyt* (samme matematik, ny placering), bevist byte-identisk med eksisterende beregnings- og render-tests. Højeste risiko er præsentations-særvisninger (KL/ASL) — mitigeres af R2's autoritative segment. |
 
 ### R2 — Ét autoritativt segment-resultat; præsentation formatterer kun
+
+> **Status (2026-07-07): PÅBEGYNDT — fundament/pilot (migrations-skridt 6).** Kortlægningen
+> bekræftede at den rige visnings-data (indeks, brudpunkter, satser, formel-komponenter) beregnes
+> TRE gange uafhængigt: i motorens `byggSegmenter` (kasseres — kun `{fra,til,deltaPct}` + KL's
+> `reguleretLoenOre` overlever), i `reguleringsPresentation.ts` (EO-PDF/bilag, re-derivation fra rå
+> `eoValues`), og i `eoInspektionRegulationCore.ts` (en tredje, uafhængig timeline). **Bærende
+> designbeslutning:** det autoritative visnings-artefakt udspringer af MOTORENS model
+> (`LoenudviklingModel.forloeb` + `perAnsaettelse[].forloeb`, ny valgfri `ReguleringForloeb`) og
+> bæres via motor-kanalen (`tafNetto` → PDF-presentation-model → `reguleringSection`) til
+> formatterne — det lægges bevidst IKKE i den auditerede `.strict()` canonical-output-schema, som
+> forbliver minimal beløb-kerne (B8/B9-grænse; canonical parity + strict-schema pinner at forløbet
+> ikke lækker ind). Dette skridt migrerer ÉN form — **'Manuel procentsats'** — end-to-end: motoren
+> emitterer `{kind:'manuelProcentsats', entries}` (byte-identisk med den delte
+> `buildManuelProcentsatsEntries`), og præsentationens `buildReguleringsvaerdierTableData` (Del 1C) +
+> `buildReguleringIndexRows` (Del 2E) LÆSER forløbet når det er til stede, ellers re-deriverer de
+> byte-identisk (valgfri parameter). Manuel procentsats blev valgt som pilot, fordi alle tre lag
+> allerede kalder samme builder — byte-identitet er garanteret ved konstruktion, så den risikable
+> plumbing bygges mod en sikker form. Tal- og UI-neutralt (pinnet af beregnings-, præsentations-,
+> reguleringSection-render-, inspektions- og canonical-parity-suiten + ny fallback-paritetstest
+> `buildReguleringsvaerdierTableData`/`buildReguleringIndexRows` med/uden forløb, og ny motor-test af
+> `model.forloeb`). **Bevidste afgrænsninger fra greenfield-visionen nedenfor / opfølgende skiver:**
+> (1) De øvrige 6 former (overenskomst offentlig/privat, statistik/ASL, KRL, KL, manuelt angivet)
+> re-deriverer fortsat uændret og repræsenteres ved fravær (`forloeb: undefined`); de migreres
+> skridtvis, med overenskomst (den reelle U8/U9-drift-flade) som det højeste-værdi men mest byte-
+> identitets-følsomme skridt. (2) Inspektionslaget forbruger IKKE endnu motor-forløbet — det har
+> ikke motor-modellen i `buildRegulationTimeline`/`buildRegulationInspektionSections` og kalder
+> fortsat `buildManuelProcentsatsEntries` direkte (byte-identisk); at føre motor-forløbet gennem
+> snapshot-bro-filerne til inspektionen er en senere skive. (3) `manuelProcentsatsForm.byggSegmenter`
+> kalder fortsat builderen for segmenterne, så motoren kalder den 2× (segmenter + forløb) med
+> identisk output — foldning (fx `ReguleringForm.byggSegmenter` returnerer entries) rører interfacet
+> for alle 7 former og er bevidst udskudt. Fuld suite grøn på nær kendte, urelaterede 5000ms
+> render-/hook-timeouts under fuld-suite-belastning (grønne isoleret, ikke-deterministiske).
 
 **Nuværende tilstand.** [reguleringsPresentation.ts](../../src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts) (1848 linjer)
 **re-deriverer** visningstabellerne direkte fra kildedata — den importerer `getEffektiveSatserForDato`,
@@ -499,7 +531,7 @@ Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt 
 2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur. **◑ Delvist udført 2026-07-07** (validatorens dispatch routet gennem den delte resolver; den strukturelle motor↔gate-forening + fuld `CoverageStatus` afventer R3 — se status-noten i afsnit 4).
 3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt. **✅ Udført 2026-07-07** (det duplikerede `ISODateString`-carry-forward-opslag samlet i ét delt primitiv på tværs af motor/præsentation/inspektion; datalagets `DanishDateString`-opslag og de carry-forward-frie modeller bevidst udenfor — se status-noten i afsnit 4).
 4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament. **✅ Fundament udført 2026-07-07** (kontrakt + `FORM_REGISTRY`; motorens dispatch + coverage routet gennem registeret, tal-neutralt; validatorens/row-gatens felt-dispatch + R2's præsentations-re-derivation er opfølgende skiver — se status-noten i afsnit 4).
-5. **R6** (familie-split) og **R2** (autoritativt segment) — oven på R1's kontrakt. **R6 ✅ udført 2026-07-07** (overenskomst delt i offentlig/privat segment-byggere bag facaden; ASL-krydsningen wrappet i den navngivne `aslIndeksTilSegmentDelta`-adapter; tal- og UI-neutralt, modul-split uden enum-ændring — se status-noten i afsnit 4). R2 (autoritativt segment) er fortsat fremadrettet: kræver segmenttype-udvidelse + omskrivning af præsentation/inspektion til ren formattering.
+5. **R6** (familie-split) og **R2** (autoritativt segment) — oven på R1's kontrakt. **R6 ✅ udført 2026-07-07** (overenskomst delt i offentlig/privat segment-byggere bag facaden; ASL-krydsningen wrappet i den navngivne `aslIndeksTilSegmentDelta`-adapter; tal- og UI-neutralt, modul-split uden enum-ændring — se status-noten i afsnit 4). **R2 (autoritativt segment) ◑ påbegyndt 2026-07-07** (fundament/pilot: motor-emitteret `ReguleringForloeb` via motor-kanalen, IKKE i den auditerede canonical-kerne; 'Manuel procentsats' migreret end-to-end i PDF-præsentationen, byte-identisk; de øvrige 6 former + inspektions-konsolidering er opfølgende skiver — se status-noten i afsnit 4). De højeste-værdi/mest følsomme skridt (overenskomst) er fortsat fremadrettede.
 6. **R8** (afrunding) — sidst og forsigtigst, da det er det eneste der kan ændre tal; kræver forelæggelse.
 
 Hvert skridt bevises byte-identisk med de eksisterende beregnings- og render-tests (557+ beregningstests,

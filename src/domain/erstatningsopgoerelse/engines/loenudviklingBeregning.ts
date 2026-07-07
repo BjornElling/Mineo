@@ -13,6 +13,7 @@ import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, Loen
 import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared } from '../helpers/eoSharedUtils';
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
+import { buildManuelProcentsatsEntries, type ReguleringForloeb } from './manuelProcentsatsRegulering';
 import { assertUniform } from './regulering/reguleringFormPrimitives';
 import { FORM_REGISTRY, byggReguleringsSegmenter } from './regulering/reguleringFormRegistry';
 import type { FormKonsoliderContext, LoenreguleringsSegment, ResolvedStrategi } from './regulering/reguleringForm';
@@ -133,6 +134,7 @@ export const buildLoenudviklingModel = (
     loenudviklingLabel: string;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
     loenudviklingTotal: Calculable<MoneyOre>;
+    forloeb?: ReguleringForloeb;
   }> => {
     if (!Number.isFinite(baseLoen) || baseLoen <= 0 || tafRanges.length === 0) {
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
@@ -171,6 +173,20 @@ export const buildLoenudviklingModel = (
       konsolideretForBase?.strategi === 'klLoenaftaler' && konsolideretForBase.reguleringsdato
         ? buildKlLoenaftalerReguleretLoenResolver(baseLoenRounded, konsolideretForBase.reguleringsdato)
         : null;
+
+    // R2 — autoritativt visnings-forløb, emitteret på modellen så præsentation/inspektion
+    // formatterer samme entries som motoren afleder deltaPct fra (ingen re-derivation → ingen drift).
+    // Pt. kun manuel procentsats; entries er byte-identiske med det byggSegmenter allerede beregner.
+    const forloeb: ReguleringForloeb | undefined =
+      konsolideretForBase?.strategi === 'manualProcentsats'
+        ? {
+          kind: 'manuelProcentsats',
+          entries: buildManuelProcentsatsEntries({
+            anvendtReguleringsdato: konsolideretForBase.reguleringsdato,
+            rows: konsolideretForBase.manualProcentsatsRows,
+          }),
+        }
+        : undefined;
 
     const beregnedeSegmenter: Array<LoenudviklingModel['beregnedeSegmenter'][number]> = [];
     for (const segment of loenreguleringssegmenter) {
@@ -230,13 +246,14 @@ export const buildLoenudviklingModel = (
         loenudviklingLabel,
         loenudviklingTotal: asCalculable(ensureMoneyOre(0)),
         beregnedeSegmenter,
+        forloeb,
       };
     }
 
     const totalOre = clampMoneyOreToZero(
       ensureMoneyOre(beregnedeSegmenter.reduce((sum, segment) => sum + segment.amountOre, 0))
     );
-    return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter };
+    return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter, forloeb };
   };
 
   const buildPerAnsaettelseModel = (): LoenudviklingModel => {
@@ -329,6 +346,7 @@ export const buildLoenudviklingModel = (
         loenudviklingLabel: modelForAf.loenudviklingLabel,
         loenudviklingTotal: modelForAf.loenudviklingTotal,
         beregnedeSegmenter: modelForAf.beregnedeSegmenter,
+        forloeb: modelForAf.forloeb,
       });
     }
 
@@ -383,6 +401,7 @@ export const buildLoenudviklingModel = (
     loenudviklingTotal: model.loenudviklingTotal,
     beregningsenhed: tafBeregningsenhed,
     beregnedeSegmenter: model.beregnedeSegmenter,
+    forloeb: model.forloeb,
     perAnsaettelse: [],
   };
 };

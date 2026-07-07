@@ -2,6 +2,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -456,6 +457,16 @@ describe('buildLoenudviklingModel', () => {
       { fra: iso('2025-01-01'), deltaPct: 10 },
       { fra: iso('2026-01-01'), deltaPct: 21 },
     ]);
+
+    // R2 — motoren emitterer det autoritative visnings-forløb (top-level ved angivet løn), byte-
+    // identisk med den delte builder, så præsentation/inspektion kan formattere uden re-derivation.
+    expect(model.forloeb).toEqual({
+      kind: 'manuelProcentsats',
+      entries: buildManuelProcentsatsEntries({
+        anvendtReguleringsdato: iso('2024-07-01'),
+        rows: values.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData ?? [],
+      }),
+    });
   });
 
   it('beregner negativ manuel Store Bededag-regulering for TAF-segmenter før 2024', () => {
@@ -500,6 +511,9 @@ describe('buildLoenudviklingModel', () => {
     expect(segment2023?.deltaPct).toBeLessThan(0);
     expect(segment2023?.deltaPct).toBe(-0.45);
     expect(segment2024?.deltaPct).toBe(0);
+
+    // R2 — kun manuel procentsats er migreret; øvrige former bærer intet forløb (undefined).
+    expect(model.forloeb).toBeUndefined();
   });
 
   it('fejl-lukker (kaster) når ASL-basisindeks mangler for reguleringsdatoens år', () => {

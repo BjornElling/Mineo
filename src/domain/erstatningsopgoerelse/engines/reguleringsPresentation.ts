@@ -65,7 +65,7 @@ import {
   buildPrivateOverenskomstFormulaComponents,
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
-import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
+import { buildManuelProcentsatsEntries, type ReguleringForloeb } from './manuelProcentsatsRegulering';
 import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 
 export type ReguleringIndexRow = Readonly<{
@@ -495,8 +495,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   tafFra: ISODateString;
   tafTil: ISODateString;
   tafBeregningsenhed: TafBeregningsenhed;
+  // R2 — det motor-emitterede autoritative forløb. Når til stede (PDF-kanalen) formatteres det
+  // direkte; ellers (inspektion, som ikke har motor-modellen) re-deriveres byte-identisk her.
+  forloeb?: ReguleringForloeb;
 }>): ReguleringValuesTableData | null => {
-  const { ansaettelsesforhold, anvendtReguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
+  const { ansaettelsesforhold, anvendtReguleringsdato, tafFra, tafTil, tafBeregningsenhed, forloeb } = params;
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
 
   if (grundlag === 'Overenskomst') {
@@ -778,10 +781,12 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   }
 
   if (grundlag === 'Manuel procentsats') {
-    const entries = buildManuelProcentsatsEntries({
-      anvendtReguleringsdato,
-      rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
-    });
+    const entries = forloeb?.kind === 'manuelProcentsats'
+      ? forloeb.entries
+      : buildManuelProcentsatsEntries({
+        anvendtReguleringsdato,
+        rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
+      });
     const relevantRows = entries.filter((entry) => entry.isBase || entry.startIso <= tafTil);
     if (relevantRows.length === 0) return null;
     return {
@@ -1039,8 +1044,10 @@ export const buildReguleringIndexRows = (params: Readonly<{
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   anvendtReguleringsdato: ISODateString | undefined;
   tafBeregningsenhed: TafBeregningsenhed;
+  // R2 — motor-emitteret autoritativt forløb; se buildReguleringsvaerdierTableData.
+  forloeb?: ReguleringForloeb;
 }>): readonly ReguleringIndexRow[] => {
-  const { segments, ansaettelsesforhold, anvendtReguleringsdato, tafBeregningsenhed } = params;
+  const { segments, ansaettelsesforhold, anvendtReguleringsdato, tafBeregningsenhed, forloeb } = params;
   if (segments.length === 0) return [];
   const tafStartIso = segments[0].fra;
   const tafEndIso = segments[segments.length - 1].til;
@@ -1781,10 +1788,12 @@ export const buildReguleringIndexRows = (params: Readonly<{
       }));
     }
     if (isManualProcentsats) {
-      const entries = buildManuelProcentsatsEntries({
-        anvendtReguleringsdato,
-        rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
-      });
+      const entries = forloeb?.kind === 'manuelProcentsats'
+        ? forloeb.entries
+        : buildManuelProcentsatsEntries({
+          anvendtReguleringsdato,
+          rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
+        });
       return entries.map((entry) => ({
         startIso: entry.startIso,
         components: {

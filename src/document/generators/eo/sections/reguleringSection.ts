@@ -37,6 +37,7 @@ import {
   type ReguleringIndexRow,
   type ReguleringValuesTableData,
 } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
+import type { ReguleringForloeb } from '../../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { isGreaterThanWithTolerance } from '../../../../utils/numberComparison';
 import { parsePercentPointString } from '../../../../utils/numberParsing';
@@ -73,10 +74,14 @@ type ReguleringSectionContext = Readonly<{
   modelLoenudviklingPerAnsaettelse: readonly Readonly<{
     ansaettelsesforholdId: string;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
+    forloeb?: ReguleringForloeb;
   }>[];
   // De globale lønudviklingssegmenter (hele det beregnede forløb). Bruges som
   // fallback for enkelt-kilde-modeller (angivet løn), hvor perAnsaettelse er tom.
   modelLoenudviklingGlobaleSegmenter: readonly LoenudviklingSegment[];
+  // Det motor-emitterede autoritative forløb for enkelt-kilde-modeller (angivet løn), hvor
+  // perAnsaettelse er tom. Samme global-fallback-princip som modelLoenudviklingGlobaleSegmenter.
+  modelLoenudviklingGlobaltForloeb?: ReguleringForloeb;
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
@@ -104,11 +109,13 @@ type ReguleringSectionContext = Readonly<{
     tafFra: ISODateString;
     tafTil: ISODateString;
     tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>;
+    forloeb?: ReguleringForloeb;
   }>) => ReguleringValuesTableData | null;
   buildReguleringIndexRows: (params: Readonly<{
     segments: readonly LoenudviklingSegment[];
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
     anvendtReguleringsdato: ISODateString | undefined;
+    forloeb?: ReguleringForloeb;
   }>) => readonly ReguleringIndexRow[];
   resolveStatistikModelIdFromLabel: (label: string | undefined) => string | undefined;
   writer: DocumentWriter;
@@ -264,6 +271,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     stamdataValues,
     modelLoenudviklingPerAnsaettelse,
     modelLoenudviklingGlobaleSegmenter,
+    modelLoenudviklingGlobaltForloeb,
     startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
@@ -503,6 +511,15 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       globaleSegmenter: modelLoenudviklingGlobaleSegmenter,
       ansaettelsesforholdId: ansaettelsesforhold.id,
     });
+    // Samme global-fallback-princip som segmenterne ovenfor: per-ansættelse-forløbet når det
+    // findes, ellers det globale forløb for enkelt-kilde-modeller (angivet løn).
+    const perAnsaettelseForloeb: ReguleringForloeb | undefined = (() => {
+      const match = modelLoenudviklingPerAnsaettelse.find(
+        (entry) => entry.ansaettelsesforholdId === ansaettelsesforhold.id
+      );
+      if (match) return match.forloeb;
+      return modelLoenudviklingPerAnsaettelse.length === 0 ? modelLoenudviklingGlobaltForloeb : undefined;
+    })();
     const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${originalIndex + 1}`;
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
@@ -577,6 +594,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
             tafFra: coverageBounds.foerste,
             tafTil: coverageBounds.sidste,
             tafBeregningsenhed: tafBeregnesSom,
+            forloeb: perAnsaettelseForloeb,
           })
         : null;
     renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
@@ -597,6 +615,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       segments: perAnsaettelseSegments,
       ansaettelsesforhold,
       anvendtReguleringsdato,
+      forloeb: perAnsaettelseForloeb,
     });
     renderReguleringIndeksTable(reguleringTableRows, {
       hideIndeksberegning: ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Manuel procentsats',

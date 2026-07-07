@@ -8,6 +8,7 @@ import type {
   SfggReferencesatsCalculable,
   SfggReferencesatsFormula,
 } from '../engines/sygeferiegodtgoerelse';
+import type { ReguleringForloeb } from '../engines/manuelProcentsatsRegulering';
 
 export type MoneyOre = number;
 export type MoneyKroner = number;
@@ -253,12 +254,16 @@ export type LoenudviklingModel = Readonly<{
   loenudviklingTotal: Calculable<MoneyOre>;
   beregningsenhed: TafBeregningsenhed;
   beregnedeSegmenter: readonly LoenudviklingSegment[];
+  // Autoritativt visnings-forløb (R2). Sat for migrerede former (pt. kun manuel procentsats);
+  // undefined for øvrige. Top-level bruges ved angivet løn (perAnsaettelse er tom).
+  forloeb?: ReguleringForloeb;
   perAnsaettelse: readonly Readonly<{
     ansaettelsesforholdId: string;
     ansaettelsesforholdNavn: string;
     loenudviklingLabel: string;
     loenudviklingTotal: Calculable<MoneyOre>;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
+    forloeb?: ReguleringForloeb;
   }>[];
 }>;
 

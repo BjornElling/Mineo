@@ -6,6 +6,7 @@ import {
   resolveLoenSkadedatoText,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import type { LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import {
   getAngivetLoenOpreguleresFraDato,
   resolveAktivEllerFoersteLoenudviklingKilde,
@@ -835,6 +836,45 @@ describe('reguleringsPresentation', () => {
       ['01-01-2025', '110,00', '+ 10,00 %'],
       ['01-01-2026', '121,00', '+ 21,00 %'],
     ]);
+  });
+
+  // R2 — det motor-emitterede forløb er den autoritative kilde: præsentationen skal producere
+  // byte-identisk output, uanset om forløbet sendes med (PDF-kanalen) eller udelades (inspektion,
+  // der re-deriverer internt). Dette pinner selve R2-koblingen for manuel procentsats.
+  it('manuel procentsats: output er byte-identisk med og uden motor-emitteret forløb', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuel procentsats';
+    af.loenudviklingManuelProcentsatsTableData = [
+      { id: 'base', dato: undefined, procent: 0 },
+      { id: 'pct-2025', dato: iso('2025-01-01'), procent: 10 },
+      { id: 'pct-2026', dato: iso('2026-01-01'), procent: 10 },
+    ];
+    const anvendtReguleringsdato = iso('2024-07-01');
+    const forloeb = {
+      kind: 'manuelProcentsats' as const,
+      entries: buildManuelProcentsatsEntries({
+        anvendtReguleringsdato,
+        rows: af.loenudviklingManuelProcentsatsTableData,
+      }),
+    };
+    const segments: LoenudviklingSegment[] = [
+      { kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-12-31'), maaneder: 6, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 18000000 },
+      { kind: 'maaneder', fra: iso('2025-01-01'), til: iso('2025-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 10, amountOre: 39600000 },
+      { kind: 'maaneder', fra: iso('2026-01-01'), til: iso('2026-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 21, amountOre: 43560000 },
+    ];
+
+    const vaerdierUden = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-07-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder',
+    });
+    const vaerdierMed = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-07-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
+    });
+    expect(vaerdierMed).toEqual(vaerdierUden);
+
+    const rowsUden = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder' });
+    const rowsMed = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder', forloeb });
+    expect(rowsMed).toEqual(rowsUden);
   });
 
   it('skjuler manuel Fritvalg-kolonne når alle rækker har fritvalg = 0', () => {
