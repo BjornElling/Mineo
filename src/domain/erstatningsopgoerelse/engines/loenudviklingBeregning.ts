@@ -2,7 +2,6 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isoToDanish, isISODateString } from '../../../types/branded';
 import { opregulerMedAslAarsloensmaksimum } from '../../satser/opreguleringsmotorer';
-import { resolveAslAarsloensmaksimumForAar } from '../../satser/aslAarsloensmaksimum';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { parsePercentPointString } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
@@ -591,25 +590,23 @@ const buildLoenudviklingFromStatistik = (
 
   if (isAslStatistikModel(modelLabel)) {
     const baseYear = Number(konsolideret.reguleringsdato.slice(0, 4));
-    const directBaseIndex = resolveAslAarsloensmaksimumForAar(baseYear);
-    const baseIndex = ensurePositiveFiniteNumber(
-      directBaseIndex,
-      'Loenudvikling kan ikke beregnes: mangler ASL basisindeks'
-    );
 
-    // OPREGULERINGSMETODE: ASL-årslønsmaksimum. Selve indeksforholdet beregnes af den
-    // fælles motor (idx[segmentår] / idx[basisår]); guards for manglende indeks bevares.
+    // OPREGULERINGSMETODE: ASL-årslønsmaksimum (idx[segmentår] / idx[basisår]). Selve
+    // indeksforholdet OG dæknings-tjekket ligger i den fælles motor, som nu kaldes med den
+    // fulde `aarsloenAslMax`-tabel (default) frem for et injiceret to-års-map. Motoren
+    // tjekker hvert år i basisår→segmentår for dækning (ensartet med den akkumulerede motor,
+    // jf. `opregulerMedAslAarsloensmaksimum`); tal-neutralt via interiort-hul-load-guarden.
+    // Det tidligere per-segment-opslag + to-års-injektion var netop den endepunkts-kun-gren,
+    // foreningen fjernede — genindfør den ikke.
     const aslSegments = buildAslReguleringsSegments(konsolideret.tafRanges)
       .map<LoenreguleringsSegment>((segment) => {
         if (segment.year < baseYear) {
           return buildZeroDeltaSegment(segment);
         }
-        const idx = resolveAslAarsloensmaksimumForAar(segment.year);
-        const segmentIndex = ensurePositiveFiniteNumber(idx, 'Loenudvikling kan ikke beregnes: mangler ASL indeks');
-        const { deltaPct, manglendeAar } = opregulerMedAslAarsloensmaksimum(
-          { kildeAar: baseYear, maalAar: segment.year },
-          { [baseYear]: baseIndex, [segment.year]: segmentIndex }
-        );
+        const { deltaPct, manglendeAar } = opregulerMedAslAarsloensmaksimum({
+          kildeAar: baseYear,
+          maalAar: segment.year,
+        });
         if (manglendeAar.length > 0) {
           throw new Error(`Loenudvikling kan ikke beregnes: mangler ASL indeks for ${manglendeAar.join(', ')}`);
         }

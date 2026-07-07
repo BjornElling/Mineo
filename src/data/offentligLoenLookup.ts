@@ -7,6 +7,7 @@
 
 import { type DanishDateString } from '../types/branded';
 import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
 import type {
   OffentligOverenskomstType,
   Loengruppe,
@@ -71,6 +72,16 @@ const buildReguleringLookups = (
   label: string
 ): ReadonlyArray<ReguleringMedLookup> => {
   assertOffentligLoenTabelIkkeTom(satser, label);
+  // Strengt nyeste-først + unikke datoer via det fælles integritets-primitiv (samme guard
+  // som KRL/KL/overenskomst bruger, jf. regulering-redesign R5). En mis-sorteret eller
+  // duplikeret dato ville få carry-forward-opslaget (`findNewestReguleringOnOrBefore`) til
+  // at returnere en forkert sats. `danishDateToNumber` bruger samme `parseDanishDate`, så
+  // ordningen er identisk med det tidligere inline-tjek — tal-neutralt.
+  assertStrictlyMonotonicByDanishDate(satser, {
+    getDato: (reg) => reg.effectiveDate,
+    order: 'descending',
+    label: `${label}: lønsatser`,
+  });
 
   const lookups = satser.map((reg) => {
     const byTrin = new Map<number, OffentligLoenEntry>();
@@ -102,23 +113,6 @@ const buildReguleringLookups = (
       lookup: { byTrin, plus55 },
     };
   });
-
-  // Integritetstjek: unikke effectiveDates
-  const dateNums = new Set(lookups.map((l) => l.effectiveDateNum));
-  if (dateNums.size !== lookups.length) {
-    throw new Error(`${label}: Duplikerede effectiveDates i lønsatser-data.`);
-  }
-
-  // Integritetstjek: sikr nyeste-først sortering (stoler ikke på genereret rækkefølge)
-  for (let i = 1; i < lookups.length; i++) {
-    if (lookups[i].effectiveDateNum >= lookups[i - 1].effectiveDateNum) {
-      throw new Error(
-        `${label}: Lønsatser er ikke sorteret nyeste først. ` +
-          `${lookups[i - 1].effectiveDate} (${lookups[i - 1].effectiveDateNum}) ` +
-          `efterfølges af ${lookups[i].effectiveDate} (${lookups[i].effectiveDateNum}).`
-      );
-    }
-  }
 
   return lookups;
 };

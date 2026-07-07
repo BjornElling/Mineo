@@ -337,8 +337,9 @@ describe('assertAarsloenAslMaxKontinuitet (S6-hul-guard for ASL-regulering)', ()
   });
 
   it('fail-closer ved et enkelt manglende år midt i serien', () => {
-    // 2021 mangler mellem 2020 og 2022 — ville passere den endepunkts-baserede
-    // dækningsvalidering, men få compute-motoren til at kaste for 2021-segmentet.
+    // 2021 mangler mellem 2020 og 2022. Guarden sikrer, at motorens interval-brede
+    // dæknings-tjek forbliver tal-neutralt: uden den kunne et interiort hul ændre hvilke
+    // år der rapporteres som manglende (og i værste fald give tavs under-regulering).
     expect(() => assertAarsloenAslMaxKontinuitet({ 2020: 1, 2022: 3 })).toThrow(/mangler år 2021/);
   });
 

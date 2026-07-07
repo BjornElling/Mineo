@@ -54,7 +54,7 @@ ikke abstrahere dem væk. Ethvert forslag herunder er formuleret så disse overl
 |---|---|---|
 | **ASL slår eksakt op pr. år, carry-forwarder aldrig** | Hvert år kræver sit eget indeks; intet dæknings-vindue | punkt 4, S6 |
 | **KL-lønaftaler: trinvis kæde med afrunding pr. trin** | Bevidst parallel til Erstatningsnævnets (unøjagtige) satser; ingen akkumuleret visning | `docs/domain/taf/kl-loenaftaler-regulering.md` |
-| **To opreguleringsmotorer med forskellige dæknings-krav** | ASL-ratio kræver kun 2 endepunktsår; akkumuleret kræver hvert mellemår | punkt 11 |
+| **To opreguleringsmotorer med samme dæknings-tjek, forskellig matematik** | ~~ASL-ratio kræver kun 2 endepunktsår~~ **Ensrettet 2026-07-07:** begge motorer tjekker nu HVERT år i intervallet for dækning; kun matematikken adskiller sig (endepunkts-ratio vs. akkumuleret kæde) | punkt 11; se afsnit 4b, E1 |
 | **`computeFormulaValue` coercer ikke-finit→0; `computePackageValuePct` propagerer NaN→throw** | Den ene er tolerant visning, den anden fail-closed beregning | U5, punkt 15 |
 | **`resolveOffentligLoenSelection`: motor kaster, inspektion returnerer null** | Beregning skal fail-close; visning skal degradere pænt | U3, punkt 14 |
 | **Escape-hatch sænker kun severity (rød→gul), ændrer aldrig tal** | Beregningsmotoren modtager ikke app-settings | punkt 13 |
@@ -369,7 +369,50 @@ placering i et `display/`-modul beregningslaget ikke importerer).
 
 ---
 
-## 5. Hvad jeg IKKE ville ændre
+## 4b. Ensretninger — afvigende fremgangsmåder foldet ind under den fælles norm
+
+> Hvor migrations-skridtene (R3/R4/R5/R7) samlede *duplikeret* logik, handler dette afsnit om
+> afvigelser der ikke var duplikering, men **en anden fremgangsmåde til samme mål**. De er ensrettet
+> til den fælles norm for at fjerne særskilt logik — bevidst, tal-neutralt, og dokumenteret her så en
+> senere refactor ikke "optimerer" dem tilbage. Skelnen fra afsnit 2: en afvigelse hører kun til her,
+> hvis unifikationen er tal-neutral for ethvert *produceret* tal; ægte domænesandheder (afsnit 2) bliver.
+
+### E1 — ASL-ratioens dæknings-tjek ensrettet med den akkumulerede motor (2026-07-07)
+
+**Før.** `opregulerMedAslAarsloensmaksimum` tjekkede KUN de to endepunktsår for dækning (matematisk
+korrekt, fordi ratioen `idx[målår]/idx[kildeår]` kun afhænger af endepunkterne), mens den akkumulerede
+motor tjekker hvert mellemliggende år. ASL-statistik-grenen i motoren fodrede endda et injiceret
+to-års-map ind for at understøtte endepunkts-kun-stien.
+
+**Efter.** ASL-ratioen tjekker nu HVERT år i `[min(kildeår,målår); max(...)]` for dækning — præcis
+samme fremgangsmåde som den akkumulerede motor. Selve ratio-matematikken er uændret (bruger fortsat
+kun endepunkterne). Motorens ASL-gren kalder nu den fælles motor med den fulde `aarsloenAslMax`-tabel
+frem for et to-års-map, og den redundante per-segment-opslags-gren er fjernet.
+
+**Hvorfor tal-neutralt.** `aarsloenAslMax` har en interiort-hul-load-guard
+(`assertAarsloenAslMaxKontinuitet`), så et interiort år aldrig kan mangle mellem to gyldige endepunkter.
+Derfor er det interval-brede tjek identisk med endepunkts-tjekket for al data, der passerer load. Eneste
+observerbare forskel: for et endepunkt *uden for* tabellen kan `manglendeAar` (og den fail-closede
+fejltekst) nu liste de mellemliggende år op til grænsen — en fail-closed-detalje, ikke et produceret tal.
+
+**Begrundelse.** Bruger-beslutning 2026-07-07: processuel forenkling frem for matematisk nødvendighed —
+de to motorer deler nu én dæknings-fremgangsmåde, og der findes ingen særskilt endepunkts-kun-gren at
+vedligeholde. Guardrail-række "To opreguleringsmotorer …" i afsnit 2 er opdateret tilsvarende.
+Berørt: `opreguleringsmotorer.ts`, `loenudviklingBeregning.ts` (ASL-grenen), doc i `lovbestemteRates.ts`.
+**Må ikke rulles tilbage til endepunkts-kun-opslag.**
+
+### E2 — Offentlig-løn-tabellens sorterings-/unikheds-tjek ensrettet med det fælles primitiv (2026-07-07)
+
+**Før.** `buildReguleringLookups` (offentlig løn, KL/RLTN) håndhævede "strengt nyeste-først + unikke
+datoer" med sin **egen inline-løkke** over `effectiveDateNum` + et separat `Set`-unikheds-tjek — en
+fjerde kopi af invariant-tjekket, som R5's `assertStrictlyMonotonicByDanishDate` allerede dækker for
+KRL/KL/overenskomst. R5-status-noten (afsnit 4, R5) regnede kun `assertOffentligLoenTabelIkkeTom`
+(ikke-tom) som offentlig-løns integritets-tjek og overså denne inline-kopi.
+
+**Efter.** Inline-løkken er erstattet af `assertStrictlyMonotonicByDanishDate(..., order: 'descending')`.
+Tal-neutralt: `danishDateToNumber` bruger samme `parseDanishDate`, så ordningen er identisk, og strengt
+monotont faldende afviser duplikerede datoer præcis som det tidligere `Set`-tjek. `assertOffentligLoenTabelIkkeTom`
+(ikke-tom) forbliver kildens navngivne load-guard i den kanoniske R5-liste. Berørt: `offentligLoenLookup.ts`.
 
 Reviewet viste også, hvad der allerede er godt designet — det bør et redesign bevare og *udvide fra*,
 ikke rive ned:

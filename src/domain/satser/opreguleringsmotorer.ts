@@ -28,9 +28,12 @@
  *    ikke-tom, er `faktor`/`deltaPct` IKKE pålidelige; kalderen skal fail-close.
  *
  * For målår ≤ kildeår returneres faktor 1 / deltaPct 0 (ingen opregulering frem
- * i tid). Akkumuleret reguleringssats kræver dog stadig satsdækning for start-
- * og slutåret, fordi manglende satsdata skal give en synlig feltfejl frem for en
- * tavs "ingen regulering"-sti.
+ * i tid). Begge motorer kræver dog stadig satsdækning for HELE intervallet (start-,
+ * slut- OG alle mellemliggende år), fordi manglende satsdata skal give en synlig
+ * feltfejl frem for en tavs "ingen regulering"-sti. For den akkumulerede metode er
+ * mellemårs-dækningen matematisk nødvendig (produktet multiplicerer hvert års sats
+ * ind); for ASL-ratioen er den bevidst ensartet snarere end nødvendig — se
+ * `opregulerMedAslAarsloensmaksimum`.
  */
 
 import { aarsloenAslMax, reguleringssats, type YearlyRate } from '../../data/lovbestemteRates';
@@ -105,7 +108,23 @@ export const resolveReguleringssatsForAar = (
  * Metode 1 — ASL-årslønsmaksimum-indeks.
  *
  * Faktor = idx[målår] / idx[kildeår] (idx = `aarsloenAslMax`).
- * Mangler indeks for ét af de to år, returneres `manglendeAar` med de(t) berørte år.
+ *
+ * DÆKNINGSTJEK: matematisk afhænger ratioen KUN af de to endepunkter, men motoren
+ * tjekker bevidst HVERT år i intervallet [min(kildeår,målår); max(...)] for dækning —
+ * præcis samme fremgangsmåde som den akkumulerede motor (metode 2), så de to motorer
+ * ikke har hver sit dæknings-krav. Dette er en **processuel forenkling, ikke en
+ * matematisk nødvendighed** (bruger-beslutning 2026-07-07): det holder dæknings-logikken
+ * ensartet og fjerner en særskilt endepunkts-kun-gren.
+ *
+ * Det er tal-neutralt for enhver faktisk beregning: `aarsloenAslMax` har en interiort-hul-
+ * load-guard (`assertAarsloenAslMaxKontinuitet`), så et interiort år aldrig kan mangle
+ * mellem to gyldige endepunkter. Kun et endepunkt UDEN FOR tabellen udløser `manglendeAar`,
+ * og selve ratioen (endepunkt/endepunkt) er uændret. Eneste observerbare forskel vs. det
+ * tidligere endepunkts-kun-tjek er, at `manglendeAar` for et out-of-range-interval nu kan
+ * liste de mellemliggende år op til grænsen — en fail-closed-detalje, ikke et produceret tal.
+ *
+ * MÅ IKKE "optimeres" tilbage til et endepunkts-kun-opslag: det ville genindføre den
+ * afvigende gren, denne forening netop fjernede.
  */
 export const opregulerMedAslAarsloensmaksimum = (
   input: OpreguleringInput,
@@ -119,10 +138,16 @@ export const opregulerMedAslAarsloensmaksimum = (
   // positiv-finit-semantik som grænse-valideringen); kun ratio-matematikken bor her.
   const kildeIndeks = resolveAslAarsloensmaksimumForAar(kildeAar, indeks);
   const maalIndeks = resolveAslAarsloensmaksimumForAar(maalAar, indeks);
+  // Dæknings-tjek af hele intervallet (jf. doc ovenfor) — ensartet med metode 2.
   const manglendeAar: number[] = [];
-  if (kildeIndeks === undefined) pushMissingYear(manglendeAar, kildeAar);
-  if (maalIndeks === undefined) pushMissingYear(manglendeAar, maalAar);
-  if (kildeIndeks === undefined || maalIndeks === undefined) {
+  const fraAar = Math.min(kildeAar, maalAar);
+  const tilAar = Math.max(kildeAar, maalAar);
+  for (let year = fraAar; year <= tilAar; year += 1) {
+    if (resolveAslAarsloensmaksimumForAar(year, indeks) === undefined) {
+      manglendeAar.push(year);
+    }
+  }
+  if (manglendeAar.length > 0 || kildeIndeks === undefined || maalIndeks === undefined) {
     return { faktor: 1, deltaPct: 0, manglendeAar };
   }
   if (maalAar <= kildeAar) return NO_OPREGULERING;

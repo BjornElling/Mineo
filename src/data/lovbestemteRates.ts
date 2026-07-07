@@ -329,14 +329,13 @@ export const aarsloenAslMax: YearlyRate = {
  * Kontinuitets-guard for ASL-årslønsmaksimum (fail-closed ved ægte datafejl).
  *
  * ASL-lønudviklingsreguleringen (`buildLoenudviklingFromStatistik`, ASL-grenen) opdeler
- * TAF-perioden i kalenderår og slår maks-satsen op for HVERT år
- * (`resolveAslAarsloensmaksimumForAar`). Dækningsvalideringen
- * (`validateLoenudviklingDataCoverage`) er derimod endepunkts-baseret:
- * `opregulerMedAslAarsloensmaksimum` er per kontrakt et rent forhold
- * idx[målår]/idx[kildeår] og tjekker KUN de to endepunktsår. Et hul MIDT i tabellen
- * ville derfor passere valideringen, men få compute-motoren til at kaste for det
- * manglende års segment → `fail_closed`/`runtime_exception` i stedet for en synlig,
- * målrettet feltfejl.
+ * TAF-perioden i kalenderår og slår maks-satsen op for HVERT år via den fælles motor
+ * `opregulerMedAslAarsloensmaksimum`, som tjekker hvert år i basisår→målår for dækning
+ * (ensartet med den akkumulerede motor). Denne guard garanterer, at det interval-brede
+ * dæknings-tjek er tal-neutralt: uden den kunne et hul MIDT i tabellen få motoren til at
+ * fail-close for et interiort år mellem to gyldige endepunkter, hvilket ville ændre
+ * hvilke år der rapporteres som manglende. Med guarden kan et interiort år aldrig mangle,
+ * så motoren opfører sig identisk med et rent endepunkts-opslag for al valid data.
  *
  * Vi kræver derfor at hvert kalenderår fra ældste til nyeste er repræsenteret. Guarden
  * er tal-neutral for den nuværende (sammenhængende) tabel og fyrer kun ved en ægte

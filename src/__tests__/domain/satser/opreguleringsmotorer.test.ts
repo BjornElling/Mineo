@@ -22,13 +22,27 @@ describe('opreguleringsmotorer', () => {
     });
 
     it('fail-closer for samme-år og bagud når indeksdata mangler', () => {
+      // Samme-år uden dækning: kun det ene år mangler.
       expect(opregulerMedAslAarsloensmaksimum({ kildeAar: 1999, maalAar: 1999 }).manglendeAar).toEqual([1999]);
-      expect(opregulerMedAslAarsloensmaksimum({ kildeAar: 2026, maalAar: 1999 }).manglendeAar).toEqual([1999]);
+      // Bagud med et endepunkt uden for tabellen: motoren tjekker hele intervallet (ensartet
+      // med den akkumulerede metode), så alle udækkede år op til grænsen listes — ikke kun
+      // endepunktet. Tal-neutralt (kun fail-closed-listen ændres, ikke et produceret tal).
+      const bagud = opregulerMedAslAarsloensmaksimum({ kildeAar: 2026, maalAar: 1999 });
+      const forventetBagud: number[] = [];
+      for (let year = 1999; year <= 2026; year += 1) {
+        if (aarsloenAslMax[year] === undefined) forventetBagud.push(year);
+      }
+      expect(bagud.manglendeAar).toEqual(forventetBagud);
+      expect(forventetBagud.length).toBeGreaterThan(1);
     });
 
-    it('fail-closer når et af årene mangler indeks', () => {
+    it('fail-closer når et endepunkt mangler indeks (interval-dæknings-tjek)', () => {
       const res = opregulerMedAslAarsloensmaksimum({ kildeAar: 1999, maalAar: 2026 });
-      expect(res.manglendeAar).toEqual([1999]);
+      const forventet: number[] = [];
+      for (let year = 1999; year <= 2026; year += 1) {
+        if (aarsloenAslMax[year] === undefined) forventet.push(year);
+      }
+      expect(res.manglendeAar).toEqual(forventet);
       expect(res.faktor).toBe(1);
     });
 
@@ -52,12 +66,24 @@ describe('opreguleringsmotorer', () => {
       expect(decimal.manglendeAar).toEqual([2022.5]);
     });
 
-    it('kræver KUN dækning for de to endepunktsår — ikke mellemliggende år (ratio-metode)', () => {
-      // Asymmetri vs. metode 2: ASL-indeks er et rent forhold idx[målår]/idx[kildeår],
-      // så et hul i et mellemliggende år må ikke fail-close. Map uden 2024/2025.
+    it('tjekker HVERT år i intervallet for dækning — ensartet med den akkumulerede metode', () => {
+      // Bevidst forening (bruger-beslutning 2026-07-07): ratioen afhænger matematisk kun af
+      // de to endepunkter, men dæknings-tjekket dækker hele intervallet, så de to motorer
+      // deler præcis samme fremgangsmåde. Et sparsomt map uden mellemårene fail-closer nu.
       const res = opregulerMedAslAarsloensmaksimum(
         { kildeAar: 2022, maalAar: 2026 },
         { 2022: 100, 2026: 116 }
+      );
+      expect(res.manglendeAar).toEqual([2023, 2024, 2025]);
+      expect(res.faktor).toBe(1);
+    });
+
+    it('beregner ratioen fra endepunkterne når hele intervallet er dækket', () => {
+      // Ratio-matematikken bruger stadig KUN endepunkterne: et mellemår påvirker ikke
+      // faktoren (idx[2026]/idx[2022]), det skal blot være til stede for dæknings-tjekket.
+      const res = opregulerMedAslAarsloensmaksimum(
+        { kildeAar: 2022, maalAar: 2026 },
+        { 2022: 100, 2023: 999, 2024: 108, 2025: 112, 2026: 116 }
       );
       expect(res.manglendeAar).toEqual([]);
       expect(res.faktor).toBeCloseTo(116 / 100, 12);
@@ -208,21 +234,27 @@ describe('opreguleringsmotorer', () => {
   });
 
   describe('fail-closed-konsistens på tværs af de to motorer', () => {
-    it('skelner mellem endepunkts-ratio og akkumuleret kæde når et mellemår mangler', () => {
+    it('begge motorer fail-closer på et manglende mellemår (ensartet dæknings-tjek)', () => {
+      // Efter foreningen (2026-07-07) tjekker BEGGE motorer hele intervallet for dækning;
+      // forskellen er kun matematisk (endepunkts-ratio vs. akkumuleret kæde), ikke i hvilke
+      // år der skal være dækket. Map uden 2023 → begge fail-closer med [2023].
       const input = { kildeAar: 2022, maalAar: 2024 };
 
-      const asl = opregulerMedAslAarsloensmaksimum(input, {
-        2022: 100,
-        2024: 110,
-      });
-      expect(asl.manglendeAar).toEqual([]);
-      expect(asl.faktor).toBeCloseTo(1.1, 12);
+      const asl = opregulerMedAslAarsloensmaksimum(input, { 2022: 100, 2024: 110 });
+      expect(asl).toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [2023] });
 
-      const akk = opregulerMedAkkumuleretReguleringssats(input, {
-        2022: 0,
-        2024: 4,
-      });
+      const akk = opregulerMedAkkumuleretReguleringssats(input, { 2022: 0, 2024: 4 });
       expect(akk).toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [2023] });
+    });
+
+    it('de to motorer beregner forskellig faktor på fuldt dækket interval (forskellig matematik)', () => {
+      const input = { kildeAar: 2022, maalAar: 2024 };
+      const asl = opregulerMedAslAarsloensmaksimum(input, { 2022: 100, 2023: 104, 2024: 110 });
+      const akk = opregulerMedAkkumuleretReguleringssats(input, { 2022: 0, 2023: 2, 2024: 4 });
+      // ASL: rent endepunkts-forhold 110/100 = 1,10 (mellemåret 2023 påvirker ikke ratioen).
+      expect(asl.faktor).toBeCloseTo(1.1, 12);
+      // Akkumuleret: ∏(1+sats/100) for 2023 og 2024 = 1,02 * 1,04.
+      expect(akk.faktor).toBeCloseTo(1.02 * 1.04, 12);
     });
 
     it('manglendeAar er aldrig tom for et 0-beløbs-gyldigt, men data-manglende interval (begge metoder)', () => {

@@ -529,7 +529,7 @@ describe('buildLoenudviklingModel', () => {
       TAF_BEREGNES_SOM.MAANEDER,
       null,
       { tafRanges: [{ fra: iso('2005-01-01'), til: iso('2005-01-31') }] }
-    )).toThrow(/ASL basisindeks/);
+    )).toThrow(/mangler ASL indeks for 2004/);
   });
 
   it('splitter ASL-sporets segmenter på kalenderårs-grænser (delegering til splitIsoRangeByCalendarYearsInclusive)', () => {
