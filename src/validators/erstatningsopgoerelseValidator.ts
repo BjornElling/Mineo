@@ -20,9 +20,7 @@ import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString, type ISODateString } from '../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
-import { getReguleringsDatoIntervalForStatistikModel } from '../data/statistiskeRates';
-import { getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../data/krlRates';
-import { getReguleringsDatoIntervalForKlLoenaftaler } from '../data/klLoenaftaler';
+import { resolveKildeReguleringsIntervalIso } from '../domain/erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
@@ -51,7 +49,7 @@ import {
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
-import { danishToISO, isoToDanish } from '../types/branded';
+import { isoToDanish } from '../types/branded';
 import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
@@ -939,13 +937,14 @@ const validateLoenudviklingDataCoverage = (
   });
   if (!anvendtReguleringsdato) return [];
 
-  const coverage = grundlag === 'Statistik'
-    ? getReguleringsDatoIntervalForStatistikModel(af.loenudviklingStatistikModel ?? '')
-    : grundlag === 'KL-lønaftaler'
-      ? getReguleringsDatoIntervalForKlLoenaftaler()
-      : isKRLSatstabelId(af.loenudviklingKRLSatstabel)
-        ? getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)
-        : undefined;
+  // Kildens dæknings-interval hentes via den delte, autoritative opslag
+  // (resolveKildeReguleringsIntervalIso) — samme kilde som row-gaten og note-laget bruger — så
+  // validatorens "efter sidste sats"-grænse ikke kan drive fra dem (R4: ét sted for
+  // dæknings-intervallet, én grundlags→interval-dispatch). Grundlags-filteret ovenfor (kun
+  // Statistik/KRL/KL) er bevaret; Overenskomst gates bevidst ikke her, selvom resolveren også
+  // dækker den. Resolveren returnerer allerede ISO (`tilIso`), så den tidligere danishToISO-konvertering
+  // er unødvendig.
+  const coverage = resolveKildeReguleringsIntervalIso(af);
   if (grundlag === 'Statistik' && isAslStatistikModel((af.loenudviklingStatistikModel ?? '').trim())) {
     const baseYear = Number.parseInt(anvendtReguleringsdato.slice(0, 4), 10);
     const tafRanges = buildTafRanges(values, { skadedatoISO: options?.skadedatoISO });
@@ -962,10 +961,10 @@ const validateLoenudviklingDataCoverage = (
       }];
     }
   }
-  if (!coverage) return [];
+  if (!coverage?.tilIso) return [];
 
-  const maxIso = danishToISO(coverage.tilDato);
-  if (!maxIso || anvendtReguleringsdato <= maxIso) return [];
+  if (anvendtReguleringsdato <= coverage.tilIso) return [];
+  const tilDatoDisplay = isoToDanish(coverage.tilIso) ?? coverage.tilIso;
 
   const sourceLabel = grundlag === 'Statistik'
     ? `statistikmodellen "${af.loenudviklingStatistikModel ?? ''}"`
@@ -978,7 +977,7 @@ const validateLoenudviklingDataCoverage = (
 
   return [{
     path: resolveLoenudviklingCoveragePath(values, af, path),
-    message: `${employmentPrefix}Lønregulering kan ikke beregnes efter ${coverage.tilDato}, fordi datagrundlaget for ${sourceLabel} mangler.`,
+    message: `${employmentPrefix}Lønregulering kan ikke beregnes efter ${tilDatoDisplay}, fordi datagrundlaget for ${sourceLabel} mangler.`,
     severity: 'error',
   }];
 };

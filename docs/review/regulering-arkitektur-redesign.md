@@ -178,6 +178,26 @@ egen politik. ASL's "ingen carry-forward" er `policy: 'exact-key'`, ikke et sær
 
 ### R4 — Coverage-status som ét autoritativt objekt
 
+> **Status (2026-07-07): DELVIST IMPLEMENTERET (migrations-skridt 2).** Kortlægningen viste, at
+> selve interval-*matematikken* allerede er single-sourcet: alle lag bunder i de fem
+> `getReguleringsDatoIntervalFor*`-funktioner, som deler `getInclusivePeriodEndByMonths`
+> (`months` er den eneste per-kilde-variabel). Row-gaten og overenskomst-noten forbruger allerede
+> den delte `resolveKildeReguleringsIntervalIso`. Den reelle rest var **validatoren**
+> (`validateLoenudviklingDataCoverage`), der havde sin **egen kopi** af `grundlag → interval-fn`-
+> dispatch'en; den er nu routet gennem `resolveKildeReguleringsIntervalIso`, så validatorens
+> "efter sidste sats"-grænse deler præcis samme autoritative kilde som row-gaten (og de tre
+> data-fn-imports + `danishToISO`-konverteringen er fjernet). Tal-neutralt og tekst-identisk
+> (byte-identitet pinnet af de eksisterende statistik/KRL-coverage-tests; ny KL-coverage-test
+> tilføjet, `31-03-2027`). **Bevidst afvigelse fra greenfield-visionen nedenfor:** den fulde
+> `CoverageStatus` (`hullerISerie`/`effektivBaseDato`/`årsag`) blev IKKE indført — der er endnu
+> ingen konsument (jf. `AGENTS.md` Konvergens: ingen felter til hypotetisk fremtidig brug). Og
+> **R4's hovedgevinst — at gøre motor↔gate-alignet strukturel og pensionere
+> `reguleringSilentPathAlignment.test.ts` — er reelt gated på R3:** motorens
+> `resolveEffectiveBaseEntry`-fallback behøver selve sats-*entry'en* (indeks-/løn-værdien), ikke
+> kun grænse-datoen, så den kan ikke "læse coverage-objektet", før opslagene er samlet (R3). Note-
+> laget for statistik/KRL/KL (`periodStarts[0].startIso`) og inspektions-consumeren
+> (`isReferenceBeforeIntervalStart`) er R2/R3-territorie. Tal-neutralt, fuld suite grøn.
+
 **Nuværende tilstand.** "Før første sats"-grænsen beregnes **uafhængigt** i motoren
 (`resolveEffectiveBaseEntry` fallback, [loenudviklingBeregning.ts:353](../../src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts#L353))
 og i row-gaten (`reguleringsvaerdi`-error, [eoRowIndkomstRows.ts:472](../../src/domain/eoRowEvaluation/eoRowIndkomstRows.ts#L472)),
@@ -346,7 +366,7 @@ ikke rive ned:
 Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt tal-neutralt:
 
 1. **R5** (load-kontrakt) og **R7** (færdiggør primitiver) først — lav risiko, ren gevinst, ingen tal-ændring. **✅ Udført 2026-07-07** (R7 fuldt; R5's delte primitiver + completeness-test, med fuld type-strukturel håndhævelse udskudt til R3 — se status-noterne i afsnit 4).
-2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur.
+2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur. **◑ Delvist udført 2026-07-07** (validatorens dispatch routet gennem den delte resolver; den strukturelle motor↔gate-forening + fuld `CoverageStatus` afventer R3 — se status-noten i afsnit 4).
 3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt.
 4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament.
 5. **R2** (autoritativt segment) og **R6** (familie-split) — oven på R1's kontrakt.

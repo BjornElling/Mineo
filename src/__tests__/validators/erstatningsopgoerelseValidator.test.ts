@@ -1079,6 +1079,31 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     }));
   });
 
+  it('fanger KL-lønaftaler-regulering efter datagrundlagets seneste dato', () => {
+    // KL-lønaftalerne dækker til 31-03-2027 (nyeste sats + 6 mdr − 1 dag). Bindes via samme
+    // delte kilde-opslag (resolveKildeReguleringsIntervalIso) som statistik/KRL ovenfor, så
+    // validatorens "efter sidste sats"-grænse deler kilde med row-gaten (R4).
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2027-04-01'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+        },
+      ],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'tafBeregningsperiodeTil',
+      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 31-03-2027'),
+      severity: 'error',
+    }));
+  });
+
   it('fanger manglende manuel reguleringsrække ved grundlag=Manuelt angivet', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
