@@ -17,7 +17,8 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
+import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -166,21 +167,12 @@ const KRL_IDS: ReadonlyArray<{ id: KRLSatstabelId; colIndex: 1 | 2 | 3 | 4 }> = 
 export const assertKRLCombinedDataIntegritet = (
   rows: ReadonlyArray<KRLCombinedRow>
 ): void => {
-  // (1) Strengt nyeste-først + gyldige datoer.
-  let prevTime: number | null = null;
-  for (const row of rows) {
-    const parsed = parseDanishDate(row[0]);
-    if (!parsed) {
-      throw new Error(`KRL-satstabel: ugyldig fraDato "${row[0]}"`);
-    }
-    const time = parsed.getTime();
-    if (prevTime !== null && time >= prevTime) {
-      throw new Error(
-        `KRL-satstabel: rækkerne skal være sorteret strengt nyeste-først; "${row[0]}" bryder rækkefølgen`
-      );
-    }
-    prevTime = time;
-  }
+  // (1) Strengt nyeste-først + gyldige, unikke datoer (delt primitiv).
+  assertStrictlyMonotonicByDanishDate(rows, {
+    getDato: (row) => row[0],
+    order: 'descending',
+    label: 'KRL-satstabel',
+  });
 
   // (2) Ingen interiort hul: pr. kolonne må null kun være en prefiks i de ældste datoer.
   for (const { id, colIndex } of KRL_IDS) {

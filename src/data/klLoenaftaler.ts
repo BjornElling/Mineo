@@ -31,7 +31,8 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
+import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
 
 // ===== TYPER =====
 
@@ -140,21 +141,15 @@ export const assertKlLoenaftalerDataIntegritet = (
     throw new Error('KL-lønaftaler: serien er tom (mindst basis-datoen kræves)');
   }
 
-  let prevTime: number | null = null;
-  for (const row of raekker) {
-    const parsed = parseDanishDate(row.fraDato);
-    if (!parsed) {
-      throw new Error(`KL-lønaftaler: ugyldig fraDato "${row.fraDato}"`);
-    }
-    const time = parsed.getTime();
-    if (prevTime !== null && time <= prevTime) {
-      throw new Error(
-        `KL-lønaftaler: rækkerne skal være sorteret strengt ældste-først med unikke datoer; ` +
-          `"${row.fraDato}" bryder rækkefølgen`
-      );
-    }
-    prevTime = time;
+  // (2) Strengt ældste-først + unikke, parsbare datoer (delt primitiv).
+  assertStrictlyMonotonicByDanishDate(raekker, {
+    getDato: (row) => row.fraDato,
+    order: 'ascending',
+    label: 'KL-lønaftaler',
+  });
 
+  // (3) Finit periodesats pr. række.
+  for (const row of raekker) {
     if (!Number.isFinite(row.reguleringPct)) {
       throw new Error(
         `KL-lønaftaler: ikke-finit periodesats for "${row.fraDato}"; ` +

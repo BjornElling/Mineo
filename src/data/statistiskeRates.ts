@@ -14,6 +14,7 @@
 import { toDanishDateString, type DanishDateString } from '../types/branded';
 import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
 import { aarsloenAslMax, getYearBoundsForYearlyRate } from './lovbestemteRates';
+import { assertNoInteriorYearGap } from './rateSeriesIntegrity';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -218,17 +219,13 @@ for (const model of statistiskLoenudvikling) {
 export const assertStatistikAarKontinuitet = (model: StatistiskLoenudvikling): void => {
   if (model.indeksvaerdier.length === 0) return;
   const years = model.indeksvaerdier.map((v) => Number.parseInt(v.kvartal.slice(0, 4), 10));
-  const minYear = Math.min(...years);
-  const maxYear = Math.max(...years);
   const present = new Set(years);
-  for (let year = minYear; year <= maxYear; year += 1) {
-    if (!present.has(year)) {
-      throw new Error(
-        `Statistisk lønindeks "${model.meta.id}" mangler år ${year} i serien (${minYear}–${maxYear}); ` +
-          'et hul midt i serien ville give tavs under-regulering'
-      );
-    }
-  }
+  assertNoInteriorYearGap({
+    minYear: Math.min(...years),
+    maxYear: Math.max(...years),
+    isYearPresent: (year) => present.has(year),
+    label: `Statistisk lønindeks "${model.meta.id}"`,
+  });
 };
 
 for (const model of statistiskLoenudvikling) {

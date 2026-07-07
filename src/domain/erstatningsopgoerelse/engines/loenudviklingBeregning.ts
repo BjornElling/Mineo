@@ -54,7 +54,7 @@ import {
   buildPrivateOverenskomstFormulaComponents,
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
-import { computeFormulaValue } from './reguleringFormulaUtils';
+import { computeFormulaValue, computePackageValuePct } from './reguleringFormulaUtils';
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
 import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
@@ -182,36 +182,6 @@ const resolveManualFeriePctPct = (rowFeriepenge: string | number | undefined, de
 
 const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklingId | undefined =>
   resolveStatistikModelId(label);
-
-/**
- * Beregner samlet lønpakkeværdi (grundløn × tillægsfaktorer) for reguleringsindeks.
- *
- * Tynd adapter over den kanoniske `computeFormulaValue` (reguleringFormulaUtils): mapper
- * domænenavnet `grundloen` → `baseValue` og deler dermed præcis samme matematik og
- * finite-semantik som privat overenskomst-grenen (der kalder `computeFormulaValue` direkte).
- * Tidligere var dette en parallel kopi af samme formel — konsolideret så der kun er ét
- * sted for lønpakke-formlen (jf. reguleringsreview U5).
- *
- * Procent-konvention: alle procentsatser angives som hele pct-tal (fx `17.3` for 17,3 %).
- * Callsites gater resultatet (`!Number.isFinite || <= 0` → throw), så en ugyldig pakkeværdi
- * fail-closer synligt frem for at drive en forkert regulering.
- */
-const computePackageValuePct = (args: {
-  grundloen: number;
-  feriePct: number;
-  shSoPct: number;
-  fritvalgPct: number;
-  pensionPct: number;
-  storeBededagPct: number;
-}): number =>
-  computeFormulaValue({
-    baseValue: args.grundloen,
-    feriePct: args.feriePct,
-    fritvalgPct: args.fritvalgPct,
-    shSoPct: args.shSoPct,
-    pensionPct: args.pensionPct,
-    storeBededagPct: args.storeBededagPct,
-  });
 
 const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string => {
   const normalized = rows.map((row) => ({

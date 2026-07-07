@@ -1,4 +1,5 @@
 import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from './kapitalisering/kapitaliseringsbekendtgoerelser';
+import { assertNoInteriorYearGap } from './rateSeriesIntegrity';
 import {
   type RetsinfoLink,
   type YearlyRetsinfoReferences,
@@ -350,16 +351,18 @@ export const aarsloenAslMax: YearlyRate = {
 export const assertAarsloenAslMaxKontinuitet = (indeks: YearlyRate = aarsloenAslMax): void => {
   const bounds = getYearBoundsForYearlyRate(indeks);
   if (!bounds) return;
-  for (let year = bounds.minYear; year <= bounds.maxYear; year += 1) {
-    const value = indeks[year];
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      throw new Error(
-        `ASL-årslønsmaksimum mangler år ${year} i serien (${bounds.minYear}–${bounds.maxYear}); ` +
-          'et hul midt i serien ville passere dækningsvalideringen (endepunkts-baseret) og først ' +
-          'kaste i lønudviklingsmotoren → fail_closed i stedet for en synlig dækningsfejl'
-      );
-    }
-  }
+  // Et hul her ville passere den endepunkts-baserede dækningsvalidering og først kaste i
+  // lønudviklingsmotoren for det manglende års segment → fail_closed i stedet for en synlig
+  // dækningsfejl. En ikke-finit værdi tæller derfor som et fraværende år.
+  assertNoInteriorYearGap({
+    minYear: bounds.minYear,
+    maxYear: bounds.maxYear,
+    isYearPresent: (year) => {
+      const value = indeks[year];
+      return typeof value === 'number' && Number.isFinite(value);
+    },
+    label: 'ASL-årslønsmaksimum',
+  });
 };
 
 assertAarsloenAslMaxKontinuitet();

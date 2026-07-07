@@ -201,6 +201,20 @@ strukturel — der er kun ét tal — frem for to der test-bevises ens.
 
 ### R5 — Datakomplethed som deklarativ load-kontrakt
 
+> **Status (2026-07-07): DELVIST IMPLEMENTERET (migrations-skridt 1).** Den delte mekaniske
+> logik er konsolideret i `src/data/rateSeriesIntegrity.ts` med to primitiver:
+> `assertStrictlyMonotonicByDanishDate` (afløser de tre kopier i KRL/KL/overenskomst) og
+> `assertNoInteriorYearGap` (afløser de to kopier i statistik/ASL). De fem berørte guards
+> komponerer nu primitiverne; `assertOffentligLoenTabelIkkeTom` (kun ikke-tom) og
+> `assertSygedagpengeRatesIntegritet` (lukket-interval-kontinuitet, ét brugssted) er bevidst
+> IKKE trukket ind — ingen duplikering at fjerne. Completeness + vacuous-pass-værn ligger i
+> `rateSeriesIntegrity.test.ts` (kanonisk liste over alle 7 kilder + selvtest af primitiverne).
+> **Bevidst afvigelse fra greenfield-visionen nedenfor:** den fulde `RateSeries`-baserede,
+> type-strukturelle håndhævelse ("en ny kilde *kan ikke* tilføjes uden at deklarere sin
+> dæknings-model") afventer R3 — den kræver `RateSeries<T>`-abstraktionen. Uden R3 håndhæves
+> komplethed på test-niveau (den kanoniske liste), ikke af typesystemet. Et produktions-registry,
+> der kun tjener testen, blev fravalgt (jf. `AGENTS.md` Konvergens). Tal-neutralt, fuld suite grøn.
+
 **Nuværende tilstand.** Load-guards blev tilføjet **ad hoc pr. form**: `assertStatistikAarKontinuitet`,
 `assertAarsloenAslMaxKontinuitet`, `assertKRLCombinedDataIntegritet`, `assertKlLoenaftalerDataIntegritet`,
 `assertOverenskomstSatserNyesteFoerst`, `assertOffentligLoenTabelIkkeTom`, `assertSygedagpengeRatesIntegritet`.
@@ -240,6 +254,18 @@ frem for et inline motorkald, så familie-grænsen er synlig. Split overenskomst
 | **Risiko** | Lav-middel. Tal-neutralt flyt. Skal bevare de to bevidst forskellige clamp-mekanismer (U4: offentlig base-fallback vs. privat `max(regdato, dækningsstart)`) — de må ikke forenes. |
 
 ### R7 — Delte primitiver (færdiggør påbegyndt konsolidering)
+
+> **Status (2026-07-07): IMPLEMENTERET (migrations-skridt 1).** Kortlægning viste, at 4 af 5
+> primitiver allerede var korrekt placeret (`manuelReguleringRowPredicates`,
+> `getInclusivePeriodEndByMonths`, `resolveReguleringssatsForAar`, `parseOffentligLoenSelection`).
+> Den eneste reelle rest var `computePackageValuePct`, som lå strandet som en umarkeret
+> module-lokal `const` inde i den 1676-linjers `loenudviklingBeregning.ts`. Den er nu flyttet
+> (eksporteret) til `reguleringFormulaUtils.ts`, så de to indgange til lønpakke-formlen bor
+> sammen med `computeFormulaValue` og ikke igen kan drive fra hinanden. **Bevidst afvigelse:**
+> et separat `regulering/primitives`-lag/barrel blev IKKE oprettet — det ville flytte
+> velplacerede primitiver (ren dato-matematik, sats-koblet opslag) væk fra deres rette hjem uden
+> at fjerne duplikering, dvs. et lag til hypotetisk genbrug (jf. `AGENTS.md` Konvergens).
+> Tal-neutralt; ny test dækker den nu-eksporterede adapter.
 
 **Nuværende tilstand.** Reviewet konsoliderede allerede meget: `manuelReguleringRowPredicates`
 (de tre aktiv-række-kopier), `getInclusivePeriodEndByMonths` (de fem `+N mdr`-kopier),
@@ -319,7 +345,7 @@ ikke rive ned:
 
 Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt tal-neutralt:
 
-1. **R5** (load-kontrakt) og **R7** (færdiggør primitiver) først — lav risiko, ren gevinst, ingen tal-ændring.
+1. **R5** (load-kontrakt) og **R7** (færdiggør primitiver) først — lav risiko, ren gevinst, ingen tal-ændring. **✅ Udført 2026-07-07** (R7 fuldt; R5's delte primitiver + completeness-test, med fuld type-strukturel håndhævelse udskudt til R3 — se status-noterne i afsnit 4).
 2. **R4** (coverage-status) — konverterer den vigtigste trust-alignment fra test til struktur.
 3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt.
 4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament.

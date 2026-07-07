@@ -91,6 +91,37 @@ export const computeFormulaValue = (components: FormulaComponents): number => {
   return baseValue * (1 + tillaegPct / 100) * (1 + pensionPct / 100);
 };
 
+/**
+ * Beregner samlet lønpakkeværdi (grundløn × tillægsfaktorer) for reguleringsindeks.
+ *
+ * Tynd adapter over den kanoniske `computeFormulaValue`: mapper domænenavnet
+ * `grundloen` → `baseValue` og deler dermed præcis samme matematik og finite-semantik
+ * som privat overenskomst-grenen (der kalder `computeFormulaValue` direkte). Tidligere var
+ * dette en parallel kopi af samme formel — konsolideret så der kun er ét sted for
+ * lønpakke-formlen (jf. reguleringsreview U5). Bor sammen med `computeFormulaValue`, så
+ * de to indgange til samme formel ikke igen driver fra hinanden (regulering-redesign R7).
+ *
+ * Procent-konvention: alle procentsatser angives som hele pct-tal (fx `17.3` for 17,3 %).
+ * Callsites gater resultatet (`!Number.isFinite || <= 0` → throw), så en ugyldig pakkeværdi
+ * fail-closer synligt frem for at drive en forkert regulering.
+ */
+export const computePackageValuePct = (args: {
+  grundloen: number;
+  feriePct: number;
+  shSoPct: number;
+  fritvalgPct: number;
+  pensionPct: number;
+  storeBededagPct: number;
+}): number =>
+  computeFormulaValue({
+    baseValue: args.grundloen,
+    feriePct: args.feriePct,
+    fritvalgPct: args.fritvalgPct,
+    shSoPct: args.shSoPct,
+    pensionPct: args.pensionPct,
+    storeBededagPct: args.storeBededagPct,
+  });
+
 export const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisibility): string => {
   const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
   const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;

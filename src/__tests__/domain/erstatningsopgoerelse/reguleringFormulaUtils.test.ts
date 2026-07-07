@@ -1,6 +1,7 @@
 import {
   buildFormulaText,
   computeFormulaValue,
+  computePackageValuePct,
   formatPercentCellFromRaw,
   mergeFeriepengeDisplay,
   parsePercentInput,
@@ -76,6 +77,43 @@ describe('computeFormulaValue', () => {
     };
     // 1000 × 1,12 × 1,10 = 1232
     expect(computeFormulaValue(components)).toBeCloseTo(1232, 4);
+  });
+});
+
+// ─── computePackageValuePct ──────────────────────────────────────────────────
+
+describe('computePackageValuePct', () => {
+  it('mapper grundloen → baseValue og deler matematik med computeFormulaValue', () => {
+    const args = {
+      grundloen: 1000, feriePct: 12, shSoPct: 0, fritvalgPct: 0, pensionPct: 10, storeBededagPct: 0,
+    };
+    // 1000 × 1,12 × 1,10 = 1232 — identisk med computeFormulaValue(baseValue: 1000, …)
+    expect(computePackageValuePct(args)).toBeCloseTo(1232, 6);
+    expect(computePackageValuePct(args)).toBe(
+      computeFormulaValue({
+        baseValue: args.grundloen,
+        feriePct: args.feriePct,
+        fritvalgPct: args.fritvalgPct,
+        shSoPct: args.shSoPct,
+        pensionPct: args.pensionPct,
+        storeBededagPct: args.storeBededagPct,
+      })
+    );
+  });
+
+  it('samler alle fire tillæg + pension korrekt', () => {
+    const args = {
+      grundloen: 1000, feriePct: 12, shSoPct: 2, fritvalgPct: 5, pensionPct: 10, storeBededagPct: 0.45,
+    };
+    // tillaegPct = 12 + 5 + 2 + 0,45 = 19,45 → 1000 × 1,1945 × 1,10 = 1313,95
+    expect(computePackageValuePct(args)).toBeCloseTo(1313.95, 4);
+  });
+
+  it('ikke-finit grundloen → 0 (fail-closed via computeFormulaValue)', () => {
+    const args = {
+      grundloen: Number.NaN, feriePct: 12, shSoPct: 0, fritvalgPct: 0, pensionPct: 10, storeBededagPct: 0,
+    };
+    expect(computePackageValuePct(args)).toBe(0);
   });
 });
 

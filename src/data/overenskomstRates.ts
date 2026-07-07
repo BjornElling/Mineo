@@ -12,7 +12,8 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
+import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
 import { getReguleringsDatoIntervalForOffentligLoen } from './offentligLoenLookup';
 import type { OffentligOverenskomstType } from './offentligLoenTypes';
 
@@ -1477,21 +1478,11 @@ export const assertOverenskomstSatserNyesteFoerst = (
   if (satser.length === 0) {
     throw new Error(`Overenskomst "${id}": satsserien er tom`);
   }
-  let prevTime: number | null = null;
-  for (const sats of satser) {
-    const parsed = parseDanishDate(sats.fraDato);
-    if (!parsed) {
-      throw new Error(`Overenskomst "${id}": ugyldig fraDato "${sats.fraDato}"`);
-    }
-    const time = parsed.getTime();
-    if (prevTime !== null && time >= prevTime) {
-      throw new Error(
-        `Overenskomst "${id}": satser skal være sorteret strengt nyeste-først med unikke ` +
-          `datoer; "${sats.fraDato}" bryder rækkefølgen`
-      );
-    }
-    prevTime = time;
-  }
+  assertStrictlyMonotonicByDanishDate(satser, {
+    getDato: (sats) => sats.fraDato,
+    order: 'descending',
+    label: `Overenskomst "${id}"`,
+  });
 };
 
 overenskomster.forEach((overenskomst) =>
