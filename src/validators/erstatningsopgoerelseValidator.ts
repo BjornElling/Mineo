@@ -15,7 +15,7 @@
  * VIGTIGT: Alle validerings-funktioner er pure (ingen side effects)
  */
 
-import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../schemas/formSchemas';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString, type ISODateString } from '../types/branded';
@@ -33,6 +33,7 @@ import {
   isManuelProcentsatsRowAktiv,
 } from '../domain/erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import { resolveAnvendtReguleringsdatoReferenceText } from '../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { isFeriePctRequiredForBlocking } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatserGate';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import {
@@ -601,6 +602,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
 type ErstatningsopgoerelseValidationOptions = Readonly<{
   skadedatoISO?: ISODateString | undefined;
+  skadestype?: StamdataValues['skadestype'] | undefined;
 }>;
 
 export function validateTafLoseFeriedage(
@@ -829,13 +831,21 @@ function validateLoenudviklingsKravForAktivKilde(
         anvendtReguleringsdato &&
         af.anciennitetstillaegDato <= anvendtReguleringsdato
       ) {
-        const reference = isoToDanish(anvendtReguleringsdato) ?? anvendtReguleringsdato;
+        const reference = resolveAnvendtReguleringsdatoReferenceText({
+          anvendtReguleringsdato,
+          skadedato: options?.skadedatoISO,
+          skadestype: options?.skadestype,
+          beregnesUdFra: values.beregnesUdFra,
+          beregningsperiodeTil: values.tafBeregningsperiodeTil,
+          saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
+          angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+        });
         const employmentPrefix = values.beregnesUdFra === 'Beregningsperiode'
           ? `Ansættelsesforhold ${index + 1}: `
           : '';
         errors.push({
           path: path('anciennitetstillaegDato'),
-          message: `${employmentPrefix}Dato for anciennitetstillæg skal være efter anvendt reguleringsdato (${reference})`,
+          message: `${employmentPrefix}Dato for anciennitetstillæg skal være efter ${reference}`,
           severity: 'error',
         });
       }

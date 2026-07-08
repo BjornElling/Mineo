@@ -639,7 +639,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     // Ét ansættelsesforhold reguleres (overenskomst → "tillagt efterfølgende lønstigninger"),
     // det andet reguleres ikke (Ingen → ingen tillægstekst). Hver med egen reguleringsdato.
     expect(texts).toContain(
-      'Beregnes som lønnen opgjort således: Tandlægerne Toft og Vedsted per 2. maj 2023 tillagt efterfølgende lønstigninger og Nillers Nisseforretning per 16. april 2023.'
+      'Beregnes som lønnen opgjort således: Tandlægerne Toft og Vedsted på den manuelt angivne reguleringsdato (02-05-2023) tillagt efterfølgende lønstigninger og Nillers Nisseforretning på den manuelt angivne reguleringsdato (16-04-2023).'
     );
     // Den gamle samlede formulering må ikke optræde, når flere ansættelsesforhold indgår.
     expect(texts.some((text) => text.startsWith('Beregnes som lønnen opgjort per '))).toBe(false);
@@ -684,7 +684,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     // "Forventet indkomst"-beskrivelsen skrives som TO selvstændige afsnit (løn-sætning og
     // offentlige-ydelser-sætning hver sit writer-kald), så de får normal afsnits-linjeafstand
     // ens med ferie-/fravær-linjen. Hver sætning er derfor sin egen tekst-streng i blokken.
-    expect(loenudviklingBlock).toContain('Opgøres på baggrund af lønnen opgjort frem til 31. december 2024.');
+    expect(loenudviklingBlock).toContain('Opgøres på baggrund af lønnen ved beregningsperiodens udløb (31-12-2024).');
     expect(loenudviklingBlock).toContain('Offentlige ydelser beregnes per 31. december 2024 med statslig regulering per 1. januar.');
     expect(loenudviklingBlock).toContain('Dagpenge');
     expect(loenudviklingBlock).toContain('Sygedagpenge');

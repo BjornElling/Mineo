@@ -83,14 +83,13 @@ const dedupeMergedRegulationRows = (
   return regulationRows.filter((row) => !existingKeys.has(`${row.label}__${getRegulationDisplayValue(row)}`));
 };
 
-const TAF_REGULATION_VALUE_LABELS = [
-  'Reguleringsværdi på anvendt reguleringsdato for TAF',
-  'Reguleringsværdi på start-dato for TAF',
-  'Reguleringsværdi på slut-dato for TAF',
-] as const;
-
 const isReguleringsdatoLabel = (label: string): boolean =>
-  label === 'Anvendt reguleringsdato' || label.startsWith('Anvendt reguleringsdato (');
+  label === 'Reguleringsdato' ||
+  label.startsWith('Reguleringsdatoen (') ||
+  label.startsWith('Skadedatoen (') ||
+  label.startsWith('Anmeldelsesdatoen (') ||
+  label.startsWith('Beregningsperiodens udløb (') ||
+  label.startsWith('Den manuelt angivne reguleringsdato (');
 
 const isSuppressedRegulationSectionLabel = (label: string): boolean =>
   label === 'Basisværdi (indeks 100)' || label === 'Seneste indeks';
@@ -126,10 +125,18 @@ const buildEmploymentRegulationDisplayRows = (
   regulationRows: readonly EoRowModel[],
   regulationSectionRows: NonNullable<RegulationInspektionSection['rows']>
 ): readonly EmploymentRegulationDisplayRow[] => {
-  const tafValueRows = regulationRows.filter((row) => TAF_REGULATION_VALUE_LABELS.includes(row.label as typeof TAF_REGULATION_VALUE_LABELS[number]));
-  const tafValueRowByLabel = new Map(tafValueRows.map((row) => [row.label, row]));
+  const tafReferenceRow = regulationRows.find(
+    (row) =>
+      row.label.startsWith('Reguleringsværdi på ') &&
+      row.label.endsWith(' for TAF') &&
+      row.label !== 'Reguleringsværdi på start-dato for TAF' &&
+      row.label !== 'Reguleringsværdi på slut-dato for TAF'
+  );
+  const tafStartRow = regulationRows.find((row) => row.label === 'Reguleringsværdi på start-dato for TAF');
+  const tafEndRow = regulationRows.find((row) => row.label === 'Reguleringsværdi på slut-dato for TAF');
+  const tafValueRows = [tafReferenceRow, tafStartRow, tafEndRow].filter((row): row is EoRowModel => row !== undefined);
 
-  const baseInspektionRows = regulationRows.filter((row) => !TAF_REGULATION_VALUE_LABELS.includes(row.label as typeof TAF_REGULATION_VALUE_LABELS[number]));
+  const baseInspektionRows = regulationRows.filter((row) => !tafValueRows.some((tafRow) => tafRow.id === row.id));
   const baseSectionRows = regulationSectionRows.filter((row) => !isSuppressedRegulationSectionLabel(row.label));
 
   const prioritised: EmploymentRegulationDisplayRow[] = [];
@@ -155,16 +162,16 @@ const buildEmploymentRegulationDisplayRows = (
   pushInspektionByLabel('Navn på reguleringsform');
   pushInspektionByLabel('Alle reguleringsværdier udfyldt');
 
-  const orderedTafParts = TAF_REGULATION_VALUE_LABELS.flatMap((label) => {
-    const row = tafValueRowByLabel.get(label);
-    return row ? [row] : [];
-  });
+  const orderedTafParts = tafValueRows;
   orderedTafParts.forEach((row) => consumedInspektionIds.add(row.id));
   if (orderedTafParts.length > 0) {
+    const referenceLabel = tafReferenceRow?.label
+      .replace(/^Reguleringsværdi på /, '')
+      .replace(/ for TAF$/, '') ?? 'grundlagsdato';
     prioritised.push({
       kind: 'combined-taf-values',
       id: `${orderedTafParts[0]?.id ?? 'taf-reguleringsvaerdier'}-combined`,
-      label: 'Reguleringsværdi på: Anvendt reguleringsdato / start-dato for TAF / slut-dato for TAF',
+      label: `Reguleringsværdi på: ${referenceLabel} / start-dato for TAF / slut-dato for TAF`,
       parts: orderedTafParts,
     });
   }

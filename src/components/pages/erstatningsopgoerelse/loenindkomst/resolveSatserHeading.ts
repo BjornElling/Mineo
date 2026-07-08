@@ -1,7 +1,6 @@
 import type { ISODateString } from '../../../../types/branded';
 import { parseISODate } from '../../../../types/branded';
 import { formatDanishDate } from '../../../../utils/dateUtils';
-import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import { resolveAnvendtReguleringsdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
@@ -24,8 +23,6 @@ export const resolveSatserHeading = (params: Readonly<{
   if (!anvendtReguleringsdato) return 'Satser';
 
   const shortDate = formatIsoDateShortLabel(anvendtReguleringsdato);
-  const longDate = formatIsoDateLong(anvendtReguleringsdato);
-
   const reference = resolveAnvendtReguleringsdatoReference(params);
   if (shortDate) {
     if (reference.kind === 'skadedato' || reference.kind === 'anmeldelsesdato') {
@@ -37,10 +34,7 @@ export const resolveSatserHeading = (params: Readonly<{
     if (reference.kind === 'manuelReguleringsdato') {
       return `Satser på den manuelt angivne reguleringsdato (${shortDate})`;
     }
-  }
-
-  if (longDate) {
-    return `Satser den ${longDate}`;
+    return `Satser på ${reference.labelLower} (${shortDate})`;
   }
 
   return 'Satser';

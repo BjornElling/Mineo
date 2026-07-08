@@ -270,6 +270,7 @@ export const computeEoSnapshot = (args: Readonly<{
 
   const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data, {
     skadedatoISO: parsedStamdata.data.skadedato,
+    skadestype: parsedStamdata.data.skadestype,
   });
   const validationInvariants = [
     ...buildValidationInvariants(validationResult.errors),

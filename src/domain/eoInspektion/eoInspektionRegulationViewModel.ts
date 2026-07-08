@@ -13,8 +13,10 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
+import { resolveAnvendtReguleringsdatoReferenceText } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { capitalizeFirstCharDa } from '../../utils/formatUtils';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
@@ -261,6 +263,27 @@ export function buildRegulationInspektionSections(
       : `Regulering (Ansættelsesforhold ${idx + 1})`;
 
     const sectionId = `regulation.${af.ansaettelsesforholdId}`;
+    const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);
+    const anvendtReguleringsdato = ansaettelsesforhold
+      ? resolveAnvendtReguleringsdato({
+          beregnesUdFra: eoValues.beregnesUdFra,
+          angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
+          saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
+          beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
+          skadedato: stamdataValues.skadedato,
+        })
+      : undefined;
+    const referenceLabel = ansaettelsesforhold
+      ? capitalizeFirstCharDa(resolveAnvendtReguleringsdatoReferenceText({
+          anvendtReguleringsdato,
+          skadedato: stamdataValues.skadedato,
+          skadestype: stamdataValues.skadestype,
+          beregnesUdFra: eoValues.beregnesUdFra,
+          beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
+          saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
+          angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
+        }))
+      : capitalizeFirstCharDa(`reguleringsdatoen (${formatIsoValue(af.referenceIso)})`);
     const rows: RegulationInspektionRow[] = [
       {
         id: `${sectionId}:kilde`,
@@ -269,12 +292,11 @@ export function buildRegulationInspektionSections(
       },
       {
         id: `${sectionId}:skadedato`,
-        label: af.referenceLabel ? `Anvendt reguleringsdato (${af.referenceLabel})` : 'Anvendt reguleringsdato',
+        label: referenceLabel,
         value: { rawValue: af.referenceIso, displayValue: formatIsoValue(af.referenceIso) },
       },
     ];
 
-    const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);
     const isKlLoenaftalerAnsaettelsesforhold = ansaettelsesforhold?.loenudviklingBeregningsgrundlag === 'KL-lønaftaler';
     const canonicalSegments = canonicalSegmentsByEmploymentId.get(af.ansaettelsesforholdId) ?? [];
     const segmentsForInspektion = canonicalSegments.length > 0
@@ -287,15 +309,6 @@ export function buildRegulationInspektionSections(
           tafRanges,
         });
     const coverageBounds = resolveLoenudviklingSegmentBounds(segmentsForInspektion);
-    const anvendtReguleringsdato = ansaettelsesforhold
-      ? resolveAnvendtReguleringsdato({
-          beregnesUdFra: eoValues.beregnesUdFra,
-          angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
-          saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
-          beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
-          skadedato: stamdataValues.skadedato,
-        })
-      : undefined;
     const reguleringsvaerdierTableData =
       ansaettelsesforhold && coverageBounds
         ? buildReguleringsvaerdierTableData({

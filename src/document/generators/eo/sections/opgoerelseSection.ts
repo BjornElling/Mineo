@@ -67,6 +67,10 @@ type OpgorelseSectionContext = Readonly<{
     anvendtReguleringsdato: ISODateString | undefined;
     skadedato: ISODateString | undefined;
     skadestype: StamdataValues['skadestype'] | undefined;
+    beregnesUdFra?: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
+    beregningsperiodeTil?: ISODateString | undefined;
+    saerligFraDatoRegulering?: ISODateString | undefined;
+    angivetLoenMetodeOpreguleresFraDato?: ISODateString | undefined;
     useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }) => string;
   formatDateShort: (dateIso: ISODateString | undefined) => string;

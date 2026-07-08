@@ -17,7 +17,11 @@ import {
   resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
 import type { DocumentWriter } from '../../../writer';
-import { EO_ANGIVET_LOEN_ID, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import {
+  EO_ANGIVET_LOEN_ID,
+  getAngivetLoenOpreguleresFraDato,
+  resolveLoenudviklingKilde,
+} from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   formatAmount2,
@@ -98,6 +102,10 @@ type ReguleringSectionContext = Readonly<{
     anvendtReguleringsdato: ISODateString | undefined;
     skadedato: ISODateString | undefined;
     skadestype: StamdataValues['skadestype'] | undefined;
+    beregnesUdFra?: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
+    beregningsperiodeTil?: ISODateString | undefined;
+    saerligFraDatoRegulering?: ISODateString | undefined;
+    angivetLoenMetodeOpreguleresFraDato?: ISODateString | undefined;
     useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }>) => string;
   resolveTafDateBounds: (
@@ -540,6 +548,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       anvendtReguleringsdato,
       skadedato: skadedatoIso,
       skadestype: stamdataValues.skadestype,
+      beregnesUdFra: eoValues.beregnesUdFra,
+      beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
+      saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
       useUntilWordingForImplicitBeregningsperiodeDate:
         eoValues.beregnesUdFra === 'Beregningsperiode'
         && !ansaettelsesforhold.saerligFraDatoRegulering

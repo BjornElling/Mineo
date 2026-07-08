@@ -220,19 +220,22 @@ export const resolveAnvendtReguleringsdato = (
  * Producerer den kanoniske tekstbeskrivelse af løn-referencedatoen til brug i PDF.
  *
  * `anvendtReguleringsdato` er den kanoniske sandhed og beregnes via
- * `resolveAnvendtReguleringsdato`. Kaldestedet kan dog eksplicit markere, når
- * datoen repræsenterer beregningsperiodens implicitte slutdato, fordi den
- * sproglige formulering i EO skal være "opgjort frem til" og ikke "opgjort per".
+ * `resolveAnvendtReguleringsdato`; teksten navngiver derefter den konkrete
+ * brugerforståelige kilde til datoen.
  *
- * Teksten bliver "på skadedatoen" eller "på anmeldelsesdatoen" hvis
- * `anvendtReguleringsdato` er lig stamdatadatoen eller `undefined`; ellers
- * "opgjort per [dato]" eller "opgjort frem til [dato]".
+ * Teksten bliver fx "på skadedatoen (01-01-2024)", "ved beregningsperiodens
+ * udløb (31-12-2024)" eller "på den manuelt angivne reguleringsdato
+ * (15-03-2024)".
  */
 export const resolveLoenSkadedatoText = (params: {
   subject: 'lønnen';
   anvendtReguleringsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
   skadestype: StamdataValues['skadestype'] | undefined;
+  beregnesUdFra?: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
+  beregningsperiodeTil?: ISODateString | undefined;
+  saerligFraDatoRegulering?: ISODateString | undefined;
+  angivetLoenMetodeOpreguleresFraDato?: ISODateString | undefined;
   useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
 }): string => resolveLoenReferencedatoText(params);
 

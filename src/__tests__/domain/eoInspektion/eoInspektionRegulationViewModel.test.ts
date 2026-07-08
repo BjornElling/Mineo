@@ -235,7 +235,7 @@ describe('buildRegulationInspektionSections', () => {
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
   });
 
-  it('viser label uden parentes når referenceLabel ikke findes', () => {
+  it('viser reguleringsdato med parentesdato når referencekilden ikke kan udledes', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
@@ -277,7 +277,7 @@ describe('buildRegulationInspektionSections', () => {
       stamdataValues,
     });
 
-    expect(sections[0]?.rows[1]?.label).toBe('Anvendt reguleringsdato');
+    expect(sections[0]?.rows[1]?.label).toBe('Reguleringsdatoen (15-03-2024)');
   });
 
   it('falder tilbage til tidslinje/TAF-perioder når canonical per-ansættelse-segmenter mangler', () => {

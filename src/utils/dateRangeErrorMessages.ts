@@ -19,6 +19,11 @@ export type DateRangeSpecialErrors = {
    */
   minBoundReferenceISO?: ISODateString;
   /**
+   * Brugervendt navn på min-grænsen inkl. evt. dato, fx
+   * "beregningsperiodens udløb (08-10-2023)".
+   */
+  minBoundLabel?: string;
+  /**
    * Når sat, overskriver den den generiske max-dato-fejl med "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
    * Året udtrækkes fra maxDate. Bruges til EET-felter afgrænset af data-dækningsår.
    */
@@ -72,7 +77,8 @@ export const resolveDateRangeErrorMessage = (args: {
 
   if (special?.minBoundKind === 'efterAnvendtReguleringsdato' && minDate && iso < minDate) {
     const reference = special.minBoundReferenceISO ?? minDate;
-    return `Datoen for anciennitetstillæg skal være efter anvendt reguleringsdato (${formatISOForTooltip(reference)})`;
+    const referenceLabel = special.minBoundLabel ?? `reguleringsdatoen (${formatISOForTooltip(reference)})`;
+    return `Datoen for anciennitetstillæg skal være efter ${referenceLabel}`;
   }
 
   if ((special?.maxBoundKind === 'eetDataMax' || special?.maxBoundKind === 'dataCoverageMax') && maxDate && iso > maxDate) {

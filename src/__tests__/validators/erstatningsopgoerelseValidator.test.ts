@@ -1080,7 +1080,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(values, 'KRL satstabel skal vælges')).toBe(true);
   });
 
-  it('fanger anciennitetstillæg på anvendt reguleringsdato', () => {
+  it('fanger anciennitetstillæg på beregningsperiodens udløb', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       tafBeregningsperiodeFra: iso('2024-01-01'),
@@ -1104,7 +1104,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'loenindkomstAnsaettelsesforhold[0].anciennitetstillaegDato',
-      message: expect.stringContaining('efter anvendt reguleringsdato (31-01-2024)'),
+      message: expect.stringContaining('efter beregningsperiodens udløb (31-01-2024)'),
       severity: 'error',
     }));
   });

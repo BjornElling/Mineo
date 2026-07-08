@@ -30,7 +30,10 @@ import type { ISODateString } from '../../../../types/branded';
 import { parseISODate } from '../../../../types/branded';
 import { calculateFerieHverdageMinusSHDage } from '../../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
-import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
+import {
+  resolveAnvendtReguleringsdatoReferenceText,
+  resolveSkadeEllerAnmeldelsesdatoReference,
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../../utils/dateUtils';
@@ -363,6 +366,15 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
   const indtaegtFoerSkadenSectionTitle = `Indtægt før ${loenudviklingReferencedato.labelLower}`;
   const loenudviklingBaseDateErrorMessage =
     `${loenudviklingReferencedato.label} er ikke udfyldt`;
+  const loenudviklingBaseDateReferenceText = resolveAnvendtReguleringsdatoReferenceText({
+    anvendtReguleringsdato: loenudviklingBaseDateISO,
+    skadedato: skadedatoISO,
+    skadestype: persistedStamdata?.skadestype,
+    beregnesUdFra: values.beregnesUdFra,
+    beregningsperiodeTil: values.tafBeregningsperiodeTil,
+    saerligFraDatoRegulering: undefined,
+    angivetLoenMetodeOpreguleresFraDato: aktivAngivetLoenOpreguleresFraDato,
+  });
 
   const shouldShowReguleringsDatoInterval = React.useMemo(() => {
     return loenudviklingBasis === 'Overenskomst'
@@ -534,6 +546,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     loenudviklingBaseDateISO,
     loenudviklingBaseDateDisplay,
     loenudviklingBaseDateErrorMessage,
+    loenudviklingBaseDateReferenceText,
     shouldShowReguleringsDatoInterval,
     offentligLoenEkstraGrundloenSuffix,
     reguleringsDatoIntervalData,

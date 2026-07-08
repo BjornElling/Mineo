@@ -123,7 +123,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
       beregnesUdFra: 'Angivet månedsløn',
       beregningsperiodeTil: undefined,
       saerligFraDatoRegulering: undefined,
-    })).toBe('Satser den 15. marts 2024');
+    })).toBe('Satser på reguleringsdatoen (15-03-2024)');
 
     expect(resolveSatserHeading({
       anvendtReguleringsdato: undefined,

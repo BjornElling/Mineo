@@ -232,24 +232,28 @@ describe('reguleringsPresentation', () => {
     expectPdfReguleringsdatoParity(values, af);
   });
 
-  it('formaterer implicit beregningsperiode-slutdato som "opgjort frem til"', () => {
+  it('formaterer implicit beregningsperiode-slutdato med kilde og parentesdato', () => {
     expect(resolveLoenSkadedatoText({
       subject: 'lønnen',
       anvendtReguleringsdato: iso('2017-05-02'),
       skadedato: iso('2016-01-01'),
       skadestype: 'Arbejdsulykke',
+      beregnesUdFra: 'Beregningsperiode',
+      beregningsperiodeTil: iso('2017-05-02'),
       useUntilWordingForImplicitBeregningsperiodeDate: true,
-    })).toBe('lønnen opgjort frem til 2. maj 2017');
+    })).toBe('lønnen ved beregningsperiodens udløb (02-05-2017)');
   });
 
-  it('bevarer "opgjort per" ved eksplicit reguleringsdato', () => {
+  it('formaterer eksplicit reguleringsdato med kilde og parentesdato', () => {
     expect(resolveLoenSkadedatoText({
       subject: 'lønnen',
       anvendtReguleringsdato: iso('2017-05-02'),
       skadedato: iso('2016-01-01'),
       skadestype: 'Arbejdsulykke',
+      beregnesUdFra: 'Beregningsperiode',
+      saerligFraDatoRegulering: iso('2017-05-02'),
       useUntilWordingForImplicitBeregningsperiodeDate: false,
-    })).toBe('lønnen opgjort per 2. maj 2017');
+    })).toBe('lønnen på den manuelt angivne reguleringsdato (02-05-2017)');
   });
 
   it('bruger anmeldelsesdatoen som stamdata-reference ved erhvervssygdom', () => {
@@ -258,7 +262,7 @@ describe('reguleringsPresentation', () => {
       anvendtReguleringsdato: iso('2016-01-01'),
       skadedato: iso('2016-01-01'),
       skadestype: 'Erhvervssygdom',
-    })).toBe('lønnen på anmeldelsesdatoen');
+    })).toBe('lønnen på anmeldelsesdatoen (01-01-2016)');
   });
 
   it('bruger arbejdsulykke-ordlyd som fallback når skadestype mangler', () => {

@@ -515,6 +515,10 @@ EO bruger `resolveAnvendtReguleringsdato` som autoritativ dato for løn-/reguler
 Al brugervendt tekst i felter, tooltips, kontrolvisning og dokument-output skal beskrive datoens
 faktiske kilde:
 
+- Den generiske formulering `anvendt reguleringsdato` må ikke bruges brugervendt som label for
+  selve datoen. Teksten skal i stedet navngive den dato, der faktisk genbruges.
+- Når en brugervendt tekst omtaler datoen, skal selve datoen vises bagefter i parentes i formatet
+  `DD-MM-ÅÅÅÅ`, medmindre datoen mangler.
 - Hvis datoen er stamdatadatoen, skrives `skadedato(en)` kun ved `Arbejdsulykke`.
 - Ved `Erhvervssygdom` skrives altid `anmeldelsesdato(en)` for stamdatadatoen; der må ikke stå
   `skadedato(en)` eller `skadesdato(en)` i den kontekst.

@@ -164,7 +164,7 @@ describe('EOInspektion', () => {
           },
           {
             id: 'loenindkomst.af1.regulering.taf.reguleringsdato',
-            label: 'Reguleringsværdi på anvendt reguleringsdato for TAF',
+            label: 'Reguleringsværdi på beregningsperiodens udløb (24-05-2023) for TAF',
             displayValue: 'Ja',
             status: 'ok',
           },
@@ -200,7 +200,7 @@ describe('EOInspektion', () => {
           header: 'Regulering (Tandlægerne Toft og Vedsted)',
           rows: [
             { id: 'regulation.af1:kilde', label: 'Navn på reguleringsform', value: 'overenskomst Tandlægeforening/HK' },
-            { id: 'regulation.af1:skadedato', label: 'Anvendt reguleringsdato (Beregningsperiode slutdato)', value: '24-05-2023' },
+            { id: 'regulation.af1:skadedato', label: 'Beregningsperiodens udløb (24-05-2023)', value: '24-05-2023' },
             { id: 'regulation.af1:basisvaerdi', label: 'Basisværdi (indeks 100)', value: '33.476,39' },
             { id: 'regulation.af1:seneste_indeks', label: 'Seneste indeks', value: '110,32' },
           ],
@@ -241,10 +241,10 @@ describe('EOInspektion', () => {
     expect(screen.queryByText('Seneste indeks')).not.toBeInTheDocument();
     expect(screen.queryByText('Pakke')).not.toBeInTheDocument();
     expect(screen.queryByText('Indeks')).toBeInTheDocument();
-    expect(screen.queryByText('Reguleringsværdi på anvendt reguleringsdato for TAF')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reguleringsværdi på beregningsperiodens udløb (24-05-2023) for TAF')).not.toBeInTheDocument();
     expect(screen.queryByText('Reguleringsværdi på start-dato for TAF')).not.toBeInTheDocument();
     expect(screen.queryByText('Reguleringsværdi på slut-dato for TAF')).not.toBeInTheDocument();
-    expect(screen.getByText('Reguleringsværdi på: Anvendt reguleringsdato / start-dato for TAF / slut-dato for TAF')).toBeInTheDocument();
+    expect(screen.getByText('Reguleringsværdi på: beregningsperiodens udløb (24-05-2023) / start-dato for TAF / slut-dato for TAF')).toBeInTheDocument();
     expect(screen.getAllByText('Fra-dato').length).toBeGreaterThan(0);
     expect(screen.getByText('Til-dato')).toBeInTheDocument();
     expect(screen.getByText('Indeksberegning')).toBeInTheDocument();
@@ -253,14 +253,14 @@ describe('EOInspektion', () => {
     expect(screen.getAllByText('Regulering').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     expect(screen.getAllByText('Beregnet regulering').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     const regulationSubheading = screen.getAllByText('Regulering')[0];
-    const datoRow = screen.getByText('Anvendt reguleringsdato (Beregningsperiode slutdato)');
+    const datoRow = screen.getByText('Beregningsperiodens udløb (24-05-2023)');
     const valgtReguleringRow = screen.getByText('Valgt regulering');
     expect(
       regulationSubheading.compareDocumentPosition(datoRow) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     const navnRow = screen.getAllByText('Navn på reguleringsform')[0];
     const alleVaerdierRow = screen.getByText('Alle reguleringsværdier udfyldt');
-    const combinedTafRow = screen.getByText('Reguleringsværdi på: Anvendt reguleringsdato / start-dato for TAF / slut-dato for TAF');
+    const combinedTafRow = screen.getByText('Reguleringsværdi på: beregningsperiodens udløb (24-05-2023) / start-dato for TAF / slut-dato for TAF');
     expect(datoRow.compareDocumentPosition(valgtReguleringRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(valgtReguleringRow.compareDocumentPosition(navnRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(navnRow.compareDocumentPosition(alleVaerdierRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -927,7 +927,7 @@ describe('EOInspektion', () => {
           id: 'regulation.af1',
           header: 'Regulering (Test)',
           rows: [
-            { id: 'regulation.af1:skadedato', label: 'Anvendt reguleringsdato (Beregningsperiode slutdato)', value: '26-01-2024' },
+            { id: 'regulation.af1:skadedato', label: 'Beregningsperiodens udløb (26-01-2024)', value: '26-01-2024' },
             { id: 'regulation.af1:overenskomst', label: 'Overenskomst', value: 'KL-overenskomsten (Forhandlingsfællesskabet / KL)' },
           ],
         },
@@ -936,7 +936,7 @@ describe('EOInspektion', () => {
 
     const { container } = renderComponent({ revision: 'rev-1' } as never);
 
-    expect(screen.getByText('Anvendt reguleringsdato (Beregningsperiode slutdato)')).toBeInTheDocument();
+    expect(screen.getByText('Beregningsperiodens udløb (26-01-2024)')).toBeInTheDocument();
     expect(screen.getByText('Overenskomst')).toBeInTheDocument();
     expect(screen.getByText('Valgt regulering')).toBeInTheDocument();
     expect(container.querySelectorAll('[data-testid="CheckIcon"]').length).toBeGreaterThan(0);

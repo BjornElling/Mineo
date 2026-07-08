@@ -28,7 +28,7 @@ import {
 import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
 import { resolveSatserHeading } from './resolveSatserHeading';
 import {
-  resolveAnvendtReguleringsdatoReference,
+  resolveAnvendtReguleringsdatoReferenceText,
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
@@ -157,6 +157,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
   const anciennitetstillaegMinDato = getDayAfterIso(anvendtReguleringsdato);
   const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
+  const anvendtReguleringsdatoReferenceText = resolveAnvendtReguleringsdatoReferenceText({
+    anvendtReguleringsdato,
+    skadedato,
+    skadestype,
+    beregnesUdFra,
+    beregningsperiodeTil: tafBeregningsperiodeTil,
+    saerligFraDatoRegulering: af.saerligFraDatoRegulering,
+  });
   const satserHeading = resolveSatserHeading({
     anvendtReguleringsdato,
     skadedato: skadedato,
@@ -812,14 +820,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             const baseDateTooltipText =
               loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
                 ? undefined
-                : resolveAnvendtReguleringsdatoReference({
+                : resolveAnvendtReguleringsdatoReferenceText({
                     anvendtReguleringsdato,
                     skadedato,
                     skadestype,
                     beregnesUdFra,
                     beregningsperiodeTil: tafBeregningsperiodeTil,
                     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-                  }).label;
+                  });
             return (
               <>
                 <Box className="row--label-right-hover">
@@ -862,14 +870,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             const baseDateTooltipText =
               loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
                 ? undefined
-                : resolveAnvendtReguleringsdatoReference({
+                : resolveAnvendtReguleringsdatoReferenceText({
                     anvendtReguleringsdato,
                     skadedato,
                     skadestype,
                     beregnesUdFra,
                     beregningsperiodeTil: tafBeregningsperiodeTil,
                     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-                  }).label;
+                  });
             return (
               <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoLoenudviklingManuelProcentsats} rowScope={af.id}>
                 <LoenudviklingManuelProcentsatsTable
@@ -978,7 +986,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           <Typography className="row--subheading">Anciennitetstillæg</Typography>
 
           <Box className="row--label-right-hover">
-            <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter anvendt reguleringsdato</Typography>
+            <Typography className="row--text">
+              {`Ville skadelidte have opnået anciennitetstillæg efter ${anvendtReguleringsdatoReferenceText}`}
+            </Typography>
             <Box className="row--label-right-hover__content">
               <StyledToggleSwitch
                 name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
@@ -1000,6 +1010,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     specialRangeErrors={{
                       minBoundKind: anvendtReguleringsdato ? 'efterAnvendtReguleringsdato' : undefined,
                       minBoundReferenceISO: anvendtReguleringsdato,
+                      minBoundLabel: anvendtReguleringsdatoReferenceText,
                     }}
                     onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
                   />

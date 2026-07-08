@@ -17,7 +17,10 @@ import {
   isManuelProcentsatsRowKomplet,
 } from '../erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
-import { resolveSkadeEllerAnmeldelsesdatoReference } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
+import {
+  resolveAnvendtReguleringsdatoReferenceText,
+  resolveSkadeEllerAnmeldelsesdatoReference,
+} from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
@@ -281,6 +284,15 @@ export const buildEoIndkomstRows = (
       beregningsperiodeTil: values.tafBeregningsperiodeTil,
       skadedato,
     });
+    const anvendtReguleringsdatoReferenceText = resolveAnvendtReguleringsdatoReferenceText({
+      anvendtReguleringsdato,
+      skadedato,
+      skadestype,
+      beregnesUdFra: values.beregnesUdFra,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
+      saerligFraDatoRegulering: isISODateString(ansaettelsesforhold.saerligFraDatoRegulering) ? ansaettelsesforhold.saerligFraDatoRegulering : undefined,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+    });
 
     const alleReguleringsvaerdierRow = (() => {
       if (loenudviklingBasis === 'Ingen') {
@@ -483,7 +495,7 @@ export const buildEoIndkomstRows = (
 
     rows.push({
       id: `${loenudviklingRowPrefix}.reguleringsvaerdi`,
-      label: 'Reguleringsværdi på anvendt reguleringsdato for TAF',
+      label: `Reguleringsværdi på ${anvendtReguleringsdatoReferenceText} for TAF`,
       displayValue: reguleringsvaerdiRowStatus.displayValue,
       status: reguleringsvaerdiRowStatus.status,
       message: buildReguleringsMangelMessage(

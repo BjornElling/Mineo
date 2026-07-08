@@ -6,17 +6,23 @@
  * grundlag (dagsløn/månedsløn ved stamdatadatoen) og samme introtekst til
  * forventet indkomst.
  *
- * Funktionerne her ændrer ikke noget output — de flytter blot eksisterende logik
- * til ét sted, så de to dokumenter forbliver konsistente.
+ * Funktionerne her holder de to dokumenters beregningsgrundlag og introtekst konsistente.
  */
 
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
-import { resolveAktivEllerFoersteLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import {
+  getAngivetLoenOpreguleresFraDato,
+  resolveAktivEllerFoersteLoenudviklingKilde,
+} from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import type { Calculable, MoneyOre, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
-import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
+import {
+  resolveAnvendtReguleringsdatoReference,
+  resolveAnvendtReguleringsdatoReferenceText,
+  resolveSkadeEllerAnmeldelsesdatoReference,
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
 export type TafBeregningsgrundlagDeps = Readonly<{
   model: EoModel;
@@ -265,6 +271,10 @@ export type TafForventetIndkomstIntroDeps = Readonly<{
     anvendtReguleringsdato: ISODateString | undefined;
     skadedato: ISODateString | undefined;
     skadestype: StamdataValues['skadestype'] | undefined;
+    beregnesUdFra?: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
+    beregningsperiodeTil?: ISODateString | undefined;
+    saerligFraDatoRegulering?: ISODateString | undefined;
+    angivetLoenMetodeOpreguleresFraDato?: ISODateString | undefined;
     useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
@@ -288,6 +298,10 @@ export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstI
     anvendtReguleringsdato: anvendtReguleringsdatoForOpgoerelse,
     skadedato: skadedatoIso,
     skadestype: stamdataValues.skadestype,
+    beregnesUdFra: eoValues.beregnesUdFra,
+    beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
+    saerligFraDatoRegulering: aktivLoenudviklingAf?.saerligFraDatoRegulering,
+    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
     useUntilWordingForImplicitBeregningsperiodeDate:
       eoValues.beregnesUdFra === 'Beregningsperiode'
       && !aktivLoenudviklingAf?.saerligFraDatoRegulering
@@ -306,17 +320,32 @@ export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstI
   const offentligeYdelserBaseText = offentligeYdelserUdvikling?.reguleringsBaseIso
     ? ` per ${formatDateLong(offentligeYdelserUdvikling.reguleringsBaseIso)}`
     : '';
-  const resolveLoenDatoFragment = (
-    anvendtReguleringsdato: ISODateString | undefined,
-    brugFremTilFormulering: boolean
-  ): string => {
-    if (anvendtReguleringsdato && anvendtReguleringsdato !== skadedatoIso) {
-      const formatted = formatDateLong(anvendtReguleringsdato);
-      if (formatted) {
-        return brugFremTilFormulering ? `frem til ${formatted}` : `per ${formatted}`;
-      }
+  const resolveLoenDatoFragment = (params: Readonly<{
+    anvendtReguleringsdato: ISODateString | undefined;
+    ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined;
+  }>): string => {
+    if (!params.anvendtReguleringsdato) {
+      return `på ${resolveSkadeEllerAnmeldelsesdatoReference(stamdataValues.skadestype).labelLower}`;
     }
-    return `på ${resolveSkadeEllerAnmeldelsesdatoReference(stamdataValues.skadestype).labelLower}`;
+    const reference = resolveAnvendtReguleringsdatoReference({
+      anvendtReguleringsdato: params.anvendtReguleringsdato,
+      skadedato: skadedatoIso,
+      skadestype: stamdataValues.skadestype,
+      beregnesUdFra: eoValues.beregnesUdFra,
+      beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
+      saerligFraDatoRegulering: params.ansaettelsesforhold?.saerligFraDatoRegulering,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
+    });
+    const referenceText = resolveAnvendtReguleringsdatoReferenceText({
+      anvendtReguleringsdato: params.anvendtReguleringsdato,
+      skadedato: skadedatoIso,
+      skadestype: stamdataValues.skadestype,
+      beregnesUdFra: eoValues.beregnesUdFra,
+      beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
+      saerligFraDatoRegulering: params.ansaettelsesforhold?.saerligFraDatoRegulering,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
+    });
+    return `${reference.kind === 'beregningsperiodeSlutdato' ? 'ved' : 'på'} ${referenceText}`;
   };
   const resolvePerAnsaettelseLoenTekst = (): string | undefined => {
     if (!loenudvikling || loenudvikling.perAnsaettelse.length <= 1) return undefined;
@@ -328,15 +357,7 @@ export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstI
       const anvendtReguleringsdato = af
         ? resolveAnvendtReguleringsdato(stamdataValues, eoValues, af)
         : undefined;
-      const brugFremTilFormulering =
-        eoValues.beregnesUdFra === 'Beregningsperiode'
-        && !af?.saerligFraDatoRegulering
-        && Boolean(
-          af
-          && eoValues.tafBeregningsperiodeTil
-          && anvendtReguleringsdato === eoValues.tafBeregningsperiodeTil
-        );
-      const datoFragment = resolveLoenDatoFragment(anvendtReguleringsdato, brugFremTilFormulering);
+      const datoFragment = resolveLoenDatoFragment({ anvendtReguleringsdato, ansaettelsesforhold: af });
       const tillaeg = entry.loenudviklingLabel === 'Ingen'
         ? ''
         : ' tillagt efterfølgende lønstigninger';

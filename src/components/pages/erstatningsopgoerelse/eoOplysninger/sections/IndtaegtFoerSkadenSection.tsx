@@ -68,6 +68,7 @@ export default function IndtaegtFoerSkadenSection() {
     loenudviklingBaseDateDisplay,
     loenudviklingBaseDateISO,
     loenudviklingBaseDateErrorMessage,
+    loenudviklingBaseDateReferenceText,
     shouldShowReguleringsDatoInterval,
     reguleringsDatoIntervalData,
     reguleringsDatoIntervalDisplay,
@@ -736,7 +737,9 @@ export default function IndtaegtFoerSkadenSection() {
                 <Typography className="row--subheading">Anciennitetstillæg</Typography>
 
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter anvendt reguleringsdato</Typography>
+                  <Typography className="row--text">
+                    {`Ville skadelidte have opnået anciennitetstillæg efter ${loenudviklingBaseDateReferenceText}`}
+                  </Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
                       name="harAnciennitetstillaegEfterSkadedatoen"
@@ -758,6 +761,7 @@ export default function IndtaegtFoerSkadenSection() {
                           specialRangeErrors={{
                             minBoundKind: loenudviklingBaseDateISO ? 'efterAnvendtReguleringsdato' : undefined,
                             minBoundReferenceISO: loenudviklingBaseDateISO,
+                            minBoundLabel: loenudviklingBaseDateReferenceText,
                           }}
                           onCommit={handleEoAnciennitetstillaegDatoCommit}
                         />

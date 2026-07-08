@@ -96,6 +96,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     const specialFraTilRole = specialRangeErrors?.fraTilRole;
     const specialMinBoundKind = specialRangeErrors?.minBoundKind;
     const specialMinBoundReferenceISO = specialRangeErrors?.minBoundReferenceISO;
+    const specialMinBoundLabel = specialRangeErrors?.minBoundLabel;
     const specialMaxBoundKind = specialRangeErrors?.maxBoundKind;
     const specialMaxBoundFieldLabel = specialRangeErrors?.maxBoundFieldLabel;
     const specialMaxBoundReferenceISO = specialRangeErrors?.maxBoundReferenceISO;
@@ -104,6 +105,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         specialFraTilRole === undefined &&
         specialMinBoundKind === undefined &&
         specialMinBoundReferenceISO === undefined &&
+        specialMinBoundLabel === undefined &&
         specialMaxBoundKind === undefined &&
         specialMaxBoundFieldLabel === undefined &&
         specialMaxBoundReferenceISO === undefined
@@ -115,6 +117,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         fraTilRole: specialFraTilRole,
         minBoundKind: specialMinBoundKind,
         minBoundReferenceISO: specialMinBoundReferenceISO,
+        minBoundLabel: specialMinBoundLabel,
         maxBoundKind: specialMaxBoundKind,
         maxBoundFieldLabel: specialMaxBoundFieldLabel,
         maxBoundReferenceISO: specialMaxBoundReferenceISO,
@@ -123,6 +126,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       specialFraTilRole,
       specialMinBoundKind,
       specialMinBoundReferenceISO,
+      specialMinBoundLabel,
       specialMaxBoundKind,
       specialMaxBoundFieldLabel,
       specialMaxBoundReferenceISO,
