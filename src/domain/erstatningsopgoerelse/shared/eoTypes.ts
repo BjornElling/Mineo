@@ -2,12 +2,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
-import type {
-  SfggDayBasis,
-  SfggFeriepengeModtagetFormula,
-  SfggReferencesatsCalculable,
-  SfggReferencesatsFormula,
-} from '../engines/sygeferiegodtgoerelse';
+import type { SygeferiegodtgoerelseResult } from '../engines/sygeferiegodtgoerelse';
 import type { ReguleringForloeb } from '../engines/reguleringForloeb';
 
 export type MoneyOre = number;
@@ -44,61 +39,10 @@ export type EoModel = Readonly<{
   tafRanges: readonly IsoRange[];
 }>;
 
-export type SygeferiegodtgoerelseModel = Readonly<{
-  totalOre: MoneyOre;
-  perYear: readonly Readonly<{
-    year: number;
-    amountOre: MoneyOre;
-  }>[];
-  firstExcludedDate: ISODateString | null;
-  perAnsaettelsesforhold: readonly Readonly<{
-    ansaettelsesforholdId: string;
-    ansaettelsesforholdNavn: string;
-    sfggSourceLabel: string;
-    sfggSourceKind: 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
-    sfggDayBasis: SfggDayBasis;
-    sfggIntroText: string | null;
-    sfggReferenceperiodeAuthorityText: string | null;
-    sfggReferenceperiodeLabel: string;
-    sfggDirectRateLabel: string | null;
-    sfggFirstTafDayExcludedText: string | null;
-    sfggAfterEmployerSickPayText: string | null;
-    sfggLovbestemtFeriepengeNote: string | null;
-    pdfExplanatoryLines: readonly string[];
-    perYear: readonly Readonly<{
-      year: number;
-      amountOre: MoneyOre;
-    }>[];
-    feriepengekravTotalOre: MoneyOre;
-    totalOre: MoneyOre;
-    alleredeBetaltOre: MoneyOre;
-    sfggVisningsperiode: readonly IsoRange[];
-    sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
-    sfggReferencesats: SfggReferencesatsCalculable;
-    sfggReferencesatsFormula: SfggReferencesatsFormula | null;
-    feriepengeModtagetFormula: SfggFeriepengeModtagetFormula | null;
-    capReachedDate: ISODateString | null;
-    capRows: readonly Readonly<{
-      fra: ISODateString;
-      til: ISODateString;
-      antalDage: number;
-      maanederPraecis: number;
-    }>[];
-    segments: readonly Readonly<{
-      fra: ISODateString;
-      til: ISODateString;
-      reguleringsindeks: number | null;
-      satsOre: MoneyOre;
-      agPensionPct: number;
-      antalDage: number;
-      feriepengekravOre: MoneyOre;
-      beregnetSfggoereOre: MoneyOre;
-      loenPlusLoen2PlusIkkePensLoenKroner: number;
-      feriepengeAfSygeloenOre: MoneyOre;
-      alleredeBetaltOre: MoneyOre;
-    }>[];
-  }>[];
-}>;
+// Præsentationsmodellen bærer SFGG-motorens resultat uændret; motoren er eneste sandhedskilde
+// for formen. Aliaset (frem for en håndholdt parallel kopi) sikrer, at model og motor-resultat
+// aldrig kan drive fra hinanden.
+export type SygeferiegodtgoerelseModel = SygeferiegodtgoerelseResult;
 
 export type ForligModel =
   | Readonly<{

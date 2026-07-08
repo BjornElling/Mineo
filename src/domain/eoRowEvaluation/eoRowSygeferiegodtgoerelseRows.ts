@@ -3,11 +3,10 @@ import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
-import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy, isOffentligOverenskomstId } from '../../data/overenskomstRates';
-import { isSfggNoEligibleDaysNotCalculable, resolveSfggDayBasis, hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { isSfggNoEligibleDaysNotCalculable, hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
-import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_TABLE_TOTAL_LABEL, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, parseSfggExplanatoryLine, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
+import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_TABLE_TOTAL_LABEL, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
@@ -25,7 +24,6 @@ export const buildEoSygeferiegodtgoerelseRows = (
   pdfModel?: EoModel
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
-  const tafBeregnesSom = computeTafBeregningsenhed(values);
   const sfgg = pdfModel?.tabtArbejdsfortjeneste.sygeferiegodtgoerelse;
   const seksMaanedersWarnings = new Set<string>();
 
@@ -118,9 +116,10 @@ export const buildEoSygeferiegodtgoerelseRows = (
     if (!kilde || kilde === 'Ingen') {
       continue;
     }
-    const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregnesSom);
 
-    const foerstEfterSygeloen = resolveSfggFoerstEfterSygeloen({
+    // Læs motorens autoritative resultat, når det findes (vist = beregnet); ellers — når kontrol
+    // køres uden fuld pdfModel — genudledes værdien fra samme input, så standalone-visningen bevares.
+    const foerstEfterSygeloen = result?.foerstEfterSygeloen ?? resolveSfggFoerstEfterSygeloen({
       sfggSourceKind: sfggSource.kind,
       manualFoerstEfterSygeloen: row?.sfggManuelFoerstEfterSygeloen === 'Ja',
       overenskomstBortfalderUnderArbejdsgiverbetaltSygeloen:
@@ -143,7 +142,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       status: 'ok',
     });
     if (result) {
-      const hasFourMonthCap = result.pdfExplanatoryLines.some((line) => parseSfggExplanatoryLine(line)?.kind === 'four_month_cap');
+      const hasFourMonthCap = result.sfggAfkortninger.some((afkortning) => afkortning.aarsag === 'cap4mdr');
       rows.push({
         id: `sfgg.varighedsbegraenset.${employment.id}`,
         label: 'Varighedsbegrænset',
@@ -263,7 +262,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       const referenceSatsLabel = result.sfggReferencesatsFormula
         ? `Referencesats (${formatCurrency(result.sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner)} x ${formatPercent(result.sfggReferencesatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`
         : 'Referencesats';
-      const referenceSatsUnit = sfggDayBasis === 'kalenderdage' ? 'kr./dag' : 'kr./arbejdsdag';
+      const referenceSatsUnit = result.sfggDayBasis === 'kalenderdage' ? 'kr./dag' : 'kr./arbejdsdag';
       rows.push({
         id: `sfgg.referencesats.${employment.id}`,
         label: referenceSatsLabel,
@@ -291,7 +290,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
     }
 
     if (result?.segments.length) {
-      const antalDageHeader = sfggDayBasis === 'kalenderdage'
+      const antalDageHeader = result.sfggDayBasis === 'kalenderdage'
         ? 'Antal kalenderdage'
         : 'Antal arbejdsdage';
       const hasReguleringsindeks = result.segments.some((segment) => segment.reguleringsindeks !== null);
@@ -320,9 +319,9 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
 
       const feriepengeHvisIkkeSkadeOre = result.feriepengekravTotalOre;
-      const feriepengeModtagetOre = ensureMoneyOre(
-        result.segments.reduce((sum, segment) => sum + segment.feriepengeAfSygeloenOre, 0)
-      );
+      // Motoren bærer allerede totalen (sum af feriepengeAfSygeloenOre pr. segment); læs den frem
+      // for at re-summere, så visningen ikke kan drive fra beregningen.
+      const feriepengeModtagetOre = result.feriepengeModtagetFormula?.totalOre ?? ensureMoneyOre(0);
       const alleredeBetaltOre = result.alleredeBetaltOre;
       // result.totalOre er summen af beregnetSfggoereOre pr. segment (netto efter feriepenge og allerede betalt).
       const beregnetSygeferiegodtgoerelseOre = result.totalOre;
@@ -355,27 +354,17 @@ export const buildEoSygeferiegodtgoerelseRows = (
 
     }
 
-    result?.pdfExplanatoryLines.forEach((line, index) => {
-      const parsedLine = parseSfggExplanatoryLine(line);
-      if (parsedLine?.kind === 'four_month_cap') {
-        rows.push({
-          id: `sfgg.forklaring.${employment.id}.${index + 1}`,
-          label: 'Ophør af 4-måneders begrænsning',
-          displayValue: `${parsedLine.verb} den ${parsedLine.date}`,
-          status: 'ok',
-        });
-        return;
-      }
-      if (parsedLine?.kind === 'employment_end') {
-        return;
-      }
+    // Kun 4-måneders-afkortningen vises i kontrollen; ansættelsesophør fremgår allerede af rækken
+    // "Ansættelsesforholdet ophørt" ovenfor og gentages bevidst ikke.
+    const capAfkortning = result?.sfggAfkortninger.find((afkortning) => afkortning.aarsag === 'cap4mdr');
+    if (capAfkortning) {
       rows.push({
-        id: `sfgg.forklaring.${employment.id}.${index + 1}`,
-        label: 'Forklaring',
-        displayValue: line,
+        id: `sfgg.forklaring.${employment.id}.1`,
+        label: 'Ophør af 4-måneders begrænsning',
+        displayValue: `${capAfkortning.verbum} den ${isoToDanish(capAfkortning.dato) ?? capAfkortning.dato}`,
         status: 'ok',
       });
-    });
+    }
 
     if (seksMaanedersWarnings.has(employment.id)) {
       rows.push({

@@ -4,16 +4,13 @@ import type {
 } from '../../../schemas/formSchemas';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../../data/overenskomstRates';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import type { SfggReferencesatsFormula, SfggSource, SfggSourceKind } from '../engines/sygeferiegodtgoerelse';
+import { isoToDanish } from '../../../types/branded';
+import type { SfggAfkortning, SfggReferencesatsFormula, SfggSource, SfggSourceKind } from '../engines/sygeferiegodtgoerelse';
 
 const formatDaCount = (value: number): string => formatAsAmount(value, 0);
 const ensureSentencePunctuation = (value: string): string => (
   /[.!?]$/.test(value) ? value : `${value}.`
 );
-
-export type ParsedSfggExplanatoryLine =
-  | Readonly<{ kind: 'four_month_cap'; verb: 'bortfaldt' | 'bortfalder'; date: string }>
-  | Readonly<{ kind: 'employment_end'; verb: 'bortfaldt' | 'bortfalder'; date: string }>;
 
 export const buildSfggIntroText = (
   sfggRow: SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined,
@@ -160,28 +157,22 @@ export const buildSfggReferenceperiodeCountLabel = (
   return 'Antal arbejdsdage';
 };
 
-export const parseSfggExplanatoryLine = (
-  line: string
-): ParsedSfggExplanatoryLine | null => {
-  const fourMonthMatch = /^Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og (bortfaldt|bortfalder) den (\d{2}-\d{2}-\d{4})\.$/.exec(line);
-  if (fourMonthMatch) {
-    const [, verb, date] = fourMonthMatch;
+/**
+ * Formatterer en struktureret SFGG-afkortning til bilagets venstre/højre-linje.
+ * Både 4-måneders-afkortningen og ansættelsesophør vises som en venstre-tekst + dato i højre kolonne.
+ */
+export const formatSfggAfkortningPdfLine = (
+  afkortning: SfggAfkortning
+): Readonly<{ left: string; right: string }> => {
+  const dato = isoToDanish(afkortning.dato) ?? afkortning.dato;
+  if (afkortning.aarsag === 'cap4mdr') {
     return {
-      kind: 'four_month_cap',
-      verb: verb as 'bortfaldt' | 'bortfalder',
-      date,
+      left: 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte',
+      right: dato,
     };
   }
-
-  const employmentMatch = /^Retten til sygeferiegodtgørelse (bortfaldt|bortfalder) den (\d{2}-\d{2}-\d{4}) som følge af ansættelsesforholdets ophør\.$/.exec(line);
-  if (employmentMatch) {
-    const [, verb, date] = employmentMatch;
-    return {
-      kind: 'employment_end',
-      verb: verb as 'bortfaldt' | 'bortfalder',
-      date,
-    };
-  }
-
-  return null;
+  return {
+    left: `Retten ${afkortning.verbum} ved ansættelsesforholdets ophør`,
+    right: dato,
+  };
 };

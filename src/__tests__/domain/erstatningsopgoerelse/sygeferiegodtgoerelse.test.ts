@@ -8,7 +8,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import {
   buildSfggReferenceperiodeCountLabel,
-  parseSfggExplanatoryLine,
+  formatSfggAfkortningPdfLine,
 } from '../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
@@ -114,15 +114,21 @@ describe('computeSygeferiegodtgoerelse', () => {
     })).toBe('Antal kalenderdage i perioden (31 kalenderdage - 2 feriedage - 1 fraværsdage u. løn) =');
   });
 
-  it('parser bortfalder-varianten for 4-månedersforklaringen struktureret', () => {
+  it('formatterer 4-måneders-afkortningen til bilagets venstre/højre-linje', () => {
     expect(
-      parseSfggExplanatoryLine(
-        'Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfalder den 30-04-2014.'
-      )
+      formatSfggAfkortningPdfLine({ aarsag: 'cap4mdr', verbum: 'bortfalder', dato: iso('2014-04-30') })
     ).toEqual({
-      kind: 'four_month_cap',
-      verb: 'bortfalder',
-      date: '30-04-2014',
+      left: 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte',
+      right: '30-04-2014',
+    });
+  });
+
+  it('formatterer ansættelsesophør-afkortningen med det korrekte verbum', () => {
+    expect(
+      formatSfggAfkortningPdfLine({ aarsag: 'ansaettelsesophoer', verbum: 'bortfaldt', dato: iso('2024-02-15') })
+    ).toEqual({
+      left: 'Retten bortfaldt ved ansættelsesforholdets ophør',
+      right: '15-02-2024',
     });
   });
 
@@ -976,7 +982,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === 'af-2')?.sfggFirstTafDayExcludedText).toBe(
       'Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.'
     );
-    expect(result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === 'af-2')?.pdfExplanatoryLines).toEqual([]);
+    expect(result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === 'af-2')?.sfggAfkortninger).toEqual([]);
   });
 
   it('bevarer første TAF-dato i arbejdsdags-sporet når den første undtagne dag ikke er en arbejdsdag', () => {
@@ -1052,7 +1058,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.sfggAfterEmployerSickPayText).toBe(
       'Der beregnes ikke sygeferiegodtgørelse på dage, hvor der betales arbejdsgiverbetalt sygeløn.'
     );
-    expect(result.perAnsaettelsesforhold[0]?.pdfExplanatoryLines).toEqual([]);
+    expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([]);
   });
 
   it('viser overenskomstforklaring om sygeløn når overenskomsten bortfalder under arbejdsgiverbetalt sygeløn', () => {
@@ -1297,8 +1303,8 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
-    expect(result.perAnsaettelsesforhold[0]?.pdfExplanatoryLines).toEqual([
-      'Retten til sygeferiegodtgørelse bortfaldt den 15-02-2014 som følge af ansættelsesforholdets ophør.',
+    expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([
+      { aarsag: 'ansaettelsesophoer', verbum: 'bortfaldt', dato: iso('2014-02-15') },
     ]);
   });
 
@@ -1327,8 +1333,8 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
-    expect(result.perAnsaettelsesforhold[0]?.pdfExplanatoryLines).toEqual([
-      'Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfalder den 30-04-2014.',
+    expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([
+      { aarsag: 'cap4mdr', verbum: 'bortfalder', dato: iso('2014-04-30') },
     ]);
   });
 
@@ -1360,8 +1366,8 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-03-15') }],
     });
 
-    expect(result.perAnsaettelsesforhold[0]?.pdfExplanatoryLines).toEqual([
-      'Retten til sygeferiegodtgørelse bortfalder den 15-02-2024 som følge af ansættelsesforholdets ophør.',
+    expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([
+      { aarsag: 'ansaettelsesophoer', verbum: 'bortfalder', dato: iso('2024-02-15') },
     ]);
   });
 

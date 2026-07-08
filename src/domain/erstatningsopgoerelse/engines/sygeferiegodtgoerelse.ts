@@ -144,6 +144,20 @@ export type SygeferiegodtgoerelseCapRow = Readonly<{
   maanederPraecis: number;
 }>;
 
+/**
+ * Struktureret afkortning af SFGG-perioden. Motoren emitterer årsag + verbum + dato som data;
+ * læse-siden (kontrol og PDF/Word) formatterer dette til prosa. Repræsentationen er bevidst
+ * struktureret frem for fri tekst, så "vist = beregnet" holder ved konstruktion — ingen konsument
+ * parser motorens egen prosa tilbage til struktur.
+ */
+export type SfggAfkortningsAarsag = 'cap4mdr' | 'ansaettelsesophoer';
+
+export type SfggAfkortning = Readonly<{
+  aarsag: SfggAfkortningsAarsag;
+  verbum: 'bortfaldt' | 'bortfalder';
+  dato: ISODateString;
+}>;
+
 export type SfggReferencesatsFormula = Readonly<{
   loenPlusLoen2PlusIkkePensLoenKroner: number;
   feriePctDecimal: number;
@@ -174,7 +188,8 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   sfggFirstTafDayExcludedText: string | null;
   sfggAfterEmployerSickPayText: string | null;
   sfggLovbestemtFeriepengeNote: string | null;
-  pdfExplanatoryLines: readonly string[];
+  foerstEfterSygeloen: boolean;
+  sfggAfkortninger: readonly SfggAfkortning[];
   segments: readonly SygeferiegodtgoerelseSegment[];
   perYear: readonly Readonly<{
     year: number;
@@ -1267,7 +1282,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     if (sfggSource.kind === 'ingen') continue;
 
     const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregningsenhed);
-    const pdfExplanatoryLines: string[] = [];
+    const sfggAfkortninger: SfggAfkortning[] = [];
     const capReachedDate = capComputation.cutoffDate;
     const ansaettelsesophorDate =
       employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag
@@ -1289,9 +1304,17 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     arbejdsforlobsRanges = clipRangesToInclusiveUpperBound(arbejdsforlobsRanges, ansaettelsesophorDate);
 
     if (capReachedDate && (!ansaettelsesophorDate || capReachedDate <= ansaettelsesophorDate)) {
-      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og ${resolveSfggOphoerVerb(capReachedDate, opgoerelsesdato)} den ${isoToDanish(capReachedDate) ?? capReachedDate}.`);
+      sfggAfkortninger.push({
+        aarsag: 'cap4mdr',
+        verbum: resolveSfggOphoerVerb(capReachedDate, opgoerelsesdato),
+        dato: capReachedDate,
+      });
     } else if (ansaettelsesophorDate) {
-      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse ${resolveSfggOphoerVerb(ansaettelsesophorDate, opgoerelsesdato)} den ${isoToDanish(ansaettelsesophorDate) ?? ansaettelsesophorDate} som følge af ansættelsesforholdets ophør.`);
+      sfggAfkortninger.push({
+        aarsag: 'ansaettelsesophoer',
+        verbum: resolveSfggOphoerVerb(ansaettelsesophorDate, opgoerelsesdato),
+        dato: ansaettelsesophorDate,
+      });
     }
 
     const overenskomstPolicy = employment.overenskomstId ? getOverenskomstSfggPolicy(employment.overenskomstId) : undefined;
@@ -1378,7 +1401,8 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         sfggFirstTafDayExcludedText,
         sfggAfterEmployerSickPayText,
         sfggLovbestemtFeriepengeNote,
-        pdfExplanatoryLines,
+        foerstEfterSygeloen,
+        sfggAfkortninger,
         segments: [],
         perYear: [],
         feriepengekravTotalOre: ensureMoneyOre(0),
@@ -1540,7 +1564,8 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       sfggFirstTafDayExcludedText,
       sfggAfterEmployerSickPayText,
       sfggLovbestemtFeriepengeNote,
-      pdfExplanatoryLines,
+      foerstEfterSygeloen,
+      sfggAfkortninger,
       segments,
       perYear: [...employmentPerYear.entries()]
         .sort((a, b) => a[0] - b[0])

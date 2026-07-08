@@ -63,7 +63,7 @@ import {
   SFGG_FERIEPENGE_MODTAGET_LABEL,
   SFGG_TABLE_TOTAL_LABEL,
   buildSfggReferenceperiodeCountLabel,
-  parseSfggExplanatoryLine,
+  formatSfggAfkortningPdfLine,
 } from '../../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 
 type StandardPdfWriter = ReturnType<typeof createStandardPdfWriter>;
@@ -87,23 +87,6 @@ const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdag
 
 const resolveSfggPeriodDayUnitSingular = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): 'kalenderdag' | 'arbejdsdag' =>
   divisorLabel === 'kalenderdage' ? 'kalenderdag' : 'arbejdsdag';
-
-const parseSfggPdfExplanatoryLine = (
-  line: string
-): Readonly<{ left: string; right: string }> | null => {
-  const parsed = parseSfggExplanatoryLine(line);
-  if (!parsed) return null;
-  if (parsed.kind === 'four_month_cap') {
-    return {
-      left: 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte',
-      right: parsed.date,
-    };
-  }
-  return {
-    left: `Retten ${parsed.verb} ved ansættelsesforholdets ophør`,
-    right: parsed.date,
-  };
-};
 
 const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
   return getStandardLoenTableHeaders(loenperiode).map((header) => {
@@ -555,13 +538,9 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       if (entry.sfggSourceKind === 'manuel' && entry.sfggReferencesats.status === 'ok') {
         writeLabelValueLine('Referencesatsen udgør', `${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr./arbejdsdag`);
       }
-      entry.pdfExplanatoryLines.forEach((line) => {
-        const parsedLine = parseSfggPdfExplanatoryLine(line);
-        if (parsedLine) {
-          safeAddLeftRightText(parsedLine.left, parsedLine.right, standardRightMaxWidth, { rightFontStyle: 'normal' });
-          return;
-        }
-        safeAddWrappedText(line);
+      entry.sfggAfkortninger.forEach((afkortning) => {
+        const { left, right } = formatSfggAfkortningPdfLine(afkortning);
+        safeAddLeftRightText(left, right, standardRightMaxWidth, { rightFontStyle: 'normal' });
       });
       if (entry.sfggSourceKind !== 'manuel') {
         renderSfggReferenceSatsBlock(entry);
