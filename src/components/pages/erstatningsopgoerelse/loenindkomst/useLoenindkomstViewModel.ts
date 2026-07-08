@@ -155,6 +155,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       fravaerPerioder,
       eoValues,
       skadedato: stamdataValues?.skadedato,
+      skadestype: stamdataValues?.skadestype,
     }),
     [
       loenindkomstAnsaettelsesforhold,
@@ -165,6 +166,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       fravaerPerioder,
       eoValues,
       stamdataValues?.skadedato,
+      stamdataValues?.skadestype,
     ]
   );
   const {

@@ -17,6 +17,7 @@ import {
   isManuelProcentsatsRowKomplet,
 } from '../erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
+import { resolveSkadeEllerAnmeldelsesdatoReference } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
@@ -113,12 +114,14 @@ export const buildEoIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
-  appSettings: AppSettings = DEFAULT_APP_SETTINGS
+  appSettings: AppSettings = DEFAULT_APP_SETTINGS,
+  skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom'
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
   const allowIncompleteOverenskomst = appSettings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
   const overenskomstUdloebMaanederGraense = appSettings.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
+  const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
 
   const sections = buildIndkomstSectionStatuses(values, skadedato);
   sections.forEach((section) => {
@@ -149,7 +152,7 @@ export const buildEoIndkomstRows = (
 
     rows.push({
       id: `loenindkomst.${section.id}.satserSkadestidspunkt`,
-      label: 'Satser på skadestidspunktet',
+      label: `Satser på ${skadeEllerAnmeldelsesdato.labelLower}`,
       displayValue: section.satserStatus === 'ok' ? 'Ja' : formatStatusMessage(section.satserStatus, section.satserMessage),
       status: section.satserStatus,
     });

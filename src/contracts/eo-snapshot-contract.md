@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-07-02
+**Senest verificeret mod kode:** 2026-07-08
 
 ---
 
@@ -502,3 +502,36 @@ løn-/beregningsgrundlags-felterne (`beregnesUdFra`, beregningsperiode, fravær,
 lønindkomst, lønudvikling, anciennitet) i UI'en, men de forbliver **aktive** input: tabt
 arbejdsfortjeneste genberegnes fra dem. Disse felter neutraliseres derfor ikke. Mode-gating
 af det aktive løn-felt (afhængigt af `beregnesUdFra`) ejes fortsat af indkomst-motoren.
+
+## 15. Datoordlyd for anvendt reguleringsdato
+
+EO bruger `resolveAnvendtReguleringsdato` som autoritativ dato for løn-/reguleringsbasis:
+
+- Ved `Beregningsperiode`: `saerligFraDatoRegulering` hvis udfyldt, ellers
+  `tafBeregningsperiodeTil`.
+- Ved angivet månedsløn/dagsløn: den relevante angivne opreguleringsdato hvis udfyldt, ellers
+  stamdatadatoen.
+
+Al brugervendt tekst i felter, tooltips, kontrolvisning og dokument-output skal beskrive datoens
+faktiske kilde:
+
+- Hvis datoen er stamdatadatoen, skrives `skadedato(en)` kun ved `Arbejdsulykke`.
+- Ved `Erhvervssygdom` skrives altid `anmeldelsesdato(en)` for stamdatadatoen; der må ikke stå
+  `skadedato(en)` eller `skadesdato(en)` i den kontekst.
+- Hvis skadestype mangler, bruges arbejdsulykke-ordlyd som fallback (`skadedato(en)`), fordi
+  brugeren endnu ikke har valgt, om sagen er en erhvervssygdom.
+- Hvis stamdatadatoen mangler, må datoafhængige overskrifter ikke opfinde eller vise en dato.
+  Satsoverskrifter skal fx falde tilbage til den neutrale `Satser`, mens fejltekst fortsat må pege
+  på det manglende stamdatafelt (`Skadedato er ikke udfyldt` / `Anmeldelsesdato er ikke udfyldt`).
+- Hvis datoen er `tafBeregningsperiodeTil`, skal teksten beskrive den som beregningsperiodens
+  slut/udløb.
+- Hvis datoen er `saerligFraDatoRegulering`, skal teksten beskrive den som manuelt angivet/anvendt
+  reguleringsdato.
+- Indkomstgrundlagets sektionsoverskrift skal bruge den konkrete stamdatareference:
+  `Indtægt før skadedatoen` ved arbejdsulykke og `Indtægt før anmeldelsesdatoen` ved
+  erhvervssygdom. Kontekst uden adgang til skadestype skal bruge en neutral titel, fx
+  `Indkomstgrundlag`, frem for at gætte.
+
+Den kanoniske tekstafledning ligger i
+`src/domain/erstatningsopgoerelse/helpers/eoDateReferenceText.ts` og skal genbruges frem for lokale
+strengsammenligninger i UI, kontrol- eller dokumentlag.

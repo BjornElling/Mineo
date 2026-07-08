@@ -17,6 +17,7 @@ import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
 import type { VirtualizedDisplayTableHeaderRow } from '../../tables/VirtualizedDisplayTable';
 import type { EOInspektionSnapshot } from '../../../domain/eoInspektion/eoInspektionSnapshot';
 import { resolveArbejdsstedDisplayName } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
 const ROW_HEIGHT = 28;
 
@@ -37,6 +38,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
   const theme = useTheme();
   const snapshot = inspektionSnapshot;
   const model = snapshot?.model ?? null;
+  const stamdataDatoLabel = resolveSkadeEllerAnmeldelsesdatoReference(snapshot?.stamdataValues.skadestype).label;
   const [showPendingSnapshotInfo, setShowPendingSnapshotInfo] = React.useState(false);
 
   React.useEffect(() => {
@@ -363,7 +365,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
             </Typography>
             <Box component="ul" sx={{ m: 0, pl: 2 }}>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Stamdata:</strong> Skadedato
+                <strong>Stamdata:</strong> {stamdataDatoLabel}
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
                 <strong>Erstatningsopgørelse:</strong> Periode (fra/til)

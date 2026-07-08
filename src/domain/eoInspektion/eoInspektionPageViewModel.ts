@@ -5,6 +5,7 @@ import type { EoRowModel } from '../eoRowEvaluation/eoRowTypes';
 import type { EoInspektionViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
 import { buildOffentligeYdelserReguleringTableData } from '../erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
 import { resolveArbejdsstedDisplayName } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { resolveSkadeEllerAnmeldelsesdatoReference } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 
 export type EOInspektionDisplayTable = Readonly<{
@@ -21,6 +22,7 @@ export type EOInspektionEmploymentSectionViewModel = Readonly<{
   id: string;
   title: string;
   ansatPaaSkadestidspunktet: boolean;
+  ansatPaaSkadestidspunktetLabel: string;
   loenRows: readonly EoRowModel[];
   regulationRows: readonly EoRowModel[];
   regulationSection?: RegulationInspektionSection;
@@ -181,7 +183,7 @@ export const buildEOInspektionPageViewModel = (
   view: EoInspektionViewReady,
   appSettings: AppSettings
 ): EOInspektionPageViewModel => {
-  const { erstatningsopgoerelseValues, rowsBySection, regulationSections } = view;
+  const { erstatningsopgoerelseValues, rowsBySection, regulationSections, stamdataValues } = view;
   // 'Nej' og 'Skjul' har begge ingen beregning — kontrollaget viser kun emnet ved 'Ja'.
   const viserSvieSmerte = erstatningsopgoerelseValues.kravPaaSvieSmerteGodtgoerelse === 'Ja';
   const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.kravPaaTabtArbejdsfortjeneste === 'Ja';
@@ -242,6 +244,8 @@ export const buildEOInspektionPageViewModel = (
   const ansatPaaSkadestidspunktetById = new Map(
     (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af) => [af.id, af.ansatPaaSkadestidspunktet] as const)
   );
+  const ansatPaaSkadestidspunktetLabel =
+    `Ansat på ${resolveSkadeEllerAnmeldelsesdatoReference(stamdataValues.skadestype).labelLower}`;
 
   const employmentSections: EOInspektionEmploymentSectionViewModel[] = viserTabtArbejdsfortjeneste
     ? loenindkomstSections.map((section) => {
@@ -251,6 +255,7 @@ export const buildEOInspektionPageViewModel = (
           id: section.id,
           title: section.title,
           ansatPaaSkadestidspunktet,
+          ansatPaaSkadestidspunktetLabel,
           loenRows: section.loenRows,
           regulationRows: section.regulationRows,
           regulationSection: regulationSectionsByEmploymentId.get(section.id),

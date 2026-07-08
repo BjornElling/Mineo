@@ -30,6 +30,7 @@ import type { ISODateString } from '../../../../types/branded';
 import { parseISODate } from '../../../../types/branded';
 import { calculateFerieHverdageMinusSHDage } from '../../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
+import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../../utils/dateUtils';
@@ -358,6 +359,10 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     if (!parsed) return '';
     return formatDanishDate(parsed);
   }, [loenudviklingBaseDateISO]);
+  const loenudviklingReferencedato = resolveSkadeEllerAnmeldelsesdatoReference(persistedStamdata?.skadestype);
+  const indtaegtFoerSkadenSectionTitle = `Indtægt før ${loenudviklingReferencedato.labelLower}`;
+  const loenudviklingBaseDateErrorMessage =
+    `${loenudviklingReferencedato.label} er ikke udfyldt`;
 
   const shouldShowReguleringsDatoInterval = React.useMemo(() => {
     return loenudviklingBasis === 'Overenskomst'
@@ -528,6 +533,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     aktivAngivetLoenOpreguleresFraDato,
     loenudviklingBaseDateISO,
     loenudviklingBaseDateDisplay,
+    loenudviklingBaseDateErrorMessage,
     shouldShowReguleringsDatoInterval,
     offentligLoenEkstraGrundloenSuffix,
     reguleringsDatoIntervalData,
@@ -573,6 +579,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     // Diverse afledt visningstilstand
     opgoerelseLavetDenInputRef,
     skalKomprimereIndtaegtFoerSkaden,
+    indtaegtFoerSkadenSectionTitle,
     statusSubheaderLabel,
     menAfgoerelseDatoForTabel,
     endeligEETBeregnetDato,

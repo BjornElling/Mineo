@@ -1253,7 +1253,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   const totalPerYear = new Map<number, MoneyOre>();
 
   // Feriepenge modtaget i perioden skal medregne indkomst fra samtlige arbejdsgivere, ikke kun
-  // dem skadelidte var ansat hos på skadestidspunktet. Alle kalkulatorer bygges forud for løkken.
+  // dem skadelidte var ansat hos på stamdatadatoen. Alle kalkulatorer bygges forud for løkken.
   const alleAnsaettelserKalkulatorer = (values.loenindkomstAnsaettelsesforhold ?? []).map(
     (emp) => buildEmploymentSfggCalculator(emp, values.ferieperioder ?? [])
   );

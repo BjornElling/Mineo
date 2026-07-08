@@ -157,7 +157,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   midlertidigtEetFraEetSiden: 'Nej',
   regulerOffentligeYdelser: 'Ja',
 
-  // Indtægt før skaden
+  // Indtægt før stamdatadatoen
   komprimerBeregningEfterFoersteOpgoerelse: 'Ja',
   beregnesUdFra: 'Beregningsperiode',
   tafBeregningsperiodeFra: undefined,

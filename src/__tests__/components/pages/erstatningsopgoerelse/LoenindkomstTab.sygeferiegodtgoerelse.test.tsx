@@ -75,29 +75,64 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
       anvendtReguleringsdato: toISODateString('2024-01-01'),
       skadedato: toISODateString('2024-01-01'),
       skadestype: 'Arbejdsulykke',
+      beregnesUdFra: 'Angivet månedsløn',
       beregningsperiodeTil: undefined,
+      saerligFraDatoRegulering: undefined,
+    })).toBe('Satser på skadedatoen (01-01-2024)');
+
+    expect(resolveSatserHeading({
+      anvendtReguleringsdato: toISODateString('2024-01-01'),
+      skadedato: toISODateString('2024-01-01'),
+      skadestype: undefined,
+      beregnesUdFra: 'Angivet månedsløn',
+      beregningsperiodeTil: undefined,
+      saerligFraDatoRegulering: undefined,
     })).toBe('Satser på skadedatoen (01-01-2024)');
 
     expect(resolveSatserHeading({
       anvendtReguleringsdato: toISODateString('2024-01-01'),
       skadedato: toISODateString('2024-01-01'),
       skadestype: 'Erhvervssygdom',
+      beregnesUdFra: 'Angivet månedsløn',
       beregningsperiodeTil: undefined,
+      saerligFraDatoRegulering: undefined,
     })).toBe('Satser på anmeldelsesdatoen (01-01-2024)');
 
     expect(resolveSatserHeading({
       anvendtReguleringsdato: toISODateString('2024-12-31'),
       skadedato: toISODateString('2024-01-01'),
       skadestype: 'Arbejdsulykke',
+      beregnesUdFra: 'Beregningsperiode',
       beregningsperiodeTil: toISODateString('2024-12-31'),
+      saerligFraDatoRegulering: undefined,
     })).toBe('Satser ved beregningsperiodens udløb (31-12-2024)');
 
     expect(resolveSatserHeading({
       anvendtReguleringsdato: toISODateString('2024-03-15'),
       skadedato: toISODateString('2024-01-01'),
       skadestype: 'Arbejdsulykke',
+      beregnesUdFra: 'Angivet månedsløn',
       beregningsperiodeTil: undefined,
+      saerligFraDatoRegulering: toISODateString('2024-03-15'),
+    })).toBe('Satser på den manuelt angivne reguleringsdato (15-03-2024)');
+
+    expect(resolveSatserHeading({
+      anvendtReguleringsdato: toISODateString('2024-03-15'),
+      skadedato: toISODateString('2024-01-01'),
+      skadestype: 'Arbejdsulykke',
+      beregnesUdFra: 'Angivet månedsløn',
+      beregningsperiodeTil: undefined,
+      saerligFraDatoRegulering: undefined,
     })).toBe('Satser den 15. marts 2024');
+
+    expect(resolveSatserHeading({
+      anvendtReguleringsdato: undefined,
+      skadedato: undefined,
+      skadestype: undefined,
+      beregnesUdFra: 'Angivet månedsløn',
+      beregningsperiodeTil: undefined,
+      saerligFraDatoRegulering: undefined,
+    })).toBe('Satser');
   });
 
   it('viser kun SFGG-valget for ansættelsesforhold hvor skadelidte var ansat på skadestidspunktet', () => {

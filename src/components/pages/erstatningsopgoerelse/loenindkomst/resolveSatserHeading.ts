@@ -2,6 +2,8 @@ import type { ISODateString } from '../../../../types/branded';
 import { parseISODate } from '../../../../types/branded';
 import { formatDanishDate } from '../../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
+import { resolveAnvendtReguleringsdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
 const formatIsoDateShortLabel = (value: ISODateString | undefined): string | undefined => {
   if (!value) return undefined;
@@ -13,23 +15,28 @@ const formatIsoDateShortLabel = (value: ISODateString | undefined): string | und
 export const resolveSatserHeading = (params: Readonly<{
   anvendtReguleringsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
-  skadestype: string | undefined;
+  skadestype: StamdataValues['skadestype'] | undefined;
+  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
   beregningsperiodeTil: ISODateString | undefined;
+  saerligFraDatoRegulering: ISODateString | undefined;
 }>): string => {
-  const { anvendtReguleringsdato, skadedato, skadestype, beregningsperiodeTil } = params;
+  const { anvendtReguleringsdato } = params;
   if (!anvendtReguleringsdato) return 'Satser';
 
   const shortDate = formatIsoDateShortLabel(anvendtReguleringsdato);
   const longDate = formatIsoDateLong(anvendtReguleringsdato);
 
-  if (skadedato && anvendtReguleringsdato === skadedato && shortDate) {
-    return skadestype === 'Erhvervssygdom'
-      ? `Satser på anmeldelsesdatoen (${shortDate})`
-      : `Satser på skadedatoen (${shortDate})`;
-  }
-
-  if (beregningsperiodeTil && anvendtReguleringsdato === beregningsperiodeTil && shortDate) {
-    return `Satser ved beregningsperiodens udløb (${shortDate})`;
+  const reference = resolveAnvendtReguleringsdatoReference(params);
+  if (shortDate) {
+    if (reference.kind === 'skadedato' || reference.kind === 'anmeldelsesdato') {
+      return `Satser på ${reference.labelLower} (${shortDate})`;
+    }
+    if (reference.kind === 'beregningsperiodeSlutdato') {
+      return `Satser ved beregningsperiodens udløb (${shortDate})`;
+    }
+    if (reference.kind === 'manuelReguleringsdato') {
+      return `Satser på den manuelt angivne reguleringsdato (${shortDate})`;
+    }
   }
 
   if (longDate) {

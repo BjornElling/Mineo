@@ -27,6 +27,10 @@ import {
 } from '../../../../schemas/formSchemas';
 import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
 import { resolveSatserHeading } from './resolveSatserHeading';
+import {
+  resolveAnvendtReguleringsdatoReference,
+  resolveSkadeEllerAnmeldelsesdatoReference,
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import {
   getOverenskomstMetaById,
@@ -152,11 +156,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const displayNumber = index + 1;
   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
   const anciennitetstillaegMinDato = getDayAfterIso(anvendtReguleringsdato);
+  const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
   const satserHeading = resolveSatserHeading({
     anvendtReguleringsdato,
     skadedato: skadedato,
     skadestype: skadestype,
-    beregningsperiodeTil: beregnesUdFra === 'Beregningsperiode' ? tafBeregningsperiodeTil : undefined,
+    beregnesUdFra,
+    beregningsperiodeTil: tafBeregningsperiodeTil,
+    saerligFraDatoRegulering: af.saerligFraDatoRegulering,
   });
   const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
   const fritvalgLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'fritvalgPct');
@@ -263,7 +270,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       </Box>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Ansat på skadestidspunktet</Typography>
+        <Typography className="row--text">{`Ansat på ${skadeEllerAnmeldelsesdato.labelLower}`}</Typography>
         <Box className="row--label-right-hover__content">
           <StyledToggleSwitch
             name={`${af.id}:ansatPaaSkadestidspunktet`}
@@ -805,18 +812,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             const baseDateTooltipText =
               loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
                 ? undefined
-                : anvendtReguleringsdato === skadedato
-                  ? (skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
-                  // Manuelt indtastet dato fra "Evt. særlig fra-dato for regulering" (≠ skadedato).
-                  : af.saerligFraDatoRegulering !== undefined && anvendtReguleringsdato === af.saerligFraDatoRegulering
-                    ? 'Manuelt angivet reguleringsdato'
-                    : (
-                        beregnesUdFra === 'Beregningsperiode'
-                        && anvendtReguleringsdato === tafBeregningsperiodeTil
-                        && af.saerligFraDatoRegulering === undefined
-                      )
-                      ? 'Beregningsperiode slutdato'
-                      : undefined;
+                : resolveAnvendtReguleringsdatoReference({
+                    anvendtReguleringsdato,
+                    skadedato,
+                    skadestype,
+                    beregnesUdFra,
+                    beregningsperiodeTil: tafBeregningsperiodeTil,
+                    saerligFraDatoRegulering: af.saerligFraDatoRegulering,
+                  }).label;
             return (
               <>
                 <Box className="row--label-right-hover">
@@ -859,18 +862,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             const baseDateTooltipText =
               loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
                 ? undefined
-                : anvendtReguleringsdato === skadedato
-                  ? (skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
-                  // Manuelt indtastet dato fra "Evt. særlig fra-dato for regulering" (≠ skadedato).
-                  : af.saerligFraDatoRegulering !== undefined && anvendtReguleringsdato === af.saerligFraDatoRegulering
-                    ? 'Manuelt angivet reguleringsdato'
-                    : (
-                        beregnesUdFra === 'Beregningsperiode'
-                        && anvendtReguleringsdato === tafBeregningsperiodeTil
-                        && af.saerligFraDatoRegulering === undefined
-                      )
-                      ? 'Beregningsperiode slutdato'
-                      : undefined;
+                : resolveAnvendtReguleringsdatoReference({
+                    anvendtReguleringsdato,
+                    skadedato,
+                    skadestype,
+                    beregnesUdFra,
+                    beregningsperiodeTil: tafBeregningsperiodeTil,
+                    saerligFraDatoRegulering: af.saerligFraDatoRegulering,
+                  }).label;
             return (
               <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoLoenudviklingManuelProcentsats} rowScope={af.id}>
                 <LoenudviklingManuelProcentsatsTable

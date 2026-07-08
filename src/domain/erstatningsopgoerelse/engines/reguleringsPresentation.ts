@@ -22,11 +22,12 @@ import {
   isAslStatistikModel,
   resolveStatistikModelId,
 } from '../helpers/eoSharedUtils';
+import { resolveLoenReferencedatoText } from '../helpers/eoDateReferenceText';
 import { round2 as roundToTwoDecimals } from '../../../utils/roundingShortcuts';
 import { maxISO, minISO, sortIsoDates } from '../../../utils/isoDateHelpers';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
-import { formatISOToDanish, formatIsoDateLong } from '../../../utils/dateFormatting';
+import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { parseAmount } from '../../../utils/numberParsing';
 import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
 import { roundByMethod } from '../../../utils/rounding';
@@ -107,7 +108,6 @@ const parseOptionalIsoDate = parseOptionalIsoDateShared;
 const parseDanishToISO = parseDanishToIsoShared;
 export const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
 const formatDateShort = formatISOToDanish;
-const formatDateLong = formatIsoDateLong;
 
 const isLoengruppe = (value: number): value is Loengruppe =>
   Number.isInteger(value) && value >= 0 && value <= 4;
@@ -216,27 +216,17 @@ export const resolveAnvendtReguleringsdato = (
  * datoen repræsenterer beregningsperiodens implicitte slutdato, fordi den
  * sproglige formulering i EO skal være "opgjort frem til" og ikke "opgjort per".
  *
- * Teksten bliver "på skadedatoen" hvis `anvendtReguleringsdato` er lig `skadedato`
- * eller `undefined`; ellers "opgjort per [dato]" eller "opgjort frem til [dato]".
+ * Teksten bliver "på skadedatoen" eller "på anmeldelsesdatoen" hvis
+ * `anvendtReguleringsdato` er lig stamdatadatoen eller `undefined`; ellers
+ * "opgjort per [dato]" eller "opgjort frem til [dato]".
  */
 export const resolveLoenSkadedatoText = (params: {
   subject: 'lønnen';
   anvendtReguleringsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
+  skadestype: StamdataValues['skadestype'] | undefined;
   useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
-}): string => {
-  const { subject, anvendtReguleringsdato, skadedato, useUntilWordingForImplicitBeregningsperiodeDate = false } = params;
-  if (anvendtReguleringsdato && anvendtReguleringsdato !== skadedato) {
-    const formatted = formatDateLong(anvendtReguleringsdato);
-    if (formatted) {
-      if (useUntilWordingForImplicitBeregningsperiodeDate) {
-        return `${subject} opgjort frem til ${formatted}`;
-      }
-      return `${subject} opgjort per ${formatted}`;
-    }
-  }
-  return `${subject} på skadedatoen`;
-};
+}): string => resolveLoenReferencedatoText(params);
 
 const formatIndexValue = (value: number): string =>
   formatAsAmount(value, 2);

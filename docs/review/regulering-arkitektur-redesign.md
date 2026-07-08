@@ -200,7 +200,7 @@ så R1 reducerer drift og switch-duplikering uden at optimere for hypotetiske fr
 > entries-swap-formerne.
 >
 > **Ophævet og rettet igen (2026-07-08): anciennitetstillæg er ikke i basis.** Den midlertidige
-> 2026-07-07-regel byggede på en forkert UI-bound: anciennitetsdatoen var afgrænset af skadedatoen
+> 2026-07-07-regel byggede på en forkert UI-bound: anciennitetsdatoen var afgrænset af stamdatadatoen
 > i stedet for anvendt reguleringsdato. Den korrekte regel er nu, at dato for anciennitetstillæg skal
 > ligge **efter anvendt reguleringsdato**. Dermed kan tillægget aldrig være en del af referenceniveauet
 > (indeks 100), og basis-gaten/rå-dato-gaten er fjernet fra motor, præsentation og kontrol. Tillægget

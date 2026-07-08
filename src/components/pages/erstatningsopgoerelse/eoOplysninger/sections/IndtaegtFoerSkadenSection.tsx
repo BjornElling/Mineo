@@ -23,8 +23,8 @@ import { getDayAfterIso } from '../../../../../utils/isoDateHelpers';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 
 /**
- * Sektion 5: Indtægt før skaden (beregningsmetode, beregningsperiode/ferie/fravær eller angivet
- * løn, lønudvikling og anciennitetstillæg). Hele sektionen er kun synlig når der beregnes tabt
+ * Sektion 5: indtægt før stamdatadatoen (beregningsmetode, beregningsperiode/ferie/fravær eller
+ * angivet løn, lønudvikling og anciennitetstillæg). Hele sektionen er kun synlig når der beregnes tabt
  * arbejdsfortjeneste.
  */
 export default function IndtaegtFoerSkadenSection() {
@@ -39,6 +39,7 @@ export default function IndtaegtFoerSkadenSection() {
     handleAmountBlur,
     commitField,
     skalKomprimereIndtaegtFoerSkaden,
+    indtaegtFoerSkadenSectionTitle,
     beregningsperiodeTafOverlap,
     fravaer,
     fravaerFeriedageById,
@@ -66,6 +67,7 @@ export default function IndtaegtFoerSkadenSection() {
     handleLoenudviklingManuelInputErrorChange,
     loenudviklingBaseDateDisplay,
     loenudviklingBaseDateISO,
+    loenudviklingBaseDateErrorMessage,
     shouldShowReguleringsDatoInterval,
     reguleringsDatoIntervalData,
     reguleringsDatoIntervalDisplay,
@@ -85,7 +87,7 @@ export default function IndtaegtFoerSkadenSection() {
 
   return (
         <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
-        <Typography className="section-header">Indtægt før skaden</Typography>
+        <Typography className="section-header">{indtaegtFoerSkadenSectionTitle}</Typography>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Skjul beregning efter første opgørelse</Typography>
@@ -612,7 +614,7 @@ export default function IndtaegtFoerSkadenSection() {
                       onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
                       baseDateDisplay={loenudviklingBaseDateDisplay}
                       baseDateISO={loenudviklingBaseDateISO}
-                      baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadedato er ikke udfyldt' : undefined}
+                      baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
                       useSmallFont={true}
                     />
                     </CellInvalidDraftScopeProvider>
@@ -628,7 +630,7 @@ export default function IndtaegtFoerSkadenSection() {
                         onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
                         baseDateDisplay={loenudviklingBaseDateDisplay}
                         baseDateISO={loenudviklingBaseDateISO}
-                        baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadedato er ikke udfyldt' : undefined}
+                        baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
                         useSmallFont={true}
                       />
                     </CellInvalidDraftScopeProvider>

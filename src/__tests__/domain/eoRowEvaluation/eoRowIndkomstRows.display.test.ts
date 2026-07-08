@@ -65,6 +65,16 @@ describe('buildEoIndkomstRows display', () => {
     expect(nameRow?.displayValue).toBe('Manuelt angivet (DA-tillægstrin)');
   });
 
+  it('viser anmeldelsesdatoen som satsreference ved erhvervssygdom', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+
+    const rows = buildEoIndkomstRows(values, toISODateString('2024-06-01'), {}, undefined, 'Erhvervssygdom');
+    const satserRow = rows.find((row) => row.id === `loenindkomst.${af.id}.satserSkadestidspunkt`);
+
+    expect(satserRow?.label).toBe('Satser på anmeldelsesdatoen');
+  });
+
   it('falder tilbage til grundlaget når manuel reguleringsform ikke har eget navn', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';

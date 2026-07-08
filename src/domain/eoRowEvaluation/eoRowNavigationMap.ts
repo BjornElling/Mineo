@@ -185,7 +185,7 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
       tabId: 'eo_oplysninger',
       sectionId: 'taf-beregningsgrundlag',
       tabName: 'EO oplysninger',
-      sectionTitle: 'Indtægt før skaden',
+      sectionTitle: 'Indkomstgrundlag',
     };
   }
 

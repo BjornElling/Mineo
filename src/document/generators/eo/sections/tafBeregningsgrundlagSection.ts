@@ -3,7 +3,7 @@
  *
  * Udtrukket fra `opgoerelseSection.ts` så både den almindelige erstatningsopgørelse
  * og "TAF opreguleret til beregningsåret"-PDF'en kan vise præcis samme beregnings-
- * grundlag (dagsløn/månedsløn ved skadestidspunktet) og samme introtekst til
+ * grundlag (dagsløn/månedsløn ved stamdatadatoen) og samme introtekst til
  * forventet indkomst.
  *
  * Funktionerne her ændrer ikke noget output — de flytter blot eksisterende logik
@@ -16,6 +16,7 @@ import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopg
 import type { Calculable, MoneyOre, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
+import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
 export type TafBeregningsgrundlagDeps = Readonly<{
   model: EoModel;
@@ -51,7 +52,7 @@ export type TafBeregningsgrundlagDeps = Readonly<{
 }>;
 
 /**
- * Renderer "Beregningsgrundlag"-underafsnittet (dagsløn/månedsløn ved skadestidspunktet).
+ * Renderer "Beregningsgrundlag"-underafsnittet (dagsløn/månedsløn ved stamdatadatoen).
  * Identisk med blokken i `opgoerelseSection.ts`.
  */
 export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): void => {
@@ -263,6 +264,7 @@ export type TafForventetIndkomstIntroDeps = Readonly<{
     subject: 'lønnen';
     anvendtReguleringsdato: ISODateString | undefined;
     skadedato: ISODateString | undefined;
+    skadestype: StamdataValues['skadestype'] | undefined;
     useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
@@ -285,6 +287,7 @@ export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstI
     subject: 'lønnen',
     anvendtReguleringsdato: anvendtReguleringsdatoForOpgoerelse,
     skadedato: skadedatoIso,
+    skadestype: stamdataValues.skadestype,
     useUntilWordingForImplicitBeregningsperiodeDate:
       eoValues.beregnesUdFra === 'Beregningsperiode'
       && !aktivLoenudviklingAf?.saerligFraDatoRegulering
@@ -313,7 +316,7 @@ export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstI
         return brugFremTilFormulering ? `frem til ${formatted}` : `per ${formatted}`;
       }
     }
-    return 'på skadedatoen';
+    return `på ${resolveSkadeEllerAnmeldelsesdatoReference(stamdataValues.skadestype).labelLower}`;
   };
   const resolvePerAnsaettelseLoenTekst = (): string | undefined => {
     if (!loenudvikling || loenudvikling.perAnsaettelse.length <= 1) return undefined;

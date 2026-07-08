@@ -271,7 +271,7 @@ describe('EOberegningTab download-blokerings-sikkerhedsnet', () => {
       errors: [
         {
           id: 'loenindkomst.af-1.satserSkadestidspunkt',
-          label: 'Satser på skadestidspunktet',
+          label: 'Satser på skadedatoen',
           displayValue: 'Fejl (Feriegodtgørelse/-tillæg er ikke udfyldt)',
           status: 'error',
           navigation: { kind: 'unsupported', reason: 'test', displayPath: 'Lønindkomst' },

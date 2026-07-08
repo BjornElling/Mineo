@@ -1,6 +1,7 @@
 import type {
   ErstatningsopgoerelseValues,
   LoenindkomstAnsaettelsesforhold,
+  StamdataValues,
 } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { parseISODate } from '../../../types/branded';
@@ -32,6 +33,7 @@ import {
   type ManualBaseRowCellErrors,
 } from '../validation/loenudviklingManuelBaseRowValidation';
 import { calculateLoenindkomstRowDerived } from '../helpers/loenindkomstRowDerived';
+import { resolveSkadeEllerAnmeldelsesdatoReference } from '../helpers/eoDateReferenceText';
 
 /**
  * Ren (React-fri) afledning for Loenindkomst-fanen.
@@ -75,6 +77,7 @@ export type LoenindkomstDerivationInput = Readonly<{
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
   skadedato: ISODateString | undefined;
+  skadestype: StamdataValues['skadestype'] | undefined;
 }>;
 
 /**
@@ -127,6 +130,7 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
     fravaerPerioder,
     eoValues,
     skadedato,
+    skadestype,
   } = input;
 
   // Stabile sats-props pr. af til React.memo'd StandardLoenTable.
@@ -225,12 +229,13 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
 
   const getLoenudviklingBaseDate = (af: Ansaettelsesforhold): LoenudviklingBaseDate => {
     const iso = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
+    const missingDateMessage = `${resolveSkadeEllerAnmeldelsesdatoReference(skadestype).label} er ikke udfyldt`;
     if (!iso) {
-      return { display: '', iso: undefined, errorMessage: 'Skadedato er ikke udfyldt' };
+      return { display: '', iso: undefined, errorMessage: missingDateMessage };
     }
     const parsed = parseISODate(iso);
     if (!parsed) {
-      return { display: '', iso: undefined, errorMessage: 'Skadedato er ikke udfyldt' };
+      return { display: '', iso: undefined, errorMessage: missingDateMessage };
     }
     return { display: formatDanishDate(parsed), iso, errorMessage: undefined };
   };

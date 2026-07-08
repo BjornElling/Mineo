@@ -34,6 +34,7 @@ const buildInput = (
     fravaerPerioder: eoValues.fravaerPerioder,
     eoValues,
     skadedato: overrides?.tafBeregningsperiodeTil ? undefined : toISODateString('2024-06-01'),
+    skadestype: 'Arbejdsulykke',
   };
 };
 
@@ -128,6 +129,38 @@ describe('deriveLoenindkomstVm', () => {
       expect(baseDate.iso).toBeUndefined();
       expect(baseDate.display).toBe('');
       expect(baseDate.errorMessage).toBe('Skadedato er ikke udfyldt');
+    });
+
+    it('bruger anmeldelsesdato i manglende basisdato-fejl ved erhvervssygdom', () => {
+      const af: Ansaettelsesforhold = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        saerligFraDatoRegulering: undefined,
+      };
+      const input = {
+        ...buildInput([af], {
+          beregnesUdFra: 'Beregningsperiode',
+          tafBeregningsperiodeTil: undefined,
+        }),
+        skadestype: 'Erhvervssygdom' as const,
+      };
+      const model = deriveLoenindkomstVm(input);
+      expect(model.getLoenudviklingBaseDate(af).errorMessage).toBe('Anmeldelsesdato er ikke udfyldt');
+    });
+
+    it('bruger skadedato som fallback i manglende basisdato-fejl når skadestype mangler', () => {
+      const af: Ansaettelsesforhold = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        saerligFraDatoRegulering: undefined,
+      };
+      const input = {
+        ...buildInput([af], {
+          beregnesUdFra: 'Beregningsperiode',
+          tafBeregningsperiodeTil: undefined,
+        }),
+        skadestype: undefined,
+      };
+      const model = deriveLoenindkomstVm(input);
+      expect(model.getLoenudviklingBaseDate(af).errorMessage).toBe('Skadedato er ikke udfyldt');
     });
   });
 

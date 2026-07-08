@@ -54,7 +54,7 @@ describe('EOOplysningerTab sektioner', () => {
       'AES-afgørelser',
       'Svie- og smertegodtgørelse',
       'Tabt arbejdsfortjeneste',
-      'Indtægt før skaden',
+      'Indtægt før skadedatoen',
       'Øvrige erstatningskrav',
       'Eventuelle særlige kommentarer',
       'Bilagsnumre',

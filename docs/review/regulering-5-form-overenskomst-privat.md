@@ -49,7 +49,7 @@ seneste sats ≤ dato. `undefined` returneres **kun** når datoen ligger før de
 - **Sti:** `!sats && !useStoreBededagOnlyBeforeCoverage` → `buildZeroDeltaSegment` (`:1209–1211`); og
   `segment.fra < effectiveBase.startIso && !useStoreBededagOnlyBeforeCoverage` → zero-delta (`:1214–1217`).
 - **Led:** beregningsmotoren (før-dækning) / row-lag (gate).
-- **Kan valid input ramme den?** Ja — reguleringsdato (fx nær en gammel skadedato) før overenskomstens
+- **Kan valid input ramme den?** Ja — reguleringsdato (fx nær en gammel stamdatadato) før overenskomstens
   første sats. `effectiveReguleringsdato = max(reguleringsdato, dækningsstart)` = dækningsstart, og
   TAF-segmenter før dækningsstart → zero-delta.
 - **Bevidst korrekt eller fejl? → BEKRÆFTET KORREKT (gated).** Præcis analog til S1 (punkt 1):

@@ -41,7 +41,7 @@ Eksempel: statistik-form (ILON12), `Beregningsperiode`, `saerligFraDatoRegulerin
 
 - **Sti:** silent fallback — når `findLatestByDateInSortedList` ikke finder en sats ≤ reguleringsdato, ankres base til `sortedItems[0]` (ældste sats), `usedFallback = true`; segmenter før `effectiveBaseStartIso` → `buildZeroDeltaSegment`.
 - **Led i kæden:** beregningsmotoren (statistik `:692`, KRL `:757`).
-- **Kan valid input ramme den?** Ja — hvis reguleringsdatoen (fx nær en gammel skadedato) ligger før satstabellens første post. `usedFallback` fyrer ⟺ reguleringsdato < første sats.
+- **Kan valid input ramme den?** Ja — hvis reguleringsdatoen (fx nær en gammel stamdatadato) ligger før satstabellens første post. `usedFallback` fyrer ⟺ reguleringsdato < første sats.
 - **Bevidst korrekt eller fejl? → BEKRÆFTET KORREKT (gated).** Den synlige fejl findes — men i **række-laget**, ikke i motoren:
   - `eoRowIndkomstRows.ts:472` sætter `reguleringsvaerdi`-rækken til `status: 'error'` når `anvendtReguleringsdato < reguleringsRange.min`.
   - `reguleringsRange.min = parseDanishToIso(interval.fraDato)`. For **statistik** er `interval.fraDato = kvartalToStartDato(minKvartal)` (`statistiskeRates.ts:257`) = motorens **første** `periodStart`. For **KRL** er `interval.fraDato = aeldste.fraDato` (`krlRates.ts:213`) = motorens **første** `periodStart`. Row-gatens `min` er altså **identisk** med den sats, motoren ellers falder tilbage til → row-error fyrer **præcis** når `usedFallback` ville fyre. Ingen ugated mellemzone.
@@ -51,7 +51,7 @@ Eksempel: statistik-form (ILON12), `Beregningsperiode`, `saerligFraDatoRegulerin
 
 ### `resolveAnvendtReguleringsdato` — undefined fail-closer konsekvent
 
-- **Sti:** returnerer `undefined` når begge kandidater i den valgte gren mangler (`Beregningsperiode`: `saerligFraDatoRegulering`/`beregningsperiodeTil`; angivet løn: `angivetLoenMetodeOpreguleresFraDato`/`skadedato`).
+- **Sti:** returnerer `undefined` når begge kandidater i den valgte gren mangler (`Beregningsperiode`: `saerligFraDatoRegulering`/`beregningsperiodeTil`; angivet løn: `angivetLoenMetodeOpreguleresFraDato`/stamdatadatoen).
 - **Kan valid input ramme den?** Nej ved komplet input; ved mangel fail-closer hver strategi-motor: statistik `:640`, KRL `:735`, manualProcentsats `:805`, klLoenaftaler `:846`, overenskomst `:888` → alle `throw 'reguleringsdato mangler'` → `runtime_exception`. Row-laget: `:465` `!anvendtReguleringsdato → status 'error'`.
 - **Undtagelse (bevidst):** `buildLoenudviklingFromManual` (`:1286`) bruger basisrækken som niveau og kaster **ikke** på undefined reguleringsdato (drop-betingelsen bliver blot falsk). Manuel har egen basis-række-validering (dato = reguleringsdato). Ejes af **punkt 7** — noteret, ikke en fundament-fejl.
 - **Udfald: bekræftet korrekt.**

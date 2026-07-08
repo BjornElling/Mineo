@@ -97,6 +97,7 @@ type ReguleringSectionContext = Readonly<{
     subject: 'lønnen';
     anvendtReguleringsdato: ISODateString | undefined;
     skadedato: ISODateString | undefined;
+    skadestype: StamdataValues['skadestype'] | undefined;
     useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }>) => string;
   resolveTafDateBounds: (
@@ -538,6 +539,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       subject: 'lønnen',
       anvendtReguleringsdato,
       skadedato: skadedatoIso,
+      skadestype: stamdataValues.skadestype,
       useUntilWordingForImplicitBeregningsperiodeDate:
         eoValues.beregnesUdFra === 'Beregningsperiode'
         && !ansaettelsesforhold.saerligFraDatoRegulering

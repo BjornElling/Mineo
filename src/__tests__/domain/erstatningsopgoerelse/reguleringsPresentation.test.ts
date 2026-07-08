@@ -237,6 +237,7 @@ describe('reguleringsPresentation', () => {
       subject: 'lønnen',
       anvendtReguleringsdato: iso('2017-05-02'),
       skadedato: iso('2016-01-01'),
+      skadestype: 'Arbejdsulykke',
       useUntilWordingForImplicitBeregningsperiodeDate: true,
     })).toBe('lønnen opgjort frem til 2. maj 2017');
   });
@@ -246,8 +247,36 @@ describe('reguleringsPresentation', () => {
       subject: 'lønnen',
       anvendtReguleringsdato: iso('2017-05-02'),
       skadedato: iso('2016-01-01'),
+      skadestype: 'Arbejdsulykke',
       useUntilWordingForImplicitBeregningsperiodeDate: false,
     })).toBe('lønnen opgjort per 2. maj 2017');
+  });
+
+  it('bruger anmeldelsesdatoen som stamdata-reference ved erhvervssygdom', () => {
+    expect(resolveLoenSkadedatoText({
+      subject: 'lønnen',
+      anvendtReguleringsdato: iso('2016-01-01'),
+      skadedato: iso('2016-01-01'),
+      skadestype: 'Erhvervssygdom',
+    })).toBe('lønnen på anmeldelsesdatoen');
+  });
+
+  it('bruger arbejdsulykke-ordlyd som fallback når skadestype mangler', () => {
+    expect(resolveLoenSkadedatoText({
+      subject: 'lønnen',
+      anvendtReguleringsdato: undefined,
+      skadedato: undefined,
+      skadestype: undefined,
+    })).toBe('lønnen på skadedatoen');
+  });
+
+  it('bruger anmeldelsesdatoen ved erhvervssygdom selv når datoen mangler', () => {
+    expect(resolveLoenSkadedatoText({
+      subject: 'lønnen',
+      anvendtReguleringsdato: undefined,
+      skadedato: undefined,
+      skadestype: 'Erhvervssygdom',
+    })).toBe('lønnen på anmeldelsesdatoen');
   });
 
   it('viser tidligste faktiske sats uden reguleringsdato-række og sætter note ved manglende tidlig dækning', () => {

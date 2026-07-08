@@ -19,6 +19,7 @@ type EmploymentInspektionSection = Readonly<{
   id: string;
   title: string;
   ansatPaaSkadestidspunktet?: boolean;
+  ansatPaaSkadestidspunktetLabel: string;
   loenRows: readonly EoRowModel[];
   regulationRows: readonly EoRowModel[];
   regulationSection?: RegulationInspektionSection;
@@ -300,7 +301,9 @@ const EOInspektionEmploymentSections = React.memo<{
                   <>
                     <UnderlinedHoverRow text="Sygeferiegodtgørelse" />
                     <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                      <Typography className="row--text">Ansat på skadestidspunktet</Typography>
+                      <Typography className="row--text">
+                        {section.ansatPaaSkadestidspunktetLabel}
+                      </Typography>
                       <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
                         <Typography className="row--text">Nej</Typography>
                       </Box>
