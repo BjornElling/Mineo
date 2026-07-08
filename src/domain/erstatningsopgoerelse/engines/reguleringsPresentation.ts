@@ -88,6 +88,14 @@ export type ReguleringIndexRow = Readonly<{
 
 export type ReguleringValuesTableData = Readonly<{
   columns: readonly string[];
+  /**
+   * Rækkerne dækker de satser, der indgår i reguleringen: basisrækken (satsen i kraft på den anvendte
+   * reguleringsdato — formlens nævner i "Beregnet regulering"), satsen ved reguleringsvinduets start
+   * og hver satsændring frem til slut. Basisrækken vises kun, når dens værdier ikke i forvejen fremgår
+   * af de øvrige rækker, og dateres med sin RÅ satsdato fra reguleringsgrundlaget — aldrig med selve
+   * reguleringsdatoen (ingen syntetisk reguleringsdato-række). Mellemliggende satsændringer mellem
+   * basis og vinduet, som ingen beregning bruger, medtages ikke (jf. "vist = beregnet").
+   */
   rows: ReadonlyArray<ReadonlyArray<string>>;
   /**
    * Sat når reguleringskilden ikke har nogen registreret sats på/før reguleringsdatoen, og
@@ -345,7 +353,17 @@ const buildPlaceholderValueRowWithCells = (
 const resolveRelevantRealDatesForTafScope = (
   allDates: readonly ISODateString[],
   tafFra: ISODateString,
-  tafTil: ISODateString
+  tafTil: ISODateString,
+  // Basisanker: den anvendte reguleringsdato. Når sat, medtages ekstra den sats, der var i kraft
+  // PÅ reguleringsdatoen (seneste satsdato på/før ankeret) — dvs. selve reguleringsgrundlaget, som
+  // "Beregnet regulering" dividerer med (indeks-100-niveauet). Uden den mangler basisrækken i
+  // tabellen, når satsen ændrede sig mellem reguleringsdatoen og reguleringsvinduets start, og
+  // læseren kan ikke genfinde formlens nævner. Ligger den i kraft værende sats allerede i det
+  // viste vindue (samme satsdato som `firstRelevant` eller inde i [tafFra, tafTil]), tilføjer den
+  // intet — dubletter fjernes af filteret nedenfor, og en identisk nabo flettes af
+  // `mergeConsecutiveValueRows`. Satsrækken dateres med sin RÅ satsdato fra reguleringsgrundlaget,
+  // ikke med reguleringsdatoen (ingen syntetisk reguleringsdato-række).
+  baseAnchorIso?: ISODateString
 ): readonly ISODateString[] => {
   if (allDates.length === 0) return [];
   let firstRelevant = allDates.filter((iso) => iso <= tafFra).at(-1);
@@ -353,7 +371,15 @@ const resolveRelevantRealDatesForTafScope = (
     firstRelevant = allDates.find((iso) => iso >= tafFra && iso <= tafTil);
   }
   if (!firstRelevant) return [];
-  return allDates.filter((iso) => iso === firstRelevant || (iso >= tafFra && iso <= tafTil));
+  const baseRelevant = baseAnchorIso
+    ? allDates.filter((iso) => iso <= baseAnchorIso).at(-1)
+    : undefined;
+  return allDates.filter(
+    (iso) =>
+      iso === firstRelevant ||
+      (baseRelevant !== undefined && iso === baseRelevant) ||
+      (iso >= tafFra && iso <= tafTil)
+  );
 };
 
 const resolveRelevantManualDatesForTafScope = (
@@ -641,13 +667,16 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const relevantRealDates = resolveRelevantRealDatesForTafScope(
         sortIsoDates(allRealDates),
         tafFra,
-        tafTil
+        tafTil,
+        anvendtReguleringsdato
       );
       if (relevantRealDates.length === 0) return null;
       // Tabellen viser den sats, der gælder ved reguleringsvinduets start (seneste sats på/før
-      // start via resolveRelevantRealDatesForTafScope) plus hver satsændring frem til slut. Der
-      // injiceres bevidst ingen syntetisk række på selve reguleringsdatoen — findes der ingen sats
-      // på/før reguleringsdatoen, viser tabellen den tidligste faktiske sats og ledsages af en note.
+      // start via resolveRelevantRealDatesForTafScope) plus hver satsændring frem til slut, samt —
+      // via basisankeret ovenfor — den sats der var i kraft på reguleringsdatoen (formlens nævner),
+      // hvis den ikke allerede indgår. Der injiceres bevidst ingen syntetisk række dateret selve
+      // reguleringsdatoen; basisrækken bærer sin egen rå satsdato. Findes der ingen sats på/før
+      // reguleringsdatoen, viser tabellen den tidligste faktiske sats og ledsages af en note.
       for (const iso of relevantRealDates) {
         const danish = isoToDanish(iso);
         if (!danish) continue;
@@ -745,10 +774,13 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
       sortIsoDates(allRealDates),
       tafFra,
-      tafTil
+      tafTil,
+      anvendtReguleringsdato
     );
     if (relevantRealDates.length === 0) return null;
-    // Ingen syntetisk reguleringsdato-række (jf. den offentlige gren). Store Bededag-grænsen før
+    // Basisankeret (anvendtReguleringsdato) sikrer, at den sats der var i kraft på reguleringsdatoen
+    // — formlens nævner — vises med sin rå satsdato, hvis den ikke allerede indgår i vinduet. Ingen
+    // syntetisk reguleringsdato-række (jf. den offentlige gren). Store Bededag-grænsen før
     // overenskomstdækning bevares som placeholder. Note-vurderingen bygger på kildens uscopede
     // coverage-start (overenskomstCoverageStartIso), ikke på tabellens (TAF-scopede) rækker.
     const rows = relevantRealDates
@@ -918,12 +950,14 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
       periodStarts.map((period) => period.startIso),
       tafFra,
-      tafTil
+      tafTil,
+      anvendtReguleringsdato
     );
     if (relevantRealDates.length === 0) return null;
-    // Ingen syntetisk reguleringsdato-række; tabellen viser indeksperioden ved reguleringsvinduets
-    // start og hver efterfølgende periode. Findes ingen periode på/før reguleringsdatoen, viser
-    // tabellen den tidligste kendte periode og ledsages af en note.
+    // Basisankeret medtager indeksperioden i kraft på reguleringsdatoen (formlens nævner), hvis den
+    // ikke allerede indgår. Ingen syntetisk reguleringsdato-række; tabellen viser indeksperioden ved
+    // reguleringsvinduets start og hver efterfølgende periode. Findes ingen periode på/før
+    // reguleringsdatoen, viser tabellen den tidligste kendte periode og ledsages af en note.
     const rows: string[][] = relevantRealDates.flatMap((iso) => {
       const period = findLatestByDateInSortedList(periodStarts, iso, 'statistik:presentation');
       if (!period) return [];
@@ -952,12 +986,14 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
       periodStarts.map((period) => period.startIso),
       tafFra,
-      tafTil
+      tafTil,
+      anvendtReguleringsdato
     );
     if (relevantRealDates.length === 0) return null;
-    // Ingen syntetisk reguleringsdato-række; tabellen viser reguleringsprocenten ved
-    // reguleringsvinduets start og hver efterfølgende ændring. Findes ingen sats på/før
-    // reguleringsdatoen, viser tabellen den tidligste kendte sats og ledsages af en note.
+    // Basisankeret medtager reguleringsprocenten i kraft på reguleringsdatoen (formlens nævner), hvis
+    // den ikke allerede indgår. Ingen syntetisk reguleringsdato-række; tabellen viser
+    // reguleringsprocenten ved reguleringsvinduets start og hver efterfølgende ændring. Findes ingen
+    // sats på/før reguleringsdatoen, viser tabellen den tidligste kendte sats og ledsages af en note.
     const rows: string[][] = relevantRealDates.flatMap((iso) => {
       const period = findLatestByDateInSortedList(periodStarts, iso, 'krl:presentation');
       if (!period) return [];

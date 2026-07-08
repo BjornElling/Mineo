@@ -146,10 +146,13 @@ export const buildFormulaText = (components: FormulaComponents, visibility: Form
   const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
 
   const baseStr = formatCurrency(baseValue);
+  // Rækkefølgen af tillægsprocenterne skal følge kolonnerækkefølgen i Reguleringsværdier-tabellen
+  // (Feriepenge, SH/SO, Fritvalg, Store Bededag), så indeksformlen kan aflæses direkte mod tabellen.
+  // Summen er kommutativ, så rækkefølgen påvirker kun den viste tekst, ikke det beregnede indeks.
   const extraParts = [
     ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
-    ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
     ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
+    ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
     ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
   ];
   const factors: string[] = [];

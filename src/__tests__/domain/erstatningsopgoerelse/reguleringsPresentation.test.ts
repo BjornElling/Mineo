@@ -538,7 +538,12 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
-  it('udelader anvendt reguleringsdato i privat reguleringsværdier-tabel når overenskomsten har sats på datoen', () => {
+  it('viser basisrækken med sin rå satsdato (ikke reguleringsdatoen) når satsen ændrede sig mellem reguleringsdato og vinduets start', () => {
+    // Reguleringsdatoen (24-05-2023) ligger før reguleringsvinduets start (01-06-2023), og
+    // bygge-anlaeg har en satsændring 01-06-2023. Basisrækken — satsen i kraft PÅ reguleringsdatoen,
+    // som "Beregnet regulering" dividerer med — skal derfor vises. Den dateres med sin RÅ satsdato
+    // (01-03-2023, den overenskomstsats der var i kraft 24-05-2023), IKKE med reguleringsdatoen selv:
+    // der injiceres aldrig en syntetisk række dateret 24-05-2023.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -555,8 +560,11 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
+    // Ingen syntetisk række dateret reguleringsdatoen.
     expect(table?.rows.some((row) => row[0] === '24-05-2023')).toBe(false);
-    expect(table?.rows[0]?.[0]).toBe('01-06-2023');
+    // Basisrækken vises med sin rå satsdato og går forud for vinduets første sats (01-06-2023).
+    expect(table?.rows[0]?.[0]).toBe('01-03-2023');
+    expect(table?.rows.some((row) => row[0] === '01-06-2023')).toBe(true);
   });
 
   it('bevarer kolonneantal i privat reguleringsværdier-tabel uden særskilt reguleringsdato når sats findes', () => {
@@ -1881,10 +1889,13 @@ describe('reguleringsPresentation', () => {
     expect(table?.tidligsteSatsGaelderFra).toBe(iso('2001-04-01'));
   });
 
-  it('sætter IKKE note når KRL-kilden har satser før reguleringsdatoen, selv om TAF starter senere (regression)', () => {
-    // Fejlen: reguleringsdato 01-01-2020 (KTO kommuner har satser her + tilbage til 2001), men
-    // TAF-perioden starter i Q2/Q3 2020. Den TAF-scopede første række blev 01-04-2020 og udløste
-    // fejlagtigt noten "ingen satser før 01-04-2020". Note skal nu være undefined.
+  it('viser basisrækken (satsen på reguleringsdatoen) og sætter IKKE note når KRL-kilden har satser før reguleringsdatoen, selv om TAF starter senere', () => {
+    // Reguleringsdato 01-01-2020 (KTO kommuner har satser her + tilbage til 2001), men TAF-perioden
+    // starter i Q2/Q3 2020. Basisrækken — reguleringsprocenten i kraft PÅ reguleringsdatoen, som
+    // "Beregnet regulering" dividerer med — skal vises, fordi satsen ændrede sig (01-04-2020) mellem
+    // reguleringsdatoen og TAF-start. Basisrækken dateres med sin rå satsdato (01-01-2020), og den
+    // TAF-relevante række (01-04-2020) vises fortsat. Noten fyrer IKKE: kilden HAR satser på/før
+    // reguleringsdatoen, så den "ingen satser før X"-note ville være falsk.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
@@ -1899,9 +1910,11 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    // Tabellen viser stadig den TAF-relevante første række (satsen der gælder ved TAF-start).
-    expect(table?.rows[0]?.[0]).toBe('01-04-2020');
-    // Men noten fyrer IKKE, fordi kilden har satser længe før reguleringsdatoen.
+    // Basisrækken vises med sin rå satsdato (satsen i kraft på reguleringsdatoen).
+    expect(table?.rows[0]?.[0]).toBe('01-01-2020');
+    // Den TAF-relevante række (satsen ved TAF-start) vises fortsat.
+    expect(table?.rows.some((row) => row[0] === '01-04-2020')).toBe(true);
+    // Noten fyrer IKKE, fordi kilden har satser længe før reguleringsdatoen.
     expect(table?.tidligsteSatsGaelderFra).toBeUndefined();
   });
 
