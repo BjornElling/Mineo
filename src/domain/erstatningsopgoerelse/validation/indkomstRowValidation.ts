@@ -29,7 +29,10 @@ export type AarsloenZeroArbejdsdageValidationInput = Pick<
 >;
 
 export const buildLoenindkomstZeroArbejdsdageMessage = (fra: Date, til: Date): string => {
-  return `Perioden (${formatDanishDate(fra)} - ${formatDanishDate(til)}) indeholder løn, men ingen arbejdsdage.`;
+  // Ikke-blokerende advarsel: perioden har ingen arbejdsdage (fx hel ferie). Lønnen medregnes
+  // alligevel i indkomsten via fald-tilbage-fordeling (jf. periodisering-contract.md §3A), men
+  // dagene tælles ikke som arbejdsdage. Download må derfor ikke spærres.
+  return `Perioden (${formatDanishDate(fra)} - ${formatDanishDate(til)}) indeholder løn, men ingen arbejdsdage. Lønnen medregnes i indkomsten, men perioden forøger ikke antallet af arbejdsdage.`;
 };
 
 type AarsloenZeroArbejdsdageIssue = Readonly<{
@@ -173,19 +176,6 @@ export const buildStandardLoenZeroArbejdsdageIssues = (
   }
 
   return issues;
-};
-
-export const buildStandardLoenZeroArbejdsdageCellErrorMessages = (
-  values: AarsloenZeroArbejdsdageValidationInput,
-  employmentId: string
-): Readonly<Record<string, string>> => {
-  const messages: Record<string, string> = {};
-  for (const issue of buildStandardLoenZeroArbejdsdageIssues(values, employmentId)) {
-    for (const colKey of issue.colKeys) {
-      messages[`${issue.rowId}:${colKey}`] = issue.message;
-    }
-  }
-  return messages;
 };
 
 export const getOffentligeYdelserErrorRowIdSet = (rows: readonly OffentligeYdelserRow[]): ReadonlySet<string> => {

@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-06-10  
+**Senest verificeret mod kode:** 2026-07-08  
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -77,6 +77,37 @@ Ved lønperiodisering:
 - ferieperioder og SH-dage udgår ikke i måneders-sporet
 - ferieperioder og SH-dage udgår i arbejdsdags-sporet
 - løse ferie-/fraværsdage er ikke del af lønperiodiseringsgrundlaget
+
+---
+
+## 3A. Indkomst må aldrig forsvinde (fald-tilbage-fordeling)
+
+En sjælden, men lovlig situation: en indkomstpost angives for en periode i beregningsperioden,
+hvor der ingen periodiseringsdage er efter postens normale regel — fx en lønperiode (arbejdsdags-
+sporet) der udelukkende består af feriedage, eller en arbejdsdags-periodiseret offentlig ydelse i en
+ren weekend-/helligdagsperiode. Al indkomst i beregningsperioden skal indgå i "løn før skaden";
+indkomsten må derfor **aldrig** bare udgå, forsvinde eller undlades i tællingen.
+
+Bindende regel:
+
+1. Har en indkomstpost intet naturligt periodiseringsdag-sæt, fordeles beløbet i stedet på
+   **fald-tilbage-dage**, så indkomsten medregnes. Fald-tilbage-dagene er (kanonisk
+   `buildFallbackAllocationDaysForInterval` i EO-motoren):
+   - periodens hverdage (man-fre) minus helligdage ("som om ferien ikke var markeret"), og
+   - er der ingen hverdage overhovedet: alle periodens kalenderdage.
+2. Fald-tilbage-dagene bruges **udelukkende** til beløbsfordelingen. De tælles **aldrig** som
+   arbejdsdage: dagtællingen (`optaelArbejdsdageBreakdown` m.fl.) er uændret, dagene forbliver
+   feriedage i alle andre sammenhænge, og nævneren i "løn før skaden" (arbejdsdage/måneder)
+   forøges ikke. Resultatet er, at per-dag-satsen kan stige, mens dagtallet er uændret.
+3. Reglen anvendes **ensartet** overalt hvor indkomst periodiseres for samme semantik: beregnings-
+   grundlaget, TAF-indtægter, sygeferiegodtgørelsens referenceløn og EO-inspektionens kontroltabel
+   skal alle fange beløbet på samme fald-tilbage-dage (så "vist = beregnet"-invarianten holder).
+4. Situationen er ikke en fejl. Den udløser derfor **ingen** blokerende fejl og spærrer ikke for
+   download — kun en ikke-blokerende advarsel.
+
+For sygeferiegodtgørelse gælder særligt: fald-tilbage-dagene indgår i referencelønnen (per-dag-
+satsens tæller), men da de er feriedage, indgår de aldrig i den dag-baserede feriepengeudbetaling
+(kun ferie-ekskluderede dage udbetales).
 
 ---
 

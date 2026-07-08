@@ -173,7 +173,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     satserByAfId,
     derivedCalculatorByAfId,
     manualBaseRowErrorsByAfId,
-    aarsloenExternalCellErrorMessagesByAfId,
     getAnvendtReguleringsdatoForAnsaettelsesforhold,
     getSfggReferenceperiodeAvailability,
     getLoenudviklingBaseDate,
@@ -802,7 +801,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     // Fejl-/validerings-state pr. ansættelsesforhold
     satsErrors,
     manualBaseRowErrorsByAfId,
-    aarsloenExternalCellErrorMessagesByAfId,
 
     // Løntrin-finder (overlay-state + handlers)
     loentrinFinder,

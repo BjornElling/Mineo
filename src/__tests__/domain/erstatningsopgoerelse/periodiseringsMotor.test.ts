@@ -1,5 +1,6 @@
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import {
+  buildFallbackAllocationDaysForInterval,
   buildOffentligYdelsePeriodiseringsGrundlag,
   buildLoenArbejdsdageSet,
   buildSygedagpengeArbejdsdagePrKalenderuge,
@@ -447,5 +448,57 @@ describe('sumMaanedsbroekForInterval', () => {
 
   it('hele februar i skudår → 1 (alle 29 dage)', () => {
     expect(sumMaanedsbroekForInterval(iso('2024-02-01'), iso('2024-02-29'))).toBeCloseTo(1, 10);
+  });
+});
+
+describe('buildFallbackAllocationDaysForInterval', () => {
+  it('bruger periodens hverdage (man-fre) minus helligdage', () => {
+    // Juli 2024: 23 hverdage, ingen helligdage.
+    const days = buildFallbackAllocationDaysForInterval({ fra: iso('2024-07-01'), til: iso('2024-07-31') });
+    expect(days.size).toBe(23);
+    expect(days.has(iso('2024-07-01'))).toBe(true); // mandag
+    expect(days.has(iso('2024-07-06'))).toBe(false); // lørdag
+    expect(days.has(iso('2024-07-07'))).toBe(false); // søndag
+  });
+
+  it('udelader helligdage fra hverdags-sættet', () => {
+    // 2. påskedag 2024 = mandag 1. april. Perioden 1.-5. april er ellers alle hverdage.
+    const days = buildFallbackAllocationDaysForInterval({ fra: iso('2024-04-01'), til: iso('2024-04-05') });
+    expect(days.has(iso('2024-04-01'))).toBe(false); // 2. påskedag (helligdag)
+    expect(days.has(iso('2024-04-02'))).toBe(true);
+    expect(days.size).toBe(4);
+  });
+
+  it('falder tilbage til kalenderdage når perioden ingen hverdage har (ren weekend)', () => {
+    const days = buildFallbackAllocationDaysForInterval({ fra: iso('2024-07-06'), til: iso('2024-07-07') });
+    expect(days.size).toBe(2); // lør + søn
+    expect(days.has(iso('2024-07-06'))).toBe(true);
+    expect(days.has(iso('2024-07-07'))).toBe(true);
+  });
+
+  it('returnerer tomt sæt ved ugyldigt interval', () => {
+    expect(buildFallbackAllocationDaysForInterval({ fra: iso('2024-07-31'), til: iso('2024-07-01') }).size).toBe(0);
+  });
+});
+
+describe('buildOffentligYdelsePeriodiseringsGrundlag — fald-tilbage for arbejdsdags-ydelse uden arbejdsdage', () => {
+  it('bruger fald-tilbage-dage så en ren weekend-ydelse ikke forsvinder', () => {
+    // Sygedagpenge (arbejdsdage) for lør+søn: ingen arbejdsdage → fald tilbage til kalenderdage.
+    const grundlag = buildOffentligYdelsePeriodiseringsGrundlag({
+      interval: { start: d('2024-07-06'), end: d('2024-07-07') },
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+      shDays: new Set<ISODateString>(),
+    });
+    expect(grundlag).not.toBeNull();
+    expect(grundlag?.fallbackAllocationDays?.size).toBe(2);
+    expect(grundlag?.periodiseringsDage).toBe(2);
+
+    const beloeb = periodiserBeloebForOffentligYdelseMedGrundlag({
+      totalBeloeb: 1000,
+      range: { fra: iso('2024-07-06'), til: iso('2024-07-07') },
+      grundlag: grundlag!,
+    });
+    expect(beloeb).toBeCloseTo(1000, 6); // hele beløbet fanges, intet forsvinder
   });
 });

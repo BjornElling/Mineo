@@ -25,10 +25,6 @@ import {
 import { resolveSfggSource } from '../engines/sygeferiegodtgoerelseKilde';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../helpers/sygeferiegodtgoerelseEligibility';
 import {
-  buildStandardLoenZeroArbejdsdageCellErrorMessages,
-  type AarsloenZeroArbejdsdageValidationInput,
-} from '../validation/indkomstRowValidation';
-import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
 } from '../validation/loenudviklingManuelBaseRowValidation';
@@ -89,7 +85,6 @@ export type LoenindkomstFlatModel = Readonly<{
   satserByAfId: ReadonlyMap<string, StandardLoenTableSatser>;
   derivedCalculatorByAfId: ReadonlyMap<string, LoenindkomstRowDerivedCalculator>;
   manualBaseRowErrorsByAfId: Readonly<Record<string, ManualBaseRowCellErrors>>;
-  aarsloenExternalCellErrorMessagesByAfId: Readonly<Record<string, Readonly<Record<string, string>>>>;
 
   // Per-af rene afledninger (committed-only).
   getAnvendtReguleringsdatoForAnsaettelsesforhold: (
@@ -179,22 +174,6 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
         pensionPct: af.pensionPct,
       }
     );
-  }
-
-  const aarsloenZeroArbejdsdageValidationInput: AarsloenZeroArbejdsdageValidationInput = {
-    beregnesUdFra,
-    tafBeregningsperiodeFra,
-    tafBeregningsperiodeTil,
-    loenindkomstAnsaettelsesforhold,
-    ferieperioder,
-    fravaerPerioder,
-  };
-  const aarsloenExternalCellErrorMessagesByAfId: Record<string, Readonly<Record<string, string>>> = {};
-  for (const af of loenindkomstAnsaettelsesforhold) {
-    const messages = buildStandardLoenZeroArbejdsdageCellErrorMessages(aarsloenZeroArbejdsdageValidationInput, af.id);
-    if (Object.keys(messages).length > 0) {
-      aarsloenExternalCellErrorMessagesByAfId[af.id] = messages;
-    }
   }
 
   const getAnvendtReguleringsdatoForAnsaettelsesforhold = (
@@ -290,7 +269,6 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
     satserByAfId,
     derivedCalculatorByAfId,
     manualBaseRowErrorsByAfId,
-    aarsloenExternalCellErrorMessagesByAfId,
     getAnvendtReguleringsdatoForAnsaettelsesforhold,
     getSfggReferenceperiodeAvailability,
     getLoenudviklingBaseDate,

@@ -217,11 +217,11 @@ export const buildIndkomstSectionStatuses = (
 
     let tableStatus: EoRowStatus = 'ok';
     let tableMessage = 'Ok';
+    // Ægte ugyldigt input har forrang og blokerer. "Ingen arbejdsdage"-tilfældet er derimod en
+    // ikke-blokerende advarsel: lønnen medregnes via fald-tilbage-fordeling (jf.
+    // periodisering-contract.md §3A), så download må ikke spærres.
     const zeroArbejdsdageIssue = buildStandardLoenZeroArbejdsdageIssues(values, af.id)[0];
-    if (zeroArbejdsdageIssue) {
-      tableStatus = 'error';
-      tableMessage = zeroArbejdsdageIssue.message;
-    } else if (tableValidation.summary.hasErrors) {
+    if (tableValidation.summary.hasErrors) {
       tableStatus = 'error';
       const firstErrorCell = tableValidation.summary.firstErrorCell;
       if (!firstErrorCell) {
@@ -231,6 +231,9 @@ export const buildIndkomstSectionStatuses = (
       } else {
         tableMessage = `${resolveStandardLoenColumnLabel(firstErrorCell.colKey)} er ikke angivet`;
       }
+    } else if (zeroArbejdsdageIssue) {
+      tableStatus = 'warning';
+      tableMessage = zeroArbejdsdageIssue.message;
     } else if (tableValidation.summary.hasWarnings) {
       tableStatus = 'warning';
       const periodOnlyCount = countRowsWithPeriodOnly(tableRows, af.loenperiode);

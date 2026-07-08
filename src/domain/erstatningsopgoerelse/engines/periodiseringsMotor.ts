@@ -42,6 +42,16 @@ import { assertNever } from '../../../utils/assertNever';
  * - Arbejdsdagsoptælling:
  *   - Baseres på hverdage ekskl. ferie- og SH-dage.
  *   - Derefter fratrækkes løse feriedage og øvrigt fravær efter kontekst.
+ * - Fald-tilbage når en indkomstpost ingen periodiseringsdage har (jf. periodisering-contract.md §3A):
+ *   - En indkomstpost (løn på arbejdsdags-sporet eller en arbejdsdags-periodiseret offentlig ydelse),
+ *     hvis periode udelukkende består af feriedage — eller for ydelser en ren weekend-/helligdagsperiode —
+ *     har intet naturligt periodiseringsdag-sæt. Indkomsten må ALDRIG bare forsvinde.
+ *   - I det tilfælde fordeles beløbet på fald-tilbage-dage via {@link buildFallbackAllocationDaysForInterval}:
+ *     periodens hverdage (man-fre) minus helligdage ("som om ferien ikke var markeret"); er der ingen
+ *     hverdage, alle kalenderdage. Beløbet medregnes dermed i indkomsten.
+ *   - Fald-tilbage-dagene bruges KUN til beløbsfordeling. De tælles ALDRIG som arbejdsdage:
+ *     dagtællingen (optaelArbejdsdageBreakdown m.fl.) er uændret, og dagene forbliver feriedage i
+ *     alle andre sammenhænge (nævneren i "løn før skaden" forøges ikke).
  *
  * KRAV TIL FREMTIDIGE ÆNDRINGER:
  * - Ved enhver ændring af beregningsprincipperne SKAL denne kommentarblok opdateres i samme commit,
@@ -84,6 +94,49 @@ export const buildLoenArbejdsdageSet = (
     arbejdsdage.add(isoStr);
   }
   return arbejdsdage;
+};
+
+/**
+ * Fald-tilbage-fordelingsdage for en indkomstpost, hvis naturlige periodiseringsdag-sæt er tomt
+ * (jf. periodisering-contract.md §3A). Reglen er ufravigelig:
+ *   1) periodens hverdage (man-fre) minus helligdage — "som om ferien ikke var markeret"
+ *   2) er der ingen hverdage (fx en ren weekend- eller helligdagsperiode): alle kalenderdage
+ *
+ * VIGTIGT: Sættet bruges UDELUKKENDE til at fordele et beløb, så indkomsten fanges. Dagene må
+ * aldrig tælles som arbejdsdage og indgår ikke i nogen dagtælling (dagtællingen er uændret).
+ * Returnerer tomt sæt ved ugyldigt interval.
+ */
+export const buildFallbackAllocationDaysForInterval = (
+  bounds: IsoRange
+): ReadonlySet<ISODateString> => {
+  const fraDate = parseISODate(bounds.fra);
+  const tilDate = parseISODate(bounds.til);
+  if (!fraDate || !tilDate || fraDate > tilDate) return new Set<ISODateString>();
+
+  const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
+  const shDageSet = buildShDageSet(fraDate, tilDate, datoSet);
+  const hverdageMinusSH = new Set<ISODateString>();
+  for (const iso of datoSet) {
+    const date = parseISODate(iso);
+    if (!date) continue;
+    if (!isWeekdayUtc(date)) continue;
+    if (shDageSet.has(iso)) continue;
+    hverdageMinusSH.add(iso);
+  }
+  return hverdageMinusSH.size > 0 ? hverdageMinusSH : datoSet;
+};
+
+/**
+ * Fælles beslutning: brug det naturlige periodiseringsdag-sæt hvis det ikke er tomt, ellers
+ * fald-tilbage-sættet (jf. {@link buildFallbackAllocationDaysForInterval}). `usedFallback`
+ * afslører, at posten kun kunne fordeles via fald-tilbage (bruges til advarsler).
+ */
+export const resolveIncomeAllocationDays = (
+  bounds: IsoRange,
+  naturalDays: ReadonlySet<ISODateString>
+): Readonly<{ days: ReadonlySet<ISODateString>; usedFallback: boolean }> => {
+  if (naturalDays.size > 0) return { days: naturalDays, usedFallback: false };
+  return { days: buildFallbackAllocationDaysForInterval(bounds), usedFallback: true };
 };
 
 export const isOffentligYdelseDatoMedregnet = (args: {
@@ -140,6 +193,13 @@ export type OffentligYdelsePeriodiseringsGrundlag = Readonly<{
   rowTilISO: ISODateString;
   totalDays: number;
   periodiseringsDage: number;
+  /**
+   * Sat KUN når en arbejdsdags-periodiseret ydelse ellers ikke havde nogen periodiseringsdage
+   * (ren weekend-/helligdagsperiode) og beløbet i stedet fordeles på fald-tilbage-dage, så
+   * indkomsten ikke forsvinder (jf. {@link buildFallbackAllocationDaysForInterval}). Når sat,
+   * afgør dette sæt hvilke dage der tæller ved beløbsfordelingen — ikke datoprædikatet.
+   */
+  fallbackAllocationDays?: ReadonlySet<ISODateString>;
 }>;
 
 export const buildOffentligYdelsePeriodiseringsGrundlag = (args: {
@@ -185,7 +245,27 @@ export const buildOffentligYdelsePeriodiseringsGrundlag = (args: {
     }
     periodiseringsDage += 1;
   });
-  if (periodiseringsDage <= 0) return null;
+
+  if (periodiseringsDage <= 0) {
+    // Fald-tilbage: en arbejdsdags-periodiseret ydelse i en periode uden arbejdsdage (ren
+    // weekend-/helligdagsperiode) må ikke få beløbet til at forsvinde. Fordel i stedet på
+    // fald-tilbage-dage, så indkomsten fanges (jf. buildFallbackAllocationDaysForInterval).
+    const fraISO = dateToISO(interval.start);
+    if (!fraISO) return null;
+    const fallbackAllocationDays = buildFallbackAllocationDaysForInterval({ fra: fraISO, til: rowTilISO });
+    if (fallbackAllocationDays.size <= 0) return null;
+    return {
+      interval,
+      periodisering,
+      ydelsestypeKey,
+      shDays,
+      sygedagpengeShCutoff,
+      rowTilISO,
+      totalDays,
+      periodiseringsDage: fallbackAllocationDays.size,
+      fallbackAllocationDays,
+    };
+  }
 
   return {
     interval,
@@ -220,10 +300,15 @@ export const periodiserBeloebForOffentligYdelseMedGrundlag = (args: {
     return totalBeloeb * (overlapDaysInclusive / grundlag.totalDays);
   }
 
+  const fallbackAllocationDays = grundlag.fallbackAllocationDays;
   iterateDatesInclusive(overlapStart, overlapEnd, (date) => {
     const iso = dateToISO(date);
     if (!iso) return;
-    if (!isOffentligYdelseDatoMedregnet({
+    if (fallbackAllocationDays) {
+      // Fald-tilbage-tilstand: kun de på forhånd valgte fald-tilbage-dage tæller ved fordelingen
+      // (datoprædikatet ville udelukke alle dage her, da perioden ingen arbejdsdage har).
+      if (!fallbackAllocationDays.has(iso)) return;
+    } else if (!isOffentligYdelseDatoMedregnet({
       iso,
       dateObj: date,
       shDays: grundlag.shDays,

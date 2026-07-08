@@ -89,7 +89,7 @@ describe('buildIndkomstSectionStatuses', () => {
     expect(result[0]?.tableMessage).toBe('Ugyldig værdi i Måned');
   });
 
-  it('gengiver 0-arbejdsdage-fejl med den specifikke besked', () => {
+  it('gengiver 0-arbejdsdage som en ikke-blokerende advarsel (ikke fejl)', () => {
     const { values, af } = buildValuesWithAnsForhold();
     values.beregnesUdFra = 'Angivet dagsløn';
     af.fuldLoenUnderFerie = 'Nej';
@@ -105,10 +105,30 @@ describe('buildIndkomstSectionStatuses', () => {
 
     const result = buildIndkomstSectionStatuses(values, undefined);
 
-    expect(result[0]?.tableStatus).toBe('error');
+    // Situationen er ikke en fejl: lønnen medregnes via fald-tilbage-fordeling, download må ikke spærres.
+    expect(result[0]?.tableStatus).toBe('warning');
     expect(result[0]?.tableMessage).toBe(
       buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31)))
     );
+  });
+
+  it('lader ægte ugyldigt input have forrang over 0-arbejdsdage-advarslen (blokerer)', () => {
+    const { values, af } = buildValuesWithAnsForhold();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    af.fuldLoenUnderFerie = 'Nej';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'row-1',
+        col0_maaned: '13', // ugyldig måned
+        col1_maaned: '2024',
+        col2: amount(1000),
+      },
+    ];
+    values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
+
+    const result = buildIndkomstSectionStatuses(values, undefined);
+
+    expect(result[0]?.tableStatus).toBe('error');
   });
 });
 

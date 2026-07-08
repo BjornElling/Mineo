@@ -16,6 +16,7 @@ import type { KontrolTabelColumnId, KontrolTabelIntegrityIssue } from './eoInspe
 import { kontrolTabelColumnId, WAGE_COLUMNS } from './eoInspektionLoenTypes';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildFallbackAllocationDaysForInterval } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { buildLoenindkomstRateSegments } from '../erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { type DateInterval, iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 import { sumFloat64Array, isWithinIntegrityTolerance } from './mathUtils';
@@ -54,6 +55,20 @@ const buildAllocationDates = (
     if (!isPeriodiseringsdag(idx)) return;
     allocationDates.push(iso);
   });
+  if (allocationDates.length === 0) {
+    // Fald-tilbage (jf. periodisering-contract.md §3A): en lønperiode uden periodiseringsdage
+    // (fx hel ferie) fordeles på fald-tilbage-dage, så beløbet fanges i kontroltabellen PRÆCIS
+    // som i beregningen (buildIncomeForRanges bruger samme motor-helper). Dag-kolonnerne
+    // (arbejdsdag/TAF-dag) markerer dem stadig som ikke-arbejdsdage — kun beløbet fordeles her.
+    const fraISO = dateToISO(interval.start);
+    const tilISO = dateToISO(interval.end);
+    if (fraISO && tilISO) {
+      for (const iso of buildFallbackAllocationDaysForInterval({ fra: fraISO, til: tilISO })) {
+        if (isoIndex.has(iso)) allocationDates.push(iso);
+      }
+      allocationDates.sort();
+    }
+  }
   return allocationDates;
 };
 
@@ -399,6 +414,7 @@ export const buildLoenindkomstColumns = (args: {
         interval: DateInterval;
         amounts: Readonly<Record<(typeof WAGE_COLUMNS)[number]['key'], number>>;
         periodiseringsdage: number;
+        allocationSet: ReadonlySet<ISODateString>;
       }>
     > = [];
 
@@ -439,11 +455,12 @@ export const buildLoenindkomstColumns = (args: {
       if (!hasAny) continue;
 
       const periodiseringsdage = allocationDates.length;
+      const allocationSet: ReadonlySet<ISODateString> = new Set(allocationDates);
 
       for (const col of includeKeys) {
         expectedTotalsByKey.set(col.key, (expectedTotalsByKey.get(col.key) ?? 0) + amounts[col.key]);
       }
-      parsedRows.push({ interval, amounts, periodiseringsdage });
+      parsedRows.push({ interval, amounts, periodiseringsdage, allocationSet });
 
       for (const iso of allocationDates) {
         const idx = isoIndex.get(iso);
@@ -483,11 +500,13 @@ export const buildLoenindkomstColumns = (args: {
         const arr = arraysByKey.get(col.key);
         if (!arr) continue;
 
+        // Summér over rækkens faktiske fordelingsdage (allocationSet), ikke over isPeriodiseringsdag:
+        // ved fald-tilbage (hel ferie) er fordelingsdagene netop IKKE arbejdsdage, så et
+        // isPeriodiseringsdag-filter ville udelade dem og udløse et falsk sammentællings-mismatch.
         let actual = 0;
-        for (let idx = 0; idx < dates.length; idx += 1) {
-          const isoDate = dates[idx];
-          if (isoDate < aStartISO || isoDate > aEndISO) continue;
-          if (!isPeriodiseringsdag(idx)) continue;
+        for (const iso of a.allocationSet) {
+          const idx = isoIndex.get(iso);
+          if (idx === undefined) continue;
           actual += arr[idx] ?? 0;
         }
 

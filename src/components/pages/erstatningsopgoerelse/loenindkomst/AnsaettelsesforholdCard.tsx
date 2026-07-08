@@ -55,8 +55,6 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
 
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
 
-const EMPTY_CELL_ERROR_MESSAGES: Readonly<Record<string, string>> = {};
-
 const getCheckedJaNej = (value: 'Ja' | 'Nej'): boolean => value === 'Ja';
 
 const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: string }): string => {
@@ -91,7 +89,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     skadestype,
     satsErrors,
     manualBaseRowErrorsByAfId,
-    aarsloenExternalCellErrorMessagesByAfId,
     loentrinFinder,
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,
@@ -640,7 +637,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         tableData={af.indtaegtsoplysningerTableData}
         onTableDataChange={tableDataChangeByAfId.get(af.id)}
         onValidationChange={validationChangeByAfId.get(af.id)}
-        externalCellErrorMessagesByCellKey={aarsloenExternalCellErrorMessagesByAfId[af.id] ?? EMPTY_CELL_ERROR_MESSAGES}
         useSmallFont={true}
         saveOrderPath={`erstatningsopgoerelse.ansaettelsesforhold.${index}.indtaegtsoplysningerTableData`}
         calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}

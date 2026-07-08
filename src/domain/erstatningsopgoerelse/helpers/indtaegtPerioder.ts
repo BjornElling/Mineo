@@ -26,6 +26,7 @@ import { buildShDageSetFromIsoRange } from '../engines/tafDaySets';
 import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import {
   buildOffentligYdelsePeriodiseringsGrundlag,
+  buildFallbackAllocationDaysForInterval,
   buildLoenArbejdsdageSet,
   periodiserBeloebForOffentligYdelseMedGrundlag,
   SYGEDAGPENGE_SH_CUTOFF,
@@ -344,6 +345,17 @@ export const buildIncomeForRanges = (
       if (beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && !arbejdsdageSet.has(iso)) return;
       allocationDates.push(iso);
     });
+    if (allocationDates.length === 0 && beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
+      // Fald-tilbage: en lønperiode der udelukkende består af feriedage har ingen arbejdsdage at
+      // fordele på. Indkomsten må ikke forsvinde — fordel på fald-tilbage-dage, så beløbet fanges.
+      // Dagene tælles ALDRIG som arbejdsdage (nævneren `arbejdsdageSet` er uændret; denne fald-tilbage
+      // gælder kun beløbsfordelingen for netop denne post). Jf. periodisering-contract.md §3A.
+      const fraISO = dateToISO(interval.start);
+      const tilISO = dateToISO(interval.end);
+      if (fraISO && tilISO) {
+        return Array.from(buildFallbackAllocationDaysForInterval({ fra: fraISO, til: tilISO })).sort();
+      }
+    }
     return allocationDates;
   };
 

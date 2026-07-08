@@ -12,7 +12,7 @@ import { addMonths } from '../../../utils/dateUtils';
 import { roundByMethod } from '../../../utils/rounding';
 import { calculateStandardLoenRowDerived } from '../../aarsloen/standardLoenRowCalculations';
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
-import { buildLoenArbejdsdageSet, optaelArbejdsdage, optaelArbejdsdageBreakdown } from './periodiseringsMotor';
+import { buildLoenArbejdsdageSet, optaelArbejdsdage, optaelArbejdsdageBreakdown, resolveIncomeAllocationDays } from './periodiseringsMotor';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet } from './tafDaySets';
 import {
   buildDateSetFromRanges,
@@ -424,7 +424,14 @@ export const sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner = (
     const intervalFra = dateToISO(interval.start);
     const intervalTil = dateToISO(interval.end);
     if (!intervalFra || !intervalTil) continue;
-    const rowArbejdsdageSet = buildLoenArbejdsdageSet({ fra: intervalFra, til: intervalTil }, ferieperioder ?? []);
+    // Fald-tilbage (jf. periodisering-contract.md §3A): en lønrække uden arbejdsdage (fx hel ferie)
+    // skal stadig indgå i SFGG-referencelønnen, så "løn før skaden" er ens overalt. Fald-tilbage-
+    // dagene tæller kun til fordelingsbrøken — SFGG's dag-divisor er uændret (feriedage forbliver
+    // feriedage), så per-dag-satsen stiger uden at dagtallet gør det.
+    const { days: rowArbejdsdageSet } = resolveIncomeAllocationDays(
+      { fra: intervalFra, til: intervalTil },
+      buildLoenArbejdsdageSet({ fra: intervalFra, til: intervalTil }, ferieperioder ?? [])
+    );
     const totalArbejdsdage = rowArbejdsdageSet.size;
     const overlapArbejdsdage = Array.from(rowArbejdsdageSet).filter((iso) => includedDateSet.has(iso)).length;
     if (totalArbejdsdage > 0 && overlapArbejdsdage > 0) {
@@ -479,7 +486,14 @@ const buildEmploymentSfggCalculator = (
     const intervalFra = dateToISO(interval.start);
     const intervalTil = dateToISO(interval.end);
     if (!intervalFra || !intervalTil) continue;
-    const rowArbejdsdageSet = buildLoenArbejdsdageSet({ fra: intervalFra, til: intervalTil }, ferieperioder ?? []);
+    // Fald-tilbage (jf. periodisering-contract.md §3A): se sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner.
+    // Bemærk: fald-tilbage-dagene er feriedage og indgår derfor aldrig i SFGG's dag-baserede
+    // feriepenge-udbetaling (buildFeriepengeOreForDate slår kun op på ferie-EKSKLUDEREDE dage);
+    // de bidrager kun til reference-lønnen via sumRanges.
+    const { days: rowArbejdsdageSet } = resolveIncomeAllocationDays(
+      { fra: intervalFra, til: intervalTil },
+      buildLoenArbejdsdageSet({ fra: intervalFra, til: intervalTil }, ferieperioder ?? [])
+    );
     const totalArbejdsdage = rowArbejdsdageSet.size;
     if (totalArbejdsdage <= 0) continue;
     precomputedRows.push({

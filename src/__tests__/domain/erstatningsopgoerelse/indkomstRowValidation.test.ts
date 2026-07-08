@@ -2,7 +2,6 @@ import type { StandardLoenTableRow, OffentligeYdelserRow } from '../../../schema
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
   buildStandardLoenCellErrors,
-  buildStandardLoenZeroArbejdsdageCellErrorMessages,
   buildStandardLoenZeroArbejdsdageIssues,
   buildOffentligeYdelserCellErrors,
   buildLoenindkomstZeroArbejdsdageMessage,
@@ -321,7 +320,7 @@ describe('getStandardLoenErrorRowIdSet', () => {
 });
 
 describe('buildStandardLoenZeroArbejdsdageIssues', () => {
-  it('returnerer fejl for lønrække med beløb og ingen arbejdsdage i arbejdsdags-sporet', () => {
+  it('returnerer advarsel for lønrække med beløb og ingen arbejdsdage i arbejdsdags-sporet', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
     values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
@@ -367,33 +366,6 @@ describe('buildStandardLoenZeroArbejdsdageIssues', () => {
     const result = buildStandardLoenZeroArbejdsdageIssues(values, af.id);
 
     expect(result).toEqual([]);
-  });
-});
-
-describe('buildStandardLoenZeroArbejdsdageCellErrorMessages', () => {
-  it('markerer alle udfyldte beløbsceller i den berørte række', () => {
-    const values = createErstatningsopgoerelseInitialValues();
-    values.beregnesUdFra = 'Angivet dagsløn';
-    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.fuldLoenUnderFerie = 'Nej';
-    af.indtaegtsoplysningerTableData = [
-      {
-        ...baseAarsloenRow('row-1'),
-        col0_maaned: '7',
-        col1_maaned: '2024',
-        col2: amount(1000),
-        col3: amount(200),
-      },
-    ];
-    values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
-
-    const result = buildStandardLoenZeroArbejdsdageCellErrorMessages(values, af.id);
-
-    expect(result).toEqual({
-      'row-1:col2': buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31))),
-      'row-1:col3': buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31))),
-    });
   });
 });
 
