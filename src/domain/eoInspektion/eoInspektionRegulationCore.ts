@@ -35,7 +35,7 @@ import { buildSHDageSetForIsoRange } from '../dates/shDageBeregning';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/indskudteLoentillaeg';
 import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/engines/arbejdsdageMaaneder';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   isAslStatistikModel,
   parseDanishToIso,
@@ -46,6 +46,11 @@ import {
 } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
+import {
+  resolveAnciennitetForIndex,
+  type AnciennitetForIndex,
+} from '../erstatningsopgoerelse/engines/overenskomstReguleringShared';
+import { resolveOverenskomstEffectiveStartIso } from '../erstatningsopgoerelse/engines/reguleringCoverage';
 import { buildManuelProcentsatsEntries } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildStatistikIndexEntries } from '../erstatningsopgoerelse/engines/statistikRegulering';
 import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';
@@ -473,6 +478,9 @@ const buildEntryForDate = (args: {
   feriePct: number;
   loenPaaHelligdage: LoenPaaHelligdage | undefined;
   referenceValue: number;
+  // Anciennitetstillæg (kr.) der er aktivt på denne dato. Lægges oven i grundlønnen, så kontrol-
+  // indekset inkluderer tillægget ligesom motoren/bilaget (jf. resolveAnciennitetForIndex).
+  grundloenSupplement?: number;
 }): IndeksEntry | null => {
   if (args.sats.grundloen === null) return null;
   const shSoPct = args.sats.shSoSats ?? 0;
@@ -480,9 +488,10 @@ const buildEntryForDate = (args: {
   const pensionPct = args.sats.agPension ?? 0;
   const feriePct = args.feriePct;
   const storeBededagPct = getStoreBededagPct(args.iso, args.loenPaaHelligdage);
+  const grundloen = args.sats.grundloen + (args.grundloenSupplement ?? 0);
 
   const packageValue = computePackageValueDecimal({
-    grundloen: args.sats.grundloen,
+    grundloen,
     feriePct,
     shSoPct,
     fritvalgPct,
@@ -494,7 +503,7 @@ const buildEntryForDate = (args: {
 
   return {
     effectiveFrom: args.iso,
-    grundloen: args.sats.grundloen,
+    grundloen,
     feriePct,
     shSoPct,
     fritvalgPct,
@@ -506,6 +515,26 @@ const buildEntryForDate = (args: {
     maaneder: null,
   };
 };
+
+// Anciennitetstillæg for kontrol-indekset — samme delte resolver som motor og bilag. Kontrol-
+// lagets timeline spænder EO-perioden (`eoRange`) frem for TAF-ranges; det bruger `rawActiveFromIso`
+// til basis-gaten og `activeFromIso` (clampet til periodestart) til per-entry-gate + brudpunkt.
+const resolveInspektionAnciennitet = (args: Readonly<{
+  af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+  overenskomstId: string;
+  tafBeregningsenhed: TafBeregningsenhed;
+  eoRange: Readonly<{ fra: ISODateString; til: ISODateString }>;
+}>): AnciennitetForIndex | null =>
+  resolveAnciennitetForIndex({
+    harAnciennitetstillaeg: args.af.harAnciennitetstillaegEfterSkadedatoen,
+    anciennitetstillaegDatoIso: isISODateString(args.af.anciennitetstillaegDato) ? args.af.anciennitetstillaegDato : undefined,
+    satsValue: args.af.anciennitetstillaegSats?.value,
+    satsAngivesPer: args.af.anciennitetstillaegSatsAngivesPer,
+    overenskomstId: args.overenskomstId,
+    tafBeregningsenhed: args.tafBeregningsenhed,
+    periodeStartIso: args.eoRange.fra,
+    periodeEndIso: args.eoRange.til,
+  });
 
 const decrementDate = (iso: ISODateString): ISODateString => {
   const date = isoDateToDate(iso);
@@ -682,6 +711,20 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         referenceDanish,
         applyAlmindeligLoenPaaShDageRegel
       );
+      // Anciennitetstillæg indgår i basis/referenceniveauet, hvis det allerede gælder på den
+      // effektive reguleringsdato (rå-dato-gate), og i per-dato-entries fra tillæggets aktiveringsdato.
+      // Uden dette viste kontrol-indekset et forkert grundlag og kunne melde et falsk
+      // control:sammentaelling_mismatch, jf. resolveAnciennitetForIndex.
+      const anciennitet = resolveInspektionAnciennitet({
+        af,
+        overenskomstId,
+        tafBeregningsenhed,
+        eoRange,
+      });
+      const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(overenskomstId, referenceIso);
+      const baseAnciennitet = anciennitet && effectiveReguleringsdatoIso >= anciennitet.rawActiveFromIso
+        ? anciennitet.supplementValue
+        : 0;
       const referenceResult = getOffentligLoenForDato(
         offentligSelection.overenskomstType,
         referenceDanish,
@@ -709,7 +752,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           ? referenceResult.maanedsLoen
           : referenceResult.timeLoen;
       const referenceValue = computePackageValueDecimal({
-        grundloen: referenceBase + offentligLoenEkstraGrundloen,
+        grundloen: referenceBase + offentligLoenEkstraGrundloen + baseAnciennitet,
         feriePct,
         shSoPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.shSoSats, af.shSoPct),
         fritvalgPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.fritvalg, af.fritvalgPct),
@@ -758,6 +801,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       ) {
         dates.add(STORE_BEDEDAG_START);
       }
+      if (anciennitet) {
+        dates.add(anciennitet.activeFromIso);
+      }
       dates.add(referenceIso);
 
       const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
@@ -780,8 +826,11 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           applyAlmindeligLoenPaaShDageRegel
         );
 
+        const entryAnciennitet = anciennitet && iso >= anciennitet.activeFromIso
+          ? anciennitet.supplementValue
+          : 0;
         const grundloen =
-          (offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen) + offentligLoenEkstraGrundloen;
+          (offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen) + offentligLoenEkstraGrundloen + entryAnciennitet;
         const packageValue = computePackageValueDecimal({
           grundloen,
           feriePct,
@@ -870,12 +919,26 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         continue;
       }
 
+      // Anciennitetstillæg indgår i basis, hvis det gælder på den effektive reguleringsdato
+      // (rå-dato-gate), og i per-dato-entries fra aktiveringsdatoen — samme delte resolver som
+      // motoren/bilaget, så kontrol-indekset ikke melder et falsk control:sammentaelling_mismatch.
+      const anciennitet = af.overenskomstId
+        ? resolveInspektionAnciennitet({ af, overenskomstId: af.overenskomstId, tafBeregningsenhed, eoRange })
+        : null;
+      const effectiveReguleringsdatoIso = af.overenskomstId
+        ? resolveOverenskomstEffectiveStartIso(af.overenskomstId, referenceIso)
+        : referenceIso;
+      const baseAnciennitet = anciennitet && effectiveReguleringsdatoIso >= anciennitet.rawActiveFromIso
+        ? anciennitet.supplementValue
+        : 0;
+
       const referenceEntry = buildEntryForDate({
         iso: referenceIso,
         sats: referenceSats,
         feriePct,
         loenPaaHelligdage,
         referenceValue: 1,
+        grundloenSupplement: baseAnciennitet,
       });
       if (!referenceEntry) continue;
       const referenceValue = referenceEntry.packageValue;
@@ -901,6 +964,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         }
       }
       dates.add(referenceIso);
+      if (anciennitet) {
+        dates.add(anciennitet.activeFromIso);
+      }
 
       if (eoRange.fra <= STORE_BEDEDAG_START && eoRange.til >= STORE_BEDEDAG_START) {
         if (loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG) {
@@ -922,12 +988,16 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         });
         if (!sats) continue;
 
+        const entryAnciennitet = anciennitet && iso >= anciennitet.activeFromIso
+          ? anciennitet.supplementValue
+          : 0;
         const entry = buildEntryForDate({
           iso,
           sats,
           feriePct,
           loenPaaHelligdage,
           referenceValue,
+          grundloenSupplement: entryAnciennitet,
         });
         if (!entry) continue;
         const tidsenhed = getTidsenhedsvaerdier(i, sortedDates, eoRange.til, shDageSet, ferieDageSet);

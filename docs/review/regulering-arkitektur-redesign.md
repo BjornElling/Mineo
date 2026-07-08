@@ -511,6 +511,14 @@ gren at kopiere den ind i.
 > ændring. De bevidst afvigende kontekster bevarer deres egen politik: KL-lønaftaler (trinvis kæde,
 > fuld præcision), TAF-opreguleret (4 decimaler). Pinnet af den fulde beregnings-/render-suite +
 > ny politik-test (`reguleringFormulaUtils.test.ts`).
+>
+> **Genbekræftet 2026-07-08 (uafhængig kortlægning):** den fulde branded-type-vision forbliver
+> over-engineering — afrundings-kernen er central (`roundByMethod`), den ene korrektheds-grænse
+> (kroner→øre) er runtime-værnet (`toOre`/`ensureMoneyOre`), der er nul aktive bugs, og branding
+> ville røre ~80 filer/hundredvis af felter på den mest trust-kritiske sti med reel tal-ændrings-
+> risiko. Eneste resterende un-navngivne decimal-politik (KRL-visningens `4`) er nu en navngivet
+> konstant (`KRL_REGULERING_PCT_DECIMALS`, `reguleringsPresentation.ts`), på linje med
+> `roundReguleringDeltaPct` og `TAF_OPREGULERET_DELTA_PCT_DECIMALS`.
 
 **Nuværende tilstand.** Mindst 5 afrundingsmekanismer, holdt korrekte ved **konvention**:
 `deltaPct` til 2 dec. (lønudvikling + offentlige ydelser), `deltaPct` til 4 dec. (TAF-opreguleret),
@@ -672,17 +680,24 @@ R9 i afsnit 4): **R9** implementeret som strukturelt boundary-værn; **R8** prop
 mens den fulde branded-type-vision bevidst blev fravalgt som over-engineering, da afrundings-kernen
 allerede er runtime-værnet og test-pinnet.
 
-**Åbent fund til forelæggelse (ikke ændret):** inspektionslaget (`eoInspektionRegulationCore.ts`)
-inkluderer **slet ikke** anciennitetstillæg i sin overenskomst-grundløn — hverken den offentlige eller
-den private gren — mens motoren og PDF-præsentationen gør (bruger-beslutning 2026-07-07: "basis skal
-indeholde tillægget"). Når et anciennitetstillæg er aktivt, vil kontrol-tabellen ("EO-gennemsyn")
-derfor systematisk vise et andet indeks end bilaget og potentielt melde et
-`control:sammentaelling_mismatch`, der ikke afspejler en reel motorfejl (falsk positiv, der kan maskere
-en ægte uoverensstemmelse). Fundet blev bevidst IKKE bundtet ind i denne omgang: kontrol-laget er
-DEV-only og gater aldrig produktions-PDF (B9), rettelsen rører kontrol-lagets brugervendte visning og
-er beregningsteknisk (kræver at motorens raw-vs-clampet anciennitet-gating replikeres i decimal-
-konventionen på begge grene + nye tests) — et selvstændigt stykke arbejde der fortjener sit eget fokus
-frem for at stable risiko oven på R8. Anbefales som næste skridt.
+**Løst 2026-07-08 — anciennitetstillæg i kontrol-laget + tre-vejs-konsolidering.** Tidligere
+inkluderede inspektionslaget (`eoInspektionRegulationCore.ts`) **slet ikke** anciennitetstillæg i sin
+overenskomst-grundløn — hverken den offentlige eller den private gren — mens motoren og PDF-
+præsentationen gør (bruger-beslutning 2026-07-07: "basis skal indeholde tillægget"). Med et aktivt
+tillæg viste kontrol-tabellen ("EO-gennemsyn") derfor systematisk et andet indeks end bilaget og kunne
+melde et falsk `control:sammentaelling_mismatch`. **Rettelsen samlede samtidig den bagvedliggende
+rod-årsag:** anciennitetstillæggets resolution (kroneværdi via `convertAnciennitetSats` + de to
+gate-datoer, rå til basis-gaten og TAF-clampet til segment-gaten) var udledt TRE gange uafhængigt —
+motorens `overenskomstSegmentContext`, præsentationens reguleringsindeks-tabel, og (ved fravær) kontrol-
+laget. Den er nu ét delt primitiv, `resolveAnciennitetForIndex` (`overenskomstReguleringShared.ts`),
+som alle tre lag forbruger. Motor + præsentation er tal-neutrale (byte-identitet: schema-defaulter
+`anciennitetstillaegSatsAngivesPer` til 'Måned', og de to gate-varianter er beviseligt ækvivalente —
+pinnet af den eksisterende cross-lag-invariant-test motor==præsentation). Kontrol-laget medtager nu
+tillægget i basis (rå-dato-gate mod `resolveOverenskomstEffectiveStartIso`) og i per-dato-entries
+(fra aktiveringsdatoen, med brudpunkt), i lagets egen decimal-konvention — index-*beregningen* forbliver
+uafhængig (B9); kun user-input-resolutionen deles. Nye tests: `overenskomstReguleringShared.test.ts`
+(resolver) + `eoInspektionRegulationCore.test.ts` (privat + offentlig grundløn inkl. tillæg, samt
+basis-gate før anciennitetsdatoen). Fuld eo-/inspektions-/quality-suite grøn.
 
 ## 6. Migrations-anbefaling
 

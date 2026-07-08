@@ -64,6 +64,7 @@ import { resolveOverenskomstCoverageStartIso, resolveOverenskomstEffectiveStartI
 import {
   buildOffentligOverenskomstFormulaComponents,
   buildPrivateOverenskomstFormulaComponents,
+  resolveAnciennitetForIndex,
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
 import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
@@ -240,8 +241,9 @@ export const resolveLoenSkadedatoText = (params: {
 const formatIndexValue = (value: number): string =>
   formatAsAmount(value, 2);
 
-const formatManuelProcentsatsIndex = (value: number): string =>
-  formatAsAmount(value, 2);
+// KRL-satstabellens reguleringsprocent vises med 4 decimaler (kildens egen præcision), modsat
+// indeks/øvrige procenter (2 dec.). Navngivet så decimalantallet ikke driver ved en fremtidig ændring.
+const KRL_REGULERING_PCT_DECIMALS = 4;
 
 const formatManuelProcentsatsAkkumuleretPct = (value: number): string => {
   const sign = value >= 0 ? '+ ' : '- ';
@@ -800,7 +802,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         formatDateShort(entry.startIso),
         // Fast to decimaler (også ",00") på procentkolonnen.
         `${formatAsAmount(entry.procent, 2)} %`,
-        formatManuelProcentsatsIndex(entry.indeks),
+        formatIndexValue(entry.indeks),
         formatManuelProcentsatsAkkumuleretPct(entry.akkumuleretPct),
       ]),
     };
@@ -950,7 +952,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     if (!krlId || !isKRLSatstabelId(krlId)) return null;
 
     const formatKrlPct = (value: number): string =>
-      formatAsAmount(value, 4) + ' %';
+      formatAsAmount(value, KRL_REGULERING_PCT_DECIMALS) + ' %';
 
     // R2 — læs det motor-emitterede forløb (KRL-periodeserien); ellers (inspektion, uden
     // motor-model) re-derivér byte-identisk via samme delte builder som motoren bruger.
@@ -1146,31 +1148,23 @@ export const buildReguleringIndexRows = (params: Readonly<{
     return result;
   };
 
-  const anciennitetForIndex = (() => {
-    if (loenudviklingBasis !== 'Overenskomst') return null;
-    if (!ansaettelsesforhold.overenskomstId || !ansaettelsesforhold.harAnciennitetstillaegEfterSkadedatoen) return null;
-    const anciennitetDato = ansaettelsesforhold.anciennitetstillaegDato;
-    const satsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
-    if (!anciennitetDato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
-      return null;
-    }
-    const tafBeregnesSom = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
-    const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(ansaettelsesforhold.overenskomstId, tafBeregnesSom);
-    if (!grundloenAngivetPer) return null;
-    if (anciennitetDato > tafEndIso) return null;
-    const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
-    const supplementValue = convertAnciennitetSats(satsValue, inputPer, grundloenAngivetPer);
-    const roundedSupplement = roundToTwoDecimals(supplementValue);
-    if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;
-    return {
-      activeFromIso: anciennitetDato,
-      segmentBoundaryIso: anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato,
-      supplementValue: roundedSupplement,
-    };
-  })();
+  // Delt anciennitets-resolver (samme kilde som motor og kontrol). `activeFromIso` er TAF-clampet
+  // (segment-split + per-segment-gate); `rawActiveFromIso` er den rå dato (basis-gate).
+  const anciennitetForIndex = loenudviklingBasis === 'Overenskomst'
+    ? resolveAnciennitetForIndex({
+        harAnciennitetstillaeg: ansaettelsesforhold.harAnciennitetstillaegEfterSkadedatoen,
+        anciennitetstillaegDatoIso: ansaettelsesforhold.anciennitetstillaegDato,
+        satsValue: ansaettelsesforhold.anciennitetstillaegSats?.value,
+        satsAngivesPer: ansaettelsesforhold.anciennitetstillaegSatsAngivesPer,
+        overenskomstId: ansaettelsesforhold.overenskomstId,
+        tafBeregningsenhed,
+        periodeStartIso: tafStartIso,
+        periodeEndIso: tafEndIso,
+      })
+    : null;
 
-  const segmentsForCalc = anciennitetForIndex && anciennitetForIndex.segmentBoundaryIso > tafStartIso
-    ? splitSegmentsAtBoundary(segments, anciennitetForIndex.segmentBoundaryIso)
+  const segmentsForCalc = anciennitetForIndex && anciennitetForIndex.activeFromIso > tafStartIso
+    ? splitSegmentsAtBoundary(segments, anciennitetForIndex.activeFromIso)
     : segments;
   const segmentsForOverenskomstCalc = (
     loenudviklingBasis === 'Overenskomst' &&
@@ -1268,7 +1262,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       const hasStoreBededag =
         applyAlmindeligLoenPaaShDageRegel &&
         (anvendtReguleringsdato >= STORE_BEDEDAG_START || segmentsForOverenskomstCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
-      const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdato >= anciennitetForIndex.activeFromIso
+      const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdato >= anciennitetForIndex.rawActiveFromIso
         ? anciennitetForIndex.supplementValue
         : 0;
       const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen + baseAnciennitet;

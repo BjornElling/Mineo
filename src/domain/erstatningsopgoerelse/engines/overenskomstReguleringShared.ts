@@ -2,14 +2,87 @@ import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
 import {
   getEffektiveSatserForDato,
+  getGrundloenAngivetPerForOverenskomst,
   getReguleringsDatoIntervalForOverenskomst,
   type OverenskomstId,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
 import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
 import { differsFromZero } from '../../../utils/numberComparison';
-import { parseDanishToIso, resolvePctPointFromSatsOrInput } from '../helpers/eoSharedUtils';
+import { round2 } from '../../../utils/roundingShortcuts';
+import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import { convertAnciennitetSats, parseDanishToIso, resolvePctPointFromSatsOrInput } from '../helpers/eoSharedUtils';
 import type { FormulaComponents } from './reguleringFormulaUtils';
+
+// =============================================================================
+// Anciennitetstillæg i basis — ét fælles opslag delt af motor, præsentation og kontrol.
+//
+// Tillægget (og dets gate-datoer) blev tidligere udledt tre gange uafhængigt: motorens
+// `overenskomstSegmentContext`, præsentationens reguleringsindeks-tabel og — implicit ved
+// FRAVÆR — kontrol-laget (`eoInspektionRegulationCore`), som slet ikke medtog tillægget og
+// derfor kunne vise et forkert kontrol-indeks (falsk `control:sammentaelling_mismatch`).
+// Resolveren nedenfor er nu den ENESTE kilde til (a) tillæggets kroneværdi og (b) de to
+// gate-datoer. Selve indeks-/pakkeberegningen forbliver pr. lag (motorens pct-point-formel vs.
+// kontrol-lagets decimal-konvention, jf. B9) — kun resolutionen af user-input deles.
+// =============================================================================
+
+/**
+ * Anciennitetstillæg der er aktivt fra en given dato, delt af begge overenskomst-grene + kontrol.
+ * De to datoer adskiller sig bevidst:
+ * - `rawActiveFromIso`: den rå anciennitetsdato. BASIS-gaten (referenceniveauet, indeks 100)
+ *   inkluderer tillægget, hvis det allerede gælder på den effektive reguleringsdato — målt mod
+ *   denne rå dato (bruger-beslutning 2026-07-07: "basis skal indeholde tillægget").
+ * - `activeFromIso`: den rå dato clampet op til periodens start (TAF-start). Bruges til
+ *   segment-splitting og per-segment-gate, fordi et tillæg dateret før perioden først kan slå
+ *   igennem fra periodens første dag.
+ */
+export type AnciennitetForIndex = Readonly<{
+  activeFromIso: ISODateString;
+  rawActiveFromIso: ISODateString;
+  supplementValue: number;
+}>;
+
+export type AnciennitetForIndexInput = Readonly<{
+  harAnciennitetstillaeg: boolean | undefined;
+  anciennitetstillaegDatoIso: ISODateString | undefined;
+  satsValue: number | undefined;
+  satsAngivesPer: 'Time' | 'Måned' | undefined;
+  overenskomstId: string | undefined;
+  tafBeregningsenhed: TafBeregningsenhed;
+  // Periodens grænser (motor: tafRanges min/max; kontrol/præsentation: den viste periodes ISO-span).
+  periodeStartIso: ISODateString;
+  periodeEndIso: ISODateString;
+}>;
+
+/**
+ * Udleder anciennitetstillæggets kroneværdi (i grundlønnens enhed) + gate-datoerne, eller `null`
+ * hvis der intet aktivt tillæg er. Tal-neutral med den tidligere tre-vejs-duplikering:
+ * `anciennitetstillaegSatsAngivesPer` er schema-defaultet til 'Måned', så `?? 'Måned'` er blot
+ * defensivt (aldrig nået for schema-gyldigt input).
+ */
+export const resolveAnciennitetForIndex = (
+  input: AnciennitetForIndexInput
+): AnciennitetForIndex | null => {
+  if (!input.harAnciennitetstillaeg) return null;
+  const anciennitetDato = input.anciennitetstillaegDatoIso;
+  const satsValue = input.satsValue;
+  if (!anciennitetDato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
+    return null;
+  }
+  if (anciennitetDato > input.periodeEndIso) return null;
+  if (!input.overenskomstId) return null;
+  const tafBeregnesSom = input.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
+  const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(input.overenskomstId, tafBeregnesSom);
+  if (!grundloenAngivetPer) return null;
+  const supplementValue = convertAnciennitetSats(satsValue, input.satsAngivesPer ?? 'Måned', grundloenAngivetPer);
+  const roundedSupplement = round2(supplementValue);
+  if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;
+  return {
+    activeFromIso: anciennitetDato < input.periodeStartIso ? input.periodeStartIso : anciennitetDato,
+    rawActiveFromIso: anciennitetDato,
+    supplementValue: roundedSupplement,
+  };
+};
 
 type PrivateOverenskomstBaseArgs = Readonly<{
   overenskomstId: OverenskomstId;
