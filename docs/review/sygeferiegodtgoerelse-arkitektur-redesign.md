@@ -1,7 +1,7 @@
 # Sygeferiegodtgørelse — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-08
-**Status:** Under implementering. **Skridt 1 (S2 delvist)**, **skridt 2 (S1)**, **skridt 3 (S3)** og **skridt 4 (S4)** er gennemført.
+**Status:** Gennemført. **Skridt 1 (S2 delvist)**, **skridt 2 (S1)**, **skridt 3 (S3)**, **skridt 4 (S4)** og **skridt 5 (S5)** er gennemført. Alle S1-S5 er lukket.
 
 > **Implementeringsstatus (opdateres pr. skridt):**
 > - ✅ **Skridt 1 — S2 (delvist):** tekst-round-trippen for 4-måneders-cap'et dræbt; kontrol læser
@@ -38,7 +38,17 @@
 >   (og fjerner ~130 linjer fra den 1595-linjers motor), ikke fjernelse af aktiv duplikering. Alle
 >   importører, namespace-re-exporten, `eo-snapshot-contract.md` og kvalitets-værnene opdateret i samme
 >   ændring; primitiverne har nu direkte unit-tests i `isoRangeAlgebra.test.ts`.
-> - ⬜ **S5** (bekræft/hærd overenskomst-policy-dæknings-assert): endnu ikke påbegyndt.
+> - ✅ **Skridt 5 — S5:** overenskomstens SFGG-policy-dæknings-assert (`assertValidSfggPolicy`,
+>   G8) bekræftet og hærdet. Guarden er nu **eksporteret** og har fået et **vacuous-pass-værn**
+>   i `overenskomstRates.test.ts` (som reguleringens R5): tests beviser, at den faktisk kaster på
+>   hver klasse af inkonsistens — fravigelse↔model/referenceperiode, direkte-sats-med-referenceperiode,
+>   ferielov-uden-referenceperiode, model↔satsdata og differentiering↔satsdata — og passerer på
+>   fuldt konsistente policyer. Den tidligere positive test, der **re-implementerede** guardens
+>   konsistensregler, er erstattet af et kald til den ægte `assertValidSfggPolicy` (fjerner
+>   parallel-logikken i testen). En ny completeness-test håndhæver "ingen overenskomst kan mangle en
+>   SFGG-policy" ved at kræve en opslagbar policy for hver post i den kanoniske liste (private +
+>   offentlige), oven på det obligatoriske `sfggPolicy`-felt (compile-tid) og modul-load-guarden.
+>   Rent værn/load — tal- og UI-neutralt; ingen produktionsadfærd ændret.
 **Baggrund:** Efter det gennemførte regulering-redesign (`regulering-arkitektur-redesign.md`) er
 mistanken, at samme rod-problem — *parallel logik holdt sammen af tests i stedet for af struktur* —
 også gør sig gældende for sygeferiegodtgørelse (SFGG).
@@ -279,13 +289,25 @@ tag det kun hvis S1-S3 alligevel rører filerne, så det ikke bliver churn for c
 
 ### S5 — Overenskomstens SFGG-policy som deklarativ load-kontrakt
 
-**Nuværende tilstand.** Der findes allerede en eksplicit SFGG-policy pr. overenskomst (fravigelse,
-model, differentierede satser, bortfald under sygeløn, referenceperiode-label) + en runtime-assert for
-fuld policy-dækning (dok. §5). G8 er dermed i vid udstrækning allerede opfyldt.
+> **Status (2026-07-08): IMPLEMENTERET.** `assertValidSfggPolicy` er eksporteret fra
+> `overenskomstRates.ts` og forsynet med JSDoc, der binder den til G8. Vacuous-pass-værnet ligger nu i
+> `overenskomstRates.test.ts` (`describe('assertValidSfggPolicy (vacuous-pass-værn)')`): syv tests der
+> beviser, at guarden kaster på hver inkonsistens-klasse og passerer på konsistente policyer. Den
+> tidligere positive test, der re-implementerede guardens regler, kalder nu den ægte guard. En
+> completeness-test (`ingen overenskomst … kan mangle en SFGG-policy`) itererer den kanoniske liste
+> (`getOverenskomsterByOrg()` = private + offentlige) og kræver en opslagbar policy for hver. Tal- og
+> UI-neutralt.
 
-**Greenfield-design.** Bekræft, at assert'en er selvtestet (vacuous-pass-værn, som reguleringens R5),
-og at den kanoniske liste over overenskomster tvinger hver til at deklarere sin SFGG-policy. Dette er
-overvejende *fastholdelse*, ikke ny struktur.
+**Nuværende tilstand (før S5).** Der fandtes allerede en eksplicit SFGG-policy pr. overenskomst
+(fravigelse, model, differentierede satser, bortfald under sygeløn, referenceperiode-label) + en
+runtime-assert for fuld policy-dækning (dok. §5). G8 var dermed i vid udstrækning allerede opfyldt, men
+med to huller: assert'en var **ikke eksporteret/selvtestet** (ingen bevis for, at den ikke stiltiende
+passerede alt), og den positive test **re-implementerede** dens konsistensregler frem for at køre den
+ægte guard — netop den "parallel logik holdt sammen af tests"-klasse hele redesignet bekæmper.
+
+**Greenfield-design (leveret).** Bekræft, at assert'en er selvtestet (vacuous-pass-værn, som
+reguleringens R5), og at den kanoniske liste over overenskomster tvinger hver til at deklarere sin
+SFGG-policy. Overvejende *fastholdelse*, ikke ny struktur — men de to huller ovenfor er nu lukket.
 
 | Kolonne | Vurdering |
 |---|---|
@@ -339,6 +361,8 @@ Ikke big-bang. Rækkefølge der maksimerer tidlig trust-gevinst og holder hvert 
 3. **S3 — periode-pipeline** oven på S1, og **fuldfør S2** ved at emittere strukturerede
    `sfggAfkortninger` fra pipelinen, som både PDF og kontrol formatterer.
 4. **S4 / S5** — oprydning til sidst; tag S4 kun hvis de foregående skridt alligevel rører range-koden.
+   **✅ Begge gennemført** (S4: IsoRange-algebra samlet i `isoRangeAlgebra.ts`; S5: policy-guarden
+   eksporteret + vacuous-pass-værn + completeness-test).
 
 Hvert skridt pinnes af beregnings-, validator-, kontrol-, PDF/Word- og canonical-parity-suiten
 (bl.a. `sygeferiegodtgoerelse.test.ts`, `eoRowSygeferiegodtgoerelseRows.test.ts`,

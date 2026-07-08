@@ -1422,7 +1422,22 @@ const inferFravigerFerielovFromPolicy = (policy: OverenskomstSfggPolicy): boolea
   || policy.bortfalderUnderArbejdsgiverbetaltSygeloen
   || (policy.referenceperiodeLabel !== null && policy.referenceperiodeLabel !== '4 uger');
 
-const assertValidSfggPolicy = (
+/**
+ * Fail-closed dæknings-guard for en overenskomsts SFGG-policy (SFGG-redesign S5, guardrail G8).
+ *
+ * SFGG-fravigelsen er en eksplicit boolean pr. overenskomst — aldrig en dynamisk formel — og
+ * `sfggPolicy` er et obligatorisk felt på `OverenskomstMeta`, så en manglende policy er en
+ * compile-fejl. Denne guard håndhæver dertil ved modul-load, at den deklarerede policy er
+ * *internt konsistent* (fravigelse følger af model/bortfald/referenceperiode) og *matcher
+ * satsdata* (direkte-sats-model ⇔ der findes direkte SFGG-satser; differentiering ⇔ der findes
+ * differentierede satser). En selvmodsigende policy ville ellers vælge forkert SFGG-spor uden
+ * at fejle.
+ *
+ * Kaldes ved modul-load for både private og offentlige overenskomster (nedenfor). Eksporteret
+ * så vacuous-pass-værnet i `overenskomstRates.test.ts` kan bevise, at guarden faktisk kaster på
+ * hver klasse af inkonsistens (og ikke stiltiende passerer alt).
+ */
+export const assertValidSfggPolicy = (
   meta: OverenskomstMeta,
   satser?: ReadonlyArray<OverenskomstPeriodeSats>
 ): void => {

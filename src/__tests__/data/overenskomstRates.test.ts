@@ -16,8 +16,14 @@ import {
   getEffektiveSatserForPeriode,
   getOverenskomstSfggPolicy,
   assertOverenskomstSatserNyesteFoerst,
+  assertValidSfggPolicy,
 } from '../../data/overenskomstRates';
-import type { OverenskomstPeriodeSats } from '../../data/overenskomstRates';
+import type {
+  OverenskomstId,
+  OverenskomstMeta,
+  OverenskomstPeriodeSats,
+  OverenskomstSfggPolicy,
+} from '../../data/overenskomstRates';
 import { toDanishDateString } from '../../types/branded';
 
 const d = (s: string) => toDanishDateString(s);
@@ -208,30 +214,12 @@ describe('getOverenskomstMetaById', () => {
 });
 
 describe('getOverenskomstSfggPolicy', () => {
-  it('alle SFGG-policyer er logisk konsistente med referenceperiode, bortfald og satsdata', () => {
+  it('alle faktiske overenskomst-policyer passerer den rigtige dæknings-guard', () => {
+    // Kalder den EKSPORTEREDE assertValidSfggPolicy (samme funktion som køres ved modul-load),
+    // frem for at re-implementere dens konsistens-regler i testen. Guarden dækker både
+    // policy-intern konsistens og match mod satsdata.
     for (const overenskomst of overenskomster) {
-      const policy = overenskomst.meta.sfggPolicy;
-      const hasDirekteSats = overenskomst.satser.some((sats) =>
-        [sats.sfgg, sats.sfggFaglKbh, sats.sfggFaglProv, sats.sfggUfaglKbh, sats.sfggUfaglProv]
-          .some((value) => value !== null)
-      );
-      const hasDifferentieretDirekteSats = overenskomst.satser.some((sats) =>
-        [sats.sfggFaglKbh, sats.sfggFaglProv, sats.sfggUfaglKbh, sats.sfggUfaglProv]
-          .some((value) => value !== null)
-      );
-      const shouldFravigeFerielov = policy.model === 'direkte_sats'
-        || policy.bortfalderUnderArbejdsgiverbetaltSygeloen
-        || (policy.referenceperiodeLabel !== null && policy.referenceperiodeLabel !== '4 uger');
-
-      expect(policy.fravigerFerielov).toBe(shouldFravigeFerielov);
-      expect(policy.model === 'direkte_sats').toBe(hasDirekteSats);
-      expect(policy.direkteSatsErDifferentieret).toBe(hasDifferentieretDirekteSats);
-      expect(policy.model === 'direkte_sats' ? policy.referenceperiodeLabel : 'ok').toBe(
-        policy.model === 'direkte_sats' ? null : 'ok'
-      );
-      expect(policy.model === 'ferielov' ? policy.referenceperiodeLabel : 'ok').not.toBe(
-        policy.model === 'ferielov' ? null : 'mismatch'
-      );
+      expect(() => assertValidSfggPolicy(overenskomst.meta, overenskomst.satser)).not.toThrow();
     }
   });
 
@@ -257,6 +245,119 @@ describe('getOverenskomstSfggPolicy', () => {
 
   it('returnerer undefined for ukendt overenskomst', () => {
     expect(getOverenskomstSfggPolicy('ukendt-overenskomst')).toBeUndefined();
+  });
+
+  it('ingen overenskomst (privat eller offentlig) kan mangle en SFGG-policy', () => {
+    // Den kanoniske liste over ALLE overenskomster (getOverenskomsterByOrg uden filter =
+    // private + offentlige) skal hver især have en opslagbar SFGG-policy. Sammen med det
+    // obligatoriske sfggPolicy-felt (compile-tid) og modul-load-guarden håndhæver dette
+    // G8: en overenskomst kan hverken glemme sin policy eller stå med en inkonsistent en.
+    const alle = getOverenskomsterByOrg();
+    expect(alle.length).toBeGreaterThan(0);
+    for (const meta of alle) {
+      expect(getOverenskomstSfggPolicy(meta.id as string)).toBeDefined();
+    }
+  });
+});
+
+// ─── assertValidSfggPolicy (vacuous-pass-værn, G8) ────────────────────────────
+
+describe('assertValidSfggPolicy (vacuous-pass-værn)', () => {
+  const metaWith = (policy: OverenskomstSfggPolicy): OverenskomstMeta => ({
+    id: 'test-overenskomst' as OverenskomstId,
+    navn: 'Test-overenskomst',
+    loenmodtagerOrg: ['Testforbund'],
+    arbejdsgiverOrg: ['Testarbejdsgiver'],
+    grundloenAngivetPer: 'Time',
+    sfggPolicy: policy,
+  });
+
+  // Direkte SFGG-sats (ikke-differentieret) og differentieret direkte sats til satsdata-grenene.
+  const direkteSats = (fraDato: string): OverenskomstPeriodeSats => ({ ...sats(fraDato), sfgg: 150 });
+  const differentieretSats = (fraDato: string): OverenskomstPeriodeSats => ({
+    ...sats(fraDato),
+    sfggFaglKbh: 207.9,
+    sfggFaglProv: 195.9,
+  });
+
+  it('accepterer en fuldt konsistent ferielovs-policy (guarden er ikke altid-fejlende)', () => {
+    const meta = metaWith({
+      fravigerFerielov: false,
+      model: 'ferielov',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: '4 uger',
+    });
+    expect(() => assertValidSfggPolicy(meta, [sats('01-01-2020')])).not.toThrow();
+  });
+
+  it('accepterer en fuldt konsistent differentieret direkte-sats-policy', () => {
+    const meta = metaWith({
+      fravigerFerielov: true,
+      model: 'direkte_sats',
+      direkteSatsErDifferentieret: true,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: null,
+    });
+    expect(() => assertValidSfggPolicy(meta, [differentieretSats('01-01-2020')])).not.toThrow();
+  });
+
+  it('kaster når fravigerFerielov modsiger model/referenceperiode', () => {
+    const meta = metaWith({
+      fravigerFerielov: false, // men referenceperiode ≠ "4 uger" ⇒ afviger reelt ferieloven
+      model: 'ferielov',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: '3 måneder',
+    });
+    expect(() => assertValidSfggPolicy(meta)).toThrow(/Ugyldig SFGG-policy/);
+  });
+
+  it('kaster når direkte-sats-model har en referenceperiode', () => {
+    const meta = metaWith({
+      fravigerFerielov: true,
+      model: 'direkte_sats',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: '3 måneder',
+    });
+    expect(() => assertValidSfggPolicy(meta)).toThrow(/må ikke have referenceperiode/);
+  });
+
+  it('kaster når ferielovs-model mangler referenceperiode', () => {
+    const meta = metaWith({
+      fravigerFerielov: false,
+      model: 'ferielov',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: null,
+    });
+    expect(() => assertValidSfggPolicy(meta)).toThrow(/skal have referenceperiode/);
+  });
+
+  it('kaster når model=direkte_sats men satsdata ikke har direkte SFGG-satser', () => {
+    const meta = metaWith({
+      fravigerFerielov: true,
+      model: 'direkte_sats',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: null,
+    });
+    // Ingen direkte SFGG-sats i satserne → model modsiger data.
+    expect(() => assertValidSfggPolicy(meta, [sats('01-01-2020')])).toThrow(/matcher ikke satsdata/);
+  });
+
+  it('kaster når differentiering modsiger satsdata', () => {
+    const meta = metaWith({
+      fravigerFerielov: true,
+      model: 'direkte_sats',
+      direkteSatsErDifferentieret: true, // men satserne har kun en ikke-differentieret sfgg
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: null,
+    });
+    expect(() => assertValidSfggPolicy(meta, [direkteSats('01-01-2020')])).toThrow(
+      /SFGG-differentiering matcher ikke satsdata/
+    );
   });
 });
 
