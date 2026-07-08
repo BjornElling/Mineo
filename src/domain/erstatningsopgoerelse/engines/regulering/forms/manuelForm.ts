@@ -1,10 +1,9 @@
 import type { ISODateString } from '../../../../../types/branded';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
-import { roundByMethod } from '../../../../../utils/rounding';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../../config/indskudteLoentillaeg';
 import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
-import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula } from '../../reguleringFormulaUtils';
+import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
 import { assertUniform, buildSegmentsFromStartDates } from '../reguleringFormPrimitives';
 import type {
@@ -165,7 +164,7 @@ const byggResultat = (
       }
       segments.push({
         ...segment,
-        deltaPct: roundByMethod((packageValue / basePackage - 1) * 100, 2, 'halfAwayFromZero'),
+        deltaPct: roundReguleringDeltaPct((packageValue / basePackage - 1) * 100),
       });
     }
   }

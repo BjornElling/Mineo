@@ -889,10 +889,16 @@ export const satserAngivAarYearBounds: YearBounds = (() => {
 // ===== HJÆLPEFUNKTIONER =====
 
 /**
- * Returnerer alle satser for et bestemt år
+ * DISPLAY-ONLY, FAIL-OPEN. Returnerer alle satser for et bestemt år som en visnings-snapshot.
  *
- * Robust over for manglende år i datatabellerne.
- * Hvis et opslag mangler for det ønskede år, returneres null (for tal) eller '' (for tekst).
+ * Robust over for manglende år: mangler et opslag, returneres `null` (tal) eller `''` (tekst) —
+ * fail-open, så en satsside/-dokument kan vise "-" frem for at fejle. Denne fail-open-semantik må
+ * ALDRIG lække ind i en reguleringsberegning: en beregningssti skal fail-close (kaste/blokere) på
+ * manglende sats, ikke stille regne videre med `null`. Beregningslaget bruger derfor de fail-closed
+ * per-sats-opslag (fx `resolveAslAarsloensmaksimumForAar`), ikke denne aggregator.
+ *
+ * Adskillelsen håndhæves strukturelt af `failOpenDisplayLookupIsolation.test.ts` (R9): kun display-/
+ * dokument-moduler må importere `getSatserForYear`. Tilføjes et beregnings-callsite, fejler værnet.
  *
  * @param {number} year - Årstal at hente satser for
  * @returns {Object} Dictionary med alle satser struktureret efter kategori

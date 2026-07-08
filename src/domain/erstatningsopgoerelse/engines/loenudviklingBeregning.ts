@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { roundByMethod } from '../../../utils/rounding';
+import { roundReguleringDeltaPct } from './reguleringFormulaUtils';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
@@ -183,7 +183,7 @@ export const buildLoenudviklingModel = (
     for (const segment of loenreguleringssegmenter) {
       const roundedDeltaPct = klLoenaftalerReguleretLoenResolver
         ? klLoenaftalerReguleretLoenResolver.deltaPctAt(segment.fra)
-        : roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
+        : roundReguleringDeltaPct(segment.deltaPct);
       // KL-lønaftaler: den opregulerede, afrundede enhedsløn for perioden — bæres med på segmentet,
       // så indkomst-linjerne kan vise "antal á reguleret løn = beløb" uden faktor-tekst.
       const klLoenaftalerReguleretLoenOre = klLoenaftalerReguleretLoenResolver

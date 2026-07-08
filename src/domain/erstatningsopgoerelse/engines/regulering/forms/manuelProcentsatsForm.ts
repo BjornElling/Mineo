@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../../../../types/branded';
-import { roundByMethod } from '../../../../../utils/rounding';
+import { roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { buildManuelProcentsatsEntries, findManuelProcentsatsEntryForDate } from '../../manuelProcentsatsRegulering';
 import { assertUniform, buildSegmentsFromStartDates } from '../reguleringFormPrimitives';
 import type {
@@ -72,7 +72,7 @@ const byggResultat = (
       }
       segments.push({
         ...segment,
-        deltaPct: roundByMethod(entry.akkumuleretPct, 2, 'halfAwayFromZero'),
+        deltaPct: roundReguleringDeltaPct(entry.akkumuleretPct),
       });
     }
   }

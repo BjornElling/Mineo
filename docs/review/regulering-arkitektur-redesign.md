@@ -1,7 +1,7 @@
 # Regulering — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-04
-**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1 implementeret; R4 delvist; R2 konsolideret — forløbet foldet ind i form-kontrakten (ét dispatch, ét builder-kald); 4 af 6 former bærer motor-forløb (manuel procentsats, KRL, statistik non-ASL, KL — KL nu fuldt inkl. indeksrækker); overenskomst-formel single-sourcet via delt builder frem for forløb; manuelt angivet forenet mod de kanoniske parsere; inspektionens parsing-primitiver ruter nu gennem de delte buildere; R8/R9 fremadrettede. Se "Efterbehandling 2026-07-08".)
+**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1 implementeret; R4 delvist; R2 konsolideret — forløbet foldet ind i form-kontrakten (ét dispatch, ét builder-kald); 4 af 6 former bærer motor-forløb (manuel procentsats, KRL, statistik non-ASL, KL — KL nu fuldt inkl. indeksrækker); overenskomst-formel single-sourcet via delt builder frem for forløb; manuelt angivet forenet mod de kanoniske parsere; inspektionens parsing-primitiver ruter nu gennem de delte buildere; R9 implementeret (strukturelt værn); R8 proportionalt implementeret (mekanisme 1 som navngivet politik; fuld branded-type-vision bevidst fravalgt). Se "Efterbehandling 2026-07-08".)
 **Baggrund:** Syntese efter det fulde regulering-review (`regulering-review-plan.md`, punkt 0–15, alle ✅).
 **Formål:** Vurdere hvilke arkitektoniske og strukturelle valg jeg ville træffe anderledes,
 hvis reguleringsdomænet skulle designes helt fra bunden med den viden reviewet har givet os —
@@ -491,6 +491,27 @@ gren at kopiere den ind i.
 
 ### R8 — Afrunding som typet politik på ét punkt
 
+> **Status (2026-07-08): PROPORTIONALT IMPLEMENTERET — fuld branded-type-vision bevidst fravalgt.**
+> Udtømmende kortlægning af hele afrundingsfladen (regulering + TAF + offentlige ydelser + svie/
+> smerte + sygeferiegodtgørelse) bekræftede, at afrundings-KERNEN allerede er solid: én central
+> `roundByMethod` (deterministisk, fail-closed → 0 på ikke-finit, aldrig −0, udtømmende test-pinnet),
+> og `toOre`/`ensureMoneyOre`-runtime-guards på kroner→øre-grænsen (kaster ved >2 decimaler / ikke-
+> heltal). Der blev fundet **ingen aktive afrundingsbugs** — hver "flade" er latent og konventions-
+> holdt, og de grænser der betyder noget (kroner→øre) er allerede runtime-værnet. **Fravalgt (over-
+> engineering):** den fulde greenfield-vision (branded `MoneyOre`/`RawKroner`/`RoundedKroner` +
+> `RoundingPolicy`-type tråd gennem ~60 pengefelter) er en stor, invasiv NY numerisk strategi, som
+> `AGENTS.md` (Numerik: "Indfør ikke nye numeriske strategier"; Konvergens: ingen lag til hypotetisk
+> brug) fraråder; den retter sig mod hypotetisk fremtidig misbrug og bærer reel "kan ændre tal"-risiko
+> på den mest trust-kritiske sti — dårligt værdi/risiko-forhold når kernen allerede er værnet og
+> test-pinnet. **Implementeret (tal-neutralt):** mekanisme 1 (regulerings-`deltaPct` = 2 decimaler,
+> halfAwayFromZero) er gjort til en NAVNGIVEN, single-sourced politik `roundReguleringDeltaPct`
+> (`reguleringFormulaUtils.ts`), som alle reguleringsformer (statistik inkl. ASL-krydsningen, KRL,
+> manuel, manuel procentsats, overenskomst offentlig/privat), motorens re-runding OG offentlige
+> ydelser nu bruger — så decimalantallet ikke kan drive til en forkert konvention ved en fremtidig
+> ændring. De bevidst afvigende kontekster bevarer deres egen politik: KL-lønaftaler (trinvis kæde,
+> fuld præcision), TAF-opreguleret (4 decimaler). Pinnet af den fulde beregnings-/render-suite +
+> ny politik-test (`reguleringFormulaUtils.test.ts`).
+
 **Nuværende tilstand.** Mindst 5 afrundingsmekanismer, holdt korrekte ved **konvention**:
 `deltaPct` til 2 dec. (lønudvikling + offentlige ydelser), `deltaPct` til 4 dec. (TAF-opreguleret),
 KRL-display til 4 dec., `roundKroner` på basisløn/beløb, og KL's trinvise afrunding pr. trin.
@@ -510,7 +531,16 @@ er en eksplicit politik, ikke en special-case.
 
 ### R9 — Fail-open display-opslag typ-adskilt fra beregning
 
-**Nuværende tilstand.** `getSatserForYear` ([lovbestemteRates.ts:898](../../src/data/lovbestemteRates.ts#L898))
+> **Status (2026-07-08): IMPLEMENTERET (strukturelt værn).** Adskillelsen er gjort strukturel via en
+> arkitektur-boundary-test (`src/__tests__/quality/failOpenDisplayLookupIsolation.test.ts`) efter samme
+> mønster som B9's `inspektionLayerIsolation.test.ts`: kun de tre display-/dokument-moduler
+> (`components/pages/Satser.tsx`, `document/generators/satser/satserDocument.ts`,
+> `document/service/documentService.ts`) må importere det fail-open `getSatserForYear`. Importeres
+> symbolet fra en fil uden for allowlisten (fx en beregningssti), fejler værnet — med anti-rot- og
+> selvtest-værn mod vacuous pass. `getSatserForYear`s JSDoc er samtidig markeret DISPLAY-ONLY/FAIL-OPEN
+> med henvisning til værnet. **Bevidst afgrænsning:** branded return-typer / flytning af de ~30 data-
+> dicts til et display-modul blev fravalgt — boundary-testen giver den samme strukturelle garanti med
+> langt lavere churn og matcher repoets etablerede lag-isolations-idiom (jf. `AGENTS.md` Konvergens).
 er fail-open (returnerer `null`/`''` ved manglende år). Reviewet bekræftede at den *i dag* kun bruges i
 display/dokument (S7, punkt 12), men adskillelsen er ikke strukturelt håndhævet — en fremtidig fejl kunne
 kalde den fra en beregningssti og få tavs under-regulering.
@@ -636,12 +666,23 @@ præsentations-, inspektions-, PDF/Word-, canonical-parity- og validator-suiten 
    krydstjek af motoren og ikke en tautologi. Parsing er ikke stedet et motorbug gemmer sig; en
    divergens dér ville kun være et falsk `control:sammentaelling_mismatch`.
 
-**Åbent fund til forelæggelse (ikke ændret):** inspektionens offentlige overenskomst-gren
-(`eoInspektionRegulationCore.ts`) inkluderer **ikke** anciennitetstillæg i sin reference-/segment-
-grundløn, mens motoren og PDF-præsentationen gør. Når et anciennitetstillæg er aktivt, vil kontrol-
-tabellen ("EO-gennemsyn") derfor systematisk vise et andet indeks end bilaget og potentielt melde et
-`control:sammentaelling_mismatch`, der ikke afspejler en reel motorfejl. Da rettelsen rører kontrol-
-lagets brugervendte visning, forelægges den frem for at ændres i stilhed.
+Efterfølgende blev også de to sidste fremadrettede forslag behandlet (se status-noterne under R8 og
+R9 i afsnit 4): **R9** implementeret som strukturelt boundary-værn; **R8** proportionalt implementeret
+(regulerings-`deltaPct`-politikken som navngivet, single-sourced helper `roundReguleringDeltaPct`),
+mens den fulde branded-type-vision bevidst blev fravalgt som over-engineering, da afrundings-kernen
+allerede er runtime-værnet og test-pinnet.
+
+**Åbent fund til forelæggelse (ikke ændret):** inspektionslaget (`eoInspektionRegulationCore.ts`)
+inkluderer **slet ikke** anciennitetstillæg i sin overenskomst-grundløn — hverken den offentlige eller
+den private gren — mens motoren og PDF-præsentationen gør (bruger-beslutning 2026-07-07: "basis skal
+indeholde tillægget"). Når et anciennitetstillæg er aktivt, vil kontrol-tabellen ("EO-gennemsyn")
+derfor systematisk vise et andet indeks end bilaget og potentielt melde et
+`control:sammentaelling_mismatch`, der ikke afspejler en reel motorfejl (falsk positiv, der kan maskere
+en ægte uoverensstemmelse). Fundet blev bevidst IKKE bundtet ind i denne omgang: kontrol-laget er
+DEV-only og gater aldrig produktions-PDF (B9), rettelsen rører kontrol-lagets brugervendte visning og
+er beregningsteknisk (kræver at motorens raw-vs-clampet anciennitet-gating replikeres i decimal-
+konventionen på begge grene + nye tests) — et selvstændigt stykke arbejde der fortjener sit eget fokus
+frem for at stable risiko oven på R8. Anbefales som næste skridt.
 
 ## 6. Migrations-anbefaling
 
@@ -652,7 +693,7 @@ Ikke big-bang. Rækkefølge der maksimerer tidlig værdi og holder hvert skridt 
 3. **R3** (tidsserie-opslag) — samler data-lagets opslag; forudsætning for R1's rene kontrakt. **✅ Udført 2026-07-07** (det duplikerede `ISODateString`-carry-forward-opslag samlet i ét delt primitiv på tværs af motor/præsentation/inspektion; datalagets `DanishDateString`-opslag og de carry-forward-frie modeller bevidst udenfor — se status-noten i afsnit 4).
 4. **R1** (form-moduler) — den store strukturelle gevinst; nu med R3/R4 som fundament. **✅ Fundament udført 2026-07-07** (kontrakt + `FORM_REGISTRY`; motorens dispatch + coverage routet gennem registeret, tal-neutralt; validatorens/row-gatens felt-dispatch + R2's præsentations-re-derivation er opfølgende skiver — se status-noten i afsnit 4).
 5. **R6** (familie-split) og **R2** (autoritativt segment) — oven på R1's kontrakt. **R6 ✅ udført 2026-07-07** (overenskomst delt i offentlig/privat segment-byggere bag facaden; ASL-krydsningen wrappet i den navngivne `aslIndeksTilSegmentDelta`-adapter; tal- og UI-neutralt, modul-split uden enum-ændring — se status-noten i afsnit 4). **R2 (autoritativt segment) ◑ påbegyndt 2026-07-07** (fundament/pilot: motor-emitteret `ReguleringForloeb` via motor-kanalen, IKKE i den auditerede canonical-kerne; **fire former migreret end-to-end i PDF-præsentationen, byte-identisk:** 'Manuel procentsats' (skridt 6), 'KRL satstabel' (skridt 7), 'Statistik' non-ASL (skridt 8), 'KL-lønaftaler' (skridt 9). 'Manuelt angivet' + ASL bevidst udskudt (ingen motor-emitteret periodeserie / parser-divergens); inspektions-konsolidering er en opfølgende skive — se status-noten i afsnit 4). Det højeste-værdi/mest følsomme skridt (**overenskomst**) er fortsat fremadrettet og anbefales som ét dedikeret skridt.
-6. **R8** (afrunding) — sidst og forsigtigst, da det er det eneste der kan ændre tal; kræver forelæggelse.
+6. **R8** (afrunding) — sidst og forsigtigst, da det er det eneste der kan ændre tal. **◑ Proportionalt udført 2026-07-08** (mekanisme 1 som navngivet single-sourced politik `roundReguleringDeltaPct`, tal-neutralt; fuld branded-type-vision bevidst fravalgt som over-engineering — se status-noten i afsnit 4). **R9 ✅ udført 2026-07-08** (strukturelt boundary-værn for det fail-open `getSatserForYear`).
 
 Hvert skridt bevises byte-identisk med de eksisterende beregnings- og render-tests (557+ beregningstests,
 `reguleringSilentPathAlignment.test.ts`, PDF/Word-render-tests) før det næste påbegyndes.

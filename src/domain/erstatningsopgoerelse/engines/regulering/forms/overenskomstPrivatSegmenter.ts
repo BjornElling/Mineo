@@ -1,6 +1,5 @@
 import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
-import { roundByMethod } from '../../../../../utils/rounding';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import { STORE_BEDEDAG_START } from '../../../../../config/indskudteLoentillaeg';
 import {
@@ -12,7 +11,7 @@ import {
   buildPrivateOverenskomstFormulaComponents,
   resolvePrivateOverenskomstBaseContext,
 } from '../../overenskomstReguleringShared';
-import { computeFormulaValue } from '../../reguleringFormulaUtils';
+import { computeFormulaValue, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { resolveOverenskomstEffectiveStartIso } from '../../reguleringCoverage';
 import {
   buildSegmentsFromStartDates,
@@ -173,7 +172,7 @@ export const buildPrivatOverenskomstSegmenter = (
       }
       segments.push({
         ...segment,
-        deltaPct: roundByMethod((packageValue / basePackage - 1) * 100, 2, 'halfAwayFromZero'),
+        deltaPct: roundReguleringDeltaPct((packageValue / basePackage - 1) * 100),
       });
     }
   }

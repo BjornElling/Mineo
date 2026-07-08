@@ -6,6 +6,7 @@ import {
   mergeFeriepengeDisplay,
   parsePercentInput,
   resolveFeriePctForFormula,
+  roundReguleringDeltaPct,
   wrapIndexFormulaAfterSlashWhenLong,
   type FormulaComponents,
   type FormulaVisibility,
@@ -14,6 +15,31 @@ import {
   formatOverenskomstAmount,
   formatOverenskomstPercent,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+
+describe('roundReguleringDeltaPct', () => {
+  // Politikken (regulering-redesign R8, mekanisme 1): 2 decimaler, halfAwayFromZero. Alle
+  // reguleringsformer + offentlige ydelser afrunder deltaPct efter præcis denne politik, så det
+  // viste indeks kan efterregnes af beløbet. Testen pinner politikken, så et fremtidigt skift af
+  // decimalantal/metode fanges.
+  it('runder til 2 decimaler', () => {
+    expect(roundReguleringDeltaPct(8.8872)).toBe(8.89);
+    expect(roundReguleringDeltaPct(5.234)).toBe(5.23);
+    expect(roundReguleringDeltaPct(0)).toBe(0);
+    expect(roundReguleringDeltaPct(12)).toBe(12);
+  });
+
+  it('bruger halfAwayFromZero (symmetrisk), ikke bankers/Math.round', () => {
+    expect(roundReguleringDeltaPct(2.005)).toBe(2.01);
+    expect(roundReguleringDeltaPct(-2.005)).toBe(-2.01);
+    expect(roundReguleringDeltaPct(0.005)).toBe(0.01);
+    expect(roundReguleringDeltaPct(-0.005)).toBe(-0.01);
+  });
+
+  it('fail-closed: ikke-finit → 0', () => {
+    expect(roundReguleringDeltaPct(Number.NaN)).toBe(0);
+    expect(roundReguleringDeltaPct(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
 
 describe('computeFormulaValue', () => {
   it('fortolker pct-felter som procentpoint (12 = 12%)', () => {

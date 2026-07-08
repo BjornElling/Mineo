@@ -1,5 +1,6 @@
 import { formatCurrency, formatPercent } from '../../../utils/formatUtils';
 import { parsePercentPointString } from '../../../utils/numberParsing';
+import { roundByMethod } from '../../../utils/rounding';
 import { isWithinTolerance } from '../../../utils/numberComparison';
 import {
   formatPercentFixed2,
@@ -23,6 +24,20 @@ export type FormulaVisibility = Readonly<{
   showPension: boolean;
   showStoreBededag: boolean;
 }>;
+
+/**
+ * Kanonisk afrundings-politik for en reguleringsforms `deltaPct`: 2 decimaler, halfAwayFromZero
+ * (regulering-redesign R8, mekanisme 1). Alle reguleringsformer (statistik inkl. ASL-krydsningen,
+ * KRL, manuel, manuel procentsats, overenskomst offentlig/privat) OG motorens re-runding afrunder
+ * deltaPct efter præcis denne politik, så det viste reguleringsindeks kan efterregnes af beløbet.
+ *
+ * Samlet ét sted som en NAVNGIVEN politik frem for spredte magiske `roundByMethod(x, 2, ...)`-kald,
+ * så decimalantallet ikke kan drive til en forkert konvention ved en fremtidig ændring. (KL-lønaftaler
+ * afviger bevidst: dens deltaPct afledes af den trinvist afrundede kædeløn i fuld præcision — den
+ * bruger IKKE denne politik. TAF-opreguleret bruger 4 decimaler, en separat, bevidst kontekst.)
+ */
+export const roundReguleringDeltaPct = (deltaPct: number): number =>
+  roundByMethod(deltaPct, 2, 'halfAwayFromZero');
 
 export const parsePercentInput = (raw: string | number | undefined): number => {
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;

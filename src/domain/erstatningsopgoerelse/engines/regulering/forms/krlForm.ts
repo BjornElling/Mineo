@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../../../../types/branded';
-import { roundByMethod } from '../../../../../utils/rounding';
+import { roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import {
   getKRLSatstabel,
   getReguleringsDatoIntervalForKRL,
@@ -102,7 +102,7 @@ const byggResultat = (
         throw new Error('Loenudvikling kan ikke beregnes: ugyldigt KRL indeks for segment');
       }
       // Indeksforhold: deltaPct = ((100 + periodePct) / (100 + basePct) - 1) * 100
-      const deltaPct = roundByMethod(((100 + idxEntry.reguleringsPct) / (100 + basePct) - 1) * 100, 2, 'halfAwayFromZero');
+      const deltaPct = roundReguleringDeltaPct(((100 + idxEntry.reguleringsPct) / (100 + basePct) - 1) * 100);
       segments.push({ ...segment, deltaPct });
     }
   }

@@ -1,6 +1,6 @@
 import type { ISODateString } from '../../../../../types/branded';
 import type { IsoRange } from '../../../helpers/indtaegtPerioder';
-import { roundByMethod } from '../../../../../utils/rounding';
+import { roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { getStatistiskLoenudvikling, getReguleringsDatoIntervalForStatistikModel, type StatistiskLoenudviklingId } from '../../../../../data/statistiskeRates';
 import { opregulerMedAslAarsloensmaksimum } from '../../../../satser/opreguleringsmotorer';
 import { splitIsoRangeByCalendarYearsInclusive } from '../../periodRangeGroups';
@@ -46,7 +46,7 @@ const aslIndeksTilSegmentDelta = (kildeAar: number, maalAar: number): number => 
   if (manglendeAar.length > 0) {
     throw new Error(`Loenudvikling kan ikke beregnes: mangler ASL indeks for ${manglendeAar.join(', ')}`);
   }
-  return roundByMethod(deltaPct, 2, 'halfAwayFromZero');
+  return roundReguleringDeltaPct(deltaPct);
 };
 
 const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
@@ -142,7 +142,7 @@ const byggResultat = (
       ensurePositiveFiniteNumber(idxEntry.indeksvaerdi, 'Loenudvikling kan ikke beregnes: ugyldigt indeks for segment');
       segments.push({
         ...segment,
-        deltaPct: roundByMethod((idxEntry.indeksvaerdi / effectiveBase.indeksvaerdi - 1) * 100, 2, 'halfAwayFromZero'),
+        deltaPct: roundReguleringDeltaPct((idxEntry.indeksvaerdi / effectiveBase.indeksvaerdi - 1) * 100),
       });
     }
   }

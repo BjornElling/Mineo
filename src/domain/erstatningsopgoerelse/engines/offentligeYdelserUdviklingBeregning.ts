@@ -6,7 +6,7 @@ import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatPercent } from '../../../utils/formatUtils';
-import { roundByMethod } from '../../../utils/rounding';
+import { roundReguleringDeltaPct } from './reguleringFormulaUtils';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { countTafArbejdsdageInRange, segmentAmountOre } from './loenudviklingBeregning';
 import { roundIncomeBenefitAmountKroner, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
@@ -69,7 +69,7 @@ const buildReguleringsSegments = (
     // segmentbeløbet og vises som faktor ("+ X,XX %"). Ellers regnes beløbet med den fulde
     // (typisk >2-decimalers) akkumulerede sats, mens brugeren kun ser 2 decimaler og ikke kan
     // efterregne beløbet. Samme mønster som lønudvikling (loenudviklingBeregning: roundedDeltaPct).
-    deltaPct: roundByMethod(resolveOffentligeYdelserAkkumuleretReguleringPct(segment.year, baseYear), 2, 'halfAwayFromZero'),
+    deltaPct: roundReguleringDeltaPct(resolveOffentligeYdelserAkkumuleretReguleringPct(segment.year, baseYear)),
   }));
 };
 
