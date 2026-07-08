@@ -421,6 +421,37 @@ describe('renderReguleringSection – reguleringstekst', () => {
     );
   });
 
+  it('medtager Store Bededag når basisrækken ligger før 2024 og reguleringsperioden starter efter', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-manuel-basis-foer-bededag',
+        navnPaaArbejdssted: 'Manuel regulering med Store Bededag',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2025-06-01'),
+      sidste: iso('2025-08-28'),
+    }));
+    ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
+      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag'],
+      rows: [
+        ['01-06-2023', '130,50', '12,50 %', '6,20 %', '7,00 %', '0 %', '10,00 %'],
+        ['01-05-2025', '138,75', '12,50 %', '6,20 %', '10,00 %', '0,45 %', '11,00 %'],
+      ],
+    }));
+
+    renderReguleringSection(ctx);
+
+    expect(safeAddWrappedText).toHaveBeenCalledWith(
+      expect.stringContaining('st. bededagstillæg')
+    );
+  });
+
   it('afgrænser reguleringstabeller til den konkrete ansættelses segmentspænd og ikke globale tafBounds', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';

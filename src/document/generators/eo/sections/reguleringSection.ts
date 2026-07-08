@@ -201,6 +201,7 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
   let fritvalgStiger = false;
   let shSoStiger = false;
   let pensionStiger = false;
+  let bededagStiger = false;
 
   const normalizeColumn = (value: string): string => value.toLocaleLowerCase('da-DK').replace(/\s+/g, ' ').trim();
   const parseCellPercent = (raw: string | undefined): number | null => {
@@ -230,6 +231,7 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
   fritvalgStiger = resolveIncreaseFromTable(['fritvalg']);
   shSoStiger = resolveIncreaseFromTable(['sh/so', 'shso']);
   pensionStiger = resolveIncreaseFromTable(['ag pens. bidrag', 'ag pension', 'pension']);
+  bededagStiger = resolveIncreaseFromTable(['store bededag', 'store bededagstillæg', 'st. bededagstillæg']);
 
   if (!fritvalgStiger && !shSoStiger && !pensionStiger) {
     const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
@@ -264,7 +266,9 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
 
   const startBededag = applyAlmindeligLoenPaaShDageRegel && reguleringTableStartIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
   const slutBededag = applyAlmindeligLoenPaaShDageRegel && tafTilIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
-  const bededagStiger = isGreaterThanWithTolerance(slutBededag, startBededag);
+  // Reguleringsperioden kan starte efter 01-01-2024, mens basisrækken i tabellen ligger før.
+  // Derfor skal tekstnoten læse Store Bededag fra samme tabelspænd som de øvrige tillæg.
+  bededagStiger = bededagStiger || isGreaterThanWithTolerance(slutBededag, startBededag);
 
   const labels: string[] = [];
   if (fritvalgStiger) labels.push('fritvalg');
