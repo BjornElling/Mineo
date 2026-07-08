@@ -290,7 +290,7 @@ describe('Afrundingsnorm-guard', () => {
         'config/dateRanges.ts',
         'components/inputs/StyledDateField.tsx',
         'domain/forsoergertab/forsoergertabAslYdelser.ts',
-        'domain/erstatningsopgoerelse/engines/periodMerging.ts',
+        'domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts',
         'domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts',
         'domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts',
         'domain/erstatningsopgoerelse/engines/tafDaySets.ts',

@@ -17,7 +17,7 @@ import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchema
 import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
-import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/periodMerging';
+import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import type { SHDageTableRow } from '../types';
 
 type SHDageSectionContext = Readonly<{

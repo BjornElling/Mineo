@@ -11,7 +11,7 @@ import { parseAmount } from '../../../utils/numberParsing';
 import { createDate } from '../../../utils/dateUtils';
 import { ydelsestyper } from '../../../data/ydelsestyper';
 import { type DateInterval, type IsoRange, validateIsoRange } from '../../../utils/isoDateHelpers';
-import { mergeIsoDateRanges } from '../engines/periodMerging';
+import { mergeIsoDateRanges } from '../engines/isoRangeAlgebra';
 import {
   buildClampedTafRanges,
   clampTafRange,

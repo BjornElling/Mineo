@@ -6,7 +6,7 @@ import { iterateDatesInclusive, type IsoRange } from '../../../utils/isoDateHelp
 import { buildSHDageSetForDatoSet, buildSHDageSetForIsoRange } from '../../dates/shDageBeregning';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
 import { getValidTafRange } from '../validation/tafPeriodConstraints';
-import { mergeIsoDateRanges } from './periodMerging';
+import { mergeIsoDateRanges } from './isoRangeAlgebra';
 
 export type TafFerieFravaerSummary = Readonly<{
   ferieperioder: readonly IsoRange[];

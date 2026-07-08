@@ -19,7 +19,7 @@ import { parseForligsgrad } from './forligsgrad';
 import type { MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { roundByMethod } from '../../../utils/rounding';
-import { mergeDateRanges } from './periodMerging';
+import { mergeDateRanges } from './isoRangeAlgebra';
 
 export type SvieSmerteConstrainedPeriod = Readonly<{
   fra: ISODateString;
@@ -150,7 +150,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
   // 1. Clamp mod fejlgivende øvre grænse (menAfgoerelseDato) — validator rapporterer violation
   // 2. Merge overlappende og tilstødende ranges via den kanoniske EO-helper
-  //    i periodMerging.ts. Type-split mellem sygemeldt og delvist-sygemeldt
+  //    i isoRangeAlgebra.ts. Type-split mellem sygemeldt og delvist-sygemeldt
   //    sker før kaldet, så merge fortsat kun sker inden for samme type.
   // 3. Stille clamping mod EO-perioden (ingen fejlindikation)
   //

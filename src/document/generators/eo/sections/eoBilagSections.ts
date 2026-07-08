@@ -57,7 +57,7 @@ import { renderMidlertidigtEetSection, renderOffentligeYdelserSection } from './
 import { renderShDageSection } from './shDageSection';
 import { renderReguleringSection } from './reguleringSection';
 import type { EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/periodMerging';
+import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import {
   SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL,
   SFGG_FERIEPENGE_MODTAGET_LABEL,

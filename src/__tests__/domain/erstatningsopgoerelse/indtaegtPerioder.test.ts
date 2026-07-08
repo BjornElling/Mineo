@@ -15,7 +15,7 @@ import {
   buildIncomeInputRanges,
   resolveArbejdsstedDisplayName,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
+import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import {
   buildClampedTafRanges,
   resolveTafConstraintBounds,

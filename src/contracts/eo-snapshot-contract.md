@@ -140,7 +140,7 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
 
 4. **Merge er centraliseret.** Overlappende og tilstødende ranges slås sammen via den
    kanoniske `mergeIsoDateRanges(...)` / `mergeDateRanges(...)` i
-   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts` (`mergeAdjacent: true`). Lokale,
+   `src/domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts` (`mergeAdjacent: true`). Lokale,
    ad hoc merge-implementeringer i TAF-, svie/smerte-, ferie- eller SFGG-flow er arkitektonisk
    fejl, medmindre en kontrakt udtrykkeligt kræver afvigende merge-semantik.
 

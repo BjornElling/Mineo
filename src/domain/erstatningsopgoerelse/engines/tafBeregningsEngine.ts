@@ -4,7 +4,7 @@ import type { DeepReadonly } from '../../../types/deepReadonly';
 import { isISODateString } from '../../../types/branded';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
-import { mergeIsoDateRanges } from './periodMerging';
+import { mergeIsoDateRanges } from './isoRangeAlgebra';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, type TafConstraintBounds } from '../validation/tafPeriodConstraints';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 

@@ -100,7 +100,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/periodisering-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/erstatningsopgoerelse/periodiseringsMotor.test.ts',
-      'src/__tests__/domain/erstatningsopgoerelse/periodMerging.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/isoRangeAlgebra.test.ts',
       'src/__tests__/utils/periodeBeregning.test.ts',
     ],
   },

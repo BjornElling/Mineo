@@ -27,7 +27,7 @@ import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatti
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import type { CellHookData, RowInput } from 'jspdf-autotable';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
+import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 
 type SHDagePdfOptions = DocumentCommonOptions;
 type SHDagePeriod = { start: Date; end: Date };

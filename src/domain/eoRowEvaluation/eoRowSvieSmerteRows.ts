@@ -10,7 +10,7 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { evaluateSvieSmertePerioder } from '../erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
-import { mergeDateRanges } from '../erstatningsopgoerelse/engines/periodMerging';
+import { mergeDateRanges } from '../erstatningsopgoerelse/engines/isoRangeAlgebra';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';

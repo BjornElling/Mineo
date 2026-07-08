@@ -1,7 +1,7 @@
 import type { ISODateString } from '../../types/branded';
 import { parseISODate } from '../../types/branded';
 import { formatToISO } from '../../utils/dateUtils';
-import { mergeDateRanges, mergeIsoDateRanges } from '../erstatningsopgoerelse/engines/periodMerging';
+import { mergeDateRanges, mergeIsoDateRanges } from '../erstatningsopgoerelse/engines/isoRangeAlgebra';
 import { beregnHelligdageMedNavn } from './shDageBeregning';
 
 export type NavngivetHelligdagIRange = Readonly<{

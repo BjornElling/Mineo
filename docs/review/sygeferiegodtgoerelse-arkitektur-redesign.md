@@ -1,7 +1,7 @@
 # Sygeferiegodtgørelse — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-08
-**Status:** Under implementering. **Skridt 1 (S2 delvist)** og **skridt 2 (S1)** er gennemført.
+**Status:** Under implementering. **Skridt 1 (S2 delvist)**, **skridt 2 (S1)**, **skridt 3 (S3)** og **skridt 4 (S4)** er gennemført.
 
 > **Implementeringsstatus (opdateres pr. skridt):**
 > - ✅ **Skridt 1 — S2 (delvist):** tekst-round-trippen for 4-måneders-cap'et dræbt; kontrol læser
@@ -15,7 +15,30 @@
 >   direkte-sats-overenskomst-ID som ferielov-sporet (i overensstemmelse med motoren) når
 >   `harOverenskomst` er slået fra — tidligere gav den selvmodsigende beskeder i den (altid
 >   blokerede) tilstand. Pinnet af ny `sygeferiegodtgoerelseKilde.test.ts` + validator-regression.
-> - ⬜ **Skridt 3 — S3** (periode-pipeline + fuldførelse af S2's strukturerede afkortninger), **S4/S5** (oprydning): endnu ikke påbegyndt.
+> - ✅ **Skridt 3 — S3:** periode-logikken udtrukket til én navngiven pipeline `buildSfggPeriode`
+>   (motor L1128), der returnerer `{ visningsperiode, eligibleRanges, afkortninger }`. Den faste,
+>   betydningsbærende rækkefølge (første-sygedag → 4-mdr-loft → ansættelsesophør → sygeløn → ferie,
+>   jf. G3/G4/G5) er nu ét auditerbart sted i stedet for udsmurt gennem orkestrator-løkken. Pipelinens
+>   `afkortninger` er den strukturerede ene-sandhed for "hvad klippede perioden og hvorfor" (alle fire
+>   årsager, i anvendt rækkefølge); orkestratoren *udleder* nu præsentationsfelterne fra den
+>   (`afterEmployerSickPayExcludedAny`, `employmentHadFirstExcludedDate` og præsentations-`sfggAfkortninger`
+>   med verbum) frem for at genberegne dem inline. Tal- og UI-neutralt (byte-identisk); pinnet af ny
+>   `buildSfggPeriode`-testsuite (11 tests) + hele beregnings-/kontrol-/validator-/canonical-suiten.
+>   **Bevidst afgrænsning vs. det oprindelige S3-udkast:** `foersteSygedag`/`sygeloen` blev *ikke* foldet
+>   ind i den fælles præsentations-afkortnings-renderer (`formatSfggAfkortningPdfLine`), fordi de rendres
+>   på andre positioner i bilaget (første-dag *inline* efter grundteksten; sygeløn som egen linje +
+>   "hele perioden"-gren) — en unified renderer ville bryde byte-identiteten. Strukturen er derfor samlet
+>   i pipelinen, mens den eksisterende, positionsafhængige formattering bevares.
+> - ✅ **Skridt 4 — S4:** al IsoRange-algebra samlet i ét kanonisk hjem. `periodMerging.ts` omdøbt til
+>   `engines/isoRangeAlgebra.ts`, og de seks range-primitiver (`subtractIsoDateRanges`,
+>   `splitRangesAtBoundaryStarts`, `buildRangesFromSortedDates`, `clipRangesToInclusiveUpperBound`,
+>   `buildDateSetFromRanges`, `buildSingleDateRange`) flyttet fra SFGG-motorens private scope hertil,
+>   så merge + subtraktion + split + clip + range/date-set-konvertering nu bor sammen. Rent flyt
+>   (byte-identisk); primitiverne var kun brugt af SFGG, så dette er en placerings-/kohæsions-forbedring
+>   (og fjerner ~130 linjer fra den 1595-linjers motor), ikke fjernelse af aktiv duplikering. Alle
+>   importører, namespace-re-exporten, `eo-snapshot-contract.md` og kvalitets-værnene opdateret i samme
+>   ændring; primitiverne har nu direkte unit-tests i `isoRangeAlgebra.test.ts`.
+> - ⬜ **S5** (bekræft/hærd overenskomst-policy-dæknings-assert): endnu ikke påbegyndt.
 **Baggrund:** Efter det gennemførte regulering-redesign (`regulering-arkitektur-redesign.md`) er
 mistanken, at samme rod-problem — *parallel logik holdt sammen af tests i stedet for af struktur* —
 også gør sig gældende for sygeferiegodtgørelse (SFGG).

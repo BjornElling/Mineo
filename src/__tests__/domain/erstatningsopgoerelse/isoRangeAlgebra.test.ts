@@ -1,5 +1,14 @@
 import { toISODateString, type ISODateString } from '../../../types/branded';
-import { mergeIsoDateRanges, mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
+import {
+  buildDateSetFromRanges,
+  buildRangesFromSortedDates,
+  buildSingleDateRange,
+  clipRangesToInclusiveUpperBound,
+  mergeDateRanges,
+  mergeIsoDateRanges,
+  splitRangesAtBoundaryStarts,
+  subtractIsoDateRanges,
+} from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import type { IsoRange } from '../../../utils/isoDateHelpers';
 
 const iso = (value: string) => toISODateString(value);
@@ -173,5 +182,106 @@ describe('mergeIsoDateRanges ≡ materialisér-sortér-resegmentér (mergeAdjace
       const reference = referenceResegment(ranges);
       expect(merged).toEqual(reference);
     }
+  });
+});
+
+describe('subtractIsoDateRanges', () => {
+  it('tom base → tom liste', () => {
+    expect(subtractIsoDateRanges([], [{ fra: iso('2024-01-01'), til: iso('2024-01-05') }])).toEqual([]);
+  });
+
+  it('ingen udelukkelser → base uændret (kopi)', () => {
+    const base = [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }];
+    expect(subtractIsoDateRanges(base, [])).toEqual(base);
+  });
+
+  it('udskærer et midtstillet interval og efterlader hullerne', () => {
+    const result = subtractIsoDateRanges(
+      [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }],
+      [{ fra: iso('2024-01-10'), til: iso('2024-01-12') }]
+    );
+    expect(result).toEqual([
+      { fra: iso('2024-01-01'), til: iso('2024-01-09') },
+      { fra: iso('2024-01-13'), til: iso('2024-01-31') },
+    ]);
+  });
+
+  it('fjerner hele basen når udelukkelsen dækker den', () => {
+    const result = subtractIsoDateRanges(
+      [{ fra: iso('2024-01-10'), til: iso('2024-01-20') }],
+      [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]
+    );
+    expect(result).toEqual([]);
+  });
+});
+
+describe('clipRangesToInclusiveUpperBound', () => {
+  it('null grænse → uændret kopi', () => {
+    const ranges = [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }];
+    expect(clipRangesToInclusiveUpperBound(ranges, null)).toEqual(ranges);
+  });
+
+  it('afkorter ranges der overskrider grænsen og dropper dem der starter efter', () => {
+    const result = clipRangesToInclusiveUpperBound(
+      [
+        { fra: iso('2024-01-01'), til: iso('2024-01-20') },
+        { fra: iso('2024-02-01'), til: iso('2024-02-05') },
+      ],
+      iso('2024-01-15')
+    );
+    expect(result).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-15') }]);
+  });
+});
+
+describe('splitRangesAtBoundaryStarts', () => {
+  it('ingen grænser → uændret kopi', () => {
+    const ranges = [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }];
+    expect(splitRangesAtBoundaryStarts(ranges, [])).toEqual(ranges);
+  });
+
+  it('splitter ved grænsestart uden at fjerne dage', () => {
+    const result = splitRangesAtBoundaryStarts(
+      [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }],
+      [iso('2024-01-05')]
+    );
+    expect(result).toEqual([
+      { fra: iso('2024-01-01'), til: iso('2024-01-04') },
+      { fra: iso('2024-01-05'), til: iso('2024-01-10') },
+    ]);
+  });
+});
+
+describe('buildRangesFromSortedDates', () => {
+  it('tom liste → tom liste', () => {
+    expect(buildRangesFromSortedDates([])).toEqual([]);
+  });
+
+  it('samler sammenhængende datoer og bryder ved huller', () => {
+    const result = buildRangesFromSortedDates([
+      iso('2024-01-01'), iso('2024-01-02'), iso('2024-01-03'),
+      iso('2024-01-06'), iso('2024-01-07'),
+    ]);
+    expect(result).toEqual([
+      { fra: iso('2024-01-01'), til: iso('2024-01-03') },
+      { fra: iso('2024-01-06'), til: iso('2024-01-07') },
+    ]);
+  });
+});
+
+describe('buildDateSetFromRanges', () => {
+  it('samler alle inkluderede datoer på tværs af ranges', () => {
+    const set = buildDateSetFromRanges([
+      { fra: iso('2024-01-01'), til: iso('2024-01-03') },
+      { fra: iso('2024-01-06'), til: iso('2024-01-06') },
+    ]);
+    expect([...set].sort()).toEqual([
+      iso('2024-01-01'), iso('2024-01-02'), iso('2024-01-03'), iso('2024-01-06'),
+    ]);
+  });
+});
+
+describe('buildSingleDateRange', () => {
+  it('bygger en én-dags range', () => {
+    expect(buildSingleDateRange(iso('2024-01-07'))).toEqual({ fra: iso('2024-01-07'), til: iso('2024-01-07') });
   });
 });

@@ -4,7 +4,7 @@ export * as ferieCalculations from './ferieCalculations';
 export * as forligsgrad from './forligsgrad';
 export * as loenudviklingBeregning from './loenudviklingBeregning';
 export * as periodiseringsMotor from './periodiseringsMotor';
-export * as periodMerging from './periodMerging';
+export * as isoRangeAlgebra from './isoRangeAlgebra';
 export * as periodOverlapDetection from './periodOverlapDetection';
 export * as periodRangeGroups from './periodRangeGroups';
 export * as reguleringCoverage from './reguleringCoverage';
