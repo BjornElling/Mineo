@@ -13,15 +13,10 @@ import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, Loen
 import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared } from '../helpers/eoSharedUtils';
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
-import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
-import { buildKrlIndexEntries } from './krlRegulering';
-import { buildStatistikIndexEntries } from './statistikRegulering';
-import { buildKlLoenaftalerIndexEntries } from './klLoenaftalerRegulering';
-import { isAslStatistikModel, resolveStatistikModelId } from '../helpers/eoSharedUtils';
 import type { ReguleringForloeb } from './reguleringForloeb';
 import { assertUniform } from './regulering/reguleringFormPrimitives';
-import { FORM_REGISTRY, byggReguleringsSegmenter } from './regulering/reguleringFormRegistry';
-import type { FormKonsoliderContext, LoenreguleringsSegment, ResolvedStrategi } from './regulering/reguleringForm';
+import { FORM_REGISTRY, byggReguleringsResultat } from './regulering/reguleringFormRegistry';
+import type { FormKonsoliderContext, ReguleringResultat, ResolvedStrategi } from './regulering/reguleringForm';
 
 // =============================================================================
 // INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.
@@ -152,15 +147,20 @@ export const buildLoenudviklingModel = (
       : null;
     const loenudviklingLabel = strategiData.label;
 
-    const loenreguleringssegmenter: ReadonlyArray<LoenreguleringsSegment> = (() => {
+    // Ét dispatch gennem registeret: formen bygger sine deltaPct-segmenter OG sit autoritative
+    // visnings-forløb (R2) fra samme kilde-entries i ét kald. "Ingen" bygges direkte her (zero-
+    // delta med fuld basisløn) og når aldrig registeret. Forløbet emitteres på modellen, så
+    // præsentation/inspektion formatterer samme entries som motoren afleder deltaPct fra (ingen
+    // re-derivation → ingen drift). Former uden migreret forløb bærer forloeb = undefined.
+    const { segmenter: loenreguleringssegmenter, forloeb } = ((): ReguleringResultat => {
       if (strategiData.strategi === 'ingen') {
-        return tafRanges.map((range) => ({ ...range, deltaPct: 0 }));
+        return { segmenter: tafRanges.map((range) => ({ ...range, deltaPct: 0 })) };
       }
       const konsolideret = strategiData.konsolideret;
       if (!konsolideret) {
         throw new Error('Loenudvikling kan ikke beregnes: strategi mangler');
       }
-      return byggReguleringsSegmenter(konsolideret);
+      return byggReguleringsResultat(konsolideret);
     })();
 
     if (loenreguleringssegmenter.length === 0) {
@@ -178,40 +178,6 @@ export const buildLoenudviklingModel = (
       konsolideretForBase?.strategi === 'klLoenaftaler' && konsolideretForBase.reguleringsdato
         ? buildKlLoenaftalerReguleretLoenResolver(baseLoenRounded, konsolideretForBase.reguleringsdato)
         : null;
-
-    // R2 — autoritativt visnings-forløb, emitteret på modellen så præsentation/inspektion
-    // formatterer samme entries som motoren afleder deltaPct fra (ingen re-derivation → ingen drift).
-    // Migrerede former: manuel procentsats + KRL. Entries er byte-identiske med det byggSegmenter
-    // allerede beregner deltaPct fra; øvrige former re-deriverer fortsat (forloeb = undefined).
-    const forloeb: ReguleringForloeb | undefined = (() => {
-      if (!konsolideretForBase) return undefined;
-      switch (konsolideretForBase.strategi) {
-        case 'manualProcentsats':
-          return {
-            kind: 'manuelProcentsats',
-            entries: buildManuelProcentsatsEntries({
-              anvendtReguleringsdato: konsolideretForBase.reguleringsdato,
-              rows: konsolideretForBase.manualProcentsatsRows,
-            }),
-          };
-        case 'krl':
-          return { kind: 'krl', entries: buildKrlIndexEntries(konsolideretForBase.krlSatstabelId) };
-        case 'statistik': {
-          const modelLabel = konsolideretForBase.statistikModel.trim();
-          // ASL bruger et per-år-opslag (resolveAslAarsloensmaksimumForAar), ikke kvartals-
-          // indeksserien; repræsenteres ved fravær (præsentationen re-deriverer det direkte
-          // data-opslag uændret — ingen periodeserie at single-source).
-          if (isAslStatistikModel(modelLabel)) return undefined;
-          const modelId = resolveStatistikModelId(modelLabel);
-          if (!modelId) return undefined;
-          return { kind: 'statistik', entries: buildStatistikIndexEntries(modelId) };
-        }
-        case 'klLoenaftaler':
-          return { kind: 'klLoenaftaler', entries: buildKlLoenaftalerIndexEntries() };
-        default:
-          return undefined;
-      }
-    })();
 
     const beregnedeSegmenter: Array<LoenudviklingModel['beregnedeSegmenter'][number]> = [];
     for (const segment of loenreguleringssegmenter) {

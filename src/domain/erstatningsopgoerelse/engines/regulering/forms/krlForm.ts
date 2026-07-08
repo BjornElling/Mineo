@@ -22,6 +22,7 @@ import type {
   LoenreguleringsSegment,
   LoenudviklingAf,
   ReguleringForm,
+  ReguleringResultat,
   ResolvedStrategi,
 } from '../reguleringForm';
 
@@ -46,9 +47,9 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   };
 };
 
-const byggSegmenter = (
+const byggResultat = (
   konsolideret: KonsolideretLoenudvikling
-): ReadonlyArray<LoenreguleringsSegment> => {
+): ReguleringResultat => {
   if (konsolideret.strategi !== 'krl') {
     throw new Error('Loenudvikling kan ikke beregnes: KRL-strategi mangler');
   }
@@ -63,8 +64,9 @@ const byggSegmenter = (
   // KRL strategien modellerer kun selve KRL-indeksserien.
   // Store Bededag indgår derfor ikke som separat breakpoint i denne strategi.
 
-  // R2: samme delte periodeserie som motoren emitterer som forløb og præsentationen læser
-  // (buildKrlIndexEntries) — én kilde, så vist reguleringsprocent = den motoren afleder deltaPct fra.
+  // R2: samme delte periodeserie som formen emitterer som forløb og præsentationen læser
+  // (buildKrlIndexEntries) — bygges ÉN gang her og bæres både som segment-basis og som
+  // autoritativt forløb, så vist reguleringsprocent = den motoren afleder deltaPct fra.
   const periodStarts = buildKrlIndexEntries(konsolideret.krlSatstabelId);
 
   // Find basisindeks ved reguleringsdato
@@ -107,7 +109,7 @@ const byggSegmenter = (
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen KRL segmenter');
   }
-  return segments;
+  return { segmenter: segments, forloeb: { kind: 'krl', entries: periodStarts } };
 };
 
 const coverageInterval = (af: LoenudviklingAf): KildeReguleringsInterval | undefined => {
@@ -120,6 +122,6 @@ export const krlForm: ReguleringForm = {
   id: 'KRL satstabel',
   strategi: 'krl',
   konsolider,
-  byggSegmenter,
+  byggResultat,
   coverageInterval,
 };

@@ -1,9 +1,9 @@
 import type { LoenudviklingBeregningsgrundlag } from '../../../../schemas/formSchemas';
 import type {
   KonsolideretLoenudvikling,
-  LoenreguleringsSegment,
   LoenudviklingStrategi,
   ReguleringForm,
+  ReguleringResultat,
 } from './reguleringForm';
 import { statistikForm } from './forms/statistikForm';
 import { overenskomstForm } from './forms/overenskomstForm';
@@ -33,16 +33,17 @@ const FORM_BY_STRATEGI: ReadonlyMap<LoenudviklingStrategi, ReguleringForm> = new
 );
 
 /**
- * Bygger segmenter for en allerede konsolideret form. Dispatcher på `konsolideret.strategi`
- * gennem registeret (afløser den tidligere if-kæde i motoren). "Ingen" bygges direkte i
- * orkestratoren (konsolideret er null) og når aldrig hertil.
+ * Bygger beregnings-resultatet (segmenter + evt. autoritativt forløb) for en allerede konsolideret
+ * form. Dispatcher på `konsolideret.strategi` gennem registeret ÉT sted (afløser både den tidligere
+ * if-kæde og den parallelle forløbs-`switch` i motoren). "Ingen" bygges direkte i orkestratoren
+ * (konsolideret er null) og når aldrig hertil.
  */
-export const byggReguleringsSegmenter = (
+export const byggReguleringsResultat = (
   konsolideret: KonsolideretLoenudvikling
-): ReadonlyArray<LoenreguleringsSegment> => {
+): ReguleringResultat => {
   const form = FORM_BY_STRATEGI.get(konsolideret.strategi);
   if (!form) {
     throw new Error('Loenudvikling kan ikke beregnes: ukendt strategi');
   }
-  return form.byggSegmenter(konsolideret);
+  return form.byggResultat(konsolideret);
 };

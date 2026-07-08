@@ -25,8 +25,8 @@ import {
   type OffentligLoenSelection,
 } from '../erstatningsopgoerelse/helpers/offentligLoenSelection';
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
-import { getStatistiskLoenudvikling, getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
-import { getKRLSatstabel, formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../../data/krlRates';
+import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
+import { formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler, klLoenaftalerRaekker } from '../../data/klLoenaftaler';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
@@ -47,6 +47,9 @@ import {
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { buildManuelProcentsatsEntries } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
+import { buildStatistikIndexEntries } from '../erstatningsopgoerelse/engines/statistikRegulering';
+import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';
+import { buildKlLoenaftalerIndexEntries } from '../erstatningsopgoerelse/engines/klLoenaftalerRegulering';
 import { findLatestByDateInSortedList } from '../erstatningsopgoerelse/engines/reguleringSeriesLookup';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
@@ -293,18 +296,13 @@ const buildStatistikEntries = (args: Readonly<{
   } else {
     const modelId = resolveStatistikModelId(modelLabel);
     if (!modelId) return null;
-    const model = getStatistiskLoenudvikling(modelId);
-    if (!model) return null;
-    for (const value of model.indeksvaerdier) {
-      const match = value.kvartal.match(/^(\d{4})K([1-4])$/);
-      if (!match) continue;
-      const year = Number(match[1]);
-      const quarter = Number(match[2]);
-      const month = (quarter - 1) * 3 + 1;
-      const iso = parseOptionalIso(`${year}-${String(month).padStart(2, '0')}-01`);
-      if (!iso) continue;
-      valuesByIso.set(iso, value.indeksvaerdi);
-      if (iso >= args.referenceIso && iso <= args.eoTil) dates.add(iso);
+    // Samme delte kvartal→ISO-parsing + sortering som motor og præsentation
+    // (buildStatistikIndexEntries), så kontrollagets periodeserie ikke kan drive fra den beregnede.
+    // Parsing er ikke stedet et motorbug gemmer sig; index-beregningen nedenfor forbliver uafhængig
+    // for krydstjekket (B9). Tom liste (manglende model) → referenceValue null → return null.
+    for (const entry of buildStatistikIndexEntries(modelId)) {
+      valuesByIso.set(entry.startIso, entry.indeksvaerdi);
+      if (entry.startIso >= args.referenceIso && entry.startIso <= args.eoTil) dates.add(entry.startIso);
     }
   }
 
@@ -352,23 +350,15 @@ const buildKrlEntries = (args: Readonly<{
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
   const krlId = args.af.loenudviklingKRLSatstabel;
   if (!krlId || !isKRLSatstabelId(krlId)) return null;
-  const tabel = getKRLSatstabel(krlId);
-  if (!tabel || tabel.vaerdier.length === 0) return null;
-
-  const valuesByIso = tabel.vaerdier
-    .map((entry) => {
-      const iso = parseDanishToIso(entry.fraDato);
-      if (!iso) return null;
-      return { iso, value: 100 + entry.reguleringsPct };
-    })
-    .filter((entry): entry is Readonly<{ iso: ISODateString; value: number }> => Boolean(entry))
-    .sort((a, b) => a.iso.localeCompare(b.iso));
+  // Samme delte periodeserie som motor og præsentation (buildKrlIndexEntries) + det delte
+  // carry-forward-primitiv (findLatestByDateInSortedList, R3), så kontrollagets KRL-serie og opslag
+  // ikke kan drive fra den beregnede. Index-beregningen nedenfor forbliver uafhængig (B9).
+  const valuesByIso = buildKrlIndexEntries(krlId)
+    .map((entry) => ({ startIso: entry.startIso, value: 100 + entry.reguleringsPct }));
   if (valuesByIso.length === 0) return null;
 
-  const resolveValueAt = (iso: ISODateString): number | null => {
-    const candidate = valuesByIso.filter((entry) => entry.iso <= iso).sort((a, b) => b.iso.localeCompare(a.iso))[0];
-    return candidate?.value ?? null;
-  };
+  const resolveValueAt = (iso: ISODateString): number | null =>
+    findLatestByDateInSortedList(valuesByIso, iso, 'krl:inspektion')?.value ?? null;
 
   const referenceValue = resolveValueAt(args.referenceIso);
   if (referenceValue === null || !Number.isFinite(referenceValue) || referenceValue <= 0) return null;
@@ -379,7 +369,7 @@ const buildKrlEntries = (args: Readonly<{
   // fortsat afgrænses til EO-perioden via getTidsenhedsvaerdier.
   const dates = new Set<ISODateString>([args.referenceIso]);
   for (const entry of valuesByIso) {
-    if (entry.iso >= args.referenceIso && entry.iso <= args.eoTil) dates.add(entry.iso);
+    if (entry.startIso >= args.referenceIso && entry.startIso <= args.eoTil) dates.add(entry.startIso);
   }
   const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
   const entries = sortedDates.map((iso, index) => {
@@ -415,20 +405,15 @@ const buildKlLoenaftalerEntries = (args: Readonly<{
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
   if (klLoenaftalerRaekker.length === 0) return null;
 
-  const valuesByIso = klLoenaftalerRaekker
-    .map((entry) => {
-      const iso = parseDanishToIso(entry.fraDato);
-      if (!iso) return null;
-      return { iso, value: entry.reguleringPct };
-    })
-    .filter((entry): entry is Readonly<{ iso: ISODateString; value: number }> => Boolean(entry))
-    .sort((a, b) => a.iso.localeCompare(b.iso));
+  // Samme delte periodeserie som motor og præsentation (buildKlLoenaftalerIndexEntries) + det delte
+  // carry-forward-primitiv (findLatestByDateInSortedList, R3), så kontrollagets KL-serie og opslag
+  // ikke kan drive fra den beregnede. Index-beregningen nedenfor forbliver uafhængig (B9).
+  const valuesByIso = buildKlLoenaftalerIndexEntries()
+    .map((entry) => ({ startIso: entry.startIso, value: entry.reguleringsPct }));
   if (valuesByIso.length === 0) return null;
 
-  const resolveValueAt = (iso: ISODateString): number | null => {
-    const candidate = valuesByIso.filter((entry) => entry.iso <= iso).sort((a, b) => b.iso.localeCompare(a.iso))[0];
-    return candidate?.value ?? null;
-  };
+  const resolveValueAt = (iso: ISODateString): number | null =>
+    findLatestByDateInSortedList(valuesByIso, iso, 'klLoenaftaler:inspektion')?.value ?? null;
 
   const referenceValue = 100;
 
@@ -436,7 +421,7 @@ const buildKlLoenaftalerEntries = (args: Readonly<{
   // Tidsenhederne afgrænses fortsat til EO-perioden via getTidsenhedsvaerdier.
   const dates = new Set<ISODateString>([args.referenceIso]);
   for (const entry of valuesByIso) {
-    if (entry.iso >= args.referenceIso && entry.iso <= args.eoTil) dates.add(entry.iso);
+    if (entry.startIso >= args.referenceIso && entry.startIso <= args.eoTil) dates.add(entry.startIso);
   }
   const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
   const entries = sortedDates.map((iso, index) => {

@@ -93,6 +93,39 @@ export const resolvePrivateOverenskomstBaseContext = (
   };
 };
 
+/**
+ * Bygger `FormulaComponents` for den OFFENTLIGE overenskomst-gren (løntrin). Samler den samling
+ * motoren (`overenskomstOffentligSegmenter`) og præsentationens reguleringsindeks-tabel før byggede
+ * hver for sig — begge i pct-point-konvention med `resolvePctPointFromSatsOrInput` — så vist indeks
+ * = den motoren afleder deltaPct fra (én formel-samling, ingen drift). Spejler den private
+ * `buildPrivateOverenskomstFormulaComponents`.
+ *
+ * BEVIDST afgrænsning: kun selve samlingen deles. Base-/sats-UDVÆLGELSEN forbliver pr. lag
+ * (motorens U4-clamp + interval-fallback vs. præsentationens effective-base + deltaPct-fallback) —
+ * de er to forskellige, bevidst adskilte mekanismer (jf. U4). `grundloen` er allerede summeret af
+ * kaldstedet (løn + ekstra grundløn + evt. anciennitetstillæg). Inspektionslaget deles IKKE herfra:
+ * det bruger decimal-konvention (`computePackageValueDecimal`) og er B9-isoleret kontrol.
+ */
+export const buildOffentligOverenskomstFormulaComponents = (args: Readonly<{
+  grundloen: number;
+  feriePct: number;
+  tillaegsSatser: OverenskomstPeriodeSats | undefined;
+  shSoPctInput: number | undefined;
+  fritvalgPctInput: number | undefined;
+  pensionPctInput: number | undefined;
+  applyAlmindeligLoenPaaShDageRegel: boolean;
+  dateIso: ISODateString;
+}>): FormulaComponents => ({
+  baseValue: args.grundloen,
+  feriePct: args.feriePct,
+  fritvalgPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.fritvalg, args.fritvalgPctInput),
+  shSoPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.shSoSats, args.shSoPctInput),
+  pensionPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.agPension, args.pensionPctInput),
+  storeBededagPct: args.applyAlmindeligLoenPaaShDageRegel && args.dateIso >= STORE_BEDEDAG_START
+    ? STORE_BEDEDAG_PCT
+    : 0,
+});
+
 export const buildPrivateOverenskomstFormulaComponents = (args: Readonly<{
   sats: OverenskomstPeriodeSats;
   context: PrivateOverenskomstBaseContext;

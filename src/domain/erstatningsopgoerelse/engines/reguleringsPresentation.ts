@@ -45,7 +45,7 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
 import { isKRLSatstabelId } from '../../../data/krlRates';
-import { getKlLoenaftalerReguleringPctForDato, klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
+import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { getStatistiskLoenudvikling } from '../../../data/statistiskeRates';
 import { STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
 import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
@@ -62,6 +62,7 @@ import {
 } from './reguleringFormulaUtils';
 import { resolveOverenskomstCoverageStartIso, resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 import {
+  buildOffentligOverenskomstFormulaComponents,
   buildPrivateOverenskomstFormulaComponents,
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
@@ -1065,6 +1066,11 @@ export const buildReguleringIndexRows = (params: Readonly<{
     // forudgående regulerede løn forhøjet med periodens sats og afrundet til to
     // decimaler. Segmentets deltaPct ER den akkumulerede regulering afledt af den
     // kæde-opregulerede løn, så basisløn × (1 + deltaPct/100) reproducerer den.
+    // R2 — periodens reguleringssats læses fra det motor-emitterede forløb når til stede (PDF-
+    // kanalen), ellers re-deriveres den byte-identisk (inspektion, som ikke har motor-modellen).
+    // KL-periodesatsen er eksakt-key pr. periodestart, så en find-på-startIso matcher det tidligere
+    // getKlLoenaftalerReguleringPctForDato-map-opslag (hver relevant dato ER en periodestart).
+    const klPeriodeEntries = forloeb?.kind === 'klLoenaftaler' ? forloeb.entries : buildKlLoenaftalerIndexEntries();
     const klRows: IndexRowWithIso[] = segments.map((segment) => {
       // Single source of truth: den kæde-opregulerede, afrundede enhedsløn bæres autoritativt på
       // segmentet som reguleretLoenOre (nøjagtig samme værdi som indkomst-linjerne viser via
@@ -1080,10 +1086,9 @@ export const buildReguleringIndexRows = (params: Readonly<{
       const reguleretLoenDisplay = formatAsAmount(reguleretLoen, 2);
       // Periodens reguleringssats — kun på regulerende datoer efter reguleringsdatoen
       // (basisperioden har ingen sats).
-      const danishDato = isoToDanish(segment.fra);
       const periodePct =
-        danishDato && (!anvendtReguleringsdato || segment.fra > anvendtReguleringsdato)
-          ? getKlLoenaftalerReguleringPctForDato(danishDato)
+        (!anvendtReguleringsdato || segment.fra > anvendtReguleringsdato)
+          ? klPeriodeEntries.find((entry) => entry.startIso === segment.fra)?.reguleringsPct
           : undefined;
       const loenudvikling = periodePct === undefined ? '' : `${formatAsAmount(periodePct, 2)} %`;
       const signature = `${loenudvikling}|${reguleretLoenDisplay}`;
@@ -1267,14 +1272,16 @@ export const buildReguleringIndexRows = (params: Readonly<{
         ? anciennitetForIndex.supplementValue
         : 0;
       const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen + baseAnciennitet;
-      const baseComponents: FormulaComponents = {
-        baseValue,
+      const baseComponents: FormulaComponents = buildOffentligOverenskomstFormulaComponents({
+        grundloen: baseValue,
         feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
-        fritvalgPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.fritvalg, ansaettelsesforhold.fritvalgPct),
-        shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, ansaettelsesforhold.shSoPct),
-        pensionPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.agPension, ansaettelsesforhold.pensionPct),
-        storeBededagPct: getStoreBededagPct(anvendtReguleringsdato),
-      };
+        tillaegsSatser: baseTillaegsSatser,
+        shSoPctInput: ansaettelsesforhold.shSoPct,
+        fritvalgPctInput: ansaettelsesforhold.fritvalgPct,
+        pensionPctInput: ansaettelsesforhold.pensionPct,
+        applyAlmindeligLoenPaaShDageRegel,
+        dateIso: anvendtReguleringsdato,
+      });
       const baseVisibility: FormulaVisibility = {
         showFritvalg: hasFritvalg,
         showShSo: hasShSo,
@@ -1302,14 +1309,16 @@ export const buildReguleringIndexRows = (params: Readonly<{
           : 0;
         const segmentBase =
           (loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen) + offentligLoenEkstraGrundloen + segmentAnciennitet;
-        const components: FormulaComponents = {
-          baseValue: segmentBase,
+        const components: FormulaComponents = buildOffentligOverenskomstFormulaComponents({
+          grundloen: segmentBase,
           feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
-          fritvalgPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.fritvalg, ansaettelsesforhold.fritvalgPct),
-          shSoPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.shSoSats, ansaettelsesforhold.shSoPct),
-          pensionPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.agPension, ansaettelsesforhold.pensionPct),
-          storeBededagPct: getStoreBededagPct(segment.fra),
-        };
+          tillaegsSatser: segmentTillaegsSatser,
+          shSoPctInput: ansaettelsesforhold.shSoPct,
+          fritvalgPctInput: ansaettelsesforhold.fritvalgPct,
+          pensionPctInput: ansaettelsesforhold.pensionPct,
+          applyAlmindeligLoenPaaShDageRegel,
+          dateIso: segment.fra,
+        });
         const visibility: FormulaVisibility = {
           showFritvalg: hasFritvalg,
           showShSo: hasShSo,

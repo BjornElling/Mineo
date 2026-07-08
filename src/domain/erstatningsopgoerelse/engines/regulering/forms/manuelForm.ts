@@ -1,11 +1,10 @@
 import type { ISODateString } from '../../../../../types/branded';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
-import { parsePercentPointString } from '../../../../../utils/numberParsing';
 import { roundByMethod } from '../../../../../utils/rounding';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../../config/indskudteLoentillaeg';
 import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
-import { computePackageValuePct } from '../../reguleringFormulaUtils';
+import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
 import { assertUniform, buildSegmentsFromStartDates } from '../reguleringFormPrimitives';
 import type {
@@ -15,22 +14,17 @@ import type {
   LoenreguleringsSegment,
   LoenudviklingManualRow,
   ReguleringForm,
+  ReguleringResultat,
   ResolvedStrategi,
 } from '../reguleringForm';
 
-// Pct-point-parsing via den kanoniske parser (dansk locale, ingen lossy /100*100-round-trip).
-const parseManualPercentToPct = (value: string | number | undefined): number =>
-  parsePercentPointString(value) ?? 0;
-
-/**
- * Manuel ferieprocent i PDF-sporet returneres i pct-point-konvention
- * (fx `15` for 15 %), fordi computePackageValuePct arbejder i pct-point.
- */
-const resolveManualFeriePctPct = (rowFeriepenge: string | number | undefined, defaultFeriePct: number | undefined): number => {
-  if (typeof rowFeriepenge === 'number' && Number.isFinite(rowFeriepenge)) return rowFeriepenge;
-  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') return parsePercentPointString(rowFeriepenge) ?? 0;
-  return defaultFeriePct ?? 0;
-};
+// Pct-/ferie-parsing deler nu de KANONISKE parsere (parsePercentInput / resolveFeriePctForFormula i
+// reguleringFormulaUtils), som præsentationens manuelle indeks-tabel også bruger — så motor og
+// visning kan ikke drive fra hinanden (samme "vist = beregnet"-garanti som R2 giver de migrerede
+// former, her opnået ved delt primitiv frem for et forløb, da 'Manuelt angivet' ikke bærer en
+// periodeserie). De tidligere lokale kopier (parseManualPercentToPct/resolveManualFeriePctPct) var
+// byte-identiske med de kanoniske for alt schema-gyldigt input (feriepenge/sats = percentageDecimal
+// ⇒ finit tal ∈ [0,100] eller undefined; de divergerende streng-/ikke-finit-grene var uopnåelige).
 
 const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string => {
   const normalized = rows.map((row) => ({
@@ -80,9 +74,9 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   };
 };
 
-const byggSegmenter = (
+const byggResultat = (
   konsolideret: KonsolideretLoenudvikling
-): ReadonlyArray<LoenreguleringsSegment> => {
+): ReguleringResultat => {
   if (konsolideret.strategi !== 'manual') {
     throw new Error('Loenudvikling kan ikke beregnes: manuel strategi mangler');
   }
@@ -93,10 +87,10 @@ const byggSegmenter = (
   }
   const baseComponents = {
     grundloen: amountValueToNumber(baseRow.grundloen) ?? 0,
-    feriePct: resolveManualFeriePctPct(baseRow.feriepenge, konsolideret.feriePct),
-    shSoPct: parseManualPercentToPct(baseRow.shSoSats),
-    fritvalgPct: parseManualPercentToPct(baseRow.fritvalg),
-    pensionPct: parseManualPercentToPct(baseRow.agPension),
+    feriePct: resolveFeriePctForFormula(baseRow.feriepenge, konsolideret.feriePct),
+    shSoPct: parsePercentInput(baseRow.shSoSats),
+    fritvalgPct: parsePercentInput(baseRow.fritvalg),
+    pensionPct: parsePercentInput(baseRow.agPension),
   };
   const resolveStoreBededagPctForManualDate = (iso: ISODateString | undefined): number =>
     konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG && iso && iso >= STORE_BEDEDAG_START
@@ -123,10 +117,10 @@ const byggSegmenter = (
       if (konsolideret.reguleringsdato && startIso < konsolideret.reguleringsdato) return null;
       const components = {
         grundloen: amountValueToNumber(row.grundloen) ?? 0,
-        feriePct: resolveManualFeriePctPct(row.feriepenge, konsolideret.feriePct),
-        shSoPct: parseManualPercentToPct(row.shSoSats),
-        fritvalgPct: parseManualPercentToPct(row.fritvalg),
-        pensionPct: parseManualPercentToPct(row.agPension),
+        feriePct: resolveFeriePctForFormula(row.feriepenge, konsolideret.feriePct),
+        shSoPct: parsePercentInput(row.shSoSats),
+        fritvalgPct: parsePercentInput(row.fritvalg),
+        pensionPct: parsePercentInput(row.agPension),
       };
       const packageValue = computePackageValuePct({
         ...components,
@@ -178,7 +172,9 @@ const byggSegmenter = (
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen manuelle segmenter');
   }
-  return segments;
+  // 'Manuelt angivet' er endnu ikke R2-migreret (præsentationen re-deriverer via display-parsere);
+  // forloeb udelades, jf. R2-afgrænsningen.
+  return { segmenter: segments };
 };
 
 // De manuelle modeller har intet kilde-interval — dækningen afhænger af reguleringsdatoen og
@@ -189,6 +185,6 @@ export const manuelForm: ReguleringForm = {
   id: 'Manuelt angivet',
   strategi: 'manual',
   konsolider,
-  byggSegmenter,
+  byggResultat,
   coverageInterval,
 };

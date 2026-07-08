@@ -12,6 +12,7 @@ import type {
   KonsolideretLoenudvikling,
   LoenreguleringsSegment,
   ReguleringForm,
+  ReguleringResultat,
   ResolvedStrategi,
 } from '../reguleringForm';
 
@@ -29,9 +30,9 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   };
 };
 
-const byggSegmenter = (
+const byggResultat = (
   konsolideret: KonsolideretLoenudvikling
-): ReadonlyArray<LoenreguleringsSegment> => {
+): ReguleringResultat => {
   if (konsolideret.strategi !== 'klLoenaftaler') {
     throw new Error('Loenudvikling kan ikke beregnes: KL-lønaftaler-strategi mangler');
   }
@@ -45,8 +46,9 @@ const byggSegmenter = (
   // beregnes som indeksforhold her; den sættes senere fra KL-lønaftaler-kæde-resolveren,
   // så den trinvise afrunding på lønnen er eneste beregningssandhed.
 
-  // R2 — samme delte periodeserie som motoren emitterer som forløb og præsentationen læser
-  // (buildKlLoenaftalerIndexEntries); byggSegmenter bruger kun startIso til brudpunkter.
+  // R2 — samme delte periodeserie som formen emitterer som forløb og præsentationen læser
+  // (buildKlLoenaftalerIndexEntries): bygges ÉN gang her og bæres både som brudpunkt-kilde og
+  // som autoritativt forløb. Segment-byggeriet bruger kun startIso til brudpunkter.
   const periodStarts = buildKlLoenaftalerIndexEntries();
 
   // Byg segmenter for hvert taf-interval
@@ -63,7 +65,7 @@ const byggSegmenter = (
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen KL-lønaftaler-segmenter');
   }
-  return segments;
+  return { segmenter: segments, forloeb: { kind: 'klLoenaftaler', entries: periodStarts } };
 };
 
 const coverageInterval = (): KildeReguleringsInterval | undefined =>
@@ -73,6 +75,6 @@ export const klLoenaftalerForm: ReguleringForm = {
   id: 'KL-lønaftaler',
   strategi: 'klLoenaftaler',
   konsolider,
-  byggSegmenter,
+  byggResultat,
   coverageInterval,
 };

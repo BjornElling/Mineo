@@ -1,7 +1,7 @@
 # Regulering — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-04
-**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1-fundament implementeret; R4 delvist; R2 påbegyndt — 4 af 6 former migreret (manuel procentsats, KRL, statistik non-ASL, KL); overenskomst + manuelt angivet fremadrettede; R8/R9 fremadrettede)
+**Status:** Analyse / migrationsnotat (R3/R5/R6/R7 + R1 implementeret; R4 delvist; R2 konsolideret — forløbet foldet ind i form-kontrakten (ét dispatch, ét builder-kald); 4 af 6 former bærer motor-forløb (manuel procentsats, KRL, statistik non-ASL, KL — KL nu fuldt inkl. indeksrækker); overenskomst-formel single-sourcet via delt builder frem for forløb; manuelt angivet forenet mod de kanoniske parsere; inspektionens parsing-primitiver ruter nu gennem de delte buildere; R8/R9 fremadrettede. Se "Efterbehandling 2026-07-08".)
 **Baggrund:** Syntese efter det fulde regulering-review (`regulering-review-plan.md`, punkt 0–15, alle ✅).
 **Formål:** Vurdere hvilke arkitektoniske og strukturelle valg jeg ville træffe anderledes,
 hvis reguleringsdomænet skulle designes helt fra bunden med den viden reviewet har givet os —
@@ -591,6 +591,57 @@ ikke rive ned:
   udbygge, ikke erstatte.
 
 ---
+
+## 5b. Efterbehandling 2026-07-08 — læse-sidens konvergens
+
+To parallelle reviews (kode + arkitektur) af R1/R2/R6 identificerede, at motor-siden levede op til
+greenfield-visionen, men **læse-siden** (præsentation + inspektion) fortsat rummede parallel logik.
+Følgende blev konsolideret, alt **tal- og UI-neutralt** (byte-identitet pinnet af beregnings-,
+præsentations-, inspektions-, PDF/Word-, canonical-parity- og validator-suiten — 1869+ tests grønne):
+
+1. **Forløbet foldet ind i form-kontrakten (R1×R2).** `ReguleringForm.byggSegmenter` → `byggResultat`,
+   der returnerer `{ segmenter, forloeb? }`. Motorens parallelle `switch(strategi)`-IIFE (der byggede
+   forløbet separat) og det deraf følgende **dobbeltkald** af index-builderne er fjernet: hver form
+   bygger nu sine kilde-entries ÉN gang og bærer dem både som segment-basis og som autoritativt
+   forløb. Dette lukkede arkitektur-reviewets vigtigste fund (R2 havde genindført "form = gren" i
+   orkestratoren).
+2. **Offentlig overenskomst — delt formel-samling.** `buildOffentligOverenskomstFormulaComponents`
+   (`overenskomstReguleringShared.ts`, spejl af den private) deles nu af motoren
+   (`overenskomstOffentligSegmenter`) og præsentationens reguleringsindeks-tabel — de tre parallelle
+   `FormulaComponents`-samlinger er reduceret til én. **Bevidst afgrænsning:** kun selve samlingen
+   deles; base-/sats-UDVÆLGELSEN forbliver pr. lag (motorens U4-clamp + interval-fallback vs.
+   præsentationens effective-base + deltaPct-fallback — to bevidst forskellige mekanismer, jf. U4).
+   Et motor-emitteret overenskomst-**forløb** (R2's oprindelige idé) blev bevidst **ikke** forfulgt:
+   den delte builder lukker allerede formel-driften, og et forløb ville kræve, at motoren bar
+   per-segment-komponenter i præsentationens finere (anciennitet/Store Bededag-splittede) granularitet
+   — en stor, skrøbelig byte-identitets-flade uden gevinst oven på den delte builder.
+3. **KL-lønaftaler fuldt migreret.** Indeksrækkernes "Lønudvikling"-kolonne læser nu periodesatsen fra
+   forløbets entries (eksakt-key på `startIso`) frem for det separate `getKlLoenaftalerReguleringPct-
+   ForDato`-map-opslag; værdi-tabellen læste allerede forløbet. Beløbet (`reguleretLoenOre`, U8)
+   uændret autoritativt.
+4. **Manuelt angivet — forenet mod de kanoniske parsere.** De motor-lokale `parseManualPercentToPct`
+   og `resolveManualFeriePctPct` er erstattet af de kanoniske `parsePercentInput` /
+   `resolveFeriePctForFormula` (`reguleringFormulaUtils.ts`), som præsentationens manuelle indeks-tabel
+   også bruger — så motor og visning ikke kan drive fra hinanden. De tidligere divergerende grene
+   (streng tom efter `%`-strip; ikke-finit tal) er **beviseligt schema-uopnåelige**: `feriepenge`/
+   satsfelterne er `percentageDecimal` (= finit tal ∈ [0,100] eller `undefined`), og begge parser-sæt
+   giver identisk resultat for netop de input. Forenet ved delt primitiv frem for forløb, da formen
+   ikke bærer en periodeserie.
+5. **Inspektionens parsing-primitiver ruter gennem de delte buildere.** Statistik (kvartal→ISO), KRL
+   og KL byggede før hver sin periodeserie inline (statistik med egen regex; KRL/KL med manuel
+   `.filter(<=).sort(desc)[0]` **uden** R3-sorterings-invarianten). De læser nu de delte
+   `buildStatistikIndexEntries`/`buildKrlIndexEntries`/`buildKlLoenaftalerIndexEntries` +
+   `findLatestByDateInSortedList`. **Bevidst grænse (B9):** kun *parsingen* deles — index-
+   *beregningen* (base-udvælgelse, ratio) forbliver uafhængig, så kontrol-laget stadig er et ægte
+   krydstjek af motoren og ikke en tautologi. Parsing er ikke stedet et motorbug gemmer sig; en
+   divergens dér ville kun være et falsk `control:sammentaelling_mismatch`.
+
+**Åbent fund til forelæggelse (ikke ændret):** inspektionens offentlige overenskomst-gren
+(`eoInspektionRegulationCore.ts`) inkluderer **ikke** anciennitetstillæg i sin reference-/segment-
+grundløn, mens motoren og PDF-præsentationen gør. Når et anciennitetstillæg er aktivt, vil kontrol-
+tabellen ("EO-gennemsyn") derfor systematisk vise et andet indeks end bilaget og potentielt melde et
+`control:sammentaelling_mismatch`, der ikke afspejler en reel motorfejl. Da rettelsen rører kontrol-
+lagets brugervendte visning, forelægges den frem for at ændres i stilhed.
 
 ## 6. Migrations-anbefaling
 

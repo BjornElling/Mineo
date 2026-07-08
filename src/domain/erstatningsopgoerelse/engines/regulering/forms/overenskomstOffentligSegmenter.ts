@@ -2,7 +2,7 @@ import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
 import { roundByMethod } from '../../../../../utils/rounding';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../../config/indskudteLoentillaeg';
+import { STORE_BEDEDAG_START } from '../../../../../config/indskudteLoentillaeg';
 import {
   getOffentligTillaegsSatserForDato,
   getOffentligTillaegsSatserForPeriode,
@@ -12,10 +12,10 @@ import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../..
 import { TAF_BEREGNES_SOM } from '../../../helpers/tafBeregningsenhed';
 import {
   parseDanishToIso,
-  resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
 } from '../../../helpers/eoSharedUtils';
-import { computePackageValuePct } from '../../reguleringFormulaUtils';
+import { computeFormulaValue } from '../../reguleringFormulaUtils';
+import { buildOffentligOverenskomstFormulaComponents } from '../../overenskomstReguleringShared';
 import { resolveOverenskomstEffectiveStartIso } from '../../reguleringCoverage';
 import {
   buildSegmentsFromStartDates,
@@ -105,14 +105,16 @@ export const buildOffentligOverenskomstSegmenter = (
     ? offentligEffectiveBase.result.maanedsLoen
     : offentligEffectiveBase.result.timeLoen) + offentligLoenEkstraGrundloen + baseAnciennitet;
   const baseLoen = ensurePositiveFiniteNumber(baseLoenRaw, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
-  const basePackage = computePackageValuePct({
+  const basePackage = computeFormulaValue(buildOffentligOverenskomstFormulaComponents({
     grundloen: baseLoen,
     feriePct,
-    shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, konsolideret.shSoPct),
-    fritvalgPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.fritvalg, konsolideret.fritvalgPct),
-    pensionPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.agPension, konsolideret.pensionPct),
-    storeBededagPct: applyShRegel && reguleringsdatoIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
-  });
+    tillaegsSatser: baseTillaegsSatser,
+    shSoPctInput: konsolideret.shSoPct,
+    fritvalgPctInput: konsolideret.fritvalgPct,
+    pensionPctInput: konsolideret.pensionPct,
+    applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+    dateIso: reguleringsdatoIso,
+  }));
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
@@ -202,14 +204,16 @@ export const buildOffentligOverenskomstSegmenter = (
       const grundloenForSegment = anciennitetAktiv && anciennitetForIndex
         ? grundloenForSegmentBase + anciennitetForIndex.supplementValue
         : grundloenForSegmentBase;
-      const packageValue = computePackageValuePct({
+      const packageValue = computeFormulaValue(buildOffentligOverenskomstFormulaComponents({
         grundloen: grundloenForSegment,
         feriePct,
-        shSoPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.shSoSats, konsolideret.shSoPct),
-        fritvalgPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.fritvalg, konsolideret.fritvalgPct),
-        pensionPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.agPension, konsolideret.pensionPct),
-        storeBededagPct: applyShRegel && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
-      });
+        tillaegsSatser: segmentTillaegsSatser,
+        shSoPctInput: konsolideret.shSoPct,
+        fritvalgPctInput: konsolideret.fritvalgPct,
+        pensionPctInput: konsolideret.pensionPct,
+        applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+        dateIso: segment.fra,
+      }));
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }

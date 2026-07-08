@@ -9,6 +9,7 @@ import type {
   LoenreguleringsSegment,
   LoenudviklingManualProcentsatsRow,
   ReguleringForm,
+  ReguleringResultat,
   ResolvedStrategi,
 } from '../reguleringForm';
 
@@ -37,9 +38,9 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   };
 };
 
-const byggSegmenter = (
+const byggResultat = (
   konsolideret: KonsolideretLoenudvikling
-): ReadonlyArray<LoenreguleringsSegment> => {
+): ReguleringResultat => {
   if (konsolideret.strategi !== 'manualProcentsats') {
     throw new Error('Loenudvikling kan ikke beregnes: manuel procentsats-strategi mangler');
   }
@@ -47,6 +48,9 @@ const byggSegmenter = (
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
 
+  // R2 — samme delte akkumulerings-serie som formen emitterer som forløb og præsentationen læser
+  // (buildManuelProcentsatsEntries): bygges ÉN gang her og bæres både som segment-basis og som
+  // autoritativt forløb, så det viste indeks = den motoren afleder deltaPct fra.
   const entries = buildManuelProcentsatsEntries({
     anvendtReguleringsdato: konsolideret.reguleringsdato,
     rows: konsolideret.manualProcentsatsRows,
@@ -75,7 +79,7 @@ const byggSegmenter = (
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen manuel procentsats-segmenter');
   }
-  return segments;
+  return { segmenter: segments, forloeb: { kind: 'manuelProcentsats', entries } };
 };
 
 // De manuelle modeller har intet kilde-interval — dækningen afhænger af reguleringsdatoen og
@@ -86,6 +90,6 @@ export const manuelProcentsatsForm: ReguleringForm = {
   id: 'Manuel procentsats',
   strategi: 'manualProcentsats',
   konsolider,
-  byggSegmenter,
+  byggResultat,
   coverageInterval,
 };

@@ -22,6 +22,7 @@ import type {
   LoenreguleringsSegment,
   LoenudviklingAf,
   ReguleringForm,
+  ReguleringResultat,
   ResolvedStrategi,
 } from '../reguleringForm';
 
@@ -65,9 +66,9 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   };
 };
 
-const byggSegmenter = (
+const byggResultat = (
   konsolideret: KonsolideretLoenudvikling
-): ReadonlyArray<LoenreguleringsSegment> => {
+): ReguleringResultat => {
   if (konsolideret.strategi !== 'statistik') {
     throw new Error('Loenudvikling kan ikke beregnes: statistikstrategi mangler');
   }
@@ -96,7 +97,10 @@ const byggSegmenter = (
         }
         return { fra: segment.fra, til: segment.til, deltaPct: aslIndeksTilSegmentDelta(baseYear, segment.year) };
       });
-    return aslSegments;
+    // ASL bruger et per-år-opslag (resolveAslAarsloensmaksimumForAar), ikke en kvartals-
+    // indeksserie — der er ingen periodeserie at emittere som forløb (forloeb udelades →
+    // præsentationen re-deriverer det direkte data-opslag uændret, jf. R2-afgrænsningen).
+    return { segmenter: aslSegments };
   }
 
   const modelId = resolveStatistikModelIdFromLabel(modelLabel);
@@ -105,9 +109,10 @@ const byggSegmenter = (
     throw new Error('Loenudvikling kan ikke beregnes: ukendt statistikmodel');
   }
 
-  // R2 — samme delte kvartals-indeksserie som motoren emitterer som forløb og præsentationen
-  // læser (buildStatistikIndexEntries) — én kilde, så vist indeksværdi = den motoren afleder
-  // deltaPct fra. byggSegmenter bruger kun startIso + indeksvaerdi (kvartal ignoreres her).
+  // R2 — samme delte kvartals-indeksserie som formen emitterer som forløb og præsentationen
+  // læser (buildStatistikIndexEntries): bygges ÉN gang her og bæres både som segment-basis og
+  // som autoritativt forløb, så vist indeksværdi = den motoren afleder deltaPct fra.
+  // Segment-byggeriet bruger kun startIso + indeksvaerdi (kvartal ignoreres her).
   const periodStarts = buildStatistikIndexEntries(modelId);
 
   const effectiveBase = resolveEffectiveBaseEntry(
@@ -144,7 +149,7 @@ const byggSegmenter = (
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen statistiksegmenter');
   }
-  return segments;
+  return { segmenter: segments, forloeb: { kind: 'statistik', entries: periodStarts } };
 };
 
 const coverageInterval = (af: LoenudviklingAf): KildeReguleringsInterval | undefined =>
@@ -154,6 +159,6 @@ export const statistikForm: ReguleringForm = {
   id: 'Statistik',
   strategi: 'statistik',
   konsolider,
-  byggSegmenter,
+  byggResultat,
   coverageInterval,
 };

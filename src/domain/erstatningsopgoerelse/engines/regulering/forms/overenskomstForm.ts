@@ -18,9 +18,9 @@ import type {
   FormKonsoliderContext,
   KildeReguleringsInterval,
   KonsolideretLoenudvikling,
-  LoenreguleringsSegment,
   LoenudviklingAf,
   ReguleringForm,
+  ReguleringResultat,
   ResolvedStrategi,
 } from '../reguleringForm';
 
@@ -135,16 +135,18 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 // og offentlig løntrin. `konsolider` og `coverageInterval` er ægte delte (samme uniformitets-
 // kontrakt og dæknings-interval), mens segment-byggeriet dispatches til hver sin selvindeholdte
 // bygger baseret på `konsolideret.offentlig` (jf. R6 — den tidligere fælles funktionskrop er delt).
-const byggSegmenter = (
+const byggResultat = (
   konsolideret: KonsolideretLoenudvikling
-): ReadonlyArray<LoenreguleringsSegment> => {
+): ReguleringResultat => {
   if (konsolideret.strategi !== 'overenskomst') {
     throw new Error('Loenudvikling kan ikke beregnes: overenskomststrategi mangler');
   }
   const ctx = buildOverenskomstSegmentContext(konsolideret);
-  return konsolideret.offentlig
+  // Overenskomst er endnu ikke R2-migreret (præsentationen re-deriverer forløbet); forloeb udelades.
+  const segmenter = konsolideret.offentlig
     ? buildOffentligOverenskomstSegmenter(konsolideret, konsolideret.offentlig, ctx)
     : buildPrivatOverenskomstSegmenter(konsolideret, ctx);
+  return { segmenter };
 };
 
 const coverageInterval = (af: LoenudviklingAf): KildeReguleringsInterval | undefined =>
@@ -154,6 +156,6 @@ export const overenskomstForm: ReguleringForm = {
   id: 'Overenskomst',
   strategi: 'overenskomst',
   konsolider,
-  byggSegmenter,
+  byggResultat,
   coverageInterval,
 };
