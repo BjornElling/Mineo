@@ -199,21 +199,12 @@ så R1 reducerer drift og switch-duplikering uden at optimere for hypotetiske fr
 > som ét dedikeret skridt med parity-test + fuld render-suite som værn — ikke bundtet med
 > entries-swap-formerne.
 >
-> **Forudsætning afklaret + rettet (2026-07-07): anciennitetstillæg i basis.** Kortlægningen af
-> overenskomst-R2 afslørede en reel, hidtil utestet divergens: motoren udelod anciennitetstillægget
-> fra basis-pakken (`overenskomstPrivatSegmenter`/`overenskomstOffentligSegmenter`), mens
-> præsentationens reguleringsindeks-tabel inkluderede det i basen, når det allerede gjaldt på den
-> effektive reguleringsdato (`effectiveReguleringsdato >= anciennitetsdato`). Det udbetalte beløb
-> (motorens `deltaPct`) og det viste indeks blev dermed afledt af forskellige baser og kunne afvige
-> for schema-gyldigt input (bl.a. dæknings-clamp eller en reguleringsdato efter anciennitetsdatoen).
-> **Bruger-beslutning 2026-07-07: "basis skal indeholde tillægget"** — referenceniveauet (indeks 100)
-> indeholder et anciennitetstillæg, der allerede gælder på reguleringsdatoen; tillægget er en del af
-> referencen, ikke lønudvikling oven på den. Motoren er rettet tilsvarende (basis-gate på den rå
-> anciennitetsdato, lig præsentationen), så beløb og vist indeks nu deler samme basis. Tal-ændring
-> KUN i denne edge-case (beløbet var før for højt); alt andet byte-identisk. Ny cross-lag-invariant-
-> test (`reguleringsPresentation.test.ts`: vist indeks = 100 + motorens `deltaPct`) + fuld suite grøn.
-> Dette **oplåser** det strukturelle R2-skridt: motor og præsentation er nu numerisk enige, så en
-> shared per-segment-computation kan single-source basen uden at flytte et tal.
+> **Ophævet og rettet igen (2026-07-08): anciennitetstillæg er ikke i basis.** Den midlertidige
+> 2026-07-07-regel byggede på en forkert UI-bound: anciennitetsdatoen var afgrænset af skadedatoen
+> i stedet for anvendt reguleringsdato. Den korrekte regel er nu, at dato for anciennitetstillæg skal
+> ligge **efter anvendt reguleringsdato**. Dermed kan tillægget aldrig være en del af referenceniveauet
+> (indeks 100), og basis-gaten/rå-dato-gaten er fjernet fra motor, præsentation og kontrol. Tillægget
+> fungerer kun som et segment-brudpunkt efter anvendt regulering.
 >
 > **Status (2026-07-07): PÅBEGYNDT — fundament/pilot + anden form migreret (migrations-skridt 6+7).**
 > **Skridt 7-tilføjelse:** **'KRL satstabel'** er nu migreret end-to-end efter samme opskrift.
@@ -680,24 +671,12 @@ R9 i afsnit 4): **R9** implementeret som strukturelt boundary-værn; **R8** prop
 mens den fulde branded-type-vision bevidst blev fravalgt som over-engineering, da afrundings-kernen
 allerede er runtime-værnet og test-pinnet.
 
-**Løst 2026-07-08 — anciennitetstillæg i kontrol-laget + tre-vejs-konsolidering.** Tidligere
-inkluderede inspektionslaget (`eoInspektionRegulationCore.ts`) **slet ikke** anciennitetstillæg i sin
-overenskomst-grundløn — hverken den offentlige eller den private gren — mens motoren og PDF-
-præsentationen gør (bruger-beslutning 2026-07-07: "basis skal indeholde tillægget"). Med et aktivt
-tillæg viste kontrol-tabellen ("EO-gennemsyn") derfor systematisk et andet indeks end bilaget og kunne
-melde et falsk `control:sammentaelling_mismatch`. **Rettelsen samlede samtidig den bagvedliggende
-rod-årsag:** anciennitetstillæggets resolution (kroneværdi via `convertAnciennitetSats` + de to
-gate-datoer, rå til basis-gaten og TAF-clampet til segment-gaten) var udledt TRE gange uafhængigt —
-motorens `overenskomstSegmentContext`, præsentationens reguleringsindeks-tabel, og (ved fravær) kontrol-
-laget. Den er nu ét delt primitiv, `resolveAnciennitetForIndex` (`overenskomstReguleringShared.ts`),
-som alle tre lag forbruger. Motor + præsentation er tal-neutrale (byte-identitet: schema-defaulter
-`anciennitetstillaegSatsAngivesPer` til 'Måned', og de to gate-varianter er beviseligt ækvivalente —
-pinnet af den eksisterende cross-lag-invariant-test motor==præsentation). Kontrol-laget medtager nu
-tillægget i basis (rå-dato-gate mod `resolveOverenskomstEffectiveStartIso`) og i per-dato-entries
-(fra aktiveringsdatoen, med brudpunkt), i lagets egen decimal-konvention — index-*beregningen* forbliver
-uafhængig (B9); kun user-input-resolutionen deles. Nye tests: `overenskomstReguleringShared.test.ts`
-(resolver) + `eoInspektionRegulationCore.test.ts` (privat + offentlig grundløn inkl. tillæg, samt
-basis-gate før anciennitetsdatoen). Fuld eo-/inspektions-/quality-suite grøn.
+**Opdateret 2026-07-08 — anciennitetstillæg som rent segment-brudpunkt.** Den delte resolver
+`resolveAnciennitetForIndex` (`overenskomstReguleringShared.ts`) bærer fortsat kroneværdien og
+aktiveringsdatoen på tværs af motor, præsentation og kontrol, men der findes ikke længere en
+basis-gate. Validator og UI kræver nu dato **efter anvendt reguleringsdato**, og indeks 100 bygges
+altid uden anciennitetstillæg. Kontrol-laget medtager kun tillægget i per-dato-entries fra
+aktiveringsdatoen; index-*beregningen* forbliver uafhængig (B9).
 
 ## 6. Migrations-anbefaling
 

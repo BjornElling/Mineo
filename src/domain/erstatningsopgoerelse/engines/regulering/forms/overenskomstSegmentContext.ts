@@ -14,7 +14,7 @@ import type { KonsolideretLoenudvikling } from '../reguleringForm';
 // offentlig løntrin), fordi de er to fundamentalt forskellige former der før delte én
 // funktionskrop langs en gren. Dette modul samler det de *faktisk* deler: uniformitets-
 // konsolideringen (i overenskomstForm) plus preamblen her — reference-opslag og det
-// anciennitetstillæg begge byggere anvender. Selve base-/segment-opslaget deler de ikke, og
+// anciennitetstillæg begge byggere anvender som segment-brudpunkt. Selve base-/segment-opslaget deler de ikke, og
 // de to bevidst forskellige clamp-mekanismer (U4) bor hver i sin bygger. Anciennitetstillæggets
 // resolution deles nu med præsentation og kontrol via `resolveAnciennitetForIndex`.
 
@@ -49,6 +49,7 @@ const resolveKonsolideretAnciennitet = (konsolideret: KonsolideretOverenskomst):
     satsAngivesPer: konsolideret.anciennitetstillaegSatsAngivesPer,
     overenskomstId: konsolideret.overenskomstId,
     tafBeregningsenhed: konsolideret.tafBeregningsenhed,
+    anvendtReguleringsdatoIso: konsolideret.reguleringsdato,
     periodeStartIso: tafStartIso,
     periodeEndIso: tafEndIso,
   });

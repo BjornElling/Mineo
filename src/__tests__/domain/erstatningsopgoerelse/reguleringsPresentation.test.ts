@@ -102,17 +102,15 @@ describe('reguleringsPresentation', () => {
     });
   });
 
-  describe('overenskomst — vist reguleringsindeks matcher det udbetalte (anciennitetstillæg på/før reguleringsdatoen)', () => {
-    // Bruger-beslutning 2026-07-07 ("basis skal indeholde tillægget"): et anciennitetstillæg,
-    // der allerede gælder på (den effektive) reguleringsdato, er en del af referenceniveauet
-    // (indeks 100), ikke lønudvikling oven på det. Motoren udelod tidligere tillægget fra basen,
-    // så det udbetalte beløb (deltaPct) blev afledt af en anden basis end det viste indeks. Denne
-    // test binder de to sider: for hvert vist indeks skal der findes et motorsegment med
-    // deltaPct = indeks − 100. Den fejlede før rettelsen (motorens basis manglede tillægget).
+  describe('overenskomst — vist reguleringsindeks matcher det udbetalte (anciennitetstillæg efter reguleringsdatoen)', () => {
+    // Anciennitetstillæg må kun dateres efter anvendt reguleringsdato. Det er derfor aldrig en
+    // del af referenceniveauet (indeks 100), men et almindeligt brudpunkt i reguleringsforløbet.
+    // Testen binder motor og præsentation: for hvert vist indeks skal der findes et motorsegment
+    // med deltaPct = indeks − 100.
     const parseDaNumber = (value: string): number =>
       Number(value.replace(/\./g, '').replace(',', '.'));
 
-    it('privat overenskomst: vist indeks = 100 + motorens deltaPct når tillægget indgår i basis', () => {
+    it('privat overenskomst: vist indeks = 100 + motorens deltaPct når tillægget kommer efter basis', () => {
       const REG = '2023-01-01';
       // Fælles reguleringskonfiguration, så motorens (angivet-løn) og præsentationens
       // (ansættelsesforhold) input er identiske for de regulerende felter.
@@ -122,9 +120,7 @@ describe('reguleringsPresentation', () => {
         loenPaaHelligdage: 'Ingen' as const,
         feriePct: 12.5,
         harAnciennitetstillaegEfterSkadedatoen: true,
-        // Anciennitetsdato FØR reguleringsdatoen (skadedato ≤ dato pr. UI-min) → tillægget gælder
-        // allerede på reguleringsdatoen og indgår derfor i basen.
-        anciennitetstillaegDato: iso('2020-06-01'),
+        anciennitetstillaegDato: iso('2024-06-01'),
         anciennitetstillaegSatsAngivesPer: 'Måned' as const,
         anciennitetstillaegSats: asAmountValue(1000),
       };

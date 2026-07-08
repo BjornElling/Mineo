@@ -811,6 +811,29 @@ function validateLoenudviklingsKravForAktivKilde(
       if (!af.overenskomstId) {
         errors.push({ path: path('overenskomstId'), message: 'Overenskomst skal vælges', severity: 'error' });
       }
+      const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+        beregnesUdFra: values.beregnesUdFra,
+        angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+        saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
+        beregningsperiodeTil: values.tafBeregningsperiodeTil,
+        skadedato: options?.skadedatoISO,
+      });
+      if (
+        af.harAnciennitetstillaegEfterSkadedatoen &&
+        isISODateString(af.anciennitetstillaegDato) &&
+        anvendtReguleringsdato &&
+        af.anciennitetstillaegDato <= anvendtReguleringsdato
+      ) {
+        const reference = isoToDanish(anvendtReguleringsdato) ?? anvendtReguleringsdato;
+        const employmentPrefix = values.beregnesUdFra === 'Beregningsperiode'
+          ? `Ansættelsesforhold ${index + 1}: `
+          : '';
+        errors.push({
+          path: path('anciennitetstillaegDato'),
+          message: `${employmentPrefix}Dato for anciennitetstillæg skal være efter anvendt reguleringsdato (${reference})`,
+          severity: 'error',
+        });
+      }
       // Ét sandt sted for feriegodtgørelses-kravet: samme prædikat driver den synlige
       // `satserSkadestidspunkt`-fejlrække, så en blokeret download altid har en besked i boksen.
       if (isFeriePctRequiredForBlocking(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {

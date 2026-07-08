@@ -43,6 +43,7 @@ import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klL
 import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import { DAY_COUNT_MAX } from '../../../../schemas/formSchemas/baseSchemas';
+import { getDayAfterIso } from '../../../../utils/isoDateHelpers';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
 
@@ -150,6 +151,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const isLastAnsaettelsesforhold = index === totalAnsaettelsesforhold - 1;
   const displayNumber = index + 1;
   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
+  const anciennitetstillaegMinDato = getDayAfterIso(anvendtReguleringsdato);
   const satserHeading = resolveSatserHeading({
     anvendtReguleringsdato,
     skadedato: skadedato,
@@ -977,7 +979,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           <Typography className="row--subheading">Anciennitetstillæg</Typography>
 
           <Box className="row--label-right-hover">
-            <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadedatoen</Typography>
+            <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter anvendt reguleringsdato</Typography>
             <Box className="row--label-right-hover__content">
               <StyledToggleSwitch
                 name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
@@ -995,10 +997,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   <StyledDateField
                     name={`${af.id}:anciennitetstillaegDato`}
                     value={af.anciennitetstillaegDato}
-                    minDate={skadedato}
+                    minDate={anciennitetstillaegMinDato}
                     specialRangeErrors={{
-                      minBoundKind: skadedato ? 'skadedato' : undefined,
-                      minBoundReferenceISO: skadedato,
+                      minBoundKind: anvendtReguleringsdato ? 'efterAnvendtReguleringsdato' : undefined,
+                      minBoundReferenceISO: anvendtReguleringsdato,
                     }}
                     onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
                   />

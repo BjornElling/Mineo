@@ -19,6 +19,7 @@ import { getOverenskomstMetaById } from '../../../../../data/overenskomstRates';
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../../data/statistiskeRates';
 import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
+import { getDayAfterIso } from '../../../../../utils/isoDateHelpers';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 
 /**
@@ -76,9 +77,9 @@ export default function IndtaegtFoerSkadenSection() {
     handleEoAnciennitetstillaegDatoCommit,
     handleEoAnciennitetstillaegSatsCommit,
     eoAnciennitetSatsPerTekst,
-    skadedatoISO,
     loentrinFinder,
   } = useEoOplysningerVm();
+  const eoAnciennitetstillaegMinDato = getDayAfterIso(loenudviklingBaseDateISO);
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
 
@@ -733,7 +734,7 @@ export default function IndtaegtFoerSkadenSection() {
                 <Typography className="row--subheading">Anciennitetstillæg</Typography>
 
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadedatoen</Typography>
+                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter anvendt reguleringsdato</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
                       name="harAnciennitetstillaegEfterSkadedatoen"
@@ -751,10 +752,10 @@ export default function IndtaegtFoerSkadenSection() {
                         <StyledDateField
                           name="anciennitetstillaegDato"
                           value={eoLoenudvikling.anciennitetstillaegDato}
-                          minDate={skadedatoISO}
+                          minDate={eoAnciennitetstillaegMinDato}
                           specialRangeErrors={{
-                            minBoundKind: skadedatoISO ? 'skadedato' : undefined,
-                            minBoundReferenceISO: skadedatoISO,
+                            minBoundKind: loenudviklingBaseDateISO ? 'efterAnvendtReguleringsdato' : undefined,
+                            minBoundReferenceISO: loenudviklingBaseDateISO,
                           }}
                           onCommit={handleEoAnciennitetstillaegDatoCommit}
                         />

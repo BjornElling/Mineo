@@ -50,7 +50,6 @@ import {
   resolveAnciennitetForIndex,
   type AnciennitetForIndex,
 } from '../erstatningsopgoerelse/engines/overenskomstReguleringShared';
-import { resolveOverenskomstEffectiveStartIso } from '../erstatningsopgoerelse/engines/reguleringCoverage';
 import { buildManuelProcentsatsEntries } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildStatistikIndexEntries } from '../erstatningsopgoerelse/engines/statistikRegulering';
 import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';
@@ -478,8 +477,8 @@ const buildEntryForDate = (args: {
   feriePct: number;
   loenPaaHelligdage: LoenPaaHelligdage | undefined;
   referenceValue: number;
-  // Anciennitetstillæg (kr.) der er aktivt på denne dato. Lægges oven i grundlønnen, så kontrol-
-  // indekset inkluderer tillægget ligesom motoren/bilaget (jf. resolveAnciennitetForIndex).
+  // Anciennitetstillæg (kr.) der er aktivt på denne dato. Referenceværdien kalder med 0, fordi
+  // tillægget først må ligge efter anvendt reguleringsdato og derfor ikke indgår i indeks 100.
   grundloenSupplement?: number;
 }): IndeksEntry | null => {
   if (args.sats.grundloen === null) return null;
@@ -517,12 +516,12 @@ const buildEntryForDate = (args: {
 };
 
 // Anciennitetstillæg for kontrol-indekset — samme delte resolver som motor og bilag. Kontrol-
-// lagets timeline spænder EO-perioden (`eoRange`) frem for TAF-ranges; det bruger `rawActiveFromIso`
-// til basis-gaten og `activeFromIso` (clampet til periodestart) til per-entry-gate + brudpunkt.
+// lagets timeline spænder EO-perioden (`eoRange`) frem for TAF-ranges.
 const resolveInspektionAnciennitet = (args: Readonly<{
   af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   overenskomstId: string;
   tafBeregningsenhed: TafBeregningsenhed;
+  referenceIso: ISODateString;
   eoRange: Readonly<{ fra: ISODateString; til: ISODateString }>;
 }>): AnciennitetForIndex | null =>
   resolveAnciennitetForIndex({
@@ -532,6 +531,7 @@ const resolveInspektionAnciennitet = (args: Readonly<{
     satsAngivesPer: args.af.anciennitetstillaegSatsAngivesPer,
     overenskomstId: args.overenskomstId,
     tafBeregningsenhed: args.tafBeregningsenhed,
+    anvendtReguleringsdatoIso: args.referenceIso,
     periodeStartIso: args.eoRange.fra,
     periodeEndIso: args.eoRange.til,
   });
@@ -711,20 +711,13 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         referenceDanish,
         applyAlmindeligLoenPaaShDageRegel
       );
-      // Anciennitetstillæg indgår i basis/referenceniveauet, hvis det allerede gælder på den
-      // effektive reguleringsdato (rå-dato-gate), og i per-dato-entries fra tillæggets aktiveringsdato.
-      // Uden dette viste kontrol-indekset et forkert grundlag og kunne melde et falsk
-      // control:sammentaelling_mismatch, jf. resolveAnciennitetForIndex.
       const anciennitet = resolveInspektionAnciennitet({
         af,
         overenskomstId,
         tafBeregningsenhed,
+        referenceIso,
         eoRange,
       });
-      const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(overenskomstId, referenceIso);
-      const baseAnciennitet = anciennitet && effectiveReguleringsdatoIso >= anciennitet.rawActiveFromIso
-        ? anciennitet.supplementValue
-        : 0;
       const referenceResult = getOffentligLoenForDato(
         offentligSelection.overenskomstType,
         referenceDanish,
@@ -752,7 +745,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           ? referenceResult.maanedsLoen
           : referenceResult.timeLoen;
       const referenceValue = computePackageValueDecimal({
-        grundloen: referenceBase + offentligLoenEkstraGrundloen + baseAnciennitet,
+        grundloen: referenceBase + offentligLoenEkstraGrundloen,
         feriePct,
         shSoPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.shSoSats, af.shSoPct),
         fritvalgPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.fritvalg, af.fritvalgPct),
@@ -919,18 +912,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         continue;
       }
 
-      // Anciennitetstillæg indgår i basis, hvis det gælder på den effektive reguleringsdato
-      // (rå-dato-gate), og i per-dato-entries fra aktiveringsdatoen — samme delte resolver som
-      // motoren/bilaget, så kontrol-indekset ikke melder et falsk control:sammentaelling_mismatch.
       const anciennitet = af.overenskomstId
-        ? resolveInspektionAnciennitet({ af, overenskomstId: af.overenskomstId, tafBeregningsenhed, eoRange })
+        ? resolveInspektionAnciennitet({ af, overenskomstId: af.overenskomstId, tafBeregningsenhed, referenceIso, eoRange })
         : null;
-      const effectiveReguleringsdatoIso = af.overenskomstId
-        ? resolveOverenskomstEffectiveStartIso(af.overenskomstId, referenceIso)
-        : referenceIso;
-      const baseAnciennitet = anciennitet && effectiveReguleringsdatoIso >= anciennitet.rawActiveFromIso
-        ? anciennitet.supplementValue
-        : 0;
 
       const referenceEntry = buildEntryForDate({
         iso: referenceIso,
@@ -938,7 +922,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         feriePct,
         loenPaaHelligdage,
         referenceValue: 1,
-        grundloenSupplement: baseAnciennitet,
+        grundloenSupplement: 0,
       });
       if (!referenceEntry) continue;
       const referenceValue = referenceEntry.packageValue;

@@ -61,13 +61,6 @@ export const buildPrivatOverenskomstSegmenter = (
   }
   ensurePositiveFiniteNumber(privateBaseContext.effectiveBase.sats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
 
-  // Basis/referenceniveauet skal indeholde et anciennitetstillæg, der allerede gælder på den
-  // effektive reguleringsdato (bruger-beslutning 2026-07-07). Gaten bruger den rå anciennitetsdato,
-  // så den er lig med den viste reguleringsindeks-tabel — ellers ville det udbetalte beløb regne
-  // tillægget som lønudvikling oven på en basis uden det og dermed afvige fra det viste indeks.
-  const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdatoIso >= anciennitetForIndex.rawActiveFromIso
-    ? anciennitetForIndex.supplementValue
-    : 0;
   const basePackageComponents = buildPrivateOverenskomstFormulaComponents({
     sats: privateBaseContext.effectiveBase.sats,
     context: privateBaseContext,
@@ -77,7 +70,7 @@ export const buildPrivatOverenskomstSegmenter = (
     pensionPctInput: konsolideret.pensionPct,
     pctBasisRole: 'reference',
     dateIso: reguleringsdatoIso,
-    baseValueSupplement: baseAnciennitet,
+    baseValueSupplement: 0,
     applyAlmindeligLoenPaaShDageRegel: applyShRegel,
   });
   const basePackage = computeFormulaValue(basePackageComponents);

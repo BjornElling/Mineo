@@ -59,4 +59,15 @@ describe('resolveDateRangeErrorMessage', () => {
     });
     expect(message).toContain('Kapitaliseringsdato kan ikke være før afgørelsesdatoen');
   });
+
+  it('uses anvendt reguleringsdato message when minBoundKind=efterAnvendtReguleringsdato', () => {
+    const message = resolveDateRangeErrorMessage({
+      iso: iso('2024-01-01'),
+      minDate: iso('2024-01-02'),
+      maxDate: iso('2030-12-31'),
+      special: { minBoundKind: 'efterAnvendtReguleringsdato', minBoundReferenceISO: iso('2024-01-01') },
+    });
+    expect(message).toContain('efter anvendt reguleringsdato');
+    expect(message).toContain('01-01-2024');
+  });
 });

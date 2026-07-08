@@ -1148,8 +1148,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
     return result;
   };
 
-  // Delt anciennitets-resolver (samme kilde som motor og kontrol). `activeFromIso` er TAF-clampet
-  // (segment-split + per-segment-gate); `rawActiveFromIso` er den rå dato (basis-gate).
+  // Delt anciennitets-resolver (samme kilde som motor og kontrol). Datoen ligger efter anvendt
+  // reguleringsdato, så tillægget er et segment-brudpunkt, aldrig en del af indeks 100.
   const anciennitetForIndex = loenudviklingBasis === 'Overenskomst'
     ? resolveAnciennitetForIndex({
         harAnciennitetstillaeg: ansaettelsesforhold.harAnciennitetstillaegEfterSkadedatoen,
@@ -1158,6 +1158,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         satsAngivesPer: ansaettelsesforhold.anciennitetstillaegSatsAngivesPer,
         overenskomstId: ansaettelsesforhold.overenskomstId,
         tafBeregningsenhed,
+        anvendtReguleringsdatoIso: anvendtReguleringsdato,
         periodeStartIso: tafStartIso,
         periodeEndIso: tafEndIso,
       })
@@ -1262,10 +1263,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       const hasStoreBededag =
         applyAlmindeligLoenPaaShDageRegel &&
         (anvendtReguleringsdato >= STORE_BEDEDAG_START || segmentsForOverenskomstCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
-      const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdato >= anciennitetForIndex.rawActiveFromIso
-        ? anciennitetForIndex.supplementValue
-        : 0;
-      const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen + baseAnciennitet;
+      const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen;
       const baseComponents: FormulaComponents = buildOffentligOverenskomstFormulaComponents({
         grundloen: baseValue,
         feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
@@ -1371,9 +1369,6 @@ export const buildReguleringIndexRows = (params: Readonly<{
           lastSegmentEndIso >= STORE_BEDEDAG_START
         );
         const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
-        const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdato >= anciennitetForIndex.activeFromIso
-          ? anciennitetForIndex.supplementValue
-          : 0;
         const baseComponents: FormulaComponents = buildPrivateOverenskomstFormulaComponents({
           sats: privateBaseContext.effectiveBase.sats,
           context: privateBaseContext,
@@ -1383,7 +1378,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
           pensionPctInput: ansaettelsesforhold.pensionPct,
           pctBasisRole: 'reference',
           dateIso: anvendtReguleringsdato,
-          baseValueSupplement: baseAnciennitet,
+          baseValueSupplement: 0,
           applyAlmindeligLoenPaaShDageRegel,
         });
         const baseVisibility: FormulaVisibility = {

@@ -12,7 +12,7 @@ export type DateRangeSpecialErrors = {
   /**
    * Identificerer min-grænsens semantiske oprindelse til domæne-specifikke fejlbeskeder.
    */
-  minBoundKind?: 'skadedato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato';
+  minBoundKind?: 'skadedato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato' | 'efterAnvendtReguleringsdato';
   /**
    * Den brugersynlige referencedato, der frembragte grænsen (typisk Skadedato/Anmeldedato).
    * Bruges til specielle beskeder, der skal nævne den konkrete referencedato.
@@ -68,6 +68,11 @@ export const resolveDateRangeErrorMessage = (args: {
   if (special?.minBoundKind === 'kapDatoFoerAfgoerelsesdato' && minDate && iso < minDate) {
     const reference = special.minBoundReferenceISO ?? minDate;
     return `Kapitaliseringsdato kan ikke være før afgørelsesdatoen (${formatISOForTooltip(reference)})`;
+  }
+
+  if (special?.minBoundKind === 'efterAnvendtReguleringsdato' && minDate && iso < minDate) {
+    const reference = special.minBoundReferenceISO ?? minDate;
+    return `Datoen for anciennitetstillæg skal være efter anvendt reguleringsdato (${formatISOForTooltip(reference)})`;
   }
 
   if ((special?.maxBoundKind === 'eetDataMax' || special?.maxBoundKind === 'dataCoverageMax') && maxDate && iso > maxDate) {

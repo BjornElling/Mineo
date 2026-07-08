@@ -15,30 +15,26 @@ import { convertAnciennitetSats, parseDanishToIso, resolvePctPointFromSatsOrInpu
 import type { FormulaComponents } from './reguleringFormulaUtils';
 
 // =============================================================================
-// Anciennitetstillæg i basis — ét fælles opslag delt af motor, præsentation og kontrol.
+// Anciennitetstillæg i reguleringsforløb — ét fælles opslag delt af motor, præsentation og kontrol.
 //
 // Tillægget (og dets gate-datoer) blev tidligere udledt tre gange uafhængigt: motorens
 // `overenskomstSegmentContext`, præsentationens reguleringsindeks-tabel og — implicit ved
 // FRAVÆR — kontrol-laget (`eoInspektionRegulationCore`), som slet ikke medtog tillægget og
 // derfor kunne vise et forkert kontrol-indeks (falsk `control:sammentaelling_mismatch`).
-// Resolveren nedenfor er nu den ENESTE kilde til (a) tillæggets kroneværdi og (b) de to
-// gate-datoer. Selve indeks-/pakkeberegningen forbliver pr. lag (motorens pct-point-formel vs.
+// Resolveren nedenfor er den ENESTE kilde til tillæggets kroneværdi og aktiveringsdato.
+// Selve indeks-/pakkeberegningen forbliver pr. lag (motorens pct-point-formel vs.
 // kontrol-lagets decimal-konvention, jf. B9) — kun resolutionen af user-input deles.
 // =============================================================================
 
 /**
  * Anciennitetstillæg der er aktivt fra en given dato, delt af begge overenskomst-grene + kontrol.
- * De to datoer adskiller sig bevidst:
- * - `rawActiveFromIso`: den rå anciennitetsdato. BASIS-gaten (referenceniveauet, indeks 100)
- *   inkluderer tillægget, hvis det allerede gælder på den effektive reguleringsdato — målt mod
- *   denne rå dato (bruger-beslutning 2026-07-07: "basis skal indeholde tillægget").
- * - `activeFromIso`: den rå dato clampet op til periodens start (TAF-start). Bruges til
- *   segment-splitting og per-segment-gate, fordi et tillæg dateret før perioden først kan slå
- *   igennem fra periodens første dag.
+ * Datoen må efter den nuværende domæneregel kun ligge efter anvendt reguleringsdato, så
+ * tillægget er aldrig en del af referenceniveauet (indeks 100). `activeFromIso` bruges til
+ * segment-splitting og per-segment-gate; ligger datoen før den viste periode, clampes den op til
+ * periodens første dag.
  */
 export type AnciennitetForIndex = Readonly<{
   activeFromIso: ISODateString;
-  rawActiveFromIso: ISODateString;
   supplementValue: number;
 }>;
 
@@ -49,16 +45,16 @@ export type AnciennitetForIndexInput = Readonly<{
   satsAngivesPer: 'Time' | 'Måned' | undefined;
   overenskomstId: string | undefined;
   tafBeregningsenhed: TafBeregningsenhed;
+  anvendtReguleringsdatoIso: ISODateString | undefined;
   // Periodens grænser (motor: tafRanges min/max; kontrol/præsentation: den viste periodes ISO-span).
   periodeStartIso: ISODateString;
   periodeEndIso: ISODateString;
 }>;
 
 /**
- * Udleder anciennitetstillæggets kroneværdi (i grundlønnens enhed) + gate-datoerne, eller `null`
- * hvis der intet aktivt tillæg er. Tal-neutral med den tidligere tre-vejs-duplikering:
- * `anciennitetstillaegSatsAngivesPer` er schema-defaultet til 'Måned', så `?? 'Måned'` er blot
- * defensivt (aldrig nået for schema-gyldigt input).
+ * Udleder anciennitetstillæggets kroneværdi (i grundlønnens enhed) + aktiveringsdato, eller `null`
+ * hvis der intet aktivt tillæg er. `anciennitetstillaegSatsAngivesPer` er schema-defaultet til
+ * 'Måned', så `?? 'Måned'` er blot defensivt (aldrig nået for schema-gyldigt input).
  */
 export const resolveAnciennitetForIndex = (
   input: AnciennitetForIndexInput
@@ -69,6 +65,7 @@ export const resolveAnciennitetForIndex = (
   if (!anciennitetDato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
     return null;
   }
+  if (input.anvendtReguleringsdatoIso && anciennitetDato <= input.anvendtReguleringsdatoIso) return null;
   if (anciennitetDato > input.periodeEndIso) return null;
   if (!input.overenskomstId) return null;
   const tafBeregnesSom = input.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
@@ -79,7 +76,6 @@ export const resolveAnciennitetForIndex = (
   if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;
   return {
     activeFromIso: anciennitetDato < input.periodeStartIso ? input.periodeStartIso : anciennitetDato,
-    rawActiveFromIso: anciennitetDato,
     supplementValue: roundedSupplement,
   };
 };

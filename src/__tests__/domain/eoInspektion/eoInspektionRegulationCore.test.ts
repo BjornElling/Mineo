@@ -10,9 +10,6 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import type { ISODateString } from '../../../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate } from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
-import { convertAnciennitetSats } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import { getGrundloenAngivetPerForOverenskomst } from '../../../data/overenskomstRates';
-import { round2 } from '../../../utils/roundingShortcuts';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
 const iso = (date: string): ISODateString => date as ISODateString;
@@ -577,20 +574,12 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
 
 // ─── Anciennitetstillæg i kontrol-indekset ────────────────────────────────────
 
-describe('buildRegulationTimeline — anciennitetstillæg i basis', () => {
-  const expectedSupplement = (value: number): number => {
-    const grundloenPer = getGrundloenAngivetPerForOverenskomst('bygge-anlaeg', 'Måneder');
-    expect(grundloenPer).toBeDefined();
-    return round2(convertAnciennitetSats(value, 'Måned', grundloenPer!));
-  };
-
-  it('inkluderer anciennitetstillæg i grundlønnen når tillægget gælder fra reguleringsdatoen (privat overenskomst)', () => {
-    // Tillæg aktivt fra reguleringsdatoen (2024-01-01) → basis OG alle entries indeholder tillægget,
-    // ligesom motoren og bilaget (bruger-beslutning 2026-07-07: "basis skal indeholde tillægget").
+describe('buildRegulationTimeline — anciennitetstillæg efter anvendt regulering', () => {
+  it('holder anciennitetstillæg ude af basis og medtager det fra aktiveringsdatoen (privat overenskomst)', () => {
     const withAnc = makeInput();
     const af = withAnc.eoValues.loenindkomstAnsaettelsesforhold[0];
     af.harAnciennitetstillaegEfterSkadedatoen = true;
-    (af as any).anciennitetstillaegDato = toISODateString('2024-01-01');
+    (af as any).anciennitetstillaegDato = toISODateString('2024-07-01');
     (af as any).anciennitetstillaegSats = { value: 1000 };
     (af as any).anciennitetstillaegSatsAngivesPer = 'Måned';
 
@@ -601,10 +590,10 @@ describe('buildRegulationTimeline — anciennitetstillæg i basis', () => {
     expect(withEntry).toBeDefined();
     expect(withoutEntry).toBeDefined();
 
-    const supplement = expectedSupplement(1000);
-    expect(supplement).toBeGreaterThan(0);
-    // Grundlønnen (og dermed pakkeværdien/indekset) inkluderer nu tillægget.
-    expect(withEntry!.grundloen - withoutEntry!.grundloen).toBeCloseTo(supplement, 6);
+    expect(withEntry!.grundloen).toBeCloseTo(withoutEntry!.grundloen, 6);
+    const ancEntry = buildRegulationTimeline(withAnc).ansaettelser[0]?.entries.find((e) => e.effectiveFrom === toISODateString('2024-07-01'));
+    expect(ancEntry).toBeDefined();
+    expect(ancEntry!.grundloen).toBeGreaterThan(withEntry!.grundloen);
   });
 
   it('holder tillægget ude af basis før anciennitetsdatoen, men indsætter det som brudpunkt (privat)', () => {
@@ -630,7 +619,7 @@ describe('buildRegulationTimeline — anciennitetstillæg i basis', () => {
     expect(ancEntry).toBeDefined();
   });
 
-  it('inkluderer anciennitetstillæg i grundlønnen for offentlig løn-path (KL)', () => {
+  it('holder anciennitetstillæg ude af basis for offentlig løn-path (KL)', () => {
     const makeKL = () => {
       const input = makeInput();
       const af = input.eoValues.loenindkomstAnsaettelsesforhold[0] as any;
@@ -643,7 +632,7 @@ describe('buildRegulationTimeline — anciennitetstillæg i basis', () => {
     const withAnc = makeKL();
     const af = withAnc.eoValues.loenindkomstAnsaettelsesforhold[0] as any;
     af.harAnciennitetstillaegEfterSkadedatoen = true;
-    af.anciennitetstillaegDato = toISODateString('2024-01-01');
+    af.anciennitetstillaegDato = toISODateString('2024-07-01');
     af.anciennitetstillaegSats = { value: 500 };
     af.anciennitetstillaegSatsAngivesPer = 'Time';
 
@@ -651,8 +640,10 @@ describe('buildRegulationTimeline — anciennitetstillæg i basis', () => {
     const withoutEntry = buildRegulationTimeline(makeKL()).ansaettelser[0]?.entries[0];
     expect(withEntry).toBeDefined();
     expect(withoutEntry).toBeDefined();
-    // Grundlønnen inkluderer nu det aktive anciennitetstillæg (tillægget er additivt på grundløn).
-    expect(withEntry!.grundloen).toBeGreaterThan(withoutEntry!.grundloen);
+    expect(withEntry!.grundloen).toBeCloseTo(withoutEntry!.grundloen, 6);
+    const ancEntry = buildRegulationTimeline(withAnc).ansaettelser[0]?.entries.find((e) => e.effectiveFrom === toISODateString('2024-07-01'));
+    expect(ancEntry).toBeDefined();
+    expect(ancEntry!.grundloen).toBeGreaterThan(withoutEntry!.grundloen);
   });
 });
 

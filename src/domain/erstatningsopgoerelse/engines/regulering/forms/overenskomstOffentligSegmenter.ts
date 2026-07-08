@@ -15,7 +15,6 @@ import {
 } from '../../../helpers/eoSharedUtils';
 import { computeFormulaValue, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { buildOffentligOverenskomstFormulaComponents } from '../../overenskomstReguleringShared';
-import { resolveOverenskomstEffectiveStartIso } from '../../reguleringCoverage';
 import {
   buildSegmentsFromStartDates,
   buildZeroDeltaSegment,
@@ -89,20 +88,9 @@ export const buildOffentligOverenskomstSegmenter = (
     offentligEffectiveBaseDa,
     applyShRegel
   );
-  // Basis/referenceniveauet skal indeholde et anciennitetstillæg, der allerede gælder på den
-  // effektive reguleringsdato (bruger-beslutning 2026-07-07). Gaten bruger den rå anciennitetsdato,
-  // så den er lig med den viste reguleringsindeks-tabel — ellers ville det udbetalte beløb regne
-  // tillægget som lønudvikling oven på en basis uden det og dermed afvige fra det viste indeks.
-  const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
-    konsolideret.overenskomstId,
-    reguleringsdatoIso
-  );
-  const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdatoIso >= anciennitetForIndex.rawActiveFromIso
-    ? anciennitetForIndex.supplementValue
-    : 0;
   const baseLoenRaw = (offentlig.loenType === 'maanedsLoen'
     ? offentligEffectiveBase.result.maanedsLoen
-    : offentligEffectiveBase.result.timeLoen) + offentligLoenEkstraGrundloen + baseAnciennitet;
+    : offentligEffectiveBase.result.timeLoen) + offentligLoenEkstraGrundloen;
   const baseLoen = ensurePositiveFiniteNumber(baseLoenRaw, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
   const basePackage = computeFormulaValue(buildOffentligOverenskomstFormulaComponents({
     grundloen: baseLoen,

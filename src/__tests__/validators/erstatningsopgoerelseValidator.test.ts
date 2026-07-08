@@ -1033,6 +1033,35 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(values, 'KRL satstabel skal vælges')).toBe(true);
   });
 
+  it('fanger anciennitetstillæg på anvendt reguleringsdato', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-01-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          loenPaaHelligdage: 'Almindelig løn',
+          feriePct: 12.5,
+          harAnciennitetstillaegEfterSkadedatoen: true,
+          anciennitetstillaegDato: iso('2024-01-31'),
+          anciennitetstillaegSats: asAmount(1000),
+          anciennitetstillaegSatsAngivesPer: 'Måned',
+        },
+      ],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values, { skadedatoISO: iso('2024-01-01') });
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'loenindkomstAnsaettelsesforhold[0].anciennitetstillaegDato',
+      message: expect.stringContaining('efter anvendt reguleringsdato (31-01-2024)'),
+      severity: 'error',
+    }));
+  });
+
   it('fanger statistikregulering efter datagrundlagets seneste dato', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',

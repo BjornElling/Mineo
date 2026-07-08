@@ -22,29 +22,28 @@ const baseInput = () => ({
   satsAngivesPer: 'Måned' as 'Time' | 'Måned' | undefined,
   overenskomstId: OVERENSKOMST as string | undefined,
   tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+  anvendtReguleringsdatoIso: iso('2024-01-01') as ISODateString | undefined,
   periodeStartIso: iso('2024-01-01'),
   periodeEndIso: iso('2024-12-31'),
 });
 
 describe('resolveAnciennitetForIndex', () => {
-  it('udleder tillæggets kroneværdi og de to gate-datoer for et aktivt tillæg', () => {
+  it('udleder tillæggets kroneværdi og aktiveringsdato for et aktivt tillæg', () => {
     const result = resolveAnciennitetForIndex(baseInput());
     expect(result).not.toBeNull();
-    // Datoen ligger inden for perioden → ingen clamp; begge datoer er den rå dato.
-    expect(result!.rawActiveFromIso).toBe(iso('2024-06-01'));
+    // Datoen ligger inden for perioden → ingen clamp.
     expect(result!.activeFromIso).toBe(iso('2024-06-01'));
     expect(result!.supplementValue).toBeCloseTo(expectedSupplement(1000, 'Måned'), 6);
     expect(result!.supplementValue).toBeGreaterThan(0);
   });
 
-  it('clamper activeFromIso op til periodestart, men bevarer rawActiveFromIso', () => {
+  it('clamper activeFromIso op til periodestart', () => {
     const result = resolveAnciennitetForIndex({
       ...baseInput(),
+      anvendtReguleringsdatoIso: iso('2023-01-01'),
       anciennitetstillaegDatoIso: iso('2023-06-01'),
     });
     expect(result).not.toBeNull();
-    expect(result!.rawActiveFromIso).toBe(iso('2023-06-01'));
-    // Clampet op til periodestart (basis-gaten bruger fortsat den rå dato).
     expect(result!.activeFromIso).toBe(iso('2024-01-01'));
   });
 
@@ -54,6 +53,17 @@ describe('resolveAnciennitetForIndex', () => {
       anciennitetstillaegDatoIso: iso('2025-01-01'),
     });
     expect(result).toBeNull();
+  });
+
+  it('returnerer null når anciennitetsdatoen ikke ligger efter anvendt reguleringsdato', () => {
+    expect(resolveAnciennitetForIndex({
+      ...baseInput(),
+      anciennitetstillaegDatoIso: iso('2024-01-01'),
+    })).toBeNull();
+    expect(resolveAnciennitetForIndex({
+      ...baseInput(),
+      anciennitetstillaegDatoIso: iso('2023-12-31'),
+    })).toBeNull();
   });
 
   it('returnerer null når tillægget ikke er slået til', () => {
