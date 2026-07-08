@@ -4,7 +4,8 @@ import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/forma
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy, isOffentligOverenskomstId } from '../../data/overenskomstRates';
-import { isSfggNoEligibleDaysNotCalculable, hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { isSfggNoEligibleDaysNotCalculable } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelseKilde';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_TABLE_TOTAL_LABEL, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';

@@ -487,6 +487,53 @@ describe('SFGG validering', () => {
 
     expect(hasError(values, 'Dagssats for sygeferiegodtgørelse mangler')).toBe(true);
   });
+
+  it('behandler hængende privat direkte-sats-overenskomst som ferielov-spor når harOverenskomst er slået fra', () => {
+    // Regressionsværn: brugeren valgte en privat differentieret direkte-sats-overenskomst
+    // ('bygge-anlaeg') med SFGG-kilde 'Overenskomst' og slog derefter harOverenskomst fra;
+    // overenskomst-ID'et blev hængende. resolveSfggSource behandler dette som overenskomst_ferielov
+    // (referenceperiode-sporet), og validatoren skal følge samme kildeopløsning: kræve
+    // referenceperiode og IKKE kræve satsvalg. Tidligere genudledte validatoren policyen uden
+    // harOverenskomst-betingelsen og gav selvmodsigende beskeder (satsvalg krævet, referenceperiode
+    // sprunget over) i uoverensstemmelse med motoren.
+    const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
+      loenindkomstAnsaettelsesforhold: [{
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-1',
+        harOverenskomst: false,
+        overenskomstId: 'bygge-anlaeg',
+        pensionPct: 0,
+      }],
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    // Følger motoren: referenceperiode-sporet, intet satsvalg-krav.
+    expect(hasError(values, 'Satsvalg mangler')).toBe(false);
+    expect(hasError(values, 'Referenceperiode fra-dato mangler')).toBe(true);
+    // Den primære blokerende besked står stadig, fordi der ikke er en aktiv overenskomst.
+    expect(hasError(values, 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst')).toBe(true);
+  });
 });
 
 // =============================================================================

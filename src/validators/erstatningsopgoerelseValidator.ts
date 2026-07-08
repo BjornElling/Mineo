@@ -38,8 +38,8 @@ import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsop
 import {
   getFirstIndtastedeTafFraDato,
   resolveSfggReferenceperiodeDayCount,
-  resolveSfggSource,
 } from '../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelseKilde';
 import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import {
   clampTafRow,
@@ -47,7 +47,7 @@ import {
   resolveTafConstraintBounds,
 } from '../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
-import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
+import { getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { isoToDanish } from '../types/branded';
 import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
@@ -476,13 +476,18 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     if (row.sfggBeregningskilde === 'Ingen') return;
 
-    const overenskomstPolicy =
-      row.sfggBeregningskilde === 'Overenskomst' && employment?.overenskomstId && !getOffentligOverenskomstTypeById(employment.overenskomstId)
+    // Rut kildeforståelsen gennem den kanoniske resolveSfggSource — samme opløsning som motoren.
+    // Slå kun overenskomstens direkte-sats-policy op, når kilden faktisk lander i det direkte
+    // overenskomstspor (resolveSfggSource kræver bl.a. harOverenskomst). At genudlede policyen
+    // uafhængigt her gav tidligere selvmodsigende valideringsbeskeder — krav om satsvalg og
+    // sprunget referenceperiode — når et privat overenskomst-ID blev hængende efter at
+    // harOverenskomst var slået fra, hvor motoren behandler sporet som ferielov.
+    const source = resolveSfggSource(row, employment);
+    const overenskomstDirekteSatsPolicy =
+      source.kind === 'overenskomst_direkte' && employment.overenskomstId
         ? getOverenskomstSfggPolicy(employment.overenskomstId)
         : undefined;
-    const requiresReferenceperiode =
-      row.sfggBeregningskilde === 'Ferieloven'
-      || (row.sfggBeregningskilde === 'Overenskomst' && overenskomstPolicy?.model !== 'direkte_sats');
+    const requiresReferenceperiode = sfggKildeUsesReferenceperiode(source.kind);
 
     if (row.sfggBeregningskilde === 'Manuelt angivet' && amountValueToNumber(row.sfggManuelDagssats) === undefined) {
       errors.push({
@@ -555,7 +560,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       });
     }
 
-    if (row.sfggBeregningskilde === 'Overenskomst' && overenskomstPolicy?.model === 'direkte_sats' && overenskomstPolicy.direkteSatsErDifferentieret && !row.sfggSatsvalg) {
+    if (source.kind === 'overenskomst_direkte' && overenskomstDirekteSatsPolicy?.direkteSatsErDifferentieret && !row.sfggSatsvalg) {
       errors.push({
         path: `${errorPathPrefix}.sfggSatsvalg`,
         message: 'Satsvalg mangler',
@@ -564,7 +569,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     }
 
     if (requiresReferenceperiode && row.sfggReferenceperiodeFra && row.sfggReferenceperiodeTil) {
-      const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, row, resolveSfggSource(row, employment));
+      const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, row, source);
       const availableRelevantDays = referenceDayCount?.divisorLabel === 'kalenderdage'
         ? referenceDayCount.kalenderdage
         : (referenceDayCount?.divisorDage ?? 0);

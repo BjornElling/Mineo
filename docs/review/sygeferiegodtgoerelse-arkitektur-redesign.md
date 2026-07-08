@@ -1,7 +1,21 @@
 # Sygeferiegodtgørelse — arkitektonisk redesign set fra bunden
 
 **Dato:** 2026-07-08
-**Status:** Analyse / beslutningsoplæg (ingen kode ændret endnu).
+**Status:** Under implementering. **Skridt 1 (S2 delvist)** og **skridt 2 (S1)** er gennemført.
+
+> **Implementeringsstatus (opdateres pr. skridt):**
+> - ✅ **Skridt 1 — S2 (delvist):** tekst-round-trippen for 4-måneders-cap'et dræbt; kontrol læser
+>   `sfggAfkortninger`, `sfggDayBasis`, `foerstEfterSygeloen` og feriepenge-total fra motoren;
+>   præsentationsmodellen er nu et alias af motorens resultat.
+> - ✅ **Skridt 2 — S1:** SFGG-kilden samlet i `engines/sygeferiegodtgoerelseKilde.ts` (låst,
+>   exhaustivt `SFGG_KILDE_REGISTRY` + `resolveSfggSource`/`resolveSfggDayBasis`/predicates). Motorens
+>   ~8 spredte kilde-grene ruter nu gennem registeret, og validatoren dispatcher på
+>   `resolveSfggSource(...).kind` frem for at genudlede kilde-splittet på rå literaler. Tal- og
+>   UI-neutralt bortset fra én bevidst rettelse: valideringen behandler nu et hængende privat
+>   direkte-sats-overenskomst-ID som ferielov-sporet (i overensstemmelse med motoren) når
+>   `harOverenskomst` er slået fra — tidligere gav den selvmodsigende beskeder i den (altid
+>   blokerede) tilstand. Pinnet af ny `sygeferiegodtgoerelseKilde.test.ts` + validator-regression.
+> - ⬜ **Skridt 3 — S3** (periode-pipeline + fuldførelse af S2's strukturerede afkortninger), **S4/S5** (oprydning): endnu ikke påbegyndt.
 **Baggrund:** Efter det gennemførte regulering-redesign (`regulering-arkitektur-redesign.md`) er
 mistanken, at samme rod-problem — *parallel logik holdt sammen af tests i stedet for af struktur* —
 også gør sig gældende for sygeferiegodtgørelse (SFGG).

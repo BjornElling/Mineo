@@ -45,7 +45,7 @@ import {
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
-import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelseKilde';
 import { DAY_COUNT_MAX } from '../../../../schemas/formSchemas/baseSchemas';
 import { getDayAfterIso } from '../../../../utils/isoDateHelpers';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';

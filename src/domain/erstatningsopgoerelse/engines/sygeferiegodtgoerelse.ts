@@ -17,6 +17,14 @@ import { buildDatoSetInclusiveFromDates, buildFerieDageSet } from './tafDaySets'
 import { mergeIsoDateRanges } from './periodMerging';
 import { rangesOverlap } from './beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import {
+  getSfggKildeSpec,
+  resolveSfggDayBasis,
+  resolveSfggSource,
+  sfggKildeUsesReferenceperiode,
+  type SfggDayBasis,
+  type SfggSourceKind,
+} from './sygeferiegodtgoerelseKilde';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { danishToISO, dateToISO, parseISODate, type ISODateString } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
@@ -64,9 +72,6 @@ import {
 export const SFGG_LOVBESTEMT_FERIEPENGE_PCT = 12.5;
 export const SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL = SFGG_LOVBESTEMT_FERIEPENGE_PCT / 100;
 
-export type SfggSourceKind = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
-export type SfggSource = Readonly<{ kind: SfggSourceKind; label: string }>;
-export type SfggDayBasis = 'kalenderdage' | 'arbejdsdage';
 export type SfggReferencesatsNotCalculableKind =
   | 'missing_rate'
   | 'per_period_rate'
@@ -100,26 +105,6 @@ const resolveSfggReferencesatsNotCalculableReason = (
 export const isSfggNoEligibleDaysNotCalculable = (
   value: SfggReferencesatsCalculable
 ): boolean => value.status === 'not_calculable' && (value.kind === 'no_calendar_days' || value.kind === 'no_workdays');
-
-const SFGG_REFERENCEPERIODE_KILDER_MED_BEREGNINGSPERIODE = new Set<SfggSourceKind>([
-  'ferielov',
-  'overenskomst_ferielov',
-]);
-
-/**
- * Normativ SFGG-regel:
- * - Kun når SFGG beregnes via referenceperiode/ferielov-sporet OG TAF beregnes som måneder,
- *   opgøres SFGG på kalenderdage.
- * - I alle øvrige spor opgøres SFGG på arbejdsdage, uanset om dagssatsen kommer manuelt
- *   eller direkte fra overenskomsten.
- */
-export const resolveSfggDayBasis = (
-  source: Readonly<{ kind: SfggSourceKind }>,
-  tafBeregningsenhed: TafBeregningsenhed
-): SfggDayBasis =>
-  tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER && SFGG_REFERENCEPERIODE_KILDER_MED_BEREGNINGSPERIODE.has(source.kind)
-    ? 'kalenderdage'
-    : 'arbejdsdage';
 
 export type SygeferiegodtgoerelseSegment = Readonly<{
   ansaettelsesforholdId: string;
@@ -511,33 +496,6 @@ const getSfggRowForEmployment = (
 ): SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined =>
   values.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
 
-export const hasSfggSelectedOverenskomst = (
-  sfggRow: Pick<SygeferiegodtgoerelseAnsaettelsesforholdRow, 'sfggBeregningskilde'> | undefined,
-  employment: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
-): boolean =>
-  Boolean(
-    sfggRow?.sfggBeregningskilde === 'Overenskomst'
-    && employment.harOverenskomst
-    && employment.overenskomstId?.trim()
-  );
-
-export const resolveSfggSource = (
-  sfggRow: SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined,
-  employment: LoenindkomstAnsaettelsesforhold
-): SfggSource => {
-  const selected = sfggRow?.sfggBeregningskilde ?? 'Ingen';
-  if (selected === 'Ingen') return { kind: 'ingen', label: 'Ingen' };
-  if (selected === 'Manuelt angivet') return { kind: 'manuel', label: 'Manuelt angivet' };
-  if (selected === 'Ferieloven') return { kind: 'ferielov', label: 'Ferieloven' };
-  if (!employment.harOverenskomst || !employment.overenskomstId || getOffentligOverenskomstTypeById(employment.overenskomstId)) {
-    return { kind: 'overenskomst_ferielov', label: 'Overenskomst (ferielov)' };
-  }
-  const policy = getOverenskomstSfggPolicy(employment.overenskomstId);
-  return policy?.model === 'direkte_sats'
-    ? { kind: 'overenskomst_direkte', label: 'Overenskomst' }
-    : { kind: 'overenskomst_ferielov', label: 'Overenskomst (ferielov)' };
-};
-
 const getEmploymentName = (employment: LoenindkomstAnsaettelsesforhold): string =>
   (employment.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted';
 
@@ -554,8 +512,8 @@ const calculableSfggReferencesats = (value: MoneyOre): SfggReferencesatsCalculab
   value,
 });
 
-const assertNeverSfggSourceKind = (value: never): never => {
-  throw new Error(`Ukendt SFGG-kildetype: ${String(value)}`);
+const assertNever = (value: never): never => {
+  throw new Error(`Uventet SFGG-kildeværdi: ${String(value)}`);
 };
 
 const resolveSfggAfterEmployerSickPayProjection = (args: Readonly<{
@@ -567,22 +525,20 @@ const resolveSfggAfterEmployerSickPayProjection = (args: Readonly<{
   hasExplanation: boolean;
   text: string | null;
 }> => {
-  switch (args.sfggSourceKind) {
+  const { afterSickPayModel } = getSfggKildeSpec(args.sfggSourceKind);
+  switch (afterSickPayModel) {
     case 'ingen':
       return { hasExplanation: false, text: null };
     case 'manuel':
       return args.excludedAny && args.manualFoerstEfterSygeloen
         ? { hasExplanation: true, text: buildSfggAfterEmployerSickPayText({ kind: 'manual' }) }
         : { hasExplanation: false, text: null };
-    case 'ferielov':
-      return { hasExplanation: false, text: null };
-    case 'overenskomst_direkte':
-    case 'overenskomst_ferielov':
+    case 'overenskomst':
       return args.overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true
         ? { hasExplanation: true, text: buildSfggAfterEmployerSickPayText({ kind: 'overenskomst' }) }
         : { hasExplanation: false, text: null };
     default:
-      return assertNeverSfggSourceKind(args.sfggSourceKind);
+      return assertNever(afterSickPayModel);
   }
 };
 
@@ -974,7 +930,8 @@ const resolveSfggBaseRate = (
   sfggReferencesatsOre: SfggReferencesatsCalculable;
   sfggReferencesatsFormula: SfggReferencesatsFormula | null;
 }> => {
-  if (sfggSource.kind === 'manuel') {
+  const { rateModel } = getSfggKildeSpec(sfggSource.kind);
+  if (rateModel === 'manuel') {
     const manual = amountValueToNumber(sfggRow?.sfggManuelDagssats);
     return {
       sfggReferenceperiode: null,
@@ -982,7 +939,7 @@ const resolveSfggBaseRate = (
       sfggReferencesatsFormula: null,
     };
   }
-  if (sfggSource.kind === 'overenskomst_direkte') {
+  if (rateModel === 'per_periode_overenskomst') {
     return {
       sfggReferenceperiode: null,
       sfggReferencesatsOre: notCalculableSfggReferencesats('per_period_rate'),
@@ -1075,7 +1032,7 @@ const resolveAdjustedRate = (
   source: Readonly<{ kind: SfggSourceKind }>,
   loenudvikling: PerEmploymentLoenudvikling
 ): Readonly<{ satsOre: MoneyOre; reguleringsindeks: number | null }> => {
-  if (source.kind !== 'ferielov' && source.kind !== 'overenskomst_ferielov') {
+  if (!sfggKildeUsesReferenceperiode(source.kind)) {
     return { satsOre: baseRateOre, reguleringsindeks: null };
   }
   const segment = resolveLoenudviklingSegment(iso, loenudvikling);
@@ -1137,7 +1094,7 @@ const resolveSfggSegmentBoundaryStarts = (args: Readonly<{
       .forEach((start) => starts.add(start));
   }
 
-  if (args.sfggSource.kind === 'ferielov' || args.sfggSource.kind === 'overenskomst_ferielov') {
+  if (sfggKildeUsesReferenceperiode(args.sfggSource.kind)) {
     args.loenudvikling?.beregnedeSegmenter.forEach((segment) => {
       starts.add(segment.fra);
     });
@@ -1190,7 +1147,7 @@ const resolveSfggSegmentRateForDate = (args: Readonly<{
     loenudvikling,
   } = args;
 
-  if (sfggSource.kind === 'overenskomst_direkte') {
+  if (getSfggKildeSpec(sfggSource.kind).rateModel === 'per_periode_overenskomst') {
     const satsOre = resolveOverenskomstDagssatsOre(employment, iso, sfggRow?.sfggSatsvalg);
     if (satsOre === null) return null;
     const agPensionPctDecimal = resolveSfggAgPensionPctDecimalForDate(employment, iso);
@@ -1344,7 +1301,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     const sfggIntroText = buildSfggIntroText(sfggRow, employment, sfggSource);
     const sfggReferenceperiodeAuthorityText = resolveSfggReferenceperiodeAuthorityText(sfggSource.kind);
     const sfggReferenceperiodeLabel = resolveSfggReferenceperiodeLabel(employment);
-    const sfggDirectRateLabel = sfggSource.kind === 'overenskomst_direkte'
+    const sfggDirectRateLabel = getSfggKildeSpec(sfggSource.kind).rateModel === 'per_periode_overenskomst'
       ? resolveSfggDifferentieretSatsLabel(sfggRow?.sfggSatsvalg)
       : null;
     const sfggFirstTafDayExcludedText = employmentHadFirstExcludedDate
@@ -1362,8 +1319,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     // (ferielov-/overenskomst-efter-ferielov-sporet), og brugeren har indtastet en
     // feriepengesats for lønindkomsten, der afviger fra de lovbestemte 12,5 %, oplyses
     // det udtrykkeligt, at SFGG uanset den indtastede sats beregnes med 12,5 %.
-    const sfggBeregnesSomProcentAfLoen =
-      sfggSource.kind === 'ferielov' || sfggSource.kind === 'overenskomst_ferielov';
+    const sfggBeregnesSomProcentAfLoen = sfggKildeUsesReferenceperiode(sfggSource.kind);
     const harAfvigendeFeriepengesats =
       employment.feriePct !== undefined
       && Math.abs(employment.feriePct - SFGG_LOVBESTEMT_FERIEPENGE_PCT) > 1e-9;

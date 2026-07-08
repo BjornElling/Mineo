@@ -18,11 +18,11 @@ import { offentligLoenTypeEnum } from '../../../schemas/formSchemas';
 import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import {
-  resolveSfggSource,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggReferenceperiodeMaxDate,
   getFirstIndtastedeTafFraDato,
 } from '../engines/sygeferiegodtgoerelse';
+import { resolveSfggSource } from '../engines/sygeferiegodtgoerelseKilde';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../helpers/sygeferiegodtgoerelseEligibility';
 import {
   buildStandardLoenZeroArbejdsdageCellErrorMessages,
