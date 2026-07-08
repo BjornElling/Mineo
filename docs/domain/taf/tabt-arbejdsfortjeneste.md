@@ -285,7 +285,7 @@ resolveTafConstraintBounds(values): TafConstraintBounds
 | Import | Kilde |
 |---|---|
 | `beregnHelligdage` | `src/domain/dates/shDageBeregning.ts` |
-| `mergeIsoDateRanges` | `src/domain/erstatningsopgoerelse/engines/periodMerging.ts` |
+| `mergeIsoDateRanges` | `src/domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts` |
 | `buildIncomeForRanges`, `buildIncomeCalculationContext` | `src/domain/erstatningsopgoerelse/indtaegtPerioder.ts` |
 | `buildIndkomstSkadestidspunkt` | `src/domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts` |
 | `buildLoenudviklingModel` | `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts` |
@@ -309,7 +309,7 @@ resolveTafConstraintBounds(values): TafConstraintBounds
 
 ### Kanonisk periodemerge i EO
 
-EO-domænet bruger den fælles merge-helper i `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
+EO-domænet bruger den fælles merge-helper i `src/domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts`.
 
 - `mergeIsoDateRanges(...)` bruges når perioderne allerede er på ISO-form.
 - `mergeDateRanges(...)` bruges når en engine arbejder på `Date`-intervaller internt.

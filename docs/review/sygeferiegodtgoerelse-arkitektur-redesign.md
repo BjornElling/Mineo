@@ -15,15 +15,17 @@
 >   direkte-sats-overenskomst-ID som ferielov-sporet (i overensstemmelse med motoren) når
 >   `harOverenskomst` er slået fra — tidligere gav den selvmodsigende beskeder i den (altid
 >   blokerede) tilstand. Pinnet af ny `sygeferiegodtgoerelseKilde.test.ts` + validator-regression.
-> - ✅ **Skridt 3 — S3:** periode-logikken udtrukket til én navngiven pipeline `buildSfggPeriode`
->   (motor L1128), der returnerer `{ visningsperiode, eligibleRanges, afkortninger }`. Den faste,
+> - ✅ **Skridt 3 — S3:** periode-logikken udtrukket til én navngiven pipeline `buildSfggPeriode`,
+>   der returnerer `{ visningsperiode, eligibleRanges, afkortninger }`. Den faste,
 >   betydningsbærende rækkefølge (første-sygedag → 4-mdr-loft → ansættelsesophør → sygeløn → ferie,
 >   jf. G3/G4/G5) er nu ét auditerbart sted i stedet for udsmurt gennem orkestrator-løkken. Pipelinens
 >   `afkortninger` er den strukturerede ene-sandhed for "hvad klippede perioden og hvorfor" (alle fire
 >   årsager, i anvendt rækkefølge); orkestratoren *udleder* nu præsentationsfelterne fra den
->   (`afterEmployerSickPayExcludedAny`, `employmentHadFirstExcludedDate` og præsentations-`sfggAfkortninger`
->   med verbum) frem for at genberegne dem inline. Tal- og UI-neutralt (byte-identisk); pinnet af ny
->   `buildSfggPeriode`-testsuite (11 tests) + hele beregnings-/kontrol-/validator-/canonical-suiten.
+>   (`afterEmployerSickPayExcludedAny` fra `sygeloen`, `sfggFirstTafDayExcludedText` fra `foersteSygedag`,
+>   og præsentations-`sfggAfkortninger` med verbum fra `cap4mdr`/`ansaettelsesophoer`) frem for at
+>   genberegne dem inline; `employmentHadFirstExcludedDate` er derimod et *input* til pipelinen, ikke et
+>   afledt felt. Tal- og UI-neutralt (byte-identisk); pinnet af `buildSfggPeriode`-testsuiten
+>   + hele beregnings-/kontrol-/validator-/canonical-suiten.
 >   **Bevidst afgrænsning vs. det oprindelige S3-udkast:** `foersteSygedag`/`sygeloen` blev *ikke* foldet
 >   ind i den fælles præsentations-afkortnings-renderer (`formatSfggAfkortningPdfLine`), fordi de rendres
 >   på andre positioner i bilaget (første-dag *inline* efter grundteksten; sygeløn som egen linje +
@@ -35,7 +37,7 @@
 >   `buildDateSetFromRanges`, `buildSingleDateRange`) flyttet fra SFGG-motorens private scope hertil,
 >   så merge + subtraktion + split + clip + range/date-set-konvertering nu bor sammen. Rent flyt
 >   (byte-identisk); primitiverne var kun brugt af SFGG, så dette er en placerings-/kohæsions-forbedring
->   (og fjerner ~130 linjer fra den 1595-linjers motor), ikke fjernelse af aktiv duplikering. Alle
+>   (og fjerner ~130 linjer fra den ~1520-linjers motor), ikke fjernelse af aktiv duplikering. Alle
 >   importører, namespace-re-exporten, `eo-snapshot-contract.md` og kvalitets-værnene opdateret i samme
 >   ændring; primitiverne har nu direkte unit-tests i `isoRangeAlgebra.test.ts`.
 > - ✅ **Skridt 5 — S5:** overenskomstens SFGG-policy-dæknings-assert (`assertValidSfggPolicy`,
@@ -49,6 +51,18 @@
 >   SFGG-policy" ved at kræve en opslagbar policy for hver post i den kanoniske liste (private +
 >   offentlige), oven på det obligatoriske `sfggPolicy`-felt (compile-tid) og modul-load-guarden.
 >   Rent værn/load — tal- og UI-neutralt; ingen produktionsadfærd ændret.
+> - ✅ **Opfølgende review (2026-07-08):** kritisk gennemgang af S1-S5-implementeringen bekræftede
+>   byte-identitet (git-diff mod før-refactor-baseline) og lukkede restfund: (1) `sfggFirstTafDayExcludedText`
+>   udledes nu af pipelinens `foersteSygedag`-afkortning (fjerner sidste parallelle udledning; alle fire
+>   afkortnings-årsager er nu konsumeret). (2) Den ubrugte 4-måneders-tabel-scaffolding (`capRows`,
+>   `SygeferiegodtgoerelseCapRow`, `buildCapComputation`s rows-gren, den nu produktions-ubrugte
+>   `buildRangesFromSortedDates`) fjernet — brugerbeslutning: forklaringslinjen dokumenterer 4-mdr-grænsen,
+>   ikke en særskilt tabel (§9.1 opdateret). (3) Seksmåneders-advarslen kobles nu til EO-kontrol via samme
+>   `findSfggSixMonthWarningEmploymentIds` som inline-visningen (død gren aktiveret). (4) Ny testdækning:
+>   G7 (feriepenge på tværs af alle arbejdsgivere), G10 (øre-invariant + Math.min-floor), vacuous-pass i
+>   begge retninger, cap==ophør-grænse og sygeløn-efter-loft-rækkefølge. (5) Ryddet: `IsoDateRange`-alias +
+>   falsk importør-kommentar, de-eksporteret `resolveSfggDirectSatsValue`, og `periodMerging.ts`-referencer
+>   i `tabt-arbejdsfortjeneste.md`/`eo-clamping-pipeline-architecture.md` rettet til `isoRangeAlgebra.ts`.
 **Baggrund:** Efter det gennemførte regulering-redesign (`regulering-arkitektur-redesign.md`) er
 mistanken, at samme rod-problem — *parallel logik holdt sammen af tests i stedet for af struktur* —
 også gør sig gældende for sygeferiegodtgørelse (SFGG).
@@ -73,7 +87,7 @@ som parallelle grene i fem lag fordelt på tre 1000+-linjers filer), er SFGG all
 
 - **Der er kun én motor.** Al beregning bor i
   [sygeferiegodtgoerelse.ts](../../src/domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse.ts)
-  (1595 linjer). Der findes **ikke** — modsat reguleringens `eoInspektionRegulationCore.ts` — en tredje
+  (~1520 linjer). Der findes **ikke** — modsat reguleringens `eoInspektionRegulationCore.ts` — en tredje
   uafhængig timeline i inspektionslaget. Inspektionen læser motorens resultat (og krydstjekker
   `canonicalOutput.taf.sygeferiegodtgoerelseOre` mod summen af `perAnsaettelsesforhold[].totalOre` —
   et ægte forsonings-tjek, ikke en parallel motor).
@@ -119,8 +133,8 @@ beslutninger i koden. Ethvert forslag herunder er formuleret, så de overlever �
 | # | Bevidst regel / afvigelse | Hvorfor korrekt | Kilde |
 |---|---|---|---|
 | **G1** | **FP-sats er altid de lovbestemte 12,5 %** i procent-af-løn-sporene — aldrig `employment.feriePct` | Den indtastede sats er ofte overenskomstforhøjet (fx 14,5 %) og dækker tillæg der ikke indgår i SFGG | dok. §2.0; motor L64, L1006 |
-| **G2** | **Dagbasis = kalenderdage KUN** når referenceperiode-sporet (`ferielov`/`overenskomst_ferielov`) OG TAF = måneder; ellers arbejdsdage | Bevidst afvigelse dokumenteret i §afvigelse 1 | motor `resolveSfggDayBasis` L116 |
-| **G3** | **Før/efter 1.1.2015-tvedeling**: før = fra første sygedag + 4-måneders-loft; fra/med = fra anden sygedag (første TAF-dag i hele forløbet udgår på 1. EO), tidsubegrænset | Lovændring; §6.1/6.2 | motor L1218-1225, `buildCapComputation` L450 |
+| **G2** | **Dagbasis = kalenderdage KUN** når referenceperiode-sporet (`ferielov`/`overenskomst_ferielov`) OG TAF = måneder; ellers arbejdsdage | Bevidst afvigelse dokumenteret i §afvigelse 1 | `resolveSfggDayBasis` i `sygeferiegodtgoerelseKilde.ts` |
+| **G3** | **Før/efter 1.1.2015-tvedeling**: før = fra første sygedag + 4-måneders-loft; fra/med = fra anden sygedag (første TAF-dag i hele forløbet udgår på 1. EO), tidsubegrænset | Lovændring; §6.1/6.2 | `buildSfggPeriode` + `resolveSfggCapCutoffDate` |
 | **G4** | **Arbejdsgiverbetalt sygeløn**: perioden udgår fra SFGG-**kravet**, men tæller stadig med i 4-måneders-loftet; første-sygedag-reglen opfyldes af første sygedag i hele forløbet — også inde i en sygeløns-periode | §6.2, §7 | motor L1240-1248, L1306-1314 |
 | **G5** | **Ansættelsesophør stopper SFGG uden fejl**, men med PDF-note; verbum `bortfaldt`/`bortfalder` afhænger af om datoen er passeret | §6.4, §9.2 | motor `resolveSfggOphoerVerb` L421, L1293 |
 | **G6** | **Ferieperioder er fælles** for alle ansættelsesforhold; ellers beregnes SFGG **fuldstændigt separat pr. ansættelsesforhold** uden sammenblanding | §1, §2.2 | motor L1263, L1317 |

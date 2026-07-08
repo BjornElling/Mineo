@@ -6,12 +6,10 @@ import { addDays } from '../../../utils/dateUtils';
 import { isoDateToDate } from '../../dates/isoDate';
 
 // Kanonisk hjem for IsoRange-algebra: merge, subtraktion, split, clip og range/date-set-konvertering.
-// Alle periodiserings-konsumenter (TAF, SFGG, svie/smerte, ferie) trækker herfra frem for at
-// reimplementere range-operationer lokalt.
-
-// IsoDateRange er den ISO-baserede periode-form; identisk med den kanoniske IsoRange
-// i isoDateHelpers. Bevarer det velbrugte navn (8 importører) som alias for ét sandt struktur-grundlag.
-export type IsoDateRange = IsoRange;
+// Merge-funktionerne (mergeIsoDateRanges/mergeDateRanges) er delt bredt: TAF, SFGG, svie/smerte og
+// ferie/indkomst trækker herfra frem for at reimplementere merge lokalt. De øvrige primitiver
+// (subtract/split/clip/range-fra-datoer/date-set) bruges i dag kun af SFGG-motoren, men bor her, så
+// al range-algebra har ét hjem og kan enhedstestes samlet.
 
 type MergeableDateRange = Readonly<{
   fra: Date;
@@ -35,7 +33,7 @@ const addDaysIso = (isoDate: ISODateString, days: number): ISODateString => {
 export const mergeIsoDateRanges = <TRange extends IsoRange>(
   ranges: readonly TRange[],
   options?: Readonly<{ mergeAdjacent?: boolean }>
-): IsoDateRange[] => {
+): IsoRange[] => {
   if (ranges.length === 0) return [];
 
   const mergeAdjacent = options?.mergeAdjacent ?? true;
@@ -44,8 +42,8 @@ export const mergeIsoDateRanges = <TRange extends IsoRange>(
     return a.fra.localeCompare(b.fra);
   });
 
-  const merged: IsoDateRange[] = [];
-  let current: IsoDateRange = { fra: sorted[0].fra, til: sorted[0].til };
+  const merged: IsoRange[] = [];
+  let current: IsoRange = { fra: sorted[0].fra, til: sorted[0].til };
 
   for (let i = 1; i < sorted.length; i += 1) {
     const next = sorted[i];
@@ -71,7 +69,7 @@ export const mergeDateRanges = <TRange extends MergeableDateRange>(
 ): Array<{ fra: Date; til: Date }> => {
   if (ranges.length === 0) return [];
 
-  const isoRanges: IsoDateRange[] = [];
+  const isoRanges: IsoRange[] = [];
   for (const range of ranges) {
     const fraIso = dateToISO(range.fra);
     const tilIso = dateToISO(range.til);
@@ -104,30 +102,6 @@ export const buildDateSetFromRanges = (ranges: readonly IsoRange[]): Set<ISODate
       if (iso) result.add(iso);
     });
   }
-  return result;
-};
-
-/** Samler sorterede, sammenhængende ISO-datoer til sammenhængende ranges. */
-export const buildRangesFromSortedDates = (sortedDates: readonly ISODateString[]): IsoRange[] => {
-  if (sortedDates.length === 0) return [];
-  const result: IsoRange[] = [];
-  let currentFra = sortedDates[0];
-  let previous = sortedDates[0];
-
-  for (let index = 1; index < sortedDates.length; index += 1) {
-    const iso = sortedDates[index];
-    const previousDate = parseISODate(previous);
-    if (!previousDate) continue;
-    const nextDate = addDays(previousDate, 1);
-    const expectedIso = dateToISO(nextDate);
-    if (!expectedIso || iso !== expectedIso) {
-      result.push({ fra: currentFra, til: previous });
-      currentFra = iso;
-    }
-    previous = iso;
-  }
-
-  result.push({ fra: currentFra, til: previous });
   return result;
 };
 

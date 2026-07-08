@@ -435,7 +435,10 @@ Der skal være en `I alt`-række, når tabellen indeholder mere end én datalinj
 
 De efterfølgende fradrag hører til nettoopgørelsen efter tabellen og må ikke indbygges i tabellens `Samlet`.
 
-Ved skader før `1. januar 2015` skal der altid vises en særskilt tabel for 4-månedersgrænsen.
+Ved skader før `1. januar 2015` dokumenteres 4-månedersgrænsen med en forklaringslinje (jf. §9.2)
+og — i EO-kontrol — med rækkerne "Varighedsbegrænset" og "Ophør af 4-måneders begrænsning". Der vises
+ikke en særskilt tabel over de perioder, der tælles op mod de 4 måneder; forklaringslinjen med den
+konkrete ophørsdato er tilstrækkelig.
 
 #### 9.2. PDF-oplysninger
 
@@ -638,10 +641,11 @@ Eksempel:
 
 Denne dokumentation er nu opdateret til at afspejle den aktuelle visningslogik.
 
-#### 4. Seksmånedersadvarsel er ikke fuldt verificeret på EOBeregningTab
+#### 4. Seksmånedersadvarsel
 
-Der findes beregning og kontrolvisning af seksmånedersadvarslen.
-Ved denne gennemgang er den konkrete slutbrugerplacering på EOBeregningTab ikke verificeret som selvstændig advarsel uden for debug.
+Seksmånedersadvarslen beregnes af `findSfggSixMonthWarningEmploymentIds` og vises to steder fra samme
+kilde: inline på Lønindkomst-fanen under SFGG-feltet (via snapshottet) og som en advarselsrække i
+EO-kontrol. Begge læser den samme beregnede liste, så de ikke kan drive fra hinanden.
 
 #### 5. SFGG-bilaget er aktivt i UI
 

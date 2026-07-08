@@ -16,7 +16,6 @@ import { buildLoenArbejdsdageSet, optaelArbejdsdage, optaelArbejdsdageBreakdown 
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet } from './tafDaySets';
 import {
   buildDateSetFromRanges,
-  buildRangesFromSortedDates,
   buildSingleDateRange,
   clipRangesToInclusiveUpperBound,
   mergeIsoDateRanges,
@@ -129,13 +128,6 @@ export type SygeferiegodtgoerelseSegment = Readonly<{
   alleredeBetaltOre: MoneyOre;
 }>;
 
-export type SygeferiegodtgoerelseCapRow = Readonly<{
-  fra: ISODateString;
-  til: ISODateString;
-  antalDage: number;
-  maanederPraecis: number;
-}>;
-
 /**
  * Struktureret afkortning af SFGG-perioden. Motoren emitterer årsag + verbum + dato som data;
  * læse-siden (kontrol og PDF/Word) formatterer dette til prosa. Repræsentationen er bevidst
@@ -195,7 +187,6 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   sfggReferencesats: SfggReferencesatsCalculable;
   sfggReferencesatsFormula: SfggReferencesatsFormula | null;
   feriepengeModtagetFormula: SfggFeriepengeModtagetFormula | null;
-  capRows: readonly SygeferiegodtgoerelseCapRow[];
   capReachedDate: ISODateString | null;
 }>;
 
@@ -323,47 +314,26 @@ const dateInMonthFraction = (iso: ISODateString, mode: TafBeregningsenhed): numb
   return arbejdsdageIMaaneden > 0 ? 1 / arbejdsdageIMaaneden : 0;
 };
 
-const buildCapComputation = (
+// Finder den dato, hvor de akkumulerede sygemåneder når 4-måneders-loftet (skader før 1.1.2015),
+// eller null hvis loftet ikke nås inden for de talte dage. Månedsbrøken pr. dag afhænger af TAF-enheden.
+const resolveSfggCapCutoffDate = (
   sortedCountedDates: readonly ISODateString[],
   mode: TafBeregningsenhed
-): Readonly<{ cutoffDate: ISODateString | null; rows: readonly SygeferiegodtgoerelseCapRow[] }> => {
-  const dates = [...sortedCountedDates];
-  if (dates.length === 0) {
-    return { cutoffDate: null, rows: [] };
-  }
-
-  let cutoffDate: ISODateString | null = null;
-  const rows: SygeferiegodtgoerelseCapRow[] = [];
+): ISODateString | null => {
   const monthFractionByDate = new Map<ISODateString, number>();
-  const fractionForDate = (iso: ISODateString): number => {
-    const cached = monthFractionByDate.get(iso);
-    if (cached !== undefined) return cached;
-    const value = dateInMonthFraction(iso, mode);
-    monthFractionByDate.set(iso, value);
-    return value;
-  };
-
-  for (const range of buildRangesFromSortedDates(dates)) {
-    const rangeDates = dates.filter((iso) => iso >= range.fra && iso <= range.til);
-    const monthsPrecise = rangeDates.reduce((sum, iso) => sum + fractionForDate(iso), 0);
-    rows.push({
-      fra: range.fra,
-      til: range.til,
-      antalDage: rangeDates.length,
-      maanederPraecis: monthsPrecise,
-    });
-  }
-
   let totalMonths = 0;
-  for (const iso of dates) {
-    totalMonths += fractionForDate(iso);
+  for (const iso of sortedCountedDates) {
+    let fraction = monthFractionByDate.get(iso);
+    if (fraction === undefined) {
+      fraction = dateInMonthFraction(iso, mode);
+      monthFractionByDate.set(iso, fraction);
+    }
+    totalMonths += fraction;
     if (totalMonths + FOUR_MONTHS_EPSILON >= 4) {
-      cutoffDate = iso;
-      break;
+      return iso;
     }
   }
-
-  return { cutoffDate, rows };
+  return null;
 };
 
 const getSfggRowForEmployment = (
@@ -594,7 +564,7 @@ const buildEmploymentSfggCalculator = (
   };
 };
 
-export const resolveSfggDirectSatsValue = (
+const resolveSfggDirectSatsValue = (
   sfggSatsvalg: SygeferiegodtgoerelseAnsaettelsesforholdRow['sfggSatsvalg'],
   direkteSatsErDifferentieret: boolean,
   satser: Readonly<{
@@ -1163,15 +1133,15 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       }
     }
   }
-  const capComputation =
+  const capReachedDate =
     skadedato !== undefined && skadedato < '2015-01-01'
-      ? buildCapComputation(
+      ? resolveSfggCapCutoffDate(
         tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
           ? sortIsoDates(tafDateSetIncludingFirstExcluded)
           : sortIsoDates(tafArbejdsdageSetIncludingFirstExcluded),
         tafBeregningsenhed
       )
-      : { cutoffDate: null, rows: [] };
+      : null;
 
   const boundsDates = sortIsoDates(tafDateSet);
   if (boundsDates.length === 0) return { ...EMPTY_RESULT, firstExcludedDate };
@@ -1193,7 +1163,6 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     if (sfggSource.kind === 'ingen') continue;
 
     const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregningsenhed);
-    const capReachedDate = capComputation.cutoffDate;
     const ansaettelsesophorDate =
       employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag
         ? employment.sidsteArbejdsdag
@@ -1249,7 +1218,10 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     const sfggDirectRateLabel = getSfggKildeSpec(sfggSource.kind).rateModel === 'per_periode_overenskomst'
       ? resolveSfggDifferentieretSatsLabel(sfggRow?.sfggSatsvalg)
       : null;
-    const sfggFirstTafDayExcludedText = employmentHadFirstExcludedDate
+    // Afledt af pipelinens strukturerede afkortninger — samme mønster som sygeløn (sygeloen) og
+    // loft/ophør (cap4mdr/ansaettelsesophoer): læse-siden formatterer det, motoren genudleder det ikke.
+    // (foersteSygedag pushes præcis når employmentHadFirstExcludedDate er sand, jf. buildSfggPeriode.)
+    const sfggFirstTafDayExcludedText = periode.afkortninger.some((afkortning) => afkortning.aarsag === 'foersteSygedag')
       ? SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT
       : null;
     const sfggAfterEmployerSickPayProjection = resolveSfggAfterEmployerSickPayProjection({
@@ -1316,8 +1288,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         ),
         sfggReferencesatsFormula: null,
         feriepengeModtagetFormula: null,
-        capRows: capComputation.rows,
-        capReachedDate: capComputation.cutoffDate,
+        capReachedDate,
       });
       continue;
     }
@@ -1479,8 +1450,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       sfggReferencesats: sfggBaseRate.sfggReferencesatsOre,
       sfggReferencesatsFormula: sfggBaseRate.sfggReferencesatsFormula,
       feriepengeModtagetFormula,
-      capRows: capComputation.rows,
-      capReachedDate: capComputation.cutoffDate,
+      capReachedDate,
     });
   }
 

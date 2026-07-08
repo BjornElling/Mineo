@@ -4,7 +4,7 @@ import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/forma
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy, isOffentligOverenskomstId } from '../../data/overenskomstRates';
-import { isSfggNoEligibleDaysNotCalculable } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { findSfggSixMonthWarningEmploymentIds, isSfggNoEligibleDaysNotCalculable } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelseKilde';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_TABLE_TOTAL_LABEL, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
@@ -26,7 +26,13 @@ export const buildEoSygeferiegodtgoerelseRows = (
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
   const sfgg = pdfModel?.tabtArbejdsfortjeneste.sygeferiegodtgoerelse;
-  const seksMaanedersWarnings = new Set<string>();
+  // Læs seksmåneders-advarslen fra motorens autoritative resultat via den kanoniske helper —
+  // samme funktion som snapshottet bruger til den inline-advarsel på Lønindkomst-fanen, så
+  // kontrollen og den inline-visning ikke kan drive fra hinanden. Uden et resultat (kontrol
+  // uden fuld pdfModel) er der intet beregnet forløb at advare om.
+  const seksMaanedersWarnings = new Set<string>(
+    sfgg ? findSfggSixMonthWarningEmploymentIds({ values, result: sfgg }) : []
+  );
 
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
     if (!shouldRequireSygeferiegodtgoerelseInput(values, employment)) continue;

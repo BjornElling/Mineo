@@ -47,7 +47,7 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
 
 5. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
    (`mergeAdjacent: true`) via den kanoniske EO-helper i
-   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
+   `src/domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts`.
 
 6. **Stille clamping mod EO-perioden:** Fra-dato `< vedroererPeriodeFra` clampes til
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
@@ -83,7 +83,7 @@ beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle f
 
 4. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
    (`mergeAdjacent: true`) via den kanoniske EO-helper i
-   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
+   `src/domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts`.
 
 5. **Stille clamping mod EO-perioden:** Fra-dato `< vedroererPeriodeFra` clampes til
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
@@ -106,5 +106,5 @@ Implementeringen bruger parallelle constraint-typer (`SvieSmerteConstraintBounds
 
 ## Periodemerge er centraliseret
 
-- `mergeIsoDateRanges(...)` / `mergeDateRanges(...)` i `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`
+- `mergeIsoDateRanges(...)` / `mergeDateRanges(...)` i `src/domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts`
 - Lokale, ad hoc merge-implementeringer i TAF-, svie/smerte-, ferie- eller SFGG-flow er arkitektonisk fejl, medmindre en kontrakt udtrykkeligt kræver en afvigende merge-semantik.

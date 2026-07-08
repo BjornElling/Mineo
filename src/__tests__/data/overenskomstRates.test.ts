@@ -359,6 +359,45 @@ describe('assertValidSfggPolicy (vacuous-pass-værn)', () => {
       /SFGG-differentiering matcher ikke satsdata/
     );
   });
+
+  it('accepterer en fuldt konsistent ikke-differentieret direkte-sats-policy', () => {
+    const meta = metaWith({
+      fravigerFerielov: true,
+      model: 'direkte_sats',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: null,
+    });
+    expect(() => assertValidSfggPolicy(meta, [direkteSats('01-01-2020')])).not.toThrow();
+  });
+
+  it('kaster når model=ferielov men satsdata indeholder en direkte SFGG-sats (omvendt retning)', () => {
+    // Modsat grenen ovenfor: her siger policyen ferielov, men satsdata bærer en direkte sats.
+    // Biconditionalen skal fange begge retninger.
+    const meta = metaWith({
+      fravigerFerielov: false,
+      model: 'ferielov',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: '4 uger',
+    });
+    expect(() => assertValidSfggPolicy(meta, [direkteSats('01-01-2020')])).toThrow(/matcher ikke satsdata/);
+  });
+
+  it('kaster når differentiering=false men satsdata er differentieret (omvendt retning)', () => {
+    // Modsat differentierings-grenen ovenfor: policyen siger ikke-differentieret, men satsdata
+    // indeholder differentierede satser.
+    const meta = metaWith({
+      fravigerFerielov: true,
+      model: 'direkte_sats',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: null,
+    });
+    expect(() => assertValidSfggPolicy(meta, [differentieretSats('01-01-2020')])).toThrow(
+      /SFGG-differentiering matcher ikke satsdata/
+    );
+  });
 });
 
 // ─── resolveOverenskomstNameOnlyDisplay ──────────────────────────────────────

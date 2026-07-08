@@ -96,6 +96,66 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     ]);
   });
 
+  it('viser seksmåneders-advarslen i kontrollen når SFGG løber mere end 6 måneder efter sidste lønindkomst', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.tafBeregningsperiodeFra = toISODateString('2024-01-01');
+    values.tafBeregningsperiodeTil = toISODateString('2024-09-30');
+    values.tafPerioder = [{
+      id: 'taf-1',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-09-30'),
+      loseFeriedage: undefined,
+    }];
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      feriePct: 12.5,
+      loenperiode: 'maaned',
+      // Sidste lønindkomst i januar; SFGG-segmenterne løber til september → mere end 6 mdr. efter.
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadedato: toISODateString('2024-01-01'),
+    });
+
+    const warningRow = rows.find(
+      (row) => row.id === `sfgg.advarsel.seksmaaneder.${values.loenindkomstAnsaettelsesforhold[0].id}`
+    );
+    expect(warningRow?.status).toBe('warning');
+    expect(warningRow?.message).toBe(
+      'Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.'
+    );
+  });
+
   it('udelader SFGG-fejlrækker for ansættelsesforhold hvor skadelidte ikke var ansat på skadestidspunktet', () => {
     const values = createValues();
     values.kravPaaTabtArbejdsfortjeneste = 'Ja';

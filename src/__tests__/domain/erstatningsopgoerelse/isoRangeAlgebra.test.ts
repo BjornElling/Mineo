@@ -1,7 +1,6 @@
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import {
   buildDateSetFromRanges,
-  buildRangesFromSortedDates,
   buildSingleDateRange,
   clipRangesToInclusiveUpperBound,
   mergeDateRanges,
@@ -247,23 +246,6 @@ describe('splitRangesAtBoundaryStarts', () => {
     expect(result).toEqual([
       { fra: iso('2024-01-01'), til: iso('2024-01-04') },
       { fra: iso('2024-01-05'), til: iso('2024-01-10') },
-    ]);
-  });
-});
-
-describe('buildRangesFromSortedDates', () => {
-  it('tom liste → tom liste', () => {
-    expect(buildRangesFromSortedDates([])).toEqual([]);
-  });
-
-  it('samler sammenhængende datoer og bryder ved huller', () => {
-    const result = buildRangesFromSortedDates([
-      iso('2024-01-01'), iso('2024-01-02'), iso('2024-01-03'),
-      iso('2024-01-06'), iso('2024-01-07'),
-    ]);
-    expect(result).toEqual([
-      { fra: iso('2024-01-01'), til: iso('2024-01-03') },
-      { fra: iso('2024-01-06'), til: iso('2024-01-07') },
     ]);
   });
 });
