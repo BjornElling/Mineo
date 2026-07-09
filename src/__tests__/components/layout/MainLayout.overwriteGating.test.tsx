@@ -32,6 +32,11 @@ vi.mock('../../../utils/pwaLaunchQueue', () => ({
 
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
+import {
+  clickMainLayoutAction,
+  dispatchPwaFileOpen,
+  flushMainLayoutAsyncAction,
+} from './mainLayoutActionTestUtils';
 
 const persistedWrapper = (data: unknown) => ({
   version: PERSISTED_DATA_VERSION,
@@ -96,9 +101,7 @@ describe('MainLayout (overwrite gating)', () => {
       </AppSettingsProvider>
     );
 
-    await act(async () => {
-      screen.getByText('Hent').click();
-    });
+    await clickMainLayoutAction('Hent');
 
     await waitFor(() => {
       expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
@@ -132,9 +135,7 @@ describe('MainLayout (overwrite gating)', () => {
       </AppSettingsProvider>
     );
 
-    await act(async () => {
-      screen.getByText('Hent').click();
-    });
+    await clickMainLayoutAction('Hent');
 
     await screen.findByText('Overskriv eksisterende data?');
 
@@ -151,14 +152,10 @@ describe('MainLayout (overwrite gating)', () => {
     expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
     expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
 
-    await act(async () => {
-      screen.getByText('Hent').click();
-    });
+    await clickMainLayoutAction('Hent');
     await screen.findByText('Overskriv eksisterende data?');
 
-    await act(async () => {
-      screen.getByText('Overskriv').click();
-    });
+    await clickMainLayoutAction('Overskriv');
 
     expect(sessionStorage.getItem('mineo_stamdata')).toContain('Y');
     expect(sessionStorage.getItem('mineo_satser')).toContain('2021');
@@ -171,13 +168,27 @@ describe('MainLayout (overwrite gating)', () => {
     sessionStorage.setItem('mineo_satser', JSON.stringify(persistedWrapper(stampSatser(2020))));
 
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
-    loadFromFileHandleMock.mockResolvedValue({
+    let resolvePwaLoad: ((result: LoadFileResult) => void) | null = null;
+    const pwaLoad = new Promise<LoadFileResult>((resolve) => {
+      resolvePwaLoad = resolve;
+    });
+    loadFromFileHandleMock.mockReturnValueOnce(pwaLoad);
+    const pwaLoadResult = {
       success: true,
       source: 'pwa',
       requestId: 'pwa-open-1',
       filename: 'clean.eo',
       snapshot: { stamdata: stampStamdata('Y'), satser: stampSatser(2021) },
-    } satisfies LoadFileResult);
+    } satisfies LoadFileResult;
+
+    pendingPwaRequest = {
+      id: 'pwa-open-1',
+      createdAtEpochMs: Date.now(),
+      targetUrl: '/open',
+      fileHandle: {} as FileSystemFileHandle,
+      fileName: 'clean.eo',
+      ignoredFileCount: 0,
+    };
 
     render(
       <AppSettingsProvider>
@@ -192,27 +203,23 @@ describe('MainLayout (overwrite gating)', () => {
       </AppSettingsProvider>
     );
 
-    pendingPwaRequest = {
-      id: 'pwa-open-1',
-      createdAtEpochMs: Date.now(),
-      targetUrl: '/open',
-      fileHandle: {} as FileSystemFileHandle,
-      fileName: 'clean.eo',
-      ignoredFileCount: 0,
-    };
-
+    await waitFor(() => {
+      expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);
+    });
     await act(async () => {
-      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+      resolvePwaLoad?.(pwaLoadResult);
+      await pwaLoad;
+      for (let attempt = 0; attempt < 5 && !document.body.textContent?.includes('Overskriv eksisterende data?'); attempt += 1) {
+        await flushMainLayoutAsyncAction();
+      }
     });
 
-    await screen.findByText('Overskriv eksisterende data?');
+    expect(screen.getByText('Overskriv eksisterende data?')).toBeInTheDocument();
 
     expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
     expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
 
-    await act(async () => {
-      screen.getByText('Stop og gør intet').click();
-    });
+    await clickMainLayoutAction('Stop og gør intet');
 
     await waitFor(() => {
       expect(screen.queryByText('Overskriv eksisterende data?')).toBeNull();
@@ -220,6 +227,18 @@ describe('MainLayout (overwrite gating)', () => {
     expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
     expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
 
+    let resolveSecondPwaLoad: ((result: LoadFileResult) => void) | null = null;
+    const secondPwaLoad = new Promise<LoadFileResult>((resolve) => {
+      resolveSecondPwaLoad = resolve;
+    });
+    loadFromFileHandleMock.mockReturnValueOnce(secondPwaLoad);
+    const secondPwaLoadResult = {
+      success: true,
+      source: 'pwa',
+      requestId: 'pwa-open-2',
+      filename: 'clean.eo',
+      snapshot: { stamdata: stampStamdata('Y'), satser: stampSatser(2021) },
+    } satisfies LoadFileResult;
     pendingPwaRequest = {
       id: 'pwa-open-2',
       createdAtEpochMs: Date.now(),
@@ -229,23 +248,21 @@ describe('MainLayout (overwrite gating)', () => {
       ignoredFileCount: 0,
     };
 
-    loadFromFileHandleMock.mockResolvedValueOnce({
-      success: true,
-      source: 'pwa',
-      requestId: 'pwa-open-2',
-      filename: 'clean.eo',
-      snapshot: { stamdata: stampStamdata('Y'), satser: stampSatser(2021) },
-    } satisfies LoadFileResult);
-
+    await dispatchPwaFileOpen();
+    await waitFor(() => {
+      expect(loadFromFileHandleMock).toHaveBeenCalledTimes(2);
+    });
     await act(async () => {
-      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+      resolveSecondPwaLoad?.(secondPwaLoadResult);
+      await secondPwaLoad;
+      for (let attempt = 0; attempt < 5 && !document.body.textContent?.includes('Overskriv eksisterende data?'); attempt += 1) {
+        await flushMainLayoutAsyncAction();
+      }
     });
 
-    await screen.findByText('Overskriv eksisterende data?');
+    expect(screen.getByText('Overskriv eksisterende data?')).toBeInTheDocument();
 
-    await act(async () => {
-      screen.getByText('Overskriv').click();
-    });
+    await clickMainLayoutAction('Overskriv');
 
     expect(sessionStorage.getItem('mineo_stamdata')).toContain('Y');
     expect(sessionStorage.getItem('mineo_satser')).toContain('2021');

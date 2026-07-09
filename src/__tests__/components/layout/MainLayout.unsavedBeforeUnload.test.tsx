@@ -63,6 +63,7 @@ import { saveToFile } from '../../../utils/fileSave';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../../utils/fileHandleStorage';
 import { getGridCoreForTable } from '../../../components/tables/gridCore/gridCoreRegistry';
 import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
+import { clickMainLayoutAction, dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
 
 const stampStamdata = (skadelidte: string): StamdataValues => ({
   journalnr: '',
@@ -259,9 +260,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     const beforeUnloadHandler = getBeforeUnloadHandler(addEventListenerSpy)!;
 
-    await act(async () => {
-      screen.getByText('Gem').click();
-    });
+    await clickMainLayoutAction('Gem');
 
     await waitFor(() => {
       expect(saveToFileMock).toHaveBeenCalledTimes(1);
@@ -339,9 +338,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       ctx!.persistData('stamdata', stampStamdata('GemBlokeres'));
     });
 
-    await act(async () => {
-      screen.getByText('Gem').click();
-    });
+    await clickMainLayoutAction('Gem');
 
     await waitFor(() => {
       expect(saveToFileMock).not.toHaveBeenCalled();
@@ -404,9 +401,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       });
     });
 
-    await act(async () => {
-      screen.getByText('Gem').click();
-    });
+    await clickMainLayoutAction('Gem');
 
     await waitFor(() => {
       expect(saveToFileMock).not.toHaveBeenCalled();
@@ -464,9 +459,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       ctx!.commitInvalidDraft('erstatningsopgoerelse', cellFieldPath, '12.x.2020');
     });
 
-    await act(async () => {
-      screen.getByText('Gem').click();
-    });
+    await clickMainLayoutAction('Gem');
 
     await screen.findByText('Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.');
     expect(saveToFileMock).not.toHaveBeenCalled();
@@ -523,9 +516,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       });
     });
 
-    await act(async () => {
-      screen.getByText('Gem').click();
-    });
+    await clickMainLayoutAction('Gem');
 
     await waitFor(() => {
       expect(saveToFileMock).toHaveBeenCalledTimes(1);
@@ -573,9 +564,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       ctx!.persistData('stamdata', stampStamdata('Gem med warning'));
     });
 
-    await act(async () => {
-      screen.getByText('Gem').click();
-    });
+    await clickMainLayoutAction('Gem');
 
     const matches = await screen.findAllByText((_, element) => {
       const text = element?.textContent ?? '';
@@ -627,9 +616,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       </AppSettingsProvider>
     );
 
-    await act(async () => {
-      screen.getByText('Hent').click();
-    });
+    await clickMainLayoutAction('Hent');
 
     expect(loadFromFileMock).not.toHaveBeenCalled();
     await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
@@ -666,9 +653,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       </AppSettingsProvider>
     );
 
-    await act(async () => {
-      screen.getByText('Hent').click();
-    });
+    await clickMainLayoutAction('Hent');
 
     await screen.findByText('Hentet');
     expect(saveFileHandleMock).toHaveBeenCalledWith(loadedHandle);
@@ -726,9 +711,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       ignoredFileCount: 0,
     };
 
-    await act(async () => {
-      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
-    });
+    await dispatchPwaFileOpen();
 
     expect(loadFromFileHandleMock).not.toHaveBeenCalled();
     await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
@@ -783,9 +766,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
     });
 
-    await act(async () => {
-      screen.getByText('Gem').click();
-    });
+    await clickMainLayoutAction('Gem');
 
     await waitFor(() => {
       expect(saveToFileMock).toHaveBeenCalledTimes(1);
@@ -969,9 +950,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       ctx!.persistData('stamdata', stampStamdata('Før fejl'));
     });
 
-    await act(async () => {
-      screen.getByText('Slet alt').click();
-    });
+    await clickMainLayoutAction('Slet alt');
 
     await waitFor(() => {
       expect(deleteFileHandleMock).toHaveBeenCalledTimes(1);

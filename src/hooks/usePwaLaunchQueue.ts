@@ -36,7 +36,7 @@ export const usePwaLaunchQueue = ({
   // → dobbelt-load af samme request (flaky test + reel race, jf. review 9.3 UF-2).
   const lastAttemptedRequestIdRef = React.useRef<string | null>(null);
 
-  const processNextPwaFileOpenRequest = React.useCallback(() => {
+  const processNextPwaFileOpenRequest = React.useCallback((allowAlreadyAttempted = false) => {
     if (isPwaLoadInProgressRef.current) return;
     if (pendingLoadResultOpen) return;
     if (pendingOverwriteApplyOpen) return;
@@ -44,6 +44,7 @@ export const usePwaLaunchQueue = ({
     const request = getPendingPwaFileOpenRequest();
     if (!request) return;
     if (activePwaRequestIdRef.current === request.id) return;
+    if (!allowAlreadyAttempted && request.id === lastAttemptedRequestIdRef.current) return;
 
     activePwaRequestIdRef.current = request.id;
     lastAttemptedRequestIdRef.current = request.id;
@@ -73,7 +74,7 @@ export const usePwaLaunchQueue = ({
         }
         return;
       }
-      processNextPwaFileOpenRequest();
+      processNextPwaFileOpenRequest(true);
     };
 
     window.addEventListener(Mineo_PWA_FILE_OPEN_EVENT, handler);
