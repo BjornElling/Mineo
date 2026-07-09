@@ -29,6 +29,7 @@ vi.mock('../../../utils/fileLoad', () => ({
 
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFileHandle } from '../../../utils/fileLoad';
+import { dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
 
 describe('MainLayout (PWA concurrency)', () => {
   const RouteProbe = () => {
@@ -81,10 +82,7 @@ describe('MainLayout (PWA concurrency)', () => {
       ignoredFileCount: 0,
     };
 
-    // dispatchEvent trigger asynkrone state-ændringer og skal wrappes i act()
-    await act(async () => {
-      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
-    });
+    await dispatchPwaFileOpen();
 
     await screen.findByText('Nogle felter blev sat til standardværdier');
 
@@ -97,9 +95,7 @@ describe('MainLayout (PWA concurrency)', () => {
       ignoredFileCount: 0,
     };
 
-    await act(async () => {
-      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
-    });
+    await dispatchPwaFileOpen();
 
     await screen.findByText('Ny fil blev forsøgt åbnet – prøv igen når du er færdig');
 
@@ -193,9 +189,7 @@ describe('MainLayout (PWA concurrency)', () => {
         ignoredFileCount: 0,
       };
 
-      await act(async () => {
-        window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
-      });
+      await dispatchPwaFileOpen();
 
       // Vent på at FØRSTE forsøg er fuldt fejlet (fejlen logget), ikke kun at loadFromFileHandle er
       // kaldt. `isPwaLoadInProgressRef` nulstilles først i load-promisens `.finally`, EFTER rejection
@@ -208,9 +202,7 @@ describe('MainLayout (PWA concurrency)', () => {
       });
       expect(screen.getByTestId('pathname')).toHaveTextContent('/open');
 
-      await act(async () => {
-        window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
-      });
+      await dispatchPwaFileOpen();
 
       await waitFor(() => {
         expect(loadFromFileHandleMock).toHaveBeenCalledTimes(2);

@@ -1,31 +1,22 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EetAslAfgoerelserTable from '../../../components/tables/EetAslAfgoerelserTable';
 import { createEmptyAslAfgoerelseRow } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
+import {
+  blurTableElement,
+  changeTableInput,
+  openTableInputEditing,
+} from './tableInteractionTestUtils';
 
 const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
   ...createEmptyAslAfgoerelseRow(),
   ...patch,
 });
 
-const openInputEditing = async (input: HTMLElement) => {
-  input.focus();
-  if (input.hasAttribute('readonly')) {
-    fireEvent.keyDown(input, { key: '1' });
-  }
-  await waitFor(() => {
-    expect(input).not.toHaveAttribute('readonly');
-  });
-};
-
 const setupUser = () => userEvent.setup({ pointerEventsCheck: 0 });
-
-const setDraftValue = (input: HTMLElement, value: string) => {
-  fireEvent.change(input, { target: { value } });
-};
 
 describe('EetAslAfgoerelserTable', () => {
   const ASYNC_TEST_TIMEOUT_MS = 60_000;
@@ -49,9 +40,9 @@ describe('EetAslAfgoerelserTable', () => {
     const firstCell = within(firstDataRow).getAllByRole('cell')[0];
     const input = within(firstCell).getByRole('textbox');
 
-    await openInputEditing(input);
-    setDraftValue(input, '01-02-2024');
-    fireEvent.blur(input);
+    await openTableInputEditing(input);
+    await changeTableInput(input, '01-02-2024');
+    await blurTableElement(input);
 
     await waitFor(() => {
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
@@ -106,9 +97,9 @@ describe('EetAslAfgoerelserTable', () => {
     const firstDataRow = screen.getAllByRole('row')[1];
     const eetPctCell = within(firstDataRow).getAllByRole('cell')[2];
     const eetPctInput = within(eetPctCell).getByRole('textbox');
-    await openInputEditing(eetPctInput);
-    setDraftValue(eetPctInput, '15');
-    fireEvent.blur(eetPctInput);
+    await openTableInputEditing(eetPctInput);
+    await changeTableInput(eetPctInput, '15');
+    await blurTableElement(eetPctInput);
 
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalled());
     const lastCall = onTableDataChange.mock.calls.at(-1);
@@ -137,15 +128,15 @@ describe('EetAslAfgoerelserTable', () => {
     const virkningsDatoInput = within(within(firstDataRow).getAllByRole('cell')[1]).getByRole('textbox');
 
     // Celle 0 (afgørelsesdato), tab væk.
-    await openInputEditing(afgoerelsesDatoInput);
-    setDraftValue(afgoerelsesDatoInput, '01-02-2024');
-    fireEvent.blur(afgoerelsesDatoInput);
+    await openTableInputEditing(afgoerelsesDatoInput);
+    await changeTableInput(afgoerelsesDatoInput, '01-02-2024');
+    await blurTableElement(afgoerelsesDatoInput);
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
 
     // Celle 1 (virkningsdato), tab væk.
-    await openInputEditing(virkningsDatoInput);
-    setDraftValue(virkningsDatoInput, '01-03-2024');
-    fireEvent.blur(virkningsDatoInput);
+    await openTableInputEditing(virkningsDatoInput);
+    await changeTableInput(virkningsDatoInput, '01-03-2024');
+    await blurTableElement(virkningsDatoInput);
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(2));
 
     // Hvert commit bærer sin egen celles identitet — to distinkte undo-frames.
@@ -174,15 +165,15 @@ describe('EetAslAfgoerelserTable', () => {
     const firstCell = within(firstDataRow).getAllByRole('cell')[0];
     const input = within(firstCell).getByRole('textbox');
 
-    await openInputEditing(input);
-    setDraftValue(input, '01-02-2024');
-    fireEvent.blur(input);
+    await openTableInputEditing(input);
+    await changeTableInput(input, '01-02-2024');
+    await blurTableElement(input);
 
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
 
-    await openInputEditing(input);
-    setDraftValue(input, '01-02-2024');
-    fireEvent.blur(input);
+    await openTableInputEditing(input);
+    await changeTableInput(input, '01-02-2024');
+    await blurTableElement(input);
 
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
   }, ASYNC_TEST_TIMEOUT_MS);
@@ -242,9 +233,9 @@ describe('EetAslAfgoerelserTable', () => {
     const tidlKapDatoCell = within(firstDataRow).getAllByRole('cell')[6];
     const tidlKapDatoInput = within(tidlKapDatoCell).getByRole('textbox');
 
-    await openInputEditing(tidlKapDatoInput);
-    setDraftValue(tidlKapDatoInput, '10-01-2024');
-    fireEvent.blur(tidlKapDatoInput);
+    await openTableInputEditing(tidlKapDatoInput);
+    await changeTableInput(tidlKapDatoInput, '10-01-2024');
+    await blurTableElement(tidlKapDatoInput);
 
     await waitFor(() => {
       expect(
@@ -274,9 +265,9 @@ describe('EetAslAfgoerelserTable', () => {
     const kapDatoCell = within(firstDataRow).getAllByRole('cell')[4];
     const kapDatoInput = within(kapDatoCell).getByRole('textbox');
 
-    await openInputEditing(kapDatoInput);
-    setDraftValue(kapDatoInput, '09-01-2024');
-    fireEvent.blur(kapDatoInput);
+    await openTableInputEditing(kapDatoInput);
+    await changeTableInput(kapDatoInput, '09-01-2024');
+    await blurTableElement(kapDatoInput);
 
     await waitFor(() => {
       expect(kapDatoInput).toHaveValue('09-01-2024');

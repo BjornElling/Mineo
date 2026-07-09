@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -8,6 +8,15 @@ import type { ISODateString } from '../../../types/branded';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
+import {
+  blurTableElement,
+  changeTableInput,
+  clearFocusedTableCell,
+  flushTableInteraction,
+  focusTableElement,
+  keyDownTableElement,
+  openTableInputEditing,
+} from './tableInteractionTestUtils';
 
 const asDate = (s: string) => s as ISODateString;
 
@@ -20,25 +29,6 @@ const formatAntalDage = (value: number): string => {
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 const setupUser = () => userEvent.setup({ pointerEventsCheck: 0 });
-
-const setDraftValue = (input: HTMLElement, value: string) => {
-  fireEvent.change(input, { target: { value } });
-};
-
-const openInputEditing = async (input: HTMLElement, startKey = '1') => {
-  input.focus();
-  if (input.hasAttribute('readonly')) {
-    fireEvent.keyDown(input, { key: startKey });
-  }
-  await waitFor(() => {
-    expect(input).not.toHaveAttribute('readonly');
-  });
-};
-
-const clearFocusedCell = async (input: HTMLElement, key: 'Backspace' | 'Delete') => {
-  input.focus();
-  fireEvent.keyDown(input, { key });
-};
 
 const makeRow = (overrides: Partial<OffentligeYdelserRow>): OffentligeYdelserRow => ({
   id: 'row1',
@@ -154,14 +144,14 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
 
     const input = getYdelseInput();
-    await clearFocusedCell(input, 'Backspace');
+    await clearFocusedTableCell(input, 'Backspace');
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
       expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
     });
 
-    fireEvent.blur(input);
+    await blurTableElement(input);
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
@@ -189,7 +179,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     );
 
     const input = getYdelseInput();
-    await clearFocusedCell(input, 'Delete');
+    await clearFocusedTableCell(input, 'Delete');
 
     await waitFor(() => {
       const cellsNow = getFirstDataRowCells();
@@ -206,15 +196,15 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
 
     const input = getYdelseInput();
 
-    await openInputEditing(input);
-    setDraftValue(input, '100');
-    fireEvent.blur(input);
+    await openTableInputEditing(input);
+    await changeTableInput(input, '100');
+    await blurTableElement(input);
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
 
-    await clearFocusedCell(getYdelseInput(), 'Delete');
+    await clearFocusedTableCell(getYdelseInput(), 'Delete');
 
     await waitFor(() => {
       const cellsNow = getFirstDataRowCells();
@@ -242,11 +232,9 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     );
 
     const combobox = getYdelsestypeCombobox();
-    act(() => {
-      combobox.focus();
-    });
+    await focusTableElement(combobox);
     expect(document.activeElement).toBe(combobox);
-    fireEvent.keyDown(combobox, { key: 'Delete' });
+    await keyDownTableElement(combobox, { key: 'Delete' });
 
     await waitFor(() => {
       const focusedCombobox = getYdelsestypeCombobox();
@@ -274,14 +262,14 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
 
     const input = getYdelseInput();
-    await openInputEditing(input);
-    setDraftValue(input, '100,00');
+    await openTableInputEditing(input);
+    await changeTableInput(input, '100,00');
 
     expect(input).toHaveValue('100,00');
     expect(onPersist).not.toHaveBeenCalled();
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
 
-    fireEvent.blur(input);
+    await blurTableElement(input);
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
@@ -310,14 +298,14 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '5,00 kr.' });
 
     const input = getTillaegInput();
-    await clearFocusedCell(input, 'Delete');
+    await clearFocusedTableCell(input, 'Delete');
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
       expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
     });
 
-    fireEvent.blur(input);
+    await blurTableElement(input);
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
@@ -343,14 +331,14 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
 
     const input = getTilDatoInput();
-    await clearFocusedCell(input, 'Backspace');
+    await clearFocusedTableCell(input, 'Backspace');
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
       expect(getDerivedTexts()).toEqual({ antalDageDisplay: '', ydelsePerDagDisplay: '' });
     });
 
-    fireEvent.blur(input);
+    await blurTableElement(input);
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
@@ -427,14 +415,14 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '', ydelsePerDagDisplay: '' });
 
     const input = getFraDatoInput();
-    await openInputEditing(input);
-    setDraftValue(input, '01-01-2024');
+    await openTableInputEditing(input);
+    await changeTableInput(input, '01-01-2024');
 
     expect(input).toHaveValue('01-01-2024');
     expect(onPersist).not.toHaveBeenCalled();
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '', ydelsePerDagDisplay: '' });
 
-    fireEvent.blur(input);
+    await blurTableElement(input);
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
@@ -463,8 +451,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     const input = getFraDatoInput();
     const outsideButton = screen.getByRole('button', { name: 'Udenfor' });
 
-    await openInputEditing(input);
-    setDraftValue(input, '1-1-2024');
+    await openTableInputEditing(input);
+    await changeTableInput(input, '1-1-2024');
 
     expect(input).toHaveFocus();
     expect(input).toHaveValue('1-1-2024');
@@ -475,9 +463,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       expect(outsideButton).toHaveFocus();
     });
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await flushTableInteraction();
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);

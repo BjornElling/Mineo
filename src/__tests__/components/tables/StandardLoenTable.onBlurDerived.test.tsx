@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import StandardLoenTable from '../../../components/tables/StandardLoenTable';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
 import { toISODateString } from '../../../types/branded';
+import {
+  blurTableElement,
+  changeTableInput,
+  flushTableInteraction,
+  openTableInputEditing,
+} from './tableInteractionTestUtils';
 
 type Derived = { fpFvShSo: string; pension: string; samlet: string };
 
@@ -35,20 +41,6 @@ const computeDerived = (amounts: { col2: number; col3: number; col4: number; col
   };
 };
 
-const setDraftValue = (input: HTMLElement, value: string) => {
-  fireEvent.change(input, { target: { value } });
-};
-
-const openInputEditing = async (input: HTMLElement, startKey = '1') => {
-  input.focus();
-  if (input.hasAttribute('readonly')) {
-    fireEvent.keyDown(input, { key: startKey });
-  }
-  await waitFor(() => {
-    expect(input).not.toHaveAttribute('readonly');
-  });
-};
-
 const getFirstDataRowCells = (): HTMLElement[] => {
   const rows = screen.getAllByRole('row');
   const firstDataRow = rows[1];
@@ -72,14 +64,6 @@ const getFirstPeriodInputs = (): [HTMLInputElement, HTMLInputElement] => {
     within(cells[0]).getByRole('textbox') as HTMLInputElement,
     within(cells[1]).getByRole('textbox') as HTMLInputElement,
   ];
-};
-
-const flushAnimationFrame = async (): Promise<void> => {
-  await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
 };
 
 const makeRow = (overrides: Partial<StandardLoenTableRow>): StandardLoenTableRow => ({
@@ -149,15 +133,13 @@ describe('StandardLoenTable', () => {
     const targetCell = cellsBefore[colIdx];
     const input = within(targetCell).getByRole('textbox');
 
-    await openInputEditing(input, nextValue[0] ?? '1');
-    setDraftValue(input, nextValue);
+    await openTableInputEditing(input, nextValue[0] ?? '1');
+    await changeTableInput(input, nextValue);
 
     expect(onTableDataChange).not.toHaveBeenCalled();
     expect(getDerivedTexts()).toEqual(initial);
 
-    await act(async () => {
-      fireEvent.blur(input);
-    });
+    await blurTableElement(input);
 
     const nextAmounts = { ...baseAmounts, [colKey]: Number(nextValue) } as typeof baseAmounts;
     const expectedAfterBlur = computeDerived(nextAmounts);
@@ -192,9 +174,9 @@ describe('StandardLoenTable', () => {
     const firstRowCells = getFirstDataRowCells();
     const input = within(firstRowCells[2]).getByRole('textbox');
 
-    await openInputEditing(input);
-    setDraftValue(input, '');
-    fireEvent.blur(input);
+    await openTableInputEditing(input);
+    await changeTableInput(input, '');
+    await blurTableElement(input);
 
     await waitFor(() => {
       const cellsNow = getFirstDataRowCells();
@@ -280,12 +262,10 @@ describe('StandardLoenTable', () => {
 
     const clearCell = async (cellIndex: number) => {
       const input = getMiddleRowTextbox(cellIndex);
-      await openInputEditing(input);
-      setDraftValue(input, '');
-      await act(async () => {
-        fireEvent.blur(input);
-      });
-      await flushAnimationFrame();
+      await openTableInputEditing(input);
+      await changeTableInput(input, '');
+      await blurTableElement(input);
+      await flushTableInteraction();
     };
 
     await clearCell(0);

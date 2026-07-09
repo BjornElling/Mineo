@@ -18,9 +18,10 @@
     "arbejdsskadesikringsloven"
   ],
   "private": true,
+  "packageManager": "npm@11.16.0",
   "engines": {
-    "node": ">=24",
-    "npm": ">=11"
+    "node": ">=24.18.0 <25",
+    "npm": ">=11.16.0 <12"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -107,5 +108,11 @@
     "vitest": "^4.1.7",
     "wrangler": "^4.94.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "allowScripts": {
+    "core-js@3.49.0": true,
+    "esbuild@0.28.1": true,
+    "sharp@0.34.5": true,
+    "workerd@1.20260625.1": true
   }
 }

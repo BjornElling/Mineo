@@ -7,7 +7,8 @@ Appen er udviklet i TypeScript og kører 100 % client-side. Alle data bevares lo
 ## Kom i gang
 
 Forudsætninger:
-- Node.js 25
+- Node.js 24 LTS (mindst 24.18.0)
+- npm 11 (mindst 11.16.0)
 - Git
 
 Installation:
@@ -15,7 +16,7 @@ Installation:
 git clone https://github.com/BjornElling/mineo.git
 cd mineo
 nvm use
-npm install
+npm ci
 ```
 
 Start udviklingsserver:

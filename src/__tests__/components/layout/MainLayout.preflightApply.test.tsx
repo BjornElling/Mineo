@@ -17,6 +17,7 @@ vi.mock('../../../utils/fileLoad', () => ({
 
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFile } from '../../../utils/fileLoad';
+import { clickMainLayoutAction } from './mainLayoutActionTestUtils';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -87,15 +88,11 @@ describe('MainLayout (preflight apply)', () => {
     expect(ctx!.getFieldError('stamdata', 'skadelidte')?.message).toBe('Testfejl');
     expect(ctx!.getFieldError('satser', 'aargang')?.message).toBe('Testfejl 2');
 
-    await act(async () => {
-      screen.getByText('Hent').click();
-    });
+    await clickMainLayoutAction('Hent');
 
     await screen.findByText('Nogle felter blev sat til standardværdier');
 
-    await act(async () => {
-      screen.getByText('Indlæs trods fejl').click();
-    });
+    await clickMainLayoutAction('Indlæs trods fejl');
 
     await waitFor(() => {
       const nextEpoch = Number(screen.getByTestId('epoch').textContent ?? '0');

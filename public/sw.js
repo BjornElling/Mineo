@@ -1,21 +1,21 @@
-/* Minimal service worker for PWA installability.
+/* Minimal service worker til PWA-installation.
  *
- * Trust-critical note:
- * - No precache.
- * - No runtime cache.
- * - No fetch interception.
+ * Trust-kritisk:
+ * - Ingen precache.
+ * - Ingen runtime-cache.
+ * - Ingen fetch-interception.
  *
- * This avoids serving stale calculation logic/assets from a cache.
+ * Dermed kan service worker'en ikke servere forældet beregningslogik eller gamle assets.
  */
 
 self.addEventListener('install', (event) => {
-  // Intentionally empty: do not precache.
-  // Activate immediately (no caching => low risk of serving stale assets).
+  // Bevidst tom: ingen precache.
+  // Aktivér straks (ingen cache => lav risiko for forældede assets).
   event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
-  // Claim clients so the SW is "active" for installability, but do not cache anything.
+  // Claim klienter, så service worker'en er aktiv for installability, men uden caching.
   event.waitUntil(self.clients.claim());
 });
 

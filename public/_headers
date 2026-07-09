@@ -1,10 +1,46 @@
-# Netlify/Cloudflare Pages cache policy for trust-critical PWA updates.
-# HTML + SW + manifest must be revalidated aggressively.
+# Cache-politik for trust-kritiske PWA-opdateringer.
+# HTML, SPA-ruter, service worker og manifest skal revalideres aggressivt.
 
 /
   Cache-Control: no-cache, no-store, must-revalidate
 
 /index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/mineo.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/open
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/stamdata
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/erstatningsopgoerelse
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/erhvervsevnetab
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/satser
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/renteberegning
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/varigemen
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/forsoergertab
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/aarsloen
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/indstillinger
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/mineo
   Cache-Control: no-cache, no-store, must-revalidate
 
 /sw.js
