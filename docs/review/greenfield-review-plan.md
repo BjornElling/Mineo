@@ -45,6 +45,10 @@ for at nå dertil.
   keystone laves som et testtungt spor med golden-value-net **før** første ændring;
   refaktoreringer af beregning beviser tal-identitet; og intet efterlades i en
   halvfærdig, inkonsistent mellemtilstand.
+- **Hold planen løbende opdateret.** Når en kandidat gennemføres — eller viser sig
+  at skulle skæres om undervejs — markerer jeg den straks her: `✅`-status i fase-
+  tabellen + en kort **Status**-linje i detalje-afsnittet. Planen skal altid
+  afspejle den faktiske tilstand.
 
 **Godkendelsesgrænsen står ved magt:** UI/UX med synlig betydning og al
 beregningslogik forelægges som konkrete brugeroplevelser, før den ændres — men det
@@ -109,7 +113,7 @@ keystone eller UI-fasen. Bygges først, så fase 2 har noget at stå på.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 1 | 17 | Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
+| 1 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
 | 2 | 15 | `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
 | 3 | 11 | `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
 | 4 | 12 | Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
@@ -314,6 +318,7 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 17 — Kanonisk dag-set-algebra · 10
 
+- **Status: ✅ Gennemført (2026-07-09).** Duplikeret `buildSHDageSet` i kontrol-laget slettet; den range-baserede ferie-builder flyttet til motoren som `buildFerieDageSetForPeriode`, nu en tynd komposition over `buildFerieDageSet` + `placeLoseFeriedage` (parallel kopi elimineret). `eoInspektion` forbruger read-only. Byte-identitet bevist i `tafDaySets.equivalence.test.ts`. Rest: den fulde dag-set-algebra bor stadig i `engines/tafDaySets.ts` (ikke flyttet til `domain/dates/`) — bevidst, filnavnet kan omdøbes senere hvis ønsket.
 - **Scope:** `engines/tafDaySets.ts` (`buildFerieDageSet`, `buildShDageSet`), `eoInspektion/eoInspektionRegulationCore.ts:545-624` (**anden** `buildFerieDageSet`/`buildSHDageSet`), `dates/shDageBeregning.ts` (den faktiske primitiv).
 - **Problem:** To `buildFerieDageSet` med divergerende signaturer og næsten-identisk logik, plus tre SH-dag-set-indgange om én primitiv. Kontrol-laget (`eoInspektion`) **ejer og eksporterer** dag-set-buildere som sammentælling forbruger — dvs. beregningslogik er lækket ind i det nominelt nedstrøms inspektions-lag, i strid med "kontrol importerer engine, aldrig omvendt".
 - **Greenfield:** Ét kanonisk kalenderdag-modul i `engines/` (eller `domain/dates/`) der ejer alle SH/ferie/arbejdsdag/TAF-dag-sæt med én signatur-familie → `ReadonlySet<ISODateString>`. `eoInspektion` forbruger read-only. Gør tre-lag-splittet ærligt.
@@ -481,7 +486,7 @@ projiceret mange gange"** — som EO's snapshot/canonical/`MoneyOre`-rygrad er e
 forbilledligt eksempel på — er anvendt **inkonsistent**:
 
 - **Regulering** (#23): beregning konvergeret, præsentation ikke.
-- **Dag-sæt** (#17): beregnet på begge sider af lag-grænsen.
+- **Dag-sæt** (#17): beregnet på begge sider af lag-grænsen. ✅ løst.
 - **EET** (#36): adopterede aldrig rygraden.
 - **Dokument-output** (#24, #31, #32): "format-neutralt" kun på kontrakt-niveau;
   paritet holdes af hånd-synkede stier.
