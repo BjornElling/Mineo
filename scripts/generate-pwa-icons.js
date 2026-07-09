@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Generates PNG PWA icons from `public/favicon-mineo.svg`.
+ * Genererer PNG-PWA-ikoner fra `public/favicon-mineo.svg`.
  *
- * Trust-critical note:
- * - Icons are build artifacts only; they must not affect runtime logic.
- * - Keeping raster icons in-repo avoids platform quirks (e.g. SVG not supported for file icons).
+ * Trust-kritisk:
+ * - Ikoner er kun build-artefakter og må ikke påvirke runtime-logik.
+ * - Rasterikoner i repoet undgår platformssærheder (fx manglende SVG-support til filikoner).
  */
 
 const fs = require('fs');
@@ -53,4 +53,3 @@ function main() {
 }
 
 main();
-
