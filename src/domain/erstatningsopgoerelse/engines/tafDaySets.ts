@@ -77,6 +77,67 @@ export const buildFerieDageSet = (
   return ferieDageSet;
 };
 
+type FerieDageForPeriodeInput = Readonly<{
+  ferieperioder?: ReadonlyArray<{
+    fra?: ISODateString;
+    til?: ISODateString;
+  }>;
+  tafPerioder?: ReadonlyArray<{
+    fra?: ISODateString;
+    til?: ISODateString;
+    loseFeriedage?: number;
+  }>;
+}>;
+
+/**
+ * Bygger feriedag-sættet for en afgrænset periode: eksplicitte ferieperioder
+ * (hverdage minus SH) plus løse feriedage fra TAF-/beregningsperiode-kilder,
+ * placeret som de første ledige hverdage i kilde-rækkefølge.
+ *
+ * Tynd komposition over de kanoniske produktions-primitiver — {@link buildFerieDageSet}
+ * for den eksplicitte ferie og {@link placeLoseFeriedage} for de løse feriedage — så
+ * kontrol-/sammentællingslaget (`eoInspektion`) kører nøjagtig samme dag-set-logik som
+ * selve erstatningsberegningen frem for en parallel kopi. SH-sættet beregnes internt
+ * over samme interval; det er bevisligt identisk med et injiceret
+ * `buildShDageSetFromIsoRange`-sæt (jf. `tafDaySets.equivalence`-testen), så kalderen
+ * ikke kan levere et afvigende SH-sæt.
+ */
+export const buildFerieDageSetForPeriode = (
+  input: FerieDageForPeriodeInput,
+  periodeFra: ISODateString,
+  periodeTil: ISODateString
+): ReadonlySet<ISODateString> => {
+  const fraDate = isoDateToDate(periodeFra);
+  const tilDate = isoDateToDate(periodeTil);
+  if (fraDate > tilDate) return new Set<ISODateString>();
+
+  const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
+  const shDageSet = buildShDageSet(fraDate, tilDate, datoSet);
+
+  // 1. Eksplicit ferie via den kanoniske produktions-funktion (hverdage minus SH).
+  const ferieDage = buildFerieDageSet(input.ferieperioder ?? [], datoSet);
+  const result = new Set<ISODateString>(ferieDage);
+
+  // 2. Løse feriedage via den kanoniske placeLoseFeriedage, per kilde, med
+  //    akkumulerende blokering (SH + ferie + tidligere placerede løse dage), så
+  //    to kilder ikke placerer på samme dag.
+  const blocked = new Set<ISODateString>([...shDageSet, ...ferieDage]);
+  for (const row of input.tafPerioder ?? []) {
+    if (!row.fra || !row.til || row.fra > row.til) continue;
+    const loseCount = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
+    if (loseCount <= 0) continue;
+    const constrainedFra = row.fra > periodeFra ? row.fra : periodeFra;
+    const constrainedTil = row.til < periodeTil ? row.til : periodeTil;
+    if (constrainedFra > constrainedTil) continue;
+    for (const iso of placeLoseFeriedage(constrainedFra, constrainedTil, loseCount, blocked)) {
+      result.add(iso);
+      blocked.add(iso);
+    }
+  }
+
+  return result;
+};
+
 export const buildShDageSet = (
   fraDate: Date,
   tilDate: Date,

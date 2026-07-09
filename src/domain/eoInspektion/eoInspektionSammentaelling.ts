@@ -12,7 +12,7 @@ import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, type IsoRange } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
-import { buildFerieDageSet, buildSHDageSet } from './eoInspektionRegulationCore';
+import { buildFerieDageSetForPeriode, buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engines/tafBeregningsEngine';
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
@@ -206,7 +206,7 @@ const buildShDatesInRange = (
   range: Readonly<{ fra: ISODateString; til: ISODateString }> | null
 ): ReadonlySet<ISODateString> => {
   if (!range) return new Set<ISODateString>();
-  return buildSHDageSet(range.fra, range.til);
+  return buildShDageSetFromIsoRange(range.fra, range.til);
 };
 
 const buildFerieDatesInRange = (
@@ -216,7 +216,6 @@ const buildFerieDatesInRange = (
 ): ReadonlySet<ISODateString> => {
   if (!range) return new Set<ISODateString>();
 
-  const shDays = buildSHDageSet(range.fra, range.til);
   const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
   const includeTafLoseFeriedage = options?.includeTafLoseFeriedage === true;
   const includeBeregningsperiodeLoseFeriedage = options?.includeBeregningsperiodeLoseFeriedage === true;
@@ -237,9 +236,8 @@ const buildFerieDatesInRange = (
     });
   }
 
-  return buildFerieDageSet(
+  return buildFerieDageSetForPeriode(
     { ferieperioder, tafPerioder: loseFerieSources },
-    shDays,
     range.fra,
     range.til
   );

@@ -7,8 +7,8 @@ import { optaelMaanederPraecis } from './periodiseringsMotor';
 export const beregnArbejdsdageOgMaaneder = (
   fra: ISODateString,
   til: ISODateString,
-  shDage: Set<ISODateString>,
-  ferieDage: Set<ISODateString>
+  shDage: ReadonlySet<ISODateString>,
+  ferieDage: ReadonlySet<ISODateString>
 ): { arbejdsdage: number; maaneder: number } => {
   const fraDate = isoDateToDate(fra);
   const tilDate = isoDateToDate(til);

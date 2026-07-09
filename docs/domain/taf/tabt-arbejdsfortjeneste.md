@@ -116,7 +116,7 @@ Dagen efter TAF-periodens slut beskrives med en arbejdsstatus-linje der inkluder
 | `src/domain/erstatningsopgoerelse/tafBeregningsEngine.ts` | Aggregeret TAF-engine; merger overlappende perioder; eksporterer `buildMergedTafGroups`, `computeTafArbejdsdageAggregation` |
 | `src/domain/erstatningsopgoerelse/tafNettoBeregning.ts` | Netto-TAF-beregning; orkestrerer lønudvikling, TAF-indtægter og tidligere modtaget TAF; eksporterer `computeTafNettoBeregning` |
 | `src/domain/erstatningsopgoerelse/tafPeriodConstraints.ts` | Grænser og clamping for TAF-perioder; `resolveTafConstraintBounds`, `resolveTafFejlgivendeBounds`, `resolveTafEoPeriodeBounds`, `clampTafRange` |
-| `src/domain/erstatningsopgoerelse/tafDaySets.ts` | Datosæt-bygning: ferie, SH, løse feriedage; `buildTafArbejdsdageSetFromRows`, `buildShDageSet`, `buildFerieDageSet`, `placeLoseFeriedage` |
+| `src/domain/erstatningsopgoerelse/tafDaySets.ts` | Kanonisk datosæt-bygning: ferie, SH, løse feriedage; `buildTafArbejdsdageSetFromRows`, `buildShDageSet`, `buildFerieDageSet`, `buildFerieDageSetForPeriode` (range-baseret ferie+løse til kontrol-/sammentællingslaget), `placeLoseFeriedage` |
 | `src/domain/erstatningsopgoerelse/tafRowDerived.ts` | Per-række UI-afledninger (merger IKKE); `buildTafDerived` |
 | `src/domain/erstatningsopgoerelse/tafCalculations.ts` | Tynde wrapper-funktioner over `periodiseringsMotor` |
 | `src/domain/erstatningsopgoerelse/tafPerYearDerived.ts` | TAF fordelt på kalenderår til PDF-bilag |

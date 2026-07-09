@@ -2,7 +2,7 @@
  * Tests for Regulation Core Model (Index)
  */
 
-import { buildRegulationTimeline, buildSHDageSet, buildFerieDageSet } from '../../../domain/eoInspektion/eoInspektionRegulationCore';
+import { buildRegulationTimeline } from '../../../domain/eoInspektion/eoInspektionRegulationCore';
 import type { RowDay } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
@@ -808,77 +808,5 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
     const entries = result.ansaettelser[0]?.entries ?? [];
 
     expect(entries.some((entry) => entry.effectiveFrom === iso('2024-01-01'))).toBe(true);
-  });
-});
-
-// ─── buildSHDageSet ──────────────────────────────────────────────────────────
-
-describe('buildSHDageSet', () => {
-  it('indeholder nytårsdag 2024-01-01 (mandag)', () => {
-    const set = buildSHDageSet(iso('2024-01-01'), iso('2024-01-31'));
-    expect(set.has(iso('2024-01-01'))).toBe(true);
-  });
-
-  it('inkluderer ikke weekend-helligdage (st. pinsedag 2024-05-19 = søndag)', () => {
-    // 1. pinsedag 2024-05-19 er søndag, 2. pinsedag 2024-05-20 er mandag
-    const set = buildSHDageSet(iso('2024-05-01'), iso('2024-05-31'));
-    expect(set.has(iso('2024-05-19'))).toBe(false); // søndag → inkluderes ikke
-    expect(set.has(iso('2024-05-20'))).toBe(true);  // mandag → inkluderes
-  });
-
-  it('tom set for periode uden helligdage', () => {
-    // En periode i midten af februar uden nogen helligdage
-    const set = buildSHDageSet(iso('2024-02-05'), iso('2024-02-09'));
-    expect(set.size).toBe(0);
-  });
-});
-
-// ─── buildFerieDageSet ───────────────────────────────────────────────────────
-
-describe('buildFerieDageSet', () => {
-  it('returnerer tomt set for tomt input', () => {
-    const shDage = new Set<ISODateString>();
-    const result = buildFerieDageSet({}, shDage, iso('2024-03-01'), iso('2024-03-31'));
-    expect(result.size).toBe(0);
-  });
-
-  it('tilføjer hverdags-feriedage fra ferieperioder', () => {
-    // 2024-03-04 er mandag
-    const shDage = new Set<ISODateString>();
-    const result = buildFerieDageSet(
-      { ferieperioder: [{ fra: toISODateString('2024-03-04'), til: toISODateString('2024-03-04') }] },
-      shDage,
-      iso('2024-03-01'),
-      iso('2024-03-31')
-    );
-    expect(result.has(iso('2024-03-04'))).toBe(true);
-  });
-
-  it('tilføjer ikke weekend-dage fra ferieperioder', () => {
-    // 2024-03-02 er lørdag
-    const shDage = new Set<ISODateString>();
-    const result = buildFerieDageSet(
-      { ferieperioder: [{ fra: toISODateString('2024-03-02'), til: toISODateString('2024-03-02') }] },
-      shDage,
-      iso('2024-03-01'),
-      iso('2024-03-31')
-    );
-    expect(result.has(iso('2024-03-02'))).toBe(false);
-  });
-
-  it('løse feriedage fra tafPerioder placeres som første dage', () => {
-    // TAF-periode 2024-03-04 → 2024-03-08 med 2 løse feriedage → mandag + tirsdag
-    const shDage = new Set<ISODateString>();
-    const result = buildFerieDageSet(
-      {
-        tafPerioder: [{ fra: toISODateString('2024-03-04'), til: toISODateString('2024-03-08'), loseFeriedage: 2 }],
-      },
-      shDage,
-      iso('2024-03-01'),
-      iso('2024-03-31')
-    );
-    expect(result.has(iso('2024-03-04'))).toBe(true); // mandag
-    expect(result.has(iso('2024-03-05'))).toBe(true); // tirsdag
-    expect(result.has(iso('2024-03-06'))).toBe(false); // onsdag (kun 2 løse)
   });
 });

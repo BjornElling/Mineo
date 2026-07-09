@@ -30,8 +30,6 @@ import { formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatst
 import { getReguleringsDatoIntervalForKlLoenaftaler, klLoenaftalerRaekker } from '../../data/klLoenaftaler';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
-import { iterateDatesInclusive } from '../../utils/isoDateHelpers';
-import { buildSHDageSetForIsoRange } from '../dates/shDageBeregning';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/indskudteLoentillaeg';
 import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/engines/arbejdsdageMaaneder';
@@ -55,6 +53,7 @@ import { buildStatistikIndexEntries } from '../erstatningsopgoerelse/engines/sta
 import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';
 import { buildKlLoenaftalerIndexEntries } from '../erstatningsopgoerelse/engines/klLoenaftalerRegulering';
 import { findLatestByDateInSortedList } from '../erstatningsopgoerelse/engines/reguleringSeriesLookup';
+import { buildShDageSetFromIsoRange, buildFerieDageSetForPeriode } from '../erstatningsopgoerelse/engines/tafDaySets';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
@@ -542,89 +541,6 @@ const decrementDate = (iso: ISODateString): ISODateString => {
   return dateToISO(date)!;
 };
 
-export const buildSHDageSet = (fra: ISODateString, til: ISODateString): Set<ISODateString> => {
-  return new Set(buildSHDageSetForIsoRange(fra, til));
-};
-
-type FerieDageInput = Readonly<{
-  ferieperioder?: ReadonlyArray<{
-    fra?: string;
-    til?: string;
-  }>;
-  tafPerioder?: ReadonlyArray<{
-    fra?: string;
-    til?: string;
-    loseFeriedage?: number | string;
-  }>;
-}>;
-
-export const buildFerieDageSet = (
-  eoValues: FerieDageInput,
-  shDage: ReadonlySet<ISODateString>,
-  periodeFra: ISODateString,
-  periodeTil: ISODateString
-): Set<ISODateString> => {
-  const allFerie = new Set<ISODateString>();
-
-  // 1. Eksplicit ferie fra ferieperioder
-  const ferieperioder = eoValues.ferieperioder ?? [];
-  for (const feriePeriode of ferieperioder) {
-    const ferieFraRaw = feriePeriode.fra;
-    const ferieTilRaw = feriePeriode.til;
-    if (!ferieFraRaw || !ferieTilRaw) continue;
-    if (!isISODateString(ferieFraRaw) || !isISODateString(ferieTilRaw)) continue;
-    if (ferieFraRaw > ferieTilRaw) continue;
-
-    const constrainedFra = ferieFraRaw > periodeFra ? ferieFraRaw : periodeFra;
-    const constrainedTil = ferieTilRaw < periodeTil ? ferieTilRaw : periodeTil;
-    if (constrainedFra > constrainedTil) continue;
-
-    iterateDatesInclusive(isoDateToDate(constrainedFra), isoDateToDate(constrainedTil), (current) => {
-      const iso = dateToISO(current);
-      if (iso) {
-        const dow = current.getUTCDay();
-        if (dow >= 1 && dow <= 5 && !shDage.has(iso)) {
-          allFerie.add(iso);
-        }
-      }
-    });
-  }
-
-  // 2. Løse feriedage fra TAF-perioder (placeres som første dage)
-  const tafRows = eoValues.tafPerioder ?? [];
-  for (const row of tafRows) {
-    const tafFraRaw = row.fra;
-    const tafTilRaw = row.til;
-    if (!tafFraRaw || !tafTilRaw) continue;
-    if (!isISODateString(tafFraRaw) || !isISODateString(tafTilRaw)) continue;
-    if (tafFraRaw > tafTilRaw) continue;
-
-    const loseCount = typeof row.loseFeriedage === 'number' ? Math.max(0, Math.trunc(row.loseFeriedage)) : 0;
-    if (loseCount <= 0) continue;
-
-    let remaining = loseCount;
-    const constrainedFra = tafFraRaw > periodeFra ? tafFraRaw : periodeFra;
-    const constrainedTil = tafTilRaw < periodeTil ? tafTilRaw : periodeTil;
-    if (constrainedFra > constrainedTil) continue;
-
-    iterateDatesInclusive(isoDateToDate(constrainedFra), isoDateToDate(constrainedTil), (current) => {
-      const iso = dateToISO(current);
-      if (iso) {
-        const dow = current.getUTCDay();
-        if (dow >= 1 && dow <= 5 && !shDage.has(iso) && !allFerie.has(iso)) {
-          allFerie.add(iso);
-          remaining--;
-        }
-      }
-      return remaining > 0 ? undefined : false;
-    });
-  }
-
-  return allFerie;
-};
-
- 
-
 export function buildRegulationTimeline(input: RegulationCoreInput): RegulationIndexTimeline {
   const eoRange = getEoRange(input.eoValues);
   const tafBeregningsenhed = computeTafBeregningsenhed(input.eoValues);
@@ -693,8 +609,8 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const referenceDanish = toDanishOrUndefined(referenceIso);
     if (!referenceDanish) continue;
     const timelineStartIso = minISO(referenceIso, eoRange.fra);
-    const shDageSet = buildSHDageSet(timelineStartIso, eoRange.til);
-    const ferieDageSet = buildFerieDageSet(input.eoValues, shDageSet, timelineStartIso, eoRange.til);
+    const shDageSet = buildShDageSetFromIsoRange(timelineStartIso, eoRange.til);
+    const ferieDageSet = buildFerieDageSetForPeriode(input.eoValues, timelineStartIso, eoRange.til);
     const offentligSelection = grundlag === 'Overenskomst' ? resolveOffentligLoenSelection(af) : null;
     if (grundlag === 'Overenskomst' && offentligSelection) {
       const overenskomstId = af.overenskomstId;

@@ -3,6 +3,7 @@ import {
   buildDatoSetInclusive,
   buildDatoSetInclusiveFromDates,
   buildFerieDageSet,
+  buildFerieDageSetForPeriode,
   buildShDageSet,
   buildShDageSetFromIsoRange,
   buildTafArbejdsdageSetForRange,
@@ -365,6 +366,79 @@ describe('buildShDageSetFromIsoRange', () => {
   it('returnerer tomt sæt når fra > til', () => {
     const result = buildShDageSetFromIsoRange(iso('2024-12-31'), iso('2024-01-01'));
     expect(result.size).toBe(0);
+  });
+
+  it('indeholder nytårsdag 2024-01-01 (mandag)', () => {
+    const set = buildShDageSetFromIsoRange(iso('2024-01-01'), iso('2024-01-31'));
+    expect(set.has(iso('2024-01-01'))).toBe(true);
+  });
+
+  it('inkluderer ikke weekend-helligdage (1. pinsedag 2024-05-19 = søndag)', () => {
+    // 1. pinsedag 2024-05-19 er søndag, 2. pinsedag 2024-05-20 er mandag
+    const set = buildShDageSetFromIsoRange(iso('2024-05-01'), iso('2024-05-31'));
+    expect(set.has(iso('2024-05-19'))).toBe(false); // søndag → inkluderes ikke
+    expect(set.has(iso('2024-05-20'))).toBe(true);  // mandag → inkluderes
+  });
+
+  it('tom set for periode uden helligdage', () => {
+    const set = buildShDageSetFromIsoRange(iso('2024-02-05'), iso('2024-02-09'));
+    expect(set.size).toBe(0);
+  });
+});
+
+// ─── buildFerieDageSetForPeriode ─────────────────────────────────────────────
+// Range-baseret ferie-builder (intern SH + løse feriedage) som kontrol-/
+// sammentællingslaget forbruger. Byggeklods-adfærd; fuld byte-identitet med den
+// tidligere hånd-rullede implementering bevises i tafDaySets.equivalence.test.ts.
+
+describe('buildFerieDageSetForPeriode', () => {
+  it('returnerer tomt set for tomt input', () => {
+    const result = buildFerieDageSetForPeriode({}, iso('2024-03-01'), iso('2024-03-31'));
+    expect(result.size).toBe(0);
+  });
+
+  it('tilføjer hverdags-feriedage fra ferieperioder', () => {
+    // 2024-03-04 er mandag
+    const result = buildFerieDageSetForPeriode(
+      { ferieperioder: [{ fra: iso('2024-03-04'), til: iso('2024-03-04') }] },
+      iso('2024-03-01'),
+      iso('2024-03-31')
+    );
+    expect(result.has(iso('2024-03-04'))).toBe(true);
+  });
+
+  it('tilføjer ikke weekend-dage fra ferieperioder', () => {
+    // 2024-03-02 er lørdag
+    const result = buildFerieDageSetForPeriode(
+      { ferieperioder: [{ fra: iso('2024-03-02'), til: iso('2024-03-02') }] },
+      iso('2024-03-01'),
+      iso('2024-03-31')
+    );
+    expect(result.has(iso('2024-03-02'))).toBe(false);
+  });
+
+  it('udelader SH-dage (nytårsdag mandag 2024-01-01) fra ferieperioder', () => {
+    const result = buildFerieDageSetForPeriode(
+      { ferieperioder: [{ fra: iso('2024-01-01'), til: iso('2024-01-02') }] },
+      iso('2024-01-01'),
+      iso('2024-01-31')
+    );
+    expect(result.has(iso('2024-01-01'))).toBe(false); // SH → udelades
+    expect(result.has(iso('2024-01-02'))).toBe(true);  // tirsdag
+  });
+
+  it('løse feriedage fra tafPerioder placeres som første dage', () => {
+    // TAF-periode 2024-03-04 → 2024-03-08 med 2 løse feriedage → mandag + tirsdag
+    const result = buildFerieDageSetForPeriode(
+      {
+        tafPerioder: [{ fra: iso('2024-03-04'), til: iso('2024-03-08'), loseFeriedage: 2 }],
+      },
+      iso('2024-03-01'),
+      iso('2024-03-31')
+    );
+    expect(result.has(iso('2024-03-04'))).toBe(true); // mandag
+    expect(result.has(iso('2024-03-05'))).toBe(true); // tirsdag
+    expect(result.has(iso('2024-03-06'))).toBe(false); // onsdag (kun 2 løse)
   });
 });
 
