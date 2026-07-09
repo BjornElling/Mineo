@@ -14,7 +14,7 @@ export const flushTableInteraction = async (): Promise<void> => {
 export const focusTableElement = async (element: HTMLElement): Promise<void> => {
   await act(async () => {
     element.focus();
-    await flushTableInteraction();
+    await Promise.resolve();
   });
 };
 
@@ -24,7 +24,7 @@ export const keyDownTableElement = async (
 ): Promise<void> => {
   await act(async () => {
     fireEvent.keyDown(element, init);
-    await flushTableInteraction();
+    await Promise.resolve();
   });
 };
 
@@ -38,7 +38,7 @@ export const changeTableInput = async (input: HTMLElement, value: string): Promi
 export const blurTableElement = async (element: HTMLElement): Promise<void> => {
   await act(async () => {
     fireEvent.blur(element);
-    await flushTableInteraction();
+    await Promise.resolve();
   });
 };
 

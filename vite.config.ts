@@ -100,6 +100,10 @@ export default defineConfig({
 
   test: {
     environment: 'node',
+    // Testfilerne er isolerede, men fork-poolen kopierer Vite/MUI-modultræet
+    // til hvert worker-process. Thread-poolen bevarer samme isolation og
+    // parallelitet uden den gentagne proces- og hukommelsesomkostning.
+    pool: 'threads',
 
     environmentOptions: {
       jsdom: {

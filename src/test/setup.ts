@@ -158,6 +158,13 @@ if (hasDomEnvironment) {
       writable: true,
       value: fastCancelRaf,
     });
+
+    // setup-filen køres for hver jsdom-testfil. Portene skal lukkes igen, så
+    // hundredvis af testfiler ikke efterlader aktive MessageChannel-ressourcer.
+    (globalThis as { afterAll?: (fn: () => void) => void }).afterAll?.(() => {
+      channel.port1.close();
+      channel.port2.close();
+    });
   }
 
   if (!HTMLElement.prototype.scrollTo) {
@@ -226,62 +233,71 @@ if (hasDomEnvironment) {
     return '';
   };
 
-  const originalUserEventSetup = userEvent.setup.bind(userEvent);
   const mutableUserEvent = userEvent as typeof userEvent & {
-    setup: (...args: Parameters<typeof originalUserEventSetup>) => ReturnType<typeof originalUserEventSetup>;
+    setup: (...args: Parameters<typeof userEvent.setup>) => ReturnType<typeof userEvent.setup>;
+    __mineoOriginalSetup?: typeof userEvent.setup;
+    __mineoSetupPatched?: true;
   };
 
-  mutableUserEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) => {
-    const options = args[0] ?? {};
-    const api = originalUserEventSetup({ pointerEventsCheck: 0, delay: null, ...options });
-    const mutableApi = api as typeof api & {
-      paste: (
-        targetOrClipboardData?: Element | DataTransfer | string,
-        clipboardData?: DataTransfer | string,
-      ) => Promise<void>;
-    };
+  // Vitest genbruger afhængighedsmoduler mellem testfiler i samme worker. Uden
+  // vagten bliver setup-wrapperen lagt oven på den forrige for hver jsdom-fil.
+  if (!mutableUserEvent.__mineoSetupPatched) {
+    mutableUserEvent.__mineoOriginalSetup = userEvent.setup.bind(userEvent);
+    const originalUserEventSetup = mutableUserEvent.__mineoOriginalSetup;
 
-    mutableApi.paste = (async (...pasteArgs: Parameters<typeof mutableApi.paste>) => {
-      const firstArg = pasteArgs[0];
-      const secondArg = pasteArgs[1];
-      const hasExplicitTarget = firstArg instanceof Element;
-      const target = hasExplicitTarget
-        ? firstArg
-        : document.activeElement instanceof Element
-          ? document.activeElement
-          : null;
-      const text = hasExplicitTarget ? readClipboardArg(secondArg) : readClipboardArg(firstArg);
+    mutableUserEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) => {
+      const options = args[0] ?? {};
+      const api = originalUserEventSetup({ pointerEventsCheck: 0, delay: null, ...options });
+      const mutableApi = api as typeof api & {
+        paste: (
+          targetOrClipboardData?: Element | DataTransfer | string,
+          clipboardData?: DataTransfer | string,
+        ) => Promise<void>;
+      };
 
-      if (!target) return;
-      clipboardStore.text = text;
+      mutableApi.paste = (async (...pasteArgs: Parameters<typeof mutableApi.paste>) => {
+        const firstArg = pasteArgs[0];
+        const secondArg = pasteArgs[1];
+        const hasExplicitTarget = firstArg instanceof Element;
+        const target = hasExplicitTarget
+          ? firstArg
+          : document.activeElement instanceof Element
+            ? document.activeElement
+            : null;
+        const text = hasExplicitTarget ? readClipboardArg(secondArg) : readClipboardArg(firstArg);
 
-      await act(async () => {
-        const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
-        Object.defineProperty(pasteEvent, 'clipboardData', {
-          configurable: true,
-          get: () => ({
-            getData: (type: string) => (type === 'text' || type === 'text/plain' ? text : ''),
-          }),
+        if (!target) return;
+        clipboardStore.text = text;
+
+        await act(async () => {
+          const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+          Object.defineProperty(pasteEvent, 'clipboardData', {
+            configurable: true,
+            get: () => ({
+              getData: (type: string) => (type === 'text' || type === 'text/plain' ? text : ''),
+            }),
+          });
+          target.dispatchEvent(pasteEvent);
+
+          if (pasteEvent.defaultPrevented) return;
+          if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+
+          const start = typeof target.selectionStart === 'number' ? target.selectionStart : target.value.length;
+          const end = typeof target.selectionEnd === 'number' ? target.selectionEnd : start;
+          const next = target.value.slice(0, start) + text + target.value.slice(end);
+          target.value = next;
+
+          const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+          Object.defineProperty(inputEvent, 'data', { configurable: true, value: text });
+          Object.defineProperty(inputEvent, 'inputType', { configurable: true, value: 'insertFromPaste' });
+          target.dispatchEvent(inputEvent);
         });
-        target.dispatchEvent(pasteEvent);
+      }) as typeof mutableApi.paste;
 
-        if (pasteEvent.defaultPrevented) return;
-        if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
-
-        const start = typeof target.selectionStart === 'number' ? target.selectionStart : target.value.length;
-        const end = typeof target.selectionEnd === 'number' ? target.selectionEnd : start;
-        const next = target.value.slice(0, start) + text + target.value.slice(end);
-        target.value = next;
-
-        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-        Object.defineProperty(inputEvent, 'data', { configurable: true, value: text });
-        Object.defineProperty(inputEvent, 'inputType', { configurable: true, value: 'insertFromPaste' });
-        target.dispatchEvent(inputEvent);
-      });
-    }) as typeof mutableApi.paste;
-
-    return mutableApi;
-  }) as typeof mutableUserEvent.setup;
+      return mutableApi;
+    }) as typeof mutableUserEvent.setup;
+    mutableUserEvent.__mineoSetupPatched = true;
+  }
 
   (globalThis as { afterEach?: (fn: () => void) => void }).afterEach?.(() => {
     resetGlobalTestState();
