@@ -10,8 +10,6 @@
  * inline-implementering — outputtet skal være bit-for-bit det samme.
  */
 
-import type { RowInput } from 'jspdf-autotable';
-import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import { createStandardPdfWriter } from '../../../writer';
 import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../../layout/pdfConfig';
 import type { ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
@@ -19,12 +17,7 @@ import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatni
 import { capitalizeFirstCharDa, formatPercent as formatPercentUtil, formatAsAmount } from '../../../../utils/formatUtils';
 import { isEffectivelyZero, isWithinTolerance } from '../../../../utils/numberComparison';
 import { getStandardLoenTableHeaders, resolveStandardLoenPeriodColumns } from '../../../../domain/aarsloen/standardLoenTableColumns';
-import {
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  createDocumentTableSummedTotalRow,
-  renderDocumentTable,
-} from '../../../layout/documentTableRenderer';
+import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import {
   buildEoBilagIndkomstYdelserRanges,
   hasNonZeroLoenAmount,
@@ -267,31 +260,41 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     }
 
     const antalDageHeader = divisorLabel === 'kalenderdage' ? 'Antal kalenderdage' : 'Antal arbejdsdage';
-    const tableRows: RowInput[] = [
-      [
-        createDocumentTableHeaderCell('Fra-dato', 'center'),
-        createDocumentTableHeaderCell('Til-dato', 'center'),
-        createDocumentTableHeaderCell('Feriepenge-sats', 'center'),
-        createDocumentTableHeaderCell('AG-pension', 'center'),
-        createDocumentTableHeaderCell(antalDageHeader, 'center'),
-        createDocumentTableHeaderCell(SFGG_TABLE_TOTAL_LABEL, 'center'),
-      ],
+    // Fem centrerede kolonner + en højrejusteret feriepengekrav-kolonne. Auto-bredde
+    // (ingen kolonne-styles), som den oprindelige kaldeform.
+    const sfggColumns: readonly ColumnSpec[] = [
+      { width: { kind: 'auto' }, align: 'center' },
+      { width: { kind: 'auto' }, align: 'center' },
+      { width: { kind: 'auto' }, align: 'center' },
+      { width: { kind: 'auto' }, align: 'center' },
+      { width: { kind: 'auto' }, align: 'center' },
+      { width: { kind: 'auto' }, align: 'right' },
+    ];
+    const specRows: RowSpec[] = [
+      {
+        kind: 'header',
+        cells: [
+          { text: 'Fra-dato', align: 'center' },
+          { text: 'Til-dato', align: 'center' },
+          { text: 'Feriepenge-sats', align: 'center' },
+          { text: 'AG-pension', align: 'center' },
+          { text: antalDageHeader, align: 'center' },
+          { text: SFGG_TABLE_TOTAL_LABEL, align: 'center' },
+        ],
+      },
+      ...rows.map((row): RowSpec => ({
+        cells: [
+          { text: formatDateShort(row.fra) ?? '' },
+          { text: formatDateShort(row.til) ?? '' },
+          { text: formatCurrencyFromOreTrimmed(row.satsOre) },
+          { text: `+ ${formatPercentUtil(row.agPensionPct)}` },
+          { text: String(row.antalDage) },
+          { text: formatCurrencyFromOreTrimmed(row.feriepengekravOre) },
+        ],
+      })),
     ];
 
-    for (const row of rows) {
-      tableRows.push(
-        [
-          createDocumentTableCell(formatDateShort(row.fra) ?? '', { halign: 'center' }),
-          createDocumentTableCell(formatDateShort(row.til) ?? '', { halign: 'center' }),
-          createDocumentTableCell(formatCurrencyFromOreTrimmed(row.satsOre), { halign: 'center' }),
-          createDocumentTableCell(`+ ${formatPercentUtil(row.agPensionPct)}`, { halign: 'center' }),
-          createDocumentTableCell(String(row.antalDage), { halign: 'center' }),
-          createDocumentTableCell(formatCurrencyFromOreTrimmed(row.feriepengekravOre), { halign: 'right' }),
-        ]
-      );
-    }
-
-    const totalRow = createDocumentTableSummedTotalRow(
+    const totalRow = buildSummedTotalRowSpec(
       'I alt',
       rows.map((row) => row.feriepengekravOre),
       {
@@ -301,21 +304,14 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
         valueHasKrSuffix: false,
       }
     );
-    const totalRowIndex = totalRow ? tableRows.length : null;
-    if (totalRow) {
-      tableRows.push(totalRow.row);
-    }
+    if (totalRow) specRows.push(totalRow);
 
-    const startY = writer.getY();
-    const finalY = renderDocumentTable({
-      doc: writer.getDoc(),
-      startY,
-      body: tableRows,
-      underlinedCellPositions: totalRowIndex === null || totalRow === null
-        ? []
-        : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
+    const { endY } = renderTableSpec(writer.getDoc(), writer.getY(), {
+      columns: sfggColumns,
+      hasHeaderRow: true,
+      rows: specRows,
     });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+    writer.setY(endY);
 
     const feriepengeHvisIkkeSkadeOre = entry.feriepengekravTotalOre;
     const feriepengeModtagetOre = entry.feriepengeModtagetFormula?.totalOre ?? 0;
@@ -448,37 +444,24 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       tableData = null;
     }
     if (tableData && tableData.rows.length > 0) {
-      const tableRows: RowInput[] = [
-        tableData.columns.map((column) => createDocumentTableHeaderCell(column, 'center')),
-        ...tableData.rows.map((row) => row.map((cell) => createDocumentTableCell(cell, { halign: 'center' }))),
+      // Første kolonne (dato) centreres; alle talkolonner (≥ 1) højrejusteres med et fast
+      // visuelt højre-inset (udelades i Word, hvor cellernes egen højrejustering gælder).
+      // Auto-bredde, som den oprindelige kaldeform.
+      const reguleringColumns: readonly ColumnSpec[] = tableData.columns.map((_, index) =>
+        index === 0
+          ? { width: { kind: 'auto' }, align: 'center' }
+          : { width: { kind: 'auto' }, align: 'right', rightInset: { kind: 'fixed', mm: 8 } }
+      );
+      const specRows: RowSpec[] = [
+        { kind: 'header', cells: tableData.columns.map((column) => ({ text: column, align: 'center' })) },
+        ...tableData.rows.map((row): RowSpec => ({ cells: row.map((cell) => ({ text: cell })) })),
       ];
-      const startY = writer.getY();
-      // Word matcher PDF'ens højrejustering af talkolonnerne (alle kolonner ≥ 1).
-      // Insettet nedenfor er rent visuelt og udelades bevidst i Word.
-      const dataRowColumnHalign: Record<number, 'right'> = {};
-      for (let columnIndex = 1; columnIndex < tableData.columns.length; columnIndex += 1) {
-        dataRowColumnHalign[columnIndex] = 'right';
-      }
-      const finalY = renderDocumentTable({
-        doc: writer.getDoc(),
-        startY,
-        body: tableRows,
-        dataRowColumnHalign,
-        didParseCell: (data) => {
-          const isDataRow = data.row.index >= 1;
-          const isNumericColumn = data.column.index >= 1;
-          if (!isDataRow || !isNumericColumn) return;
-
-          data.cell.styles.halign = 'right';
-          data.cell.styles.cellPadding = {
-            top: 1.5,
-            bottom: 1.5,
-            left: 1.5,
-            right: 8,
-          };
-        },
+      const { endY } = renderTableSpec(writer.getDoc(), writer.getY(), {
+        columns: reguleringColumns,
+        hasHeaderRow: true,
+        rows: specRows,
       });
-      writer.setY(resolveDocumentSectionEndY(finalY, startY));
+      writer.setY(endY);
     } else if (tableDataError) {
       safeAddWrappedText('Reguleringsværdier kan ikke vises, fordi en nødvendig reguleringssats mangler.');
     } else {

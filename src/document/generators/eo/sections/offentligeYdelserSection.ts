@@ -1,5 +1,3 @@
-import type { RowInput } from 'jspdf-autotable';
-import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { roundByMethod } from '../../../../utils/rounding';
@@ -8,7 +6,7 @@ import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatning
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { cellRight, createDocumentDistributedColumnStyles, createDocumentTableCell, renderDocumentTable } from '../../../layout/documentTableRenderer';
+import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
@@ -49,13 +47,19 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
   } = ctx;
   if (rows.length === 0) return;
 
-  const headerRow: RowInput = OFFENTLIGE_YDELSER_PDF_HEADERS.map((header) => ({
-    content: header,
-    styles: { fontStyle: 'bold', halign: 'center' as const },
+  // Fra-/til-dato centreres, beløbskolonnerne højrejusteres. Justeringen bæres af
+  // kolonne-intentionen (celle-fallback); header-cellerne centreres eksplicit.
+  const columns: readonly ColumnSpec[] = OFFENTLIGE_YDELSER_PDF_HEADERS.map((_, index) => ({
+    width: { kind: 'flex' },
+    align: index <= 1 ? 'center' : 'right',
   }));
+  const headerRow: RowSpec = {
+    kind: 'header',
+    cells: OFFENTLIGE_YDELSER_PDF_HEADERS.map((header) => ({ text: header, align: 'center' })),
+  };
 
-  const buildTableRows = (groupRows: OffentligeYdelserRow[]): RowInput[] => {
-    const tableRows: RowInput[] = [headerRow];
+  const buildTableRows = (groupRows: OffentligeYdelserRow[]): RowSpec[] => {
+    const specRows: RowSpec[] = [headerRow];
     for (const row of groupRows) {
       const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
       const ydelse2Value = amountValueToNumber(row.tillaeg) ?? 0;
@@ -71,17 +75,9 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
         amountValueToDisplayString(row.tillaeg, 2),
         samletDisplay,
       ];
-      tableRows.push(
-        rowValues.map((value, index) => {
-          const halign: 'center' | 'left' | 'right' = index <= 1 ? 'center' : 'right';
-          return {
-            content: value,
-            styles: { halign },
-          };
-        })
-      );
+      specRows.push({ cells: rowValues.map((value) => ({ text: value })) });
     }
-    return tableRows;
+    return specRows;
   };
 
   const grouped = new Map<string, OffentligeYdelserRow[]>();
@@ -97,19 +93,12 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
   }
 
   const doc = writer.getDoc();
-  const columnStyles = createDocumentDistributedColumnStyles(OFFENTLIGE_YDELSER_PDF_HEADERS.length);
 
   for (const label of groupOrder) {
     if (visYdelsestypeSubheader) writer.writeUnderlinedSubheader(label);
-    const startY = writer.getY();
-    const tableRows = buildTableRows(grouped.get(label) ?? []);
-    const finalY = renderDocumentTable({
-      doc,
-      startY,
-      body: tableRows,
-      columnStyles,
-    });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+    const specRows = buildTableRows(grouped.get(label) ?? []);
+    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
+    writer.setY(endY);
   }
 };
 
@@ -188,15 +177,29 @@ type MidlertidigtEetSectionContext = Readonly<{
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
   const { groups, startEoBilagPage, renderSubheader, formatAfgoerelsesdato, tafRanges, writer } = ctx;
 
-  const ydelserHeader: RowInput = [
-    createDocumentTableCell('Fra o.m.', { halign: 'center', bold: true }),
-    createDocumentTableCell('Til o.m.', { halign: 'center', bold: true }),
-    createDocumentTableCell('Mdr.', { halign: 'right', bold: true }),
-    createDocumentTableCell('Grundydelse', { halign: 'right', bold: true }),
-    createDocumentTableCell('Regulering', { halign: 'right', bold: true }),
-    createDocumentTableCell('Ydelse/md.', { halign: 'right', bold: true }),
-    createDocumentTableCell('Beregnet EET', { halign: 'right', bold: true }),
+  // Fra/Til o.m. centreres, alle øvrige kolonner højrejusteres. Auto-bredde (ingen
+  // kolonne-styles), som den oprindelige kaldeform.
+  const columns: readonly ColumnSpec[] = [
+    { width: { kind: 'auto' }, align: 'center' },
+    { width: { kind: 'auto' }, align: 'center' },
+    { width: { kind: 'auto' }, align: 'right' },
+    { width: { kind: 'auto' }, align: 'right' },
+    { width: { kind: 'auto' }, align: 'right' },
+    { width: { kind: 'auto' }, align: 'right' },
+    { width: { kind: 'auto' }, align: 'right' },
   ];
+  const ydelserHeader: RowSpec = {
+    kind: 'header',
+    cells: [
+      { text: 'Fra o.m.' },
+      { text: 'Til o.m.' },
+      { text: 'Mdr.' },
+      { text: 'Grundydelse' },
+      { text: 'Regulering' },
+      { text: 'Ydelse/md.' },
+      { text: 'Beregnet EET' },
+    ],
+  };
 
   const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
 
@@ -217,24 +220,25 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     const pctText = Number.isFinite(group.eetPct) ? ` (${formatPct(group.eetPct)})` : '';
     renderSubheader(`Afgørelse ${datoText}${pctText}`, undefined, { addTopSpacing: bilagIndex > 1 });
 
-    const body: RowInput[] = [
+    const specRows: RowSpec[] = [
       ydelserHeader,
       ...perioder.map(
-        (row): RowInput => [
-          createDocumentTableCell(formatISOToDanish(row.fra), { halign: 'center' }),
-          createDocumentTableCell(formatISOToDanish(row.til), { halign: 'center' }),
-          cellRight(formatMaanederFixed(row.maanederPraecis)),
-          cellRight(formatKr(row.grundydelseAfrundet, 2)),
-          cellRight(formatReguleringPct(row.reguleringPct)),
-          cellRight(formatKr(row.maanedligYdelse)),
-          cellRight(formatKr(row.beregnetEet)),
-        ]
+        (row): RowSpec => ({
+          cells: [
+            { text: formatISOToDanish(row.fra) },
+            { text: formatISOToDanish(row.til) },
+            { text: formatMaanederFixed(row.maanederPraecis) },
+            { text: formatKr(row.grundydelseAfrundet, 2) },
+            { text: formatReguleringPct(row.reguleringPct) },
+            { text: formatKr(row.maanedligYdelse) },
+            { text: formatKr(row.beregnetEet) },
+          ],
+        })
       ),
     ];
 
     const doc = writer.getDoc();
-    const startY = writer.getY();
-    const finalY = renderDocumentTable({ doc, startY, body, hasHeaderRow: true });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
+    writer.setY(endY);
   }
 };

@@ -1,13 +1,4 @@
-import type { RowInput } from 'jspdf-autotable';
-import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
-import {
-  createDocumentDistributedColumnStyles,
-  createDocumentGrowColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  renderDocumentTable,
-  resolveDynamicRightAlignedInset,
-} from '../../../layout/documentTableRenderer';
+import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import {
   getEffektiveSatserForDato,
   getGrundloenAngivetPerForOverenskomst,
@@ -54,12 +45,11 @@ const REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM = 6;
 // inset, udelades i Word).
 const MANUEL_PROCENTSATS_NUMBER_INSET_MM = 13;
 const MANUEL_PROCENTSATS_NUMBER_HEADERS = new Set(['procent', 'indeks', 'akkumuleret']);
-// "Beregnet regulering": Indeksberegnings-kolonnen (index 2) rummer meget varierende indhold — fra
-// et enkelt indekstal til lange, ombrudte formler. Den behandles derfor som "grow-kolonne": de øvrige
+// "Beregnet regulering": Indeksberegnings-kolonnen rummer meget varierende indhold — fra et
+// enkelt indekstal til lange, ombrudte formler. Den behandles derfor som "grow-kolonne": de øvrige
 // kolonner garanteres kun deres indholdsbestemte min-bredde, og Indeksberegning får al den resterende
 // plads (med ligelig fordeling af et evt. overskud mellem alle kolonner). Når kolonnen udelades
 // (manuel procentsats), deler de fire tilbageværende kolonner hele tabelbredden ligeligt.
-const BEREGNET_REGULERING_INDEKSBEREGNING_COLUMN_INDEX = 2;
 const RIGHT_ALIGNED_REGULERINGS_HEADERS = new Set([
   'feriepenge',
   'sh/so',
@@ -347,101 +337,83 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     if (isKlLoenaftalerTable) {
       const reguleretLoenHeader = tafBeregnesSom === 'Måneder' ? 'Reguleret månedsløn' : 'Reguleret dagsløn';
-      const tableRows: RowInput[] = [[
-        createDocumentTableHeaderCell('Fra-dato', 'center'),
-        createDocumentTableHeaderCell('Til-dato', 'center'),
-        createDocumentTableHeaderCell('Lønudvikling', 'center'),
-        createDocumentTableHeaderCell(reguleretLoenHeader, 'center'),
-      ]];
-      for (const row of rows) {
-        tableRows.push([
-          createDocumentTableCell(cellOrDash(row.fraDato), { halign: 'center' }),
-          createDocumentTableCell(cellOrDash(row.tilDato), { halign: 'center' }),
-          createDocumentTableCell(cellOrDash(row.loenudvikling), { halign: 'center' }),
-          createDocumentTableCell(cellOrDash(row.reguleretLoen), { halign: 'center' }),
-        ]);
-      }
-      const finalY = renderDocumentTable({
-        doc,
-        startY,
-        body: tableRows,
-        columnStyles: createDocumentDistributedColumnStyles(4, { defaultHalign: 'center' }),
-      });
-      writer.setY(resolveDocumentSectionEndY(finalY, startY));
+      const klColumns: readonly ColumnSpec[] = Array.from({ length: 4 }, () => ({
+        width: { kind: 'flex' as const },
+        align: 'center' as const,
+      }));
+      const klRows: RowSpec[] = [
+        {
+          kind: 'header',
+          cells: [{ text: 'Fra-dato' }, { text: 'Til-dato' }, { text: 'Lønudvikling' }, { text: reguleretLoenHeader }],
+        },
+        ...rows.map((row): RowSpec => ({
+          cells: [
+            { text: cellOrDash(row.fraDato) },
+            { text: cellOrDash(row.tilDato) },
+            { text: cellOrDash(row.loenudvikling) },
+            { text: cellOrDash(row.reguleretLoen) },
+          ],
+        })),
+      ];
+      const { endY } = renderTableSpec(doc, startY, { columns: klColumns, hasHeaderRow: true, rows: klRows });
+      writer.setY(endY);
       return;
     }
 
     // Manuel procentsats: indeksberegnings-kolonnen udelades (kildeprocenten er selve reguleringen,
     // ikke en indeksbrøk). De øvrige modeller viser fortsat indeksberegningen.
     const hideIndeksberegning = options?.hideIndeksberegning === true;
-    const tableRows: RowInput[] = [[
-      createDocumentTableHeaderCell('Fra-dato', 'center'),
-      createDocumentTableHeaderCell('Til-dato', 'center'),
-      ...(hideIndeksberegning ? [] : [createDocumentTableHeaderCell('Indeksberegning', 'center')]),
-      createDocumentTableHeaderCell('Indeks', 'center'),
-      createDocumentTableHeaderCell('Lønudvikling', 'center'),
-    ]];
-    for (const row of rows) {
-      tableRows.push([
-        createDocumentTableCell(cellOrDash(row.fraDato), { halign: 'center' }),
-        createDocumentTableCell(cellOrDash(row.tilDato), { halign: 'center' }),
-        ...(hideIndeksberegning ? [] : [createDocumentTableCell(cellOrDash(row.indeksberegning), { halign: 'center' })]),
-        createDocumentTableCell(cellOrDash(row.indeks), { halign: 'right' }),
-        createDocumentTableCell(cellOrDash(row.loenudvikling), { halign: 'right' }),
-      ]);
-    }
-
-    // Indeks + Lønudvikling højrejusteres med samme lille indrykning som Reguleringsværdier-tabellens
-    // pct-kolonner (genbrug af inset-konstanten). Insettet er rent visuelt og udelades i Word, mens
-    // dataRowColumnHalign giver Word samme højrejustering.
-    const columnCount = 4 + (hideIndeksberegning ? 0 : 1);
-    const indeksColumnIndex = columnCount - 2;
-    const loenudviklingColumnIndex = columnCount - 1;
-    const rightAlignedColumnIndices = new Set([indeksColumnIndex, loenudviklingColumnIndex]);
-    const dataRowColumnHalign: Record<number, 'right'> = {
-      [indeksColumnIndex]: 'right',
-      [loenudviklingColumnIndex]: 'right',
-    };
     // Indeks/Lønudvikling højrejusteres med en indrykning, der skaleres dynamisk efter den
-    // bredde, kolonnen faktisk får (jf. resolveDynamicRightAlignedInset): et kort Indeksberegnings-
-    // indhold giver brede tal-kolonner og dermed den fulde, luftige indrykning (maxInset), mens en
-    // lang formel (Indeksberegning som grow-kolonne) presser tal-kolonnerne sammen og reducerer
-    // indrykningen tilsvarende. maxInset følger de hidtidige faste værdier: den lidt større manuel-
+    // bredde, kolonnen faktisk får (jf. dynamic-rightInset): et kort Indeksberegnings-indhold
+    // giver brede tal-kolonner og dermed den fulde, luftige indrykning (maxMm), mens en lang
+    // formel (Indeksberegning som grow-kolonne) presser tal-kolonnerne sammen og reducerer
+    // indrykningen tilsvarende. maxMm følger de hidtidige faste værdier: den lidt større manuel-
     // procentsats-indrykning uden indeksberegnings-kolonne, ellers Reguleringsværdier-tabellens.
+    // Insettet er rent visuelt (PDF); Word læser cellens højrejustering fra kolonne-intentionen.
     const rightInsetMax = hideIndeksberegning
       ? MANUEL_PROCENTSATS_NUMBER_INSET_MM
       : REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM;
-
+    const numberColumn: ColumnSpec = {
+      width: { kind: 'flex' },
+      align: 'right',
+      rightInset: { kind: 'dynamic', maxMm: rightInsetMax },
+    };
     // Fordel bredden: Indeksberegning er grow-kolonne (fylder resten efter de øvriges min-bredde),
     // de øvrige garanteres deres indholdsbestemte min-bredde, og et evt. overskud deles ligeligt.
     // Uden Indeksberegning-kolonnen deler de fire tilbageværende kolonner hele tabelbredden ligeligt.
-    const columnStyles = hideIndeksberegning
-      ? createDocumentDistributedColumnStyles(columnCount)
-      : createDocumentGrowColumnStyles(columnCount, BEREGNET_REGULERING_INDEKSBEREGNING_COLUMN_INDEX);
-
-    const finalY = renderDocumentTable({
-      doc,
-      startY,
-      body: tableRows,
-      columnStyles,
-      dataRowColumnHalign,
-      didParseCell: (data, resolvedColumnWidths) => {
-        const isDataRow = data.row.index >= 1;
-        if (!isDataRow || !rightAlignedColumnIndices.has(data.column.index)) return;
-        data.cell.styles.halign = 'right';
-        const rightInset = resolveDynamicRightAlignedInset(
-          resolvedColumnWidths.get(data.column.index),
-          rightInsetMax
-        );
-        data.cell.styles.cellPadding = {
-          top: 1.5,
-          bottom: 1.5,
-          left: 1.5,
-          right: rightInset,
-        };
+    const columns: ColumnSpec[] = [
+      { width: { kind: 'flex' }, align: 'center' },
+      { width: { kind: 'flex' }, align: 'center' },
+      ...(hideIndeksberegning
+        ? []
+        : [{ width: { kind: 'grow' as const }, align: 'center' as const } satisfies ColumnSpec]),
+      numberColumn,
+      numberColumn,
+    ];
+    const specRows: RowSpec[] = [
+      {
+        kind: 'header',
+        cells: [
+          { text: 'Fra-dato', align: 'center' },
+          { text: 'Til-dato', align: 'center' },
+          ...(hideIndeksberegning ? [] : [{ text: 'Indeksberegning', align: 'center' as const }]),
+          { text: 'Indeks', align: 'center' },
+          { text: 'Lønudvikling', align: 'center' },
+        ],
       },
-    });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+      ...rows.map((row): RowSpec => ({
+        cells: [
+          { text: cellOrDash(row.fraDato) },
+          { text: cellOrDash(row.tilDato) },
+          ...(hideIndeksberegning ? [] : [{ text: cellOrDash(row.indeksberegning) }]),
+          { text: cellOrDash(row.indeks) },
+          { text: cellOrDash(row.loenudvikling) },
+        ],
+      })),
+    ];
+
+    const { endY } = renderTableSpec(doc, startY, { columns, hasHeaderRow: true, rows: specRows });
+    writer.setY(endY);
   };
 
   const renderReguleringsvaerdierTable = (tableData: ReguleringValuesTableData | null) => {
@@ -451,54 +423,30 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     }
 
     const normalizedTableData = stripEmptyReguleringsColumns(tableData);
-    const rightAlignedColumnInsets = new Map(
-      normalizedTableData.columns.flatMap((column, index) =>
-        RIGHT_ALIGNED_REGULERINGS_HEADERS.has(normalizeReguleringColumnHeader(column))
-          ? [[index, resolveReguleringsvaerdierRightInset(column)]]
-          : []
-      )
+
+    // Fordel pladsen jævnt mellem kolonnerne (flex) i stedet for autotables indholdsbaserede
+    // bredder; den adaptive omfordeling udvider stadig kolonner efter behov. Reguleringskolonnerne
+    // (pct/indeks/…) højrejusteres via kolonne-intentionen (Word læser cellens justering) med et
+    // fast, rent visuelt PDF-inset pr. kolonne.
+    const columns: readonly ColumnSpec[] = normalizedTableData.columns.map((column) =>
+      RIGHT_ALIGNED_REGULERINGS_HEADERS.has(normalizeReguleringColumnHeader(column))
+        ? { width: { kind: 'flex' }, align: 'right', rightInset: { kind: 'fixed', mm: resolveReguleringsvaerdierRightInset(column) } }
+        : { width: { kind: 'flex' }, align: 'center' }
     );
 
-    const tableRows: RowInput[] = [
-      normalizedTableData.columns.map((column) => createDocumentTableHeaderCell(column, 'center')),
-      ...normalizedTableData.rows.map((row) =>
-        row.map((value) => createDocumentTableCell(cellOrDash(value), { halign: 'center' }))
-      ),
+    const specRows: RowSpec[] = [
+      { kind: 'header', cells: normalizedTableData.columns.map((column) => ({ text: column, align: 'center' })) },
+      ...normalizedTableData.rows.map((row): RowSpec => ({
+        cells: row.map((value) => ({ text: cellOrDash(value) })),
+      })),
     ];
 
-    const doc = writer.getDoc();
-    const startY = writer.getY();
-    // Word matcher PDF'ens højrejustering af de reguleringskolonner, hooket
-    // højrejusterer (insettet nedenfor er rent visuelt og udelades i Word).
-    const dataRowColumnHalign: Record<number, 'right'> = {};
-    for (const columnIndex of rightAlignedColumnInsets.keys()) {
-      dataRowColumnHalign[columnIndex] = 'right';
-    }
-    // Fordel pladsen jævnt mellem kolonnerne i stedet for autotables
-    // indholdsbaserede bredder. Den adaptive omfordeling i renderDocumentTable
-    // udvider stadig kolonner, hvis en kolonnes indhold kræver mere plads.
-    const columnStyles = createDocumentDistributedColumnStyles(normalizedTableData.columns.length);
-    const finalY = renderDocumentTable({
-      doc,
-      startY,
-      body: tableRows,
-      columnStyles,
-      dataRowColumnHalign,
-      didParseCell: (data) => {
-        const isDataRow = data.row.index >= 1;
-        const rightInset = rightAlignedColumnInsets.get(data.column.index);
-        if (!isDataRow || typeof rightInset !== 'number') return;
-
-        data.cell.styles.halign = 'right';
-        data.cell.styles.cellPadding = {
-          top: 1.5,
-          bottom: 1.5,
-          left: 1.5,
-          right: rightInset,
-        };
-      },
+    const { endY } = renderTableSpec(writer.getDoc(), writer.getY(), {
+      columns,
+      hasHeaderRow: true,
+      rows: specRows,
     });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+    writer.setY(endY);
   };
 
   const ansaettelser = resolveLoenudviklingKilde(eoValues);

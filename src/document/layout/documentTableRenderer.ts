@@ -183,10 +183,6 @@ export const createDocumentTableCell = (
   return { content: normalizePdfTableCellContent(content, options?.halign), styles };
 };
 
-export const cellLeft = (content: string): PdfTableCell => createDocumentTableCell(content, { halign: 'left' });
-export const cellRight = (content: string): PdfTableCell => createDocumentTableCell(content, { halign: 'right' });
-export const cellCenter = (content: string): PdfTableCell => createDocumentTableCell(content, { halign: 'center' });
-
 export const createDocumentTableHeaderCell = (
   content: string,
   halign: PdfCellAlign = 'left'

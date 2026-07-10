@@ -1,0 +1,1507 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EO-sektion tabel-kanal-paritet: PDF resolved presentation (golden) > loenindkomst + offentlige ydelser + SH-dage + regulering af offentlige ydelser → uændret PDF-presentation 1`] = `
+[
+  {
+    "body": [
+      [
+        {
+          "content": "Måned",
+        },
+        {
+          "content": "År",
+        },
+        {
+          "content": "Løn",
+        },
+        {
+          "content": "Løn (2)",
+        },
+        {
+          "content": "FP/FV/SH/
+SO/St.B.",
+        },
+        {
+          "content": "Arb.g.
+Pension",
+        },
+        {
+          "content": "Samlet løn",
+        },
+      ],
+      [
+        {
+          "content": "1",
+        },
+        {
+          "content": "2024",
+        },
+        {
+          "content": "30.000,00",
+        },
+        {
+          "content": "1.000,00",
+        },
+        {
+          "content": "139,50",
+        },
+        {
+          "content": "0,00",
+        },
+        {
+          "content": "31.139,50",
+        },
+      ],
+      [
+        {
+          "content": "2",
+        },
+        {
+          "content": "2024",
+        },
+        {
+          "content": "31.000,00",
+        },
+        {
+          "content": "",
+        },
+        {
+          "content": "139,50",
+        },
+        {
+          "content": "0,00",
+        },
+        {
+          "content": "31.139,50",
+        },
+      ],
+    ],
+    "cellStyles": {
+      "0:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:4": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:5": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:6": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "1:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:2": {
+        "fillColor": false,
+        "halign": "right",
+      },
+      "1:3": {
+        "fillColor": false,
+        "halign": "right",
+      },
+      "1:4": {
+        "fillColor": false,
+        "halign": "right",
+      },
+      "1:5": {
+        "fillColor": false,
+        "halign": "right",
+      },
+      "1:6": {
+        "fillColor": false,
+        "halign": "right",
+      },
+      "2:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+      "2:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+      "2:4": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+      "2:5": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+      "2:6": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+    },
+    "columnWidths": {
+      "0": 18.46631,
+      "1": 17.893087,
+      "2": 32.6,
+      "3": 29.4,
+      "4": 19.871632,
+      "5": 19.168971,
+      "6": 32.6,
+    },
+    "drawnLines": [],
+    "startY": 69.42,
+    "tableWidth": 170,
+  },
+  {
+    "body": [
+      [
+        {
+          "content": "Fra-dato",
+        },
+        {
+          "content": "Til-dato",
+        },
+        {
+          "content": "Ydelse",
+        },
+        {
+          "content": "Ydelse (2)",
+        },
+        {
+          "content": "I alt",
+        },
+      ],
+      [
+        {
+          "content": "01-02-2024",
+        },
+        {
+          "content": "29-02-2024",
+        },
+        {
+          "content": "15.000,00",
+        },
+        {
+          "content": "500,00",
+        },
+        {
+          "content": "15.500,00",
+        },
+      ],
+    ],
+    "cellStyles": {
+      "0:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:4": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "1:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:2": {
+        "fillColor": false,
+        "halign": "right",
+      },
+      "1:3": {
+        "fillColor": false,
+        "halign": "right",
+      },
+      "1:4": {
+        "fillColor": false,
+        "halign": "right",
+      },
+    },
+    "columnWidths": {
+      "0": 34,
+      "1": 34,
+      "2": 34,
+      "3": 34,
+      "4": 34,
+    },
+    "drawnLines": [],
+    "startY": 70.22,
+    "tableWidth": 170,
+  },
+  {
+    "body": [
+      [
+        {
+          "content": "Ugedag",
+        },
+        {
+          "content": "Dato",
+        },
+        {
+          "content": "Helligdag",
+        },
+        {
+          "content": "SH-dag",
+        },
+      ],
+      [
+        {
+          "content": "Mandag",
+        },
+        {
+          "content": "1. januar 2024",
+        },
+        {
+          "content": "Nytårsdag",
+        },
+        {
+          "content": "x",
+        },
+      ],
+      [
+        {
+          "content": "Torsdag",
+        },
+        {
+          "content": "28. marts 2024",
+        },
+        {
+          "content": "Skærtorsdag",
+        },
+        {
+          "content": "x",
+        },
+      ],
+      [
+        {
+          "content": "Fredag",
+        },
+        {
+          "content": "29. marts 2024",
+        },
+        {
+          "content": "Langfredag",
+        },
+        {
+          "content": "x",
+        },
+      ],
+      [
+        {
+          "content": "Søndag",
+        },
+        {
+          "content": "31. marts 2024",
+        },
+        {
+          "content": "Påskedag",
+        },
+        {
+          "content": "",
+        },
+      ],
+      [
+        {
+          "content": "SH-dage i alt",
+        },
+        {
+          "content": "",
+        },
+        {
+          "content": "",
+        },
+        {
+          "content": "3",
+        },
+      ],
+    ],
+    "cellStyles": {
+      "0:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "left",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "left",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "left",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "1:0": {
+        "fillColor": false,
+        "halign": "left",
+      },
+      "1:1": {
+        "fillColor": false,
+        "halign": "left",
+      },
+      "1:2": {
+        "fillColor": false,
+        "halign": "left",
+      },
+      "1:3": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "2:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "left",
+      },
+      "2:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "left",
+      },
+      "2:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "left",
+      },
+      "2:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "3:0": {
+        "fillColor": false,
+        "halign": "left",
+      },
+      "3:1": {
+        "fillColor": false,
+        "halign": "left",
+      },
+      "3:2": {
+        "fillColor": false,
+        "halign": "left",
+      },
+      "3:3": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "4:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "left",
+      },
+      "4:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "left",
+      },
+      "4:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "left",
+      },
+      "4:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "5:0": {
+        "fillColor": false,
+        "fontStyle": "bold",
+        "halign": "left",
+        "lineWidth": 0,
+      },
+      "5:1": {
+        "fillColor": false,
+        "lineWidth": 0,
+      },
+      "5:2": {
+        "fillColor": false,
+        "lineWidth": 0,
+      },
+      "5:3": {
+        "cellPadding": 1.5,
+        "fillColor": false,
+        "fontStyle": "bold",
+        "halign": "center",
+        "lineWidth": 0,
+      },
+    },
+    "columnWidths": {
+      "0": 48.333333,
+      "1": 48.333333,
+      "2": 48.333333,
+      "3": 25,
+    },
+    "drawnLines": [
+      {
+        "cell": "5:3",
+        "x1": 11.5,
+        "x2": 33.5,
+      },
+    ],
+    "startY": 80.42,
+    "tableWidth": 170,
+  },
+]
+`;
+
+exports[`EO-sektion tabel-kanal-paritet: PDF resolved presentation (golden) > regulering: ASL-årslønsmaksimum (grow + dynamisk inset) → uændret PDF-presentation 1`] = `
+[
+  {
+    "body": [
+      [
+        {
+          "content": "År",
+        },
+        {
+          "content": "Maksimum årsløn",
+        },
+      ],
+      [
+        {
+          "content": "2022",
+        },
+        {
+          "content": "570.000,00",
+        },
+      ],
+      [
+        {
+          "content": "2023",
+        },
+        {
+          "content": "588.000,00",
+        },
+      ],
+      [
+        {
+          "content": "2024",
+        },
+        {
+          "content": "608.000,00",
+        },
+      ],
+      [
+        {
+          "content": "2025",
+        },
+        {
+          "content": "632.000,00",
+        },
+      ],
+    ],
+    "cellStyles": {
+      "0:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "1:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "2:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "3:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "4:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+    },
+    "columnWidths": {
+      "0": 85,
+      "1": 85,
+    },
+    "drawnLines": [],
+    "startY": 85.42,
+    "tableWidth": 170,
+  },
+  {
+    "body": [
+      [
+        {
+          "content": "Fra-dato",
+        },
+        {
+          "content": "Til-dato",
+        },
+        {
+          "content": "Indeksberegning",
+        },
+        {
+          "content": "Indeks",
+        },
+        {
+          "content": "Lønudvikling",
+        },
+      ],
+      [
+        {
+          "content": "01-06-2022",
+        },
+        {
+          "content": "31-12-2022",
+        },
+        {
+          "content": "570.000,00",
+        },
+        {
+          "content": "100,00",
+        },
+        {
+          "content": "-",
+        },
+      ],
+      [
+        {
+          "content": "01-01-2023",
+        },
+        {
+          "content": "31-12-2023",
+        },
+        {
+          "content": "(588.000,00 / 570.000,00)",
+        },
+        {
+          "content": "103,16",
+        },
+        {
+          "content": "+ 3,16 %",
+        },
+      ],
+      [
+        {
+          "content": "01-01-2024",
+        },
+        {
+          "content": "31-12-2024",
+        },
+        {
+          "content": "(608.000,00 / 570.000,00)",
+        },
+        {
+          "content": "106,67",
+        },
+        {
+          "content": "+ 6,67 %",
+        },
+      ],
+      [
+        {
+          "content": "01-01-2025",
+        },
+        {
+          "content": "30-06-2025",
+        },
+        {
+          "content": "(632.000,00 / 570.000,00)",
+        },
+        {
+          "content": "110,88",
+        },
+        {
+          "content": "+ 10,88 %",
+        },
+      ],
+    ],
+    "cellStyles": {
+      "0:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:4": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "1:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:2": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:3": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 5.336,
+          "top": 1.5,
+        },
+        "fillColor": false,
+        "halign": "right",
+      },
+      "1:4": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 6.475999999999999,
+          "top": 1.5,
+        },
+        "fillColor": false,
+        "halign": "right",
+      },
+      "2:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:3": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 5.336,
+          "top": 1.5,
+        },
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+      "2:4": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 6.475999999999999,
+          "top": 1.5,
+        },
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+      "3:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:2": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:3": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 5.336,
+          "top": 1.5,
+        },
+        "fillColor": false,
+        "halign": "right",
+      },
+      "3:4": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 6.475999999999999,
+          "top": 1.5,
+        },
+        "fillColor": false,
+        "halign": "right",
+      },
+      "4:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:3": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 5.336,
+          "top": 1.5,
+        },
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+      "4:4": {
+        "cellPadding": {
+          "bottom": 1.5,
+          "left": 1.5,
+          "right": 6.475999999999999,
+          "top": 1.5,
+        },
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "right",
+      },
+    },
+    "columnWidths": {
+      "0": 28.98,
+      "1": 28.98,
+      "2": 52.98,
+      "3": 26.68,
+      "4": 32.38,
+    },
+    "drawnLines": [],
+    "startY": 111.92,
+    "tableWidth": 170,
+  },
+]
+`;
+
+exports[`EO-sektion tabel-kanal-paritet: PDF resolved presentation (golden) > regulering: KL-lønaftaler (reguleret løn-tabel) → uændret PDF-presentation 1`] = `
+[
+  {
+    "body": [
+      [
+        {
+          "content": "Fra-dato",
+        },
+        {
+          "content": "Regulering",
+        },
+      ],
+      [
+        {
+          "content": "01-04-2024",
+        },
+        {
+          "content": "4,00 %",
+        },
+      ],
+      [
+        {
+          "content": "01-10-2024",
+        },
+        {
+          "content": "1,30 %",
+        },
+      ],
+      [
+        {
+          "content": "01-10-2025",
+        },
+        {
+          "content": "0,30 %",
+        },
+      ],
+      [
+        {
+          "content": "01-11-2025",
+        },
+        {
+          "content": "0,75 %",
+        },
+      ],
+    ],
+    "cellStyles": {
+      "0:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "1:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "2:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "3:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "4:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+    },
+    "columnWidths": {
+      "0": 85,
+      "1": 85,
+    },
+    "drawnLines": [],
+    "startY": 85.42,
+    "tableWidth": 170,
+  },
+  {
+    "body": [
+      [
+        {
+          "content": "Fra-dato",
+        },
+        {
+          "content": "Til-dato",
+        },
+        {
+          "content": "Lønudvikling",
+        },
+        {
+          "content": "Reguleret månedsløn",
+        },
+      ],
+      [
+        {
+          "content": "01-04-2024",
+        },
+        {
+          "content": "30-09-2024",
+        },
+        {
+          "content": "-",
+        },
+        {
+          "content": "30.000,00",
+        },
+      ],
+      [
+        {
+          "content": "01-10-2024",
+        },
+        {
+          "content": "30-09-2025",
+        },
+        {
+          "content": "1,30 %",
+        },
+        {
+          "content": "30.390,00",
+        },
+      ],
+      [
+        {
+          "content": "01-10-2025",
+        },
+        {
+          "content": "31-10-2025",
+        },
+        {
+          "content": "0,30 %",
+        },
+        {
+          "content": "30.481,17",
+        },
+      ],
+      [
+        {
+          "content": "01-11-2025",
+        },
+        {
+          "content": "31-03-2026",
+        },
+        {
+          "content": "0,75 %",
+        },
+        {
+          "content": "30.709,78",
+        },
+      ],
+    ],
+    "cellStyles": {
+      "0:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "0:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "fontStyle": "bold",
+        "halign": "center",
+        "overflow": "linebreak",
+        "valign": "bottom",
+      },
+      "1:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:2": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "1:3": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "2:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "2:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "3:0": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:1": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:2": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "3:3": {
+        "fillColor": false,
+        "halign": "center",
+      },
+      "4:0": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:1": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:2": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+      "4:3": {
+        "fillColor": [
+          248,
+          248,
+          248,
+        ],
+        "halign": "center",
+      },
+    },
+    "columnWidths": {
+      "0": 42.5,
+      "1": 42.5,
+      "2": 42.5,
+      "3": 42.5,
+    },
+    "drawnLines": [],
+    "startY": 111.92,
+    "tableWidth": 170,
+  },
+]
+`;
+
+exports[`EO-sektion tabel-kanal-paritet: Word document.xml (golden) > loenindkomst + offentlige ydelser + SH-dage + regulering af offentlige ydelser → uændret Word-tabel-XML 1`] = `
+[
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="4320"/><w:gridCol w:w="5318"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="4320"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Der lægges en månedsløn til grund på</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="5318"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">40.000,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="6240"/><w:gridCol w:w="3398"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6240"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-01-2024 - 31-03-2024: 3 måneder á 40.000,00 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3398"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">120.000,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Kerteminde Kommune</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">62.279,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Sygedagpenge</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">15.500,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">I alt</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="single" w:color="000000" w:sz="4"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">77.779,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">120.000,00 - 77.779,00 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">42.221,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Svie- og smertegodtgørelse</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Tabt arbejdsfortjeneste</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">42.221,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Erstatningskrav i alt</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="single" w:color="000000" w:sz="4"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">42.221,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="D9D9D9" w:sz="1"/><w:left w:val="single" w:color="D9D9D9" w:sz="1"/><w:bottom w:val="single" w:color="D9D9D9" w:sz="1"/><w:right w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideH w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideV w:val="single" w:color="D9D9D9" w:sz="1"/></w:tblBorders><w:tblLayout w:type="autofit"/></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Måned</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">År</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Løn</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Løn (2)</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">FP/FV/SH/</w:t></w:r><w:r><w:br/></w:r><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">SO/St.B.</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Arb.g.</w:t></w:r><w:r><w:br/></w:r><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Pension</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Samlet løn</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30.000,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1.000,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">139,50</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31.139,50</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">2</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31.000,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve"></w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">139,50</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31.139,50</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="D9D9D9" w:sz="1"/><w:left w:val="single" w:color="D9D9D9" w:sz="1"/><w:bottom w:val="single" w:color="D9D9D9" w:sz="1"/><w:right w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideH w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideV w:val="single" w:color="D9D9D9" w:sz="1"/></w:tblBorders><w:tblLayout w:type="autofit"/></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Fra-dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Til-dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Ydelse</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Ydelse (2)</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">I alt</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-02-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">29-02-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">15.000,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">500,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">15.500,00</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="D9D9D9" w:sz="1"/><w:left w:val="single" w:color="D9D9D9" w:sz="1"/><w:bottom w:val="single" w:color="D9D9D9" w:sz="1"/><w:right w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideH w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideV w:val="single" w:color="D9D9D9" w:sz="1"/></w:tblBorders><w:tblLayout w:type="autofit"/></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Ugedag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Helligdag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">SH-dag</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Mandag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1. januar 2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Nytårsdag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">x</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Torsdag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">28. marts 2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Skærtorsdag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">x</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Fredag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">29. marts 2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Langfredag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">x</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Søndag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31. marts 2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Påskedag</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve"></w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">SH-dage i alt</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve"></w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve"></w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">3</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+]
+`;
+
+exports[`EO-sektion tabel-kanal-paritet: Word document.xml (golden) > regulering: ASL-årslønsmaksimum (grow + dynamisk inset) → uændret Word-tabel-XML 1`] = `
+[
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="4320"/><w:gridCol w:w="5318"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="4320"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Der lægges en månedsløn til grund på</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="5318"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">41.593,87 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="6240"/><w:gridCol w:w="3398"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6240"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-06-2022 - 31-12-2022: 7 måneder á 41.593,87 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3398"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">291.157,09 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-01-2023 - 31-12-2023: 12 måneder á 41.593,87 kr. x (100 % + 3,16 %) =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">514.898,84 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-01-2024 - 31-12-2024: 12 måneder á 41.593,87 kr. x (100 % + 6,67 %) =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">532.418,17 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-01-2025 - 30-06-2025: 6 måneder á 41.593,87 kr. x (100 % + 10,88 %) =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">276.715,70 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">I alt</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="single" w:color="000000" w:sz="4"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1.615.189,80 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1.615.189,80 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">1.615.189,80 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Svie- og smertegodtgørelse</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Tabt arbejdsfortjeneste</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1.615.189,80 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Erstatningskrav i alt</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="single" w:color="000000" w:sz="4"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">1.615.189,80 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Beregnes som</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Lønnen på skadedatoen (31-05-2022) tillagt efterfølgende lønstigninger</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Regulering</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">ASL-årslønsmaksimum</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="D9D9D9" w:sz="1"/><w:left w:val="single" w:color="D9D9D9" w:sz="1"/><w:bottom w:val="single" w:color="D9D9D9" w:sz="1"/><w:right w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideH w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideV w:val="single" w:color="D9D9D9" w:sz="1"/></w:tblBorders><w:tblLayout w:type="autofit"/></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">År</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Maksimum årsløn</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">2022</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">570.000,00</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">2023</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">588.000,00</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">608.000,00</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">632.000,00</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="D9D9D9" w:sz="1"/><w:left w:val="single" w:color="D9D9D9" w:sz="1"/><w:bottom w:val="single" w:color="D9D9D9" w:sz="1"/><w:right w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideH w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideV w:val="single" w:color="D9D9D9" w:sz="1"/></w:tblBorders><w:tblLayout w:type="autofit"/></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Fra-dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Til-dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Indeksberegning</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Indeks</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Lønudvikling</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-06-2022</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31-12-2022</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">570.000,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">100,00</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">-</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-01-2023</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31-12-2023</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">(588.000,00 / 570.000,00)</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">103,16</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">+ 3,16 %</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-01-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31-12-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">(608.000,00 / 570.000,00)</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">106,67</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">+ 6,67 %</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-01-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30-06-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">(632.000,00 / 570.000,00)</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">110,88</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">+ 10,88 %</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+]
+`;
+
+exports[`EO-sektion tabel-kanal-paritet: Word document.xml (golden) > regulering: KL-lønaftaler (reguleret løn-tabel) → uændret Word-tabel-XML 1`] = `
+[
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="4320"/><w:gridCol w:w="5318"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="4320"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Der lægges en månedsløn til grund på</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="5318"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30.000,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="6240"/><w:gridCol w:w="3398"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6240"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-04-2024 - 30-09-2024: 6 måneder á 30.000,00 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3398"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">180.000,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="6360"/><w:gridCol w:w="3278"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6360"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-10-2024 - 30-09-2025: 12 måneder á 30.390,00 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3278"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">364.680,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="6000"/><w:gridCol w:w="3638"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6000"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-10-2025 - 31-10-2025: 1 måned á 30.481,17 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3638"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30.481,17 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="6240"/><w:gridCol w:w="3398"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6240"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-11-2025 - 31-03-2026: 5 måneder á 30.709,78 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3398"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">153.548,90 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">I alt</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="single" w:color="000000" w:sz="4"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">728.710,07 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">728.710,07 kr. =</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">728.710,07 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Svie- og smertegodtgørelse</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,00 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Tabt arbejdsfortjeneste</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">728.710,07 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="7087"/><w:gridCol w:w="2551"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7087"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Erstatningskrav i alt</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2551"/><w:tcBorders><w:top w:val="single" w:color="000000" w:sz="4"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">728.710,07 kr.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Beregnes som</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Lønnen på skadedatoen (01-04-2024) tillagt efterfølgende lønstigninger</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="9638"/><w:tblBorders><w:top w:val="none" w:color="auto" w:sz="0"/><w:left w:val="none" w:color="auto" w:sz="0"/><w:bottom w:val="none" w:color="auto" w:sz="0"/><w:right w:val="none" w:color="auto" w:sz="0"/><w:insideH w:val="none" w:color="auto" w:sz="0"/><w:insideV w:val="none" w:color="auto" w:sz="0"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="3543"/><w:gridCol w:w="6095"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3543"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">Regulering</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="6095"/><w:tcBorders><w:top w:val="none" w:color="FFFFFF" w:sz="0"/><w:left w:val="none" w:color="FFFFFF" w:sz="0"/><w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/><w:right w:val="none" w:color="FFFFFF" w:sz="0"/></w:tcBorders><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">KL-lønaftaler</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="D9D9D9" w:sz="1"/><w:left w:val="single" w:color="D9D9D9" w:sz="1"/><w:bottom w:val="single" w:color="D9D9D9" w:sz="1"/><w:right w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideH w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideV w:val="single" w:color="D9D9D9" w:sz="1"/></w:tblBorders><w:tblLayout w:type="autofit"/></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Fra-dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Regulering</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-04-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">4,00 %</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-10-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1,30 %</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-10-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,30 %</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-11-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,75 %</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+  "<w:tbl><w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="D9D9D9" w:sz="1"/><w:left w:val="single" w:color="D9D9D9" w:sz="1"/><w:bottom w:val="single" w:color="D9D9D9" w:sz="1"/><w:right w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideH w:val="single" w:color="D9D9D9" w:sz="1"/><w:insideV w:val="single" w:color="D9D9D9" w:sz="1"/></w:tblBorders><w:tblLayout w:type="autofit"/></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Fra-dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Til-dato</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Lønudvikling</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:shd w:fill="E9EEF5"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Reguleret månedsløn</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-04-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30-09-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">-</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30.000,00</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-10-2024</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30-09-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">1,30 %</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30.390,00</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-10-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31-10-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,30 %</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30.481,17</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">01-11-2025</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">31-03-2026</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">0,75 %</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:gridSpan w:val="1"/><w:tcMar><w:top w:type="dxa" w:w="90"/><w:left w:type="dxa" w:w="90"/><w:bottom w:type="dxa" w:w="90"/><w:right w:type="dxa" w:w="90"/></w:tcMar></w:tcPr><w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/></w:rPr><w:t xml:space="preserve">30.709,78</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+]
+`;

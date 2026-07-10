@@ -753,12 +753,9 @@ describe('renderReguleringSection – KL-lønaftaler Beregnet regulering', () =>
     const widths = Object.values(columnStyles ?? {}).map((style) => style.cellWidth);
     expect(widths).toHaveLength(4);
     expect(new Set(widths).size).toBe(1);
-    expect(Object.values(columnStyles ?? {}).map((style) => style.halign)).toEqual([
-      'center',
-      'center',
-      'center',
-      'center',
-    ]);
+    // TableSpec-æraen bærer justeringen på cellerne (asserted ovenfor), ikke længere på
+    // columnStyles.halign — så begge kanaler læser samme kilde. columnStyles holder kun bredde.
+    expect(Object.values(columnStyles ?? {}).every((style) => style.halign === undefined)).toBe(true);
   });
 
   it('viser bindestreg i stedet for tom Lønudvikling-celle i første periode', () => {

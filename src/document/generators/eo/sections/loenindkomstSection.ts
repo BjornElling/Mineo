@@ -1,5 +1,3 @@
-import type { RowInput } from 'jspdf-autotable';
-import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../../utils/expressionAmount';
 import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
@@ -8,7 +6,7 @@ import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { createDocumentDistributedColumnStyles, renderDocumentTable } from '../../../layout/documentTableRenderer';
+import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import { calculateLoenindkomstRowDerived } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
 import type { DocumentWriter } from '../../../writer';
@@ -105,11 +103,14 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       allHeaders[getStandardLoenHeaderIndex(loenperiode, STANDARD_LOEN_PENSION_LABEL)],
       allHeaders[getStandardLoenHeaderIndex(loenperiode, STANDARD_LOEN_SAMLET_LABEL)],
     ];
-    const tableRows: RowInput[] = [
-      headers.map((header) => ({
-        content: header,
-        styles: { fontStyle: 'bold', halign: 'center' as const },
-      })),
+    // De to periode-kolonner centreres; alle beløbskolonner højrejusteres. Justeringen
+    // bæres af kolonne-intentionen (celle-fallback), mens header-cellerne altid centreres.
+    const columns: readonly ColumnSpec[] = headers.map((_, index) => ({
+      width: { kind: 'flex' },
+      align: index < 2 ? 'center' : 'right',
+    }));
+    const specRows: RowSpec[] = [
+      { kind: 'header', cells: headers.map((header) => ({ text: header, align: 'center' })) },
     ];
 
     for (const row of rows) {
@@ -134,24 +135,12 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         formatAsAmount(derived.pension, 2),
         formatAsAmount(derived.samlet, 2),
       ];
-      tableRows.push(
-        rowValues.map((value, index) => ({
-          content: value,
-          styles: { halign: index < 2 ? 'center' : 'right' as const },
-        }))
-      );
+      specRows.push({ cells: rowValues.map((value) => ({ text: value })) });
     }
 
     const doc = writer.getDoc();
-    const columnCount = headers.length;
-    const startY = writer.getY();
-    const finalY = renderDocumentTable({
-      doc,
-      startY,
-      body: tableRows,
-      columnStyles: createDocumentDistributedColumnStyles(columnCount),
-    });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
+    writer.setY(endY);
   };
 
   const rangeGroups = buildPeriodRangeGroups(eoValues, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges);

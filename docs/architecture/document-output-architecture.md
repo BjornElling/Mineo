@@ -17,7 +17,7 @@
 4. [Adapterlaget – `pdfDocumentAdapter.ts` og `jsPdfAdapter.ts`](#4-adapterlaget--pdfdocumentadapterts-og-jspdfadapterts)
 5. [Writer-abstraktionen – `documentWriter.ts`](#5-writer-abstraktionen--documentwriterts)
 6. [Hjælpefunktioner – `documentLayoutHelpers.ts`](#6-hjælpefunktioner--pdfhelpersts)
-7. [Tabelrenderer – `documentTableRenderer.ts`](#7-tabelrenderer--pdftablerendererts)
+7. [Tabelrenderer – `tableSpec.ts` + `documentTableRenderer.ts`](#7-tabelrenderer--tablespects--documenttablerendererts)
 8. [Teksthjælpere – `pdfTextUtils.ts` og `documentFormatUtils.ts`](#8-teksthjælpere--pdftextutilsts-og-pdfformautilsts)
 9. [Domænespecifikke hjælpere](#9-domænespecifikke-hjælpere)
 10. [Brevhoved og options-kontrakt](#10-brevhoved-og-options-kontrakt)
@@ -396,31 +396,37 @@ Den offentlige brevhoved-adgang for generatorer er `writer.writeBrevhoved(brevho
 
 ---
 
-## 7. Tabelrenderer – `documentTableRenderer.ts`
+## 7. Tabelrenderer – `tableSpec.ts` + `documentTableRenderer.ts`
 
-Alle egentlige tabeller renders via **`renderDocumentTable()`** — aldrig ved direkte kald til `jsPDF.autoTable()`.
+Tabeller beskrives som **data** via en `TableSpec`-værditype (`src/document/layout/tableSpec.ts`) og renders via **`renderTableSpec()`** — aldrig ved direkte kald til `jsPDF.autoTable()`, og som hovedregel heller ikke ved direkte kald til `renderDocumentTable()`.
 
-**Vigtig afgrænsning:** `renderDocumentTable()` må kun bruges til faktiske tabeller med kolonneoverskrifter og/eller reel tabelstruktur. Almindelige oplysningslinjer, key/value-par, regnestykker og specifikationer uden tabelheader skal renderes som tekst via writeren (`writeWrappedText()`, `writeBoldWrappedText()`, `writeLeftRightText()`).
+**Vigtig afgrænsning:** en tabel må kun bruges til faktisk tabelstruktur med kolonneoverskrifter og/eller reelle rækker. Almindelige oplysningslinjer, key/value-par, regnestykker og specifikationer uden tabelheader skal renderes som tekst via writeren (`writeWrappedText()`, `writeBoldWrappedText()`, `writeLeftRightText()`).
 
-### Celle-builders
+### `TableSpec` — den kanoniske, kanal-neutrale tabel-model (#15)
+
+En generator beskriver en tabel deklarativt: per-kolonne-intent (`width`: `flex`/`grow`/`fixed`/`min`/`auto`, `align`, valgfrit visuelt PDF-`rightInset`) + rækker af celler (`{ text, align?, bold?, colSpan?, valign?, fontSize? }`) + evt. total-rækker. `TableSpec` har **ingen render-viden** og ingen `jsPDF`-reference, så justering defineres ét sted (`ColumnSpec.align`, celle-override via `CellSpec.align`) og **begge kanaler** (PDF + Word) læser samme felt.
 
 ```typescript
-// Convenience-funktioner (brug disse i stedet for rå objekter):
-cellLeft(content)           // venstrestillet tekst
-cellRight(content)          // højrestillet tekst
-cellCenter(content)         // centreret tekst
+const columns: readonly ColumnSpec[] = [
+  { width: { kind: 'flex' }, align: 'left' },
+  { width: { kind: 'fixed', mm: 25 }, align: 'center' },
+];
+const rows: RowSpec[] = [
+  { kind: 'header', cells: [{ text: 'Navn' }, { text: 'Antal' }] },
+  { cells: [{ text: 'Ferie' }, { text: '5' }] },
+];
+const total = buildSummedTotalRowSpec('I alt', [5], { columnCount: 2, valueColumnIndex: 1, /* … */ });
+if (total) rows.push(total);
 
-// Generisk celle med fuld kontrol:
-createDocumentTableCell(content, { halign, valign, bold, transparent, fontSize })
-
-// Header-celle (fed, med halign-override):
-createDocumentTableHeaderCell(content, halign)
-
-// Total-rækker:
-createDocumentTableSummedTotalRow(...) / createDocumentTableFormattedTotalRow(...)
+const { endY } = renderTableSpec(writer.getDoc(), writer.getY(), { columns, hasHeaderRow: true, rows });
+writer.setY(endY);  // resolveDocumentSectionEndY er absorberet i renderTableSpec's retur
 ```
 
-### `renderDocumentTable(options)`
+`renderTableSpec` kompilerer (`compileTableSpecToLegacyParams`) `TableSpec` ned til præcis de params `renderDocumentTable` allerede modtager — outputtet er byte-identisk med den tidligere håndbyggede kaldeform (bevist af tabel-kanal-paritet-golden-nettene: `tableChannelParity.golden.test.ts` for standalone-generatorer, `eoSectionTableParity.golden.test.ts` for EO-dokumentets bilag-sektioner). Total-rækker ryddes **altid** ensartet (aldrig stribe-baggrund, ingen cellekant), uafhængigt af rækkeantal. Værditypen kan overtages uændret som `Table`-node af det kommende dokument-IR (#24).
+
+### `renderDocumentTable(options)` (intern renderer)
+
+`renderDocumentTable` er nu primært den underliggende renderer, som `renderTableSpec`-compileren og `documentTableBridge` (Word-kanalen) targeterer. De lavniveau-celle-builders (`createDocumentTableCell`, `createDocumentTableHeaderCell`, `createDocumentTableSummedTotalRow`/`createDocumentTableFormattedTotalRow`) og kolonnestil-fabrikkerne bruges internt af compileren og af renderer-testene; nye generatorer bør beskrive tabeller via `TableSpec`.
 
 ```typescript
 renderDocumentTable({

@@ -1,15 +1,7 @@
 import type jsPDF from 'jspdf';
-import type { RowInput } from 'jspdf-autotable';
 import type { DocumentTableBridgeDocument } from '../../../layout/documentTableBridge';
-import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import { formatUtcDateLong, formatIsoDateLong as formatDateLong, WEEKDAY_NAMES_DA } from '../../../../utils/dateFormatting';
-import {
-  createDocumentDistributedColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  createDocumentTableSummedTotalRow,
-  renderDocumentTable,
-} from '../../../layout/documentTableRenderer';
+import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../../layout/pdfConfig';
 import type { ISODateString } from '../../../../types/branded';
 import { findNamedHolidaysInIsoRanges } from '../../../../domain/dates/shDageOversigt';
@@ -78,26 +70,27 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   };
   const formatRangesLong = (ranges: readonly IsoRange[]): string[] => ranges.map((range) => formatRangeLong(range.fra, range.til));
 
+  const columns: readonly ColumnSpec[] = [
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'center' },
+  ];
+
   const renderShDageTable = (rows: readonly SHDageTableRow[]) => {
-    const tableRows: RowInput[] = [
-      [
-        createDocumentTableHeaderCell('Ugedag', 'left'),
-        createDocumentTableHeaderCell('Dato', 'left'),
-        createDocumentTableHeaderCell('Helligdag', 'left'),
-        createDocumentTableHeaderCell('SH-dag', 'center'),
-      ],
+    const specRows: RowSpec[] = [
+      { kind: 'header', cells: [{ text: 'Ugedag' }, { text: 'Dato' }, { text: 'Helligdag' }, { text: 'SH-dag' }] },
+      ...rows.map((row): RowSpec => ({
+        cells: [
+          { text: row.ugedag },
+          { text: row.datoDisplay },
+          { text: row.helligdagNavn },
+          { text: row.erSHDag ? 'x' : '' },
+        ],
+      })),
     ];
 
-    for (const row of rows) {
-      tableRows.push([
-        createDocumentTableCell(row.ugedag, { halign: 'left' }),
-        createDocumentTableCell(row.datoDisplay, { halign: 'left' }),
-        createDocumentTableCell(row.helligdagNavn, { halign: 'left' }),
-        createDocumentTableCell(row.erSHDag ? 'x' : '', { halign: 'center' }),
-      ]);
-    }
-
-    const totalRow = createDocumentTableSummedTotalRow(
+    const totalRow = buildSummedTotalRowSpec(
       'SH-dage i alt',
       rows.map((row) => (row.erSHDag ? 1 : 0)),
       {
@@ -108,27 +101,11 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
         preserveValueColumn: true,
       }
     );
-    const totalRowIndex = totalRow ? tableRows.length : null;
-    if (totalRow) {
-      tableRows.push(totalRow.row);
-    }
+    if (totalRow) specRows.push(totalRow);
 
     const doc = writer.getDoc();
-    const startY = writer.getY();
-    const finalY = renderDocumentTable({
-      doc,
-      startY,
-      body: tableRows,
-      columnStyles: createDocumentDistributedColumnStyles(4, {
-        fixedColumns: {
-          3: PDF_TABLE_NARROW_COLUMN_WIDTH,
-        },
-      }),
-      underlinedCellPositions: totalRowIndex === null || totalRow === null
-        ? []
-        : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
-    });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
+    writer.setY(endY);
   };
 
   startEoBilagPage('SH-dage');
