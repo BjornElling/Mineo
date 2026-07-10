@@ -8,7 +8,6 @@ import {
   PDF_TABLE_NARROW_COLUMN_WIDTH,
 } from '../../layout/pdfConfig';
 import {
-  resolveDocumentSectionEndY,
   formatAmount,
   formatPercent,
 } from '../../layout/documentLayoutHelpers';
@@ -18,14 +17,7 @@ import {
   initStandardDocumentWriter,
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
-import type { RowInput } from 'jspdf-autotable';
-import {
-  createDocumentDistributedColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  createDocumentTableSummedTotalRow,
-  renderDocumentTable,
-} from '../../layout/documentTableRenderer';
+import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatDanishDate, parseDanishDate } from '../../../utils/dateUtils';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
@@ -44,8 +36,6 @@ type RenteDocumentOptions = DocumentCommonOptions & Readonly<{
 
 const RIGHT_ALIGNED_INSET_RENTEDAGE_MM = 10;
 const RIGHT_ALIGNED_INSET_RENTESATS_MM = 8;
-const COLUMN_INDEX_RENTEDAGE = 1;
-const COLUMN_INDEX_RENTESATS = 2;
 
 export const addHypotheticalInterestWarning = (
   writer: DocumentWriter,
@@ -99,25 +89,27 @@ const addSpecificationTable = (
 ): void => {
   const doc = writer.getDoc();
   const startY = writer.getY();
-  const tableData: RowInput[] = [];
 
-  tableData.push([
-    createDocumentTableHeaderCell('Periode', 'left'),
-    createDocumentTableHeaderCell('Rentedage', 'center'),
-    createDocumentTableHeaderCell('Rentesats', 'center'),
-    createDocumentTableHeaderCell('Beregnet rente', 'right'),
-  ]);
+  // Rentedage/Rentesats er centreret i header og i Word, men højrejusteres visuelt i PDF
+  // via et fast inset (rent præsentation — Word bevarer centreringen, som hidtil). Derfor
+  // kolonne-align 'center' (læst af build + Word) + rightInset (kun PDF, sat i didParseCell).
+  const columns: readonly ColumnSpec[] = [
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'center', rightInset: { kind: 'fixed', mm: RIGHT_ALIGNED_INSET_RENTEDAGE_MM } },
+    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'center', rightInset: { kind: 'fixed', mm: RIGHT_ALIGNED_INSET_RENTESATS_MM } },
+    { width: { kind: 'fixed', mm: 35 }, align: 'right' },
+  ];
 
-  for (const period of periods) {
-    tableData.push([
-      createDocumentTableCell(`${formatDanishDate(period.startDate)} - ${formatDanishDate(period.endDate)}`, { halign: 'left' }),
-      createDocumentTableCell(`${period.days}`, { halign: 'center' }),
-      createDocumentTableCell(formatPercent(period.totalRatePct), { halign: 'center' }),
-      createDocumentTableCell(`${formatAmount(period.interest)} kr.`, { halign: 'right' }),
-    ]);
-  }
+  const dataRows: RowSpec[] = periods.map((period) => ({
+    cells: [
+      { text: `${formatDanishDate(period.startDate)} - ${formatDanishDate(period.endDate)}` },
+      { text: `${period.days}` },
+      { text: formatPercent(period.totalRatePct) },
+      { text: `${formatAmount(period.interest)} kr.` },
+    ],
+  }));
 
-  const totalRow = createDocumentTableSummedTotalRow(
+  const totalRow = buildSummedTotalRowSpec(
     'Samlet rentebeløb',
     periods.map((period) => period.interest),
     {
@@ -127,57 +119,23 @@ const addSpecificationTable = (
       valueHasKrSuffix: true,
     }
   );
-  const totalRowIndex = totalRow ? tableData.length : null;
-  if (totalRow) {
-    tableData.push(totalRow.row);
-  }
 
   let tableStartY = startY;
-
   if (addHypotheticalInterestWarning(writer, endDate, latestReferenceRateDate)) {
     tableStartY = writer.getY();
   }
 
-  const finalY = renderDocumentTable({
-    doc,
-    startY: tableStartY,
-    body: tableData,
-    columnStyles: createDocumentDistributedColumnStyles(4, {
-      fixedColumns: {
-        1: PDF_TABLE_NARROW_COLUMN_WIDTH,
-        2: PDF_TABLE_NARROW_COLUMN_WIDTH,
-        3: 35,
-      },
-    }),
-    underlinedCellPositions: totalRowIndex === null || totalRow === null
-      ? []
-      : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
-    // Word matcher PDF'ens højrejustering af rentedage/rentesats (insettet nedenfor
-    // er rent visuelt og udelades bevidst i Word).
-    dataRowColumnHalign: {
-      [COLUMN_INDEX_RENTEDAGE]: 'right',
-      [COLUMN_INDEX_RENTESATS]: 'right',
-    },
-    didParseCell: (data) => {
-      const isDataRow = data.row.index >= 1 && data.row.index <= periods.length;
-      if (!isDataRow) return;
-      if (data.column.index !== COLUMN_INDEX_RENTEDAGE && data.column.index !== COLUMN_INDEX_RENTESATS) return;
-
-      data.cell.styles.halign = 'right';
-      const rightInset = data.column.index === COLUMN_INDEX_RENTEDAGE
-        ? RIGHT_ALIGNED_INSET_RENTEDAGE_MM
-        : RIGHT_ALIGNED_INSET_RENTESATS_MM;
-
-      data.cell.styles.cellPadding = {
-        top: 1.5,
-        bottom: 1.5,
-        left: 1.5,
-        right: rightInset,
-      };
-    },
+  const { endY } = renderTableSpec(doc, tableStartY, {
+    columns,
+    hasHeaderRow: true,
+    rows: [
+      { kind: 'header', cells: [{ text: 'Periode' }, { text: 'Rentedage' }, { text: 'Rentesats' }, { text: 'Beregnet rente' }] },
+      ...dataRows,
+      ...(totalRow ? [totalRow] : []),
+    ],
   });
 
-  writer.setY(resolveDocumentSectionEndY(finalY, tableStartY));
+  writer.setY(endY);
 };
 
 /**

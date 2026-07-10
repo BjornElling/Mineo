@@ -5,18 +5,9 @@
  * (KTO kommuner, SHK kommuner, KTO regioner, SHK regioner)
  */
 
-import type { RowInput } from 'jspdf-autotable';
 import { PDF_CONTENT_WIDTH_MM } from '../../layout/pdfConfig';
-import {
-  resolveDocumentSectionEndY,
-} from '../../layout/documentLayoutHelpers';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
-import {
-  createDocumentFixedColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  renderDocumentTable,
-} from '../../layout/documentTableRenderer';
+import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { krlSatstabeller } from '../../../data/krlRates';
 import { danishToISO, type DanishDateString } from '../../../types/branded';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
@@ -92,45 +83,36 @@ export const generateKRLDocument = (params: KRLPdfParams): void => {
   // Byg samlet tabel
   const { rows } = buildCombinedRows();
 
-  const headerRow: RowInput = [
-    createDocumentTableHeaderCell('Fra-dato', 'center'),
-    ...krlSatstabeller.map((t) => createDocumentTableHeaderCell(t.navn, 'center')),
-  ];
-
-  const bodyRows: RowInput[] = rows.map((row) =>
-    row.map((cell) => ({
-      content: cell,
-      styles: { halign: 'center' as const },
-    }))
-  );
-
-  if (bodyRows.length === 0) {
-    // Tom-fallback: 1 label-celle + én tom celle pr. satstabel, udledt af krlSatstabeller
-    // så rækken altid flugter med headeren — også hvis antallet af tabeller ændres.
-    bodyRows.push([
-      createDocumentTableCell('Ingen satser tilgængelige.', { halign: 'center' }),
-      ...krlSatstabeller.map(() => createDocumentTableCell('', { halign: 'center' })),
-    ]);
-  }
-
-  // Beregn lige kolonnebredder ud fra det faktiske antal kolonner (Fra-dato + én pr. satstabel)
+  // Lige brede, centrerede kolonner (Fra-dato + én pr. satstabel). Justering på kolonnerne.
   const columnCount = 1 + krlSatstabeller.length;
   const tableWidth = PDF_CONTENT_WIDTH_MM;
   const colWidth = tableWidth / columnCount;
-  const tableRows: RowInput[] = [headerRow, ...bodyRows];
+  const columns: readonly ColumnSpec[] = Array.from({ length: columnCount }, () => ({
+    width: { kind: 'fixed', mm: colWidth },
+    align: 'center',
+  }));
 
-  const finalY = renderDocumentTable({
-    doc,
-    startY: writer.getY(),
-    body: tableRows,
+  const headerRow: RowSpec = {
+    kind: 'header',
+    cells: [{ text: 'Fra-dato' }, ...krlSatstabeller.map((t) => ({ text: t.navn }))],
+  };
+
+  const dataRows: RowSpec[] = rows.map((row) => ({ cells: row.map((cell) => ({ text: cell })) }));
+
+  if (dataRows.length === 0) {
+    // Tom-fallback: 1 label-celle + én tom celle pr. satstabel, så rækken flugter med headeren.
+    dataRows.push({ cells: [{ text: 'Ingen satser tilgængelige.' }, ...krlSatstabeller.map(() => ({ text: '' }))] });
+  }
+
+  const startY = writer.getY();
+  const { endY } = renderTableSpec(doc, startY, {
+    columns,
+    hasHeaderRow: true,
     tableWidth,
-    columnStyles: createDocumentFixedColumnStyles(columnCount, colWidth, 'center'),
-    didParseCell: (data) => {
-      data.cell.styles.halign = 'center';
-    },
+    rows: [headerRow, ...dataRows],
   });
 
-  writer.setY(resolveDocumentSectionEndY(finalY, writer.getY()));
+  writer.setY(endY);
 
   // Kildetekst under tabellen
   writer.writeBoldSubheader('Kilde');

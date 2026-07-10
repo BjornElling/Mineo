@@ -6,24 +6,14 @@
  * samt en sammentalt i alt-linje.
  */
 
-import {
-  resolveDocumentSectionEndY,
-  formatAmount,
-} from '../../layout/documentLayoutHelpers';
+import { formatAmount } from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
 import {
   buildStamdataBrevhovedData,
   initStandardDocumentWriter,
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
-import type { RowInput } from 'jspdf-autotable';
-import {
-  createDocumentDistributedColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  createDocumentTableSummedTotalRow,
-  renderDocumentTable,
-} from '../../layout/documentTableRenderer';
+import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
@@ -65,23 +55,23 @@ const addOversigtTable = (
 ): void => {
   const doc = writer.getDoc();
   let startY = writer.getY();
-  const tableData: RowInput[] = [];
 
-  tableData.push([
-    createDocumentTableHeaderCell('Beløb', 'left'),
-    createDocumentTableHeaderCell('Rente fra', 'left'),
-    createDocumentTableHeaderCell('Beregnet rente', 'right'),
-  ]);
+  // Kolonner: fast Beløb (45 mm) | flex Rente fra | fast Beregnet rente (45 mm, højre).
+  const columns: readonly ColumnSpec[] = [
+    { width: { kind: 'fixed', mm: 45 }, align: 'left' },
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'fixed', mm: 45 }, align: 'right' },
+  ];
 
-  for (const row of rows) {
-    tableData.push([
-      createDocumentTableCell(`${formatAmount(row.beloeb)} kr.`, { halign: 'left' }),
-      createDocumentTableCell(formatIsoDateLong(row.renterFra), { halign: 'left' }),
-      createDocumentTableCell(`${formatAmount(row.beregnetRente)} kr.`, { halign: 'right' }),
-    ]);
-  }
+  const dataRows: RowSpec[] = rows.map((row) => ({
+    cells: [
+      { text: `${formatAmount(row.beloeb)} kr.` },
+      { text: formatIsoDateLong(row.renterFra) },
+      { text: `${formatAmount(row.beregnetRente)} kr.` },
+    ],
+  }));
 
-  const totalRow = createDocumentTableSummedTotalRow(
+  const totalRow = buildSummedTotalRowSpec(
     'Samlet rentebeløb',
     rows.map((row) => row.beregnetRente),
     {
@@ -91,10 +81,6 @@ const addOversigtTable = (
       valueHasKrSuffix: true,
     }
   );
-  const totalRowIndex = totalRow ? tableData.length : null;
-  if (totalRow) {
-    tableData.push(totalRow.row);
-  }
 
   const endDate = parseISODate(beregningsdato);
   const latestRateDate = latestReferenceRateDate ? parseISODate(latestReferenceRateDate) : undefined;
@@ -104,22 +90,17 @@ const addOversigtTable = (
     }
   }
 
-  const finalY = renderDocumentTable({
-    doc,
-    startY,
-    body: tableData,
-    columnStyles: createDocumentDistributedColumnStyles(3, {
-      fixedColumns: {
-        0: 45,
-        2: 45,
-      },
-    }),
-    underlinedCellPositions: totalRowIndex === null || totalRow === null
-      ? []
-      : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
+  const { endY } = renderTableSpec(doc, startY, {
+    columns,
+    hasHeaderRow: true,
+    rows: [
+      { kind: 'header', cells: [{ text: 'Beløb' }, { text: 'Rente fra' }, { text: 'Beregnet rente' }] },
+      ...dataRows,
+      ...(totalRow ? [totalRow] : []),
+    ],
   });
 
-  writer.setY(resolveDocumentSectionEndY(finalY, startY));
+  writer.setY(endY);
 };
 
 /**

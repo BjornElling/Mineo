@@ -4,28 +4,15 @@
  * Genererer PDF-dokument med oversigt over danske helligdage der falder på hverdage
  */
 
-import {
-  PDF_MUTED_TEXT_COLOR,
-  PDF_TABLE_NARROW_COLUMN_WIDTH,
-} from '../../layout/pdfConfig';
+import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../layout/pdfConfig';
 import { findNamedHolidaysInDateRanges } from '../../../domain/dates/shDageOversigt';
-import {
-  resolveDocumentSectionEndY,
-} from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
-import {
-  TABLE_FONT_SIZE,
-  createDocumentDistributedColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  createDocumentTableSummedTotalRow,
-  renderDocumentTable,
-} from '../../layout/documentTableRenderer';
+import { TABLE_FONT_SIZE } from '../../layout/documentTableRenderer';
+import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatting';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import type { CellHookData, RowInput } from 'jspdf-autotable';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 
@@ -37,10 +24,9 @@ type SHDagEntry = Readonly<{
   helligdagNavn: string;
   erHverdag: boolean;
 }>;
-type SHDageTableBuildResult = Readonly<{
-  body: RowInput[];
-  totalRowIndex: number | null;
-  totalValueColumnIndex: number;
+type SHDageTableSpec = Readonly<{
+  columns: readonly ColumnSpec[];
+  rows: RowSpec[];
 }>;
 
 const buildSHDagePeriodLabel = (perioder: ReadonlyArray<SHDagePeriod>): string => {
@@ -123,24 +109,33 @@ const formaterPeriodeOversigt = (perioder: ReadonlyArray<SHDagePeriod>): string 
 
 export const buildSHDageTableRows = (
   helligdage: ReadonlyArray<SHDagEntry>
-): SHDageTableBuildResult => {
-  const tableData: RowInput[] = [[
-    createDocumentTableHeaderCell('Ugedag', 'left'),
-    createDocumentTableHeaderCell('Dato', 'left'),
-    createDocumentTableHeaderCell('Helligdag', 'left'),
-    createDocumentTableHeaderCell('SH-dag', 'center'),
-  ]];
+): SHDageTableSpec => {
+  // Tre venstrejusterede tekst-kolonner + en smal centreret SH-dag-kolonne.
+  const columns: readonly ColumnSpec[] = [
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'flex' }, align: 'left' },
+    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'center' },
+  ];
 
-  for (const { dato, ugedag, helligdagNavn, erHverdag } of helligdage) {
-    tableData.push([
-      createDocumentTableCell(ugedag, { halign: 'left' }),
-      createDocumentTableCell(formatDanskDato(dato), { halign: 'left' }),
-      createDocumentTableCell(helligdagNavn, { halign: 'left' }),
-      createDocumentTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: TABLE_FONT_SIZE }),
-    ]);
-  }
+  const rows: RowSpec[] = [
+    {
+      kind: 'header',
+      cells: [{ text: 'Ugedag' }, { text: 'Dato' }, { text: 'Helligdag' }, { text: 'SH-dag' }],
+    },
+    // Helligdage der ikke falder på en hverdag dæmpes (tone: 'muted') og tæller ikke som SH-dag.
+    ...helligdage.map(({ dato, ugedag, helligdagNavn, erHverdag }): RowSpec => ({
+      cells: [
+        { text: ugedag },
+        { text: formatDanskDato(dato) },
+        { text: helligdagNavn },
+        { text: erHverdag ? 'x' : '', valign: 'middle', fontSize: TABLE_FONT_SIZE },
+      ],
+      ...(erHverdag ? {} : { tone: 'muted' as const }),
+    })),
+  ];
 
-  const totalRow = createDocumentTableSummedTotalRow(
+  const totalRow = buildSummedTotalRowSpec(
     'SH-dage i alt',
     helligdage.map((helligdag) => (helligdag.erHverdag ? 1 : 0)),
     {
@@ -149,18 +144,12 @@ export const buildSHDageTableRows = (
       formatValue: (total) => String(total),
       valueAlign: 'center',
       preserveValueColumn: true,
-    }
+    },
+    { clearFill: true }
   );
-  const totalRowIndex = totalRow ? tableData.length : null;
-  if (totalRow) {
-    tableData.push(totalRow.row);
-  }
+  if (totalRow) rows.push(totalRow);
 
-  return {
-    body: tableData,
-    totalRowIndex,
-    totalValueColumnIndex: totalRow?.valueCellColumnIndex ?? 3,
-  };
+  return { columns, rows };
 };
 
 /**
@@ -223,38 +212,9 @@ const addDescription = (writer: DocumentWriter, perioder: ReadonlyArray<SHDagePe
 const addSHDageTable = (writer: DocumentWriter, helligdage: ReadonlyArray<SHDagEntry>): void => {
   const doc = writer.getDoc();
   const startY = writer.getY();
-  const { body: tableData, totalRowIndex, totalValueColumnIndex } = buildSHDageTableRows(helligdage);
-
-  const finalY = renderDocumentTable({
-    doc,
-    startY,
-    body: tableData,
-    columnStyles: createDocumentDistributedColumnStyles(4, {
-      fixedColumns: {
-        3: PDF_TABLE_NARROW_COLUMN_WIDTH,
-      },
-    }),
-    underlinedCellPositions: totalRowIndex === null
-      ? []
-      : [{ rowIndex: totalRowIndex, columnIndex: totalValueColumnIndex }],
-    didParseCell: (data: CellHookData) => {
-      const helligdagIndex = data.row.index - 1;
-      if (helligdagIndex >= 0 && helligdagIndex < helligdage.length) {
-        const helligdag = helligdage[helligdagIndex];
-        if (!helligdag.erHverdag) {
-          data.cell.styles.textColor = PDF_MUTED_TEXT_COLOR;
-        }
-        return;
-      }
-
-      if (totalRowIndex !== null && data.row.index === totalRowIndex) {
-        data.cell.styles.fillColor = false;
-        data.cell.styles.lineWidth = 0;
-      }
-    },
-  });
-
-  writer.setY(resolveDocumentSectionEndY(finalY, startY));
+  const { columns, rows } = buildSHDageTableRows(helligdage);
+  const { endY } = renderTableSpec(doc, startY, { columns, hasHeaderRow: true, rows });
+  writer.setY(endY);
 };
 
 /**

@@ -4,18 +4,9 @@
  * Genererer detaljeret specifikation af årslønsberegning med satser, indtægtsoplysninger og beregning
  */
 
-import type { CellDef, RowInput } from 'jspdf-autotable';
-import { resolveDocumentSectionEndY } from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter, writeLabelValueRows } from '../documentGeneratorSetup';
-import {
-  cellCenter,
-  cellRight,
-  createDocumentTableFormattedTotalRow,
-  createDocumentDistributedColumnStyles,
-  createDocumentTableHeaderCell,
-  renderDocumentTable,
-} from '../../layout/documentTableRenderer';
+import { buildFormattedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { calculateStandardLoenRowDerived, type StandardLoenSatserInput } from '../../../domain/aarsloen/standardLoenRowCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -147,46 +138,37 @@ const addIndtaegtsoplysningerTable = (
   });
 
   // Headers afhænger af lønperiode
-  const headers: CellDef[] = [];
-  if (loenperiode === 'maaned') {
-    headers.push(
-      createDocumentTableHeaderCell('Måned', 'center'),
-      createDocumentTableHeaderCell('År', 'center'),
-    );
-  } else if (loenperiode === 'uge') {
-    headers.push(
-      createDocumentTableHeaderCell('Uge fra', 'center'),
-      createDocumentTableHeaderCell('Uge til', 'center'),
-    );
-  } else if (loenperiode === 'dag') {
-    headers.push(
-      createDocumentTableHeaderCell('Dato fra', 'center'),
-      createDocumentTableHeaderCell('Dato til', 'center'),
-    );
-  }
+  const periodHeaders =
+    loenperiode === 'maaned'
+      ? ['Måned', 'År']
+      : loenperiode === 'uge'
+        ? ['Uge fra', 'Uge til']
+        : ['Dato fra', 'Dato til'];
 
-  // Tilføj resten af headers
-  headers.push(
-    createDocumentTableHeaderCell(STANDARD_LOEN_COL2_LABEL, 'center'),
-    createDocumentTableHeaderCell(STANDARD_LOEN_COL3_LABEL, 'center'),
-    createDocumentTableHeaderCell('Ikke-pens.\ngiv. løn', 'center'),
-    createDocumentTableHeaderCell(AARSLOEN_PDF_ATP_HEADER, 'center'),
-    createDocumentTableHeaderCell('FP/FV/SH/\nSO/St.B.', 'center'),
-    createDocumentTableHeaderCell('Arb.g.\nPension', 'center'),
-    createDocumentTableHeaderCell('Samlet løn', 'center'),
-  );
+  const headerLabels = [
+    ...periodHeaders,
+    STANDARD_LOEN_COL2_LABEL,
+    STANDARD_LOEN_COL3_LABEL,
+    'Ikke-pens.\ngiv. løn',
+    AARSLOEN_PDF_ATP_HEADER,
+    'FP/FV/SH/\nSO/St.B.',
+    'Arb.g.\nPension',
+    'Samlet løn',
+  ];
 
-  const columnCount = headers.length;
+  const columnCount = headerLabels.length;
 
-  const tableRows: RowInput[] = [headers];
+  // Data-justering: to centrerede periode-kolonner + syv højrejusterede tal-kolonner.
+  // Alle headere er derimod centrerede — derfor eksplicit celle-override på header-rækken.
+  const columns: readonly ColumnSpec[] = headerLabels.map((_, index) => ({
+    width: { kind: 'flex' },
+    align: index < 2 ? 'center' : 'right',
+  }));
 
-  // Beregn satser som decimaler
-  // Data-rækker
-  for (const row of filteredData) {
+  const dataRows: RowSpec[] = filteredData.map((row) => {
     // Periode-kolonner (fra/til) via den delte resolver — dag-perioden formateres
     // til dansk DD-MM-ÅÅÅÅ dér, så ISO-datoer aldrig lækker ud i tabellen.
     const [col0Val, col1Val] = resolveStandardLoenPeriodColumns(row, loenperiode);
-
     const derived = calculateStandardLoenRowDerived(row, {
       feriePct: satser?.feriePct,
       fritvalgPct: satser?.fritvalgPct,
@@ -195,48 +177,39 @@ const addIndtaegtsoplysningerTable = (
       pensionPct: satser?.pensionPct,
     }, { mode: tillaegAngivesSom });
 
-    tableRows.push([
-      cellCenter(col0Val),
-      cellCenter(col1Val),
-      cellRight(formatDanishAmount(row.col2)),
-      cellRight(formatDanishAmount(row.col3)),
-      cellRight(formatDanishAmount(row.col4)),
-      cellRight(formatDanishAmount(row.col5)),
-      cellRight(formatDanishAmount(derived.fpFvShSo)),
-      cellRight(formatDanishAmount(derived.pension)),
-      cellRight(formatDanishAmount(derived.samlet)),
-    ]);
-  }
-
-  const totalRow = filteredData.length > 1
-    ? createDocumentTableFormattedTotalRow('I alt', `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`, {
-      columnCount,
-      valueColumnIndex: 8,
-      labelAlign: 'center',
-      valueHasKrSuffix: false,
-    })
-    : null;
-  if (totalRow) {
-    tableRows.push(totalRow.row);
-  }
-  const totalRowIndex = totalRow ? tableRows.length - 1 : null;
-
-  const finalY = renderDocumentTable({
-    doc,
-    startY: tableStartY,
-    body: tableRows,
-    columnStyles: createDocumentDistributedColumnStyles(columnCount),
-    underlinedCellPositions: totalRowIndex === null || totalRow === null
-      ? []
-      : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
-    didParseCell: (data) => {
-      if (totalRowIndex === null || data.row.index !== totalRowIndex) return;
-      data.cell.styles.fillColor = false;
-      data.cell.styles.lineWidth = 0;
-    },
+    return {
+      cells: [
+        { text: col0Val },
+        { text: col1Val },
+        { text: formatDanishAmount(row.col2) },
+        { text: formatDanishAmount(row.col3) },
+        { text: formatDanishAmount(row.col4) },
+        { text: formatDanishAmount(row.col5) },
+        { text: formatDanishAmount(derived.fpFvShSo) },
+        { text: formatDanishAmount(derived.pension) },
+        { text: formatDanishAmount(derived.samlet) },
+      ],
+    };
   });
 
-  return resolveDocumentSectionEndY(finalY, tableStartY);
+  const totalRow = filteredData.length > 1
+    ? buildFormattedTotalRowSpec(
+        'I alt',
+        `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`,
+        { columnCount, valueColumnIndex: 8, labelAlign: 'center', valueHasKrSuffix: false },
+        { clearFill: true }
+      )
+    : null;
+
+  return renderTableSpec(doc, tableStartY, {
+    columns,
+    hasHeaderRow: true,
+    rows: [
+      { kind: 'header', cells: headerLabels.map((text) => ({ text, align: 'center' as const })) },
+      ...dataRows,
+      ...(totalRow ? [totalRow] : []),
+    ],
+  }).endY;
 };
 
 /**

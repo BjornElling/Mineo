@@ -90,8 +90,8 @@ describe('KL-lønaftaler PDF-layout', () => {
     expect(totalWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
     expect(columnStyles?.[0]?.cellWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM / 2, 6);
     expect(columnStyles?.[1]?.cellWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM / 2, 6);
-    expect(columnStyles?.[0]?.halign).toBe('center');
-    expect(columnStyles?.[1]?.halign).toBe('center');
+    // Centrering udtrykkes nu på cellerne (TableSpec's ColumnSpec.align → celle-halign),
+    // ikke længere via columnStyles.defaultHalign — begge kanaler læser samme kilde.
     expect(body?.[0]?.[0]?.styles?.halign).toBe('center');
     expect(body?.[0]?.[1]?.styles?.halign).toBe('center');
     expect(body?.[1]?.[0]?.styles?.halign).toBe('center');

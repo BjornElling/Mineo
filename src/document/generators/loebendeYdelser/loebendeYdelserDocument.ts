@@ -6,18 +6,9 @@
  * (Grundløn, Ydelsesniveau) tilføjes på en separat slutside hvis valgt.
  */
 
-import type { RowInput } from 'jspdf-autotable';
-import {
-  resolveDocumentSectionEndY,
-} from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
-import {
-  cellRight,
-  createDocumentTableCell,
-  createDocumentTableSummedTotalRow,
-  renderDocumentTable,
-} from '../../layout/documentTableRenderer';
+import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
 import type {
@@ -140,31 +131,30 @@ export const addLoebendeAfgoerelseSection = (
     writer.addSectionSpacer();
   }
   if (!ingenLoebendeYdelse) {
-    const ydelserHeader: RowInput = [
-      createDocumentTableCell('Fra o.m.', { halign: 'center', bold: true }),
-      createDocumentTableCell('Til o.m.', { halign: 'center', bold: true }),
-      createDocumentTableCell('Mdr.', { halign: 'right', bold: true }),
-      createDocumentTableCell('Grundydelse', { halign: 'right', bold: true }),
-      createDocumentTableCell('Regulering', { halign: 'right', bold: true }),
-      createDocumentTableCell('Ydelse/md.', { halign: 'right', bold: true }),
-      createDocumentTableCell('Beregnet EET', { halign: 'right', bold: true }),
+    // Auto-brede kolonner: to centrerede dato-kolonner, fem højrejusterede tal-kolonner.
+    const columns: readonly ColumnSpec[] = [
+      { width: { kind: 'auto' }, align: 'center' },
+      { width: { kind: 'auto' }, align: 'center' },
+      { width: { kind: 'auto' }, align: 'right' },
+      { width: { kind: 'auto' }, align: 'right' },
+      { width: { kind: 'auto' }, align: 'right' },
+      { width: { kind: 'auto' }, align: 'right' },
+      { width: { kind: 'auto' }, align: 'right' },
     ];
 
-    const ydelserBody: RowInput[] = [
-      ydelserHeader,
-      ...afgoerelse.perioder.map(
-        (row): RowInput => [
-          createDocumentTableCell(formatISOToDanish(row.fra), { halign: 'center' }),
-          createDocumentTableCell(formatISOToDanish(row.til), { halign: 'center' }),
-          cellRight(formatMaanederFixed(row.maanederPraecis)),
-          cellRight(formatKr(row.grundydelseAfrundet, 2)),
-          cellRight(formatReguleringPct(row.reguleringPct)),
-          cellRight(formatKr(row.maanedligYdelse)),
-          cellRight(formatKr(row.beregnetEet)),
-        ]
-      ),
-    ];
-    const totalRow = createDocumentTableSummedTotalRow(
+    const dataRows: RowSpec[] = afgoerelse.perioder.map((row) => ({
+      cells: [
+        { text: formatISOToDanish(row.fra) },
+        { text: formatISOToDanish(row.til) },
+        { text: formatMaanederFixed(row.maanederPraecis) },
+        { text: formatKr(row.grundydelseAfrundet, 2) },
+        { text: formatReguleringPct(row.reguleringPct) },
+        { text: formatKr(row.maanedligYdelse) },
+        { text: formatKr(row.beregnetEet) },
+      ],
+    }));
+
+    const totalRow = buildSummedTotalRowSpec(
       'I alt',
       afgoerelse.perioder.map((row) => row.beregnetEet),
       {
@@ -174,23 +164,30 @@ export const addLoebendeAfgoerelseSection = (
         valueHasKrSuffix: true,
       }
     );
-    const totalRowIndex = totalRow ? ydelserBody.length : null;
-    if (totalRow) {
-      ydelserBody.push(totalRow.row);
-    }
 
     const doc = writer.getDoc();
     const startY = writer.getY();
-    const finalY = renderDocumentTable({
-      doc,
-      startY,
-      body: ydelserBody,
+    const { endY } = renderTableSpec(doc, startY, {
+      columns,
       hasHeaderRow: true,
-      underlinedCellPositions: totalRowIndex === null || totalRow === null
-        ? []
-        : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
+      rows: [
+        {
+          kind: 'header',
+          cells: [
+            { text: 'Fra o.m.' },
+            { text: 'Til o.m.' },
+            { text: 'Mdr.' },
+            { text: 'Grundydelse' },
+            { text: 'Regulering' },
+            { text: 'Ydelse/md.' },
+            { text: 'Beregnet EET' },
+          ],
+        },
+        ...dataRows,
+        ...(totalRow ? [totalRow] : []),
+      ],
     });
-    writer.setY(resolveDocumentSectionEndY(finalY, startY));
+    writer.setY(endY);
   }
 };
 

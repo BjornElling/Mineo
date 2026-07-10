@@ -7,11 +7,10 @@
  * - Side 3 (betinget): ASL-ydelser
  */
 
-import { resolveDocumentSectionEndY } from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import { cellLeft, cellRight, createDocumentTableHeaderCell, renderDocumentTable } from '../../layout/documentTableRenderer';
+import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
@@ -217,38 +216,40 @@ const addAslSection = (writer: DocumentWriter, asl: ForsoergertabAslComputation)
     const doc = writer.getDoc();
     const tableStartY = writer.getY();
 
-    const body = [
-      [
-        createDocumentTableHeaderCell('Fra-dato', 'left'),
-        createDocumentTableHeaderCell('Til-dato', 'left'),
-        createDocumentTableHeaderCell('Måneder', 'right'),
-        createDocumentTableHeaderCell('Månedlig ydelse', 'right'),
-        createDocumentTableHeaderCell('Ydelser i perioden', 'right'),
-      ],
-      ...asl.lobendeYdelser.map((raekke) => [
-        cellLeft(isoToDanish(raekke.fraDato) ?? ''),
-        cellLeft(isoToDanish(raekke.tilDato) ?? ''),
-        cellRight(formatAsAmount(raekke.maaneder, 4)),
-        cellRight(formatKr(raekke.maanedligYdelse, 0)),
-        cellRight(formatKr(raekke.ydelseIAlt, 0)),
-      ]),
+    // Faste kolonnebredder (inline-litteral tidligere): to venstre dato-kolonner,
+    // tre højrejusterede tal-kolonner. Justering defineret på kolonnerne.
+    const columns: readonly ColumnSpec[] = [
+      { width: { kind: 'fixed', mm: 30 }, align: 'left' },
+      { width: { kind: 'fixed', mm: 30 }, align: 'left' },
+      { width: { kind: 'fixed', mm: 25 }, align: 'right' },
+      { width: { kind: 'fixed', mm: 40 }, align: 'right' },
+      { width: { kind: 'fixed', mm: 45 }, align: 'right' },
     ];
 
-    const finalY = renderDocumentTable({
-      doc,
-      startY: tableStartY,
-      body,
-      hasHeaderRow: true,
-      columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 25 },
-        3: { cellWidth: 40 },
-        4: { cellWidth: 45 },
+    const rows: RowSpec[] = [
+      {
+        kind: 'header',
+        cells: [
+          { text: 'Fra-dato' },
+          { text: 'Til-dato' },
+          { text: 'Måneder' },
+          { text: 'Månedlig ydelse' },
+          { text: 'Ydelser i perioden' },
+        ],
       },
-    });
+      ...asl.lobendeYdelser.map((raekke): RowSpec => ({
+        cells: [
+          { text: isoToDanish(raekke.fraDato) ?? '' },
+          { text: isoToDanish(raekke.tilDato) ?? '' },
+          { text: formatAsAmount(raekke.maaneder, 4) },
+          { text: formatKr(raekke.maanedligYdelse, 0) },
+          { text: formatKr(raekke.ydelseIAlt, 0) },
+        ],
+      })),
+    ];
 
-    writer.setY(resolveDocumentSectionEndY(finalY, tableStartY));
+    const { endY } = renderTableSpec(doc, tableStartY, { columns, hasHeaderRow: true, rows });
+    writer.setY(endY);
 
     writer.writeLeftRightText('Løbende ydelser i alt', formatKr(asl.aslLobendeYdelserTotal), {
       rightFontStyle: 'bold',

@@ -5,13 +5,9 @@
  */
 
 import type jsPDF from 'jspdf';
-import type { RowInput } from 'jspdf-autotable';
 import type { DocumentTableBridgeDocument } from '../../layout/documentTableBridge';
-import {
-  resolveDocumentSectionEndY,
-} from '../../layout/documentLayoutHelpers';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
-import { renderDocumentTable } from '../../layout/documentTableRenderer';
+import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
 import { roundByMethod } from '../../../utils/rounding';
@@ -119,62 +115,28 @@ const formatIndexValue = (value: number): string => {
   return formatAsAmount(roundByMethod(value, 1, 'halfAwayFromZero'), 1);
 };
 
-const buildTableRows = (
-  columns: ReadonlyArray<TableColumn>,
-  rows: ReadonlyArray<ReadonlyArray<string>>
-): RowInput[] => {
-  const headerRow: RowInput = columns.map((col) => ({
-    content: col.header,
-    styles: { fontStyle: 'bold', halign: 'center' },
-  }));
-
-  const bodyRows: RowInput[] = rows.map((row) =>
-    row.map((cell) => ({
-      content: cell,
-      styles: { halign: 'center' },
-    }))
-  );
-
-  if (bodyRows.length === 0) {
-    bodyRows.push(
-      columns.map((_, index) => ({
-        content: index === 0 ? 'Ingen reguleringsrækker i intervallet.' : '',
-        styles: { halign: 'center' },
-      }))
-    );
-  }
-
-  return [headerRow, ...bodyRows];
-};
-
 const addReguleringTable = (
   doc: jsPDF | DocumentTableBridgeDocument,
   columns: ReadonlyArray<TableColumn>,
   rows: ReadonlyArray<ReadonlyArray<string>>,
   startY: number
 ): number => {
-  const tableRows = buildTableRows(columns, rows);
-  const columnStyles: Record<number, { minCellWidth: number; halign: 'center' }> = Object.fromEntries(
-    columns.map((_, index) => [
-      index,
-      {
-        minCellWidth: 22,
-        halign: 'center' as const,
-      },
-    ])
-  );
+  // Alle kolonner: min-bredde 22 mm, centreret. Justering på kolonnerne (ikke via
+  // en separat didParseCell-tvang eller columnStyles.halign).
+  const specColumns: readonly ColumnSpec[] = columns.map(() => ({ width: { kind: 'min', mm: 22 }, align: 'center' }));
 
-  const finalY = renderDocumentTable({
-    doc,
-    startY,
-    body: tableRows,
-    columnStyles,
-    didParseCell: (data) => {
-      data.cell.styles.halign = 'center';
-    },
-  });
+  const dataRows: RowSpec[] = rows.map((row) => ({ cells: row.map((cell) => ({ text: cell })) }));
+  if (dataRows.length === 0) {
+    dataRows.push({
+      cells: columns.map((_, index) => ({ text: index === 0 ? 'Ingen reguleringsrækker i intervallet.' : '' })),
+    });
+  }
 
-  return resolveDocumentSectionEndY(finalY, startY);
+  return renderTableSpec(doc, startY, {
+    columns: specColumns,
+    hasHeaderRow: true,
+    rows: [{ kind: 'header', cells: columns.map((col) => ({ text: col.header })) }, ...dataRows],
+  }).endY;
 };
 
 const buildOverenskomstTable = (

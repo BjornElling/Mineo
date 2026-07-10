@@ -11,17 +11,8 @@
  * SÆRLIG KL-LØNAFTALER-LOGIK — se docs/domain/taf/kl-loenaftaler-regulering.md.
  */
 
-import type { RowInput } from 'jspdf-autotable';
-import {
-  resolveDocumentSectionEndY,
-} from '../../layout/documentLayoutHelpers';
 import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
-import {
-  createDocumentDistributedColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableHeaderCell,
-  renderDocumentTable,
-} from '../../layout/documentTableRenderer';
+import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
@@ -48,33 +39,29 @@ export const generateKlLoenaftalerDocument = (params: KlLoenaftalerPdfParams): v
 
   writer.writeTitle(KL_LOENAFTALER_DOCUMENT_TITLE);
 
-  const headerRow: RowInput = [
-    createDocumentTableHeaderCell('Dato', 'center'),
-    createDocumentTableHeaderCell('Regulering', 'center'),
+  // To lige brede, centrerede kolonner. Justering defineres på kolonnerne (`align`),
+  // så både PDF og Word læser samme kilde.
+  const columns: readonly ColumnSpec[] = [
+    { width: { kind: 'flex' }, align: 'center' },
+    { width: { kind: 'flex' }, align: 'center' },
   ];
 
-  const bodyRows: RowInput[] = klLoenaftalerRaekker.map((row) => [
-    createDocumentTableCell(row.fraDato, { halign: 'center' }),
-    createDocumentTableCell(formatReguleringPct(row.reguleringPct), { halign: 'center' }),
-  ]);
+  const dataRows: RowSpec[] = klLoenaftalerRaekker.map((row) => ({
+    cells: [{ text: row.fraDato }, { text: formatReguleringPct(row.reguleringPct) }],
+  }));
 
-  if (bodyRows.length === 0) {
-    bodyRows.push([
-      createDocumentTableCell('Ingen lønaftaler tilgængelige.', { halign: 'center' }),
-      createDocumentTableCell('', { halign: 'center' }),
-    ]);
+  if (dataRows.length === 0) {
+    dataRows.push({ cells: [{ text: 'Ingen lønaftaler tilgængelige.' }, { text: '' }] });
   }
 
-  const tableRows: RowInput[] = [headerRow, ...bodyRows];
-
-  const finalY = renderDocumentTable({
-    doc,
-    startY: writer.getY(),
-    body: tableRows,
-    columnStyles: createDocumentDistributedColumnStyles(2, { defaultHalign: 'center' }),
+  const startY = writer.getY();
+  const { endY } = renderTableSpec(doc, startY, {
+    columns,
+    hasHeaderRow: true,
+    rows: [{ kind: 'header', cells: [{ text: 'Dato' }, { text: 'Regulering' }] }, ...dataRows],
   });
 
-  writer.setY(resolveDocumentSectionEndY(finalY, writer.getY()));
+  writer.setY(endY);
 
   writer.addFooter();
   writer.save(buildKlLoenaftalerDocumentFilename(stamdata?.journalnr));
