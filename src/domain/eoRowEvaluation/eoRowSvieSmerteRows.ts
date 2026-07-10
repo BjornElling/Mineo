@@ -15,6 +15,7 @@ import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
+import { erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
@@ -304,13 +305,33 @@ export const buildEoSvieSmerteRows = (
     ],
   });
 
-  // 4) Svie/smerte krav i tidligere erstatningsopgørelser (ok hvis tomt) — kun ved ikke-første opgørelse
+  // 4) Svie/smerte-krav i tidligere erstatningsopgørelser — kun ved ikke-første opgørelse.
   if (!erFoersteOpgoerelse) {
-    const tidligereTotalValue = formatCurrency(amountValueToNumber(values.svieSmerteTidligereTotal));
+    const tidligereTotalAmount = amountValueToNumber(values.svieSmerteTidligereTotal);
+    const tidligereTotalResolved = resolveEoRowDisplay({
+      value: formatCurrency(tidligereTotalAmount),
+      errors: errors.svieSmerteTidligereTotal,
+      emptyState: 'ok',
+    });
+    // Feltet er skjult, når svie/smerte ikke beregnes eller tidligere allerede er beregnet til
+    // maksimum. Advarslen må derfor kun aktiveres, når linkets konkrete fokusmål er synligt.
+    const tidligereTotalMangler =
+      erSvieSmerteTidligereTotalRelevant(values) &&
+      !(typeof tidligereTotalAmount === 'number' && tidligereTotalAmount > 0);
+    const visTidligereTotalAdvarsel =
+      tidligereTotalMangler && tidligereTotalResolved.status === 'ok';
+    const tidligereTotalStatus: EoRowStatus =
+      visTidligereTotalAdvarsel ? 'warning' : tidligereTotalResolved.status;
+
     rows.push({
       id: 'sviesmerte.tidligereTotal',
       label: 'Svie/smerte-krav i tidligere erstatningsopgørelser',
-      ...resolveEoRowDisplay({ value: tidligereTotalValue, errors: errors.svieSmerteTidligereTotal, emptyState: 'ok' }),
+      displayValue: tidligereTotalResolved.displayValue,
+      status: tidligereTotalStatus,
+      message: visTidligereTotalAdvarsel
+        ? 'Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser'
+        : undefined,
+      summaryDisplay: visTidligereTotalAdvarsel ? 'messageOnly' : undefined,
     });
   }
 
@@ -698,4 +719,3 @@ export const buildEoSvieSmerteRows = (
 
   return rows;
 };
-

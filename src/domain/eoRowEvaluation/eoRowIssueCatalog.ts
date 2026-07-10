@@ -212,6 +212,13 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     summaryText: (_row, message) => message || 'Der er ikke angivet nogen svie/smerte-periode i EO-perioden',
   },
   {
+    key: 'svie-smerte-tidligere-total',
+    match: { kind: 'id', id: 'sviesmerte.tidligereTotal' },
+    when: 'Det er ikke første erstatningsopgørelse, men der er ikke angivet et positivt svie-/smertebeløb fra tidligere opgørelser.',
+    summaryText: (_row, message) =>
+      message || 'Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser',
+  },
+  {
     key: 'svie-smerte-period-row',
     match: { kind: 'prefix', prefix: 'sviesmerte.periode.' },
     when: 'En svie/smerte-række er delvist udfyldt, ugyldig eller overlapper en anden række.',
