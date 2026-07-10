@@ -1,4 +1,5 @@
 import { isValidStorageKey } from '../../../config/storageManifest';
+import { resolveRelativeImport } from './astQueries';
 import {
   forbidCalls,
   forbidElementAccess,
@@ -226,6 +227,74 @@ const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
   ],
 });
 
+// --- Lag-grænse: domæne må ikke importere inspektions-/kontrollaget ----------
+
+const INSPEKTION_LAYER = 'src/domain/eoInspektion';
+
+const importPointsIntoInspektion = (moduleSpecifier: string, fromRelativePath: string): boolean => {
+  if (moduleSpecifier.startsWith('.')) {
+    const resolved = resolveRelativeImport(fromRelativePath, moduleSpecifier);
+    return resolved !== null && (resolved === INSPEKTION_LAYER || resolved.startsWith(`${INSPEKTION_LAYER}/`));
+  }
+  // Ikke-relative (alias/absolut/bart modul): match på segmentet, så en fremtidig path-alias også fanges.
+  return moduleSpecifier.includes('domain/eoInspektion');
+};
+
+const inspektionLayerImport = forbidImports({
+  id: 'layer/inspektion-import-boundary',
+  description:
+    'Kun de to sanktionerede snapshot-bro-filer må importere src/domain/eoInspektion; den autoritative motor + kontrol-kerne skal være inspektionsfri (B9).',
+  // Alle domæne-filer uden for selve inspektionslaget kontrolleres (dækker eoRowEvaluation, canonicalOutput, controlMismatch m.fl.).
+  appliesTo: (relativePath) =>
+    relativePath.startsWith('src/domain/') && !relativePath.startsWith(`${INSPEKTION_LAYER}/`),
+  allow: [
+    'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
+    'src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts',
+  ],
+  antiRot: true,
+  forbidden: (ref, fromRelativePath) => importPointsIntoInspektion(ref.moduleSpecifier, fromRelativePath),
+  message: (ref) => `Import af inspektions-/kontrollaget (${ref.moduleSpecifier}) uden for de sanktionerede broer.`,
+  violatingFixtures: [
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/foo.ts',
+      code: "import { buildEOInspektionSnapshot } from '../../eoInspektion/eoInspektionSnapshot';",
+    },
+    { relativePath: 'src/domain/x/y.ts', code: "import { x } from '@/domain/eoInspektion/eoInspektionSnapshot';" },
+    { relativePath: 'src/domain/x/y.ts', code: "import { x } from 'src/domain/eoInspektion/eoInspektionSnapshot';" },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/foo.ts',
+      code: "import { collectAllEoRows } from '../../eoRowEvaluation/eoRowAggregator';",
+    },
+    { relativePath: 'src/domain/x/y.ts', code: "import { z } from '@mui/material';" },
+  ],
+});
+
+// --- EET-domæne: intet tværside-persisted-opslag ind i erhvervsevnetab -------
+
+const eetCrossDomainPersistedLookup = forbidCalls({
+  id: 'domain/eet-cross-domain-persisted-lookup',
+  description:
+    'Ingen persisted tværside-opslag (getPersistedData/usePersistedSection/commitSection) ind i erhvervsevnetab-sektionen.',
+  forbidden: (ref) =>
+    (ref.calleeName === 'getPersistedData' ||
+      ref.calleeName === 'usePersistedSection' ||
+      ref.calleeName === 'commitSection') &&
+    ref.firstArgStringLiteral === 'erhvervsevnetab',
+  message: (ref) => `Persisted tværside-opslag ${ref.calleeText}('erhvervsevnetab') — forbudt cross-domain kobling.`,
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: "const d = getPersistedData('erhvervsevnetab');" },
+    { relativePath: 'src/x.ts', code: "const s = usePersistedSection('erhvervsevnetab');" },
+    { relativePath: 'src/x.ts', code: "commitSection('erhvervsevnetab', values);" },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/x.ts', code: "const d = getPersistedData('erstatningsopgoerelse');" },
+    { relativePath: 'src/x.ts', code: "const s = usePersistedForm('erhvervsevnetab');" },
+    { relativePath: 'src/x.ts', code: "const v = sections.erhvervsevnetab;" },
+  ],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -235,4 +304,6 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   formPersistenceStoreImport,
   failOpenDisplayLookupImport,
   aslAarsloensmaksimumRawSubscript,
+  inspektionLayerImport,
+  eetCrossDomainPersistedLookup,
 ];

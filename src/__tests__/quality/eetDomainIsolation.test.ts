@@ -1,9 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+/**
+ * EET-domæne-isolation.
+ *
+ * Det GENERELLE forbud mod persisted tværside-opslag ind i erhvervsevnetab
+ * (`getPersistedData`/`usePersistedSection`/`commitSection('erhvervsevnetab')`) er migreret
+ * til det AST-baserede arkitektur-harness som reglen `domain/eet-cross-domain-persisted-lookup`
+ * (se `architecture/architectureRules.ts`).
+ *
+ * Tilbage her: de fil-specifikke wiring-checks — at EO-EET-felterne bindes i EO-oplysninger-
+ * sektionerne, at kontrol/PDF læser EET fra EO-values, og at Erhvervsevnetab-siden kun rører den
+ * delte forligs-slice (domain-boundary-contract.md §10).
+ */
+
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
-// EO-oplysninger-fanen er dekomponeret i sektion-komponenter (jf. A1); EET-felternes markup bor nu
-// i sektionerne. Guarden læser hele sektion-mappen, så feltbindingerne fanges uanset hvilken sektion.
 const EO_OPLYSNINGER_SECTIONS_DIR = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/eoOplysninger/sections');
 
 const readEoOplysningerSectionSources = (): string => {
@@ -16,6 +27,7 @@ const readEoOplysningerSectionSources = (): string => {
   }
   return files.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 };
+
 const EO_DEBUG_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EOInspektion.tsx');
 const EO_DEBUG_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/eoInspektion/eoInspektionPageViewModel.ts');
 const EO_DEBUG_SNAPSHOT_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts');
@@ -23,54 +35,7 @@ const EO_PDF_MODEL_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/s
 const EO_PDF_BUILDERS_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoPresentationSectionBuilders.ts');
 const ERHVERVSEVNETAB_PAGE_PATH = path.resolve(SRC_ROOT, 'components/pages/Erhvervsevnetab.tsx');
 
-const FORBIDDEN_CROSS_DOMAIN_PATTERNS: ReadonlyArray<RegExp> = [
-  /getPersistedData\(\s*['"`]erhvervsevnetab['"`]\s*\)/,
-  /usePersistedSection\(\s*['"`]erhvervsevnetab['"`]\s*\)/,
-  /commitSection\(\s*['"`]erhvervsevnetab['"`]\s*,/,
-];
-
-const collectSourceFiles = (root: string): string[] => {
-  const files: string[] = [];
-  const stack = [root];
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current) continue;
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === '__tests__' || entry.name === 'test') continue;
-        stack.push(fullPath);
-        continue;
-      }
-      if (entry.isFile() && (fullPath.endsWith('.ts') || fullPath.endsWith('.tsx'))) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  return files;
-};
-
-describe('eetDomainIsolation', () => {
-  it('forbyder persisted tværside-opslag til erhvervsevnetab', () => {
-    const violations: string[] = [];
-
-    for (const absolutePath of collectSourceFiles(SRC_ROOT)) {
-      const source = fs.readFileSync(absolutePath, 'utf8');
-      const relativePath = path.relative(process.cwd(), absolutePath);
-      for (const pattern of FORBIDDEN_CROSS_DOMAIN_PATTERNS) {
-        if (pattern.test(source)) {
-          violations.push(`${relativePath}: ${pattern.source}`);
-        }
-      }
-    }
-
-    expect(violations).toEqual([]);
-  });
-
+describe('eetDomainIsolation — wiring', () => {
   it('bevarer aktive EO-EET felter i EO-oplysninger-sektionerne', () => {
     const source = readEoOplysningerSectionSources();
 
@@ -104,11 +69,9 @@ describe('eetDomainIsolation', () => {
     // er tilladt, og siden må kun læse de tre forligs-felter (ikke øvrige EO-felter).
     const source = fs.readFileSync(ERHVERVSEVNETAB_PAGE_PATH, 'utf8');
 
-    // Råt snapshot-/section-opslag (ville hente hele EO's committed/beregnede state) er stadig forbudt.
     expect(source).not.toMatch(/getPersistedData\(\s*['"`]erstatningsopgoerelse['"`]\s*\)/);
     expect(source).not.toMatch(/usePersistedSection\(\s*['"`]erstatningsopgoerelse['"`]\s*\)/);
 
-    // Kun de tre autoriserede forligs-felter må læses fra den delte EO-binding.
     const ALLOWED_EO_FIELDS = new Set(['forligAnsvarsgradProcent', 'forligAnsvarsgradBroek', 'forligDato']);
     const accessedFields = Array.from(
       source.matchAll(/erstatningsopgoerelseValues\.(\w+)/g),

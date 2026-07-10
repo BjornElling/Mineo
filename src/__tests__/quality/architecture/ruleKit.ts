@@ -121,9 +121,13 @@ type ImportRuleConfig = Readonly<{
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
   antiRot?: boolean;
-  /** Sand for imports der er forbudt (uden for `allow`). */
-  forbidden: (ref: ImportRef) => boolean;
-  message: (ref: ImportRef) => string;
+  /**
+   * Sand for imports der er forbudt (uden for `allow`). `fromRelativePath` er den
+   * importerende fils repo-relative sti — nødvendig for at opløse relative specifiers
+   * (lag-grænse-regler).
+   */
+  forbidden: (ref: ImportRef, fromRelativePath: string) => boolean;
+  message: (ref: ImportRef, fromRelativePath: string) => string;
   violatingFixtures: readonly RuleFixture[];
   cleanFixtures: readonly RuleFixture[];
 }>;
@@ -138,8 +142,8 @@ export const forbidImports = (config: ImportRuleConfig): ArchitectureRule =>
     antiRot: config.antiRot,
     find: (entry) =>
       collectImports(entry)
-        .filter(config.forbidden)
-        .map((ref) => ({ position: ref.position, message: config.message(ref) })),
+        .filter((ref) => config.forbidden(ref, entry.relativePath))
+        .map((ref) => ({ position: ref.position, message: config.message(ref, entry.relativePath) })),
     violatingFixtures: config.violatingFixtures,
     cleanFixtures: config.cleanFixtures,
   });
