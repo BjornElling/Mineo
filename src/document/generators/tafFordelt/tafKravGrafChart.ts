@@ -9,7 +9,7 @@ import type {
   TafKravGrafSeries,
   TafKravGrafTimeWindow,
 } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import { moneyOre, type MoneyOre } from '../../../domain/money/money';
 
 // Ren præsentationsmodul: tegner "Visuel graf over indtægtsniveau" på et canvas og
 // returnerer en PNG-data-URL. Bruges af både PDF- og DOCX-generering (begge indlejrer
@@ -100,7 +100,7 @@ const buildNiceMoneyTicks = (maxStackedOre: number): readonly MoneyOre[] => {
   const tickCount = Math.max(1, Math.ceil(maxKr / stepKr));
   const ticks: MoneyOre[] = [];
   for (let i = 0; i <= tickCount; i += 1) {
-    ticks.push(roundByMethod(i * stepKr * 100, 0, 'halfAwayFromZero') as MoneyOre);
+    ticks.push(moneyOre(roundByMethod(i * stepKr * 100, 0, 'halfAwayFromZero')));
   }
   return ticks;
 };

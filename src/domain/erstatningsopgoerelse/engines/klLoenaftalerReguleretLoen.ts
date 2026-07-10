@@ -24,7 +24,7 @@
 
 import type { ISODateString } from '../../../types/branded';
 import { roundByMethod } from '../../../utils/rounding';
-import { roundKroner } from '../shared/eoMoney';
+import { roundKroner } from '../../money/money';
 import { parseDanishToIso } from '../helpers/eoSharedUtils';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 

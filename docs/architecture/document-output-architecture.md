@@ -187,7 +187,10 @@ src/docx/                                # Word-kanal (ægte .docx)
     ├── docxStyles.ts                    # Navngivne Word-typografier (DOCX_STYLE)
     └── docxWatermark.ts                 # UDKAST-vandmærke (VML)
 
-src/domain/erstatningsopgoerelse/
+src/domain/
+├── money/
+│   └── money.ts                  # Kanonisk MoneyOre-schema, konstruktor og lukket pengealgebra
+└── erstatningsopgoerelse/
 ├── snapshot/                     # Snapshot- og projection-lag til EO/TAF-dokumenter
 │   ├── eoSnapshot.ts
 │   ├── eoSnapshotToEoDocument.ts
@@ -196,8 +199,7 @@ src/domain/erstatningsopgoerelse/
 │   ├── eoSnapshotToTafKravGrafDocument.ts
 │   └── eoPresentationModel.ts    # Præsentationsmodel forbrugt af projektionen
 ├── shared/
-│   ├── eoTypes.ts                # EO-model-typer (tidligere eoPdfModelTypes)
-│   └── eoMoney.ts                # MoneyOre/MoneyKroner-typer og -afrunding (tidligere eoPdfMoneyUtils)
+│   └── eoTypes.ts                # EO-model-typer (tidligere eoPdfModelTypes)
 ├── helpers/
 │   └── eoSharedUtils.ts          # Delte EO-dato-/sats-/pct-helpers (tidligere sharedPdfUtils)
 └── engines/                      # Domæneberegning og -præsentation
@@ -542,9 +544,12 @@ resolveReguleringsdato(...)  // Bestem reguleringsstartdato ud fra metode
 perioderCoverDate(perioder, dato)  // Tjek om dato falder i en periode
 ```
 
-### `eoMoney.ts` (`src/domain/erstatningsopgoerelse/shared/`)
+### `money.ts` (`src/domain/money/`)
 
-Bruges kun i EO-systemet (tidligere `eoPdfMoneyUtils.ts` i det afviklede `pdf/`-lag). Definerer `MoneyOre` (branded integer) og `MoneyKroner` (branded decimal) for korrekt pengehåndtering. Se [afsnit 14](#14-pengehåndtering-og-afrunding).
+`src/domain/money/money.ts` er den domæne-neutrale kilde til `MoneyOre`: branded Zod-schema,
+valideret konstruktion, krone↔øre-konvertering og navngiven addition, subtraktion, summering og
+skalering. EO-, snapshot- og dokumentlag importerer typen direkte herfra; der findes ingen
+parallel `MoneyKroner`-type eller EO-lokal pengefacade. Se [afsnit 14](#14-pengehåndtering-og-afrunding).
 
 ---
 

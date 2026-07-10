@@ -5,6 +5,7 @@ import {
   forbidElementAccess,
   forbidImports,
   forbidMemberAccess,
+  forbidTypeAssertions,
   type ArchitectureRule,
 } from './ruleKit';
 
@@ -297,6 +298,26 @@ const eetCrossDomainPersistedLookup = forbidCalls({
   ],
 });
 
+// --- Pengeenhed: kun den kanoniske konstruktor må skabe MoneyOre -------------
+
+const moneyOreTypeAssertion = forbidTypeAssertions({
+  id: 'money/money-ore-type-assertion',
+  description:
+    'MoneyOre må ikke konstrueres med type-assertion; brug den validerede pengealgebra.',
+  forbidden: (ref) => /(?:^|\.)MoneyOre$/.test(ref.typeText),
+  message: (ref) =>
+    `Type-assertion til ${ref.typeText} omgår MoneyOre-valideringen — brug domain/money.`,
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: 'const x = 100 as MoneyOre;' },
+    { relativePath: 'src/x.ts', code: 'const x = <MoneyOre>100;' },
+    { relativePath: 'src/x.ts', code: 'const x = value as unknown as MoneyOre;' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/x.ts', code: 'const x = moneyOre(100);' },
+    { relativePath: 'src/x.ts', code: 'const x = value as number;' },
+  ],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -308,4 +329,5 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   aslAarsloensmaksimumRawSubscript,
   inspektionLayerImport,
   eetCrossDomainPersistedLookup,
+  moneyOreTypeAssertion,
 ];

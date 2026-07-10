@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { OevrigeKravRow } from '../../../schemas/formSchemas';
 import { parseOevrigeKravBeloeb } from '../../../domain/erstatningsopgoerelse/helpers/oevrigeKravAmountParser';
@@ -9,7 +10,7 @@ const parse = (rows: OevrigeKravRow[]) => parseOevrigeKravBeloeb(rows);
 
 describe('parseOevrigeKravBeloeb', () => {
   it('returnerer total 0 for tomme rækker', () => {
-    expect(parse([])).toEqual({ rows: [], totalOre: 0 });
+    expect(parse([])).toEqual({ rows: [], totalOre: moneyOre(0) });
   });
 
   it('filtrerer tomme rækker og summerer øre på fyldte rækker', () => {

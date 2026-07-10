@@ -38,7 +38,8 @@ import {
 import { parseOptionalIsoDate } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveLoenSkadedatoText } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import { TAF_OPREGULERET_DELTA_PCT_DECIMALS } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
-import type { Calculable, MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { MoneyOre } from '../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import type { SelectedElements } from '../eo/types';

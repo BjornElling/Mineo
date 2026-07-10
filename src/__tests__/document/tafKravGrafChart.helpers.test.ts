@@ -1,3 +1,4 @@
+import { moneyOre } from '../../domain/money/money';
 import { __tafKravGrafChartTestables } from '../../document/generators/tafFordelt/tafKravGrafChart';
 import type { TafKravGrafDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import { toISODateString } from '../../types/branded';
@@ -212,13 +213,13 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
           id: 'loen',
           label: 'Løn',
           color: '#2F6B9A',
-          segments: [{ fra: toISODateString('2023-10-02'), til: toISODateString('2023-10-08'), amountOre: 10_000 }],
+          segments: [{ fra: toISODateString('2023-10-02'), til: toISODateString('2023-10-08'), amountOre: moneyOre(10_000) }],
         },
         {
           id: 'sygedagpenge',
           label: 'Sygedagpenge',
           color: '#4F8A5B',
-          segments: [{ fra: toISODateString('2023-10-09'), til: toISODateString('2023-10-22'), amountOre: 20_000 }],
+          segments: [{ fra: toISODateString('2023-10-09'), til: toISODateString('2023-10-22'), amountOre: moneyOre(20_000) }],
         },
       ],
     } as unknown as TafKravGrafDocument;
@@ -247,8 +248,8 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
           label: 'Løn',
           color: '#2F6B9A',
           segments: [
-            { fra: toISODateString('2023-01-01'), til: toISODateString('2023-01-31'), amountOre: 30_000 },
-            { fra: toISODateString('2023-02-01'), til: toISODateString('2023-02-28'), amountOre: 35_000 },
+            { fra: toISODateString('2023-01-01'), til: toISODateString('2023-01-31'), amountOre: moneyOre(30_000) },
+            { fra: toISODateString('2023-02-01'), til: toISODateString('2023-02-28'), amountOre: moneyOre(35_000) },
           ],
         },
       ],
@@ -278,7 +279,7 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
           id: 'loen',
           label: 'Løn',
           color: '#2F6B9A',
-          segments: [{ fra: toISODateString('2023-01-10'), til: toISODateString('2023-01-20'), amountOre: 30_000 }],
+          segments: [{ fra: toISODateString('2023-01-10'), til: toISODateString('2023-01-20'), amountOre: moneyOre(30_000) }],
         },
       ],
     } as unknown as TafKravGrafDocument;
@@ -315,7 +316,7 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
           id: 'loen',
           label: 'Løn',
           color: '#2F6B9A',
-          segments: [{ fra: toISODateString('2024-01-01'), til: toISODateString('2024-03-31'), amountOre: 30_000 }],
+          segments: [{ fra: toISODateString('2024-01-01'), til: toISODateString('2024-03-31'), amountOre: moneyOre(30_000) }],
         },
       ],
     } as unknown as TafKravGrafDocument;

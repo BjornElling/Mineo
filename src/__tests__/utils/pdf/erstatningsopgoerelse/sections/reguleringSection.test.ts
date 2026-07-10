@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../../../domain/money/money';
 // @vitest-environment jsdom
 import { renderReguleringSection } from '../../../../../document/generators/eo/sections/reguleringSection';
 import { ILON12_DISCONTINUED_NOTE } from '../../../../../document/generators/eo/reguleringNotes';
@@ -477,9 +478,9 @@ describe('renderReguleringSection – reguleringstekst', () => {
             fra: iso('2024-01-26'),
             til: iso('2025-02-01'),
             maaneder: 12,
-            maanedsloenOre: 0,
+            maanedsloenOre: moneyOre(0),
             deltaPct: 0,
-            amountOre: 0,
+            amountOre: moneyOre(0),
           },
         ],
       },

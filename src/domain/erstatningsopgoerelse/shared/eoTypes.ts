@@ -4,13 +4,16 @@ import type { TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import type { SygeferiegodtgoerelseResult } from '../engines/sygeferiegodtgoerelse';
 import type { ReguleringForloeb } from '../engines/reguleringForloeb';
-
-export type MoneyOre = number;
-export type MoneyKroner = number;
+import type { MoneyOre } from '../../money/money';
 
 export type Calculable<T> =
   | Readonly<{ status: 'ok'; value: T }>
   | Readonly<{ status: 'not_calculable'; reason: string }>;
+
+export const asCalculable = <T>(value: T): Extract<Calculable<T>, { status: 'ok' }> => ({
+  status: 'ok',
+  value,
+});
 
 export type EoModel = Readonly<{
   titel: string;

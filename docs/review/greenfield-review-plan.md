@@ -124,7 +124,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 1 | 47 | ✅ Ét verificeret release-artefakt | ★★★★★ | ★★★★☆ | ★★★★★ | fundament for alle senere spor |
 | 2 | 48 | 🟡 AST-baseret arkitekturgrænse-harness (motor + batch 1–2) | ★★★★☆ | ★★★☆☆ | ★★★★★ | styrker alle kontraktændringer |
 | 3 | 49 | ✅ Neutral måneds-/intervalalgebra | ★★★★☆ | ★★★★☆ | ★★★☆☆ | før #36 |
-| 4 | 37 | Branded `MoneyOre` + lukket pengealgebra | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætning for #36 |
+| 4 | 37 | ✅ Branded `MoneyOre` + lukket pengealgebra | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætning for #36 |
 | 5 | 39 | ✅ Persistence initialiseres før React-render | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | før #19, #28, #33 |
 | 6 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
 | 7 | 15 | ✅ `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
@@ -500,6 +500,15 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Højeste risiko/laveste lethed: hver EET-calc-signatur + hvert afrundings-site ændres; float→øre er subtilt omkring lovbestemte afrundingsregler (`roundNearest1000`, `ceilNearest12`). **Kræver udtømmende golden-value-tests før første ændring** — kan flytte juridisk følsomme beløb.
 
 ### 37 — Branded `MoneyOre` + lukket pengealgebra · 9
+
+- **Status: ✅ Gennemført (2026-07-11).** `MoneyOre` ejes nu af det domæne-neutrale
+  `domain/money/money.ts` og afledes direkte af et branded Zod-schema. EO-engines,
+  snapshot, årsfordeling, graf- og dokumentprojektioner bruger den lukkede algebra for
+  konstruktion, nul, addition, subtraktion, summering, skalering og krone↔øre-konvertering;
+  den EO-lokale `eoMoney`-facade, `MoneyKroner`-aliaset og alle produktions-/test-casts er
+  fjernet. Et AST-værn forbyder fremtidige `MoneyOre`-assertions uden om modulet, og
+  compile-time-tests beviser at rå aritmetik mister brandet. Eksisterende golden-værdier
+  er bevaret, suppleret af algebra-/overflow-/roundtrip-tests.
 
 - **Scope:** `domain/erstatningsopgoerelse/shared/eoTypes.ts`, `eoMoney.ts`, EO-engines/snapshot/projektioner og deres dokumentformattere.
 - **Problem:** `MoneyOre` og `MoneyKroner` er blot aliaser for `number`. Mindst 17 direkte `as MoneyOre`-casts — især i `tafPerYearDerived.ts` — går uden om `ensureMoneyOre`, og rå `+`/`-`-aritmetik taber enhedsbeviset. #36 ville dermed flytte EET over på en nominelt kanonisk, men ikke reelt lukket pengeprimitiv.

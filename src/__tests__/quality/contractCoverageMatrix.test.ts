@@ -158,6 +158,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/amount-contract.md',
     requiredTestPaths: [
+      'src/__tests__/domain/money/money.test.ts',
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/utils/amountInputUtils.test.ts',
       'src/__tests__/schemas/amountExpressionSchema.test.ts',
       'src/__tests__/components/tables/BeregnetRenteTable.amountfield.test.tsx',

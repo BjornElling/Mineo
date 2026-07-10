@@ -21,21 +21,18 @@ import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { TafNettoBeregningResult } from './tafNettoBeregning';
 import type {
-  MoneyOre,
   LoenudviklingSegment,
   Calculable,
   LoenudviklingModel,
   OffentligeYdelserUdviklingModel,
   TafIndtaegterModel,
 } from '../snapshot/eoPresentationModel';
+import type { MoneyOre } from '../../money/money';
 import type { SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import {
   buildTafArbejdsdageSet,
   countTafArbejdsdageInRange,
-  clampMoneyOreToZero,
   segmentAmountOre,
-  roundKroner,
-  toOre,
 } from '../snapshot/eoPresentationModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { buildIncomeCalculationContext, buildIncomeForRanges, roundIncomeBenefitAmountKroner } from '../helpers/indtaegtPerioder';
@@ -43,11 +40,22 @@ import { sumMidlertidigtEetBeregnetEetKronerForTafRanges } from '../helpers/midl
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { roundByMethod } from '../../../utils/rounding';
-import { scaleMoneyOre } from '../shared/eoMoney';
+import {
+  addMoneyOre,
+  clampMoneyOreToZero,
+  fromKroner,
+  moneyOre,
+  roundKroner,
+  scaleMoneyOre,
+  subtractMoneyOre,
+  sumMoneyOre,
+  toKroner,
+  zeroMoneyOre,
+} from '../../money/money';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 import { startOfYearIso, endOfYearIso } from '../../../utils/isoDateHelpers';
 
-const MAX_AFRUNDING_AFVIGELSE_ORE = 100 as MoneyOre;
+const MAX_AFRUNDING_AFVIGELSE_ORE = moneyOre(100);
 
 /**
  * Beregner præcist antal måneder i et inklusivt range uden SH-/feriedagsjusteringer.
@@ -163,9 +171,9 @@ const buildSubSegment = (
     if (!tafArbejdsdageSet) return null;
     const quantity = countTafArbejdsdageInRange(tafArbejdsdageSet, subFra, subTil);
     if (quantity <= 0) return null;
-    const baseLoenKroner = original.dagsloenOre / 100;
+    const baseLoenKroner = toKroner(original.dagsloenOre);
     const amountOre = original.reguleretLoenOre !== undefined
-      ? toOre(roundKroner((original.reguleretLoenOre / 100) * quantity))
+      ? fromKroner(roundKroner(toKroner(original.reguleretLoenOre) * quantity))
       : segmentAmountOre(baseLoenKroner, quantity, original.deltaPct);
     return {
       fra: subFra,
@@ -182,9 +190,9 @@ const buildSubSegment = (
 
   const quantity = beregnMaanederUdenFridage(subFra, subTil);
   if (quantity <= 0) return null;
-  const baseLoenKroner = original.maanedsloenOre / 100;
+  const baseLoenKroner = toKroner(original.maanedsloenOre);
   const amountOre = original.reguleretLoenOre !== undefined
-    ? toOre(roundKroner((original.reguleretLoenOre / 100) * quantity))
+    ? fromKroner(roundKroner(toKroner(original.reguleretLoenOre) * quantity))
     : segmentAmountOre(baseLoenKroner, quantity, original.deltaPct);
   return {
     fra: subFra,
@@ -262,7 +270,7 @@ const allocateOreByWeight = (
 
   for (const [year, ore] of baseByYear) {
     if (ore > 0) {
-      result.set(year, ore as MoneyOre);
+      result.set(year, moneyOre(ore));
     }
   }
   return result;
@@ -295,7 +303,7 @@ export const buildTafPerYearBuildOutcome = (
   }
   const tidligereModtagetTafOre = source.tidligereModtagetTaf.status === 'ok'
     ? source.tidligereModtagetTaf.value
-    : (0 as MoneyOre);
+    : zeroMoneyOre();
 
   const forligFactor = source.forligFactor;
   const isArbejdsdage = source.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
@@ -394,7 +402,7 @@ export const buildTafPerYearBuildOutcome = (
     const deductions: TafYearDeduction[] = [];
     for (const emp of income.employers) {
       if (emp.amount <= 0) continue;
-      const amountOre = toOre(roundKroner(emp.amount));
+      const amountOre = fromKroner(roundKroner(emp.amount));
       deductions.push({ label: emp.name || 'Lønindkomst', amountOre });
     }
     const sortedBenefits = [...income.benefits].sort((a, b) =>
@@ -408,29 +416,29 @@ export const buildTafPerYearBuildOutcome = (
       if (ben.typeKey === 'midlertidigt_eet' && useWholeKronerForMidlertidigtEet) {
         const kanoniskKroner = sumMidlertidigtEetBeregnetEetKronerForTafRanges(midlertidigtEetGroups, yearClippedRanges);
         if (kanoniskKroner > 0) {
-          deductions.push({ label: ben.label, amountOre: toOre(kanoniskKroner) });
+          deductions.push({ label: ben.label, amountOre: fromKroner(kanoniskKroner) });
         }
         continue;
       }
-      const amountOre = toOre(roundIncomeBenefitAmountKroner(ben.typeKey, ben.amount, useWholeKronerForMidlertidigtEet));
+      const amountOre = fromKroner(roundIncomeBenefitAmountKroner(ben.typeKey, ben.amount, useWholeKronerForMidlertidigtEet));
       deductions.push({ label: ben.label, amountOre });
     }
     if (harValgtSygeferiegodtgoerelse && sygeferiegodtgoerelseByYear.has(year)) {
       deductions.push({
         label: 'Sygeferiegodtgørelse',
-        amountOre: sygeferiegodtgoerelseByYear.get(year) ?? (0 as MoneyOre),
+        amountOre: sygeferiegodtgoerelseByYear.get(year) ?? zeroMoneyOre(),
       });
     }
-    const yearIncomeOre = segments.reduce((sum, s) => sum + s.amountOre, 0) as MoneyOre;
+    const yearIncomeOre = sumMoneyOre(segments.map((segment) => segment.amountOre));
     // `deductions` = kun indtægter i erstatningsperioden. "Allerede betalt TAF" holdes UDE af
     // fradragslisten og bæres separat, fordi den trækkes fra uden for forlig-faktoren.
-    const yearDeductionsOre = deductions.reduce((sum, d) => sum + d.amountOre, 0) as MoneyOre;
-    const yearTidligereModtagetTafOre = tidligereModtagetTafByYear.get(year) ?? (0 as MoneyOre);
-    const yearTafFoerForligOre = (yearIncomeOre - yearDeductionsOre) as MoneyOre;
+    const yearDeductionsOre = sumMoneyOre(deductions.map((deduction) => deduction.amountOre));
+    const yearTidligereModtagetTafOre = tidligereModtagetTafByYear.get(year) ?? zeroMoneyOre();
+    const yearTafFoerForligOre = subtractMoneyOre(yearIncomeOre, yearDeductionsOre);
     const yearTafEfterForligOre = forligFactor !== null
       ? scaleMoneyOre(yearTafFoerForligOre, forligFactor)
       : yearTafFoerForligOre;
-    const yearTafOre = (yearTafEfterForligOre - yearTidligereModtagetTafOre) as MoneyOre;
+    const yearTafOre = subtractMoneyOre(yearTafEfterForligOre, yearTidligereModtagetTafOre);
 
     years.push({
       year,
@@ -450,8 +458,8 @@ export const buildTafPerYearBuildOutcome = (
       // Når den autoritative EO-total er clampet til 0, må årsfordelingen ikke
       // fortsat indeholde negative nettobeløb. Årslinjerne skal derfor også være 0,
       // ellers opstår et kunstigt afstemningsbrud mod facit.
-      yearTafFoerForligOre: 0 as MoneyOre,
-      yearTafOre: 0 as MoneyOre,
+      yearTafFoerForligOre: zeroMoneyOre(),
+      yearTafOre: zeroMoneyOre(),
     }))
     // Ét år behandles som flere år: årets beregnede yearTafOre bevares, og en evt. residual
     // mod den autoritative total vises ærligt via afrundingslinjen (jf. eo-snapshot-contract.md §10).
@@ -459,8 +467,8 @@ export const buildTafPerYearBuildOutcome = (
     // ingen afrundingslinje afslørede forskellen.
     : years;
 
-  const sumYearTafOre = reconciledYears.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
-  const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;
+  const sumYearTafOre = sumMoneyOre(reconciledYears.map((year) => year.yearTafOre));
+  const afrundingOre = subtractMoneyOre(samletTafKravOre, sumYearTafOre);
   if (Math.abs(afrundingOre) > MAX_AFRUNDING_AFVIGELSE_ORE) {
     return {
       kind: 'error',
@@ -472,7 +480,7 @@ export const buildTafPerYearBuildOutcome = (
   }
 
   if (import.meta.env.DEV) {
-    const check = (sumYearTafOre + afrundingOre) as MoneyOre;
+    const check = addMoneyOre(sumYearTafOre, afrundingOre);
     if (check !== samletTafKravOre) {
       console.error(
         `[TAF per år] Invariant brudt: sum(yearTafOre) + afrunding (${check}) !== samletTafKravOre (${samletTafKravOre})`

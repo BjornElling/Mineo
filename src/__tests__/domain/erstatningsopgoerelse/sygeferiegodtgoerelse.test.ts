@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -317,7 +318,7 @@ describe('computeSygeferiegodtgoerelse', () => {
         fra: iso('2023-05-31'),
         til: iso('2023-05-31'),
         agPensionPct: 8,
-        feriepengeAfSygeloenOre: 1350,
+        feriepengeAfSygeloenOre: moneyOre(1350),
       })
     );
     expect(result.perAnsaettelsesforhold[0]?.segments[1]).toEqual(
@@ -325,10 +326,10 @@ describe('computeSygeferiegodtgoerelse', () => {
         fra: iso('2023-06-01'),
         til: iso('2023-06-02'),
         agPensionPct: 10,
-        feriepengeAfSygeloenOre: 2750,
+        feriepengeAfSygeloenOre: moneyOre(2750),
       })
     );
-    expect(result.perAnsaettelsesforhold[0]?.feriepengeModtagetFormula).toEqual({ totalOre: 4100 });
+    expect(result.perAnsaettelsesforhold[0]?.feriepengeModtagetFormula).toEqual({ totalOre: moneyOre(4100) });
   });
 
   it('ignorerer stale referenceperiodefelter når SFGG beregnes manuelt', () => {
@@ -432,10 +433,10 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
       expect.objectContaining({
-        satsOre: 10000,
+        satsOre: moneyOre(10000),
         agPensionPct: 10,
-        feriepengekravOre: 11000,
-        beregnetSfggoereOre: 11000,
+        feriepengekravOre: moneyOre(11000),
+        beregnetSfggoereOre: moneyOre(11000),
       })
     );
     expect(result.perAnsaettelsesforhold[0]?.feriepengekravTotalOre).toBe(11000);
@@ -468,9 +469,9 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
     expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
       expect.objectContaining({
-        feriepengekravOre: 0,
-        alleredeBetaltOre: 10000,
-        beregnetSfggoereOre: 0,
+        feriepengekravOre: moneyOre(0),
+        alleredeBetaltOre: moneyOre(10000),
+        beregnetSfggoereOre: moneyOre(0),
       })
     );
     expect(result.perAnsaettelsesforhold[0]?.totalOre).toBe(0);
@@ -509,8 +510,8 @@ describe('computeSygeferiegodtgoerelse', () => {
         fra: iso('2023-05-31'),
         til: iso('2023-05-31'),
         agPensionPct: 8,
-        feriepengekravOre: 15790,
-        alleredeBetaltOre: 330,
+        feriepengekravOre: moneyOre(15790),
+        alleredeBetaltOre: moneyOre(330),
       })
     );
     expect(result.perAnsaettelsesforhold[0]?.segments[1]).toEqual(
@@ -518,8 +519,8 @@ describe('computeSygeferiegodtgoerelse', () => {
         fra: iso('2023-06-01'),
         til: iso('2023-06-02'),
         agPensionPct: 10,
-        feriepengekravOre: 32164,
-        alleredeBetaltOre: 670,
+        feriepengekravOre: moneyOre(32164),
+        alleredeBetaltOre: moneyOre(670),
       })
     );
     expect(result.perAnsaettelsesforhold[0]?.alleredeBetaltOre).toBe(1000);
@@ -1728,18 +1729,18 @@ describe('computeSygeferiegodtgoerelse', () => {
               fra: iso('2024-02-26'),
               til: iso('2024-02-29'),
               arbejdsdage: 4,
-              dagsloenOre: 0,
+              dagsloenOre: moneyOre(0),
               deltaPct: 0,
-              amountOre: 0,
+              amountOre: moneyOre(0),
             },
             {
               kind: 'arbejdsdage',
               fra: iso('2024-03-01'),
               til: iso('2024-03-05'),
               arbejdsdage: 3,
-              dagsloenOre: 0,
+              dagsloenOre: moneyOre(0),
               deltaPct: 5.03,
-              amountOre: 0,
+              amountOre: moneyOre(0),
             },
           ],
         }],
@@ -1759,7 +1760,7 @@ describe('computeSygeferiegodtgoerelse', () => {
         fra: iso('2024-03-01'),
         til: iso('2024-03-05'),
         reguleringsindeks: 105.03,
-        satsOre: 6910,
+        satsOre: moneyOre(6910),
       })
     );
     expect(result.perAnsaettelsesforhold[0]?.segments[0]?.satsOre).toBe(6579);
@@ -1858,9 +1859,9 @@ describe('computeSygeferiegodtgoerelse', () => {
               fra: iso('2024-02-01'),
               til: iso('2024-02-01'),
               arbejdsdage: 1,
-              dagsloenOre: 0,
+              dagsloenOre: moneyOre(0),
               deltaPct: 5.03,
-              amountOre: 0,
+              amountOre: moneyOre(0),
             },
           ],
         }],
@@ -1871,7 +1872,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
       expect.objectContaining({
         reguleringsindeks: 105.03,
-        satsOre: 5968,
+        satsOre: moneyOre(5968),
       })
     );
   });

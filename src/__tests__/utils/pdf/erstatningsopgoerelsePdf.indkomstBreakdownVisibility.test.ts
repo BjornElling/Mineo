@@ -5,6 +5,7 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { StamdataValues } from '../../../schemas/formSchemas';
+import { addMoneyOre, zeroMoneyOre } from '../../../domain/money/money';
 import type { SelectedElements } from '../../../document/generators/eo/types';
 import { formatCurrencyFromOre } from '../../../document/layout/documentFormatUtils';
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../../../document/layout/pdfConfig';
@@ -467,11 +468,11 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const loenTotalOre =
       model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok'
         ? model.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value
-        : 0;
+        : zeroMoneyOre();
     const tafTotalOre =
       model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok'
         ? model.tabtArbejdsfortjeneste.tafIndtaegter.total.value
-        : 0;
+        : zeroMoneyOre();
 
     expect(beregnetKravLinje).toBe(
       `1/3 x (${formatCurrencyFromOre(loenTotalOre)} - ${formatCurrencyFromOre(tafTotalOre)}\u00A0kr.) - 25.000,00\u00A0kr. =`
@@ -974,7 +975,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Sygeferiegodtgørelse');
     expect(texts.some((text) => text.includes(formatCurrencyFromOre(sygeferiegodtgoerelseOre)))).toBe(true);
     expect(texts).toContain(
-      `${formatCurrencyFromOre(loenudviklingTotal.value)} - ${formatCurrencyFromOre(tafIndtaegterTotal.value + sygeferiegodtgoerelseOre)}\u00A0kr. =`
+      `${formatCurrencyFromOre(loenudviklingTotal.value)} - ${formatCurrencyFromOre(addMoneyOre(tafIndtaegterTotal.value, sygeferiegodtgoerelseOre))}\u00A0kr. =`
     );
   });
 
@@ -1950,7 +1951,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(texts).toContain('Sygeferiegodtgørelse');
     expect(texts.some((text) => text.includes('0,00'))).toBe(true);
-    expect(beregnetKravLinje).toBe(`${formatCurrencyFromOre(model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok' ? model.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value : 0)} - ${formatCurrencyFromOre(model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok' ? model.tabtArbejdsfortjeneste.tafIndtaegter.total.value : 0)}\u00A0kr. =`);
+    expect(beregnetKravLinje).toBe(`${formatCurrencyFromOre(model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok' ? model.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value : zeroMoneyOre())} - ${formatCurrencyFromOre(model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok' ? model.tabtArbejdsfortjeneste.tafIndtaegter.total.value : zeroMoneyOre())}\u00A0kr. =`);
     expect(beregnetKravLinje).not.toContain(' - 0,00');
   });
 

@@ -10,7 +10,8 @@ import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { initStandardDocumentWriter } from '../documentGeneratorSetup';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
-import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { MoneyOre } from '../../../domain/money/money';
 import { logWarning } from '../../../utils/logger';
 import {
   parseOptionalIsoDate,

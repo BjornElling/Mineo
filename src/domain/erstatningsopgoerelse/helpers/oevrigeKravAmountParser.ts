@@ -1,8 +1,8 @@
 import type { OevrigeKravRow } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { isOevrigeKravRowEmpty } from './rowEmpty';
-import { clampMoneyOreToZero, ensureMoneyOre, toOre } from '../shared/eoMoney';
-import type { MoneyOre } from '../shared/eoTypes';
+import { clampMoneyOreToZero, fromKroner, sumMoneyOre } from '../../money/money';
+import type { MoneyOre } from '../../money/money';
 
 export type ParsedOevrigeKravRow = Readonly<{
   original: OevrigeKravRow;
@@ -26,7 +26,7 @@ export const parseOevrigeKravBeloeb = (
 
     let amountOre: MoneyOre;
     try {
-      amountOre = toOre(amount);
+      amountOre = fromKroner(amount);
     } catch {
       return null;
     }
@@ -39,7 +39,7 @@ export const parseOevrigeKravBeloeb = (
 
   try {
     const totalOre = clampMoneyOreToZero(
-      ensureMoneyOre(parsedRows.reduce((sum, row) => sum + row.amountOre, 0))
+      sumMoneyOre(parsedRows.map((row) => row.amountOre))
     );
     return {
       rows: parsedRows,

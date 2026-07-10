@@ -10,7 +10,7 @@ import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationMo
 import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_TABLE_TOTAL_LABEL, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
-import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
+import { zeroMoneyOre } from '../money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from './eoRowShared';
 import { formatRowCount, formatStatusMessage } from './eoRowShared';
 
@@ -328,7 +328,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       const feriepengeHvisIkkeSkadeOre = result.feriepengekravTotalOre;
       // Motoren bærer allerede totalen (sum af feriepengeAfSygeloenOre pr. segment); læs den frem
       // for at re-summere, så visningen ikke kan drive fra beregningen.
-      const feriepengeModtagetOre = result.feriepengeModtagetFormula?.totalOre ?? ensureMoneyOre(0);
+      const feriepengeModtagetOre = result.feriepengeModtagetFormula?.totalOre ?? zeroMoneyOre();
       const alleredeBetaltOre = result.alleredeBetaltOre;
       // result.totalOre er summen af beregnetSfggoereOre pr. segment (netto efter feriepenge og allerede betalt).
       const beregnetSygeferiegodtgoerelseOre = result.totalOre;

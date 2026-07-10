@@ -17,6 +17,7 @@ import { resolveAnvendtReguleringsdatoReferenceText } from '../erstatningsopgoer
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { capitalizeFirstCharDa } from '../../utils/formatUtils';
+import { zeroMoneyOre } from '../money/money';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
@@ -107,9 +108,9 @@ const buildFallbackSegmentsFromTimeline = (params: Readonly<{
           fra,
           til,
           maaneder: matchingEntry.maaneder ?? 0,
-          maanedsloenOre: 0,
+          maanedsloenOre: zeroMoneyOre(),
           deltaPct,
-          amountOre: 0,
+          amountOre: zeroMoneyOre(),
         });
         return;
       }
@@ -119,9 +120,9 @@ const buildFallbackSegmentsFromTimeline = (params: Readonly<{
         fra,
         til,
         arbejdsdage: matchingEntry.arbejdsdage ?? 0,
-        dagsloenOre: 0,
+        dagsloenOre: zeroMoneyOre(),
         deltaPct,
-        amountOre: 0,
+        amountOre: zeroMoneyOre(),
       });
     });
   }

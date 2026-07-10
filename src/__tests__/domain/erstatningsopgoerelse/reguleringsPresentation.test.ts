@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import {
   buildReguleringsvaerdierTableData,
   buildReguleringIndexRows,
@@ -62,9 +63,9 @@ describe('reguleringsPresentation', () => {
       fra: iso(fra),
       til: iso(til),
       maaneder: 12,
-      maanedsloenOre: 100000,
+      maanedsloenOre: moneyOre(100000),
       deltaPct,
-      amountOre: 100000,
+      amountOre: moneyOre(100000),
     });
 
     it('falder tilbage til de globale segmenter når perAnsaettelse er tom (angivet løn)', () => {
@@ -401,18 +402,18 @@ describe('reguleringsPresentation', () => {
           fra: iso('2020-04-01'),
           til: iso('2024-02-29'),
           maaneder: 47,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
         {
           kind: 'maaneder',
           fra: iso('2024-03-01'),
           til: iso('2024-03-31'),
           maaneder: 1,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 10,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
       ansaettelsesforhold: af,
@@ -441,9 +442,9 @@ describe('reguleringsPresentation', () => {
           fra: iso('2023-06-01'),
           til: iso('2024-03-31'),
           maaneder: 10,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
       ansaettelsesforhold: af,
@@ -474,9 +475,9 @@ describe('reguleringsPresentation', () => {
           fra: iso('2024-03-01'),
           til: iso('2024-04-30'),
           maaneder: 2,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
       ansaettelsesforhold: af,
@@ -502,9 +503,9 @@ describe('reguleringsPresentation', () => {
           fra: iso('2024-01-01'),
           til: iso('2024-02-29'),
           maaneder: 2,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0.36,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
       ansaettelsesforhold: af,
@@ -690,9 +691,9 @@ describe('reguleringsPresentation', () => {
       fra: iso(fra),
       til: iso(til),
       maaneder: 6,
-      maanedsloenOre: 3_000_000,
+      maanedsloenOre: moneyOre(3_000_000),
       deltaPct: (reguleretLoen / 30000 - 1) * 100,
-      amountOre: Math.round(reguleretLoen * 6 * 100),
+      amountOre: moneyOre(Math.round(reguleretLoen * 6 * 100)),
     });
     const segments = [
       klSegment('2024-04-01', '2024-09-30', 30_000.00),
@@ -740,11 +741,11 @@ describe('reguleringsPresentation', () => {
         fra: iso('2024-04-01'),
         til: iso('2024-09-30'),
         maaneder: 6,
-        maanedsloenOre: 3_000_000,
+        maanedsloenOre: moneyOre(3_000_000),
         deltaPct: 0,
-        amountOre: 18_000_000,
+        amountOre: moneyOre(18_000_000),
         // deltaPct-genberegning ville give 30.000,00 — den autoritative kilde siger 31.234,56.
-        reguleretLoenOre: 3_123_456,
+        reguleretLoenOre: moneyOre(3_123_456),
       },
     ];
 
@@ -810,18 +811,18 @@ describe('reguleringsPresentation', () => {
           fra: iso('2023-06-01'),
           til: iso('2024-03-31'),
           maaneder: 10,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
         {
           kind: 'maaneder',
           fra: iso('2024-04-01'),
           til: iso('2024-04-30'),
           maaneder: 1,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
       ansaettelsesforhold: af,
@@ -849,18 +850,18 @@ describe('reguleringsPresentation', () => {
           fra: iso('2017-05-01'),
           til: iso('2024-02-29'),
           maaneder: 82,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
         {
           kind: 'maaneder',
           fra: iso('2024-03-01'),
           til: iso('2024-04-30'),
           maaneder: 2,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 11.26,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
       ansaettelsesforhold: af,
@@ -930,9 +931,9 @@ describe('reguleringsPresentation', () => {
 
     const rows = buildReguleringIndexRows({
       segments: [
-        { kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-12-31'), maaneder: 6, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 18000000 },
-        { kind: 'maaneder', fra: iso('2025-01-01'), til: iso('2025-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 10, amountOre: 39600000 },
-        { kind: 'maaneder', fra: iso('2026-01-01'), til: iso('2026-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 21, amountOre: 43560000 },
+        { kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-12-31'), maaneder: 6, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(18000000) },
+        { kind: 'maaneder', fra: iso('2025-01-01'), til: iso('2025-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 10, amountOre: moneyOre(39600000) },
+        { kind: 'maaneder', fra: iso('2026-01-01'), til: iso('2026-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 21, amountOre: moneyOre(43560000) },
       ],
       ansaettelsesforhold: af,
       anvendtReguleringsdato: iso('2024-07-01'),
@@ -967,9 +968,9 @@ describe('reguleringsPresentation', () => {
       }),
     };
     const segments: LoenudviklingSegment[] = [
-      { kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-12-31'), maaneder: 6, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 18000000 },
-      { kind: 'maaneder', fra: iso('2025-01-01'), til: iso('2025-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 10, amountOre: 39600000 },
-      { kind: 'maaneder', fra: iso('2026-01-01'), til: iso('2026-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 21, amountOre: 43560000 },
+      { kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-12-31'), maaneder: 6, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(18000000) },
+      { kind: 'maaneder', fra: iso('2025-01-01'), til: iso('2025-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 10, amountOre: moneyOre(39600000) },
+      { kind: 'maaneder', fra: iso('2026-01-01'), til: iso('2026-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 21, amountOre: moneyOre(43560000) },
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableData({
@@ -996,8 +997,8 @@ describe('reguleringsPresentation', () => {
     const anvendtReguleringsdato = iso('2015-01-01');
     const forloeb = { kind: 'krl' as const, entries: buildKrlIndexEntries('KTO (kommuner)') };
     const segments: LoenudviklingSegment[] = [
-      { kind: 'maaneder', fra: iso('2015-01-01'), til: iso('2016-12-31'), maaneder: 24, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 72000000 },
-      { kind: 'maaneder', fra: iso('2017-01-01'), til: iso('2018-12-31'), maaneder: 24, maanedsloenOre: 3000000, deltaPct: 5, amountOre: 75600000 },
+      { kind: 'maaneder', fra: iso('2015-01-01'), til: iso('2016-12-31'), maaneder: 24, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(72000000) },
+      { kind: 'maaneder', fra: iso('2017-01-01'), til: iso('2018-12-31'), maaneder: 24, maanedsloenOre: moneyOre(3000000), deltaPct: 5, amountOre: moneyOre(75600000) },
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableData({
@@ -1028,9 +1029,9 @@ describe('reguleringsPresentation', () => {
     expect(modelId).toBeDefined();
     const forloeb = { kind: 'statistik' as const, entries: buildStatistikIndexEntries(modelId!) };
     const segments: LoenudviklingSegment[] = [
-      { kind: 'maaneder', fra: iso('2005-01-01'), til: iso('2005-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 36000000 },
-      { kind: 'maaneder', fra: iso('2006-01-01'), til: iso('2006-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 3, amountOre: 37080000 },
-      { kind: 'maaneder', fra: iso('2007-01-01'), til: iso('2007-12-31'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 6, amountOre: 38160000 },
+      { kind: 'maaneder', fra: iso('2005-01-01'), til: iso('2005-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(36000000) },
+      { kind: 'maaneder', fra: iso('2006-01-01'), til: iso('2006-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 3, amountOre: moneyOre(37080000) },
+      { kind: 'maaneder', fra: iso('2007-01-01'), til: iso('2007-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 6, amountOre: moneyOre(38160000) },
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableData({
@@ -1059,8 +1060,8 @@ describe('reguleringsPresentation', () => {
     const anvendtReguleringsdato = iso('2024-04-01');
     const forloeb = { kind: 'klLoenaftaler' as const, entries: buildKlLoenaftalerIndexEntries() };
     const segments: LoenudviklingSegment[] = [
-      { kind: 'maaneder', fra: iso('2024-04-01'), til: iso('2024-09-30'), maaneder: 6, maanedsloenOre: 3000000, deltaPct: 0, amountOre: 18000000, reguleretLoenOre: 3000000 },
-      { kind: 'maaneder', fra: iso('2024-10-01'), til: iso('2025-09-30'), maaneder: 12, maanedsloenOre: 3000000, deltaPct: 1.3, amountOre: 39468000, reguleretLoenOre: 3039000 },
+      { kind: 'maaneder', fra: iso('2024-04-01'), til: iso('2024-09-30'), maaneder: 6, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(18000000), reguleretLoenOre: moneyOre(3000000) },
+      { kind: 'maaneder', fra: iso('2024-10-01'), til: iso('2025-09-30'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 1.3, amountOre: moneyOre(39468000), reguleretLoenOre: moneyOre(3039000) },
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableData({
@@ -1300,9 +1301,9 @@ describe('reguleringsPresentation', () => {
           fra: iso('2024-01-26'),
           til: iso('2024-03-31'),
           arbejdsdage: 10,
-          dagsloenOre: 0,
+          dagsloenOre: moneyOre(0),
           deltaPct: 0,
-          amountOre: 0,
+          amountOre: moneyOre(0),
         },
       ],
       ansaettelsesforhold: af,
@@ -1589,27 +1590,27 @@ describe('reguleringsPresentation', () => {
           fra: iso('2023-06-01'),
           til: iso('2023-12-31'),
           maaneder: 7,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
         {
           kind: 'maaneder',
           fra: iso('2024-01-01'),
           til: iso('2024-02-29'),
           maaneder: 2,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
         {
           kind: 'maaneder',
           fra: iso('2024-03-01'),
           til: iso('2024-03-31'),
           maaneder: 1,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct: 0,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
       ansaettelsesforhold: af,
@@ -1658,8 +1659,8 @@ describe('reguleringsPresentation', () => {
 
     const rows = buildReguleringIndexRows({
       segments: [
-        { kind: 'maaneder', fra: iso('2024-05-01'), til: iso('2024-05-31'), maaneder: 1, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
-        { kind: 'maaneder', fra: iso('2024-06-01'), til: iso('2024-06-30'), maaneder: 1, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2024-05-01'), til: iso('2024-05-31'), maaneder: 1, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
+        { kind: 'maaneder', fra: iso('2024-06-01'), til: iso('2024-06-30'), maaneder: 1, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
       ],
       ansaettelsesforhold: af,
       anvendtReguleringsdato: iso('2024-05-01'),
@@ -1831,13 +1832,13 @@ describe('reguleringsPresentation', () => {
 
     const rows = buildReguleringIndexRows({
       segments: [
-        { kind: 'maaneder', fra: iso('2020-04-01'), til: iso('2020-09-30'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
-        { kind: 'maaneder', fra: iso('2020-10-01'), til: iso('2021-03-31'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
-        { kind: 'maaneder', fra: iso('2021-04-01'), til: iso('2021-09-30'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
-        { kind: 'maaneder', fra: iso('2021-10-01'), til: iso('2022-03-31'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
-        { kind: 'maaneder', fra: iso('2022-04-01'), til: iso('2022-09-30'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
-        { kind: 'maaneder', fra: iso('2022-10-01'), til: iso('2022-12-31'), maaneder: 3, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
-        { kind: 'maaneder', fra: iso('2023-01-01'), til: iso('2023-03-31'), maaneder: 3, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2020-04-01'), til: iso('2020-09-30'), maaneder: 6, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
+        { kind: 'maaneder', fra: iso('2020-10-01'), til: iso('2021-03-31'), maaneder: 6, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
+        { kind: 'maaneder', fra: iso('2021-04-01'), til: iso('2021-09-30'), maaneder: 6, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
+        { kind: 'maaneder', fra: iso('2021-10-01'), til: iso('2022-03-31'), maaneder: 6, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
+        { kind: 'maaneder', fra: iso('2022-04-01'), til: iso('2022-09-30'), maaneder: 6, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
+        { kind: 'maaneder', fra: iso('2022-10-01'), til: iso('2022-12-31'), maaneder: 3, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
+        { kind: 'maaneder', fra: iso('2023-01-01'), til: iso('2023-03-31'), maaneder: 3, maanedsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0) },
       ],
       ansaettelsesforhold: af,
       anvendtReguleringsdato: iso('2020-01-01'),

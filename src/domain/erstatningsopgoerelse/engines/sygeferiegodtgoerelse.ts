@@ -35,9 +35,20 @@ import {
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { danishToISO, dateToISO, parseISODate, type ISODateString } from '../../../types/branded';
 import { isoToDanish, toDanishDateString } from '../../../types/branded';
-import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
+import {
+  addMoneyOre,
+  clampMoneyOreToZero,
+  fromKroner,
+  moneyOre,
+  roundKroner,
+  subtractMoneyOre,
+  sumMoneyOre,
+  toKroner,
+  zeroMoneyOre,
+} from '../../money/money';
 import { formatDanishDate } from '../../../utils/dateFormatting';
-import type { LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
+import type { LoenudviklingSegment } from '../shared/eoTypes';
+import type { MoneyOre } from '../../money/money';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
 import {
   getEffektiveSatserForDato,
@@ -198,7 +209,7 @@ export type SygeferiegodtgoerelseResult = Readonly<{
 }>;
 
 export const EMPTY_RESULT: SygeferiegodtgoerelseResult = {
-  totalOre: ensureMoneyOre(0),
+  totalOre: zeroMoneyOre(),
   perAnsaettelsesforhold: [],
   perYear: [],
   firstExcludedDate: null,
@@ -453,11 +464,11 @@ const calculateSfggFeriepengeMedPensionOreFromLoenKroner = (
   employment: LoenindkomstAnsaettelsesforhold,
   iso: ISODateString
 ): MoneyOre => {
-  if (loenPlusLoen2PlusIkkePensLoenKroner <= 0) return ensureMoneyOre(0);
+  if (loenPlusLoen2PlusIkkePensLoenKroner <= 0) return zeroMoneyOre();
   // SFGG bruger altid den lovbestemte feriepengesats (12,5 %), aldrig employment.feriePct.
   const feriepengeKroner = loenPlusLoen2PlusIkkePensLoenKroner * SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL;
   const pensionMultiplier = 1 + resolveSfggAgPensionPctDecimalForDate(employment, iso);
-  return ensureMoneyOre(toOre(roundKroner(feriepengeKroner * pensionMultiplier)));
+  return fromKroner(roundKroner(feriepengeKroner * pensionMultiplier));
 };
 
 const buildEmploymentSfggCalculator = (
@@ -564,14 +575,17 @@ const buildEmploymentSfggCalculator = (
       if (dates.length === 0) return 0;
       return sumDates(dates);
     },
-    buildFeriepengeOreForDates: (dates) => ensureMoneyOre(
-      dates.reduce((sum, iso) => sum + buildFeriepengeOreForDate(iso), 0)
+    buildFeriepengeOreForDates: (dates) => sumMoneyOre(
+      dates.map((iso) => buildFeriepengeOreForDate(iso))
     ),
     buildFeriepengeOreByYear: (dates) => {
       const byYear = new Map<number, MoneyOre>();
       for (const iso of dates) {
         const year = Number.parseInt(iso.slice(0, 4), 10);
-        byYear.set(year, ensureMoneyOre((byYear.get(year) ?? 0) + buildFeriepengeOreForDate(iso)));
+        byYear.set(
+          year,
+          addMoneyOre(byYear.get(year) ?? zeroMoneyOre(), buildFeriepengeOreForDate(iso))
+        );
       }
       return byYear;
     },
@@ -630,7 +644,7 @@ const resolveOverenskomstDagssatsOre = (
     satser
   );
   return typeof value === 'number' && Number.isFinite(value)
-    ? toOre(roundKroner(value))
+    ? fromKroner(roundKroner(value))
     : null;
 };
 
@@ -662,7 +676,7 @@ const buildSfggGrossOre = (
   agPensionPct: number,
   antalDage: number
 ): MoneyOre =>
-  ensureMoneyOre(toOre(roundKroner((satsOre / 100) * ((100 + agPensionPct) / 100) * antalDage)));
+  fromKroner(roundKroner(toKroner(satsOre) * ((100 + agPensionPct) / 100) * antalDage));
 
 const sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner = (
   employment: LoenindkomstAnsaettelsesforhold,
@@ -727,14 +741,17 @@ const allocateOreByWeights = (
   const result = new Map<string, MoneyOre>();
   let allocated = 0;
   allocations.forEach((allocation) => {
-    const rounded = ensureMoneyOre(roundByMethod(allocation.raw, 0, 'floor'));
+    const rounded = moneyOre(roundByMethod(allocation.raw, 0, 'floor'));
     result.set(allocation.key, rounded);
     allocated += rounded;
   });
   let remainder = totalOre - allocated;
   for (const allocation of allocations) {
     if (remainder <= 0) break;
-    result.set(allocation.key, ensureMoneyOre((result.get(allocation.key) ?? 0) + 1));
+    result.set(
+      allocation.key,
+      addMoneyOre(result.get(allocation.key) ?? zeroMoneyOre(), moneyOre(1))
+    );
     remainder -= 1;
   }
   return result;
@@ -762,9 +779,12 @@ const buildYearAllocationsForGroupedSegment = (args: Readonly<{
 
   const weightedYears = entries.map(([year, dates]) => {
     const grossOre = buildSfggGrossOre(satsOre, agPensionPct, dates.length);
-    const feriepengeOre = feriepengeOreByYear.get(year) ?? ensureMoneyOre(0);
-    const alreadyPaidYearOre = alreadyPaidByYear.get(String(year)) ?? ensureMoneyOre(0);
-    const remainingOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidYearOre));
+    const feriepengeOre = feriepengeOreByYear.get(year) ?? zeroMoneyOre();
+    const alreadyPaidYearOre = alreadyPaidByYear.get(String(year)) ?? zeroMoneyOre();
+    const remainingOre = clampMoneyOreToZero(subtractMoneyOre(
+      subtractMoneyOre(grossOre, feriepengeOre),
+      alreadyPaidYearOre
+    ));
     const weight = remainingOre;
     return { year, weight: weight > 0 ? weight : dates.length };
   });
@@ -775,7 +795,7 @@ const buildYearAllocationsForGroupedSegment = (args: Readonly<{
   );
 
   return new Map<number, MoneyOre>(
-    entries.map(([year]) => [year, allocated.get(String(year)) ?? ensureMoneyOre(0)] as const)
+    entries.map(([year]) => [year, allocated.get(String(year)) ?? zeroMoneyOre()] as const)
   );
 };
 
@@ -795,7 +815,7 @@ const resolveSfggBaseRate = (
     const manual = amountValueToNumber(sfggRow?.sfggManuelDagssats);
     return {
       sfggReferenceperiode: null,
-      sfggReferencesatsOre: manual !== undefined ? calculableSfggReferencesats(toOre(roundKroner(manual))) : notCalculableSfggReferencesats('missing_rate'),
+      sfggReferencesatsOre: manual !== undefined ? calculableSfggReferencesats(fromKroner(roundKroner(manual))) : notCalculableSfggReferencesats('missing_rate'),
       sfggReferencesatsFormula: null,
     };
   }
@@ -848,7 +868,7 @@ const resolveSfggBaseRate = (
   }
   return {
     sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
-    sfggReferencesatsOre: calculableSfggReferencesats(toOre(roundKroner(feriepengeKroner / arbejdsdage))),
+    sfggReferencesatsOre: calculableSfggReferencesats(fromKroner(roundKroner(feriepengeKroner / arbejdsdage))),
     sfggReferencesatsFormula: {
       loenPlusLoen2PlusIkkePensLoenKroner,
       feriePctDecimal,
@@ -880,7 +900,7 @@ const assertKlSegmentDeltaMatchesReguleretLoen = (segment: LoenudviklingSegment)
   if (baseLoenOre <= 0) {
     throw new Error('SFGG kan ikke beregnes: KL-lønaftaler-segment mangler positiv basisløn');
   }
-  const reproducedOre = toOre(roundKroner((baseLoenOre / 100) * (1 + segment.deltaPct / 100)));
+  const reproducedOre = fromKroner(roundKroner((baseLoenOre / 100) * (1 + segment.deltaPct / 100)));
   if (Math.abs(reproducedOre - segment.reguleretLoenOre) > 0) {
     throw new Error('SFGG kan ikke beregnes: KL-lønaftaler-segmentets interne regulering matcher ikke den regulerede løn');
   }
@@ -903,7 +923,7 @@ const resolveAdjustedRate = (
   // I referenceperiode-sporet skal SFGG følge samme procentuelle udvikling
   // og samme reguleringsdatoer som lønnen.
   return {
-    satsOre: toOre(roundKroner((baseRateOre / 100) * (1 + segment.deltaPct / 100))),
+    satsOre: fromKroner(roundKroner((baseRateOre / 100) * (1 + segment.deltaPct / 100))),
     reguleringsindeks: roundByMethod(100 + segment.deltaPct, 2, 'halfAwayFromZero'),
   };
 };
@@ -1168,7 +1188,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     (emp) => buildEmploymentSfggCalculator(emp, values.ferieperioder ?? [])
   );
   const buildAlleFeriepengeOreForDates = (dates: readonly ISODateString[]): MoneyOre =>
-    ensureMoneyOre(alleAnsaettelserKalkulatorer.reduce((sum, kalk) => sum + kalk.buildFeriepengeOreForDates(dates), 0));
+    sumMoneyOre(alleAnsaettelserKalkulatorer.map((kalk) => kalk.buildFeriepengeOreForDates(dates)));
 
   for (const employment of (values.loenindkomstAnsaettelsesforhold ?? []).filter((entry) => entry.ansatPaaSkadestidspunktet)) {
     const employmentCalculator = buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []);
@@ -1292,9 +1312,9 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         sfggAfkortninger,
         segments: [],
         perYear: [],
-        feriepengekravTotalOre: ensureMoneyOre(0),
-        totalOre: ensureMoneyOre(0),
-        alleredeBetaltOre: ensureMoneyOre(0),
+        feriepengekravTotalOre: zeroMoneyOre(),
+        totalOre: zeroMoneyOre(),
+        alleredeBetaltOre: zeroMoneyOre(),
         sfggVisningsperiode,
         sfggReferenceperiode: null,
         sfggReferencesats: notCalculableSfggReferencesats(
@@ -1360,7 +1380,9 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       );
     });
 
-    const alreadyPaidOre = ensureMoneyOre(toOre(roundKroner(amountValueToNumber(sfggRow?.sfggAlleredeBetaltBeloeb) ?? 0)));
+    const alreadyPaidOre = fromKroner(
+      roundKroner(amountValueToNumber(sfggRow?.sfggAlleredeBetaltBeloeb) ?? 0)
+    );
     const grossWeights = groupedWithEligibleDays.map((group, index) => ({
       key: `${group.fra}:${index}`,
       weight: buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length),
@@ -1372,16 +1394,22 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       const key = `${group.fra}:${index}`;
       const grossOre = buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length);
       const loenPlusLoen2PlusIkkePensLoenKroner = loenPlusLoen2PlusIkkePensLoenBySegment.get(key) ?? 0;
-      const feriepengeOreAlle = feriepengeBySegment.get(key) ?? ensureMoneyOre(0);
-      const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? ensureMoneyOre(0);
+      const feriepengeOreAlle = feriepengeBySegment.get(key) ?? zeroMoneyOre();
+      const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? zeroMoneyOre();
       // feriepengeAfSygeloenOre vises som "Feriepenge modtaget i perioden" og indgår i ligningen:
       // gross - feriepengeAfSygeloen - alleredeBetalt = beregnetSfggoere
       // Fradraget kan ikke overstige gross (minus allerede betalt) — cap sikrer at
       // sum(feriepengeAfSygeloenOre) + sum(beregnetSfggoereOre) = sum(grossOre) holder præcist.
-      const feriepengeOre = clampMoneyOreToZero(
-        ensureMoneyOre(Math.min(feriepengeOreAlle, grossOre - alreadyPaidSegmentOre))
+      const availableAfterAlreadyPaidOre = clampMoneyOreToZero(
+        subtractMoneyOre(grossOre, alreadyPaidSegmentOre)
       );
-      const segmentTotalOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidSegmentOre));
+      const feriepengeOre = feriepengeOreAlle < availableAfterAlreadyPaidOre
+        ? feriepengeOreAlle
+        : availableAfterAlreadyPaidOre;
+      const segmentTotalOre = clampMoneyOreToZero(subtractMoneyOre(
+        subtractMoneyOre(grossOre, feriepengeOre),
+        alreadyPaidSegmentOre
+      ));
 
       const yearDates = new Map<number, ISODateString[]>();
       group.dates.forEach((iso) => {
@@ -1394,7 +1422,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         (acc, kalk) => {
           const byYear = kalk.buildFeriepengeOreByYear(group.dates);
           byYear.forEach((ore, year) => {
-            acc.set(year, ensureMoneyOre((acc.get(year) ?? 0) + ore));
+            acc.set(year, addMoneyOre(acc.get(year) ?? zeroMoneyOre(), ore));
           });
           return acc;
         },
@@ -1409,8 +1437,11 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         feriepengeOreByYear: alleAnsaettelserFeriepengeOreByYear,
       });
       yearAllocations.forEach((amountOre, year) => {
-        totalPerYear.set(year, ensureMoneyOre((totalPerYear.get(year) ?? 0) + amountOre));
-        employmentPerYear.set(year, ensureMoneyOre((employmentPerYear.get(year) ?? 0) + amountOre));
+        totalPerYear.set(year, addMoneyOre(totalPerYear.get(year) ?? zeroMoneyOre(), amountOre));
+        employmentPerYear.set(
+          year,
+          addMoneyOre(employmentPerYear.get(year) ?? zeroMoneyOre(), amountOre)
+        );
       });
 
       return {
@@ -1430,8 +1461,8 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       };
     });
 
-    const feriepengeModtagetOre = ensureMoneyOre(
-      segments.reduce((sum, segment) => sum + segment.feriepengeAfSygeloenOre, 0)
+    const feriepengeModtagetOre = sumMoneyOre(
+      segments.map((segment) => segment.feriepengeAfSygeloenOre)
     );
     const feriepengeModtagetFormula = feriepengeModtagetOre > 0 || segments.some((segment) => segment.loenPlusLoen2PlusIkkePensLoenKroner > 0)
       ? { totalOre: feriepengeModtagetOre }
@@ -1456,8 +1487,8 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       perYear: [...employmentPerYear.entries()]
         .sort((a, b) => a[0] - b[0])
         .map(([year, amountOre]) => ({ year, amountOre })),
-      feriepengekravTotalOre: ensureMoneyOre(segments.reduce((sum, segment) => sum + segment.feriepengekravOre, 0)),
-      totalOre: ensureMoneyOre(segments.reduce((sum, segment) => sum + segment.beregnetSfggoereOre, 0)),
+      feriepengekravTotalOre: sumMoneyOre(segments.map((segment) => segment.feriepengekravOre)),
+      totalOre: sumMoneyOre(segments.map((segment) => segment.beregnetSfggoereOre)),
       alleredeBetaltOre: alreadyPaidOre,
       sfggVisningsperiode,
       sfggReferenceperiode: sfggBaseRate.sfggReferenceperiode,
@@ -1469,7 +1500,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   }
 
   return {
-    totalOre: ensureMoneyOre(totalPerEmployment.reduce((sum, entry) => sum + entry.totalOre, 0)),
+    totalOre: sumMoneyOre(totalPerEmployment.map((entry) => entry.totalOre)),
     perAnsaettelsesforhold: totalPerEmployment,
     perYear: [...totalPerYear.entries()]
       .sort((a, b) => a[0] - b[0])

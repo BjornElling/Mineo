@@ -16,7 +16,7 @@ import {
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { moneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
 
 const buildBaseSnapshot = () => {
@@ -51,16 +51,16 @@ const FAKE_TAF_PER_YEAR_RESULT: TafPerYearResult = {
       year: 2024,
       segments: [],
       deductions: [],
-      yearIncomeOre: 0 as MoneyOre,
-      yearDeductionsOre: 0 as MoneyOre,
-      yearTidligereModtagetTafOre: 0 as MoneyOre,
-      yearTafFoerForligOre: 0 as MoneyOre,
-      yearTafOre: 0 as MoneyOre,
+      yearIncomeOre: moneyOre(0),
+      yearDeductionsOre: moneyOre(0),
+      yearTidligereModtagetTafOre: moneyOre(0),
+      yearTafFoerForligOre: moneyOre(0),
+      yearTafOre: moneyOre(0),
     },
   ],
-  sumYearTafOre: 0 as MoneyOre,
-  afrundingOre: 0 as MoneyOre,
-  samletTafKravOre: 0 as MoneyOre,
+  sumYearTafOre: moneyOre(0),
+  afrundingOre: moneyOre(0),
+  samletTafKravOre: moneyOre(0),
 };
 
 describe('EO snapshot PDF projections', () => {

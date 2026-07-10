@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import { buildEoSygeferiegodtgoerelseRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import * as loenudviklingBeregningModule from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
@@ -1311,7 +1312,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       .spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel')
       .mockImplementation(() => ({
         loenudviklingLabel: 'Overenskomst',
-        loenudviklingTotal: { status: 'ok', value: 0 },
+        loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
         beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
         beregnedeSegmenter: [],
         perAnsaettelse: [
@@ -1319,25 +1320,25 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
             ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
             ansaettelsesforholdNavn: values.loenindkomstAnsaettelsesforhold[0].navnPaaArbejdssted ?? '',
             loenudviklingLabel: 'Overenskomst',
-            loenudviklingTotal: { status: 'ok', value: 0 },
+            loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
             beregnedeSegmenter: [
               {
                 kind: 'arbejdsdage',
                 fra: toISODateString('2024-02-26'),
                 til: toISODateString('2024-02-29'),
                 arbejdsdage: 4,
-                dagsloenOre: 0,
+                dagsloenOre: moneyOre(0),
                 deltaPct: 0,
-                amountOre: 0,
+                amountOre: moneyOre(0),
               },
               {
                 kind: 'arbejdsdage',
                 fra: toISODateString('2024-03-01'),
                 til: toISODateString('2024-03-05'),
                 arbejdsdage: 3,
-                dagsloenOre: 0,
+                dagsloenOre: moneyOre(0),
                 deltaPct: 5.03,
-                amountOre: 0,
+                amountOre: moneyOre(0),
               },
             ],
           },

@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
 import { buildControlMismatchInvariant, buildTafPerYearAfrundingInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
@@ -19,9 +20,9 @@ describe('eoSnapshotToBeregningView', () => {
         },
         buildControlMismatchInvariant(['Mismatch']),
         buildTafPerYearAfrundingInvariant({
-          afrundingOre: 125,
-          sumYearTafOre: 1000,
-          samletTafKravOre: 1125,
+          afrundingOre: moneyOre(125),
+          sumYearTafOre: moneyOre(1000),
+          samletTafKravOre: moneyOre(1125),
         }),
       ],
       data: null,

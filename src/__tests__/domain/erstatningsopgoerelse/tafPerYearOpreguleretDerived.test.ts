@@ -1,5 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import { moneyOre } from '../../../domain/money/money';
 import type {
   TafPerYearResult,
   TafYearEntry,
@@ -18,25 +18,25 @@ const makeYear = (year: number, yearTafOre: number): TafYearEntry => ({
   year,
   segments: [],
   deductions: [],
-  yearIncomeOre: yearTafOre as MoneyOre,
-  yearDeductionsOre: 0 as MoneyOre,
-  yearTidligereModtagetTafOre: 0 as MoneyOre,
-  yearTafFoerForligOre: yearTafOre as MoneyOre,
-  yearTafOre: yearTafOre as MoneyOre,
+  yearIncomeOre: moneyOre(yearTafOre),
+  yearDeductionsOre: moneyOre(0),
+  yearTidligereModtagetTafOre: moneyOre(0),
+  yearTafFoerForligOre: moneyOre(yearTafOre),
+  yearTafOre: moneyOre(yearTafOre),
 });
 
 const makeResult = (years: TafYearEntry[]): TafPerYearResult => {
   const sum = years.reduce((acc, y) => acc + y.yearTafOre, 0);
   return {
     years,
-    sumYearTafOre: sum as MoneyOre,
-    afrundingOre: 0 as MoneyOre,
-    samletTafKravOre: sum as MoneyOre,
+    sumYearTafOre: moneyOre(sum),
+    afrundingOre: moneyOre(0),
+    samletTafKravOre: moneyOre(sum),
   };
 };
 
 // Forventet opregulering svarende til engine-logikken (akkumuleret reguleringssats):
-// deltaPct = round(motor.deltaPct, 4); opreguleret = toOre(roundKroner(baseKroner * (1 + deltaPct/100)))
+// deltaPct = round(motor.deltaPct, 4); opreguleret = fromKroner(roundKroner(baseKroner * (1 + deltaPct/100)))
 const expectedOpregulering = (yearTafOre: number, year: number, beregningsAar: number): { deltaPct: number; opreguleretOre: number } => {
   const motor = opregulerMedAkkumuleretReguleringssats({ kildeAar: year, maalAar: beregningsAar });
   const deltaPct = roundByMethod(motor.deltaPct, TAF_OPREGULERET_DELTA_PCT_DECIMALS, 'halfAwayFromZero');

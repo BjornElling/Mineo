@@ -50,6 +50,7 @@ import { renderMidlertidigtEetSection, renderOffentligeYdelserSection } from './
 import { renderShDageSection } from './shDageSection';
 import { renderReguleringSection } from './reguleringSection';
 import type { EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { moneyOre, subtractMoneyOre, zeroMoneyOre } from '../../../../domain/money/money';
 import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import {
   SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL,
@@ -300,7 +301,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       {
         columnCount: 6,
         valueColumnIndex: 5,
-        formatValue: (total) => formatMoneyOreWithKrTrimmed(total),
+        formatValue: (total) => formatMoneyOreWithKrTrimmed(moneyOre(total)),
         valueHasKrSuffix: false,
       }
     );
@@ -314,15 +315,21 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     writer.setY(endY);
 
     const feriepengeHvisIkkeSkadeOre = entry.feriepengekravTotalOre;
-    const feriepengeModtagetOre = entry.feriepengeModtagetFormula?.totalOre ?? 0;
-    const alleredeBetaltOre = entry.alleredeBetaltOre ?? 0;
+    const feriepengeModtagetOre = entry.feriepengeModtagetFormula?.totalOre ?? zeroMoneyOre();
+    const alleredeBetaltOre = entry.alleredeBetaltOre ?? zeroMoneyOre();
     const beregnetSygeferiegodtgoerelseOre = entry.totalOre;
     const feriepengeModtagetLabel = SFGG_FERIEPENGE_MODTAGET_LABEL;
 
     writer.writeUnderlinedSubheader('Beregnet krav');
     writeLabelValueLine(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, formatCurrencyFromOre(feriepengeHvisIkkeSkadeOre));
-    writeLabelValueLine(feriepengeModtagetLabel, formatCurrencyFromOre(-feriepengeModtagetOre));
-    writeLabelValueLine('Allerede betalt sygeferiegodtgørelse i perioden', formatCurrencyFromOre(-alleredeBetaltOre));
+    writeLabelValueLine(
+      feriepengeModtagetLabel,
+      formatCurrencyFromOre(subtractMoneyOre(zeroMoneyOre(), feriepengeModtagetOre))
+    );
+    writeLabelValueLine(
+      'Allerede betalt sygeferiegodtgørelse i perioden',
+      formatCurrencyFromOre(subtractMoneyOre(zeroMoneyOre(), alleredeBetaltOre))
+    );
     safeAddLeftRightText(
       'Beregnet sygeferiegodtgørelse',
       formatCurrencyFromOre(beregnetSygeferiegodtgoerelseOre),

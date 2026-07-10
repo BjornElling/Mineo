@@ -11,8 +11,18 @@ import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { formatDocumentMaanederTrimmed } from '../../../utils/documentMaanederFormatting';
-import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
-import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
+import type { Calculable, IndkomstSkadestidspunktModel } from '../shared/eoTypes';
+import type { MoneyOre } from '../../money/money';
+import {
+  addMoneyOre,
+  clampMoneyOreToZero,
+  fromKroner,
+  roundKroner,
+  sumMoneyOre,
+  toKroner,
+  zeroMoneyOre,
+} from '../../money/money';
+import { asCalculable } from '../shared/eoTypes';
 import { formatPercentFixed2, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
 
@@ -50,7 +60,7 @@ export const buildIndkomstSkadestidspunkt = (
 
   const arbejdssteder: Array<IndkomstSkadestidspunktModel['arbejdssteder'][number]> = [];
   let offentligeYdelser: Array<IndkomstSkadestidspunktModel['offentligeYdelser'][number]> = [];
-  let offentligeYdelserTotalOre: MoneyOre = ensureMoneyOre(0);
+  let offentligeYdelserTotalOre: MoneyOre = zeroMoneyOre();
   let samletBeregningsgrundlagOre: MoneyOre | null = null;
   let totalBreakdown: IndkomstSkadestidspunktModel['totalBreakdown'] = null;
   let arbejdsdage: number | null = null;
@@ -179,23 +189,26 @@ export const buildIndkomstSkadestidspunkt = (
         // "I alt:" skal kunne efterregnes fra de viste komponentlinjer. Summér derfor de
         // AFRUNDEDE komponent-ører (samme værdier som vises), i stedet for at runde den præcise
         // sum én gang — ellers kan Σ(viste linjer) afvige fra "I alt:" med nogle få øre.
-        const loenPlusLoen2PlusIkkePensLoenOre = toOre(roundKroner(entry.breakdown.loenPlusLoen2PlusIkkePensLoen));
-        const fpFvShSoOre = toOre(roundKroner(recalculatedBreakdown.fpFvShSo));
-        const pensionOre = toOre(roundKroner(recalculatedBreakdown.pension));
-        const atpOre = toOre(roundKroner(entry.breakdown.atp));
+        const loenPlusLoen2PlusIkkePensLoenOre = fromKroner(roundKroner(entry.breakdown.loenPlusLoen2PlusIkkePensLoen));
+        const fpFvShSoOre = fromKroner(roundKroner(recalculatedBreakdown.fpFvShSo));
+        const pensionOre = fromKroner(roundKroner(recalculatedBreakdown.pension));
+        const atpOre = fromKroner(roundKroner(entry.breakdown.atp));
         arbejdssteder.push({
           navn,
           fpLabel,
           pensionLabel,
           breakdown: {
-            loenPlusLoen2Ore: toOre(roundKroner(entry.breakdown.loenPlusLoen2)),
+            loenPlusLoen2Ore: fromKroner(roundKroner(entry.breakdown.loenPlusLoen2)),
             loenPlusLoen2PlusIkkePensLoenOre,
             fpFvShSoOre,
             pensionOre,
             atpOre,
-            samletOre: clampMoneyOreToZero(
-              ensureMoneyOre(loenPlusLoen2PlusIkkePensLoenOre + fpFvShSoOre + pensionOre + atpOre)
-            ),
+            samletOre: clampMoneyOreToZero(sumMoneyOre([
+              loenPlusLoen2PlusIkkePensLoenOre,
+              fpFvShSoOre,
+              pensionOre,
+              atpOre,
+            ])),
           },
         });
       }
@@ -208,15 +221,15 @@ export const buildIndkomstSkadestidspunkt = (
 
       if (arbejdssteder.length > 0) {
         totalBreakdown = {
-          loenPlusLoen2Ore: toOre(roundKroner(sums.loenPlusLoen2)),
-          loenPlusLoen2PlusIkkePensLoenOre: toOre(roundKroner(sums.loenPlusLoen2PlusIkkePensLoen)),
-          fpFvShSoOre: toOre(roundKroner(sums.fpFvShSo)),
-          pensionOre: toOre(roundKroner(sums.pension)),
-          atpOre: toOre(roundKroner(sums.atp)),
+          loenPlusLoen2Ore: fromKroner(roundKroner(sums.loenPlusLoen2)),
+          loenPlusLoen2PlusIkkePensLoenOre: fromKroner(roundKroner(sums.loenPlusLoen2PlusIkkePensLoen)),
+          fpFvShSoOre: fromKroner(roundKroner(sums.fpFvShSo)),
+          pensionOre: fromKroner(roundKroner(sums.pension)),
+          atpOre: fromKroner(roundKroner(sums.atp)),
           // Samlet beregningsgrundlag summerer de allerede-afrundede arbejdssted-totaler, så
           // "Månedsløn: (A + B + …) / N" er efterregnelig fra de viste arbejdssted-"I alt:"-beløb.
           samletOre: clampMoneyOreToZero(
-            ensureMoneyOre(arbejdssteder.reduce((sum, a) => sum + a.breakdown.samletOre, 0))
+            sumMoneyOre(arbejdssteder.map((arbejdssted) => arbejdssted.breakdown.samletOre))
           ),
         };
       }
@@ -224,16 +237,17 @@ export const buildIndkomstSkadestidspunkt = (
       offentligeYdelser = incomeForBeregningsperiode.benefits
         .map((benefit) => ({
           label: benefit.label,
-          amountOre: clampMoneyOreToZero(toOre(roundKroner(benefit.amount))),
+          amountOre: clampMoneyOreToZero(fromKroner(roundKroner(benefit.amount))),
         }))
         .filter((benefit) => benefit.amountOre > 0);
-      offentligeYdelserTotalOre = offentligeYdelser.reduce<MoneyOre>(
-        (sum, benefit) => ensureMoneyOre(sum + benefit.amountOre),
-        ensureMoneyOre(0)
+      offentligeYdelserTotalOre = sumMoneyOre(
+        offentligeYdelser.map((benefit) => benefit.amountOre)
       );
     }
-    const samletLoenOre = totalBreakdown?.samletOre ?? ensureMoneyOre(0);
-    samletBeregningsgrundlagOre = clampMoneyOreToZero(ensureMoneyOre(samletLoenOre + offentligeYdelserTotalOre));
+    const samletLoenOre = totalBreakdown?.samletOre ?? zeroMoneyOre();
+    samletBeregningsgrundlagOre = clampMoneyOreToZero(
+      addMoneyOre(samletLoenOre, offentligeYdelserTotalOre)
+    );
 
     const oevrigeFravaersdage =
       values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
@@ -251,8 +265,8 @@ export const buildIndkomstSkadestidspunkt = (
       );
       maaneder = maanederResult;
       if (maanederResult && samletBeregningsgrundlagOre && samletBeregningsgrundlagOre > 0) {
-        const base = fromOre(samletBeregningsgrundlagOre) / maanederResult;
-        maanedsloen = asCalculable(toOre(roundKroner(base)));
+        const base = toKroner(samletBeregningsgrundlagOre) / maanederResult;
+        maanedsloen = asCalculable(fromKroner(roundKroner(base)));
       }
 
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER && maanederResult !== null) {
@@ -299,8 +313,8 @@ export const buildIndkomstSkadestidspunkt = (
           samletBeregningsgrundlagOre > 0 &&
           tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
         ) {
-          const base = fromOre(samletBeregningsgrundlagOre) / arbejdsdage;
-          dagsloen = asCalculable(toOre(roundKroner(base)));
+          const base = toKroner(samletBeregningsgrundlagOre) / arbejdsdage;
+          dagsloen = asCalculable(fromKroner(roundKroner(base)));
         }
 
         if (tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
@@ -324,14 +338,14 @@ export const buildIndkomstSkadestidspunkt = (
   } else if (beregnesUdFra === 'Angivet månedsløn') {
     const value = amountValueToNumber(values.maanedsloenenUdgoer);
     if (value !== undefined) {
-      maanedsloen = asCalculable(toOre(value));
+      maanedsloen = asCalculable(fromKroner(value));
     } else {
       maanedsloen = notCalculableMoney('Månedsløn mangler');
     }
   } else if (beregnesUdFra === 'Angivet dagsløn') {
     const value = amountValueToNumber(values.dagsloenenUdgoer);
     if (value !== undefined) {
-      dagsloen = asCalculable(toOre(value));
+      dagsloen = asCalculable(fromKroner(value));
     } else {
       dagsloen = notCalculableMoney('Dagsløn mangler');
     }

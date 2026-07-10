@@ -7,8 +7,10 @@ import { isTafRowEmpty } from '../helpers/rowEmpty';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
-import type { Calculable, MoneyOre, OevrigeKravCanonicalInput, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteSectionPresentation } from '../shared/eoTypes';
-import { asCalculable, ensureMoneyOre } from '../shared/eoMoney';
+import type { Calculable, OevrigeKravCanonicalInput, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteSectionPresentation } from '../shared/eoTypes';
+import type { MoneyOre } from '../../money/money';
+import { moneyOre, zeroMoneyOre } from '../../money/money';
+import { asCalculable } from '../shared/eoTypes';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
@@ -123,32 +125,32 @@ export const buildSvieSmerteModel = (
   // Beregnes her i præsentationslaget (ikke i PDF-/UI-rendereren), så den viste
   // delvis-dagssats er konsistent på tværs af kanaler og med totalberegningen.
   const roundDelvisSatsOre = (perDagOre: number): MoneyOre =>
-    ensureMoneyOre(roundByMethod(perDagOre * engine.delvisFaktor, 0, 'halfAwayFromZero'));
+    moneyOre(roundByMethod(perDagOre * engine.delvisFaktor, 0, 'halfAwayFromZero'));
 
   const satserPerDag: Calculable<MoneyOre> = engine.satserPerDagOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
-    : asCalculable(ensureMoneyOre(engine.satserPerDagOre));
+    : asCalculable(engine.satserPerDagOre);
   const delvisSatsPerDag: Calculable<MoneyOre> = engine.satserPerDagOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(roundDelvisSatsOre(engine.satserPerDagOre));
   const satserMax: Calculable<MoneyOre> = engine.satserMaxOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
-    : asCalculable(ensureMoneyOre(engine.satserMaxOre));
+    : asCalculable(engine.satserMaxOre);
   const satserPerDagFoerForlig: Calculable<MoneyOre> = engine.satserPerDagFoerForligOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
-    : asCalculable(ensureMoneyOre(engine.satserPerDagFoerForligOre));
+    : asCalculable(engine.satserPerDagFoerForligOre);
   const delvisSatsPerDagFoerForlig: Calculable<MoneyOre> = engine.satserPerDagFoerForligOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(roundDelvisSatsOre(engine.satserPerDagFoerForligOre));
   const satserMaxFoerForlig: Calculable<MoneyOre> = engine.satserMaxFoerForligOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
-    : asCalculable(ensureMoneyOre(engine.satserMaxFoerForligOre));
+    : asCalculable(engine.satserMaxFoerForligOre);
   const tidligere: Calculable<MoneyOre> = engine.tidligereOre === null
     ? notCalculableMoney('Ikke angivet')
-    : asCalculable(ensureMoneyOre(engine.tidligereOre));
+    : asCalculable(engine.tidligereOre);
   const aktuel: Calculable<MoneyOre> = engine.aktuelOre === null
     ? notCalculableMoney('Ikke angivet')
-    : asCalculable(ensureMoneyOre(engine.aktuelOre));
+    : asCalculable(engine.aktuelOre);
 
   const periodeHeading =
     engine.constrainedPeriods.length > 1
@@ -228,8 +230,8 @@ export const buildTabtArbejdsfortjenesteModel = (
       loenudvikling: null,
       offentligeYdelserUdvikling: null,
       tafIndtaegter: null,
-      tidligereModtagetTaf: asCalculable(ensureMoneyOre(0)),
-      sygeferiegodtgoerelse: { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null },
+      tidligereModtagetTaf: asCalculable(zeroMoneyOre()),
+      sygeferiegodtgoerelse: { totalOre: zeroMoneyOre(), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null },
     };
   }
 
@@ -418,12 +420,12 @@ export const buildOevrigeKravModel = (values: ErstatningsopgoerelseValues): Oevr
   const beregnes = values.kravPaaOevrigeErstatningskrav === 'Ja';
   const skjul = values.kravPaaOevrigeErstatningskrav === 'Skjul';
   if (!beregnes) {
-    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0) };
+    return { beregnes, skjul, entries: [], totalFoerForligOre: zeroMoneyOre() };
   }
 
   const parsed = parseOevrigeKravBeloeb(values.oevrigeKravPerioder ?? []);
   if (!parsed) {
-    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0) };
+    return { beregnes, skjul, entries: [], totalFoerForligOre: zeroMoneyOre() };
   }
 
   const entries: Array<{ dateText: string; udgiftTil: string; amountOre: MoneyOre }> = [];

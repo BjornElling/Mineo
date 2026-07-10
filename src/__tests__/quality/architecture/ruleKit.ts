@@ -4,11 +4,13 @@ import {
   collectElementAccess,
   collectImports,
   collectMemberAccess,
+  collectTypeAssertions,
   type CallRef,
   type CodePosition,
   type ElementAccessRef,
   type ImportRef,
   type MemberAccessRef,
+  type TypeAssertionRef,
 } from './astQueries';
 
 /**
@@ -226,6 +228,34 @@ export const forbidElementAccess = (config: ElementAccessRuleConfig): Architectu
     antiRot: config.antiRot,
     find: (entry) =>
       collectElementAccess(entry)
+        .filter(config.forbidden)
+        .map((ref) => ({ position: ref.position, message: config.message(ref) })),
+    violatingFixtures: config.violatingFixtures,
+    cleanFixtures: config.cleanFixtures,
+  });
+
+type TypeAssertionRuleConfig = Readonly<{
+  id: string;
+  description: string;
+  appliesTo?: (relativePath: string) => boolean;
+  allow?: readonly string[];
+  antiRot?: boolean;
+  forbidden: (ref: TypeAssertionRef) => boolean;
+  message: (ref: TypeAssertionRef) => string;
+  violatingFixtures: readonly RuleFixture[];
+  cleanFixtures: readonly RuleFixture[];
+}>;
+
+/** Forbyder en eksplicit type-assertion til en bestemt target-type. */
+export const forbidTypeAssertions = (config: TypeAssertionRuleConfig): ArchitectureRule =>
+  defineRule({
+    id: config.id,
+    description: config.description,
+    appliesTo: config.appliesTo,
+    allow: config.allow,
+    antiRot: config.antiRot,
+    find: (entry) =>
+      collectTypeAssertions(entry)
         .filter(config.forbidden)
         .map((ref) => ({ position: ref.position, message: config.message(ref) })),
     violatingFixtures: config.violatingFixtures,

@@ -2,7 +2,7 @@
 /// <reference types="vitest/globals" />
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import type { TafPerYearOpreguleretResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { moneyOre, type MoneyOre } from '../../../domain/money/money';
 import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import { generateTafOpreguleretPaaAarDocument } from '../../../document/generators/tafFordelt/tafOpreguleretPaaAarDocument';
 import { toISODateString } from '../../../types/branded';
@@ -35,9 +35,9 @@ const FAKE_MODEL = {
     offentligeYdelserUdvikling: null,
     tafIndtaegter: null,
     tidligereModtagetTaf: { status: 'not_calculable', reason: 'x' },
-    sygeferiegodtgoerelse: { perAnsaettelsesforhold: [], totalOre: 0, perYear: [] },
-    tabtArbejdsfortjenesteFoerForligOre: 0,
-    tabtArbejdsfortjenesteOre: 0,
+    sygeferiegodtgoerelse: { perAnsaettelsesforhold: [], totalOre: moneyOre(0), perYear: [] },
+    tabtArbejdsfortjenesteFoerForligOre: moneyOre(0),
+    tabtArbejdsfortjenesteOre: moneyOre(0),
   },
 };
 
@@ -50,33 +50,33 @@ const makeYearEntry = (year: number, amountOre: MoneyOre): TafPerYearResult['yea
       kind: 'arbejdsdage',
       quantity: 250,
       sourceLabel: 'Løn',
-      unitAmountOre: 200000 as MoneyOre,
+      unitAmountOre: moneyOre(200000),
       deltaPct: 0,
-      amountOre: 50000000 as MoneyOre,
+      amountOre: moneyOre(50000000),
     },
   ],
-  deductions: [{ label: 'Sygedagpenge', amountOre: 12500000 as MoneyOre }],
-  yearIncomeOre: 50000000 as MoneyOre,
-  yearDeductionsOre: 12500000 as MoneyOre,
-  yearTidligereModtagetTafOre: 0 as MoneyOre,
+  deductions: [{ label: 'Sygedagpenge', amountOre: moneyOre(12500000) }],
+  yearIncomeOre: moneyOre(50000000),
+  yearDeductionsOre: moneyOre(12500000),
+  yearTidligereModtagetTafOre: moneyOre(0),
   yearTafFoerForligOre: amountOre,
   yearTafOre: amountOre,
 });
 
 const FAKE_PRESENTATION: TafPerYearResult = {
-  years: [makeYearEntry(2024, 37500000 as MoneyOre), makeYearEntry(2025, 37500000 as MoneyOre)],
-  sumYearTafOre: 75000000 as MoneyOre,
-  afrundingOre: 0 as MoneyOre,
-  samletTafKravOre: 75000000 as MoneyOre,
+  years: [makeYearEntry(2024, moneyOre(37500000)), makeYearEntry(2025, moneyOre(37500000))],
+  sumYearTafOre: moneyOre(75000000),
+  afrundingOre: moneyOre(0),
+  samletTafKravOre: moneyOre(75000000),
 };
 
 const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
   beregningsAar: 2026,
   years: [
-    { year: 2024, yearTafOre: 37500000 as MoneyOre, deltaPct: 5.1234, yearTafOpreguleretOre: 39421275 as MoneyOre },
-    { year: 2025, yearTafOre: 37500000 as MoneyOre, deltaPct: 2.5678, yearTafOpreguleretOre: 38462925 as MoneyOre },
+    { year: 2024, yearTafOre: moneyOre(37500000), deltaPct: 5.1234, yearTafOpreguleretOre: moneyOre(39421275) },
+    { year: 2025, yearTafOre: moneyOre(37500000), deltaPct: 2.5678, yearTafOpreguleretOre: moneyOre(38462925) },
   ],
-  sumOpreguleretOre: 77884200 as MoneyOre,
+  sumOpreguleretOre: moneyOre(77884200),
 };
 
 const FAKE_DOCUMENT: TafPerYearOpreguleretDocument = {

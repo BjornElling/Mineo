@@ -1,9 +1,19 @@
 import { z } from 'zod';
 import { isoDateString } from '../../../schemas/formSchemas/baseSchemas';
-import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, roundKroner, scaleMoneyOre, toOre } from '../shared/eoMoney';
+import {
+  clampMoneyOreToZero,
+  fromKroner,
+  moneyOreSchema,
+  roundKroner,
+  scaleMoneyOre,
+  subtractMoneyOre,
+  sumMoneyOre,
+  zeroMoneyOre,
+} from '../../money/money';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
-import type { Calculable, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
+import type { Calculable, LoenudviklingSegment } from '../shared/eoTypes';
+import type { MoneyOre } from '../../money/money';
 import type { OevrigeKravCanonicalInput } from './eoPresentationModel';
 
 const isoDateSchema = isoDateString;
@@ -34,7 +44,7 @@ const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
 ]).superRefine((segment, ctx) => {
   if (segment.reguleretLoenOre === undefined) return;
   const quantity = segment.kind === 'maaneder' ? segment.maaneder : segment.arbejdsdage;
-  const expectedAmountOre = toOre(roundKroner((segment.reguleretLoenOre / 100) * quantity));
+  const expectedAmountOre = fromKroner(roundKroner((segment.reguleretLoenOre / 100) * quantity));
   if (segment.amountOre !== expectedAmountOre) {
     ctx.addIssue({
       code: 'custom',
@@ -109,7 +119,7 @@ const buildCanonicalValidationErrorMessage = (
 
 const calculableMoneyToNullable = (value: Calculable<MoneyOre> | null | undefined): MoneyOre | null => {
   if (!value || value.status !== 'ok') return null;
-  return ensureMoneyOre(value.value);
+  return value.value;
 };
 
 const toCanonicalSegment = (segment: LoenudviklingSegment): z.infer<typeof loenudviklingSegmentSchema> => {
@@ -130,25 +140,25 @@ export const buildEoComputedTotals = (args: Readonly<{
   // `tabtArbejdsfortjenesteEfterForligOre` clampes ikke til nul efter skalering — det er tilstrækkeligt
   // at det ydre `clampMoneyOreToZero` håndterer det, da subtraktionen aldrig kan gøre resultatet positivt
   // hvis skaleringen allerede har produceret nul.
-  const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.tafNetto.tabtArbejdsfortjenesteOre));
+  const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(args.tafNetto.tabtArbejdsfortjenesteOre);
   const tidligereModtagetTafOre = args.tafNetto.tidligereModtagetTaf.status === 'ok'
-    ? ensureMoneyOre(args.tafNetto.tidligereModtagetTaf.value)
-    : ensureMoneyOre(0);
+    ? args.tafNetto.tidligereModtagetTaf.value
+    : zeroMoneyOre();
   const tabtArbejdsfortjenesteEfterForligOre = args.forligFactor !== null
     ? scaleMoneyOre(tabtArbejdsfortjenesteFoerForligOre, args.forligFactor)
     : tabtArbejdsfortjenesteFoerForligOre;
   const tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-    ensureMoneyOre(tabtArbejdsfortjenesteEfterForligOre - tidligereModtagetTafOre)
+    subtractMoneyOre(tabtArbejdsfortjenesteEfterForligOre, tidligereModtagetTafOre)
   );
 
-  const oevrigeKravFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.oevrige.totalFoerForligOre));
+  const oevrigeKravFoerForligOre = clampMoneyOreToZero(args.oevrige.totalFoerForligOre);
   const oevrigeKravOre = args.forligFactor !== null
     ? clampMoneyOreToZero(scaleMoneyOre(oevrigeKravFoerForligOre, args.forligFactor))
     : oevrigeKravFoerForligOre;
 
-  const svieSmerteOre = clampMoneyOreToZero(ensureMoneyOre(args.svieSmerte.totalOre));
+  const svieSmerteOre = clampMoneyOreToZero(args.svieSmerte.totalOre);
   const samletTotalOre = clampMoneyOreToZero(
-    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
+    sumMoneyOre([svieSmerteOre, tabtArbejdsfortjenesteOre, oevrigeKravOre])
   );
 
   return {

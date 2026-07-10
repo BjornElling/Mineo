@@ -19,7 +19,7 @@ import {
   sumMidlertidigtEetBeregnetEetKronerForTafRanges,
 } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
 import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { roundHeleKroner } from '../../../domain/erstatningsopgoerelse/shared/eoMoney';
+import { roundHeleKroner } from '../../../domain/money/money';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';

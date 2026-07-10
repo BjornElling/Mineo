@@ -28,8 +28,14 @@
  */
 
 import type { ISODateString } from '../../../types/branded';
-import type { MoneyOre } from '../snapshot/eoPresentationModel';
-import { roundKroner, toOre } from '../snapshot/eoPresentationModel';
+import type { MoneyOre } from '../../money/money';
+import {
+  addMoneyOre,
+  fromKroner,
+  roundKroner,
+  toKroner,
+  zeroMoneyOre,
+} from '../../money/money';
 import { roundByMethod } from '../../../utils/rounding';
 import { opregulerMedAkkumuleretReguleringssats } from '../../satser/opreguleringsmotorer';
 import type { TafPerYearResult } from './tafPerYearDerived';
@@ -112,7 +118,7 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
   }
 
   const years: TafOpreguleretYearEntry[] = [];
-  let sumOpreguleretOre = 0;
+  let sumOpreguleretOre = zeroMoneyOre();
 
   for (const yearEntry of tafPerYear.years) {
     const opregulering = opregulerMedAkkumuleretReguleringssats({
@@ -134,10 +140,10 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
     const deltaPct = roundByMethod(opregulering.deltaPct, TAF_OPREGULERET_DELTA_PCT_DECIMALS, 'halfAwayFromZero');
     // Beregn det opregulerede beløb konsistent med den viste deltaPct, så
     // visning og tal stemmer overens (parallelt med segmentAmountOre).
-    const baseKroner = yearEntry.yearTafOre / 100;
+    const baseKroner = toKroner(yearEntry.yearTafOre);
     const opreguleretKroner = roundKroner(baseKroner * (1 + deltaPct / 100));
-    const yearTafOpreguleretOre = toOre(opreguleretKroner);
-    sumOpreguleretOre += yearTafOpreguleretOre;
+    const yearTafOpreguleretOre = fromKroner(opreguleretKroner);
+    sumOpreguleretOre = addMoneyOre(sumOpreguleretOre, yearTafOpreguleretOre);
 
     years.push({
       year: yearEntry.year,
@@ -152,7 +158,7 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
     result: {
       beregningsAar,
       years,
-      sumOpreguleretOre: sumOpreguleretOre as MoneyOre,
+      sumOpreguleretOre,
     },
   };
 };

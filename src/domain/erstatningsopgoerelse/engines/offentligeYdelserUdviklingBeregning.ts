@@ -11,8 +11,9 @@ import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { countTafArbejdsdageInRange, segmentAmountOre } from './loenudviklingBeregning';
 import { roundIncomeBenefitAmountKroner, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
-import type { LoenudviklingSegment, MoneyOre, OffentligeYdelserUdviklingModel } from '../shared/eoTypes';
-import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, toOre } from '../shared/eoMoney';
+import type { LoenudviklingSegment, OffentligeYdelserUdviklingModel } from '../shared/eoTypes';
+import { clampMoneyOreToZero, fromKroner, sumMoneyOre } from '../../money/money';
+import { asCalculable } from '../shared/eoTypes';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 
@@ -132,7 +133,7 @@ const buildSegmentsForBenefit = (params: Readonly<{
   reguleringsSegments: readonly ReguleringsSegment[];
   tafArbejdsdageSet: ReadonlySet<ISODateString> | null;
 }>): readonly LoenudviklingSegment[] => {
-  const baseSatsOre = toOre(params.baseSatsKroner);
+  const baseSatsOre = fromKroner(params.baseSatsKroner);
   const segments: LoenudviklingSegment[] = [];
 
   for (const segment of params.reguleringsSegments) {
@@ -222,7 +223,7 @@ export const buildOffentligeYdelserUdviklingModel = (params: Readonly<{
       tafArbejdsdageSet: params.tafArbejdsdageSet,
     });
     const totalOre = clampMoneyOreToZero(
-      ensureMoneyOre(beregnedeSegmenter.reduce((sum, segment) => sum + segment.amountOre, 0))
+      sumMoneyOre(beregnedeSegmenter.map((segment) => segment.amountOre))
     );
     return {
       typeKey: benefit.typeKey,
@@ -232,20 +233,18 @@ export const buildOffentligeYdelserUdviklingModel = (params: Readonly<{
     };
   });
 
-  const totalOre = clampMoneyOreToZero(
-    ensureMoneyOre(entries.reduce((sum, entry) => {
-      if (entry.total.status !== 'ok') {
-        throw new Error('Offentlige ydelser kan ikke beregnes: ydelsestotal mangler');
-      }
-      return sum + entry.total.value;
-    }, 0))
-  );
+  const totalOre = clampMoneyOreToZero(sumMoneyOre(entries.map((entry) => {
+    if (entry.total.status !== 'ok') {
+      throw new Error('Offentlige ydelser kan ikke beregnes: ydelsestotal mangler');
+    }
+    return entry.total.value;
+  })));
 
   return {
     reguleringsLabel: params.reguler ? 'Statslig regulering per 1. januar' : 'Ingen',
     reguleringsBaseIso: params.reguleringsBaseIso,
     beregningsenhed: params.tafBeregningsenhed,
     entries,
-    total: asCalculable(totalOre as MoneyOre),
+    total: asCalculable(totalOre),
   };
 };

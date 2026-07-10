@@ -16,7 +16,6 @@ export type {
   IndkomstSkadestidspunktModel,
   LoenudviklingModel,
   LoenudviklingSegment,
-  MoneyOre,
   OffentligeYdelserUdviklingEntry,
   OffentligeYdelserUdviklingModel,
   OevrigeKravModel,
@@ -27,7 +26,6 @@ export type {
   TabtArbejdsfortjenesteModel,
   TafIndtaegterModel,
 } from '../shared/eoTypes';
-export { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
 export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRows, segmentAmountOre } from '../engines/loenudviklingBeregning';
 
 export type EoPdfPresentation = Readonly<{

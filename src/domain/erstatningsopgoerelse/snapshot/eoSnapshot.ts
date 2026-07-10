@@ -13,7 +13,7 @@ import {
 import { neutralizeIrrelevantEoInputs } from '../helpers/eoInputRelevance';
 import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPresentationSectionBuilders';
 import { buildEoPdfPresentation, buildErstatningsopgoerelsePdfModelFromComputed, type EoPdfPresentation } from './eoPresentationModel';
-import type { MoneyOre } from './eoPresentationModel';
+import type { MoneyOre } from '../../money/money';
 import type { EoModel } from '../shared/eoTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from '../engines/tafNettoBeregning';

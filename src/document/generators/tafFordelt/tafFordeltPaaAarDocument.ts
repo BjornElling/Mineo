@@ -24,6 +24,7 @@ import {
   resolveDocumentArtifactFileName,
 } from '../../layout/documentFormatUtils';
 import type { TafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
+import { addMoneyOre } from '../../../domain/money/money';
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
@@ -210,7 +211,7 @@ export const generateTafFordeltPaaAarDocument = (
       const forligSubtotalLabel = `I alt (${model.forlig.label} af ${formatMoneyOreWithKr(yearEntry.yearTafFoerForligOre)})`;
       if (tidligereOre > 0) {
         // Forlig-skaleret subtotal (før fradrag af allerede betalt TAF) = yearTafOre + tidligere.
-        const forligSubtotalOre = (yearEntry.yearTafOre + tidligereOre) as typeof yearEntry.yearTafOre;
+        const forligSubtotalOre = addMoneyOre(yearEntry.yearTafOre, tidligereOre);
         writer.writeLeftRightText(forligSubtotalLabel, ensureNonBreakingKr(formatMoneyOreWithKr(forligSubtotalOre)), {
           rightFontStyle: 'normal',
           lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,

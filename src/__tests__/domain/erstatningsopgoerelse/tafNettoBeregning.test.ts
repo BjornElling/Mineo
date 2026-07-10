@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -90,8 +91,8 @@ describe('computeTafNettoBeregning', () => {
       kind: 'maaneder',
       fra: iso('2025-01-01'),
       til: iso('2025-01-31'),
-      maanedsloenOre: 310000,
-      amountOre: 322090,
+      maanedsloenOre: moneyOre(310000),
+      amountOre: moneyOre(322090),
     }));
     expect(segment?.deltaPct).toBeCloseTo(3.9, 10);
     expect(result.tabtArbejdsfortjenesteOre).toBe(322090);
@@ -301,9 +302,9 @@ describe('computeTafNettoBeregning', () => {
     expect(result.offentligeYdelserUdvikling?.entries[0]?.beregnedeSegmenter[0]).toEqual(expect.objectContaining({
       kind: 'arbejdsdage',
       arbejdsdage: 5,
-      dagsloenOre: 125000,
+      dagsloenOre: moneyOre(125000),
       deltaPct: 0,
-      amountOre: 625000,
+      amountOre: moneyOre(625000),
     }));
     expect(result.offentligeYdelserUdvikling?.total).toEqual({ status: 'ok', value: 625000 });
   });

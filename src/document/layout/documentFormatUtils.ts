@@ -7,6 +7,7 @@ import {
   formatDocumentMaanederTrimmed,
 } from '../../utils/documentMaanederFormatting';
 import { resolveDocumentFileName, sanitizeFilenamePart } from '../documentFileName';
+import { toKroner, type MoneyOre } from '../../domain/money/money';
 
 const NBSP = '\u00A0';
 
@@ -36,21 +37,21 @@ export const formatMaanederTrimmed = (value: number): string => {
 /** Indsætter NBSP efter minus i negative beløb, så PDF-renderere ikke bryder midt i et negativt tal. */
 const addNbspAfterMinus = (s: string): string => (s.startsWith('-') ? `-${NBSP}${s.slice(1)}` : s);
 
-export const formatCurrencyFromOre = (ore: number): string => {
+export const formatCurrencyFromOre = (ore: MoneyOre): string => {
   if (!Number.isFinite(ore)) return '-';
-  return addNbspAfterMinus(formatCurrency(ore / 100));
+  return addNbspAfterMinus(formatCurrency(toKroner(ore)));
 };
 
-export const formatMoneyOreWithKr = (ore: number): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
+export const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
 
 /** Formaterer øre-beløb uden decimaler når de er ,00 */
-export const formatCurrencyFromOreTrimmed = (ore: number): string => {
+export const formatCurrencyFromOreTrimmed = (ore: MoneyOre): string => {
   const formatted = formatCurrencyFromOre(ore);
   // formatted kan starte med '-\u00A0', så tjek for ,00 i slutningen
   return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
 };
 
-export const formatMoneyOreWithKrTrimmed = (ore: number): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
+export const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
 
 /**
  * Formaterer en enhedssats som `123 kr./enhed`.

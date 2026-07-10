@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import {
@@ -318,24 +319,24 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
     };
     const canonicalOutput: EoCanonicalOutput = {
       totals: {
-        svieSmerteOre: 0,
-        tabtArbejdsfortjenesteFoerForligOre: 322090,
-        tabtArbejdsfortjenesteOre: 322090,
-        oevrigeKravFoerForligOre: 0,
-        oevrigeKravOre: 0,
-        samletTotalOre: 322090,
+        svieSmerteOre: moneyOre(0),
+        tabtArbejdsfortjenesteFoerForligOre: moneyOre(322090),
+        tabtArbejdsfortjenesteOre: moneyOre(322090),
+        oevrigeKravFoerForligOre: moneyOre(0),
+        oevrigeKravOre: moneyOre(0),
+        samletTotalOre: moneyOre(322090),
       },
       svieSmerte: { maxApplied: false },
       taf: {
         harTafPerioder: true,
-        offentligeYdelserUdviklingOre: 322090,
+        offentligeYdelserUdviklingOre: moneyOre(322090),
         tafIndtaegterOre: null,
         tidligereModtagetTafOre: null,
-        sygeferiegodtgoerelseOre: 0,
+        sygeferiegodtgoerelseOre: moneyOre(0),
       },
       periodiseringer: { tafPerioder: [{ fra: toISODateString('2025-01-01'), til: toISODateString('2025-01-31') }] },
       regulering: {
-        loenudviklingTotalFoerForligOre: 0,
+        loenudviklingTotalFoerForligOre: moneyOre(0),
         loenudviklingSegmenter: [],
         perAnsaettelse: [],
       },
@@ -374,7 +375,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
         ...canonicalOutput,
         taf: {
           ...canonicalOutput.taf,
-          offentligeYdelserUdviklingOre: 0,
+          offentligeYdelserUdviklingOre: moneyOre(0),
         },
       },
     });

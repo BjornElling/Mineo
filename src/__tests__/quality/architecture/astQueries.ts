@@ -60,6 +60,13 @@ export type MemberAccessRef = Readonly<{
   position: CodePosition;
 }>;
 
+export type TypeAssertionRef = Readonly<{
+  /** Den skrevne target-type i `value as Type` eller `<Type>value`. */
+  typeText: string;
+  node: ts.AsExpression | ts.TypeAssertion;
+  position: CodePosition;
+}>;
+
 const positionOf = (ast: ts.SourceFile, node: ts.Node): CodePosition => {
   const { line, character } = ast.getLineAndCharacterOfPosition(node.getStart(ast));
   return { line: line + 1, column: character + 1 };
@@ -254,6 +261,23 @@ export const collectElementAccess = (entry: SourceEntry): readonly ElementAccess
     refs.push({
       objectName: ts.isIdentifier(node.expression) ? node.expression.text : '',
       chainText: node.getText(ast),
+      node,
+      position: positionOf(ast, node),
+    });
+  });
+
+  return refs;
+};
+
+/** Alle eksplicitte type-assertions (`value as Type` og `<Type>value`). */
+export const collectTypeAssertions = (entry: SourceEntry): readonly TypeAssertionRef[] => {
+  const { ast } = entry;
+  const refs: TypeAssertionRef[] = [];
+
+  walk(ast, (node) => {
+    if (!ts.isAsExpression(node) && !ts.isTypeAssertionExpression(node)) return;
+    refs.push({
+      typeText: node.type.getText(ast),
       node,
       position: positionOf(ast, node),
     });

@@ -1,3 +1,4 @@
+import { moneyOre } from '../../domain/money/money';
 import {
   eoFileDataSchema,
   eoFileDataLoadSchema,
@@ -35,7 +36,7 @@ describe('eoFileDataSchema', () => {
     // frem for at blive gemt. Det er den strukturelle garanti mod stille persistering af
     // afledt state, hvis et sådant felt nogensinde skulle smutte ind i committed state.
     const result = eoFileDataSchema.safeParse({
-      stamdata: { journalnr: 'J-1', derivedTotalOre: 999 },
+      stamdata: { journalnr: 'J-1', derivedTotalOre: moneyOre(999) },
     });
     expect(result.success).toBe(false);
     if (!result.success) {

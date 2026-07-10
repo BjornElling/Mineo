@@ -1,6 +1,6 @@
 import type { ValidationError } from '../../../types/validation';
 import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
-import type { MoneyOre } from '../shared/eoTypes';
+import type { MoneyOre } from '../../money/money';
 import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';

@@ -16,9 +16,15 @@ import { isoDateToDate } from '../../dates/isoDate';
 import { perioderCoverDate } from '../helpers/eoSharedUtils';
 import { isSvieSmerteRowEmpty } from '../helpers/rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
-import type { MoneyOre } from '../shared/eoTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
-import { roundByMethod } from '../../../utils/rounding';
+import type { MoneyOre } from '../../money/money';
+import {
+  clampMoneyOreToZero,
+  fromKroner,
+  roundKroner,
+  scaleMoneyOre,
+  toKroner,
+  zeroMoneyOre,
+} from '../../money/money';
 import { mergeDateRanges } from './isoRangeAlgebra';
 
 export type SvieSmerteConstrainedPeriod = Readonly<{
@@ -104,13 +110,13 @@ const buildZeroOutput = (values: DeepReadonly<ErstatningsopgoerelseValues>): Svi
     forligFactor: parsedForlig?.factor ?? null,
     satserPerDagFoerForligOre: null,
     satserMaxFoerForligOre: null,
-    tidligereOre: tidligereKroner !== undefined ? toOre(tidligereKroner) : null,
-    aktuelOre: aktuelKroner !== undefined ? toOre(aktuelKroner) : null,
+    tidligereOre: tidligereKroner !== undefined ? fromKroner(tidligereKroner) : null,
+    aktuelOre: aktuelKroner !== undefined ? fromKroner(aktuelKroner) : null,
     sygedage: 0,
     delviseSygedage: 0,
     delvisFaktor: values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5,
     maxApplied: false,
-    totalOre: ensureMoneyOre(0),
+    totalOre: zeroMoneyOre(),
   };
 };
 
@@ -239,21 +245,21 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     if (!satsPerDag || !satsMax) {
       return buildZeroOutput(values);
     }
-    satserPerDagFoerForligOre = toOre(roundKroner(satsPerDag));
-    satserMaxFoerForligOre = toOre(roundKroner(satsMax));
+    satserPerDagFoerForligOre = fromKroner(roundKroner(satsPerDag));
+    satserMaxFoerForligOre = fromKroner(roundKroner(satsMax));
     const forlig = parsedForlig;
     const perDagKroner = forlig ? satsPerDag * forlig.factor : satsPerDag;
     const maxKroner = forlig ? satsMax * forlig.factor : satsMax;
-    satserPerDagOre = toOre(roundKroner(perDagKroner));
-    satserMaxOre = toOre(roundKroner(maxKroner));
+    satserPerDagOre = fromKroner(roundKroner(perDagKroner));
+    satserMaxOre = fromKroner(roundKroner(maxKroner));
   }
 
   const tidligereKroner = amountValueToNumber(values.svieSmerteTidligereTotal);
   const aktuelKroner = amountValueToNumber(values.svieSmerteAktuelPeriode);
-  const tidligereOre = tidligereKroner !== undefined ? toOre(tidligereKroner) : null;
-  const aktuelOre = aktuelKroner !== undefined ? toOre(aktuelKroner) : null;
+  const tidligereOre = tidligereKroner !== undefined ? fromKroner(tidligereKroner) : null;
+  const aktuelOre = aktuelKroner !== undefined ? fromKroner(aktuelKroner) : null;
 
-  let totalOre = ensureMoneyOre(0);
+  let totalOre = zeroMoneyOre();
   let maxApplied = false;
 
   if (harPerioder) {
@@ -262,13 +268,13 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     if (satserPerDagOre === null || satserMaxOre === null) {
       return buildZeroOutput(values);
     }
-    const perDagKroner = fromOre(satserPerDagOre);
-    const maxKroner = fromOre(satserMaxOre);
+    const perDagKroner = toKroner(satserPerDagOre);
+    const maxKroner = toKroner(satserMaxOre);
     // Delvis-dagssatsen afrundes til hel øre PR. DAG (samme afrunding som den viste delvis-sats i
     // eoPresentationSectionBuilders.roundDelvisSatsOre), så totalen kan efterregnes fra det viste
     // "N delvise sygedage á [delvis-sats]". Ellers bruger totalen den uafrundede perDag × faktor
     // (typisk en halv øre efter forlig), som afviger fra den viste sats.
-    const delvisSatsKroner = fromOre(ensureMoneyOre(roundByMethod(satserPerDagOre * delvisFaktor, 0, 'halfAwayFromZero')));
+    const delvisSatsKroner = toKroner(scaleMoneyOre(satserPerDagOre, delvisFaktor));
     const rawKroner = (sygedage * perDagKroner) + (delviseSygedage * delvisSatsKroner);
     const tidligereValue = tidligereKroner ?? 0;
     const allerede = aktuelKroner ?? 0;
@@ -277,7 +283,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     const beloebFoerFradrag = Math.min(rawKroner, restPladsEfterTidligere);
     maxApplied = rawKroner > restPladsEfterTidligere;
     const beloeb = clampToNonNegative(beloebFoerFradrag - allerede);
-    totalOre = clampMoneyOreToZero(toOre(roundKroner(beloeb)));
+    totalOre = clampMoneyOreToZero(fromKroner(roundKroner(beloeb)));
   }
 
   return {

@@ -15,7 +15,8 @@ import {
   resolveAktivEllerFoersteLoenudviklingKilde,
 } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
-import type { Calculable, MoneyOre, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { Calculable, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { MoneyOre } from '../../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import {
@@ -123,7 +124,7 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
 
   if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
     for (const arbejdssted of indkomst.arbejdssteder) {
-      const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: number }>> = [
+      const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: MoneyOre }>> = [
         {
           label: 'Løn i beregningsperioden',
           amountOre: arbejdssted.breakdown.loenPlusLoen2PlusIkkePensLoenOre,

@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -21,7 +22,7 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): Erstatnin
 
 const makeLoenudviklingModel = (deltaPct: number): LoenudviklingModel => ({
   loenudviklingLabel: 'Statistik',
-  loenudviklingTotal: { status: 'ok', value: 100000 },
+  loenudviklingTotal: { status: 'ok', value: moneyOre(100000) },
   beregningsenhed: 'Måneder',
   beregnedeSegmenter: [
     {
@@ -29,9 +30,9 @@ const makeLoenudviklingModel = (deltaPct: number): LoenudviklingModel => ({
       fra: toISODateString('2024-02-01'),
       til: toISODateString('2024-02-29'),
       maaneder: 1,
-      maanedsloenOre: 100000,
+      maanedsloenOre: moneyOre(100000),
       deltaPct,
-      amountOre: 100000,
+      amountOre: moneyOre(100000),
     },
   ],
   perAnsaettelse: [],
@@ -45,21 +46,21 @@ const makeOffentligeYdelserUdviklingModel = (deltaPct: number): OffentligeYdelse
     {
       typeKey: 'dagpenge',
       label: 'Dagpenge',
-      total: { status: 'ok', value: 100000 },
+      total: { status: 'ok', value: moneyOre(100000) },
       beregnedeSegmenter: [
         {
           kind: 'maaneder',
           fra: toISODateString('2024-02-01'),
           til: toISODateString('2024-02-29'),
           maaneder: 1,
-          maanedsloenOre: 100000,
+          maanedsloenOre: moneyOre(100000),
           deltaPct,
-          amountOre: 100000,
+          amountOre: moneyOre(100000),
         },
       ],
     },
   ],
-  total: { status: 'ok', value: 100000 },
+  total: { status: 'ok', value: moneyOre(100000) },
 });
 
 describe('getEoBilagAvailability', () => {

@@ -2,7 +2,7 @@
 /// <reference types="vitest/globals" />
 
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { moneyOre } from '../../../domain/money/money';
 import type { TafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
 import { toISODateString } from '../../../types/branded';
 import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
@@ -64,25 +64,25 @@ const FAKE_RESULT: TafPerYearResult = {
           kind: 'arbejdsdage',
           quantity: 250,
           sourceLabel: 'Timeløn',
-          unitAmountOre: 200000 as MoneyOre,
+          unitAmountOre: moneyOre(200000),
           deltaPct: 0,
-          amountOre: 50000000 as MoneyOre,
+          amountOre: moneyOre(50000000),
         },
       ],
       deductions: [
-        { label: 'Sygedagpenge', amountOre: 10000000 as MoneyOre },
+        { label: 'Sygedagpenge', amountOre: moneyOre(10000000) },
       ],
-      yearIncomeOre: 50000000 as MoneyOre,
-      yearDeductionsOre: 10000000 as MoneyOre,
+      yearIncomeOre: moneyOre(50000000),
+      yearDeductionsOre: moneyOre(10000000),
       // "Allerede betalt TAF" bæres separat (uden for forlig-faktoren), ikke i deductions.
-      yearTidligereModtagetTafOre: 2500000 as MoneyOre,
-      yearTafFoerForligOre: 40000000 as MoneyOre,
-      yearTafOre: 37500000 as MoneyOre,
+      yearTidligereModtagetTafOre: moneyOre(2500000),
+      yearTafFoerForligOre: moneyOre(40000000),
+      yearTafOre: moneyOre(37500000),
     },
   ],
-  sumYearTafOre: 37500000 as MoneyOre,
-  afrundingOre: 0 as MoneyOre,
-  samletTafKravOre: 37500000 as MoneyOre,
+  sumYearTafOre: moneyOre(37500000),
+  afrundingOre: moneyOre(0),
+  samletTafKravOre: moneyOre(37500000),
 };
 
 const FAKE_DOCUMENT: TafPerYearDocument = {
@@ -197,7 +197,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
         model: FAKE_MODEL as never,
         presentation: {
           ...FAKE_RESULT,
-          years: [{ ...FAKE_RESULT.years[0], yearTafOre: (-5000) as MoneyOre }],
+          years: [{ ...FAKE_RESULT.years[0], yearTafOre: moneyOre((-5000)) }],
         },
       },
     });
@@ -228,7 +228,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
             ...FAKE_RESULT.years[0],
             deductions: [
               ...FAKE_RESULT.years[0].deductions,
-              { label: 'Sygeferiegodtgørelse', amountOre: 40000 as MoneyOre },
+              { label: 'Sygeferiegodtgørelse', amountOre: moneyOre(40000) },
             ],
           }],
         },
@@ -251,7 +251,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
           years: [{
             ...FAKE_RESULT.years[0],
             deductions: [
-              { label: 'Sygeferiegodtgørelse', amountOre: 0 as MoneyOre },
+              { label: 'Sygeferiegodtgørelse', amountOre: moneyOre(0) },
             ],
           }],
         },
@@ -278,9 +278,9 @@ describe('tafFordeltPaaAarPdf wiring', () => {
           years: [
             {
               ...FAKE_RESULT.years[0],
-              yearTidligereModtagetTafOre: 0 as MoneyOre,
-              yearTafFoerForligOre: 37500000 as MoneyOre,
-              yearTafOre: 18750000 as MoneyOre,
+              yearTidligereModtagetTafOre: moneyOre(0),
+              yearTafFoerForligOre: moneyOre(37500000),
+              yearTafOre: moneyOre(18750000),
             },
           ],
         },

@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
@@ -721,7 +722,7 @@ describe('computeEoSnapshot', () => {
       {
         dateText: '15-01-2024',
         udgiftTil: 'Transport',
-        amountOre: 120000,
+        amountOre: moneyOre(120000),
       },
     ]);
     expect(pdfProjection.document.samlet.totalOre).toBe(120000);

@@ -29,7 +29,8 @@ import {
   buildBlockingMessageForOutput,
   getBlockingInvariantsForOutput,
 } from './eoSnapshotInvariants';
-import type { EoModel, MoneyOre } from '../shared/eoTypes';
+import type { EoModel } from '../shared/eoTypes';
+import { moneyOre, type MoneyOre } from '../../money/money';
 
 const FAR_MELLEMLIGGENDE_PERIODE_DAGE = 180;
 
@@ -93,7 +94,7 @@ const seriesIdFromLabel = (label: string): string =>
     .replace(/^-|-$/g, '') || 'indtaegtskilde';
 
 const roundOre = (value: number): MoneyOre =>
-  roundByMethod(value, 0, 'halfAwayFromZero') as MoneyOre;
+  moneyOre(roundByMethod(value, 0, 'halfAwayFromZero'));
 
 const mergeRanges = (ranges: readonly TafKravGrafTimeWindow[]): TafKravGrafTimeWindow[] => {
   const sorted = [...ranges].sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));

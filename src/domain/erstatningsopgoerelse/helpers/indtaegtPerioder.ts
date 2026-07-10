@@ -32,7 +32,7 @@ import {
   SYGEDAGPENGE_SH_CUTOFF,
 } from '../engines/periodiseringsMotor';
 import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
-import { roundHeleKroner, roundKroner } from '../shared/eoMoney';
+import { roundHeleKroner, roundKroner } from '../../money/money';
 
 export type { IsoRange } from '../../../utils/isoDateHelpers';
 export { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';

@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import { eoSnapshotToTafKravGrafDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import {
   buildIncomeCalculationContext,
@@ -75,10 +76,10 @@ const buildSnapshot = (): EoSnapshot => {
         maaneder: 12,
         arbejdsdage: 250,
         totalBreakdown: {
-          samletOre: 360_000_00,
+          samletOre: moneyOre(360_000_00),
         },
         offentligeYdelser: [
-          { label: 'Sygedagpenge', amountOre: 60_000_00 },
+          { label: 'Sygedagpenge', amountOre: moneyOre(60_000_00) },
         ],
       },
       offentligeYdelserUdvikling: {
@@ -101,25 +102,25 @@ const buildSnapshot = (): EoSnapshot => {
                 fra: iso('2024-01-01'),
                 til: iso('2024-06-30'),
                 sourceLabel: 'Arbejdsgiver A',
-                unitAmountOre: 30_000_00,
+                unitAmountOre: moneyOre(30_000_00),
                 deltaPct: 0,
-                amountOre: 180_000_00,
+                amountOre: moneyOre(180_000_00),
               },
               {
                 fra: iso('2024-07-01'),
                 til: iso('2024-12-31'),
                 sourceLabel: 'Arbejdsgiver B',
-                unitAmountOre: 31_000_00,
+                unitAmountOre: moneyOre(31_000_00),
                 deltaPct: 10,
-                amountOre: 204_600_00,
+                amountOre: moneyOre(204_600_00),
               },
               {
                 fra: iso('2024-03-01'),
                 til: iso('2024-09-30'),
                 sourceLabel: 'Sygedagpenge',
-                unitAmountOre: 8_000_00,
+                unitAmountOre: moneyOre(8_000_00),
                 deltaPct: 5,
-                amountOre: 58_800_00,
+                amountOre: moneyOre(58_800_00),
               },
             ],
           },
@@ -185,21 +186,21 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
       'Sygedagpenge',
     ]);
     const loenSegments = projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments ?? [];
-    expect(loenSegments.at(0)).toEqual({ fra: iso('2022-01-01'), til: iso('2022-01-31'), amountOre: 30_000_00 });
+    expect(loenSegments.at(0)).toEqual({ fra: iso('2022-01-01'), til: iso('2022-01-31'), amountOre: moneyOre(30_000_00) });
     expect(loenSegments).toContainEqual({
       fra: iso('2024-01-01'),
       til: iso('2024-01-31'),
-      amountOre: 30_000_00,
+      amountOre: moneyOre(30_000_00),
     });
     expect(loenSegments).toContainEqual({
       fra: iso('2024-07-01'),
       til: iso('2024-07-31'),
-      amountOre: 34_100_00,
+      amountOre: moneyOre(34_100_00),
     });
     expect(projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments).toContainEqual({
       fra: iso('2024-03-01'),
       til: iso('2024-03-31'),
-      amountOre: 8_400_00,
+      amountOre: moneyOre(8_400_00),
     });
     expect(projection.document.unit).toBe('maaned');
   });
@@ -525,12 +526,12 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     expect(projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments).toContainEqual({
       fra: iso('2020-01-01'),
       til: iso('2020-01-31'),
-      amountOre: 36_000_00,
+      amountOre: moneyOre(36_000_00),
     });
     expect(projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments).toContainEqual({
       fra: iso('2026-03-01'),
       til: iso('2026-03-31'),
-      amountOre: 19_000_00,
+      amountOre: moneyOre(19_000_00),
     });
   });
 
@@ -663,10 +664,10 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     if (projection.kind !== 'ok') throw new Error(projection.message);
     expect(projection.document.unit).toBe('arbejdsdag');
     expect(projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments).toEqual([
-      { fra: iso('2023-10-02'), til: iso('2023-10-08'), amountOre: 10_000 },
+      { fra: iso('2023-10-02'), til: iso('2023-10-08'), amountOre: moneyOre(10_000) },
     ]);
     expect(projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments).toEqual([
-      { fra: iso('2023-10-09'), til: iso('2023-10-22'), amountOre: 10_000 },
+      { fra: iso('2023-10-09'), til: iso('2023-10-22'), amountOre: moneyOre(10_000) },
     ]);
   });
 
@@ -718,7 +719,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     expect(projection.document.series.find((entry) => entry.label === 'Sygedagpenge')?.segments).toContainEqual({
       fra: iso('2026-01-01'),
       til: iso('2026-01-25'),
-      amountOre: 23_560_00,
+      amountOre: moneyOre(23_560_00),
     });
   });
 
@@ -776,17 +777,17 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     expect(sygedagpengeSegments).toContainEqual({
       fra: iso('2026-03-01'),
       til: iso('2026-03-31'),
-      amountOre: 10_000_00,
+      amountOre: moneyOre(10_000_00),
     });
     expect(sygedagpengeSegments).toContainEqual({
       fra: iso('2026-04-01'),
       til: iso('2026-04-30'),
-      amountOre: 10_000_00,
+      amountOre: moneyOre(10_000_00),
     });
     expect(sygedagpengeSegments).toContainEqual({
       fra: iso('2026-05-01'),
       til: iso('2026-05-31'),
-      amountOre: 10_000_00,
+      amountOre: moneyOre(10_000_00),
     });
   });
 

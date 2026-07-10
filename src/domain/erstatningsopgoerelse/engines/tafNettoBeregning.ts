@@ -20,11 +20,19 @@ import type {
   Calculable,
   IndkomstSkadestidspunktModel,
   LoenudviklingModel,
-  MoneyOre,
   OffentligeYdelserUdviklingModel,
   TafIndtaegterModel,
 } from '../shared/eoTypes';
-import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
+import type { MoneyOre } from '../../money/money';
+import {
+  clampMoneyOreToZero,
+  fromKroner,
+  roundKroner,
+  subtractMoneyOre,
+  sumMoneyOre,
+  zeroMoneyOre,
+} from '../../money/money';
+import { asCalculable } from '../shared/eoTypes';
 import { sumMidlertidigtEetBeregnetEetKronerForTafRanges } from '../helpers/midlertidigtEetBilagGroups';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 
@@ -71,7 +79,7 @@ const buildTafIndtaegterModel = (
   const employerEntries: Array<{ label: string; amountOre: MoneyOre }> = [];
   indtaegter.employers.forEach((entry) => {
     const label = entry.name !== '' ? entry.name : 'Arbejdssted';
-    employerEntries.push({ label, amountOre: toOre(roundKroner(entry.amount)) });
+    employerEntries.push({ label, amountOre: fromKroner(roundKroner(entry.amount)) });
   });
   const benefitEntries = indtaegter.benefits
     .map((entry) => ({
@@ -82,8 +90,8 @@ const buildTafIndtaegterModel = (
       // fra bilaget). Se midlertidigtEetBilagGroups.ts.
       amountOre:
         entry.typeKey === 'midlertidigt_eet' && useWholeKronerForMidlertidigtEet
-          ? toOre(sumMidlertidigtEetBeregnetEetKronerForTafRanges(midlertidigtEetGroups, ranges))
-          : toOre(roundIncomeBenefitAmountKroner(entry.typeKey, entry.amount, useWholeKronerForMidlertidigtEet)),
+          ? fromKroner(sumMidlertidigtEetBeregnetEetKronerForTafRanges(midlertidigtEetGroups, ranges))
+          : fromKroner(roundIncomeBenefitAmountKroner(entry.typeKey, entry.amount, useWholeKronerForMidlertidigtEet)),
     }))
     .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
   const entries = [...employerEntries, ...benefitEntries];
@@ -95,7 +103,7 @@ const buildTafIndtaegterModel = (
     )
   );
 
-  const totalOre = clampMoneyOreToZero(ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0)));
+  const totalOre = clampMoneyOreToZero(sumMoneyOre(entries.map((entry) => entry.amountOre)));
   return {
     entries,
     oevrigeKravForbeholdYdelsestyper,
@@ -206,15 +214,15 @@ export const computeTafNettoBeregning = (
       tafRanges,
       loenudviklingPerAnsaettelse: buildSfggLoenudviklingMap(values, loenudvikling),
     })
-    : { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null };
+    : { totalOre: zeroMoneyOre(), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null };
 
   const tidligereModtagetTafKroner = amountValueToNumber(values.tidligereModtagetTaf);
   const tidligereModtagetTaf =
     tidligereModtagetTafKroner !== undefined
-      ? asCalculable(toOre(tidligereModtagetTafKroner))
+      ? asCalculable(fromKroner(tidligereModtagetTafKroner))
       : notCalculableMoney('Ikke angivet');
 
-  let tabtArbejdsfortjenesteOre = ensureMoneyOre(0);
+  let tabtArbejdsfortjenesteOre = zeroMoneyOre();
   if (harTafPerioder) {
     // Invariant: loenudvikling og tafIndtaegter er altid sat når harTafPerioder er true,
     // da begge bygges betinget af harTafPerioder ovenfor. Disse guards er logisk umulige.
@@ -256,18 +264,14 @@ export const computeTafNettoBeregning = (
         tabtArbejdsfortjenesteOre,
       };
     }
-    const offentligeYdelserTotalOre =
-      offentligeYdelserTotal === undefined
-        ? 0
-        : offentligeYdelserTotal.value;
-    tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-      ensureMoneyOre(
-        loenTotal.value +
-        offentligeYdelserTotalOre -
-        indtaegterTotal.value -
-        sygeferiegodtgoerelse.totalOre
-      )
-    );
+    const offentligeYdelserTotalOre = offentligeYdelserTotal?.value ?? zeroMoneyOre();
+    tabtArbejdsfortjenesteOre = clampMoneyOreToZero(subtractMoneyOre(
+      subtractMoneyOre(
+        sumMoneyOre([loenTotal.value, offentligeYdelserTotalOre]),
+        indtaegterTotal.value
+      ),
+      sygeferiegodtgoerelse.totalOre
+    ));
   }
 
   return {

@@ -1,3 +1,4 @@
+import { moneyOre } from '../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
@@ -44,7 +45,7 @@ const makeStamdata = (patch: Partial<StamdataValues>): StamdataValues => {
 
 const dagsDatoISO = iso('2026-02-04');
 const EMPTY_SFGG_RESULT = {
-  totalOre: 0,
+  totalOre: moneyOre(0),
   perAnsaettelsesforhold: [],
   perYear: [],
   firstExcludedDate: null,
@@ -55,7 +56,7 @@ const emptyOffentligeYdelserUdvikling = (beregningsenhed: TafBeregningsenhed = T
   reguleringsBaseIso: undefined,
   beregningsenhed,
   entries: [],
-  total: { status: 'ok' as const, value: 0 },
+  total: { status: 'ok' as const, value: moneyOre(0) },
 });
 
 const buildSnapshotData = (
@@ -998,16 +999,16 @@ describe('buildTafPerYearResult', () => {
     const source: TafPerYearSource = {
       stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
-        loenudviklingTotal: { status: 'ok', value: 10000000 },
+        loenudviklingTotal: { status: 'ok', value: moneyOre(10000000) },
         beregnedeSegmenter: [
           {
             kind: 'arbejdsdage',
             fra: toISODateString('2024-01-10'),
             til: toISODateString('2024-01-10'),
             arbejdsdage: 1,
-            dagsloenOre: 10000000,
+            dagsloenOre: moneyOre(10000000),
             deltaPct: 1,
-            amountOre: 10000000,
+            amountOre: moneyOre(10000000),
           },
         ],
         beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
@@ -1015,10 +1016,10 @@ describe('buildTafPerYearResult', () => {
         perAnsaettelse: [],
       },
       tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
-      tabtArbejdsfortjenesteOre: 0,
-      tidligereModtagetTaf: { status: 'ok', value: 0 },
+      tabtArbejdsfortjenesteOre: moneyOre(0),
+      tidligereModtagetTaf: { status: 'ok', value: moneyOre(0) },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 15000000 } },
+      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(15000000) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1204,9 +1205,9 @@ describe('buildTafPerYearResult', () => {
             fra: toISODateString('2024-01-01'),
             til: toISODateString('2024-12-31'),
             maaneder: 12,
-            maanedsloenOre: 300000,
+            maanedsloenOre: moneyOre(300000),
             deltaPct: 1,
-            amountOre: 3600000,
+            amountOre: moneyOre(3600000),
           },
         ],
         beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
@@ -1214,10 +1215,10 @@ describe('buildTafPerYearResult', () => {
         perAnsaettelse: [],
       },
       tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
-      tabtArbejdsfortjenesteOre: 0,
+      tabtArbejdsfortjenesteOre: moneyOre(0),
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1234,17 +1235,17 @@ describe('buildTafPerYearResult', () => {
     const source: TafPerYearSource = {
       stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
-        loenudviklingTotal: { status: 'ok', value: 3_100_000 },
+        loenudviklingTotal: { status: 'ok', value: moneyOre(3_100_000) },
         beregnedeSegmenter: [
           {
             kind: 'maaneder',
             fra: toISODateString('2024-01-01'),
             til: toISODateString('2024-01-31'),
             maaneder: 1,
-            maanedsloenOre: 3_000_000,
+            maanedsloenOre: moneyOre(3_000_000),
             deltaPct: 0,
-            reguleretLoenOre: 3_100_000,
-            amountOre: 3_100_000,
+            reguleretLoenOre: moneyOre(3_100_000),
+            amountOre: moneyOre(3_100_000),
           },
         ],
         beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
@@ -1252,10 +1253,10 @@ describe('buildTafPerYearResult', () => {
         perAnsaettelse: [],
       },
       tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
-      tabtArbejdsfortjenesteOre: 3_100_000,
+      tabtArbejdsfortjenesteOre: moneyOre(3_100_000),
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(TAF_BEREGNES_SOM.MAANEDER),
       forligFactor: null,
     };
@@ -1281,16 +1282,16 @@ describe('buildTafPerYearResult', () => {
     const source: TafPerYearSource = {
       stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
-        loenudviklingTotal: { status: 'ok', value: 0 },
+        loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
         beregnedeSegmenter: [
           {
             kind: 'arbejdsdage',
             fra: toISODateString('2024-01-02'),
             til: toISODateString('2024-01-05'),
             arbejdsdage: 4,
-            dagsloenOre: 50000,
+            dagsloenOre: moneyOre(50000),
             deltaPct: 1,
-            amountOre: 200000,
+            amountOre: moneyOre(200000),
           },
         ],
         beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
@@ -1298,10 +1299,10 @@ describe('buildTafPerYearResult', () => {
         perAnsaettelse: [],
       },
       tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
-      tabtArbejdsfortjenesteOre: 0,
+      tabtArbejdsfortjenesteOre: moneyOre(0),
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1366,16 +1367,16 @@ describe('buildTafPerYearResult', () => {
     const source: TafPerYearSource = {
       stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
-        loenudviklingTotal: { status: 'ok', value: 100 },
+        loenudviklingTotal: { status: 'ok', value: moneyOre(100) },
         beregnedeSegmenter: [
           {
             kind: 'maaneder',
             fra: toISODateString('2024-01-06'),
             til: toISODateString('2024-01-07'),
             maaneder: 0.0645,
-            maanedsloenOre: 0,
+            maanedsloenOre: moneyOre(0),
             deltaPct: 1,
-            amountOre: 0,
+            amountOre: moneyOre(0),
           },
         ],
         beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
@@ -1383,10 +1384,10 @@ describe('buildTafPerYearResult', () => {
         perAnsaettelse: [],
       },
       tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
-      tabtArbejdsfortjenesteOre: 0,
-      tidligereModtagetTaf: { status: 'ok', value: 100 },
+      tabtArbejdsfortjenesteOre: moneyOre(0),
+      tidligereModtagetTaf: { status: 'ok', value: moneyOre(100) },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1491,8 +1492,8 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
           fra: iso('2024-01-01'),
           til: iso('2024-01-31'),
           kind: 'maaneder',
-          maanedsloenOre: 30_000_00,
-          dagsloenOre: 0,
+          maanedsloenOre: moneyOre(30_000_00),
+          dagsloenOre: moneyOre(0),
           deltaPct: 0,
         },
       ],
@@ -1501,8 +1502,8 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
     offentligeYdelserUdvikling: null,
     tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: okMoney(0) } as unknown as TafPerYearSource['tafIndtaegter'],
     tidligereModtagetTaf: { status: 'not_calculable', reason: 'Ikke angivet' },
-    sygeferiegodtgoerelse: { totalOre: 0, perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null } as unknown as TafPerYearSource['sygeferiegodtgoerelse'],
-    tabtArbejdsfortjenesteOre: 10_000_00 as never,
+    sygeferiegodtgoerelse: { totalOre: moneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null } as unknown as TafPerYearSource['sygeferiegodtgoerelse'],
+    tabtArbejdsfortjenesteOre: moneyOre(10_000_00) as never,
     tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
     forligFactor: null,
     ...patch,

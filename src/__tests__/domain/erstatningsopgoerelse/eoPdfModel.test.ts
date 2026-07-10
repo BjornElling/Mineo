@@ -1,10 +1,11 @@
+import { moneyOre } from '../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toDanishDateString, toISODateString } from '../../../types/branded';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { LoenudviklingModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -212,9 +213,9 @@ describe('eoPdfModel', () => {
   });
 
   it('enforcer MoneyOre invariants', () => {
-    expect(ensureMoneyOre(0)).toBe(0);
-    expect(() => ensureMoneyOre(Number.NaN)).toThrow('MoneyOre skal være et heltal');
-    expect(() => ensureMoneyOre(12.5)).toThrow('MoneyOre skal være et heltal');
+    expect(moneyOre(0)).toBe(0);
+    expect(() => moneyOre(Number.NaN)).toThrow('MoneyOre skal være et heltal');
+    expect(() => moneyOre(12.5)).toThrow('MoneyOre skal være et heltal');
   });
 
   it('bygger model med tomme sektioner uden at fejle', () => {
@@ -832,9 +833,9 @@ describe('eoPdfModel', () => {
     const entries = model.tabtArbejdsfortjeneste.tafIndtaegter?.entries ?? [];
 
     expect(entries).toEqual([
-      { label: 'Ansættelse A', amountOre: 100450 },
-      { label: 'Midlertidigt EET', amountOre: 2000 },
-      { label: 'Sygedagpenge', amountOre: 1000 },
+      { label: 'Ansættelse A', amountOre: moneyOre(100450) },
+      { label: 'Midlertidigt EET', amountOre: moneyOre(2000) },
+      { label: 'Sygedagpenge', amountOre: moneyOre(1000) },
     ]);
   });
 

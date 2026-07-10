@@ -9,8 +9,10 @@ import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from '../helpers/angivetLoenHelpers';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
-import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
-import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
+import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, LoenudviklingSegment } from '../shared/eoTypes';
+import type { MoneyOre } from '../../money/money';
+import { clampMoneyOreToZero, fromKroner, roundKroner, sumMoneyOre, toKroner, zeroMoneyOre } from '../../money/money';
+import { asCalculable } from '../shared/eoTypes';
 import { resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared } from '../helpers/eoSharedUtils';
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
 import type { ReguleringForloeb } from './reguleringForloeb';
@@ -35,7 +37,7 @@ export const resolveLoenudviklingRows = (
 
 export const segmentAmountOre = (baseLoenKronerRounded: number, quantity: number, deltaPct: number): MoneyOre => {
   const amountKroner = baseLoenKronerRounded * quantity * (1 + deltaPct / 100);
-  return toOre(roundKroner(amountKroner));
+  return fromKroner(roundKroner(amountKroner));
 };
 
 export const buildTafArbejdsdageSet = (
@@ -141,7 +143,7 @@ export const buildLoenudviklingModel = (
     }
 
     const baseLoenRounded = roundKroner(baseLoen);
-    const baseLoenOre = toOre(baseLoenRounded);
+    const baseLoenOre = fromKroner(baseLoenRounded);
     const tafArbejdageSet = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       ? buildTafArbejdsdageSet(values, tafRanges)
       : null;
@@ -187,7 +189,7 @@ export const buildLoenudviklingModel = (
       // KL-lønaftaler: den opregulerede, afrundede enhedsløn for perioden — bæres med på segmentet,
       // så indkomst-linjerne kan vise "antal á reguleret løn = beløb" uden faktor-tekst.
       const klLoenaftalerReguleretLoenOre = klLoenaftalerReguleretLoenResolver
-        ? toOre(klLoenaftalerReguleretLoenResolver.loenAt(segment.fra))
+        ? fromKroner(klLoenaftalerReguleretLoenResolver.loenAt(segment.fra))
         : undefined;
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
         const maanederStats = beregnArbejdsdageOgMaaneder(
@@ -235,14 +237,14 @@ export const buildLoenudviklingModel = (
     if (beregnedeSegmenter.length === 0) {
       return {
         loenudviklingLabel,
-        loenudviklingTotal: asCalculable(ensureMoneyOre(0)),
+        loenudviklingTotal: asCalculable(zeroMoneyOre()),
         beregnedeSegmenter,
         forloeb,
       };
     }
 
     const totalOre = clampMoneyOreToZero(
-      ensureMoneyOre(beregnedeSegmenter.reduce((sum, segment) => sum + segment.amountOre, 0))
+      sumMoneyOre(beregnedeSegmenter.map((segment) => segment.amountOre))
     );
     return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter, forloeb };
   };
@@ -282,9 +284,9 @@ export const buildLoenudviklingModel = (
                 new Set<ISODateString>(),
                 new Set<ISODateString>()
               ).maaneder,
-              maanedsloenOre: 0,
+              maanedsloenOre: zeroMoneyOre(),
               deltaPct: 0,
-              amountOre: 0,
+              amountOre: zeroMoneyOre(),
             }
             : {
               kind: 'arbejdsdage',
@@ -295,14 +297,14 @@ export const buildLoenudviklingModel = (
                 range.fra,
                 range.til
               ),
-              dagsloenOre: 0,
+              dagsloenOre: zeroMoneyOre(),
               deltaPct: 0,
-              amountOre: 0,
+              amountOre: zeroMoneyOre(),
             }
         ));
         return {
           loenudviklingLabel: 'Ingen',
-          loenudviklingTotal: asCalculable(0),
+          loenudviklingTotal: asCalculable(zeroMoneyOre()),
           beregningsenhed: tafBeregningsenhed,
           beregnedeSegmenter,
           perAnsaettelse: [],
@@ -349,16 +351,12 @@ export const buildLoenudviklingModel = (
       .flatMap((entry) => entry.beregnedeSegmenter)
       .slice()
       .sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
-    const totalOre = clampMoneyOreToZero(
-      ensureMoneyOre(
-        perAnsaettelse.reduce((sum, entry) => {
-          if (entry.loenudviklingTotal.status !== 'ok') {
-            throw new Error('Loenudvikling kan ikke beregnes for den valgte opsætning.');
-          }
-          return sum + entry.loenudviklingTotal.value;
-        }, 0)
-      )
-    );
+    const totalOre = clampMoneyOreToZero(sumMoneyOre(perAnsaettelse.map((entry) => {
+      if (entry.loenudviklingTotal.status !== 'ok') {
+        throw new Error('Loenudvikling kan ikke beregnes for den valgte opsætning.');
+      }
+      return entry.loenudviklingTotal.value;
+    })));
     const labels = Array.from(new Set(perAnsaettelse.map((entry) => entry.loenudviklingLabel)));
     const loenudviklingLabel = labels.length === 1 ? labels[0] : 'Flere reguleringstyper';
 
@@ -420,7 +418,7 @@ const resolveMaanedsloenBase = (
   if (eoValues.beregnesUdFra !== 'Beregningsperiode') return null;
   if (!indkomstSkadestidspunkt) return null;
   if (indkomstSkadestidspunkt.maanedsloen.status !== 'ok') return null;
-  return fromOre(indkomstSkadestidspunkt.maanedsloen.value);
+  return toKroner(indkomstSkadestidspunkt.maanedsloen.value);
 };
 
 const resolveDagsloenBase = (
@@ -434,5 +432,5 @@ const resolveDagsloenBase = (
   if (eoValues.beregnesUdFra !== 'Beregningsperiode') return null;
   if (!indkomstSkadestidspunkt) return null;
   if (indkomstSkadestidspunkt.dagsloen.status !== 'ok') return null;
-  return fromOre(indkomstSkadestidspunkt.dagsloen.value);
+  return toKroner(indkomstSkadestidspunkt.dagsloen.value);
 };

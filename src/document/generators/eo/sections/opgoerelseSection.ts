@@ -7,7 +7,8 @@ import {
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
 import { buildForligIndgaaetSaetning } from '../../../../domain/erstatningsopgoerelse/engines/forligsgrad';
-import type { Calculable, LoenudviklingSegment, MoneyOre, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { Calculable, LoenudviklingSegment, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { addMoneyOre, zeroMoneyOre, type MoneyOre } from '../../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } from './tafBeregningsgrundlagSection';
@@ -116,7 +117,7 @@ const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): 
         arbejdsdage: last.arbejdsdage + segment.arbejdsdage,
         dagsloenOre: last.dagsloenOre,
         deltaPct: last.deltaPct,
-        amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+        amountOre: addMoneyOre(last.amountOre, segment.amountOre),
         // Samme deltaPct og enhedsløn → samme regulerede løn (KL); bevar den.
         ...(last.reguleretLoenOre !== undefined ? { reguleretLoenOre: last.reguleretLoenOre } : {}),
       };
@@ -131,7 +132,7 @@ const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): 
         maaneder: last.maaneder + segment.maaneder,
         maanedsloenOre: last.maanedsloenOre,
         deltaPct: last.deltaPct,
-        amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+        amountOre: addMoneyOre(last.amountOre, segment.amountOre),
         ...(last.reguleretLoenOre !== undefined ? { reguleretLoenOre: last.reguleretLoenOre } : {}),
       };
       continue;
@@ -609,8 +610,14 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       const ydelserOk = !harYdelser || offentligeYdelserUdvikling!.total.status === 'ok';
       const samletForventetIndkomstOre =
         loenOk && ydelserOk
-          ? (loenudvikling.loenudviklingTotal.status === 'ok' ? loenudvikling.loenudviklingTotal.value : 0) +
-            (harYdelser && offentligeYdelserUdvikling!.total.status === 'ok' ? offentligeYdelserUdvikling!.total.value : 0)
+          ? addMoneyOre(
+            loenudvikling.loenudviklingTotal.status === 'ok'
+              ? loenudvikling.loenudviklingTotal.value
+              : zeroMoneyOre(),
+            harYdelser && offentligeYdelserUdvikling!.total.status === 'ok'
+              ? offentligeYdelserUdvikling!.total.value
+              : zeroMoneyOre()
+          )
           : null;
       if (visteSegmenter > 1 && samletForventetIndkomstOre !== null) {
         // Tom linje før "I alt" kun ved mere end én indtægtskilde. Med en enkelt kilde
@@ -646,7 +653,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       const skalViseTotal = tafIndtaegter.entries.length + (harValgtSygeferiegodtgoerelse ? 1 : 0) > 1;
       const tafIndtaegterTotalOre =
         tafIndtaegter.total.status === 'ok'
-          ? tafIndtaegter.total.value + (harValgtSygeferiegodtgoerelse ? sygeferiegodtgoerelseOre : 0)
+          ? addMoneyOre(
+            tafIndtaegter.total.value,
+            harValgtSygeferiegodtgoerelse ? sygeferiegodtgoerelseOre : zeroMoneyOre()
+          )
           : null;
 
       if (!harTafIndtaegterEntries) {
@@ -685,16 +695,19 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       // Forventet indkomst indgår i krav-formlen som ÉN sammentalt værdi (løn + offentlige
       // ydelser) — svarende til "I alt"-linjen under Forventet indkomst — ikke som separate
       // kilde-led. Selve resultatet er uændret; kun udtrykkets venstreside vises samlet.
-      const forventetIndkomstOre =
-        loenudviklingTotal.value +
-        (offentligeYdelserUdviklingTotal && offentligeYdelserUdviklingTotal.status === 'ok'
+      const forventetIndkomstOre = addMoneyOre(
+        loenudviklingTotal.value,
+        offentligeYdelserUdviklingTotal && offentligeYdelserUdviklingTotal.status === 'ok'
           ? offentligeYdelserUdviklingTotal.value
-          : 0);
+          : zeroMoneyOre()
+      );
       const positiveLed = [formatCurrencyFromOre(forventetIndkomstOre)];
       const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
       const harValgtSygeferiegodtgoerelse = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0;
-      const samledeIndtaegterIErstatningsperiodenOre =
-        tafTotal.value + (harValgtSygeferiegodtgoerelse ? sygeferiegodtgoerelseOre : 0);
+      const samledeIndtaegterIErstatningsperiodenOre = addMoneyOre(
+        tafTotal.value,
+        harValgtSygeferiegodtgoerelse ? sygeferiegodtgoerelseOre : zeroMoneyOre()
+      );
       const fradragsLed: string[] = [];
       if (samledeIndtaegterIErstatningsperiodenOre !== 0) {
         fradragsLed.push(formatCurrencyFromOre(samledeIndtaegterIErstatningsperiodenOre));

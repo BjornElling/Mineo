@@ -6,7 +6,7 @@ import {
   buildTafPerYearOpreguleretBuildOutcome,
   type TafPerYearOpreguleretResult,
 } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { moneyOre, type MoneyOre } from '../../../domain/money/money';
 import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import { toISODateString } from '../../../types/branded';
 import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
@@ -85,9 +85,9 @@ const FAKE_MODEL = {
     offentligeYdelserUdvikling: null,
     tafIndtaegter: null,
     tidligereModtagetTaf: { status: 'not_calculable', reason: 'x' },
-    sygeferiegodtgoerelse: { perAnsaettelsesforhold: [], totalOre: 0, perYear: [] },
-    tabtArbejdsfortjenesteFoerForligOre: 0,
-    tabtArbejdsfortjenesteOre: 0,
+    sygeferiegodtgoerelse: { perAnsaettelsesforhold: [], totalOre: moneyOre(0), perYear: [] },
+    tabtArbejdsfortjenesteFoerForligOre: moneyOre(0),
+    tabtArbejdsfortjenesteOre: moneyOre(0),
   },
 };
 
@@ -104,36 +104,36 @@ const makeYearEntry = (
       kind: 'arbejdsdage',
       quantity: 250,
       sourceLabel: 'Løn',
-      unitAmountOre: 200000 as MoneyOre,
+      unitAmountOre: moneyOre(200000),
       deltaPct: 0,
-      amountOre: 50000000 as MoneyOre,
+      amountOre: moneyOre(50000000),
     },
   ],
   deductions: [
-    { label: 'Sygedagpenge', amountOre: 12500000 as MoneyOre },
+    { label: 'Sygedagpenge', amountOre: moneyOre(12500000) },
   ],
-  yearIncomeOre: 50000000 as MoneyOre,
-  yearDeductionsOre: 12500000 as MoneyOre,
-  yearTidligereModtagetTafOre: 0 as MoneyOre,
+  yearIncomeOre: moneyOre(50000000),
+  yearDeductionsOre: moneyOre(12500000),
+  yearTidligereModtagetTafOre: moneyOre(0),
   yearTafFoerForligOre: amountOre,
   yearTafOre: amountOre,
   ...overrides,
 });
 
 const FAKE_PRESENTATION: TafPerYearResult = {
-  years: [makeYearEntry(2024, 37500000 as MoneyOre), makeYearEntry(2025, 37500000 as MoneyOre)],
-  sumYearTafOre: 75000000 as MoneyOre,
-  afrundingOre: 0 as MoneyOre,
-  samletTafKravOre: 75000000 as MoneyOre,
+  years: [makeYearEntry(2024, moneyOre(37500000)), makeYearEntry(2025, moneyOre(37500000))],
+  sumYearTafOre: moneyOre(75000000),
+  afrundingOre: moneyOre(0),
+  samletTafKravOre: moneyOre(75000000),
 };
 
 const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
   beregningsAar: 2026,
   years: [
-    { year: 2024, yearTafOre: 37500000 as MoneyOre, deltaPct: 5.1234, yearTafOpreguleretOre: 39421275 as MoneyOre },
-    { year: 2025, yearTafOre: 37500000 as MoneyOre, deltaPct: 2.5678, yearTafOpreguleretOre: 38462925 as MoneyOre },
+    { year: 2024, yearTafOre: moneyOre(37500000), deltaPct: 5.1234, yearTafOpreguleretOre: moneyOre(39421275) },
+    { year: 2025, yearTafOre: moneyOre(37500000), deltaPct: 2.5678, yearTafOpreguleretOre: moneyOre(38462925) },
   ],
-  sumOpreguleretOre: 77884200 as MoneyOre,
+  sumOpreguleretOre: moneyOre(77884200),
 };
 
 const FAKE_DOCUMENT: TafPerYearOpreguleretDocument = {
@@ -198,7 +198,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
   });
 
   it('viser og beregner opreguleringslinjen med fire-decimalers faktor fra beregningsmotoren', () => {
-    const baseTafOre = 28776300 as MoneyOre;
+    const baseTafOre = moneyOre(28776300);
     const presentation: TafPerYearResult = {
       ...FAKE_PRESENTATION,
       years: [makeYearEntry(2024, baseTafOre)],
@@ -268,7 +268,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
   it('viser indtægterne i beregnet-krav-formlen som ÉN sammentalt fradragsværdi — ikke pr. post', () => {
     // To fradrag (444,28 + 236.926,00 = 237.370,28). Formlen skal vise totalen, ikke de
     // enkelte poster — ensartet med den almindelige erstatningsopgørelse.
-    const yearMedFlereFradrag = makeYearEntry(2024, 26716669 as MoneyOre, {
+    const yearMedFlereFradrag = makeYearEntry(2024, moneyOre(26716669), {
       segments: [
         {
           fra: toISODateString('2024-01-02'),
@@ -276,17 +276,17 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
           kind: 'arbejdsdage' as const,
           quantity: 250,
           sourceLabel: 'Løn',
-          unitAmountOre: 205814 as MoneyOre,
+          unitAmountOre: moneyOre(205814),
           deltaPct: 0,
-          amountOre: 51453697 as MoneyOre,
+          amountOre: moneyOre(51453697),
         },
       ],
       deductions: [
-        { label: 'Feriepenge', amountOre: 44428 as MoneyOre },
-        { label: 'Sygedagpenge', amountOre: 23692600 as MoneyOre },
+        { label: 'Feriepenge', amountOre: moneyOre(44428) },
+        { label: 'Sygedagpenge', amountOre: moneyOre(23692600) },
       ],
-      yearIncomeOre: 51453697 as MoneyOre,
-      yearDeductionsOre: 23737028 as MoneyOre,
+      yearIncomeOre: moneyOre(51453697),
+      yearDeductionsOre: moneyOre(23737028),
     });
     generate({
       document: {

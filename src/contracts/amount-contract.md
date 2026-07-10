@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` for draft/commit-semantik; overordnet arkitekturdokumenter ved konflikt.  
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-11
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
 
@@ -49,7 +49,29 @@ Ad hoc-afrunding i featurekomponenter er arkitektonisk fejl.
 
 ---
 
-## 4. Afrundingsregel
+## 4. MoneyOre og pengealgebra
+
+`MoneyOre` er den kanoniske type for beregnede ørebeløb. Den autoritative kilde er
+`src/domain/money/money.ts`, hvor typen afledes direkte af det brandede Zod-schema
+`moneyOreSchema`.
+
+Regler:
+
+1. Et råt `number` må kun blive til `MoneyOre` gennem `moneyOre(...)`, `fromKroner(...)`
+   eller en anden konstruktor i det kanoniske pengemodul.
+2. Addition, subtraktion, summering og skalering af `MoneyOre` skal bruge modulets navngivne
+   algebra. Rå aritmetik giver et ubundet `number` og må ikke type-castes tilbage til `MoneyOre`.
+3. Negative ørebeløb er gyldige mellemresultater. Clamp til nul er en særskilt, eksplicit
+   domænehandling via `clampMoneyOreToZero(...)`.
+4. `fromKroner(...)` accepterer højst to decimaler og bevarer standardafrundingen. Intermediære
+   beregninger med højere præcision skal afrundes efter den relevante domæneregel, før de
+   konverteres til øre.
+5. Brandet er kun en compile-time-enhed. Runtime-/schema-/JSON-repræsentationen forbliver et
+   heltal, så dokumentprojektioner og snapshot-roundtrips ikke får en parallel datastruktur.
+6. Direkte `as MoneyOre`/`<MoneyOre>` uden for pengemodulet er en arkitekturfejl og håndhæves
+   af det AST-baserede arkitekturværn.
+
+## 5. Afrundingsregel
 
 Standard for beløb er 2 decimaler med `half away from zero`, medmindre en mere specifik domænekontrakt definerer en anden regel.
 
@@ -59,7 +81,7 @@ Bemærk: `.refine(Number.isFinite, …)` på `value` er load-bearing, fordi den 
 
 ---
 
-## 5. Testkrav
+## 6. Testkrav
 
 Trust-kritiske numeriske ændringer skal have tests for:
 
@@ -68,3 +90,7 @@ Trust-kritiske numeriske ændringer skal have tests for:
 3. negative værdier hvor det er tilladt,
 4. udtryk hvor operander ikke pre-afrundes,
 5. domænespecifik afrunding, hvis den afviger fra standarden.
+
+Pengealgebraen skal desuden teste konstruktion, enhedsoperationer, negative værdier,
+overflow/fail-closed og krone↔øre-roundtrip. Beregningsændringer skal bevare eksisterende
+golden-værdier for de berørte domæner.

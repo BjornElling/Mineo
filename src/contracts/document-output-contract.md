@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-06-22
+**Senest verificeret mod kode:** 2026-07-11
 
 ## 1. Scope
 
@@ -117,7 +117,7 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
    - **Word-kanalen** i `src/docx/` (writer + understøttende infrastruktur). Begge kanaler indeholder ingen domænegeneratorer: PDF og Word genbruger de samme generatorer i `src/document/generators/` via det fælles writer-API (jf. afsnit B).
 3. Der findes **ikke** længere et selvstændigt EO-PDF-lag under `src/domain/erstatningsopgoerelse/pdf/`. Det tidligere lag var ikke reel renderingskode (ingen jsPDF), men EO-præsentations- og regulerings-logik, der byggede tabel-*data*. Den er konsolideret ind i domænelaget (review-planens punkt 10.5):
    - Regulerings-/lønudviklings-tabeldata: `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`.
-   - Money-typer og -afrunding: `src/domain/erstatningsopgoerelse/shared/eoMoney.ts`.
+   - Pengeenhed og -algebra: `src/domain/money/money.ts`.
    - EO-model-typer: `src/domain/erstatningsopgoerelse/shared/eoTypes.ts`.
    - Delte EO-helpers (dato-/sats-/pct-utils): `src/domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts`.
    - Lønudviklings-segmentering: `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts`.
