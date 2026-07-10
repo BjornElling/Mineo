@@ -121,7 +121,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 1 | 47 | Ét verificeret release-artefakt | ★★★★★ | ★★★★☆ | ★★★★★ | fundament for alle senere spor |
+| 1 | 47 | ✅ Ét verificeret release-artefakt | ★★★★★ | ★★★★☆ | ★★★★★ | fundament for alle senere spor |
 | 2 | 48 | AST-baseret arkitekturgrænse-harness | ★★★★☆ | ★★★☆☆ | ★★★★★ | styrker alle kontraktændringer |
 | 3 | 49 | Neutral måneds-/intervalalgebra | ★★★★☆ | ★★★★☆ | ★★★☆☆ | før #36 |
 | 4 | 37 | Branded `MoneyOre` + lukket pengealgebra | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætning for #36 |
@@ -581,6 +581,7 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 47 — Byg én gang, verificér og deployér samme artefakt · 14
 
+- **Status: ✅ Gennemført (2026-07-10).** Én autoritativ `verify:release`-gate i `package.json` samler nu alle eksisterende værktøjer i én kæde: `typecheck` (kilde) → `typecheck:test` → `lint` → `check:mojibake` → `check:filename-case` → `test:coverage` (nyt script, aktiverer den hidtil sovende v8-coverage + tærskler) → `build:all`. `check` delegerer nu til `verify:release`, så lokal gate og CI er byte-for-byte samme kommando (fjerner drift). CI's `verify`-job er reduceret til ét `npm run verify:release`-trin og **uploader** de to verificerede `dist/`-artefakter (`actions/upload-artifact@v4`, `if-no-files-found: error`); `deploy`-jobbet **downloader** præcis dem (`actions/download-artifact@v4`) og kører kun `wrangler deploy` — **ingen rebuild**. Dermed er de deployede bytes bevisligt identiske med de verificerede (den tidligere dobbelt-build gav divergerende `builtAt`). Den ubrugte `@playwright/test`-devDependency er fjernet (+ `playwright`/`playwright-core` pruned fra lock; intet nyt testframework indført). Coverage-tærsklerne blev **ikke** sænket: fuld suite grøn med Lines 88,98 % / Branches 77,3 % mod tærskler 80/70. Hele `verify:release` verificeret grøn lokalt (exit 0, begge `dist/`-artefakter produceret).
 - **Scope:** `package.json`, `vite.config.ts` og `.github/workflows/ci.yml`.
 - **Problem:** `check` mangler lint/build/coverage; CI mangler lint, `typecheck:test` og coverage. Coverage-provider + thresholds er konfigureret, men aktiveres aldrig. Verify-jobbet bygger begge apps, hvorefter deploy-jobbet checker ud og bygger igen; `builtAt` gør de deployede bytes beviseligt forskellige fra de verificerede.
 - **Greenfield:** Én autoritativ `verify:release` over eksisterende værktøjer (source/test-typecheck, lint, Vitest+coverage, `build:all`, build-output guards). CI uploader de to verificerede `dist`-artefakter, og deploy-jobbet deployer præcis dem uden rebuild. Den ubrugte Playwright-dependency fjernes; intet nyt testframework/paradigme indføres.

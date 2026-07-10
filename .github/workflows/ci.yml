@@ -24,17 +24,19 @@ jobs:
       - name: Install dependencies (strict)
         run: npm ci
 
-      - name: Generate build info
-        run: npm run generate:build-info
+      # Én autoritativ gate. Identisk med lokal `npm run check`:
+      # typecheck + typecheck:test + lint + mojibake/casing + Vitest m. coverage + build:all.
+      # De byggede `dist/`-artefakter herfra er præcis dem, deploy-jobbet udgiver.
+      - name: Verify release
+        run: npm run verify:release
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build all app variants
-        run: npm run build:all
+      - name: Upload verified build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+          if-no-files-found: error
 
   deploy:
     needs: verify
@@ -42,25 +44,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout kun for wrangler-konfigurationerne; der bygges IKKE på ny.
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Download verified build artifacts
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup Node from .nvmrc
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-
-      - name: Install dependencies (strict)
-        run: npm ci
-
-      - name: Generate build info
-        run: npm run generate:build-info
-
-      - name: Build all app variants
-        run: npm run build:all
+          name: dist
+          path: dist/
 
       - name: Deploy Mineo
         uses: cloudflare/wrangler-action@v4
