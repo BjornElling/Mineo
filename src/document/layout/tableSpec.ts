@@ -76,11 +76,6 @@ export type TotalRowSpec = Readonly<{
   readonly __total: true;
   row: RowInput;
   valueColumnIndex: number;
-  // Når true: rydder stribe-baggrunden (fillColor:false) og fjerner cellekant
-  // (lineWidth:0) på hele total-rækken. Kun de call-sites, der gjorde det eksplicit
-  // (årsløn, SH-dage), sætter dette; andre lader stribningen stå (parities-afhængigt),
-  // så outputtet forbliver byte-identisk med den tidligere kaldeform.
-  clearFill?: boolean;
 }>;
 
 export type RowSpec = CellRowSpec | TotalRowSpec;
@@ -100,27 +95,23 @@ const isTotalRow = (row: RowSpec): row is TotalRowSpec => '__total' in row && ro
 type SummedTotalOptions = Parameters<typeof createDocumentTableSummedTotalRow>[2];
 type FormattedTotalOptions = Parameters<typeof createDocumentTableFormattedTotalRow>[2];
 
-export type TotalRowStyle = Readonly<{ clearFill?: boolean }>;
-
 export const buildSummedTotalRowSpec = (
   label: string,
   values: ReadonlyArray<number>,
-  options: SummedTotalOptions,
-  rowStyle?: TotalRowStyle
+  options: SummedTotalOptions
 ): TotalRowSpec | null => {
   const total = createDocumentTableSummedTotalRow(label, values, options);
   if (!total) return null;
-  return { __total: true, row: total.row, valueColumnIndex: total.valueCellColumnIndex, clearFill: rowStyle?.clearFill };
+  return { __total: true, row: total.row, valueColumnIndex: total.valueCellColumnIndex };
 };
 
 export const buildFormattedTotalRowSpec = (
   label: string,
   formattedValue: string,
-  options: FormattedTotalOptions,
-  rowStyle?: TotalRowStyle
+  options: FormattedTotalOptions
 ): TotalRowSpec => {
   const total = createDocumentTableFormattedTotalRow(label, formattedValue, options);
-  return { __total: true, row: total.row, valueColumnIndex: total.valueCellColumnIndex, clearFill: rowStyle?.clearFill };
+  return { __total: true, row: total.row, valueColumnIndex: total.valueCellColumnIndex };
 };
 
 // ── Compiler ─────────────────────────────────────────────────────────────────
@@ -207,14 +198,12 @@ export const compileTableSpecToLegacyParams = (
   const transparentRowIndices: number[] = [];
   const mutedRowIndices = new Set<number>();
   const totalRowIndices = new Set<number>();
-  const clearFillRowIndices = new Set<number>();
 
   spec.rows.forEach((row, rowIndex) => {
     if (isTotalRow(row)) {
       body.push(row.row);
       underlinedCellPositions.push({ rowIndex, columnIndex: row.valueColumnIndex });
       totalRowIndices.add(rowIndex);
-      if (row.clearFill) clearFillRowIndices.add(rowIndex);
       return;
     }
 
@@ -228,7 +217,7 @@ export const compileTableSpecToLegacyParams = (
     .map((column, index) => ({ index, rightInset: column.rightInset }))
     .filter((entry): entry is { index: number; rightInset: ColumnRightInset } => entry.rightInset !== undefined);
 
-  const needsHook = mutedRowIndices.size > 0 || clearFillRowIndices.size > 0 || insetColumns.length > 0;
+  const needsHook = mutedRowIndices.size > 0 || totalRowIndices.size > 0 || insetColumns.length > 0;
 
   const didParseCell: LegacyTableParams['didParseCell'] | undefined = needsHook
     ? (data, resolvedColumnWidths) => {
@@ -239,7 +228,9 @@ export const compileTableSpecToLegacyParams = (
           data.cell.styles.textColor = PDF_MUTED_TEXT_COLOR;
         }
 
-        if (clearFillRowIndices.has(rowIndex)) {
+        // En total-række er en semantisk række (fed, understreget værdi) og skal se ens
+        // ud overalt: aldrig stribe-baggrund, ingen cellekant — uafhængigt af rækkeantal.
+        if (totalRowIndices.has(rowIndex)) {
           data.cell.styles.fillColor = false;
           data.cell.styles.lineWidth = 0;
         }

@@ -144,8 +144,7 @@ export const buildSHDageTableRows = (
       formatValue: (total) => String(total),
       valueAlign: 'center',
       preserveValueColumn: true,
-    },
-    { clearFill: true }
+    }
   );
   if (totalRow) rows.push(totalRow);
 

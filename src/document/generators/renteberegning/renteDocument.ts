@@ -90,13 +90,13 @@ const addSpecificationTable = (
   const doc = writer.getDoc();
   const startY = writer.getY();
 
-  // Rentedage/Rentesats er centreret i header og i Word, men højrejusteres visuelt i PDF
-  // via et fast inset (rent præsentation — Word bevarer centreringen, som hidtil). Derfor
-  // kolonne-align 'center' (læst af build + Word) + rightInset (kun PDF, sat i didParseCell).
+  // Rentedage/Rentesats er højrejusteret i BEGGE kanaler (talkolonne-konvention, som
+  // 'Beregnet rente'); PDF får desuden et fast visuelt inset. Overskrifterne holdes
+  // centrerede via eksplicit celle-override på header-rækken.
   const columns: readonly ColumnSpec[] = [
     { width: { kind: 'flex' }, align: 'left' },
-    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'center', rightInset: { kind: 'fixed', mm: RIGHT_ALIGNED_INSET_RENTEDAGE_MM } },
-    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'center', rightInset: { kind: 'fixed', mm: RIGHT_ALIGNED_INSET_RENTESATS_MM } },
+    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'right', rightInset: { kind: 'fixed', mm: RIGHT_ALIGNED_INSET_RENTEDAGE_MM } },
+    { width: { kind: 'fixed', mm: PDF_TABLE_NARROW_COLUMN_WIDTH }, align: 'right', rightInset: { kind: 'fixed', mm: RIGHT_ALIGNED_INSET_RENTESATS_MM } },
     { width: { kind: 'fixed', mm: 35 }, align: 'right' },
   ];
 
@@ -129,7 +129,15 @@ const addSpecificationTable = (
     columns,
     hasHeaderRow: true,
     rows: [
-      { kind: 'header', cells: [{ text: 'Periode' }, { text: 'Rentedage' }, { text: 'Rentesats' }, { text: 'Beregnet rente' }] },
+      {
+        kind: 'header',
+        cells: [
+          { text: 'Periode' },
+          { text: 'Rentedage', align: 'center' },
+          { text: 'Rentesats', align: 'center' },
+          { text: 'Beregnet rente' },
+        ],
+      },
       ...dataRows,
       ...(totalRow ? [totalRow] : []),
     ],

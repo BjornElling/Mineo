@@ -196,8 +196,7 @@ const addIndtaegtsoplysningerTable = (
     ? buildFormattedTotalRowSpec(
         'I alt',
         `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`,
-        { columnCount, valueColumnIndex: 8, labelAlign: 'center', valueHasKrSuffix: false },
-        { clearFill: true }
+        { columnCount, valueColumnIndex: 8, labelAlign: 'center', valueHasKrSuffix: false }
       )
     : null;
 
