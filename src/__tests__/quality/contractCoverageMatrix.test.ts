@@ -42,9 +42,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/persistence-contract.md',
     requiredTestPaths: [
-      'src/__tests__/quality/persistenceAccessIsolation.test.ts',
+      // Import-/adgangs-grænserne (persistence-store, FormPersistenceContext, sessionStorage)
+      // håndhæves nu af det AST-baserede arkitektur-harness.
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/quality/persistenceCommittedMirrorIsolation.test.ts',
-      'src/__tests__/quality/sessionStorageBoundaryIsolation.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
       'src/__tests__/utils/persistenceSnapshotStorage.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
@@ -62,7 +63,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/page-component-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/domainBoundaryIsolation.test.ts',
-      'src/__tests__/quality/persistenceAccessIsolation.test.ts',
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
     ],
   },
   {
