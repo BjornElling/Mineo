@@ -1,6 +1,6 @@
 import type { MidlertidigtEetAfgoerelseGroup } from './midlertidigtEetInsertRows';
 import type { IsoRange } from '../engines/periodRangeGroups';
-import { sumMaanedsbroekForInterval } from '../engines/periodiseringsMotor';
+import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
 import { roundHeleKroner } from '../shared/eoMoney';
 import type { ISODateString } from '../../../types/branded';
 import { parseISODate } from '../../../types/branded';

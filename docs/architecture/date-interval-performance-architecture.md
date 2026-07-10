@@ -30,7 +30,9 @@ Hvis beregningen kun skal bruge et antal dage, bruges `countInclusiveUtcDays` fr
 
 Hvis beregningen skal bruge helligdage i et interval, itereres helligdage pr. år i `src/domain/dates/shDageBeregning.ts`; hele kalenderintervallet materialiseres ikke først.
 
-Hvis beregningen skal bruge månedsbrøker, bruges den kanoniske EO-helper `sumMaanedsbroekForInterval` i `src/domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts`.
+Hvis beregningen skal bruge månedsbrøker, bruges den domæne-neutrale helper
+`sumMaanedsbroekForInterval` i `src/domain/dates/maanedsbroek.ts`. Domænespecifikke fradrag og
+afrundinger lægges oven på denne algebra i det domæne, der ejer reglen.
 
 ## 3. Tilladte interval-løkker
 

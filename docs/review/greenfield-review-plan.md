@@ -123,7 +123,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 |:---:|:---:|---|:---:|:---:|:---:|---|
 | 1 | 47 | ✅ Ét verificeret release-artefakt | ★★★★★ | ★★★★☆ | ★★★★★ | fundament for alle senere spor |
 | 2 | 48 | 🟡 AST-baseret arkitekturgrænse-harness (motor + batch 1–2) | ★★★★☆ | ★★★☆☆ | ★★★★★ | styrker alle kontraktændringer |
-| 3 | 49 | Neutral måneds-/intervalalgebra | ★★★★☆ | ★★★★☆ | ★★★☆☆ | før #36 |
+| 3 | 49 | ✅ Neutral måneds-/intervalalgebra | ★★★★☆ | ★★★★☆ | ★★★☆☆ | før #36 |
 | 4 | 37 | Branded `MoneyOre` + lukket pengealgebra | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætning for #36 |
 | 5 | 39 | Persistence initialiseres før React-render | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | før #19, #28, #33 |
 | 6 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
@@ -599,6 +599,13 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 49 — Neutral måneds-/intervalalgebra ud af EO-motoren · 11
 
+- **Status: ✅ Gennemført (2026-07-10).** Den rene inklusive månedsbrøk er flyttet til
+  `domain/dates/maanedsbroek.ts` og bruges nu direkte af både EO- og EET-domænet. EO-motoren
+  ejer fortsat sin fraværsjustering og afrunding, mens EET ikke længere importerer en
+  søsterdomæne-engine. De eksisterende golden-værdier for månedsgrænser, skudår og
+  floating-point-identitet er flyttet til en domæne-neutral test; EET's karakterisering er
+  bevaret. Den ubrugte, test-only offentlige-ydelses-wrapper i `utils/periodeBeregning.ts` og
+  dens duplikerede tests er fjernet.
 - **Scope:** `erstatningsopgoerelse/engines/periodiseringsMotor.ts`, `domain/erhvervsevnetab/eetDifferencekravCalculation.ts`, `eetLoebendeYdelserCalculation.ts` og `utils/periodeBeregning.ts`.
 - **Problem:** EET importerer `optaelMaanederPraecis` direkte fra EO's engine i to beregninger; en `utils/`-wrapper importerer samme EO-motor og bruges kun af tests. En domæne-neutral månedsbrøk er dermed ejet af én side, og søsterdomænet bryder laggrænsen for at genbruge den.
 - **Greenfield:** Flyt rene ISO-interval-/månedsbrøk-primitiver til `domain/dates/`; EO-motoren beholder kun EO-politik. Fjern den test-only produktionswrapper og test den neutrale algebra direkte.

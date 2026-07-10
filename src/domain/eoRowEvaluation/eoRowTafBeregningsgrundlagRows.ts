@@ -8,7 +8,7 @@ import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
 import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder } from '../erstatningsopgoerelse/engines/tafCalculations';
-import { sumMaanedsbroekForInterval } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
+import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
 import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/engines/ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
@@ -580,4 +580,3 @@ export const buildEoTafBeregningsgrundlagRows = (
 
   return rows;
 };
-

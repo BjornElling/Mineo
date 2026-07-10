@@ -7,7 +7,7 @@ import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standard
 import { buildIncomeForRanges, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
-import { sumMaanedsbroekForInterval } from '../engines/periodiseringsMotor';
+import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { formatDocumentMaanederTrimmed } from '../../../utils/documentMaanederFormatting';

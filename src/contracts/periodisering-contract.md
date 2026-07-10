@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-07-08  
+**Senest verificeret mod kode:** 2026-07-10
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -22,6 +22,10 @@ Mineo har flere legitime periodiseringskategorier. De må ikke blandes:
 
 EO's periodiseringsmotor må ikke automatisk antages at gælde for Årsløn, EET eller Forsørgertab.
 
+Den rene, domæne-neutrale månedsbrøk for et inklusivt ISO-datointerval ejes af
+`src/domain/dates/maanedsbroek.ts`. Domæner må genbruge denne algebra, men fradrag,
+afrunding og øvrige periodiseringsregler forbliver hos det enkelte domæne.
+
 ---
 
 ## 1A. Kanonisk EO-motor
@@ -35,7 +39,7 @@ Følgende ansvar hører normativt hjemme dér:
 - periodisering af beløb på kalenderdage
 - periodisering af beløb på arbejdsdage
 - dagtælling for offentlige ydelser
-- optælling af måneder
+- EO's fraværsjusterede optælling og afrunding af måneder
 - optælling af arbejdsdage
 - SH-/ferie-/fraværsregler, når de indgår i periodiseringssemantikken
 - domænespecifikke undtagelser, fx sygedagpenge før `2012-07-02`

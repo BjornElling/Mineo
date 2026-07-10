@@ -188,7 +188,9 @@ Kapitalisering er global og datoafhængig: alle kapitaliseringer med dato på el
 beregnet_eet = round0(måneder_præcis × månedlig_ydelse)
 ```
 
-Måneder opgøres med `optaelMaanederPraecis` fra `periodiseringsMotor.ts`, som tæller dage/dage-i-måneden for hver dag i perioden. Det fulde decimaltal bruges i beregningen.
+Måneder opgøres med den domæne-neutrale `sumMaanedsbroekForInterval` fra
+`domain/dates/maanedsbroek.ts`, som tæller dage/dage-i-måneden for hver dag i perioden. Det fulde
+decimaltal bruges i beregningen.
 
 I alt per afgørelse: summen af alle rækker (fuld + rest sektion). Der er ingen samlet total på tværs af afgørelser.
 

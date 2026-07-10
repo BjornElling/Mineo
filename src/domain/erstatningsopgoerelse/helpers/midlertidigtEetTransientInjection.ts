@@ -5,7 +5,7 @@ import { isAslAfgoerelseRowEmpty } from '../../erhvervsevnetab/eetAslAfgoerelser
 import { buildMidlertidigtEetAfgoerelseGroupsFromComputation, type MidlertidigtEetAfgoerelseGroup, type MidlertidigtEetInsertSource } from './midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser, EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
-import { sumMaanedsbroekForInterval } from '../engines/periodiseringsMotor';
+import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
 import { splitIsoRangeByCalendarMonthsInclusive } from '../engines/periodRangeGroups';
 
 export type MidlertidigtEetTransientResult = Readonly<{

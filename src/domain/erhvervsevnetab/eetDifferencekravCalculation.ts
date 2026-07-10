@@ -43,7 +43,7 @@ import {
   type MerErstatningPensionsalderComputation,
 } from './eetMerErstatningPensionsalderCalculation';
 import { hasTextValue } from './eetAslAfgoerelser';
-import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
+import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -480,12 +480,11 @@ const computeResterendeLoebendeYdelser = (
   const dagenFoerFolkepensionsdato = getDagenFoerFolkepensionsdato(args.fodselsdato, args.beregningsdato);
   if (!dagenFoerFolkepensionsdato || args.beregningsdato > dagenFoerFolkepensionsdato) return null;
 
-  const tilbageraevendeMaaneder = optaelMaanederPraecis({
-    fra: args.beregningsdato,
-    til: dagenFoerFolkepensionsdato,
-    oevrigeFravaersdage: 0,
-  });
-  if (tilbageraevendeMaaneder === null || tilbageraevendeMaaneder <= 0) return null;
+  const tilbageraevendeMaaneder = sumMaanedsbroekForInterval(
+    args.beregningsdato,
+    dagenFoerFolkepensionsdato
+  );
+  if (tilbageraevendeMaaneder <= 0) return null;
 
   const beregningsaar = isoYear(args.beregningsdato);
   const grundydelse = round2(
@@ -614,12 +613,7 @@ const computeTilbagevirkendeKraftFradrag = (
       continue;
     }
     // Rækken krydser den endelige virkningsdato — medregn kun delen fra og med den dato.
-    const maaneder = optaelMaanederPraecis({
-      fra: endeligVirkningsdato,
-      til: row.til,
-      oevrigeFravaersdage: 0,
-    });
-    if (maaneder === null) continue;
+    const maaneder = sumMaanedsbroekForInterval(endeligVirkningsdato, row.til);
     beloeb += round0(maaneder * row.maanedligYdelse);
   }
 

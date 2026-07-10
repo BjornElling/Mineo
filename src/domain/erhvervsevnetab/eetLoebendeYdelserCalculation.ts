@@ -26,7 +26,7 @@ import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
-import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
+import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
 import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent } from './eetAslAfgoerelser';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 
@@ -759,12 +759,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       const grundydelseAfrundet = effektivGrundydelseBase;
       const aarsydelse = ceilNearest12(effektivGrundydelseBase * rateInfo.factor);
       const maanedligYdelse = aarsydelse / 12;
-      const maanederPraecis = optaelMaanederPraecis({
-        fra: sectionRow.fra,
-        til: sectionRow.til,
-        oevrigeFravaersdage: 0,
-      });
-      if (maanederPraecis === null) continue;
+      const maanederPraecis = sumMaanedsbroekForInterval(sectionRow.fra, sectionRow.til);
       const beregnetEet = round0(maanederPraecis * maanedligYdelse);
       // Tabellerne på siden og i PDF'en viser kun perioder med et faktisk krav.
       if (beregnetEet === 0) continue;
@@ -965,4 +960,3 @@ export const formatSkadedatoCompact = (iso: ISODateString): string => {
 // formatPct ejes nu af eetFormatUtils (ÉN sandhedskilde, delt UI↔dokument). Re-eksporteres her
 // for bagudkompatibilitet med eksisterende importsteder.
 export { formatPct } from './eetFormatUtils';
-

@@ -6,15 +6,11 @@
 
 import type { DateInterval } from '../types/calculation';
 import type { StandardLoenTableRow } from '../schemas/formSchemas';
-import { coerceToISODateString, parseISODate, toISODateString, type ISODateString } from '../types/branded';
+import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
 import { createDate, formatToISO, isLeapYear, parseWeekString } from './dateUtils';
-import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays } from './utcDayMath';
 import { iterateDatesInclusive } from './isoDateHelpers';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
-import {
-  countOffentligYdelsePeriodiseringsdage,
-} from '../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 
 /**
  * Hyppigste gennemsnitlige antal hverdage på et kalenderår.
@@ -452,39 +448,5 @@ export const beregnDagPeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
     datoSet: dage,
     perioder
   };
-};
-
-/**
- * Beregner periodiseringsdage inklusiv start/slut.
- * Bruges til beregning af ydelse pr. dag for offentlige ydelser.
- * Bygger et datoSet via kalender-iteration (DST-safe uden ms-diff).
- *
- * @param fraDato - Startdato (ISO eller dansk datoformat)
- * @param tilDato - Slutdato (ISO eller dansk datoformat)
- * @param periodisering - 'kalenderdage' | 'arbejdsdage'
- * @param ydelsestype - Ydelsestype (bruges til speciel regel for Sygedagpenge)
- * @returns Antal dage, eller null hvis datoer er ugyldige
- */
-export const beregnPeriodiseringsDage = (
-  fraDato: string | undefined,
-  tilDato: string | undefined,
-  periodisering: Periodisering,
-  ydelsestype?: string
-): number | null => {
-  if (!fraDato || !tilDato) return null;
-  if (periodisering !== 'kalenderdage' && periodisering !== 'arbejdsdage') return null;
-
-  const fraIso = coerceToISODateString(fraDato);
-  const tilIso = coerceToISODateString(tilDato);
-  const fra = parseISODate(fraIso);
-  const til = parseISODate(tilIso);
-  if (!fra || !til || fra > til) return null;
-
-  return countOffentligYdelsePeriodiseringsdage({
-    fra: formatToISO(fra),
-    til: formatToISO(til),
-    periodisering,
-    ydelsestypeKey: ydelsestype ?? '',
-  });
 };
 

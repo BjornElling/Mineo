@@ -112,7 +112,8 @@ Dagen efter TAF-periodens slut beskrives med en arbejdsstatus-linje der inkluder
 | Fil | Ansvar |
 |---|---|
 | `src/domain/erstatningsopgoerelse/tafBeregningsenhed.ts` | Bestemmer beregningsenhed (Måneder/Arbejdsdage); eksporterer `computeTafBeregningsenhed`, `TAF_BEREGNES_SOM`, `TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR` |
-| `src/domain/erstatningsopgoerelse/periodiseringsMotor.ts` | Central periodiseringsmotor; optælling af måneder og arbejdsdage; periodisering af løn og offentlige ydelser |
+| `src/domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts` | Central EO-periodiseringsmotor; fraværsjusteret optælling af måneder og arbejdsdage samt periodisering af løn og offentlige ydelser |
+| `src/domain/dates/maanedsbroek.ts` | Domæne-neutral månedsbrøk for inklusive ISO-datointervaller |
 | `src/domain/erstatningsopgoerelse/tafBeregningsEngine.ts` | Aggregeret TAF-engine; merger overlappende perioder; eksporterer `buildMergedTafGroups`, `computeTafArbejdsdageAggregation` |
 | `src/domain/erstatningsopgoerelse/tafNettoBeregning.ts` | Netto-TAF-beregning; orkestrerer lønudvikling, TAF-indtægter og tidligere modtaget TAF; eksporterer `computeTafNettoBeregning` |
 | `src/domain/erstatningsopgoerelse/tafPeriodConstraints.ts` | Grænser og clamping for TAF-perioder; `resolveTafConstraintBounds`, `resolveTafFejlgivendeBounds`, `resolveTafEoPeriodeBounds`, `clampTafRange` |

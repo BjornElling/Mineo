@@ -3,7 +3,7 @@ import type { ISODateString } from '../../../types/branded';
 import { dateToISO, parseISODate } from '../../../types/branded';
 import { addDays } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
-import { iterateDatesInclusive, iterateIsoDatesInclusive } from '../../../utils/isoDateHelpers';
+import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
 import type { Periodisering } from '../../../data/ydelsestyper';
 import { resolveSygedagpengeTimerForUtcWeekday } from '../../../data/sygedagpengeRates';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
@@ -14,6 +14,7 @@ import { roundByMethod } from '../../../utils/rounding';
 import { type DateInterval, type IsoRange } from '../../../utils/isoDateHelpers';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
 import { assertNever } from '../../../utils/assertNever';
+import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
 
 /**
  * CENTRAL PERIODISERINGSMOTOR (normativ)
@@ -21,7 +22,7 @@ import { assertNever } from '../../../utils/assertNever';
  * Denne motor er den fælles kilde til sandhed for:
  * 1) Beløbsperiodisering for offentlige ydelser (kalenderdage/arbejdsdage pr. ydelsestype-regel)
  * 2) Lønindkomstens arbejdsdage-sæt (grundlag for lønperiodisering i indtaegtPerioder.ts)
- * 3) Optælling af måneder
+ * 3) EO's fraværsjusterede optælling af måneder
  * 4) Optælling af arbejdsdage
  *
  * Beregningsprincipper:
@@ -428,39 +429,6 @@ export const optaelMaanederPraecis = (args: {
 
   const fravaersdageFradrag = toNonNegativeInt(oevrigeFravaersdage) * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
   return Math.max(0, antalMaaneder - fravaersdageFradrag);
-};
-
-/**
- * Summen af måneds-brøker for et interval: hver kalenderdag tæller som 1/x af sin måned
- * (x = antal dage i den pågældende måned). Returnerer 0 ved ugyldigt interval.
- *
- * Kanonisk kilde til "antal måneder ud fra dage"-princippet — genbruges af både
- * {@link optaelMaanederPraecis} og indkomst-på-skadestidspunkt-mellemregningen, så de to
- * tidligere parallelle implementeringer ikke kan drive fra hinanden. Grupperer pr. måned og
- * dividerer én gang pr. måned, så hele måneder giver præcist heltal i rå forbrugere.
- */
-export const sumMaanedsbroekForInterval = (
-  fra: ISODateString | undefined,
-  til: ISODateString | undefined
-): number => {
-  if (!fra || !til || fra > til) return 0;
-
-  const monthCounts = new Map<string, number>();
-  iterateIsoDatesInclusive(fra, til, (iso) => {
-    const monthKey = iso.slice(0, 7);
-    monthCounts.set(monthKey, (monthCounts.get(monthKey) ?? 0) + 1);
-  });
-
-  let antalMaaneder = 0;
-  for (const [monthKey, count] of monthCounts) {
-    const [yearStr, monthStr] = monthKey.split('-');
-    const year = Number.parseInt(yearStr ?? '', 10);
-    const month = Number.parseInt(monthStr ?? '', 10);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) continue;
-    const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    antalMaaneder += count / dageIMaaned;
-  }
-  return antalMaaneder;
 };
 
 export const optaelMaanederAfrundet = (args: {

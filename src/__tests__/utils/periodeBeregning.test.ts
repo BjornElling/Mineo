@@ -2,7 +2,6 @@ import type { StandardLoenTableRow } from '../../schemas/formSchemas';
 import { createDate } from '../../utils/dateUtils';
 import {
   beregnDagPeriode,
-  beregnPeriodiseringsDage,
   beregnUgePeriode,
   erPraecisEtAar,
   beregnAntalHverdage,
@@ -42,11 +41,6 @@ describe('periodeBeregning', () => {
   it('erPraecisEtAar accepts a full leap year in day periods', () => {
     const datoSet = buildIsoSet(createDate(2024, 0, 1), createDate(2024, 11, 31));
     expect(erPraecisEtAar('dag', datoSet.size, datoSet)).toBe(true);
-  });
-
-  it('beregnPeriodiseringsDage counts kalenderdage inclusively across DST', () => {
-    const days = beregnPeriodiseringsDage('30-03-2024', '02-04-2024', 'kalenderdage');
-    expect(days).toBe(4);
   });
 
   it('beregnUgePeriode counts week 53 when crossing year boundary', () => {
@@ -281,56 +275,5 @@ describe('beregnMaanedPeriode', () => {
   it('periodeTekst er formateret korrekt', () => {
     const result = beregnMaanedPeriode([makeRow('1', '2024')]);
     expect(result!.periodeTekst).toContain('2024');
-  });
-});
-
-// ─── beregnPeriodiseringsDage – arbejdsdage ────────────────────────────────────
-
-describe('beregnPeriodiseringsDage – arbejdsdage', () => {
-  it('manglende fra → null', () => {
-    expect(beregnPeriodiseringsDage(undefined, '31-01-2024', 'arbejdsdage')).toBeNull();
-  });
-
-  it('manglende til → null', () => {
-    expect(beregnPeriodiseringsDage('01-01-2024', undefined, 'arbejdsdage')).toBeNull();
-  });
-
-  it('fra > til → null', () => {
-    expect(beregnPeriodiseringsDage('31-01-2024', '01-01-2024', 'arbejdsdage')).toBeNull();
-  });
-
-  it('én hverdag (mandag) → 1 (ingen SH-dage)', () => {
-    // 2024-01-08 = mandag (ikke helligdag)
-    const days = beregnPeriodiseringsDage('08-01-2024', '08-01-2024', 'arbejdsdage');
-    expect(days).toBe(1);
-  });
-
-  it('en lørdag → 0 (ikke hverdag)', () => {
-    // 2024-01-06 = lørdag
-    const days = beregnPeriodiseringsDage('06-01-2024', '06-01-2024', 'arbejdsdage');
-    expect(days).toBe(0);
-  });
-
-  it('Sygedagpenge FØR 2. juli 2012 → ingen SH-fradrag', () => {
-    // Juledag 25-12-2011 er søndag → ingen forskel i dette tilfælde.
-    // Tester i stedet med en periode der INDEHOLDER en helligdag før 2. juli 2012.
-    // Skærtorsdag 5. april 2012 (torsdag) er en helligdag.
-    // For sygedagpenge før 02-07-2012 fratrækkes SH-dage IKKE.
-    const daysMedSygedagpenge = beregnPeriodiseringsDage('01-04-2012', '30-06-2012', 'arbejdsdage', 'sygedagpenge');
-    const daysUdenSygedagpenge = beregnPeriodiseringsDage('01-04-2012', '30-06-2012', 'arbejdsdage');
-    // Med sygedagpenge (< 02-07-2012): ingen SH-fradrag → flere dage
-    expect(daysMedSygedagpenge).toBeGreaterThan(daysUdenSygedagpenge!);
-  });
-
-  it('Sygedagpenge EFTER 2. juli 2012 → SH-dage fratrækkes', () => {
-    // En periode med pinse 2013: Hvidemandag 20. maj 2013 (mandag = helligdag)
-    const daysMedSygedagpenge = beregnPeriodiseringsDage('13-05-2013', '31-05-2013', 'arbejdsdage', 'sygedagpenge');
-    const daysUdenSygedagpenge = beregnPeriodiseringsDage('13-05-2013', '31-05-2013', 'arbejdsdage');
-    // Samme resultat — SH-dage fratrækkes for begge
-    expect(daysMedSygedagpenge).toBe(daysUdenSygedagpenge);
-  });
-
-  it('ukendt periodisering → null', () => {
-    expect(beregnPeriodiseringsDage('01-01-2024', '31-01-2024', 'ukendt' as any)).toBeNull();
   });
 });
