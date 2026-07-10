@@ -10,7 +10,7 @@ import {
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
 import type { FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
 import { FormPersistenceContext } from '../../contexts/FormPersistenceContext.internal';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import type { StorageKey } from '../../config/storageManifest';
 import type { FormFieldError, ReportableFieldError } from '../../types/fieldErrors';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -76,10 +76,10 @@ describe('useFormFieldErrors', () => {
       return null;
     };
 
-    // Fejl sættes EFTER mount: provideren hydrerer ved mount og rydder fieldErrors atomisk (kontrakt §6.3),
-    // og i den rigtige app sættes feltfejl først under brugerinteraktion inde i provideren.
+    // Fejl sættes EFTER runtime-initialisering, som rydder fieldErrors atomisk (kontrakt §6.3),
+    // og i den rigtige app sættes feltfejl først under brugerinteraktion efter initialiseringen.
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Comp />
       </FormPersistenceProvider>
     );
@@ -104,7 +104,7 @@ describe('useFormFieldErrors', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Comp />
       </FormPersistenceProvider>
     );
@@ -125,9 +125,9 @@ describe('useFieldErrorsBySourceForSection', () => {
       return null;
     };
 
-    // Fejl sættes EFTER mount (provideren rydder fieldErrors ved hydrate, kontrakt §6.3).
+    // Fejl sættes EFTER runtime-initialiseringens atomiske rydning (kontrakt §6.3).
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Comp />
       </FormPersistenceProvider>
     );

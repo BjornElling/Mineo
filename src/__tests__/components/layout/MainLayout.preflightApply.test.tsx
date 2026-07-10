@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useAuthoritativeSnapshotEpochSelector } from '../../../hooks/useFormPersistenceSelectors';
 import type { LoadFileResult } from '../../../types/fileOperations';
@@ -63,7 +63,7 @@ describe('MainLayout (preflight apply)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/mineo']}>
             <Probe />
             <MainLayout>

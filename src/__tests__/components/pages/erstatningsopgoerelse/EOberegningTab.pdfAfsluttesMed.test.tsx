@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/EOberegningTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
@@ -75,7 +75,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     render(
       <MemoryRouter>
         <AppSettingsProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <EOberegningTab
               activeTab="beregning"
               setActiveTab={vi.fn()}
@@ -102,7 +102,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     render(
       <MemoryRouter>
         <AppSettingsProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <EOberegningTab
               activeTab="beregning"
               setActiveTab={vi.fn()}
@@ -149,7 +149,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     render(
       <MemoryRouter>
         <AppSettingsProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <EOberegningTab
               activeTab="beregning"
               setActiveTab={vi.fn()}

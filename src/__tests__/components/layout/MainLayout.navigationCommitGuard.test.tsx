@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import MainLayout from '../../../components/layout/MainLayout';
 
 describe('MainLayout navigation commit guard', () => {
@@ -23,7 +23,7 @@ describe('MainLayout navigation commit guard', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/stamdata']}>
             <Routes>
               <Route

@@ -6,6 +6,7 @@ import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { clearResolvedFieldErrorsCache } from '../../../hooks/useFormPersistenceSelectors';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../../stores/undoRedoStore';
+import { initializePersistenceRuntime } from '../../../persistence/persistenceRuntime';
 
 vi.mock('../../../components/tables/useRentekravRows', () => ({
   __esModule: true,
@@ -79,7 +80,7 @@ describe('MinProcesrenteApp', () => {
   it('monterer standalone provider-kæden og committer renteberegning via den faktiske persistence-hook', async () => {
     const user = userEvent.setup();
 
-    render(<MinProcesrenteApp />);
+    render(<MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} />);
 
     expect(screen.getByRole('heading', { name: 'minProcesrente.dk' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Procesrente beregner' })).toBeInTheDocument();
@@ -97,7 +98,7 @@ describe('MinProcesrenteApp', () => {
   it('fortryder et committed felt med Ctrl+Z (undo virker på standalone-siden)', async () => {
     const user = userEvent.setup();
 
-    render(<MinProcesrenteApp />);
+    render(<MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} />);
 
     await user.click(screen.getByRole('button', { name: 'Commit kommentar' }));
     await waitFor(() => {
@@ -132,7 +133,9 @@ describe('MinProcesrenteApp', () => {
       dispatchEvent: vi.fn(),
     }));
 
-    const { unmount } = render(<MinProcesrenteApp />);
+    const { unmount } = render(
+      <MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} />
+    );
 
     expect(document.documentElement.style.backgroundColor).toBe('rgb(248, 249, 250)');
     expect(document.body.style.backgroundColor).toBe('rgb(248, 249, 250)');

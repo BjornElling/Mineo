@@ -2,7 +2,7 @@
 import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../stores/undoRedoStore';
@@ -26,7 +26,7 @@ const renderProvider = () => {
     return null;
   };
   render(
-    <FormPersistenceProvider>
+    <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
       <Capture />
     </FormPersistenceProvider>
   );

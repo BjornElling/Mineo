@@ -5,7 +5,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { clearResolvedFieldErrorsCache } from '../../../hooks/useFormPersistenceSelectors';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import type { LoadFileResult } from '../../../types/fileOperations';
@@ -90,7 +90,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
@@ -124,7 +124,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
@@ -192,7 +192,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/mineo']}>
             <RouteProbe />
             <MainLayout>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { UI_STORAGE_KEYS, createActiveTabStorageKey, getStorageKey } from '../../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
@@ -49,7 +49,7 @@ const renderProvider = () => {
     return null;
   };
   render(
-    <FormPersistenceProvider>
+    <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
       <Capture />
     </FormPersistenceProvider>
   );
@@ -59,6 +59,7 @@ const renderProvider = () => {
 const renderProviderWithReporter = () => {
   let ctx: ReturnType<typeof useFormPersistence> | null = null;
   let reportError: ((message: string | undefined) => void) | null = null;
+  const persistenceRuntime = initializePersistenceRuntime();
 
   const Capture = ({ mounted }: { mounted: boolean }) => {
     const value = useFormPersistence();
@@ -80,7 +81,7 @@ const renderProviderWithReporter = () => {
 
   const rendered = render(
     <MemoryRouter>
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={persistenceRuntime}>
         <Capture mounted />
       </FormPersistenceProvider>
     </MemoryRouter>
@@ -92,7 +93,7 @@ const renderProviderWithReporter = () => {
     rerenderMounted: (mounted: boolean) =>
       rendered.rerender(
         <MemoryRouter>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={persistenceRuntime}>
             <Capture mounted={mounted} />
           </FormPersistenceProvider>
         </MemoryRouter>
@@ -135,7 +136,7 @@ describe('FormPersistenceContext characterization', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <CaptureFirstRender />
       </FormPersistenceProvider>
     );
@@ -164,7 +165,7 @@ describe('FormPersistenceContext characterization', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <CaptureUnsavedState />
       </FormPersistenceProvider>
     );

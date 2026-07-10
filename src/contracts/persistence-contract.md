@@ -139,7 +139,7 @@ Der holdes ikke legacy runtime-kode eller kompatibilitetslag alene for at bevare
 1. `sessionStorage` er browser-sessionens durable cache, ikke den autoritative runtime-sandhed.
 2. Data i `sessionStorage` må forsvinde ved tab-/vindueslukning eller browseroprydning; `.eo` er den eneste brugerrettede, eksplicitte langtidsbevaring.
 3. Hydrering fra `sessionStorage` må kun ske som autoritativ initialization/replacement, ikke som skjult løbende overskrivning af aktiv committed state.
-4. Initial hydrering skal ske, før app-children kan læse committed state, eller også skal et eksplicit startup-gate forhindre læsning. Børn under provideren må ikke basere beregning på et unhydreret `null`-snapshot.
+4. Initial hydrering skal ske før React-render via `initializePersistenceRuntime()`, efter app-variantens storage-namespace er fastlagt. Hver app-root opretter præcis én runtime og giver den uændret til `FormPersistenceProvider`; provider-mount/remount må aldrig læse `sessionStorage` eller genhydrere storen. Børn under provideren må ikke basere beregning på et unhydreret `null`-snapshot.
 5. Fejl ved skrivning til `sessionStorage` skal behandles fail-closed og må ikke skjules som om persist lykkedes.
    - Gælder `persistData`, `replaceAllPersistedData`, `clearPageData` og `clearAllData`.
    - Hvis storage-mutationen fejler, må committed runtime-store ikke ændres.
@@ -161,7 +161,7 @@ Følgende regler er bindende for persistence-laget under aktiv runtime:
 2. `sessionStorage` er durable browser-persistens og må ikke fungere som et parallelt aktivt state-lag.
 3. Persistence-hooks må ikke holde en separat lokal committed kopi af en persisted sektion.
 4. Reaktive læsninger af persisted sektioner, revisions eller feltfejl skal gå via store-selectors/read-model hooks, ikke via providerens render-cyklus.
-5. `FormPersistenceContext` er et infrastrukturlag for imperative persistence-operationer, hydration, notices og autoritative replaces; det må ikke udvikle sig til generel state-broker for almindelige sektionslæsninger.
+5. `FormPersistenceContext` er et infrastrukturlag for imperative persistence-operationer, startup-notices/cleanup og autoritative replaces; det må ikke initialisere/hydrere runtime under render og må ikke udvikle sig til generel state-broker for almindelige sektionslæsninger.
 6. Persistence-API'er må ikke eksponere `onChange`-lignende convenience-API'er, der inviterer til commit af committed state fra draft-semantik.
 7. Tværsektion-readmodels skal være eksplicitte og read-only. `usePersistedSectionSelector(pageKey)` er den kanoniske read-only adgang til enkeltsektioner. Gentagne sammensatte tværsektion-læsninger skal samles i navngivne hooks/readmodels senest ved anden forekomst.
 8. UI-synlighed er ikke i sig selv en persistence-grænse: når et persisted sagsfelt eller en persisted række skjules, skal committed værdier fortsat bevares, mens validering og beregning eksplicit skal ignorere dem, når de ikke længere er domænemæssigt aktive.

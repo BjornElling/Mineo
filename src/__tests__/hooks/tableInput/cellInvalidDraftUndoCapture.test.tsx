@@ -8,7 +8,7 @@ import * as React from 'react';
 import { act, render } from '@testing-library/react';
 import { useCellInvalidDraftChannel } from '../../../hooks/tableInput/useCellInvalidDraftChannel';
 import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import { __resetUndoRedoStoreForTests, undoRedoStore } from '../../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
@@ -24,7 +24,7 @@ const Probe = ({ gridCellKey }: { gridCellKey: string }) => {
 
 const renderProbe = (gridCellKey: string) =>
   render(
-    <FormPersistenceProvider>
+    <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
       <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoOffentligeYdelser}>
         <Probe gridCellKey={gridCellKey} />
       </CellInvalidDraftScopeProvider>

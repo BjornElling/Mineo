@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import type { DevtoolsIssue, DevtoolsIssueSnapshot } from '../../../utils/devtoolsMonitor';
 
 type DevtoolsIssueListener = (snapshot: DevtoolsIssueSnapshot, issue: DevtoolsIssue) => void;
@@ -59,7 +59,7 @@ const buildSnapshot = (issues: DevtoolsIssue[]): DevtoolsIssueSnapshot => ({
 const renderLayout = () =>
   render(
     <AppSettingsProvider>
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <MemoryRouter initialEntries={['/stamdata']}>
           <MainLayout>
             <div />

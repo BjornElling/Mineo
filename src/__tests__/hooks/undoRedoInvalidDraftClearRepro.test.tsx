@@ -12,7 +12,7 @@ import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import StyledDateField from '../../components/inputs/StyledDateField';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -62,7 +62,7 @@ const renderHarness = () =>
     <MemoryRouter initialEntries={['/stamdata']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Harness />
           </FormPersistenceProvider>
         </RoutePathnameProvider>

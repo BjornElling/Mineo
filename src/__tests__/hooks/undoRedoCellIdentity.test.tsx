@@ -11,7 +11,7 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -88,7 +88,7 @@ const renderHarness = () =>
     <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Routes>
               <Route path="/erstatningsopgoerelse" element={<TableUndoPage />} />
             </Routes>

@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { __resetUndoFocusTrackerForTests } from '../../../utils/undoFocusTracker';
 
 const undoRedoMocks = vi.hoisted(() => ({
@@ -26,7 +26,7 @@ import MainLayout from '../../../components/layout/MainLayout';
 const renderLayout = (children: React.ReactNode = <input aria-label="Aktivt felt" autoFocus />) =>
   render(
     <AppSettingsProvider>
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <MemoryRouter initialEntries={['/stamdata']}>
           <MainLayout>{children}</MainLayout>
         </MemoryRouter>

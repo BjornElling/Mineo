@@ -12,7 +12,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import EetAslAfgoerelserTable from '../../components/tables/EetAslAfgoerelserTable';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -62,7 +62,7 @@ const renderHarness = () =>
     <MemoryRouter initialEntries={['/erhvervsevnetab']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Harness />
           </FormPersistenceProvider>
         </RoutePathnameProvider>

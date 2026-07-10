@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoerelse';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../../contexts/useFormPersistence';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../settings/appSettingsStorage';
 
@@ -71,7 +71,7 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
     render(
       <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
         <AppSettingsProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Probe />
             <Erstatningsopgoerelse />
           </FormPersistenceProvider>

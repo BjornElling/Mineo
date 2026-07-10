@@ -8,6 +8,7 @@ import MainLayout from './components/layout/MainLayout';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
+import type { PersistenceRuntime } from './persistence/persistenceRuntime';
 
 type PageComponent = React.ComponentType<Record<string, never>>;
 type AppRoute = { path: string; component: PageComponent };
@@ -106,7 +107,7 @@ const RootRedirect = () => {
   return <Navigate to={settings.defaultStartsideErStamdata ? '/stamdata' : '/mineo'} replace />;
 };
 
-const ThemedApp = () => {
+const ThemedApp = ({ persistenceRuntime }: { persistenceRuntime: PersistenceRuntime }) => {
   const { settings } = useAppSettings();
   const theme = React.useMemo(() => buildTheme(settings.themeMode), [settings.themeMode]);
 
@@ -124,7 +125,7 @@ const ThemedApp = () => {
     <ThemeProvider theme={theme}>
       <BrowserRouter>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={persistenceRuntime}>
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               {pageWrappers.map(({ path, element: PageWrapper }) => (
@@ -150,7 +151,7 @@ const ThemedApp = () => {
 /**
  * Hovedkomponent for Mineo applikationen
  */
-function App() {
+function App({ persistenceRuntime }: { persistenceRuntime: PersistenceRuntime }) {
   // Håndter browser back/forward cache (bfcache) for at undgå React hook fejl
   React.useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -169,7 +170,7 @@ function App() {
 
   return (
     <AppSettingsProvider>
-      <ThemedApp />
+      <ThemedApp persistenceRuntime={persistenceRuntime} />
     </AppSettingsProvider>
   );
 }

@@ -3,7 +3,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useForligAnsvarsgradValidation } from '../../hooks/useForligAnsvarsgradValidation';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { getResolvedFieldErrorsSnapshot } from '../../stores/formPersistenceReadModel';
@@ -26,7 +26,7 @@ const Harness = ({ values }: { values: ForligAnsvarsgradFields }) => {
 const renderHook = (values: ForligAnsvarsgradFields) =>
   render(
     <MemoryRouter>
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Harness values={values} />
       </FormPersistenceProvider>
     </MemoryRouter>
@@ -89,7 +89,7 @@ describe('useForligAnsvarsgradValidation', () => {
     act(() => {
       rerender(
         <MemoryRouter>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Harness values={{ forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: undefined, forligDato: iso('2024-05-17') }} />
           </FormPersistenceProvider>
         </MemoryRouter>

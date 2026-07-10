@@ -15,7 +15,7 @@ import { makeStringFingerprintFromCanonical } from '../../../types/parserSpec';
 import type { TableInputAdapter } from '../../../hooks/tableInput';
 import { useTableInputCore } from '../../../hooks/tableInput';
 import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import { __resetUndoRedoStoreForTests, undoRedoStore, type HistoryTransitionPlan } from '../../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
@@ -69,9 +69,10 @@ const renderCell = (
     getFocusedCell: () => gridCell,
     getEditingCell: () => state.editingCell,
   };
+  const persistenceRuntime = initializePersistenceRuntime();
 
   const wrapper = ({ children }: React.PropsWithChildren) => (
-    <FormPersistenceProvider>
+    <FormPersistenceProvider runtime={persistenceRuntime}>
       <CellInvalidDraftScopeProvider pageKey={PAGE_KEY} tableId={TABLE_ID} rowScope={rowScope}>
         <GridCoreProvider
           value={{

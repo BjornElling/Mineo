@@ -18,7 +18,7 @@ import StyledFractionField from '../../../components/inputs/StyledFractionField'
 import StyledYearField from '../../../components/inputs/StyledYearField';
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
@@ -59,7 +59,7 @@ const renderHarness = () =>
     <MemoryRouter initialEntries={['/stamdata']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <DatePage />
           </FormPersistenceProvider>
         </RoutePathnameProvider>
@@ -208,7 +208,7 @@ describe('brøk-felt med ugyldig rå draft — clear rydder invalidDrafts (samme
       <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
         <AppSettingsProvider>
           <RoutePathnameProvider>
-            <FormPersistenceProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
               <FractionPage />
             </FormPersistenceProvider>
           </RoutePathnameProvider>
@@ -240,7 +240,7 @@ describe('brøk-felt med ugyldig rå draft — clear rydder invalidDrafts (samme
       <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
         <AppSettingsProvider>
           <RoutePathnameProvider>
-            <FormPersistenceProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
               <FractionPage />
             </FormPersistenceProvider>
           </RoutePathnameProvider>
@@ -306,7 +306,7 @@ describe('årstal-felt med ugyldig rå draft — clear rydder invalidDrafts (rap
       <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
         <AppSettingsProvider>
           <RoutePathnameProvider>
-            <FormPersistenceProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
               <YearPage />
             </FormPersistenceProvider>
           </RoutePathnameProvider>

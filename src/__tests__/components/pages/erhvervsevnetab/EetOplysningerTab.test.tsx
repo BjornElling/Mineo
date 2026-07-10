@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EetOplysningerTab from '../../../../components/pages/erhvervsevnetab/EetOplysningerTab';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../../../stores/undoRedoStore';
 import { clearResolvedFieldErrorsCache } from '../../../../hooks/useFormPersistenceSelectors';
@@ -53,7 +53,7 @@ describe('EetOplysningerTab køn-regel (central fejl-model)', () => {
   }) =>
     render(
       <MemoryRouter>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <EetOplysningerTab
             values={{
               koen: values.koen,

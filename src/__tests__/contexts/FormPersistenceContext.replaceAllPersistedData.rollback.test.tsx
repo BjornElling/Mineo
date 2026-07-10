@@ -2,7 +2,7 @@
 import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { PersistedSectionsSnapshot } from '../../config/persistenceRegistry';
 import type { StamdataValues } from '../../schemas/formSchemas';
@@ -55,7 +55,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Capture />
       </FormPersistenceProvider>
     );
@@ -111,7 +111,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Capture />
       </FormPersistenceProvider>
     );
@@ -171,7 +171,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Capture />
       </FormPersistenceProvider>
     );
@@ -219,7 +219,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Capture />
       </FormPersistenceProvider>
     );
@@ -267,7 +267,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     };
 
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <Capture />
       </FormPersistenceProvider>
     );

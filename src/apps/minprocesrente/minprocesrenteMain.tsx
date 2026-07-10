@@ -6,11 +6,15 @@ import React from 'react';
 import MinProcesrenteApp from './MinProcesrenteApp';
 import { bootstrapClientApp } from '../shared/bootstrapClientApp';
 import { setDocumentBrand } from '../../document/documentBrand';
+import { initializePersistenceRuntime } from '../../persistence/persistenceRuntime';
 
 setDocumentBrand('minprocesrente.dk');
 
 void bootstrapClientApp({
-  renderApp: () => <MinProcesrenteApp />,
+  renderApp: () => {
+    const persistenceRuntime = initializePersistenceRuntime();
+    return <MinProcesrenteApp persistenceRuntime={persistenceRuntime} />;
+  },
   capturePwaInstallPrompt: false,
   enforceUnsupportedDeviceGate: false,
 });

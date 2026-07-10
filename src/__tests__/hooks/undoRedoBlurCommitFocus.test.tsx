@@ -16,7 +16,7 @@ import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import StyledDateField from '../../components/inputs/StyledDateField';
 import StyledRadioButton from '../../components/inputs/StyledRadioButton';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -86,7 +86,7 @@ const renderHarness = () =>
     <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Harness />
           </FormPersistenceProvider>
         </RoutePathnameProvider>

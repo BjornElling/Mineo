@@ -8,7 +8,7 @@ import useSvieSmerteRows from '../../../components/tables/useSvieSmerteRows';
 import SvieSmerteTable from '../../../components/tables/SvieSmerteTable';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import { toISODateString } from '../../../types/branded';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
@@ -54,7 +54,7 @@ describe('Slet-række (RowDeleteButton-integration)', () => {
 
       const filled: OffentligeYdelserRow = { id: 'row1', ydelsestype: 'andet' };
       render(
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <CellInvalidDraftScopeProvider pageKey={gatePageKey} tableId={CELL_TABLE_IDS.eoOffentligeYdelser} rowScope="">
             <OffentligeYdelserTable tableData={[filled]} onTableDataChange={vi.fn()} />
           </CellInvalidDraftScopeProvider>

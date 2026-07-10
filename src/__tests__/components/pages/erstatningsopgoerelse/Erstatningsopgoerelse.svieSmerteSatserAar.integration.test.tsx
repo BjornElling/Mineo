@@ -6,7 +6,7 @@ import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoe
 import { STORAGE_KEYS, createActiveTabStorageKey } from '../../../../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../../../../config/persistenceVersion';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../../types/branded';
 
@@ -40,7 +40,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
     render(
       <MemoryRouter>
         <AppSettingsProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Erstatningsopgoerelse />
           </FormPersistenceProvider>
         </AppSettingsProvider>

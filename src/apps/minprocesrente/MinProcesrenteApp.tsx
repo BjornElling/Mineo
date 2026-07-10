@@ -6,6 +6,7 @@ import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { buildTheme } from '../../config/appTheme';
 import StandaloneErrorBoundary from './StandaloneErrorBoundary';
 import MinProcesrenteCalculatorPage from '../../components/pages/minprocesrente/MinProcesrenteCalculatorPage';
+import type { PersistenceRuntime } from '../../persistence/persistenceRuntime';
 
 const theme = buildTheme('light');
 const MOBILE_PAGE_BACKGROUND = '#f8f9fa';
@@ -100,11 +101,11 @@ const useMobileScrollFix = () => {
   }, []);
 };
 
-const MinProcesrenteApp = React.memo(() => {
+const MinProcesrenteApp = React.memo(({ persistenceRuntime }: { persistenceRuntime: PersistenceRuntime }) => {
   useMobileScrollFix();
   return (
     <ThemeProvider theme={theme}>
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={persistenceRuntime}>
         <StandaloneCalculatorLayout>
           <StandaloneErrorBoundary>
             <MinProcesrenteCalculatorPage />

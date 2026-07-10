@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/EOberegningTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { buildControlMismatchInvariant } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
@@ -52,7 +52,7 @@ const renderTab = (props: React.ComponentProps<typeof EOberegningTab>) => {
   return render(
     <MemoryRouter>
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <EOberegningTab {...props} />
         </FormPersistenceProvider>
       </AppSettingsProvider>
@@ -267,7 +267,7 @@ describe('EOberegningTab kontroltjek', () => {
     render(
       <MemoryRouter>
         <AppSettingsProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Wrapper />
           </FormPersistenceProvider>
         </AppSettingsProvider>

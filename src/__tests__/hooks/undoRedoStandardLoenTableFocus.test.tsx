@@ -14,7 +14,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import StandardLoenTable from '../../components/tables/StandardLoenTable';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -62,7 +62,7 @@ const renderHarness = () =>
     <MemoryRouter initialEntries={['/aarsloen']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Harness />
           </FormPersistenceProvider>
         </RoutePathnameProvider>

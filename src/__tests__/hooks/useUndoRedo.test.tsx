@@ -6,7 +6,7 @@ import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import Stamdata from '../../components/pages/Stamdata';
@@ -171,7 +171,7 @@ const renderOriginCaptureHarness = () => render(
   <MemoryRouter initialEntries={['/satser']}>
     <AppSettingsProvider>
       <RoutePathnameProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <Routes>
             <Route path="/satser" element={<OriginCapturePage />} />
           </Routes>
@@ -185,7 +185,7 @@ const renderStamdataUndoHarness = () => render(
   <MemoryRouter initialEntries={['/satser']}>
     <AppSettingsProvider>
       <RoutePathnameProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <StamdataControls />
         </FormPersistenceProvider>
       </RoutePathnameProvider>
@@ -197,7 +197,7 @@ const renderTableUndoHarness = () => render(
   <MemoryRouter initialEntries={['/table']}>
     <AppSettingsProvider>
       <RoutePathnameProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <TableControls />
         </FormPersistenceProvider>
       </RoutePathnameProvider>

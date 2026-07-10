@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EetDifferencekravTab from '../../../../components/pages/erhvervsevnetab/EetDifferencekravTab';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { toISODateString, type ISODateString } from '../../../../types/branded';
 import { formPersistenceStore } from '../../../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../../../stores/undoRedoStore';
@@ -36,7 +36,7 @@ describe('EetDifferencekravTab', () => {
   it('udelader overflødig tekst for midlertidig afgørelse når skaden er sket den 16. juni 2011 eller senere', () => {
     render(
       <MemoryRouter>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <EetDifferencekravTab
             values={{
               koen: 'Kvinde',
@@ -97,7 +97,7 @@ describe('EetDifferencekravTab', () => {
   }) =>
     render(
       <MemoryRouter>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <EetDifferencekravTab
             values={{
               koen: 'Kvinde',
@@ -233,7 +233,7 @@ describe('EetDifferencekravTab forligs-håndhævelse (delt central fejl-model)',
   }) =>
     render(
       <MemoryRouter>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <EetDifferencekravTab
             values={{
               koen: 'Kvinde',

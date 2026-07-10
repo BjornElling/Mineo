@@ -15,7 +15,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { useCellInvalidDraftChannel } from '../../hooks/tableInput/useCellInvalidDraftChannel';
 import { CellInvalidDraftScopeProvider } from '../../contexts/CellInvalidDraftScopeContext';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -59,7 +59,7 @@ describe('invalidDraft clear → undo-frame-capture (cross-channel invariant)', 
       <MemoryRouter initialEntries={['/stamdata']}>
         <AppSettingsProvider>
           <RoutePathnameProvider>
-            <FormPersistenceProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
               <FieldProbe />
             </FormPersistenceProvider>
           </RoutePathnameProvider>
@@ -75,7 +75,7 @@ describe('invalidDraft clear → undo-frame-capture (cross-channel invariant)', 
 
   it('celle-kanal: commit-invalid fanger en frame, og en efterfølgende clear fanger sin egen frame', () => {
     render(
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoOffentligeYdelser}>
           <CellProbe />
         </CellInvalidDraftScopeProvider>
@@ -96,7 +96,7 @@ describe('invalidDraft clear → undo-frame-capture (cross-channel invariant)', 
       <MemoryRouter initialEntries={['/stamdata']}>
         <AppSettingsProvider>
           <RoutePathnameProvider>
-            <FormPersistenceProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
               <FieldProbe />
             </FormPersistenceProvider>
           </RoutePathnameProvider>

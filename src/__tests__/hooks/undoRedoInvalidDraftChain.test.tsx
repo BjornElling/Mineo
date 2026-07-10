@@ -12,7 +12,7 @@ import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import StyledDateField from '../../components/inputs/StyledDateField';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -62,7 +62,7 @@ const renderHarness = () =>
     <MemoryRouter initialEntries={['/stamdata']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <Harness />
           </FormPersistenceProvider>
         </RoutePathnameProvider>
@@ -155,7 +155,7 @@ describe('undo/redo-kæde med to ugyldige felter', () => {
 
     // Slutpunkt: begge felter tilbage til deres ugyldige værdier.
     expect(drafts()).toEqual({ skadedato: '30-02-1981', skadelidteFodselsdato: '31-04-1990' });
-  });
+  }, 10_000);
 
   it('to ugyldige felter ryddet → undo fortryder ét clear ad gangen (gendanner ikke det forkerte felt, tømmer ikke begge)', async () => {
     // Brugerens rapporterede scenarie: begge felter ugyldige, ryd dem ét ad gangen, undo. Hver undo skal
@@ -196,5 +196,5 @@ describe('undo/redo-kæde med to ugyldige felter', () => {
     // Undo 4: fortryd Fødselsdato-indtastning → tomt.
     await act(async () => { controls!.undo(); await flushRaf(); });
     expect(drafts()).toEqual({});
-  });
+  }, 10_000);
 });

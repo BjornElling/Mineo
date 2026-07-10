@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  type StorageKey,
-  getKnownStorageKeys,
-  getStorageKey,
-} from '../config/storageManifest';
+import { type StorageKey, getKnownStorageKeys, getStorageKey } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import {
   type ReplaceAllPersistedData,
@@ -30,7 +26,6 @@ import {
   restoreUndoRedoRollbackSnapshot,
   type StoreRollbackSnapshot,
 } from '../utils/persistenceStoreRollback';
-import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
 import {
   readSessionStorageValue,
   listSessionStorageKeys,
@@ -53,6 +48,10 @@ import {
 } from '../stores/formPersistenceReadModel';
 import { formatZodIssues } from '../utils/zodIssueFormatting';
 import { asError } from '../utils/typeGuards';
+import type { PersistenceRuntime } from '../persistence/persistenceRuntime';
+
+export { initializePersistenceRuntime } from '../persistence/persistenceRuntime';
+export type { PersistenceRuntime } from '../persistence/persistenceRuntime';
 
 // Persisterede sektioner håndteres via et internt Zustand store; FormPersistenceContext er en facade og ikke SoT for committede inputs.
 
@@ -116,40 +115,23 @@ const createRollbackError = (operation: string, originalError: unknown, rollback
 /**
  * Provider komponent der wrapper hele applikationen
  */
-export const FormPersistenceProvider = ({ children }: { children: React.ReactNode }) => {
-  const [initOnce] = React.useState<{
-    initialSections: PersistedCache;
-    keysToRemove: string[];
-    notice: { message: string; type: 'warning' | 'error' } | null;
-  }>(() => {
-    const plan = buildSessionStorageHydrationPlan();
-    const nextCache = createEmptyPersistedCache();
-    for (const pageKey of PERSISTED_SECTION_KEYS) {
-      assignCacheValue(nextCache, pageKey, plan.sections[pageKey]);
-    }
-    formPersistenceStore.getState().hydrate(
-      nextCache,
-      { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
-      plan.invalidDrafts
-    );
-    clearResolvedFieldErrorsCache();
-    return {
-      initialSections: nextCache,
-      keysToRemove: plan.keysToRemove,
-      notice: plan.notice,
-    };
-  });
-
+export const FormPersistenceProvider = ({
+  children,
+  runtime,
+}: {
+  children: React.ReactNode;
+  runtime: PersistenceRuntime;
+}) => {
   const [noticeState, setNoticeState] = React.useState<{ epoch: number; notice: { message: string; type: 'warning' | 'error' } | null }>(() => ({
     epoch: 0,
-    notice: initOnce.notice,
+    notice: runtime.notice,
   }));
 
   React.useEffect(() => {
-    for (const key of initOnce.keysToRemove) {
+    for (const key of runtime.keysToRemove) {
       removeSessionStorageValue(key);
     }
-  }, [initOnce.keysToRemove]);
+  }, [runtime]);
 
   React.useEffect(() => {
     setDevtoolsProviderState('FormPersistenceProvider', true);

@@ -4,7 +4,7 @@ import { act, render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { z } from 'zod';
 import { usePersistedForm, type UsePersistedFormReturn } from '../../hooks/usePersistedForm';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../stores/undoRedoStore';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
@@ -20,13 +20,19 @@ type StamdataTestValues = PersistedSectionMap['stamdata'];
 const initialValues: StamdataTestValues = { ...STAMDATA_INITIAL_VALUES };
 const committedInitialValues: StamdataTestValues = stamdataSchema.parse(initialValues);
 
-const renderWithProviders = (ui: React.ReactNode) => render(
-  <MemoryRouter initialEntries={['/stamdata']}>
-    <FormPersistenceProvider>
-      {ui}
-    </FormPersistenceProvider>
-  </MemoryRouter>
-);
+const renderWithProviders = (ui: React.ReactNode) => {
+  const persistenceRuntime = initializePersistenceRuntime();
+  return {
+    ...render(
+      <MemoryRouter initialEntries={['/stamdata']}>
+        <FormPersistenceProvider runtime={persistenceRuntime}>
+          {ui}
+        </FormPersistenceProvider>
+      </MemoryRouter>
+    ),
+    persistenceRuntime,
+  };
+};
 
 describe('usePersistedForm', () => {
   beforeEach(() => {
@@ -58,7 +64,7 @@ describe('usePersistedForm', () => {
       return null;
     };
 
-    const { rerender } = renderWithProviders(<Capture />);
+    const { rerender, persistenceRuntime } = renderWithProviders(<Capture />);
 
     const firstSetValues = captured.setValues;
     const firstResetForm = captured.resetForm;
@@ -69,7 +75,7 @@ describe('usePersistedForm', () => {
 
     rerender(
       <MemoryRouter initialEntries={['/stamdata']}>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={persistenceRuntime}>
         <Capture />
         </FormPersistenceProvider>
       </MemoryRouter>
@@ -196,7 +202,7 @@ describe('usePersistedForm', () => {
 
     renderWithProviders(<Capture />);
 
-    // Første hydration (sker i useEffect i FormPersistenceProvider) skal bumpe formVersion,
+    // Første hydration før React-render skal bumpe formVersion,
     // så draft-state hooks (useRowDrafts) kan resynce fra de persisterede værdier.
     expect(captured.formVersion).toBe(1);
     const baselineFormVersion = captured.formVersion!;
@@ -362,7 +368,7 @@ describe('usePersistedForm', () => {
 
     rendered.rerender(
       <MemoryRouter initialEntries={['/forsoergertab']}>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={rendered.persistenceRuntime}>
           <Capture />
         </FormPersistenceProvider>
       </MemoryRouter>

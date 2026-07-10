@@ -2,7 +2,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import type { ISODateString } from '../../../../types/branded';
 
 const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues } = vi.hoisted(() => ({
@@ -58,7 +58,7 @@ describe('MenberegningTab', () => {
 
     render(
       <MemoryRouter>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MenberegningTab
             values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
             setValues={vi.fn()}
@@ -96,7 +96,7 @@ describe('MenberegningTab', () => {
   it('renderer stamdata- og resultatrækker som hover-rækker', () => {
     render(
       <MemoryRouter>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MenberegningTab
             values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
             setValues={vi.fn()}

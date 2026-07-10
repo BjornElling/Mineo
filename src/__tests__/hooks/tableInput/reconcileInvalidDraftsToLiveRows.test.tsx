@@ -11,7 +11,7 @@ import * as React from 'react';
 import { act, renderHook } from '@testing-library/react';
 
 import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import {
@@ -93,8 +93,9 @@ describe('fieldPath-scope helpers', () => {
 
 describe('useReconcileInvalidDraftsToLiveRows (bundet via providers)', () => {
   const renderReconcile = (rowScope: string, initialLive: ReadonlySet<string>) => {
+    const persistenceRuntime = initializePersistenceRuntime();
     const wrapper = ({ children }: React.PropsWithChildren) => (
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={persistenceRuntime}>
         <CellInvalidDraftScopeProvider pageKey={PAGE_KEY} tableId={TABLE_ID} rowScope={rowScope}>
           {children}
         </CellInvalidDraftScopeProvider>
@@ -147,9 +148,20 @@ describe('useReconcileInvalidDraftsToLiveRows (bundet via providers)', () => {
 });
 
 describe('Gem-gaten: forældreløs draft går fra blokeret til fri', () => {
+  const createRuntimeProvider = () => {
+    const persistenceRuntime = initializePersistenceRuntime();
+    const RuntimeProvider = ({ children }: { children: React.ReactNode }) => (
+      <FormPersistenceProvider runtime={persistenceRuntime}>
+        {children}
+      </FormPersistenceProvider>
+    );
+    RuntimeProvider.displayName = 'RuntimeProvider';
+    return RuntimeProvider;
+  };
+
   it('getFirstBlockingInputErrorTarget blokerer på orphan og er fri efter reconcile', () => {
-    // Provider mountes FØR seed: dens hydrate rydder invalidDrafts på mount (autoritativ init).
-    const { result } = renderHook(() => useFormPersistence(), { wrapper: FormPersistenceProvider });
+    // Runtime initialiseres FØR seed og rydder invalidDrafts som autoritativ init.
+    const { result } = renderHook(() => useFormPersistence(), { wrapper: createRuntimeProvider() });
     const fp = buildCellInvalidDraftFieldPath(TABLE_ID, '', 'deleted-row:3');
     seedDraft(fp, 'abc');
 
@@ -171,7 +183,7 @@ describe('Gem-gaten: forældreløs draft går fra blokeret til fri', () => {
   });
 
   it('af-scope reconcile rydder et slettet ansættelsesforholds drafts (eo-standardloen + eo-loenudvikling)', () => {
-    const { result } = renderHook(() => useFormPersistence(), { wrapper: FormPersistenceProvider });
+    const { result } = renderHook(() => useFormPersistence(), { wrapper: createRuntimeProvider() });
     const fpStd = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoStandardLoen, 'af-dead', 'r1:2');
     const fpLoen = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoLoenudvikling, 'af-dead', 'r1:0');
     const fpAlive = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoStandardLoen, 'af-alive', 'r1:2');

@@ -22,7 +22,7 @@ import { usePersistedForm } from '../../hooks/usePersistedForm';
 import StyledToggleSwitch from '../../components/inputs/StyledToggleSwitch';
 import StyledDropdown from '../../components/inputs/StyledDropdown';
 import StyledRadioButton from '../../components/inputs/StyledRadioButton';
-import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
@@ -133,7 +133,7 @@ const makeHarness = (Page: React.ComponentType, route: string) => {
         <ThemeProvider theme={testTheme}>
           <AppSettingsProvider>
             <RoutePathnameProvider>
-              <FormPersistenceProvider>
+              <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
                 <Harness />
               </FormPersistenceProvider>
             </RoutePathnameProvider>

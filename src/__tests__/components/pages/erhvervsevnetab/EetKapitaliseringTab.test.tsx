@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EetKapitaliseringTab from '../../../../components/pages/erhvervsevnetab/EetKapitaliseringTab';
-import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { toISODateString } from '../../../../types/branded';
 import type { EetKapitaliseringAfgoerelseComputation } from '../../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 
@@ -49,7 +49,7 @@ const baseAfgoerelse: EetKapitaliseringAfgoerelseComputation = {
 const renderTab = (afgoerelser: EetKapitaliseringAfgoerelseComputation[]) =>
   render(
     <MemoryRouter>
-      <FormPersistenceProvider>
+      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
         <EetKapitaliseringTab
           values={{ koen: 'Kvinde', beregningsdato: toISODateString('2025-03-17') } as never}
           onGoToEetOplysninger={vi.fn()}

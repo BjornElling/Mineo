@@ -4,7 +4,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import type { LoadFileResult } from '../../../types/fileOperations';
 
 let pendingPwaRequest: unknown = null;
@@ -62,7 +62,7 @@ describe('MainLayout (PWA concurrency)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
@@ -122,7 +122,7 @@ describe('MainLayout (PWA concurrency)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
@@ -169,7 +169,7 @@ describe('MainLayout (PWA concurrency)', () => {
 
       render(
         <AppSettingsProvider>
-          <FormPersistenceProvider>
+          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
             <MemoryRouter initialEntries={['/open']}>
               <RouteProbe />
               <MainLayout>

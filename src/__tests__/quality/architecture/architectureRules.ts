@@ -156,6 +156,8 @@ const formPersistenceStoreImport = forbidImports({
     'Direkte import af stores/formPersistenceStore er kun tilladt i de kanoniske adgangspunkter.',
   allow: [
     'src/contexts/FormPersistenceContext.tsx',
+    // Autoritativ pre-render-initialisering: hydraterer storen én gang før app-rooten oprettes.
+    'src/persistence/persistenceRuntime.ts',
     'src/hooks/useFormPersistenceSelectors.ts',
     'src/hooks/useUndoRedo.ts',
     // Domæne-specifik read model: abonnerer direkte på storen for ét cachet tværsektion-snapshot.

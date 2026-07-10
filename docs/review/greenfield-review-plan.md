@@ -125,7 +125,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 2 | 48 | 🟡 AST-baseret arkitekturgrænse-harness (motor + batch 1–2) | ★★★★☆ | ★★★☆☆ | ★★★★★ | styrker alle kontraktændringer |
 | 3 | 49 | ✅ Neutral måneds-/intervalalgebra | ★★★★☆ | ★★★★☆ | ★★★☆☆ | før #36 |
 | 4 | 37 | Branded `MoneyOre` + lukket pengealgebra | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætning for #36 |
-| 5 | 39 | Persistence initialiseres før React-render | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | før #19, #28, #33 |
+| 5 | 39 | ✅ Persistence initialiseres før React-render | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | før #19, #28, #33 |
 | 6 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
 | 7 | 15 | ✅ `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
 | 8 | 11 | `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
@@ -516,6 +516,8 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** #11 letter callsite-migreringen; #24 er den naturlige slutform. Kræver parallel-download-tests og eksisterende kanal-golden-net.
 
 ### 39 — Persistence initialiseres før React-render · 9
+
+- **Status: ✅ Gennemført (2026-07-11).** `initializePersistenceRuntime()` bygger nu hydration-planen, hydrater det autoritative Zustand-store atomisk og rydder read-model-cache før `root.render`. Begge app-entries kalder initialiseringen i `renderApp` efter variantens namespace/device-gate og før app-træet oprettes; unsupported-device hard-stop initialiserer fortsat ingen sagsstate. Den færdige runtime føres eksplicit gennem app-roden til en render-ren `FormPersistenceProvider`, som kun ejer startup-notice og efterfølgende cleanup af afviste storage-nøgler. Provider-remount kan derfor ikke længere genlæse `sessionStorage` eller overskrive committed state. Det nye runtime-karakteriseringsnet beviser første-render-hydrering, uændrede section revisions/committed counter, ét autoritativt epoch-bump, rydning af runtime-fejl, invalid-draft-revision og remount-bevarelse; eksisterende persistence-konsumenttests er migreret til eksplicit runtime.
 
 - **Scope:** `contexts/FormPersistenceContext.tsx:120-136`, `persistenceSessionHydration.ts`, `formPersistenceStore.ts`, `bootstrapClientApp.tsx` og begge app-entries.
 - **Problem:** `FormPersistenceProvider` læser `sessionStorage`, bygger hydration-plan, muterer det globale store med `hydrate()` og rydder read-model-cache inde i en `useState`-initializer. Begge roots renderer under `React.StrictMode`; render er dermed uren, provider-remount kan rehydrere, og startup-rækkefølgen er bundet til en global singleton.
