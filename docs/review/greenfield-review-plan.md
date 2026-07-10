@@ -42,9 +42,9 @@ for at nå dertil.
   ikke selv har introduceret. Jeg efterlader hver berørt del bedre, end jeg fandt
   den, inkl. manglende testdækning.
 - **Kvalitet, tillid og korrekthed går forud for at blive hurtigt færdig.** Hver
-  keystone laves som et testtungt spor med golden-value-net **før** første ændring;
-  refaktoreringer af beregning beviser tal-identitet; og intet efterlades i en
-  halvfærdig, inkonsistent mellemtilstand.
+  keystone laves som et testtungt spor med relevant golden-value-/transition-net
+  **før** første ændring; refaktoreringer af beregning beviser tal-identitet; og
+  intet efterlades i en halvfærdig, inkonsistent mellemtilstand.
 - **Hold planen løbende opdateret.** Når en kandidat gennemføres — eller viser sig
   at skulle skæres om undervejs — markerer jeg den straks her: `✅`-status i fase-
   tabellen + en kort **Status**-linje i detalje-afsnittet. Planen skal altid
@@ -63,6 +63,13 @@ input-infrastruktur/utils, samt persistence/schemas/config/data). Hovedtråden h
 ejet den endelige vurdering, kalibreret scoringen på tværs af områder og samlet
 fundene til én rangorden. Scoringen afspejler hovedtrådens samlede vurdering, ikke
 et enkelt delsystems isolerede syn.
+
+En efterfølgende greenfield-audit af hele programmet (2026-07-10) har suppleret
+listen med kandidater #37–#52. Den gennemgang blev delt i tre uafhængige spor
+(domæne/dokumenter, UI/input samt persistence/shell/tooling) og derefter
+overlap-valideret i hovedtråden mod #1–#36 og de normative kontrakter. Lokale
+oprydninger, hypotetiske udvidelsespunkter og fund der allerede var dækket, er
+frasorteret.
 
 ## Vurderingskriterier
 
@@ -84,11 +91,12 @@ de centrale byggekloder midt i tabellen. For en trust-kritisk kodebase er den
 rigtige rækkefølge **indefra-og-ud** — byg kernen først, og lad de ydre lag falde ud
 af den:
 
-1. **Kanoniske primitiver** — de mindste delte byggekloder som keystones og
-   konsumenter sidder på. Billige, isolerede, og hver muliggør en keystone.
+1. **Kanoniske primitiver & fundament** — delte byggekloder, runtime-opstart og
+   verifikationsnet som keystones og konsumenter sidder på. De er afgrænsede, men
+   trust-kritiske primitiver/opstartsændringer laves som egne testspor.
 2. **Spine-keystones** — de store centrale omlægninger, hver placeret oven på fase
-   1-primitiverne. Rører beregning/output/UI → **golden-value-net og godkendelse
-   FØR** første ændring.
+   1-primitiverne. Rører beregning, output, UI eller save/load → **relevant
+   golden-/transition-net og nødvendig godkendelse FØR** første ændring.
 3. **Projektioner & konsolideringer** — den kode der *kollapser*, når spinen findes
    (præsentation bliver tynde projektorer).
 4. **UI-dekomponering** — det yderste lag; konsumerer alt det indre.
@@ -99,40 +107,52 @@ I tabellerne er **ID** det stabile kandidat-id (matcher detalje-afsnittene neden
 og **Sekv** er den anbefalede udførelses-rækkefølge. Krydsreferencer som "#23" i
 teksten peger på de stabile id'er, ikke på sekvensen.
 
-> **Hvorfor ikke bare "de store byggekloder allerførst"?** De fire spine-keystones
-> (#23, #24, #25, #36) er de største byggekloder, men også de mest risikable, og de
-> rører alle beregning/output/UI og kræver derfor forudgående godkendelse. Fase 1
-> bygger derfor de billige primitiver *og* de test-net, der gør keystonene sikre at
-> lave — så fase 2 er "stor byggeklods med sikkerhedssele på", ikke "stor byggeklods
-> på må og få".
+> **Hvorfor ikke bare "de store byggekloder allerførst"?** Spine-keystonene
+> (#23, #24, #25, #36, #40, #41, #42, #51) er de største byggekloder, men også de mest
+> risikable. De rører beregning, output, UI eller save/load og kræver derfor et
+> målrettet karakteriseringsnet og — hvor mandatgrænsen rammes — forudgående
+> godkendelse. Fase 1 bygger primitiverne og sikkerhedsnettet først.
 
 ### Fase 1 — Kanoniske primitiver & fundament
 
-De mindste delte byggekloder. Billige og isolerede; hver muliggør en senere
-keystone eller UI-fasen. Bygges først, så fase 2 har noget at stå på.
+Delte byggekloder og verifikationsfundament. Bygges først, så fase 2 har noget at
+stå på. #37/#49 kræver godkendelse og tal-golden-net; #38 kræver kanal- og
+samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 1 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
-| 2 | 15 | 🔄 `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
-| 3 | 11 | `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
-| 4 | 12 | Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
-| 5 | 19 | Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
-| 6 | 33 | Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28 |
-| 7 | 9 | `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
-| 8 | 8 | `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
+| 1 | 47 | Ét verificeret release-artefakt | ★★★★★ | ★★★★☆ | ★★★★★ | fundament for alle senere spor |
+| 2 | 48 | AST-baseret arkitekturgrænse-harness | ★★★★☆ | ★★★☆☆ | ★★★★★ | styrker alle kontraktændringer |
+| 3 | 49 | Neutral måneds-/intervalalgebra | ★★★★☆ | ★★★★☆ | ★★★☆☆ | før #36 |
+| 4 | 37 | Branded `MoneyOre` + lukket pengealgebra | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætning for #36 |
+| 5 | 39 | Persistence initialiseres før React-render | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | før #19, #28, #33 |
+| 6 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
+| 7 | 15 | 🔄 `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
+| 8 | 11 | `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
+| 9 | 38 | Eksplicit dokument-genereringssession | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | muliggør #24; beslægtet #11 |
+| 10 | 12 | Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
+| 11 | 19 | Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
+| 12 | 33 | Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
+| 13 | 13 | `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
+| 14 | 9 | `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
+| 15 | 8 | `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 
-### Fase 2 — Spine-keystones (godkendelse + golden-value-net FØRST)
+### Fase 2 — Spine-keystones (karakteriseringsnet + godkendelse FØRST)
 
-De store centrale byggekloder. Hver laves som et separat, testtungt spor. Alle
-rører beregning/output/UI → forelægges og får et golden-value-net før første ændring.
+De store centrale byggekloder. Hver laves som et separat, testtungt spor. Brug
+golden-values til tal/output og en eksplicit transitionsmatrix til persistence- og
+workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik berøres.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 9 | 23 | Regulering → kanonisk forløb | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #17 |
-| 10 | 24 | Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11 |
-| 11 | 25 | Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
-| 12 | 36 | EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17; spejler #23 |
+| 16 | 23 | Regulering → kanonisk forløb | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #17 |
+| 17 | 24 | Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11, #38 |
+| 18 | 25 | Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
+| 19 | 42 | Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
+| 20 | 40 | Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
+| 21 | 41 | Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
+| 22 | 51 | Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
+| 23 | 36 | EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17, #37, #49; spejler #23 |
 
 ### Fase 3 — Projektioner & konsolideringer
 
@@ -140,29 +160,34 @@ Den kode der kollapser til tynde lag, når spinen findes.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 13 | 16 | Split `reguleringsPresentation` + `sygeferiegodtgoerelse` | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | reg-del forudsætter #23; SFGG-del uafhængig |
-| 14 | 31 | PDF/Word-paritet som struktur | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
-| 15 | 32 | EO-sektion-funktioner → `Block[]` | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
-| 16 | 27 | Samlet række-persistering-kerne | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | beslægtet #25 |
-| 17 | 28 | Kollaps persistence læse-sti-lagstak | ★★★★☆ | ★★☆☆☆ | ★★★☆☆ | forudsætter #19, #33 |
-| 18 | 30 | Konsolider validerings-ejerskab | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | beslægtet #20 |
-| 19 | 20 | eoInspektion regex-row-id → struktureret metadata | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | uafhængig |
+| 24 | 16 | Split `reguleringsPresentation` + `sygeferiegodtgoerelse` | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | reg-del forudsætter #23; SFGG-del uafhængig |
+| 25 | 31 | PDF/Word-paritet som struktur | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
+| 26 | 32 | EO-sektion-funktioner → `Block[]` | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
+| 27 | 50 | TAF-graf → ren scene-model + Canvas-renderer | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | beslægtet #24 |
+| 28 | 27 | Samlet række-persistering-kerne | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | beslægtet #25 |
+| 29 | 45 | Deklarativt editable `GridSpec` | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25, #27 |
+| 30 | 28 | Kollaps persistence læse-sti-lagstak | ★★★★☆ | ★★☆☆☆ | ★★★☆☆ | forudsætter #19, #33, #39 |
+| 31 | 30 | Konsolider validerings-ejerskab | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | beslægtet #20 |
+| 32 | 20 | eoInspektion regex-row-id → struktureret metadata | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | uafhængig |
 
 ### Fase 4 — UI-dekomponering
 
-Det yderste lag. #5 etablerer mønstret først; #26 (højeste UI-risiko) laves sidst.
+Det yderste lag. #43 etablerer app-shellens stabile grænse; #5 etablerer
+side-mønstret; #26 (højeste lokale keyboard-risiko) laves sidst.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 20 | 5 | Ensartet viewmodel-mønster (meta + guard) | ★★★★★ | ★★★☆☆ | ★★★☆☆ | paraply for resten |
-| 21 | 1 | `AnsaettelsesforholdCard` → sektioner | ★★★★☆ | ★★★★☆ | ★★★★☆ | — |
-| 22 | 6 | `Aarsloen.tsx` → VM + sektioner | ★★★★★ | ★★★☆☆ | ★★★☆☆ | forudsætter #5, #9 |
-| 23 | 18 | `EetDifferencekravTab` + delt forlig-editor | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | forudsætter #5 |
-| 24 | 10 | `Forsoergertab.tsx` → sektioner + VM | ★★★☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #5 |
-| 25 | 21 | `Indstillinger.tsx` → deklarativt register | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | del af #5-familien |
-| 26 | 22 | `IndtaegtFoerSkadenSection` → under-sektioner | ★★☆☆☆ | ★★★★☆ | ★★★★☆ | — |
-| 27 | 7 | Headless `StyledDropdown` | ★★★★☆ | ★★★★☆ | ★★★☆☆ | forudsætter `mergeSx` (#12) |
-| 28 | 26 | `Container.tsx` → headless keyboard-nav-hook | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | højeste UI-risiko; sidst |
+| 33 | 43 | Kanonisk page-manifest + persistent app-shell | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #40; før øvrig UI-dekomponering |
+| 34 | 5 | Ensartet viewmodel-mønster (meta + guard) | ★★★★★ | ★★★☆☆ | ★★★☆☆ | paraply for resten |
+| 35 | 44 | Feature-slicede EO-viewmodels | ★★★★★ | ★★☆☆☆ | ★★★☆☆ | forudsætter #5; før #1, #22 |
+| 36 | 1 | `AnsaettelsesforholdCard` → sektioner | ★★★★☆ | ★★★★☆ | ★★★★☆ | forudsætter #44 |
+| 37 | 6 | `Aarsloen.tsx` → VM + sektioner | ★★★★★ | ★★★☆☆ | ★★★☆☆ | forudsætter #5, #9 |
+| 38 | 18 | `EetDifferencekravTab` + delt forlig-editor | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | forudsætter #5 |
+| 39 | 10 | `Forsoergertab.tsx` → sektioner + VM | ★★★☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #5 |
+| 40 | 21 | `Indstillinger.tsx` → deklarativt register | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | del af #5-familien |
+| 41 | 22 | `IndtaegtFoerSkadenSection` → under-sektioner | ★★☆☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #44 |
+| 42 | 7 | Headless `StyledDropdown` | ★★★★☆ | ★★★★☆ | ★★★☆☆ | forudsætter `mergeSx` (#12) |
+| 43 | 26 | `Container.tsx` → headless keyboard-nav-hook | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | højeste UI-risiko; sidst |
 
 ### Fase 5 — Uafhængige oprydninger
 
@@ -171,14 +196,14 @@ godkendelse. Ordnet efter værdi.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 29 | 2 | `documentService` → deklarativt download-register | ★★★★☆ | ★★★★☆ | ★★★★☆ | uafhængig |
-| 30 | 3 | `fileHandleStorage` → IndexedDB-kv-primitiv | ★★★★☆ | ★★★★☆ | ★★★★☆ | uafhængig |
-| 31 | 13 | `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | uafhængig |
-| 32 | 29 | `dateRanges.ts` split + read-time `TODAY` | ★★★☆☆ | ★★★☆☆ | ★★★☆☆ | uafhængig |
-| 33 | 4 | `utils/` residual parallel-helper-oprydning | ★★☆☆☆ | ★★★★★ | ★★★★★ | uafhængig |
-| 34 | 14 | Fjern dupleret `sanitizeFilenamePart` i reports | ★☆☆☆☆ | ★★★★★ | ★★★★★ | uafhængig |
-| 35 | 35 | Carry-forward series-opslag | ★★☆☆☆ | ★★★☆☆ | ★★☆☆☆ | uafhængig |
-| 36 | 34 | EO schema-variant-dedup — **verificér først** | ★★★☆☆ | ★★☆☆☆ | ★★☆☆☆ | uafhængig |
+| 44 | 2 | `documentService` → deklarativt download-register | ★★★★☆ | ★★★★☆ | ★★★★☆ | uafhængig |
+| 45 | 3 | `fileHandleStorage` → IndexedDB-kv-primitiv | ★★★★☆ | ★★★★☆ | ★★★★☆ | uafhængig |
+| 46 | 46 | Variant-ejede styles og build-assets | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | uafhængig; synlig QA/godkendelse |
+| 47 | 29 | `dateRanges.ts` split + read-time `TODAY` | ★★★☆☆ | ★★★☆☆ | ★★★☆☆ | uafhængig |
+| 48 | 4 | `utils/` residual parallel-helper-oprydning | ★★☆☆☆ | ★★★★★ | ★★★★★ | uafhængig |
+| 49 | 14 | Fjern dupleret `sanitizeFilenamePart` i reports | ★☆☆☆☆ | ★★★★★ | ★★★★★ | uafhængig |
+| 50 | 35 | Carry-forward series-opslag | ★★☆☆☆ | ★★★☆☆ | ★★☆☆☆ | uafhængig |
+| 51 | 52 | Normative kontrakter: invariant-kerne vs. implementeringskort | ★★★★☆ | ★★★☆☆ | ★★★★☆ | uafhængig |
 
 ---
 
@@ -379,8 +404,8 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Scope:** `document/writer/documentWriter.ts` (kontrakt), `pdf/infrastructure/pdfWriter.ts` (953), `docx/infrastructure/docxWriter.ts` (760), alle ~18 generatorer.
 - **Problem:** `DocumentWriter` er en imperativ PDF-cursor (`getY/setY/ensureSpace/advanceY`) — i Word er hver af disse no-ops. `getDoc()` er en "ærlig union" der indrømmer at kanalen lækker; `getPageWidth()` returnerer mm på PDF, twips på Word; `getTextWidth` divergerer. Paritet holdes af hånd-synkede kodestier + kommentarer, ikke af struktur.
 - **Greenfield:** Vend retningen om: generatorer udsender en **deklarativ blok/flow-model** (Title, Section, LabelValueRow, Table, Signature, PageBreak…) uden Y-koordinater. To rene renderere (`PdfRenderer`, `DocxRenderer`) forbruger modellen; paginering bliver internt PDF-anliggende. Paritet bliver strukturel (begge går samme træ).
-- **Rød tråd:** Bevarer ét `DocumentRenderer`-interface routet via `documentGenerationContext`; blok-modellen *er* snapshot→dokument-kontrakten, så canonical ikke kan drifte fra presentation.
-- **Afhængigheder:** Keystone — opløser #15, #31, #32 og dele af #11. Højeste risiko/laveste lethed i dokument-laget; pilot på label-value-generatorerne (#11) først.
+- **Rød tråd:** Bevarer ét `DocumentRenderer`-interface, men routet via den eksplicitte session fra #38; blok-modellen *er* snapshot→dokument-kontrakten, så canonical ikke kan drifte fra presentation.
+- **Afhængigheder:** Keystone — forudsætter #15, #11 og #38; opløser #31 og #32. Højeste risiko/laveste lethed i dokument-laget; pilot på label-value-generatorerne (#11) først.
 
 ### 25 — Keystone: Samlet felt-state-kerne · 9
 
@@ -454,13 +479,9 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Rød tråd:** Én atomisk-write-primitiv; context mod tynd facade (kobler til #28).
 - **Afhængigheder:** Trust-kritisk save-sti; coalescing/undo-samspillet er subtilt ("præcis én undo-frame per commit"). Kræver tungt test-net før berøring.
 
-### 34 — EO schema-variant-dedup (uverificeret) · 7
+### 34 — EO schema-variant-dedup — udgået · 7
 
-- **Scope:** `schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts` (16 KB — største schema).
-- **Problem:** `eo*`-prefiksede varianter ved siden af base-modstykker (`loenudviklingOgSatserSchema` vs `eoLoenudviklingOgSatserSchema`; `loenudviklingManuelRowSchema` vs `loenudviklingManuelProcentsatsRowSchema`) antyder to parallelle former for samme domænekoncept — hvor et felt tilføjet til den ene kan drifte fra den anden. **NB: uverificeret** — filen blev ikke læst linje-for-linje, så reel duplikering vs. legitim strukturel forskel skal bekræftes først.
-- **Greenfield:** Hvis varianterne har delmængde/embedding-relation: udled den ene af den anden (`base.pick()/.extend()` eller delt inder-schema wrappet to gange). Split 16 KB-sektionen i per-feature-schema-filer (svie/smerte, TAF, ferie, offentlige ydelser, lønudvikling).
-- **Rød tråd:** Zod som eneste runtime-sandhed; ingen parallel schema-form.
-- **Afhængigheder:** **Verificér duplikeringen først.** Schema-ændringer rører `PERSISTED_DATA_VERSION` + fingerprint-drift-gate + hver save/load-sti; må ikke ændre inferrede typer eller bryde backward-tolerant load.
+- **Status: ❌ Udgået som kandidat (2026-07-10).** Den efterfølgende verifikation viste, at filen allerede udleder varianterne gennem `createLoenudviklingOgSatserSchema(...)`; den påståede parallelle schema-form findes ikke længere. Filen er 363 linjer, og en ren filopdeling uden et konkret grænseproblem ville være ændring for ændringens skyld. Kandidaten er derfor fjernet fra byggerækkefølgen, men ID'et bevares som historik.
 
 ### 35 — Carry-forward series-opslag · 7
 
@@ -478,36 +499,176 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Rød tråd:** Bringer det næststørste beregningsdomæne på den betroede penge/canonical-disciplin.
 - **Afhængigheder:** Højeste risiko/laveste lethed: hver EET-calc-signatur + hvert afrundings-site ændres; float→øre er subtilt omkring lovbestemte afrundingsregler (`roundNearest1000`, `ceilNearest12`). **Kræver udtømmende golden-value-tests før første ændring** — kan flytte juridisk følsomme beløb.
 
+### 37 — Branded `MoneyOre` + lukket pengealgebra · 9
+
+- **Scope:** `domain/erstatningsopgoerelse/shared/eoTypes.ts`, `eoMoney.ts`, EO-engines/snapshot/projektioner og deres dokumentformattere.
+- **Problem:** `MoneyOre` og `MoneyKroner` er blot aliaser for `number`. Mindst 17 direkte `as MoneyOre`-casts — især i `tafPerYearDerived.ts` — går uden om `ensureMoneyOre`, og rå `+`/`-`-aritmetik taber enhedsbeviset. #36 ville dermed flytte EET over på en nominelt kanonisk, men ikke reelt lukket pengeprimitiv.
+- **Greenfield:** Neutralt `domain/money/`-modul med opaque/branded `MoneyOre`, Zod-konstruktor og navngivne `zero/add/subtract/sum/scale/fromKroner/toKroner`. Ingen cast eller konstruktion uden for modulet; alle operationer returnerer valideret `MoneyOre`.
+- **Rød tråd:** Deterministisk numerik og én autoritativ pengealgebra i stedet for type-etiketter oven på rå floats.
+- **Afhængigheder:** Forudsætning for #36. Berører beregningskode bredt → forelægges og bevises tal-identisk med EO-golden-net før migration.
+
+### 38 — Eksplicit dokument-genereringssession · 9
+
+- **Scope:** `document/documentGenerationContext.ts`, `writer/documentWriterRouter.ts`, `docxWriter.ts`, `documentService.ts` og alle generator-entrypoints.
+- **Problem:** `activeContext` er modul-global state, der lever hen over `await`. Samtidige downloads kan overtage hinandens format/writer og gendanne kontekster i forkert rækkefølge; Word-writerens `save()` registrerer desuden en global pending-promise i stedet for at returnere sit artefakt. #24 bevarede oprindeligt netop denne kontekst og dækkede derfor ikke problemet.
+- **Greenfield:** Én eksplicit `DocumentGenerationSession` gives til generator/renderer. Rendereren returnerer `Promise<DocumentArtifact>`; service-laget ejer den eneste download-side-effect. Fjern `activeContext`, fallback-factory, `registerPendingDocumentDownload` og writerens skjulte `save()`-kanal.
+- **Rød tråd:** Eksplicit dataflow og én artefaktgrænse for PDF/Word; ingen skjult async-global state.
+- **Afhængigheder:** #11 letter callsite-migreringen; #24 er den naturlige slutform. Kræver parallel-download-tests og eksisterende kanal-golden-net.
+
+### 39 — Persistence initialiseres før React-render · 9
+
+- **Scope:** `contexts/FormPersistenceContext.tsx:120-136`, `persistenceSessionHydration.ts`, `formPersistenceStore.ts`, `bootstrapClientApp.tsx` og begge app-entries.
+- **Problem:** `FormPersistenceProvider` læser `sessionStorage`, bygger hydration-plan, muterer det globale store med `hydrate()` og rydder read-model-cache inde i en `useState`-initializer. Begge roots renderer under `React.StrictMode`; render er dermed uren, provider-remount kan rehydrere, og startup-rækkefølgen er bundet til en global singleton.
+- **Greenfield:** `initializePersistenceRuntime(...)` kører én gang før `root.render`, efter variantens namespace er fastlagt, og returnerer hydreret store + startup-notice/cleanup-plan. Provider modtager den færdige runtime og er en ren facade uden autoritativ init-side-effect.
+- **Rød tråd:** Store er source of truth; hydration er én eksplicit autoritativ replacement før nogen children kan læse state.
+- **Afhængigheder:** Laves før #19/#28/#33. Revisions-, epoch-, `invalidDrafts`- og notice-semantik skal karakteriseres state-identisk.
+
+### 40 — Eksplicit critical-action-/commit-barriere · 9
+
+- **Scope:** `utils/commitFlush.ts`, `gridCoreRegistry`, `MainLayout`, `useFileSaveLoad`, `useUndoRedoShortcuts` og felt-/grid-surface fra #25.
+- **Problem:** Save/load/navigation finder aktive grid-editorer via DOM-query + global registry, blur'er `document.activeElement` og venter en Promise-tick plus to animation frames på, at commits "falder til ro". Tre kritiske handlinger bruger to forskellige guard-funktioner, og korrekthed afhænger af render-timing frem for et eksplicit lifecycle-signal.
+- **Greenfield:** Én registreret `CriticalActionCoordinator` med typede commit-deltagere. `prepare(action)` returnerer deterministisk `committed | blocked(target)` og afventer kun eksplicitte commit-promises/events — aldrig DOM-scanning eller faste frames. Save, load, navigation og undo bruger samme barriere med navngiven policy.
+- **Rød tråd:** Imperative, auditerbare commits og én grænse for alle handlinger der kan unmount'e eller erstatte committed state.
+- **Afhængigheder:** Bygger naturligt på #25 (én feltkerne) og føder #41/#43. Fokus-/commit-adfærd skal være bruger-identisk; høj datatabsrisiko kræver transitionsmatrix.
+
+### 41 — Save/load som codec + I/O-porte + tilstandsmaskine · 8
+
+- **Scope:** `utils/fileSave.ts` (429), `fileLoad.ts` (370), `fileSaveInternals.ts` (284), `hooks/useFileSaveLoad.ts` (423), `types/fileOperations.ts` og `MainLayout`-dialogerne.
+- **Problem:** Én trust-kritisk use-case er spredt over ~1.500 linjer. File System Access/fallback og manuel/PWA-load har parallelle kontrolstier; fallback-download sker før in-memory-verifikation; `SaveFileResult`/`LoadFileResult` er booleans med næsten alle andre felter optional; to nullable pending-states kan repræsentere ugyldige UI-kombinationer.
+- **Greenfield:** Ren `EoFileCodec.encode/decode`; typede `SaveTarget`/`LoadSource`-porte; byg og verificér ét artefakt før enhver sink; read-back-verifikation hvor sinken understøtter det; diskriminerede resultater (`cancelled | saved | preflight | failed`). Ét reducer-/state-machine-flow ejer preflight → overwrite → apply → metadata og bruges af både picker og PWA.
+- **Rød tråd:** Parse én gang, valider én gang, anvend atomisk; filformat, I/O og UI-workflow har hver én klar grænse.
+- **Afhængigheder:** Bygger på #33, #40 og #42 (samt #3 for storage-primitiven). Højeste save/load-risiko → fuldt round-trip-, transitions-, fejlindsprøjtnings- og rollback-net før første ændring.
+
+### 42 — Versionsbåret schema-evolution i `.eo` · 9
+
+- **Scope:** `config/persistenceVersion.ts`, `schemas/eoFileSchema.ts`, `fileSave.ts`, `fileLoad.ts`, `inboundPersistedSection.ts` og `persistenceMigrations.ts`.
+- **Problem:** `.eo` gemmer containerens `FILE_FORMAT_VERSION` og buildets `appVersion`, men ikke sagsinputtets `PERSISTED_DATA_VERSION`. Migratoren modtager kun `(pageKey, value)` og kan derfor ikke kende kildens data-version; versionsstyret migration må gætte på shape. #13 omdøber kun runtime-store-feltet.
+- **Greenfield:** Save skriver særskilt `persistedDataVersion`; load sender den til et per-sektion migrator-register (`fromVersion → current`). Manglende version behandles som eksplicit legacy-baseline og må aldrig i sig selv blokere tolerant load eller udløse advarsel, hvis alle tilstedeværende værdier kan indlæses.
+- **Rød tråd:** `FILE_FORMAT_VERSION` ejer containeren; `PERSISTED_DATA_VERSION` ejer indholdet — også i den eneste brugerrettede langtidsbevaring.
+- **Afhængigheder:** #13 først; #41 konsumerer den færdige codec/migrationsgrænse. Trust-kritisk containerændring kræver gamle/nyere fil-fixtures og preflight-tests.
+
+### 43 — Kanonisk page-manifest + persistent app-shell · 9
+
+- **Scope:** `App.tsx`, `SideMenu.tsx`, `MainLayout.tsx`, `config/pageNavigation.ts` og direkte `navigate(...)`-calls i side/viewmodel-laget.
+- **Problem:** Samme faste sidekatalog håndholdes som loader-map, 11 lazy-konstanter, routes-array, menu-/utility-lister og endnu et route/default-tab-map. `createPageWrapper` monterer en ny `MainLayout` pr. route, så PWA-kø, undo-shortcuts, devtools, overlays og listeners remountes ved hvert sideskift. Kun sidemenu-navigation går gennem commit-guarden; andre bruger rå `navigate`.
+- **Greenfield:** Ét feature-låst `APP_PAGE_MANIFEST` med `PageId`, path, lazy loader, menu-metadata og optional persistence/default-tab. Routes/preload/menu/reverse lookup udledes. Appen har én layout-route (`MainLayout` + `Outlet`) og én `useCommitSafeNavigate()` over #40; undo/load har eksplicit dokumenterede særveje.
+- **Rød tråd:** Ét register for den låste featureflade og én sikker navigationsgrænse — ingen plugin-/fremtidsabstraktion.
+- **Afhængigheder:** Efter #40. Ændret mount-livscyklus kan afsløre skjult remount-state; karakterisér navigation, load/PWA, undo-fokus og shell-state.
+
+### 44 — Feature-slicede EO-viewmodels · 10
+
+- **Scope:** `useEoBeregningViewModel.ts` (891), `useLoenindkomstViewModel.ts` (874), `useEoOplysningerViewModel.ts` (605), deres contexts og sektionskonsumenter.
+- **Problem:** De "gode" reference-VM'er er selv blevet tre flade god-objekter (~2.370 LOC; op til 95 returnerede medlemmer). Contexts eksponerer rå `values/setValues/setFieldValue`; beregnings-VM'en blander issue-graf, side-effects, navigation, bilag, gates og fire downloads; løn-VM'en blander tabeller, dialoger, satser, SFGG og løntrin-finder. #5 standardiserer at en VM findes, men ikke dens indre grænser.
+- **Greenfield:** Root-VM komponeres af feature-lokale hooks/rene projektorer (`issues`, `navigation`, `bilag`, `downloads`, `sfgg`, `loenudvikling`, `tables`). Hver sektion modtager en navngiven smal model/command-flade; ingen sektion åbner hele form-API'et. `EOberegningTab` bliver ren sektionskomposition.
+- **Rød tråd:** Fører #5's VM + sections-princip helt igennem i stedet for at flytte monolitten én fil ned.
+- **Afhængigheder:** Efter #5 og før #1/#22. Beregnings-/gate-sandhed ændres ikke; snapshot-, download- og navigationstests skal bevise identisk adfærd.
+
+### 45 — Deklarativt editable `GridSpec` · 8
+
+- **Scope:** `StandardLoenTable` (806), `OffentligeYdelserTable` (544), `LoenudviklingManuelTable` (476), `LoenudviklingManuelProcentsatsTable` (376), `EetAslAfgoerelserTable` (402), `StandardGridTable` og `gridCore`.
+- **Problem:** Fem editable grids hånd-wirer samme kolonneidentitet særskilt som header/sort-id, fysisk `colIndex`, `gridCell`, undo-path, error-key, fokusmål, width/alignment og editor (39 `gridCell`-sites). En kolonneombytning kan kompilere, men sende undo/error/navigation til forkert celle; den nuværende grid-shell kan ikke typekontrollere isometrien.
+- **Greenfield:** `EditableGridSpec<Row, ColumnKey>` med én descriptor pr. kolonne (`key`, stabil index, header, width, align, sort projection, editor/derived renderer, error mapping). En compiler renderer colgroup/header/body og udleder gridCell, undo/error-key og fokusmål fra samme descriptor. Dynamiske løn-/beløbsgrene er spec-factories.
+- **Rød tråd:** UI-sidens pendant til dokument-`TableSpec` (#15): én kanonisk struktur, flere sikre projektioner.
+- **Afhængigheder:** Efter #25/#27; migrér tabel-for-tabel med keyboard-, DOM-, undo-, error- og save-order-karakterisering.
+
+### 46 — Variant-ejede styles og build-assets · 10
+
+- **Scope:** `bootstrapClientApp.tsx`, `MinProcesrenteApp.tsx`, `index.css`, `minprocesrente.css`, Vite-varianterne, `public/`, `ensure-build-index.mjs` og `cleanup-minprocesrente-public.mjs`.
+- **Problem:** Shared bootstrap importerer altid Mineos desktop-`index.css`; standalone overtager dermed `overflow:hidden` og kompenserer med en stor effect, der muterer `html/body/#root`. Standalone-buildet kopierer først Mineos PWA-assets og sletter/omskriver dem bagefter; begge builds kopierer efterfølgende HTML til `index.html`.
+- **Greenfield:** Hver entry ejer root-stylebundle, `publicDir`/headers og HTML-input. Shared bootstrap er style-neutral (eller modtager eksplicit style-loader). Vite bygger korrekt variant-output direkte; post-build delete/copy-scripts og standalone DOM-style-workaround forsvinder.
+- **Rød tråd:** Multi-app-isolation bliver strukturel i source/build i stedet for oprydning efter fælles pipeline.
+- **Afhængigheder:** Uafhængig, men synligt mobil-/desktop-layout og cacheheaders kræver forelæggelse, render-QA og build-output-tests.
+
+### 47 — Byg én gang, verificér og deployér samme artefakt · 14
+
+- **Scope:** `package.json`, `vite.config.ts` og `.github/workflows/ci.yml`.
+- **Problem:** `check` mangler lint/build/coverage; CI mangler lint, `typecheck:test` og coverage. Coverage-provider + thresholds er konfigureret, men aktiveres aldrig. Verify-jobbet bygger begge apps, hvorefter deploy-jobbet checker ud og bygger igen; `builtAt` gør de deployede bytes beviseligt forskellige fra de verificerede.
+- **Greenfield:** Én autoritativ `verify:release` over eksisterende værktøjer (source/test-typecheck, lint, Vitest+coverage, `build:all`, build-output guards). CI uploader de to verificerede `dist`-artefakter, og deploy-jobbet deployer præcis dem uden rebuild. Den ubrugte Playwright-dependency fjernes; intet nyt testframework/paradigme indføres.
+- **Rød tråd:** Én gate, ét build og én sandhed om hvad der faktisk blev godkendt til produktion.
+- **Afhængigheder:** Før øvrige kandidater som fundament. Dormant coverage kan afdække reel gæld; tærskler må ikke sænkes mekanisk.
+
+### 48 — Deklarativt AST-baseret arkitekturgrænse-harness · 12
+
+- **Scope:** De 35 tests i `src/__tests__/quality/`, især de 30 filer der læser/scanner source, samt `quality/testUtils.ts`.
+- **Problem:** Import-/adgangsgrænser håndhæves af mange lokale directory-walkers, regex/substring-søgninger og filspecifikke allowlists. Flere guards dokumenterer selv silent-pass-huller (aliasing, destructuring, bracket notation); samme kildecache og diagnostics genopfindes. `formContractIsolation` viser allerede AST-præcedens.
+- **Greenfield:** Én lille Vitest-båret `architectureRules`-motor på TypeScript compiler API (allerede dependency), ét deklarativt regel-/undtagelsesmanifest, kanonisk fil-cache og præcise diagnostics. Regex beholdes kun hvor selve tekstformen er kontrakten (fx mojibake eller CSS-forbud).
+- **Rød tråd:** Normative grænser beskrives én gang og håndhæves strukturelt i stedet for gennem konkurrerende tekstscannere.
+- **Afhængigheder:** Uafhængig. Bevar alle nuværende regler og negative fixtures, før gamle guards slettes.
+
+### 49 — Neutral måneds-/intervalalgebra ud af EO-motoren · 11
+
+- **Scope:** `erstatningsopgoerelse/engines/periodiseringsMotor.ts`, `domain/erhvervsevnetab/eetDifferencekravCalculation.ts`, `eetLoebendeYdelserCalculation.ts` og `utils/periodeBeregning.ts`.
+- **Problem:** EET importerer `optaelMaanederPraecis` direkte fra EO's engine i to beregninger; en `utils/`-wrapper importerer samme EO-motor og bruges kun af tests. En domæne-neutral månedsbrøk er dermed ejet af én side, og søsterdomænet bryder laggrænsen for at genbruge den.
+- **Greenfield:** Flyt rene ISO-interval-/månedsbrøk-primitiver til `domain/dates/`; EO-motoren beholder kun EO-politik. Fjern den test-only produktionswrapper og test den neutrale algebra direkte.
+- **Rød tråd:** Neutrale primitiver i neutralt hjem; intet søsterdomæne importerer en anden sides engine.
+- **Afhængigheder:** Før #36. Mekanisk i form, men beregningslogik → forelægges og bevises identisk for månedsgrænser/skudår.
+
+### 50 — TAF-graf → ren scene-model + tynd Canvas-renderer · 10
+
+- **Scope:** `document/generators/tafFordelt/tafKravGrafChart.ts` (800) og grafens helper-tests.
+- **Problem:** Én fil blander sampling, aksevalg, layout, kurvegeometri, labels, legend og Canvas-tegning. Rene dele eksponeres gennem `__tafKravGrafChartTestables`, fordi den egentlige PNG-renderer ikke kan testes meningsfuldt i jsdom; domænebeslutninger og rasterisering har ingen reel seam.
+- **Greenfield:** Byg en ren `TafChartScene` (akser, ticks, polygoner, markører, labels) fra den autoritative dokumentmodel. En lille Canvas-renderer rasteriserer scenen; golden-tests snapshotter scene-data, og få integrationstests verificerer PNG-artefaktet.
+- **Rød tråd:** Kanonisk projektion én gang, renderer uden domænebeslutninger; svarer til dokument-IR-princippet for grafikken.
+- **Afhængigheder:** Beslægtet med #24, men kan laves selvstændigt. Pixelændringer er synlig dokument-UX og forelægges; ellers kræves pixel-/scene-identitet.
+
+### 51 — Typed beregningsdatakatalog + provenance · 7
+
+- **Scope:** `data/lovbestemteRates.ts` (957), `overenskomstRates.ts` (1805), kapitaliseringens 33 håndkodede tabelmoduler/original-PDF'er, øvrige satskilder og `scripts/import-offentlig-loen.mjs`.
+- **Problem:** Flere datakilder blander rå tal, typer, referenceprosa, coverage, integritetscheck og opslag i samme filer. Kun KL/RLTN har et reproducerbart kilde→valideret-data-flow; årlige opdateringer afhænger ellers af håndholdte formater og parallel dokumentation. #35 konsoliderer kun carry-forward-opslag.
+- **Greenfield:** Fælles katalog-envelope (`id`, kilde/provenance, coverage, validator) med kilde-specifikke payloads — ingen tvungen universel sats-shape. Datafiler er data-only; lookup/bounds/reference-projektioner afledes. Generator bruges kun, hvor kilden kan importeres deterministisk; ingen automatisk PDF-ekstraktion uden sikker kildeproces.
+- **Rød tråd:** Genbruger KL/RLTN's etablerede validerede importmønster uden at udviske reelle domæneforskelle.
+- **Afhængigheder:** Selvstændig data-keystone, lavere prioritet end #41. Alle værdier er beregningslogik → forelæggelse og fuld golden-værdi-identitet.
+
+### 52 — Normative kontrakter: invariant-kerne vs. implementeringskort · 11
+
+- **Scope:** `src/contracts/` (27 kontraktfiler/~4.700 linjer), `contract-topology.json`, coverage-matrixen og informative arkitektur-/reviewdokumenter.
+- **Problem:** Stabile regler, konkrete fil-/symbolnavne, audits og historiske noter står blandet i normative kontrakter. Der er allerede drift: `eo-snapshot-contract.md` navngiver ikke-eksisterende `...PdfDocument`-funktioner, og `app-settings.md` beskriver en ældre settings-kobling. Topologi-testen kan kun verificere linkage, ikke sandheden i implementeringskortene.
+- **Greenfield:** Kontrakter indeholder kun stabile, testbare invariants og ejerskab. Fil-/symbolkort, auditsekvenser og historik flyttes til informative arkitektur-/reviewdokumenter eller maskin-afledte manifests. `contract-topology.json` bevares som autoritativt hierarki; manuelle duplikatlister fjernes.
+- **Rød tråd:** Én autoritativ beskrivelse pr. concern og mindre drift mellem norm og kode.
+- **Afhængigheder:** Uafhængig; følg topology-proceduren ved hver flytning og opdatér coverage-matrixen samlet. Ingen runtime-adfærd.
+
 ---
 
 ## Tematisk sammenfatning
 
 Det stærkeste gennemgående tema er, at princippet **"kanonisk beregnet én gang,
 projiceret mange gange"** — som EO's snapshot/canonical/`MoneyOre`-rygrad er et
-forbilledligt eksempel på — er anvendt **inkonsistent**:
+godt udgangspunkt for — både er anvendt **inkonsistent** og nogle steder kun
+nominelt gennemført:
 
 - **Regulering** (#23): beregning konvergeret, præsentation ikke.
 - **Dag-sæt** (#17): beregnet på begge sider af lag-grænsen. ✅ løst.
-- **EET** (#36): adopterede aldrig rygraden.
-- **Dokument-output** (#24, #31, #32): "format-neutralt" kun på kontrakt-niveau;
-  paritet holdes af hånd-synkede stier.
-- **Felt-state** (#25, #27): form-stien og tabel-stien er to kopier af samme
-  trust-kritiske draft-maskine.
+- **Penge og perioder** (#37, #49): EO's kanoniske type er ikke lukket, og EET
+  importerer stadig en neutral månedsprimitiv fra EO's engine.
+- **EET** (#36): adopterede aldrig rygraden og må først migreres, når #37/#49 står.
+- **Dokument-output** (#24, #31, #32, #38, #50): paritet og grafik holdes af
+  hånd-synkede stier, mens den aktive kanal ligger i skjult async-global state.
+- **Felt/tabeller** (#25, #27, #45): draft-maskinen og kolonneidentiteten har
+  parallelle repræsentationer, der kan drifte uafhængigt.
 
-Det næststærkeste tema er **parallel boilerplate der aldrig blev generaliseret**:
-store-slices (#19), atomiske mutationer (#33), IndexedDB-wrappers (#3),
-download-funktioner (#2), download-knapper (#9), fane-scaffolding (#8),
-settings-rækker (#21) — alle "samme mønster N gange" som ét factory/register
-kollapser.
+Det næststærkeste tema er, at de mest kritiske **lifecycles ikke har én eksplicit
+grænse**. Persistence initialiseres under React-render (#39), kritiske handlinger
+venter på DOM/animation frames (#40), save/load er fire sammenvævede codec-/I/O-/UI-
+stier (#41), og `.eo` mangler sagsinputtets kildeversion (#42). Samme mønster findes
+ydre i appen: sidekatalog og shell-lifecycle er parallelle (#43), og app-varianter
+ryddes først op efter fælles style-/asset-build (#46).
+
+Det tredje tema er **parallel boilerplate og håndholdt governance**: store-slices
+(#19), atomiske mutationer (#33), IndexedDB-wrappers (#3), download-funktioner
+(#2), settings-rækker (#21), reference-data/provenance (#51), release-gates (#47),
+source-scannende kontrakttests (#48) og kontrakternes implementeringskort (#52).
+Greenfield-retningen er ikke mere framework, men færre og mere autoritative
+registre, codecs, porte og projektioner for den allerede låste featureflade.
 
 **Anbefalet rækkefølge (indefra-og-ud):** Byg først fase 1's kanoniske primitiver
-(#17, #15, #11, #12, #19, #33) + de delte UI-primitiver (#9, #8) — de er billige,
-isolerede og bærer alt det senere. Lav derefter fase 2's spine-keystones (#23, #24,
-#25, #36) én ad gangen som separate, testtunge spor med golden-value-net og
-godkendelse **før** første ændring. Fase 3's projektioner (#16, #31, #32, #27, #28,
-#30, #20) kollapser nu til tynde lag oven på spinen. Fase 4 dekomponerer UI'et yderst
-(#5 først som mønster, #26 sidst som højeste risiko). Fase 5's uafhængige
-oprydninger (#2, #3, #13, #29, #4, #14, #35, #34) er gated af intet og bruges som
-fyld, når en keystone afventer brugerens godkendelse. #36 (EET-rygrad) er den eneste
-kandidat, der kan flytte juridisk følsomme beløb — den kræver den grundigste
-golden-value-dækning før berøring.
+(#37, #49, #17, #15, #11, #38, #12, #19, #33, #13) oven på det verificerede
+release-/arkitektur-net (#47/#48). Lav derefter fase 2's keystones én ad gangen:
+beregning/dokument (#23/#24/#36), felt-/action-state (#25/#40), save/load
+(#42/#41) og data (#51). Fase 3 gør output og tabeller til tynde projektioner;
+fase 4 etablerer først den persistente shell (#43) og dekomponerer derefter
+viewmodels/views (#5/#44 og resten). Fase 5 kører kun som uafhængigt fyld.
+
+Kandidaterne #37, #49, #36 og #51 kan alle berøre juridisk følsomme tal; de kræver
+forudgående godkendelse og golden-værdi-identitet. #41/#42 er tilsvarende
+trust-kritiske for databevaring og kræver fuldt round-trip-/rollback-net. #34 er
+verificeret udgået og indgår ikke længere i byggerækkefølgen.
