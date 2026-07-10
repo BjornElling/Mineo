@@ -456,7 +456,7 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 
 Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 
-- `src/__tests__/quality/pdfDownloadCommittedStateGuard.test.ts`
+- `src/__tests__/quality/architecture/architectureRules.test.ts` (download-committed-state-grænsen, AST-regel `pdf/download-committed-state`)
 - `src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts`
 - `src/__tests__/quality/pdfPseudoTableGuard.test.ts`
 - `src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts`

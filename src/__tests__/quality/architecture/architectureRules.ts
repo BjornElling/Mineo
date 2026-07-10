@@ -1,12 +1,17 @@
-import { isValidStorageKey } from '../../../config/storageManifest';
-import { resolveRelativeImport } from './astQueries';
+import { PERSISTED_SECTION_KEYS } from '../../../config/persistenceRegistry';
+import { isValidStorageKey, type StorageKey } from '../../../config/storageManifest';
+import ts from 'typescript';
+import { collectCalls, resolveRelativeImport } from './astQueries';
+import type { SourceEntry } from './sourceGraph';
 import {
+  defineRule,
   forbidCalls,
   forbidElementAccess,
   forbidImports,
   forbidMemberAccess,
   forbidTypeAssertions,
   type ArchitectureRule,
+  type Finding,
 } from './ruleKit';
 
 /**
@@ -318,6 +323,635 @@ const moneyOreTypeAssertion = forbidTypeAssertions({
   ],
 });
 
+// --- Page-lag: persisteret sektionsadgang må kun ramme autoriserede domæner ---
+
+/**
+ * De hooks/funktioner der giver en page-fil adgang til en persisteret sektion (læse
+ * ELLER skrive). En sektions-key som string-literal-argument til ét af disse kald
+ * betyder, at filen kobler til det domæne. Row-id/felt-navne er aldrig sektions-keys,
+ * så et sektions-valued literal-argument er utvetydigt en sektionsadgang.
+ */
+const SECTION_ACCESS_HOOKS = new Set<string>([
+  'usePersistedForm',
+  'usePersistedSectionSelector',
+  'usePersistedSection',
+  'useFormFieldErrors',
+  'useFormFieldErrorReporter',
+  'getPersistedSectionSnapshot',
+  'getPersistedData',
+  'getFieldErrorsBySourceSnapshot',
+  'getSectionRevisionSnapshot',
+  'getFieldErrorRevisionSnapshot',
+  'useSectionRevisionSelector',
+  'useFieldErrorRevisionSelector',
+  'commitSection',
+]);
+
+const SECTION_KEY_SET = new Set<string>(PERSISTED_SECTION_KEYS);
+const PAGES_ROOT = 'src/components/pages';
+
+export type PageBoundaryRule = Readonly<{
+  label: string;
+  /** Repo-relativ rod (fil eller mappe) med `src/`-præfiks, matcher `SourceEntry.relativePath`. */
+  root: string;
+  allowedSections: readonly StorageKey[];
+}>;
+
+/**
+ * Domain-boundary-contract §9/§10: hvilke persisterede sektioner hver page-rod må
+ * tilgå. Erstatningsopgørelse/Erhvervsevnetab har autoriserede cross-domain-læsninger
+ * (delt forligsgrad + midlertidigt EET) — resten er strengt eget domæne + stamdata.
+ */
+export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
+  { label: 'Årslønsberegning', root: 'src/components/pages/Aarsloen.tsx', allowedSections: ['aarsloen', 'stamdata'] },
+  {
+    label: 'Erhvervsevnetab',
+    root: 'src/components/pages/Erhvervsevnetab.tsx',
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
+  },
+  {
+    label: 'Erhvervsevnetab tabs',
+    root: 'src/components/pages/erhvervsevnetab',
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
+  },
+  {
+    label: 'Erstatningsopgørelse',
+    root: 'src/components/pages/Erstatningsopgoerelse.tsx',
+    allowedSections: ['erstatningsopgoerelse', 'stamdata', 'erhvervsevnetab', 'faellesAarsloen'],
+  },
+  {
+    label: 'Erstatningsopgørelse tabs',
+    root: 'src/components/pages/erstatningsopgoerelse',
+    allowedSections: ['erstatningsopgoerelse', 'stamdata'],
+  },
+  { label: 'Forsørgertab', root: 'src/components/pages/Forsoergertab.tsx', allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'] },
+  { label: 'Renteberegning', root: 'src/components/pages/Renteberegning.tsx', allowedSections: ['renteberegning', 'stamdata'] },
+  { label: 'Satser', root: 'src/components/pages/Satser.tsx', allowedSections: ['satser', 'stamdata'] },
+  { label: 'Stamdata', root: 'src/components/pages/Stamdata.tsx', allowedSections: ['stamdata'] },
+  { label: 'Varige mén', root: 'src/components/pages/VarigeMen.tsx', allowedSections: ['stamdata', 'varigemen'] },
+  { label: 'Varige mén tabs', root: 'src/components/pages/varigemen', allowedSections: ['stamdata', 'varigemen'] },
+  {
+    label: 'MinProcesrente (standalone)',
+    root: 'src/components/pages/minprocesrente',
+    allowedSections: ['renteberegning'],
+  },
+];
+
+const boundaryRuleForPath = (relativePath: string): PageBoundaryRule | undefined =>
+  PAGE_BOUNDARY_RULES.find(
+    (rule) => relativePath === rule.root || relativePath.startsWith(`${rule.root}/`)
+  );
+
+type SectionAccess = Readonly<{ section: StorageKey; position: Finding['position'] }>;
+
+const collectSectionAccesses = (entry: SourceEntry): SectionAccess[] =>
+  collectCalls(entry)
+    .filter((ref) => SECTION_ACCESS_HOOKS.has(ref.calleeName))
+    .flatMap((ref) =>
+      ref.stringArgs
+        .filter((arg): arg is StorageKey => SECTION_KEY_SET.has(arg))
+        .map((section) => ({ section, position: ref.position }))
+    );
+
+const pageSectionAccessBoundary = defineRule({
+  id: 'domain/page-section-access-boundary',
+  description:
+    'Enhver page-fil der tilgår en persisteret sektion skal ligge under en PAGE_BOUNDARY_RULE-rod (coverage) og må kun ramme rodens autoriserede sektioner (domain-boundary-contract §9/§10).',
+  appliesTo: (relativePath) => relativePath.startsWith(`${PAGES_ROOT}/`),
+  find: (entry) => {
+    const accesses = collectSectionAccesses(entry);
+    if (accesses.length === 0) return [];
+
+    const boundary = boundaryRuleForPath(entry.relativePath);
+    if (!boundary) {
+      // Coverage-completeness: en page-fil med sektionsadgang uden en regel-rod er uovervåget.
+      return accesses.map((access) => ({
+        position: access.position,
+        message: `Uovervåget page-fil med persisteret sektionsadgang (${access.section}) — tilføj en PAGE_BOUNDARY_RULE-rod.`,
+      }));
+    }
+
+    return accesses
+      .filter((access) => !boundary.allowedSections.includes(access.section))
+      .map((access) => ({
+        position: access.position,
+        message: `${boundary.label}: adgang til ikke-autoriseret sektion '${access.section}'.`,
+      }));
+  },
+  violatingFixtures: [
+    // Under en rod, men uautoriseret sektion.
+    { relativePath: 'src/components/pages/Aarsloen.tsx', code: "usePersistedForm('erhvervsevnetab');" },
+    { relativePath: 'src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx', code: "getPersistedData('renteberegning');" },
+    // Ingen rod (uovervåget) med sektionsadgang.
+    { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: "usePersistedSection('stamdata');" },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/components/pages/Aarsloen.tsx', code: "usePersistedForm('aarsloen');" },
+    { relativePath: 'src/components/pages/Erhvervsevnetab.tsx', code: "commitSection('erstatningsopgoerelse', values);" },
+    // Sektionsfri page-fil er uinteressant, selv uden rod.
+    { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: "const x = useMemo(() => 1, []);" },
+    // Ikke-sektions string-argument til et adgangs-hook flages ikke.
+    { relativePath: 'src/components/pages/Aarsloen.tsx', code: "useFormFieldErrorReporter('aarsloen', 'etFeltNavn');" },
+  ],
+});
+
+// --- PDF-download-filer må ikke læse committed EO/stamdata-state ---------------
+
+const isDownloadTriggerCall = (calleeName: string): boolean =>
+  /^download[A-Za-z]+(?:Pdf|Dokument)$/.test(calleeName);
+
+const EO_PDF_DOWNLOAD_FUNCTIONS = new Set<string>([
+  'downloadErstatningsopgoerelseDokument',
+  'downloadTafFordeltPaaAarDokument',
+  'downloadTafOpreguleretPaaAarDokument',
+  'downloadTafKravGrafDokument',
+]);
+
+const PERSISTED_READ_CALLEES = new Set<string>(['usePersistedSection', 'getPersistedData']);
+
+const pdfDownloadCommittedState = defineRule({
+  id: 'pdf/download-committed-state',
+  description:
+    'En fil der udløser en PDF/dokument-download må ikke samtidig læse committed EO-state; EO-PDF-downloads må heller ikke læse committed stamdata (build-once/render-from-argument-invarianten).',
+  find: (entry) => {
+    const calls = collectCalls(entry);
+    const hasDownloadTrigger = calls.some((ref) => isDownloadTriggerCall(ref.calleeName));
+    const hasEoPdfDownload = calls.some((ref) => EO_PDF_DOWNLOAD_FUNCTIONS.has(ref.calleeName));
+    if (!hasDownloadTrigger && !hasEoPdfDownload) return [];
+
+    const findings: Finding[] = [];
+    for (const ref of calls) {
+      if (!PERSISTED_READ_CALLEES.has(ref.calleeName)) continue;
+      const section = ref.firstArgStringLiteral;
+      if (section === 'erstatningsopgoerelse' && (hasDownloadTrigger || hasEoPdfDownload)) {
+        findings.push({ position: ref.position, message: `Committed EO-read (${ref.calleeText}('erstatningsopgoerelse')) i download-triggende fil.` });
+      } else if (section === 'stamdata' && hasEoPdfDownload) {
+        findings.push({ position: ref.position, message: `Committed stamdata-read (${ref.calleeText}('stamdata')) i EO-PDF-download-fil.` });
+      }
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: "downloadSatserDokument(); usePersistedSection('erstatningsopgoerelse');" },
+    { relativePath: 'src/x.ts', code: "downloadErstatningsopgoerelseDokument(); getPersistedData('stamdata');" },
+  ],
+  cleanFixtures: [
+    // Download uden committed EO/stamdata-read.
+    { relativePath: 'src/x.ts', code: "downloadSatserDokument(); usePersistedSection('renteberegning');" },
+    // Stamdata-read med en ikke-EO download er tilladt.
+    { relativePath: 'src/x.ts', code: "downloadSatserDokument(); getPersistedData('stamdata');" },
+    // EO-read uden nogen download-trigger.
+    { relativePath: 'src/x.ts', code: "usePersistedSection('erstatningsopgoerelse');" },
+  ],
+});
+
+// --- MinProcesrente-standalone: ingen import af Mineos tværgående flows --------
+
+const STANDALONE_SCOPE_PREFIXES = ['src/apps/minprocesrente/', 'src/components/pages/minprocesrente/'];
+const STANDALONE_SCOPE_FILES = new Set<string>(['src/pdf/infrastructure/standaloneRentePdfService.ts']);
+
+const isStandaloneScope = (relativePath: string): boolean =>
+  STANDALONE_SCOPE_FILES.has(relativePath) ||
+  STANDALONE_SCOPE_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+
+const FORBIDDEN_STANDALONE_MODULE_SUBSTRINGS = [
+  'AuthGate',
+  'BrowserRouter',
+  'pwaLaunchQueue',
+  'usePwaLaunchQueue',
+  'serviceWorker',
+  'systemIssueReporter',
+  'AppSettings',
+  'useAppSettings',
+  'BugReport',
+];
+const FORBIDDEN_STANDALONE_BINDINGS = new Set<string>([
+  'AuthGate',
+  'BrowserRouter',
+  'useAppSettings',
+  'AppSettingsProvider',
+  'systemIssueReporter',
+  'reportSystemIssue',
+  'BugReportButton',
+  'logStorage',
+]);
+
+const isMineoAppRootImport = (moduleSpecifier: string): boolean =>
+  /(?:^|\/)App$/.test(moduleSpecifier) && !moduleSpecifier.includes('minprocesrente');
+
+const minprocesrenteStandaloneImport = forbidImports({
+  id: 'layer/minprocesrente-standalone-import-boundary',
+  description:
+    'Den isolerede MinProcesrente-standalone må ikke importere Mineos auth-/route-/PWA-/settings-/diagnose-flows (den deler kun renteberegning-sektionen).',
+  appliesTo: isStandaloneScope,
+  forbidden: (ref) =>
+    isMineoAppRootImport(ref.moduleSpecifier) ||
+    FORBIDDEN_STANDALONE_MODULE_SUBSTRINGS.some((needle) => ref.moduleSpecifier.includes(needle)) ||
+    ref.namedBindings.some((binding) => FORBIDDEN_STANDALONE_BINDINGS.has(binding)),
+  message: (ref) => `MinProcesrente-standalone importerer forbudt Mineo-flow (${ref.moduleSpecifier}).`,
+  violatingFixtures: [
+    { relativePath: 'src/apps/minprocesrente/x.ts', code: "import { AuthGate } from '../../components/AuthGate';" },
+    { relativePath: 'src/apps/minprocesrente/x.ts', code: "import App from '../../App';" },
+    { relativePath: 'src/apps/minprocesrente/x.ts', code: "import { useAppSettings } from '../../contexts/AppSettingsContext';" },
+    { relativePath: 'src/pdf/infrastructure/standaloneRentePdfService.ts', code: "import { reportSystemIssue } from '../../utils/systemIssueReporter';" },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/apps/minprocesrente/x.ts', code: "import { computeRente } from '../../domain/renteberegning/renteEngine';" },
+    // Standalone-appens eget App-modul (indeholder ikke det bare `App`-segment) er tilladt.
+    { relativePath: 'src/apps/minprocesrente/minprocesrenteMain.tsx', code: "import MinProcesrenteApp from './MinProcesrenteApp';" },
+  ],
+});
+
+// --- Ingen lokal React-state-spejling af committed persisterede sektioner ------
+
+const isNamedCall = (node: ts.CallExpression, identifier: string): boolean => {
+  const { expression } = node;
+  return (
+    (ts.isIdentifier(expression) && expression.text === identifier) ||
+    (ts.isPropertyAccessExpression(expression) &&
+      ts.isIdentifier(expression.expression) &&
+      expression.expression.text === 'React' &&
+      expression.name.text === identifier)
+  );
+};
+
+const collectBindingIdentifiers = (name: ts.BindingName): string[] => {
+  if (ts.isIdentifier(name)) return [name.text];
+  const result: string[] = [];
+  for (const element of name.elements) {
+    if (ts.isOmittedExpression(element)) continue;
+    if (element.dotDotDotToken) continue;
+    result.push(...collectBindingIdentifiers(element.name));
+  }
+  return result;
+};
+
+const referencesTrackedCommittedSource = (
+  node: ts.Node,
+  trackedSectionVars: ReadonlySet<string>,
+  trackedValuesVars: ReadonlySet<string>,
+  trackedFormVars: ReadonlySet<string>
+): boolean => {
+  let found = false;
+  const visit = (current: ts.Node): void => {
+    if (found) return;
+    if (
+      ts.isIdentifier(current) &&
+      (trackedSectionVars.has(current.text) || trackedValuesVars.has(current.text))
+    ) {
+      found = true;
+      return;
+    }
+    if (
+      ts.isPropertyAccessExpression(current) &&
+      ts.isIdentifier(current.expression) &&
+      trackedFormVars.has(current.expression.text) &&
+      current.name.text === 'values'
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(current, visit);
+  };
+  visit(node);
+  return found;
+};
+
+const COMMITTED_MIRROR_MARKERS = ['usePersistedSectionSelector', 'getPersistedSectionSnapshot', 'usePersistedForm'];
+
+const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
+  if (!entry.text.includes('useState')) return [];
+  if (!COMMITTED_MIRROR_MARKERS.some((marker) => entry.text.includes(marker))) return [];
+
+  const sourceFile = entry.ast;
+  const trackedSectionVars = new Set<string>();
+  const trackedValuesVars = new Set<string>();
+  const trackedFormVars = new Set<string>();
+  const localStateSetters = new Set<string>();
+
+  const collect = (node: ts.Node): void => {
+    if (ts.isVariableDeclaration(node) && node.initializer) {
+      if (
+        ts.isCallExpression(node.initializer) &&
+        (isNamedCall(node.initializer, 'usePersistedSectionSelector') ||
+          isNamedCall(node.initializer, 'getPersistedSectionSnapshot'))
+      ) {
+        for (const identifier of collectBindingIdentifiers(node.name)) {
+          trackedSectionVars.add(identifier);
+        }
+      }
+
+      if (ts.isCallExpression(node.initializer) && isNamedCall(node.initializer, 'usePersistedForm')) {
+        if (ts.isIdentifier(node.name)) trackedFormVars.add(node.name.text);
+        if (ts.isObjectBindingPattern(node.name)) {
+          for (const element of node.name.elements) {
+            if (element.dotDotDotToken) continue;
+            const propertyName = element.propertyName ?? element.name;
+            if (ts.isIdentifier(propertyName) && propertyName.text === 'values') {
+              trackedValuesVars.add(element.name.getText(sourceFile));
+            }
+          }
+        }
+      }
+
+      if (
+        ts.isObjectBindingPattern(node.name) &&
+        ts.isIdentifier(node.initializer) &&
+        trackedFormVars.has(node.initializer.text)
+      ) {
+        for (const element of node.name.elements) {
+          if (element.dotDotDotToken) continue;
+          const propertyName = element.propertyName ?? element.name;
+          if (ts.isIdentifier(propertyName) && propertyName.text === 'values') {
+            trackedValuesVars.add(element.name.getText(sourceFile));
+          }
+        }
+      }
+
+      if (
+        ts.isIdentifier(node.name) &&
+        ts.isPropertyAccessExpression(node.initializer) &&
+        ts.isIdentifier(node.initializer.expression) &&
+        trackedFormVars.has(node.initializer.expression.text) &&
+        node.initializer.name.text === 'values'
+      ) {
+        trackedValuesVars.add(node.name.text);
+      }
+
+      if (
+        ts.isArrayBindingPattern(node.name) &&
+        ts.isCallExpression(node.initializer) &&
+        isNamedCall(node.initializer, 'useState')
+      ) {
+        const setter = node.name.elements[1];
+        if (setter && ts.isBindingElement(setter) && ts.isIdentifier(setter.name)) {
+          localStateSetters.add(setter.name.text);
+        }
+      }
+    }
+    ts.forEachChild(node, collect);
+  };
+  collect(sourceFile);
+
+  const findings: Finding[] = [];
+  const positionOf = (node: ts.Node): Finding['position'] => {
+    const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+    return { line: line + 1, column: character + 1 };
+  };
+
+  const inspect = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.initializer &&
+      ts.isCallExpression(node.initializer) &&
+      isNamedCall(node.initializer, 'useState')
+    ) {
+      const [firstArgument] = node.initializer.arguments;
+      if (
+        firstArgument &&
+        referencesTrackedCommittedSource(firstArgument, trackedSectionVars, trackedValuesVars, trackedFormVars)
+      ) {
+        findings.push({ position: positionOf(node), message: 'useState-initializer spejler en committed persisteret sektion.' });
+      }
+    }
+
+    if (ts.isCallExpression(node) && isNamedCall(node, 'useEffect')) {
+      const [effectCallback] = node.arguments;
+      if (effectCallback && (ts.isArrowFunction(effectCallback) || ts.isFunctionExpression(effectCallback))) {
+        const visitEffect = (effectNode: ts.Node): void => {
+          if (
+            ts.isCallExpression(effectNode) &&
+            ts.isIdentifier(effectNode.expression) &&
+            localStateSetters.has(effectNode.expression.text) &&
+            effectNode.arguments.some((arg) =>
+              referencesTrackedCommittedSource(arg, trackedSectionVars, trackedValuesVars, trackedFormVars)
+            )
+          ) {
+            findings.push({
+              position: positionOf(effectNode),
+              message: `useEffect spejler en committed persisteret sektion via ${effectNode.expression.text}(...).`,
+            });
+          }
+          ts.forEachChild(effectNode, visitEffect);
+        };
+        visitEffect(effectCallback.body);
+      }
+    }
+    ts.forEachChild(node, inspect);
+  };
+  inspect(sourceFile);
+
+  return findings;
+};
+
+const persistenceCommittedMirror = defineRule({
+  id: 'persistence/committed-section-mirror',
+  description:
+    'Ingen lokal React-state (useState-initializer eller useEffect-setter) må spejle en committed persisteret sektion i pages/hooks — committed state er den ene kilde.',
+  appliesTo: (relativePath) =>
+    relativePath.startsWith('src/components/pages/') || relativePath.startsWith('src/hooks/'),
+  find: findCommittedMirrorViolations,
+  violatingFixtures: [
+    {
+      relativePath: 'src/hooks/useX.ts',
+      code: "const s = usePersistedSectionSelector('stamdata'); const [local, setLocal] = useState(s);",
+    },
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: "const { values } = usePersistedForm('stamdata'); const [l, setL] = useState(0); useEffect(() => { setL(values); }, [values]);",
+    },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/components/pages/X.tsx', code: "const s = usePersistedSectionSelector('stamdata'); const derived = useMemo(() => s.x, [s]);" },
+    { relativePath: 'src/hooks/useX.ts', code: "const [l, setL] = useState(0); useEffect(() => { setL(1); }, []);" },
+  ],
+});
+
+// --- Form-kontrakt: ingen microtask-/Promise-tick i commit-sensitiv kode -------
+
+const COMMIT_SENSITIVE_PREFIXES = ['src/components/', 'src/hooks/', 'src/utils/', 'src/rowDrafts/'];
+const isCommitSensitive = (relativePath: string): boolean =>
+  COMMIT_SENSITIVE_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+
+const queueMicrotaskBoundary = forbidCalls({
+  id: 'form/no-queue-microtask-in-commit-sensitive',
+  description:
+    'queueMicrotask er forbudt i commit-sensitiv kode (kan splitte en atomisk commit over to microtasks); kun auditerede infrastruktur-undtagelser.',
+  appliesTo: isCommitSensitive,
+  allow: ['src/components/tables/gridCore/tableKeyboardNavigation.ts'],
+  antiRot: true,
+  forbidden: (ref) => ref.calleeName === 'queueMicrotask' && ref.calleeText === 'queueMicrotask',
+  message: () => 'queueMicrotask i commit-sensitiv kode uden auditeret undtagelse.',
+  violatingFixtures: [
+    { relativePath: 'src/components/x.tsx', code: 'queueMicrotask(() => commit());' },
+    { relativePath: 'src/hooks/x.ts', code: 'queueMicrotask(flush);' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/components/x.tsx', code: 'obj.queueMicrotask(fn);' },
+    { relativePath: 'src/components/x.tsx', code: 'requestAnimationFrame(fn);' },
+  ],
+});
+
+const isMicrotaskTick = (node: ts.CallExpression): boolean => {
+  if (node.arguments.length !== 0) return false;
+  const parent = node.parent;
+  if (ts.isAwaitExpression(parent)) return true;
+  // Promise.resolve().then(...) — resolve()'s parent er property-access `.then`.
+  return ts.isPropertyAccessExpression(parent) && parent.name.text === 'then';
+};
+
+const promiseTickBoundary = forbidCalls({
+  id: 'form/no-promise-tick-in-commit-sensitive',
+  description:
+    'Promise-tick (await Promise.resolve() / Promise.resolve().then()) er forbudt i commit-sensitiv kode; kun auditerede infrastruktur-undtagelser.',
+  appliesTo: isCommitSensitive,
+  allow: ['src/utils/commitFlush.ts'],
+  antiRot: true,
+  forbidden: (ref) => ref.calleeText === 'Promise.resolve' && isMicrotaskTick(ref.node),
+  message: () => 'Promise-tick i commit-sensitiv kode uden auditeret undtagelse.',
+  violatingFixtures: [
+    { relativePath: 'src/hooks/x.ts', code: 'async function f() { await Promise.resolve(); }' },
+    { relativePath: 'src/components/x.tsx', code: 'Promise.resolve().then(() => commit());' },
+  ],
+  cleanFixtures: [
+    // Promise.resolve med argument (ikke en tick) er tilladt.
+    { relativePath: 'src/utils/x.ts', code: 'const p = Promise.resolve(value);' },
+    // Zero-arg uden await/then (fx som initial-værdi) er ikke en tick.
+    { relativePath: 'src/utils/x.ts', code: 'let queue = Promise.resolve();' },
+  ],
+});
+
+// --- EO felt-synlighed: governed felter må ikke bruges i inline render-gates -----
+
+/**
+ * Felter hvis synlighed OG beregnings-relevans ejes af et relevans-prædikat i
+ * eoInputRelevance.ts (ét sandt sted). En inline render-gate på et sådant felt lader
+ * "skjult i UI" og "ignoreret i beregning" divergere igen — derfor forbudt. Kontrol-
+ * bindinger (`checked={getChecked(values.X)}` / `value={values.X}`) er tilladt, fordi
+ * feltet dér ikke gater andet indhold.
+ */
+const GOVERNED_VISIBILITY_FIELDS: ReadonlyMap<string, string> = new Map([
+  ['varigeMenAfgorelse', 'erVarigeMenAfgoerelseAktiv'],
+  ['midlertidigtEETAfgorelse', 'erMidlertidigtEETAfgoerelseAktiv / erEETKlageRelevant'],
+  ['endeligtEETAfgorelse', 'erEndeligtEETAfgoerelseAktiv / erEETKlageRelevant'],
+  ['kravPaaSvieSmerteGodtgoerelse', 'erSvieSmerteSektionAktiv'],
+  ['tidligereSsMax', 'erSvieSmertePeriodeInputRelevant'],
+  ['kravPaaTabtArbejdsfortjeneste', 'erTabtArbejdsfortjenesteSektionAktiv'],
+  ['kravPaaOevrigeErstatningskrav', 'erOevrigeKravSektionAktiv'],
+  ['visBilagsnumre', 'erBilagsnumreRelevant'],
+]);
+
+const EO_OPLYSNINGER_SECTIONS_DIR = 'src/components/pages/erstatningsopgoerelse/eoOplysninger/sections';
+
+/** `values.FIELD`-medlemsadgang på et governed felt → feltnavn, ellers null. */
+const governedValuesFieldName = (node: ts.Node): string | null => {
+  if (
+    ts.isPropertyAccessExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === 'values' &&
+    GOVERNED_VISIBILITY_FIELDS.has(node.name.text)
+  ) {
+    return node.name.text;
+  }
+  return null;
+};
+
+/**
+ * Klatrer op gennem parenteser og `!` for at se, om `node` (evt. negeret/parenteseret)
+ * er en operand i en logisk (`&&`/`||` hvis `allowOr`, ellers kun `&&`) binær-udtryk —
+ * dvs. fungerer som en render-gate. Stopper ved alt andet (JSX-attribut, tildeling …).
+ */
+const isLogicalGateOperand = (node: ts.Node, allowOr: boolean): boolean => {
+  let current: ts.Node = node;
+  while (current.parent) {
+    const parent = current.parent;
+    if (ts.isBinaryExpression(parent)) {
+      const op = parent.operatorToken.kind;
+      return op === ts.SyntaxKind.AmpersandAmpersandToken || (allowOr && op === ts.SyntaxKind.BarBarToken);
+    }
+    if (
+      ts.isParenthesizedExpression(parent) ||
+      (ts.isPrefixUnaryExpression(parent) && parent.operator === ts.SyntaxKind.ExclamationToken)
+    ) {
+      current = parent;
+      continue;
+    }
+    return false;
+  }
+  return false;
+};
+
+const findEoFieldVisibilityGates = (entry: SourceEntry): Finding[] => {
+  const findings: Finding[] = [];
+  const positionOf = (node: ts.Node): Finding['position'] => {
+    const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+    return { line: line + 1, column: character + 1 };
+  };
+
+  const walk = (node: ts.Node): void => {
+    // Case A: getChecked(values.FIELD) brugt som (evt. negeret) operand i && / ||.
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'getChecked' &&
+      node.arguments.length === 1
+    ) {
+      const field = governedValuesFieldName(node.arguments[0]);
+      if (field !== null && isLogicalGateOperand(node, /* allowOr */ true)) {
+        findings.push({
+          position: positionOf(node),
+          message: `Inline synligheds-gate på values.${field} — brug relevans-prædikatet ${GOVERNED_VISIBILITY_FIELDS.get(field)} fra eoInputRelevance.ts.`,
+        });
+      }
+    }
+
+    // Case B: values.FIELD === '...' / !== '...' brugt som operand i &&.
+    if (ts.isBinaryExpression(node)) {
+      const op = node.operatorToken.kind;
+      if (op === ts.SyntaxKind.EqualsEqualsEqualsToken || op === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
+        const field = governedValuesFieldName(node.left) ?? governedValuesFieldName(node.right);
+        const otherSide = governedValuesFieldName(node.left) !== null ? node.right : node.left;
+        if (field !== null && ts.isStringLiteralLike(otherSide) && isLogicalGateOperand(node, /* allowOr */ false)) {
+          findings.push({
+            position: positionOf(node),
+            message: `Inline synligheds-gate på values.${field} — brug relevans-prædikatet ${GOVERNED_VISIBILITY_FIELDS.get(field)} fra eoInputRelevance.ts.`,
+          });
+        }
+      }
+    }
+
+    ts.forEachChild(node, walk);
+  };
+  walk(entry.ast);
+  return findings;
+};
+
+const eoFieldVisibilitySingleSource = defineRule({
+  id: 'domain/eo-field-visibility-single-source',
+  description:
+    'Governed EO-input-felter (synlighed ejet af eoInputRelevance-prædikater) må ikke bruges i inline render-gates i eoOplysninger-sektionerne — ellers kan UI-synlighed og beregnings-neutralisering divergere.',
+  appliesTo: (relativePath) => relativePath.startsWith(`${EO_OPLYSNINGER_SECTIONS_DIR}/`),
+  find: findEoFieldVisibilityGates,
+  violatingFixtures: [
+    { relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`, code: 'const n = <>{getChecked(values.varigeMenAfgorelse) && <A />}</>;' },
+    { relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`, code: "const n = <>{values.kravPaaTabtArbejdsfortjeneste === 'Ja' && <A />}</>;" },
+    { relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`, code: 'const n = <>{!getChecked(values.tidligereSsMax) && <A />}</>;' },
+    {
+      relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`,
+      code: 'const n = <>{(getChecked(values.midlertidigtEETAfgorelse) || getChecked(values.endeligtEETAfgorelse)) && <A />}</>;',
+    },
+  ],
+  cleanFixtures: [
+    // Kontrol-bindinger (ingen efterfølgende boolsk gate).
+    { relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`, code: 'const n = <Toggle checked={getChecked(values.varigeMenAfgorelse)} />;' },
+    { relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`, code: 'const n = <Field value={values.kravPaaTabtArbejdsfortjeneste} />;' },
+    // Ikke-governed felt i en gate er tilladt.
+    { relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`, code: 'const n = <>{getChecked(values.oevrigtFravaerUdenLoen) && <A />}</>;' },
+    // Prædikat-baseret gate (den ønskede form).
+    { relativePath: `${EO_OPLYSNINGER_SECTIONS_DIR}/X.tsx`, code: 'const n = <>{erSvieSmerteSektionAktiv(values) && <A />}</>;' },
+  ],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -330,4 +964,11 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   inspektionLayerImport,
   eetCrossDomainPersistedLookup,
   moneyOreTypeAssertion,
+  pageSectionAccessBoundary,
+  pdfDownloadCommittedState,
+  minprocesrenteStandaloneImport,
+  persistenceCommittedMirror,
+  queueMicrotaskBoundary,
+  promiseTickBoundary,
+  eoFieldVisibilitySingleSource,
 ];

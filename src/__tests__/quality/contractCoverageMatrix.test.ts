@@ -44,8 +44,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       // Import-/adgangs-grænserne (persistence-store, FormPersistenceContext, sessionStorage)
       // håndhæves nu af det AST-baserede arkitektur-harness.
+      // Import-/adgangs-grænserne + committed-section-mirror håndhæves nu af harnesset.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
-      'src/__tests__/quality/persistenceCommittedMirrorIsolation.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
       'src/__tests__/utils/persistenceSnapshotStorage.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
@@ -86,7 +86,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/document-output-contract.md',
     requiredTestPaths: [
-      'src/__tests__/quality/pdfDownloadCommittedStateGuard.test.ts',
+      // Download-committed-state-grænsen håndhæves nu af det AST-baserede harness.
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts',
       'src/__tests__/quality/pdfPseudoTableGuard.test.ts',
       'src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts',

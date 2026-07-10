@@ -26,19 +26,12 @@ const ALLOWED_EFFECT_WRITES = new Map<string, readonly string[]>([
   ],
 ]);
 
-const ALLOWED_QUEUE_MICROTASK_CALLS = new Map<string, readonly string[]>([
-  [
-    'src/components/tables/gridCore/tableKeyboardNavigation.ts',
-    ['Decision note: denne microtask er en infrastruktur-undtagelse fra den normale form-regel.'],
-  ],
-]);
-
-const ALLOWED_PROMISE_RESOLVE_TICKS = new Map<string, readonly string[]>([
-  [
-    'src/utils/commitFlush.ts',
-    ['Beslutningsnote: denne Promise-tick er en infrastruktur-undtagelse fra den normale form-regel.'],
-  ],
-]);
+// De rene substring-forbud (queueMicrotask + Promise-tick i commit-sensitiv kode)
+// håndhæves nu strukturelt af de AST-baserede regler
+// `form/no-queue-microtask-in-commit-sensitive` og `form/no-promise-tick-in-commit-sensitive`
+// (greenfield #48). Tilbage her står den AST-baserede effect-write-grænse, hvis
+// undtagelse kræver en beslutningsnote i SAMME useEffect-vindue — en semantik der ikke
+// reduceres til en sti-scoped allowlist.
 
 let commitSensitiveSourceCache: Array<Readonly<{ absolutePath: string; relativePath: string; source: string }>> | null = null;
 
@@ -118,59 +111,6 @@ describe('formContractIsolation', () => {
       for (const marker of allowedMarkers) {
         expect(effectWindowsWithForbiddenWrites.some((windowText) => windowText.includes(marker)),
           `${relativePath} mangler beslutningsnote i samme useEffect-vindue som tilladt effect-write`
-        ).toBe(true);
-      }
-    }
-
-    expect(violations).toEqual([]);
-  });
-
-  it('forbyder queueMicrotask i commit-sensitive kode uden eksplicit infrastruktureundtagelse', () => {
-    // Scope note:
-    // queueMicrotask- og Promise-tick-allowlists nedenfor er path-scoped best-effort guards.
-    // De beviser ikke semantisk, at noten sidder ved det præcise callsite, kun at filen er
-    // auditeret som infrastrukturel undtagelse.
-    const violations: string[] = [];
-
-    for (const { relativePath, source } of readCommitSensitiveSources()) {
-      if (!source.includes('queueMicrotask(')) continue;
-
-      const allowedMarkers = ALLOWED_QUEUE_MICROTASK_CALLS.get(relativePath);
-      if (!allowedMarkers) {
-        violations.push(relativePath);
-        continue;
-      }
-
-      for (const marker of allowedMarkers) {
-        expect(
-          source.includes(marker),
-          `${relativePath} mangler beslutningsnote for tilladt queueMicrotask`
-        ).toBe(true);
-      }
-    }
-
-    expect(violations).toEqual([]);
-  });
-
-  it('forbyder Promise-ticks i commit-sensitive kode uden eksplicit infrastruktureundtagelse', () => {
-    const violations: string[] = [];
-
-    for (const { relativePath, source } of readCommitSensitiveSources()) {
-      const usesPromiseTick =
-        source.includes('await Promise.resolve();') ||
-        source.includes('Promise.resolve().then(');
-      if (!usesPromiseTick) continue;
-
-      const allowedMarkers = ALLOWED_PROMISE_RESOLVE_TICKS.get(relativePath);
-      if (!allowedMarkers) {
-        violations.push(relativePath);
-        continue;
-      }
-
-      for (const marker of allowedMarkers) {
-        expect(
-          source.includes(marker),
-          `${relativePath} mangler beslutningsnote for tilladt Promise-tick`
         ).toBe(true);
       }
     }

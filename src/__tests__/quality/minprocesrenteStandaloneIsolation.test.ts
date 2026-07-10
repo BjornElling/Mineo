@@ -30,17 +30,11 @@ const readStandaloneSource = (): string => {
     .join('\n');
 };
 
+// De rene import-forbud (Mineos auth-/route-/PWA-/settings-/diagnose-flows) håndhæves nu
+// strukturelt af den AST-baserede regel `layer/minprocesrente-standalone-import-boundary`
+// (greenfield #48). Tilbage her står de assertioner, der IKKE er import-grænser: den
+// hoisting-følsomme namespace-rækkefølge og de positive brugerdata-/section-forbud.
 describe('MinProcesrente standalone isolation', () => {
-  it('importerer ikke Mineos auth-, route-, PWA- eller service worker-flow', () => {
-    const source = readStandaloneSource();
-
-    expect(source).not.toContain('AuthGate');
-    expect(source).not.toContain('../../App');
-    expect(source).not.toContain('BrowserRouter');
-    expect(source).not.toContain('pwaLaunchQueue');
-    expect(source).not.toContain('serviceWorker');
-  });
-
   it('isolerer sessionStorage fra Mineo ved at sætte et eget storage-namespace via en bivirknings-import der står først', () => {
     const namespaceModule = readFileSync(
       path.join(repoRoot, 'src/apps/minprocesrente/standaloneStorageNamespace.ts'),
