@@ -1300,7 +1300,7 @@ const buildParityTafNettoBeregning = (values: ErstatningsopgoerelseValues) => {
 // Regulering punkt 2 — Form: Ingen
 //
 // Invarianter fastlagt under regulering-review punkt 2 (arbejdsdokumentet er lukket/slettet;
-// oversigt i docs/review/regulering-arkitektur-redesign.md):
+// oversigt i greenfield-reviewets kandidat #23):
 //   (a) alle-Ingen → strategi 'ingen' → ÆGTE nul-regulering: deltaPct 0 på hvert
 //       segment, men den fulde basisløn bæres videre (deltaPct 0 ≠ nul beløb).
 //   (b) uvalgt/tom strategi → throw (fail-closed), IKKE stiltiende nul-regulering.

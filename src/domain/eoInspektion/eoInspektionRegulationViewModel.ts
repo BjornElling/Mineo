@@ -10,6 +10,7 @@ import { formatIsoValue, formatAmountDisplay, formatDecimal, formatPercent } fro
 import type { RegulationIndexTimeline } from './eoInspektionRegulationTypes';
 import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -240,11 +241,12 @@ export function buildRegulationInspektionSections(
   params: Readonly<{
     timeline: RegulationIndexTimeline;
     canonicalOutput?: EoCanonicalOutput;
+    loenudvikling?: LoenudviklingModel | null;
     eoValues: ErstatningsopgoerelseValues;
     stamdataValues: StamdataValues;
   }>
 ): readonly RegulationInspektionSection[] {
-  const { timeline, canonicalOutput, eoValues, stamdataValues } = params;
+  const { timeline, canonicalOutput, eoValues, stamdataValues, loenudvikling } = params;
   if (timeline.ansaettelser.length === 0) return [];
 
   const loenudviklingsKilderById = new Map(
@@ -252,6 +254,9 @@ export function buildRegulationInspektionSections(
   );
   const canonicalSegmentsByEmploymentId = new Map(
     (canonicalOutput?.regulering.perAnsaettelse ?? []).map((entry) => [entry.ansaettelsesforholdId, entry.loenudviklingSegmenter] as const)
+  );
+  const forloebByEmploymentId = new Map(
+    loenudvikling?.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry.forloeb] as const) ?? []
   );
   const tafRanges = (canonicalOutput?.periodiseringer.tafPerioder ?? eoValues.tafPerioder ?? [])
     .flatMap((range) => (range.fra && range.til ? [{ fra: range.fra, til: range.til }] : []));
@@ -265,6 +270,8 @@ export function buildRegulationInspektionSections(
 
     const sectionId = `regulation.${af.ansaettelsesforholdId}`;
     const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);
+    const forloeb = forloebByEmploymentId.get(af.ansaettelsesforholdId)
+      ?? (loenudvikling?.perAnsaettelse.length === 0 ? loenudvikling.forloeb : undefined);
     const anvendtReguleringsdato = ansaettelsesforhold
       ? resolveAnvendtReguleringsdato({
           beregnesUdFra: eoValues.beregnesUdFra,
@@ -318,6 +325,7 @@ export function buildRegulationInspektionSections(
             tafFra: coverageBounds.foerste,
             tafTil: coverageBounds.sidste,
             tafBeregningsenhed: computeTafBeregningsenhed(eoValues),
+            forloeb,
           })
         : null;
     const tables: RegulationInspektionTable[] = [];
@@ -365,6 +373,7 @@ export function buildRegulationInspektionSections(
         ansaettelsesforhold,
         anvendtReguleringsdato,
         tafBeregningsenhed: computeTafBeregningsenhed(eoValues),
+        forloeb,
       });
       if (indeksRows.length > 0) {
         // KL-lønaftaler: trinvis kæde-opregulering vises uden indeksberegning; i stedet

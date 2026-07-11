@@ -153,9 +153,9 @@ describe('eoSnapshotToInspektionView', () => {
       canonicalOutput: { marker: 'canonical' },
     });
     expect(buildRegulationTimelineMock).toHaveBeenCalledWith({
-      inspektionDays: inspektionSnapshot.inspektionDays,
       eoValues: inspektionSnapshot.eoValues,
       stamdataValues: inspektionSnapshot.stamdataValues,
+      loenudvikling: null,
     });
   });
 

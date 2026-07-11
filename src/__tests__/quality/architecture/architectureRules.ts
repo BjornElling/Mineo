@@ -952,6 +952,29 @@ const eoFieldVisibilitySingleSource = defineRule({
   ],
 });
 
+const reguleringCanonicalForloebBoundary = forbidImports({
+  id: 'domain/regulering-canonical-forloeb-boundary',
+  description:
+    'Reguleringspræsentation og -kontrol må ikke genindlæse statistik-, KRL-, KL- eller manuel-procentsatsserier; de skal læse motorens kanoniske forløb.',
+  appliesTo: (relativePath) =>
+    relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts'
+    || relativePath === 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+  forbidden: (ref) => /\/(?:statistik|krl|klLoenaftaler|manuelProcentsats)Regulering$/.test(ref.moduleSpecifier),
+  message: (ref) => `Direkte import af reguleringsserie (${ref.moduleSpecifier}) — brug ReguleringForloeb fra motor-modellen.`,
+  violatingFixtures: [
+    {
+      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+      code: "import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';",
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+      code: "import type { ReguleringForloeb } from '../erstatningsopgoerelse/engines/reguleringForloeb';",
+    },
+  ],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -971,4 +994,5 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   queueMicrotaskBoundary,
   promiseTickBoundary,
   eoFieldVisibilitySingleSource,
+  reguleringCanonicalForloebBoundary,
 ];

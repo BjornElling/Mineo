@@ -68,10 +68,6 @@ import {
   resolveAnciennitetForIndex,
   resolvePrivateOverenskomstBaseContext,
 } from './overenskomstReguleringShared';
-import { buildManuelProcentsatsEntries } from './manuelProcentsatsRegulering';
-import { buildKrlIndexEntries } from './krlRegulering';
-import { buildStatistikIndexEntries } from './statistikRegulering';
-import { buildKlLoenaftalerIndexEntries } from './klLoenaftalerRegulering';
 import type { ReguleringForloeb } from './reguleringForloeb';
 import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 
@@ -521,8 +517,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   tafFra: ISODateString;
   tafTil: ISODateString;
   tafBeregningsenhed: TafBeregningsenhed;
-  // R2 — det motor-emitterede autoritative forløb. Når til stede (PDF-kanalen) formatteres det
-  // direkte; ellers (inspektion, som ikke har motor-modellen) re-deriveres byte-identisk her.
+  // Motorens autoritative kildeserie. Både dokument- og kontrolprojektionen modtager samme model;
+  // manglende serie fail-closer den pågældende tabel frem for at genindlæse rå kildedata.
   forloeb?: ReguleringForloeb;
 }>): ReguleringValuesTableData | null => {
   const { ansaettelsesforhold, anvendtReguleringsdato, tafFra, tafTil, tafBeregningsenhed, forloeb } = params;
@@ -813,12 +809,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   }
 
   if (grundlag === 'Manuel procentsats') {
-    const entries = forloeb?.kind === 'manuelProcentsats'
-      ? forloeb.entries
-      : buildManuelProcentsatsEntries({
-        anvendtReguleringsdato,
-        rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
-      });
+    const entries = forloeb?.kind === 'manuelProcentsats' ? forloeb.entries : [];
     const relevantRows = entries.filter((entry) => entry.isBase || entry.startIso <= tafTil);
     if (relevantRows.length === 0) return null;
     return {
@@ -941,9 +932,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const model = getStatistiskLoenudvikling(modelId);
     if (!model) return null;
 
-    // R2 — læs det motor-emitterede forløb (statistik-kvartalsserien); ellers (inspektion, uden
-    // motor-model) re-derivér byte-identisk via samme delte builder som motoren bruger.
-    const periodStarts = forloeb?.kind === 'statistik' ? forloeb.entries : buildStatistikIndexEntries(modelId);
+    // Statistik-kvartalsserien kommer udelukkende fra motorens forløb.
+    const periodStarts = forloeb?.kind === 'statistik' ? forloeb.entries : [];
     if (periodStarts.length === 0) return null;
 
     const decimals = detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
@@ -981,9 +971,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const formatKrlPct = (value: number): string =>
       formatAsAmount(value, KRL_REGULERING_PCT_DECIMALS) + ' %';
 
-    // R2 — læs det motor-emitterede forløb (KRL-periodeserien); ellers (inspektion, uden
-    // motor-model) re-derivér byte-identisk via samme delte builder som motoren bruger.
-    const periodStarts = forloeb?.kind === 'krl' ? forloeb.entries : buildKrlIndexEntries(krlId);
+    // KRL-periodeserien kommer udelukkende fra motorens forløb.
+    const periodStarts = forloeb?.kind === 'krl' ? forloeb.entries : [];
     if (periodStarts.length === 0) return null;
 
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
@@ -1020,10 +1009,9 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const formatKlPct = (value: number): string =>
       `${formatAsAmount(value, 2)} %`;
 
-    // R2 — læs det motor-emitterede forløb (KL-periodeserien); ellers (inspektion, uden motor-
-    // model) re-derivér byte-identisk via samme delte builder som motoren bruger. Den viste
+    // KL-periodeserien kommer udelukkende fra motorens forløb. Den viste
     // reguleringssats er nu samme kilde som de brudpunkter beløbet bygger på.
-    const periodStarts = forloeb?.kind === 'klLoenaftaler' ? forloeb.entries : buildKlLoenaftalerIndexEntries();
+    const periodStarts = forloeb?.kind === 'klLoenaftaler' ? forloeb.entries : [];
     if (periodStarts.length === 0) return null;
 
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
@@ -1097,11 +1085,10 @@ export const buildReguleringIndexRows = (params: Readonly<{
     // forudgående regulerede løn forhøjet med periodens sats og afrundet til to
     // decimaler. Segmentets deltaPct ER den akkumulerede regulering afledt af den
     // kæde-opregulerede løn, så basisløn × (1 + deltaPct/100) reproducerer den.
-    // R2 — periodens reguleringssats læses fra det motor-emitterede forløb når til stede (PDF-
-    // kanalen), ellers re-deriveres den byte-identisk (inspektion, som ikke har motor-modellen).
+    // Periodens reguleringssats læses fra motorens forløb i både dokument og kontrol.
     // KL-periodesatsen er eksakt-key pr. periodestart, så en find-på-startIso matcher det tidligere
     // getKlLoenaftalerReguleringPctForDato-map-opslag (hver relevant dato ER en periodestart).
-    const klPeriodeEntries = forloeb?.kind === 'klLoenaftaler' ? forloeb.entries : buildKlLoenaftalerIndexEntries();
+    const klPeriodeEntries = forloeb?.kind === 'klLoenaftaler' ? forloeb.entries : [];
     const klRows: IndexRowWithIso[] = segments.map((segment) => {
       // Single source of truth: den kæde-opregulerede, afrundede enhedsløn bæres autoritativt på
       // segmentet som reguleretLoenOre (nøjagtig samme værdi som indkomst-linjerne viser via
@@ -1531,8 +1518,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
       }
       const modelId = resolveStatistikModelIdFromLabel(statistikModelLabel);
       if (!modelId) return null;
-      // R2 — læs motor-forløbet (statistik-kvartalsserien); ellers re-derivér byte-identisk via builderen.
-      const periodStarts = forloeb?.kind === 'statistik' ? forloeb.entries : buildStatistikIndexEntries(modelId);
+      // Statistik-kvartalsserien læses fra motor-forløbet.
+      const periodStarts = forloeb?.kind === 'statistik' ? forloeb.entries : [];
       if (periodStarts.length === 0) return null;
       let candidate = periodStarts[0];
       for (const period of periodStarts) {
@@ -1554,8 +1541,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
     if (isKRL) {
       const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
       if (!krlId || !isKRLSatstabelId(krlId)) return null;
-      // R2 — læs motor-forløbet (KRL-periodeserien); ellers re-derivér byte-identisk via builderen.
-      const periodStarts = forloeb?.kind === 'krl' ? forloeb.entries : buildKrlIndexEntries(krlId);
+      // KRL-periodeserien læses fra motor-forløbet.
+      const periodStarts = forloeb?.kind === 'krl' ? forloeb.entries : [];
       if (periodStarts.length === 0) return null;
       let candidate = periodStarts[0];
       for (const period of periodStarts) {
@@ -1717,8 +1704,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
       }
       const modelId = resolveStatistikModelIdFromLabel(statistikModelLabel);
       if (!modelId) return [];
-      // R2 — læs motor-forløbet (statistik-kvartalsserien); ellers re-derivér byte-identisk via builderen.
-      const entries = forloeb?.kind === 'statistik' ? forloeb.entries : buildStatistikIndexEntries(modelId);
+      // Statistik-kvartalsserien læses fra motor-forløbet.
+      const entries = forloeb?.kind === 'statistik' ? forloeb.entries : [];
       return entries.map((entry) => ({
         startIso: entry.startIso,
         components: {
@@ -1735,8 +1722,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
     if (isKRL) {
       const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
       if (!krlId || !isKRLSatstabelId(krlId)) return [];
-      // R2 — læs motor-forløbet (KRL-periodeserien); ellers re-derivér byte-identisk via builderen.
-      const entries = forloeb?.kind === 'krl' ? forloeb.entries : buildKrlIndexEntries(krlId);
+      // KRL-periodeserien læses fra motor-forløbet.
+      const entries = forloeb?.kind === 'krl' ? forloeb.entries : [];
       return entries.map((entry) => ({
         startIso: entry.startIso,
         components: {
@@ -1751,12 +1738,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       }));
     }
     if (isManualProcentsats) {
-      const entries = forloeb?.kind === 'manuelProcentsats'
-        ? forloeb.entries
-        : buildManuelProcentsatsEntries({
-          anvendtReguleringsdato,
-          rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
-        });
+      const entries = forloeb?.kind === 'manuelProcentsats' ? forloeb.entries : [];
       return entries.map((entry) => ({
         startIso: entry.startIso,
         components: {

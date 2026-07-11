@@ -241,18 +241,16 @@ Direkte motorkald i kontrollaget er kun forsvarligt når alle disse betingelser 
 
 At kontrollaget bruger disse helpers er ikke i sig selv et problem. Problemet opstår først, hvis kontrollaget bruger dem med bredere eller andre forudsætninger end de autoritative flows.
 
-### Særlig undtagelse: regulerings-kontrol genbruger regulerings-præsentationens rækkebygger
+### Regulerings-kontrol projicerer motorens kanoniske forløb
 
-`buildRegulationInspektionSections` (`src/domain/eoInspektion/eoInspektionRegulationViewModel.ts`) importerer `buildReguleringIndexRows(...)` fra regulerings-præsentationslaget `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`. (Dette modul hed tidligere `pdf/eoPdfRegulering.ts`, men er konsolideret ind i `engines/` ved review 10.5 — det er domæne-præsentationslogik der bygger tabel-data, ikke jsPDF-rendering.)
+`buildRegulationInspektionSections` (`src/domain/eoInspektion/eoInspektionRegulationViewModel.ts`)
+bruger den delte rækkeprojektor `buildReguleringIndexRows(...)`. For former med en selvstændig
+kildeserie modtager både denne projektor og `buildRegulationTimeline` motorens
+`ReguleringForloeb` via EO-snapshotprojektionen; de må ikke genindlæse serien fra rå satsdata.
 
-Det er et andet mønster end SFGG-builderen:
-- her genbruges regulerings-præsentationslogikken direkte i kontrollaget
-- der er ikke tilsvarende dokumenteret, domænespecifik gating foran kaldet
-
-Aktuel vurdering:
-- dette er ikke nødvendigvis forkert, fordi kontrollaget her forsøger at forklare samme reguleringssegmenter som resten af systemet
-- men det er en arkitektonisk undtagelse, som bør behandles eksplicit
-- på sigt bør det enten formaliseres som accepteret delt domain-helper eller flyttes ud af PDF-engine-modulet til et neutralt domænemodul
+Kontrollaget beregner fortsat indeksforholdet uafhængigt ud fra den kanoniske serie. Det bevarer
+krydskontrollens evne til at opdage fejl i motorens aritmetik uden at vedligeholde en parallel
+kilderegel. Grænsen håndhæves af AST-reglen `domain/regulering-canonical-forloeb-boundary`.
 
 ---
 
@@ -416,9 +414,11 @@ En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmod
 
 ## 16. Udestående teknisk gæld
 
-### A. `buildReguleringIndexRows` deles mellem PDF og kontrol
+### A. `buildReguleringIndexRows` deles mellem dokument og kontrol
 
-Se afsnit 8: `buildRegulationInspektionSections` genbruger `buildReguleringIndexRows` fra `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`. Ved review 10.5 blev dette modul flyttet ud af det tidligere `pdf/`-lag og ind i `engines/`, hvilket afklarer ejerskabet: det er domæne-præsentationslogik (tabel-data), der bevidst deles af både EO-PDF-projektionen og regulerings-kontrol. Det er dermed ikke længere en uafklaret afhængighed til "PDF-laget".
+Se afsnit 8. Delingen er nu formaliseret: begge projektioner bruger samme motor-emitterede
+kildeserie og samme domæneprojektor, mens kontrollens indeksaritmetik forbliver et selvstændigt
+krydstjek. Punktet er derfor ikke længere udestående teknisk gæld.
 
 ### B. Regex-baseret id-parsing i `eoInspektionPageViewModel.ts`
 

@@ -5,10 +5,10 @@ import type { KlLoenaftalerIndexEntry } from './klLoenaftalerRegulering';
 
 // R2 — det autoritative regulerings-visnings-forløb, emitteret af motoren (LoenudviklingModel)
 // og LÆST af præsentation/inspektion, så det viste forløb er samme kilde som beløbet
-// (ingen re-derivation → ingen drift, jf. docs/review/regulering-arkitektur-redesign.md R2).
+// (ingen re-derivation → ingen drift, jf. greenfield-reviewets kandidat #23).
 //
-// Diskrimineret union pr. reguleringsform. Migrerede former sætter deres variant på modellen;
-// de øvrige re-deriverer fortsat og repræsenteres ved fravær (undefined). Unionen bor her —
+// Diskrimineret union for de fire former med en selvstændig kildeserie. Former uden sådan en
+// serie bruger delte formel-/opslagsprimitiver og repræsenteres ved fravær. Unionen bor her —
 // neutralt for alle former — frem for i en enkelt forms modul.
 export type ReguleringForloeb =
   | Readonly<{ kind: 'manuelProcentsats'; entries: readonly ManuelProcentsatsEntry[] }>

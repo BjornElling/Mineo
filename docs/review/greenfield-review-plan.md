@@ -154,7 +154,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 16 | 23 | Regulering → kanonisk forløb | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #17 |
+| 16 | 23 | ✅ Regulering → kanonisk forløb | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #17 |
 | 17 | 24 | Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11, #38 |
 | 18 | 25 | Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
 | 19 | 42 | Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
@@ -491,9 +491,28 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 23 — Keystone: Regulering → kanonisk forløb · 9
 
+- **Status: ✅ Gennemført (2026-07-11).** De fire reguleringsformer med en selvstændig
+  kildeserie (`Manuel procentsats`, `KRL satstabel`, almindelig `Statistik` og
+  `KL-lønaftaler`) emitterer allerede serien sammen med segmenterne fra formregisteret; den
+  manglende snapshotbro er nu lukket, så både dokument- og kontrolprojektionen modtager præcis
+  dette forløb. Alle `build*IndexEntries`-fallbacks er fjernet fra
+  `reguleringsPresentation` og `eoInspektionRegulationCore`: manglende/mismatchet forløb
+  fail-closer tabellen i stedet for at genindlæse rå satsdata. Et AST-værn forbyder fremtidige
+  direkte serie-imports i de to læselag. Kontrollaget genberegner fortsat selve indeksforholdet
+  ud fra den kanoniske serie; dette er en bevidst, værdifuld krydskontrol og ikke en parallel
+  kilderegel. Visionens universelle `forloeb` for alle former er præciseret: ASL,
+  `Manuelt angivet` og overenskomst har ikke en selvstændig serie, der bør opfindes alene for
+  at passe i unionen; de deler allerede deres kanoniske opslag/formelprimitiver, mens kontrollens
+  aritmetik forbliver uafhængig. Tal, tekster og dokumentlayout er uændrede; golden-nettet dækker
+  169 regulerings-/kontrol-/snapshottests før/efter omlægningen.
+
 - **Scope:** `engines/reguleringsPresentation.ts` (1726), `eoInspektion/eoInspektionRegulationCore.ts` (966), R1-strategi-registret `engines/regulering/` + `forms/*`.
 - **Problem:** R1 konvergerede *beregnings*-stien (registret `FORM_REGISTRY`), men de to *præsentations*-stier adopterede det aldrig: både `reguleringsPresentation` og `eoInspektionRegulationCore` re-deriverer per-form-serier direkte (`buildStatistikIndexEntries`, `buildKrlIndexEntries`, `buildKlLoenaftalerIndexEntries`) med `forloeb`-fallback. Per-form-regulerings-viden findes i **tre** parallelle steder. Arch-doc flagger det selv som uafklaret gæld (§8, §16.A).
-- **Greenfield:** Udvid R1 til endestationen: hver `ReguleringForm` udsender ét kanonisk, præsentations-klart `forloeb` (segmenter + display-rows + formel-komponenter + coverage) som **eneste** output. De to præsentationsfiler kollapser til tynde projektorer. Slet `buildXIndexEntries`-fallbacken.
+- **Greenfield:** Udvid R1 til endestationen: hver form med en selvstændig kildeserie udsender
+  serien sammen med segmenterne som ét kanonisk resultat. Læselagene formatterer/krydstjekker
+  resultatet uden at genindlæse serien. Former uden selvstændig serie deler i stedet deres
+  kanoniske opslag/formelprimitiver; der opfindes ikke et kunstigt forløb alene for typeuniformitet.
+  Slet alle `buildXIndexEntries`-fallbacks.
 - **Rød tråd:** "Kanonisk beregnet én gang, projiceret mange gange" — snapshot-first-princippet, som EO-kernen ellers følger.
 - **Afhængigheder:** Opløser regulerings-delen af #16; forudsætning for at #15/#24 kan rendere regulering rent. Trust-kritisk kerne → golden-value-net (`reguleringSilentPathAlignment.test.ts` m.fl.) før arbejde.
 

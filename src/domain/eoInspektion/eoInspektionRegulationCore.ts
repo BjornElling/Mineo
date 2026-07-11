@@ -5,7 +5,6 @@ import { minISO, startOfYearIso } from '../../utils/isoDateHelpers';
 
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish, toISODateString, dateToISO, isISODateString } from '../../types/branded';
-import type { RowDay } from '../eoRowEvaluation/eoRowTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { RegulationIndexTimeline, IndeksEntry, AnsaettelsesforholdIndeks } from './eoInspektionRegulationTypes';
@@ -48,19 +47,17 @@ import {
   resolveAnciennitetForIndex,
   type AnciennitetForIndex,
 } from '../erstatningsopgoerelse/engines/overenskomstReguleringShared';
-import { buildManuelProcentsatsEntries } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
-import { buildStatistikIndexEntries } from '../erstatningsopgoerelse/engines/statistikRegulering';
-import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';
-import { buildKlLoenaftalerIndexEntries } from '../erstatningsopgoerelse/engines/klLoenaftalerRegulering';
 import { findLatestByDateInSortedList } from '../erstatningsopgoerelse/engines/reguleringSeriesLookup';
 import { buildShDageSetFromIsoRange, buildFerieDageSetForPeriode } from '../erstatningsopgoerelse/engines/tafDaySets';
+import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
+import type { ReguleringForloeb } from '../erstatningsopgoerelse/engines/reguleringForloeb';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
 export type RegulationCoreInput = {
-  readonly inspektionDays: readonly RowDay[];
   readonly eoValues: ErstatningsopgoerelseValues;
   readonly stamdataValues: StamdataValues;
+  readonly loenudvikling: LoenudviklingModel | null;
 };
 
 const parseOptionalIso = (value: unknown): ISODateString | undefined => {
@@ -234,11 +231,9 @@ const buildManualProcentsatsEntries = (args: Readonly<{
   referenceIso: ISODateString;
   shDageSet: ReadonlySet<ISODateString>;
   ferieDageSet: ReadonlySet<ISODateString>;
+  forloeb: ReguleringForloeb | undefined;
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
-  const manualEntries = buildManuelProcentsatsEntries({
-    anvendtReguleringsdato: args.referenceIso,
-    rows: args.af.loenudviklingManuelProcentsatsTableData ?? [],
-  });
+  const manualEntries = args.forloeb?.kind === 'manuelProcentsats' ? args.forloeb.entries : [];
   if (manualEntries.length === 0) return null;
 
   const dates = new Set<ISODateString>([args.referenceIso]);
@@ -276,6 +271,7 @@ const buildStatistikEntries = (args: Readonly<{
   referenceIso: ISODateString;
   shDageSet: ReadonlySet<ISODateString>;
   ferieDageSet: ReadonlySet<ISODateString>;
+  forloeb: ReguleringForloeb | undefined;
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
   const modelLabel = (args.af.loenudviklingStatistikModel ?? '').trim();
   if (modelLabel === '') return null;
@@ -297,13 +293,10 @@ const buildStatistikEntries = (args: Readonly<{
       valuesByIso.set(iso, value);
     }
   } else {
-    const modelId = resolveStatistikModelId(modelLabel);
-    if (!modelId) return null;
-    // Samme delte kvartal→ISO-parsing + sortering som motor og præsentation
-    // (buildStatistikIndexEntries), så kontrollagets periodeserie ikke kan drive fra den beregnede.
-    // Parsing er ikke stedet et motorbug gemmer sig; index-beregningen nedenfor forbliver uafhængig
-    // for krydstjekket (B9). Tom liste (manglende model) → referenceValue null → return null.
-    for (const entry of buildStatistikIndexEntries(modelId)) {
+    if (!resolveStatistikModelId(modelLabel) || args.forloeb?.kind !== 'statistik') return null;
+    // Serien er motorens autoritative output. Kontrollaget genberegner fortsat selve indeksforholdet,
+    // så krydstjekket ikke bliver tautologisk, men må ikke genindlæse kildeserien fra rå data.
+    for (const entry of args.forloeb.entries) {
       valuesByIso.set(entry.startIso, entry.indeksvaerdi);
       if (entry.startIso >= args.referenceIso && entry.startIso <= args.eoTil) dates.add(entry.startIso);
     }
@@ -350,13 +343,14 @@ const buildKrlEntries = (args: Readonly<{
   referenceIso: ISODateString;
   shDageSet: ReadonlySet<ISODateString>;
   ferieDageSet: ReadonlySet<ISODateString>;
+  forloeb: ReguleringForloeb | undefined;
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
   const krlId = args.af.loenudviklingKRLSatstabel;
   if (!krlId || !isKRLSatstabelId(krlId)) return null;
-  // Samme delte periodeserie som motor og præsentation (buildKrlIndexEntries) + det delte
-  // carry-forward-primitiv (findLatestByDateInSortedList, R3), så kontrollagets KRL-serie og opslag
-  // ikke kan drive fra den beregnede. Index-beregningen nedenfor forbliver uafhængig (B9).
-  const valuesByIso = buildKrlIndexEntries(krlId)
+  // Motorens kanoniske KRL-serie kombineres med det delte carry-forward-primitiv. Selve
+  // indeksberegningen nedenfor forbliver uafhængig som krydstjek.
+  if (args.forloeb?.kind !== 'krl') return null;
+  const valuesByIso = args.forloeb.entries
     .map((entry) => ({ startIso: entry.startIso, value: 100 + entry.reguleringsPct }));
   if (valuesByIso.length === 0) return null;
 
@@ -405,13 +399,14 @@ const buildKlLoenaftalerEntries = (args: Readonly<{
   referenceIso: ISODateString;
   shDageSet: ReadonlySet<ISODateString>;
   ferieDageSet: ReadonlySet<ISODateString>;
+  forloeb: ReguleringForloeb | undefined;
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
   if (klLoenaftalerRaekker.length === 0) return null;
 
-  // Samme delte periodeserie som motor og præsentation (buildKlLoenaftalerIndexEntries) + det delte
-  // carry-forward-primitiv (findLatestByDateInSortedList, R3), så kontrollagets KL-serie og opslag
-  // ikke kan drive fra den beregnede. Index-beregningen nedenfor forbliver uafhængig (B9).
-  const valuesByIso = buildKlLoenaftalerIndexEntries()
+  // Motorens kanoniske KL-serie kombineres med det delte carry-forward-primitiv. Selve
+  // indeksberegningen nedenfor forbliver uafhængig som krydstjek.
+  if (args.forloeb?.kind !== 'klLoenaftaler') return null;
+  const valuesByIso = args.forloeb.entries
     .map((entry) => ({ startIso: entry.startIso, value: entry.reguleringsPct }));
   if (valuesByIso.length === 0) return null;
 
@@ -549,6 +544,12 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
   const skadedatoIso = parseOptionalIso(input.stamdataValues.skadedato);
   if (!skadedatoIso) return { tafBeregningsenhed, ansaettelser: [] };
   const angivetLoenOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(input.eoValues);
+  const forloebByAnsaettelsesforholdId = new Map(
+    input.loenudvikling?.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry.forloeb] as const) ?? []
+  );
+  const resolveForloeb = (ansaettelsesforholdId: string): ReguleringForloeb | undefined =>
+    forloebByAnsaettelsesforholdId.get(ansaettelsesforholdId)
+    ?? (input.loenudvikling?.perAnsaettelse.length === 0 ? input.loenudvikling.forloeb : undefined);
 
   const ansaettelser: AnsaettelsesforholdIndeks[] = [];
   const pushPlaceholderAnsaettelse = (params: Readonly<{
@@ -568,6 +569,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const loenPaaHelligdage = af.loenPaaHelligdage;
     const grundlag = af.loenudviklingBeregningsgrundlag;
     if (!grundlag || grundlag === 'Ingen') continue;
+    const forloeb = resolveForloeb(af.id);
     const saerligFraDatoRegulering = parseOptionalIso(af.saerligFraDatoRegulering);
     const referenceIso = resolveAnvendtReguleringsdato({
       beregnesUdFra: input.eoValues.beregnesUdFra,
@@ -929,13 +931,13 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       grundlag === 'Manuelt angivet'
         ? buildManualEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
         : grundlag === 'Manuel procentsats'
-          ? buildManualProcentsatsEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+          ? buildManualProcentsatsEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet, forloeb })
           : grundlag === 'Statistik'
-            ? buildStatistikEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+            ? buildStatistikEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet, forloeb })
             : grundlag === 'KRL satstabel'
-              ? buildKrlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+              ? buildKrlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet, forloeb })
               : grundlag === 'KL-lønaftaler'
-                ? buildKlLoenaftalerEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+                ? buildKlLoenaftalerEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet, forloeb })
                 : null;
     if (!built || built.entries.length === 0) {
       const shouldKeepPlaceholder =

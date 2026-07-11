@@ -8,7 +8,7 @@ import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../.
 // afleder deltaPct fra (basisindeks + carry-forward pr. segment), og som præsentationen tre
 // steder (kilde-satstabel, base-indeks, periode-indeks) byggede uafhængigt. Ved at motoren
 // emitterer listen og præsentationen læser den, er "vist tal = beregnet tal" garanteret ved
-// konstruktion (jf. docs/review/regulering-arkitektur-redesign.md R2).
+// konstruktion (jf. greenfield-reviewets kandidat #23).
 export type StatistikIndexEntry = Readonly<{
   startIso: ISODateString;
   kvartal: string;

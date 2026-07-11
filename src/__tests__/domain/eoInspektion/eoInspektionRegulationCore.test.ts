@@ -2,34 +2,31 @@
  * Tests for Regulation Core Model (Index)
  */
 
-import { buildRegulationTimeline } from '../../../domain/eoInspektion/eoInspektionRegulationCore';
-import type { RowDay } from '../../../domain/eoRowEvaluation/eoRowTypes';
+import { buildRegulationTimeline as buildRegulationTimelineFromCanonical } from '../../../domain/eoInspektion/eoInspektionRegulationCore';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate } from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
+import type { LoenudviklingModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import { asCalculable } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import { zeroMoneyOre } from '../../../domain/money/money';
+import { buildStatistikIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
+import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
+import { buildKlLoenaftalerIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/klLoenaftalerRegulering';
+import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
+import { resolveStatistikModelId } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import type { ReguleringForloeb } from '../../../domain/erstatningsopgoerelse/engines/reguleringForloeb';
+import { resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
 const iso = (date: string): ISODateString => date as ISODateString;
 
-const makeRowDay = (iso: string): RowDay => ({
-  iso: iso as any,
-  weekday: 1,
-  isWeekend: false,
-  isSognehelligdag: false,
-  isArbejdsdag: true,
-  tafFlags: new Set(),
-  svieSmerte: 'Ingen',
-});
-
 const makeInput = (): {
-  inspektionDays: RowDay[];
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
 } => ({
-  inspektionDays: [makeRowDay(toISODateString('2024-01-01'))],
   eoValues: ({
     ...createErstatningsopgoerelseInitialValues(),
     vedroererPeriodeFra: toISODateString('2024-01-01'),
@@ -71,6 +68,54 @@ const makeInput = (): {
     skadedato: iso('2024-01-01'),
   } as StamdataValues,
 });
+
+const buildTestForloeb = (
+  af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
+  referenceIso: ISODateString | undefined
+): ReguleringForloeb | undefined => {
+  if (af.loenudviklingBeregningsgrundlag === 'Statistik') {
+    const modelId = resolveStatistikModelId(af.loenudviklingStatistikModel ?? '');
+    return modelId ? { kind: 'statistik', entries: buildStatistikIndexEntries(modelId) } : undefined;
+  }
+  if (af.loenudviklingBeregningsgrundlag === 'KRL satstabel' && af.loenudviklingKRLSatstabel) {
+    return { kind: 'krl', entries: buildKrlIndexEntries(af.loenudviklingKRLSatstabel) };
+  }
+  if (af.loenudviklingBeregningsgrundlag === 'KL-lønaftaler') {
+    return { kind: 'klLoenaftaler', entries: buildKlLoenaftalerIndexEntries() };
+  }
+  if (af.loenudviklingBeregningsgrundlag === 'Manuel procentsats') {
+    return {
+      kind: 'manuelProcentsats',
+      entries: buildManuelProcentsatsEntries({
+        anvendtReguleringsdato: referenceIso,
+        rows: af.loenudviklingManuelProcentsatsTableData ?? [],
+      }),
+    };
+  }
+  return undefined;
+};
+
+const buildRegulationTimeline = (input: ReturnType<typeof makeInput>) => {
+  const perAnsaettelse: LoenudviklingModel['perAnsaettelse'] = resolveLoenudviklingKilde(input.eoValues).map((af) => ({
+    ansaettelsesforholdId: af.id,
+    ansaettelsesforholdNavn: af.navnPaaArbejdssted ?? '',
+    loenudviklingLabel: af.loenudviklingBeregningsgrundlag ?? 'Ingen',
+    loenudviklingTotal: asCalculable(zeroMoneyOre()),
+    beregnedeSegmenter: [],
+    forloeb: buildTestForloeb(af, input.eoValues.tafBeregningsperiodeTil ?? input.stamdataValues.skadedato),
+  }));
+  return buildRegulationTimelineFromCanonical({
+    eoValues: input.eoValues,
+    stamdataValues: input.stamdataValues,
+    loenudvikling: {
+      loenudviklingLabel: 'Test',
+      loenudviklingTotal: asCalculable(zeroMoneyOre()),
+      beregningsenhed: 'Måneder',
+      beregnedeSegmenter: [],
+      perAnsaettelse,
+    },
+  });
+};
 
 describe('buildRegulationTimeline - Index model', () => {
   it('bygger entries pr. ansaettelsesforhold', () => {
@@ -701,7 +746,6 @@ describe('buildRegulationTimeline — periode-overgange', () => {
 
 describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
   const makeKLInput = (): ReturnType<typeof makeInput> => ({
-    inspektionDays: [makeRowDay(toISODateString('2024-01-01'))],
     eoValues: ({
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-01'),

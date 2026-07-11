@@ -278,6 +278,11 @@ i EOBeregningTab, ikke i EOInspektion-visningen.
 Hvis `inspektionSnapshot` er `null` (ved `fail_closed` før engines kørte), vises en passende
 tom-/fejltilstand uden at forsøge at rendere beregningsindhold.
 
+For reguleringsformer med en selvstændig kildeserie skal EOInspektion læse motorens
+`ReguleringForloeb` fra snapshotets lønudviklingsmodel. Kontrol- og dokumentlag må ikke genindlæse
+statistik-, KRL-, KL-lønaftale- eller manuel-procentsatsserier fra rå data. Kontrollaget må og skal
+fortsat genberegne selve indeksforholdet ud fra serien som et uafhængigt aritmetisk krydstjek.
+
 ---
 
 ## 7. `tidligereModtagetTaf`-isometri

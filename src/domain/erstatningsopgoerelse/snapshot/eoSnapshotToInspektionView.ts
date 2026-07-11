@@ -86,11 +86,12 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
       rowsBySection: executeEoRowBuilderEntriesBySection(EO_ROW_BUILDERS, ctx),
       regulationSections: buildRegulationInspektionSections({
         timeline: buildRegulationTimeline({
-          inspektionDays: inspektionSnapshot.inspektionDays,
           eoValues: erstatningsopgoerelseValues,
           stamdataValues,
+          loenudvikling: pdfModel?.tabtArbejdsfortjeneste.loenudvikling ?? null,
         }),
         canonicalOutput,
+        loenudvikling: pdfModel?.tabtArbejdsfortjeneste.loenudvikling,
         eoValues: erstatningsopgoerelseValues,
         stamdataValues,
       }),

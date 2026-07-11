@@ -201,8 +201,8 @@ export type LoenudviklingModel = Readonly<{
   loenudviklingTotal: Calculable<MoneyOre>;
   beregningsenhed: TafBeregningsenhed;
   beregnedeSegmenter: readonly LoenudviklingSegment[];
-  // Autoritativt visnings-forløb (R2). Sat for migrerede former (pt. kun manuel procentsats);
-  // undefined for øvrige. Top-level bruges ved angivet løn (perAnsaettelse er tom).
+  // Autoritativ kildeserie for manuel procentsats, KRL, almindelig statistik og KL-lønaftaler.
+  // Top-level bruges ved angivet løn (perAnsaettelse er tom).
   forloeb?: ReguleringForloeb;
   perAnsaettelse: readonly Readonly<{
     ansaettelsesforholdId: string;
