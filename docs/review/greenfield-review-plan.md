@@ -131,7 +131,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 8 | 11 | ✅ `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
 | 9 | 38 | ✅ Eksplicit dokument-genereringssession | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | muliggør #24; beslægtet #11 |
 | 10 | 12 | ✅ Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
-| 11 | 19 | Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
+| 11 | 19 | ✅ Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
 | 12 | 33 | Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
 | 13 | 13 | `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
 | 14 | 9 | `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
@@ -380,6 +380,19 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Forlig skriver til `erstatningsopgoerelse`-sektionen fra EET; bevar den delte kilde-semantik nøjagtigt.
 
 ### 19 — Generisk keyed-slice store-factory · 10
+
+- **Status: ✅ Gennemført (2026-07-11).** De tre strukturelt identiske slices
+  (`sections`/`fieldErrors`/`invalidDrafts`) deler nu én `createKeyedSectionSlice<TCache>()`-factory,
+  instantieret pr. concern. De seks tom-cache-/initial-revisions-konstruktorer er kollapset til én
+  `buildSectionKeyedMap`-builder, og de seks increment-varianter til ét delt par
+  (`incrementSectionKeyedRevision`/`incrementAllSectionKeyedRevisions`) — de bevarede navne holder
+  store-body'ens call-sites uændrede, så adfærden er byte-identisk (bevist af det eksisterende
+  revision-/epoch-/atomicitets-net i `formPersistenceStore.api.test.ts`). De tre revision-map-typer er
+  aliaser af én kanonisk `SectionKeyedRevisions`. Den fjerde parallelle tom-cache-kopi i
+  `invalidDraftsStorage.ts` deler nu den eksporterede `createEmptyInvalidDraftsCache`. Nyt
+  `formPersistenceStore.keyedSlices.test.ts` pinner key-coverage, nul-start, per-key-objekt-isolation og
+  at store/storage-konstruktørerne er samme kilde. Cross-slice atomiske actions (#33) og læse-sti-kollaps
+  (#28) er bevidst ikke rørt her.
 
 - **Scope:** `src/stores/formPersistenceStore.ts:118-249, 300-565`.
 - **Problem:** Tre-fire strukturelt identiske slices (`sections`, `fieldErrors`, `invalidDrafts` + revisions) med hver sin kopi af fem helpers (create-empty, initial-revisions, increment-one/all, coverage-assert). En fjerde empty-cache-konstruktor dupleret i `invalidDraftsStorage.ts`. Kommentar erkender "fire næsten-identiske kopier".

@@ -2,7 +2,7 @@ import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 import { getInvalidDraftsStorageKey, type StorageKey } from '../config/storageManifest';
 import { invalidDraftsCacheSchema } from '../schemas/invalidDraftsSchema';
-import type { InvalidDraftsCache } from '../stores/formPersistenceStore';
+import { createEmptyInvalidDraftsCache, type InvalidDraftsCache } from '../stores/formPersistenceStore';
 import {
   readSessionStorageValue,
   removeSessionStorageValue,
@@ -22,12 +22,9 @@ type InvalidDraftsEnvelope = {
   data: Record<string, Record<string, string>>;
 };
 
-export const createEmptyInvalidDraftsCacheForStorage = (): InvalidDraftsCache => {
-  return PERSISTED_SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = {};
-    return acc;
-  }, {} as InvalidDraftsCache);
-};
+// Deler den kanoniske konstruktor fra formPersistenceStore, så der ikke findes en fjerde parallel
+// tom-cache-kopi. Navnet bevares som det storage-lokale indgangspunkt.
+export const createEmptyInvalidDraftsCacheForStorage = (): InvalidDraftsCache => createEmptyInvalidDraftsCache();
 
 const isEnvelope = (value: unknown): value is InvalidDraftsEnvelope => {
   if (!value || typeof value !== 'object') return false;

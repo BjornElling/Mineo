@@ -30,12 +30,17 @@ export type FormPersistenceMeta = {
 
 type SectionMetaPatch = Pick<FormPersistenceMeta, 'lastCommittedAt'>;
 
-export type SectionRevisionMap = {
+/**
+ * Kanonisk revision-map for en keyed slice. Alle tre slices (sections/fieldErrors/invalidDrafts)
+ * bruger nøjagtig samme form — pr. sektions-key en monotont voksende revision-tæller.
+ */
+export type SectionKeyedRevisions = {
   [K in keyof FormPersistenceSections]: number;
 };
+export type SectionRevisionMap = SectionKeyedRevisions;
 
 export type FieldErrorCache = { [K in keyof FormPersistenceSections]: FieldErrorsForSection<K> };
-export type FieldErrorRevisionMap = { [K in keyof FormPersistenceSections]: number };
+export type FieldErrorRevisionMap = SectionKeyedRevisions;
 
 /**
  * `invalidDrafts`-recovery-kanal (committed rå draft, jf. persistence-contract.md §11).
@@ -44,7 +49,7 @@ export type FieldErrorRevisionMap = { [K in keyof FormPersistenceSections]: numb
  */
 export type InvalidDraftsForSection = Record<string, string>;
 export type InvalidDraftsCache = { [K in keyof FormPersistenceSections]: InvalidDraftsForSection };
-export type InvalidDraftRevisionMap = { [K in keyof FormPersistenceSections]: number };
+export type InvalidDraftRevisionMap = SectionKeyedRevisions;
 
 export type FormPersistenceStoreState = {
   sections: FormPersistenceSections;
@@ -115,40 +120,66 @@ export type FormPersistenceStoreState = {
 const REQUIRED_SECTION_KEYS = [...PERSISTED_SECTION_KEYS].sort();
 const SECTION_KEYS = REQUIRED_SECTION_KEYS as Array<keyof FormPersistenceSections>;
 
-const EMPTY_SECTIONS: FormPersistenceSections = SECTION_KEYS.reduce((acc, key) => {
-  acc[key] = null;
-  return acc;
-}, {} as FormPersistenceSections);
-
-const createInitialSectionRevisions = (): SectionRevisionMap =>
+// Tre slices (sections/fieldErrors/invalidDrafts) er strukturelt identiske: hver er en cache nøglet på
+// det fulde sæt sektions-keys plus et revision-map af samme form. Tidligere havde hver sin egen kopi af
+// create-empty / initial-revisions / increment-one / increment-all (fire næsten-identiske kopier).
+// Én generisk slice-factory instantieres pr. concern, så de fem operationer ikke kan drifte fra hinanden.
+const buildSectionKeyedMap = <T>(makeValue: () => T): { [K in keyof FormPersistenceSections]: T } =>
   SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = 0;
+    acc[key] = makeValue();
     return acc;
-  }, {} as SectionRevisionMap);
+  }, {} as { [K in keyof FormPersistenceSections]: T });
 
-const createEmptyFieldErrorCache = (): FieldErrorCache =>
-  SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = {};
-    return acc;
-  }, {} as FieldErrorCache);
+const createSectionKeyedRevisions = (): SectionKeyedRevisions => buildSectionKeyedMap(() => 0);
 
-const createInitialFieldErrorRevisions = (): FieldErrorRevisionMap =>
-  SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = 0;
-    return acc;
-  }, {} as FieldErrorRevisionMap);
+const incrementSectionKeyedRevision = (
+  revisions: SectionKeyedRevisions,
+  key: keyof FormPersistenceSections
+): SectionKeyedRevisions => ({
+  ...revisions,
+  [key]: (revisions[key] ?? 0) + 1,
+});
 
-const createEmptyInvalidDraftsCache = (): InvalidDraftsCache =>
-  SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = {};
-    return acc;
-  }, {} as InvalidDraftsCache);
+const incrementAllSectionKeyedRevisions = (revisions: SectionKeyedRevisions): SectionKeyedRevisions => {
+  const next = { ...revisions };
+  for (const key of SECTION_KEYS) {
+    next[key] = (revisions[key] ?? 0) + 1;
+  }
+  return next;
+};
 
-const createInitialInvalidDraftRevisions = (): InvalidDraftRevisionMap =>
-  SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = 0;
-    return acc;
-  }, {} as InvalidDraftRevisionMap);
+type KeyedSectionSlice<TCache> = {
+  createEmptyCache: () => TCache;
+  createInitialRevisions: () => SectionKeyedRevisions;
+  incrementRevision: (revisions: SectionKeyedRevisions, key: keyof FormPersistenceSections) => SectionKeyedRevisions;
+  incrementAllRevisions: (revisions: SectionKeyedRevisions) => SectionKeyedRevisions;
+};
+
+const createKeyedSectionSlice = <TCache extends { [K in keyof FormPersistenceSections]: unknown }>(
+  makeEmptyValue: () => TCache[keyof FormPersistenceSections]
+): KeyedSectionSlice<TCache> => ({
+  createEmptyCache: () => buildSectionKeyedMap(makeEmptyValue) as TCache,
+  createInitialRevisions: createSectionKeyedRevisions,
+  incrementRevision: incrementSectionKeyedRevision,
+  incrementAllRevisions: incrementAllSectionKeyedRevisions,
+});
+
+const SECTIONS_SLICE = createKeyedSectionSlice<FormPersistenceSections>(() => null);
+const FIELD_ERRORS_SLICE = createKeyedSectionSlice<FieldErrorCache>(() => ({}));
+const INVALID_DRAFTS_SLICE = createKeyedSectionSlice<InvalidDraftsCache>(() => ({}));
+
+const EMPTY_SECTIONS: FormPersistenceSections = SECTIONS_SLICE.createEmptyCache();
+
+const createInitialSectionRevisions = SECTIONS_SLICE.createInitialRevisions;
+const createEmptyFieldErrorCache = FIELD_ERRORS_SLICE.createEmptyCache;
+const createInitialFieldErrorRevisions = FIELD_ERRORS_SLICE.createInitialRevisions;
+const createInitialInvalidDraftRevisions = INVALID_DRAFTS_SLICE.createInitialRevisions;
+
+/**
+ * Kanonisk tom `invalidDrafts`-cache. Eksporteres, så `invalidDraftsStorage` deler præcis samme
+ * konstruktor i stedet for at vedligeholde en fjerde parallel kopi.
+ */
+export const createEmptyInvalidDraftsCache = INVALID_DRAFTS_SLICE.createEmptyCache;
 
 // Alle slices (sections, fieldErrors, fieldErrorRevisions, invalidDrafts) er nøglet på det fulde
 // sæt af sektions-keys. Én generisk coverage-assert undgår drift mellem fire næsten-identiske kopier.
@@ -204,49 +235,14 @@ const assertAllSectionsValid = (next: FormPersistenceSections): void => {
   });
 };
 
-const incrementSectionRevision = <K extends keyof FormPersistenceSections>(
-  revisions: SectionRevisionMap,
-  key: K
-): SectionRevisionMap => ({
-  ...revisions,
-  [key]: (revisions[key] ?? 0) + 1,
-});
-
-const incrementAllSectionRevisions = (revisions: SectionRevisionMap): SectionRevisionMap => {
-  const next = { ...revisions };
-  (Object.keys(next) as Array<keyof SectionRevisionMap>).forEach((key) => {
-    next[key] = (revisions[key] ?? 0) + 1;
-  });
-  return next;
-};
-const incrementFieldErrorRevision = <K extends keyof FormPersistenceSections>(
-  revisions: FieldErrorRevisionMap,
-  key: K
-): FieldErrorRevisionMap => ({
-  ...revisions,
-  [key]: (revisions[key] ?? 0) + 1,
-});
-const incrementAllFieldErrorRevisions = (revisions: FieldErrorRevisionMap): FieldErrorRevisionMap => {
-  const next = { ...revisions };
-  (Object.keys(next) as Array<keyof FieldErrorRevisionMap>).forEach((key) => {
-    next[key] = (revisions[key] ?? 0) + 1;
-  });
-  return next;
-};
-const incrementInvalidDraftRevision = <K extends keyof FormPersistenceSections>(
-  revisions: InvalidDraftRevisionMap,
-  key: K
-): InvalidDraftRevisionMap => ({
-  ...revisions,
-  [key]: (revisions[key] ?? 0) + 1,
-});
-const incrementAllInvalidDraftRevisions = (revisions: InvalidDraftRevisionMap): InvalidDraftRevisionMap => {
-  const next = { ...revisions };
-  (Object.keys(next) as Array<keyof InvalidDraftRevisionMap>).forEach((key) => {
-    next[key] = (revisions[key] ?? 0) + 1;
-  });
-  return next;
-};
+// Alle seks increment-varianter er nu ét delt par (slice-metoderne peger på samme impl); de bevarede
+// navne holder call-sites i store-body uændrede og gør concern→slice-bindingen eksplicit.
+const incrementSectionRevision = SECTIONS_SLICE.incrementRevision;
+const incrementAllSectionRevisions = SECTIONS_SLICE.incrementAllRevisions;
+const incrementFieldErrorRevision = FIELD_ERRORS_SLICE.incrementRevision;
+const incrementAllFieldErrorRevisions = FIELD_ERRORS_SLICE.incrementAllRevisions;
+const incrementInvalidDraftRevision = INVALID_DRAFTS_SLICE.incrementRevision;
+const incrementAllInvalidDraftRevisions = INVALID_DRAFTS_SLICE.incrementAllRevisions;
 
 type FieldErrorUpdateResult =
   | { kind: 'noop' }
