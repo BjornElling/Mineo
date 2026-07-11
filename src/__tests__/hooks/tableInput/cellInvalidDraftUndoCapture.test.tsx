@@ -40,7 +40,7 @@ describe('tabelcelle invalidDraft → undo-frame-capture', () => {
     __resetUndoRedoStoreForTests();
     formPersistenceStore.getState().clearAll({
       hydrated: true,
-      schemaFingerprint: PERSISTED_DATA_VERSION,
+      persistedDataVersion: PERSISTED_DATA_VERSION,
       lastCommittedAt: 1,
     });
     channel = null;

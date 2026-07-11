@@ -51,7 +51,7 @@ export const initializePersistenceRuntime = (): PersistenceRuntime => {
 
   formPersistenceStore.getState().hydrate(
     sections,
-    { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+    { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
     plan.invalidDrafts,
   );
   clearResolvedFieldErrorsCache();

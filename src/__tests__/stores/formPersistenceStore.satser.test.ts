@@ -10,7 +10,7 @@ import {
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { satserAngivAarYearBounds } from '../../data/lovbestemteRates';
 
-const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 const SATSER_MIN_YEAR = satserAngivAarYearBounds.minYear;
 const SATSER_MAX_YEAR = satserAngivAarYearBounds.maxYear;
 

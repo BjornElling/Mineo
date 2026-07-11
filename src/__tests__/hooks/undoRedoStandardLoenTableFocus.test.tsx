@@ -101,7 +101,7 @@ describe('undo/redo-fokus i Standard løn-tabellen', () => {
     __resetUndoFocusTrackerForTests();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, aarsloen: null },
-      meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
     });
     installUndoFocusTracker();
   });

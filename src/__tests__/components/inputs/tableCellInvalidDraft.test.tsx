@@ -92,7 +92,7 @@ const renderBoundAmountCell = (
 const resetStore = () => {
   formPersistenceStore.getState().clearAll({
     hydrated: true,
-    schemaFingerprint: PERSISTED_DATA_VERSION,
+    persistedDataVersion: PERSISTED_DATA_VERSION,
     lastCommittedAt: 1,
   });
 };

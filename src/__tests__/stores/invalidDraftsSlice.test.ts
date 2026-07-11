@@ -7,7 +7,7 @@ import { createRenteberegningInitialValues } from '../../domain/renteberegning/r
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 
-const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 
 const createValidSections = (): PersistedSectionMap => ({
   stamdata: STAMDATA_INITIAL_VALUES,

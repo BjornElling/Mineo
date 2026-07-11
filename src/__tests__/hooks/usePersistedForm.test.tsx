@@ -40,7 +40,7 @@ describe('usePersistedForm', () => {
     clearResolvedFieldErrorsCache();
     formPersistenceStore.getState().clearAll({
       hydrated: true,
-      schemaFingerprint: PERSISTED_DATA_VERSION,
+      persistedDataVersion: PERSISTED_DATA_VERSION,
       lastCommittedAt: Date.now(),
     });
     formPersistenceStore.getState().clearAllFieldErrors();

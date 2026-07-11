@@ -12,7 +12,7 @@ import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { StandardLoenTableRow } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
-const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 
 describe('formPersistenceStore (aarsloen selectors)', () => {
   let store: ReturnType<typeof __createTestStore>;

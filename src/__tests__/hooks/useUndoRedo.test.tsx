@@ -21,7 +21,7 @@ import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
 import { toISODateString } from '../../types/branded';
 
-const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 
 type UndoRedoControls = ReturnType<typeof useUndoRedo>;
 type TafDraftRow = { id: string; fra: string };

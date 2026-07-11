@@ -146,7 +146,7 @@ const clearViaDelete = (h: CellHarness) => {
 beforeEach(() => {
   sessionStorage.clear();
   __resetUndoRedoStoreForTests();
-  formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: 1 });
+  formPersistenceStore.getState().clearAll({ hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION, lastCommittedAt: 1 });
 });
 
 describe('tabelcelle undo/redo af ugyldige indtastninger (ende-til-ende)', () => {

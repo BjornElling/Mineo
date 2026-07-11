@@ -50,7 +50,7 @@ describe('Slet-række (RowDeleteButton-integration)', () => {
         getFirstBlockingInputErrorTarget(getFieldErrorsBySourceSnapshot, getInvalidDraftsForSectionSnapshot);
 
       sessionStorage.clear();
-      formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: 1 });
+      formPersistenceStore.getState().clearAll({ hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION, lastCommittedAt: 1 });
 
       const filled: OffentligeYdelserRow = { id: 'row1', ydelsestype: 'andet' };
       render(

@@ -369,7 +369,7 @@ export const FormPersistenceProvider = ({
           }
           formPersistenceStore.getState().replaceSectionsAndClearFieldErrors(
             nextCache,
-            { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() }
+            { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() }
           );
           clearResolvedFieldErrorsCache();
           undoRedoStore.getState().clear();
@@ -424,7 +424,7 @@ export const FormPersistenceProvider = ({
           storageKeys.forEach(key => {
             removeSessionStorageValue(key);
           });
-          formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() });
+          formPersistenceStore.getState().clearAll({ hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() });
           clearResolvedFieldErrorsCache();
           undoRedoStore.getState().clear();
         },

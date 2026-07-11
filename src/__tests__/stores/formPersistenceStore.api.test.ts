@@ -7,7 +7,7 @@ import { createRenteberegningInitialValues } from '../../domain/renteberegning/r
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 
-const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 
 const withNodeEnv = (nodeEnv: string, run: () => void): void => {
   const originalNodeEnv = process.env.NODE_ENV;
@@ -319,9 +319,9 @@ describe('formPersistenceStore public API', () => {
     const store = __createTestStore();
     const sections = createValidSections();
     const beforeEpoch = store.getState().authoritativeSnapshotEpoch;
-    store.getState().hydrate(sections, { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION });
+    store.getState().hydrate(sections, { hydrated: false, persistedDataVersion: PERSISTED_DATA_VERSION });
     expect(store.getState().meta.hydrated).toBe(true);
-    expect(store.getState().meta.schemaFingerprint).toBe(PERSISTED_DATA_VERSION);
+    expect(store.getState().meta.persistedDataVersion).toBe(PERSISTED_DATA_VERSION);
     expect(store.getState().authoritativeSnapshotEpoch).toBe(beforeEpoch + 1);
   });
 
@@ -332,7 +332,7 @@ describe('formPersistenceStore public API', () => {
     expect(Object.keys(store.getState().fieldErrors.stamdata)).toHaveLength(1);
     const beforeRevision = store.getState().fieldErrorRevisions.stamdata;
 
-    store.getState().hydrate(createValidSections(), { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION });
+    store.getState().hydrate(createValidSections(), { hydrated: false, persistedDataVersion: PERSISTED_DATA_VERSION });
 
     expect(store.getState().fieldErrors.stamdata).toEqual({});
     expect(store.getState().fieldErrorRevisions.stamdata).toBe(beforeRevision + 1);

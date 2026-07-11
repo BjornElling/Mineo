@@ -87,7 +87,7 @@ describe('REPRO: klik + Delete + undo af ugyldig dato', () => {
     __resetUndoFocusTrackerForTests();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, stamdata: null },
-      meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
     });
     formPersistenceStore.getState().clearAllFieldErrors();
     installUndoFocusTracker();

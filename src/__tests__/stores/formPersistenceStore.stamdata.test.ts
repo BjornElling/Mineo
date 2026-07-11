@@ -5,7 +5,7 @@ import { hasStamdataAny, resolveStamdataDatoLabel } from '../../domain/policies'
 import { toISODateString } from '../../types/branded';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
-const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 
 describe('formPersistenceStore (stamdata selectors)', () => {
   let store: ReturnType<typeof __createTestStore>;

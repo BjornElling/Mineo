@@ -5,7 +5,7 @@ import { __resetUndoRedoStoreForTests, undoRedoStore, type HistoryFrameOrigin } 
 import { readSessionStorageValue, writeSessionStorageValue } from '../../utils/safeSessionStorage';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
-const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 const KEY = 'mineo_test_atomic';
 
 const origin: HistoryFrameOrigin = {

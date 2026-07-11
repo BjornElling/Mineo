@@ -72,7 +72,7 @@ describe('felt med ugyldig rå draft — clear/edit rydder invalidDrafts ved blu
     sessionStorage.clear();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, stamdata: null },
-      meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
     });
     formPersistenceStore.getState().clearAllFieldErrors();
   });
@@ -197,7 +197,7 @@ describe('brøk-felt med ugyldig rå draft — clear rydder invalidDrafts (samme
     sessionStorage.clear();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, erstatningsopgoerelse: null },
-      meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
     });
     formPersistenceStore.getState().clearAllFieldErrors();
   });
@@ -295,7 +295,7 @@ describe('årstal-felt med ugyldig rå draft — clear rydder invalidDrafts (rap
     sessionStorage.clear();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, erstatningsopgoerelse: null },
-      meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
     });
     formPersistenceStore.getState().clearAllFieldErrors();
   });

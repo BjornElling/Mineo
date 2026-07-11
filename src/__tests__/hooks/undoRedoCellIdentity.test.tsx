@@ -104,7 +104,7 @@ describe('undo/redo celle-identitet (repro)', () => {
     __resetUndoFocusTrackerForTests();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, erstatningsopgoerelse: null },
-      meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
     });
     installUndoFocusTracker();
   });

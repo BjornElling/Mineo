@@ -133,7 +133,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 10 | 12 | ✅ Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
 | 11 | 19 | ✅ Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
 | 12 | 33 | ✅ Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
-| 13 | 13 | `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
+| 13 | 13 | ✅ `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
 | 14 | 9 | `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 | 15 | 8 | `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 
@@ -330,6 +330,17 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Beslægtet med #25 (samme felt-familie).
 
 ### 13 — `meta.schemaFingerprint` → `persistedDataVersion` rename · 11
+
+- **Status: ✅ Gennemført (2026-07-11).** `FormPersistenceMeta`-feltet er omdøbt fra
+  `schemaFingerprint` (der aldrig holdt et fingerprint) til `persistedDataVersion`, og de to lange
+  advarsels-kommentarer er væk — feltet er nu selv-forklarende. Guard'en `assertMetaFingerprintMatch`
+  → `assertMetaVersionMatch` (fejlbesked `persistedDataVersion mismatch`). Stemplingen er centraliseret
+  i én `stampMeta`-primitiv som `resolveMeta` og alle write-sites (hydrate/replace/clear/rollback/
+  restoreHistoryFrame) nu deler — ingen inline `hydrated:true`+version-stempling mere. Den bevidste
+  opdeling er bevaret: runtime-version-guarden (`PERSISTED_DATA_VERSION`) vs. den test-tids CI-drift-gate
+  (`computeSchemaFingerprint` i `schemaFingerprint.ts`) er urørt. Ingen persisteret struktur berørt —
+  `meta` stemples altid friskt ved hydrering (læses aldrig fra den persisterede blob). Fuld suite grøn
+  (6131 tests / 515 filer), typecheck + lint grønne; 33 testfiler mekanisk migreret.
 
 - **Scope:** `formPersistenceStore.ts` (felt 27, assert 179-199, ~10 write-sites), `config/persistenceVersion.ts`, `utils/schemaFingerprint.ts`.
 - **Problem:** Feltet `meta.schemaFingerprint` holder ikke et fingerprint — det holder `PERSISTED_DATA_VERSION`-strengen, beskyttet af to lange advarsels-kommentarer ("dette er IKKE et beregnet fingerprint"). Den faktiske `computeSchemaFingerprint` er test-only. ~10 mutationer re-stempler feltet.

@@ -22,9 +22,10 @@ export type FormPersistenceSections = {
 
 export type FormPersistenceMeta = {
   hydrated: boolean;
-  // Version-tag (PERSISTED_DATA_VERSION), IKKE et beregnet schema-fingerprint trods navnet.
-  // Bruges som version-guard ved hydrate/replace/rollback (se assertMetaFingerprintMatch).
-  schemaFingerprint: string;
+  // PERSISTED_DATA_VERSION-tag'et for den anvendte snapshot. Version-guard ved
+  // hydrate/replace/rollback (se assertMetaVersionMatch). Ikke det test-tids
+  // computeSchemaFingerprint (CI-drift-gate) — de to koncepter er bevidst adskilte.
+  persistedDataVersion: string;
   lastCommittedAt?: number;
 };
 
@@ -45,7 +46,7 @@ export type FieldErrorRevisionMap = SectionKeyedRevisions;
 /**
  * `invalidDrafts`-recovery-kanal (committed rå draft, jf. persistence-contract.md §11).
  * Pr. sektion en map fra fieldPath til ikke-tom råstreng. Separat slice ved siden af fieldErrors;
- * IKKE en persisteret sektion (indgår ikke i sectionRevisions/schemaFingerprint).
+ * IKKE en persisteret sektion (indgår ikke i sectionRevisions/persistedDataVersion).
  */
 export type InvalidDraftsForSection = Record<string, string>;
 export type InvalidDraftsCache = { [K in keyof FormPersistenceSections]: InvalidDraftsForSection };
@@ -207,13 +208,10 @@ const assertFieldErrorKeyCoverage = (next: FieldErrorCache): void =>
 const assertFieldErrorRevisionKeyCoverage = (next: FieldErrorRevisionMap): void =>
   assertSectionKeyCoverage(next, 'field-error revision');
 
-// `meta.schemaFingerprint` holder bevidst version-stregen PERSISTED_DATA_VERSION (ikke et beregnet
-// schema-fingerprint, jf. computeSchemaFingerprint i schemaFingerprint.ts, som kun er en test-tids
-// drift-gate). Det er en version-guard mod at anvende en snapshot fra en anden sagsinput-version.
-// Skift IKKE denne assert til at sammenligne mod et beregnet fingerprint — det ville bryde hydrering.
-const assertMetaFingerprintMatch = (meta: FormPersistenceMeta): void => {
-  if (meta.schemaFingerprint !== PERSISTED_DATA_VERSION) {
-    throw new Error('formPersistenceStore: schemaFingerprint mismatch');
+// Version-guard mod at anvende en snapshot fra en anden sagsinput-version.
+const assertMetaVersionMatch = (meta: FormPersistenceMeta): void => {
+  if (meta.persistedDataVersion !== PERSISTED_DATA_VERSION) {
+    throw new Error('formPersistenceStore: persistedDataVersion mismatch');
   }
 };
 
@@ -275,15 +273,17 @@ const applyFieldErrorUpdate = (
   return { kind: 'updateField', nextForField: { ...prevForField, [source]: next } };
 };
 
-const resolveMeta = (prev: FormPersistenceMeta, metaPatch?: SectionMetaPatch): FormPersistenceMeta => {
-  const next: FormPersistenceMeta = {
-    ...prev,
-    ...metaPatch,
-    hydrated: true,
-    schemaFingerprint: PERSISTED_DATA_VERSION,
-  };
-  return next;
-};
+// Ét sted der stempler meta som hydreret med den aktuelle PERSISTED_DATA_VERSION.
+// Alle write-sites går gennem denne (direkte eller via resolveMeta), så version-
+// stemplingen aldrig gentages inline.
+const stampMeta = (meta: FormPersistenceMeta): FormPersistenceMeta => ({
+  ...meta,
+  hydrated: true,
+  persistedDataVersion: PERSISTED_DATA_VERSION,
+});
+
+const resolveMeta = (prev: FormPersistenceMeta, metaPatch?: SectionMetaPatch): FormPersistenceMeta =>
+  stampMeta({ ...prev, ...metaPatch });
 
 const assertTestOnlyUnsafeMutation = (): void => {
   if (process.env.NODE_ENV === 'test') return;
@@ -300,10 +300,10 @@ const createFormPersistenceStore = () =>
     invalidDraftRevisions: createInitialInvalidDraftRevisions(),
     committedChangeCounter: 0,
     authoritativeSnapshotEpoch: 0,
-    meta: { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION },
+    meta: { hydrated: false, persistedDataVersion: PERSISTED_DATA_VERSION },
     hydrate: (next, meta, invalidDrafts) => {
       assertKeyCoverage(next);
-      assertMetaFingerprintMatch(meta);
+      assertMetaVersionMatch(meta);
       assertAllSectionsValid(next);
       const nextInvalidDrafts = invalidDrafts ?? createEmptyInvalidDraftsCache();
       assertInvalidDraftsKeyCoverage(nextInvalidDrafts);
@@ -320,7 +320,7 @@ const createFormPersistenceStore = () =>
         committedChangeCounter: state.committedChangeCounter,
         // Hydration fra persisteret storage er autoritativ for form-consumers.
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
-        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+        meta: stampMeta(meta),
       }));
     },
     commitSection: (key, next, metaPatch) => {
@@ -350,7 +350,7 @@ const createFormPersistenceStore = () =>
     },
     replaceSections: (next, meta) => {
       assertKeyCoverage(next);
-      assertMetaFingerprintMatch(meta);
+      assertMetaVersionMatch(meta);
       assertAllSectionsValid(next);
       set((state) => ({
         sections: { ...next },
@@ -359,12 +359,12 @@ const createFormPersistenceStore = () =>
         fieldErrorRevisions: state.fieldErrorRevisions,
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
-        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+        meta: stampMeta(meta),
       }));
     },
     replaceSectionsAndClearFieldErrors: (next, meta) => {
       assertKeyCoverage(next);
-      assertMetaFingerprintMatch(meta);
+      assertMetaVersionMatch(meta);
       assertAllSectionsValid(next);
       set((state) => ({
         sections: { ...next },
@@ -375,11 +375,11 @@ const createFormPersistenceStore = () =>
         invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
-        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+        meta: stampMeta(meta),
       }));
     },
     clearAll: (meta) => {
-      assertMetaFingerprintMatch(meta);
+      assertMetaVersionMatch(meta);
       set((state) => ({
         sections: { ...EMPTY_SECTIONS },
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
@@ -389,12 +389,12 @@ const createFormPersistenceStore = () =>
         invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
-        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+        meta: stampMeta(meta),
       }));
     },
     rollbackSections: (next, sectionRevisions, committedChangeCounter, authoritativeSnapshotEpoch, meta) => {
       assertKeyCoverage(next);
-      assertMetaFingerprintMatch(meta);
+      assertMetaVersionMatch(meta);
       assertAllSectionsValid(next);
       // NOTE: rollbackSections ruller bevidst kun section-state tilbage.
       // Field errors gendannes via restoreFieldErrors() af kalderen.
@@ -405,12 +405,12 @@ const createFormPersistenceStore = () =>
         fieldErrorRevisions: state.fieldErrorRevisions,
         committedChangeCounter,
         authoritativeSnapshotEpoch,
-        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+        meta: stampMeta(meta),
       }));
     },
     restoreHistoryFrame: (next, sectionRevisions, fieldErrors, fieldErrorRevisions, invalidDrafts, invalidDraftRevisions, meta, committedAt) => {
       assertKeyCoverage(next);
-      assertMetaFingerprintMatch(meta);
+      assertMetaVersionMatch(meta);
       assertAllSectionsValid(next);
       assertFieldErrorKeyCoverage(fieldErrors);
       assertFieldErrorRevisionKeyCoverage(fieldErrorRevisions);
@@ -425,7 +425,7 @@ const createFormPersistenceStore = () =>
         invalidDraftRevisions: { ...invalidDraftRevisions },
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
-        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: committedAt },
+        meta: stampMeta({ ...meta, lastCommittedAt: committedAt }),
       }));
     },
     setFieldError: (key, fieldName, source, error) => {
