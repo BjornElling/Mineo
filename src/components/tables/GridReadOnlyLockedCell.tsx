@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 
 import { assignRef } from '../../utils/refUtils';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
@@ -89,7 +90,7 @@ export const GridReadOnlyLockedCell = React.memo(
               'aria-describedby': showError ? a11yErrorId : undefined,
             }}
             placeholder={placeholder ?? ''}
-            sx={{
+            sx={mergeSx({
               width: '100%',
               height: '100%',
               font: 'inherit',
@@ -112,8 +113,7 @@ export const GridReadOnlyLockedCell = React.memo(
                 cursor: 'default',
                 caretColor: 'transparent',
               },
-              ...sx,
-            }}
+            }, sx)}
           />
           {showError ? (
             <span id={a11yErrorId} style={visuallyHiddenStyle}>

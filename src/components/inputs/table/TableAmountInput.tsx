@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../../utils/mergeSx';
 
 import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
@@ -121,7 +122,7 @@ const TableAmountInput = React.memo(
     );
 
     return (
-      <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
+      <Box sx={mergeSx({ position: 'relative', width: '100%', height: '100%' }, sx)}>
         <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
           <Box sx={{ width: '100%', height: '100%' }}>
             <InputBase

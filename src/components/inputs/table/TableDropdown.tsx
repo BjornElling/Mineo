@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Divider, MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../../utils/mergeSx';
 import { assignRef } from '../../../utils/refUtils';
 import { copyTextToClipboard, readClipboardText } from '../../../utils/clipboardUtils';
 import { useGridCoreApi } from '../../tables/useGridCore';
@@ -290,7 +291,7 @@ const TableDropdown = React.memo(
     const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const showError = externalErrorText !== '';
-    const looseDropdownSx: SxProps<Theme> = {
+    const looseDropdownSx: SxProps<Theme> = mergeSx({
       width: '100%',
       height: TABLE_INPUT_HEIGHT,
       boxSizing: 'border-box',
@@ -309,8 +310,7 @@ const TableDropdown = React.memo(
         userSelect: 'text',
         WebkitUserSelect: 'text',
       },
-      ...sx,
-    };
+    }, sx);
 
     const handleLooseChange = React.useCallback(
       (e: StyledDropdownChangeEvent<string | undefined>) => {
@@ -494,7 +494,7 @@ const TableDropdown = React.memo(
                 tabIndex: readOnly ? -1 : undefined,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
-              sx={{
+              sx={mergeSx({
                 width: '100%',
                 height: TABLE_INPUT_HEIGHT,
                 boxSizing: 'border-box',
@@ -528,8 +528,7 @@ const TableDropdown = React.memo(
                 },
                 '&:before': { display: 'none' },
                 '&:after': { display: 'none' },
-                ...sx,
-              }}
+              }, sx)}
             >
               {allowEmpty ? (
                 <MenuItem value="">

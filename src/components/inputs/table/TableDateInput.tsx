@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../../utils/mergeSx';
 
 import { coerceToDanishDateString, coerceToISODateString } from '../../../types/branded';
 import type { ISODateString } from '../../../types/branded';
@@ -219,7 +220,7 @@ const TableDateInput = React.memo(
               'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
               'aria-describedby': showError ? core.a11yErrorId : undefined,
             }}
-            sx={{
+            sx={mergeSx({
               ...getTableInputRootStyles({
                 showError,
                   tableKind: gridApi.tableKind,
@@ -233,8 +234,7 @@ const TableDateInput = React.memo(
                   caretColor: core.isEditing ? 'auto' : 'transparent',
                 }),
               },
-              ...sx,
-            }}
+            }, sx)}
           />
           {showError ? (
             <span id={core.a11yErrorId} style={visuallyHiddenStyle}>

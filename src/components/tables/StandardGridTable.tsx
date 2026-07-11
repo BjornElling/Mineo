@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 import type { CSSProperties } from 'react';
 import { getHtmlTableStyles } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
@@ -48,11 +49,8 @@ export const StandardGridTable = React.memo(
     tableRef,
   }: StandardGridTableProps) => {
     const { internalTableRef, contextValue } = useGridCoreController({ tableKind: 'grid' });
-    const mergedContainerSx = React.useMemo<SxProps<Theme>>(
-      () => [
-        BASE_CONTAINER_SX,
-        ...(containerSx === undefined ? [] : Array.isArray(containerSx) ? containerSx : [containerSx]),
-      ],
+    const mergedContainerSx = React.useMemo(
+      () => mergeSx(BASE_CONTAINER_SX, containerSx),
       [containerSx]
     );
 

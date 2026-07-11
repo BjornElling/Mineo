@@ -1,5 +1,6 @@
 import React from 'react';
 import { Fab, Tooltip, type SxProps, type Theme } from '@mui/material';
+import { mergeSx } from '../../utils/mergeSx';
 
 type FloatingActionButtonProps = {
   onClick: () => void;
@@ -62,7 +63,7 @@ const FloatingActionButton = React.memo(({
       color={color}
       onClick={handleClick}
       disabled={disabled && !shake}
-      sx={{
+      sx={mergeSx({
         width: 56,
         height: 56,
         boxShadow: disabled ? 'none' : 6,
@@ -79,8 +80,7 @@ const FloatingActionButton = React.memo(({
           '50%': { transform: 'translateX(5px)' },
           '75%': { transform: 'translateX(-5px)' },
         },
-        ...sx,
-      }}
+      }, sx)}
     >
       {icon}
     </Fab>

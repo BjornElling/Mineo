@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, type SxProps, type Theme } from '@mui/material';
+import { mergeSx } from '../../utils/mergeSx';
 import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import ScrollToTopButton from '../ui/ScrollToTopButton';
 import { CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR, hasTableBoundaryExit } from '../tables/gridCore/tableFocusHelpers';
@@ -592,7 +593,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
         ref={containerRef}
         data-mineo-scroll-container="true"
         onKeyDown={handleKeyDown}
-        sx={[
+        sx={mergeSx(
           {
             flex: 1,
             padding: 3,
@@ -601,14 +602,11 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
             overflowX: 'auto',
             height: '100vh',
           },
-          ...(Array.isArray(scrollSx) ? scrollSx : scrollSx ? [scrollSx] : []),
-        ]}
+          scrollSx
+        )}
       >
         <Box
-          sx={[
-            { width: '1000px', paddingLeft: '50px', paddingTop: '50px' },
-            ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
-          ]}
+          sx={mergeSx({ width: '1000px', paddingLeft: '50px', paddingTop: '50px' }, contentSx)}
         >
           {children}
         </Box>

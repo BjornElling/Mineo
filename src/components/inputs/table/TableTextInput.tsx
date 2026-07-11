@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../../utils/mergeSx';
 
 import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
@@ -55,7 +56,7 @@ const TableTextInput = React.memo(
 
     return (
       <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
-        <Box sx={{ width: '100%', height: '100%', ...sx }}>
+        <Box sx={mergeSx({ width: '100%', height: '100%' }, sx)}>
           <InputBase
             inputRef={core.inputRefCallback}
             autoComplete="off"

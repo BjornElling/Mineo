@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Table, TableCell, type TableProps } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 import { getMuiTableStyles } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
 import {
@@ -42,10 +43,9 @@ const StandardLooseTable = React.memo(({
   const { internalTableRef, contextValue } = useGridCoreController({ tableKind: 'loose' });
 
   const tableStyles = getMuiTableStyles(useSmallFont);
-  const mergedSx: SxProps<Theme> = [
-    tableStyles,
-    ...(sx === undefined ? [] : Array.isArray(sx) ? sx : [sx]),
-    {
+  // Base (tableStyles) → table-level `sx` → et fast override sidst, så `sx` ikke kan
+  // "overskrive" header-baggrunden væk. mergeSx bevarer MUI's callback/array-kontrakt.
+  const mergedSx: SxProps<Theme> = mergeSx(mergeSx(tableStyles, sx), {
       // Overskriftsrækken skal bruge samme lysegrå som den alternerende baggrund.
       // Lægges sidst så table-level `sx` ikke kan "overskrive den væk" ved at
       // definere `& thead th` (typisk kun for alignment).
@@ -64,7 +64,7 @@ const StandardLooseTable = React.memo(({
         pointerEvents: 'auto',
       },
     },
-  ];
+  );
   return (
     <GridCoreProvider value={contextValue}>
       <Table
@@ -120,7 +120,7 @@ export const StandardLooseHeaderCell = React.memo(
     return (
       <TableCell
         onClick={onClick}
-        sx={[
+        sx={mergeSx(
           {
             cursor: onClick ? 'pointer' : 'default',
             whiteSpace: 'nowrap',
@@ -128,8 +128,8 @@ export const StandardLooseHeaderCell = React.memo(
             textOverflow: 'ellipsis',
             position: 'relative',
           },
-          ...(sx === undefined ? [] : Array.isArray(sx) ? sx : [sx]),
-        ]}
+          sx
+        )}
       >
         {children}
         {sortRole !== 'none' ? <SortIcon sortRole={sortRole} sortDirection={sortDirection} /> : null}

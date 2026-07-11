@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 import { getMuiTableStyles } from '../../config/tableTheme';
 
 export type StandardDisplayTableColumn = Readonly<{
@@ -51,34 +52,22 @@ export type StandardDisplayTableProps = Readonly<{
 const StandardDisplayTable = React.memo(
   ({ columns, rows, containerSx, tableSx, useSmallFont = false }: StandardDisplayTableProps) => {
     const tableStyles = getMuiTableStyles(useSmallFont);
-    const containerSxParts = containerSx === undefined
-      ? []
-      : Array.isArray(containerSx)
-        ? containerSx
-        : [containerSx];
-    const tableSxParts = tableSx === undefined
-      ? []
-      : Array.isArray(tableSx)
-        ? tableSx
-        : [tableSx];
 
     return (
       <Box
-        sx={[
-          ...containerSxParts,
-          {
-            width: '100%',
-            mt: 2,
-            mb: 2,
-            pt: 1,
-            pb: 1,
-          },
-        ]}
+        // Bevidst omvendt præcedens: de faste layout-styles ligger sidst, så en caller-
+        // `containerSx` ikke kan overskrive tabellens bredde/margener/padding.
+        sx={mergeSx(containerSx ?? {}, {
+          width: '100%',
+          mt: 2,
+          mb: 2,
+          pt: 1,
+          pb: 1,
+        })}
       >
         <Table
           size="small"
-          sx={[
-            {
+          sx={mergeSx(mergeSx({
               ...tableStyles,
               tableLayout: 'fixed',
               '& .MuiTableCell-root': {
@@ -91,12 +80,9 @@ const StandardDisplayTable = React.memo(
               '& tbody .MuiTableCell-root': {
                 border: 'none',
               },
-            },
-            ...tableSxParts,
-            {
+            }, tableSx), {
               width: '100%',
-            },
-          ]}
+            })}
         >
           <TableHead>
             <TableRow>

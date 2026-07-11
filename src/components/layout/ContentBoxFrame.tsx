@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, type BoxProps } from '@mui/material';
+import { mergeSx } from '../../utils/mergeSx';
 
 export type ContentBoxFrameProps = Omit<BoxProps, 'ref'>;
 export type ContentBoxComponent = React.ComponentType<ContentBoxFrameProps>;
@@ -14,10 +15,7 @@ const ContentBoxFrame = React.memo(React.forwardRef<HTMLDivElement, ContentBoxFr
       <Box
         ref={ref}
         className={resolvedClassName}
-        sx={[
-          { position: 'relative' },
-          ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
-        ]}
+        sx={mergeSx({ position: 'relative' }, sx)}
         {...props}
       >
         {children}

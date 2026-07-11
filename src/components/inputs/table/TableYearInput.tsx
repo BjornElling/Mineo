@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../../utils/mergeSx';
 
 import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
@@ -109,7 +110,7 @@ const TableYearInput = React.memo(
               'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
               'aria-describedby': core.showError ? core.a11yErrorId : undefined,
             }}
-            sx={{
+            sx={mergeSx({
               ...getTableInputRootStyles({
                 showError: core.showError,
                   tableKind: gridApi.tableKind,
@@ -123,8 +124,7 @@ const TableYearInput = React.memo(
                   caretColor: core.isEditing ? 'auto' : 'transparent',
                 }),
               },
-              ...sx,
-            }}
+            }, sx)}
           />
           {core.showError ? (
             <span id={core.a11yErrorId} style={visuallyHiddenStyle}>
