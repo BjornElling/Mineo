@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Tabs, Tab, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import PageTabs from '../layout/PageTabs';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import {
@@ -38,7 +39,7 @@ const TAB_KEYS = ERHVERVSEVNETAB_TAB_KEYS;
 type TabKey = ErhvervsevnetabTabKey;
 
 const ErhvervsevnetabPage = React.memo(() => {
-  const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
+  const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'erhvervsevnetab',
     allowedTabs: [
       TAB_KEYS.EET_OPLYSNINGER,
@@ -149,59 +150,23 @@ const ErhvervsevnetabPage = React.memo(() => {
   React.useEffect(() => {
     reportAslAfgoerelserRuleError(aslAfgoerelserValidationIssues[0]?.message);
   }, [aslAfgoerelserValidationIssues, reportAslAfgoerelserRuleError]);
-  const handleTabChange = React.useCallback(
-    (_: React.SyntheticEvent, value: unknown) => {
-      if (!isAllowedTab(value)) return;
-      setActiveTab(value);
-    },
-    [isAllowedTab, setActiveTab]
-  );
-
   return (
     <Box>
       <Typography className="page-title">Erhvervsevnetab</Typography>
 
       {/* Tab-navigation */}
-      <Box
-        sx={{
-          position: 'relative',
-          width: '1200px',
-          height: 0,
-          mb: '40px',
-        }}
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '-48px',
-            right: '20px',
-            zIndex: 10,
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            textColor="primary"
-            indicatorColor="primary"
-            sx={{
-              minHeight: 48,
-              '& .MuiTab-root': {
-                minWidth: 130,
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--color-primary)',
-                height: '2px',
-              },
-            }}
-          >
-            <Tab className="tab-item" label="EET oplysninger" value={TAB_KEYS.EET_OPLYSNINGER} />
-            <Tab className="tab-item" label="Løbende ydelser" value={TAB_KEYS.LOEBENDE_YDELSER} />
-            <Tab className="tab-item" label="Kapitalisering" value={TAB_KEYS.KAPITALISERING} />
-            <Tab className="tab-item" label="EET efter EAL" value={TAB_KEYS.EET_EAL} />
-            <Tab className="tab-item" label="Differencekrav" value={TAB_KEYS.DIFFERENCEKRAV} />
-          </Tabs>
-        </Box>
-      </Box>
+      <PageTabs
+        items={[
+          { key: TAB_KEYS.EET_OPLYSNINGER, label: 'EET oplysninger' },
+          { key: TAB_KEYS.LOEBENDE_YDELSER, label: 'Løbende ydelser' },
+          { key: TAB_KEYS.KAPITALISERING, label: 'Kapitalisering' },
+          { key: TAB_KEYS.EET_EAL, label: 'EET efter EAL' },
+          { key: TAB_KEYS.DIFFERENCEKRAV, label: 'Differencekrav' },
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+        minTabWidth={130}
+      />
 
       {/* Tab-indhold */}
       {activeTab === TAB_KEYS.EET_OPLYSNINGER && (

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Tabs, Tab, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import PageTabs from '../layout/PageTabs';
+import SideTab from '../layout/SideTab';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { useMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
@@ -195,14 +197,6 @@ const Erstatningsopgoerelse = React.memo(() => {
     [setFormValues]
   );
 
-  const handleTabChange = React.useCallback(
-    (_event: React.SyntheticEvent, value: unknown) => {
-      if (!isAllowedTab(value)) return;
-      setActiveTab(value);
-    },
-    [isAllowedTab, setActiveTab]
-  );
-
   const handleNavigateToTabtArbejdsfortjeneste = React.useCallback(() => {
     setActiveTab(TAB_KEYS.EO_OPLYSNINGER);
     scrollToSectionWithRetry('taf');
@@ -228,101 +222,34 @@ const Erstatningsopgoerelse = React.memo(() => {
       <Typography className="page-title">Erstatningsopgørelse</Typography>
 
       {/* Fane-navigation */}
-      <Box
-        sx={{
-          position: 'relative',
-          width: '1200px',
-          height: 0,
-          mb: '40px',
-        }}
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '-48px',
-            right: '20px',
-            zIndex: 10,
-          }}
-        >
-          <Tabs
-            value={mainTabValue}
-            onChange={handleTabChange}
-            textColor="primary"
-            indicatorColor="primary"
-            sx={{
-              minHeight: 48,
-              '& .MuiTab-root': {
-                minWidth: 140,
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--color-primary)',
-                height: '2px',
-              },
-            }}
-          >
-            <Tab className="tab-item" label="EO oplysninger" value={TAB_KEYS.EO_OPLYSNINGER} />
-            <Tab className="tab-item" label="Lønindkomst" value={TAB_KEYS.LOENINDKOMST} />
-            <Tab className="tab-item" label="Offentlige ydelser" value={TAB_KEYS.OFFENTLIGE_YDELSER} />
-            <Tab className="tab-item" label="Beregning" value={TAB_KEYS.BEREGNING} />
-          </Tabs>
-        </Box>
-      </Box>
+      <PageTabs
+        items={[
+          { key: TAB_KEYS.EO_OPLYSNINGER, label: 'EO oplysninger' },
+          { key: TAB_KEYS.LOENINDKOMST, label: 'Lønindkomst' },
+          { key: TAB_KEYS.OFFENTLIGE_YDELSER, label: 'Offentlige ydelser' },
+          { key: TAB_KEYS.BEREGNING, label: 'Beregning' },
+        ]}
+        value={mainTabValue}
+        onChange={setActiveTab}
+      />
 
       {/* Fane-indhold med kontrolfaner i højre side */}
       <Box sx={{ position: 'relative' }}>
         {/* Kontrolfaner (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
         {showInspektionTab && (
           <>
-            <Box
+            <SideTab
+              label="EO-kontrol"
+              active={activeTab === TAB_KEYS.INSPEKTION}
               onClick={() => setActiveTab(TAB_KEYS.INSPEKTION)}
-              className={activeTab === TAB_KEYS.INSPEKTION ? 'tab-item side-tab active' : 'tab-item side-tab'}
-              sx={{
-                position: 'absolute',
-                left: '1200px',
-                top: '-25px',
-                transform: 'rotate(90deg)',
-                transformOrigin: 'left bottom',
-                zIndex: 10,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 140,
-                minHeight: 48,
-                padding: '12px 16px',
-                fontSize: '0.875rem',
-                fontFamily: 'Montserrat, sans-serif',
-                lineHeight: 1.25,
-                letterSpacing: '0.02857em',
-              }}
-            >
-              EO-kontrol
-            </Box>
-            <Box
+              top="-25px"
+            />
+            <SideTab
+              label="Kontroltabel"
+              active={activeTab === TAB_KEYS.KONTROLTABEL}
               onClick={() => setActiveTab(TAB_KEYS.KONTROLTABEL)}
-              className={activeTab === TAB_KEYS.KONTROLTABEL ? 'tab-item side-tab active' : 'tab-item side-tab'}
-              sx={{
-                position: 'absolute',
-                left: '1200px',
-                top: '125px',
-                transform: 'rotate(90deg)',
-                transformOrigin: 'left bottom',
-                zIndex: 10,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 140,
-                minHeight: 48,
-                padding: '12px 16px',
-                fontSize: '0.875rem',
-                fontFamily: 'Montserrat, sans-serif',
-                lineHeight: 1.25,
-                letterSpacing: '0.02857em',
-              }}
-            >
-              Kontroltabel
-            </Box>
+              top="125px"
+            />
           </>
         )}
 

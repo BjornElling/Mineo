@@ -12,6 +12,7 @@ import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
 import ContentBox from '../layout/ContentBox';
+import SideTab from '../layout/SideTab';
 const StamdataTestTab = React.lazy(async () => import('./StamdataTestTab'));
 
 // Afled dropdown-valgmulighederne fra schemaets enum, så UI og validering aldrig kan komme ud af sync.
@@ -69,31 +70,12 @@ const Stamdata = React.memo(() => {
       <Box sx={{ position: 'relative' }}>
         {/* Test-tab (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
         {showTestTab && (
-          <Box
+          <SideTab
+            label="Test"
+            active={activeTab === 'test'}
             onClick={() => setActiveTab('test')}
-            className={activeTab === 'test' ? 'tab-item side-tab active' : 'tab-item side-tab'}
-            sx={{
-              position: 'absolute',
-              left: '1200px',
-              top: '-25px',
-              transform: 'rotate(90deg)',
-              transformOrigin: 'left bottom',
-              zIndex: 10,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: 140,
-              minHeight: 48,
-              padding: '12px 16px',
-              fontSize: '0.875rem',
-              fontFamily: 'Montserrat, sans-serif',
-              lineHeight: 1.25,
-              letterSpacing: '0.02857em',
-            }}
-          >
-            Test
-          </Box>
+            top="-25px"
+          />
         )}
 
         {/* Stamdata-indhold */}

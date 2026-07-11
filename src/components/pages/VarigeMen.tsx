@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Tabs, Tab, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import PageTabs from '../layout/PageTabs';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
@@ -16,7 +17,7 @@ const TAB_KEYS = {
 type TabKey = (typeof TAB_KEYS)[keyof typeof TAB_KEYS];
 
 const VarigeMen = React.memo(() => {
-  const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
+  const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'varigemen',
     allowedTabs: [TAB_KEYS.MENBEREGNING, TAB_KEYS.SATSER],
     defaultTab: TAB_KEYS.MENBEREGNING,
@@ -43,55 +44,18 @@ const VarigeMen = React.memo(() => {
     ]
   );
 
-  const handleTabChange = React.useCallback(
-    (_: React.SyntheticEvent, value: unknown) => {
-      if (!isAllowedTab(value)) return;
-      setActiveTab(value);
-    },
-    [isAllowedTab, setActiveTab]
-  );
-
   return (
     <Box>
       <Typography className="page-title">Varige mén</Typography>
 
-      <Box
-        sx={{
-          position: 'relative',
-          width: '1200px',
-          height: 0,
-          mb: '40px',
-        }}
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '-48px',
-            right: '20px',
-            zIndex: 10,
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            textColor="primary"
-            indicatorColor="primary"
-            sx={{
-              minHeight: 48,
-              '& .MuiTab-root': {
-                minWidth: 140,
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--color-primary)',
-                height: '2px',
-              },
-            }}
-          >
-            <Tab className="tab-item" label="Ménberegning" value={TAB_KEYS.MENBEREGNING} />
-            <Tab className="tab-item" label="Satser" value={TAB_KEYS.SATSER} />
-          </Tabs>
-        </Box>
-      </Box>
+      <PageTabs
+        items={[
+          { key: TAB_KEYS.MENBEREGNING, label: 'Ménberegning' },
+          { key: TAB_KEYS.SATSER, label: 'Satser' },
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+      />
 
       {activeTab === TAB_KEYS.SATSER ? (
         <SatserTab />

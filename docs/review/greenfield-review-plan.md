@@ -135,7 +135,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 12 | 33 | ✅ Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
 | 13 | 13 | ✅ `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
 | 14 | 9 | ✅ `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
-| 15 | 8 | `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
+| 15 | 8 | ✅ `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 
 ### Fase 2 — Spine-keystones (karakteriseringsnet + godkendelse FØRST)
 
@@ -271,6 +271,17 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 8 — Delt fane-scaffolding + `SideTab`-komponent · 11
 
+- **Status: ✅ Gennemført (2026-07-11).** To delte præsentationskomponenter i
+  `components/layout/`: `PageTabs` (indkapsler den absolut-positionerede `<Tabs>`-header med
+  fælles placering/`sx` + fane-guard; `minTabWidth` default 140, Erhvervsevnetab bruger 130;
+  `value` accepterer `false` så EO's kontrolfaner kan markere ingen hoved-fane) og `SideTab`
+  (den roterede 90° højrekant-blok med `top`-prop). Alle fire fane-sider
+  (`Erstatningsopgoerelse`, `Erhvervsevnetab`, `VarigeMen`, `Renteberegning`) samt begge
+  side-fane-callsites (`Erstatningsopgoerelse` ×2, `Stamdata`) er ruttet gennem dem; de
+  per-side `handleTabChange`/`isAllowedTab`-wrappere til `<Tabs onChange>` er slettet (guarden
+  bor nu i `PageTabs`; sidernes `usePersistedActiveTab.setActiveTab` guarder allerede selv).
+  Byte-identisk styling bevaret (ren relokation, ingen synlig UX-ændring). Ny værn-test
+  `PageTabs.test.tsx` (7 tests); typecheck (kilde+test), lint og page-/quality-suiterne grønne.
 - **Scope:** Identisk `<Tabs>`-scaffold i `Erstatningsopgoerelse.tsx`, `Erhvervsevnetab.tsx`, `VarigeMen.tsx`, `Renteberegning.tsx`; roteret 90° `side-tab`-blok dupleret i `Erstatningsopgoerelse.tsx` (×2) og `Stamdata.tsx`.
 - **Problem:** Hver fane-side re-implementerer samme absolut-positionerede `<Tabs>`-header med samme `sx` + `handleTabChange`/`isAllowedTab`-guard. Kontrakt §10.2 kræver eksplicit fælles abstraktionspunkt hvis stylingen skal være identisk — den er identisk ved copy-paste.
 - **Greenfield:** Delt `<PageTabs items={[{key,label}]} activeTab onChange/>` (indkapsler positionering + sx + guard) og `<SideTab label active onClick/>`. Centraliserer også `usePersistedActiveTab`-wiringen.

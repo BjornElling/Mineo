@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Tab, Tabs, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import PageTabs from '../layout/PageTabs';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
@@ -34,7 +35,7 @@ const Renteberegning = React.memo(() => {
   const { settings } = useAppSettings();
   const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
-  const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
+  const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'renteberegning',
     allowedTabs: [TAB_KEYS.RATES, TAB_KEYS.CALCULATION],
     defaultTab: TAB_KEYS.CALCULATION,
@@ -61,14 +62,6 @@ const Renteberegning = React.memo(() => {
       setFieldValue('beregningsdato', event.target.value);
     },
     [setFieldValue]
-  );
-
-  const handleTabChange = React.useCallback(
-    (_: React.SyntheticEvent, value: unknown) => {
-      if (!isAllowedTab(value)) return;
-      setActiveTab(value);
-    },
-    [isAllowedTab, setActiveTab]
   );
 
   const handleKommentarerChange = React.useCallback<CommitHandler<string>>(
@@ -126,43 +119,14 @@ const Renteberegning = React.memo(() => {
     <Box>
       <Typography className="page-title">Renteberegning</Typography>
 
-      <Box
-        sx={{
-          position: 'relative',
-          width: '1200px',
-          height: 0,
-          mb: '40px',
-        }}
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '-48px',
-            right: '20px',
-            zIndex: 10,
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            textColor="primary"
-            indicatorColor="primary"
-            sx={{
-              minHeight: 48,
-              '& .MuiTab-root': {
-                minWidth: 140,
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--color-primary)',
-                height: '2px',
-              },
-            }}
-          >
-            <Tab className="tab-item" label="Beregning" value={TAB_KEYS.CALCULATION} />
-            <Tab className="tab-item" label="Rentesatser" value={TAB_KEYS.RATES} />
-          </Tabs>
-        </Box>
-      </Box>
+      <PageTabs
+        items={[
+          { key: TAB_KEYS.CALCULATION, label: 'Beregning' },
+          { key: TAB_KEYS.RATES, label: 'Rentesatser' },
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+      />
 
       {activeTab === TAB_KEYS.RATES ? (
         <RentesatserTab />
