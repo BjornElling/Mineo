@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { Alert, AlertTitle, Box, Tooltip, Typography } from '@mui/material';
-import { Check, Download, ErrorOutlined as ErrorOutline } from '@mui/icons-material';
-import { DOWNLOAD_DISABLED_TOOLTIP } from '../../../document/documentFormat';
+import { Alert, AlertTitle, Box, Typography } from '@mui/material';
+import { Check, ErrorOutlined as ErrorOutline } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import ContentBox from '../../layout/ContentBox';
 import { getSammentaellingControlStatus, type SammentaellingControl, type SammentaellingDisplayRow } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
 import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/eoInspektion/csvUtils';
@@ -270,31 +270,11 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download tabel (CSV-format)</Typography>
               <Box className="row--label-right-hover__content" sx={{ mr: '90px' }}>
-                <Tooltip title={canDownloadKontrolTabel ? '' : DOWNLOAD_DISABLED_TOOLTIP}>
-                  <Box
-                    onClick={canDownloadKontrolTabel ? handleDownloadKontrolTabel : undefined}
-                    tabIndex={-1}
-                    sx={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: canDownloadKontrolTabel ? 'pointer' : 'default',
-                      transition: 'background-color 0.2s',
-                      '&:hover': canDownloadKontrolTabel ? { backgroundColor: 'var(--color-icon-action-hover)' } : undefined,
-                      '&:active': canDownloadKontrolTabel ? { backgroundColor: 'var(--color-icon-action-active)' } : undefined,
-                    }}
-                  >
-                    <Download
-                      sx={{
-                        fontSize: '24px',
-                        color: canDownloadKontrolTabel ? 'primary.main' : 'text.disabled',
-                      }}
-                    />
-                  </Box>
-                </Tooltip>
+                <DocumentDownloadButton
+                  onClick={handleDownloadKontrolTabel}
+                  disabled={!canDownloadKontrolTabel}
+                  label="Download tabel (CSV-format)"
+                />
               </Box>
             </Box>
           </>

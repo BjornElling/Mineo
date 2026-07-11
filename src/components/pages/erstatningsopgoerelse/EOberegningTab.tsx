@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Typography, Checkbox, FormControlLabel, Tooltip, MenuItem } from '@mui/material';
-import { Download, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
+import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import StyledDropdown from '../../inputs/StyledDropdown';
 import { type EoBilagDynamicSelectionKey } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
@@ -13,80 +14,6 @@ import {
 } from './eoBeregning/useEoBeregningViewModel';
 
 const EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP = 'Opgørelse kan ikke hentes, når der er fejl ovenfor';
-
-type SnapshotDownloadButtonProps = Readonly<{
-  /** Om download er muligt for den aktuelle sag. */
-  canDownload: boolean;
-  /** Handler ved klik (kun aktiv når `canDownload`). */
-  onClick: () => void;
-  /** Brugervendt årsag til at download er spærret (vist som tooltip), eller null hvis ingen specifik årsag. */
-  reason: string | null;
-  /** Fallback-tooltip når `reason` er null. */
-  fallbackTitle: string;
-}>;
-
-/**
- * Side-lokal download-ikonknap til snapshot-baserede dokumenter på beregningsfanen. Samler den tidligere
- * fire gange duplikerede ~95-linjers markup ét sted, så aktiv/spærret-tilstand, hover/active-styling og
- * tooltip er identiske på tværs af de fire knapper (opgørelse + tre alternative beregninger).
- */
-const SnapshotDownloadButton = ({ canDownload, onClick, reason, fallbackTitle }: SnapshotDownloadButtonProps) => {
-  if (canDownload) {
-    return (
-      <Box
-        onClick={onClick}
-        tabIndex={-1}
-        sx={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s',
-          '&:hover': {
-            backgroundColor: 'var(--color-icon-action-hover)',
-          },
-          '&:active': {
-            backgroundColor: 'var(--color-icon-action-active)',
-          },
-        }}
-      >
-        <Download
-          sx={{
-            fontSize: '24px',
-            color: 'primary.main',
-          }}
-        />
-      </Box>
-    );
-  }
-
-  return (
-    <Tooltip title={reason ?? fallbackTitle} arrow placement="top">
-      <Box
-        tabIndex={-1}
-        sx={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'default',
-        }}
-      >
-        <Download
-          sx={{
-            fontSize: '24px',
-            color: 'text.disabled',
-          }}
-        />
-      </Box>
-    </Tooltip>
-  );
-};
 
 const FEJL_ADVARSLER_ROW_SX = {
   display: 'grid',
@@ -441,11 +368,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Hent opgørelse</Typography>
           <Box className="row--label-right-hover__content">
-            <SnapshotDownloadButton
-              canDownload={canDownloadSnapshotEoPdf}
+            <DocumentDownloadButton
+              disabled={!canDownloadSnapshotEoPdf}
               onClick={handleDownloadPdf}
-              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : eoPdfDisabledReason}
-              fallbackTitle="Opgørelsen kan ikke hentes for den aktuelle sag."
+              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : eoPdfDisabledReason) ?? 'Opgørelsen kan ikke hentes for den aktuelle sag.'}
             />
           </Box>
         </Box>
@@ -528,11 +454,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <InfoTooltipIcon title={'Til brug for skattemyndighedernes\nfordeling på relevante skatteår'} />
           </Typography>
           <Box className="row--label-right-hover__content">
-            <SnapshotDownloadButton
-              canDownload={canDownloadSnapshotTafPdf}
+            <DocumentDownloadButton
+              disabled={!canDownloadSnapshotTafPdf}
               onClick={handleDownloadTafFordeltPdf}
-              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafPdfDisabledReason}
-              fallbackTitle="TAF fordelt på år kan ikke genereres for den aktuelle sag."
+              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafPdfDisabledReason) ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag.'}
             />
           </Box>
         </Box>
@@ -543,11 +468,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <InfoTooltipIcon title={'Svarende til beregning ved\noffererstatning og patientskade'} />
           </Typography>
           <Box className="row--label-right-hover__content">
-            <SnapshotDownloadButton
-              canDownload={canDownloadSnapshotTafOpreguleretPdf}
+            <DocumentDownloadButton
+              disabled={!canDownloadSnapshotTafOpreguleretPdf}
               onClick={handleDownloadTafOpreguleretPdf}
-              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafOpreguleretPdfDisabledReason}
-              fallbackTitle="TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag."
+              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafOpreguleretPdfDisabledReason) ?? 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag.'}
             />
           </Box>
         </Box>
@@ -557,11 +481,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             Visuel graf over indtægtsniveau
           </Typography>
           <Box className="row--label-right-hover__content">
-            <SnapshotDownloadButton
-              canDownload={canDownloadSnapshotTafKravGrafPdf}
+            <DocumentDownloadButton
+              disabled={!canDownloadSnapshotTafKravGrafPdf}
               onClick={handleDownloadTafKravGrafPdf}
-              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafKravGrafPdfDisabledReason}
-              fallbackTitle="Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag."
+              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafKravGrafPdfDisabledReason) ?? 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.'}
             />
           </Box>
         </Box>

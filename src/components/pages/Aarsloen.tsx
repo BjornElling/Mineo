@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, MenuItem } from '@mui/material';
-import { Download } from '@mui/icons-material';
+import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
 import StyledPercentField from '../inputs/StyledPercentField';
 import StyledRadioButton from '../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
@@ -144,50 +144,6 @@ const Aarsloen = React.memo(() => {
     settings,
   });
 
-  const renderPdfDownloadIcon = React.useCallback((params: Readonly<{
-    onClick: () => void | Promise<void>;
-    shake?: boolean;
-  }>) => {
-    const { onClick, shake = false } = params;
-    return (
-      <Box
-        onClick={() => {
-          void onClick();
-        }}
-        tabIndex={-1}
-        sx={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s',
-          animation: shake ? 'shake 0.5s' : 'none',
-          '&:hover': {
-            backgroundColor: 'var(--color-icon-action-hover)',
-          },
-          '&:active': {
-            backgroundColor: 'var(--color-icon-action-active)',
-          },
-          '@keyframes shake': {
-            '0%, 100%': { transform: 'translateX(0)' },
-            '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
-            '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
-          },
-        }}
-      >
-        <Download
-          sx={{
-            fontSize: '24px',
-            color: 'primary.main',
-          }}
-        />
-      </Box>
-    );
-  }, []);
-
   // ============================================================================
   // FIELD HANDLERS
   // ============================================================================
@@ -300,10 +256,7 @@ const Aarsloen = React.memo(() => {
   );
 
   const aarsloenPdfDownloadButton = canDownloadDocument ? (
-    renderPdfDownloadIcon({
-      onClick: handleAarsloenDocumentDownload,
-      shake: downloadShake,
-    })
+    <DocumentDownloadButton onClick={() => void handleAarsloenDocumentDownload()} shake={downloadShake} />
   ) : null;
 
   return (
@@ -578,9 +531,7 @@ const Aarsloen = React.memo(() => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">{shDageAntal ?? 0}</Typography>
                   {canDownloadSHDageDocument && (
-                    renderPdfDownloadIcon({
-                      onClick: handleSHDageDocumentDownload,
-                    })
+                    <DocumentDownloadButton onClick={() => void handleSHDageDocumentDownload()} />
                   )}
                 </Box>
               </Box>

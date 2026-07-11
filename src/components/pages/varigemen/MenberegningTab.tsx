@@ -4,7 +4,7 @@ import {
   Typography,
   Tooltip,
 } from '@mui/material';
-import { Download } from '@mui/icons-material';
+import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledPercentField from '../../inputs/StyledPercentField';
@@ -442,43 +442,11 @@ const beregningsResultat = React.useMemo(() => {
               <Typography className="row--text">
                 {formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)} kr.
               </Typography>
-              <Box
-                data-testid="varigemen-download"
-                onClick={() => {
-                  void handlePdfDownload();
-                }}
-                tabIndex={-1}
-                sx={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  animation: downloadShake ? 'shake 0.5s' : 'none',
-                  '&:hover': {
-                    backgroundColor: 'var(--color-icon-action-hover)',
-                  },
-                  '&:active': {
-                    backgroundColor: 'var(--color-icon-action-active)',
-                  },
-                  '@keyframes shake': {
-                    '0%, 100%': { transform: 'translateX(0)' },
-                    '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
-                    '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
-                  },
-                }}
-              >
-                <Download
-                  data-testid="DownloadIcon"
-                  sx={{
-                    fontSize: '24px',
-                    color: 'primary.main',
-                  }}
-                />
-              </Box>
+              <DocumentDownloadButton
+                onClick={() => void handlePdfDownload()}
+                shake={downloadShake}
+                dataTestId="varigemen-download"
+              />
             </Box>
           ) : null}
         </Box>

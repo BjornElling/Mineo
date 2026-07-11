@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Download } from '@mui/icons-material';
+import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
 import StyledYearField from '../inputs/StyledYearField';
 import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestemteRates';
 import { downloadSatserDokument } from '../../document/service/documentService';
@@ -231,33 +231,7 @@ const Satser = React.memo(() => {
           <Typography className="row--text">Download specifikation:</Typography>
           <Box className="row--label-right-hover__content">
             {canDownload && (
-            <Box
-              onClick={handleDownloadPdf}
-              tabIndex={-1}
-              sx={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                '&:hover': {
-                  backgroundColor: 'var(--color-icon-action-hover)',
-                },
-                '&:active': {
-                  backgroundColor: 'var(--color-icon-action-active)',
-                },
-              }}
-            >
-              <Download
-                sx={{
-                  fontSize: '24px',
-                  color: 'primary.main',
-                }}
-              />
-            </Box>
+              <DocumentDownloadButton onClick={() => void handleDownloadPdf()} />
             )}
           </Box>
         </Box>

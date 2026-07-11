@@ -164,8 +164,8 @@ describe('EOberegningTab PDF-afslutning', () => {
       </MemoryRouter>
     );
 
-    const hentOpgoerelseDownloadBox = screen.getAllByTestId('DownloadIcon')[0]?.closest('div');
-    expect(hentOpgoerelseDownloadBox).toHaveAttribute(
+    const hentOpgoerelseDownloadButton = screen.getAllByTestId('DownloadIcon')[0]?.closest('button');
+    expect(hentOpgoerelseDownloadButton).toHaveAttribute(
       'aria-label',
       'Opgørelse kan ikke hentes, når der er fejl ovenfor'
     );

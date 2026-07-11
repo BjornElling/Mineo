@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
-import { Download } from '@mui/icons-material';
+import { Box, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import DownloadIconButton from '../inputs/DownloadIconButton';
 import type { RateEntry } from '../../data/interestRates';
 import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateInput from '../inputs/table/TableDateInput';
@@ -216,23 +216,11 @@ const BeregnetRenteRow = React.memo(
           <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showDownloadButton ? (
-                <Tooltip title={`Download som ${formatLabel}`}>
-                  <IconButton
-                    onClick={() => onDownloadSpecifikation(pdfContext)}
-                    aria-label={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
-                    size="small"
-                    sx={(theme) => ({
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '6px',
-                      '&:hover': {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    })}
-                  >
-                    <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
-                  </IconButton>
-                </Tooltip>
+                <DownloadIconButton
+                  onClick={() => { void onDownloadSpecifikation(pdfContext); }}
+                  tooltip={`Download som ${formatLabel}`}
+                  ariaLabel={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
+                />
               ) : (
                 <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)' }}>
                   -

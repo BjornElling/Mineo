@@ -1,6 +1,6 @@
 import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
-import Download from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
+import DocumentDownloadButton from '../../../../inputs/DocumentDownloadButton';
 import ContentBox from '../../../../layout/ContentBox';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
 import StyledToggleSwitch from '../../../../inputs/StyledToggleSwitch';
@@ -661,9 +661,9 @@ export default function IndtaegtFoerSkadenSection() {
                                 {reguleringsDatoIntervalDisplay || '-'}
                               </Typography>
                               <Box>
-                                <Box
+                                <DocumentDownloadButton
+                                  disabled={!canDownload}
                                   onClick={() => {
-                                    if (!canDownload) return;
                                     if (!reguleringsDatoIntervalData) return;
                                     if (loenudviklingBasis === 'KRL satstabel') {
                                       void handleDownloadKRLPdf();
@@ -694,33 +694,7 @@ export default function IndtaegtFoerSkadenSection() {
                                       offentligLoenEkstraGrundloen: amountValueToNumber(eoLoenudvikling.offentligLoenEkstraGrundloen),
                                     });
                                   }}
-                                  tabIndex={-1}
-                                  sx={{
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '6px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: canDownload ? 'pointer' : 'default',
-                                    transition: 'background-color 0.2s',
-                                    ...(canDownload && {
-                                      '&:hover': {
-                                        backgroundColor: 'var(--color-icon-action-hover)',
-                                      },
-                                      '&:active': {
-                                        backgroundColor: 'var(--color-icon-action-active)',
-                                      },
-                                    }),
-                                  }}
-                                >
-                                  <Download
-                                    sx={{
-                                      fontSize: '24px',
-                                      color: canDownload ? 'primary.main' : 'grey.500',
-                                    }}
-                                  />
-                                </Box>
+                                />
                               </Box>
                             </>
                           );

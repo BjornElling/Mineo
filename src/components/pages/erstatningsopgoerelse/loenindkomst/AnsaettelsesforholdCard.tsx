@@ -3,8 +3,8 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import DeleteIcon from '@mui/icons-material/Delete';
-import Download from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
+import DocumentDownloadButton from '../../../inputs/DocumentDownloadButton';
 import StyledTextField from '../../../inputs/StyledTextField';
 import StyledDateField from '../../../inputs/StyledDateField';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
@@ -908,9 +908,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                       {reguleringsDatoInterval}
                     </Typography>
                     <Box>
-                      <Box
+                      <DocumentDownloadButton
+                        disabled={!canDownload}
                         onClick={() => {
-                          if (!canDownload) return;
                           if (!reguleringsDatoIntervalData) return;
                           if (loenudviklingBasis === 'KRL satstabel') {
                             void handleDownloadKRLPdf();
@@ -939,33 +939,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                             offentligLoenEkstraGrundloen: amountValueToNumber(af.offentligLoenEkstraGrundloen),
                           });
                         }}
-                        tabIndex={-1}
-                        sx={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: canDownload ? 'pointer' : 'default',
-                          transition: 'background-color 0.2s',
-                          ...(canDownload && {
-                            '&:hover': {
-                              backgroundColor: 'var(--color-icon-action-hover)',
-                            },
-                            '&:active': {
-                              backgroundColor: 'var(--color-icon-action-active)',
-                            },
-                          }),
-                        }}
-                      >
-                        <Download
-                          sx={{
-                            fontSize: '24px',
-                            color: canDownload ? 'primary.main' : 'grey.500',
-                          }}
-                        />
-                      </Box>
+                      />
                     </Box>
                   </>
                 );

@@ -134,7 +134,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 11 | 19 | ✅ Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
 | 12 | 33 | ✅ Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
 | 13 | 13 | ✅ `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
-| 14 | 9 | `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
+| 14 | 9 | ✅ `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 | 15 | 8 | `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 
 ### Fase 2 — Spine-keystones (karakteriseringsnet + godkendelse FØRST)
@@ -278,6 +278,22 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Ingen; præsentationel.
 
 ### 9 — `DocumentDownloadButton`-konsolidering · 11
+
+- **Status: ✅ Gennemført (2026-07-11).** Alle ~14 hånd-rullede download-ikoner på tværs af 10
+  filer er ruttet gennem én affordance. Den nye præsentationskerne `inputs/DownloadIconButton.tsx`
+  ejer den fokusérbare 32×32 `IconButton` med delt hover/active-styling, shake-feedback og
+  tooltip=aria-label; `DocumentDownloadButton` er nu en tynd, `useAppSettings`-bevidst wrapper
+  (nye props: `label` til CSV-/ikke-dokumentformat-overstyring og `dataTestId`). De format-injicerede
+  kald i den standalone MinProcesrente-app (`BeregnetRenteTable`, uden `AppSettingsProvider`) bruger
+  kernen direkte med formatet fra prop — så konsolideringen dækker også dem uden at bryde standalone.
+  Efter aftale (2026-07-11) er de tidligere adfærdsforskelle behandlet som utilsigtede og ensrettet:
+  alle knapper er nu tastatur-fokusérbare (var `tabIndex={-1}` på 7 sider) og har den kontrakt-krævede
+  format-bevidste tooltip/aria-label (§11.1); `renderPdfDownloadIcon` (Aarsloen) og den side-lokale
+  `SnapshotDownloadButton` (EOberegningTab ×4) er slettet. Bevidst bevarede specifikke aria-labels:
+  `BeregnetRenteTable` (pr. række) og RenteberegningTab-oversigten ("Download samlet oversigt"),
+  så de skelnes fra per-række-downloads. Ny værn-test `DocumentDownloadButton.test.tsx` (8 tests);
+  fuld suite grøn (516 filer / 6139 tests), typecheck + lint grønne. Kontrakt §11.2 mandaterede
+  allerede genbrug af fælles download-knapper — ingen kontraktændring nødvendig.
 
 - **Scope:** Kanonisk `inputs/DocumentDownloadButton.tsx` (51); inline hånd-rullet 32×32-download-`Box` med egne shake-keyframes dupleret i 10 filer (`Aarsloen`, `Satser`, `MenberegningTab`, `EOberegningTab`, `EOKontrolTabel`, `IndtaegtFoerSkadenSection`, `RenteberegningTab`, `AnsaettelsesforholdCard`, `BeregnetRenteTable`, m.fl.).
 - **Problem:** To parallelle implementeringer af samme affordance. De inline-versioner mangler den format-bevidste tooltip/aria-label ("Download som PDF/Word") som kontrakt §11.1 kræver → også en a11y/kontrakt-mangel, ikke kun duplikering.
