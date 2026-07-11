@@ -37,6 +37,13 @@ export type StyledPercentFieldProps = {
   /**
    * Når sand er intervallet en commit-grænse: værdier udenfor bliver en
    * blokerende invalid draft. Ellers er intervallet kun en visuel fejl.
+   *
+   * Default er `true`, så et tal uden for intervallet afvises straks i feltet og aldrig
+   * når ind i beregningen — ensartet med heltals-, beløbs- og tabelcelle-felterne. Alle
+   * nuværende procentfelter har et UI-interval der er identisk med schema-grænsen
+   * (percentageDecimal 0–100, méngrad 0–120), så den strenge grænse kan aldrig afvise en
+   * schema-gyldig værdi. Sæt eksplicit `false`, hvis et felt bevidst skal bruge et UI-interval
+   * der er snævrere end schema (kun visuel, ikke-blokerende advarsel via `getVisualError`).
    */
   enforceRange?: boolean;
   /**
@@ -92,7 +99,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       allowDecimals = true,
       minValue,
       maxValue,
-      enforceRange = false,
+      enforceRange = true,
       useDefaultPercentRange = false,
       maxIntegerDigits: maxIntegerDigitsProp,
       onDraftChange,

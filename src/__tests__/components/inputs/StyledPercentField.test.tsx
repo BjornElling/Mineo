@@ -84,7 +84,7 @@ describe('StyledPercentField', () => {
     );
   });
 
-  it('committer en værdi uden for intervallet og rapporterer en ikke-blokerende fejl', async () => {
+  it('committer en værdi uden for intervallet og rapporterer en ikke-blokerende fejl når enforceRange=false', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
     const onFieldError = vi.fn();
@@ -96,6 +96,7 @@ describe('StyledPercentField', () => {
           value={value}
           minValue={0}
           maxValue={200}
+          enforceRange={false}
           onCommit={(event) => {
             onCommit(event);
             setValue(event.target.value);
@@ -150,10 +151,10 @@ describe('StyledPercentField', () => {
     expect(screen.getByText('Procent skal være mellem 0 og 120')).toBeInTheDocument();
   });
 
-  it('genudleder og rydder range-fejlen fra committed værdi og ændrede bounds', () => {
+  it('genudleder og rydder range-fejlen fra committed værdi og ændrede bounds når enforceRange=false', () => {
     const onFieldError = vi.fn();
     const { rerender } = render(
-      <StyledPercentField value={150} minValue={0} maxValue={100} onFieldError={onFieldError} />
+      <StyledPercentField value={150} minValue={0} maxValue={100} enforceRange={false} onFieldError={onFieldError} />
     );
 
     expect(screen.getByText('Procent skal være mellem 0,00 og 100,00')).toBeInTheDocument();
@@ -162,7 +163,7 @@ describe('StyledPercentField', () => {
       blocksSave: false,
     });
 
-    rerender(<StyledPercentField value={150} minValue={0} maxValue={200} onFieldError={onFieldError} />);
+    rerender(<StyledPercentField value={150} minValue={0} maxValue={200} enforceRange={false} onFieldError={onFieldError} />);
 
     expect(screen.queryByText('Procent skal være mellem 0,00 og 100,00')).toBeNull();
     expect(onFieldError).toHaveBeenLastCalledWith(undefined);
@@ -182,7 +183,7 @@ describe('StyledPercentField', () => {
     expect(input).toHaveValue('7,25');
   });
 
-  it('begrænser pasted tekst til feltets grammatiske cifferloft uden range-hard-block', async () => {
+  it('begrænser pasted tekst til feltets grammatiske cifferloft og afviser værdi uden for intervallet (default enforceRange)', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
 
@@ -194,9 +195,28 @@ describe('StyledPercentField', () => {
     await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
-    expect(onCommit).toHaveBeenLastCalledWith(
-      expect.objectContaining({ target: { value: 171 } })
-    );
+    // Pasten grammatik-begrænses til cifferloftet (171), men 171 > 100 afvises straks i feltet:
+    // værdien committes ikke og når derfor aldrig ind i beregningen (default enforceRange=true).
     expect(input).toHaveValue('171');
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(screen.getByText('Procent skal være mellem 0,00 og 100,00')).toBeInTheDocument();
+  });
+
+  it('afviser som default et typet tal uden for intervallet uden at committe', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+
+    // Ingen enforceRange-prop → default true: værdien afvises i feltet frem for at committe.
+    render(<StyledPercentField value={undefined} minValue={0} maxValue={100} onCommit={onCommit} />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+    await user.click(input);
+    await user.type(input, '150');
+    await user.tab();
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(input).toHaveValue('150');
+    expect(screen.getByText('Procent skal være mellem 0,00 og 100,00')).toBeInTheDocument();
   });
 });
