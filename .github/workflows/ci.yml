@@ -48,6 +48,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # wrangler-action installerer wrangler i det udcheckede repo, hvor
+      # package.json's engines kræver Node >=24.18.0. Uden dette trin bruger
+      # runneren sin default-Node (v22) og npm afviser med EBADENGINE.
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
       - name: Download verified build artifacts
         uses: actions/download-artifact@v4
         with:
