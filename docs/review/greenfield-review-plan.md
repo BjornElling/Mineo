@@ -156,7 +156,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 |:---:|:---:|---|:---:|:---:|:---:|---|
 | 16 | 23 | ✅ Regulering → kanonisk forløb | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #17 |
 | 17 | 24 | ✅ Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11, #38 |
-| 18 | 25 | Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
+| 18 | 25 | ✅ Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
 | 19 | 42 | Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
 | 20 | 40 | Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
 | 21 | 41 | Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
@@ -535,6 +535,24 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 25 — Keystone: Samlet felt-state-kerne · 9
 
+- **Status: ✅ Gennemført (2026-07-11).** Efter forelæggelse valgte brugeren en **ren, surface-agnostisk
+  invariant-kerne** frem for planens bogstavelige "én mega-hook, to adaptere" (som blot ville flytte den
+  parallelle adfærd ind i konfigurationsflag). De seks spejlede trust-kritiske stykker er nu samlet i
+  `src/hooks/fieldState/`, som BEGGE hooks forbruger: (1) `fieldResyncMachine.ts` — én ren, React-uafhængig
+  beslutningsfunktion for pendingCommit-guard + autoritativ-epoch-resync + aktiv-redigering-guard (events
+  ind → deklarativt `FieldResyncCommand` ud; de to hooks udfører `setDraft`/ryd-pending/epoch-ref/touched-
+  side-effekter); (2) `useInvalidDraftSlot.ts` — den bundne-kanal-vs-lokal-fallback-forgrening; (3)
+  `shouldDeriveInvalidDraftError.ts` — den delte "vis kun fejl når draften VISER råstrengen"-gate; (4)
+  `elementHasPhysicalFocus.ts` — det fysiske-fokus-værn. Restore-suppression var allerede delt
+  (`isRestoreFocusInProgress`). `useDraftField` og `useTableInputCore` forbliver bevidst to adskilte, tynde
+  surface-ejere (DOM/editor/keyboard/paste/lifecycle) med deres egne adapter-kontrakter (`DraftParse` vs
+  `TableInputAdapter` — genuint forskellige surfaces, IKKE forenet). **Klassificeret divergens:** karakteriserings-
+  nettet afslørede ét reelt adfærdspunkt hvor de to afveg (epoch-bump midt i et pending-hold: form udskyder,
+  grid resyncer straks). Efter brugerens reservation blev det IKKE stiltiende ophøjet til "golden"; det er
+  bevaret verbatim (bucket 3: uafklaret) og eksponeret som en eksplicit, navngiven policy
+  (`pendingHoldOutranksEpoch`), dokumenteret som kandidat til senere bevidst konvergens. Net: nye
+  `fieldResyncMachine.test.ts` (adfærdsmatrix, 8) + `useInvalidDraftSlot.test.ts` (2); det eksisterende
+  felt/grid/undo-net (56 filer / 471 tests) beviser identitet på begge surfaces; typecheck + lint grønne.
 - **Scope:** `hooks/useDraftField.ts` (320) + `useStyledFieldAdapter.ts` (416) vs `hooks/tableInput/useTableInputCore.ts` (663); parallelle kanaler `useFieldInvalidDraftChannel` vs `useCellInvalidDraftChannel`; parallelle adapter-kontrakter `DraftParse` vs `TableInputAdapter`.
 - **Problem:** To hooks implementerer den *samme* trust-kritiske draft-state-maskine to gange, med kommentarer der åbent kryds-refererer hinanden ("spejler useDraftField"): optimistisk-commit-guard, authoritative-epoch-resync, physical-focus-guard, undo-restore-suppression, fejl-re-derivation, invalid-draft-branching. Hver fremtidig draft/undo-rettelse skal spejles i to filer.
 - **Greenfield:** Én felt-state-kerne parameteriseret af én adapter-kontrakt, med en tynd "surface"-seam (`<input>` vs grid-celle-editor-handle). De delte parse-kerner (`integerDraftCore` m.fl.) bliver kernens parse-lag; én invalid-drafts-kanal-abstraktion; én epoch-resync; én `pendingCommit`-guard. `useStyledFieldAdapter` og grid-editor-handlen bliver to adaptere over kernen.

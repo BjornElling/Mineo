@@ -5,6 +5,10 @@ import type {
 } from '../types/fieldEvents';
 import { useAuthoritativeSnapshotEpochSelector } from './useFormPersistenceSelectors';
 import { isRestoreFocusInProgress } from '../utils/historyTargetRestore';
+import { decideFieldResync } from './fieldState/fieldResyncMachine';
+import { elementHasPhysicalFocus } from './fieldState/elementHasPhysicalFocus';
+import { shouldDeriveInvalidDraftError } from './fieldState/shouldDeriveInvalidDraftError';
+import { useInvalidDraftSlot } from './fieldState/useInvalidDraftSlot';
 
 export type {
   DraftParse,
@@ -104,11 +108,21 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     clearTouchedOnEmptyDraft = false,
   } = config;
 
-  // Lokal fallback for ubundne felter (uden `onCommitInvalid`-kanal): bevarer den ugyldige draft
-  // efter blur, så den ikke silent-rolles tilbage. Bundne felter bruger `committedInvalidDraft`.
-  const isBound = onCommitInvalid !== undefined;
-  const [localInvalidDraft, setLocalInvalidDraft] = React.useState<string | null>(null);
-  const effectiveInvalidDraft = isBound ? committedInvalidDraft : (localInvalidDraft ?? undefined);
+  // Ugyldig-draft-slot (delt med useTableInputCore): bundet felt læser `committedInvalidDraft` fra
+  // kanalen; ubundet felt (uden `onCommitInvalid`) holder en lokal fallback, så den ugyldige draft ikke
+  // silent-rolles tilbage ved blur. Bundet rydning ejes bevidst af `onCommit`-wrapperen (`commitValue`)
+  // hos kalderen — derfor gates den lokale slot-rydning her bag `!isBound`.
+  const {
+    bound: isBound,
+    effectiveInvalidDraft,
+    writeInvalidDraft,
+    clearInvalidDraft: clearLocalInvalidDraft,
+  } = useInvalidDraftSlot({
+    bound: onCommitInvalid !== undefined,
+    committedInvalidDraft,
+    onCommitInvalid,
+    clearInvalidDraft: undefined,
+  });
 
   const formattedValue = format(value);
   const externalSource = effectiveInvalidDraft ?? formattedValue;
@@ -135,15 +149,10 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   // tilbage til den stale committede værdi. (Bevarer den gamle pendingValueResync-determinisme.)
   const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string; target: string } | null>(null);
 
-  const hasPhysicalFocus = React.useCallback((): boolean => {
-    const el = inputElementRef?.current ?? null;
-    const active = typeof document !== 'undefined' ? document.activeElement : null;
-    return (
-      el !== null &&
-      active !== null &&
-      (active === el || (el instanceof HTMLElement && active instanceof Node && el.contains(active)))
-    );
-  }, [inputElementRef]);
+  const hasPhysicalFocus = React.useCallback(
+    (): boolean => elementHasPhysicalFocus(inputElementRef?.current ?? null),
+    [inputElementRef]
+  );
 
   // Autoritativ snapshot-epoch (bumpes ved load/reset/migration/undo-redo-restore). En ændring her er
   // et autoritativt replace-event, der pr. undo-redo-kontrakten aldrig sker midt i en åben editor —
@@ -156,23 +165,29 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   // (`committedInvalidDraft ?? format(value)`). Dette dækker committed value-ændringer, F5-rehydrering
   // og undo/redo-restore — alt sammen via den normale store→prop-vej, uden et separat draft-transportlag.
   React.useEffect(() => {
-    const pending = pendingCommitRef.current;
-    if (pending) {
-      // Vent på at `value`-proppen indhenter commit'et før vi resyncer (undgå silent-rollback til stale værdi).
-      if (formattedValue === pending.formattedValueAtCommit) return;
-      pendingCommitRef.current = null;
+    const command = decideFieldResync(
+      {
+        epochChanged: authoritativeEpoch !== lastAuthoritativeEpochRef.current,
+        externalSource,
+        currentFormattedValue: formattedValue,
+        pending: pendingCommitRef.current,
+        isActivelyEditing: isFocused || hasPhysicalFocus(),
+      },
+      // Form-surface: pending-guarden er yderst (jf. fieldResyncMachine's klassificerede divergens).
+      { pendingHoldOutranksEpoch: true }
+    );
+    if (command.commitEpoch) lastAuthoritativeEpochRef.current = authoritativeEpoch;
+    if (command.clearPending) pendingCommitRef.current = null;
+    if (command.nextDraft !== null) {
+      const next = command.nextDraft;
+      setDraftState((prev) => (prev === next ? prev : next));
     }
-    const isAuthoritativeReplace = authoritativeEpoch !== lastAuthoritativeEpochRef.current;
-    lastAuthoritativeEpochRef.current = authoritativeEpoch;
-    if (!isAuthoritativeReplace && (isFocused || hasPhysicalFocus())) return;
-    setDraftState((prev) => (prev === externalSource ? prev : externalSource));
   }, [authoritativeEpoch, externalSource, formattedValue, hasPhysicalFocus, isFocused]);
 
   // Fejlvisning afledes af råstrengen: kun når draften aktuelt VISER den effektive ugyldige draft
   // (ikke mens brugeren taster en ny værdi). Beskeden gen-udledes ved at parse den normaliserede råstreng.
   const error = React.useMemo<DraftFieldError | undefined>(() => {
-    if (effectiveInvalidDraft === undefined) return undefined;
-    if (draft !== effectiveInvalidDraft) return undefined;
+    if (!shouldDeriveInvalidDraftError(effectiveInvalidDraft, draft)) return undefined;
     const normalized = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(effectiveInvalidDraft);
     const result = parse(normalized);
     if (result.ok) return undefined;
@@ -209,7 +224,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       if (result.ok) {
         // Vellykket commit: ryd evt. lokal ugyldig draft og synk optimistisk til committed repræsentation.
         // Bundne felter rydder `invalidDrafts` via kalderens onCommit-wrapper (efter sektion-commit).
-        if (!isBound) setLocalInvalidDraft(null);
+        if (!isBound) clearLocalInvalidDraft();
         const target = format(result.value);
         pendingCommitRef.current = { formattedValueAtCommit: formattedValue, target };
         setDraftState(target);
@@ -220,19 +235,15 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       // Ikke-committbart: bevar committed værdi; persistér/bevar den RÅ draft (det brugeren ser),
       // så fejlvisningen (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
       if (result.kind === 'invalid' || result.message !== undefined) {
-        if (isBound) {
-          onCommitInvalid?.(rawDraft);
-        } else {
-          setLocalInvalidDraft(rawDraft);
-        }
+        writeInvalidDraft(rawDraft);
         setDraftState(rawDraft);
         return;
       }
 
       // partial/empty uden besked: ingen fejl-tilstand, ingen commit (fx tom draft uden krav).
-      if (!isBound) setLocalInvalidDraft(null);
+      if (!isBound) clearLocalInvalidDraft();
     },
-    [format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, onCommitInvalid, parse]
+    [clearLocalInvalidDraft, format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, parse, writeInvalidDraft]
   );
 
   const commit = React.useCallback(() => {

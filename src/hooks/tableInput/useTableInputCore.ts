@@ -9,6 +9,10 @@ import type { TableInputErrorInfo, TableInputErrorKind } from '../../utils/table
 import type { CommittedPayload } from '../../types/parserSpec';
 import { useAuthoritativeSnapshotEpochSelector } from '../useFormPersistenceSelectors';
 import { isRestoreFocusInProgress } from '../../utils/historyTargetRestore';
+import { decideFieldResync } from '../fieldState/fieldResyncMachine';
+import { elementHasPhysicalFocus } from '../fieldState/elementHasPhysicalFocus';
+import { shouldDeriveInvalidDraftError } from '../fieldState/shouldDeriveInvalidDraftError';
+import { useInvalidDraftSlot } from '../fieldState/useInvalidDraftSlot';
 import { useCellInvalidDraftChannel } from './useCellInvalidDraftChannel';
 import type { TableInputAdapter } from './tableInputAdapter';
 import {
@@ -103,10 +107,20 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   } = channel;
   const useChannel = channelFieldPath !== undefined && (adapter.useSaveError ?? false);
 
-  // Lokal fallback for ubundne celler (eller adaptere uden `useSaveError`): bevarer den ugyldige draft,
-  // så den ikke silent-rolles tilbage. Bundne `useSaveError`-celler bruger `channelCommittedInvalidDraft`.
-  const [localInvalidDraft, setLocalInvalidDraft] = React.useState<string | null>(null);
-  const effectiveInvalidDraft = useChannel ? channelCommittedInvalidDraft : (localInvalidDraft ?? undefined);
+  // Ugyldig-draft-slot (delt med useDraftField): bundne `useSaveError`-celler læser/skriver/ryder via
+  // kanalen; ubundne celler (eller adaptere uden `useSaveError`) holder en lokal fallback, så den
+  // ugyldige draft ikke silent-rolles tilbage. Modsat form-stien ejer grid-cellen sin egen bundne
+  // rydning (jf. commit-rækkefølgen: value-commit FØRST, dernæst clear).
+  const {
+    effectiveInvalidDraft,
+    writeInvalidDraft,
+    clearInvalidDraft: clearInvalidDraftEntry,
+  } = useInvalidDraftSlot({
+    bound: useChannel,
+    committedInvalidDraft: channelCommittedInvalidDraft,
+    onCommitInvalid: channelCommitInvalid,
+    clearInvalidDraft: channelClearInvalid,
+  });
 
   const committedDisplayValue = adapter.format(value);
   const externalSource = effectiveInvalidDraft ?? committedDisplayValue;
@@ -162,28 +176,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     restoreInputSelectionAfterControlledChange(el, pendingSelection);
   }, [draft]);
 
-  const writeInvalidDraft = React.useCallback(
-    (rawDraft: string) => {
-      if (useChannel) channelCommitInvalid?.(rawDraft);
-      else setLocalInvalidDraft(rawDraft);
-    },
-    [channelCommitInvalid, useChannel]
-  );
-
-  const clearInvalidDraftEntry = React.useCallback(() => {
-    if (useChannel) channelClearInvalid?.();
-    else setLocalInvalidDraft(null);
-  }, [channelClearInvalid, useChannel]);
-
-  const hasPhysicalFocus = React.useCallback((): boolean => {
-    const el = inputElRef.current;
-    const active = typeof document !== 'undefined' ? document.activeElement : null;
-    return (
-      el !== null &&
-      active !== null &&
-      (active === el || (active instanceof Node && el.contains(active)))
-    );
-  }, []);
+  const hasPhysicalFocus = React.useCallback((): boolean => elementHasPhysicalFocus(inputElRef.current), []);
 
   // Autoritativ snapshot-epoch (bumpes ved load/reset/migration/undo-redo-restore). En ændring her er
   // et autoritativt replace-event, der pr. undo-redo-kontrakten aldrig sker midt i en åben editor —
@@ -196,30 +189,32 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   // (`committedInvalidDraft ?? format(value)`). Dækker committed value-ændringer (afledte kolonner,
   // andre cellers commit), F5-rehydrering og undo/redo-restore — alt via den normale store→prop-vej.
   React.useEffect(() => {
-    const isAuthoritativeReplace = authoritativeEpoch !== lastAuthoritativeEpochRef.current;
-    lastAuthoritativeEpochRef.current = authoritativeEpoch;
-    if (!isAuthoritativeReplace) {
-      const pending = pendingCommitRef.current;
-      if (pending) {
-        // Vent på at `value`-proppen indhenter commit'et, før vi resyncer (undgå silent-rollback til stale værdi).
-        if (committedDisplayValue === pending.formattedValueAtCommit) return;
-        pendingCommitRef.current = null;
+    const command = decideFieldResync(
+      {
+        epochChanged: authoritativeEpoch !== lastAuthoritativeEpochRef.current,
+        externalSource,
+        currentFormattedValue: committedDisplayValue,
+        pending: pendingCommitRef.current,
+        // isEditing / åben editor, fysisk fokus, eller en afventende (endnu ikke-committet) draft-ændring.
+        isActivelyEditing: isEditing || hasPhysicalFocus() || pendingDraftCommitRef.current,
+      },
+      // Grid-surface: epoch-checket er yderst (jf. fieldResyncMachine's klassificerede divergens).
+      { pendingHoldOutranksEpoch: false }
+    );
+    if (command.commitEpoch) lastAuthoritativeEpochRef.current = authoritativeEpoch;
+    if (command.clearPending) pendingCommitRef.current = null;
+    if (command.nextDraft !== null) {
+      const next = command.nextDraft;
+      setDraft((prev) => (prev === next ? prev : next));
+      draftRef.current = next;
+      if (command.isAuthoritativeReplace) {
+        setTouched(effectiveInvalidDraft !== undefined);
+        keyInitiatedEditRef.current = false;
+        setKeyInitiatedEdit(false);
+      } else if (effectiveInvalidDraft !== undefined) {
+        // En ny committed rå draft dukkede op via store (fx en sideløbende commit) — vis fejlen.
+        setTouched(true);
       }
-      if (isEditing) return;
-      if (hasPhysicalFocus()) return;
-      if (pendingDraftCommitRef.current) return;
-    } else {
-      pendingCommitRef.current = null;
-    }
-    setDraft((prev) => (prev === externalSource ? prev : externalSource));
-    draftRef.current = externalSource;
-    if (isAuthoritativeReplace) {
-      setTouched(effectiveInvalidDraft !== undefined);
-      keyInitiatedEditRef.current = false;
-      setKeyInitiatedEdit(false);
-    } else if (effectiveInvalidDraft !== undefined) {
-      // En ny committed rå draft dukkede op via store (fx en sideløbende commit) — vis fejlen.
-      setTouched(true);
     }
   }, [authoritativeEpoch, committedDisplayValue, externalSource, effectiveInvalidDraft, hasPhysicalFocus, isEditing]);
 
@@ -273,10 +268,9 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   // Display-afledning af fejl-tilstanden.
   const inputErrorMessage = React.useMemo(() => {
-    if (effectiveInvalidDraft === undefined) return '';
     // Fejlen vises kun mens draften aktuelt VISER den ikke-committbare rå draft (ikke mens brugeren
     // taster en ny korrektion). Beskeden gen-udledes ved at re-parse råstrengen (single source of truth).
-    if (draft !== effectiveInvalidDraft) return '';
+    if (!shouldDeriveInvalidDraftError(effectiveInvalidDraft, draft)) return '';
     const parsed = adapter.parse(effectiveInvalidDraft);
     return parsed.ok ? '' : parsed.errorMessage;
   }, [adapter, draft, effectiveInvalidDraft]);
