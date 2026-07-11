@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 
 type InlineActionButtonProps = Readonly<{
   children: React.ReactNode;
@@ -29,7 +30,7 @@ const InlineActionButton = React.memo(({ children, onClick, disabled = false, ta
       tabIndex={tabIndex}
       onClick={disabled ? undefined : onClick}
       onKeyDown={handleKeyDown}
-      sx={{
+      sx={mergeSx({
         minWidth: '88px',
         height: '40px',
         borderRadius: '10px',
@@ -53,8 +54,7 @@ const InlineActionButton = React.memo(({ children, onClick, disabled = false, ta
           cursor: 'default',
           pointerEvents: 'none',
         },
-        ...sx,
-      }}
+      }, sx)}
     >
       {children}
     </Button>

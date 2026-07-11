@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
 import MineoTextareaInputComponent from './MineoTextareaInputComponent';
@@ -231,7 +232,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
             disabled={disabled}
             size="small"
             variant="outlined"
-            sx={{
+            sx={mergeSx({
               width: typeof width === 'number' ? `${width}px` : width,
               position: 'relative',
               '& .MuiOutlinedInput-root': {
@@ -273,8 +274,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                   cursor: 'default',
                 },
               },
-              ...sx,
-            }}
+            }, sx)}
           />
           {showError && (
             <span id={a11yErrorId} style={visuallyHiddenStyle}>

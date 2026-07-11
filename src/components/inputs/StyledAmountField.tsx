@@ -34,6 +34,8 @@ import {
   type DraftChangeHandler,
 } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { getNumericBoundsConfigErrors } from '../../utils/numericFieldConfig';
+import { mergeSx } from '../../utils/mergeSx';
 
 export type StyledAmountFieldValueChangeEvent = CommitEvent<AmountValue | undefined>;
 export type StyledAmountFieldDraftChangeEvent = DraftChangeEvent;
@@ -115,21 +117,8 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       if (!Number.isFinite(precision)) return 'Ugyldig konfiguration: precision skal være et tal';
       if (!Number.isInteger(precision)) return 'Ugyldig konfiguration: precision skal være et heltal';
       if (precision < 0 || precision > 6) return 'Ugyldig konfiguration: precision skal være mellem 0 og 6';
-      if (maxValue !== undefined && !Number.isFinite(maxValue)) {
-        return 'Ugyldig konfiguration: maxValue skal være et tal';
-      }
-      if (minValue !== undefined && !Number.isFinite(minValue)) {
-        return 'Ugyldig konfiguration: minValue skal være et tal';
-      }
-      if (typeof minValue === 'number' && typeof maxValue === 'number' && minValue > maxValue) {
-        return 'Ugyldig konfiguration: minValue er større end maxValue';
-      }
-      if (!allowNegative && typeof minValue === 'number' && minValue < 0) {
-        return 'Ugyldig konfiguration: minValue er negativ, men allowNegative=false';
-      }
-      if (!allowNegative && typeof maxValue === 'number' && maxValue < 0) {
-        return 'Ugyldig konfiguration: maxValue er negativ, men allowNegative=false';
-      }
+      const boundsError = getNumericBoundsConfigErrors({ minValue, maxValue, allowNegative })[0];
+      if (boundsError !== undefined) return boundsError;
       return '';
     }, [allowNegative, maxValue, minValue, precision]);
 
@@ -362,15 +351,14 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           inputMode: allowDecimals ? 'decimal' : 'numeric',
           readOnly: !isEditorOpen,
         }}
-        sx={{
+        sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'right',
             fontVariantNumeric: 'tabular-nums',
             caretColor: isEditorOpen ? 'auto' : 'transparent',
             cursor: isEditorOpen ? 'text' : 'pointer',
           },
-          ...sx,
-        }}
+        }, sx)}
         endAdornment={
           <>
             <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={displayDraft.trim() === ''} />

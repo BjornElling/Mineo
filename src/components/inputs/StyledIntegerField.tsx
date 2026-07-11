@@ -10,6 +10,8 @@ import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
 import { parseIntegerDraftForCommit } from '../../utils/integerDraftCore';
 import { normalizeIntegerPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { getNumericBoundsConfigErrors } from '../../utils/numericFieldConfig';
+import { mergeSx } from '../../utils/mergeSx';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledIntegerFieldDraftChangeEvent = DraftChangeEvent;
@@ -98,16 +100,6 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
     },
     ref
   ) => {
-    const signConfigErrorMessage = React.useMemo(() => {
-      if (typeof minValue === 'number' && minValue < 0 && !allowNegative) {
-        return 'Ugyldig konfiguration: minValue er negativ, men allowNegative=false';
-      }
-      if (typeof maxValue === 'number' && maxValue < 0 && !allowNegative) {
-        return 'Ugyldig konfiguration: maxValue er negativ, men allowNegative=false';
-      }
-      return '';
-    }, [allowNegative, maxValue, minValue]);
-
     const resolvedSafetyMaxDigits = React.useMemo(() => {
       if (!Number.isFinite(safetyMaxDigits ?? DEFAULT_MAX_DIGITS_SAFETY) || !Number.isInteger(safetyMaxDigits ?? DEFAULT_MAX_DIGITS_SAFETY)) {
         return DEFAULT_MAX_DIGITS_SAFETY;
@@ -118,15 +110,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
     const { effectiveMaxDigits, maxLength, devConfigErrorMessage } = React.useMemo(() => {
       const errors: string[] = [];
 
-      if (minValue !== undefined && !Number.isFinite(minValue)) errors.push('Ugyldig konfiguration: minValue skal være et tal');
-      if (maxValue !== undefined && !Number.isFinite(maxValue)) errors.push('Ugyldig konfiguration: maxValue skal være et tal');
-      if (typeof minValue === 'number' && typeof maxValue === 'number' && minValue > maxValue) {
-        errors.push('Ugyldig konfiguration: minValue er større end maxValue');
-      }
-
-      if (signConfigErrorMessage.trim() !== '') {
-        errors.push(signConfigErrorMessage);
-      }
+      errors.push(...getNumericBoundsConfigErrors({ minValue, maxValue, allowNegative }));
 
       if (safetyMaxDigits !== undefined) {
         if (!Number.isFinite(safetyMaxDigits)) errors.push('Ugyldig konfiguration: safetyMaxDigits skal være et tal');
@@ -163,7 +147,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         maxLength: resolvedMaxLength,
         devConfigErrorMessage: errors.join('\n'),
       };
-    }, [allowNegative, maxDigits, maxValue, minValue, resolvedSafetyMaxDigits, safetyMaxDigits, signConfigErrorMessage]);
+    }, [allowNegative, maxDigits, maxValue, minValue, resolvedSafetyMaxDigits, safetyMaxDigits]);
 
     const hasConfigError = devConfigErrorMessage.trim() !== '';
 
@@ -202,9 +186,6 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       [allowNegative, effectiveMaxDigits, enforceRange, maxValue, minValue]
     );
 
-    const [rangeErrorMessage, setRangeErrorMessage] = React.useState<string>('');
-    const resetRangeError = React.useCallback(() => setRangeErrorMessage(''), []);
-
     const getDraftForKey = React.useCallback((key: string): string | null => {
       if (/^[0-9]$/.test(key)) return key;
       return null;
@@ -212,15 +193,19 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
 
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>
-        filterIntegerKeyDown(e, { maxDigits: effectiveMaxDigits, maxValue, allowNegative }),
-      [allowNegative, effectiveMaxDigits, maxValue]
+        filterIntegerKeyDown(e, {
+          maxDigits: effectiveMaxDigits,
+          maxValue: enforceRange ? maxValue : undefined,
+          allowNegative,
+        }),
+      [allowNegative, effectiveMaxDigits, enforceRange, maxValue]
     );
 
     const {
       draft,
       isEditorOpen,
       error,
-      touched,
+      visualErrorMessage,
       inputElementRef,
       handleDraftChange,
       handleFocus,
@@ -235,37 +220,28 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       parse: parseInteger,
       normalizeDraftOnCommit: trimToNumericEdgesPreserveLeadingMinus,
       getDraftForKey,
-      normalizePasteText: (text) => normalizeIntegerPaste(text, { maxDigits: effectiveMaxDigits, maxValue, allowNegative }),
+      normalizePasteText: (text) => normalizeIntegerPaste(text, {
+        maxDigits: effectiveMaxDigits,
+        maxValue: enforceRange ? maxValue : undefined,
+        allowNegative,
+      }),
       onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
+      getVisualError: enforceRange || hasConfigError
+        ? undefined
+        : (committedValue) =>
+            committedValue === undefined ? '' : getRangeErrorMessage(committedValue),
       onFocus,
       onBlur,
       onKeyDown,
       disabled,
       blocked: hasConfigError,
       keyFilter,
-      // En tidligere out-of-range-værdis røde markering må ikke hænge ved efter en draft-ændring/clear.
-      onDraftChangeSideEffect: resetRangeError,
-      onClearSideEffect: resetRangeError,
     });
 
-    React.useEffect(() => {
-      if (hasConfigError || enforceRange) {
-        setRangeErrorMessage('');
-        return;
-      }
-      if (value === undefined) {
-        setRangeErrorMessage('');
-        return;
-      }
-
-      setRangeErrorMessage(getRangeErrorMessage(value));
-    }, [enforceRange, getRangeErrorMessage, hasConfigError, value]);
-
     const visibleLocalError = error;
-    const shouldShowRangeError = !enforceRange && touched && rangeErrorMessage.trim() !== '';
-    const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message) || shouldShowRangeError;
+    const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message) || visualErrorMessage !== '';
     const resolvedErrorMessage =
       hasConfigError
         ? import.meta.env.DEV
@@ -273,23 +249,12 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
           : 'Ugyldig konfiguration'
         : externalHasError
             ? externalHelperText
-            : visibleLocalError?.message ?? (shouldShowRangeError ? rangeErrorMessage : '');
+            : visibleLocalError?.message ?? visualErrorMessage;
 
     React.useEffect(() => {
       if (!onErrorChange) return;
       onErrorChange(resolvedHasError);
     }, [onErrorChange, resolvedHasError]);
-
-    // Parse-fejl persisteres i invalidDrafts via useStyledFieldAdapter. Kun den blocksSave:false
-    // range-fejl (committet, men uden for UI-range) rapporteres til fieldErrors-storen.
-    React.useEffect(() => {
-      if (typeof onFieldError !== 'function') return;
-      if (shouldShowRangeError) {
-        onFieldError({ message: rangeErrorMessage, blocksSave: false });
-        return;
-      }
-      onFieldError(undefined);
-    }, [onFieldError, rangeErrorMessage, shouldShowRangeError]);
 
     return (
       <StyledTextFieldBase
@@ -314,14 +279,13 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         onMouseDown={handleMouseDown}
         onClick={handleClick}
         onPaste={handlePaste}
-        sx={{
+        sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'center',
             caretColor: isEditorOpen ? 'auto' : 'transparent',
             cursor: isEditorOpen ? 'text' : 'pointer',
           },
-          ...sx,
-        }}
+        }, sx)}
       />
     );
   }

@@ -8,6 +8,23 @@ import { getTodayLocalISO } from '../../../utils/dateUtils';
 import { insertTodayDate } from '../../../utils/insertTodayDate';
 
 describe('StyledDateField', () => {
+  it('genudleder en ikke-blokerende range-fejl fra committed værdi', () => {
+    const onFieldError = vi.fn();
+    render(
+      <StyledDateField
+        value={toISODateString('2028-01-01')}
+        minDate={toISODateString('2020-01-01')}
+        maxDate={toISODateString('2020-12-31')}
+        onFieldError={onFieldError}
+      />
+    );
+
+    expect(screen.getByText(/Dato skal/)).toBeInTheDocument();
+    expect(onFieldError).toHaveBeenLastCalledWith(
+      expect.objectContaining({ blocksSave: false })
+    );
+  });
+
   it('commits cleared value on blur when cleared via Delete/Backspace while closed', async () => {
     const user = userEvent.setup();
 

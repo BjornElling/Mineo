@@ -9,6 +9,7 @@ import { parseYearDraftForCommit } from '../../utils/yearDraftCore';
 import { normalizeYearPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { mergeSx } from '../../utils/mergeSx';
 
 export type StyledYearFieldProps = {
   value: number | undefined;
@@ -191,14 +192,13 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
         htmlInputAttributes={{ maxLength: MAX_YEAR_DRAFT_LENGTH, inputMode: 'numeric', readOnly: !isEditorOpen }}
-        sx={{
+        sx={mergeSx({
           '& input': {
             textAlign: 'center',
             caretColor: isEditorOpen ? 'auto' : 'transparent',
             cursor: isEditorOpen ? 'text' : 'pointer',
           },
-          ...sx,
-        }}
+        }, sx)}
       />
     );
   }

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
@@ -340,7 +341,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
             disabled={disabled}
             size="small"
             variant="outlined"
-            sx={{
+            sx={mergeSx({
               width: typeof width === 'number' ? `${width}px` : width,
               position: 'relative',
               '& .MuiOutlinedInput-root': {
@@ -416,8 +417,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
               '& .MuiOutlinedInput-root.Mui-focused .MuiInputBase-input:not([readonly])::placeholder': {
                 opacity: 0,
               },
-              ...sx,
-            }}
+            }, sx)}
           />
           {showError && (
             <span id={a11yErrorId} style={visuallyHiddenStyle}>

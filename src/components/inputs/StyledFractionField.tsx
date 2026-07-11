@@ -9,6 +9,7 @@ import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FOR
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { normalizeFractionPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { mergeSx } from '../../utils/mergeSx';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;
@@ -208,15 +209,14 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
           maxLength: getFractionMaxLength(maxDigits, allowNegative),
           readOnly: !isEditorOpen,
         }}
-        sx={{
+        sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'center',
             fontVariantNumeric: 'tabular-nums',
             caretColor: isEditorOpen ? 'auto' : 'transparent',
             cursor: isEditorOpen ? 'text' : 'pointer',
           },
-          ...sx,
-        }}
+        }, sx)}
       />
     );
   }

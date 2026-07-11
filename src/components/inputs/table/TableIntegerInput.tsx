@@ -8,6 +8,8 @@ import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 import { createIntegerTableInputAdapter, useTableInputCore } from '../../../hooks/tableInput';
+import { getNumericBoundsConfigErrors } from '../../../utils/numericFieldConfig';
+import { mergeSx } from '../../../utils/mergeSx';
 
 export type TableIntegerInputChangeEvent = { target: { value: string } };
 
@@ -65,11 +67,8 @@ const TableIntegerInput = React.memo(
     const gridApi = useGridCoreApi();
 
     const configErrorMessage = React.useMemo(() => {
-      if (minValue !== undefined && !Number.isFinite(minValue)) return 'Ugyldig konfiguration: minValue skal være et tal';
-      if (maxValue !== undefined && !Number.isFinite(maxValue)) return 'Ugyldig konfiguration: maxValue skal være et tal';
-      if (typeof minValue === 'number' && typeof maxValue === 'number' && minValue > maxValue) return 'Ugyldig konfiguration: minValue er større end maxValue';
-      if (typeof minValue === 'number' && minValue < 0) return 'Ugyldig konfiguration: minValue kan ikke være negativ (TableIntegerInput)';
-      if (typeof maxValue === 'number' && maxValue < 0) return 'Ugyldig konfiguration: maxValue kan ikke være negativ (TableIntegerInput)';
+      const boundsError = getNumericBoundsConfigErrors({ minValue, maxValue, allowNegative: false })[0];
+      if (boundsError !== undefined) return boundsError;
       if (maxDigitsProp !== undefined) {
         if (!Number.isFinite(maxDigitsProp) || !Number.isInteger(maxDigitsProp)) return 'Ugyldig konfiguration: maxDigits skal være et heltal';
         if (maxDigitsProp < 1 || maxDigitsProp > 18) return 'Ugyldig konfiguration: maxDigits skal være mellem 1 og 18';
@@ -135,7 +134,7 @@ const TableIntegerInput = React.memo(
               'data-mineo-field-path': core.invalidDraftFieldPath ?? undefined,
               'aria-describedby': core.showError ? core.a11yErrorId : undefined,
             }}
-            sx={{
+            sx={mergeSx({
               ...getTableInputRootStyles({
                 showError: core.showError,
                   tableKind: gridApi.tableKind,
@@ -148,8 +147,7 @@ const TableIntegerInput = React.memo(
                   caretColor: core.isEditing ? 'auto' : 'transparent',
                 }),
               },
-              ...sx,
-            }}
+            }, sx)}
           />
           {core.showError ? (
             <span id={core.a11yErrorId} style={visuallyHiddenStyle}>

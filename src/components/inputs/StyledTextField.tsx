@@ -9,6 +9,7 @@ import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { mergeSx } from '../../utils/mergeSx';
 import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 const debugStyledTextField = (event: string, details: Record<string, unknown>): void => {
@@ -402,13 +403,12 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
           helperText={resolvedErrorMessage}
           rows={rows}
           htmlTextAreaAttributes={{ readOnly: !textAreaActivation.isEditorOpen }}
-          sx={{
+          sx={mergeSx({
             '& .MuiInputBase-input': {
               caretColor: textAreaActivation.isEditorOpen ? 'auto' : 'transparent',
               cursor: textAreaActivation.isEditorOpen ? 'text' : 'pointer',
             },
-            ...sx,
-          }}
+          }, sx)}
         />
       );
     }
@@ -466,13 +466,12 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
         htmlInputAttributes={{ readOnly: !inputActivation.isEditorOpen }}
-        sx={{
+        sx={mergeSx({
           '& .MuiInputBase-input': {
             caretColor: inputActivation.isEditorOpen ? 'auto' : 'transparent',
             cursor: inputActivation.isEditorOpen ? 'text' : 'pointer',
           },
-          ...sx,
-        }}
+        }, sx)}
       />
     );
   }

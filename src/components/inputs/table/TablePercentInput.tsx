@@ -15,6 +15,8 @@ import {
   type TablePercentInputModel,
   useTableInputCore,
 } from '../../../hooks/tableInput';
+import { getNumericBoundsConfigErrors } from '../../../utils/numericFieldConfig';
+import { mergeSx } from '../../../utils/mergeSx';
 
 export type TablePercentInputChangeEvent = { target: { value: string } };
 export type TablePercentInputCommitEvent = { target: { value: number | undefined } };
@@ -66,13 +68,10 @@ const TablePercentInput = React.memo(
     const effectiveMax = maxValue ?? (useDefaultPercentRange ? 100 : undefined);
 
     const configErrorMessage = React.useMemo(() => {
-      if (minValue !== undefined && !Number.isFinite(minValue)) return 'Ugyldig konfiguration: minValue skal være et tal';
-      if (maxValue !== undefined && !Number.isFinite(maxValue)) return 'Ugyldig konfiguration: maxValue skal være et tal';
-      if (typeof effectiveMin === 'number' && typeof effectiveMax === 'number' && effectiveMin > effectiveMax) {
-        return 'Ugyldig konfiguration: minValue er større end maxValue';
-      }
-      return '';
-    }, [effectiveMax, effectiveMin, maxValue, minValue]);
+      const directError = getNumericBoundsConfigErrors({ minValue, maxValue, allowNegative })[0];
+      if (directError !== undefined) return directError;
+      return getNumericBoundsConfigErrors({ minValue: effectiveMin, maxValue: effectiveMax })[0] ?? '';
+    }, [allowNegative, effectiveMax, effectiveMin, maxValue, minValue]);
 
     if (configErrorMessage.trim() !== '') {
       throw new Error(configErrorMessage);
@@ -117,7 +116,7 @@ const TablePercentInput = React.memo(
     );
 
     return (
-      <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
+      <Box sx={mergeSx({ position: 'relative', width: '100%', height: '100%' }, sx)}>
         <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
           <Box sx={{ width: '100%', height: '100%' }}>
             <InputBase

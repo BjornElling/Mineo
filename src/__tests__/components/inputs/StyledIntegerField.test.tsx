@@ -5,6 +5,25 @@ import userEvent from '@testing-library/user-event';
 import StyledIntegerField from '../../../components/inputs/StyledIntegerField';
 
 describe('StyledIntegerField', () => {
+  it('genudleder en ikke-blokerende visual-fejl fra committed værdi', () => {
+    const onFieldError = vi.fn();
+    render(
+      <StyledIntegerField
+        value={11}
+        minValue={0}
+        maxValue={10}
+        enforceRange={false}
+        onFieldError={onFieldError}
+      />
+    );
+
+    expect(screen.getByText('Værdi skal være mellem 0 og 10')).toBeInTheDocument();
+    expect(onFieldError).toHaveBeenLastCalledWith({
+      message: 'Værdi skal være mellem 0 og 10',
+      blocksSave: false,
+    });
+  });
+
   it('normalizes pasted text while editor is closed', async () => {
     const user = userEvent.setup();
 

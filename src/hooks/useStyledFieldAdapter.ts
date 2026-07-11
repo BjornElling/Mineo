@@ -72,6 +72,12 @@ export type UseStyledFieldAdapterConfig<TModel> = Readonly<{
   /** Producer-owned fejlrapportør (driver invalidDraft-kanalen). */
   onFieldError?: FieldErrorReporter;
 
+  /**
+   * Visuel fejl for en committet modelværdi. Fejlen rekonstrueres også efter
+   * load/navigation og rapporteres altid som ikke-blokerende for Gem.
+   */
+  getVisualError?: (value: TModel) => string;
+
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -117,6 +123,7 @@ export type UseStyledFieldAdapterResult = Readonly<{
   draft: string;
   isEditorOpen: boolean;
   error: DraftFieldError | undefined;
+  visualErrorMessage: string;
   touched: boolean;
   inputElementRef: React.RefObject<HTMLInputElement | null>;
 
@@ -153,6 +160,7 @@ export const useStyledFieldAdapter = <TModel>(
     onCommit,
     onDraftChange,
     onFieldError,
+    getVisualError,
     onFocus,
     onBlur,
     onKeyDown,
@@ -376,6 +384,22 @@ export const useStyledFieldAdapter = <TModel>(
 
   const defaultShouldCommit = draft !== format(value) || committedInvalidDraft !== undefined;
 
+  // Visuelle fejl udledes kun af committed state. En ikke-committbar rå draft
+  // har forrang, så range-feedback aldrig beregnes fra det brugeren er ved at taste.
+  const visualErrorMessage = React.useMemo(() => {
+    if (committedInvalidDraft !== undefined || error?.message) return '';
+    return getVisualError?.(value).trim() ?? '';
+  }, [committedInvalidDraft, error?.message, getVisualError, value]);
+
+  React.useEffect(() => {
+    if (!onFieldError) return;
+    onFieldError(
+      visualErrorMessage === ''
+        ? undefined
+        : { message: visualErrorMessage, blocksSave: false }
+    );
+  }, [onFieldError, visualErrorMessage]);
+
   const handleBlur = React.useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       // Ignorér det blur der stammer fra aktiverings-hookens programmatiske re-fokus (caret-etablering).
@@ -399,6 +423,7 @@ export const useStyledFieldAdapter = <TModel>(
     draft,
     isEditorOpen: activation.isEditorOpen,
     error,
+    visualErrorMessage,
     touched,
     inputElementRef,
     handleDraftChange,

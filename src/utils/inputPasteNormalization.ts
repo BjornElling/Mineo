@@ -208,12 +208,21 @@ export const normalizeAmountPaste = (text: string, options: Readonly<{ allowNega
 
 export const normalizePercentPaste = (
   text: string,
-  options: Readonly<{ maxValue?: number }> = {}
+  options: Readonly<{ maxIntegerDigits?: number; maxValue?: number }> = {}
 ): string => {
   const run = extractDigitRun(text);
   if (run === '') return '';
 
-  return takeLongestNumericPrefixWithinMaxValue(run, options.maxValue);
+  const maxIntegerDigits =
+    typeof options.maxIntegerDigits === 'number' &&
+    Number.isFinite(options.maxIntegerDigits) &&
+    options.maxIntegerDigits > 0
+      ? Math.trunc(options.maxIntegerDigits)
+      : run.length;
+  return takeLongestNumericPrefixWithinMaxValue(
+    run.slice(0, maxIntegerDigits),
+    options.maxValue
+  );
 };
 
 export const normalizeFractionPaste = (text: string): string => {

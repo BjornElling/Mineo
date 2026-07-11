@@ -9,6 +9,7 @@ import { parseWeekDraftForCommit } from '../../utils/weekDraftCore';
 import { normalizeWeekPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { mergeSx } from '../../utils/mergeSx';
 
 export type StyledWeekFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledWeekFieldDraftChangeEvent = DraftChangeEvent;
@@ -159,14 +160,13 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
         htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_WEEK_DRAFT_LENGTH, readOnly: !isEditorOpen }}
-        sx={{
+        sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'center',
             caretColor: isEditorOpen ? 'auto' : 'transparent',
             cursor: isEditorOpen ? 'text' : 'pointer',
           },
-          ...sx,
-        }}
+        }, sx)}
       />
     );
   }

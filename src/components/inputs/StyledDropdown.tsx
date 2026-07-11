@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Box, MenuItem, MenuList, OutlinedInput, Popover, Tooltip } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUtils';
 import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
 import { findTypeaheadMatchIndex, isClearKey, isTypeaheadCharKey } from './dropdownInteractionCore';
@@ -519,71 +520,21 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     },
   };
 
-  const containerSxMerged: SxProps<Theme> = containerSx
-    ? Array.isArray(containerSx)
-      ? [containerSxBase, ...containerSx]
-      : [containerSxBase, containerSx]
-    : containerSxBase;
+  const containerSxMerged = mergeSx(containerSxBase, containerSx);
+  const inputSx = mergeSx(inputSxBase, sx);
+  const listboxSxMerged = mergeSx({
+    minWidth: typeof width === 'number' ? `${width}px` : width,
+    outline: 'none',
+  }, listboxSx);
 
-  const inputSx: SxProps<Theme> = sx
-    ? Array.isArray(sx)
-      ? [inputSxBase, ...sx]
-      : [inputSxBase, sx]
-    : inputSxBase;
-
-  const listboxSxMerged: SxProps<Theme> = listboxSx
-    ? Array.isArray(listboxSx)
-      ? [
-          {
-            minWidth: typeof width === 'number' ? `${width}px` : width,
-            outline: 'none',
-          },
-          ...listboxSx,
-        ]
-      : [
-          {
-            minWidth: typeof width === 'number' ? `${width}px` : width,
-            outline: 'none',
-          },
-          listboxSx,
-        ]
-    : {
-        minWidth: typeof width === 'number' ? `${width}px` : width,
-        outline: 'none',
-      };
-
-  const iconSxMerged: SxProps<Theme> = iconSx
-    ? Array.isArray(iconSx)
-      ? [
-          {
-            position: 'absolute',
-            right: 8,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            pointerEvents: 'none',
-            color: 'var(--color-text-secondary)',
-          },
-          ...iconSx,
-        ]
-      : [
-          {
-            position: 'absolute',
-            right: 8,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            pointerEvents: 'none',
-            color: 'var(--color-text-secondary)',
-          },
-          iconSx,
-        ]
-    : {
-        position: 'absolute',
-        right: 8,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        pointerEvents: 'none',
-        color: 'var(--color-text-secondary)',
-      };
+  const iconSxMerged = mergeSx({
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    pointerEvents: 'none',
+    color: 'var(--color-text-secondary)',
+  }, iconSx);
 
   const showError = error && helperText.trim() !== '';
 
@@ -774,44 +725,16 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
             const v = getValueAtVisualIndex(index);
             const isSelected = v === resolvedValue;
-            const optionSxMerged: SxProps<Theme> = optionSx
-              ? Array.isArray(optionSx)
-                ? [
-                    {
-                      cursor: 'pointer',
-                      backgroundColor:
-                        highlightedIndex === index
-                          ? 'var(--color-active-bg)'
-                          : isSelected
-                            ? 'var(--color-active-bg-hover)'
-                            : 'transparent',
-                      '&:hover': { backgroundColor: 'var(--color-active-bg)' },
-                    },
-                    ...optionSx,
-                  ]
-                : [
-                    {
-                      cursor: 'pointer',
-                      backgroundColor:
-                        highlightedIndex === index
-                          ? 'var(--color-active-bg)'
-                          : isSelected
-                            ? 'var(--color-active-bg-hover)'
-                            : 'transparent',
-                      '&:hover': { backgroundColor: 'var(--color-active-bg)' },
-                    },
-                    optionSx,
-                  ]
-              : {
-                  cursor: 'pointer',
-                  backgroundColor:
-                    highlightedIndex === index
-                      ? 'var(--color-active-bg)'
-                      : isSelected
-                        ? 'var(--color-active-bg-hover)'
-                        : 'transparent',
-                  '&:hover': { backgroundColor: 'var(--color-active-bg)' },
-                };
+            const optionSxMerged = mergeSx({
+              cursor: 'pointer',
+              backgroundColor:
+                highlightedIndex === index
+                  ? 'var(--color-active-bg)'
+                  : isSelected
+                    ? 'var(--color-active-bg-hover)'
+                    : 'transparent',
+              '&:hover': { backgroundColor: 'var(--color-active-bg)' },
+            }, optionSx);
 
             return (
               <MenuItem

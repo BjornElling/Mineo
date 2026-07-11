@@ -6,17 +6,17 @@ import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterPercentKeyDown } from './inputKeyFilters';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { normalizePercentPaste } from '../../utils/inputPasteNormalization';
-import { formatPercentDraft, parsePercentDraftForCommit } from '../../utils/percentDraftCore';
+import { buildPercentRangeErrorMessage, formatPercentDraft, parsePercentDraftForCommit } from '../../utils/percentDraftCore';
 import {
   DEFAULT_PERCENT_PLACEHOLDER,
-  DEFAULT_PERCENT_PASTE_MAX,
-  DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
 } from '../../utils/percentInputUtils';
 import { INPUT_UNIT_SUFFIX } from '../../utils/inputUnit';
 import InputUnitAdornment from './InputUnitAdornment';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { assignRef } from '../../utils/refUtils';
+import { getNumericBoundsConfigErrors } from '../../utils/numericFieldConfig';
+import { mergeSx } from '../../utils/mergeSx';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledPercentFieldDraftChangeEvent = DraftChangeEvent;
@@ -107,16 +107,12 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         return 'Ugyldig konfiguration: angiv minValue/maxValue eller useDefaultPercentRange';
       }
 
-      if (minValue !== undefined && !Number.isFinite(minValue)) return 'Ugyldig konfiguration: minValue skal være et tal';
-      if (maxValue !== undefined && !Number.isFinite(maxValue)) return 'Ugyldig konfiguration: maxValue skal være et tal';
-      if (typeof minValue === 'number' && typeof maxValue === 'number' && minValue > maxValue) {
-        return 'Ugyldig konfiguration: minValue er større end maxValue';
-      }
-      if (!allowNegative) {
-        if (typeof minValue === 'number' && minValue < 0) return 'Ugyldig konfiguration: minValue er negativ, men allowNegative=false';
-        if (typeof maxValue === 'number' && maxValue < 0) return 'Ugyldig konfiguration: maxValue er negativ, men allowNegative=false';
-      }
-
+      const boundsError = getNumericBoundsConfigErrors({ minValue, maxValue, allowNegative })[0];
+      if (boundsError !== undefined) return boundsError;
+      const effectiveMin = typeof minValue === 'number' ? minValue : useDefaultPercentRange ? 0 : undefined;
+      const effectiveMax = typeof maxValue === 'number' ? maxValue : useDefaultPercentRange ? 100 : undefined;
+      const resolvedBoundsError = getNumericBoundsConfigErrors({ minValue: effectiveMin, maxValue: effectiveMax })[0];
+      if (resolvedBoundsError !== undefined) return resolvedBoundsError;
       if (maxIntegerDigitsProp !== undefined) {
         if (!Number.isFinite(maxIntegerDigitsProp)) return 'Ugyldig konfiguration: maxIntegerDigits skal være et tal';
         if (!Number.isInteger(maxIntegerDigitsProp)) return 'Ugyldig konfiguration: maxIntegerDigits skal være et heltal';
@@ -220,8 +216,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         const result = parsePercentDraftForCommit(draft, {
           allowNegative,
           allowDecimals,
-          minValue: resolvedRange.effectiveMin,
-          maxValue: resolvedRange.effectiveMax,
         });
         if (!result.ok) return invalid(result.errorMessage);
 
@@ -240,9 +234,19 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         allowDecimals,
         allowNegative,
         maxLength,
-        resolvedRange.effectiveMax,
-        resolvedRange.effectiveMin,
       ]
+    );
+
+    const getVisualError = React.useCallback(
+      (committedValue: number | undefined): string => {
+        if (committedValue === undefined) return '';
+        return buildPercentRangeErrorMessage(committedValue, {
+          minValue: resolvedRange.effectiveMin,
+          maxValue: resolvedRange.effectiveMax,
+          allowDecimals,
+        }) ?? '';
+      },
+      [allowDecimals, resolvedRange.effectiveMax, resolvedRange.effectiveMin]
     );
 
     const getDraftForKey = React.useCallback(
@@ -262,18 +266,17 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       (e: React.KeyboardEvent<HTMLInputElement>) =>
         filterPercentKeyDown(e, {
           allowNegative,
-          maxIntegerDigits: DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
-          maxIntegerPart: DEFAULT_PERCENT_PASTE_MAX,
+          maxIntegerDigits: effectiveMaxIntegerDigits,
           allowDecimals,
-          maxValue: DEFAULT_PERCENT_PASTE_MAX,
         }),
-      [allowDecimals, allowNegative]
+      [allowDecimals, allowNegative, effectiveMaxIntegerDigits]
     );
 
     const {
       draft,
       isEditorOpen,
       error,
+      visualErrorMessage,
       inputElementRef,
       handleDraftChange,
       handleFocus,
@@ -288,13 +291,16 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       parse: parsePercent,
       normalizeDraftOnCommit: (draft) => prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(draft)),
       getDraftForKey,
-      normalizePasteText: (text) => normalizePercentPaste(text, { maxValue: DEFAULT_PERCENT_PASTE_MAX }),
+      normalizePasteText: (text) => normalizePercentPaste(text, {
+        maxIntegerDigits: effectiveMaxIntegerDigits,
+      }),
       onCommit: (nextValue) => {
         lastCommittedDisplayRef.current = { value: nextValue, decimals: pendingCommitDecimalsRef.current };
         onCommit?.(createCommitEvent(nextValue));
       },
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
+      getVisualError,
       onFocus,
       onBlur,
       onKeyDown,
@@ -314,12 +320,12 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
 
     // Parse-fejl persisteres i invalidDrafts via useStyledFieldAdapter og vises afledt herfra.
     const visibleLocalError = error;
-    const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message);
+    const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message) || visualErrorMessage !== '';
     const resolvedErrorMessage = hasConfigError
       ? resolvedConfigErrorMessage
       : externalHasError
         ? externalHelperText
-        : visibleLocalError?.message ?? '';
+        : visibleLocalError?.message ?? visualErrorMessage;
 
     return (
       <StyledTextFieldBase
@@ -348,15 +354,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           maxLength,
           readOnly: !isEditorOpen,
         }}
-        sx={{
+        sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'right',
             fontVariantNumeric: 'tabular-nums',
             caretColor: isEditorOpen ? 'auto' : 'transparent',
             cursor: isEditorOpen ? 'text' : 'pointer',
           },
-          ...sx,
-        }}
+        }, sx)}
       />
     );
   }

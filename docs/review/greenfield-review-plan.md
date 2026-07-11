@@ -130,7 +130,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 7 | 15 | ✅ `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
 | 8 | 11 | ✅ `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
 | 9 | 38 | ✅ Eksplicit dokument-genereringssession | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | muliggør #24; beslægtet #11 |
-| 10 | 12 | Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
+| 10 | 12 | ✅ Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
 | 11 | 19 | Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
 | 12 | 33 | Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
 | 13 | 13 | `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
@@ -314,6 +314,15 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 12 — Delt visual/range-fejl-seam for `Styled*Field` · 11
 
+- **Status: ✅ Gennemført (2026-07-11).** `useStyledFieldAdapter` ejer nu den kanoniske
+  `getVisualError(value)`-seam og rapporterer committed range/bounds-fejl som
+  `blocksSave:false`, også efter load/remount og bounds-ændringer. Dato og heltal er reduceret til
+  rene committed-projektorer uden parallel range-state/rapportering; procent følger samme kontrakt,
+  så schema-gyldige værdier uden for UI-interval committes og markeres uden at blokere Gem.
+  `numericFieldConfig` samler finite/order/fortegns-valideringen for de fem form-/tabelfelter, og
+  `mergeSx` bevarer MUI's object/callback/array-kontrakt i hele `Styled*Field`-familien samt
+  `StyledDropdown` og de berørte numeriske tabelfelter. Målrettet net: 8 filer/67 tests; fuld suite,
+  source/test-typecheck og lint grønne.
 - **Scope:** `StyledIntegerField.tsx:205-292`, `StyledDateField.tsx:140-341`, `StyledPercentField.tsx:214-246`, `StyledAmountField.tsx`; kontrast: `tableInputAdapter.ts:76-87` (`getCommittedVisualError`).
 - **Problem:** "Commit tilladt, men uden for UI-range → ikke-blokerende `blocksSave:false`-fejl" er re-implementeret per form-felt (state + `useEffect` + `onFieldError`), inkonsistent: Percent folder range ind i `parse` → hard block, en anden UX end Integer/Date. Config-validering (`"Ugyldig konfiguration: minValue er større end maxValue"`) er verbatim-dupleret i 5 filer.
 - **Greenfield:** Tilføj `getVisualError(value)`-seam til `useStyledFieldAdapter` (spejler tabel-adapterens seam). Udtræk numerisk config-validering til delt `numericFieldConfig.ts`. Ensret Percent med Integer/Date.

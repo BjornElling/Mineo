@@ -4,6 +4,7 @@ import { ContentPasteGo } from '@mui/icons-material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { ISODateString } from '../../types/branded';
 import { insertTodayDate } from '../../utils/insertTodayDate';
+import { mergeSx } from '../../utils/mergeSx';
 
 type InsertTodayDateButtonProps = Readonly<{
   onCommit: (today: ISODateString) => void;
@@ -26,7 +27,7 @@ const InsertTodayDateButton = React.memo(
         <Box
           onClick={handleClick}
           tabIndex={-1}
-          sx={{
+          sx={mergeSx({
             width: '32px',
             height: '32px',
             borderRadius: '6px',
@@ -41,8 +42,7 @@ const InsertTodayDateButton = React.memo(
             '&:active': {
               backgroundColor: 'var(--color-icon-action-active)',
             },
-            ...sx,
-          }}
+          }, sx)}
         >
           <ContentPasteGo
             sx={{

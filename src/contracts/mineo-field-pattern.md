@@ -142,11 +142,16 @@ Standard-policy (alle felter medmindre eksplicit begrundet):
 UI SKAL vise højst én fejlkilde ad gangen pr. felt-instans:
 1) ekstern fejl (autoritativ)
 2) lokal parse-fejl (gated af `touched`)
-3) ingen
+3) visuel fejl afledt af committed værdi (fx bounds/range)
+4) ingen
 
 Lokal fejltilstand SKAL bevares, selv mens en ekstern fejl vises (suspenderet, ikke nulstillet).
 
 Lokal fejltilstand genopstår automatisk, når den eksterne fejl ryddes. Suspensionen er passiv: den lokale fejl re-evalueres ikke, bare fordi den bliver synlig igen.
+
+For `Styled*Field` ejer `useStyledFieldAdapter` den fælles `getVisualError(value)`-seam.
+Fejlen må kun udledes af committed state, skal rekonstrueres efter load/remount og rapporteres
+som `blocksSave:false`. Komponenten må ikke opretholde en parallel range-state eller rapporteringseffekt.
 
 ## Tabel-inputs
 
