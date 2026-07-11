@@ -12,7 +12,7 @@
  */
 
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
-import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
@@ -35,8 +35,6 @@ export const generateKlLoenaftalerDocument = defineDocument<KlLoenaftalerDocumen
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
   body: (writer) => {
-  const doc = writer.getDoc();
-
   // To lige brede, centrerede kolonner. Justering defineres på kolonnerne (`align`),
   // så både PDF og Word læser samme kilde.
   const columns: readonly ColumnSpec[] = [
@@ -52,13 +50,11 @@ export const generateKlLoenaftalerDocument = defineDocument<KlLoenaftalerDocumen
     dataRows.push({ cells: [{ text: 'Ingen lønaftaler tilgængelige.' }, { text: '' }] });
   }
 
-  const startY = writer.getY();
-  const { endY } = renderTableSpec(doc, startY, {
+  writer.addTable({
     columns,
     hasHeaderRow: true,
     rows: [{ kind: 'header', cells: [{ text: 'Dato' }, { text: 'Regulering' }] }, ...dataRows],
   });
 
-  writer.setY(endY);
   },
 });

@@ -108,7 +108,7 @@ export const generateTafOpreguleretPaaAarDocument = (
     titleOptions: { trailingSpacing: 0 },
     body: (writer) => {
   const lineHeight = PDF_BASE_LINE_HEIGHT_MM;
-  const rightMaxWidth = writer.getTextWidth('000.000.000,00');
+  const rightMaxWidth = 0;
 
   // Lokale tekst-hjælpere på linje med den almindelige EO-PDF (samme signatur).
   const safeAddLeftRightText = (
@@ -125,6 +125,7 @@ export const generateTafOpreguleretPaaAarDocument = (
     writer.writeLeftRightText(leftText, rightText, {
       ...options,
       minRightColumnWidth: Math.max(minRightWidth, TAF_RIGHT_COLUMN_WIDTH),
+      minRightColumnWidthText: '000.000.000,00',
     });
   };
   const renderMoneyWithKr = (value: Calculable<MoneyOre>): string =>

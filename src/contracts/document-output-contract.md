@@ -14,7 +14,11 @@ Output dækker **to kanaler**:
 1. **PDF** (jsPDF), bygget via PDF-kanalen i `src/pdf/` (`createPdfChannelWriter`).
 2. **Word** (.docx), bygget via Word-kanalen i `src/docx/` (`createDocxWriter`).
 
-Begge kanaler bygger på den **samme** `DocumentWriter`-grænseflade i den format-agnostiske kerne (`src/document/writer/documentWriter.ts`). Generatorerne i `src/document/generators/` er kanal-uagtige: de skriver mod `DocumentWriter` og ved ikke, om output bliver PDF eller Word. En eksplicit `DocumentGenerationSession` (`src/document/documentGenerationSession.ts`) leverer writer-fabrikken til generatoren uden modul-global state; selve formatvalget reguleres af `document-format-contract.md`.
+Begge kanaler forbruger den samme immutable `DocumentModel` fra
+`src/document/model/documentModel.ts`. Generatorerne bygger modellen gennem
+`DocumentComposer` og har ingen adgang til kanal, sidecursor, dokumentbredde eller råt
+kanalobjekt. En eksplicit `DocumentGenerationSession` ejer renderingen uden modul-global
+state; formatvalget reguleres af `document-format-contract.md`.
 
 Kontrakten er opdelt i:
 
@@ -108,7 +112,8 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
 ## A7. Autoritative kilder og lag-topologi
 
 1. `src/document/` er den **kanoniske**, format-agnostiske dokument-kerne og opdelt i:
-   - `src/document/writer/` — den fælles writer-grænseflade `DocumentWriter` (`documentWriter.ts`).
+   - `src/document/model/` — blokalgebra, `DocumentComposer` og central modelrenderer.
+   - `src/document/writer/` — intern render-target-grænse; må ikke importeres af generatorer.
    - `src/document/layout/` — tabel-renderer (`documentTableRenderer.ts`), tekst-/format-utils (`pdfTextUtils.ts`, `documentFormatUtils.ts`), config (`pdfConfig.ts`), helpers (`documentLayoutHelpers.ts`), brevhoved-mapping (`documentBrevhoved.ts`), gate-typer (`documentGateTypes.ts`), fælles options (`documentOptions.ts`), tabel-bro (`documentTableBridge.ts`) og geometri (`jsPdfGeometry.ts`).
    - `src/document/generators/` — én generator (+ evt. `sections/`) pr. domæne (`*Document.ts`).
    - `src/document/service/` — service-boundary/download-afvikling (`documentService.ts`) og lazy-loader (`documentLoader.ts`).
@@ -122,7 +127,8 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
    - Delte EO-helpers (dato-/sats-/pct-utils): `src/domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts`.
    - Lønudviklings-segmentering: `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts`.
 4. Ingen ny generator må oprettes uden for `src/document/generators/`.
-5. Writer-grænsefladen hedder nu `DocumentWriter`, og dens `getDoc()` returnerer den honest union `jsPDF | DocumentTableBridgeDocument` (PDF-kanalen returnerer den rå jsPDF-instans, Word-kanalen returnerer tabel-broen). Den tidligere kanal-lækage med `jsPDF` + `as never`-cast er lukket (F2). Kernen i `src/document/` må aldrig statisk importere en kanal: service-laget konstruerer en eksplicit session med den valgte writer-fabrik (jf. afsnit B og `document-format-contract.md`).
+5. `DocumentWriter` og dens `getDoc()`-union er intern overgangsmekanik mellem den centrale
+   modelrenderer og kanal-infrastrukturen. Generatorer må aldrig importere eller modtage den.
 
 ## A8. Datoformat i output (kanal-neutralt)
 
@@ -151,12 +157,16 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
 
 Dette afsnit fastlægger den visuelle og strukturelle standard for Mineos dokument-output, så dokumenterne fremstår ensartede og uden utilsigtede lokale layoutafvigelser.
 
-**Writer-API'et er dobbeltkanal.** Den fælles grænseflade er `DocumentWriter` (`src/document/writer/documentWriter.ts`). To kanal-fabrikker opfylder den:
+**Blokmodellen er dobbeltkanal.** `DocumentComposer` bygger én `DocumentModel`; sessionens
+renderer afspiller modellen mod én af to interne kanal-targets:
 
 - `createPdfChannelWriter` (`src/pdf/infrastructure/pdfWriter.ts`) — PDF via jsPDF.
 - `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`) — Word via docx.
 
-Generatorerne modtager en eksplicit `DocumentGenerationSession`, og `defineDocument(...)` opretter writeren gennem sessionens injicerede fabrik. Reglerne i dette afsnit gælder derfor **begge** kanaler — de er ikke PDF-only. En generator skriver mod `DocumentWriter` uden at vide, hvilken kanal den ender i, og må ikke indføre kanal-specifikke afvigelser. Writerens `build()` returnerer en blob; generatoren returnerer et `DocumentArtifact`, og kun service-laget starter browser-downloaden.
+`defineDocument(...)` bygger hele modellen før sessionen opretter kanal-targetet. Reglerne
+gælder derfor begge kanaler, og en kompositionsfejl kan ikke efterlade et delvist renderet
+dokument. Generator-entrypointet returnerer et `DocumentArtifact`; kun service-laget starter
+browser-downloaden.
 
 Alle generator-entrypoints defineres med `defineDocument(...)` i
 `src/document/generators/documentGeneratorSetup.ts`. Factoryen ejer den faste lifecycle:

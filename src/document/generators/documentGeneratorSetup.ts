@@ -18,7 +18,7 @@
  * stamdata med dags dato (`buildStamdataBrevhovedData`).
  */
 
-import type { DocumentWriter } from '../writer';
+import { createDocumentComposer, type DocumentComposer } from '../model/documentModel';
 import type { DocumentArtifact } from '../downloadArtifact';
 import type { DocumentGenerationSession } from '../documentGenerationSession';
 import type { DocumentDownloadFormat } from '../documentFormat';
@@ -48,14 +48,14 @@ type DocumentValueResolver<TInput, TValue> = TValue | ((input: TInput) => TValue
 export type DocumentDefinition<TInput> = Readonly<{
   title: DocumentValueResolver<TInput, string>;
   filename: (input: TInput, format: DocumentDownloadFormat) => string;
-  body: (writer: DocumentWriter, input: TInput) => void;
+  body: (writer: DocumentComposer, input: TInput) => void;
   writerOptions?: DocumentValueResolver<TInput, StandardDocumentWriterOptions | undefined>;
   metadata?: DocumentValueResolver<TInput, StandardDocumentMetadata | undefined>;
   brevhoved?: (input: TInput) => BrevhovedData | null;
-  beforeBrevhoved?: (writer: DocumentWriter, input: TInput) => void;
+  beforeBrevhoved?: (writer: DocumentComposer, input: TInput) => void;
   titleOptions?: DocumentValueResolver<
     TInput,
-    Parameters<DocumentWriter['writeTitle']>[1]
+    Parameters<DocumentComposer['writeTitle']>[1]
   >;
   writeTitle?: boolean;
 }>;
@@ -67,30 +67,15 @@ const resolveDocumentValue = <TInput, TValue>(
   ? (resolver as (value: TInput) => TValue)(input)
   : resolver);
 
-/**
- * Opretter en standard-writer med ensartet display-mode og dokument-metadata.
- *
- * Samler den preamble alle generatorer ellers gentog ordret
- * (`session.createWriter` → `setDisplayMode('fullheight')` → `setProperties`).
- */
-export const initStandardDocumentWriter = (
-  session: DocumentGenerationSession,
-  params: Readonly<{
-    title: string;
-    options?: StandardDocumentWriterOptions;
-    metadata?: StandardDocumentMetadata;
-  }>
-): DocumentWriter => {
-  const writer = session.createWriter(params.options);
-  writer.setDisplayMode('fullheight');
-  writer.setProperties({
-    title: params.title,
-    subject: params.metadata?.subject ?? DOCUMENT_SUBJECT,
-    author: params.metadata?.author ?? DOCUMENT_AUTHOR,
-    creator: params.metadata?.creator ?? getDocumentCreatorBrand(),
-  });
-  return writer;
-};
+export const resolveStandardDocumentProperties = (
+  title: string,
+  metadata?: StandardDocumentMetadata
+): Readonly<{ title: string; subject: string; author: string; creator: string }> => ({
+  title,
+  subject: metadata?.subject ?? DOCUMENT_SUBJECT,
+  author: metadata?.author ?? DOCUMENT_AUTHOR,
+  creator: metadata?.creator ?? getDocumentCreatorBrand(),
+});
 
 /**
  * Definerer hele den fælles lifecycle for et dokument.
@@ -105,15 +90,7 @@ export const defineDocument = <TInput>(
 ): ((session: DocumentGenerationSession, input: TInput) => Promise<DocumentArtifact>) => {
   return async (session, input) => {
     const title = resolveDocumentValue(definition.title, input);
-    const writer = initStandardDocumentWriter(session, {
-      title,
-      options: definition.writerOptions
-        ? resolveDocumentValue(definition.writerOptions, input)
-        : undefined,
-      metadata: definition.metadata
-        ? resolveDocumentValue(definition.metadata, input)
-        : undefined,
-    });
+    const { composer: writer, build } = createDocumentComposer();
 
     definition.beforeBrevhoved?.(writer, input);
     const brevhoved = definition.brevhoved?.(input) ?? null;
@@ -131,7 +108,12 @@ export const defineDocument = <TInput>(
 
     definition.body(writer, input);
     writer.addFooter();
-    const blob = await writer.build();
+    const metadata = definition.metadata ? resolveDocumentValue(definition.metadata, input) : undefined;
+    const blob = await session.render({
+      model: build(),
+      writerOptions: definition.writerOptions ? resolveDocumentValue(definition.writerOptions, input) : undefined,
+      properties: resolveStandardDocumentProperties(title, metadata),
+    });
     // Filnavnet resolves med sessionens reelle format, så endelsen vælges direkte (ingen
     // "byg som .pdf og omskriv bagefter").
     const filename = definition.filename(input, session.format);
@@ -173,7 +155,7 @@ export type DocumentLabelValueRow = Readonly<{
  * (`satserDocument`) mapper til denne form ved callsite frem for at gentage løkken.
  */
 export const writeLabelValueRows = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   rows: ReadonlyArray<DocumentLabelValueRow>
 ): void => {
   for (const row of rows) {

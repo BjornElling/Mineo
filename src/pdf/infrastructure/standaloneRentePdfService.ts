@@ -15,6 +15,7 @@ import { parseDanishDate } from '../../utils/dateUtils';
 import { getDocumentCreatorBrand } from '../../document/layout/documentLayoutHelpers';
 import { asError } from '../../utils/typeGuards';
 import { resolveDocumentArtifactFileName } from '../../document/layout/documentFormatUtils';
+import { createDocumentComposer, renderDocumentModel } from '../../document/model/documentModel';
 
 const PDF_DOWNLOAD_SUCCESS: DocumentDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
@@ -125,11 +126,12 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       author: MINPROCESRENTE_PDF_METADATA.author,
       creator: getDocumentCreatorBrand(),
     });
+    const { composer, build } = createDocumentComposer();
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       if (i > 0) {
-        writer.addPage();
+        composer.addPage();
       }
 
       const startDate = parseDanishDate(row.actualInterestDate);
@@ -141,7 +143,7 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
         throw new Error('Ingen perioder fundet for renteberegning');
       }
 
-      writeRenteDocumentContent(writer, row.beloeb, startDate, endDate, row.periods, {
+      writeRenteDocumentContent(composer, row.beloeb, startDate, endDate, row.periods, {
         visBrevhoved: false,
         stamdata: null,
         kommentarer,
@@ -149,7 +151,8 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       });
     }
 
-    writer.addFooter();
+    composer.addFooter();
+    renderDocumentModel(writer, build());
 
     const firstRow = rows[0];
     const firstStart = parseDanishDate(firstRow.actualInterestDate);

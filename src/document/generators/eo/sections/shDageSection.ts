@@ -1,7 +1,6 @@
-import type jsPDF from 'jspdf';
-import type { DocumentTableBridgeDocument } from '../../../layout/documentTableBridge';
+import type { DocumentComposer } from '../../../model/documentModel';
 import { formatUtcDateLong, formatIsoDateLong as formatDateLong, WEEKDAY_NAMES_DA } from '../../../../utils/dateFormatting';
-import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
+import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../../layout/pdfConfig';
 import type { ISODateString } from '../../../../types/branded';
 import { findNamedHolidaysInIsoRanges } from '../../../../domain/dates/shDageOversigt';
@@ -20,13 +19,7 @@ type SHDageSectionContext = Readonly<{
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
-  writer: Readonly<{
-    addSectionSpacer: () => void;
-    addSpacer: (height: number) => void;
-    setY: (y: number) => void;
-    getY: () => number;
-    getDoc: () => jsPDF | DocumentTableBridgeDocument;
-  }>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable'>;
 }>;
 
 const formatDateFromDateObjectLong = (date: Date): string => formatUtcDateLong(date);
@@ -103,9 +96,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     );
     if (totalRow) specRows.push(totalRow);
 
-    const doc = writer.getDoc();
-    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
-    writer.setY(endY);
+    writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
   };
 
   startEoBilagPage('SH-dage');

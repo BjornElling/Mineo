@@ -4,9 +4,9 @@
  * Genererer detaljeret specifikation af årslønsberegning med satser, indtægtsoplysninger og beregning
  */
 
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from '../documentGeneratorSetup';
-import { buildFormattedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { buildFormattedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { calculateStandardLoenRowDerived, type StandardLoenSatserInput } from '../../../domain/aarsloen/standardLoenRowCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -67,7 +67,7 @@ const formatPdfPercent = (pct: string | number | undefined): string => {
  * VIGTIGT: Filtrerer tomme/nul satser - skip hele sektionen hvis ingen satser er udfyldt
  */
 const addSatserSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   satser: StandardLoenSatserInput,
 ): void => {
   // Definer alle mulige satser
@@ -102,16 +102,14 @@ const addSatserSection = (
  * Tilføj indtægtsoplysninger-tabel
  */
 const addIndtaegtsoplysningerTable = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   tableData: readonly StandardLoenTableRow[],
   loenperiode: Loenperiode,
   satser: StandardLoenSatserInput,
   beregnetAarsloen: number,
   tillaegAngivesSom: TillaegAngivesSom
-): number => {
+): void => {
   writer.writeBoldSubheader('Indtægtsoplysninger');
-  const doc = writer.getDoc();
-  const tableStartY = writer.getY();
 
   // Filtrer rækker - behold kun rækker hvor MINDST én input-celle er udfyldt
   const filteredData = tableData.filter(row => {
@@ -196,7 +194,7 @@ const addIndtaegtsoplysningerTable = (
       )
     : null;
 
-  return renderTableSpec(doc, tableStartY, {
+  writer.addTable({
     columns,
     hasHeaderRow: true,
     rows: [
@@ -204,7 +202,7 @@ const addIndtaegtsoplysningerTable = (
       ...dataRows,
       ...(totalRow ? [totalRow] : []),
     ],
-  }).endY;
+  });
 };
 
 /**
@@ -223,7 +221,7 @@ type BeregningsprincipperParams = Readonly<{
 }>;
 
 const addBeregningsprinciperSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   params: BeregningsprincipperParams,
 ): void => {
   const {
@@ -309,7 +307,7 @@ type BeregningSectionParams = Readonly<{
 }>;
 
 const addBeregningSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   params: BeregningSectionParams,
 ): void => {
   const { beregningsData, beregnetAarsloen, fuldLoenUnderFerie, shDageAntal, loenperiode, retTilSjetteFerieuge } = params;
@@ -517,14 +515,14 @@ export const generateAarsloenDocument = defineDocument<GenerateAarsloenDocumentP
   }
 
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
-  writer.setY(addIndtaegtsoplysningerTable(
+  addIndtaegtsoplysningerTable(
     writer,
     tableData,
     loenperiode,
     satser,
     beregnetAarsloen,
     tillaegAngivesSom
-  ));
+  );
 
   // Betinget: Beregningsprincipper og beregning (kun hvis omregning er aktiveret)
   if (omregningTilFuldtAar && periodeData) {

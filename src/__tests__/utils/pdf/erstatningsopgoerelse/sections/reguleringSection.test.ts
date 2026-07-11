@@ -6,6 +6,7 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
 import { PDF_CONTENT_WIDTH_MM } from '../../../../../document/layout/pdfConfig';
 import { resolveDynamicRightAlignedInset } from '../../../../../document/layout/documentTableRenderer';
+import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
 import { toISODateString } from '../../../../../types/branded';
 
 // Spejler reguleringSection's REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM (maks-insettet for
@@ -78,9 +79,9 @@ const makeContext = (
     writer: {
       addSectionSpacer: vi.fn(),
       addSpacer: vi.fn(),
-      setY: vi.fn((nextY: number) => { y = nextY; }),
-      getY: vi.fn(() => y),
-      getDoc: vi.fn(() => doc),
+      addTable: vi.fn((spec: TableSpec) => {
+        y = renderTableSpec(doc as never, y, spec).endY;
+      }),
       writeUnderlinedSubheader: vi.fn(),
     },
   } as unknown as MutableReguleringSectionContext;

@@ -4,7 +4,7 @@
  * Genererer dokumentation af ménberegning med fødselsdato, skadedato, méngrad og resultat.
  */
 
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from '../documentGeneratorSetup';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
@@ -17,7 +17,7 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
  * Tilføj stamdata-sektion
  */
 const addStamdataSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   fodselsdato: ISODateString | undefined,
   skadedato: ISODateString | undefined,
   alderVedSkade: number,
@@ -36,7 +36,7 @@ const addStamdataSection = (
  * Tilføj beregningsgrundlag-sektion
  */
 const addBeregningsgrundlagSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   mengrad: number,
   beregningsdato: ISODateString | undefined,
   beregningsResultat: VarigeMenBeregningResult
@@ -59,7 +59,7 @@ const addBeregningsgrundlagSection = (
  * Tilføj beregnet méngodtgørelse-sektion
  */
 const addResultatSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   mengrad: number,
   beregningsResultat: VarigeMenBeregningResult
 ): void => {

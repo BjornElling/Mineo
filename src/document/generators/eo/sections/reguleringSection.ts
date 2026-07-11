@@ -1,4 +1,4 @@
-import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
+import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import {
   getEffektiveSatserForDato,
   getGrundloenAngivetPerForOverenskomst,
@@ -7,7 +7,7 @@ import {
   resolveOverenskomstNameOnlyDisplay,
   resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
-import type { DocumentWriter } from '../../../writer';
+import type { DocumentComposer } from '../../../model/documentModel';
 import {
   EO_ANGIVET_LOEN_ID,
   getAngivetLoenOpreguleresFraDato,
@@ -117,7 +117,7 @@ type ReguleringSectionContext = Readonly<{
     forloeb?: ReguleringForloeb;
   }>) => readonly ReguleringIndexRow[];
   resolveStatistikModelIdFromLabel: (label: string | undefined) => string | undefined;
-  writer: DocumentWriter;
+  writer: DocumentComposer;
 }>;
 
 const percentDeltaIsIncrease = (from: number | null | undefined, to: number | null | undefined): boolean => {
@@ -332,9 +332,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     // Se docs/domain/taf/kl-loenaftaler-regulering.md.
     const isKlLoenaftalerTable = rows.some((row) => row.reguleretLoen !== undefined);
 
-    const doc = writer.getDoc();
-    const startY = writer.getY();
-
     if (isKlLoenaftalerTable) {
       const reguleretLoenHeader = tafBeregnesSom === 'Måneder' ? 'Reguleret månedsløn' : 'Reguleret dagsløn';
       const klColumns: readonly ColumnSpec[] = Array.from({ length: 4 }, () => ({
@@ -355,8 +352,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
           ],
         })),
       ];
-      const { endY } = renderTableSpec(doc, startY, { columns: klColumns, hasHeaderRow: true, rows: klRows });
-      writer.setY(endY);
+      writer.addTable({ columns: klColumns, hasHeaderRow: true, rows: klRows });
       return;
     }
 
@@ -412,8 +408,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       })),
     ];
 
-    const { endY } = renderTableSpec(doc, startY, { columns, hasHeaderRow: true, rows: specRows });
-    writer.setY(endY);
+    writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
   };
 
   const renderReguleringsvaerdierTable = (tableData: ReguleringValuesTableData | null) => {
@@ -440,13 +435,11 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         cells: row.map((value) => ({ text: cellOrDash(value) })),
       })),
     ];
-
-    const { endY } = renderTableSpec(writer.getDoc(), writer.getY(), {
+    writer.addTable({
       columns,
       hasHeaderRow: true,
       rows: specRows,
     });
-    writer.setY(endY);
   };
 
   const ansaettelser = resolveLoenudviklingKilde(eoValues);

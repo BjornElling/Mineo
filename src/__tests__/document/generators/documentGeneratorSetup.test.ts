@@ -1,6 +1,6 @@
 import {
   defineDocument,
-  initStandardDocumentWriter,
+  resolveStandardDocumentProperties,
   buildStamdataBrevhovedData,
   writeLabelValueRows,
 } from '../../../document/generators/documentGeneratorSetup';
@@ -12,6 +12,7 @@ import {
 import { setDocumentBrand, getDocumentCreatorBrand } from '../../../document/documentBrand';
 import { TODAY } from '../../../config/dateRanges';
 import type { DocumentWriter } from '../../../document/writer';
+import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
 
 /**
  * Optagende fake-writer der kun implementerer de metoder `documentGeneratorSetup` faktisk kalder
@@ -91,13 +92,11 @@ describe('documentGeneratorSetup', () => {
     setDocumentBrand('mineo.dk');
   });
 
-  describe('initStandardDocumentWriter', () => {
-    it('sætter fullheight display-mode og standard-metadata med den givne titel', () => {
-      initStandardDocumentWriter(session, { title: 'Ménberegning' });
+  describe('resolveStandardDocumentProperties', () => {
+    it('resolver standard-metadata med den givne titel', () => {
+      const result = resolveStandardDocumentProperties('Ménberegning');
 
-      expect(recorder.displayModes).toEqual(['fullheight']);
-      expect(recorder.properties).toHaveLength(1);
-      expect(recorder.properties[0]).toMatchObject({
+      expect(result).toMatchObject({
         title: 'Ménberegning',
         subject: 'Erstatningsberegning',
         author: 'mineo.dk',
@@ -110,27 +109,24 @@ describe('documentGeneratorSetup', () => {
       setDocumentBrand('MinProcesrente');
       expect(getDocumentCreatorBrand()).toBe('minprocesrente');
 
-      initStandardDocumentWriter(session, { title: 'Renteberegning' });
+      const result = resolveStandardDocumentProperties('Renteberegning');
 
-      expect(recorder.properties[0]?.creator).toBe('minprocesrente');
+      expect(result.creator).toBe('minprocesrente');
     });
 
     it('bruger standard-brandet som creator uden brand-override', () => {
-      initStandardDocumentWriter(session, { title: 'Årslønsberegning' });
+      const result = resolveStandardDocumentProperties('Årslønsberegning');
 
-      expect(recorder.properties[0]?.creator).toBe('mineo.dk');
+      expect(result.creator).toBe('mineo.dk');
     });
 
     it('respekterer eksplicit metadata-override uden at ændre titel', () => {
-      initStandardDocumentWriter(session, {
-        title: 'Procesrente',
-        metadata: {
+      const result = resolveStandardDocumentProperties('Procesrente', {
           subject: 'Renteberegning',
           author: 'minprocesrente.dk',
-        },
       });
 
-      expect(recorder.properties[0]).toMatchObject({
+      expect(result).toMatchObject({
         title: 'Procesrente',
         subject: 'Renteberegning',
         author: 'minprocesrente.dk',
@@ -138,12 +134,15 @@ describe('documentGeneratorSetup', () => {
       });
     });
 
-    it('videresender writer-options til fabrikken', () => {
+    it('videresender writer-options til fabrikken', async () => {
       const onLayoutFallback = () => undefined;
-      initStandardDocumentWriter(session, {
+      const generate = defineDocument<void>({
         title: 'Satser',
-        options: { visUdkastStempel: true, orientation: 'landscape', onLayoutFallback },
+        filename: () => 'satser.pdf',
+        writerOptions: { visUdkastStempel: true, orientation: 'landscape', onLayoutFallback },
+        body: () => undefined,
       });
+      await generate(session, undefined);
 
       expect(factoryCalls).toHaveLength(1);
       expect(factoryCalls[0]).toEqual({
@@ -189,10 +188,10 @@ describe('documentGeneratorSetup', () => {
         brevhoved: () => ({ dagsDatoISO: TODAY }),
         beforeBrevhoved: (writer) => {
           recorder.lifecycle.push('før-brevhoved');
-          expect(writer).toBe(recorder.writer);
+          expect(writer).not.toBe(recorder.writer);
         },
         body: (writer) => {
-          expect(writer).toBe(recorder.writer);
+          expect(writer).not.toBe(recorder.writer);
           recorder.lifecycle.push('indhold');
         },
       });
@@ -201,9 +200,9 @@ describe('documentGeneratorSetup', () => {
 
       expect(recorder.lifecycle).toEqual([
         'før-brevhoved',
+        'indhold',
         'brevhoved',
         'titel:Dokument 42',
-        'indhold',
         'footer',
         'build',
       ]);
@@ -237,16 +236,18 @@ describe('documentGeneratorSetup', () => {
       });
 
       await expect(generate(session, undefined)).rejects.toThrow('rendering fejlede');
-      expect(recorder.lifecycle).toEqual(['titel:Fejlende dokument', 'indhold']);
+      expect(recorder.lifecycle).toEqual(['indhold']);
     });
   });
 
   describe('writeLabelValueRows', () => {
     it('skriver én venstre-højre-linje pr. række', () => {
-      writeLabelValueRows(recorder.writer, [
+      const { composer, build } = createDocumentComposer();
+      writeLabelValueRows(composer, [
         { label: 'Méngrad', value: '10 %' },
         { label: 'Beregningsdato', value: '01-01-2026' },
       ]);
+      renderDocumentModel(recorder.writer, build());
 
       expect(recorder.leftRight).toHaveLength(2);
       expect(recorder.leftRight[0]).toMatchObject({ left: 'Méngrad', right: '10 %' });
@@ -254,17 +255,21 @@ describe('documentGeneratorSetup', () => {
     });
 
     it('defaulter rightFontStyle til normal og respekterer eksplicit bold', () => {
-      writeLabelValueRows(recorder.writer, [
+      const { composer, build } = createDocumentComposer();
+      writeLabelValueRows(composer, [
         { label: 'Grundbeløb', value: '100 kr.' },
         { label: 'Beregnet', value: '90 kr.', rightFontStyle: 'bold' },
       ]);
+      renderDocumentModel(recorder.writer, build());
 
       expect(recorder.leftRight[0]?.options).toEqual({ rightFontStyle: 'normal' });
       expect(recorder.leftRight[1]?.options).toEqual({ rightFontStyle: 'bold' });
     });
 
     it('skriver intet ved tom rækkeliste', () => {
-      writeLabelValueRows(recorder.writer, []);
+      const { composer, build } = createDocumentComposer();
+      writeLabelValueRows(composer, []);
+      renderDocumentModel(recorder.writer, build());
       expect(recorder.leftRight).toHaveLength(0);
     });
   });

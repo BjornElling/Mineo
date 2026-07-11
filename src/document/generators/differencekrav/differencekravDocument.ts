@@ -14,7 +14,7 @@
  * for løbende ydelser = beregningsdato − 1 dag i differencekrav).
  */
 
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
@@ -57,7 +57,7 @@ const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4
 // ============================================================================
 
 const addProformaKapitaliseringSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   pk: EetDifferencekravProformaKapitalisering,
   koen: string | undefined
 ): void => {
@@ -196,7 +196,7 @@ const addProformaKapitaliseringSection = (
 // ============================================================================
 
 const addMerErstatningEvent = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   event: MerErstatningPensionsalderEvent,
   koen: string | undefined
 ): void => {
@@ -282,7 +282,7 @@ const addMerErstatningEvent = (
 };
 
 const addMerErstatningPensionsalderSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   computation: MerErstatningPensionsalderComputation,
   koen: string | undefined
 ): void => {
@@ -299,7 +299,7 @@ const addMerErstatningPensionsalderSection = (
 // ============================================================================
 
 const renderDifferencekravPage = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   computation: EetDifferencekravComputation
 ): void => {
   const rowOpts = { rightFontStyle: 'normal' as const };

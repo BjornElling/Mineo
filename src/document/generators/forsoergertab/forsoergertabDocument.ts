@@ -7,10 +7,10 @@
  * - Side 3 (betinget): ASL-ydelser
  */
 
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
@@ -35,7 +35,7 @@ type GrundlaeggendeData = Readonly<{
 }>;
 
 const addGrundlaeggendeSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   data: GrundlaeggendeData,
   visEal: boolean,
   visAsl: boolean
@@ -100,7 +100,7 @@ const addGrundlaeggendeSection = (
   }
 };
 
-const addBeregnedResultatSection = (writer: DocumentWriter, result: ForsoergertabCalculation): void => {
+const addBeregnedResultatSection = (writer: DocumentComposer, result: ForsoergertabCalculation): void => {
   // Underoverskriften self-spacer (B5.1/B6); en manuel spacer ville give tom linje i Word.
   writer.writeBoldSubheader('Beregnet forsørgertab');
 
@@ -120,7 +120,7 @@ const addBeregnedResultatSection = (writer: DocumentWriter, result: Forsoergerta
 // Side 2: EAL-krav
 // ============================================================================
 
-const addEalSection = (writer: DocumentWriter, eal: EetEalComputation, foersoergertabEalMinSats: number | null, foersoergertabForhoejtetTilMin: boolean): void => {
+const addEalSection = (writer: DocumentComposer, eal: EetEalComputation, foersoergertabEalMinSats: number | null, foersoergertabForhoejtetTilMin: boolean): void => {
   writer.writeSectionHeader('EAL-krav');
 
   writer.writeBoldSubheader('Årsløn');
@@ -199,7 +199,7 @@ const addEalSection = (writer: DocumentWriter, eal: EetEalComputation, foersoerg
 // Side 3: ASL-ydelser
 // ============================================================================
 
-const addAslSection = (writer: DocumentWriter, asl: ForsoergertabAslComputation): void => {
+const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputation): void => {
   writer.writeSectionHeader('ASL-ydelser');
 
   writer.writeLeftRightText('Årsløn efter ASL', formatKr(asl.aslAarsloen), { rightFontStyle: 'normal' });
@@ -210,9 +210,6 @@ const addAslSection = (writer: DocumentWriter, asl: ForsoergertabAslComputation)
   );
 
   if (asl.lobendeYdelser.length > 0) {
-    const doc = writer.getDoc();
-    const tableStartY = writer.getY();
-
     // Faste kolonnebredder (inline-litteral tidligere): to venstre dato-kolonner,
     // tre højrejusterede tal-kolonner. Justering defineret på kolonnerne.
     const columns: readonly ColumnSpec[] = [
@@ -245,8 +242,7 @@ const addAslSection = (writer: DocumentWriter, asl: ForsoergertabAslComputation)
       })),
     ];
 
-    const { endY } = renderTableSpec(doc, tableStartY, { columns, hasHeaderRow: true, rows });
-    writer.setY(endY);
+    writer.addTable({ columns, hasHeaderRow: true, rows });
 
     writer.writeLeftRightText('Løbende ydelser i alt', formatKr(asl.aslLobendeYdelserTotal), {
       rightFontStyle: 'bold',

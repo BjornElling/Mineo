@@ -155,7 +155,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
 | 16 | 23 | ✅ Regulering → kanonisk forløb | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #17 |
-| 17 | 24 | Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11, #38 |
+| 17 | 24 | ✅ Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11, #38 |
 | 18 | 25 | Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
 | 19 | 42 | Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
 | 20 | 40 | Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
@@ -518,6 +518,15 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 24 — Keystone: Deklarativt dokument-IR · 9
 
+- **Status: ✅ Gennemført (2026-07-11).** Alle generator-entrypoints og EO-sektioner bygger
+  nu én immutable, kanalneutral `DocumentModel` gennem `DocumentComposer`. Den lukkede
+  blokalgebra dækker tekst, label/value, spacing/keep-with-next, sideskift, `TableSpec`,
+  atomiske grupper, underskrift, brevhoved, vandmærke, flow-billede og footer.
+  `DocumentGenerationSession` ejer rendering og udleverer ikke længere writer-fabrikken;
+  generatorlaget har nul adgang til kanal, cursor eller dokumentmål. Tre AST-regler
+  håndhæver grænsen, og PDF-/Word-golden-nettet er uændret. `DocumentWriter` er bevaret som
+  intern render-target-adapter; fase-3 #31/#32 ejer fortsat dybere kanalprimitiv-paritet og
+  oprydning af EO-sektionernes store formatter-/dependency-contexts.
 - **Scope:** `document/writer/documentWriter.ts` (kontrakt), `pdf/infrastructure/pdfWriter.ts` (953), `docx/infrastructure/docxWriter.ts` (760), alle ~18 generatorer.
 - **Problem:** `DocumentWriter` er en imperativ PDF-cursor (`getY/setY/ensureSpace/advanceY`) — i Word er hver af disse no-ops. `getDoc()` er en "ærlig union" der indrømmer at kanalen lækker; `getPageWidth()` returnerer mm på PDF, twips på Word; `getTextWidth` divergerer. Paritet holdes af hånd-synkede kodestier + kommentarer, ikke af struktur.
 - **Greenfield:** Vend retningen om: generatorer udsender en **deklarativ blok/flow-model** (Title, Section, LabelValueRow, Table, Signature, PageBreak…) uden Y-koordinater. To rene renderere (`PdfRenderer`, `DocxRenderer`) forbruger modellen; paginering bliver internt PDF-anliggende. Paritet bliver strukturel (begge går samme træ).

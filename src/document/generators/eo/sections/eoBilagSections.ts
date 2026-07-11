@@ -10,14 +10,14 @@
  * inline-implementering — outputtet skal være bit-for-bit det samme.
  */
 
-import type { DocumentWriter } from '../../../writer';
+import type { DocumentComposer } from '../../../model/documentModel';
 import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../../layout/pdfConfig';
 import type { ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { capitalizeFirstCharDa, formatPercent as formatPercentUtil, formatAsAmount } from '../../../../utils/formatUtils';
 import { isEffectivelyZero, isWithinTolerance } from '../../../../utils/numberComparison';
 import { getStandardLoenTableHeaders, resolveStandardLoenPeriodColumns } from '../../../../domain/aarsloen/standardLoenTableColumns';
-import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
+import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import {
   buildEoBilagIndkomstYdelserRanges,
   hasNonZeroLoenAmount,
@@ -60,7 +60,7 @@ import {
   formatSfggAfkortningPdfLine,
 } from '../../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 
-type StandardPdfWriter = DocumentWriter;
+type StandardPdfWriter = DocumentComposer;
 
 const EO_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
@@ -134,11 +134,12 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       {
         ...options,
         minRightColumnWidth: Math.max(rightMaxWidth, EO_RIGHT_COLUMN_WIDTH),
+        minRightColumnWidthText: '000.000.000,00',
       }
     );
   };
 
-  const standardRightMaxWidth = writer.getTextWidth('000.000.000,00');
+  const standardRightMaxWidth = EO_RIGHT_COLUMN_WIDTH;
   const renderSubheader = writer.writeBoldSubheader;
 
   const writeLabelValueLine = (label: string, value: string) => {
@@ -306,13 +307,11 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       }
     );
     if (totalRow) specRows.push(totalRow);
-
-    const { endY } = renderTableSpec(writer.getDoc(), writer.getY(), {
+    writer.addTable({
       columns: sfggColumns,
       hasHeaderRow: true,
       rows: specRows,
     });
-    writer.setY(endY);
 
     const feriepengeHvisIkkeSkadeOre = entry.feriepengekravTotalOre;
     const feriepengeModtagetOre = entry.feriepengeModtagetFormula?.totalOre ?? zeroMoneyOre();
@@ -463,12 +462,11 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
         { kind: 'header', cells: tableData.columns.map((column) => ({ text: column, align: 'center' })) },
         ...tableData.rows.map((row): RowSpec => ({ cells: row.map((cell) => ({ text: cell })) })),
       ];
-      const { endY } = renderTableSpec(writer.getDoc(), writer.getY(), {
+    writer.addTable({
         columns: reguleringColumns,
         hasHeaderRow: true,
         rows: specRows,
       });
-      writer.setY(endY);
     } else if (tableDataError) {
       safeAddWrappedText('Reguleringsværdier kan ikke vises, fordi en nødvendig reguleringssats mangler.');
     } else {

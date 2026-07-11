@@ -7,7 +7,7 @@
 
 import { PDF_CONTENT_WIDTH_MM } from '../../layout/pdfConfig';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
-import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { krlSatstabeller } from '../../../data/krlRates';
 import { danishToISO, type DanishDateString } from '../../../types/branded';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
@@ -77,8 +77,6 @@ export const generateKRLDocument = defineDocument<KRLDocumentParams>({
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
   body: (writer) => {
-  const doc = writer.getDoc();
-
   // Byg samlet tabel
   const { rows } = buildCombinedRows();
 
@@ -103,15 +101,12 @@ export const generateKRLDocument = defineDocument<KRLDocumentParams>({
     dataRows.push({ cells: [{ text: 'Ingen satser tilgængelige.' }, ...krlSatstabeller.map(() => ({ text: '' }))] });
   }
 
-  const startY = writer.getY();
-  const { endY } = renderTableSpec(doc, startY, {
+  writer.addTable({
     columns,
     hasHeaderRow: true,
     tableWidth,
     rows: [headerRow, ...dataRows],
   });
-
-  writer.setY(endY);
 
   // Kildetekst under tabellen
   writer.writeBoldSubheader('Kilde');

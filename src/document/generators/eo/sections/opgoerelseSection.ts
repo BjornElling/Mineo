@@ -80,13 +80,10 @@ type OpgorelseSectionContext = Readonly<{
     addSectionSpacer: () => void;
     addPage: () => void;
     addSpacer: (height: number) => void;
-    advanceY: (height: number) => void;
-    ensureSpace: (height: number) => void;
-    getY: () => number;
-    getTextWidth: (text: string) => number;
+    keepWithNext: (minimumHeight: number) => void;
     writeUnderlinedSubheader: (text: string, x?: number) => void;
     writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
-    writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
+    writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string, requiredHeight?: number) => void;
   }>;
 }>;
 
@@ -215,7 +212,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     offentligeYdelser: getBilag('bilagsnumreOffentligeYdelser', eoValues.bilagsnumreOffentligeYdelser),
     oevrigeErstatningskrav: getBilag('bilagsnumreOevrigeErstatningskrav', eoValues.bilagsnumreOevrigeErstatningskrav),
   };
-  const rightMaxWidth = writer.getTextWidth('000.000.000,00');
+  const rightMaxWidth = rightColumnWidth;
 
   if (model.forlig.erIndgaaet) {
     renderSectionHeader('Erstatningsniveau');
@@ -843,7 +840,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const sigX = MARGINS.left + 90;
     const sigLine = '________________________________________';
     const signatureBlockHeight = lineHeight * 2;
-    writer.ensureSpace(signatureBlockHeight);
-    writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn);
+    writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn, signatureBlockHeight);
   }
 };

@@ -5,7 +5,7 @@
  * Hver afgørelse renderes på sin egen side.
  */
 
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type {
@@ -25,7 +25,7 @@ export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL =
   'Kapitaliseret pga. < 2 år til folkepension?';
 
 export const addKapitaliseringEmptyState = (
-  writer: DocumentWriter
+  writer: DocumentComposer
 ): void => {
   writer.writeSectionHeader('Specifikation');
   writer.writeWrappedText('Der er ingen kapitaliserede afgørelser i sagen.');
@@ -36,7 +36,7 @@ export const addKapitaliseringEmptyState = (
 // ============================================================================
 
 export const addKapitaliseringAfgoerelseSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   afgoerelse: EetKapitaliseringAfgoerelseComputation,
   koen: string | undefined,
   isFirst: boolean

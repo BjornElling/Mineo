@@ -2,6 +2,7 @@
 import { writeRenteOversigtDocumentContent, type RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import { toISODateString } from '../../../types/branded';
+import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
 
 const makeRow = (overrides?: Partial<RenteOversigtRow>): RenteOversigtRow => ({
   beloeb: 1250,
@@ -12,63 +13,65 @@ const makeRow = (overrides?: Partial<RenteOversigtRow>): RenteOversigtRow => ({
 
 describe('writeRenteOversigtDocumentContent', () => {
   it('kaster når der ingen rækker er', () => {
-    const writer = createPdfChannelWriter();
+    const { composer } = createDocumentComposer();
     expect(() => {
-      writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), []);
+      writeRenteOversigtDocumentContent(composer, toISODateString('2024-02-01'), []);
     }).toThrow('Ingen renteberegninger fundet for oversigt');
   });
 
   it('skriver indhold uden undtagelse for gyldige rækker', () => {
     const writer = createPdfChannelWriter();
+    const { composer, build } = createDocumentComposer();
     expect(() => {
-      writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [
+      writeRenteOversigtDocumentContent(composer, toISODateString('2024-02-01'), [
         makeRow(),
         makeRow({ beloeb: 5000, renterFra: toISODateString('2023-06-01'), beregnetRente: 412.5 }),
       ]);
+      renderDocumentModel(writer, build());
     }).not.toThrow();
   });
 
   it('skriver indhold med kommentarer og brevhoved uden undtagelse', () => {
     const writer = createPdfChannelWriter();
+    const { composer, build } = createDocumentComposer();
     expect(() => {
-      writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [makeRow()], {
+      writeRenteOversigtDocumentContent(composer, toISODateString('2024-02-01'), [makeRow()], {
         visBrevhoved: true,
         stamdata: { journalnr: '12345', advokat: 'Adv. Test', sagsbehandler: 'Sb. Test' },
         kommentarer: 'En kommentar til oversigten',
       });
+      renderDocumentModel(writer, build());
     }).not.toThrow();
   });
 
   it('skriver hypotetisk-advarsel med samme tekst som rente-specifikationen', () => {
-    const writer = createPdfChannelWriter();
-    const warningSpy = vi.spyOn(writer, 'writeBoldWrappedText');
+    const { composer, build } = createDocumentComposer();
 
-    writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [makeRow()], {
+    writeRenteOversigtDocumentContent(composer, toISODateString('2024-02-01'), [makeRow()], {
       latestReferenceRateDate: toISODateString('2024-01-31'),
     });
 
-    expect(warningSpy).toHaveBeenCalledWith(
-      'Der er kun fastsat procesrente frem til 31-01-2024. Beregning derefter er hypotetisk!'
-    );
+    expect(build().blocks).toContainEqual(expect.objectContaining({ text: expect.stringContaining('Beregning derefter er hypotetisk!') }));
   });
 
   it('udelader hypotetisk-advarsel når beregningsdatoen er dækket af procesrentesatser', () => {
-    const writer = createPdfChannelWriter();
-    const warningSpy = vi.spyOn(writer, 'writeBoldWrappedText');
+    const { composer, build } = createDocumentComposer();
 
-    writeRenteOversigtDocumentContent(writer, toISODateString('2024-01-31'), [makeRow()], {
+    writeRenteOversigtDocumentContent(composer, toISODateString('2024-01-31'), [makeRow()], {
       latestReferenceRateDate: toISODateString('2024-01-31'),
     });
 
-    expect(warningSpy).not.toHaveBeenCalled();
+    expect(build().blocks).not.toContainEqual(expect.objectContaining({ text: expect.stringContaining('Beregning derefter er hypotetisk!') }));
   });
 
   it('kalder ikke addFooter eller save — det er kalderens ansvar', () => {
     const writer = createPdfChannelWriter();
+    const { composer, build } = createDocumentComposer();
     const saveSpy = vi.spyOn(writer, 'build');
     const addFooterSpy = vi.spyOn(writer, 'addFooter');
 
-    writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [makeRow()]);
+    writeRenteOversigtDocumentContent(composer, toISODateString('2024-02-01'), [makeRow()]);
+    renderDocumentModel(writer, build());
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(addFooterSpy).not.toHaveBeenCalled();

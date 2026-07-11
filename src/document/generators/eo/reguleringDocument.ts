@@ -4,10 +4,8 @@
  * Genererer PDF-dokument med reguleringssatser for overenskomst/statistik
  */
 
-import type jsPDF from 'jspdf';
-import type { DocumentTableBridgeDocument } from '../../layout/documentTableBridge';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
-import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { type ColumnSpec, type RowSpec, type TableSpec } from '../../layout/tableSpec';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
 import { roundByMethod } from '../../../utils/rounding';
@@ -123,11 +121,9 @@ const formatIndexValue = (value: number): string => {
 };
 
 const addReguleringTable = (
-  doc: jsPDF | DocumentTableBridgeDocument,
   columns: ReadonlyArray<TableColumn>,
-  rows: ReadonlyArray<ReadonlyArray<string>>,
-  startY: number
-): number => {
+  rows: ReadonlyArray<ReadonlyArray<string>>
+): TableSpec => {
   // Alle kolonner: min-bredde 22 mm, centreret. Justering på kolonnerne (ikke via
   // en separat didParseCell-tvang eller columnStyles.halign).
   const specColumns: readonly ColumnSpec[] = columns.map(() => ({ width: { kind: 'min', mm: 22 }, align: 'center' }));
@@ -139,11 +135,11 @@ const addReguleringTable = (
     });
   }
 
-  return renderTableSpec(doc, startY, {
+  return {
     columns: specColumns,
     hasHeaderRow: true,
     rows: [{ kind: 'header', cells: columns.map((col) => ({ text: col.header })) }, ...dataRows],
-  }).endY;
+  };
 };
 
 const buildOverenskomstTable = (
@@ -353,8 +349,6 @@ export const generateReguleringDocument = defineDocument<ReguleringDocumentParam
     offentligLoenGruppe,
     offentligLoenEkstraGrundloen,
   } = params;
-  const doc = writer.getDoc();
-
   const valgtLabel =
     loenudviklingBasis === 'Statistik'
       ? (statistikModelLabel?.trim() || '-')
@@ -398,9 +392,7 @@ export const generateReguleringDocument = defineDocument<ReguleringDocumentParam
   }
 
   if (tableData) {
-    const startY = writer.getY();
-    const nextY = addReguleringTable(doc, tableData.columns, tableData.rows, startY);
-    writer.setY(nextY);
+    writer.addTable(addReguleringTable(tableData.columns, tableData.rows));
   }
 
   if (loenudviklingBasis === 'Statistik' && resolveStatistikModelId(statistikModelLabel) === 'ILON12') {

@@ -1,5 +1,4 @@
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import { MARGINS } from '../../layout/pdfConfig';
 import { defineDocument } from '../documentGeneratorSetup';
 import { logWarning } from '../../../utils/logger';
 import type { TafKravGrafDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
@@ -48,12 +47,10 @@ export const generateTafKravGrafDocument = defineDocument<TafKravGrafDocumentOpt
       : null,
   body: (writer, { document }) => {
   const imageDataUrl = renderTafKravGrafChartPng(document);
-  const imageWidth = writer.getContentWidthMm();
-  const imageHeight = Math.min(142, (imageWidth * TAF_KRAV_GRAF_CANVAS.height) / TAF_KRAV_GRAF_CANVAS.width);
-  writer.ensureSpace(imageHeight + 8);
-  const y = writer.getY() + 4;
-  writer.addImageDataUrl(imageDataUrl, MARGINS.left, y, imageWidth, imageHeight);
-  writer.setY(y + imageHeight + 4);
+  writer.addContentWidthImage(imageDataUrl, {
+    aspectRatio: TAF_KRAV_GRAF_CANVAS.width / TAF_KRAV_GRAF_CANVAS.height,
+    maxHeight: 142,
+  });
 
   },
 });

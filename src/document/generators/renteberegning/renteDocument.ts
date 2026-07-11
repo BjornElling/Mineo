@@ -11,13 +11,13 @@ import {
   formatAmount,
   formatPercent,
 } from '../../layout/documentLayoutHelpers';
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import {
   buildStamdataBrevhovedData,
   defineDocument,
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
-import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatDanishDate, parseDanishDate } from '../../../utils/dateUtils';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
@@ -40,7 +40,7 @@ const RIGHT_ALIGNED_INSET_RENTEDAGE_MM = 10;
 const RIGHT_ALIGNED_INSET_RENTESATS_MM = 8;
 
 export const addHypotheticalInterestWarning = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   endDate: Date,
   latestReferenceRateDate: Date | null,
 ): boolean => {
@@ -60,7 +60,7 @@ export const buildRenteDocumentBaseTitle = (amount: number, startDate: Date, end
 };
 
 const addDescription = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   amount: number,
   startDate: Date,
   endDate: Date
@@ -77,14 +77,11 @@ const addDescription = (
 };
 
 const addSpecificationTable = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   periods: ReadonlyArray<ProcessInterestPeriod>,
   endDate: Date,
   latestReferenceRateDate: Date | null
 ): void => {
-  const doc = writer.getDoc();
-  const startY = writer.getY();
-
   // Rentedage/Rentesats er højrejusteret i BEGGE kanaler (talkolonne-konvention, som
   // 'Beregnet rente'); PDF får desuden et fast visuelt inset. Overskrifterne holdes
   // centrerede via eksplicit celle-override på header-rækken.
@@ -115,12 +112,9 @@ const addSpecificationTable = (
     }
   );
 
-  let tableStartY = startY;
-  if (addHypotheticalInterestWarning(writer, endDate, latestReferenceRateDate)) {
-    tableStartY = writer.getY();
-  }
+  addHypotheticalInterestWarning(writer, endDate, latestReferenceRateDate);
 
-  const { endY } = renderTableSpec(doc, tableStartY, {
+  writer.addTable({
     columns,
     hasHeaderRow: true,
     rows: [
@@ -138,7 +132,6 @@ const addSpecificationTable = (
     ],
   });
 
-  writer.setY(endY);
 };
 
 /**
@@ -147,7 +140,7 @@ const addSpecificationTable = (
  * dokumenttyper deler præcis samme afsnit.
  */
 export const addCalculationPrinciples = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   kommentarer: string | undefined
 ): void => {
   const normalizedKommentarer = typeof kommentarer === 'string' ? kommentarer.trim() : '';
@@ -165,11 +158,11 @@ export const addCalculationPrinciples = (
 };
 
 /**
- * Skriver én rente-specifikation-sektion til en eksisterende DocumentWriter.
+ * Skriver én rente-specifikation-sektion til en eksisterende DocumentComposer.
  * Kalder ikke addFooter eller save — det er kalderens ansvar.
  */
 export const writeRenteDocumentContent = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   amount: number,
   startDate: Date,
   endDate: Date,

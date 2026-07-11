@@ -975,6 +975,38 @@ const reguleringCanonicalForloebBoundary = forbidImports({
   ],
 });
 
+const documentGeneratorWriterImport = forbidImports({
+  id: 'document/generator-writer-import-boundary',
+  description: 'Dokumentgeneratorer må kun bygge DocumentModel og må ikke importere det interne writer-target.',
+  appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
+  forbidden: (ref) => /(?:^|\/)writer(?:\/documentWriter)?$/.test(ref.moduleSpecifier),
+  message: (ref) => `Import af internt writer-target (${ref.moduleSpecifier}) — brug DocumentComposer.`,
+  violatingFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentWriter } from '../../writer';" }],
+  cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentComposer } from '../../model/documentModel';" }],
+});
+
+const DOCUMENT_GENERATOR_CURSOR_MEMBERS = new Set(['getDoc', 'getY', 'setY', 'advanceY', 'ensureSpace', 'getTextWidth', 'getPageWidth', 'getContentWidthMm', 'addImageDataUrl']);
+
+const documentGeneratorCursorAccess = forbidMemberAccess({
+  id: 'document/generator-cursor-access-boundary',
+  description: 'Dokumentgeneratorer må ikke observere kanal, cursor eller dokumentmål.',
+  appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
+  forbidden: (ref) => DOCUMENT_GENERATOR_CURSOR_MEMBERS.has(ref.chainText.split('.').at(-1) ?? ''),
+  message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) — brug en deklarativ DocumentBlock.`,
+  violatingFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'const y = writer.getY();' }],
+  cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'document.addTable(spec);' }],
+});
+
+const documentGeneratorCursorElementAccess = forbidElementAccess({
+  id: 'document/generator-cursor-element-access-boundary',
+  description: 'Bracket-notation må ikke omgå dokumentgeneratorernes cursorgrænse.',
+  appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
+  forbidden: (ref) => Array.from(DOCUMENT_GENERATOR_CURSOR_MEMBERS).some((member) => ref.chainText.endsWith(`["${member}"]`) || ref.chainText.endsWith(`['${member}']`)),
+  message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) — brug en deklarativ DocumentBlock.`,
+  violatingFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'writer["getDoc"]();' }],
+  cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'const value = data["value"];' }],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -995,4 +1027,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   promiseTickBoundary,
   eoFieldVisibilitySingleSource,
   reguleringCanonicalForloebBoundary,
+  documentGeneratorWriterImport,
+  documentGeneratorCursorAccess,
+  documentGeneratorCursorElementAccess,
 ];

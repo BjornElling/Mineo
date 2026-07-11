@@ -150,8 +150,6 @@ export const generateTafFordeltPaaAarDocument = (
 
   // ─── TAF fordelt på kalenderår ────────────────────────────────────────
 
-  const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-
   for (const yearEntry of presentation.years) {
     writer.writeBoldSubheader(`${yearEntry.year}`);
 
@@ -173,7 +171,7 @@ export const generateTafFordeltPaaAarDocument = (
       }
 
       const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(segment.amountOre));
-      writer.writeLeftRightText(leftText, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
+      writer.writeLeftRightText(leftText, rightText, { rightFontStyle: 'normal', minRightColumnWidthText: '000.000.000,00' });
     }
 
     // Fradrag (med minus-prefix)
@@ -181,7 +179,7 @@ export const generateTafFordeltPaaAarDocument = (
       const rightText = deduction.amountOre === 0
         ? ensureNonBreakingKr(formatMoneyOreWithKr(deduction.amountOre))
         : ensureNonBreakingKr(`- ${formatMoneyOreWithKr(deduction.amountOre)}`);
-      writer.writeLeftRightText(deduction.label, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
+      writer.writeLeftRightText(deduction.label, rightText, { rightFontStyle: 'normal', minRightColumnWidthText: '000.000.000,00' });
     }
 
     // "Allerede betalt TAF" trækkes fra UDEN FOR forlig-faktoren (som i hovedopgørelsen), så
@@ -194,7 +192,7 @@ export const generateTafFordeltPaaAarDocument = (
       writer.writeLeftRightText(
         'Allerede betalt TAF',
         ensureNonBreakingKr(`- ${formatMoneyOreWithKr(tidligereOre)}`),
-        { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth }
+        { rightFontStyle: 'normal', minRightColumnWidthText: '000.000.000,00' }
       );
     };
     if (!model.forlig.erIndgaaet) {
@@ -203,7 +201,7 @@ export const generateTafFordeltPaaAarDocument = (
         rightFontStyle: 'normal',
         lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
         lineAboveRightOffset: 4,
-        minRightColumnWidth: rightMaxWidth,
+        minRightColumnWidthText: '000.000.000,00',
       });
     } else {
       const forligSubtotalLabel = `I alt (${model.forlig.label} af ${formatMoneyOreWithKr(yearEntry.yearTafFoerForligOre)})`;
@@ -214,21 +212,21 @@ export const generateTafFordeltPaaAarDocument = (
           rightFontStyle: 'normal',
           lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
           lineAboveRightOffset: 4,
-          minRightColumnWidth: rightMaxWidth,
+          minRightColumnWidthText: '000.000.000,00',
         });
         renderTidligereLinje();
         writer.writeLeftRightText('I alt', iAltTotalRightText, {
           rightFontStyle: 'normal',
           lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
           lineAboveRightOffset: 4,
-          minRightColumnWidth: rightMaxWidth,
+          minRightColumnWidthText: '000.000.000,00',
         });
       } else {
         writer.writeLeftRightText(forligSubtotalLabel, iAltTotalRightText, {
           rightFontStyle: 'normal',
           lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
           lineAboveRightOffset: 4,
-          minRightColumnWidth: rightMaxWidth,
+          minRightColumnWidthText: '000.000.000,00',
         });
       }
     }
@@ -241,13 +239,13 @@ export const generateTafFordeltPaaAarDocument = (
   // Per-år linjer
   for (const yearEntry of presentation.years) {
     const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
-    writer.writeLeftRightText(`${yearEntry.year}`, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
+    writer.writeLeftRightText(`${yearEntry.year}`, rightText, { rightFontStyle: 'normal', minRightColumnWidthText: '000.000.000,00' });
   }
 
   // Afrunding (kun vist når den ikke er 0)
   if (presentation.afrundingOre !== 0) {
     const afrundingText = ensureNonBreakingKr(formatMoneyOreWithKr(presentation.afrundingOre));
-    writer.writeLeftRightText('Afrunding', afrundingText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
+    writer.writeLeftRightText('Afrunding', afrundingText, { rightFontStyle: 'normal', minRightColumnWidthText: '000.000.000,00' });
   }
 
   // Samlet TAF-krav (fed, med streg)
@@ -256,7 +254,7 @@ export const generateTafFordeltPaaAarDocument = (
     rightFontStyle: 'bold',
     lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
     lineAboveRightOffset: 4,
-    minRightColumnWidth: rightMaxWidth,
+    minRightColumnWidthText: '000.000.000,00',
   });
 
     },

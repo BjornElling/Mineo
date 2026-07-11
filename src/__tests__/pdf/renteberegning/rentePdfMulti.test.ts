@@ -4,6 +4,7 @@ import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';
 import { toISODateString } from '../../../types/branded';
 import { createDocumentGenerationSession } from '../../../document/documentGenerationSession';
+import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
 
 const pdfSession = createDocumentGenerationSession('pdf', createPdfChannelWriter);
 
@@ -22,23 +23,27 @@ const makePeriod = (overrides?: Partial<ProcessInterestPeriod>): ProcessInterest
 describe('writeRenteDocumentContent', () => {
   it('kan kaldes to gange på samme DocumentWriter uden undtagelse', () => {
     const writer = createPdfChannelWriter();
+    const { composer, build } = createDocumentComposer();
     const periods = [makePeriod()];
     const startDate = new Date(toISODateString('2024-01-01'));
     const endDate = new Date(toISODateString('2024-06-30'));
 
     expect(() => {
-      writeRenteDocumentContent(writer, 1000, startDate, endDate, periods, {});
-      writer.addPage();
-      writeRenteDocumentContent(writer, 2000, startDate, endDate, periods, {});
+      writeRenteDocumentContent(composer, 1000, startDate, endDate, periods, {});
+      composer.addPage();
+      writeRenteDocumentContent(composer, 2000, startDate, endDate, periods, {});
+      renderDocumentModel(writer, build());
     }).not.toThrow();
   });
 
   it('kalder ikke addFooter — det er kalderens ansvar', () => {
     const writer = createPdfChannelWriter();
+    const { composer, build } = createDocumentComposer();
     const saveSpy = vi.spyOn(writer, 'build');
     const addFooterSpy = vi.spyOn(writer, 'addFooter');
 
-    writeRenteDocumentContent(writer, 1000, new Date(toISODateString('2024-01-01')), new Date(toISODateString('2024-06-30')), [makePeriod()], {});
+    writeRenteDocumentContent(composer, 1000, new Date(toISODateString('2024-01-01')), new Date(toISODateString('2024-06-30')), [makePeriod()], {});
+    renderDocumentModel(writer, build());
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(addFooterSpy).not.toHaveBeenCalled();

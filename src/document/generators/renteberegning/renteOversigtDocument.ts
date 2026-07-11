@@ -7,13 +7,13 @@
  */
 
 import { formatAmount } from '../../layout/documentLayoutHelpers';
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import {
   buildStamdataBrevhovedData,
   defineDocument,
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
-import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
@@ -40,20 +40,17 @@ type RenteOversigtDocumentOptions = DocumentCommonOptions & Readonly<{
   metadata?: StandardDocumentMetadata;
 }>;
 
-const addDateLine = (writer: DocumentWriter, beregningsdato: ISODateString): void => {
+const addDateLine = (writer: DocumentComposer, beregningsdato: ISODateString): void => {
   writer.writeWrappedText(`Rente beregnes til og med ${formatIsoDateLong(beregningsdato)}.`);
   writer.addSectionSpacer();
 };
 
 const addOversigtTable = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   rows: ReadonlyArray<RenteOversigtRow>,
   beregningsdato: ISODateString,
   latestReferenceRateDate: ISODateString | null,
 ): void => {
-  const doc = writer.getDoc();
-  let startY = writer.getY();
-
   // Kolonner: fast Beløb (45 mm) | flex Rente fra | fast Beregnet rente (45 mm, højre).
   const columns: readonly ColumnSpec[] = [
     { width: { kind: 'fixed', mm: 45 }, align: 'left' },
@@ -83,12 +80,10 @@ const addOversigtTable = (
   const endDate = parseISODate(beregningsdato);
   const latestRateDate = latestReferenceRateDate ? parseISODate(latestReferenceRateDate) : undefined;
   if (endDate && latestRateDate) {
-    if (addHypotheticalInterestWarning(writer, endDate, latestRateDate)) {
-      startY = writer.getY();
-    }
+    addHypotheticalInterestWarning(writer, endDate, latestRateDate);
   }
 
-  const { endY } = renderTableSpec(doc, startY, {
+  writer.addTable({
     columns,
     hasHeaderRow: true,
     rows: [
@@ -98,15 +93,14 @@ const addOversigtTable = (
     ],
   });
 
-  writer.setY(endY);
 };
 
 /**
- * Skriver oversigts-indholdet til en eksisterende DocumentWriter.
+ * Skriver oversigts-indholdet til en eksisterende DocumentComposer.
  * Kalder ikke addFooter eller save — det er kalderens ansvar.
  */
 export const writeRenteOversigtDocumentContent = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   beregningsdato: ISODateString,
   rows: ReadonlyArray<RenteOversigtRow>,
   options: RenteOversigtDocumentOptions = {}

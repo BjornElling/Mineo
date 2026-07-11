@@ -4,6 +4,7 @@ import { getStandardLoenTableHeaders } from '../../../../../domain/aarsloen/stan
 import { toISODateString } from '../../../../../types/branded';
 import { renderLoenindkomstSection } from '../../../../../document/generators/eo/sections/loenindkomstSection';
 import type { SelectedElements } from '../../../../../document/generators/eo/types';
+import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
 
 type LoenSectionContext = Parameters<typeof renderLoenindkomstSection>[0];
 type IncludeLoenRowParams = Parameters<LoenSectionContext['shouldIncludeLoenRowInEoBilag']>[0];
@@ -102,11 +103,9 @@ const makeContext = (includeRangeFromDates: ReadonlySet<ReturnType<typeof toISOD
     writer: {
       addSectionSpacer: vi.fn(),
       addSpacer: vi.fn(),
-      setY: vi.fn((nextY: number) => {
-        y = nextY;
+      addTable: vi.fn((spec: TableSpec) => {
+        y = renderTableSpec(doc as never, y, spec).endY;
       }),
-      getY: vi.fn(() => y),
-      getDoc: vi.fn(() => doc as never),
     },
   };
 

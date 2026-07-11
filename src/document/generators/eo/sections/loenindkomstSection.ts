@@ -6,10 +6,10 @@ import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
+import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import { calculateLoenindkomstRowDerived } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
-import type { DocumentWriter } from '../../../writer';
+import type { DocumentComposer } from '../../../model/documentModel';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 type LoenSectionContext = Readonly<{
@@ -34,7 +34,7 @@ type LoenSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
-  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable'>;
 }>;
 
 export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
@@ -138,9 +138,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       specRows.push({ cells: rowValues.map((value) => ({ text: value })) });
     }
 
-    const doc = writer.getDoc();
-    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
-    writer.setY(endY);
+    writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
   };
 
   const rangeGroups = buildPeriodRangeGroups(eoValues, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges);

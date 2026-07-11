@@ -149,6 +149,7 @@ export const generateErstatningsopgoerelseDocument = (
       {
         ...options,
         minRightColumnWidth: Math.max(rightMaxWidth, EO_RIGHT_COLUMN_WIDTH),
+        minRightColumnWidthText: '000.000.000,00',
       }
     );
   };

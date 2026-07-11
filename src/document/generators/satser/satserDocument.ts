@@ -5,7 +5,7 @@
  */
 
 import { formatPercent } from '../../../utils/formatUtils';
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from '../documentGeneratorSetup';
 import { formatCurrencyPerUnit, formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
@@ -89,7 +89,7 @@ export const generateSatserDocument = (
  * Tilføj Erstatningsansvarsloven sektion
  */
 const addEalSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   eal: SatserData['eal'],
 ): void => {
   const rows: string[][] = [];
@@ -140,7 +140,7 @@ const addEalSection = (
  * Tilføj Arbejdsskadesikringsloven sektion
  */
 const addAslSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   asl: SatserData['asl'],
 ): void => {
   const rows: string[][] = [];
@@ -217,7 +217,7 @@ const addAslSection = (
  * Tilføj Diverse sektion
  */
 const addDiverseSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   diverse: SatserData['diverse'],
 ): void => {
   const rows: string[][] = [];
@@ -252,7 +252,7 @@ const addDiverseSection = (
  * Tilføj Referencer sektion
  */
 const addReferenserSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   referencer: SatserData['referencer'],
 ): void => {
   const rows: string[][] = [];
@@ -294,7 +294,7 @@ const addReferenserSection = (
 };
 
 const addRowsSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   rows: string[][],
   header: string,
 ): void => {

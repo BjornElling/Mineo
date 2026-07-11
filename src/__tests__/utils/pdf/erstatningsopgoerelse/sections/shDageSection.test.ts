@@ -3,6 +3,7 @@ import { renderShDageSection } from '../../../../../document/generators/eo/secti
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString, isISODateString } from '../../../../../types/branded';
 import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; body?: unknown[][] }) => {
@@ -49,9 +50,9 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
-        setY: vi.fn((nextY: number) => { y = nextY; }),
-        getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc as never),
+        addTable: vi.fn((spec: TableSpec) => {
+          y = renderTableSpec(doc as never, y, spec).endY;
+        }),
       },
     } satisfies Parameters<typeof renderShDageSection>[0],
   };

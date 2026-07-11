@@ -6,9 +6,9 @@
  * (Grundløn, Ydelsesniveau) tilføjes på en separat slutside hvis valgt.
  */
 
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
-import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
 import type {
@@ -45,7 +45,7 @@ const formatEetValue = (eetPct: number, priorKapPct: number): string =>
     : formatPct(eetPct);
 
 export const addLoebendeYdelserEmptyState = (
-  writer: DocumentWriter
+  writer: DocumentComposer
 ): void => {
   writer.writeSectionHeader('Specifikation');
   writer.writeWrappedText('Der er ingen afgørelser i sagen.');
@@ -56,7 +56,7 @@ export const addLoebendeYdelserEmptyState = (
 // ============================================================================
 
 export const addLoebendeAfgoerelseSection = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   afgoerelse: EetLoebendeAfgoerelseComputation,
   computation: EetLoebendeComputation,
   isFirst: boolean
@@ -161,10 +161,7 @@ export const addLoebendeAfgoerelseSection = (
         valueHasKrSuffix: true,
       }
     );
-
-    const doc = writer.getDoc();
-    const startY = writer.getY();
-    const { endY } = renderTableSpec(doc, startY, {
+  writer.addTable({
       columns,
       hasHeaderRow: true,
       rows: [
@@ -184,7 +181,6 @@ export const addLoebendeAfgoerelseSection = (
         ...(totalRow ? [totalRow] : []),
       ],
     });
-    writer.setY(endY);
   }
 };
 
@@ -193,7 +189,7 @@ export const addLoebendeAfgoerelseSection = (
 // ============================================================================
 
 export const addLoebendeUdvidetSpecifikationPage = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   computation: EetLoebendeComputation
 ): void => {
   writer.addPage();

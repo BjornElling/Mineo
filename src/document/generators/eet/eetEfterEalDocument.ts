@@ -5,7 +5,7 @@
  * Al indhold er på én side (ingen tabeller i UI'en).
  */
 
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
@@ -26,7 +26,7 @@ type GenerateEfterEalDocumentParams = DocumentCommonOptions &
   }>;
 
 export const renderEfterEalBody = (
-  writer: DocumentWriter,
+  writer: DocumentComposer,
   computation: EetEalComputation,
   includeBeregningsdatoHeader = true
 ): void => {

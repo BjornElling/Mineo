@@ -11,6 +11,7 @@ import {
   renderOffentligeYdelserSection,
 } from '../../../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../../../types/branded';
+import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; columnStyles?: Record<number, { cellWidth: number }> }) => {
@@ -46,9 +47,9 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
-        setY: vi.fn((nextY: number) => { y = nextY; }),
-        getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc as never),
+        addTable: vi.fn((spec: TableSpec) => {
+          y = renderTableSpec(doc as never, y, spec).endY;
+        }),
         writeUnderlinedSubheader: vi.fn(),
       },
       ...override,
@@ -212,11 +213,9 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
-        setY: vi.fn((nextY: number) => {
-          y = nextY;
+        addTable: vi.fn((spec: TableSpec) => {
+          y = renderTableSpec(doc as never, y, spec).endY;
         }),
-        getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc as never),
         writeUnderlinedSubheader: vi.fn(),
       },
     });
@@ -431,11 +430,9 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
-        setY: vi.fn((nextY: number) => {
-          y = nextY;
+        addTable: vi.fn((spec: TableSpec) => {
+          y = renderTableSpec(doc as never, y, spec).endY;
         }),
-        getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc as never),
       },
     });
 
@@ -471,11 +468,9 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
-        setY: vi.fn((nextY: number) => {
-          y = nextY;
+        addTable: vi.fn((spec: TableSpec) => {
+          y = renderTableSpec(doc as never, y, spec).endY;
         }),
-        getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc as never),
       },
     });
 

@@ -6,14 +6,14 @@ import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatning
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
+import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
 import { formatPct } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatMaanederFixed, formatReguleringPct, formatKr } from '../../../layout/documentFormatUtils';
-import type { DocumentWriter } from '../../../writer';
+import type { DocumentComposer } from '../../../model/documentModel';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
@@ -30,13 +30,13 @@ type OffentligeYdelserSectionContext = Readonly<{
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
   writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
-  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc' | 'writeUnderlinedSubheader'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
 }>;
 
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   visYdelsestypeSubheader?: boolean;
-  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc' | 'writeUnderlinedSubheader'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
 }>;
 
 export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRowsPageContext): void => {
@@ -92,13 +92,10 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
     grouped.get(ydelsestypeLabel)?.push(row);
   }
 
-  const doc = writer.getDoc();
-
   for (const label of groupOrder) {
     if (visYdelsestypeSubheader) writer.writeUnderlinedSubheader(label);
     const specRows = buildTableRows(grouped.get(label) ?? []);
-    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
-    writer.setY(endY);
+    writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
   }
 };
 
@@ -171,7 +168,7 @@ type MidlertidigtEetSectionContext = Readonly<{
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
   tafRanges: readonly IsoRange[];
-  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable'>;
 }>;
 
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
@@ -237,8 +234,6 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
       ),
     ];
 
-    const doc = writer.getDoc();
-    const { endY } = renderTableSpec(doc, writer.getY(), { columns, hasHeaderRow: true, rows: specRows });
-    writer.setY(endY);
+    writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
   }
 };

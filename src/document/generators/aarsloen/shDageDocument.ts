@@ -6,10 +6,10 @@
 
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../layout/pdfConfig';
 import { findNamedHolidaysInDateRanges } from '../../../domain/dates/shDageOversigt';
-import type { DocumentWriter } from '../../writer';
+import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { TABLE_FONT_SIZE } from '../../layout/documentTableRenderer';
-import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
+import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatting';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
@@ -197,7 +197,7 @@ export const generateSHDageDocument = (
 /**
  * Tilføj periode-beskrivelse
  */
-const addDescription = (writer: DocumentWriter, perioder: ReadonlyArray<SHDagePeriod>): void => {
+const addDescription = (writer: DocumentComposer, perioder: ReadonlyArray<SHDagePeriod>): void => {
   const periodeTekst = formaterPeriodeOversigt(perioder);
   writer.writeWrappedText(`Periode: ${periodeTekst}`);
   writer.addSectionSpacer();
@@ -206,18 +206,15 @@ const addDescription = (writer: DocumentWriter, perioder: ReadonlyArray<SHDagePe
 /**
  * Tilføj SH-dage tabel
  */
-const addSHDageTable = (writer: DocumentWriter, helligdage: ReadonlyArray<SHDagEntry>): void => {
-  const doc = writer.getDoc();
-  const startY = writer.getY();
+const addSHDageTable = (writer: DocumentComposer, helligdage: ReadonlyArray<SHDagEntry>): void => {
   const { columns, rows } = buildSHDageTableRows(helligdage);
-  const { endY } = renderTableSpec(doc, startY, { columns, hasHeaderRow: true, rows });
-  writer.setY(endY);
+  writer.addTable({ columns, hasHeaderRow: true, rows });
 };
 
 /**
  * Tilføj forklaringstekst
  */
-const addExplanationText = (writer: DocumentWriter): void => {
+const addExplanationText = (writer: DocumentComposer): void => {
   writer.writeBoldSubheader('Forklaring');
 
   const explanations = [
