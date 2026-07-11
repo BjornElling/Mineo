@@ -6,7 +6,6 @@ const {
   mockGenerateRenteOversigtPdf,
   mockWriteRentePdfContent,
   mockBuildRentePdfBaseTitle,
-  mockBuildRentePdfFilename,
   mockCreateStandardPdfWriter,
   mockWriter,
 } = vi.hoisted(() => {
@@ -23,7 +22,6 @@ const {
     mockGenerateRenteOversigtPdf: vi.fn(),
     mockWriteRentePdfContent: vi.fn(),
     mockBuildRentePdfBaseTitle: vi.fn(() => 'Procesrente, 1.000,00 kr. (01-01-2024 - 30-06-2024)'),
-    mockBuildRentePdfFilename: vi.fn((baseTitle: string) => `${baseTitle}.pdf`),
     mockCreateStandardPdfWriter: vi.fn(() => mockWriter),
     mockWriter,
   };
@@ -33,7 +31,6 @@ vi.mock('../../document/generators/renteberegning/renteDocument', () => ({
   generateRenteDocument: mockGenerateRentePdf,
   writeRenteDocumentContent: mockWriteRentePdfContent,
   buildRenteDocumentBaseTitle: mockBuildRentePdfBaseTitle,
-  buildRenteDocumentFilename: mockBuildRentePdfFilename,
 }));
 
 vi.mock('../../document/generators/renteberegning/renteOversigtDocument', () => ({
@@ -176,7 +173,6 @@ describe('downloadAllStandaloneRentePdf', () => {
     setDocumentBrand('minprocesrente.dk');
     mockWriteRentePdfContent.mockReset();
     mockBuildRentePdfBaseTitle.mockClear();
-    mockBuildRentePdfFilename.mockClear();
     mockCreateStandardPdfWriter.mockClear();
     mockWriter.setDisplayMode.mockClear();
     mockWriter.setProperties.mockClear();

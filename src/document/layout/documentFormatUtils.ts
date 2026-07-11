@@ -8,6 +8,7 @@ import {
 } from '../../utils/documentMaanederFormatting';
 import { resolveDocumentFileName, sanitizeFilenamePart } from '../documentFileName';
 import { toKroner, type MoneyOre } from '../../domain/money/money';
+import { getActiveDocumentDownloadFormat } from '../documentGenerationContext';
 
 const NBSP = '\u00A0';
 
@@ -17,16 +18,18 @@ const NBSP = '\u00A0';
 export { sanitizeFilenamePart };
 
 /**
- * Bygger et PDF-filnavn via den fælles dokument-filnavnsregel (`resolveDocumentFileName`).
- *
- * PDF-generatorerne kender altid kun PDF-endelsen, fordi de bygger filnavnet før det
- * aktive output-format kendes. Den faktiske endelse afgøres ved download: PDF beholder
- * `.pdf`, mens Word-writeren mapper til `.docx` ud fra det aktive dokument-format. Reglen
- * (journalnr-præfiks, ` (udkast)`, sanitering) er fælles for begge formater — kun endelsen
- * adskiller sig (jf. `document-format-contract.md` §4.4).
+ * Bygger filnavnet via den fælles regel og den aktive dokument-genereringssession.
+ * Generatoren vælger kun titel/udkast/journalnummer; formatlaget ejer endelsen ét sted.
+ * Uden en aktiv session er fallback-formatet PDF, så direkte generator-tests og den
+ * bevidst PDF-only standalone-app bevarer deres deterministiske standard.
  */
 export const resolveDocumentArtifactFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
-  return resolveDocumentFileName(baseTitle, isDraft, 'pdf', journalnr);
+  return resolveDocumentFileName(
+    baseTitle,
+    isDraft,
+    getActiveDocumentDownloadFormat(),
+    journalnr
+  );
 };
 
 export const formatMaanederTrimmed = (value: number): string => {

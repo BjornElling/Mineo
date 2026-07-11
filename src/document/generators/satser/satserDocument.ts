@@ -6,13 +6,13 @@
 
 import { formatPercent } from '../../../utils/formatUtils';
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter, writeLabelValueRows } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from '../documentGeneratorSetup';
 import { formatCurrencyPerUnit, formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 
 type SatserData = ReturnType<typeof getSatserForYear>;
-type SatserPdfOptions = DocumentCommonOptions;
+type SatserDocumentOptions = DocumentCommonOptions;
 
 const isPositiveFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0;
@@ -25,31 +25,28 @@ const formatPercentage = (value: number | null | undefined): string => {
   return formatPercent(value);
 };
 
-export const buildSatserDocumentFilename = (year: number): string => resolveDocumentArtifactFileName(`Arbejdsskadesatser ${year}`, false);
-
 /**
  * Generer og download PDF for arbejdsskadesatser
  *
  * @param {number} year - Året satserne gælder for
  * @param {Object} satser - Satser data fra getSatserForYear()
- * @param {SatserPdfOptions} options - Valgfrie indstillinger
+ * @param {SatserDocumentOptions} options - Valgfrie indstillinger
  */
-export const generateSatserDocument = (
-  year: number,
-  satser: SatserData,
-  options: SatserPdfOptions = {}
-): void => {
-  const { visBrevhoved = false, stamdata = null } = options;
+type SatserDocumentInput = Readonly<{
+  year: number;
+  satser: SatserData;
+  options: SatserDocumentOptions;
+}>;
 
-  const writer = initStandardDocumentWriter({ title: `Arbejdsskadesatser ${year}` });
-
-  // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  // Tilføj titel
-  writer.writeTitle(`Arbejdsskadesatser ${year}`);
+const generateSatser = defineDocument<SatserDocumentInput>({
+  title: ({ year }) => `Arbejdsskadesatser ${year}`,
+  filename: ({ year }) => resolveDocumentArtifactFileName(
+    `Arbejdsskadesatser ${year}`,
+    false
+  ),
+  brevhoved: ({ options: { visBrevhoved = false, stamdata } }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, { satser }) => {
 
   // Tilføj Erstatningsansvarsloven sektion
   if (satser && satser.eal) {
@@ -71,11 +68,15 @@ export const generateSatserDocument = (
     addReferenserSection(writer, satser.referencer);
   }
 
-  // Tilføj footer med versionsnummer
-  writer.addFooter();
+  },
+});
 
-  // Download PDF
-  writer.save(buildSatserDocumentFilename(year));
+export const generateSatserDocument = (
+  year: number,
+  satser: SatserData,
+  options: SatserDocumentOptions = {}
+): void => {
+  generateSatser({ year, satser, options });
 };
 
 

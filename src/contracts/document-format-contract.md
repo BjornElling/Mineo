@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle dokument-downloads i Mineo-hovedappen.
-**Senest verificeret mod kode:** 2026-06-18
+**Senest verificeret mod kode:** 2026-07-11
 
 Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads. Den er
 **kanal-vælgeren** der ligger *over* `document-output-contract.md`: denne kontrakt bestemmer
@@ -39,6 +39,11 @@ data/gate/komposition og writer-API'et, begge kanaler deler.
 2. Word skal være en ægte `.docx`-fil.
 3. Word-output må ikke indeholde eksterne relationer, remote templates, font-links eller anden netværksafhængighed.
 4. Filnavnsreglen er fælles for begge formater; kun endelsen adskiller sig.
+5. `defineDocument(...)` resolver filnavnet gennem `resolveDocumentArtifactFileName(...)`,
+   som læser det aktive format fra dokument-genereringssessionen. Word-writeren må ikke
+   omskrive en `.pdf`-endelse skjult under `save`; generator-lifecyclen afleverer det
+   færdige `.pdf`- eller `.docx`-filnavn. Den nuværende sessionskontekst er fortsat
+   afviklingsgrænsen; eksplicit sessionsobjekt behandles særskilt i greenfield #38.
 
 ## 5. Brugervendt signal
 

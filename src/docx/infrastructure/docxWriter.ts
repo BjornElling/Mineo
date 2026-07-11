@@ -750,7 +750,7 @@ export const createDocxWriter = (params?: Readonly<{
     },
     addFooter: () => {},
     save: (nextFilename) => {
-      filename = nextFilename.endsWith('.pdf') ? `${nextFilename.slice(0, -4)}.docx` : nextFilename;
+      filename = nextFilename;
       const pendingDownload = build().then((blob) => {
         triggerDocumentDownload({ blob, filename });
       });

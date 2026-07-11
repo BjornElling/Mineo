@@ -5,9 +5,8 @@
  */
 
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../layout/pdfConfig';
-import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { defineDocument } from '../documentGeneratorSetup';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
@@ -65,7 +64,7 @@ const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
  * Udvider DocumentCommonOptions for visBrevhoved-kontrakten.
  * stamdata fra DocumentCommonOptions bruges ikke — brevhoved-data hentes fra model.brevhoved.
  */
-interface ErstatningsopgoerelsePdfOptions extends DocumentCommonOptions {
+interface ErstatningsopgoerelseDocumentOptions extends DocumentCommonOptions {
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';
   visUdkastStempel?: boolean;
   document: EoModel;
@@ -78,16 +77,16 @@ interface ErstatningsopgoerelsePdfOptions extends DocumentCommonOptions {
  * @param {StamdataValues} stamdataValues - Stamdata fra FormPersistence
  * @param {ErstatningsopgoerelseValues} eoValues - EO-oplysninger fra FormPersistence
  * @param {SelectedElements} selectedElements - Valgte elementer til PDF
- * @param {ErstatningsopgoerelsePdfOptions} options - Valgfrie indstillinger
+ * @param {ErstatningsopgoerelseDocumentOptions} options - Valgfrie indstillinger
  */
 export const generateErstatningsopgoerelseDocument = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
   selectedElements: SelectedElements,
-  options: ErstatningsopgoerelsePdfOptions
+  options: ErstatningsopgoerelseDocumentOptions
 ) => {
   if (!selectedElements.opgoerelse) {
-    throw new Error('PDF-generering kræver, at elementet "Opgørelse" er valgt.');
+    throw new Error('Dokumentgenerering kræver, at elementet "Opgørelse" er valgt.');
   }
 
   const { visBrevhoved = false } = options;
@@ -96,7 +95,7 @@ export const generateErstatningsopgoerelseDocument = (
   const lineHeight = PDF_BASE_LINE_HEIGHT_MM;
   const doubleLineHeight = lineHeight * 2;
   if (!options.document) {
-    throw new Error('EO-PDF kræver et præ-projiceret PDF-dokument.');
+    throw new Error('EO-dokumentet kræver en præ-projiceret dokumentmodel.');
   }
   const model = options.document;
   const titel = model.titel;
@@ -108,11 +107,28 @@ export const generateErstatningsopgoerelseDocument = (
     });
   };
 
-  const writer = initStandardDocumentWriter({
+  const generate = defineDocument<void>({
     title: titel,
-    options: { visUdkastStempel, onLayoutFallback: warnLayoutFallback },
-  });
-
+    filename: () => resolveDocumentArtifactFileName(
+      titel,
+      visUdkastStempel,
+      model.brevhoved?.journalnr
+    ),
+    writerOptions: { visUdkastStempel, onLayoutFallback: warnLayoutFallback },
+    beforeBrevhoved: (writer) => {
+      writer.addUdkastWatermark();
+    },
+    brevhoved: () => visBrevhoved && model.brevhoved
+      ? {
+        journalnr: model.brevhoved.journalnr,
+        advokat: model.brevhoved.advokat,
+        sagsbehandler: model.brevhoved.sagsbehandler,
+        // UND TAGELSE: EOberegning-tab bruger "Opgørelse lavet den" i stedet for dags dato.
+        dagsDatoISO: model.brevhoved.dagsDatoISO,
+      }
+      : null,
+    titleOptions: { trailingSpacing: 0 },
+    body: (writer) => {
   const safeAddLeftRightText = (
     leftText: string,
     rightText: string,
@@ -135,23 +151,6 @@ export const generateErstatningsopgoerelseDocument = (
   };
 
   const renderSubheader = writer.writeBoldSubheader;
-
-  writer.addUdkastWatermark();
-
-  // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved && model.brevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: model.brevhoved.journalnr,
-      advokat: model.brevhoved.advokat,
-      sagsbehandler: model.brevhoved.sagsbehandler,
-      // UND TAGELSE: EOberegning-tab bruger "Opgørelse lavet den" i stedet for dags dato.
-      dagsDatoISO: model.brevhoved.dagsDatoISO,
-    };
-    writer.writeBrevhoved(brevhovedData);
-  }
-
-  // Tilføj titel
-  writer.writeTitle(titel, { trailingSpacing: 0 });
 
   // Tilføj erstatningsperiode-datoer direkte under titel
   if (model.periodeDisplay) {
@@ -216,8 +215,7 @@ export const generateErstatningsopgoerelseDocument = (
     midlertidigtEetGroups: options.midlertidigtEetGroups,
   });
 
-  writer.addFooter();
-
-  // Download PDF
-  writer.save(resolveDocumentArtifactFileName(titel, visUdkastStempel, model.brevhoved?.journalnr));
+    },
+  });
+  generate();
 };

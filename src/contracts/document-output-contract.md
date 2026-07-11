@@ -158,6 +158,14 @@ Dette afsnit fastlægger den visuelle og strukturelle standard for Mineos dokume
 
 Generatorerne kalder den kanal-agnostiske router `createStandardPdfWriter` (`src/document/writer/documentWriterRouter.ts`), der delegerer til den writer-fabrik, som er injiceret i den aktive `documentGenerationContext` (`getActiveDocumentWriterFactory()`); routeren importerer aldrig en kanal statisk. Reglerne i dette afsnit gælder derfor **begge** kanaler — de er ikke PDF-only. En generator skriver mod `DocumentWriter` uden at vide, hvilken kanal den ender i, og må ikke indføre kanal-specifikke afvigelser.
 
+Alle generator-entrypoints defineres med `defineDocument(...)` i
+`src/document/generators/documentGeneratorSetup.ts`. Factoryen ejer den faste lifecycle:
+writer-opsætning → eventuelt første-side-vandmærke → eventuelt brevhoved → eventuel titel →
+domæneindhold → footer → formatkorrekt filnavn → save. Generatoren ejer kun sin deklarative
+opsætning og sin kanal-neutrale `body(writer, input)`-callback. En generator må ikke gentage
+eller springe dele af denne ydre lifecycle over; reelle variationer angives i definitionen
+(fx ingen synlig titel på TAF-grafen).
+
 Ved konflikt internt i kontrakten gælder:
 
 1. Afsnit A for data-/gate-/guard-regler
@@ -442,6 +450,7 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 ## 2. Autoritative Kilder
 
 - Fælles writer-grænseflade: `src/document/writer/documentWriter.ts` (`DocumentWriter`).
+- Fælles generator-lifecycle: `defineDocument` i `src/document/generators/documentGeneratorSetup.ts`.
 - Kanal-agnostisk writer-router: `createStandardPdfWriter` (`src/document/writer/documentWriterRouter.ts`).
 - PDF-writer-fabrik (kanal): `createPdfChannelWriter` (`src/pdf/infrastructure/pdfWriter.ts`).
 - Word-writer-fabrik (kanal): `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`).

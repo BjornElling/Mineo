@@ -10,7 +10,7 @@ import { formatAmount } from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
 import {
   buildStamdataBrevhovedData,
-  initStandardDocumentWriter,
+  defineDocument,
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
 import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
@@ -37,10 +37,6 @@ type RenteOversigtDocumentOptions = DocumentCommonOptions & Readonly<{
   latestReferenceRateDate?: ISODateString | null;
   metadata?: StandardDocumentMetadata;
 }>;
-
-export const buildRenteOversigtDocumentFilename = (journalnr?: string): string => {
-  return resolveDocumentArtifactFileName(PDF_TITLE, false, journalnr);
-};
 
 const addDateLine = (writer: DocumentWriter, beregningsdato: ISODateString): void => {
   writer.writeWrappedText(`Rente beregnes til og med ${formatIsoDateLong(beregningsdato)}.`);
@@ -136,19 +132,31 @@ export const writeRenteOversigtDocumentContent = (
  * @param rows - Projektion af de gyldige renteberegninger.
  * @param options - Valgfrie indstillinger (brevhoved/stamdata/kommentarer).
  */
+type RenteOversigtDocumentInput = Readonly<{
+  beregningsdato: ISODateString;
+  rows: ReadonlyArray<RenteOversigtRow>;
+  options: RenteOversigtDocumentOptions;
+}>;
+
+const generateRenteOversigt = defineDocument<RenteOversigtDocumentInput>({
+  title: PDF_TITLE,
+  filename: ({ options }) => resolveDocumentArtifactFileName(
+    PDF_TITLE,
+    false,
+    options.stamdata?.journalnr
+  ),
+  metadata: ({ options }) => options.metadata,
+  writeTitle: false,
+  body: (writer, { beregningsdato, rows, options }) => {
+    // Indholds-helperen ejer titel/brevhoved, fordi den testes og genbruges separat.
+    writeRenteOversigtDocumentContent(writer, beregningsdato, rows, options);
+  },
+});
+
 export const generateRenteOversigtDocument = (
   beregningsdato: ISODateString,
   rows: ReadonlyArray<RenteOversigtRow>,
   options: RenteOversigtDocumentOptions = {}
 ): void => {
-  const writer = initStandardDocumentWriter({
-    title: PDF_TITLE,
-    metadata: options.metadata,
-  });
-
-  writeRenteOversigtDocumentContent(writer, beregningsdato, rows, options);
-
-  writer.addFooter();
-
-  writer.save(buildRenteOversigtDocumentFilename(options.stamdata?.journalnr));
+  generateRenteOversigt({ beregningsdato, rows, options });
 };

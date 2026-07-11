@@ -6,7 +6,7 @@
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
@@ -16,14 +16,11 @@ import { formatAsAmount } from '../../../utils/formatUtils';
 import { formatKrEet as formatKr } from './eetDocumentUtils';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 
-export const buildEfterEalDocumentFilename = (journalnr?: string): string =>
-  resolveDocumentArtifactFileName('EET efter EAL', false, journalnr);
-
 // ============================================================================
 // HOVED-GENERATOR
 // ============================================================================
 
-type GenerateEfterEalPdfParams = DocumentCommonOptions &
+type GenerateEfterEalDocumentParams = DocumentCommonOptions &
   Readonly<{
     computation: EetEalComputation;
   }>;
@@ -145,19 +142,16 @@ export const renderEfterEalBody = (
   );
 };
 
-export const generateEfterEalDocument = (params: GenerateEfterEalPdfParams): void => {
-  const { computation, stamdata, visBrevhoved = false } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'EET efter EAL' });
-
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  writer.writeTitle('EET efter EAL');
-
-  renderEfterEalBody(writer, computation);
-
-  writer.addFooter();
-  writer.save(buildEfterEalDocumentFilename(stamdata?.journalnr));
-};
+export const generateEfterEalDocument = defineDocument<GenerateEfterEalDocumentParams>({
+  title: 'EET efter EAL',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'EET efter EAL',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, { computation }) => {
+    renderEfterEalBody(writer, computation);
+  },
+});

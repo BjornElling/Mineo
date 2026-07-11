@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { writeRenteOversigtDocumentContent, buildRenteOversigtDocumentFilename, type RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
+import { writeRenteOversigtDocumentContent, type RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import { toISODateString } from '../../../types/branded';
 
@@ -72,11 +72,5 @@ describe('writeRenteOversigtDocumentContent', () => {
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(addFooterSpy).not.toHaveBeenCalled();
-  });
-});
-
-describe('buildRenteOversigtDocumentFilename', () => {
-  it('indeholder titlen', () => {
-    expect(buildRenteOversigtDocumentFilename()).toContain('Procesrente');
   });
 });

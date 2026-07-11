@@ -8,10 +8,9 @@
  * Eventuel fail-closed / blokering er allerede afgjort før denne generator kaldes.
  */
 
-import { initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { defineDocument } from '../documentGeneratorSetup';
 import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../layout/pdfConfig';
 import { ensureNonBreakingKr } from '../../layout/pdfTextUtils';
-import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
 import { logWarning } from '../../../utils/logger';
 import { formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import {
@@ -32,23 +31,28 @@ const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 
-interface TafFordeltPaaAarPdfOptions {
+interface TafFordeltPaaAarDocumentOptions {
   document: TafPerYearDocument;
   visBrevhoved?: boolean;
   visUdkastStempel?: boolean;
 }
 
 export const generateTafFordeltPaaAarDocument = (
-  options: TafFordeltPaaAarPdfOptions
+  options: TafFordeltPaaAarDocumentOptions
 ): void => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const { model, presentation } = options.document;
 
   const titel = 'Tabt arbejdsfortjeneste fordelt på år';
 
-  const writer = initStandardDocumentWriter({
+  const generate = defineDocument<void>({
     title: titel,
-    options: {
+    filename: () => resolveDocumentArtifactFileName(
+      FILE_BASE_NAME,
+      visUdkastStempel,
+      model.brevhoved?.journalnr
+    ),
+    writerOptions: {
       visUdkastStempel,
       onLayoutFallback: ({ message, label }) => {
         logWarning('PDF-layout fallback aktiveret', {
@@ -57,24 +61,19 @@ export const generateTafFordeltPaaAarDocument = (
         });
       },
     },
-  });
-
-  // Udkast-stempel på første side
-  writer.addUdkastWatermark();
-
-  // Brevhoved
-  if (visBrevhoved && model.brevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: model.brevhoved.journalnr,
-      advokat: model.brevhoved.advokat,
-      sagsbehandler: model.brevhoved.sagsbehandler,
-      dagsDatoISO: model.brevhoved.dagsDatoISO,
-    };
-    writer.writeBrevhoved(brevhovedData);
-  }
-
-  // Titel
-  writer.writeTitle(titel, { trailingSpacing: 0 });
+    beforeBrevhoved: (writer) => {
+      writer.addUdkastWatermark();
+    },
+    brevhoved: () => visBrevhoved && model.brevhoved
+      ? {
+        journalnr: model.brevhoved.journalnr,
+        advokat: model.brevhoved.advokat,
+        sagsbehandler: model.brevhoved.sagsbehandler,
+        dagsDatoISO: model.brevhoved.dagsDatoISO,
+      }
+      : null,
+    titleOptions: { trailingSpacing: 0 },
+    body: (writer) => {
 
   // Erstatningsperiode
   if (model.periodeDisplay) {
@@ -125,8 +124,6 @@ export const generateTafFordeltPaaAarDocument = (
     writer.writeWrappedText('Ingen');
     writer.writeBoldSubheader('TAF fordelt på kalenderår');
     writer.writeWrappedText('Ingen');
-    writer.addFooter();
-    writer.save(resolveDocumentArtifactFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
     return;
   } else {
     for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
@@ -145,8 +142,6 @@ export const generateTafFordeltPaaAarDocument = (
   if (!presentation) {
     writer.writeBoldSubheader('TAF fordelt på kalenderår');
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
-    writer.addFooter();
-    writer.save(resolveDocumentArtifactFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
     return;
   }
 
@@ -261,7 +256,7 @@ export const generateTafFordeltPaaAarDocument = (
     minRightColumnWidth: rightMaxWidth,
   });
 
-  // Footer og gem
-  writer.addFooter();
-  writer.save(resolveDocumentArtifactFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
+    },
+  });
+  generate();
 };

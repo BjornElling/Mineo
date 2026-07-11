@@ -6,7 +6,7 @@
 
 import type jsPDF from 'jspdf';
 import type { DocumentTableBridgeDocument } from '../../layout/documentTableBridge';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
@@ -317,7 +317,22 @@ const buildStatistikTable = (
   return { columns, rows };
 };
 
-export const generateReguleringDocument = (params: ReguleringDocumentParams): void => {
+export const generateReguleringDocument = defineDocument<ReguleringDocumentParams>({
+  title: 'Regulering',
+  filename: (params) => {
+    const valgtLabel = params.loenudviklingBasis === 'Statistik'
+      ? (params.statistikModelLabel?.trim() || '-')
+      : (params.overenskomstLabel.trim() || '-');
+    return buildReguleringDocumentFilename({
+      loenudviklingBasis: params.loenudviklingBasis,
+      valgtLabel,
+      interval: params.interval,
+      journalnr: params.stamdata?.journalnr,
+    });
+  },
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, params) => {
   const {
     overenskomstLabel,
     loenudviklingBasis,
@@ -329,19 +344,8 @@ export const generateReguleringDocument = (params: ReguleringDocumentParams): vo
     offentligLoenTrin,
     offentligLoenGruppe,
     offentligLoenEkstraGrundloen,
-    visBrevhoved = false,
-    stamdata = null,
   } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'Regulering' });
   const doc = writer.getDoc();
-
-  // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  writer.writeTitle('Regulering');
 
   const valgtLabel =
     loenudviklingBasis === 'Statistik'
@@ -395,6 +399,5 @@ export const generateReguleringDocument = (params: ReguleringDocumentParams): vo
     writer.writeWrappedText(ILON12_DISCONTINUED_NOTE);
   }
 
-  writer.addFooter();
-  writer.save(buildReguleringDocumentFilename({ loenudviklingBasis, valgtLabel, interval, journalnr: stamdata?.journalnr }));
-};
+  },
+});

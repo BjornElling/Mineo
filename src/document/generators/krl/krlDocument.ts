@@ -6,7 +6,7 @@
  */
 
 import { PDF_CONTENT_WIDTH_MM } from '../../layout/pdfConfig';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { krlSatstabeller } from '../../../data/krlRates';
 import { danishToISO, type DanishDateString } from '../../../types/branded';
@@ -14,14 +14,12 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
 import { formatAsAmount } from '../../../utils/formatUtils';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 
-type KRLPdfParams = DocumentCommonOptions;
+type KRLDocumentParams = DocumentCommonOptions;
 
 const formatPct = (value: number | undefined): string => {
   if (value === undefined || value === 0) return '';
   return formatAsAmount(value, 4) + ' %';
 };
-
-export const buildKRLDocumentFilename = (journalnr?: string): string => resolveDocumentArtifactFileName('KRL Satstabeller', false, journalnr);
 
 /**
  * Bygger én samlet tabel med alle fire KRL satstabeller.
@@ -68,17 +66,17 @@ const buildCombinedRows = (): { dates: DanishDateString[]; rows: string[][] } =>
   return { dates, rows };
 };
 
-export const generateKRLDocument = (params: KRLPdfParams): void => {
-  const { visBrevhoved = false, stamdata = null } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'KRL Satstabeller' });
+export const generateKRLDocument = defineDocument<KRLDocumentParams>({
+  title: 'KRL Satstabeller',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'KRL Satstabeller',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer) => {
   const doc = writer.getDoc();
-
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  writer.writeTitle('KRL Satstabeller');
 
   // Byg samlet tabel
   const { rows } = buildCombinedRows();
@@ -117,7 +115,5 @@ export const generateKRLDocument = (params: KRLPdfParams): void => {
   // Kildetekst under tabellen
   writer.writeBoldSubheader('Kilde');
   writer.writeWrappedText('KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats');
-
-  writer.addFooter();
-  writer.save(buildKRLDocumentFilename(stamdata?.journalnr));
-};
+  },
+});

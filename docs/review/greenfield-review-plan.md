@@ -128,7 +128,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 5 | 39 | ✅ Persistence initialiseres før React-render | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | før #19, #28, #33 |
 | 6 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
 | 7 | 15 | ✅ `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
-| 8 | 11 | `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
+| 8 | 11 | ✅ `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
 | 9 | 38 | Eksplicit dokument-genereringssession | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | muliggør #24; beslægtet #11 |
 | 10 | 12 | Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
 | 11 | 19 | Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
@@ -294,6 +294,17 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** #5.
 
 ### 11 — `defineDocument`-generator-skelet-factory · 11
+
+- **Status: ✅ Gennemført (2026-07-11).** `defineDocument<Input>` ejer nu den faste,
+  kanal-neutrale generator-lifecycle (writer/metadata → valgfrit vandmærke og brevhoved →
+  valgfri titel → body → footer → filnavn → save), og samtlige 18 generator-entrypoints er
+  migreret — også EO/TAF-særtilfældene og deres tidlige returgrene. Det kommende blok-IR
+  (#24) foregribes ikke: `body` skriver fortsat mod det gældende `DocumentWriter`-API.
+  De statiske one-line-filnavnsbuildere er fjernet; `resolveDocumentArtifactFileName`
+  resolver nu `.pdf`/`.docx` direkte fra den aktive genereringssession, og Word-writerens
+  skjulte `.pdf`→`.docx`-omskrivning er fjernet. Den endelige eksplicitte sessions-/artefakt-
+  grænse hører fortsat til #38. Lifecycle-, formatfilnavns-, PDF-/Word-indholds- og
+  generator-golden-tests bevarer outputadfærden.
 
 - **Scope:** `varigeMenDocument.ts`, `kapitaliseringDocument.ts`, `eetEfterEalDocument.ts`, `satserDocument.ts`, `renteDocument.ts`, `shDageDocument.ts`, `forsoergertabDocument.ts` m.fl.; delt `documentGeneratorSetup.ts` (106).
 - **Problem:** Fælles preamble er fanget, men hver generator gentager samme ydre skelet verbatim (`initStandardDocumentWriter → brevhoved → title → sektioner → footer → save`). Filnavn-buildere er one-liner-duplikater; `resolveDocumentArtifactFileName` hardkoder `'pdf'` før formatet kendes, hvorefter Word-writeren omskriver extension i `save` — filnavn/format-ejerskab splittet over tre filer.

@@ -7,7 +7,7 @@
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../layout/pdfConfig';
 import { findNamedHolidaysInDateRanges } from '../../../domain/dates/shDageOversigt';
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { TABLE_FONT_SIZE } from '../../layout/documentTableRenderer';
 import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatDanishDate } from '../../../utils/dateUtils';
@@ -16,7 +16,7 @@ import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 
-type SHDagePdfOptions = DocumentCommonOptions;
+type SHDageDocumentOptions = DocumentCommonOptions;
 type SHDagePeriod = { start: Date; end: Date };
 type SHDagEntry = Readonly<{
   dato: Date;
@@ -155,44 +155,37 @@ export const buildSHDageTableRows = (
  * Generer og download PDF for SH-dage
  *
  * @param {Array} perioder - Array af {start: Date, end: Date} periode-objekter
- * @param {SHDagePdfOptions} options - Valgfrie indstillinger (inkl. stamdata og brevhoved)
+ * @param {SHDageDocumentOptions} options - Valgfrie indstillinger (inkl. stamdata og brevhoved)
  */
+type SHDageDocumentInput = Readonly<{
+  perioder: ReadonlyArray<SHDagePeriod>;
+  options: SHDageDocumentOptions;
+}>;
+
+const generateSHDage = defineDocument<SHDageDocumentInput>({
+  title: 'SH-dage',
+  filename: ({ perioder, options }) =>
+    buildSHDageDocumentFilename(perioder, options.stamdata?.journalnr),
+  brevhoved: ({ options: { visBrevhoved = false, stamdata } }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, { perioder }) => {
+    addDescription(writer, perioder);
+    const helligdage = findSHDageIPerioder(perioder);
+
+    if (helligdage.length === 0) {
+      writer.writeWrappedText('Ingen helligdage fundet i de angivne perioder.');
+    } else {
+      addSHDageTable(writer, helligdage);
+      addExplanationText(writer);
+    }
+  },
+});
+
 export const generateSHDageDocument = (
   perioder: ReadonlyArray<SHDagePeriod>,
-  options: SHDagePdfOptions = {}
+  options: SHDageDocumentOptions = {}
 ): void => {
-  const { visBrevhoved = false } = options;
-  const writer = initStandardDocumentWriter({ title: 'SH-dage' });
-
-  // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(options.stamdata));
-  }
-
-  // Tilføj titel
-  writer.writeTitle('SH-dage');
-
-  // Tilføj periode-beskrivelse
-  addDescription(writer, perioder);
-
-  // Find alle helligdage
-  const helligdage = findSHDageIPerioder(perioder);
-
-  if (helligdage.length === 0) {
-    writer.writeWrappedText('Ingen helligdage fundet i de angivne perioder.');
-  } else {
-    // Tilføj helligdagstabel
-    addSHDageTable(writer, helligdage);
-
-    // Tilføj forklaringstekst
-    addExplanationText(writer);
-  }
-
-  // Tilføj footer med versionsnummer
-  writer.addFooter();
-
-  // Download PDF
-  writer.save(buildSHDageDocumentFilename(perioder, options.stamdata?.journalnr));
+  generateSHDage({ perioder, options });
 };
 
 

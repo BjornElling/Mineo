@@ -11,33 +11,30 @@
  * SÆRLIG KL-LØNAFTALER-LOGIK — se docs/domain/taf/kl-loenaftaler-regulering.md.
  */
 
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 
-type KlLoenaftalerPdfParams = DocumentCommonOptions;
+type KlLoenaftalerDocumentParams = DocumentCommonOptions;
 
 const KL_LOENAFTALER_DOCUMENT_TITLE = 'KL-lønaftaler';
 
-export const buildKlLoenaftalerDocumentFilename = (journalnr?: string): string =>
-  resolveDocumentArtifactFileName(KL_LOENAFTALER_DOCUMENT_TITLE, false, journalnr);
-
 const formatReguleringPct = (value: number): string => `${formatAsAmount(value, 2)} %`;
 
-export const generateKlLoenaftalerDocument = (params: KlLoenaftalerPdfParams): void => {
-  const { visBrevhoved = false, stamdata = null } = params;
-
-  const writer = initStandardDocumentWriter({ title: KL_LOENAFTALER_DOCUMENT_TITLE });
+export const generateKlLoenaftalerDocument = defineDocument<KlLoenaftalerDocumentParams>({
+  title: KL_LOENAFTALER_DOCUMENT_TITLE,
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    KL_LOENAFTALER_DOCUMENT_TITLE,
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer) => {
   const doc = writer.getDoc();
-
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  writer.writeTitle(KL_LOENAFTALER_DOCUMENT_TITLE);
 
   // To lige brede, centrerede kolonner. Justering defineres på kolonnerne (`align`),
   // så både PDF og Word læser samme kilde.
@@ -62,7 +59,5 @@ export const generateKlLoenaftalerDocument = (params: KlLoenaftalerPdfParams): v
   });
 
   writer.setY(endY);
-
-  writer.addFooter();
-  writer.save(buildKlLoenaftalerDocumentFilename(stamdata?.journalnr));
-};
+  },
+});

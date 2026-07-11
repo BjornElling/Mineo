@@ -13,9 +13,9 @@
  * via `setDocumentBrand`) ville have slået igennem på rente-PDF'erne, men efterladt
  * et forældet brand på alle øvrige. Nu er feltet ensartet.
  *
- * Brevhoved samles ikke her som ét trin: TAF/EO indskyder et udkast-stempel mellem
- * metadata og brevhoved og bygger brevhovedet fra `model.brevhoved` med egen brevdato,
- * mens de øvrige bygger fra stamdata med dags dato (`buildStamdataBrevhovedData`).
+ * `defineDocument` ejer nu også den fælles lifecycle omkring indholdet. TAF/EO giver
+ * deres særlige vandmærke- og brevhoveddata deklarativt, mens øvrige generatorer bruger
+ * stamdata med dags dato (`buildStamdataBrevhovedData`).
  */
 
 import { createStandardPdfWriter, type DocumentWriter } from '../writer';
@@ -40,6 +40,30 @@ export type StandardDocumentWriterOptions = Readonly<{
   onLayoutFallback?: (params: Readonly<{ message: string; label: string }>) => void;
 }>;
 
+type DocumentValueResolver<TInput, TValue> = TValue | ((input: TInput) => TValue);
+
+export type DocumentDefinition<TInput> = Readonly<{
+  title: DocumentValueResolver<TInput, string>;
+  filename: (input: TInput) => string;
+  body: (writer: DocumentWriter, input: TInput) => void;
+  writerOptions?: DocumentValueResolver<TInput, StandardDocumentWriterOptions | undefined>;
+  metadata?: DocumentValueResolver<TInput, StandardDocumentMetadata | undefined>;
+  brevhoved?: (input: TInput) => BrevhovedData | null;
+  beforeBrevhoved?: (writer: DocumentWriter, input: TInput) => void;
+  titleOptions?: DocumentValueResolver<
+    TInput,
+    Parameters<DocumentWriter['writeTitle']>[1]
+  >;
+  writeTitle?: boolean;
+}>;
+
+const resolveDocumentValue = <TInput, TValue>(
+  resolver: DocumentValueResolver<TInput, TValue>,
+  input: TInput
+): TValue => (typeof resolver === 'function'
+  ? (resolver as (value: TInput) => TValue)(input)
+  : resolver);
+
 /**
  * Opretter en standard-writer med ensartet display-mode og dokument-metadata.
  *
@@ -62,6 +86,49 @@ export const initStandardDocumentWriter = (
     creator: params.metadata?.creator ?? getDocumentCreatorBrand(),
   });
   return writer;
+};
+
+/**
+ * Definerer hele den fælles lifecycle for et dokument.
+ *
+ * Generatoren ejer fortsat dokumentets indhold, mens denne factory sikrer én fast
+ * rækkefølge for writer-opsætning, eventuelt vandmærke/brevhoved, titel, footer og save.
+ * `beforeBrevhoved` findes til de dokumenter, hvor udkast-vandmærket bevidst skal
+ * tegnes før brevhovedet; grafdokumentet kan fravælge titel med `writeTitle: false`.
+ */
+export const defineDocument = <TInput>(
+  definition: DocumentDefinition<TInput>
+): ((input: TInput) => void) => {
+  return (input) => {
+    const title = resolveDocumentValue(definition.title, input);
+    const writer = initStandardDocumentWriter({
+      title,
+      options: definition.writerOptions
+        ? resolveDocumentValue(definition.writerOptions, input)
+        : undefined,
+      metadata: definition.metadata
+        ? resolveDocumentValue(definition.metadata, input)
+        : undefined,
+    });
+
+    definition.beforeBrevhoved?.(writer, input);
+    const brevhoved = definition.brevhoved?.(input) ?? null;
+    if (brevhoved) {
+      writer.writeBrevhoved(brevhoved);
+    }
+    if (definition.writeTitle !== false) {
+      writer.writeTitle(
+        title,
+        definition.titleOptions
+          ? resolveDocumentValue(definition.titleOptions, input)
+          : undefined
+      );
+    }
+
+    definition.body(writer, input);
+    writer.addFooter();
+    writer.save(definition.filename(input));
+  };
 };
 
 /**

@@ -1,4 +1,5 @@
 import {
+  defineDocument,
   initStandardDocumentWriter,
   buildStamdataBrevhovedData,
   writeLabelValueRows,
@@ -23,7 +24,13 @@ import type { DocumentWriter } from '../../../document/writer';
  */
 type RecordedWriterMethods = Pick<
   DocumentWriter,
-  'setDisplayMode' | 'setProperties' | 'writeLeftRightText'
+  | 'setDisplayMode'
+  | 'setProperties'
+  | 'writeLeftRightText'
+  | 'writeBrevhoved'
+  | 'writeTitle'
+  | 'addFooter'
+  | 'save'
 >;
 
 type LeftRightCall = Readonly<{
@@ -36,6 +43,7 @@ const createRecordingWriter = () => {
   const displayModes: Parameters<DocumentWriter['setDisplayMode']>[0][] = [];
   const properties: Parameters<DocumentWriter['setProperties']>[0][] = [];
   const leftRight: LeftRightCall[] = [];
+  const lifecycle: string[] = [];
   const writer = {
     setDisplayMode: (mode) => {
       displayModes.push(mode);
@@ -46,8 +54,20 @@ const createRecordingWriter = () => {
     writeLeftRightText: (left, right, options) => {
       leftRight.push({ left, right, options });
     },
+    writeBrevhoved: () => {
+      lifecycle.push('brevhoved');
+    },
+    writeTitle: (title) => {
+      lifecycle.push(`titel:${title}`);
+    },
+    addFooter: () => {
+      lifecycle.push('footer');
+    },
+    save: (filename) => {
+      lifecycle.push(`save:${filename}`);
+    },
   } satisfies RecordedWriterMethods as unknown as DocumentWriter;
-  return { writer, displayModes, properties, leftRight };
+  return { writer, displayModes, properties, leftRight, lifecycle };
 };
 
 describe('documentGeneratorSetup', () => {
@@ -156,6 +176,64 @@ describe('documentGeneratorSetup', () => {
         dagsDatoISO: TODAY,
       });
       expect(buildStamdataBrevhovedData(undefined).dagsDatoISO).toBe(TODAY);
+    });
+  });
+
+  describe('defineDocument', () => {
+    it('ejer den faste rækkefølge fra brevhoved til save', () => {
+      const generate = defineDocument<Readonly<{ id: string }>>({
+        title: ({ id }) => `Dokument ${id}`,
+        filename: ({ id }) => `${id}.pdf`,
+        brevhoved: () => ({ dagsDatoISO: TODAY }),
+        beforeBrevhoved: (writer) => {
+          recorder.lifecycle.push('før-brevhoved');
+          expect(writer).toBe(recorder.writer);
+        },
+        body: (writer) => {
+          expect(writer).toBe(recorder.writer);
+          recorder.lifecycle.push('indhold');
+        },
+      });
+
+      generate({ id: '42' });
+
+      expect(recorder.lifecycle).toEqual([
+        'før-brevhoved',
+        'brevhoved',
+        'titel:Dokument 42',
+        'indhold',
+        'footer',
+        'save:42.pdf',
+      ]);
+    });
+
+    it('kan fravælge titel og brevhoved uden at svække footer/save-lifecyclen', () => {
+      const generate = defineDocument<string>({
+        title: 'Graf',
+        filename: (filename) => filename,
+        writeTitle: false,
+        body: () => {
+          recorder.lifecycle.push('graf');
+        },
+      });
+
+      generate('graf.pdf');
+
+      expect(recorder.lifecycle).toEqual(['graf', 'footer', 'save:graf.pdf']);
+    });
+
+    it('gemmer ikke et delvist dokument når body fejler', () => {
+      const generate = defineDocument<void>({
+        title: 'Fejlende dokument',
+        filename: () => 'maa-ikke-gemmes.pdf',
+        body: () => {
+          recorder.lifecycle.push('indhold');
+          throw new Error('rendering fejlede');
+        },
+      });
+
+      expect(() => generate()).toThrow('rendering fejlede');
+      expect(recorder.lifecycle).toEqual(['titel:Fejlende dokument', 'indhold']);
     });
   });
 

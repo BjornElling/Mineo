@@ -14,7 +14,7 @@ import {
 import type { DocumentWriter } from '../../writer';
 import {
   buildStamdataBrevhovedData,
-  initStandardDocumentWriter,
+  defineDocument,
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
 import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
@@ -51,13 +51,6 @@ export const addHypotheticalInterestWarning = (
   );
   writer.addSectionSpacer();
   return true;
-};
-
-export const buildRenteDocumentFilename = (
-  baseTitle: string,
-  journalnr?: string
-): string => {
-  return resolveDocumentArtifactFileName(baseTitle, false, journalnr);
 };
 
 export const buildRenteDocumentBaseTitle = (amount: number, startDate: Date, endDate: Date): string => {
@@ -230,15 +223,29 @@ export const generateRenteDocument = (
     throw new Error('Ugyldige datoer for renteberegning');
   }
 
-  const writer = initStandardDocumentWriter({
-    title: 'Procesrente',
-    metadata: options.metadata,
-  });
-
-  writeRenteDocumentContent(writer, amount, startDate, endDate, periods, options);
-  writer.addFooter();
-
-  const baseTitle = buildRenteDocumentBaseTitle(amount, startDate, endDate);
-  const filename = buildRenteDocumentFilename(baseTitle, options.stamdata?.journalnr);
-  writer.save(filename);
+  generateRente({ amount, startDate, endDate, periods, options });
 };
+
+type RenteDocumentInput = Readonly<{
+  amount: number;
+  startDate: Date;
+  endDate: Date;
+  periods: ReadonlyArray<ProcessInterestPeriod>;
+  options: RenteDocumentOptions;
+}>;
+
+const generateRente = defineDocument<RenteDocumentInput>({
+  title: 'Procesrente',
+  filename: ({ amount, startDate, endDate, options }) =>
+    resolveDocumentArtifactFileName(
+      buildRenteDocumentBaseTitle(amount, startDate, endDate),
+      false,
+      options.stamdata?.journalnr
+    ),
+  metadata: ({ options }) => options.metadata,
+  writeTitle: false,
+  body: (writer, { amount, startDate, endDate, periods, options }) => {
+    // Indholds-helperen ejer titel/brevhoved, fordi den også genbruges i samledokumenter.
+    writeRenteDocumentContent(writer, amount, startDate, endDate, periods, options);
+  },
+});

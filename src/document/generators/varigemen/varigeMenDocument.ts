@@ -1,19 +1,17 @@
 /**
- * PDF Generator for Ménberegning
+ * Dokument-generator for ménberegning
  *
- * Genererer PDF-dokumentation af ménberegning med fødselsdato, skadedato, méngrad og resultat
+ * Genererer dokumentation af ménberegning med fødselsdato, skadedato, méngrad og resultat.
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter, writeLabelValueRows } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from '../documentGeneratorSetup';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
 import { type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-
-export const buildVarigeMenDocumentFilename = (journalnr?: string): string => resolveDocumentArtifactFileName('Méngodtgørelse', false, journalnr);
 
 /**
  * Tilføj stamdata-sektion
@@ -88,7 +86,7 @@ const addResultatSection = (
 /**
  * Generer og download PDF for ménberegning
  */
-type GenerateVarigeMenPdfParams = DocumentCommonOptions & Readonly<{
+type GenerateVarigeMenDocumentParams = DocumentCommonOptions & Readonly<{
   fodselsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
   mengrad: number;
@@ -98,43 +96,26 @@ type GenerateVarigeMenPdfParams = DocumentCommonOptions & Readonly<{
   skadedatoLabel: 'Skadedato' | 'Anmeldelsesdato';
 }>;
 
-export const generateVarigeMenDocument = (params: GenerateVarigeMenPdfParams): void => {
-  const {
-    fodselsdato,
-    skadedato,
-    mengrad,
-    beregningsdato,
-    beregningsResultat,
-    skadedatoLabel,
-    stamdata,
-    visBrevhoved = false,
-  } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'Ménberegning' });
-
-  // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  // Tilføj titel
-  writer.writeTitle('Ménberegning');
-
-  // Tilføj stamdata-sektion
-  addStamdataSection(writer, fodselsdato, skadedato, beregningsResultat.alderVedSkade, skadedatoLabel);
-
-  // Tilføj beregningsgrundlag-sektion
-  addBeregningsgrundlagSection(writer, mengrad, beregningsdato, beregningsResultat);
-
-  // Tilføj resultat-sektion
-  addResultatSection(writer, mengrad, beregningsResultat);
-
-  // Tilføj footer med versionsnummer
-  writer.addFooter();
-
-  // Generer filnavn
-  const filename = buildVarigeMenDocumentFilename(stamdata?.journalnr);
-
-  // Download PDF
-  writer.save(filename);
-};
+export const generateVarigeMenDocument = defineDocument<GenerateVarigeMenDocumentParams>({
+  title: 'Ménberegning',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'Méngodtgørelse',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, params) => {
+    const {
+      fodselsdato,
+      skadedato,
+      mengrad,
+      beregningsdato,
+      beregningsResultat,
+      skadedatoLabel,
+    } = params;
+    addStamdataSection(writer, fodselsdato, skadedato, beregningsResultat.alderVedSkade, skadedatoLabel);
+    addBeregningsgrundlagSection(writer, mengrad, beregningsdato, beregningsResultat);
+    addResultatSection(writer, mengrad, beregningsResultat);
+  },
+});

@@ -7,7 +7,7 @@
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { buildSummedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
@@ -43,9 +43,6 @@ const formatEetValue = (eetPct: number, priorKapPct: number): string =>
   priorKapPct > 0
     ? formatPct(Math.max(0, eetPct - priorKapPct))
     : formatPct(eetPct);
-
-export const buildLoebendeYdelserDocumentFilename = (journalnr?: string): string =>
-  resolveDocumentArtifactFileName('Løbende ydelser (EET)', false, journalnr);
 
 export const addLoebendeYdelserEmptyState = (
   writer: DocumentWriter
@@ -337,44 +334,31 @@ export const addLoebendeUdvidetSpecifikationPage = (
 // HOVED-GENERATOR
 // ============================================================================
 
-type GenerateLoebendeYdelserPdfParams = DocumentCommonOptions &
+type GenerateLoebendeYdelserDocumentParams = DocumentCommonOptions &
   Readonly<{
     computation: EetLoebendeComputation;
     visUdvidetSpecifikation?: boolean;
   }>;
 
-export const generateLoebendeYdelserDocument = (
-  params: GenerateLoebendeYdelserPdfParams
-): void => {
-  const {
-    computation,
-    visUdvidetSpecifikation = false,
-    stamdata,
-    visBrevhoved = false,
-  } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'Løbende ydelser (EET)' });
-
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  writer.writeTitle('Løbende ydelser (EET)');
-
-  if (computation.afgoerelser.length === 0) {
-    addLoebendeYdelserEmptyState(writer);
-  } else {
-    // Én side pr. afgørelse
-    computation.afgoerelser.forEach((afgoerelse, index) => {
-      addLoebendeAfgoerelseSection(writer, afgoerelse, computation, index === 0);
-    });
-  }
-
-  // Udvidet specifikation på separat slutside
-  if (visUdvidetSpecifikation) {
-    addLoebendeUdvidetSpecifikationPage(writer, computation);
-  }
-
-  writer.addFooter();
-  writer.save(buildLoebendeYdelserDocumentFilename(stamdata?.journalnr));
-};
+export const generateLoebendeYdelserDocument = defineDocument<GenerateLoebendeYdelserDocumentParams>({
+  title: 'Løbende ydelser (EET)',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'Løbende ydelser (EET)',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, { computation, visUdvidetSpecifikation = false }) => {
+    if (computation.afgoerelser.length === 0) {
+      addLoebendeYdelserEmptyState(writer);
+    } else {
+      computation.afgoerelser.forEach((afgoerelse, index) => {
+        addLoebendeAfgoerelseSection(writer, afgoerelse, computation, index === 0);
+      });
+    }
+    if (visUdvidetSpecifikation) {
+      addLoebendeUdvidetSpecifikationPage(writer, computation);
+    }
+  },
+});

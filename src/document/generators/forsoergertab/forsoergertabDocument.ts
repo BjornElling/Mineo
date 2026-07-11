@@ -8,7 +8,7 @@
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
@@ -17,9 +17,6 @@ import { isoToDanish, type ISODateString } from '../../../types/branded';
 import type { ForsoergertabCalculation, ForsoergertabAslComputation } from '../../../domain/forsoergertab/forsoergertabTypes';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-
-export const buildForsoergertabDocumentFilename = (journalnr?: string): string =>
-  resolveDocumentArtifactFileName('Forsørgertab', false, journalnr);
 
 // ============================================================================
 // Side 1: Grundlæggende oplysninger + Beregnet forsørgertab
@@ -334,7 +331,16 @@ export type GenerateForsoergertabDocumentParams = DocumentCommonOptions &
     foersoergertabForhoejtetTilMin: boolean;
   }>;
 
-export const generateForsoergertabDocument = (params: GenerateForsoergertabDocumentParams): void => {
+export const generateForsoergertabDocument = defineDocument<GenerateForsoergertabDocumentParams>({
+  title: 'Forsørgertab',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'Forsørgertab',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, params) => {
   const {
     grundlaeggende,
     result,
@@ -342,18 +348,7 @@ export const generateForsoergertabDocument = (params: GenerateForsoergertabDocum
     aslComputation,
     foersoergertabEalMinSats,
     foersoergertabForhoejtetTilMin,
-    stamdata,
-    visBrevhoved = false,
   } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'Forsørgertab' });
-
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  // --- Side 1 ---
-  writer.writeTitle('Forsørgertab');
 
   addGrundlaeggendeSection(writer, grundlaeggende, ealComputation !== null, aslComputation !== null);
 
@@ -373,6 +368,5 @@ export const generateForsoergertabDocument = (params: GenerateForsoergertabDocum
     addAslSection(writer, aslComputation);
   }
 
-  writer.addFooter();
-  writer.save(buildForsoergertabDocumentFilename(stamdata?.journalnr));
-};
+  },
+});

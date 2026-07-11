@@ -6,7 +6,7 @@
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type {
   EetKapitaliseringAfgoerelseComputation,
@@ -15,9 +15,6 @@ import type {
 import { buildKapitaliseringAfgoerelseRows } from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-
-export const buildKapitaliseringDocumentFilename = (journalnr?: string): string =>
-  resolveDocumentArtifactFileName('Kapitalisering (EET)', false, journalnr);
 
 // Bevidst PDF-formulering: Vi viser "< 2 år" som en kortere og mere læsbar
 // etikette i PDF'en, selv om særreglen også omfatter kontroltidspunktet præcis
@@ -89,39 +86,28 @@ export const addKapitaliseringAfgoerelseSection = (
 // HOVED-GENERATOR
 // ============================================================================
 
-type GenerateKapitaliseringPdfParams = DocumentCommonOptions &
+type GenerateKapitaliseringDocumentParams = DocumentCommonOptions &
   Readonly<{
     computation: EetKapitaliseringComputation;
     koen?: string;
   }>;
 
-export const generateKapitaliseringDocument = (
-  params: GenerateKapitaliseringPdfParams
-): void => {
-  const {
-    computation,
-    koen,
-    stamdata,
-    visBrevhoved = false,
-  } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'Kapitalisering (EET)' });
-
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  writer.writeTitle('Kapitalisering (EET)');
-
-  if (computation.afgoerelser.length === 0) {
-    addKapitaliseringEmptyState(writer);
-  } else {
-    // Én side pr. afgørelse
+export const generateKapitaliseringDocument = defineDocument<GenerateKapitaliseringDocumentParams>({
+  title: 'Kapitalisering (EET)',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'Kapitalisering (EET)',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, { computation, koen }) => {
+    if (computation.afgoerelser.length === 0) {
+      addKapitaliseringEmptyState(writer);
+      return;
+    }
     computation.afgoerelser.forEach((afgoerelse, index) => {
       addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0);
     });
-  }
-
-  writer.addFooter();
-  writer.save(buildKapitaliseringDocumentFilename(stamdata?.journalnr));
-};
+  },
+});

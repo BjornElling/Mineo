@@ -97,7 +97,7 @@ describe('createDocxWriter', () => {
       writer.writeTitle('Testdokument');
       writer.writeWrappedText('Almindelig tekst');
       writer.writeLeftRightText('Beløb', '1.234 kr.');
-      writer.save('Testdokument.pdf');
+      writer.save('Testdokument.docx');
     });
 
     capture.restore();
@@ -154,7 +154,7 @@ describe('createDocxWriter', () => {
       await withDocumentGenerationContext('word', () => {
         const writer = createDocxWriter();
         writer.writeWrappedText('Indhold');
-        writer.save('Footer.pdf');
+        writer.save('Footer.docx');
       });
     } finally {
       createElementSpy.mockRestore();
@@ -182,7 +182,7 @@ describe('createDocxWriter', () => {
         dagsDatoISO: toISODateString('2026-04-18'),
       });
       writer.writeWrappedText('Indhold');
-      writer.save('BrevhovedFooter.pdf');
+      writer.save('BrevhovedFooter.docx');
     });
 
     capture.restore();
@@ -214,7 +214,7 @@ describe('createDocxWriter', () => {
       const writer = createDocxWriter();
       writer.writeTitle('Selvstændig');
       writer.writeWrappedText('Indhold');
-      writer.save('Selvstaendig.pdf');
+      writer.save('Selvstaendig.docx');
     });
 
     capture.restore();
@@ -270,7 +270,7 @@ describe('createDocxWriter', () => {
           ],
         ],
       });
-      writer.save('Tabel.pdf');
+      writer.save('Tabel.docx');
     });
 
     capture.restore();
@@ -317,7 +317,7 @@ describe('createDocxWriter', () => {
     await withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter({ visUdkastStempel: true });
       writer.writeWrappedText('Indhold');
-      writer.save('Udkast.pdf');
+      writer.save('Udkast.docx');
     });
 
     capture.restore();
@@ -354,7 +354,7 @@ describe('createDocxWriter', () => {
     await withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter();
       writer.writeWrappedText('Indhold');
-      writer.save('UdenUdkast.pdf');
+      writer.save('UdenUdkast.docx');
     });
 
     capture.restore();
@@ -374,7 +374,7 @@ describe('createDocxWriter', () => {
     await withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter();
       writer.writeSignatureBlock('1. januar 2026', '________________', 0, 0, 'Hans Hansen');
-      writer.save('Signatur.pdf');
+      writer.save('Signatur.docx');
     });
 
     capture.restore();
@@ -414,7 +414,7 @@ describe('createDocxWriter', () => {
         // Kolonne 1 højrejusteres på data-rækker via hook-override (som i renteberegning).
         dataRowColumnHalign: { 1: 'right' },
       });
-      writer.save('Justering.pdf');
+      writer.save('Justering.docx');
     });
 
     capture.restore();
@@ -439,7 +439,7 @@ describe('createDocxWriter', () => {
       writer.writeUnderlinedSubheader('Understreget');
       writer.writeWrappedText('Brødtekst');
       writer.writeBoldWrappedText('Fed brødtekst');
-      writer.save('Typografier.pdf');
+      writer.save('Typografier.docx');
     });
 
     capture.restore();
@@ -488,7 +488,7 @@ describe('createDocxWriter', () => {
         sagsbehandler: 'cgf',
         dagsDatoISO: toISODateString('2026-04-18'),
       });
-      writer.save('Brevhoved.pdf');
+      writer.save('Brevhoved.docx');
     });
 
     capture.restore();
@@ -535,7 +535,7 @@ describe('createDocxWriter', () => {
         dagsDatoISO: toISODateString('2026-04-18'),
       });
       writer.writeWrappedText('Brødtekst');
-      writer.save('BrevhovedUdkast.pdf');
+      writer.save('BrevhovedUdkast.docx');
     });
 
     capture.restore();
@@ -578,7 +578,7 @@ describe('createDocxWriter', () => {
         columnStyles: createDocumentDistributedColumnStyles(1, { defaultHalign: 'center' }),
         body: [[createDocumentTableCell('eksplicit-højre', { halign: 'right' })]],
       });
-      writer.save('Praecedens.pdf');
+      writer.save('Praecedens.docx');
     });
 
     capture.restore();
@@ -602,7 +602,7 @@ describe('createDocxWriter', () => {
       writer.writeLeftRightText('Delbeløb', '1.000 kr.');
       // Sum-linje med summeringsstreg (lineAboveRightWidth sat).
       writer.writeLeftRightText('I alt', '1.000 kr.', { lineAboveRightWidth: 30 });
-      writer.save('Sumlinje.pdf');
+      writer.save('Sumlinje.docx');
     });
 
     capture.restore();
@@ -623,7 +623,7 @@ describe('createDocxWriter', () => {
     await withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter();
       writer.writeLeftRightText('Delbeløb', '1.000 kr.');
-      writer.save('UdenSumlinje.pdf');
+      writer.save('UdenSumlinje.docx');
     });
 
     capture.restore();
@@ -659,7 +659,7 @@ describe('createDocxWriter fejlpropagering', () => {
       withDocumentGenerationContext('word', () => {
         const writer = createDocxWriter();
         writer.writeWrappedText('Indhold');
-        writer.save('Fejl.pdf');
+        writer.save('Fejl.docx');
       })
     ).rejects.toThrow('toBlob fejlede');
 

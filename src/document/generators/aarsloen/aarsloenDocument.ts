@@ -5,7 +5,7 @@
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter, writeLabelValueRows } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from '../documentGeneratorSetup';
 import { buildFormattedTotalRowSpec, renderTableSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { calculateStandardLoenRowDerived, type StandardLoenSatserInput } from '../../../domain/aarsloen/standardLoenRowCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
@@ -27,10 +27,6 @@ import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../ut
 
 const NBSP = '\u00A0';
 const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
-
-export const buildAarsloenDocumentFilename = (journalnr?: string): string => {
-  return resolveDocumentArtifactFileName('Årslønsberegning', false, journalnr);
-};
 
 /**
  * Formaterer beløb til dansk format med tusindtalsseparator.
@@ -487,7 +483,16 @@ type GenerateAarsloenDocumentParams = DocumentCommonOptions & Readonly<{
   beregningsData: AarsloenBeregningResult;
 }>;
 
-export const generateAarsloenDocument = (params: GenerateAarsloenDocumentParams): void => {
+export const generateAarsloenDocument = defineDocument<GenerateAarsloenDocumentParams>({
+  title: 'Årslønsberegning',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'Årslønsberegning',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, params) => {
   const {
     satser,
     loenperiode,
@@ -502,19 +507,7 @@ export const generateAarsloenDocument = (params: GenerateAarsloenDocumentParams)
     loenPaaHelligdage,
     shDageAntal,
     beregningsData,
-    stamdata,
-    visBrevhoved = false,
   } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'Årslønsberegning' });
-
-  // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  // Tilføj titel
-  writer.writeTitle('Årslønsberegning');
 
   // Tilføj satser-sektion (kun hvis der er udfyldte satser). I Beløb-tilstand bruges satserne
   // ikke (tillæg er indtastet som beløb i tabellen), og sektionen udelades.
@@ -560,12 +553,5 @@ export const generateAarsloenDocument = (params: GenerateAarsloenDocumentParams)
     }
   }
 
-  // Tilføj footer med versionsnummer
-  writer.addFooter();
-
-  // Generer filnavn
-  const filename = buildAarsloenDocumentFilename(stamdata?.journalnr);
-
-  // Download PDF
-  writer.save(filename);
-};
+  },
+});

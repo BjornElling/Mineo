@@ -15,7 +15,7 @@
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import type {
@@ -49,9 +49,6 @@ import {
 import { renderEfterEalBody } from '../eet/eetEfterEalDocument';
 import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
-
-export const buildDifferencekravDocumentFilename = (journalnr?: string): string =>
-  resolveDocumentArtifactFileName('Differencekrav (EET)', false, journalnr);
 
 const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
 
@@ -486,31 +483,28 @@ export type BilagSelection = Readonly<{
   visUdvidetSpecifikationLoebendeYdelserBilag: boolean;
 }>;
 
-type GenerateDifferencekravPdfParams = DocumentCommonOptions &
+type GenerateDifferencekravDocumentParams = DocumentCommonOptions &
   Readonly<{
     computation: EetDifferencekravComputation;
     koen?: string;
     bilagSelection: BilagSelection;
   }>;
 
-export const generateDifferencekravDocument = (
-  params: GenerateDifferencekravPdfParams
-): void => {
+export const generateDifferencekravDocument = defineDocument<GenerateDifferencekravDocumentParams>({
+  title: 'Differencekrav (EET)',
+  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+    'Differencekrav (EET)',
+    false,
+    stamdata?.journalnr
+  ),
+  brevhoved: ({ visBrevhoved = false, stamdata }) =>
+    visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
+  body: (writer, params) => {
   const {
     computation,
     koen,
     bilagSelection,
-    stamdata,
-    visBrevhoved = false,
   } = params;
-
-  const writer = initStandardDocumentWriter({ title: 'Differencekrav (EET)' });
-
-  if (visBrevhoved) {
-    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
-  }
-
-  writer.writeTitle('Differencekrav (EET)');
 
   // Hoved-side: differencekrav-beregningen
   renderDifferencekravPage(writer, computation);
@@ -563,6 +557,5 @@ export const generateDifferencekravDocument = (
     addMerErstatningPensionsalderSection(writer, computation.merErstatningPensionsalder, koen);
   }
 
-  writer.addFooter();
-  writer.save(buildDifferencekravDocumentFilename(stamdata?.journalnr));
-};
+  },
+});

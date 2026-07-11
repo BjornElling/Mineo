@@ -20,9 +20,8 @@
  * Eventuel fail-closed / blokering er allerede afgjort før denne generator kaldes.
  */
 
-import { initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { defineDocument } from '../documentGeneratorSetup';
 import { ensureNonBreakingKr } from '../../layout/pdfTextUtils';
-import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../layout/pdfConfig';
 import { logWarning } from '../../../utils/logger';
 import { formatIsoDateLong as formatDateLong, formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
@@ -56,7 +55,7 @@ const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 
-interface TafOpreguleretPaaAarPdfOptions {
+interface TafOpreguleretPaaAarDocumentOptions {
   document: TafPerYearOpreguleretDocument;
   visBrevhoved?: boolean;
   visUdkastStempel?: boolean;
@@ -68,7 +67,7 @@ interface TafOpreguleretPaaAarPdfOptions {
 }
 
 export const generateTafOpreguleretPaaAarDocument = (
-  options: TafOpreguleretPaaAarPdfOptions
+  options: TafOpreguleretPaaAarDocumentOptions
 ): void => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const { model, presentation, opreguleret } = options.document;
@@ -76,9 +75,14 @@ export const generateTafOpreguleretPaaAarDocument = (
 
   const titel = 'TAF opreguleret til beregningsår';
 
-  const writer = initStandardDocumentWriter({
+  const generate = defineDocument<void>({
     title: titel,
-    options: {
+    filename: () => resolveDocumentArtifactFileName(
+      FILE_BASE_NAME,
+      visUdkastStempel,
+      model.brevhoved?.journalnr
+    ),
+    writerOptions: {
       visUdkastStempel,
       onLayoutFallback: ({ message, label }) => {
         logWarning('PDF-layout fallback aktiveret', {
@@ -87,8 +91,19 @@ export const generateTafOpreguleretPaaAarDocument = (
         });
       },
     },
-  });
-
+    beforeBrevhoved: (writer) => {
+      writer.addUdkastWatermark();
+    },
+    brevhoved: () => visBrevhoved && model.brevhoved
+      ? {
+        journalnr: model.brevhoved.journalnr,
+        advokat: model.brevhoved.advokat,
+        sagsbehandler: model.brevhoved.sagsbehandler,
+        dagsDatoISO: model.brevhoved.dagsDatoISO,
+      }
+      : null,
+    titleOptions: { trailingSpacing: 0 },
+    body: (writer) => {
   const lineHeight = PDF_BASE_LINE_HEIGHT_MM;
   const rightMaxWidth = writer.getTextWidth('000.000.000,00');
 
@@ -122,23 +137,6 @@ export const generateTafOpreguleretPaaAarDocument = (
     return `${formatCurrencyFromOre(value.value)}${NBSP}kr.`;
   };
 
-  // Udkast-stempel på første side
-  writer.addUdkastWatermark();
-
-  // Brevhoved
-  if (visBrevhoved && model.brevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: model.brevhoved.journalnr,
-      advokat: model.brevhoved.advokat,
-      sagsbehandler: model.brevhoved.sagsbehandler,
-      dagsDatoISO: model.brevhoved.dagsDatoISO,
-    };
-    writer.writeBrevhoved(brevhovedData);
-  }
-
-  // Titel
-  writer.writeTitle(titel, { trailingSpacing: 0 });
-
   // Erstatningsperiode
   if (model.periodeDisplay) {
     writer.writeWrappedText(model.periodeDisplay);
@@ -155,11 +153,6 @@ export const generateTafOpreguleretPaaAarDocument = (
     writer.writeWrappedText(model.skadestypeLinje);
     writer.addSectionSpacer();
   }
-
-  const finishAndSave = () => {
-    writer.addFooter();
-    writer.save(resolveDocumentArtifactFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
-  };
 
   // ─── Tabt arbejdsfortjeneste sektion (fælles top) ─────────────────────
 
@@ -193,7 +186,6 @@ export const generateTafOpreguleretPaaAarDocument = (
     writer.writeWrappedText('Ingen');
     writer.writeBoldSubheader('TAF opreguleret til beregningsåret');
     writer.writeWrappedText('Ingen');
-    finishAndSave();
     return;
   }
   for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
@@ -212,7 +204,6 @@ export const generateTafOpreguleretPaaAarDocument = (
   if (!presentation || !opreguleret) {
     writer.writeBoldSubheader('TAF opreguleret til beregningsåret');
     writer.writeWrappedText('TAF opreguleret til beregningsåret kan ikke beregnes for den valgte opsætning.');
-    finishAndSave();
     return;
   }
 
@@ -386,5 +377,7 @@ export const generateTafOpreguleretPaaAarDocument = (
     });
   }
 
-  finishAndSave();
+    },
+  });
+  generate();
 };

@@ -4,7 +4,6 @@ import type { ISODateString } from '../../types/branded';
 import type { DocumentDownloadResult } from '../../document/service/documentService';
 import {
   buildRenteDocumentBaseTitle,
-  buildRenteDocumentFilename,
   generateRenteDocument,
   writeRenteDocumentContent,
 } from '../../document/generators/renteberegning/renteDocument';
@@ -14,6 +13,7 @@ import { withDocumentGenerationContext } from '../../document/documentGeneration
 import { parseDanishDate } from '../../utils/dateUtils';
 import { getDocumentCreatorBrand } from '../../document/layout/documentLayoutHelpers';
 import { asError } from '../../utils/typeGuards';
+import { resolveDocumentArtifactFileName } from '../../document/layout/documentFormatUtils';
 
 const PDF_DOWNLOAD_SUCCESS: DocumentDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
@@ -159,7 +159,7 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       ? buildRenteDocumentBaseTitle(firstRow.beloeb, firstStart, firstEnd)
       : 'Procesrente-specifikationer';
     const suffix = rows.length > 1 ? ` +${rows.length - 1}` : '';
-    const filename = buildRenteDocumentFilename(`${baseTitle}${suffix}`);
+    const filename = resolveDocumentArtifactFileName(`${baseTitle}${suffix}`, false);
     writer.save(filename);
 
     return PDF_DOWNLOAD_SUCCESS;
