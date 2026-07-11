@@ -11,8 +11,8 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 // faktisk når .docx'en.
 describe('differencekrav → Word-indhold', () => {
   it('skriver titel og midlertidig-afgørelse-indhold til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateDifferencekravDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateDifferencekravDocument(session, {
         computation: {
           beregningsdato: toISODateString('2026-03-17'),
           skadedato: toISODateString('2011-06-16'),

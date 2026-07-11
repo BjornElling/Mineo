@@ -20,8 +20,8 @@ describe('regulering → Word-indhold', () => {
   };
 
   it('skriver titel, model-label og ASL-tabel til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateReguleringDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateReguleringDocument(session, {
         overenskomstLabel: '',
         loenudviklingBasis: 'Statistik',
         overenskomstId: undefined,
@@ -44,8 +44,8 @@ describe('regulering → Word-indhold', () => {
   });
 
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
-    const { documentXml } = await renderWordDocument(() => {
-      generateReguleringDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateReguleringDocument(session, {
         overenskomstLabel: '',
         loenudviklingBasis: 'Statistik',
         overenskomstId: undefined,
@@ -62,8 +62,8 @@ describe('regulering → Word-indhold', () => {
   });
 
   it('skriver ILON12-ophørsbemærkning efter tabellen', async () => {
-    const { documentXml } = await renderWordDocument(() => {
-      generateReguleringDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateReguleringDocument(session, {
         overenskomstLabel: '',
         loenudviklingBasis: 'Statistik',
         overenskomstId: undefined,

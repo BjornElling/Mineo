@@ -7,6 +7,7 @@ const {
   mockWriteRentePdfContent,
   mockBuildRentePdfBaseTitle,
   mockCreateStandardPdfWriter,
+  mockTriggerDocumentDownload,
   mockWriter,
 } = vi.hoisted(() => {
   const mockWriter = {
@@ -14,7 +15,7 @@ const {
     setProperties: vi.fn(),
     addPage: vi.fn(),
     addFooter: vi.fn(),
-    save: vi.fn(),
+    build: vi.fn(async () => new Blob()),
   };
 
   return {
@@ -23,6 +24,7 @@ const {
     mockWriteRentePdfContent: vi.fn(),
     mockBuildRentePdfBaseTitle: vi.fn(() => 'Procesrente, 1.000,00 kr. (01-01-2024 - 30-06-2024)'),
     mockCreateStandardPdfWriter: vi.fn(() => mockWriter),
+    mockTriggerDocumentDownload: vi.fn(),
     mockWriter,
   };
 });
@@ -39,6 +41,10 @@ vi.mock('../../document/generators/renteberegning/renteOversigtDocument', () => 
 
 vi.mock('../../pdf/infrastructure/pdfWriter', () => ({
   createPdfChannelWriter: mockCreateStandardPdfWriter,
+}));
+
+vi.mock('../../document/downloadArtifact', () => ({
+  triggerDocumentDownload: mockTriggerDocumentDownload,
 }));
 
 import {
@@ -74,6 +80,7 @@ describe('downloadStandaloneRentePdf', () => {
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockGenerateRentePdf.mockReset();
+    mockGenerateRentePdf.mockResolvedValue({ blob: new Blob(), filename: 'rente.pdf' });
   });
 
   afterEach(() => {
@@ -92,6 +99,7 @@ describe('downloadStandaloneRentePdf', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateRentePdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       5000,
       '01-06-2024',
       toISODateString('2024-07-01'),
@@ -133,6 +141,7 @@ describe('downloadStandaloneRenteOversigtPdf', () => {
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockGenerateRenteOversigtPdf.mockReset();
+    mockGenerateRenteOversigtPdf.mockResolvedValue({ blob: new Blob(), filename: 'oversigt.pdf' });
   });
 
   afterEach(() => {
@@ -149,6 +158,7 @@ describe('downloadStandaloneRenteOversigtPdf', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateRenteOversigtPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       toISODateString('2024-07-01'),
       [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 60.87 }],
       {
@@ -178,7 +188,8 @@ describe('downloadAllStandaloneRentePdf', () => {
     mockWriter.setProperties.mockClear();
     mockWriter.addPage.mockClear();
     mockWriter.addFooter.mockClear();
-    mockWriter.save.mockClear();
+    mockWriter.build.mockClear();
+    mockTriggerDocumentDownload.mockClear();
   });
 
   afterEach(() => {
@@ -209,7 +220,10 @@ describe('downloadAllStandaloneRentePdf', () => {
     expect(mockWriteRentePdfContent).toHaveBeenCalledTimes(1);
     expect(mockWriter.addPage).not.toHaveBeenCalled();
     expect(mockWriter.addFooter).toHaveBeenCalledTimes(1);
-    expect(mockWriter.save).toHaveBeenCalledWith('Procesrente, 1.000,00 kr. (01-01-2024 - 30-06-2024).pdf');
+    expect(mockWriter.build).toHaveBeenCalledTimes(1);
+    expect(mockTriggerDocumentDownload).toHaveBeenCalledWith(expect.objectContaining({
+      filename: 'Procesrente, 1.000,00 kr. (01-01-2024 - 30-06-2024).pdf',
+    }));
   });
 
   it('returnerer success ved 2 rækker og skriver ét samlet dokument', async () => {
@@ -221,7 +235,9 @@ describe('downloadAllStandaloneRentePdf', () => {
     expect(mockWriteRentePdfContent).toHaveBeenCalledTimes(2);
     expect(mockWriter.addPage).toHaveBeenCalledTimes(1);
     expect(mockWriter.addFooter).toHaveBeenCalledTimes(1);
-    expect(mockWriter.save).toHaveBeenCalledWith('Procesrente, 1.000,00 kr. (01-01-2024 - 30-06-2024) +1.pdf');
+    expect(mockTriggerDocumentDownload).toHaveBeenCalledWith(expect.objectContaining({
+      filename: 'Procesrente, 1.000,00 kr. (01-01-2024 - 30-06-2024) +1.pdf',
+    }));
   });
 
   it('returnerer fejl ved tomme perioder i en række', async () => {
@@ -231,7 +247,7 @@ describe('downloadAllStandaloneRentePdf', () => {
 
     expect(result.success).toBe(false);
     expect(mockWriteRentePdfContent).not.toHaveBeenCalled();
-    expect(mockWriter.save).not.toHaveBeenCalled();
+    expect(mockWriter.build).not.toHaveBeenCalled();
     // Lokal console.error (ikke central systemIssueReporter) pga. standalone-isolation.
     expect(consoleErrorSpy).toHaveBeenCalledWith('Kunne ikke generere rente-PDF', expect.any(Error));
   });

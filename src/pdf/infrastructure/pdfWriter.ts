@@ -173,7 +173,7 @@ type PdfCursor = Readonly<{
   getRemainingSpace: () => number;
   renderAtomicBlock: (estimatedHeight: number, render: () => void) => void;
   addFooter: () => void;
-  save: (filename: string) => void;
+  build: () => Promise<Blob>;
 }>;
 
 const createPdfCursor = (params: Readonly<{
@@ -620,7 +620,7 @@ const createPdfCursor = (params: Readonly<{
       render();
     },
     addFooter: () => addFooter(adapter),
-    save: (filename: string) => doc.save(filename),
+    build: async () => doc.output('blob'),
   };
 };
 
@@ -928,16 +928,15 @@ export const createPdfWriter = (params: Readonly<{
       explicitSpacingSinceLastContent = 0;
     },
     addFooter: cursor.addFooter,
-    save: cursor.save,
+    build: cursor.build,
   };
 };
 
 /**
  * PDF-kanalens writer-fabrik. Udfylder PDF-specifikke defaults (lineHeight,
  * onLayoutFallback) og bygger altid en jsPDF-writer. Injiceres i
- * `documentGenerationContext` af download-stien for format 'pdf'. Formatvalget
- * (PDF vs. Word) ejes af den kanal-agnostiske router `createStandardPdfWriter`
- * i `document/writer/documentWriterRouter.ts`.
+ * `DocumentGenerationSession` af download-stien for format 'pdf'. Formatvalget
+ * (PDF vs. Word) ejes af service-laget, mens generatoren kun ser sessionens fabrik.
  */
 export const createPdfChannelWriter = (params?: Readonly<{
   visUdkastStempel?: boolean;

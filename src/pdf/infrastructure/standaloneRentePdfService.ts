@@ -9,7 +9,8 @@ import {
 } from '../../document/generators/renteberegning/renteDocument';
 import { generateRenteOversigtDocument } from '../../document/generators/renteberegning/renteOversigtDocument';
 import { createPdfChannelWriter } from './pdfWriter';
-import { withDocumentGenerationContext } from '../../document/documentGenerationContext';
+import { createDocumentGenerationSession } from '../../document/documentGenerationSession';
+import { triggerDocumentDownload } from '../../document/downloadArtifact';
 import { parseDanishDate } from '../../utils/dateUtils';
 import { getDocumentCreatorBrand } from '../../document/layout/documentLayoutHelpers';
 import { asError } from '../../utils/typeGuards';
@@ -51,19 +52,17 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
   } = params;
 
   try {
-    // Generatorerne skriver via den kanal-agnostiske router (createStandardPdfWriter),
-    // som kræver en writer-fabrik injiceret i den aktive documentGenerationContext.
-    // Standalone MinProcesrente understøtter kun PDF, så vi injicerer PDF-kanalens fabrik
-    // direkte (jf. runSelectedDocumentFormat i hovedappens documentService).
-    await withDocumentGenerationContext('pdf', () => {
-      generateRenteDocument(beloeb, actualInterestDate, beregningsdato, periods, {
+    // Standalone MinProcesrente understøtter kun PDF og opretter derfor sin session
+    // direkte med PDF-kanalens writer-fabrik.
+    const session = createDocumentGenerationSession('pdf', createPdfChannelWriter);
+    const artifact = await generateRenteDocument(session, beloeb, actualInterestDate, beregningsdato, periods, {
         visBrevhoved: false,
         stamdata: null,
         kommentarer,
         latestReferenceRateDate,
         metadata: MINPROCESRENTE_PDF_METADATA,
       });
-    }, { createWriter: createPdfChannelWriter });
+    triggerDocumentDownload(artifact);
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return reportStandaloneRenteDownloadFailure(error);
@@ -83,16 +82,16 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
   }
 
   try {
-    // Se note i downloadStandaloneRentePdf: routeren kræver en injiceret PDF-writer-fabrik.
-    await withDocumentGenerationContext('pdf', () => {
-      generateRenteOversigtDocument(beregningsdato, rows, {
+    // Se note i downloadStandaloneRentePdf: standalone opretter selv sin PDF-session.
+    const session = createDocumentGenerationSession('pdf', createPdfChannelWriter);
+    const artifact = await generateRenteOversigtDocument(session, beregningsdato, rows, {
         visBrevhoved: false,
         stamdata: null,
         kommentarer,
         latestReferenceRateDate,
         metadata: MINPROCESRENTE_PDF_METADATA,
       });
-    }, { createWriter: createPdfChannelWriter });
+    triggerDocumentDownload(artifact);
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return reportStandaloneRenteDownloadFailure(error);
@@ -160,7 +159,8 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       : 'Procesrente-specifikationer';
     const suffix = rows.length > 1 ? ` +${rows.length - 1}` : '';
     const filename = resolveDocumentArtifactFileName(`${baseTitle}${suffix}`, false);
-    writer.save(filename);
+    const blob = await writer.build();
+    triggerDocumentDownload({ blob, filename });
 
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {

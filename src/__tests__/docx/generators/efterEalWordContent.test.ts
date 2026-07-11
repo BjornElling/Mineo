@@ -10,8 +10,8 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 // at titel og beregningssektioner faktisk når .docx'en.
 describe('efterEal → Word-indhold', () => {
   it('skriver titel og beregningssektioner til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateEfterEalDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateEfterEalDocument(session, {
         computation: {
           beregningsdato: toISODateString('2026-03-17'),
           skadedato: toISODateString('2020-01-01'),

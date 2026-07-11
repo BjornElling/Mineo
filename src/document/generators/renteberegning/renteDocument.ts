@@ -23,6 +23,8 @@ import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/docum
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../layout/documentFormatUtils';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';
+import type { DocumentGenerationSession } from '../../documentGenerationSession';
+import type { DocumentArtifact } from '../../downloadArtifact';
 
 /**
  * Stamdata til Rente PDF
@@ -206,12 +208,13 @@ export const writeRenteDocumentContent = (
  * @param {RenteDocumentOptions} options - Valgfrie indstillinger
  */
 export const generateRenteDocument = (
+  session: DocumentGenerationSession,
   amount: number,
   interestStartDate: string,
   calculationDate: string,
   periods: ReadonlyArray<ProcessInterestPeriod>,
   options: RenteDocumentOptions = {}
-): void => {
+): Promise<DocumentArtifact> => {
   if (!periods || periods.length === 0) {
     throw new Error('Ingen perioder fundet for renteberegning');
   }
@@ -223,7 +226,7 @@ export const generateRenteDocument = (
     throw new Error('Ugyldige datoer for renteberegning');
   }
 
-  generateRente({ amount, startDate, endDate, periods, options });
+  return generateRente(session, { amount, startDate, endDate, periods, options });
 };
 
 type RenteDocumentInput = Readonly<{

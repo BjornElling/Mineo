@@ -26,8 +26,8 @@ describe('loebendeYdelser → Word-indhold', () => {
   } satisfies EetLoebendeComputation;
 
   it('skriver titel til .docx (basis-sti uden udvidet specifikation)', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateLoebendeYdelserDocument({ computation, visUdvidetSpecifikation: false, visBrevhoved: false });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateLoebendeYdelserDocument(session, { computation, visUdvidetSpecifikation: false, visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -36,8 +36,8 @@ describe('loebendeYdelser → Word-indhold', () => {
   });
 
   it('inkluderer udvidet specifikation når visUdvidetSpecifikation=true', async () => {
-    const { documentXml } = await renderWordDocument(() => {
-      generateLoebendeYdelserDocument({ computation, visUdvidetSpecifikation: true, visBrevhoved: false });
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateLoebendeYdelserDocument(session, { computation, visUdvidetSpecifikation: true, visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);

@@ -40,6 +40,7 @@ import { TAF_OPREGULERET_DELTA_PCT_DECIMALS } from '../../../domain/erstatningso
 import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { MoneyOre } from '../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { DocumentGenerationSession } from '../../documentGenerationSession';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import type { SelectedElements } from '../eo/types';
 import { renderEoBilagSections } from '../eo/sections/eoBilagSections';
@@ -67,8 +68,9 @@ interface TafOpreguleretPaaAarDocumentOptions {
 }
 
 export const generateTafOpreguleretPaaAarDocument = (
+  session: DocumentGenerationSession,
   options: TafOpreguleretPaaAarDocumentOptions
-): void => {
+) => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const { model, presentation, opreguleret } = options.document;
   const { eoValues, stamdataValues, selectedElements, midlertidigtEetGroups } = options;
@@ -379,5 +381,5 @@ export const generateTafOpreguleretPaaAarDocument = (
 
     },
   });
-  generate();
+  return generate(session, undefined);
 };

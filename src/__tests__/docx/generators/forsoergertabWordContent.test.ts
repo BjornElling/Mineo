@@ -14,8 +14,8 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 // og verificerer, at titel og grundlæggende sektion faktisk når .docx'en.
 describe('forsoergertab → Word-indhold', () => {
   it('skriver titel og grundlæggende oplysninger til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateForsoergertabDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateForsoergertabDocument(session, {
         grundlaeggende: {
           beregningsdato: toISODateString('2026-03-17'),
           skadelidteFodselsdato: toISODateString('1980-01-01'),
@@ -62,8 +62,8 @@ describe('forsoergertab → Word-indhold', () => {
     expect(calc.aslComputation).not.toBeNull();
     expect(calc.ealComputation).not.toBeNull();
 
-    const { documentXml } = await renderWordDocument(() => {
-      generateForsoergertabDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateForsoergertabDocument(session, {
         grundlaeggende: {
           beregningsdato: toISODateString('2026-03-19'),
           skadelidteFodselsdato: toISODateString('1980-01-01'),

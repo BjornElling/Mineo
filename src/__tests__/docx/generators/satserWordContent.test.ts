@@ -9,8 +9,8 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('satser → Word-indhold', () => {
   it('skriver titel og lovafsnit til .docx', async () => {
     const year = 2024;
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateSatserDocument(year, getSatserForYear(year), { visBrevhoved: false });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateSatserDocument(session, year, getSatserForYear(year), { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -23,8 +23,8 @@ describe('satser → Word-indhold', () => {
 
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     const year = 2024;
-    const { documentXml } = await renderWordDocument(() => {
-      generateSatserDocument(year, getSatserForYear(year), {
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateSatserDocument(session, year, getSatserForYear(year), {
         visBrevhoved: true,
         stamdata: { journalnr: '9988', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });

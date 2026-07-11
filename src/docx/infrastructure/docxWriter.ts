@@ -37,8 +37,6 @@ import {
   getDocumentFooterImage,
 } from '../../document/layout/documentFooterImage';
 import { PDF_FOOTER_MARGIN_MM, PDF_FOOTER_RIGHT_MARGIN_MM } from '../../document/layout/pdfConfig';
-import { registerPendingDocumentDownload } from '../../document/documentGenerationContext';
-import { triggerDocumentDownload } from '../../document/downloadArtifact';
 import {
   createDocumentTableBridgeDocument,
   type DocumentTableCellAlign,
@@ -509,7 +507,6 @@ export const createDocxWriter = (params?: Readonly<{
   // i den side-forankrede tekstrude. Se composeChildren.
   let brevhovedParagraphs: Paragraph[] = [];
   let properties: CoreProperties = {};
-  let filename = 'dokument.docx';
   const orientation = params?.orientation ?? 'portrait';
   const isLandscape = orientation === 'landscape';
   const pageWidthDxa = isLandscape ? PAGE_HEIGHT_DXA : PAGE_WIDTH_DXA;
@@ -749,12 +746,6 @@ export const createDocxWriter = (params?: Readonly<{
       blocks.push(new Paragraph({ children: [new PageBreak()] }));
     },
     addFooter: () => {},
-    save: (nextFilename) => {
-      filename = nextFilename;
-      const pendingDownload = build().then((blob) => {
-        triggerDocumentDownload({ blob, filename });
-      });
-      registerPendingDocumentDownload(pendingDownload);
-    },
+    build,
   };
 };

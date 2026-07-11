@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { toISODateString } from '../../../types/branded';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 /// <reference types="vitest/globals" />
 
 class MockJsPDF {
@@ -41,7 +43,7 @@ vi.mock('jspdf-autotable', () => ({
 
 describe('generateDifferencekravDocument', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   beforeEach(() => {
@@ -51,7 +53,7 @@ describe('generateDifferencekravDocument', () => {
   it('udelader overflødig løbende-ydelser-linje for midlertidig afgørelse ved skadedato den 16. juni 2011 eller senere', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument({
+    generateDifferencekravDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2011-06-16'),
@@ -103,7 +105,7 @@ describe('generateDifferencekravDocument', () => {
   it('skriver proforma-opregulering til 2024 over to linjer med resultat kun i højrekolonnen', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument({
+    generateDifferencekravDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2020-01-01'),
@@ -177,7 +179,7 @@ describe('generateDifferencekravDocument', () => {
   it('viser forlig-reduceret differencekrav-label med fuldt krav i parentes', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument({
+    generateDifferencekravDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2011-06-16'),

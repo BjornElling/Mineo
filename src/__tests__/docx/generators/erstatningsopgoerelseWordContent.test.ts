@@ -54,8 +54,8 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     eo.vedroererPeriodeTil = toISODateString('2026-02-22');
     stamdata.skadelidte = 'Kim Thinggaard Plehn Larsen';
 
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateErstatningsopgoerelseDocument(session, stamdata, eo, selected, {
         visUdkastStempel: false,
         document: buildProjectedDocument(stamdata, eo),
       });
@@ -71,8 +71,8 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     const stamdata = baseStamdata();
     const eo = baseEo();
 
-    const { filename, zip } = await renderWordDocument(() => {
-      generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
+    const { filename, zip } = await renderWordDocument((session) => {
+      return generateErstatningsopgoerelseDocument(session, stamdata, eo, selected, {
         visUdkastStempel: true,
         document: buildProjectedDocument(stamdata, eo),
       });
@@ -89,8 +89,8 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     const stamdata = baseStamdata();
     const eo = baseEo();
 
-    const { filename, zip } = await renderWordDocument(() => {
-      generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
+    const { filename, zip } = await renderWordDocument((session) => {
+      return generateErstatningsopgoerelseDocument(session, stamdata, eo, selected, {
         visUdkastStempel: false,
         document: buildProjectedDocument(stamdata, eo),
       });
@@ -161,8 +161,8 @@ describe('erstatningsopgørelse → Word-indhold', () => {
       midlertidigEet: false,
     };
 
-    const { documentXml } = await renderWordDocument(() => {
-      generateErstatningsopgoerelseDocument(stamdata, preparedEo, multiSelected, {
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateErstatningsopgoerelseDocument(session, stamdata, preparedEo, multiSelected, {
         visUdkastStempel: false,
         document: buildProjectedDocument(stamdata, preparedEo),
       });
@@ -209,8 +209,8 @@ describe('erstatningsopgørelse → Word-indhold', () => {
       midlertidigEet: false,
     };
 
-    const { documentXml } = await renderWordDocument(() => {
-      generateErstatningsopgoerelseDocument(stamdata, preparedEo, reguleringSelected, {
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateErstatningsopgoerelseDocument(session, stamdata, preparedEo, reguleringSelected, {
         visUdkastStempel: false,
         document: buildProjectedDocument(stamdata, preparedEo),
       });
@@ -258,8 +258,8 @@ describe('erstatningsopgørelse → Word-indhold', () => {
       midlertidigEet: false,
     };
 
-    const { documentXml } = await renderWordDocument(() => {
-      generateErstatningsopgoerelseDocument(stamdata, preparedEo, klSelected, {
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateErstatningsopgoerelseDocument(session, stamdata, preparedEo, klSelected, {
         visUdkastStempel: false,
         document: buildProjectedDocument(stamdata, preparedEo),
       });

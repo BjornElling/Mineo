@@ -18,7 +18,9 @@
  * stamdata med dags dato (`buildStamdataBrevhovedData`).
  */
 
-import { createStandardPdfWriter, type DocumentWriter } from '../writer';
+import type { DocumentWriter } from '../writer';
+import type { DocumentArtifact } from '../downloadArtifact';
+import type { DocumentGenerationSession } from '../documentGenerationSession';
 import { getDocumentCreatorBrand, type BrevhovedData } from '../layout/documentLayoutHelpers';
 import type { DocumentStamdata } from '../layout/documentOptions';
 import { TODAY } from '../../config/dateRanges';
@@ -33,7 +35,7 @@ export type StandardDocumentMetadata = Readonly<{
   creator?: string;
 }>;
 
-/** Writer-options videreført til `createStandardPdfWriter` (udkast-stempel, fallback-log m.m.). */
+/** Writer-options videreført til sessionens writer-fabrik (udkast-stempel, fallback-log m.m.). */
 export type StandardDocumentWriterOptions = Readonly<{
   visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
@@ -68,16 +70,17 @@ const resolveDocumentValue = <TInput, TValue>(
  * Opretter en standard-writer med ensartet display-mode og dokument-metadata.
  *
  * Samler den preamble alle generatorer ellers gentog ordret
- * (`createStandardPdfWriter` → `setDisplayMode('fullheight')` → `setProperties`).
+ * (`session.createWriter` → `setDisplayMode('fullheight')` → `setProperties`).
  */
 export const initStandardDocumentWriter = (
+  session: DocumentGenerationSession,
   params: Readonly<{
     title: string;
     options?: StandardDocumentWriterOptions;
     metadata?: StandardDocumentMetadata;
   }>
 ): DocumentWriter => {
-  const writer = createStandardPdfWriter(params.options);
+  const writer = session.createWriter(params.options);
   writer.setDisplayMode('fullheight');
   writer.setProperties({
     title: params.title,
@@ -98,10 +101,10 @@ export const initStandardDocumentWriter = (
  */
 export const defineDocument = <TInput>(
   definition: DocumentDefinition<TInput>
-): ((input: TInput) => void) => {
-  return (input) => {
+): ((session: DocumentGenerationSession, input: TInput) => Promise<DocumentArtifact>) => {
+  return async (session, input) => {
     const title = resolveDocumentValue(definition.title, input);
-    const writer = initStandardDocumentWriter({
+    const writer = initStandardDocumentWriter(session, {
       title,
       options: definition.writerOptions
         ? resolveDocumentValue(definition.writerOptions, input)
@@ -127,7 +130,16 @@ export const defineDocument = <TInput>(
 
     definition.body(writer, input);
     writer.addFooter();
-    writer.save(definition.filename(input));
+    const blob = await writer.build();
+    const resolvedFilename = definition.filename(input);
+    const filename = resolvedFilename.replace(
+      /\.(?:pdf|docx)$/,
+      session.format === 'word' ? '.docx' : '.pdf'
+    );
+    return {
+      blob,
+      filename,
+    };
   };
 };
 

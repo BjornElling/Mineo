@@ -129,7 +129,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 6 | 17 | ✅ Kanonisk dag-set-modul | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #23, #36 |
 | 7 | 15 | ✅ `TableSpec` (udred `documentTableRenderer`) | ★★★★★ | ★★★☆☆ | ★★☆☆☆ | muliggør #24 |
 | 8 | 11 | ✅ `defineDocument`-generator-factory | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #24 |
-| 9 | 38 | Eksplicit dokument-genereringssession | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | muliggør #24; beslægtet #11 |
+| 9 | 38 | ✅ Eksplicit dokument-genereringssession | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | muliggør #24; beslægtet #11 |
 | 10 | 12 | Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
 | 11 | 19 | Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
 | 12 | 33 | Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
@@ -528,6 +528,15 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Forudsætning for #36. Berører beregningskode bredt → forelægges og bevises tal-identisk med EO-golden-net før migration.
 
 ### 38 — Eksplicit dokument-genereringssession · 9
+
+- **Status: ✅ Gennemført (2026-07-11).** Den modul-globale `activeContext`, fallback-
+  fabrikken, pending-promise-listen og writer-routeren er fjernet. Hvert downloadforløb
+  får nu en immutable `DocumentGenerationSession` med format og writer-fabrik; alle
+  generatorer modtager sessionen eksplicit og returnerer et `DocumentArtifact` med blob
+  og formatkorrekt filnavn. Begge writere afslutter via `build(): Promise<Blob>`, og kun
+  service-laget udløser browser-downloaden. Et nyt samtidighedsnet afslutter PDF og Word
+  i omvendt rækkefølge og beviser, at format, filnavn og blob ikke krydser sessioner;
+  det eksisterende PDF-/Word-/generator-golden-net er bevaret grønt.
 
 - **Scope:** `document/documentGenerationContext.ts`, `writer/documentWriterRouter.ts`, `docxWriter.ts`, `documentService.ts` og alle generator-entrypoints.
 - **Problem:** `activeContext` er modul-global state, der lever hen over `await`. Samtidige downloads kan overtage hinandens format/writer og gendanne kontekster i forkert rækkefølge; Word-writerens `save()` registrerer desuden en global pending-promise i stedet for at returnere sit artefakt. #24 bevarede oprindeligt netop denne kontekst og dækkede derfor ikke problemet.

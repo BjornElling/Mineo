@@ -10,6 +10,8 @@ import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from 
 import { formatCurrencyPerUnit, formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
+import type { DocumentGenerationSession } from '../../documentGenerationSession';
+import type { DocumentArtifact } from '../../downloadArtifact';
 
 type SatserData = ReturnType<typeof getSatserForYear>;
 type SatserDocumentOptions = DocumentCommonOptions;
@@ -72,11 +74,12 @@ const generateSatser = defineDocument<SatserDocumentInput>({
 });
 
 export const generateSatserDocument = (
+  session: DocumentGenerationSession,
   year: number,
   satser: SatserData,
   options: SatserDocumentOptions = {}
-): void => {
-  generateSatser({ year, satser, options });
+): Promise<DocumentArtifact> => {
+  return generateSatser(session, { year, satser, options });
 };
 
 

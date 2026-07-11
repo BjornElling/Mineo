@@ -24,7 +24,11 @@ import type { DanishDateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
 import type { EetLoebendeComputation } from '../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { computeForsoergertabCalculation } from '../../domain/forsoergertab/forsoergertabCalculation';
-import { registerPdfWriterFallbackForTest } from '../utils/pdf/registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
+import type { DocumentGenerationSession } from '../../document/documentGenerationSession';
+import type { DocumentArtifact } from '../../document/downloadArtifact';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 import { renderWordDocument } from '../docx/generators/wordContentHarness';
 import {
   capturePresentation,
@@ -111,17 +115,17 @@ const { autoTableMock, captured, MockJsPDF } = vi.hoisted(() => {
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
 vi.mock('jspdf-autotable', () => ({ default: autoTableMock }));
 
-const collectPdfTables = async (run: () => void | Promise<void>): Promise<TablePresentation[]> => {
+const collectPdfTables = async (run: (session: DocumentGenerationSession) => Promise<DocumentArtifact>): Promise<TablePresentation[]> => {
   captured.length = 0;
   MockJsPDF.instances = [];
   autoTableMock.mockClear();
-  await run();
+  await run(pdfSession);
   return captured.map(({ doc, options }) =>
     capturePresentation(doc as CaptureDoc, options as CapturedAutoTableOptions)
   );
 };
 
-const collectWordTables = async (run: () => void | Promise<void>): Promise<string[]> => {
+const collectWordTables = async (run: (session: DocumentGenerationSession) => Promise<DocumentArtifact>): Promise<string[]> => {
   const { documentXml } = await renderWordDocument(run);
   return extractWordTables(documentXml);
 };
@@ -298,21 +302,21 @@ const reguleringParams = {
 const shDagePerioder = [{ start: new Date(Date.UTC(2024, 0, 1)), end: new Date(Date.UTC(2024, 11, 31)) }];
 
 // Hver generator: PDF resolved presentation OG Word-tabel-XML skal være uændret.
-const cases: ReadonlyArray<Readonly<{ name: string; run: () => void }>> = [
-  { name: 'klLoenaftaler (ligelig fordeling, centreret)', run: () => generateKlLoenaftalerDocument({ visBrevhoved: false }) },
-  { name: 'KRL (låste kolonner, tvungen centrering)', run: () => generateKRLDocument({ visBrevhoved: false }) },
-  { name: 'aarsloen (fordelt + formateret total + colSpan + underline)', run: () => generateAarsloenDocument(aarsloenParams) },
-  { name: 'shDage (fordelt/låst + summeret total + mutede rækker + underline)', run: () => generateSHDageDocument(shDagePerioder, { visBrevhoved: false }) },
-  { name: 'renteOversigt (låste kolonner + summeret total + underline)', run: () => generateRenteOversigtDocument(toISODateString('2024-02-01'), [{ beloeb: 1250, renterFra: toISODateString('2024-01-11'), beregnetRente: 2.25 }, { beloeb: 3400, renterFra: toISODateString('2024-01-20'), beregnetRente: 5.5 }]) },
-  { name: 'rente (låst + fixed-inset + dataRowColumnHalign + total + underline)', run: () => generateRenteDocument(renteParams.amount, renteParams.interestStartDate, renteParams.calculationDate, renteParams.periods, { visBrevhoved: false, kommentarer: 'Standalone' }) },
-  { name: 'loebendeYdelser (auto-bredde + summeret total + underline)', run: () => generateLoebendeYdelserDocument({ computation: loebendeComputation, visUdvidetSpecifikation: true, visBrevhoved: false }) },
-  { name: 'regulering (min-bredde + tvungen centrering)', run: () => generateReguleringDocument(reguleringParams) },
-  { name: 'forsoergertab (inline-litteral bredder)', run: () => generateForsoergertabDocument(buildForsoergertabParams()) },
+const cases: ReadonlyArray<Readonly<{ name: string; run: (session: DocumentGenerationSession) => Promise<DocumentArtifact> }>> = [
+  { name: 'klLoenaftaler (ligelig fordeling, centreret)', run: (session) => generateKlLoenaftalerDocument(session, { visBrevhoved: false }) },
+  { name: 'KRL (låste kolonner, tvungen centrering)', run: (session) => generateKRLDocument(session, { visBrevhoved: false }) },
+  { name: 'aarsloen (fordelt + formateret total + colSpan + underline)', run: (session) => generateAarsloenDocument(session, aarsloenParams) },
+  { name: 'shDage (fordelt/låst + summeret total + mutede rækker + underline)', run: (session) => generateSHDageDocument(session, shDagePerioder, { visBrevhoved: false }) },
+  { name: 'renteOversigt (låste kolonner + summeret total + underline)', run: (session) => generateRenteOversigtDocument(session, toISODateString('2024-02-01'), [{ beloeb: 1250, renterFra: toISODateString('2024-01-11'), beregnetRente: 2.25 }, { beloeb: 3400, renterFra: toISODateString('2024-01-20'), beregnetRente: 5.5 }]) },
+  { name: 'rente (låst + fixed-inset + dataRowColumnHalign + total + underline)', run: (session) => generateRenteDocument(session, renteParams.amount, renteParams.interestStartDate, renteParams.calculationDate, renteParams.periods, { visBrevhoved: false, kommentarer: 'Standalone' }) },
+  { name: 'loebendeYdelser (auto-bredde + summeret total + underline)', run: (session) => generateLoebendeYdelserDocument(session, { computation: loebendeComputation, visUdvidetSpecifikation: true, visBrevhoved: false }) },
+  { name: 'regulering (min-bredde + tvungen centrering)', run: (session) => generateReguleringDocument(session, reguleringParams) },
+  { name: 'forsoergertab (inline-litteral bredder)', run: (session) => generateForsoergertabDocument(session, buildForsoergertabParams()) },
 ];
 
 describe('tabel-kanal-paritet: PDF resolved presentation (golden)', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   for (const { name, run } of cases) {

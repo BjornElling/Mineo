@@ -18,6 +18,7 @@ vi.mock('../../../utils/logger', () => ({
 
 const {
   mockReportSystemIssue,
+  mockTriggerDocumentDownload,
   mockLoadSatserPdfModule,
   mockLoadRentePdfModule,
   mockLoadRenteOversigtPdfModule,
@@ -58,6 +59,7 @@ const {
   mockEoSnapshotToTafPerYearOpreguleretDocument,
 } = vi.hoisted(() => ({
   mockReportSystemIssue: vi.fn(),
+  mockTriggerDocumentDownload: vi.fn(),
   mockLoadSatserPdfModule: vi.fn(),
   mockLoadRentePdfModule: vi.fn(),
   mockLoadRenteOversigtPdfModule: vi.fn(),
@@ -100,6 +102,10 @@ const {
 
 vi.mock('../../../utils/systemIssueReporter', () => ({
   reportSystemIssue: mockReportSystemIssue,
+}));
+
+vi.mock('../../../document/downloadArtifact', () => ({
+  triggerDocumentDownload: mockTriggerDocumentDownload,
 }));
 
 vi.mock('../../../document/service/documentLoader', () => ({
@@ -166,10 +172,12 @@ const settings = DEFAULT_APP_SETTINGS;
 const stamdata = STAMDATA_INITIAL_VALUES;
 const eoValues = createErstatningsopgoerelseInitialValues();
 const eoSnapshot = { revision: 'rev-1' } as never;
+const generatedArtifact = { blob: new Blob(), filename: 'test.pdf' };
 
 beforeEach(() => {
   resetPdfServiceDevServerStateForTests();
   mockReportSystemIssue.mockReset();
+  mockTriggerDocumentDownload.mockReset();
   mockLoadSatserPdfModule.mockReset();
   mockLoadRentePdfModule.mockReset();
   mockLoadRenteOversigtPdfModule.mockReset();
@@ -204,6 +212,27 @@ beforeEach(() => {
   mockGenerateVarigeMenPdf.mockReset();
   mockGenerateAarsloenPdf.mockReset();
   mockGenerateSHDagePdf.mockReset();
+  for (const generate of [
+    mockGenerateSatserPdf,
+    mockGenerateRentePdf,
+    mockGenerateRenteOversigtPdf,
+    mockGenerateReguleringPdf,
+    mockGenerateKRLPdf,
+    mockGenerateKlLoenaftalerPdf,
+    mockGenerateLoebendeYdelserPdf,
+    mockGenerateKapitaliseringPdf,
+    mockGenerateEfterEalPdf,
+    mockGenerateDifferencekravPdf,
+    mockGenerateErstatningsopgoerelsePdf,
+    mockGenerateTafFordeltPaaAarPdf,
+    mockGenerateTafKravGrafPdf,
+    mockGenerateTafOpreguleretPaaAarPdf,
+    mockGenerateVarigeMenPdf,
+    mockGenerateAarsloenPdf,
+    mockGenerateSHDagePdf,
+  ]) {
+    generate.mockResolvedValue(generatedArtifact);
+  }
   mockEoSnapshotToEoDocument.mockReset();
   mockEoSnapshotToTafPerYearDocument.mockReset();
   mockEoSnapshotToTafKravGrafDocument.mockReset();
@@ -268,6 +297,7 @@ describe('downloadSatserDokument', () => {
     });
     expect(result.success).toBe(true);
     expect(mockGenerateSatserPdf).toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).toHaveBeenCalledWith(generatedArtifact);
   });
 
   it('returnerer success=false og error-string når generator kaster', async () => {
@@ -329,6 +359,7 @@ describe('downloadRenteOversigtDokument', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateRenteOversigtPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       toISODateString('2024-02-01'),
       [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 12.5 }],
       expect.objectContaining({
@@ -399,7 +430,7 @@ describe('downloadKrlDokument', () => {
     expect(result.success).toBe(true);
 
     const lastCall = mockGenerateKRLPdf.mock.calls.at(-1);
-    expect(lastCall?.[0]).toMatchObject({ visBrevhoved: true });
+    expect(lastCall?.[1]).toMatchObject({ visBrevhoved: true });
   });
 
   it('returnerer success=false ved generator-fejl', async () => {
@@ -430,7 +461,7 @@ describe('downloadKlLoenaftalerDokument', () => {
     expect(result.success).toBe(true);
 
     const lastCall = mockGenerateKlLoenaftalerPdf.mock.calls.at(-1);
-    expect(lastCall?.[0]).toMatchObject({ visBrevhoved: true });
+    expect(lastCall?.[1]).toMatchObject({ visBrevhoved: true });
   });
 
   it('returnerer success=false ved generator-fejl', async () => {
@@ -455,6 +486,7 @@ describe('EET PDF downloads', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateLoebendeYdelserPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.objectContaining({
         computation,
         visUdvidetSpecifikation: true,
@@ -474,6 +506,7 @@ describe('EET PDF downloads', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateKapitaliseringPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.objectContaining({
         computation,
         koen: 'Mand',
@@ -492,6 +525,7 @@ describe('EET PDF downloads', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateEfterEalPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.objectContaining({
         computation,
       })
@@ -523,6 +557,7 @@ describe('EET PDF downloads', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateDifferencekravPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.objectContaining({
         computation,
         bilagSelection,
@@ -646,6 +681,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateErstatningsopgoerelsePdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.anything(),
       expect.anything(),
       expect.anything(),
@@ -676,6 +712,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
     });
 
     expect(mockGenerateErstatningsopgoerelsePdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.anything(),
       expect.anything(),
       expect.anything(),
@@ -732,6 +769,7 @@ describe('downloadTafFordeltPaaAarDokument', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateTafFordeltPaaAarPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.objectContaining({ document: projectedDocument })
     );
   });
@@ -782,6 +820,7 @@ describe('downloadTafKravGrafDokument', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateTafKravGrafPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.objectContaining({ document: projectedDocument })
     );
   });
@@ -838,6 +877,7 @@ describe('downloadTafOpreguleretPaaAarDokument', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateTafOpreguleretPaaAarPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'pdf' }),
       expect.objectContaining({ document: projectedDocument })
     );
   });

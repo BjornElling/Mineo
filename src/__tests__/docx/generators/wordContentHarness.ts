@@ -1,12 +1,12 @@
-import { vi } from 'vitest';
 import JSZip from 'jszip';
-import { withDocumentGenerationContext } from '../../../document/documentGenerationContext';
+import { createDocumentGenerationSession, type DocumentGenerationSession } from '../../../document/documentGenerationSession';
 import { createDocxWriter } from '../../../docx/infrastructure/docxWriter';
+import type { DocumentArtifact } from '../../../document/downloadArtifact';
 
 // Fælles harness for per-generator Word-indholdstests (jf.
 // document-format-contract.md §4). Kører en RIGTIG generator gennem
-// Word-backenden — generatoren kalder createStandardPdfWriter(), som under denne
-// kontekst returnerer en DocxWriter — fanger den producerede .docx-blob, og
+// Word-backenden — generatoren modtager en eksplicit session med DocxWriter —
+// fanger den returnerede .docx-blob og
 // pakker word/document.xml ud, så testen kan assert'e semantisk indhold.
 //
 // Formålet er at fange "skjult indholdstab": fordi Word ikke er pixel-paritet,
@@ -29,50 +29,14 @@ export const xmlToPlainText = (xml: string): string =>
     .trim();
 
 // Kører `run` gennem Word-backenden og returnerer den producerede .docx udpakket.
-// `run` skal kalde en generator, der internt kalder createStandardPdfWriter() og
-// til sidst writer.save(filename).
-export const renderWordDocument = async (run: () => void | Promise<void>): Promise<RenderedWordDocument> => {
-  const originalCreateObjectUrl = URL.createObjectURL;
-  const originalRevokeObjectUrl = URL.revokeObjectURL;
-
-  let capturedBlob: Blob | null = null;
-  let capturedFilename = '';
-
-  URL.createObjectURL = vi.fn((blob: Blob | MediaSource) => {
-    capturedBlob = blob instanceof Blob ? blob : null;
-    return 'blob:mineo-word-test';
-  });
-  URL.revokeObjectURL = vi.fn();
-
-  const appendSpy = vi.spyOn(document.body, 'appendChild');
-  appendSpy.mockImplementation((node: Node) => {
-    if (node instanceof HTMLAnchorElement) {
-      capturedFilename = node.download;
-    }
-    return Node.prototype.appendChild.call(document.body, node) as never;
-  });
-  const clickSpy = vi
-    .spyOn(HTMLAnchorElement.prototype, 'click')
-    .mockImplementation(function click(this: HTMLAnchorElement) {
-      capturedFilename = this.download;
-    });
-
-  try {
-    await withDocumentGenerationContext('word', run, { createWriter: createDocxWriter });
-  } finally {
-    appendSpy.mockRestore();
-    clickSpy.mockRestore();
-    URL.createObjectURL = originalCreateObjectUrl;
-    URL.revokeObjectURL = originalRevokeObjectUrl;
-    document.body.innerHTML = '';
-  }
-
-  if (!capturedBlob) {
-    throw new Error('Word-generatoren producerede ingen download-blob (kaldte writer.save() ikke?).');
-  }
-
-  const zip = await JSZip.loadAsync(capturedBlob);
+// `run` skal returnere generatorens færdige DocumentArtifact.
+export const renderWordDocument = async (
+  run: (session: DocumentGenerationSession) => Promise<DocumentArtifact>
+): Promise<RenderedWordDocument> => {
+  const session = createDocumentGenerationSession('word', createDocxWriter);
+  const artifact = await run(session);
+  const zip = await JSZip.loadAsync(artifact.blob);
   const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
 
-  return { filename: capturedFilename, documentXml, zip, blob: capturedBlob };
+  return { filename: artifact.filename, documentXml, zip, blob: artifact.blob };
 };

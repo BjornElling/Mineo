@@ -14,7 +14,7 @@ Output dækker **to kanaler**:
 1. **PDF** (jsPDF), bygget via PDF-kanalen i `src/pdf/` (`createPdfChannelWriter`).
 2. **Word** (.docx), bygget via Word-kanalen i `src/docx/` (`createDocxWriter`).
 
-Begge kanaler bygger på den **samme** `DocumentWriter`-grænseflade i den format-agnostiske kerne (`src/document/writer/documentWriter.ts`). Generatorerne i `src/document/generators/` er kanal-uagtige: de skriver mod `DocumentWriter` og ved ikke, om output bliver PDF eller Word. Den kanal-agnostiske router `createStandardPdfWriter` (`src/document/writer/documentWriterRouter.ts`) instantierer den korrekte writer ud fra den aktive `documentGenerationContext` (`src/document/documentGenerationContext.ts`) uden nogensinde at importere en kanal statisk; selve formatvalget reguleres af `document-format-contract.md`.
+Begge kanaler bygger på den **samme** `DocumentWriter`-grænseflade i den format-agnostiske kerne (`src/document/writer/documentWriter.ts`). Generatorerne i `src/document/generators/` er kanal-uagtige: de skriver mod `DocumentWriter` og ved ikke, om output bliver PDF eller Word. En eksplicit `DocumentGenerationSession` (`src/document/documentGenerationSession.ts`) leverer writer-fabrikken til generatoren uden modul-global state; selve formatvalget reguleres af `document-format-contract.md`.
 
 Kontrakten er opdelt i:
 
@@ -108,7 +108,7 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
 ## A7. Autoritative kilder og lag-topologi
 
 1. `src/document/` er den **kanoniske**, format-agnostiske dokument-kerne og opdelt i:
-   - `src/document/writer/` — den fælles writer-grænseflade `DocumentWriter` (`documentWriter.ts`) og den kanal-agnostiske router `createStandardPdfWriter` (`documentWriterRouter.ts`), der henter writer-fabrikken fra konteksten og **aldrig** importerer en kanal statisk.
+   - `src/document/writer/` — den fælles writer-grænseflade `DocumentWriter` (`documentWriter.ts`).
    - `src/document/layout/` — tabel-renderer (`documentTableRenderer.ts`), tekst-/format-utils (`pdfTextUtils.ts`, `documentFormatUtils.ts`), config (`pdfConfig.ts`), helpers (`documentLayoutHelpers.ts`), brevhoved-mapping (`documentBrevhoved.ts`), gate-typer (`documentGateTypes.ts`), fælles options (`documentOptions.ts`), tabel-bro (`documentTableBridge.ts`) og geometri (`jsPdfGeometry.ts`).
    - `src/document/generators/` — én generator (+ evt. `sections/`) pr. domæne (`*Document.ts`).
    - `src/document/service/` — service-boundary/download-afvikling (`documentService.ts`) og lazy-loader (`documentLoader.ts`).
@@ -122,7 +122,7 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
    - Delte EO-helpers (dato-/sats-/pct-utils): `src/domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts`.
    - Lønudviklings-segmentering: `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts`.
 4. Ingen ny generator må oprettes uden for `src/document/generators/`.
-5. Writer-grænsefladen hedder nu `DocumentWriter`, og dens `getDoc()` returnerer den honest union `jsPDF | DocumentTableBridgeDocument` (PDF-kanalen returnerer den rå jsPDF-instans, Word-kanalen returnerer tabel-broen). Den tidligere kanal-lækage med `jsPDF` + `as never`-cast er lukket (F2). Kernen i `src/document/` må aldrig statisk importere en kanal: router og service injicerer writer-fabrikkerne via `documentGenerationContext` (jf. afsnit B og `document-format-contract.md`).
+5. Writer-grænsefladen hedder nu `DocumentWriter`, og dens `getDoc()` returnerer den honest union `jsPDF | DocumentTableBridgeDocument` (PDF-kanalen returnerer den rå jsPDF-instans, Word-kanalen returnerer tabel-broen). Den tidligere kanal-lækage med `jsPDF` + `as never`-cast er lukket (F2). Kernen i `src/document/` må aldrig statisk importere en kanal: service-laget konstruerer en eksplicit session med den valgte writer-fabrik (jf. afsnit B og `document-format-contract.md`).
 
 ## A8. Datoformat i output (kanal-neutralt)
 
@@ -156,7 +156,7 @@ Dette afsnit fastlægger den visuelle og strukturelle standard for Mineos dokume
 - `createPdfChannelWriter` (`src/pdf/infrastructure/pdfWriter.ts`) — PDF via jsPDF.
 - `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`) — Word via docx.
 
-Generatorerne kalder den kanal-agnostiske router `createStandardPdfWriter` (`src/document/writer/documentWriterRouter.ts`), der delegerer til den writer-fabrik, som er injiceret i den aktive `documentGenerationContext` (`getActiveDocumentWriterFactory()`); routeren importerer aldrig en kanal statisk. Reglerne i dette afsnit gælder derfor **begge** kanaler — de er ikke PDF-only. En generator skriver mod `DocumentWriter` uden at vide, hvilken kanal den ender i, og må ikke indføre kanal-specifikke afvigelser.
+Generatorerne modtager en eksplicit `DocumentGenerationSession`, og `defineDocument(...)` opretter writeren gennem sessionens injicerede fabrik. Reglerne i dette afsnit gælder derfor **begge** kanaler — de er ikke PDF-only. En generator skriver mod `DocumentWriter` uden at vide, hvilken kanal den ender i, og må ikke indføre kanal-specifikke afvigelser. Writerens `build()` returnerer en blob; generatoren returnerer et `DocumentArtifact`, og kun service-laget starter browser-downloaden.
 
 Alle generator-entrypoints defineres med `defineDocument(...)` i
 `src/document/generators/documentGeneratorSetup.ts`. Factoryen ejer den faste lifecycle:
@@ -451,10 +451,9 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 
 - Fælles writer-grænseflade: `src/document/writer/documentWriter.ts` (`DocumentWriter`).
 - Fælles generator-lifecycle: `defineDocument` i `src/document/generators/documentGeneratorSetup.ts`.
-- Kanal-agnostisk writer-router: `createStandardPdfWriter` (`src/document/writer/documentWriterRouter.ts`).
+- Eksplicit generationssession: `src/document/documentGenerationSession.ts`.
 - PDF-writer-fabrik (kanal): `createPdfChannelWriter` (`src/pdf/infrastructure/pdfWriter.ts`).
 - Word-writer-fabrik (kanal): `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`).
-- Format-/kanal-kontekst: `src/document/documentGenerationContext.ts`.
 - Word-typografier (navngivne styles): `src/docx/infrastructure/docxStyles.ts`.
 - Tabelbro (kanal-neutral, broes til Word): `src/document/layout/documentTableBridge.ts`.
 - Word-vandmærke: `src/docx/infrastructure/docxWatermark.ts`.

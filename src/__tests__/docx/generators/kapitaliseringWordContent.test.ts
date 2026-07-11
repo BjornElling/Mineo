@@ -14,8 +14,8 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 // beregnede kapitalbeløb faktisk når .docx'en.
 describe('kapitalisering → Word-indhold', () => {
   it('skriver titel og empty-state-besked når der ingen afgørelser er', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateKapitaliseringDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateKapitaliseringDocument(session, {
         computation: { afgoerelser: [] } satisfies EetKapitaliseringComputation,
         visBrevhoved: false,
       });
@@ -56,8 +56,8 @@ describe('kapitalisering → Word-indhold', () => {
       koenOpdelt: false,
     } satisfies EetKapitaliseringAfgoerelseComputation;
 
-    const { documentXml } = await renderWordDocument(() => {
-      generateKapitaliseringDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateKapitaliseringDocument(session, {
         computation: { afgoerelser: [afgoerelse] } satisfies EetKapitaliseringComputation,
         visBrevhoved: false,
       });

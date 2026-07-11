@@ -8,7 +8,7 @@ import {
 } from '../../utils/documentMaanederFormatting';
 import { resolveDocumentFileName, sanitizeFilenamePart } from '../documentFileName';
 import { toKroner, type MoneyOre } from '../../domain/money/money';
-import { getActiveDocumentDownloadFormat } from '../documentGenerationContext';
+import type { DocumentDownloadFormat } from '../documentFormat';
 
 const NBSP = '\u00A0';
 
@@ -18,16 +18,20 @@ const NBSP = '\u00A0';
 export { sanitizeFilenamePart };
 
 /**
- * Bygger filnavnet via den fælles regel og den aktive dokument-genereringssession.
- * Generatoren vælger kun titel/udkast/journalnummer; formatlaget ejer endelsen ét sted.
- * Uden en aktiv session er fallback-formatet PDF, så direkte generator-tests og den
- * bevidst PDF-only standalone-app bevarer deres deterministiske standard.
+ * Bygger filnavnet via den fælles regel. Generatorer bruger PDF som neutral basis;
+ * `defineDocument` resolver den endelige endelse fra den eksplicitte session. Direkte
+ * kald kan angive formatet, fx når filnavnsreglen testes isoleret.
  */
-export const resolveDocumentArtifactFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
+export const resolveDocumentArtifactFileName = (
+  baseTitle: string,
+  isDraft: boolean,
+  journalnr?: string,
+  format: DocumentDownloadFormat = 'pdf'
+): string => {
   return resolveDocumentFileName(
     baseTitle,
     isDraft,
-    getActiveDocumentDownloadFormat(),
+    format,
     journalnr
   );
 };

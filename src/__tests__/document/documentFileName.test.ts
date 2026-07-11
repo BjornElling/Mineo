@@ -1,6 +1,5 @@
 import { resolveDocumentFileName } from '../../document/documentFileName';
 import { resolveDocumentArtifactFileName } from '../../document/layout/documentFormatUtils';
-import { withDocumentGenerationContext } from '../../document/documentGenerationContext';
 
 describe('resolveDocumentFileName', () => {
   it('bruger PDF- og Word-endelser med samme journalnr- og udkast-regel', () => {
@@ -30,11 +29,9 @@ describe('resolveDocumentFileName', () => {
     }
   });
 
-  it('resolver endelsen fra den aktive dokument-genereringssession', async () => {
-    await withDocumentGenerationContext('word', () => {
-      expect(resolveDocumentArtifactFileName('Titel', false, 'J-1')).toBe(
-        'J-1 - Titel.docx'
-      );
-    });
+  it('resolver endelsen fra det eksplicitte dokumentformat', () => {
+    expect(resolveDocumentArtifactFileName('Titel', false, 'J-1', 'word')).toBe(
+      'J-1 - Titel.docx'
+    );
   });
 });

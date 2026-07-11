@@ -33,7 +33,11 @@ import type { MidlertidigtEetAfgoerelseGroup } from '../../domain/erstatningsopg
 import type { SelectedElements } from '../../document/generators/eo/types';
 import { toISODateString } from '../../types/branded';
 import { withSfggIngenForEmployments } from '../utils/sfggTestSupport';
-import { registerPdfWriterFallbackForTest } from '../utils/pdf/registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
+import type { DocumentGenerationSession } from '../../document/documentGenerationSession';
+import type { DocumentArtifact } from '../../document/downloadArtifact';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 import { renderWordDocument } from '../docx/generators/wordContentHarness';
 import {
   capturePresentation,
@@ -130,10 +134,10 @@ const buildDocumentAndGroups = (
   return { document: projection, groups: snapshot.data?.midlertidigtEetGroups ?? [] };
 };
 
-const runGenerator = (fixture: EoFixture): void => {
+const runGenerator = (session: DocumentGenerationSession, fixture: EoFixture): Promise<DocumentArtifact> => {
   const { document, groups } = buildDocumentAndGroups(fixture);
-  if (document.kind === 'blocked') return;
-  generateErstatningsopgoerelseDocument(fixture.stamdata, fixture.eo, fixture.selected, {
+  if (document.kind === 'blocked') throw new Error(document.message);
+  return generateErstatningsopgoerelseDocument(session, fixture.stamdata, fixture.eo, fixture.selected, {
     visBrevhoved: false,
     visUdkastStempel: false,
     document: document.document,
@@ -145,14 +149,14 @@ const collectPdfTables = async (fixture: EoFixture): Promise<TablePresentation[]
   captured.length = 0;
   MockJsPDF.instances = [];
   autoTableMock.mockClear();
-  runGenerator(fixture);
+  await runGenerator(pdfSession, fixture);
   return captured.map(({ doc, options }) =>
     capturePresentation(doc as CaptureDoc, options as CapturedAutoTableOptions)
   );
 };
 
 const collectWordTables = async (fixture: EoFixture): Promise<string[]> => {
-  const { documentXml } = await renderWordDocument(() => runGenerator(fixture));
+  const { documentXml } = await renderWordDocument((session) => runGenerator(session, fixture));
   return extractWordTables(documentXml);
 };
 
@@ -304,7 +308,7 @@ const fixtures: ReadonlyArray<Readonly<{ name: string; build: () => EoFixture }>
 
 describe('EO-sektion tabel-kanal-paritet: PDF resolved presentation (golden)', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   for (const { name, build } of fixtures) {

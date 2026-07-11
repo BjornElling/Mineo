@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { toISODateString } from '../../../types/branded';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 /// <reference types="vitest/globals" />
 
 class MockJsPDF {
@@ -41,7 +43,7 @@ vi.mock('jspdf-autotable', () => ({
 
 describe('EET PDF empty states', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   beforeEach(() => {
@@ -51,7 +53,7 @@ describe('EET PDF empty states', () => {
   it('generateLoebendeYdelserDocument viser tom-tilstand i stedet for tom titelside', async () => {
     const { generateLoebendeYdelserDocument } = await import('../../../document/generators/loebendeYdelser/loebendeYdelserDocument');
 
-    generateLoebendeYdelserDocument({
+    generateLoebendeYdelserDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2020-01-01'),
@@ -75,7 +77,7 @@ describe('EET PDF empty states', () => {
   it('generateKapitaliseringDocument viser tom-tilstand når der ikke er kapitaliserede afgørelser', async () => {
     const { generateKapitaliseringDocument } = await import('../../../document/generators/kapitalisering/kapitaliseringDocument');
 
-    generateKapitaliseringDocument({
+    generateKapitaliseringDocument(pdfSession, {
       computation: {
         afgoerelser: [],
         issues: [],
@@ -91,7 +93,7 @@ describe('EET PDF empty states', () => {
   it('generateKapitaliseringDocument udelader AM-bidrag i grundydelseslinjer for skader foer 2011', async () => {
     const { generateKapitaliseringDocument } = await import('../../../document/generators/kapitalisering/kapitaliseringDocument');
 
-    generateKapitaliseringDocument({
+    generateKapitaliseringDocument(pdfSession, {
       computation: {
         afgoerelser: [
           {
@@ -137,7 +139,7 @@ describe('EET PDF empty states', () => {
   it('generateDifferencekravDocument viser tom-tilstand for tomme bilag i stedet for blanke bilagssider', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument({
+    generateDifferencekravDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2020-01-01'),
@@ -187,7 +189,7 @@ describe('EET PDF empty states', () => {
   it('generateDifferencekravDocument udelader AM-bidrag i proforma-grundydelseslinjer for skader foer 2011', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument({
+    generateDifferencekravDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2020-01-01'),
@@ -263,7 +265,7 @@ describe('EET PDF empty states', () => {
   it('generateDifferencekravDocument bruger løbende-bilagets computation med dagen før beregningsdatoen', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument({
+    generateDifferencekravDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-01-15'),
         skadedato: toISODateString('2022-09-17'),
@@ -351,7 +353,7 @@ describe('EET PDF empty states', () => {
   it('generateLoebendeYdelserDocument bruger opdateret AM-bidrag-tekst i udvidet specifikation for post-2010-skader', async () => {
     const { generateLoebendeYdelserDocument } = await import('../../../document/generators/loebendeYdelser/loebendeYdelserDocument');
 
-    generateLoebendeYdelserDocument({
+    generateLoebendeYdelserDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2020-01-01'),
@@ -381,7 +383,7 @@ describe('EET PDF empty states', () => {
   it('generateDifferencekravDocument bruger samme opdaterede AM-bidrag-tekst i udvidet specifikation-bilaget', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument({
+    generateDifferencekravDocument(pdfSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2020-01-01'),

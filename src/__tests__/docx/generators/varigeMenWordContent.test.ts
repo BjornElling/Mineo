@@ -26,8 +26,8 @@ describe('varigeMen → Word-indhold', () => {
   it('skriver titel og alle sektionsoverskrifter til .docx', async () => {
     expect(beregningsResultat).not.toBeNull();
 
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateVarigeMenDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateVarigeMenDocument(session, {
         fodselsdato,
         skadedato,
         mengrad,
@@ -51,8 +51,8 @@ describe('varigeMen → Word-indhold', () => {
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     expect(beregningsResultat).not.toBeNull();
 
-    const { documentXml } = await renderWordDocument(() => {
-      generateVarigeMenDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateVarigeMenDocument(session, {
         fodselsdato,
         skadedato,
         mengrad,

@@ -12,8 +12,8 @@ describe('shDage → Word-indhold', () => {
       { start: new Date(Date.UTC(2024, 0, 1)), end: new Date(Date.UTC(2024, 11, 31)) },
     ];
 
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateSHDageDocument(perioder, { visBrevhoved: false });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateSHDageDocument(session, perioder, { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -37,8 +37,8 @@ describe('shDage → Word-indhold', () => {
       { start: new Date(Date.UTC(2024, 0, 8)), end: new Date(Date.UTC(2024, 0, 12)) },
     ];
 
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateSHDageDocument(perioder, { visBrevhoved: false });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateSHDageDocument(session, perioder, { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);

@@ -8,7 +8,9 @@ import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoP
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { FONT_SIZES, PDF_BASE_LINE_HEIGHT_MM } from '../../../document/layout/pdfConfig';
 import { toISODateString } from '../../../types/branded';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
 const mockInstances: MockJsPDF[] = [];
 
@@ -65,7 +67,7 @@ vi.mock('../../../utils/logger', () => ({
 
 describe('erstatningsopgoerelsePdf udkaststempel', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   let generateErstatningsopgoerelseDocument: typeof import('../../../document/generators/eo/erstatningsopgoerelseDocument').generateErstatningsopgoerelseDocument;
@@ -123,43 +125,40 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     });
   };
 
-  it('adds draft watermark when visUdkastStempel=true', () => {
+  it('adds draft watermark when visUdkastStempel=true', async () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
-    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
+    const artifact = await generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, baseEo, selected, {
       visUdkastStempel: true,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(true);
-    const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
-    expect(lastSaveCall?.[0]).toMatch(/ \(udkast\)\.pdf$/);
+    expect(artifact.filename).toMatch(/ \(udkast\)\.pdf$/);
   });
 
-  it('prepender journalnr i filnavn når journalnr er udfyldt', () => {
+  it('prepender journalnr i filnavn når journalnr er udfyldt', async () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
     const stamdataWithJournal = {
       ...baseStamdata,
       journalnr: '1234',
     };
-    generateErstatningsopgoerelseDocument(stamdataWithJournal, baseEo, selected, {
+    const artifact = await generateErstatningsopgoerelseDocument(pdfSession, stamdataWithJournal, baseEo, selected, {
       visUdkastStempel: true,
       document: buildProjectedDocument(stamdataWithJournal, baseEo),
     });
-    const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
-    expect(lastSaveCall?.[0]).toMatch(/^1234 - .* \(udkast\)\.pdf$/);
+    expect(artifact.filename).toMatch(/^1234 - .* \(udkast\)\.pdf$/);
   });
 
-  it('does not add draft watermark when visUdkastStempel=false', () => {
+  it('does not add draft watermark when visUdkastStempel=false', async () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
-    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
+    const artifact = await generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, baseEo, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(false);
-    const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
-    const fileName = String(lastSaveCall?.[0] ?? '');
+    const fileName = artifact.filename;
     expect(fileName.endsWith('.pdf')).toBe(true);
     expect(fileName.includes(' (udkast).pdf')).toBe(false);
   });
@@ -174,7 +173,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     baseStamdata.skadestype = 'Arbejdsulykke';
     baseStamdata.skadedato = toISODateString('2025-04-03');
 
-    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
+    generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, baseEo, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
@@ -199,7 +198,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       sygeferiegodtgoerelse: true,
     };
 
-    expect(() => generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selectedWithUnsupported, {
+    expect(() => generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, baseEo, selectedWithUnsupported, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     }))
@@ -221,7 +220,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelseDocument(baseStamdata, eoWithLongComment, selected, {
+    generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, eoWithLongComment, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, eoWithLongComment),
     });
@@ -242,7 +241,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelseDocument(baseStamdata, eoWithVeryLongComment, selected, {
+    generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, eoWithVeryLongComment, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, eoWithVeryLongComment),
     });
@@ -263,7 +262,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return text.length;
     };
 
-    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
+    generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, baseEo, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
@@ -325,7 +324,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelseDocument(baseStamdata, eoWithLongSignaturIntro, selected, {
+    generateErstatningsopgoerelseDocument(pdfSession, baseStamdata, eoWithLongSignaturIntro, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, eoWithLongSignaturIntro),
     });

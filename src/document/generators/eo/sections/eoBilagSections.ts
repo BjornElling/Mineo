@@ -10,7 +10,7 @@
  * inline-implementering — outputtet skal være bit-for-bit det samme.
  */
 
-import { createStandardPdfWriter } from '../../../writer';
+import type { DocumentWriter } from '../../../writer';
 import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../../layout/pdfConfig';
 import type { ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
@@ -60,7 +60,7 @@ import {
   formatSfggAfkortningPdfLine,
 } from '../../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 
-type StandardPdfWriter = ReturnType<typeof createStandardPdfWriter>;
+type StandardPdfWriter = DocumentWriter;
 
 const EO_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 

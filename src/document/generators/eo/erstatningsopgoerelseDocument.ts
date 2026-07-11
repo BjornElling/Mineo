@@ -33,6 +33,7 @@ import type { SelectedElements } from './types';
 import { renderOpgorelseSection } from './sections/opgoerelseSection';
 import { renderEoBilagSections } from './sections/eoBilagSections';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { DocumentGenerationSession } from '../../documentGenerationSession';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
@@ -80,6 +81,7 @@ interface ErstatningsopgoerelseDocumentOptions extends DocumentCommonOptions {
  * @param {ErstatningsopgoerelseDocumentOptions} options - Valgfrie indstillinger
  */
 export const generateErstatningsopgoerelseDocument = (
+  session: DocumentGenerationSession,
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
   selectedElements: SelectedElements,
@@ -217,5 +219,5 @@ export const generateErstatningsopgoerelseDocument = (
 
     },
   });
-  generate();
+  return generate(session, undefined);
 };

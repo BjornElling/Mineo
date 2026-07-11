@@ -6,7 +6,9 @@ import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapsho
 import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues, JaNejSkjul } from '../../../schemas/formSchemas';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
 class MockJsPDF {
   static lastInstance: MockJsPDF | null = null;
@@ -45,7 +47,7 @@ vi.mock('../../../utils/logger', () => ({
 
 describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   let generateErstatningsopgoerelseDocument: typeof import('../../../document/generators/eo/erstatningsopgoerelseDocument').generateErstatningsopgoerelseDocument;
@@ -96,7 +98,7 @@ describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
       throw new Error(projection.message);
     }
     const document: EoModel = projection.document;
-    generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
+    generateErstatningsopgoerelseDocument(pdfSession, stamdata, eo, selected, {
       visUdkastStempel: false,
       document,
       ...(afsluttesMed ? { erstatningsopgoerelseAfsluttesMed: afsluttesMed } : {}),

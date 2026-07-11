@@ -15,6 +15,8 @@ import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatti
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
+import type { DocumentGenerationSession } from '../../documentGenerationSession';
+import type { DocumentArtifact } from '../../downloadArtifact';
 
 type SHDageDocumentOptions = DocumentCommonOptions;
 type SHDagePeriod = { start: Date; end: Date };
@@ -182,10 +184,11 @@ const generateSHDage = defineDocument<SHDageDocumentInput>({
 });
 
 export const generateSHDageDocument = (
+  session: DocumentGenerationSession,
   perioder: ReadonlyArray<SHDagePeriod>,
   options: SHDageDocumentOptions = {}
-): void => {
-  generateSHDage({ perioder, options });
+): Promise<DocumentArtifact> => {
+  return generateSHDage(session, { perioder, options });
 };
 
 

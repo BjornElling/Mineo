@@ -5,9 +5,10 @@ import {
   writeLabelValueRows,
 } from '../../../document/generators/documentGeneratorSetup';
 import {
-  setFallbackDocumentWriterFactory,
+  createDocumentGenerationSession,
+  type DocumentGenerationSession,
   type DocumentWriterFactory,
-} from '../../../document/documentGenerationContext';
+} from '../../../document/documentGenerationSession';
 import { setDocumentBrand, getDocumentCreatorBrand } from '../../../document/documentBrand';
 import { TODAY } from '../../../config/dateRanges';
 import type { DocumentWriter } from '../../../document/writer';
@@ -30,7 +31,7 @@ type RecordedWriterMethods = Pick<
   | 'writeBrevhoved'
   | 'writeTitle'
   | 'addFooter'
-  | 'save'
+  | 'build'
 >;
 
 type LeftRightCall = Readonly<{
@@ -63,8 +64,9 @@ const createRecordingWriter = () => {
     addFooter: () => {
       lifecycle.push('footer');
     },
-    save: (filename) => {
-      lifecycle.push(`save:${filename}`);
+    build: async () => {
+      lifecycle.push('build');
+      return new Blob();
     },
   } satisfies RecordedWriterMethods as unknown as DocumentWriter;
   return { writer, displayModes, properties, leftRight, lifecycle };
@@ -73,25 +75,25 @@ const createRecordingWriter = () => {
 describe('documentGeneratorSetup', () => {
   let recorder: ReturnType<typeof createRecordingWriter>;
   let factoryCalls: Parameters<DocumentWriterFactory>[0][];
+  let session: DocumentGenerationSession;
 
   beforeEach(() => {
     recorder = createRecordingWriter();
     factoryCalls = [];
-    setFallbackDocumentWriterFactory((params) => {
+    session = createDocumentGenerationSession('pdf', (params) => {
       factoryCalls.push(params);
       return recorder.writer;
     });
   });
 
   afterEach(() => {
-    setFallbackDocumentWriterFactory(null);
     // Brand er modul-global; nulstil til standard så et brand-skift ikke lækker mellem tests.
     setDocumentBrand('mineo.dk');
   });
 
   describe('initStandardDocumentWriter', () => {
     it('sætter fullheight display-mode og standard-metadata med den givne titel', () => {
-      initStandardDocumentWriter({ title: 'Ménberegning' });
+      initStandardDocumentWriter(session, { title: 'Ménberegning' });
 
       expect(recorder.displayModes).toEqual(['fullheight']);
       expect(recorder.properties).toHaveLength(1);
@@ -108,19 +110,19 @@ describe('documentGeneratorSetup', () => {
       setDocumentBrand('MinProcesrente');
       expect(getDocumentCreatorBrand()).toBe('minprocesrente');
 
-      initStandardDocumentWriter({ title: 'Renteberegning' });
+      initStandardDocumentWriter(session, { title: 'Renteberegning' });
 
       expect(recorder.properties[0]?.creator).toBe('minprocesrente');
     });
 
     it('bruger standard-brandet som creator uden brand-override', () => {
-      initStandardDocumentWriter({ title: 'Årslønsberegning' });
+      initStandardDocumentWriter(session, { title: 'Årslønsberegning' });
 
       expect(recorder.properties[0]?.creator).toBe('mineo.dk');
     });
 
     it('respekterer eksplicit metadata-override uden at ændre titel', () => {
-      initStandardDocumentWriter({
+      initStandardDocumentWriter(session, {
         title: 'Procesrente',
         metadata: {
           subject: 'Renteberegning',
@@ -138,7 +140,7 @@ describe('documentGeneratorSetup', () => {
 
     it('videresender writer-options til fabrikken', () => {
       const onLayoutFallback = () => undefined;
-      initStandardDocumentWriter({
+      initStandardDocumentWriter(session, {
         title: 'Satser',
         options: { visUdkastStempel: true, orientation: 'landscape', onLayoutFallback },
       });
@@ -180,7 +182,7 @@ describe('documentGeneratorSetup', () => {
   });
 
   describe('defineDocument', () => {
-    it('ejer den faste rækkefølge fra brevhoved til save', () => {
+    it('ejer den faste rækkefølge fra brevhoved til artefakt', async () => {
       const generate = defineDocument<Readonly<{ id: string }>>({
         title: ({ id }) => `Dokument ${id}`,
         filename: ({ id }) => `${id}.pdf`,
@@ -195,7 +197,7 @@ describe('documentGeneratorSetup', () => {
         },
       });
 
-      generate({ id: '42' });
+      const artifact = await generate(session, { id: '42' });
 
       expect(recorder.lifecycle).toEqual([
         'før-brevhoved',
@@ -203,11 +205,12 @@ describe('documentGeneratorSetup', () => {
         'titel:Dokument 42',
         'indhold',
         'footer',
-        'save:42.pdf',
+        'build',
       ]);
+      expect(artifact.filename).toBe('42.pdf');
     });
 
-    it('kan fravælge titel og brevhoved uden at svække footer/save-lifecyclen', () => {
+    it('kan fravælge titel og brevhoved uden at svække footer/build-lifecyclen', async () => {
       const generate = defineDocument<string>({
         title: 'Graf',
         filename: (filename) => filename,
@@ -217,12 +220,13 @@ describe('documentGeneratorSetup', () => {
         },
       });
 
-      generate('graf.pdf');
+      const artifact = await generate(session, 'graf.pdf');
 
-      expect(recorder.lifecycle).toEqual(['graf', 'footer', 'save:graf.pdf']);
+      expect(recorder.lifecycle).toEqual(['graf', 'footer', 'build']);
+      expect(artifact.filename).toBe('graf.pdf');
     });
 
-    it('gemmer ikke et delvist dokument når body fejler', () => {
+    it('bygger ikke et delvist dokument når body fejler', async () => {
       const generate = defineDocument<void>({
         title: 'Fejlende dokument',
         filename: () => 'maa-ikke-gemmes.pdf',
@@ -232,7 +236,7 @@ describe('documentGeneratorSetup', () => {
         },
       });
 
-      expect(() => generate()).toThrow('rendering fejlede');
+      await expect(generate(session, undefined)).rejects.toThrow('rendering fejlede');
       expect(recorder.lifecycle).toEqual(['titel:Fejlende dokument', 'indhold']);
     });
   });

@@ -4,7 +4,7 @@
  * Generatorer skriver mod denne grænseflade uden at vide, om output bliver PDF
  * (jsPDF) eller Word (.docx). To fabrikker opfylder den: PDF-kanalens
  * `createPdfWriter` (`src/pdf/`) og Word-kanalens `createDocxWriter` (`src/docx/`).
- * Den aktive `documentGenerationContext` afgør hvilken der instantieres.
+ * Den eksplicitte `DocumentGenerationSession` afgør hvilken der instantieres.
  *
  * Den eneste kanal-bevidste detalje er `getDoc()`s honest union: på PDF-kanalen
  * den rå jsPDF-instans, på Word-kanalen `DocumentTableBridgeDocument`-broen. Kun den
@@ -89,5 +89,5 @@ export type DocumentWriter = {
   getContentWidthMm: () => number;
   addPage: () => void;
   addFooter: () => void;
-  save: (filename: string) => void;
+  build: () => Promise<Blob>;
 };

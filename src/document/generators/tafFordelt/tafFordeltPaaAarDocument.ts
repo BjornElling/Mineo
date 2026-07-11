@@ -24,6 +24,7 @@ import {
 } from '../../layout/documentFormatUtils';
 import type { TafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
 import { addMoneyOre } from '../../../domain/money/money';
+import type { DocumentGenerationSession } from '../../documentGenerationSession';
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
@@ -38,8 +39,9 @@ interface TafFordeltPaaAarDocumentOptions {
 }
 
 export const generateTafFordeltPaaAarDocument = (
+  session: DocumentGenerationSession,
   options: TafFordeltPaaAarDocumentOptions
-): void => {
+) => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const { model, presentation } = options.document;
 
@@ -258,5 +260,5 @@ export const generateTafFordeltPaaAarDocument = (
 
     },
   });
-  generate();
+  return generate(session, undefined);
 };

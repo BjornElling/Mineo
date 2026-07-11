@@ -9,7 +9,9 @@ import {
 import { moneyOre, type MoneyOre } from '../../../domain/money/money';
 import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import { toISODateString } from '../../../types/branded';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
 type Style = 'normal' | 'bold';
 
@@ -152,7 +154,7 @@ const textsOf = (instance = lastInstance()) => (instance?.recorded ?? []).map((e
 
 describe('tafOpreguleretPaaAarPdf wiring', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   let generate: Awaited<ReturnType<typeof loadGenerator>>;
@@ -166,11 +168,11 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
   });
 
   it('kræver et præ-projiceret dokument', async () => {
-    expect(() => generate(undefined as never)).toThrow();
+    expect(() => generate(pdfSession, undefined as never)).toThrow();
   }, 15_000);
 
-  it('renderer opreguleret TAF-dokumentets hovedindhold og metadata', () => {
-    generate({ document: FAKE_DOCUMENT });
+  it('renderer opreguleret TAF-dokumentets hovedindhold og metadata', async () => {
+    const artifact = await generate(pdfSession, { document: FAKE_DOCUMENT });
     const recorded = lastInstance()?.recorded ?? [];
     const texts = recorded.map((e) => e.text);
     const normalized = texts.map((t) => t.replace(/\s/g, ' '));
@@ -194,7 +196,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     expect(normalized).toContain('778.842,00 kr.');
     // Ingen bilag-side-titler (de starter en ny side via addPage + writeTitle)
     expect(texts).not.toContain('Sygeferiegodtgørelse');
-    expect(lastInstance()?.save).toHaveBeenCalledWith('TAF opreguleret til beregningsår.pdf');
+    expect(artifact.filename).toBe('TAF opreguleret til beregningsår.pdf');
   });
 
   it('viser og beregner opreguleringslinjen med fire-decimalers faktor fra beregningsmotoren', () => {
@@ -212,7 +214,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     expect(outcome.result.years[0]?.deltaPct).toBe(8.8872);
     expect(outcome.result.years[0]?.yearTafOpreguleretOre).toBe(31333707);
 
-    generate({
+    generate(pdfSession, {
       document: {
         model: FAKE_MODEL as never,
         presentation,
@@ -229,7 +231,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
   });
 
   it('viser "Ingen" når der ikke er TAF-perioder', () => {
-    generate({
+    generate(pdfSession, {
       document: {
         model: {
           ...FAKE_MODEL,
@@ -251,7 +253,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
   });
 
   it('forlig-faktor pakker beregnet-krav-udregningen ind', () => {
-    generate({
+    generate(pdfSession, {
       document: {
         model: {
           ...FAKE_MODEL,
@@ -288,7 +290,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
       yearIncomeOre: moneyOre(51453697),
       yearDeductionsOre: moneyOre(23737028),
     });
-    generate({
+    generate(pdfSession, {
       document: {
         model: FAKE_MODEL as never,
         presentation: {

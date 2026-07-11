@@ -65,8 +65,8 @@ const FAKE_DOCUMENT: TafPerYearDocument = {
 
 describe('tafFordeltPaaAar → Word-indhold', () => {
   it('skriver årsfordeling, fradragslinjer og total til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateTafFordeltPaaAarDocument({ document: FAKE_DOCUMENT });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateTafFordeltPaaAarDocument(session, { document: FAKE_DOCUMENT });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -80,8 +80,8 @@ describe('tafFordeltPaaAar → Word-indhold', () => {
   });
 
   it('giver udkast-suffix i filnavnet når visUdkastStempel=true', async () => {
-    const { filename } = await renderWordDocument(() => {
-      generateTafFordeltPaaAarDocument({ document: FAKE_DOCUMENT, visUdkastStempel: true });
+    const { filename } = await renderWordDocument((session) => {
+      return generateTafFordeltPaaAarDocument(session, { document: FAKE_DOCUMENT, visUdkastStempel: true });
     });
 
     expect(filename).toMatch(/ \(udkast\)\.docx$/);

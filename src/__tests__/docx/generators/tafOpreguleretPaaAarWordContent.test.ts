@@ -87,8 +87,8 @@ const FAKE_DOCUMENT: TafPerYearOpreguleretDocument = {
 
 describe('tafOpreguleretPaaAar → Word-indhold', () => {
   it('skriver opregulerings-indhold og samlet total til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateTafOpreguleretPaaAarDocument({ document: FAKE_DOCUMENT });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateTafOpreguleretPaaAarDocument(session, { document: FAKE_DOCUMENT });
     });
 
     const text = xmlToPlainText(documentXml);

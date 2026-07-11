@@ -31,8 +31,8 @@ describe('tafKravGraf → Word-indhold', () => {
   it('indlejrer grafen som billede og sætter dokumenttitlen i .docx', async () => {
     const { generateTafKravGrafDocument } = await import('../../../document/generators/tafFordelt/tafKravGrafDocument');
 
-    const { filename, zip } = await renderWordDocument(() => {
-      generateTafKravGrafDocument({ document: FAKE_DOCUMENT, visBrevhoved: false });
+    const { filename, zip } = await renderWordDocument((session) => {
+      return generateTafKravGrafDocument(session, { document: FAKE_DOCUMENT, visBrevhoved: false });
     });
 
     expect(filename).toMatch(/\.docx$/);
@@ -59,8 +59,8 @@ describe('tafKravGraf → Word-indhold', () => {
         },
       },
     } as never;
-    const { documentXml } = await renderWordDocument(() => {
-      generateTafKravGrafDocument({ document: documentWithBrevhoved, visBrevhoved: true });
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateTafKravGrafDocument(session, { document: documentWithBrevhoved, visBrevhoved: true });
     });
 
     expect(documentXml).toContain('w:orient="landscape"');

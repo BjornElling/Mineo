@@ -2,7 +2,9 @@
 /// <reference types="vitest/globals" />
 
 import { toISODateString } from '../../../types/branded';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
 // Wiring-test for forsørgertab-PDF'en: verificerer at de betingede sider (EAL/ASL)
 // kun bygges når den tilhørende delberegning er sat, så et manglende delgrundlag
@@ -59,7 +61,7 @@ const renderedTextOf = (instance: MockJsPDF | undefined): unknown[] =>
 
 describe('forsoergertabPdf wiring', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   beforeEach(() => {
@@ -71,7 +73,7 @@ describe('forsoergertabPdf wiring', () => {
     async () => {
       const { generateForsoergertabDocument } = await importGenerator();
 
-      generateForsoergertabDocument({
+      await generateForsoergertabDocument(pdfSession, {
         grundlaeggende: BASE_GRUNDLAEGGENDE,
         result: null,
         ealComputation: null,
@@ -98,7 +100,7 @@ describe('forsoergertabPdf wiring', () => {
     async () => {
       const { generateForsoergertabDocument } = await importGenerator();
 
-      generateForsoergertabDocument({
+      const artifact = await generateForsoergertabDocument(pdfSession, {
         grundlaeggende: BASE_GRUNDLAEGGENDE,
         result: null,
         ealComputation: null,
@@ -108,10 +110,7 @@ describe('forsoergertabPdf wiring', () => {
         visBrevhoved: false,
       });
 
-      const instance = MockJsPDF.instances.at(-1);
-      expect(instance?.save).toHaveBeenCalledTimes(1);
-      const savedName = instance?.save.mock.calls.at(0)?.[0] as string | undefined;
-      expect(savedName).toMatch(/\.pdf$/);
+      expect(artifact.filename).toMatch(/\.pdf$/);
     },
     20000
   );

@@ -31,7 +31,8 @@ data/gate/komposition og writer-API'et, begge kanaler deler.
 2. Formatvalget sker først efter, at download-gaten har godkendt dokumentet.
 3. Word må aldrig bruge egne beregninger, Word-formler eller feltkoder til tal.
 4. Runtime-fejl under dokumentgenerering routes via `error-contract.md` som systemfejl med området `document`.
-5. Format-routingen ejes af `runSelectedDocumentFormat(...)` (`src/document/service/documentService.ts`), der injicerer den valgte writer-fabrik (`createPdfChannelWriter` fra `src/pdf/infrastructure/pdfWriter.ts` for `'pdf'`, `createDocxWriter` fra `src/docx/infrastructure/docxWriter.ts` for `'word'`) og kører generatoren inde i `withDocumentGenerationContext(...)` (`src/document/documentGenerationContext.ts`). Generatorerne er format-agnostiske: de skriver mod `DocumentWriter`-grænsefladen via den kanal-agnostiske router `createStandardPdfWriter` (`src/document/writer/documentWriterRouter.ts`), der delegerer til den fabrik, konteksten har injiceret. Routeren importerer aldrig en kanal statisk, og generatorer må aldrig forgrene på formatet selv.
+5. Format-routingen ejes af `runSelectedDocumentFormat(...)` (`src/document/service/documentService.ts`). Den opretter en immutable `DocumentGenerationSession` med det valgte format og den tilsvarende writer-fabrik (`createPdfChannelWriter` eller `createDocxWriter`) og giver sessionen eksplicit til generatoren. Generatorerne er format-agnostiske og opretter deres `DocumentWriter` gennem sessionen; dokument-kernen importerer aldrig en kanal statisk, og generatorer må aldrig forgrene på formatet selv.
+6. Sessionsdata må ikke ligge i modul-global state. To samtidige genereringer skal kunne afvikles uafhængigt, også hen over `await`.
 
 ## 4. Output
 
@@ -39,11 +40,9 @@ data/gate/komposition og writer-API'et, begge kanaler deler.
 2. Word skal være en ægte `.docx`-fil.
 3. Word-output må ikke indeholde eksterne relationer, remote templates, font-links eller anden netværksafhængighed.
 4. Filnavnsreglen er fælles for begge formater; kun endelsen adskiller sig.
-5. `defineDocument(...)` resolver filnavnet gennem `resolveDocumentArtifactFileName(...)`,
-   som læser det aktive format fra dokument-genereringssessionen. Word-writeren må ikke
-   omskrive en `.pdf`-endelse skjult under `save`; generator-lifecyclen afleverer det
-   færdige `.pdf`- eller `.docx`-filnavn. Den nuværende sessionskontekst er fortsat
-   afviklingsgrænsen; eksplicit sessionsobjekt behandles særskilt i greenfield #38.
+5. `defineDocument(...)` resolver den endelige filendelse fra den eksplicitte session og
+   returnerer et `DocumentArtifact` (`blob` + filnavn). Writeren returnerer kun bytes via
+   `build()` og må ikke selv starte download. Service-laget ejer den eneste download-side-effect.
 
 ## 5. Brugervendt signal
 

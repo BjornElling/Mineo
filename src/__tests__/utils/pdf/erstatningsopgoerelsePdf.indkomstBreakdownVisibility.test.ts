@@ -10,7 +10,9 @@ import type { SelectedElements } from '../../../document/generators/eo/types';
 import { formatCurrencyFromOre } from '../../../document/layout/documentFormatUtils';
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../../../document/layout/pdfConfig';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
 // Minimum Y-afstand mellem to teksters baselines når der skal være mindst én tom linje imellem:
 // linje + trailing + linje. Bruges til at håndhæve læsbarheds-luft mellem forbeholdstekst og krav.
@@ -96,7 +98,7 @@ const renderPdf = (
   stamdata: StamdataValues,
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>
 ) => {
-  generateErstatningsopgoerelseDocument(stamdata, withSfggIngenForEmployments(eo), selected, {
+  generateErstatningsopgoerelseDocument(pdfSession, stamdata, withSfggIngenForEmployments(eo), selected, {
     visUdkastStempel: false,
     document: buildProjectedDocument(stamdata, eo),
   });
@@ -107,7 +109,7 @@ const renderPdfWithSelected = (
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>,
   selectedElements: typeof selected
 ) => {
-  generateErstatningsopgoerelseDocument(stamdata, withSfggIngenForEmployments(eo), selectedElements, {
+  generateErstatningsopgoerelseDocument(pdfSession, stamdata, withSfggIngenForEmployments(eo), selectedElements, {
     visUdkastStempel: false,
     document: buildProjectedDocument(stamdata, eo),
   });
@@ -233,7 +235,7 @@ const buildBaseInput = () => {
 
 describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   beforeAll(async () => {
@@ -1081,7 +1083,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     renderValues.beregnesUdFra = 'Angivet dagsløn';
     renderValues.dagsloenenUdgoer = asAmountValue(1500);
 
-    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(pdfSession, stamdata, renderValues, {
       ...selected,
       sygeferiegodtgoerelse: true,
     }, {
@@ -1203,7 +1205,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const renderValues = structuredClone(eo);
     renderValues.beregnesUdFra = 'Angivet månedsløn';
 
-    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(pdfSession, stamdata, renderValues, {
       ...selected,
       sygeferiegodtgoerelse: true,
     }, {
@@ -1388,7 +1390,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       sfggAlleredeBetaltBeloeb: asAmountValue(1234.56),
     }];
 
-    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(pdfSession, stamdata, renderValues, {
       ...selected,
       shDage: true,
     }, {
@@ -1551,7 +1553,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       sfggAlleredeBetaltBeloeb: undefined,
     }];
 
-    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(pdfSession, stamdata, renderValues, {
       ...selected,
       regulering: true,
     }, {

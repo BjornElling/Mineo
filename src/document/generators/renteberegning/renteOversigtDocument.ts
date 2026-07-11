@@ -19,6 +19,8 @@ import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/docum
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { parseISODate, type ISODateString } from '../../../types/branded';
 import { addCalculationPrinciples, addHypotheticalInterestWarning } from './renteDocument';
+import type { DocumentGenerationSession } from '../../documentGenerationSession';
+import type { DocumentArtifact } from '../../downloadArtifact';
 
 const PDF_TITLE = 'Procesrente – oversigt';
 
@@ -154,9 +156,10 @@ const generateRenteOversigt = defineDocument<RenteOversigtDocumentInput>({
 });
 
 export const generateRenteOversigtDocument = (
+  session: DocumentGenerationSession,
   beregningsdato: ISODateString,
   rows: ReadonlyArray<RenteOversigtRow>,
   options: RenteOversigtDocumentOptions = {}
-): void => {
-  generateRenteOversigt({ beregningsdato, rows, options });
+): Promise<DocumentArtifact> => {
+  return generateRenteOversigt(session, { beregningsdato, rows, options });
 };

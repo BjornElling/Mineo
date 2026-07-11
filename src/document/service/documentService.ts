@@ -54,7 +54,11 @@ import { resolveStamdataDatoLabel } from '../../domain/policies/stamdataCalculat
 import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
 import type { RenteOversigtRow } from '../generators/renteberegning/renteOversigtDocument';
 import { getDocumentFormatLabel } from '../documentFormat';
-import { withDocumentGenerationContext } from '../documentGenerationContext';
+import {
+  createDocumentGenerationSession,
+  type DocumentGenerationSession,
+} from '../documentGenerationSession';
+import { triggerDocumentDownload, type DocumentArtifact } from '../downloadArtifact';
 
 type ReguleringInterval = Readonly<{
   fraDato: string;
@@ -307,26 +311,23 @@ const buildDocumentFailureMessage = (settings: DocumentSettings, pdfMessage: str
   return pdfMessage.replace(/PDF/g, formatLabel);
 };
 
-// Ikke-indlysende invariant: Word-stien returnerer kun success, fordi
-// withDocumentGenerationContext internt afventer `Promise.all(pendingDownloads)`, før den
-// returnerer. Word-writeren samler sit endelige .docx asynkront via en pending download, så en
-// fejl undervejs forplanter sig kun hertil (og bobler op i catch-stien) så længe den await
-// bevares. Fjernes `await Promise.all(...)` i documentGenerationContext.ts ved en refaktor, vil
-// Word-fejl returnere success i stilhed og producere et tomt/korrupt dokument uden fejlrapport.
+// Generatoren returnerer først efter writerens asynkrone build. Dermed kan service-grænsen
+// altid route en build-fejl gennem sin normale catch-sti, før en download-side-effect startes.
 const runSelectedDocumentFormat = async (
   settings: DocumentSettings,
-  generate: () => void
+  generate: (session: DocumentGenerationSession) => Promise<DocumentArtifact>
 ): Promise<DocumentDownloadResult> => {
+  let session: DocumentGenerationSession;
   if (settings.documentDownloadFormat === 'word') {
     const { createDocxWriter } = await import('../../docx/infrastructure/docxWriter');
-    await withDocumentGenerationContext('word', generate, { createWriter: createDocxWriter });
-    return DOCUMENT_DOWNLOAD_SUCCESS;
+    session = createDocumentGenerationSession('word', createDocxWriter);
+  } else {
+    const { createPdfChannelWriter } = await import('../../pdf/infrastructure/pdfWriter');
+    session = createDocumentGenerationSession('pdf', createPdfChannelWriter);
   }
 
-  // PDF-fabrikken injiceres på samme vis som Word-fabrikken, så den kanal-agnostiske
-  // router (createStandardPdfWriter) aldrig selv importerer en kanal statisk.
-  const { createPdfChannelWriter } = await import('../../pdf/infrastructure/pdfWriter');
-  await withDocumentGenerationContext('pdf', generate, { createWriter: createPdfChannelWriter });
+  const artifact = await generate(session);
+  triggerDocumentDownload(artifact);
   return DOCUMENT_DOWNLOAD_SUCCESS;
 };
 
@@ -382,9 +383,7 @@ export const downloadSatserDokument = async (params: Readonly<{
 
   try {
     const { generateSatserDocument } = await loadSatserDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateSatserDocument(year, satser, common);
-    });
+    return await runSelectedDocumentFormat(settings, (session) => generateSatserDocument(session, year, satser, common));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF'), 'pdfService.downloadSatserDokument', error);
   }
@@ -416,13 +415,11 @@ export const downloadRenteDokument = async (params: Readonly<{
 
   try {
     const { generateRenteDocument } = await loadRenteDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateRenteDocument(beloeb, actualInterestDate, beregningsdato, periods, {
+    return await runSelectedDocumentFormat(settings, (session) => generateRenteDocument(session, beloeb, actualInterestDate, beregningsdato, periods, {
         ...common,
         kommentarer,
         latestReferenceRateDate,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-PDF'), 'pdfService.downloadRenteDokument', error);
   }
@@ -443,9 +440,7 @@ export const downloadRenteOversigtDokument = async (params: Readonly<{
 
   try {
     const { generateRenteOversigtDocument } = await loadRenteOversigtDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateRenteOversigtDocument(beregningsdato, rows, { ...common, kommentarer, latestReferenceRateDate });
-    });
+    return await runSelectedDocumentFormat(settings, (session) => generateRenteOversigtDocument(session, beregningsdato, rows, { ...common, kommentarer, latestReferenceRateDate }));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-oversigt-PDF'), 'pdfService.downloadRenteOversigtDokument', error);
   }
@@ -463,13 +458,11 @@ export const downloadReguleringDokument = async (params: Readonly<{
 
   try {
     const { generateReguleringDocument } = await loadReguleringDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateReguleringDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateReguleringDocument(session, {
         ...input,
         interval: resolveReguleringInterval(input.interval),
         ...common,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere regulering-PDF'), 'pdfService.downloadReguleringDokument', error);
   }
@@ -487,9 +480,7 @@ export const downloadKrlDokument = async (params: Readonly<{
 
   try {
     const { generateKRLDocument } = await loadKRLDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateKRLDocument(common);
-    });
+    return await runSelectedDocumentFormat(settings, (session) => generateKRLDocument(session, common));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KRL-PDF'), 'pdfService.downloadKrlDokument', error);
   }
@@ -507,9 +498,7 @@ export const downloadKlLoenaftalerDokument = async (params: Readonly<{
 
   try {
     const { generateKlLoenaftalerDocument } = await loadKlLoenaftalerDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateKlLoenaftalerDocument(common);
-    });
+    return await runSelectedDocumentFormat(settings, (session) => generateKlLoenaftalerDocument(session, common));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KL-lønaftaler-PDF'), 'pdfService.downloadKlLoenaftalerDokument', error);
   }
@@ -559,15 +548,13 @@ export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
 
   try {
     const { generateErstatningsopgoerelseDocument } = await loadErstatningsopgoerelseDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateErstatningsopgoerelseDocument(params.stamdataValues, params.eoValues, selectedElements, {
+    return await runSelectedDocumentFormat(settings, (session) => generateErstatningsopgoerelseDocument(session, params.stamdataValues, params.eoValues, selectedElements, {
         visBrevhoved,
         erstatningsopgoerelseAfsluttesMed: params.eoValues.erstatningsopgoerelseAfsluttesMed,
         visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
         document: eoDocument.document,
         midlertidigtEetGroups: params.midlertidigtEetGroups,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere erstatningsopgørelse-PDF'),
@@ -597,13 +584,11 @@ export const downloadTafFordeltPaaAarDokument = async (params: Readonly<{
 
   try {
     const { generateTafFordeltPaaAarDocument } = await loadTafFordeltPaaAarDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateTafFordeltPaaAarDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateTafFordeltPaaAarDocument(session, {
         visBrevhoved,
         visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
         document: tafDocument.document,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere TAF fordelt på år-PDF'),
@@ -635,8 +620,7 @@ export const downloadTafOpreguleretPaaAarDokument = async (params: Readonly<{
 
   try {
     const { generateTafOpreguleretPaaAarDocument } = await loadTafOpreguleretPaaAarDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateTafOpreguleretPaaAarDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateTafOpreguleretPaaAarDocument(session, {
         visBrevhoved,
         visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
         document: tafOpreguleretDocument.document,
@@ -644,8 +628,7 @@ export const downloadTafOpreguleretPaaAarDokument = async (params: Readonly<{
         stamdataValues: params.stamdataValues,
         selectedElements,
         midlertidigtEetGroups: params.midlertidigtEetGroups,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere TAF opreguleret til beregningsår-PDF'),
@@ -674,13 +657,11 @@ export const downloadTafKravGrafDokument = async (params: Readonly<{
 
   try {
     const { generateTafKravGrafDocument } = await loadTafKravGrafDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateTafKravGrafDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateTafKravGrafDocument(session, {
         visBrevhoved,
         visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
         document: tafKravGrafDocument.document,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere Visuel graf over indtægtsniveau-PDF'),
@@ -714,8 +695,7 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
 
   try {
     const { generateVarigeMenDocument } = await loadVarigeMenDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateVarigeMenDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateVarigeMenDocument(session, {
         fodselsdato,
         skadedato,
         mengrad,
@@ -724,8 +704,7 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
         skadedatoLabel: resolveStamdataDatoLabel(common.stamdata),
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere ménberegning-PDF'),
@@ -754,13 +733,11 @@ export const downloadAarsloenDokument = async (params: Readonly<{
 
   try {
     const { generateAarsloenDocument } = await loadAarsloenDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateAarsloenDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateAarsloenDocument(session, {
         ...input,
         stamdata,
         visBrevhoved: common.visBrevhoved,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere årsløn-PDF'), 'pdfService.downloadAarsloenDokument', error);
   }
@@ -778,9 +755,7 @@ export const downloadSHDageDokument = async (params: Readonly<{
 
   try {
     const { generateSHDageDocument } = await loadSHDageDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateSHDageDocument(perioder, common);
-    });
+    return await runSelectedDocumentFormat(settings, (session) => generateSHDageDocument(session, perioder, common));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere SH-dage-PDF'), 'pdfService.downloadSHDageDokument', error);
   }
@@ -799,14 +774,12 @@ export const downloadKapitaliseringDokument = async (params: Readonly<{
 
   try {
     const { generateKapitaliseringDocument } = await loadKapitaliseringDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateKapitaliseringDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateKapitaliseringDocument(session, {
         computation,
         koen,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere kapitalisering-PDF'),
@@ -828,13 +801,11 @@ export const downloadEfterEalDokument = async (params: Readonly<{
 
   try {
     const { generateEfterEalDocument } = await loadEfterEalDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateEfterEalDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateEfterEalDocument(session, {
         computation,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere EET efter EAL-PDF'),
@@ -858,15 +829,13 @@ export const downloadDifferencekravDokument = async (params: Readonly<{
 
   try {
     const { generateDifferencekravDocument } = await loadDifferencekravDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateDifferencekravDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateDifferencekravDocument(session, {
         computation,
         koen,
         bilagSelection,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere differencekrav-PDF'),
@@ -889,14 +858,12 @@ export const downloadLoebendeYdelserDokument = async (params: Readonly<{
 
   try {
     const { generateLoebendeYdelserDocument } = await loadLoebendeYdelserDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateLoebendeYdelserDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateLoebendeYdelserDocument(session, {
         computation,
         visUdvidetSpecifikation,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere løbende ydelser-PDF'),
@@ -918,13 +885,11 @@ export const downloadForsoergertabDokument = async (params: Readonly<{
 
   try {
     const { generateForsoergertabDocument } = await loadForsoergertabDocumentModule();
-    return await runSelectedDocumentFormat(settings, () => {
-      generateForsoergertabDocument({
+    return await runSelectedDocumentFormat(settings, (session) => generateForsoergertabDocument(session, {
         ...pdfParams,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      });
-    });
+      }));
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere forsørgertab-PDF'),

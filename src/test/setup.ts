@@ -6,7 +6,6 @@
  * `// @vitest-environment jsdom`.
  */
 import { createRequire } from 'node:module';
-import { setFallbackDocumentWriterFactory } from '../document/documentGenerationContext';
 
 /**
  * Global test guard: ingen rigtige PDF-/Word-filer på disk under test.
@@ -66,7 +65,6 @@ fsModule.writeFile = (...args: unknown[]): unknown => {
 
 const resetGlobalTestState = (): void => {
   (globalThis as { vi?: { useRealTimers: () => void } }).vi?.useRealTimers();
-  setFallbackDocumentWriterFactory(null);
 };
 
 const hasDomEnvironment =

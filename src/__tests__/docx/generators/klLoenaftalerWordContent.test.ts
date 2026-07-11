@@ -8,8 +8,8 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 // når .docx'en — og at der (modsat KRL) ikke skrives en kilde-linje.
 describe('kl → Word-indhold', () => {
   it('skriver titel og periode-reguleringssatser til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateKlLoenaftalerDocument({ visBrevhoved: false });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateKlLoenaftalerDocument(session, { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -27,8 +27,8 @@ describe('kl → Word-indhold', () => {
   });
 
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
-    const { documentXml } = await renderWordDocument(() => {
-      generateKlLoenaftalerDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateKlLoenaftalerDocument(session, {
         visBrevhoved: true,
         stamdata: { journalnr: '7788', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });

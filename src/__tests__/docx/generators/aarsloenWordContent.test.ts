@@ -8,8 +8,8 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 // faktisk når .docx'en (ingen skjult indholdstab).
 describe('aarsloen → Word-indhold', () => {
   it('skriver titel, satser og indtægtstabel til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateAarsloenDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateAarsloenDocument(session, {
         satser: {
           feriePct: 12.5,
           fritvalgPct: 2,
@@ -70,8 +70,8 @@ describe('aarsloen → Word-indhold', () => {
   });
 
   it('Beløb-tilstand: udelader satser-sektionen og viser de indtastede tillægsbeløb', async () => {
-    const { documentXml } = await renderWordDocument(() => {
-      generateAarsloenDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateAarsloenDocument(session, {
         satser: {
           // Satserne er udfyldte, men skal ikke vises eller bruges i Beløb-tilstand.
           feriePct: 12.5,
@@ -120,8 +120,8 @@ describe('aarsloen → Word-indhold', () => {
   });
 
   it('inkluderer beregningsafsnit ved omregning til fuldt år (metode C)', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateAarsloenDocument({
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateAarsloenDocument(session, {
         satser: {
           feriePct: 12.5,
         },

@@ -7,8 +7,8 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 // Word-backenden og verificerer, at titel, tabel og kilde faktisk når .docx'en.
 describe('krl → Word-indhold', () => {
   it('skriver titel og kilde til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateKRLDocument({ visBrevhoved: false });
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateKRLDocument(session, { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -20,8 +20,8 @@ describe('krl → Word-indhold', () => {
   });
 
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
-    const { documentXml } = await renderWordDocument(() => {
-      generateKRLDocument({
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateKRLDocument(session, {
         visBrevhoved: true,
         stamdata: { journalnr: '5566', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });

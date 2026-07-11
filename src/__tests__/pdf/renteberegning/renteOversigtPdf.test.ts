@@ -65,7 +65,7 @@ describe('writeRenteOversigtDocumentContent', () => {
 
   it('kalder ikke addFooter eller save — det er kalderens ansvar', () => {
     const writer = createPdfChannelWriter();
-    const saveSpy = vi.spyOn(writer, 'save');
+    const saveSpy = vi.spyOn(writer, 'build');
     const addFooterSpy = vi.spyOn(writer, 'addFooter');
 
     writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [makeRow()]);

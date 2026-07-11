@@ -19,8 +19,8 @@ const makePeriod = (overrides?: Partial<ProcessInterestPeriod>): ProcessInterest
 
 describe('rente → Word-indhold', () => {
   it('skriver titel, hovedstol og tabel-headere til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateRenteDocument(1000, '01-01-2024', '30-06-2024', [makePeriod()]);
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateRenteDocument(session, 1000, '01-01-2024', '30-06-2024', [makePeriod()]);
     });
     const text = xmlToPlainText(documentXml);
 
@@ -33,8 +33,8 @@ describe('rente → Word-indhold', () => {
   });
 
   it('skriver beregningsprincipper til .docx', async () => {
-    const { filename, documentXml } = await renderWordDocument(() => {
-      generateRenteDocument(1000, '01-01-2024', '30-06-2024', [makePeriod()]);
+    const { filename, documentXml } = await renderWordDocument((session) => {
+      return generateRenteDocument(session, 1000, '01-01-2024', '30-06-2024', [makePeriod()]);
     });
     const text = xmlToPlainText(documentXml);
 

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import JSZip from 'jszip';
-import { withDocumentGenerationContext } from '../../document/documentGenerationContext';
+import { triggerDocumentDownload } from '../../document/downloadArtifact';
+
+const runDocumentBuild = async <T>(run: () => T | Promise<T>): Promise<T> => await run();
 import { clearDocumentFooterImageCacheForTests } from '../../document/layout/documentFooterImage';
 import { createDocxWriter } from '../../docx/infrastructure/docxWriter';
 import { toISODateString } from '../../types/branded';
@@ -72,7 +74,7 @@ describe('createDocxWriter', () => {
   // runtime-siden: broen er identificerbar via isDocumentTableBridgeDocument og
   // bærer ingen jsPDF-only API'er.
   it('getDoc() returnerer tabel-broen (ikke en jsPDF) på Word-kanalen', async () => {
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       const doc = writer.getDoc();
       expect(isDocumentTableBridgeDocument(doc)).toBe(true);
@@ -86,7 +88,7 @@ describe('createDocxWriter', () => {
   it('producerer en ægte docx-zip med titel, tekst, tabel og docx-filnavn', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter({ visUdkastStempel: true });
       writer.setProperties({
         title: 'Testdokument',
@@ -97,7 +99,7 @@ describe('createDocxWriter', () => {
       writer.writeTitle('Testdokument');
       writer.writeWrappedText('Almindelig tekst');
       writer.writeLeftRightText('Beløb', '1.234 kr.');
-      writer.save('Testdokument.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Testdokument.docx' });
     });
 
     capture.restore();
@@ -151,10 +153,10 @@ describe('createDocxWriter', () => {
       }) as typeof document.createElement);
 
     try {
-      await withDocumentGenerationContext('word', () => {
+      await runDocumentBuild(async () => {
         const writer = createDocxWriter();
         writer.writeWrappedText('Indhold');
-        writer.save('Footer.docx');
+        triggerDocumentDownload({ blob: await writer.build(), filename: 'Footer.docx' });
       });
     } finally {
       createElementSpy.mockRestore();
@@ -173,7 +175,7 @@ describe('createDocxWriter', () => {
     clearDocumentFooterImageCacheForTests();
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       writer.writeBrevhoved({
         journalnr: '24-0024',
@@ -182,7 +184,7 @@ describe('createDocxWriter', () => {
         dagsDatoISO: toISODateString('2026-04-18'),
       });
       writer.writeWrappedText('Indhold');
-      writer.save('BrevhovedFooter.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'BrevhovedFooter.docx' });
     });
 
     capture.restore();
@@ -210,11 +212,11 @@ describe('createDocxWriter', () => {
   it('producerer en selvstændig docx uden eksterne relationer eller remote-referencer', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       writer.writeTitle('Selvstændig');
       writer.writeWrappedText('Indhold');
-      writer.save('Selvstaendig.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Selvstaendig.docx' });
     });
 
     capture.restore();
@@ -248,7 +250,7 @@ describe('createDocxWriter', () => {
   it('renderer en tabel via PDF-tabel-broen med header, alignment, bold og colSpan', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       const doc = writer.getDoc();
       renderDocumentTable({
@@ -270,7 +272,7 @@ describe('createDocxWriter', () => {
           ],
         ],
       });
-      writer.save('Tabel.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Tabel.docx' });
     });
 
     capture.restore();
@@ -303,7 +305,7 @@ describe('createDocxWriter', () => {
   });
 
   it('fejler tabel-broen fail-closed ved tom body', () => {
-    withDocumentGenerationContext('word', () => {
+    runDocumentBuild(async () => {
       const writer = createDocxWriter();
       const doc = writer.getDoc();
       expect(() => renderDocumentTable({ doc, startY: 0, body: [], hasHeaderRow: true })).toThrow(/tom body/);
@@ -314,10 +316,10 @@ describe('createDocxWriter', () => {
   it('indsætter et diagonalt VML-vandmærke i header når visUdkastStempel er sat', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter({ visUdkastStempel: true });
       writer.writeWrappedText('Indhold');
-      writer.save('Udkast.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Udkast.docx' });
     });
 
     capture.restore();
@@ -351,10 +353,10 @@ describe('createDocxWriter', () => {
   it('udelader watermark-header når visUdkastStempel ikke er sat', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       writer.writeWrappedText('Indhold');
-      writer.save('UdenUdkast.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'UdenUdkast.docx' });
     });
 
     capture.restore();
@@ -371,10 +373,10 @@ describe('createDocxWriter', () => {
   it('renderer signaturblokken kantfrit', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       writer.writeSignatureBlock('1. januar 2026', '________________', 0, 0, 'Hans Hansen');
-      writer.save('Signatur.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Signatur.docx' });
     });
 
     capture.restore();
@@ -398,7 +400,7 @@ describe('createDocxWriter', () => {
   it('arver kolonne-justering fra columnStyles og dataRowColumnHalign', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       const doc = writer.getDoc();
       renderDocumentTable({
@@ -414,7 +416,7 @@ describe('createDocxWriter', () => {
         // Kolonne 1 højrejusteres på data-rækker via hook-override (som i renteberegning).
         dataRowColumnHalign: { 1: 'right' },
       });
-      writer.save('Justering.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Justering.docx' });
     });
 
     capture.restore();
@@ -431,7 +433,7 @@ describe('createDocxWriter', () => {
   it('styrer tekst via navngivne afsnitstypografier uden separat fed brødtekst-typografi', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       writer.writeTitle('Min titel');
       writer.writeSectionHeader('Sektion');
@@ -439,7 +441,7 @@ describe('createDocxWriter', () => {
       writer.writeUnderlinedSubheader('Understreget');
       writer.writeWrappedText('Brødtekst');
       writer.writeBoldWrappedText('Fed brødtekst');
-      writer.save('Typografier.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Typografier.docx' });
     });
 
     capture.restore();
@@ -480,7 +482,7 @@ describe('createDocxWriter', () => {
   it('renderer brevhovedet i PDF-format i en side-forankret tekstrude', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       writer.writeBrevhoved({
         journalnr: '24-0024',
@@ -488,7 +490,7 @@ describe('createDocxWriter', () => {
         sagsbehandler: 'cgf',
         dagsDatoISO: toISODateString('2026-04-18'),
       });
-      writer.save('Brevhoved.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Brevhoved.docx' });
     });
 
     capture.restore();
@@ -526,7 +528,7 @@ describe('createDocxWriter', () => {
   it('lægger vandmærket i både default- og first-header ved brevhoved + udkast', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter({ visUdkastStempel: true });
       writer.writeBrevhoved({
         journalnr: '24-0024',
@@ -535,7 +537,7 @@ describe('createDocxWriter', () => {
         dagsDatoISO: toISODateString('2026-04-18'),
       });
       writer.writeWrappedText('Brødtekst');
-      writer.save('BrevhovedUdkast.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'BrevhovedUdkast.docx' });
     });
 
     capture.restore();
@@ -567,7 +569,7 @@ describe('createDocxWriter', () => {
   it('lader cellens egen halign vinde over kolonne-justering', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       const doc = writer.getDoc();
       renderDocumentTable({
@@ -578,7 +580,7 @@ describe('createDocxWriter', () => {
         columnStyles: createDocumentDistributedColumnStyles(1, { defaultHalign: 'center' }),
         body: [[createDocumentTableCell('eksplicit-højre', { halign: 'right' })]],
       });
-      writer.save('Praecedens.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Praecedens.docx' });
     });
 
     capture.restore();
@@ -596,13 +598,13 @@ describe('createDocxWriter', () => {
   it('tegner en summeringsstreg over højre celle når lineAboveRightWidth er sat', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       // Almindelig linje uden sum-streg.
       writer.writeLeftRightText('Delbeløb', '1.000 kr.');
       // Sum-linje med summeringsstreg (lineAboveRightWidth sat).
       writer.writeLeftRightText('I alt', '1.000 kr.', { lineAboveRightWidth: 30 });
-      writer.save('Sumlinje.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'Sumlinje.docx' });
     });
 
     capture.restore();
@@ -620,10 +622,10 @@ describe('createDocxWriter', () => {
   it('tegner ingen summeringsstreg når lineAboveRightWidth ikke er sat', async () => {
     const capture = captureDownload();
 
-    await withDocumentGenerationContext('word', () => {
+    await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       writer.writeLeftRightText('Delbeløb', '1.000 kr.');
-      writer.save('UdenSumlinje.docx');
+      triggerDocumentDownload({ blob: await writer.build(), filename: 'UdenSumlinje.docx' });
     });
 
     capture.restore();
@@ -648,18 +650,17 @@ describe('createDocxWriter fejlpropagering', () => {
     document.body.innerHTML = '';
   });
 
-  // Hvis dokumentopbygningen (Packer.toBlob) fejler, skal afvisningen propageres
-  // gennem pendingDownloads → withDocumentGenerationContext, så download-stien i
-  // pdfService kan route den som systemfejl (fail-closed, intet stille tab).
-  it('propagerer en build-fejl gennem withDocumentGenerationContext', async () => {
+  // Hvis dokumentopbygningen (Packer.toBlob) fejler, skal writerens Promise afvises,
+  // så service-laget kan route fejlen fail-closed før nogen download.
+  it('propagerer en build-fejl direkte fra writeren', async () => {
     const { Packer } = await import('docx');
     const toBlobSpy = vi.spyOn(Packer, 'toBlob').mockRejectedValue(new Error('toBlob fejlede'));
 
     await expect(
-      withDocumentGenerationContext('word', () => {
+      runDocumentBuild(async () => {
         const writer = createDocxWriter();
         writer.writeWrappedText('Indhold');
-        writer.save('Fejl.docx');
+        triggerDocumentDownload({ blob: await writer.build(), filename: 'Fejl.docx' });
       })
     ).rejects.toThrow('toBlob fejlede');
 

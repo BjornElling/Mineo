@@ -5,7 +5,9 @@ import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/eng
 import { moneyOre } from '../../../domain/money/money';
 import type { TafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
 import { toISODateString } from '../../../types/branded';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
 class MockJsPDF {
   static instances: MockJsPDF[] = [];
@@ -92,7 +94,7 @@ const FAKE_DOCUMENT: TafPerYearDocument = {
 
 describe('tafFordeltPaaAarPdf wiring', () => {
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
   });
 
   beforeEach(() => {
@@ -102,20 +104,20 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('kræver et præ-projiceret dokument fra snapshot-laget', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    expect(() => generateTafFordeltPaaAarDocument(undefined as never)).toThrow();
+    expect(() => generateTafFordeltPaaAarDocument(pdfSession, undefined as never)).toThrow();
   });
 
   it('genbruger givet dokument uden at kræve rå snapshot-input', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    expect(() => generateTafFordeltPaaAarDocument({ document: FAKE_DOCUMENT })).not.toThrow();
+    expect(() => generateTafFordeltPaaAarDocument(pdfSession, { document: FAKE_DOCUMENT })).not.toThrow();
   });
 
   it('kaster ikke fejl når dokumentet indeholder null-presentation', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
     expect(() =>
-      generateTafFordeltPaaAarDocument({
+      generateTafFordeltPaaAarDocument(pdfSession, {
         document: {
           model: FAKE_MODEL as never,
           presentation: null,
@@ -127,7 +129,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('viser ikke tom status-underoverskrift når statusblokken er uden indhold', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({
+    generateTafFordeltPaaAarDocument(pdfSession, {
       document: {
         model: {
           ...FAKE_MODEL,
@@ -155,27 +157,26 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('gemmer PDF med korrekt filnavn', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({ document: FAKE_DOCUMENT });
+    const artifact = await generateTafFordeltPaaAarDocument(pdfSession, { document: FAKE_DOCUMENT });
     const instance = MockJsPDF.instances.at(-1);
     expect(instance).toBeInstanceOf(MockJsPDF);
-    expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år.pdf');
+    expect(artifact.filename).toBe('Tabt arbejdsfortjeneste fordelt på år.pdf');
   });
 
   it('gemmer PDF med udkast-suffix når visUdkastStempel=true', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({
+    const artifact = await generateTafFordeltPaaAarDocument(pdfSession, {
       document: FAKE_DOCUMENT,
       visUdkastStempel: true,
     });
-    const instance = MockJsPDF.instances.at(-1);
-    expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
+    expect(artifact.filename).toBe('Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
   });
 
   it('prepender journalnr i filnavn når journalnr er udfyldt', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({
+    const artifact = await generateTafFordeltPaaAarDocument(pdfSession, {
       document: {
         model: {
           ...FAKE_MODEL,
@@ -185,14 +186,13 @@ describe('tafFordeltPaaAarPdf wiring', () => {
       },
       visUdkastStempel: true,
     });
-    const instance = MockJsPDF.instances.at(-1);
-    expect(instance?.save).toHaveBeenCalledWith('1234 - Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
+    expect(artifact.filename).toBe('1234 - Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
   });
 
   it('viser negativt beløb for negativt I alt pr. år', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({
+    generateTafFordeltPaaAarDocument(pdfSession, {
       document: {
         model: FAKE_MODEL as never,
         presentation: {
@@ -209,7 +209,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('renderer "Allerede betalt TAF" som fradragslinje', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({ document: FAKE_DOCUMENT });
+    generateTafFordeltPaaAarDocument(pdfSession, { document: FAKE_DOCUMENT });
     const instance = MockJsPDF.instances.at(-1);
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).toContain('Allerede betalt TAF');
@@ -219,7 +219,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('renderer sygeferiegodtgørelse som fradragslinje når den er valgt i årsfordelingen', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({
+    generateTafFordeltPaaAarDocument(pdfSession, {
       document: {
         model: FAKE_MODEL as never,
         presentation: {
@@ -243,7 +243,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('renderer valgt sygeferiegodtgørelse med 0 kr. uden minus-prefix', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({
+    generateTafFordeltPaaAarDocument(pdfSession, {
       document: {
         model: FAKE_MODEL as never,
         presentation: {
@@ -267,7 +267,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('viser forlig-sektion og forlig-reference i "I alt"-linjen når forlig er indgået', async () => {
     const { generateTafFordeltPaaAarDocument } = await import('../../../document/generators/tafFordelt/tafFordeltPaaAarDocument');
 
-    generateTafFordeltPaaAarDocument({
+    generateTafFordeltPaaAarDocument(pdfSession, {
       document: {
         model: {
           ...FAKE_MODEL,

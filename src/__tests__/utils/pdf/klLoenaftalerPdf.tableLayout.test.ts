@@ -2,7 +2,9 @@
 /// <reference types="vitest/globals" />
 
 import { PDF_CONTENT_WIDTH_MM } from '../../../document/layout/pdfConfig';
-import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
+import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
+
+let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
 type PdfTableCell = Readonly<{
   content?: string;
@@ -72,13 +74,13 @@ describe('KL-lønaftaler PDF-layout', () => {
   });
 
   beforeEach(async () => {
-    await registerPdfWriterFallbackForTest();
+    pdfSession = await createPdfDocumentSessionForTest();
     MockJsPDF.instances = [];
     autoTableMock.mockClear();
   });
 
   it('fordeler tabellen over fuld bredde med to centrerede kolonner', () => {
-    generateKlLoenaftalerDocument({ visBrevhoved: false });
+    generateKlLoenaftalerDocument(pdfSession, { visBrevhoved: false });
 
     const firstCall = autoTableMock.mock.calls[0]?.[1] as AutoTableOptions | undefined;
     const body = firstCall?.body;
