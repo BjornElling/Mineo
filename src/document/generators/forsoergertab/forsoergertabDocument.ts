@@ -333,10 +333,11 @@ export type GenerateForsoergertabDocumentParams = DocumentCommonOptions &
 
 export const generateForsoergertabDocument = defineDocument<GenerateForsoergertabDocumentParams>({
   title: 'Forsørgertab',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'Forsørgertab',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

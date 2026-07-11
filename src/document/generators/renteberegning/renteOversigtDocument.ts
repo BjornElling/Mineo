@@ -142,10 +142,11 @@ type RenteOversigtDocumentInput = Readonly<{
 
 const generateRenteOversigt = defineDocument<RenteOversigtDocumentInput>({
   title: PDF_TITLE,
-  filename: ({ options }) => resolveDocumentArtifactFileName(
+  filename: ({ options }, format) => resolveDocumentArtifactFileName(
     PDF_TITLE,
     false,
-    options.stamdata?.journalnr
+    options.stamdata?.journalnr,
+    format
   ),
   metadata: ({ options }) => options.metadata,
   writeTitle: false,

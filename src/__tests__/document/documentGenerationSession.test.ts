@@ -37,7 +37,7 @@ describe('DocumentGenerationSession', () => {
     );
     const generate = defineDocument<string>({
       title: 'Samtidighed',
-      filename: (name) => `${name}.pdf`,
+      filename: (name, format) => `${name}.${format === 'word' ? 'docx' : 'pdf'}`,
       writeTitle: false,
       body: () => {},
     });

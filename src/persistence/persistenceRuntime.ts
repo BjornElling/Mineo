@@ -1,9 +1,9 @@
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
+import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 import {
+  assignFormPersistenceSection,
   createEmptyFormPersistenceSections,
   formPersistenceStore,
-  type FormPersistenceSections,
 } from '../stores/formPersistenceStore';
 import { clearResolvedFieldErrorsCache } from '../stores/formPersistenceReadModel';
 import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
@@ -18,14 +18,6 @@ export type PersistenceRuntime = Readonly<{
   keysToRemove: readonly string[];
 }>;
 
-const assignCacheValue = <K extends keyof FormPersistenceSections>(
-  target: FormPersistenceSections,
-  key: K,
-  value: PersistedSectionMap[K] | null,
-): void => {
-  target[key] = value;
-};
-
 /**
  * Initialiserer persistence-runtime atomisk, før React får adgang til committed state.
  *
@@ -37,7 +29,7 @@ export const initializePersistenceRuntime = (): PersistenceRuntime => {
   const plan = buildSessionStorageHydrationPlan();
   const sections = createEmptyFormPersistenceSections();
   for (const pageKey of PERSISTED_SECTION_KEYS) {
-    assignCacheValue(sections, pageKey, plan.sections[pageKey]);
+    assignFormPersistenceSection(sections, pageKey, plan.sections[pageKey]);
   }
 
   formPersistenceStore.getState().hydrate(

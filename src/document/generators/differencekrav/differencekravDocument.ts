@@ -492,10 +492,11 @@ type GenerateDifferencekravDocumentParams = DocumentCommonOptions &
 
 export const generateDifferencekravDocument = defineDocument<GenerateDifferencekravDocumentParams>({
   title: 'Differencekrav (EET)',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'Differencekrav (EET)',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

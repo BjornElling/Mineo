@@ -14,6 +14,7 @@ import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatting';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
+import type { DocumentDownloadFormat } from '../../documentFormat';
 import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 import type { DocumentArtifact } from '../../downloadArtifact';
@@ -39,11 +40,12 @@ const buildSHDagePeriodLabel = (perioder: ReadonlyArray<SHDagePeriod>): string =
 
 export const buildSHDageDocumentFilename = (
   perioder: ReadonlyArray<SHDagePeriod>,
-  journalnr?: string
+  journalnr?: string,
+  format: DocumentDownloadFormat = 'pdf'
 ): string => {
   const periodLabel = buildSHDagePeriodLabel(perioder);
   const baseTitle = periodLabel.length > 0 ? `SH-dage (${periodLabel})` : 'SH-dage';
-  return resolveDocumentArtifactFileName(baseTitle, false, journalnr);
+  return resolveDocumentArtifactFileName(baseTitle, false, journalnr, format);
 };
 
 /**
@@ -166,8 +168,8 @@ type SHDageDocumentInput = Readonly<{
 
 const generateSHDage = defineDocument<SHDageDocumentInput>({
   title: 'SH-dage',
-  filename: ({ perioder, options }) =>
-    buildSHDageDocumentFilename(perioder, options.stamdata?.journalnr),
+  filename: ({ perioder, options }, format) =>
+    buildSHDageDocumentFilename(perioder, options.stamdata?.journalnr, format),
   brevhoved: ({ options: { visBrevhoved = false, stamdata } }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
   body: (writer, { perioder }) => {

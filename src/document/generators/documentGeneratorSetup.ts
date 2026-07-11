@@ -21,6 +21,7 @@
 import type { DocumentWriter } from '../writer';
 import type { DocumentArtifact } from '../downloadArtifact';
 import type { DocumentGenerationSession } from '../documentGenerationSession';
+import type { DocumentDownloadFormat } from '../documentFormat';
 import { getDocumentCreatorBrand, type BrevhovedData } from '../layout/documentLayoutHelpers';
 import type { DocumentStamdata } from '../layout/documentOptions';
 import { TODAY } from '../../config/dateRanges';
@@ -46,7 +47,7 @@ type DocumentValueResolver<TInput, TValue> = TValue | ((input: TInput) => TValue
 
 export type DocumentDefinition<TInput> = Readonly<{
   title: DocumentValueResolver<TInput, string>;
-  filename: (input: TInput) => string;
+  filename: (input: TInput, format: DocumentDownloadFormat) => string;
   body: (writer: DocumentWriter, input: TInput) => void;
   writerOptions?: DocumentValueResolver<TInput, StandardDocumentWriterOptions | undefined>;
   metadata?: DocumentValueResolver<TInput, StandardDocumentMetadata | undefined>;
@@ -131,11 +132,9 @@ export const defineDocument = <TInput>(
     definition.body(writer, input);
     writer.addFooter();
     const blob = await writer.build();
-    const resolvedFilename = definition.filename(input);
-    const filename = resolvedFilename.replace(
-      /\.(?:pdf|docx)$/,
-      session.format === 'word' ? '.docx' : '.pdf'
-    );
+    // Filnavnet resolves med sessionens reelle format, så endelsen vælges direkte (ingen
+    // "byg som .pdf og omskriv bagefter").
+    const filename = definition.filename(input, session.format);
     return {
       blob,
       filename,

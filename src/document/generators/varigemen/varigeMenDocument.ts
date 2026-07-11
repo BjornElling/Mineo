@@ -98,10 +98,11 @@ type GenerateVarigeMenDocumentParams = DocumentCommonOptions & Readonly<{
 
 export const generateVarigeMenDocument = defineDocument<GenerateVarigeMenDocumentParams>({
   title: 'Ménberegning',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'Méngodtgørelse',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

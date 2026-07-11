@@ -485,10 +485,11 @@ type GenerateAarsloenDocumentParams = DocumentCommonOptions & Readonly<{
 
 export const generateAarsloenDocument = defineDocument<GenerateAarsloenDocumentParams>({
   title: 'Årslønsberegning',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'Årslønsberegning',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

@@ -68,10 +68,11 @@ const buildCombinedRows = (): { dates: DanishDateString[]; rows: string[][] } =>
 
 export const generateKRLDocument = defineDocument<KRLDocumentParams>({
   title: 'KRL Satstabeller',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'KRL Satstabeller',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

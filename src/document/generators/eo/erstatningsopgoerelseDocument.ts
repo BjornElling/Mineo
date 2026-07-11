@@ -111,10 +111,11 @@ export const generateErstatningsopgoerelseDocument = (
 
   const generate = defineDocument<void>({
     title: titel,
-    filename: () => resolveDocumentArtifactFileName(
+    filename: (_input, format) => resolveDocumentArtifactFileName(
       titel,
       visUdkastStempel,
-      model.brevhoved?.journalnr
+      model.brevhoved?.journalnr,
+      format
     ),
     writerOptions: { visUdkastStempel, onLayoutFallback: warnLayoutFallback },
     beforeBrevhoved: (writer) => {

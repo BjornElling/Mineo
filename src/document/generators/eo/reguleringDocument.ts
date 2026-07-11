@@ -39,6 +39,7 @@ import {
 import type { DanishDateString } from '../../../types/branded';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../layout/documentFormatUtils';
+import type { DocumentDownloadFormat } from '../../documentFormat';
 import { ILON12_DISCONTINUED_NOTE } from './reguleringNotes';
 
 type ReguleringDocumentParams = Readonly<{
@@ -64,11 +65,17 @@ export const buildReguleringDocumentFilename = (params: Readonly<{
   valgtLabel: string;
   interval: Readonly<{ fraDato: DanishDateString; tilDato: DanishDateString }>;
   journalnr?: string;
+  format?: DocumentDownloadFormat;
 }>): string => {
   const basisTekst = params.loenudviklingBasis === 'Statistik' ? 'Statistik' : 'Overenskomst';
   const labelPart = sanitizeFilenamePart(params.valgtLabel);
   const intervalPart = sanitizeFilenamePart(`${params.interval.fraDato} til ${params.interval.tilDato}`);
-  return resolveDocumentArtifactFileName(`Regulering - ${basisTekst} - ${labelPart} (${intervalPart})`, false, params.journalnr);
+  return resolveDocumentArtifactFileName(
+    `Regulering - ${basisTekst} - ${labelPart} (${intervalPart})`,
+    false,
+    params.journalnr,
+    params.format ?? 'pdf'
+  );
 };
 
 const resolveOffentligLoenInfoLine = (params: Readonly<{
@@ -319,7 +326,7 @@ const buildStatistikTable = (
 
 export const generateReguleringDocument = defineDocument<ReguleringDocumentParams>({
   title: 'Regulering',
-  filename: (params) => {
+  filename: (params, format) => {
     const valgtLabel = params.loenudviklingBasis === 'Statistik'
       ? (params.statistikModelLabel?.trim() || '-')
       : (params.overenskomstLabel.trim() || '-');
@@ -328,6 +335,7 @@ export const generateReguleringDocument = defineDocument<ReguleringDocumentParam
       valgtLabel,
       interval: params.interval,
       journalnr: params.stamdata?.journalnr,
+      format,
     });
   },
   brevhoved: ({ visBrevhoved = false, stamdata }) =>

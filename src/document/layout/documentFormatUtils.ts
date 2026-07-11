@@ -18,9 +18,10 @@ const NBSP = '\u00A0';
 export { sanitizeFilenamePart };
 
 /**
- * Bygger filnavnet via den fælles regel. Generatorer bruger PDF som neutral basis;
- * `defineDocument` resolver den endelige endelse fra den eksplicitte session. Direkte
- * kald kan angive formatet, fx når filnavnsreglen testes isoleret.
+ * Bygger filnavnet via den fælles regel med den endelige endelse valgt direkte fra formatet.
+ * `defineDocument` giver generatorens filnavns-builder sessionens reelle format, så endelsen
+ * (`.pdf`/`.docx`) vælges her og ikke omskrives bagefter. Direkte kald (tests, standalone-service)
+ * kan udelade formatet og få PDF som neutral basis.
  */
 export const resolveDocumentArtifactFileName = (
   baseTitle: string,

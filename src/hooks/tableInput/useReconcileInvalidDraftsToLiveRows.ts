@@ -1,7 +1,8 @@
 import * as React from 'react';
 // Infrastruktur-hook: importerer FormPersistenceContext direkte for at kunne degradere context-frit til
 // no-op, når en tabel/side rendres uden provider (tests/isolerede render) — parallelt til
-// useCellInvalidDraftChannel. Audited undtagelse i persistenceAccessIsolation-værnet.
+// useCellInvalidDraftChannel. Audited undtagelse i arkitekturreglen
+// `persistence/form-persistence-context-import` (src/__tests__/quality/architecture/architectureRules.ts).
 import { FormPersistenceContext } from '../../contexts/FormPersistenceContext.internal';
 import { CellInvalidDraftScopeContext } from '../../contexts/CellInvalidDraftScopeContext';
 import { isCellInvalidDraftRowOrphan, isCellInvalidDraftScopeOrphan } from '../../config/cellInvalidDraftScopes';

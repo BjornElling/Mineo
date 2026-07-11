@@ -49,10 +49,11 @@ export const generateTafFordeltPaaAarDocument = (
 
   const generate = defineDocument<void>({
     title: titel,
-    filename: () => resolveDocumentArtifactFileName(
+    filename: (_input, format) => resolveDocumentArtifactFileName(
       FILE_BASE_NAME,
       visUdkastStempel,
-      model.brevhoved?.journalnr
+      model.brevhoved?.journalnr,
+      format
     ),
     writerOptions: {
       visUdkastStempel,

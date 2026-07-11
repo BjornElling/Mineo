@@ -42,9 +42,11 @@ type SatserDocumentInput = Readonly<{
 
 const generateSatser = defineDocument<SatserDocumentInput>({
   title: ({ year }) => `Arbejdsskadesatser ${year}`,
-  filename: ({ year }) => resolveDocumentArtifactFileName(
+  filename: ({ year }, format) => resolveDocumentArtifactFileName(
     `Arbejdsskadesatser ${year}`,
-    false
+    false,
+    undefined,
+    format
   ),
   brevhoved: ({ options: { visBrevhoved = false, stamdata } }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

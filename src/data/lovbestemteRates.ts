@@ -897,8 +897,9 @@ export const satserAngivAarYearBounds: YearBounds = (() => {
  * manglende sats, ikke stille regne videre med `null`. Beregningslaget bruger derfor de fail-closed
  * per-sats-opslag (fx `resolveAslAarsloensmaksimumForAar`), ikke denne aggregator.
  *
- * Adskillelsen håndhæves strukturelt af `failOpenDisplayLookupIsolation.test.ts` (R9): kun display-/
- * dokument-moduler må importere `getSatserForYear`. Tilføjes et beregnings-callsite, fejler værnet.
+ * Adskillelsen håndhæves strukturelt af arkitekturreglen `satser/fail-open-display-lookup-import`
+ * (src/__tests__/quality/architecture/architectureRules.ts): kun display-/dokument-moduler må
+ * importere `getSatserForYear`. Tilføjes et beregnings-callsite, fejler værnet.
  *
  * @param {number} year - Årstal at hente satser for
  * @returns {Object} Dictionary med alle satser struktureret efter kategori

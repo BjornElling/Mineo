@@ -26,10 +26,11 @@ const formatReguleringPct = (value: number): string => `${formatAsAmount(value, 
 
 export const generateKlLoenaftalerDocument = defineDocument<KlLoenaftalerDocumentParams>({
   title: KL_LOENAFTALER_DOCUMENT_TITLE,
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     KL_LOENAFTALER_DOCUMENT_TITLE,
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

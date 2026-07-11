@@ -18,9 +18,9 @@ import { buildPersistedSection } from '../utils/buildPersistedSection';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import {
+  assignFormPersistenceSection,
   createEmptyFormPersistenceSections,
   formPersistenceStore,
-  type FormPersistenceSections,
   type InvalidDraftsCache,
 } from '../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
@@ -66,10 +66,6 @@ export type { PersistenceRuntime } from '../persistence/persistenceRuntime';
 
 const getFieldCount = (value: unknown): number => {
   return typeof value === 'object' && value !== null ? Object.keys(value).length : 0;
-};
-
-const assignCacheValue = <K extends StorageKey>(target: FormPersistenceSections, key: K, value: PersistedSectionMap[K] | null): void => {
-  target[key] = value;
 };
 
 /**
@@ -349,7 +345,7 @@ export const FormPersistenceProvider = ({
         throw new Error(`Kan ikke anvende snapshot: '${pageKey}' matcher ikke schema.\n${issues}`);
       }
       toWrite.push({ storageKey: getStorageKey(pageKey), value: built.serialized });
-      assignCacheValue(nextCache, pageKey, built.validatedData);
+      assignFormPersistenceSection(nextCache, pageKey, built.validatedData);
     }
 
     try {

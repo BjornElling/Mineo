@@ -94,10 +94,11 @@ type GenerateKapitaliseringDocumentParams = DocumentCommonOptions &
 
 export const generateKapitaliseringDocument = defineDocument<GenerateKapitaliseringDocumentParams>({
   title: 'Kapitalisering (EET)',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'Kapitalisering (EET)',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

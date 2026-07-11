@@ -15,10 +15,11 @@ interface TafKravGrafDocumentOptions {
 
 export const generateTafKravGrafDocument = defineDocument<TafKravGrafDocumentOptions>({
   title: 'Visuel graf over indtægtsniveau',
-  filename: ({ document, visUdkastStempel = false }) => resolveDocumentArtifactFileName(
+  filename: ({ document, visUdkastStempel = false }, format) => resolveDocumentArtifactFileName(
     FILE_BASE_NAME,
     visUdkastStempel,
-    document.model.brevhoved?.journalnr
+    document.model.brevhoved?.journalnr,
+    format
   ),
   writeTitle: false,
   // Bevidst designvalg: UDKAST-vandmærket tegnes ALDRIG på denne graf, uanset

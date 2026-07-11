@@ -342,10 +342,11 @@ type GenerateLoebendeYdelserDocumentParams = DocumentCommonOptions &
 
 export const generateLoebendeYdelserDocument = defineDocument<GenerateLoebendeYdelserDocumentParams>({
   title: 'Løbende ydelser (EET)',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'Løbende ydelser (EET)',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

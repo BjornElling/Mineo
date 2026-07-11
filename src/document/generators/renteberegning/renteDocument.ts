@@ -239,11 +239,12 @@ type RenteDocumentInput = Readonly<{
 
 const generateRente = defineDocument<RenteDocumentInput>({
   title: 'Procesrente',
-  filename: ({ amount, startDate, endDate, options }) =>
+  filename: ({ amount, startDate, endDate, options }, format) =>
     resolveDocumentArtifactFileName(
       buildRenteDocumentBaseTitle(amount, startDate, endDate),
       false,
-      options.stamdata?.journalnr
+      options.stamdata?.journalnr,
+      format
     ),
   metadata: ({ options }) => options.metadata,
   writeTitle: false,

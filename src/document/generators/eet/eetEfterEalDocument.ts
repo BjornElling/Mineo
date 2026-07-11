@@ -144,10 +144,11 @@ export const renderEfterEalBody = (
 
 export const generateEfterEalDocument = defineDocument<GenerateEfterEalDocumentParams>({
   title: 'EET efter EAL',
-  filename: ({ stamdata }) => resolveDocumentArtifactFileName(
+  filename: ({ stamdata }, format) => resolveDocumentArtifactFileName(
     'EET efter EAL',
     false,
-    stamdata?.journalnr
+    stamdata?.journalnr,
+    format
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,

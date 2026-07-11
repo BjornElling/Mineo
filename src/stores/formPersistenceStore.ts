@@ -174,6 +174,19 @@ const EMPTY_SECTIONS: FormPersistenceSections = SECTIONS_SLICE.createEmptyCache(
 /** Kanonisk konstruktor for et fuldt, tomt sektions-map. */
 export const createEmptyFormPersistenceSections = SECTIONS_SLICE.createEmptyCache;
 
+/**
+ * Typed skrivning af én sektionsværdi ind i et sektions-map. Bevarer nøgle↔værdi-koblingen
+ * (K → PersistedSectionMap[K]), så et map ikke kan fyldes med en værdi af forkert sektionstype.
+ * Delt kanonisk helper, så runtime-hydrering og context-replace ikke holder hver sin kopi.
+ */
+export const assignFormPersistenceSection = <K extends keyof PersistedSectionMap>(
+  target: FormPersistenceSections,
+  key: K,
+  value: PersistedSectionMap[K] | null,
+): void => {
+  target[key] = value;
+};
+
 const createInitialSectionRevisions = SECTIONS_SLICE.createInitialRevisions;
 const createEmptyFieldErrorCache = FIELD_ERRORS_SLICE.createEmptyCache;
 const createInitialFieldErrorRevisions = FIELD_ERRORS_SLICE.createInitialRevisions;

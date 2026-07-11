@@ -59,21 +59,18 @@ describe('MinProcesrente standalone isolation', () => {
     expect(appImportIndex).toBeGreaterThan(namespaceImportIndex);
   });
 
-  it('læser ikke stamdata, indstillinger eller andre Mineo-sektioner som brugerdata og bruger ikke Mineos diagnoseflow', () => {
+  it('læser ikke stamdata eller indstillinger som brugerdata og bruger kun renteberegning-sektionen', () => {
     const source = readStandaloneSource();
 
-    // Strengmatchene her er en guard mod direkte brugerdata-adgang. PDF-adapterens enhedstest
-    // kontrollerer separat at PDF-kaldet sendes videre uden stamdata og settings.
+    // Positivt brugerdata-forbud: standalone må ikke LÆSE Mineos øvrige sektioner (stamdata/indstillinger).
+    // Dette er en section-read-grænse, ikke en import-grænse — de rene import-forbud (useAppSettings,
+    // systemIssueReporter, BugReportButton, logStorage m.fl.) håndhæves nu strukturelt af
+    // `layer/minprocesrente-standalone-import-boundary` (greenfield #48) og gentages derfor ikke her.
+    // PDF-adapterens enhedstest kontrollerer separat at PDF-kaldet sendes videre uden stamdata og settings.
     expect(source).not.toContain("usePersistedSectionSelector('stamdata')");
     expect(source).not.toContain('usePersistedSectionSelector("stamdata")');
     expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]stamdata['"]/);
     expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]indstillinger['"]/);
-    expect(source).not.toContain('useAppSettings');
-    expect(source).not.toContain('AppSettingsProvider');
-    expect(source).not.toContain('systemIssueReporter');
-    expect(source).not.toContain('reportSystemIssue');
-    expect(source).not.toContain('BugReportButton');
-    expect(source).not.toContain('logStorage');
     expect(source).toContain("'renteberegning'");
   });
 });
