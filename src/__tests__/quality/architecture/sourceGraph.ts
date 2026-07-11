@@ -4,14 +4,15 @@ import ts from 'typescript';
 import { collectSourceFiles, toRepoRelativePath } from '../testUtils';
 
 /**
- * Kanonisk kilde-graf for de AST-baserede arkitekturregler.
+ * Kanonisk kilde-graf for arkitektur- og tekstværn.
  *
  * Motivet (greenfield #48): de gamle quality-guards genopfandt hver især en
  * directory-walk + `fs.readFileSync` + regex/substring-scan. Denne modul ejer ÉN
- * cache af alle produktions-kildefiler under `src/` — læst og parset til AST præcis
- * én gang pr. testkørsel — som alle regler forbruger. AST'en gør grænserne
- * strukturelle i stedet for tekstuelle (fanger aliasing, destrukturering,
- * bracket-notation som substring-scanninger dokumenterede at de missede).
+ * cache af alle produktions-kildefiler under `src/` — læst præcis én gang og AST-parset
+ * højst én gang pr. fil ved første strukturelle adgang — som både AST-regler og de få bevidst
+ * tekstbaserede kontraktværn forbruger. AST'en gør grænserne strukturelle
+ * (fanger aliasing, destrukturering og bracket-notation), mens `text` bevarer
+ * den præcise kildeform til regler hvor selve tekstformen er kontrakten.
  */
 
 export type SourceEntry = Readonly<{
@@ -21,7 +22,7 @@ export type SourceEntry = Readonly<{
   relativePath: string;
   /** Filens rå indhold (UTF-8). Bevaret så tekst-form-regler kan genbruge cachen. */
   text: string;
-  /** Lazily parset AST; genbruges på tværs af regler via memoisering. */
+  /** Lazy, cachet AST; tekstværn udløser ikke parsing af hele kildegrafen. */
   ast: ts.SourceFile;
 }>;
 
@@ -38,6 +39,23 @@ const parse = (relativePath: string, text: string): ts.SourceFile =>
     relativePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
   );
 
+const createSourceEntry = (
+  absolutePath: string,
+  relativePath: string,
+  text: string
+): SourceEntry => {
+  let cachedAst: ts.SourceFile | undefined;
+  return {
+    absolutePath,
+    relativePath,
+    text,
+    get ast() {
+      cachedAst ??= parse(relativePath, text);
+      return cachedAst;
+    },
+  };
+};
+
 /**
  * Alle produktions-kildefiler under `src/` (ekskl. `__tests__`/`test`), læst og
  * parset én gang og cachet på modulniveau. Regler filtrerer selv på `relativePath`
@@ -49,7 +67,7 @@ export const getSourceGraph = (): readonly SourceEntry[] => {
   const entries = collectSourceFiles(SRC_ROOT).map((absolutePath): SourceEntry => {
     const relativePath = toRepoRelativePath(absolutePath);
     const text = fs.readFileSync(absolutePath, 'utf8');
-    return { absolutePath, relativePath, text, ast: parse(relativePath, text) };
+    return createSourceEntry(absolutePath, relativePath, text);
   });
 
   cache = entries;
@@ -57,12 +75,8 @@ export const getSourceGraph = (): readonly SourceEntry[] => {
 };
 
 /** Bygger en syntetisk `SourceEntry` fra en kildestreng — bruges af regel-selvtests. */
-export const makeSyntheticEntry = (relativePath: string, text: string): SourceEntry => ({
-  absolutePath: path.resolve(process.cwd(), relativePath),
-  relativePath,
-  text,
-  ast: parse(relativePath, text),
-});
+export const makeSyntheticEntry = (relativePath: string, text: string): SourceEntry =>
+  createSourceEntry(path.resolve(process.cwd(), relativePath), relativePath, text);
 
 /** Kun til test: nulstil modul-cachen (så en test kan tvinge genindlæsning). */
 export const resetSourceGraphCache = (): void => {

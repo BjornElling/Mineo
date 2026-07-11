@@ -52,7 +52,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Opdateret 2026-07-01: loenudviklingBeregningsgrundlagEnum udvidet med 'Manuel procentsats'
 // og nyt felt loenudviklingManuelProcentsatsTableData på lønudviklingsgruppen.
 // PERSISTED_DATA_VERSION bumpet til 3.7 (reel persisted schema-ændring; enum + nye inputrækker).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-75086904';
+// Opdateret 2026-07-11: varigemen-sektionens øvre méngradsgrænse udvidet fra 100 til 120.
+// PERSISTED_DATA_VERSION bumpet til 3.8 (reel, bagudkompatibel parse-semantikændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-67d68c5a';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

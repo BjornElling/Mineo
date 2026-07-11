@@ -18,6 +18,14 @@ const createBuildOnlyWriter = (build: () => Promise<Blob>): DocumentWriter => ({
 } as unknown as DocumentWriter);
 
 describe('DocumentGenerationSession', () => {
+  it('er immutable ved runtime og ikke kun i TypeScript-typen', () => {
+    const session = createDocumentGenerationSession('pdf', () =>
+      createBuildOnlyWriter(async () => new Blob())
+    );
+
+    expect(Object.isFrozen(session)).toBe(true);
+  });
+
   it('isolerer samtidige formater og builds, også når de afsluttes i omvendt rækkefølge', async () => {
     const pdfBuild = createDeferred<Blob>();
     const wordBuild = createDeferred<Blob>();

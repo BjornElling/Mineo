@@ -95,15 +95,6 @@ export const percentageDecimal = z.preprocess(coerceToNumberOrUndefined, z.numbe
   .max(100, 'Må højst være 100%')
   .optional());
 
-export const positiveWholePercentage = (label: string) => z.preprocess(
-  coerceToWholeNumberOrUndefined,
-  z.number({ error: `${label} skal være et heltal` })
-    .int(`${label} skal være et heltal`)
-    .min(1, `${label} skal være mindst 1`)
-    .max(100, `${label} må højst være 100`)
-    .optional()
-);
-
 export const optionalString = z.preprocess(
   normalizeEmptyToUndefined,
   z.string().optional()

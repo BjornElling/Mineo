@@ -17,7 +17,12 @@ import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/pers
 import { buildPersistedSection } from '../utils/buildPersistedSection';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
-import { formPersistenceStore, type InvalidDraftsCache } from '../stores/formPersistenceStore';
+import {
+  createEmptyFormPersistenceSections,
+  formPersistenceStore,
+  type FormPersistenceSections,
+  type InvalidDraftsCache,
+} from '../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { runAtomicPersistenceMutation } from '../utils/persistenceStoreRollback';
 import {
@@ -63,16 +68,7 @@ const getFieldCount = (value: unknown): number => {
   return typeof value === 'object' && value !== null ? Object.keys(value).length : 0;
 };
 
-type PersistedCache = { [K in StorageKey]: PersistedSectionMap[K] | null };
-
-const createEmptyPersistedCache = (): PersistedCache => {
-  return PERSISTED_SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = null;
-    return acc;
-  }, {} as PersistedCache);
-};
-
-const assignCacheValue = <K extends StorageKey>(target: PersistedCache, key: K, value: PersistedSectionMap[K] | null): void => {
+const assignCacheValue = <K extends StorageKey>(target: FormPersistenceSections, key: K, value: PersistedSectionMap[K] | null): void => {
   target[key] = value;
 };
 
@@ -116,7 +112,7 @@ export const FormPersistenceProvider = ({
   }, []);
 
   const hasAnyData = React.useCallback((): boolean => {
-    return countFilledFields(formPersistenceStore.getState().sections as PersistedCache) > 0;
+    return countFilledFields(formPersistenceStore.getState().sections) > 0;
   }, []);
 
   // Undo-frame-coalescing (ét felt-commit → præcis ÉN frame) ejes nu af undoRedoStore
@@ -338,7 +334,7 @@ export const FormPersistenceProvider = ({
 
     const now = Date.now();
     const toWrite: Array<{ storageKey: string; value: string }> = [];
-    const nextCache = createEmptyPersistedCache();
+    const nextCache = createEmptyFormPersistenceSections();
 
     for (const pageKey of PERSISTED_SECTION_KEYS) {
       const raw = snapshot[pageKey];

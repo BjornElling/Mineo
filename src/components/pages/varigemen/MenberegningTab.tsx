@@ -10,6 +10,7 @@ import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
 import {
+  VARIGE_MEN_MAX_MENGRAD,
   type VarigeMenValues,
   type StamdataValues,
 } from '../../../schemas/formSchemas';
@@ -323,7 +324,8 @@ const beregningsResultat = React.useMemo(() => {
             }}
             allowDecimals={false}
             minValue={0}
-            maxValue={100}
+            maxValue={VARIGE_MEN_MAX_MENGRAD}
+            enforceRange
             useDefaultPercentRange={false}
             placeholder="0"
             // Fanger valideringsfejl fra feltet og rapporterer til den centrale fejlmodel

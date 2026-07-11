@@ -42,9 +42,9 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
       expect(result).toBeNull();
     });
 
-    it('returnerer null ved mengrad = 101', () => {
+    it('returnerer null ved mengrad = 121', () => {
       const result = beregnVarigeMenGodtgoerelseWithRates(
-        baseValues({ mengrad: 101 }),
+        baseValues({ mengrad: 121 }),
         iso('2024-01-01'),
         buildRates({ 2024: 1000 }),
         DEFAULT_FODSELSDATO
@@ -149,6 +149,20 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
       expect(result).not.toBeNull();
       expect(result!.beregnetGodtgoerelse).toBe(50000);
       expect(result!.grundbeloeb).toBe(50000); // 500 * 100
+    });
+
+    it('120 % méngrad er en bevidst gyldig grænseværdi og beregnes direkte', () => {
+      const result = beregnVarigeMenGodtgoerelseWithRates(
+        baseValues({ mengrad: 120 }),
+        iso('2024-01-01'),
+        buildRates({ 2024: 500 }),
+        iso('1990-01-01')
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.beregnetGodtgoerelse).toBe(60000);
+      expect(result!.grundbeloebUdenReduktion).toBe(60000);
+      expect(result!.grundbeloeb).toBe(50000);
     });
 
     it('1% méngrad er grænseværdi og giver korrekt resultat', () => {

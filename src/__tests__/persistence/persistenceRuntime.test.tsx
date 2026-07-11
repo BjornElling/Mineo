@@ -37,10 +37,9 @@ describe('initializePersistenceRuntime', () => {
     );
     const before = formPersistenceStore.getState();
 
-    const runtime = initializePersistenceRuntime();
+    initializePersistenceRuntime();
     const after = formPersistenceStore.getState();
 
-    expect(runtime.store).toBe(formPersistenceStore);
     expect(after.sections.satser).toEqual({ aargang: 2026 });
     expect(after.meta.hydrated).toBe(true);
     expect(after.sectionRevisions).toEqual(before.sectionRevisions);

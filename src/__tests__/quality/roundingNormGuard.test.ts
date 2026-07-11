@@ -24,45 +24,23 @@
  *   Skriv en kommentar der forklarer hvorfor undtagelsen er nødvendig.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-
-const SRC_ROOT = path.resolve(__dirname, '../../');
+import { getSourceGraph, type SourceEntry } from './architecture/sourceGraph';
 
 // ---------------------------------------------------------------------------
-// Fil-scanner (ekskluderer __tests__ og node_modules)
+// Tekstscanner oven på den fælles, cachede produktions-kildegraf.
 // ---------------------------------------------------------------------------
-
-function collectTsFiles(dir: string): string[] {
-  const results: string[] = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (entry.name === '__tests__' || entry.name === 'node_modules') continue;
-      results.push(...collectTsFiles(fullPath));
-    } else if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) {
-      results.push(fullPath);
-    }
-  }
-  return results;
-}
-
-function relPath(absPath: string): string {
-  return path.relative(SRC_ROOT, absPath).replace(/\\/g, '/');
-}
 
 function scanLines(
-  files: string[],
+  files: readonly SourceEntry[],
   allowlist: Set<string>,
   pattern: RegExp,
   opts: { stripLineComments?: boolean } = {},
 ): string[] {
   const violations: string[] = [];
   for (const file of files) {
-    const rel = relPath(file);
+    const rel = file.relativePath.replace(/^src\//, '');
     if (allowlist.has(rel)) continue;
-    const source = fs.readFileSync(file, 'utf8');
-    const lines = source.split('\n');
+    const lines = file.text.split('\n');
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
       if (opts.stripLineComments) {
@@ -193,7 +171,7 @@ const TO_LOCALE_STRING_ALLOWLIST = new Set([
 // ---------------------------------------------------------------------------
 
 describe('Afrundingsnorm-guard', () => {
-  const allFiles = collectTsFiles(SRC_ROOT);
+  const allFiles = getSourceGraph();
 
   // ── 1. Math.round / floor / ceil ──────────────────────────────────────────
 

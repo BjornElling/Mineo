@@ -40,7 +40,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
         for (const fixture of rule.violatingFixtures) {
           const entry = makeSyntheticEntry(fixture.relativePath, fixture.code);
           expect(
-            rule.findInFile(entry).length,
+            rule.evaluate([entry]).length,
             `${rule.id} burde have flaget: ${fixture.code}`
           ).toBeGreaterThan(0);
         }
@@ -50,7 +50,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
         for (const fixture of rule.cleanFixtures) {
           const entry = makeSyntheticEntry(fixture.relativePath, fixture.code);
           expect(
-            rule.findInFile(entry),
+            rule.evaluate([entry]),
             `${rule.id} burde IKKE have flaget: ${fixture.code}`
           ).toEqual([]);
         }

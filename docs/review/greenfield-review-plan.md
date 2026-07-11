@@ -137,6 +137,15 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 14 | 9 | ✅ `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 | 15 | 8 | ✅ `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 
+**Første foreløbige fase-1-review (2026-07-11):** Dette var en første gennemgang af
+alle 15 spor — ikke et endeligt eller udtømmende review. Gennemgangen kontrollerede kode,
+kontrakter og parallelle rester og lukkede fem ikke-synlige efterarbejder: runtime-immutable
+dokument-session, én fælles tom-sektionskonstruktor, fjernet ubrugt runtime-store-reference,
+scope-korrekte arkitektur-fixtures og fælles kildecache også for de bevarede tekstværn.
+Den fulde release-gate er kørt igen efter rettelserne. Méngradens range-adfærd er efter
+brugerbeslutning gjort eksplicit: 1–120 % er gyldigt, mens over 120 % er en blokerende fejl;
+øvrige procentfelters visual-only-adfærd fra #12 er uændret.
+
 ### Fase 2 — Spine-keystones (karakteriseringsnet + godkendelse FØRST)
 
 De store centrale byggekloder. Hver laves som et separat, testtungt spor. Brug
@@ -327,8 +336,8 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
   valgfri titel → body → footer → filnavn → save), og samtlige 18 generator-entrypoints er
   migreret — også EO/TAF-særtilfældene og deres tidlige returgrene. Det kommende blok-IR
   (#24) foregribes ikke: `body` skriver fortsat mod det gældende `DocumentWriter`-API.
-  De statiske one-line-filnavnsbuildere er fjernet; `resolveDocumentArtifactFileName`
-  resolver nu `.pdf`/`.docx` direkte fra den aktive genereringssession, og Word-writerens
+  De statiske one-line-filnavnsbuildere er fjernet; `defineDocument` resolver nu den
+  endelige `.pdf`/`.docx`-endelse fra den aktive genereringssession, og Word-writerens
   skjulte `.pdf`→`.docx`-omskrivning er fjernet. Den endelige eksplicitte sessions-/artefakt-
   grænse hører fortsat til #38. Lifecycle-, formatfilnavns-, PDF-/Word-indholds- og
   generator-golden-tests bevarer outputadfærden.
@@ -402,7 +411,7 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 17 — Kanonisk dag-set-algebra · 10
 
-- **Status: ✅ Gennemført (2026-07-09).** Duplikeret `buildSHDageSet` i kontrol-laget slettet; den range-baserede ferie-builder flyttet til motoren som `buildFerieDageSetForPeriode`, nu en tynd komposition over `buildFerieDageSet` + `placeLoseFeriedage` (parallel kopi elimineret). `eoInspektion` forbruger read-only. Byte-identitet bevist i `tafDaySets.equivalence.test.ts`. Rest: den fulde dag-set-algebra bor stadig i `engines/tafDaySets.ts` (ikke flyttet til `domain/dates/`) — bevidst, filnavnet kan omdøbes senere hvis ønsket.
+- **Status: ✅ Gennemført (2026-07-09; genverificeret 2026-07-11).** Duplikeret `buildSHDageSet` i kontrol-laget slettet; den range-baserede ferie-builder flyttet til motoren som `buildFerieDageSetForPeriode`, nu en tynd komposition over `buildFerieDageSet` + `placeLoseFeriedage` (parallel kopi elimineret). `eoInspektion` forbruger read-only. Byte-identitet bevist i `tafDaySets.equivalence.test.ts`. Dag-set-algebraen bliver bevidst i `engines/tafDaySets.ts`, fordi ferie-/TAF-sættene er EO-domænepolitik; kun den reelt neutrale SH-primitiv ligger i `domain/dates/`.
 - **Scope:** `engines/tafDaySets.ts` (`buildFerieDageSet`, `buildShDageSet`), `eoInspektion/eoInspektionRegulationCore.ts:545-624` (**anden** `buildFerieDageSet`/`buildSHDageSet`), `dates/shDageBeregning.ts` (den faktiske primitiv).
 - **Problem:** To `buildFerieDageSet` med divergerende signaturer og næsten-identisk logik, plus tre SH-dag-set-indgange om én primitiv. Kontrol-laget (`eoInspektion`) **ejer og eksporterer** dag-set-buildere som sammentælling forbruger — dvs. beregningslogik er lækket ind i det nominelt nedstrøms inspektions-lag, i strid med "kontrol importerer engine, aldrig omvendt".
 - **Greenfield:** Ét kanonisk kalenderdag-modul i `engines/` (eller `domain/dates/`) der ejer alle SH/ferie/arbejdsdag/TAF-dag-sæt med én signatur-familie → `ReadonlySet<ISODateString>`. `eoInspektion` forbruger read-only. Gør tre-lag-splittet ærligt.
@@ -430,7 +439,9 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
   `invalidDraftsStorage.ts` deler nu den eksporterede `createEmptyInvalidDraftsCache`. Nyt
   `formPersistenceStore.keyedSlices.test.ts` pinner key-coverage, nul-start, per-key-objekt-isolation og
   at store/storage-konstruktørerne er samme kilde. Cross-slice atomiske actions (#33) og læse-sti-kollaps
-  (#28) er bevidst ikke rørt her.
+  (#28) er bevidst ikke rørt her. Det første foreløbige fase-1-review fjernede desuden de to parallelle
+  tom-sektionskonstruktorer i runtime/context; begge bruger nu factoryens eksporterede
+  `createEmptyFormPersistenceSections`.
 
 - **Scope:** `src/stores/formPersistenceStore.ts:118-249, 300-565`.
 - **Problem:** Tre-fire strukturelt identiske slices (`sections`, `fieldErrors`, `invalidDrafts` + revisions) med hver sin kopi af fem helpers (create-empty, initial-revisions, increment-one/all, coverage-assert). En fjerde empty-cache-konstruktor dupleret i `invalidDraftsStorage.ts`. Kommentar erkender "fire næsten-identiske kopier".
@@ -606,14 +617,15 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 38 — Eksplicit dokument-genereringssession · 9
 
-- **Status: ✅ Gennemført (2026-07-11).** Den modul-globale `activeContext`, fallback-
+- **Status: ✅ Gennemført (2026-07-11; genverificeret 2026-07-11).** Den modul-globale `activeContext`, fallback-
   fabrikken, pending-promise-listen og writer-routeren er fjernet. Hvert downloadforløb
   får nu en immutable `DocumentGenerationSession` med format og writer-fabrik; alle
   generatorer modtager sessionen eksplicit og returnerer et `DocumentArtifact` med blob
   og formatkorrekt filnavn. Begge writere afslutter via `build(): Promise<Blob>`, og kun
   service-laget udløser browser-downloaden. Et nyt samtidighedsnet afslutter PDF og Word
   i omvendt rækkefølge og beviser, at format, filnavn og blob ikke krydser sessioner;
-  det eksisterende PDF-/Word-/generator-golden-net er bevaret grønt.
+  det eksisterende PDF-/Word-/generator-golden-net er bevaret grønt. Reviewet lukkede
+  den sidste type/runtime-forskel: sessionsobjektet fryses nu faktisk ved oprettelsen.
 
 - **Scope:** `document/documentGenerationContext.ts`, `writer/documentWriterRouter.ts`, `docxWriter.ts`, `documentService.ts` og alle generator-entrypoints.
 - **Problem:** `activeContext` er modul-global state, der lever hen over `await`. Samtidige downloads kan overtage hinandens format/writer og gendanne kontekster i forkert rækkefølge; Word-writerens `save()` registrerer desuden en global pending-promise i stedet for at returnere sit artefakt. #24 bevarede oprindeligt netop denne kontekst og dækkede derfor ikke problemet.
@@ -623,11 +635,11 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 39 — Persistence initialiseres før React-render · 9
 
-- **Status: ✅ Gennemført (2026-07-11).** `initializePersistenceRuntime()` bygger nu hydration-planen, hydrater det autoritative Zustand-store atomisk og rydder read-model-cache før `root.render`. Begge app-entries kalder initialiseringen i `renderApp` efter variantens namespace/device-gate og før app-træet oprettes; unsupported-device hard-stop initialiserer fortsat ingen sagsstate. Den færdige runtime føres eksplicit gennem app-roden til en render-ren `FormPersistenceProvider`, som kun ejer startup-notice og efterfølgende cleanup af afviste storage-nøgler. Provider-remount kan derfor ikke længere genlæse `sessionStorage` eller overskrive committed state. Det nye runtime-karakteriseringsnet beviser første-render-hydrering, uændrede section revisions/committed counter, ét autoritativt epoch-bump, rydning af runtime-fejl, invalid-draft-revision og remount-bevarelse; eksisterende persistence-konsumenttests er migreret til eksplicit runtime.
+- **Status: ✅ Gennemført (2026-07-11; genverificeret 2026-07-11).** `initializePersistenceRuntime()` bygger nu hydration-planen, hydrater det autoritative Zustand-store atomisk og rydder read-model-cache før `root.render`. Begge app-entries kalder initialiseringen i `renderApp` efter variantens namespace/device-gate og før app-træet oprettes; unsupported-device hard-stop initialiserer fortsat ingen sagsstate. Den færdige cleanup-/notice-plan føres eksplicit gennem app-roden til en render-ren `FormPersistenceProvider`, som kun ejer startup-notice og efterfølgende cleanup af afviste storage-nøgler. Provider-remount kan derfor ikke længere genlæse `sessionStorage` eller overskrive committed state. Det nye runtime-karakteriseringsnet beviser første-render-hydrering, uændrede section revisions/committed counter, ét autoritativt epoch-bump, rydning af runtime-fejl, invalid-draft-revision og remount-bevarelse; eksisterende persistence-konsumenttests er migreret til eksplicit runtime. Reviewet fjernede den ubrugte store-reference fra runtime-objektet; storen er fortsat den importerede singleton og hydreres før objektet returneres.
 
 - **Scope:** `contexts/FormPersistenceContext.tsx:120-136`, `persistenceSessionHydration.ts`, `formPersistenceStore.ts`, `bootstrapClientApp.tsx` og begge app-entries.
 - **Problem:** `FormPersistenceProvider` læser `sessionStorage`, bygger hydration-plan, muterer det globale store med `hydrate()` og rydder read-model-cache inde i en `useState`-initializer. Begge roots renderer under `React.StrictMode`; render er dermed uren, provider-remount kan rehydrere, og startup-rækkefølgen er bundet til en global singleton.
-- **Greenfield:** `initializePersistenceRuntime(...)` kører én gang før `root.render`, efter variantens namespace er fastlagt, og returnerer hydreret store + startup-notice/cleanup-plan. Provider modtager den færdige runtime og er en ren facade uden autoritativ init-side-effect.
+- **Greenfield:** `initializePersistenceRuntime(...)` kører én gang før `root.render`, efter variantens namespace er fastlagt, hydrerer den autoritative store og returnerer startup-notice/cleanup-planen. Provider modtager den færdige runtime og er en ren facade uden autoritativ init-side-effect.
 - **Rød tråd:** Store er source of truth; hydration er én eksplicit autoritativ replacement før nogen children kan læse state.
 - **Afhængigheder:** Laves før #19/#28/#33. Revisions-, epoch-, `invalidDrafts`- og notice-semantik skal karakteriseres state-identisk.
 
@@ -699,6 +711,11 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 ### 48 — Deklarativt AST-baseret arkitekturgrænse-harness · 12
 
 - **Status: ✅ Gennemført (2026-07-11).** Batch 3–4 migreret og de gamle scannere reduceret/slettet, så manifestet nu bærer **17 regler**. **Batch 3 (fem grænser):** `domain/page-section-access-boundary` (page-lagets persisterede sektionsadgang: per-rod autoriserede sektioner + coverage-completeness i én regel — `PAGE_BOUNDARY_RULES` bor nu i manifestet og eksporteres til `domainBoundaryIsolation`s positive dæknings-assertion); `pdf/download-committed-state` (download-triggende filer må ikke læse committed EO-state, EO-PDF-downloads heller ikke committed stamdata — `pdfDownloadCommittedStateGuard` **slettet**); `layer/minprocesrente-standalone-import-boundary` (import-forbuds-halvdelen af standalone-isolationen; hoisting-rækkefølge + positive brugerdata-forbud beholdt i den reducerede fil); `persistence/committed-section-mirror` (den allerede-AST committed-mirror-dataflow absorberet som custom-`find`-regel — `persistenceCommittedMirrorIsolation` **slettet**); og `form/no-queue-microtask-in-commit-sensitive` + `form/no-promise-tick-in-commit-sensitive` (substring-forbuddene fra `formContractIsolation` — Promise-tick fanges nu strukturelt via `await`/`.then`-parent så en `let q = Promise.resolve()`-initializer IKKE fejlflages; effect-write-grænsen med note-i-samme-vindue-semantik beholdt i den reducerede fil). **Batch 4:** `domain/eo-field-visibility-single-source` (governed EO-felters inline render-gates fanges nu strukturelt via en JSX/logisk-udtryks-forespørgsel — `getChecked(values.X) && …` / `values.X === '…' && …`, inkl. negation/parenteser/multi-line, mens kontrol-bindinger og ikke-governed felter er tilladt; `eoFieldVisibilitySingleSource` reduceret til sin positive prædikat-brugs-assertion). Bevidst afvigelse fra den oprindelige batch-4-liste: `gridRowIdContractGuard`, `fieldIdentityGuard` og `fieldUnchangedGuardInvalidDraft` **forbliver dedikerede guards** og migreres IKKE ind i forbuds-manifestet — de er positive wiring-/runtime-invarianter (createEmptyRowId-determinisme + normalize/reconcile-unikhed, felt-identitets-attributter fra `core.*`, `committedInvalidDraft`/`clearInvalidDraft`-commit-semantik), ikke import-/adgangs-grænser; deres concern er ortogonal til motorens formål, og en tvungen manifest-indpakning ville være et ringere design (deres håndrullede brace/tag-parsing kan hærdes med `astQueries` senere som ren robusthed). Alle grafen overtræder fortsat **nul**, og de nye regler er bevisligt ≥ strengere end de gamle (AST fanger aliasing/negation/multi-line/parent-kontekst). Grønt: fuld quality-suite (29 filer/189 tests), `typecheck` + `typecheck:test` + `lint`. Bevidst bevaret som regex/tekst-kontrakt: `mojibake`, `pwaHeaders`, `pdfPseudoTableGuard`, `dateContractGuard`-idiomerne og tekst-forbuddene i `roundingNormGuard`.
+- **Review-efterarbejde (2026-07-11):** `dateContractGuard` og `roundingNormGuard`
+  bevarer deres tekstsemantik, men genbruger nu samme cachede `SourceEntry`-graf i stedet
+  for hver sin directory-walk og gentagne fillæsninger. Fixture-selvtesten kører nu gennem
+  hele `evaluate`-stien, så en fejl i `appliesTo`/allow-scope ikke længere kan bestå som en
+  tilsyneladende aktiv regel.
 - **Status (historik): 🟡 Motor + batch 1–2 gennemført (2026-07-10).** Ny motor i `src/__tests__/quality/architecture/`: `sourceGraph.ts` (ÉN kanonisk, modul-cachet læsning+parse af hele `src/` til AST, delt af alle regler), `astQueries.ts` (rene TS-compiler-API-forespørgsler: imports m. named bindings + type-only, kald m. positionelt første string-arg, medlemsadgang, element-adgang, relativ import-opløsning — alle med præcis fil:linje:kolonne), `ruleKit.ts` (deklarative regel-factories `forbidImports`/`forbidMemberAccess`/`forbidCalls`/`forbidElementAccess` + generisk `defineRule` med indbygget allow + **generisk anti-rot**), `architectureRules.ts` (manifest) og `architectureRules.test.ts` (kør-motor der (1) kører manifestet mod grafen → nul overtrædelser, (2) beviser hver regel ikke er inert via medbragte positive/negative fixtures — vacuous-pass-værnet generaliseret ud af de per-guard håndrullede selvtests, (3) håndhæver anti-rot ét sted). **Batch 1 (8 regler) migreret og de gamle scannere slettet:** rå `localStorage`/`sessionStorage`-adgang (→ member-access-regler), `sessionStorage.setItem` manifest-key (→ call-regel m. positionelt literal-arg), de tre persistence-import-grænser `useFormPersistence`/`FormPersistenceContext`/`formPersistenceStore` (→ import-regler), fail-open `getSatserForYear`-import (→ named-import-regel, anti-rot) og rå `aarsloenAslMax[...]`-subscript (→ element-access-regel). AST-reglerne er bevisligt **≥ strengere** end de gamle regex (fanger nu aliasing/destrukturering/bracket-notation/dynamic-import/inline-`type`-modifier som de gamle kommentarer indrømmede at misse) — og grafen overtræder stadig nul, dvs. ingen regression. Slettet: `noDirectSessionStorageAccess`, `sessionStorageBoundaryIsolation`, `persistenceAccessIsolation`, `failOpenDisplayLookupIsolation`, `aslAarsloensmaksimumSingleSource`; `noDirectLocalStorageAccess` reduceret til sin runtime-røgtest; `contractCoverageMatrix` (persistence- + page-component-kontrakt) repeget til motor-testen. **Batch 2 (2 regler mere, i alt 10):** lag-grænsen `layer/inspektion-import-boundary` (ingen domæne-fil uden for de to sanktionerede snapshot-broer må importere `src/domain/eoInspektion` — relativ + alias/absolut, anti-rot på broerne; dækker også `eoRowEvaluation`/`eoCanonicalOutput`/`eoControlMismatch`) og `domain/eet-cross-domain-persisted-lookup` (intet `getPersistedData`/`usePersistedSection`/`commitSection('erhvervsevnetab')`). `inspektionLayerIsolation` + `eetDomainIsolation` reduceret til deres fil-specifikke POSITIVE wiring-assertioner (fx at download-gate-VM'en i components-laget konsumerer den autoritative motor og er inspektionsfri — uden for domæne-scopet — og at EO-EET-felterne bindes i EO-oplysninger-sektionerne). Grønt: fuld quality-suite (31 filer/193 tests), `typecheck` + `typecheck:test` + `lint`. **Rest (kommende batches, dokumenteret her):** import-/kald-grænserne i `domainBoundaryIsolation` (sektion-adgang + coverage-completeness), `pdfDownloadCommittedStateGuard`, og import-forbuds-halvdelen af `minprocesrenteStandaloneIsolation`; absorbér `persistenceCommittedMirrorIsolation` (allerede AST) og substring-delene af `formContractIsolation`; sekundært de brace/tag-parsende guards (`gridRowIdContractGuard`, `fieldIdentityGuard`, `fieldUnchangedGuardInvalidDraft`, `eoFieldVisibilitySingleSource`) hvor en JSX/AST-node-forespørgsel erstatter håndrullet parsing. Bevidst bevaret som regex/tekst-kontrakt: `mojibake`, `pwaHeaders`, `pdfPseudoTableGuard`, `dateContractGuard`-idiomerne og tekst-forbuddene i `roundingNormGuard`.
 - **Scope:** De 35 tests i `src/__tests__/quality/`, især de 30 filer der læser/scanner source, samt `quality/testUtils.ts`.
 - **Problem:** Import-/adgangsgrænser håndhæves af mange lokale directory-walkers, regex/substring-søgninger og filspecifikke allowlists. Flere guards dokumenterer selv silent-pass-huller (aliasing, destructuring, bracket notation); samme kildecache og diagnostics genopfindes. `formContractIsolation` viser allerede AST-præcedens.

@@ -31,6 +31,10 @@ beløb_uden_reduktion = sats_pr_méngrad × méngrad
 
 Méngradsprocenten bruges direkte som heltal — der foretages ingen afrunding af méngradsprocenten.
 
+**Bevidst designbeslutning:** Méngraden må være fra 1 til og med 120 %. Procenter over
+100 % beregnes efter samme formel og er ikke en fejl. Procenter over 120 % er derimod
+en blokerende indtastningsfejl og bruges ikke i beregningen.
+
 #### Trin 3 — Aldersfradrag
 
 Alderen opgøres i **hele opnåede år** på skadestidspunktet (år, måned og dag sammenholdes — endnu ikke fyldt fødselsdag i skadeåret tæller ikke):
@@ -64,7 +68,7 @@ godtgørelse = ceil(sats × méngrad × (1 − aldersfradrag_pct / 100))
 ### Hvornår returneres null?
 
 Beregningen returnerer `null` (ingen resultat) hvis:
-- Méngradsprocenten mangler, er 0 eller negativ, eller er over 100
+- Méngradsprocenten mangler, er 0 eller negativ, eller er over 120
 - Beregningsdato mangler
 - Fødselsdato mangler
 - Skadestidspunkt mangler

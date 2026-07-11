@@ -124,6 +124,32 @@ describe('StyledPercentField', () => {
     });
   });
 
+  it('blokerer commit over intervallet når enforceRange er valgt', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+
+    render(
+      <StyledPercentField
+        value={undefined}
+        minValue={0}
+        maxValue={120}
+        allowDecimals={false}
+        enforceRange
+        onCommit={onCommit}
+      />
+    );
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.click(input);
+    await user.type(input, '121');
+    await user.tab();
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(input).toHaveValue('121');
+    expect(screen.getByText('Procent skal være mellem 0 og 120')).toBeInTheDocument();
+  });
+
   it('genudleder og rydder range-fejlen fra committed værdi og ændrede bounds', () => {
     const onFieldError = vi.fn();
     const { rerender } = render(

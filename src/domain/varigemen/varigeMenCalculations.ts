@@ -1,4 +1,4 @@
-import type { VarigeMenValues } from '../../schemas/formSchemas';
+import { VARIGE_MEN_MAX_MENGRAD, type VarigeMenValues } from '../../schemas/formSchemas';
 import type { YearlyRate } from '../../data/lovbestemteRates';
 import { coerceToISODateString, parseISODate, type ISODateString } from '../../types/branded';
 import { calculateUtcAgeInWholeYears } from '../../utils/dateUtils';
@@ -109,7 +109,7 @@ export function beregnVarigeMenGodtgoerelseWithRates(
     typeof mengrad !== 'number' ||
     !Number.isFinite(mengrad) ||
     mengrad <= 0 ||
-    mengrad > 100 ||
+    mengrad > VARIGE_MEN_MAX_MENGRAD ||
     !beregningsdatoRaw ||
     !fodselsdatoRaw
   ) {

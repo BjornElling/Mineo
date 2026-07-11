@@ -35,6 +35,11 @@ export type StyledPercentFieldProps = {
   minValue?: number;
   maxValue?: number;
   /**
+   * Når sand er intervallet en commit-grænse: værdier udenfor bliver en
+   * blokerende invalid draft. Ellers er intervallet kun en visuel fejl.
+   */
+  enforceRange?: boolean;
+  /**
    * Range-begrænsning (inklusiv).
    *
    * Default-interval er forbudt med mindre det eksplicit slås til via `useDefaultPercentRange`.
@@ -87,6 +92,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       allowDecimals = true,
       minValue,
       maxValue,
+      enforceRange = false,
       useDefaultPercentRange = false,
       maxIntegerDigits: maxIntegerDigitsProp,
       onDraftChange,
@@ -216,6 +222,8 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         const result = parsePercentDraftForCommit(draft, {
           allowNegative,
           allowDecimals,
+          minValue: enforceRange ? resolvedRange.effectiveMin : undefined,
+          maxValue: enforceRange ? resolvedRange.effectiveMax : undefined,
         });
         if (!result.ok) return invalid(result.errorMessage);
 
@@ -233,7 +241,10 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       [
         allowDecimals,
         allowNegative,
+        enforceRange,
         maxLength,
+        resolvedRange.effectiveMax,
+        resolvedRange.effectiveMin,
       ]
     );
 
@@ -300,7 +311,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       },
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
-      getVisualError,
+      getVisualError: enforceRange ? undefined : getVisualError,
       onFocus,
       onBlur,
       onKeyDown,

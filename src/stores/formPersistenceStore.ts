@@ -171,6 +171,9 @@ const INVALID_DRAFTS_SLICE = createKeyedSectionSlice<InvalidDraftsCache>(() => (
 
 const EMPTY_SECTIONS: FormPersistenceSections = SECTIONS_SLICE.createEmptyCache();
 
+/** Kanonisk konstruktor for et fuldt, tomt sektions-map. */
+export const createEmptyFormPersistenceSections = SECTIONS_SLICE.createEmptyCache;
+
 const createInitialSectionRevisions = SECTIONS_SLICE.createInitialRevisions;
 const createEmptyFieldErrorCache = FIELD_ERRORS_SLICE.createEmptyCache;
 const createInitialFieldErrorRevisions = FIELD_ERRORS_SLICE.createInitialRevisions;

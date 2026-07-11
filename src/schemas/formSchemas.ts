@@ -61,7 +61,11 @@ export {
   renteberegningSchema,
   type RenteberegningValues,
 } from './formSchemas/sections/renteberegningSchemas';
-export { varigeMenSchema, type VarigeMenValues } from './formSchemas/sections/varigeMenSchemas';
+export {
+  VARIGE_MEN_MAX_MENGRAD,
+  varigeMenSchema,
+  type VarigeMenValues,
+} from './formSchemas/sections/varigeMenSchemas';
 export { faellesAarsloenSchema, type FaellesAarsloenValues } from './formSchemas/sections/faellesAarsloenSchemas';
 export {
   svieSmertePeriodeRowSchema,

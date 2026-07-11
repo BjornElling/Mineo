@@ -1,4 +1,8 @@
-import { __createTestStore, createEmptyInvalidDraftsCache } from '../../stores/formPersistenceStore';
+import {
+  __createTestStore,
+  createEmptyFormPersistenceSections,
+  createEmptyInvalidDraftsCache,
+} from '../../stores/formPersistenceStore';
 import { createEmptyInvalidDraftsCacheForStorage } from '../../utils/invalidDraftsStorage';
 import { PERSISTED_SECTION_KEYS } from '../../config/persistenceRegistry';
 
@@ -34,6 +38,12 @@ describe('formPersistenceStore keyed-slice factory', () => {
       expect(state.fieldErrors[key as keyof typeof state.fieldErrors]).toEqual({});
       expect(state.invalidDrafts[key as keyof typeof state.invalidDrafts]).toEqual({});
     }
+  });
+
+  it('den eksporterede sektionskonstruktor deler factoryens fulde key-coverage', () => {
+    const sections = createEmptyFormPersistenceSections();
+    expect(keysOf(sections)).toEqual(SORTED_KEYS);
+    expect(Object.values(sections).every((value) => value === null)).toBe(true);
   });
 
   it('each cache key gets a distinct object (no shared reference across keys)', () => {

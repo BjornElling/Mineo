@@ -22,4 +22,4 @@ export type DocumentGenerationSession = Readonly<{
 export const createDocumentGenerationSession = (
   format: DocumentDownloadFormat,
   createWriter: DocumentWriterFactory
-): DocumentGenerationSession => ({ format, createWriter });
+): DocumentGenerationSession => Object.freeze({ format, createWriter });

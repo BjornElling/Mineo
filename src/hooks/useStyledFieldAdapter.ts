@@ -18,7 +18,7 @@ import {
  * Delt commit-/redigerings-skelet for de syv single-`<input>` "blur-commit"-felter
  * (Amount, Date, Integer, Percent, Fraction, Week, Year).
  *
- * Hook'en ejer den IDENTISKE, mekaniske lim, der tidligere var dupликeret i hver adapter:
+ * Hook'en ejer den identiske, mekaniske lim, der tidligere var duplikeret i hver adapter:
  * - `useFieldInvalidDraftChannel` + `useDraftField`-opkobling (med onCommit der rydder invalidDrafts)
  * - to-trins-editor-aktivering (`useTwoStageInputActivation`)
  * - `handleDraftChange` (skip-blur-reset → transform → side-effekt → setDraft → onDraftChange)

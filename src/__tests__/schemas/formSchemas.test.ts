@@ -775,6 +775,16 @@ describe('varigeMenSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepterer bevidst méngrad 120 og afviser 121', () => {
+    expect(varigeMenSchema.safeParse({ mengrad: 120 }).success).toBe(true);
+
+    const overMaximum = varigeMenSchema.safeParse({ mengrad: 121 });
+    expect(overMaximum.success).toBe(false);
+    if (!overMaximum.success) {
+      expect(overMaximum.error.issues[0]?.message).toBe('Méngrad må højst være 120');
+    }
+  });
+
   it('afviser activeTab som ukendt felt', () => {
     const result = varigeMenSchema.safeParse({
       activeTab: 'some-tab',

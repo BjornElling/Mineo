@@ -1,8 +1,9 @@
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
-import type { StorageKey } from '../config/storageManifest';
 import {
+  createEmptyFormPersistenceSections,
   formPersistenceStore,
+  type FormPersistenceSections,
 } from '../stores/formPersistenceStore';
 import { clearResolvedFieldErrorsCache } from '../stores/formPersistenceReadModel';
 import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
@@ -13,22 +14,12 @@ export type PersistenceStartupNotice = Readonly<{
 }>;
 
 export type PersistenceRuntime = Readonly<{
-  store: typeof formPersistenceStore;
   notice: PersistenceStartupNotice | null;
   keysToRemove: readonly string[];
 }>;
 
-type PersistedCache = { [K in StorageKey]: PersistedSectionMap[K] | null };
-
-const createEmptyPersistedCache = (): PersistedCache => {
-  return PERSISTED_SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = null;
-    return acc;
-  }, {} as PersistedCache);
-};
-
-const assignCacheValue = <K extends StorageKey>(
-  target: PersistedCache,
+const assignCacheValue = <K extends keyof FormPersistenceSections>(
+  target: FormPersistenceSections,
   key: K,
   value: PersistedSectionMap[K] | null,
 ): void => {
@@ -44,7 +35,7 @@ const assignCacheValue = <K extends StorageKey>(
  */
 export const initializePersistenceRuntime = (): PersistenceRuntime => {
   const plan = buildSessionStorageHydrationPlan();
-  const sections = createEmptyPersistedCache();
+  const sections = createEmptyFormPersistenceSections();
   for (const pageKey of PERSISTED_SECTION_KEYS) {
     assignCacheValue(sections, pageKey, plan.sections[pageKey]);
   }
@@ -57,7 +48,6 @@ export const initializePersistenceRuntime = (): PersistenceRuntime => {
   clearResolvedFieldErrorsCache();
 
   return Object.freeze({
-    store: formPersistenceStore,
     notice: plan.notice,
     keysToRemove: Object.freeze([...plan.keysToRemove]),
   });
