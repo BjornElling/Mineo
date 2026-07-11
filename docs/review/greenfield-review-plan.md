@@ -132,7 +132,7 @@ samtidighedsnet; #39 kræver state-/hydration-karakterisering.
 | 9 | 38 | ✅ Eksplicit dokument-genereringssession | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | muliggør #24; beslægtet #11 |
 | 10 | 12 | ✅ Felt-fejl-seam + `numericFieldConfig` + `mergeSx` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #25, #7 |
 | 11 | 19 | ✅ Generisk keyed-slice store-factory | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | muliggør #28 |
-| 12 | 33 | Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
+| 12 | 33 | ✅ Atomisk mutations-primitiv | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | muliggør #28, #41 |
 | 13 | 13 | `meta.schemaFingerprint` → `persistedDataVersion` | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør #42 |
 | 14 | 9 | `DocumentDownloadButton`-konsolidering | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
 | 15 | 8 | `PageTabs` + `SideTab`-komponenter | ★★★☆☆ | ★★★★☆ | ★★★★☆ | muliggør fase 4 |
@@ -505,6 +505,23 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Koblet til #24; context-objektet er dybt viklet ind i cursoren. Flagskibs-dokumentet → høj konsekvens.
 
 ### 33 — Atomisk mutations-primitiv i `FormPersistenceContext` · 8
+
+- **Status: ✅ Gennemført (2026-07-11).** `runAtomicPersistenceMutation({ operation,
+  affectedStorageKeys, captureUndo?, mutate })` i `utils/persistenceStoreRollback.ts` ejer nu
+  backup/commit/rollback for ALLE seks muterende metoder. Primitiven sikkerhedskopierer de berørte
+  sessionStorage-nøgler + hele committed-tier store-state (og valgfrit undo/redo-historikken via
+  `captureUndo`), kører `mutate`, og gendanner fail-closed ALT hvis den kaster — hvorefter en samlet
+  rollback-fejl kastes videre. De fem-seks strukturelt identiske try/catch-transaktioner er væk;
+  hver metode er nu en tynd beskrivelse af "hvad ændres" (+ sit eget notice/return-fejlrapport-lag).
+  De private `attemptRollbackStep`/`createRollbackError`/`restoreStorageValue` er flyttet ind i
+  primitiven. Undo-frame-**coalescing** ("ét felt-commit → præcis ÉN frame") er flyttet fra en
+  React-ref i provideren ned i undo-laget som `undoRedoStore.captureValueCommit` /
+  `captureCoalescing` / `consumeCoalesceMarker` (det er undo-semantik); den asymmetriske markør +
+  microtask-backstop er byte-identisk bevaret. Adfærd er bevist uændret af det eksisterende tunge net
+  (persistData/replaceAll/clearPage/clearAll-revision/epoch + rollback-injektion + cross-channel
+  coalescing-værn), suppleret med `runAtomicPersistenceMutation.test.ts` (backup/commit/rollback +
+  captureUndo-toggle + rollback-fejl-aggregering) og direkte coalescing-tests i `undoRedoStore.test.ts`.
+  Grønt: fuld suite (515 filer / 6131 tests), `typecheck` + `typecheck:test` + `lint`.
 
 - **Scope:** `contexts/FormPersistenceContext.tsx`: `persistData`, `writeInvalidDraft`, `replaceAllPersistedData`, `clearPageData`, `clearAllData`, `reconcileInvalidDrafts`; `utils/persistenceStoreRollback.ts`, `persistenceSnapshotStorage.ts`.
 - **Problem:** Hver muterende metode re-implementerer samme transaktion i hånden (læs forrige sessionStorage → capture rollback + undo-snapshot → skriv → capture undo-frame → commit store → på `catch` bespoke rollback-sekvens). 5-6 strukturelt identiske try/catch. `atomicWritePersistenceSections` findes allerede som primitiv (brugt af undo-stien), men context-metoderne bruger den ikke. Undo-coalescing-markør-logik er inline-koblet til mutations-koden.

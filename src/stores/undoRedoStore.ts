@@ -46,6 +46,9 @@ type UndoRedoStoreState = {
   canUndo: () => boolean;
   canRedo: () => boolean;
   capture: (origin: HistoryFrameOrigin) => void;
+  captureValueCommit: (origin: HistoryFrameOrigin) => void;
+  captureCoalescing: (origin: HistoryFrameOrigin) => void;
+  consumeCoalesceMarker: (fieldPath: string | null) => void;
   planUndo: () => HistoryTransitionPlan | null;
   planRedo: () => HistoryTransitionPlan | null;
   canCommitPlannedTransition: (plan: HistoryTransitionPlan) => boolean;
@@ -76,6 +79,34 @@ const appendPastFrame = (past: HistoryFrame[], frame: HistoryFrame): HistoryFram
   return next.length > MAX_HISTORY_STEPS ? next.slice(next.length - MAX_HISTORY_STEPS) : next;
 };
 
+// ASYMMETRISK coalescing af undo-captures for ÉT felt-commit, så det giver præcis ÉN frame.
+//
+// Et felt-commit kan røre BÅDE `sections` (persistData) og `invalidDrafts` (writeInvalidDraft): fx
+// committer useDraftField/immediate-Delete altid onCommit (setValues) EFTERFULGT af clearInvalidDraft.
+// - persistData (value-commit) fanger ALTID sin egen frame via `captureValueCommit` og markerer feltet.
+// - Den EFTERFØLGENDE writeInvalidDraft (commit-invalid/clear) på SAMME fieldPath i samme synkrone flow
+//   rider på value-commit'ets frame via `captureCoalescing` (fanger ingen ekstra). Men hvis value-commit'et
+//   var en no-op (ingen markør), fanger `captureCoalescing` sin EGEN frame — ellers ville en rydning helt
+//   uden sektionsændring slet ikke blive fanget, og undo ville springe den over og gendanne den gamle
+//   ugyldige værdi (rapporteret bug).
+// Markøren forbruges (ryddes) af det parrede writeInvalidDraft i samme flow; microtask-reset er en backstop
+// for ikke-parrede value-commits (radio/toggle/dropdown uden invalidDraft). Dette er undo-frame-semantik og
+// bor derfor i undo-laget (var tidligere en React-ref i FormPersistenceProvider).
+let pendingValueCommitFieldPath: string | null = null;
+const markValueCommitPending = (fieldPath: string | null): void => {
+  pendingValueCommitFieldPath = fieldPath;
+  queueMicrotask(() => {
+    pendingValueCommitFieldPath = null;
+  });
+};
+const consumePendingValueCommit = (fieldPath: string | null): boolean => {
+  if (pendingValueCommitFieldPath !== null && pendingValueCommitFieldPath === fieldPath) {
+    pendingValueCommitFieldPath = null;
+    return true;
+  }
+  return false;
+};
+
 export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
   past: [],
   future: [],
@@ -88,6 +119,23 @@ export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
       future: [],
       frameSequence: state.frameSequence + 1,
     }));
+  },
+  // Value-commit: fanger ALTID sin egen frame og markerer feltet, så en parret invalidDraft-clear i samme
+  // synkrone flow kan ride på den (coalesce) i stedet for at fange en ekstra.
+  captureValueCommit: (origin) => {
+    get().capture(origin);
+    markValueCommitPending(origin.fieldPath);
+  },
+  // invalidDraft-skrivning: rid på et parret value-commits frame fra samme flow (coalesce); ellers fang egen.
+  captureCoalescing: (origin) => {
+    if (!consumePendingValueCommit(origin.fieldPath)) {
+      get().capture(origin);
+    }
+  },
+  // Forbrug en evt. matchende value-commit-markør uden at fange en frame (fx en no-op-clear), så markøren
+  // ikke dingler og fejlagtigt coalescer en senere handling.
+  consumeCoalesceMarker: (fieldPath) => {
+    consumePendingValueCommit(fieldPath);
   },
   planUndo: () => {
     const state = get();

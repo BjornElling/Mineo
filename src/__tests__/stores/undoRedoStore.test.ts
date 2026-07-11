@@ -180,4 +180,45 @@ describe('undoRedoStore', () => {
     expect(undoRedoStore.getState().past).toHaveLength(0);
     expect(undoRedoStore.getState().future).toHaveLength(__UNDO_REDO_MAX_HISTORY_STEPS);
   });
+
+  describe('value-commit / invalidDraft coalescing', () => {
+    it('captureValueCommit fanger sin egen frame; en parret captureCoalescing på samme fieldPath rider på den', () => {
+      undoRedoStore.getState().captureValueCommit(origin);
+      undoRedoStore.getState().captureCoalescing(origin);
+
+      expect(undoRedoStore.getState().past).toHaveLength(1);
+    });
+
+    it('captureCoalescing på et ANDET fieldPath fanger sin egen frame (ingen coalesce)', () => {
+      undoRedoStore.getState().captureValueCommit(origin);
+      undoRedoStore.getState().captureCoalescing(otherOrigin);
+
+      expect(undoRedoStore.getState().past).toHaveLength(2);
+    });
+
+    it('captureCoalescing uden forudgående value-commit fanger sin egen frame', () => {
+      undoRedoStore.getState().captureCoalescing(origin);
+
+      expect(undoRedoStore.getState().past).toHaveLength(1);
+    });
+
+    it('consumeCoalesceMarker forbruger markøren uden at fange en frame, så en senere coalescing fanger sin egen', () => {
+      undoRedoStore.getState().captureValueCommit(origin);
+      expect(undoRedoStore.getState().past).toHaveLength(1);
+
+      undoRedoStore.getState().consumeCoalesceMarker(origin.fieldPath);
+      expect(undoRedoStore.getState().past).toHaveLength(1);
+
+      undoRedoStore.getState().captureCoalescing(origin);
+      expect(undoRedoStore.getState().past).toHaveLength(2);
+    });
+
+    it('markøren nulstilles efter det synkrone flow (microtask-backstop), så en senere coalescing ikke coalescer', async () => {
+      undoRedoStore.getState().captureValueCommit(origin);
+      await Promise.resolve();
+      undoRedoStore.getState().captureCoalescing(origin);
+
+      expect(undoRedoStore.getState().past).toHaveLength(2);
+    });
+  });
 });

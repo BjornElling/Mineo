@@ -19,15 +19,8 @@ import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore, type InvalidDraftsCache } from '../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
+import { runAtomicPersistenceMutation } from '../utils/persistenceStoreRollback';
 import {
-  captureStoreRollbackSnapshot,
-  captureUndoRedoRollbackSnapshot,
-  restoreStoreRollbackSnapshot,
-  restoreUndoRedoRollbackSnapshot,
-  type StoreRollbackSnapshot,
-} from '../utils/persistenceStoreRollback';
-import {
-  readSessionStorageValue,
   listSessionStorageKeys,
   removeSessionStorageValue,
   writeSessionStorageValue,
@@ -83,35 +76,6 @@ const assignCacheValue = <K extends StorageKey>(target: PersistedCache, key: K, 
   target[key] = value;
 };
 
-const restoreStorageValue = (storageKey: string, value: string | null): void => {
-  if (value === null) {
-    removeSessionStorageValue(storageKey);
-    return;
-  }
-  writeSessionStorageValue(storageKey, value);
-};
-
-const attemptRollbackStep = (
-  failures: Error[],
-  step: () => void
-): void => {
-  try {
-    step();
-  } catch (rollbackError) {
-    failures.push(asError(rollbackError));
-  }
-};
-
-const createRollbackError = (operation: string, originalError: unknown, rollbackFailures: readonly Error[]): Error => {
-  const originalMessage = originalError instanceof Error ? originalError.message : String(originalError);
-  if (rollbackFailures.length === 0) {
-    return originalError instanceof Error ? originalError : new Error(originalMessage);
-  }
-
-  const rollbackMessages = rollbackFailures.map((failure) => failure.message).join(' | ');
-  return new Error(`${operation} fejlede og rollback havde ${rollbackFailures.length} fejl: ${rollbackMessages}. Oprindelig fejl: ${originalMessage}`);
-};
-
 /**
  * Provider komponent der wrapper hele applikationen
  */
@@ -155,35 +119,8 @@ export const FormPersistenceProvider = ({
     return countFilledFields(formPersistenceStore.getState().sections as PersistedCache) > 0;
   }, []);
 
-  // ASYMMETRISK coalescing af undo-captures for ÉT felt-commit, så det giver præcis ÉN frame.
-  //
-  // Et felt-commit kan røre BÅDE `sections` (persistData) og `invalidDrafts` (writeInvalidDraft): fx
-  // committer useDraftField/immediate-Delete altid onCommit (setValues) EFTERFULGT af clearInvalidDraft.
-  // - persistData (value-commit) fanger ALTID sin egen frame (to forskellige value-commits = to frames;
-  //   fx to radio-klik på samme felt skal kunne undo'es hver for sig).
-  // - Den EFTERFØLGENDE writeInvalidDraft (commit-invalid/clear) på SAMME fieldPath i samme synkrone flow
-  //   rider på value-commit'ets frame (coalesces). Men hvis value-commit'et var en no-op (committed værdi
-  //   uændret → ingen frame), fanger writeInvalidDraft sin EGEN frame — ellers ville en rydning helt uden
-  //   sektionsændring slet ikke blive fanget, og undo ville springe den over og gendanne den gamle ugyldige
-  //   værdi (rapporteret bug).
-  // Markøren sættes af persistData og forbruges (ryddes) af det parrede writeInvalidDraft i samme flow;
-  // microtask-reset er en backstop for ikke-parrede value-commits (radio/toggle/dropdown uden invalidDraft).
-  const pendingValueCommitFieldPathRef = React.useRef<string | null>(null);
-  const markValueCommitCaptured = React.useCallback((fieldPath: string | null): void => {
-    pendingValueCommitFieldPathRef.current = fieldPath;
-    queueMicrotask(() => {
-      pendingValueCommitFieldPathRef.current = null;
-    });
-  }, []);
-  // Returnerer true hvis dette invalidDraft-capture skal SPRINGES OVER (rider på et value-commits frame
-  // fra samme flow). Forbruger (rydder) markøren ved match, så den ikke fejlagtigt coalescer en senere handling.
-  const consumeValueCommitCoalesce = React.useCallback((fieldPath: string | null): boolean => {
-    if (pendingValueCommitFieldPathRef.current !== null && pendingValueCommitFieldPathRef.current === fieldPath) {
-      pendingValueCommitFieldPathRef.current = null;
-      return true;
-    }
-    return false;
-  }, []);
+  // Undo-frame-coalescing (ét felt-commit → præcis ÉN frame) ejes nu af undoRedoStore
+  // (captureValueCommit / captureCoalescing / consumeCoalesceMarker); det er undo-semantik.
 
   /**
    * Gem data i sessionStorage med versionering
@@ -233,27 +170,22 @@ export const FormPersistenceProvider = ({
         }
       }
 
-      const previousStorageValue = readSessionStorageValue(storageKey);
-      const rollbackSnapshot = captureStoreRollbackSnapshot();
-      const undoRollbackSnapshot = captureUndoRedoRollbackSnapshot();
-      try {
-        writeSessionStorageValue(storageKey, built.serialized);
-        if (options?.undoOrigin) {
-          // Value-commit fanger ALTID sin egen frame; markér den, så en parret invalidDraft-clear i samme
-          // flow rider på den i stedet for at fange en ekstra.
-          undoRedoStore.getState().capture(options.undoOrigin);
-          markValueCommitCaptured(options.undoOrigin.fieldPath);
-        }
-        formPersistenceStore.getState().commitSection(pageKey, built.validatedData, {
-          lastCommittedAt: Date.now(),
-        });
-      } catch (error) {
-        const rollbackFailures: Error[] = [];
-        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(storageKey, previousStorageValue));
-        attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(rollbackSnapshot));
-        attemptRollbackStep(rollbackFailures, () => restoreUndoRedoRollbackSnapshot(undoRollbackSnapshot));
-        throw createRollbackError('persistData', error, rollbackFailures);
-      }
+      runAtomicPersistenceMutation({
+        operation: 'persistData',
+        affectedStorageKeys: [storageKey],
+        captureUndo: true,
+        mutate: () => {
+          writeSessionStorageValue(storageKey, built.serialized);
+          if (options?.undoOrigin) {
+            // Value-commit fanger ALTID sin egen frame; markér den, så en parret invalidDraft-clear i samme
+            // flow rider på den i stedet for at fange en ekstra.
+            undoRedoStore.getState().captureValueCommit(options.undoOrigin);
+          }
+          formPersistenceStore.getState().commitSection(pageKey, built.validatedData, {
+            lastCommittedAt: Date.now(),
+          });
+        },
+      });
       return true;
     } catch (error) {
       console.error(`[Persistence] Fejl ved gemning af data for '${pageKey}':`, {
@@ -264,7 +196,7 @@ export const FormPersistenceProvider = ({
       emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern fejl.`, 'error');
       return false;
     }
-  }, [markValueCommitCaptured, emitUserNotice]);
+  }, [emitUserNotice]);
 
   /**
    * Beregn næste invalidDrafts-cache fra nuværende store + én feltændring (uden at mutere store).
@@ -301,31 +233,25 @@ export const FormPersistenceProvider = ({
         if ((currentForField ?? null) === normalizedDraft) {
           // No-op (fx en valid-commits parrede clear hvor feltet ingen rå draft havde). Forbrug en evt.
           // matchende value-commit-markør, så den ikke dingler og fejlagtigt coalescer en senere handling.
-          if (options?.undoOrigin) consumeValueCommitCoalesce(options.undoOrigin.fieldPath);
+          if (options?.undoOrigin) undoRedoStore.getState().consumeCoalesceMarker(options.undoOrigin.fieldPath);
           return true;
         }
 
         const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
-        const previousStorageValue = readSessionStorageValue(invalidDraftsStorageKey);
-        const rollbackSnapshot = captureStoreRollbackSnapshot();
-        const undoRollbackSnapshot = captureUndoRedoRollbackSnapshot();
         const nextCache = computeNextInvalidDrafts(pageKey, fieldPath, normalizedDraft);
-        try {
-          writeInvalidDraftsToStorage(nextCache);
-          if (options?.undoOrigin) {
-            // Rid på et parret value-commits frame fra samme flow (coalesce); ellers fang vores egen.
-            if (!consumeValueCommitCoalesce(options.undoOrigin.fieldPath)) {
-              undoRedoStore.getState().capture(options.undoOrigin);
+        runAtomicPersistenceMutation({
+          operation: 'writeInvalidDraft',
+          affectedStorageKeys: [invalidDraftsStorageKey],
+          captureUndo: true,
+          mutate: () => {
+            writeInvalidDraftsToStorage(nextCache);
+            if (options?.undoOrigin) {
+              // Rid på et parret value-commits frame fra samme flow (coalesce); ellers fang vores egen.
+              undoRedoStore.getState().captureCoalescing(options.undoOrigin);
             }
-          }
-          formPersistenceStore.getState().setInvalidDraft(pageKey, fieldPath, normalizedDraft);
-        } catch (error) {
-          const rollbackFailures: Error[] = [];
-          attemptRollbackStep(rollbackFailures, () => restoreStorageValue(invalidDraftsStorageKey, previousStorageValue));
-          attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(rollbackSnapshot));
-          attemptRollbackStep(rollbackFailures, () => restoreUndoRedoRollbackSnapshot(undoRollbackSnapshot));
-          throw createRollbackError('writeInvalidDraft', error, rollbackFailures);
-        }
+            formPersistenceStore.getState().setInvalidDraft(pageKey, fieldPath, normalizedDraft);
+          },
+        });
         return true;
       } catch (error) {
         console.error(`[Persistence] Fejl ved skrivning af invalid draft for '${pageKey}.${fieldPath}':`, error);
@@ -333,7 +259,7 @@ export const FormPersistenceProvider = ({
         return false;
       }
     },
-    [consumeValueCommitCoalesce, computeNextInvalidDrafts, emitUserNotice]
+    [computeNextInvalidDrafts, emitUserNotice]
   );
 
   const commitInvalidDraft = React.useCallback(
@@ -374,22 +300,19 @@ export const FormPersistenceProvider = ({
         if (orphans.length === 0) return true;
 
         const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
-        const previousStorageValue = readSessionStorageValue(invalidDraftsStorageKey);
-        const rollbackSnapshot = captureStoreRollbackSnapshot();
         const nextSection = { ...current };
         for (const fieldPath of orphans) {
           delete nextSection[fieldPath];
         }
         const nextCache = { ...formPersistenceStore.getState().invalidDrafts, [pageKey]: nextSection };
-        try {
-          writeInvalidDraftsToStorage(nextCache);
-          formPersistenceStore.getState().pruneInvalidDraftsForSectionFields(pageKey, orphans);
-        } catch (error) {
-          const rollbackFailures: Error[] = [];
-          attemptRollbackStep(rollbackFailures, () => restoreStorageValue(invalidDraftsStorageKey, previousStorageValue));
-          attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(rollbackSnapshot));
-          throw createRollbackError('reconcileInvalidDrafts', error, rollbackFailures);
-        }
+        runAtomicPersistenceMutation({
+          operation: 'reconcileInvalidDrafts',
+          affectedStorageKeys: [invalidDraftsStorageKey],
+          mutate: () => {
+            writeInvalidDraftsToStorage(nextCache);
+            formPersistenceStore.getState().pruneInvalidDraftsForSectionFields(pageKey, orphans);
+          },
+        });
         return true;
       } catch (error) {
         console.error(`[Persistence] Fejl ved oprydning af forældreløse invalid drafts for '${pageKey}':`, error);
@@ -401,15 +324,6 @@ export const FormPersistenceProvider = ({
   );
 
   const replaceAllPersistedData = React.useCallback<ReplaceAllPersistedData>((snapshot) => {
-    const prevStoreState = formPersistenceStore.getState();
-    const prevSections = prevStoreState.sections as PersistedCache;
-    const prevSectionRevisions = prevStoreState.sectionRevisions;
-    const prevFieldErrors = prevStoreState.fieldErrors;
-    const prevFieldErrorRevisions = prevStoreState.fieldErrorRevisions;
-    const prevInvalidDrafts = prevStoreState.invalidDrafts;
-    const prevInvalidDraftRevisions = prevStoreState.invalidDraftRevisions;
-    const prevAuthoritativeSnapshotEpoch = prevStoreState.authoritativeSnapshotEpoch;
-    const prevMeta = prevStoreState.meta;
     for (const key of PERSISTED_SECTION_KEYS) {
       if (!Object.prototype.hasOwnProperty.call(snapshot, key)) {
         throw new Error(`Snapshot mangler key '${key}'. Snapshot skal indeholde alle keys (brug undefined for at slette).`);
@@ -421,10 +335,6 @@ export const FormPersistenceProvider = ({
     // En indlæst .eo har per definition ingen invalidDrafts, så nøglen ryddes.
     const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
     const keysToReplace = [...PERSISTED_SECTION_KEYS.map(getStorageKey), invalidDraftsStorageKey];
-    const backup = new Map<string, string | null>();
-    for (const key of keysToReplace) {
-      backup.set(key, readSessionStorageValue(key));
-    }
 
     const now = Date.now();
     const toWrite: Array<{ storageKey: string; value: string }> = [];
@@ -447,42 +357,26 @@ export const FormPersistenceProvider = ({
     }
 
     try {
-      for (const key of keysToReplace) {
-        removeSessionStorageValue(key);
-      }
-      for (const { storageKey, value } of toWrite) {
-        writeSessionStorageValue(storageKey, value);
-      }
-      formPersistenceStore.getState().replaceSectionsAndClearFieldErrors(
-        nextCache,
-        { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() }
-      );
-      clearResolvedFieldErrorsCache();
-      undoRedoStore.getState().clear();
-    } catch (error) {
-      // Defensiv strategi: udfør altid hele rollback/restore-sekvensen,
-      // selv hvis fejlen skete før nogen in-memory-mutation.
-      const rollbackFailures: Error[] = [];
-      for (const { storageKey } of toWrite) {
-        attemptRollbackStep(rollbackFailures, () => removeSessionStorageValue(storageKey));
-      }
-      for (const [key, value] of backup.entries()) {
-        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(key, value));
-      }
-      attemptRollbackStep(rollbackFailures, () => {
-        formPersistenceStore.getState().rollbackSections(
-          prevSections,
-          prevSectionRevisions,
-          prevStoreState.committedChangeCounter,
-          prevAuthoritativeSnapshotEpoch,
-          prevMeta
-        );
-        formPersistenceStore.getState().restoreFieldErrors(prevFieldErrors, prevFieldErrorRevisions);
-        formPersistenceStore.getState().restoreInvalidDrafts(prevInvalidDrafts, prevInvalidDraftRevisions);
-        clearResolvedFieldErrorsCache();
+      runAtomicPersistenceMutation({
+        operation: 'replaceAllPersistedData',
+        affectedStorageKeys: keysToReplace,
+        mutate: () => {
+          for (const key of keysToReplace) {
+            removeSessionStorageValue(key);
+          }
+          for (const { storageKey, value } of toWrite) {
+            writeSessionStorageValue(storageKey, value);
+          }
+          formPersistenceStore.getState().replaceSectionsAndClearFieldErrors(
+            nextCache,
+            { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() }
+          );
+          clearResolvedFieldErrorsCache();
+          undoRedoStore.getState().clear();
+        },
       });
-      const message = createRollbackError('replaceAllPersistedData', error, rollbackFailures).message;
-      throw new Error(`Kunne ikke anvende snapshot atomisk: ${message}`);
+    } catch (error) {
+      throw new Error(`Kunne ikke anvende snapshot atomisk: ${asError(error).message}`);
     }
   }, []);
 
@@ -490,31 +384,24 @@ export const FormPersistenceProvider = ({
    * Slet data for en specifik side
    */
   const clearPageData = React.useCallback((pageKey: StorageKey) => {
-    const storageKey = getStorageKey(pageKey);
-    const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
-    let previousStorageValue: string | null = null;
-    let previousInvalidDraftsStorageValue: string | null = null;
-    let rollbackSnapshot: StoreRollbackSnapshot | null = null;
     try {
-      previousStorageValue = readSessionStorageValue(storageKey);
-      previousInvalidDraftsStorageValue = readSessionStorageValue(invalidDraftsStorageKey);
-      rollbackSnapshot = captureStoreRollbackSnapshot();
-      removeSessionStorageValue(storageKey);
-      formPersistenceStore.getState().clearSection(pageKey, {
-        lastCommittedAt: Date.now(),
+      const storageKey = getStorageKey(pageKey);
+      const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
+      runAtomicPersistenceMutation({
+        operation: 'clearPageData',
+        affectedStorageKeys: [storageKey, invalidDraftsStorageKey],
+        mutate: () => {
+          removeSessionStorageValue(storageKey);
+          formPersistenceStore.getState().clearSection(pageKey, {
+            lastCommittedAt: Date.now(),
+          });
+          formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
+          formPersistenceStore.getState().clearInvalidDraftsForSection(pageKey);
+          writeInvalidDraftsToStorage(formPersistenceStore.getState().invalidDrafts);
+          clearResolvedFieldErrorsCache();
+        },
       });
-      formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
-      formPersistenceStore.getState().clearInvalidDraftsForSection(pageKey);
-      writeInvalidDraftsToStorage(formPersistenceStore.getState().invalidDrafts);
-      clearResolvedFieldErrorsCache();
     } catch (error) {
-      if (rollbackSnapshot) {
-        const snapshot = rollbackSnapshot;
-        const rollbackFailures: Error[] = [];
-        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(storageKey, previousStorageValue));
-        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(invalidDraftsStorageKey, previousInvalidDraftsStorageValue));
-        attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(snapshot));
-      }
       emitUserNotice(`Kunne ikke slette data for '${pageKey}'. Ingen data blev ændret.`, 'error');
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
     }
@@ -526,31 +413,23 @@ export const FormPersistenceProvider = ({
    * Bruger manifest til kun at slette kendte keys.
    */
   const clearAllData = React.useCallback(() => {
-    const backup = new Map<string, string | null>();
-    let rollbackSnapshot: StoreRollbackSnapshot | null = null;
     try {
       // Slet alt skal føles som en frisk browser-session for Mineo. Derfor ryddes også UI-sessionstate
       // som aktive faner; ellers kan brugeren lande på en tidligere fane efter et fuldt reset.
       const storageKeys = getKnownStorageKeys(listSessionStorageKeys());
-      for (const key of storageKeys) {
-        backup.set(key, readSessionStorageValue(key));
-      }
-      rollbackSnapshot = captureStoreRollbackSnapshot();
-      storageKeys.forEach(key => {
-        removeSessionStorageValue(key);
+      runAtomicPersistenceMutation({
+        operation: 'clearAllData',
+        affectedStorageKeys: storageKeys,
+        mutate: () => {
+          storageKeys.forEach(key => {
+            removeSessionStorageValue(key);
+          });
+          formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() });
+          clearResolvedFieldErrorsCache();
+          undoRedoStore.getState().clear();
+        },
       });
-      formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() });
-      clearResolvedFieldErrorsCache();
-      undoRedoStore.getState().clear();
     } catch (error) {
-      if (rollbackSnapshot) {
-        const snapshot = rollbackSnapshot;
-        const rollbackFailures: Error[] = [];
-        for (const [key, value] of backup.entries()) {
-          attemptRollbackStep(rollbackFailures, () => restoreStorageValue(key, value));
-        }
-        attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(snapshot));
-      }
       emitUserNotice('Kunne ikke slette alle sagsdata. Ingen data blev ændret.', 'error');
       console.error('[Persistence] Fejl ved sletning af alle data:', error);
     }
