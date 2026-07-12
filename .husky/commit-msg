@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Stop commit hvis subject-linjen starter med et bart `@` (se CLAUDE.md).
+node scripts/check-commit-msg.mjs "$1"
