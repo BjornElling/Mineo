@@ -1,6 +1,6 @@
 # Mineo – Side-komponent-kontrakt
 
-**Version:** 0.2
+**Version:** 0.3
 **Status:** Gældende arkitektur (normativ)
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
 **Senest verificeret mod kode:** 2026-07-12
@@ -176,6 +176,33 @@ En almindelig side skal selv rendere:
 - sidetitel via `<Typography className="page-title">`
 
 Hjælpe-/systemruter (jf. 2.4) som `UnsupportedDevicePage` og `OpenEo` må afvige, når deres UX-behov er anderledes.
+
+### 4.4 Viewmodel-lag (persisterede fagsider)
+
+Hver **persisteret fagside (§2.1)** skal have præcis ét kanonisk viewmodel-indgangspunkt,
+der ejer sidens afledte state, handlers og gates:
+
+- kanonisk form: `useXxxViewModel(form)` + `XxxVmProvider`/`useXxxVm()`, med page-komponenten
+  reduceret til sektions-komposition. Selve beregningskernen (`compute*`-snapshot) bevares uændret;
+  VM'en orkestrerer, den genberegner ikke.
+
+Reglen er **kategorisk, ikke størrelses-gated.** Der er ikke en LOC-tærskel: enhver §2.1-side har
+en VM, uanset dens aktuelle størrelse. Det giver ét forudsigeligt svar på "hvor bor afledt state +
+handlers" på tværs af hele fagside-laget og forhindrer, at en side glider tilbage til inline-logik
+eller en parallel snapshot-funktion, når den vokser.
+
+Enheden er **per side**: tab-tunge fagsider har ét VM-indgangspunkt på page-niveau. Tab-niveau-
+under-VM'er (feature-slicede) er tilladt og ønskede, hvor en tab er et substantielt subview, men er
+ikke et selvstændigt krav for hver tab.
+
+**Bevidst uden for reglen:** system-/indstillingssider (§2.2) og informationssider (§2.3). En VM er
+her ikke påkrævet — at kræve mønstret universelt ville være den tomme ceremoni, §12 og §13 advarer
+imod. En sådan side må frit bruge en VM, hvis den reelt har afledt state at huse, men skal ikke.
+
+**Anti-refactor-back:** når en §2.1-sides VM er tynd, fordi siden har lidt logik, skal VM'en bære en
+kort rationale-kommentar — *"naturlig arkitektur"* eller *"bevidst bevaret for ensartning"* — så en
+senere oprydning ikke inliner den i den tro, at den er overflødig. Ensartning på tværs af §2.1 er et
+gyldigt, bevidst designvalg og ikke en fejl, der skal "forenkles" væk.
 
 ---
 

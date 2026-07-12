@@ -193,7 +193,7 @@ side-mønstret; #26 (højeste lokale keyboard-risiko) laves sidst.
 | 37 | 6 | `Aarsloen.tsx` → VM + sektioner | ★★★★★ | ★★★☆☆ | ★★★☆☆ | forudsætter #5, #9 |
 | 38 | 18 | `EetDifferencekravTab` + delt forlig-editor | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | forudsætter #5 |
 | 39 | 10 | `Forsoergertab.tsx` → sektioner + VM | ★★★☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #5 |
-| 40 | 21 | `Indstillinger.tsx` → deklarativt register | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | del af #5-familien |
+| 40 | 21 | `Indstillinger.tsx` → deklarativt register | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | uafhængig; §2.2, uden for #5's VM-invariant |
 | 41 | 22 | `IndtaegtFoerSkadenSection` → under-sektioner | ★★☆☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #44 |
 | 42 | 7 | Headless `StyledDropdown` | ★★★★☆ | ★★★★☆ | ★★★☆☆ | forudsætter `mergeSx` (#12) |
 | 43 | 26 | `Container.tsx` → headless keyboard-nav-hook | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | højeste UI-risiko; sidst |
@@ -254,12 +254,13 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Rød tråd:** Ét hjem per concern.
 - **Afhængigheder:** Ingen; rene relokationer af testede funktioner.
 
-### 5 — Ensartet viewmodel-mønster på alle sider (meta) · 11
+### 5 — Ensartet viewmodel-mønster på alle persisterede fagsider (meta) · 11
 
-- **Scope:** Hele `pages/`-træet. Har VM: EO Oplysninger/Beregning, Loenindkomst. Mangler: `Aarsloen`, `Forsoergertab`, `Indstillinger`, `EetDifferencekravTab`, `MenberegningTab`, `OffentligeYdelserTab`, `Satser`, `Renteberegning`.
+- **Scope:** Alle **persisterede fagsider** (kontraktens §2.1). Har VM: EO Oplysninger/Beregning, Loenindkomst. Mangler: `Aarsloen`, `Forsoergertab`, `Satser`, `Renteberegning` (samt de tab-tunge sider `Erhvervsevnetab`/`VarigeMen`, hvis substantielle tabs — `EetDifferencekravTab`, `MenberegningTab`, `OffentligeYdelserTab` — får feature-slicede under-VM'er, jf. #44). System-/indstillingssiden (§2.2 `Indstillinger`) og informationssiden (§2.3 `Mineo`) er **bevidst uden for scope** — en VM dér ville være tom ceremoni og kollidere med kontraktens §12/§13.
 - **Problem:** Tre uforenelige svar på "hvor bor afledt state + handlers": VM+kontekst, snapshot-funktion, eller alt inline. En vedligeholder kan ikke forudsige hvor logik bor.
-- **Greenfield:** Én kanonisk form per persisteret fagside: `useXxxViewModel(form)` + `XxxVmProvider`/`useXxxVm()` + side reduceret til sektions-komposition. `compute*`-snapshot bevares som beregningskerne. Guard: enhver `pages/*.tsx` over ~250 LOC skal delegere til en VM.
-- **Rød tråd:** Håndhæver `page-component-contract`s tiltænkte mål overalt.
+- **Greenfield:** Én kanonisk form per persisteret fagside: `useXxxViewModel(form)` + `XxxVmProvider`/`useXxxVm()` + side reduceret til sektions-komposition. `compute*`-snapshot bevares som beregningskerne. **Invariant (afløser den tidligere ~250 LOC-gate): hver §2.1-side *har* en VM — ingen størrelses-undtagelse.** LOC-gaten var både et magisk tal og reelt tom (alle §2.1-sider ligger langt over 250); en kategorisk invariant matcher kodebasens "ét sandt sted"-linje bedre. For tab-tunge sider er enheden ét kanonisk VM-indgangspunkt per side; tab-niveau-under-VM'er er tilladt/ønskede hvor tabben er et substantielt subview (ikke et absolut "hver tab skal have VM"-krav).
+- **Anti-refactor-back:** Hver VM bærer en kort rationale-linje: enten *"naturlig arkitektur"* (gælder næsten alle §2.1-sider) eller *"bevidst bevaret for ensartning"* (fx `Satser`, der er mest visning). Så en senere "denne VM er tynd, inline den"-oprydning møder et eksplicit designvalg i stedet for at gætte. Invarianten løftes samtidig ind i `page-component-contract.md` som normativ regel (dens rette hjem), så den gælder alle fremtidige §2.1-sider.
+- **Rød tråd:** Håndhæver `page-component-contract`s tiltænkte mål for §2.1 — kategorisk, ikke størrelses-gated.
 - **Afhængigheder:** Paraply over #6, #10, #18, #21; #1/#22 er samme families view-split.
 
 ### 6 — `Aarsloen.tsx` → VM + sektioner · 11
@@ -479,7 +480,7 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Problem:** ~20 nær-identiske `row--label-right-hover`-blokke, hver hånd-wirer en kontrol til `updateSettings({...})` med inline type-guard og bespoke closure. Directory-picker-side-effekt blandet ind. En statisk form beskrevet imperativt 20 gange.
 - **Greenfield:** Deklarativt settings-register: `SettingsRow` drevet af descriptor (`{ label, control, key, options, guard }`) grupperet i sektioner. Directory-picker → `useDefaultDirectorySetting()`. 628 linjer → data-tabel + lille renderer; ny indstilling = én descriptor.
 - **Rød tråd:** Deklarativt frem for imperativt gentaget; device-lokale settings (ikke `.eo`).
-- **Afhængigheder:** Del af #5-familien; kræver lille typet control-descriptor-abstraktion.
+- **Afhængigheder:** Uafhængig af #5's VM-invariant — `Indstillinger` er en §2.2-side og bevidst uden for VM-kravet. Beslægtet med #5-familiens side-dekomponerings-tema, men målet her er et deklarativt control-descriptor-register, ikke en VM. Kræver kun en lille typet control-descriptor-abstraktion.
 
 ### 22 — `IndtaegtFoerSkadenSection` → under-sektioner · 10
 
