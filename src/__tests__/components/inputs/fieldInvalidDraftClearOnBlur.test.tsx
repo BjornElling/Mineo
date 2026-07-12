@@ -345,7 +345,10 @@ const UnboundYearPage = () => {
       value={year}
       minYear={2000}
       maxYear={2025}
-      onCommit={(e) => setYear(e.target.value)}
+      onCommit={(e) => {
+        setYear(e.target.value);
+        return true;
+      }}
     />
   );
 };
