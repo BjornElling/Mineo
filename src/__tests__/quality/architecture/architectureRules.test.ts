@@ -23,7 +23,13 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
     }
   });
 
-  it('ingen arkitektur-overtrædelser i kilde-grafen', { timeout: 30000 }, () => {
+  // Timeout på 120 s (ikke 30 s): denne case parser AST for hele kilde-grafen (~700 filer,
+  // setParentNodes) og kører hver regels tree-walk over sit scope — reelt ~4 s CPU-arbejde lokalt.
+  // Under thread-poolen på CI's 2-vCPU-runner konkurrerer det arbejde med parallelle test-workere
+  // om kernerne, så wall-clock kan strække sig langt forbi 30 s afhængigt af samtidig belastning
+  // (deraf de sporadiske timeouts). Arbejdet er endeligt og cachet — ikke en hængning — så et
+  // rundhåndet loft fjerner flakiness uden at skjule en ægte deadlock.
+  it('ingen arkitektur-overtrædelser i kilde-grafen', { timeout: 120000 }, () => {
     const entries = getSourceGraph();
     const violations = ARCHITECTURE_RULES.flatMap((rule) => rule.evaluate(entries));
 
