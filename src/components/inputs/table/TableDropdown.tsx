@@ -68,6 +68,12 @@ export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPr
      */
     appearance?: 'grid' | 'loose';
     options: readonly TableDropdownOption[];
+    /**
+     * Tilgængeligt navn på combobox'en. Uden dette har celle-dropdownen ingen label
+     * (axe/agentisk browsing: "Formularelementer skal have etiketter"). Sæt et kort,
+     * beskrivende navn der matcher kolonnen (fx "Enhed for tillægstid").
+     */
+    ariaLabel?: string;
     onChange?: (e: TableDropdownChangeEvent) => void;
     onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
     externalErrorMessage?: string;
@@ -87,6 +93,7 @@ const TableDropdown = React.memo(
     appearance = 'grid',
     placeholder = 'Vælg...',
     options,
+    ariaLabel,
     onChange,
     onBlur,
     externalErrorMessage,
@@ -387,7 +394,7 @@ const TableDropdown = React.memo(
             allowEmpty ? (
               <StyledDropdown
                 name={resolvedGridCellKey ?? undefined}
-                inputProps={{ 'data-mineo-undo-field-path-aliases': undoFieldPathAliasesAttr }}
+                inputProps={{ 'aria-label': ariaLabel, 'data-mineo-undo-field-path-aliases': undoFieldPathAliasesAttr }}
                 width="100%"
                 value={(value ?? '') === '' ? undefined : value}
                 allowEmpty
@@ -408,7 +415,7 @@ const TableDropdown = React.memo(
             ) : (
               <StyledDropdown
                 name={resolvedGridCellKey ?? undefined}
-                inputProps={{ 'data-mineo-undo-field-path-aliases': undoFieldPathAliasesAttr }}
+                inputProps={{ 'aria-label': ariaLabel, 'data-mineo-undo-field-path-aliases': undoFieldPathAliasesAttr }}
                 width="100%"
                 value={value ?? ''}
                 allowEmpty={false}
@@ -492,6 +499,7 @@ const TableDropdown = React.memo(
               inputProps={{
                 name: resolvedGridCellKey ?? undefined,
                 tabIndex: readOnly ? -1 : undefined,
+                'aria-label': ariaLabel,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
               sx={mergeSx({

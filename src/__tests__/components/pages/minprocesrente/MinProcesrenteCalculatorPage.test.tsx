@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const { mockDownloadStandaloneRentePdf } = vi.hoisted(() => ({
@@ -216,14 +216,18 @@ describe('MinProcesrenteCalculatorPage', () => {
     await user.click(screen.getByRole('button', { name: 'Commit kommentar' }));
     await user.click(screen.getByRole('button', { name: 'Download' }));
 
-    expect(mockDownloadStandaloneRentePdf).toHaveBeenCalledWith(
-      expect.objectContaining({
-        beloeb: 1000,
-        actualInterestDate: '01-01-2024',
-        beregningsdato: '31-01-2024',
-        latestReferenceRateDate: '01-01-2024',
-        kommentarer: 'Standalone kommentar',
-      })
+    // PDF-tjenesten lazy-loades (dynamisk import) inde i download-handleren, så kaldet
+    // sker et async-tick efter klikket — vent på det frem for at antage synkront kald.
+    await waitFor(() =>
+      expect(mockDownloadStandaloneRentePdf).toHaveBeenCalledWith(
+        expect.objectContaining({
+          beloeb: 1000,
+          actualInterestDate: '01-01-2024',
+          beregningsdato: '31-01-2024',
+          latestReferenceRateDate: '01-01-2024',
+          kommentarer: 'Standalone kommentar',
+        })
+      )
     );
   });
 });

@@ -7,10 +7,23 @@
     <meta name="theme-color" content="#f8f9fa" />
     <meta
       name="description"
-      content="MinProcesrente er en klientbaseret beregner til procesrente."
+      content="minProcesrente.dk er en gratis, klientbaseret beregner til procesrente efter renteloven. Angiv beløb, rentedato og beregningsdato og få renten og en specifikation."
     />
-    <!-- MinProcesrente er en offentlig beregner; noindex udelades bevidst. -->
-    <title>minProcesrente</title>
+    <!-- MinProcesrente er en offentlig beregner og SKAL kunne indekseres; noindex udelades
+         bevidst. robots.txt overskrives til indekserbar i build:minprocesrente
+         (scripts/cleanup-minprocesrente-public.mjs). -->
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://minprocesrente.dk/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="minProcesrente.dk" />
+    <meta property="og:title" content="minProcesrente.dk – Beregn procesrente online" />
+    <meta
+      property="og:description"
+      content="Gratis, klientbaseret beregner til procesrente efter renteloven. Al beregning sker i browseren."
+    />
+    <meta property="og:url" content="https://minprocesrente.dk/" />
+    <meta property="og:locale" content="da_DK" />
+    <title>minProcesrente.dk – Beregn procesrente online</title>
   </head>
   <body>
     <noscript>Du skal aktivere JavaScript for at bruge procesrenteberegneren.</noscript>

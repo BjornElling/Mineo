@@ -29,4 +29,35 @@ describe('cleanup-minprocesrente-public', () => {
     expect(headers).toContain('/minprocesrente.html\n  Cache-Control: no-cache, no-store, must-revalidate');
     expect(headers).toContain('/assets/*\n  Cache-Control: public, max-age=31536000, immutable');
   });
+
+  it('overskriver den delte Disallow-robots.txt med en indekserbar robots.txt', () => {
+    // Simulér at Mineos delte public/robots.txt (Disallow: /) er kopieret med ind i buildet.
+    writeFileSync(join(tempDir, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
+
+    execFileSync('node', [resolve('scripts/cleanup-minprocesrente-public.mjs'), tempDir], { encoding: 'utf8' });
+
+    const robots = readFileSync(join(tempDir, 'robots.txt'), 'utf8');
+    expect(robots).toContain('Allow: /');
+    expect(robots).not.toContain('Disallow: /');
+    expect(robots).toContain('Sitemap: https://minprocesrente.dk/sitemap.xml');
+  });
+
+  it('skriver en sitemap.xml med sitets kanoniske URL', () => {
+    execFileSync('node', [resolve('scripts/cleanup-minprocesrente-public.mjs'), tempDir], { encoding: 'utf8' });
+
+    const sitemap = readFileSync(join(tempDir, 'sitemap.xml'), 'utf8');
+    expect(sitemap).toContain('<loc>https://minprocesrente.dk/</loc>');
+    expect(sitemap).toContain('urlset');
+  });
+
+  it('skriver en llms.txt der følger anbefalingen (H1 + links)', () => {
+    execFileSync('node', [resolve('scripts/cleanup-minprocesrente-public.mjs'), tempDir], { encoding: 'utf8' });
+
+    const llms = readFileSync(join(tempDir, 'llms.txt'), 'utf8');
+    // Mindst én H1-header.
+    expect(llms).toMatch(/^# .+/m);
+    // Mindst ét Markdown-link.
+    expect(llms).toMatch(/\[[^\]]+\]\([^)]+\)/);
+    expect(llms).toContain('https://minprocesrente.dk');
+  });
 });

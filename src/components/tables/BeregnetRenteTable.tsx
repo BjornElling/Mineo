@@ -184,6 +184,7 @@ const BeregnetRenteRow = React.memo(
               value={committedRow.enhed}
               allowEmpty={false}
               appearance="loose"
+              ariaLabel="Enhed for tillægstid"
               options={ENHED_OPTIONS}
               sx={{ width: '100%', '& .MuiSelect-select': { textAlign: 'left' } }}
               onChange={(e) => {

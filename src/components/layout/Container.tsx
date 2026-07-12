@@ -605,7 +605,13 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
           scrollSx
         )}
       >
+        {/* component="main" giver siden dens primære landmark (axe/optimale løsninger:
+            "Dokumentet har ikke et primært landmark"). Container rendres præcis én gang pr.
+            side i begge apps — Mineo (MainLayout: SideMenu + ét Container) og standalone
+            MinProcesrente — så der er altid nøjagtig ét <main>. Det er kun et semantisk
+            element-skifte (div→main); layout, scroll og fokus-håndtering er uændret. */}
         <Box
+          component="main"
           sx={mergeSx({ width: '1000px', paddingLeft: '50px', paddingTop: '50px' }, contentSx)}
         >
           {children}

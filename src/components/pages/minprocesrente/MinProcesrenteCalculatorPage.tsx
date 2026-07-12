@@ -8,7 +8,6 @@ import useRentekravRows from '../../tables/useRentekravRows';
 import { createRenteberegningInitialValues } from '../../../domain/renteberegning/renteberegningInitialValues';
 import type { RentePdfContext, RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
-import { downloadStandaloneRentePdf, downloadAllStandaloneRentePdf, downloadStandaloneRenteOversigtPdf } from '../../../pdf/infrastructure/standaloneRentePdfService';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import type { CommitHandler } from '../../../types/fieldEvents';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
@@ -28,6 +27,13 @@ const noopUndoRedoNavigate = (): void => {
   // Standalone MinProcesrente har kun én side og ingen router. Undo/redo-restore
   // gendanner committed state og fokus, men navigerer ikke (intet at navigere til).
 };
+
+// PDF-tjenesten trækker jsPDF + dokument-generatorerne ind (~110 KiB). Den er kun
+// nødvendig når brugeren downloader, så den lazy-loades her frem for at ligge i sidens
+// initiale bundle. Det er den eneste runtime-sti der bringer jsPDF ind i standalone-buildet,
+// så en dynamisk import fjerner den fra first load (Lighthouse: "Reducer ubrugt JavaScript").
+const loadStandaloneRentePdfService = () =>
+  import('../../../pdf/infrastructure/standaloneRentePdfService');
 
 const MinProcesrenteTitle = React.memo(() => (
   <Typography className="page-title" component="h1">
@@ -91,6 +97,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         return;
       }
 
+      const { downloadStandaloneRentePdf } = await loadStandaloneRentePdfService();
       const result = await downloadStandaloneRentePdf({
         beloeb: pdfContext.beloeb,
         actualInterestDate: actualInterestDateDanish,
@@ -119,6 +126,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
       }];
     });
 
+    const { downloadAllStandaloneRentePdf } = await loadStandaloneRentePdfService();
     const result = await downloadAllStandaloneRentePdf({
       rows,
       kommentarer: values.kommentarer,
@@ -131,6 +139,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     beregningsdato: ISODateString,
     latestReferenceRateDate: ISODateString | null,
   ) => {
+    const { downloadStandaloneRenteOversigtPdf } = await loadStandaloneRentePdfService();
     const result = await downloadStandaloneRenteOversigtPdf({
       beregningsdato,
       rows,
@@ -167,6 +176,12 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         '& .page-title-main': {
           color: 'var(--color-text-primary)',
         },
+        // BEVIDST DESIGNBESLUTNING (må ikke "rettes"): præfikset "min" og suffikset ".dk"
+        // holdes med lav kontrast for at trække fokus til selve ordet "Procesrente".
+        // Mønsteret går igen på tværs af familien af søskendesider (minEO.dk,
+        // minDomssamling.dk, minParadigmesamling.dk). Lighthouse/axe rapporterer derfor
+        // bevidst en kontrast-advarsel for `.page-title-prefix` — den er forventet og
+        // accepteret og skal IKKE afhjælpes ved at hæve kontrasten.
         '& .page-title-prefix': {
           color: 'rgba(0, 0, 0, 0.42)',
         },

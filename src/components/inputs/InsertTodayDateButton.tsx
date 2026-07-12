@@ -24,8 +24,15 @@ const InsertTodayDateButton = React.memo(
 
     return (
       <Tooltip title={tooltip} arrow>
+        {/* role="button" gør Boxen til en semantisk knap: MUI Tooltip lægger `aria-label`
+            (tooltip-teksten) på child-elementet, og aria-label er kun tilladt på elementer
+            med en passende rolle — en bar <div> (generisk rolle) udløser axe' "forbudte
+            ARIA-attributter". tabIndex=-1 bevares bevidst (samme mønster som RowDeleteButton):
+            knappen er en museklik-genvej ved siden af selve datofeltet og holdes uden for
+            tastaturnavigationen. */}
         <Box
           onClick={handleClick}
+          role="button"
           tabIndex={-1}
           sx={mergeSx({
             width: '32px',
