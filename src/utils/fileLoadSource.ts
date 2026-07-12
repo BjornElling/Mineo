@@ -1,0 +1,112 @@
+import { MAX_FILE_SIZE } from '../config/version';
+import { selectFile, readFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
+import {
+  ensureFileHandleReadPermission,
+  isFileSystemAccessSupported,
+  openFileWithPicker,
+  readFromFileHandle,
+} from './fileSystemAccess';
+import { formatAsAmount } from './formatUtils';
+import { logWarning } from './logger';
+
+/**
+ * Typet indlæsnings-port: hvor `.eo`-bytes kommer FRA.
+ *
+ * De tre historiske entrypoints (manuel File System Access-picker, manuel fallback-`<input>` og
+ * PWA-fil-handle) gentog hver den samme kæde: hent en `File` (+ provenance) → tjek `.eo`-endelse →
+ * tjek maksstørrelse → læs indhold. Porten kapsler kun det variable trin (hvor filen kommer fra og
+ * hvordan dens bytes læses); selve validerings- og afkodnings-kæden ejes ét sted af `loadFromSource`
+ * (fileLoad.ts), så samme rå bytes altid behandles ens uanset kilde.
+ */
+export type LoadSourceOutcome =
+  | {
+      status: 'selected';
+      /** Hvilken entrypoint der startede indlæsningen (til deterministisk UI-flow). */
+      source: 'manual' | 'pwa';
+      /** Den valgte fil (bruges til filnavn, endelse- og størrelses-validering). */
+      file: File;
+      /** File System Access handle, hvis kilden har et (til senere overskrivning/PWA-metadata). */
+      fileHandle?: FileSystemFileHandle;
+      /** PWA request-id, hvis kilden er PWA. */
+      requestId?: string;
+      /** Læser filens rå bytes med kildens egen reader (read-back-sti bevares pr. kilde). */
+      readContent: () => Promise<string>;
+    }
+  | { status: 'cancelled'; source: 'manual' | 'pwa' };
+
+export interface LoadSource {
+  open(): Promise<LoadSourceOutcome>;
+}
+
+/**
+ * Delt endelse- + størrelses-validering for en valgt fil. Tidligere verbatim-dupleret i alle tre
+ * indlæsnings-grene; nu ét sted, så en `.eo`-fil valideres ens uanset hvordan den blev valgt.
+ */
+export const assertLoadableEoFile = (file: File): void => {
+  if (!file.name.toLowerCase().endsWith('.eo')) {
+    throw new Error('Valgt fil er ikke en .eo fil');
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
+    const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
+    throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
+  }
+};
+
+/**
+ * Manuel indlæsning: File System Access-picker hvis understøttet, ellers fallback-`<input>`.
+ * Begge mapper brugerens annullering til `cancelled` (ingen fejl).
+ */
+export const createManualLoadSource = (resolvedDirectory?: ResolvedDirectory): LoadSource => ({
+  async open(): Promise<LoadSourceOutcome> {
+    if (isFileSystemAccessSupported()) {
+      const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
+      const result = await openFileWithPicker(startIn);
+      if (!result) {
+        return { status: 'cancelled', source: 'manual' };
+      }
+      return {
+        status: 'selected',
+        source: 'manual',
+        file: result.file,
+        fileHandle: result.handle,
+        readContent: () => readFromFileHandle(result.handle),
+      };
+    }
+
+    logWarning('File System Access API ikke tilgængelig - bruger fallback file picker');
+    const selected = await selectFile('.eo');
+    if (!selected) {
+      return { status: 'cancelled', source: 'manual' };
+    }
+    return {
+      status: 'selected',
+      source: 'manual',
+      file: selected,
+      readContent: () => readFile(selected),
+    };
+  },
+});
+
+/**
+ * PWA-indlæsning fra en (muligvis persisteret) fil-handle. Læse-tilladelse gen-anmodes fail-closed
+ * FØR filen åbnes, så en tilbagetrukket tilladelse giver en handlingsanvisende dansk besked frem for
+ * en rå `DOMException` (fejlen mappes i `loadFromFileHandle`).
+ */
+export const createPwaLoadSource = (
+  fileHandle: FileSystemFileHandle,
+  requestId?: string
+): LoadSource => ({
+  async open(): Promise<LoadSourceOutcome> {
+    await ensureFileHandleReadPermission(fileHandle);
+    const file = await fileHandle.getFile();
+    return {
+      status: 'selected',
+      source: 'pwa',
+      file,
+      fileHandle,
+      requestId,
+      readContent: () => readFromFileHandle(fileHandle),
+    };
+  },
+});

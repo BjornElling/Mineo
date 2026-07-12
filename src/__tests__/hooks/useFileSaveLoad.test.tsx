@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, render } from '@testing-library/react';
-import type { LoadFileResult, SaveFileResult } from '../../types/fileOperations';
+import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../../types/fileOperations';
 
 // ─── I/O-grænse-mocks ───────────────────────────────────────────────────────
 // useFileSaveLoad ejer orkestreringen (preflight-gating, atomisk apply, fokus-restore,
@@ -112,11 +112,21 @@ const renderHook = (
   return handles;
 };
 
-const successfulLoad = (extra: Partial<LoadFileResult> = {}): LoadFileResult => ({
-  success: true,
-  snapshot: {},
-  ...extra,
-});
+const successfulLoad = (extra: { preflightWarning?: LoadPreflightWarning } = {}): LoadFileResult => {
+  const base = {
+    source: 'manual' as const,
+    filename: 'sag.eo',
+    fieldCount: 1,
+    expectedFieldCount: 1,
+    sections: 1,
+    version: '1.0.0',
+    snapshot: {},
+  };
+  if (extra.preflightWarning) {
+    return { status: 'preflight', ...base, preflightWarning: extra.preflightWarning };
+  }
+  return { status: 'loaded', ...base };
+};
 
 describe('useFileSaveLoad', () => {
   beforeEach(() => {
@@ -146,7 +156,7 @@ describe('useFileSaveLoad', () => {
 
     it('markerer ikke gemt når brugeren annullerer file picker', async () => {
       const handles = renderHook();
-      saveToFileMock.mockResolvedValue({ success: false, cancelled: true });
+      saveToFileMock.mockResolvedValue({ status: 'cancelled' });
 
       await act(async () => {
         await handles.api?.handleGem();
@@ -157,7 +167,7 @@ describe('useFileSaveLoad', () => {
 
     it('markerer gemt med den committede revision ved succesfuldt gem', async () => {
       const handles = renderHook();
-      saveToFileMock.mockResolvedValue({ success: true, filename: 'sag.eo' });
+      saveToFileMock.mockResolvedValue({ status: 'saved', filename: 'sag.eo', fieldCount: 1, sections: 1, verified: false });
 
       await act(async () => {
         await handles.api?.handleGem();

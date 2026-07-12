@@ -82,7 +82,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({
-      success: true,
+      status: 'loaded',
       source: 'manual',
       filename: 'clean.eo',
       snapshot: { stamdata: stampStamdata('Y') },
@@ -116,7 +116,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({
-      success: true,
+      status: 'loaded',
       source: 'manual',
       filename: 'clean.eo',
       snapshot: { stamdata: stampStamdata('Y'), satser: stampSatser(2021) },
@@ -174,7 +174,7 @@ describe('MainLayout (overwrite gating)', () => {
     });
     loadFromFileHandleMock.mockReturnValueOnce(pwaLoad);
     const pwaLoadResult = {
-      success: true,
+      status: 'loaded',
       source: 'pwa',
       requestId: 'pwa-open-1',
       filename: 'clean.eo',
@@ -233,7 +233,7 @@ describe('MainLayout (overwrite gating)', () => {
     });
     loadFromFileHandleMock.mockReturnValueOnce(secondPwaLoad);
     const secondPwaLoadResult = {
-      success: true,
+      status: 'loaded',
       source: 'pwa',
       requestId: 'pwa-open-2',
       filename: 'clean.eo',

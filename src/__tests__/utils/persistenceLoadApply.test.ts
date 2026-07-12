@@ -34,7 +34,8 @@ describe('executePersistenceLoadApply', () => {
 
     await executePersistenceLoadApply({
       result: {
-        success: true,
+        status: 'loaded',
+        source: 'manual',
         filename: 'sag.eo',
         snapshot: {
           stamdata: {
@@ -73,7 +74,9 @@ describe('executePersistenceLoadApply', () => {
 
     await executePersistenceLoadApply({
       result: {
-        success: true,
+        status: 'loaded',
+        source: 'pwa',
+        filename: 'pwa.eo',
         requestId: 'req-1',
         fileHandle,
         snapshot: {},
@@ -91,10 +94,14 @@ describe('executePersistenceLoadApply', () => {
   it('fejler fail-closed hvis load-resultatet mangler snapshot', async () => {
     const replaceAllPersistedData = vi.fn();
 
+    // Typen kræver nu et snapshot på et anvendeligt load-resultat, men runtime-guarden er bevidst
+    // bevaret som forsvar i dybden: skulle et malformet resultat alligevel nå apply, skal det fail-close.
+    const malformedResult = { status: 'loaded', source: 'manual', filename: 'x.eo' } as unknown as Parameters<
+      typeof executePersistenceLoadApply
+    >[0]['result'];
+
     await expect(executePersistenceLoadApply({
-      result: {
-        success: true,
-      },
+      result: malformedResult,
       replaceAllPersistedData,
     })).rejects.toThrow('mangler snapshot');
 
@@ -114,7 +121,8 @@ describe('executePersistenceLoadApply', () => {
 
     await expect(executePersistenceLoadApply({
       result: {
-        success: true,
+        status: 'loaded',
+        source: 'pwa',
         filename: 'sag.eo',
         requestId: 'req-x',
         fileHandle,
@@ -138,7 +146,9 @@ describe('executePersistenceLoadApply', () => {
 
     const result = await executePersistenceLoadApply({
       result: {
-        success: true,
+        status: 'loaded',
+        source: 'manual',
+        filename: 'sag.eo',
         snapshot: {},
       },
       replaceAllPersistedData,
@@ -163,7 +173,9 @@ describe('executePersistenceLoadApply', () => {
 
     await executePersistenceLoadApply({
       result: {
-        success: true,
+        status: 'loaded',
+        source: 'manual',
+        filename: 'sag.eo',
         snapshot: {},
       },
       replaceAllPersistedData: vi.fn(() => {

@@ -47,7 +47,7 @@ describe('MainLayout (PWA concurrency)', () => {
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
 
     loadFromFileHandleMock.mockResolvedValue({
-      success: true,
+      status: 'preflight',
       source: 'pwa',
       requestId: 'pwa-open-1',
       filename: 'A.eo',
@@ -113,7 +113,7 @@ describe('MainLayout (PWA concurrency)', () => {
 
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
     loadFromFileHandleMock.mockResolvedValue({
-      success: true,
+      status: 'loaded',
       source: 'pwa',
       requestId: 'pwa-open-late',
       filename: 'late.eo',
@@ -160,7 +160,7 @@ describe('MainLayout (PWA concurrency)', () => {
       loadFromFileHandleMock
         .mockRejectedValueOnce(new Error('Midlertidig fejl'))
         .mockResolvedValueOnce({
-          success: true,
+          status: 'loaded',
           source: 'pwa',
           requestId: 'pwa-open-retry',
           filename: 'retry.eo',

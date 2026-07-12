@@ -141,8 +141,8 @@ describe('save→load fuld-tilstands-round-trip', () => {
     readFileMock.mockResolvedValueOnce(content);
 
     const result = await loadFromFile();
-    expect(result.success).toBe(true);
-    if (!result.success) return;
+    expect(result.status).not.toBe('cancelled');
+    if (result.status === 'cancelled') return;
 
     // 4. Pr. sektion: loadet snapshot skal deep-equal den kanoniske save.
     // (Sektioner uden indhold udelades af canonical; de skal også være fraværende/undefined efter load.)
@@ -175,8 +175,8 @@ describe('save→load fuld-tilstands-round-trip', () => {
     readFileMock.mockResolvedValueOnce(content);
 
     const result = await loadFromFile();
-    expect(result.success).toBe(true);
-    if (!result.success) return;
+    expect(result.status).not.toBe('cancelled');
+    if (result.status === 'cancelled') return;
 
     const eoLoaded = (result.snapshot as Record<string, unknown>).erstatningsopgoerelse as
       | { oevrigeKravPerioder?: ReadonlyArray<{ beloeb?: unknown }> }

@@ -48,6 +48,18 @@ App-settings er ikke omfattet; se `app-settings.md`.
 + `encodeEoFile` outbound (save), `decodeEoFile` inbound (load, delt af manuel picker og PWA-handle).
 Samme rå bytes afkodes altid ens uanset kilde.
 
+**I/O-porte og diskriminerede resultater.** Hvor bytes læses fra og skrives til er typede porte, adskilt
+fra kodning/verifikation/UI-flow:
+
+- Load: en `LoadSource` (`fileLoadSource.ts`) leverer en `File` + provenance (`manual` picker/fallback
+  eller `pwa`-handle); `loadFromSource` ejer den delte kæde valider→læs→afkod→processér.
+- Save: `resolveSaveTarget` (`fileSaveTarget.ts`) resolver et diskrimineret `SaveTarget`
+  (`fileHandle` read-back-sink | `download` in-memory-sink | `cancelled`); `saveToFile` ejer
+  write+verifikation og forgrener kun på `target.kind`.
+- Resultattyperne er diskriminerede på `status`, ikke `success: boolean`: `SaveFileResult`
+  (`saved | cancelled`) og `LoadFileResult` (`loaded | preflight | cancelled`). Egentlige fejl kastes
+  som exceptions; et snapshot findes præcis når `status` er `loaded`/`preflight`.
+
 ---
 
 ## 4. Load-garantier

@@ -21,65 +21,93 @@ export type LoadIssue = Readonly<{
 }>;
 
 /**
- * Resultat fra saveToFile() operation
+ * Preflight-advarsel når filen ikke kan indlæses 1:1.
+ *
+ * Bruges til at give brugeren et aktivt valg før data anvendes:
+ * - Indlæs trods fejl
+ * - Send fejloplysninger
+ * - Stop og gør intet
  */
-export interface SaveFileResult {
-  /** Om operationen blev gennemført succesfuldt */
-  success: boolean;
-  /** Om brugeren annullerede file picker dialog */
-  cancelled?: boolean;
-  /** Filnavn der blev gemt til */
-  filename?: string;
-  /** Antal felter der blev gemt */
-  fieldCount?: number;
-  /** Antal data-sektioner */
-  sections?: number;
-  /** Om filen blev verificeret korrekt */
-  verified?: boolean;
-  /** Advarsel fra verifikation (hvis nogen) */
-  warning?: string;
-}
+export type LoadPreflightWarning = Readonly<{
+  expectedCount?: number;
+  loadedCount: number;
+  failedCount?: number;
+  issues: LoadIssue[];
+}>;
 
 /**
- * Resultat fra loadFromFile() operation
+ * Resultat fra `saveToFile()`.
+ *
+ * Diskrimineret på `status`: et gem ender enten som `saved` (ét verificeret artefakt nåede en sink)
+ * eller `cancelled` (brugeren lukkede file-pickeren). Alle egentlige fejl kastes som exceptions og
+ * indgår derfor ikke i unionen — der findes ingen "success:false uden grund"-tilstand.
  */
-export interface LoadFileResult {
-  /** Om operationen blev gennemført succesfuldt */
-  success: boolean;
-  /** Om brugeren annullerede file picker dialog */
-  cancelled?: boolean;
+export type SaveFileResult =
+  | {
+      status: 'saved';
+      /** Filnavn der blev gemt til. */
+      filename: string;
+      /** Advarsel fra verifikation eller handle-fallback (hvis nogen). */
+      warning?: string;
+      // Informative metadata (ikke aflæst af gem-orkestreringen; bæres til logning/debug).
+      /** Antal felter der blev gemt (til preflight-rapportering ved hent). */
+      fieldCount?: number;
+      /** Antal data-sektioner. */
+      sections?: number;
+      /** Om filen blev verificeret via read-back (kun File System Access-sinken). */
+      verified?: boolean;
+    }
+  | { status: 'cancelled' };
+
+/**
+ * Fælles data for et gennemført load (uanset om det udløste en preflight-advarsel).
+ * Selve anvendelsen sker atomisk via persistence-laget; dette er kun det validerede snapshot + metadata.
+ */
+type LoadedFileData = {
   /** Hvilken entrypoint der startede indlæsningen (til deterministisk UI-flow). */
-  source?: 'manual' | 'pwa';
+  source: 'manual' | 'pwa';
+  /** Filnavn der blev indlæst fra. */
+  filename: string;
+  /** Schema-valideret snapshot af indlæst data pr. side (anvendes atomisk via persistence-laget). */
+  snapshot: Partial<Record<StorageKey, unknown>>;
   /** PWA request-id (hvis kilden er PWA). */
   requestId?: string;
-  /** Filnavn der blev indlæst fra */
-  filename?: string;
-  /** File System Access handle (hvis tilgængeligt) */
+  /** File System Access handle (hvis tilgængeligt). */
   fileHandle?: FileSystemFileHandle;
-  /** Antal felter der blev indlæst */
+  // Informative metadata (ikke aflæst af apply-/UI-laget; bæres til logning/debug og fremtidig brug).
+  /** Antal felter der faktisk blev indlæst i denne version. */
   fieldCount?: number;
-  /** Forventet antal felter (fra fil-metadata) */
+  /** Forventet antal felter (fra fil-metadata). */
   expectedFieldCount?: number;
-  /** Antal data-sektioner */
+  /** Antal data-sektioner til stede i filen. */
   sections?: number;
-  /** Fil-version */
+  /** Fil-version. */
   version?: string;
-  /**
-   * Preflight advarsel hvis filen ikke kan indlæses 1:1.
-   *
-   * Bruges til at give brugeren et aktivt valg før data anvendes:
-   * - Indlæs trods fejl
-   * - Send fejloplysninger
-   * - Stop og gør intet
-   */
-  preflightWarning?: {
-    expectedCount?: number;
-    loadedCount: number;
-    failedCount?: number;
-    issues: LoadIssue[];
-  };
-  /**
-   * Schema-valideret snapshot af indlæst data pr. side (anvendes atomisk via persistence-laget).
-   */
-  snapshot?: Partial<Record<StorageKey, unknown>>;
-}
+};
+
+/** Load der kan indlæses 1:1 uden datatab. */
+export type LoadedFileResult = { status: 'loaded' } & LoadedFileData;
+
+/** Load der er brugbart, men hvor noget brugerdata ikke kunne indlæses → brugeren skal tage stilling. */
+export type PreflightFileResult = {
+  status: 'preflight';
+  preflightWarning: LoadPreflightWarning;
+} & LoadedFileData;
+
+/**
+ * De load-resultater der bærer et snapshot og derfor kan anvendes (efter evt. preflight-/overwrite-bekræftelse).
+ * `cancelled` er bevidst ekskluderet — det har intet snapshot og kan aldrig anvendes.
+ */
+export type ApplicableLoadFileResult = LoadedFileResult | PreflightFileResult;
+
+/**
+ * Resultat fra `loadFromFile()` / `loadFromFileHandle()`.
+ *
+ * Diskrimineret på `status`: `loaded` (klar til atomisk apply), `preflight` (brugbart, men kræver et
+ * brugervalg pga. datatab) eller `cancelled` (bruger lukkede pickeren). Egentlige fejl kastes som
+ * exceptions og indgår ikke i unionen.
+ */
+export type LoadFileResult =
+  | LoadedFileResult
+  | PreflightFileResult
+  | { status: 'cancelled'; source: 'manual' | 'pwa' };

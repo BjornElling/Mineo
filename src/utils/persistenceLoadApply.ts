@@ -1,7 +1,7 @@
 import { PERSISTED_SECTION_KEYS, type PersistedSectionsSnapshot } from '../config/persistenceRegistry';
 import { type StorageKey } from '../config/storageManifest';
 import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
-import type { LoadFileResult } from '../types/fileOperations';
+import type { ApplicableLoadFileResult } from '../types/fileOperations';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import { persistLoadedFilenameMetadata } from './filePersistenceMetadata';
 import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
@@ -34,7 +34,7 @@ export type PersistenceLoadApplyResult =
   | { status: 'applied-with-metadata-error'; message: string };
 
 export const executePersistenceLoadApply = async (args: {
-  result: LoadFileResult;
+  result: ApplicableLoadFileResult;
   replaceAllPersistedData: ReplaceAllPersistedData;
 }): Promise<PersistenceLoadApplyResult> => {
   const { result, replaceAllPersistedData } = args;

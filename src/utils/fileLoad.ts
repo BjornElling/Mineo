@@ -1,27 +1,25 @@
 import { countFilledFields, countMeaningfulFields } from './dataCollection';
-import { selectFile, readFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
+import { type ResolvedDirectory } from './fileHelpers';
 import {
   logWarning,
   logError,
 } from './logger';
-import { MAX_FILE_SIZE } from '../config/version';
 import { LEGACY_PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import { persistenceSchemas } from '../config/persistenceRegistry';
-import {
-  ensureFileHandleReadPermission,
-  FileHandleAccessError,
-  isFileSystemAccessSupported,
-  openFileWithPicker,
-  readFromFileHandle,
-} from './fileSystemAccess';
+import { FileHandleAccessError } from './fileSystemAccess';
 import type { LoadFileResult, LoadIssue } from '../types/fileOperations';
 import { type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { decodeEoFile } from './eoFileCodec';
 import { CalculationError } from './errorMessages';
 import { type UnknownPath } from './persistenceLoadSanitization';
-import { formatAsAmount } from './formatUtils';
 import { parseInboundPersistedSection } from './inboundPersistedSection';
+import {
+  assertLoadableEoFile,
+  createManualLoadSource,
+  createPwaLoadSource,
+  type LoadSource,
+} from './fileLoadSource';
 
 import { isRecord } from './typeGuards';
 
@@ -169,8 +167,7 @@ const processDecryptedContainer = (args: {
   const notLoadedFromFileCount = Math.min(fileFieldCount, lostFromFileCount);
   const loadedFromFileCount = Math.max(0, fileFieldCount - notLoadedFromFileCount);
 
-  return {
-    success: true,
+  const loadedData = {
     source,
     requestId,
     filename,
@@ -180,15 +177,45 @@ const processDecryptedContainer = (args: {
     sections: sectionsPresent.length,
     version: fileVersion,
     snapshot,
-    preflightWarning: dataLossIssues.length > 0
-      ? {
+  } as const;
+
+  if (dataLossIssues.length > 0) {
+    return {
+      status: 'preflight',
+      ...loadedData,
+      preflightWarning: {
         expectedCount: fileFieldCount,
         loadedCount: loadedFromFileCount,
         failedCount: notLoadedFromFileCount,
         issues: dataLossIssues,
-      }
-      : undefined,
-  };
+      },
+    };
+  }
+
+  return { status: 'loaded', ...loadedData };
+};
+
+/**
+ * Kanonisk indlæsnings-flow bag en typet {@link LoadSource}. Ejer den delte, kilde-uafhængige kæde:
+ * åbn kilde → (annulleret? stop) → valider `.eo`-fil → læs bytes → afkod container → processér.
+ * Fejl kastes videre til entrypointets kilde-specifikke mapping (manuel vs. PWA).
+ */
+const loadFromSource = async (source: LoadSource): Promise<LoadFileResult> => {
+  const outcome = await source.open();
+  if (outcome.status === 'cancelled') {
+    return { status: 'cancelled', source: outcome.source };
+  }
+
+  assertLoadableEoFile(outcome.file);
+  const fileContent = await outcome.readContent();
+  const fileContainer = await decodeEoFile(fileContent);
+  return processDecryptedContainer({
+    fileContainer,
+    filename: outcome.file.name,
+    source: outcome.source,
+    fileHandle: outcome.fileHandle,
+    requestId: outcome.requestId,
+  });
 };
 
 export const loadFromFile = async (
@@ -196,65 +223,7 @@ export const loadFromFile = async (
 ): Promise<LoadFileResult> => {
 
   try {
-    let file: File;
-    let fileHandle: FileSystemFileHandle | null = null;
-    let fileContent: string;
-
-    const useFileSystemAPI = isFileSystemAccessSupported();
-
-    if (useFileSystemAPI) {
-
-      // Bestem startIn baseret på resolved directory
-      const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
-
-      const result = await openFileWithPicker(startIn);
-      if (!result) {
-        return { success: false, cancelled: true, source: 'manual' };
-      }
-
-      file = result.file;
-      fileHandle = result.handle;
-
-      if (!file.name.toLowerCase().endsWith('.eo')) {
-        throw new Error('Valgt fil er ikke en .eo fil');
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
-        const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
-        throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
-      }
-      fileContent = await readFromFileHandle(fileHandle);
-    } else {
-      logWarning('File System Access API ikke tilgængelig - bruger fallback file picker');
-
-      const selected = await selectFile('.eo');
-      if (!selected) {
-        return { success: false, cancelled: true, source: 'manual' };
-      }
-
-      file = selected;
-
-      if (!file.name.toLowerCase().endsWith('.eo')) {
-        throw new Error('Valgt fil er ikke en .eo fil');
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
-        const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
-        throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
-      }
-      fileContent = await readFile(file);
-    }
-
-    const fileContainer = await decodeEoFile(fileContent);
-    const result = processDecryptedContainer({
-      fileContainer,
-      filename: file.name,
-      source: 'manual',
-      fileHandle: fileHandle ?? undefined,
-    });
-    return result;
+    return await loadFromSource(createManualLoadSource(resolvedDirectory));
   } catch (error: unknown) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
       throw error;
@@ -274,32 +243,7 @@ export const loadFromFileHandle = async (
 ): Promise<LoadFileResult> => {
 
   try {
-    // Tjek/gen-anmod om læse-tilladelse, før vi læser fra en (muligvis gammel, persisteret) handle.
-    // Ellers ville en revoked PWA-handle kaste en rå NotAllowedError → kryptisk teknisk fejl til brugeren.
-    await ensureFileHandleReadPermission(fileHandle);
-
-    const file = await fileHandle.getFile();
-
-    if (!file.name.toLowerCase().endsWith('.eo')) {
-      throw new Error('Valgt fil er ikke en .eo fil');
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
-      const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
-      throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
-    }
-    const fileContent = await readFromFileHandle(fileHandle);
-
-    const fileContainer = await decodeEoFile(fileContent);
-    const result = processDecryptedContainer({
-      fileContainer,
-      filename: file.name,
-      source: 'pwa',
-      requestId: options?.requestId,
-      fileHandle,
-    });
-    return result;
+    return await loadFromSource(createPwaLoadSource(fileHandle, options?.requestId));
   } catch (error: unknown) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
       throw error;

@@ -1,26 +1,14 @@
 import { hasRealData, countFilledFields } from './dataCollection';
 import { buildEoFileContainer, encodeEoFile } from './eoFileCodec';
-import { generateFilename, downloadFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
+import { downloadFile, type ResolvedDirectory } from './fileHelpers';
 import {
   logError,
   logWarning,
 } from './logger';
-import {
-  isFileSystemAccessSupported,
-  isFileSystemFileHandle,
-  saveFileWithPicker,
-  writeToFileHandle,
-} from './fileSystemAccess';
-import {
-  requestPersistentStorage,
-  saveFileHandleToIndexedDB,
-  loadFileHandleFromIndexedDB,
-  verifyFileHandleDetailed,
-  deleteFileHandleFromIndexedDB,
-} from './fileHandleStorage';
+import { writeToFileHandle } from './fileSystemAccess';
+import { saveFileHandleToIndexedDB } from './fileHandleStorage';
 import type { SaveFileResult } from '../types/fileOperations';
 import { eoFileDataSchema, type EoFileContainer } from '../schemas/eoFileSchema';
-import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import type {
   CanonicalEoData,
   SaveSnapshot,
@@ -33,14 +21,8 @@ import {
 } from './fileSaveInternals';
 import { asError } from './typeGuards';
 import { applyRegisteredTableSaveOrder } from './tableSaveOrderRegistry';
-import {
-  buildFilenameBasisFromStamdata,
-  loadStoredFilenameBasis,
-  persistSavedFilenameMetadata,
-} from './filePersistenceMetadata';
-import {
-  readOptionalSessionStorageValue,
-} from './safeSessionStorage';
+import { persistSavedFilenameMetadata } from './filePersistenceMetadata';
+import { resolveSaveTarget } from './fileSaveTarget';
 
 export class SaveIntegrityError extends Error {
   readonly kind = 'integrity' as const;
@@ -109,66 +91,19 @@ const throwIfVerificationFailed = (
   throw kind === 'integrity' ? new SaveIntegrityError(errorMsg) : new SaveUnusableFileError(errorMsg);
 };
 
-const hasFilenameBasisChanged = (
-  previousBasis: unknown,
-  nextStamdata: unknown
-): boolean => {
-  if (!previousBasis || typeof previousBasis !== 'object') return false;
-  const nextBasis = buildFilenameBasisFromStamdata(nextStamdata);
-  return (
-    (previousBasis as Record<string, unknown>).skadelidte !== nextBasis.skadelidte ||
-    (previousBasis as Record<string, unknown>).skadestype !== nextBasis.skadestype ||
-    (previousBasis as Record<string, unknown>).skadedato !== nextBasis.skadedato
-  );
-};
-
-
-const buildInvalidHandleUserWarning = (
-  verification: Awaited<ReturnType<typeof verifyFileHandleDetailed>>
-): string => {
-  if (verification.valid) return '';
-
-  switch (verification.reason) {
-    case 'not_found':
-      return 'Den tidligere valgte fil blev ikke fundet og kunne derfor ikke overskrives automatisk. Vælg filplacering igen.';
-    case 'permission_denied':
-      return 'Mineo har ikke længere adgang til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
-    case 'missing_permission_api':
-    case 'permission_api_failed':
-      return 'Mineo kunne ikke bekræfte adgangen til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
-    case 'file_access_failed':
-    case 'validation_failed':
-      return 'Den tidligere valgte fil kunne ikke bruges til automatisk overskrivning. Vælg filplacering igen.';
-    case 'missing_handle':
-      return 'Der var ikke længere en gemt filreference til automatisk overskrivning. Vælg filplacering igen.';
-    default:
-      return 'Den tidligere valgte fil kunne ikke overskrives automatisk. Vælg filplacering igen.';
-  }
-};
-
-const isUserDismissedPermissionPrompt = (
-  verification: Awaited<ReturnType<typeof verifyFileHandleDetailed>>
-): boolean =>
-  !verification.valid &&
-  verification.reason === 'permission_denied' &&
-  verification.detail === 'permission=prompt';
-
 /**
  * Gemmer alle applikationsdata til krypteret .eo fil.
  *
  * Proces:
- * 1. Indsaml data fra sessionStorage
- * 2. Valider at der er data at gemme
- * 3. Tæl antal felter (til validering ved hent)
- * 4. Opbyg fil-struktur med metadata
- * 5. Krypter data
- * 6. Generer filnavn
- * 7. Download fil
- * 8. Gem filsti til sessionStorage (til hurtig overskrivning)
+ * 1. Indsaml + schema-valider data (kun brugerinput persisteres)
+ * 2. Opbyg container-metadata og kod ét artefakt (`EoFileCodec`)
+ * 3. Resolver et typet gem-mål (`resolveSaveTarget`: handle / download / annulleret)
+ * 4. Skriv til målet og verificér ét artefakt (read-back for File System Access, in-memory før download)
+ * 5. Persistér filnavn/handle til sessionStorage/IndexedDB (til hurtig overskrivning næste gang)
  *
  * @param resolvedDirectory - Optional resolved directory fra resolveDefaultDirectoryHandle
- * @returns {Promise<SaveFileResult>} Success-objekt med filnavn og statistik
- * @throws {Error} Hvis gemning fejler
+ * @returns {Promise<SaveFileResult>} `saved` (med filnavn/statistik) eller `cancelled`
+ * @throws {Error} Hvis gemning fejler (validering, integritet eller ubrugelig fil)
  */
 export const saveToFile = async (
   snapshot: SaveSnapshot,
@@ -207,98 +142,27 @@ export const saveToFile = async (
     // 5. Krypter data
     const encrypted = await encodeEoFile(fileData);
 
-    // 6. Gem fil (File System Access API eller fallback)
+    // 6. Resolver det typede gem-mål (genbrug handle / picker / fallback-download / annulleret).
+    const target = await resolveSaveTarget(fileData, resolvedDirectory);
+    if (target.kind === 'cancelled') {
+      return { status: 'cancelled' };
+    }
+
+    // 7. Skriv til målet og verificér ét artefakt før/efter sinken alt efter dens read-back-evne.
     let filename: string;
-    let verification: VerificationResult = { success: true, verified: false }; // Gem verifikationsresultat til returværdi
+    let verification: VerificationResult;
     let fallbackWarning: string | undefined;
-    const useFileSystemAPI = isFileSystemAccessSupported();
 
-    if (useFileSystemAPI) {
-
-      // Anmod om persistent storage (kun første gang)
-      await requestPersistentStorage();
-
-      // Forsøg at hente tidligere gemt file handle fra IndexedDB
-      const loadedHandle: unknown = await loadFileHandleFromIndexedDB();
-      let fileHandle: FileSystemFileHandle | null = isFileSystemFileHandle(loadedHandle) ? loadedHandle : null;
-      const savedFilePath = readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
-      const savedFilenameBasis = loadStoredFilenameBasis();
-      const currentStamdata = fileData.data.stamdata || {};
-      const stamdataChanged = hasFilenameBasisChanged(savedFilenameBasis, currentStamdata);
-      let shouldUseExistingHandle = false;
-      let shouldPersistPickedHandleAfterSuccess = false;
-
-      if (fileHandle && savedFilePath) {
-        // Vi har et gemt handle - valider det
-
-        // Sammenlign kun de felter der påvirker filnavnet
-        if (!stamdataChanged) {
-          // Stamdata uændret (eller ikke gemt tidligere) - brug gemt handle
-
-          // Valider at handle stadig virker
-          const handleVerification = await verifyFileHandleDetailed(fileHandle, {
-            allowRequestPermission: true,
-          });
-
-          if (handleVerification.valid) {
-            // Handle er gyldigt - brug det direkte (browseren håndterer overskrivning)
-            shouldUseExistingHandle = true;
-          } else if (isUserDismissedPermissionPrompt(handleVerification)) {
-            return { success: false, cancelled: true };
-          } else {
-            // Handle er ugyldigt - slet fra IndexedDB og åbn file picker
-            fallbackWarning = buildInvalidHandleUserWarning(handleVerification);
-            logWarning('Tidligere file handle kunne ikke genbruges - sletter fra IndexedDB', {
-              context: 'saveToFile.invalidStoredHandle',
-              data: {
-                reason: handleVerification.reason,
-                detail: handleVerification.detail,
-              },
-            });
-            await deleteFileHandleFromIndexedDB();
-            fileHandle = null;
-          }
-        } else {
-          // Stamdata ændret - åbn file picker med nyt foreslået filnavn
-          fileHandle = null;
-        }
-      }
-
-      // Hvis vi ikke skal bruge eksisterende handle, åbn file picker
-      if (!shouldUseExistingHandle) {
-        const currentFilename = generateFilename(fileData.data);
-        const suggestedFilename =
-          savedFilePath && !stamdataChanged
-            ? savedFilePath
-            : `${currentFilename}.eo`;
-
-        // Bestem startIn baseret på resolved directory
-        const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
-        const pickedHandle: unknown = await saveFileWithPicker(suggestedFilename, startIn);
-        fileHandle = isFileSystemFileHandle(pickedHandle) ? pickedHandle : null;
-
-        if (!fileHandle) {
-          // Bruger annullerede - returner stille uden fejl
-          return { success: false, cancelled: true };
-        }
-
-        // Persist først efter succesfuld write+verify, så et halvt save-flow ikke
-        // efterlader et nyt "autorativt" overskrivnings-target i IndexedDB.
-        shouldPersistPickedHandleAfterSuccess = true;
-      }
-
-      if (!fileHandle) {
-        throw new Error('Kunne ikke gemme: Ingen fil valgt');
-      }
+    if (target.kind === 'fileHandle') {
+      fallbackWarning = target.fallbackWarning;
 
       // Skriv til fil
-      await writeToFileHandle(fileHandle, encrypted);
-
-      filename = fileHandle.name;
+      await writeToFileHandle(target.fileHandle, encrypted);
+      filename = target.fileHandle.name;
 
       // VERIFICER at filen er gemt korrekt. File System Access-sinken understøtter read-back:
       // vi læser den netop skrevne fil tilbage og verificerer de faktiske bytes på disk.
-      verification = await verifyAfterSave(fileHandle, canonicalData, true);
+      verification = await verifyAfterSave(target.fileHandle, canonicalData, true);
 
       if (!verification.success) {
         // KRITISK fejl - filen kunne ikke læses tilbage!
@@ -317,8 +181,8 @@ export const saveToFile = async (
         // Advarslen returneres til UI senere
       }
 
-      if (shouldPersistPickedHandleAfterSuccess) {
-        const persisted = await saveFileHandleToIndexedDB(fileHandle);
+      if (target.persistHandleAfterSuccess) {
+        const persisted = await saveFileHandleToIndexedDB(target.fileHandle);
         if (!persisted) {
           logWarning('Gemt fil, men kunne ikke persistere file handle til senere overskrivning', {
             context: 'saveToFile.persistFileHandleAfterSuccess',
@@ -330,22 +194,7 @@ export const saveToFile = async (
       persistSavedFilenameMetadata(filename, fileData.data.stamdata);
 
     } else {
-      // Fallback til klassisk download (Firefox, osv.)
-      logWarning('File System Access API ikke tilgængelig - bruger fallback download');
-
-      // Generer filnavn baseret på stamdata eller brug gemt navn
-      const lastSavedPath = readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
-      const currentFilename = generateFilename(fileData.data);
-      const savedStamdata = loadStoredFilenameBasis();
-      const currentStamdata = fileData.data.stamdata || {};
-      const stamdataChanged = hasFilenameBasisChanged(savedStamdata, currentStamdata);
-
-      // Brug sidste gemte filnavn hvis stamdata er uændret, ellers brug nyt baseret på stamdata
-      if (lastSavedPath && !stamdataChanged) {
-        filename = lastSavedPath;
-      } else {
-        filename = `${currentFilename}.eo`;
-      }
+      filename = target.filename;
 
       // VERIFICER indholdet FØR download. Fallback-sinken (browser-download) understøtter ikke
       // read-back, så det ene artefakt verificeres i hukommelsen, mens vi stadig kan afbryde:
@@ -376,7 +225,7 @@ export const saveToFile = async (
 
     // Returner success-info (inkl. verifikation hvis der var advarsler)
     const result: SaveFileResult = {
-      success: true,
+      status: 'saved',
       filename,
       fieldCount,
       sections: Object.keys(canonicalData).length,

@@ -360,7 +360,7 @@ describe('fileSave', () => {
 
       const result = await saveToFile(snapshot);
 
-      expect(result.success).toBe(true);
+      expect(result.status).toBe('saved');
       expect(mockedEncryptToString).toHaveBeenCalledWith(expect.objectContaining({
         version: FILE_FORMAT_VERSION,
         _metadata: expect.objectContaining({
@@ -388,7 +388,8 @@ describe('fileSave', () => {
 
       const result = await saveToFile(snapshot);
 
-      expect(result.success).toBe(true);
+      expect(result.status).toBe('saved');
+      if (result.status !== 'saved') return;
       expect(result.warning).toContain('Den tidligere valgte fil blev ikke fundet');
       expect(mockedSaveFileHandleToIndexedDB).toHaveBeenCalledWith(pickedHandle);
       expect(mockedWriteToFileHandle.mock.invocationCallOrder[0]).toBeLessThan(
@@ -412,7 +413,7 @@ describe('fileSave', () => {
 
       const result = await saveToFile(snapshot);
 
-      expect(result.success).toBe(true);
+      expect(result.status).toBe('saved');
       expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
       expect(mockedWriteToFileHandle).toHaveBeenCalledTimes(1);
       expect(mockedWriteToFileHandle.mock.calls[0]?.[0]).toBe(loadedHandle);
@@ -433,7 +434,7 @@ describe('fileSave', () => {
 
       const result = await saveToFile(snapshot);
 
-      expect(result).toEqual({ success: false, cancelled: true });
+      expect(result).toEqual({ status: 'cancelled' });
       expect(mockedLogWarning).not.toHaveBeenCalled();
       expect(mockedDeleteFileHandleFromIndexedDB).not.toHaveBeenCalled();
       expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
@@ -469,7 +470,7 @@ describe('fileSave', () => {
 
       const result = await saveToFile(snapshot);
 
-      expect(result.cancelled).toBe(true);
+      expect(result.status).toBe('cancelled');
       expect(sessionStorage.getItem('mineo_ui_lastSavedFilenameBasis')).toBeNull();
     });
 
@@ -482,7 +483,7 @@ describe('fileSave', () => {
 
       const result = await saveToFile(snapshot);
 
-      expect(result.success).toBe(true);
+      expect(result.status).toBe('saved');
       expect(mockedDownloadFile).toHaveBeenCalledWith('encrypted', expect.any(String), expect.any(String));
       // Verifikationen (som dekrypterer artefaktet) skal ske FØR download-sinken kaldes.
       expect(mockedDecryptFromString.mock.invocationCallOrder[0]).toBeLessThan(

@@ -229,7 +229,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
     const saveToFileMock = vi.mocked(saveToFile);
     saveToFileMock.mockResolvedValue({
-      success: true,
+      status: 'saved',
       filename: 'test.eo',
     } satisfies SaveFileResult);
 
@@ -460,7 +460,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
   it('allows save when field error is UI-only and committed data already exists', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
     saveToFileMock.mockResolvedValue({
-      success: true,
+      status: 'saved',
       filename: 'range-ok.eo',
     } satisfies SaveFileResult);
 
@@ -512,7 +512,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
   it('shows verification warning after successful save with warning details', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
     saveToFileMock.mockResolvedValue({
-      success: true,
+      status: 'saved',
       filename: 'warning.eo',
       warning: 'ADVARSEL: Manglende sektioner: stamdata',
     } satisfies SaveFileResult);
@@ -588,7 +588,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
     const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
 
     loadFromFileMock.mockResolvedValue({
-      success: true,
+      status: 'loaded',
       source: 'manual',
       filename: 'indlaest.eo',
       fileHandle: loadedHandle,
@@ -707,7 +707,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
     });
 
     await act(async () => {
-      resolveSave?.({ success: true, filename: 'test.eo' });
+      resolveSave?.({ status: 'saved', filename: 'test.eo' });
       await pendingSave;
     });
 

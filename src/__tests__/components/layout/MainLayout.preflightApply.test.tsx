@@ -32,7 +32,7 @@ describe('MainLayout (preflight apply)', () => {
   it('applies only schema-valid sections on "Indlæs trods fejl" and clears runtime field errors', async () => {
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({
-      success: true,
+      status: 'preflight',
       source: 'manual',
       filename: 'broken.eo',
       snapshot: { stamdata: stampStamdata('Y') },

@@ -8,7 +8,13 @@ import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
 import { restoreFocusIfPossible } from '../utils/focusUtils';
 import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
-import type { LoadFileResult, SaveFileResult } from '../types/fileOperations';
+import type {
+  ApplicableLoadFileResult,
+  LoadFileResult,
+  LoadPreflightWarning,
+  PreflightFileResult,
+  SaveFileResult,
+} from '../types/fileOperations';
 import { type PwaFileOpenRequest } from '../utils/pwaLaunchQueue';
 import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { asError } from '../utils/typeGuards';
@@ -34,13 +40,13 @@ export type OverlayData = {
 };
 
 export type PendingOverwriteApply = {
-  result: LoadFileResult;
+  result: ApplicableLoadFileResult;
   overlay: OverlayData;
   navigateToStamdataAfterApply: boolean;
 };
 
 export type PendingLoadApply = {
-  result: LoadFileResult;
+  result: PreflightFileResult;
   navigateToStamdataAfterApply: boolean;
 };
 
@@ -52,8 +58,8 @@ export type PendingLoadApply = {
  */
 type LoadFlowState =
   | { phase: 'idle' }
-  | { phase: 'preflight'; result: LoadFileResult; navigateToStamdataAfterApply: boolean }
-  | { phase: 'overwrite'; result: LoadFileResult; overlay: OverlayData; navigateToStamdataAfterApply: boolean };
+  | { phase: 'preflight'; result: PreflightFileResult; navigateToStamdataAfterApply: boolean }
+  | { phase: 'overwrite'; result: ApplicableLoadFileResult; overlay: OverlayData; navigateToStamdataAfterApply: boolean };
 
 export type PwaLoadOutcome = 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
 
@@ -77,7 +83,7 @@ type UseFileSaveLoadResult = {
   pendingOverwriteApply: PendingOverwriteApply | null;
   /** Afviser den aktive load-dialog (preflight eller overwrite) og fører flowet tilbage til idle. */
   dismissPendingLoad: () => void;
-  pendingPreflight: LoadFileResult['preflightWarning'] | undefined;
+  pendingPreflight: LoadPreflightWarning | undefined;
   pendingPreflightBugReportError: Error | null;
   handleGem: () => Promise<void>;
   handleHent: () => Promise<void>;
@@ -114,11 +120,8 @@ const resolveLoadError = (error: unknown): { message: string; expected: boolean 
   return { message: 'Kunne ikke hente fil', expected: false };
 };
 
-const buildPreflightBugReportError = (result: LoadFileResult): Error => {
+const buildPreflightBugReportError = (result: PreflightFileResult): Error => {
   const warning = result.preflightWarning;
-  if (!warning) {
-    return new Error('Hent fil: Ingen preflight advarsel (uventet).');
-  }
 
   const issues = warning.issues.slice(0, 30).map((issue) => `- ${issue.path}: ${issue.reason}`).join('\n');
   const suffix = warning.issues.length > 30 ? `\n... +${warning.issues.length - 30} flere` : '';
@@ -156,7 +159,7 @@ export const useFileSaveLoad = ({
   const criticalActions = useCriticalActionCoordinator();
   const [loadFlow, setLoadFlow] = React.useState<LoadFlowState>({ phase: 'idle' });
 
-  const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult): Promise<PersistenceLoadApplyResult> => {
+  const applyLoadedSnapshot = React.useCallback(async (result: ApplicableLoadFileResult): Promise<PersistenceLoadApplyResult> => {
     return executePersistenceLoadApply({
       result,
       replaceAllPersistedData,
@@ -164,7 +167,7 @@ export const useFileSaveLoad = ({
   }, [replaceAllPersistedData]);
 
   const requestApplyLoadedSnapshot = React.useCallback(async (
-    result: LoadFileResult,
+    result: ApplicableLoadFileResult,
     overlayData: OverlayData,
     navigateToStamdataAfterApply: boolean,
   ): Promise<'applied' | 'awaitingUser'> => {
@@ -211,19 +214,17 @@ export const useFileSaveLoad = ({
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
       const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);
 
-      if (result.cancelled) {
+      if (result.status === 'cancelled') {
         preparation.focusTargetBeforeAction?.focus();
         return;
       }
 
-      if (result.success) {
-        preparation.focusTargetBeforeAction?.focus();
-        markSaved(snapshotRevision);
-        showOverlay({
-          message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
-          type: result.warning ? 'warning' : 'success',
-        });
-      }
+      preparation.focusTargetBeforeAction?.focus();
+      markSaved(snapshotRevision);
+      showOverlay({
+        message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
+        type: result.warning ? 'warning' : 'success',
+      });
     } catch (error) {
       focusTargetBeforeAction?.focus();
       const overlay = resolveSaveError(error);
@@ -260,19 +261,17 @@ export const useFileSaveLoad = ({
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
       const result: LoadFileResult = await loadFromFile(resolvedDirectory);
 
-      if (result.cancelled) {
+      if (result.status === 'cancelled') {
         preparation.focusTargetBeforeAction?.focus();
         return;
       }
 
-      if (result.success) {
-        if (result.preflightWarning) {
-          setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
-          return;
-        }
-
-        await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, true);
+      if (result.status === 'preflight') {
+        setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
+        return;
       }
+
+      await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, true);
     } catch (error) {
       preparation.focusTargetBeforeAction?.focus();
       const resolved = resolveLoadError(error);
@@ -301,29 +300,25 @@ export const useFileSaveLoad = ({
       setLoadFlow({ phase: 'idle' });
       const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
 
-      if (result.cancelled) {
+      if (result.status === 'cancelled') {
         preparation.focusTargetBeforeAction?.focus();
         return 'cancelled';
       }
 
-      if (result.success) {
-        if (result.preflightWarning) {
-          setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
-          return 'preflight';
-        }
-
-        const ignoredSuffix = request.ignoredFileCount > 0
-          ? `\n\nBemærk: ${request.ignoredFileCount} yderligere fil(er) blev ignoreret.`
-          : '';
-        const outcome = await requestApplyLoadedSnapshot(
-          result,
-          { message: `Hentet${ignoredSuffix}`, type: request.ignoredFileCount > 0 ? 'warning' : 'success' },
-          true,
-        );
-        return outcome === 'awaitingUser' ? 'awaitingUser' : 'applied';
+      if (result.status === 'preflight') {
+        setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
+        return 'preflight';
       }
 
-      return 'error';
+      const ignoredSuffix = request.ignoredFileCount > 0
+        ? `\n\nBemærk: ${request.ignoredFileCount} yderligere fil(er) blev ignoreret.`
+        : '';
+      const outcome = await requestApplyLoadedSnapshot(
+        result,
+        { message: `Hentet${ignoredSuffix}`, type: request.ignoredFileCount > 0 ? 'warning' : 'success' },
+        true,
+      );
+      return outcome === 'awaitingUser' ? 'awaitingUser' : 'applied';
     } catch (error) {
       preparation.focusTargetBeforeAction?.focus();
       const resolved = resolveLoadError(error);

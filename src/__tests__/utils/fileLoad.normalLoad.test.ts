@@ -86,23 +86,22 @@ describe('fileLoad – normalLoadFlow', () => {
 
     const result = await loadFromFile();
 
-    expect(result.success).toBe(true);
-    if (!result.success) return;
+    expect(result.status).toBe('loaded');
+    if (result.status !== 'loaded') return;
     expect(result.filename).toBe('sag.eo');
     expect(result.source).toBe('manual');
     expect(result.snapshot).toBeDefined();
-    if (!result.snapshot) return;
     expect(result.snapshot.stamdata).toBeDefined();
   });
 
-  it('returnerer cancelled=true når bruger annullerer fil-valg', async () => {
+  it('returnerer cancelled når bruger annullerer fil-valg', async () => {
     selectFileMock.mockResolvedValueOnce(null);
 
     const result = await loadFromFile();
 
-    expect(result.success).toBe(false);
-    if (result.success) return;
-    expect(result.cancelled).toBe(true);
+    expect(result.status).toBe('cancelled');
+    if (result.status !== 'cancelled') return;
+    expect(result.source).toBe('manual');
   });
 
   it('kaster fejl for forkert filendelse', async () => {
@@ -174,10 +173,10 @@ describe('fileLoad – normalLoadFlow', () => {
     readFileMock.mockResolvedValueOnce(content);
 
     const result = await loadFromFile();
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.snapshot?.stamdata).toBeDefined();
-    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect(result.snapshot.stamdata).toBeDefined();
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
       kind: 'unknownSection',
       path: 'ukendtSektion',
     }));
@@ -203,11 +202,11 @@ describe('fileLoad – normalLoadFlow', () => {
     readFileMock.mockResolvedValueOnce(content);
 
     const result = await loadFromFile();
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect((result.snapshot?.stamdata as Record<string, unknown>)?.uventetFelt).toBeUndefined();
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect((result.snapshot.stamdata as Record<string, unknown>)?.uventetFelt).toBeUndefined();
     // Det strippede felt rapporteres som tab via preflight.
-    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
       kind: 'strippedUnknownField',
       path: 'stamdata.uventetFelt',
     }));
@@ -236,11 +235,10 @@ describe('fileLoad – normalLoadFlow', () => {
     readFileMock.mockResolvedValueOnce(content);
 
     const result = await loadFromFile();
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect((result.snapshot?.stamdata as Record<string, unknown>)?.journalnr).toBe('J-GAMMEL');
-    // Ingen advarsel: manglende nyere felter er ikke en fejl eller et delvist load.
-    expect(result.preflightWarning).toBeUndefined();
+    // Ingen advarsel: manglende nyere felter er ikke en fejl eller et delvist load → rent 'loaded'.
+    expect(result.status).toBe('loaded');
+    if (result.status !== 'loaded') return;
+    expect((result.snapshot.stamdata as Record<string, unknown>)?.journalnr).toBe('J-GAMMEL');
   });
 
   it('loader current-kompatible data fra en ukendt nyere dataversion uden advarsel', async () => {
@@ -256,10 +254,9 @@ describe('fileLoad – normalLoadFlow', () => {
 
     const result = await loadFromFile();
 
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.snapshot?.stamdata).toEqual(expect.objectContaining({ journalnr: 'J-FREMTID' }));
-    expect(result.preflightWarning).toBeUndefined();
+    expect(result.status).toBe('loaded');
+    if (result.status !== 'loaded') return;
+    expect(result.snapshot.stamdata).toEqual(expect.objectContaining({ journalnr: 'J-FREMTID' }));
   });
 
   it('rapporterer faellesPersondata som ukendt sektion uden at migrere data', async () => {
@@ -282,10 +279,10 @@ describe('fileLoad – normalLoadFlow', () => {
 
     const result = await loadFromFile();
 
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect((result.snapshot?.stamdata as Record<string, unknown>)?.skadelidteFodselsdato).toBeUndefined();
-    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect((result.snapshot.stamdata as Record<string, unknown>)?.skadelidteFodselsdato).toBeUndefined();
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
       kind: 'unknownSection',
       path: 'faellesPersondata',
     }));
@@ -311,11 +308,11 @@ describe('fileLoad – normalLoadFlow', () => {
 
     const result = await loadFromFile();
 
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.snapshot?.stamdata).toBeDefined();
-    expect(result.snapshot?.renteberegning).toBeUndefined();
-    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect(result.snapshot.stamdata).toBeDefined();
+    expect(result.snapshot.renteberegning).toBeUndefined();
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
       kind: 'sectionDropped',
       path: expect.stringMatching(/^renteberegning/),
     }));
@@ -403,11 +400,11 @@ describe('loadFromFileHandle', () => {
 
     const result = await loadFromFileHandle(handle, { requestId: 'req-1' });
 
-    expect(result.success).toBe(true);
-    if (!result.success) return;
+    expect(result.status).toBe('loaded');
+    if (result.status !== 'loaded') return;
     expect(result.source).toBe('pwa');
     expect(result.requestId).toBe('req-1');
-    expect(result.snapshot?.stamdata).toBeDefined();
+    expect(result.snapshot.stamdata).toBeDefined();
   });
 
   it('afviser med handlingsanvisende dansk besked når læse-tilladelsen er trukket tilbage', async () => {
