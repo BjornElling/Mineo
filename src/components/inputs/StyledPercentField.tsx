@@ -39,11 +39,19 @@ export type StyledPercentFieldProps = {
    * blokerende invalid draft. Ellers er intervallet kun en visuel fejl.
    *
    * Default er `true`, så et tal uden for intervallet afvises straks i feltet og aldrig
-   * når ind i beregningen — ensartet med heltals-, beløbs- og tabelcelle-felterne. Alle
-   * nuværende procentfelter har et UI-interval der er identisk med schema-grænsen
-   * (percentageDecimal 0–100, méngrad 0–120), så den strenge grænse kan aldrig afvise en
-   * schema-gyldig værdi. Sæt eksplicit `false`, hvis et felt bevidst skal bruge et UI-interval
-   * der er snævrere end schema (kun visuel, ikke-blokerende advarsel via `getVisualError`).
+   * når ind i beregningen — ensartet med heltals-, beløbs- og tabelcelle-felterne. Det er
+   * den kanoniske måde at afvise en ugyldig værdi med rød ring + tooltip.
+   *
+   * Et UI-interval må bevidst være snævrere end schema-grænsen, netop for at afvise en værdi
+   * som schemaet ellers ville tillade: méngrad-feltet og "Forlig om ansvarsgrad" bruger begge
+   * `minValue={1}` (mens schemaet tillader 0) for at blokere 0 % i feltet. Behold `true` her —
+   * det er ønsket, at feltet aldrig committer den værdi. Sæt kun `false`, hvis det snævrere
+   * interval skal være en ren visuel, IKKE-blokerende advarsel (via `getVisualError`), dvs.
+   * hvor værdien fortsat må committes.
+   *
+   * Bemærk: en blokerende invalid draft (dette default) eksponeres centralt som en blokerende
+   * feltfejl (`invalid-draft`-source i formPersistenceReadModel), så den — præcis som en committet
+   * ugyldig værdi — blokerer sidens beregning/download og vises i fanens "Fejl og advarsler"-boks.
    */
   enforceRange?: boolean;
   /**

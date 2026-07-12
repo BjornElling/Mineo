@@ -7,6 +7,10 @@ import { coerceToWholeNumberOrUndefined, optionalIsoDateString } from '../baseSc
  */
 export const VARIGE_MEN_MAX_MENGRAD = 120;
 
+// Méngraden er et heltal i [1, 120]: 0 er ikke en meningsfuld méngrad. 0 (og alt uden for
+// intervallet) afvises allerede i feltet via StyledPercentField's enforceRange + minValue={1}
+// (rød ring + tooltip, samme kanoniske vej som >120), så en ugyldig værdi aldrig committes
+// eller når persistens. Schema-grænsen matcher feltets grænse, så de ikke kan drive fra hinanden.
 const mengradSchema = z.preprocess(
   coerceToWholeNumberOrUndefined,
   z.number({ error: 'Méngrad skal være et heltal' })

@@ -648,6 +648,9 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                 onCommit={handleForligProcentCommit}
                 onFieldError={reportForligAnsvarsgradProcentInputError}
                 useDefaultPercentRange
+                // En ansvarsgrad på 0 % er ikke gyldig: 0 afvises straks i feltet med rød ring
+                // + tooltip via enforceRange — samme kanoniske vej som en værdi over 100 %.
+                minValue={1}
                 error={forligFejl.harFejl}
                 helperText={forligFejl.fejlbesked}
               />

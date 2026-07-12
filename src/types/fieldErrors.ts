@@ -1,7 +1,13 @@
 import type { StorageKey } from '../config/storageManifest';
 
 export type FieldErrorSeverity = 'error' | 'warning';
-export type FieldErrorSource = 'input' | 'schema' | 'rule';
+/**
+ * `invalid-draft` er en syntetisk source, der IKKE rapporteres af en producer, men udledes centralt
+ * i read-modellen fra `invalidDrafts`-slicen (jf. formPersistenceReadModel). Den repræsenterer en
+ * ikke-committbar rå indtastning (rød ring + tooltip) og behandles som en blokerende feltfejl, så en
+ * ugyldig draft blokerer beregning/download og vises i fejlbokse præcis som en committet ugyldig værdi.
+ */
+export type FieldErrorSource = 'input' | 'schema' | 'rule' | 'invalid-draft';
 
 export type FormFieldError = {
   message: string;
@@ -63,7 +69,9 @@ export type FieldErrorsForSection<_K extends StorageKey> = Partial<
  * 1) Severity: `error` før `warning`
  * 2) Inden for samme severity: `source` i denne faste rækkefølge
  */
-export const DEFAULT_FIELD_ERROR_SOURCE_PRIORITY: readonly FieldErrorSource[] = ['input', 'rule', 'schema'] as const;
+// `invalid-draft` har forrang: når feltet aktuelt viser en ikke-committbar rå draft, er det den
+// tilstand brugeren ser (rød ring), så dens besked vinder over en evt. committet regel-/schema-fejl.
+export const DEFAULT_FIELD_ERROR_SOURCE_PRIORITY: readonly FieldErrorSource[] = ['invalid-draft', 'input', 'rule', 'schema'] as const;
 export const DEFAULT_FIELD_ERROR_SEVERITY_PRIORITY: readonly FieldErrorSeverity[] = ['error', 'warning'] as const;
 
 /**

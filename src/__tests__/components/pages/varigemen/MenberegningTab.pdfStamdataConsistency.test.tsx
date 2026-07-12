@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
+import { formPersistenceStore } from '../../../../stores/formPersistenceStore';
 import type { ISODateString } from '../../../../types/branded';
 
 const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues } = vi.hoisted(() => ({
@@ -119,4 +120,46 @@ describe('MenberegningTab', () => {
     const resultRows = screen.getAllByText('Beregnet méngodtgørelse');
     expect(resultRows[1]?.closest('.row--label-right-hover')).not.toBeNull();
   });
+
+  it('en ugyldig méngrad-draft (rød ring) blokerer download — også når den committede værdi er gyldig', async () => {
+    // Regression for det arkitektoniske hul: en ikke-committbar ugyldig indtastning (invalid draft)
+    // skal blokere download præcis som en committet ugyldig værdi. Her er den committede mengrad
+    // gyldig (10) — download-knappen vises. Når méngrad-feltet får en invalid draft (fx efter at
+    // brugeren har tastet 0, jf. StyledPercentField's afvisning af værdier under minValue), skal den
+    // centralt syntetiserede blokerende feltfejl fjerne beregningsresultatet og dermed download-knappen.
+    const runtime = initializePersistenceRuntime();
+    render(
+      <MemoryRouter>
+        <FormPersistenceProvider runtime={runtime}>
+          <MenberegningTab
+            values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
+            setValues={vi.fn()}
+            setFieldValue={setFieldValue}
+            stamdata={{
+              journalnr: mockStamValues.journalnr,
+              advokat: mockStamValues.advokat,
+              sagsbehandler: mockStamValues.sagsbehandler,
+              skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
+              skadedato: mockStamValues.skadedato,
+              skadestype: mockStamValues.skadestype,
+            }}
+          />
+        </FormPersistenceProvider>
+      </MemoryRouter>
+    );
+
+    // Gyldig committet værdi → download-knappen er til stede.
+    expect(screen.getByTestId('varigemen-download')).toBeInTheDocument();
+
+    // Feltet får en ikke-committbar rå draft (det StyledPercentField skriver, når 0 afvises).
+    act(() => {
+      formPersistenceStore.getState().setInvalidDraft('varigemen', 'mengrad', '0');
+    });
+
+    // Download er nu blokeret: den syntetiske invalid-draft-feltfejl gater beregningsresultatet,
+    // så download-knappen ikke længere vises — præcis som ved en committet ugyldig værdi.
+    await waitFor(() => {
+      expect(screen.queryByTestId('varigemen-download')).not.toBeInTheDocument();
+    });
+  }, ASYNC_TEST_TIMEOUT_MS);
 });

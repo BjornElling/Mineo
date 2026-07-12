@@ -80,13 +80,11 @@ const beregningsFejl = React.useMemo(() => {
   return null;
 }, [mengradError, fodselsdatoError, beregningsdatoError]);
 
-// Tjek om indtastninger mangler (altid, uafhængigt af onBlur)
+// Tjek om indtastninger mangler (altid, uafhængigt af onBlur). En ugyldig méngrad (fx 0)
+// afvises i feltet og committes aldrig, så et manglende felt er præcist mengrad === undefined.
 const manglendeFelter = React.useMemo(() => {
   if (!stamValues.skadelidteFodselsdato || !stamValues.skadedato || !values.beregningsdato || values.mengrad === undefined) {
     return 'Indtastning mangler';
-  }
-  if (values.mengrad === 0) {
-    return 'Méngrad mangler';
   }
   return null;
 }, [stamValues.skadelidteFodselsdato, stamValues.skadedato, values.beregningsdato, values.mengrad]);
@@ -161,7 +159,7 @@ const beregningsResultat = React.useMemo(() => {
         navigate('/stamdata');
       } else if (!stamValues.skadedato) {
         // Skadedato kan ikke markeres direkte, men brugeren vil se fejlen
-      } else if (values.mengrad === undefined || values.mengrad === 0 || mengradError) {
+      } else if (values.mengrad === undefined || mengradError) {
         // Markér méngrad-feltet via ref (ikke skrøbelig DOM-query på value-attributten).
         const mengradInput = mengradInputRef.current;
         if (mengradInput) {
@@ -314,16 +312,11 @@ const beregningsResultat = React.useMemo(() => {
           <StyledPercentField
             name="mengrad"
             value={values.mengrad}
-            onCommit={(event) => {
-              const raw = event.target.value;
-              const intValue =
-                typeof raw === 'number' && Number.isFinite(raw)
-                  ? Math.trunc(raw)
-                  : undefined;
-              return setFieldValue('mengrad', intValue);
-            }}
+            onCommit={(event) => setFieldValue('mengrad', event.target.value)}
             allowDecimals={false}
-            minValue={0}
+            // Méngraden skal være i [1, 120]: 0 (og alt uden for intervallet) afvises straks i
+            // feltet med rød ring + tooltip via enforceRange — samme kanoniske vej som >120.
+            minValue={1}
             maxValue={VARIGE_MEN_MAX_MENGRAD}
             enforceRange
             useDefaultPercentRange={false}

@@ -152,6 +152,34 @@ describe('StyledPercentField', () => {
     expect(screen.getByText('Procent skal være mellem 0 og 120')).toBeInTheDocument();
   });
 
+  it('blokerer commit under intervallet (fx 0 ved minValue=1) når enforceRange er valgt', async () => {
+    // Samme kanoniske vej som over-intervallet: en værdi under minValue afvises i feltet
+    // (rød ring + tooltip) og committes aldrig. Dette er hvad méngrad- og ansvarsgrad-
+    // felterne bruger til at forbyde 0 %.
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+
+    render(
+      <StyledPercentField
+        value={undefined}
+        minValue={1}
+        maxValue={120}
+        allowDecimals={false}
+        enforceRange
+        onCommit={onCommit}
+      />
+    );
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.type(input, '0');
+    await user.tab();
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(input).toHaveValue('0');
+    expect(screen.getByText('Procent skal være mellem 1 og 120')).toBeInTheDocument();
+  });
+
   it('genudleder og rydder range-fejlen fra committed værdi og ændrede bounds når enforceRange=false', () => {
     const onFieldError = vi.fn();
     const { rerender } = render(

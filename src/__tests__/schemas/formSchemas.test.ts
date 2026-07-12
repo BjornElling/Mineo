@@ -812,6 +812,8 @@ describe('varigeMenSchema', () => {
   });
 
   it('afviser méngrad 0 og decimalpunkt uden at trunkere', () => {
+    // 0 er ikke en meningsfuld méngrad. Den afvises både i feltet (enforceRange + minValue={1},
+    // rød ring + tooltip) og som backstop i schemaet (.min(1)), så en 0 aldrig kan persisteres.
     expect(varigeMenSchema.safeParse({ mengrad: 0 }).success).toBe(false);
     expect(varigeMenSchema.safeParse({ mengrad: '15.5' }).success).toBe(false);
   });

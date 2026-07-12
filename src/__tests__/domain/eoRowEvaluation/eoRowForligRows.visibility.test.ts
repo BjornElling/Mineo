@@ -99,6 +99,30 @@ describe('buildEoForligRows visibility', () => {
     });
   });
 
+  it('viser blokerende fejl-række når procent-feltet har en ikke-committbar invalid draft', () => {
+    // Central rettelse: en invalid draft (rød ring) eksponeres som en blokerende feltfejl med
+    // source 'invalid-draft'. buildEoForligRows skal derfor lave en error-række, så den vises i
+    // EOberegning-boksen (med link) og gater download — også selvom ingen værdi er committet.
+    const values = createErstatningsopgoerelseInitialValues();
+
+    const rows = buildEoForligRows(values, {
+      forligAnsvarsgradProcent: {
+        'invalid-draft': {
+          source: 'invalid-draft',
+          severity: 'error',
+          message: 'Ugyldig værdi: "0"',
+        },
+      },
+    });
+
+    expect(rows[0]).toMatchObject({
+      id: 'forlig.ansvarsgrad',
+      label: 'Forlig om ansvarsgrad',
+      status: 'error',
+    });
+    expect(rows[0]?.displayValue).toContain('Ugyldig værdi');
+  });
+
   it('viser fejl på forligsdato når dato er udfyldt uden ansvarsgrad', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligDato = toISODateString('2024-01-31');
