@@ -21,7 +21,7 @@ import {
   isAslStatistikModel,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../config/indskudteLoentillaeg';
+import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../data/indskudteLoentillaeg';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';

@@ -160,7 +160,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 | 19 | 42 | ✅ Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
 | 20 | 40 | ✅ Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
 | 21 | 41 | ✅ Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
-| 22 | 51 | Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
+| 22 | 51 | ✅ Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
 | 23 | 36 | EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17, #37, #49; spejler #23 |
 
 ### Fase 3 — Projektioner & konsolideringer
@@ -886,6 +886,22 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 51 — Typed beregningsdatakatalog + provenance · 7
 
+- **Status: ✅ Gennemført (2026-07-12).** Ny typed envelope og ét udtømmende registry
+  katalogiserer nu 14 kilde-specifikke payloads med stabilt id, provenance, coverage og
+  genkørbar fail-closed validator. Registryet er bevidst en verifikationsgrænse og
+  eager-importeres ikke i app-entrypoints, så standalone-varianten ikke får hele Mineos
+  beregningsdata i sit bundle. Golden-nettet låser alle payloads med SHA-256; for de 33
+  kapitaliseringstabeller låser et særskilt før/efter-fingerprint alle faktorer og tabelvalg
+  fra før katalogiseringen. Kapitaliseringsregistryet bærer nu også fuldt navn, datering,
+  gyldighed og præcis lokal kilde-PDF, validerer aldersrækker/faktorer fail-closed og testes
+  1:1 mod 33 tabelmoduler + 33 original-PDF'er uden den tidligere regex-læsning af TS-kode.
+  Indskudte løntillæg er flyttet fra `config/` til det kanoniske datalag. KL/RLTN-importen
+  har fået `--check`, og release-gaten afviser nu stale genereret output mod alle aktive
+  Excel-kilder. En ny tværgående `calculation-data-contract.md` fastlægger katalogets
+  invariants. **Bevidst greenfield-justering:** de store kildefiler er ikke mekanisk splittet
+  i data-/lookup-aliasfiler; for den låste featureflade ville det skabe flere offentlige
+  moduler uden at fjerne en ekstra sandhedskilde. Kilde-specifikke opslag bliver derfor ved
+  deres payload, mens tværgående metadata, completeness og verifikation ejes ét sted.
 - **Scope:** `data/lovbestemteRates.ts` (957), `overenskomstRates.ts` (1805), kapitaliseringens 33 håndkodede tabelmoduler/original-PDF'er, øvrige satskilder og `scripts/import-offentlig-loen.mjs`.
 - **Problem:** Flere datakilder blander rå tal, typer, referenceprosa, coverage, integritetscheck og opslag i samme filer. Kun KL/RLTN har et reproducerbart kilde→valideret-data-flow; årlige opdateringer afhænger ellers af håndholdte formater og parallel dokumentation. #35 konsoliderer kun carry-forward-opslag.
 - **Greenfield:** Fælles katalog-envelope (`id`, kilde/provenance, coverage, validator) med kilde-specifikke payloads — ingen tvungen universel sats-shape. Datafiler er data-only; lookup/bounds/reference-projektioner afledes. Generator bruges kun, hvor kilden kan importeres deterministisk; ingen automatisk PDF-ekstraktion uden sikker kildeproces.

@@ -78,6 +78,11 @@ export type ForsoergertabMatrixRaekke = Readonly<{
 export type KapitaliseringsTabelData = Readonly<{
   kapitaliseringsId: string;
   kapitaliseringsType: KapitaliseringsType;
+  kapitaliseringsFuldeNavn: string;
+  kapitaliseringsDatering: string;
+  gyldigFra: ISODateString;
+  gyldigTil: ISODateString;
+  kildePdfFil: string;
   erhvervsevnetabTabelvalg: readonly ErhvervsevnetabTabelvalg[];
   erhvervsevnetabTabeller: Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
   erhvervsevnetabKoensopdelteTabeller: Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
@@ -91,6 +96,10 @@ export type KapitaliseringsTabelData = Readonly<{
 type KapitaliseringsModul = Readonly<{
   kapitaliseringsId: string;
   kapitaliseringsType: KapitaliseringsType;
+  kapitaliseringsFuldeNavn: string;
+  kapitaliseringsDatering: string;
+  gyldigFra: ISODateString;
+  gyldigTil: ISODateString;
   erhvervsevnetabTabelvalg: readonly InputErhvervsevnetabTabelvalg[];
   erhvervsevnetabTabeller?: Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
   erhvervsevnetabKoensopdelteTabeller?: Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
@@ -114,6 +123,11 @@ const normalizeErhvervsevnetabTabelvalg = (
 const createKapitaliseringsEntry = (modul: KapitaliseringsModul): KapitaliseringsTabelData => ({
   kapitaliseringsId: modul.kapitaliseringsId,
   kapitaliseringsType: modul.kapitaliseringsType,
+  kapitaliseringsFuldeNavn: modul.kapitaliseringsFuldeNavn,
+  kapitaliseringsDatering: modul.kapitaliseringsDatering,
+  gyldigFra: modul.gyldigFra,
+  gyldigTil: modul.gyldigTil,
+  kildePdfFil: `${modul.kapitaliseringsType === 'bkg' ? 'Bkg.' : 'Vejl.'} ${modul.kapitaliseringsId.replace('/', ' ')}.pdf`,
   erhvervsevnetabTabelvalg: normalizeErhvervsevnetabTabelvalg(modul.erhvervsevnetabTabelvalg),
   erhvervsevnetabTabeller: modul.erhvervsevnetabTabeller ?? {},
   erhvervsevnetabKoensopdelteTabeller: modul.erhvervsevnetabKoensopdelteTabeller ?? {},
@@ -159,6 +173,77 @@ export const kapitaliseringsTabelDataById: Readonly<Record<string, Kapitaliserin
   [k990_2012.kapitaliseringsId]: createKapitaliseringsEntry(k990_2012),
   [k9921_2019.kapitaliseringsId]: createKapitaliseringsEntry(k9921_2019),
 } as const;
+
+const assertAldersraekker = (
+  rows: readonly Readonly<{ alder: number }>[],
+  label: string,
+): void => {
+  let previousAge = -Infinity;
+  for (const row of rows) {
+    if (!Number.isInteger(row.alder) || row.alder <= previousAge) {
+      throw new Error(`${label}: aldersværdierne skal være unikke heltal sorteret stigende`);
+    }
+    previousAge = row.alder;
+  }
+};
+
+const assertFinite = (value: number, label: string): void => {
+  if (!Number.isFinite(value)) throw new Error(`${label}: faktoren skal være et endeligt tal`);
+};
+
+/** Fail-closed validering af de 33 kilde-PDF'ers normaliserede runtime-payload. */
+export const assertKapitaliseringsTabelDataIntegritet = (
+  entries: Readonly<Record<string, KapitaliseringsTabelData>>
+): void => {
+  if (Object.keys(entries).length === 0) throw new Error('Kapitaliseringstabeller: registret er tomt');
+
+  for (const [registeredId, entry] of Object.entries(entries)) {
+    if (registeredId !== entry.kapitaliseringsId) {
+      throw new Error(`Kapitaliseringstabel: registernøglen "${registeredId}" matcher ikke id "${entry.kapitaliseringsId}"`);
+    }
+    if (entry.gyldigFra > entry.gyldigTil || entry.kapitaliseringsFuldeNavn.trim() === '') {
+      throw new Error(`Kapitaliseringstabel "${registeredId}": ugyldige metadata`);
+    }
+
+    // Et tabelvalg må bevidst mangle en faktor-payload, når originalkilden ikke indeholder
+    // tabellen (fx tabel A i 1068/2003). Beregningslaget bruger fraværet til at fail-close
+    // med en domænefejl; katalogvalideringen må ikke udfylde eller afvise dette kildefaktum.
+    for (const [tableName, rows] of Object.entries(entry.erhvervsevnetabTabeller)) {
+      assertAldersraekker(rows, `${registeredId}/${tableName}`);
+      rows.forEach((row) => {
+        assertFinite(row.faktor, `${registeredId}/${tableName}/${row.alder}`);
+      });
+    }
+    for (const [tableName, rows] of Object.entries(entry.erhvervsevnetabKoensopdelteTabeller)) {
+      assertAldersraekker(rows, `${registeredId}/${tableName}`);
+      rows.forEach((row) => {
+        assertFinite(row.maendFaktor, `${registeredId}/${tableName}/${row.alder}/mænd`);
+        assertFinite(row.kvinderFaktor, `${registeredId}/${tableName}/${row.alder}/kvinder`);
+      });
+    }
+
+    for (const [tableName, rows] of Object.entries({
+      ...entry.forsoergertabTabeller,
+      ...entry.forsoergertabTabellerMaend,
+      ...entry.forsoergertabTabellerKvinder,
+    })) {
+      assertAldersraekker(rows, `${registeredId}/${tableName}`);
+      rows.forEach((row) => {
+        if (row.faktorerPraHeleAar.length === 0) {
+          throw new Error(`${registeredId}/${tableName}/${row.alder}: faktorrækken er tom`);
+        }
+        row.faktorerPraHeleAar.forEach((factor, index) =>
+          assertFinite(factor, `${registeredId}/${tableName}/${row.alder}/${index}`)
+        );
+      });
+    }
+    entry.saerfaktorUnderToAarTilFpPerSkadesinterval.forEach((row) =>
+      assertFinite(row.faktor, `${registeredId}/særfaktor/${row.skadedatoFra}`)
+    );
+  }
+};
+
+assertKapitaliseringsTabelDataIntegritet(kapitaliseringsTabelDataById);
 
 export const getKapitaliseringsTabelData = (kapitaliseringsId: string): KapitaliseringsTabelData | undefined => {
   return kapitaliseringsTabelDataById[kapitaliseringsId];

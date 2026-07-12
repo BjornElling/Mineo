@@ -3,7 +3,7 @@
 /**
  * Import-script: Læser KL og RLTN overenskomst Excel-filer og genererer TypeScript-datafiler.
  *
- * Kør: node scripts/import-offentlig-loen.mjs
+ * Kør: node scripts/import-offentlig-loen.mjs [--check]
  *
  * Scriptet:
  * 1. Læser Excel-filer fra src/data/KL/Excel/ og src/data/RLTN/Excel/
@@ -22,6 +22,7 @@ import { z } from 'zod';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '..');
+const checkOnly = process.argv.includes('--check');
 
 // ===== FILNAVNE-MØNSTER =====
 // Navngivning er ufravigelig: KL-ÅÅÅÅ-MM-DD.xlsx/.xls og RLTN-ÅÅÅÅ-MM-DD.xlsx/.xls
@@ -530,6 +531,19 @@ function writeAtomic(targetPath, content) {
   fs.renameSync(tempPath, targetPath);
 }
 
+function verifyGeneratedFile(targetPath, expectedContent) {
+  if (!fs.existsSync(targetPath)) {
+    throw new Error(`Genereret løndatafil mangler: ${path.relative(PROJECT_ROOT, targetPath)}`);
+  }
+  const actualContent = fs.readFileSync(targetPath, 'utf8');
+  if (actualContent !== expectedContent) {
+    throw new Error(
+      `Genereret løndata er forældet: ${path.relative(PROJECT_ROOT, targetPath)}. `
+      + 'Kør "npm run import:loen" og commit resultatet.'
+    );
+  }
+}
+
 function processFiles(excelDir, pattern, overenskomstType) {
   const fileConfigs = discoverFiles(excelDir, pattern, overenskomstType);
   const reguleringer = [];
@@ -635,11 +649,17 @@ function main() {
   const klCode = generateTypeScript(klReguleringer, 'KL', 'src/data/KL/Excel/');
   const rltnCode = generateTypeScript(rltnReguleringer, 'RLTN', 'src/data/RLTN/Excel/');
 
-  writeAtomic(klOutput, klCode);
-  console.log(`\nSkrevet: ${path.relative(PROJECT_ROOT, klOutput)}`);
+  if (checkOnly) {
+    verifyGeneratedFile(klOutput, klCode);
+    verifyGeneratedFile(rltnOutput, rltnCode);
+    console.log('\nGenererede løndata matcher alle aktive Excel-kilder.');
+  } else {
+    writeAtomic(klOutput, klCode);
+    console.log(`\nSkrevet: ${path.relative(PROJECT_ROOT, klOutput)}`);
 
-  writeAtomic(rltnOutput, rltnCode);
-  console.log(`Skrevet: ${path.relative(PROJECT_ROOT, rltnOutput)}`);
+    writeAtomic(rltnOutput, rltnCode);
+    console.log(`Skrevet: ${path.relative(PROJECT_ROOT, rltnOutput)}`);
+  }
 
   // Opsummering
   console.log(`\nOpsummering:`);

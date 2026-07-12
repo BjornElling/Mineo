@@ -291,7 +291,7 @@ Primært scope:
 
 - `src/data/`
 - `src/config/regulatoryRates.ts`
-- `src/config/indskudteLoentillaeg.ts`
+- `src/data/indskudteLoentillaeg.ts`
 - relevante import-scripts i `scripts/`
 - `docs/tilfoej-overenskomst.md`
 - `docs/tilfoej-kapitaliseringsbekendtgoerelse.md`

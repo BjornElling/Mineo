@@ -1,7 +1,7 @@
 import type { ISODateString } from '../../../../../types/branded';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../../config/indskudteLoentillaeg';
+import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../../data/indskudteLoentillaeg';
 import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
 import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';

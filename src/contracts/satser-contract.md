@@ -3,7 +3,7 @@
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domæne-/sagsglobal kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.  
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 
 ---
 
@@ -12,6 +12,7 @@
 `satser` er en sags-global persisted sektion og skrives kun fra siden `Satser`. Den persisterede sektion indeholder aktuelt udelukkende det valgte **satsår** (`aargang`, jf. `satserSchema.ts`); selve sats- og rentetabellerne er programdata og gemmes ikke.
 
 Satser-domænet kan samtidig læse lovbestemte reference-data fra `src/data/lovbestemteRates`. Denne kontrakt adskiller derfor brugerens sagsspecifikke satsgrundlag (det valgte satsår) fra reference-data.
+Reference-dataenes katalogmetadata og integritetskrav følger desuden `calculation-data-contract.md`.
 
 **Autoritativ beregningskilde:** Satsårs-opslag, gate og PDF-gate ejes af `src/domain/policies/satserCalculations.ts` (`resolveSatserEffectiveAargang`, `resolveSatserAargangErrorMessage`, `canDownloadSatser`, `resolveSatserPdfGate`). Opregulering fra ét år til et andet — den to-metoders sats-anvendelse, der er fundamentet for de øvrige domæners reguleringer — ejes af de **to kanoniske opregulerings-motorer** i `src/domain/satser/opreguleringsmotorer.ts` (`opregulerMedAslAarsloensmaksimum` og `opregulerMedAkkumuleretReguleringssats`). Ingen anden opreguleringssti må indføres; alle domæner der opregulerer beløb skal kalde disse motorer.
 

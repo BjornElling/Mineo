@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* — en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 
 ## 1. Scope
 
@@ -14,7 +14,7 @@ De lønregulerings-tillæg, der ved beregning af lønudvikling skal **indskydes 
 
 Den ejer **ikke** selve pakkeberegningen (hvordan tillægget indgår i `computePackageValuePct` og lønudviklingen) — det hører under EO-lønudviklingslogikken og dens kontrakter/tests.
 
-Autoritativ datafil: `src/config/indskudteLoentillaeg.ts`.
+Autoritativ datafil: `src/data/indskudteLoentillaeg.ts`.
 
 ## 2. Normative Regler
 
@@ -22,7 +22,7 @@ Autoritativ datafil: `src/config/indskudteLoentillaeg.ts`.
    - **Store Bededagstillæg** (afskaffelsen af Store Bededag).
    - **Særligt ferietillæg**.
    Andre lønelementer (feriepenge, SH/SO, fritvalg, AG-pension) kommer fra overenskomstens satstabeller eller brugerinput og er **ikke** indskudte tillæg.
-2. **Single source of truth.** Procentsatser og virkningsdatoer for begge tillæg defineres udelukkende i `src/config/indskudteLoentillaeg.ts`. De må ikke duplikeres i beregnings-, præsentations- eller PDF-lag; disse lag importerer konstanterne/satstrapperne derfra.
+2. **Single source of truth.** Procentsatser og virkningsdatoer for begge tillæg defineres udelukkende i `src/data/indskudteLoentillaeg.ts`. De må ikke duplikeres i beregnings-, præsentations- eller PDF-lag; disse lag importerer konstanterne/satstrapperne derfra.
 3. **Satser (gældende værdier — domæneregel, må kun ændres efter godkendelse, jf. `AGENTS.md`):**
    - Store Bededagstillæg: **0,45 procentpoint** fra og med **1. januar 2024**.
    - Særligt ferietillæg: **0,96 %** indtil **30. april 2024**, og **1,48 %** fra og med **1. maj 2024** (forhøjelse).
@@ -31,7 +31,7 @@ Autoritativ datafil: `src/config/indskudteLoentillaeg.ts`.
 
 ## 3. Autoritative Kilder
 
-- `src/config/indskudteLoentillaeg.ts` — satser, virkningsdatoer, satstrapper og `resolveIndskudtLoentillaegPct`.
+- `src/data/indskudteLoentillaeg.ts` — satser, virkningsdatoer, satstrapper og `resolveIndskudtLoentillaegPct`.
 - `STORE_BEDEDAG_PCT`, `STORE_BEDEDAG_START` re-eksporteres ikke fra `regulatoryRates.ts`/`dateRanges.ts` længere; de bor her.
 
 ## 4. Status og fremtidig retning
@@ -41,7 +41,7 @@ Autoritativ datafil: `src/config/indskudteLoentillaeg.ts`.
 
 ## 5. Testkobling
 
-- `src/__tests__/config/indskudteLoentillaeg.test.ts` (satser, virkningsdatoer, satstrappe-opslag og randtilfælde).
+- `src/__tests__/data/indskudteLoentillaeg.test.ts` (satser, virkningsdatoer, satstrappe-opslag og randtilfælde).
 - `src/__tests__/domain/erstatningsopgoerelse/eoSharedUtils.test.ts` (Store Bededag-tillæggets indgang i lønpakken).
 
 ## 6. Kendte Undtagelser

@@ -4,6 +4,11 @@ import {
   kapitaliseringsbekendtgoerelser,
   eetKapitaliseringsDatoMaxFraBekendtgoerelser,
 } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
+import {
+  assertKapitaliseringsTabelDataIntegritet,
+  kapitaliseringsTabelDataById,
+  type KapitaliseringsTabelData,
+} from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { resolveKapitaliseringsbekendtgoerelseId } from '../../domain/erhvervsevnetab/eetKapitaliseringOpslag';
 import { toISODateString } from '../../types/branded';
 
@@ -12,41 +17,12 @@ import { toISODateString } from '../../types/branded';
 const resolveIdForDatoer = (skadedato: string, kapitaliseringsdato: string): string | null =>
   resolveKapitaliseringsbekendtgoerelseId(toISODateString(skadedato), toISODateString(kapitaliseringsdato));
 
-type LokalTabelMeta = {
-  filnavn: string;
-  expectedFilnavn: string;
-  id: string;
-  gyldigFra: string;
-  gyldigTil: string;
-};
-
-const readLokalKapitaliseringsTabelMeta = (): LokalTabelMeta[] => {
+const readKapitaliseringsTabelFilnavne = (): string[] => {
   const tabellerDir = path.resolve(
     __dirname,
     '../../data/kapitalisering/kapitaliseringsTabeller'
   );
-  const filer = fs.readdirSync(tabellerDir).filter((fil) => fil.endsWith('.ts') && fil !== 'index.ts');
-
-  return filer.map((filnavn) => {
-    const fuldsti = path.join(tabellerDir, filnavn);
-    const source = fs.readFileSync(fuldsti, 'utf8');
-
-    const idMatch = source.match(/export const kapitaliseringsId = '([^']+)'/);
-    const gyldigFraMatch = source.match(/export const gyldigFra = toISODateString\('([^']+)'\)/);
-    const gyldigTilMatch = source.match(/export const gyldigTil = toISODateString\('([^']+)'\)/);
-
-    if (!idMatch || !gyldigFraMatch || !gyldigTilMatch) {
-      throw new Error(`CRITICAL: Mangler id/gyldighedsmetadata i ${filnavn}`);
-    }
-
-    return {
-      filnavn,
-      expectedFilnavn: `${idMatch[1].replace('/', '-')}.ts`,
-      id: idMatch[1],
-      gyldigFra: gyldigFraMatch[1],
-      gyldigTil: gyldigTilMatch[1],
-    };
-  });
+  return fs.readdirSync(tabellerDir).filter((fil) => fil.endsWith('.ts') && fil !== 'index.ts').sort();
 };
 
 describe('kapitaliseringsbekendtgørelser', () => {
@@ -88,37 +64,37 @@ describe('kapitaliseringsbekendtgørelser', () => {
   });
 
   it('har fuld 1:1 dækning mellem oversigtens IDer og lokale kapitaliseringstabelfiler', () => {
-    const lokaleTabeller = readLokalKapitaliseringsTabelMeta();
     const idSetIoversigt = new Set(
       kapitaliseringsbekendtgoerelser.flatMap((interval) =>
         interval.kapitaliseringer.map((entry) => entry.id)
       )
     );
-    const lokalIdSet = new Set(lokaleTabeller.map((tabel) => tabel.id));
+    const lokalIdSet = new Set(Object.keys(kapitaliseringsTabelDataById));
 
     const manglerIoversigtstabeller = [...idSetIoversigt].filter((id) => !lokalIdSet.has(id));
-    const udenReferenceIOversigt = lokaleTabeller.filter((tabel) => !idSetIoversigt.has(tabel.id));
+    const udenReferenceIOversigt = [...lokalIdSet].filter((id) => !idSetIoversigt.has(id));
 
     expect(manglerIoversigtstabeller).toEqual([]);
     expect(udenReferenceIOversigt).toEqual([]);
   });
 
   it('har filnavn der matcher kapitaliseringsId (slash -> bindestreg)', () => {
-    const lokaleTabeller = readLokalKapitaliseringsTabelMeta();
-    const fejl = lokaleTabeller.filter((tabel) => tabel.filnavn !== tabel.expectedFilnavn);
+    const expected = Object.keys(kapitaliseringsTabelDataById).map((id) => `${id.replace('/', '-')}.ts`).sort();
+    expect(readKapitaliseringsTabelFilnavne()).toEqual(expected);
+  });
 
-    expect(fejl).toEqual([]);
+  it('har præcis én lokal original-PDF pr. katalogiseret tabel', () => {
+    const pdfDir = path.resolve(__dirname, '../../data/kapitalisering/kapitaliseringOriginalPdf');
+    const actual = fs.readdirSync(pdfDir).filter((file) => file.toLowerCase().endsWith('.pdf')).sort();
+    const expected = Object.values(kapitaliseringsTabelDataById).map((entry) => entry.kildePdfFil).sort();
+    expect(actual).toEqual(expected);
   });
 
   it('holder mappingdatoer inden for gyldighedsintervallet i foreløbigt indføjede tabelfiler', () => {
-    const lokaleTabeller = readLokalKapitaliseringsTabelMeta();
-    const lokalMap = new Map(lokaleTabeller.map((tabel) => [tabel.id, tabel] as const));
-
     const fejl = kapitaliseringsbekendtgoerelser.flatMap((interval) =>
       interval.kapitaliseringer
-        .filter((entry) => lokalMap.has(entry.id))
         .flatMap((entry) => {
-          const lokal = lokalMap.get(entry.id);
+          const lokal = kapitaliseringsTabelDataById[entry.id];
           if (!lokal) return [];
 
           if (entry.kapitaliseringsdatoFra < lokal.gyldigFra || entry.kapitaliseringsdatoFra > lokal.gyldigTil) {
@@ -127,7 +103,7 @@ describe('kapitaliseringsbekendtgørelser', () => {
                 skadedatoFra: interval.skadedatoFra,
                 id: entry.id,
                 kapitaliseringsdatoFra: entry.kapitaliseringsdatoFra,
-                fil: lokal.filnavn,
+                fil: lokal.kildePdfFil,
                 filGyldigFra: lokal.gyldigFra,
                 filGyldigTil: lokal.gyldigTil,
               },
@@ -139,5 +115,24 @@ describe('kapitaliseringsbekendtgørelser', () => {
     );
 
     expect(fejl).toEqual([]);
+  });
+
+  it('fail-closer ved ugyldig metadata og ikke-finite faktorer', () => {
+    const valid = Object.values(kapitaliseringsTabelDataById)[0];
+    if (!valid) throw new Error('Testfixture mangler en kapitaliseringstabel');
+    const invalid: KapitaliseringsTabelData = {
+      ...valid,
+      gyldigFra: toISODateString('2026-01-02'),
+      gyldigTil: toISODateString('2026-01-01'),
+    };
+    expect(() => assertKapitaliseringsTabelDataIntegritet({ [invalid.kapitaliseringsId]: invalid }))
+      .toThrow('ugyldige metadata');
+
+    const invalidFactor: KapitaliseringsTabelData = {
+      ...valid,
+      erhvervsevnetabTabeller: { test: [{ alder: 20, faktor: Number.NaN }] },
+    };
+    expect(() => assertKapitaliseringsTabelDataIntegritet({ [invalidFactor.kapitaliseringsId]: invalidFactor }))
+      .toThrow('faktoren skal være et endeligt tal');
   });
 });

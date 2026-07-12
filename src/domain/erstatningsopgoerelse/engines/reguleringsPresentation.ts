@@ -48,7 +48,7 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { isKRLSatstabelId } from '../../../data/krlRates';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { getStatistiskLoenudvikling } from '../../../data/statistiskeRates';
-import { STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
+import { STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import {
   buildFormulaText,

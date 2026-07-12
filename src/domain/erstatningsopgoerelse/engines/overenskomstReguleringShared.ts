@@ -7,7 +7,7 @@ import {
   type OverenskomstId,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
-import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
+import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import { differsFromZero } from '../../../utils/numberComparison';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';

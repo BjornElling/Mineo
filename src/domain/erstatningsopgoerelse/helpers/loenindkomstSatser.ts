@@ -13,7 +13,7 @@ import {
   resolveOverenskomstRef,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
-import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
+import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';

@@ -14,6 +14,13 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
+    contractPath: 'src/contracts/calculation-data-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/data/calculationDataCatalog.test.ts',
+      'src/__tests__/data/kapitaliseringsbekendtgoerelser.test.ts',
+    ],
+  },
+  {
     contractPath: 'src/contracts/form-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/formContractIsolation.test.ts',
@@ -235,7 +242,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/indskudte-loentillaeg-contract.md',
     requiredTestPaths: [
-      'src/__tests__/config/indskudteLoentillaeg.test.ts',
+      'src/__tests__/data/indskudteLoentillaeg.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/eoSharedUtils.test.ts',
     ],
   },

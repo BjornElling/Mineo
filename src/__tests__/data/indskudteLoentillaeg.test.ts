@@ -7,7 +7,7 @@ import {
   SAERLIGT_FERIETILLAEG_FORHOEJELSE_START,
   SAERLIGT_FERIETILLAEG_SATSTRAPPE,
   resolveIndskudtLoentillaegPct,
-} from '../../config/indskudteLoentillaeg';
+} from '../../data/indskudteLoentillaeg';
 import { toISODateString } from '../../types/branded';
 
 const iso = (s: string) => toISODateString(s);

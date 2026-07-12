@@ -23,7 +23,7 @@ const iso = (date: string): ISODateString => toISODateString(date);
 // Statiske datoer
 const DATE_1900_01_01 = iso('1900-01-01'); // Min for fødselsdato-felter
 const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges som min/fallbackMin for alle dynamiske dato-felter
-// STORE_BEDEDAG_START og øvrige indskudte lønregulerings-tillæg bor i `src/config/indskudteLoentillaeg.ts`.
+// STORE_BEDEDAG_START og øvrige indskudte lønregulerings-tillæg bor i `src/data/indskudteLoentillaeg.ts`.
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -620,4 +620,3 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
     notes: 'Min styres dynamisk af skadedato. Max styres dynamisk af dagen før afgørelsesdato i den konkrete tabelrække.',
   },
 };
-

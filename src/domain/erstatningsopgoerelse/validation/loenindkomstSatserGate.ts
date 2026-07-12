@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { isWithinTolerance } from '../../../utils/numberComparison';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../config/indskudteLoentillaeg';
+import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../data/indskudteLoentillaeg';
 import { resolveOverenskomstSatsBindings } from '../helpers/loenindkomstSatser';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 
