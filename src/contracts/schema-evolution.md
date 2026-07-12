@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-06-11
+**Senest verificeret mod kode:** 2026-07-12
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -16,7 +16,7 @@ Dette dokument har to niveauer:
 
 Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-contract.md`.
 
-`FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §7. Denne kontrakt ejer kun reglerne for persisted sektionsschemas og load-sanitization.
+`FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §7. Denne kontrakt ejer reglerne for persisted sektionsschemas, kildeversions-resolution, migration og load-sanitization.
 
 Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Hvis parse fejler, droppes **hele sektionen** — ikke bare det enkelte felt. Det er den nuværende fail-closed model og skal forklares i preflight.
 
@@ -239,7 +239,14 @@ Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `Storag
 3. `stripUnknownFieldsBySchema`
 4. `schema.safeParse`
 
-Trin 1–2 ejes af migrator-dispatcheren `migratePersistedSectionValue()` i `src/utils/persistenceMigrations.ts`: den normaliserer (`nullToUndefinedDeep`) før en eventuel sektion-migrator, så invarianten holder uanset om kalderen (fil-load vs. session-hydrering) selv har normaliseret. Trin 3 ligger i `sanitizePersistedValueForSchema()`, trin 4 hos kalderen.
+Før trin 1 resolverer kalderen en eksplicit kildeversion: `.eo` bruger
+`_metadata.persistedDataVersion` eller `LEGACY_PERSISTED_DATA_VERSION`, mens
+session-hydrering bruger sektionens envelope-version. Trin 1–2 ejes derefter af
+`migratePersistedSectionValue(pageKey, value, sourceVersion)` i
+`src/utils/persistenceMigrations.ts`: den normaliserer (`nullToUndefinedDeep`) før
+et eksakt per-sektion `fromVersion -> current`-opslag. Manglende register-entry er
+identity; der gættes aldrig ud fra shape eller versionsrækkefølge. Trin 3 ligger i
+`sanitizePersistedValueForSchema()`, trin 4 hos kalderen.
 
 Migratorer må kun mappe kendte gamle strukturer til current struktur. De må ikke gætte domæneværdier. En migrator er et extension point, ikke en generel forpligtelse til bagudkompatibilitet.
 
@@ -274,8 +281,9 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
 ```
 .eo-fil
   → decrypt
+  → resolvér sourceVersion fra metadata eller legacy-sentinel
   → nullToUndefinedDeep(data)
-  → eventuel migrator pr. StorageKey
+  → eventuel eksakt migrator pr. StorageKey + sourceVersion
   → stripUnknownFieldsBySchema(schema, data)
       → felter i data men ikke i schema: strippes, rapporteres som "ikke indlæst"
   → schema.safeParse(stripped)
@@ -298,7 +306,7 @@ Samme sanitization-rækkefølge gælder session-hydrering. Zod-versioner og `str
 3. ændret load-sanitization der påvirker sagsinput,
 4. bevidst breaking schema-ændring.
 
-`FILE_FORMAT_VERSION` bumpes kun ved containerændringer uden for persisted sektionsdata, fx top-level containerfeltkrav, metadata-struktur eller krypterings-/indpakningsformat.
+`FILE_FORMAT_VERSION` bumpes kun ved inkompatible containerændringer uden for persisted sektionsdata, fx nye obligatoriske load-krav, inkompatibel metadata-struktur eller krypterings-/indpakningsformat. Additive metadatafelter, som er optionelle ved load, kræver ikke bump.
 
 En fremtidig `FILE_FORMAT_VERSION` bump kræver en eksplicit beslutning:
 

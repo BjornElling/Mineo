@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter. `schema-evolution.md` ejer konkrete schema-ændringsregler.
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 
 Denne kontrakt samler de trust-kritiske regler for persistence, save/load og autoritative state replacements.
 
@@ -93,8 +93,8 @@ Ved reset, load eller anden autoritativ erstatning gælder:
 
 Den kanoniske load-rækkefølge er:
 
-1. læs/dekryptér fil eller storage
-2. normalisér + anvend eventuelle eksplicitte migratorer på sektionsværdien (detaljeret trin-rækkefølge ejes af `schema-evolution.md` §3.1a)
+1. læs/dekryptér fil eller storage og resolvér sektionsdataenes kildeversion
+2. normalisér + anvend en eventuel eksakt, eksplicit migrator for kildeversionen på sektionsværdien (detaljeret trin-rækkefølge ejes af `schema-evolution.md` §3.1a)
 3. strip ukendte felter/sektioner efter schema
 4. valider sektioner/snapshot
 5. vis preflight og afvent brugerbeslutning
@@ -116,6 +116,18 @@ Mineo har to uafhængige versionsbegreber:
 
 Den aktuelle runtime-konstant ejes alene af `PERSISTED_DATA_VERSION` i `src/config/persistenceVersion.ts`; kontrakten må ikke hardkode konstantværdien. Version `1.0` er historisk kompatibilitetsbaseline, ikke den aktuelle konstantværdi.
 
+Nye `.eo`-filer skal skrive `PERSISTED_DATA_VERSION` i
+`_metadata.persistedDataVersion`. Save-schemaet kræver den aktuelle literal, mens
+load-schemaet accepterer en vilkårlig ikke-tom streng eller et manglende felt. Et
+manglende felt resolveres til den navngivne `LEGACY_PERSISTED_DATA_VERSION`-sentinel;
+det må ikke udledes ved shape-gæt. Feltet er container-metadata, ikke sagsinput, og
+indgår derfor hverken i `fieldCount` eller schema-fingerprintet.
+
+Den additive, load-optionelle metadataudvidelse er bagudkompatibel og kræver ikke i
+sig selv bump af `FILE_FORMAT_VERSION`. Container-versionen bumpes kun ved en
+inkompatibel ændring. En manglende, ældre, nyere eller ukendt dataversion må aldrig
+alene blokere load eller udløse preflight; kun konkret strip eller section-drop gør.
+
 De to versioner må ikke bumpes "for en sikkerheds skyld" uden klassifikation. De behøver ikke følges ad.
 
 Fremadrettede ændringer af persisted struktur skal ske efter følgende prioritet:
@@ -129,6 +141,7 @@ Fremadrettede ændringer af persisted struktur skal ske efter følgende priorite
    - ukendte/fjernede felter strippes
    - inkompatible eller korrupte sektioner ryddes fail-closed
 5. Hvis en fremtidig schema-ændring kræver mapping, skal mappingen være eksplicit, entydig og testet.
+6. Migratorregistret er per sektion og bruger eksakt `fromVersion -> current`-opslag. Der anvendes ingen versionssortering eller shape-gæt. En version uden registreret migrator går direkte videre til sanitization og current schema-parse.
 
 Der holdes ikke legacy runtime-kode eller kompatibilitetslag alene for at bevare forældede interne modeller. Ved breaking schema- eller container-ændringer er en klar dansk afvisnings-/preflight-fejl acceptabel, hvis migration ikke er sikker eller proportional.
 

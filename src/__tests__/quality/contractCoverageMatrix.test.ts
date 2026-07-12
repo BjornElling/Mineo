@@ -49,6 +49,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/utils/persistenceLoadApply.test.ts',
       'src/__tests__/utils/persistenceSnapshotStorage.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
+      'src/__tests__/utils/fileSave.test.ts',
+      'src/__tests__/utils/fileLoad.normalLoad.test.ts',
+      'src/__tests__/utils/fileRoundTrip.fullState.test.ts',
     ],
   },
   {
@@ -57,6 +60,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/config/persistenceVersionDrift.test.ts',
       'src/__tests__/config/persistenceRegistry.test.ts',
       'src/__tests__/utils/persistenceLoadSanitization.test.ts',
+      'src/__tests__/utils/persistenceMigrations.test.ts',
+      'src/__tests__/utils/fileLoad.normalLoad.test.ts',
+      'src/__tests__/utils/fileRoundTrip.fullState.test.ts',
     ],
   },
   {

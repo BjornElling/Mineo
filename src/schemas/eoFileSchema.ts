@@ -8,6 +8,7 @@
 
 import { z } from 'zod';
 import { FILE_FORMAT_VERSION } from '../config/version';
+import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 
@@ -45,13 +46,23 @@ export const eoFileDataLoadSchema = z.preprocess(nullToUndefinedDeep, z.looseObj
 
 
 /**
- * Container-metadata. Identisk for save- og load-schemaerne: kun `data`-permissiviteten
- * adskiller dem (se `eoFileContainerLoadSchema`).
+ * Container-metadata. Save kræver den aktuelle sagsdataversion; load accepterer
+ * fraværende/andre versioner, så kildeversionen kan håndteres tolerant downstream.
  */
-const eoFileMetadataSchema = z.object({
+const eoFileMetadataBaseShape = {
   exportDate: z.string(),
   appVersion: z.string(),
   fieldCount: z.number().int().nonnegative(),
+} as const;
+
+const eoFileMetadataSchema = z.object({
+  ...eoFileMetadataBaseShape,
+  persistedDataVersion: z.literal(PERSISTED_DATA_VERSION),
+});
+
+const eoFileMetadataLoadSchema = z.object({
+  ...eoFileMetadataBaseShape,
+  persistedDataVersion: z.string().trim().min(1).optional(),
 });
 
 /**
@@ -77,7 +88,7 @@ export type EoFileContainer = z.infer<typeof eoFileContainerSchema>;
  */
 export const eoFileContainerLoadSchema = z.object({
   version: z.literal(FILE_FORMAT_VERSION),
-  _metadata: eoFileMetadataSchema,
+  _metadata: eoFileMetadataLoadSchema,
   data: eoFileDataLoadSchema,
 }).strict();
 

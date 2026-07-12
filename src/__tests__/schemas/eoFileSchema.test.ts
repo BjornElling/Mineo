@@ -6,6 +6,7 @@ import {
   eoFileContainerLoadSchema,
 } from '../../schemas/eoFileSchema';
 import { FILE_FORMAT_VERSION } from '../../config/version';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { toISODateString } from '../../types/branded';
 
 // ─── eoFileDataSchema ─────────────────────────────────────────────────────────
@@ -138,6 +139,7 @@ describe('eoFileContainerSchema', () => {
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
+        persistedDataVersion: PERSISTED_DATA_VERSION,
         fieldCount: 0,
       },
       data: {},
@@ -184,6 +186,7 @@ describe('eoFileContainerSchema', () => {
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
+        persistedDataVersion: PERSISTED_DATA_VERSION,
         fieldCount: 42,
       },
       data: {},
@@ -250,6 +253,57 @@ describe('eoFileContainerSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('save-schema kræver current persistedDataVersion', () => {
+    const result = eoFileContainerSchema.safeParse({
+      version: FILE_FORMAT_VERSION,
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+      },
+      data: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('load-schema accepterer legacy-fil uden persistedDataVersion', () => {
+    const result = eoFileContainerLoadSchema.safeParse({
+      version: FILE_FORMAT_VERSION,
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+      },
+      data: {},
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('load-schema accepterer ukendt nyere dataversion, men afviser tom eller ikke-streng version', () => {
+    const container = {
+      version: FILE_FORMAT_VERSION,
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+      },
+      data: {},
+    };
+
+    expect(eoFileContainerLoadSchema.safeParse({
+      ...container,
+      _metadata: { ...container._metadata, persistedDataVersion: '99.0' },
+    }).success).toBe(true);
+    expect(eoFileContainerLoadSchema.safeParse({
+      ...container,
+      _metadata: { ...container._metadata, persistedDataVersion: '   ' },
+    }).success).toBe(false);
+    expect(eoFileContainerLoadSchema.safeParse({
+      ...container,
+      _metadata: { ...container._metadata, persistedDataVersion: 99 },
+    }).success).toBe(false);
+  });
+
   it('load-schema afviser metadata uden fieldCount', () => {
     const result = eoFileContainerLoadSchema.safeParse({
       version: FILE_FORMAT_VERSION,
@@ -289,6 +343,7 @@ describe('eoFileContainerSchema', () => {
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
+        persistedDataVersion: PERSISTED_DATA_VERSION,
         fieldCount: 0,
       },
       data: {},

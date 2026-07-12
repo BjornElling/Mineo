@@ -1,5 +1,6 @@
 import { VERSION } from '../config/buildInfo';
 import { FILE_FORMAT_VERSION } from '../config/version';
+import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { hasRealData, countFilledFields } from './dataCollection';
 import { encryptToString } from './encryption';
 import { generateFilename, downloadFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
@@ -168,6 +169,7 @@ export const saveToFile = async (
       _metadata: {
         exportDate: new Date().toISOString(),
         appVersion: VERSION,
+        persistedDataVersion: PERSISTED_DATA_VERSION,
         fieldCount: fieldCount, // VIGTIGT: Bruges til preflight-rapportering ved hent
       },
 

@@ -147,7 +147,7 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     // parseInboundPersistedSection — så en sektion aldrig kan transformeres forskelligt afhængigt af
     // kilden. Rapporteringen herunder er bevidst forskellig fra fil-load (coarse kategorisering vs.
     // felt-baseret preflight-tabsoptælling).
-    const result = parseInboundPersistedSection(pageKey, parsed.data);
+    const result = parseInboundPersistedSection(pageKey, parsed.data, parsed.version);
 
     if (!result.ok) {
       keysToRemove.push(storageKey);

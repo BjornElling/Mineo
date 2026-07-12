@@ -38,13 +38,16 @@ export type InboundPersistedSectionResult<K extends StorageKey> = Readonly<{
  * aldrig afvige mellem kilderne — ellers kunne samme rå sektionsdata blive behandlet forskelligt
  * afhængigt af, om den kom fra en fil eller fra sessionStorage. Den deles derfor her (modstykket til
  * `buildPersistedSection` på outbound-siden).
+ * `sourceVersion` skal komme fra den konkrete envelope/container og må aldrig
+ * udledes af sektionsværdien.
  */
 export const parseInboundPersistedSection = <K extends StorageKey>(
   pageKey: K,
-  rawValue: unknown
+  rawValue: unknown,
+  sourceVersion: string
 ): InboundPersistedSectionResult<K> => {
   const schema = persistenceSchemas[pageKey];
-  const migrated = migratePersistedSectionValue(pageKey, rawValue);
+  const migrated = migratePersistedSectionValue(pageKey, rawValue, sourceVersion);
   const stripped = sanitizePersistedValueForSchema(schema, migrated.value);
   const parsed = schema.safeParse(stripped.sanitized);
 

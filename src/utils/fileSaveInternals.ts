@@ -1,4 +1,4 @@
-import { eoFileDataSchema } from '../schemas/eoFileSchema';
+import { eoFileContainerSchema } from '../schemas/eoFileSchema';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 import { decryptFromString } from './encryption';
@@ -186,37 +186,24 @@ export const verifyAfterSave = async (
       };
     }
 
-    // Valider basis-struktur
-    const decryptedObj = (decrypted && typeof decrypted === 'object') ? (decrypted as Record<string, unknown>) : null;
-    const decryptedData = decryptedObj ? decryptedObj.data : null;
-    if (!decryptedData || typeof decryptedData !== 'object') {
+    // Verificér hele den aktuelle container, ikke kun `data`. Ellers kunne en fil uden
+    // korrekt data-version blive godkendt og først fejle ved en senere schema-evolution.
+    const containerParsed = eoFileContainerSchema.safeParse(decrypted);
+    if (!containerParsed.success) {
       logError('⚠ KRITISK: Ugyldig fil-struktur!');
       return {
         success: false,
         kind: 'unusable',
         error: 'KRITISK FEJL: Ugyldig fil-struktur i gemt fil!',
+        details: containerParsed.error.message,
       };
     }
 
-    const actualData = decryptedData as Record<string, unknown>;
-
-    // Tæl felter
     // Kanonisér begge sider, ligesom save-pipelinen gør:
     // - anvend `.eo`-schema-normalisering (`null` -> `undefined`)
     // - drop `undefined`-nøgler (JSON.stringify udelader dem)
-    const actualParsed = eoFileDataSchema.safeParse(actualData);
-    if (!actualParsed.success) {
-      logError('? KRITISK: Gemt fil matcher ikke schemas!');
-      return {
-        success: false,
-        kind: 'unusable',
-        error: 'KRITISK FEJL: Gemt fil matcher ikke schemas!',
-        details: actualParsed.error.message,
-      };
-    }
-
     const expectedCanonicalJson = stripUndefinedDeep(expectedData);
-    const actualCanonicalJson = stripUndefinedDeep(actualParsed.data);
+    const actualCanonicalJson = stripUndefinedDeep(containerParsed.data.data);
 
     // KRITISK: Sammenlign felt-for-felt
     const differences = compareData(expectedCanonicalJson, actualCanonicalJson);

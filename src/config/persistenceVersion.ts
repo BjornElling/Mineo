@@ -7,3 +7,9 @@
  */
 
 export const PERSISTED_DATA_VERSION = '3.8';
+
+/**
+ * Kildedataversion for `.eo`-filer fra før filformatet bar `persistedDataVersion`.
+ * Baseline er eksplicit, så manglende metadata aldrig skal udledes af payloadens form.
+ */
+export const LEGACY_PERSISTED_DATA_VERSION = 'legacy-unversioned';

@@ -7,6 +7,7 @@ import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { countFilledFields } from '../../utils/dataCollection';
 import { VERSION } from '../../config/buildInfo';
 import { FILE_FORMAT_VERSION } from '../../config/version';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { PERSISTED_SECTION_KEYS } from '../../config/persistenceRegistry';
 import type { SaveSnapshot } from '../../utils/fileSaveTypes';
 import { toISODateString } from '../../types/branded';
@@ -128,6 +129,7 @@ describe('save→load fuld-tilstands-round-trip', () => {
       _metadata: {
         exportDate: '2026-06-02T00:00:00.000Z',
         appVersion: VERSION,
+        persistedDataVersion: PERSISTED_DATA_VERSION,
         fieldCount: countFilledFields(canonical as Record<string, unknown>),
       },
       data: canonical,
@@ -160,7 +162,12 @@ describe('save→load fuld-tilstands-round-trip', () => {
     const canonical = eoFileDataSchema.parse(buildAllDataRawFromSnapshot(snapshot));
     const content = await encryptToString({
       version: FILE_FORMAT_VERSION,
-      _metadata: { exportDate: '2026-06-02T00:00:00.000Z', appVersion: VERSION, fieldCount: 1 },
+      _metadata: {
+        exportDate: '2026-06-02T00:00:00.000Z',
+        appVersion: VERSION,
+        persistedDataVersion: PERSISTED_DATA_VERSION,
+        fieldCount: 1,
+      },
       data: canonical,
     });
     const file = new File([content], 'round-trip.eo', { type: 'application/octet-stream' });

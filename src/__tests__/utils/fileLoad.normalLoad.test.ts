@@ -5,6 +5,7 @@ import { encryptToString } from '../../utils/encryption';
 import { countFilledFields } from '../../utils/dataCollection';
 import { VERSION } from '../../config/buildInfo';
 import { FILE_FORMAT_VERSION } from '../../config/version';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { toISODateString } from '../../types/branded';
 
 const readFromFileHandleMock = vi.fn();
@@ -43,13 +44,17 @@ beforeAll(() => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const encryptLoadContainer = async (data: Record<string, unknown>): Promise<string> => {
+const encryptLoadContainer = async (
+  data: Record<string, unknown>,
+  persistedDataVersion: string | null = PERSISTED_DATA_VERSION
+): Promise<string> => {
   return encryptToString({
     version: FILE_FORMAT_VERSION,
     _metadata: {
       exportDate: '2026-03-20T00:00:00.000Z',
       appVersion: VERSION,
       fieldCount: countFilledFields(data),
+      ...(persistedDataVersion === null ? {} : { persistedDataVersion }),
     },
     data,
   });
@@ -224,7 +229,7 @@ describe('fileLoad – normalLoadFlow', () => {
         journalnr: 'J-GAMMEL',
         skadelidte: 'Gammel Sag',
       },
-    });
+    }, null);
     const file = new File([content], 'gammel.eo', { type: 'application/octet-stream' });
     selectFileMock.mockResolvedValueOnce(file);
     readFileMock.mockResolvedValueOnce(content);
@@ -234,6 +239,25 @@ describe('fileLoad – normalLoadFlow', () => {
     if (!result.success) return;
     expect((result.snapshot?.stamdata as Record<string, unknown>)?.journalnr).toBe('J-GAMMEL');
     // Ingen advarsel: manglende nyere felter er ikke en fejl eller et delvist load.
+    expect(result.preflightWarning).toBeUndefined();
+  });
+
+  it('loader current-kompatible data fra en ukendt nyere dataversion uden advarsel', async () => {
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-FREMTID',
+        skadelidte: 'Fremtidig Sag',
+      },
+    }, '99.0');
+    const file = new File([content], 'fremtid.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.snapshot?.stamdata).toEqual(expect.objectContaining({ journalnr: 'J-FREMTID' }));
     expect(result.preflightWarning).toBeUndefined();
   });
 

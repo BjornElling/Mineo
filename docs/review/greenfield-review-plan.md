@@ -157,7 +157,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 | 16 | 23 | ✅ Regulering → kanonisk forløb | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #17 |
 | 17 | 24 | ✅ Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11, #38 |
 | 18 | 25 | ✅ Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
-| 19 | 42 | Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
+| 19 | 42 | ✅ Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
 | 20 | 40 | Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
 | 21 | 41 | Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
 | 22 | 51 | Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
@@ -729,6 +729,19 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Fra #33-reviewet (2026-07-11):** Konsolidér her de to atomisk-skrive-primitiver, der stadig sameksisterer efter #33 — `runAtomicPersistenceMutation` (context-stien: storage + fuld store + valgfri undo) og `atomicWritePersistenceSections` (undo-stien: kun sessionStorage, caller-ejet store-rollback). Enten før undo-stien over på den fælles primitiv, eller dokumentér den snævrere rollback-scope eksplicit ved callsite, så de ikke drifter.
 
 ### 42 — Versionsbåret schema-evolution i `.eo` · 9
+
+- **Status: ✅ Gennemført (2026-07-12).** Nye filer stempler nu
+  `_metadata.persistedDataVersion`, og save-verifikationen validerer hele den aktuelle
+  container. Load accepterer fortsat gamle filer uden stemplet version via en eksplicit
+  `legacy-unversioned`-baseline og fører kildeversionen gennem samme inbound-kæde som
+  session-hydrering. Et typet per-sektion `fromVersion -> current`-register er etableret
+  uden shape-gæt eller opdigtede domænemigrationer; ukendte ældre/nyere versioner går
+  fortsat gennem tolerant sanitization og current schema-parse. Save-schemaet kræver
+  current-versionen, load-schemaet accepterer enhver ikke-tom version eller manglende
+  legacy-metadata, og `FILE_FORMAT_VERSION` er uændret, fordi metadataudvidelsen er
+  bagudkompatibel. Kontrakter og coverage-matrix er opdateret; transitionsnettet dækker
+  legacy/current/fremtidig version, eksakt migrator-dispatch, fuldt round-trip og afvist
+  manglende/forkert save-stempel.
 
 - **Scope:** `config/persistenceVersion.ts`, `schemas/eoFileSchema.ts`, `fileSave.ts`, `fileLoad.ts`, `inboundPersistedSection.ts` og `persistenceMigrations.ts`.
 - **Problem:** `.eo` gemmer containerens `FILE_FORMAT_VERSION` og buildets `appVersion`, men ikke sagsinputtets `PERSISTED_DATA_VERSION`. Migratoren modtager kun `(pageKey, value)` og kan derfor ikke kende kildens data-version; versionsstyret migration må gætte på shape. #13 omdøber kun runtime-store-feltet.

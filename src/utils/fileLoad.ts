@@ -6,6 +6,7 @@ import {
   logError,
 } from './logger';
 import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
+import { LEGACY_PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import {
@@ -101,6 +102,8 @@ const processDecryptedContainer = (args: {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
   const fileData = fileContainer.data as Record<string, unknown>;
   const { fieldCount: expectedFieldCount } = fileContainer._metadata;
+  const sourcePersistedDataVersion =
+    fileContainer._metadata.persistedDataVersion ?? LEGACY_PERSISTED_DATA_VERSION;
 
   const fileVersion = fileContainer.version;
 
@@ -132,7 +135,11 @@ const processDecryptedContainer = (args: {
     // via parseInboundPersistedSection, så samme rå sektionsdata aldrig kan transformeres forskelligt
     // afhængigt af kilden. En migrator flytter/omsætter kendte gamle felter til current struktur — det er
     // en vellykket indlæsning (data bevares), ikke et tab, og tælles/vises derfor ikke i preflight.
-    const parsedSection = parseInboundPersistedSection(sectionKey, rawValue);
+    const parsedSection = parseInboundPersistedSection(
+      sectionKey,
+      rawValue,
+      sourcePersistedDataVersion
+    );
     if (parsedSection.ok) {
       snapshot[sectionKey] = parsedSection.data;
       // Strippede felter er gemt brugerdata, som denne version ikke længere kender. Værdien kan ikke
