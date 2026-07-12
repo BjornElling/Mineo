@@ -12,6 +12,7 @@ import {
 } from '../../../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../../../types/branded';
 import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
+import { fromKroner, toKroner } from '../../../../../domain/money/money';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; columnStyles?: Record<number, { cellWidth: number }> }) => {
@@ -247,20 +248,20 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
           til: iso('2024-01-10'),
           satsAar: 2024,
           maanederPraecis: 10 / 31,
-          grundydelseAfrundet: 1000,
+          grundydelseAfrundetOre: fromKroner(1000),
           reguleringPct: 0,
-          maanedligYdelse: 1000,
-          beregnetEet: 323,
+          maanedligYdelseOre: fromKroner(1000),
+          beregnetEetOre: fromKroner(323),
         },
         {
           fra: iso('2024-01-11'),
           til: iso('2024-01-20'),
           satsAar: 2024,
           maanederPraecis: 10 / 31,
-          grundydelseAfrundet: 1000,
+          grundydelseAfrundetOre: fromKroner(1000),
           reguleringPct: 0,
-          maanedligYdelse: 1000,
-          beregnetEet: 323,
+          maanedligYdelseOre: fromKroner(1000),
+          beregnetEetOre: fromKroner(323),
         },
       ],
     }];
@@ -269,7 +270,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     const rows = clampedGroups.flatMap((group) => group.perioder);
 
     expect(clampedGroups).toHaveLength(1);
-    expect(rows.map((row) => [row.fra, row.til, row.beregnetEet])).toEqual([
+    expect(rows.map((row) => [row.fra, row.til, toKroner(row.beregnetEetOre)])).toEqual([
       [iso('2024-01-01'), iso('2024-01-05'), 161],
       [iso('2024-01-11'), iso('2024-01-15'), 161],
     ]);
@@ -286,17 +287,19 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
         til: iso('2024-01-10'),
         satsAar: 2024,
         maanederPraecis: 10 / 31,
-        grundydelseAfrundet: 1000,
+        grundydelseAfrundetOre: fromKroner(1000),
         reguleringPct: 0,
-        maanedligYdelse: 1000,
-        beregnetEet: 323,
+        maanedligYdelseOre: fromKroner(1000),
+        beregnetEetOre: fromKroner(323),
       }],
     }];
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.midlertidigtEetFraEetSiden = 'Ja';
 
     const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
-    const pdfTotal = clampedGroups.flatMap((group) => group.perioder).reduce((sum, row) => sum + row.beregnetEet, 0);
+    const pdfTotal = clampedGroups
+      .flatMap((group) => group.perioder)
+      .reduce((sum, row) => sum + toKroner(row.beregnetEetOre), 0);
     const effectiveValues = buildEoValuesWithTransientMidlertidigtEet(eoValues, groups);
     const tafBenefit = buildIncomeForRanges(effectiveValues, tafRanges).benefits.find((entry) => entry.typeKey === 'midlertidigt_eet');
 
@@ -315,10 +318,10 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
         til: iso('2025-12-31'),
         satsAar: 2025,
         maanederPraecis: 12,
-        grundydelseAfrundet: 248764.43,
+        grundydelseAfrundetOre: fromKroner(248764.43),
         reguleringPct: 3.9,
-        maanedligYdelse: 21539,
-        beregnetEet: 258468,
+        maanedligYdelseOre: fromKroner(21539),
+        beregnetEetOre: fromKroner(258468),
       }],
     }];
 
@@ -328,7 +331,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     const row = clampedGroups[0]?.perioder[0];
 
     expect(row?.maanederPraecis).toBeCloseTo(2 / 31, 10);
-    expect(row?.beregnetEet).toBe(1390);
+    expect(row && toKroner(row.beregnetEetOre)).toBe(1390);
   });
 
   it('afrunder 13. januar til 31. maj 2025 med 8.975 kr./md. til 41.401 kr.', () => {
@@ -341,10 +344,10 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
         til: iso('2025-05-31'),
         satsAar: 2025,
         maanederPraecis: 4.612903225806452,
-        grundydelseAfrundet: 103651.85,
+        grundydelseAfrundetOre: fromKroner(103651.85),
         reguleringPct: 3.9,
-        maanedligYdelse: 8975,
-        beregnetEet: 41401,
+        maanedligYdelseOre: fromKroner(8975),
+        beregnetEetOre: fromKroner(41401),
       }],
     }];
 
@@ -354,7 +357,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     const row = clampedGroups[0]?.perioder[0];
 
     expect(row?.maanederPraecis).toBeCloseTo((19 / 31) + 4, 10);
-    expect(row?.beregnetEet).toBe(41401);
+    expect(row && toKroner(row.beregnetEetOre)).toBe(41401);
   });
 
   it('bevarer 2-decimal-afrunding for manuelt indtastede midlertidigt_eet-rækker når togglen er slået fra', () => {
@@ -378,20 +381,20 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
           til: iso('2025-01-12'),
           satsAar: 2025,
           maanederPraecis: 2 / 31,
-          grundydelseAfrundet: 248764.43,
+          grundydelseAfrundetOre: fromKroner(248764.43),
           reguleringPct: 3.9,
-          maanedligYdelse: 21539,
-          beregnetEet: 1390,
+          maanedligYdelseOre: fromKroner(21539),
+          beregnetEetOre: fromKroner(1390),
         },
         {
           fra: iso('2025-01-13'),
           til: iso('2025-05-31'),
           satsAar: 2025,
           maanederPraecis: 4.612903225806452,
-          grundydelseAfrundet: 103651.85,
+          grundydelseAfrundetOre: fromKroner(103651.85),
           reguleringPct: 3.9,
-          maanedligYdelse: 8975,
-          beregnetEet: 41401,
+          maanedligYdelseOre: fromKroner(8975),
+          beregnetEetOre: fromKroner(41401),
         },
       ],
     }];
@@ -399,7 +402,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
     const allRows = clampedGroups.flatMap((group) => group.perioder);
 
-    expect(allRows.map((row) => row.beregnetEet)).toEqual([1390, 41401]);
+    expect(allRows.map((row) => toKroner(row.beregnetEetOre))).toEqual([1390, 41401]);
   });
 
   it('renderer ikke Midlertidig EET-bilaget når EET-perioder ikke overlapper TAF-perioden', () => {
@@ -417,10 +420,10 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
           til: iso('2024-01-31'),
           satsAar: 2024,
           maanederPraecis: 1,
-          grundydelseAfrundet: 1000,
+          grundydelseAfrundetOre: fromKroner(1000),
           reguleringPct: 0,
-          maanedligYdelse: 1000,
-          beregnetEet: 1000,
+          maanedligYdelseOre: fromKroner(1000),
+          beregnetEetOre: fromKroner(1000),
         }],
       }],
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-29') }],
@@ -455,10 +458,10 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
           til: iso('2025-01-12'),
           satsAar: 2025,
           maanederPraecis: 2 / 31,
-          grundydelseAfrundet: 248764.43,
+          grundydelseAfrundetOre: fromKroner(248764.43),
           reguleringPct: 3.9,
-          maanedligYdelse: 21539,
-          beregnetEet: 1390,
+          maanedligYdelseOre: fromKroner(21539),
+          beregnetEetOre: fromKroner(1390),
         }],
       }],
       tafRanges: [{ fra: iso('2025-01-11'), til: iso('2025-01-12') }],

@@ -33,6 +33,7 @@ import {
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../../data/lovbestemteRates';
 import { formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetDocumentUtils';
+import { toKroner } from '../../../domain/money/money';
 
 const formatEetLabel = (eetPct: number, priorKapPct: number): string =>
   priorKapPct > 0
@@ -95,7 +96,7 @@ export const addLoebendeAfgoerelseSection = (
     );
   }
 
-  writer.writeLeftRightText('Årsløn', formatKr(computation.benyttetAarsloen), rowOpts);
+  writer.writeLeftRightText('Årsløn', formatKr(toKroner(computation.benyttetAarsloenOre)), rowOpts);
 
   writer.writeBoldSubheader('Periodeafgrænsning');
 
@@ -113,7 +114,7 @@ export const addLoebendeAfgoerelseSection = (
 
   // Beregnede ydelser
   const viserGrundydelseNiveauSkift = visGrundydelseNiveauSkift(afgoerelse, computation.grundloenNiveau);
-  const ingenLoebendeYdelse = afgoerelse.iAltBeregnetEet === 0;
+  const ingenLoebendeYdelse = afgoerelse.iAltBeregnetEetOre === 0;
 
   writer.writeBoldSubheader('Beregnede ydelser');
 
@@ -144,16 +145,16 @@ export const addLoebendeAfgoerelseSection = (
         { text: formatISOToDanish(row.fra) },
         { text: formatISOToDanish(row.til) },
         { text: formatMaanederFixed(row.maanederPraecis) },
-        { text: formatKr(row.grundydelseAfrundet, 2) },
+        { text: formatKr(toKroner(row.grundydelseAfrundetOre), 2) },
         { text: formatReguleringPct(row.reguleringPct) },
-        { text: formatKr(row.maanedligYdelse) },
-        { text: formatKr(row.beregnetEet) },
+        { text: formatKr(toKroner(row.maanedligYdelseOre)) },
+        { text: formatKr(toKroner(row.beregnetEetOre)) },
       ],
     }));
 
     const totalRow = buildSummedTotalRowSpec(
       'I alt',
-      afgoerelse.perioder.map((row) => row.beregnetEet),
+      afgoerelse.perioder.map((row) => toKroner(row.beregnetEetOre)),
       {
         columnCount: 7,
         valueColumnIndex: 6,
@@ -200,8 +201,8 @@ export const addLoebendeUdvidetSpecifikationPage = (
 
   // Årsløn
   writer.writeBoldSubheader('Årsløn');
-  const aslLabel = `ASL årsløn (afrundet til nærmeste 1000 og maks. ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)} kr.)`;
-  writer.writeLeftRightText(aslLabel, formatKr(computation.benyttetAarsloen), rowOpts);
+  const aslLabel = `ASL årsløn (afrundet til nærmeste 1000 og maks. ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)} kr.)`;
+  writer.writeLeftRightText(aslLabel, formatKr(toKroner(computation.benyttetAarsloenOre)), rowOpts);
 
   // Grundløn
   writer.writeBoldSubheader('Grundløn');
@@ -209,16 +210,16 @@ export const addLoebendeUdvidetSpecifikationPage = (
     writer.writeWrappedText('Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.');
     writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
-      `${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`,
-      formatKr(computation.grundloen),
+      `${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
+      formatKr(toKroner(computation.grundloenOre)),
       rowOpts
     );
   } else {
     writer.writeWrappedText('Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.');
     writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
-      `${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`,
-      formatKr(computation.grundloen),
+      `${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
+      formatKr(toKroner(computation.grundloenOre)),
       rowOpts
     );
   }
@@ -267,22 +268,22 @@ export const addLoebendeUdvidetSpecifikationPage = (
         : 'Grundløn x EET x Erstatningsniveau =';
     const grundydelseFormulaLine2 =
       computation.erstatningsniveauPct === 83
-        ? `${formatKr(computation.grundloen)} x ${eetFaktor} x 83 % x 92 % =`
-        : `${formatKr(computation.grundloen)} x ${eetFaktor} x 80 % =`;
+        ? `${formatKr(toKroner(computation.grundloenOre))} x ${eetFaktor} x 83 % x 92 % =`
+        : `${formatKr(toKroner(computation.grundloenOre))} x ${eetFaktor} x 80 % =`;
 
     const primaryGrundydelse =
       computation.grundloenNiveau === '2024'
-        ? afgoerelse.grundydelse2024Fuld
-        : afgoerelse.grundydelseFuld;
+        ? afgoerelse.grundydelse2024FuldOre
+        : afgoerelse.grundydelseFuldOre;
 
-    const restGrundydelse2003 = afgoerelse.grundydelseRest ?? afgoerelse.grundydelseFuld;
-    const restGrundydelse2024 = afgoerelse.grundydelse2024Rest ?? afgoerelse.grundydelse2024Fuld;
+    const restGrundydelse2003 = afgoerelse.grundydelseRestOre ?? afgoerelse.grundydelseFuldOre;
+    const restGrundydelse2024 = afgoerelse.grundydelse2024RestOre ?? afgoerelse.grundydelse2024FuldOre;
     const grundydelse2003BaseFor2024 = hasRestAfterKapBefore2024
       ? restGrundydelse2003
-      : afgoerelse.grundydelseFuld;
+      : afgoerelse.grundydelseFuldOre;
     const grundydelse2024Result = hasRestAfterKapBefore2024
       ? restGrundydelse2024
-      : afgoerelse.grundydelse2024Fuld;
+      : afgoerelse.grundydelse2024FuldOre;
 
     writer.writeBoldSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
 
@@ -295,7 +296,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
     const grundydelseHeading = show2024Block ? 'Grundydelse før 1. januar 2024' : 'Grundydelse';
     writer.writeUnderlinedSubheader(grundydelseHeading);
     writer.writeWrappedTextContinued(grundydelseFormulaLine1);
-    writer.writeLeftRightText(grundydelseFormulaLine2, formatKr(primaryGrundydelse, 2), rowOpts);
+    writer.writeLeftRightText(grundydelseFormulaLine2, formatKr(toKroner(primaryGrundydelse), 2), rowOpts);
 
     if (showRest2003) {
       const restEetExpression = `${afgoerelse.eetPct} - ${formatPct(afgoerelse.kapPctAktuel)} = ${formatPct(afgoerelse.restEetPct)}`;
@@ -303,15 +304,15 @@ export const addLoebendeUdvidetSpecifikationPage = (
         afgoerelse.kapitaliseringsdato !== null
           ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato as ISODateString)}`
           : 'Resterende EET efter kapitalisering';
-      writer.writeLeftRightText(restTextPrefix, formatKr(restGrundydelse2003, 2), rowOpts);
+      writer.writeLeftRightText(restTextPrefix, formatKr(toKroner(restGrundydelse2003), 2), rowOpts);
     }
 
     if (show2024Block) {
       writer.writeUnderlinedSubheader('Grundydelse fra 1. januar 2024');
       writer.writeWrappedTextContinued(`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}):`);
       writer.writeLeftRightText(
-        `${formatKr(grundydelse2003BaseFor2024, 2)} x ${reguleringFoer2024FaktorTekst} =`,
-        formatKr(grundydelse2024Result, 2),
+        `${formatKr(toKroner(grundydelse2003BaseFor2024), 2)} x ${reguleringFoer2024FaktorTekst} =`,
+        formatKr(toKroner(grundydelse2024Result), 2),
         rowOpts
       );
       if (showRest2024) {
@@ -320,7 +321,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
           afgoerelse.kapitaliseringsdato !== null
             ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato as ISODateString)}`
             : 'Resterende EET efter kapitalisering';
-        writer.writeLeftRightText(restTextPrefix, formatKr(restGrundydelse2024, 2), rowOpts);
+        writer.writeLeftRightText(restTextPrefix, formatKr(toKroner(restGrundydelse2024), 2), rowOpts);
       }
     }
   }

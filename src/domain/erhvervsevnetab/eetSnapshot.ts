@@ -15,7 +15,7 @@ import {
   erhvervsevnetabEalMax,
   reguleringssats,
 } from '../../data/lovbestemteRates';
-import { computeEetDifferencekravCalculation } from './eetDifferencekravCalculation';
+import { computeEetDifferencekravCalculation } from './eetCalculationGraph';
 import { computeEetEalCalculation } from './eetEalCalculation';
 import { navigationSortKey, toFieldIssue } from './eetFormatUtils';
 import { computeEetKapitaliseringCalculation } from './eetKapitaliseringCalculation';
@@ -23,6 +23,10 @@ import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import type { EetIssue } from './eetTypes';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
+import {
+  eetCanonicalOutputSchema,
+  type EetCanonicalOutput,
+} from './eetCanonicalOutput';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -57,12 +61,7 @@ type EetTabProjection<TComputation> = Readonly<{
   computation: TComputation | null;
 }>;
 
-export type EetSnapshot = Readonly<{
-  loebendeYdelser: EetTabProjection<ReturnType<typeof computeEetLoebendeYdelser>['computation']>;
-  kapitalisering: EetTabProjection<ReturnType<typeof computeEetKapitaliseringCalculation>['computation']>;
-  efterEal: EetTabProjection<ReturnType<typeof computeEetEalCalculation>['computation']>;
-  differencekrav: EetTabProjection<ReturnType<typeof computeEetDifferencekravCalculation>['computation']>;
-}>;
+export type EetSnapshot = EetCanonicalOutput;
 
 const sortAndDedupeIssues = (issues: readonly EetIssue[]): readonly EetIssue[] => {
   return dedupeIssuesBySeverityAndMessage([...issues]).sort(
@@ -234,13 +233,9 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     ...fieldIssues,
     ...(forligBlocking.issue ? [forligBlocking.issue] : []),
   ]);
-  // calculationResult.hasBlockingErrors indgår her fordi eetDifferencekravCalculation har en
-  // EAL-afhængighed der kan blokere beregningen (og sætte computation = null) uden at
-  // producere et issue med severity 'error' — blocking opdages da ikke af issues.some() alene.
-  // De øvrige projektioner har ikke denne afhængighed og kan nøjes med issues.some().
   return {
     issues,
-    hasBlockingErrors: calculationResult.hasBlockingErrors || issues.some((issue) => issue.severity === 'error'),
+    hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
     computation: calculationResult.computation,
   };
 };
@@ -251,10 +246,34 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
 // vises inline i tabellen. Dette er en bevidst afgrænsning: snapshot håndterer
 // feltvalidering, ikke tabelrækkernes indbyrdes konsistens.
 export const computeEetSnapshot = (input: EetSnapshotInput): EetSnapshot => {
-  return {
+  const output = {
     loebendeYdelser: safeBuildProjection(() => buildLoebendeYdelserProjection(input), 'loebende_ydelser'),
     kapitalisering: safeBuildProjection(() => buildKapitaliseringProjection(input), 'kapitalisering'),
     efterEal: safeBuildProjection(() => buildEfterEalProjection(input), 'efter_eal'),
     differencekrav: safeBuildProjection(() => buildDifferencekravProjection(input), 'differencekrav'),
   };
+  const parsed = eetCanonicalOutputSchema.safeParse(output);
+  if (parsed.success) return parsed.data;
+
+  reportSystemIssue({
+    code: 'eet_snapshot:canonical_output',
+    area: 'calculation',
+    context: 'eetSnapshot.canonicalOutput',
+    userMessage: 'Uventet valideringsfejl i EET-beregning',
+    developerMessage: parsed.error.message,
+    diagnostics: { issueCount: parsed.error.issues.length },
+  });
+  const failedProjection = {
+    issues: createRuntimeExceptionIssue(
+      'Beregningen kan ikke gennemføres, fordi det kanoniske beregningsresultat er ugyldigt'
+    ),
+    hasBlockingErrors: true,
+    computation: null,
+  };
+  return eetCanonicalOutputSchema.parse({
+    loebendeYdelser: failedProjection,
+    kapitalisering: failedProjection,
+    efterEal: failedProjection,
+    differencekrav: failedProjection,
+  });
 };

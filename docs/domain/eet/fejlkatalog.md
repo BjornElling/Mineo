@@ -65,7 +65,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F2, F4, F5 |
 | Navigationslink | EET oplysninger → Grundlæggende oplysninger |
-| Betingelse | `!beregningsdato`. F3 bruger ikke beregningsdato. Når F2-beregningen køres fra erstatningsopgørelsens midlertidigt EET-import, leveres TAF-slutdatoen som fallback-beregningsdato (`loebendeYdelserSlutdatoOverride`), så fejlen kun emitteres dér, hvis både beregningsdato og fallback-slutdato mangler. Se `eo-snapshot-contract.md` §13. |
+| Betingelse | `!beregningsdato`. F3 bruger ikke beregningsdato. Når F2-kernen bruges gennem EET-importportens eksplicitte `eo_import`-context, leveres TAF-slutdatoen som fallback-beregningsdato, så fejlen kun emitteres dér, hvis både beregningsdato og fallback-slutdato mangler. Se `eo-snapshot-contract.md` §13. |
 
 #### `beregningsdato-invalid` — "Beregningsdato er ugyldig."
 | Felt | Værdi |

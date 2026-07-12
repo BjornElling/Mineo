@@ -30,7 +30,7 @@ describe('forsoergertab → Word-indhold', () => {
         result: null,
         ealComputation: null,
         aslComputation: null,
-        foersoergertabEalMinSats: null,
+        foersoergertabEalMinSatsOre: null,
         foersoergertabForhoejtetTilMin: false,
         visBrevhoved: false,
       });
@@ -78,7 +78,7 @@ describe('forsoergertab → Word-indhold', () => {
         result: calc.result,
         ealComputation: calc.ealComputation,
         aslComputation: calc.aslComputation,
-        foersoergertabEalMinSats: calc.foersoergertabEalMinSats,
+        foersoergertabEalMinSatsOre: calc.foersoergertabEalMinSatsOre,
         foersoergertabForhoejtetTilMin: calc.foersoergertabForhoejtetTilMin,
         visBrevhoved: false,
       });

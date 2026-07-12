@@ -8,7 +8,13 @@ import {
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { computeEetEalCalculation } from '../erhvervsevnetab/eetEalCalculation';
 import { round0 } from '../../utils/roundingShortcuts';
-import type { ForsoergertabEalKravResult } from './forsoergertabTypes';
+import {
+  clampMoneyOreToZero,
+  fromKroner,
+  subtractMoneyOre,
+  toKroner,
+} from '../money/money';
+import type { ForsoergertabEalKravResult, ForsoergertabEalPort } from './forsoergertabTypes';
 
 type Input = Readonly<{
   beregningsdato: ISODateString | undefined;
@@ -40,7 +46,7 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
   if (!eetResult.computation) {
     return {
       ...eetResult,
-      foersoergertabEalMinSats: null,
+      foersoergertabEalMinSatsOre: null,
       foersoergertabForhoejtetTilMin: false,
     };
   }
@@ -63,35 +69,64 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
         },
       ],
       computation: null,
-      foersoergertabEalMinSats: null,
+      foersoergertabEalMinSatsOre: null,
       foersoergertabForhoejtetTilMin: false,
     };
   }
-  const foersoergertabEalMinSats = minSats;
-  // foersoergertabEalMin[] forventes at indeholde heltal (hele kronebeløb).
-  // eetBeregnet er round0-afrundet og dermed også et heltal.
-  // Sammenligningen er dermed præcis uden floating-point-usikkerhed.
+  const foersoergertabEalMinSatsOre = fromKroner(minSats);
+  const toPort = (computation: NonNullable<typeof eetResult.computation>): ForsoergertabEalPort => ({
+    beregningsdato: computation.beregningsdato,
+    skadedato: computation.skadedato,
+    fodselsdato: computation.fodselsdato,
+    skadesaar: computation.skadesaar,
+    beregningsaar: computation.beregningsaar,
+    aarsloenOre: computation.aarsloenOre,
+    aarsloenSource: computation.aarsloenSource,
+    reguleringsaar: computation.reguleringsaar,
+    reguleringsPctRounded4: computation.reguleringsPctRounded4,
+    reguleretAarsloenOre: computation.reguleretAarsloenOre,
+    eetPct: computation.eetPct,
+    eetPctSource: computation.eetPctSource,
+    kapitaliseringsfaktor: computation.kapitaliseringsfaktor,
+    eetBeregnetOre: computation.eetBeregnetOre,
+    eetMaksOre: computation.eetMaksOre,
+    eetAnvendtOre: computation.eetAnvendtOre,
+    eetReduceretTilMaks: computation.eetReduceretTilMaks,
+    alderVedSkade: computation.alderVedSkade,
+    alderVedSkadeCapped: computation.alderVedSkadeCapped,
+    aldersreduktionPct: computation.aldersreduktionPct,
+    aldersreduktionBeloebOre: computation.aldersreduktionBeloebOre,
+    ealKravOre: computation.ealKravOre,
+  });
+  const port = toPort(eetResult.computation);
   const foersoergertabForhoejtetTilMin =
-    eetResult.computation.eetBeregnet < foersoergertabEalMinSats;
+    port.eetBeregnetOre < foersoergertabEalMinSatsOre;
 
   if (foersoergertabForhoejtetTilMin) {
-    const comp = eetResult.computation;
+    // Minimumssatsen afrundes fortsat ved den eksisterende round0-grænse. Derefter foregår
+    // subtraktion og nul-clamp udelukkende gennem den kanoniske pengealgebra.
+    const aldersreduktionBeloebOre = fromKroner(round0(
+      toKroner(foersoergertabEalMinSatsOre) * (port.aldersreduktionPct / 100)
+    ));
     return {
-      ...eetResult,
+      issues: eetResult.issues,
       computation: {
-        ...comp,
-        eetAnvendt: foersoergertabEalMinSats,
-        aldersreduktionBeloeb: round0(foersoergertabEalMinSats * (comp.aldersreduktionPct / 100)),
-        ealKrav: Math.max(0, round0(foersoergertabEalMinSats - round0(foersoergertabEalMinSats * (comp.aldersreduktionPct / 100)))),
+        ...port,
+        eetAnvendtOre: foersoergertabEalMinSatsOre,
+        aldersreduktionBeloebOre,
+        ealKravOre: clampMoneyOreToZero(
+          subtractMoneyOre(foersoergertabEalMinSatsOre, aldersreduktionBeloebOre)
+        ),
       },
-      foersoergertabEalMinSats,
+      foersoergertabEalMinSatsOre,
       foersoergertabForhoejtetTilMin: true,
     };
   }
 
   return {
-    ...eetResult,
-    foersoergertabEalMinSats,
+    issues: eetResult.issues,
+    computation: port,
+    foersoergertabEalMinSatsOre,
     foersoergertabForhoejtetTilMin: false,
   };
 };

@@ -8,6 +8,7 @@ import {
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
+import { toKroner } from '../../../domain/money/money';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -37,12 +38,21 @@ describe('computeEetEalCalculation', () => {
     expect(result.issues).toEqual([]);
     expect(result.computation).not.toBeNull();
     expect(result.computation?.reguleringsPctRounded4).toBe(22.8178);
-    expect(result.computation?.reguleretAarsloen).toBe(600500);
-    expect(result.computation?.eetBeregnet).toBe(4503750);
-    expect(result.computation?.eetAnvendt).toBe(4503750);
+    expect(toKroner(result.computation!.reguleretAarsloenOre)).toBe(600500);
+    expect(toKroner(result.computation!.eetBeregnetOre)).toBe(4503750);
+    expect(toKroner(result.computation!.eetAnvendtOre)).toBe(4503750);
     expect(result.computation?.aldersreduktionPct).toBe(24);
-    expect(result.computation?.aldersreduktionBeloeb).toBe(1080900);
-    expect(result.computation?.ealKrav).toBe(3422850);
+    expect(toKroner(result.computation!.aldersreduktionBeloebOre)).toBe(1080900);
+    expect(toKroner(result.computation!.ealKravOre)).toBe(3422850);
+    expect(result.computation).toEqual(expect.objectContaining({
+      aarsloenOre: 48900000,
+      reguleretAarsloenOre: 60050000,
+      eetBeregnetOre: 450375000,
+      eetAnvendtOre: 450375000,
+      aldersreduktionBeloebOre: 108090000,
+      ealKravOre: 342285000,
+    }));
+    expect(result.computation).not.toHaveProperty('ealKrav');
   });
 
   it('advarer (ikke-blokerende) når beregningsdato ligger før skadedato', () => {
@@ -70,7 +80,7 @@ describe('computeEetEalCalculation', () => {
     expect(result.computation).not.toBeNull();
     // Beregningsår < skadesår → ingen reguleringsår → faktor 1 (uopreguleret).
     expect(result.computation?.reguleringsaar).toEqual([]);
-    expect(result.computation?.reguleretAarsloen).toBe(489000);
+    expect(toKroner(result.computation!.reguleretAarsloenOre)).toBe(489000);
   });
 
   it('ingen datoorden-advarsel når beregningsdato er lig skadedato', () => {
@@ -237,8 +247,8 @@ describe('computeEetEalCalculation', () => {
     expect(result.computation).not.toBeNull();
     expect(result.computation?.reguleringsaar).toEqual([]);
     expect(result.computation?.reguleringsPctRounded4).toBe(0);
-    expect(result.computation?.aarsloen).toBe(500123);
-    expect(result.computation?.reguleretAarsloen).toBe(500123);
+    expect(toKroner(result.computation!.aarsloenOre)).toBe(500123);
+    expect(toKroner(result.computation!.reguleretAarsloenOre)).toBe(500123);
   });
 
   it('viser advarsel når EAL EET % er under 15', () => {

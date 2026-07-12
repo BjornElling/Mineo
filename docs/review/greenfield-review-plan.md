@@ -161,7 +161,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 | 20 | 40 | ✅ Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
 | 21 | 41 | ✅ Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
 | 22 | 51 | ✅ Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
-| 23 | 36 | EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17, #37, #49; spejler #23 |
+| 23 | 36 | ✅ EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17, #37, #49; spejler #23 |
 
 ### Fase 3 — Projektioner & konsolideringer
 
@@ -661,6 +661,18 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 36 — EET på kanonisk `MoneyOre`/canonical-spine · 6
 
+- **Status: ✅ Gennemført (2026-07-12).** Alle offentlige pengebeløb i EET's fire
+  projektioner og mer-erstatning er nu branded `MoneyOre` efter de hidtidige, domænespecifikke
+  afrundingspunkter; procent-, faktor- og højpræcisionsmellemregninger forbliver tal. Det fulde
+  `EetSnapshot` er ét strengt Zod-valideret canonical output, og schema-/runtimefejl fail-closer
+  med eksplicit blokerende issue. Differencekravets skjulte søsterkald er flyttet til en
+  eksplicit beregningsgraf, mens aggregatoren kun modtager komponerede resultater; et AST-værn
+  låser grænsen. EO modtager nu en revisionsbåret, Zod-valideret EET-import-context i stedet for
+  rå EET-values, og øre konverteres først til kroner ved `AmountValue`-porten. Forsørgertab bruger
+  en eksplicit EAL-adapter uden at mutere EET-output. Før migrationen blev hele snapshotet,
+  alle fire projektioner, mer-erstatning, afrundingsgrænser og EO-importen låst med
+  krone-normaliserede goldens; de er fortsat identiske efter omlægningen. Den fulde
+  `verify:release`-gate er grøn med 528 testfiler og 6.252 tests.
 - **Scope:** `domain/erhvervsevnetab/` (~4700 LOC): `eetDifferencekravCalculation.ts` (941), `eetLoebendeYdelserCalculation.ts` (861), `eetKapitaliseringCalculation.ts` (581), `eetSnapshot.ts` (235) m.fl.
 - **Problem:** EO-kernen byggede en disciplineret kanonisk penge-model (heltals-øre, `Calculable<MoneyOre>`, Zod-valideret `eoCanonicalOutput`). EET bruger **intet** af det (nul `MoneyOre`/`Calculable`-matches i hele træet) — regner i rå kroner-floats med en spredt afrundings-zoo (`round0/2/3/4/roundNearest1000/ceilNearest12`). EET kører desuden en **parallel snapshot** med egen `EetIssue`/`EetFieldErrors`. `eetDifferencekrav` selv-orkestrerer søster-calcs (bryder parametrerings-mønstret). EO↔EET bygget bro via en transient injection-hack.
 - **Greenfield:** Re-basér EET på samme primitiver: penge som `MoneyOre`, delresultater som `Calculable<MoneyOre>`, Zod-valideret `eetCanonicalOutput` der spejler `eoCanonicalOutput`, unified issue/invariant-type. Erstat selv-orkestrering med eksplicit komposition. Formalisér EET→EO-koblingen som førsteklasses snapshot-input.
@@ -927,9 +939,10 @@ nominelt gennemført:
 
 - **Regulering** (#23): beregning konvergeret, præsentation ikke.
 - **Dag-sæt** (#17): beregnet på begge sider af lag-grænsen. ✅ løst.
-- **Penge og perioder** (#37, #49): EO's kanoniske type er ikke lukket, og EET
-  importerer stadig en neutral månedsprimitiv fra EO's engine.
-- **EET** (#36): adopterede aldrig rygraden og må først migreres, når #37/#49 står.
+- **Penge og perioder** (#37, #49): den lukkede pengealgebra og den neutrale
+  månedsprimitiv er etableret. ✅ løst.
+- **EET** (#36): bruger nu samme lukkede `MoneyOre`-disciplin og et strengt
+  valideret canonical output. ✅ løst.
 - **Dokument-output** (#24, #31, #32, #38, #50): paritet og grafik holdes af
   hånd-synkede stier, mens den aktive kanal ligger i skjult async-global state.
 - **Felt/tabeller** (#25, #27, #45): draft-maskinen og kolonneidentiteten har

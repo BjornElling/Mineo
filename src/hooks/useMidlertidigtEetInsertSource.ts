@@ -7,9 +7,10 @@ import {
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
-import type { MidlertidigtEetInsertSource } from '../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import type { EetImportSource } from '../domain/erhvervsevnetab/eetImportPort';
 import type { EetIssue } from '../domain/erhvervsevnetab/eetTypes';
 import type { z } from 'zod';
+import { getSectionRevisionSnapshot } from '../stores/formPersistenceReadModel';
 
 const subscribeToFormPersistenceStore = formPersistenceStore.subscribe;
 
@@ -60,11 +61,11 @@ let cachedSnapshot:
       stamdata: ReturnType<typeof formPersistenceStore.getState>['sections']['stamdata'];
       erhvervsevnetab: ReturnType<typeof formPersistenceStore.getState>['sections']['erhvervsevnetab'];
       faellesAarsloen: ReturnType<typeof formPersistenceStore.getState>['sections']['faellesAarsloen'];
-      value: MidlertidigtEetInsertSource;
+      value: EetImportSource;
     }
   | null = null;
 
-const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource => {
+const getMidlertidigtEetInsertSourceSnapshot = (): EetImportSource => {
   const sections = formPersistenceStore.getState().sections;
   const stamdata = sections.stamdata;
   const erhvervsevnetab = sections.erhvervsevnetab;
@@ -105,7 +106,12 @@ const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource =
     });
   }
 
-  const value: MidlertidigtEetInsertSource = {
+  const value: EetImportSource = {
+    revision: [
+      getSectionRevisionSnapshot('stamdata'),
+      getSectionRevisionSnapshot('erhvervsevnetab'),
+      getSectionRevisionSnapshot('faellesAarsloen'),
+    ].join('-'),
     // Midlertidigt EET import er read-only og bygger på samme committed, schema-sikrede
     // tværsektion-data som EET-siden. Snapshot'et caches på sektionsreferencer, så
     // urelaterede store-opdateringer ikke udløser nye safeParse-kørsler eller rerenders.
@@ -134,7 +140,7 @@ export const resetMidlertidigtEetInsertSourceCacheForTesting = (): void => {
   cachedSnapshot = null;
 };
 
-export const useMidlertidigtEetInsertSource = (): MidlertidigtEetInsertSource => {
+export const useMidlertidigtEetInsertSource = (): EetImportSource => {
   return React.useSyncExternalStore(
     subscribeToFormPersistenceStore,
     getMidlertidigtEetInsertSourceSnapshot,

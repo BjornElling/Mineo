@@ -23,6 +23,7 @@ import { downloadForsoergertabDokument } from '../../document/service/documentSe
 import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetAldersreduktionFormel';
 import StandardLooseTable from '../tables/StandardLooseTable';
 import { computeForsoergertabSnapshot } from '../../domain/forsoergertab/forsoergertabSnapshot';
+import { toKroner } from '../../domain/money/money';
 
 const Forsoergertab = React.memo(() => {
   const navigate = useNavigate();
@@ -89,7 +90,7 @@ const Forsoergertab = React.memo(() => {
   const result = snapshot.calculation.result;
   const ealComputation = snapshot.calculation.ealComputation;
   const aslComputation = snapshot.calculation.aslComputation;
-  const foersoergertabEalMinSats = snapshot.calculation.foersoergertabEalMinSats;
+  const foersoergertabEalMinSatsOre = snapshot.calculation.foersoergertabEalMinSatsOre;
   const foersoergertabForhoejtetTilMin = snapshot.calculation.foersoergertabForhoejtetTilMin;
 
   const handlePdfDownload = React.useCallback(async () => {
@@ -313,7 +314,7 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Skadelidtes årsløn på skadestidspunktet</Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{formatKr(ealComputation.aarsloen)}</Typography>
+              <Typography className="row--text">{formatKr(toKroner(ealComputation.aarsloenOre))}</Typography>
             </Box>
           </Box>
 
@@ -330,10 +331,10 @@ const Forsoergertab = React.memo(() => {
 
               <Box className="row--label-right-hover">
                 <Typography className="row--text">
-                  {`${formatKr(ealComputation.aarsloen)} x (100 % + ${formatAsAmountTrimmed(ealComputation.reguleringsPctRounded4, 4)} %) (afrundet) =`}
+                  {`${formatKr(toKroner(ealComputation.aarsloenOre))} x (100 % + ${formatAsAmountTrimmed(ealComputation.reguleringsPctRounded4, 4)} %) (afrundet) =`}
                 </Typography>
                 <Box className="row--label-right-hover__content">
-                  <Typography className="row--text">{formatKr(ealComputation.reguleretAarsloen)}</Typography>
+                  <Typography className="row--text">{formatKr(toKroner(ealComputation.reguleretAarsloenOre))}</Typography>
                 </Box>
               </Box>
             </>
@@ -357,18 +358,18 @@ const Forsoergertab = React.memo(() => {
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {`Beregnet forsørgertab (${formatKr(ealComputation.reguleretAarsloen)} x ${ealComputation.kapitaliseringsfaktor} x 30 %) =`}
+              {`Beregnet forsørgertab (${formatKr(toKroner(ealComputation.reguleretAarsloenOre))} x ${ealComputation.kapitaliseringsfaktor} x 30 %) =`}
             </Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{formatKr(ealComputation.eetBeregnet)}</Typography>
+              <Typography className="row--text">{formatKr(toKroner(ealComputation.eetBeregnetOre))}</Typography>
             </Box>
           </Box>
 
-          {foersoergertabEalMinSats !== null && (
+          {foersoergertabEalMinSatsOre !== null && (
             <Box className="row--label-right-hover">
               <Typography className="row--text">{`Mindste erstatningsniveau i beregningsåret ${ealComputation.beregningsaar}`}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(foersoergertabEalMinSats)}</Typography>
+                <Typography className="row--text">{formatKr(toKroner(foersoergertabEalMinSatsOre))}</Typography>
               </Box>
             </Box>
           )}
@@ -380,7 +381,7 @@ const Forsoergertab = React.memo(() => {
                 : 'Det beregnede forsørgertab skal ikke forhøjes, dvs. udgør'}
             </Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{formatKr(ealComputation.eetAnvendt)}</Typography>
+              <Typography className="row--text">{formatKr(toKroner(ealComputation.eetAnvendtOre))}</Typography>
             </Box>
           </Box>
 
@@ -404,10 +405,10 @@ const Forsoergertab = React.memo(() => {
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {`${formatKr(ealComputation.eetAnvendt)} x (- ${ealComputation.aldersreduktionPct} %) =`}
+              {`${formatKr(toKroner(ealComputation.eetAnvendtOre))} x (- ${ealComputation.aldersreduktionPct} %) =`}
             </Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{`- ${formatKr(ealComputation.aldersreduktionBeloeb)}`}</Typography>
+              <Typography className="row--text">{`- ${formatKr(toKroner(ealComputation.aldersreduktionBeloebOre))}`}</Typography>
             </Box>
           </Box>
 
@@ -415,10 +416,10 @@ const Forsoergertab = React.memo(() => {
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {`${formatKr(ealComputation.eetAnvendt)} - ${formatKr(ealComputation.aldersreduktionBeloeb)} =`}
+              {`${formatKr(toKroner(ealComputation.eetAnvendtOre))} - ${formatKr(toKroner(ealComputation.aldersreduktionBeloebOre))} =`}
             </Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text text-bold">{formatKr(ealComputation.ealKrav)}</Typography>
+              <Typography className="row--text text-bold">{formatKr(toKroner(ealComputation.ealKravOre))}</Typography>
             </Box>
           </Box>
         </ContentBox>

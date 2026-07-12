@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
+import { createHash } from 'node:crypto';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
+import {
+  erstatningsopgoerelseSchema,
+  stamdataSchema,
+  type ErhvervsevnetabComposedValues,
+} from '../../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
@@ -8,7 +13,7 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { computeEoSnapshot as computeEoSnapshotRaw } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetCalculationRows,
@@ -18,14 +23,75 @@ import {
   buildMidlertidigtEetPdfGroupsForTafRanges,
   sumMidlertidigtEetBeregnetEetKronerForTafRanges,
 } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
-import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { roundHeleKroner } from '../../../domain/money/money';
+import { buildIncomeForRanges, buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { fromKroner, roundHeleKroner, toKroner } from '../../../domain/money/money';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
+import {
+  buildEetImportContext,
+  buildUnavailableEetImportContext,
+  type EetImportSource,
+} from '../../../domain/erhvervsevnetab/eetImportPort';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
+
+type LegacyEetSource = Omit<EetImportSource, 'revision'> & Readonly<{ revision?: string }>;
+type LegacyEoSnapshotArgs = Omit<Parameters<typeof computeEoSnapshotRaw>[0], 'midlertidigtEetImportContext'>
+  & Readonly<{ midlertidigtEetInsertSource?: LegacyEetSource }>;
+
+const computeEoSnapshot = (args: LegacyEoSnapshotArgs) => {
+  const { midlertidigtEetInsertSource, ...baseArgs } = args;
+  const parsedEo = erstatningsopgoerelseSchema.safeParse(args.eoValues);
+  const parsedStamdata = stamdataSchema.safeParse(args.stamdataValues);
+  if (!parsedEo.success || !parsedStamdata.success || parsedEo.data.midlertidigtEetFraEetSiden !== 'Ja') {
+    return computeEoSnapshotRaw(baseArgs);
+  }
+
+  const source = midlertidigtEetInsertSource
+    ? { ...midlertidigtEetInsertSource, revision: midlertidigtEetInsertSource.revision ?? args.revision }
+    : undefined;
+  const slutdato = buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato })
+    .reduce<ReturnType<typeof iso> | undefined>(
+      (latest, range) => (latest && latest > range.til ? latest : range.til),
+      undefined
+    );
+  const midlertidigtEetImportContext = source && slutdato
+    ? buildEetImportContext(source, slutdato)
+    : buildUnavailableEetImportContext(
+      source,
+      source ? 'taf_slutdato_missing' : 'source_missing'
+    );
+  return computeEoSnapshotRaw({ ...baseArgs, midlertidigtEetImportContext });
+};
+
+const stableGoldenHash = (value: unknown): string => {
+  const sort = (entry: unknown): unknown => {
+    if (Array.isArray(entry)) return entry.map(sort);
+    if (entry === null || typeof entry !== 'object') return entry;
+
+    const record = entry as Readonly<Record<string, unknown>>;
+    // AmountValue er EO-porten for den transiente række. Normalisér både den nuværende
+    // kronevariant og en MoneyOre-variant til samme semantiske kroneværdi.
+    if (record.kind === 'number' && typeof record.value === 'number') {
+      return { kind: 'amount-kroner', value: record.value };
+    }
+    if ((record.kind === 'moneyOre' || record.kind === 'ore') && typeof record.value === 'number') {
+      return { kind: 'amount-kroner', value: record.value / 100 };
+    }
+
+    return Object.fromEntries(
+      Object.entries(record)
+        .map(([key, nested]) => key.endsWith('Ore')
+          ? [key.slice(0, -3), typeof nested === 'number' ? nested / 100 : nested] as const
+          : [key, nested] as const)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nested]) => [key, sort(nested)])
+    );
+  };
+  return createHash('sha256').update(JSON.stringify(sort(value))).digest('hex');
+};
 
 const createValidEoBase = () => {
   const initial = createErstatningsopgoerelseInitialValues();
@@ -140,6 +206,19 @@ describe('midlertidigt EET transient injection', () => {
     expect(midlertidigtEetEntry?.amountOre).toBeGreaterThan(0);
     expect(snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.some((row) => row.ydelsestype === 'midlertidigt_eet')).toBe(true);
     expect(snapshot.input.erstatningsopgoerelse?.offentligeYdelserRows).toEqual([]);
+
+    expect(stableGoldenHash({
+      groups: snapshot.data?.midlertidigtEetGroups.map((group) => ({
+        afgoerelsesdato: group.afgoerelsesdato,
+        eetPct: group.eetPct,
+        perioder: group.perioder,
+        rows: group.rows.map(({ id: _id, ...row }) => row),
+      })),
+      importedRows: snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.filter(
+        (row) => row.ydelsestype === 'midlertidigt_eet'
+      ).map(({ id: _id, ...row }) => row),
+      tafEntry: midlertidigtEetEntry,
+    })).toBe('0a78ce9402dfbf4aa5cb6cbad4a3159eb7a85ec4f0f5f46d7a358353ab89059f');
   });
 
   it('fordeler importeret midlertidigt EET efter faktisk månedsbrøk ved delvist overlap', () => {
@@ -156,10 +235,10 @@ describe('midlertidigt EET transient injection', () => {
         til: iso('2024-02-29'),
         satsAar: 2024,
         maanederPraecis: 2,
-        grundydelseAfrundet: 12000,
+        grundydelseAfrundetOre: fromKroner(12000),
         reguleringPct: 0,
-        maanedligYdelse: 1000,
-        beregnetEet: 2000,
+        maanedligYdelseOre: fromKroner(1000),
+        beregnetEetOre: fromKroner(2000),
       }],
     }];
 
@@ -277,7 +356,9 @@ describe('midlertidigt EET transient injection', () => {
       snapshot.data?.midlertidigtEetGroups ?? [],
       snapshot.data?.canonicalOutput.periodiseringer.tafPerioder ?? []
     );
-    const pdfTotalKroner = pdfGroups.flatMap((group) => group.perioder).reduce((sum, row) => sum + row.beregnetEet, 0);
+    const pdfTotalKroner = pdfGroups
+      .flatMap((group) => group.perioder)
+      .reduce((sum, row) => sum + toKroner(row.beregnetEetOre), 0);
     const tafEntry = snapshot.data?.engines.tafNetto.tafIndtaegter?.entries.find(
       (entry) => entry.label === 'Midlertidigt EET'
     );
@@ -300,10 +381,10 @@ describe('midlertidigt EET transient injection', () => {
           til: iso('2025-01-12'),
           satsAar: 2025,
           maanederPraecis: 2 / 31,
-          grundydelseAfrundet: 0,
+          grundydelseAfrundetOre: fromKroner(0),
           reguleringPct: 3.9,
-          maanedligYdelse: 21539,
-          beregnetEet: 0,
+          maanedligYdelseOre: fromKroner(21539),
+          beregnetEetOre: fromKroner(0),
         }],
       },
       {
@@ -315,10 +396,10 @@ describe('midlertidigt EET transient injection', () => {
           til: iso('2025-05-31'),
           satsAar: 2025,
           maanederPraecis: 0,
-          grundydelseAfrundet: 0,
+          grundydelseAfrundetOre: fromKroner(0),
           reguleringPct: 3.9,
-          maanedligYdelse: 8975,
-          beregnetEet: 0,
+          maanedligYdelseOre: fromKroner(8975),
+          beregnetEetOre: fromKroner(0),
         }],
       },
     ];
@@ -326,7 +407,10 @@ describe('midlertidigt EET transient injection', () => {
 
     // Bilaget runder pr. periode: 1.390 + 41.401 = 42.791.
     const bilag = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
-    expect(bilag.flatMap((g) => g.perioder).map((p) => p.beregnetEet)).toEqual([1390, 41401]);
+    expect(bilag.flatMap((g) => g.perioder).map((p) => p.beregnetEetOre)).toEqual([
+      fromKroner(1390),
+      fromKroner(41401),
+    ]);
 
     // Den kanoniske fradragskilde giver netop bilagssummen.
     expect(sumMidlertidigtEetBeregnetEetKronerForTafRanges(groups, tafRanges)).toBe(42791);
@@ -508,8 +592,9 @@ describe('midlertidigt EET transient injection', () => {
   });
 
   it('undertrykker de beregningsdato-relative advarsler i EO-importen, men beholder øvrige EET-advarsler', () => {
-    const result = buildMidlertidigtEetSourceResult(
+    const result = buildMidlertidigtEetSourceResult(buildEetImportContext(
       {
+        revision: 'warning-filter',
         eetValues: {
           ...eetValues,
           beregningsdato: undefined,
@@ -532,8 +617,8 @@ describe('midlertidigt EET transient injection', () => {
         },
         skadedato: iso('2024-01-01'),
       },
-      { loebendeYdelserSlutdatoOverride: iso('2024-04-30') }
-    );
+      iso('2024-04-30')
+    ));
 
     expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);

@@ -5,7 +5,8 @@ import type { FieldErrorsForSection } from '../../../types/fieldErrors';
 import { erstatningsopgoerelseValidator } from '../../../validators/erstatningsopgoerelseValidator';
 import { buildEOInspektionSnapshot, type EOInspektionSnapshot } from '../../eoInspektion/eoInspektionSnapshot';
 import { parseForligsgrad } from '../engines/forligsgrad';
-import type { MidlertidigtEetAfgoerelseGroup, MidlertidigtEetInsertSource } from '../helpers/midlertidigtEetInsertRows';
+import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
+import type { EetImportContext } from '../../erhvervsevnetab/eetImportPort';
 import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetSourceResult,
@@ -156,12 +157,6 @@ const isAngivetLoenHiddenStateInvalid = (
   );
 };
 
-const resolveTafSlutdato = (tafRanges: readonly IsoRange[]): ISODateString | undefined =>
-  tafRanges.reduce<ISODateString | undefined>(
-    (latest, range) => (latest && latest > range.til ? latest : range.til),
-    undefined
-  );
-
 export const computeEoSnapshot = (args: Readonly<{
   revision: string;
   stamdataValues: unknown;
@@ -176,7 +171,7 @@ export const computeEoSnapshot = (args: Readonly<{
    * (`snapshot.input.erstatningsopgoerelse`) bevarer den oprindelige committed
    * form-state. Se `domain-boundary-contract.md` §9 og `eo-snapshot-contract.md`.
    */
-  midlertidigtEetInsertSource?: MidlertidigtEetInsertSource;
+  midlertidigtEetImportContext?: EetImportContext;
 }>): EoSnapshot => {
   const dagsDatoISO = args.dagsDatoISO ?? TODAY;
   const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
@@ -216,13 +211,8 @@ export const computeEoSnapshot = (args: Readonly<{
   // rækker fra EET-siden er tilføjet. Original committed input bevares uændret i
   // snapshot.input.erstatningsopgoerelse — kontraktundtagelsen i domain-boundary-contract.md §9
   // dækker den read-only kobling.
-  const tafSlutdatoForMidlertidigtEetImport = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
-    ? resolveTafSlutdato(buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato }))
-    : undefined;
   const midlertidigtEetSourceResult = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
-    ? buildMidlertidigtEetSourceResult(args.midlertidigtEetInsertSource, {
-      loebendeYdelserSlutdatoOverride: tafSlutdatoForMidlertidigtEetImport,
-    })
+    ? buildMidlertidigtEetSourceResult(args.midlertidigtEetImportContext)
     : { groups: [], issues: [] };
   const midlertidigtEetGroups = midlertidigtEetSourceResult.groups;
   const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants(midlertidigtEetSourceResult.issues);

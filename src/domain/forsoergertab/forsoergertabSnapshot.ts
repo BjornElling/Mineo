@@ -62,7 +62,7 @@ const createRuntimeExceptionCalculation = (error: unknown): ForsoergertabCalcula
     }],
     ealComputation: null,
     aslComputation: null,
-    foersoergertabEalMinSats: null,
+    foersoergertabEalMinSatsOre: null,
     foersoergertabForhoejtetTilMin: false,
     result: null,
   };
@@ -83,7 +83,7 @@ export type ForsoergertabPdfProjection = Readonly<{
   result: ForsoergertabCalculationResult['result'];
   ealComputation: ForsoergertabCalculationResult['ealComputation'];
   aslComputation: ForsoergertabCalculationResult['aslComputation'];
-  foersoergertabEalMinSats: number | null;
+  foersoergertabEalMinSatsOre: ForsoergertabCalculationResult['foersoergertabEalMinSatsOre'];
   foersoergertabForhoejtetTilMin: boolean;
 }>;
 
@@ -345,7 +345,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       result: canShowResult ? calculation.result : null,
       ealComputation: canShowEal ? calculation.ealComputation : null,
       aslComputation: canShowAsl ? calculation.aslComputation : null,
-      foersoergertabEalMinSats: calculation.foersoergertabEalMinSats,
+      foersoergertabEalMinSatsOre: calculation.foersoergertabEalMinSatsOre,
       foersoergertabForhoejtetTilMin: calculation.foersoergertabForhoejtetTilMin,
     },
   };

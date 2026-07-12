@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående snapshot-mønster; specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og `forsoergertab-snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 
 Denne kontrakt fastlægger, hvad et domæne-snapshot er, og hvordan snapshot-first bruges uden at tvinge alle domæner ind i samme datastruktur.
 
@@ -46,6 +46,16 @@ Minimum for alle snapshot-former:
 5. runtime fail-closed adfærd,
 6. om eksponeret `input` er original committed state eller effektiv/transient beregningsinput.
 
+Et domæne kan derudover gøre selve snapshotformen til sit canonical output. Når en
+domænekontrakt vælger dette mønster, gælder følgende:
+
+1. Snapshotformen skal være runtime-valideret af et Zod-schema, som også er typeautoritet.
+2. Et schema-, source- eller runtimebrud skal give en eksplicit blokerende issue og må ikke
+   repræsenteres som et tilsyneladende gyldigt eller blot tomt output.
+3. Projektioner må udvælge og formatere snapshotdata, men ikke genberegne canonical værdier.
+4. En tværdomæne-forbruger skal modtage en navngiven, typed port/projektion; den må ikke kende
+   producentdomænets interne engine-resultater.
+
 Kontrakten kræver ikke én universel shape på tværs af alle domæner. Den kræver ét eksplicit valgt mønster pr. domæne.
 
 ---
@@ -81,6 +91,10 @@ Aktuelt eksempel:
 - `computeEetSnapshot(...)`
 - `computeEoSnapshot(...)`
 
+EET specialiserer formen yderligere: `EetSnapshot` er selv domænets Zod-validerede canonical
+output. Det indebærer ikke, at EO eller andre snapshot-first-domæner skal bruge samme samlede
+snapshotshape.
+
 ---
 
 ## 5. Hvilke domæner er snapshot-first (afgrænsning)
@@ -112,6 +126,9 @@ Når et af de tre domæner (eller et fremtidigt domæne, der reelt udløser oven
 3. `page-component-contract.md` bestemmer at page-laget orkestrerer snapshot’et og sender projektioner videre top-down.
 4. Domænespecifikke kontrakter kan indsnævre, hvilke forbrugere et konkret snapshot-entrypoint er autoritativt for.
 5. `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og `forsoergertab-snapshot-contract.md` er domænespecifikke specialiseringer af denne kontrakt.
+6. `error-contract.md` ejer den runtime-only field-error-bus. Feltfejl kan adapteres til
+   snapshot-issues som diagnostisk input, men må ikke gøre field-error-modellen til en del af
+   det canonical beregningsoutput eller skabe en parallel persisted fejlkanal.
 
 ---
 
@@ -143,5 +160,7 @@ Denne kontrakt kræver ikke:
 - en fælles `SnapshotInput`-base type for hele kodebasen
 - en generisk snapshot-factory eller cross-domain framework
 - identiske feltnavne mellem alle domæner
+- at alle delresultater pakkes i `Calculable<T>`; en projektion med `computation: null` og
+  eksplicitte issues er canonical, når domænekontrakten vælger den form
 
 Målet er kanonisk beslutning og ensartet retning, ikke tvungen teknisk ensformighed.

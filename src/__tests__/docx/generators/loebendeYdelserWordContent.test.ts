@@ -3,6 +3,7 @@
 import { generateLoebendeYdelserDocument } from '../../../document/generators/loebendeYdelser/loebendeYdelserDocument';
 import type { EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { toISODateString } from '../../../types/branded';
+import { fromKroner } from '../../../domain/money/money';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for løbende ydelser (EET): kører den RIGTIGE generator gennem
@@ -14,11 +15,11 @@ describe('loebendeYdelser → Word-indhold', () => {
     skadedato: toISODateString('2020-01-01'),
     fodselsdato: toISODateString('1980-01-01'),
     skadesaar: 2020,
-    aslAarsloenAfrundet1000: 400000,
-    maxAarsloenISkadesaar: 600000,
-    benyttetAarsloen: 400000,
+    aslAarsloenAfrundet1000Ore: fromKroner(400000),
+    maxAarsloenISkadesaarOre: fromKroner(600000),
+    benyttetAarsloenOre: fromKroner(400000),
     grundloenNiveau: '2024',
-    grundloen: 320000,
+    grundloenOre: fromKroner(320000),
     erstatningsniveauPct: 80,
     amBidragPct: 8,
     reguleringFoer2024Pct: 0,

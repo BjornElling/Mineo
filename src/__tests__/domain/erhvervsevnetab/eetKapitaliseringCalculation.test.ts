@@ -278,10 +278,10 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.issues).toEqual([]);
     expect(result.computation?.afgoerelser).toHaveLength(1);
-    expect(result.computation?.afgoerelser[0]?.grundydelse).toBe(116067.2);
+    expect(result.computation?.afgoerelser[0]?.grundydelseOre).toBe(11606720);
     expect(result.computation?.afgoerelser[0]?.aarsydelseReguleringsPctRounded4).toBe(3.9);
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(4.597);
-    expect(result.computation?.afgoerelser[0]?.kapitalbelob).toBe(554370);
+    expect(result.computation?.afgoerelser[0]?.kapitalbelobOre).toBe(55437000);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
   });
 
@@ -341,12 +341,12 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.issues).toEqual([]);
     const afgoerelse = result.computation?.afgoerelser[0];
-    expect(afgoerelse?.grundydelse).toBe(63561.11);
-    expect(afgoerelse?.grundydelse2024).toBe(105320.76);
+    expect(afgoerelse?.grundydelseOre).toBe(6356111);
+    expect(afgoerelse?.grundydelse2024Ore).toBe(10532076);
     expect(afgoerelse?.opreguleringTil2024PctRounded4).toBeGreaterThan(0);
-    expect(afgoerelse?.aarsydelseGrundlag).toBe(105320.76);
+    expect(afgoerelse?.aarsydelseGrundlagOre).toBe(10532076);
     expect(afgoerelse?.aarsydelseReguleringsPctRounded4).toBeNull();
-    expect(afgoerelse?.aarsydelse).toBe(105320.76);
+    expect(afgoerelse?.aarsydelseOre).toBe(10532076);
   });
 
   it('splitter opregulering fra 2003- til 2024-niveau og videre regulering til 2026 i separate trin', () => {
@@ -374,14 +374,14 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.issues).toEqual([]);
     const afgoerelse = result.computation?.afgoerelser[0];
-    expect(afgoerelse?.grundloen).toBeGreaterThan(0);
-    expect(afgoerelse?.grundydelse).toBeGreaterThan(0);
-    expect(afgoerelse?.grundydelse2024).not.toBeNull();
-    expect(afgoerelse?.grundydelse2024).toBeGreaterThan(afgoerelse?.grundydelse ?? 0);
+    expect(afgoerelse?.grundloenOre).toBeGreaterThan(0);
+    expect(afgoerelse?.grundydelseOre).toBeGreaterThan(0);
+    expect(afgoerelse?.grundydelse2024Ore).not.toBeNull();
+    expect(afgoerelse?.grundydelse2024Ore).toBeGreaterThan(afgoerelse?.grundydelseOre ?? 0);
     expect(afgoerelse?.opreguleringTil2024PctRounded4).toBeGreaterThan(0);
-    expect(afgoerelse?.aarsydelseGrundlag).toBe(afgoerelse?.grundydelse2024);
+    expect(afgoerelse?.aarsydelseGrundlagOre).toBe(afgoerelse?.grundydelse2024Ore);
     expect(afgoerelse?.aarsydelseReguleringsPctRounded4).toBe(8.9);
-    expect(afgoerelse?.aarsydelse).toBeGreaterThan(afgoerelse?.aarsydelseGrundlag ?? 0);
+    expect(afgoerelse?.aarsydelseOre).toBeGreaterThan(afgoerelse?.aarsydelseGrundlagOre ?? 0);
   });
 
   it('bruger særfaktor direkte når kontroltidspunktet er under to år til folkepension', () => {
@@ -410,7 +410,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toEqual([]);
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.245);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
-    expect(result.computation?.afgoerelser[0]?.kapitalbelob).toBe(300279);
+    expect(result.computation?.afgoerelser[0]?.kapitalbelobOre).toBe(30027900);
   });
 
   it('låser faktorgrundlaget til afgørelsestidspunktet når kapitaliseret pga. under to år til folkepension er ja', () => {

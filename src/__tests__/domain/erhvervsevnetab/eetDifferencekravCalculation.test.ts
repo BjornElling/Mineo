@@ -1,6 +1,8 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevnetab/eetCalculationGraph';
+import * as eetEalCalculation from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { fromKroner, toKroner, type MoneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
 
 // Fælles stamdata for alle ≤ 2 år-tests i denne fil:
@@ -9,8 +11,50 @@ import { toISODateString } from '../../../types/branded';
 //   Bekendtgørelse BEK 9921/2019 → særfaktor = 1.245 (67 år, skadedato 2019)
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+const kroner = (value: MoneyOre | null | undefined): number => value == null ? 0 : toKroner(value);
 
 describe('computeEetDifferencekravCalculation', () => {
+  it('emitter en eksplicit blokerende issue når en graf-forudsætning mangler uden kildefejl', () => {
+    const spy = vi.spyOn(eetEalCalculation, 'computeEetEalCalculation').mockReturnValue({
+      issues: [],
+      computation: null,
+    });
+
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: toISODateString('2026-12-01'),
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [{
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2024-01-01'),
+            virkningsDato: toISODateString('2024-01-01'),
+            eetPct: 60,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          }],
+        },
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1980-01-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.hasBlockingErrors).toBe(true);
+      expect(result.issues).toContainEqual(expect.objectContaining({
+        id: 'differencekrav-beregningsgrundlag-missing',
+        severity: 'error',
+      }));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   describe('uden ≤ 2 år til folkepension', () => {
     it('fradrager løbende ydelser til dagen før beregningsdatoen og proformakapitaliserer rest-EET', () => {
       const result = computeEetDifferencekravCalculation({
@@ -38,8 +82,8 @@ describe('computeEetDifferencekravCalculation', () => {
 
       expect(result.hasBlockingErrors).toBe(false);
       expect(result.computation).not.toBeNull();
-      expect(result.computation?.fradragLoebendeYdelser).toBeGreaterThan(0);
-      expect(result.computation?.fradragKapitaliseretEet).toBeGreaterThan(0);
+      expect(kroner(result.computation?.fradragLoebendeYdelserOre)).toBeGreaterThan(0);
+      expect(kroner(result.computation?.fradragKapitaliseretEetOre)).toBeGreaterThan(0);
       expect(result.computation?.proformaKapitalisering).not.toBeNull();
       expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
       expect(result.computation?.resterendeLoebendeYdelser).toBeNull();
@@ -75,18 +119,18 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.computation).not.toBeNull();
       expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerAarsag).toBe('beregningsdato');
       expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe(toISODateString('2022-03-31'));
-      expect(result.computation?.fradragKapitaliseretEet).toBe(0);
+      expect(kroner(result.computation?.fradragKapitaliseretEetOre)).toBe(0);
       expect(result.computation?.proformaKapitalisering).toBeNull();
       expect(result.computation?.resterendeLoebendeYdelser).toEqual({
         loebendeEetPct: 60,
         beregningsdato: toISODateString('2022-04-01'),
         dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
-        aarsydelse: 194400,
-        maanedligYdelse: 16200,
+        aarsydelseOre: fromKroner(194400),
+        maanedligYdelseOre: fromKroner(16200),
         tilbageraevendeMaaneder: 3,
-        fradragBeloeb: 48600,
+        fradragBeloebOre: fromKroner(48600),
       });
-      expect(result.computation?.differencekrav).toBe(638230);
+      expect(kroner(result.computation?.differencekravOre)).toBe(638230);
     });
   });
 
@@ -125,17 +169,17 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.computation).not.toBeNull();
       const c = result.computation!;
 
-      expect(c.fradragLoebendeYdelser).toBe(336273);
+      expect(kroner(c.fradragLoebendeYdelserOre)).toBe(336273);
 
       // Fradrag 2: kapitalbeløb beregnet med særfaktor (≤ 2 år)
-      expect(c.fradragKapitaliseretEet).toBe(239221);
+      expect(kroner(c.fradragKapitaliseretEetOre)).toBe(239221);
       expect(c.kapitaliseringerAfgoerelser[0]?.kapitaliseringspct).toBe(60);
-      expect(c.kapitaliseringerAfgoerelser[0]?.kapitalbelob).toBe(239221);
+      expect(kroner(c.kapitaliseringerAfgoerelser[0]?.kapitalbelobOre)).toBe(239221);
 
       // Fradrag 3: ingen proforma — hele EET er kapitaliseret (loebendeEetPct = 0)
       expect(c.proformaKapitalisering).toBeNull();
 
-      expect(c.differencekrav).toBeGreaterThan(0);
+      expect(kroner(c.differencekravOre)).toBeGreaterThan(0);
     });
 
     it('løbende ydelse ophører ved kapitalisering på afgørelsesdatoen (ikke ved beregningsdato)', () => {
@@ -200,10 +244,10 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.hasBlockingErrors).toBe(false);
       const c = result.computation!;
 
-      expect(c.fradragLoebendeYdelser).toBe(0);
-      expect(c.fradragKapitaliseretEet).toBe(239221);
+      expect(kroner(c.fradragLoebendeYdelserOre)).toBe(0);
+      expect(kroner(c.fradragKapitaliseretEetOre)).toBe(239221);
       expect(c.proformaKapitalisering).toBeNull();
-      expect(c.differencekrav).toBe(983339);
+      expect(kroner(c.differencekravOre)).toBe(983339);
     });
   });
 
@@ -239,20 +283,20 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.hasBlockingErrors).toBe(false);
       const c = result.computation!;
 
-      expect(c.fradragLoebendeYdelser).toBe(0);
-      expect(c.fradragKapitaliseretEet).toBe(119611);
+      expect(kroner(c.fradragLoebendeYdelserOre)).toBe(0);
+      expect(kroner(c.fradragKapitaliseretEetOre)).toBe(119611);
 
       expect(c.proformaKapitalisering).toBeNull();
       expect(c.resterendeLoebendeYdelser).toEqual({
         loebendeEetPct: 30,
         beregningsdato: toISODateString('2021-12-01'),
         dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
-        aarsydelse: 96084,
-        maanedligYdelse: 8007,
+        aarsydelseOre: fromKroner(96084),
+        maanedligYdelseOre: fromKroner(8007),
         tilbageraevendeMaaneder: 7,
-        fradragBeloeb: 56049,
+        fradragBeloebOre: fromKroner(56049),
       });
-      expect(c.differencekrav).toBe(1031060);
+      expect(kroner(c.differencekravOre)).toBe(1031060);
     });
 
     it('loebendeEetPct = 0 giver proformaKapitalisering = null', () => {
@@ -281,7 +325,7 @@ describe('computeEetDifferencekravCalculation', () => {
       });
 
       expect(result.computation?.proformaKapitalisering).toBeNull();
-      expect(result.computation?.fradragKapitaliseretEet).toBe(239221);
+      expect(kroner(result.computation?.fradragKapitaliseretEetOre)).toBe(239221);
     });
 
     it('fradrager ikke resterende løbende ydelser efter folkepensionsdatoen', () => {
@@ -614,13 +658,13 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.hasBlockingErrors).toBe(false);
     const proforma = result.computation?.proformaKapitalisering;
     expect(proforma).not.toBeNull();
-    expect(proforma?.grundydelse).toBeGreaterThan(0);
-    expect(proforma?.grundydelse2024).not.toBeNull();
-    expect(proforma?.grundydelse2024).toBeGreaterThan(proforma?.grundydelse ?? 0);
+    expect(kroner(proforma?.grundydelseOre)).toBeGreaterThan(0);
+    expect(proforma?.grundydelse2024Ore).not.toBeNull();
+    expect(kroner(proforma?.grundydelse2024Ore)).toBeGreaterThan(kroner(proforma?.grundydelseOre));
     expect(proforma?.opreguleringTil2024PctRounded4).toBeGreaterThan(0);
-    expect(proforma?.aarsydelseGrundlag).toBe(proforma?.grundydelse2024);
+    expect(proforma?.aarsydelseGrundlagOre).toBe(proforma?.grundydelse2024Ore);
     expect(proforma?.aarsydelseReguleringsPctRounded4).toBe(8.9);
-    expect(proforma?.aarsydelse).toBeGreaterThan(proforma?.aarsydelseGrundlag ?? 0);
+    expect(kroner(proforma?.aarsydelseOre)).toBeGreaterThan(kroner(proforma?.aarsydelseGrundlagOre));
   });
 
   describe('tilbagevirkende kraft — endelig gør midlertidig endelig (toggle)', () => {
@@ -670,7 +714,7 @@ describe('computeEetDifferencekravCalculation', () => {
       const midl = result.computation?.afgoerelser.find((a) => a.rowId === 'midl');
       expect(midl?.afgoerelseType).toBe('Midlertidig');
       expect(midl?.fradragForetages).toBe(false);
-      expect(midl?.beloeb).toBe(0);
+      expect(kroner(midl?.beloebOre)).toBe(0);
       expect(midl?.tilbagevirkendeKraftFradrag).toBeNull();
     });
 
@@ -689,15 +733,15 @@ describe('computeEetDifferencekravCalculation', () => {
         endeligVirkningsdato: toISODateString('2019-09-01'),
         fra: toISODateString('2019-09-01'),
         til: toISODateString('2019-12-31'),
-        beloeb: 60776,
+        beloebOre: fromKroner(60776),
       });
       // Fradraget skal øge det samlede løbende fradrag med præcis tvk-beløbet.
       const off = buildEksempel(false);
-      expect(result.computation?.fradragLoebendeYdelser).toBe(
-        (off.computation?.fradragLoebendeYdelser ?? 0) + (tvk?.beloeb ?? 0)
+      expect(kroner(result.computation?.fradragLoebendeYdelserOre)).toBe(
+        kroner(off.computation?.fradragLoebendeYdelserOre) + kroner(tvk?.beloebOre)
       );
       // Differencekravet bliver derfor mindre med flaget slået til (eller forbliver 0).
-      expect(result.computation?.differencekrav ?? 0).toBeLessThanOrEqual(off.computation?.differencekrav ?? 0);
+      expect(kroner(result.computation?.differencekravOre)).toBeLessThanOrEqual(kroner(off.computation?.differencekravOre));
     });
 
     it('endelig-virkning efter midlertidigs naturlige ophør: ingen TVK, endelig fradrages fuldt fra egen virkning', () => {
@@ -751,11 +795,11 @@ describe('computeEetDifferencekravCalculation', () => {
         .toBe(toISODateString('2019-09-30'));
       // Ingen TVK, fordi endelig-virkning (01-10-2019) ligger efter midlertidigs ophør (30-09-2019).
       expect(midl?.tilbagevirkendeKraftFradrag).toBeNull();
-      expect(midl?.beloeb).toBe(0);
+      expect(kroner(midl?.beloebOre)).toBe(0);
       // Den endelige fradrages fuldt fra sin egen virkning.
       expect(endelig?.fradragForetages).toBe(true);
-      expect(endelig?.beloeb).toBe(311582);
-      expect(result.computation?.fradragLoebendeYdelser).toBe(311582);
+      expect(kroner(endelig?.beloebOre)).toBe(311582);
+      expect(kroner(result.computation?.fradragLoebendeYdelserOre)).toBe(311582);
     });
 
     it('omvendt rækkefølge: midlertidig truffet efter endelig fradrages stadig (bevidst — rækkefølge gates ikke)', () => {
@@ -805,7 +849,7 @@ describe('computeEetDifferencekravCalculation', () => {
         endeligVirkningsdato: toISODateString('2019-09-01'),
         fra: toISODateString('2019-09-01'),
         til: toISODateString('2021-02-28'),
-        beloeb: 93874,
+        beloebOre: fromKroner(93874),
       });
     });
 
@@ -853,8 +897,8 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(on.hasBlockingErrors).toBe(false);
       // Ingen tilbagevirkende kraft-fradrag uanset flag — midlertidig fradrages allerede via skalFradragForetages.
       expect(on.computation?.afgoerelser.every((a) => a.tilbagevirkendeKraftFradrag === null)).toBe(true);
-      expect(on.computation?.fradragLoebendeYdelser).toBe(off.computation?.fradragLoebendeYdelser);
-      expect(on.computation?.differencekrav).toBe(off.computation?.differencekrav);
+      expect(on.computation?.fradragLoebendeYdelserOre).toBe(off.computation?.fradragLoebendeYdelserOre);
+      expect(on.computation?.differencekravOre).toBe(off.computation?.differencekravOre);
     });
   });
 });
@@ -907,14 +951,14 @@ describe('computeEetDifferencekravCalculation — fradrag 4 (mer-erstatning ved 
     expect(mer).not.toBeNull();
     expect(mer!.events).toHaveLength(1);
     expect(mer!.events[0]!.forhoejelsesdato).toBe(toISODateString('2015-12-29'));
-    expect(mer!.samletMerErstatning).toBeGreaterThan(0);
+    expect(kroner(mer!.samletMerErstatningOre)).toBeGreaterThan(0);
 
     // Invariant: differencekravet er ikke clampet til 0 i nogen af tilstandene,
     // så differencen mellem de to skal være præcis den samlede mer-erstatning.
-    expect(on.computation!.differencekrav).toBeGreaterThan(0);
-    expect(off.computation!.differencekrav).toBeGreaterThan(0);
-    expect(off.computation!.differencekrav - on.computation!.differencekrav).toBe(
-      mer!.samletMerErstatning
+    expect(kroner(on.computation!.differencekravOre)).toBeGreaterThan(0);
+    expect(kroner(off.computation!.differencekravOre)).toBeGreaterThan(0);
+    expect(kroner(off.computation!.differencekravOre) - kroner(on.computation!.differencekravOre)).toBe(
+      kroner(mer!.samletMerErstatningOre)
     );
   });
 
@@ -958,7 +1002,7 @@ describe('computeEetDifferencekravCalculation — fradrag 4 (mer-erstatning ved 
     expect(noEvent.hasBlockingErrors).toBe(false);
     expect(noEvent.computation).not.toBeNull();
     expect(noEvent.computation!.merErstatningPensionsalder).toBeNull();
-    expect(noEvent.computation!.differencekrav).toBeGreaterThan(0);
+    expect(kroner(noEvent.computation!.differencekravOre)).toBeGreaterThan(0);
   });
 });
 
@@ -996,12 +1040,12 @@ describe('computeEetDifferencekravCalculation — forlig om ansvarsgrad', () => 
   it('reducerer det endelige differencekrav med en brøk-faktor og bevarer det fulde krav', () => {
     const result = buildMedForlig({ factor: 2 / 3, label: '2/3' });
     const c = result.computation!;
-    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
     expect(c.forligFactor).toBe(2 / 3);
     expect(c.forligLabel).toBe('2/3');
     expect(c.forligDato).toBeNull();
     // round0(638230 × 2/3) = round0(425486,67) = 425487
-    expect(c.differencekrav).toBe(425487);
+    expect(kroner(c.differencekravOre)).toBe(425487);
   });
 
   it('viderefører forligsdatoen til computation når der reduceres', () => {
@@ -1018,32 +1062,32 @@ describe('computeEetDifferencekravCalculation — forlig om ansvarsgrad', () => 
   it('reducerer med en procent-faktor', () => {
     const result = buildMedForlig({ factor: 0.5, label: '50 %' });
     const c = result.computation!;
-    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
     expect(c.forligFactor).toBe(0.5);
     expect(c.forligLabel).toBe('50 %');
-    expect(c.differencekrav).toBe(319115);
+    expect(kroner(c.differencekravOre)).toBe(319115);
   });
 
   it('anvender ingen reduktion når forlig er null (intet forlig)', () => {
     const c = buildMedForlig(null).computation!;
-    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
     expect(c.forligFactor).toBeNull();
     expect(c.forligLabel).toBeNull();
-    expect(c.differencekrav).toBe(638230);
+    expect(kroner(c.differencekravOre)).toBe(638230);
   });
 
   it('anvender ingen reduktion når forlig udelades helt (bagudkompatibel)', () => {
     const c = buildMedForlig(undefined).computation!;
     expect(c.forligFactor).toBeNull();
     expect(c.forligLabel).toBeNull();
-    expect(c.differencekrav).toBe(c.differencekravFoerForlig);
+    expect(c.differencekravOre).toBe(c.differencekravFoerForligOre);
   });
 
   it('anvender ingen reduktion og ingen parentes-label ved 100 % (factor = 1)', () => {
     const c = buildMedForlig({ factor: 1, label: '100 %' }).computation!;
-    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
     expect(c.forligFactor).toBeNull();
     expect(c.forligLabel).toBeNull();
-    expect(c.differencekrav).toBe(638230);
+    expect(kroner(c.differencekravOre)).toBe(638230);
   });
 });

@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -168,13 +168,24 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    - `faellesAarsloen`
    - `stamdata`
 2. Undtagelsen gælder togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden" på *Offentlige ydelser*-fanen, samt den virtuelle injection denne toggle aktiverer i EO-beregning og PDF-bilag "Midlertidig EET".
-3. Importen skal kalde samme kanoniske beregningsfunktion som siden `Erhvervsevnetab -> Løbende ydelser`.
-4. Importen må ikke implementeres som en parallel EO-specifik kopi af EET-beregningen.
+3. EET-domænet eksponerer en typed, read-only og Zod-valideret importport, der bygger på samme
+   canonical beregningskerne som EET-snapshottet. EO modtager portens import-context som eksplicit snapshot-input og må ikke læse
+   EET-engines eller deres interne resultatformer direkte.
+4. Importporten og siden `Erhvervsevnetab -> Løbende ydelser` skal bruge samme canonical
+   EET-beregning. De har bevidst hver sin context, fordi EO's TAF-slutdato erstatter
+   EET-beregningsdatoen som afgrænsning i importen. Context-forskellen ejes af EET-porten;
+   importen må ikke implementeres som en parallel EO-specifik kopi eller udløse EET-beregning
+   inde i EO-snapshottet.
 5. Importen må ikke bruge differencekravs-varianten af løbende ydelser.
 6. Importen må kun medtage rækker fra afgørelser med typen `Midlertidig` eller `Delvist endelig`; rækker fra `Endelig` må ikke indgå.
    Ukendte eller kontraktstridige importrelevante afgørelsestyper skal fail-close og rapporteres som blocking issue; de må ikke silently droppes som irrelevante.
 7. Undtagelsen giver kun read-only adgang; EO må ikke skrive tilbage til EET-relaterede sektioner.
-8. Virtuelle rækker injiceres aldrig i committed form-state. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
+8. Importportens pengefelter er `MoneyOre`. EO må først konvertere dem til kroner ved den
+   eksisterende `AmountValue`-grænse, hvor de virtuelle offentlige-ydelsesrækker konstrueres.
+9. Manglende, schema-ugyldig eller runtime-fejlende import-context, mens togglen er aktiveret,
+   skal give en eksplicit blokerende issue. Tilstanden må ikke maskeres som "ingen relevante
+   EET-rækker".
+10. Virtuelle rækker injiceres aldrig i committed form-state. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
 
 ---
 

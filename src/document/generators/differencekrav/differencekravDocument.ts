@@ -34,8 +34,13 @@ import {
   buildKapitaliseringGrundydelseLabel,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
+import {
+  formatCurrencyFromOre,
+  formatCurrencyFromOreTrimmed,
+  resolveDocumentArtifactFileName,
+} from '../../layout/documentFormatUtils';
 import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetDocumentUtils';
+import { toKroner } from '../../../domain/money/money';
 import {
   addLoebendeAfgoerelseSection,
   addLoebendeYdelserEmptyState,
@@ -91,22 +96,22 @@ const addProformaKapitaliseringSection = (
   );
   writer.writeLeftRightText(
     buildKapitaliseringGrundydelseExpression(
-      formatKr(pk.grundloen, 0),
+      formatKr(toKroner(pk.grundloenOre), 0),
       formatKapPct(pk.loebendeEetPct),
       pk.erstatningsniveauPct,
       pk.amBidragPct
     ),
-    formatKr(pk.grundydelse, 2),
+    formatKr(toKroner(pk.grundydelseOre), 2),
     rowOpts
   );
 
-  if (pk.grundydelse2024 !== null && pk.opreguleringTil2024PctRounded4 !== null) {
+  if (pk.grundydelse2024Ore !== null && pk.opreguleringTil2024PctRounded4 !== null) {
     writer.writeWrappedTextContinued(
       `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatAsAmountTrimmed(pk.opreguleringTil2024PctRounded4, 4)} %) =`
     );
     writer.writeLeftRightText(
-      `${formatKr(pk.grundydelse, 2)} × ${formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4)} =`,
-      formatKr(pk.grundydelse2024, 2),
+      `${formatKr(toKroner(pk.grundydelseOre), 2)} × ${formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4)} =`,
+      formatKr(toKroner(pk.grundydelse2024Ore), 2),
       rowOpts
     );
   }
@@ -121,12 +126,12 @@ const addProformaKapitaliseringSection = (
 
   writer.writeLeftRightText(
     buildKapitaliseringAarsydelseExpression(
-      formatKr(pk.aarsydelseGrundlag, 2),
+      formatKr(toKroner(pk.aarsydelseGrundlagOre), 2),
       pk.aarsydelseReguleringsPctRounded4 === null
         ? null
         : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
     ),
-    formatKr(pk.aarsydelse, 2),
+    formatKr(toKroner(pk.aarsydelseOre), 2),
     rowOpts
   );
 
@@ -185,8 +190,8 @@ const addProformaKapitaliseringSection = (
   writer.writeBoldSubheader('Kapitalbeløb');
 
   writer.writeLeftRightText(
-    `Beregnet proformakapitalisering (${formatKr(pk.aarsydelse, 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`,
-    formatKr(pk.proformaBeloeb),
+    `Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`,
+    formatKr(toKroner(pk.proformaBeloebOre)),
     { rightFontStyle: 'bold' as const }
   );
 };
@@ -215,22 +220,22 @@ const addMerErstatningEvent = (
   );
   writer.writeLeftRightText(
     buildKapitaliseringGrundydelseExpression(
-      formatKr(event.grundloen, 0),
+      formatCurrencyFromOreTrimmed(event.grundloenOre),
       formatKapPct(event.kapitaliseringspct),
       event.erstatningsniveauPct,
       event.amBidragPct
     ),
-    formatKr(event.grundydelse, 2),
+    formatCurrencyFromOre(event.grundydelseOre),
     rowOpts
   );
 
-  if (event.grundydelse2024 !== null && event.opreguleringTil2024PctRounded4 !== null) {
+  if (event.grundydelse2024Ore !== null && event.opreguleringTil2024PctRounded4 !== null) {
     writer.writeWrappedTextContinued(
       `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatAsAmountTrimmed(event.opreguleringTil2024PctRounded4, 4)} %) =`
     );
     writer.writeLeftRightText(
-      `${formatKr(event.grundydelse, 2)} × ${formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4)} =`,
-      formatKr(event.grundydelse2024, 2),
+      `${formatCurrencyFromOre(event.grundydelseOre)} × ${formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4)} =`,
+      formatCurrencyFromOre(event.grundydelse2024Ore),
       rowOpts
     );
   }
@@ -245,28 +250,28 @@ const addMerErstatningEvent = (
 
   writer.writeLeftRightText(
     buildKapitaliseringAarsydelseExpression(
-      formatKr(event.aarsydelseGrundlag, 2),
+      formatCurrencyFromOre(event.aarsydelseGrundlagOre),
       event.aarsydelseReguleringsPctRounded4 === null
         ? null
         : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
     ),
-    formatKr(event.aarsydelse, 2),
+    formatCurrencyFromOre(event.aarsydelseOre),
     rowOpts
   );
 
   writer.writeBoldSubheader(`Kapitalværdi til hidtidig folkepensionsalder (${event.gammelAlderLabel})`);
   writer.writeLeftRightText(event.gammel.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.gammel.kapitaliseringsfaktor), rowOpts);
   writer.writeLeftRightText(
-    `Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`,
-    formatKr(event.gammel.kapitalvaerdi, 2),
+    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`,
+    formatCurrencyFromOre(event.gammel.kapitalvaerdiOre),
     rowOpts
   );
 
   writer.writeBoldSubheader(`Kapitalværdi til forhøjet folkepensionsalder (${event.nyAlderLabel})`);
   writer.writeLeftRightText(event.ny.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.ny.kapitaliseringsfaktor), rowOpts);
   writer.writeLeftRightText(
-    `Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`,
-    formatKr(event.ny.kapitalvaerdi, 2),
+    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`,
+    formatCurrencyFromOre(event.ny.kapitalvaerdiOre),
     rowOpts
   );
 
@@ -275,8 +280,8 @@ const addMerErstatningEvent = (
   }
 
   writer.writeLeftRightText(
-    `Mer-erstatning (${formatKr(event.ny.kapitalvaerdi, 2)} − ${formatKr(event.gammel.kapitalvaerdi, 2)})`,
-    formatKr(event.merErstatning),
+    `Mer-erstatning (${formatCurrencyFromOre(event.ny.kapitalvaerdiOre)} − ${formatCurrencyFromOre(event.gammel.kapitalvaerdiOre)})`,
+    formatCurrencyFromOreTrimmed(event.merErstatningOre),
     { rightFontStyle: 'bold' as const }
   );
 };
@@ -324,7 +329,7 @@ const renderDifferencekravPage = (
   );
   writer.writeLeftRightText(
     'Det svarer til et beregnet erhvervsevnetab på:',
-    formatKr(computation.ealKrav),
+    formatKr(toKroner(computation.ealKravOre)),
     rowOpts
   );
 
@@ -361,16 +366,16 @@ const renderDifferencekravPage = (
     writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
     writer.writeWrappedText(typeLabel);
 
-    if (foretages && afgoerelse.beloeb > 0) {
+    if (foretages && afgoerelse.beloebOre > 0) {
       writer.writeLeftRightText(
         `Løbende ydelser (${formatISOToDanish(afgoerelse.virkningsdato)} - ${formatISOToDanish(afgoerelse.fradragesTil)}):`,
-        `- ${formatKr(afgoerelse.beloeb)}`,
+        `- ${formatKr(toKroner(afgoerelse.beloebOre))}`,
         rowOpts
       );
     } else if (!foretages && tvk) {
       writer.writeLeftRightText(
         `Løbende ydelser (${formatISOToDanish(tvk.fra)} - ${formatISOToDanish(tvk.til)}):`,
-        `- ${formatKr(tvk.beloeb)}`,
+        `- ${formatKr(toKroner(tvk.beloebOre))}`,
         rowOpts
       );
     } else if (!foretages && afgoerelse.afgoerelseType === 'Midlertidig') {
@@ -395,13 +400,13 @@ const renderDifferencekravPage = (
     writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
 
     if (
-      afgoerelse.kapitalbelob !== null &&
+      afgoerelse.kapitalbelobOre !== null &&
       afgoerelse.kapitaliseringsdato !== null &&
       afgoerelse.kapitaliseringspct !== null
     ) {
       writer.writeLeftRightText(
         `Kapitaliseret (${formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)}) den ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}:`,
-        `- ${formatKr(afgoerelse.kapitalbelob)}`,
+        `- ${formatKr(toKroner(afgoerelse.kapitalbelobOre))}`,
         rowOpts
       );
     } else if (afgoerelse.kapitaliseringEfterBeregningsdato) {
@@ -424,8 +429,8 @@ const renderDifferencekravPage = (
       const rest = computation.resterendeLoebendeYdelser;
       writer.writeWrappedText('De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes.');
       writer.writeLeftRightText(
-        `${formatMaaneder(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(rest.maanedligYdelse)}/md.`,
-        `- ${formatKr(rest.fradragBeloeb)}`,
+        `${formatMaaneder(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(rest.maanedligYdelseOre))}/md.`,
+        `- ${formatKr(toKroner(rest.fradragBeloebOre))}`,
         rowOpts
       );
     } else if (computation.proformaKapitalisering) {
@@ -433,7 +438,7 @@ const renderDifferencekravPage = (
       writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
       writer.writeLeftRightText(
         `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatISOToDanish(pk.kapitaliseringsdato)}:`,
-        `- ${formatKr(pk.proformaBeloeb)}`,
+        `- ${formatKr(toKroner(pk.proformaBeloebOre))}`,
         rowOpts
       );
     }
@@ -445,7 +450,7 @@ const renderDifferencekravPage = (
     for (const event of computation.merErstatningPensionsalder.events) {
       writer.writeLeftRightText(
         `Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`,
-        `- ${formatKr(event.merErstatning)}`,
+        `- ${formatCurrencyFromOreTrimmed(event.merErstatningOre)}`,
         rowOpts
       );
     }
@@ -464,8 +469,8 @@ const renderDifferencekravPage = (
   }
 
   writer.writeLeftRightText(
-    buildBeregnetDifferencekravLabel(computation.forligLabel, formatKr(computation.differencekravFoerForlig)),
-    formatKr(computation.differencekrav),
+    buildBeregnetDifferencekravLabel(computation.forligLabel, formatKr(toKroner(computation.differencekravFoerForligOre))),
+    formatKr(toKroner(computation.differencekravOre)),
     { rightFontStyle: 'bold' as const }
   );
 };

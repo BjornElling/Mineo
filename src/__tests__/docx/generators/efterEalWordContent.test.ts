@@ -4,6 +4,7 @@ import { generateEfterEalDocument } from '../../../document/generators/eet/eetEf
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
+import { fromKroner } from '../../../domain/money/money';
 
 // Word-indholdstest for EET efter EAL: kører den RIGTIGE generator gennem
 // Word-backenden med et komplet EetEalComputation-fixture og verificerer,
@@ -18,23 +19,23 @@ describe('efterEal → Word-indhold', () => {
           fodselsdato: toISODateString('1980-01-01'),
           skadesaar: 2020,
           beregningsaar: 2026,
-          aarsloen: 400000,
+          aarsloenOre: fromKroner(400000),
           aarsloenSource: 'eal',
           reguleringsaar: [2021, 2022, 2023, 2024, 2025, 2026],
           reguleringsPctRounded4: 12.5,
-          reguleretAarsloen: 450000,
+          reguleretAarsloenOre: fromKroner(450000),
           eetPct: 50,
           eetPctSource: 'eal',
           kapitaliseringsfaktor: 10,
-          eetBeregnet: 2250000,
-          eetMaks: 9999999,
-          eetAnvendt: 2250000,
+          eetBeregnetOre: fromKroner(2250000),
+          eetMaksOre: fromKroner(9999999),
+          eetAnvendtOre: fromKroner(2250000),
           eetReduceretTilMaks: false,
           alderVedSkade: 40,
           alderVedSkadeCapped: 40,
           aldersreduktionPct: 5,
-          aldersreduktionBeloeb: 112500,
-          ealKrav: 2137500,
+          aldersreduktionBeloebOre: fromKroner(112500),
+          ealKravOre: fromKroner(2137500),
         } satisfies EetEalComputation,
         visBrevhoved: false,
       });

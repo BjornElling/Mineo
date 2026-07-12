@@ -31,6 +31,7 @@ import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
+import { toKroner } from '../../../domain/money/money';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
@@ -184,7 +185,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Årsløn</Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatKr(computation.benyttetAarsloen)}</Typography>
+                    <Typography className="row--text">{formatKr(toKroner(computation.benyttetAarsloenOre))}</Typography>
                   </Box>
                 </Box>
 
@@ -243,15 +244,15 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                           formatISOToDanish(row.fra),
                           formatISOToDanish(row.til),
                           formatMaaneder(row.maanederPraecis),
-                          formatKr(row.grundydelseAfrundet, 2),
+                          formatKr(toKroner(row.grundydelseAfrundetOre), 2),
                           formatRegulering(row.reguleringPct),
-                          formatKr(row.maanedligYdelse),
-                          formatKr(row.beregnetEet),
+                          formatKr(toKroner(row.maanedligYdelseOre)),
+                          formatKr(toKroner(row.beregnetEetOre)),
                         ],
                       })),
                       {
                         key: `${afgoerelse.rowId}-i-alt`,
-                        cells: ['I alt', '', '', '', '', '', formatKr(afgoerelse.iAltBeregnetEet)],
+                        cells: ['I alt', '', '', '', '', '', formatKr(toKroner(afgoerelse.iAltBeregnetEetOre))],
                         rowSx: { '& .MuiTableCell-root': { fontWeight: 700 } },
                       },
                     ]}
@@ -269,7 +270,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
             <Box className="row--label-right-hover">
               <Typography className="row--text">ASL-årsløn</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(computation.benyttetAarsloen)}</Typography>
+                <Typography className="row--text">{formatKr(toKroner(computation.benyttetAarsloenOre))}</Typography>
               </Box>
             </Box>
 
@@ -280,10 +281,10 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                 <HoverRow text="Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
+                    {`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatKr(computation.grundloen)}</Typography>
+                    <Typography className="row--text">{formatKr(toKroner(computation.grundloenOre))}</Typography>
                   </Box>
                 </Box>
               </>
@@ -292,10 +293,10 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                 <HoverRow text="Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
+                    {`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatKr(computation.grundloen)}</Typography>
+                    <Typography className="row--text">{formatKr(toKroner(computation.grundloenOre))}</Typography>
                   </Box>
                 </Box>
               </>
@@ -348,21 +349,21 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                   : 'Resterende EET efter kapitalisering';
               const grundydelseFormula =
                 computation.erstatningsniveauPct === 83
-                  ? `Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = ${formatKr(computation.grundloen)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 83 % × 92 % =`
-                  : `Grundløn × EET × Erstatningsniveau = ${formatKr(computation.grundloen)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 80 % =`;
+                  ? `Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = ${formatKr(toKroner(computation.grundloenOre))} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 83 % × 92 % =`
+                  : `Grundløn × EET × Erstatningsniveau = ${formatKr(toKroner(computation.grundloenOre))} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 80 % =`;
 
               const primaryGrundydelse =
                 computation.grundloenNiveau === '2024'
-                  ? afgoerelse.grundydelse2024Fuld
-                  : afgoerelse.grundydelseFuld;
-              const restGrundydelse2003 = afgoerelse.grundydelseRest ?? afgoerelse.grundydelseFuld;
-              const restGrundydelse2024 = afgoerelse.grundydelse2024Rest ?? afgoerelse.grundydelse2024Fuld;
+                  ? afgoerelse.grundydelse2024FuldOre
+                  : afgoerelse.grundydelseFuldOre;
+              const restGrundydelse2003 = afgoerelse.grundydelseRestOre ?? afgoerelse.grundydelseFuldOre;
+              const restGrundydelse2024 = afgoerelse.grundydelse2024RestOre ?? afgoerelse.grundydelse2024FuldOre;
               const grundydelse2003BaseFor2024 = hasRestAfterKapBefore2024
                 ? restGrundydelse2003
-                : afgoerelse.grundydelseFuld;
+                : afgoerelse.grundydelseFuldOre;
               const grundydelse2024Result = hasRestAfterKapBefore2024
                 ? restGrundydelse2024
-                : afgoerelse.grundydelse2024Fuld;
+                : afgoerelse.grundydelse2024FuldOre;
 
               return (
                 <Box key={`grundydelse-${afgoerelse.rowId}`} sx={{ mt: 2 }}>
@@ -393,7 +394,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">{grundydelseFormula}</Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{formatKr(primaryGrundydelse, 2)}</Typography>
+                      <Typography className="row--text">{formatKr(toKroner(primaryGrundydelse), 2)}</Typography>
                     </Box>
                   </Box>
                   {showRest2003 && (
@@ -402,7 +403,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                         {restTextPrefix}
                       </Typography>
                       <Box className="row--label-right-hover__content">
-                        <Typography className="row--text">{formatKr(restGrundydelse2003, 2)}</Typography>
+                        <Typography className="row--text">{formatKr(toKroner(restGrundydelse2003), 2)}</Typography>
                       </Box>
                     </Box>
                   )}
@@ -411,9 +412,9 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                     <>
                       <HoverRow underlined text="Grundydelse fra 1. januar 2024" />
                       <Box className="row--label-right-hover">
-                        <Typography className="row--text">{`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}): ${formatKr(grundydelse2003BaseFor2024, 2)} × ${reguleringFoer2024FaktorTekst} =`}</Typography>
+                        <Typography className="row--text">{`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}): ${formatKr(toKroner(grundydelse2003BaseFor2024), 2)} × ${reguleringFoer2024FaktorTekst} =`}</Typography>
                         <Box className="row--label-right-hover__content">
-                          <Typography className="row--text">{formatKr(grundydelse2024Result, 2)}</Typography>
+                          <Typography className="row--text">{formatKr(toKroner(grundydelse2024Result), 2)}</Typography>
                         </Box>
                       </Box>
                       {showRest2024 && (
@@ -422,7 +423,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                             {restTextPrefix}
                           </Typography>
                           <Box className="row--label-right-hover__content">
-                            <Typography className="row--text">{formatKr(restGrundydelse2024, 2)}</Typography>
+                            <Typography className="row--text">{formatKr(toKroner(restGrundydelse2024), 2)}</Typography>
                           </Box>
                         </Box>
                       )}

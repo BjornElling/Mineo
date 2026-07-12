@@ -3,21 +3,14 @@ import type { Forligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
-// Disse tabeller importeres direkte fordi computeEetDifferencekravCalculation selv kører
-// sub-beregningerne for fane 3 og 4 og sender dem videre som parametre. Dette bryder
-// parametrerings-mønsteret i de øvrige beregningsfunktioner, men er en bevidst trade-off:
-// differencekrav-beregningen er det naturlige aggregeringspunkt og kalder selv de andre.
 import {
-  aarsloenAslMax,
-  erhvervsevnetabEalMax,
-  reguleringssats,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/lovbestemteRates';
 import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { getDayBeforeIso, isoYear } from '../../utils/isoDateHelpers';
+import { isoYear } from '../../utils/isoDateHelpers';
 import { parseCommittedPercent } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
@@ -31,13 +24,13 @@ import {
 } from './eetKapitaliseringOpslag';
 import { ceil0, ceilNearest12, round0, round2, round3 } from '../../utils/roundingShortcuts';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2015_03_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
-import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
-import { computeEetEalCalculation } from './eetEalCalculation';
 import {
-  computeEetKapitaliseringCalculation,
   resolveKapitaliseringAarsydelseBreakdown,
   WARN_NO_KAP_INPUT_ID,
 } from './eetKapitaliseringCalculation';
+import type { EetKapitaliseringCalculationResult } from './eetKapitaliseringCalculation';
+import type { EetEalCalculationResult } from './eetEalCalculation';
+import type { EetLoebendeCalculationResult } from './eetLoebendeYdelserCalculation';
 import {
   computeMerErstatningPensionsalder,
   type MerErstatningPensionsalderComputation,
@@ -45,6 +38,15 @@ import {
 import { hasTextValue } from './eetAslAfgoerelser';
 import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
+import {
+  clampMoneyOreToZero,
+  fromKroner,
+  subtractMoneyOre,
+  sumMoneyOre,
+  toKroner,
+  zeroMoneyOre,
+  type MoneyOre,
+} from '../money/money';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,7 +57,7 @@ export type EetDifferencekravLoebendeAfgoerelse = Readonly<{
   afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig';
   eetPct: number;
   fradragesTil: ISODateString;
-  beloeb: number;
+  beloebOre: MoneyOre;
   fradragForetages: boolean;
   // Sat når en midlertidig afgørelse gøres endelig med tilbagevirkende kraft (toggle):
   // dens egen løbende ydelse fradrages fra den endelige afgørelses virkningsdato og frem.
@@ -68,7 +70,7 @@ export type EetDifferencekravTilbagevirkendeKraftFradrag = Readonly<{
   endeligVirkningsdato: ISODateString;
   fra: ISODateString;
   til: ISODateString;
-  beloeb: number;
+  beloebOre: MoneyOre;
 }>;
 
 export type EetDifferencekravKapitaliseretAfgoerelse = Readonly<{
@@ -77,7 +79,7 @@ export type EetDifferencekravKapitaliseretAfgoerelse = Readonly<{
   // null = ikke kapitaliseret
   kapitaliseringsdato: ISODateString | null;
   kapitaliseringspct: number | null;
-  kapitalbelob: number | null;
+  kapitalbelobOre: MoneyOre | null;
   // true = kapitalisering er angivet, men datoen er efter beregningsdatoen og medregnes ikke
   kapitaliseringEfterBeregningsdato: boolean;
 }>;
@@ -85,15 +87,15 @@ export type EetDifferencekravKapitaliseretAfgoerelse = Readonly<{
 export type EetDifferencekravProformaKapitalisering = Readonly<{
   loebendeEetPct: number;
   kapitaliseringsdato: ISODateString;
-  grundloen: number;
+  grundloenOre: MoneyOre;
   erstatningsniveauPct: number;
   amBidragPct: number;
-  grundydelse: number;
-  grundydelse2024: number | null;
+  grundydelseOre: MoneyOre;
+  grundydelse2024Ore: MoneyOre | null;
   opreguleringTil2024PctRounded4: number | null;
-  aarsydelseGrundlag: number;
+  aarsydelseGrundlagOre: MoneyOre;
   aarsydelseReguleringsPctRounded4: number | null;
-  aarsydelse: number;
+  aarsydelseOre: MoneyOre;
   kapitaliseringsbekendtgoerelseLabel: string;
   folkepensionsalderLabel: string;
   alderAar: number;
@@ -102,7 +104,7 @@ export type EetDifferencekravProformaKapitalisering = Readonly<{
   faktorMaanedsAfhaengig: boolean;
   saerfaktor: number | null;
   kapitaliseringsfaktor: number;
-  proformaBeloeb: number;
+  proformaBeloebOre: MoneyOre;
   koenOpdelt: boolean;
 }>;
 
@@ -110,10 +112,10 @@ export type EetDifferencekravResterendeLoebendeYdelser = Readonly<{
   loebendeEetPct: number;
   beregningsdato: ISODateString;
   dagenFoerFolkepensionsdato: ISODateString;
-  aarsydelse: number;
-  maanedligYdelse: number;
+  aarsydelseOre: MoneyOre;
+  maanedligYdelseOre: MoneyOre;
   tilbageraevendeMaaneder: number;
-  fradragBeloeb: number;
+  fradragBeloebOre: MoneyOre;
 }>;
 
 export type EetDifferencekravComputation = Readonly<{
@@ -122,10 +124,10 @@ export type EetDifferencekravComputation = Readonly<{
   dagFoerBeregningsdato: ISODateString;
   // true = skadedato < 2011-06-16: fradrag for midlertidige/delvist endelige ydelser foretages
   fradragGaelderForFoer2011: boolean;
-  ealKrav: number;
+  ealKravOre: MoneyOre;
   ealEetPct: number;
-  fradragLoebendeYdelser: number;
-  fradragKapitaliseretEet: number;
+  fradragLoebendeYdelserOre: MoneyOre;
+  fradragKapitaliseretEetOre: MoneyOre;
   // Fradrag 3-invariant: højst ét af proformaKapitalisering og resterendeLoebendeYdelser må være non-null.
   proformaKapitalisering: EetDifferencekravProformaKapitalisering | null;
   resterendeLoebendeYdelser: EetDifferencekravResterendeLoebendeYdelser | null;
@@ -133,7 +135,7 @@ export type EetDifferencekravComputation = Readonly<{
   // eller ingen forhøjelse kvalificerer.
   merErstatningPensionsalder: MerErstatningPensionsalderComputation | null;
   // Differencekrav før forlig om ansvarsgrad anvendes (det fulde, ureducerede krav).
-  differencekravFoerForlig: number;
+  differencekravFoerForligOre: MoneyOre;
   // Forlig om ansvarsgrad: faktor (< 1) og label ("2/3"/"50 %") når et gyldigt forlig under 100 %
   // er angivet. Ved intet forlig / 100 % er begge null, og differencekrav === differencekravFoerForlig.
   forligFactor: number | null;
@@ -143,7 +145,7 @@ export type EetDifferencekravComputation = Readonly<{
   forligDato: ISODateString | null;
   // Endeligt differencekrav efter forlig om ansvarsgrad (= differencekravFoerForlig × forligFactor,
   // eller differencekravFoerForlig når der ikke reduceres).
-  differencekrav: number;
+  differencekravOre: MoneyOre;
   afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[];
   kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
   // Sub-beregninger til brug i bilag-PDF'er
@@ -152,15 +154,13 @@ export type EetDifferencekravComputation = Readonly<{
   ealComputation: import('./eetEalCalculation').EetEalComputation | null;
 }>;
 
-/** hasBlockingErrors er eksplicit her fordi differencekrav-fanen bruger den direkte;
- *  de øvrige faner udleder den fra issues.some(). */
 export type EetDifferencekravCalculationResult = Readonly<{
   issues: readonly EetIssue[];
   computation: EetDifferencekravComputation | null;
   hasBlockingErrors: boolean;
 }>;
 
-type Input = Readonly<{
+export type EetDifferencekravInput = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
@@ -176,6 +176,13 @@ type Input = Readonly<{
   forlig?: Forligsgrad;
   // Forligsdato (delt kilde med EO) — kun til prosa-sætningen. Udeladt/undefined = ingen dato.
   forligDato?: ISODateString;
+  dependencies: Readonly<{
+    filteredErhvervsevnetab: ErhvervsevnetabComposedValues;
+    ealResult: EetEalCalculationResult;
+    kapResult: EetKapitaliseringCalculationResult;
+    loebendeResult: EetLoebendeCalculationResult | null;
+    dagFoerBeregningsdato: ISODateString | null;
+  }>;
 }>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -200,7 +207,7 @@ const hasAnyEetPctInput = (values: ErhvervsevnetabComposedValues): boolean => {
   });
 };
 
-const filterAslRowsKnownAtBeregningsdato = (
+export const filterAslRowsKnownAtBeregningsdato = (
   rows: readonly ErhvervsevnetabComposedValues['aslAfgoerelser'][number][],
   beregningsdato: ISODateString | undefined
 ): readonly ErhvervsevnetabComposedValues['aslAfgoerelser'][number][] => {
@@ -300,7 +307,7 @@ const computeProformaKapitalisering = (
     beregningsdato: ISODateString;
     skadedato: ISODateString;
     fodselsdato: ISODateString;
-    grundloen: number;
+    grundloenOre: MoneyOre;
     erstatningsniveau: number;
     amFaktor: number;
     before2024Skade: boolean;
@@ -426,7 +433,7 @@ const computeProformaKapitalisering = (
   const kapitaliseringsaar = isoYear(beregningsdato);
   const aarsydelseBreakdown = resolveKapitaliseringAarsydelseBreakdown(
     {
-      grundloen: args.grundloen,
+      grundloenOre: args.grundloenOre,
       kapitaliseringspct: loebendeEetPct,
       erstatningsniveau: args.erstatningsniveau,
       amFaktor: args.amFaktor,
@@ -437,21 +444,23 @@ const computeProformaKapitalisering = (
   );
   if (!aarsydelseBreakdown || kapitaliseringsfaktor === null) return null;
 
-  const proformaBeloeb = ceil0(aarsydelseBreakdown.aarsydelse * kapitaliseringsfaktor);
+  const proformaBeloebOre = fromKroner(
+    ceil0(toKroner(aarsydelseBreakdown.aarsydelseOre) * kapitaliseringsfaktor)
+  );
   const typeLabel = tabeldata.kapitaliseringsType === 'vejl' ? 'Vejl.' : 'Bkg.';
 
   return {
     loebendeEetPct,
     kapitaliseringsdato: beregningsdato,
-    grundloen: args.grundloen,
+    grundloenOre: args.grundloenOre,
     erstatningsniveauPct: round0(args.erstatningsniveau * 100),
     amBidragPct: round0((1 - args.amFaktor) * 100),
-    grundydelse: aarsydelseBreakdown.grundydelse,
-    grundydelse2024: aarsydelseBreakdown.grundydelse2024,
+    grundydelseOre: aarsydelseBreakdown.grundydelseOre,
+    grundydelse2024Ore: aarsydelseBreakdown.grundydelse2024Ore,
     opreguleringTil2024PctRounded4: aarsydelseBreakdown.opreguleringTil2024PctRounded4,
-    aarsydelseGrundlag: aarsydelseBreakdown.aarsydelseGrundlag,
+    aarsydelseGrundlagOre: aarsydelseBreakdown.aarsydelseGrundlagOre,
     aarsydelseReguleringsPctRounded4: aarsydelseBreakdown.aarsydelseReguleringsPctRounded4,
-    aarsydelse: aarsydelseBreakdown.aarsydelse,
+    aarsydelseOre: aarsydelseBreakdown.aarsydelseOre,
     kapitaliseringsbekendtgoerelseLabel: `${typeLabel} ${controlBekId}, tabel ${tabelvalg.tabel}`,
     folkepensionsalderLabel: tabelvalg.folkepensionsalderLabel,
     alderAar: age.years,
@@ -460,7 +469,7 @@ const computeProformaKapitalisering = (
     faktorMaanedsAfhaengig,
     saerfaktor,
     kapitaliseringsfaktor,
-    proformaBeloeb,
+    proformaBeloebOre,
     koenOpdelt,
   };
 };
@@ -470,7 +479,7 @@ const computeResterendeLoebendeYdelser = (
     loebendeEetPct: number;
     beregningsdato: ISODateString;
     fodselsdato: ISODateString;
-    grundloen: number;
+    grundloenOre: MoneyOre;
     erstatningsniveau: number;
     amFaktor: number;
     before2024Skade: boolean;
@@ -488,7 +497,7 @@ const computeResterendeLoebendeYdelser = (
 
   const beregningsaar = isoYear(args.beregningsdato);
   const grundydelse = round2(
-    args.grundloen * (args.loebendeEetPct / 100) * args.erstatningsniveau * args.amFaktor
+    toKroner(args.grundloenOre) * (args.loebendeEetPct / 100) * args.erstatningsniveau * args.amFaktor
   );
   const grundydelse2024 = args.before2024Skade
     ? round2(grundydelse * (1 + (reguleringsprocentErhvervsevnetabFoer2024[2024] ?? Number.NaN) / 100))
@@ -515,10 +524,10 @@ const computeResterendeLoebendeYdelser = (
     loebendeEetPct: args.loebendeEetPct,
     beregningsdato: args.beregningsdato,
     dagenFoerFolkepensionsdato,
-    aarsydelse,
-    maanedligYdelse,
+    aarsydelseOre: fromKroner(aarsydelse),
+    maanedligYdelseOre: fromKroner(maanedligYdelse),
     tilbageraevendeMaaneder,
-    fradragBeloeb,
+    fradragBeloebOre: fromKroner(fradragBeloeb),
   };
 };
 
@@ -605,74 +614,46 @@ const computeTilbagevirkendeKraftFradrag = (
     return null;
   }
 
-  let beloeb = 0;
+  const beloebParts: MoneyOre[] = [];
   for (const row of midlertidig.perioder) {
     if (row.til < endeligVirkningsdato) continue;
     if (row.fra >= endeligVirkningsdato) {
-      beloeb += row.beregnetEet;
+      beloebParts.push(row.beregnetEetOre);
       continue;
     }
     // Rækken krydser den endelige virkningsdato — medregn kun delen fra og med den dato.
     const maaneder = sumMaanedsbroekForInterval(endeligVirkningsdato, row.til);
-    beloeb += round0(maaneder * row.maanedligYdelse);
+    beloebParts.push(fromKroner(round0(maaneder * toKroner(row.maanedligYdelseOre))));
   }
 
-  if (beloeb <= 0) return null;
+  const beloebOre = sumMoneyOre(beloebParts);
+  if (beloebOre <= 0) return null;
 
   return {
     endeligVirkningsdato,
     fra: endeligVirkningsdato,
     til: midlertidig.ophoerDato,
-    beloeb,
+    beloebOre,
   };
 };
 
 // ─── Beregning ────────────────────────────────────────────────────────────────
 
-export const computeEetDifferencekravCalculation = (input: Input): EetDifferencekravCalculationResult => {
+export const composeEetDifferencekravCalculation = (
+  input: EetDifferencekravInput
+): EetDifferencekravCalculationResult => {
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
   const skadedato = input.skadedato;
   const fodselsdato = input.skadelidteFodselsdato;
   const hasAnyPctInput = hasAnyEetPctInput(input.erhvervsevnetab);
   const aslRowsAnalysis = analyzeAslRowsAtBeregningsdato(input.erhvervsevnetab.aslAfgoerelser, beregningsdato);
-  const aslRowsKnownAtBeregningsdato = filterAslRowsKnownAtBeregningsdato(input.erhvervsevnetab.aslAfgoerelser, beregningsdato);
-  const filteredErhvervsevnetab = {
-    ...input.erhvervsevnetab,
-    aslAfgoerelser: [...aslRowsKnownAtBeregningsdato],
-  };
-
-  // ─── Kør eal-beregning (fane 4) ───────────────────────────────────────────
-  const ealResult = computeEetEalCalculation({
-    erhvervsevnetab: filteredErhvervsevnetab,
-    skadedato,
-    skadelidteFodselsdato: fodselsdato,
-    reguleringssats,
-    erhvervsevnetabEalMax,
-    aarsloenAslMax,
-  });
-
-  // ─── Kør kapitaliserings-beregning (fane 3) ───────────────────────────────
-  const kapResult = computeEetKapitaliseringCalculation({
-    erhvervsevnetab: filteredErhvervsevnetab,
-    skadedato,
-    skadelidteFodselsdato: fodselsdato,
-  });
-
-  // ─── Kør løbende ydelser med ophørsdato = beregningsdato − 1 dag ─────────
-  let loebendeResult: ReturnType<typeof computeEetLoebendeYdelser> | null = null;
-  let dagFoerBeregningsdato: ISODateString | null = null;
-
-  if (beregningsdato) {
-    const dayBefore = getDayBeforeIso(beregningsdato);
-    if (dayBefore) {
-      dagFoerBeregningsdato = dayBefore;
-      loebendeResult = computeEetLoebendeYdelser({
-        erhvervsevnetab: { ...filteredErhvervsevnetab, beregningsdato: dayBefore },
-        skadedato,
-        skadelidteFodselsdato: fodselsdato,
-      });
-    }
-  }
+  const aslRowsKnownAtBeregningsdato = input.dependencies.filteredErhvervsevnetab.aslAfgoerelser;
+  const {
+    ealResult,
+    kapResult,
+    loebendeResult,
+    dagFoerBeregningsdato,
+  } = input.dependencies;
 
   // ─── Aggreger issues fra fane 2, 3 og 4 ──────────────────────────────────
   const allSourceIssues: EetIssue[] = [];
@@ -711,7 +692,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     const amFaktor = from2011 ? 0.92 : 1;
     // Grundlønnen genbruges fra fane 2's computation frem for at rekonstruere den lokalt.
     // Invariant: loebendeEetPct kan kun blive > 0 når loebendeComputation findes; ?? 0 er kun defensivt.
-    const grundloen = loebendeComputation?.grundloen ?? 0;
+    const grundloenOre = loebendeComputation?.grundloenOre ?? zeroMoneyOre();
 
     // Bestem løbende EET-pct til fradrag 3.
     // Afgørelseslisten hentes fra løbende-computation til tie-breaking (seneste afgørelse).
@@ -726,7 +707,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       ? resolveLoebendeEetPct(loebendeComputation.afgoerelser, kapitaliseringerForProforma)
       : 0;
 
-    if (loebendeEetPct > 0 && grundloen > 0) {
+    if (loebendeEetPct > 0 && grundloenOre > 0) {
       const beregningUnderEllerLigeToAarTilFp = isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
         skadedato,
         fodselsdato,
@@ -739,7 +720,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
             loebendeEetPct,
             beregningsdato,
             fodselsdato,
-            grundloen,
+            grundloenOre,
             erstatningsniveau,
             amFaktor,
             before2024Skade,
@@ -753,7 +734,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
             beregningsdato,
             skadedato,
             fodselsdato,
-            grundloen,
+            grundloenOre,
             erstatningsniveau,
             amFaktor,
             before2024Skade,
@@ -806,22 +787,29 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     ? aggregatedIssues.filter((issue) => issue.id !== 'eet-pct-missing')
     : aggregatedIssues;
 
-  const blockingErrors = finalIssues.filter((issue) => issue.severity === 'error');
+  const manglerBeregningsforudsaetning =
+    !ealResult.computation || !beregningsdato || !skadedato || !fodselsdato || !dagFoerBeregningsdato;
+  const issuesWithBlockingInvariant = manglerBeregningsforudsaetning
+    && !finalIssues.some((issue) => issue.severity === 'error')
+    ? [...finalIssues, toIssue(
+      'differencekrav-beregningsgrundlag-missing',
+      'Differencekravet kan ikke beregnes, fordi beregningsgrundlaget er ufuldstændigt.'
+    )]
+    : finalIssues;
+  const hasBlockingErrors = issuesWithBlockingInvariant.some((issue) => issue.severity === 'error');
 
-  const hasBlockingErrors = blockingErrors.length > 0;
-
-  if (hasBlockingErrors || !ealResult.computation || !beregningsdato || !skadedato || !fodselsdato || !dagFoerBeregningsdato) {
-    return { issues: finalIssues, computation: null, hasBlockingErrors };
+  if (hasBlockingErrors || manglerBeregningsforudsaetning) {
+    return { issues: issuesWithBlockingInvariant, computation: null, hasBlockingErrors };
   }
 
   const loebendeComputation = loebendeResult?.computation ?? null;
 
   // ─── Fradrag 1: Løbende ydelser ───────────────────────────────────────────
-  const ealKrav = ealResult.computation.ealKrav;
+  const ealKravOre = ealResult.computation.ealKravOre;
   const ealEetPct = ealResult.computation.eetPct;
 
   const loebendeAfgoerelser: EetDifferencekravLoebendeAfgoerelse[] = [];
-  let fradragLoebendeYdelser = 0;
+  const fradragLoebendeYdelserParts: MoneyOre[] = [];
 
   if (loebendeComputation) {
     // Sorter afgørelser på virkningsdato for at kunne bestemme slutdato per afgørelse:
@@ -851,8 +839,8 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       const fradragesTil = afgoerelse.ophoerDato;
 
       const foretages = skalFradragForetages(afgoerelse.afgoerelseType, skadedato);
-      const beloeb = foretages ? afgoerelse.iAltBeregnetEet : 0;
-      fradragLoebendeYdelser += beloeb;
+      const beloebOre = foretages ? afgoerelse.iAltBeregnetEetOre : zeroMoneyOre();
+      fradragLoebendeYdelserParts.push(beloebOre);
 
       // Tilbagevirkende kraft: en midlertidig afgørelse, der ellers ikke fradrages, får
       // sin egen løbende ydelse fradraget fra den endelige afgørelses virkningsdato og frem.
@@ -867,7 +855,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
           tidligsteEndeligVirkningsdato
         );
         if (tilbagevirkendeKraftFradrag) {
-          fradragLoebendeYdelser += tilbagevirkendeKraftFradrag.beloeb;
+          fradragLoebendeYdelserParts.push(tilbagevirkendeKraftFradrag.beloebOre);
         }
       }
 
@@ -878,7 +866,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         afgoerelseType: afgoerelse.afgoerelseType,
         eetPct: afgoerelse.eetPct,
         fradragesTil,
-        beloeb,
+        beloebOre,
         fradragForetages: foretages,
         tilbagevirkendeKraftFradrag,
       });
@@ -887,7 +875,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
 
   // ─── Fradrag 2: Kapitaliseret EET ─────────────────────────────────────────
   const kapAfgoerelser: EetDifferencekravKapitaliseretAfgoerelse[] = [];
-  let fradragKapitaliseretEet = 0;
+  const fradragKapitaliseretEetParts: MoneyOre[] = [];
 
   const aslRowsForDisplay = aslRowsKnownAtBeregningsdato
     .filter((row) => {
@@ -901,13 +889,13 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       // Er kapitaliseringsdatoen efter beregningsdatoen, vises afgørelsen som "ikke kapitaliseret
       // på beregningsdatoen" og bidrager ikke til fradragKapitaliseretEet.
       if (kapComp && kapComp.kapitaliseringsdato <= beregningsdato) {
-        fradragKapitaliseretEet += kapComp.kapitalbelob;
+        fradragKapitaliseretEetParts.push(kapComp.kapitalbelobOre);
         return {
           rowId: row.id,
           afgoerelsesdato,
           kapitaliseringsdato: kapComp.kapitaliseringsdato,
           kapitaliseringspct: kapComp.kapitaliseringspct,
-          kapitalbelob: kapComp.kapitalbelob,
+          kapitalbelobOre: kapComp.kapitalbelobOre,
           kapitaliseringEfterBeregningsdato: false,
         };
       }
@@ -917,7 +905,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
           afgoerelsesdato,
           kapitaliseringsdato: null as ISODateString | null,
           kapitaliseringspct: null as number | null,
-          kapitalbelob: null as number | null,
+          kapitalbelobOre: null,
           kapitaliseringEfterBeregningsdato: true,
         };
       }
@@ -926,7 +914,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         afgoerelsesdato,
         kapitaliseringsdato: null as ISODateString | null,
         kapitaliseringspct: null as number | null,
-        kapitalbelob: null as number | null,
+        kapitalbelobOre: null,
         kapitaliseringEfterBeregningsdato: false,
       };
     })
@@ -949,7 +937,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         afgoerelsesdato: a.afgoerelsesdato,
         kapitaliseringsdato: a.kapitaliseringsdato,
         kapitaliseringspct: a.kapitaliseringspct,
-        grundloen: a.grundloen,
+        grundloenOre: a.grundloenOre,
         erstatningsniveauPct: a.erstatningsniveauPct,
         amBidragPct: a.amBidragPct,
       }));
@@ -976,14 +964,22 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   }
 
   // ─── Differencekrav før forlig ────────────────────────────────────────────
-  const differencekravFoerForlig = Math.max(
-    0,
-    round0(
-      ealKrav
-      - fradragLoebendeYdelser
-      - fradragKapitaliseretEet
-      - (proformaKapitalisering?.proformaBeloeb ?? resterendeLoebendeYdelser?.fradragBeloeb ?? 0)
-      - (merErstatningPensionsalder?.samletMerErstatning ?? 0)
+  const fradragLoebendeYdelserOre = sumMoneyOre(fradragLoebendeYdelserParts);
+  const fradragKapitaliseretEetOre = sumMoneyOre(fradragKapitaliseretEetParts);
+  const fradragRestOre = proformaKapitalisering?.proformaBeloebOre
+    ?? resterendeLoebendeYdelser?.fradragBeloebOre
+    ?? zeroMoneyOre();
+  const merErstatningOre = merErstatningPensionsalder?.samletMerErstatningOre ?? zeroMoneyOre();
+  const differencekravFoerForligOre = clampMoneyOreToZero(
+    subtractMoneyOre(
+      subtractMoneyOre(
+        subtractMoneyOre(
+          subtractMoneyOre(ealKravOre, fradragLoebendeYdelserOre),
+          fradragKapitaliseretEetOre
+        ),
+        fradragRestOre
+      ),
+      merErstatningOre
     )
   );
 
@@ -995,30 +991,30 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   const forligFactor = reducerer ? input.forlig!.factor : null;
   const forligLabel = reducerer ? input.forlig!.label : null;
   const forligDato = reducerer ? (input.forligDato ?? null) : null;
-  const differencekrav = forligFactor !== null
-    ? Math.max(0, round0(differencekravFoerForlig * forligFactor))
-    : differencekravFoerForlig;
+  const differencekravOre = forligFactor !== null
+    ? fromKroner(round0(toKroner(differencekravFoerForligOre) * forligFactor))
+    : differencekravFoerForligOre;
 
   return {
-    issues: finalIssues,
+    issues: issuesWithBlockingInvariant,
     hasBlockingErrors: false,
     computation: {
       beregningsdato,
       skadedato,
       dagFoerBeregningsdato,
       fradragGaelderForFoer2011: skadedato < SKAERING_2011_06_16,
-      ealKrav,
+      ealKravOre,
       ealEetPct,
-      fradragLoebendeYdelser,
-      fradragKapitaliseretEet,
+      fradragLoebendeYdelserOre,
+      fradragKapitaliseretEetOre,
       proformaKapitalisering,
       resterendeLoebendeYdelser,
       merErstatningPensionsalder,
-      differencekravFoerForlig,
+      differencekravFoerForligOre,
       forligFactor,
       forligLabel,
       forligDato,
-      differencekrav,
+      differencekravOre,
       afgoerelser: loebendeAfgoerelser,
       kapitaliseringerAfgoerelser: kapAfgoerelser,
       loebendeComputation: loebendeResult?.computation ?? null,

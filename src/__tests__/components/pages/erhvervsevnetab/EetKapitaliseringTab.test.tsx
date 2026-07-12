@@ -6,6 +6,7 @@ import EetKapitaliseringTab from '../../../../components/pages/erhvervsevnetab/E
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { toISODateString } from '../../../../types/branded';
 import type { EetKapitaliseringAfgoerelseComputation } from '../../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import { fromKroner } from '../../../../domain/money/money';
 
 vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({ settings: {} }),
@@ -24,15 +25,15 @@ const baseAfgoerelse: EetKapitaliseringAfgoerelseComputation = {
   afgoerelsesdato: toISODateString('2025-01-01'),
   kapitaliseringsdato: toISODateString('2025-01-01'),
   kapitaliseringspct: 100,
-  grundloen: 320000,
+  grundloenOre: fromKroner(320000),
   erstatningsniveauPct: 80,
   amBidragPct: 8,
-  grundydelse: 256000,
-  grundydelse2024: 260000,
+  grundydelseOre: fromKroner(256000),
+  grundydelse2024Ore: fromKroner(260000),
   opreguleringTil2024PctRounded4: 1.5,
-  aarsydelseGrundlag: 260000,
+  aarsydelseGrundlagOre: fromKroner(260000),
   aarsydelseReguleringsPctRounded4: 2.5,
-  aarsydelse: 266500,
+  aarsydelseOre: fromKroner(266500),
   kapitaliseringsbekendtgoerelseLabel: 'Bekendtgørelse 2024',
   tabelLabel: 'Tabel A',
   folkepensionsalderLabel: '69 år',
@@ -42,7 +43,7 @@ const baseAfgoerelse: EetKapitaliseringAfgoerelseComputation = {
   kapitaliseretPgaUnderToAarTilFp: false,
   faktorMaanedsAfhaengig: false,
   kapitaliseringsfaktor: 10,
-  kapitalbelob: 2665000,
+  kapitalbelobOre: fromKroner(2665000),
   koenOpdelt: true,
 };
 

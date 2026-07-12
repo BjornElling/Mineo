@@ -5,6 +5,7 @@ import { opregulerMedAslAarsloensmaksimum } from '../../../domain/satser/opregul
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { toISODateString } from '../../../types/branded';
+import { toKroner } from '../../../domain/money/money';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -449,11 +450,13 @@ describe('computeForsoergertabCalculation — minimumssats', () => {
 
     expect(result.ealComputation).not.toBeNull();
     expect(result.foersoergertabForhoejtetTilMin).toBe(true);
-    expect(result.foersoergertabEalMinSats).toBe(1239000);
+    expect(toKroner(result.foersoergertabEalMinSatsOre!)).toBe(1239000);
+    expect(result.foersoergertabEalMinSatsOre).toBe(123900000);
     // eetAnvendt skal være sat til minimumssatsen
-    expect(result.ealComputation!.eetAnvendt).toBe(1239000);
+    expect(toKroner(result.ealComputation!.eetAnvendtOre)).toBe(1239000);
+    expect(result.ealComputation).not.toHaveProperty('eetAnvendt');
     // ealKrav skal være >= 0
-    expect(result.result?.ealKrav ?? result.ealComputation!.ealKrav).toBeGreaterThanOrEqual(0);
+    expect(result.result?.ealKrav ?? toKroner(result.ealComputation!.ealKravOre)).toBeGreaterThanOrEqual(0);
   });
 });
 

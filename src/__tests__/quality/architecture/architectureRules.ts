@@ -975,6 +975,29 @@ const reguleringCanonicalForloebBoundary = forbidImports({
   ],
 });
 
+const eetDifferencekravCompositionBoundary = forbidImports({
+  id: 'domain/eet-differencekrav-composition-boundary',
+  description:
+    'Differencekrav-aggregatoren må ikke starte EET-søsterberegninger; den eksplicitte beregningsgraf ejer kompositionen.',
+  appliesTo: (relativePath) =>
+    relativePath === 'src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts',
+  forbidden: (ref) => ref.namedBindings.some((binding) =>
+    binding === 'computeEetLoebendeYdelser'
+    || binding === 'computeEetKapitaliseringCalculation'
+    || binding === 'computeEetEalCalculation'
+  ),
+  message: (ref) =>
+    `Skjult EET-søsterberegning (${ref.namedBindings.join(', ')}) — komponér i eetCalculationGraph.`,
+  violatingFixtures: [{
+    relativePath: 'src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts',
+    code: "import { computeEetEalCalculation as runEal } from './eetEalCalculation';",
+  }],
+  cleanFixtures: [{
+    relativePath: 'src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts',
+    code: "import { resolveKapitaliseringAarsydelseBreakdown } from './eetKapitaliseringCalculation';",
+  }],
+});
+
 const documentGeneratorWriterImport = forbidImports({
   id: 'document/generator-writer-import-boundary',
   description: 'Dokumentgeneratorer må kun bygge DocumentModel og må ikke importere det interne writer-target.',
@@ -1027,6 +1050,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   promiseTickBoundary,
   eoFieldVisibilitySingleSource,
   reguleringCanonicalForloebBoundary,
+  eetDifferencekravCompositionBoundary,
   documentGeneratorWriterImport,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,

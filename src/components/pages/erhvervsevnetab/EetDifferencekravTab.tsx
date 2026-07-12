@@ -42,6 +42,7 @@ import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFo
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
+import { toKroner } from '../../../domain/money/money';
 
 type ForligValues = Pick<ErstatningsopgoerelseValues, 'forligAnsvarsgradProcent' | 'forligAnsvarsgradBroek' | 'forligDato'>;
 
@@ -93,27 +94,27 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">
           {buildKapitaliseringGrundydelseExpression(
-            formatKr(pk.grundloen, 0),
+            formatKr(toKroner(pk.grundloenOre), 0),
             formatKapPct(pk.loebendeEetPct),
             pk.erstatningsniveauPct,
             pk.amBidragPct,
-            formatKr(pk.grundydelse, 2)
+            formatKr(toKroner(pk.grundydelseOre), 2)
           )}
         </Typography>
       </Box>
     </Box>
 
-    {pk.grundydelse2024 !== null && pk.opreguleringTil2024PctRounded4 !== null && (
+    {pk.grundydelse2024Ore !== null && pk.opreguleringTil2024PctRounded4 !== null && (
       <Box className="row--label-right-hover">
         <Typography className="row--text">
           {buildKapitaliseringOpreguleringTil2024Expression(
-            formatKr(pk.grundydelse, 2),
+            formatKr(toKroner(pk.grundydelseOre), 2),
             formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4),
             `${formatAsAmountTrimmed(pk.opreguleringTil2024PctRounded4, 4)} %`
           )}
         </Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text">{formatKr(pk.grundydelse2024, 2)}</Typography>
+          <Typography className="row--text">{formatKr(toKroner(pk.grundydelse2024Ore), 2)}</Typography>
         </Box>
       </Box>
     )}
@@ -132,14 +133,14 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
     <Box className="row--label-right-hover">
       <Typography className="row--text">
         {buildKapitaliseringAarsydelseExpression(
-          formatKr(pk.aarsydelseGrundlag, 2),
+          formatKr(toKroner(pk.aarsydelseGrundlagOre), 2),
           pk.aarsydelseReguleringsPctRounded4 === null
             ? null
             : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
         )}
       </Typography>
       <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{formatKr(pk.aarsydelse, 2)}</Typography>
+        <Typography className="row--text">{formatKr(toKroner(pk.aarsydelseOre), 2)}</Typography>
       </Box>
     </Box>
 
@@ -216,10 +217,10 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
 
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Beregnet proformakapitalisering (${formatKr(pk.aarsydelse, 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`}
+        {`Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`}
       </Typography>
       <Box className="row--label-right-hover__content">
-        <Typography className="row--text text-bold">{formatKr(pk.proformaBeloeb)}</Typography>
+        <Typography className="row--text text-bold">{formatKr(toKroner(pk.proformaBeloebOre))}</Typography>
       </Box>
     </Box>
   </ContentBox>
@@ -245,27 +246,27 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">
           {buildKapitaliseringGrundydelseExpression(
-            formatKr(event.grundloen, 0),
+            formatKr(toKroner(event.grundloenOre), 0),
             formatKapPct(event.kapitaliseringspct),
             event.erstatningsniveauPct,
             event.amBidragPct,
-            formatKr(event.grundydelse, 2)
+            formatKr(toKroner(event.grundydelseOre), 2)
           )}
         </Typography>
       </Box>
     </Box>
 
-    {event.grundydelse2024 !== null && event.opreguleringTil2024PctRounded4 !== null && (
+    {event.grundydelse2024Ore !== null && event.opreguleringTil2024PctRounded4 !== null && (
       <Box className="row--label-right-hover">
         <Typography className="row--text">
           {buildKapitaliseringOpreguleringTil2024Expression(
-            formatKr(event.grundydelse, 2),
+            formatKr(toKroner(event.grundydelseOre), 2),
             formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4),
             `${formatAsAmountTrimmed(event.opreguleringTil2024PctRounded4, 4)} %`
           )}
         </Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text">{formatKr(event.grundydelse2024, 2)}</Typography>
+          <Typography className="row--text">{formatKr(toKroner(event.grundydelse2024Ore), 2)}</Typography>
         </Box>
       </Box>
     )}
@@ -282,14 +283,14 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
     <Box className="row--label-right-hover">
       <Typography className="row--text">
         {buildKapitaliseringAarsydelseExpression(
-          formatKr(event.aarsydelseGrundlag, 2),
+          formatKr(toKroner(event.aarsydelseGrundlagOre), 2),
           event.aarsydelseReguleringsPctRounded4 === null
             ? null
             : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
         )}
       </Typography>
       <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{formatKr(event.aarsydelse, 2)}</Typography>
+        <Typography className="row--text">{formatKr(toKroner(event.aarsydelseOre), 2)}</Typography>
       </Box>
     </Box>
 
@@ -303,10 +304,10 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
     </Box>
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`}
+        {`Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`}
       </Typography>
       <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{formatKr(event.gammel.kapitalvaerdi, 2)}</Typography>
+        <Typography className="row--text">{formatKr(toKroner(event.gammel.kapitalvaerdiOre), 2)}</Typography>
       </Box>
     </Box>
 
@@ -320,10 +321,10 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
     </Box>
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`}
+        {`Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`}
       </Typography>
       <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{formatKr(event.ny.kapitalvaerdi, 2)}</Typography>
+        <Typography className="row--text">{formatKr(toKroner(event.ny.kapitalvaerdiOre), 2)}</Typography>
       </Box>
     </Box>
 
@@ -339,10 +340,10 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
 
     <Box className="row--label-right-hover" sx={{ mt: 1 }}>
       <Typography className="row--text">
-        {`Mer-erstatning (${formatKr(event.ny.kapitalvaerdi, 2)} − ${formatKr(event.gammel.kapitalvaerdi, 2)})`}
+        {`Mer-erstatning (${formatKr(toKroner(event.ny.kapitalvaerdiOre), 2)} − ${formatKr(toKroner(event.gammel.kapitalvaerdiOre), 2)})`}
       </Typography>
       <Box className="row--label-right-hover__content">
-        <Typography className="row--text text-bold">{formatKr(event.merErstatning)}</Typography>
+        <Typography className="row--text text-bold">{formatKr(toKroner(event.merErstatningOre))}</Typography>
       </Box>
     </Box>
   </>
@@ -362,7 +363,7 @@ const EetMerErstatningPensionsalderBox = ({ computation, koen }: MerErstatningBo
       <Box className="row--label-right-hover" sx={{ mt: 2 }}>
         <Typography className="row--text">Samlet mer-erstatning</Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text text-bold">{formatKr(computation.samletMerErstatning)}</Typography>
+          <Typography className="row--text text-bold">{formatKr(toKroner(computation.samletMerErstatningOre))}</Typography>
         </Box>
       </Box>
     )}
@@ -694,7 +695,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
           <Box className="row--label-right-hover">
             <Typography className="row--text">Det svarer til et beregnet erhvervsevnetab på:</Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{formatKr(computation.ealKrav)}</Typography>
+              <Typography className="row--text">{formatKr(toKroner(computation.ealKravOre))}</Typography>
             </Box>
           </Box>
 
@@ -732,13 +733,13 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                 <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
                 <HoverRow text={typeLabel} />
 
-                {foretages && afgoerelse.beloeb > 0 && (
+                {foretages && afgoerelse.beloebOre > 0 && (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
                       {`Løbende ydelser (${formatISOToDanish(afgoerelse.virkningsdato)} - ${formatISOToDanish(afgoerelse.fradragesTil)}):`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(afgoerelse.beloeb)}`}</Typography>
+                      <Typography className="row--text">{`- ${formatKr(toKroner(afgoerelse.beloebOre))}`}</Typography>
                     </Box>
                   </Box>
                 )}
@@ -749,7 +750,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                       {`Løbende ydelser (${formatISOToDanish(tvk.fra)} - ${formatISOToDanish(tvk.til)}):`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(tvk.beloeb)}`}</Typography>
+                      <Typography className="row--text">{`- ${formatKr(toKroner(tvk.beloebOre))}`}</Typography>
                     </Box>
                   </Box>
                 )}
@@ -758,7 +759,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                   <HoverRow text="Løbende ydelser derfor ikke relevante." />
                 )}
 
-                {foretages && afgoerelse.beloeb === 0 && (
+                {foretages && afgoerelse.beloebOre === 0 && (
                   <HoverRow text="Ingen løbende ydelser." />
                 )}
               </Box>
@@ -776,13 +777,13 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
           {computation.kapitaliseringerAfgoerelser.map((afgoerelse) => (
             <Box key={afgoerelse.rowId} sx={{ mt: 1 }}>
               <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
-              {afgoerelse.kapitalbelob !== null && afgoerelse.kapitaliseringsdato !== null && afgoerelse.kapitaliseringspct !== null ? (
+              {afgoerelse.kapitalbelobOre !== null && afgoerelse.kapitaliseringsdato !== null && afgoerelse.kapitaliseringspct !== null ? (
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
                     {`Kapitaliseret (${formatKapPct(afgoerelse.kapitaliseringspct)}) den ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}:`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{`- ${formatKr(afgoerelse.kapitalbelob)}`}</Typography>
+                    <Typography className="row--text">{`- ${formatKr(toKroner(afgoerelse.kapitalbelobOre))}`}</Typography>
                   </Box>
                 </Box>
               ) : afgoerelse.kapitaliseringEfterBeregningsdato ? (
@@ -806,10 +807,10 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                   <HoverRow text="De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes." />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
-                      {`${formatMaaneder(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. × ${formatKr(computation.resterendeLoebendeYdelser.maanedligYdelse)}/md.`}
+                      {`${formatMaaneder(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. × ${formatKr(toKroner(computation.resterendeLoebendeYdelser.maanedligYdelseOre))}/md.`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(computation.resterendeLoebendeYdelser.fradragBeloeb)}`}</Typography>
+                      <Typography className="row--text">{`- ${formatKr(toKroner(computation.resterendeLoebendeYdelser.fradragBeloebOre))}`}</Typography>
                     </Box>
                   </Box>
                 </>
@@ -821,7 +822,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                       {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatISOToDanish(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(computation.proformaKapitalisering.proformaBeloeb)}`}</Typography>
+                      <Typography className="row--text">{`- ${formatKr(toKroner(computation.proformaKapitalisering.proformaBeloebOre))}`}</Typography>
                     </Box>
                   </Box>
                 </>
@@ -839,7 +840,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                     {`Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{`- ${formatKr(event.merErstatning)}`}</Typography>
+                    <Typography className="row--text">{`- ${formatKr(toKroner(event.merErstatningOre))}`}</Typography>
                   </Box>
                 </Box>
               ))}
@@ -858,10 +859,10 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
           )}
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {buildBeregnetDifferencekravLabel(computation.forligLabel, formatKr(computation.differencekravFoerForlig))}
+              {buildBeregnetDifferencekravLabel(computation.forligLabel, formatKr(toKroner(computation.differencekravFoerForligOre)))}
             </Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text text-bold">{formatKr(computation.differencekrav)}</Typography>
+              <Typography className="row--text text-bold">{formatKr(toKroner(computation.differencekravOre))}</Typography>
             </Box>
           </Box>
         </ContentBox>

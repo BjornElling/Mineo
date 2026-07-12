@@ -15,6 +15,7 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { formatKrEet as formatKr } from './eetDocumentUtils';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { toKroner } from '../../../domain/money/money';
 
 // ============================================================================
 // HOVED-GENERATOR
@@ -50,7 +51,7 @@ export const renderEfterEalBody = (
 
   writer.writeLeftRightText(
     'Årsløn på skadestidspunktet',
-    formatKr(computation.aarsloen),
+    formatKr(toKroner(computation.aarsloenOre)),
     rowOpts
   );
 
@@ -62,8 +63,8 @@ export const renderEfterEalBody = (
     );
 
     writer.writeLeftRightText(
-      `${formatKr(computation.aarsloen)} x (100 % + ${formatPct(computation.reguleringsPctRounded4)}) (afrundet) =`,
-      formatKr(computation.reguleretAarsloen),
+      `${formatKr(toKroner(computation.aarsloenOre))} x (100 % + ${formatPct(computation.reguleringsPctRounded4)}) (afrundet) =`,
+      formatKr(toKroner(computation.reguleretAarsloenOre)),
       rowOpts
     );
   }
@@ -84,14 +85,14 @@ export const renderEfterEalBody = (
   );
 
   writer.writeLeftRightText(
-    `Erhvervsevnetab (${formatKr(computation.reguleretAarsloen)} x 10 x ${formatPct(computation.eetPct)}) =`,
-    formatKr(computation.eetBeregnet),
+    `Erhvervsevnetab (${formatKr(toKroner(computation.reguleretAarsloenOre))} x 10 x ${formatPct(computation.eetPct)}) =`,
+    formatKr(toKroner(computation.eetBeregnetOre)),
     rowOpts
   );
 
   writer.writeLeftRightText(
     `Maksimalt erhvervsevnetab i beregningsåret ${computation.beregningsaar}`,
-    formatKr(computation.eetMaks),
+    formatKr(toKroner(computation.eetMaksOre)),
     rowOpts
   );
 
@@ -99,7 +100,7 @@ export const renderEfterEalBody = (
     computation.eetReduceretTilMaks
       ? 'Skadelidtes erhvervsevnetab reduceres til det lovbestemte maksimum'
       : 'Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør',
-    formatKr(computation.eetAnvendt),
+    formatKr(toKroner(computation.eetAnvendtOre)),
     { rightFontStyle: 'bold' as const }
   );
 
@@ -128,16 +129,16 @@ export const renderEfterEalBody = (
   );
 
   writer.writeLeftRightText(
-    `${formatKr(computation.eetAnvendt)} x (- ${formatPct(computation.aldersreduktionPct)}) =`,
-    `- ${formatKr(computation.aldersreduktionBeloeb)}`,
+    `${formatKr(toKroner(computation.eetAnvendtOre))} x (- ${formatPct(computation.aldersreduktionPct)}) =`,
+    `- ${formatKr(toKroner(computation.aldersreduktionBeloebOre))}`,
     { rightFontStyle: 'bold' as const }
   );
 
   writer.writeBoldSubheader('Beregnet EAL-krav');
 
   writer.writeLeftRightText(
-    `${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`,
-    formatKr(computation.ealKrav),
+    `${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))} =`,
+    formatKr(toKroner(computation.ealKravOre)),
     { rightFontStyle: 'bold' as const }
   );
 };

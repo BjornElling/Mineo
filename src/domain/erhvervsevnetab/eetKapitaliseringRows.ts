@@ -12,6 +12,7 @@ import {
   buildKapitaliseringOpreguleringTil2024Expression,
 } from './eetKapitaliseringPresentation';
 import { formatFaktor, formatJaNej } from './eetFormatUtils';
+import { toKroner } from '../money/money';
 
 /**
  * Delt præsentationsmodel for kapitaliserings-afgørelsesblokken.
@@ -73,31 +74,31 @@ export const buildKapitaliseringAfgoerelseRows = (
   rows.push({
     kind: 'grundydelse',
     label: buildKapitaliseringGrundydelseLabel(kapPctFormatted, afgoerelse.amBidragPct),
-    grundydelseFormatted: formatKr(afgoerelse.grundydelse, 2),
+    grundydelseFormatted: formatKr(toKroner(afgoerelse.grundydelseOre), 2),
     expressionWithoutResult: buildKapitaliseringGrundydelseExpression(
-      formatKr(afgoerelse.grundloen, 0),
+      formatKr(toKroner(afgoerelse.grundloenOre), 0),
       kapPctFormatted,
       afgoerelse.erstatningsniveauPct,
       afgoerelse.amBidragPct
     ),
     expressionWithResult: buildKapitaliseringGrundydelseExpression(
-      formatKr(afgoerelse.grundloen, 0),
+      formatKr(toKroner(afgoerelse.grundloenOre), 0),
       kapPctFormatted,
       afgoerelse.erstatningsniveauPct,
       afgoerelse.amBidragPct,
-      formatKr(afgoerelse.grundydelse, 2)
+      formatKr(toKroner(afgoerelse.grundydelseOre), 2)
     ),
   });
 
-  if (afgoerelse.grundydelse2024 !== null && afgoerelse.opreguleringTil2024PctRounded4 !== null) {
+  if (afgoerelse.grundydelse2024Ore !== null && afgoerelse.opreguleringTil2024PctRounded4 !== null) {
     rows.push({
       kind: 'labelValue',
       label: buildKapitaliseringOpreguleringTil2024Expression(
-        formatKr(afgoerelse.grundydelse, 2),
+        formatKr(toKroner(afgoerelse.grundydelseOre), 2),
         formatAsAmountTrimmed(1 + afgoerelse.opreguleringTil2024PctRounded4 / 100, 4),
         `${formatAsAmountTrimmed(afgoerelse.opreguleringTil2024PctRounded4, 4)} %`
       ),
-      value: formatKr(afgoerelse.grundydelse2024, 2),
+      value: formatKr(toKroner(afgoerelse.grundydelse2024Ore), 2),
     });
   }
 
@@ -112,12 +113,12 @@ export const buildKapitaliseringAfgoerelseRows = (
   rows.push({
     kind: 'labelValue',
     label: buildKapitaliseringAarsydelseExpression(
-      formatKr(afgoerelse.aarsydelseGrundlag, 2),
+      formatKr(toKroner(afgoerelse.aarsydelseGrundlagOre), 2),
       afgoerelse.aarsydelseReguleringsPctRounded4 === null
         ? null
         : `${formatAsAmountTrimmed(100 + afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`
     ),
-    value: formatKr(afgoerelse.aarsydelse, 2),
+    value: formatKr(toKroner(afgoerelse.aarsydelseOre), 2),
   });
 
   rows.push({ kind: 'subheading', text: 'Kapitaliseringsbekendtgørelse og tabel' });
@@ -170,8 +171,8 @@ export const buildKapitaliseringAfgoerelseRows = (
 
   rows.push({
     kind: 'labelValue',
-    label: `Beregnet kapitalbeløb (${formatKr(afgoerelse.aarsydelse, 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`,
-    value: formatKr(afgoerelse.kapitalbelob, 0),
+    label: `Beregnet kapitalbeløb (${formatKr(toKroner(afgoerelse.aarsydelseOre), 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`,
+    value: formatKr(toKroner(afgoerelse.kapitalbelobOre), 0),
     bold: true,
   });
 

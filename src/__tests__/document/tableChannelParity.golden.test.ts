@@ -22,6 +22,7 @@
 
 import type { DanishDateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
+import { fromKroner } from '../../domain/money/money';
 import type { EetLoebendeComputation } from '../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { computeForsoergertabCalculation } from '../../domain/forsoergertab/forsoergertabCalculation';
 import { createPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
@@ -166,11 +167,11 @@ const loebendeComputation = {
   skadedato: toISODateString('2020-01-01'),
   fodselsdato: toISODateString('1980-01-01'),
   skadesaar: 2020,
-  aslAarsloenAfrundet1000: 400000,
-  maxAarsloenISkadesaar: 600000,
-  benyttetAarsloen: 400000,
+  aslAarsloenAfrundet1000Ore: fromKroner(400000),
+  maxAarsloenISkadesaarOre: fromKroner(600000),
+  benyttetAarsloenOre: fromKroner(400000),
   grundloenNiveau: '2024',
-  grundloen: 320000,
+  grundloenOre: fromKroner(320000),
   erstatningsniveauPct: 80,
   amBidragPct: 8,
   reguleringFoer2024Pct: 0,
@@ -196,33 +197,33 @@ const loebendeComputation = {
       tilbagevirkendeKraft: false,
       ophoerDato: toISODateString('2022-12-31'),
       ophoerAarsag: 'beregningsdato',
-      grundydelseFuld: 200000,
-      grundydelseRest: null,
-      grundydelse2024Fuld: 210000,
-      grundydelse2024Rest: null,
+      grundydelseFuldOre: fromKroner(200000),
+      grundydelseRestOre: null,
+      grundydelse2024FuldOre: fromKroner(210000),
+      grundydelse2024RestOre: null,
       perioder: [
         {
           fra: toISODateString('2021-01-01'),
           til: toISODateString('2021-12-31'),
           satsAar: 2021,
           maanederPraecis: 12,
-          grundydelseAfrundet: 200000,
+          grundydelseAfrundetOre: fromKroner(200000),
           reguleringPct: 2,
-          maanedligYdelse: 16666,
-          beregnetEet: 100000,
+          maanedligYdelseOre: fromKroner(16666),
+          beregnetEetOre: fromKroner(100000),
         },
         {
           fra: toISODateString('2022-01-01'),
           til: toISODateString('2022-06-30'),
           satsAar: 2022,
           maanederPraecis: 6,
-          grundydelseAfrundet: 204000,
+          grundydelseAfrundetOre: fromKroner(204000),
           reguleringPct: 3.1,
-          maanedligYdelse: 17000,
-          beregnetEet: 51000,
+          maanedligYdelseOre: fromKroner(17000),
+          beregnetEetOre: fromKroner(51000),
         },
       ],
-      iAltBeregnetEet: 151000,
+      iAltBeregnetEetOre: fromKroner(151000),
     },
   ],
 } satisfies EetLoebendeComputation;
@@ -255,7 +256,7 @@ const buildForsoergertabParams = () => {
     result: calc.result,
     ealComputation: calc.ealComputation,
     aslComputation: calc.aslComputation,
-    foersoergertabEalMinSats: calc.foersoergertabEalMinSats,
+    foersoergertabEalMinSatsOre: calc.foersoergertabEalMinSatsOre,
     foersoergertabForhoejtetTilMin: calc.foersoergertabForhoejtetTilMin,
     visBrevhoved: false,
   };

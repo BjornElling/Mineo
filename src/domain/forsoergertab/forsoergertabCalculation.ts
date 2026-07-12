@@ -5,6 +5,7 @@ import type { Koen } from '../../schemas/formSchemas';
 import { computeForsoergertabAslYdelser } from './forsoergertabAslYdelser';
 import { computeForsoergertabEalKrav } from './forsoergertabEalKrav';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
+import { toKroner } from '../money/money';
 
 type Input = Readonly<{
   skadedato: ISODateString | undefined;
@@ -42,13 +43,15 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
       issues,
       ealComputation: ealResult.computation,
       aslComputation: aslResult.computation,
-      foersoergertabEalMinSats: ealResult.foersoergertabEalMinSats,
+      foersoergertabEalMinSatsOre: ealResult.foersoergertabEalMinSatsOre,
       foersoergertabForhoejtetTilMin: ealResult.foersoergertabForhoejtetTilMin,
       result: null,
     };
   }
 
-  const ealKrav = ealResult.computation.ealKrav;
+  // Forsørgertabs samlede ASL-resultat er endnu et krone-output. Konverteringen ligger derfor
+  // eksplicit ved denne portgrænse; EAL-outputtet selv forbliver MoneyOre.
+  const ealKrav = toKroner(ealResult.computation.ealKravOre);
   const aslKapitalbelob = aslResult.computation.kapitalbelob;
   const aslLobendeYdelserTotal = aslResult.computation.aslLobendeYdelserTotal;
   const nettokrav = Math.max(0, ealKrav - aslKapitalbelob - aslLobendeYdelserTotal);
@@ -57,7 +60,7 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
     issues,
     ealComputation: ealResult.computation,
     aslComputation: aslResult.computation,
-    foersoergertabEalMinSats: ealResult.foersoergertabEalMinSats,
+    foersoergertabEalMinSatsOre: ealResult.foersoergertabEalMinSatsOre,
     foersoergertabForhoejtetTilMin: ealResult.foersoergertabForhoejtetTilMin,
     result: {
       ealKrav,

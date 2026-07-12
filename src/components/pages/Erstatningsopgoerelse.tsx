@@ -30,6 +30,12 @@ import EOKontrolTabel from './erstatningsopgoerelse/EOKontrolTabel';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import {
+  buildEetImportContext,
+  buildUnavailableEetImportContext,
+} from '../../domain/erhvervsevnetab/eetImportPort';
+import { buildTafRanges } from '../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import type { ISODateString } from '../../types/branded';
 
 const TAB_KEYS = {
   EO_OPLYSNINGER: 'eo_oplysninger',
@@ -43,6 +49,13 @@ const TAB_KEYS = {
 type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
 
 const EO_SNAPSHOT_VERSION = 'eo-snapshot-v1';
+
+const resolveTafSlutdato = (
+  ranges: readonly Readonly<{ til: ISODateString }>[]
+): ISODateString | undefined => ranges.reduce<ISODateString | undefined>(
+  (latest, range) => (latest && latest > range.til ? latest : range.til),
+  undefined
+);
 
 /**
  * Erstatningsopgørelse-komponent til samlet opgørelse af erstatningskrav
@@ -122,16 +135,28 @@ const Erstatningsopgoerelse = React.memo(() => {
   const buildInspektionSnapshot = React.useCallback((): EoSnapshot => {
     const persistedStamdata = getPersistedSectionSnapshot('stamdata');
     const persistedEO = getPersistedSectionSnapshot('erstatningsopgoerelse');
+    const stamdata = persistedStamdata ?? STAMDATA_INITIAL_VALUES;
+    const eoValues = persistedEO ?? initialValues;
 
     const revision = buildInspektionRevision();
+    const midlertidigtEetImportContext = eoValues.midlertidigtEetFraEetSiden === 'Ja'
+      ? (() => {
+        const slutdato = resolveTafSlutdato(buildTafRanges(eoValues, {
+          skadedatoISO: stamdata.skadedato,
+        }));
+        return slutdato
+          ? buildEetImportContext(midlertidigtEetInsertSource, slutdato)
+          : buildUnavailableEetImportContext(midlertidigtEetInsertSource, 'taf_slutdato_missing');
+      })()
+      : undefined;
 
     return computeEoSnapshot({
       revision,
-      stamdataValues: persistedStamdata ?? STAMDATA_INITIAL_VALUES,
-      eoValues: persistedEO ?? initialValues,
+      stamdataValues: stamdata,
+      eoValues,
       stamdataErrors: getFieldErrorsBySourceSnapshot('stamdata'),
       eoErrors: getFieldErrorsBySourceSnapshot('erstatningsopgoerelse'),
-      midlertidigtEetInsertSource,
+      midlertidigtEetImportContext,
     });
   }, [buildInspektionRevision, initialValues, midlertidigtEetInsertSource]);
 

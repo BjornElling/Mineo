@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-07-08
+**Senest verificeret mod kode:** 2026-07-12
 
 ---
 
@@ -369,7 +369,7 @@ Bagudinkompatibilitet:
 
 EO-specifik feltklassificering, fejlgivende bounds og stille clamping er normativt defineret i §2.
 
-## 13. Transient EET-injection
+## 13. Typed EET-importport og transient injection
 
 Når togglen `midlertidigtEetFraEetSiden` på *Offentlige ydelser*-fanen er aktiveret (`'Ja'`),
 injiceres rækker fra EET-siden transient i EO-beregningen — uden at de skrives til committed
@@ -378,24 +378,25 @@ EET-sidens tilsvarende kontrakt er `src/contracts/eet-snapshot-contract.md` §5;
 EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 
 **Inputkilder:**
-- Når togglen er `'Ja'`, modtager `computeEoSnapshot` en `midlertidigtEetInsertSource`,
-  som indeholder `eetValues` (sammensat fra `erhvervsevnetab` + `faellesAarsloen` + `stamdata.skadelidteFodselsdato`)
-  og `skadedato`. Snapshot-revisionen skal derfor inkludere både `erhvervsevnetab`- og
+- Når togglen er `'Ja'`, modtager `computeEoSnapshot` en typed EET-import-context som
+  førsteklasses snapshot-input. Contexten bygges og Zod-valideres af EET-domænets importport
+  før EO-snapshotkaldet og indeholder canonical importgrupper, issues og revisionsidentitet;
+  EO må ikke modtage rå EET-values eller selv orkestrere EET-engines.
+- Snapshot-revisionen skal derfor inkludere både `erhvervsevnetab`- og
   `faellesAarsloen`-sektionernes revisioner, så cachen invalideres korrekt ved EET-ændringer.
   Revisionen skal inkludere EO, stamdata, EET og `faellesAarsloen` deterministisk, uanset om togglen aktuelt er `'Ja'` eller `'Nej'`; togglen ændrer semantik, ikke cache-invalideringsgrundlag.
-- Hvis `midlertidigtEetInsertSource` mangler (`null`/`undefined`), selv om togglen er `'Ja'`,
-  skal importen fail-closed funktionelt ved at returnere tomme grupper og ingen EET-issues.
-  EO må ikke gætte eller skrive defaults for at konstruere en kilde.
-- Når togglen er `'Nej'`, ignoreres `midlertidigtEetInsertSource` fuldstændigt, og EO-beregningen
+- Hvis import-context mangler, er schema-ugyldig eller bærer en source-/runtimefejl, selv om
+  togglen er `'Ja'`, skal importen fail-close med tomme grupper og en eksplicit blokerende
+  issue. EO må ikke gætte, skrive defaults eller maskere tilstanden som en gyldig tom import.
+- Når togglen er `'Nej'`, ignoreres EET-import-context fuldstændigt, og EO-beregningen
   påvirkes ikke af EET-data.
-- Det kanoniske kald er `buildMidlertidigtEetSourceResult(...)`, som kalder EET-løbende-ydelser
-  én gang og returnerer både virtuelle grupper og EET-issues. Kaldere må ikke beregne grupper
-  og issues via separate EET-beregningskald.
+- En kanonisk EO-adapter omsætter import-contexten til virtuelle grupper og EET-issues i ét
+  trin. Kaldere må ikke beregne grupper og issues via separate kald eller genberegne EET.
 
 **Substitution af effektive rækker:**
 - Når togglen er `'Ja'`, bygges en effektiv `offentligeYdelserRows` ved at:
   1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra committed form-state (defensiv håndhævelse af invariant 6.1 i implementeringsplanen).
-  2. Tilføje virtuelle rækker fra `buildMidlertidigtEetSourceResult(...).groups`.
+  2. Tilføje de virtuelle rækker, som den canonical EO-adapter bygger fra import-contextens grupper.
 - Engines, inspektions-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
 - `snapshot.input.erstatningsopgoerelse` indeholder altid den oprindelige committed form-state
   (uden virtuelle rækker), så save/load round-trip og UI-visning er upåvirkede.
@@ -406,14 +407,17 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   på erhvervsevnetab-siden, bruger EO-importen TAF-periodens clampede slutdato (capped af
   EO-periodens slutdato, `vedroererPeriodeTil`) *også* som beregningsdato, så manglende
   EET-beregningsdato ikke blokerer importen. Fallback'en leveres teknisk via
-  `loebendeYdelserSlutdatoOverride` til `computeEetLoebendeYdelser` og gælder udelukkende
-  EO-importen — erhvervsevnetab-siden og differencekrav-kaldet sender ingen override, så
+  EET-importportens eksplicitte `eo_import`-context og gælder udelukkende EO-importen —
+  erhvervsevnetab-siden og differencekrav-grafen bruger side-contexten, så
   beregningsdatoen forbliver påkrævet dér. Findes der ingen TAF-periode (ingen fallback-slutdato),
   fail-closer importen fortsat på manglende beregningsdato.
 - Hver beregnet EET-løbende-ydelsesrække fra midlertidige og delvist endelige afgørelser splittes
   internt pr. kalendermåned til virtuelle EO-rækker (`buildMidlertidigtEetCalculationRows`), så den
   eksisterende kalenderdags-periodisering inden for rækken svarer til x/dage-i-måneden og ikke et
   gennemsnit over hele EET-perioden. Periodernes samlede beløb bevares.
+- Importportens beløb er `MoneyOre`. EO-adapteren konverterer først til kroner, når den
+  konstruerer den eksisterende `AmountValue` til den virtuelle række; der må ikke være en
+  tidligere krone-float-grænse mellem EET og EO.
 
 **Autoritativt midlertidigt EET-fradrag (kanonisk kilde):**
 - Det beløb der faktisk trækkes fra i TAF-beregningen for `midlertidigt_eet` afledes af den
@@ -439,7 +443,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   så det viser kun manuelt indtastede rækker — aldrig virtuelle rækker.
 
 **Issues fra EET-løbende-ydelser:**
-- Når togglen er `'Ja'`, kalder EOberegningTab samme `buildMidlertidigtEetSourceResult`-helper
+- Når togglen er `'Ja'`, bruger EOberegningTab samme canonical import-context/projektion
   som snapshot-laget og viser EET-issues (errors og warnings) i "Fejl og advarsler" med link
   til Erhvervsevnetab-siden. Errors blokerer download af **alle fire** Beregning-fane-dokumenter
   (erstatningsopgørelse, TAF fordelt på år, TAF opreguleret til beregningsåret og Visuel graf over
@@ -459,14 +463,15 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
      efter beregningsdatoen — undertrykkes i EO-konteksten. På EO-siden er "beregningsdatoen"
      blot TAF-slutdatoen, og en EET-afgørelse med virkning efter erstatningsperiodens udløb er
      helt normal (fx en opgørelse lavet før EET-afgørelsen). Filtreringen sker ved
-     EO-import-grænsen i `buildMidlertidigtEetSourceResult` via den eksporterede konstant
+     EO-importgrænsens adapter via den eksporterede konstant
      `EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS`; erhvervsevnetab-sidens egen visning
      er upåvirket. Øvrige EET-advarsler (under 15 %, ugyldig EET-procent efter 1.7.2024,
      midlertidig/delvist endelig efter endelig) er kontekst-uafhængige og vises fortsat begge steder.
 - Hver ny eller ændret EET-issue-type skal revurdere denne EO-konsekvens og opdatere
   `eet-snapshot-contract.md` og dette afsnit, hvis propagation ikke længere er sikker.
-- "Ingen relevante EET-rækker" og "EET-kilden kunne ikke bygges schema-sikkert" er forskellige
-  tilstande. Førstnævnte kan være funktionelt tomt. Sidstnævnte må ikke maskeres som tom import.
+- "Ingen relevante EET-rækker" og "EET-import-contexten mangler eller kunne ikke valideres"
+  er forskellige tilstande. Førstnævnte kan være funktionelt tomt. Sidstnævnte skal altid
+  materialiseres som en blokerende issue og må ikke maskeres som tom import.
 
 **Single source of truth:**
 - Når togglen er `'Ja'`, er EET-siden den eneste kilde til midlertidigt EET-data.

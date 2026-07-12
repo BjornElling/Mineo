@@ -14,6 +14,7 @@ import { formatPct } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatMaanederFixed, formatReguleringPct, formatKr } from '../../../layout/documentFormatUtils';
 import type { DocumentComposer } from '../../../model/documentModel';
+import { toKroner } from '../../../../domain/money/money';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
@@ -225,10 +226,10 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
             { text: formatISOToDanish(row.fra) },
             { text: formatISOToDanish(row.til) },
             { text: formatMaanederFixed(row.maanederPraecis) },
-            { text: formatKr(row.grundydelseAfrundet, 2) },
+            { text: formatKr(toKroner(row.grundydelseAfrundetOre), 2) },
             { text: formatReguleringPct(row.reguleringPct) },
-            { text: formatKr(row.maanedligYdelse) },
-            { text: formatKr(row.beregnetEet) },
+            { text: formatKr(toKroner(row.maanedligYdelseOre)) },
+            { text: formatKr(toKroner(row.beregnetEetOre)) },
           ],
         })
       ),

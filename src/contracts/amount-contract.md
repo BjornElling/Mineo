@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` for draft/commit-semantik; overordnet arkitekturdokumenter ved konflikt.  
-**Senest verificeret mod kode:** 2026-07-11
+**Senest verificeret mod kode:** 2026-07-12
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
 
@@ -70,6 +70,13 @@ Regler:
    heltal, så dokumentprojektioner og snapshot-roundtrips ikke får en parallel datastruktur.
 6. Direkte `as MoneyOre`/`<MoneyOre>` uden for pengemodulet er en arkitekturfejl og håndhæves
    af det AST-baserede arkitekturværn.
+7. Offentlige pengefelter i et canonical beregningsoutput skal være `MoneyOre`. Dette gælder
+   også EET-snapshottet og dets EO-importprojektion. Domænets eksisterende afrundingsregel
+   anvendes, før beløbet konstrueres som `MoneyOre`; migration til øre må ikke ændre, hvornår
+   eller hvordan et beløb afrundes.
+8. Konvertering fra `MoneyOre` til kroner må kun ske ved en dokumenteret grænse, hvor en
+   eksisterende kontrakt kræver kroner. For EET→EO-importen er denne grænse konstruktionen af
+   EO-rækkens `AmountValue`; intern EET-beregning, snapshot og importport forbliver i øre.
 
 ## 5. Afrundingsregel
 

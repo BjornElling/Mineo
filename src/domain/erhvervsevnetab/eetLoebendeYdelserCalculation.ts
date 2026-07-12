@@ -29,94 +29,97 @@ import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
 import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent } from './eetAslAfgoerelser';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
+import {
+  fromKroner,
+  moneyOreSchema,
+  sumMoneyOre,
+  toKroner,
+} from '../money/money';
+import { z } from 'zod';
+import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
+import { eetIssueSchema } from './eetTypes';
 
-export type EetLoebendePeriodeRow = Readonly<{
-  fra: ISODateString;
-  til: ISODateString;
-  satsAar: number;
-  maanederPraecis: number;
-  grundydelseAfrundet: number;
-  reguleringPct: number;
-  maanedligYdelse: number;
-  beregnetEet: number;
-}>;
+export const eetLoebendePeriodeRowSchema = z.object({
+  fra: isoDateString,
+  til: isoDateString,
+  satsAar: z.number().int(),
+  maanederPraecis: z.number().finite(),
+  grundydelseAfrundetOre: moneyOreSchema,
+  reguleringPct: z.number().finite(),
+  maanedligYdelseOre: moneyOreSchema,
+  beregnetEetOre: moneyOreSchema,
+}).strict().readonly();
+export type EetLoebendePeriodeRow = z.infer<typeof eetLoebendePeriodeRowSchema>;
 
-export type EetLoebendeAfgoerelseComputation = Readonly<{
-  rowId: string;
-  afgoerelsesdato: ISODateString;
-  virkningsdato: ISODateString;
-  kapitaliseringsdato: ISODateString | null;
-  skaeringsDato: ISODateString | null;
-  harOverlap: boolean;
-  afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig';
-  eetPct: number;
-  priorKapPct: number;
-  eetPctFoerAktuelKap: number;
-  kapPctAktuel: number;
-  kapPctKumulativ: number;
-  restEetPct: number;
-  harKapitalisering: boolean;
-  harRestSektion: boolean;
-  tilbagevirkendeKraft: boolean;
-  ophoerDato: ISODateString;
-  ophoerAarsag: 'beregningsdato' | 'senere-afgoerelse' | 'kapitalisering' | 'folkepensionsdato';
-  grundydelseFuld: number;
-  grundydelseRest: number | null;
-  grundydelse2024Fuld: number;
-  grundydelse2024Rest: number | null;
-  // Visningsrækker for faktiske krav. Perioder med 0 kr. udelades bevidst og perioder er derfor ikke en komplet periodisering.
-  perioder: readonly EetLoebendePeriodeRow[];
-  iAltBeregnetEet: number;
-}>;
+export const eetLoebendeAfgoerelseComputationSchema = z.object({
+  rowId: z.string(),
+  afgoerelsesdato: isoDateString,
+  virkningsdato: isoDateString,
+  kapitaliseringsdato: isoDateString.nullable(),
+  skaeringsDato: isoDateString.nullable(),
+  harOverlap: z.boolean(),
+  afgoerelseType: z.enum(['Midlertidig', 'Delvist endelig', 'Endelig']),
+  eetPct: z.number().finite(),
+  priorKapPct: z.number().finite(),
+  eetPctFoerAktuelKap: z.number().finite(),
+  kapPctAktuel: z.number().finite(),
+  kapPctKumulativ: z.number().finite(),
+  restEetPct: z.number().finite(),
+  harKapitalisering: z.boolean(),
+  harRestSektion: z.boolean(),
+  tilbagevirkendeKraft: z.boolean(),
+  ophoerDato: isoDateString,
+  ophoerAarsag: z.enum(['beregningsdato', 'senere-afgoerelse', 'kapitalisering', 'folkepensionsdato']),
+  grundydelseFuldOre: moneyOreSchema,
+  grundydelseRestOre: moneyOreSchema.nullable(),
+  grundydelse2024FuldOre: moneyOreSchema,
+  grundydelse2024RestOre: moneyOreSchema.nullable(),
+  // Visningsrækker for faktiske krav. Perioder med 0 kr. udelades bevidst.
+  perioder: z.array(eetLoebendePeriodeRowSchema).readonly(),
+  iAltBeregnetEetOre: moneyOreSchema,
+}).strict().readonly();
+export type EetLoebendeAfgoerelseComputation = z.infer<typeof eetLoebendeAfgoerelseComputationSchema>;
 
-export type EetLoebendeAarsydelseReguleringStep = Readonly<{
-  satsAar: number;
-  reguleringPct: number;
-  reguleringsfaktor: number;
-  aarsydelseFuldFoerAfrunding: number;
-  aarsydelseRestFoerAfrunding: number | null;
-}>;
+export const eetLoebendeAarsydelseReguleringStepSchema = z.object({
+  satsAar: z.number().int(),
+  reguleringPct: z.number().finite(),
+  reguleringsfaktor: z.number().finite(),
+  aarsydelseFuldFoerAfrundingOre: moneyOreSchema,
+  aarsydelseRestFoerAfrundingOre: moneyOreSchema.nullable(),
+}).strict().readonly();
+export type EetLoebendeAarsydelseReguleringStep = z.infer<typeof eetLoebendeAarsydelseReguleringStepSchema>;
 
-export type EetLoebendeComputation = Readonly<{
-  beregningsdato: ISODateString;
-  skadedato: ISODateString;
-  fodselsdato: ISODateString;
-  skadesaar: number;
-  aslAarsloenAfrundet1000: number;
-  maxAarsloenISkadesaar: number;
-  benyttetAarsloen: number;
-  grundloenNiveau: '2003' | '2024';
-  grundloen: number;
-  erstatningsniveauPct: 80 | 83;
-  amBidragPct: 0 | 8;
-  // Kumuleret regulering fra 2003-niveau til 2024-niveau. Kun relevant for grundloenNiveau === '2003'.
-  reguleringFoer2024Pct: number;
-  afgoerelser: readonly EetLoebendeAfgoerelseComputation[];
-}>;
+export const eetLoebendeComputationSchema = z.object({
+  beregningsdato: isoDateString,
+  skadedato: isoDateString,
+  fodselsdato: isoDateString,
+  skadesaar: z.number().int(),
+  aslAarsloenAfrundet1000Ore: moneyOreSchema,
+  maxAarsloenISkadesaarOre: moneyOreSchema,
+  benyttetAarsloenOre: moneyOreSchema,
+  grundloenNiveau: z.enum(['2003', '2024']),
+  grundloenOre: moneyOreSchema,
+  erstatningsniveauPct: z.union([z.literal(80), z.literal(83)]),
+  amBidragPct: z.union([z.literal(0), z.literal(8)]),
+  reguleringFoer2024Pct: z.number().finite(),
+  afgoerelser: z.array(eetLoebendeAfgoerelseComputationSchema).readonly(),
+}).strict().readonly();
+export type EetLoebendeComputation = z.infer<typeof eetLoebendeComputationSchema>;
 
-export type EetLoebendeCalculationResult = Readonly<{
-  issues: readonly EetIssue[];
-  computation: EetLoebendeComputation | null;
-}>;
+export const eetLoebendeCalculationResultSchema = z.object({
+  issues: z.array(eetIssueSchema).readonly(),
+  computation: eetLoebendeComputationSchema.nullable(),
+}).strict().readonly();
+export type EetLoebendeCalculationResult = z.infer<typeof eetLoebendeCalculationResultSchema>;
 
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
-  /**
-   * Slutdato for de løbende ydelser i erstatningsopgørelse-konteksten (midlertidigt EET-import).
-   *
-   * Leveres kun af EO-importen (`buildMidlertidigtEetSourceResult`) som TAF-periodens clampede
-   * slutdato (allerede capped af EO-periodens slutdato via `buildTafRanges`). Den dato er per
-   * definition den dato, EET beregnes til i EO-konteksten, og har to roller:
-   *   1. Den afgrænser de løbende ydelsers slutdato (ophørsårsag `beregningsdato`).
-   *   2. Den fungerer som fallback for `beregningsdato`, når brugeren ikke har udfyldt en
-   *      beregningsdato på erhvervsevnetab-siden — så EO-importen ikke kræver en beregningsdato.
-   *
-   * På erhvervsevnetab-siden (og i differencekrav-kaldet) er feltet altid `undefined`, så hverken
-   * slutdato-afgrænsningen eller beregningsdato-fallback'en påvirker beregningerne dér.
-   */
-  loebendeYdelserSlutdatoOverride?: ISODateString;
+  context: Readonly<
+    | { kind: 'eet_page' }
+    | { kind: 'eo_import'; slutdato: ISODateString }
+  >;
 }>;
 
 type ResolvedAfgoerelse = Readonly<{
@@ -591,15 +594,14 @@ const toAfgoerelseLabel = (
   return 'Endelig afgørelse';
 };
 
-export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationResult => {
+const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculationResult => {
   const issues: EetIssue[] = [];
 
   const beregningsdatoInput = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
-  // I EO-importens kontekst (midlertidigt EET) er beregningsdatoen ikke påkrævet: mangler den,
-  // bruges den leverede TAF-slutdato-override (capped af EO-periodens slutdato) som beregningsdato.
-  // Override leveres kun af EO-importen, så fallback'en kan aldrig smitte af på erhvervsevnetab-siden,
-  // hvor override altid er undefined og beregningsdatoen forbliver påkrævet. Se Input-typens JSDoc.
-  const beregningsdato = beregningsdatoInput ?? input.loebendeYdelserSlutdatoOverride;
+  // EO-importen har sin egen eksplicitte port, så TAF-slutdatoen ikke kan sive ind i
+  // EET-sidens beregning som en skjult optional override.
+  const beregningsdato = beregningsdatoInput
+    ?? (input.context.kind === 'eo_import' ? input.context.slutdato : undefined);
   const skadedato = input.skadedato;
   const fodselsdato = input.skadelidteFodselsdato;
 
@@ -702,7 +704,9 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const folkepensionsDagFoer = resolveFolkepensionsDagFoer(fodselsdato, current.afgoerelsesdato);
     const dayBeforeKapitalisering = current.effectiveKapDato ? getDayBeforeIso(current.effectiveKapDato) : undefined;
 
-    const loebendeYdelserSlutdato = input.loebendeYdelserSlutdatoOverride ?? beregningsdato;
+    const loebendeYdelserSlutdato = input.context.kind === 'eo_import'
+      ? input.context.slutdato
+      : beregningsdato;
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
       { date: loebendeYdelserSlutdato, cause: 'beregningsdato' },
     ];
@@ -723,18 +727,18 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 
     const fullPctFactor = eetPctFoerAktuelKap / 100;
     const restPctFactor = restEetPct / 100;
-    const grundydelseFuld = round2(grundloen * fullPctFactor * erstatningsniveau * amFaktor);
-    const grundydelseRest = hasRestSection
+    const grundydelseFuldKroner = round2(grundloen * fullPctFactor * erstatningsniveau * amFaktor);
+    const grundydelseRestKroner = hasRestSection
       ? round2(grundloen * restPctFactor * erstatningsniveau * amFaktor)
       : null;
 
-    const grundydelse2024Fuld = before2024Skade
-      ? round2(grundydelseFuld * (1 + reguleringFoer2024 / 100))
-      : grundydelseFuld;
-    const grundydelse2024Rest =
-      before2024Skade && grundydelseRest !== null
-        ? round2(grundydelseRest * (1 + reguleringFoer2024 / 100))
-        : grundydelseRest;
+    const grundydelse2024FuldKroner = before2024Skade
+      ? round2(grundydelseFuldKroner * (1 + reguleringFoer2024 / 100))
+      : grundydelseFuldKroner;
+    const grundydelse2024RestKroner =
+      before2024Skade && grundydelseRestKroner !== null
+        ? round2(grundydelseRestKroner * (1 + reguleringFoer2024 / 100))
+        : grundydelseRestKroner;
 
     const allPeriods = buildComputedSectionRows({
       current,
@@ -756,27 +760,27 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       const effektivGrundydelseBase =
         before2024Skade && sectionRow.satsAar >= 2024 ? sectionGrundydelse2024 : sectionGrundydelse;
 
-      const grundydelseAfrundet = effektivGrundydelseBase;
-      const aarsydelse = ceilNearest12(effektivGrundydelseBase * rateInfo.factor);
-      const maanedligYdelse = aarsydelse / 12;
+      const grundydelseAfrundetKroner = effektivGrundydelseBase;
+      const aarsydelseKroner = ceilNearest12(effektivGrundydelseBase * rateInfo.factor);
+      const maanedligYdelseKroner = aarsydelseKroner / 12;
       const maanederPraecis = sumMaanedsbroekForInterval(sectionRow.fra, sectionRow.til);
-      const beregnetEet = round0(maanederPraecis * maanedligYdelse);
+      const beregnetEetKroner = round0(maanederPraecis * maanedligYdelseKroner);
       // Tabellerne på siden og i PDF'en viser kun perioder med et faktisk krav.
-      if (beregnetEet === 0) continue;
+      if (beregnetEetKroner === 0) continue;
 
       computedRows.push({
         fra: sectionRow.fra,
         til: sectionRow.til,
         satsAar: sectionRow.satsAar,
         maanederPraecis,
-        grundydelseAfrundet,
+        grundydelseAfrundetOre: fromKroner(grundydelseAfrundetKroner),
         reguleringPct: rateInfo.reguleringPct,
-        maanedligYdelse,
-        beregnetEet,
+        maanedligYdelseOre: fromKroner(maanedligYdelseKroner),
+        beregnetEetOre: fromKroner(beregnetEetKroner),
       });
     }
 
-    const iAltBeregnetEet = computedRows.reduce((sum, row) => sum + row.beregnetEet, 0);
+    const iAltBeregnetEetOre = sumMoneyOre(computedRows.map((row) => row.beregnetEetOre));
 
     computations.push({
       rowId: current.rowId,
@@ -797,12 +801,12 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       tilbagevirkendeKraft: current.virkningsdato < current.afgoerelsesdato,
       ophoerDato: finalStop.date,
       ophoerAarsag: finalStop.cause,
-      grundydelseFuld,
-      grundydelseRest,
-      grundydelse2024Fuld,
-      grundydelse2024Rest,
+      grundydelseFuldOre: fromKroner(grundydelseFuldKroner),
+      grundydelseRestOre: grundydelseRestKroner === null ? null : fromKroner(grundydelseRestKroner),
+      grundydelse2024FuldOre: fromKroner(grundydelse2024FuldKroner),
+      grundydelse2024RestOre: grundydelse2024RestKroner === null ? null : fromKroner(grundydelse2024RestKroner),
       perioder: computedRows,
-      iAltBeregnetEet,
+      iAltBeregnetEetOre,
     });
   }
 
@@ -815,11 +819,11 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     skadedato,
     fodselsdato,
     skadesaar,
-    aslAarsloenAfrundet1000,
-    maxAarsloenISkadesaar,
-    benyttetAarsloen,
+    aslAarsloenAfrundet1000Ore: fromKroner(aslAarsloenAfrundet1000),
+    maxAarsloenISkadesaarOre: fromKroner(maxAarsloenISkadesaar),
+    benyttetAarsloenOre: fromKroner(benyttetAarsloen),
     grundloenNiveau: before2024Skade ? '2003' : '2024',
-    grundloen,
+    grundloenOre: fromKroner(grundloen),
     erstatningsniveauPct,
     amBidragPct,
     reguleringFoer2024Pct: before2024Skade ? (reguleringFoer2024 ?? 0) : 0,
@@ -830,6 +834,25 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     issues: dedupeIssuesBySeverityAndMessage(issues),
     computation,
   };
+};
+
+type EetLoebendeInput = Omit<Input, 'context'>;
+
+export const computeEetLoebendeYdelser = (
+  input: EetLoebendeInput
+): EetLoebendeCalculationResult => computeEetLoebendeYdelserForContext({
+  ...input,
+  context: { kind: 'eet_page' },
+});
+
+export const computeEetLoebendeYdelserForEoImport = (
+  input: EetLoebendeInput & Readonly<{ slutdato: ISODateString }>
+): EetLoebendeCalculationResult => {
+  const { slutdato, ...baseInput } = input;
+  return computeEetLoebendeYdelserForContext({
+    ...baseInput,
+    context: { kind: 'eo_import', slutdato },
+  });
 };
 
 export const buildLoebendeAarsydelseReguleringSteps = (
@@ -846,7 +869,7 @@ export const buildLoebendeAarsydelseReguleringSteps = (
       ? [fallbackYear]
       : [];
 
-  const restGrundydelse2024 = afgoerelse.grundydelse2024Rest ?? null;
+  const restGrundydelse2024Ore = afgoerelse.grundydelse2024RestOre;
 
   return uniqueYears.map((satsAar) => {
     const reguleringPct = afgoerelse.perioder.find((row) => row.satsAar === satsAar)?.reguleringPct ?? 0;
@@ -855,9 +878,12 @@ export const buildLoebendeAarsydelseReguleringSteps = (
       satsAar,
       reguleringPct,
       reguleringsfaktor,
-      aarsydelseFuldFoerAfrunding: round2(afgoerelse.grundydelse2024Fuld * reguleringsfaktor),
-      aarsydelseRestFoerAfrunding:
-        restGrundydelse2024 === null ? null : round2(restGrundydelse2024 * reguleringsfaktor),
+      aarsydelseFuldFoerAfrundingOre: fromKroner(
+        round2(toKroner(afgoerelse.grundydelse2024FuldOre) * reguleringsfaktor)
+      ),
+      aarsydelseRestFoerAfrundingOre: restGrundydelse2024Ore === null
+        ? null
+        : fromKroner(round2(toKroner(restGrundydelse2024Ore) * reguleringsfaktor)),
     };
   }).filter((step) => step.reguleringPct !== 0);
 };

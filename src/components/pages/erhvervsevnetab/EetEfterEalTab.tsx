@@ -12,6 +12,7 @@ import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { toKroner } from '../../../domain/money/money';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;
@@ -78,7 +79,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Årsløn på skadestidspunktet</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(computation.aarsloen)}</Typography>
+                <Typography className="row--text">{formatKr(toKroner(computation.aarsloenOre))}</Typography>
               </Box>
             </Box>
 
@@ -95,10 +96,10 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`${formatKr(computation.aarsloen)} x (100 % + ${formatPct(computation.reguleringsPctRounded4)}) (afrundet) =`}
+                    {`${formatKr(toKroner(computation.aarsloenOre))} x (100 % + ${formatPct(computation.reguleringsPctRounded4)}) (afrundet) =`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatKr(computation.reguleretAarsloen)}</Typography>
+                    <Typography className="row--text">{formatKr(toKroner(computation.reguleretAarsloenOre))}</Typography>
                   </Box>
                 </Box>
               </>
@@ -122,17 +123,17 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">
-                {`Erhvervsevnetab (${formatKr(computation.reguleretAarsloen)} x 10 x ${formatPct(computation.eetPct)}) =`}
+                {`Erhvervsevnetab (${formatKr(toKroner(computation.reguleretAarsloenOre))} x 10 x ${formatPct(computation.eetPct)}) =`}
               </Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(computation.eetBeregnet)}</Typography>
+                <Typography className="row--text">{formatKr(toKroner(computation.eetBeregnetOre))}</Typography>
               </Box>
             </Box>
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Maksimalt erhvervsevnetab i beregningsåret {computation.beregningsaar}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(computation.eetMaks)}</Typography>
+                <Typography className="row--text">{formatKr(toKroner(computation.eetMaksOre))}</Typography>
               </Box>
             </Box>
 
@@ -143,7 +144,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
                   : 'Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør'}
               </Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text text-bold">{formatKr(computation.eetAnvendt)}</Typography>
+                <Typography className="row--text text-bold">{formatKr(toKroner(computation.eetAnvendtOre))}</Typography>
               </Box>
             </Box>
 
@@ -171,18 +172,18 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">{`${formatKr(computation.eetAnvendt)} x (- ${formatPct(computation.aldersreduktionPct)}) =`}</Typography>
+              <Typography className="row--text">{`${formatKr(toKroner(computation.eetAnvendtOre))} x (- ${formatPct(computation.aldersreduktionPct)}) =`}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text text-bold">{`- ${formatKr(computation.aldersreduktionBeloeb)}`}</Typography>
+                <Typography className="row--text text-bold">{`- ${formatKr(toKroner(computation.aldersreduktionBeloebOre))}`}</Typography>
               </Box>
             </Box>
 
             <Typography className="row--subheading">Beregnet EAL-krav</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">{`${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`}</Typography>
+              <Typography className="row--text">{`${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))} =`}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text text-bold">{formatKr(computation.ealKrav)}</Typography>
+                <Typography className="row--text text-bold">{formatKr(toKroner(computation.ealKravOre))}</Typography>
               </Box>
             </Box>
           </ContentBox>

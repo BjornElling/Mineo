@@ -6,6 +6,7 @@ import { roundByMethod } from '../../../utils/rounding';
 import {
   buildLoebendeAarsydelseReguleringSteps,
   computeEetLoebendeYdelser,
+  computeEetLoebendeYdelserForEoImport,
   firstOfMonthAfter,
   hasOverlapPeriod,
   resolveLoebendeAfgoerelseRestVisning,
@@ -16,6 +17,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { isAslAfgoerelseRowEmpty, isAslAfgoerelseRowPersistenceEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { toISODateString, type ISODateString } from '../../../types/branded';
+import { fromKroner, toKroner } from '../../../domain/money/money';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -145,8 +147,8 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
     expect(second.perioder[0]?.til).toBe(toISODateString('2024-03-31'));
     expect(second.perioder[1]?.fra).toBe(toISODateString('2024-04-01'));
-    expect(second.perioder[0]?.grundydelseAfrundet).toBe(
-      roundByMethod(second.perioder[1]!.grundydelseAfrundet * (15 / 40), 2, 'halfAwayFromZero')
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBe(
+      roundByMethod(toKroner(second.perioder[1]!.grundydelseAfrundetOre) * (15 / 40), 2, 'halfAwayFromZero')
     );
   });
 
@@ -249,9 +251,9 @@ describe('computeEetLoebendeYdelser', () => {
     expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
     expect(second.harOverlap).toBe(true);
     expect(second.perioder[0]?.fra).toBe(toISODateString('2024-04-01'));
-    expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBeGreaterThan(0);
     expect(second.perioder.some((row) => row.fra < toISODateString('2024-04-01'))).toBe(false);
-    expect(second.perioder.every((row) => row.beregnetEet !== 0)).toBe(true);
+    expect(second.perioder.every((row) => toKroner(row.beregnetEetOre) !== 0)).toBe(true);
   });
 
   it('giver 0 procent overlap-bidrag ved identisk procent når FS tilbageholdt EET er Nej', () => {
@@ -280,9 +282,9 @@ describe('computeEetLoebendeYdelser', () => {
     expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
     expect(second.harOverlap).toBe(true);
     expect(second.perioder[0]?.fra).toBe(toISODateString('2024-04-01'));
-    expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBeGreaterThan(0);
     expect(second.perioder.some((row) => row.fra < toISODateString('2024-04-01'))).toBe(false);
-    expect(second.perioder.every((row) => row.beregnetEet !== 0)).toBe(true);
+    expect(second.perioder.every((row) => toKroner(row.beregnetEetOre) !== 0)).toBe(true);
   });
 
   it('bruger faktisk virkningsdato ved identisk procent når forgængeren har FS tilbageholdt EET', () => {
@@ -425,7 +427,7 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.skaeringsDato).toBe(toISODateString('2024-04-01'));
     expect(second.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
     expect(second.perioder[0]?.til).toBe(toISODateString('2024-03-31'));
-    expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBeGreaterThan(0);
     expect(second.perioder[1]?.fra).toBe(toISODateString('2024-04-01'));
   });
 
@@ -466,7 +468,9 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.perioder[0]?.til).toBe(toISODateString('2024-04-30'));
     expect(third.perioder[0]?.fra).toBe(toISODateString('2024-03-01'));
     expect(third.perioder[0]?.til).toBe(toISODateString('2024-04-30'));
-    expect(second.perioder[0]?.grundydelseAfrundet).toBe(third.perioder[0]?.grundydelseAfrundet);
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBe(
+      toKroner(third.perioder[0]!.grundydelseAfrundetOre)
+    );
     expect(third.perioder[1]?.fra).toBe(toISODateString('2024-05-01'));
   });
 
@@ -537,8 +541,8 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.perioder[0]?.fra).toBe(toISODateString('2024-03-01'));
     expect(second.perioder[0]?.til).toBe(toISODateString('2024-03-31'));
     expect(second.perioder[1]?.fra).toBe(toISODateString('2024-04-01'));
-    expect(second.perioder[0]?.grundydelseAfrundet).toBeCloseTo(
-      second.perioder[1]!.grundydelseAfrundet * (10 / 30),
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBeCloseTo(
+      toKroner(second.perioder[1]!.grundydelseAfrundetOre) * (10 / 30),
       1
     );
   });
@@ -743,7 +747,9 @@ describe('computeEetLoebendeYdelser', () => {
     const afterKapOverlap = second.perioder.find((row) => row.fra === toISODateString('2024-03-20') && row.til === toISODateString('2024-03-31'));
     if (!beforeKapOverlap || !afterKapOverlap) throw new Error('expected overlap split around kapitalisering');
 
-    expect(beforeKapOverlap.grundydelseAfrundet).toBe(afterKapOverlap.grundydelseAfrundet);
+    expect(toKroner(beforeKapOverlap.grundydelseAfrundetOre)).toBe(
+      toKroner(afterKapOverlap.grundydelseAfrundetOre)
+    );
   });
 
   it('beregner tilbagevirkende afgørelse fuldt før forgængeren virker og som difference derefter', () => {
@@ -791,11 +797,15 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.perioder[1]?.fra).toBe(toISODateString('2024-01-01'));
     expect(second.perioder[1]?.til).toBe(toISODateString('2024-06-30'));
     expect(second.perioder[2]?.fra).toBe(toISODateString('2024-07-01'));
-    expect(second.perioder[1]?.grundydelseAfrundet).toBe(
-      roundByMethod(second.perioder[2]!.grundydelseAfrundet * (15 / 40), 2, 'halfAwayFromZero')
+    expect(toKroner(second.perioder[1]!.grundydelseAfrundetOre)).toBe(
+      roundByMethod(toKroner(second.perioder[2]!.grundydelseAfrundetOre) * (15 / 40), 2, 'halfAwayFromZero')
     );
-    expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(second.perioder[1]!.grundydelseAfrundet);
-    expect(second.perioder[2]?.grundydelseAfrundet).toBeGreaterThan(second.perioder[1]!.grundydelseAfrundet);
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBeGreaterThan(
+      toKroner(second.perioder[1]!.grundydelseAfrundetOre)
+    );
+    expect(toKroner(second.perioder[2]!.grundydelseAfrundetOre)).toBeGreaterThan(
+      toKroner(second.perioder[1]!.grundydelseAfrundetOre)
+    );
   });
 
   it('bruger seneste afgørelse i afgørelsesrækkefølgen som reference ved kædet overlap', () => {
@@ -852,11 +862,11 @@ describe('computeEetLoebendeYdelser', () => {
     expect(third.rowId).toBe('b');
     expect(first.ophoerDato).toBe(toISODateString('2024-04-30'));
     expect(second.ophoerDato).toBe(toISODateString('2024-04-30'));
-    expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
+    expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBeGreaterThan(0);
     expect(third.perioder).toHaveLength(1);
     expect(third.perioder[0]?.fra).toBe(toISODateString('2024-05-01'));
-    expect(third.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
-    expect(third.perioder.every((row) => row.beregnetEet !== 0)).toBe(true);
+    expect(toKroner(third.perioder[0]!.grundydelseAfrundetOre)).toBeGreaterThan(0);
+    expect(third.perioder.every((row) => toKroner(row.beregnetEetOre) !== 0)).toBe(true);
   });
 
   it('beregner løbende ydelser for verificeret eksempel A', () => {
@@ -900,16 +910,16 @@ describe('computeEetLoebendeYdelser', () => {
     const computation = result.computation;
     if (!computation) throw new Error('expected computation');
 
-    expect(computation.grundloen).toBe(332955);
+    expect(toKroner(computation.grundloenOre)).toBe(332955);
     expect(computation.afgoerelser).toHaveLength(2);
 
     const first = computation.afgoerelser[0];
     expect(first.tilbagevirkendeKraft).toBe(true);
     expect(first.perioder).toHaveLength(3);
-    expect(first.perioder[0]?.maanedligYdelse).toBe(15265);
-    expect(first.perioder[1]?.maanedligYdelse).toBe(15799);
-    expect(first.perioder[2]?.maanedligYdelse).toBe(16415);
-    expect(first.iAltBeregnetEet).toBe(538068);
+    expect(toKroner(first.perioder[0]!.maanedligYdelseOre)).toBe(15265);
+    expect(toKroner(first.perioder[1]!.maanedligYdelseOre)).toBe(15799);
+    expect(toKroner(first.perioder[2]!.maanedligYdelseOre)).toBe(16415);
+    expect(toKroner(first.iAltBeregnetEetOre)).toBe(538068);
 
     const second = computation.afgoerelser[1];
     expect(second.restEetPct).toBe(25);
@@ -921,8 +931,10 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.perioder[1]?.fra).toBe(toISODateString('2025-12-01'));
     expect(second.perioder[2]?.fra).toBe(toISODateString('2026-01-01'));
     expect(second.perioder[3]?.fra).toBe(toISODateString('2026-01-15'));
-    expect(second.perioder[0]?.maanedligYdelse).toBeLessThan(second.perioder[1]!.maanedligYdelse);
-    expect(second.perioder[3]?.maanedligYdelse).toBe(9558);
+    expect(toKroner(second.perioder[0]!.maanedligYdelseOre)).toBeLessThan(
+      toKroner(second.perioder[1]!.maanedligYdelseOre)
+    );
+    expect(toKroner(second.perioder[3]!.maanedligYdelseOre)).toBe(9558);
   });
 
   it('giver fejl når kapitaliseringsdato er udfyldt uden kapitaliseringsprocent', () => {
@@ -1074,14 +1086,14 @@ describe('computeEetLoebendeYdelser', () => {
 
     const afgoerelse = computation.afgoerelser[0];
     if (!afgoerelse) throw new Error('expected first decision');
-    expect(afgoerelse.grundydelseRest).not.toBeNull();
+    expect(afgoerelse.grundydelseRestOre).not.toBeNull();
 
     const expectedRest = roundByMethod(
-      afgoerelse.grundydelseFuld * (afgoerelse.restEetPct / afgoerelse.eetPctFoerAktuelKap),
+      toKroner(afgoerelse.grundydelseFuldOre) * (afgoerelse.restEetPct / afgoerelse.eetPctFoerAktuelKap),
       2,
       'halfAwayFromZero'
     );
-    expect(afgoerelse.grundydelseRest).toBe(expectedRest);
+    expect(toKroner(afgoerelse.grundydelseRestOre!)).toBe(expectedRest);
   });
 
   it('fradrager tidligere kapitalisering i efterfølgende afgørelse og reducerer igen ved ny kapitalisering', () => {
@@ -1130,13 +1142,17 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.eetPctFoerAktuelKap).toBe(50);
     expect(second.restEetPct).toBe(25);
     expect(second.harRestSektion).toBe(true);
-    expect(second.grundydelseFuld).toBe(roundByMethod(computation.grundloen * 0.5 * 0.83 * 0.92, 2, 'halfAwayFromZero'));
+    expect(toKroner(second.grundydelseFuldOre)).toBe(
+      roundByMethod(toKroner(computation.grundloenOre) * 0.5 * 0.83 * 0.92, 2, 'halfAwayFromZero')
+    );
 
     const beforeKapRow = second.perioder.find((row) => row.til === toISODateString('2026-07-14'));
     const afterKapRow = second.perioder.find((row) => row.fra === toISODateString('2026-07-15'));
     if (!beforeKapRow || !afterKapRow) throw new Error('expected split rows around kapitaliseringsdato');
 
-    expect(afterKapRow.maanedligYdelse).toBeLessThan(beforeKapRow.maanedligYdelse);
+    expect(toKroner(afterKapRow.maanedligYdelseOre)).toBeLessThan(
+      toKroner(beforeKapRow.maanedligYdelseOre)
+    );
   });
 
   it('giver advarsel når midlertidig/delvist endelig ligger efter en endelig afgørelse', () => {
@@ -1278,9 +1294,11 @@ describe('computeEetLoebendeYdelser', () => {
     if (!afgoerelse) throw new Error('expected first decision');
 
     expect(computation.grundloenNiveau).toBe('2024');
-    expect(computation.grundloen).toBe(401000);
-    expect(afgoerelse.grundydelseFuld).toBe(roundByMethod(401000 * 0.4 * 0.83 * 0.92, 2, 'halfAwayFromZero'));
-    expect(afgoerelse.perioder[0]?.maanedligYdelse).toBe(11116);
+    expect(toKroner(computation.grundloenOre)).toBe(401000);
+    expect(toKroner(afgoerelse.grundydelseFuldOre)).toBe(
+      roundByMethod(401000 * 0.4 * 0.83 * 0.92, 2, 'halfAwayFromZero')
+    );
+    expect(toKroner(afgoerelse.perioder[0]!.maanedligYdelseOre)).toBe(11116);
   });
 
   it('anvender 80 % uden AM-bidrag for skade før 2011', () => {
@@ -1315,8 +1333,10 @@ describe('computeEetLoebendeYdelser', () => {
 
     expect(computation.erstatningsniveauPct).toBe(80);
     expect(computation.amBidragPct).toBe(0);
-    expect(computation.grundloen).toBe(339094);
-    expect(afgoerelse.grundydelseFuld).toBe(roundByMethod(339094 * 0.4 * 0.8, 2, 'halfAwayFromZero'));
+    expect(toKroner(computation.grundloenOre)).toBe(339094);
+    expect(toKroner(afgoerelse.grundydelseFuldOre)).toBe(
+      roundByMethod(339094 * 0.4 * 0.8, 2, 'halfAwayFromZero')
+    );
   });
 
   it('opregulerer præ-2024-skade til 2024-niveau uden ekstra 2024-sats i periodefaktoren', () => {
@@ -1347,8 +1367,8 @@ describe('computeEetLoebendeYdelser', () => {
     const periode = result.computation?.afgoerelser[0]?.perioder[0];
     expect(periode?.satsAar).toBe(2024);
     expect(periode?.reguleringPct).toBe(0);
-    expect(periode?.grundydelseAfrundet).toBe(168513.22);
-    expect(periode?.maanedligYdelse).toBe(14043);
+    expect(toKroner(periode!.grundydelseAfrundetOre)).toBe(168513.22);
+    expect(toKroner(periode!.maanedligYdelseOre)).toBe(14043);
   });
 
   it('udelader reguleringstrin med 0 % fra den udvidede specifikation', () => {
@@ -1667,10 +1687,10 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
     til: toISODateString(`${satsAar}-12-31`),
     satsAar,
     maanederPraecis: 12,
-    grundydelseAfrundet: 0,
+    grundydelseAfrundetOre: fromKroner(0),
     reguleringPct: 0,
-    maanedligYdelse: 0,
-    beregnetEet: 0,
+    maanedligYdelseOre: fromKroner(0),
+    beregnetEetOre: fromKroner(0),
   });
 
   const afgoerelse = (
@@ -1692,11 +1712,11 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
     tilbagevirkendeKraft: false,
     ophoerDato: toISODateString('2030-01-01'),
     ophoerAarsag: 'kapitalisering',
-    grundydelseFuld: 0,
-    grundydelseRest: null,
-    grundydelse2024Fuld: 0,
-    grundydelse2024Rest: null,
-    iAltBeregnetEet: 0,
+    grundydelseFuldOre: fromKroner(0),
+    grundydelseRestOre: null,
+    grundydelse2024FuldOre: fromKroner(0),
+    grundydelse2024RestOre: null,
+    iAltBeregnetEetOre: fromKroner(0),
     ...patch,
   });
 
@@ -1740,7 +1760,7 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
   });
 });
 
-describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
+describe('computeEetLoebendeYdelserForEoImport', () => {
   const midlertidigRow = testRow({
     id: 'a1',
     afgoerelsesDato: toISODateString('2024-02-01'),
@@ -1749,7 +1769,7 @@ describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
     afgoerelseType: 'Midlertidig',
   });
 
-  it('blokerer med beregningsdato-missing når både beregningsdato og override mangler (erhvervsevnetab-siden)', () => {
+  it('blokerer med beregningsdato-missing når beregningsdato mangler på erhvervsevnetab-siden', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -1769,8 +1789,8 @@ describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
     });
   });
 
-  it('bruger override som beregningsdato når beregningsdato mangler (EO-import)', () => {
-    const result = computeEetLoebendeYdelser({
+  it('bruger EO-importens slutdato som beregningsdato når feltet mangler', () => {
+    const result = computeEetLoebendeYdelserForEoImport({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
         beregningsdato: undefined,
@@ -1779,7 +1799,7 @@ describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
       },
       skadedato: toISODateString('2024-01-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
-      loebendeYdelserSlutdatoOverride: toISODateString('2024-04-30'),
+      slutdato: toISODateString('2024-04-30'),
     });
 
     expect(result.issues.some((issue) => issue.id === 'beregningsdato-missing')).toBe(false);
@@ -1788,8 +1808,8 @@ describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
     expect(result.computation?.afgoerelser.flatMap((a) => a.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
   });
 
-  it('lader override afgrænse slutdatoen, mens en udfyldt beregningsdato bevares til advarsler', () => {
-    const result = computeEetLoebendeYdelser({
+  it('lader EO-importens slutdato afgrænse perioden, mens en udfyldt beregningsdato bevares', () => {
+    const result = computeEetLoebendeYdelserForEoImport({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
         beregningsdato: toISODateString('2024-12-31'),
@@ -1798,10 +1818,10 @@ describe('loebendeYdelserSlutdatoOverride som beregningsdato-fallback', () => {
       },
       skadedato: toISODateString('2024-01-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
-      loebendeYdelserSlutdatoOverride: toISODateString('2024-04-30'),
+      slutdato: toISODateString('2024-04-30'),
     });
 
-    // Udfyldt beregningsdato bevares i computation, men override vinder for selve slutdatoen.
+    // Udfyldt beregningsdato bevares i computation, men importens slutdato afgrænser perioden.
     expect(result.computation?.beregningsdato).toBe(toISODateString('2024-12-31'));
     expect(result.computation?.afgoerelser.flatMap((a) => a.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
   });

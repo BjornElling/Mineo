@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import EetDifferencekravTab from '../../../../components/pages/erhvervsevnetab/EetDifferencekravTab';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
 import { toISODateString, type ISODateString } from '../../../../types/branded';
+import { fromKroner } from '../../../../domain/money/money';
 import { formPersistenceStore } from '../../../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../../../stores/undoRedoStore';
 import { clearResolvedFieldErrorsCache } from '../../../../hooks/useFormPersistenceSelectors';
@@ -61,23 +62,23 @@ describe('EetDifferencekravTab', () => {
                 beregningsdato: toISODateString('2026-03-17'),
                 fradragGaelderForFoer2011: false,
                 ealEetPct: 15,
-                ealKrav: 100000,
+                ealKravOre: fromKroner(100000),
                 afgoerelser: [{
                   rowId: 'a1',
                   afgoerelsesdato: toISODateString('2020-01-01'),
                   virkningsdato: toISODateString('2020-02-01'),
                   afgoerelseType: 'Midlertidig',
                   eetPct: 15,
-                  beloeb: 0,
+                  beloebOre: fromKroner(0),
                   fradragForetages: false,
                   fradragesTil: null,
                 }],
                 kapitaliseringerAfgoerelser: [],
                 proformaKapitalisering: null,
-                differencekravFoerForlig: 100000,
+                differencekravFoerForligOre: fromKroner(100000),
                 forligFactor: null,
                 forligLabel: null,
-                differencekrav: 100000,
+                differencekravOre: fromKroner(100000),
               },
             } as never}
           />
@@ -129,7 +130,7 @@ describe('EetDifferencekravTab', () => {
     beregningsdato: toISODateString('2026-03-17'),
     fradragGaelderForFoer2011: false,
     ealEetPct: 15,
-    ealKrav: 100000,
+    ealKravOre: fromKroner(100000),
     afgoerelser: [],
     kapitaliseringerAfgoerelser: [],
     proformaKapitalisering: null,
@@ -141,7 +142,7 @@ describe('EetDifferencekravTab', () => {
 
   it('viser forlig om ansvarsgrad-rækken i Valgmuligheder', () => {
     renderTab({
-      computation: baseComputation({ differencekravFoerForlig: 100000, forligFactor: null, forligLabel: null, differencekrav: 100000 }),
+      computation: baseComputation({ differencekravFoerForligOre: fromKroner(100000), forligFactor: null, forligLabel: null, differencekravOre: fromKroner(100000) }),
     });
 
     expect(screen.getByText('Forlig om ansvarsgrad')).toBeInTheDocument();
@@ -151,7 +152,7 @@ describe('EetDifferencekravTab', () => {
 
   it('viser plain differencekrav-label uden forlig', () => {
     renderTab({
-      computation: baseComputation({ differencekravFoerForlig: 100000, forligFactor: null, forligLabel: null, differencekrav: 100000 }),
+      computation: baseComputation({ differencekravFoerForligOre: fromKroner(100000), forligFactor: null, forligLabel: null, differencekravOre: fromKroner(100000) }),
     });
 
     expect(screen.getByText('Beregnet differencekrav')).toBeInTheDocument();
@@ -161,11 +162,11 @@ describe('EetDifferencekravTab', () => {
     renderTab({
       forligValues: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2/3', forligDato: undefined },
       computation: baseComputation({
-        differencekravFoerForlig: 1095121,
+        differencekravFoerForligOre: fromKroner(1095121),
         forligFactor: 2 / 3,
         forligLabel: '2/3',
         forligDato: null,
-        differencekrav: 730081,
+        differencekravOre: fromKroner(730081),
       }),
     });
 
@@ -179,11 +180,11 @@ describe('EetDifferencekravTab', () => {
     renderTab({
       forligValues: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2/3', forligDato: undefined },
       computation: baseComputation({
-        differencekravFoerForlig: 1095121,
+        differencekravFoerForligOre: fromKroner(1095121),
         forligFactor: 2 / 3,
         forligLabel: '2/3',
         forligDato: toISODateString('2024-05-17'),
-        differencekrav: 730081,
+        differencekravOre: fromKroner(730081),
       }),
     });
 

@@ -1,8 +1,10 @@
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { buildMidlertidigtEetAfgoerelseGroupsFromComputation } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import { buildMidlertidigtEetAfgoerelseGroupsFromImportContext } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser, type EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { fromKroner, toKroner } from '../../../domain/money/money';
+import { buildEetImportContext, eetImportContextSchema } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { toISODateString } from '../../../types/branded';
 
 const makeValues = (): ErhvervsevnetabComposedValues => ({
@@ -55,13 +57,18 @@ const computeGroups = (eetValues: ErhvervsevnetabComposedValues) => {
     skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
   }).computation;
 
+  const context = buildEetImportContext({
+    revision: 'insert-rows-test',
+    eetValues,
+    skadedato: toISODateString('2024-07-01'),
+  }, toISODateString('2026-03-19'));
   return {
     computation,
-    groups: buildMidlertidigtEetAfgoerelseGroupsFromComputation(computation),
+    groups: buildMidlertidigtEetAfgoerelseGroupsFromImportContext(context.groups),
   };
 };
 
-describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
+describe('buildMidlertidigtEetAfgoerelseGroupsFromImportContext', () => {
   it('bygger én EO-række per løbende ydelseslinje for midlertidige og delvist endelige afgørelser', () => {
     const eetValues = makeValues();
     const { computation, groups } = computeGroups(eetValues);
@@ -78,7 +85,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         id: rows[index]!.id,
         fraDato: periode.fra,
         tilDato: periode.til,
-        ydelse: { kind: 'number', value: periode.beregnetEet },
+        ydelse: { kind: 'number', value: toKroner(periode.beregnetEetOre) },
         tillaeg: undefined,
         ydelsestype: 'midlertidigt_eet',
       }))
@@ -109,7 +116,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
       .flatMap((afgoerelse) => afgoerelse.perioder);
 
     expect(rows.map((row) => row.ydelse?.kind === 'number' ? row.ydelse.value : undefined)).toEqual(
-      expectedPerioder.map((periode) => periode.beregnetEet)
+      expectedPerioder.map((periode) => toKroner(periode.beregnetEetOre))
     );
   });
 
@@ -124,7 +131,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         kapDato: undefined,
         kapPct: undefined,
         afgoerelseType: undefined,
-      fsTilbageholdtEet: 'Nej',
+        fsTilbageholdtEet: 'Nej',
         tidlKapDato: undefined,
       },
     ];
@@ -140,11 +147,11 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
       skadedato: toISODateString('2024-07-01'),
       fodselsdato: toISODateString('1980-01-01'),
       skadesaar: 2024,
-      aslAarsloenAfrundet1000: 600000,
-      maxAarsloenISkadesaar: 600000,
-      benyttetAarsloen: 600000,
+      aslAarsloenAfrundet1000Ore: fromKroner(600000),
+      maxAarsloenISkadesaarOre: fromKroner(600000),
+      benyttetAarsloenOre: fromKroner(600000),
       grundloenNiveau: '2024',
-      grundloen: 600000,
+      grundloenOre: fromKroner(600000),
       erstatningsniveauPct: 83,
       amBidragPct: 8,
       reguleringFoer2024Pct: 0,
@@ -157,7 +164,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         harOverlap: false,
         // @ts-expect-error Testen konstruerer et umuligt engine-output for at dække invariant-bruddet.
         afgoerelseType: 'Ukendt',
-      fsTilbageholdtEet: 'Nej',
+        fsTilbageholdtEet: 'Nej',
         eetPct: 15,
         priorKapPct: 0,
         eetPctFoerAktuelKap: 15,
@@ -169,17 +176,25 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         tilbagevirkendeKraft: false,
         ophoerDato: toISODateString('2026-03-19'),
         ophoerAarsag: 'beregningsdato',
-        grundydelseFuld: 1000,
-        grundydelseRest: null,
-        grundydelse2024Fuld: 1000,
-        grundydelse2024Rest: null,
-        iAltBeregnetEet: 1000,
+        grundydelseFuldOre: fromKroner(1000),
+        grundydelseRestOre: null,
+        grundydelse2024FuldOre: fromKroner(1000),
+        grundydelse2024RestOre: null,
+        iAltBeregnetEetOre: fromKroner(1000),
         perioder: [],
       }],
     };
 
-    expect(() => buildMidlertidigtEetAfgoerelseGroupsFromComputation(invalidComputation))
-      .toThrow('CRITICAL: Ukendt EET-afgørelsestype i midlertidigt EET-import.');
+    expect(() => eetImportContextSchema.parse({
+      revision: 'invalid-type',
+      issues: [],
+      groups: invalidComputation.afgoerelser.map((afgoerelse) => ({
+        afgoerelsesdato: afgoerelse.afgoerelsesdato,
+        eetPct: afgoerelse.eetPct,
+        perioder: afgoerelse.perioder,
+        afgoerelseType: afgoerelse.afgoerelseType,
+      })),
+    })).toThrow();
   });
 
   it('failer eksplicit hvis EET-computation indeholder en ikke-konverterbar periode', () => {
@@ -188,11 +203,11 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
       skadedato: toISODateString('2024-07-01'),
       fodselsdato: toISODateString('1980-01-01'),
       skadesaar: 2024,
-      aslAarsloenAfrundet1000: 600000,
-      maxAarsloenISkadesaar: 600000,
-      benyttetAarsloen: 600000,
+      aslAarsloenAfrundet1000Ore: fromKroner(600000),
+      maxAarsloenISkadesaarOre: fromKroner(600000),
+      benyttetAarsloenOre: fromKroner(600000),
       grundloenNiveau: '2024',
-      grundloen: 600000,
+      grundloenOre: fromKroner(600000),
       erstatningsniveauPct: 83,
       amBidragPct: 8,
       reguleringFoer2024Pct: 0,
@@ -204,7 +219,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         skaeringsDato: null,
         harOverlap: false,
         afgoerelseType: 'Midlertidig',
-      fsTilbageholdtEet: 'Nej',
+        fsTilbageholdtEet: 'Nej',
         eetPct: 15,
         priorKapPct: 0,
         eetPctFoerAktuelKap: 15,
@@ -216,26 +231,33 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         tilbagevirkendeKraft: false,
         ophoerDato: toISODateString('2026-03-19'),
         ophoerAarsag: 'beregningsdato',
-        grundydelseFuld: 1000,
-        grundydelseRest: null,
-        grundydelse2024Fuld: 1000,
-        grundydelse2024Rest: null,
-        iAltBeregnetEet: 1000,
+        grundydelseFuldOre: fromKroner(1000),
+        grundydelseRestOre: null,
+        grundydelse2024FuldOre: fromKroner(1000),
+        grundydelse2024RestOre: null,
+        iAltBeregnetEetOre: fromKroner(1000),
         perioder: [{
           // @ts-expect-error Testen konstruerer et umuligt engine-output for at dække invariant-bruddet.
           fra: 'invalid-date',
           til: toISODateString('2026-03-19'),
           satsAar: 2026,
           maanederPraecis: 1,
-          grundydelseAfrundet: 1000,
+          grundydelseAfrundetOre: fromKroner(1000),
           reguleringPct: 0,
-          maanedligYdelse: 1000,
-          beregnetEet: 1000,
+          maanedligYdelseOre: fromKroner(1000),
+          beregnetEetOre: fromKroner(1000),
         }],
       }],
     };
 
-    expect(() => buildMidlertidigtEetAfgoerelseGroupsFromComputation(invalidComputation))
-      .toThrow('CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.');
+    expect(() => eetImportContextSchema.parse({
+      revision: 'invalid-period',
+      issues: [],
+      groups: invalidComputation.afgoerelser.map((afgoerelse) => ({
+        afgoerelsesdato: afgoerelse.afgoerelsesdato,
+        eetPct: afgoerelse.eetPct,
+        perioder: afgoerelse.perioder,
+      })),
+    })).toThrow();
   });
 });

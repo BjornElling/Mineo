@@ -78,7 +78,7 @@ describe('forsoergertabPdf wiring', () => {
         result: null,
         ealComputation: null,
         aslComputation: null,
-        foersoergertabEalMinSats: null,
+        foersoergertabEalMinSatsOre: null,
         foersoergertabForhoejtetTilMin: false,
         visBrevhoved: false,
       });
@@ -105,7 +105,7 @@ describe('forsoergertabPdf wiring', () => {
         result: null,
         ealComputation: null,
         aslComputation: null,
-        foersoergertabEalMinSats: null,
+        foersoergertabEalMinSatsOre: null,
         foersoergertabForhoejtetTilMin: false,
         visBrevhoved: false,
       });

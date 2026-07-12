@@ -1,12 +1,41 @@
 import type { EetIssue } from '../erhvervsevnetab/eetTypes';
 import type { ISODateString } from '../../types/branded';
 import type { Koen } from '../../schemas/formSchemas';
-import type { EetEalComputation } from '../erhvervsevnetab/eetEalCalculation';
+import type { MoneyOre } from '../money/money';
+
+/**
+ * Forsørgertabsdomænets forbrugerejede EAL-port. Den eksplicitte projektion forhindrer, at
+ * domænet muterer eller bliver typemæssigt koblet til Erhvervsevnetabs søster-output.
+ */
+export type ForsoergertabEalPort = Readonly<{
+  beregningsdato: ISODateString;
+  skadedato: ISODateString;
+  fodselsdato: ISODateString;
+  skadesaar: number;
+  beregningsaar: number;
+  aarsloenOre: MoneyOre;
+  aarsloenSource: 'eal' | 'asl';
+  reguleringsaar: readonly number[];
+  reguleringsPctRounded4: number;
+  reguleretAarsloenOre: MoneyOre;
+  eetPct: number;
+  eetPctSource: 'eal' | 'asl';
+  kapitaliseringsfaktor: 10;
+  eetBeregnetOre: MoneyOre;
+  eetMaksOre: MoneyOre;
+  eetAnvendtOre: MoneyOre;
+  eetReduceretTilMaks: boolean;
+  alderVedSkade: number;
+  alderVedSkadeCapped: number;
+  aldersreduktionPct: number;
+  aldersreduktionBeloebOre: MoneyOre;
+  ealKravOre: MoneyOre;
+}>;
 
 export type ForsoergertabEalKravResult = Readonly<{
   issues: readonly EetIssue[];
-  computation: EetEalComputation | null;
-  foersoergertabEalMinSats: number | null;
+  computation: ForsoergertabEalPort | null;
+  foersoergertabEalMinSatsOre: MoneyOre | null;
   foersoergertabForhoejtetTilMin: boolean;
 }>;
 
@@ -65,9 +94,9 @@ export type ForsoergertabCalculation = Readonly<{
 
 export type ForsoergertabCalculationResult = Readonly<{
   issues: readonly EetIssue[];
-  ealComputation: EetEalComputation | null;
+  ealComputation: ForsoergertabEalPort | null;
   aslComputation: ForsoergertabAslComputation | null;
-  foersoergertabEalMinSats: number | null;
+  foersoergertabEalMinSatsOre: MoneyOre | null;
   foersoergertabForhoejtetTilMin: boolean;
   result: ForsoergertabCalculation | null;
 }>;

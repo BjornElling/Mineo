@@ -4,6 +4,7 @@ import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot'
 import * as eetLoebendeYdelserCalculation from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
+import { toKroner } from '../../../domain/money/money';
 
 const createValues = (): ErhvervsevnetabComposedValues => ({
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -163,7 +164,9 @@ describe('computeEetSnapshot', () => {
     expect(c.forligLabel).toBe('2/3');
     expect(c.forligFactor).toBe(2 / 3);
     expect(c.forligDato).toBe(toISODateString('2024-05-17'));
-    expect(c.differencekrav).toBe(Math.max(0, Math.round(c.differencekravFoerForlig * (2 / 3))));
+    expect(toKroner(c.differencekravOre)).toBe(
+      Math.max(0, Math.round(toKroner(c.differencekravFoerForligOre) * (2 / 3)))
+    );
   });
 
   it('blokerer hele differencekrav-outputtet når både procent og brøk er udfyldt', () => {

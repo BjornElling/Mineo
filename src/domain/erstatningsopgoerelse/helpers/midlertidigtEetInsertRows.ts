@@ -1,16 +1,10 @@
-import type { ErhvervsevnetabComposedValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
-import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
-import type { EetLoebendeComputation, EetLoebendePeriodeRow } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
+import type { EetImportContext } from '../../erhvervsevnetab/eetImportPort';
+import type { EetLoebendePeriodeRow } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
-
-/** Input til den kanoniske EET-import via buildMidlertidigtEetSourceResult. */
-export type MidlertidigtEetInsertSource = Readonly<{
-  eetValues: ErhvervsevnetabComposedValues;
-  skadedato: ISODateString | undefined;
-  issues?: readonly EetIssue[];
-}>;
+import { toKroner } from '../../money/money';
 
 /**
  * Én afgørelses data til hhv. UI-tabelindsætning og PDF-rendering.
@@ -28,18 +22,12 @@ export type MidlertidigtEetAfgoerelseGroup = Readonly<{
   perioder: readonly EetLoebendePeriodeRow[];
 }>;
 
-export const buildMidlertidigtEetAfgoerelseGroupsFromComputation = (
-  computation: EetLoebendeComputation | null
+export const buildMidlertidigtEetAfgoerelseGroupsFromImportContext = (
+  importGroups: EetImportContext['groups']
 ): readonly MidlertidigtEetAfgoerelseGroup[] => {
-  if (!computation) return [];
   const groups: MidlertidigtEetAfgoerelseGroup[] = [];
 
-  for (const afgoerelse of computation.afgoerelser) {
-    if (afgoerelse.afgoerelseType === 'Endelig') continue;
-    if (afgoerelse.afgoerelseType !== 'Midlertidig' && afgoerelse.afgoerelseType !== 'Delvist endelig') {
-      throw new Error('CRITICAL: Ukendt EET-afgørelsestype i midlertidigt EET-import.');
-    }
-
+  for (const afgoerelse of importGroups) {
     const rows: OffentligeYdelserRow[] = [];
     for (const periode of afgoerelse.perioder) {
       if (!isISODateString(periode.fra) || !isISODateString(periode.til)) {
@@ -51,7 +39,8 @@ export const buildMidlertidigtEetAfgoerelseGroupsFromComputation = (
         tilDato: periode.til,
         ydelse: {
           kind: 'number',
-          value: periode.beregnetEet,
+          // AmountValue er et persisted kroneinput; MoneyOre må kun forlades ved denne port.
+          value: toKroner(periode.beregnetEetOre),
         },
         tillaeg: undefined,
         ydelsestype: 'midlertidigt_eet',

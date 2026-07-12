@@ -19,6 +19,13 @@ import { round0, round4 } from '../../utils/roundingShortcuts';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { opregulerMedAkkumuleretReguleringssats } from '../satser/opreguleringsmotorer';
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
+import {
+  clampMoneyOreToZero,
+  fromKroner,
+  subtractMoneyOre,
+  toKroner,
+  type MoneyOre,
+} from '../money/money';
 
 export type EetEalResolvedEetPct = Readonly<{
   value: number;
@@ -32,24 +39,24 @@ export type EetEalComputation = Readonly<{
   fodselsdato: ISODateString;
   skadesaar: number;
   beregningsaar: number;
-  aarsloen: number;
+  aarsloenOre: MoneyOre;
   aarsloenSource: 'eal' | 'asl';
   reguleringsaar: readonly number[];
   reguleringsPctRounded4: number;
-  reguleretAarsloen: number;
+  reguleretAarsloenOre: MoneyOre;
   eetPct: number;
   eetPctSource: 'eal' | 'asl';
   kapitaliseringsfaktor: 10;
-  eetBeregnet: number;
-  eetMaks: number;
-  eetAnvendt: number;
+  eetBeregnetOre: MoneyOre;
+  eetMaksOre: MoneyOre;
+  eetAnvendtOre: MoneyOre;
   eetReduceretTilMaks: boolean;
   alderVedSkade: number;
   // Alder brugt i aldersreduktionsformlen — capped til 69 ved > 69 år
   alderVedSkadeCapped: number;
   aldersreduktionPct: number;
-  aldersreduktionBeloeb: number;
-  ealKrav: number;
+  aldersreduktionBeloebOre: MoneyOre;
+  ealKravOre: MoneyOre;
 }>;
 
 export type EetEalCalculationResult = Readonly<{
@@ -372,18 +379,28 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const reguleringsPctRounded4 = round4((reguleringsfaktor - 1) * 100);
   const reguleringsfaktorRounded4 = 1 + reguleringsPctRounded4 / 100;
-  const reguleretAarsloen = reguleringsaar.length > 0
+  const aarsloenOre = fromKroner(aarsloen.value);
+  const reguleretAarsloenOre = fromKroner(reguleringsaar.length > 0
     ? round500(aarsloen.value * reguleringsfaktorRounded4)
-    : aarsloen.value;
+    : aarsloen.value);
 
-  const eetBeregnet = round0(reguleretAarsloen * 10 * (eetPctResolution.resolved.value / 100));
-  const eetReduceretTilMaks = eetBeregnet > eetMaks;
-  const eetAnvendt = eetReduceretTilMaks ? eetMaks : eetBeregnet;
+  // De lovbestemte round0-/maksimumgrænser ligger fortsat i kroner. Først derefter bliver
+  // beløbene brandet, så MoneyOre-migrationen ikke flytter en eneste afrunding.
+  const eetBeregnetOre = fromKroner(round0(
+    toKroner(reguleretAarsloenOre) * 10 * (eetPctResolution.resolved.value / 100)
+  ));
+  const eetMaksOre = fromKroner(eetMaks);
+  const eetReduceretTilMaks = eetBeregnetOre > eetMaksOre;
+  const eetAnvendtOre = eetReduceretTilMaks ? eetMaksOre : eetBeregnetOre;
 
   const alderVedSkadeCapped = Math.min(alderVedSkade, 69);
   const aldersreduktionPct = calculateAldersreduktionPct(alderVedSkade);
-  const aldersreduktionBeloeb = round0(eetAnvendt * (aldersreduktionPct / 100));
-  const ealKrav = Math.max(0, round0(eetAnvendt - aldersreduktionBeloeb));
+  const aldersreduktionBeloebOre = fromKroner(round0(
+    toKroner(eetAnvendtOre) * (aldersreduktionPct / 100)
+  ));
+  const ealKravOre = clampMoneyOreToZero(
+    subtractMoneyOre(eetAnvendtOre, aldersreduktionBeloebOre)
+  );
 
   const computation: EetEalComputation = {
     beregningsdato,
@@ -391,23 +408,23 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     fodselsdato,
     skadesaar,
     beregningsaar,
-    aarsloen: aarsloen.value,
+    aarsloenOre,
     aarsloenSource: aarsloen.source,
     reguleringsaar,
     reguleringsPctRounded4,
-    reguleretAarsloen,
+    reguleretAarsloenOre,
     eetPct: eetPctResolution.resolved.value,
     eetPctSource: eetPctResolution.resolved.source,
     kapitaliseringsfaktor: 10,
-    eetBeregnet,
-    eetMaks,
-    eetAnvendt,
+    eetBeregnetOre,
+    eetMaksOre,
+    eetAnvendtOre,
     eetReduceretTilMaks,
     alderVedSkade,
     alderVedSkadeCapped,
     aldersreduktionPct,
-    aldersreduktionBeloeb,
-    ealKrav,
+    aldersreduktionBeloebOre,
+    ealKravOre,
   };
 
   return {

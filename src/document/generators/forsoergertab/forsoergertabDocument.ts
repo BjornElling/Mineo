@@ -14,9 +14,9 @@ import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
-import type { ForsoergertabCalculation, ForsoergertabAslComputation } from '../../../domain/forsoergertab/forsoergertabTypes';
-import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import type { ForsoergertabCalculation, ForsoergertabAslComputation, ForsoergertabEalPort } from '../../../domain/forsoergertab/forsoergertabTypes';
 import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { toKroner, type MoneyOre } from '../../../domain/money/money';
 
 // ============================================================================
 // Side 1: Grundlæggende oplysninger + Beregnet forsørgertab
@@ -120,11 +120,11 @@ const addBeregnedResultatSection = (writer: DocumentComposer, result: Forsoerger
 // Side 2: EAL-krav
 // ============================================================================
 
-const addEalSection = (writer: DocumentComposer, eal: EetEalComputation, foersoergertabEalMinSats: number | null, foersoergertabForhoejtetTilMin: boolean): void => {
+const addEalSection = (writer: DocumentComposer, eal: ForsoergertabEalPort, foersoergertabEalMinSatsOre: MoneyOre | null, foersoergertabForhoejtetTilMin: boolean): void => {
   writer.writeSectionHeader('EAL-krav');
 
   writer.writeBoldSubheader('Årsløn');
-  writer.writeLeftRightText('Skadelidtes årsløn på skadestidspunktet', formatKr(eal.aarsloen), {
+  writer.writeLeftRightText('Skadelidtes årsløn på skadestidspunktet', formatKr(toKroner(eal.aarsloenOre)), {
     rightFontStyle: 'normal',
   });
 
@@ -135,8 +135,8 @@ const addEalSection = (writer: DocumentComposer, eal: EetEalComputation, foersoe
       { rightFontStyle: 'normal' }
     );
     writer.writeLeftRightText(
-      `${formatKr(eal.aarsloen)} x (100 % + ${formatPercentTrimmedFromRounded4(eal.reguleringsPctRounded4)} %) (afrundet) =`,
-      formatKr(eal.reguleretAarsloen),
+      `${formatKr(toKroner(eal.aarsloenOre))} x (100 % + ${formatPercentTrimmedFromRounded4(eal.reguleringsPctRounded4)} %) (afrundet) =`,
+      formatKr(toKroner(eal.reguleretAarsloenOre)),
       { rightFontStyle: 'normal' }
     );
   }
@@ -149,15 +149,15 @@ const addEalSection = (writer: DocumentComposer, eal: EetEalComputation, foersoe
     rightFontStyle: 'normal',
   });
   writer.writeLeftRightText(
-    `Beregnet forsørgertab (${formatKr(eal.reguleretAarsloen)} x ${eal.kapitaliseringsfaktor} x 30 %) =`,
-    formatKr(eal.eetBeregnet),
+    `Beregnet forsørgertab (${formatKr(toKroner(eal.reguleretAarsloenOre))} x ${eal.kapitaliseringsfaktor} x 30 %) =`,
+    formatKr(toKroner(eal.eetBeregnetOre)),
     { rightFontStyle: 'normal' }
   );
 
-  if (foersoergertabEalMinSats !== null) {
+  if (foersoergertabEalMinSatsOre !== null) {
     writer.writeLeftRightText(
       `Mindste erstatningsniveau i beregningsåret ${eal.beregningsaar}`,
-      formatKr(foersoergertabEalMinSats),
+      formatKr(toKroner(foersoergertabEalMinSatsOre)),
       { rightFontStyle: 'normal' }
     );
   }
@@ -166,7 +166,7 @@ const addEalSection = (writer: DocumentComposer, eal: EetEalComputation, foersoe
     foersoergertabForhoejtetTilMin
       ? 'Det beregnede forsørgertab skal forhøjes til minimum, dvs. udgør'
       : 'Det beregnede forsørgertab skal ikke forhøjes, dvs. udgør',
-    formatKr(eal.eetAnvendt),
+    formatKr(toKroner(eal.eetAnvendtOre)),
     { rightFontStyle: 'normal' }
   );
 
@@ -182,15 +182,15 @@ const addEalSection = (writer: DocumentComposer, eal: EetEalComputation, foersoe
     { rightFontStyle: 'normal' }
   );
   writer.writeLeftRightText(
-    `${formatKr(eal.eetAnvendt)} x (- ${eal.aldersreduktionPct} %) =`,
-    `- ${formatKr(eal.aldersreduktionBeloeb)}`,
+    `${formatKr(toKroner(eal.eetAnvendtOre))} x (- ${eal.aldersreduktionPct} %) =`,
+    `- ${formatKr(toKroner(eal.aldersreduktionBeloebOre))}`,
     { rightFontStyle: 'normal' }
   );
 
   writer.writeBoldSubheader('Beregnet EAL-krav');
   writer.writeLeftRightText(
-    `${formatKr(eal.eetAnvendt)} - ${formatKr(eal.aldersreduktionBeloeb)} =`,
-    formatKr(eal.ealKrav),
+    `${formatKr(toKroner(eal.eetAnvendtOre))} - ${formatKr(toKroner(eal.aldersreduktionBeloebOre))} =`,
+    formatKr(toKroner(eal.ealKravOre)),
     { rightFontStyle: 'bold' }
   );
 };
@@ -321,9 +321,9 @@ export type GenerateForsoergertabDocumentParams = DocumentCommonOptions &
   Readonly<{
     grundlaeggende: GrundlaeggendeData;
     result: ForsoergertabCalculation | null;
-    ealComputation: EetEalComputation | null;
+    ealComputation: ForsoergertabEalPort | null;
     aslComputation: ForsoergertabAslComputation | null;
-    foersoergertabEalMinSats: number | null;
+    foersoergertabEalMinSatsOre: MoneyOre | null;
     foersoergertabForhoejtetTilMin: boolean;
   }>;
 
@@ -343,7 +343,7 @@ export const generateForsoergertabDocument = defineDocument<GenerateForsoergerta
     result,
     ealComputation,
     aslComputation,
-    foersoergertabEalMinSats,
+    foersoergertabEalMinSatsOre,
     foersoergertabForhoejtetTilMin,
   } = params;
 
@@ -356,7 +356,7 @@ export const generateForsoergertabDocument = defineDocument<GenerateForsoergerta
   // --- Side 2: EAL ---
   if (ealComputation !== null) {
     writer.addPage();
-    addEalSection(writer, ealComputation, foersoergertabEalMinSats, foersoergertabForhoejtetTilMin);
+    addEalSection(writer, ealComputation, foersoergertabEalMinSatsOre, foersoergertabForhoejtetTilMin);
   }
 
   // --- Side 3: ASL ---

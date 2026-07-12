@@ -33,21 +33,22 @@ import {
 import { ceil0, round0, round2, round3, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2015_03_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { fromKroner, toKroner, type MoneyOre } from '../money/money';
 
 export type EetKapitaliseringAfgoerelseComputation = Readonly<{
   rowId: string;
   afgoerelsesdato: ISODateString;
   kapitaliseringsdato: ISODateString;
   kapitaliseringspct: number;
-  grundloen: number;
+  grundloenOre: MoneyOre;
   erstatningsniveauPct: 80 | 83;
   amBidragPct: 0 | 8;
-  grundydelse: number;
-  grundydelse2024: number | null;
+  grundydelseOre: MoneyOre;
+  grundydelse2024Ore: MoneyOre | null;
   opreguleringTil2024PctRounded4: number | null;
-  aarsydelseGrundlag: number;
+  aarsydelseGrundlagOre: MoneyOre;
   aarsydelseReguleringsPctRounded4: number | null;
-  aarsydelse: number;
+  aarsydelseOre: MoneyOre;
   kapitaliseringsbekendtgoerelseLabel: string;
   tabelLabel: string;
   folkepensionsalderLabel: string;
@@ -57,7 +58,7 @@ export type EetKapitaliseringAfgoerelseComputation = Readonly<{
   kapitaliseretPgaUnderToAarTilFp: boolean;
   faktorMaanedsAfhaengig: boolean;
   kapitaliseringsfaktor: number;
-  kapitalbelob: number;
+  kapitalbelobOre: MoneyOre;
   koenOpdelt: boolean;
 }>;
 
@@ -90,12 +91,12 @@ type ResolvedKapitaliseringsRow = Readonly<{
 }>;
 
 type KapitaliseringAarsydelseBreakdown = Readonly<{
-  grundydelse: number;
-  grundydelse2024: number | null;
+  grundydelseOre: MoneyOre;
+  grundydelse2024Ore: MoneyOre | null;
   opreguleringTil2024PctRounded4: number | null;
-  aarsydelseGrundlag: number;
+  aarsydelseGrundlagOre: MoneyOre;
   aarsydelseReguleringsPctRounded4: number | null;
-  aarsydelse: number;
+  aarsydelseOre: MoneyOre;
 }>;
 
 const toIssue = (id: string, message: string): EetIssue => ({
@@ -117,7 +118,7 @@ const formatAgeForIssue = (age: AgeYearsMonths): string => `${age.years} år, ${
 
 export const resolveKapitaliseringAarsydelseBreakdown = (
   args: Readonly<{
-    grundloen: number;
+    grundloenOre: MoneyOre;
     kapitaliseringspct: number;
     erstatningsniveau: number;
     amFaktor: number;
@@ -133,18 +134,18 @@ export const resolveKapitaliseringAarsydelseBreakdown = (
   );
   if (!rateInfo) return null;
 
-  const grundydelse = round2(
-    args.grundloen * (args.kapitaliseringspct / 100) * args.erstatningsniveau * args.amFaktor
-  );
+  const grundydelseOre = fromKroner(round2(
+    toKroner(args.grundloenOre) * (args.kapitaliseringspct / 100) * args.erstatningsniveau * args.amFaktor
+  ));
 
   if (args.before2024Skade && args.kapitaliseringsaar < 2024) {
     return {
-      grundydelse,
-      grundydelse2024: null,
+      grundydelseOre,
+      grundydelse2024Ore: null,
       opreguleringTil2024PctRounded4: null,
-      aarsydelseGrundlag: grundydelse,
+      aarsydelseGrundlagOre: grundydelseOre,
       aarsydelseReguleringsPctRounded4: round4(rateInfo.reguleringPct),
-      aarsydelse: round2(grundydelse * rateInfo.factor),
+      aarsydelseOre: fromKroner(round2(toKroner(grundydelseOre) * rateInfo.factor)),
     };
   }
 
@@ -156,27 +157,29 @@ export const resolveKapitaliseringAarsydelseBreakdown = (
       return null;
     }
 
-    const grundydelse2024 = round2(grundydelse * (1 + opreguleringTil2024Pct / 100));
-    const aarsydelse = round2(grundydelse2024 * rateInfo.factor);
+    const grundydelse2024Ore = fromKroner(round2(
+      toKroner(grundydelseOre) * (1 + opreguleringTil2024Pct / 100)
+    ));
+    const aarsydelseOre = fromKroner(round2(toKroner(grundydelse2024Ore) * rateInfo.factor));
     return {
-      grundydelse,
-      grundydelse2024,
+      grundydelseOre,
+      grundydelse2024Ore,
       opreguleringTil2024PctRounded4: round4(opreguleringTil2024Pct),
-      aarsydelseGrundlag: grundydelse2024,
+      aarsydelseGrundlagOre: grundydelse2024Ore,
       // År 2024 er referenceåret; regulering er per definition 0 og vises ikke (null).
       aarsydelseReguleringsPctRounded4:
         args.kapitaliseringsaar === 2024 ? null : round4(rateInfo.reguleringPct),
-      aarsydelse,
+      aarsydelseOre,
     };
   }
 
   return {
-    grundydelse,
-    grundydelse2024: null,
+    grundydelseOre,
+    grundydelse2024Ore: null,
     opreguleringTil2024PctRounded4: null,
-    aarsydelseGrundlag: grundydelse,
+    aarsydelseGrundlagOre: grundydelseOre,
     aarsydelseReguleringsPctRounded4: round4(rateInfo.reguleringPct),
-    aarsydelse: round2(grundydelse * rateInfo.factor),
+    aarsydelseOre: fromKroner(round2(toKroner(grundydelseOre) * rateInfo.factor)),
   };
 };
 
@@ -371,9 +374,9 @@ export const computeEetKapitaliseringCalculation = (
   const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
   const before2024Skade = skadedato < SKAERING_2024_07_01;
   const from2011 = skadedato >= SKAERING_2011_01_01;
-  const grundloen = before2024Skade
+  const grundloenOre = fromKroner(before2024Skade
     ? round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2003 / maxAarsloenISkadesaar))
-    : round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2024 / maxAarsloenISkadesaar));
+    : round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2024 / maxAarsloenISkadesaar)));
   const erstatningsniveau = from2011 ? 0.83 : 0.8;
   const amFaktor = from2011 ? 0.92 : 1;
   const needsKoen = resolvedRows.some((row) => row.kapDato !== null && row.kapDato < SKAERING_2015_03_01);
@@ -579,7 +582,7 @@ export const computeEetKapitaliseringCalculation = (
     const kapitaliseringsaar = isoYear(effectiveKapDato);
     const aarsydelseBreakdown = resolveKapitaliseringAarsydelseBreakdown(
       {
-        grundloen,
+        grundloenOre,
         kapitaliseringspct: effectiveKapPct,
         erstatningsniveau,
         amFaktor,
@@ -590,7 +593,9 @@ export const computeEetKapitaliseringCalculation = (
     );
     if (!aarsydelseBreakdown || kapitaliseringsfaktor === null) continue;
 
-    const kapitalbelob = ceil0(aarsydelseBreakdown.aarsydelse * kapitaliseringsfaktor);
+    const kapitalbelobOre = fromKroner(ceil0(
+      toKroner(aarsydelseBreakdown.aarsydelseOre) * kapitaliseringsfaktor
+    ));
     const typeLabel = resolvedTabelData.kapitaliseringsType === 'vejl' ? 'Vejl.' : 'Bkg.';
 
     computations.push({
@@ -598,15 +603,15 @@ export const computeEetKapitaliseringCalculation = (
       afgoerelsesdato: row.afgoerelsesdato,
       kapitaliseringsdato: effectiveKapDato,
       kapitaliseringspct: effectiveKapPct,
-      grundloen,
+      grundloenOre,
       erstatningsniveauPct: from2011 ? 83 : 80,
       amBidragPct: from2011 ? 8 : 0,
-      grundydelse: aarsydelseBreakdown.grundydelse,
-      grundydelse2024: aarsydelseBreakdown.grundydelse2024,
+      grundydelseOre: aarsydelseBreakdown.grundydelseOre,
+      grundydelse2024Ore: aarsydelseBreakdown.grundydelse2024Ore,
       opreguleringTil2024PctRounded4: aarsydelseBreakdown.opreguleringTil2024PctRounded4,
-      aarsydelseGrundlag: aarsydelseBreakdown.aarsydelseGrundlag,
+      aarsydelseGrundlagOre: aarsydelseBreakdown.aarsydelseGrundlagOre,
       aarsydelseReguleringsPctRounded4: aarsydelseBreakdown.aarsydelseReguleringsPctRounded4,
-      aarsydelse: aarsydelseBreakdown.aarsydelse,
+      aarsydelseOre: aarsydelseBreakdown.aarsydelseOre,
       kapitaliseringsbekendtgoerelseLabel: `${typeLabel} ${resolvedKapId}, tabel ${resolvedTabelvalg.tabel}`,
       tabelLabel: resolvedTabelvalg.tabel,
       folkepensionsalderLabel: resolvedTabelvalg.folkepensionsalderLabel,
@@ -616,7 +621,7 @@ export const computeEetKapitaliseringCalculation = (
       kapitaliseretPgaUnderToAarTilFp,
       faktorMaanedsAfhaengig,
       kapitaliseringsfaktor,
-      kapitalbelob,
+      kapitalbelobOre,
       koenOpdelt,
     });
     kumulativKapPct += effectiveKapPct;

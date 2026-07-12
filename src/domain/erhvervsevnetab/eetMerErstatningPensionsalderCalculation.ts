@@ -19,6 +19,13 @@ import {
   resolveSaerfaktor,
 } from './eetKapitaliseringOpslag';
 import { resolveKapitaliseringAarsydelseBreakdown } from './eetKapitaliseringCalculation';
+import {
+  fromKroner,
+  subtractMoneyOre,
+  sumMoneyOre,
+  toKroner,
+  type MoneyOre,
+} from '../money/money';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +40,7 @@ export type MerErstatningKapitalvaerdi = Readonly<{
   kapitaliseringsfaktor: number;
   // round2(årsydelse × faktor). Ikke ceil0 som fane 3 — her er det differencen der er kravet,
   // og eksemplet viser kapitalværdierne med 2 decimaler.
-  kapitalvaerdi: number;
+  kapitalvaerdiOre: MoneyOre;
 }>;
 
 export type MerErstatningPensionsalderEvent = Readonly<{
@@ -50,24 +57,24 @@ export type MerErstatningPensionsalderEvent = Readonly<{
   alderMaaneder: number;
   faktorMaanedsAfhaengig: boolean;
   koenOpdelt: boolean;
-  grundloen: number;
+  grundloenOre: MoneyOre;
   erstatningsniveauPct: number;
   amBidragPct: number;
-  grundydelse: number;
-  grundydelse2024: number | null;
+  grundydelseOre: MoneyOre;
+  grundydelse2024Ore: MoneyOre | null;
   opreguleringTil2024PctRounded4: number | null;
-  aarsydelseGrundlag: number;
+  aarsydelseGrundlagOre: MoneyOre;
   aarsydelseReguleringsPctRounded4: number | null;
-  aarsydelse: number;
+  aarsydelseOre: MoneyOre;
   gammel: MerErstatningKapitalvaerdi;
   ny: MerErstatningKapitalvaerdi;
-  // round0(ny.kapitalvaerdi − gammel.kapitalvaerdi). Altid > 0 (filtreret før medtagning).
-  merErstatning: number;
+  // round0(ny.kapitalvaerdiOre − gammel.kapitalvaerdiOre), opgjort i kroner. Altid > 0.
+  merErstatningOre: MoneyOre;
 }>;
 
 export type MerErstatningPensionsalderComputation = Readonly<{
   events: readonly MerErstatningPensionsalderEvent[];
-  samletMerErstatning: number;
+  samletMerErstatningOre: MoneyOre;
 }>;
 
 // Input pr. kapitaliseret afgørelse. Værdierne hentes fra fane 3's computation, så
@@ -77,7 +84,7 @@ export type MerErstatningKapitaliseretAfgoerelse = Readonly<{
   afgoerelsesdato: ISODateString;
   kapitaliseringsdato: ISODateString;
   kapitaliseringspct: number;
-  grundloen: number;
+  grundloenOre: MoneyOre;
   erstatningsniveauPct: number;
   amBidragPct: number;
 }>;
@@ -301,7 +308,7 @@ export const computeMerErstatningPensionsalder = (
 
       const aarsydelseBreakdown = resolveKapitaliseringAarsydelseBreakdown(
         {
-          grundloen: kap.grundloen,
+          grundloenOre: kap.grundloenOre,
           kapitaliseringspct: kap.kapitaliseringspct,
           erstatningsniveau,
           amFaktor,
@@ -315,10 +322,16 @@ export const computeMerErstatningPensionsalder = (
       const age = calculateAgeYearsMonths(input.fodselsdato, event.forhoejelsesdato);
       if (!age) continue;
 
-      const gammelKapitalvaerdi = round2(aarsydelseBreakdown.aarsydelse * gammelFaktor.kapitaliseringsfaktor);
-      const nyKapitalvaerdi = round2(aarsydelseBreakdown.aarsydelse * nyFaktor.kapitaliseringsfaktor);
-      const merErstatning = round0(nyKapitalvaerdi - gammelKapitalvaerdi);
-      if (merErstatning <= 0) continue;
+      const gammelKapitalvaerdiOre = fromKroner(round2(
+        toKroner(aarsydelseBreakdown.aarsydelseOre) * gammelFaktor.kapitaliseringsfaktor
+      ));
+      const nyKapitalvaerdiOre = fromKroner(round2(
+        toKroner(aarsydelseBreakdown.aarsydelseOre) * nyFaktor.kapitaliseringsfaktor
+      ));
+      const merErstatningOre = fromKroner(round0(toKroner(
+        subtractMoneyOre(nyKapitalvaerdiOre, gammelKapitalvaerdiOre)
+      )));
+      if (merErstatningOre <= 0) continue;
 
       events.push({
         rowId: kap.rowId,
@@ -333,34 +346,34 @@ export const computeMerErstatningPensionsalder = (
         alderMaaneder: age.months,
         faktorMaanedsAfhaengig,
         koenOpdelt: gammelFaktor.koenOpdelt || nyFaktor.koenOpdelt,
-        grundloen: kap.grundloen,
+        grundloenOre: kap.grundloenOre,
         erstatningsniveauPct: kap.erstatningsniveauPct,
         amBidragPct: kap.amBidragPct,
-        grundydelse: aarsydelseBreakdown.grundydelse,
-        grundydelse2024: aarsydelseBreakdown.grundydelse2024,
+        grundydelseOre: aarsydelseBreakdown.grundydelseOre,
+        grundydelse2024Ore: aarsydelseBreakdown.grundydelse2024Ore,
         opreguleringTil2024PctRounded4: aarsydelseBreakdown.opreguleringTil2024PctRounded4,
-        aarsydelseGrundlag: aarsydelseBreakdown.aarsydelseGrundlag,
+        aarsydelseGrundlagOre: aarsydelseBreakdown.aarsydelseGrundlagOre,
         aarsydelseReguleringsPctRounded4: aarsydelseBreakdown.aarsydelseReguleringsPctRounded4,
-        aarsydelse: aarsydelseBreakdown.aarsydelse,
+        aarsydelseOre: aarsydelseBreakdown.aarsydelseOre,
         gammel: {
           kapitaliseringsbekendtgoerelseLabel: gammelFaktor.kapitaliseringsbekendtgoerelseLabel,
           folkepensionsalderLabel: gammelFaktor.folkepensionsalderLabel,
           kapitaliseringsfaktor: gammelFaktor.kapitaliseringsfaktor,
-          kapitalvaerdi: gammelKapitalvaerdi,
+          kapitalvaerdiOre: gammelKapitalvaerdiOre,
         },
         ny: {
           kapitaliseringsbekendtgoerelseLabel: nyFaktor.kapitaliseringsbekendtgoerelseLabel,
           folkepensionsalderLabel: nyFaktor.folkepensionsalderLabel,
           kapitaliseringsfaktor: nyFaktor.kapitaliseringsfaktor,
-          kapitalvaerdi: nyKapitalvaerdi,
+          kapitalvaerdiOre: nyKapitalvaerdiOre,
         },
-        merErstatning,
+        merErstatningOre,
       });
     }
   }
 
   if (events.length === 0) return null;
 
-  const samletMerErstatning = events.reduce((sum, e) => sum + e.merErstatning, 0);
-  return { events, samletMerErstatning };
+  const samletMerErstatningOre = sumMoneyOre(events.map((event) => event.merErstatningOre));
+  return { events, samletMerErstatningOre };
 };

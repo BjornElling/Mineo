@@ -1,7 +1,7 @@
 import type { MidlertidigtEetAfgoerelseGroup } from './midlertidigtEetInsertRows';
 import type { IsoRange } from '../engines/periodRangeGroups';
 import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
-import { roundHeleKroner } from '../../money/money';
+import { fromKroner, roundHeleKroner, sumMoneyOre, toKroner } from '../../money/money';
 import type { ISODateString } from '../../../types/branded';
 import { parseISODate } from '../../../types/branded';
 
@@ -66,7 +66,7 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
         if (!clampedStart || !clampedEnd || clampedStart > clampedEnd) continue;
 
         const maanederPraecis = sumMaanedsbroekForInterval(clamped.fra, clamped.til);
-        const rawBeregnetEet = maanederPraecis * row.maanedligYdelse;
+        const rawBeregnetEet = maanederPraecis * toKroner(row.maanedligYdelseOre);
         if (!Number.isFinite(rawBeregnetEet) || rawBeregnetEet <= 0) continue;
 
         const roundedBeregnetEet = roundHeleKroner(rawBeregnetEet);
@@ -80,7 +80,7 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
             fra: clamped.fra,
             til: clamped.til,
             maanederPraecis,
-            beregnetEet: roundedBeregnetEet,
+            beregnetEetOre: fromKroner(roundedBeregnetEet),
           },
         });
       }
@@ -111,6 +111,8 @@ export const sumMidlertidigtEetBeregnetEetKronerForTafRanges = (
   groups: readonly MidlertidigtEetAfgoerelseGroup[],
   tafRanges: readonly IsoRange[]
 ): number =>
-  buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges)
-    .flatMap((group) => group.perioder)
-    .reduce((sum, row) => sum + row.beregnetEet, 0);
+  toKroner(sumMoneyOre(
+    buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges)
+      .flatMap((group) => group.perioder)
+      .map((row) => row.beregnetEetOre)
+  ));

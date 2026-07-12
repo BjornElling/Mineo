@@ -1,6 +1,7 @@
 import { computeMerErstatningPensionsalder } from '../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import { toISODateString } from '../../../types/branded';
+import { fromKroner } from '../../../domain/money/money';
 
 // Autoritativt eksempel (jf. docs/domain/eet/mer-erstatning-pensionsalder.md):
 //   Skade mellem 1.1.2004 og 30.6.2007 → erstatningsniveau 80 %, intet AM-bidrag,
@@ -27,7 +28,7 @@ describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, 
             // Kapitaliseret i et tidligere kalenderår end forhøjelsen (2014 < 2015).
             kapitaliseringsdato: iso('2014-06-01'),
             kapitaliseringspct: 25,
-            grundloen: 251580,
+            grundloenOre: fromKroner(251580),
             erstatningsniveauPct: 80,
             amBidragPct: 0,
           },
@@ -48,25 +49,25 @@ describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, 
     expect(issues).toEqual([]);
     expect(computation).not.toBeNull();
     expect(computation?.events).toHaveLength(1);
-    expect(computation?.samletMerErstatning).toBe(4431);
+    expect(computation?.samletMerErstatningOre).toBe(443100);
   });
 
   it('rammer den løbende ydelse (årsydelse) på 69.234,82 kr. i satsår 2016', () => {
     const { computation } = run();
     const event = computation!.events[0]!;
     expect(event.satsAar).toBe(2016);
-    expect(event.aarsydelse).toBe(69234.82);
-    expect(event.grundydelse).toBe(50316);
+    expect(event.aarsydelseOre).toBe(6923482);
+    expect(event.grundydelseOre).toBe(5031600);
   });
 
   it('beregner kapitalværdierne med faktor 9,388 (67 år) og 9,452 (68 år)', () => {
     const { computation } = run();
     const event = computation!.events[0]!;
     expect(event.gammel.kapitaliseringsfaktor).toBe(9.388);
-    expect(event.gammel.kapitalvaerdi).toBe(649976.49);
+    expect(event.gammel.kapitalvaerdiOre).toBe(64997649);
     expect(event.gammel.folkepensionsalderLabel).toBe('67 år');
     expect(event.ny.kapitaliseringsfaktor).toBe(9.452);
-    expect(event.ny.kapitalvaerdi).toBe(654407.52);
+    expect(event.ny.kapitalvaerdiOre).toBe(65440752);
     expect(event.ny.folkepensionsalderLabel).toBe('68 år');
   });
 
@@ -93,7 +94,7 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
     afgoerelsesdato: iso(kapitaliseringsdato),
     kapitaliseringsdato: iso(kapitaliseringsdato),
     kapitaliseringspct: 25,
-    grundloen: 251580,
+    grundloenOre: fromKroner(251580),
     erstatningsniveauPct: 80,
     amBidragPct: 0,
   });
@@ -165,7 +166,7 @@ describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, 
             afgoerelsesdato: iso('2014-06-01'),
             kapitaliseringsdato: iso('2014-06-01'),
             kapitaliseringspct: 25,
-            grundloen: 216019,
+            grundloenOre: fromKroner(216019),
             erstatningsniveauPct: 83,
             amBidragPct: 8,
           },
@@ -186,24 +187,24 @@ describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, 
     expect(issues).toEqual([]);
     expect(computation).not.toBeNull();
     expect(computation?.events).toHaveLength(1);
-    expect(computation?.samletMerErstatning).toBe(22641);
+    expect(computation?.samletMerErstatningOre).toBe(2264100);
   });
 
   it('rammer den løbende ydelse (årsydelse) på 56.743,53 kr. i satsår 2016', () => {
     const { computation } = run();
     const event = computation!.events[0]!;
     expect(event.satsAar).toBe(2016);
-    expect(event.aarsydelse).toBe(56743.53);
+    expect(event.aarsydelseOre).toBe(5674353);
   });
 
   it('beregner kapitalværdierne med faktor 13,291 (67 år) og 13,69 (68 år)', () => {
     const { computation } = run();
     const event = computation!.events[0]!;
     expect(event.gammel.kapitaliseringsfaktor).toBe(13.291);
-    expect(event.gammel.kapitalvaerdi).toBe(754178.26);
+    expect(event.gammel.kapitalvaerdiOre).toBe(75417826);
     expect(event.gammel.folkepensionsalderLabel).toBe('67 år');
     expect(event.ny.kapitaliseringsfaktor).toBe(13.69);
-    expect(event.ny.kapitalvaerdi).toBe(776818.93);
+    expect(event.ny.kapitalvaerdiOre).toBe(77681893);
     expect(event.ny.folkepensionsalderLabel).toBe('68 år');
   });
 

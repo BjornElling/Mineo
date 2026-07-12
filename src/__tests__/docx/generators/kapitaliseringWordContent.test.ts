@@ -6,6 +6,7 @@ import type {
   EetKapitaliseringComputation,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import { toISODateString } from '../../../types/branded';
+import { fromKroner } from '../../../domain/money/money';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for kapitalisering (EET): kører den RIGTIGE generator gennem
@@ -34,15 +35,15 @@ describe('kapitalisering → Word-indhold', () => {
       afgoerelsesdato: toISODateString('2025-01-01'),
       kapitaliseringsdato: toISODateString('2025-01-01'),
       kapitaliseringspct: 100,
-      grundloen: 320000,
+      grundloenOre: fromKroner(320000),
       erstatningsniveauPct: 80,
       amBidragPct: 8,
-      grundydelse: 256000,
-      grundydelse2024: null,
+      grundydelseOre: fromKroner(256000),
+      grundydelse2024Ore: null,
       opreguleringTil2024PctRounded4: null,
-      aarsydelseGrundlag: 256000,
+      aarsydelseGrundlagOre: fromKroner(256000),
       aarsydelseReguleringsPctRounded4: null,
-      aarsydelse: 256000,
+      aarsydelseOre: fromKroner(256000),
       kapitaliseringsbekendtgoerelseLabel: 'Bekendtgørelse 2024',
       tabelLabel: 'Tabel A',
       folkepensionsalderLabel: '69 år',
@@ -52,7 +53,7 @@ describe('kapitalisering → Word-indhold', () => {
       kapitaliseretPgaUnderToAarTilFp: false,
       faktorMaanedsAfhaengig: false,
       kapitaliseringsfaktor: 10,
-      kapitalbelob: 2560000,
+      kapitalbelobOre: fromKroner(2560000),
       koenOpdelt: false,
     } satisfies EetKapitaliseringAfgoerelseComputation;
 
