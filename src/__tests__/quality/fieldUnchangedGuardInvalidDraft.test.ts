@@ -1,11 +1,16 @@
 // Værn mod regression af "clear/edit af ugyldigt felt strander invalidDrafts".
 //
-// De bundne Styled*-felter committer på blur, men kortslutter commit'et når draften matcher den
-// committede værdi (`unchanged`). Hvis den kortslutning IKKE også kræver `committedInvalidDraft === undefined`,
+// Styled*-felterne committer på blur, men kortslutter commit'et når draften matcher den committede
+// værdi (`unchanged`). Hvis den kortslutning IKKE også kræver `effectiveInvalidDraft === undefined`,
 // vil en clear (eller edit til en værdi der matcher committed) af et felt med en ikke-committbar rå draft
-// springe commit'et over → invalidDrafts-entryet ryddes aldrig → feltet re-syncer til den gamle ugyldige
+// springe commit'et over → den ugyldige draft ryddes aldrig → feltet re-syncer til den gamle ugyldige
 // værdi, og Gem forbliver blokeret. Tilsvarende SKAL den øjeblikkelige Backspace/Delete-clear-sti rydde
-// invalidDrafts, da den omgår den normale commit-wrapper.
+// den ugyldige draft, da den omgår den normale commit-wrapper.
+//
+// KANONISK KILDE (2026-07): beslutningerne træffes på `effectiveInvalidDraft` — den EFFEKTIVE
+// ikke-committbare draft (bundet store-værdi ELLER lokal fallback for ubundne felter), eksponeret af
+// useDraftField. Den tidligere kun-bundne kanalværdi (`committedInvalidDraft`) gjorde ubundne felter
+// (fx Satser-årstal) blinde over for den lokale draft. Guarden pinner derfor `effectiveInvalidDraft`.
 //
 // Siden 2026-06 ejes denne commit-/clear-lim af den delte `useStyledFieldAdapter`-hook for de syv
 // numeriske blur-commit-felter (Amount/Date/Integer/Percent/Fraction/Week/Year). `StyledTextField`
@@ -80,14 +85,14 @@ const bespokeFieldFiles = readdirSync(INPUTS_DIR)
 // Alle kilder der ejer en blur-commit-/immediate-clear-sti: den delte hook + de bespoke felter.
 const commitOwningSources = [ADAPTER_HOOK, ...bespokeFieldFiles];
 
-describe('blur-commit kortslutning inkluderer committedInvalidDraft', () => {
-  it('den delte hooks default-commit-betingelse refererer committedInvalidDraft', () => {
+describe('blur-commit kortslutning inkluderer effectiveInvalidDraft', () => {
+  it('den delte hooks default-commit-betingelse refererer effectiveInvalidDraft', () => {
     const src = readFileSync(ADAPTER_HOOK, 'utf8');
     const marker = 'const defaultShouldCommit =';
     const start = src.indexOf(marker);
     expect(start).toBeGreaterThanOrEqual(0);
     const statement = src.slice(start, src.indexOf(';', start) + 1);
-    expect(statement).toContain('committedInvalidDraft');
+    expect(statement).toContain('effectiveInvalidDraft');
   });
 
   it('scanner faktisk mindst ét bespoke felt (StyledTextField) — ikke vacuous', () => {
@@ -95,17 +100,17 @@ describe('blur-commit kortslutning inkluderer committedInvalidDraft', () => {
   });
 
   it.each(bespokeFieldFiles.map((f) => [f.split(/[\\/]/).pop()!, f] as const))(
-    '%s: hver "unchanged"-kortslutning kræver committedInvalidDraft === undefined',
+    '%s: hver "unchanged"-kortslutning kræver effectiveInvalidDraft === undefined',
     (_name, file) => {
       const statements = extractUnchangedStatements(readFileSync(file, 'utf8'));
       expect(statements.length).toBeGreaterThan(0);
       for (const statement of statements) {
-        expect(statement).toContain('committedInvalidDraft');
+        expect(statement).toContain('effectiveInvalidDraft');
       }
     }
   );
 
-  it('selv-test: scanneren fanger en kortslutning der mangler committedInvalidDraft', () => {
+  it('selv-test: scanneren fanger en kortslutning der mangler effectiveInvalidDraft', () => {
     const violating = `
       onBlur={(e) => {
         onBlurBase(e);
@@ -115,10 +120,10 @@ describe('blur-commit kortslutning inkluderer committedInvalidDraft', () => {
     `;
     const statements = extractUnchangedStatements(violating);
     expect(statements).toHaveLength(1);
-    expect(statements[0]).not.toContain('committedInvalidDraft');
+    expect(statements[0]).not.toContain('effectiveInvalidDraft');
 
-    const compliant = 'const unchanged = draft === formatX(value) && committedInvalidDraft === undefined;';
-    expect(extractUnchangedStatements(compliant)[0]).toContain('committedInvalidDraft');
+    const compliant = 'const unchanged = draft === formatX(value) && effectiveInvalidDraft === undefined;';
+    expect(extractUnchangedStatements(compliant)[0]).toContain('effectiveInvalidDraft');
   });
 });
 

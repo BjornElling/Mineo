@@ -141,7 +141,9 @@ export type UseStyledFieldAdapterResult = Readonly<{
   commit: () => void;
   /** Sæt + commit en draft (fx Amount lukket-paste). */
   commitDraft: (nextDraft: string) => void;
-  clearInvalidDraft: (() => void) | undefined;
+  /** Unified rydning af den effektive ikke-committbare rå draft (bundet store ELLER lokal fallback). */
+  clearInvalidDraft: () => boolean;
+  /** Feltets effektive ikke-committbare rå draft (bundet kanalværdi eller lokal fallback). */
   committedInvalidDraft: string | undefined;
 }>;
 
@@ -186,18 +188,24 @@ export const useStyledFieldAdapter = <TModel>(
   const skipNextBlurCommitRef = React.useRef(false);
   const pendingSelectionRef = React.useRef<NormalizedSelection | null>(null);
 
-  const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
+  const {
+    committedInvalidDraft: channelCommittedInvalidDraft,
+    onCommitInvalid,
+    clearInvalidDraft: channelClearInvalidDraft,
+  } = useFieldInvalidDraftChannel(onFieldError);
 
-  // Eneste commit-værdi-sti: kald komponentens onCommit OG ryd invalidDrafts. Bruges både af
-  // useDraftField og af Backspace/Delete-clear-stien, så de aldrig divergerer.
+  // Eneste commit-værdi-sti: kald komponentens onCommit OG ryd (bundne) invalidDrafts efter sektion-
+  // commit. Den bundne rydning ejes bevidst her (commit-rækkefølge: værdi FØRST, så clear); den ubundne
+  // (lokale) rydning på succes-stien ejer useDraftField selv. Bruges af både useDraftField og
+  // Backspace/Delete-clear-stien, så de aldrig divergerer.
   const commitValue = React.useCallback(
     (nextValue: TModel) => {
       const committed = onCommit?.(nextValue);
       if (committed === false) return false;
-      if (clearInvalidDraft?.() === false) return false;
+      if (channelClearInvalidDraft?.() === false) return false;
       return true;
     },
-    [clearInvalidDraft, onCommit]
+    [channelClearInvalidDraft, onCommit]
   );
 
   const {
@@ -205,6 +213,10 @@ export const useStyledFieldAdapter = <TModel>(
     setDraft,
     touched,
     error,
+    // Autoritativ EFFEKTIV ugyldig draft + unified rydning (bundet ELLER lokal). Alle invalid-draft-
+    // beslutninger nedenfor bruger DISSE — ikke kanalens rå værdier, der er tomme for ubundne felter.
+    effectiveInvalidDraft,
+    clearInvalidDraft,
     onFocus: onFocusBase,
     onBlur: onBlurBase,
     onKeyDown: onKeyDownBase,
@@ -217,7 +229,8 @@ export const useStyledFieldAdapter = <TModel>(
     normalizeDraftOnCommit,
     onCommit: commitValue,
     onCommitInvalid,
-    committedInvalidDraft,
+    committedInvalidDraft: channelCommittedInvalidDraft,
+    clearInvalidDraft: channelClearInvalidDraft,
     inputElementRef,
     commitOnBlur: false,
     clearTouchedOnEmptyDraft,
@@ -285,11 +298,14 @@ export const useStyledFieldAdapter = <TModel>(
           // draft) — et ubetinget commit på et allerede tomt felt ville give en overflødig undo-frame.
           const normalized = (normalizeDraftOnCommit ?? identity)('');
           const result = parse(normalized);
-          if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
+          if (result.ok && (value !== result.value || effectiveInvalidDraft !== undefined)) {
             commitValue(result.value);
           }
           // Ryd evt. stale ikke-committbar rå draft (ellers re-syncer feltet til den gamle ugyldige værdi).
-          clearInvalidDraft?.();
+          // Unified clear: rydder den EFFEKTIVE tilstand — bundet store ELLER lokal fallback. (Tidligere
+          // kun kanalens bundne clear → ubundne felter (fx Satser-årstal) fik aldrig ryddet den lokale
+          // draft, og feltet re-syncede den ugyldige værdi tilbage ved blur.)
+          clearInvalidDraft();
           onClearSideEffect?.();
           setDraft('');
           return;
@@ -324,7 +340,7 @@ export const useStyledFieldAdapter = <TModel>(
       activation,
       clearInvalidDraft,
       commitValue,
-      committedInvalidDraft,
+      effectiveInvalidDraft,
       error?.kind,
       escapeRevertsToFormatted,
       format,
@@ -387,14 +403,14 @@ export const useStyledFieldAdapter = <TModel>(
     [activation, commitDraft, commitOnClosedPaste, draft, handleDraftChange, normalizePasteText, rejectDraft, setPasteCaret]
   );
 
-  const defaultShouldCommit = draft !== format(value) || committedInvalidDraft !== undefined;
+  const defaultShouldCommit = draft !== format(value) || effectiveInvalidDraft !== undefined;
 
   // Visuelle fejl udledes kun af committed state. En ikke-committbar rå draft
   // har forrang, så range-feedback aldrig beregnes fra det brugeren er ved at taste.
   const visualErrorMessage = React.useMemo(() => {
-    if (committedInvalidDraft !== undefined || error?.message) return '';
+    if (effectiveInvalidDraft !== undefined || error?.message) return '';
     return getVisualError?.(value).trim() ?? '';
-  }, [committedInvalidDraft, error?.message, getVisualError, value]);
+  }, [effectiveInvalidDraft, error?.message, getVisualError, value]);
 
   React.useEffect(() => {
     if (!onFieldError) return;
@@ -412,7 +428,7 @@ export const useStyledFieldAdapter = <TModel>(
       if (activation.shouldIgnoreBlur()) return;
       onBlurBase(e);
       const willCommit = shouldCommitOnBlur
-        ? shouldCommitOnBlur({ draft, value, committedInvalidDraft })
+        ? shouldCommitOnBlur({ draft, value, committedInvalidDraft: effectiveInvalidDraft })
         : defaultShouldCommit;
       if (!skipNextBlurCommitRef.current && willCommit) {
         commit();
@@ -421,7 +437,7 @@ export const useStyledFieldAdapter = <TModel>(
       skipNextBlurCommitRef.current = false;
       onBlur?.(e);
     },
-    [activation, commit, committedInvalidDraft, defaultShouldCommit, draft, onBlur, onBlurBase, shouldCommitOnBlur, value]
+    [activation, commit, effectiveInvalidDraft, defaultShouldCommit, draft, onBlur, onBlurBase, shouldCommitOnBlur, value]
   );
 
   useCriticalActionParticipant({
@@ -458,6 +474,6 @@ export const useStyledFieldAdapter = <TModel>(
     commit,
     commitDraft,
     clearInvalidDraft,
-    committedInvalidDraft,
+    committedInvalidDraft: effectiveInvalidDraft,
   };
 };

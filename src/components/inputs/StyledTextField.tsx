@@ -159,13 +159,21 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       [validateOnCommit]
     );
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
+    const {
+      committedInvalidDraft: channelCommittedInvalidDraft,
+      onCommitInvalid,
+      clearInvalidDraft: channelClearInvalidDraft,
+    } = useFieldInvalidDraftChannel(onFieldError);
 
     const {
       draft,
       setDraft: setDraftBase,
       touched,
       error,
+      // Effektiv ugyldig draft + unified rydning (bundet ELLER lokal) — invalid-draft-beslutninger
+      // nedenfor bruger DISSE, ikke kanalens rå værdier (tomme for ubundne felter).
+      effectiveInvalidDraft,
+      clearInvalidDraft,
       onFocus: onFocusBase,
       onBlur: onBlurBase,
       onKeyDown: onKeyDownBase,
@@ -177,11 +185,12 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       onCommit: (nextValue) => {
         const committed = onCommit?.(createCommitEvent(nextValue));
         if (committed === false) return false;
-        if (clearInvalidDraft?.() === false) return false;
+        if (channelClearInvalidDraft?.() === false) return false;
         return true;
       },
       onCommitInvalid,
-      committedInvalidDraft,
+      committedInvalidDraft: channelCommittedInvalidDraft,
+      clearInvalidDraft: channelClearInvalidDraft,
       inputElementRef: elementRefForHook as React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
       normalizeDraftOnCommit: trimWhitespaceEdges,
       commitOnBlur: false,
@@ -255,7 +264,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
               const result = parseString(normalized);
               // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
               // (jf. StyledDateField/StyledAmountField).
-              if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
+              if (result.ok && (value !== result.value || effectiveInvalidDraft !== undefined)) {
                 onCommit?.(createCommitEvent(result.value));
               }
               // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
@@ -291,11 +300,11 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             const result = parseString(normalized);
             // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
             // (jf. StyledDateField/StyledAmountField).
-            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
+            if (result.ok && (value !== result.value || effectiveInvalidDraft !== undefined)) {
               onCommit?.(createCommitEvent(result.value));
             }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
-            clearInvalidDraft?.();
+            // Delete tømmer feltet → ryd den EFFEKTIVE ikke-committbare rå draft (bundet ELLER lokal).
+            clearInvalidDraft();
             setDraftBase('');
             return;
           }
@@ -315,7 +324,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
         }
         onKeyDown?.(e);
       },
-      [clearInvalidDraft, committedInvalidDraft, inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation, value]
+      [clearInvalidDraft, effectiveInvalidDraft, inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation, value]
     );
 
     const activeActivation = multiline ? textAreaActivation : inputActivation;
@@ -387,7 +396,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             onBlurBase(e);
             // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
             // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
-            const unchanged = draft === value && committedInvalidDraft === undefined;
+            const unchanged = draft === value && effectiveInvalidDraft === undefined;
             debugStyledTextField('blur', {
               id,
               name,
@@ -450,7 +459,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
           if (inputActivation.shouldIgnoreBlur()) return;
           onBlurBase(e);
           // Aldrig "unchanged" mens en ikke-committbar rå draft lever (jf. textarea-grenen ovenfor).
-          const unchanged = draft === value && committedInvalidDraft === undefined;
+          const unchanged = draft === value && effectiveInvalidDraft === undefined;
           debugStyledTextField('blur', {
             id,
             name,

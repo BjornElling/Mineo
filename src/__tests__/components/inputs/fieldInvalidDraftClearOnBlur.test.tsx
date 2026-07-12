@@ -329,3 +329,77 @@ describe('årstal-felt med ugyldig rå draft — clear rydder invalidDrafts (rap
     expect(input).toHaveValue('');
   });
 });
+
+// Den rapporterede regression i DENNE runde: Satser-sidens årstal-felt er UBUNDET (ingen `onFieldError`),
+// så den ikke-committbare rå draft bor i useDraftFields LOKALE fallback-slot — ikke i `invalidDrafts`-
+// storen. Adapteren traf tidligere sine invalid-draft-beslutninger (shouldCommit-on-blur + immediate-
+// Delete-clear) på kanalens `committedInvalidDraft`/`clearInvalidDraft`, der er TOMME for ubundne felter.
+// Derfor blev den lokale draft aldrig ryddet, og feltet re-syncede den ugyldige værdi tilbage ved blur.
+// Central rettelse: useDraftField eksponerer den EFFEKTIVE draft + en unified clear (bundet ELLER lokal),
+// og adapteren/fri-tekst-feltet bruger dem. Dette værn dækker begge Delete-stier (editor lukket + åben).
+const UnboundYearPage = () => {
+  const [year, setYear] = React.useState<number | undefined>(undefined);
+  return (
+    <StyledYearField
+      name="unboundYear"
+      value={year}
+      minYear={2000}
+      maxYear={2025}
+      onCommit={(e) => setYear(e.target.value)}
+    />
+  );
+};
+
+describe('UBUNDET årstal-felt (Satser) — clear af ugyldig lokal draft må ikke gendanne værdien', () => {
+  const renderUnbound = () =>
+    render(
+      <MemoryRouter initialEntries={['/satser']}>
+        <AppSettingsProvider>
+          <RoutePathnameProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+              <UnboundYearPage />
+            </FormPersistenceProvider>
+          </RoutePathnameProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+  it('immediate-Delete (editor lukket): fokusér, Delete, klik væk → feltet forbliver tomt', async () => {
+    const user = userEvent.setup();
+    renderUnbound();
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    // 1) Indtast ugyldigt årstal og blur → bevares som lokal ugyldig draft (ubundet, ingen store-entry).
+    await user.click(input);
+    await user.type(input, '123');
+    await user.tab();
+    expect(input).toHaveValue('123');
+
+    // 2) Fokusér igen (editor lukket), tryk Delete (immediate-commit-undtagelsen), klik væk.
+    await user.click(input);
+    await user.keyboard('{Delete}');
+    expect(input).toHaveValue('');
+    await user.tab();
+
+    // EFTER FIX: feltet er tomt — den ugyldige lokale draft gendannes IKKE.
+    expect(input).toHaveValue('');
+  });
+
+  it('editor åben (marker alt + Delete): tømning + blur gendanner ikke den ugyldige værdi', async () => {
+    const user = userEvent.setup();
+    renderUnbound();
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    await user.click(input);
+    await user.type(input, '123');
+    await user.tab();
+    expect(input).toHaveValue('123');
+
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}');
+    expect(input).toHaveValue('');
+    await user.tab();
+
+    expect(input).toHaveValue('');
+  });
+});

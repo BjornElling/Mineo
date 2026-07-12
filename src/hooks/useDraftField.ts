@@ -54,6 +54,14 @@ export type UseDraftFieldConfig<TModel> = {
   committedInvalidDraft?: string;
 
   /**
+   * Bundet kanal-rydning af den committede rå draft (fra `invalidDrafts`-storen). Wires ind i den
+   * delte slot, så hookens eksponerede `clearInvalidDraft` rydder DEN EFFEKTIVE tilstand — bundet
+   * (store) eller ubundet (lokal fallback) — uden at kalderen skal kende bindingen. Spejler grid-
+   * kernens (`useTableInputCore`) slot-opsætning, så form- og grid-stien ikke divergerer.
+   */
+  clearInvalidDraft?: () => boolean;
+
+  /**
    * Valgfri ref til input-/textarea-DOM-elementet. Mineo-invariant: draft MÅ IKKE overskrives af
    * ekstern resync, mens kontrollen er fysisk fokuseret (Reacts focus state kan lagge ved hurtig
    * tab-navigation).
@@ -84,6 +92,20 @@ export type UseDraftFieldResult = {
    */
   error: DraftFieldError | undefined;
 
+  /**
+   * Feltets EFFEKTIVE ikke-committbare rå draft: den bundne kanalværdi (`committedInvalidDraft`) eller
+   * den lokale fallback for ubundne felter. Kalderen (adapter/fri-tekst-felt) SKAL træffe sine
+   * invalid-draft-beslutninger (shouldCommit, immediate-clear) på DENNE — ikke på den rå kanalværdi,
+   * som er tom for ubundne felter og derfor giver blindhed over for den lokale draft.
+   */
+  effectiveInvalidDraft: string | undefined;
+
+  /**
+   * Unificeret rydning af den effektive ikke-committbare rå draft (bundet store ELLER lokal fallback).
+   * Er den ENESTE rydningsvej kalderen behøver; erstatter direkte brug af den kun-bundne kanal-clear.
+   */
+  clearInvalidDraft: () => boolean;
+
   onFocus: () => void;
   onBlur: (_e?: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -102,26 +124,29 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     onCommit,
     onCommitInvalid,
     committedInvalidDraft,
+    clearInvalidDraft: clearBoundInvalidDraft,
     inputElementRef,
     commitOnBlur = true,
     commitOnEnter = true,
     clearTouchedOnEmptyDraft = false,
   } = config;
 
-  // Ugyldig-draft-slot (delt med useTableInputCore): bundet felt læser `committedInvalidDraft` fra
-  // kanalen; ubundet felt (uden `onCommitInvalid`) holder en lokal fallback, så den ugyldige draft ikke
-  // silent-rolles tilbage ved blur. Bundet rydning ejes bevidst af `onCommit`-wrapperen (`commitValue`)
-  // hos kalderen — derfor gates den lokale slot-rydning her bag `!isBound`.
+  // Ugyldig-draft-slot (delt med useTableInputCore): bundet felt læser/rydder via kanalen; ubundet felt
+  // (uden `onCommitInvalid`) holder en lokal fallback, så den ugyldige draft ikke silent-rolles tilbage
+  // ved blur. Kanal-rydningen wires ind i slotten (som i grid-kernen), så `clearInvalidDraftSlot` rydder
+  // den EFFEKTIVE tilstand uanset binding — hookens eneste rydningsvej. På den succesfulde commit-sti
+  // gates den stadig bag `!isBound`, fordi den bundne rydning dér ejes af kalderens `onCommit`-wrapper
+  // (`commitValue`), der rydder efter sektion-commit (bevarer commit-rækkefølgen: værdi FØRST, så clear).
   const {
     bound: isBound,
     effectiveInvalidDraft,
     writeInvalidDraft,
-    clearInvalidDraft: clearLocalInvalidDraft,
+    clearInvalidDraft: clearInvalidDraftSlot,
   } = useInvalidDraftSlot({
     bound: onCommitInvalid !== undefined,
     committedInvalidDraft,
     onCommitInvalid,
-    clearInvalidDraft: undefined,
+    clearInvalidDraft: clearBoundInvalidDraft,
   });
 
   const formattedValue = format(value);
@@ -235,7 +260,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
           setDraftState(externalSource);
           return false;
         }
-        if (!isBound) clearLocalInvalidDraft();
+        if (!isBound) clearInvalidDraftSlot();
         pendingCommitRef.current = target !== formattedValue ? { formattedValueAtCommit: formattedValue } : null;
         setDraftState(target);
         return true;
@@ -253,10 +278,10 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       }
 
       // partial/empty uden besked: ingen fejl-tilstand, ingen commit (fx tom draft uden krav).
-      if (!isBound) clearLocalInvalidDraft();
+      if (!isBound) clearInvalidDraftSlot();
       return true;
     },
-    [clearLocalInvalidDraft, externalSource, format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, parse, writeInvalidDraft]
+    [clearInvalidDraftSlot, externalSource, format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, parse, writeInvalidDraft]
   );
 
   const commit = React.useCallback((): boolean => {
@@ -334,6 +359,8 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     isFocused,
     touched,
     error,
+    effectiveInvalidDraft,
+    clearInvalidDraft: clearInvalidDraftSlot,
     onFocus,
     onBlur,
     onKeyDown,
