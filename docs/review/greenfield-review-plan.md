@@ -158,7 +158,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 | 17 | 24 | ✅ Deklarativt dokument-IR (blok-model) | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #15, #11, #38 |
 | 18 | 25 | ✅ Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
 | 19 | 42 | ✅ Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
-| 20 | 40 | Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
+| 20 | 40 | ✅ Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
 | 21 | 41 | Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
 | 22 | 51 | Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
 | 23 | 36 | EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17, #37, #49; spejler #23 |
@@ -713,6 +713,19 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 40 — Eksplicit critical-action-/commit-barriere · 9
 
+- **Status: ✅ Gennemført (2026-07-12).** Én app-lokal, typed
+  `CriticalActionCoordinator` ejer nu den navngivne policy for gem, manuel/PWA-load,
+  sidenavigation og undo/redo. Formfelter, grid-controllere og tabelrækkernes pending
+  persistence registreres eksplicit med symmetrisk lifecycle; coordinatoren returnerer
+  `committed | blocked`, serialiserer samtidige preparationer og afventer kun deltagernes
+  konkrete commit-/persistence-promises. DOM-tabelscanning, `activeElement`-baseret
+  editor-detektion, Promise-tick og to faste animation frames er fjernet sammen med
+  `commitFlush.ts`. Den skjulte tabel-row-effect er gjort til en eksplicit kvitteret
+  pipeline, så save/load/navigation ikke kan overhale en netop committet grid-række.
+  Observerbar policy er bevaret: Gem committer åbne felter/grids; load/navigation
+  blokerer åbne form-editorer men forsøger grid-commit; undo/redo er stille no-op ved
+  enhver åben editor. En ny tværgående `critical-action-contract.md` og et direkte
+  action×surface-transitionstestnet fastholder grænsen.
 - **Scope:** `utils/commitFlush.ts`, `gridCoreRegistry`, `MainLayout`, `useFileSaveLoad`, `useUndoRedoShortcuts` og felt-/grid-surface fra #25.
 - **Problem:** Save/load/navigation finder aktive grid-editorer via DOM-query + global registry, blur'er `document.activeElement` og venter en Promise-tick plus to animation frames på, at commits "falder til ro". Tre kritiske handlinger bruger to forskellige guard-funktioner, og korrekthed afhænger af render-timing frem for et eksplicit lifecycle-signal.
 - **Greenfield:** Én registreret `CriticalActionCoordinator` med typede commit-deltagere. `prepare(action)` returnerer deterministisk `committed | blocked(target)` og afventer kun eksplicitte commit-promises/events — aldrig DOM-scanning eller faste frames. Save, load, navigation og undo bruger samme barriere med navngiven policy.

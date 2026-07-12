@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
@@ -22,8 +22,13 @@ vi.mock('../../../hooks/useUndoRedo', () => ({
 }));
 
 import MainLayout from '../../../components/layout/MainLayout';
+import StyledTextField from '../../../components/inputs/StyledTextField';
 
-const renderLayout = (children: React.ReactNode = <input aria-label="Aktivt felt" autoFocus />) =>
+const renderLayout = (
+  children: React.ReactNode = (
+    <StyledTextField value="" label="Aktivt felt" autoFocus onCommit={() => undefined} />
+  ),
+) =>
   render(
     <AppSettingsProvider>
       <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
@@ -50,6 +55,8 @@ describe('MainLayout undo/redo editor guard', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Aktivt felt')).toHaveFocus();
     });
+    fireEvent.keyDown(screen.getByLabelText('Aktivt felt'), { key: 'a', code: 'KeyA' });
+    await waitFor(() => expect(screen.getByLabelText('Aktivt felt')).not.toHaveAttribute('readonly'));
 
     const event = new KeyboardEvent('keydown', {
       key: 'z',
@@ -66,7 +73,7 @@ describe('MainLayout undo/redo editor guard', () => {
     expect(screen.queryByText('Kan ikke fortryde eller gentage: afslut eller ret det aktive felt først.')).toBeNull();
   });
 
-  it('calls undo when no editor is active', () => {
+  it('calls undo when no editor is active', async () => {
     renderLayout(<button type="button">Ikke editor</button>);
 
     const event = new KeyboardEvent('keydown', {
@@ -79,14 +86,14 @@ describe('MainLayout undo/redo editor guard', () => {
     window.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(undoRedoMocks.undo).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(undoRedoMocks.undo).toHaveBeenCalledTimes(1));
     expect(undoRedoMocks.redo).not.toHaveBeenCalled();
   });
 
   it.each([
     ['Ctrl+Y', { key: 'y', ctrlKey: true }],
     ['Ctrl+Shift+Z', { key: 'z', ctrlKey: true, shiftKey: true }],
-  ])('calls redo for %s when no editor is active', (_label, init) => {
+  ])('calls redo for %s when no editor is active', async (_label, init) => {
     renderLayout(<button type="button">Ikke editor</button>);
 
     const event = new KeyboardEvent('keydown', {
@@ -98,7 +105,7 @@ describe('MainLayout undo/redo editor guard', () => {
     window.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(undoRedoMocks.redo).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(undoRedoMocks.redo).toHaveBeenCalledTimes(1));
     expect(undoRedoMocks.undo).not.toHaveBeenCalled();
   });
 });

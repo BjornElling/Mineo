@@ -1,7 +1,7 @@
 import React from 'react';
-import { isOpenTextEditorElement, hasOpenGridEditor } from '../utils/commitFlush';
 import { installUndoFocusTracker } from '../utils/undoFocusTracker';
 import { useUndoRedo, type UndoRedoNavigate } from './useUndoRedo';
+import { useCriticalActionCoordinator } from '../criticalActions/CriticalActionContext';
 
 /**
  * Tilkobler den globale undo/redo-adfærd for en app-variant: restore-logikken
@@ -22,6 +22,7 @@ import { useUndoRedo, type UndoRedoNavigate } from './useUndoRedo';
  * se `undoFocusTracker.ts`).
  */
 export const useUndoRedoShortcuts = (navigate: UndoRedoNavigate) => {
+  const criticalActions = useCriticalActionCoordinator();
   const controls = useUndoRedo(navigate);
   const { undo, redo } = controls;
 
@@ -38,27 +39,22 @@ export const useUndoRedoShortcuts = (navigate: UndoRedoNavigate) => {
 
       if (!isUndoShortcut && !isRedoShortcut) return;
 
-      // Designvalg: undo/redo er et stille no-op mens en editor er åben (uafsluttet draft
-      // i et felt eller en åben grid-celle-editor). Genvejen stoppes, så browserens egen
-      // tekst-undo ikke ændrer draften, men Mineos history røres ikke.
-      if (isOpenTextEditorElement(document.activeElement) || hasOpenGridEditor()) {
-        e.preventDefault();
-        return;
-      }
-
       e.preventDefault();
-      if (isUndoShortcut) {
-        undo();
-      } else {
-        redo();
-      }
+      const action = isUndoShortcut ? 'undo' : 'redo';
+      void criticalActions.prepare(action).then((preparation) => {
+        // Åben editor er fortsat et stille no-op. Coordinatoren ændrer aldrig draften
+        // for undo/redo-policyen og afventer kun allerede køet commit-persistence.
+        if (preparation.status === 'blocked') return;
+        if (isUndoShortcut) undo();
+        else redo();
+      });
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [undo, redo]);
+  }, [criticalActions, undo, redo]);
 
   return controls;
 };

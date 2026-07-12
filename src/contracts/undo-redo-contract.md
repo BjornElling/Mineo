@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet `docs/architecture/undo-redo-architecture.md`.  
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 
 Denne kontrakt fastlægger de trust-kritiske grænser for global undo/redo (history-stak `MAX_HISTORY_STEPS = 50` pr. retning, jf. `src/stores/undoRedoStore.ts`). Arkitekturdokumentet må forklare implementationen, men må ikke eje afvigende regler.
 
@@ -36,6 +36,9 @@ Når editor er lukket:
 1. `Ctrl+Z` / `Cmd+Z` udløser undo.
 2. `Ctrl+Y` / `Cmd+Y` udløser redo.
 3. `Ctrl+Shift+Z` / `Cmd+Shift+Z` udløser redo.
+
+Åben/lukket editor og eventuel pending commit-persistence afgøres af den registrerede barriere i
+`critical-action-contract.md`; undo/redo må ikke genindføre DOM-scanning eller timing-vent.
 
 ---
 

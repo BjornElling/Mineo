@@ -80,6 +80,13 @@ vi.mock('../../../../components/pages/renteberegning/RenteberegningTab', () => (
 
 import MinProcesrenteCalculatorPage from '../../../../components/pages/minprocesrente/MinProcesrenteCalculatorPage';
 import { toISODateString } from '../../../../types/branded';
+import { CriticalActionProvider } from '../../../../criticalActions/CriticalActionContext';
+
+const renderPage = () => render(
+  <CriticalActionProvider>
+    <MinProcesrenteCalculatorPage />
+  </CriticalActionProvider>,
+);
 
 const createMediaQueryList = (matches: boolean, media = ''): MediaQueryList => ({
   matches,
@@ -154,7 +161,7 @@ describe('MinProcesrenteCalculatorPage', () => {
   });
 
   it('viser kun procesrente-beregneren uden rentesatser-tab', () => {
-    render(<MinProcesrenteCalculatorPage />);
+    renderPage();
 
     expect(screen.getByRole('heading', { name: 'minProcesrente.dk' })).toBeInTheDocument();
     expect(screen.getByText('MOCK_BEREGNINGSTAB')).toBeInTheDocument();
@@ -162,7 +169,7 @@ describe('MinProcesrenteCalculatorPage', () => {
   });
 
   it('viser søskendeside-footeren med minProcesrente som aktiv side', () => {
-    render(<MinProcesrenteCalculatorPage />);
+    renderPage();
 
     expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).toHaveAttribute('href', 'mailto:bel@fho.dk');
     expect(screen.getByRole('navigation', { name: 'Søskendesider' })).toBeInTheDocument();
@@ -180,7 +187,7 @@ describe('MinProcesrenteCalculatorPage', () => {
       coarsePointer: true,
     });
 
-    render(<MinProcesrenteCalculatorPage />);
+    renderPage();
 
     expect(screen.getByTestId('is-mobile')).toHaveTextContent('true');
   });
@@ -195,7 +202,7 @@ describe('MinProcesrenteCalculatorPage', () => {
       coarsePointer: true,
     });
 
-    render(<MinProcesrenteCalculatorPage />);
+    renderPage();
 
     expect(screen.getByTestId('is-mobile')).toHaveTextContent('true');
   });
@@ -204,7 +211,7 @@ describe('MinProcesrenteCalculatorPage', () => {
     mockDownloadStandaloneRentePdf.mockResolvedValue({ success: true });
     const user = userEvent.setup();
 
-    render(<MinProcesrenteCalculatorPage />);
+    renderPage();
 
     await user.click(screen.getByRole('button', { name: 'Commit kommentar' }));
     await user.click(screen.getByRole('button', { name: 'Download' }));

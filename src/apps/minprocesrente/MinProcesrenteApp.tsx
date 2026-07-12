@@ -7,6 +7,7 @@ import { buildTheme } from '../../config/appTheme';
 import StandaloneErrorBoundary from './StandaloneErrorBoundary';
 import MinProcesrenteCalculatorPage from '../../components/pages/minprocesrente/MinProcesrenteCalculatorPage';
 import type { PersistenceRuntime } from '../../persistence/persistenceRuntime';
+import { CriticalActionProvider } from '../../criticalActions/CriticalActionContext';
 
 const theme = buildTheme('light');
 const MOBILE_PAGE_BACKGROUND = '#f8f9fa';
@@ -106,11 +107,13 @@ const MinProcesrenteApp = React.memo(({ persistenceRuntime }: { persistenceRunti
   return (
     <ThemeProvider theme={theme}>
       <FormPersistenceProvider runtime={persistenceRuntime}>
-        <StandaloneCalculatorLayout>
-          <StandaloneErrorBoundary>
-            <MinProcesrenteCalculatorPage />
-          </StandaloneErrorBoundary>
-        </StandaloneCalculatorLayout>
+        <CriticalActionProvider>
+          <StandaloneCalculatorLayout>
+            <StandaloneErrorBoundary>
+              <MinProcesrenteCalculatorPage />
+            </StandaloneErrorBoundary>
+          </StandaloneCalculatorLayout>
+        </CriticalActionProvider>
       </FormPersistenceProvider>
     </ThemeProvider>
   );

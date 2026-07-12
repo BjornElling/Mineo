@@ -2,7 +2,7 @@ import type { NavigateFunction } from 'react-router-dom';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 import { setActiveTabForPage } from '../hooks/usePersistedActiveTab';
-import { focusElementWithoutScroll, waitForAnimationFrame } from './commitFlush';
+import { focusElementWithoutScroll, waitForAnimationFrame } from './focusUtils';
 import { isRecord } from './typeGuards';
 import { scrollTargetIntoView } from './scrollTargetIntoView';
 import { resolveActiveFieldError, type FieldErrorBySource } from '../types/fieldErrors';

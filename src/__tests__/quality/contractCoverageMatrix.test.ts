@@ -23,6 +23,16 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
+    contractPath: 'src/contracts/critical-action-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/criticalActions/criticalActionCoordinator.test.ts',
+      'src/__tests__/criticalActions/CriticalActionContext.test.tsx',
+      'src/__tests__/components/layout/MainLayout.navigationCommitGuard.test.tsx',
+      'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
+      'src/__tests__/hooks/useFileSaveLoad.test.tsx',
+    ],
+  },
+  {
     contractPath: 'src/contracts/domain-boundary-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/domainBoundaryIsolation.test.ts',

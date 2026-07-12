@@ -1,21 +1,19 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import MainLayout from '../../../components/layout/MainLayout';
+import StyledTextField from '../../../components/inputs/StyledTextField';
 
 describe('MainLayout navigation commit guard', () => {
   it('keeps navigation fail-closed when an editable field is still active during page change', async () => {
-    const user = userEvent.setup();
-
     const ActiveEditorPage = () => (
       <div>
         <div>Stamdata testside</div>
-        <input aria-label="Aktivt felt" autoFocus />
+        <StyledTextField value="" label="Aktivt felt" autoFocus onCommit={() => undefined} />
       </div>
     );
 
@@ -51,8 +49,10 @@ describe('MainLayout navigation commit guard', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Aktivt felt')).toHaveFocus();
     });
+    fireEvent.keyDown(screen.getByLabelText('Aktivt felt'), { key: 'a', code: 'KeyA' });
+    await waitFor(() => expect(screen.getByLabelText('Aktivt felt')).not.toHaveAttribute('readonly'));
 
-    await user.click(screen.getByText('Satser'));
+    fireEvent.click(screen.getByText('Satser'));
 
     expect(screen.getByText('Stamdata testside')).toBeInTheDocument();
     expect(screen.queryByText('Satser testside')).toBeNull();

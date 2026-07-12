@@ -9,6 +9,7 @@
   "crossCuttingContracts": [
     "src/contracts/domain-boundary-contract.md",
     "src/contracts/form-contract.md",
+    "src/contracts/critical-action-contract.md",
     "src/contracts/persistence-contract.md",
     "src/contracts/schema-evolution.md",
     "src/contracts/keyboard-navigation.md",
@@ -29,6 +30,7 @@
     "src/contracts/page-component-contract.md": [
       "src/contracts/domain-boundary-contract.md",
       "src/contracts/form-contract.md",
+      "src/contracts/critical-action-contract.md",
       "src/contracts/persistence-contract.md",
       "src/contracts/schema-evolution.md",
       "src/contracts/keyboard-navigation.md",

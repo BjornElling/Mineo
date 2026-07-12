@@ -11,6 +11,8 @@ import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type Commi
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { mergeSx } from '../../utils/mergeSx';
 import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
+import { useCriticalActionParticipant } from '../../criticalActions/CriticalActionContext';
+import { createElementFocusTarget } from '../../criticalActions/focusTarget';
 
 const debugStyledTextField = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -125,6 +127,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
     },
     ref
   ) => {
+    const criticalActionParticipantId = React.useId();
     const inputElementRef = React.useRef<HTMLInputElement>(null);
     const textAreaElementRef = React.useRef<HTMLTextAreaElement>(null);
     const elementRefForHook = multiline ? textAreaElementRef : inputElementRef;
@@ -312,6 +315,21 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       },
       [clearInvalidDraft, committedInvalidDraft, inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation, value]
     );
+
+    const activeActivation = multiline ? textAreaActivation : inputActivation;
+    useCriticalActionParticipant({
+      id: `form-field:${criticalActionParticipantId}`,
+      kind: 'form-field',
+      isEditing: () => activeActivation.isEditorOpen,
+      getFocusTarget: () => createElementFocusTarget(() => elementRefForHook.current),
+      commit: () => {
+        skipNextBlurCommitRef.current = true;
+        commit();
+        activeActivation.closeEditor();
+        elementRefForHook.current?.blur();
+        return true;
+      },
+    });
 
     React.useEffect(() => {
       debugStyledTextField('render-state', {

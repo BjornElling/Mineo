@@ -3,7 +3,7 @@
 **Version:** 0.1
 **Status:** Gældende arkitektur
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 **Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
 
 ---
@@ -117,6 +117,9 @@ Regler:
   - imperativ
   - entydig
   - fri for async-hacks
+
+Globale handlinger må udløse samme commitvej gennem den registrerede felt-/grid-deltager efter
+`critical-action-contract.md`. Det er ikke en alternativ parse- eller valideringssti.
 
 ### 3.3 Forbudte patterns
 

@@ -13,10 +13,6 @@ const loadFromFileMock = vi.fn<(...args: unknown[]) => Promise<LoadFileResult>>(
 const loadFromFileHandleMock = vi.fn<(...args: unknown[]) => Promise<LoadFileResult>>();
 const executePersistenceLoadApplyMock =
   vi.fn<(...args: unknown[]) => Promise<{ status: 'applied' } | { status: 'applied-with-metadata-error'; message: string }>>();
-const commitPendingInputBeforeSaveMock =
-  vi.fn<() => Promise<{ ok: boolean; failedGridCommitCount: number }>>();
-const prepareForCriticalDataReplacementMock =
-  vi.fn<() => Promise<{ ok: boolean; focusTargetBeforeAction: HTMLElement | null }>>();
 
 vi.mock('../../utils/fileSave', () => ({
   saveToFile: (...args: unknown[]) => saveToFileMock(...args),
@@ -30,12 +26,6 @@ vi.mock('../../utils/fileLoad', () => ({
 
 vi.mock('../../utils/persistenceLoadApply', () => ({
   executePersistenceLoadApply: (...args: unknown[]) => executePersistenceLoadApplyMock(...args),
-}));
-
-vi.mock('../../utils/commitFlush', () => ({
-  commitPendingInputBeforeSave: () => commitPendingInputBeforeSaveMock(),
-  prepareForCriticalDataReplacement: () => prepareForCriticalDataReplacementMock(),
-  restoreFocusIfPossible: vi.fn(),
 }));
 
 vi.mock('../../utils/fileHelpers', () => ({
@@ -53,6 +43,7 @@ vi.mock('../../utils/saveBlockedFocus', () => ({
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 import type { BlockingInputErrorTarget } from '../../utils/saveBlockedFocus';
+import { CriticalActionProvider, useCriticalActionParticipant } from '../../criticalActions/CriticalActionContext';
 
 type HookApi = ReturnType<typeof useFileSaveLoad>;
 
@@ -76,6 +67,7 @@ const renderHook = (
   overrides: {
     hasAnyData?: () => boolean;
     getFirstBlockingInputError?: () => BlockingInputErrorTarget | null;
+    activeFormEditor?: boolean;
   } = {}
 ): HarnessHandles => {
   const handles: HarnessHandles = {
@@ -88,6 +80,12 @@ const renderHook = (
   };
 
   const Harness = () => {
+    useCriticalActionParticipant({
+      id: 'test-form-field',
+      kind: 'form-field',
+      isEditing: () => overrides.activeFormEditor === true,
+      commit: () => true,
+    });
     const revisionRef = React.useRef(7);
     handles.api = useFileSaveLoad({
       settings: DEFAULT_APP_SETTINGS,
@@ -106,7 +104,11 @@ const renderHook = (
     return null;
   };
 
-  render(<Harness />);
+  render(
+    <CriticalActionProvider>
+      <Harness />
+    </CriticalActionProvider>,
+  );
   return handles;
 };
 
@@ -118,8 +120,6 @@ const successfulLoad = (extra: Partial<LoadFileResult> = {}): LoadFileResult => 
 
 describe('useFileSaveLoad', () => {
   beforeEach(() => {
-    commitPendingInputBeforeSaveMock.mockResolvedValue({ ok: true, failedGridCommitCount: 0 });
-    prepareForCriticalDataReplacementMock.mockResolvedValue({ ok: true, focusTargetBeforeAction: null });
     executePersistenceLoadApplyMock.mockResolvedValue({ status: 'applied' });
   });
 
@@ -172,8 +172,7 @@ describe('useFileSaveLoad', () => {
 
   describe('handleHent — atomisk preflight-gating', () => {
     it('blokerer hent når et aktivt felt ikke kan committes', async () => {
-      const handles = renderHook();
-      prepareForCriticalDataReplacementMock.mockResolvedValue({ ok: false, focusTargetBeforeAction: null });
+      const handles = renderHook({ activeFormEditor: true });
 
       await act(async () => {
         await handles.api?.handleHent();

@@ -37,6 +37,8 @@ App-settings er ikke omfattet; se `app-settings.md`.
 2. Save må ikke inkludere device-lokale defaults eller afledte værdier kun for at gøre filen "komplet".
 3. Save-gating følger commitbarhed, ikke al rød fejl-UI.
 4. Felter eller rækker, der er schema-valideret brugerinput men aktuelt skjult i UI, skal stadig gemmes i `.eo`, medmindre brugeren eksplicit sletter dem.
+5. Save-snapshot må først aflæses, når den kanoniske kritiske handlingsbarriere har returneret
+   `committed`; et blokeret eller fejlende resultat må ikke starte fil-I/O.
 
 ---
 
@@ -51,6 +53,8 @@ App-settings er ikke omfattet; se `app-settings.md`.
    - ugyldige eksisterende felter kan medføre hel-sektion-drop, hvis de ikke sikkert kan migreres
 5. Ved schema-udvikling skal manglende felter derfor være `optional()` eller have sikker default, medmindre en eksplicit breaking-change beslutning i `schema-evolution.md` siger andet.
 6. Ukendte sektioner i `.eo`-filer må ikke i sig selv få hele loaden til at fejle; de skal rapporteres som ikke-indlæste og holdes ude af apply-snapshot’et.
+7. Manuel og PWA-initieret load må først starte fil-I/O efter `prepare('load')=committed`, jf.
+   `critical-action-contract.md`.
 
 **Implementation status:** Den aktuelle load-model er sektion-baseret: efter sanitization parses hver sektion med Zod. Fejler en sektion parse, indlæses den ikke delvist. Denne kontrakts "så langt det er sikkert muligt" betyder derfor aktuelt: bevar sektioner der parser sikkert; drop sektioner der ikke parser; rapportér årsagen i preflight. Feltvis recovery kræver eksplicit migrator/recovery-lag og må ikke antages implicit.
 

@@ -53,17 +53,27 @@ vi.mock('../../../utils/fileHandleStorage', () => ({
   savePendingPwaOpenRequestToIndexedDB: vi.fn(async () => true),
 }));
 
-vi.mock('../../../components/tables/gridCore/gridCoreRegistry', () => ({
-  getGridCoreForTable: vi.fn(),
-}));
-
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 import { saveToFile } from '../../../utils/fileSave';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../../utils/fileHandleStorage';
-import { getGridCoreForTable } from '../../../components/tables/gridCore/gridCoreRegistry';
 import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
 import { clickMainLayoutAction, dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
+import { useCriticalActionParticipant } from '../../../criticalActions/CriticalActionContext';
+import { createElementFocusTarget } from '../../../criticalActions/focusTarget';
+
+const LockedGridParticipant = ({ label }: { label: string }) => {
+  const participantId = React.useId();
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  useCriticalActionParticipant({
+    id: `test-grid:${participantId}`,
+    kind: 'grid-editor',
+    isEditing: () => true,
+    getFocusTarget: () => createElementFocusTarget(() => inputRef.current),
+    commit: () => false,
+  });
+  return <input ref={inputRef} aria-label={label} />;
+};
 
 const stampStamdata = (skadelidte: string): StamdataValues => ({
   journalnr: '',
@@ -279,35 +289,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
   it('blocks save when an open locked grid editor cannot be committed', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
-    const getGridCoreForTableMock = vi.mocked(getGridCoreForTable);
     let ctx: ReturnType<typeof useFormPersistence> | null = null;
-
-    const failedInput = document.createElement('input');
-    failedInput.setAttribute('data-mineo-test-temp', 'true');
-    document.body.appendChild(failedInput);
-    const table = document.createElement('table');
-    table.setAttribute('data-mineo-test-temp', 'true');
-    table.setAttribute('data-mineo-table-navigation', 'true');
-    table.appendChild(document.createElement('tbody'));
-    document.body.appendChild(table);
-
-    getGridCoreForTableMock.mockImplementation((node: HTMLTableElement) => {
-      if (node !== table) return null;
-      return {
-        getEditingCell: () => ({ rowId: 'r1', colIndex: 0 }),
-        getEditor: () => ({
-          getElement: () => failedInput,
-          getIsLocked: () => true,
-          commitCurrent: () => false,
-          clearAndCommit: () => {},
-          cancelEdit: () => {},
-          prepareEditFromKey: () => false,
-          selectAll: () => {},
-        }),
-        clearFocusPlan: () => {},
-        closeEditing: () => {},
-      } as unknown as ReturnType<typeof getGridCoreForTable>;
-    });
 
     const Probe = () => {
       const value = useFormPersistence();
@@ -323,7 +305,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
           <MemoryRouter initialEntries={['/stamdata']}>
             <Probe />
             <MainLayout>
-              <div />
+              <LockedGridParticipant label="Låst gridfelt" />
             </MainLayout>
           </MemoryRouter>
         </FormPersistenceProvider>
@@ -339,6 +321,8 @@ describe('MainLayout (unsaved beforeunload)', () => {
     });
 
     await clickMainLayoutAction('Gem');
+
+    const failedInput = screen.getByLabelText('Låst gridfelt');
 
     await waitFor(() => {
       expect(saveToFileMock).not.toHaveBeenCalled();
@@ -575,41 +559,13 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
   it('blocks manual load when an open locked grid editor cannot be committed', async () => {
     const loadFromFileMock = vi.mocked(loadFromFile);
-    const getGridCoreForTableMock = vi.mocked(getGridCoreForTable);
-
-    const failedInput = document.createElement('input');
-    failedInput.setAttribute('data-mineo-test-temp', 'true');
-    document.body.appendChild(failedInput);
-    const table = document.createElement('table');
-    table.setAttribute('data-mineo-test-temp', 'true');
-    table.setAttribute('data-mineo-table-navigation', 'true');
-    table.appendChild(document.createElement('tbody'));
-    document.body.appendChild(table);
-
-    getGridCoreForTableMock.mockImplementation((node: HTMLTableElement) => {
-      if (node !== table) return null;
-      return {
-        getEditingCell: () => ({ rowId: 'r1', colIndex: 0 }),
-        getEditor: () => ({
-          getElement: () => failedInput,
-          getIsLocked: () => true,
-          commitCurrent: () => false,
-          clearAndCommit: () => {},
-          cancelEdit: () => {},
-          prepareEditFromKey: () => false,
-          selectAll: () => {},
-        }),
-        clearFocusPlan: () => {},
-        closeEditing: () => {},
-      } as unknown as ReturnType<typeof getGridCoreForTable>;
-    });
 
     render(
       <AppSettingsProvider>
         <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/stamdata']}>
             <MainLayout>
-              <div />
+              <LockedGridParticipant label="Låst gridfelt" />
             </MainLayout>
           </MemoryRouter>
         </FormPersistenceProvider>
@@ -620,6 +576,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     expect(loadFromFileMock).not.toHaveBeenCalled();
     await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
+    const failedInput = screen.getByLabelText('Låst gridfelt');
     await waitFor(() => {
       expect(document.activeElement).toBe(failedInput);
     });
@@ -661,41 +618,13 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
   it('blocks PWA load when an open locked grid editor cannot be committed', async () => {
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
-    const getGridCoreForTableMock = vi.mocked(getGridCoreForTable);
-
-    const failedInput = document.createElement('input');
-    failedInput.setAttribute('data-mineo-test-temp', 'true');
-    document.body.appendChild(failedInput);
-    const table = document.createElement('table');
-    table.setAttribute('data-mineo-test-temp', 'true');
-    table.setAttribute('data-mineo-table-navigation', 'true');
-    table.appendChild(document.createElement('tbody'));
-    document.body.appendChild(table);
-
-    getGridCoreForTableMock.mockImplementation((node: HTMLTableElement) => {
-      if (node !== table) return null;
-      return {
-        getEditingCell: () => ({ rowId: 'r1', colIndex: 0 }),
-        getEditor: () => ({
-          getElement: () => failedInput,
-          getIsLocked: () => true,
-          commitCurrent: () => false,
-          clearAndCommit: () => {},
-          cancelEdit: () => {},
-          prepareEditFromKey: () => false,
-          selectAll: () => {},
-        }),
-        clearFocusPlan: () => {},
-        closeEditing: () => {},
-      } as unknown as ReturnType<typeof getGridCoreForTable>;
-    });
 
     render(
       <AppSettingsProvider>
         <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MemoryRouter initialEntries={['/stamdata']}>
             <MainLayout>
-              <div />
+              <LockedGridParticipant label="Låst gridfelt" />
             </MainLayout>
           </MemoryRouter>
         </FormPersistenceProvider>
@@ -715,6 +644,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     expect(loadFromFileHandleMock).not.toHaveBeenCalled();
     await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
+    const failedInput = screen.getByLabelText('Låst gridfelt');
     await waitFor(() => {
       expect(document.activeElement).toBe(failedInput);
     });

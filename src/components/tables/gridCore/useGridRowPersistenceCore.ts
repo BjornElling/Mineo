@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { reconcileGridRowIdentityForRestore } from './gridModel';
+import { useCriticalActionParticipant } from '../../../criticalActions/CriticalActionContext';
 
 /**
  * Fælles persist-/resync-kerne for de tabel-lokale grid-tabeller (Standard løn, Offentlige ydelser,
@@ -32,6 +33,11 @@ export type GridRowPersistencePending<TRow> = Readonly<{
   rows: TRow[];
   fingerprint: string;
   fieldPath?: string;
+  completion: Readonly<{
+    promise: Promise<void>;
+    resolve: () => void;
+    reject: (reason: unknown) => void;
+  }>;
 }>;
 
 export type UseGridRowPersistenceCoreConfig<TRow> = Readonly<{
@@ -79,6 +85,7 @@ const stripPersistableRows = <TRow>(
 export const useGridRowPersistenceCore = <TRow>(
   config: UseGridRowPersistenceCoreConfig<TRow>
 ): UseGridRowPersistenceCoreApi<TRow> => {
+  const criticalActionParticipantId = React.useId();
   const { tableData, onTableDataChange, normalizeRows, isRowEmpty, getRowId, withRowId, fingerprint, keepLeadingRows = 0 } = config;
 
   const getStrippedFingerprint = React.useCallback(
@@ -114,12 +121,45 @@ export const useGridRowPersistenceCore = <TRow>(
 
   const queuePersist = React.useCallback((normalizedRows: readonly TRow[], fieldPath?: string) => {
     const { isRowEmpty: empty, getStrippedFingerprint: fp, keepLeadingRows: keep } = stableRef.current;
+    // Last-write-wins: en nyere payload erstatter den tidligere før effekt-flush. Den tidligere
+    // kvittering kan afsluttes, fordi kun den nye payload nu er autoritativt ventepunkt.
+    pendingPersistRef.current?.completion.resolve();
+    let resolveCompletion: () => void = () => undefined;
+    let rejectCompletion: (reason: unknown) => void = () => undefined;
+    const promise = new Promise<void>((resolve, reject) => {
+      resolveCompletion = resolve;
+      rejectCompletion = reject;
+    });
+    // Forhindr en global unhandled-rejection, hvis React unmount'er tabellen uden at en
+    // kritisk handling aktuelt afventer kvitteringen.
+    void promise.catch(() => undefined);
     pendingPersistRef.current = {
       rows: stripPersistableRows(normalizedRows, empty, keep),
       fingerprint: fp(normalizedRows),
       fieldPath,
+      completion: {
+        promise,
+        resolve: resolveCompletion,
+        reject: rejectCompletion,
+      },
     };
   }, []);
+
+  const awaitPendingCommits = React.useCallback(async (): Promise<void> => {
+    while (true) {
+      const pending = pendingPersistRef.current;
+      if (!pending) return;
+      await pending.completion.promise;
+      // En nyere last-write-wins-payload kan være blevet køet, mens den tidligere
+      // blev persisteret. Fortsæt indtil pipeline-ref'en faktisk er tom.
+    }
+  }, []);
+
+  useCriticalActionParticipant({
+    id: `commit-pipeline:${criticalActionParticipantId}`,
+    kind: 'commit-pipeline',
+    awaitPendingCommit: awaitPendingCommits,
+  });
 
   const getUndoFieldPathAliases = React.useCallback(
     (rowId: string, colIndex: number): readonly string[] => {
@@ -137,14 +177,30 @@ export const useGridRowPersistenceCore = <TRow>(
     const { onTableDataChange: onChange, getStrippedFingerprint: fp } = stableRef.current;
     if (pending.fingerprint !== fp(internalTableData)) {
       pendingPersistRef.current = null;
+      pending.completion.resolve();
       return;
     }
     pendingPersistRef.current = null;
-    if (!onChange) return;
+    if (!onChange) {
+      pending.completion.resolve();
+      return;
+    }
     // pending.rows er allerede strippet; pending.fingerprint er fingerprintet af præcis dem.
     lastPersistedFingerprintRef.current = pending.fingerprint;
-    onChange(pending.rows, pending.fieldPath ? { fieldPath: pending.fieldPath } : undefined);
+    try {
+      onChange(pending.rows, pending.fieldPath ? { fieldPath: pending.fieldPath } : undefined);
+      pending.completion.resolve();
+    } catch (error) {
+      pending.completion.reject(error);
+      throw error;
+    }
   }, [internalTableData]);
+
+  React.useEffect(() => () => {
+    const pending = pendingPersistRef.current;
+    pendingPersistRef.current = null;
+    pending?.completion.reject(new Error('Grid-rækkens persistence-deltager blev afmonteret før commit var afsluttet.'));
+  }, []);
 
   // Resync fra prop (load, undo/redo, ekstern ændring): reconcile bevarer rækkernes id positionelt,
   // så en celles undo-fokus-mål overlever. Springes over når intet materielt ændrede sig.
@@ -153,6 +209,7 @@ export const useGridRowPersistenceCore = <TRow>(
     const fingerprintValue = fp(incomingNormalized);
     if (fingerprintValue === lastPersistedFingerprintRef.current) return;
     lastPersistedFingerprintRef.current = fingerprintValue;
+    pendingPersistRef.current?.completion.resolve();
     pendingPersistRef.current = null;
     const reconciled = reconcileGridRowIdentityForRestore({
       incoming: incomingNormalized,

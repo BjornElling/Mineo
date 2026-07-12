@@ -9,7 +9,6 @@ import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { prepareForCriticalDataReplacement } from '../../utils/commitFlush';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import {
@@ -29,6 +28,7 @@ import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 import { useUndoRedoShortcuts } from '../../hooks/useUndoRedoShortcuts';
 import { getFirstBlockingInputErrorTarget } from '../../utils/saveBlockedFocus';
 import { clearLastUndoFocus } from '../../utils/undoFocusTracker';
+import { CriticalActionProvider, useCriticalActionCoordinator } from '../../criticalActions/CriticalActionContext';
 
 /**
  * Hovedlayout for applikationen
@@ -41,7 +41,8 @@ const isOverlayType = (value: unknown): value is OverlayData['type'] => {
   return value === 'success' || value === 'error' || value === 'warning' || value === 'info';
 };
 
-const MainLayout = React.memo(({ children }: MainLayoutProps) => {
+const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
+  const criticalActions = useCriticalActionCoordinator();
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useAppSettings();
@@ -89,14 +90,13 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       return;
     }
 
-    // Sideskift er en kritisk handling på linje med save/load: brug den fælles commit-flush-guard,
-    // så et igangværende felt-commit (åben tekst-editor, åben grid-celle ELLER et blur-deferred
-    // commit) garanteret er afsluttet før navigation unmounter den gamle side. Tidligere blurrede
-    // navigation ikke det aktive felt og ventede ikke på commit-flush, hvilket kunne tabe et netop
-    // indtastet felt ved sideskift (jf. runtime data-integritet).
+    // Sideskift er en kritisk handling på linje med save/load. Coordinatoren blokerer en åben
+    // form-editor, committer en åben grid-editor og afventer eksplicit pending tabelpersistens,
+    // før navigation kan unmounte siden (jf. runtime data-integritet).
     try {
-      const guard = await prepareForCriticalDataReplacement();
-      if (!guard.ok) {
+      const preparation = await criticalActions.prepare('navigate');
+      if (preparation.status === 'blocked') {
+        preparation.target?.focus();
         setOverlay({
           message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
           type: 'warning',
@@ -112,7 +112,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         type: 'warning',
       });
     }
-  }, [location.pathname, navigate]);
+  }, [criticalActions, location.pathname, navigate]);
 
   const getFirstBlockingInputError = React.useCallback(() => {
     // Bevidst designvalg:
@@ -318,6 +318,14 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     </Box>
   );
 });
+
+MainLayoutContent.displayName = 'MainLayoutContent';
+
+const MainLayout = React.memo((props: MainLayoutProps) => (
+  <CriticalActionProvider>
+    <MainLayoutContent {...props} />
+  </CriticalActionProvider>
+));
 
 MainLayout.displayName = 'MainLayout';
 

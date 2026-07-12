@@ -803,12 +803,12 @@ const isMicrotaskTick = (node: ts.CallExpression): boolean => {
 const promiseTickBoundary = forbidCalls({
   id: 'form/no-promise-tick-in-commit-sensitive',
   description:
-    'Promise-tick (await Promise.resolve() / Promise.resolve().then()) er forbudt i commit-sensitiv kode; kun auditerede infrastruktur-undtagelser.',
+    'Promise-tick (await Promise.resolve() / Promise.resolve().then()) er forbudt i commit-sensitiv kode.',
   appliesTo: isCommitSensitive,
-  allow: ['src/utils/commitFlush.ts'],
+  allow: [],
   antiRot: true,
   forbidden: (ref) => ref.calleeText === 'Promise.resolve' && isMicrotaskTick(ref.node),
-  message: () => 'Promise-tick i commit-sensitiv kode uden auditeret undtagelse.',
+  message: () => 'Promise-tick i commit-sensitiv kode.',
   violatingFixtures: [
     { relativePath: 'src/hooks/x.ts', code: 'async function f() { await Promise.resolve(); }' },
     { relativePath: 'src/components/x.tsx', code: 'Promise.resolve().then(() => commit());' },

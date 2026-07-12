@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Implementeret i:** `src/components/layout/Container.tsx`
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-12
 
 ---
 
@@ -93,7 +93,9 @@ Konsekvens:
    - Widget/menu ejer intern navigation
 4. **Editor åben**
    - For Mineos Styled*-tekstfelter betyder editor åben, at det fokuserede tekstinput er redigerbart (`readOnly=false`) og ikke er en ikke-tekstlig inputtype.
-   - Andre komponenter skal eksponere en tilsvarende auditérbar edit-state.
+   - Andre komponenter skal eksponere en tilsvarende auditérbar edit-state. Form- og grid-surfaces
+     registrerer denne state eksplicit hos `CriticalActionCoordinator`; kritiske handlinger må ikke
+     genudlede den gennem DOM-scanning.
    - Container intercepter IKKE piletaster
    - Eksisterende caret/editor-adfærd bevares
 

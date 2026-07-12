@@ -3,7 +3,7 @@
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-06-19
+**Senest verificeret mod kode:** 2026-07-12
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -31,7 +31,8 @@ Mineo består arkitektonisk af fire niveauer:
 1. **App-/route-niveau**
    - Routing, globale providers, theme og top-level device gate.
 2. **Layout-niveau**
-   - `MainLayout` ejer navigation, global gem/hent/slet alt, overlay/dialoger og commit-flush før sideskift.
+   - `MainLayout` ejer navigation, global gem/hent/slet alt og overlay/dialoger; den fælles
+     `CriticalActionCoordinator` ejer commit-barrieren før kritiske handlinger.
 3. **Page-niveau**
    - Den route-komponent brugeren navigerer til.
    - Ejer sidens primære orkestrering, persisted state-adgang og visning af én sammenhængende funktion.
@@ -139,7 +140,7 @@ Mobil/tablet-blokering renderes som et separat hard-stop (`UnsupportedDevicePage
 
 - sidemenu
 - global navigation mellem routes
-- commit-flush ved sideskift/gem
+- orkestrering af den fælles kritiske handlingsbarriere ved sideskift/gem
 - globale overlays/dialoger
 - gem/hent/slet alt
 - route-uafhængige driftsfunktioner
@@ -362,7 +363,8 @@ Indtil da er kontrakten:
 Imperativ DOM-adgang i pages og tabs er som udgangspunkt forbudt til almindelig feltstyring.
 Brug refs og etablerede komponentkontrakter.
 
-Undtagelser kan accepteres i globale infrastrukturlag som `MainLayout`, hvor commit-flush og fokusgenopretning kræver DOM-integration.
+Undtagelser kan accepteres i globale infrastrukturlag som fokusgenopretning. Commit-barrieren må
+ikke bruge DOM-scanning; den bruger registrerede deltagere efter `critical-action-contract.md`.
 
 ---
 

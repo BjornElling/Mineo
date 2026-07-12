@@ -13,6 +13,8 @@ import {
   type InputSelectionSnapshot,
   type NormalizedSelection,
 } from '../utils/inputSelectionUtils';
+import { useCriticalActionParticipant } from '../criticalActions/CriticalActionContext';
+import { createElementFocusTarget } from '../criticalActions/focusTarget';
 
 /**
  * Delt commit-/redigerings-skelet for de syv single-`<input>` "blur-commit"-felter
@@ -180,6 +182,7 @@ export const useStyledFieldAdapter = <TModel>(
   } = config;
 
   const inputElementRef = React.useRef<HTMLInputElement>(null);
+  const criticalActionParticipantId = React.useId();
   const skipNextBlurCommitRef = React.useRef(false);
   const pendingSelectionRef = React.useRef<NormalizedSelection | null>(null);
 
@@ -418,6 +421,22 @@ export const useStyledFieldAdapter = <TModel>(
     },
     [activation, commit, committedInvalidDraft, defaultShouldCommit, draft, onBlur, onBlurBase, shouldCommitOnBlur, value]
   );
+
+  useCriticalActionParticipant({
+    id: `form-field:${criticalActionParticipantId}`,
+    kind: 'form-field',
+    isEditing: () => activation.isEditorOpen,
+    getFocusTarget: () => createElementFocusTarget(() => inputElementRef.current),
+    commit: () => {
+      // Gem bruger præcis feltets normale commit-sti, men lukker lifecycle eksplicit, så
+      // coordinatoren ikke behøver at vente på et blur-event eller en render-tick.
+      skipNextBlurCommitRef.current = true;
+      commit();
+      activation.closeEditor();
+      inputElementRef.current?.blur();
+      return true;
+    },
+  });
 
   return {
     draft,

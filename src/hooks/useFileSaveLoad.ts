@@ -5,11 +5,7 @@ import { SaveValidationError, saveToFile } from '../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
 import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
-import {
-  commitPendingInputBeforeSave,
-  prepareForCriticalDataReplacement,
-  restoreFocusIfPossible,
-} from '../utils/commitFlush';
+import { restoreFocusIfPossible } from '../utils/focusUtils';
 import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import type { LoadFileResult, SaveFileResult } from '../types/fileOperations';
@@ -29,6 +25,8 @@ import {
   navigateToBlockingInputError,
   type BlockingInputErrorTarget,
 } from '../utils/saveBlockedFocus';
+import { useCriticalActionCoordinator } from '../criticalActions/CriticalActionContext';
+import type { CriticalActionFocusTarget } from '../criticalActions/criticalActionCoordinator';
 
 export type OverlayData = {
   message: string;
@@ -144,6 +142,7 @@ export const useFileSaveLoad = ({
   allowExitWithoutWarning,
   showOverlay,
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
+  const criticalActions = useCriticalActionCoordinator();
   const [pendingLoadResult, setPendingLoadResult] = React.useState<PendingLoadApply | null>(null);
   const [pendingOverwriteApply, setPendingOverwriteApply] = React.useState<PendingOverwriteApply | null>(null);
 
@@ -175,13 +174,15 @@ export const useFileSaveLoad = ({
   }, [applyLoadedSnapshot, hasAnyData, navigate, showOverlay]);
 
   const handleGem = React.useCallback(async () => {
-    const focusTargetBeforeSave = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
+    let focusTargetBeforeAction: CriticalActionFocusTarget | null = null;
     try {
-      const commitFlush = await commitPendingInputBeforeSave();
+      const preparation = await criticalActions.prepare('save');
+      focusTargetBeforeAction = preparation.focusTargetBeforeAction;
       const blockingInputError = getFirstBlockingInputError();
-      if (!commitFlush.ok || blockingInputError !== null) {
-        if (commitFlush.ok) {
+      if (preparation.status === 'blocked' || blockingInputError !== null) {
+        if (preparation.status === 'blocked') {
+          preparation.target?.focus();
+        } else {
           void navigateToBlockingInputError(blockingInputError, currentPathname, navigate);
         }
         showOverlay({
@@ -201,12 +202,12 @@ export const useFileSaveLoad = ({
       const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);
 
       if (result.cancelled) {
-        restoreFocusIfPossible(focusTargetBeforeSave);
+        preparation.focusTargetBeforeAction?.focus();
         return;
       }
 
       if (result.success) {
-        restoreFocusIfPossible(focusTargetBeforeSave);
+        preparation.focusTargetBeforeAction?.focus();
         markSaved(snapshotRevision);
         showOverlay({
           message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
@@ -214,7 +215,7 @@ export const useFileSaveLoad = ({
         });
       }
     } catch (error) {
-      restoreFocusIfPossible(focusTargetBeforeSave);
+      focusTargetBeforeAction?.focus();
       const overlay = resolveSaveError(error);
       if (!(error instanceof SaveValidationError)) {
         console.error('Gem fejlede:', error);
@@ -223,6 +224,7 @@ export const useFileSaveLoad = ({
     }
   }, [
     combinedSectionRevisionRef,
+    criticalActions,
     currentPathname,
     getFirstBlockingInputError,
     getPersistedData,
@@ -233,8 +235,9 @@ export const useFileSaveLoad = ({
   ]);
 
   const handleHent = React.useCallback(async () => {
-    const loadGuard = await prepareForCriticalDataReplacement();
-    if (!loadGuard.ok) {
+    const preparation = await criticalActions.prepare('load');
+    if (preparation.status === 'blocked') {
+      preparation.target?.focus();
       showOverlay({
         message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
         type: 'warning',
@@ -249,7 +252,7 @@ export const useFileSaveLoad = ({
       const result: LoadFileResult = await loadFromFile(resolvedDirectory);
 
       if (result.cancelled) {
-        restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
+        preparation.focusTargetBeforeAction?.focus();
         return;
       }
 
@@ -262,7 +265,7 @@ export const useFileSaveLoad = ({
         await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, true);
       }
     } catch (error) {
-      restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
+      preparation.focusTargetBeforeAction?.focus();
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent fejlede:', error);
@@ -272,11 +275,12 @@ export const useFileSaveLoad = ({
         type: 'error',
       });
     }
-  }, [requestApplyLoadedSnapshot, settings, showOverlay]);
+  }, [criticalActions, requestApplyLoadedSnapshot, settings, showOverlay]);
 
   const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
-    const loadGuard = await prepareForCriticalDataReplacement();
-    if (!loadGuard.ok) {
+    const preparation = await criticalActions.prepare('load');
+    if (preparation.status === 'blocked') {
+      preparation.target?.focus();
       showOverlay({
         message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
         type: 'warning',
@@ -290,7 +294,7 @@ export const useFileSaveLoad = ({
       const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
 
       if (result.cancelled) {
-        restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
+        preparation.focusTargetBeforeAction?.focus();
         return 'cancelled';
       }
 
@@ -313,7 +317,7 @@ export const useFileSaveLoad = ({
 
       return 'error';
     } catch (error) {
-      restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
+      preparation.focusTargetBeforeAction?.focus();
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent (PWA) fejlede:', error);
@@ -324,7 +328,7 @@ export const useFileSaveLoad = ({
       });
       return 'error';
     }
-  }, [requestApplyLoadedSnapshot, showOverlay]);
+  }, [criticalActions, requestApplyLoadedSnapshot, showOverlay]);
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
     const pending = pendingLoadResult;
