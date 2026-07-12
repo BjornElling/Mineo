@@ -1,16 +1,40 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
-import type { EetImportContext } from '../../erhvervsevnetab/eetImportPort';
+import {
+  buildEetImportContext,
+  buildUnavailableEetImportContext,
+  type EetImportContext,
+  type EetImportSource,
+} from '../../erhvervsevnetab/eetImportPort';
 import { buildMidlertidigtEetAfgoerelseGroupsFromImportContext, type MidlertidigtEetAfgoerelseGroup } from './midlertidigtEetInsertRows';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
 import { splitIsoRangeByCalendarMonthsInclusive } from '../engines/periodRangeGroups';
 import { toKroner } from '../../money/money';
+import type { IsoRange } from '../../../utils/isoDateHelpers';
 
 export type MidlertidigtEetTransientResult = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
   issues: readonly EetIssue[];
 }>;
+
+/**
+ * Den fælles EO-wiring fra schema-valideret EET-kilde og clampede TAF-ranges til importporten.
+ * Komponenten og snapshot-testene bruger samme funktion, så valg af seneste TAF-slutdato og
+ * fail-closed-fejlen ved manglende periode ikke kan drive fra hinanden.
+ */
+export const buildMidlertidigtEetImportContext = (
+  source: EetImportSource,
+  tafRanges: readonly IsoRange[]
+): EetImportContext => {
+  const slutdato = tafRanges.reduce<IsoRange['til'] | undefined>(
+    (latest, range) => (latest && latest > range.til ? latest : range.til),
+    undefined
+  );
+  return slutdato
+    ? buildEetImportContext(source, slutdato)
+    : buildUnavailableEetImportContext(source, 'taf_slutdato_missing');
+};
 
 /**
  * Adapterer den schema-validerede EET-importport til EO's virtuelle grupper.

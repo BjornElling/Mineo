@@ -37,7 +37,7 @@ type Props = Readonly<{
     ansaettelsesforholdId: string,
     updater: (current: SfggRow) => SfggRow,
     origin?: { fieldPath?: string }
-  ) => void;
+  ) => boolean;
 }>;
 
 /**
@@ -127,7 +127,7 @@ const SygeferiegodtgoerelseSection = ({
                 nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
                   ? nextValue
                   : undefined;
-              updateSfggAnsaettelsesforhold(
+              return updateSfggAnsaettelsesforhold(
                 af.id,
                 (current) => applySfggBeregningskildeChange(current, nextBeregningskilde),
                 { fieldPath: `${af.id}:sfggBeregningskilde` }
@@ -177,7 +177,7 @@ const SygeferiegodtgoerelseSection = ({
               allowEmpty={true}
               onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
                 const nextValue = event.target.value;
-                updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                   ...current,
                   sfggSatsvalg:
                     nextValue === 'Faglaert-Koebenhavn' ||
@@ -220,7 +220,7 @@ const SygeferiegodtgoerelseSection = ({
                   error={referenceperiodeErrorText !== ''}
                   helperText={referenceperiodeErrorText}
                   onCommit={(event) => {
-                    updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                    return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                       ...current,
                       sfggReferenceperiodeFra: event.target.value,
                     }));
@@ -240,7 +240,7 @@ const SygeferiegodtgoerelseSection = ({
                   error={referenceperiodeErrorText !== ''}
                   helperText={referenceperiodeErrorText}
                   onCommit={(event) => {
-                    updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                    return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                       ...current,
                       sfggReferenceperiodeTil: event.target.value,
                     }));
@@ -261,7 +261,7 @@ const SygeferiegodtgoerelseSection = ({
                 value={sfggRow?.sfggReferenceperiodeFravaersdageUdenLoen}
                 placeholder="0"
                 onCommit={(event) => {
-                  updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                     ...current,
                     sfggReferenceperiodeFravaersdageUdenLoen: event.target.value,
                   }));
@@ -293,7 +293,7 @@ const SygeferiegodtgoerelseSection = ({
                 value={sfggRow?.sfggManuelDagssats}
                 allowNegative={false}
                 onCommit={(event) => {
-                  updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                     ...current,
                     sfggManuelDagssats: event.target.value,
                   }));
@@ -310,7 +310,7 @@ const SygeferiegodtgoerelseSection = ({
                 width={260}
                 value={sfggRow?.sfggManuelBeloebIHenholdTil ?? ''}
                 onCommit={(event) => {
-                  updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                     ...current,
                     sfggManuelBeloebIHenholdTil: normalizeOptionalFreeText(event.target.value),
                   }));
@@ -326,7 +326,7 @@ const SygeferiegodtgoerelseSection = ({
                 name={`${af.id}:sfggManuelFoerstEfterSygeloen`}
                 checked={sfggRow?.sfggManuelFoerstEfterSygeloen === 'Ja'}
                 onCommit={(event) => {
-                  updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                     ...current,
                     sfggManuelFoerstEfterSygeloen: event.target.value ? 'Ja' : 'Nej',
                   }), { fieldPath: `${af.id}:sfggManuelFoerstEfterSygeloen` });
@@ -347,7 +347,7 @@ const SygeferiegodtgoerelseSection = ({
               value={sfggRow?.sfggAlleredeBetaltBeloeb}
               allowNegative={false}
               onCommit={(event) => {
-                updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                   ...current,
                   sfggAlleredeBetaltBeloeb: event.target.value,
                 }));

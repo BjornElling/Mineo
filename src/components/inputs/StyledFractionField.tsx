@@ -167,7 +167,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
       normalizePasteText: normalizeFractionPaste,
-      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
       onFocus,

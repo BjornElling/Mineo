@@ -536,12 +536,18 @@ describe('Container keyboard navigation', () => {
         <Container>
           <StyledIntegerField
             value={value1}
-            onCommit={(e) => setValue1(e.target.value)}
+            onCommit={(e) => {
+              setValue1(e.target.value);
+              return true;
+            }}
             sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
           />
           <StyledIntegerField
             value={value2}
-            onCommit={(e) => setValue2(e.target.value)}
+            onCommit={(e) => {
+              setValue2(e.target.value);
+              return true;
+            }}
             sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
           />
         </Container>
@@ -574,12 +580,18 @@ describe('Container keyboard navigation', () => {
         <Container>
           <StyledIntegerField
             value={value1}
-            onCommit={(e) => setValue1(e.target.value)}
+            onCommit={(e) => {
+              setValue1(e.target.value);
+              return true;
+            }}
             sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
           />
           <StyledIntegerField
             value={value2}
-            onCommit={(e) => setValue2(e.target.value)}
+            onCommit={(e) => {
+              setValue2(e.target.value);
+              return true;
+            }}
             sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
           />
         </Container>

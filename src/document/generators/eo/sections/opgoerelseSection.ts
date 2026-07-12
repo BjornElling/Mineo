@@ -1,4 +1,3 @@
-import { MARGINS } from '../../../layout/pdfConfig';
 import { ensureNonBreakingKr } from '../../../layout/pdfTextUtils';
 import { formatReguleringFactorText } from '../../../layout/documentFormatUtils';
 import {
@@ -11,6 +10,7 @@ import type { Calculable, LoenudviklingSegment, EoModel } from '../../../../doma
 import { addMoneyOre, zeroMoneyOre, type MoneyOre } from '../../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
+import type { DocumentComposer } from '../../../model/documentModel';
 import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } from './tafBeregningsgrundlagSection';
 
 type OpgorelseSectionContext = Readonly<{
@@ -24,13 +24,7 @@ type OpgorelseSectionContext = Readonly<{
   rightColumnWidth: number;
   renderSectionHeader: (text: string, nextLineHeight?: number) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
-  renderSubheaderIfContent: (params: Readonly<{
-    text: string;
-    nextLineHeight?: number;
-    hasContent: boolean;
-    renderContent: () => void;
-    options?: Readonly<{ addTopSpacing?: boolean }>;
-  }>) => boolean;
+  renderSubheaderIfContent: DocumentComposer['writeBoldSubheaderIfContent'];
   renderSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
   safeAddWrappedText: (text: string) => void;
   safeAddLeftRightText: (
@@ -44,13 +38,7 @@ type OpgorelseSectionContext = Readonly<{
       lineAboveRightOffset?: number;
     }>
   ) => void;
-  renderAtomicTableChunks: <T>(params: Readonly<{
-    rows: readonly T[];
-    renderHeader: () => void;
-    renderRow: (row: T) => void;
-    estimateRowHeight: number;
-    headerHeight: number;
-  }>) => void;
+  renderAtomicTableChunks: DocumentComposer['writeAtomicTableChunks'];
   assertModelInvariant: (condition: boolean, message: string) => void;
   renderMoneyWithKr: (value: Calculable<MoneyOre>) => string;
   renderMoneyWithKrTrimmed: (value: Calculable<MoneyOre>) => string;
@@ -76,15 +64,16 @@ type OpgorelseSectionContext = Readonly<{
   }) => string;
   formatDateShort: (dateIso: ISODateString | undefined) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
-  writer: Readonly<{
-    addSectionSpacer: () => void;
-    addPage: () => void;
-    addSpacer: (height: number) => void;
-    keepWithNext: (minimumHeight: number) => void;
-    writeUnderlinedSubheader: (text: string, x?: number) => void;
-    writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
-    writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string, requiredHeight?: number) => void;
-  }>;
+  writer: Pick<
+    DocumentComposer,
+    | 'addSectionSpacer'
+    | 'addPage'
+    | 'addSpacer'
+    | 'keepWithNext'
+    | 'writeUnderlinedSubheader'
+    | 'writeNormalThenBoldLine'
+    | 'writeSignatureBlock'
+  >;
 }>;
 
 const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): readonly LoenudviklingSegment[] => {
@@ -835,11 +824,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
     writer.addSectionSpacer();
     const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim() || '*skadelidtes navn*';
-    const dateX = MARGINS.left;
     const dateLine = '____ / ____ - ____________';
-    const sigX = MARGINS.left + 90;
     const sigLine = '________________________________________';
     const signatureBlockHeight = lineHeight * 2;
-    writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn, signatureBlockHeight);
+    writer.writeSignatureBlock(dateLine, sigLine, skadelidteNavn, signatureBlockHeight);
   }
 };

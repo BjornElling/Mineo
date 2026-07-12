@@ -54,7 +54,7 @@ export type TafBeregningsgrundlagDeps = Readonly<{
   writer: Readonly<{
     addSectionSpacer: () => void;
     keepWithNext: (minimumHeight: number) => void;
-    writeUnderlinedSubheader: (text: string, x?: number) => void;
+    writeUnderlinedSubheader: (text: string) => void;
   }>;
 }>;
 

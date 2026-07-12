@@ -14,7 +14,7 @@ export type CommitEvent<TValue> = MineoFieldEventBrand<'commit'> & { target: { v
 
 export type DraftChangeHandler = (e: DraftChangeEvent) => void;
 
-export type CommitHandler<TValue> = (e: CommitEvent<TValue>) => void;
+export type CommitHandler<TValue> = (e: CommitEvent<TValue>) => boolean;
 
 export type DraftParseErrorKind = 'empty' | 'partial' | 'invalid';
 

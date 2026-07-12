@@ -101,6 +101,7 @@ const DerivedHarness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[
     (next: OffentligeYdelserRow[]) => {
       onPersist(next);
       setTableData(next);
+      return true;
     },
     [onPersist]
   );

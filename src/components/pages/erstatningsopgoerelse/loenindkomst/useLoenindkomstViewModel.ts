@@ -91,7 +91,7 @@ export type UseLoenindkomstViewModelParams = Readonly<{
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => void;
+  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => boolean;
 }>;
 
 /**
@@ -285,7 +285,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     ) => ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number],
     origin?: { fieldPath?: string }
   ) => {
-    setEOValues((prev) => updateSfggAnsaettelsesforholdRow(prev, ansaettelsesforholdId, updater), origin);
+    return setEOValues((prev) => updateSfggAnsaettelsesforholdRow(prev, ansaettelsesforholdId, updater), origin);
   }, [setEOValues]);
 
   // Hent alle organisationer
@@ -293,7 +293,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
   const updateAnsaettelsesforhold = React.useCallback(
     (id: string, updater: (prev: Ansaettelsesforhold) => Ansaettelsesforhold, origin?: { fieldPath?: string }) => {
-      onAnsaettelsesforholdChange((prev) => {
+      return onAnsaettelsesforholdChange((prev) => {
         const index = prev.findIndex((item) => item.id === id);
         if (index === -1) return prev;
 
@@ -311,7 +311,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string, field: keyof Pick<Ansaettelsesforhold, 'navnPaaArbejdssted' | 'loenudviklingManuelNavn'>) =>
       (event: CommitEvent<string | undefined>) => {
         const nextValue = normalizeOptionalFreeText(event.target.value);
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: nextValue }), { fieldPath: `${id}:${field}` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: nextValue }), { fieldPath: `${id}:${field}` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -325,7 +325,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       >
     ): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
-        updateAnsaettelsesforhold(id, (prev) => {
+        return updateAnsaettelsesforhold(id, (prev) => {
           const next = applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value);
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         }, { fieldPath: `${id}:${field}` });
@@ -337,7 +337,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string) =>
       (e: StyledDropdownChangeEvent<string | undefined>) => {
         const nextOverenskomstId = normalizeOptionalFreeText(e.target.value);
-        updateAnsaettelsesforhold(id, (prev) => {
+        return updateAnsaettelsesforhold(id, (prev) => {
           const next = {
             ...prev,
             overenskomstId: nextOverenskomstId,
@@ -358,7 +358,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: StyledDropdownChangeEvent<string | undefined>) => {
         const parsed = offentligLoenTypeEnum.safeParse(event.target.value ?? 'Månedsløn');
         const nextValue: OffentligLoenTypeLabel = parsed.success ? parsed.data : 'Månedsløn';
-        updateAnsaettelsesforhold(id, (prev) => ({
+        return updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenType: nextValue,
         }), { fieldPath: `${id}:offentligLoenType` });
@@ -369,7 +369,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleOffentligLoenTrinCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<number | undefined>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({
+        return updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenTrin: event.target.value,
         }), { fieldPath: `${id}:offentligLoenTrin` });
@@ -380,7 +380,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleOffentligLoenGruppeCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<number | undefined>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({
+        return updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenGruppe: event.target.value,
         }), { fieldPath: `${id}:offentligLoenGruppe` });
@@ -391,7 +391,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleOffentligLoenEkstraGrundloenCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['offentligLoenEkstraGrundloen']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({
+        return updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenEkstraGrundloen: event.target.value,
         }), { fieldPath: `${id}:offentligLoenEkstraGrundloen` });
@@ -402,7 +402,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleSidsteArbejdsdagCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['sidsteArbejdsdag']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, sidsteArbejdsdag: event.target.value }), { fieldPath: `${id}:sidsteArbejdsdag` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, sidsteArbejdsdag: event.target.value }), { fieldPath: `${id}:sidsteArbejdsdag` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -411,7 +411,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['saerligFraDatoRegulering']>) => {
         const nextSaerligFraDatoRegulering = event.target.value;
-        updateAnsaettelsesforhold(id, (prev) => {
+        return updateAnsaettelsesforhold(id, (prev) => {
           const next = { ...prev, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         }, { fieldPath: `${id}:saerligFraDatoRegulering` });
@@ -423,7 +423,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleAnciennitetstillaegDatoCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['anciennitetstillaegDato']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegDato: event.target.value }), { fieldPath: `${id}:anciennitetstillaegDato` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegDato: event.target.value }), { fieldPath: `${id}:anciennitetstillaegDato` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -433,7 +433,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = anciennitetSatsPerEnum.safeParse(event.target.value);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSatsAngivesPer: parsed.data }), { fieldPath: `${id}:anciennitetstillaegSatsAngivesPer` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSatsAngivesPer: parsed.data }), { fieldPath: `${id}:anciennitetstillaegSatsAngivesPer` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -441,7 +441,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleAnciennitetstillaegSatsCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['anciennitetstillaegSats']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSats: event.target.value }), { fieldPath: `${id}:anciennitetstillaegSats` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSats: event.target.value }), { fieldPath: `${id}:anciennitetstillaegSats` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -449,7 +449,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleFeriePctCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<number | undefined>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, feriePct: event.target.value }), { fieldPath: `${id}:feriePct` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, feriePct: event.target.value }), { fieldPath: `${id}:feriePct` });
         // feriePct-fejlen revalideres automatisk af satsErrors-memo'en fra committed state.
       },
     [updateAnsaettelsesforhold]
@@ -464,7 +464,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       field: OverenskomstSatsField
     ) =>
       (event: CommitEvent<number | undefined>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: event.target.value }), { fieldPath: `${id}:${field}` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: event.target.value }), { fieldPath: `${id}:${field}` });
         // Overenskomst-sats-fejlen revalideres automatisk af satsErrors-memo'en fra committed state.
       },
     [updateAnsaettelsesforhold]
@@ -474,7 +474,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string) =>
       (_event: React.ChangeEvent<HTMLInputElement>, value: string) => {
         if (!isLoenperiodeValue(value)) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenperiode: value }), { fieldPath: `${id}:loenperiode` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenperiode: value }), { fieldPath: `${id}:loenperiode` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -484,7 +484,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = tillaegAngivesSomEnum.safeParse(event.target.value);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => {
+        return updateAnsaettelsesforhold(id, (prev) => {
           const next = { ...prev, tillaegAngivesSom: parsed.data };
           // I Beløb-tilstand er basisrækkens procentsatser brugerinput; sync-helperen bevarer dem.
           return syncManualBaseRowSatser(next);
@@ -497,7 +497,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
         const nextValue: Ansaettelsesforhold['fuldLoenUnderFerie'] = event.target.value ? 'Ja' : 'Nej';
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, fuldLoenUnderFerie: nextValue }), { fieldPath: `${id}:fuldLoenUnderFerie` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, fuldLoenUnderFerie: nextValue }), { fieldPath: `${id}:fuldLoenUnderFerie` });
         // feriePct-fejlen revalideres automatisk af satsErrors-memo'en fra committed state.
       },
     [updateAnsaettelsesforhold]
@@ -508,7 +508,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = loenPaaHelligdageEnum.safeParse(event.target.value);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => {
+        return updateAnsaettelsesforhold(id, (prev) => {
           const next = { ...prev, loenPaaHelligdage: parsed.data };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         }, { fieldPath: `${id}:loenPaaHelligdage` });
@@ -520,7 +520,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleTableDataChange = React.useCallback(
     (id: string) =>
       (newTableData: Ansaettelsesforhold['indtaegtsoplysningerTableData'], origin?: { fieldPath?: string }) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, indtaegtsoplysningerTableData: newTableData }), origin);
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, indtaegtsoplysningerTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
   );
@@ -544,10 +544,9 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
             delete next[id];
             return next;
           });
-          updateAnsaettelsesforhold(id, (prev) =>
+          return updateAnsaettelsesforhold(id, (prev) =>
             applyLoenudviklingBeregningsgrundlagChange(prev, undefined)
           , { fieldPath: `${id}:loenudviklingBeregningsgrundlag` });
-          return;
         }
         const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(raw);
         if (!parsed.success) return;
@@ -560,7 +559,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           });
         }
 
-        updateAnsaettelsesforhold(id, (prev) =>
+        return updateAnsaettelsesforhold(id, (prev) =>
           applyLoenudviklingBeregningsgrundlagChange(prev, parsed.data)
         , { fieldPath: `${id}:loenudviklingBeregningsgrundlag` });
       },
@@ -572,12 +571,11 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: StyledDropdownChangeEvent<string | undefined>) => {
         const raw = event.target.value;
         if (!raw) {
-          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: undefined }), { fieldPath: `${id}:loenudviklingStatistikModel` });
-          return;
+          return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: undefined }), { fieldPath: `${id}:loenudviklingStatistikModel` });
         }
         const parsed = loenudviklingStatistikModelEnum.safeParse(raw);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: parsed.data }), { fieldPath: `${id}:loenudviklingStatistikModel` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: parsed.data }), { fieldPath: `${id}:loenudviklingStatistikModel` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -587,12 +585,11 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       (event: StyledDropdownChangeEvent<string | undefined>) => {
         const raw = event.target.value;
         if (!raw) {
-          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: undefined }), { fieldPath: `${id}:loenudviklingKRLSatstabel` });
-          return;
+          return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: undefined }), { fieldPath: `${id}:loenudviklingKRLSatstabel` });
         }
         const parsed = krlSatstabelEnum.safeParse(raw);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: parsed.data }), { fieldPath: `${id}:loenudviklingKRLSatstabel` });
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: parsed.data }), { fieldPath: `${id}:loenudviklingKRLSatstabel` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -600,7 +597,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleLoenudviklingManuelTableChange = React.useCallback(
     (id: string) =>
       (newTableData: Ansaettelsesforhold['loenudviklingManuelTableData'], origin?: { fieldPath?: string }) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelTableData: newTableData }), origin);
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
   );
@@ -608,7 +605,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const handleLoenudviklingManuelProcentsatsTableChange = React.useCallback(
     (id: string) =>
       (newTableData: Ansaettelsesforhold['loenudviklingManuelProcentsatsTableData'], origin?: { fieldPath?: string }) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelProcentsatsTableData: newTableData }), origin);
+        return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelProcentsatsTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
   );
@@ -652,7 +649,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
         delete next[deleteTargetId];
         return next;
       });
-      onAnsaettelsesforholdChange((prev) => prev.filter((af) => af.id !== deleteTargetId));
+      return onAnsaettelsesforholdChange((prev) => prev.filter((af) => af.id !== deleteTargetId));
     } finally {
       setDeleteDialogOpen(false);
       setDeleteTargetId(null);
@@ -734,7 +731,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
    */
   const handleFilterChange = React.useCallback(
     (afId: string, filterType: 'loenmodtager' | 'arbejdsgiver', value: string | undefined) => {
-      updateAnsaettelsesforhold(afId, (prev) => ({
+      return updateAnsaettelsesforhold(afId, (prev) => ({
         ...prev,
         overenskomstFilter: {
           ...prev.overenskomstFilter,

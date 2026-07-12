@@ -49,7 +49,7 @@ export type OffentligeYdelserDerivedCellValues = Readonly<{
 export type OffentligeYdelserTableProps = {
   tableData: OffentligeYdelserRow[];
   derivedByRowId?: ReadonlyMap<string, OffentligeYdelserDerivedCellValues>;
-  onTableDataChange?: (data: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => void;
+  onTableDataChange?: (data: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => boolean;
   onValidationChange?: (summary: OffentligeYdelserTableValidationSummary) => void;
   saveOrderPath?: TableSaveOrderPath;
   /**

@@ -41,13 +41,13 @@ const Stamdata = React.memo(() => {
   const handleInitialsChange = (field: 'advokat' | 'sagsbehandler') => (event: StyledTextFieldValueCommitEvent) => {
     const rawValue = String(event.target.value || '');
     const normalizedValue = rawValue.trim();
-    setValues((prev) => ({ ...prev, [field]: normalizedValue }), { fieldPath: field });
+    return setValues((prev) => ({ ...prev, [field]: normalizedValue }), { fieldPath: field });
   };
 
   const commitField = React.useCallback(
     <K extends keyof typeof values>(fieldName: K) =>
       (event: { target: { value: (typeof values)[K] } }) => {
-        setFieldValue(fieldName, event.target.value);
+        return setFieldValue(fieldName, event.target.value);
       },
     [setFieldValue]
   );

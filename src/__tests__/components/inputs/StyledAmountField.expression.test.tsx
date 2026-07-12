@@ -21,6 +21,7 @@ const renderField = (
         onCommit={(e) => {
           onCommit(e);
           setValue(e.target.value);
+          return true;
         }}
         {...props}
       />

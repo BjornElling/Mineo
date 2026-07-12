@@ -124,8 +124,9 @@ export default function SvieSmerteSection() {
                       onCommit={(event) => {
                         const next = event.target.value;
                         if (next === 'fuld' || next === 'halv') {
-                          setFieldValue('svieSmerteDelvisSygemeldingSats', next);
+                          return setFieldValue('svieSmerteDelvisSygemeldingSats', next);
                         }
+                        return false;
                       }}
                       row={true}
                       options={[

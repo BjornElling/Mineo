@@ -56,8 +56,8 @@ const renderTab = (args: {
     <RenteberegningTab
       beregningsdato={args.beregningsdato ?? VALID_BEREGNINGSDATO}
       kommentarer={undefined}
-      onBeregningsdatoCommit={() => undefined}
-      onKommentarerCommit={() => undefined}
+      onBeregningsdatoCommit={() => true}
+      onKommentarerCommit={() => true}
       rentekravRows={args.draftRows}
       onRentekravChange={() => () => undefined}
       onRentekravBlur={() => undefined}

@@ -53,7 +53,11 @@ import {
   assertAarsloenAslMaxKontinuitet,
 } from '../lovbestemteRates';
 import { assertOffentligLoenDataIntegritet } from '../offentligLoenLookup';
-import { overenskomster, assertOverenskomstSatserNyesteFoerst, assertValidSfggPolicy } from '../overenskomstRates';
+import {
+  assertOverenskomstSatserNyesteFoerst,
+  assertValidSfggPolicy,
+  overenskomstBeregningsdata,
+} from '../overenskomstRates';
 import { rltnLoenSatser } from '../RLTN/rltnLoenSatser';
 import { statistiskLoenudvikling, assertStatistikAarKontinuitet } from '../statistiskeRates';
 import { assertSygedagpengeRatesIntegritet, sygedagpengeRates } from '../sygedagpengeRates';
@@ -203,11 +207,21 @@ export const beregningsdataCatalog = defineCalculationDataCatalog([
       maintenance: { method: 'manually_transcribed' },
     },
     coverage: { kind: 'source_defined', description: 'Hver overenskomst har sin egen satsperiode.' },
-    payload: overenskomster,
-    validate: (payload) => payload.forEach(({ meta, satser }) => {
-      assertValidSfggPolicy(meta, satser);
-      assertOverenskomstSatserNyesteFoerst(satser, meta.id);
-    }),
+    payload: overenskomstBeregningsdata,
+    validate: ({ privateOverenskomster, offentligeOverenskomster, offentligeOverenskomstSatser }) => {
+      privateOverenskomster.forEach(({ meta, satser }) => {
+        assertValidSfggPolicy(meta, satser);
+        assertOverenskomstSatserNyesteFoerst(satser, meta.id);
+      });
+      const offentligeSatserById = new Map(
+        offentligeOverenskomstSatser.map((entry) => [entry.id, entry.satser] as const)
+      );
+      offentligeOverenskomster.forEach((meta) => {
+        const satser = offentligeSatserById.get(meta.id);
+        assertValidSfggPolicy(meta, satser);
+        if (satser) assertOverenskomstSatserNyesteFoerst(satser, meta.id);
+      });
+    },
   }),
   defineCalculationData({
     id: 'statistiske-loenindeks',

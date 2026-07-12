@@ -4,7 +4,7 @@ import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsa
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
-import { buildStatistikIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
+import { buildStatistikForloeb } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
 import { buildKlLoenaftalerIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/klLoenaftalerRegulering';
 import { resolveStatistikModelId } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
@@ -534,9 +534,10 @@ describe('buildLoenudviklingModel', () => {
     expect(modelId).toBeDefined();
     // Forløbet er den delte statistik-kvartalsserie motoren afleder deltaPct fra — samme kilde som
     // præsentationen læser (ingen re-derivation → ingen drift).
-    expect(model.forloeb).toEqual({ kind: 'statistik', entries: buildStatistikIndexEntries(modelId!) });
+    expect(model.forloeb).toEqual(buildStatistikForloeb(modelId!));
     const entries = model.forloeb?.kind === 'statistik' ? model.forloeb.entries : [];
     expect(entries.length).toBeGreaterThan(0);
+    expect(model.forloeb?.kind === 'statistik' ? model.forloeb.displayDecimals : null).toBe(1);
   });
 
   it('KL-lønaftaler: motoren emitterer den autoritative KL-periodeserie byte-identisk med den delte builder', () => {

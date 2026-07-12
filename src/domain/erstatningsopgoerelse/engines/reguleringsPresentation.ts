@@ -8,7 +8,6 @@ import { clampTafRow, resolveTafConstraintBounds } from '../validation/tafPeriod
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import {
   convertAnciennitetSats,
-  detectDecimalPlaces,
   formatAmountWithoutTrailingDecimals,
   formatOverenskomstAmount,
   hasAnyPctSourceOrInput,
@@ -46,8 +45,6 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
 import { isKRLSatstabelId } from '../../../data/krlRates';
-import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
-import { getStatistiskLoenudvikling } from '../../../data/statistiskeRates';
 import { STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import {
@@ -929,14 +926,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
 
     const modelId = resolveStatistikModelIdFromLabel(modelLabel);
     if (!modelId) return null;
-    const model = getStatistiskLoenudvikling(modelId);
-    if (!model) return null;
-
     // Statistik-kvartalsserien kommer udelukkende fra motorens forløb.
     const periodStarts = forloeb?.kind === 'statistik' ? forloeb.entries : [];
     if (periodStarts.length === 0) return null;
 
-    const decimals = detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
+    const decimals = forloeb?.kind === 'statistik' ? forloeb.displayDecimals : 2;
     const formatIndex = (value: number) =>
       formatAsAmount(value, decimals);
 
@@ -1000,8 +994,6 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   }
 
   if (grundlag === 'KL-lønaftaler') {
-    if (klLoenaftalerRaekker.length === 0) return null;
-
     // KL-lønaftaler vises som periode-reguleringssats (kilde-værdien). Der vises bevidst
     // ingen akkumuleret regulering — KL-lønaftaler-modellen kender ikke akkumuleret regulering;
     // reguleringen sker trinvist på lønnen (jf. "Beregnet regulering"-tabellen og
@@ -1134,9 +1126,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     if (!isStatistik || isAslModel) return 2;
     const modelId = resolveStatistikModelIdFromLabel(statistikModelLabel);
     if (!modelId) return 2;
-    const model = getStatistiskLoenudvikling(modelId);
-    if (!model) return 2;
-    return detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
+    return forloeb?.kind === 'statistik' ? forloeb.displayDecimals : 2;
   })();
   const formatStatValue = isAslModel
     ? formatCurrency

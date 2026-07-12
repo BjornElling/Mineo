@@ -18,7 +18,7 @@ const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 type UpdateEoLoenudvikling = (
   updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling,
   origin?: { fieldPath?: string }
-) => void;
+) => boolean;
 
 type ReportDynamicFieldError = (fieldKey: string, message: string | undefined) => void;
 
@@ -28,27 +28,27 @@ type Params = Readonly<{
 }>;
 
 export type EoLoenudviklingHandlers = Readonly<{
-  handleLoenudviklingBeregningsgrundlagChange: (event: StyledDropdownChangeEvent<string | undefined>) => void;
-  handleLoenudviklingStatistikModelChange: (event: StyledDropdownChangeEvent<string | undefined>) => void;
-  handleLoenudviklingKRLSatstabelChange: (event: StyledDropdownChangeEvent<string | undefined>) => void;
-  handleEoOverenskomstFilterChange: (filterType: 'loenmodtager' | 'arbejdsgiver', value: string | undefined) => void;
-  handleEoOverenskomstChange: (event: StyledDropdownChangeEvent<string | undefined>) => void;
-  handleOffentligLoenTypeChange: (event: StyledDropdownChangeEvent<string | undefined>) => void;
-  handleOffentligLoenTrinCommit: (event: CommitEvent<number | undefined>) => void;
-  handleOffentligLoenGruppeCommit: (event: CommitEvent<number | undefined>) => void;
-  handleOffentligLoenEkstraGrundloenCommit: (event: CommitEvent<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>) => void;
-  handleEoAnciennitetstillaegToggleCommit: (event: CommitEvent<boolean>) => void;
-  handleEoAnciennitetstillaegDatoCommit: (event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegDato']>) => void;
-  handleEoAnciennitetstillaegSatsCommit: (event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegSats']>) => void;
-  handleLoenudviklingManuelNavnCommit: (event: CommitEvent<string | undefined>) => void;
+  handleLoenudviklingBeregningsgrundlagChange: (event: StyledDropdownChangeEvent<string | undefined>) => boolean;
+  handleLoenudviklingStatistikModelChange: (event: StyledDropdownChangeEvent<string | undefined>) => boolean;
+  handleLoenudviklingKRLSatstabelChange: (event: StyledDropdownChangeEvent<string | undefined>) => boolean;
+  handleEoOverenskomstFilterChange: (filterType: 'loenmodtager' | 'arbejdsgiver', value: string | undefined) => boolean;
+  handleEoOverenskomstChange: (event: StyledDropdownChangeEvent<string | undefined>) => boolean;
+  handleOffentligLoenTypeChange: (event: StyledDropdownChangeEvent<string | undefined>) => boolean;
+  handleOffentligLoenTrinCommit: (event: CommitEvent<number | undefined>) => boolean;
+  handleOffentligLoenGruppeCommit: (event: CommitEvent<number | undefined>) => boolean;
+  handleOffentligLoenEkstraGrundloenCommit: (event: CommitEvent<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>) => boolean;
+  handleEoAnciennitetstillaegToggleCommit: (event: CommitEvent<boolean>) => boolean;
+  handleEoAnciennitetstillaegDatoCommit: (event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegDato']>) => boolean;
+  handleEoAnciennitetstillaegSatsCommit: (event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegSats']>) => boolean;
+  handleLoenudviklingManuelNavnCommit: (event: CommitEvent<string | undefined>) => boolean;
   handleLoenudviklingManuelTableChange: (
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData'],
     origin?: { fieldPath?: string }
-  ) => void;
+  ) => boolean;
   handleLoenudviklingManuelProcentsatsTableChange: (
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelProcentsatsTableData'],
     origin?: { fieldPath?: string }
-  ) => void;
+  ) => boolean;
   handleLoenudviklingManuelInputErrorChange: (hasError: boolean) => void;
 }>;
 
@@ -72,7 +72,7 @@ export const useEoLoenudviklingHandlers = ({
     if (next !== 'Manuelt angivet' && next !== 'Manuel procentsats') {
       reportDynamicFieldError(`${EO_ANGIVET_LOEN_ID}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`, undefined);
     }
-    updateEoLoenudvikling(
+    return updateEoLoenudvikling(
       (prev) => applyLoenudviklingBeregningsgrundlagChange(prev, next),
       { fieldPath: 'loenudviklingBeregningsgrundlag' }
     );
@@ -80,7 +80,7 @@ export const useEoLoenudviklingHandlers = ({
 
   const handleLoenudviklingStatistikModelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = loenudviklingStatistikModelEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingStatistikModel: parsed.success ? parsed.data : undefined,
     }), { fieldPath: 'loenudviklingStatistikModel' });
@@ -88,7 +88,7 @@ export const useEoLoenudviklingHandlers = ({
 
   const handleLoenudviklingKRLSatstabelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = krlSatstabelEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingKRLSatstabel: parsed.success ? parsed.data : undefined,
     }), { fieldPath: 'loenudviklingKRLSatstabel' });
@@ -96,7 +96,7 @@ export const useEoLoenudviklingHandlers = ({
 
   const handleEoOverenskomstFilterChange = React.useCallback(
     (filterType: 'loenmodtager' | 'arbejdsgiver', value: string | undefined) => {
-      updateEoLoenudvikling((prev) => ({
+      return updateEoLoenudvikling((prev) => ({
         ...prev,
         overenskomstFilter: {
           ...prev.overenskomstFilter,
@@ -110,7 +110,7 @@ export const useEoLoenudviklingHandlers = ({
   const handleEoOverenskomstChange = React.useCallback(
     (event: StyledDropdownChangeEvent<string | undefined>) => {
       const nextOverenskomstId = normalizeOptionalFreeText(event.target.value);
-      updateEoLoenudvikling((prev) => ({
+      return updateEoLoenudvikling((prev) => ({
         ...prev,
         overenskomstId: nextOverenskomstId,
         loenudviklingBeregningsgrundlag: 'Overenskomst',
@@ -125,49 +125,49 @@ export const useEoLoenudviklingHandlers = ({
 
   const handleOffentligLoenTypeChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = offentligLoenTypeEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenType: parsed.success ? parsed.data : prev.offentligLoenType,
     }), { fieldPath: 'offentligLoenType' });
   }, [updateEoLoenudvikling]);
 
   const handleOffentligLoenTrinCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenTrin: event.target.value,
     }), { fieldPath: 'offentligLoenTrin' });
   }, [updateEoLoenudvikling]);
 
   const handleOffentligLoenGruppeCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenGruppe: event.target.value,
     }), { fieldPath: 'offentligLoenGruppe' });
   }, [updateEoLoenudvikling]);
 
   const handleOffentligLoenEkstraGrundloenCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenEkstraGrundloen: event.target.value,
     }), { fieldPath: 'offentligLoenEkstraGrundloen' });
   }, [updateEoLoenudvikling]);
 
   const handleEoAnciennitetstillaegToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       harAnciennitetstillaegEfterSkadedatoen: event.target.value,
     }), { fieldPath: 'harAnciennitetstillaegEfterSkadedatoen' });
   }, [updateEoLoenudvikling]);
 
   const handleEoAnciennitetstillaegDatoCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegDato']>) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       anciennitetstillaegDato: event.target.value,
     }), { fieldPath: 'anciennitetstillaegDato' });
   }, [updateEoLoenudvikling]);
 
   const handleEoAnciennitetstillaegSatsCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegSats']>) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       anciennitetstillaegSats: event.target.value,
     }), { fieldPath: 'anciennitetstillaegSats' });
@@ -175,7 +175,7 @@ export const useEoLoenudviklingHandlers = ({
 
   const handleLoenudviklingManuelNavnCommit = React.useCallback((event: CommitEvent<string | undefined>) => {
     const trimmed = (event.target.value ?? '').trim();
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingManuelNavn: trimmed,
     }), { fieldPath: 'loenudviklingManuelNavn' });
@@ -185,7 +185,7 @@ export const useEoLoenudviklingHandlers = ({
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData'],
     origin?: { fieldPath?: string }
   ) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingManuelTableData: tableData,
     }), origin);
@@ -195,7 +195,7 @@ export const useEoLoenudviklingHandlers = ({
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelProcentsatsTableData'],
     origin?: { fieldPath?: string }
   ) => {
-    updateEoLoenudvikling((prev) => ({
+    return updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingManuelProcentsatsTableData: tableData,
     }), origin);

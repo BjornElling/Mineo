@@ -37,9 +37,10 @@ import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import {
   formatCurrencyFromOre,
   formatCurrencyFromOreTrimmed,
+  formatKr,
   resolveDocumentArtifactFileName,
 } from '../../layout/documentFormatUtils';
-import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetDocumentUtils';
+import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 import {
   addLoebendeAfgoerelseSection,
@@ -56,6 +57,7 @@ import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevneta
 import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
 const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
+const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
 
 // ============================================================================
 // PROFORMAKAPITALISERING-SEKTION

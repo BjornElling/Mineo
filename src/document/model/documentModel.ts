@@ -2,6 +2,7 @@ import type { BrevhovedData } from '../layout/documentLayoutHelpers';
 import { renderTableSpec, type TableSpec } from '../layout/tableSpec';
 import { MARGINS } from '../layout/pdfConfig';
 import type { DocumentWriter } from '../writer';
+import { assertNever } from '../../utils/assertNever';
 
 export type DocumentTextStyle = 'normal' | 'bold';
 
@@ -21,8 +22,6 @@ export type DocumentBlock =
       text: string;
       bold?: boolean;
       continued?: boolean;
-      maxWidth?: number;
-      x?: number;
     }>
   | Readonly<{
       kind: 'normalThenBoldLine';
@@ -48,7 +47,7 @@ export type DocumentBlock =
       subheaderText: string;
       bodyText: string;
     }>
-  | Readonly<{ kind: 'underlinedSubheader'; text: string; x?: number }>
+  | Readonly<{ kind: 'underlinedSubheader'; text: string }>
   | Readonly<{
       kind: 'conditionalSubsection';
       text: string;
@@ -72,8 +71,6 @@ export type DocumentBlock =
       kind: 'signature';
       dateLine: string;
       sigLine: string;
-      dateX: number;
-      sigX: number;
       skadelidteNavn: string;
       requiredHeight?: number;
     }>
@@ -94,16 +91,13 @@ export type DocumentModel = Readonly<{
 
 /**
  * Generatorernes eneste outputgrænse. Builderen opsamler semantiske blokke; den
- * kender hverken kanal, sidecursor eller måleenhed.
+ * observerer hverken kanal, sidecursor eller runtime-dokumentmål. Statiske
+ * layoutintentioner i blokke og TableSpec afvikles først af modelrendereren.
  */
 export type DocumentComposer = {
   writeWrappedText: (text: string) => void;
   writeBoldWrappedText: (text: string) => void;
-  writeWrappedTextContinued: (
-    text: string,
-    maxWidth?: number,
-    x?: number,
-  ) => void;
+  writeWrappedTextContinued: (text: string) => void;
   writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
   writeLeftRightText: (
     leftText: string,
@@ -125,7 +119,7 @@ export type DocumentComposer = {
       text: string;
       nextLineHeight?: number;
       hasContent: boolean;
-      renderContent: () => void;
+      renderContent: () => undefined;
       options?: Readonly<{ addTopSpacing?: boolean }>;
     }>,
   ) => boolean;
@@ -136,18 +130,16 @@ export type DocumentComposer = {
   writeAtomicTableChunks: <T>(
     params: Readonly<{
       rows: readonly T[];
-      renderHeader: () => void;
-      renderRow: (row: T) => void;
+      renderHeader: () => undefined;
+      renderRow: (row: T) => undefined;
       estimateRowHeight: number;
       headerHeight: number;
     }>,
   ) => void;
-  writeUnderlinedSubheader: (text: string, x?: number) => void;
+  writeUnderlinedSubheader: (text: string) => void;
   writeSignatureBlock: (
     dateLine: string,
     sigLine: string,
-    dateX: number,
-    sigX: number,
     skadelidteNavn: string,
     requiredHeight?: number,
   ) => void;
@@ -169,14 +161,25 @@ export type DocumentComposer = {
   addFooter: () => void;
 };
 
-const deepFreeze = <T>(value: T): T => {
-  if (typeof value !== 'object' || value === null || Object.isFrozen(value)) return value;
-  for (const nested of Object.values(value)) deepFreeze(nested);
-  return Object.freeze(value);
+const copyAndDeepFreeze = <T>(value: T): T => {
+  if (typeof value !== 'object' || value === null) return value;
+  if (Array.isArray(value)) {
+    return Object.freeze(value.map((nested) => copyAndDeepFreeze(nested))) as T;
+  }
+
+  // IR-payloads er plain dataobjekter. Kopien er vigtig: build() må ikke fryse et
+  // domæne-/snapshotobjekt, som kalderen fortsat ejer uden for dokumentmodellen.
+  const prototype = Object.getPrototypeOf(value) as object | null;
+  if (prototype !== Object.prototype && prototype !== null) return value;
+  const copy: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value)) {
+    copy[key] = copyAndDeepFreeze(nested);
+  }
+  return Object.freeze(copy) as T;
 };
 
 const freezeBlocks = (blocks: DocumentBlock[]): readonly DocumentBlock[] =>
-  Object.freeze(blocks.map((block) => deepFreeze(block)));
+  Object.freeze(blocks.map((block) => copyAndDeepFreeze(block)));
 
 export const createDocumentComposer = (): Readonly<{
   composer: DocumentComposer;
@@ -184,32 +187,37 @@ export const createDocumentComposer = (): Readonly<{
 }> => {
   const blocks: DocumentBlock[] = [];
 
-  const capture = (render: () => void): readonly DocumentBlock[] => {
+  const append = (block: DocumentBlock): undefined => {
+    blocks.push(block);
+    return undefined;
+  };
+
+  const capture = (render: () => undefined): readonly DocumentBlock[] => {
     const start = blocks.length;
     render();
     return freezeBlocks(blocks.splice(start));
   };
 
   const composer: DocumentComposer = {
-    writeWrappedText: (text) => blocks.push({ kind: 'wrappedText', text }),
+    writeWrappedText: (text) => append({ kind: 'wrappedText', text }),
     writeBoldWrappedText: (text) =>
-      blocks.push({ kind: 'wrappedText', text, bold: true }),
-    writeWrappedTextContinued: (text, maxWidth, x) =>
-      blocks.push({ kind: 'wrappedText', text, continued: true, maxWidth, x }),
+      append({ kind: 'wrappedText', text, bold: true }),
+    writeWrappedTextContinued: (text) =>
+      append({ kind: 'wrappedText', text, continued: true }),
     writeNormalThenBoldLine: (normalPart, boldPart) =>
-      blocks.push({ kind: 'normalThenBoldLine', normalPart, boldPart }),
+      append({ kind: 'normalThenBoldLine', normalPart, boldPart }),
     writeLeftRightText: (label, value, options) =>
-      blocks.push({ kind: 'labelValue', label, value, options }),
+      append({ kind: 'labelValue', label, value, options }),
     writeSectionHeader: (text, nextLineHeight) =>
-      blocks.push({ kind: 'sectionHeader', text, nextLineHeight }),
+      append({ kind: 'sectionHeader', text, nextLineHeight }),
     writeTitle: (text, options) =>
-      blocks.push({
+      append({
         kind: 'title',
         text,
         trailingSpacing: options?.trailingSpacing,
       }),
     writeBoldSubheader: (text, nextLineHeight, options) =>
-      blocks.push({
+      append({
         kind: 'boldSubheader',
         text,
         nextLineHeight,
@@ -223,7 +231,7 @@ export const createDocumentComposer = (): Readonly<{
       options,
     }) => {
       if (!hasContent) return false;
-      blocks.push({
+      append({
         kind: 'conditionalSubsection',
         text,
         nextLineHeight,
@@ -233,7 +241,7 @@ export const createDocumentComposer = (): Readonly<{
       return true;
     },
     writeBoldSubheaderWithWrappedText: (subheaderText, bodyText) =>
-      blocks.push({ kind: 'boldSubheaderWithText', subheaderText, bodyText }),
+      append({ kind: 'boldSubheaderWithText', subheaderText, bodyText }),
     writeAtomicTableChunks: ({
       rows,
       renderHeader,
@@ -243,7 +251,7 @@ export const createDocumentComposer = (): Readonly<{
     }) => {
       const header = capture(renderHeader);
       const rowBlocks = rows.map((row) => capture(() => renderRow(row)));
-      blocks.push({
+      return append({
         kind: 'atomicChunks',
         header,
         rows: Object.freeze(rowBlocks),
@@ -251,42 +259,38 @@ export const createDocumentComposer = (): Readonly<{
         headerHeight,
       });
     },
-    writeUnderlinedSubheader: (text, x) =>
-      blocks.push({ kind: 'underlinedSubheader', text, x }),
+    writeUnderlinedSubheader: (text) =>
+      append({ kind: 'underlinedSubheader', text }),
     writeSignatureBlock: (
       dateLine,
       sigLine,
-      dateX,
-      sigX,
       skadelidteNavn,
       requiredHeight,
     ) =>
-      blocks.push({
+      append({
         kind: 'signature',
         dateLine,
         sigLine,
-        dateX,
-        sigX,
         skadelidteNavn,
         requiredHeight,
       }),
-    writeBrevhoved: (data) => blocks.push({ kind: 'brevhoved', data }),
-    addUdkastWatermark: () => blocks.push({ kind: 'watermark' }),
+    writeBrevhoved: (data) => append({ kind: 'brevhoved', data }),
+    addUdkastWatermark: () => append({ kind: 'watermark' }),
     addContentWidthImage: (dataUrl, options) =>
-      blocks.push({
+      append({
         kind: 'contentWidthImage',
         dataUrl,
         aspectRatio: options.aspectRatio,
         maxHeight: options.maxHeight,
         verticalPadding: options.verticalPadding ?? 4,
       }),
-    addSpacer: (height) => blocks.push({ kind: 'spacer', height }),
-    addSectionSpacer: () => blocks.push({ kind: 'sectionSpacer' }),
+    addSpacer: (height) => append({ kind: 'spacer', height }),
+    addSectionSpacer: () => append({ kind: 'sectionSpacer' }),
     keepWithNext: (minimumHeight) =>
-      blocks.push({ kind: 'keepWithNext', minimumHeight }),
-    addPage: () => blocks.push({ kind: 'pageBreak' }),
-    addTable: (spec) => blocks.push({ kind: 'table', spec }),
-    addFooter: () => blocks.push({ kind: 'footer' }),
+      append({ kind: 'keepWithNext', minimumHeight }),
+    addPage: () => append({ kind: 'pageBreak' }),
+    addTable: (spec) => append({ kind: 'table', spec }),
+    addFooter: () => append({ kind: 'footer' }),
   };
 
   return {
@@ -304,7 +308,7 @@ const renderBlocks = (
       case 'wrappedText':
         if (block.bold) writer.writeBoldWrappedText(block.text);
         else if (block.continued)
-          writer.writeWrappedTextContinued(block.text, block.maxWidth, block.x);
+          writer.writeWrappedTextContinued(block.text);
         else writer.writeWrappedText(block.text);
         break;
       case 'normalThenBoldLine':
@@ -350,7 +354,7 @@ const renderBlocks = (
         );
         break;
       case 'underlinedSubheader':
-        writer.writeUnderlinedSubheader(block.text, block.x);
+        writer.writeUnderlinedSubheader(block.text);
         break;
       case 'conditionalSubsection':
         writer.writeBoldSubheaderIfContent({
@@ -398,8 +402,8 @@ const renderBlocks = (
         writer.writeSignatureBlock(
           block.dateLine,
           block.sigLine,
-          block.dateX,
-          block.sigX,
+          MARGINS.left,
+          MARGINS.left + 90,
           block.skadelidteNavn,
         );
         break;
@@ -421,6 +425,8 @@ const renderBlocks = (
       case 'footer':
         writer.addFooter();
         break;
+      default:
+        assertNever(block);
     }
   }
 };

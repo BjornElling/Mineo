@@ -54,7 +54,10 @@ const Harness = ({
   return (
     <OffentligeYdelserTable
       tableData={tableData}
-      onTableDataChange={setTableData}
+      onTableDataChange={(next) => {
+        setTableData(next);
+        return true;
+      }}
       onValidationChange={onSummary}
     />
   );

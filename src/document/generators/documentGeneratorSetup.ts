@@ -48,11 +48,11 @@ type DocumentValueResolver<TInput, TValue> = TValue | ((input: TInput) => TValue
 export type DocumentDefinition<TInput> = Readonly<{
   title: DocumentValueResolver<TInput, string>;
   filename: (input: TInput, format: DocumentDownloadFormat) => string;
-  body: (writer: DocumentComposer, input: TInput) => void;
+  body: (writer: DocumentComposer, input: TInput) => undefined;
   writerOptions?: DocumentValueResolver<TInput, StandardDocumentWriterOptions | undefined>;
   metadata?: DocumentValueResolver<TInput, StandardDocumentMetadata | undefined>;
   brevhoved?: (input: TInput) => BrevhovedData | null;
-  beforeBrevhoved?: (writer: DocumentComposer, input: TInput) => void;
+  beforeBrevhoved?: (writer: DocumentComposer, input: TInput) => undefined;
   titleOptions?: DocumentValueResolver<
     TInput,
     Parameters<DocumentComposer['writeTitle']>[1]

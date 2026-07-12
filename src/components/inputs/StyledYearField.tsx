@@ -153,7 +153,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
       normalizePasteText: normalizeYearPaste,
-      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
       onFocus,

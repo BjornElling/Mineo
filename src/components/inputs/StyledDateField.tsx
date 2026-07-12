@@ -192,7 +192,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       getDraftForKey,
       normalizePasteText: normalizeDatePaste,
       singleStageClick,
-      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
       getVisualError,

@@ -313,8 +313,10 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         maxIntegerDigits: effectiveMaxIntegerDigits,
       }),
       onCommit: (nextValue) => {
+        const committed = onCommit?.(createCommitEvent(nextValue)) ?? true;
+        if (!committed) return false;
         lastCommittedDisplayRef.current = { value: nextValue, decimals: pendingCommitDecimalsRef.current };
-        onCommit?.(createCommitEvent(nextValue));
+        return true;
       },
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,

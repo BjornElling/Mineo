@@ -9,7 +9,7 @@ import {
 import type { LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
-import { buildStatistikIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
+import { buildStatistikForloeb } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
 import { buildKlLoenaftalerIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/klLoenaftalerRegulering';
 import { resolveStatistikModelId } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
@@ -40,7 +40,7 @@ const buildTestForloeb = (
   const af = params.ansaettelsesforhold;
   if (af.loenudviklingBeregningsgrundlag === 'Statistik') {
     const modelId = resolveStatistikModelId(af.loenudviklingStatistikModel ?? '');
-    return modelId ? { kind: 'statistik', entries: buildStatistikIndexEntries(modelId) } : undefined;
+    return modelId ? buildStatistikForloeb(modelId) : undefined;
   }
   if (af.loenudviklingBeregningsgrundlag === 'KRL satstabel' && af.loenudviklingKRLSatstabel) {
     return { kind: 'krl', entries: buildKrlIndexEntries(af.loenudviklingKRLSatstabel) };
@@ -1058,7 +1058,8 @@ describe('reguleringsPresentation', () => {
     const anvendtReguleringsdato = iso('2005-01-01');
     const modelId = resolveStatistikModelId('ILON12 (Danmarks Statistik)');
     expect(modelId).toBeDefined();
-    const forloeb = { kind: 'statistik' as const, entries: buildStatistikIndexEntries(modelId!) };
+    const forloeb = buildStatistikForloeb(modelId!);
+    expect(forloeb).toBeDefined();
     const segments: LoenudviklingSegment[] = [
       { kind: 'maaneder', fra: iso('2005-01-01'), til: iso('2005-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(36000000) },
       { kind: 'maaneder', fra: iso('2006-01-01'), til: iso('2006-12-31'), maaneder: 12, maanedsloenOre: moneyOre(3000000), deltaPct: 3, amountOre: moneyOre(37080000) },
@@ -1069,12 +1070,12 @@ describe('reguleringsPresentation', () => {
       ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'), tafBeregningsenhed: 'Måneder',
     });
     const vaerdierMed = buildReguleringsvaerdierTableData({
-      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'), tafBeregningsenhed: 'Måneder', forloeb: forloeb!,
     });
     expect(vaerdierMed).not.toBeNull();
     expect(vaerdierUden).toBeNull();
 
-    const rowsMed = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder', forloeb });
+    const rowsMed = buildReguleringIndexRows({ segments, ansaettelsesforhold: af, anvendtReguleringsdato, tafBeregningsenhed: 'Måneder', forloeb: forloeb! });
     expect(rowsMed.length).toBeGreaterThan(0);
   });
 

@@ -152,6 +152,7 @@ export const saveToFile = async (
     let filename: string;
     let verification: VerificationResult;
     let fallbackWarning: string | undefined;
+    const metadataWarnings: string[] = [];
 
     if (target.kind === 'fileHandle') {
       fallbackWarning = target.fallbackWarning;
@@ -187,11 +188,16 @@ export const saveToFile = async (
           logWarning('Gemt fil, men kunne ikke persistere file handle til senere overskrivning', {
             context: 'saveToFile.persistFileHandleAfterSuccess',
           });
+          metadataWarnings.push('Filen blev gemt, men koblingen til senere direkte Gem kunne ikke gemmes.');
         }
       }
 
       // Gem filnavn og stamdata til sessionStorage (til validering ved næste gem)
-      persistSavedFilenameMetadata(filename, fileData.data.stamdata);
+      try {
+        persistSavedFilenameMetadata(filename, fileData.data.stamdata);
+      } catch {
+        metadataWarnings.push('Filen blev gemt, men filnavnsoplysninger til næste Gem kunne ikke synkroniseres.');
+      }
 
     } else {
       filename = target.filename;
@@ -220,7 +226,11 @@ export const saveToFile = async (
         // Vi fortsætter - filen er teknisk OK, bare med advarsler
       }
 
-      persistSavedFilenameMetadata(filename, fileData.data.stamdata);
+      try {
+        persistSavedFilenameMetadata(filename, fileData.data.stamdata);
+      } catch {
+        metadataWarnings.push('Filen blev gemt, men filnavnsoplysninger til næste Gem kunne ikke synkroniseres.');
+      }
     }
 
     // Returner success-info (inkl. verifikation hvis der var advarsler)
@@ -230,9 +240,9 @@ export const saveToFile = async (
       fieldCount,
       sections: Object.keys(canonicalData).length,
       verified: verification?.verified ?? false,
-      ...((fallbackWarning || verification?.warning)
+      ...((fallbackWarning || verification?.warning || metadataWarnings.length > 0)
         ? {
-            warning: [fallbackWarning, verification.message].filter(Boolean).join('\n\n'),
+            warning: [fallbackWarning, verification.message, ...metadataWarnings].filter(Boolean).join('\n\n'),
           }
         : {}),
     };

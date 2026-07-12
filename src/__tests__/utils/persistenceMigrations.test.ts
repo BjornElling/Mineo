@@ -24,11 +24,6 @@ describe('migratePersistedSectionValue', () => {
     });
   });
 
-  it('returnerer ingen issues når der ikke findes en eksplicit migrator for sektionen', () => {
-    const { issues } = migratePersistedSectionValue('satser', { aargang: 2025 }, '1.0');
-    expect(issues).toEqual([]);
-  });
-
   it('bevarer ikke-null-værdier uændret', () => {
     const input = { aargang: 2025, navn: 'Test', flag: false, tom: '' };
     const { value } = migratePersistedSectionValue('satser', input, PERSISTED_DATA_VERSION);
@@ -40,7 +35,7 @@ describe('migratePersistedSectionValue', () => {
       stamdata: {
         '1.0': {
           toVersion: PERSISTED_DATA_VERSION,
-          migrate: (value: unknown) => ({ value: { previous: value, current: true }, issues: [] }),
+          migrate: (value: unknown) => ({ value: { previous: value, current: true } }),
         },
       },
     } satisfies PersistenceMigrationRegistry;
@@ -59,7 +54,7 @@ describe('migratePersistedSectionValue', () => {
       stamdata: {
         '1.0': {
           toVersion: PERSISTED_DATA_VERSION,
-          migrate: () => ({ value: { journalnr: 'migreret' }, issues: [] }),
+          migrate: () => ({ value: { journalnr: 'migreret' } }),
         },
       },
     } satisfies PersistenceMigrationRegistry;

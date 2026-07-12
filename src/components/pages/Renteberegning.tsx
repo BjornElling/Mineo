@@ -59,7 +59,7 @@ const Renteberegning = React.memo(() => {
 
   const handleBeregningsdatoCommit = React.useCallback<CommitHandler<ISODateString | undefined>>(
     (event) => {
-      setFieldValue('beregningsdato', event.target.value);
+      return setFieldValue('beregningsdato', event.target.value);
     },
     [setFieldValue]
   );
@@ -67,7 +67,7 @@ const Renteberegning = React.memo(() => {
   const handleKommentarerChange = React.useCallback<CommitHandler<string>>(
     (event) => {
       const normalized = event.target.value.trim();
-      setFieldValue('kommentarer', normalized === '' ? undefined : normalized);
+      return setFieldValue('kommentarer', normalized === '' ? undefined : normalized);
     },
     [setFieldValue]
   );

@@ -11,6 +11,18 @@ const parseTrimmedString: DraftParse<string> = (draft) => {
 };
 
 describe('useDraftField', () => {
+  it('ruller den optimistiske draft tilbage når commit-callbacken kaster', () => {
+    const { result } = renderHook(() => useDraftField({
+      value: 'før',
+      format: (value) => value,
+      parse: parseTrimmedString,
+      onCommit: () => { throw new Error('persist fejlede'); },
+    }));
+
+    act(() => result.current.setDraft('efter'));
+    act(() => expect(result.current.commit()).toBe(false));
+    expect(result.current.draft).toBe('før');
+  });
   it('committer én gang på blur', () => {
     const onCommit = vi.fn();
     const { result } = renderHook(() =>

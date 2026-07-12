@@ -274,7 +274,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       getDraftForKey,
       normalizePasteText: (text) => normalizeAmountPaste(text, { allowNegative }),
       onStartEditing,
-      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
       onFocus,

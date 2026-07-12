@@ -47,7 +47,7 @@ type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelp
 
 type Props = Readonly<{
   rows: OffentligeYdelserRow[];
-  onRowsChange: (rows: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => void;
+  onRowsChange: (rows: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => boolean;
   kommentarer: ErstatningsopgoerelseValues['offentligeYdelserKommentarer'];
   midlertidigtEetFraEetSiden: ErstatningsopgoerelseValues['midlertidigtEetFraEetSiden'];
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
@@ -258,22 +258,21 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
 
   const handleMidlertidigtEetToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
     const nextChecked = event.target.value;
-    if (nextChecked === isMidlertidigtEetFraEetSiden) return;
+    if (nextChecked === isMidlertidigtEetFraEetSiden) return true;
     if (!nextChecked) {
-      commitMidlertidigtEetToggle(false);
-      return;
+      return commitMidlertidigtEetToggle(false);
     }
     const hasExistingMidlertidigtEetRows = rows.some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
     if (!hasExistingMidlertidigtEetRows) {
-      commitMidlertidigtEetToggle(true);
-      return;
+      return commitMidlertidigtEetToggle(true);
     }
     setMidlertidigtEetConfirmDialogOpen(true);
+    return true;
   }, [commitMidlertidigtEetToggle, isMidlertidigtEetFraEetSiden, rows]);
 
   const handleKommentarerCommit = React.useCallback((event: CommitEvent<string>) => {
     const normalized = event.target.value.trim();
-    setEOValues(
+    return setEOValues(
       (prev) => ({
         ...prev,
         offentligeYdelserKommentarer: normalized === '' ? undefined : normalized,
@@ -318,8 +317,9 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
               inputRef={sygedagpengeFraInputRef}
               value={sygedagpengeFraDato}
               onCommit={(e) => {
-                if (suppressSygedagpengeFieldCommitRef.current) return;
+                if (suppressSygedagpengeFieldCommitRef.current) return true;
                 setSygedagpengeFraDato(e.target.value);
+                return true;
               }}
               onFieldError={handleSygedagpengeFraError}
               width={130}
@@ -331,8 +331,9 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
             <StyledDateField
               value={sygedagpengeTilDato}
               onCommit={(e) => {
-                if (suppressSygedagpengeFieldCommitRef.current) return;
+                if (suppressSygedagpengeFieldCommitRef.current) return true;
                 setSygedagpengeTilDato(e.target.value);
+                return true;
               }}
               onFieldError={handleSygedagpengeTilError}
               width={130}

@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import { dateToISO } from '../../../types/branded';
 import { createDate } from '../../../utils/dateUtils';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
+import { detectDecimalPlaces } from '../helpers/eoSharedUtils';
 
 // R2 — det autoritative statistik-visnings-forløb: modellens kvartals-indeksserie, keyet på
 // kvartalets ISO-startdato. Dette er præcis den liste motorens statistikForm.byggSegmenter
@@ -37,4 +38,23 @@ export const buildStatistikIndexEntries = (modelId: StatistiskLoenudviklingId): 
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
     .sort((a, b) => a.startIso.localeCompare(b.startIso));
+};
+
+/** Bygger både den fulde serie og dens kildebestemte visningspræcision hos producenten. */
+export const buildStatistikForloeb = (
+  modelId: StatistiskLoenudviklingId
+): Readonly<{
+  kind: 'statistik';
+  entries: readonly StatistikIndexEntry[];
+  displayDecimals: number;
+}> | undefined => {
+  const model = getStatistiskLoenudvikling(modelId);
+  if (!model) return undefined;
+  return {
+    kind: 'statistik',
+    entries: buildStatistikIndexEntries(modelId),
+    displayDecimals: detectDecimalPlaces(
+      model.indeksvaerdier.map((entry) => entry.indeksvaerdi)
+    ),
+  };
 };

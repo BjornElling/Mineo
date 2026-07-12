@@ -25,14 +25,14 @@ import {
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { resolveDocumentArtifactFileName, formatMaanederFixed, formatReguleringPct } from '../../layout/documentFormatUtils';
+import { resolveDocumentArtifactFileName, formatKr, formatMaanederFixed, formatReguleringPct } from '../../layout/documentFormatUtils';
 import { round4 } from '../../../utils/roundingShortcuts';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../../data/lovbestemteRates';
-import { formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetDocumentUtils';
+import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 
 const formatEetLabel = (eetPct: number, priorKapPct: number): string =>

@@ -24,8 +24,8 @@ export type CommitOriginOptions = {
   fieldPath?: string;
 };
 
-export type SetValuesUpdater<T extends object> = (updater: (prev: T) => T | Partial<T>, options?: CommitOriginOptions) => void;
-export type SetFieldValue<T> = <K extends keyof T>(fieldName: K, value: T[K], options?: CommitOriginOptions) => void;
+export type SetValuesUpdater<T extends object> = (updater: (prev: T) => T | Partial<T>, options?: CommitOriginOptions) => boolean;
+export type SetFieldValue<T> = <K extends keyof T>(fieldName: K, value: T[K], options?: CommitOriginOptions) => boolean;
 
 const getCurrentPathname = (): string => {
   if (typeof window === 'undefined') {
@@ -224,7 +224,7 @@ export const usePersistedForm = <K extends StorageKey>(
     (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K] | Partial<PersistedSectionMap[K]>, options?: CommitOriginOptions) => {
       const current = resolveCurrentValues();
       const next = { ...current, ...updater(current) };
-      persistDataRef.current(pageKey, next, { undoOrigin: createUndoOrigin(options) });
+      return persistDataRef.current(pageKey, next, { undoOrigin: createUndoOrigin(options) });
     },
     [createUndoOrigin, pageKey, resolveCurrentValues]
   );
@@ -235,7 +235,7 @@ export const usePersistedForm = <K extends StorageKey>(
       value: PersistedSectionMap[K][FieldKey],
       options?: CommitOriginOptions
     ) => {
-      setValues((prev) => ({ ...prev, [fieldName]: value }), { fieldPath: options?.fieldPath ?? String(fieldName) });
+      return setValues((prev) => ({ ...prev, [fieldName]: value }), { fieldPath: options?.fieldPath ?? String(fieldName) });
     },
     [setValues]
   );

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { beregningsdataCatalog } from '../../data/catalog/beregningsdataCatalog';
 import { defineCalculationData, defineCalculationDataCatalog } from '../../data/catalog/calculationDataCatalog';
 import { kapitaliseringsTabelDataById } from '../../data/kapitalisering/kapitaliseringsTabeller';
+import { overenskomstBeregningsdata } from '../../data/overenskomstRates';
 
 const fingerprint = (value: unknown): string =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -43,11 +44,20 @@ describe('calculationDataCatalog', () => {
       'lovbestemte-satser': '64fc2cb0626d361cd3260d2f904ffe489bc36b5d86c7f6ae64d6abe92bf96005',
       'offentlig-loen-kl': 'd6b006a41c0a896094f95ae6668d48f808010eb8ed135d769006362400643610',
       'offentlig-loen-rltn': '459d6e3bf7963bfda6c7f94b5a400c4a53c1c71598013649ae8ff59e04994305',
-      overenskomster: '9cc665fd09fbcc671c2e2be099cb2e39ef87ec3f5e06664298314dbff31503ec',
+      overenskomster: 'd8aff9f4219b5f30496225fb57d1d9aaa76316515797f2fdbf678a15a58042f2',
       procesrenter: 'cc7eab66d41839b6996a2cca1eb7866434ad1ca07f3b4e102c71f3c687602150',
       'statistiske-loenindeks': 'df2ee1847d5944a7b601e4ad702f0d108adbf4a355cf9cd424666fe2931fd4af',
       sygedagpenge: '9df1d0da0107b334a33a747f0e1bfcaf99baa474dd6e2a6e62ec9ea697db0e6a',
     });
+  });
+
+  it('katalogiserer både private og offentlige overenskomstdata i samme payload', () => {
+    const entry = beregningsdataCatalog.find(({ id }) => id === 'overenskomster');
+
+    expect(entry?.payload).toBe(overenskomstBeregningsdata);
+    expect(overenskomstBeregningsdata.privateOverenskomster.length).toBeGreaterThan(0);
+    expect(overenskomstBeregningsdata.offentligeOverenskomster.length).toBeGreaterThan(0);
+    expect(overenskomstBeregningsdata.offentligeOverenskomstSatser.length).toBeGreaterThan(0);
   });
 
   it('bevarer kapitaliseringsfaktorer og tabelvalg identisk med payloaden før katalogiseringen', () => {

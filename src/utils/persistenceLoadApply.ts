@@ -56,9 +56,11 @@ export const executePersistenceLoadApply = async (args: {
     });
 
     if (result.fileHandle) {
-      await saveFileHandleToIndexedDB(result.fileHandle);
+      const saved = await saveFileHandleToIndexedDB(result.fileHandle);
+      if (!saved) throw new Error('Filhåndtaget kunne ikke gemmes til senere direkte Gem.');
     } else {
-      await deleteFileHandleFromIndexedDB();
+      const deleted = await deleteFileHandleFromIndexedDB();
+      if (!deleted) throw new Error('Det tidligere filhåndtag kunne ikke ryddes.');
     }
 
     if (result.requestId) {

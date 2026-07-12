@@ -225,7 +225,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         maxValue: enforceRange ? maxValue : undefined,
         allowNegative,
       }),
-      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
       getVisualError: enforceRange || hasConfigError

@@ -16,9 +16,9 @@ export type CellInvalidDraftChannel = Readonly<{
   /** Reaktiv læsning af cellens committede rå draft (`invalidDrafts`). `undefined` når ubunden. */
   committedInvalidDraft: string | undefined;
   /** Skriv cellens ikke-committbare rå draft. `undefined` når ubunden. */
-  onCommitInvalid: ((rawDraft: string) => void) | undefined;
+  onCommitInvalid: ((rawDraft: string) => boolean) | undefined;
   /** Ryd cellens rå draft (vellykket commit). `undefined` når ubunden. */
-  clearInvalidDraft: (() => void) | undefined;
+  clearInvalidDraft: (() => boolean) | undefined;
 }>;
 
 /**
@@ -60,8 +60,8 @@ export const useCellInvalidDraftChannel = (gridCellKey: string): CellInvalidDraf
 
   const onCommitInvalid = React.useCallback(
     (rawDraft: string) => {
-      if (scope === null || persistence === null || fieldPath === undefined) return;
-      persistence.commitInvalidDraft(scope.pageKey, fieldPath, rawDraft, {
+      if (scope === null || persistence === null || fieldPath === undefined) return false;
+      return persistence.commitInvalidDraft(scope.pageKey, fieldPath, rawDraft, {
         undoOrigin: buildCellUndoOrigin(scope.pageKey, gridCellKey),
       });
     },
@@ -69,14 +69,14 @@ export const useCellInvalidDraftChannel = (gridCellKey: string): CellInvalidDraf
   );
 
   const clearInvalidDraft = React.useCallback(() => {
-    if (scope === null || persistence === null || fieldPath === undefined) return;
+    if (scope === null || persistence === null || fieldPath === undefined) return false;
     // Send undoOrigin med (symmetrisk med onCommitInvalid ovenfor OG med de almindelige felters
     // clearInvalidDraftForField): en rydning af cellens rå draft SKAL kunne undo'es. Uden den fangede
     // rydningen ingen undo-frame, og undo sprang den over og hoppede tilbage til FØR det ugyldige input
     // (rapporteret bug: en ryddet ugyldig dato-celle kunne ikke gendannes). Captures coalesces pr.
     // synkront commit-flow i FormPersistenceContext, så et celle-commit der både committer en værdi og
     // rydder draften kun giver de(n) rigtige frame(s).
-    persistence.clearInvalidDraft(scope.pageKey, fieldPath, {
+    return persistence.clearInvalidDraft(scope.pageKey, fieldPath, {
       undoOrigin: buildCellUndoOrigin(scope.pageKey, gridCellKey),
     });
   }, [scope, persistence, fieldPath, gridCellKey]);

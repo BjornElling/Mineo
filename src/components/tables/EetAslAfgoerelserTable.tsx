@@ -32,7 +32,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   skadedatoMin: ISODateString;
   beregningsdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
-  onTableDataChange?: (rows: AslAfgoerelseRow[], origin?: { fieldPath?: string }) => void;
+  onTableDataChange?: (rows: AslAfgoerelseRow[], origin?: { fieldPath?: string }) => boolean;
   saveOrderPath?: TableSaveOrderPath;
 }>;
 

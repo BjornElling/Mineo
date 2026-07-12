@@ -13,6 +13,7 @@ const useTestEoValues = (initialValues: ErstatningsopgoerelseValues) => {
   const [state, setState] = React.useState<ErstatningsopgoerelseValues>(initialValues);
   const setValues = React.useCallback<SetValuesUpdater<ErstatningsopgoerelseValues>>((updater) => {
     setState((prev) => ({ ...prev, ...updater(prev) }));
+    return true;
   }, []);
 
   return { state, setValues };

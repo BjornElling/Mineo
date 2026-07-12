@@ -59,7 +59,7 @@ export type StandardLoenTableProps = {
   // Beløb-tilstand: kolonnerne "FP/FV/SH/SO/St.B." og "Arb.g. Pension" bliver redigerbare
   // beløbsfelter i stedet for beregnede visningsfelter. Default 'procent' (nuværende adfærd).
   tillaegAngivesSom?: TillaegAngivesSom;
-  onTableDataChange?: (data: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => void;
+  onTableDataChange?: (data: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => boolean;
   onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;

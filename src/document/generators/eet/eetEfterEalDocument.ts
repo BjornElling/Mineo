@@ -11,9 +11,8 @@ import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatt
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
+import { formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { formatKrEet as formatKr } from './eetDocumentUtils';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 

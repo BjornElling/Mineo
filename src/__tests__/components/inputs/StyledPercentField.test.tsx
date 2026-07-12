@@ -100,6 +100,7 @@ describe('StyledPercentField', () => {
           onCommit={(event) => {
             onCommit(event);
             setValue(event.target.value);
+            return true;
           }}
           onFieldError={onFieldError}
         />

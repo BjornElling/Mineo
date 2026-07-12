@@ -175,8 +175,10 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       format: formatStyledTextValue,
       parse: parseString,
       onCommit: (nextValue) => {
-        onCommit?.(createCommitEvent(nextValue));
-        clearInvalidDraft?.();
+        const committed = onCommit?.(createCommitEvent(nextValue));
+        if (committed === false) return false;
+        if (clearInvalidDraft?.() === false) return false;
+        return true;
       },
       onCommitInvalid,
       committedInvalidDraft,
@@ -324,7 +326,8 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       getFocusTarget: () => createElementFocusTarget(() => elementRefForHook.current),
       commit: () => {
         skipNextBlurCommitRef.current = true;
-        commit();
+        const committed = commit();
+        if (!committed) return false;
         activeActivation.closeEditor();
         elementRefForHook.current?.blur();
         return true;

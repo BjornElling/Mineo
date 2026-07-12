@@ -68,7 +68,7 @@ export type UseStyledFieldAdapterConfig<TModel> = Readonly<{
   ) => void;
 
   /** Rå model-commit. Hook'en wrapper og rydder invalidDrafts efter. */
-  onCommit?: (nextValue: TModel) => void;
+  onCommit?: (nextValue: TModel) => boolean;
   /** Draft-callback (kun typing). Modtager den transformerede draft. */
   onDraftChange?: (draft: string) => void;
   /** Producer-owned fejlrapportør (driver invalidDraft-kanalen). */
@@ -192,8 +192,10 @@ export const useStyledFieldAdapter = <TModel>(
   // useDraftField og af Backspace/Delete-clear-stien, så de aldrig divergerer.
   const commitValue = React.useCallback(
     (nextValue: TModel) => {
-      onCommit?.(nextValue);
-      clearInvalidDraft?.();
+      const committed = onCommit?.(nextValue);
+      if (committed === false) return false;
+      if (clearInvalidDraft?.() === false) return false;
+      return true;
     },
     [clearInvalidDraft, onCommit]
   );
@@ -431,7 +433,8 @@ export const useStyledFieldAdapter = <TModel>(
       // Gem bruger præcis feltets normale commit-sti, men lukker lifecycle eksplicit, så
       // coordinatoren ikke behøver at vente på et blur-event eller en render-tick.
       skipNextBlurCommitRef.current = true;
-      commit();
+      const committed = commit();
+      if (!committed) return false;
       activation.closeEditor();
       inputElementRef.current?.blur();
       return true;

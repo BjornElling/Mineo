@@ -18,6 +18,11 @@ import ContentBox from '../layout/ContentBox';
 import { markDevtoolsTestScenario } from '../../utils/devtoolsMonitor';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 
+const commitLocal = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, value: T): boolean => {
+  setter(value);
+  return true;
+};
+
 /**
  * Test-tab til afprøvning af styled-komponenter og devtools.
  *
@@ -110,7 +115,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledTextField
               value={textValue}
-              onCommit={(e) => setTextValue(String(e.target.value || ''))}
+              onCommit={(e) => commitLocal(setTextValue, String(e.target.value || ''))}
               placeholder="Indtast tekst"
               width={220}
             />
@@ -125,7 +130,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledDateField
               value={dateValue}
-              onCommit={(e) => setDateValue(e.target.value)}
+              onCommit={(e) => commitLocal(setDateValue, e.target.value)}
             />
           </Box>
         </Box>
@@ -157,7 +162,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledIntegerField
               value={integerValue}
-              onCommit={(e) => setIntegerValue(e.target.value)}
+              onCommit={(e) => commitLocal(setIntegerValue, e.target.value)}
               placeholder="Heltal"
               width={140}
             />
@@ -172,7 +177,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledAmountField
               value={amountValue}
-              onCommit={(e) => setAmountValue(e.target.value)}
+              onCommit={(e) => commitLocal(setAmountValue, e.target.value)}
               placeholder="Beløb"
               width={160}
             />
@@ -187,7 +192,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledPercentField
               value={percentValue}
-              onCommit={(e) => setPercentValue(e.target.value)}
+              onCommit={(e) => commitLocal(setPercentValue, e.target.value)}
               placeholder="Procent"
               width={120}
               useDefaultPercentRange
@@ -203,7 +208,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledFractionField
               value={fractionValue}
-              onCommit={(e) => setFractionValue(e.target.value)}
+              onCommit={(e) => commitLocal(setFractionValue, e.target.value)}
               placeholder="Brøk"
               width={120}
             />
@@ -218,7 +223,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledWeekField
               value={weekValue}
-              onCommit={(e) => setWeekValue(e.target.value)}
+              onCommit={(e) => commitLocal(setWeekValue, e.target.value)}
             />
           </Box>
         </Box>
@@ -231,7 +236,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledYearField
               value={yearValue}
-              onCommit={(e) => setYearValue(e.target.value)}
+              onCommit={(e) => commitLocal(setYearValue, e.target.value)}
             />
           </Box>
         </Box>
@@ -244,7 +249,7 @@ const StamdataTestTab = React.memo(() => {
           <Box className="row--label-offset__content">
             <StyledToggleSwitch
               checked={toggleValue}
-              onCommit={(e: CommitEvent<boolean>) => setToggleValue(e.target.value)}
+              onCommit={(e: CommitEvent<boolean>) => commitLocal(setToggleValue, e.target.value)}
             />
           </Box>
         </Box>

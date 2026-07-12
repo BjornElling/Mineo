@@ -13,7 +13,7 @@ describe('MainLayout navigation commit guard', () => {
     const ActiveEditorPage = () => (
       <div>
         <div>Stamdata testside</div>
-        <StyledTextField value="" label="Aktivt felt" autoFocus onCommit={() => undefined} />
+        <StyledTextField value="" label="Aktivt felt" autoFocus onCommit={() => true} />
       </div>
     );
 

@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
-import { migratePersistedSectionValue, type PersistenceMigrationIssue } from './persistenceMigrations';
+import { migratePersistedSectionValue } from './persistenceMigrations';
 import { sanitizePersistedValueForSchema } from './persistenceLoadSanitization';
 
 type SanitizeResult = ReturnType<typeof sanitizePersistedValueForSchema>;
@@ -15,8 +15,6 @@ type UnknownPath = SanitizeResult['unknownPaths'][number];
 export type InboundPersistedSectionResult<K extends StorageKey> = Readonly<{
   /** Migrator-output (kontrakt-rækkefølge §3.1a: nullToUndefinedDeep → migrator). Bruges til tabsoptælling. */
   migratedValue: unknown;
-  /** Eventuelle migrator-bemærkninger (tom i dag; migratorer er endnu data-bevarende). */
-  migrationIssues: readonly PersistenceMigrationIssue[];
   /** Strippede stier til ukendte felter (gemt data denne version ikke kender). */
   unknownPaths: readonly UnknownPath[];
 }> & (
@@ -53,7 +51,6 @@ export const parseInboundPersistedSection = <K extends StorageKey>(
 
   const common = {
     migratedValue: migrated.value,
-    migrationIssues: migrated.issues,
     unknownPaths: stripped.unknownPaths,
   } as const;
 

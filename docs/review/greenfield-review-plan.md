@@ -163,6 +163,15 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 | 22 | 51 | ✅ Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
 | 23 | 36 | ✅ EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17, #37, #49; spejler #23 |
 
+**Grundigt fase-2-review (2026-07-12):** Alle otte spor er gennemgået igen mod kode,
+kontrakter, tests og repo-brede parallelle implementeringer. Reviewet lukkede de
+godkendelsesfrie rester: fuldt katalogiserede offentlige overenskomstdata; rå reguleringsserier
+ud af læselagene; schema-afledte EET-outputtyper og blocking-invariant; exhaustiv/synkron
+dokument-IR med styrkede arkitekturværn; fælles epoch-first felt-resync; eksplicit boolsk
+persistence-kvittering gennem felt-, grid- og critical-action-kæden; samt fail-closed
+save/load-metadata-, migrations- og ukendt-sektionshåndtering. Tal- og dokumentgoldens er
+uændrede. Den godkendte concurrency-policy i #41 er efterfølgende implementeret og testet.
+
 ### Fase 3 — Projektioner & konsolideringer
 
 Den kode der kollapser til tynde lag, når spinen findes.
@@ -550,8 +559,8 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
   `TableInputAdapter` — genuint forskellige surfaces, IKKE forenet). **Klassificeret divergens:** karakteriserings-
   nettet afslørede ét reelt adfærdspunkt hvor de to afveg (epoch-bump midt i et pending-hold: form udskyder,
   grid resyncer straks). Efter brugerens reservation blev det IKKE stiltiende ophøjet til "golden"; det er
-  bevaret verbatim (bucket 3: uafklaret) og eksponeret som en eksplicit, navngiven policy
-  (`pendingHoldOutranksEpoch`), dokumenteret som kandidat til senere bevidst konvergens. Net: nye
+  efter review konvergeret til den fælles epoch-first-invariant, fordi formens no-op commit ellers
+  kunne blokere et senere autoritativt replace permanent. Net: nye
   `fieldResyncMachine.test.ts` (adfærdsmatrix, 8) + `useInvalidDraftSlot.test.ts` (2); det eksisterende
   felt/grid/undo-net (56 filer / 471 tests) beviser identitet på begge surfaces; typecheck + lint grønne.
 - **Scope:** `hooks/useDraftField.ts` (320) + `useStyledFieldAdapter.ts` (416) vs `hooks/tableInput/useTableInputCore.ts` (663); parallelle kanaler `useFieldInvalidDraftChannel` vs `useCellInvalidDraftChannel`; parallelle adapter-kontrakter `DraftParse` vs `TableInputAdapter`.
@@ -748,7 +757,7 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 ### 41 — Save/load som codec + I/O-porte + tilstandsmaskine · 8
 
 - **Status: ✅ Gennemført (2026-07-12).** Både fundament-tranchen og den fokuserede opfølgning er
-  landet som grønne, behavior-preserving ændringer. **Opfølgning (anden tranche):**
+  landet som grønne, adfærdsbevarende ændringer. **Opfølgning (anden tranche):**
   - **Diskriminerede resultat-typer** — `SaveFileResult`/`LoadFileResult` er omlagt fra
     `success: boolean` + næsten-alt-optional til `status`-unions: `saved | cancelled` og
     `loaded | preflight | cancelled`. Snapshot findes nu præcis når `status` er `loaded`/`preflight`
@@ -789,6 +798,10 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
     ville nedbryde uden korrektheds-gevinst. Den snævrere rollback-scope + coexistensbeslutningen er nu
     eksplicit dokumenteret ved definition og callsite (plan-option b).
   - **Kontrakt:** `persistence-contract.md` §3.6 tilføjet (byg-og-verificér-før-sink + codec-grænsen).
+- **Concurrency-review (2026-07-12):** Hele filhandlingen er nu serialiseret fra preparation til
+  afsluttet I/O og eventuelle beslutningsdialoger. En ny manuel Gem/Hent afvises synligt, mens kun
+  den seneste samtidige PWA-request køes. Den indlæses aldrig automatisk efter den aktive handling;
+  brugeren vælger eksplicit `Indlæs fil` eller `Ignorer`.
 - **Scope:** `utils/fileSave.ts`, `fileLoad.ts`, `fileSaveTarget.ts`, `fileLoadSource.ts`, `fileSaveInternals.ts`, `hooks/useFileSaveLoad.ts`, `types/fileOperations.ts`, `persistenceLoadApply.ts` og `MainLayout`-dialogerne.
 - **Problem:** Én trust-kritisk use-case er spredt over ~1.500 linjer. File System Access/fallback og manuel/PWA-load har parallelle kontrolstier; fallback-download sker før in-memory-verifikation; `SaveFileResult`/`LoadFileResult` er booleans med næsten alle andre felter optional; to nullable pending-states kan repræsentere ugyldige UI-kombinationer.
 - **Greenfield:** Ren `EoFileCodec.encode/decode`; typede `SaveTarget`/`LoadSource`-porte; byg og verificér ét artefakt før enhver sink; read-back-verifikation hvor sinken understøtter det; diskriminerede resultater (`cancelled | saved | preflight | failed`). Ét reducer-/state-machine-flow ejer preflight → overwrite → apply → metadata og bruges af både picker og PWA.

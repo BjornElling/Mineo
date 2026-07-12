@@ -320,7 +320,7 @@ const beregningsResultat = React.useMemo(() => {
                 typeof raw === 'number' && Number.isFinite(raw)
                   ? Math.trunc(raw)
                   : undefined;
-              setFieldValue('mengrad', intValue);
+              return setFieldValue('mengrad', intValue);
             }}
             allowDecimals={false}
             minValue={0}
@@ -349,7 +349,7 @@ const beregningsResultat = React.useMemo(() => {
           />
           <InsertTodayDateButton
             onCommit={(today) => {
-              setValues((prev) => ({
+              return setValues((prev) => ({
                 ...prev,
                 beregningsdato: today,
               }), { fieldPath: 'beregningsdato' });

@@ -17,7 +17,6 @@ import {
   useAuthoritativeSnapshotEpochSelector,
   useCombinedSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
-import { clearPendingPwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
 import {
   readOptionalSessionStorageValue,
   removeOptionalSessionStorageValue,
@@ -133,6 +132,8 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     handleLoadDespiteIssues,
     handleConfirmOverwriteApply,
     handleHentFromPwaRequest,
+    fileOperationInProgress,
+    isFileOperationInProgress,
   } = useFileSaveLoad({
     settings,
     navigate,
@@ -148,12 +149,17 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     showOverlay,
   });
 
-  usePwaLaunchQueue({
+  const {
+    pendingPwaConfirmation,
+    confirmQueuedPwaFileOpen,
+    ignoreQueuedPwaFileOpen,
+  } = usePwaLaunchQueue({
     locationPathname: location.pathname,
     pendingLoadResultOpen: pendingLoadResult !== null,
     pendingOverwriteApplyOpen: pendingOverwriteApply !== null,
+    fileOperationInProgress,
+    isFileOperationInProgress,
     handleHentFromPwaRequest,
-    showOverlay,
   });
 
   // Persistence-notices (fx versionsmismatch og korrupt storage).
@@ -264,10 +270,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         cancelText="Stop og gør intet"
         confirmText="Indlæs trods fejl"
         confirmColor="primary"
-        onCancel={() => {
-          void clearPendingPwaFileOpenRequest();
-          dismissPendingLoad();
-        }}
+        onCancel={dismissPendingLoad}
         onConfirm={handleLoadDespiteIssues}
         extraActions={
           pendingPreflightBugReportError
@@ -289,11 +292,23 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         cancelText="Stop og gør intet"
         confirmText="Overskriv"
         confirmColor="error"
-        onCancel={() => {
-          void clearPendingPwaFileOpenRequest();
-          dismissPendingLoad();
-        }}
+        onCancel={dismissPendingLoad}
         onConfirm={handleConfirmOverwriteApply}
+      />
+
+      <ConfirmationDialog
+        open={pendingPwaConfirmation !== null}
+        title="En anden fil er klar til at blive indlæst"
+        message={
+          pendingPwaConfirmation
+            ? `Filen “${pendingPwaConfirmation.fileName}” blev åbnet, mens en anden filhandling var i gang. Vil du indlæse den nu?`
+            : ''
+        }
+        cancelText="Ignorer"
+        confirmText="Indlæs fil"
+        confirmColor="primary"
+        onCancel={ignoreQueuedPwaFileOpen}
+        onConfirm={confirmQueuedPwaFileOpen}
       />
 
       {overlay && (

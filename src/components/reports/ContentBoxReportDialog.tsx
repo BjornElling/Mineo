@@ -87,6 +87,7 @@ const ContentBoxReportDialog = React.memo(({
     setMessage(event.target.value);
     draftMessageRef.current = event.target.value;
     hasDraftRef.current = false;
+    return true;
   }, []);
 
   const handleSnackbarClose = React.useCallback(() => {

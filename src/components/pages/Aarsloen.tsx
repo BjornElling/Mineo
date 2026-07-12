@@ -105,7 +105,7 @@ const Aarsloen = React.memo(() => {
     tabelRef,
     toggleRef,
     onEnabledChange: (enabled) => {
-      setValues(prev => ({ ...prev, omregningTilFuldtAar: enabled }), { fieldPath: 'omregningTilFuldtAar' });
+      return setValues(prev => ({ ...prev, omregningTilFuldtAar: enabled }), { fieldPath: 'omregningTilFuldtAar' });
     },
   });
 
@@ -150,7 +150,7 @@ const Aarsloen = React.memo(() => {
 
   // Stabile callbacks for alle felt-opdateringer (memoized map)
   const setField = React.useCallback(<K extends keyof AarsloenValues>(fieldName: K, value: AarsloenValues[K]) => {
-    setValues(prev => {
+    return setValues(prev => {
       const next: AarsloenValues = { ...prev };
       next[fieldName] = value;
       return next;
@@ -162,12 +162,12 @@ const Aarsloen = React.memo(() => {
 
     const createPercentHandler = (fieldName: PercentFieldName) =>
       (e: StyledPercentFieldValueChangeEvent) => {
-        setField(fieldName, e.target.value);
+        return setField(fieldName, e.target.value);
       };
 
     const createIntegerHandler = (fieldName: 'antalFeriedage') =>
       (e: StyledIntegerFieldValueChangeEvent) => {
-        setField(fieldName, e.target.value);
+        return setField(fieldName, e.target.value);
       };
 
     return {
@@ -182,7 +182,7 @@ const Aarsloen = React.memo(() => {
 
   // Funktion til at opdatere tabeldata (type-safe)
   const handleTableDataChange = React.useCallback((newTableData: AarsloenValues['tableData'], options?: Readonly<{ fieldPath?: string }>) => {
-    setValues(prev => ({ ...prev, tableData: newTableData }), { fieldPath: options?.fieldPath ?? 'tableData' });
+    return setValues(prev => ({ ...prev, tableData: newTableData }), { fieldPath: options?.fieldPath ?? 'tableData' });
   }, [setValues]);
 
   // Type-safe funktion til at opdatere toggle-felter
@@ -191,7 +191,7 @@ const Aarsloen = React.memo(() => {
   const updateToggle = React.useCallback(
     (fieldName: BooleanFieldName): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
-        setField(fieldName, event.target.value);
+        return setField(fieldName, event.target.value);
       },
     [setField]
   );

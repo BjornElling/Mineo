@@ -27,6 +27,7 @@ function renderControlledToggle(
     const handleCommit = React.useCallback((e: CommitEvent<boolean>) => {
       commitSpy(e);
       setChecked(e.target.value);
+      return true;
     }, []);
 
     return (
@@ -58,6 +59,7 @@ function renderWithRef(initialChecked = false) {
     const handleCommit = React.useCallback((e: CommitEvent<boolean>) => {
       commitSpy(e);
       setChecked(e.target.value);
+      return true;
     }, []);
 
     return (

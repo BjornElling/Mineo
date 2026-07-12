@@ -29,7 +29,7 @@ import { GridReadOnlyLockedCell as ReadOnlyLockedCell } from './GridReadOnlyLock
 
 export type LoenudviklingManuelTableProps = Readonly<{
   tableData: LoenudviklingManuelRow[];
-  onTableDataChange?: (data: LoenudviklingManuelRow[], origin?: { fieldPath?: string }) => void;
+  onTableDataChange?: (data: LoenudviklingManuelRow[], origin?: { fieldPath?: string }) => boolean;
   onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
   /**

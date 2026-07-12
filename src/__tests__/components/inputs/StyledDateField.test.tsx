@@ -33,7 +33,10 @@ describe('StyledDateField', () => {
       return (
         <StyledDateField
           value={value}
-          onCommit={(e) => setValue(e.target.value)}
+          onCommit={(e) => {
+            setValue(e.target.value);
+            return true;
+          }}
         />
       );
     };
@@ -67,6 +70,7 @@ describe('StyledDateField', () => {
           onCommit={(e) => {
             handleCommit(e.target.value);
             setValue(e.target.value);
+            return true;
           }}
         />
       );
@@ -96,6 +100,7 @@ describe('StyledDateField', () => {
           onCommit={(e) => {
             handleCommit(e.target.value);
             setValue(e.target.value);
+            return true;
           }}
         />
       );
@@ -121,7 +126,10 @@ describe('StyledDateField', () => {
       return (
         <StyledDateField
           value={value}
-          onCommit={(e) => setValue(e.target.value)}
+          onCommit={(e) => {
+            setValue(e.target.value);
+            return true;
+          }}
         />
       );
     };
@@ -152,7 +160,10 @@ describe('StyledDateField', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
-      return <StyledDateField value={value} onCommit={(e) => setValue(e.target.value)} />;
+      return <StyledDateField value={value} onCommit={(e) => {
+        setValue(e.target.value);
+        return true;
+      }} />;
     };
 
     render(<Wrapper />);
@@ -171,7 +182,10 @@ describe('StyledDateField', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
-      return <StyledDateField value={value} onCommit={(e) => setValue(e.target.value)} />;
+      return <StyledDateField value={value} onCommit={(e) => {
+        setValue(e.target.value);
+        return true;
+      }} />;
     };
 
     render(<Wrapper />);
@@ -230,6 +244,7 @@ describe('StyledDateField', () => {
             onCommit={(e) => {
               handleCommit(e.target.value);
               setValue(e.target.value);
+              return true;
             }}
           />
           <button

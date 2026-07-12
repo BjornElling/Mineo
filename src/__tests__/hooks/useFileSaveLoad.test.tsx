@@ -54,6 +54,7 @@ type HarnessHandles = {
   replaceAllPersistedData: ReturnType<typeof vi.fn<(snapshot: unknown) => void>>;
   clearAllData: ReturnType<typeof vi.fn<() => void>>;
   navigate: ReturnType<typeof vi.fn<(to: string, opts?: unknown) => void>>;
+  commit: ReturnType<typeof vi.fn<() => boolean>>;
 };
 
 const blockingError: BlockingInputErrorTarget = {
@@ -68,6 +69,7 @@ const renderHook = (
     hasAnyData?: () => boolean;
     getFirstBlockingInputError?: () => BlockingInputErrorTarget | null;
     activeFormEditor?: boolean;
+    formCommitResult?: boolean;
   } = {}
 ): HarnessHandles => {
   const handles: HarnessHandles = {
@@ -77,6 +79,7 @@ const renderHook = (
     replaceAllPersistedData: vi.fn<(snapshot: unknown) => void>(),
     clearAllData: vi.fn<() => void>(),
     navigate: vi.fn<(to: string, opts?: unknown) => void>(),
+    commit: vi.fn(() => overrides.formCommitResult ?? true),
   };
 
   const Harness = () => {
@@ -84,7 +87,7 @@ const renderHook = (
       id: 'test-form-field',
       kind: 'form-field',
       isEditing: () => overrides.activeFormEditor === true,
-      commit: () => true,
+      commit: handles.commit,
     });
     const revisionRef = React.useRef(7);
     handles.api = useFileSaveLoad({
@@ -154,6 +157,24 @@ describe('useFileSaveLoad', () => {
       );
     });
 
+    it('blokerer Gem når et åbent felt ikke kan committes og starter aldrig fil-I/O', async () => {
+      const handles = renderHook({
+        activeFormEditor: true,
+        formCommitResult: false,
+      });
+
+      await act(async () => {
+        await handles.api?.handleGem();
+      });
+
+      expect(handles.commit).toHaveBeenCalledTimes(1);
+      expect(saveToFileMock).not.toHaveBeenCalled();
+      expect(handles.markSaved).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' })
+      );
+    });
+
     it('markerer ikke gemt når brugeren annullerer file picker', async () => {
       const handles = renderHook();
       saveToFileMock.mockResolvedValue({ status: 'cancelled' });
@@ -177,6 +198,39 @@ describe('useFileSaveLoad', () => {
       expect(handles.showOverlay).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'success' })
       );
+    });
+  });
+
+  describe('serialisering af filhandlinger', () => {
+    it('afviser en ny manuel filhandling, mens Gem stadig er i gang', async () => {
+      let resolveSave: ((result: SaveFileResult) => void) | undefined;
+      saveToFileMock.mockImplementation(() => new Promise((resolve) => {
+        resolveSave = resolve;
+      }));
+      const handles = renderHook();
+      let firstSave: Promise<void> | undefined;
+
+      await act(async () => {
+        firstSave = handles.api?.handleGem();
+        await Promise.resolve();
+      });
+      expect(handles.api?.fileOperationInProgress).toBe(true);
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+
+      expect(loadFromFileMock).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenLastCalledWith({
+        message: 'En filhandling er allerede i gang.',
+        type: 'warning',
+      });
+
+      await act(async () => {
+        resolveSave?.({ status: 'saved', filename: 'sag.eo' });
+        await firstSave;
+      });
+      expect(handles.api?.fileOperationInProgress).toBe(false);
     });
   });
 

@@ -22,7 +22,7 @@ type Props = {
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => void;
+  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => boolean;
   onNavigateToTabtArbejdsfortjeneste: () => void;
   /** Id'er på ansættelsesforhold hvor SFGG løber >6 mdr. efter sidste indkomst.
    *  Beregnet i EO-snapshot (committed-state); tom liste når snapshot.data er null. */

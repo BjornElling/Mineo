@@ -34,37 +34,15 @@ import { ceil0, round0, round2, round3, round4, roundNearest1000 } from '../../u
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2015_03_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { fromKroner, toKroner, type MoneyOre } from '../money/money';
+import type {
+  EetKapitaliseringAfgoerelseComputation,
+  EetKapitaliseringComputation,
+} from './eetCanonicalOutput';
 
-export type EetKapitaliseringAfgoerelseComputation = Readonly<{
-  rowId: string;
-  afgoerelsesdato: ISODateString;
-  kapitaliseringsdato: ISODateString;
-  kapitaliseringspct: number;
-  grundloenOre: MoneyOre;
-  erstatningsniveauPct: 80 | 83;
-  amBidragPct: 0 | 8;
-  grundydelseOre: MoneyOre;
-  grundydelse2024Ore: MoneyOre | null;
-  opreguleringTil2024PctRounded4: number | null;
-  aarsydelseGrundlagOre: MoneyOre;
-  aarsydelseReguleringsPctRounded4: number | null;
-  aarsydelseOre: MoneyOre;
-  kapitaliseringsbekendtgoerelseLabel: string;
-  tabelLabel: string;
-  folkepensionsalderLabel: string;
-  saerfaktor: number | null;
-  alderAar: number;
-  alderMaaneder: number;
-  kapitaliseretPgaUnderToAarTilFp: boolean;
-  faktorMaanedsAfhaengig: boolean;
-  kapitaliseringsfaktor: number;
-  kapitalbelobOre: MoneyOre;
-  koenOpdelt: boolean;
-}>;
-
-export type EetKapitaliseringComputation = Readonly<{
-  afgoerelser: readonly EetKapitaliseringAfgoerelseComputation[];
-}>;
+export type {
+  EetKapitaliseringAfgoerelseComputation,
+  EetKapitaliseringComputation,
+} from './eetCanonicalOutput';
 
 export const WARN_NO_KAP_INPUT_ID = 'warn-ingen-kap-input';
 

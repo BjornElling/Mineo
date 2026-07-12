@@ -36,7 +36,7 @@ export type UseDraftFieldConfig<TModel> = {
   normalizeDraftOnCommit?: (draft: string) => string;
 
   /** Kaldes ved vellykket commit. */
-  onCommit: (nextValue: TModel) => void;
+  onCommit: (nextValue: TModel) => boolean;
 
   /**
    * Kaldes ved fejlende (ikke-committbart) commit med den rå draft.
@@ -45,7 +45,7 @@ export type UseDraftFieldConfig<TModel> = {
    * den tilbage via `committedInvalidDraft`. Når den ikke er sat (ubundet felt, fx i settings),
    * holder hooken selv en lokal fallback, så den ugyldige draft ikke silent-rolles-tilbage ved blur.
    */
-  onCommitInvalid?: (rawDraft: string) => void;
+  onCommitInvalid?: (rawDraft: string) => boolean;
 
   /**
    * Den persisterede committede rå draft for feltet (fra `invalidDrafts`-storen). Er feltets
@@ -88,8 +88,8 @@ export type UseDraftFieldResult = {
   onBlur: (_e?: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 
-  commit: () => void;
-  commitDraft: (nextDraft: string) => void;
+  commit: () => boolean;
+  commitDraft: (nextDraft: string) => boolean;
   cancel: () => void;
 };
 
@@ -172,9 +172,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
         currentFormattedValue: formattedValue,
         pending: pendingCommitRef.current,
         isActivelyEditing: isFocused || hasPhysicalFocus(),
-      },
-      // Form-surface: pending-guarden er yderst (jf. fieldResyncMachine's klassificerede divergens).
-      { pendingHoldOutranksEpoch: true }
+      }
     );
     if (command.commitEpoch) lastAuthoritativeEpochRef.current = authoritativeEpoch;
     if (command.clearPending) pendingCommitRef.current = null;
@@ -210,12 +208,12 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   );
 
   const commitFromDraft = React.useCallback(
-    (rawDraft: string) => {
+    (rawDraft: string): boolean => {
       // Undertryk commit udløst af en undo/redo-fokus-flytning: når restore flytter fokus til mål-feltet,
       // blur'er det forrige felt SYNKRONT og ville her committe en forældet draft (fra før epoch-resync) →
       // det ville rydde den netop-gendannede invalidDraft og fange en spuriøs frame. Draften resyncs
       // korrekt af den autoritative epoch-effekt; her gør vi ingenting.
-      if (isRestoreFocusInProgress()) return;
+      if (isRestoreFocusInProgress()) return true;
       setTouched(true);
       pendingCommitRef.current = null;
       const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
@@ -224,37 +222,52 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       if (result.ok) {
         // Vellykket commit: ryd evt. lokal ugyldig draft og synk optimistisk til committed repræsentation.
         // Bundne felter rydder `invalidDrafts` via kalderens onCommit-wrapper (efter sektion-commit).
-        if (!isBound) clearLocalInvalidDraft();
         const target = format(result.value);
-        pendingCommitRef.current = { formattedValueAtCommit: formattedValue };
+        try {
+          const committed = onCommit(result.value);
+          if (committed === false) {
+            pendingCommitRef.current = null;
+            setDraftState(externalSource);
+            return false;
+          }
+        } catch {
+          pendingCommitRef.current = null;
+          setDraftState(externalSource);
+          return false;
+        }
+        if (!isBound) clearLocalInvalidDraft();
+        pendingCommitRef.current = target !== formattedValue ? { formattedValueAtCommit: formattedValue } : null;
         setDraftState(target);
-        onCommit(result.value);
-        return;
+        return true;
       }
 
       // Ikke-committbart: bevar committed værdi; persistér/bevar den RÅ draft (det brugeren ser),
       // så fejlvisningen (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
       if (result.kind === 'invalid' || result.message !== undefined) {
-        writeInvalidDraft(rawDraft);
+        if (!writeInvalidDraft(rawDraft)) {
+          setDraftState(externalSource);
+          return false;
+        }
         setDraftState(rawDraft);
-        return;
+        return false;
       }
 
       // partial/empty uden besked: ingen fejl-tilstand, ingen commit (fx tom draft uden krav).
       if (!isBound) clearLocalInvalidDraft();
+      return true;
     },
-    [clearLocalInvalidDraft, format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, parse, writeInvalidDraft]
+    [clearLocalInvalidDraft, externalSource, format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, parse, writeInvalidDraft]
   );
 
-  const commit = React.useCallback(() => {
-    commitFromDraft(draft);
+  const commit = React.useCallback((): boolean => {
+    return commitFromDraft(draft);
   }, [commitFromDraft, draft]);
 
   const commitDraft = React.useCallback(
     (nextDraft: string) => {
       suppressNextBlurCommitRef.current = true;
       setDraftState(nextDraft);
-      commitFromDraft(nextDraft);
+      return commitFromDraft(nextDraft);
     },
     [commitFromDraft]
   );

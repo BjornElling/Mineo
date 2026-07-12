@@ -26,7 +26,7 @@ import StyledTextField from '../../../components/inputs/StyledTextField';
 
 const renderLayout = (
   children: React.ReactNode = (
-    <StyledTextField value="" label="Aktivt felt" autoFocus onCommit={() => undefined} />
+    <StyledTextField value="" label="Aktivt felt" autoFocus onCommit={() => true} />
   ),
 ) =>
   render(

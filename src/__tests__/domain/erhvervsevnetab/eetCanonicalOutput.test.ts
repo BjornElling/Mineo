@@ -63,5 +63,32 @@ describe('eetCanonicalOutput', () => {
     const invalid = { ...buildSnapshot(), ukendtProjektion: {} };
     expect(eetCanonicalOutputSchema.safeParse(invalid).success).toBe(false);
   });
-});
 
+  it('afviser blocking-status uden en forklarende error-issue', () => {
+    const snapshot = buildSnapshot();
+    const invalid = {
+      ...snapshot,
+      loebendeYdelser: {
+        ...snapshot.loebendeYdelser,
+        hasBlockingErrors: true,
+        issues: [],
+      },
+    };
+
+    expect(eetCanonicalOutputSchema.safeParse(invalid).success).toBe(false);
+  });
+
+  it('afviser error-issues der ikke samtidig blokerer projektionen', () => {
+    const snapshot = buildSnapshot();
+    const invalid = {
+      ...snapshot,
+      loebendeYdelser: {
+        ...snapshot.loebendeYdelser,
+        hasBlockingErrors: false,
+        issues: [{ id: 'test-error', severity: 'error' as const, message: 'Testfejl' }],
+      },
+    };
+
+    expect(eetCanonicalOutputSchema.safeParse(invalid).success).toBe(false);
+  });
+});

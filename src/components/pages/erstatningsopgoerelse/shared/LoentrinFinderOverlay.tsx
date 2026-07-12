@@ -193,6 +193,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 onCommit={(event) => {
                   setBeloeb(event.target.value);
                   setErrors((prev) => ({ ...prev, beloeb: undefined }));
+                  return true;
                 }}
                 onFieldError={onAmountFieldError}
                 error={Boolean(errors.beloeb)}
@@ -210,6 +211,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 onCommit={(event) => {
                   setDato(event.target.value);
                   setErrors((prev) => ({ ...prev, dato: undefined }));
+                  return true;
                 }}
                 onFieldError={onDateFieldError}
                 error={Boolean(errors.dato)}

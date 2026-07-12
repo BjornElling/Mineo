@@ -1,4 +1,79 @@
-import { createDocumentComposer } from '../../../document/model/documentModel';
+import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
+import { createDocumentTableBridgeDocument } from '../../../document/layout/documentTableBridge';
+import { MARGINS } from '../../../document/layout/pdfConfig';
+import type { DocumentWriter } from '../../../document/writer';
+import { TODAY } from '../../../config/dateRanges';
+
+type RecordedCall = Readonly<{ name: string; args: readonly unknown[] }>;
+
+const createRecordingTarget = (): Readonly<{
+  writer: DocumentWriter;
+  calls: RecordedCall[];
+}> => {
+  const calls: RecordedCall[] = [];
+  let y = 12;
+  const record = (name: string, ...args: readonly unknown[]): void => {
+    calls.push({ name, args });
+  };
+  const bridge = createDocumentTableBridgeDocument((...args) => record('bridgeTable', ...args));
+
+  const writer: DocumentWriter = {
+    setDisplayMode: (...args) => record('setDisplayMode', ...args),
+    setProperties: (...args) => record('setProperties', ...args),
+    setNormalTextStyle: (...args) => record('setNormalTextStyle', ...args),
+    getDoc: () => bridge,
+    ensureSpace: (...args) => record('ensureSpace', ...args),
+    getY: () => y,
+    setY: (nextY) => {
+      y = nextY;
+      record('setY', nextY);
+    },
+    addSpacer: (...args) => record('addSpacer', ...args),
+    addSectionSpacer: (...args) => record('addSectionSpacer', ...args),
+    advanceY: (delta) => {
+      y += delta;
+      record('advanceY', delta);
+    },
+    writeWrappedText: (...args) => record('writeWrappedText', ...args),
+    writeBoldWrappedText: (...args) => record('writeBoldWrappedText', ...args),
+    writeWrappedTextContinued: (...args) => record('writeWrappedTextContinued', ...args),
+    writeNormalThenBoldLine: (...args) => record('writeNormalThenBoldLine', ...args),
+    writeLeftRightText: (...args) => record('writeLeftRightText', ...args),
+    writeSectionHeader: (...args) => record('writeSectionHeader', ...args),
+    writeTitle: (...args) => record('writeTitle', ...args),
+    writeBoldSubheader: (...args) => record('writeBoldSubheader', ...args),
+    writeBoldSubheaderIfContent: (params) => {
+      record('writeBoldSubheaderIfContent', params.text);
+      if (!params.hasContent) return false;
+      params.renderContent();
+      return true;
+    },
+    writeBoldSubheaderWithWrappedText: (...args) =>
+      record('writeBoldSubheaderWithWrappedText', ...args),
+    writeAtomicTableChunks: (params) => {
+      record('writeAtomicTableChunks', params.estimateRowHeight, params.headerHeight);
+      params.renderHeader();
+      for (const row of params.rows) params.renderRow(row);
+    },
+    writeUnderlinedSubheader: (...args) => record('writeUnderlinedSubheader', ...args),
+    writeSignatureBlock: (...args) => record('writeSignatureBlock', ...args),
+    writeBrevhoved: (...args) => record('writeBrevhoved', ...args),
+    addUdkastWatermark: (...args) => record('addUdkastWatermark', ...args),
+    addImageDataUrl: (...args) => record('addImageDataUrl', ...args),
+    getTextWidth: (text) => {
+      record('getTextWidth', text);
+      return 42;
+    },
+    fitTextToWidth: (text) => text,
+    getPageWidth: () => 210,
+    getContentWidthMm: () => 100,
+    addPage: (...args) => record('addPage', ...args),
+    addFooter: (...args) => record('addFooter', ...args),
+    build: async () => new Blob(),
+  };
+
+  return { writer, calls };
+};
 
 describe('documentModel', () => {
   it('bygger en immutable, kanalneutral bloksekvens', () => {
@@ -38,14 +113,20 @@ describe('documentModel', () => {
       composer.writeBoldSubheaderIfContent({
         text: 'Tomt',
         hasContent: false,
-        renderContent: () => composer.writeWrappedText('Må ikke bygges'),
+        renderContent: () => {
+          composer.writeWrappedText('Må ikke bygges');
+          return undefined;
+        },
       }),
     ).toBe(false);
     expect(
       composer.writeBoldSubheaderIfContent({
         text: 'Indhold',
         hasContent: true,
-        renderContent: () => composer.writeWrappedText('En linje'),
+        renderContent: () => {
+          composer.writeWrappedText('En linje');
+          return undefined;
+        },
       }),
     ).toBe(true);
 
@@ -65,8 +146,14 @@ describe('documentModel', () => {
 
     composer.writeAtomicTableChunks({
       rows: ['A', 'B'],
-      renderHeader: () => composer.writeBoldSubheader('Header'),
-      renderRow: (row) => composer.writeWrappedText(row),
+      renderHeader: () => {
+        composer.writeBoldSubheader('Header');
+        return undefined;
+      },
+      renderRow: (row) => {
+        composer.writeWrappedText(row);
+        return undefined;
+      },
       estimateRowHeight: 6,
       headerHeight: 8,
     });
@@ -89,6 +176,126 @@ describe('documentModel', () => {
         estimateRowHeight: 6,
         headerHeight: 8,
       },
+    ]);
+  });
+
+  it('kopierer og deep-freezer payload uden at fryse kalderens objekter', () => {
+    const { composer, build } = createDocumentComposer();
+    const spec = {
+      columns: [{ width: { kind: 'flex' as const } }],
+      rows: [{ cells: [{ text: 'Værdi' }] }],
+      hasHeaderRow: false,
+    };
+
+    composer.addTable(spec);
+    const model = build();
+    const table = model.blocks[0];
+
+    expect(Object.isFrozen(spec)).toBe(false);
+    expect(Object.isFrozen(spec.columns)).toBe(false);
+    expect(table?.kind).toBe('table');
+    if (table?.kind !== 'table') throw new Error('Forventede en tabelblok');
+    expect(table.spec).not.toBe(spec);
+    expect(Object.isFrozen(table.spec)).toBe(true);
+    expect(Object.isFrozen(table.spec.columns)).toBe(true);
+    expect(Object.isFrozen(table.spec.rows[0])).toBe(true);
+  });
+
+  it('dispatcher hver bloktype præcis én gang til det interne render-target', () => {
+    const { composer, build } = createDocumentComposer();
+    const { writer, calls } = createRecordingTarget();
+
+    composer.writeWrappedText('Normal');
+    composer.writeBoldWrappedText('Fed');
+    composer.writeWrappedTextContinued('Fortsat');
+    composer.writeNormalThenBoldLine('Normal del', 'Fed del');
+    composer.writeLeftRightText('Label', 'Værdi', { minRightColumnWidthText: '000' });
+    composer.writeSectionHeader('Sektion', 7);
+    composer.writeTitle('Titel', { trailingSpacing: 3 });
+    composer.writeBoldSubheader('Underoverskrift', 8, { addTopSpacing: false });
+    composer.writeBoldSubheaderIfContent({
+      text: 'Betinget',
+      hasContent: true,
+      renderContent: () => {
+        composer.writeWrappedText('Betinget indhold');
+        return undefined;
+      },
+    });
+    composer.writeBoldSubheaderWithWrappedText('Samlet', 'Brødtekst');
+    composer.writeAtomicTableChunks({
+      rows: ['Række'],
+      renderHeader: () => {
+        composer.writeUnderlinedSubheader('Header');
+        return undefined;
+      },
+      renderRow: (row) => {
+        composer.writeWrappedText(row);
+        return undefined;
+      },
+      estimateRowHeight: 6,
+      headerHeight: 9,
+    });
+    composer.addSpacer(4);
+    composer.addSectionSpacer();
+    composer.keepWithNext(11);
+    composer.addPage();
+    composer.addTable({
+      columns: [{ width: { kind: 'flex' } }],
+      rows: [{ cells: [{ text: 'Celle' }] }],
+      hasHeaderRow: false,
+    });
+    composer.writeSignatureBlock('Dato', 'Signatur', 'Skadelidte', 13);
+    composer.writeBrevhoved({ journalnr: 'J-1', dagsDatoISO: TODAY });
+    composer.addUdkastWatermark();
+    composer.addContentWidthImage('data:image/png;base64,AA==', {
+      aspectRatio: 2,
+      maxHeight: 30,
+      verticalPadding: 3,
+    });
+    composer.addFooter();
+
+    renderDocumentModel(writer, build());
+
+    const callCount = (name: string): number => calls.filter((call) => call.name === name).length;
+    for (const name of [
+      'writeBoldWrappedText',
+      'writeWrappedTextContinued',
+      'writeNormalThenBoldLine',
+      'writeLeftRightText',
+      'writeSectionHeader',
+      'writeTitle',
+      'writeBoldSubheader',
+      'writeBoldSubheaderIfContent',
+      'writeBoldSubheaderWithWrappedText',
+      'writeAtomicTableChunks',
+      'writeUnderlinedSubheader',
+      'addSpacer',
+      'addSectionSpacer',
+      'addPage',
+      'bridgeTable',
+      'writeSignatureBlock',
+      'writeBrevhoved',
+      'addUdkastWatermark',
+      'addImageDataUrl',
+      'addFooter',
+    ]) {
+      expect(callCount(name), `${name} skal dispatches præcis én gang`).toBe(1);
+    }
+    expect(callCount('writeWrappedText')).toBe(3);
+    expect(callCount('ensureSpace')).toBe(3);
+    expect(callCount('setY')).toBe(2);
+    expect(calls.find((call) => call.name === 'writeSignatureBlock')?.args).toEqual([
+      'Dato',
+      'Signatur',
+      MARGINS.left,
+      MARGINS.left + 90,
+      'Skadelidte',
+    ]);
+    expect(calls.find((call) => call.name === 'writeLeftRightText')?.args[2]).toEqual({
+      minRightColumnWidth: 42,
+    });
+    expect(calls.find((call) => call.name === 'addImageDataUrl')?.args.slice(0, 1)).toEqual([
+      'data:image/png;base64,AA==',
     ]);
   });
 });

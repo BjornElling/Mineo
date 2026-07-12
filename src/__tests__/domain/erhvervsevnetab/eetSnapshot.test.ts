@@ -127,10 +127,10 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.kapitalisering.computation).not.toBeNull();
   });
 
-  it('differencekrav hasBlockingErrors fanger blocking fra beregnermotoren via calculationResult.hasBlockingErrors', () => {
+  it('differencekrav hasBlockingErrors afspejler beregnermotorens error-issues', () => {
     // Scenarie: stamdata mangler → skadedato er undefined → differencekrav-beregneren
-    // sætter hasBlockingErrors: true og computation: null. Snapshot-projektionen skal
-    // afspejle dette korrekt via calculationResult.hasBlockingErrors-leddet.
+    // returnerer en error-issue og computation: null. Snapshot-projektionen udleder
+    // blocking-status af den samme issue-liste.
     const snapshot = computeEetSnapshot({
       values: createValues(),
       stamdata: null, // ingen stamdata → skadedato er undefined

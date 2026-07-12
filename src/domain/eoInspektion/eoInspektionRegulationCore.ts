@@ -26,7 +26,7 @@ import {
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../../data/krlRates';
-import { getReguleringsDatoIntervalForKlLoenaftaler, klLoenaftalerRaekker } from '../../data/klLoenaftaler';
+import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../data/indskudteLoentillaeg';
@@ -401,8 +401,6 @@ const buildKlLoenaftalerEntries = (args: Readonly<{
   ferieDageSet: ReadonlySet<ISODateString>;
   forloeb: ReguleringForloeb | undefined;
 }>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
-  if (klLoenaftalerRaekker.length === 0) return null;
-
   // Motorens kanoniske KL-serie kombineres med det delte carry-forward-primitiv. Selve
   // indeksberegningen nedenfor forbliver uafhængig som krydstjek.
   if (args.forloeb?.kind !== 'klLoenaftaler') return null;

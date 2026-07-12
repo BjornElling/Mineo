@@ -121,7 +121,7 @@ const EetOplysningerTab = ({
 
   const handleAslAfgoerelserChange = React.useCallback(
     (rows: ErhvervsevnetabValues['aslAfgoerelser'], origin?: { fieldPath?: string }) => {
-      setValues((prev) => ({ ...prev, aslAfgoerelser: rows }), origin);
+      return setValues((prev) => ({ ...prev, aslAfgoerelser: rows }), origin);
     },
     [setValues]
   );
@@ -140,7 +140,7 @@ const EetOplysningerTab = ({
                 value={values.koen}
                 onChange={(event) => {
                   const parsed = koenEnum.safeParse(event.target.value);
-                  setFieldValue('koen', parsed.success ? parsed.data : undefined);
+                  return setFieldValue('koen', parsed.success ? parsed.data : undefined);
                 }}
                 placeholder="Vælg køn"
                 width={130}
@@ -170,7 +170,7 @@ const EetOplysningerTab = ({
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                setValues((prev) => ({ ...prev, beregningsdato: today }), { fieldPath: 'beregningsdato' });
+                return setValues((prev) => ({ ...prev, beregningsdato: today }), { fieldPath: 'beregningsdato' });
               }}
               focusRef={beregningsdatoInputRef}
             />
@@ -229,7 +229,7 @@ const EetOplysningerTab = ({
               value={values.ealEetPct}
               onCommit={(event) => {
                 const nextValue = event.target.value === 0 ? undefined : event.target.value;
-                setFieldValue('ealEetPct', nextValue);
+                return setFieldValue('ealEetPct', nextValue);
               }}
               allowDecimals={false}
               minValue={0}

@@ -26,7 +26,21 @@ describe('executePersistenceLoadApply', () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.clearAllMocks();
+    saveFileHandleToIndexedDBMock.mockResolvedValue(true);
+    deleteFileHandleFromIndexedDBMock.mockResolvedValue(true);
     undoRedoStore.getState().clear();
+  });
+
+  it.each([
+    ['gemme', saveFileHandleToIndexedDBMock, { fileHandle: { name: 'sag.eo' } as FileSystemFileHandle }],
+    ['rydde', deleteFileHandleFromIndexedDBMock, {}],
+  ] as const)('returnerer metadata-advarsel når IndexedDB ikke kan %s filhåndtaget', async (_label, mock, extra) => {
+    mock.mockResolvedValueOnce(false);
+    const result = await executePersistenceLoadApply({
+      result: { status: 'loaded', source: 'manual', filename: 'sag.eo', snapshot: {}, ...extra },
+      replaceAllPersistedData: vi.fn(),
+    });
+    expect(result.status).toBe('applied-with-metadata-error');
   });
 
   it('bygger et fuldt replace-snapshot og synkroniserer load-metadata', async () => {

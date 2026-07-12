@@ -42,7 +42,7 @@ export type GridRowPersistencePending<TRow> = Readonly<{
 
 export type UseGridRowPersistenceCoreConfig<TRow> = Readonly<{
   tableData: readonly TRow[];
-  onTableDataChange?: (rows: TRow[], origin?: Readonly<{ fieldPath?: string }>) => void;
+  onTableDataChange?: (rows: TRow[], origin?: Readonly<{ fieldPath?: string }>) => boolean;
   /** Normaliser en rækkeliste (min-rows + én efterfølgende tom række; evt. låst basisrække). */
   normalizeRows: (rows: readonly TRow[]) => TRow[];
   isRowEmpty: (row: TRow) => boolean;
@@ -186,10 +186,14 @@ export const useGridRowPersistenceCore = <TRow>(
       return;
     }
     // pending.rows er allerede strippet; pending.fingerprint er fingerprintet af præcis dem.
-    lastPersistedFingerprintRef.current = pending.fingerprint;
     try {
-      onChange(pending.rows, pending.fieldPath ? { fieldPath: pending.fieldPath } : undefined);
-      pending.completion.resolve();
+      const committed = onChange(pending.rows, pending.fieldPath ? { fieldPath: pending.fieldPath } : undefined);
+      if (committed === false) {
+        pending.completion.reject(new Error('Grid-rækken kunne ikke persisteres.'));
+      } else {
+        lastPersistedFingerprintRef.current = pending.fingerprint;
+        pending.completion.resolve();
+      }
     } catch (error) {
       pending.completion.reject(error);
       throw error;

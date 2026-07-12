@@ -35,6 +35,7 @@ const Harness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[]; onPe
       onTableDataChange={(next) => {
         onPersist(next);
         setTableData(next);
+        return true;
       }}
     />
   );

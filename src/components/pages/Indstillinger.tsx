@@ -92,7 +92,7 @@ const documentDownloadFormatLabels: Readonly<Record<AppSettingsDocumentDownloadF
 const BrevhovedCheckboxRow = React.memo((props: {
   items: readonly BrevhovedOption[];
   checked: BrevhovedIndstillinger;
-  onToggle: (key: keyof BrevhovedIndstillinger, checked: boolean) => void;
+  onToggle: (key: keyof BrevhovedIndstillinger, checked: boolean) => boolean;
 }) => {
   const { items, checked, onToggle } = props;
   return (
@@ -135,7 +135,7 @@ const Indstillinger = React.memo(() => {
       ...settings.brevhovedIndstillinger,
       [key]: checked,
     };
-    updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
+    return updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
   }, [settings.brevhovedIndstillinger, updateSettings]);
 
   // Hent og vis nuværende standardplacering ved mount og når settings ændres
@@ -248,8 +248,9 @@ const Indstillinger = React.memo(() => {
               onCommit={(event) => {
                 const nextThemeMode = event.target.value;
                 if (nextThemeMode === 'light' || nextThemeMode === 'dark') {
-                  updateSettings({ themeMode: nextThemeMode });
+                  return updateSettings({ themeMode: nextThemeMode });
                 }
+                return false;
               }}
               row={true}
               options={[
@@ -316,7 +317,7 @@ const Indstillinger = React.memo(() => {
               value={settings.documentDownloadFormat}
               onChange={(e: StyledDropdownChangeEvent<string>) => {
                 if (isDocumentDownloadFormat(e.target.value)) {
-                  updateSettings({ documentDownloadFormat: e.target.value });
+                  return updateSettings({ documentDownloadFormat: e.target.value });
                 }
               }}
               width={120}
@@ -371,8 +372,9 @@ const Indstillinger = React.memo(() => {
               onCommit={(event) => {
                 const next = event.target.value;
                 if (isLoenIndtastesSomOption(next)) {
-                  updateSettings({ defaultLoenIndtastesSom: next });
+                  return updateSettings({ defaultLoenIndtastesSom: next });
                 }
+                return false;
               }}
               row={true}
               options={loenIndtastesSomOptions.map((option) => ({ ...option }))}
@@ -398,7 +400,7 @@ const Indstillinger = React.memo(() => {
               value={settings.defaultLoenPaaHelligdage}
               onChange={(e: StyledDropdownChangeEvent<string>) => {
                 if (isLoenPaaHelligdageOption(e.target.value)) {
-                  updateSettings({ defaultLoenPaaHelligdage: e.target.value });
+                  return updateSettings({ defaultLoenPaaHelligdage: e.target.value });
                 }
               }}
               width={185}
@@ -421,7 +423,7 @@ const Indstillinger = React.memo(() => {
                 value={settings.defaultOverenskomstLoenmodtager}
                 onChange={(e: StyledDropdownChangeEvent<string>) => {
                   // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
-                  updateSettings({ defaultOverenskomstLoenmodtager: e.target.value });
+                  return updateSettings({ defaultOverenskomstLoenmodtager: e.target.value });
                 }}
                 width={200}
                 allowEmpty={false}
@@ -439,7 +441,7 @@ const Indstillinger = React.memo(() => {
                 value={settings.defaultOverenskomstArbejdsgiver}
                 onChange={(e: StyledDropdownChangeEvent<string>) => {
                   // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
-                  updateSettings({ defaultOverenskomstArbejdsgiver: e.target.value });
+                  return updateSettings({ defaultOverenskomstArbejdsgiver: e.target.value });
                 }}
                 width={200}
                 allowEmpty={false}
@@ -468,8 +470,9 @@ const Indstillinger = React.memo(() => {
               onCommit={(event) => {
                 const next = event.target.value;
                 if (isSvieSmerteDelvisSygemeldingSatsOption(next)) {
-                  updateSettings({ defaultSvieSmerteDelvisSygemeldingSats: next });
+                  return updateSettings({ defaultSvieSmerteDelvisSygemeldingSats: next });
                 }
+                return false;
               }}
               row={true}
               options={svieSmerteDelvisSygemeldingSatsOptions.map((option) => ({ ...option }))}
@@ -510,7 +513,7 @@ const Indstillinger = React.memo(() => {
               value={settings.erstatningsopgoerelseAfsluttesMed}
               onChange={(e) => {
                 if (isAfsluttesMedOption(e.target.value)) {
-                  updateSettings({ erstatningsopgoerelseAfsluttesMed: e.target.value });
+                  return updateSettings({ erstatningsopgoerelseAfsluttesMed: e.target.value });
                 }
               }}
               width={220}
@@ -551,7 +554,7 @@ const Indstillinger = React.memo(() => {
                 value={settings.allowReguleringMedUdloebMedMaaneder}
                 onChange={(e: StyledDropdownChangeEvent<number>) => {
                   // Kun værdier fra udloebMaanederOptions kan nå hertil; schemaets min/max er defensiv backup.
-                  updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
+                  return updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
                 }}
                 width={80}
               >

@@ -76,7 +76,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
 
   const handleExtendedSpecificationCommit = React.useCallback(
     (event: CommitEvent<boolean>) => {
-      setValues((prev) => ({
+      return setValues((prev) => ({
         ...prev,
         eetDifferencekravBilagSelection: {
           ...prev.eetDifferencekravBilagSelection,

@@ -24,39 +24,15 @@ import {
   fromKroner,
   subtractMoneyOre,
   toKroner,
-  type MoneyOre,
 } from '../money/money';
+import type { EetEalComputation } from './eetCanonicalOutput';
+
+export type { EetEalComputation } from './eetCanonicalOutput';
 
 export type EetEalResolvedEetPct = Readonly<{
   value: number;
   source: 'eal' | 'asl';
   rowId?: string;
-}>;
-
-export type EetEalComputation = Readonly<{
-  beregningsdato: ISODateString;
-  skadedato: ISODateString;
-  fodselsdato: ISODateString;
-  skadesaar: number;
-  beregningsaar: number;
-  aarsloenOre: MoneyOre;
-  aarsloenSource: 'eal' | 'asl';
-  reguleringsaar: readonly number[];
-  reguleringsPctRounded4: number;
-  reguleretAarsloenOre: MoneyOre;
-  eetPct: number;
-  eetPctSource: 'eal' | 'asl';
-  kapitaliseringsfaktor: 10;
-  eetBeregnetOre: MoneyOre;
-  eetMaksOre: MoneyOre;
-  eetAnvendtOre: MoneyOre;
-  eetReduceretTilMaks: boolean;
-  alderVedSkade: number;
-  // Alder brugt i aldersreduktionsformlen — capped til 69 ved > 69 år
-  alderVedSkadeCapped: number;
-  aldersreduktionPct: number;
-  aldersreduktionBeloebOre: MoneyOre;
-  ealKravOre: MoneyOre;
 }>;
 
 export type EetEalCalculationResult = Readonly<{

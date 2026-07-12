@@ -134,13 +134,14 @@ function ManagedField<TValue>({
   onCommit,
 }: Readonly<{
   initial: TValue;
-  render: (value: TValue, commit: (next: TValue) => void) => React.JSX.Element;
+  render: (value: TValue, commit: (next: TValue) => boolean) => React.JSX.Element;
   onCommit: (next: unknown) => void;
 }>): React.JSX.Element {
   const [value, setValue] = React.useState<TValue>(initial);
   return render(value, (next) => {
     onCommit(next);
     setValue(next);
+    return true;
   });
 }
 

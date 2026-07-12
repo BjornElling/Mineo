@@ -29,7 +29,10 @@ describe('StyledIntegerField', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<number | undefined>(undefined);
-      return <StyledIntegerField value={value} maxDigits={4} onCommit={(e) => setValue(e.target.value)} />;
+      return <StyledIntegerField value={value} maxDigits={4} onCommit={(e) => {
+        setValue(e.target.value);
+        return true;
+      }} />;
     };
 
     render(<Wrapper />);
@@ -62,7 +65,10 @@ describe('StyledIntegerField', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<number | undefined>(undefined);
-      return <StyledIntegerField value={value} allowNegative onCommit={(e) => setValue(e.target.value)} />;
+      return <StyledIntegerField value={value} allowNegative onCommit={(e) => {
+        setValue(e.target.value);
+        return true;
+      }} />;
     };
 
     render(<Wrapper />);

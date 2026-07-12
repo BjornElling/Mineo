@@ -7,7 +7,7 @@ import { eetLoebendeComputationSchema } from './eetLoebendeYdelserCalculation';
 const finite = z.number().finite();
 const integer = z.number().int();
 
-const eetEalComputationSchema = z.object({
+export const eetEalComputationSchema = z.object({
   beregningsdato: isoDateString,
   skadedato: isoDateString,
   fodselsdato: isoDateString,
@@ -31,8 +31,9 @@ const eetEalComputationSchema = z.object({
   aldersreduktionBeloebOre: moneyOreSchema,
   ealKravOre: moneyOreSchema,
 }).strict().readonly();
+export type EetEalComputation = z.infer<typeof eetEalComputationSchema>;
 
-const eetKapitaliseringAfgoerelseSchema = z.object({
+export const eetKapitaliseringAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
   kapitaliseringsdato: isoDateString,
@@ -58,10 +59,14 @@ const eetKapitaliseringAfgoerelseSchema = z.object({
   kapitalbelobOre: moneyOreSchema,
   koenOpdelt: z.boolean(),
 }).strict().readonly();
+export type EetKapitaliseringAfgoerelseComputation = z.infer<
+  typeof eetKapitaliseringAfgoerelseSchema
+>;
 
-const eetKapitaliseringComputationSchema = z.object({
+export const eetKapitaliseringComputationSchema = z.object({
   afgoerelser: z.array(eetKapitaliseringAfgoerelseSchema).readonly(),
 }).strict().readonly();
+export type EetKapitaliseringComputation = z.infer<typeof eetKapitaliseringComputationSchema>;
 
 const merKapitalvaerdiSchema = z.object({
   kapitaliseringsbekendtgoerelseLabel: z.string(),
@@ -102,7 +107,7 @@ const merErstatningComputationSchema = z.object({
   samletMerErstatningOre: moneyOreSchema,
 }).strict().readonly();
 
-const proformaSchema = z.object({
+export const eetDifferencekravProformaKapitaliseringSchema = z.object({
   loebendeEetPct: finite,
   kapitaliseringsdato: isoDateString,
   grundloenOre: moneyOreSchema,
@@ -125,8 +130,11 @@ const proformaSchema = z.object({
   proformaBeloebOre: moneyOreSchema,
   koenOpdelt: z.boolean(),
 }).strict().readonly();
+export type EetDifferencekravProformaKapitalisering = z.infer<
+  typeof eetDifferencekravProformaKapitaliseringSchema
+>;
 
-const resterendeLoebendeSchema = z.object({
+export const eetDifferencekravResterendeLoebendeYdelserSchema = z.object({
   loebendeEetPct: finite,
   beregningsdato: isoDateString,
   dagenFoerFolkepensionsdato: isoDateString,
@@ -135,15 +143,21 @@ const resterendeLoebendeSchema = z.object({
   tilbageraevendeMaaneder: finite,
   fradragBeloebOre: moneyOreSchema,
 }).strict().readonly();
+export type EetDifferencekravResterendeLoebendeYdelser = z.infer<
+  typeof eetDifferencekravResterendeLoebendeYdelserSchema
+>;
 
-const tvkFradragSchema = z.object({
+export const eetDifferencekravTilbagevirkendeKraftFradragSchema = z.object({
   endeligVirkningsdato: isoDateString,
   fra: isoDateString,
   til: isoDateString,
   beloebOre: moneyOreSchema,
 }).strict().readonly();
+export type EetDifferencekravTilbagevirkendeKraftFradrag = z.infer<
+  typeof eetDifferencekravTilbagevirkendeKraftFradragSchema
+>;
 
-const differenceLoebendeAfgoerelseSchema = z.object({
+export const eetDifferencekravLoebendeAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
   virkningsdato: isoDateString,
@@ -152,10 +166,13 @@ const differenceLoebendeAfgoerelseSchema = z.object({
   fradragesTil: isoDateString,
   beloebOre: moneyOreSchema,
   fradragForetages: z.boolean(),
-  tilbagevirkendeKraftFradrag: tvkFradragSchema.nullable(),
+  tilbagevirkendeKraftFradrag: eetDifferencekravTilbagevirkendeKraftFradragSchema.nullable(),
 }).strict().readonly();
+export type EetDifferencekravLoebendeAfgoerelse = z.infer<
+  typeof eetDifferencekravLoebendeAfgoerelseSchema
+>;
 
-const differenceKapitaliseringSchema = z.object({
+export const eetDifferencekravKapitaliseretAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
   kapitaliseringsdato: isoDateString.nullable(),
@@ -163,8 +180,11 @@ const differenceKapitaliseringSchema = z.object({
   kapitalbelobOre: moneyOreSchema.nullable(),
   kapitaliseringEfterBeregningsdato: z.boolean(),
 }).strict().readonly();
+export type EetDifferencekravKapitaliseretAfgoerelse = z.infer<
+  typeof eetDifferencekravKapitaliseretAfgoerelseSchema
+>;
 
-const differencekravComputationSchema = z.object({
+export const eetDifferencekravComputationSchema = z.object({
   beregningsdato: isoDateString,
   skadedato: isoDateString,
   dagFoerBeregningsdato: isoDateString,
@@ -173,33 +193,45 @@ const differencekravComputationSchema = z.object({
   ealEetPct: finite,
   fradragLoebendeYdelserOre: moneyOreSchema,
   fradragKapitaliseretEetOre: moneyOreSchema,
-  proformaKapitalisering: proformaSchema.nullable(),
-  resterendeLoebendeYdelser: resterendeLoebendeSchema.nullable(),
+  proformaKapitalisering: eetDifferencekravProformaKapitaliseringSchema.nullable(),
+  resterendeLoebendeYdelser: eetDifferencekravResterendeLoebendeYdelserSchema.nullable(),
   merErstatningPensionsalder: merErstatningComputationSchema.nullable(),
   differencekravFoerForligOre: moneyOreSchema,
   forligFactor: finite.nullable(),
   forligLabel: z.string().nullable(),
   forligDato: isoDateString.nullable(),
   differencekravOre: moneyOreSchema,
-  afgoerelser: z.array(differenceLoebendeAfgoerelseSchema).readonly(),
-  kapitaliseringerAfgoerelser: z.array(differenceKapitaliseringSchema).readonly(),
+  afgoerelser: z.array(eetDifferencekravLoebendeAfgoerelseSchema).readonly(),
+  kapitaliseringerAfgoerelser: z.array(eetDifferencekravKapitaliseretAfgoerelseSchema).readonly(),
   loebendeComputation: eetLoebendeComputationSchema.nullable(),
   kapComputation: eetKapitaliseringComputationSchema.nullable(),
   ealComputation: eetEalComputationSchema.nullable(),
 }).strict().readonly();
+export type EetDifferencekravComputation = z.infer<typeof eetDifferencekravComputationSchema>;
 
 const projectionSchema = <T extends z.ZodType>(computation: T) => z.object({
   issues: z.array(eetIssueSchema).readonly(),
   hasBlockingErrors: z.boolean(),
   computation: computation.nullable(),
-}).strict().readonly();
+}).strict().superRefine((projection, ctx) => {
+  const hasErrorIssue = projection.issues.some((issue) => issue.severity === 'error');
+  if (projection.hasBlockingErrors === hasErrorIssue) return;
+
+  // Blocking-flaget er kun troværdigt, når den samme canonical projektion også forklarer
+  // blokeringen med en error-issue. Den modsatte uoverensstemmelse er lige så farlig, fordi
+  // et error-issue ellers kan passere som et ikke-blokerende output.
+  ctx.addIssue({
+    code: 'custom',
+    path: ['hasBlockingErrors'],
+    message: 'Blocking-status og error-issues skal være konsistente',
+  });
+}).readonly();
 
 export const eetCanonicalOutputSchema = z.object({
   loebendeYdelser: projectionSchema(eetLoebendeComputationSchema),
   kapitalisering: projectionSchema(eetKapitaliseringComputationSchema),
   efterEal: projectionSchema(eetEalComputationSchema),
-  differencekrav: projectionSchema(differencekravComputationSchema),
+  differencekrav: projectionSchema(eetDifferencekravComputationSchema),
 }).strict().readonly();
 
 export type EetCanonicalOutput = z.infer<typeof eetCanonicalOutputSchema>;
-

@@ -48,7 +48,7 @@ const EOPage = () => {
         name="forligDato"
         value={form.values.forligDato}
         onCommit={(event) => {
-          form.setValues((prev) => ({ ...prev, forligDato: event.target.value }), { fieldPath: 'forligDato' });
+          return form.setValues((prev) => ({ ...prev, forligDato: event.target.value }), { fieldPath: 'forligDato' });
         }}
       />
       <StyledRadioButton
@@ -62,10 +62,11 @@ const EOPage = () => {
         onCommit={(event) => {
           const next = event.target.value;
           if (next === 'fuld' || next === 'halv') {
-            form.setValues((prev) => ({ ...prev, svieSmerteDelvisSygemeldingSats: next }), {
+            return form.setValues((prev) => ({ ...prev, svieSmerteDelvisSygemeldingSats: next }), {
               fieldPath: 'svieSmerteDelvisSygemeldingSats',
             });
           }
+          return false;
         }}
       />
     </div>

@@ -57,6 +57,17 @@ vi.mock('../../utils/fileHelpers', () => ({
   getStartInValue: vi.fn(() => 'desktop'),
 }));
 
+const persistSavedFilenameMetadataMock = vi.fn<(filename: string, stamdata: unknown) => void>();
+
+vi.mock('../../utils/filePersistenceMetadata', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/filePersistenceMetadata')>();
+  return {
+    ...actual,
+    persistSavedFilenameMetadata: (filename: string, stamdata: unknown) =>
+      persistSavedFilenameMetadataMock(filename, stamdata),
+  };
+});
+
 const mockedDecryptFromString = vi.mocked(decryptFromString);
 const mockedEncryptToString = vi.mocked(encryptToString);
 const mockedReadFromFileHandle = vi.mocked(readFromFileHandle);
@@ -488,6 +499,30 @@ describe('fileSave', () => {
       // Verifikationen (som dekrypterer artefaktet) skal ske FØR download-sinken kaldes.
       expect(mockedDecryptFromString.mock.invocationCallOrder[0]).toBeLessThan(
         mockedDownloadFile.mock.invocationCallOrder[0]
+      );
+    });
+
+    it('bevarer saved-status med advarsel når filnavnsmetadata fejler efter verificeret download', async () => {
+      mockedIsFileSystemAccessSupported.mockReturnValue(false);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+      mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
+        stamdata: { journalnr: 'J-1' },
+      }));
+      persistSavedFilenameMetadataMock.mockImplementationOnce(() => {
+        throw new Error('sessionStorage utilgængelig');
+      });
+
+      const result = await saveToFile(snapshot);
+
+      expect(result).toMatchObject({
+        status: 'saved',
+        verified: true,
+        warning: expect.stringContaining('filnavnsoplysninger til næste Gem'),
+      });
+      expect(mockedDownloadFile).toHaveBeenCalledTimes(1);
+      expect(persistSavedFilenameMetadataMock).toHaveBeenCalledTimes(1);
+      expect(mockedDownloadFile.mock.invocationCallOrder[0]).toBeLessThan(
+        persistSavedFilenameMetadataMock.mock.invocationCallOrder[0]
       );
     });
 

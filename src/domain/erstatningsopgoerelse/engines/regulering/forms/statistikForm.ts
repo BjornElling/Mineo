@@ -5,7 +5,7 @@ import { getStatistiskLoenudvikling, getReguleringsDatoIntervalForStatistikModel
 import { opregulerMedAslAarsloensmaksimum } from '../../../../satser/opreguleringsmotorer';
 import { splitIsoRangeByCalendarYearsInclusive } from '../../periodRangeGroups';
 import { isAslStatistikModel, resolveStatistikModelId } from '../../../helpers/eoSharedUtils';
-import { buildStatistikIndexEntries } from '../../statistikRegulering';
+import { buildStatistikForloeb } from '../../statistikRegulering';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
 import {
   assertUniform,
@@ -113,7 +113,11 @@ const byggResultat = (
   // læser (buildStatistikIndexEntries): bygges ÉN gang her og bæres både som segment-basis og
   // som autoritativt forløb, så vist indeksværdi = den motoren afleder deltaPct fra.
   // Segment-byggeriet bruger kun startIso + indeksvaerdi (kvartal ignoreres her).
-  const periodStarts = buildStatistikIndexEntries(modelId);
+  const forloeb = buildStatistikForloeb(modelId);
+  if (!forloeb) {
+    throw new Error('Loenudvikling kan ikke beregnes: statistikforløb mangler');
+  }
+  const periodStarts = forloeb.entries;
 
   const effectiveBase = resolveEffectiveBaseEntry(
     periodStarts,
@@ -149,7 +153,11 @@ const byggResultat = (
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen statistiksegmenter');
   }
-  return { segmenter: segments, forloeb: { kind: 'statistik', entries: periodStarts } };
+  return {
+    segmenter: segments,
+    // Præcisionen følger hele kildemodellen, også hvis et læselag kun viser et intervaludsnit.
+    forloeb,
+  };
 };
 
 const coverageInterval = (af: LoenudviklingAf): KildeReguleringsInterval | undefined =>

@@ -132,7 +132,7 @@ const Satser = React.memo(() => {
    */
   const handleYearCommit = React.useCallback(
     (e: { target: { value: number | undefined } }) => {
-      setValues((prev) => ({ ...prev, aargang: e.target.value }), { fieldPath: 'aargang' });
+      return setValues((prev) => ({ ...prev, aargang: e.target.value }), { fieldPath: 'aargang' });
     },
     [setValues]
   );

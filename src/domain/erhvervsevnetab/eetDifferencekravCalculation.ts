@@ -47,112 +47,25 @@ import {
   zeroMoneyOre,
   type MoneyOre,
 } from '../money/money';
+import type {
+  EetDifferencekravComputation,
+  EetDifferencekravKapitaliseretAfgoerelse,
+  EetDifferencekravLoebendeAfgoerelse,
+  EetDifferencekravProformaKapitalisering,
+  EetDifferencekravResterendeLoebendeYdelser,
+  EetDifferencekravTilbagevirkendeKraftFradrag,
+} from './eetCanonicalOutput';
+
+export type {
+  EetDifferencekravComputation,
+  EetDifferencekravKapitaliseretAfgoerelse,
+  EetDifferencekravLoebendeAfgoerelse,
+  EetDifferencekravProformaKapitalisering,
+  EetDifferencekravResterendeLoebendeYdelser,
+  EetDifferencekravTilbagevirkendeKraftFradrag,
+} from './eetCanonicalOutput';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type EetDifferencekravLoebendeAfgoerelse = Readonly<{
-  rowId: string;
-  afgoerelsesdato: ISODateString;
-  virkningsdato: ISODateString;
-  afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig';
-  eetPct: number;
-  fradragesTil: ISODateString;
-  beloebOre: MoneyOre;
-  fradragForetages: boolean;
-  // Sat når en midlertidig afgørelse gøres endelig med tilbagevirkende kraft (toggle):
-  // dens egen løbende ydelse fradrages fra den endelige afgørelses virkningsdato og frem.
-  // null når reglen ikke gælder for rækken.
-  tilbagevirkendeKraftFradrag: EetDifferencekravTilbagevirkendeKraftFradrag | null;
-}>;
-
-export type EetDifferencekravTilbagevirkendeKraftFradrag = Readonly<{
-  // Den endelige afgørelses virkningsdato — fradraget løber herfra og frem.
-  endeligVirkningsdato: ISODateString;
-  fra: ISODateString;
-  til: ISODateString;
-  beloebOre: MoneyOre;
-}>;
-
-export type EetDifferencekravKapitaliseretAfgoerelse = Readonly<{
-  rowId: string;
-  afgoerelsesdato: ISODateString;
-  // null = ikke kapitaliseret
-  kapitaliseringsdato: ISODateString | null;
-  kapitaliseringspct: number | null;
-  kapitalbelobOre: MoneyOre | null;
-  // true = kapitalisering er angivet, men datoen er efter beregningsdatoen og medregnes ikke
-  kapitaliseringEfterBeregningsdato: boolean;
-}>;
-
-export type EetDifferencekravProformaKapitalisering = Readonly<{
-  loebendeEetPct: number;
-  kapitaliseringsdato: ISODateString;
-  grundloenOre: MoneyOre;
-  erstatningsniveauPct: number;
-  amBidragPct: number;
-  grundydelseOre: MoneyOre;
-  grundydelse2024Ore: MoneyOre | null;
-  opreguleringTil2024PctRounded4: number | null;
-  aarsydelseGrundlagOre: MoneyOre;
-  aarsydelseReguleringsPctRounded4: number | null;
-  aarsydelseOre: MoneyOre;
-  kapitaliseringsbekendtgoerelseLabel: string;
-  folkepensionsalderLabel: string;
-  alderAar: number;
-  alderMaaneder: number;
-  kapitaliseretPgaUnderToAarTilFp: boolean;
-  faktorMaanedsAfhaengig: boolean;
-  saerfaktor: number | null;
-  kapitaliseringsfaktor: number;
-  proformaBeloebOre: MoneyOre;
-  koenOpdelt: boolean;
-}>;
-
-export type EetDifferencekravResterendeLoebendeYdelser = Readonly<{
-  loebendeEetPct: number;
-  beregningsdato: ISODateString;
-  dagenFoerFolkepensionsdato: ISODateString;
-  aarsydelseOre: MoneyOre;
-  maanedligYdelseOre: MoneyOre;
-  tilbageraevendeMaaneder: number;
-  fradragBeloebOre: MoneyOre;
-}>;
-
-export type EetDifferencekravComputation = Readonly<{
-  beregningsdato: ISODateString;
-  skadedato: ISODateString;
-  dagFoerBeregningsdato: ISODateString;
-  // true = skadedato < 2011-06-16: fradrag for midlertidige/delvist endelige ydelser foretages
-  fradragGaelderForFoer2011: boolean;
-  ealKravOre: MoneyOre;
-  ealEetPct: number;
-  fradragLoebendeYdelserOre: MoneyOre;
-  fradragKapitaliseretEetOre: MoneyOre;
-  // Fradrag 3-invariant: højst ét af proformaKapitalisering og resterendeLoebendeYdelser må være non-null.
-  proformaKapitalisering: EetDifferencekravProformaKapitalisering | null;
-  resterendeLoebendeYdelser: EetDifferencekravResterendeLoebendeYdelser | null;
-  // Fradrag 4: mer-erstatning ved forhøjet folkepensionsalder. null når toggle er fra,
-  // eller ingen forhøjelse kvalificerer.
-  merErstatningPensionsalder: MerErstatningPensionsalderComputation | null;
-  // Differencekrav før forlig om ansvarsgrad anvendes (det fulde, ureducerede krav).
-  differencekravFoerForligOre: MoneyOre;
-  // Forlig om ansvarsgrad: faktor (< 1) og label ("2/3"/"50 %") når et gyldigt forlig under 100 %
-  // er angivet. Ved intet forlig / 100 % er begge null, og differencekrav === differencekravFoerForlig.
-  forligFactor: number | null;
-  forligLabel: string | null;
-  // Forligsdato (delt kilde med EO). Bruges kun til prosa-sætningen "Der er [den dato] indgået
-  // forlig …". null når der ikke reduceres eller ingen dato er angivet.
-  forligDato: ISODateString | null;
-  // Endeligt differencekrav efter forlig om ansvarsgrad (= differencekravFoerForlig × forligFactor,
-  // eller differencekravFoerForlig når der ikke reduceres).
-  differencekravOre: MoneyOre;
-  afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[];
-  kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
-  // Sub-beregninger til brug i bilag-PDF'er
-  loebendeComputation: import('./eetLoebendeYdelserCalculation').EetLoebendeComputation | null;
-  kapComputation: import('./eetKapitaliseringCalculation').EetKapitaliseringComputation | null;
-  ealComputation: import('./eetEalCalculation').EetEalComputation | null;
-}>;
 
 export type EetDifferencekravCalculationResult = Readonly<{
   issues: readonly EetIssue[];

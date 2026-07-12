@@ -88,6 +88,7 @@ describe('Slet-række (RowDeleteButton-integration)', () => {
         const setValues = React.useCallback<SetValuesUpdater<ErstatningsopgoerelseValues>>((updater) => {
           commitCount += 1;
           setState((prev) => ({ ...prev, ...updater(prev) }));
+          return true;
         }, []);
         const svie = useSvieSmerteRows({ values: state, setValues, resyncToken: 0 });
         return (

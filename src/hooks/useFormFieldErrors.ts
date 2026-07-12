@@ -128,7 +128,7 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
 
   const commitInvalidDraftForField = React.useCallback(
     (rawDraft: string) => {
-      commitInvalidDraft(pageKey, fieldName, rawDraft, {
+      return commitInvalidDraft(pageKey, fieldName, rawDraft, {
         undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname),
       });
     },
@@ -138,7 +138,7 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   const clearInvalidDraftForField = React.useCallback(() => {
     // Send undoOrigin med: en rydning af et felts rå draft skal kunne undo'es. captureUndoFrameCoalesced
     // sikrer at det ikke giver en ekstra frame, når rydningen sker sammen med et sektion-commit.
-    clearInvalidDraft(pageKey, fieldName, {
+    return clearInvalidDraft(pageKey, fieldName, {
       undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname),
     });
   }, [clearInvalidDraft, fieldName, location.pathname, pageKey]);
@@ -207,8 +207,8 @@ export const useFieldInvalidDraftChannel = (
   reporter: FieldErrorReporter | undefined
 ): Readonly<{
   committedInvalidDraft: string | undefined;
-  onCommitInvalid: ((rawDraft: string) => void) | undefined;
-  clearInvalidDraft: (() => void) | undefined;
+  onCommitInvalid: ((rawDraft: string) => boolean) | undefined;
+  clearInvalidDraft: (() => boolean) | undefined;
 }> => {
   const committedInvalidDraft = useInvalidDraftForFieldSelector(reporter?.pageKey, reporter?.fieldName);
   return {

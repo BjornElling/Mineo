@@ -39,6 +39,7 @@ describe('useSliceRowDrafts', () => {
       const next = updater(store) as Values;
       store.rows = next.rows;
       store.sibling = next.sibling;
+      return true;
     };
 
     const { result } = renderHook(() =>
@@ -58,7 +59,7 @@ describe('useSliceRowDrafts', () => {
   it('committedRowsEnsured og committedById afspejler den ensured committed slice', () => {
     const values: Values = { rows: [{ id: 'r1', name: 'a' }, { id: 'r2', name: 'b' }], sibling: 'x' };
     const { result } = renderHook(() =>
-      useSliceRowDrafts<Values, DraftRow, CommittedRow, 'name'>(makeConfig(values, () => {}, 1))
+      useSliceRowDrafts<Values, DraftRow, CommittedRow, 'name'>(makeConfig(values, () => true, 1))
     );
 
     expect(result.current.committedRowsEnsured.map((row) => row.id)).toEqual(['r1', 'r2']);
@@ -69,7 +70,7 @@ describe('useSliceRowDrafts', () => {
   it('committedRowsEnsured anvender ensureRows når slicen er tom/undefined', () => {
     const values: Values = { rows: undefined, sibling: 'x' };
     const { result } = renderHook(() =>
-      useSliceRowDrafts<Values, DraftRow, CommittedRow, 'name'>(makeConfig(values, () => {}, 1))
+      useSliceRowDrafts<Values, DraftRow, CommittedRow, 'name'>(makeConfig(values, () => true, 1))
     );
 
     expect(result.current.committedRowsEnsured).toEqual([{ id: 'empty' }]);
@@ -83,6 +84,7 @@ describe('useSliceRowDrafts', () => {
       const next = updater(store) as Values;
       store.rows = next.rows;
       store.sibling = next.sibling;
+      return true;
     };
 
     const { result } = renderHook(() =>

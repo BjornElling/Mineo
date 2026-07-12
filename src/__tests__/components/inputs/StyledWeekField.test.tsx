@@ -15,7 +15,10 @@ describe('StyledWeekField', () => {
       return (
         <StyledWeekField
           value={value}
-          onCommit={(e) => setValue(e.target.value)}
+          onCommit={(e) => {
+            setValue(e.target.value);
+            return true;
+          }}
         />
       );
     };
@@ -46,7 +49,10 @@ describe('StyledWeekField', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<string | undefined>(undefined);
-      return <StyledWeekField value={value} onCommit={(e) => setValue(e.target.value)} />;
+      return <StyledWeekField value={value} onCommit={(e) => {
+        setValue(e.target.value);
+        return true;
+      }} />;
     };
 
     render(<Wrapper />);

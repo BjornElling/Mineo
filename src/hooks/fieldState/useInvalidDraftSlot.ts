@@ -21,8 +21,8 @@ export type InvalidDraftChannel = Readonly<{
   /** Sandt når kanalen er bundet (provider + scope til stede og aktiveret). */
   bound: boolean;
   committedInvalidDraft: string | undefined;
-  onCommitInvalid: ((rawDraft: string) => void) | undefined;
-  clearInvalidDraft: (() => void) | undefined;
+  onCommitInvalid: ((rawDraft: string) => boolean) | undefined;
+  clearInvalidDraft: (() => boolean) | undefined;
 }>;
 
 export type InvalidDraftSlot = Readonly<{
@@ -31,9 +31,9 @@ export type InvalidDraftSlot = Readonly<{
   /** Den effektive ugyldige draft: kanalens committede værdi (bundet) eller den lokale fallback. */
   effectiveInvalidDraft: string | undefined;
   /** Skriv en ikke-committbar rå draft (dispatcher til kanal eller lokal fallback). */
-  writeInvalidDraft: (rawDraft: string) => void;
+  writeInvalidDraft: (rawDraft: string) => boolean;
   /** Ryd den ugyldige draft (dispatcher til kanal eller lokal fallback). */
-  clearInvalidDraft: () => void;
+  clearInvalidDraft: () => boolean;
 }>;
 
 export const useInvalidDraftSlot = (channel: InvalidDraftChannel): InvalidDraftSlot => {
@@ -44,15 +44,17 @@ export const useInvalidDraftSlot = (channel: InvalidDraftChannel): InvalidDraftS
 
   const writeInvalidDraft = React.useCallback(
     (rawDraft: string) => {
-      if (bound) onCommitInvalid?.(rawDraft);
-      else setLocalInvalidDraft(rawDraft);
+      if (bound) return onCommitInvalid?.(rawDraft) ?? false;
+      setLocalInvalidDraft(rawDraft);
+      return true;
     },
     [bound, onCommitInvalid]
   );
 
   const clear = React.useCallback(() => {
-    if (bound) clearInvalidDraft?.();
-    else setLocalInvalidDraft(null);
+    if (bound) return clearInvalidDraft?.() ?? false;
+    setLocalInvalidDraft(null);
+    return true;
   }, [bound, clearInvalidDraft]);
 
   return { bound, effectiveInvalidDraft, writeInvalidDraft, clearInvalidDraft: clear };

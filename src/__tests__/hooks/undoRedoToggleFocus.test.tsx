@@ -36,7 +36,7 @@ const testTheme = createTheme({
 const TogglePage = () => {
   const form = usePersistedForm(aarsloenSchema, 'aarsloen', AARSLOEN_INITIAL_VALUES);
   const setBool = (field: 'fuldLoenUnderFerie' | 'retTilSjetteFerieuge') => (e: { target: { value: boolean } }) => {
-    form.setValues((prev) => ({ ...prev, [field]: e.target.value }), { fieldPath: field });
+    return form.setValues((prev) => ({ ...prev, [field]: e.target.value }), { fieldPath: field });
   };
   return (
     <div data-section-id="aarsloen-section">

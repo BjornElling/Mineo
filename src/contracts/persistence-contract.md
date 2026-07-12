@@ -63,6 +63,12 @@ fra kodning/verifikation/UI-flow:
   (`saved | cancelled`) og `LoadFileResult` (`loaded | preflight | cancelled`). Egentlige fejl kastes
   som exceptions; et snapshot findes præcis når `status` er `loaded`/`preflight`.
 
+**Filhandlingsserialisering.** Højst én Gem/Hent-handling må være aktiv ad gangen. Ejerskabet
+omfatter både preparation, fil-I/O og eventuelle preflight-/overskrivelsesdialoger. En ny manuel
+Gem/Hent afvises med `En filhandling er allerede i gang.` En PWA-fil, der ankommer imens, må
+ikke auto-indlæses eller tabes: kun den seneste request bevares, og når den aktive handling er helt
+afsluttet, spørges brugeren med valgene `Indlæs fil` og `Ignorer`.
+
 ---
 
 ## 4. Load-garantier
@@ -105,6 +111,10 @@ Semantik:
 3. `Stop og gør intet` må ikke mutere in-memory state, `sessionStorage` eller undo/redo-historik.
 
 Preflight-UI skal gøre destruktiv partial-load tydelig: ved `Indlæs trods fejl` fjernes fejlede sektioner fra den aktive sag.
+
+Hvis filen ikke indeholder ét eneste udfyldt felt, der kan indlæses mod den aktuelle struktur,
+stoppes load fail-closed før preflight. `Indlæs trods fejl` må ikke tilbyde en tom hel-sags-erstatning,
+fordi handlingen da alene ville slette den aktive sag uden at bevare brugerdata fra filen.
 
 ---
 

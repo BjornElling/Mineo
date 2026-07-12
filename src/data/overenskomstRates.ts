@@ -1356,6 +1356,17 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
 
 ];
 
+/**
+ * Katalogpayloaden omfatter både private og offentlige overenskomster. De offentlige
+ * tillægssatser må ikke golden-låses indirekte gennem løntabellerne, fordi de er en
+ * selvstændig beregningskilde og ellers kan ændres uden at katalogets fingerprint reagerer.
+ */
+export const overenskomstBeregningsdata = Object.freeze({
+  privateOverenskomster: overenskomster,
+  offentligeOverenskomster,
+  offentligeOverenskomstSatser,
+});
+
 const overenskomstById = new Map<OverenskomstId, Overenskomst>();
 for (const overenskomst of overenskomster) {
   if (overenskomstById.has(overenskomst.meta.id)) {

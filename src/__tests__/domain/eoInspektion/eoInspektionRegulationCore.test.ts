@@ -12,7 +12,7 @@ import { toISODateString } from '../../../types/branded';
 import type { LoenudviklingModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { asCalculable } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { zeroMoneyOre } from '../../../domain/money/money';
-import { buildStatistikIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
+import { buildStatistikForloeb } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
 import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
 import { buildKlLoenaftalerIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/klLoenaftalerRegulering';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
@@ -75,7 +75,7 @@ const buildTestForloeb = (
 ): ReguleringForloeb | undefined => {
   if (af.loenudviklingBeregningsgrundlag === 'Statistik') {
     const modelId = resolveStatistikModelId(af.loenudviklingStatistikModel ?? '');
-    return modelId ? { kind: 'statistik', entries: buildStatistikIndexEntries(modelId) } : undefined;
+    return modelId ? buildStatistikForloeb(modelId) : undefined;
   }
   if (af.loenudviklingBeregningsgrundlag === 'KRL satstabel' && af.loenudviklingKRLSatstabel) {
     return { kind: 'krl', entries: buildKrlIndexEntries(af.loenudviklingKRLSatstabel) };

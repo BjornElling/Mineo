@@ -65,6 +65,7 @@ const Host = React.forwardRef<
       onTableDataChange={(data) => {
         latestRef.current = data;
         setTableData(data);
+        return true;
       }}
     />
   );

@@ -10,7 +10,10 @@ describe('StyledFractionField', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<string | undefined>(undefined);
-      return <StyledFractionField value={value} onCommit={(e) => setValue(e.target.value)} />;
+      return <StyledFractionField value={value} onCommit={(e) => {
+        setValue(e.target.value);
+        return true;
+      }} />;
     };
 
     render(<Wrapper />);

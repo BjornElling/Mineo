@@ -144,7 +144,6 @@ const processDecryptedContainer = (args: {
   }
 
   for (const key of Object.keys(fileData as Record<string, unknown>)) {
-    if (key.startsWith('_')) continue;
     if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, key)) {
       lostFromFileCount += countMeaningfulFields((fileData as Record<string, unknown>)[key]);
       dataLossIssues.push({

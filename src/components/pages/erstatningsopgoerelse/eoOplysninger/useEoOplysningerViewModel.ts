@@ -122,18 +122,18 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
 
   const handleHelbredsfoholdChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = helbredsstatusEnum.safeParse(event.target.value);
-    setValues((prev) => ({ ...prev, svieSmerteHelbredsstatus: parsed.success ? parsed.data : undefined }), { fieldPath: 'svieSmerteHelbredsstatus' });
+    return setValues((prev) => ({ ...prev, svieSmerteHelbredsstatus: parsed.success ? parsed.data : undefined }), { fieldPath: 'svieSmerteHelbredsstatus' });
   }, [setValues]);
 
   const handleArbejdssituationChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = arbejdsstatusEnum.safeParse(event.target.value);
-    setValues((prev) => ({ ...prev, tafArbejdsstatus: parsed.success ? parsed.data : undefined }), { fieldPath: 'tafArbejdsstatus' });
+    return setValues((prev) => ({ ...prev, tafArbejdsstatus: parsed.success ? parsed.data : undefined }), { fieldPath: 'tafArbejdsstatus' });
   }, [setValues]);
 
   const handleBeregnesUdFraChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = beregningsmetodeEnum.safeParse(event.target.value);
     if (!parsed.success) return;
-    setValues((prev) => ({
+    return setValues((prev) => ({
       ...prev,
       beregnesUdFra: parsed.data,
       eoAngivetLoenLoenudvikling: {
@@ -150,7 +150,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
   const handleAfsluttesMedChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = afsluttesMedEnum.safeParse(event.target.value);
     if (!parsed.success) return;
-    setValues((prev) => ({ ...prev, erstatningsopgoerelseAfsluttesMed: parsed.data }), { fieldPath: 'erstatningsopgoerelseAfsluttesMed' });
+    return setValues((prev) => ({ ...prev, erstatningsopgoerelseAfsluttesMed: parsed.data }), { fieldPath: 'erstatningsopgoerelseAfsluttesMed' });
   }, [setValues]);
 
   const visLoenudviklingFraEO =
@@ -159,7 +159,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
 
   const updateEoLoenudvikling = React.useCallback(
     (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling, origin?: { fieldPath?: string }) => {
-      setValues((prev) => ({ ...prev, eoAngivetLoenLoenudvikling: updater(prev.eoAngivetLoenLoenudvikling) }), origin);
+      return setValues((prev) => ({ ...prev, eoAngivetLoenLoenudvikling: updater(prev.eoAngivetLoenLoenudvikling) }), origin);
     },
     [setValues]
   );

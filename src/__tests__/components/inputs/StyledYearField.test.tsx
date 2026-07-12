@@ -10,7 +10,10 @@ describe('StyledYearField', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<number | undefined>(undefined);
-      return <StyledYearField value={value} onCommit={(e) => setValue(e.target.value)} />;
+      return <StyledYearField value={value} onCommit={(e) => {
+        setValue(e.target.value);
+        return true;
+      }} />;
     };
 
     render(<Wrapper />);

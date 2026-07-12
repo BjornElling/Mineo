@@ -108,10 +108,11 @@ const RadioPage = () => {
         onCommit={(event) => {
           const next = event.target.value;
           if (next === 'fuld' || next === 'halv') {
-            form.setValues((prev) => ({ ...prev, svieSmerteDelvisSygemeldingSats: next }), {
+            return form.setValues((prev) => ({ ...prev, svieSmerteDelvisSygemeldingSats: next }), {
               fieldPath: 'svieSmerteDelvisSygemeldingSats',
             });
           }
+          return false;
         }}
       />
     </div>

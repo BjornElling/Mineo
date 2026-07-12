@@ -382,7 +382,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
     (key: keyof typeof bilagSelection, checked: boolean) => {
       // fieldPath = bilag-nøglen (matcher checkboxens name) → undo/redo lander fokus på den rette checkbox
       // (jf. mineo-field-pattern.md). Samme konvention som visUdvidetSpecifikation...-toggle nedenfor.
-      setValues((prev) => ({
+      return setValues((prev) => ({
         ...prev,
         eetDifferencekravBilagSelection: {
           ...prev.eetDifferencekravBilagSelection,
@@ -409,7 +409,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
 
   const handleExtendedSpecificationCommit = React.useCallback(
     (event: CommitEvent<boolean>) => {
-      setValues((prev) => ({
+      return setValues((prev) => ({
         ...prev,
         eetDifferencekravBilagSelection: {
           ...prev.eetDifferencekravBilagSelection,
@@ -423,14 +423,14 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
   const createBilagCommitHandler = React.useCallback(
     (key: keyof typeof bilagSelection) =>
       (event: CommitEvent<boolean>) => {
-        updateBilag(key, event.target.value);
+        return updateBilag(key, event.target.value);
       },
     [updateBilag]
   );
 
   const handleTilbagevirkendeKraftCommit = React.useCallback(
     (event: CommitEvent<boolean>) => {
-      setValues((prev) => ({
+      return setValues((prev) => ({
         ...prev,
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: event.target.value,
       }), { fieldPath: 'endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft' });
@@ -440,7 +440,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
 
   const handleMerErstatningPensionsalderCommit = React.useCallback(
     (event: CommitEvent<boolean>) => {
-      setValues((prev) => ({
+      return setValues((prev) => ({
         ...prev,
         indregnMerErstatningVedForhoejetPensionsalder: event.target.value,
       }), { fieldPath: 'indregnMerErstatningVedForhoejetPensionsalder' });
@@ -463,7 +463,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
 
   const handleForligProcentCommit = React.useCallback(
     (event: CommitEvent<number | undefined>) => {
-      setForligValues((prev) => ({ ...prev, forligAnsvarsgradProcent: event.target.value }), {
+      return setForligValues((prev) => ({ ...prev, forligAnsvarsgradProcent: event.target.value }), {
         fieldPath: 'forligAnsvarsgradProcent',
       });
     },
@@ -475,7 +475,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
       // StyledFractionField trimmer allerede draft ved commit (normalizeDraftOnCommit) og mapper tom streng
       // til undefined i parseren, så committed-værdien er kanonisk. Ingen ekstra trim nødvendig (jf. EO-fanen,
       // der committer den rå commit-værdi direkte).
-      setForligValues((prev) => ({ ...prev, forligAnsvarsgradBroek: event.target.value }), {
+      return setForligValues((prev) => ({ ...prev, forligAnsvarsgradBroek: event.target.value }), {
         fieldPath: 'forligAnsvarsgradBroek',
       });
     },
@@ -519,7 +519,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
   const handleForligDatoCommit = React.useCallback(
     (event: CommitEvent<ISODateString | undefined>) => {
       const nextValue = coerceToISODateString(event.target.value ?? undefined);
-      setForligValues((prev) => ({ ...prev, forligDato: nextValue }), { fieldPath: 'forligDato' });
+      return setForligValues((prev) => ({ ...prev, forligDato: nextValue }), { fieldPath: 'forligDato' });
     },
     [setForligValues]
   );

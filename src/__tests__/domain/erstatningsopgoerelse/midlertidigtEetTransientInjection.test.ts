@@ -16,6 +16,7 @@ import {
 import { computeEoSnapshot as computeEoSnapshotRaw } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
   buildEoValuesWithTransientMidlertidigtEet,
+  buildMidlertidigtEetImportContext,
   buildMidlertidigtEetCalculationRows,
   buildMidlertidigtEetSourceResult,
 } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
@@ -30,39 +31,33 @@ import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 import {
   buildEetImportContext,
-  buildUnavailableEetImportContext,
   type EetImportSource,
 } from '../../../domain/erhvervsevnetab/eetImportPort';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
 
-type LegacyEetSource = Omit<EetImportSource, 'revision'> & Readonly<{ revision?: string }>;
-type LegacyEoSnapshotArgs = Omit<Parameters<typeof computeEoSnapshotRaw>[0], 'midlertidigtEetImportContext'>
-  & Readonly<{ midlertidigtEetInsertSource?: LegacyEetSource }>;
+type EetImportTestSource = Omit<EetImportSource, 'revision'> & Readonly<{ revision?: string }>;
+type EoSnapshotWithImportArgs = Omit<Parameters<typeof computeEoSnapshotRaw>[0], 'midlertidigtEetImportContext'>
+  & Readonly<{ eetImportSource?: EetImportTestSource }>;
 
-const computeEoSnapshot = (args: LegacyEoSnapshotArgs) => {
-  const { midlertidigtEetInsertSource, ...baseArgs } = args;
+const computeEoSnapshot = (args: EoSnapshotWithImportArgs) => {
+  const { eetImportSource, ...baseArgs } = args;
   const parsedEo = erstatningsopgoerelseSchema.safeParse(args.eoValues);
   const parsedStamdata = stamdataSchema.safeParse(args.stamdataValues);
   if (!parsedEo.success || !parsedStamdata.success || parsedEo.data.midlertidigtEetFraEetSiden !== 'Ja') {
     return computeEoSnapshotRaw(baseArgs);
   }
 
-  const source = midlertidigtEetInsertSource
-    ? { ...midlertidigtEetInsertSource, revision: midlertidigtEetInsertSource.revision ?? args.revision }
+  const source = eetImportSource
+    ? { ...eetImportSource, revision: eetImportSource.revision ?? args.revision }
     : undefined;
-  const slutdato = buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato })
-    .reduce<ReturnType<typeof iso> | undefined>(
-      (latest, range) => (latest && latest > range.til ? latest : range.til),
-      undefined
-    );
-  const midlertidigtEetImportContext = source && slutdato
-    ? buildEetImportContext(source, slutdato)
-    : buildUnavailableEetImportContext(
+  const midlertidigtEetImportContext = source
+    ? buildMidlertidigtEetImportContext(
       source,
-      source ? 'taf_slutdato_missing' : 'source_missing'
-    );
+      buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato })
+    )
+    : undefined;
   return computeEoSnapshotRaw({ ...baseArgs, midlertidigtEetImportContext });
 };
 
@@ -173,7 +168,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-off',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues,
         skadedato: stamdata.skadedato,
       },
@@ -194,7 +189,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-on',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues,
         skadedato: stamdata.skadedato,
       },
@@ -261,7 +256,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-taf-slutdato',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues: {
           ...eetValues,
           beregningsdato: iso('2024-02-29'),
@@ -288,7 +283,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-uden-beregningsdato',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues: {
           ...eetValues,
           beregningsdato: undefined,
@@ -320,7 +315,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-uden-beregningsdato-uden-taf',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues: {
           ...eetValues,
           beregningsdato: undefined,
@@ -352,7 +347,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-pdf-parity',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: source,
+      eetImportSource: source,
     });
     const pdfGroups = buildMidlertidigtEetPdfGroupsForTafRanges(
       snapshot.data?.midlertidigtEetGroups ?? [],
@@ -468,7 +463,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-whole-kroner-when-toggle-on',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues,
         skadedato: stamdata.skadedato,
       },
@@ -493,7 +488,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-endelig-ignored',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues: {
           ...eetValues,
           aslAfgoerelser: eetValues.aslAfgoerelser.map((row) => ({
@@ -521,7 +516,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-empty-source',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues: {
           ...eetValues,
           beregningsdato: undefined,
@@ -548,7 +543,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-final-only-source',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues: {
           ...eetValues,
           aslAarsloen: undefined,
@@ -576,7 +571,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-source-error',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues: {
           ...eetValues,
           aslAarsloen: undefined,
@@ -638,7 +633,7 @@ describe('midlertidigt EET transient injection', () => {
       revision: 'midlertidigt-eet-source-schema-invalid',
       stamdataValues: stamdata,
       eoValues,
-      midlertidigtEetInsertSource: {
+      eetImportSource: {
         eetValues,
         skadedato: stamdata.skadedato,
         issues: [{

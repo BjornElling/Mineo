@@ -13,7 +13,12 @@ import type { KlLoenaftalerIndexEntry } from './klLoenaftalerRegulering';
 export type ReguleringForloeb =
   | Readonly<{ kind: 'manuelProcentsats'; entries: readonly ManuelProcentsatsEntry[] }>
   | Readonly<{ kind: 'krl'; entries: readonly KrlIndexEntry[] }>
-  | Readonly<{ kind: 'statistik'; entries: readonly StatistikIndexEntry[] }>
+  | Readonly<{
+    kind: 'statistik';
+    entries: readonly StatistikIndexEntry[];
+    /** Visningspræcision udledt af hele kildemodellen hos producenten. */
+    displayDecimals: number;
+  }>
   | Readonly<{ kind: 'klLoenaftaler'; entries: readonly KlLoenaftalerIndexEntry[] }>;
 
 /**

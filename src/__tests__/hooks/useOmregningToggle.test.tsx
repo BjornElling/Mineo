@@ -13,13 +13,13 @@ import type {
 } from '../../types/table';
 import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
 
-let lastHandleToggle: ((e: CommitEvent<boolean>) => void) | null = null;
+let lastHandleToggle: ((e: CommitEvent<boolean>) => boolean) | null = null;
 let lastChecked = false;
 let lastEffectiveEnabled = false;
 
 type Props = {
   gate?: AarsloenOmregningGate;
-  onEnabledChange: (enabled: boolean) => void;
+  onEnabledChange: (enabled: boolean) => boolean;
   tableRefMock: StandardLoenTableHandle;
   toggleRefMock: StyledToggleSwitchHandle;
 };

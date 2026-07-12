@@ -15,7 +15,10 @@ import type {
   PreflightFileResult,
   SaveFileResult,
 } from '../types/fileOperations';
-import { type PwaFileOpenRequest } from '../utils/pwaLaunchQueue';
+import {
+  markPendingPwaFileOpenRequestHandled,
+  type PwaFileOpenRequest,
+} from '../utils/pwaLaunchQueue';
 import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { asError } from '../utils/typeGuards';
 import { EncryptionError } from '../utils/encryption';
@@ -33,6 +36,7 @@ import {
 } from '../utils/saveBlockedFocus';
 import { useCriticalActionCoordinator } from '../criticalActions/CriticalActionContext';
 import type { CriticalActionFocusTarget } from '../criticalActions/criticalActionCoordinator';
+import { logWarning } from '../utils/logger';
 
 export type OverlayData = {
   message: string;
@@ -61,7 +65,9 @@ type LoadFlowState =
   | { phase: 'preflight'; result: PreflightFileResult; navigateToStamdataAfterApply: boolean }
   | { phase: 'overwrite'; result: ApplicableLoadFileResult; overlay: OverlayData; navigateToStamdataAfterApply: boolean };
 
-export type PwaLoadOutcome = 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
+export type PwaLoadOutcome = 'busy' | 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
+
+type FileOperationKind = 'save' | 'manual-load' | 'pwa-load';
 
 type UseFileSaveLoadArgs = {
   settings: AppSettings;
@@ -91,9 +97,12 @@ type UseFileSaveLoadResult = {
   handleLoadDespiteIssues: () => Promise<void>;
   handleConfirmOverwriteApply: () => Promise<void>;
   handleHentFromPwaRequest: (request: PwaFileOpenRequest) => Promise<PwaLoadOutcome>;
+  fileOperationInProgress: boolean;
+  isFileOperationInProgress: () => boolean;
 };
 
 const LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE = 'Kan ikke indlæse fil: afslut eller ret det aktive felt først.';
+const FILE_OPERATION_IN_PROGRESS_MESSAGE = 'En filhandling er allerede i gang.';
 
 const resolveSaveError = (error: unknown): OverlayData => {
   if (error instanceof SaveValidationError) {
@@ -158,6 +167,30 @@ export const useFileSaveLoad = ({
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
   const criticalActions = useCriticalActionCoordinator();
   const [loadFlow, setLoadFlow] = React.useState<LoadFlowState>({ phase: 'idle' });
+  const activeFileOperationRef = React.useRef<FileOperationKind | null>(null);
+  const [activeFileOperation, setActiveFileOperation] = React.useState<FileOperationKind | null>(null);
+
+  const beginFileOperation = React.useCallback((kind: FileOperationKind, showBusyWarning: boolean): boolean => {
+    if (activeFileOperationRef.current !== null) {
+      if (showBusyWarning) {
+        showOverlay({ message: FILE_OPERATION_IN_PROGRESS_MESSAGE, type: 'warning' });
+      }
+      return false;
+    }
+    activeFileOperationRef.current = kind;
+    setActiveFileOperation(kind);
+    return true;
+  }, [showOverlay]);
+
+  const finishFileOperation = React.useCallback((): void => {
+    activeFileOperationRef.current = null;
+    setActiveFileOperation(null);
+  }, []);
+
+  const isFileOperationInProgress = React.useCallback(
+    (): boolean => activeFileOperationRef.current !== null,
+    [],
+  );
 
   const applyLoadedSnapshot = React.useCallback(async (result: ApplicableLoadFileResult): Promise<PersistenceLoadApplyResult> => {
     return executePersistenceLoadApply({
@@ -187,6 +220,7 @@ export const useFileSaveLoad = ({
   }, [applyLoadedSnapshot, hasAnyData, navigate, showOverlay]);
 
   const handleGem = React.useCallback(async () => {
+    if (!beginFileOperation('save', true)) return;
     let focusTargetBeforeAction: CriticalActionFocusTarget | null = null;
     try {
       const preparation = await criticalActions.prepare('save');
@@ -232,13 +266,17 @@ export const useFileSaveLoad = ({
         console.error('Gem fejlede:', error);
       }
       showOverlay(overlay);
+    } finally {
+      finishFileOperation();
     }
   }, [
+    beginFileOperation,
     combinedSectionRevisionRef,
     criticalActions,
     currentPathname,
     getFirstBlockingInputError,
     getPersistedData,
+    finishFileOperation,
     markSaved,
     navigate,
     settings,
@@ -246,34 +284,44 @@ export const useFileSaveLoad = ({
   ]);
 
   const handleHent = React.useCallback(async () => {
-    const preparation = await criticalActions.prepare('load');
-    if (preparation.status === 'blocked') {
-      preparation.target?.focus();
-      showOverlay({
-        message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
-        type: 'warning',
-      });
-      return;
-    }
+    if (!beginFileOperation('manual-load', true)) return;
+    let awaitsUserDecision = false;
+    let focusTargetBeforeAction: CriticalActionFocusTarget | null = null;
 
     try {
+      const preparation = await criticalActions.prepare('load');
+      focusTargetBeforeAction = preparation.focusTargetBeforeAction;
+      if (preparation.status === 'blocked') {
+        preparation.target?.focus();
+        showOverlay({
+          message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
+          type: 'warning',
+        });
+        return;
+      }
+
       setLoadFlow({ phase: 'idle' });
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
       const result: LoadFileResult = await loadFromFile(resolvedDirectory);
 
       if (result.status === 'cancelled') {
-        preparation.focusTargetBeforeAction?.focus();
+        focusTargetBeforeAction?.focus();
         return;
       }
 
       if (result.status === 'preflight') {
         setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
+        awaitsUserDecision = true;
         return;
       }
 
-      await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, true);
+      awaitsUserDecision = (await requestApplyLoadedSnapshot(
+        result,
+        { message: 'Hentet', type: 'success' },
+        true,
+      )) === 'awaitingUser';
     } catch (error) {
-      preparation.focusTargetBeforeAction?.focus();
+      focusTargetBeforeAction?.focus();
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent fejlede:', error);
@@ -282,31 +330,39 @@ export const useFileSaveLoad = ({
         message: resolved.message,
         type: 'error',
       });
+    } finally {
+      if (!awaitsUserDecision) finishFileOperation();
     }
-  }, [criticalActions, requestApplyLoadedSnapshot, settings, showOverlay]);
+  }, [beginFileOperation, criticalActions, finishFileOperation, requestApplyLoadedSnapshot, settings, showOverlay]);
 
   const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
-    const preparation = await criticalActions.prepare('load');
-    if (preparation.status === 'blocked') {
-      preparation.target?.focus();
-      showOverlay({
-        message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
-        type: 'warning',
-      });
-      return 'error';
-    }
+    if (!beginFileOperation('pwa-load', false)) return 'busy';
+    let awaitsUserDecision = false;
+    let focusTargetBeforeAction: CriticalActionFocusTarget | null = null;
 
     try {
+      const preparation = await criticalActions.prepare('load');
+      focusTargetBeforeAction = preparation.focusTargetBeforeAction;
+      if (preparation.status === 'blocked') {
+        preparation.target?.focus();
+        showOverlay({
+          message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
+          type: 'warning',
+        });
+        return 'error';
+      }
+
       setLoadFlow({ phase: 'idle' });
       const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
 
       if (result.status === 'cancelled') {
-        preparation.focusTargetBeforeAction?.focus();
+        focusTargetBeforeAction?.focus();
         return 'cancelled';
       }
 
       if (result.status === 'preflight') {
         setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
+        awaitsUserDecision = true;
         return 'preflight';
       }
 
@@ -318,9 +374,10 @@ export const useFileSaveLoad = ({
         { message: `Hentet${ignoredSuffix}`, type: request.ignoredFileCount > 0 ? 'warning' : 'success' },
         true,
       );
+      awaitsUserDecision = outcome === 'awaitingUser';
       return outcome === 'awaitingUser' ? 'awaitingUser' : 'applied';
     } catch (error) {
-      preparation.focusTargetBeforeAction?.focus();
+      focusTargetBeforeAction?.focus();
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent (PWA) fejlede:', error);
@@ -330,30 +387,35 @@ export const useFileSaveLoad = ({
         type: 'error',
       });
       return 'error';
+    } finally {
+      if (!awaitsUserDecision) finishFileOperation();
     }
-  }, [criticalActions, requestApplyLoadedSnapshot, showOverlay]);
+  }, [beginFileOperation, criticalActions, finishFileOperation, requestApplyLoadedSnapshot, showOverlay]);
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
     if (loadFlow.phase !== 'preflight') return;
     const pending = loadFlow;
+    let awaitsOverwriteDecision = false;
     // Tilbage til idle; requestApplyLoadedSnapshot kan derefter selv føre flowet videre til
     // overwrite-bekræftelse, hvis der allerede findes data.
     setLoadFlow({ phase: 'idle' });
 
     try {
-      await requestApplyLoadedSnapshot(
+      awaitsOverwriteDecision = (await requestApplyLoadedSnapshot(
         pending.result,
         { message: 'Filen er indlæst — nogle felter blev sat til standardværdier.', type: 'warning' },
         pending.navigateToStamdataAfterApply,
-      );
+      )) === 'awaitingUser';
     } catch (error) {
       console.error('Hent (trods fejl) fejlede:', error);
       showOverlay({
         message: asError(error).message || 'Kunne ikke hente fil',
         type: 'error',
       });
+    } finally {
+      if (!awaitsOverwriteDecision) finishFileOperation();
     }
-  }, [loadFlow, requestApplyLoadedSnapshot, showOverlay]);
+  }, [finishFileOperation, loadFlow, requestApplyLoadedSnapshot, showOverlay]);
 
   const handleConfirmOverwriteApply = React.useCallback(async () => {
     if (loadFlow.phase !== 'overwrite') return;
@@ -374,8 +436,10 @@ export const useFileSaveLoad = ({
         message: asError(error).message || 'Kunne ikke hente fil',
         type: 'error',
       });
+    } finally {
+      finishFileOperation();
     }
-  }, [applyLoadedSnapshot, navigate, loadFlow, showOverlay]);
+  }, [applyLoadedSnapshot, finishFileOperation, navigate, loadFlow, showOverlay]);
 
   const handleSletAlt = React.useCallback(async () => {
     const focusTargetBeforeDeleteAll = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -423,8 +487,20 @@ export const useFileSaveLoad = ({
     : null;
 
   const dismissPendingLoad = React.useCallback(() => {
+    const requestId = loadFlow.phase === 'idle' ? undefined : loadFlow.result.requestId;
     setLoadFlow({ phase: 'idle' });
-  }, []);
+    finishFileOperation();
+    if (requestId) {
+      // Id-betinget oprydning bevarer en nyere PWA-request, som kan være ankommet,
+      // mens den nu afviste fil ventede i preflight-/overskrivelsesdialogen.
+      void markPendingPwaFileOpenRequestHandled(requestId).catch((error: unknown) => {
+        logWarning('Kunne ikke rydde afvist PWA-fil-request', {
+          context: 'useFileSaveLoad.dismissPendingLoad',
+          data: { errorMessage: asError(error).message },
+        });
+      });
+    }
+  }, [finishFileOperation, loadFlow]);
 
   const pendingPreflight = loadFlow.phase === 'preflight' ? loadFlow.result.preflightWarning : undefined;
   const pendingPreflightBugReportError = React.useMemo(() => {
@@ -443,5 +519,7 @@ export const useFileSaveLoad = ({
     handleLoadDespiteIssues,
     handleConfirmOverwriteApply,
     handleHentFromPwaRequest,
+    fileOperationInProgress: activeFileOperation !== null,
+    isFileOperationInProgress,
   };
 };

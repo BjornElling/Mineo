@@ -255,7 +255,10 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
           <input data-testid="before" type="text" style={{ position: 'fixed' }} />
           <StyledDateField
             value={value}
-            onCommit={(e) => setValue(e.target.value)}
+            onCommit={(e) => {
+              setValue(e.target.value);
+              return true;
+            }}
             sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
           />
         </Container>
@@ -287,7 +290,10 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
           <input data-testid="before" type="text" style={{ position: 'fixed' }} />
           <StyledTextField
             value={value}
-            onCommit={(e) => setValue(e.target.value)}
+            onCommit={(e) => {
+              setValue(e.target.value);
+              return true;
+            }}
             sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
           />
         </Container>

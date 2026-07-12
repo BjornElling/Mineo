@@ -5,7 +5,7 @@ import type { AppSettings } from '../settings/appSettingsSchema';
 
 export type AppSettingsContextValue = Readonly<{
   settings: AppSettings;
-  updateSettings: (patch: Readonly<Partial<AppSettings>>) => void;
+  updateSettings: (patch: Readonly<Partial<AppSettings>>) => boolean;
 }>;
 
 export const AppSettingsContext = React.createContext<AppSettingsContextValue | null>(null);

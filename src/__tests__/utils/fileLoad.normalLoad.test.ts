@@ -182,6 +182,26 @@ describe('fileLoad – normalLoadFlow', () => {
     }));
   });
 
+  it('rapporterer også ukendte data-sektioner med underscore-prefix', async () => {
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-001', advokat: '', sagsbehandler: '', skadelidte: 'Test',
+        skadestype: undefined, skadedato: undefined,
+      },
+      _fremtidigSektion: { bevaretHosAfsender: 'data' },
+    });
+    const file = new File([content], 'underscore.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
+      kind: 'unknownSection', path: '_fremtidigSektion',
+    }));
+  });
+
   it('stripper ukendt felt i kendt sektion, loader resten og rapporterer tabet via preflight', async () => {
     // Et felt der findes i filen men ikke i current schema er gemt brugerdata, som ikke kan indlæses.
     // Feltet strippes (sættes til standardværdi) og resten loades — men tabet rapporteres til brugeren

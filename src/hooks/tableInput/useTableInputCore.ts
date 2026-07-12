@@ -30,7 +30,7 @@ export type UseTableInputCoreOptions<TModel, TCanonical extends string, TFingerp
   value: TModel;
   locked?: boolean;
   onChange?: (e: TableInputChangeEvent<string>) => void;
-  onBlur?: (e: TableInputChangeEvent<TModel>) => void;
+  onBlur?: (e: TableInputChangeEvent<TModel>) => boolean | void;
   onErrorChange?: (info: TableInputErrorInfo) => void;
   externalErrorMessage?: string;
   inputRef?: React.Ref<HTMLInputElement>;
@@ -197,9 +197,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         pending: pendingCommitRef.current,
         // isEditing / åben editor, fysisk fokus, eller en afventende (endnu ikke-committet) draft-ændring.
         isActivelyEditing: isEditing || hasPhysicalFocus() || pendingDraftCommitRef.current,
-      },
-      // Grid-surface: epoch-checket er yderst (jf. fieldResyncMachine's klassificerede divergens).
-      { pendingHoldOutranksEpoch: false }
+      }
     );
     if (command.commitEpoch) lastAuthoritativeEpochRef.current = authoritativeEpoch;
     if (command.clearPending) pendingCommitRef.current = null;
@@ -325,7 +323,11 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         // Ikke-committbar: bevar committed værdi; persistér/bevar den RÅ draft, så fejlvisningen
         // (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
         pendingCommitRef.current = null;
-        writeInvalidDraft(rawDraft);
+        if (!writeInvalidDraft(rawDraft)) {
+          draftRef.current = committedDisplayValue;
+          setDraft(committedDisplayValue);
+          return false;
+        }
         setLocalVisualError('');
         draftRef.current = rawDraft;
         setDraft(rawDraft);
@@ -355,8 +357,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         // Værdi-commit er en no-op (committed værdi uændret) → intet onBlur/value-commit. Ryd alligevel en
         // evt. tilbageværende ugyldig rå draft; den fanger sin egen undo-frame (jf. FormPersistenceContext
         // asymmetrisk coalescing: en clear uden parret value-commit skal fanges, ellers springer undo den over).
-        clearInvalidDraftEntry();
-        return true;
+        return clearInvalidDraftEntry();
       }
 
       // Synk optimistisk til den committede repræsentation og hold resync tilbage, indtil `value`
@@ -373,11 +374,26 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       // value-commit, og den parrede clearInvalidDraft rider på samme frame. Modsat rækkefølge (clear først)
       // ville give TO undo-frames ved en rettelse fra ugyldigt→gyldigt input (undo skulle trykkes to gange).
       // Spejler useDraftField/felt-stien og kontrakt-noten i FormPersistenceContext ("onCommit EFTERFULGT af clear").
-      current.onBlur?.({ target: { value: nextPayload.model } });
-      clearInvalidDraftEntry();
+      try {
+        const committed = current.onBlur?.({ target: { value: nextPayload.model } });
+        if (
+          committed === false ||
+          !clearInvalidDraftEntry()
+        ) {
+          pendingCommitRef.current = null;
+          draftRef.current = committedDisplayValue;
+          setDraft(committedDisplayValue);
+          return false;
+        }
+      } catch {
+        pendingCommitRef.current = null;
+        draftRef.current = committedDisplayValue;
+        setDraft(committedDisplayValue);
+        return false;
+      }
       return true;
     },
-    [clearInvalidDraftEntry, writeInvalidDraft]
+    [clearInvalidDraftEntry, committedDisplayValue, writeInvalidDraft]
   );
 
   const handleChange = React.useCallback(

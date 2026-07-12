@@ -37,8 +37,8 @@ export type FieldErrorReporter = ((error: ReportableFieldError | undefined) => v
   getCurrentError?: () => FormFieldError | undefined;
   pageKey?: StorageKey;
   fieldName?: string;
-  commitInvalidDraft?: (rawDraft: string) => void;
-  clearInvalidDraft?: () => void;
+  commitInvalidDraft?: (rawDraft: string) => boolean;
+  clearInvalidDraft?: () => boolean;
 };
 
 export const getReportableFieldErrorMessage = (

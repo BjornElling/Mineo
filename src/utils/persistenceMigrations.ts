@@ -2,19 +2,13 @@ import type { StorageKey } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 
-export type PersistenceMigrationIssue = {
-  path: string;
-  reason: string;
-};
-
 export type PersistenceMigrationResult = {
   value: unknown;
-  issues: PersistenceMigrationIssue[];
 };
 
 type PersistenceMigrationStep = Readonly<{
   toVersion: typeof PERSISTED_DATA_VERSION;
-  migrate: (value: unknown) => Pick<PersistenceMigrationResult, 'value' | 'issues'>;
+  migrate: (value: unknown) => PersistenceMigrationResult;
 }>;
 
 export type PersistenceMigrationRegistry = Readonly<Partial<Record<
@@ -38,19 +32,15 @@ export const createPersistenceMigrator = (
 ): PersistedSectionMigrator => (pageKey, value, sourceVersion) => {
   const normalized = nullToUndefinedDeep(value);
   const step = registry[pageKey]?.[sourceVersion];
-  if (!step) return { value: normalized, issues: [] };
+  if (!step) return { value: normalized };
   // Gør `toVersion` load-bearing: en entry hvis mål ikke er den aktuelle version er en
-  // fejlkonfigureret migration (kun single-hop `fromVersion -> current` er tilladt). Kør den
-  // ikke — fald fail-closed tilbage til normaliseret input, så den efterfølgende current-
-  // schema-parse er den reelle gate, og rapportér mismatchet som et migrations-issue.
+  // fejlkonfigureret migration (kun single-hop `fromVersion -> current` er tilladt). Stop
+  // fail-closed; inputtet må ikke fortsætte som en tavs identity-migration.
   if (step.toVersion !== PERSISTED_DATA_VERSION) {
-    return {
-      value: normalized,
-      issues: [{
-        path: pageKey,
-        reason: `Migration fra version ${sourceVersion} har toVersion ${step.toVersion}, forventet ${PERSISTED_DATA_VERSION}`,
-      }],
-    };
+    throw new Error(
+      `Migration for '${pageKey}' fra version ${sourceVersion} har toVersion ${step.toVersion}, ` +
+      `forventet ${PERSISTED_DATA_VERSION}.`
+    );
   }
   return step.migrate(normalized);
 };

@@ -996,6 +996,12 @@ const eoFieldVisibilitySingleSource = defineRule({
   ],
 });
 
+const RAW_REGULERING_SERIES_BINDINGS = new Set([
+  'statistiskLoenudvikling',
+  'getStatistiskLoenudvikling',
+  'klLoenaftalerRaekker',
+]);
+
 const reguleringCanonicalForloebBoundary = forbidImports({
   id: 'domain/regulering-canonical-forloeb-boundary',
   description:
@@ -1003,18 +1009,48 @@ const reguleringCanonicalForloebBoundary = forbidImports({
   appliesTo: (relativePath) =>
     relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts'
     || relativePath === 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-  forbidden: (ref) => /\/(?:statistik|krl|klLoenaftaler|manuelProcentsats)Regulering$/.test(ref.moduleSpecifier),
+  forbidden: (ref) => {
+    if (/\/(?:statistik|krl|klLoenaftaler|manuelProcentsats)Regulering$/.test(ref.moduleSpecifier)) {
+      return true;
+    }
+    if (!/\/data\/(?:statistiskeRates|klLoenaftaler)$/.test(ref.moduleSpecifier)) {
+      return false;
+    }
+    // Namespace/default/dynamic/require kan omgå en named-binding-liste og forbydes derfor helt.
+    return (!ref.typeOnly && ref.namedBindings.length === 0)
+      || ref.namedBindings.some((binding) => RAW_REGULERING_SERIES_BINDINGS.has(binding));
+  },
   message: (ref) => `Direkte import af reguleringsserie (${ref.moduleSpecifier}) — brug ReguleringForloeb fra motor-modellen.`,
   violatingFixtures: [
     {
       relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
       code: "import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';",
     },
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+      code: "import { statistiskLoenudvikling } from '../../../data/statistiskeRates';",
+    },
+    {
+      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+      code: "import { klLoenaftalerRaekker } from '../../data/klLoenaftaler';",
+    },
+    {
+      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+      code: "const rawRates = await import('../../data/statistiskeRates');",
+    },
   ],
   cleanFixtures: [
     {
       relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
       code: "import type { ReguleringForloeb } from '../erstatningsopgoerelse/engines/reguleringForloeb';",
+    },
+    {
+      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+      code: "import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';",
+    },
+    {
+      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+      code: "import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';",
     },
   ],
 });
@@ -1044,12 +1080,39 @@ const eetDifferencekravCompositionBoundary = forbidImports({
 
 const documentGeneratorWriterImport = forbidImports({
   id: 'document/generator-writer-import-boundary',
-  description: 'Dokumentgeneratorer må kun bygge DocumentModel og må ikke importere det interne writer-target.',
+  description: 'Dokumentgeneratorer må kun bygge DocumentModel og må ikke importere writer-targets, kanaler eller den imperative modelrenderer.',
   appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
-  forbidden: (ref) => /(?:^|\/)writer(?:\/documentWriter)?$/.test(ref.moduleSpecifier),
-  message: (ref) => `Import af internt writer-target (${ref.moduleSpecifier}) — brug DocumentComposer.`,
-  violatingFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentWriter } from '../../writer';" }],
-  cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentComposer } from '../../model/documentModel';" }],
+  forbidden: (ref) => {
+    const moduleSpecifier = ref.moduleSpecifier.replaceAll('\\', '/');
+    const importsWriter = /(?:^|\/)writer(?:\/(?:documentWriter|index))?$/.test(moduleSpecifier);
+    const importsChannel = /(?:^|\/)(?:pdf|docx)(?:\/|$)/.test(moduleSpecifier);
+    const importsModelNamespace =
+      /(?:^|\/)model\/documentModel$/.test(moduleSpecifier)
+      && !ref.typeOnly
+      && ref.namedBindings.length === 0;
+    const importsImperativeRenderer =
+      ref.namedBindings.includes('renderDocumentModel') || importsModelNamespace;
+    const createsOwnSession =
+      ref.namedBindings.includes('createDocumentGenerationSession')
+      || (
+        /(?:^|\/)documentGenerationSession$/.test(moduleSpecifier)
+        && !ref.typeOnly
+        && ref.namedBindings.length === 0
+      );
+    return importsWriter || importsChannel || importsImperativeRenderer || createsOwnSession;
+  },
+  message: (ref) => `Import af intern dokumentrendering (${ref.moduleSpecifier}) — byg kun via DocumentComposer og den modtagne session.`,
+  violatingFixtures: [
+    { relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentWriter } from '../../writer/index';" },
+    { relativePath: 'src/document/generators/x/xDocument.ts', code: "import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';" },
+    { relativePath: 'src/document/generators/x/xDocument.ts', code: "import { renderDocumentModel } from '../../model/documentModel';" },
+    { relativePath: 'src/document/generators/x/xDocument.ts', code: "const model = await import('../../model/documentModel');" },
+    { relativePath: 'src/document/generators/x/xDocument.ts', code: "import { createDocumentGenerationSession } from '../../documentGenerationSession';" },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentComposer } from '../../model/documentModel';" },
+    { relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentGenerationSession } from '../../documentGenerationSession';" },
+  ],
 });
 
 const DOCUMENT_GENERATOR_CURSOR_MEMBERS = new Set(['getDoc', 'getY', 'setY', 'advanceY', 'ensureSpace', 'getTextWidth', 'getPageWidth', 'getContentWidthMm', 'addImageDataUrl']);

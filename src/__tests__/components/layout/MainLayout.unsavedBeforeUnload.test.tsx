@@ -46,8 +46,8 @@ vi.mock('../../../utils/fileHelpers', async (importOriginal) => {
 });
 
 vi.mock('../../../utils/fileHandleStorage', () => ({
-  deleteFileHandleFromIndexedDB: vi.fn(async () => {}),
-  saveFileHandleToIndexedDB: vi.fn(async () => {}),
+  deleteFileHandleFromIndexedDB: vi.fn(async () => true),
+  saveFileHandleToIndexedDB: vi.fn(async () => true),
   deletePendingPwaOpenRequestFromIndexedDB: vi.fn(async () => true),
   loadPendingPwaOpenRequestFromIndexedDB: vi.fn(async () => null),
   savePendingPwaOpenRequestToIndexedDB: vi.fn(async () => true),

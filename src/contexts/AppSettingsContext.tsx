@@ -29,6 +29,7 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
       const next = mergeAppSettings(prev, patch);
       return next;
     });
+    return true;
   }, []);
 
   React.useEffect(() => {

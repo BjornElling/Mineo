@@ -54,14 +54,14 @@ type FormApi = Pick<UsePersistedFormReturn<ErstatningsopgoerelseValues>, 'setVal
 export type EoFieldCommitHandlers = Readonly<{
   handleToggleChange: (fieldName: ToggleFieldName) => CommitHandler<boolean>;
   handleJaNejSkjulChange: (fieldName: JaNejSkjulFieldName) => CommitHandler<string | undefined>;
-  handleStringBlur: <K extends StringLikeKeys>(fieldName: K) => (event: CommitEvent<string | undefined>) => void;
-  handleIntegerBlur: <K extends NumberLikeKeys>(fieldName: K) => (event: CommitEvent<number | undefined>) => void;
-  handleNumberBlur: <K extends NumberLikeKeys>(fieldName: K) => (event: CommitEvent<number | undefined>) => void;
-  handleAmountBlur: <K extends AmountLikeKeys>(fieldName: K) => (event: CommitEvent<AmountValue | undefined>) => void;
+  handleStringBlur: <K extends StringLikeKeys>(fieldName: K) => CommitHandler<string | undefined>;
+  handleIntegerBlur: <K extends NumberLikeKeys>(fieldName: K) => CommitHandler<number | undefined>;
+  handleNumberBlur: <K extends NumberLikeKeys>(fieldName: K) => CommitHandler<number | undefined>;
+  handleAmountBlur: <K extends AmountLikeKeys>(fieldName: K) => CommitHandler<AmountValue | undefined>;
   commitField: <K extends keyof ErstatningsopgoerelseValues>(
     fieldName: K
-  ) => (event: CommitEvent<ErstatningsopgoerelseValues[K]>) => void;
-  handleIsoDateBlur: (fieldName: IsoDateFieldName) => (event: CommitEvent<ISODateString | undefined>) => void;
+  ) => CommitHandler<ErstatningsopgoerelseValues[K]>;
+  handleIsoDateBlur: (fieldName: IsoDateFieldName) => CommitHandler<ISODateString | undefined>;
 }>;
 
 /**
@@ -78,7 +78,7 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
       (event: CommitEvent<boolean>) => {
         // Immediate-commit widget: send fieldPath, ellers gætter undo-origin via focus-trackeren,
         // som peger på det forrige (tekst)felt — derfor lander undo-fokus forkert (fejl B).
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }), { fieldPath: String(fieldName) });
+        return setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -89,8 +89,8 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
     (fieldName: JaNejSkjulFieldName): CommitHandler<string | undefined> =>
       (event: CommitEvent<string | undefined>) => {
         const parsed = jaNejSkjulEnum.safeParse(event.target.value);
-        if (!parsed.success) return;
-        setValues((prev) => ({ ...prev, [fieldName]: parsed.data }), { fieldPath: String(fieldName) });
+        if (!parsed.success) return false;
+        return setValues((prev) => ({ ...prev, [fieldName]: parsed.data }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -106,7 +106,7 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
         const asString = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
         const trimmed = asString.trim();
         const nextValue = trimmed || undefined;
-        setValues((prev) => ({ ...prev, [fieldName]: nextValue }), { fieldPath: String(fieldName) });
+        return setValues((prev) => ({ ...prev, [fieldName]: nextValue }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -118,7 +118,7 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
   const handleIntegerBlur = React.useCallback(
     <K extends NumberLikeKeys>(fieldName: K) =>
       (event: CommitEvent<number | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
+        return setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -130,7 +130,7 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
   const handleNumberBlur = React.useCallback(
     <K extends NumberLikeKeys>(fieldName: K) =>
       (event: CommitEvent<number | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
+        return setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -141,7 +141,7 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
   const handleAmountBlur = React.useCallback(
     <K extends AmountLikeKeys>(fieldName: K) =>
       (event: CommitEvent<AmountValue | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
+        return setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -149,7 +149,7 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
   const commitField = React.useCallback(
     <K extends keyof ErstatningsopgoerelseValues>(fieldName: K) =>
       (event: CommitEvent<ErstatningsopgoerelseValues[K]>) => {
-        setFieldValue(fieldName, event.target.value);
+        return setFieldValue(fieldName, event.target.value);
       },
     [setFieldValue]
   );
@@ -158,7 +158,7 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
     (fieldName: IsoDateFieldName) =>
       (event: CommitEvent<ISODateString | undefined>) => {
         const nextValue = coerceToISODateString(event.target.value ?? undefined);
-        setValues((prev) => {
+        return setValues((prev) => {
           const next: ErstatningsopgoerelseValues = { ...prev };
           next[fieldName] = nextValue;
           return next;

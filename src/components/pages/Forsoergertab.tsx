@@ -125,7 +125,7 @@ const Forsoergertab = React.memo(() => {
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                setFieldValue('beregningsdato', today);
+                return setFieldValue('beregningsdato', today);
               }}
               focusRef={beregningsdatoInputRef}
             />

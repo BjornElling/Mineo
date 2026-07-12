@@ -32,7 +32,7 @@ const StandardLoenPage = () => {
   const form = usePersistedForm(aarsloenSchema, 'aarsloen', AARSLOEN_INITIAL_VALUES);
   const handleChange = React.useCallback(
     (rows: StandardLoenTableRow[], options?: { fieldPath?: string }) => {
-      form.setValues((prev) => ({ ...prev, tableData: rows }), options);
+      return form.setValues((prev) => ({ ...prev, tableData: rows }), options);
     },
     [form]
   );

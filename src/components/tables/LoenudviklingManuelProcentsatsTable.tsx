@@ -35,7 +35,7 @@ import { GridReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 
 export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   tableData: LoenudviklingManuelProcentsatsRow[];
-  onTableDataChange?: (data: LoenudviklingManuelProcentsatsRow[], origin?: { fieldPath?: string }) => void;
+  onTableDataChange?: (data: LoenudviklingManuelProcentsatsRow[], origin?: { fieldPath?: string }) => boolean;
   onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
   baseDateISO?: string;

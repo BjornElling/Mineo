@@ -1,4 +1,5 @@
 import React from 'react';
+import type { PwaLoadOutcome } from './useFileSaveLoad';
 import {
   clearPendingPwaFileOpenRequest,
   getPendingPwaFileOpenRequest,
@@ -11,35 +12,66 @@ import { asError } from '../utils/typeGuards';
 const PWA_OPEN_REQUEST_RETRY_INTERVAL_MS = 100;
 const PWA_OPEN_REQUEST_RETRY_WINDOW_MS = 3000;
 
+type PendingPwaConfirmation = Readonly<{
+  requestId: string;
+  fileName: string;
+}>;
+
 type UsePwaLaunchQueueArgs = {
   locationPathname: string;
   pendingLoadResultOpen: boolean;
   pendingOverwriteApplyOpen: boolean;
-  handleHentFromPwaRequest: (request: PwaFileOpenRequest) => Promise<unknown>;
-  showOverlay: (overlay: { message: string; type: 'success' | 'error' | 'warning' | 'info' }) => void;
+  fileOperationInProgress: boolean;
+  isFileOperationInProgress: () => boolean;
+  handleHentFromPwaRequest: (request: PwaFileOpenRequest) => Promise<PwaLoadOutcome>;
+};
+
+type UsePwaLaunchQueueResult = {
+  pendingPwaConfirmation: PendingPwaConfirmation | null;
+  confirmQueuedPwaFileOpen: () => void;
+  ignoreQueuedPwaFileOpen: () => void;
 };
 
 export const usePwaLaunchQueue = ({
   locationPathname,
   pendingLoadResultOpen,
   pendingOverwriteApplyOpen,
+  fileOperationInProgress,
+  isFileOperationInProgress,
   handleHentFromPwaRequest,
-  showOverlay,
-}: UsePwaLaunchQueueArgs): void => {
-  const isPwaLoadInProgressRef = React.useRef<boolean>(false);
+}: UsePwaLaunchQueueArgs): UsePwaLaunchQueueResult => {
+  const isPwaLoadInProgressRef = React.useRef(false);
+  const [pwaLoadInProgress, setPwaLoadInProgress] = React.useState(false);
   const activePwaRequestIdRef = React.useRef<string | null>(null);
-  // Sidste request-id vi faktisk har FORSØGT at loade (succes eller fejl). Auto-retry-timeren
-  // bruger den til kun at fyre for endnu-ikke-forsøgte requests (dens egentlige formål: at fange
-  // en request der dukkede op før event-listeneren var klar ved opstart). Et eksplicit nyt event
-  // (bruger-retry) går uden om timeren og gennem event-handleren, så den slags retry virker stadig.
-  // Uden denne deling kunne timeren auto-genforsøge en netop fejlet load samtidig med et event-retry
-  // → dobbelt-load af samme request (flaky test + reel race, jf. review 9.3 UF-2).
+  const queuedWhileBusyRef = React.useRef(false);
+  const pendingConfirmationRef = React.useRef<PendingPwaConfirmation | null>(null);
+  const [pendingPwaConfirmation, setPendingPwaConfirmation] =
+    React.useState<PendingPwaConfirmation | null>(null);
+  // Sidste request-id vi faktisk har forsøgt at loade. Auto-retry-timeren må kun fange
+  // requests, der ankom før event-listeneren var klar; et eksplicit event kan genforsøge.
   const lastAttemptedRequestIdRef = React.useRef<string | null>(null);
 
-  const processNextPwaFileOpenRequest = React.useCallback((allowAlreadyAttempted = false) => {
-    if (isPwaLoadInProgressRef.current) return;
-    if (pendingLoadResultOpen) return;
-    if (pendingOverwriteApplyOpen) return;
+  const updatePendingConfirmation = React.useCallback((request: PwaFileOpenRequest | null): void => {
+    const confirmation = request
+      ? { requestId: request.id, fileName: request.fileName }
+      : null;
+    pendingConfirmationRef.current = confirmation;
+    setPendingPwaConfirmation(confirmation);
+  }, []);
+
+  const queueLatestRequest = React.useCallback((request: PwaFileOpenRequest): void => {
+    queuedWhileBusyRef.current = true;
+    // Hvis bekræftelsen allerede er synlig, opdateres den straks til den seneste request.
+    // Ellers vises den først, når den aktive filhandling og dens dialoger er helt afsluttet.
+    if (pendingConfirmationRef.current !== null) {
+      updatePendingConfirmation(request);
+    }
+  }, [updatePendingConfirmation]);
+
+  const processNextPwaFileOpenRequest = React.useCallback((allowAlreadyAttempted = false): void => {
+    if (isPwaLoadInProgressRef.current || isFileOperationInProgress()) return;
+    if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
+    if (queuedWhileBusyRef.current || pendingConfirmationRef.current !== null) return;
 
     const request = getPendingPwaFileOpenRequest();
     if (!request) return;
@@ -49,29 +81,84 @@ export const usePwaLaunchQueue = ({
     activePwaRequestIdRef.current = request.id;
     lastAttemptedRequestIdRef.current = request.id;
     isPwaLoadInProgressRef.current = true;
+    setPwaLoadInProgress(true);
 
     void handleHentFromPwaRequest(request)
+      .then((outcome) => {
+        if (outcome === 'busy') {
+          queueLatestRequest(getPendingPwaFileOpenRequest() ?? request);
+        }
+      })
       .finally(() => {
         activePwaRequestIdRef.current = null;
         isPwaLoadInProgressRef.current = false;
+        setPwaLoadInProgress(false);
       });
-  }, [handleHentFromPwaRequest, pendingLoadResultOpen, pendingOverwriteApplyOpen]);
+  }, [
+    handleHentFromPwaRequest,
+    isFileOperationInProgress,
+    pendingLoadResultOpen,
+    pendingOverwriteApplyOpen,
+    queueLatestRequest,
+  ]);
+
+  const promoteQueuedRequest = React.useCallback((): void => {
+    if (!queuedWhileBusyRef.current) return;
+    if (isPwaLoadInProgressRef.current || isFileOperationInProgress()) return;
+    if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
+
+    const request = getPendingPwaFileOpenRequest();
+    if (!request) {
+      queuedWhileBusyRef.current = false;
+      updatePendingConfirmation(null);
+      return;
+    }
+    updatePendingConfirmation(request);
+  }, [
+    isFileOperationInProgress,
+    pendingLoadResultOpen,
+    pendingOverwriteApplyOpen,
+    updatePendingConfirmation,
+  ]);
+
+  const confirmQueuedPwaFileOpen = React.useCallback((): void => {
+    const confirmedRequestId = pendingConfirmationRef.current?.requestId;
+    updatePendingConfirmation(null);
+    queuedWhileBusyRef.current = false;
+
+    const latestRequest = getPendingPwaFileOpenRequest();
+    if (!latestRequest) return;
+    // Seneste request vinder også ved et event i samme øjeblik som brugerens klik.
+    if (confirmedRequestId !== latestRequest.id) {
+      lastAttemptedRequestIdRef.current = null;
+    }
+    processNextPwaFileOpenRequest(true);
+  }, [processNextPwaFileOpenRequest, updatePendingConfirmation]);
+
+  const ignoreQueuedPwaFileOpen = React.useCallback((): void => {
+    updatePendingConfirmation(null);
+    queuedWhileBusyRef.current = false;
+    void clearPendingPwaFileOpenRequest().catch((error: unknown) => {
+      logWarning('Kunne ikke rydde ignoreret PWA-fil-request', {
+        context: 'usePwaLaunchQueue.ignoreQueuedRequest',
+        data: { errorMessage: asError(error).message },
+      });
+    });
+  }, [updatePendingConfirmation]);
 
   React.useEffect(() => {
-    const handler = () => {
-      if (pendingLoadResultOpen || pendingOverwriteApplyOpen) {
-        const dropped = getPendingPwaFileOpenRequest();
-        if (dropped) {
-          // Best-effort oprydning af den droppede request; en IndexedDB-fejl her er
-          // ikke-fatal (selve sagsdata røres ikke), men må ikke blive en unhandled rejection.
-          void clearPendingPwaFileOpenRequest().catch((error: unknown) => {
-            logWarning('Kunne ikke rydde droppet PWA-fil-request', {
-              context: 'usePwaLaunchQueue.dropPendingRequest',
-              data: { errorMessage: asError(error).message },
-            });
-          });
-          showOverlay({ message: 'Ny fil blev forsøgt åbnet – prøv igen når du er færdig', type: 'warning' });
-        }
+    const handler = (): void => {
+      const request = getPendingPwaFileOpenRequest();
+      if (!request) return;
+
+      if (
+        isFileOperationInProgress()
+        || isPwaLoadInProgressRef.current
+        || pendingLoadResultOpen
+        || pendingOverwriteApplyOpen
+        || pendingConfirmationRef.current !== null
+      ) {
+        queueLatestRequest(request);
         return;
       }
       processNextPwaFileOpenRequest(true);
@@ -81,12 +168,32 @@ export const usePwaLaunchQueue = ({
     return () => {
       window.removeEventListener(Mineo_PWA_FILE_OPEN_EVENT, handler);
     };
-  }, [pendingLoadResultOpen, pendingOverwriteApplyOpen, processNextPwaFileOpenRequest, showOverlay]);
+  }, [
+    isFileOperationInProgress,
+    pendingLoadResultOpen,
+    pendingOverwriteApplyOpen,
+    processNextPwaFileOpenRequest,
+    queueLatestRequest,
+  ]);
 
   React.useEffect(() => {
-    if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
+    promoteQueuedRequest();
+    if (
+      fileOperationInProgress
+      || pwaLoadInProgress
+      || pendingLoadResultOpen
+      || pendingOverwriteApplyOpen
+      || queuedWhileBusyRef.current
+    ) return;
     processNextPwaFileOpenRequest();
-  }, [pendingLoadResultOpen, pendingOverwriteApplyOpen, processNextPwaFileOpenRequest]);
+  }, [
+    fileOperationInProgress,
+    pwaLoadInProgress,
+    pendingLoadResultOpen,
+    pendingOverwriteApplyOpen,
+    processNextPwaFileOpenRequest,
+    promoteQueuedRequest,
+  ]);
 
   React.useEffect(() => {
     if (locationPathname !== '/open') return;
@@ -98,28 +205,36 @@ export const usePwaLaunchQueue = ({
 
     const tick = (): void => {
       if (cancelled) return;
-      if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
       const request = getPendingPwaFileOpenRequest();
-      // Auto-retry kun for en request vi ikke allerede har forsøgt. En fejlet load genforsøges
-      // ikke automatisk — den venter på et nyt event (bruger-retry).
       if (request && request.id !== lastAttemptedRequestIdRef.current) {
-        processNextPwaFileOpenRequest();
+        if (isFileOperationInProgress() || isPwaLoadInProgressRef.current) {
+          queueLatestRequest(request);
+        } else if (!pendingLoadResultOpen && !pendingOverwriteApplyOpen) {
+          processNextPwaFileOpenRequest();
+        }
       }
 
-      if (Date.now() - startedAt >= PWA_OPEN_REQUEST_RETRY_WINDOW_MS) {
-        return;
-      }
-
+      if (Date.now() - startedAt >= PWA_OPEN_REQUEST_RETRY_WINDOW_MS) return;
       timeoutId = window.setTimeout(tick, PWA_OPEN_REQUEST_RETRY_INTERVAL_MS);
     };
 
     timeoutId = window.setTimeout(tick, PWA_OPEN_REQUEST_RETRY_INTERVAL_MS);
-
     return () => {
       cancelled = true;
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
     };
-  }, [locationPathname, pendingLoadResultOpen, pendingOverwriteApplyOpen, processNextPwaFileOpenRequest]);
+  }, [
+    isFileOperationInProgress,
+    locationPathname,
+    pendingLoadResultOpen,
+    pendingOverwriteApplyOpen,
+    processNextPwaFileOpenRequest,
+    queueLatestRequest,
+  ]);
+
+  return {
+    pendingPwaConfirmation,
+    confirmQueuedPwaFileOpen,
+    ignoreQueuedPwaFileOpen,
+  };
 };

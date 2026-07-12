@@ -118,7 +118,7 @@ export default function EoSagsinfoSection() {
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
-                  setValues((prev) => ({ ...prev, opgørelseLavetDen: today }), { fieldPath: 'opgørelseLavetDen' });
+                  return setValues((prev) => ({ ...prev, opgørelseLavetDen: today }), { fieldPath: 'opgørelseLavetDen' });
                 }}
                 focusRef={opgoerelseLavetDenInputRef}
               />

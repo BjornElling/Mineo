@@ -20,20 +20,8 @@
  *     lagger). Indtil `format(value)` faktisk divergerer fra værdien-ved-commit, må resync ikke trække
  *     draften tilbage til den stale committede værdi (silent-rollback/flicker).
  *
- * ## Klassificeret surface-divergens (jf. greenfield #25, brugerens reservation)
- * Præcis ét punkt afviger reelt mellem de to surfaces: **hvilket værn der er yderst — pending-guarden
- * eller epoch-checket** (`pendingHoldOutranksEpoch`).
- *
- *  - **Form (`useDraftField`)**: pending-guarden er yderst. Et pending-*hold* (proppen har endnu ikke
- *    indhentet) returnerer FØR epoch-checket og opdaterer ikke epoch-ref'en — et autoritativt replace,
- *    der rammer i pending-vinduet, udskydes derved ét render til proppen har indhentet.
- *  - **Grid (`useTableInputCore`)**: epoch-checket er yderst. Et autoritativt replace rydder pending og
- *    resyncer straks, også midt i pending-vinduet.
- *
- * Divergensen er kun observerbar i et i praksis uopnåeligt kapløb (commit, dernæst undo-til-præcis-
- * pre-commit-værdi, ankommet før `value`-proppen har sat sig). Den er derfor **bevaret verbatim**
- * (bucket 3: uafklaret — ikke konverteret i dette trin) og eksponeret som en eksplicit, navngiven
- * policy frem for et skjult `isGrid`-flag. Kandidat til bevidst konvergens i et senere trin.
+ * Autoritative replace-events står yderst på begge surfaces. Det er nødvendigt, fordi et semantisk
+ * no-op commit ellers kan holde samme formatterede værdi uændret for evigt og blokere load/reset/restore.
  */
 
 export type FieldResyncPending = Readonly<{
@@ -57,11 +45,6 @@ export type FieldResyncFacts = Readonly<{
   isActivelyEditing: boolean;
 }>;
 
-export type FieldResyncPolicy = Readonly<{
-  /** Se modul-doc'en: form = `true` (pending yderst), grid = `false` (epoch yderst). */
-  pendingHoldOutranksEpoch: boolean;
-}>;
-
 export type FieldResyncCommand = Readonly<{
   /** Draften skal sættes til denne værdi; `null` = lad draften være urørt. */
   nextDraft: string | null;
@@ -73,12 +56,6 @@ export type FieldResyncCommand = Readonly<{
   isAuthoritativeReplace: boolean;
 }>;
 
-const HOLD: Omit<FieldResyncCommand, 'commitEpoch'> = {
-  nextDraft: null,
-  clearPending: false,
-  isAuthoritativeReplace: false,
-};
-
 const isPendingHold = (facts: FieldResyncFacts): boolean =>
   facts.pending !== null && facts.currentFormattedValue === facts.pending.formattedValueAtCommit;
 
@@ -86,26 +63,10 @@ const isPendingHold = (facts: FieldResyncFacts): boolean =>
  * Afgør resync-handlingen for ét effekt-gennemløb. Ren funktion: ingen refs, ingen React, ingen
  * side-effekter — kalderen udfører det returnerede {@link FieldResyncCommand}.
  */
-export const decideFieldResync = (facts: FieldResyncFacts, policy: FieldResyncPolicy): FieldResyncCommand => {
+export const decideFieldResync = (facts: FieldResyncFacts): FieldResyncCommand => {
   const pendingExisted = facts.pending !== null;
-
-  if (policy.pendingHoldOutranksEpoch) {
-    // Form-ordering: pending-guarden er yderst (også over epoch).
-    if (isPendingHold(facts)) {
-      // Hold: proppen har endnu ikke indhentet commit'et. Epoch-ref'en opdateres IKKE (udskyd
-      // autoritativ-replace-detektionen til proppen har sat sig).
-      return { ...HOLD, commitEpoch: false };
-    }
-    if (facts.epochChanged) {
-      return { nextDraft: facts.externalSource, clearPending: pendingExisted, commitEpoch: true, isAuthoritativeReplace: true };
-    }
-    if (facts.isActivelyEditing) {
-      return { nextDraft: null, clearPending: pendingExisted, commitEpoch: true, isAuthoritativeReplace: false };
-    }
-    return { nextDraft: facts.externalSource, clearPending: pendingExisted, commitEpoch: true, isAuthoritativeReplace: false };
-  }
-
-  // Grid-ordering: epoch-checket er yderst.
+  // Autoritative replacements vinder altid over optimistiske commit-hold. Ellers kan et
+  // semantisk no-op commit holde samme formatterede værdi for evigt og blokere load/reset/restore.
   if (facts.epochChanged) {
     return { nextDraft: facts.externalSource, clearPending: pendingExisted, commitEpoch: true, isAuthoritativeReplace: true };
   }

@@ -30,12 +30,8 @@ import EOKontrolTabel from './erstatningsopgoerelse/EOKontrolTabel';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import {
-  buildEetImportContext,
-  buildUnavailableEetImportContext,
-} from '../../domain/erhvervsevnetab/eetImportPort';
 import { buildTafRanges } from '../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import type { ISODateString } from '../../types/branded';
+import { buildMidlertidigtEetImportContext } from '../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
 
 const TAB_KEYS = {
   EO_OPLYSNINGER: 'eo_oplysninger',
@@ -49,13 +45,6 @@ const TAB_KEYS = {
 type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
 
 const EO_SNAPSHOT_VERSION = 'eo-snapshot-v1';
-
-const resolveTafSlutdato = (
-  ranges: readonly Readonly<{ til: ISODateString }>[]
-): ISODateString | undefined => ranges.reduce<ISODateString | undefined>(
-  (latest, range) => (latest && latest > range.til ? latest : range.til),
-  undefined
-);
 
 /**
  * Erstatningsopgørelse-komponent til samlet opgørelse af erstatningskrav
@@ -140,14 +129,12 @@ const Erstatningsopgoerelse = React.memo(() => {
 
     const revision = buildInspektionRevision();
     const midlertidigtEetImportContext = eoValues.midlertidigtEetFraEetSiden === 'Ja'
-      ? (() => {
-        const slutdato = resolveTafSlutdato(buildTafRanges(eoValues, {
+      ? buildMidlertidigtEetImportContext(
+        midlertidigtEetInsertSource,
+        buildTafRanges(eoValues, {
           skadedatoISO: stamdata.skadedato,
-        }));
-        return slutdato
-          ? buildEetImportContext(midlertidigtEetInsertSource, slutdato)
-          : buildUnavailableEetImportContext(midlertidigtEetInsertSource, 'taf_slutdato_missing');
-      })()
+        })
+      )
       : undefined;
 
     return computeEoSnapshot({
@@ -201,7 +188,7 @@ const Erstatningsopgoerelse = React.memo(() => {
 
   const handleOffentligeYdelserRowsChange = React.useCallback(
     (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>, origin?: { fieldPath?: string }) => {
-      setFormValues((prev) => ({
+      return setFormValues((prev) => ({
         ...prev,
         offentligeYdelserRows: newData,
       }), origin);
@@ -214,7 +201,7 @@ const Erstatningsopgoerelse = React.memo(() => {
       updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'],
       origin?: { fieldPath?: string }
     ) => {
-      setFormValues((prev) => ({
+      return setFormValues((prev) => ({
         ...prev,
         loenindkomstAnsaettelsesforhold: updater(prev.loenindkomstAnsaettelsesforhold),
       }), origin);

@@ -30,7 +30,7 @@ const EetTablePage = () => {
   const form = usePersistedForm(erhvervsevnetabSchema, 'erhvervsevnetab', ERHVERVSEVNETAB_INITIAL_VALUES);
   const handleChange = React.useCallback(
     (rows: ErhvervsevnetabValues['aslAfgoerelser'], origin?: { fieldPath?: string }) => {
-      form.setValues((prev) => ({ ...prev, aslAfgoerelser: rows }), origin);
+      return form.setValues((prev) => ({ ...prev, aslAfgoerelser: rows }), origin);
     },
     [form]
   );

@@ -7,7 +7,7 @@ interface UseOmregningToggleProps {
   gate: AarsloenOmregningGate;
   tabelRef: React.RefObject<StandardLoenTableHandle | null>;
   toggleRef: React.RefObject<StyledToggleSwitchHandle | null>;
-  onEnabledChange: (enabled: boolean) => void;
+  onEnabledChange: (enabled: boolean) => boolean;
 }
 
 interface UseOmregningToggleReturn {
@@ -61,11 +61,11 @@ export const useOmregningToggle = ({
         }
 
         // Ingen state-ændring
-        return;
+        return false;
       }
 
       // Gyldig ændring → opdater persisted state
-      onEnabledChange(newValue);
+      return onEnabledChange(newValue);
     },
     [
       gate,

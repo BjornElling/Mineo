@@ -11,6 +11,8 @@ const isRowEmpty = (row: Row): boolean => row.value === undefined || row.value.t
 const getRowId = (row: Row): string => row.id;
 const withRowId = (row: Row, id: string): Row => ({ ...row, id });
 const fingerprint = (rows: readonly Row[]): string => JSON.stringify(rows.map((r) => [r.id, r.value ?? null]));
+const createOnChange = (result = true) =>
+  vi.fn((_rows: Row[], _origin?: { fieldPath?: string }): boolean => result);
 
 const makeNormalize = (minRows: number, prefix = 'row') => (rows: readonly Row[]): Row[] =>
   normalizeGridRows({ rows, minRows, getRowId, isRowEmpty, createEmptyRow: (seed) => ({ id: createEmptyRowId(prefix, seed) }) });
@@ -21,7 +23,7 @@ type Harness = {
 
 const renderCore = (
   initialTableData: Row[],
-  onTableDataChange: (rows: Row[], origin?: { fieldPath?: string }) => void,
+  onTableDataChange: (rows: Row[], origin?: { fieldPath?: string }) => boolean,
   options?: { minRows?: number; keepLeadingRows?: number; normalizeRows?: (rows: readonly Row[]) => Row[] }
 ) => {
   const ref: Harness = { api: null as unknown as Harness['api'] };
@@ -45,7 +47,7 @@ const renderCore = (
 
 describe('useGridRowPersistenceCore', () => {
   it('strip-empties: en commit persisterer kun non-empty rækker (ikke den efterfølgende tomme)', async () => {
-    const onChange = vi.fn();
+    const onChange = createOnChange();
     const { ref } = renderCore([{ id: 'r1', value: 'a' }], onChange);
 
     await act(async () => {
@@ -65,7 +67,7 @@ describe('useGridRowPersistenceCore', () => {
   });
 
   it('reconcile-resync: en prop-resync til tom række kan bevare tidligere id (undo-fokus-invariant)', async () => {
-    const onChange = vi.fn();
+    const onChange = createOnChange();
     // Start med én udfyldt række (id r1); efter commit er internal = [r1(udfyldt), trailing-empty].
     const { ref, rerender } = renderCore([{ id: 'r1', value: 'a' }], onChange);
 
@@ -91,7 +93,7 @@ describe('useGridRowPersistenceCore', () => {
   });
 
   it('reconcile-resync: en ikke-tom incoming-række beholder data-id og får fokus-alias', async () => {
-    const onChange = vi.fn();
+    const onChange = createOnChange();
     const { ref, rerender } = renderCore([{ id: 'old-id', value: 'a' }], onChange);
 
     await act(async () => {
@@ -103,7 +105,7 @@ describe('useGridRowPersistenceCore', () => {
   });
 
   it('keepLeadingRows: en låst ledende række gemmes altid, selv når den er tom', async () => {
-    const onChange = vi.fn();
+    const onChange = createOnChange();
     // Base-bevidst normalisering (som Lønudvikling manuel): rows[0] er den låste basisrække,
     // resten normaliseres som en tail med én efterfølgende tom række.
     const baseAwareNormalize = (rows: readonly Row[]): Row[] => {
@@ -134,7 +136,7 @@ describe('useGridRowPersistenceCore', () => {
   });
 
   it('flush-guard: et køet payload, der ikke længere matcher den aktuelle state, droppes (ingen stale persist)', async () => {
-    const onChange = vi.fn();
+    const onChange = createOnChange();
     const { ref } = renderCore([{ id: 'r1', value: 'a' }], onChange);
 
     // Kø et payload OG overskriv staten i samme commit med noget andet end det køede.
@@ -148,5 +150,22 @@ describe('useGridRowPersistenceCore', () => {
     });
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('kvitterer ikke fingerprintet når persistence-callbacken afviser', async () => {
+    const onChange = createOnChange(false);
+    const { ref } = renderCore([{ id: 'r1', value: 'a' }], onChange);
+    const before = ref.api.lastPersistedFingerprintRef.current;
+
+    await act(async () => {
+      ref.api.setInternalTableData((prev) => {
+        const normalized = makeNormalize(2)(prev.map((row) => ({ ...row, value: row.id === 'r1' ? 'b' : row.value })));
+        ref.api.queuePersist(normalized, 'r1:0');
+        return normalized;
+      });
+    });
+
+    expect(onChange).toHaveBeenCalled();
+    expect(ref.api.lastPersistedFingerprintRef.current).toBe(before);
   });
 });
