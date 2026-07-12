@@ -769,7 +769,7 @@ const persistenceCommittedMirror = defineRule({
 
 // --- Form-kontrakt: ingen microtask-/Promise-tick i commit-sensitiv kode -------
 
-const COMMIT_SENSITIVE_PREFIXES = ['src/components/', 'src/hooks/', 'src/utils/', 'src/rowDrafts/'];
+const COMMIT_SENSITIVE_PREFIXES = ['src/components/', 'src/hooks/', 'src/utils/', 'src/rowDrafts/', 'src/criticalActions/'];
 const isCommitSensitive = (relativePath: string): boolean =>
   COMMIT_SENSITIVE_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
 
@@ -818,6 +818,50 @@ const promiseTickBoundary = forbidCalls({
     { relativePath: 'src/utils/x.ts', code: 'const p = Promise.resolve(value);' },
     // Zero-arg uden await/then (fx som initial-værdi) er ikke en tick.
     { relativePath: 'src/utils/x.ts', code: 'let queue = Promise.resolve();' },
+  ],
+});
+
+// --- Critical-action-barriere: ingen DOM-scanning eller frame-/timeout-venten -----
+
+/**
+ * critical-action-contract.md §2 lover normativt, at deltagere ALDRIG opdages via DOM-scanning, og
+ * at klargøring aldrig venter Promise-ticks, animation frames eller timeouts — barrieren afventer kun
+ * deltagernes eksplicitte commit-/persistence-promises. Promise-tick + queueMicrotask er allerede
+ * dækket af de commit-sensitive regler (nu inkl. `src/criticalActions/`); denne regel lukker
+ * resten af §2's løfte, så en fremtidig regression ikke kan genindføre det gamle timing-baserede
+ * mønster inde i selve barrieren. `document.activeElement` (fokus-mål-capture, ikke deltager-
+ * opdagelse) er en property-access og rammes derfor ikke.
+ */
+const isCriticalActionModule = (relativePath: string): boolean =>
+  relativePath.startsWith('src/criticalActions/');
+
+const criticalActionNoDomScanOrFrameWait = forbidCalls({
+  id: 'criticalAction/no-dom-scan-or-frame-wait',
+  description:
+    'critical-action-barrieren må ikke DOM-scanne (querySelector*/getElementsBy*) eller vente på frames/timeouts (requestAnimationFrame/setTimeout/setInterval) — den afventer kun eksplicitte deltager-promises (kontrakt §2).',
+  appliesTo: isCriticalActionModule,
+  antiRot: true,
+  forbidden: (ref) =>
+    ref.calleeName === 'requestAnimationFrame' ||
+    ref.calleeName === 'setTimeout' ||
+    ref.calleeName === 'setInterval' ||
+    ref.calleeName === 'querySelector' ||
+    ref.calleeName === 'querySelectorAll' ||
+    ref.calleeName === 'getElementById' ||
+    ref.calleeName === 'getElementsByClassName' ||
+    ref.calleeName === 'getElementsByTagName',
+  message: (ref) =>
+    `${ref.calleeText} i critical-action-barrieren — DOM-scanning/frame-venten er forbudt (kontrakt §2); afvent eksplicitte deltager-promises.`,
+  violatingFixtures: [
+    { relativePath: 'src/criticalActions/x.ts', code: 'requestAnimationFrame(() => flush());' },
+    { relativePath: 'src/criticalActions/x.ts', code: 'setTimeout(commit, 0);' },
+    { relativePath: 'src/criticalActions/x.ts', code: 'const el = document.querySelector("[data-editor]");' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/criticalActions/x.ts', code: 'await participant.commit();' },
+    { relativePath: 'src/criticalActions/x.ts', code: 'const el = document.activeElement;' },
+    // Uden for barrieren er frame-planlægning fortsat tilladt (fx kosmetisk fokus).
+    { relativePath: 'src/components/x.tsx', code: 'requestAnimationFrame(() => focus());' },
   ],
 });
 
@@ -1048,6 +1092,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   persistenceCommittedMirror,
   queueMicrotaskBoundary,
   promiseTickBoundary,
+  criticalActionNoDomScanOrFrameWait,
   eoFieldVisibilitySingleSource,
   reguleringCanonicalForloebBoundary,
   eetDifferencekravCompositionBoundary,

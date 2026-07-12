@@ -147,7 +147,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   // committede repræsentation, mens `value`-proppen endnu ikke har indhentet (parent-rerender lagger).
   // Indtil `format(value)` faktisk ændrer sig fra værdien-ved-commit, må resync IKKE trække draften
   // tilbage til den stale committede værdi. (Bevarer den gamle pendingValueResync-determinisme.)
-  const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string; target: string } | null>(null);
+  const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string } | null>(null);
 
   const hasPhysicalFocus = React.useCallback(
     (): boolean => elementHasPhysicalFocus(inputElementRef?.current ?? null),
@@ -226,7 +226,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
         // Bundne felter rydder `invalidDrafts` via kalderens onCommit-wrapper (efter sektion-commit).
         if (!isBound) clearLocalInvalidDraft();
         const target = format(result.value);
-        pendingCommitRef.current = { formattedValueAtCommit: formattedValue, target };
+        pendingCommitRef.current = { formattedValueAtCommit: formattedValue };
         setDraftState(target);
         onCommit(result.value);
         return;

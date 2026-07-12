@@ -273,6 +273,13 @@ export const computeEoSnapshot = (args: Readonly<{
     // TAF-ranges bygges fra de rækker der stadig kan parses, så kontrollaget kan vise den samme clamping
     // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
     // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
+    //
+    // BEVIDST UDELADT (brugerbeslutning, greenfield #23-review): reguleringsforløbet vises IKKE i denne
+    // fejl-tilstand. Efter #23 er det viste reguleringsforløb udelukkende den kanoniske serie fra det
+    // autoritative pdfModel (ingen re-derivation) — som netop ikke bygges her. Kontrolfanen fail-closer
+    // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
+    // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
+    // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
     const svieSmerteForInspektion = computeSvieSmerteEngine({
       erstatningsopgoerelse: effectiveEoValues,
       stamdata: {

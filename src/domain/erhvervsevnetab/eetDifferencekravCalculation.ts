@@ -991,6 +991,11 @@ export const composeEetDifferencekravCalculation = (
   const forligFactor = reducerer ? input.forlig!.factor : null;
   const forligLabel = reducerer ? input.forlig!.label : null;
   const forligDato = reducerer ? (input.forligDato ?? null) : null;
+  // BEVIDST afvigelse fra EO's forlig-skalering: EET afrunder det forligsreducerede differencekrav
+  // til hele KRONER (round0), fordi det matcher den pre-MoneyOre-migrations juridiske afrunding 1:1.
+  // Erstat IKKE dette med `scaleMoneyOre(x, factor)` (der afrunder til hele ØRE) for symmetri med EO —
+  // det ville ændre erstatningsbeløbet (op til ~1 kr.). Divergensen er domænebestemt, ikke en
+  // utilsigtet parallel; se greenfield #36-reviewet.
   const differencekravOre = forligFactor !== null
     ? fromKroner(round0(toKroner(differencekravFoerForligOre) * forligFactor))
     : differencekravFoerForligOre;

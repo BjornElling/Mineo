@@ -52,4 +52,9 @@ Gem, manuel/PWA-indlæsning, sidenavigation samt global undo/redo.
 
 ## 5. Kendte undtagelser
 
-Ingen.
+- **Slet alt** (`handleSletAlt` i `useFileSaveLoad.ts`) rutes bevidst IKKE gennem coordinatoren.
+  Handlingen destruerer al committed sagsstate og afslutter med en fuld sidegenindlæsning
+  (`window.location.href = '/stamdata'`), der uanset omgår SPA-barrieren. En åben, ikke-committet
+  editor-draft ville alligevel blive slettet, så en commit-klargøring ville være meningsløs — der er
+  derfor ingen datatabsrisiko ved undtagelsen. Handlingen aflæser `document.activeElement` udelukkende
+  for at kunne genskabe fokus, hvis brugeren annullerer bekræftelses-dialogen (ikke deltager-opdagelse).

@@ -40,7 +40,7 @@ describe('calculationDataCatalog', () => {
       kapitaliseringstabeller: 'c850fb5803f6bb7dc77e545c5d6fdd17ff6a87b5facdd9c7f34e4424ff29a7c9',
       'kl-loenaftaler': 'c75de1dc16462569b7fcfe4bab5860b4c978d50d0fdb68fe4d4580c66cda9780',
       'krl-satstabeller': '080e201d0300a4354e50ad939a698412cdc4d7af1764192cd79b19c0403e53d6',
-      'lovbestemte-satser': '4572afe3cb20aea737ce9f2aae201faaaf50329e5215a4ba3ddcc7d80d74784c',
+      'lovbestemte-satser': '64fc2cb0626d361cd3260d2f904ffe489bc36b5d86c7f6ae64d6abe92bf96005',
       'offentlig-loen-kl': 'd6b006a41c0a896094f95ae6668d48f808010eb8ed135d769006362400643610',
       'offentlig-loen-rltn': '459d6e3bf7963bfda6c7f94b5a400c4a53c1c71598013649ae8ff59e04994305',
       overenskomster: '9cc665fd09fbcc671c2e2be099cb2e39ef87ec3f5e06664298314dbff31503ec',

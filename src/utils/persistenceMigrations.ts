@@ -38,7 +38,21 @@ export const createPersistenceMigrator = (
 ): PersistedSectionMigrator => (pageKey, value, sourceVersion) => {
   const normalized = nullToUndefinedDeep(value);
   const step = registry[pageKey]?.[sourceVersion];
-  return step ? step.migrate(normalized) : { value: normalized, issues: [] };
+  if (!step) return { value: normalized, issues: [] };
+  // Gør `toVersion` load-bearing: en entry hvis mål ikke er den aktuelle version er en
+  // fejlkonfigureret migration (kun single-hop `fromVersion -> current` er tilladt). Kør den
+  // ikke — fald fail-closed tilbage til normaliseret input, så den efterfølgende current-
+  // schema-parse er den reelle gate, og rapportér mismatchet som et migrations-issue.
+  if (step.toVersion !== PERSISTED_DATA_VERSION) {
+    return {
+      value: normalized,
+      issues: [{
+        path: pageKey,
+        reason: `Migration fra version ${sourceVersion} har toVersion ${step.toVersion}, forventet ${PERSISTED_DATA_VERSION}`,
+      }],
+    };
+  }
+  return step.migrate(normalized);
 };
 
 // Registrér kun konkrete, kendte schema-overgange. Et versionsmismatch uden en

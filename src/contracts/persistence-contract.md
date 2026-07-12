@@ -44,9 +44,12 @@ App-settings er ikke omfattet; se `app-settings.md`.
    aldrig downloades. En sink med read-back (File System Access) verificeres ved at læse de
    faktisk skrevne bytes tilbage. Ved verifikationsfejl afbrydes gemningen med en synlig dansk fejl.
 
-`.eo`-bytes ↔ container-model går gennem præcis én grænse (`EoFileCodec`): `buildEoFileContainer`
-+ `encodeEoFile` outbound (save), `decodeEoFile` inbound (load, delt af manuel picker og PWA-handle).
-Samme rå bytes afkodes altid ens uanset kilde.
+`.eo`-bytes ↔ container-model: al **load-inbound** afkodning går gennem præcis én grænse
+(`EoFileCodec`): `buildEoFileContainer` + `encodeEoFile` outbound (save), `decodeEoFile` inbound
+(load, delt af manuel picker og PWA-handle). Samme rå bytes afkodes altid ens uanset kilde.
+Save-sidens read-back-verifikation (`verifyAfterSave`) er en bevidst SEPARAT, strikt
+integritetskontrol (dekrypter → re-parse mod det strikte container-schema) og deler ikke
+grænse med den load-tolerante/migrerende afkodning.
 
 **I/O-porte og diskriminerede resultater.** Hvor bytes læses fra og skrives til er typede porte, adskilt
 fra kodning/verifikation/UI-flow:

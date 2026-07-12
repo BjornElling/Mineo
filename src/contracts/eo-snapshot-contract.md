@@ -171,6 +171,14 @@ Kontrollaget må ikke lave nye fallback-enginekald for sektions-**afhængige** d
 (TAF-totaler, løn-afledte beløb). Når autoritativt engine-output mangler, skal kontrollaget vise
 tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
 
+**Reguleringsforløbet er sektions-afhængigt og fail-closes derfor i validerings-fejl-stien**
+(brugerbeslutning, greenfield #23-review): det viste reguleringsforløb er efter #23 udelukkende
+den kanoniske serie fra det autoritative `pdfModel` (ingen re-derivation), som netop ikke bygges,
+når autoritativ beregning er blokeret. EOInspektion viser derfor reguleringsafsnittet som
+placeholders (ingen indeks-/værditabeller), indtil valideringsfejlen er løst. Der må IKKE
+genindføres en separat fejl-tilstands-serie for regulering; det ville kunne vise en tabel, der
+ikke svarer til nogen autoritativ beregning.
+
 ---
 
 ## 3. Invariant-klassificering

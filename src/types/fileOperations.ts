@@ -54,7 +54,7 @@ export type SaveFileResult =
       fieldCount?: number;
       /** Antal data-sektioner. */
       sections?: number;
-      /** Om filen blev verificeret via read-back (kun File System Access-sinken). */
+      /** Om artefaktet bestod verifikation (read-back for File System Access, in-memory før download). */
       verified?: boolean;
     }
   | { status: 'cancelled' };

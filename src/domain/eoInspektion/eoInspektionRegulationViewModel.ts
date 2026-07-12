@@ -11,6 +11,7 @@ import type { RegulationIndexTimeline } from './eoInspektionRegulationTypes';
 import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
+import { resolveForloebForAnsaettelse } from '../erstatningsopgoerelse/engines/reguleringForloeb';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -255,9 +256,6 @@ export function buildRegulationInspektionSections(
   const canonicalSegmentsByEmploymentId = new Map(
     (canonicalOutput?.regulering.perAnsaettelse ?? []).map((entry) => [entry.ansaettelsesforholdId, entry.loenudviklingSegmenter] as const)
   );
-  const forloebByEmploymentId = new Map(
-    loenudvikling?.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry.forloeb] as const) ?? []
-  );
   const tafRanges = (canonicalOutput?.periodiseringer.tafPerioder ?? eoValues.tafPerioder ?? [])
     .flatMap((range) => (range.fra && range.til ? [{ fra: range.fra, til: range.til }] : []));
 
@@ -270,8 +268,11 @@ export function buildRegulationInspektionSections(
 
     const sectionId = `regulation.${af.ansaettelsesforholdId}`;
     const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);
-    const forloeb = forloebByEmploymentId.get(af.ansaettelsesforholdId)
-      ?? (loenudvikling?.perAnsaettelse.length === 0 ? loenudvikling.forloeb : undefined);
+    const forloeb = resolveForloebForAnsaettelse(
+      loenudvikling?.perAnsaettelse ?? [],
+      loenudvikling?.forloeb,
+      af.ansaettelsesforholdId
+    );
     const anvendtReguleringsdato = ansaettelsesforhold
       ? resolveAnvendtReguleringsdato({
           beregnesUdFra: eoValues.beregnesUdFra,

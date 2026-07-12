@@ -190,7 +190,11 @@ describe('eoSnapshotToInspektionView', () => {
     });
   });
 
-  it('returnerer ready-view når snapshot har valideringsfejl men inspektionSnapshot findes', () => {
+  it('fail-closer reguleringsforløbet (loenudvikling=null) i validerings-fejl-stien selv om inspektionSnapshot findes', () => {
+    // Brugerbeslutning (greenfield #23-review): når autoritativ beregning er blokeret af en
+    // valideringsfejl, bygges pdfModel ikke, og reguleringsafsnittet må derfor IKKE re-derivere en
+    // serie. Kontrollaget modtager `loenudvikling: null`/`undefined`, så reguleringstabellerne
+    // fail-closer til placeholders. Genindfør ikke et fejl-tilstands-forløb uden en ny beslutning.
     const inspektionSnapshot = {
       model: {
         tableData: {
@@ -252,5 +256,15 @@ describe('eoSnapshotToInspektionView', () => {
     });
 
     expect(view.kind).toBe('ready');
+    if (view.kind !== 'ready') return;
+
+    // Reguleringsforløbet får ingen autoritativ serie i fejl-tilstand → fail-closed placeholders.
+    expect(buildRegulationTimelineMock).toHaveBeenCalledWith(
+      expect.objectContaining({ loenudvikling: null }),
+    );
+    const sectionsArg = (buildRegulationInspektionSectionsMock.mock.calls[0] as unknown[] | undefined)?.[0] as
+      | { loenudvikling?: unknown }
+      | undefined;
+    expect(sectionsArg?.loenudvikling).toBeUndefined();
   });
 });

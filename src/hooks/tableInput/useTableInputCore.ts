@@ -141,7 +141,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   // display, før `committedDisplayValue` faktisk ændrer sig fra værdien-ved-commit. (Samme determinisme
   // som useDraftField.pendingCommitRef; nødvendig fordi native-blur-vejen lukker editoren i en
   // queueMicrotask, så `isEditing`-guarden ikke længere dækker vinduet.)
-  const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string; target: string } | null>(null);
+  const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string } | null>(null);
   const originalValueOnEditStartRef = React.useRef<string>('');
   const keyInitiatedEditRef = React.useRef(false);
   const wasEditingRef = React.useRef(false);
@@ -367,12 +367,12 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       setDraft(target);
       // Kun nødvendigt når display'et faktisk ændrer sig; ellers ingen flicker-risiko (og guarden ville
       // ikke kunne afmeldes, fordi committedDisplayValue aldrig divergerer fra formattedValueAtCommit).
-      pendingCommitRef.current = target !== formattedValueAtCommit ? { formattedValueAtCommit, target } : null;
+      pendingCommitRef.current = target !== formattedValueAtCommit ? { formattedValueAtCommit } : null;
       // Rækkefølge er kontrakt-kritisk: value-commit (onBlur→setValues→persistData) FØRST, DEREFTER clear af
       // den ugyldige rå draft. FormPersistenceContexts asymmetriske coalescing markerer fieldPath ved
       // value-commit, og den parrede clearInvalidDraft rider på samme frame. Modsat rækkefølge (clear først)
       // ville give TO undo-frames ved en rettelse fra ugyldigt→gyldigt input (undo skulle trykkes to gange).
-      // Spejler useDraftfield/felt-stien og kontrakt-noten i FormPersistenceContext ("onCommit EFTERFULGT af clear").
+      // Spejler useDraftField/felt-stien og kontrakt-noten i FormPersistenceContext ("onCommit EFTERFULGT af clear").
       current.onBlur?.({ target: { value: nextPayload.model } });
       clearInvalidDraftEntry();
       return true;

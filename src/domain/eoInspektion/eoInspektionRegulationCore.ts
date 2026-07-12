@@ -50,7 +50,7 @@ import {
 import { findLatestByDateInSortedList } from '../erstatningsopgoerelse/engines/reguleringSeriesLookup';
 import { buildShDageSetFromIsoRange, buildFerieDageSetForPeriode } from '../erstatningsopgoerelse/engines/tafDaySets';
 import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
-import type { ReguleringForloeb } from '../erstatningsopgoerelse/engines/reguleringForloeb';
+import { type ReguleringForloeb, resolveForloebForAnsaettelse } from '../erstatningsopgoerelse/engines/reguleringForloeb';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
@@ -544,12 +544,12 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
   const skadedatoIso = parseOptionalIso(input.stamdataValues.skadedato);
   if (!skadedatoIso) return { tafBeregningsenhed, ansaettelser: [] };
   const angivetLoenOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(input.eoValues);
-  const forloebByAnsaettelsesforholdId = new Map(
-    input.loenudvikling?.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry.forloeb] as const) ?? []
-  );
   const resolveForloeb = (ansaettelsesforholdId: string): ReguleringForloeb | undefined =>
-    forloebByAnsaettelsesforholdId.get(ansaettelsesforholdId)
-    ?? (input.loenudvikling?.perAnsaettelse.length === 0 ? input.loenudvikling.forloeb : undefined);
+    resolveForloebForAnsaettelse(
+      input.loenudvikling?.perAnsaettelse ?? [],
+      input.loenudvikling?.forloeb,
+      ansaettelsesforholdId
+    );
 
   const ansaettelser: AnsaettelsesforholdIndeks[] = [];
   const pushPlaceholderAnsaettelse = (params: Readonly<{

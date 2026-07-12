@@ -218,6 +218,24 @@ const loadFromSource = async (source: LoadSource): Promise<LoadFileResult> => {
   });
 };
 
+/**
+ * Den kilde-uafhængige fejl-hale delt af begge load-entrypoints: en allerede-mappet
+ * `FILE_LOAD_FAILED` passeres uændret videre; enhver anden fejl CPR-maskeres, logges og
+ * kastes som en generisk dansk indlæsnings-fejl. Kilde-specifik mapping (fx PWA-handle-
+ * tilladelse) skal ske FØR denne kaldes.
+ */
+const mapGenericLoadError = (error: unknown, context: string): never => {
+  if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
+    throw error;
+  }
+
+  const message = error instanceof Error ? error.message : 'Ukendt fejl';
+  const safeErrorMessage = message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]');
+  logError('Hent-operation fejlede', { context, error: error instanceof Error ? error : undefined });
+
+  throw new Error(`Kunne ikke indlæse fil: ${safeErrorMessage}`);
+};
+
 export const loadFromFile = async (
   resolvedDirectory?: ResolvedDirectory
 ): Promise<LoadFileResult> => {
@@ -225,15 +243,7 @@ export const loadFromFile = async (
   try {
     return await loadFromSource(createManualLoadSource(resolvedDirectory));
   } catch (error: unknown) {
-    if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
-      throw error;
-    }
-
-    const message = error instanceof Error ? error.message : 'Ukendt fejl';
-    const safeErrorMessage = message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]');
-    logError('Hent-operation fejlede', { context: 'loadFromFile', error: error instanceof Error ? error : undefined });
-
-    throw new Error(`Kunne ikke indlæse fil: ${safeErrorMessage}`);
+    return mapGenericLoadError(error, 'loadFromFile');
   }
 };
 
@@ -245,12 +255,9 @@ export const loadFromFileHandle = async (
   try {
     return await loadFromSource(createPwaLoadSource(fileHandle, options?.requestId));
   } catch (error: unknown) {
-    if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
-      throw error;
-    }
-
-    // Revoked/manglende tilladelse eller flyttet/slettet fil: vis en handlingsanvisende dansk besked
-    // i stedet for en rå DOMException. Ingen sagsdata røres (vi fejler før apply).
+    // Kilde-specifik mapping FØRST: revoked/manglende tilladelse eller flyttet/slettet fil vises
+    // som en handlingsanvisende dansk besked i stedet for en rå DOMException. Ingen sagsdata røres
+    // (vi fejler før apply).
     if (error instanceof FileHandleAccessError) {
       logWarning('Hent (handle) afvist pga. manglende fil-tilladelse', { context: 'loadFromFileHandle.permission' });
       throw error;
@@ -264,10 +271,6 @@ export const loadFromFileHandle = async (
       throw new FileHandleAccessError('Filen blev ikke fundet — den er måske flyttet eller slettet. Vælg filen igen via Hent.', { cause: error });
     }
 
-    const message = error instanceof Error ? error.message : 'Ukendt fejl';
-    const safeErrorMessage = message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]');
-    logError('Hent-operation fejlede', { context: 'loadFromFileHandle', error: error instanceof Error ? error : undefined });
-
-    throw new Error(`Kunne ikke indlæse fil: ${safeErrorMessage}`);
+    return mapGenericLoadError(error, 'loadFromFileHandle');
   }
 };

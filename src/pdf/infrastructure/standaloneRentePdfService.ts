@@ -15,7 +15,7 @@ import { parseDanishDate } from '../../utils/dateUtils';
 import { getDocumentCreatorBrand } from '../../document/layout/documentLayoutHelpers';
 import { asError } from '../../utils/typeGuards';
 import { resolveDocumentArtifactFileName } from '../../document/layout/documentFormatUtils';
-import { createDocumentComposer, renderDocumentModel } from '../../document/model/documentModel';
+import { createDocumentComposer } from '../../document/model/documentModel';
 
 const PDF_DOWNLOAD_SUCCESS: DocumentDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
@@ -118,14 +118,10 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
   }
 
   try {
-    const writer = createPdfChannelWriter();
-    writer.setDisplayMode('fullheight');
-    writer.setProperties({
-      title: 'Procesrente',
-      subject: MINPROCESRENTE_PDF_METADATA.subject,
-      author: MINPROCESRENTE_PDF_METADATA.author,
-      creator: getDocumentCreatorBrand(),
-    });
+    // Se note i downloadStandaloneRentePdf: standalone opretter selv sin PDF-session.
+    // Multi-varianten bygger én samlet model og renderer via samme session-autoritet
+    // som enkelt-dokument-stierne (ingen manuel writer-opsætning / renderDocumentModel).
+    const session = createDocumentGenerationSession('pdf', createPdfChannelWriter);
     const { composer, build } = createDocumentComposer();
 
     for (let i = 0; i < rows.length; i++) {
@@ -152,7 +148,15 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
     }
 
     composer.addFooter();
-    renderDocumentModel(writer, build());
+    const blob = await session.render({
+      model: build(),
+      properties: {
+        title: 'Procesrente',
+        subject: MINPROCESRENTE_PDF_METADATA.subject,
+        author: MINPROCESRENTE_PDF_METADATA.author,
+        creator: getDocumentCreatorBrand(),
+      },
+    });
 
     const firstRow = rows[0];
     const firstStart = parseDanishDate(firstRow.actualInterestDate);
@@ -162,7 +166,6 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       : 'Procesrente-specifikationer';
     const suffix = rows.length > 1 ? ` +${rows.length - 1}` : '';
     const filename = resolveDocumentArtifactFileName(`${baseTitle}${suffix}`, false);
-    const blob = await writer.build();
     triggerDocumentDownload({ blob, filename });
 
     return PDF_DOWNLOAD_SUCCESS;

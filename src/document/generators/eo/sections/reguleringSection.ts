@@ -32,7 +32,7 @@ import {
   type ReguleringIndexRow,
   type ReguleringValuesTableData,
 } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
-import type { ReguleringForloeb } from '../../../../domain/erstatningsopgoerelse/engines/reguleringForloeb';
+import { type ReguleringForloeb, resolveForloebForAnsaettelse } from '../../../../domain/erstatningsopgoerelse/engines/reguleringForloeb';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { isGreaterThanWithTolerance } from '../../../../utils/numberComparison';
 import { parsePercentPointString } from '../../../../utils/numberParsing';
@@ -465,15 +465,12 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       globaleSegmenter: modelLoenudviklingGlobaleSegmenter,
       ansaettelsesforholdId: ansaettelsesforhold.id,
     });
-    // Samme global-fallback-princip som segmenterne ovenfor: per-ansættelse-forløbet når det
-    // findes, ellers det globale forløb for enkelt-kilde-modeller (angivet løn).
-    const perAnsaettelseForloeb: ReguleringForloeb | undefined = (() => {
-      const match = modelLoenudviklingPerAnsaettelse.find(
-        (entry) => entry.ansaettelsesforholdId === ansaettelsesforhold.id
-      );
-      if (match) return match.forloeb;
-      return modelLoenudviklingPerAnsaettelse.length === 0 ? modelLoenudviklingGlobaltForloeb : undefined;
-    })();
+    // Samme global-fallback-princip som segmenterne ovenfor, via den delte kanoniske resolver.
+    const perAnsaettelseForloeb = resolveForloebForAnsaettelse(
+      modelLoenudviklingPerAnsaettelse,
+      modelLoenudviklingGlobaltForloeb,
+      ansaettelsesforhold.id
+    );
     const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${originalIndex + 1}`;
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;

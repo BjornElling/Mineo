@@ -13,6 +13,7 @@ import { klLoenSatser } from '../KL/klLoenSatser';
 import { assertKlLoenaftalerDataIntegritet, klLoenaftalerRaekker } from '../klLoenaftaler';
 import { krlSatstabeller } from '../krlRates';
 import {
+  ASL_MAX_AARSLOEN_2003,
   aarsloenAslMax,
   aarsloenAslMin,
   aarsloenAslMinFoer20240701,
@@ -107,6 +108,9 @@ const lovbestemtePayload = {
   vejledendeUdtalelseEet,
   varigeMenPrGrad,
   aarsloenAslMax,
+  // Selvstændig § 24-årslønsmaksimum-literal for 2003 (indgår ikke i aarsloenAslMax-tabellen);
+  // golden-låses her, så en utilsigtet ændring af 367000 fanges af katalogets fingerprint.
+  ASL_MAX_AARSLOEN_2003,
   aarsloenAslMin,
   aarsloenAslMinFoer20240701,
   aarsloenAslMinFra20240701,
