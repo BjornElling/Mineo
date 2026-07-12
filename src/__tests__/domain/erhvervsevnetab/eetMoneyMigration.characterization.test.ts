@@ -26,7 +26,10 @@ const sortRecursively = (value: unknown): unknown => {
 
   return Object.fromEntries(
     normalizedEntries
-      .sort(([left], [right]) => left.localeCompare(right))
+      // Kode-enheds-ordning (ikke localeCompare): golden-hashen skal være byte-identisk på tværs
+      // af platforme. localeCompare afhænger af værtens ICU/locale, så en hash genereret på Windows
+      // matchede ikke CI's Linux-ICU. Ren < / >-sammenligning er locale-uafhængig og deterministisk.
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .map(([key, entry]) => [key, sortRecursively(entry)])
   );
 };
@@ -103,23 +106,23 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser hele det samlede snapshot byte-præcist efter stabil nøglesortering', () => {
-    expect(goldenHash(snapshot)).toBe('1ecab6af511e38a297fa0ce0262cbc88883f8e825a7e57190f3ca7669534be5d');
+    expect(goldenHash(snapshot)).toBe('2d7ac9037ed02d1fbfa2fb2b98423db9f0279449ed83d96d7fc35e2a59f59cbc');
   });
 
   it('låser løbende ydelser med overlap og kalenderårsskift', () => {
-    expect(goldenHash(snapshot.loebendeYdelser)).toBe('6f80ed8d777ab27ade43ee94e5d7970713a62ff293e3d36ddfb2768066ce0a33');
+    expect(goldenHash(snapshot.loebendeYdelser)).toBe('c541115b3e69339f7d2e3fa2b8a495cfc073e01865109e474822321a308cfe1c');
   });
 
   it('låser kapitalisering med delvist endelig og endelig afgørelse', () => {
-    expect(goldenHash(snapshot.kapitalisering)).toBe('560202bf37b19a09084b03a0b10243dda6de079906ed95dc3619fd0051d8bc2a');
+    expect(goldenHash(snapshot.kapitalisering)).toBe('8a0f4f882809e7c40e612dcb39971a2e57319424cf8d96558c442ae71e4479bb');
   });
 
   it('låser EAL-beregningen inklusive maksimum, regulering og aldersreduktion', () => {
-    expect(goldenHash(snapshot.efterEal)).toBe('913c8e6fa9b7349a79e2e4097f7f2e4494cf88282cbb24277ac4d320cd00c511');
+    expect(goldenHash(snapshot.efterEal)).toBe('7426a54298f8af7237eecffa75d99609f3113f909690d1ed5a654fd96924aa79');
   });
 
   it('låser differencekravet inklusive søsterberegninger og forlig', () => {
-    expect(goldenHash(snapshot.differencekrav)).toBe('ae355f0afbfd3631f75ddadb1d457f2ba27b242ed378ea5dcd2db1245ab087d4');
+    expect(goldenHash(snapshot.differencekrav)).toBe('a866b0c49cddff84b067f70b43d8dd720ae1bbaae2b4da1969f15dadc95c6262');
   });
 
   it('låser mer-erstatning ved forhøjet pensionsalder med alle delresultater', () => {
@@ -141,7 +144,7 @@ describe('EET MoneyOre-migration karakterisering', () => {
       koen: undefined,
     }, issues);
 
-    expect(goldenHash({ computation, issues })).toBe('66bf3a6d8d87fe74701e442189b72ceba2bba0a9959ee6b46629da896a30ab99');
+    expect(goldenHash({ computation, issues })).toBe('7e16b3284a68de6a10e5716915949db6b7a18193ccfda61a0b9bd56b16fea52b');
   });
 
   it('låser alle EET-afrundingsgrænser som MoneyOre-migrationen skal bevare', () => {

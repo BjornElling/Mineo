@@ -86,7 +86,9 @@ const stableGoldenHash = (value: unknown): string => {
         .map(([key, nested]) => key.endsWith('Ore')
           ? [key.slice(0, -3), typeof nested === 'number' ? nested / 100 : nested] as const
           : [key, nested] as const)
-        .sort(([left], [right]) => left.localeCompare(right))
+        // Kode-enheds-ordning (ikke localeCompare): golden-hashen skal være byte-identisk på tværs
+        // af platforme. localeCompare afhænger af værtens ICU/locale og gør hashen platform-afhængig.
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
         .map(([key, nested]) => [key, sort(nested)])
     );
   };
