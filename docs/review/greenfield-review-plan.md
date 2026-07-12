@@ -159,7 +159,7 @@ workflow-spor. Forelæg før første ændring, når UI/UX eller beregningslogik 
 | 18 | 25 | ✅ Samlet felt-state-kerne | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #12 |
 | 19 | 42 | ✅ Versionsbåret schema-evolution for `.eo` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | forudsætter #13 |
 | 20 | 40 | ✅ Eksplicit critical-action-/commit-barriere | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25 |
-| 21 | 41 | Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
+| 21 | 41 | 🚧 Save/load som typed use-case + tilstandsmaskine | ★★★★★ | ★★☆☆☆ | ★☆☆☆☆ | forudsætter #33, #40, #42 |
 | 22 | 51 | Typed beregningsdatakatalog + provenance | ★★★★☆ | ★★☆☆☆ | ★☆☆☆☆ | selvstændig data-keystone |
 | 23 | 36 | EET på kanonisk `MoneyOre`/canonical-spine | ★★★★☆ | ★☆☆☆☆ | ★☆☆☆☆ | forudsætter #17, #37, #49; spejler #23 |
 
@@ -734,6 +734,38 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 41 — Save/load som codec + I/O-porte + tilstandsmaskine · 8
 
+- **Status: 🚧 Første tranche gennemført (2026-07-12).** Det trust-kritiske fundament er landet
+  som selvstændige, fuldt testede, grønne ændringer — de resterende to strukturelle omskrivninger
+  er bevidst skåret til en fokuseret opfølgning frem for at proppe hele det farligste subsystem i
+  ét review. **Gennemført:**
+  - **`EoFileCodec` (`utils/eoFileCodec.ts`)** — ÉN grænse mellem `.eo`-bytes og container-model:
+    `buildEoFileContainer` + `encodeEoFile` (save) og `decodeEoFile` (load). Den identisk håndrullede
+    decrypt+versionstjek+validering i `loadFromFile` og `loadFromFileHandle` er elimineret; samme rå
+    bytes afkodes nu ens uanset kilde. Fejl-semantikken (EncryptionError→`FILE_LOAD_FAILED`, versions-/
+    struktur-fejl) er bevaret. Ny `eoFileCodec.test.ts`.
+  - **Byg-og-verificér-før-sink** — fallback-download verificerede *efter* download; nu verificeres
+    artefaktet i hukommelsen *før* download, så et korrupt artefakt aldrig downloades (File System
+    Access beholder read-back af de skrevne bytes). Den verbatim-duplikerede fejlbesked-konstruktion i
+    de to grene er samlet i én helper med bevaret ordlyd. Pinnet af to nye rækkefølge-tests.
+  - **Load-flow-tilstandsmaskine** — de to uafhængige nullable pending-states (`pendingLoadResult`,
+    `pendingOverwriteApply`), hvis kombination er en umulig UI-tilstand, er erstattet af én
+    diskrimineret `LoadFlowState` (`idle | preflight | overwrite`); dialogerne afledes read-only, og
+    de to settere er erstattet af én `dismissPendingLoad`. Ny test dækker preflight→overwrite-sekvensen
+    og gensidig udelukkelse.
+  - **Styrket karakteriseringsnet** — nye tests for apply-rollback-fejlindsprøjtning
+    (`replaceAllPersistedData` kaster → ingen metadata-sideeffekter) og PWA-handle uden læse-tilladelse.
+  - **#33-residual (atomisk-skrive-primitiver)** — de to primitiver (`runAtomicPersistenceMutation`
+    vs. `atomicWritePersistenceSections`) er bevidst bevaret adskilt: `atomicWritePersistenceSections`
+    ejer sektions-serialisering + egen individuelt testet dansk fejl-normalisering, som en sammenlægning
+    ville nedbryde uden korrektheds-gevinst. Den snævrere rollback-scope + coexistensbeslutningen er nu
+    eksplicit dokumenteret ved definition og callsite (plan-option b).
+  - **Kontrakt:** `persistence-contract.md` §3.6 tilføjet (byg-og-verificér-før-sink + codec-grænsen).
+- **Rest (fokuseret opfølgning under #41):** (a) diskriminerede *resultat-typer* — `SaveFileResult`/
+  `LoadFileResult` er stadig boolean-`success` + næsten alt optional; omlægges til `status`-unions
+  (`saved | cancelled` / `loaded | preflight | cancelled`). (b) typede `SaveTarget`/`LoadSource`-porte —
+  den parallelle File System Access-/fallback- og manuel-/PWA-kontrolsti + save-target-resolutionen
+  samles bag typede porte. Begge er bredere/mekaniske omskrivninger med stor test-flade og laves som
+  eget spor.
 - **Scope:** `utils/fileSave.ts` (429), `fileLoad.ts` (370), `fileSaveInternals.ts` (284), `hooks/useFileSaveLoad.ts` (423), `types/fileOperations.ts` og `MainLayout`-dialogerne.
 - **Problem:** Én trust-kritisk use-case er spredt over ~1.500 linjer. File System Access/fallback og manuel/PWA-load har parallelle kontrolstier; fallback-download sker før in-memory-verifikation; `SaveFileResult`/`LoadFileResult` er booleans med næsten alle andre felter optional; to nullable pending-states kan repræsentere ugyldige UI-kombinationer.
 - **Greenfield:** Ren `EoFileCodec.encode/decode`; typede `SaveTarget`/`LoadSource`-porte; byg og verificér ét artefakt før enhver sink; read-back-verifikation hvor sinken understøtter det; diskriminerede resultater (`cancelled | saved | preflight | failed`). Ét reducer-/state-machine-flow ejer preflight → overwrite → apply → metadata og bruges af både picker og PWA.

@@ -64,6 +64,23 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
   return { toWrite, toRemove };
 };
 
+/**
+ * Serialiserer + skriver persisterede sektioner (+ valgfrit invalidDrafts) til `sessionStorage`
+ * atomisk, med **kun sessionStorage-rollback**. Den eneste caller er undo/redo-restore
+ * (`useUndoRedo.restorePlannedTransition`), som selv snapshotter/gendanner store + undo/redo-historik
+ * i sin `commit`-callback.
+ *
+ * Bevidst sameksistens med `runAtomicPersistenceMutation` (`persistenceStoreRollback.ts`) — de må
+ * IKKE flettes sammen (jf. greenfield #41 / #33-review). To grunde:
+ *   1. Denne helper ejer sektions-serialiseringen (`buildPersistenceSectionWrites`, schema-validering
+ *      der fejler før nogen storage-mutation) — et ansvar `runAtomicPersistenceMutation` ikke har.
+ *   2. Den har sin egen, individuelt testede danske fejl-normalisering (backup kan ikke aflæses /
+ *      lager fyldt / commit-fejl). `runAtomicPersistenceMutation` læser sit storage-backup UDEN for
+ *      sin try og re-wrapper fejl via `createRollbackError` — en sammenlægning ville ændre disse
+ *      testede fejlbeskeder på en trust-kritisk sti uden korrektheds-gevinst.
+ * Den snævrere rollback-scope er derfor et bevidst valg, ikke drift. Ændrer den ene helper
+ * rollback- eller fejl-semantik, revurderes forholdet her og ved callsite.
+ */
 export const atomicWritePersistenceSections = (
   sections: FormPersistenceSections,
   commit: () => void,

@@ -1,11 +1,10 @@
 import { countFilledFields, countMeaningfulFields } from './dataCollection';
-import { decryptFromString, EncryptionError } from './encryption';
 import { selectFile, readFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
 import {
   logWarning,
   logError,
 } from './logger';
-import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
+import { MAX_FILE_SIZE } from '../config/version';
 import { LEGACY_PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import { persistenceSchemas } from '../config/persistenceRegistry';
@@ -17,39 +16,14 @@ import {
   readFromFileHandle,
 } from './fileSystemAccess';
 import type { LoadFileResult, LoadIssue } from '../types/fileOperations';
-import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
+import { type EoFileContainerLoad } from '../schemas/eoFileSchema';
+import { decodeEoFile } from './eoFileCodec';
 import { CalculationError } from './errorMessages';
 import { type UnknownPath } from './persistenceLoadSanitization';
 import { formatAsAmount } from './formatUtils';
 import { parseInboundPersistedSection } from './inboundPersistedSection';
-import { formatZodIssues } from './zodIssueFormatting';
 
 import { isRecord } from './typeGuards';
-
-const normalizeDecryptedContainer = (decrypted: unknown): EoFileContainerLoad => {
-  if (!isRecord(decrypted)) {
-    throw new Error('Ugyldig fil-struktur (ikke et objekt)');
-  }
-
-  // Versionsfeltet tjekkes eksplicit FØR Zod-parse, så en forkert/manglende/ikke-streng version giver
-  // en klar dansk versionsfejl (kontrakt §7) frem for den generiske "ugyldig .eo-struktur".
-  const rawVersion = decrypted.version;
-  if (typeof rawVersion !== 'string' || rawVersion !== FILE_FORMAT_VERSION) {
-    throw new Error(`Ugyldig eller manglende filversion. Forventet format ${FILE_FORMAT_VERSION}.`);
-  }
-
-  const parsed = eoFileContainerLoadSchema.safeParse(decrypted);
-  if (!parsed.success) {
-    const issues = formatZodIssues(parsed.error.issues, 3);
-    const suffix = issues.trim() !== '' ? `\n\nDetaljer (første 3):\n${issues}` : '';
-    throw new Error(
-      'Filen har ugyldig .eo-struktur og kan derfor ikke indlæses.\n' +
-      `Filen er sandsynligvis korrupt eller ikke opbygget som en gyldig Mineo-fil.${suffix}`
-    );
-  }
-
-  return parsed.data;
-};
 
 const formatPathSegments = (segments: Array<string | number>): string => {
   let out = '';
@@ -272,19 +246,8 @@ export const loadFromFile = async (
       }
       fileContent = await readFile(file);
     }
-    let decrypted: unknown;
-    try {
-      decrypted = await decryptFromString(fileContent);
-    } catch (error: unknown) {
-      if (error instanceof EncryptionError) {
-        throw new CalculationError('FILE_LOAD_FAILED', { cause: error });
-      }
-      const message = error instanceof Error ? error.message : 'Ukendt fejl';
-      logError('Dekryptering fejlede', { context: 'loadFromFile.decrypt', error: error instanceof Error ? error : undefined });
-      throw new Error(`Kunne ikke dekryptere fil: ${message}`, { cause: error });
-    }
 
-    const fileContainer = normalizeDecryptedContainer(decrypted);
+    const fileContainer = await decodeEoFile(fileContent);
     const result = processDecryptedContainer({
       fileContainer,
       filename: file.name,
@@ -327,19 +290,8 @@ export const loadFromFileHandle = async (
       throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
     }
     const fileContent = await readFromFileHandle(fileHandle);
-    let decrypted: unknown;
-    try {
-      decrypted = await decryptFromString(fileContent);
-    } catch (error: unknown) {
-      if (error instanceof EncryptionError) {
-        throw new CalculationError('FILE_LOAD_FAILED', { cause: error });
-      }
-      const message = error instanceof Error ? error.message : 'Ukendt fejl';
-      logError('Dekryptering fejlede', { context: 'loadFromFileHandle.decrypt', error: error instanceof Error ? error : undefined });
-      throw new Error(`Kunne ikke dekryptere fil: ${message}`, { cause: error });
-    }
 
-    const fileContainer = normalizeDecryptedContainer(decrypted);
+    const fileContainer = await decodeEoFile(fileContent);
     const result = processDecryptedContainer({
       fileContainer,
       filename: file.name,

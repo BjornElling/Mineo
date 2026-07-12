@@ -267,4 +267,52 @@ describe('useFileSaveLoad', () => {
       expect(handles.api?.pendingLoadResult).toBeNull();
     });
   });
+
+  describe('load-flow tilstandsmaskine', () => {
+    it('preflight → "Indlæs trods fejl" fører til overskriv-bekræftelse når der findes data (aldrig begge dialoger samtidig)', async () => {
+      const handles = renderHook({ hasAnyData: () => true });
+      loadFromFileMock.mockResolvedValue(
+        successfulLoad({ preflightWarning: { loadedCount: 1, issues: [] } })
+      );
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+      // Fase 1: kun preflight-dialogen — de to states er gensidigt udelukkende.
+      expect(handles.api?.pendingLoadResult).not.toBeNull();
+      expect(handles.api?.pendingOverwriteApply).toBeNull();
+
+      await act(async () => {
+        await handles.api?.handleLoadDespiteIssues();
+      });
+      // Fase 2: preflight lukket, overskriv-bekræftelse åben — stadig kun én ad gangen, ingen apply endnu.
+      expect(handles.api?.pendingLoadResult).toBeNull();
+      expect(handles.api?.pendingOverwriteApply).not.toBeNull();
+      expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await handles.api?.handleConfirmOverwriteApply();
+      });
+      expect(executePersistenceLoadApplyMock).toHaveBeenCalledTimes(1);
+      expect(handles.api?.pendingLoadResult).toBeNull();
+      expect(handles.api?.pendingOverwriteApply).toBeNull();
+    });
+
+    it('dismissPendingLoad fører flowet tilbage til idle uden at anvende data', async () => {
+      const handles = renderHook({ hasAnyData: () => true });
+      loadFromFileMock.mockResolvedValue(successfulLoad());
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+      expect(handles.api?.pendingOverwriteApply).not.toBeNull();
+
+      act(() => {
+        handles.api?.dismissPendingLoad();
+      });
+      expect(handles.api?.pendingOverwriteApply).toBeNull();
+      expect(handles.api?.pendingLoadResult).toBeNull();
+      expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
+    });
+  });
 });

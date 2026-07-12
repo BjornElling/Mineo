@@ -284,6 +284,9 @@ describe('Afrundingsnorm-guard', () => {
         'utils/logger.ts',
         'utils/logStorage.ts',
         'utils/fileSave.ts',
+        // `.eo`-codec: exportDate = new Date().toISOString() er et export-timestamp, ikke dato-aritmetik
+        // (flyttet hertil fra fileSave.ts sammen med container-byggeriet).
+        'utils/eoFileCodec.ts',
         'domain/eoInspektion/eoInspektionSnapshot.ts',
         // EO-oplysninger view-model: formatLabelDayAfterIsoDate bruger new Date(dateObj) —
         // kopi af UTC Date fra isoDateToDate(), ikke string-parsing.

@@ -3,6 +3,7 @@ import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { decryptFromString, encryptToString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';
 import { SaveValidationError, saveToFile } from '../../utils/fileSave';
+import { downloadFile } from '../../utils/fileHelpers';
 import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
 import { logError, logWarning } from '../../utils/logger';
 import {
@@ -70,6 +71,7 @@ const mockedVerifyFileHandleDetailed = vi.mocked(verifyFileHandleDetailed);
 const mockedDeleteFileHandleFromIndexedDB = vi.mocked(deleteFileHandleFromIndexedDB);
 const mockedLogError = vi.mocked(logError);
 const mockedLogWarning = vi.mocked(logWarning);
+const mockedDownloadFile = vi.mocked(downloadFile);
 
 const currentContainer = (data: Record<string, unknown>): Record<string, unknown> => ({
   version: FILE_FORMAT_VERSION,
@@ -469,6 +471,35 @@ describe('fileSave', () => {
 
       expect(result.cancelled).toBe(true);
       expect(sessionStorage.getItem('mineo_ui_lastSavedFilenameBasis')).toBeNull();
+    });
+
+    it('verificerer artefaktet FØR download i fallback-stien', async () => {
+      mockedIsFileSystemAccessSupported.mockReturnValue(false);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+      mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
+        stamdata: { journalnr: 'J-1' },
+      }));
+
+      const result = await saveToFile(snapshot);
+
+      expect(result.success).toBe(true);
+      expect(mockedDownloadFile).toHaveBeenCalledWith('encrypted', expect.any(String), expect.any(String));
+      // Verifikationen (som dekrypterer artefaktet) skal ske FØR download-sinken kaldes.
+      expect(mockedDecryptFromString.mock.invocationCallOrder[0]).toBeLessThan(
+        mockedDownloadFile.mock.invocationCallOrder[0]
+      );
+    });
+
+    it('downloader ALDRIG et korrupt artefakt i fallback-stien (byg-og-verificér-før-sink)', async () => {
+      mockedIsFileSystemAccessSupported.mockReturnValue(false);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+      // Verifikationen dekrypterer til afvigende data → integritetsfejl før download.
+      mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
+        stamdata: { journalnr: 'forkert' },
+      }));
+
+      await expect(saveToFile(snapshot)).rejects.toThrow('INTEGRITETSKONTROL FEJLEDE');
+      expect(mockedDownloadFile).not.toHaveBeenCalled();
     });
 
     it('logger ikke fejl når der ikke er data at gemme', async () => {

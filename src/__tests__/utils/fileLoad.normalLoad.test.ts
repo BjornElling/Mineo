@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { webcrypto } from 'node:crypto';
 import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
+import { FileHandleAccessError } from '../../utils/fileSystemAccess';
 import { encryptToString } from '../../utils/encryption';
 import { countFilledFields } from '../../utils/dataCollection';
 import { VERSION } from '../../config/buildInfo';
@@ -407,5 +408,25 @@ describe('loadFromFileHandle', () => {
     expect(result.source).toBe('pwa');
     expect(result.requestId).toBe('req-1');
     expect(result.snapshot?.stamdata).toBeDefined();
+  });
+
+  it('afviser med handlingsanvisende dansk besked når læse-tilladelsen er trukket tilbage', async () => {
+    // En persisteret PWA-handle kan have mistet sin read-permission efter app-genstart.
+    // ensureFileHandleReadPermission skal fejle fail-closed FØR nogen fil læses/anvendes,
+    // så brugeren ser en dansk handlingsanvisning i stedet for en rå DOMException.
+    const getFile = vi.fn();
+    const handle = {
+      getFile,
+      queryPermission: vi.fn().mockResolvedValue('denied'),
+      requestPermission: vi.fn().mockResolvedValue('denied'),
+    } as unknown as FileSystemFileHandle;
+
+    await expect(loadFromFileHandle(handle, { requestId: 'req-perm' })).rejects.toBeInstanceOf(
+      FileHandleAccessError,
+    );
+    // Ingen sagsdata er rørt: vi fejler før filen overhovedet åbnes/læses
+    // (getFile er en frisk mock pr. test og er det stærke signal på, at permission-tjekket
+    // afbrød flowet før fil-I/O).
+    expect(getFile).not.toHaveBeenCalled();
   });
 });

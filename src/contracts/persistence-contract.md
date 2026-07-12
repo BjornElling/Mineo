@@ -39,6 +39,14 @@ App-settings er ikke omfattet; se `app-settings.md`.
 4. Felter eller rækker, der er schema-valideret brugerinput men aktuelt skjult i UI, skal stadig gemmes i `.eo`, medmindre brugeren eksplicit sletter dem.
 5. Save-snapshot må først aflæses, når den kanoniske kritiske handlingsbarriere har returneret
    `committed`; et blokeret eller fejlende resultat må ikke starte fil-I/O.
+6. Save bygger og verificerer ét artefakt før enhver sink. En sink uden read-back
+   (fallback-browser-download) verificeres i hukommelsen *før* download, så et korrupt artefakt
+   aldrig downloades. En sink med read-back (File System Access) verificeres ved at læse de
+   faktisk skrevne bytes tilbage. Ved verifikationsfejl afbrydes gemningen med en synlig dansk fejl.
+
+`.eo`-bytes ↔ container-model går gennem præcis én grænse (`EoFileCodec`): `buildEoFileContainer`
++ `encodeEoFile` outbound (save), `decodeEoFile` inbound (load, delt af manuel picker og PWA-handle).
+Samme rå bytes afkodes altid ens uanset kilde.
 
 ---
 

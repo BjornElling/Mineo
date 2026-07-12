@@ -1,8 +1,5 @@
-import { VERSION } from '../config/buildInfo';
-import { FILE_FORMAT_VERSION } from '../config/version';
-import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { hasRealData, countFilledFields } from './dataCollection';
-import { encryptToString } from './encryption';
+import { buildEoFileContainer, encodeEoFile } from './eoFileCodec';
 import { generateFilename, downloadFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
 import {
   logError,
@@ -68,6 +65,49 @@ export class SaveValidationError extends Error {
     this.name = 'SaveValidationError';
   }
 }
+
+/**
+ * Brugervendte tekstvariationer i en verifikations-fejlbesked. Byggeriet af selve beskeden
+ * (heading, detaljer, forskels-liste) var verbatim-dupleret i File System Access- og
+ * fallback-grenen; kun disse tre tekster afveg. Helper'en samler konstruktionen ét sted, så
+ * de to grene ikke driver fra hinanden, mens hver gren beholder sin præcise ordlyd.
+ */
+type VerificationFailureCopy = {
+  integrityBody: string;
+  unusableBody: string;
+  closing: string;
+};
+
+const throwIfVerificationFailed = (
+  verification: VerificationResult,
+  copy: VerificationFailureCopy
+): void => {
+  if (verification.success) return;
+
+  const kind: VerificationFailureKind = verification.kind ?? 'unusable';
+  const heading = kind === 'integrity' ? 'INTEGRITETSKONTROL FEJLEDE' : 'FILEN ER IKKE BRUGBAR';
+  const body = kind === 'integrity' ? copy.integrityBody : copy.unusableBody;
+
+  let errorMsg = `${heading}: ${verification.error}\n\n` +
+                 `${body}\n` +
+                 `Detaljer: ${verification.details || 'Ukendt fejl'}\n\n`;
+
+  if (verification.differences && verification.differences.length > 0) {
+    errorMsg += `Forskelle fundet:\n`;
+    const displayCount = Math.min(5, verification.differences.length);
+    for (let i = 0; i < displayCount; i++) {
+      errorMsg += `  ${i + 1}. ${verification.differences[i]}\n`;
+    }
+    if (verification.differences.length > 5) {
+      errorMsg += `  ... og ${verification.differences.length - 5} flere\n`;
+    }
+    errorMsg += `\n`;
+  }
+
+  errorMsg += copy.closing;
+
+  throw kind === 'integrity' ? new SaveIntegrityError(errorMsg) : new SaveUnusableFileError(errorMsg);
+};
 
 const hasFilenameBasisChanged = (
   previousBasis: unknown,
@@ -160,25 +200,12 @@ export const saveToFile = async (
       throw new SaveValidationError('Ingen udfyldte felter fundet');
     }
 
-    // 4. Opbyg fil-struktur med metadata
-    const fileData: EoFileContainer = {
-      // Format version (til fremtidig kompatibilitet - bruger nu central konstant)
-      version: FILE_FORMAT_VERSION,
-
-      // Metadata
-      _metadata: {
-        exportDate: new Date().toISOString(),
-        appVersion: VERSION,
-        persistedDataVersion: PERSISTED_DATA_VERSION,
-        fieldCount: fieldCount, // VIGTIGT: Bruges til preflight-rapportering ved hent
-      },
-
-      // Selve data fra alle menupunkter
-      data: canonicalData,
-    };
+    // 4. Opbyg fil-struktur med metadata (codec stempler version + metadata; fieldCount
+    //    genbruges til preflight-rapportering ved hent).
+    const fileData: EoFileContainer = buildEoFileContainer(canonicalData, fieldCount);
 
     // 5. Krypter data
-    const encrypted = await encryptToString(fileData);
+    const encrypted = await encodeEoFile(fileData);
 
     // 6. Gem fil (File System Access API eller fallback)
     let filename: string;
@@ -269,41 +296,19 @@ export const saveToFile = async (
 
       filename = fileHandle.name;
 
-      // VERIFICER at filen er gemt korrekt
+      // VERIFICER at filen er gemt korrekt. File System Access-sinken understøtter read-back:
+      // vi læser den netop skrevne fil tilbage og verificerer de faktiske bytes på disk.
       verification = await verifyAfterSave(fileHandle, canonicalData, true);
 
       if (!verification.success) {
         // KRITISK fejl - filen kunne ikke læses tilbage!
         logError('⚠⚠⚠ KRITISK: Fil blev gemt, men verificering fejlede!');
-
-        const kind: VerificationFailureKind = verification.kind ?? 'unusable';
-        const heading = kind === 'integrity' ? 'INTEGRITETSKONTROL FEJLEDE' : 'FILEN ER IKKE BRUGBAR';
-        const body = kind === 'integrity'
-          ? 'Filen blev skrevet og kan læses, men integritetskontrollen fejlede. Systemet kan derfor ikke garantere, at filen svarer præcist til den aktuelle beregning.'
-          : 'Filen blev skrevet, men kan ikke læses tilbage som en brugbar .eo-fil.';
-
-        // Byg detaljeret fejlbesked
-        let errorMsg = `${heading}: ${verification.error}\n\n` +
-                       `${body}\n` +
-                       `Detaljer: ${verification.details || 'Ukendt fejl'}\n\n`;
-
-        // Tilføj forskelle hvis der er nogen
-        if (verification.differences && verification.differences.length > 0) {
-          errorMsg += `Forskelle fundet:\n`;
-          const displayCount = Math.min(5, verification.differences.length);
-          for (let i = 0; i < displayCount; i++) {
-            errorMsg += `  ${i + 1}. ${verification.differences[i]}\n`;
-          }
-          if (verification.differences.length > 5) {
-            errorMsg += `  ... og ${verification.differences.length - 5} flere\n`;
-          }
-          errorMsg += `\n`;
-        }
-
-        errorMsg += `Prøv at gemme igen.`;
-
-        throw kind === 'integrity' ? new SaveIntegrityError(errorMsg) : new SaveUnusableFileError(errorMsg);
       }
+      throwIfVerificationFailed(verification, {
+        integrityBody: 'Filen blev skrevet og kan læses, men integritetskontrollen fejlede. Systemet kan derfor ikke garantere, at filen svarer præcist til den aktuelle beregning.',
+        unusableBody: 'Filen blev skrevet, men kan ikke læses tilbage som en brugbar .eo-fil.',
+        closing: 'Prøv at gemme igen.',
+      });
 
       if (verification.warning) {
         // Advarsel - filen er læsbar, men noget er anderledes end forventet
@@ -342,44 +347,23 @@ export const saveToFile = async (
         filename = `${currentFilename}.eo`;
       }
 
-      // Download fil (browseren håndterer "filen eksisterer allerede" hvis relevant)
-      downloadFile(encrypted, filename, 'application/octet-stream');
-
-      // VERIFICER indholdet (vi har allerede encrypted data i memory)
+      // VERIFICER indholdet FØR download. Fallback-sinken (browser-download) understøtter ikke
+      // read-back, så det ene artefakt verificeres i hukommelsen, mens vi stadig kan afbryde:
+      // et korrupt artefakt bliver aldrig downloadet (byg-og-verificér-før-sink).
       verification = await verifyAfterSave(encrypted, canonicalData, false);
 
       if (!verification.success) {
-        // KRITISK fejl - data kunne ikke dekrypteres!
+        // KRITISK fejl - data kunne ikke dekrypteres/verificeres før download!
         logError('⚠⚠⚠ KRITISK: Verificering af gemt data fejlede!');
-
-        const kind: VerificationFailureKind = verification.kind ?? 'unusable';
-        const heading = kind === 'integrity' ? 'INTEGRITETSKONTROL FEJLEDE' : 'FILEN ER IKKE BRUGBAR';
-        const body = kind === 'integrity'
-          ? 'Data blev opbygget og krypteret, men integritetskontrollen fejlede. Systemet kan derfor ikke garantere, at filen svarer præcist til den aktuelle beregning.'
-          : 'Data blev opbygget og krypteret, men den resulterende fil kan ikke verificeres som en brugbar .eo-fil.';
-
-        // Byg detaljeret fejlbesked
-        let errorMsg = `${heading}: ${verification.error}\n\n` +
-                       `${body}\n` +
-                       `Detaljer: ${verification.details || 'Ukendt fejl'}\n\n`;
-
-        // Tilføj forskelle hvis der er nogen
-        if (verification.differences && verification.differences.length > 0) {
-          errorMsg += `Forskelle fundet:\n`;
-          const displayCount = Math.min(5, verification.differences.length);
-          for (let i = 0; i < displayCount; i++) {
-            errorMsg += `  ${i + 1}. ${verification.differences[i]}\n`;
-          }
-          if (verification.differences.length > 5) {
-            errorMsg += `  ... og ${verification.differences.length - 5} flere\n`;
-          }
-          errorMsg += `\n`;
-        }
-
-        errorMsg += `Dette er en alvorlig fejl - prøv at gemme igen.`;
-
-        throw kind === 'integrity' ? new SaveIntegrityError(errorMsg) : new SaveUnusableFileError(errorMsg);
       }
+      throwIfVerificationFailed(verification, {
+        integrityBody: 'Data blev opbygget og krypteret, men integritetskontrollen fejlede. Systemet kan derfor ikke garantere, at filen svarer præcist til den aktuelle beregning.',
+        unusableBody: 'Data blev opbygget og krypteret, men den resulterende fil kan ikke verificeres som en brugbar .eo-fil.',
+        closing: 'Dette er en alvorlig fejl - prøv at gemme igen.',
+      });
+
+      // Artefaktet er verificeret: download fil (browseren håndterer "filen eksisterer allerede").
+      downloadFile(encrypted, filename, 'application/octet-stream');
 
       if (verification.warning) {
         // Advarsel - data er læsbar, men noget er anderledes end forventet

@@ -103,6 +103,35 @@ describe('executePersistenceLoadApply', () => {
     expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
   });
 
+  it('fejler fail-closed uden metadata-sideeffekter hvis apply af data kaster', async () => {
+    // Fase 1 (atomisk data-apply) fejler: replaceAllPersistedData kaster. Så må fase 2
+    // (filnavn/handle/PWA-metadata) aldrig køre — ellers ville vi synkronisere metadata
+    // for en sag der ikke blev indlæst (persistence-contract §10: fase 1 fejler → uændret state).
+    const replaceAllPersistedData = vi.fn(() => {
+      throw new Error('Zod-validering fejlede under apply');
+    });
+    const fileHandle = { name: 'sag.eo' } as FileSystemFileHandle;
+
+    await expect(executePersistenceLoadApply({
+      result: {
+        success: true,
+        filename: 'sag.eo',
+        requestId: 'req-x',
+        fileHandle,
+        snapshot: {},
+      },
+      replaceAllPersistedData,
+    })).rejects.toThrow('Ingen data blev anvendt');
+
+    expect(replaceAllPersistedData).toHaveBeenCalledTimes(1);
+    // Ingen metadata-sideeffekter og intet skrevet til sessionStorage.
+    expect(saveFileHandleToIndexedDBMock).not.toHaveBeenCalled();
+    expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
+    expect(markPendingPwaFileOpenRequestHandledMock).not.toHaveBeenCalled();
+    expect(clearPendingPwaFileOpenRequestMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename)).toBeNull();
+  });
+
   it('returnerer metadata-advarsel efter succesfuld data-apply', async () => {
     const replaceAllPersistedData = vi.fn();
     deleteFileHandleFromIndexedDBMock.mockRejectedValueOnce(new Error('IndexedDB fejl'));

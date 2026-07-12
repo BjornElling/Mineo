@@ -123,9 +123,8 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
 
   const {
     pendingLoadResult,
-    setPendingLoadResult,
     pendingOverwriteApply,
-    setPendingOverwriteApply,
+    dismissPendingLoad,
     pendingPreflight,
     pendingPreflightBugReportError,
     handleGem,
@@ -267,7 +266,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         confirmColor="primary"
         onCancel={() => {
           void clearPendingPwaFileOpenRequest();
-          setPendingLoadResult(null);
+          dismissPendingLoad();
         }}
         onConfirm={handleLoadDespiteIssues}
         extraActions={
@@ -292,7 +291,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         confirmColor="error"
         onCancel={() => {
           void clearPendingPwaFileOpenRequest();
-          setPendingOverwriteApply(null);
+          dismissPendingLoad();
         }}
         onConfirm={handleConfirmOverwriteApply}
       />

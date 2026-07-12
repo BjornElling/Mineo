@@ -44,6 +44,17 @@ export type PendingLoadApply = {
   navigateToStamdataAfterApply: boolean;
 };
 
+/**
+ * Load-flowets tilstandsmaskine. Preflight- og overwrite-bekræftelse var tidligere to uafhængige
+ * nullable states, hvis kombination (begge sat) er en umulig UI-tilstand. Én diskrimineret kilde
+ * gør den ugyldige kombination urepræsenterbar: flowet er altid præcis én af `idle | preflight |
+ * overwrite`. De to dialoger afledes read-only herfra (se `pendingLoadResult`/`pendingOverwriteApply`).
+ */
+type LoadFlowState =
+  | { phase: 'idle' }
+  | { phase: 'preflight'; result: LoadFileResult; navigateToStamdataAfterApply: boolean }
+  | { phase: 'overwrite'; result: LoadFileResult; overlay: OverlayData; navigateToStamdataAfterApply: boolean };
+
 export type PwaLoadOutcome = 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
 
 type UseFileSaveLoadArgs = {
@@ -63,9 +74,9 @@ type UseFileSaveLoadArgs = {
 
 type UseFileSaveLoadResult = {
   pendingLoadResult: PendingLoadApply | null;
-  setPendingLoadResult: React.Dispatch<React.SetStateAction<PendingLoadApply | null>>;
   pendingOverwriteApply: PendingOverwriteApply | null;
-  setPendingOverwriteApply: React.Dispatch<React.SetStateAction<PendingOverwriteApply | null>>;
+  /** Afviser den aktive load-dialog (preflight eller overwrite) og fører flowet tilbage til idle. */
+  dismissPendingLoad: () => void;
   pendingPreflight: LoadFileResult['preflightWarning'] | undefined;
   pendingPreflightBugReportError: Error | null;
   handleGem: () => Promise<void>;
@@ -143,8 +154,7 @@ export const useFileSaveLoad = ({
   showOverlay,
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
   const criticalActions = useCriticalActionCoordinator();
-  const [pendingLoadResult, setPendingLoadResult] = React.useState<PendingLoadApply | null>(null);
-  const [pendingOverwriteApply, setPendingOverwriteApply] = React.useState<PendingOverwriteApply | null>(null);
+  const [loadFlow, setLoadFlow] = React.useState<LoadFlowState>({ phase: 'idle' });
 
   const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult): Promise<PersistenceLoadApplyResult> => {
     return executePersistenceLoadApply({
@@ -159,7 +169,7 @@ export const useFileSaveLoad = ({
     navigateToStamdataAfterApply: boolean,
   ): Promise<'applied' | 'awaitingUser'> => {
     if (hasAnyData()) {
-      setPendingOverwriteApply({ result, overlay: overlayData, navigateToStamdataAfterApply });
+      setLoadFlow({ phase: 'overwrite', result, overlay: overlayData, navigateToStamdataAfterApply });
       return 'awaitingUser';
     }
 
@@ -246,8 +256,7 @@ export const useFileSaveLoad = ({
     }
 
     try {
-      setPendingLoadResult(null);
-      setPendingOverwriteApply(null);
+      setLoadFlow({ phase: 'idle' });
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
       const result: LoadFileResult = await loadFromFile(resolvedDirectory);
 
@@ -258,7 +267,7 @@ export const useFileSaveLoad = ({
 
       if (result.success) {
         if (result.preflightWarning) {
-          setPendingLoadResult({ result, navigateToStamdataAfterApply: true });
+          setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
           return;
         }
 
@@ -289,8 +298,7 @@ export const useFileSaveLoad = ({
     }
 
     try {
-      setPendingLoadResult(null);
-      setPendingOverwriteApply(null);
+      setLoadFlow({ phase: 'idle' });
       const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
 
       if (result.cancelled) {
@@ -300,7 +308,7 @@ export const useFileSaveLoad = ({
 
       if (result.success) {
         if (result.preflightWarning) {
-          setPendingLoadResult({ result, navigateToStamdataAfterApply: true });
+          setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
           return 'preflight';
         }
 
@@ -331,10 +339,11 @@ export const useFileSaveLoad = ({
   }, [criticalActions, requestApplyLoadedSnapshot, showOverlay]);
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
-    const pending = pendingLoadResult;
-    if (!pending) return;
-    setPendingLoadResult(null);
-    setPendingOverwriteApply(null);
+    if (loadFlow.phase !== 'preflight') return;
+    const pending = loadFlow;
+    // Tilbage til idle; requestApplyLoadedSnapshot kan derefter selv føre flowet videre til
+    // overwrite-bekræftelse, hvis der allerede findes data.
+    setLoadFlow({ phase: 'idle' });
 
     try {
       await requestApplyLoadedSnapshot(
@@ -349,12 +358,12 @@ export const useFileSaveLoad = ({
         type: 'error',
       });
     }
-  }, [pendingLoadResult, requestApplyLoadedSnapshot, showOverlay]);
+  }, [loadFlow, requestApplyLoadedSnapshot, showOverlay]);
 
   const handleConfirmOverwriteApply = React.useCallback(async () => {
-    const pending = pendingOverwriteApply;
-    if (!pending) return;
-    setPendingOverwriteApply(null);
+    if (loadFlow.phase !== 'overwrite') return;
+    const pending = loadFlow;
+    setLoadFlow({ phase: 'idle' });
 
     try {
       const applyResult = await applyLoadedSnapshot(pending.result);
@@ -371,7 +380,7 @@ export const useFileSaveLoad = ({
         type: 'error',
       });
     }
-  }, [applyLoadedSnapshot, navigate, pendingOverwriteApply, showOverlay]);
+  }, [applyLoadedSnapshot, navigate, loadFlow, showOverlay]);
 
   const handleSletAlt = React.useCallback(async () => {
     const focusTargetBeforeDeleteAll = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -405,16 +414,32 @@ export const useFileSaveLoad = ({
     }
   }, [allowExitWithoutWarning, clearAllData, showOverlay]);
 
-  const pendingPreflight = pendingLoadResult?.result.preflightWarning;
+  // De to dialog-states afledes read-only fra den ene tilstandsmaskine, så de aldrig kan være
+  // sat samtidigt (den ugyldige kombination er urepræsenterbar).
+  const pendingLoadResult: PendingLoadApply | null = loadFlow.phase === 'preflight'
+    ? { result: loadFlow.result, navigateToStamdataAfterApply: loadFlow.navigateToStamdataAfterApply }
+    : null;
+  const pendingOverwriteApply: PendingOverwriteApply | null = loadFlow.phase === 'overwrite'
+    ? {
+        result: loadFlow.result,
+        overlay: loadFlow.overlay,
+        navigateToStamdataAfterApply: loadFlow.navigateToStamdataAfterApply,
+      }
+    : null;
+
+  const dismissPendingLoad = React.useCallback(() => {
+    setLoadFlow({ phase: 'idle' });
+  }, []);
+
+  const pendingPreflight = loadFlow.phase === 'preflight' ? loadFlow.result.preflightWarning : undefined;
   const pendingPreflightBugReportError = React.useMemo(() => {
-    return pendingLoadResult ? buildPreflightBugReportError(pendingLoadResult.result) : null;
-  }, [pendingLoadResult]);
+    return loadFlow.phase === 'preflight' ? buildPreflightBugReportError(loadFlow.result) : null;
+  }, [loadFlow]);
 
   return {
     pendingLoadResult,
-    setPendingLoadResult,
     pendingOverwriteApply,
-    setPendingOverwriteApply,
+    dismissPendingLoad,
     pendingPreflight,
     pendingPreflightBugReportError,
     handleGem,
