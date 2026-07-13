@@ -6,13 +6,6 @@ const runDocumentBuild = async <T>(run: () => T | Promise<T>): Promise<T> => awa
 import { clearDocumentFooterImageCacheForTests } from '../../document/layout/documentFooterImage';
 import { createDocxWriter } from '../../docx/infrastructure/docxWriter';
 import { toISODateString } from '../../types/branded';
-import {
-  renderDocumentTable,
-  createDocumentTableHeaderCell,
-  createDocumentTableCell,
-  createDocumentDistributedColumnStyles,
-} from '../../document/layout/documentTableRenderer';
-import { isDocumentTableBridgeDocument } from '../../document/layout/documentTableBridge';
 
 const originalCreateObjectUrl = URL.createObjectURL;
 const originalRevokeObjectUrl = URL.revokeObjectURL;
@@ -66,30 +59,12 @@ describe('createDocxWriter', () => {
     document.body.innerHTML = '';
   });
 
-  // Kanal-renhed (lukker review-fund F2): Word-writerens getDoc() returnerer
-  // tabel-broen — IKKE en jsPDF-instans. Den fælles DocumentWriter-grænseflade
-  // eksponerer getDoc() med den honest union (jsPDF | DocumentTableBridgeDocument),
-  // så Word-writeren ikke længere behøver en `as never`-attrap, og et direkte
-  // jsPDF-only kald på et bro-doc fanges på compile-tid. Denne test bevogter
-  // runtime-siden: broen er identificerbar via isDocumentTableBridgeDocument og
-  // bærer ingen jsPDF-only API'er.
-  it('getDoc() returnerer tabel-broen (ikke en jsPDF) på Word-kanalen', async () => {
-    await runDocumentBuild(async () => {
-      const writer = createDocxWriter();
-      const doc = writer.getDoc();
-      expect(isDocumentTableBridgeDocument(doc)).toBe(true);
-      // Broen har ingen jsPDF-only tegne-API'er — et utilsigtet direkte kald ville
-      // ellers kaste på Word-stien (det var præcis F2-lækagen).
-      expect((doc as Record<string, unknown>).setLineWidth).toBeUndefined();
-      expect((doc as Record<string, unknown>).addImage).toBeUndefined();
-    });
-  });
-
   it('producerer en ægte docx-zip med titel, tekst, tabel og docx-filnavn', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
-      const writer = createDocxWriter({ visUdkastStempel: true });
+      const writer = createDocxWriter();
+      writer.addUdkastWatermark();
       writer.setProperties({
         title: 'Testdokument',
         subject: 'Erstatningsberegning',
@@ -156,6 +131,7 @@ describe('createDocxWriter', () => {
       await runDocumentBuild(async () => {
         const writer = createDocxWriter();
         writer.writeWrappedText('Indhold');
+        writer.addFooter();
         triggerDocumentDownload({ blob: await writer.build(), filename: 'Footer.docx' });
       });
     } finally {
@@ -171,6 +147,18 @@ describe('createDocxWriter', () => {
     expect(footerXml).toMatch(/<wp:positionH[^>]*relativeFrom="page"[\s\S]*?<wp:posOffset>7283110<\/wp:posOffset>/);
   });
 
+  it('udelader footer når modellen ikke har en footer-blok', async () => {
+    const writer = createDocxWriter();
+    writer.writeWrappedText('Indhold uden footer');
+
+    const zip = await JSZip.loadAsync(await writer.build());
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+    const footerFiles = Object.keys(zip.files).filter((name) => /word\/footer\d+\.xml$/.test(name));
+
+    expect(documentXml).not.toContain('<w:footerReference');
+    expect(footerFiles).toEqual([]);
+  });
+
   it('lægger versions-footeren i både default- og first-footer ved brevhoved', async () => {
     clearDocumentFooterImageCacheForTests();
     const capture = captureDownload();
@@ -184,6 +172,7 @@ describe('createDocxWriter', () => {
         dagsDatoISO: toISODateString('2026-04-18'),
       });
       writer.writeWrappedText('Indhold');
+      writer.addFooter();
       triggerDocumentDownload({ blob: await writer.build(), filename: 'BrevhovedFooter.docx' });
     });
 
@@ -247,29 +236,24 @@ describe('createDocxWriter', () => {
     expect(documentXml).not.toMatch(/https?:\/\/(?!schemas\.openxmlformats\.org|schemas\.microsoft\.com|www\.w3\.org|purl\.org)/i);
   });
 
-  it('renderer en tabel via PDF-tabel-broen med header, alignment, bold og colSpan', async () => {
+  it('renderer den semantiske tabelmodel med layout, tone og totalmarkering', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
       const writer = createDocxWriter();
-      const doc = writer.getDoc();
-      renderDocumentTable({
-        doc,
-        startY: 0,
+      writer.renderTable({
         hasHeaderRow: true,
-        body: [
-          [
-            createDocumentTableHeaderCell('Periode', 'left'),
-            createDocumentTableHeaderCell('Beløb', 'right'),
-          ],
-          [
-            createDocumentTableCell('Januar', { halign: 'left' }),
-            createDocumentTableCell('1.000 kr.', { halign: 'right' }),
-          ],
-          // Total-række med colSpan over begge kolonner.
-          [
-            { content: 'I alt: 1.000 kr.', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } },
-          ],
+        columns: [
+          { width: { kind: 'fixed', mm: 100 }, align: 'left' },
+          { width: { kind: 'fixed', mm: 60 }, align: 'right' },
+        ],
+        rows: [
+          { kind: 'header', cells: [{ text: 'Periode' }, { text: 'Beløb' }] },
+          { tone: 'muted', cells: [{ text: 'Januar' }, { text: '1.000 kr.' }] },
+          {
+            kind: 'total',
+            cells: [{ text: 'I alt: 1.000 kr.', align: 'right', bold: true, colSpan: 2, separatorAbove: true }],
+          },
         ],
       });
       triggerDocumentDownload({ blob: await writer.build(), filename: 'Tabel.docx' });
@@ -292,6 +276,11 @@ describe('createDocxWriter', () => {
     expect(documentXml).toContain('<w:tbl>');
     expect(documentXml).toContain('w:gridSpan w:val="2"');
     expect(documentXml).toContain('w:jc w:val="right"');
+    expect(documentXml).toContain('w:tblLayout w:type="fixed"');
+    expect(documentXml).toContain('w:fill="F8F8F8"');
+    expect(documentXml).toContain('w:color w:val="969696"');
+    expect(documentXml).toContain('w:cantSplit');
+    expect(documentXml).toMatch(/<w:top w:val="single"[^>]*w:color="000000"/);
 
     // Cellerne refererer Words indbyggede Table Paragraph-typografi.
     // Fed header/total er tekstfremhævning, ikke en separat Mineo-typografi.
@@ -304,20 +293,22 @@ describe('createDocxWriter', () => {
     expect(stylesXml).not.toMatch(/w:styleId="Mineo/);
   });
 
-  it('fejler tabel-broen fail-closed ved tom body', () => {
-    runDocumentBuild(async () => {
-      const writer = createDocxWriter();
-      const doc = writer.getDoc();
-      expect(() => renderDocumentTable({ doc, startY: 0, body: [], hasHeaderRow: true })).toThrow(/tom body/);
-    });
+  it('fejler fail-closed ved en tom tabelmodel', () => {
+    const writer = createDocxWriter();
+    expect(() => writer.renderTable({
+      columns: [{ width: { kind: 'flex' } }],
+      rows: [],
+      hasHeaderRow: false,
+    })).toThrow(/tomme rækker/);
   });
 
   // UDKAST-stempel: ægte diagonalt VML-vandmærke i header, ikke centreret brødtekst.
-  it('indsætter et diagonalt VML-vandmærke i header når visUdkastStempel er sat', async () => {
+  it('indsætter et diagonalt VML-vandmærke i header fra modeloperationen', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
-      const writer = createDocxWriter({ visUdkastStempel: true });
+      const writer = createDocxWriter();
+      writer.addUdkastWatermark();
       writer.writeWrappedText('Indhold');
       triggerDocumentDownload({ blob: await writer.build(), filename: 'Udkast.docx' });
     });
@@ -350,7 +341,7 @@ describe('createDocxWriter', () => {
     expect(headerXml).not.toMatch(/https?:\/\/(?!schemas\.openxmlformats\.org|schemas\.microsoft\.com|www\.w3\.org|urn:)/i);
   });
 
-  it('udelader watermark-header når visUdkastStempel ikke er sat', async () => {
+  it('udelader watermark-header uden en watermark-modeloperation', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
@@ -369,13 +360,12 @@ describe('createDocxWriter', () => {
     }
   });
 
-  // Signaturblokken skal være kantfri i Word (matcher PDF'ens linjefri opstilling).
-  it('renderer signaturblokken kantfrit', async () => {
+  it('holder signaturblokken samlet, centreret og kantfri', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
       const writer = createDocxWriter();
-      writer.writeSignatureBlock('1. januar 2026', '________________', 0, 0, 'Hans Hansen');
+      writer.writeSignatureBlock('1. januar 2026', '________________', 'Hans Hansen');
       triggerDocumentDownload({ blob: await writer.build(), filename: 'Signatur.docx' });
     });
 
@@ -386,6 +376,9 @@ describe('createDocxWriter', () => {
 
     expect(documentXml).toContain('Hans Hansen');
     expect(documentXml).toContain('Dato');
+    expect(documentXml).toContain('<w:cantSplit/>');
+    expect(documentXml).toContain('w:jc w:val="center"');
+    expect(documentXml.match(/<w:tr>/g)).toHaveLength(1);
     // Signaturtabellen skal have eksplicit "ingen kant" (BorderStyle.NONE → w:val="none"
     // eller "nil"), ikke den grå datatabel-kant (D9D9D9).
     expect(documentXml).toContain('Hans Hansen');
@@ -395,26 +388,37 @@ describe('createDocxWriter', () => {
     expect(documentXml).not.toContain('D9D9D9');
   });
 
-  // Word skal arve PDF'ens kolonne-justering, selv når den ikke står på den enkelte
-  // celle: via columnStyles' defaultHalign OG via dataRowColumnHalign (hook-override).
-  it('arver kolonne-justering fra columnStyles og dataRowColumnHalign', async () => {
+  it('bevarer den semantiske luft over og under et indholdsbredde-billede', async () => {
+    const writer = createDocxWriter();
+    writer.addContentWidthImage('data:image/png;base64,AA==', {
+      aspectRatio: 2,
+      maxHeight: 60,
+      verticalPadding: 4,
+    });
+
+    const zip = await JSZip.loadAsync(await writer.build());
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+
+    expect(documentXml).toContain('<w:drawing>');
+    expect(documentXml).toMatch(/<w:spacing(?=[^>]*w:before="227")(?=[^>]*w:after="227")[^>]*\/>/);
+  });
+
+  it('arver justering fra den semantiske kolonne', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
       const writer = createDocxWriter();
-      const doc = writer.getDoc();
-      renderDocumentTable({
-        doc,
-        startY: 0,
+      writer.renderTable({
         hasHeaderRow: true,
-        // Cellerne har INGEN egen halign — justeringen skal komme fra kolonnen.
-        body: [
-          [createDocumentTableHeaderCell('A', 'left'), createDocumentTableHeaderCell('B', 'left')],
-          ['venstre', 'tal-1'],
-          ['venstre', 'tal-2'],
+        columns: [
+          { width: { kind: 'flex' }, align: 'left' },
+          { width: { kind: 'flex' }, align: 'right' },
         ],
-        // Kolonne 1 højrejusteres på data-rækker via hook-override (som i renteberegning).
-        dataRowColumnHalign: { 1: 'right' },
+        rows: [
+          { kind: 'header', cells: [{ text: 'A' }, { text: 'B' }] },
+          { cells: [{ text: 'venstre' }, { text: 'tal-1' }] },
+          { cells: [{ text: 'venstre' }, { text: 'tal-2' }] },
+        ],
       });
       triggerDocumentDownload({ blob: await writer.build(), filename: 'Justering.docx' });
     });
@@ -476,6 +480,41 @@ describe('createDocxWriter', () => {
     expect(stylesXml).toContain('Calibri');
   });
 
+  it('respekterer fælles afstandsintentioner i Word', async () => {
+    const writer = createDocxWriter();
+    writer.writeTitle('Titel', { trailingSpacing: 3 });
+    writer.writeBoldSubheader('Underoverskrift', undefined, { addTopSpacing: false });
+    writer.addSpacer(2);
+    writer.addSpacer(5);
+    writer.writeWrappedText('Indhold');
+
+    const zip = await JSZip.loadAsync(await writer.build());
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+
+    // 3 mm efter titel, ingen ekstra topafstand før underoverskriften og én kollapset
+    // spacer på den største af de to højder (5 mm = 283 DXA).
+    expect(documentXml).toMatch(/w:pStyle w:val="Title"[\s\S]*?<w:spacing w:after="170"/);
+    expect(documentXml).toMatch(/w:pStyle w:val="Heading2"[\s\S]*?<w:spacing w:before="0"/);
+    expect(documentXml.match(/w:line="283" w:lineRule="exact"/g)).toHaveLength(1);
+  });
+
+  it('kollapser tabelafstand og efterfølgende eksplicit afstand', async () => {
+    const writer = createDocxWriter();
+    writer.renderTable({
+      hasHeaderRow: false,
+      columns: [{ width: { kind: 'flex' } }],
+      rows: [{ cells: [{ text: 'Tabelindhold' }] }],
+    });
+    writer.addSpacer(8);
+    writer.writeWrappedText('Efter tabel');
+
+    const zip = await JSZip.loadAsync(await writer.build());
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+
+    expect(documentXml.match(/w:line="454" w:lineRule="exact"/g)).toHaveLength(1);
+    expect(documentXml).not.toContain('w:line="238" w:lineRule="exact"');
+  });
+
   // Brevhovedet skal matche PDF-formatet ("J.nr. <nr> <advokat>/<sagsbehandler>" +
   // lang dansk dato) OG ligge i en side-forankret tekstrude øverst til højre, så
   // placeringen er fikseret uanset det øvrige indhold.
@@ -529,7 +568,8 @@ describe('createDocxWriter', () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
-      const writer = createDocxWriter({ visUdkastStempel: true });
+      const writer = createDocxWriter();
+      writer.addUdkastWatermark();
       writer.writeBrevhoved({
         journalnr: '24-0024',
         advokat: 'BEL',
@@ -571,14 +611,10 @@ describe('createDocxWriter', () => {
 
     await runDocumentBuild(async () => {
       const writer = createDocxWriter();
-      const doc = writer.getDoc();
-      renderDocumentTable({
-        doc,
-        startY: 0,
+      writer.renderTable({
         hasHeaderRow: false,
-        // defaultHalign='center' på alle kolonner, men cellen siger eksplicit 'right'.
-        columnStyles: createDocumentDistributedColumnStyles(1, { defaultHalign: 'center' }),
-        body: [[createDocumentTableCell('eksplicit-højre', { halign: 'right' })]],
+        columns: [{ width: { kind: 'flex' }, align: 'center' }],
+        rows: [{ cells: [{ text: 'eksplicit-højre', align: 'right' }] }],
       });
       triggerDocumentDownload({ blob: await writer.build(), filename: 'Praecedens.docx' });
     });
@@ -592,18 +628,17 @@ describe('createDocxWriter', () => {
     expect(documentXml).not.toContain('w:jc w:val="center"');
   });
 
-  // Paritet med PDF: writeLeftRightText med `lineAboveRightWidth` tegner en
-  // summeringsstreg over højrekolonnen på I alt-/sum-linjer. I Word vises den som
-  // en sort topkant på højre celle. Uden flaget må stregen IKKE optræde.
-  it('tegner en summeringsstreg over højre celle når lineAboveRightWidth er sat', async () => {
+  // Paritet med PDF: summeringsstregen er kort og ligger direkte over værdien.
+  it('tegner en kort summeringsstreg over højre værdi', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {
       const writer = createDocxWriter();
       // Almindelig linje uden sum-streg.
       writer.writeLeftRightText('Delbeløb', '1.000 kr.');
-      // Sum-linje med summeringsstreg (lineAboveRightWidth sat).
-      writer.writeLeftRightText('I alt', '1.000 kr.', { lineAboveRightWidth: 30 });
+      writer.writeLeftRightText('I alt', '1.000 kr.', {
+        separatorAboveValue: { widthMm: 30 },
+      });
       triggerDocumentDownload({ blob: await writer.build(), filename: 'Sumlinje.docx' });
     });
 
@@ -618,8 +653,7 @@ describe('createDocxWriter', () => {
     expect(sumBorders.length).toBe(1);
   });
 
-  // Negativ kontrol: uden lineAboveRightWidth tegnes ingen summeringsstreg.
-  it('tegner ingen summeringsstreg når lineAboveRightWidth ikke er sat', async () => {
+  it('tegner ingen summeringsstreg uden en semantisk totalmarkering', async () => {
     const capture = captureDownload();
 
     await runDocumentBuild(async () => {

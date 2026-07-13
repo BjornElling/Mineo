@@ -10,7 +10,7 @@
  * inline-implementering — outputtet skal være bit-for-bit det samme.
  */
 
-import type { DocumentComposer } from '../../../model/documentModel';
+import type { DocumentComposer, DocumentLabelValueOptions } from '../../../model/documentModel';
 import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../../layout/pdfConfig';
 import type { ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
@@ -121,12 +121,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     leftText: string,
     rightText: string,
     rightMaxWidth: number,
-    options?: Readonly<{
-      leftFontStyle?: 'normal' | 'bold';
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-    }>
+    options?: DocumentLabelValueOptions
   ) => {
     writer.writeLeftRightText(
       leftText,

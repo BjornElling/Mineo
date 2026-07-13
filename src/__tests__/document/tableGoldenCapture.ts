@@ -186,6 +186,28 @@ export const capturePresentation = (doc: CaptureDoc, options: CapturedAutoTableO
  * snapshottes uafhængigt af titler/brødtekst/footer i det øvrige dokument.
  */
 export const extractWordTables = (documentXml: string): string[] => {
-  const matches = documentXml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g);
-  return matches ? [...matches] : [];
+  const tables: string[] = [];
+  const tableTags = /<w:tbl(?:\s[^>]*)?>|<\/w:tbl>/g;
+  let depth = 0;
+  let tableStart = -1;
+  let match: RegExpExecArray | null;
+
+  // Summeringsstreger kan ligge i en indlejret tabel. En non-greedy regex stopper ved
+  // dens sluttag og trunkerer den ydre tabel, så vi balancerer eksplicit tabel-tags.
+  while ((match = tableTags.exec(documentXml)) !== null) {
+    if (match[0].startsWith('</')) {
+      if (depth === 0) continue;
+      depth -= 1;
+      if (depth === 0) {
+        tables.push(documentXml.slice(tableStart, tableTags.lastIndex));
+        tableStart = -1;
+      }
+      continue;
+    }
+
+    if (depth === 0) tableStart = match.index;
+    depth += 1;
+  }
+
+  return tables;
 };

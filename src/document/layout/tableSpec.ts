@@ -1,287 +1,247 @@
 /**
- * `TableSpec` — deklarativ, kanal-neutral tabel-model (#15 TableSpec-udredning).
+ * Kanalneutral tabelmodel.
  *
- * En generator beskriver en tabel som data (kolonner + rækker + celler) uden render-
- * viden, og `renderTableSpec` kompilerer den ned til præcis de params `renderDocumentTable`
- * allerede modtager. Dermed defineres kolonne-justering ÉT sted (`ColumnSpec.align`),
- * og begge kanaler (PDF + Word) læser samme felt — men outputtet er byte-identisk med
- * den tidligere håndbyggede kaldeform (bevist af tabel-kanal-paritet-golden-nettet).
- *
- * Værditypen har ingen `jsPDF`-reference og kan derfor overtages uændret som `Table`-
- * node af det kommende dokument-IR (#24).
+ * Modellen beskriver kun tabelindhold og semantiske layoutintentioner. Oversættelsen
+ * til jsPDF/autotable og OOXML ejes af hver sin kanalrenderer.
  */
 
-import type { CellDef, RowInput } from 'jspdf-autotable';
-import type jsPDF from 'jspdf';
-import { PDF_CONTENT_WIDTH_MM, PDF_MUTED_TEXT_COLOR, TABLE_STYLES } from './pdfConfig';
-import { resolveDocumentSectionEndY } from './documentLayoutHelpers';
-import type { DocumentTableBridgeDocument } from './documentTableBridge';
-import {
-  createDocumentDistributedColumnStyles,
-  createDocumentFixedColumnStyles,
-  createDocumentGrowColumnStyles,
-  createDocumentTableCell,
-  createDocumentTableFormattedTotalRow,
-  createDocumentTableSummedTotalRow,
-  renderDocumentTable,
-  resolveDynamicRightAlignedInset,
-} from './documentTableRenderer';
-import type { PdfCellAlign } from './resolveColumnWidths';
-
-// ── Kolonne-intention ────────────────────────────────────────────────────────
+export type DocumentCellAlign = 'left' | 'center' | 'right';
+export const DOCUMENT_TABLE_FONT_SIZE_PT = 8;
 
 export type ColumnWidth =
-  | { readonly kind: 'flex' }                       // deler den ledige bredde ligeligt (adaptiv)
-  | { readonly kind: 'grow' }                       // den ene kolonne, der får al overskydende plads
-  | { readonly kind: 'fixed'; readonly mm: number } // fast bredde i mm
-  | { readonly kind: 'min'; readonly mm: number }   // min-bredde (autotable vokser efter behov; ingen adaptiv meta)
-  | { readonly kind: 'auto' };                      // autotable bestemmer bredden (ingen columnStyles)
+  | Readonly<{ kind: 'flex' }>
+  | Readonly<{ kind: 'grow' }>
+  | Readonly<{ kind: 'fixed'; mm: number }>
+  | Readonly<{ kind: 'min'; mm: number }>
+  | Readonly<{ kind: 'auto' }>;
 
-// PDF-only visuel højre-indrykning for højrejusterede tal-kolonner (ikke justering).
 export type ColumnRightInset =
-  | { readonly kind: 'fixed'; readonly mm: number }
-  | { readonly kind: 'dynamic'; readonly maxMm: number; readonly minMm?: number; readonly widthFraction?: number };
+  | Readonly<{ kind: 'fixed'; mm: number }>
+  | Readonly<{
+      kind: 'dynamic';
+      maxMm: number;
+      minMm?: number;
+      widthFraction?: number;
+    }>;
+
+export const resolveColumnRightInsetMm = (
+  columnWidthMm: number | undefined,
+  inset: ColumnRightInset,
+): number => {
+  if (inset.kind === 'fixed') return inset.mm;
+  const minInset = inset.minMm ?? 2;
+  const widthFraction = inset.widthFraction ?? 0.2;
+  if (
+    typeof columnWidthMm !== 'number'
+    || !Number.isFinite(columnWidthMm)
+    || columnWidthMm <= 0
+  ) {
+    return inset.maxMm;
+  }
+  return Math.max(minInset, Math.min(inset.maxMm, columnWidthMm * widthFraction));
+};
 
 export type ColumnSpec = Readonly<{
   width: ColumnWidth;
-  // Kanonisk justering for data-celler i kolonnen — den eneste sandhedskilde, begge
-  // kanaler læser. Celle-niveau `CellSpec.align` kan override (fx centreret header
-  // over højrejusteret talkolonne).
-  align?: PdfCellAlign;
+  align?: DocumentCellAlign;
   rightInset?: ColumnRightInset;
 }>;
 
-// ── Celler og rækker ─────────────────────────────────────────────────────────
-
 export type CellSpec = Readonly<{
   text: string;
-  align?: PdfCellAlign;
+  align?: DocumentCellAlign;
   valign?: 'top' | 'middle' | 'bottom';
   bold?: boolean;
   colSpan?: number;
   fontSize?: number;
+  /** Semantisk totalmarkering over cellens værdi. */
+  separatorAbove?: boolean;
 }>;
 
 export type CellRowSpec = Readonly<{
   cells: readonly CellSpec[];
-  kind?: 'header' | 'data';
-  tone?: 'muted';        // hele rækken dæmpes (PDF-only textColor)
-  transparent?: boolean; // hele rækken uden stribe-baggrund
+  kind?: 'header' | 'data' | 'total';
+  tone?: 'muted';
+  transparent?: boolean;
 }>;
 
-// Total-række: beholder den gennemtestede placeringslogik (`buildPdfTotalRow`) som en
-// førsteklasses primitiv frem for at gen-udlede celle-geometri/cellePadding. Bygges via
-// `buildSummedTotalRowSpec`/`buildFormattedTotalRowSpec`.
-export type TotalRowSpec = Readonly<{
-  readonly __total: true;
-  row: RowInput;
-  valueColumnIndex: number;
-}>;
-
-export type RowSpec = CellRowSpec | TotalRowSpec;
+export type RowSpec = CellRowSpec;
 
 export type TableSpec = Readonly<{
   columns: readonly ColumnSpec[];
   rows: readonly RowSpec[];
   hasHeaderRow: boolean;
+  /** Fysisk breddeintention; begge kanaler skalerer den til deres indholdsområde. */
   tableWidth?: number;
   estimatedRowHeight?: number;
 }>;
 
-const isTotalRow = (row: RowSpec): row is TotalRowSpec => '__total' in row && row.__total === true;
+const assertPositiveFinite = (value: number, label: string): void => {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${label} skal være et positivt, endeligt tal.`);
+  }
+};
 
-// ── Total-række-helpers (returnerer RowSpec) ─────────────────────────────────
+export const assertValidTableSpec = (spec: TableSpec): void => {
+  if (spec.columns.length === 0) {
+    throw new Error('Dokumenttabel kaldt uden kolonner.');
+  }
+  if (spec.rows.length === 0) {
+    throw new Error('Dokumenttabel kaldt med tomme rækker.');
+  }
+  if (spec.tableWidth !== undefined) {
+    assertPositiveFinite(spec.tableWidth, 'Dokumenttabellens bredde');
+  }
 
-type SummedTotalOptions = Parameters<typeof createDocumentTableSummedTotalRow>[2];
-type FormattedTotalOptions = Parameters<typeof createDocumentTableFormattedTotalRow>[2];
+  spec.columns.forEach((column, columnIndex) => {
+    if (column.width.kind === 'fixed' || column.width.kind === 'min') {
+      assertPositiveFinite(column.width.mm, `Bredden på dokumenttabellens kolonne ${columnIndex + 1}`);
+    }
+    if (column.rightInset?.kind === 'fixed') {
+      assertPositiveFinite(column.rightInset.mm, `Højre indrykning i dokumenttabellens kolonne ${columnIndex + 1}`);
+    }
+    if (column.rightInset?.kind === 'dynamic') {
+      assertPositiveFinite(column.rightInset.maxMm, `Maksimal højre indrykning i dokumenttabellens kolonne ${columnIndex + 1}`);
+      if (column.rightInset.minMm !== undefined) {
+        assertPositiveFinite(column.rightInset.minMm, `Minimal højre indrykning i dokumenttabellens kolonne ${columnIndex + 1}`);
+        if (column.rightInset.minMm > column.rightInset.maxMm) {
+          throw new Error(`Minimal højre indrykning overstiger maksimum i dokumenttabellens kolonne ${columnIndex + 1}.`);
+        }
+      }
+      if (column.rightInset.widthFraction !== undefined) {
+        assertPositiveFinite(column.rightInset.widthFraction, `Indrykningsfraktionen i dokumenttabellens kolonne ${columnIndex + 1}`);
+      }
+    }
+  });
 
-export const buildSummedTotalRowSpec = (
-  label: string,
-  values: ReadonlyArray<number>,
-  options: SummedTotalOptions
-): TotalRowSpec | null => {
-  const total = createDocumentTableSummedTotalRow(label, values, options);
-  if (!total) return null;
-  return { __total: true, row: total.row, valueColumnIndex: total.valueCellColumnIndex };
+  spec.rows.forEach((row, rowIndex) => {
+    if (row.cells.length === 0) {
+      throw new Error(`Dokumenttabellens række ${rowIndex + 1} har ingen celler.`);
+    }
+    const occupiedColumns = row.cells.reduce((count, cell) => {
+      const colSpan = cell.colSpan ?? 1;
+      if (!Number.isInteger(colSpan) || colSpan <= 0) {
+        throw new Error(`Dokumenttabellens række ${rowIndex + 1} har et ugyldigt colSpan.`);
+      }
+      if (cell.fontSize !== undefined) {
+        assertPositiveFinite(cell.fontSize, `Skriftstørrelsen i dokumenttabellens række ${rowIndex + 1}`);
+      }
+      return count + colSpan;
+    }, 0);
+    if (occupiedColumns !== spec.columns.length) {
+      throw new Error(
+        `Dokumenttabellens række ${rowIndex + 1} fylder ${occupiedColumns} kolonner, men tabellen har ${spec.columns.length}.`,
+      );
+    }
+  });
+};
+
+type TotalRowOptions = Readonly<{
+  columnCount: number;
+  valueColumnIndex: number;
+  labelColumnIndex?: number;
+  labelAlign?: DocumentCellAlign;
+  valueAlign?: DocumentCellAlign;
+  valueColSpan?: number;
+  /** Afgør alene, om slutværdien har NBSP + `kr.`. */
+  valueHasKrSuffix?: boolean;
+  preserveValueColumn?: boolean;
+}>;
+
+type SummedTotalOptions = TotalRowOptions & Readonly<{
+  formatValue: (total: number) => string;
+}>;
+
+const NBSP = '\u00A0';
+
+const normalizeTotalValue = (
+  formattedValue: string,
+  valueHasKrSuffix: boolean,
+): string => {
+  const trimmed = formattedValue.trim();
+  const withoutKrSuffix = trimmed.replace(/(?:\u00A0|\s)*kr\.$/i, '').trimEnd();
+  return valueHasKrSuffix ? `${withoutKrSuffix}${NBSP}kr.` : withoutKrSuffix;
+};
+
+const assertTotalOptions = (options: TotalRowOptions): void => {
+  const {
+    columnCount,
+    valueColumnIndex,
+    labelColumnIndex = 0,
+    valueColSpan = 1,
+  } = options;
+
+  if (!Number.isInteger(columnCount) || columnCount <= 1) {
+    throw new Error(`Ugyldigt kolonneantal for sammentællingslinje: ${String(columnCount)}.`);
+  }
+  if (!Number.isInteger(labelColumnIndex) || labelColumnIndex < 0 || labelColumnIndex >= columnCount) {
+    throw new Error(`Ugyldigt label-kolonneindex for sammentællingslinje: ${String(labelColumnIndex)}.`);
+  }
+  if (!Number.isInteger(valueColumnIndex) || valueColumnIndex < 0 || valueColumnIndex >= columnCount) {
+    throw new Error(`Ugyldigt værdi-kolonneindex for sammentællingslinje: ${String(valueColumnIndex)}.`);
+  }
+  if (!Number.isInteger(valueColSpan) || valueColSpan <= 0) {
+    throw new Error(`Ugyldigt værdi-colSpan for sammentællingslinje: ${String(valueColSpan)}.`);
+  }
+  if (valueColumnIndex + valueColSpan > columnCount) {
+    throw new Error('Værdi-cellen i sammentællingslinjen rækker ud over tabellens kolonner.');
+  }
+  if (labelColumnIndex >= valueColumnIndex) {
+    throw new Error('Sammentællingslinjen kræver, at label-kolonnen ligger til venstre for værdi-kolonnen.');
+  }
 };
 
 export const buildFormattedTotalRowSpec = (
   label: string,
   formattedValue: string,
-  options: FormattedTotalOptions
-): TotalRowSpec => {
-  const total = createDocumentTableFormattedTotalRow(label, formattedValue, options);
-  return { __total: true, row: total.row, valueColumnIndex: total.valueCellColumnIndex };
-};
+  options: TotalRowOptions,
+): RowSpec => {
+  assertTotalOptions(options);
+  const {
+    columnCount,
+    valueColumnIndex,
+    labelColumnIndex = 0,
+    labelAlign = 'left',
+    valueAlign = 'right',
+    valueColSpan = 1,
+    valueHasKrSuffix = false,
+    preserveValueColumn = false,
+  } = options;
+  const valueColumnEndExclusive = valueColumnIndex + valueColSpan;
+  const valueCellColumnIndex = preserveValueColumn
+    ? valueColumnIndex
+    : Math.min(labelColumnIndex + 1, valueColumnIndex);
+  const valueCellColSpan = valueColumnEndExclusive - valueCellColumnIndex;
+  const cells: CellSpec[] = [];
 
-// ── Compiler ─────────────────────────────────────────────────────────────────
-
-type LegacyTableParams = Parameters<typeof renderDocumentTable>[0];
-type ColumnStyleMap = Record<number, { cellWidth?: number | 'auto'; minCellWidth?: number; halign?: PdfCellAlign }>;
-
-const TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
-
-const resolveCellAlign = (cell: CellSpec, column: ColumnSpec | undefined): PdfCellAlign | undefined =>
-  cell.align ?? column?.align;
-
-const buildCell = (cell: CellSpec, column: ColumnSpec | undefined, isHeaderRow: boolean): CellDef => {
-  const built = createDocumentTableCell(cell.text, {
-    halign: resolveCellAlign(cell, column),
-    valign: cell.valign,
-    bold: cell.bold || isHeaderRow,
-    fontSize: cell.fontSize,
-  });
-  return cell.colSpan && cell.colSpan > 1 ? { ...built, colSpan: cell.colSpan } : built;
-};
-
-// Bygger columnStyles ud fra kolonne-intentionerne. Justering lægges på cellerne (ikke
-// på columnStyles), så både PDF og Word læser samme kilde; kun bredde-intentionen bor her.
-const buildColumnStyles = (
-  columns: readonly ColumnSpec[],
-  tableWidth: number
-): LegacyTableParams['columnStyles'] => {
-  const kinds = columns.map((column) => column.width.kind);
-
-  if (kinds.every((kind) => kind === 'auto')) {
-    return undefined;
-  }
-
-  // Ren min-bredde (fx standalone regulering): manuel map uden adaptiv meta.
-  if (kinds.every((kind) => kind === 'min')) {
-    const styles: ColumnStyleMap = {};
-    columns.forEach((column, index) => {
-      if (column.width.kind === 'min') styles[index] = { minCellWidth: column.width.mm };
-    });
-    return styles as LegacyTableParams['columnStyles'];
-  }
-
-  // Rene faste bredder (fx KRL, forsørgertab): manuel map uden adaptiv meta.
-  if (kinds.every((kind) => kind === 'fixed')) {
-    const uniform = columns.every(
-      (column) => column.width.kind === 'fixed' && column.width.mm === (columns[0].width as { mm: number }).mm
-    );
-    if (uniform) {
-      return createDocumentFixedColumnStyles(columns.length, (columns[0].width as { mm: number }).mm);
+  for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+    if (columnIndex === labelColumnIndex) {
+      cells.push({ text: label, align: labelAlign, bold: true });
+      continue;
     }
-    const styles: ColumnStyleMap = {};
-    columns.forEach((column, index) => {
-      if (column.width.kind === 'fixed') styles[index] = { cellWidth: column.width.mm };
-    });
-    return styles as LegacyTableParams['columnStyles'];
-  }
-
-  const growIndex = columns.findIndex((column) => column.width.kind === 'grow');
-  if (growIndex >= 0) {
-    return createDocumentGrowColumnStyles(columns.length, growIndex, { tableWidth });
-  }
-
-  // Flex (+ eventuelle faste kolonner) → distribueret med adaptiv omfordeling.
-  const fixedColumns: Record<number, number> = {};
-  columns.forEach((column, index) => {
-    if (column.width.kind === 'fixed') fixedColumns[index] = column.width.mm;
-  });
-  return createDocumentDistributedColumnStyles(columns.length, {
-    tableWidth,
-    ...(Object.keys(fixedColumns).length > 0 ? { fixedColumns } : {}),
-  });
-};
-
-export const compileTableSpecToLegacyParams = (
-  doc: jsPDF | DocumentTableBridgeDocument,
-  startY: number,
-  spec: TableSpec
-): LegacyTableParams => {
-  const tableWidth = spec.tableWidth ?? PDF_CONTENT_WIDTH_MM;
-
-  const body: RowInput[] = [];
-  const underlinedCellPositions: Array<{ rowIndex: number; columnIndex: number }> = [];
-  const transparentRowIndices: number[] = [];
-  const mutedRowIndices = new Set<number>();
-  const totalRowIndices = new Set<number>();
-
-  spec.rows.forEach((row, rowIndex) => {
-    if (isTotalRow(row)) {
-      body.push(row.row);
-      underlinedCellPositions.push({ rowIndex, columnIndex: row.valueColumnIndex });
-      totalRowIndices.add(rowIndex);
-      return;
+    if (columnIndex === valueCellColumnIndex) {
+      cells.push({
+        text: normalizeTotalValue(formattedValue, valueHasKrSuffix),
+        align: valueAlign,
+        bold: true,
+        colSpan: valueCellColSpan,
+        separatorAbove: true,
+      });
+      columnIndex += valueCellColSpan - 1;
+      continue;
     }
+    cells.push({ text: '' });
+  }
 
-    const isHeaderRow = row.kind === 'header' || (spec.hasHeaderRow && rowIndex === 0);
-    body.push(row.cells.map((cell, cellIndex) => buildCell(cell, spec.columns[cellIndex], isHeaderRow)));
-    if (row.tone === 'muted') mutedRowIndices.add(rowIndex);
-    if (row.transparent) transparentRowIndices.push(rowIndex);
-  });
-
-  const insetColumns = spec.columns
-    .map((column, index) => ({ index, rightInset: column.rightInset }))
-    .filter((entry): entry is { index: number; rightInset: ColumnRightInset } => entry.rightInset !== undefined);
-
-  const needsHook = mutedRowIndices.size > 0 || totalRowIndices.size > 0 || insetColumns.length > 0;
-
-  const didParseCell: LegacyTableParams['didParseCell'] | undefined = needsHook
-    ? (data, resolvedColumnWidths) => {
-        const rowIndex = data.row.index;
-        const columnIndex = data.column.index;
-
-        if (mutedRowIndices.has(rowIndex)) {
-          data.cell.styles.textColor = PDF_MUTED_TEXT_COLOR;
-        }
-
-        // En total-række er en semantisk række (fed, understreget værdi) og skal se ens
-        // ud overalt: aldrig stribe-baggrund, ingen cellekant — uafhængigt af rækkeantal.
-        if (totalRowIndices.has(rowIndex)) {
-          data.cell.styles.fillColor = false;
-          data.cell.styles.lineWidth = 0;
-        }
-
-        const isHeaderRow = spec.hasHeaderRow && rowIndex === 0;
-        if (!isHeaderRow && !totalRowIndices.has(rowIndex)) {
-          const inset = insetColumns.find((entry) => entry.index === columnIndex);
-          if (inset) {
-            data.cell.styles.halign = 'right';
-            const right =
-              inset.rightInset.kind === 'fixed'
-                ? inset.rightInset.mm
-                : resolveDynamicRightAlignedInset(resolvedColumnWidths.get(columnIndex), inset.rightInset.maxMm, {
-                    minInset: inset.rightInset.minMm,
-                    widthFraction: inset.rightInset.widthFraction,
-                  });
-            data.cell.styles.cellPadding = {
-              top: TABLE_CELL_PADDING,
-              bottom: TABLE_CELL_PADDING,
-              left: TABLE_CELL_PADDING,
-              right,
-            };
-          }
-        }
-      }
-    : undefined;
-
-  return {
-    doc,
-    startY,
-    body,
-    columnStyles: buildColumnStyles(spec.columns, tableWidth),
-    tableWidth,
-    hasHeaderRow: spec.hasHeaderRow,
-    ...(transparentRowIndices.length > 0 ? { transparentRowIndices } : {}),
-    ...(underlinedCellPositions.length > 0 ? { underlinedCellPositions } : {}),
-    ...(spec.estimatedRowHeight !== undefined ? { estimatedRowHeight: spec.estimatedRowHeight } : {}),
-    ...(didParseCell ? { didParseCell } : {}),
-  };
+  return { kind: 'total', cells };
 };
 
-/**
- * Renderer en `TableSpec` og returnerer sektionens afslutnings-Y (`resolveDocumentSectionEndY`
- * absorberet), så call-sites kollapser `writer.setY(resolveDocumentSectionEndY(finalY, startY))`
- * til `writer.setY(renderTableSpec(...).endY)`.
- */
-export const renderTableSpec = (
-  doc: jsPDF | DocumentTableBridgeDocument,
-  startY: number,
-  spec: TableSpec
-): Readonly<{ endY: number }> => {
-  const finalY = renderDocumentTable(compileTableSpecToLegacyParams(doc, startY, spec));
-  return { endY: resolveDocumentSectionEndY(finalY, startY) };
+export const buildSummedTotalRowSpec = (
+  label: string,
+  values: readonly number[],
+  options: SummedTotalOptions,
+): RowSpec | null => {
+  if (values.length <= 1) return null;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return buildFormattedTotalRowSpec(label, options.formatValue(total), options);
 };

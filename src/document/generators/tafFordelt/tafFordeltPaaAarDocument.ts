@@ -56,7 +56,6 @@ export const generateTafFordeltPaaAarDocument = (
       format
     ),
     writerOptions: {
-      visUdkastStempel,
       onLayoutFallback: ({ message, label }) => {
         logWarning('PDF-layout fallback aktiveret', {
           context: 'pdf.tafFordeltPaaAar.layout',
@@ -65,7 +64,7 @@ export const generateTafFordeltPaaAarDocument = (
       },
     },
     beforeBrevhoved: (writer) => {
-      writer.addUdkastWatermark();
+      if (visUdkastStempel) writer.addUdkastWatermark();
     },
     brevhoved: () => visBrevhoved && model.brevhoved
       ? {
@@ -199,8 +198,7 @@ export const generateTafFordeltPaaAarDocument = (
       renderTidligereLinje();
       writer.writeLeftRightText('I alt', iAltTotalRightText, {
         rightFontStyle: 'normal',
-        lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-        lineAboveRightOffset: 4,
+        separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
         minRightColumnWidthText: '000.000.000,00',
       });
     } else {
@@ -210,22 +208,19 @@ export const generateTafFordeltPaaAarDocument = (
         const forligSubtotalOre = addMoneyOre(yearEntry.yearTafOre, tidligereOre);
         writer.writeLeftRightText(forligSubtotalLabel, ensureNonBreakingKr(formatMoneyOreWithKr(forligSubtotalOre)), {
           rightFontStyle: 'normal',
-          lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-          lineAboveRightOffset: 4,
+          separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
           minRightColumnWidthText: '000.000.000,00',
         });
         renderTidligereLinje();
         writer.writeLeftRightText('I alt', iAltTotalRightText, {
           rightFontStyle: 'normal',
-          lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-          lineAboveRightOffset: 4,
+          separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
           minRightColumnWidthText: '000.000.000,00',
         });
       } else {
         writer.writeLeftRightText(forligSubtotalLabel, iAltTotalRightText, {
           rightFontStyle: 'normal',
-          lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-          lineAboveRightOffset: 4,
+          separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
           minRightColumnWidthText: '000.000.000,00',
         });
       }
@@ -252,8 +247,7 @@ export const generateTafFordeltPaaAarDocument = (
   const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(presentation.samletTafKravOre));
   writer.writeLeftRightText('Samlet TAF-krav', samletText, {
     rightFontStyle: 'bold',
-    lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-    lineAboveRightOffset: 4,
+    separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
     minRightColumnWidthText: '000.000.000,00',
   });
 

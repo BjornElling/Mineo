@@ -16,6 +16,7 @@ import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
 import { renderBrevhoved } from './pdfBrevhovedRenderer';
 import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from '../../document/layout/pdfTextUtils';
 import { formatRoundedCanonical, roundByMethod } from '../../utils/rounding';
+import { renderPdfTableSpec } from './pdfTableRenderer';
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
   if (doc.getTextWidth(text) <= maxWidth) return text;
@@ -167,7 +168,6 @@ type PdfCursor = Readonly<{
     }>
   ) => number;
   getTextWidth: (text: string) => number;
-  fitTextToWidth: (text: string, maxWidth: number) => string;
   getFullWidth: () => number;
   addPage: () => void;
   getRemainingSpace: () => number;
@@ -178,11 +178,10 @@ type PdfCursor = Readonly<{
 
 const createPdfCursor = (params: Readonly<{
   lineHeight: number;
-  visUdkastStempel: boolean;
   onLayoutFallback: (params: Readonly<{ message: string; label: string }>) => void;
   orientation: 'portrait' | 'landscape';
 }>): PdfCursor => {
-  const { lineHeight, visUdkastStempel, onLayoutFallback, orientation } = params;
+  const { lineHeight, onLayoutFallback, orientation } = params;
   const doc = new jsPDF({
     orientation,
     unit: 'mm',
@@ -195,13 +194,14 @@ const createPdfCursor = (params: Readonly<{
   const contentBottom = pageHeight - MARGINS.bottom;
   const fullWidth = adapter.getPageWidth() - MARGINS.left - MARGINS.right;
   let y = MARGINS.top;
+  let hasUdkastWatermark = false;
   let activeFont: { fontName: string; fontStyle: string } = { fontName: PDF_FONT_FAMILY, fontStyle: PDF_FONT_STYLES.normal };
   let activeFontSize = FONT_SIZES.normal;
 
   const addPage = () => {
     doc.addPage();
     y = MARGINS.top;
-    if (visUdkastStempel) {
+    if (hasUdkastWatermark) {
       addUdkastWatermark(adapter);
     }
   };
@@ -604,14 +604,12 @@ const createPdfCursor = (params: Readonly<{
       setFontSize(FONT_SIZES.normal);
     },
     addUdkastWatermark: () => {
-      if (visUdkastStempel) {
-        addUdkastWatermark(adapter);
-      }
+      hasUdkastWatermark = true;
+      addUdkastWatermark(adapter);
     },
     splitWrappedLines,
     measureWrappedTextHeight,
     getTextWidth: (text: string) => doc.getTextWidth(text),
-    fitTextToWidth: (text: string, maxWidth: number) => fitTextToWidth(doc, text, maxWidth),
     getFullWidth: () => fullWidth,
     addPage,
     getRemainingSpace: () => Math.max(0, contentBottom - y),
@@ -632,18 +630,28 @@ const createPdfCursor = (params: Readonly<{
 // format-agnostiske DocumentWriter-grænseflade defineret i dokument-kernen.
 import type { DocumentWriter } from '../../document/writer/documentWriter';
 
+type PdfWriter = DocumentWriter & Readonly<{
+  ensureSpace: (height: number) => void;
+  getDoc: () => jsPDF;
+  getY: () => number;
+  setY: (nextY: number) => void;
+  advanceY: (delta: number) => void;
+  getPageWidth: () => number;
+  fitTextToWidth: (text: string, maxWidth: number) => string;
+}>;
+
 // ============================================================================
 // PDF WRITER (public – wrapper cursor med operationer på højere niveau)
 // ============================================================================
 
 export const createPdfWriter = (params: Readonly<{
   lineHeight: number;
-  visUdkastStempel: boolean;
   onLayoutFallback: (params: Readonly<{ message: string; label: string }>) => void;
   orientation?: 'portrait' | 'landscape';
-}>): DocumentWriter => {
-  const { lineHeight, visUdkastStempel, onLayoutFallback, orientation = 'portrait' } = params;
-  const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback, orientation });
+}>): PdfWriter => {
+  const { lineHeight, onLayoutFallback, orientation = 'portrait' } = params;
+  const cursor = createPdfCursor({ lineHeight, onLayoutFallback, orientation });
+  cursor.setDisplayMode('fullheight');
   let previousBlockWasSectionHeader = false;
   // Bruges kun til spacing-logik: positiv manuel Y-flytning må ikke akkumulere før første content-blok på siden.
   let hasRenderedContent = false;
@@ -809,11 +817,8 @@ export const createPdfWriter = (params: Readonly<{
   };
 
   return {
-    setDisplayMode: cursor.setDisplayMode,
     setProperties: cursor.setProperties,
-    setNormalTextStyle: () => cursor.applyNormalStyle(),
     getDoc: cursor.getDoc,
-    ensureSpace: cursor.ensureSpace,
     getY: cursor.getY,
     setY: (nextY) => {
       const previousY = cursor.getY();
@@ -826,6 +831,17 @@ export const createPdfWriter = (params: Readonly<{
       }
       explicitSpacingSinceLastContent = 0;
     },
+    advanceY: (delta) => {
+      cursor.advanceY(delta);
+      previousBlockWasSectionHeader = false;
+      if (delta > 0) {
+        explicitSpacingSinceLastContent += delta;
+      }
+    },
+    getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
+    fitTextToWidth: (text, maxWidth) => fitTextToWidth(cursor.getDoc(), text, maxWidth),
+    ensureSpace: cursor.ensureSpace,
+    keepWithNext: cursor.ensureSpace,
     addSpacer: (height: number) => {
       if (height <= 0) {
         previousBlockWasSectionHeader = false;
@@ -847,13 +863,6 @@ export const createPdfWriter = (params: Readonly<{
       previousBlockWasSectionHeader = false;
       explicitSpacingSinceLastContent += advance;
     },
-    advanceY: (delta) => {
-      cursor.advanceY(delta);
-      previousBlockWasSectionHeader = false;
-      if (delta > 0) {
-        explicitSpacingSinceLastContent += delta;
-      }
-    },
     writeWrappedText: (text) => {
       cursor.writeStyledWrappedText(text, {
         fontStyle: 'normal',
@@ -872,8 +881,8 @@ export const createPdfWriter = (params: Readonly<{
       hasRenderedContent = true;
       explicitSpacingSinceLastContent = 0;
     },
-    writeWrappedTextContinued: (text, maxWidth, x) => {
-      cursor.writeWrappedTextContinued(text, maxWidth, x, {
+    writeWrappedTextContinued: (text) => {
+      cursor.writeWrappedTextContinued(text, undefined, undefined, {
         fontStyle: 'normal',
         fontSize: FONT_SIZES.normal,
       });
@@ -888,8 +897,18 @@ export const createPdfWriter = (params: Readonly<{
       explicitSpacingSinceLastContent = 0;
     },
     writeLeftRightText: (leftText, rightText, options) => {
+      const { separatorAboveValue, ...textOptions } = options ?? {};
+      const minRightColumnWidth = options?.minRightColumnWidthText
+        ? Math.max(
+            options.minRightColumnWidth ?? 0,
+            cursor.getTextWidth(options.minRightColumnWidthText),
+          )
+        : options?.minRightColumnWidth;
       cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, {
-        ...options,
+        ...textOptions,
+        lineAboveRightWidth: separatorAboveValue?.widthMm,
+        lineAboveRightOffset: separatorAboveValue?.gapMm,
+        minRightColumnWidth,
         fontSize: FONT_SIZES.normal,
       });
       previousBlockWasSectionHeader = false;
@@ -902,25 +921,43 @@ export const createPdfWriter = (params: Readonly<{
     writeBoldSubheaderIfContent,
     writeBoldSubheaderWithWrappedText,
     writeAtomicTableChunks,
-    writeUnderlinedSubheader: (text, x) => {
-      writeUnderlinedSubheader(text, x);
+    writeUnderlinedSubheader: (text) => {
+      writeUnderlinedSubheader(text);
     },
-    writeSignatureBlock: (...args) => {
-      cursor.writeSignatureBlock(...args);
+    writeSignatureBlock: (dateLine, sigLine, skadelidteNavn) => {
+      cursor.writeSignatureBlock(
+        dateLine,
+        sigLine,
+        MARGINS.left,
+        MARGINS.left + 90,
+        skadelidteNavn,
+      );
     },
     writeBrevhoved: cursor.writeBrevhoved,
     addUdkastWatermark: cursor.addUdkastWatermark,
-    addImageDataUrl: (dataUrl, x, y, width, height) => {
+    addContentWidthImage: (dataUrl, options) => {
+      const width = cursor.getFullWidth();
+      const height = Math.min(options.maxHeight, width / options.aspectRatio);
+      cursor.ensureSpace(height + options.verticalPadding * 2);
+      const y = cursor.getY() + options.verticalPadding;
       const doc = cursor.getDoc();
-      doc.addImage(dataUrl, 'PNG', x, y, width, height, undefined, 'FAST');
+      doc.addImage(dataUrl, 'PNG', MARGINS.left, y, width, height, undefined, 'FAST');
+      cursor.setY(y + height + options.verticalPadding);
       previousBlockWasSectionHeader = false;
       hasRenderedContent = true;
-      explicitSpacingSinceLastContent = 0;
+      explicitSpacingSinceLastContent = height + options.verticalPadding * 2;
     },
-    getTextWidth: cursor.getTextWidth,
-    fitTextToWidth: cursor.fitTextToWidth,
-    getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
-    getContentWidthMm: () => cursor.getFullWidth(),
+    renderTable: (spec) => {
+      const startY = cursor.getY();
+      const { endY } = renderPdfTableSpec(cursor.getDoc(), startY, spec);
+      cursor.setY(endY);
+      previousBlockWasSectionHeader = false;
+      if (endY > startY && hasRenderedContent) {
+        explicitSpacingSinceLastContent += endY - startY;
+      } else {
+        explicitSpacingSinceLastContent = 0;
+      }
+    },
     addPage: () => {
       cursor.addPage();
       previousBlockWasSectionHeader = false;
@@ -939,13 +976,11 @@ export const createPdfWriter = (params: Readonly<{
  * (PDF vs. Word) ejes af service-laget, mens generatoren kun ser sessionens fabrik.
  */
 export const createPdfChannelWriter = (params?: Readonly<{
-  visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
   onLayoutFallback?: (params: Readonly<{ message: string; label: string }>) => void;
-}>): DocumentWriter => {
+}>): PdfWriter => {
   return createPdfWriter({
     lineHeight: PDF_BASE_LINE_HEIGHT_MM,
-    visUdkastStempel: params?.visUdkastStempel ?? false,
     onLayoutFallback: params?.onLayoutFallback ?? (() => {}),
     orientation: params?.orientation ?? 'portrait',
   });

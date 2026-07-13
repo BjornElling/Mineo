@@ -10,7 +10,7 @@ import type { Calculable, LoenudviklingSegment, EoModel } from '../../../../doma
 import { addMoneyOre, zeroMoneyOre, type MoneyOre } from '../../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
-import type { DocumentComposer } from '../../../model/documentModel';
+import type { DocumentComposer, DocumentLabelValueOptions } from '../../../model/documentModel';
 import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } from './tafBeregningsgrundlagSection';
 
 type OpgorelseSectionContext = Readonly<{
@@ -31,12 +31,7 @@ type OpgorelseSectionContext = Readonly<{
     leftText: string,
     rightText: string,
     rightMaxWidth: number,
-    options?: Readonly<{
-      leftFontStyle?: 'normal' | 'bold';
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-    }>
+    options?: DocumentLabelValueOptions
   ) => void;
   renderAtomicTableChunks: DocumentComposer['writeAtomicTableChunks'];
   assertModelInvariant: (condition: boolean, message: string) => void;
@@ -615,7 +610,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           'I alt',
           formatMoneyOreWithKr(samletForventetIndkomstOre),
           rightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
+          { rightFontStyle: 'normal', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } }
         );
       }
     }
@@ -648,9 +643,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (!harTafIndtaegterEntries) {
         safeAddWrappedText('Ingen');
       } else if (skalViseTotal && tafIndtaegterTotalOre !== null) {
-        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegterTotalOre), rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
+        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegterTotalOre), rightMaxWidth, { rightFontStyle: 'normal', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } });
       } else if (skalViseTotal) {
-        safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
+        safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } });
       }
     }
     writeCombinedBilagReferenceLinje(bilag.loenISygeperioden, bilag.offentligeYdelser);
@@ -769,7 +764,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     if (kravEntries.length > 1) {
       writer.addSectionSpacer();
-      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalFoerForligOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
+      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalFoerForligOre), kravRightMaxWidth, { rightFontStyle: 'bold', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } });
     }
 
     if (model.forlig.erIndgaaet) {
@@ -805,8 +800,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, {
     leftFontStyle: 'bold',
     rightFontStyle: 'bold',
-    lineAboveRightWidth: rightColumnWidth,
-    lineAboveRightOffset: 4,
+    separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 },
   });
   const saerligeKommentarer = model.saerligeKommentarer;
   if (saerligeKommentarer) {

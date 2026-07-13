@@ -11,7 +11,8 @@ import {
   renderOffentligeYdelserSection,
 } from '../../../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../../../types/branded';
-import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
+import type { TableSpec } from '../../../../../document/layout/tableSpec';
+import { renderPdfTableSpec } from '../../../../../pdf/infrastructure/pdfTableRenderer';
 import { fromKroner, toKroner } from '../../../../../domain/money/money';
 
 const { autoTableMock } = vi.hoisted(() => ({
@@ -49,7 +50,7 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
-          y = renderTableSpec(doc as never, y, spec).endY;
+          y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
         writeUnderlinedSubheader: vi.fn(),
       },
@@ -215,7 +216,7 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
-          y = renderTableSpec(doc as never, y, spec).endY;
+          y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
         writeUnderlinedSubheader: vi.fn(),
       },
@@ -434,7 +435,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
-          y = renderTableSpec(doc as never, y, spec).endY;
+          y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
       },
     });
@@ -472,7 +473,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
-          y = renderTableSpec(doc as never, y, spec).endY;
+          y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
       },
     });

@@ -67,6 +67,20 @@ describe('pdfWriter layout fallback', () => {
     expect(textMock.mock.calls.some((call: unknown[]) => call[0] === '123,45\u00A0kr.')).toBe(false);
   });
 
+  it('tegner en semantisk summeringsstreg med den angivne bredde og afstand', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
+    const doc = getMockDoc(writer);
+    const startY = writer.getY();
+
+    writer.writeLeftRightText('I alt', '1.000 kr.', {
+      separatorAboveValue: { widthMm: 30, gapMm: 4 },
+    });
+
+    expect(doc.line).toHaveBeenCalledTimes(1);
+    expect(doc.line).toHaveBeenCalledWith(160, startY - 4, 190, startY - 4);
+  });
+
   it('placerer højreteksten på nederste venstrelinje og wrapper venstreteksten inden kolonnerne mødes', async () => {
     const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const writer = createPdfChannelWriter();
@@ -574,11 +588,13 @@ describe('pdfWriter writeSignatureBlock', () => {
     const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
 
-    writer.writeSignatureBlock('______', '______', 20, 120, 'Anne Skadelidt');
+    writer.writeSignatureBlock('______', '______', 'Anne Skadelidt');
 
     const renderedTexts = doc.text.mock.calls.map((call: unknown[]) => call[0]);
     expect(renderedTexts).toContain('Dato');
     expect(renderedTexts).toContain('Anne Skadelidt');
+    expect(doc.text).toHaveBeenCalledWith('Dato', 26, expect.any(Number), { align: 'center' });
+    expect(doc.text).toHaveBeenCalledWith('Anne Skadelidt', 116, expect.any(Number), { align: 'center' });
   });
 
   it('holder underskriftsblokken samlet og splitter den ikke på tværs af et sideskift nær bunden', async () => {
@@ -590,7 +606,7 @@ describe('pdfWriter writeSignatureBlock', () => {
     // blokken ikke kan være på siden. Med atomisk reservation flyttes BEGGE linjer til ny side.
     const nearBottomY = 272;
     writer.setY(nearBottomY);
-    writer.writeSignatureBlock('______', '______', 20, 120, 'Anne Skadelidt');
+    writer.writeSignatureBlock('______', '______', 'Anne Skadelidt');
 
     const doc = getMockDoc(writer);
     // Baseline-Y for signaturlinjen (dateLine) og for "Dato"-labelen.
@@ -604,6 +620,33 @@ describe('pdfWriter writeSignatureBlock', () => {
     expect(labelY - sigLineY).toBeCloseTo(PDF_BASE_LINE_HEIGHT_MM, 6);
     // Og blokken er reelt flyttet væk fra bunden (ned på ny side), ikke skrevet hvor den startede.
     expect(sigLineY).toBeLessThan(nearBottomY);
+  });
+});
+
+describe('pdfWriter addContentWidthImage', () => {
+  it('bruger indholdsbredden og opdaterer cursoren efter billede og luft', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
+    const doc = getMockDoc(writer);
+    writer.setY(40);
+
+    writer.addContentWidthImage('data:image/png;base64,AA==', {
+      aspectRatio: 2,
+      maxHeight: 60,
+      verticalPadding: 4,
+    });
+
+    expect(doc.addImage).toHaveBeenCalledWith(
+      'data:image/png;base64,AA==',
+      'PNG',
+      20,
+      44,
+      170,
+      60,
+      undefined,
+      'FAST',
+    );
+    expect(writer.getY()).toBe(108);
   });
 });
 
@@ -654,11 +697,41 @@ describe('pdfWriter writeAtomicTableChunks', () => {
 
 // ─── visUdkastStempel ────────────────────────────────────────────────────────
 
-describe('pdfWriter visUdkastStempel', () => {
-  it('createPdfChannelWriter med visUdkastStempel=false laver ikke watermark på opstart', async () => {
+describe('pdfWriter UDKAST-vandmærke', () => {
+  it('opretter ikke watermark uden en eksplicit modeloperation', async () => {
     const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createPdfChannelWriter({ visUdkastStempel: false });
-    // addImage bruges til watermark - hvis false: ingen kald
+    const writer = createPdfChannelWriter();
     expect(writer.getDoc().addImage).not.toHaveBeenCalled();
+  });
+
+  it('gentager et aktiveret model-vandmærke på efterfølgende sider', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const context = {
+      clearRect: vi.fn(),
+      translate: vi.fn(),
+      rotate: vi.fn(),
+      fillText: vi.fn(),
+      font: '',
+      fillStyle: '',
+      textAlign: 'center',
+      textBaseline: 'middle',
+    } as unknown as CanvasRenderingContext2D;
+    const getContextSpy = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(context);
+    const toDataUrlSpy = vi
+      .spyOn(HTMLCanvasElement.prototype, 'toDataURL')
+      .mockReturnValue('data:image/png;base64,AA==');
+
+    try {
+      const writer = createPdfChannelWriter();
+      writer.addUdkastWatermark();
+      writer.addPage();
+
+      expect(writer.getDoc().addImage).toHaveBeenCalledTimes(2);
+    } finally {
+      getContextSpy.mockRestore();
+      toDataUrlSpy.mockRestore();
+    }
   });
 });

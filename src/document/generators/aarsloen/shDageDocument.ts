@@ -8,7 +8,7 @@ import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../layout/pdfConfig';
 import { findNamedHolidaysInDateRanges } from '../../../domain/dates/shDageOversigt';
 import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
-import { TABLE_FONT_SIZE } from '../../layout/documentTableRenderer';
+import { DOCUMENT_TABLE_FONT_SIZE_PT } from '../../layout/tableSpec';
 import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatting';
@@ -133,7 +133,7 @@ export const buildSHDageTableRows = (
         { text: ugedag },
         { text: formatDanskDato(dato) },
         { text: helligdagNavn },
-        { text: erHverdag ? 'x' : '', valign: 'middle', fontSize: TABLE_FONT_SIZE },
+        { text: erHverdag ? 'x' : '', valign: 'middle', fontSize: DOCUMENT_TABLE_FONT_SIZE_PT },
       ],
       ...(erHverdag ? {} : { tone: 'muted' as const }),
     })),

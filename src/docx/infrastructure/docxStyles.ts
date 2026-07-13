@@ -233,7 +233,7 @@ export const buildDocxStyles = (): IStylesOptions => ({
       // Teknisk typografi: brugbar, men holdes ude af hurtigtypografi-galleriet.
       semiHidden: true,
       unhideWhenUsed: false,
-      run: { font: DOCX_FONT, size: 18 },
+      run: { font: DOCX_FONT, size: 16 },
       paragraph: { spacing: { after: 0, ...MIN_LINE_SPACING } },
     },
     {

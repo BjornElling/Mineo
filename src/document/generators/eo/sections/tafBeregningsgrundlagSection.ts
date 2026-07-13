@@ -24,6 +24,7 @@ import {
   resolveAnvendtReguleringsdatoReferenceText,
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
+import type { DocumentLabelValueOptions } from '../../../model/documentModel';
 
 export type TafBeregningsgrundlagDeps = Readonly<{
   model: EoModel;
@@ -37,12 +38,7 @@ export type TafBeregningsgrundlagDeps = Readonly<{
     leftText: string,
     rightText: string,
     rightMaxWidth: number,
-    options?: Readonly<{
-      leftFontStyle?: 'normal' | 'bold';
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-    }>
+    options?: DocumentLabelValueOptions
   ) => void;
   renderMoneyWithKr: (value: Calculable<MoneyOre>) => string;
   renderMoneyWithKrOrError: (value: Calculable<MoneyOre>) => string;
@@ -160,7 +156,7 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
 
       if (visibleComponentRows.length > 1) {
         safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), rightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
+          { rightFontStyle: 'normal', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } }
         );
       }
     }
@@ -183,7 +179,7 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
           'I alt:',
           formatMoneyOreWithKr(indkomst.offentligeYdelserTotalOre),
           rightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
+          { rightFontStyle: 'normal', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } }
         );
       }
     }

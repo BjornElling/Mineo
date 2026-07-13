@@ -8,12 +8,11 @@ import {
   PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_MM,
   PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_PT,
   TABLE_STYLES,
-} from './pdfConfig';
-import { getJsPdfPageSize } from './jsPdfGeometry';
-import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from './pdfTextUtils';
-import { guardDocumentDateText } from './documentDateGuard';
+} from '../../document/layout/pdfConfig';
+import { getJsPdfPageSize } from '../../document/layout/jsPdfGeometry';
+import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from '../../document/layout/pdfTextUtils';
+import { guardDocumentDateText } from '../../document/layout/documentDateGuard';
 import { DEFAULT_NUMERIC_TOLERANCE } from '../../utils/numberComparison';
-import { isDocumentTableBridgeDocument, type DocumentTableColumnAlignments, type DocumentTableBridgeDocument } from './documentTableBridge';
 import {
   attachPdfColumnLayoutMeta,
   resolveColumnWidths,
@@ -21,9 +20,10 @@ import {
   type PdfCellAlign,
   type PdfColumnStyle,
   type PdfColumnStyleMap,
-} from './resolveColumnWidths';
+} from '../../document/layout/resolveColumnWidths';
+import { DOCUMENT_TABLE_FONT_SIZE_PT } from '../../document/layout/tableSpec';
 
-export const TABLE_FONT_SIZE = 8;
+const TABLE_FONT_SIZE = DOCUMENT_TABLE_FONT_SIZE_PT;
 // Generisk celle-padding for alle Mineo-tabeller (= TABLE_STYLES.cellPadding).
 // Modul-lokal: ingen ekstern importør, så ikke eksporteret.
 const TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
@@ -44,48 +44,13 @@ type PdfMeasuredDoc = jsPDF & Readonly<{
   getFont?: () => Readonly<{ fontName: string; fontStyle: string }>;
   getFontSize?: () => number;
 }>;
-type PdfSummedTotalRow = Readonly<{
-  row: RowInput;
-  valueCellColumnIndex: number;
-  valueCellColSpan: number;
-  formattedValue: string;
-  estimatedValueMinWidthMm: number;
-}>;
-type PdfTotalRowOptions = Readonly<{
-  columnCount: number;
-  valueColumnIndex: number;
-  labelColumnIndex?: number;
-  labelAlign?: PdfCellAlign;
-  valueAlign?: PdfCellAlign;
-  valueColSpan?: number;
-  /**
-   * Styrer om total-cellens outputværdi ender på ` kr.` (NBSP + "kr.").
-   *
-   * Kontrakt: `normalizePdfTotalFormattedValue` trimmer altid et eksisterende
-   * `kr.`-suffix væk og påtrykker derefter suffix hvis og kun hvis dette flag
-   * er `true`. Det gør flaget idempotent i forhold til formatter-valg:
-   * - `formatMoneyOreWithKrTrimmed` + `valueHasKrSuffix: false` → suffix trimmes, ikke genpåført.
-   * - `formatMoneyOreWithKrTrimmed` + `valueHasKrSuffix: true`  → suffix trimmes, derefter genpåført.
-   * - `formatCurrencyFromOreTrimmed` + `valueHasKrSuffix: true` → suffix tilføjes.
-   *
-   * Undgå derfor at "låse" call-sites til en specifik formatter ud fra antagelsen om,
-   * at den allerede indeholder `kr.` — flaget alene bestemmer slut-outputtet.
-   */
-  valueHasKrSuffix?: boolean;
-  preserveValueColumn?: boolean;
-}>;
-
-const PDF_TOTAL_VALUE_CHAR_WIDTH_MM = 2.2;
-const PDF_TOTAL_VALUE_WIDTH_PADDING_MM = 6;
-const NBSP = '\u00A0';
 const normalizePdfTableCellContent = (content: string, halign?: PdfCellAlign): string => {
   return halign === 'right' ? normalizeRightAlignedTextForDocument(content) : content;
 };
 
-// Kanal-neutralt dato-værn for alt tabelindhold: renderDocumentTable er det fælles
-// indgangspunkt for både PDF og Word, så her fanges enhver rå ISO-dato, der ved en
-// fejl er sendt uformateret med i en celle — uanset hvordan cellen er bygget. Se
-// documentDateGuard.ts. Bevarer celle-objektets styles/colSpan og rører kun content.
+// PDF-kanalens sidste dato-værn for tabelindhold. Her fanges enhver rå ISO-dato,
+// der ved en fejl er sendt uformateret med i en celle. Se documentDateGuard.ts.
+// Celleobjektets styles/colSpan bevares; kun content kan ændres.
 const guardRowInputDates = (body: RowInput[]): RowInput[] =>
   body.map((row) => {
     if (!Array.isArray(row)) return row;
@@ -152,7 +117,7 @@ const measurePdfTextWidthMm = (
 };
 
 // Bygger en `ColumnTextMeasurer` oven på jsPDF-doc'et til den rene `resolveColumnWidths`.
-// Returnerer `null`, når teksten ikke kan måles (Word-kanalen eller en degraderet jsPDF)
+// Returnerer `null`, når teksten ikke kan måles (en degraderet jsPDF)
 // — da falder bredde-fordelingen fail-closed tilbage til de statiske bredder.
 const createPdfTextMeasurer = (doc: jsPDF): ColumnTextMeasurer | null => {
   if (!canMeasurePdfText(doc)) return null;
@@ -187,143 +152,6 @@ export const createDocumentTableHeaderCell = (
   content: string,
   halign: PdfCellAlign = 'left'
 ): PdfTableCell => createDocumentTableCell(content, { halign, bold: true });
-
-export const resolveDocumentTotalValueMinWidthMm = (
-  formattedValue: string,
-  options?: Readonly<{
-    charWidthMm?: number;
-    paddingMm?: number;
-    minWidthMm?: number;
-  }>
-): number => {
-  const charWidthMm = options?.charWidthMm ?? PDF_TOTAL_VALUE_CHAR_WIDTH_MM;
-  const paddingMm = options?.paddingMm ?? PDF_TOTAL_VALUE_WIDTH_PADDING_MM;
-  const minWidthMm = options?.minWidthMm ?? 0;
-  const normalizedValue = formattedValue.trim();
-  const estimatedWidth = (normalizedValue.length * charWidthMm) + paddingMm;
-  return Math.max(minWidthMm, estimatedWidth);
-};
-
-// Trimmer altid eksisterende `kr.`-suffix fra input og påtrykker derefter suffix
-// hvis og kun hvis `valueHasKrSuffix` er true. Se JSDoc på PdfTotalRowOptions.valueHasKrSuffix.
-const normalizePdfTotalFormattedValue = (
-  formattedValue: string,
-  valueHasKrSuffix: boolean,
-  valueAlign: PdfCellAlign
-): string => {
-  const trimmed = formattedValue.trim();
-  const withoutKrSuffix = trimmed.replace(/(?:\u00A0|\s)*kr\.$/i, '').trimEnd();
-  const withSuffix = valueHasKrSuffix ? `${withoutKrSuffix}${NBSP}kr.` : withoutKrSuffix;
-  return normalizePdfTableCellContent(withSuffix, valueAlign);
-};
-
-const buildPdfTotalRow = (
-  label: string,
-  formattedValue: string,
-  options: PdfTotalRowOptions
-): PdfSummedTotalRow => {
-  const {
-    columnCount,
-    valueColumnIndex,
-    labelColumnIndex = 0,
-    labelAlign = 'left',
-    valueAlign = 'right',
-    valueColSpan = 1,
-    valueHasKrSuffix = false,
-    preserveValueColumn = false,
-  } = options;
-
-  if (!Number.isInteger(columnCount) || columnCount <= 1) {
-    throw new Error(`Ugyldigt kolonneantal for PDF-sammentællingslinje: ${String(columnCount)}.`);
-  }
-  if (!Number.isInteger(labelColumnIndex) || labelColumnIndex < 0 || labelColumnIndex >= columnCount) {
-    throw new Error(`Ugyldigt label-kolonneindex for PDF-sammentællingslinje: ${String(labelColumnIndex)}.`);
-  }
-  if (!Number.isInteger(valueColumnIndex) || valueColumnIndex < 0 || valueColumnIndex >= columnCount) {
-    throw new Error(`Ugyldigt værdi-kolonneindex for PDF-sammentællingslinje: ${String(valueColumnIndex)}.`);
-  }
-  if (!Number.isInteger(valueColSpan) || valueColSpan <= 0) {
-    throw new Error(`Ugyldigt værdi-colSpan for PDF-sammentællingslinje: ${String(valueColSpan)}.`);
-  }
-
-  const valueColumnEndExclusive = valueColumnIndex + valueColSpan;
-  if (valueColumnEndExclusive > columnCount) {
-    throw new Error(
-      `Værdi-cellen i PDF-sammentællingslinjen rækker ud over tabellens kolonner (${valueColumnEndExclusive} > ${columnCount}).`
-    );
-  }
-  if (labelColumnIndex >= valueColumnIndex) {
-    throw new Error('PDF-sammentællingslinjen kræver, at label-kolonnen ligger til venstre for værdi-kolonnen.');
-  }
-  const normalizedFormattedValue = normalizePdfTotalFormattedValue(formattedValue, valueHasKrSuffix, valueAlign);
-  const row: PdfTableCell[] = [];
-  const valueCellColumnIndex = preserveValueColumn ? valueColumnIndex : Math.min(labelColumnIndex + 1, valueColumnIndex);
-  const valueCellColSpan = valueColumnEndExclusive - valueCellColumnIndex;
-
-  for (let index = 0; index < columnCount; index += 1) {
-    if (index === labelColumnIndex) {
-      row.push(createDocumentTableCell(label, { halign: labelAlign, bold: true }));
-      continue;
-    }
-
-    if (index === valueCellColumnIndex) {
-      row.push({
-        content: normalizedFormattedValue,
-        colSpan: valueCellColSpan,
-        styles: {
-          halign: valueAlign,
-          fontStyle: 'bold',
-          // ColSpan-celler kan ellers arve højre-padding fra startkolonnen i spændet.
-          // Det kan rykke totalbeløbet ind, når startkolonnen har custom inset.
-          cellPadding: TABLE_CELL_PADDING,
-        },
-      });
-      index += valueCellColSpan - 1;
-      continue;
-    }
-
-    row.push(createDocumentTableCell(''));
-  }
-
-  return {
-    row,
-    valueCellColumnIndex,
-    valueCellColSpan,
-    formattedValue: normalizedFormattedValue,
-    estimatedValueMinWidthMm: resolveDocumentTotalValueMinWidthMm(normalizedFormattedValue),
-  };
-};
-
-export const createDocumentTableFormattedTotalRow = (
-  label: string,
-  formattedValue: string,
-  options: PdfTotalRowOptions
-): PdfSummedTotalRow => {
-  return buildPdfTotalRow(label, formattedValue, options);
-};
-
-export const createDocumentTableSummedTotalRow = (
-  label: string,
-  values: ReadonlyArray<number>,
-  options: Readonly<{
-    columnCount: number;
-    valueColumnIndex: number;
-    formatValue: (total: number) => string;
-    labelColumnIndex?: number;
-    labelAlign?: PdfCellAlign;
-    valueAlign?: PdfCellAlign;
-    valueColSpan?: number;
-    valueHasKrSuffix?: boolean;
-    preserveValueColumn?: boolean;
-  }>
-) : PdfSummedTotalRow | null => {
-  // En sammentællingslinje giver kun mening når der summeres mindst to rækker.
-  // Callsites skal derfor håndtere `null` som "ingen totalrække".
-  if (values.length <= 1) return null;
-
-  const total = values.reduce((sum, value) => sum + value, 0);
-  return buildPdfTotalRow(label, options.formatValue(total), options);
-};
 
 export const createDocumentFixedColumnStyles = (
   columnCount: number,
@@ -472,64 +300,8 @@ export const createDocumentGrowColumnStyles = (
   });
 };
 
-// Dynamisk højre-indrykning for højrejusterede tal-kolonner. Insettet skaleres med
-// kolonnens faktiske bredde, så en smal kolonne (fx når en nabo-grow-kolonne har taget
-// det meste af pladsen) ikke spilder plads på et stort, fast inset — og et højt inset
-// ikke presser talværdien til ombrydning. Ved brede kolonner rammes `maxInset`, så det
-// hidtidige, luftige udseende bevares. Falder tilbage til `maxInset`, når bredden ikke
-// kendes (Word-kanalen sætter ingen mm-bredder, og en degraderet jsPDF kan ikke måle).
-export const resolveDynamicRightAlignedInset = (
-  columnWidth: number | undefined,
-  maxInset: number,
-  options?: Readonly<{ minInset?: number; widthFraction?: number }>
-): number => {
-  const minInset = options?.minInset ?? 2;
-  const widthFraction = options?.widthFraction ?? 0.2;
-  if (typeof columnWidth !== 'number' || !Number.isFinite(columnWidth) || columnWidth <= 0) {
-    return maxInset;
-  }
-  return Math.max(minInset, Math.min(maxInset, columnWidth * widthFraction));
-};
-
-// Udleder kolonne→justering for data-rækker, som Word-broen kan anvende, så
-// .docx-tabeller matcher PDF'ens justering. PDF'en udleder selv justering fra
-// `columnStyles` og `didParseCell`; broen kan kun se cellernes egen halign, så
-// vi samler kolonne-niveauet (og evt. hook-override) her. `dataRowColumnHalign`
-// vinder over `columnStyles`, fordi PDF-hooks kører efter kolonne-styles.
-const resolveDocumentTableColumnAlignments = (
-  columnStyles: PdfTableColumnStyles | undefined,
-  dataRowColumnHalign: Readonly<Record<number, PdfCellAlign>> | undefined
-): DocumentTableColumnAlignments | undefined => {
-  const alignments: Record<number, PdfCellAlign> = {};
-
-  if (columnStyles) {
-    for (const [rawIndex, style] of Object.entries(columnStyles)) {
-      const index = Number(rawIndex);
-      if (!Number.isInteger(index)) continue;
-      const halign = (style as PdfColumnStyle | undefined)?.halign;
-      if (halign === 'left' || halign === 'center' || halign === 'right') {
-        alignments[index] = halign;
-      }
-    }
-  }
-
-  if (dataRowColumnHalign) {
-    for (const [rawIndex, halign] of Object.entries(dataRowColumnHalign)) {
-      const index = Number(rawIndex);
-      if (Number.isInteger(index)) {
-        alignments[index] = halign;
-      }
-    }
-  }
-
-  return Object.keys(alignments).length > 0 ? alignments : undefined;
-};
-
 export const renderDocumentTable = (params: Readonly<{
-  // Honest union: `writer.getDoc()` leverer enten en rå jsPDF (PDF-kanal) eller en
-  // `DocumentTableBridgeDocument` (Word-kanal). `isDocumentTableBridgeDocument`-guarden
-  // nedenfor narrower til jsPDF før al jsPDF-only brug (jf. F2-lukning i pdfWriter.ts).
-  doc: jsPDF | DocumentTableBridgeDocument;
+  doc: jsPDF;
   startY: number;
   body: RowInput[];
   columnStyles?: PdfTableColumnStyles;
@@ -544,11 +316,6 @@ export const renderDocumentTable = (params: Readonly<{
   // så hook'en kan skalere fx en højre-indrykning efter kolonnens faktiske bredde.
   didParseCell?: (data: CellHookData, resolvedColumnWidths: ReadonlyMap<number, number>) => void;
   didDrawCell?: NonNullable<Parameters<typeof autoTable>[1]>['didDrawCell'];
-  // Justering pr. kolonne for data-rækker, som ikke fremgår af de enkelte celler
-  // (typisk en `didParseCell`-hook der højrejusterer en talkolonne). Bruges KUN
-  // til at give Word samme justering som PDF — PDF'en får sin justering fra
-  // `columnStyles`/`didParseCell` som hidtil. Cellens egen `halign` vinder altid.
-  dataRowColumnHalign?: Readonly<Record<number, PdfCellAlign>>;
 }>): number => {
   const {
     doc,
@@ -562,19 +329,10 @@ export const renderDocumentTable = (params: Readonly<{
     estimatedRowHeight = 8,
     didParseCell,
     didDrawCell,
-    dataRowColumnHalign,
   } = params;
 
   // Sidste forsvarslinje mod rå ISO-datoer i tabelindhold (begge kanaler).
   const body = guardRowInputDates(rawBody);
-
-  if (isDocumentTableBridgeDocument(doc)) {
-    if (body.length === 0) {
-      throw new Error('renderDocumentTable kaldt med tom body — tabellen skulle være undertrykt eller have en eksplicit tom-tilstandsrække i kalderen.');
-    }
-    doc.addBridgeTableFromRows(body, hasHeaderRow, resolveDocumentTableColumnAlignments(columnStyles, dataRowColumnHalign));
-    return startY;
-  }
 
   // Fail-closed: en tom tabel-body er altid en fejl i kalderen (en sektion der skulle
   // have været undertrykt eller fået en eksplicit "Ingen ..."-række før kaldet). At

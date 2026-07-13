@@ -16,7 +16,7 @@ import { createDocumentComposer, renderDocumentModel } from '../../../document/m
 
 /**
  * Optagende fake-writer der kun implementerer de metoder `documentGeneratorSetup` faktisk kalder
- * (`initStandardDocumentWriter` → setDisplayMode + setProperties; `writeLabelValueRows` →
+ * (`DocumentGenerationSession` → setProperties; `writeLabelValueRows` →
  * writeLeftRightText). Vi tester dette moduls kontrakt — ikke jsPDF.
  *
  * Objekt-literalen type-tjekkes mod de RIGTIGE DocumentWriter-signaturer via `satisfies Pick<…>`, så
@@ -26,7 +26,6 @@ import { createDocumentComposer, renderDocumentModel } from '../../../document/m
  */
 type RecordedWriterMethods = Pick<
   DocumentWriter,
-  | 'setDisplayMode'
   | 'setProperties'
   | 'writeLeftRightText'
   | 'writeBrevhoved'
@@ -42,14 +41,10 @@ type LeftRightCall = Readonly<{
 }>;
 
 const createRecordingWriter = () => {
-  const displayModes: Parameters<DocumentWriter['setDisplayMode']>[0][] = [];
   const properties: Parameters<DocumentWriter['setProperties']>[0][] = [];
   const leftRight: LeftRightCall[] = [];
   const lifecycle: string[] = [];
   const writer = {
-    setDisplayMode: (mode) => {
-      displayModes.push(mode);
-    },
     setProperties: (props) => {
       properties.push(props);
     },
@@ -70,7 +65,7 @@ const createRecordingWriter = () => {
       return new Blob();
     },
   } satisfies RecordedWriterMethods as unknown as DocumentWriter;
-  return { writer, displayModes, properties, leftRight, lifecycle };
+  return { writer, properties, leftRight, lifecycle };
 };
 
 describe('documentGeneratorSetup', () => {
@@ -139,14 +134,13 @@ describe('documentGeneratorSetup', () => {
       const generate = defineDocument<void>({
         title: 'Satser',
         filename: () => 'satser.pdf',
-        writerOptions: { visUdkastStempel: true, orientation: 'landscape', onLayoutFallback },
+        writerOptions: { orientation: 'landscape', onLayoutFallback },
         body: () => undefined,
       });
       await generate(session, undefined);
 
       expect(factoryCalls).toHaveLength(1);
       expect(factoryCalls[0]).toEqual({
-        visUdkastStempel: true,
         orientation: 'landscape',
         onLayoutFallback,
       });

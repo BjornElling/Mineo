@@ -1,1 +1,1 @@
-export type { DocumentWriter } from './documentWriter';
+export type { DocumentProperties, DocumentWriter } from './documentWriter';

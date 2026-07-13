@@ -11,7 +11,7 @@ import {
   createDocumentGrowColumnStyles,
   createDocumentTableCell,
   createDocumentTableHeaderCell,
-} from '../../../document/layout/documentTableRenderer';
+} from '../../../pdf/infrastructure/pdfDocumentTableRenderer';
 
 // Ren måle-funktion, der spejler MockJsPDF.getTextWidth i pdfTableRenderer.layout-testen
 // (bold bredere pr. tegn, skaleret med fontstørrelse). Determinisme er det eneste krav.

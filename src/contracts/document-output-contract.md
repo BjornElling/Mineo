@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-13
 
 ## 1. Scope
 
@@ -114,11 +114,11 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
 1. `src/document/` er den **kanoniske**, format-agnostiske dokument-kerne og opdelt i:
    - `src/document/model/` — blokalgebra, `DocumentComposer` og central modelrenderer.
    - `src/document/writer/` — intern render-target-grænse; må ikke importeres af generatorer.
-   - `src/document/layout/` — tabel-renderer (`documentTableRenderer.ts`), tekst-/format-utils (`pdfTextUtils.ts`, `documentFormatUtils.ts`), config (`pdfConfig.ts`), helpers (`documentLayoutHelpers.ts`), brevhoved-mapping (`documentBrevhoved.ts`), gate-typer (`documentGateTypes.ts`), fælles options (`documentOptions.ts`), tabel-bro (`documentTableBridge.ts`) og geometri (`jsPdfGeometry.ts`).
+   - `src/document/layout/` — kanalneutral tabelmodel (`tableSpec.ts`), tekst-/format-utils, fælles layoutværdier, helpers, brevhoved-mapping, gate-typer og dokument-options. Mappen må ikke indeholde en Word↔PDF-bro eller importere en konkret tabelkanal.
    - `src/document/generators/` — én generator (+ evt. `sections/`) pr. domæne (`*Document.ts`).
    - `src/document/service/` — service-boundary/download-afvikling (`documentService.ts`) og lazy-loader (`documentLoader.ts`).
 2. De **to kanaler** er rene infrastruktur-implementeringer af `DocumentWriter` og ligger uden for kernen:
-   - **PDF-kanalen** i `src/pdf/` (jsPDF): adapter (`infrastructure/jsPdfAdapter.ts`, `infrastructure/pdfDocumentAdapter.ts`), writer-fabrik (`infrastructure/pdfWriter.ts` — `createPdfWriter`/`createPdfChannelWriter`), brevhoved-renderer (`infrastructure/pdfBrevhovedRenderer.ts`), adapter-afhængige render-helpers (`pdfRenderHelpers.ts`) og standalone-rente-service (`infrastructure/standaloneRentePdfService.ts`).
+   - **PDF-kanalen** i `src/pdf/` (jsPDF): adapter, writer-fabrik, brevhoved-renderer, den direkte `TableSpec`-renderer (`pdfTableRenderer.ts` + `pdfDocumentTableRenderer.ts`), render-helpers og standalone-rente-service.
    - **Word-kanalen** i `src/docx/` (writer + understøttende infrastruktur). Begge kanaler indeholder ingen domænegeneratorer: PDF og Word genbruger den samme `DocumentModel`, som generatorerne bygger gennem `DocumentComposer` (jf. afsnit B).
 3. Der findes **ikke** længere et selvstændigt EO-PDF-lag under `src/domain/erstatningsopgoerelse/pdf/`. Det tidligere lag var ikke reel renderingskode (ingen jsPDF), men EO-præsentations- og regulerings-logik, der byggede tabel-*data*. Den er konsolideret ind i domænelaget (review-planens punkt 10.5):
    - Regulerings-/lønudviklings-tabeldata: `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`.
@@ -127,8 +127,10 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
    - Delte EO-helpers (dato-/sats-/pct-utils): `src/domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts`.
    - Lønudviklings-segmentering: `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts`.
 4. Ingen ny generator må oprettes uden for `src/document/generators/`.
-5. `DocumentWriter` og dens `getDoc()`-union er intern overgangsmekanik mellem den centrale
-   modelrenderer og kanal-infrastrukturen. Generatorer må aldrig importere eller modtage den.
+5. `DocumentWriter` er den interne semantiske render-target-grænse mellem den centrale
+   modelrenderer og kanal-infrastrukturen. Den eksponerer ikke kanalobjekt, cursor eller
+   kanalspecifikke koordinater. Semantiske fysiske mål som afstand og stregbredde angives i
+   millimeter og oversættes af hver kanal. Generatorer må aldrig importere eller modtage den.
 
 ## A8. Datoformat i output (kanal-neutralt)
 
@@ -170,7 +172,7 @@ browser-downloaden.
 
 Alle generator-entrypoints defineres med `defineDocument(...)` i
 `src/document/generators/documentGeneratorSetup.ts`. Factoryen ejer den faste lifecycle:
-komposition af eventuelt første-side-vandmærke → eventuelt brevhoved → eventuel titel →
+komposition af eventuelt vandmærke → eventuelt brevhoved → eventuel titel →
 domæneindhold → footer → én samlet rendering med metadata/writer-options → formatkorrekt filnavn.
 Generatoren ejer kun sin deklarative opsætning og sin synkrone, kanal-neutrale
 `body(document, input)`-callback. En generator må ikke gentage
@@ -186,7 +188,7 @@ Ved konflikt internt i kontrakten gælder:
 ## B1. Grundregel
 
 1. Layout skal være standardiseret på tværs af dokumenttyper og kanaler.
-2. Lokale generatorer må ikke indføre egne spacing- eller tekstmønstre, hvis concernet allerede er dækket af writer/helper-laget (`documentWriter.ts`, `src/document/layout/documentLayoutHelpers.ts`, `documentTableRenderer.ts`, `pdfConfig.ts`).
+2. Lokale generatorer må ikke indføre egne spacing- eller tekstmønstre, hvis concernet allerede er dækket af composer-/layoutlaget (`documentModel.ts`, `documentLayoutHelpers.ts`, `tableSpec.ts`, `pdfConfig.ts`).
 3. Ensartethed vægtes højere end lokal finjustering.
 4. Afvigelser er kun acceptable, når de er nødvendige for korrekt sidebrydning, reel tabelgeometri eller eksplicit dokumenteret domænekrav.
 
@@ -236,7 +238,7 @@ modelrenderer mapper derefter hver bloktype til den tilsvarende interne `Documen
 | Fortsat brødtekst uden trailing spacing | `document.writeWrappedTextContinued()` | Kun ved bevidst fortsættelse af samme logiske blok |
 | Mixed normal+fed på én linje | `document.writeNormalThenBoldLine()` | Til formler og linjer med blandet vægt; ikke en selvstændig teksttype |
 | Venstre/højre-oplysningslinje | `document.writeLeftRightText()` | Standard for key/value-, formel- og beløbslinjer |
-| Tabel | `document.addTable(spec)` | Eneste gyldige generator-API til egentlige tabeller; renderer ejer `renderTableSpec()` |
+| Tabel | `document.addTable(spec)` | Eneste gyldige generator-API til egentlige tabeller; hvert kanal-target ejer `renderTable(spec)` |
 
 Hvis underoverskrifter kræver conditional rendering eller atomisk sammenkædning med efterfølgende indhold, skal dette løses centralt i writer/helper-laget. Generatorer må ikke reimplementere disse regler lokalt.
 
@@ -352,7 +354,7 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 ### B5.4 Efter tabeller
 
 1. Tabellen afsluttes med en kanonisk overgang til næste blok.
-2. Modelrendereren ejer `renderTableSpec()` og den efterfølgende Y-position; generatoren modtager ingen cursor og må ikke kompensere for tabelafslutningen.
+2. Modelrendereren videresender hele `TableSpec` til kanal-targetet; generatoren modtager ingen cursor og må ikke kompensere for tabelafslutningen.
 3. Generatoren må ikke lægge ad hoc ekstra topafstand ind foran næste underoverskrift.
 
 ## B6. Manuel spacing: tilladt og forbudt
@@ -392,9 +394,7 @@ Direkte skrivning via `doc.text(...)` eller lignende er kun acceptabel efter for
 2. Lavniveau-tegneprimitiver for streger og geometri må bruge direkte jsPDF-adgang uden ekstra note.
 3. Almindelig tekst, spacing eller domænetekst må kun bruge direkte jsPDF-adgang, hvis writer/helper-laget mangler en nødvendig evne, og callsite dokumenterer undtagelsen efter B9.
 
-Direkte jsPDF-brug til almindelige tekstblokke er en afvigelse og skal som udgangspunkt fjernes. Bemærk at direkte jsPDF-adgang kun giver mening i PDF-kanalen; Word-kanalen broer tabel-callbacks via tabel-broen i kernen (`src/document/layout/documentTableBridge.ts`). Generatorer skal derfor bygge via `DocumentComposer` frem for at antage en konkret kanal eller importere `DocumentWriter`.
-
-> **Bemærkning (writer-grænseflade, F2 lukket):** Writer-grænsefladen hedder `DocumentWriter` (`src/document/writer/documentWriter.ts`). Dens `getDoc()` returnerer den honest union `jsPDF | DocumentTableBridgeDocument` — PDF-kanalen returnerer den rå jsPDF-instans (kun til tabel-callbacks/lavniveau-tegning), Word-kanalen returnerer tabel-broen. Den tidligere kanal-lækage, hvor `getDoc()` var typet `jsPDF` og Word-writeren måtte returnere en attrap via `as never`-cast, er fjernet.
+Direkte jsPDF-brug til almindelige tekstblokke er en afvigelse og skal som udgangspunkt fjernes. Direkte jsPDF-adgang giver kun mening inde i PDF-kanalen. Word renderer den samme semantiske `TableSpec` direkte til OOXML; der findes ingen tabelbro. Generatorer skal bygge via `DocumentComposer` frem for at antage en konkret kanal eller importere `DocumentWriter`.
 
 ## B9. Undtagelser
 
@@ -468,7 +468,9 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 - PDF-writer-fabrik (kanal): `createPdfChannelWriter` (`src/pdf/infrastructure/pdfWriter.ts`).
 - Word-writer-fabrik (kanal): `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`).
 - Word-typografier (navngivne styles): `src/docx/infrastructure/docxStyles.ts`.
-- Tabelbro (kanal-neutral, broes til Word): `src/document/layout/documentTableBridge.ts`.
+- Kanalneutral tabelmodel: `src/document/layout/tableSpec.ts`.
+- PDF-tabelrenderer: `src/pdf/infrastructure/pdfTableRenderer.ts` og `pdfDocumentTableRenderer.ts`.
+- Word-tabelrenderer: `createDocxTable` i `src/docx/infrastructure/docxWriter.ts`.
 - Word-vandmærke: `src/docx/infrastructure/docxWatermark.ts`.
 - Service boundary / download: `src/document/service/documentService.ts`.
 - Layout-konstanter: `src/document/layout/pdfConfig.ts`.
@@ -504,10 +506,13 @@ Hvis kode og kontrakt divergerer, er det en arkitekturfejl, ikke en stilforskel.
 
 ## 5. Kendte Undtagelser
 
-- Word-kanalens layout er en pragmatisk oversættelse af de samme teksttyper til Words afsnitsmodel (navngivne typografier i `docxStyles.ts`); enkelte writer-metoder (fx ren cursor-/Y-styring som `getY`/`setY`/`advanceY`/`ensureSpace`) er no-ops i Word-writeren, fordi Word selv håndterer sideflow. Dette er en bevidst afvigelse: de kanal-neutrale data-/gate-regler i afsnit A er upåvirkede, og de visuelle teksttyper i afsnit B bevares via navngivne styles.
-- `TableSpec` bærer fortsat statiske millimeterbredder og enkelte eksplicit markerede PDF-only
-  præsentationshints fra tabeludredningen (#15). De observerer ikke en runtime-kanal eller cursor,
-  men er heller ikke den endelige semantiske PDF/Word-paritetsform. Konsolideringen ejes af fase-3
-  #31, fordi ændringer af disse hints kan flytte celler og dermed kræver forudgående godkendelse.
-  EO-sektionernes store composer-/formatter-contexts ejes tilsvarende af fase-3 #32.
+- Word-kanalens layout er en oversættelse af de samme blokintentioner til Words afsnitsmodel
+  og navngivne typografier. Word ejer selv sideflow, mens overskrifters `keepNext`, atomiske
+  tabelrækker og den samlede signaturblok udtrykker de fælles keep-intentioner uden cursor/Y.
+  Vandmærke og footer er ikke options eller implicit build-adfærd: deres respektive
+  `DocumentBlock` er eneste autoritet i begge kanaler.
+- `TableSpec` er ren semantisk data. Kolonnebredde, alignment, dæmpet tone, totalrække og kort
+  totalstreg fortolkes direkte af begge kanalrenderere. Fysiske millimetermål er fælles
+  layoutintentioner, ikke PDF-only hints. EO-sektionernes store composer-/formatter-contexts
+  ejes fortsat af fase-3 #32.
 - `satserDocument.ts` inkluderer bevidst ikke journalnr i filnavnet — satser er årsspecifikke og sagsagnostiske.

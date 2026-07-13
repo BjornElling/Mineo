@@ -5,8 +5,8 @@ import { ILON12_DISCONTINUED_NOTE } from '../../../../../document/generators/eo/
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
 import { PDF_CONTENT_WIDTH_MM } from '../../../../../document/layout/pdfConfig';
-import { resolveDynamicRightAlignedInset } from '../../../../../document/layout/documentTableRenderer';
-import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
+import { resolveColumnRightInsetMm, type TableSpec } from '../../../../../document/layout/tableSpec';
+import { renderPdfTableSpec } from '../../../../../pdf/infrastructure/pdfTableRenderer';
 import { toISODateString } from '../../../../../types/branded';
 
 // Spejler reguleringSection's REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM (maks-insettet for
@@ -80,7 +80,7 @@ const makeContext = (
       addSectionSpacer: vi.fn(),
       addSpacer: vi.fn(),
       addTable: vi.fn((spec: TableSpec) => {
-        y = renderTableSpec(doc as never, y, spec).endY;
+        y = renderPdfTableSpec(doc as never, y, spec).endY;
       }),
       writeUnderlinedSubheader: vi.fn(),
     },
@@ -903,7 +903,10 @@ describe('renderReguleringSection – Beregnet regulering kolonnefordeling', () 
     expect(call).toBeDefined();
     // Indeks (index 3) og Lønudvikling (index 4) er de højrejusterede tal-kolonner.
     const indeksWidth = call?.columnStyles?.[3]?.cellWidth ?? 0;
-    const expectedInset = resolveDynamicRightAlignedInset(indeksWidth, REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM_FOR_TEST);
+    const expectedInset = resolveColumnRightInsetMm(indeksWidth, {
+      kind: 'dynamic',
+      maxMm: REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM_FOR_TEST,
+    });
 
     const data = {
       row: { index: 1 },

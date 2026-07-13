@@ -8,6 +8,7 @@ import {
   Header,
   HorizontalPositionRelativeFrom,
   ImageRun,
+  LineRuleType,
   Packer,
   PageOrientation,
   PageBreak,
@@ -36,12 +37,22 @@ import {
   buildDocumentFooterText,
   getDocumentFooterImage,
 } from '../../document/layout/documentFooterImage';
-import { PDF_FOOTER_MARGIN_MM, PDF_FOOTER_RIGHT_MARGIN_MM } from '../../document/layout/pdfConfig';
 import {
-  createDocumentTableBridgeDocument,
-  type DocumentTableCellAlign,
-  type DocumentTableColumnAlignments,
-} from '../../document/layout/documentTableBridge';
+  PDF_CONTENT_WIDTH_MM,
+  PDF_BASE_LINE_HEIGHT_MM,
+  PDF_FOOTER_MARGIN_MM,
+  PDF_FOOTER_RIGHT_MARGIN_MM,
+  PDF_MUTED_TEXT_COLOR,
+  PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_MM,
+  TABLE_STYLES,
+} from '../../document/layout/pdfConfig';
+import type {
+  CellSpec,
+  DocumentCellAlign,
+  RowSpec,
+  TableSpec,
+} from '../../document/layout/tableSpec';
+import { assertValidTableSpec, resolveColumnRightInsetMm } from '../../document/layout/tableSpec';
 import { createUdkastWatermarkParagraph } from './docxWatermark';
 import { DOCX_STYLE, buildDocxStyles, type DocxStyleId } from './docxStyles';
 
@@ -57,6 +68,8 @@ const LANDSCAPE_CONTENT_WIDTH_DXA = PAGE_HEIGHT_DXA - PAGE_HORIZONTAL_MARGIN_DXA
 const TABLE_CELL_MARGIN_DXA = 90;
 const dxaFromCentimeters = (centimeters: number): number =>
   roundByMethod((centimeters / 2.54) * 1440, 0, 'halfAwayFromZero');
+const dxaFromMillimeters = (millimeters: number): number =>
+  roundByMethod((millimeters / 25.4) * 1440, 0, 'halfAwayFromZero');
 
 type TextStyle = 'normal' | 'bold';
 
@@ -89,9 +102,9 @@ const tableBorders = {
   insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'D9D9D9' },
 } as const;
 
-// Dato-v\u00E6rn + NBSP\u2192mellemrum: alt Word-tekstindhold (afsnit, tabelceller,
-// blandede linjer) g\u00E5r gennem denne normalisering, s\u00E5 en r\u00E5 ISO-dato aldrig
-// kan n\u00E5 .docx'en. Se documentDateGuard.ts.
+// Dato-værn + NBSP→mellemrum: alt Word-tekstindhold (afsnit, tabelceller,
+// blandede linjer) går gennem denne normalisering, så en rå ISO-dato aldrig
+// kan nå .docx'en. Se documentDateGuard.ts.
 const normalizeText = (text: string): string => guardDocumentDateText(text).replace(/\u00A0/g, ' ');
 
 const splitLines = (text: string): string[] => {
@@ -106,8 +119,8 @@ const splitLines = (text: string): string[] => {
 //     samme typografi bruges på celler med forskellig justering.
 //   - `frame`:     fikseret tekstrude (brevhovedet).
 //   - `pageBreakBefore`: sideskift.
-//   - `bold`:      brødtekst med Normal-typografi, men fed tekst.
-// Bemærk: runs sætter IKKE font/size — de arver fra afsnittets typografi.
+//   - `bold`:      indholdsbestemt fremhævning.
+//   - `color`/`size`: semantisk tabeltone/-størrelse fra den fælles TableSpec.
 const paragraph = (
   text: string,
   options?: Readonly<{
@@ -115,6 +128,11 @@ const paragraph = (
     bold?: boolean;
     alignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
     frame?: IFrameOptions;
+    color?: string;
+    size?: number;
+    keepNext?: boolean;
+    spacingBefore?: number;
+    spacingAfter?: number;
   }>
 ): Paragraph => {
   const children: ParagraphChild[] = splitLines(text).flatMap((line, index) => {
@@ -122,7 +140,12 @@ const paragraph = (
     if (index > 0) {
       runs.push(new TextRun({ break: 1 }));
     }
-    runs.push(new TextRun({ text: line, bold: options?.bold }));
+    runs.push(new TextRun({
+      text: line,
+      bold: options?.bold,
+      color: options?.color,
+      size: options?.size,
+    }));
     return runs;
   });
 
@@ -131,6 +154,13 @@ const paragraph = (
     style: options?.style ?? DOCX_STYLE.normal,
     alignment: options?.alignment,
     frame: options?.frame,
+    keepNext: options?.keepNext,
+    spacing: options?.spacingBefore === undefined && options?.spacingAfter === undefined
+      ? undefined
+      : {
+          before: options.spacingBefore,
+          after: options.spacingAfter,
+        },
   });
 };
 
@@ -148,83 +178,207 @@ const mixedParagraph = (
   ],
 });
 
-const resolveCellText = (cell: unknown): string => {
-  if (typeof cell === 'object' && cell !== null && 'content' in cell) {
-    const content = (cell as Readonly<{ content?: unknown }>).content;
-    return typeof content === 'string' ? content : String(content ?? '');
-  }
-  return typeof cell === 'string' ? cell : String(cell ?? '');
-};
-
-const resolveCellSpan = (cell: unknown): number => {
-  if (typeof cell !== 'object' || cell === null || !('colSpan' in cell)) return 1;
-  const colSpan = (cell as Readonly<{ colSpan?: unknown }>).colSpan;
-  return typeof colSpan === 'number' && Number.isInteger(colSpan) && colSpan > 1 ? colSpan : 1;
-};
-
 const halignToAlignment = (
-  halign: DocumentTableCellAlign | undefined
+  halign: DocumentCellAlign | undefined
 ): (typeof AlignmentType)[keyof typeof AlignmentType] => {
   if (halign === 'right') return AlignmentType.RIGHT;
   if (halign === 'center') return AlignmentType.CENTER;
   return AlignmentType.LEFT;
 };
 
-// Cellens egen halign vinder; ellers falder vi tilbage til kolonnens justering.
-// Returnerer `undefined` når cellen ikke selv angiver halign, så kalderen kan
-// indsætte kolonne-fallback for data-rækker (jf. DocumentTableColumnAlignments).
-const resolveCellHalign = (cell: unknown): DocumentTableCellAlign | undefined => {
-  if (typeof cell !== 'object' || cell === null || !('styles' in cell)) return undefined;
-  const styles = (cell as Readonly<{ styles?: Readonly<{ halign?: unknown }> }>).styles;
-  if (styles?.halign === 'right') return 'right';
-  if (styles?.halign === 'center') return 'center';
-  if (styles?.halign === 'left') return 'left';
-  return undefined;
+const pdfColorToHex = (color: readonly number[] | string): string => {
+  if (typeof color === 'string') return color.replace(/^#/, '').toUpperCase();
+  return color
+    .slice(0, 3)
+    .map((channel) => Math.max(0, Math.min(255, channel)).toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
 };
 
-const resolveCellBold = (cell: unknown, isHeaderRow: boolean): boolean => {
-  if (isHeaderRow) return true;
-  if (typeof cell !== 'object' || cell === null || !('styles' in cell)) return false;
-  const styles = (cell as Readonly<{ styles?: Readonly<{ fontStyle?: unknown }> }>).styles;
-  return styles?.fontStyle === 'bold';
+const resolveTableWidthDxa = (
+  spec: TableSpec,
+  contentWidthDxa: number,
+): number => {
+  const requestedWidthMm = spec.tableWidth ?? PDF_CONTENT_WIDTH_MM;
+  const fraction = Math.min(1, requestedWidthMm / PDF_CONTENT_WIDTH_MM);
+  return Math.max(1, roundByMethod(contentWidthDxa * fraction, 0, 'halfAwayFromZero'));
+};
+
+const resolveDocxColumnWidths = (
+  spec: TableSpec,
+  tableWidthDxa: number,
+): readonly number[] | null => {
+  if (spec.columns.every((column) => column.width.kind === 'auto')) return null;
+
+  const tableWidthMm = spec.tableWidth ?? PDF_CONTENT_WIDTH_MM;
+  const widthsMm = spec.columns.map((column) => {
+    if (column.width.kind === 'fixed' || column.width.kind === 'min') {
+      return column.width.mm;
+    }
+    return 0;
+  });
+  const allocated = widthsMm.reduce((sum, width) => sum + width, 0);
+  const remaining = Math.max(0, tableWidthMm - allocated);
+  const growIndex = spec.columns.findIndex((column) => column.width.kind === 'grow');
+  const flexibleIndices = spec.columns
+    .map((column, index) => ({ column, index }))
+    .filter(({ column }) => column.width.kind === 'flex'
+      || column.width.kind === 'grow'
+      || column.width.kind === 'auto')
+    .map(({ index }) => index);
+
+  if (growIndex >= 0 && flexibleIndices.length > 1) {
+    const growWidth = Math.min(remaining, tableWidthMm * 0.4);
+    widthsMm[growIndex] = growWidth;
+    const otherWidth = (remaining - growWidth) / (flexibleIndices.length - 1);
+    flexibleIndices.forEach((index) => {
+      if (index !== growIndex) widthsMm[index] = otherWidth;
+    });
+  } else if (flexibleIndices.length > 0) {
+    const width = remaining / flexibleIndices.length;
+    flexibleIndices.forEach((index) => {
+      widthsMm[index] = width;
+    });
+  } else if (remaining > 0) {
+    const extra = remaining / widthsMm.length;
+    widthsMm.forEach((width, index) => {
+      widthsMm[index] = width + extra;
+    });
+  }
+
+  const resolvedTotal = widthsMm.reduce((sum, width) => sum + width, 0);
+  if (resolvedTotal <= 0) {
+    return spec.columns.map(() => Math.floor(tableWidthDxa / spec.columns.length));
+  }
+  return widthsMm.map((width) =>
+    Math.max(1, roundByMethod((width / resolvedTotal) * tableWidthDxa, 0, 'halfAwayFromZero'))
+  );
+};
+
+const verticalAlignToDocx = (
+  valign: CellSpec['valign'] | undefined,
+): (typeof VerticalAlignTable)[keyof typeof VerticalAlignTable] => {
+  if (valign === 'bottom') return VerticalAlignTable.BOTTOM;
+  if (valign === 'middle') return VerticalAlignTable.CENTER;
+  return VerticalAlignTable.TOP;
+};
+
+const createSeparatedValueTable = (
+  valueParagraph: Paragraph,
+  availableWidthDxa: number,
+  widthMm = PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_MM,
+  gapMm = 0,
+): Table => {
+  const widthDxa = Math.max(1, Math.min(availableWidthDxa, dxaFromMillimeters(widthMm)));
+  return new Table({
+    alignment: AlignmentType.RIGHT,
+    rows: [
+      new TableRow({
+        cantSplit: true,
+        children: [
+          new TableCell({
+            width: { size: widthDxa, type: WidthType.DXA },
+            borders: {
+              top: sumLineTopBorder,
+              bottom: emptyBorder,
+              left: emptyBorder,
+              right: emptyBorder,
+            },
+            margins: {
+              top: dxaFromMillimeters(gapMm),
+              bottom: 0,
+              left: 0,
+              right: 0,
+            },
+            children: [valueParagraph],
+          }),
+        ],
+      }),
+    ],
+    width: { size: widthDxa, type: WidthType.DXA },
+    columnWidths: [widthDxa],
+    layout: TableLayoutType.FIXED,
+    borders: TableBorders.NONE,
+  });
+};
+
+const resolveRowShading = (
+  row: RowSpec,
+  rowIndex: number,
+  hasHeaderRow: boolean,
+): string | undefined => {
+  if (row.kind === 'header' || (hasHeaderRow && rowIndex === 0)) {
+    return pdfColorToHex(TABLE_STYLES.headerBackgroundColor);
+  }
+  if (row.kind === 'total' || row.transparent) return undefined;
+  const stripingIndex = hasHeaderRow ? rowIndex : rowIndex + 1;
+  return stripingIndex % 2 === 0
+    ? pdfColorToHex(TABLE_STYLES.alternateRowBackgroundColor)
+    : undefined;
 };
 
 const createDocxTable = (
-  body: readonly unknown[],
-  hasHeaderRow: boolean,
-  columnAlignments?: DocumentTableColumnAlignments
+  spec: TableSpec,
+  contentWidthDxa: number,
 ): Table => {
-  const rows = body.map((rawRow, rowIndex) => {
-    const cells = Array.isArray(rawRow) ? rawRow : [rawRow];
-    const isHeaderRow = hasHeaderRow && rowIndex === 0;
-    // Kolonneindex følger med colSpan, så kolonne-justering rammer rigtigt
-    // også når en celle spænder over flere kolonner.
-    let columnIndex = 0;
+  assertValidTableSpec(spec);
+  const tableWidthDxa = resolveTableWidthDxa(spec, contentWidthDxa);
+  const columnWidths = resolveDocxColumnWidths(spec, tableWidthDxa);
+  const rows = spec.rows.map((row, rowIndex) => {
+    const isHeaderRow = row.kind === 'header' || (spec.hasHeaderRow && rowIndex === 0);
+    const isTotalRow = row.kind === 'total';
+    const shading = resolveRowShading(row, rowIndex, spec.hasHeaderRow);
+    let logicalColumnIndex = 0;
+
     return new TableRow({
       tableHeader: isHeaderRow ? true : undefined,
-      children: cells.map((cell) => {
-        const colSpan = resolveCellSpan(cell);
-        // Headerrækker bærer selv deres justering; kun data-rækker får
-        // kolonne-fallback (jf. DocumentTableColumnAlignments).
-        const columnFallback = isHeaderRow ? undefined : columnAlignments?.[columnIndex];
-        const halign = resolveCellHalign(cell) ?? columnFallback;
-        columnIndex += colSpan;
+      cantSplit: true,
+      children: row.cells.map((cell) => {
+        const colSpan = cell.colSpan ?? 1;
+        const column = spec.columns[logicalColumnIndex];
+        const cellWidthDxa = columnWidths
+          ? columnWidths
+              .slice(logicalColumnIndex, logicalColumnIndex + colSpan)
+              .reduce((sum, width) => sum + width, 0)
+          : undefined;
+        const columnWidthMm = cellWidthDxa
+          ? (cellWidthDxa / tableWidthDxa) * (spec.tableWidth ?? PDF_CONTENT_WIDTH_MM)
+          : undefined;
+        const rightInsetMm = isHeaderRow || isTotalRow || column?.rightInset === undefined
+          ? undefined
+          : resolveColumnRightInsetMm(columnWidthMm, column.rightInset);
+        const valueParagraph = paragraph(cell.text, {
+          style: DOCX_STYLE.tableCell,
+          bold: cell.bold || isHeaderRow,
+          alignment: halignToAlignment(cell.align ?? column?.align),
+          color: row.tone === 'muted' ? pdfColorToHex(PDF_MUTED_TEXT_COLOR) : undefined,
+          size: cell.fontSize === undefined ? undefined : cell.fontSize * 2,
+        });
+        const children = cell.separatorAbove
+          ? [createSeparatedValueTable(
+              valueParagraph,
+              Math.max(1, (cellWidthDxa ?? tableWidthDxa) - TABLE_CELL_MARGIN_DXA * 2),
+            )]
+          : [valueParagraph];
+        logicalColumnIndex += colSpan;
+
         return new TableCell({
           columnSpan: colSpan,
-          shading: isHeaderRow ? { fill: 'E9EEF5' } : undefined,
+          ...(cellWidthDxa ? { width: { size: cellWidthDxa, type: WidthType.DXA } } : {}),
+          verticalAlign: verticalAlignToDocx(cell.valign ?? (isHeaderRow ? 'bottom' : 'top')),
+          ...(shading ? { shading: { fill: shading } } : {}),
           margins: {
             top: TABLE_CELL_MARGIN_DXA,
             bottom: TABLE_CELL_MARGIN_DXA,
             left: TABLE_CELL_MARGIN_DXA,
-            right: TABLE_CELL_MARGIN_DXA,
+            right: rightInsetMm === undefined
+              ? TABLE_CELL_MARGIN_DXA
+              : dxaFromMillimeters(rightInsetMm),
           },
-          children: [
-            paragraph(resolveCellText(cell), {
-              style: DOCX_STYLE.tableCell,
-              bold: resolveCellBold(cell, isHeaderRow),
-              alignment: halignToAlignment(halign),
-            }),
-          ],
+          ...(isTotalRow
+            ? { borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder } }
+            : {}),
+          children,
         });
       }),
     });
@@ -232,8 +386,9 @@ const createDocxTable = (
 
   return new Table({
     rows,
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    layout: TableLayoutType.AUTOFIT,
+    width: { size: tableWidthDxa, type: WidthType.DXA },
+    ...(columnWidths ? { columnWidths: [...columnWidths] } : {}),
+    layout: columnWidths ? TableLayoutType.FIXED : TableLayoutType.AUTOFIT,
     borders: tableBorders,
   });
 };
@@ -244,14 +399,12 @@ const createLeftRightTable = (
   options?: Readonly<{
     leftFontStyle?: TextStyle;
     rightFontStyle?: TextStyle;
-    // Når sat (truthy) tegnes en summeringsstreg over højre kolonne — paritet med
-    // PDF'ens `lineAboveRightWidth` på I alt-/sum-linjer. Den konkrete bredde/offset
-    // fra PDF'en er irrelevant i Word, hvor stregen er en celle-topkant; her tæller
-    // kun, OM stregen skal vises.
-    lineAboveRightWidth?: number;
+    separatorAboveValue?: Readonly<{ widthMm: number; gapMm?: number }>;
+    minRightColumnWidth?: number;
+    minRightColumnWidthText?: string;
   }>
 ): Table => {
-  const showSumLine = Boolean(options?.lineAboveRightWidth);
+  const showSumLine = options?.separatorAboveValue !== undefined;
   // Venstre kolonne reserverer kun den plads, dens tekst faktisk har brug for — op til det
   // hidtidige maksimum (12,5 cm). Korte venstrelabels (fx "Overenskomst") frigiver dermed
   // resten til højre kolonne, så lang højretekst (fx "Bygge-/anlægsoverenskomsten") ikke
@@ -263,9 +416,8 @@ const createLeftRightTable = (
   // Estimatet bruges KUN til at vælge kolonnefordeling (layout), aldrig til indhold/tal; et
   // for lavt estimat lader blot Word ombryde venstreteksten, et for højt giver blot lidt
   // ekstra venstreplads — begge er visuelt acceptable og kan ikke tabe data.
-  // På sum-/I alt-linjer (showSumLine) bevares den faste venstrebredde: så ligger
-  // summeringsstregen — der tegnes som højre cellens topkant — i samme bredde og position
-  // som hidtil, lige over beløbet, og ikke som en lang streg tværs over en bred højrekolonne.
+  // På sum-/I alt-linjer bevares den faste venstrebredde, mens selve separatoren
+  // får sin eksplicitte semantiske bredde inde i højrecellen.
   const estimatedLeftWidthDxa = Math.ceil(leftText.length * LEFT_RIGHT_AVG_GLYPH_DXA);
   // Højre kolonne skal mindst kunne rumme sin egen tekst på én linje. Når venstrelabelen
   // er lang (fx "Skadelidte var faglært og ansat i København, og satsen udgør") og højre-
@@ -275,7 +427,11 @@ const createLeftRightTable = (
   // venstre) og giver venstre resten — dog aldrig under halvdelen af det hidtidige
   // venstre-maksimum, så et ekstremt langt højrefelt ikke omvendt udsulter venstre.
   // Estimatet bruges KUN til layout (kolonnefordeling), aldrig til indhold/tal.
-  const estimatedRightWidthDxa = Math.ceil(rightText.length * LEFT_RIGHT_AVG_GLYPH_DXA);
+  const estimatedRightWidthDxa = Math.max(
+    Math.ceil(rightText.length * LEFT_RIGHT_AVG_GLYPH_DXA),
+    Math.ceil((options?.minRightColumnWidthText?.length ?? 0) * LEFT_RIGHT_AVG_GLYPH_DXA),
+    dxaFromMillimeters(options?.minRightColumnWidth ?? 0),
+  );
   const minLeftWidthDxa = Math.floor(LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA / 2);
   const leftWidthDxa = showSumLine
     ? LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA
@@ -311,16 +467,27 @@ const createLeftRightTable = (
             width: { size: rightWidthDxa, type: WidthType.DXA },
             verticalAlign: VerticalAlignTable.TOP,
             borders: {
-              top: showSumLine ? sumLineTopBorder : emptyBorder,
+              top: emptyBorder,
               bottom: emptyBorder,
               left: emptyBorder,
               right: emptyBorder,
             },
-            children: [paragraph(rightText, {
+            children: showSumLine && options?.separatorAboveValue
+              ? [createSeparatedValueTable(
+                  paragraph(rightText, {
+                    style: DOCX_STYLE.normal,
+                    bold: options.rightFontStyle !== 'normal',
+                    alignment: AlignmentType.RIGHT,
+                  }),
+                  rightWidthDxa,
+                  options.separatorAboveValue.widthMm,
+                  options.separatorAboveValue.gapMm,
+                )]
+              : [paragraph(rightText, {
               style: DOCX_STYLE.normal,
               bold: options?.rightFontStyle !== 'normal',
               alignment: AlignmentType.RIGHT,
-            })],
+                })],
           }),
         ],
       }),
@@ -337,31 +504,31 @@ const createLeftRightTable = (
 const createSignatureTable = (
   dateLine: string,
   sigLine: string,
-  skadelidteNavn: string
+  skadelidteNavn: string,
+  contentWidthDxa: number,
 ): Table => {
-  const cell = (children: Paragraph[]): TableCell => new TableCell({
+  const cell = (line: string, label: string): TableCell => new TableCell({
     width: { size: 50, type: WidthType.PERCENTAGE },
     borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
-    children,
+    children: [
+      paragraph(line, { style: DOCX_STYLE.noSpacing, alignment: AlignmentType.CENTER }),
+      paragraph(label, { style: DOCX_STYLE.noSpacing, alignment: AlignmentType.CENTER }),
+    ],
   });
 
   return new Table({
     rows: [
       new TableRow({
+        cantSplit: true,
         children: [
-          cell([paragraph(dateLine, { style: DOCX_STYLE.noSpacing })]),
-          cell([paragraph(sigLine, { style: DOCX_STYLE.noSpacing })]),
-        ],
-      }),
-      new TableRow({
-        children: [
-          cell([paragraph('Dato', { style: DOCX_STYLE.noSpacing })]),
-          cell([paragraph(skadelidteNavn, { style: DOCX_STYLE.noSpacing })]),
+          cell(dateLine, 'Dato'),
+          cell(sigLine, skadelidteNavn),
         ],
       }),
     ],
     width: { size: 100, type: WidthType.PERCENTAGE },
-    layout: TableLayoutType.AUTOFIT,
+    columnWidths: [contentWidthDxa / 2, contentWidthDxa / 2],
+    layout: TableLayoutType.FIXED,
     borders: TableBorders.NONE,
   });
 };
@@ -426,14 +593,16 @@ const buildBrevhovedParagraphs = (data: BrevhovedData, pageWidthDxa: number): Pa
   ];
 };
 
-const buildFirstPageHeaderChildren = (
-  visUdkastStempel: boolean
-): Paragraph[] => {
-  return visUdkastStempel ? [createUdkastWatermarkParagraph()] : [];
-};
-
 // Tomt afstands-afsnit mellem blokke (sektion/tabel).
-const spacerParagraph = (): Paragraph => paragraph('', { style: DOCX_STYLE.noSpacing });
+const spacerParagraph = (heightMm: number): Paragraph => new Paragraph({
+  style: DOCX_STYLE.noSpacing,
+  spacing: {
+    before: 0,
+    after: 0,
+    line: dxaFromMillimeters(Math.max(0.1, heightMm)),
+    lineRule: LineRuleType.EXACT,
+  },
+});
 
 const uint8ArrayFromDataUrl = (dataUrl: string): Uint8Array => {
   const base64 = dataUrl.split(',')[1] ?? '';
@@ -498,7 +667,6 @@ const buildVersionFooter = (pageWidthDxa: number, pageHeightDxa: number): Footer
 };
 
 export const createDocxWriter = (params?: Readonly<{
-  visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
 }>): DocumentWriter => {
   const blocks: FileChild[] = [];
@@ -515,22 +683,19 @@ export const createDocxWriter = (params?: Readonly<{
   // Sættes når dokumentet får et brevhoved. Aktiverer "anden første side", så
   // første side får et højere top-/headerområde end de øvrige sider.
   let hasBrevhoved = false;
+  let hasUdkastWatermark = false;
+  let hasFooter = false;
   // Tomme afstands-afsnit (spacers) registreres her, så `composeChildren` kan kollapse to
   // eller flere efterfølgende spacers til ÉN. I PDF afsættes tabel-slutafstanden via
-  // resolveDocumentSectionEndY (no-op i Word), så Word-tabel-broen lægger sin egen trailing
+  // PDF-tabellens slutlayout har sin egen afstand, så Word-rendereren lægger en trailing
   // spacer; en efterfølgende addSectionSpacer i generatoren ville derfor give to tomme linjer
   // under tabellen. Kollaps holder det på én tom linje — ren Word-side, uden PDF-effekt.
-  const spacerBlocks = new WeakSet<FileChild>();
-  const pushSpacer = (): void => {
-    const spacer = spacerParagraph();
-    spacerBlocks.add(spacer);
+  const spacerHeights = new WeakMap<FileChild, number>();
+  const pushSpacer = (heightMm = PDF_BASE_LINE_HEIGHT_MM): void => {
+    const spacer = spacerParagraph(heightMm);
+    spacerHeights.set(spacer, heightMm);
     blocks.push(spacer);
   };
-  const bridgeDoc = createDocumentTableBridgeDocument((body, hasHeaderRow, columnAlignments) => {
-    blocks.push(createDocxTable(body, hasHeaderRow, columnAlignments));
-    pushSpacer();
-  });
-
   const addParagraph = (text: string, bold = false): void => {
     if (text.trim() === '') return;
     blocks.push(paragraph(text, { style: DOCX_STYLE.normal, bold }));
@@ -547,7 +712,13 @@ export const createDocxWriter = (params?: Readonly<{
   const collapseConsecutiveSpacers = (input: readonly FileChild[]): FileChild[] => {
     const out: FileChild[] = [];
     for (const block of input) {
-      if (spacerBlocks.has(block) && out.length > 0 && spacerBlocks.has(out[out.length - 1]!)) {
+      const height = spacerHeights.get(block);
+      const previous = out[out.length - 1];
+      const previousHeight = previous ? spacerHeights.get(previous) : undefined;
+      if (height !== undefined && previousHeight !== undefined) {
+        if (height > previousHeight) {
+          out[out.length - 1] = block;
+        }
         continue;
       }
       out.push(block);
@@ -567,12 +738,14 @@ export const createDocxWriter = (params?: Readonly<{
   };
 
   const build = async (): Promise<Blob> => {
-    const footers = hasBrevhoved
-      ? {
-          default: buildVersionFooter(pageWidthDxa, pageHeightDxa),
-          first: buildVersionFooter(pageWidthDxa, pageHeightDxa),
-        }
-      : { default: buildVersionFooter(pageWidthDxa, pageHeightDxa) };
+    const footers = hasFooter
+      ? hasBrevhoved
+        ? {
+            default: buildVersionFooter(pageWidthDxa, pageHeightDxa),
+            first: buildVersionFooter(pageWidthDxa, pageHeightDxa),
+          }
+        : { default: buildVersionFooter(pageWidthDxa, pageHeightDxa) }
+      : undefined;
 
     // Med "anden første side" (titlePage) gælder default-headeren kun side 2+.
     // Første side får kun sin egen first-header når udkast-vandmærket skal vises
@@ -580,12 +753,11 @@ export const createDocxWriter = (params?: Readonly<{
     // Samme gælder versions-footeren:
     // titlePage får Word til at bruge en særskilt first-footer på side 1.
     // Hver slot SKAL have sin egen instans (docx-komponenter må ikke deles).
-    const visUdkastStempel = params?.visUdkastStempel ?? false;
-    const defaultHeader = visUdkastStempel
+    const defaultHeader = hasUdkastWatermark
       ? new Header({ children: [createUdkastWatermarkParagraph()] })
       : undefined;
-    const firstHeader = hasBrevhoved && visUdkastStempel
-      ? new Header({ children: buildFirstPageHeaderChildren(visUdkastStempel) })
+    const firstHeader = hasBrevhoved && hasUdkastWatermark
+      ? new Header({ children: [createUdkastWatermarkParagraph()] })
       : undefined;
     const headers = defaultHeader || firstHeader
       ? {
@@ -636,7 +808,6 @@ export const createDocxWriter = (params?: Readonly<{
   };
 
   return {
-    setDisplayMode: () => {},
     setProperties: (props) => {
       properties = {
         title: props.title,
@@ -645,18 +816,14 @@ export const createDocxWriter = (params?: Readonly<{
         creator: props.creator,
       };
     },
-    setNormalTextStyle: () => {},
-    getDoc: () => bridgeDoc,
-    ensureSpace: () => {},
-    getY: () => 0,
-    setY: () => {},
-    addSpacer: () => {
-      pushSpacer();
+    // Word håndterer pagination; bloktypernes keepNext/cantSplit bærer intentionen.
+    keepWithNext: () => {},
+    addSpacer: (height) => {
+      pushSpacer(height);
     },
     addSectionSpacer: () => {
       pushSpacer();
     },
-    advanceY: () => {},
     writeWrappedText: (text) => addParagraph(text),
     writeBoldWrappedText: (text) => addParagraph(text, true),
     // I PDF'en dropper writeWrappedTextContinued kun den afsluttende spacing for
@@ -667,27 +834,37 @@ export const createDocxWriter = (params?: Readonly<{
       blocks.push(mixedParagraph(normalPart, boldPart));
     },
     writeLeftRightText: (leftText, rightText, options) => {
-      // Paritet med PDF: når `lineAboveRightWidth` er sat (I alt-/sum-linjer),
-      // tegner PDF-writeren en summeringsstreg over højrekolonnen. Vi videregiver
-      // flaget, så Word viser samme streg som en topkant på højre celle.
       blocks.push(createLeftRightTable(leftText, rightText, {
         leftFontStyle: options?.leftFontStyle,
         rightFontStyle: options?.rightFontStyle,
-        lineAboveRightWidth: options?.lineAboveRightWidth,
+        separatorAboveValue: options?.separatorAboveValue,
+        minRightColumnWidth: options?.minRightColumnWidth,
+        minRightColumnWidthText: options?.minRightColumnWidthText,
       }));
     },
     writeSectionHeader: (text) => {
       blocks.push(paragraph(text, { style: DOCX_STYLE.sectionHeader }));
     },
-    writeTitle: (text) => {
-      blocks.push(paragraph(text, { style: DOCX_STYLE.title }));
+    writeTitle: (text, options) => {
+      blocks.push(paragraph(text, {
+        style: DOCX_STYLE.title,
+        spacingAfter: options?.trailingSpacing === undefined
+          ? undefined
+          : dxaFromMillimeters(options.trailingSpacing),
+      }));
     },
-    writeBoldSubheader: (text) => {
-      blocks.push(paragraph(text, { style: DOCX_STYLE.subheaderBold }));
+    writeBoldSubheader: (text, _nextLineHeight, options) => {
+      blocks.push(paragraph(text, {
+        style: DOCX_STYLE.subheaderBold,
+        spacingBefore: options?.addTopSpacing === false ? 0 : undefined,
+      }));
     },
-    writeBoldSubheaderIfContent: ({ text, hasContent, renderContent }) => {
+    writeBoldSubheaderIfContent: ({ text, hasContent, renderContent, options }) => {
       if (!hasContent) return false;
-      blocks.push(paragraph(text, { style: DOCX_STYLE.subheaderBold }));
+      blocks.push(paragraph(text, {
+        style: DOCX_STYLE.subheaderBold,
+        spacingBefore: options?.addTopSpacing === false ? 0 : undefined,
+      }));
       renderContent();
       return true;
     },
@@ -705,10 +882,10 @@ export const createDocxWriter = (params?: Readonly<{
     writeUnderlinedSubheader: (text) => {
       blocks.push(paragraph(text, { style: DOCX_STYLE.subheaderUnderlined }));
     },
-    writeSignatureBlock: (dateLine, sigLine, _dateX, _sigX, skadelidteNavn) => {
+    writeSignatureBlock: (dateLine, sigLine, skadelidteNavn) => {
       // Kantfri signaturblok, så Word matcher PDF'ens linjefri opstilling
       // (createDocxTable ville ellers tegne synlige cellekanter).
-      blocks.push(createSignatureTable(dateLine, sigLine, skadelidteNavn));
+      blocks.push(createSignatureTable(dateLine, sigLine, skadelidteNavn, contentWidthDxa));
     },
     writeBrevhoved: (brevhovedData) => {
       brevhovedParagraphs = buildBrevhovedParagraphs(brevhovedData, pageWidthDxa);
@@ -716,11 +893,19 @@ export const createDocxWriter = (params?: Readonly<{
         hasBrevhoved = true;
       }
     },
-    addUdkastWatermark: () => {},
-    addImageDataUrl: (dataUrl, _x, _y, width, height) => {
+    addUdkastWatermark: () => {
+      hasUdkastWatermark = true;
+    },
+    addContentWidthImage: (dataUrl, options) => {
+      const width = (contentWidthDxa / 1440) * 25.4;
+      const height = Math.min(options.maxHeight, width / options.aspectRatio);
       const pxWidth = Math.max(1, roundByMethod((width / 25.4) * 96, 0, 'halfAwayFromZero'));
       const pxHeight = Math.max(1, roundByMethod((height / 25.4) * 96, 0, 'halfAwayFromZero'));
       blocks.push(new Paragraph({
+        spacing: {
+          before: dxaFromMillimeters(options.verticalPadding),
+          after: dxaFromMillimeters(options.verticalPadding),
+        },
         children: [
           new ImageRun({
             data: uint8ArrayFromDataUrl(dataUrl),
@@ -733,19 +918,16 @@ export const createDocxWriter = (params?: Readonly<{
         ],
       }));
     },
-    // Bevidst IKKE-metrisk heuristik: returnerer en grov proportional værdi
-    // (tegn × 2), ikke en faktisk tekstbredde. Word ombryder og justerer selv,
-    // så Word-writeren har ingen brug for reelle målinger. Værdien må derfor
-    // ALDRIG drive indholdsbeslutninger. Dens eneste PDF-forbruger,
-    // minRightColumnWidth, ignoreres også af Word-writeren (jf. writeLeftRightText).
-    getTextWidth: (text) => text.length * 2,
-    fitTextToWidth: (text) => text,
-    getPageWidth: () => contentWidthDxa,
-    getContentWidthMm: () => (contentWidthDxa / 1440) * 25.4,
+    renderTable: (spec) => {
+      blocks.push(createDocxTable(spec, contentWidthDxa));
+      pushSpacer();
+    },
     addPage: () => {
       blocks.push(new Paragraph({ children: [new PageBreak()] }));
     },
-    addFooter: () => {},
+    addFooter: () => {
+      hasFooter = true;
+    },
     build,
   };
 };

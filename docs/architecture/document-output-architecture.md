@@ -3,7 +3,7 @@
 **Status:** Informativ arkitekturbeskrivelse
 **Normative kilder:** `src/contracts/document-output-contract.md` og
 `src/contracts/document-format-contract.md`
-**Senest verificeret mod kode:** 2026-07-11
+**Senest verificeret mod kode:** 2026-07-13
 
 ## Overblik
 
@@ -60,9 +60,11 @@ Word-targetet oversætter blokkene til OOXML-afsnit, styles, tabeller og section
 ## Tabeller og billeder
 
 Generatorer opretter en `TableSpec` og kalder `document.addTable(spec)`. Modelrendereren
-ejer hele den imperative overgang: kanalhandle, cursor, kompilering, rendering og opdateret
-position. `getDoc()`, `getY()`, `setY()` og `renderTableSpec(...)` findes derfor ikke i
-generatorer eller EO-sektioner.
+videresender den komplette tabelblok til kanal-targetets `renderTable(spec)`. PDF-targetet
+ejer cursor, kompilering, rendering og opdateret position; Word-targetet renderer samme model
+direkte til OOXML. `TableSpec` er ren data med fælles intentioner for bredde, alignment, tone,
+totalrække og totalstreg. Kanalhandle, `getDoc()`, `getY()` og `setY()` findes derfor ikke i
+den fælles target-grænse, generatorer eller EO-sektioner.
 
 TAF-grafen rasteriseres fortsat til PNG ved modelbygning, men placeringen beskrives som et
 indholdsbredde-billede med aspect ratio og maksimal højde. Generatoren beregner hverken
@@ -70,10 +72,12 @@ dokumentbredde eller Y-position.
 
 ## Fælles lifecycle
 
-`defineDocument(...)` resolver metadata og options, komponerer vandmærke/brevhoved/titel,
+`defineDocument(...)` resolver metadata og kanal-neutrale layout-options, komponerer vandmærke/brevhoved/titel,
 domæneindhold og footer, fryser modellen og giver den til sessionens renderer. Sessionen
 returnerer bytes; generator-entrypointet returnerer `DocumentArtifact` med formatkorrekt
-filnavn. Kun service-laget starter browser-downloaden.
+filnavn. Vandmærke- og footer-blokkene er eneste autoritet for deres output i begge kanaler;
+de må ikke aktiveres implicit af writer-options eller `build()`. Kun service-laget starter
+browser-downloaden.
 
 Standalone MinProcesrente bygger flere renteafsnit i én composer og renderer den samlede
 model én gang gennem samme modelrenderer.
@@ -84,6 +88,8 @@ Modeltests verificerer bloksekvens, betingede afsnit, atomiske grupper og immuta
 Renderer-/target-tests verificerer spacing, sidebrud, billeder, metadata og build.
 PDF-/Word-goldens verificerer den faktiske kanalpræsentation. En ændring af blokalgebra eller
 renderer skal bevare disse goldens, medmindre en synlig dokumentændring er godkendt først.
+PDF-goldens er bevaret ved paritetsmigreringen; Word-goldens fastholder den godkendte fælles
+præsentation med direkte tabeller, korte totalstreger og atomisk signatur.
 
 Tre AST-regler håndhæver, at generatorlaget hverken importerer `DocumentWriter` eller bruger
 cursor-/kanalmetoder, heller ikke via bracket-notation.

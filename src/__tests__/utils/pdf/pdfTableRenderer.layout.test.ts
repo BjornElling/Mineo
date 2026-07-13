@@ -58,7 +58,7 @@ describe('renderDocumentTable adaptive column widths', () => {
 
   it('omfordeler distribuerede kolonner når et beløb ellers ville blive ombrudt', async () => {
     const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
@@ -95,7 +95,7 @@ describe('renderDocumentTable adaptive column widths', () => {
 
   it('lader bredderne være uændrede når omfordeling ikke kan ske uden nye ombrydninger', async () => {
     const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
@@ -133,7 +133,7 @@ describe('renderDocumentTable adaptive column widths', () => {
 
   it('bevarer eksplicit låste kolonner mens frie kolonner omfordeles', async () => {
     const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialDistributedWidth = (PDF_CONTENT_WIDTH_MM - 25) / 3;
@@ -178,7 +178,7 @@ describe('renderDocumentTable adaptive column widths', () => {
     // på tværs af flere kolonner. Med kun smalle 1:1-celler i øvrigt skal de
     // distribuerede bredder forblive den statiske ligelige fordeling.
     const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
@@ -227,7 +227,7 @@ describe('renderDocumentTable adaptive column widths', () => {
     // skal residual-grenen lægge resten på en distribueret kolonne, så summen
     // præcist rammer tabelbredden igen — ingen kolonne ender under sit krav.
     const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
 
@@ -268,7 +268,7 @@ describe('renderDocumentTable adaptive column widths', () => {
     // deficit > total surplus). Da er der ingen donor at trække fra, og funktionen
     // skal returnere de uændrede styles frem for at gætte en ny fordeling.
     const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
@@ -304,7 +304,7 @@ describe('renderDocumentTable adaptive column widths', () => {
 
   it('grow-kolonne: øvrige kolonner holdes på deres min-bredde, grow-kolonnen får resten', async () => {
     const { createDocumentGrowColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
 
@@ -351,7 +351,7 @@ describe('renderDocumentTable adaptive column widths', () => {
 
   it('grow-kolonne: kort indhold → overskuddet fordeles ligeligt mellem alle kolonner', async () => {
     const { createDocumentGrowColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
-      await import('../../../document/layout/documentTableRenderer');
+      await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
 
@@ -391,23 +391,26 @@ describe('renderDocumentTable adaptive column widths', () => {
     expect(totalWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
   });
 
-  it('resolveDynamicRightAlignedInset: skalerer med bredden og klemmes mellem min og max', async () => {
-    const { resolveDynamicRightAlignedInset } = await import('../../../document/layout/documentTableRenderer');
+  it('resolveColumnRightInsetMm: skalerer med bredden og klemmes mellem min og max', async () => {
+    const { resolveColumnRightInsetMm } = await import('../../../document/layout/tableSpec');
+    const dynamicInset = { kind: 'dynamic', maxMm: 8 } as const;
 
     // Bred kolonne → fuldt (maks) inset.
-    expect(resolveDynamicRightAlignedInset(60, 8)).toBe(8);
+    expect(resolveColumnRightInsetMm(60, dynamicInset)).toBe(8);
     // Smal kolonne → reduceret inset (bredde × 0,2).
-    expect(resolveDynamicRightAlignedInset(20, 8)).toBeCloseTo(4, 6);
+    expect(resolveColumnRightInsetMm(20, dynamicInset)).toBeCloseTo(4, 6);
     // Meget smal kolonne → gulvet (min).
-    expect(resolveDynamicRightAlignedInset(8, 8)).toBe(2);
-    // Ukendt bredde (Word-kanal / ikke-målende jsPDF) → falder tilbage til maks.
-    expect(resolveDynamicRightAlignedInset(undefined, 8)).toBe(8);
+    expect(resolveColumnRightInsetMm(8, dynamicInset)).toBe(2);
+    // Ukendt bredde → falder tilbage til maks.
+    expect(resolveColumnRightInsetMm(undefined, dynamicInset)).toBe(8);
     // Monotont ikke-aftagende i bredden.
-    expect(resolveDynamicRightAlignedInset(15, 8)).toBeLessThan(resolveDynamicRightAlignedInset(25, 8));
+    expect(resolveColumnRightInsetMm(15, dynamicInset)).toBeLessThan(
+      resolveColumnRightInsetMm(25, dynamicInset),
+    );
   });
 
   it('fejler fail-closed når body er tom i stedet for at rendere en blank tabel', async () => {
-    const { renderDocumentTable } = await import('../../../document/layout/documentTableRenderer');
+    const { renderDocumentTable } = await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
     const doc = new MockJsPDF();
 

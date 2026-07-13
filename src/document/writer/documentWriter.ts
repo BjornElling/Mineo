@@ -6,32 +6,30 @@
  * `createPdfWriter` (`src/pdf/`) og Word-kanalens `createDocxWriter` (`src/docx/`).
  * Den eksplicitte `DocumentGenerationSession` afgør hvilken der instantieres.
  *
- * Den eneste kanal-bevidste detalje er `getDoc()`s honest union: på PDF-kanalen
- * den rå jsPDF-instans, på Word-kanalen `DocumentTableBridgeDocument`-broen. Kun den
- * fælles tabel-renderer forbruger den og forgrener selv via
- * `isDocumentTableBridgeDocument` (jf. `document/layout/documentTableBridge.ts`).
- * Det lukker den tidligere kanal-lækage (review-fund F2): et direkte jsPDF-only kald
- * på et bro-doc bliver en compile-fejl frem for en runtime-fejl på Word.
+ * Grænsefladen er semantisk: modelrendereren beder targetet om at rendere en tabel,
+ * en underskrift eller et indholdsbredde-billede uden at kende kanalens dokumentobjekt,
+ * cursor eller måleenhed. Kanaladapteren ejer hele oversættelsen til jsPDF eller OOXML.
  */
 
-import type jsPDF from 'jspdf';
-import type { DocumentTableBridgeDocument } from '../layout/documentTableBridge';
 import type { BrevhovedData } from '../layout/documentLayoutHelpers';
+import type { TableSpec } from '../layout/tableSpec';
+
+export type DocumentProperties = Readonly<{
+  title?: string;
+  subject?: string;
+  author?: string;
+  keywords?: string;
+  creator?: string;
+}>;
 
 export type DocumentWriter = {
-  setDisplayMode: (mode: string) => void;
-  setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
-  setNormalTextStyle: () => void;
-  getDoc: () => jsPDF | DocumentTableBridgeDocument;
-  ensureSpace: (height: number) => void;
-  getY: () => number;
-  setY: (nextY: number) => void;
+  setProperties: (props: DocumentProperties) => void;
+  keepWithNext: (minimumHeight: number) => void;
   addSpacer: (height: number) => void;
   addSectionSpacer: () => void;
-  advanceY: (delta: number) => void;
   writeWrappedText: (text: string) => void;
   writeBoldWrappedText: (text: string) => void;
-  writeWrappedTextContinued: (text: string, maxWidth?: number, x?: number) => void;
+  writeWrappedTextContinued: (text: string) => void;
   writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
   /**
    * Kanonisk valg til alle linjer med venstre/højre-kolonne.
@@ -43,10 +41,12 @@ export type DocumentWriter = {
     options?: Readonly<{
       leftFontStyle?: 'normal' | 'bold';
       rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-      leftNoWrap?: boolean;
+      separatorAboveValue?: Readonly<{
+        widthMm: number;
+        gapMm?: number;
+      }>;
       minRightColumnWidth?: number;
+      minRightColumnWidthText?: string;
     }>
   ) => void;
   writeSectionHeader: (text: string, nextLineHeight?: number) => void;
@@ -76,17 +76,19 @@ export type DocumentWriter = {
     estimateRowHeight: number;
     headerHeight: number;
   }>) => void;
-  writeUnderlinedSubheader: (text: string, x?: number) => void;
-  writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
+  writeUnderlinedSubheader: (text: string) => void;
+  writeSignatureBlock: (dateLine: string, sigLine: string, skadelidteNavn: string) => void;
   writeBrevhoved: (brevhovedData: BrevhovedData) => void;
   addUdkastWatermark: () => void;
-  addImageDataUrl: (dataUrl: string, x: number, y: number, width: number, height: number) => void;
-  getTextWidth: (text: string) => number;
-  fitTextToWidth: (text: string, maxWidth: number) => string;
-  getPageWidth: () => number;
-  // Indholdsbredde i millimeter — enheds-entydig på tværs af PDF og Word (getPageWidth
-  // returnerer mm for PDF men twips for Word, så den må ikke bruges til billed-sizing).
-  getContentWidthMm: () => number;
+  addContentWidthImage: (
+    dataUrl: string,
+    options: Readonly<{
+      aspectRatio: number;
+      maxHeight: number;
+      verticalPadding: number;
+    }>
+  ) => void;
+  renderTable: (spec: TableSpec) => void;
   addPage: () => void;
   addFooter: () => void;
   build: () => Promise<Blob>;

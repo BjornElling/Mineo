@@ -38,7 +38,6 @@ export type StandardDocumentMetadata = Readonly<{
 
 /** Writer-options videreført til sessionens writer-fabrik (udkast-stempel, fallback-log m.m.). */
 export type StandardDocumentWriterOptions = Readonly<{
-  visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
   onLayoutFallback?: (params: Readonly<{ message: string; label: string }>) => void;
 }>;

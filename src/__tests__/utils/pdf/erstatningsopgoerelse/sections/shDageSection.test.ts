@@ -3,7 +3,8 @@ import { renderShDageSection } from '../../../../../document/generators/eo/secti
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString, isISODateString } from '../../../../../types/branded';
 import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
-import { renderTableSpec, type TableSpec } from '../../../../../document/layout/tableSpec';
+import type { TableSpec } from '../../../../../document/layout/tableSpec';
+import { renderPdfTableSpec } from '../../../../../pdf/infrastructure/pdfTableRenderer';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; body?: unknown[][] }) => {
@@ -51,7 +52,7 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
-          y = renderTableSpec(doc as never, y, spec).endY;
+          y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
       },
     } satisfies Parameters<typeof renderShDageSection>[0],
@@ -147,7 +148,7 @@ describe('renderShDageSection – TAF-periode med helligdage', () => {
     expect(totalRow[0]).toMatchObject({ content: 'SH-dage i alt' });
     expect(totalRow[1]).toMatchObject({ content: '' });
     expect(totalRow[2]).toMatchObject({ content: '' });
-    expect(totalRow[3]).toMatchObject({ content: '2', colSpan: 1 });
+    expect(totalRow[3]).toMatchObject({ content: '2' });
   });
 });
 

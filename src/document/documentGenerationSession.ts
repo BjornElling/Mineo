@@ -1,9 +1,8 @@
 import type { DocumentDownloadFormat } from './documentFormat';
-import type { DocumentWriter } from './writer/documentWriter';
+import type { DocumentProperties, DocumentWriter } from './writer/documentWriter';
 import { renderDocumentModel, type DocumentModel } from './model/documentModel';
 
 export type DocumentWriterOptions = Readonly<{
-  visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
   onLayoutFallback?: (params: Readonly<{ message: string; label: string }>) => void;
 }>;
@@ -12,7 +11,7 @@ export type DocumentWriterFactory = (params?: DocumentWriterOptions) => Document
 export type DocumentRenderRequest = Readonly<{
   model: DocumentModel;
   writerOptions?: DocumentWriterOptions;
-  properties: Parameters<DocumentWriter['setProperties']>[0];
+  properties: DocumentProperties;
 }>;
 
 /**
@@ -32,7 +31,6 @@ export const createDocumentGenerationSession = (
   format,
   render: async ({ model, writerOptions, properties }) => {
     const writer = createWriter(writerOptions);
-    writer.setDisplayMode('fullheight');
     writer.setProperties(properties);
     renderDocumentModel(writer, model);
     return writer.build();

@@ -11,7 +11,6 @@ const createDeferred = <T>() => {
 };
 
 const createBuildOnlyWriter = (build: () => Promise<Blob>): DocumentWriter => ({
-  setDisplayMode: () => {},
   setProperties: () => {},
   addFooter: () => {},
   build,

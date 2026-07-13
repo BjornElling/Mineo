@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 
-import { PDF_CONTENT_WIDTH_MM, TABLE_STYLES } from '../../../document/layout/pdfConfig';
+import { PDF_CONTENT_WIDTH_MM } from '../../../document/layout/pdfConfig';
 import {
   createDocumentDistributedColumnStyles,
   createDocumentTableCell,
-  createDocumentTableFormattedTotalRow,
-  createDocumentTableSummedTotalRow,
-} from '../../../document/layout/documentTableRenderer';
-
-type PdfTableTestCell = { content?: string; colSpan?: number; styles?: { cellPadding?: number } };
+} from '../../../pdf/infrastructure/pdfDocumentTableRenderer';
+import {
+  buildFormattedTotalRowSpec,
+  buildSummedTotalRowSpec,
+} from '../../../document/layout/tableSpec';
 
 describe('createDocumentDistributedColumnStyles', () => {
   it('fordeler fuld tabelbredde ligeligt når ingen kolonner er låst', () => {
@@ -61,89 +61,75 @@ describe('createDocumentDistributedColumnStyles', () => {
   });
 });
 
-describe('createDocumentTableSummedTotalRow', () => {
+describe('buildSummedTotalRowSpec', () => {
   it('udvider totalbeløbet mod venstre for at give maksimal plads', () => {
-    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
+    const result = buildSummedTotalRowSpec('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
       valueHasKrSuffix: true,
     });
 
-    expect(result).not.toBeNull();
-    expect(result?.valueCellColumnIndex).toBe(1);
-    expect(result?.valueCellColSpan).toBe(3);
-
-    const row = result?.row as PdfTableTestCell[];
-    expect(row).toHaveLength(2);
-    expect(row[0]?.content).toBe('I alt');
-    expect(row[1]?.content).toBe('30 kr.');
-    expect(row[1]?.colSpan).toBe(3);
-    expect(row[1]?.styles?.cellPadding).toBe(TABLE_STYLES.cellPadding);
+    expect(result).toMatchObject({
+      kind: 'total',
+      cells: [
+        { text: 'I alt', align: 'left', bold: true },
+        { text: '30\u00A0kr.', align: 'right', bold: true, colSpan: 3, separatorAbove: true },
+      ],
+    });
   });
 
   it('bevarer 2-kolonne-tabeller uden at forsøge ekstra sammenfletning', () => {
-    const result = createDocumentTableSummedTotalRow('I alt', [1, 2], {
+    const result = buildSummedTotalRowSpec('I alt', [1, 2], {
       columnCount: 2,
       valueColumnIndex: 1,
       formatValue: (total) => String(total),
     });
 
-    expect(result).not.toBeNull();
-    expect(result?.valueCellColumnIndex).toBe(1);
-    expect(result?.valueCellColSpan).toBe(1);
-
-    const row = result?.row as PdfTableTestCell[];
-    expect(row).toHaveLength(2);
-    expect(row[1]?.colSpan).toBe(1);
+    expect(result?.cells).toHaveLength(2);
+    expect(result?.cells[1]).toMatchObject({ text: '3', colSpan: 1, separatorAbove: true });
   });
 
   it('kan fastholde totalværdien i den angivne værdikolonne', () => {
-    const result = createDocumentTableSummedTotalRow('I alt', [1, 2], {
+    const result = buildSummedTotalRowSpec('I alt', [1, 2], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => String(total),
       preserveValueColumn: true,
     });
 
-    expect(result).not.toBeNull();
-    expect(result?.valueCellColumnIndex).toBe(3);
-    expect(result?.valueCellColSpan).toBe(1);
-
-    const row = result?.row as PdfTableTestCell[];
-    expect(row).toHaveLength(4);
-    expect(row[0]?.content).toBe('I alt');
-    expect(row[1]?.content).toBe('');
-    expect(row[2]?.content).toBe('');
-    expect(row[3]?.content).toBe('3');
-    expect(row[3]?.colSpan).toBe(1);
-    expect(row[3]?.styles?.cellPadding).toBe(TABLE_STYLES.cellPadding);
+    expect(result?.cells).toEqual([
+      { text: 'I alt', align: 'left', bold: true },
+      { text: '' },
+      { text: '' },
+      { text: '3', align: 'right', bold: true, colSpan: 1, separatorAbove: true },
+    ]);
   });
 
   it('bevarer kr.-suffix når den summerede kolonne viser kr.', () => {
-    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
+    const result = buildSummedTotalRowSpec('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
       valueHasKrSuffix: true,
     });
 
-    expect(result?.formattedValue).toBe('30 kr.');
+    expect(result?.cells[1]?.text).toBe('30\u00A0kr.');
   });
 
   it('fjerner kr.-suffix når den summerede kolonne ikke viser kr.', () => {
-    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
+    const result = buildSummedTotalRowSpec('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
       valueHasKrSuffix: false,
     });
 
-    expect(result?.formattedValue).toBe('30');
+    expect(result?.cells[1]?.text).toBe('30');
   });
 
   it('bevarer ikke-brydende mellemrum for ikke-højrejusteret totalværdi med kr.-suffix', () => {
-    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
+    const result = buildSummedTotalRowSpec('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
@@ -151,27 +137,35 @@ describe('createDocumentTableSummedTotalRow', () => {
       valueAlign: 'center',
     });
 
-    expect(result?.formattedValue).toBe('30\u00A0kr.');
+    expect(result?.cells[1]?.text).toBe('30\u00A0kr.');
+  });
+
+  it('udelader totalrækken når der ikke er mindst to værdier', () => {
+    expect(buildSummedTotalRowSpec('I alt', [10], {
+      columnCount: 2,
+      valueColumnIndex: 1,
+      formatValue: String,
+    })).toBeNull();
   });
 });
 
-describe('buildPdfTotalRow (via createDocumentTableFormattedTotalRow) — invariant-guards', () => {
-  // De fem fail-closed guards i buildPdfTotalRow må aldrig producere en stille
+describe('buildFormattedTotalRowSpec — invariant-guards', () => {
+  // De fail-closed guards må aldrig producere en stille
   // forkert total-række i et tillidskritisk dokument; de skal kaste.
 
   it('afviser ugyldigt kolonneantal (<= 1 eller ikke-heltal)', () => {
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 1, valueColumnIndex: 0 })
+      buildFormattedTotalRowSpec('I alt', '30', { columnCount: 1, valueColumnIndex: 0 })
     ).toThrow(/Ugyldigt kolonneantal/i);
 
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 2.5, valueColumnIndex: 1 })
+      buildFormattedTotalRowSpec('I alt', '30', { columnCount: 2.5, valueColumnIndex: 1 })
     ).toThrow(/Ugyldigt kolonneantal/i);
   });
 
   it('afviser label-kolonneindex uden for [0, columnCount)', () => {
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', {
+      buildFormattedTotalRowSpec('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 3,
         labelColumnIndex: -1,
@@ -179,7 +173,7 @@ describe('buildPdfTotalRow (via createDocumentTableFormattedTotalRow) — invari
     ).toThrow(/Ugyldigt label-kolonneindex/i);
 
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', {
+      buildFormattedTotalRowSpec('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 3,
         labelColumnIndex: 4,
@@ -189,17 +183,17 @@ describe('buildPdfTotalRow (via createDocumentTableFormattedTotalRow) — invari
 
   it('afviser værdi-kolonneindex uden for [0, columnCount)', () => {
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: 4 })
+      buildFormattedTotalRowSpec('I alt', '30', { columnCount: 4, valueColumnIndex: 4 })
     ).toThrow(/Ugyldigt værdi-kolonneindex/i);
 
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: -1 })
+      buildFormattedTotalRowSpec('I alt', '30', { columnCount: 4, valueColumnIndex: -1 })
     ).toThrow(/Ugyldigt værdi-kolonneindex/i);
   });
 
   it('afviser ugyldigt værdi-colSpan (<= 0 eller ikke-heltal)', () => {
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', {
+      buildFormattedTotalRowSpec('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 1,
         valueColSpan: 0,
@@ -209,7 +203,7 @@ describe('buildPdfTotalRow (via createDocumentTableFormattedTotalRow) — invari
 
   it('afviser når værdi-cellen rækker ud over tabellens kolonner', () => {
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', {
+      buildFormattedTotalRowSpec('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 3,
         valueColSpan: 2,
@@ -219,7 +213,7 @@ describe('buildPdfTotalRow (via createDocumentTableFormattedTotalRow) — invari
 
   it('afviser når label-kolonnen ikke ligger til venstre for værdi-kolonnen', () => {
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', {
+      buildFormattedTotalRowSpec('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 1,
         labelColumnIndex: 1,
@@ -227,7 +221,7 @@ describe('buildPdfTotalRow (via createDocumentTableFormattedTotalRow) — invari
     ).toThrow(/til venstre for værdi-kolonnen/i);
 
     expect(() =>
-      createDocumentTableFormattedTotalRow('I alt', '30', {
+      buildFormattedTotalRowSpec('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 1,
         labelColumnIndex: 2,

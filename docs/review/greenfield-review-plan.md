@@ -183,7 +183,7 @@ Den kode der kollapser til tynde lag, når spinen findes.
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
 | 24 | 16 | ✅ Split `reguleringsPresentation` + `sygeferiegodtgoerelse` | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | reg-del afsluttet i #23; SFGG-del gennemført |
-| 25 | 31 | PDF/Word-paritet som struktur | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
+| 25 | 31 | ✅ PDF/Word-paritet som struktur | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
 | 26 | 32 | EO-sektion-funktioner → `Block[]` | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
 | 27 | 50 | TAF-graf → ren scene-model + Canvas-renderer | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | beslægtet #24 |
 | 28 | 27 | Samlet række-persistering-kerne | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | beslægtet #25 |
@@ -424,7 +424,7 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 15 — `TableSpec` — udred `documentTableRenderer` · 10
 
-- **Status: ✅ Gennemført (2026-07-10).** Fundamentet + alle konsumenter er migreret og bevist **byte-identisk** af golden-value-net på begge kanaler: `src/__tests__/document/tableChannelParity.golden.test.ts` (+ `tableGoldenCapture.ts`) for de 9 standalone-generatorer, og det nye `src/__tests__/document/eoSectionTableParity.golden.test.ts` for EO-dokumentets ctx-baserede bilag-sektioner (fuldt EO-dokument renderet i begge kanaler). Byggekloderne: (a) ren, unit-testet `resolveColumnWidths.ts` (tekstmåling injiceret; `documentTableRenderer` delegerer), (b) `tableSpec.ts` med `TableSpec`-værditypen + `compileTableSpecToLegacyParams` + `renderTableSpec` (absorberer `resolveDocumentSectionEndY` i sin `{endY}`-retur) + `buildSummedTotalRowSpec`/`buildFormattedTotalRowSpec`. **Alle 9 standalone-generatorer** (klLoenaftaler, KRL, forsørgertab, regulering, renteoversigt, løbende ydelser, årsløn, SH-dage, rente) **OG alle ctx-baserede EO-sektioner** (`loenindkomstSection`, `offentligeYdelserSection` + `renderMidlertidigtEetSection`, `shDageSection`, `eoBilagSections`' inline SFGG-periode- + regulering-af-offentlige-ydelser-tabeller, `reguleringSection`) migreret. Compiler-kapabiliteter valideret: flex/fixed/min/auto/grow-bredder, summeret/formateret total, underline, universel total-række-rydning, muted rows, valign, fast **og dynamisk** `rightInset` (sidstnævnte gren først kørt ved reguleringSection-migreringen: Beregnet regulering med Indeksberegning som grow-kolonne + dynamisk skaleret højre-inset). Afvigelser ensartet efter forelæggelse: rentes talkolonne-justering (PDF/Word) + total-rækkens parités-afhængige stribe-baggrund (standalone); og — godkendt 2026-07-10 — EO-bilagenes total-rækker (`SH-dage i alt`, SFGG `I alt`) bringes under den samme universelle total-række-rydning (aldrig stribe-baggrund, ingen cellekant), så de ser identiske ud med standalone-dokumenternes. Per-sektion-tests opdateret (justering flyttet fra `columnStyles.halign` til celler); døde celle-builder-exports (`cellLeft`/`cellRight`/`cellCenter`) fjernet; `docs/architecture/document-output-architecture.md` §7 opdateret til TableSpec-laget. `renderDocumentTable` er nu primært compilerens/Word-broens interne renderer.
+- **Status: ✅ Gennemført (2026-07-10).** Fundamentet + alle konsumenter blev migreret og bevist **byte-identisk** af golden-value-net på begge kanaler: `src/__tests__/document/tableChannelParity.golden.test.ts` (+ `tableGoldenCapture.ts`) for de 9 standalone-generatorer, og `src/__tests__/document/eoSectionTableParity.golden.test.ts` for EO-dokumentets ctx-baserede bilag-sektioner. Byggekloderne var den rene, unit-testede kolonnefordeling og `TableSpec` med total-builders. **Alle 9 standalone-generatorer** (klLoenaftaler, KRL, forsørgertab, regulering, renteoversigt, løbende ydelser, årsløn, SH-dage, rente) **OG alle ctx-baserede EO-sektioner** blev migreret. Compiler-kapabiliteterne dækker flex/fixed/min/auto/grow-bredder, summeret/formateret total, underline, universel total-række-rydning, muted rows, valign samt fast og dynamisk `rightInset`. #31 har efterfølgende gjort `TableSpec` helt kanalneutral og flyttet kompilering/rendering til hver kanal; PDF-goldens er uændrede, mens Word-goldens er opdateret til den godkendte paritetspræsentation.
 - **Scope:** `src/document/layout/documentTableRenderer.ts` (1006), `documentTableBridge.ts` (56); `getDoc()` + `renderDocumentTable` + `resolveDocumentSectionEndY`-dansen i ~15 generatorer.
 - **Problem:** Nominelt i det format-neutrale lag, men importerer `jspdf-autotable`; ~900 linjer er ren PDF (adaptiv kolonne-redistribution, symbol-keyed layout, underline via `didDrawCell`). Word er én early-return-branch der rekonstruerer alignment fra et **separat** beregnet map → canonical-vs-presentation-drift. `finalY`-returværdien er meningsløs på Word, men hver generator udfører `resolveDocumentSectionEndY`-ritualet.
 - **Greenfield:** En `TableSpec`-værditype (rows, per-kolonne-intent fixed/flex/grow + align, total-descriptors) uden render-viden. Kolonne-bredde bliver en ren, unit-testet funktion. Hver renderer forbruger `TableSpec` nativt → alignment defineres én gang, begge kanaler læser samme felt.
@@ -554,8 +554,8 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
   `DocumentGenerationSession` ejer rendering og udleverer ikke længere writer-fabrikken;
   generatorlaget har nul adgang til kanal, cursor eller dokumentmål. Tre AST-regler
   håndhæver grænsen, og PDF-/Word-golden-nettet er uændret. `DocumentWriter` er bevaret som
-  intern render-target-adapter; fase-3 #31/#32 ejer fortsat dybere kanalprimitiv-paritet og
-  oprydning af EO-sektionernes store formatter-/dependency-contexts.
+  intern render-target-adapter. #31 har efterfølgende afsluttet kanalprimitiv-pariteten;
+  #32 ejer fortsat oprydning af EO-sektionernes store formatter-/dependency-contexts.
 - **Scope:** `document/writer/documentWriter.ts` (kontrakt), `pdf/infrastructure/pdfWriter.ts` (953), `docx/infrastructure/docxWriter.ts` (760), alle ~18 generatorer.
 - **Problem:** `DocumentWriter` er en imperativ PDF-cursor (`getY/setY/ensureSpace/advanceY`) — i Word er hver af disse no-ops. `getDoc()` er en "ærlig union" der indrømmer at kanalen lækker; `getPageWidth()` returnerer mm på PDF, twips på Word; `getTextWidth` divergerer. Paritet holdes af hånd-synkede kodestier + kommentarer, ikke af struktur.
 - **Greenfield:** Vend retningen om: generatorer udsender en **deklarativ blok/flow-model** (Title, Section, LabelValueRow, Table, Signature, PageBreak…) uden Y-koordinater. To rene renderere (`PdfRenderer`, `DocxRenderer`) forbruger modellen; paginering bliver internt PDF-anliggende. Paritet bliver strukturel (begge går samme træ).
@@ -630,9 +630,24 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 31 — PDF/Word-paritet som struktur · 8
 
+- **Status: ✅ Gennemført (2026-07-13).** #24's fælles `DocumentModel` er nu den eneste
+  indholdskilde helt frem til begge kanalrenderere. `DocumentWriter` er semantisk og eksponerer
+  ingen kanalobjekter, cursor, koordinater eller tekstmåling. `TableSpec` er ren data og renderes
+  direkte af PDF og Word; tabelbroen er slettet, og PDF's tabelmotor ligger i PDF-kanalen.
+  Vandmærke og footer har én modelautoritet. Den godkendte synlige Word-paritet er gennemført:
+  korte totalstreger, samlet og centreret signatur, fælles tabelbredder/alignment, dæmpede rækker,
+  totalrækker, tabeltypografi samt fælles overskrifts-, spacing- og keep-intentioner. PDF-outputtet
+  er bevaret af eksisterende goldens; Word-goldens låser den godkendte nye præsentation.
 - **Scope:** `pdf/infrastructure/pdfWriter.ts` (953) vs `docx/infrastructure/docxWriter.ts` (760); `docxStyles.ts`, `docxWatermark.ts`, `pdfBrevhovedRenderer.ts`, `documentFooterImage.ts`.
-- **Problem:** Hver primitiv findes to gange og holdes lige af kommentarer, ikke kode: `writeLeftRightText` (~150 målte linjer i PDF vs fast-DXA-kolonne-estimat i Word), signatur-blok, brevhoved, footer-image, UDKAST-vandmærke. Sum-linjen over totaler tegnes som linje i PDF, som celle-top-border i Word (og ignorerer bredden). Ingen test hævder at de to kanaler producerer ækvivalent struktur.
-- **Greenfield:** Falder ud af #24: med et deklarativt IR bliver "left-right-line", "signatur", "brevhoved", "sum-line" node-typer defineret én gang; hver renderer implementerer node-typen én gang → paritet garanteret. Golden-model-test snapshotter IR'et.
+- **Oprindeligt problem:** #24 sikrede én fælles bloksekvens, men kanal-targets fortolkede
+  flere semantiske intentioner forskelligt. `writeLeftRightText` målte præcist i PDF og
+  estimerede i Word; signatur, brevhoved og tabeller havde parallel layoutlogik; Word-tabeller
+  tabte bl.a. kolonnebredder, dæmpning og totalstreg i tabelbroen. Sum-linjen over totaler blev
+  tegnet som en præcis linje i PDF, men som hele højre celles topkant i Word.
+- **Greenfield:** Behold #24's deklarative IR som eneste input, men lad hver kanal fortolke
+  hele semantiske blokke uden fælles PDF-cursor-API. `TableSpec` bliver ren semantisk data og
+  renderes direkte af hver kanal; sumstreg, signatur, brevhoved, vandmærke og footer har én
+  modelautoritet. Modeldispatch-tests og kanal-goldens låser både struktur og godkendt præsentation.
 - **Rød tråd:** Struktur frem for hånd-synk; navngivne docx-styles bevares.
 - **Afhængigheder:** Koblet til #24; svær standalone uden bare at flytte duplikeringen. Rører de præcise pixels brugeren inspicerer i signerede dokumenter.
 

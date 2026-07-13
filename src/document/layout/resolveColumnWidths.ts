@@ -1,18 +1,19 @@
 /**
  * Ren kolonnebredde-fordeling for dokument-tabeller (#15 TableSpec-udredning).
  *
- * Udtrukket fra `documentTableRenderer.ts` som en ren, unit-testbar funktion uden
+ * Udtrukket fra PDF-rendereren som en ren, unit-testbar funktion uden
  * jsPDF-runtime-afhængighed: tekstmåling injiceres som `ColumnTextMeasurer` (PDF-kanalen
- * wrapper jsPDF's `getTextWidth`; Word/degraderet jsPDF sender `null` → statisk fordeling).
+ * wrapper jsPDF's `getTextWidth`; en degraderet jsPDF sender `null` → statisk fordeling).
  * Semantikken er bevaret 1:1 fra den tidligere `resolveAdaptiveDistributedColumnStyles`
  * + `resolveGrowColumnStyles` + omfordelings-hjælperen — bevist byte-identisk af
  * `pdfTableRenderer.layout.test.ts` og tabel-kanal-paritet-golden-nettet.
  *
  * Kolonne-intentionen (fixed/flex/grow) bæres af `PDF_COLUMN_LAYOUT_META`, som
- * kolonnestil-builderne i `documentTableRenderer.ts` hæfter på styles-objektet.
+ * kolonnestil-builderne i `pdfDocumentTableRenderer.ts` hæfter på styles-objektet.
  */
 
 import { TABLE_STYLES } from './pdfConfig';
+import { DOCUMENT_TABLE_FONT_SIZE_PT } from './tableSpec';
 
 export type PdfCellAlign = 'left' | 'center' | 'right';
 
@@ -44,7 +45,7 @@ export type PdfColumnStylesWithMeta = Record<number, PdfColumnStyle> & Readonly<
 export type PdfColumnStyleMap = Record<number, PdfColumnStyle>;
 
 // Injiceret tekstmåling: returnerer bredden i mm af `text` med den givne skrifttype.
-// PDF-kanalen wrapper jsPDF; `null` (Word / degraderet jsPDF) → ingen måling.
+// PDF-kanalen wrapper jsPDF; `null` ved en degraderet jsPDF → ingen måling.
 export type ColumnTextMeasurer = (
   text: string,
   options: Readonly<{ fontSize: number; fontStyle: 'normal' | 'bold'; halign?: PdfCellAlign }>
@@ -60,9 +61,7 @@ type CellStyles = Readonly<{
 // Generisk celle-padding for alle Mineo-tabeller. Samme kilde som renderer-laget
 // (pdfConfig) — indgår i min-bredde-estimatet, så den SKAL matche renderingen 1:1.
 const TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
-// Standard tabel-fontstørrelse (spejler TABLE_FONT_SIZE i documentTableRenderer; holdt
-// lokalt for at undgå cyklisk import — begge er 8pt).
-const TABLE_FONT_SIZE = 8;
+const TABLE_FONT_SIZE = DOCUMENT_TABLE_FONT_SIZE_PT;
 const PDF_TEXT_MEASUREMENT_BUFFER_MM = 0.8;
 const PDF_WIDTH_EPSILON = 1e-4;
 
@@ -233,7 +232,7 @@ const resolveGrowColumnStyles = (
  * Fordeler kolonnebredder adaptivt ud fra det målte indhold.
  *
  * Kræver at `columnStyles` bærer `PDF_COLUMN_LAYOUT_META` (ellers returneres input
- * uændret) og at `measure` ikke er `null` (Word/degraderet jsPDF → statisk fordeling).
+ * uændret) og at `measure` ikke er `null` (degraderet jsPDF → statisk fordeling).
  * Fail-closed: enhver situation hvor en meningsfuld omfordeling ikke kan garanteres
  * (deficit > surplus, residual ville presse en kolonne under dens krav, …) returnerer
  * de originale, umodificerede styles.

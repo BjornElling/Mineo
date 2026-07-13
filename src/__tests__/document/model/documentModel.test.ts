@@ -1,6 +1,4 @@
 import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
-import { createDocumentTableBridgeDocument } from '../../../document/layout/documentTableBridge';
-import { MARGINS } from '../../../document/layout/pdfConfig';
 import type { DocumentWriter } from '../../../document/writer';
 import { TODAY } from '../../../config/dateRanges';
 
@@ -11,29 +9,15 @@ const createRecordingTarget = (): Readonly<{
   calls: RecordedCall[];
 }> => {
   const calls: RecordedCall[] = [];
-  let y = 12;
   const record = (name: string, ...args: readonly unknown[]): void => {
     calls.push({ name, args });
   };
-  const bridge = createDocumentTableBridgeDocument((...args) => record('bridgeTable', ...args));
 
   const writer: DocumentWriter = {
-    setDisplayMode: (...args) => record('setDisplayMode', ...args),
     setProperties: (...args) => record('setProperties', ...args),
-    setNormalTextStyle: (...args) => record('setNormalTextStyle', ...args),
-    getDoc: () => bridge,
-    ensureSpace: (...args) => record('ensureSpace', ...args),
-    getY: () => y,
-    setY: (nextY) => {
-      y = nextY;
-      record('setY', nextY);
-    },
+    keepWithNext: (...args) => record('keepWithNext', ...args),
     addSpacer: (...args) => record('addSpacer', ...args),
     addSectionSpacer: (...args) => record('addSectionSpacer', ...args),
-    advanceY: (delta) => {
-      y += delta;
-      record('advanceY', delta);
-    },
     writeWrappedText: (...args) => record('writeWrappedText', ...args),
     writeBoldWrappedText: (...args) => record('writeBoldWrappedText', ...args),
     writeWrappedTextContinued: (...args) => record('writeWrappedTextContinued', ...args),
@@ -59,14 +43,8 @@ const createRecordingTarget = (): Readonly<{
     writeSignatureBlock: (...args) => record('writeSignatureBlock', ...args),
     writeBrevhoved: (...args) => record('writeBrevhoved', ...args),
     addUdkastWatermark: (...args) => record('addUdkastWatermark', ...args),
-    addImageDataUrl: (...args) => record('addImageDataUrl', ...args),
-    getTextWidth: (text) => {
-      record('getTextWidth', text);
-      return 42;
-    },
-    fitTextToWidth: (text) => text,
-    getPageWidth: () => 210,
-    getContentWidthMm: () => 100,
+    addContentWidthImage: (...args) => record('addContentWidthImage', ...args),
+    renderTable: (...args) => record('renderTable', ...args),
     addPage: (...args) => record('addPage', ...args),
     addFooter: (...args) => record('addFooter', ...args),
     build: async () => new Blob(),
@@ -272,29 +250,26 @@ describe('documentModel', () => {
       'addSpacer',
       'addSectionSpacer',
       'addPage',
-      'bridgeTable',
+      'renderTable',
       'writeSignatureBlock',
       'writeBrevhoved',
       'addUdkastWatermark',
-      'addImageDataUrl',
+      'addContentWidthImage',
       'addFooter',
     ]) {
       expect(callCount(name), `${name} skal dispatches præcis én gang`).toBe(1);
     }
     expect(callCount('writeWrappedText')).toBe(3);
-    expect(callCount('ensureSpace')).toBe(3);
-    expect(callCount('setY')).toBe(2);
+    expect(callCount('keepWithNext')).toBe(2);
     expect(calls.find((call) => call.name === 'writeSignatureBlock')?.args).toEqual([
       'Dato',
       'Signatur',
-      MARGINS.left,
-      MARGINS.left + 90,
       'Skadelidte',
     ]);
     expect(calls.find((call) => call.name === 'writeLeftRightText')?.args[2]).toEqual({
-      minRightColumnWidth: 42,
+      minRightColumnWidthText: '000',
     });
-    expect(calls.find((call) => call.name === 'addImageDataUrl')?.args.slice(0, 1)).toEqual([
+    expect(calls.find((call) => call.name === 'addContentWidthImage')?.args.slice(0, 1)).toEqual([
       'data:image/png;base64,AA==',
     ]);
   });

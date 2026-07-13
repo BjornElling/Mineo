@@ -1,6 +1,5 @@
 import type { BrevhovedData } from '../layout/documentLayoutHelpers';
-import { renderTableSpec, type TableSpec } from '../layout/tableSpec';
-import { MARGINS } from '../layout/pdfConfig';
+import type { TableSpec } from '../layout/tableSpec';
 import type { DocumentWriter } from '../writer';
 import { assertNever } from '../../utils/assertNever';
 
@@ -9,9 +8,10 @@ export type DocumentTextStyle = 'normal' | 'bold';
 export type DocumentLabelValueOptions = Readonly<{
   leftFontStyle?: DocumentTextStyle;
   rightFontStyle?: DocumentTextStyle;
-  lineAboveRightWidth?: number;
-  lineAboveRightOffset?: number;
-  leftNoWrap?: boolean;
+  separatorAboveValue?: Readonly<{
+    widthMm: number;
+    gapMm?: number;
+  }>;
   minRightColumnWidth?: number;
   minRightColumnWidthText?: string;
 }>;
@@ -315,20 +315,7 @@ const renderBlocks = (
         writer.writeNormalThenBoldLine(block.normalPart, block.boldPart);
         break;
       case 'labelValue': {
-        if (!block.options) {
-          writer.writeLeftRightText(block.label, block.value);
-          break;
-        }
-        const { minRightColumnWidthText, ...options } = block.options ?? {};
-        writer.writeLeftRightText(block.label, block.value, {
-          ...options,
-          minRightColumnWidth: minRightColumnWidthText
-            ? Math.max(
-                options.minRightColumnWidth ?? 0,
-                writer.getTextWidth(minRightColumnWidthText),
-              )
-            : options.minRightColumnWidth,
-        });
+        writer.writeLeftRightText(block.label, block.value, block.options);
         break;
       }
       case 'sectionHeader':
@@ -372,21 +359,14 @@ const renderBlocks = (
         writer.addSectionSpacer();
         break;
       case 'keepWithNext':
-        writer.ensureSpace(block.minimumHeight);
+        writer.keepWithNext(block.minimumHeight);
         break;
       case 'pageBreak':
         writer.addPage();
         break;
-      case 'table': {
-        // Importen ligger nederst i modulet for at holde blokalgebraen fri af renderdetaljer.
-        const { endY } = renderTableSpec(
-          writer.getDoc(),
-          writer.getY(),
-          block.spec,
-        );
-        writer.setY(endY);
+      case 'table':
+        writer.renderTable(block.spec);
         break;
-      }
       case 'atomicChunks':
         writer.writeAtomicTableChunks({
           rows: block.rows,
@@ -398,12 +378,10 @@ const renderBlocks = (
         break;
       case 'signature':
         if (block.requiredHeight !== undefined)
-          writer.ensureSpace(block.requiredHeight);
+          writer.keepWithNext(block.requiredHeight);
         writer.writeSignatureBlock(
           block.dateLine,
           block.sigLine,
-          MARGINS.left,
-          MARGINS.left + 90,
           block.skadelidteNavn,
         );
         break;
@@ -413,15 +391,13 @@ const renderBlocks = (
       case 'watermark':
         writer.addUdkastWatermark();
         break;
-      case 'contentWidthImage': {
-        const width = writer.getContentWidthMm();
-        const height = Math.min(block.maxHeight, width / block.aspectRatio);
-        writer.ensureSpace(height + block.verticalPadding * 2);
-        const y = writer.getY() + block.verticalPadding;
-        writer.addImageDataUrl(block.dataUrl, MARGINS.left, y, width, height);
-        writer.setY(y + height + block.verticalPadding);
+      case 'contentWidthImage':
+        writer.addContentWidthImage(block.dataUrl, {
+          aspectRatio: block.aspectRatio,
+          maxHeight: block.maxHeight,
+          verticalPadding: block.verticalPadding,
+        });
         break;
-      }
       case 'footer':
         writer.addFooter();
         break;

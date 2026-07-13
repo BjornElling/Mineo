@@ -24,10 +24,9 @@ export const generateTafKravGrafDocument = defineDocument<TafKravGrafDocumentOpt
   // Bevidst designvalg: UDKAST-vandmærket tegnes ALDRIG på denne graf, uanset
   // udkast-indstillingen. Et diagonalt vandmærke hen over de stablede arealer gør grafen
   // svær at aflæse og tilfører ingen værdi (grafen er et visuelt overblik, ikke et tal-bilag).
-  // Derfor oprettes writeren med visUdkastStempel: false, og der kaldes ikke addUdkastWatermark().
+  // Derfor tilføjes ingen watermark-blok til modellen.
   // Udkast-indstillingen afspejles fortsat i filnavnet, så en kladde stadig markeres som sådan.
   writerOptions: {
-      visUdkastStempel: false,
       orientation: 'landscape',
       onLayoutFallback: ({ message, label }) => {
         logWarning('PDF-layout fallback aktiveret', {

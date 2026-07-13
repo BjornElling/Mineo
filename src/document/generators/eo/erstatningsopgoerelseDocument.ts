@@ -7,6 +7,7 @@
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../layout/pdfConfig';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { defineDocument } from '../documentGeneratorSetup';
+import type { DocumentLabelValueOptions } from '../../model/documentModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
@@ -117,9 +118,9 @@ export const generateErstatningsopgoerelseDocument = (
       model.brevhoved?.journalnr,
       format
     ),
-    writerOptions: { visUdkastStempel, onLayoutFallback: warnLayoutFallback },
+    writerOptions: { onLayoutFallback: warnLayoutFallback },
     beforeBrevhoved: (writer) => {
-      writer.addUdkastWatermark();
+      if (visUdkastStempel) writer.addUdkastWatermark();
     },
     brevhoved: () => visBrevhoved && model.brevhoved
       ? {
@@ -136,12 +137,7 @@ export const generateErstatningsopgoerelseDocument = (
     leftText: string,
     rightText: string,
     rightMaxWidth: number,
-    options?: Readonly<{
-      leftFontStyle?: 'normal' | 'bold';
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-    }>
+    options?: DocumentLabelValueOptions
   ) => {
     writer.writeLeftRightText(
       leftText,

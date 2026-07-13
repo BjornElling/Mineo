@@ -21,6 +21,7 @@
  */
 
 import { defineDocument } from '../documentGeneratorSetup';
+import type { DocumentLabelValueOptions } from '../../model/documentModel';
 import { ensureNonBreakingKr } from '../../layout/pdfTextUtils';
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../layout/pdfConfig';
 import { logWarning } from '../../../utils/logger';
@@ -86,7 +87,6 @@ export const generateTafOpreguleretPaaAarDocument = (
       format
     ),
     writerOptions: {
-      visUdkastStempel,
       onLayoutFallback: ({ message, label }) => {
         logWarning('PDF-layout fallback aktiveret', {
           context: 'pdf.tafOpreguleretPaaAar.layout',
@@ -95,7 +95,7 @@ export const generateTafOpreguleretPaaAarDocument = (
       },
     },
     beforeBrevhoved: (writer) => {
-      writer.addUdkastWatermark();
+      if (visUdkastStempel) writer.addUdkastWatermark();
     },
     brevhoved: () => visBrevhoved && model.brevhoved
       ? {
@@ -115,12 +115,7 @@ export const generateTafOpreguleretPaaAarDocument = (
     leftText: string,
     rightText: string,
     minRightWidth: number,
-    options?: Readonly<{
-      leftFontStyle?: 'normal' | 'bold';
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-    }>
+    options?: DocumentLabelValueOptions
   ) => {
     writer.writeLeftRightText(leftText, rightText, {
       ...options,
@@ -288,8 +283,7 @@ export const generateTafOpreguleretPaaAarDocument = (
       const indkomstIAltText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearIncomeOre));
       safeAddLeftRightText('I alt', indkomstIAltText, rightMaxWidth, {
         rightFontStyle: 'normal',
-        lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-        lineAboveRightOffset: 4,
+        separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
       });
     }
 
@@ -306,8 +300,7 @@ export const generateTafOpreguleretPaaAarDocument = (
       const fradragIAltText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearDeductionsOre));
       safeAddLeftRightText('I alt', fradragIAltText, rightMaxWidth, {
         rightFontStyle: 'normal',
-        lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-        lineAboveRightOffset: 4,
+        separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
       });
     }
 
@@ -364,8 +357,7 @@ export const generateTafOpreguleretPaaAarDocument = (
   const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleret.sumOpreguleretOre));
   safeAddLeftRightText(`Samlet TAF opreguleret til ${beregningsAar}`, samletText, rightMaxWidth, {
     rightFontStyle: 'bold',
-    lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-    lineAboveRightOffset: 4,
+    separatorAboveValue: { widthMm: TAF_RIGHT_COLUMN_WIDTH, gapMm: 4 },
   });
 
   // ─── Bilag (samme som den almindelige erstatningsopgørelse-PDF) ───────
