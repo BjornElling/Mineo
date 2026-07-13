@@ -416,6 +416,15 @@ Downloadflows der kan hente både PDF og Word, skal følge `document-format-cont
 Hvis en knap eller ikonhandling henter det aktive dokumentformat, skal brugeren kunne se
 formatet i tekst, tooltip eller aria-label.
 
+Download-ikonet skal altid vises sammen med sin tekstlinje. Når den tekstlinje/label, som
+download-ikonet hører til, er synlig, skal ikonet også være synligt — men som **nedtonet,
+inaktivt** ikon (`disabled`), når download er blokeret, med blokerings-årsagen i tooltip
+(`disabledReason`, udledt af download-gatens `reasons`). Ikonet må aldrig helt forsvinde,
+mens dets label bliver stående (det efterlader en tom plads, hvor brugeren forventer ikonet).
+Er hele rækken (label + ikon) skjult sammen — fx fordi sektionen ikke er relevant — er det
+konsistent og tilladt. Undtagelse: tabelceller med en etableret "ingen værdi"-markør (fx
+`-` pr. række) beholder markøren frem for et nedtonet ikon.
+
 ### 11.2 Fælles komponenter før lokal speciallogik
 
 Hvis der allerede findes en fælles komponent eller hook for en gentagen UI-adfærd, skal den genbruges eller udvides før ny parallel implementering oprettes.

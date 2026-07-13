@@ -126,7 +126,9 @@ const Aarsloen = React.memo(() => {
   // PDF gates og download handlers
   const {
     canDownloadDocument,
+    documentDisabledReason,
     canDownloadSHDageDocument,
+    shDageDisabledReason,
     handleAarsloenDocumentDownload,
     handleSHDageDocumentDownload,
     downloadShake,
@@ -255,9 +257,16 @@ const Aarsloen = React.memo(() => {
     [beregningsData, loenperiode, periodeData, tableData]
   );
 
-  const aarsloenPdfDownloadButton = canDownloadDocument ? (
-    <DocumentDownloadButton onClick={() => void handleAarsloenDocumentDownload()} shake={downloadShake} />
-  ) : null;
+  // Download-ikonet vises altid sammen med sin tekstlinje — nedtonet/inaktivt når download
+  // er blokeret (fx tabel-valideringsfejl eller manglende gyldige rækker), med årsag i tooltip.
+  const aarsloenPdfDownloadButton = (
+    <DocumentDownloadButton
+      onClick={() => void handleAarsloenDocumentDownload()}
+      shake={downloadShake}
+      disabled={!canDownloadDocument}
+      disabledReason={documentDisabledReason ?? undefined}
+    />
+  );
 
   return (
     <Box>
@@ -530,9 +539,11 @@ const Aarsloen = React.memo(() => {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">{shDageAntal ?? 0}</Typography>
-                  {canDownloadSHDageDocument && (
-                    <DocumentDownloadButton onClick={() => void handleSHDageDocumentDownload()} />
-                  )}
+                  <DocumentDownloadButton
+                    onClick={() => void handleSHDageDocumentDownload()}
+                    disabled={!canDownloadSHDageDocument}
+                    disabledReason={shDageDisabledReason ?? undefined}
+                  />
                 </Box>
               </Box>
             </Box>

@@ -59,7 +59,9 @@ const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenDocumentG
 
 type CapturedHook = {
   canDownloadDocument: boolean;
+  documentDisabledReason: string | null;
   canDownloadSHDageDocument: boolean;
+  shDageDisabledReason: string | null;
   handleAarsloenDocumentDownload: (() => Promise<void>) | null;
   downloadShake: boolean;
 };
@@ -70,7 +72,9 @@ type CapturedHook = {
 const renderHook = (props: ReturnType<typeof makeBaseProps>): CapturedHook => {
   const captured: CapturedHook = {
     canDownloadDocument: false,
+    documentDisabledReason: null,
     canDownloadSHDageDocument: false,
+    shDageDisabledReason: null,
     handleAarsloenDocumentDownload: null,
     downloadShake: false,
   };
@@ -78,7 +82,9 @@ const renderHook = (props: ReturnType<typeof makeBaseProps>): CapturedHook => {
   const Comp = () => {
     const result = useAarsloenDocumentGates(props);
     captured.canDownloadDocument = result.canDownloadDocument;
+    captured.documentDisabledReason = result.documentDisabledReason;
     captured.canDownloadSHDageDocument = result.canDownloadSHDageDocument;
+    captured.shDageDisabledReason = result.shDageDisabledReason;
     captured.handleAarsloenDocumentDownload = result.handleAarsloenDocumentDownload;
     captured.downloadShake = result.downloadShake;
     return null;
@@ -165,6 +171,45 @@ describe('useAarsloenDocumentGates — canDownloadSHDageDocument', () => {
       shDageAntal: 3,
     }));
     expect(canDownloadSHDageDocument).toBe(true);
+  });
+});
+
+// ─── disabledReason (til nedtonet ikon-tooltip) ─────────────────────────────────────
+
+describe('useAarsloenDocumentGates — disabledReason', () => {
+  const mockPeriodeData = {
+    perioder: [],
+    datoSet: new Set<string>(),
+  } as unknown as PeriodeResult;
+
+  it('documentDisabledReason har en årsag når download er blokeret (tom tabel)', () => {
+    const { canDownloadDocument, documentDisabledReason } = renderHook(makeBaseProps());
+    expect(canDownloadDocument).toBe(false);
+    expect(documentDisabledReason).toBe('Ingen data i tabel');
+  });
+
+  it('documentDisabledReason og canDownloadDocument er koblet (reason ikke-null præcis når blokeret)', () => {
+    // Invariant: en årsag findes hvis og kun hvis download er blokeret.
+    const { canDownloadDocument, documentDisabledReason } = renderHook(makeBaseProps());
+    expect(documentDisabledReason === null).toBe(canDownloadDocument);
+  });
+
+  it('shDageDisabledReason er null når SH-dage kan downloades', () => {
+    const { canDownloadSHDageDocument, shDageDisabledReason } = renderHook(makeBaseProps({
+      periodeData: mockPeriodeData,
+      shDageAntal: 3,
+    }));
+    expect(canDownloadSHDageDocument).toBe(true);
+    expect(shDageDisabledReason).toBeNull();
+  });
+
+  it('shDageDisabledReason forklarer at der ikke er SH-dage når antal=0', () => {
+    const { canDownloadSHDageDocument, shDageDisabledReason } = renderHook(makeBaseProps({
+      periodeData: mockPeriodeData,
+      shDageAntal: 0,
+    }));
+    expect(canDownloadSHDageDocument).toBe(false);
+    expect(shDageDisabledReason).toBe('Ingen SH-dage i de indtastede perioder');
   });
 });
 

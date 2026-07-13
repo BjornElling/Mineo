@@ -230,9 +230,11 @@ const Satser = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download specifikation:</Typography>
           <Box className="row--label-right-hover__content">
-            {canDownload && (
-              <DocumentDownloadButton onClick={() => void handleDownloadPdf()} />
-            )}
+            <DocumentDownloadButton
+              onClick={() => void handleDownloadPdf()}
+              disabled={!canDownload}
+              disabledReason={pdfGate.reasons[0]?.message}
+            />
           </Box>
         </Box>
       </ContentBox>

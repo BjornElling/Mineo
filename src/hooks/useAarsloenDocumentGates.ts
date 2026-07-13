@@ -41,7 +41,11 @@ type UseAarsloenDocumentGatesProps = {
 
 type UseAarsloenDocumentGatesReturn = {
   canDownloadDocument: boolean;
+  /** Blokerings-årsag for hoved-download, eller null når download er tilladt. Bruges som tooltip på det nedtonede ikon. */
+  documentDisabledReason: string | null;
   canDownloadSHDageDocument: boolean;
+  /** Blokerings-årsag for SH-dage-download, eller null når download er tilladt. */
+  shDageDisabledReason: string | null;
   handleAarsloenDocumentDownload: () => Promise<void>;
   handleSHDageDocumentDownload: () => Promise<void>;
   downloadShake: boolean;
@@ -172,16 +176,31 @@ export const useAarsloenDocumentGates = ({
   ]);
 
   const canDownloadDocument = getDocumentEligibility.canDownload;
+  const documentDisabledReason = getDocumentEligibility.canDownload
+    ? null
+    : getDocumentEligibility.reasons[0]?.message ?? null;
 
   /**
-   * Evaluér om SH-dage-dokumentet kan downloades
+   * Evaluér om SH-dage-dokumentet kan downloades. Returnerer et gate-resultat med
+   * auditerbar årsag, så det nedtonede download-ikon kan vise hvorfor det er blokeret.
    */
-  const canDownloadSHDageDocument = React.useMemo((): boolean => {
-    if (!periodeData) return false;
-    if (shDageAntal == null) return false; // null eller undefined
-    if (shDageAntal === 0) return false; // Ingen SH-dage at vise
-    return true;
+  const shDageEligibility = React.useMemo((): DocumentDownloadGateResult => {
+    if (!periodeData) {
+      return blockDocumentDownload({ code: 'aarsloen:sh-missing-period-data', message: 'Mangler periode-data' });
+    }
+    if (shDageAntal == null) {
+      return blockDocumentDownload({ code: 'aarsloen:sh-no-count', message: 'Antal SH-dage er ikke beregnet' });
+    }
+    if (shDageAntal === 0) {
+      return blockDocumentDownload({ code: 'aarsloen:sh-zero', message: 'Ingen SH-dage i de indtastede perioder' });
+    }
+    return allowDocumentDownload();
   }, [periodeData, shDageAntal]);
+
+  const canDownloadSHDageDocument = shDageEligibility.canDownload;
+  const shDageDisabledReason = shDageEligibility.canDownload
+    ? null
+    : shDageEligibility.reasons[0]?.message ?? null;
 
   /**
    * Håndter dokument-download for årslønsberegning
@@ -284,7 +303,9 @@ export const useAarsloenDocumentGates = ({
 
   return {
     canDownloadDocument,
+    documentDisabledReason,
     canDownloadSHDageDocument,
+    shDageDisabledReason,
     handleAarsloenDocumentDownload,
     handleSHDageDocumentDownload,
     downloadShake,

@@ -427,11 +427,22 @@ const beregningsResultat = React.useMemo(() => {
           style={{ justifyContent: 'flex-end' }}
         >
           {beregningsFejl || manglendeFelter ? (
-            <Tooltip title={beregningsFejl || manglendeFelter} arrow>
-              <Typography className="row--text" color="text.disabled">
-                {beregningsFejl || manglendeFelter}
-              </Typography>
-            </Tooltip>
+            // Download-ikonet vises altid sammen med sin tekstlinje — her nedtonet/inaktivt,
+            // fordi beregningen (og dermed download) er blokeret. Fejl-/mangel-teksten står
+            // fortsat i værdikolonnen, og ikonet placeres til højre for den.
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Tooltip title={beregningsFejl || manglendeFelter} arrow>
+                <Typography className="row--text" color="text.disabled">
+                  {beregningsFejl || manglendeFelter}
+                </Typography>
+              </Tooltip>
+              <DocumentDownloadButton
+                onClick={() => void handlePdfDownload()}
+                disabled
+                disabledReason={(beregningsFejl || manglendeFelter) ?? undefined}
+                dataTestId="varigemen-download"
+              />
+            </Box>
           ) : beregningsResultat ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">

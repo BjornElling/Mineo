@@ -148,18 +148,20 @@ describe('MenberegningTab', () => {
       </MemoryRouter>
     );
 
-    // Gyldig committet værdi → download-knappen er til stede.
+    // Gyldig committet værdi → download-knappen er til stede og aktiv.
     expect(screen.getByTestId('varigemen-download')).toBeInTheDocument();
+    expect(screen.getByTestId('varigemen-download')).toBeEnabled();
 
     // Feltet får en ikke-committbar rå draft (det StyledPercentField skriver, når 0 afvises).
     act(() => {
       formPersistenceStore.getState().setInvalidDraft('varigemen', 'mengrad', '0');
     });
 
-    // Download er nu blokeret: den syntetiske invalid-draft-feltfejl gater beregningsresultatet,
-    // så download-knappen ikke længere vises — præcis som ved en committet ugyldig værdi.
+    // Download er nu blokeret: den syntetiske invalid-draft-feltfejl gater beregningsresultatet.
+    // Download-ikonet forbliver synligt (dets tekstlinje vises stadig) men bliver nedtonet/inaktivt
+    // — præcis som ved en committet ugyldig værdi.
     await waitFor(() => {
-      expect(screen.queryByTestId('varigemen-download')).not.toBeInTheDocument();
+      expect(screen.getByTestId('varigemen-download')).toBeDisabled();
     });
   }, ASYNC_TEST_TIMEOUT_MS);
 });
