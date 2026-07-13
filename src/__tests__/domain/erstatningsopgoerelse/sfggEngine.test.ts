@@ -1,62 +1,19 @@
 import { moneyOre } from '../../../domain/money/money';
-import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import {
-  buildSfggPeriode,
-  computeSygeferiegodtgoerelse,
-  findSfggSixMonthWarningEmploymentIds,
-  sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner,
-} from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { computeSygeferiegodtgoerelse } from '../../../domain/erstatningsopgoerelse/engines/sfggEngine';
 import {
   buildSfggReferenceperiodeCountLabel,
   formatSfggAfkortningPdfLine,
 } from '../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
-import { createSfggIngenRow } from '../../utils/sfggTestSupport';
-
-const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
-const iso = (value: string) => toISODateString(value);
-
-const createEmployment = (
-  patch: Partial<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]> = {}
-): ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] => ({
-  id: patch.id ?? 'af-1',
-  navnPaaArbejdssted: patch.navnPaaArbejdssted ?? 'Arbejdssted 1',
-  harOverenskomst: patch.harOverenskomst ?? false,
-  overenskomstId: patch.overenskomstId,
-  overenskomstFilter: patch.overenskomstFilter ?? { loenmodtager: undefined, arbejdsgiver: undefined },
-  ansatPaaSkadestidspunktet: patch.ansatPaaSkadestidspunktet ?? true,
-  ansaettelsesforholdOphoert: patch.ansaettelsesforholdOphoert ?? false,
-  sidsteArbejdsdag: patch.sidsteArbejdsdag,
-  feriePct: patch.feriePct,
-  fritvalgPct: patch.fritvalgPct,
-  shSoPct: patch.shSoPct,
-  storeBededagPct: patch.storeBededagPct,
-  pensionPct: patch.pensionPct ?? 0,
-  loenperiode: patch.loenperiode ?? 'maaned',
-  tillaegAngivesSom: patch.tillaegAngivesSom ?? 'procent',
-  fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Ja',
-  harAnciennitetstillaegEfterSkadedatoen: patch.harAnciennitetstillaegEfterSkadedatoen ?? false,
-  anciennitetstillaegDato: patch.anciennitetstillaegDato,
-  anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
-  anciennitetstillaegSats: patch.anciennitetstillaegSats,
-  loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
-  saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
-  loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
-  loenudviklingStatistikModel: patch.loenudviklingStatistikModel,
-  loenudviklingKRLSatstabel: patch.loenudviklingKRLSatstabel,
-  loenudviklingManuelNavn: patch.loenudviklingManuelNavn ?? '',
-  loenudviklingManuelTableData: patch.loenudviklingManuelTableData ?? [],
-  offentligLoenType: patch.offentligLoenType ?? 'Månedsløn',
-  offentligLoenTrin: patch.offentligLoenTrin,
-  offentligLoenGruppe: patch.offentligLoenGruppe,
-  offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
-  indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
-  ...patch,
-  loenudviklingManuelProcentsatsTableData: patch.loenudviklingManuelProcentsatsTableData ?? [],
-});
+import {
+  asSfggAmount as asAmount,
+  createSfggEmployment as createEmployment,
+  createSfggIngenRow,
+  sfggIso as iso,
+} from '../../utils/sfggTestSupport';
 
 describe('computeSygeferiegodtgoerelse', () => {
   it('formaterer arbejdsdage-label med kun ikke-nul fradrag', () => {
@@ -1916,21 +1873,17 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-01-30') }],
     });
 
-    const expectedLoenGrundlag = sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
-      values.loenindkomstAnsaettelsesforhold[0]!,
-      [{ fra: iso('2024-01-29'), til: iso('2024-01-29') }],
-      values.ferieperioder
-    );
-
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
     expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
       expect.objectContaining({
         fra: iso('2024-01-29'),
         til: iso('2024-01-29'),
         antalDage: 1,
-        loenPlusLoen2PlusIkkePensLoenKroner: expectedLoenGrundlag,
       })
     );
+    expect(
+      result.perAnsaettelsesforhold[0]?.segments[0]?.loenPlusLoen2PlusIkkePensLoenKroner
+    ).toBeCloseTo(10000 / 21, 12);
   });
 
   it('beregner referencesatsen med 12,5 % og ignorerer en afvigende indtastet feriepengesats', () => {
@@ -2228,48 +2181,7 @@ describe('computeSygeferiegodtgoerelse — feriepenge-fradrag og øre-invariant'
   });
 });
 
-describe('findSfggSixMonthWarningEmploymentIds', () => {
-  it('markerer ansættelsesforhold hvor SFGG fortsætter mere end 6 måneder efter sidste lønindkomst', () => {
-    const values = createErstatningsopgoerelseInitialValues();
-    values.loenindkomstAnsaettelsesforhold = [createEmployment({
-      indtaegtsoplysningerTableData: [{
-        id: 'loen-jan-2024',
-        col0_maaned: '1',
-        col1_maaned: '2024',
-        col0_uge: '',
-        col1_uge: '',
-        col0_dag: undefined,
-        col1_dag: undefined,
-        col2: asAmount(10000),
-        col3: undefined,
-        col4: undefined,
-        col5: undefined,
-      }],
-    })];
-    values.sfggAnsaettelsesforhold = [{
-      ansaettelsesforholdId: 'af-1',
-      sfggBeregningskilde: 'Manuelt angivet',
-      sfggManuelDagssats: asAmount(100),
-      sfggManuelBeloebIHenholdTil: undefined,
-      sfggManuelFoerstEfterSygeloen: 'Nej',
-      sfggReferenceperiodeFra: undefined,
-      sfggReferenceperiodeTil: undefined,
-      sfggReferenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
-      sfggSatsvalg: undefined,
-      sfggAlleredeBetaltBeloeb: undefined,
-    }];
-
-    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') };
-    const tafRanges = [{ fra: iso('2024-08-01'), til: iso('2024-08-31') }];
-    const sfggResult = computeSygeferiegodtgoerelse({ values, stamdata, tafRanges, loenudviklingPerAnsaettelse: new Map() });
-    const warningIds = findSfggSixMonthWarningEmploymentIds({
-      values,
-      result: sfggResult,
-    });
-
-    expect(warningIds).toEqual(['af-1']);
-  });
-
+describe('computeSygeferiegodtgoerelse — ansættelsesrelevans', () => {
   it('producerer 0 SFGG for ansættelsesforhold med ansatPaaSkadestidspunktet: false', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
@@ -2314,178 +2226,154 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
   });
 });
 
-describe('buildSfggPeriode', () => {
-  const base = {
-    tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }],
-    firstExcludedDate: null,
-    employmentHadFirstExcludedDate: false,
-    capReachedDate: null,
-    ansaettelsesophorDate: null,
-    foerstEfterSygeloen: false,
-    employment: createEmployment(),
-    ferieperioder: [] as ErstatningsopgoerelseValues['ferieperioder'],
-  };
+describe('computeSygeferiegodtgoerelse — komplet flerårsresultat', () => {
+  it('karakteriserer hele resultatkontrakten for flere ansættelsesforhold og år', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.opgørelseLavetDen = iso('2025-02-01');
+    values.loenindkomstAnsaettelsesforhold = [
+      createEmployment({ id: 'af-1', navnPaaArbejdssted: 'Arbejdssted 1' }),
+      createEmployment({
+        id: 'af-2',
+        navnPaaArbejdssted: 'Arbejdssted 2',
+        ansaettelsesforholdOphoert: true,
+        sidsteArbejdsdag: iso('2025-01-02'),
+      }),
+    ];
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: asAmount(100),
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      },
+      {
+        ansaettelsesforholdId: 'af-2',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: asAmount(200),
+        sfggManuelBeloebIHenholdTil: 'aftalegrundlaget',
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: asAmount(1),
+      },
+    ];
 
-  it('uden afkortninger fratrækker kun ferie fra visningsperioden', () => {
-    const periode = buildSfggPeriode({
-      ...base,
-      ferieperioder: [{ id: 'ferie-1', fra: iso('2024-01-10'), til: iso('2024-01-12') }],
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-12-30'), til: iso('2025-01-03') }],
     });
-    expect(periode.afkortninger).toEqual([]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]);
-    expect(periode.eligibleRanges).toEqual([
-      { fra: iso('2024-01-01'), til: iso('2024-01-09') },
-      { fra: iso('2024-01-13'), til: iso('2024-01-31') },
-    ]);
-  });
 
-  it('fjerner første sygedag og registrerer foersteSygedag-afkortning', () => {
-    const periode = buildSfggPeriode({
-      ...base,
-      firstExcludedDate: iso('2024-01-01'),
-      employmentHadFirstExcludedDate: true,
+    expect(result).toEqual({
+      totalOre: moneyOre(99900),
+      perAnsaettelsesforhold: [
+        {
+          ansaettelsesforholdId: 'af-1',
+          ansaettelsesforholdNavn: 'Arbejdssted 1',
+          sfggSourceLabel: 'Manuelt angivet',
+          sfggSourceKind: 'manuel',
+          sfggDayBasis: 'arbejdsdage',
+          sfggIntroText: 'Sygeferiegodtgørelse beregnes på baggrund af en manuelt angivet sats.',
+          sfggReferenceperiodeAuthorityText: null,
+          sfggReferenceperiodeLabel: '4 uger',
+          sfggDirectRateLabel: null,
+          sfggFirstTafDayExcludedText: null,
+          sfggAfterEmployerSickPayText: null,
+          sfggLovbestemtFeriepengeNote: null,
+          foerstEfterSygeloen: false,
+          sfggAfkortninger: [],
+          segments: [{
+            ansaettelsesforholdId: 'af-1',
+            ansaettelsesforholdNavn: 'Arbejdssted 1',
+            fra: iso('2024-12-30'),
+            til: iso('2025-01-03'),
+            reguleringsindeks: null,
+            satsOre: moneyOre(10000),
+            agPensionPct: 0,
+            antalDage: 4,
+            feriepengekravOre: moneyOre(40000),
+            beregnetSfggoereOre: moneyOre(40000),
+            loenPlusLoen2PlusIkkePensLoenKroner: 0,
+            feriepengeAfSygeloenOre: moneyOre(0),
+            alleredeBetaltOre: moneyOre(0),
+          }],
+          perYear: [
+            { year: 2024, amountOre: moneyOre(20000) },
+            { year: 2025, amountOre: moneyOre(20000) },
+          ],
+          feriepengekravTotalOre: moneyOre(40000),
+          totalOre: moneyOre(40000),
+          alleredeBetaltOre: moneyOre(0),
+          sfggVisningsperiode: [{ fra: iso('2024-12-30'), til: iso('2025-01-03') }],
+          sfggReferenceperiode: null,
+          sfggReferencesats: { status: 'ok', value: moneyOre(10000) },
+          sfggReferencesatsFormula: null,
+          feriepengeModtagetFormula: null,
+          capReachedDate: null,
+        },
+        {
+          ansaettelsesforholdId: 'af-2',
+          ansaettelsesforholdNavn: 'Arbejdssted 2',
+          sfggSourceLabel: 'Manuelt angivet',
+          sfggSourceKind: 'manuel',
+          sfggDayBasis: 'arbejdsdage',
+          sfggIntroText: 'Sygeferiegodtgørelse beregnes i henhold til aftalegrundlaget.',
+          sfggReferenceperiodeAuthorityText: null,
+          sfggReferenceperiodeLabel: '4 uger',
+          sfggDirectRateLabel: null,
+          sfggFirstTafDayExcludedText: null,
+          sfggAfterEmployerSickPayText: null,
+          sfggLovbestemtFeriepengeNote: null,
+          foerstEfterSygeloen: false,
+          sfggAfkortninger: [{
+            aarsag: 'ansaettelsesophoer',
+            verbum: 'bortfaldt',
+            dato: iso('2025-01-02'),
+          }],
+          segments: [{
+            ansaettelsesforholdId: 'af-2',
+            ansaettelsesforholdNavn: 'Arbejdssted 2',
+            fra: iso('2024-12-30'),
+            til: iso('2025-01-02'),
+            reguleringsindeks: null,
+            satsOre: moneyOre(20000),
+            agPensionPct: 0,
+            antalDage: 3,
+            feriepengekravOre: moneyOre(60000),
+            beregnetSfggoereOre: moneyOre(59900),
+            loenPlusLoen2PlusIkkePensLoenKroner: 0,
+            feriepengeAfSygeloenOre: moneyOre(0),
+            alleredeBetaltOre: moneyOre(100),
+          }],
+          perYear: [
+            { year: 2024, amountOre: moneyOre(39933) },
+            { year: 2025, amountOre: moneyOre(19967) },
+          ],
+          feriepengekravTotalOre: moneyOre(60000),
+          totalOre: moneyOre(59900),
+          alleredeBetaltOre: moneyOre(100),
+          sfggVisningsperiode: [{ fra: iso('2024-12-30'), til: iso('2025-01-02') }],
+          sfggReferenceperiode: null,
+          sfggReferencesats: { status: 'ok', value: moneyOre(20000) },
+          sfggReferencesatsFormula: null,
+          feriepengeModtagetFormula: null,
+          capReachedDate: null,
+        },
+      ],
+      perYear: [
+        { year: 2024, amountOre: moneyOre(59933) },
+        { year: 2025, amountOre: moneyOre(39967) },
+      ],
+      firstExcludedDate: null,
     });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'foersteSygedag' }]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-02'), til: iso('2024-01-31') }]);
-  });
-
-  it('registrerer ikke foersteSygedag når ansættelsesforholdet ikke havde den udeladte dag', () => {
-    const periode = buildSfggPeriode({
-      ...base,
-      firstExcludedDate: iso('2024-01-01'),
-      employmentHadFirstExcludedDate: false,
-    });
-    expect(periode.afkortninger).toEqual([]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]);
-  });
-
-  it('klipper ved 4-måneders-loftet og registrerer cap4mdr med dato', () => {
-    const periode = buildSfggPeriode({ ...base, capReachedDate: iso('2024-01-15') });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'cap4mdr', dato: iso('2024-01-15') }]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-15') }]);
-  });
-
-  it('klipper ved ansættelsesophør og registrerer ansaettelsesophoer med dato', () => {
-    const periode = buildSfggPeriode({ ...base, ansaettelsesophorDate: iso('2024-01-20') });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'ansaettelsesophoer', dato: iso('2024-01-20') }]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-20') }]);
-  });
-
-  it('angiver kun loftet når det nås før eller samtidig med ophør, men klipper ved begge', () => {
-    const periode = buildSfggPeriode({
-      ...base,
-      capReachedDate: iso('2024-01-10'),
-      ansaettelsesophorDate: iso('2024-01-20'),
-    });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'cap4mdr', dato: iso('2024-01-10') }]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-10') }]);
-  });
-
-  it('angiver ophør når det ligger før loftet', () => {
-    const periode = buildSfggPeriode({
-      ...base,
-      capReachedDate: iso('2024-01-25'),
-      ansaettelsesophorDate: iso('2024-01-15'),
-    });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'ansaettelsesophoer', dato: iso('2024-01-15') }]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-15') }]);
-  });
-
-  it('fratrækker arbejdsgiverbetalt sygeløn og registrerer sygeloen når der er overlap', () => {
-    const employment = createEmployment({
-      loenperiode: 'maaned',
-      indtaegtsoplysningerTableData: [{
-        id: 'loen-jan-2024',
-        col0_maaned: '1',
-        col1_maaned: '2024',
-        col0_uge: '',
-        col1_uge: '',
-        col0_dag: undefined,
-        col1_dag: undefined,
-        col2: asAmount(10000),
-        col3: undefined,
-        col4: undefined,
-        col5: undefined,
-      }],
-    });
-    const periode = buildSfggPeriode({ ...base, foerstEfterSygeloen: true, employment });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'sygeloen' }]);
-    expect(periode.visningsperiode).toEqual([]);
-  });
-
-  it('registrerer ikke sygeloen når der ikke er sygelønsoverlap', () => {
-    const periode = buildSfggPeriode({ ...base, foerstEfterSygeloen: true });
-    expect(periode.afkortninger).toEqual([]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]);
-  });
-
-  it('angiver loftet når det nås præcis samtidig med ophør (samme dato)', () => {
-    // Grænsetilfældet cap === ophør: den gensidige udelukkelse (`capReachedDate <= ansaettelsesophorDate`)
-    // skal lade loftet vinde, ikke ophøret.
-    const periode = buildSfggPeriode({
-      ...base,
-      capReachedDate: iso('2024-01-15'),
-      ansaettelsesophorDate: iso('2024-01-15'),
-    });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'cap4mdr', dato: iso('2024-01-15') }]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-15') }]);
-  });
-
-  it('registrerer ikke sygeloen når sygelønsperioden først ligger efter loft-klippet', () => {
-    // Sygelønnen (20.-31. jan) overlapper KUN den oprindelige periode, ikke den loft-klippede
-    // (1.-15. jan). Overlap-tjekket sker bevidst EFTER klippet, så der må ikke registreres en
-    // sygeloen-afkortning. Fanger en regression, der flytter overlap-tjekket før loft-klippet.
-    const employment = createEmployment({
-      loenperiode: 'dag',
-      indtaegtsoplysningerTableData: [{
-        id: 'loen-sen-jan-2024',
-        col0_maaned: '',
-        col1_maaned: '',
-        col0_uge: '',
-        col1_uge: '',
-        col0_dag: iso('2024-01-20'),
-        col1_dag: iso('2024-01-31'),
-        col2: asAmount(10000),
-        col3: undefined,
-        col4: undefined,
-        col5: undefined,
-      }],
-    });
-    const periode = buildSfggPeriode({
-      ...base,
-      capReachedDate: iso('2024-01-15'),
-      foerstEfterSygeloen: true,
-      employment,
-    });
-    expect(periode.afkortninger).toEqual([{ aarsag: 'cap4mdr', dato: iso('2024-01-15') }]);
-    expect(periode.visningsperiode).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-15') }]);
-  });
-
-  it('bevarer rækkefølgen første-sygedag → loft → sygeløn i afkortnings-listen', () => {
-    const employment = createEmployment({
-      loenperiode: 'maaned',
-      indtaegtsoplysningerTableData: [{
-        id: 'loen-jan-2024',
-        col0_maaned: '1',
-        col1_maaned: '2024',
-        col0_uge: '',
-        col1_uge: '',
-        col0_dag: undefined,
-        col1_dag: undefined,
-        col2: asAmount(10000),
-        col3: undefined,
-        col4: undefined,
-        col5: undefined,
-      }],
-    });
-    const periode = buildSfggPeriode({
-      ...base,
-      firstExcludedDate: iso('2024-01-01'),
-      employmentHadFirstExcludedDate: true,
-      capReachedDate: iso('2024-01-20'),
-      foerstEfterSygeloen: true,
-      employment,
-    });
-    expect(periode.afkortninger.map((a) => a.aarsag)).toEqual(['foersteSygedag', 'cap4mdr', 'sygeloen']);
   });
 });

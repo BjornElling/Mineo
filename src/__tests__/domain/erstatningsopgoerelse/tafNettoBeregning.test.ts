@@ -5,7 +5,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import * as indtaegtPerioderModule from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
-import { computeSygeferiegodtgoerelse } from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { computeSygeferiegodtgoerelse } from '../../../domain/erstatningsopgoerelse/engines/sfggEngine';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { buildOffentligeYdelserReguleringTableData } from '../../../domain/erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
 import { buildSfggLoenudviklingMap } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';

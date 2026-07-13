@@ -15,7 +15,7 @@ import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../
 import { buildFerieDageSetForPeriode, buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engines/tafBeregningsEngine';
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
-import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sfggResult';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type {
   SammentaellingControl,

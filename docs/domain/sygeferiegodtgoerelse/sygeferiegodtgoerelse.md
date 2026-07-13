@@ -476,13 +476,20 @@ Ved valg af `Ingen` skal EO-kontrol stadig vise én linje med den valgte værdi 
 
 ## Del 2: Implementeringsstatus
 
-Dette afsnit beskriver status på den faktiske implementation pr. `13. april 2026`.
+Dette afsnit beskriver status på den faktiske implementation pr. `13. juli 2026`.
 
 Status er gennemgået mod den aktuelle kode i især:
 - `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts`
 - `src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx`
 - `src/validators/erstatningsopgoerelseValidator.ts`
-- `src/domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggEngine.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggResult.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggAnsaettelsesforhold.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggKilde.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggReferencesats.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggPeriodisering.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggSegmentering.ts`
+- `src/domain/erstatningsopgoerelse/engines/sfggWarnings.ts`
 - `src/domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts.ts`
 - `src/domain/erstatningsopgoerelse/snapshot/eoPresentationSectionBuilders.ts`
 - `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`

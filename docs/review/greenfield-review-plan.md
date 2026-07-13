@@ -18,6 +18,10 @@ strukturen mod større ensartethed — ikke mod endnu en parallel løsning.
 `src/contracts/*.md` over denne plan. Alt der berører UI/UX med synlig betydning
 eller beregningslogik forelægges, før det ændres.
 
+**Arbejdsbranch:** Al fremtidig implementering og test af denne plan foregår på
+`greenfield`-branchen. `main` forbliver produktionsgrundlag for hjemmesiderne, indtil
+greenfield-arbejdet er færdigt, godkendt og særskilt integreret.
+
 ## Central instruktion til mig selv (læs først)
 
 Dette er ikke en passiv observationsliste. **Jeg har det fulde ansvar for at
@@ -178,7 +182,7 @@ Den kode der kollapser til tynde lag, når spinen findes.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 24 | 16 | Split `reguleringsPresentation` + `sygeferiegodtgoerelse` | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | reg-del forudsætter #23; SFGG-del uafhængig |
+| 24 | 16 | ✅ Split `reguleringsPresentation` + `sygeferiegodtgoerelse` | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | reg-del afsluttet i #23; SFGG-del gennemført |
 | 25 | 31 | PDF/Word-paritet som struktur | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
 | 26 | 32 | EO-sektion-funktioner → `Block[]` | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
 | 27 | 50 | TAF-graf → ren scene-model + Canvas-renderer | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | beslægtet #24 |
@@ -429,9 +433,24 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 16 — Split `reguleringsPresentation` + `sygeferiegodtgoerelse` · 10
 
-- **Scope:** `engines/reguleringsPresentation.ts` (1726; to funktioner på 537 og 670 LOC), `engines/sygeferiegodtgoerelse.ts` (1395; `computeSygeferiegodtgoerelse` alene 364 LOC).
+- **Status: ✅ Gennemført (2026-07-13).** Reguleringsdelen blev afsluttet i #23. Den
+  1.535-linjers SFGG-monolit er slettet og erstattet af afgrænsede moduler for kilde,
+  referencesats, periodisering, segmentering, beregning pr. ansættelsesforhold, resultatmodel
+  og warnings. `sfggEngine.ts` er nu en 110-linjers orkestrator, der kun etablerer det globale
+  TAF-/loftgrundlag, kalder ansættelsesberegningen og samler totaler/per-år. Validator og
+  viewmodel læser kun referencesats/kilde; snapshot og row-builder læser warnings; øvrige
+  konsumenter bruger den særskilte resultatmodel. Præsentationstekst forbliver i den
+  eksisterende teksthelper. Den gamle 2.491-linjers testmonolit er tilsvarende opdelt efter
+  modulerne, og et nyt komplet flerårs-golden låser hele resultatobjektet inklusive segmenter,
+  tekster, ansættelses-/global `perYear` og øre-restfordeling. Fire AST-grænser låser desuden
+  engine-, ansættelses-, segmenterings- og warning-ejerskabet. Tal og synlig adfærd er uændrede.
+- **Scope:** `engines/reguleringsPresentation.ts` (1792; to store præsentationsflows), `engines/sygeferiegodtgoerelse.ts` (1535; `computeSygeferiegodtgoerelse` alene 374 LOC).
 - **Problem:** To organisk-voksede monolitter der hver ejer ren beregning, penge-afrunding, display-streng-samling og orkestrering. `sygeferiegodtgoerelse.ts` importeres af validator, snapshot og row-builders uden internt seam mellem "ren SFGG-matematik" og "SFGG-præsentation".
-- **Greenfield:** Split langs eksisterende funktions-grænser: `sfggReferencesats.ts` / `sfggPeriodisering.ts` / `sfggEngine.ts` (tynd orkestrator) / `sfggWarnings.ts` (validator-vendt). Præsentationstekst bliver i `helpers/sygeferiegodtgoerelseTexts.ts`. `reguleringsPresentation.ts` foldes ind i #23.
+- **Greenfield:** Split langs de faktiske ansvarsgrænser: `sfggKilde.ts`,
+  `sfggReferencesats.ts`, `sfggPeriodisering.ts`, `sfggSegmentering.ts`,
+  `sfggAnsaettelsesforhold.ts`, `sfggResult.ts`, `sfggEngine.ts` (tynd orkestrator) og
+  `sfggWarnings.ts` (snapshot-/row-builder-vendt). Præsentationstekst bliver i
+  `helpers/sygeferiegodtgoerelseTexts.ts`. `reguleringsPresentation.ts` foldes ind i #23.
 - **Rød tråd:** SFGG har allerede `Calculable`/`MoneyOre`-disciplin; split udnytter det.
 - **Afhængigheder:** Regulerings-delen forudsætter/overlapper #23.
 

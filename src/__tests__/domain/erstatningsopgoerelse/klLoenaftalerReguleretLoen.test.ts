@@ -66,7 +66,7 @@ describe('buildKlLoenaftalerReguleretLoenResolver', () => {
     const baseLoenOre = Math.round(BASE * 100);
     for (const d of parseKlDatoerEfter(REG)) {
       const delta = resolver.deltaPctAt(d);
-      // Nøjagtig samme formel som sygeferiegodtgoerelse.ts:assertKlSegmentDeltaMatchesReguleretLoen.
+      // Nøjagtig samme formel som sfggSegmentering.ts:assertKlSegmentDeltaMatchesReguleretLoen.
       const reproducedOre = Math.round(roundByMethod((baseLoenOre / 100) * (1 + delta / 100), 2, 'halfAwayFromZero') * 100);
       const reguleretLoenOre = Math.round(resolver.loenAt(d) * 100);
       expect(reproducedOre).toBe(reguleretLoenOre);

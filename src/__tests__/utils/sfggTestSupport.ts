@@ -1,6 +1,54 @@
-import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import type {
+  ErstatningsopgoerelseValues,
+  LoenindkomstAnsaettelsesforhold,
+} from '../../schemas/formSchemas';
+import { toISODateString } from '../../types/branded';
 
 type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
+
+export const asSfggAmount = (value: number): AmountValue => ({ kind: 'number', value });
+
+export const sfggIso = (value: string) => toISODateString(value);
+
+export const createSfggEmployment = (
+  patch: Partial<LoenindkomstAnsaettelsesforhold> = {}
+): LoenindkomstAnsaettelsesforhold => ({
+  id: patch.id ?? 'af-1',
+  navnPaaArbejdssted: patch.navnPaaArbejdssted ?? 'Arbejdssted 1',
+  harOverenskomst: patch.harOverenskomst ?? false,
+  overenskomstId: patch.overenskomstId,
+  overenskomstFilter: patch.overenskomstFilter ?? { loenmodtager: undefined, arbejdsgiver: undefined },
+  ansatPaaSkadestidspunktet: patch.ansatPaaSkadestidspunktet ?? true,
+  ansaettelsesforholdOphoert: patch.ansaettelsesforholdOphoert ?? false,
+  sidsteArbejdsdag: patch.sidsteArbejdsdag,
+  feriePct: patch.feriePct,
+  fritvalgPct: patch.fritvalgPct,
+  shSoPct: patch.shSoPct,
+  storeBededagPct: patch.storeBededagPct,
+  pensionPct: patch.pensionPct ?? 0,
+  loenperiode: patch.loenperiode ?? 'maaned',
+  tillaegAngivesSom: patch.tillaegAngivesSom ?? 'procent',
+  fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Ja',
+  harAnciennitetstillaegEfterSkadedatoen: patch.harAnciennitetstillaegEfterSkadedatoen ?? false,
+  anciennitetstillaegDato: patch.anciennitetstillaegDato,
+  anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
+  anciennitetstillaegSats: patch.anciennitetstillaegSats,
+  loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
+  saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
+  loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
+  loenudviklingStatistikModel: patch.loenudviklingStatistikModel,
+  loenudviklingKRLSatstabel: patch.loenudviklingKRLSatstabel,
+  loenudviklingManuelNavn: patch.loenudviklingManuelNavn ?? '',
+  loenudviklingManuelTableData: patch.loenudviklingManuelTableData ?? [],
+  offentligLoenType: patch.offentligLoenType ?? 'Månedsløn',
+  offentligLoenTrin: patch.offentligLoenTrin,
+  offentligLoenGruppe: patch.offentligLoenGruppe,
+  offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
+  indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
+  ...patch,
+  loenudviklingManuelProcentsatsTableData: patch.loenudviklingManuelProcentsatsTableData ?? [],
+});
 
 /**
  * Bygger en SFGG-række med beregningsgrundlaget 'Ingen' (neutralt no-op-valg) for ét

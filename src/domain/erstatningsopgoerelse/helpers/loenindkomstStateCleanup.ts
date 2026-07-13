@@ -33,7 +33,7 @@ export const applySfggBeregningskildeChange = (
 ): SfggAnsaettelsesforholdRow => ({
   // Skjulte SFGG-felter er fortsat committed brugerinput og skal derfor bevares i
   // runtime-state, sessionStorage og .eo-save/load. Beregningsmotoren gater eksplicit
-  // på sfggSource.kind (se sygeferiegodtgoerelse.ts: `if (sfggSource.kind === 'ingen') continue`
+  // på sfggSource.kind (se sfggAnsaettelsesforhold.ts: `if (sfggSource.kind === 'ingen')`
   // og resolveSfggSegmentRateForDate) og validatoren gater tilsvarende — stale værdier
   // fra ikke-aktive beregningskilder ignoreres der, ikke her.
   ...current,

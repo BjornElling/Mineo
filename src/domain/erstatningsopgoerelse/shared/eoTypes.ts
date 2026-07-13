@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
-import type { SygeferiegodtgoerelseResult } from '../engines/sygeferiegodtgoerelse';
+import type { SygeferiegodtgoerelseResult } from '../engines/sfggResult';
 import type { ReguleringForloeb } from '../engines/reguleringForloeb';
 import type { MoneyOre } from '../../money/money';
 

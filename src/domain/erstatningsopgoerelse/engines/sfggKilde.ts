@@ -11,8 +11,8 @@ import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregni
 /**
  * SFGG-kildemodulet: ét sted der definerer, hvad hver af de fem SFGG-beregningskilder "er".
  *
- * Baggrund (jf. docs/review/sygeferiegodtgoerelse-arkitektur-redesign.md, forslag S1):
- * Kildens adfærd var tidligere udsmurt som parallelle gren-tests (`kind === 'ferielov' || ...`)
+ * Baggrund: Kildens adfærd var tidligere udsmurt som parallelle gren-tests
+ * (`kind === 'ferielov' || ...`)
  * i ~8 motor-funktioner og genudledt i validator og kontrol-lag. Den samme partition — "hvilke
  * kilder beregnes via en referenceperiode?" — var restated uafhængigt fem steder og kunne drive
  * fra hinanden. Registeret her er den ENESTE sandhedskilde for den partition: en kilde er ét

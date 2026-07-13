@@ -28,7 +28,7 @@ import type {
   TafIndtaegterModel,
 } from '../snapshot/eoPresentationModel';
 import type { MoneyOre } from '../../money/money';
-import type { SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
+import type { SygeferiegodtgoerelseResult } from './sfggResult';
 import {
   buildTafArbejdsdageSet,
   countTafArbejdsdageInRange,

@@ -5,8 +5,9 @@ import type {
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../../data/overenskomstRates';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { isoToDanish } from '../../../types/branded';
-import type { SfggAfkortning, SfggReferencesatsFormula } from '../engines/sygeferiegodtgoerelse';
-import type { SfggSource, SfggSourceKind } from '../engines/sygeferiegodtgoerelseKilde';
+import type { SfggAfkortning } from '../engines/sfggPeriodisering';
+import type { SfggReferencesatsFormula } from '../engines/sfggReferencesats';
+import type { SfggSource, SfggSourceKind } from '../engines/sfggKilde';
 
 const formatDaCount = (value: number): string => formatAsAmount(value, 0);
 const ensureSentencePunctuation = (value: string): string => (

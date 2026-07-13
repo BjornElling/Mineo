@@ -10,7 +10,7 @@ import {
   resolveSfggSource,
   sfggKildeUsesReferenceperiode,
   type SfggSourceKind,
-} from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelseKilde';
+} from '../../../domain/erstatningsopgoerelse/engines/sfggKilde';
 
 const ALL_KINDS: readonly SfggSourceKind[] = [
   'ingen',
@@ -43,7 +43,7 @@ const makeRow = (
   sfggAlleredeBetaltBeloeb: undefined,
 });
 
-describe('sygeferiegodtgoerelseKilde-registeret', () => {
+describe('sfggKilde-registeret', () => {
   it('dækker hver SfggSourceKind, og hver post matcher sin nøgle', () => {
     for (const kind of ALL_KINDS) {
       const spec = SFGG_KILDE_REGISTRY[kind];

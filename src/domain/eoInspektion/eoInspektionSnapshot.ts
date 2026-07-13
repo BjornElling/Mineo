@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
-import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sfggResult';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { buildEOInspektionModel } from './eoInspektionKontrolModel';
 import type { RowDay } from '../eoRowEvaluation/eoRowTypes';

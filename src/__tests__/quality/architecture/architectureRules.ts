@@ -1078,6 +1078,84 @@ const eetDifferencekravCompositionBoundary = forbidImports({
   }],
 });
 
+const sfggEngineImportBoundary = forbidImports({
+  id: 'domain/sfgg-engine-import-boundary',
+  description:
+    'Den samlede SFGG-engine må kun kaldes af TAF-netto-orkestreringen; øvrige lag bruger smalle SFGG-moduler eller resultattypen.',
+  allow: ['src/domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts'],
+  antiRot: true,
+  forbidden: (ref) => ref.moduleSpecifier.endsWith('/sfggEngine') || ref.moduleSpecifier === './sfggEngine',
+  message: (ref) => `Bred SFGG-engine-import (${ref.moduleSpecifier}) uden for TAF-netto-orkestreringen.`,
+  violatingFixtures: [{
+    relativePath: 'src/validators/x.ts',
+    code: "import { computeSygeferiegodtgoerelse } from '../domain/erstatningsopgoerelse/engines/sfggEngine';",
+  }],
+  cleanFixtures: [{
+    relativePath: 'src/validators/x.ts',
+    code: "import { resolveSfggReferenceperiodeDayCount } from '../domain/erstatningsopgoerelse/engines/sfggReferencesats';",
+  }],
+});
+
+const sfggAnsaettelsesforholdImportBoundary = forbidImports({
+  id: 'domain/sfgg-ansaettelsesforhold-import-boundary',
+  description: 'Pr.-ansættelsesforhold-beregningen er intern for den tynde SFGG-engine.',
+  allow: ['src/domain/erstatningsopgoerelse/engines/sfggEngine.ts'],
+  antiRot: true,
+  forbidden: (ref) =>
+    ref.moduleSpecifier.endsWith('/sfggAnsaettelsesforhold')
+    || ref.moduleSpecifier === './sfggAnsaettelsesforhold',
+  message: (ref) => `Direkte import af intern SFGG-ansættelsesberegning (${ref.moduleSpecifier}).`,
+  violatingFixtures: [{
+    relativePath: 'src/domain/x.ts',
+    code: "import { computeSfggForAnsaettelsesforhold } from './erstatningsopgoerelse/engines/sfggAnsaettelsesforhold';",
+  }],
+  cleanFixtures: [{
+    relativePath: 'src/domain/x.ts',
+    code: "import type { SygeferiegodtgoerelseResult } from './erstatningsopgoerelse/engines/sfggResult';",
+  }],
+});
+
+const sfggSegmenteringImportBoundary = forbidImports({
+  id: 'domain/sfgg-segmentering-import-boundary',
+  description: 'SFGG-segmentmatematik må kun bruges af engine-lagets to orkestratorer.',
+  allow: [
+    'src/domain/erstatningsopgoerelse/engines/sfggAnsaettelsesforhold.ts',
+    'src/domain/erstatningsopgoerelse/engines/sfggEngine.ts',
+  ],
+  antiRot: true,
+  forbidden: (ref) =>
+    ref.moduleSpecifier.endsWith('/sfggSegmentering') || ref.moduleSpecifier === './sfggSegmentering',
+  message: (ref) => `Direkte import af intern SFGG-segmentmatematik (${ref.moduleSpecifier}).`,
+  violatingFixtures: [{
+    relativePath: 'src/domain/x.ts',
+    code: "import { buildSfggGrossOre } from './erstatningsopgoerelse/engines/sfggSegmentering';",
+  }],
+  cleanFixtures: [{
+    relativePath: 'src/domain/x.ts',
+    code: "import { buildSfggPeriode } from './erstatningsopgoerelse/engines/sfggPeriodisering';",
+  }],
+});
+
+const sfggWarningsImportBoundary = forbidImports({
+  id: 'domain/sfgg-warnings-import-boundary',
+  description: 'SFGG-seksmånedersadvarslen forbruges kun af snapshot og den fælles row-builder.',
+  allow: [
+    'src/domain/eoRowEvaluation/eoRowSygeferiegodtgoerelseRows.ts',
+    'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
+  ],
+  antiRot: true,
+  forbidden: (ref) => ref.moduleSpecifier.endsWith('/sfggWarnings') || ref.moduleSpecifier === './sfggWarnings',
+  message: (ref) => `SFGG-warning-import (${ref.moduleSpecifier}) uden for de autoritative forbrugere.`,
+  violatingFixtures: [{
+    relativePath: 'src/components/x.ts',
+    code: "import { findSfggSixMonthWarningEmploymentIds } from '../domain/erstatningsopgoerelse/engines/sfggWarnings';",
+  }],
+  cleanFixtures: [{
+    relativePath: 'src/components/x.ts',
+    code: "import type { SygeferiegodtgoerelseResult } from '../domain/erstatningsopgoerelse/engines/sfggResult';",
+  }],
+});
+
 const documentGeneratorWriterImport = forbidImports({
   id: 'document/generator-writer-import-boundary',
   description: 'Dokumentgeneratorer må kun bygge DocumentModel og må ikke importere writer-targets, kanaler eller den imperative modelrenderer.',
@@ -1159,6 +1237,10 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   eoFieldVisibilitySingleSource,
   reguleringCanonicalForloebBoundary,
   eetDifferencekravCompositionBoundary,
+  sfggEngineImportBoundary,
+  sfggAnsaettelsesforholdImportBoundary,
+  sfggSegmenteringImportBoundary,
+  sfggWarningsImportBoundary,
   documentGeneratorWriterImport,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,

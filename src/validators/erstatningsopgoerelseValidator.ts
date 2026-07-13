@@ -39,8 +39,8 @@ import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsop
 import {
   getFirstIndtastedeTafFraDato,
   resolveSfggReferenceperiodeDayCount,
-} from '../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
-import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelseKilde';
+} from '../domain/erstatningsopgoerelse/engines/sfggReferencesats';
+import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sfggKilde';
 import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import {
   clampTafRow,

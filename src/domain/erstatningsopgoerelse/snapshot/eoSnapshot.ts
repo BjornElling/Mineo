@@ -18,7 +18,7 @@ import type { MoneyOre } from '../../money/money';
 import type { EoModel } from '../shared/eoTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from '../engines/tafNettoBeregning';
-import { findSfggSixMonthWarningEmploymentIds } from '../engines/sygeferiegodtgoerelse';
+import { findSfggSixMonthWarningEmploymentIds } from '../engines/sfggWarnings';
 import { buildTafPerYearBuildOutcome, buildTafPerYearSourceFromComputed, type TafPerYearResult } from '../engines/tafPerYearDerived';
 import { buildTafPerYearOpreguleretBuildOutcome, type TafPerYearOpreguleretResult } from '../engines/tafPerYearOpreguleretDerived';
 import {

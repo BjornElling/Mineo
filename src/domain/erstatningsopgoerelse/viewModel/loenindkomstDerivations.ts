@@ -21,8 +21,8 @@ import {
   resolveSfggReferenceperiodeDayCount,
   resolveSfggReferenceperiodeMaxDate,
   getFirstIndtastedeTafFraDato,
-} from '../engines/sygeferiegodtgoerelse';
-import { resolveSfggSource } from '../engines/sygeferiegodtgoerelseKilde';
+} from '../engines/sfggReferencesats';
+import { resolveSfggSource } from '../engines/sfggKilde';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../helpers/sygeferiegodtgoerelseEligibility';
 import {
   validateLoenudviklingManualBaseRowSatser,

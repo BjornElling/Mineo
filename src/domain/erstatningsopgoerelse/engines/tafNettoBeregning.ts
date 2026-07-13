@@ -15,7 +15,8 @@ import { isISODateString, type ISODateString } from '../../../types/branded';
 import { buildIndkomstSkadestidspunkt } from './indkomstSkadestidspunktBeregning';
 import { buildTafArbejdsdageSet, buildLoenudviklingModel } from './loenudviklingBeregning';
 import { buildOffentligeYdelserUdviklingModel } from './offentligeYdelserUdviklingBeregning';
-import { computeSygeferiegodtgoerelse, type SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
+import { computeSygeferiegodtgoerelse } from './sfggEngine';
+import type { SygeferiegodtgoerelseResult } from './sfggResult';
 import type {
   Calculable,
   IndkomstSkadestidspunktModel,
