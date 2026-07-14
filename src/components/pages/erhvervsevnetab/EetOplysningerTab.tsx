@@ -59,6 +59,11 @@ const EetOplysningerTab = ({
     severity: 'error',
     source: 'rule',
   });
+  // Binder de to felters ugyldige rå draft til invalidDrafts-kanalen (source:'input'), så et ikke-
+  // committbart input overlever F5, blokerer Gem og kan undo/redo'es. Coeksisterer med de eksisterende
+  // domæne-fejl på `error`/`helperText`-props (anden source; ekstern fejl har visuel forrang pr. felt-mønster).
+  const reportBeregningsdatoInputError = useFormFieldErrorReporter('erhvervsevnetab', 'beregningsdato');
+  const reportEalEetPctInputError = useFormFieldErrorReporter('erhvervsevnetab', 'ealEetPct');
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -165,6 +170,7 @@ const EetOplysningerTab = ({
               maxDate={dateRanges_erhvervsevnetab.beregningsdato.max}
               specialRangeErrors={{ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }}
               inputRef={beregningsdatoInputRef}
+              onFieldError={reportBeregningsdatoInputError}
               error={Boolean(ealReguleringssatsError)}
               helperText={ealReguleringssatsError ?? ''}
             />
@@ -236,6 +242,7 @@ const EetOplysningerTab = ({
               maxValue={100}
               useDefaultPercentRange={false}
               placeholder="0"
+              onFieldError={reportEalEetPctInputError}
               error={Boolean(ealEetPctError)}
               helperText={ealEetPctError ?? ''}
             />
