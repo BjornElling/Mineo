@@ -1,7 +1,7 @@
 # Greenfield-design for draft, afsluttet input og commit
 
-**Status:** Anbefalet målarkitektur og implementeringsplan — ikke implementeret  
-**Dato:** 2026-07-14  
+**Status:** Målarkitektur + implementeringsplan — **delvist implementeret** (branch `greenfield`; se §0.3 Implementeringsstatus)  
+**Dato:** 2026-07-14 (design) · seneste status-opdatering 2026-07-14  
 **Scope:** Alle persisterede formularfelter og tabelceller, beregninger, dokument-output, `.eo`-save, `sessionStorage` samt undo/redo
 
 ---
@@ -71,6 +71,77 @@ Faktatjek står i §14.1; regressionsrisici i §14.3; kodereferencer i inline-no
 
 Alle reviewpunkter er konvergeret, og faserækkefølgen (§0.1-punkt 4, §10) er besluttet. Dokumentet er klar som
 implementeringsgrundlag. Se §5.4 for den brugervendte sondring mellem *ikke udfyldt* og *ugyldig værdi*.
+
+### 0.3 Implementeringsstatus (branch `greenfield`, opdateret 2026-07-14)
+
+Status pr. fase (§10). ✅ = færdig, 🟡 = delvist, ⬜ = ikke påbegyndt. Commit-hashes er på `greenfield`.
+
+| Fase | Emne | Status | Note |
+|---|---|---|---|
+| 1 | Normativt fundament (8 kontrakter + reason-taksonomi) | ✅ | 8 kontrakter opdateret additivt-normativt; `error-contract` §3A `missing`/`invalid`/`range` |
+| 2 | Typer, `FieldId`, obligatorisk binding | 🟡 | **Binding gennemført** (se §0.3.1); typed `FieldId` + celle-identitets-migration (kolonneindeks) **udestår** |
+| 3 | Atomisk `finalizeEdit` i eksisterende motor | 🟡 | **Skalar-felt-stien atomisk** (commit `a5ef0f17`); tabelceller + direkte-`setValues`-felter bevidst udenfor (kobler til Fase 4) |
+| 4 | Fælles feltmotor (nedlæg `useRowDrafts`/`useTableInputCore`-overlap) | ⬜ | Trin III-IV; ikke påbegyndt |
+| 5 | Undo/redo på snapshot; fjern coalescing | 🟡 | Forward-commit-atomicitet leveret for skalar-felter; **coalescing-fjernelse blokeret på Fase 4** (celler + direkte-`setValues` bruger den stadig) |
+| 6.1 | `InputProjection`/`InputScope`/`InputBlocker`-kerne | ✅ | `src/domain/inputIntegrity/` (commit `183aec3b`) |
+| 6.2-6.4 | Projektion/gate/critical-action pr. domæne | 🟡 | Anvendt på renteberegning + Satser (Trin II); critical-action-udvidelse (dokument-download) **udestår** |
+| 7 | Renteberegning som vertikal reference | ✅ | Bug lukket (commit `25cf43c5`); download blokerer på afsluttet ugyldigt input; `beregningsdatoHasError`/`renterFraHasError` fjernet som output-kilder |
+| 8 | Domænevis migration | 🟡 | Satser ✅; **binding-migration af alle 37 ubundne felter ✅** (§0.3.1); resterende domæne-gates via `InputProjection` udestår |
+| 9 | Fjern legacy | ⬜ | Trin IV; ikke påbegyndt |
+
+**Brugerens oprindeligt rapporterede fejl (renteberegning-download på ugyldigt input) + Satser-tvillingen er LUKKET**
+(Trin II, Fase 7-8). Fuld testsuite grøn: **6342 tests / 537 filer**.
+
+#### 0.3.1 Leveret siden designet (kronologisk, med afvigelser fra planen)
+
+- **Fase 6.1 — generisk input-integritetskerne** (`183aec3b`): `InputBlocker` (reason/scope/fieldId/label),
+  `InputScope` (global/section/row), `InputProjection<T>`, central besked-skabelon, `documentGateFromBlockers` +
+  `blockersForScope` (scope-præcis → `DocumentDownloadGateResult`). Genbruger EO's *ydre* gate-mønster; generaliserer
+  **ikke** `collectAllEoRows` (§0.1-punkt 3 overholdt).
+- **Fase 8 (Satser) + Fase 7 (renteberegning)** (`183aec3b`, `25cf43c5`): begge vertikale slices lukket.
+  `renteInputIntegrity.ts` oversætter sektionens `invalidDrafts` → scoped blockers (beregningsdato=global,
+  celler=per-række). `beregningsdato` bundet via rigtig reporter (erstatter den blanke `beregningsdatoHasError`-boolean =
+  selve bug'en). `downloadGate.test` vendt fra mock → rigtig provider (§14.3-risiko #2 respekteret).
+- **Fase 3 — atomisk `finalizeEdit`** (`a5ef0f17`): ny store-mutation `finalizeEdit` (sektion + `invalidDrafts` i ÉN
+  `set()`, ét `committedChangeCounter`-bump; delt ren `computeInvalidDraftsUpdate` med `setInvalidDraft`). `persistData`
+  fik en valgfri `clearInvalidDraft`-option → ÉN `runAtomicPersistenceMutation` over begge storage-nøgler + ét
+  deterministisk `capture` (fuld case-matrix: værdiændring × draft-eksisterer, inkl. no-op-værdi-med-lingering-draft =
+  standalone clear, og ren no-op). Den kanoniske skalar-committer `setFieldValue` auto-udleder `clearInvalidDraft` af
+  feltnavnet → **ingen call-sites ændret**. Forward-paritet med den allerede-atomiske restore-sti (§3.4-note).
+  **Afvigelse fra §4.4's fulde ambition:** kun skalar-felt-stien er atomisk nu. Tabelceller + direkte-`setValues`-felter +
+  immediate-commit-widgets beholder BEVIDST den eksisterende `queueMicrotask`-coalescing, indtil grid-finalize
+  konsolideres i Fase 4 — så den kritiske sti ikke kobles til en stor grid-refaktorering (jf. §9-note, §10-bemærkning).
+  Derfor er coalescing-fjernelsen (§7.3, Fase 5-punkt 2) endnu ikke sket: maskineriet er stadig load-bearing for de
+  ikke-migrerede stier, og fjernelse nu ville give en double-frame-regression.
+- **Fase 8 — binding-migration af alle 37 ubundne felter** (`a9f057d4`, `d995d554`, `0eb4fd25`, `ac0d0651`, `0e8f65c7`):
+  §4.3's krav om **obligatorisk binding** håndhævet i praksis. En AST-scanning afslørede at **37 af 68 persisterede
+  draft-felter i sags-siderne var ubundne** (intet `onFieldError`) — deres ugyldige input levede kun i `useDraftField`s
+  lokale `useState`, overlevede ikke F5, blokerede ikke Gem og kunne ikke undo/redo'es. Det var §0.1-punkt 1(b)
+  (valgfri producent-binding) bredt udbredt, samme klasse som Satser-bug'en. Alle bundet, fordelt på 5 filer:
+  `Aarsloen` (6), `EetOplysningerTab` (2), `IndtaegtFoerSkadenSection` (12), `AnsaettelsesforholdCard` (11),
+  `SygeferiegodtgoerelseSection` (5). AST-verificeret bagefter: **0 committende felter uden `onFieldError`** (den
+  disablede `storeBededagPct` korrekt udeladt — kan ikke producere en draft).
+  - Ny **`useKeyedFieldErrorReporter`** (tynd variant af `useFormFieldErrorReporter` med `DynamicFieldName`) giver
+    nested/sammensatte identiteter (`eoLoenudvikling.*`-bar-nøgle; per-AF `${af.id}:<felt>`) den fulde reporter-kontrakt
+    uden call-site-casts — nested felter deltager nu i draft-kanalen på linje med top-level. Dette er den strukturelle
+    ensartning, ikke endnu en variant.
+  - Reconciliation: felter med en eksisterende `error`/`helperText`-domænefejl bevarer den (anden `source`; ekstern fejl
+    har visuel forrang pr. `mineo-field-pattern.md`). SFGG-felterne manglede DESUDEN `fieldPath` på deres commit — tilføjet
+    samtidig, så invalidDraft-nøglen matcher reporteren.
+
+#### 0.3.2 Væsentligste udeståender
+
+1. **Typed `FieldId` (Fase 2 kerne) + celle-identitets-migration.** Identitet er stadig untyped `string` i tre formater;
+   kolonneindeks er bagt ind i den persisterede celle-`invalidDrafts`-nøgle (§4.3, §14.3-risiko #7). At fjerne den kræver
+   en sessionStorage-nøglemigration (oversæt, drop ALDRIG synligt input; egen envelope-version) og kobler til Fase 4.
+2. **Fase 4** (nedlæg `useRowDrafts`/`useTableInputCore`-overlap) → **derefter Fase 5's coalescing-fjernelse** (§7.3) og
+   **Fase 3's fulde atomicitet for tabelceller** (§4.4). Disse tre hænger sammen og er Trin III-IV.
+3. **Fase 6.2-6.4 for de øvrige domæner:** `CriticalActionCoordinator` dækker endnu ikke dokument-download (§6.2); de 14
+   ikke-EO/TAF dokument-entrypoints går stadig uden om en central preflight.
+4. **Arkitekturværn (§11.5):** intet værn håndhæver endnu `onFieldError`-binding på nye persiterede felter. Anbefaling:
+   byg det på den AST-baserede quality-harness (`src/__tests__/quality/architecture/`) med en JSX-attribut-query — en
+   regex-scanner duer ikke (false positives på arrow-funktion-props). `fieldIdentityGuard.test.ts` dækker i dag `name` +
+   undo-identitet, men **ikke** `onFieldError`-bindingen.
 
 ---
 
