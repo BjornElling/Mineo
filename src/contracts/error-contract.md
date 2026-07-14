@@ -12,10 +12,11 @@ projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
 Et issue skal mindst kunne bære:
 
 - strukturel `FieldRef` eller et eksplicit output-/systemmål,
+- stabil maskinlæsbar `code`,
 - `reason`,
 - `severity: 'error' | 'warning'`,
 - deterministisk dansk besked,
-- eventuel dokument-/save-policy og domænedetalje.
+- eksplicit save-policy og eventuel domænedetalje.
 
 Normative inputårsager:
 
@@ -40,6 +41,12 @@ Der findes ingen central skrivbar `fieldErrors`-bus i slutarkitekturen. Komponen
 ved mount, effect eller unmount. Samme afsluttede input skal give samme issues uanset route, aktiv tab og mount-strategi.
 
 Issues persisteres hverken i `.eo`, `sessionStorage` eller history. De genafledes efter load, reset og undo/redo.
+
+En projektion bærer sine relevante issues i både `ready`- og `blocked`-grenen. Blockers er en kontekstafhængig
+delmængde: samme
+canonical issue kan gøre én consumer uanvendelig og være ikke-blokerende for en anden. Beregningsblokering må derfor
+ikke lagres som et globalt flag på issueet. Dokumentpolicy er derimod fælles: ethvert relevant `error` blokerer.
+`invalid` er altid `error` og save-blokerende. `missing` er consumerdefineret og skal angive save-policy eksplicit.
 
 Eksisterende `fieldErrors`, `useFormFieldErrorReporter`, `onFieldError` og tabeltrackere er migrationskode. De må ikke
 bruges som ny sandhedskilde eller kopieres til nye områder.
@@ -69,7 +76,8 @@ Kontroltype og label kommer fra feltdefinitionen. Et bart `<felt> mangler` er fo
 ## 4. Prioritet og visning
 
 Hvis flere issues rammer samme felt, vælger en central deterministisk resolver højst ét aktivt feltissue. Prioritet
-defineres eksplicit efter severity og reason/source; komponentrækkefølge eller seneste reporter må aldrig påvirke den.
+defineres eksplicit efter severity og reason/source med stabil `code` som tie-break; komponentrækkefølge eller seneste
+reporter må aldrig påvirke den.
 
 Ugyldigt input vises med rød kant og tooltip ved hover. Ingen inline-valideringstekst vises under feltet. Range- og
 datotooltips skal vise konkrete grænser. Hvis `min > max`, forklarer tooltippen, at ingen gyldige værdier findes, viser

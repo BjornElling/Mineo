@@ -40,6 +40,8 @@ export type FieldRef<T> = Readonly<{
 
 export const defineField = <T>(definition: FieldDefinition<T>): FieldDefinition<T> => Object.freeze({
   ...definition,
+  // Codecet kopieres og fryses, så parser-/formatteringsadfærd ikke kan muteres efter katalogregistrering.
+  codec: Object.freeze({ ...definition.codec }),
   focusTarget: Object.freeze({ ...definition.focusTarget }),
 });
 

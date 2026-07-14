@@ -35,6 +35,10 @@ typed dependency-projektion
 Rå canonical sektioner er ikke en legitim genvej. Et rejected felt maskerer recovery-værdien i `InputReader`, og den
 relevante motor kaldes ikke.
 
+Begge projektionsgrene bærer relevante issues. `ready` kan derfor fortsat indeholde warnings eller canonical
+range-/bounds-issues, som den konkrete beregning kan arbejde med; blockers er kun den kontekstafhængige delmængde, der gør netop
+denne projektion uanvendelig. Dokument- og save-policy evalueres efter deres egne fælles regler.
+
 ## Åben editor
 
 Mens en editor er åben, forbliver `InputReader` og beregningen på senest afsluttede revision. Tastning kan derfor ikke

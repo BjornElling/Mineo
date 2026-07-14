@@ -29,6 +29,18 @@ const createResolver = (expectedField: FieldRef<string | undefined>, value: stri
     return value as T;
   };
 
+const createFieldCatalog = (
+  expectedField: FieldRef<string | undefined>,
+  value: string | undefined
+): InputFieldCatalog => ({
+  assertKnownField: (field) => {
+    if (!fieldAddressesEqual(field.address, expectedField.address) || field.definition !== expectedField.definition) {
+      throw new Error('InputReader: ukendt feltreference');
+    }
+  },
+  readCanonical: createResolver(expectedField, value),
+});
+
 describe('inputReader', () => {
   it('maskerer recovery-værdien når feltet har rejected input', () => {
     const input: PersistedInputState = {
@@ -41,7 +53,7 @@ describe('inputReader', () => {
       input,
       revision: createInputRevision(4),
       fieldCatalog: {
-        isKnownAddress: (address) => fieldAddressesEqual(address, nameField.address),
+        assertKnownField: createFieldCatalog(nameField, undefined).assertKnownField,
         readCanonical: () => {
           throw new Error('Recovery-værdien må ikke læses');
         },
@@ -61,10 +73,7 @@ describe('inputReader', () => {
     const reader = createInputReader({
       input,
       revision: createInputRevision(0),
-      fieldCatalog: {
-        isKnownAddress: (address) => fieldAddressesEqual(address, nameField.address),
-        readCanonical: createResolver(nameField, undefined),
-      },
+      fieldCatalog: createFieldCatalog(nameField, undefined),
       collectionCatalog: { listEntityIds: () => [] },
     });
 
@@ -80,14 +89,29 @@ describe('inputReader', () => {
     const reader = createInputReader({
       input: { sections: createEmptyPersistedInputSections(), rejectedInputs: {} },
       revision: createInputRevision(1),
-      fieldCatalog: {
-        isKnownAddress: (address) => fieldAddressesEqual(address, nameField.address),
-        readCanonical: createResolver(nameField, 'Anne'),
-      },
+      fieldCatalog: createFieldCatalog(nameField, 'Anne'),
       collectionCatalog: { listEntityIds: () => [] },
     });
 
-    expect(() => reader.read(unknownField)).toThrow('InputReader: ukendt feltadresse');
+    expect(() => reader.read(unknownField)).toThrow('InputReader: ukendt feltreference');
+  });
+
+  it('afviser en forged definition før både valid og rejected read', () => {
+    const otherDefinition = defineField({ ...textDefinition, label: 'Forkert felt' });
+    const forgedField = bindField(otherDefinition, nameField.address);
+    const fieldCatalog = createFieldCatalog(nameField, 'Anne');
+    const createReader = (rejected: boolean) => createInputReader({
+      input: {
+        sections: createEmptyPersistedInputSections(),
+        rejectedInputs: rejected ? { [serializeFieldAddress(nameField.address)]: { raw: 'ugyldig' } } : {},
+      },
+      revision: createInputRevision(1),
+      fieldCatalog,
+      collectionCatalog: { listEntityIds: () => [] },
+    });
+
+    expect(() => createReader(false).read(forgedField)).toThrow('InputReader: ukendt feltreference');
+    expect(() => createReader(true).read(forgedField)).toThrow('InputReader: ukendt feltreference');
   });
 
   it('udstiller kun stabile entity-referencer fra samlinger', () => {
@@ -99,10 +123,7 @@ describe('inputReader', () => {
     const reader = createInputReader({
       input: { sections: createEmptyPersistedInputSections(), rejectedInputs: {} },
       revision: createInputRevision(2),
-      fieldCatalog: {
-        isKnownAddress: (address) => fieldAddressesEqual(address, nameField.address),
-        readCanonical: createResolver(nameField, 'Anne'),
-      },
+      fieldCatalog: createFieldCatalog(nameField, 'Anne'),
       collectionCatalog: {
         listEntityIds: (_sections, requestedCollection) =>
           requestedCollection === collection ? ['række-1', 'række-2'] : [],

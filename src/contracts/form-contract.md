@@ -54,6 +54,9 @@ En domæneprojektion bygges fra ét revisionsbundet input-snapshot gennem den f�
 
 - Kun en `ready` projektion må fodre beregningsmotorer, save eller dokumentgeneratorer.
 - En `blocked` projektion bærer strukturelle blockers med feltreference og årsag.
+- Både `ready` og `blocked` bærer alle relevante issues. Et canonical range-/bounds-issue eller en warning må ikke
+  forsvinde, blot fordi det ikke gør den konkrete beregningsprojektion uanvendelig.
+- Om et issue blokerer beregning, afgøres af den konkrete consumerprojektion. Det er ikke en global egenskab ved feltet.
 - Domænekode må ikke modtage rå canonical sektioner som alternativ adgangsvej.
 - Uafhængige projektioner må fortsat være `ready`, selv om en anden consumer er blokeret.
 

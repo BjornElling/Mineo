@@ -379,13 +379,27 @@ En projektion definerer sine dependencies eksplicit. Den fælles evaluator:
 
 ```ts
 type InputProjection<T> =
-  | Readonly<{ status: 'ready'; data: T; revision: ReadyInputRevision }>
-  | Readonly<{ status: 'blocked'; blockers: readonly InputBlocker[]; revision: InputRevision }>;
+  | Readonly<{
+      status: 'ready';
+      data: T;
+      issues: readonly InputIssue[];
+      revision: ReadyInputRevision;
+    }>
+  | Readonly<{
+      status: 'blocked';
+      blockers: readonly InputBlocker[];
+      issues: readonly InputIssue[];
+      revision: InputRevision;
+    }>;
 ```
 
 En `InputBlocker` bærer `FieldRef`, reason og eventuel domænedetalje. Den bærer ikke et manuelt `global/section/row`-
 scope. En per-række-consumer afhænger af fælles felter plus den konkrete rækkes felter; et aggregat afhænger af fælles
 felter plus alle inkluderede rækker. Dermed kan scope ikke drifte fra datarelationen.
+
+Issues følger begge grene, så warnings og canonical range-/bounds-fejl ikke tabes i en ellers `ready` beregning.
+Blockers er consumerens kontekstafhængige delmængde af issues; beregningsblokering er ikke et globalt issueflag. Save-policy er
+eksplicit på issueet, mens ethvert dokumentrelevant issue med `severity: 'error'` følger den fælles dokumentblokering.
 
 ### 5.3 Beregninger
 

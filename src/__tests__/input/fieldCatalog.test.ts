@@ -86,6 +86,26 @@ describe('FieldCatalog', () => {
 
     expect(() => catalog.readCanonical(createEmptyPersistedInputSections(), forgedRef))
       .toThrow('FieldCatalog: ukendt eller forkert bundet feltreference');
+    expect(catalog.isKnownField(forgedRef)).toBe(false);
+    expect(() => catalog.assertKnownField(forgedRef))
+      .toThrow('FieldCatalog: ukendt eller forkert bundet feltreference');
+  });
+
+  it('fryser codecet, så feltsemantik ikke kan muteres efter definition', () => {
+    const mutableCodec = {
+      parseForSettle: (raw: string) => ({ status: 'valid' as const, value: raw === '' ? undefined : Number(raw) }),
+      format: (value: number | undefined) => value === undefined ? '' : String(value),
+      acceptsInitialKey: (key: string) => /^\d$/.test(key),
+    };
+    const definition = defineField({
+      ...amountDefinition,
+      codec: mutableCodec,
+    });
+
+    mutableCodec.format = () => 'muteret';
+
+    expect(definition.codec.format(42)).toBe('42');
+    expect(Object.isFrozen(definition.codec)).toBe(true);
   });
 });
 
@@ -124,5 +144,26 @@ describe('CollectionCatalog', () => {
       template: { section: 'aarsloen', path: [], collection: 'standardLoen' },
       readEntityIds: () => [],
     }).createRef())).toThrow('CollectionCatalog: ukendt samlingsreference');
+  });
+
+  it('afviser feltadresser til entities, som ikke findes i kandidatsnapshotet', () => {
+    const binding = createCollectionBinding({
+      template: { section: 'renteberegning', path: [], collection: 'rentekrav' },
+      readEntityIds: () => ['række-1'],
+    });
+    const catalog = new CollectionCatalog();
+    catalog.register(binding);
+    const existingAddress = createFieldAddress({
+      section: 'renteberegning',
+      path: [{ kind: 'entity', collection: 'rentekrav', entityId: 'række-1' }],
+      field: 'hovedstol',
+    });
+    const orphanAddress = createFieldAddress({
+      ...existingAddress,
+      path: [{ kind: 'entity', collection: 'rentekrav', entityId: 'slettet-række' }],
+    });
+
+    expect(catalog.containsAddressEntities(createEmptyPersistedInputSections(), existingAddress)).toBe(true);
+    expect(catalog.containsAddressEntities(createEmptyPersistedInputSections(), orphanAddress)).toBe(false);
   });
 });

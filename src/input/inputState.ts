@@ -30,7 +30,10 @@ export type RejectedInput = z.infer<typeof rejectedInputSchema>;
 export type RejectedInputs = z.infer<typeof rejectedInputsSchema>;
 export type PersistedInputState = z.infer<typeof persistedInputStateBaseSchema>;
 
-export type KnownFieldAddressPredicate = (address: FieldAddress) => boolean;
+export type KnownFieldAddressPredicate = (
+  address: FieldAddress,
+  sections: PersistedInputSections
+) => boolean;
 
 /**
  * Adresser skal valideres mod det konkrete feltkatalog. Den generelle schemastruktur kan kun
@@ -40,7 +43,7 @@ export const createPersistedInputStateSchema = (isKnownFieldAddress: KnownFieldA
   persistedInputStateBaseSchema.superRefine((input, context) => {
     for (const serializedAddress of Object.keys(input.rejectedInputs)) {
       const address = deserializeFieldAddress(serializedAddress);
-      if (address === null || !isKnownFieldAddress(address)) {
+      if (address === null || !isKnownFieldAddress(address, input.sections)) {
         context.addIssue({
           code: 'custom',
           path: ['rejectedInputs', serializedAddress],

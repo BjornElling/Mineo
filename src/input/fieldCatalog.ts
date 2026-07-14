@@ -45,10 +45,14 @@ type ReadCanonicalField<T> = (
   address: FieldAddress
 ) => T;
 
+const FIELD_REGISTRATION: unique symbol = Symbol('fieldRegistration');
+const COLLECTION_REGISTRATION: unique symbol = Symbol('collectionRegistration');
+
 export type FieldBinding<T> = Readonly<{
   definition: FieldDefinition<T>;
   template: FieldAddressTemplate;
   createRef: (...entityIds: readonly string[]) => FieldRef<T>;
+  [FIELD_REGISTRATION]: Readonly<{ readCanonical: ReadCanonicalField<T> }>;
 }>;
 
 type RegisteredBinding = Readonly<{
@@ -64,6 +68,7 @@ type ReadEntityIds = (
 export type CollectionBinding = Readonly<{
   template: CollectionRefTemplate;
   createRef: (...parentEntityIds: readonly string[]) => CollectionRef;
+  [COLLECTION_REGISTRATION]: Readonly<{ readEntityIds: ReadEntityIds }>;
 }>;
 
 type RegisteredCollection = Readonly<{
@@ -111,13 +116,13 @@ export const createFieldBinding = <T>(options: Readonly<{
   definition: FieldDefinition<T>;
   template: FieldAddressTemplate;
   readCanonical: ReadCanonicalField<T>;
-}>): FieldBinding<T> & Readonly<{ readCanonical: ReadCanonicalField<T> }> => {
+}>): FieldBinding<T> => {
   const template = fieldAddressTemplateSchema.parse(options.template);
 
   return Object.freeze({
     definition: options.definition,
     template,
-    readCanonical: options.readCanonical,
+    [FIELD_REGISTRATION]: Object.freeze({ readCanonical: options.readCanonical }),
     createRef: (...entityIds: readonly string[]) => {
       return bindField(options.definition, createFieldAddress({
         section: template.section,
@@ -131,11 +136,11 @@ export const createFieldBinding = <T>(options: Readonly<{
 export const createCollectionBinding = (options: Readonly<{
   template: CollectionRefTemplate;
   readEntityIds: ReadEntityIds;
-}>): CollectionBinding & Readonly<{ readEntityIds: ReadEntityIds }> => {
+}>): CollectionBinding => {
   const template = collectionRefTemplateSchema.parse(options.template);
   return Object.freeze({
     template,
-    readEntityIds: options.readEntityIds,
+    [COLLECTION_REGISTRATION]: Object.freeze({ readEntityIds: options.readEntityIds }),
     createRef: (...parentEntityIds: readonly string[]) => createCollectionRef({
       section: template.section,
       path: bindTemplatePath(template.path, parentEntityIds, 'CollectionBinding'),
@@ -151,7 +156,7 @@ export const createCollectionBinding = (options: Readonly<{
 export class FieldCatalog {
   readonly #bindings = new Map<string, RegisteredBinding>();
 
-  register<T>(binding: FieldBinding<T> & Readonly<{ readCanonical: ReadCanonicalField<T> }>): void {
+  register<T>(binding: FieldBinding<T>): void {
     const key = templateKey(binding.template);
     if (this.#bindings.has(key)) {
       throw new Error('FieldCatalog: feltadressen er allerede registreret');
@@ -159,7 +164,7 @@ export class FieldCatalog {
 
     this.#bindings.set(key, {
       definition: binding.definition,
-      readCanonical: binding.readCanonical,
+      readCanonical: binding[FIELD_REGISTRATION].readCanonical,
     });
   }
 
@@ -167,11 +172,21 @@ export class FieldCatalog {
     return this.#bindings.has(templateKey(addressTemplate(address)));
   }
 
-  readCanonical<T>(sections: PersistedInputSections, field: FieldRef<T>): T {
+  isKnownField<T>(field: FieldRef<T>): boolean {
     const binding = this.#bindings.get(templateKey(addressTemplate(field.address)));
-    if (binding === undefined || binding.definition !== field.definition) {
+    return binding !== undefined && binding.definition === field.definition;
+  }
+
+  assertKnownField<T>(field: FieldRef<T>): void {
+    if (!this.isKnownField(field)) {
       throw new Error('FieldCatalog: ukendt eller forkert bundet feltreference');
     }
+  }
+
+  readCanonical<T>(sections: PersistedInputSections, field: FieldRef<T>): T {
+    const binding = this.#bindings.get(templateKey(addressTemplate(field.address)));
+    this.assertKnownField(field);
+    if (binding === undefined) throw new Error('FieldCatalog: intern kataloginvariant brudt');
 
     // Samme template og samme definition-identitet blev registreret sammen med denne resolver.
     return binding.readCanonical(sections, field.address) as T;
@@ -182,12 +197,12 @@ export class FieldCatalog {
 export class CollectionCatalog {
   readonly #collections = new Map<string, RegisteredCollection>();
 
-  register(binding: CollectionBinding & Readonly<{ readEntityIds: ReadEntityIds }>): void {
+  register(binding: CollectionBinding): void {
     const key = templateKey(binding.template);
     if (this.#collections.has(key)) {
       throw new Error('CollectionCatalog: samlingen er allerede registreret');
     }
-    this.#collections.set(key, { readEntityIds: binding.readEntityIds });
+    this.#collections.set(key, { readEntityIds: binding[COLLECTION_REGISTRATION].readEntityIds });
   }
 
   listEntityIds(sections: PersistedInputSections, collection: CollectionRef): readonly string[] {
@@ -202,4 +217,33 @@ export class CollectionCatalog {
     }
     return Object.freeze([...ids]);
   }
+
+  /** Validerer alle dynamiske adresseled mod de entities, der faktisk findes i kandidatsnapshotet. */
+  containsAddressEntities(sections: PersistedInputSections, address: FieldAddress): boolean {
+    const parentPath: FieldAddress['path'][number][] = [];
+    for (const segment of address.path) {
+      if (segment.kind === 'entity') {
+        const collection = createCollectionRef({
+          section: address.section,
+          path: parentPath,
+          collection: segment.collection,
+        });
+        const binding = this.#collections.get(templateKey(collectionTemplate(collection)));
+        if (binding === undefined) return false;
+        const entityIds = this.listEntityIds(sections, collection);
+        if (!entityIds.includes(segment.entityId)) return false;
+      }
+      parentPath.push(segment);
+    }
+    return true;
+  }
 }
+
+/** Samlet katalogmedlemskab til rejected-input-schemaet, inklusive aktive entity-id'er. */
+export const isKnownFieldAddressInInput = (
+  fieldCatalog: FieldCatalog,
+  collectionCatalog: CollectionCatalog,
+  sections: PersistedInputSections,
+  address: FieldAddress
+): boolean => fieldCatalog.isKnownAddress(address)
+  && collectionCatalog.containsAddressEntities(sections, address);

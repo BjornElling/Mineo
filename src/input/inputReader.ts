@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CollectionRef, FieldAddress } from './fieldAddress';
+import type { CollectionRef } from './fieldAddress';
 import { serializeFieldAddress } from './fieldAddress';
 import type { FieldRef } from './fieldDefinition';
 import type { PersistedInputSections, PersistedInputState } from './inputState';
@@ -23,7 +23,7 @@ export type InputReader = Readonly<{
 }>;
 
 export type InputFieldCatalog = Readonly<{
-  isKnownAddress: (address: FieldAddress) => boolean;
+  assertKnownField: <T>(field: FieldRef<T>) => void;
   readCanonical: <T>(sections: PersistedInputSections, field: FieldRef<T>) => T;
 }>;
 
@@ -49,9 +49,9 @@ export const createInputReader = ({
 }: CreateInputReaderOptions): InputReader => Object.freeze({
   revision,
   read: <T>(field: FieldRef<T>): SettledFieldState<T> => {
-    if (!fieldCatalog.isKnownAddress(field.address)) {
-      throw new Error('InputReader: ukendt feltadresse');
-    }
+    // Definition-identiteten valideres før rejected-short-circuit, så en forged ref aldrig
+    // accepteres i invalid-grenen og afvises i valid-grenen for samme adresse.
+    fieldCatalog.assertKnownField(field);
 
     const rejected = input.rejectedInputs[serializeFieldAddress(field.address)];
     if (rejected !== undefined) {
