@@ -125,3 +125,74 @@ describe('formPersistenceStore invalidDrafts-slice', () => {
     expect(store.getState().invalidDrafts.stamdata).toEqual({ skadedato: 'a' });
   });
 });
+
+describe('formPersistenceStore finalizeEdit (atomisk sektion-commit + invalidDraft-clear)', () => {
+  // §4.4: sektionsværdi committes OG feltets ugyldige rå draft ryddes i ÉN set() — ét
+  // committedChangeCounter-bump, revisioner kun for de slices der reelt ændrer sig.
+  it('committer sektionsværdi OG rydder feltets invalidDraft i samme set()', () => {
+    const store = __createTestStore();
+    store.getState().hydrate(createValidSections(), VALID_META);
+    store.getState().setInvalidDraft('satser', 'aargang', 'ugyldig');
+    const counter0 = store.getState().committedChangeCounter;
+    const sectionRev0 = store.getState().sectionRevisions.satser;
+    const draftRev0 = store.getState().invalidDraftRevisions.satser;
+
+    store.getState().finalizeEdit({
+      sectionKey: 'satser',
+      sectionValue: { aargang: 2026 },
+      invalidDraft: { pageKey: 'satser', fieldPath: 'aargang', draft: null },
+    });
+
+    expect(store.getState().sections.satser).toEqual({ aargang: 2026 });
+    expect(store.getState().invalidDrafts.satser).toEqual({});
+    // Ét samlet commit: præcis ét counter-bump, begge slice-revisioner bumpet én gang.
+    expect(store.getState().committedChangeCounter).toBe(counter0 + 1);
+    expect(store.getState().sectionRevisions.satser).toBe(sectionRev0 + 1);
+    expect(store.getState().invalidDraftRevisions.satser).toBe(draftRev0 + 1);
+  });
+
+  it('bumper IKKE invalidDraft-revision når der ingen draft var at rydde (kun sektion ændrer sig)', () => {
+    const store = __createTestStore();
+    store.getState().hydrate(createValidSections(), VALID_META);
+    const draftRev0 = store.getState().invalidDraftRevisions.satser;
+
+    store.getState().finalizeEdit({
+      sectionKey: 'satser',
+      sectionValue: { aargang: 2027 },
+      invalidDraft: { pageKey: 'satser', fieldPath: 'aargang', draft: null },
+    });
+
+    expect(store.getState().sections.satser).toEqual({ aargang: 2027 });
+    expect(store.getState().invalidDraftRevisions.satser).toBe(draftRev0); // uændret: ingen draft-ændring
+  });
+
+  it('kan committe sektion og rydde en invalidDraft i en ANDEN sektion (pageKey ≠ sectionKey)', () => {
+    const store = __createTestStore();
+    store.getState().hydrate(createValidSections(), VALID_META);
+    store.getState().setInvalidDraft('stamdata', 'skadedato', 'ugyldig');
+
+    store.getState().finalizeEdit({
+      sectionKey: 'satser',
+      sectionValue: { aargang: 2028 },
+      invalidDraft: { pageKey: 'stamdata', fieldPath: 'skadedato', draft: null },
+    });
+
+    expect(store.getState().sections.satser).toEqual({ aargang: 2028 });
+    expect(store.getState().invalidDrafts.stamdata).toEqual({});
+  });
+
+  it('afviser en sektionsværdi der ikke matcher schema (fail-closed, ingen mutation)', () => {
+    const store = __createTestStore();
+    store.getState().hydrate(createValidSections(), VALID_META);
+    const before = store.getState().sections.satser;
+    expect(() =>
+      store.getState().finalizeEdit({
+        sectionKey: 'satser',
+        // aargang skal være number; en streng bryder schema → assertSectionValid kaster.
+        sectionValue: { aargang: 'ikke-et-tal' } as unknown as { aargang: number },
+        invalidDraft: { pageKey: 'satser', fieldPath: 'aargang', draft: null },
+      })
+    ).toThrow();
+    expect(store.getState().sections.satser).toEqual(before);
+  });
+});

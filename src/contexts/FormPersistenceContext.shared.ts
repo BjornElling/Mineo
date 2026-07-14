@@ -17,7 +17,13 @@ export type FormPersistenceContextValue = {
   // Reaktive UI-callsites skal som udgangspunkt bruge selector-hooks i stedet.
   getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
   // Autoritativ commit af én sektion. Returnerer false hvis persistence afvises eller fejler.
-  persistData: <K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K], options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
+  // `clearInvalidDraft` (valgfri): ryd et felts `invalidDrafts`-entry ATOMISK i samme finalize-transaktion
+  // (greenfield draft/commit §4.4) — ét undo-frame, ét revision-progression. Storage-fieldPath, ikke undo-DOM-path.
+  persistData: <K extends StorageKey>(
+    pageKey: K,
+    data: PersistedSectionMap[K],
+    options?: { undoOrigin?: HistoryFrameOrigin; clearInvalidDraft?: { pageKey: StorageKey; fieldPath: string } }
+  ) => boolean;
   clearPageData: (pageKey: StorageKey) => void;
   clearAllData: () => void;
   hasAnyData: () => boolean;

@@ -22,6 +22,7 @@ import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
+import { __resetUndoRedoStoreForTests, undoRedoStore } from '../../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { stamdataSchema, erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -165,6 +166,89 @@ describe('felt med ugyldig rå draft — clear/edit rydder invalidDrafts ved blu
 
     expect(invalidDraftFor('skadelidteFodselsdato')).toBeUndefined();
     expect(input).toHaveValue('01-01-1980');
+  });
+});
+
+// ATOMISK FINALIZE (greenfield draft/commit §4.4): et felt der committer gennem `setFieldValue` (den
+// kanoniske skalar-felt-committer) skal rydde sin ugyldige rå draft i SAMME transaktion som sektion-
+// committen — ét undo-frame, ét revision-progression, ingen afhængighed af coalescing-timing. Dette
+// værn driver den atomiske sti (setFieldValue, som Stamdata bruger) og hævder at gyldigt→ugyldigt→gyldigt
+// hver giver præcis ét frame, og at rettelsen rydder draften atomisk.
+const AtomicFieldPage = () => {
+  const form = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
+  const report = useFormFieldErrorReporter('stamdata', 'skadelidteFodselsdato', {
+    severity: 'error',
+    source: 'input',
+  });
+  return (
+    <StyledDateField
+      name="skadelidteFodselsdato"
+      value={form.values.skadelidteFodselsdato}
+      onFieldError={report}
+      // Committer gennem setFieldValue → den atomiske finalize-sti (ikke direkte setValues).
+      onCommit={(e) => form.setFieldValue('skadelidteFodselsdato', e.target.value as ISODateString | undefined)}
+    />
+  );
+};
+
+describe('felt via setFieldValue — atomisk finalize (ét frame, atomisk clear)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    __resetUndoRedoStoreForTests();
+    formPersistenceStore.setState({
+      sections: { ...formPersistenceStore.getState().sections, stamdata: null },
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
+    });
+    formPersistenceStore.getState().clearAllFieldErrors();
+    formPersistenceStore.getState().clearAllInvalidDrafts();
+  });
+
+  it('gyldig → ugyldig → gyldig: hvert commit giver præcis ét undo-frame, og rettelsen rydder draften atomisk', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/stamdata']}>
+        <AppSettingsProvider>
+          <RoutePathnameProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+              <AtomicFieldPage />
+            </FormPersistenceProvider>
+          </RoutePathnameProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    const committedDato = () =>
+      (formPersistenceStore.getState().sections.stamdata as { skadelidteFodselsdato?: string } | null)?.skadelidteFodselsdato;
+
+    // 1) Gyldig dato → ét frame, committed værdi sat. (Tom→gyldig = én afsluttet redigering.)
+    await user.click(input);
+    await user.type(input, '01-01-1980');
+    await user.tab();
+    expect(undoRedoStore.getState().past.length).toBe(1);
+    expect(committedDato()).toBe('1980-01-01');
+
+    // 2) Erstat med en ugyldig dato i ÉN redigering (klik åbner ikke; tegn åbner editor og OVERSKRIVER
+    //    hele indholdet pr. to-trins-modellen) → ét YDERLIGERE frame; committed værdi bevares, rå draft
+    //    persisteres. (Ingen mellemliggende Delete-commit — det ville være en separat brugerhandling.)
+    await user.click(input); // 1. klik: kun fokus (editor lukket)
+    await user.keyboard('3'); // printbart tegn åbner editor og overskriver → draft = "3"
+    await user.type(input, '0-02-1980');
+    await user.tab();
+    expect(input).toHaveValue('30-02-1980');
+    expect(invalidDraftFor('skadelidteFodselsdato')).toBe('30-02-1980');
+    expect(committedDato()).toBe('1980-01-01'); // gammel gyldig værdi bevaret bag masken
+    expect(undoRedoStore.getState().past.length).toBe(2);
+
+    // 3) Ret til en ny gyldig dato i ÉN redigering → ét YDERLIGERE frame; draft ATOMISK ryddet i samme
+    //    transaktion som værdi-committen (ikke to separate writes), ny værdi committed.
+    await user.click(input);
+    await user.keyboard('0'); // overskriv
+    await user.type(input, '2-02-1982');
+    await user.tab();
+    expect(input).toHaveValue('02-02-1982');
+    expect(invalidDraftFor('skadelidteFodselsdato')).toBeUndefined();
+    expect(committedDato()).toBe('1982-02-02');
+    expect(undoRedoStore.getState().past.length).toBe(3);
   });
 });
 

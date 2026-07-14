@@ -64,6 +64,20 @@ export type FormPersistenceStoreState = {
   meta: FormPersistenceMeta;
   hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta, invalidDrafts?: InvalidDraftsCache) => void;
   commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: SectionMetaPatch) => void;
+  /**
+   * Atomisk afslutning af én feltredigering (greenfield draft/commit §4.4): committer sektionsværdien
+   * OG skriver/rydder feltets `invalidDrafts`-entry i ÉN `set()` med ét `committedChangeCounter`-bump.
+   *
+   * Erstatter det tidligere par (commitSection efterfulgt af et separat setInvalidDraft), hvor de to
+   * writes var ikke-atomiske og krævede undo-coalescing. `sectionKey` og `invalidDraft.pageKey` kan
+   * afvige (fx et EO-felt hvis invalidDraft bor i en anden sektion), derfor to eksplicitte keys.
+   */
+  finalizeEdit: <K extends keyof FormPersistenceSections>(args: {
+    sectionKey: K;
+    sectionValue: FormPersistenceSections[K] | null;
+    invalidDraft: { pageKey: keyof FormPersistenceSections; fieldPath: string; draft: string | null };
+    metaPatch?: SectionMetaPatch;
+  }) => void;
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: SectionMetaPatch) => void;
   // NOTE: replaceSections bevarer eksisterende field-errors.
   // Brug replaceSectionsAndClearFieldErrors til load/replace-flows, der skal rydde fejl atomisk
@@ -257,6 +271,32 @@ const incrementFieldErrorRevision = FIELD_ERRORS_SLICE.incrementRevision;
 const incrementAllFieldErrorRevisions = FIELD_ERRORS_SLICE.incrementAllRevisions;
 const incrementInvalidDraftRevision = INVALID_DRAFTS_SLICE.incrementRevision;
 const incrementAllInvalidDraftRevisions = INVALID_DRAFTS_SLICE.incrementAllRevisions;
+
+/**
+ * Ren beregning af næste `invalidDrafts`-cache for én feltændring (tom/`null` draft rydder entry'et).
+ * Returnerer `null` når intet ændrer sig (no-op), så callere kan springe revisions-bump over.
+ * Delt af `setInvalidDraft` og `finalizeEdit`, så de to skrivningsstier ikke kan drifte.
+ */
+const computeInvalidDraftsUpdate = (
+  prev: InvalidDraftsCache,
+  pageKey: keyof FormPersistenceSections,
+  fieldPath: string,
+  draft: string | null
+): InvalidDraftsCache | null => {
+  const prevForPage = prev[pageKey];
+  const normalized = typeof draft === 'string' && draft !== '' ? draft : null;
+  const existing = prevForPage[fieldPath];
+
+  if (normalized === null) {
+    if (existing === undefined) return null;
+    const nextForPage = { ...prevForPage };
+    delete nextForPage[fieldPath];
+    return { ...prev, [pageKey]: nextForPage };
+  }
+
+  if (existing === normalized) return null;
+  return { ...prev, [pageKey]: { ...prevForPage, [fieldPath]: normalized } };
+};
 
 type FieldErrorUpdateResult =
   | { kind: 'noop' }
@@ -514,24 +554,34 @@ const createFormPersistenceStore = () =>
     },
     setInvalidDraft: (key, fieldPath, draft) => {
       set((state) => {
-        const prevForPage = state.invalidDrafts[key];
-        const trimmedExists = typeof draft === 'string' && draft !== '';
-        const existing = prevForPage[fieldPath];
-
-        if (!trimmedExists) {
-          if (existing === undefined) return state;
-          const nextForPage = { ...prevForPage };
-          delete nextForPage[fieldPath];
-          return {
-            invalidDrafts: { ...state.invalidDrafts, [key]: nextForPage },
-            invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
-          };
-        }
-
-        if (existing === draft) return state;
+        const nextInvalidDrafts = computeInvalidDraftsUpdate(state.invalidDrafts, key, fieldPath, draft);
+        if (nextInvalidDrafts === null) return state;
         return {
-          invalidDrafts: { ...state.invalidDrafts, [key]: { ...prevForPage, [fieldPath]: draft } },
+          invalidDrafts: nextInvalidDrafts,
           invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+        };
+      });
+    },
+    finalizeEdit: ({ sectionKey, sectionValue, invalidDraft, metaPatch }) => {
+      assertSectionValid(sectionKey, sectionValue);
+      set((state) => {
+        const nextInvalidDrafts = computeInvalidDraftsUpdate(
+          state.invalidDrafts,
+          invalidDraft.pageKey,
+          invalidDraft.fieldPath,
+          invalidDraft.draft
+        );
+        // Sektion og invalidDraft opdateres i samme set(): ét committedChangeCounter-bump, ét
+        // authoritativeSnapshotEpoch uændret. Revisioner bumpes kun for de slices der reelt ændrer sig.
+        return {
+          sections: { ...state.sections, [sectionKey]: sectionValue },
+          sectionRevisions: incrementSectionRevision(state.sectionRevisions, sectionKey),
+          invalidDrafts: nextInvalidDrafts ?? state.invalidDrafts,
+          invalidDraftRevisions: nextInvalidDrafts === null
+            ? state.invalidDraftRevisions
+            : incrementInvalidDraftRevision(state.invalidDraftRevisions, invalidDraft.pageKey),
+          committedChangeCounter: state.committedChangeCounter + 1,
+          meta: resolveMeta(state.meta, metaPatch),
         };
       });
     },

@@ -122,7 +122,7 @@ export const FormPersistenceProvider = ({
   const persistData = React.useCallback(<K extends StorageKey>(
     pageKey: K,
     data: PersistedSectionMap[K],
-    options?: { undoOrigin?: HistoryFrameOrigin }
+    options?: { undoOrigin?: HistoryFrameOrigin; clearInvalidDraft?: { pageKey: StorageKey; fieldPath: string } }
   ): boolean => {
     try {
       const storageKey = getStorageKey(pageKey);
@@ -153,13 +153,55 @@ export const FormPersistenceProvider = ({
       }
 
       const currentSnapshot = getPersistedSectionSnapshot(pageKey);
+      let valueIsNoop = false;
       if (currentSnapshot !== null) {
         const currentSerialized = serializeFormValues(currentSnapshot);
         const nextSerializedFingerprint = JSON.stringify(built.persistedData.data);
         const currentSerializedFingerprint = JSON.stringify(currentSerialized);
-        if (currentSerializedFingerprint === nextSerializedFingerprint) {
-          return true;
+        valueIsNoop = currentSerializedFingerprint === nextSerializedFingerprint;
+      }
+
+      // Værdi-commit er en no-op (uændret sektion). Er der en parret invalidDraft-clear, skal den stadig
+      // udføres — som sin egen transaktion med sin egen undo-frame (standalone clear). Ellers ren no-op.
+      if (valueIsNoop) {
+        if (options?.clearInvalidDraft) {
+          return writeInvalidDraft(
+            options.clearInvalidDraft.pageKey,
+            options.clearInvalidDraft.fieldPath,
+            null,
+            { undoOrigin: options.undoOrigin }
+          );
         }
+        return true;
+      }
+
+      const clear = options?.clearInvalidDraft;
+      if (clear) {
+        // ATOMISK finalize (greenfield draft/commit §4.4): sektionsværdi committes OG feltets ugyldige rå
+        // draft ryddes i ÉN transaktion over BEGGE storage-nøgler, med ÉT undo-frame og ÉN revision-
+        // progression. Erstatter det tidligere par (persistData + separat clearInvalidDraft) og gør
+        // undo-coalescing overflødig. Forward-paritet med den allerede-atomiske restore-sti.
+        const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
+        const nextInvalidDrafts = computeNextInvalidDrafts(clear.pageKey, clear.fieldPath, null);
+        runAtomicPersistenceMutation({
+          operation: 'finalizeEdit',
+          affectedStorageKeys: [storageKey, invalidDraftsStorageKey],
+          captureUndo: true,
+          mutate: () => {
+            writeSessionStorageValue(storageKey, built.serialized);
+            writeInvalidDraftsToStorage(nextInvalidDrafts);
+            if (options?.undoOrigin) {
+              undoRedoStore.getState().capture(options.undoOrigin);
+            }
+            formPersistenceStore.getState().finalizeEdit({
+              sectionKey: pageKey,
+              sectionValue: built.validatedData,
+              invalidDraft: { pageKey: clear.pageKey, fieldPath: clear.fieldPath, draft: null },
+              metaPatch: { lastCommittedAt: Date.now() },
+            });
+          },
+        });
+        return true;
       }
 
       runAtomicPersistenceMutation({
@@ -169,8 +211,11 @@ export const FormPersistenceProvider = ({
         mutate: () => {
           writeSessionStorageValue(storageKey, built.serialized);
           if (options?.undoOrigin) {
-            // Value-commit fanger ALTID sin egen frame; markér den, så en parret invalidDraft-clear i samme
-            // flow rider på den i stedet for at fange en ekstra.
+            // Ren værdi-commit uden atomisk parret clear. Den bruges stadig af TABELCELLERs value-commit
+            // (celle-stien rydder sin fuldt kvalificerede invalidDraft separat, indtil Fase 4/Trin III-IV
+            // konsoliderer grid-finalize) samt af immediate-commit-widgets. Marker derfor value-commit'et,
+            // så en efterfølgende parret clear i samme flow coalescer til ét frame (undo-frame-semantik).
+            // Felt-stien går IKKE her længere — den bruger den atomiske finalize-gren ovenfor med ét capture.
             undoRedoStore.getState().captureValueCommit(options.undoOrigin);
           }
           formPersistenceStore.getState().commitSection(pageKey, built.validatedData, {

@@ -22,6 +22,16 @@ import { reportSystemIssue } from '../utils/systemIssueReporter';
  */
 export type CommitOriginOptions = {
   fieldPath?: string;
+  /**
+   * Atomisk parret rydning af et felts `invalidDrafts`-entry som del af SAMME finalize-transaktion
+   * (greenfield draft/commit §4.4). Sat af commit-seams (felt- og celle-adapter) når et gyldigt commit
+   * afslutter en tidligere ugyldig tilstand: værdien committes OG den ugyldige rå draft ryddes i ét
+   * atomisk skridt med ét undo-frame — i stedet for to separate transaktioner + undo-coalescing.
+   *
+   * `fieldPath` her er STORAGE-nøglen for `invalidDrafts` (for celler den fuldt kvalificerede sti,
+   * som afviger fra undo-origin'ens DOM-`fieldPath`).
+   */
+  clearInvalidDraft?: { pageKey: StorageKey; fieldPath: string };
 };
 
 export type SetValuesUpdater<T extends object> = (updater: (prev: T) => T | Partial<T>, options?: CommitOriginOptions) => boolean;
@@ -220,11 +230,20 @@ export const usePersistedForm = <K extends StorageKey>(
   }, [pageKey, routePathname]);
 
   // Felt-commit via funktionel updater. Bumper ikke formVersion.
+  //
+  // Atomisk finalize (greenfield draft/commit §4.4): når `clearInvalidDraft` er sat, committes
+  // sektionsværdien OG feltets ugyldige rå draft ryddes i SAMME transaktion med ét undo-frame — i stedet
+  // for to separate transaktioner + undo-coalescing. `clearInvalidDraft` sættes af felt-adapterens
+  // commit-sti (via feltfejl-reporterens storage-nøgle, som ejer den præcise nøgle). Uden den er det en
+  // ren værdi-commit (uændret adfærd; bruges af tabelceller + immediate-commit-widgets).
   const setValues = React.useCallback(
     (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K] | Partial<PersistedSectionMap[K]>, options?: CommitOriginOptions) => {
       const current = resolveCurrentValues();
       const next = { ...current, ...updater(current) };
-      return persistDataRef.current(pageKey, next, { undoOrigin: createUndoOrigin(options) });
+      return persistDataRef.current(pageKey, next, {
+        undoOrigin: createUndoOrigin(options),
+        clearInvalidDraft: options?.clearInvalidDraft,
+      });
     },
     [createUndoOrigin, pageKey, resolveCurrentValues]
   );
@@ -235,9 +254,18 @@ export const usePersistedForm = <K extends StorageKey>(
       value: PersistedSectionMap[K][FieldKey],
       options?: CommitOriginOptions
     ) => {
-      return setValues((prev) => ({ ...prev, [fieldName]: value }), { fieldPath: options?.fieldPath ?? String(fieldName) });
+      // setFieldValue er den kanoniske SKALAR-felt-committer: feltnavnet ER feltets invalidDrafts-storage-
+      // nøgle under denne sides pageKey. Derfor kan et gyldigt commit rydde feltets ugyldige rå draft
+      // ATOMISK i samme transaktion (greenfield draft/commit §4.4) uden call-site-ændringer. En eksplicit
+      // clearInvalidDraft/fieldPath fra kalderen vinder. (Nested/celle-identiteter går IKKE gennem denne
+      // committer, så den fuldt kvalificerede-nøgle-problematik opstår ikke her.)
+      const fieldPath = options?.fieldPath ?? String(fieldName);
+      return setValues((prev) => ({ ...prev, [fieldName]: value }), {
+        fieldPath,
+        clearInvalidDraft: options?.clearInvalidDraft ?? { pageKey, fieldPath },
+      });
     },
-    [setValues]
+    [pageKey, setValues]
   );
 
   /**
