@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet `docs/architecture/undo-redo-architecture.md`.  
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-14
 
 Denne kontrakt fastlægger de trust-kritiske grænser for global undo/redo (history-stak `MAX_HISTORY_STEPS = 50` pr. retning, jf. `src/stores/undoRedoStore.ts`). Arkitekturdokumentet må forklare implementationen, men må ikke eje afvigende regler.
 
@@ -55,6 +55,18 @@ Capture, storage-write og store-commit skal behandles som én logisk transaktion
 3. undo/redo-stakken
 
 stå i før-tilstand.
+
+**Ét afsluttet input (`finalizeEdit`) = præcis ét history-trin (greenfield draft/commit 2026-07-14, normativt).**
+En afsluttet redigering skal fange præcis ét history-trin, uanset transition — også når et gyldigt commit efter et
+ugyldigt input i dag udføres som to writes (skriv gyldig sektion + ryd `invalidDrafts`). Målarkitekturen er, at
+canonical-opdatering og rejected-input-opdatering sker i **samme rollback-beskyttede transaktion** med **én**
+history-capture og **én** revisionsstigning — på niveau med restore-stien, der allerede er ét atomisk
+`atomicWritePersistenceSections` (§4). Korrektheden må ikke afhænge af write-rækkefølge mellem to separate stores.
+
+Coalescing af to separate transaktioner til ét frame via en modul-global markør + `queueMicrotask`-backstop
+(`pendingValueCommitFieldPath`, `captureValueCommit`/`captureCoalescing`) er den nuværende kompensation for den
+ikke-atomiske forward-commit. Den er kontraktdrift (form-kontrakten forbyder microtask-/timeout-hacks i commit-flowet) og
+skal fjernes, når den atomiske finalize-transaktion er indført. Nye transitioner må ikke kræve særrettelser i coalescing.
 
 ---
 

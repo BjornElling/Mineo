@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter. `schema-evolution.md` ejer konkrete schema-ændringsregler.
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-14
 
 Denne kontrakt samler de trust-kritiske regler for persistence, save/load og autoritative state replacements.
 
@@ -241,6 +241,13 @@ Form: `invalidDrafts[pageKey][fieldPath] = råstreng (ikke-tom)`.
 Regler:
 
 1. **Eget schema.** `invalidDrafts` er fuldt Zod-dækket af sit eget schema. Da det ikke er en `persistenceRegistry`-sektion, indgår det ikke i `computeSchemaFingerprint`/`PERSISTED_DATA_VERSION` og kræver ikke versionsbump ved struktur-ændring i sektionsschemas.
+   - **Feltadresse-migration (greenfield draft/commit 2026-07-14, normativt for fremtidige ændringer):** Envelopen
+     fail-closer i dag ved uoverensstemmelse med `PERSISTED_DATA_VERSION` (recovery-state er ikke-kritisk). Et fremtidigt
+     skift af selve feltadresse-nøglerne (fx kolonneindeks → feltnavn) må **ikke** løses ved at bumpe
+     `PERSISTED_DATA_VERSION` og lade version-gaten droppe aktuelt synligt ugyldigt input i en aktiv, opgraderet session —
+     det ville tavst tabe det, brugeren netop ser. En sådan feltadresse-ændring skal enten give envelopen sin **egen**
+     version eller implementeres som en **eksplicit nøglemigration** (oversæt gamle nøgler → nye), ikke en forkastelse.
+     Stiltiende forkastelse er kun tilladt for reelt inkompatibel recovery-state efter en dokumenteret vurdering.
 2. **Egen `sessionStorage`-nøgle.** Hele cachen lagres under én dedikeret, namespace-aware nøgle ejet af `storageManifest.ts`. Den overlever `F5`. Ved korrupt/ugyldig/versions-uoverensstemmende værdi ryddes nøglen fail-closed (recovery-state er ikke-kritisk og må droppes sikkert).
 3. **`.eo`-eksklusion.** `invalidDrafts` skrives aldrig til `.eo` og læses aldrig derfra. Da Gem blokeres ved enhver `invalidDrafts`-entry, vil cachen per definition være tom på gemme-tidspunktet.
 4. **Skrive/rydde-vej.** Et fejlende felt-commit skriver/opdaterer feltets entry; et vellykket commit rydder det. Hver skrivning er atomisk (store + `sessionStorage`) med rollback efter samme fail-closed-regler som `persistData` (§8 punkt 5). Et nyt entry kan oprette en undo/redo-frame; et entry der ryddes som del af et samtidigt sektion-commit rider på sektion-commitets frame (ingen separat frame).

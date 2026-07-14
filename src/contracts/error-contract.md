@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (runtime-only)
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-02
+**Senest verificeret mod kode:** 2026-07-14
 
 Dette dokument beskriver den **normative** model for felt-fejl (errors) og kontrolvisning i Mineo.
 
@@ -32,6 +32,9 @@ Et felt kan have flere samtidige fejl, adskilt af `source`:
 - `input` – input-komponentens egen parsing/format/range-fejl
 - `schema` – schema-/Zod-fejl (runtime-validering)
 - `rule` – afledte/cross-field forretningsregler (runtime)
+- `invalid-draft` – syntetisk kilde projiceret fra `invalidDrafts` (afsluttet ugyldigt input, `reason: 'invalid'`, jf.
+  §3A og `form-contract.md` §2.4). Den er ikke en persisteret `fieldErrors`-entry; read-modellen fletter den ind ved
+  læsning med forrang via `resolveActiveFieldError`.
 
 ### 1.3 Fejl-severity
 
@@ -80,6 +83,52 @@ Prioritet (normativ):
 2. indenfor samme severity: `sourcePriority` (default: `input → rule → schema`)
 
 Dette er implementeret i `src/types/fieldErrors.ts` via `resolveActiveFieldError`.
+
+---
+
+## 3A. Maskinlæsbar fejlårsag: *ikke udfyldt* vs. *ugyldig værdi* (normativt)
+
+Dette afsnit er tilføjet af greenfield draft/commit-designet (2026-07-14). Det er **normativt** og gælder brugervendte
+fejlbokse ("Fejl og advarsler") og enhver blocker, der forklarer, hvorfor et output er blokeret.
+
+### 3A.1 Taksonomi
+
+En blocker/fejl for et afhængigt felt skal bære en **maskinlæsbar årsag** — den må ikke gættes ud fra en beskedstreng:
+
+- **`missing`** — feltet er påkrævet i den aktuelle kontekst, men er tomt (gyldigt/`undefined`). Produceres af den
+  påkrævende consumer/domæneprojektion, der kender kravet (dagens domæne-validator-vej, fx "…er ikke udfyldt").
+- **`invalid`** — feltets afsluttede tilstand er ikke-committbar (ugyldigt format, `invalidDrafts`, jf.
+  `form-contract.md` §2.4). Erstatter dagens generiske `Ugyldig værdi: "<rå tekst>"` fra read-modellen.
+- **`range`/`bounds`** (eksisterende, tredje kategori) — parseable men uden for interval; har en gyldig canonical værdi
+  og bevarer sin nuværende semantik (`blocksSave:false`, jf. `form-contract.md` §4.4). Hverken `missing` eller `invalid`.
+
+Sondringen mellem `missing` og `invalid` afgøres i den forbrugende projektion, ikke i feltet (jf. `form-contract.md`
+§7.3): tom = potentielt `missing`; ikke-tom-men-ikke-committbar = `invalid`.
+
+### 3A.2 Stabil feltidentitet + central skabelon
+
+Hver blocker bærer en stabil feltidentitet (`fieldPath`/`FieldId`), så beskeden altid kan **navngive** feltet — dagens
+`invalid-draft`-besked kunne ikke, fordi read-modellen manglede feltidentitet. Beskeden dannes af en **central skabelon**
+ud fra `reason` + feltnavn, ikke ad-hoc pr. producent.
+
+Skabelonerne (UI/UX-godkendt 2026-07-14) er kontroltype-tilpassede for `missing` og ensartede for `invalid`:
+
+| `reason` | Kontroltype | Skabelon (feltnavn indsat) |
+|---|---|---|
+| `missing` | Tekst-/talfelt | `Feltet <navn> er ikke udfyldt` |
+| `missing` | Dropdown/valg | `<navn> er ikke valgt` |
+| `missing` | Til/fra (toggle/radio) | `<navn> er ikke angivet` |
+| `invalid` | Alle | `Der er udfyldt en ugyldig værdi i feltet <navn>` |
+
+Dette er foreneligt med §8.1's konvention ("er ikke udfyldt/angivet/valgt"; aldrig et bart "<felt> mangler") og med
+værn-testens forbud mod en vist tekst, der ender på " mangler". Kontroltypen skal derfor være kendt, hvor beskeden dannes;
+den udledes af feltets identitet/metadata, ikke af en fri streng.
+
+### 3A.3 Fejlbokse kategoriserer på `reason`
+
+Boks-modellen (i dag `EoRowStatus`/`FormFieldError` med kun `severity`) udvides **additivt**, så en `error`-række også kan
+gruppere/formulere efter *manglende* vs. *ugyldig*. Dette bryder ikke `severity`-splittet (error vs. warning) og er
+bagudkompatibelt: en manglende `reason` behandles som i dag.
 
 ---
 

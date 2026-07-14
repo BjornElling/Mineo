@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-07-13
+**Senest verificeret mod kode:** 2026-07-14
 
 ## 1. Scope
 
@@ -43,19 +43,41 @@ Reglerne i dette afsnit er uafhængige af outputkanal. De gælder uændret for b
 
 Download er blokeret hvis og kun hvis mindst én af følgende er sand:
 
-1. Der findes blokerende feltfejl på de relevante committed inputfelter.
+1. Der findes blokerende feltfejl på de relevante inputfelter — **herunder et afsluttet ugyldigt input** (`invalidDrafts`,
+   jf. `form-contract.md` §2.4/§2.5). En afsluttet ugyldig maske oven på en tidligere gyldig canonical værdi **skal**
+   blokere; gaten må ikke fodres af et signal, der er blankt præcis når inputtet er ikke-committbart (§A2.1).
 2. Den autoritative beregning kan ikke dannes. For snapshot-first-domæner betyder det en typed status/projektion fra `snapshot-contract.md` og den relevante domænekontrakt. For ikke-snapshot-domæner skal domænet levere et eksplicit preflight-/gate-resultat med samme semantik.
 3. Det konkrete output er blokeret af output-specifikke invariants eller guards.
 
 Konsekvens:
 
-- Feltfejl, snapshot-status og output-specifikke blokeringer skal aggregeres eksplicit.
+- Feltfejl (inkl. afsluttet ugyldigt input), snapshot-status og output-specifikke blokeringer skal aggregeres eksplicit.
 - Ingen download-knap må nøjes med kun én af disse tre kilder.
 - Aggregeringen ejes af domæne-/snapshot-/preflight-laget eller et centralt dokument-gate-lag, ikke af den enkelte renderer.
 - Download-knapper skal modtage et samlet gate-resultat med `canDownload` og auditerbare årsager.
 - Generatorer afgør ikke selv, om domænet er `fail_closed`; de modtager en allerede godkendt model eller returnerer runtime-fejl.
 
 Gate-definitionen er kanal-neutral: et dokument der er blokeret for PDF, er også blokeret for Word, og omvendt. Formatvalget ændrer ikke gaten.
+
+### A2.1 Afsluttet ugyldigt input må ikke omgås af gaten (normativt)
+
+Tilføjet af greenfield draft/commit-designet (2026-07-14):
+
+- En domæne-gate der aflæser committed canonical værdier **direkte** (fx `values.aargang`, `committedRentekravById`)
+  ser ikke `invalidDrafts`-masken og kan derfor stå aktiv på en gammel gyldig værdi, mens brugeren netop har afsluttet
+  et ugyldigt input. Dette er den strukturelle download-bug, designet lukker.
+- En gate skal derfor enten (a) læse den afsluttede inputtilstand gennem en fail-closed projektion, der kender feltets
+  ugyldige tilstand, eller (b) eksplicit modtage det afhængige felts afsluttede ugyldige tilstand som gate-input.
+- **Lokale felt-fejl-booleans må ikke være selvstændige output-sandhedskilder.** En boolean der fodres af et
+  `onFieldError`-signal, som pr. design er blankt for ikke-committbart input (fx `useStyledFieldAdapter`s
+  `visualErrorMessage`, der tvinges til `''`), er ikke et gyldigt gate-signal. Per-række-download og de samlede downloads
+  for samme input skal udlede blokering af samme afsluttede tilstand, ikke af konkurrerende lokale booleans.
+- **Scope:** en afsluttet ugyldig celle i én tabelrække blokerer kun de consumers, der afhænger af netop den række
+  (per-række-dokument) samt aggregat-dokumenter, der inkluderer rækken — den må ikke over-blokere de øvrige gyldige
+  rækkers per-række-download. Blockers bærer derfor scope (per-række/sektion/global), så afhængigheden er præcis.
+- **Klik-preflight:** ud over den reaktive knap-disabling skal download-klik gå gennem commit-barrieren
+  (`critical-action-contract.md` §2, handling *Dokument-download*): finalisér åben editor → læs nyt snapshot → byg gate →
+  fail-close før generator/fil-I/O. Det lukker vinduet, hvor en knap endnu ikke har rerendret som deaktiveret efter blur.
 
 `documentService.ts` (`src/document/service/documentService.ts`) er i den nuværende arkitektur service boundary for download-afvikling, lazy-load og runtime-fejl. Langsigtet skal domænepolitik og gates flyttes ud i domænesnapshots/projektioner, så service-laget bliver mekanisk adapter.
 

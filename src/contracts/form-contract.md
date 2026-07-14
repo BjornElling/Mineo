@@ -1,9 +1,9 @@
 # Mineo – Form Contract
 
-**Version:** 0.1
+**Version:** 0.2
 **Status:** Gældende arkitektur
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-14
 **Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
 
 ---
@@ -69,7 +69,15 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - En eksisterende committed sektion må aldrig overskrives med `initialValues` pga. navigation, rerender, settings-ændring eller lokal resync.
 - Funktionelle form-commits via `usePersistedForm().setValues` må returnere en fuld sektion eller et subset-patch. Subset-patches skal materialiseres oven på seneste committed schema-værdi og derefter gennem den normale schema-validerede persistence-vej.
 
-### 2.4 Committed rå draft (`invalidDrafts`)
+### 2.4 Afsluttet ugyldigt input (`invalidDrafts`)
+
+> **Terminologi (greenfield draft/commit-design 2026-07-14):** Det, denne kontrakt tidligere kaldte *committed rå
+> draft*, er præcisere en **afsluttet ugyldig inputtilstand**: brugeren har *afsluttet* redigeringen (blur/Enter/immediate
+> commit), men resultatet kunne ikke parses. Både et gyldigt og et ugyldigt resultat er en vellykket *afslutning* af
+> redigeringen; forskellen er, om den afsluttede tilstand er gyldig eller ugyldig. `invalidDrafts` er den nuværende
+> persistering af den afsluttede ugyldige tilstand og er migrationssubstrat for målarkitekturen i §2.5. Den forbliver den
+> autoritative beskrivelse af, hvad feltet aktuelt indeholder — den tidligere gyldige canonical værdi bag masken er
+> **ikke** feltets aktuelle domænestate (§2.5).
 
 Når et commit-forsøg ikke kan parses (ikke-committbart format, fx `"12.x.20"` i et datofelt), beholdes den committede værdi uændret (sidst gyldige eller `undefined`), og den rå streng skrives til en separat persisteret recovery-kanal:
 
@@ -84,6 +92,37 @@ Regler:
 - Den ekskluderes fra `.eo` (se `persistence-contract.md`). Da Gem blokeres ved enhver `invalidDrafts`-entry, kan en gemt fil per definition aldrig indeholde et entry.
 - Et vellykket commit på feltet rydder dets `invalidDrafts`-entry; et fejlende commit skriver/opdaterer det. Skrivning sker **kun** ved commit (blur/Enter), aldrig i `onChange` (no-live-preview).
 - Feltets rød kant + tooltip for parse-fejl er en **afledt** visning af `invalidDrafts` (jf. `error-contract.md`). Range/rule/schema-fejl forbliver i `fieldErrors`.
+
+### 2.5 Afsluttet input er den autoritative feltbeskrivelse (normativt)
+
+Dette afsnit er den bindende kerneinvariant fra greenfield draft/commit-designet (2026-07-14). Det er **normativt** og
+overordnet enhver domænespecifik download-/beregnings-gate for det samme felt.
+
+**Tre tilstande, ét autoritativt lag:**
+
+1. **Åben draft** — det brugeren skriver, mens editoren er åben. Ren lokal UI-state (no-live-preview, §3).
+2. **Afsluttet input** — den aktuelle værdi efter blur/Enter/immediate-commit. Enten gyldig eller ugyldig (§2.4).
+3. **Domæneprojektion** — schema-validerede værdier, der må bruges til beregning, save og dokument-output.
+
+**Kerneinvariant:** Når editoren er lukket, skal vist feltværdi, aktuel inputtilstand, gate-status og undo/redo-status
+beskrive **samme brugerhandling**. Et afsluttet ugyldigt input er den autoritative beskrivelse af feltets aktuelle
+indhold og må aldrig behandles som den tidligere gyldige værdi.
+
+**Fail-closed projektion (ikke-omgåelig):**
+
+- En tidligere gyldig canonical værdi bag en afsluttet ugyldig maske er kun skjult recovery-data. Den må **ikke** nå
+  beregning, save eller dokument-output, så længe feltets afsluttede tilstand er ugyldig.
+- Domænekode (beregning, dokument-gates, generator-input) må **ikke** læse en canonical sektion direkte og derved omgå
+  masken. Al aktuel brugerinput-tilstand nås gennem en fail-closed projektion, der samtidig kender feltets ugyldige
+  tilstand. Er et relevant felt afsluttet ugyldigt, må den gyldige gren af projektionen ikke kunne dannes.
+- Dette er den strukturelle rettelse af klassen af fejl, hvor en gate fodres af et signal (fx en lokal `hasError`-boolean),
+  der pr. design er blankt præcis når inputtet er ikke-committbart. Lokale felt-fejl-booleans må ikke være selvstændige
+  sandhedskilder for output; se `document-output-contract.md`.
+
+**Migration, ikke big-bang:** `invalidDrafts` + read-modellens projektion genbruges som substrat (§2.4). Målet er at gøre
+projektionsvejen obligatorisk og ikke-omgåelig for alle legitime consumers, domæne for domæne, før legacy-sidekanalerne
+fjernes. Sondringen *ikke udfyldt* vs. *ugyldig værdi* ejes af den forbrugende projektion, ikke af feltet (§7.3,
+`error-contract.md`).
 
 ---
 
@@ -359,6 +398,18 @@ Validering opdeles i to eksplicitte lag:
 - Ingen global `useEffect(() => validate(values))`
 - Ingen validering på hver keystroke
 - Ingen skjult auto-validering
+
+### 7.3 *Ikke udfyldt* vs. *ugyldig værdi* afgøres i den forbrugende projektion, ikke i feltet
+
+Et felt-lokalt parse-kald kan afgøre, om et input er *committbart* (gyldigt) eller *ikke-committbart* (ugyldigt format),
+men det kan **ikke** afgøre, om et tomt felt er en fejl — "påkrævet" er næsten altid kontekstafhængigt (fx "Månedsløn
+skal udfyldes *når* 'Angivet månedsløn' er valgt"). Derfor:
+
+- Tom tekst er **ikke** en ugyldig værdi. Parseren mapper tom tekst til gyldig med værdi `undefined`.
+- En ikke-tom, ikke-committbar draft (herunder en delvis indtastning som `12-05-`) er **ugyldig** (`invalidDrafts`, §2.4).
+- Sondringen mellem *ikke udfyldt* (`missing`) og *ugyldig værdi* (`invalid`) afgøres af den forbrugende projektion/
+  blocker, der kender kravet — ikke af feltet. Den maskinlæsbare taksonomi (`missing`/`invalid`) og de brugervendte
+  besked-skabeloner ejes af `error-contract.md`.
 
 ---
 

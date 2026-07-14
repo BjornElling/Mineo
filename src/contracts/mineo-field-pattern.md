@@ -5,7 +5,7 @@ Dette dokument fastlægger det **påkrævede interne mønster** for Mineos custo
 **Status:** Gældende arkitektur (normativt supplement)  
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer komponent-/adaptermønstret (lag A/B/C), ikke draft/commit-semantikken.  
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-14
 
 Det er et supplement til den normative Form Contract:
 - `src/contracts/form-contract.md`
@@ -201,8 +201,17 @@ Felt-identitet er trust-kritisk: lander fokus efter undo på det forkerte felt, 
 2. **Persisterede felter SKAL bære `name`-prop.** Både immediate-commit-widgets (toggle/dropdown/radio) og blur-commit-felter (dato/beløb/tekst/percent/year/integer/week/fraction) SKAL have en `name`-prop lig feltnøglen. UI-baserne projicerer den til `data-mineo-undo-field-path` på det fokuserbare DOM-element (jf. `StyledTextFieldBase.tsx`: `'data-mineo-undo-field-path': … ?? name`), så fokus-restore kan finde målet. For celle-dropdowns SKAL identiteten sidde på den fokuserbare combobox-trigger, ikke på et skjult native `<input>`.
 3. **Tabel-row-id er datanøgle, ikke UI-alias.** Et ikke-tomt, persisteret tabel-row-id må ikke omskrives for at redde fokus efter undo/redo. Hvis en resync skal kunne finde en celle via et tidligere row-id, SKAL det tidligere mål bæres som særskilt fokus-alias (`data-mineo-undo-field-path-aliases`), mens `data-mineo-undo-field-path`, `name`, `invalidDrafts`, validering, beregning og persistence fortsat bruger det faktiske row-id. Tomme syntetiske rækker må arve et tidligere id, fordi de ikke persisteres som brugerinput.
 4. **Transiente felter deltager ikke.** Felter, der kun skriver til lokal React-state og aldrig committer til persisteret state (fx løntrin-finder, sygedagpenge-indsæt), bærer hverken `name` eller `fieldPath` og indgår ikke i undo/redo.
+5. **Binding til den afsluttede inputtilstand er obligatorisk for persisterede sagsfelter (greenfield draft/commit
+   2026-07-14).** Et persisteret sagsfelt må **ikke** rendere "ubundet" og derved kun holde en afsluttet ugyldig
+   tilstand lokalt (i adapterens `useState`-fallback). Den ugyldige afsluttede tilstand skal nå den centrale
+   `invalidDrafts`-store, så den overlever `F5`, ses af read-model + save-/download-gate og kan undo/redo'es. Konkret:
+   `useStyledFieldAdapter`-baserede sagsfelter skal have `onFieldError`-bindingen (kanalen), og GridCore-celler skal
+   have `useSaveError`-adaptere under `CellInvalidDraftScopeProvider`. Den lokale fallback i `useInvalidDraftSlot` er
+   forbeholdt reelt transiente/ubundne felter (punkt 4) — ikke persisterede sagsfelter. `Satser`s `aargang` var et
+   konkret eksempel på et fejlagtigt ubundet sagsfelt og skal bindes.
 
-Dette er forudsætningen for korrekt undo/redo-fokus-restore. Reglerne er kode-håndhævet af ovennævnte guard-tests.
+Dette er forudsætningen for korrekt undo/redo-fokus-restore og for, at et afsluttet ugyldigt input aldrig usynligt
+maskeres af en tidligere gyldig værdi. Reglerne er kode-håndhævet af ovennævnte guard-tests.
 
 ## Skjulte domæneregler (SKAL være eksplicitte)
 

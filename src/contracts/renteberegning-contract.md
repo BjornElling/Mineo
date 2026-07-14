@@ -3,7 +3,7 @@
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-06-30
+**Senest verificeret mod kode:** 2026-07-14
 
 ---
 
@@ -20,7 +20,14 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 1. Renteberegning må kun bruge committed input, og kun via de autoritative moduler i §1.
 2. Dato- og dagtælling følger `date-contract.md`.
 3. Beløb og afrunding følger `amount-contract.md`, medmindre rentedomænet får en mere specifik dokumenteret regel.
-4. PDF-download og nulstilling ("Slet alle indtastninger") kræver begge en eksplicit, auditerbar gate beregnet fra committed input, ikke implicit tabelcontext. Download-gaten bygges på det fælles `documentGateTypes`-primitiv (jf. `document-output-contract.md §A2`) via de rene domæne-funktioner `evaluateDownloadAllGate`/`evaluateOversigtDownloadGate` (`src/domain/renteberegning/renteberegningDownloadGate.ts`), som `RenteberegningTab.tsx` forbruger til `downloadAllDisabled`/`oversigtDownloadDisabled`. Nulstillings-gaten (`clearAllDisabled`) udledes fortsat committed-only i `RenteberegningTab.tsx`.
+4. PDF-download og nulstilling ("Slet alle indtastninger") kræver begge en eksplicit, auditerbar gate beregnet fra **afsluttet** input, ikke implicit tabelcontext. Download-gaten bygges på det fælles `documentGateTypes`-primitiv (jf. `document-output-contract.md §A2`) via de rene domæne-funktioner `evaluateDownloadAllGate`/`evaluateOversigtDownloadGate` (`src/domain/renteberegning/renteberegningDownloadGate.ts`), som `RenteberegningTab.tsx` forbruger til `downloadAllDisabled`/`oversigtDownloadDisabled`. Nulstillings-gaten (`clearAllDisabled`) udledes fortsat committed-only i `RenteberegningTab.tsx`.
+   - **"Committed-only" betyder afsluttet input (greenfield draft/commit 2026-07-14).** Et afsluttet ugyldigt input
+     (`invalidDrafts`) på et felt, download afhænger af — `beregningsdato` (globalt) eller en inkluderet rækkes
+     `renterFra`/`belob`/`tillaegstid` (per-række) — **skal** blokere den relevante download, også når der bag masken
+     ligger en tidligere gyldig canonical værdi. Gaten må ikke fodres af en lokal `hasError`-boolean, der er blank for
+     ikke-committbart format (`beregningsdatoHasError`/`renterFraHasError` fjernes som selvstændige sandhedskilder, jf.
+     `document-output-contract.md §A2.1`). Scope er præcist: en ugyldig celle i én række blokerer kun den rækkes
+     per-række-download + aggregat-downloads, ikke de øvrige gyldige rækkers per-række-download.
 5. Renderer-fejl må ikke være primær gate for ugyldigt brugerinput.
 
 ---
