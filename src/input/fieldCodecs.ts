@@ -2,17 +2,34 @@ import type { AmountValue } from '../schemas/amountExpressionSchema';
 import type { ISODateString } from '../types/branded';
 import { coerceToDanishDateString } from '../types/branded';
 import { trimWhitespaceEdges } from '../utils/draftNormalization';
-import { parseAmountInput, amountValueToDisplayString } from '../utils/expressionAmount';
+import {
+  parseAmountInput,
+  amountValueToDisplayString,
+  amountValueToDraftString,
+} from '../utils/expressionAmount';
 import { parseFractionString, type FractionParseOptions } from '../utils/fraction';
 import { parseIntegerDraftForCommit, type IntegerDraftParseConfig } from '../utils/integerDraftCore';
+import {
+  isSafeCanonicalDecimal,
+  isSafeCanonicalInteger,
+  isSafeCanonicalNumber,
+} from '../utils/numericSafety';
+import { getNumericBoundsConfigErrors } from '../utils/numericFieldConfig';
 import {
   MAX_AMOUNT_INTEGER_DIGITS,
   DEFAULT_AMOUNT_PRECISION,
   MAX_AMOUNT_RAW_LENGTH,
-  normalizePastedAmount,
 } from '../utils/amountInputUtils';
 import { parseDateDraftForCommit, type DateYearPolicy } from '../utils/dateDraftCommit';
-import { normalizeDatePaste, normalizePercentPaste } from '../utils/inputPasteNormalization';
+import {
+  normalizeAmountPaste,
+  normalizeDatePaste,
+  normalizeFractionPaste,
+  normalizeIntegerPaste,
+  normalizePercentPaste,
+  normalizeWeekPaste,
+  normalizeYearPaste,
+} from '../utils/inputPasteNormalization';
 import {
   formatPercentDisplay,
   parsePercentDraftForCommit,
@@ -27,10 +44,50 @@ const invalid = <T>(): FieldResolution<T> => ({ status: 'invalid' });
 
 const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pattern.test(key);
 
-/** Codec for rå tekst. Valgfri trimning gør tidligere form- og tabeladfærd eksplicit ved bindingen. */
-export const createTextFieldCodec = (options: Readonly<{ trim?: boolean }> = {}): FieldCodec<string> => Object.freeze({
-  parseForSettle: (raw) => valid(options.trim === true ? trimWhitespaceEdges(raw) : raw),
+const assertBooleanConfig = (codec: string, name: string, value: boolean): void => {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${codec}: ${name} skal være en boolean`);
+  }
+};
+
+const assertOptionalPositiveIntegerConfig = (codec: string, name: string, value: number | undefined): void => {
+  if (value !== undefined && (!Number.isInteger(value) || value < 1)) {
+    throw new Error(`${codec}: ${name} skal være et positivt heltal`);
+  }
+};
+
+const assertOptionalBooleanConfig = (codec: string, name: string, value: boolean | undefined): void => {
+  if (value !== undefined && typeof value !== 'boolean') {
+    throw new Error(`${codec}: ${name} skal være en boolean`);
+  }
+};
+
+const assertYearPolicyConfig = (codec: string, value: DateYearPolicy): void => {
+  if (value !== 'reject' && value !== 'infer' && value !== 'assume20xx') {
+    throw new Error(`${codec}: ukendt politik for tocifrede år`);
+  }
+};
+
+const assertNumericBoundsConfig = (
+  codec: string,
+  options: Readonly<{ minValue?: number; maxValue?: number; allowNegative?: boolean }>,
+  isRepresentable: (value: number) => boolean
+): void => {
+  const configError = getNumericBoundsConfigErrors(options)[0];
+  if (configError !== undefined) throw new Error(`${codec}: ${configError}`);
+
+  for (const [name, value] of [['minValue', options.minValue], ['maxValue', options.maxValue]] as const) {
+    if (value !== undefined && !isRepresentable(value)) {
+      throw new Error(`${codec}: ${name} kan ikke repræsenteres canonical`);
+    }
+  }
+};
+
+/** Formular- og tabeltekst bruger samme canonical trimning ved settle. */
+export const createTextFieldCodec = (): FieldCodec<string> => Object.freeze({
+  parseForSettle: (raw) => valid(trimWhitespaceEdges(raw)),
   format: (value) => value,
+  formatForEdit: (value) => value,
   acceptsInitialKey: initialKey(/^.$/u),
 });
 
@@ -39,17 +96,27 @@ export const createSelectionFieldCodec = <T extends string | number>(options: Re
   values: readonly T[];
   formatOption?: (value: T) => string;
 }>): FieldCodec<T | undefined> => {
+  if (options.values.some((value) => typeof value === 'number' && !isSafeCanonicalNumber(value))) {
+    throw new Error('SelectionFieldCodec: numeriske valg skal være endelige og sikkert repræsenterbare');
+  }
   const formatOption = options.formatOption ?? String;
-  const byDisplayValue = new Map(options.values.map((value) => [formatOption(value), value]));
-  if (options.values.length === 0 || byDisplayValue.size !== options.values.length) {
+  const formattedOptions = options.values.map((value) => ({ value, display: formatOption(value) }));
+  if (formattedOptions.some(({ display }) => display === '' || display.trim() !== display)) {
+    throw new Error('SelectionFieldCodec: visningstekster skal være ikke-tomme og uden ydre mellemrum');
+  }
+  const byDisplayValue = new Map(formattedOptions.map(({ value, display }) => [display, value]));
+  if (formattedOptions.length === 0 || byDisplayValue.size !== formattedOptions.length) {
     throw new Error('SelectionFieldCodec: valgmængden skal være ikke-tom og have entydige visningstekster');
   }
   return Object.freeze({
     parseForSettle: (raw) => {
       const value = raw.trim();
-      return value === '' ? valid(undefined) : byDisplayValue.has(value) ? valid(byDisplayValue.get(value) as T) : invalid();
+      if (value === '') return valid(undefined);
+      const selected = byDisplayValue.get(value);
+      return selected === undefined ? invalid() : valid(selected);
     },
     format: (value) => value === undefined ? '' : formatOption(value),
+    formatForEdit: (value) => value === undefined ? '' : formatOption(value),
     acceptsInitialKey: () => false,
   });
 };
@@ -66,79 +133,183 @@ export const createChoiceFieldCodec = <T extends string>(values: readonly T[]): 
 export const booleanFieldCodec: FieldCodec<boolean> = Object.freeze({
   parseForSettle: (raw) => raw === 'true' ? valid(true) : raw === 'false' ? valid(false) : invalid(),
   format: (value) => String(value),
+  formatForEdit: (value) => String(value),
   acceptsInitialKey: () => false,
 });
 
-export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: DateYearPolicy }>): FieldCodec<ISODateString | undefined> => Object.freeze({
-  parseForSettle: (raw) => {
-    const parsed = parseDateDraftForCommit(raw, options);
-    return parsed.ok ? valid(parsed.iso) : invalid();
-  },
-  format: (value) => value === undefined ? '' : coerceToDanishDateString(value) ?? '',
-  acceptsInitialKey: initialKey(/^\d$/),
-  normalizePaste: normalizeDatePaste,
-});
+export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: DateYearPolicy }>): FieldCodec<ISODateString | undefined> => {
+  assertYearPolicyConfig('DateFieldCodec', options.twoDigitYearPolicy);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const parsed = parseDateDraftForCommit(raw, options);
+      // Legacy-parseren behandler bl.a. "0" og specialtegn som clear. I inputaggregaten er kun
+      // reelt tom tekst canonical tomhed; ikke-tom tekst skal bevares som rejected input.
+      return parsed.ok && (parsed.iso !== undefined || raw.trim() === '') ? valid(parsed.iso) : invalid();
+    },
+    format: (value) => value === undefined ? '' : coerceToDanishDateString(value) ?? '',
+    formatForEdit: (value) => value === undefined ? '' : coerceToDanishDateString(value) ?? '',
+    acceptsInitialKey: initialKey(/^\d$/),
+    normalizePaste: (raw) => normalizeDatePaste(raw, options),
+  });
+};
 
-export const createAmountFieldCodec = (options: Readonly<{ allowNegative: boolean }>): FieldCodec<AmountValue | undefined> => Object.freeze({
-  parseForSettle: (raw) => {
-    const parsed = parseAmountInput(raw, {
-      precision: DEFAULT_AMOUNT_PRECISION,
+export const createAmountFieldCodec = (options: Readonly<{
+  allowNegative: boolean;
+  allowDecimals: boolean;
+  minValue?: number;
+  maxValue?: number;
+}>): FieldCodec<AmountValue | undefined> => {
+  assertBooleanConfig('AmountFieldCodec', 'allowNegative', options.allowNegative);
+  assertBooleanConfig('AmountFieldCodec', 'allowDecimals', options.allowDecimals);
+  assertNumericBoundsConfig(
+    'AmountFieldCodec',
+    options,
+    (value) => options.allowDecimals
+      ? isSafeCanonicalDecimal(value, DEFAULT_AMOUNT_PRECISION)
+      : isSafeCanonicalInteger(value)
+  );
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const parsed = parseAmountInput(raw, {
+        precision: DEFAULT_AMOUNT_PRECISION,
+        allowNegative: options.allowNegative,
+        allowDecimals: options.allowDecimals,
+        maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
+        maxRawLength: MAX_AMOUNT_RAW_LENGTH,
+      });
+      // Et ikke-tomt beløbsudtryk uden cifre er ugyldigt, ikke en implicit rydning af feltet.
+      return parsed.ok && (parsed.value !== undefined || raw.trim() === '') ? valid(parsed.value) : invalid();
+    },
+    format: (value) => amountValueToDisplayString(value, DEFAULT_AMOUNT_PRECISION),
+    formatForEdit: (value) => amountValueToDraftString(value, DEFAULT_AMOUNT_PRECISION),
+    acceptsInitialKey: (key) => /^[0-9,()-]$/.test(key) && (key !== '-' || options.allowNegative),
+    normalizePaste: (raw) => normalizeAmountPaste(raw, {
       allowNegative: options.allowNegative,
+      allowDecimals: options.allowDecimals,
       maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
+      maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
-    });
-    return parsed.ok ? valid(parsed.value) : invalid();
-  },
-  format: (value) => amountValueToDisplayString(value, DEFAULT_AMOUNT_PRECISION),
-  acceptsInitialKey: (key) => /^[0-9,()-]$/.test(key) && (key !== '-' || options.allowNegative),
-  normalizePaste: normalizePastedAmount,
-});
+      minValue: options.minValue,
+      maxValue: options.maxValue,
+    }),
+  });
+};
 
-export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<number | undefined> => Object.freeze({
-  parseForSettle: (raw) => {
-    const parsed = parsePercentDraftForCommit(raw, config);
-    return parsed.ok ? valid(parsed.value) : invalid();
-  },
-  format: (value) => formatPercentDisplay(value, config.allowDecimals),
-  acceptsInitialKey: (key) => (config.allowDecimals ? /^[0-9,-]$/ : /^[0-9-]$/).test(key)
-    && (key !== '-' || config.allowNegative),
-  normalizePaste: (raw) => normalizePercentPaste(raw, { maxValue: config.maxValue }),
-});
+export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<number | undefined> => {
+  assertBooleanConfig('PercentFieldCodec', 'allowNegative', config.allowNegative);
+  assertBooleanConfig('PercentFieldCodec', 'allowDecimals', config.allowDecimals);
+  assertNumericBoundsConfig(
+    'PercentFieldCodec',
+    config,
+    (value) => config.allowDecimals
+      ? isSafeCanonicalDecimal(value, 2)
+      : isSafeCanonicalInteger(value)
+  );
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      // Min/max er afledte bounds-issues. Codecet afgør kun, om teksten kan blive canonical.
+      const parsed = parsePercentDraftForCommit(raw, {
+        allowNegative: config.allowNegative,
+        allowDecimals: config.allowDecimals,
+      });
+      return parsed.ok ? valid(parsed.value) : invalid();
+    },
+    format: (value) => formatPercentDisplay(value, config.allowDecimals),
+    formatForEdit: (value) => formatPercentDisplay(value, config.allowDecimals),
+    acceptsInitialKey: (key) => (config.allowDecimals ? /^[0-9,-]$/ : /^[0-9-]$/).test(key)
+      && (key !== '-' || config.allowNegative),
+    normalizePaste: (raw) => normalizePercentPaste(raw, {
+      allowNegative: config.allowNegative,
+      allowDecimals: config.allowDecimals,
+      minValue: config.minValue,
+      maxValue: config.maxValue,
+    }),
+  });
+};
 
-export const createIntegerFieldCodec = (config: IntegerDraftParseConfig): FieldCodec<number | undefined> => Object.freeze({
-  parseForSettle: (raw) => {
-    const parsed = parseIntegerDraftForCommit(raw, config);
-    return parsed.ok ? valid(parsed.value) : invalid();
-  },
-  format: (value) => value === undefined ? '' : String(value),
-  acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
-});
+export const createIntegerFieldCodec = (
+  config: IntegerDraftParseConfig & Readonly<{ minValue?: number; maxValue?: number }>
+): FieldCodec<number | undefined> => {
+  assertBooleanConfig('IntegerFieldCodec', 'allowNegative', config.allowNegative);
+  assertOptionalPositiveIntegerConfig('IntegerFieldCodec', 'maxDigits', config.maxDigits);
+  assertNumericBoundsConfig('IntegerFieldCodec', config, isSafeCanonicalInteger);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const parsed = parseIntegerDraftForCommit(raw, config);
+      return parsed.ok ? valid(parsed.value) : invalid();
+    },
+    format: (value) => value === undefined ? '' : String(value),
+    formatForEdit: (value) => value === undefined ? '' : String(value),
+    acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
+    normalizePaste: (raw) => normalizeIntegerPaste(raw, {
+      allowNegative: config.allowNegative,
+      maxDigits: config.maxDigits,
+      minValue: config.minValue,
+      maxValue: config.maxValue,
+    }),
+  });
+};
 
-export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<number | undefined> => Object.freeze({
-  parseForSettle: (raw) => {
-    const parsed = parseYearDraftForCommit(raw, config);
-    return parsed.ok ? valid(parsed.value) : invalid();
-  },
-  format: (value) => value === undefined ? '' : String(value),
-  acceptsInitialKey: initialKey(/^\d$/),
-});
+export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<number | undefined> => {
+  assertYearPolicyConfig('YearFieldCodec', config.twoDigitYearPolicy);
+  assertNumericBoundsConfig('YearFieldCodec', {
+    minValue: config.minYear,
+    maxValue: config.maxYear,
+    allowNegative: false,
+  }, isSafeCanonicalInteger);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      // Feltets tilladte årinterval valideres som bounds efter canonical parsing.
+      const parsed = parseYearDraftForCommit(raw, { twoDigitYearPolicy: config.twoDigitYearPolicy });
+      return parsed.ok ? valid(parsed.value) : invalid();
+    },
+    format: (value) => value === undefined ? '' : String(value),
+    formatForEdit: (value) => value === undefined ? '' : String(value),
+    acceptsInitialKey: initialKey(/^\d$/),
+    normalizePaste: (raw) => normalizeYearPaste(raw, config),
+  });
+};
 
-export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<string | undefined> => Object.freeze({
-  parseForSettle: (raw) => {
-    const parsed = parseWeekDraftForCommit(raw, config);
-    return parsed.ok ? valid(parsed.value) : invalid();
-  },
-  format: (value) => value ?? '',
-  acceptsInitialKey: initialKey(/^\d$/),
-});
+export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<string | undefined> => {
+  assertOptionalPositiveIntegerConfig('WeekFieldCodec', 'maxDraftLength', config.maxDraftLength);
+  assertYearPolicyConfig('WeekFieldCodec', config.twoDigitYearPolicy);
+  assertNumericBoundsConfig('WeekFieldCodec', {
+    minValue: config.minYear,
+    maxValue: config.maxYear,
+    allowNegative: false,
+  }, isSafeCanonicalInteger);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      // Årsintervallet er et bounds-issue; kalenderugens eksistens er fortsat en del af syntaksen.
+      const parsed = parseWeekDraftForCommit(raw, {
+        twoDigitYearPolicy: config.twoDigitYearPolicy,
+        maxDraftLength: config.maxDraftLength,
+      });
+      return parsed.ok ? valid(parsed.value) : invalid();
+    },
+    format: (value) => value ?? '',
+    formatForEdit: (value) => value ?? '',
+    acceptsInitialKey: initialKey(/^\d$/),
+    normalizePaste: (raw) => normalizeWeekPaste(raw, config),
+  });
+};
 
-export const createFractionFieldCodec = (config: FractionParseOptions): FieldCodec<string | undefined> => Object.freeze({
-  parseForSettle: (raw) => {
-    const trimmed = raw.trim();
-    if (trimmed === '') return valid(undefined);
-    const parsed = parseFractionString(trimmed, config);
-    return parsed.ok ? valid(parsed.parsed.value) : invalid();
-  },
-  format: (value) => value ?? '',
-  acceptsInitialKey: (key) => /^[0-9/,]$/.test(key) || (key === '-' && config.allowNegative === true),
-});
+export const createFractionFieldCodec = (config: FractionParseOptions): FieldCodec<string | undefined> => {
+  assertOptionalPositiveIntegerConfig('FractionFieldCodec', 'maxDigits', config.maxDigits);
+  assertOptionalBooleanConfig('FractionFieldCodec', 'allowNegative', config.allowNegative);
+  assertOptionalBooleanConfig('FractionFieldCodec', 'allowZeroNumerator', config.allowZeroNumerator);
+  assertOptionalBooleanConfig('FractionFieldCodec', 'canonicalizeOnCommit', config.canonicalizeOnCommit);
+  assertOptionalBooleanConfig('FractionFieldCodec', 'requireIntegerFraction', config.requireIntegerFraction);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const trimmed = raw.trim();
+      if (trimmed === '') return valid(undefined);
+      const parsed = parseFractionString(trimmed, config);
+      return parsed.ok ? valid(parsed.parsed.value) : invalid();
+    },
+    format: (value) => value ?? '',
+    formatForEdit: (value) => value ?? '',
+    acceptsInitialKey: (key) => /^[0-9/,]$/.test(key) || (key === '-' && config.allowNegative === true),
+    normalizePaste: (raw) => normalizeFractionPaste(raw, config),
+  });
+};

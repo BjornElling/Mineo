@@ -43,6 +43,7 @@ import {
 } from './eoSnapshotInvariants';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
+import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
 
 export type EoSnapshotComputedData = Readonly<{
   engines: Readonly<{
@@ -262,8 +263,14 @@ export const computeEoSnapshot = (args: Readonly<{
     skadedatoISO: parsedStamdata.data.skadedato,
     skadestype: parsedStamdata.data.skadestype,
   });
+  const stamdataDateOrderErrors = resolveStamdataDateOrder(parsedStamdata.data).issues.map((issue) => ({
+    path: `stamdata.${issue.field}`,
+    message: issue.message,
+    severity: 'error' as const,
+  }));
   const validationInvariants = [
     ...buildValidationInvariants(validationResult.errors),
+    ...buildValidationInvariants(stamdataDateOrderErrors),
     ...midlertidigtEetSourceInvariants,
   ];
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {

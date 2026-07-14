@@ -101,4 +101,16 @@ describe('fraction utils', () => {
       reason: 'non-integer',
     });
   });
+
+  it('afviser decimaldele som ville blive afrundet skjult ved number-konvertering', () => {
+    expect(parseFractionString('9007199254,740992/1', { maxDigits: 10 }))
+      .toEqual({ ok: false, reason: 'invalid' });
+    expect(parseFractionString('1/9007199254,740992', { maxDigits: 10 }))
+      .toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('afviser en afledt kvotient uden sikker numerisk størrelsesorden', () => {
+    expect(parseFractionString('9999999999/0,0000000001'))
+      .toEqual({ ok: false, reason: 'invalid' });
+  });
 });

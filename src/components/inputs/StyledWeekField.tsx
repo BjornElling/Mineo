@@ -124,7 +124,12 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
       parse: parseWeek,
       normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
-      normalizePasteText: normalizeWeekPaste,
+      normalizePasteText: (text) => normalizeWeekPaste(text, {
+        minYear,
+        maxYear,
+        twoDigitYearPolicy,
+        maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
+      }),
       onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,

@@ -38,16 +38,9 @@ export type StyledPercentFieldProps = {
    * Når sand er intervallet en commit-grænse: værdier udenfor bliver en
    * blokerende invalid draft. Ellers er intervallet kun en visuel fejl.
    *
-   * Default er `true`, så et tal uden for intervallet afvises straks i feltet og aldrig
-   * når ind i beregningen — ensartet med heltals-, beløbs- og tabelcelle-felterne. Det er
-   * den kanoniske måde at afvise en ugyldig værdi med rød ring + tooltip.
-   *
-   * Et UI-interval må bevidst være snævrere end schema-grænsen, netop for at afvise en værdi
-   * som schemaet ellers ville tillade: méngrad-feltet og "Forlig om ansvarsgrad" bruger begge
-   * `minValue={1}` (mens schemaet tillader 0) for at blokere 0 % i feltet. Behold `true` her —
-   * det er ønsket, at feltet aldrig committer den værdi. Sæt kun `false`, hvis det snævrere
-   * interval skal være en ren visuel, IKKE-blokerende advarsel (via `getVisualError`), dvs.
-   * hvor værdien fortsat må committes.
+   * Default `true` er kun bevaret for eksisterende, endnu ikke migrerede callsites. Greenfield-
+   * feltmotoren committer parsebare tal canonical og afleder intervallet som et issue; nye callsites
+   * må derfor ikke bruge denne legacy-seam. `false` giver samme canonical adfærd via `getVisualError`.
    *
    * Bemærk: en blokerende invalid draft (dette default) eksponeres centralt som en blokerende
    * feltfejl (`invalid-draft`-source i formPersistenceReadModel), så den — præcis som en committet
@@ -318,7 +311,11 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       normalizeDraftOnCommit: (draft) => prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(draft)),
       getDraftForKey,
       normalizePasteText: (text) => normalizePercentPaste(text, {
+        allowNegative,
+        allowDecimals,
         maxIntegerDigits: effectiveMaxIntegerDigits,
+        minValue: enforceRange ? resolvedRange.effectiveMin : undefined,
+        maxValue: enforceRange ? resolvedRange.effectiveMax : undefined,
       }),
       onCommit: (nextValue) => {
         const committed = onCommit?.(createCommitEvent(nextValue)) ?? true;

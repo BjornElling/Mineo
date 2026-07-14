@@ -15,7 +15,10 @@ import type { StandardLoenTableHandle } from '../types/handles';
 import type { AarsloenValues } from '../schemas/formSchemas';
 import type { PeriodeResult } from '../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../types/calculation';
-import { harTabelValideringsFejl } from '../domain/aarsloen/aarsloenValidationPolicies';
+import {
+  harTabelValideringsFejl,
+  resolveAarsloenCanonicalRangeIssues,
+} from '../domain/aarsloen/aarsloenValidationPolicies';
 import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import type { AppSettings } from '../settings/appSettingsSchema';
@@ -125,6 +128,14 @@ export const useAarsloenDocumentGates = ({
    * Alle gates samlet ét sted for nem vedligeholdelse.
    */
   const getDocumentEligibility = React.useMemo((): DocumentDownloadGateResult => {
+    const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret })[0];
+    if (canonicalRangeIssue) {
+      return blockDocumentDownload({
+        code: 'aarsloen:canonical-range-error',
+        message: canonicalRangeIssue.message,
+      });
+    }
+
     // GATE 1: Data i tabellen
     if (!tableData || tableData.length === 0) {
       return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
@@ -173,6 +184,7 @@ export const useAarsloenDocumentGates = ({
     harFatalBeregningsFejl,
     omregningAktiveret,
     periodeData,
+    values,
   ]);
 
   const canDownloadDocument = getDocumentEligibility.canDownload;
@@ -185,6 +197,13 @@ export const useAarsloenDocumentGates = ({
    * auditerbar årsag, så det nedtonede download-ikon kan vise hvorfor det er blokeret.
    */
   const shDageEligibility = React.useMemo((): DocumentDownloadGateResult => {
+    const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret })[0];
+    if (canonicalRangeIssue) {
+      return blockDocumentDownload({
+        code: 'aarsloen:sh-canonical-range-error',
+        message: canonicalRangeIssue.message,
+      });
+    }
     if (!periodeData) {
       return blockDocumentDownload({ code: 'aarsloen:sh-missing-period-data', message: 'Mangler periode-data' });
     }
@@ -195,7 +214,7 @@ export const useAarsloenDocumentGates = ({
       return blockDocumentDownload({ code: 'aarsloen:sh-zero', message: 'Ingen SH-dage i de indtastede perioder' });
     }
     return allowDocumentDownload();
-  }, [periodeData, shDageAntal]);
+  }, [omregningAktiveret, periodeData, shDageAntal, values]);
 
   const canDownloadSHDageDocument = shDageEligibility.canDownload;
   const shDageDisabledReason = shDageEligibility.canDownload
@@ -227,6 +246,14 @@ export const useAarsloenDocumentGates = ({
         tabelRef.current?.flashError(firstError);
       }
 
+      return;
+    }
+
+    // Handlingen genkører den samme committed gate som knappen. Dermed kan en
+    // programmatisk aktivering ikke omgå fx en canonical rangefejl.
+    if (!getDocumentEligibility.canDownload) {
+      setDownloadErrorMessage(null);
+      triggerDownloadShake();
       return;
     }
 
@@ -279,16 +306,14 @@ export const useAarsloenDocumentGates = ({
     persistedStamdata,
     tabelRef,
     settings,
+    getDocumentEligibility,
   ]);
 
   /**
    * Håndter dokument-download for SH-dage
    */
   const handleSHDageDocumentDownload = React.useCallback(async () => {
-    // Gates
-    if (!periodeData) return;
-    if (shDageAntal == null) return;
-    if (shDageAntal === 0) return;
+    if (!shDageEligibility.canDownload || !periodeData) return;
 
     // Konverter perioder til format som PDF-generatoren forventer
     const perioder = periodeData.perioder || [];
@@ -299,7 +324,7 @@ export const useAarsloenDocumentGates = ({
       persistedStamdata,
     });
     setDownloadErrorMessage(result.success ? null : result.error);
-  }, [periodeData, shDageAntal, settings, persistedStamdata]);
+  }, [periodeData, settings, persistedStamdata, shDageEligibility]);
 
   return {
     canDownloadDocument,

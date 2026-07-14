@@ -100,6 +100,10 @@ Per-sektion-nøgler og den separate `invalidDrafts`-envelope migreres én gang:
 Ved fejl bevares alle gamle nøgler uændret, og runtime må ikke anvende et delvist snapshot. Brugeren får en eksplicit
 dansk systemfejl. Der etableres ikke permanent dual-read, dual-write eller compatibility-facade.
 
+Current-formatets serialiserede feltadresse har én byte-for-byte kanonisk JSON-repræsentation. Alternative
+property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter accepteres ikke som current keys; gamle
+formater og aliases må kun oversættes i det versionsbårne migrationslag.
+
 ## 5. `.eo` save-garantier
 
 1. `.eo` indeholder alt schema-valideret brugerinput og kun canonical sagsinput.
@@ -113,6 +117,10 @@ dansk systemfejl. Der etableres ikke permanent dual-read, dual-write eller compa
 
 Range/bounds på en schema-gyldig canonical værdi kan fortsat være ikke-save-blokerende efter `form-contract.md` og
 domænets policy. Dokument-output følger den strengere dokumentpolicy.
+
+Sektionsschemas validerer canonical syntaks, shape og sikker numerisk repræsentation — ikke feltets fortegn, min/max,
+tværfeltsrelationer eller øvrige domæneregler. Sådanne regler afledes som issues fra samme canonical snapshot og må
+ikke gøre værdien urepræsenterbar eller få en loadbar sektion droppet.
 
 Al inbound `.eo`-afkodning går gennem én `EoFileCodec`. Save-read-back-verifikation er en separat strikt
 integritetskontrol og må ikke blandes med loadens tolerante migrering.

@@ -1,10 +1,18 @@
 import { z } from 'zod';
+import { cloneAndDeepFreeze } from '../utils/deepFreeze';
+import { createCollectionRef } from './fieldAddress';
 import type { CollectionRef } from './fieldAddress';
 import { serializeFieldAddress } from './fieldAddress';
 import type { FieldRef } from './fieldDefinition';
-import type { PersistedInputSections, PersistedInputState } from './inputState';
+import type { InputCatalog } from './fieldCatalog';
+import type { PersistedInputState } from './inputState';
 
-export const inputRevisionSchema = z.number().int().nonnegative().brand<'InputRevision'>();
+export const inputRevisionSchema = z.number()
+  .int()
+  .nonnegative()
+  // Revisionen er en identitetsnøgle; et usikkert heltal kan kollidere med naborevisionen.
+  .refine(Number.isSafeInteger, 'Inputrevisionen skal være et sikkert heltal')
+  .brand<'InputRevision'>();
 export type InputRevision = z.infer<typeof inputRevisionSchema>;
 
 export type SettledFieldState<T> =
@@ -22,51 +30,42 @@ export type InputReader = Readonly<{
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
 }>;
 
-export type InputFieldCatalog = Readonly<{
-  assertKnownField: <T>(field: FieldRef<T>) => void;
-  readCanonical: <T>(sections: PersistedInputSections, field: FieldRef<T>) => T;
-}>;
-
-export type InputCollectionCatalog = Readonly<{
-  listEntityIds: (
-    sections: PersistedInputSections,
-    collection: CollectionRef
-  ) => readonly string[];
-}>;
-
 type CreateInputReaderOptions = Readonly<{
   input: PersistedInputState;
   revision: InputRevision;
-  fieldCatalog: InputFieldCatalog;
-  collectionCatalog: InputCollectionCatalog;
+  catalog: InputCatalog;
 }>;
 
-export const createInputReader = ({
-  input,
-  revision,
-  fieldCatalog,
-  collectionCatalog,
-}: CreateInputReaderOptions): InputReader => Object.freeze({
-  revision,
-  read: <T>(field: FieldRef<T>): SettledFieldState<T> => {
-    // Definition-identiteten valideres før rejected-short-circuit, så en forged ref aldrig
-    // accepteres i invalid-grenen og afvises i valid-grenen for samme adresse.
-    fieldCatalog.assertKnownField(field);
+export const createInputReader = ({ input, revision, catalog }: CreateInputReaderOptions): InputReader => {
+  if (!catalog.isSealed) throw new Error('InputReader: kataloget skal være forseglet');
+  // Readeren ejer en isoleret kopi, så caller- eller consumer-mutation aldrig kan ændre samme revision.
+  const snapshot = cloneAndDeepFreeze(input);
 
-    const rejected = input.rejectedInputs[serializeFieldAddress(field.address)];
-    if (rejected !== undefined) {
-      return Object.freeze({ status: 'invalid', raw: rejected.raw });
-    }
+  return Object.freeze({
+    revision,
+    read: <T>(field: FieldRef<T>): SettledFieldState<T> => {
+      // Snapshotmedlemskab valideres før rejected-short-circuit, så en ref til en slettet række
+      // aldrig kan ligne et almindeligt invalid/missing felt.
+      catalog.assertKnownFieldInInput(snapshot.sections, field);
 
-    return Object.freeze({
-      status: 'valid',
-      value: fieldCatalog.readCanonical(input.sections, field),
-    });
-  },
-  listEntities: (collection) => Object.freeze(
-    collectionCatalog.listEntityIds(input.sections, collection)
-      .map((entityId) => Object.freeze({ collection, entityId }))
-  ),
-});
+      const rejected = snapshot.rejectedInputs[serializeFieldAddress(field.address)];
+      if (rejected !== undefined) return Object.freeze({ status: 'invalid', raw: rejected.raw });
+
+      const value = catalog.readCanonical(snapshot.sections, field);
+      return Object.freeze({
+        status: 'valid',
+        // Readeren overtager aldrig en reference, som en binding eventuelt genbruger uden for snapshottet.
+        value: cloneAndDeepFreeze(value) as T,
+      });
+    },
+    listEntities: (collection) => {
+      const canonicalCollection = createCollectionRef(collection);
+      return Object.freeze(
+        catalog.listEntityIds(snapshot.sections, canonicalCollection)
+          .map((entityId) => Object.freeze({ collection: canonicalCollection, entityId }))
+      );
+    },
+  });
+};
 
 export const createInputRevision = (value: number): InputRevision => inputRevisionSchema.parse(value);

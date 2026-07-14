@@ -73,6 +73,17 @@ describe('hasOverlapPeriod', () => {
 });
 
 describe('computeEetLoebendeYdelser', () => {
+  it('blokerer en canonical negativ årsløn som afledt domæneissue', () => {
+    const result = computeTestRows([], { aslAarsloen: -1000 });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'aarsloen-zero',
+      severity: 'error',
+      message: 'Årsløn skal være større end 0 kr',
+    });
+  });
+
   it('afviser ikke-positive ASL-årslønsmaksimum før grundlønsdivision', () => {
     const original = aarsloenAslMax[2019];
     aarsloenAslMax[2019] = 0;

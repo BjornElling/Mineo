@@ -177,6 +177,36 @@ describe('StyledDateField', () => {
     expect(input).toHaveValue('17-12-1956');
   });
 
+  it('bevarer en pasted dato uden for kronologiske bounds og viser range-fejlen', async () => {
+    const user = userEvent.setup();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
+      return (
+        <StyledDateField
+          value={value}
+          minDate={toISODateString('2020-01-01')}
+          maxDate={toISODateString('2020-12-31')}
+          onCommit={(e) => {
+            setValue(e.target.value);
+            return true;
+          }}
+        />
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+    input.focus();
+    await user.paste('01-01-2028');
+    await user.tab();
+
+    expect(input).toHaveValue('01-01-2028');
+    expect(screen.getByText(/Dato skal/)).toBeInTheDocument();
+  });
+
   it('normalizes commas and other special characters to hyphens on commit', async () => {
     const user = userEvent.setup();
 

@@ -3,6 +3,7 @@ import { bindField, defineField } from '../../input/fieldDefinition';
 import {
   ALLOW_SAVE_INPUT_ISSUE_POLICY,
   BLOCK_SAVE_INPUT_ISSUE_POLICY,
+  deduplicateInputIssues,
   createFieldInputIssue,
   createOutputInputIssue,
   isDocumentBlockingIssue,
@@ -18,6 +19,7 @@ const createField = (label: string, controlKind: 'text' | 'choice' | 'toggle') =
     codec: {
       parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
       format: (value) => value ?? '',
+      formatForEdit: (value) => value ?? '',
       acceptsInitialKey: (key) => key.length === 1,
     },
   }),
@@ -132,5 +134,77 @@ describe('inputIssue', () => {
       message: 'Dokumentgrundlaget er ugyldigt',
       policy: BLOCK_SAVE_INPUT_ISSUE_POLICY,
     })).toThrow('InputIssue: output-id må ikke være tom');
+  });
+
+  it('udsteder kun immutable issues med valideret policy og detail', () => {
+    const field = createField('Dato', 'text');
+    const issue = createFieldInputIssue({
+      field,
+      reason: 'bounds',
+      code: 'dato.bounds',
+      message: 'Datoen ligger uden for grænserne',
+      policy: BLOCK_SAVE_INPUT_ISSUE_POLICY,
+      detail: { minimum: '01-01-2020', maximum: 2030 },
+    });
+
+    expect(Object.isFrozen(issue)).toBe(true);
+    expect(Object.isFrozen(issue.target)).toBe(true);
+    expect(Object.isFrozen(issue.policy)).toBe(true);
+    expect(Object.isFrozen(issue.detail)).toBe(true);
+
+    expect(() => createFieldInputIssue({
+      field,
+      reason: 'rule',
+      code: 'dato.rule',
+      message: 'Datoen opfylder ikke reglen',
+      policy: { blocksSave: 'ja' as never },
+    })).toThrow('InputIssue: save-policy skal angive blocksSave som boolean');
+    expect(() => createFieldInputIssue({
+      field,
+      reason: 'bounds',
+      code: 'dato.bounds',
+      message: 'Datoen ligger uden for grænserne',
+      policy: BLOCK_SAVE_INPUT_ISSUE_POLICY,
+      detail: { minimum: Number.NEGATIVE_INFINITY },
+    })).toThrow('InputIssue: numeriske detailværdier skal være endelige');
+  });
+
+  it('afviser kopierede issues ved gate-grænsen', () => {
+    const authentic = createFieldInputIssue({ field: createField('Dato', 'text'), reason: 'invalid' });
+    const copied = { ...authentic } as typeof authentic;
+
+    expect(() => isSaveBlockingIssue(copied))
+      .toThrow('InputIssue: issue skal være oprettet af den autoritative factory');
+    expect(() => isDocumentBlockingIssue(copied))
+      .toThrow('InputIssue: issue skal være oprettet af den autoritative factory');
+  });
+
+  it('afviser mutable feltreferencer, der kunne ændre et udstedt issue', () => {
+    const field = createField('Dato', 'text');
+    const mutableField = { ...field };
+
+    expect(() => createFieldInputIssue({ field: mutableField, reason: 'invalid' }))
+      .toThrow('InputIssue: feltreferencen skal være oprettet af de immutable feltbuilders');
+  });
+
+  it('holder issue-identiteter adskilt uden delimiterkollisioner', () => {
+    const first = createOutputInputIssue({
+      outputId: 'bilag|rule',
+      label: 'Første bilag',
+      reason: 'schema',
+      code: 'kode',
+      message: 'Første issue',
+      policy: BLOCK_SAVE_INPUT_ISSUE_POLICY,
+    });
+    const second = createOutputInputIssue({
+      outputId: 'bilag',
+      label: 'Andet bilag',
+      reason: 'rule',
+      code: 'schema|kode',
+      message: 'Andet issue',
+      policy: BLOCK_SAVE_INPUT_ISSUE_POLICY,
+    });
+
+    expect(deduplicateInputIssues([first, second])).toEqual([first, second]);
   });
 });

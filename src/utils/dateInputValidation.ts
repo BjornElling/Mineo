@@ -44,6 +44,8 @@ export const interpretYear = (yearStr: string): number | null => {
     const year20xx = 2000 + yearNum;
     const year19xx = 1900 + yearNum;
 
+    // Låst designbeslutning: pivoten følger kalenderåret. Den må ikke erstattes af et fast år,
+    // fordi samme tocifrede input bevidst flytter århundrede, når femårs-vinduet flytter sig.
     if (year20xx > currentYear + 5) {
       return year19xx;
     }

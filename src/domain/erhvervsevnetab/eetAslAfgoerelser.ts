@@ -422,6 +422,10 @@ export const validatePercentDivisibleBy5 = (
 ): string | undefined => {
   const parsed = parseCommittedPercent(raw);
   if (parsed === undefined) return undefined;
+  // Persistence-schemaet beskytter kun den canonical talsyntaks. Det tidligere
+  // schema-bound skal derfor leve i den rene issue-validator, så load/import også
+  // fail-closer uden et monteret procentfelt.
+  if (parsed < 0 || parsed > 100) return `${label} skal være mellem 0 og 100 %.`;
   if (!Number.isInteger(parsed)) return `${label} skal være et heltal.`;
   if (parsed % 5 !== 0) return `${label} skal være deleligt med 5.`;
   return undefined;
@@ -432,6 +436,7 @@ export const validatePercentDivisibleBy5FromValue = (
   label: string
 ): string | undefined => {
   if (value === undefined || !Number.isFinite(value)) return undefined;
+  if (value < 0 || value > 100) return `${label} skal være mellem 0 og 100 %.`;
   if (!Number.isInteger(value)) return `${label} skal være et heltal.`;
   if (value % 5 !== 0) return `${label} skal være deleligt med 5.`;
   return undefined;
@@ -469,6 +474,8 @@ export const INCOMPLETE_ROW_ISSUE_IDS = {
   kapPctWithoutKapDato: 'kap-pct-without-kap-dato',
   virkningsdatoAfterTidlKapDato: 'virkningsdato-after-tidlkap-dato',
   kapDatoNotAfterTidlKapDato: 'kap-dato-not-after-tidlkap-dato',
+  invalidEetPct: 'invalid-eet-pct',
+  invalidKapPct: 'invalid-kap-pct',
 } as const;
 
 export type IncompleteRowIssue = Readonly<{
@@ -493,6 +500,20 @@ export const collectIncompleteRowIssues = (
   });
   if (hasMissingEetPct) {
     issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, message: 'Der er en afgørelse uden EET %' });
+  }
+
+  const invalidEetPctMessage = startedRows
+    .map((row) => validatePercentDivisibleBy5(row.eetPct, 'EET %'))
+    .find((message) => message !== undefined);
+  if (invalidEetPctMessage) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.invalidEetPct, message: invalidEetPctMessage });
+  }
+
+  const invalidKapPctMessage = startedRows
+    .map((row) => validatePercentDivisibleBy5(row.kapPct, 'Kapitaliseringsprocent'))
+    .find((message) => message !== undefined);
+  if (invalidKapPctMessage) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.invalidKapPct, message: invalidKapPctMessage });
   }
 
   const hasMissingAfgoerelseType = startedRows.some((row) => !row.afgoerelseType);

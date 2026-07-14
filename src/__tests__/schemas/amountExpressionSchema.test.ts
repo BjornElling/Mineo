@@ -2,6 +2,7 @@ import {
   amountExpressionSchema,
   amountNumberSchema,
   amountValueSchema,
+  optionalAmountValueSchema,
 } from '../../schemas/amountExpressionSchema';
 import * as expressionAmountModule from '../../utils/expressionAmount';
 
@@ -29,6 +30,10 @@ describe('amountExpressionSchema', () => {
     expect(parsed.value).toBe(0.3);
   });
 
+  it('accepterer almindelige decimalbeløb trods binær floating-point-støj ved skalering', () => {
+    expect(amountNumberSchema.parse({ kind: 'number', value: 0.29 }).value).toBe(0.29);
+  });
+
   it('normaliserer videnskabelig notation deterministisk til schema-precision', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const parsed = amountNumberSchema.parse({
@@ -40,11 +45,11 @@ describe('amountExpressionSchema', () => {
     expect(parsed.value).toBe(0);
   });
 
-  it('normaliserer negativ nul til nul i expression-schema', () => {
+  it('bevarer canonical nul i expression-schema', () => {
     const parsed = amountExpressionSchema.parse({
       kind: 'expression',
-      expression: '-0',
-      value: -0,
+      expression: '0-0',
+      value: 0,
     });
 
     expect(parsed.value).toBe(0);
@@ -64,5 +69,63 @@ describe('amountExpressionSchema', () => {
 
     expect(parsed.value).toBe(1.24);
     parseSpy.mockRestore();
+  });
+
+  it('afviser persisted beløb som ikke kan bevares eksakt i øre', () => {
+    expect(amountNumberSchema.safeParse({
+      kind: 'number',
+      value: 70_368_744_177_663.99,
+    }).success).toBe(true);
+    expect(amountNumberSchema.safeParse({
+      kind: 'number',
+      value: 70_368_744_177_664,
+    }).success).toBe(false);
+    expect(amountExpressionSchema.safeParse({
+      kind: 'expression',
+      expression: '70368744177663,99+0,01',
+      value: 70_368_744_177_664,
+    }).success).toBe(false);
+  });
+
+  it('afviser manipulerede eller ikke-canonical beløbsudtryk fail-closed', () => {
+    expect(amountExpressionSchema.safeParse({
+      kind: 'expression',
+      expression: '100+25',
+      value: 999,
+    }).success).toBe(false);
+    expect(amountExpressionSchema.safeParse({
+      kind: 'expression',
+      expression: '1.000+25',
+      value: 1025,
+    }).success).toBe(false);
+    expect(amountExpressionSchema.safeParse({
+      kind: 'expression',
+      expression: '125',
+      value: 125,
+    }).success).toBe(false);
+    expect(amountExpressionSchema.safeParse({
+      kind: 'expression',
+      expression: '100+25',
+      value: 125.001,
+    }).success).toBe(false);
+  });
+
+  it('parser persisted beløbstekst gennem den canonical settle-parser', () => {
+    expect(optionalAmountValueSchema.parse('1.234,56')).toEqual({
+      kind: 'number',
+      value: 1234.56,
+    });
+    expect(optionalAmountValueSchema.parse('1.000+2,50')).toEqual({
+      kind: 'expression',
+      expression: '1000+2,50',
+      value: 1002.5,
+    });
+  });
+
+  it('afviser malformed persisted beløbstekst uden prefix-parsing eller implicit clear', () => {
+    expect(optionalAmountValueSchema.safeParse('123abc').success).toBe(false);
+    expect(optionalAmountValueSchema.safeParse('1+').success).toBe(false);
+    expect(optionalAmountValueSchema.safeParse('()').success).toBe(false);
+    expect(optionalAmountValueSchema.safeParse('-').success).toBe(false);
   });
 });

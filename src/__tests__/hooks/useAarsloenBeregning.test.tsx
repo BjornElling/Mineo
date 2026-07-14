@@ -36,6 +36,7 @@ vi.mock('../../domain/aarsloen/aarsloenCalculations', () => ({
 vi.mock('../../domain/aarsloen/aarsloenValidationPolicies', () => ({
   beregnFejlmeddelelser: vi.fn(() => []),
   harTabelData: vi.fn(),
+  resolveAarsloenCanonicalRangeIssues: vi.fn(() => []),
 }));
 
 const mockedSafeCompute = vi.mocked(safeCompute);

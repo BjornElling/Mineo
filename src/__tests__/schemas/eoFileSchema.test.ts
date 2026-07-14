@@ -66,7 +66,7 @@ describe('eoFileDataSchema', () => {
       },
       faellesAarsloen: {
         aslAarsloen: { kind: 'number', value: 450000 },
-        ealAarsloen: { kind: 'expression', expression: '500000', value: 500000 },
+        ealAarsloen: { kind: 'expression', expression: '250000 + 250000', value: 500000 },
       },
       forsoergertab: {
         efterladteFodselsdato: toISODateString('1988-03-04'),

@@ -1,22 +1,18 @@
 import { z } from 'zod';
-import { optionalIsoDateString, percentageDecimal, tableIsoDateCellString, normalizeEmptyToUndefined } from '../baseSchemas';
+import { decimalNumber, entityId, optionalIsoDateString, tableIsoDateCellString, normalizeEmptyToUndefined } from '../baseSchemas';
 import { afgoerelseTypeEnum, jaNejEnum, koenEnum } from '../enumSchemas';
 import type { FaellesAarsloenValues } from './faellesAarsloenSchemas';
 import type { StamdataValues } from './stamdataSchemas';
 
 // ─── ASL afgørelser tabel ─────────────────────────────────────────────────────
 
-const aslAfgoerelsePercent = (label: string) => percentageDecimal
-  .refine((value) => value === undefined || Number.isInteger(value), `${label} skal være et heltal.`)
-  .refine((value) => value === undefined || value % 5 === 0, `${label} skal være deleligt med 5.`);
-
 export const aslAfgoerelseRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   afgoerelsesDato: tableIsoDateCellString,
   virkningsDato: tableIsoDateCellString,
-  eetPct: aslAfgoerelsePercent('EET %'),
+  eetPct: decimalNumber,
   kapDato: tableIsoDateCellString,
-  kapPct: aslAfgoerelsePercent('Kapitaliseringsprocent'),
+  kapPct: decimalNumber,
   // Normaliser tom streng → undefined før enum-valideringen, så et persisteret '' ikke
   // dropper hele afgørelsesrækken. Kanonisk optional-enum-mønster (jf. EO-sektionens enums).
   afgoerelseType: z.preprocess(normalizeEmptyToUndefined, afgoerelseTypeEnum.optional()),
@@ -46,7 +42,7 @@ export const erhvervsevnetabSchema = z.object({
   koen: z.preprocess(normalizeEmptyToUndefined, koenEnum.optional()),
   aslAfgoerelser: z.array(aslAfgoerelseRowSchema),
   // ealEetPct gemmes som decimaltal (ikke tabel-draft-string) og parses derfor i schema-laget.
-  ealEetPct: percentageDecimal,
+  ealEetPct: decimalNumber,
   eetDifferencekravBilagSelection: eetDifferencekravBilagSelectionSchema,
   // Beregnings-valgmulighed på differencekrav-fanen (fane 5): når true gør en endelig
   // afgørelse en tidligere midlertidig EET-ydelse fradragsberettiget i differencekravet

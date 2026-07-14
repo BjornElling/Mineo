@@ -1,12 +1,14 @@
 import { formatAsAmount } from './formatUtils';
 import { containsAnyDigit, normalizeTrailingSeparator, normalizeZero } from './amountInputUtils';
 import type { AmountValue } from '../schemas/amountExpressionSchema';
+import { isSafeScaledInteger } from './numericSafety';
 
 export type ExpressionErrorCode =
   | 'INVALID_CHAR'
   | 'UNBALANCED_PAREN'
   | 'INVALID_OPERATOR_SEQUENCE'
   | 'DIVISION_BY_ZERO'
+  | 'UNSAFE_NUMBER'
   | 'EMPTY_EXPRESSION';
 
 export type ExpressionError = Readonly<{
@@ -120,7 +122,7 @@ const parseNumberToken = (
   precision: number,
   maxIntegerDigits?: number,
   allowDecimals: boolean = true
-): { ok: true; value: number; exact: Rational; normalized: string } | { ok: false; error: ExpressionError } => {
+): { ok: true; value: number; exact: Rational; normalized: string; canonicalValueIsSafe: boolean } | { ok: false; error: ExpressionError } => {
   if (raw === '' || raw === ',' || raw === '.') {
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
   }
@@ -179,7 +181,13 @@ const parseNumberToken = (
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
   }
 
-  return { ok: true, value: numericValue, exact, normalized };
+  return {
+    ok: true,
+    value: numericValue,
+    exact,
+    normalized,
+    canonicalValueIsSafe: isSafeScaledInteger(roundedScaled, safePrecision),
+  };
 };
 
 const tokenizeExpression = (
@@ -372,6 +380,9 @@ const evaluateExpressionTokens = (
   }
 
   const scaledRounded = roundRationalToScale(parsed.value, precision);
+  if (!isSafeScaledInteger(scaledRounded, precision)) {
+    return fail({ code: 'UNSAFE_NUMBER', message: 'Beløb er for stort til at kunne gemmes præcist' });
+  }
   const numericValue = scaledToNumber(scaledRounded, precision);
   if (!Number.isFinite(numericValue)) {
     return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
@@ -430,6 +441,12 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
     );
     if (!parsed.ok) {
       return { ok: false, error: { kind: 'number', message: parsed.error.message } };
+    }
+    if (!parsed.canonicalValueIsSafe) {
+      return {
+        ok: false,
+        error: { kind: 'number', message: 'Beløb er for stort til at kunne gemmes præcist' },
+      };
     }
 
     const signed = isNegative ? -parsed.value : parsed.value;

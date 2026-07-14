@@ -1,3 +1,6 @@
+import { parseDanishNumberString } from './numberParsing';
+import { isSafeCanonicalNumber } from './numericSafety';
+
 export type FractionParseOptions = Readonly<{
   maxDigits?: number;
   allowNegative?: boolean;
@@ -62,8 +65,6 @@ const gcd = (a: number, b: number): number => {
   return x === 0 ? 1 : x;
 };
 
-const toNormalizedNumber = (value: string): number => Number.parseFloat(value.replace(',', '.'));
-
 const hasDecimalSeparator = (value: string): boolean => value.includes(',');
 
 export const getFractionMaxLength = (maxDigits = DEFAULT_FRACTION_MAX_DIGITS, allowNegative = false): number => {
@@ -104,9 +105,11 @@ export const parseFractionString = (
   const denominatorToken = normalizeToken(rawDenominator, { maxDigits, allowNegative: false });
   if (numeratorToken === null || denominatorToken === null) return { ok: false, reason: 'invalid' };
 
-  const numerator = toNormalizedNumber(numeratorToken);
-  const denominator = toNormalizedNumber(denominatorToken);
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator)) return { ok: false, reason: 'invalid' };
+  // Brøken bevares som tekst, men dens afledte faktor må ikke bygge på skjult
+  // afrunding af tæller eller nævner ved konverteringen til JavaScript-tal.
+  const numerator = parseDanishNumberString(numeratorToken);
+  const denominator = parseDanishNumberString(denominatorToken);
+  if (numerator === undefined || denominator === undefined) return { ok: false, reason: 'invalid' };
   if (denominator === 0) return { ok: false, reason: 'zero-denominator' };
   if (numerator === 0 && !allowZeroNumerator) return { ok: false, reason: 'zero-numerator' };
   if (numerator < 0 && !allowNegative) return { ok: false, reason: 'negative-not-allowed' };
@@ -115,6 +118,11 @@ export const parseFractionString = (
   if (requireIntegerFraction && !isIntegerFraction) {
     return { ok: false, reason: 'non-integer' };
   }
+
+  const factor = numerator / denominator;
+  // Operanderne kan hver for sig være sikre, mens kvotienten bliver så stor,
+  // at binary64 ikke længere kan bære et deterministisk afledt tal.
+  if (!isSafeCanonicalNumber(factor)) return { ok: false, reason: 'invalid' };
 
   if (canonicalizeOnCommit && isIntegerFraction) {
     const divisor = gcd(numerator, denominator);
@@ -125,7 +133,7 @@ export const parseFractionString = (
       parsed: {
         numerator,
         denominator,
-        factor: numerator / denominator,
+        factor,
         value: `${reducedNumerator}/${reducedDenominator}`,
         isIntegerFraction: true,
       },
@@ -137,7 +145,7 @@ export const parseFractionString = (
     parsed: {
       numerator,
       denominator,
-      factor: numerator / denominator,
+      factor,
       value: `${numeratorToken}/${denominatorToken}`,
       isIntegerFraction,
     },

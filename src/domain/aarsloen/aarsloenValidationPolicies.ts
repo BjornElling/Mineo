@@ -4,12 +4,56 @@
  * Disse funktioner er rene (ingen side effects) og kan testes isoleret.
  */
 
-import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
+import type { AarsloenValues, StandardLoenTableRow, LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import { formatPercent } from '../../utils/formatUtils';
 import { hasCompletePeriodForLoenperiode } from './standardLoenRowCalculations';
 import { getStandardLoenTableValidation } from './standardLoenTableValidation';
 import type { StandardLoenTableValidationSummary } from '../../types/table';
+
+export type AarsloenCanonicalRangeIssue = Readonly<{
+  field: 'feriePct' | 'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct' | 'antalFeriedage';
+  message: string;
+}>;
+
+const AARSLOEN_PERCENT_FIELDS = [
+  'feriePct',
+  'fritvalgPct',
+  'shSoPct',
+  'storeBededagPct',
+  'pensionPct',
+] as const;
+
+/**
+ * Ren range-gate for canonical årslønsinput. Kun input der er relevant for den
+ * aktuelle beregning medtages; skjulte satser har ingen virkning i beløbstilstand.
+ */
+export const resolveAarsloenCanonicalRangeIssues = (
+  values: AarsloenValues,
+  options: Readonly<{ omregningAktiveret: boolean }>
+): readonly AarsloenCanonicalRangeIssue[] => {
+  const issues: AarsloenCanonicalRangeIssue[] = [];
+
+  if (values.tillaegAngivesSom === 'procent') {
+    for (const field of AARSLOEN_PERCENT_FIELDS) {
+      const value = values[field];
+      if (value !== undefined && (value < 0 || value > 100)) {
+        issues.push({ field, message: 'Procenten skal være mellem 0 og 100 %.' });
+      }
+    }
+  }
+
+  if (
+    options.omregningAktiveret
+    && !values.fuldLoenUnderFerie
+    && values.antalFeriedage !== undefined
+    && (values.antalFeriedage < 0 || values.antalFeriedage > 99)
+  ) {
+    issues.push({ field: 'antalFeriedage', message: 'Antal feriedage skal være mellem 0 og 99.' });
+  }
+
+  return issues;
+};
 
 /**
  * Tjekker om der er valideringsfejl i tabeldata

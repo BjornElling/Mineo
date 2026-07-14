@@ -607,10 +607,12 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
 
   const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
 
-  if (!Number.isFinite(aslAarsloenRaw)) {
+  if (aslAarsloenRaw === undefined || !Number.isFinite(aslAarsloenRaw)) {
     issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
-  } else if (aslAarsloenRaw === 0) {
-    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr'));
+  } else if (aslAarsloenRaw <= 0) {
+    // Fortegn valideres her som et afledt domæneissue, så også canonical
+    // negative værdier fra persistence blokerer beregningen.
+    issues.push(toIssue('aarsloen-zero', 'Årsløn skal være større end 0 kr'));
   }
   if (!fodselsdato) {
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));

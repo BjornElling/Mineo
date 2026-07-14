@@ -1,17 +1,18 @@
 import { z } from 'zod';
 import {
-  nonNegativeAmountValue,
-  nonNegativeInteger,
+  amountValue,
+  wholeNumber,
+  entityId,
   optionalIsoDateString,
   optionalString,
 } from '../baseSchemas';
 import { tillaegstidEnhedEnum } from '../enumSchemas';
 
 export const rentekravRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
-  belob: nonNegativeAmountValue,
+  id: entityId(),
+  belob: amountValue,
   renterFra: optionalIsoDateString,
-  tillaegstid: nonNegativeInteger,
+  tillaegstid: wholeNumber,
   enhed: tillaegstidEnhedEnum,
 }).strict();
 
@@ -20,7 +21,9 @@ export type RentekravRow = z.infer<typeof rentekravRowSchema>;
 export const renteberegningSchema = z.object({
   beregningsdato: optionalIsoDateString,
   kommentarer: optionalString,
-  rentekravRows: z.array(rentekravRowSchema).min(1, 'Der skal være mindst én rentekravsrække'),
+  // En tom collection er canonical brugerinput. Krav om mindst én udfyldt række
+  // er en domæne-/handlingsgate og må ikke gøre en ellers gyldig sag ulæsbar.
+  rentekravRows: z.array(rentekravRowSchema),
 }).strict();
 
 export type RenteberegningValues = z.infer<typeof renteberegningSchema>;

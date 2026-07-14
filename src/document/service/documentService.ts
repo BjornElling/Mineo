@@ -333,6 +333,12 @@ const runSelectedDocumentFormat = async (
   return DOCUMENT_DOWNLOAD_SUCCESS;
 };
 
+/**
+ * Parser kun dokumentets valgfrie stamdata-context; funktionen er ikke en downloadgate.
+ * Domænedokumenter afgør selv, om datoorden er dokumentrelevant, før servicen kaldes.
+ * Derfor bevares schema-gyldige canonical datoer her, også når deres indbyrdes orden
+ * er et afledt issue; ellers ville fx et satsdokument miste hele brevhovedets stamdata.
+ */
 const resolvePdfStamdata = (persistedStamdata: unknown): PdfStamdataForGenerators | null => {
   if (persistedStamdata == null) {
     return null;

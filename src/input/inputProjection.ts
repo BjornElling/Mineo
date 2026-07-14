@@ -1,16 +1,22 @@
 import { serializeFieldAddress } from './fieldAddress';
 import type { FieldRef, FieldRefBase } from './fieldDefinition';
 import {
+  assertAuthoritativeInputIssue,
   createFieldInputIssue,
+  deduplicateInputIssues,
+  inputIssueTargetIdentityKey,
   type InputIssue,
   type InputIssuePolicy,
   type InputIssueReason,
   type InputIssueTarget,
 } from './inputIssue';
 import type { InputReader, InputRevision } from './inputReader';
+import { cloneAndDeepFreeze } from '../utils/deepFreeze';
 
 const RESOLVE_DEPENDENCY: unique symbol = Symbol('resolveInputDependency');
 const DEPENDENCY_VALUE_TYPE: unique symbol = Symbol('inputDependencyValueType');
+const RUN_PROJECTION_VALIDATOR: unique symbol = Symbol('runInputProjectionValidator');
+declare const INPUT_PROJECTION_VALIDATOR_BRAND: unique symbol;
 
 type ResolvedDependency = Readonly<{
   status: 'resolved';
@@ -90,10 +96,21 @@ export type InputProjectionFinding = Readonly<{
   blocksProjection: boolean;
 }>;
 
+type ProjectionValidatorEvaluation = readonly InputProjectionFinding[] | null;
+
+export type InputProjectionValidator = Readonly<{
+  dependencies: InputDependencyMap;
+  [RUN_PROJECTION_VALIDATOR]: (reader: InputReader) => ProjectionValidatorEvaluation;
+  readonly [INPUT_PROJECTION_VALIDATOR_BRAND]: true;
+}>;
+
+const AUTHORITATIVE_PROJECTION_VALIDATORS = new WeakSet<object>();
+
 export const inputProjectionFinding = (
   issue: InputIssue,
   options: Readonly<{ blocksProjection: boolean }>
 ): InputProjectionFinding => {
+  assertAuthoritativeInputIssue(issue);
   if (options.blocksProjection && issue.severity !== 'error') {
     throw new Error('InputProjection: et warning-issue må ikke blokere projektionen');
   }
@@ -105,19 +122,36 @@ export const inputProjectionFinding = (
 
 export type InputProjectionSpec<TDependencies extends InputDependencyMap, TData> = Readonly<{
   dependencies: TDependencies;
-  validate?: (
-    input: ResolvedInputDependencies<TDependencies>
-  ) => readonly InputProjectionFinding[];
+  validators?: readonly InputProjectionValidator[];
   build: (input: ResolvedInputDependencies<TDependencies>) => TData;
 }>;
+
+const assertUniqueDependencyAddresses = (dependencies: InputDependencyMap): void => {
+  const addresses = Object.values(dependencies)
+    .map((dependency) => serializeFieldAddress(dependency.field.address));
+  if (new Set(addresses).size !== addresses.length) {
+    throw new Error('InputProjection: samme feltadresse er deklareret mere end én gang');
+  }
+};
 
 const assertProjectionSpec = <TDependencies extends InputDependencyMap, TData>(
   spec: InputProjectionSpec<TDependencies, TData>
 ): void => {
-  const entries = Object.entries(spec.dependencies);
-  const addresses = entries.map(([, dependency]) => serializeFieldAddress(dependency.field.address));
-  if (new Set(addresses).size !== addresses.length) {
-    throw new Error('InputProjection: samme feltadresse er deklareret mere end én gang');
+  assertUniqueDependencyAddresses(spec.dependencies);
+
+  for (const validator of spec.validators ?? []) {
+    if (!AUTHORITATIVE_PROJECTION_VALIDATORS.has(validator)) {
+      throw new Error('InputProjection: validator skal være oprettet af den autoritative factory');
+    }
+    for (const dependency of Object.values(validator.dependencies)) {
+      const isProjectionDependency = Object.values(spec.dependencies).some((candidate) =>
+        serializeFieldAddress(candidate.field.address) === serializeFieldAddress(dependency.field.address)
+        && candidate.field.definition === dependency.field.definition
+      );
+      if (!isProjectionDependency) {
+        throw new Error('InputProjection: validator afhænger af et felt uden for projektionen');
+      }
+    }
   }
 };
 
@@ -130,6 +164,7 @@ export const createInputProjectionSpec = <
   return Object.freeze({
     ...spec,
     dependencies: Object.freeze({ ...spec.dependencies }),
+    validators: Object.freeze([...(spec.validators ?? [])]),
   });
 };
 
@@ -163,52 +198,11 @@ type ProjectionEvaluation<TDependencies extends InputDependencyMap> = Readonly<{
   findings: readonly InputProjectionFinding[];
 }>;
 
-const issueTargetKey = (target: InputIssueTarget): string => target.kind === 'field'
-  ? `field:${serializeFieldAddress(target.field.address)}`
-  : `output:${target.outputId}`;
-
-const issueKey = (issue: InputIssue): string =>
-  `${issueTargetKey(issue.target)}|${issue.reason}|${issue.code}`;
-
-const detailKey = (detail: InputIssue['detail']): string => detail === undefined
-  ? ''
-  : JSON.stringify(Object.entries(detail).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0));
-
-const issuesAreSemanticallyEqual = (left: InputIssue, right: InputIssue): boolean =>
-  left.code === right.code
-  && left.reason === right.reason
-  && left.severity === right.severity
-  && left.message === right.message
-  && left.policy.blocksSave === right.policy.blocksSave
-  && detailKey(left.detail) === detailKey(right.detail)
-  && left.target.kind === right.target.kind
-  && (left.target.kind === 'field' && right.target.kind === 'field'
-    ? left.target.field.definition === right.target.field.definition
-    : left.target.kind === 'output' && right.target.kind === 'output'
-      && left.target.label === right.target.label);
-
-const deduplicateIssues = (issues: readonly InputIssue[]): readonly InputIssue[] => {
-  const seen = new Map<string, InputIssue>();
-  const unique: InputIssue[] = [];
-  for (const issue of issues) {
-    const key = issueKey(issue);
-    const existing = seen.get(key);
-    if (existing !== undefined) {
-      if (!issuesAreSemanticallyEqual(existing, issue)) {
-        throw new Error(`InputProjection: konflikt mellem issues med identiteten '${key}'`);
-      }
-      continue;
-    }
-    seen.set(key, issue);
-    unique.push(issue);
-  }
-  return Object.freeze(unique);
-};
-
 const assertProjectionFinding = (
   finding: InputProjectionFinding,
   dependencies: InputDependencyMap
 ): void => {
+  assertAuthoritativeInputIssue(finding.issue);
   if (typeof finding.blocksProjection !== 'boolean') {
     throw new Error('InputProjection: finding skal angive blocksProjection eksplicit');
   }
@@ -233,6 +227,47 @@ const assertProjectionFinding = (
   }
 };
 
+/**
+ * En validator deklarerer kun de felter, dens issue-afledning faktisk kræver. Den kan derfor
+ * fortsat køre, når en anden og uafhængig build-dependency er rejected eller missing.
+ */
+export const createInputProjectionValidator = <const TDependencies extends InputDependencyMap>(
+  options: Readonly<{
+    dependencies: TDependencies;
+    validate: (
+      input: ResolvedInputDependencies<TDependencies>
+    ) => readonly InputProjectionFinding[];
+  }>
+): InputProjectionValidator => {
+  assertUniqueDependencyAddresses(options.dependencies);
+  if (typeof options.validate !== 'function') {
+    throw new Error('InputProjection: validator skal have en validate-funktion');
+  }
+  const dependencies = Object.freeze({ ...options.dependencies });
+  const validate = options.validate;
+  const validator = Object.freeze({
+    dependencies,
+    [RUN_PROJECTION_VALIDATOR]: (reader: InputReader): ProjectionValidatorEvaluation => {
+      const values: Record<string, unknown> = {};
+      for (const [name, dependency] of Object.entries(dependencies)) {
+        const resolution = dependency[RESOLVE_DEPENDENCY](reader);
+        if (resolution.status === 'unresolved') return null;
+        values[name] = resolution.value;
+      }
+
+      const input = Object.freeze(values) as ResolvedInputDependencies<TDependencies>;
+      const findings = validate(input);
+      if (!Array.isArray(findings)) {
+        throw new Error('InputProjection: validator skal returnere en liste af findings');
+      }
+      findings.forEach((finding) => assertProjectionFinding(finding, dependencies));
+      return Object.freeze([...findings]);
+    },
+  }) as unknown as InputProjectionValidator;
+  AUTHORITATIVE_PROJECTION_VALIDATORS.add(validator);
+  return validator;
+};
+
 const evaluateProjectionDependencies = <TDependencies extends InputDependencyMap, TData>(
   reader: InputReader,
   spec: InputProjectionSpec<TDependencies, TData>
@@ -253,15 +288,17 @@ const evaluateProjectionDependencies = <TDependencies extends InputDependencyMap
     }
   }
 
+  for (const validator of spec.validators ?? []) {
+    const validationFindings = validator[RUN_PROJECTION_VALIDATOR](reader);
+    if (validationFindings !== null) findings.push(...validationFindings);
+  }
+
   if (hasUnresolvedDependency) {
     return Object.freeze({ input: null, findings: Object.freeze(findings) });
   }
 
   // Hver property er resolveret fra den dependency, som samme key deklarerer.
   const input = Object.freeze(values) as ResolvedInputDependencies<TDependencies>;
-  const validationFindings = spec.validate?.(input) ?? [];
-  validationFindings.forEach((finding) => assertProjectionFinding(finding, spec.dependencies));
-  findings.push(...validationFindings);
   return Object.freeze({ input, findings: Object.freeze(findings) });
 };
 
@@ -276,7 +313,11 @@ const toInputBlocker = (issue: InputIssue): InputBlocker => Object.freeze({
 const deduplicateBlockers = (blockers: readonly InputBlocker[]): readonly InputBlocker[] => {
   const seen = new Set<string>();
   return Object.freeze(blockers.filter((blocker) => {
-    const key = `${issueTargetKey(blocker.target)}|${blocker.reason}|${blocker.code}`;
+    const key = JSON.stringify([
+      inputIssueTargetIdentityKey(blocker.target),
+      blocker.reason,
+      blocker.code,
+    ]);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -290,7 +331,7 @@ const createBlockedProjection = (
 ): Extract<InputProjection<never>, { status: 'blocked' }> => Object.freeze({
   status: 'blocked',
   blockers: deduplicateBlockers(blockers),
-  issues: deduplicateIssues(issues),
+  issues: deduplicateInputIssues(issues),
   revision,
 });
 
@@ -298,7 +339,7 @@ const createBlockedProjection = (
 export const deriveInputProjectionIssues = <TDependencies extends InputDependencyMap, TData>(
   reader: InputReader,
   spec: InputProjectionSpec<TDependencies, TData>
-): readonly InputIssue[] => deduplicateIssues(
+): readonly InputIssue[] => deduplicateInputIssues(
   evaluateProjectionDependencies(reader, spec).findings.map((finding) => finding.issue)
 );
 
@@ -311,7 +352,7 @@ export const evaluateInputProjection = <TDependencies extends InputDependencyMap
   spec: InputProjectionSpec<TDependencies, TData>
 ): InputProjection<TData> => {
   const evaluation = evaluateProjectionDependencies(reader, spec);
-  const issues = deduplicateIssues(evaluation.findings.map((finding) => finding.issue));
+  const issues = deduplicateInputIssues(evaluation.findings.map((finding) => finding.issue));
   const blockers = evaluation.findings
     .filter((finding) => finding.blocksProjection)
     .map((finding) => toInputBlocker(finding.issue));
@@ -321,7 +362,8 @@ export const evaluateInputProjection = <TDependencies extends InputDependencyMap
 
   return Object.freeze({
     status: 'ready',
-    data: spec.build(evaluation.input),
+    // Projektionens data er revisionsbundet og må ikke kunne muteres efter udstedelse.
+    data: cloneAndDeepFreeze(spec.build(evaluation.input)) as TData,
     issues,
     // Brandet udstedes kun sammen med en ready-projektion fra den samme reader-revision.
     revision: reader.revision as ReadyInputRevision,
@@ -331,20 +373,26 @@ export const evaluateInputProjection = <TDependencies extends InputDependencyMap
 export const mapInputProjection = <TSource, TResult>(
   projection: InputProjection<TSource>,
   map: (data: TSource) => TResult
-): InputProjection<TResult> => projection.status === 'blocked'
-  ? projection
-  : Object.freeze({ ...projection, data: map(projection.data) });
+): InputProjection<TResult> => {
+  const issues = deduplicateInputIssues(projection.issues);
+  return projection.status === 'blocked'
+    ? createBlockedProjection(projection.revision, issues, projection.blockers)
+    : Object.freeze({ ...projection, data: cloneAndDeepFreeze(map(projection.data)) as TResult, issues });
+};
 
 export const flatMapInputProjection = <TSource, TResult>(
   projection: InputProjection<TSource>,
   map: (data: TSource) => InputProjection<TResult>
 ): InputProjection<TResult> => {
-  if (projection.status === 'blocked') return projection;
+  const sourceIssues = deduplicateInputIssues(projection.issues);
+  if (projection.status === 'blocked') {
+    return createBlockedProjection(projection.revision, sourceIssues, projection.blockers);
+  }
   const next = map(projection.data);
   if (next.revision !== projection.revision) {
     throw new Error('InputProjection: projektioner fra forskellige revisioner kan ikke sammensættes');
   }
-  const issues = deduplicateIssues([...projection.issues, ...next.issues]);
+  const issues = deduplicateInputIssues([...sourceIssues, ...next.issues]);
   return next.status === 'blocked'
     ? createBlockedProjection(next.revision, issues, next.blockers)
     : Object.freeze({ ...next, issues });
@@ -359,26 +407,27 @@ type CollectedProjectionData<TProjections extends readonly InputProjection<unkno
 export const collectInputProjections = <
   const TProjections extends readonly InputProjection<unknown>[],
 >(
-  revision: InputRevision,
+  reader: InputReader,
   projections: TProjections
 ): InputProjection<CollectedProjectionData<TProjections>> => {
+  const revision = reader.revision;
   if (projections.some((projection) => projection.revision !== revision)) {
     throw new Error('InputProjection: projektioner fra forskellige revisioner kan ikke sammensættes');
   }
 
-  const issues = deduplicateIssues(projections.flatMap((projection) => projection.issues));
+  const issues = deduplicateInputIssues(projections.flatMap((projection) => projection.issues));
   const blockers = projections.flatMap((projection) =>
     projection.status === 'blocked' ? projection.blockers : []
   );
   if (blockers.length > 0) return createBlockedProjection(revision, issues, blockers);
 
   // Den blokerede gren er udelukket ovenfor; rækkefølgen bevares én-til-én fra inputtuplen.
-  const data = projections.map((projection) => {
+  const data = cloneAndDeepFreeze(projections.map((projection) => {
     if (projection.status === 'blocked') {
       throw new Error('InputProjection: intern collect-invariant brudt');
     }
     return projection.data;
-  }) as CollectedProjectionData<TProjections>;
+  })) as CollectedProjectionData<TProjections>;
 
   return Object.freeze({
     status: 'ready',

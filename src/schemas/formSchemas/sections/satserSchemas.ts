@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { yearInteger } from '../baseSchemas';
+import { wholeNumber } from '../baseSchemas';
 
 // Kun det valgte satsår er sagsinput. Sats- og rentetabeller er programdata og må ikke gemmes i .eo.
 export const satserSchema = z.object({
-  aargang: yearInteger,
+  aargang: wholeNumber,
 }).strict();
 
 export type SatserValues = z.infer<typeof satserSchema>;

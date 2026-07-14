@@ -54,7 +54,10 @@ export const createWeekTableInputAdapter = (
   toCommittedPayload: toCommittedWeekPayload,
   isValidStartKey: (key) => /^[0-9]$/.test(key),
   applyPaste: (raw, context) => {
-    const normalized = normalizeWeekPaste(raw);
+    const normalized = normalizeWeekPaste(raw, {
+      ...config,
+      maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
+    });
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

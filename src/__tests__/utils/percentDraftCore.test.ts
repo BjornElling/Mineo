@@ -74,6 +74,14 @@ describe('percentDraftCore', () => {
     expect(parsePercentDraftForCommit('100', baseConfig)).toEqual({ ok: true, value: 100 });
   });
 
+  it('afviser procentværdier hvor naboværdier med to decimaler kan kollidere', () => {
+    const unbounded = { allowNegative: false, allowDecimals: true } as const;
+
+    expect(parsePercentDraftForCommit('70368744177663,99', unbounded))
+      .toEqual({ ok: true, value: 70_368_744_177_663.99 });
+    expect(parsePercentDraftForCommit('70368744177664,00', unbounded).ok).toBe(false);
+  });
+
   it('roundtripper canonical display gennem parseren', () => {
     for (const value of [0, 1, 50, 99.99, 100, -10]) {
       const formatted = formatPercentDisplay(value, true);

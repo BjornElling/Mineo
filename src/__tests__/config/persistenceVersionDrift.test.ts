@@ -54,7 +54,10 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // PERSISTED_DATA_VERSION bumpet til 3.7 (reel persisted schema-ændring; enum + nye inputrækker).
 // Opdateret 2026-07-11: varigemen-sektionens øvre méngradsgrænse udvidet fra 100 til 120.
 // PERSISTED_DATA_VERSION bumpet til 3.8 (reel, bagudkompatibel parse-semantikændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-67d68c5a';
+// Opdateret 2026-07-14: alle persisted række-id’er kræver nu ikke-tom, trimmet identitet, numeriske værdier skal
+// kunne repræsenteres præcist, og parsebare range-/domæneværdier bevares canonical til den afledte issue-model.
+// PERSISTED_DATA_VERSION bumpet til 3.9 (parse-semantikændringer; Zod-refinements ændrer ikke fingerprintet).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-145cd135';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { optionalIsoDateString, optionalString, normalizeEmptyToUndefined } from '../baseSchemas';
+import { z } from 'zod';
 import { skadestypeEnum } from '../enumSchemas';
 
 export const stamdataSchema = z.object({
@@ -10,16 +10,6 @@ export const stamdataSchema = z.object({
   skadelidteFodselsdato: optionalIsoDateString,
   skadestype: z.preprocess(normalizeEmptyToUndefined, skadestypeEnum.optional()),
   skadedato: optionalIsoDateString,
-}).strict().superRefine((value, ctx) => {
-  if (
-    value.skadelidteFodselsdato !== undefined &&
-    value.skadedato !== undefined &&
-    value.skadedato < value.skadelidteFodselsdato
-  ) {
-    const message = 'Skadedato er før fødselsdato.';
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['skadedato'], message });
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['skadelidteFodselsdato'], message });
-  }
-});
+}).strict();
 
 export type StamdataValues = z.infer<typeof stamdataSchema>;

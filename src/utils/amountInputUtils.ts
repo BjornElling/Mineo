@@ -106,7 +106,7 @@ const normalizePlainMoneyLikePaste = (text: string): string | null => {
     decimalPart = candidate.slice(decimalIndex + 1).replace(new RegExp(`\\${otherChar}`, 'g'), '');
   } else if (lastComma >= 0) {
     const parts = candidate.split(',');
-    if (hasGroupedTriplets(parts)) {
+    if (parts.length > 2 && hasGroupedTriplets(parts)) {
       integerPart = parts.join('');
     } else {
       integerPart = parts.slice(0, -1).join('');
@@ -145,7 +145,7 @@ export const normalizeTrailingSeparator = (input: string): string => {
 
 export const sanitizePastedAmount = (text: string): string => {
   const normalizedMinus = normalizePasteMinus(text);
-  const allowed = normalizedMinus.match(/[0-9+\-*/x(), ]/g) ?? [];
+  const allowed = normalizedMinus.match(/[0-9+\-*/x(), ]/gi) ?? [];
   let sanitized = '';
 
   for (const char of allowed) {
@@ -155,7 +155,7 @@ export const sanitizePastedAmount = (text: string): string => {
     sanitized += char;
   }
 
-  return sanitized;
+  return sanitized.replace(/X/g, 'x');
 };
 
 export const normalizePastedAmount = (text: string): string => {
@@ -164,8 +164,8 @@ export const normalizePastedAmount = (text: string): string => {
     return normalizedMoneyLike;
   }
   const normalizedMinus = normalizePasteMinus(text);
-  const allowed = normalizedMinus.match(/[0-9+\-*/x()., ]/g) ?? [];
-  return allowed.join('');
+  const allowed = normalizedMinus.match(/[0-9+\-*/x()., ]/gi) ?? [];
+  return allowed.join('').replace(/X/g, 'x');
 };
 
 export const normalizeZero = (value: number): number => {

@@ -18,6 +18,83 @@ const aslRow = (patch: Partial<AslAfgoerelseRow> & Pick<AslAfgoerelseRow, 'id'>)
 });
 
 describe('computeEetEalCalculation', () => {
+  it.each([
+    ['EAL', { ealAarsloen: asAmount(-1000), aslAarsloen: asAmount(500000) }, 'eal-aarsloen-zero', 'EAL-årsløn skal være større end 0 kr'],
+    ['ASL', { ealAarsloen: undefined, aslAarsloen: asAmount(-1000) }, 'aarsloen-zero', 'Årsløn skal være større end 0 kr'],
+  ] as const)('blokerer canonical negativ %s-årsløn som afledt issue', (_label, aarsloenPatch, issueId, message) => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        ...aarsloenPatch,
+        ealEetPct: 40,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({ id: issueId, severity: 'error', message });
+  });
+
+  it.each([-5, 105])('blokerer EAL-procent %s uden monteret felt', (ealEetPct) => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        aslAarsloen: asAmount(500000),
+        ealEetPct,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'eal-eet-pct-invalid',
+      severity: 'error',
+      message: 'EET % skal være mellem 0 og 100 %.',
+    });
+  });
+
+  it.each([-5, 105])('blokerer ASL-rækkeprocent %s uden monteret felt', (eetPct) => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        aslAarsloen: asAmount(500000),
+        ealEetPct: undefined,
+        aslAfgoerelser: [aslRow({
+          id: 'a',
+          afgoerelsesDato: iso('2025-01-01'),
+          virkningsDato: iso('2025-01-01'),
+          eetPct,
+          afgoerelseType: 'Endelig',
+        })],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'asl-selected-eet-pct-invalid',
+      severity: 'error',
+      message: 'EET % skal være mellem 0 og 100 %.',
+    });
+  });
+
   it('beregner EAL-krav med regulering, maksimum og aldersreduktion', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {

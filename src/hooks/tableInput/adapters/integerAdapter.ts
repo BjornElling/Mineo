@@ -67,7 +67,8 @@ export const createIntegerTableInputAdapter = (
   applyPaste: (raw, context) => {
     const normalized = normalizeIntegerPaste(raw, {
       maxDigits: config.maxDigits,
-      maxValue: config.maxValue,
+      minValue: config.enforceRange ? config.minValue : undefined,
+      maxValue: config.enforceRange ? config.maxValue : undefined,
       allowNegative: false,
     });
     if (normalized === '') return null;

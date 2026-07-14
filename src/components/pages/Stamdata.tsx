@@ -7,7 +7,9 @@ import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { skadestypeEnum, stamdataSchema } from '../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import { resolveStamdataDateOrder } from '../../domain/stamdata/stamdataDateOrder';
 import { resolveStamdataDatoLabel } from '../../domain/policies';
+import { maxISO, minISO } from '../../utils/isoDateHelpers';
 import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
@@ -61,6 +63,17 @@ const Stamdata = React.memo(() => {
     min: dateRanges_stamdata.skadedato.min,
     max: dateRanges_stamdata.skadedato.max,
   }), []);
+
+  const dateOrder = React.useMemo(
+    () => resolveStamdataDateOrder(values),
+    [values]
+  );
+  const skadedatoMin = dateOrder.skadedatoMin
+    ? maxISO(dateRange.min, dateOrder.skadedatoMin)
+    : dateRange.min;
+  const skadelidteFodselsdatoMax = dateOrder.skadelidteFodselsdatoMax
+    ? minISO(dateRanges_skadelidteFodselsdato.max, dateOrder.skadelidteFodselsdatoMax)
+    : dateRanges_skadelidteFodselsdato.max;
 
   return (
     <Box>
@@ -147,7 +160,11 @@ const Stamdata = React.memo(() => {
                   onCommit={commitField('skadelidteFodselsdato')}
                   onFieldError={reportSkadelidteFodselsdatoError}
                   minDate={dateRanges_skadelidteFodselsdato.min}
-                  maxDate={dateRanges_skadelidteFodselsdato.max}
+                  maxDate={skadelidteFodselsdatoMax}
+                  specialRangeErrors={{
+                    maxBoundKind: 'skadedato',
+                    maxBoundReferenceISO: dateOrder.skadelidteFodselsdatoMax,
+                  }}
                 />
               </Box>
             </Box>
@@ -177,8 +194,12 @@ const Stamdata = React.memo(() => {
                   value={values.skadedato}
                   onCommit={commitField('skadedato')}
                   onFieldError={reportSkadedatoError}
-                  minDate={dateRange.min}
+                  minDate={skadedatoMin}
                   maxDate={dateRange.max}
+                  specialRangeErrors={{
+                    minBoundKind: 'fodselsdato',
+                    minBoundReferenceISO: dateOrder.skadedatoMin,
+                  }}
                 />
               </Box>
             </Box>

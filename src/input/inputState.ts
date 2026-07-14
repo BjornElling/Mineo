@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { persistenceSchemas } from '../config/persistenceRegistry';
+import { cloneAndDeepFreeze } from '../utils/deepFreeze';
 import {
   deserializeFieldAddress,
   serializedFieldAddressSchema,
-  type FieldAddress,
 } from './fieldAddress';
+import type { InputCatalog } from './fieldCatalog';
 
 const nullablePersistenceSchemas = Object.fromEntries(
   Object.entries(persistenceSchemas).map(([section, schema]) => [section, schema.nullable()])
@@ -28,30 +29,45 @@ const persistedInputStateBaseSchema = z.object({
 export type PersistedInputSections = z.infer<typeof persistedInputSectionsSchema>;
 export type RejectedInput = z.infer<typeof rejectedInputSchema>;
 export type RejectedInputs = z.infer<typeof rejectedInputsSchema>;
-export type PersistedInputState = z.infer<typeof persistedInputStateBaseSchema>;
+export type PersistedInputStateCandidate = z.input<typeof persistedInputStateBaseSchema>;
 
-export type KnownFieldAddressPredicate = (
-  address: FieldAddress,
-  sections: PersistedInputSections
-) => boolean;
+declare const VALIDATED_INPUT_STATE: unique symbol;
+export type PersistedInputState = z.output<typeof persistedInputStateBaseSchema> & Readonly<{
+  [VALIDATED_INPUT_STATE]: true;
+}>;
 
 /**
- * Adresser skal valideres mod det konkrete feltkatalog. Den generelle schemastruktur kan kun
- * bevise formatet; factoryen gør katalogmedlemskab til en del af samme Zod-validering.
+ * Current-state-schemaet bindes til ét forseglet katalog. Dermed kan callers ikke godkende
+ * adresser med en parallel predicate, og både canonical entities og rejections valideres samlet.
  */
-export const createPersistedInputStateSchema = (isKnownFieldAddress: KnownFieldAddressPredicate) =>
-  persistedInputStateBaseSchema.superRefine((input, context) => {
-    for (const serializedAddress of Object.keys(input.rejectedInputs)) {
-      const address = deserializeFieldAddress(serializedAddress);
-      if (address === null || !isKnownFieldAddress(address, input.sections)) {
+export const createPersistedInputStateSchema = (catalog: InputCatalog): z.ZodType<PersistedInputState> => {
+  if (!catalog.isSealed) throw new Error('PersistedInputState: kataloget skal være forseglet');
+
+  return persistedInputStateBaseSchema
+    .superRefine((input, context) => {
+      try {
+        catalog.validateCollections(input.sections);
+      } catch (error) {
         context.addIssue({
           code: 'custom',
-          path: ['rejectedInputs', serializedAddress],
-          message: 'Feltadressen findes ikke i feltkataloget',
+          path: ['sections'],
+          message: error instanceof Error ? error.message : 'Canonical collections er ugyldige',
         });
       }
-    }
-  });
+
+      for (const serializedAddress of Object.keys(input.rejectedInputs)) {
+        const address = deserializeFieldAddress(serializedAddress);
+        if (address === null || !catalog.isKnownAddress(address) || !catalog.containsAddressEntities(input.sections, address)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['rejectedInputs', serializedAddress],
+            message: 'Feltadressen findes ikke i det aktuelle inputkatalog',
+          });
+        }
+      }
+    })
+    .transform((input) => cloneAndDeepFreeze(input) as PersistedInputState) as z.ZodType<PersistedInputState>;
+};
 
 export const createEmptyPersistedInputSections = (): PersistedInputSections =>
   persistedInputSectionsSchema.parse(

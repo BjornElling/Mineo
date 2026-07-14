@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` for draft/settle-semantik; overordnet arkitekturdokumenter ved konflikt.
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-14
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
 
@@ -32,6 +32,9 @@ Regler:
 3. Nedstrøms domæneberegning skal bruge `value`, aldrig genberegne fra `expression`.
 4. Operander i brugerens udtryk må ikke pre-afrundes eller pre-afskæres før evaluering.
 5. Kun slutresultatet må afrundes ved settle.
+6. Ved load reparses `expression` gennem den samme canonical beløbsparser. Den gemte tekst skal
+   allerede være parserens canonical udtryk, og dens genberegnede slutværdi skal være identisk med
+   den gemte `value`. Uoverensstemmelse er en integritetsfejl og fail-closer hele værdien.
 
 ---
 
@@ -46,6 +49,12 @@ Felter med anden precision må ikke bruge `AmountValue`. De kræver:
 3. test der dokumenterer precision, settle-normalisering og load-normalisering.
 
 Ad hoc-afrunding i featurekomponenter er arkitektonisk fejl.
+
+For binary64 skal to naboværdier ved 2 decimaler kunne skelnes. Derfor er den tilladte
+størrelsesgrænse eksklusivt `2^46` hovedenheder: `abs(value) < 70.368.744.177.664,00`.
+Den største positive canonical centværdi er dermed `70.368.744.177.663,99`. Grænsen er
+strengere end `Number.MAX_SAFE_INTEGER / 100`, fordi den naive grænse lader forskellige
+centværdier kollapse til samme `number`.
 
 ---
 
@@ -82,9 +91,17 @@ Regler:
 
 Standard for beløb er 2 decimaler med `half away from zero`, medmindre en mere specifik domænekontrakt definerer en anden regel.
 
-Indlæste beløb skal normaliseres til samme canonical semantik som almindelig settle. Load må ikke sende uafrundede beløb videre til beregningslaget. Den kanoniske normalisering (`normalizeAmountToTwoDecimals` i `src/schemas/amountExpressionSchema.ts`) anvendes både ved settle (`amountNumberSchema`/`amountExpressionSchema`) og ved coercion af persisteret input (`coerceToAmountValue`), så de to veje ikke kan drive fra hinanden.
+Indlæste beløb skal følge samme canonical semantik som almindelig settle. Load må ikke sende
+uafrundede eller prefix-parsede beløb videre til beregningslaget. Legacy-strenge parses strengt
+gennem `parseAmountInput`: et almindeligt tal bliver en `'number'`-værdi, et gyldigt udtryk bliver
+en `'expression'`-værdi, og malformed ikke-tom tekst fail-closer. Rå numeriske `'number'`-værdier
+normaliseres fortsat med `normalizeAmountToTwoDecimals`; `'expression'`-værdier normaliseres ikke
+uafhængigt, men reparses og skal allerede være internt konsistente.
 
-Bemærk: `.refine(Number.isFinite, …)` på `value` er load-bearing, fordi den ligger **efter** `normalizeAmountToTwoDecimals`-transformen, som kan videreføre et ikke-endeligt input uændret. Den må ikke fjernes som "død" (Zod 4's `z.number()` afviser ganske vist Infinity/NaN ved input, men ikke efter en transform).
+Bemærk: `.refine(Number.isFinite, …)` på `'number'`-variantens `value` er load-bearing, fordi den
+ligger **efter** `normalizeAmountToTwoDecimals`-transformen, som kan videreføre et ikke-endeligt
+input uændret. Den må ikke fjernes som "død" (Zod 4's `z.number()` afviser ganske vist
+Infinity/NaN ved input, men ikke efter en transform).
 
 ---
 
@@ -97,6 +114,9 @@ Trust-kritiske numeriske ændringer skal have tests for:
 3. negative værdier hvor det er tilladt,
 4. udtryk hvor operander ikke pre-afrundes,
 5. domænespecifik afrunding, hvis den afviger fra standarden.
+6. streng load-parsing uden prefix-accept,
+7. `expression`↔`value`-konsistens og canonical expression-tekst,
+8. binary64-kollisionsgrænsen ved feltets precision.
 
 Pengealgebraen skal desuden teste konstruktion, enhedsoperationer, negative værdier,
 overflow/fail-closed og krone↔øre-roundtrip. Beregningsændringer skal bevare eksisterende

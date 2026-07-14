@@ -100,6 +100,8 @@ Samme reference bruges ved render, settle, validering, projektion, history-origi
 
 - Statiske felter defineres én gang.
 - Dynamiske række-/entity-felter dannes af typed builders.
+- Felt- og collection-bindings samles i ét katalog, der forsegles før state-validering og læsning.
+- En dynamisk reference er kun gyldig, når alle dens entities findes i det konkrete input-snapshot.
 - Adresser beskriver data, ikke DOM eller tabelgeometri.
 - Frie strengnøgler og identitet som `rowId:colIndex` er forbudt.
 - DOM-attributter må være en projektion af feltreferencen, men må ikke være dens autoritet.

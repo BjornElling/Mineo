@@ -222,6 +222,25 @@ describe('parseAmountInput', () => {
     expect(result.error.message).toBe('Beløb er for stort');
   });
 
+  it('afviser beløb over den eksakte grænse i øre', () => {
+    const exactLimit = parse('70368744177663,99');
+    expect(exactLimit.ok).toBe(true);
+
+    const overLimit = parse('70368744177664,00');
+    expect(overLimit).toEqual({
+      ok: false,
+      error: { kind: 'number', message: 'Beløb er for stort til at kunne gemmes præcist' },
+    });
+  });
+
+  it('afviser kun et beløbsudtryk når det afrundede slutresultat ikke er sikkert', () => {
+    expect(parse('70368744177664,00-0,01').ok).toBe(true);
+    expect(parse('70368744177663,99+0,01')).toEqual({
+      ok: false,
+      error: { kind: 'expression', message: 'Beløb er for stort til at kunne gemmes præcist' },
+    });
+  });
+
   it('rejects input exceeding max raw length with a specific length message', () => {
     const result = parse('1+23', { maxRawLength: 3 });
     expect(result.ok).toBe(false);

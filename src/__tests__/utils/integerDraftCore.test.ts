@@ -38,4 +38,13 @@ describe('parseIntegerDraftForCommit', () => {
   it('udfører IKKE interval-validering (kalderen ejer min/max)', () => {
     expect(parseIntegerDraftForCommit('1000', { allowNegative: false })).toEqual({ ok: true, value: 1000 });
   });
+
+  it('afviser heltal som Number.parseInt ellers ville afrunde stille', () => {
+    expect(parseIntegerDraftForCommit('9007199254740991', { allowNegative: false }))
+      .toEqual({ ok: true, value: Number.MAX_SAFE_INTEGER });
+    expect(parseIntegerDraftForCommit('9007199254740992', { allowNegative: false }))
+      .toEqual({ ok: false, errorMessage: 'Ugyldigt heltal' });
+    expect(parseIntegerDraftForCommit('-9007199254740992', { allowNegative: true }))
+      .toEqual({ ok: false, errorMessage: 'Ugyldigt heltal' });
+  });
 });

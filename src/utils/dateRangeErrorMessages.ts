@@ -12,7 +12,7 @@ export type DateRangeSpecialErrors = {
   /**
    * Identificerer min-grænsens semantiske oprindelse til domæne-specifikke fejlbeskeder.
    */
-  minBoundKind?: 'skadedato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato' | 'efterAnvendtReguleringsdato';
+  minBoundKind?: 'skadedato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato' | 'efterAnvendtReguleringsdato' | 'fodselsdato';
   /**
    * Den brugersynlige referencedato, der frembragte grænsen (typisk Skadedato/Anmeldedato).
    * Bruges til specielle beskeder, der skal nævne den konkrete referencedato.
@@ -27,7 +27,7 @@ export type DateRangeSpecialErrors = {
    * Når sat, overskriver den den generiske max-dato-fejl med "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
    * Året udtrækkes fra maxDate. Bruges til EET-felter afgrænset af data-dækningsår.
    */
-  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato';
+  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato' | 'skadedato';
   /** Feltlabelet brugt i maxBoundKind-fejlbeskeden, fx "Beregningsdato". */
   maxBoundFieldLabel?: string;
   /**
@@ -81,6 +81,11 @@ export const resolveDateRangeErrorMessage = (args: {
     return `Datoen for anciennitetstillæg skal være efter ${referenceLabel}`;
   }
 
+  if (special?.minBoundKind === 'fodselsdato' && minDate && iso < minDate) {
+    const reference = special.minBoundReferenceISO ?? minDate;
+    return `Skadedato kan ikke være før fødselsdatoen (${formatISOForTooltip(reference)})`;
+  }
+
   if ((special?.maxBoundKind === 'eetDataMax' || special?.maxBoundKind === 'dataCoverageMax') && maxDate && iso > maxDate) {
     const year = Number.parseInt(maxDate.slice(0, 4), 10);
     const label = special.maxBoundFieldLabel ?? 'Datoen';
@@ -95,6 +100,11 @@ export const resolveDateRangeErrorMessage = (args: {
   if (special?.maxBoundKind === 'foerFoersteTafFraDato' && maxDate && iso > maxDate) {
     const reference = special.maxBoundReferenceISO ?? maxDate;
     return `Referenceperioden skal ligge før første TAF-periode (${formatISOForTooltip(reference)})`;
+  }
+
+  if (special?.maxBoundKind === 'skadedato' && maxDate && iso > maxDate) {
+    const reference = special.maxBoundReferenceISO ?? maxDate;
+    return `Fødselsdato kan ikke være efter skadedatoen (${formatISOForTooltip(reference)})`;
   }
 
   if (special?.fraTilRole === 'fra' && maxDate && iso > maxDate) {

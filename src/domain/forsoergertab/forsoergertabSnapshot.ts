@@ -14,6 +14,7 @@ import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
 import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
+import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -143,6 +144,9 @@ const createDownloadBlockingReason = (code: string, message: string): DocumentDo
 
 export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput): ForsoergertabSnapshot => {
   const { values, faellesAarsloen, stamdata, fieldErrors } = input;
+  const stamdataDateOrderMessage = stamdata === null
+    ? undefined
+    : resolveStamdataDateOrder(stamdata).issues[0]?.message;
   const skadedatoMin = coerceToISODateString(stamdata?.skadedato) ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
   const beregningsdatoMin = (() => {
     const virkningsdato = coerceToISODateString(values.virkningsdato);
@@ -207,7 +211,9 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     tilkendtForPeriodeAar: getIssueMessage(calculation.issues, ['tilkendt-for-periode-invalid']),
     aslAarsloen: getIssueMessage(calculation.issues, ['asl-aarsloen-zero']),
     ealAarsloen: ealAarsloenHelperIssue,
-    skadedato: getIssueMessage(calculation.issues, ['skadedato-missing', 'aarsloen-max-missing-skadesaar']),
+    skadedato: stamdataDateOrderMessage
+      ?? getIssueMessage(calculation.issues, ['skadedato-missing', 'aarsloen-max-missing-skadesaar']),
+    skadelidteFodselsdato: stamdataDateOrderMessage,
   };
 
   const fieldUi = {
@@ -248,8 +254,8 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       helperText: resolveHelperText(fieldErrors.stamdata.skadedato, helperIssues.skadedato),
     },
     skadelidteFodselsdato: {
-      hasError: Boolean(fieldErrors.stamdata.skadelidteFodselsdato?.message),
-      helperText: fieldErrors.stamdata.skadelidteFodselsdato?.message ?? '',
+      hasError: Boolean(fieldErrors.stamdata.skadelidteFodselsdato?.message || helperIssues.skadelidteFodselsdato),
+      helperText: resolveHelperText(fieldErrors.stamdata.skadelidteFodselsdato, helperIssues.skadelidteFodselsdato),
     },
   } as const;
 

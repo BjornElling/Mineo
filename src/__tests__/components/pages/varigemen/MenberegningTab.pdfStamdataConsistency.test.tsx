@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
@@ -119,11 +120,53 @@ describe('MenberegningTab', () => {
     expect(resultRows[1]?.closest('.row--label-right-hover')).not.toBeNull();
   });
 
+  it('committer méngrad 121 canonical, viser rangefejl og blokerer download', async () => {
+    const user = userEvent.setup();
+    const Harness = () => {
+      const [values, setValues] = React.useState({
+        mengrad: 10 as number | undefined,
+        beregningsdato: toISODateString('2026-01-01'),
+      });
+      return (
+        <>
+          <output data-testid="canonical-mengrad">{values.mengrad}</output>
+          <MenberegningTab
+            values={values}
+            setFieldValue={(field, value) => {
+              setValues((current) => ({ ...current, [field]: value }));
+              return true;
+            }}
+            stamdata={mockStamValues}
+          />
+        </>
+      );
+    };
+
+    render(
+      <MemoryRouter>
+        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+          <Harness />
+        </FormPersistenceProvider>
+      </MemoryRouter>
+    );
+
+    const input = screen.getByPlaceholderText('0');
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}121');
+    await user.tab();
+
+    expect(screen.getByTestId('canonical-mengrad')).toHaveTextContent('121');
+    expect(formPersistenceStore.getState().invalidDrafts.varigemen.mengrad).toBeUndefined();
+    await waitFor(() => {
+      expect(input).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByTestId('varigemen-download')).toBeDisabled();
+    });
+  });
+
   it('en ugyldig méngrad-draft (rød ring) blokerer download — også når den committede værdi er gyldig', async () => {
     // Regression for det arkitektoniske hul: en ikke-committbar ugyldig indtastning (invalid draft)
     // skal blokere download præcis som en committet ugyldig værdi. Her er den committede mengrad
-    // gyldig (10) — download-knappen vises. Når méngrad-feltet får en invalid draft (fx efter at
-    // brugeren har tastet 0, jf. StyledPercentField's afvisning af værdier under minValue), skal den
+    // gyldig (10) — download-knappen vises. Når méngrad-feltet får en syntaktisk invalid draft, skal den
     // centralt syntetiserede blokerende feltfejl fjerne beregningsresultatet og dermed download-knappen.
     const runtime = initializePersistenceRuntime();
     render(
@@ -149,9 +192,9 @@ describe('MenberegningTab', () => {
     expect(screen.getByTestId('varigemen-download')).toBeInTheDocument();
     expect(screen.getByTestId('varigemen-download')).toBeEnabled();
 
-    // Feltet får en ikke-committbar rå draft (det StyledPercentField skriver, når 0 afvises).
+    // Feltet får en ikke-committbar rå draft; parsebare rangeværdier bruger i stedet canonical issue-stien.
     act(() => {
-      formPersistenceStore.getState().setInvalidDraft('varigemen', 'mengrad', '0');
+      formPersistenceStore.getState().setInvalidDraft('varigemen', 'mengrad', '12,,3');
     });
 
     // Download er nu blokeret: den syntetiske invalid-draft-feltfejl gater beregningsresultatet.

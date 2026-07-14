@@ -41,6 +41,35 @@ const createStamdata = (): StamdataValues => ({
 });
 
 describe('computeEetSnapshot', () => {
+  it('blokerer alle projektioner ved skadedato før fødselsdato uden monteret stamdata-side', () => {
+    const values = {
+      ...createValues(),
+      skadelidteFodselsdato: toISODateString('2025-01-01'),
+    };
+    const snapshot = computeEetSnapshot({
+      values,
+      stamdata: {
+        ...createStamdata(),
+        skadelidteFodselsdato: toISODateString('2025-01-01'),
+        skadedato: toISODateString('2024-07-01'),
+      },
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {},
+        faellesAarsloen: {},
+      },
+    });
+
+    expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
+    expect(snapshot.kapitalisering.hasBlockingErrors).toBe(true);
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    expect(snapshot.loebendeYdelser.issues).toContainEqual(expect.objectContaining({
+      id: 'stamdata-date-order:skadedato',
+      severity: 'error',
+    }));
+  });
+
   it('samler alle tab-beregninger i ét autoritativt snapshot', () => {
     const snapshot = computeEetSnapshot({
       values: createValues(),

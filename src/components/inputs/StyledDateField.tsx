@@ -190,7 +190,9 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       parse: parseDate,
       normalizeDraftOnCommit: normalizeDateDraftOnCommit,
       getDraftForKey,
-      normalizePasteText: normalizeDatePaste,
+      // Kronologiske min/max-bounds bruges ikke til paste-afskæring: en afkortet årdel kan
+      // ændre datoens århundrede og dermed forvanske værdien. Bounds forbliver afledt feedback.
+      normalizePasteText: (text) => normalizeDatePaste(text, { twoDigitYearPolicy: 'infer' }),
       singleStageClick,
       onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),

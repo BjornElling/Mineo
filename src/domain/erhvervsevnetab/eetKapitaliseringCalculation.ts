@@ -322,10 +322,12 @@ export const computeEetKapitaliseringCalculation = (
   const fodselsdato = input.skadelidteFodselsdato;
   const aarsloen = amountValueToNumber(values.aslAarsloen);
 
-  if (!Number.isFinite(aarsloen)) {
+  if (aarsloen === undefined || !Number.isFinite(aarsloen)) {
     issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
-  } else if (aarsloen === 0) {
-    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr'));
+  } else if (aarsloen <= 0) {
+    // Fortegn er et afledt domæneissue, ikke et persistence-schema-krav. Værnet
+    // skal derfor også afvise negative canonical værdier fra fx en indlæst fil.
+    issues.push(toIssue('aarsloen-zero', 'Årsløn skal være større end 0 kr'));
   }
   if (!fodselsdato) {
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));

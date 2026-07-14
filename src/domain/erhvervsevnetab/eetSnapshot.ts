@@ -27,6 +27,7 @@ import {
   eetCanonicalOutputSchema,
   type EetCanonicalOutput,
 } from './eetCanonicalOutput';
+import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -111,6 +112,15 @@ const createFieldIssues = (
     .filter((issue): issue is EetIssue => issue !== null);
 };
 
+const createStamdataDateOrderIssues = (stamdata: StamdataValues | null): readonly EetIssue[] => {
+  if (stamdata === null) return [];
+  return resolveStamdataDateOrder(stamdata).issues.map((issue) => ({
+    id: `stamdata-date-order:${issue.field}`,
+    severity: 'error' as const,
+    message: issue.message,
+  }));
+};
+
 const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['loebendeYdelser'] => {
   const calculationResult = computeEetLoebendeYdelser({
     erhvervsevnetab: input.values,
@@ -126,7 +136,11 @@ const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['l
     { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
   ]);
 
-  const issues = sortAndDedupeIssues([...calculationResult.issues, ...fieldIssues]);
+  const issues = sortAndDedupeIssues([
+    ...calculationResult.issues,
+    ...fieldIssues,
+    ...createStamdataDateOrderIssues(input.stamdata),
+  ]);
   return {
     issues,
     hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
@@ -148,7 +162,11 @@ const buildKapitaliseringProjection = (input: EetSnapshotInput): EetSnapshot['ka
     { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
   ]);
 
-  const issues = sortAndDedupeIssues([...calculationResult.issues, ...fieldIssues]);
+  const issues = sortAndDedupeIssues([
+    ...calculationResult.issues,
+    ...fieldIssues,
+    ...createStamdataDateOrderIssues(input.stamdata),
+  ]);
   return {
     issues,
     hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
@@ -174,7 +192,11 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
     { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
   ]);
 
-  const issues = sortAndDedupeIssues([...calculationResult.issues, ...fieldIssues]);
+  const issues = sortAndDedupeIssues([
+    ...calculationResult.issues,
+    ...fieldIssues,
+    ...createStamdataDateOrderIssues(input.stamdata),
+  ]);
   return {
     issues,
     hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
@@ -231,6 +253,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
   const issues = sortAndDedupeIssues([
     ...calculationResult.issues,
     ...fieldIssues,
+    ...createStamdataDateOrderIssues(input.stamdata),
     ...(forligBlocking.issue ? [forligBlocking.issue] : []),
   ]);
   return {

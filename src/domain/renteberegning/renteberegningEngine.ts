@@ -48,6 +48,10 @@ const resolveActualInterestDateIso = (rowValues: RentekravRow): ISODateString | 
   if (!renterFra) return null;
 
   const tillaegstid = rowValues.tillaegstid ?? 0;
+  // calculateInterestDate har en legitim domæneregel om, at <= 0 betyder intet
+  // tillæg. Persisted input tillod tidligere kun >= 0, så negative canonical
+  // værdier skal afvises her og må ikke stiltiende fortolkes som nul.
+  if (tillaegstid < 0) return null;
   const input: InterestDateInput = {
     kravetDato: renterFra,
     tillaegstid,

@@ -8,6 +8,7 @@ import {
   useMidlertidigtEetInsertSource,
 } from '../../hooks/useMidlertidigtEetInsertSource';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { toISODateString } from '../../types/branded';
 
 describe('useMidlertidigtEetInsertSource', () => {
   beforeEach(() => {
@@ -40,12 +41,41 @@ describe('useMidlertidigtEetInsertSource', () => {
 
     act(() => {
       formPersistenceStore.getState().__setSectionUnsafe('faellesAarsloen', {
-        aslAarsloen: { kind: 'number', value: -1 },
+        aslAarsloen: { kind: 'number', value: Number.MAX_SAFE_INTEGER + 1 },
       });
     });
 
     expect(captured.issueIds).toContain('midlertidigt-eet-faelles-aarsloen-schema-invalid');
     expect(captured.messages).toContain('Årslønnen er ikke gyldig.');
+  });
+
+  it('emitter et blokerende source-issue når skadedato er før fødselsdato', () => {
+    const captured: {
+      issueIds: readonly string[] | null;
+      messages: readonly string[] | null;
+    } = {
+      issueIds: null,
+      messages: null,
+    };
+
+    const Capture = () => {
+      const source = useMidlertidigtEetInsertSource();
+      captured.issueIds = source.issues?.map((issue) => issue.id) ?? [];
+      captured.messages = source.issues?.map((issue) => issue.message) ?? [];
+      return null;
+    };
+
+    render(<Capture />);
+
+    act(() => {
+      formPersistenceStore.getState().__setSectionUnsafe('stamdata', {
+        skadelidteFodselsdato: toISODateString('2010-01-01'),
+        skadedato: toISODateString('2009-01-01'),
+      });
+    });
+
+    expect(captured.issueIds).toContain('midlertidigt-eet-stamdata-date-order');
+    expect(captured.messages).toContain('Skadedato er før fødselsdato.');
   });
 
   it('emitter konkrete mangler-beskeder når EET-kildesektioner ikke er udfyldt', () => {
@@ -92,7 +122,7 @@ describe('useMidlertidigtEetInsertSource', () => {
           id: 'afg-1',
           afgoerelsesDato: undefined,
           virkningsDato: undefined,
-          eetPct: 7,
+          eetPct: Number.MAX_SAFE_INTEGER + 1,
           kapDato: undefined,
           kapPct: undefined,
           afgoerelseType: undefined,

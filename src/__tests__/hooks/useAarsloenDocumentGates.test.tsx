@@ -29,12 +29,12 @@ vi.mock('../../document/service/documentService', () => ({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import { toISODateString } from '../../types/branded';
 
 const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenDocumentGates>[0]> = {}) => ({
   values: {
     tableData: [],
     loenperiode: 'maaned',
+    tillaegAngivesSom: 'procent',
     feriePct: 12.5,
     fritvalgPct: 1,
     shSoPct: 0.45,
@@ -104,6 +104,21 @@ beforeEach(() => {
 // ─── canDownloadDocument (getDocumentEligibility) ──────────────────────────────────────
 
 describe('useAarsloenDocumentGates — canDownloadDocument', () => {
+  it('blokerer knap og handling direkte på canonical procent-rangefejl uden feltreporter', async () => {
+    const { canDownloadDocument, documentDisabledReason, handleAarsloenDocumentDownload } = renderHook(makeBaseProps({
+      values: {
+        ...makeBaseProps().values,
+        tillaegAngivesSom: 'procent',
+        feriePct: 101,
+      },
+    }));
+
+    expect(canDownloadDocument).toBe(false);
+    expect(documentDisabledReason).toBe('Procenten skal være mellem 0 og 100 %.');
+    await act(async () => handleAarsloenDocumentDownload?.());
+    expect(downloadAarsloenDokumentMock).not.toHaveBeenCalled();
+  });
+
   it('er false når tableData er tom', () => {
     const { canDownloadDocument } = renderHook(makeBaseProps());
     expect(canDownloadDocument).toBe(false);
@@ -114,7 +129,7 @@ describe('useAarsloenDocumentGates — canDownloadDocument', () => {
       harFatalBeregningsFejl: true,
       values: {
         ...makeBaseProps().values,
-        tableData: [{ id: 'r1', col0_maaned: toISODateString('2024-01-01'), col1_maaned: toISODateString('2024-06-30'), col2: '50000' } as never],
+        tableData: [{ id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: { kind: 'number', value: 50000 } } as never],
       },
     }));
     expect(canDownloadDocument).toBe(false);
@@ -126,7 +141,7 @@ describe('useAarsloenDocumentGates — canDownloadDocument', () => {
       periodeData: null,
       values: {
         ...makeBaseProps().values,
-        tableData: [{ id: 'r1', col0_maaned: toISODateString('2024-01-01'), col1_maaned: toISODateString('2024-06-30'), col2: '50000' } as never],
+        tableData: [{ id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: { kind: 'number', value: 50000 } } as never],
       },
     }));
     expect(canDownloadDocument).toBe(false);
@@ -224,7 +239,7 @@ describe('useAarsloenDocumentGates — runtime dokument-fejl', () => {
     const captured = renderHook(makeBaseProps({
       values: {
         ...baseValues,
-        tableData: [{ id: 'r1', col0_maaned: toISODateString('2024-01-01'), col1_maaned: toISODateString('2024-06-30'), col2: '50000' } as never],
+        tableData: [{ id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: { kind: 'number', value: 50000 } } as never],
       },
     }));
 

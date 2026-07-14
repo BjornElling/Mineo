@@ -62,7 +62,6 @@ export {
   type RenteberegningValues,
 } from './formSchemas/sections/renteberegningSchemas';
 export {
-  VARIGE_MEN_MAX_MENGRAD,
   varigeMenSchema,
   type VarigeMenValues,
 } from './formSchemas/sections/varigeMenSchemas';

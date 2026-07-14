@@ -222,6 +222,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       getDraftForKey,
       normalizePasteText: (text) => normalizeIntegerPaste(text, {
         maxDigits: effectiveMaxDigits,
+        minValue: enforceRange ? minValue : undefined,
         maxValue: enforceRange ? maxValue : undefined,
         allowNegative,
       }),

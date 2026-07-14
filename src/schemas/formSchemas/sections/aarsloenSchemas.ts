@@ -1,15 +1,16 @@
 import { z } from 'zod';
 import {
   allowEmptyString,
-  dayCount,
-  percentageDecimal,
+  wholeNumber,
+  entityId,
+  decimalNumber,
   tableAmountCellValue,
   tableIsoDateCellString,
 } from '../baseSchemas';
 import { loenPaaHelligdageEnum, loenperiodeEnum, tillaegAngivesSomEnum } from '../enumSchemas';
 
 export const standardLoenTableRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   col0_maaned: allowEmptyString,
   col1_maaned: allowEmptyString,
   col0_uge: allowEmptyString,
@@ -35,11 +36,11 @@ export type StandardLoenTableRow = z.infer<typeof standardLoenTableRowSchema>;
 export const aarsloenSchema = z.object({
   // Procent- og feriedage-felterne er allerede optional (tom/undefined er lovlig) og
   // behøver derfor ingen default for at en ældre .eo uden dem kan loades.
-  feriePct: percentageDecimal,
-  fritvalgPct: percentageDecimal,
-  shSoPct: percentageDecimal,
-  storeBededagPct: percentageDecimal,
-  pensionPct: percentageDecimal,
+  feriePct: decimalNumber,
+  fritvalgPct: decimalNumber,
+  shSoPct: decimalNumber,
+  storeBededagPct: decimalNumber,
+  pensionPct: decimalNumber,
   // Defaults nedenfor gør load forward/backward-tolerant: en ældre .eo der mangler et af
   // disse påkrævede felter fejler ikke længere hele sektionen, men loades med en fast
   // fallback-værdi. Værdierne matcher det, en ny, tom sag starter med.
@@ -56,7 +57,7 @@ export const aarsloenSchema = z.object({
   omregningTilFuldtAar: z.boolean().default(false),
   fuldLoenUnderFerie: z.boolean().default(true),
   retTilSjetteFerieuge: z.boolean().default(true),
-  antalFeriedage: dayCount,
+  antalFeriedage: wholeNumber,
   loenPaaHelligdage: loenPaaHelligdageEnum.default('Almindelig løn'),
 }).strict();
 

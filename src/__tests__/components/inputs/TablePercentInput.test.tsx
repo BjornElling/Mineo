@@ -201,7 +201,7 @@ describe('TablePercentInput', () => {
     expect(input).toHaveValue('171,00');
   });
 
-  it('normalizes pasted text without upper paste cap when default range is disabled', async () => {
+  it('bevarer tilladte decimaler uden intervalafskæring når standardintervallet er slået fra', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-4', colIndex: 0 };
     const onBlur = vi.fn();
@@ -234,7 +234,7 @@ describe('TablePercentInput', () => {
     input.focus();
     await user.paste('adffergregs//sgd1712,56//');
 
-    expect(onBlur).toHaveBeenCalledWith(1712);
-    expect(input).toHaveValue('1.712,00');
+    expect(onBlur).toHaveBeenCalledWith(1712.56);
+    expect(input).toHaveValue('1.712,56');
   });
 });

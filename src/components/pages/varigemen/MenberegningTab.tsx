@@ -10,10 +10,10 @@ import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
 import {
-  VARIGE_MEN_MAX_MENGRAD,
   type VarigeMenValues,
   type StamdataValues,
 } from '../../../schemas/formSchemas';
+import { VARIGE_MEN_MAX_MENGRAD } from '../../../domain/varigemen/varigeMenPolicy';
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { computeVarigeMenEngine } from '../../../domain/varigemen/varigeMenEngine';
@@ -29,6 +29,7 @@ import { downloadVarigeMenDokument } from '../../../document/service/documentSer
 import { evaluateVarigeMenDownloadGate } from '../../../domain/varigemen/varigeMenDownloadGate';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { resolveStamdataDatoLabel } from '../../../domain/policies/stamdataCalculations';
+import { resolveStamdataDateOrder } from '../../../domain/stamdata/stamdataDateOrder';
 
 type MenberegningStamdataView = Pick<
   StamdataValues,
@@ -68,19 +69,23 @@ const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
 const mengradError = varigeMenFieldErrors.mengrad?.message;
 const beregningsdatoError = varigeMenFieldErrors.beregningsdato?.message;
-const fodselsdatoError = stamdataFieldErrors.skadelidteFodselsdato?.message;
+const stamdataDateOrderError = React.useMemo(
+  () => resolveStamdataDateOrder(stamValues).issues[0]?.message,
+  [stamValues]
+);
+const fodselsdatoError = stamdataFieldErrors.skadelidteFodselsdato?.message ?? stamdataDateOrderError;
+const skadedatoError = stamdataFieldErrors.skadedato?.message ?? stamdataDateOrderError;
 
-// Tjek om der er fejl - kun baseret på felt-errors fra onBlur
+// Tjek om der er fejl på senest afsluttede input eller i den rene stamdatarelation.
 const beregningsFejl = React.useMemo(() => {
-  // Kun tjek for fejl-beskeder fra input-felterne (som sættes ved onBlur)
-  if (fodselsdatoError || beregningsdatoError || mengradError) {
+  if (fodselsdatoError || skadedatoError || beregningsdatoError || mengradError) {
     return 'Fejl i indtastning';
   }
   return null;
-}, [mengradError, fodselsdatoError, beregningsdatoError]);
+}, [mengradError, fodselsdatoError, skadedatoError, beregningsdatoError]);
 
-// Tjek om indtastninger mangler (altid, uafhængigt af onBlur). En ugyldig méngrad (fx 0)
-// afvises i feltet og committes aldrig, så et manglende felt er præcist mengrad === undefined.
+// Missing er adskilt fra range: en canonical méngrad uden for 1..120 findes fortsat,
+// men range-issueet ovenfor blokerer den før engine og dokumentgate.
 const manglendeFelter = React.useMemo(() => {
   if (!stamValues.skadelidteFodselsdato || !stamValues.skadedato || !values.beregningsdato || values.mengrad === undefined) {
     return 'Indtastning mangler';
@@ -109,7 +114,7 @@ const menSats = React.useMemo(() => {
 }, [values.beregningsdato]);
 
 const beregningsResultat = React.useMemo(() => {
-  // Hvis der er onBlur-fejl eller manglende felter, vis ikke resultat
+  // Afledte issues og missing blokerer før engine, så den aldrig ser domæneugyldigt input.
   if (beregningsFejl || manglendeFelter) return undefined;
 
   const skadedatoISO = coerceToISODateString(stamValues.skadedato);
@@ -131,16 +136,17 @@ const beregningsResultat = React.useMemo(() => {
 
   // Download-gaten bygges på det fælles documentGateTypes-primitiv (dokument-output-
   // kontrakt §A2): et samlet gate-resultat med auditerbare årsagskoder i stedet for et
-  // inline-boolean-udtryk. Alle tre indgange er committed-afledte (onBlur-felt-fejl,
-  // committed stamdata/værdier, autoritativ engine), så committed-only-reglen er
+  // inline-boolean-udtryk. Alle indgange er afledt fra afsluttet canonical input,
+  // rene domæneissues og den autoritative engine, så committed-only-reglen er
   // konstruktion frem for kommentar.
   const downloadGate = React.useMemo(
     () => evaluateVarigeMenDownloadGate({
+      stamdata: stamValues,
       hasBlockingFieldErrors: beregningsFejl !== null,
       hasMissingFields: manglendeFelter !== null,
       hasBeregningsResultat: beregningsResultat !== undefined,
     }),
-    [beregningsFejl, manglendeFelter, beregningsResultat],
+    [stamValues, beregningsFejl, manglendeFelter, beregningsResultat],
   );
 
   // PDF download handler
@@ -156,7 +162,7 @@ const beregningsResultat = React.useMemo(() => {
       // Prioritering: Fødselsdato -> Skadedato -> Méngrad -> Beregningsdato
       if (!stamValues.skadelidteFodselsdato || fodselsdatoError) {
         navigate('/stamdata');
-      } else if (!stamValues.skadedato) {
+      } else if (!stamValues.skadedato || skadedatoError) {
         // Skadedato kan ikke markeres direkte, men brugeren vil se fejlen
       } else if (values.mengrad === undefined || mengradError) {
         // Markér méngrad-feltet via ref (ikke skrøbelig DOM-query på value-attributten).
@@ -202,7 +208,7 @@ const beregningsResultat = React.useMemo(() => {
       persistedStamdata: stamValues,
     });
     setPdfErrorMessage(result.success ? null : result.error);
-  }, [downloadGate, beregningsResultat, values, stamValues, fodselsdatoError, mengradError, beregningsdatoError, settings, navigate]);
+  }, [downloadGate, beregningsResultat, values, stamValues, fodselsdatoError, skadedatoError, mengradError, beregningsdatoError, settings, navigate]);
 
   const skadedatoLabel = React.useMemo(
     () => resolveStamdataDatoLabel(stamValues),
@@ -313,11 +319,11 @@ const beregningsResultat = React.useMemo(() => {
             value={values.mengrad}
             onCommit={(event) => setFieldValue('mengrad', event.target.value)}
             allowDecimals={false}
-            // Méngraden skal være i [1, 120]: 0 (og alt uden for intervallet) afvises straks i
-            // feltet med rød ring + tooltip via enforceRange — samme kanoniske vej som >120.
+            // Méngraden committes canonical som heltal; 1..120 håndhæves som et afledt range-issue,
+            // så værdien kan gemmes uden at nå engine eller PDF-gate.
             minValue={1}
             maxValue={VARIGE_MEN_MAX_MENGRAD}
-            enforceRange
+            enforceRange={false}
             useDefaultPercentRange={false}
             placeholder="0"
             // Fanger valideringsfejl fra feltet og rapporterer til den centrale fejlmodel

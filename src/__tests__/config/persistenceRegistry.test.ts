@@ -41,10 +41,10 @@ describe('persistenceSchemas', () => {
     expect(result.success).toBe(false);
   });
 
-  it('renteberegning-schema afviser tom rentekravRows', () => {
+  it('renteberegning-schema bevarer tom rentekravRows som canonical input', () => {
     const schema = persistenceSchemas.renteberegning;
     const result = schema.safeParse({ rentekravRows: [] });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   // ── Per-schema validering ──────────────────────────────────────────────────

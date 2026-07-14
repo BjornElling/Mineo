@@ -88,7 +88,12 @@ export const createAmountTableInputAdapter = (
     return true;
   },
   applyPaste: (raw, context) => {
-    const normalized = normalizeAmountPaste(raw, { allowNegative: config.canBeNegative });
+    const normalized = normalizeAmountPaste(raw, {
+      allowNegative: config.canBeNegative,
+      allowDecimals: true,
+      maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
+      maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
+    });
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

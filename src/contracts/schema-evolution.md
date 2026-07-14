@@ -100,8 +100,13 @@ minTabel: z.array(rowSchema),
 minTabel: z.array(rowSchema).default([]),
 ```
 
-**`optionalString`, `optionalIsoDateString`, `nonNegativeAmountValue`, `percentageDecimal` o.l.:**
+**`optionalString`, `optionalIsoDateString`, `amountValue`, `decimalNumber` og `wholeNumber`:**
 Disse er allerede `.optional()` og håndterer manglende felter korrekt — ingen yderligere ændring nødvendig.
+
+De numeriske combinators validerer kun canonical syntaks og præcis repræsentation. Fortegn, min/max,
+procentinterval, datoordensregler og øvrige domæneregler må ikke ligge i persistence-schemaet; de afledes som issues
+fra feltdefinitioner og domænevalidatorer. En parsebar værdi uden for en domænegrænse skal derfor kunne roundtrippe
+gennem save/load uden at blive muteret eller få hele sektionen droppet.
 
 ### Regel 1.2: Vælg skema-default konservativt
 
@@ -353,7 +358,7 @@ Korrekte eksempler at kopiere ved tilføjelse af nye felter:
 | Toggle (JaNej) fast default | `jaNejEnum.default('Nej')` | `'Nej'` |
 | Fritekst | `optionalString` | `undefined` eller `''` |
 | Dato | `optionalIsoDateString` | `undefined` |
-| Beløb | `nonNegativeAmountValue` | `undefined` |
+| Beløb | `amountValue` | `undefined` |
 | Enum med default | `z.enum([…]).default('X')` | `'X'` |
 | Boolean | `z.boolean().default(false)` | `false` |
 | Tabel-array | `z.array(rowSchema).default([])` | `ensureXRows(undefined)` eller `[]` |

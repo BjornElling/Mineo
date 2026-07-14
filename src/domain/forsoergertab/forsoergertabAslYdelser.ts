@@ -243,8 +243,10 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   const aslAarsloen = amountValueToNumber(input.aslAarsloen);
   if (aslAarsloen === undefined) {
     issues.push(toIssue('asl-aarsloen-missing', 'Årsløn efter ASL er ikke udfyldt.'));
-  } else if (aslAarsloen === 0) {
-    issues.push(toIssue('asl-aarsloen-zero', 'Årsløn efter ASL må ikke være 0 kr.'));
+  } else if (aslAarsloen <= 0) {
+    // Persistence accepterer fortegnet som canonical syntaks; domænegaten skal
+    // derfor eksplicit blokere både nul og negative beløb.
+    issues.push(toIssue('asl-aarsloen-zero', 'Årsløn efter ASL skal være større end 0 kr.'));
   }
 
   if (!input.skadedato) issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));

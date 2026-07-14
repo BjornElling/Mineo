@@ -58,7 +58,12 @@ export const createPercentTableInputAdapter = (
     return true;
   },
   applyPaste: (raw, context) => {
-    const normalized = normalizePercentPaste(raw, { maxValue: config.maxValue });
+    const normalized = normalizePercentPaste(raw, {
+      allowNegative: config.allowNegative,
+      allowDecimals: config.allowDecimals,
+      minValue: config.minValue,
+      maxValue: config.maxValue,
+    });
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

@@ -44,7 +44,8 @@ export const parseIntegerDraftForCommit = (
   }
 
   const parsed = Number.parseInt(trimmed, 10);
-  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+  // `parseInt` afrunder ellers stille heltal over Number.MAX_SAFE_INTEGER.
+  if (!Number.isSafeInteger(parsed)) {
     return { ok: false, errorMessage: 'Ugyldigt heltal' };
   }
 

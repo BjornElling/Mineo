@@ -55,6 +55,7 @@ Hver inputfamilie har ét `FieldCodec<T>`:
 type FieldCodec<T> = Readonly<{
   parseForSettle(raw: string): FieldResolution<T>;
   format(value: T): string;
+  formatForEdit(value: T): string;
   acceptsInitialKey(key: string): boolean;
   normalizePaste?(raw: string): string;
 }>;
@@ -64,10 +65,19 @@ Krav:
 
 1. `parseForSettle` returnerer enten canonical værdi eller deterministisk ugyldighed.
 2. Tom tekst mapper til feltets canonical tomme værdi.
-3. `format` er deterministisk og bruges kun for afsluttede gyldige værdier.
-4. Canonicalisering må kun ske ved settle og kun efter den eksisterende felt-/numerikregel.
-5. Dato, beløb, procent, heltal, brøk, uge, år og tekst må ikke have separate form- og tabelcodecs.
-6. Domæne-bounds hører til rene validatorer/projektioner, medmindre grænsen er en del af syntaksen.
+3. `format` er deterministisk og bruges kun for den lukkede visning af afsluttede gyldige værdier.
+4. `formatForEdit` er obligatorisk og gendanner den revisionsbundne edit-tekst uden at læse en parallel draft. For
+   beløbsudtryk bevares udtrykket her, selv om `format` viser det beregnede og dansk formaterede beløb.
+5. Canonicalisering må kun ske ved settle og kun efter den eksisterende felt-/numerikregel.
+6. Dato, beløb, procent, heltal, brøk, uge, år og tekst må ikke have separate form- og tabelcodecs.
+7. Domæne-bounds hører til rene validatorer/projektioner, medmindre grænsen er en del af syntaksen.
+8. Paste bevarer mest muligt input efter én regel: normalisér feltets tilladte format, og afskær derefter fra højre
+   til det længste præfiks, som feltets format, præcision, cifferloft og aktive commit-interval kan rumme. Heltalsfelter
+   fjerner separatoren og hele decimaldelen uden afrunding; decimalaktiverede felter bevarer decimaler op til deres
+   præcision. Tilladte beløbsoperatorer bevares som udtryk. Samme normalisering bruges på formular- og tabeloverfladen.
+9. Dato-paste håndhæver formatets komponentgrænser (dag 1–31 og måned 1–12) med samme præfiksregel. Kronologiske
+   min/max-datobounds er en bevidst undtagelse: de må ikke afskære paste, fordi afkortning af årsdelen kan flytte datoen
+   til et andet århundrede og dermed forvanske brugerens værdi. De bounds forbliver afledte issues efter settle.
 
 ### Lag D — surface-adaptere
 
@@ -105,6 +115,8 @@ Regler:
 4. Label og kontroltype kommer fra definitionen, aldrig fra parsing af en key eller fri streng.
 5. Rækkeidentitet er datanøglen; kolonneindeks må ikke indgå i persistent feltidentitet.
 6. Transiente UI-hjælpefelter bruger samme codec/editor, men har ingen persisted `FieldRef` og deltager ikke i history.
+7. Felt- og collection-bindings registreres i ét forseglet `InputCatalog`; dynamiske refs skal både matche templaten
+   og pege på entities, der findes i det konkrete input-snapshot.
 
 ## 4. Settle-kontrakt
 
@@ -163,7 +175,11 @@ forveksles med et værdi-commit.
 ## 9. Skjulte domæneregler
 
 Ikke-indlysende defaults og constraints skal være eksplicitte i feltdefinitionen eller den relevante domænekontrakt.
-Eksempler er procentintervaller, to-cifret årspolitik og sikkerhedsgrænser for cifferantal.
+Eksempler er procentintervaller, tocifret årspolitik og sikkerhedsgrænser for cifferantal.
+
+`infer`-politikken for tocifrede år er en låst, løbende regel: `20xx` bruges til og med fem år efter det aktuelle
+kalenderår; senere tocifrede år fortolkes som `19xx`. Grænsen skal flytte sig med kalenderåret og må ikke erstattes af
+et fast pivotår. Eksempel: `30` fortolkes som 1930 i 2024, men som 2030 fra og med 2025.
 
 ## 10. Reference og migrationsværn
 

@@ -65,7 +65,8 @@ revision. Fejler restore, forbliver input, storage, history, route og fokus uæn
 
 History-origin er en strukturel `FieldRef`, jf. `mineo-field-pattern.md`.
 
-- Hvert inputcommand bærer sin origin eksplicit.
+- Hver command-kørsel modtager sin origin eksplicit sammen med commanden; origin er runner-metadata og må ikke udledes
+  af DOM-fokus eller pakkes ind i den rene reducercommand.
 - Tabelceller identificeres af collection/entity/felt, aldrig `rowId:colIndex`.
 - DOM-attributter er kun fokusmål projekteret fra feltreferencen.
 - Et stabilt persisted row-id omskrives ikke for fokusrestore.

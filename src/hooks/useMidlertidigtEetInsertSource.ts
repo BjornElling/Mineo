@@ -11,6 +11,10 @@ import type { EetImportSource } from '../domain/erhvervsevnetab/eetImportPort';
 import type { EetIssue } from '../domain/erhvervsevnetab/eetTypes';
 import type { z } from 'zod';
 import { getSectionRevisionSnapshot } from '../stores/formPersistenceReadModel';
+import {
+  resolveStamdataDateOrder,
+  STAMDATA_DATE_ORDER_ERROR_MESSAGE,
+} from '../domain/stamdata/stamdataDateOrder';
 
 const subscribeToFormPersistenceStore = formPersistenceStore.subscribe;
 
@@ -45,7 +49,7 @@ const resolveErhvervsevnetabImportSchemaMessage = (issues: readonly z.ZodIssue[]
 };
 
 const resolveFaellesAarsloenImportSchemaMessage = (issues: readonly z.ZodIssue[]): string => {
-  if (hasIssueAtPath(issues, ['aslAarsloen'])) {
+  if (hasIssueUnderPath(issues, ['aslAarsloen'])) {
     return 'Årslønnen er ikke gyldig.';
   }
 
@@ -103,6 +107,14 @@ const getMidlertidigtEetInsertSourceSnapshot = (): EetImportSource => {
       id: 'midlertidigt-eet-stamdata-schema-invalid',
       severity: 'error',
       message: 'Stamdata kunne ikke valideres og kan derfor ikke importeres som midlertidigt EET.',
+    });
+  } else if (resolveStamdataDateOrder(parsedStamdata.data).issues.length > 0) {
+    // Datoorden er canonical og ligger derfor ikke længere i persistence-schemaet.
+    // Importporten skal stadig være fail-closed, og source-issuet blokerer anvendelsen.
+    sourceIssues.push({
+      id: 'midlertidigt-eet-stamdata-date-order',
+      severity: 'error',
+      message: STAMDATA_DATE_ORDER_ERROR_MESSAGE,
     });
   }
 

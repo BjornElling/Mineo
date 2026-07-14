@@ -215,7 +215,7 @@ describe('StyledAmountField expression behavior', () => {
     expect(input).toHaveValue('9.602,05');
   }, TEST_TIMEOUT_MS);
 
-  it('pastes only the first numeric token from an expression-like string', async () => {
+  it('bevarer et gyldigt pasted beløbsudtryk', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn<OnCommit>();
     const input = renderField(undefined, onCommit);
@@ -228,11 +228,11 @@ describe('StyledAmountField expression behavior', () => {
     expect(onCommit).toHaveBeenCalledWith(
       expect.objectContaining({
         target: {
-          value: { kind: 'number', value: 100 },
+          value: { kind: 'expression', expression: '100+25', value: 125 },
         },
       })
     );
-    expect(input).toHaveValue('100,00');
+    expect(input).toHaveValue('125,00');
   }, TEST_TIMEOUT_MS);
 
   it('commits pasted currency text while editor is closed', async () => {

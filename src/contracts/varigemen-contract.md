@@ -24,7 +24,10 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
    og click-preflight og aggregerer alle relevante fejlissues; lokale feltbooleans er ikke gatekilder.
 4. Runtimefejl må ikke give gyldige totals eller PDF-projektion.
 5. **Bevidst domænebeslutning:** Méngrad er et heltal fra og med 1 til og med 120. Værdier over 100 er gyldigt beregningsinput og anvendes direkte i samme formel som øvrige méngrader.
-6. **Bevidst valideringsbeslutning:** En indtastet méngrad over 120 må ikke committes. Feltet skal bevare den rå indtastning som en blokerende fejl, så værdien hverken bruges i beregning eller kan passere Gem/PDF-gaten. Schema, felt og engine deler den kanoniske maksimumsgrænse `VARIGE_MEN_MAX_MENGRAD`.
+6. **Bevidst valideringsbeslutning:** En parsebar heltals-méngrad uden for 1..120 committes canonical og giver et
+   afledt range-issue. Værdien må gemmes i `.eo`, men den må ikke nå beregningsmotoren eller passere PDF-gaten.
+   Persistence-schemaet validerer heltalssyntaks; feltdefinition, projektion og engine deler domænegrænsen
+   `VARIGE_MEN_MAX_MENGRAD`.
 
 ---
 
@@ -47,4 +50,4 @@ Tests skal dække:
 2. dokumentgate ved missing, invalid og range/bounds,
 3. runtime exception som blokeret output,
 4. at PDF og UI bruger samme beregnede `beregningsResultat` (PDF genberegner ikke).
-5. grænseværdierne 120 (gyldig og beregnet) og 121 (schema-/felt-/engine-afvist).
+5. grænseværdierne 120 (gyldig og beregnet) og 121 (canonical, range-markeret og blokeret før engine/PDF).

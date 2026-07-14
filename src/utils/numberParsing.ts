@@ -1,9 +1,21 @@
 import type { AmountValue } from '../schemas/amountExpressionSchema';
+import { hasSafeDecimalDigits } from './numericSafety';
 
-export const parseDanishNumberString = (value: string): number | undefined => {
+export const parseDanishNumberString = (
+  value: string,
+  options: Readonly<{ precision?: number }> = {}
+): number | undefined => {
   const trimmed = value.trim();
   if (trimmed === '') return undefined;
   if (!/^-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?$/.test(trimmed)) return undefined;
+  const unsigned = trimmed.startsWith('-') ? trimmed.slice(1) : trimmed;
+  const [integerRaw, decimalDigits = ''] = unsigned.split(',') as [string, string?];
+  const integerDigits = integerRaw.replace(/\./g, '');
+  // I den generiske sti er antallet af skrevne decimalpladser selv den erklærede
+  // præcision; trailing nuller må ikke få parseren til at påstå en grovere sikkerhed.
+  const canonicalPrecision = options.precision ?? decimalDigits.length;
+  // ParseFloat afrunder ellers store værdier uden noget signal til kalderen.
+  if (!hasSafeDecimalDigits(integerDigits, decimalDigits, canonicalPrecision)) return undefined;
   const normalized = trimmed.replace(/\./g, '').replace(',', '.');
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : undefined;

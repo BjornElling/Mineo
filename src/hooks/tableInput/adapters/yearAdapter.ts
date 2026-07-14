@@ -49,7 +49,7 @@ export const createYearTableInputAdapter = (
   toCommittedPayload: toCommittedYearPayload,
   isValidStartKey: (key) => /^[0-9]$/.test(key),
   applyPaste: (raw, context) => {
-    const normalized = normalizeYearPaste(raw);
+    const normalized = normalizeYearPaste(raw, config);
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

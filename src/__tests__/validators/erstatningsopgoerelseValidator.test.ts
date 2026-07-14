@@ -24,6 +24,204 @@ const isValid = (values: ErstatningsopgoerelseValues): boolean => {
   return erstatningsopgoerelseValidator.validate(values).isValid;
 };
 
+const errorPathsForMessage = (values: ErstatningsopgoerelseValues, message: string): string[] =>
+  erstatningsopgoerelseValidator.validateParsed(values).errors
+    .filter((error) => error.message === message)
+    .map((error) => error.path)
+    .sort();
+
+describe('canonical rangevalidering', () => {
+  it('validerer alle EO-procentfelter centralt med deres præcise paths', () => {
+    const manualRow = {
+      id: 'manuel-1',
+      dato: iso('2024-01-01'),
+      grundloen: asAmount(1000),
+      feriepenge: -1,
+      shSoSats: 101,
+      fritvalg: -1,
+      agPension: 101,
+    };
+    const manualPercentageRow = { id: 'procent-1', dato: iso('2024-01-01'), procent: 101 };
+    const employment = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-1',
+      fritvalgPct: -1,
+      shSoPct: 101,
+      storeBededagPct: -1,
+      pensionPct: 101,
+      feriePct: -1,
+      loenudviklingManuelTableData: [manualRow],
+      loenudviklingManuelProcentsatsTableData: [manualPercentageRow],
+    };
+    const eoLoenudvikling = {
+      ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+      feriePct: 101,
+      loenudviklingManuelTableData: [{ ...manualRow, id: 'eo-manuel-1' }],
+      loenudviklingManuelProcentsatsTableData: [{ ...manualPercentageRow, id: 'eo-procent-1', procent: -1 }],
+    };
+    const values = makeValues({
+      forligAnsvarsgradProcent: 101,
+      loenindkomstAnsaettelsesforhold: [employment],
+      eoAngivetLoenLoenudvikling: eoLoenudvikling,
+    });
+
+    expect(errorPathsForMessage(values, 'Procent skal være mellem 0 og 100')).toEqual([
+      'eoAngivetLoenLoenudvikling.feriePct',
+      'eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData[0].procent',
+      'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData[0].agPension',
+      'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData[0].feriepenge',
+      'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData[0].fritvalg',
+      'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData[0].shSoSats',
+      'forligAnsvarsgradProcent',
+      'loenindkomstAnsaettelsesforhold[0].feriePct',
+      'loenindkomstAnsaettelsesforhold[0].fritvalgPct',
+      'loenindkomstAnsaettelsesforhold[0].loenudviklingManuelProcentsatsTableData[0].procent',
+      'loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData[0].agPension',
+      'loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData[0].feriepenge',
+      'loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData[0].fritvalg',
+      'loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData[0].shSoSats',
+      'loenindkomstAnsaettelsesforhold[0].pensionPct',
+      'loenindkomstAnsaettelsesforhold[0].shSoPct',
+      'loenindkomstAnsaettelsesforhold[0].storeBededagPct',
+    ].sort());
+  });
+
+  it('bevarer 0 og 100 som gyldige procenter, herunder forlig på 0', () => {
+    const employment = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-1',
+      fritvalgPct: 0,
+      shSoPct: 100,
+      storeBededagPct: 0,
+      pensionPct: 100,
+      feriePct: 0,
+      loenudviklingManuelTableData: [{
+        id: 'manuel-1',
+        dato: iso('2024-01-01'),
+        grundloen: asAmount(1000),
+        feriepenge: 0,
+        shSoSats: 100,
+        fritvalg: 0,
+        agPension: 100,
+      }],
+      loenudviklingManuelProcentsatsTableData: [{ id: 'procent-1', dato: iso('2024-01-01'), procent: 0 }],
+    };
+    const values = makeValues({
+      forligAnsvarsgradProcent: 0,
+      loenindkomstAnsaettelsesforhold: [employment],
+    });
+
+    expect(errorPathsForMessage(values, 'Procent skal være mellem 0 og 100')).toEqual([]);
+    expect(hasError(values, 'ansvarsgrad')).toBe(false);
+  });
+
+  it('validerer alle tidligere ikke-negative beløb uafhængigt af aktive formularfelter', () => {
+    const employment = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-1',
+      offentligLoenEkstraGrundloen: asAmount(-1),
+      anciennitetstillaegSats: asAmount(-1),
+    };
+    const eoLoenudvikling = {
+      ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+      offentligLoenEkstraGrundloen: asAmount(-1),
+      anciennitetstillaegSats: asAmount(-1),
+    };
+    const values = makeValues({
+      svieSmerteTidligereTotal: asAmount(-1),
+      svieSmerteAktuelPeriode: asAmount(-1),
+      tidligereModtagetTaf: asAmount(-1),
+      maanedsloenenUdgoer: asAmount(-1),
+      dagsloenenUdgoer: asAmount(-1),
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Ingen',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+        sfggManuelDagssats: asAmount(-1),
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: asAmount(-1),
+      }],
+      loenindkomstAnsaettelsesforhold: [employment],
+      eoAngivetLoenLoenudvikling: eoLoenudvikling,
+    });
+
+    expect(errorPathsForMessage(values, 'Beløb kan ikke være negativt')).toEqual([
+      'dagsloenenUdgoer',
+      'eoAngivetLoenLoenudvikling.anciennitetstillaegSats',
+      'eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen',
+      'loenindkomstAnsaettelsesforhold[0].anciennitetstillaegSats',
+      'loenindkomstAnsaettelsesforhold[0].offentligLoenEkstraGrundloen',
+      'maanedsloenenUdgoer',
+      'sfggAnsaettelsesforhold[0].sfggAlleredeBetaltBeloeb',
+      'sfggAnsaettelsesforhold[0].sfggManuelDagssats',
+      'svieSmerteAktuelPeriode',
+      'svieSmerteTidligereTotal',
+      'tidligereModtagetTaf',
+    ].sort());
+  });
+
+  it('validerer faste daggrænser samt offentlig løntrin og løngruppe', () => {
+    const employment = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-1',
+      offentligLoenTrin: 56,
+      offentligLoenGruppe: -1,
+    };
+    const eoLoenudvikling = {
+      ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+      offentligLoenTrin: 0,
+      offentligLoenGruppe: 5,
+    };
+    const values = makeValues({
+      uspecificeredeFerieFridage: -1,
+      oevrigeFravaersdage: 367,
+      tafPerioder: [{ id: 'taf-1', fra: undefined, til: undefined, loseFeriedage: 1000 }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Ingen',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 367,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+      loenindkomstAnsaettelsesforhold: [employment],
+      eoAngivetLoenLoenudvikling: eoLoenudvikling,
+    });
+    const errors = erstatningsopgoerelseValidator.validateParsed(values).errors;
+
+    expect(errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: 'uspecificeredeFerieFridage', message: 'Antal dage skal være mellem 0 og 366' }),
+      expect.objectContaining({ path: 'oevrigeFravaersdage', message: 'Antal dage skal være mellem 0 og 366' }),
+      expect.objectContaining({ path: 'tafPerioder[0].loseFeriedage', message: 'Antal dage skal være mellem 0 og 999' }),
+      expect.objectContaining({ path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFravaersdageUdenLoen', message: 'Antal dage skal være mellem 0 og 366' }),
+      expect.objectContaining({ path: 'loenindkomstAnsaettelsesforhold[0].offentligLoenTrin', message: 'Løntrin skal være mellem 1 og 55' }),
+      expect.objectContaining({ path: 'loenindkomstAnsaettelsesforhold[0].offentligLoenGruppe', message: 'Løngruppe skal være mellem 0 og 4' }),
+      expect.objectContaining({ path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin', message: 'Løntrin skal være mellem 1 og 55' }),
+      expect.objectContaining({ path: 'eoAngivetLoenLoenudvikling.offentligLoenGruppe', message: 'Løngruppe skal være mellem 0 og 4' }),
+    ]));
+  });
+
+  it('kræver fortsat et strengt positivt beløb for øvrige krav', () => {
+    const zero = makeValues({
+      oevrigeKravPerioder: [{ id: 'krav-0', dato: iso('2024-01-01'), udgiftTil: 'Transport', beloeb: asAmount(0) }],
+    });
+    const negative = makeValues({
+      oevrigeKravPerioder: [{ id: 'krav-negativ', dato: iso('2024-01-01'), udgiftTil: 'Transport', beloeb: asAmount(-1) }],
+    });
+
+    expect(errorPathsForMessage(zero, 'Beløb skal være større end 0')).toEqual(['oevrigeKravPerioder[0].beloeb']);
+    expect(errorPathsForMessage(negative, 'Beløb kan ikke være negativt')).toEqual(['oevrigeKravPerioder[0].beloeb']);
+  });
+});
+
 // =============================================================================
 // FORLIG ANSVARSGRAD
 // =============================================================================

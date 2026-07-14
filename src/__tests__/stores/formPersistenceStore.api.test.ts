@@ -88,7 +88,7 @@ describe('formPersistenceStore public API', () => {
     store.getState().replaceSections(sections, VALID_META);
     const before = store.getState().sections;
 
-    const bad = { ...sections, satser: { aargang: 999999 } };
+    const bad = { ...sections, satser: { aargang: Number.MAX_SAFE_INTEGER + 1 } };
     expect(() => store.getState().replaceSections(bad, VALID_META)).toThrow();
     expect(store.getState().sections).toEqual(before);
   });

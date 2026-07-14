@@ -223,14 +223,14 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const fodselsdato = input.skadelidteFodselsdato;
 
   const aarsloen = resolveAarsloen(values);
-  // amountValueToNumber returnerer undefined for ikke-udfyldt felt og 0 for et committed 0-beløb.
-  // Rækkefølgen herunder er intentionel: explicit 0 er en fejl; undefined er "mangler".
+  // Fortegn er et afledt domæneissue. Rækkefølgen er intentionel: et udfyldt
+  // ikke-positivt beløb er en konkret fejl; kun undefined er "mangler".
   const ealAarsloenRaw = amountValueToNumber(values.ealAarsloen);
   const aslAarsloenRaw = amountValueToNumber(values.aslAarsloen);
-  if (ealAarsloenRaw === 0) {
-    issues.push(toIssue('eal-aarsloen-zero', 'EAL-årsløn må ikke være 0 kr'));
-  } else if (aslAarsloenRaw === 0) {
-    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr'));
+  if (ealAarsloenRaw !== undefined && ealAarsloenRaw <= 0) {
+    issues.push(toIssue('eal-aarsloen-zero', 'EAL-årsløn skal være større end 0 kr'));
+  } else if (aslAarsloenRaw !== undefined && aslAarsloenRaw <= 0) {
+    issues.push(toIssue('aarsloen-zero', 'Årsløn skal være større end 0 kr'));
   } else if (aarsloen.value === null || aarsloen.source === null) {
     issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
   }

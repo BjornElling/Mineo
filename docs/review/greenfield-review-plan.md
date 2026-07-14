@@ -391,6 +391,9 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
   Sikkert uden at afvise gyldige værdier, da alle nuværende procentfelters UI-interval er identisk
   med schema-grænsen (percentageDecimal 0–100, méngrad 0–120). Den ikke-blokerende seam bevares som
   eksplicit opt-in (`enforceRange={false}`) for felter hvis UI-interval bevidst er snævrere end schema.
+  Beslutningen er efterfølgende afløst af fase-2-greenfield-kontrakten 2026-07-14: parsebare
+  rangeværdier er canonical, mens intervalfejl afledes som issues. `enforceRange=true` er derfor kun
+  migrationsadfærd for endnu ikke flyttede callsites og må ikke bruges i den nye feltmotor.
   Samtidig blev `mergeSx`-konsolideringen ført helt igennem (ud over #12's oprindelige felt-familie-scope):
   de resterende usikre `...sx`-object-spreads i tabel-inputs (`TableYear/Week/Date/Text/Amount/Dropdown`,
   `GridReadOnlyLockedCell`, `FloatingActionButton`) og de inline array-merge-former i

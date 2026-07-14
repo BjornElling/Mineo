@@ -7,7 +7,7 @@ import StyledAmountField from '../../../inputs/StyledAmountField';
 import StyledToggleSwitch from '../../../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../../../inputs/StyledIntegerField';
 import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
-import { DAY_COUNT_MAX } from '../../../../schemas/formSchemas/baseSchemas';
+import { SFGG_REFERENCEPERIODE_MAX_DAYS } from '../../../../domain/erstatningsopgoerelse/engines/sfggConstants';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import type { OverenskomstSfggPolicy } from '../../../../data/overenskomstRates';
@@ -298,7 +298,7 @@ const SygeferiegodtgoerelseSection = ({
                 name={`${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`}
                 width={100}
                 minValue={0}
-                maxValue={sfggReferenceperiodeFravaersdageMax ?? DAY_COUNT_MAX}
+                maxValue={sfggReferenceperiodeFravaersdageMax ?? SFGG_REFERENCEPERIODE_MAX_DAYS}
                 value={sfggRow?.sfggReferenceperiodeFravaersdageUdenLoen}
                 placeholder="0"
                 onFieldError={reportSfggReferenceperiodeFravaersdageError}

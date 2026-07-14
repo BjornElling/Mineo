@@ -76,14 +76,18 @@ describe('interpretYear', () => {
     expect(interpretYear('9')).toBe(2009);
   });
 
-  it('2-cifret år tæt på nuværende → 20xx', () => {
-    // 2026 (nuværende år) + 5 = 2031. Så 24 → 2024 (< 2031)
-    expect(interpretYear('24')).toBe(2024);
-  });
+  it('flytter løbende grænsen for tocifrede år med kalenderåret', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2024, 0, 1));
+      expect(interpretYear('30')).toBe(1930);
 
-  it('2-cifret år langt frem → 19xx (over currentYear + 5)', () => {
-    // 80 → 2080 > currentYear + 5 → 1980
-    expect(interpretYear('80')).toBe(1980);
+      vi.setSystemTime(new Date(2025, 0, 1));
+      expect(interpretYear('30')).toBe(2030);
+      expect(interpretYear('31')).toBe(1931);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('3-cifret år → null (ugyldigt)', () => {

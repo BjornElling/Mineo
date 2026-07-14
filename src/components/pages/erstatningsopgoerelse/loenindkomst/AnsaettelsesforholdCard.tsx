@@ -46,7 +46,7 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sfggKilde';
-import { DAY_COUNT_MAX } from '../../../../schemas/formSchemas/baseSchemas';
+import { SFGG_REFERENCEPERIODE_MAX_DAYS } from '../../../../domain/erstatningsopgoerelse/engines/sfggConstants';
 import { getDayAfterIso } from '../../../../utils/isoDateHelpers';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
@@ -271,8 +271,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       : 'Referenceperioden indeholder ingen arbejdsdage.'
     : '';
   const sfggReferenceperiodeFravaersdageMax = Math.min(
-    referenceperiodeAvailability.maxFravaersdage ?? DAY_COUNT_MAX,
-    DAY_COUNT_MAX
+    referenceperiodeAvailability.maxFravaersdage ?? SFGG_REFERENCEPERIODE_MAX_DAYS,
+    SFGG_REFERENCEPERIODE_MAX_DAYS
   );
   const showSharedSfggBefore2015 = Boolean(
     skadedato && skadedato < '2015-01-01'

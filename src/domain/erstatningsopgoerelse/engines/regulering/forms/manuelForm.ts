@@ -22,8 +22,9 @@ import type {
 // visning kan ikke drive fra hinanden (samme "vist = beregnet"-garanti som R2 giver de migrerede
 // former, her opnået ved delt primitiv frem for et forløb, da 'Manuelt angivet' ikke bærer en
 // periodeserie). De tidligere lokale kopier (parseManualPercentToPct/resolveManualFeriePctPct) var
-// byte-identiske med de kanoniske for alt schema-gyldigt input (feriepenge/sats = percentageDecimal
-// ⇒ finit tal ∈ [0,100] eller undefined; de divergerende streng-/ikke-finit-grene var uopnåelige).
+// byte-identiske med de kanoniske for alt daværende schema-gyldigt input. Efter schemaernes
+// konvergens til syntaksautoritet er range-valideringen afledt, men den delte parser er fortsat
+// den eneste vej, så motor og præsentation ikke kan drive fra hinanden.
 
 const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string => {
   const normalized = rows.map((row) => ({

@@ -678,7 +678,7 @@ describe('eoPdfModel', () => {
 
     // Validatoren fanger negativt beløb før builder-laget
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Skal være større end 0');
+      .toThrow('Beløb kan ikke være negativt');
   });
 
   it('normaliserer beløb med flere end 2 decimaler via schema før øre-konvertering', () => {

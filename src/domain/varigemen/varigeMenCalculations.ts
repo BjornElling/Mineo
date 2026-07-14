@@ -1,4 +1,5 @@
-import { VARIGE_MEN_MAX_MENGRAD, type VarigeMenValues } from '../../schemas/formSchemas';
+import type { VarigeMenValues } from '../../schemas/formSchemas';
+import { VARIGE_MEN_MAX_MENGRAD } from './varigeMenPolicy';
 import type { YearlyRate } from '../../data/lovbestemteRates';
 import { coerceToISODateString, parseISODate, type ISODateString } from '../../types/branded';
 import { calculateUtcAgeInWholeYears } from '../../utils/dateUtils';

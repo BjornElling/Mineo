@@ -4,7 +4,9 @@ import {
   beregnFejlmeddelelser,
   harTabelValideringsFejl,
   harTabelData,
+  resolveAarsloenCanonicalRangeIssues,
 } from '../../../domain/aarsloen/aarsloenValidationPolicies';
+import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -38,6 +40,43 @@ const dagRow = (id: string, fra: string, til: string): StandardLoenTableRow => (
   ...emptyRow(id),
   col0_dag: toISODateString(fra),
   col1_dag: toISODateString(til),
+});
+
+describe('resolveAarsloenCanonicalRangeIssues', () => {
+  it.each([-1, 101])('afleder procent-rangefejl for canonical værdi %s', (feriePct) => {
+    const issues = resolveAarsloenCanonicalRangeIssues({
+      ...createAarsloenInitialValues(),
+      feriePct,
+    }, { omregningAktiveret: false });
+
+    expect(issues).toContainEqual({
+      field: 'feriePct',
+      message: 'Procenten skal være mellem 0 og 100 %.',
+    });
+  });
+
+  it('ignorerer procentfelter i beløbstilstand, hvor de ikke indgår i beregningen', () => {
+    const issues = resolveAarsloenCanonicalRangeIssues({
+      ...createAarsloenInitialValues(),
+      tillaegAngivesSom: 'beloeb',
+      feriePct: 101,
+    }, { omregningAktiveret: false });
+
+    expect(issues).toEqual([]);
+  });
+
+  it.each([-1, 100])('afleder feriedage-rangefejl for relevant canonical værdi %s', (antalFeriedage) => {
+    const issues = resolveAarsloenCanonicalRangeIssues({
+      ...createAarsloenInitialValues(),
+      fuldLoenUnderFerie: false,
+      antalFeriedage,
+    }, { omregningAktiveret: true });
+
+    expect(issues).toContainEqual({
+      field: 'antalFeriedage',
+      message: 'Antal feriedage skal være mellem 0 og 99.',
+    });
+  });
 });
 
 // ─── beregnFejlmeddelelser ────────────────────────────────────────────────

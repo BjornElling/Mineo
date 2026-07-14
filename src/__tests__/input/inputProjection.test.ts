@@ -1,10 +1,8 @@
 import { serializeFieldAddress } from '../../input/fieldAddress';
 import {
-  CollectionCatalog,
-  FieldCatalog,
+  InputCatalog,
   createCollectionBinding,
   createFieldBinding,
-  isKnownFieldAddressInInput,
 } from '../../input/fieldCatalog';
 import { defineField } from '../../input/fieldDefinition';
 import {
@@ -14,6 +12,7 @@ import {
 } from '../../input/inputIssue';
 import {
   collectInputProjections,
+  createInputProjectionValidator,
   createInputProjectionSpec,
   deriveInputProjectionIssues,
   evaluateInputProjection,
@@ -38,6 +37,7 @@ const textDefinition = (label: string) => defineField<string | undefined>({
   codec: {
     parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
     format: (value) => value ?? '',
+    formatForEdit: (value) => value ?? '',
     acceptsInitialKey: (key) => key.length === 1,
   },
 });
@@ -46,19 +46,27 @@ const nameBinding = createFieldBinding({
   definition: textDefinition('Navn'),
   template: { section: 'stamdata', path: [], field: 'skadelidte' },
   readCanonical: (sections) => sections.stamdata?.skadelidte,
+  writeCanonical: (sections, _address, value) => ({
+    ...sections,
+    stamdata: { ...(sections.stamdata ?? {}), skadelidte: value },
+  }),
 });
 const journalBinding = createFieldBinding({
   definition: textDefinition('Journalnummer'),
   template: { section: 'stamdata', path: [], field: 'journalnr' },
   readCanonical: (sections) => sections.stamdata?.journalnr,
+  writeCanonical: (sections, _address, value) => ({
+    ...sections,
+    stamdata: { ...(sections.stamdata ?? {}), journalnr: value },
+  }),
 });
 const nameField = nameBinding.createRef();
 const journalField = journalBinding.createRef();
 
-const fieldCatalog = new FieldCatalog();
-fieldCatalog.register(nameBinding);
-fieldCatalog.register(journalBinding);
-const collectionCatalog = new CollectionCatalog();
+const inputCatalog = new InputCatalog();
+inputCatalog.registerField(nameBinding);
+inputCatalog.registerField(journalBinding);
+inputCatalog.seal();
 
 const createReader = (options: Readonly<{
   name?: string;
@@ -73,15 +81,14 @@ const createReader = (options: Readonly<{
       journalnr: options.journal,
     },
   };
-  const input: PersistedInputState = {
+  const input = createPersistedInputStateSchema(inputCatalog).parse({
     sections,
     rejectedInputs: options.rejected ?? {},
-  };
+  });
   return createInputReader({
     input,
     revision: createInputRevision(options.revision ?? 1),
-    fieldCatalog,
-    collectionCatalog,
+    catalog: inputCatalog,
   });
 };
 
@@ -160,6 +167,50 @@ describe('inputProjection', () => {
     expect(projection.issues[0]?.policy.blocksSave).toBe(false);
   });
 
+  it('bevarer issues fra validatorer, hvis egne dependencies er resolved i en blocked projektion', () => {
+    const nameDependency = requiredInput(nameField, isNonEmptyString, {
+      missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY,
+    });
+    const journalDependency = requiredInput(journalField, isNonEmptyString, {
+      missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY,
+    });
+    const journalIssue = createFieldInputIssue({
+      field: journalField,
+      reason: 'range',
+      code: 'journal.range',
+      message: 'Journalnummeret ligger uden for de konkrete grænser',
+      policy: ALLOW_SAVE_INPUT_ISSUE_POLICY,
+    });
+    const validateJournal = vi.fn(() => [
+      inputProjectionFinding(journalIssue, { blocksProjection: false }),
+    ]);
+    const validateName = vi.fn(() => []);
+    const spec = createInputProjectionSpec({
+      dependencies: { name: nameDependency, journal: journalDependency },
+      validators: [
+        createInputProjectionValidator({
+          dependencies: { journal: journalDependency },
+          validate: validateJournal,
+        }),
+        createInputProjectionValidator({
+          dependencies: { name: nameDependency },
+          validate: validateName,
+        }),
+      ],
+      build: ({ name, journal }) => ({ name, journal }),
+    });
+
+    const projection = evaluateInputProjection(createReader({ journal: 'J-1' }), spec);
+
+    expect(projection.status).toBe('blocked');
+    expect(projection.issues).toEqual([
+      expect.objectContaining({ reason: 'missing', target: expect.objectContaining({ kind: 'field' }) }),
+      journalIssue,
+    ]);
+    expect(validateJournal).toHaveBeenCalledOnce();
+    expect(validateName).not.toHaveBeenCalled();
+  });
+
   it('bevarer ikke-blokerende error-issues i ready-grenen', () => {
     const rangeIssue = createFieldInputIssue({
       field: nameField,
@@ -168,9 +219,13 @@ describe('inputProjection', () => {
       message: 'Navnet ligger uden for de konkrete grænser',
       policy: ALLOW_SAVE_INPUT_ISSUE_POLICY,
     });
+    const nameDependency = requiredInput(nameField, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY });
     const spec = createInputProjectionSpec({
-      dependencies: { name: requiredInput(nameField, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY }) },
-      validate: () => [inputProjectionFinding(rangeIssue, { blocksProjection: false })],
+      dependencies: { name: nameDependency },
+      validators: [createInputProjectionValidator({
+        dependencies: { name: nameDependency },
+        validate: () => [inputProjectionFinding(rangeIssue, { blocksProjection: false })],
+      })],
       build: ({ name }) => name,
     });
     const reader = createReader({ name: 'Anne' });
@@ -190,9 +245,13 @@ describe('inputProjection', () => {
       policy: BLOCK_SAVE_INPUT_ISSUE_POLICY,
     });
     const finding = inputProjectionFinding(ruleIssue, { blocksProjection: true });
+    const nameDependency = requiredInput(nameField, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY });
     const spec = createInputProjectionSpec({
-      dependencies: { name: requiredInput(nameField, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY }) },
-      validate: () => [finding, finding],
+      dependencies: { name: nameDependency },
+      validators: [createInputProjectionValidator({
+        dependencies: { name: nameDependency },
+        validate: () => [finding, finding],
+      })],
       build: ({ name }) => name,
     });
     const projection = evaluateInputProjection(createReader({ name: 'Anne' }), spec);
@@ -209,13 +268,20 @@ describe('inputProjection', () => {
       definition: textDefinition('Forkert navn'),
       template: { section: 'stamdata', path: [], field: 'skadelidte' },
       readCanonical: () => 'Anne',
+      writeCanonical: (sections) => sections,
     }).createRef();
     const forgedIssue = createFieldInputIssue({ field: forgedField, reason: 'invalid' });
-    const createSpec = (issue: typeof undeclaredIssue) => createInputProjectionSpec({
-      dependencies: { name: requiredInput(nameField, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY }) },
-      validate: () => [inputProjectionFinding(issue, { blocksProjection: true })],
-      build: ({ name }) => name,
-    });
+    const createSpec = (issue: typeof undeclaredIssue) => {
+      const nameDependency = requiredInput(nameField, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY });
+      return createInputProjectionSpec({
+        dependencies: { name: nameDependency },
+        validators: [createInputProjectionValidator({
+          dependencies: { name: nameDependency },
+          validate: () => [inputProjectionFinding(issue, { blocksProjection: true })],
+        })],
+        build: ({ name }) => name,
+      });
+    };
     const reader = createReader({ name: 'Anne' });
 
     expect(() => evaluateInputProjection(reader, createSpec(undeclaredIssue)))
@@ -240,7 +306,10 @@ describe('inputProjection', () => {
     };
     const rawFindingSpec = createInputProjectionSpec({
       dependencies: { name: nameDependency },
-      validate: () => [{ issue: warning, blocksProjection: true }],
+      validators: [createInputProjectionValidator({
+        dependencies: { name: nameDependency },
+        validate: () => [{ issue: warning, blocksProjection: true }],
+      })],
       build: ({ name }) => name,
     });
     const reader = createReader({ name: 'Anne' });
@@ -249,6 +318,26 @@ describe('inputProjection', () => {
       .toThrow('InputProjection: samme feltadresse er deklareret mere end én gang');
     expect(() => evaluateInputProjection(reader, rawFindingSpec))
       .toThrow('InputProjection: et warning-issue må ikke blokere projektionen');
+
+    expect(() => createInputProjectionSpec({
+      dependencies: { name: nameDependency },
+      validators: [createInputProjectionValidator({
+        dependencies: { journal: optionalInput(journalField) },
+        validate: () => [],
+      })],
+      build: ({ name }) => name,
+    })).toThrow('InputProjection: validator afhænger af et felt uden for projektionen');
+  });
+
+  it('afviser kopierede eller ændrede issues uden for den autoritative factory', () => {
+    const authentic = createFieldInputIssue({ field: nameField, reason: 'invalid' });
+    const forged = {
+      ...authentic,
+      policy: ALLOW_SAVE_INPUT_ISSUE_POLICY,
+    } as typeof authentic;
+
+    expect(() => inputProjectionFinding(forged, { blocksProjection: true }))
+      .toThrow('InputIssue: issue skal være oprettet af den autoritative factory');
   });
 
   it('afviser konfliktende dubletter i stedet for at gøre gate afhængig af rækkefølge', () => {
@@ -261,17 +350,21 @@ describe('inputProjection', () => {
     };
     const warning = createFieldInputIssue({ ...base, severity: 'warning' });
     const error = createFieldInputIssue({ ...base, severity: 'error' });
+    const nameDependency = optionalInput(nameField);
     const spec = createInputProjectionSpec({
-      dependencies: { name: optionalInput(nameField) },
-      validate: () => [
-        inputProjectionFinding(warning, { blocksProjection: false }),
-        inputProjectionFinding(error, { blocksProjection: false }),
-      ],
+      dependencies: { name: nameDependency },
+      validators: [createInputProjectionValidator({
+        dependencies: { name: nameDependency },
+        validate: () => [
+          inputProjectionFinding(warning, { blocksProjection: false }),
+          inputProjectionFinding(error, { blocksProjection: false }),
+        ],
+      })],
       build: ({ name }) => name,
     });
 
     expect(() => evaluateInputProjection(createReader({ name: 'Anne' }), spec))
-      .toThrow('InputProjection: konflikt mellem issues med identiteten');
+      .toThrow('InputIssue: konflikt mellem issues med identiteten');
   });
 
   it('isolerer rækkeprojektioner og blokerer kun aggregatet, der samler den ugyldige række', () => {
@@ -287,17 +380,26 @@ describe('inputProjection', () => {
         const entityId = address.path[0]?.kind === 'entity' ? address.path[0].entityId : undefined;
         return sections.renteberegning?.rentekravRows.find((row) => row.id === entityId)?.renterFra;
       },
+      writeCanonical: (sections) => sections,
     });
-    const rowCatalog = new FieldCatalog();
-    rowCatalog.register(rowBinding);
-    const rowCollectionCatalog = new CollectionCatalog();
-    rowCollectionCatalog.register(createCollectionBinding({
+    type RentekravRow = NonNullable<
+      PersistedInputState['sections']['renteberegning']
+    >['rentekravRows'][number];
+    const rowCatalog = new InputCatalog();
+    rowCatalog.registerField(rowBinding);
+    rowCatalog.registerCollection(createCollectionBinding<RentekravRow>({
       template: { section: 'renteberegning', path: [], collection: 'rentekravRows' },
-      readEntityIds: (sections) => sections.renteberegning?.rentekravRows.map((row) => row.id) ?? [],
+      getEntityId: (row) => row.id,
+      readEntities: (sections) => sections.renteberegning?.rentekravRows ?? [],
+      writeEntities: (sections, _collection, rows) => ({
+        ...sections,
+        renteberegning: { ...(sections.renteberegning ?? {}), rentekravRows: [...rows] },
+      }),
     }));
+    rowCatalog.seal();
     const row1 = rowBinding.createRef('række-1');
     const row2 = rowBinding.createRef('række-2');
-    const input: PersistedInputState = {
+    const input = {
       sections: {
         ...createEmptyPersistedInputSections(),
         renteberegning: {
@@ -309,14 +411,11 @@ describe('inputProjection', () => {
       },
       rejectedInputs: { [serializeFieldAddress(row2.address)]: { raw: 'ugyldig' } },
     };
-    const validatedInput = createPersistedInputStateSchema((address, sections) =>
-      isKnownFieldAddressInInput(rowCatalog, rowCollectionCatalog, sections, address)
-    ).parse(input);
+    const validatedInput = createPersistedInputStateSchema(rowCatalog).parse(input);
     const reader = createInputReader({
       input: validatedInput,
       revision: createInputRevision(9),
-      fieldCatalog: rowCatalog,
-      collectionCatalog: rowCollectionCatalog,
+      catalog: rowCatalog,
     });
     const rowProjection = (field: typeof row1) => evaluateInputProjection(reader, createInputProjectionSpec({
       dependencies: { value: requiredInput(field, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY }) },
@@ -325,7 +424,7 @@ describe('inputProjection', () => {
 
     const first = rowProjection(row1);
     const second = rowProjection(row2);
-    const aggregate = collectInputProjections(reader.revision, [first, second]);
+    const aggregate = collectInputProjections(reader, [first, second]);
 
     expect(first).toEqual({ status: 'ready', data: '2024-01-01', issues: [], revision: 9 });
     expect(second.status).toBe('blocked');
@@ -338,7 +437,8 @@ describe('inputProjection', () => {
       dependencies: { name: requiredInput(nameField, isNonEmptyString, { missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY }) },
       build: ({ name }) => name,
     });
-    const base = evaluateInputProjection(createReader({ name: 'Anne', revision: 3 }), baseSpec);
+    const baseReader = createReader({ name: 'Anne', revision: 3 });
+    const base = evaluateInputProjection(baseReader, baseSpec);
     const mapped = mapInputProjection(base, (name) => name.length);
     const flatMapped = flatMapInputProjection(mapped, (length) => mapInputProjection(base, (name) => ({ name, length })));
     const otherRevision = evaluateInputProjection(createReader({ name: 'Bo', revision: 4 }), baseSpec);
@@ -349,13 +449,66 @@ describe('inputProjection', () => {
       issues: [],
       revision: 3,
     });
-    expect(() => collectInputProjections(createInputRevision(3), [base, otherRevision]))
+    expect(() => collectInputProjections(baseReader, [base, otherRevision]))
+      .toThrow('InputProjection: projektioner fra forskellige revisioner kan ikke sammensættes');
+    expect(() => flatMapInputProjection(base, () => otherRevision))
       .toThrow('InputProjection: projektioner fra forskellige revisioner kan ikke sammensættes');
   });
 
+  it('kalder ikke map-funktioner for blocked projektioner og bevarer frosne resultater', () => {
+    const spec = createInputProjectionSpec({
+      dependencies: {
+        name: requiredInput(nameField, isNonEmptyString, {
+          missingPolicy: ALLOW_SAVE_INPUT_ISSUE_POLICY,
+        }),
+      },
+      build: ({ name }) => name,
+    });
+    const blocked = evaluateInputProjection(createReader(), spec);
+    const mapper = vi.fn((name: string) => name.length);
+
+    const mapped = mapInputProjection(blocked, mapper);
+    const flatMapped = flatMapInputProjection(blocked, () => {
+      throw new Error('Mapperen må ikke kaldes');
+    });
+
+    expect(mapper).not.toHaveBeenCalled();
+    expect(mapped.status).toBe('blocked');
+    expect(flatMapped.status).toBe('blocked');
+    expect(Object.isFrozen(mapped)).toBe(true);
+    expect(Object.isFrozen(mapped.issues)).toBe(true);
+    if (mapped.status !== 'blocked') throw new Error('Testinvariant: mapped skulle være blocked');
+    expect(Object.isFrozen(mapped.blockers)).toBe(true);
+  });
+
+  it('isolerer og deep-freezer data fra build og map', () => {
+    const buildResult = { nested: { names: ['Anna'] } };
+    const spec = createInputProjectionSpec({
+      dependencies: { name: optionalInput(nameField) },
+      build: () => buildResult,
+    });
+    const projection = evaluateInputProjection(createReader({ name: 'Anna' }), spec);
+    if (projection.status !== 'ready') throw new Error('Testinvariant: projektionen skulle være ready');
+
+    const mapResult = { nested: { count: 1 } };
+    const mapped = mapInputProjection(projection, () => mapResult);
+    if (mapped.status !== 'ready') throw new Error('Testinvariant: den mappede projektion skulle være ready');
+
+    expect(projection.data).not.toBe(buildResult);
+    expect(Object.isFrozen(projection.data.nested)).toBe(true);
+    expect(Object.isFrozen(projection.data.nested.names)).toBe(true);
+    expect(mapped.data).not.toBe(mapResult);
+    expect(Object.isFrozen(mapped.data.nested)).toBe(true);
+    expect(Object.isFrozen(buildResult)).toBe(false);
+    expect(Object.isFrozen(mapResult)).toBe(false);
+  });
+
   it('samler en tom dynamisk collection på readerens eksplicitte revision', () => {
-    const projection = collectInputProjections(createInputRevision(6), []);
+    const reader = createReader({ revision: 6 });
+    const projection = collectInputProjections(reader, []);
 
     expect(projection).toEqual({ status: 'ready', data: [], issues: [], revision: 6 });
+    if (projection.status !== 'ready') throw new Error('Testinvariant: tom collection skulle være ready');
+    expect(Object.isFrozen(projection.data)).toBe(true);
   });
 });

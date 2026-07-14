@@ -17,6 +17,7 @@ describe('sanitizePastedAmount', () => {
 
   it('bevarer tilladte operatorer (+, -, *, /, x, (, ))', () => {
     expect(sanitizePastedAmount('1+2*3/4')).toBe('1+2*3/4');
+    expect(sanitizePastedAmount('2X3')).toBe('2x3');
   });
 
   it('fjerner punktum og kollapser kun kommaer der står direkte op ad hinanden', () => {
@@ -42,8 +43,13 @@ describe('normalizePastedAmount', () => {
     expect(normalizePastedAmount('DKK 9 602.05')).toBe('9602,05');
   });
 
+  it('behandler ét komma som dansk decimalseparator også med tre decimalcifre', () => {
+    expect(normalizePastedAmount('12,987')).toBe('12,987');
+  });
+
   it('bevarer udtryk som udtryk i stedet for at tvinge tal-normalisering', () => {
     expect(normalizePastedAmount('1.200,50 / 2')).toBe('1.200,50 / 2');
+    expect(normalizePastedAmount('2X3')).toBe('2x3');
   });
 
   it('bevarer subtraktion som udtryk i stedet for at tolke det som negativt beløb', () => {

@@ -1,17 +1,14 @@
 import { z } from 'zod';
 import {
-  coerceToWholeNumberOrUndefined,
-  dayCount,
-  loseFeriedageCount,
-  nonNegativeAmountValue,
+  entityId,
+  amountValue,
   optionalIsoDateString,
   optionalString,
-  percentageDecimal,
-  positiveAmountValue,
+  decimalNumber,
   tableAmountCellValue,
   tableCellString,
   tableIsoDateCellString,
-  yearInteger,
+  wholeNumber,
   normalizeEmptyToUndefined
 } from '../baseSchemas';
 import {
@@ -40,7 +37,7 @@ import {
 import { standardLoenTableRowSchema } from './aarsloenSchemas';
 
 export const svieSmertePeriodeRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   fra: optionalIsoDateString,
   til: optionalIsoDateString,
   tilstand: z.preprocess(normalizeEmptyToUndefined, tilstandEnum.optional()),
@@ -49,16 +46,16 @@ export const svieSmertePeriodeRowSchema = z.object({
 export type SvieSmertePeriodeRow = z.infer<typeof svieSmertePeriodeRowSchema>;
 
 export const tafPeriodeRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   fra: optionalIsoDateString,
   til: optionalIsoDateString,
-  loseFeriedage: loseFeriedageCount,
+  loseFeriedage: wholeNumber,
 }).strict();
 
 export type TafPeriodeRow = z.infer<typeof tafPeriodeRowSchema>;
 
 export const ferieperiodeRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   fra: optionalIsoDateString,
   til: optionalIsoDateString,
 }).strict();
@@ -66,32 +63,32 @@ export const ferieperiodeRowSchema = z.object({
 export type FerieperiodeRow = z.infer<typeof ferieperiodeRowSchema>;
 
 export const sygeferiegodtgoerelseAnsaettelsesforholdRowSchema = z.object({
-  ansaettelsesforholdId: z.string().min(1, 'Ansættelsesforhold-ID må ikke være tomt'),
+  ansaettelsesforholdId: entityId('Ansættelsesforhold-ID'),
   sfggBeregningskilde: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseBeregningskildeEnum.optional()),
   sfggReferenceperiodeFra: optionalIsoDateString,
   sfggReferenceperiodeTil: optionalIsoDateString,
-  sfggReferenceperiodeFravaersdageUdenLoen: dayCount,
-  sfggManuelDagssats: nonNegativeAmountValue,
+  sfggReferenceperiodeFravaersdageUdenLoen: wholeNumber,
+  sfggManuelDagssats: amountValue,
   sfggManuelBeloebIHenholdTil: optionalString,
   sfggManuelFoerstEfterSygeloen: jaNejEnum.default('Nej'),
   sfggSatsvalg: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseSatsvalgEnum.optional()),
-  sfggAlleredeBetaltBeloeb: nonNegativeAmountValue,
+  sfggAlleredeBetaltBeloeb: amountValue,
 }).strict();
 
 export type SygeferiegodtgoerelseAnsaettelsesforholdRow =
   z.infer<typeof sygeferiegodtgoerelseAnsaettelsesforholdRowSchema>;
 
 export const oevrigeKravRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   dato: optionalIsoDateString,
   udgiftTil: optionalString,
-  beloeb: positiveAmountValue,
+  beloeb: amountValue,
 }).strict();
 
 export type OevrigeKravRow = z.infer<typeof oevrigeKravRowSchema>;
 
 export const offentligeYdelserRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   fraDato: tableIsoDateCellString,
   tilDato: tableIsoDateCellString,
   // `ydelse` og `tillaeg` er to visuelt adskilte ydelsesfelter med identisk domænebetydning.
@@ -104,21 +101,21 @@ export const offentligeYdelserRowSchema = z.object({
 export type OffentligeYdelserRow = z.infer<typeof offentligeYdelserRowSchema>;
 
 export const loenudviklingManuelRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   dato: tableIsoDateCellString,
   grundloen: tableAmountCellValue,
-  feriepenge: percentageDecimal,
-  shSoSats: percentageDecimal,
-  fritvalg: percentageDecimal,
-  agPension: percentageDecimal,
+  feriepenge: decimalNumber,
+  shSoSats: decimalNumber,
+  fritvalg: decimalNumber,
+  agPension: decimalNumber,
 }).strict();
 
 export type LoenudviklingManuelRow = z.infer<typeof loenudviklingManuelRowSchema>;
 
 export const loenudviklingManuelProcentsatsRowSchema = z.object({
-  id: z.string().min(1, 'Række-ID må ikke være tomt'),
+  id: entityId(),
   dato: tableIsoDateCellString,
-  procent: percentageDecimal,
+  procent: decimalNumber,
 }).strict();
 
 export type LoenudviklingManuelProcentsatsRow = z.infer<typeof loenudviklingManuelProcentsatsRowSchema>;
@@ -145,10 +142,10 @@ const svieSmerteSchema = z.object({
   svieSmerteHelbredsstatus: z.preprocess(normalizeEmptyToUndefined, helbredsstatusEnum.optional()),
   tidligereSsMax: jaNejEnum.default('Nej'),
   svieSmertePerioder: z.array(svieSmertePeriodeRowSchema).default([]),
-  svieSmerteSatserAar: yearInteger,
+  svieSmerteSatserAar: wholeNumber,
   svieSmerteDelvisSygemeldingSats: svieSmerteDelvisSygemeldingSatsEnum.default('halv'),
-  svieSmerteTidligereTotal: nonNegativeAmountValue,
-  svieSmerteAktuelPeriode: nonNegativeAmountValue,
+  svieSmerteTidligereTotal: amountValue,
+  svieSmerteAktuelPeriode: amountValue,
 }).strict();
 
 const tafSchema = z.object({
@@ -160,7 +157,7 @@ const tafSchema = z.object({
   ferieperioder: z.array(ferieperiodeRowSchema).default([]),
   opsagtFraStilling: jaNejEnum.default('Nej'),
   sidsteDagAnsaettelsesforhold: optionalIsoDateString,
-  tidligereModtagetTaf: nonNegativeAmountValue,
+  tidligereModtagetTaf: amountValue,
 }).strict();
 
 const indtaegtFoerSkadenSchema = z.object({
@@ -169,12 +166,12 @@ const indtaegtFoerSkadenSchema = z.object({
   tafBeregningsperiodeFra: optionalIsoDateString,
   tafBeregningsperiodeTil: optionalIsoDateString,
   fravaerPerioder: z.array(ferieperiodeRowSchema).default([]),
-  uspecificeredeFerieFridage: dayCount,
+  uspecificeredeFerieFridage: wholeNumber,
   oevrigtFravaerUdenLoen: jaNejEnum.default('Nej'),
-  oevrigeFravaersdage: dayCount,
+  oevrigeFravaersdage: wholeNumber,
   oevrigeFravaersdageBeskrivelse: optionalString,
-  maanedsloenenUdgoer: nonNegativeAmountValue,
-  dagsloenenUdgoer: nonNegativeAmountValue,
+  maanedsloenenUdgoer: amountValue,
+  dagsloenenUdgoer: amountValue,
   angivetMaanedsloenBaseretPaa: optionalString,
   angivetMaanedsloenOpreguleresFraDato: optionalIsoDateString,
   angivetDagsloenBaseretPaa: optionalString,
@@ -222,7 +219,7 @@ const erstatningsopgoerelseBaseSchema = z.object({
   midlertidigtEetFraEetSiden: jaNejEnum.default('Nej'),
   regulerOffentligeYdelser: jaNejEnum.default('Ja'),
   erstatningsopgoerelseAfsluttesMed: afsluttesMedEnum.default('Bekræftet godkendt'),
-  forligAnsvarsgradProcent: percentageDecimal,
+  forligAnsvarsgradProcent: decimalNumber,
   forligAnsvarsgradBroek: optionalString,
   forligDato: optionalIsoDateString,
   // Tre-tilstands-valg magen til kravPaaSvieSmerteGodtgoerelse/kravPaaTabtArbejdsfortjeneste.
@@ -246,28 +243,10 @@ const overenskomstFilterSchema = z.object({
   arbejdsgiver: optionalString,
 }).strict();
 
-const offentligLoenTrinSchema = z.preprocess(
-  coerceToWholeNumberOrUndefined,
-  z.number({ error: 'Skal være et heltal mellem 1 og 99' })
-    .int('Skal være et heltal mellem 1 og 99')
-    .min(1, 'Skal være mindst 1')
-    .max(99, 'Må højst være 99')
-    .optional()
-);
-
-const offentligLoenGruppeSchema = z.preprocess(
-  coerceToWholeNumberOrUndefined,
-  z.number({ error: 'Skal være et heltal mellem 0 og 4' })
-    .int('Skal være et heltal mellem 0 og 4')
-    .min(0, 'Skal være mindst 0')
-    .max(4, 'Må højst være 4')
-    .optional()
-);
-
 // Fælles lønudviklingsfelter bruges i to persisted former:
 // ansættelsesforhold kræver `loenPaaHelligdage`, mens EO-angivet løn skal kunne loades uden feltet.
 const createLoenudviklingOgSatserSchema = <TLoenPaaHelligdage extends z.ZodTypeAny>(loenPaaHelligdage: TLoenPaaHelligdage) => z.object({
-  feriePct: percentageDecimal,
+  feriePct: decimalNumber,
   loenPaaHelligdage,
   saerligFraDatoRegulering: optionalIsoDateString,
   loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
@@ -277,9 +256,9 @@ const createLoenudviklingOgSatserSchema = <TLoenPaaHelligdage extends z.ZodTypeA
   loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
   loenudviklingManuelProcentsatsTableData: z.array(loenudviklingManuelProcentsatsRowSchema).default([]),
   offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
-  offentligLoenTrin: offentligLoenTrinSchema,
-  offentligLoenGruppe: offentligLoenGruppeSchema,
-  offentligLoenEkstraGrundloen: nonNegativeAmountValue,
+  offentligLoenTrin: wholeNumber,
+  offentligLoenGruppe: wholeNumber,
+  offentligLoenEkstraGrundloen: amountValue,
   overenskomstFilter: overenskomstFilterSchema.default({}),
 }).strict();
 
@@ -291,17 +270,17 @@ export type LoenudviklingOgSatser = z.infer<typeof loenudviklingOgSatserSchema>;
 export type EOLoenudviklingOgSatser = z.infer<typeof eoLoenudviklingOgSatserSchema>;
 
 const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
-  id: z.string().min(1, 'ID må ikke være tomt'),
+  id: entityId('ID'),
   navnPaaArbejdssted: optionalString,
   harOverenskomst: z.boolean().default(false),
   overenskomstId: optionalString,
   ansatPaaSkadestidspunktet: z.boolean().default(false),
   ansaettelsesforholdOphoert: z.boolean().default(false),
   sidsteArbejdsdag: optionalIsoDateString,
-  fritvalgPct: percentageDecimal,
-  shSoPct: percentageDecimal,
-  storeBededagPct: percentageDecimal,
-  pensionPct: percentageDecimal,
+  fritvalgPct: decimalNumber,
+  shSoPct: decimalNumber,
+  storeBededagPct: decimalNumber,
+  pensionPct: decimalNumber,
   // 'procent' = nuværende adfærd (default, passiv load-fallback for ældre .eo); 'beloeb' =
   // tillægsbeløb angives direkte i lønindkomst-tabellen, sats-blokken og 'Manuelt angivet'
   // lønudvikling skjules. Defineres her ét sted (sammen med de fire satser den styrer).
@@ -315,7 +294,7 @@ const loenindkomstAnciennitetSchema = z.object({
   harAnciennitetstillaegEfterSkadedatoen: z.boolean().default(false),
   anciennitetstillaegDato: optionalIsoDateString,
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum.default('Måned'),
-  anciennitetstillaegSats: nonNegativeAmountValue,
+  anciennitetstillaegSats: amountValue,
 }).strict();
 
 export const loenindkomstAnsaettelsesforholdSchema = z.object({
@@ -337,7 +316,7 @@ export const eoAngivetLoenLoenudviklingSchema = z.object({
   harAnciennitetstillaegEfterSkadedatoen: z.boolean().default(false),
   anciennitetstillaegDato: optionalIsoDateString,
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum.default('Måned'),
-  anciennitetstillaegSats: nonNegativeAmountValue,
+  anciennitetstillaegSats: amountValue,
   ...eoLoenudviklingOgSatserSchema.shape,
 }).strict();
 

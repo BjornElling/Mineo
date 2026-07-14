@@ -212,7 +212,7 @@ describe('StyledPercentField', () => {
     expect(input).toHaveValue('7,25');
   });
 
-  it('begrænser pasted tekst til feltets grammatiske cifferloft og afviser værdi uden for intervallet (default enforceRange)', async () => {
+  it('afskærer pasted tekst til længste gyldige præfiks inden for standardintervallet', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
 
@@ -224,11 +224,9 @@ describe('StyledPercentField', () => {
     await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
-    // Pasten grammatik-begrænses til cifferloftet (171), men 171 > 100 afvises straks i feltet:
-    // værdien committes ikke og når derfor aldrig ind i beregningen (default enforceRange=true).
-    expect(input).toHaveValue('171');
-    expect(onCommit).not.toHaveBeenCalled();
-    expect(screen.getByText('Procent skal være mellem 0,00 og 100,00')).toBeInTheDocument();
+    expect(input).toHaveValue('17');
+    expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ target: { value: 17 } }));
+    expect(screen.queryByText('Procent skal være mellem 0,00 og 100,00')).not.toBeInTheDocument();
   });
 
   it('afviser som default et typet tal uden for intervallet uden at committe', async () => {

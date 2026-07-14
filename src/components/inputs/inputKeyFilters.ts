@@ -209,7 +209,7 @@ export const filterPercentKeyDown = (
     // Partial decimal input (fx "10,") må passere under typing; commit-validering håndterer endelig værdi.
     if (compact === '' || compact === '-' || compact.endsWith(',')) return;
 
-    const numeric = parseDanishNumberString(compact);
+    const numeric = parseDanishNumberString(compact, { precision: allowDecimals ? 2 : 0 });
     if (numeric !== undefined && numeric > options.maxValue) {
       block(e);
     }

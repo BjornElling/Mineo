@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { coerceToISODateString, isISODateString, type ISODateString } from '../../types/branded';
 import { optionalAmountValueSchema } from '../amountExpressionSchema';
+import { isSafeCanonicalDecimal } from '../../utils/numericSafety';
+import { parseDanishNumberString } from '../../utils/numberParsing';
 
 export const normalizeEmptyToUndefined = (value: unknown): unknown => {
   if (value === null) {
@@ -11,6 +13,11 @@ export const normalizeEmptyToUndefined = (value: unknown): unknown => {
   }
   return value;
 };
+
+/** Stabil persisted entity-identitet; samme regel bruges af schemas og det strukturelle inputkatalog. */
+export const entityId = (label = 'Række-ID') => z.string()
+  .min(1, `${label} må ikke være tomt`)
+  .refine((value) => value.trim() === value, `${label} må ikke have ydre mellemrum`);
 
 export const isoDateString = z.string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Skal være ISO-format: åååå-mm-dd')
@@ -26,73 +33,46 @@ const coerceToNumberOrUndefined = (value: unknown): unknown => {
     const trimmed = value.trim();
     if (trimmed === '') return undefined;
 
-    const cleaned = trimmed.replace(/\./g, '').replace(',', '.');
-    const num = Number.parseFloat(cleaned);
-    return Number.isFinite(num) ? num : value;
+    return parseDanishNumberString(trimmed) ?? value;
   }
 
   return value;
-};
-
-export const coerceToIntegerOrUndefined = (value: unknown): unknown => {
-  const coerced = coerceToNumberOrUndefined(value);
-  if (typeof coerced === 'number') {
-    return Number.isFinite(coerced) ? Math.trunc(coerced) : coerced;
-  }
-  return coerced;
 };
 
 export const coerceToWholeNumberOrUndefined = (value: unknown): unknown => {
   if (value === undefined || value === null) return undefined;
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed === '') return undefined;
-    return /^-?\d+$/.test(trimmed) ? Number.parseInt(trimmed, 10) : value;
-  }
-  return value;
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  if (trimmed === '') return undefined;
+  // Et heltals-schema må ikke acceptere en skrevet decimaldel, heller ikke når
+  // den kun består af nuller. Punktum forbliver tilladt som dansk tusindtalsseparator.
+  if (trimmed.includes(',')) return value;
+  return parseDanishNumberString(trimmed, { precision: 0 }) ?? value;
 };
 
-export const nonNegativeAmountValue = optionalAmountValueSchema
-  .refine((v) => v === undefined || v.value >= 0, 'Kan ikke være negativ')
-  .refine((v) => v === undefined || !Object.is(v.value, -0), 'Kan ikke være -0');
-
-export const positiveAmountValue = optionalAmountValueSchema
-  .refine((v) => v === undefined || v.value > 0, 'Skal være større end 0')
-  .refine((v) => v === undefined || !Object.is(v.value, -0), 'Kan ikke være -0');
+/**
+ * Persisted beløbssyntaks. Fortegn og øvrige domænegrænser afledes som issues fra
+ * feltdefinitionen; de må ikke gøre en ellers canonical beløbsværdi urepræsenterbar.
+ */
+export const amountValue = optionalAmountValueSchema;
 
 // Note: z.number() afviser selv Infinity/NaN i Zod 4 (verificeret), og der er ingen
 // transform mellem number-checket og .optional(), så en .refine(Number.isFinite) ville
 // være død kode her. Den load-bearende finiteness-guard ligger i amountExpressionSchema,
 // hvor refinet sidder EFTER en transform der kan producere non-finite.
-export const nonNegativeInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
-  .int()
-  .min(0, 'Kan ikke være negativ')
+/** Persisted heltalssyntaks; decimaler afvises uden implicit trunkering. */
+export const wholeNumber = z.preprocess(coerceToWholeNumberOrUndefined, z.number({ error: 'Skal være et heltal' })
+  .int('Skal være et heltal')
+  .refine(Number.isSafeInteger, 'Tallet er for stort til at kunne gemmes præcist')
   .optional());
 
-export const yearInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
-  .int()
-  .min(1900, 'Årstal skal være mindst 1900')
-  .max(2100, 'Årstal må højst være 2100')
-  .optional());
-
-export const DAY_COUNT_MAX = 366;
-
-export const dayCount = z.preprocess(coerceToIntegerOrUndefined, z.number()
-  .int()
-  .min(0, 'Kan ikke være negativ')
-  .max(DAY_COUNT_MAX, `Må højst være ${DAY_COUNT_MAX} dage`)
-  .optional());
-
-export const loseFeriedageCount = z.preprocess(coerceToIntegerOrUndefined, z.number()
-  .int()
-  .min(0, 'Kan ikke være negativ')
-  .max(999, 'Må højst være 999 dage')
-  .optional());
-
-export const percentageDecimal = z.preprocess(coerceToNumberOrUndefined, z.number()
-  .min(0, 'Kan ikke være negativ')
-  .max(100, 'Må højst være 100%')
+/** Persisted decimalsyntaks. Procent- og øvrige bounds hører til afledte issues. */
+export const decimalNumber = z.preprocess(coerceToNumberOrUndefined, z.number()
+  .refine(
+    (value) => isSafeCanonicalDecimal(value, 2),
+    'Tallet er for stort til at kunne gemmes præcist'
+  )
   .optional());
 
 export const optionalString = z.preprocess(

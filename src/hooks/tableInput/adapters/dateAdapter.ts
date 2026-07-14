@@ -73,7 +73,10 @@ export const createDateTableInputAdapter = (
   toCommittedPayload: toCommittedDatePayload,
   isValidStartKey: (key) => /^[0-9]$/.test(key),
   applyPaste: (raw, context) => {
-    const normalized = normalizeDatePaste(raw);
+    // Kronologiske min/max-bounds må ikke ændre en pasted dato til en anden dato.
+    const normalized = normalizeDatePaste(raw, {
+      twoDigitYearPolicy: config.twoDigitYearPolicy,
+    });
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

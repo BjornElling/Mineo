@@ -352,6 +352,28 @@ describe('renteberegningEngine', () => {
   });
 
   describe('computeRentekravRow', () => {
+    it('blokerer canonical negativ tillægstid før beregning og dokumentcontext', () => {
+      const { referenceRates, surchargeRates } = buildRates();
+      const row = {
+        id: 'row-negative-tillaeg',
+        belob: amountNumber(1000),
+        renterFra: toISODateString('2024-01-01'),
+        tillaegstid: -1,
+        enhed: 'dage' as const,
+      };
+
+      const result = computeRentekravRow(
+        row,
+        toISODateString('2024-01-31'),
+        referenceRates,
+        surchargeRates
+      );
+
+      expect(result.actualInterestDate).toBeNull();
+      expect(result.calculatedInterest).toBeNull();
+      expect(result.pdfContext).toBeNull();
+    });
+
     it('returnerer pdfContext ved gyldig række', () => {
       const { referenceRates, surchargeRates } = buildRates();
       const row = {

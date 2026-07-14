@@ -1,169 +1,230 @@
+import { createCollectionRef } from '../../input/fieldAddress';
 import {
-  CollectionCatalog,
-  FieldCatalog,
+  InputCatalog,
   createCollectionBinding,
   createFieldBinding,
 } from '../../input/fieldCatalog';
-import { createFieldAddress } from '../../input/fieldAddress';
-import { bindField, defineField } from '../../input/fieldDefinition';
-import { createEmptyPersistedInputSections } from '../../input/inputState';
+import { defineField } from '../../input/fieldDefinition';
+import { createEmptyPersistedInputSections, type PersistedInputSections } from '../../input/inputState';
+import type { RentekravRow } from '../../schemas/formSchemas/sections/renteberegningSchemas';
 
-const amountDefinition = defineField<number | undefined>({
-  label: 'Løn',
+const textDefinition = defineField<string | undefined>({
+  label: 'Felt',
   controlKind: 'text',
-  focusTarget: { route: '/erstatningsopgoerelse', tab: 'loenindkomst' },
+  focusTarget: { route: '/renteberegning', tab: null },
   codec: {
-    parseForSettle: (raw) => ({ status: 'valid', value: raw === '' ? undefined : Number(raw) }),
-    format: (value) => value === undefined ? '' : String(value),
+    parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
+    format: (value) => value ?? '',
+    formatForEdit: (value) => value ?? '',
+    acceptsInitialKey: (key) => key.length === 1,
+  },
+});
+
+const dateDefinition = defineField<RentekravRow['renterFra']>({
+  label: 'Renter fra',
+  controlKind: 'text',
+  focusTarget: { route: '/renteberegning', tab: null },
+  codec: {
+    parseForSettle: () => ({ status: 'invalid' }),
+    format: (value) => value ?? '',
+    formatForEdit: (value) => value ?? '',
     acceptsInitialKey: (key) => /^\d$/.test(key),
   },
 });
 
-describe('FieldCatalog', () => {
-  it('binder nested entity-id’er til én strukturel felttemplate', () => {
-    const binding = createFieldBinding({
-      definition: amountDefinition,
-      template: {
-        section: 'erstatningsopgoerelse',
-        path: [
-          { kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold' },
-          { kind: 'entity', collection: 'indtaegtsoplysningerTableData' },
-        ],
-        field: 'col2',
-      },
-      readCanonical: (_sections, address) => address.path[1]?.kind === 'entity' ? 42 : undefined,
-    });
-    const catalog = new FieldCatalog();
-    catalog.register(binding);
-    const field = binding.createRef('arbejde:1', 'række:2');
-
-    expect(field.address).toEqual({
-      section: 'erstatningsopgoerelse',
-      path: [
-        { kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: 'arbejde:1' },
-        { kind: 'entity', collection: 'indtaegtsoplysningerTableData', entityId: 'række:2' },
-      ],
-      field: 'col2',
-    });
-    expect(catalog.isKnownAddress(field.address)).toBe(true);
-    expect(catalog.readCanonical(createEmptyPersistedInputSections(), field)).toBe(42);
-  });
-
-  it('afviser forkert antal entity-id’er og dobbeltregistrering', () => {
-    const binding = createFieldBinding({
-      definition: amountDefinition,
-      template: {
-        section: 'renteberegning',
-        path: [{ kind: 'entity', collection: 'rentekrav' }],
-        field: 'hovedstol',
-      },
-      readCanonical: () => 100,
-    });
-    const catalog = new FieldCatalog();
-    catalog.register(binding);
-
-    expect(() => binding.createRef()).toThrow("FieldBinding: forventede 1 entity-id'er, modtog 0");
-    expect(() => catalog.register(binding)).toThrow('FieldCatalog: feltadressen er allerede registreret');
-  });
-
-  it('afviser en ref med korrekt adresse men en anden definition', () => {
-    const binding = createFieldBinding({
-      definition: amountDefinition,
-      template: { section: 'stamdata', path: [], field: 'indtægt' },
-      readCanonical: () => 100,
-    });
-    const catalog = new FieldCatalog();
-    catalog.register(binding);
-    const otherDefinition = defineField({
-      ...amountDefinition,
-      label: 'Anden definition',
-    });
-    const forgedRef = bindField(otherDefinition, createFieldAddress({
-      section: 'stamdata',
-      path: [],
-      field: 'indtægt',
-    }));
-
-    expect(() => catalog.readCanonical(createEmptyPersistedInputSections(), forgedRef))
-      .toThrow('FieldCatalog: ukendt eller forkert bundet feltreference');
-    expect(catalog.isKnownField(forgedRef)).toBe(false);
-    expect(() => catalog.assertKnownField(forgedRef))
-      .toThrow('FieldCatalog: ukendt eller forkert bundet feltreference');
-  });
-
-  it('fryser codecet, så feltsemantik ikke kan muteres efter definition', () => {
-    const mutableCodec = {
-      parseForSettle: (raw: string) => ({ status: 'valid' as const, value: raw === '' ? undefined : Number(raw) }),
-      format: (value: number | undefined) => value === undefined ? '' : String(value),
-      acceptsInitialKey: (key: string) => /^\d$/.test(key),
-    };
-    const definition = defineField({
-      ...amountDefinition,
-      codec: mutableCodec,
-    });
-
-    mutableCodec.format = () => 'muteret';
-
-    expect(definition.codec.format(42)).toBe('42');
-    expect(Object.isFrozen(definition.codec)).toBe(true);
-  });
+const rentekravRowsBinding = createCollectionBinding<RentekravRow>({
+  template: { section: 'renteberegning', path: [], collection: 'rentekravRows' },
+  getEntityId: (row) => row.id,
+  readEntities: (sections) => sections.renteberegning?.rentekravRows ?? [],
+  writeEntities: (sections, _collection, rows) => ({
+    ...sections,
+    renteberegning: {
+      ...(sections.renteberegning ?? {}),
+      rentekravRows: [...rows],
+    },
+  }),
 });
 
-describe('CollectionCatalog', () => {
-  it('binder parent-entity og udstiller kun unikke stabile id’er', () => {
-    const binding = createCollectionBinding({
-      template: {
-        section: 'erstatningsopgoerelse',
-        path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold' }],
-        collection: 'indtaegtsoplysningerTableData',
+const renterFraBinding = createFieldBinding({
+  definition: dateDefinition,
+  template: {
+    section: 'renteberegning',
+    path: [{ kind: 'entity', collection: 'rentekravRows' }],
+    field: 'renterFra',
+  },
+  readCanonical: (sections, address) => {
+    const rowId = address.path[0]?.kind === 'entity' ? address.path[0].entityId : '';
+    return sections.renteberegning?.rentekravRows.find((row) => row.id === rowId)?.renterFra;
+  },
+  writeCanonical: (sections, address, value) => {
+    const rowId = address.path[0]?.kind === 'entity' ? address.path[0].entityId : '';
+    if (sections.renteberegning === null) return sections;
+    return {
+      ...sections,
+      renteberegning: {
+        ...sections.renteberegning,
+        rentekravRows: sections.renteberegning.rentekravRows.map((row) =>
+          row.id === rowId ? { ...row, renterFra: value } : row),
       },
-      readEntityIds: () => ['række-1', 'række-2'],
-    });
-    const catalog = new CollectionCatalog();
-    catalog.register(binding);
-    const collection = binding.createRef('arbejde-1');
+    };
+  },
+});
 
-    expect(catalog.listEntityIds(createEmptyPersistedInputSections(), collection)).toEqual([
-      'række-1',
-      'række-2',
-    ]);
-    expect(Object.isFrozen(catalog.listEntityIds(createEmptyPersistedInputSections(), collection))).toBe(true);
+const withRows = (rows: readonly RentekravRow[]): PersistedInputSections => ({
+  ...createEmptyPersistedInputSections(),
+  renteberegning: { rentekravRows: [...rows] },
+});
+
+describe('InputCatalog', () => {
+  it('forsegler kataloget før brug og afviser efterfølgende registrering', () => {
+    const catalog = new InputCatalog();
+    catalog.registerCollection(rentekravRowsBinding);
+    catalog.registerField(renterFraBinding);
+
+    expect(() => catalog.isKnownAddress(renterFraBinding.createRef('række-1').address))
+      .toThrow('kataloget skal forsegles før brug');
+    expect(catalog.seal()).toBe(catalog);
+    expect(catalog.isSealed).toBe(true);
+    expect(() => catalog.registerField(renterFraBinding)).toThrow('et forseglet katalog kan ikke ændres');
+    expect(catalog.seal()).toBe(catalog);
   });
 
-  it('afviser ukendte samlinger samt tomme og duplikerede entity-id’er', () => {
-    const binding = createCollectionBinding({
-      template: { section: 'renteberegning', path: [], collection: 'rentekrav' },
-      readEntityIds: () => ['række-1', 'række-1'],
-    });
-    const catalog = new CollectionCatalog();
-    catalog.register(binding);
+  it('afviser dobbeltregistrering og manglende parent-samling', () => {
+    const duplicateCatalog = new InputCatalog();
+    duplicateCatalog.registerCollection(rentekravRowsBinding);
+    expect(() => duplicateCatalog.registerCollection(rentekravRowsBinding))
+      .toThrow('samlingen er allerede registreret');
 
-    expect(() => catalog.listEntityIds(createEmptyPersistedInputSections(), binding.createRef()))
-      .toThrow('CollectionCatalog: entity-id’er skal være ikke-tomme og unikke');
-    expect(() => catalog.listEntityIds(createEmptyPersistedInputSections(), createCollectionBinding({
-      template: { section: 'aarsloen', path: [], collection: 'standardLoen' },
-      readEntityIds: () => [],
-    }).createRef())).toThrow('CollectionCatalog: ukendt samlingsreference');
+    const missingParentCatalog = new InputCatalog();
+    missingParentCatalog.registerField(renterFraBinding);
+    expect(() => missingParentCatalog.seal()).toThrow('entity-sti mangler registrering af sin parentsamling');
   });
 
-  it('afviser feltadresser til entities, som ikke findes i kandidatsnapshotet', () => {
-    const binding = createCollectionBinding({
-      template: { section: 'renteberegning', path: [], collection: 'rentekrav' },
-      readEntityIds: () => ['række-1'],
+  it('afviser refs til slettede og nested ikke-eksisterende entities fail-closed', () => {
+    type Child = Readonly<{ id: string }>;
+    const childrenBinding = createCollectionBinding<Child>({
+      template: {
+        section: 'renteberegning',
+        path: [{ kind: 'entity', collection: 'rentekravRows' }],
+        collection: 'children',
+      },
+      getEntityId: (child) => child.id,
+      readEntities: (_sections, collection) => {
+        const parentId = collection.path[0]?.kind === 'entity' ? collection.path[0].entityId : '';
+        return parentId === 'række-1' ? [{ id: 'barn-1' }] : [];
+      },
+      writeEntities: (sections) => sections,
     });
-    const catalog = new CollectionCatalog();
-    catalog.register(binding);
-    const existingAddress = createFieldAddress({
+    const childFieldBinding = createFieldBinding({
+      definition: textDefinition,
+      template: {
+        section: 'renteberegning',
+        path: [
+          { kind: 'entity', collection: 'rentekravRows' },
+          { kind: 'entity', collection: 'children' },
+        ],
+        field: 'værdi',
+      },
+      readCanonical: () => 'værdi',
+      writeCanonical: (sections) => sections,
+    });
+    const catalog = new InputCatalog();
+    catalog.registerCollection(rentekravRowsBinding);
+    catalog.registerCollection(childrenBinding);
+    catalog.registerField(childFieldBinding);
+    catalog.seal();
+    const sections = withRows([{ id: 'række-1', enhed: 'dage' }]);
+
+    expect(catalog.readCanonical(sections, childFieldBinding.createRef('række-1', 'barn-1'))).toBe('værdi');
+    expect(() => catalog.readCanonical(sections, childFieldBinding.createRef('slettet', 'barn-1')))
+      .toThrow('ukendt, slettet eller forkert bundet feltreference');
+    expect(() => catalog.readCanonical(sections, childFieldBinding.createRef('række-1', 'slettet')))
+      .toThrow('ukendt, slettet eller forkert bundet feltreference');
+    expect(() => catalog.listEntityIds(sections, childrenBinding.createRef('slettet')))
+      .toThrow('samlingen ligger under en slettet eller ukendt entity');
+  });
+
+  it('afviser whitespace og duplikerede entity-id’er, også uden rejections', () => {
+    const catalog = new InputCatalog();
+    catalog.registerCollection(rentekravRowsBinding);
+    catalog.seal();
+
+    expect(() => catalog.validateCollections(withRows([{ id: ' ', enhed: 'dage' }])))
+      .toThrow('ikke-tomme, trimmede og unikke');
+    expect(() => catalog.validateCollections(withRows([
+      { id: 'række-1', enhed: 'dage' },
+      { id: 'række-1', enhed: 'dage' },
+    ]))).toThrow('ikke-tomme, trimmede og unikke');
+  });
+
+  it('isolerer muterende read- og write-callbacks fra før-snapshottet', () => {
+    let mutateDuringRead = true;
+    const binding = createFieldBinding({
+      definition: textDefinition,
+      template: { section: 'stamdata', path: [], field: 'skadelidte' },
+      readCanonical: (sections) => {
+        if (mutateDuringRead && sections.stamdata !== null) {
+          (sections.stamdata as { skadelidte?: string }).skadelidte = 'muteret';
+        }
+        return sections.stamdata?.skadelidte;
+      },
+      writeCanonical: (sections, _address, value) => {
+        if (sections.stamdata !== null) sections.stamdata.skadelidte = value;
+        return sections;
+      },
+    });
+    const catalog = new InputCatalog();
+    catalog.registerField(binding);
+    catalog.seal();
+    const sections: PersistedInputSections = {
+      ...createEmptyPersistedInputSections(),
+      stamdata: { skadelidte: 'Anna' },
+    };
+
+    expect(() => catalog.readCanonical(sections, binding.createRef())).toThrow(TypeError);
+    expect(sections.stamdata?.skadelidte).toBe('Anna');
+
+    mutateDuringRead = false;
+    const written = catalog.writeCanonical(sections, binding.createRef(), 'Birgit');
+    expect(written.stamdata?.skadelidte).toBe('Birgit');
+    expect(sections.stamdata?.skadelidte).toBe('Anna');
+    expect(written).not.toBe(sections);
+  });
+
+  it('isolerer muterende entity-id-callbacks fra canonical entities', () => {
+    const mutatingBinding = createCollectionBinding<RentekravRow>({
+      template: { section: 'renteberegning', path: [], collection: 'rentekravRows' },
+      getEntityId: (row) => {
+        (row as { id: string }).id = 'muteret';
+        return row.id;
+      },
+      readEntities: (sections) => sections.renteberegning?.rentekravRows ?? [],
+      writeEntities: (sections) => sections,
+    });
+    const catalog = new InputCatalog();
+    catalog.registerCollection(mutatingBinding);
+    catalog.seal();
+    const sections = withRows([{ id: 'række-1', enhed: 'dage' }]);
+
+    expect(() => catalog.listEntityIds(sections, mutatingBinding.createRef())).toThrow(TypeError);
+    expect(sections.renteberegning?.rentekravRows[0]?.id).toBe('række-1');
+  });
+
+  it('udstiller stabile, frosne id-lister fra kendte samlinger', () => {
+    const catalog = new InputCatalog();
+    catalog.registerCollection(rentekravRowsBinding);
+    catalog.seal();
+    const collection = createCollectionRef({
       section: 'renteberegning',
-      path: [{ kind: 'entity', collection: 'rentekrav', entityId: 'række-1' }],
-      field: 'hovedstol',
+      path: [],
+      collection: 'rentekravRows',
     });
-    const orphanAddress = createFieldAddress({
-      ...existingAddress,
-      path: [{ kind: 'entity', collection: 'rentekrav', entityId: 'slettet-række' }],
-    });
+    const ids = catalog.listEntityIds(withRows([
+      { id: 'række-1', enhed: 'dage' },
+      { id: 'række-2', enhed: 'dage' },
+    ]), collection);
 
-    expect(catalog.containsAddressEntities(createEmptyPersistedInputSections(), existingAddress)).toBe(true);
-    expect(catalog.containsAddressEntities(createEmptyPersistedInputSections(), orphanAddress)).toBe(false);
+    expect(ids).toEqual(['række-1', 'række-2']);
+    expect(Object.isFrozen(ids)).toBe(true);
   });
 });

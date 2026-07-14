@@ -24,7 +24,11 @@ import {
 import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
 import { beregnOmregnetAarsloen } from '../domain/aarsloen/aarsloenCalculations';
 import type { AarsloenBeregningResult } from '../types/calculation';
-import { beregnFejlmeddelelser, harTabelData } from '../domain/aarsloen/aarsloenValidationPolicies';
+import {
+  beregnFejlmeddelelser,
+  harTabelData,
+  resolveAarsloenCanonicalRangeIssues,
+} from '../domain/aarsloen/aarsloenValidationPolicies';
 import { erAarsloenFerieFelterRelevant } from '../domain/policies/aarsloenPolicy';
 
 export type AarsloenBeregningState = {
@@ -70,6 +74,10 @@ export const useAarsloenBeregning = ({
     antalFeriedage,
     loenPaaHelligdage,
   } = values;
+  const canonicalRangeIssues = React.useMemo(
+    () => resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret }),
+    [omregningAktiveret, values]
+  );
 
   // ============================================================================
   // BEREGNING 1: Periode-data fra tabellen
@@ -244,12 +252,13 @@ export const useAarsloenBeregning = ({
 
   // Beregningsfejl (samlet)
   const beregningsFejl = React.useMemo((): string | null => {
+    if (canonicalRangeIssues.length > 0) return canonicalRangeIssues[0]?.message ?? 'Ugyldigt beregningsinput';
     if (periodeDataResult && isErr(periodeDataResult)) return 'Fejl ved beregning af periode-data';
     if (shDageAntalResult && isErr(shDageAntalResult)) return 'Fejl ved beregning af SH-dage';
     if (beregnetAarsloenResult && isErr(beregnetAarsloenResult)) return 'Fejl ved beregning af årsløn';
     if (beregningsDataResult && isErr(beregningsDataResult)) return 'Fejl ved beregning af omregnet årsløn';
     return null;
-  }, [beregningsDataResult, beregnetAarsloenResult, periodeDataResult, shDageAntalResult]);
+  }, [beregningsDataResult, beregnetAarsloenResult, canonicalRangeIssues, periodeDataResult, shDageAntalResult]);
 
   // Fatal gate: Én samlet check for om beregninger er gyldige
   const harFatalBeregningsFejl = React.useMemo((): boolean => {

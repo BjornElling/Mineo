@@ -477,10 +477,21 @@ describe('computeForsoergertabAslYdelser — inputvalidering (fail-closed græns
     expect(result.issues).toContainEqual({
       id: 'asl-aarsloen-zero',
       severity: 'error',
-      message: 'Årsløn efter ASL må ikke være 0 kr.',
+      message: 'Årsløn efter ASL skal være større end 0 kr.',
     });
     // Må IKKE samtidig rapportere "mangler".
     expect(result.issues.some((i) => i.id === 'asl-aarsloen-missing')).toBe(false);
+  });
+
+  it('blokerer en canonical negativ årsløn med samme afledte domæneissue', () => {
+    const result = computeForsoergertabAslYdelser({ ...validInput, aslAarsloen: asAmount(-1000) });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'asl-aarsloen-zero',
+      severity: 'error',
+      message: 'Årsløn efter ASL skal være større end 0 kr.',
+    });
   });
 
   it('manglende årsløn (undefined) afvises med "mangler"-issue', () => {

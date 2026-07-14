@@ -62,6 +62,48 @@ describe('computeEoSnapshot', () => {
     reportSystemIssueMock.mockReset();
   });
 
+  it('blokerer autoritative beregninger og dokumenter ved skadedato før fødselsdato', () => {
+    const snapshot = computeEoSnapshot({
+      revision: 'stamdata-date-order',
+      stamdataValues: {
+        ...STAMDATA_INITIAL_VALUES,
+        skadelidteFodselsdato: toISODateString('2025-01-01'),
+        skadedato: toISODateString('2024-01-01'),
+      },
+      eoValues: createErstatningsopgoerelseInitialValues(),
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants).toContainEqual(expect.objectContaining({
+      id: 'validation:stamdata.skadedato',
+      source: 'validation',
+      severity: 'error',
+      blocksAuthoritativeComputation: true,
+    }));
+  });
+
+  it('blokerer autoritative beregninger og dokumenter ved rangefejl i et ikke-mountet EO-felt', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.eoAngivetLoenLoenudvikling.feriePct = 101;
+
+    const snapshot = computeEoSnapshot({
+      revision: 'hidden-percentage-range',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants).toContainEqual(expect.objectContaining({
+      id: 'validation:eoAngivetLoenLoenudvikling.feriePct',
+      source: 'validation',
+      severity: 'error',
+      blocksAuthoritativeComputation: true,
+      blocksOutputs: expect.arrayContaining(['beregning', 'eo_pdf']),
+    }));
+  });
+
   it('returnerer fail_closed og logger systemfejl når skjult EO-lønfelt mangler ved angivet løn', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Angivet månedsløn';

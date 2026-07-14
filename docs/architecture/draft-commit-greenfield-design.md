@@ -219,13 +219,25 @@ Hver inputfamilie har ét codec, som genbruges af både formular- og tabeloverfl
 type FieldCodec<T> = Readonly<{
   parseForSettle(raw: string): FieldResolution<T>;
   format(value: T): string;
+  formatForEdit(value: T): string;
   acceptsInitialKey(key: string): boolean;
   normalizePaste?(raw: string): string;
 }>;
 ```
 
 Dato, beløb, procent, heltal, brøk, uge, år og tekst må ikke have separate form-/table-parsere eller fingerprints.
-Domæne-bounds er validator-/projektionsansvar, medmindre de er en del af selve syntaksen.
+`format` ejer den lukkede visning, mens `formatForEdit` ejer den tekst, editoren åbner med. Forskellen er nødvendig for
+fx beløbsudtryk, hvor den lukkede visning er formateret som et beløb, men den indtastede udtryksform skal bevares til
+næste redigering. Domæne-bounds er validator-/projektionsansvar, medmindre de er en del af selve syntaksen.
+
+Paste normaliseres efter én fælles afskæringsregel: Behold feltets tilladte format og afskær fra højre til det længste
+præfiks, der kan rummes af format, præcision, cifferloft og et aktivt commit-interval. Et heltalsfelt fjerner separator
+og hele decimaldelen uden afrunding; et decimalaktiveret felt bevarer decimalerne op til sin præcision. Gyldige
+beløbsoperatorer bevares som udtryk. `infer` for tocifrede år bruger fortsat en løbende kalenderårsgrænse: `20xx` til
+og med fem år efter det aktuelle kalenderår, derefter `19xx`. Denne grænse må ikke fastlåses til et bestemt årstal.
+Datoens syntaktiske dag- og månedsgrænser følger afskæringsreglen. Kronologiske min/max-datobounds gør ikke: at
+afskære en årdel kan flytte datoen til et andet århundrede og er derfor en værdiforvanskning. Sådanne bounds udledes
+fortsat som issues efter settle, uanset om de er statiske eller afhænger af andre felter.
 
 ### 3.5 Én felt-editor-state machine
 
@@ -274,6 +286,7 @@ Command-familien omfatter mindst:
 - `settleField` — gyldig værdi eller ugyldig rå tekst,
 - `commitImmediateField` — dropdown/toggle/radio og lukket-celle-clear,
 - `insertRow`, `deleteRow`, `reorderRows`,
+- `settleFieldInNewRow` — atomisk promovering af en tom UI-række og dens første settle,
 - `resetSection`, `replaceCase`, `clearCase`,
 - `undo`, `redo`.
 
@@ -522,6 +535,11 @@ Implementér og test som rene moduler:
 4. Typed inputcommands og ren transaktionsreducer.
 5. Dependency-baseret `InputReader`/projektionskerne.
 6. Fælles issue-/blocker-model og den allerede godkendte danske tekstformatering.
+
+Felt- og collection-bindings registreres i ét `InputCatalog`, som forsegles før state-validering og læsning. Dynamiske
+feltreferencer er kun gyldige, når alle entities i adressen findes i det konkrete snapshot; template-match alene er
+ikke tilstrækkeligt. Current-formatets serialiserede feltadresse er byte-for-byte kanonisk, så samme felt ikke kan
+optræde under flere rejected-input-nøgler.
 
 Ingen eksisterende UI-hook må kopieres ind i kernen. Kernen skal kunne kontrakttestes uden DOM, React eller Zustand.
 

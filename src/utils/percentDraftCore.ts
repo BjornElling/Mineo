@@ -100,7 +100,10 @@ export const parsePercentDraftForCommit = (
     return { ok: false, errorMessage: 'Ugyldig procent' };
   }
 
-  const numericValue = parseDanishNumberString(`${isNegative ? '-' : ''}${integerRaw}${decimalRaw ? `,${decimalRaw}` : ''}`);
+  const numericValue = parseDanishNumberString(
+    `${isNegative ? '-' : ''}${integerRaw}${decimalRaw ? `,${decimalRaw}` : ''}`,
+    { precision: getPercentPrecision(config.allowDecimals) }
+  );
   if (numericValue === undefined) return { ok: false, errorMessage: 'Ugyldig procent' };
 
   const rangeErrorMessage = buildPercentRangeErrorMessage(numericValue, config);

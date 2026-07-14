@@ -1,6 +1,7 @@
 import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import {
   collectEetAslAfgoerelseValidationIssues,
+  collectIncompleteRowIssues,
   validateAslAarsloenDivisibleBy1000,
   validateAslAarsloenBySkadesaarMax,
   validateDuplicateAfgoerelse,
@@ -27,6 +28,38 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
   tidlKapDato: undefined,
   fsTilbageholdtEet: 'Nej',
   ...patch,
+});
+
+describe('collectIncompleteRowIssues — canonical procentgrænser', () => {
+  it.each([-5, 105])('afleder et blokerende EET-issue for %s %%', (eetPct) => {
+    const issues = collectIncompleteRowIssues([buildRow({
+      afgoerelsesDato: toISODateString('2025-01-01'),
+      virkningsDato: toISODateString('2025-01-01'),
+      afgoerelseType: 'Midlertidig',
+      eetPct,
+    })]);
+
+    expect(issues).toContainEqual({
+      id: 'invalid-eet-pct',
+      message: 'EET % skal være mellem 0 og 100 %.',
+    });
+  });
+
+  it.each([-5, 105])('afleder et blokerende kapitaliseringsissue for %s %%', (kapPct) => {
+    const issues = collectIncompleteRowIssues([buildRow({
+      afgoerelsesDato: toISODateString('2025-01-01'),
+      virkningsDato: toISODateString('2025-01-01'),
+      afgoerelseType: 'Delvist endelig',
+      eetPct: 50,
+      kapDato: toISODateString('2025-02-01'),
+      kapPct,
+    })]);
+
+    expect(issues).toContainEqual({
+      id: 'invalid-kap-pct',
+      message: 'Kapitaliseringsprocent skal være mellem 0 og 100 %.',
+    });
+  });
 });
 
 describe('validateKapPctByAfgoerelsestype', () => {

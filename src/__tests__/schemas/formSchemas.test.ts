@@ -30,7 +30,7 @@ import { toISODateString } from '../../types/branded';
 // ─── aarsloenSchema ────────────────────────────────────────────────────────────
 
 describe('aarsloenSchema', () => {
-  it('afviser dansk tusindtalsformat i procentfelter over 100 efter korrekt coercion', () => {
+  it('bevarer en parsebar procent over 100 som canonical værdi', () => {
     const result = aarsloenSchema.safeParse({
       feriePct: '1.234',
       fritvalgPct: undefined,
@@ -46,7 +46,8 @@ describe('aarsloenSchema', () => {
       loenPaaHelligdage: 'Almindelig løn',
     });
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.feriePct).toBe(1234);
   });
 
   it('normaliserer dagkolonner i løntabel til ISO-datoer', () => {
@@ -262,7 +263,7 @@ describe('erstatningsopgoerelseSchema', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.message === 'Skal være et heltal mellem 1 og 99')).toBe(true);
+      expect(result.error.issues.some((issue) => issue.message === 'Skal være et heltal')).toBe(true);
     }
   });
 });
@@ -377,12 +378,12 @@ describe('stamdataSchema', () => {
     }
   });
 
-  it('afviser skadedato før fødselsdato', () => {
+  it('bevarer skadedato før fødselsdato som canonical input til den afledte issue-model', () => {
     const result = stamdataSchema.safeParse({
       skadelidteFodselsdato: toISODateString('1990-01-01'),
       skadedato: toISODateString('1989-12-31'),
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -462,11 +463,11 @@ describe('aslAfgoerelseRowSchema', () => {
     }
   });
 
-  it('afviser EET % og kapitaliseringsprocent der ikke er hele fem-procenter', () => {
-    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 7.5 }).success).toBe(false);
-    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 7 }).success).toBe(false);
-    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, kapPct: 12.5 }).success).toBe(false);
-    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, kapPct: 12 }).success).toBe(false);
+  it('bevarer ikke-delelige procentværdier canonical til den afledte domænevalidator', () => {
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 7.5 }).success).toBe(true);
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 7 }).success).toBe(true);
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, kapPct: 12.5 }).success).toBe(true);
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, kapPct: 12 }).success).toBe(true);
   });
 
   it('behandler explicit 0 som udfyldt committed procentværdi', () => {
@@ -482,8 +483,8 @@ describe('aslAfgoerelseRowSchema', () => {
   });
 });
 
-describe('forsoergertabSchema cross-field', () => {
-  it('kræver køn ved beregning før 1. marts 2015', () => {
+describe('forsoergertabSchema canonical input', () => {
+  it('bevarer manglende køn ved beregning før 1. marts 2015 til den afledte validator', () => {
     const result = forsoergertabSchema.safeParse({
       efterladteFodselsdato: toISODateString('1980-01-01'),
       beregningsdato: toISODateString('2015-02-28'),
@@ -491,10 +492,10 @@ describe('forsoergertabSchema cross-field', () => {
       tilkendtForPeriodeAar: 5,
     });
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
-  it('giver fejl på beregningsdato når den er før virkningsdato', () => {
+  it('bevarer beregningsdato før virkningsdato til den afledte validator', () => {
     const result = forsoergertabSchema.safeParse({
       efterladteFodselsdato: toISODateString('1980-01-01'),
       beregningsdato: toISODateString('2020-01-01'),
@@ -503,12 +504,7 @@ describe('forsoergertabSchema cross-field', () => {
       koen: 'Mand',
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const paths = result.error.issues.map((issue) => issue.path.join('.'));
-      expect(paths).toContain('beregningsdato');
-      expect(paths).not.toContain('virkningsdato');
-    }
+    expect(result.success).toBe(true);
   });
 });
 
@@ -521,9 +517,9 @@ describe('faellesAarsloenSchema', () => {
     }).success).toBe(true);
   });
 
-  it('afviser nul, negative beløb og ukendte felter', () => {
-    expect(faellesAarsloenSchema.safeParse({ aslAarsloen: { kind: 'number', value: 0 } }).success).toBe(false);
-    expect(faellesAarsloenSchema.safeParse({ ealAarsloen: { kind: 'number', value: -1 } }).success).toBe(false);
+  it('bevarer nul og negative beløb canonical, men afviser ukendte felter', () => {
+    expect(faellesAarsloenSchema.safeParse({ aslAarsloen: { kind: 'number', value: 0 } }).success).toBe(true);
+    expect(faellesAarsloenSchema.safeParse({ ealAarsloen: { kind: 'number', value: -1 } }).success).toBe(true);
     expect(faellesAarsloenSchema.safeParse({ ukendt: 'felt' }).success).toBe(false);
   });
 });
@@ -536,17 +532,13 @@ describe('satserSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('decimaltal trunkeres til heltal (coercion)', () => {
-    // coerceToIntegerOrUndefined trunkerer 2023.5 → 2023
+  it('decimaltal afvises uden implicit trunkering', () => {
     const result = satserSchema.safeParse({ aargang: 2023.5 });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.aargang).toBe(2023);
-    }
+    expect(result.success).toBe(false);
   });
 
   it('manglende aargang er tilladt (optional)', () => {
-    // yearInteger er optional — manglende felt er gyldigt
+    // Heltalssyntaksen er optional — manglende felt er gyldigt.
     const result = satserSchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {
@@ -554,9 +546,9 @@ describe('satserSchema', () => {
     }
   });
 
-  it('afviser åbenlyst urealistisk højt årstal', () => {
+  it('bevarer et sikkert heltal uden at håndhæve årstal-bounds', () => {
     const result = satserSchema.safeParse({ aargang: 999999 });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -646,14 +638,14 @@ describe('tafPeriodeRowSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('negative loseFeriedage afvises', () => {
+  it('negative løse feriedage bevares canonical til den afledte validator', () => {
     const result = tafPeriodeRowSchema.safeParse({
       id: 'r1',
       fra: undefined,
       til: undefined,
       loseFeriedage: -1,
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -713,9 +705,9 @@ describe('tableIsoDateCellString', () => {
 // ─── renteberegningSchema round-trip ─────────────────────────────────────────
 
 describe('renteberegningSchema', () => {
-  it('tom rentekravRows afvises', () => {
+  it('tom rentekravRows bevares som gyldig canonical collection', () => {
     const result = renteberegningSchema.safeParse({ rentekravRows: [] });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('initialValues er gyldigt mod schema (round-trip)', () => {
@@ -775,14 +767,11 @@ describe('varigeMenSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepterer bevidst méngrad 120 og afviser 121', () => {
+  it('bevarer heltals-méngrader uden for domænegrænsen canonical', () => {
     expect(varigeMenSchema.safeParse({ mengrad: 120 }).success).toBe(true);
 
-    const overMaximum = varigeMenSchema.safeParse({ mengrad: 121 });
-    expect(overMaximum.success).toBe(false);
-    if (!overMaximum.success) {
-      expect(overMaximum.error.issues[0]?.message).toBe('Méngrad må højst være 120');
-    }
+    expect(varigeMenSchema.safeParse({ mengrad: 121 }).success).toBe(true);
+    expect(varigeMenSchema.safeParse({ mengrad: 0 }).success).toBe(true);
   });
 
   it('afviser activeTab som ukendt felt', () => {
@@ -811,10 +800,7 @@ describe('varigeMenSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('afviser méngrad 0 og decimalpunkt uden at trunkere', () => {
-    // 0 er ikke en meningsfuld méngrad. Den afvises både i feltet (enforceRange + minValue={1},
-    // rød ring + tooltip) og som backstop i schemaet (.min(1)), så en 0 aldrig kan persisteres.
-    expect(varigeMenSchema.safeParse({ mengrad: 0 }).success).toBe(false);
+  it('afviser decimalsyntaks uden at trunkere', () => {
     expect(varigeMenSchema.safeParse({ mengrad: '15.5' }).success).toBe(false);
   });
 
@@ -854,11 +840,11 @@ describe('forsoergertabSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('afviser værdier uden for 1-10 år', () => {
+  it('bevarer heltalsværdier uden for 1-10 år canonical', () => {
     const result = forsoergertabSchema.safeParse({
       tilkendtForPeriodeAar: 11,
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('afviser decimaltal i tilkendt periode og ugyldige kønsværdier', () => {

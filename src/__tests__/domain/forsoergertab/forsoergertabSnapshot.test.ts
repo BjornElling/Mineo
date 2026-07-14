@@ -37,6 +37,28 @@ const createStamdata = (overrides: Partial<StamdataValues> = {}): StamdataValues
 });
 
 describe('computeForsoergertabSnapshot', () => {
+  it('blokerer visning og PDF ved skadedato før fødselsdato uden monteret stamdata-side', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues(),
+      faellesAarsloen: createFaellesAarsloen(),
+      stamdata: createStamdata({
+        skadelidteFodselsdato: toISODateString('2021-01-01'),
+        skadedato: toISODateString('2020-05-01'),
+      }),
+      fieldErrors: {
+        forsoergertab: {},
+        faellesAarsloen: {},
+        stamdata: {},
+      },
+    });
+
+    expect(snapshot.fieldUi.skadedato.hasError).toBe(true);
+    expect(snapshot.fieldUi.skadelidteFodselsdato.hasError).toBe(true);
+    expect(snapshot.canShowEal).toBe(false);
+    expect(snapshot.canShowAsl).toBe(false);
+    expect(snapshot.pdfGate.canDownload).toBe(false);
+  });
+
   it('bygger én autoritativ visning og PDF-projektion fra samme beregningsresultat', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues(),

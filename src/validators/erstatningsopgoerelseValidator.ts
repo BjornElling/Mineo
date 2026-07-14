@@ -2,9 +2,9 @@
  * Central validator for erstatningsopgørelsen
  *
  * Arkitektur:
- * 1. Schema-validering (Zod) - datatyper, required fields
- * 2. Felt-uafhængige regler - single-field constraints
- * 3. Cross-field validering - regler der afhænger af flere felter
+ * 1. Schema-validering (Zod) - syntaks, form og sikker numerisk repræsentation
+ * 2. Felt-uafhængige regler - enkeltfeltsregler, herunder canonical grænser
+ * 3. Tværfeltsvalidering - regler der afhænger af flere felter
  *
  * Sektions-valideringer:
  * - Svie/smerte: perioder, satser, helbredsstatus
@@ -16,6 +16,7 @@
  */
 
 import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../schemas/formSchemas';
+import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString, type ISODateString } from '../types/branded';
@@ -70,8 +71,10 @@ export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
  *
  * Validerer:
  * - Datatyper
- * - Required felter
- * - Simple constraints (min/max, format, etc.)
+ * - Canonical syntaks, form og sikker numerisk repræsentation
+ *
+ * Fortegn, min/max og øvrige domæneregler valideres i de rene lag nedenfor, så
+ * parsebare værdier uden for grænsen kan bevares canonical uden at nå beregningsmotorerne.
  */
 function validateSchema(values: unknown): ValidationError[] {
   const result = erstatningsopgoerelseSchema.safeParse(values);
@@ -107,6 +110,138 @@ function validateStandaloneRules(values: ErstatningsopgoerelseValues): Validatio
       severity: 'error',
     });
   }
+
+  return errors;
+}
+
+const PERCENTAGE_RANGE_ERROR_MESSAGE = 'Procent skal være mellem 0 og 100';
+const NON_NEGATIVE_AMOUNT_ERROR_MESSAGE = 'Beløb kan ikke være negativt';
+
+const percentageRangeError = (path: string, value: number | undefined): ValidationError | undefined => {
+  if (value === undefined || (value >= 0 && value <= 100)) return undefined;
+  return { path, message: PERCENTAGE_RANGE_ERROR_MESSAGE, severity: 'error' };
+};
+
+const nonNegativeAmountError = (path: string, value: AmountValue | undefined): ValidationError | undefined => {
+  const amount = amountValueToNumber(value);
+  if (amount === undefined || (amount >= 0 && !Object.is(amount, -0))) return undefined;
+  return { path, message: NON_NEGATIVE_AMOUNT_ERROR_MESSAGE, severity: 'error' };
+};
+
+const validateLoenudviklingCanonicalRanges = (
+  loenudvikling: ErstatningsopgoerelseValues['eoAngivetLoenLoenudvikling'],
+  prefix: string
+): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  const addPercentage = (path: string, value: number | undefined): void => {
+    const error = percentageRangeError(path, value);
+    if (error) errors.push(error);
+  };
+
+  addPercentage(`${prefix}.feriePct`, loenudvikling.feriePct);
+
+  loenudvikling.loenudviklingManuelTableData.forEach((row, rowIndex) => {
+    const rowPrefix = `${prefix}.loenudviklingManuelTableData[${rowIndex}]`;
+    addPercentage(`${rowPrefix}.feriepenge`, row.feriepenge);
+    addPercentage(`${rowPrefix}.shSoSats`, row.shSoSats);
+    addPercentage(`${rowPrefix}.fritvalg`, row.fritvalg);
+    addPercentage(`${rowPrefix}.agPension`, row.agPension);
+  });
+
+  loenudvikling.loenudviklingManuelProcentsatsTableData.forEach((row, rowIndex) => {
+    addPercentage(`${prefix}.loenudviklingManuelProcentsatsTableData[${rowIndex}].procent`, row.procent);
+  });
+
+  const extraGrundloenError = nonNegativeAmountError(
+    `${prefix}.offentligLoenEkstraGrundloen`,
+    loenudvikling.offentligLoenEkstraGrundloen
+  );
+  if (extraGrundloenError) errors.push(extraGrundloenError);
+
+  const anciennitetError = nonNegativeAmountError(
+    `${prefix}.anciennitetstillaegSats`,
+    loenudvikling.anciennitetstillaegSats
+  );
+  if (anciennitetError) errors.push(anciennitetError);
+
+  if (
+    loenudvikling.offentligLoenTrin !== undefined &&
+    (loenudvikling.offentligLoenTrin < 1 || loenudvikling.offentligLoenTrin > 55)
+  ) {
+    errors.push({
+      path: `${prefix}.offentligLoenTrin`,
+      message: 'Løntrin skal være mellem 1 og 55',
+      severity: 'error',
+    });
+  }
+  if (
+    loenudvikling.offentligLoenGruppe !== undefined &&
+    (loenudvikling.offentligLoenGruppe < 0 || loenudvikling.offentligLoenGruppe > 4)
+  ) {
+    errors.push({
+      path: `${prefix}.offentligLoenGruppe`,
+      message: 'Løngruppe skal være mellem 0 og 4',
+      severity: 'error',
+    });
+  }
+
+  return errors;
+};
+
+/**
+ * De persistente schemas accepterer alle syntaktisk gyldige canonical værdier. De tidligere
+ * schema-grænser ligger derfor samlet her, så snapshot- og dokumentgates også ser fejl i
+ * felter, som ikke aktuelt er mountet eller aktive i formularen.
+ */
+function validateCanonicalRanges(values: ErstatningsopgoerelseValues): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const addPercentage = (path: string, value: number | undefined): void => {
+    const error = percentageRangeError(path, value);
+    if (error) errors.push(error);
+  };
+  const addNonNegativeAmount = (path: string, value: AmountValue | undefined): void => {
+    const error = nonNegativeAmountError(path, value);
+    if (error) errors.push(error);
+  };
+  const addDayCount = (path: string, value: number | undefined, max: number): void => {
+    if (value === undefined || (value >= 0 && value <= max)) return;
+    errors.push({ path, message: `Antal dage skal være mellem 0 og ${max}`, severity: 'error' });
+  };
+
+  addPercentage('forligAnsvarsgradProcent', values.forligAnsvarsgradProcent);
+
+  addNonNegativeAmount('svieSmerteTidligereTotal', values.svieSmerteTidligereTotal);
+  addNonNegativeAmount('svieSmerteAktuelPeriode', values.svieSmerteAktuelPeriode);
+  addNonNegativeAmount('tidligereModtagetTaf', values.tidligereModtagetTaf);
+  addNonNegativeAmount('maanedsloenenUdgoer', values.maanedsloenenUdgoer);
+  addNonNegativeAmount('dagsloenenUdgoer', values.dagsloenenUdgoer);
+
+  addDayCount('uspecificeredeFerieFridage', values.uspecificeredeFerieFridage, 366);
+  addDayCount('oevrigeFravaersdage', values.oevrigeFravaersdage, 366);
+  values.tafPerioder.forEach((row, index) => {
+    addDayCount(`tafPerioder[${index}].loseFeriedage`, row.loseFeriedage, 999);
+  });
+
+  values.sfggAnsaettelsesforhold.forEach((row, index) => {
+    const prefix = `sfggAnsaettelsesforhold[${index}]`;
+    addDayCount(`${prefix}.sfggReferenceperiodeFravaersdageUdenLoen`, row.sfggReferenceperiodeFravaersdageUdenLoen, 366);
+    addNonNegativeAmount(`${prefix}.sfggManuelDagssats`, row.sfggManuelDagssats);
+    addNonNegativeAmount(`${prefix}.sfggAlleredeBetaltBeloeb`, row.sfggAlleredeBetaltBeloeb);
+  });
+
+  values.loenindkomstAnsaettelsesforhold.forEach((ansaettelsesforhold, index) => {
+    const prefix = `loenindkomstAnsaettelsesforhold[${index}]`;
+    addPercentage(`${prefix}.fritvalgPct`, ansaettelsesforhold.fritvalgPct);
+    addPercentage(`${prefix}.shSoPct`, ansaettelsesforhold.shSoPct);
+    addPercentage(`${prefix}.storeBededagPct`, ansaettelsesforhold.storeBededagPct);
+    addPercentage(`${prefix}.pensionPct`, ansaettelsesforhold.pensionPct);
+    errors.push(...validateLoenudviklingCanonicalRanges(ansaettelsesforhold, prefix));
+  });
+
+  errors.push(...validateLoenudviklingCanonicalRanges(
+    values.eoAngivetLoenLoenudvikling,
+    'eoAngivetLoenLoenudvikling'
+  ));
 
   return errors;
 }
@@ -1066,8 +1201,10 @@ function validateOevrigeKravRowCompleteness(row: OevrigeKravRow, index: number):
   }
   if (amountValue === undefined) {
     errors.push({ path: `${prefix}.beloeb`, message: 'Beløb mangler', severity: 'error' });
-  } else if (amountValue < 0) {
+  } else if (amountValue < 0 || Object.is(amountValue, -0)) {
     errors.push({ path: `${prefix}.beloeb`, message: 'Beløb kan ikke være negativt', severity: 'error' });
+  } else if (amountValue === 0) {
+    errors.push({ path: `${prefix}.beloeb`, message: 'Beløb skal være større end 0', severity: 'error' });
   }
 
   return errors;
@@ -1090,6 +1227,7 @@ type ErstatningsopgoerelseValidator = FormValidator<ErstatningsopgoerelseValues>
 export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
   validateParsed(values: ErstatningsopgoerelseValues, options?: ErstatningsopgoerelseValidationOptions): ValidationResult {
     const errors: ValidationError[] = [
+      ...validateCanonicalRanges(values),
       ...validateStandaloneRules(values),
       ...validateForligAnsvarsgrad(values),
       ...validateSvieSmerte(values),

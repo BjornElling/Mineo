@@ -1,4 +1,17 @@
-import { parsePercentToDecimal, parsePercentPointString, parseAmount } from '../../utils/numberParsing';
+import {
+  parseAmount,
+  parseDanishNumberString,
+  parsePercentPointString,
+  parsePercentToDecimal,
+} from '../../utils/numberParsing';
+
+describe('parseDanishNumberString', () => {
+  it('bruger skrevne decimalpladser som generisk præcision og kan modtage en eksplicit præcision', () => {
+    expect(parseDanishNumberString('70368744177663,99')).toBe(70_368_744_177_663.99);
+    expect(parseDanishNumberString('70368744177664,00')).toBeUndefined();
+    expect(parseDanishNumberString('1,234', { precision: 2 })).toBeUndefined();
+  });
+});
 
 describe('parsePercentToDecimal', () => {
   it('parses Danish-formatted percent with thousand separators', () => {
@@ -87,6 +100,12 @@ describe('parsePercentPointString (kanonisk pct-point-parser)', () => {
     // pct-point-parser returnerer eksakt 15.
     expect(parsePercentPointString('15')).toBe(15);
     expect(parsePercentToDecimal('15')).toBeCloseTo(0.15, 12);
+  });
+
+  it('afviser decimalinput som ikke kan bevares ved den indtastede præcision', () => {
+    expect(parsePercentPointString('9.007.199.254.740.991')).toBe(Number.MAX_SAFE_INTEGER);
+    expect(parsePercentPointString('9.007.199.254.740.992')).toBeUndefined();
+    expect(parsePercentPointString('90.071.992.547.409,92')).toBeUndefined();
   });
 });
 
