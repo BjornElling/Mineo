@@ -661,6 +661,19 @@ Integrationstests bruger rigtige felter, store og coordinator og dækker:
 - standalone MinProcesrente,
 - den godkendte brugerfeedback i §9.
 
+### 8.6 Udtømmende dokumentgate-matrix
+
+Det maskinelt inventariserede outputkatalog driver en tabeltest, der for hver typed dokumentdefinition særskilt
+indsætter begge relevante fejlklasser:
+
+- afsluttet rejected input med ugyldigt format (`invalid`),
+- canonical input med et dokumentrelevant `range`-/`bounds`-issue med fejlseverity.
+
+For begge klasser hævder testen både, at den reaktive knap er visuelt og funktionelt disabled, og at en direkte
+aktivering stoppes før lazy-load, generator og fil-I/O. Et output kan ikke markeres migreret, hvis definitionen eller en
+af de to cases mangler. Sammen med fase 7-værnet mod preflight-bypass gør det outputkataloget udtømmende i stedet for at
+basere sikkerheden på manuelt udvalgte sidespecifikke tests.
+
 ## 9. Godkendte synlige beslutninger
 
 Beslutningerne nedenfor er godkendt 2026-07-14 og skal fastlåses i de normative kontrakter i fase 1.
@@ -711,6 +724,8 @@ Designet er først færdigimplementeret, når alle følgende udsagn er sande:
 16. Der findes ingen permanente compatibility-facader, dual-read/dual-write eller legacy-fallbacks fra migrationen.
 17. Åben draft ændrer aldrig visning eller download-gate; settle skifter dem atomisk til den nye afsluttede tilstand.
 18. Ethvert dokumentrelevant issue med fejlseverity giver en visuelt og funktionelt disabled downloadknap.
+19. Hver dokumentdefinition i det maskinelt inventariserede outputkatalog består gate-matricen for både ugyldigt format
+    og range/bounds-fejl, og intet dokumententrypoint kan omgå preflight.
 
 ## 11. Ikke-mål
 

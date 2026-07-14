@@ -55,5 +55,7 @@ Tests skal dække:
 
 1. dagtælling for grænseperioder,
 2. renteperioder og afrunding,
-3. PDF-gate ved manglende/invalid input,
-4. at PDF-output bruger samme rækkeberegnede `pdfContext` som UI (PDF genberegner ikke renteperioder).
+3. dokumentgate ved både manglende input, rejected/invalid format og canonical range/bounds-fejl,
+4. at både den reaktive knap og click-preflight blokerer før generator og fil-I/O for hver af fejlklasserne i punkt 3,
+5. at PDF og Word har samme gate,
+6. at dokument-output bruger samme rækkeberegnede `pdfContext` som UI (dokumentet genberegner ikke renteperioder).

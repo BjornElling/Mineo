@@ -64,6 +64,24 @@ Konsekvens:
 
 Gate-definitionen er kanal-neutral: et dokument der er blokeret for PDF, er også blokeret for Word, og omvendt. Formatvalget ændrer ikke gaten.
 
+### A2a. Udtømmende håndhævelse på tværs af outputkataloget
+
+Det maskinelt inventariserede outputkatalog er komplethedskilden for dokumentgaten. Hvert katalogiseret output — også
+standalone MinProcesrente — skal have præcis én typed dokumentdefinition og være dækket af samme centrale gate- og
+preflight-infrastruktur. Et UI-entrypoint, servicekald eller standalone-flow må ikke kunne starte dokumentarbejde uden
+denne definition.
+
+For hver dokumentdefinition skal kontrakttests særskilt bevise begge følgende fejlklasser, når de kan forekomme blandt
+definitionens dependencies:
+
+1. afsluttet rejected input med `reason: 'invalid'`, herunder et uparseligt format,
+2. canonical input med et dokumentrelevant `range`-/`bounds`-issue med `severity: 'error'`.
+
+For begge fejlklasser skal testen bevise, at den reaktive gate gør knappen visuelt og funktionelt disabled, og at en
+direkte aktivering stoppes før lazy-load, generator og fil-I/O. En generisk test med én vilkårlig blocker er ikke
+tilstrækkelig til at dække begge klasser. Arkitekturværn skal samtidig bevise, at hele outputkataloget går gennem den
+fælles preflight, så lokale gates ikke kan genindføre forskellen mellem format- og range/bounds-fejl.
+
 ### A2.1 Åben og afsluttet inputtilstand
 
 - Mens editoren er åben, bygger den reaktive gate på den senest afsluttede revision. Åben draft må ikke få knappen eller

@@ -3,7 +3,7 @@
 // Fase 8 (greenfield draft/commit): Satser-sidens `aargang` er nu BUNDET (onFieldError), så en afsluttet
 // ugyldig årgang når `invalidDrafts`-storen og ses af download-gaten. Denne integrationstest kører gennem
 // den RIGTIGE Satser-side + en rigtig FormPersistenceProvider (ikke en mock), så den beviser den virkelige
-// sti felt → invalidDrafts → gate — jf. document-output-contract.md §A2.1 og design §11.4-mønstret.
+// sti felt → invalidDrafts → gate — jf. document-output-contract.md §A2.1 og design §5.4.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';

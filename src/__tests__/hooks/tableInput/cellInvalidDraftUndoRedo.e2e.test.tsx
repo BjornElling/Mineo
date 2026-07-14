@@ -59,7 +59,8 @@ const renderCell = (
   value: string,
   rowScope = '',
   onBlur?: (e: { target: { value: string } }) => void,
-  adapter: TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> = createDateLikeAdapter()
+  adapter: TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> = createDateLikeAdapter(),
+  persistenceRuntime: ReturnType<typeof initializePersistenceRuntime> = initializePersistenceRuntime()
 ): CellHarness => {
   const state: { editingCell: GridCellCoord | null } = { editingCell: null };
   let handle: GridCellEditorHandle | null = null;
@@ -69,8 +70,6 @@ const renderCell = (
     getFocusedCell: () => gridCell,
     getEditingCell: () => state.editingCell,
   };
-  const persistenceRuntime = initializePersistenceRuntime();
-
   const wrapper = ({ children }: React.PropsWithChildren) => (
     <FormPersistenceProvider runtime={persistenceRuntime}>
       <CellInvalidDraftScopeProvider pageKey={PAGE_KEY} tableId={TABLE_ID} rowScope={rowScope}>
@@ -225,8 +224,12 @@ describe('tabelcelle undo/redo af ugyldige indtastninger (ende-til-ende)', () =>
   });
 
   it('to celler: ryd hver, undo fortryder ét clear ad gangen (ikke begge, ikke det forkerte)', () => {
-    const a = renderCell({ rowId: 'row1', colIndex: 2 }, '');
-    const b = renderCell({ rowId: 'row1', colIndex: 3 }, '');
+    // Begge hooks deler runtime. En ny initialization efter første mount ville re-hydrere den globale
+    // persistence-store uden for testens act-grænse og skjule en reel cross-root state-opdatering som warning.
+    const persistenceRuntime = initializePersistenceRuntime();
+    const adapter = createDateLikeAdapter();
+    const a = renderCell({ rowId: 'row1', colIndex: 2 }, '', '', undefined, adapter, persistenceRuntime);
+    const b = renderCell({ rowId: 'row1', colIndex: 3 }, '', '', undefined, adapter, persistenceRuntime);
     const fpA = pathFor('row1:2');
     const fpB = pathFor('row1:3');
 

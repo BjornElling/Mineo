@@ -1,8 +1,8 @@
 import { evaluateDownloadAllGate, evaluateOversigtDownloadGate } from '../../../domain/renteberegning/renteberegningDownloadGate';
 import { toISODateString } from '../../../types/branded';
 
-// Sandhedstabellen for de to renteberegning-download-gates skal være byte-for-byte
-// identisk med de tidligere rå-booleans:
+// Sandhedstabellen dækker den canonical-afledte fallback for de to downloadgates. Afsluttet
+// rejected input håndteres før disse funktioner af renteberegningens inputprojektion:
 //   downloadAll(disabled) = !hasValidPdfContexts || anyRowHasError || beregningsdatoHasError   (+ loading separat i UI)
 //   oversigt(disabled)    = beregningsdato === undefined || beregningsdatoHasError || !hasValidPdfContexts || anyRowHasError
 
@@ -66,9 +66,9 @@ describe('renteberegningDownloadGate', () => {
     });
   });
 
-  // Ækvivalens-værn: gaten må aldrig afvige fra de tidligere rå-boolean-udtryk.
-  // Loading-tilstanden er bevidst udeladt her (separat UI-transient).
-  describe('ækvivalens med tidligere rå-booleans (fuld sandhedstabel)', () => {
+  // Ækvivalens-værn for canonical fallback. Loading-tilstanden og rejected input ligger
+  // bevidst uden for disse rene funktioner.
+  describe('canonical fallback (fuld sandhedstabel)', () => {
     const bools = [false, true];
     for (const hasValidPdfContexts of bools) {
       for (const anyRowHasError of bools) {

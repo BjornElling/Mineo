@@ -301,17 +301,6 @@ Alt andet er sekundært.
 
 ---
 
-## Fremdriftssporing
-
-`TEST_COVERAGE.md` er det levende dokument over testdækning. Opdater det når:
-
-- En ny testfil skrives (❌ → ✅⚠️)
-- En eksisterende test kvalitetssikres (✅⚠️ → ✅)
-- En ny kildefil opdages der bør testes
-- En kildefil omdøbes, flyttes eller fjernes
-
----
-
 ## Kontraktreference
 
 Tests for komponent-adfærd skal verificere kontrakterne i:

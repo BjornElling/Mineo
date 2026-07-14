@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import RenteberegningTab from '../../../components/pages/renteberegning/RenteberegningTab';
@@ -18,7 +18,7 @@ import { toISODateString } from '../../../types/branded';
 // §2.4 (renteberegning-contract): download-gaten skal udledes fra den AFSLUTTEDE inputtilstand — committed
 // input via computeRentekravRow OG afsluttede ugyldige inputs (invalidDrafts). Denne test kører gennem en
 // rigtig FormPersistenceProvider (ikke en mock), så den både beviser committed-only-reglen OG at et
-// afsluttet ugyldigt input blokerer download (document-output-contract.md §A2.1, design §11.4).
+// afsluttet ugyldigt input blokerer download (document-output-contract.md §A2.1, design §5.4).
 
 const makeDraftRow = (id: string, overrides: Partial<RentekravDraftRow> = {}): RentekravDraftRow => ({
   id,
@@ -131,33 +131,56 @@ describe('Renteberegning download-gate (§2.4: udledt fra afsluttet input)', () 
     expect(getOversigtButton()).toBeDisabled();
   });
 
-  it('VENDT (design §11.4): et afsluttet ugyldigt renterFra oven på en gyldig committed række blokerer den samlede gate', () => {
+  it('et afsluttet ugyldigt renterFra oven på en gyldig committed række blokerer den samlede gate', () => {
     // Committed input er gyldigt, men brugeren har AFSLUTTET et uparseligt renterFra i cellen →
     // invalidDrafts-entry. Tidligere holdt gaten download AKTIV (renterFraHasError var ekskluderet);
     // nu blokerer den afsluttede ugyldige tilstand aggregat-downloaden.
+    const onDownloadOversigt = vi.fn(async () => undefined);
     const committed = makeCommittedRow('r1', { belob: '1000,00', renterFra: '01-01-2020' });
     renderTab({
       draftRows: [makeDraftRow('r1', { belob: '1.000,00', renterFra: '01-01-2020' })],
       committedById: new Map([['r1', committed]]),
+      onDownloadOversigt,
     });
     expect(getOversigtButton()).toBeEnabled();
 
     seedInvalidDraftAfterMount(cellFieldPath('r1', 1), '99-99-9999');
 
     expect(getOversigtButton()).toBeDisabled();
+    fireEvent.click(getOversigtButton());
+    expect(onDownloadOversigt).not.toHaveBeenCalled();
   });
 
   it('et afsluttet ugyldigt beregningsdato (global) blokerer den samlede gate', () => {
+    const onDownloadOversigt = vi.fn(async () => undefined);
     const committed = makeCommittedRow('r1', { belob: '1000,00', renterFra: '01-01-2020' });
     renderTab({
       draftRows: [makeDraftRow('r1', { belob: '1.000,00', renterFra: '01-01-2020' })],
       committedById: new Map([['r1', committed]]),
+      onDownloadOversigt,
     });
     expect(getOversigtButton()).toBeEnabled();
 
     seedInvalidDraftAfterMount('beregningsdato', '99-99-9999');
 
     expect(getOversigtButton()).toBeDisabled();
+    fireEvent.click(getOversigtButton());
+    expect(onDownloadOversigt).not.toHaveBeenCalled();
+  });
+
+  it('en parsebar renterFra efter beregningsdato blokerer visuelt og funktionelt', () => {
+    const onDownloadOversigt = vi.fn(async () => undefined);
+    const committed = makeCommittedRow('r1', { belob: '1000,00', renterFra: '01-01-2025' });
+    renderTab({
+      draftRows: [makeDraftRow('r1', { belob: '1.000,00', renterFra: '01-01-2025' })],
+      committedById: new Map([['r1', committed]]),
+      beregningsdato: VALID_BEREGNINGSDATO,
+      onDownloadOversigt,
+    });
+
+    expect(getOversigtButton()).toBeDisabled();
+    fireEvent.click(getOversigtButton());
+    expect(onDownloadOversigt).not.toHaveBeenCalled();
   });
 
   it('sender seneste referenceperiode-slutdato med ved samlet oversigt', async () => {
