@@ -6,13 +6,16 @@ import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestem
 import { downloadSatserDokument } from '../../document/service/documentService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
-import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
+import { usePersistedSectionSelector, useInvalidDraftForFieldSelector } from '../../hooks/useFormPersistenceSelectors';
+import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import {
   resolveSatserAargangErrorMessage,
   resolveSatserEffectiveAargang,
   resolveSatserPdfGate,
 } from '../../domain/policies';
+import { sectionScope, type InputBlocker } from '../../domain/inputIntegrity/inputBlocker';
+import { documentGateFromBlockers } from '../../domain/inputIntegrity/inputBlockerGate';
 import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import ContentBox from '../layout/ContentBox';
 import InfoTooltipIcon from '../common/InfoTooltipIcon';
@@ -127,6 +130,12 @@ const Satser = React.memo(() => {
   const persistedStamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
 
+  // Binding til invalidDrafts (obligatorisk for persisterede sagsfelter, jf. mineo-field-pattern.md
+  // "Felt-identitets-API" punkt 5). Uden denne binding ville en afsluttet ugyldig årgang kun leve i
+  // useDraftField's lokale useState-fallback og aldrig nå store/read-model/download-gate.
+  const aargangErrorReporter = useFormFieldErrorReporter('satser', 'aargang');
+  const aargangInvalidDraft = useInvalidDraftForFieldSelector('satser', 'aargang');
+
   /**
    * Håndterer commit af årgangs-feltet (committed model value)
    */
@@ -147,10 +156,19 @@ const Satser = React.memo(() => {
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
   );
   const yearError = yearErrorMessage ? { message: yearErrorMessage } : undefined;
-  const pdfGate = React.useMemo(
-    () => resolveSatserPdfGate(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
-    [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
-  );
+
+  // Download-gate: et afsluttet ugyldigt årstal (invalidDrafts) skal blokere download, også når der
+  // bag masken ligger en tidligere gyldig committed årgang (document-output-contract.md §A2.1). Er
+  // der ingen ugyldig draft, falder vi tilbage på den committed-afledte gate (manglende/uden-for-interval).
+  const pdfGate = React.useMemo(() => {
+    if (aargangInvalidDraft !== undefined) {
+      const blockers: readonly InputBlocker[] = [
+        { fieldId: 'aargang', fieldLabel: 'Satsår', reason: 'invalid', scope: sectionScope(), controlKind: 'text' },
+      ];
+      return documentGateFromBlockers(blockers, 'satser');
+    }
+    return resolveSatserPdfGate(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR);
+  }, [aargangInvalidDraft, MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]);
   const canDownload = pdfGate.canDownload;
 
   // Vis kun satser for et gyldigt, valgt år. Er året ugyldigt/uden for interval
@@ -219,6 +237,7 @@ const Satser = React.memo(() => {
               name="aargang"
               value={values.aargang}
               onCommit={handleYearCommit}
+              onFieldError={aargangErrorReporter}
               minYear={MIN_SATSER_YEAR}
               maxYear={MAX_SATSER_YEAR}
               width={80}
