@@ -45,6 +45,12 @@ type ReadCanonicalField<T> = (
   address: FieldAddress
 ) => T;
 
+type WriteCanonicalField<T> = (
+  sections: PersistedInputSections,
+  address: FieldAddress,
+  value: T
+) => PersistedInputSections;
+
 const FIELD_REGISTRATION: unique symbol = Symbol('fieldRegistration');
 const COLLECTION_REGISTRATION: unique symbol = Symbol('collectionRegistration');
 
@@ -52,12 +58,16 @@ export type FieldBinding<T> = Readonly<{
   definition: FieldDefinition<T>;
   template: FieldAddressTemplate;
   createRef: (...entityIds: readonly string[]) => FieldRef<T>;
-  [FIELD_REGISTRATION]: Readonly<{ readCanonical: ReadCanonicalField<T> }>;
+  [FIELD_REGISTRATION]: Readonly<{
+    readCanonical: ReadCanonicalField<T>;
+    writeCanonical?: WriteCanonicalField<T>;
+  }>;
 }>;
 
 type RegisteredBinding = Readonly<{
   definition: FieldDefinitionBase;
   readCanonical: (sections: PersistedInputSections, address: FieldAddress) => unknown;
+  writeCanonical?: (sections: PersistedInputSections, address: FieldAddress, value: unknown) => PersistedInputSections;
 }>;
 
 type ReadEntityIds = (
@@ -116,13 +126,21 @@ export const createFieldBinding = <T>(options: Readonly<{
   definition: FieldDefinition<T>;
   template: FieldAddressTemplate;
   readCanonical: ReadCanonicalField<T>;
+  /**
+   * Midlertidigt valgfri, fordi kataloget indføres før alle eksisterende read-only bindinger
+   * migreres. Nye persisted felter skal registrere både læse- og skrivevejen her.
+   */
+  writeCanonical?: WriteCanonicalField<T>;
 }>): FieldBinding<T> => {
   const template = fieldAddressTemplateSchema.parse(options.template);
 
   return Object.freeze({
     definition: options.definition,
     template,
-    [FIELD_REGISTRATION]: Object.freeze({ readCanonical: options.readCanonical }),
+    [FIELD_REGISTRATION]: Object.freeze({
+      readCanonical: options.readCanonical,
+      ...(options.writeCanonical === undefined ? {} : { writeCanonical: options.writeCanonical }),
+    }),
     createRef: (...entityIds: readonly string[]) => {
       return bindField(options.definition, createFieldAddress({
         section: template.section,
@@ -165,6 +183,9 @@ export class FieldCatalog {
     this.#bindings.set(key, {
       definition: binding.definition,
       readCanonical: binding[FIELD_REGISTRATION].readCanonical,
+      // Registreringen binder definition, læse- og skrivefunktion med samme T. Den erasede
+      // registry-grænse kan derfor kun modtage den T, som assertKnownField netop har bevist.
+      writeCanonical: binding[FIELD_REGISTRATION].writeCanonical as RegisteredBinding['writeCanonical'],
     });
   }
 
@@ -190,6 +211,16 @@ export class FieldCatalog {
 
     // Samme template og samme definition-identitet blev registreret sammen med denne resolver.
     return binding.readCanonical(sections, field.address) as T;
+  }
+
+  writeCanonical<T>(sections: PersistedInputSections, field: FieldRef<T>, value: T): PersistedInputSections {
+    const binding = this.#bindings.get(templateKey(addressTemplate(field.address)));
+    this.assertKnownField(field);
+    if (binding?.writeCanonical === undefined) {
+      throw new Error('FieldCatalog: feltet har ingen registreret canonical skrivevej');
+    }
+
+    return binding.writeCanonical(sections, field.address, value);
   }
 }
 
