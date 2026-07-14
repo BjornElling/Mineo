@@ -10,6 +10,7 @@ import {
   type FormFieldError,
   normalizeFieldError,
 } from '../types/fieldErrors';
+import type { PersistedInputSections } from '../input/inputState';
 
 const debugFormPersistenceStore = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -17,7 +18,7 @@ const debugFormPersistenceStore = (event: string, details: Record<string, unknow
 };
 
 export type FormPersistenceSections = {
-  -readonly [K in keyof PersistedSectionMap]: PersistedSectionMap[K] | null;
+  -readonly [K in keyof PersistedInputSections]: PersistedInputSections[K];
 };
 
 export type FormPersistenceMeta = {
