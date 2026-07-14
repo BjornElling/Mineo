@@ -13,6 +13,7 @@ import type { ISODateString } from '../../../../types/branded';
 import type { OverenskomstSfggPolicy } from '../../../../data/overenskomstRates';
 import { applySfggBeregningskildeChange } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { normalizeOptionalFreeText } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import type { FieldErrorReporter } from '../../../../types/fieldErrors';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
@@ -38,6 +39,13 @@ type Props = Readonly<{
     updater: (current: SfggRow) => SfggRow,
     origin?: { fieldPath?: string }
   ) => boolean;
+  // Felt-fejl-reportere (oprettet i AnsaettelsesforholdCard hvor af.id + hooks er tilgængelige; denne
+  // sektion har en tidlig return og kan ikke selv kalde hooks). Binder SFGG-felternes ugyldige rå draft.
+  reportSfggReferenceperiodeFraError: FieldErrorReporter;
+  reportSfggReferenceperiodeTilError: FieldErrorReporter;
+  reportSfggReferenceperiodeFravaersdageError: FieldErrorReporter;
+  reportSfggManuelDagssatsError: FieldErrorReporter;
+  reportSfggAlleredeBetaltBeloebError: FieldErrorReporter;
 }>;
 
 /**
@@ -63,6 +71,11 @@ const SygeferiegodtgoerelseSection = ({
   sfggReferenceperiodeFravaersdageMax,
   onNavigateToTabtArbejdsfortjeneste,
   updateSfggAnsaettelsesforhold,
+  reportSfggReferenceperiodeFraError,
+  reportSfggReferenceperiodeTilError,
+  reportSfggReferenceperiodeFravaersdageError,
+  reportSfggManuelDagssatsError,
+  reportSfggAlleredeBetaltBeloebError,
 }: Props) => {
   if (!show) return null;
 
@@ -219,11 +232,12 @@ const SygeferiegodtgoerelseSection = ({
                   }}
                   error={referenceperiodeErrorText !== ''}
                   helperText={referenceperiodeErrorText}
+                  onFieldError={reportSfggReferenceperiodeFraError}
                   onCommit={(event) => {
                     return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                       ...current,
                       sfggReferenceperiodeFra: event.target.value,
-                    }));
+                    }), { fieldPath: `${af.id}:sfggReferenceperiodeFra` });
                   }}
                 />
                 <Typography className="row--text">til og med</Typography>
@@ -239,11 +253,12 @@ const SygeferiegodtgoerelseSection = ({
                   }}
                   error={referenceperiodeErrorText !== ''}
                   helperText={referenceperiodeErrorText}
+                  onFieldError={reportSfggReferenceperiodeTilError}
                   onCommit={(event) => {
                     return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                       ...current,
                       sfggReferenceperiodeTil: event.target.value,
-                    }));
+                    }), { fieldPath: `${af.id}:sfggReferenceperiodeTil` });
                   }}
                 />
               </Box>
@@ -260,11 +275,12 @@ const SygeferiegodtgoerelseSection = ({
                 maxValue={sfggReferenceperiodeFravaersdageMax ?? DAY_COUNT_MAX}
                 value={sfggRow?.sfggReferenceperiodeFravaersdageUdenLoen}
                 placeholder="0"
+                onFieldError={reportSfggReferenceperiodeFravaersdageError}
                 onCommit={(event) => {
                   return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                     ...current,
                     sfggReferenceperiodeFravaersdageUdenLoen: event.target.value,
-                  }));
+                  }), { fieldPath: `${af.id}:sfggReferenceperiodeFravaersdageUdenLoen` });
                 }}
               />
             </Box>
@@ -292,11 +308,12 @@ const SygeferiegodtgoerelseSection = ({
                 width={150}
                 value={sfggRow?.sfggManuelDagssats}
                 allowNegative={false}
+                onFieldError={reportSfggManuelDagssatsError}
                 onCommit={(event) => {
                   return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                     ...current,
                     sfggManuelDagssats: event.target.value,
-                  }));
+                  }), { fieldPath: `${af.id}:sfggManuelDagssats` });
                 }}
               />
             </Box>
@@ -346,11 +363,12 @@ const SygeferiegodtgoerelseSection = ({
               width={150}
               value={sfggRow?.sfggAlleredeBetaltBeloeb}
               allowNegative={false}
+              onFieldError={reportSfggAlleredeBetaltBeloebError}
               onCommit={(event) => {
                 return updateSfggAnsaettelsesforhold(af.id, (current) => ({
                   ...current,
                   sfggAlleredeBetaltBeloeb: event.target.value,
-                }));
+                }), { fieldPath: `${af.id}:sfggAlleredeBetaltBeloeb` });
               }}
             />
           </Box>

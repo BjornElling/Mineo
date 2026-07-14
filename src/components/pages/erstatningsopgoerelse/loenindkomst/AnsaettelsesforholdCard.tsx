@@ -163,6 +163,13 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const reportOffentligLoenEkstraGrundloenError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:offentligLoenEkstraGrundloen`);
   const reportAnciennitetstillaegDatoError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:anciennitetstillaegDato`);
   const reportAnciennitetstillaegSatsError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:anciennitetstillaegSats`);
+  // SFGG-sektionens felter (præsentationskomponent uden hooks pga. tidlig return): reportere oprettes her
+  // og gives ned som props. Nøgle = `${af.id}:sfgg<felt>` (matcher den fieldPath SFGG-committen nu sender).
+  const reportSfggReferenceperiodeFraError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggReferenceperiodeFra`);
+  const reportSfggReferenceperiodeTilError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggReferenceperiodeTil`);
+  const reportSfggReferenceperiodeFravaersdageError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`);
+  const reportSfggManuelDagssatsError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggManuelDagssats`);
+  const reportSfggAlleredeBetaltBeloebError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggAlleredeBetaltBeloeb`);
 
   const showOverenskomst = af.harOverenskomst;
   const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
@@ -1065,6 +1072,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         sfggReferenceperiodeFravaersdageMax={sfggReferenceperiodeFravaersdageMax}
         onNavigateToTabtArbejdsfortjeneste={onNavigateToTabtArbejdsfortjeneste}
         updateSfggAnsaettelsesforhold={updateSfggAnsaettelsesforhold}
+        reportSfggReferenceperiodeFraError={reportSfggReferenceperiodeFraError}
+        reportSfggReferenceperiodeTilError={reportSfggReferenceperiodeTilError}
+        reportSfggReferenceperiodeFravaersdageError={reportSfggReferenceperiodeFravaersdageError}
+        reportSfggManuelDagssatsError={reportSfggManuelDagssatsError}
+        reportSfggAlleredeBetaltBeloebError={reportSfggAlleredeBetaltBeloebError}
       />
 
       {/* Handlingsknapper – flex-container der fylder ud fra højre */}
