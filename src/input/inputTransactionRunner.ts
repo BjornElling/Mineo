@@ -10,6 +10,16 @@ import {
   type LegacyRejectedInputChange,
 } from './legacyInputCompatibility';
 import { deserializeFieldAddress } from './fieldAddress';
+import { getProductionInputCatalog } from './catalog/productionInputCatalog';
+import type {
+  CommitImmediateFieldCommand,
+  DeleteRowCommand,
+  InsertRowCommand,
+  ReorderRowsCommand,
+  SettleFieldCommand,
+} from './inputCommands';
+import type { FieldRefBase } from './fieldDefinition';
+import type { PersistedInputSections } from './inputState';
 import { deepEqual } from '../utils/deepEqual';
 import {
   readSessionStorageValue,
@@ -243,48 +253,43 @@ const restoreStorageValue = (key: string, value: string | null): void => {
   else writeSessionStorageValue(key, value);
 };
 
-/** Eneste write-grænse for afsluttet input, replacements og history-restore. */
-export const executeInputTransaction = (
-  command: CompatibilityInputCommand,
-  options: InputTransactionOptions = {}
+type InputRuntimeState = ReturnType<typeof inputRuntimeStore.getState>;
+
+type CommitPlan = Readonly<{
+  candidate: RuntimePersistedInputState;
+  authoritativeReplacement: boolean;
+  clearFieldErrorsFor: ReadonlySet<StorageKey>;
+  history: InputHistoryState;
+  /** clearCase fjerner nøglen helt i stedet for at skrive en tom envelope. */
+  removeEnvelope: boolean;
+  restoredFrame: HistoryFrame | null;
+  restoredFieldErrors?: Readonly<{
+    cache: NonNullable<HistoryFrame['compatibilityFieldErrors']>;
+    revisions: NonNullable<HistoryFrame['compatibilityFieldErrorRevisions']>;
+  }>;
+}>;
+
+/**
+ * Delt, uafhængig commit-kerne for alle write-veje (kompatibilitets- og typed-kommandoer): den
+ * serialiserer og genvaliderer envelopen, skriver den ene sessionsnøgle med byte-verificeret read-back,
+ * opdaterer runtime + history atomisk og ruller storage OG runtime tilbage til før-snapshot ved enhver fejl.
+ */
+const commitValidatedCandidate = (
+  beforeState: InputRuntimeState,
+  plan: CommitPlan,
+  timestamp: number,
+  additionalStorageKeysToRemove: readonly string[]
 ): InputTransactionResult => {
-  const beforeState = inputRuntimeStore.getState();
-  if (beforeState.meta.inputWritesBlocked === true && command.kind !== 'clearCase') {
-    throw new Error('Inputændringer er blokeret, fordi gemte browserdata ikke kunne indlæses sikkert.');
-  }
-  const timestamp = options.now ?? Date.now();
-  const restore = command.kind === 'undo' || command.kind === 'redo'
-    ? planHistoryRestore(command, beforeState.input, beforeState.history, {
-        fieldErrors: beforeState.fieldErrors,
-        fieldErrorRevisions: beforeState.fieldErrorRevisions,
-      }, timestamp)
-    : null;
-
-  if ((command.kind === 'undo' || command.kind === 'redo') && restore === null) {
-    return { changed: false, revision: beforeState.revision, restoredFrame: null };
-  }
-
-  const candidate = restore?.input ?? buildCandidate(
-    beforeState.input,
-    command as Exclude<CompatibilityInputCommand, { kind: 'undo' | 'redo' }>
-  );
-  const forceReplacement = command.kind === 'replaceCase' || command.kind === 'clearCase';
-  if (!forceReplacement && restore === null && deepEqual(candidate, beforeState.input)) {
-    return { changed: false, revision: beforeState.revision, restoredFrame: null };
-  }
-
-  // Serialisering + genparse er både envelope-validering og isolering fra caller-ejede objekter.
-  const serialized = serializeInputEnvelope(candidate);
+  const serialized = serializeInputEnvelope(plan.candidate);
   const validatedInput = parseInputEnvelope(serialized).input;
   const inputKey = getInputEnvelopeStorageKey();
-  const extraKeys = [...new Set(options.additionalStorageKeysToRemove ?? [])]
-    .filter((key) => key !== inputKey);
+  const extraKeys = [...new Set(additionalStorageKeysToRemove)].filter((key) => key !== inputKey);
   const backup = new Map<string, string | null>();
   for (const key of [inputKey, ...extraKeys]) backup.set(key, readSessionStorageValue(key));
 
   try {
     for (const key of extraKeys) removeSessionStorageValue(key);
-    if (command.kind === 'clearCase') {
+    if (plan.removeEnvelope) {
       removeSessionStorageValue(inputKey);
       if (readSessionStorageValue(inputKey) !== null) {
         throw new Error('Inputenvelopen kunne ikke verificeres som slettet.');
@@ -296,39 +301,15 @@ export const executeInputTransaction = (
       }
     }
 
-    const changedSections = changedCanonicalSections(beforeState.input, validatedInput);
-    const changedRejected = changedRejectedSections(beforeState.input, validatedInput);
-    const authoritativeReplacement = restore !== null || forceReplacement;
-    const clearErrors = authoritativeReplacement
-      ? new Set(PERSISTED_SECTION_KEYS)
-      : command.kind === 'resetSection'
-        ? new Set<StorageKey>([command.section])
-        : new Set<StorageKey>();
-    const history = restore?.history ?? createHistoryAfterMutation(
-      beforeState.history,
-      beforeState.input,
-      {
-        fieldErrors: beforeState.fieldErrors,
-        fieldErrorRevisions: beforeState.fieldErrorRevisions,
-      },
-      options,
-      timestamp
-    );
-
     inputRuntimeStore.getState().applyInputRuntimeCommit({
       input: validatedInput,
-      history,
+      history: plan.history,
       committedAt: timestamp,
-      changedSections,
-      changedRejectedSections: changedRejected,
-      authoritativeReplacement,
-      clearFieldErrorsFor: clearErrors,
-      ...(restore?.frame.compatibilityFieldErrors === undefined ? {} : {
-        restoredFieldErrors: {
-          cache: restore.frame.compatibilityFieldErrors,
-          revisions: restore.frame.compatibilityFieldErrorRevisions ?? beforeState.fieldErrorRevisions,
-        },
-      }),
+      changedSections: changedCanonicalSections(beforeState.input, validatedInput),
+      changedRejectedSections: changedRejectedSections(beforeState.input, validatedInput),
+      authoritativeReplacement: plan.authoritativeReplacement,
+      clearFieldErrorsFor: plan.clearFieldErrorsFor,
+      ...(plan.restoredFieldErrors === undefined ? {} : { restoredFieldErrors: plan.restoredFieldErrors }),
     });
   } catch (error) {
     const rollbackErrors: Error[] = [];
@@ -357,6 +338,171 @@ export const executeInputTransaction = (
   return {
     changed: true,
     revision: inputRuntimeStore.getState().revision,
-    restoredFrame: restore?.frame ?? null,
+    restoredFrame: plan.restoredFrame,
   };
+};
+
+const assertWritesNotBlocked = (beforeState: InputRuntimeState, isClearCase: boolean): void => {
+  if (beforeState.meta.inputWritesBlocked === true && !isClearCase) {
+    throw new Error('Inputændringer er blokeret, fordi gemte browserdata ikke kunne indlæses sikkert.');
+  }
+};
+
+/** Eneste write-grænse for afsluttet input, replacements og history-restore. */
+export const executeInputTransaction = (
+  command: CompatibilityInputCommand,
+  options: InputTransactionOptions = {}
+): InputTransactionResult => {
+  const beforeState = inputRuntimeStore.getState();
+  assertWritesNotBlocked(beforeState, command.kind === 'clearCase');
+  const timestamp = options.now ?? Date.now();
+  const restore = command.kind === 'undo' || command.kind === 'redo'
+    ? planHistoryRestore(command, beforeState.input, beforeState.history, {
+        fieldErrors: beforeState.fieldErrors,
+        fieldErrorRevisions: beforeState.fieldErrorRevisions,
+      }, timestamp)
+    : null;
+
+  if ((command.kind === 'undo' || command.kind === 'redo') && restore === null) {
+    return { changed: false, revision: beforeState.revision, restoredFrame: null };
+  }
+
+  const candidate = restore?.input ?? buildCandidate(
+    beforeState.input,
+    command as Exclude<CompatibilityInputCommand, { kind: 'undo' | 'redo' }>
+  );
+  const forceReplacement = command.kind === 'replaceCase' || command.kind === 'clearCase';
+  if (!forceReplacement && restore === null && deepEqual(candidate, beforeState.input)) {
+    return { changed: false, revision: beforeState.revision, restoredFrame: null };
+  }
+
+  const authoritativeReplacement = restore !== null || forceReplacement;
+  const clearFieldErrorsFor = authoritativeReplacement
+    ? new Set(PERSISTED_SECTION_KEYS)
+    : command.kind === 'resetSection'
+      ? new Set<StorageKey>([command.section])
+      : new Set<StorageKey>();
+
+  return commitValidatedCandidate(beforeState, {
+    candidate,
+    authoritativeReplacement,
+    clearFieldErrorsFor,
+    history: restore?.history ?? createHistoryAfterMutation(
+      beforeState.history,
+      beforeState.input,
+      { fieldErrors: beforeState.fieldErrors, fieldErrorRevisions: beforeState.fieldErrorRevisions },
+      options,
+      timestamp
+    ),
+    removeEnvelope: command.kind === 'clearCase',
+    restoredFrame: restore?.frame ?? null,
+    ...(restore?.frame.compatibilityFieldErrors === undefined ? {} : {
+      restoredFieldErrors: {
+        cache: restore.frame.compatibilityFieldErrors,
+        revisions: restore.frame.compatibilityFieldErrorRevisions ?? beforeState.fieldErrorRevisions,
+      },
+    }),
+  }, timestamp, options.additionalStorageKeysToRemove ?? []);
+};
+
+/**
+ * Typed inputkommandoer fra de migrerede overflader (fase 4). Kommandoen bærer en katalogvalideret
+ * `FieldRef`; runneren muterer sektionen via kataloget og deler commit-kernen med kompatibilitetsvejen.
+ *
+ * Fase-4-afgrænsning bevidst: afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
+ * legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så samtlige endnu ikke migrerede
+ * read-consumers ser identisk store-state. Den fulde strukturelle adresse-cutover kræver, at HELE
+ * kataloget er registreret, og hører derfor til en senere runde. Kun top-level felter understøttes;
+ * celle-/rækkefelter migreres sammen med tabelinfrastrukturen.
+ */
+export type TypedRuntimeInputCommand<TField = unknown, TEntity = unknown> =
+  | CommitImmediateFieldCommand<TField>
+  | SettleFieldCommand<TField>
+  | InsertRowCommand<TEntity>
+  | DeleteRowCommand<TEntity>
+  | ReorderRowsCommand<TEntity>;
+
+const topLevelTarget = (field: FieldRefBase): Readonly<{ section: StorageKey; fieldPath: string }> => {
+  if (field.address.path.length !== 0) {
+    throw new Error('executeTypedInputTransaction: kun top-level felter understøttes i fase 4');
+  }
+  return { section: field.address.section, fieldPath: field.address.field };
+};
+
+const buildTypedCandidate = <TField, TEntity>(
+  input: RuntimePersistedInputState,
+  command: TypedRuntimeInputCommand<TField, TEntity>
+): RuntimePersistedInputState => {
+  const catalog = getProductionInputCatalog();
+  const sections = input.sections as PersistedInputSections;
+  switch (command.kind) {
+    case 'commitImmediateField': {
+      const { section, fieldPath } = topLevelTarget(command.field);
+      return {
+        sections: catalog.writeCanonical(sections, command.field, command.value) as RuntimePersistedInputState['sections'],
+        rejectedInputs: applyLegacyRejectedInputChanges(input.rejectedInputs, [{ pageKey: section, fieldPath, draft: null }]),
+      };
+    }
+    case 'settleField': {
+      const { section, fieldPath } = topLevelTarget(command.field);
+      const resolution = command.field.definition.codec.parseForSettle(command.raw);
+      if (resolution.status === 'valid') {
+        return {
+          sections: catalog.writeCanonical(sections, command.field, resolution.value) as RuntimePersistedInputState['sections'],
+          rejectedInputs: applyLegacyRejectedInputChanges(input.rejectedInputs, [{ pageKey: section, fieldPath, draft: null }]),
+        };
+      }
+      // Tom tekst er canonical tomhed; kun ikke-tom uparselig tekst bliver rejected input.
+      if (command.raw === '') {
+        throw new Error('executeTypedInputTransaction: codec afviste tom tekst, som ikke kan være rejected input');
+      }
+      return {
+        sections: input.sections,
+        rejectedInputs: applyLegacyRejectedInputChanges(input.rejectedInputs, [{ pageKey: section, fieldPath, draft: command.raw }]),
+      };
+    }
+    case 'insertRow':
+      return {
+        sections: catalog.insertEntity(sections, command.binding, command.collection, command.entity, command.index) as RuntimePersistedInputState['sections'],
+        rejectedInputs: input.rejectedInputs,
+      };
+    case 'deleteRow':
+      return {
+        sections: catalog.deleteEntity(sections, command.binding, command.collection, command.entityId) as RuntimePersistedInputState['sections'],
+        rejectedInputs: input.rejectedInputs,
+      };
+    case 'reorderRows':
+      return {
+        sections: catalog.reorderEntities(sections, command.binding, command.collection, command.orderedEntityIds) as RuntimePersistedInputState['sections'],
+        rejectedInputs: input.rejectedInputs,
+      };
+  }
+};
+
+export const executeTypedInputTransaction = <TField, TEntity>(
+  command: TypedRuntimeInputCommand<TField, TEntity>,
+  options: InputTransactionOptions = {}
+): InputTransactionResult => {
+  const beforeState = inputRuntimeStore.getState();
+  assertWritesNotBlocked(beforeState, false);
+  const timestamp = options.now ?? Date.now();
+  const candidate = buildTypedCandidate(beforeState.input, command);
+  if (deepEqual(candidate, beforeState.input)) {
+    return { changed: false, revision: beforeState.revision, restoredFrame: null };
+  }
+
+  return commitValidatedCandidate(beforeState, {
+    candidate,
+    authoritativeReplacement: false,
+    clearFieldErrorsFor: new Set<StorageKey>(),
+    history: createHistoryAfterMutation(
+      beforeState.history,
+      beforeState.input,
+      { fieldErrors: beforeState.fieldErrors, fieldErrorRevisions: beforeState.fieldErrorRevisions },
+      options,
+      timestamp
+    ),
+    removeEnvelope: false,
+    restoredFrame: null,
+  }, timestamp, options.additionalStorageKeysToRemove ?? []);
 };

@@ -1,6 +1,11 @@
 # Greenfield-design for draft, afsluttet input og commit
 
-**Status:** Fase 0–3 er gennemført. Fase 4 er næste implementeringsfase; fase 4–8 er ikke påbegyndt.
+**Status:** Fase 0–3 er gennemført. Fase 4 er delvist gennemført: det greenfield-fundament, fasen manglede
+(generiske katalog-accessorer, et forseglet produktions-`InputCatalog`, en typed-command-sti gennem
+transaktionsrunneren og katalog-routing af skalar-commits), er bygget og kontrakttestet, og referencedomænerne
+Satser + Renteberegning er routet gennem det typed spor. Resten af fase 4 (samlet felt-editor-state machine,
+rækkeinfrastruktur uden værdi-drafts, celle-/tabelmigration, strukturel adresse-cutover og sletterne) udestår.
+Fase 5–8 er ikke påbegyndt.
 
 **Dato:** 2026-07-14
 
@@ -593,8 +598,28 @@ mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-f
 
 ### Fase 4 — Alle inputoverflader migreres horisontalt
 
-**Status 2026-07-14:** Ikke påbegyndt. De eksisterende formular- og gridmotorer kører fortsat bag fase-3-facaderne;
-`legacyInputCompatibility` og `legacyGridTransactionBridge` markerer den bevidste overgangsgrænse.
+**Status 2026-07-14:** Delvist gennemført — fundament + referencedomæne-skalarer.
+
+*Landet i denne runde:*
+
+- Generiske strukturelle canonical-accessorer (`structuralCanonicalAccessors.ts`) navigerer en `FieldAddress`/
+  `CollectionRef` direkte over sektionsobjektet, så feltbindinger bliver mekaniske (`structuralBindings.ts`) i
+  stedet for håndskrevne per-felt-lukninger.
+- Et forseglet produktions-`InputCatalog` (`input/catalog/`) med Satser + Renteberegning registreret (skalarfelter,
+  `rentekravRows`-samlingen og dens rækkefelter). Bygges og forsegles ved bootstrap i `initializePersistenceRuntime`.
+- En typed-command-sti gennem runneren: `executeTypedInputTransaction` (settleField/commitImmediateField/insert/
+  delete/reorder) deler nu en fælles, udtrukket commit-kerne (`commitValidatedCandidate`) med
+  kompatibilitetssporet — samme envelope-write, history, revision og rollback.
+- `usePersistedForm.setFieldValue` router migrerede top-level felter (Satser + Renteberegning-skalarer) gennem
+  `commitImmediateField`, når det er beviseligt observationelt identisk (feltets egen identitet + sektionen findes
+  allerede committed). Ethvert runner-fejl falder tilbage til den fælles vej, så brugerfejl-notice bevares.
+
+*Bevidst afgrænsning (udestår i fase 4):* Afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
+legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så alle endnu ikke migrerede read-consumers ser
+identisk store-state. Den strukturelle rejected-adresse-cutover kræver, at HELE kataloget er registreret, og hører
+til en senere runde. `buildTypedCandidate` er derfor en bevidst transition-variant af den rene fase-2-reducer.
+
+*Resten af fasen (uændret plan):*
 
 1. Implementér den fælles felt-editor-state machine.
 2. Migrér samtlige Styled-felter og Table-inputs til de samme codecs og `settleField`.
