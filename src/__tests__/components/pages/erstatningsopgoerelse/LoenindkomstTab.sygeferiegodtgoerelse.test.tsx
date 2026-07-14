@@ -18,6 +18,8 @@ const mockStamdata = {
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useDynamicFormFieldErrorReporter: () => vi.fn(),
+  useFormFieldErrorReporter: () => vi.fn(),
+  useKeyedFieldErrorReporter: () => vi.fn(),
   useFieldInvalidDraftChannel: () => ({
     committedInvalidDraft: undefined,
     onCommitInvalid: undefined,

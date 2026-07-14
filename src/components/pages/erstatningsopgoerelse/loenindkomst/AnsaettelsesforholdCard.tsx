@@ -50,6 +50,7 @@ import { DAY_COUNT_MAX } from '../../../../schemas/formSchemas/baseSchemas';
 import { getDayAfterIso } from '../../../../utils/isoDateHelpers';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
+import { useKeyedFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -145,6 +146,23 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     handleDownloadKlLoenaftalerPdf,
   } = useLoenindkomstVm();
   const { openLoentrinFinder } = loentrinFinder;
+
+  // Per-ansættelsesforhold felt-fejl-reportere: binder hvert nested felts (`${af.id}:<felt>`) ugyldige rå
+  // draft til invalidDrafts-kanalen (greenfield draft/commit §4.3). Kortet renderes pr. AF, så hooks pr.
+  // instans er lovlige. Nøglen matcher commit-`fieldPath` fra useLoenindkomstViewModel (`${id}:<felt>`).
+  const reportSidsteArbejdsdagError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sidsteArbejdsdag`);
+  const reportSaerligFraDatoReguleringError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:saerligFraDatoRegulering`);
+  const reportFeriePctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:feriePct`);
+  const reportFritvalgPctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:fritvalgPct`);
+  const reportShSoPctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:shSoPct`);
+  // storeBededagPct er BEVIDST udeladt: feltet er disabled (onCommit=undefined) og kan aldrig producere
+  // en ugyldig draft, så det har ingen binding-behov (jf. §4.3 gælder felter der KAN committe).
+  const reportPensionPctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:pensionPct`);
+  const reportOffentligLoenTrinError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:offentligLoenTrin`);
+  const reportOffentligLoenGruppeError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:offentligLoenGruppe`);
+  const reportOffentligLoenEkstraGrundloenError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:offentligLoenEkstraGrundloen`);
+  const reportAnciennitetstillaegDatoError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:anciennitetstillaegDato`);
+  const reportAnciennitetstillaegSatsError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:anciennitetstillaegSats`);
 
   const showOverenskomst = af.harOverenskomst;
   const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
@@ -302,7 +320,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Sidste dag i ansættelsesforholdet</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDateField name={`${af.id}:sidsteArbejdsdag`} value={af.sidsteArbejdsdag} onCommit={handleSidsteArbejdsdagCommit(af.id)} />
+            <StyledDateField name={`${af.id}:sidsteArbejdsdag`} value={af.sidsteArbejdsdag} onCommit={handleSidsteArbejdsdagCommit(af.id)} onFieldError={reportSidsteArbejdsdagError} />
           </Box>
         </Box>
       </Box>
@@ -478,6 +496,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               name={`${af.id}:saerligFraDatoRegulering`}
               value={af.saerligFraDatoRegulering}
               onCommit={handleSaerligFraDatoReguleringCommit(af.id)}
+              onFieldError={reportSaerligFraDatoReguleringError}
             />
           </Box>
         </Box>
@@ -537,6 +556,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:feriePct`}
                   value={af.feriePct}
                   onCommit={handleFeriePctCommit(af.id)}
+                  onFieldError={reportFeriePctError}
                   placeholder="0"
                   useDefaultPercentRange
                   error={Boolean(satsErrors[af.id]?.feriePct)}
@@ -550,6 +570,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:fritvalgPct`}
                   value={af.fritvalgPct}
                   onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
+                  onFieldError={reportFritvalgPctError}
                   placeholder="0"
                   useDefaultPercentRange
                   disabled={fritvalgLocked}
@@ -567,6 +588,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:shSoPct`}
                   value={af.shSoPct}
                   onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
+                  onFieldError={reportShSoPctError}
                   placeholder="0"
                   useDefaultPercentRange
                   disabled={shSoLocked}
@@ -613,6 +635,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:pensionPct`}
                   value={af.pensionPct}
                   onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
+                  onFieldError={reportPensionPctError}
                   placeholder="0"
                   useDefaultPercentRange
                   disabled={pensionLocked}
@@ -705,6 +728,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:offentligLoenTrin`}
                   value={af.offentligLoenTrin}
                   onCommit={handleOffentligLoenTrinCommit(af.id)}
+                  onFieldError={reportOffentligLoenTrinError}
                   minValue={1}
                   maxValue={55}
                   maxDigits={2}
@@ -715,6 +739,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:offentligLoenGruppe`}
                   value={af.offentligLoenGruppe}
                   onCommit={handleOffentligLoenGruppeCommit(af.id)}
+                  onFieldError={reportOffentligLoenGruppeError}
                   minValue={0}
                   maxValue={4}
                   maxDigits={1}
@@ -759,6 +784,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   value={af.offentligLoenEkstraGrundloen}
                   allowNegative={false}
                   onCommit={handleOffentligLoenEkstraGrundloenCommit(af.id)}
+                  onFieldError={reportOffentligLoenEkstraGrundloenError}
                 />
                 <Typography className="row--text">{getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}</Typography>
               </Box>
@@ -983,6 +1009,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                       minBoundLabel: anvendtReguleringsdatoReferenceText,
                     }}
                     onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
+                    onFieldError={reportAnciennitetstillaegDatoError}
                   />
                 </Box>
               </Box>
@@ -1012,6 +1039,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     value={af.anciennitetstillaegSats}
                     allowNegative={false}
                     onCommit={handleAnciennitetstillaegSatsCommit(af.id)}
+                    onFieldError={reportAnciennitetstillaegSatsError}
                   />
                 </Box>
               </Box>
