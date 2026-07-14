@@ -15,7 +15,7 @@ import {
   dateRanges_erstatningsopgoerelse,
 } from '../../../../config/dateRanges';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
-import { useDynamicFormFieldErrorReporter, useFormFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
+import { useDynamicFormFieldErrorReporter, useFormFieldErrorReporter, useKeyedFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
 import { useForligAnsvarsgradValidation } from '../../../../hooks/useForligAnsvarsgradValidation';
 import { usePersistedSectionSelector } from '../../../../hooks/useFormPersistenceSelectors';
 import {
@@ -273,6 +273,23 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     severity: 'error',
     source: 'input',
   });
+  // IndtaegtFoerSkadenSection: bind sektionens hidtil UBUNDNE TAF-felter til invalidDrafts-kanalen
+  // (greenfield draft/commit §4.3). Uden dem levede et ugyldigt input kun i useDraftields lokale fallback.
+  const reportTafBeregningsperiodeFraInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'tafBeregningsperiodeFra');
+  const reportTafBeregningsperiodeTilInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'tafBeregningsperiodeTil');
+  const reportUspecificeredeFerieFridageInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'uspecificeredeFerieFridage');
+  const reportOevrigeFravaersdageInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'oevrigeFravaersdage');
+  const reportMaanedsloenenUdgoerInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'maanedsloenenUdgoer');
+  const reportDagsloenenUdgoerInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'dagsloenenUdgoer');
+  const reportAngivetMaanedsloenOpreguleresFraDatoInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'angivetMaanedsloenOpreguleresFraDato');
+  const reportAngivetDagsloenOpreguleresFraDatoInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'angivetDagsloenOpreguleresFraDato');
+  // eoLoenudvikling-felter (nested): deres commit bruger `fieldPath:'<bar-nøgle>'`, så invalidDraft-nøglen
+  // er samme bare streng under erstatningsopgoerelse. Bindes via useKeyedFieldErrorReporter (nested identitet).
+  const reportOffentligLoenTrinInputError = useKeyedFieldErrorReporter('erstatningsopgoerelse', 'offentligLoenTrin');
+  const reportOffentligLoenGruppeInputError = useKeyedFieldErrorReporter('erstatningsopgoerelse', 'offentligLoenGruppe');
+  const reportOffentligLoenEkstraGrundloenInputError = useKeyedFieldErrorReporter('erstatningsopgoerelse', 'offentligLoenEkstraGrundloen');
+  const reportAnciennitetstillaegDatoInputError = useKeyedFieldErrorReporter('erstatningsopgoerelse', 'anciennitetstillaegDato');
+  const reportAnciennitetstillaegSatsInputError = useKeyedFieldErrorReporter('erstatningsopgoerelse', 'anciennitetstillaegSats');
 
   const reportForligDatoInputErrorSafe = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
     if (!hasNonEmptyDateValue(values.forligDato)) {
@@ -576,6 +593,20 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     reportSvieSmerteAktuelPeriodeInputError,
     reportTidligereModtagetTafInputError,
     reportForligDatoInputErrorSafe,
+    reportTafBeregningsperiodeFraInputError,
+    reportTafBeregningsperiodeTilInputError,
+    reportUspecificeredeFerieFridageInputError,
+    reportOevrigeFravaersdageInputError,
+    reportMaanedsloenenUdgoerInputError,
+    reportDagsloenenUdgoerInputError,
+    reportAngivetMaanedsloenOpreguleresFraDatoInputError,
+    reportAngivetDagsloenOpreguleresFraDatoInputError,
+    reportOffentligLoenTrinInputError,
+    reportOffentligLoenGruppeInputError,
+    reportOffentligLoenEkstraGrundloenInputError,
+    reportAnciennitetstillaegDatoInputError,
+    reportAnciennitetstillaegSatsInputError,
+    reportDynamicFieldError,
 
     // Række-hooks (tabeller)
     svie,

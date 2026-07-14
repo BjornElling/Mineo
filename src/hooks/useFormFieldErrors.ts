@@ -199,6 +199,22 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
 };
 
 /**
+ * Som `useFormFieldErrorReporter`, men for en NESTED/sammensat felt-identitet, hvis nøgle ikke er en
+ * top-level sektions-key (fx `eoAngivetLoenLoenudvikling`-felter der committer med `fieldPath:'offentligLoenTrin'`,
+ * eller per-ansættelsesforhold-felter `${afId}:feriePct`). Nøglen er en gyldig `invalidDrafts`-storage-nøgle
+ * (den samme `fieldPath` som feltets commit bruger) og bærer den fulde `FieldErrorReporter`-kontrakt
+ * (læsning + commit/clear af invalidDraft, undo-origin), så nested felter deltager i draft-kanalen PÅ LINJE
+ * med top-level felter — ingen ad-hoc casts på call-sites. Delt kerne med `useFormFieldErrorReporter`;
+ * den eneste forskel er, at feltnavnet er en fri (dynamisk) streng frem for en top-level-key.
+ */
+export const useKeyedFieldErrorReporter = <K extends StorageKey>(
+  pageKey: K,
+  fieldName: DynamicFieldName<K>,
+  options?: ReporterOptions
+): FieldErrorReporter =>
+  useFormFieldErrorReporter(pageKey, fieldName as FieldName<K>, options);
+
+/**
  * Felt-side binding til `invalidDrafts`-recovery-kanalen.
  *
  * Generiske input-komponenter kalder denne hook ubetinget med deres (valgfri) reporter. Returnerer:

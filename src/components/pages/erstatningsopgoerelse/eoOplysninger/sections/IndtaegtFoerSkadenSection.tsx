@@ -81,6 +81,19 @@ export default function IndtaegtFoerSkadenSection() {
     handleEoAnciennitetstillaegSatsCommit,
     eoAnciennitetSatsPerTekst,
     loentrinFinder,
+    reportTafBeregningsperiodeFraInputError,
+    reportTafBeregningsperiodeTilInputError,
+    reportUspecificeredeFerieFridageInputError,
+    reportOevrigeFravaersdageInputError,
+    reportMaanedsloenenUdgoerInputError,
+    reportDagsloenenUdgoerInputError,
+    reportAngivetMaanedsloenOpreguleresFraDatoInputError,
+    reportAngivetDagsloenOpreguleresFraDatoInputError,
+    reportOffentligLoenTrinInputError,
+    reportOffentligLoenGruppeInputError,
+    reportOffentligLoenEkstraGrundloenInputError,
+    reportAnciennitetstillaegDatoInputError,
+    reportAnciennitetstillaegSatsInputError,
   } = useEoOplysningerVm();
   const eoAnciennitetstillaegMinDato = getDayAfterIso(loenudviklingBaseDateISO);
 
@@ -130,6 +143,7 @@ export default function IndtaegtFoerSkadenSection() {
                         name="tafBeregningsperiodeFra"
                         value={values.tafBeregningsperiodeFra}
                         onCommit={handleIsoDateBlur('tafBeregningsperiodeFra')}
+                        onFieldError={reportTafBeregningsperiodeFraInputError}
                         error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
                         helperText={beregningsperiodeTafOverlap.firstOverlapMessage ?? ''}
                       />
@@ -138,6 +152,7 @@ export default function IndtaegtFoerSkadenSection() {
                         name="tafBeregningsperiodeTil"
                         value={values.tafBeregningsperiodeTil}
                         onCommit={handleIsoDateBlur('tafBeregningsperiodeTil')}
+                        onFieldError={reportTafBeregningsperiodeTilInputError}
                         error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
                         helperText={beregningsperiodeTafOverlap.firstOverlapMessage ?? ''}
                       />
@@ -183,6 +198,7 @@ export default function IndtaegtFoerSkadenSection() {
                       width={80}
                       value={values.uspecificeredeFerieFridage}
                       onCommit={handleIntegerBlur('uspecificeredeFerieFridage')}
+                      onFieldError={reportUspecificeredeFerieFridageInputError}
                       minValue={0}
                       maxValue={365}
                     />
@@ -212,6 +228,7 @@ export default function IndtaegtFoerSkadenSection() {
                           width={80}
                           value={values.oevrigeFravaersdage}
                           onCommit={handleIntegerBlur('oevrigeFravaersdage')}
+                          onFieldError={reportOevrigeFravaersdageInputError}
                           minValue={0}
                           maxValue={365}
                         />
@@ -248,6 +265,7 @@ export default function IndtaegtFoerSkadenSection() {
                   width={150}
                   value={values.maanedsloenenUdgoer}
                   onCommit={handleAmountBlur('maanedsloenenUdgoer')}
+                  onFieldError={reportMaanedsloenenUdgoerInputError}
                 />
                 </Box>
               </Box>
@@ -262,6 +280,7 @@ export default function IndtaegtFoerSkadenSection() {
                   width={150}
                   value={values.dagsloenenUdgoer}
                   onCommit={handleAmountBlur('dagsloenenUdgoer')}
+                  onFieldError={reportDagsloenenUdgoerInputError}
                 />
                 </Box>
               </Box>
@@ -308,6 +327,11 @@ export default function IndtaegtFoerSkadenSection() {
                       values.beregnesUdFra === 'Angivet månedsløn'
                         ? handleIsoDateBlur('angivetMaanedsloenOpreguleresFraDato')
                         : handleIsoDateBlur('angivetDagsloenOpreguleresFraDato')
+                    }
+                    onFieldError={
+                      values.beregnesUdFra === 'Angivet månedsløn'
+                        ? reportAngivetMaanedsloenOpreguleresFraDatoInputError
+                        : reportAngivetDagsloenOpreguleresFraDatoInputError
                     }
                   />
                 </Box>
@@ -491,6 +515,7 @@ export default function IndtaegtFoerSkadenSection() {
                             name="offentligLoenTrin"
                             value={eoLoenudvikling.offentligLoenTrin}
                             onCommit={handleOffentligLoenTrinCommit}
+                            onFieldError={reportOffentligLoenTrinInputError}
                             minValue={1}
                             maxValue={55}
                             maxDigits={2}
@@ -501,6 +526,7 @@ export default function IndtaegtFoerSkadenSection() {
                             name="offentligLoenGruppe"
                             value={eoLoenudvikling.offentligLoenGruppe}
                             onCommit={handleOffentligLoenGruppeCommit}
+                            onFieldError={reportOffentligLoenGruppeInputError}
                             minValue={0}
                             maxValue={4}
                             maxDigits={1}
@@ -545,6 +571,7 @@ export default function IndtaegtFoerSkadenSection() {
                             value={eoLoenudvikling.offentligLoenEkstraGrundloen}
                             allowNegative={false}
                             onCommit={handleOffentligLoenEkstraGrundloenCommit}
+                            onFieldError={reportOffentligLoenEkstraGrundloenInputError}
                           />
                           <Typography className="row--text">{offentligLoenEkstraGrundloenSuffix}</Typography>
                         </Box>
@@ -738,6 +765,7 @@ export default function IndtaegtFoerSkadenSection() {
                             minBoundLabel: loenudviklingBaseDateReferenceText,
                           }}
                           onCommit={handleEoAnciennitetstillaegDatoCommit}
+                          onFieldError={reportAnciennitetstillaegDatoInputError}
                         />
                       </Box>
                     </Box>
@@ -751,6 +779,7 @@ export default function IndtaegtFoerSkadenSection() {
                           value={eoLoenudvikling.anciennitetstillaegSats}
                           allowNegative={false}
                           onCommit={handleEoAnciennitetstillaegSatsCommit}
+                          onFieldError={reportAnciennitetstillaegSatsInputError}
                         />
                       </Box>
                     </Box>
