@@ -1,6 +1,6 @@
 # Dokument-output-kontrakt
 
-**Status:** Gældende arkitektur (normativ)
+**Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
 **Senest verificeret mod kode:** 2026-07-14
@@ -36,50 +36,52 @@ Reglerne i dette afsnit er uafhængige af outputkanal. De gælder uændret for b
 ## A1. Grundregel
 
 1. Dokument-output er trust-kritisk output.
-2. Renderere og generatorer må kun bygge på committed, autoritativt input eller autoritative projektioner.
-3. Renderere må ikke læse draft-state, UI-state eller uautoriserede persisted sektioner.
+2. Hvert output har én typed dokumentdefinition, der ejer dependencies, domæneprojektion og output-invariants.
+3. Dokumentdefinitionen læser gennem `InputReader` og må kun danne et revisionsbundet `PreparedDocument<T>` fra en
+   `ready` projektion.
+4. Renderere og generatorer modtager kun den godkendte dokumentmodel/projektion. De må ikke læse rå canonical
+   sektioner, rejected input, åben draft, UI-state eller uautoriserede domæner.
+5. Den reaktive knap-gate og click-preflight evaluerer samme dokumentdefinition.
 
 ## A2. Download-gate-definition
 
-Download er blokeret hvis og kun hvis mindst én af følgende er sand:
+Download er blokeret, hvis mindst én af følgende er sand:
 
-1. Der findes blokerende feltfejl på de relevante inputfelter — **herunder et afsluttet ugyldigt input** (`invalidDrafts`,
-   jf. `form-contract.md` §2.4/§2.5). En afsluttet ugyldig maske oven på en tidligere gyldig canonical værdi **skal**
-   blokere; gaten må ikke fodres af et signal, der er blankt præcis når inputtet er ikke-committbart (§A2.1).
-2. Den autoritative beregning kan ikke dannes. For snapshot-first-domæner betyder det en typed status/projektion fra `snapshot-contract.md` og den relevante domænekontrakt. For ikke-snapshot-domæner skal domænet levere et eksplicit preflight-/gate-resultat med samme semantik.
-3. Det konkrete output er blokeret af output-specifikke invariants eller guards.
+1. Et issue med `severity: 'error'` rammer et input, som dokumentdefinitionen afhænger af. Det omfatter `invalid`,
+   `missing`, `range`/`bounds`, `schema` og `rule`, også når en range/bounds-værdi er canonical og kan gemmes i `.eo`.
+2. Den autoritative beregning/projektion kan ikke dannes. Snapshot-first-domæner bruger deres typed snapshotprojektion;
+   øvrige domæner leverer et typed gate-/preflight-resultat med samme semantik.
+3. Output-specifikke invariants eller guards er brudt.
+4. Den godkendte projektion er stale i forhold til den aktuelle inputrevision.
 
 Konsekvens:
 
-- Feltfejl (inkl. afsluttet ugyldigt input), snapshot-status og output-specifikke blokeringer skal aggregeres eksplicit.
-- Ingen download-knap må nøjes med kun én af disse tre kilder.
-- Aggregeringen ejes af domæne-/snapshot-/preflight-laget eller et centralt dokument-gate-lag, ikke af den enkelte renderer.
-- Download-knapper skal modtage et samlet gate-resultat med `canDownload` og auditerbare årsager.
-- Generatorer afgør ikke selv, om domænet er `fail_closed`; de modtager en allerede godkendt model eller returnerer runtime-fejl.
+- Dependencies, domænestatus og output-invariants aggregeres af dokumentdefinitionen, ikke React-handleren eller rendereren.
+- Download-knappen modtager et samlet gate-resultat med `canDownload`, revision og auditerbare årsager.
+- Ved blokering er knappen både visuelt og funktionelt disabled efter reglerne i `page-component-contract.md`.
+- Generatorer afgør ikke selv, om domænet er `fail_closed`; de modtager en godkendt model eller returnerer runtimefejl.
+- En tidligere godkendelse må ikke genbruges efter en ny inputrevision.
 
 Gate-definitionen er kanal-neutral: et dokument der er blokeret for PDF, er også blokeret for Word, og omvendt. Formatvalget ændrer ikke gaten.
 
-### A2.1 Afsluttet ugyldigt input må ikke omgås af gaten (normativt)
+### A2.1 Åben og afsluttet inputtilstand
 
-Tilføjet af greenfield draft/commit-designet (2026-07-14):
+- Mens editoren er åben, bygger den reaktive gate på den senest afsluttede revision. Åben draft må ikke få knappen eller
+  den beregnede visning til at skifte tilstand.
+- Et afsluttet rejected input maskerer altid en tidligere canonical værdi i `InputReader`. Dokumentdefinitionen kan
+  derfor ikke utilsigtet godkende den skjulte værdi.
+- Lokale feltbooleans, reporterstate og direkte sektionslæsning er ikke gyldige gatekilder.
+- Afhængighedsscope udledes strukturelt: et per-række-dokument afhænger af fælles felter og den konkrete række; et
+  aggregat afhænger af fælles felter og alle inkluderede rækker. Et manuelt `global/section/row`-scope er forbudt.
+- Ved downloadaktivering finaliserer commit-barrieren editoren, hvorefter en frisk `InputReader` og samme
+  dokumentdefinition evalueres. Blokering stopper før lazy-load, generator og fil-I/O.
+- Pointerevent-rækkefølgen, hvor blur normalt når at disable knappen før click, er nyttig normaladfærd, men ikke et
+  korrekthedskrav. Tastatur-, programmatisk og allerede leveret click går gennem samme preflight.
+- Hvis en aktivering når preflight efter et ugyldigt settle, stoppes den, feltet fokuseres uden scroll, og den eksisterende
+  danske advarsel vises. Dette er et sidste sikkerhedsværn.
 
-- En domæne-gate der aflæser committed canonical værdier **direkte** (fx `values.aargang`, `committedRentekravById`)
-  ser ikke `invalidDrafts`-masken og kan derfor stå aktiv på en gammel gyldig værdi, mens brugeren netop har afsluttet
-  et ugyldigt input. Dette er den strukturelle download-bug, designet lukker.
-- En gate skal derfor enten (a) læse den afsluttede inputtilstand gennem en fail-closed projektion, der kender feltets
-  ugyldige tilstand, eller (b) eksplicit modtage det afhængige felts afsluttede ugyldige tilstand som gate-input.
-- **Lokale felt-fejl-booleans må ikke være selvstændige output-sandhedskilder.** En boolean der fodres af et
-  `onFieldError`-signal, som pr. design er blankt for ikke-committbart input (fx `useStyledFieldAdapter`s
-  `visualErrorMessage`, der tvinges til `''`), er ikke et gyldigt gate-signal. Per-række-download og de samlede downloads
-  for samme input skal udlede blokering af samme afsluttede tilstand, ikke af konkurrerende lokale booleans.
-- **Scope:** en afsluttet ugyldig celle i én tabelrække blokerer kun de consumers, der afhænger af netop den række
-  (per-række-dokument) samt aggregat-dokumenter, der inkluderer rækken — den må ikke over-blokere de øvrige gyldige
-  rækkers per-række-download. Blockers bærer derfor scope (per-række/sektion/global), så afhængigheden er præcis.
-- **Klik-preflight:** ud over den reaktive knap-disabling skal download-klik gå gennem commit-barrieren
-  (`critical-action-contract.md` §2, handling *Dokument-download*): finalisér åben editor → læs nyt snapshot → byg gate →
-  fail-close før generator/fil-I/O. Det lukker vinduet, hvor en knap endnu ikke har rerendret som deaktiveret efter blur.
-
-`documentService.ts` (`src/document/service/documentService.ts`) er i den nuværende arkitektur service boundary for download-afvikling, lazy-load og runtime-fejl. Langsigtet skal domænepolitik og gates flyttes ud i domænesnapshots/projektioner, så service-laget bliver mekanisk adapter.
+`documentService.ts` er den mekaniske servicegrænse for lazy-load, rendering, download og runtimefejl. Den ejer ikke
+domænepolitik eller gate.
 
 ## A3. Toggle-guards for betingede felter
 
@@ -130,6 +132,8 @@ EO- og TAF-fordelt-på-år-projektioner er specificeret i `eo-snapshot-contract.
 - `satser-contract.md`
 
 Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække A1–A5.
+De må kun modtage `InputReader` eller en allerede godkendt typed projektion; rå canonical sektioner er ikke en tilladt
+genvej.
 
 ## A7. Autoritative kilder og lag-topologi
 
@@ -139,6 +143,8 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
    - `src/document/layout/` — kanalneutral tabelmodel (`tableSpec.ts`), tekst-/format-utils, fælles layoutværdier, helpers, brevhoved-mapping, gate-typer og dokument-options. Mappen må ikke indeholde en Word↔PDF-bro eller importere en konkret tabelkanal.
    - `src/document/generators/` — én generator (+ evt. `sections/`) pr. domæne (`*Document.ts`).
    - `src/document/service/` — service-boundary/download-afvikling (`documentService.ts`) og lazy-loader (`documentLoader.ts`).
+   - Dokumentdefinitioner placeres ved deres domæne-/generatorgrænse og er eneste ejer af inputdependencies, preflight
+     og `PreparedDocument<T>`; de må ikke reduceres til utypede callbacks i service-laget.
 2. De **to kanaler** er rene infrastruktur-implementeringer af `DocumentWriter` og ligger uden for kernen:
    - **PDF-kanalen** i `src/pdf/` (jsPDF): adapter, writer-fabrik, brevhoved-renderer, den direkte `TableSpec`-renderer (`pdfTableRenderer.ts` + `pdfDocumentTableRenderer.ts`), render-helpers og standalone-rente-service.
    - **Word-kanalen** i `src/docx/` (writer + understøttende infrastruktur). Begge kanaler indeholder ingen domænegeneratorer: PDF og Word genbruger den samme `DocumentModel`, som generatorerne bygger gennem `DocumentComposer` (jf. afsnit B).

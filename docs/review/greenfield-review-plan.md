@@ -1,5 +1,14 @@
 # Greenfield-review — Mineo
 
+> **Delvist afløst 2026-07-14:** For draft/settle, feltmotor, input-persistence, history, issue-model og
+> dokumentpreflight er `docs/architecture/draft-commit-greenfield-design.md` den samlede målarkitektur, og de
+> opdaterede normative kontrakter beskriver nu målet. Kandidaterne #12, #19, #25, #27, #28, #33 og #39 samt de
+> inputrelaterede dele af #40 er historiske trin/karakteriseringer — deres ✅ betyder, at det daværende arbejde blev
+> gennemført, ikke at deres konkrete slices, hooks, contextlag, coalescing eller storagekeys skal bevares. #40's ene
+> `CriticalActionCoordinator` bevares, men deltagerne og dokumentpreflighten følger den nye plan. Nye ændringer i dette
+> scope routes gennem greenfield-planens faser; denne kandidatliste må ikke bruges til at genindføre de overgangslag,
+> planen fjerner.
+
 Dette er en prioriteret kandidatliste til et *greenfield re-design* af Mineo. Hvor
 `code-review-plan.md` er en systematisk gennemgang, der retter og konsoliderer det
 eksisterende punkt for punkt, stiller denne plan ét andet spørgsmål for hver del af
@@ -14,8 +23,8 @@ gennemtænkt re-design ville give en markant forbedring. Hver anbefaling er
 kalibreret mod programmets eksisterende "røde tråd", så et re-design trækker
 strukturen mod større ensartethed — ikke mod endnu en parallel løsning.
 
-`AGENTS.md` fastlægger mandat og godkendelsesgrænser. Ved konflikt gælder
-`src/contracts/*.md` over denne plan. Alt der berører UI/UX med synlig betydning
+`AGENTS.md` fastlægger mandat og godkendelsesgrænser. De normative kontrakter er opdateret efter den samlede
+greenfield-målarkitektur og gælder ved implementering. Alt der berører UI/UX med synlig betydning
 eller beregningslogik forelægges, før det ændres.
 
 **Arbejdsbranch:** Al fremtidig implementering og test af denne plan foregår på

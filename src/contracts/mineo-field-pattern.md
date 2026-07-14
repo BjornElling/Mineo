@@ -1,252 +1,184 @@
-# Mineo felt-mønster (intern standard)
+# Mineo feltmønster
 
-Dette dokument fastlægger det **påkrævede interne mønster** for Mineos custom form-felter (Styled*Fields og tabel-inputs).
-
-**Status:** Gældende arkitektur (normativt supplement)  
+**Status:** Normativ målarkitektur
 **Type:** Tværgående komponent-/adapterkontrakt  
-**Prioritet:** Supplement til `form-contract.md`; ejer komponent-/adaptermønstret (lag A/B/C), ikke draft/commit-semantikken.  
+**Prioritet:** Supplement til `form-contract.md`; ejer feltdefinitioner, codecs, editor-state machine og surface-adaptere.
 **Senest verificeret mod kode:** 2026-07-14
 
-Det er et supplement til den normative Form Contract:
-- `src/contracts/form-contract.md`
+Denne kontrakt fastlægger ét fælles feltmønster for Styled-felter og tabelceller. Eksisterende hooks og adaptere er
+migrationskode, indtil de er erstattet efter `docs/architecture/draft-commit-greenfield-design.md`.
 
-Mineo er trust-kritisk. Enhver tvetydighed i felt-semantik (draft vs commit vs blur) behandles som en korrekthedsrisiko.
+## 1. Begreber
 
-## Begreber
+- **Åben draft:** rå tekst, der kun findes mens editoren er åben.
+- **Afsluttet input:** enten canonical typet værdi eller rejected rå tekst efter settle.
+- **Feltdefinition:** codec og stabil præsentationsmetadata for én feltart.
+- **Feltreference:** feltdefinition bundet til en strukturel adresse.
+- **Surface-adapter:** tynd integration til formular eller grid; den ejer ikke inputsemantik.
 
-- **Draft**: den midlertidige string, brugeren har tastet, og som vises i inputtet mens der skrives.
-- **Committed værdi**: den validerede, typede model-værdi, der bruges af beregninger/persistering.
-- **Commit-forsøg**: en intern operation, der initieres af `useDraftField`, typisk udløst af blur, Enter eller et eksplicit imperativt commit. Udløses aldrig af tastning (`onDraftChange`).
-- **Fysisk blur**: at focus rent faktisk forlader kontrollen. MÅ IKKE indebære commit-semantik.
+## 2. Lagdeling
 
-## Lagdeling (MÅ IKKE brydes)
+### Lag A — UI-base
 
-### Lag A — UI-base (fx `StyledTextFieldBase.tsx`, `StyledTextAreaBase.tsx`)
+UI-basen ejer render, styling, a11y og videresendelse af input-, fokus- og keyboard-events.
 
-Ansvar:
-- Render/styling
-- Videresend focus/blur/keydown
-- Draft-string ind/ud
+Den må ikke:
 
-MÅ IKKE:
-- parse/validere/normalisere
-- kende model-typer
-- eksponere event-baserede `onChange(event)`-API'er opad
+- parse, formatere eller validere domæneværdier,
+- kende persistence eller history,
+- holde en alternativ rejected-/fejltilstand,
+- eksponere DOM-events som domæne-API.
 
-Invarianter:
-- Accepterer kun `draft: string` + `onDraftChange(draft: string)`
-- Input-semantiske handlers (`onFocus`/`onBlur`/`onKeyDown`/`onPaste`) bindes til det faktiske `<input>`/`<textarea>`
-- Muse-interaktions-handlers (`onClick`/`onMouseDown`/`onDoubleClick`) bindes til input-roden, så hele feltets
-  hit-area (inklusive adornments med `pointer-events: none`) deltager i to-trins-aktiveringen
-- `inputRef` er ærligt typet (`HTMLInputElement`/`HTMLTextAreaElement`)
+Den modtager en draft-string og en string-callback. Inputsemantiske handlers bindes til det faktiske input; musehandlers
+kan bindes til feltroden for at bevare to-trins-aktiveringen.
 
-### Lag B — Draft/commit-motor (`useDraftField.ts`)
+### Lag B — fælles editor-state machine
 
-Ansvar:
-- Lokal draft-state
-- Commit-policy (blur/enter/escape)
-- Race-fri håndtering af asynkrone parent-opdateringer (resync efter commit)
-- `touched` + lokal parse-fejltilstand
-- Præcis én commit-kanal (`onCommit`)
+Én reducer/state machine ejer for både formular og grid:
 
-MÅ IKKE:
-- vide noget om specifikke felt-domæner
-- bruge event-objekter i sit offentlige API
-- forlade sig på reference-lighed eller objekt-identitet som korrekthedssignal ved resync af eksterne værdier
+- lukket, fokuseret og åben editorstatus,
+- lokal rå draft,
+- start-snapshot til Escape,
+- touched-status,
+- settle ved blur, Enter og kritisk handling,
+- undertrykkelse af blur efter cancel,
+- resync ved autoritativt snapshot-skift.
 
-### Lag C — Felt-adapter (fx `StyledAmountField.tsx`, `StyledDateField.tsx`, …)
+State machine kalder kun den fælles inputtransaktion. Den må ikke kende et konkret domæne eller have surface-specifik
+parsing.
 
-Ansvar:
-- Definere parse-/valideringsregler
-- Definere canonical formattering af committed værdier
-- Definere domæne-constraints (min/max/osv.)
-- Mappe `draft: string` ⇄ `TModel`
-- Adfærd for forrang af eksterne fejl
+### Lag C — feltdefinition og codec
 
-MÅ IKKE:
-- mutere brugerens draft mens der skrives (ingen masking, erstatning eller canonicalisering under `onDraftChange`; normalisering er kun tilladt ved commit)
-- have flere commit-stier
+Hver inputfamilie har ét `FieldCodec<T>`:
 
-## Event-kontrakt (Styled*Fields)
-
-Alle Styled*Fields SKAL følge denne offentlige kontrakt (navnene er normative):
-
-- `onDraftChange?: (e: { target: { value: string } }) => void`
-  - kaldes kun ved tastning
-  - payload er den rå draft-string
-- `onCommit?: (e: { target: { value: TModel } }) => void`
-  - kaldes kun ved vellykkede commit-forsøg (blur/enter/imperativt)
-  - payload er den typede committed værdi
-- `onBlur?: (e: React.FocusEvent<...>) => void`
-  - kun fysisk blur (aldrig "commit")
-  - invariant: intern `useDraftField.onBlur` kører **før** ekstern `onBlur`
-  - bemærk: intern blur-håndtering kan committe synkront og udløse parent-re-renders; ekstern `onBlur` MÅ IKKE antage, at feltet stadig er mounted efter det interne kald
-
-Delte typer ligger i:
-- `src/types/fieldEvents.ts`
-
-Bemærkning om event-form:
-- `DraftChangeEvent` og `CommitEvent<T>` fra `src/types/fieldEvents.ts` er de normative offentlige event-typer.
-- Mineos felt-events er branded og er ikke DOM-events; behandl dem ikke som sådan.
-- `{ target: { value } }`-event-formen gælder ved Styled*Field-grænsen (Lag C-output).
-- Lag A bruger `onDraftChange(draft: string)` internt; Lag C er ansvarlig for at wrappe til branded Mineo-felt-events.
-
-## Parsing-kontrakt
-
-Adaptere implementerer:
-
-`parse(draft: string, { mode: 'typing' | 'commit' }): DraftParseResult<TModel>`
-
-`DraftParseResult<TModel>` ejes af `src/types/fieldEvents.ts`. Brug den eksporterede type; konstruer ikke parallelle result-former ved callsites.
-
-Regler:
-- `ok: true` betyder **committbar**
-- I `typing`-mode: returnér `partial` for ethvert input, der ikke er fuldt committbart. Påstå ikke gyldighed for ufuldstændigt input.
-- I `commit`-mode: returnér enten `ok: true` eller `invalid` (med en deterministisk besked)
-- `partial/empty` uden besked i `commit`-mode er forbudt (DEV-asserteret af `useDraftField`)
-
-Canonicalisering af værdi (commit-semantik):
-- Visse adaptere canonicaliserer bevidst den committede **værdi** under `commit`-parsing (fx afrunding, brøkforkortelse).
-- Dette er kun tilladt, hvis og kun hvis det er deterministisk, kun sker i `commit`-mode og er dokumenteret som en del af felt-kontrakten.
-- I `typing`-mode må parsing ikke påstå committbare værdier for ufuldstændigt input og må ikke canonicalisere/transformere brugerens draft.
-
-Vejledning (UX-konsistens):
-- I `typing`-mode bør `partial` normalt udelade `message` for at undgå præmatur "fejl"-UI.
-  Brug kun en `message` til reelt UX-kritisk vejledning.
-- Helt stille tastning er også tilladt (ingen besked før commit). Hvis vejledning er nødvendig, foretræk placeholder/helperText frem for parse-beskeder.
-
-## Formatterings-kontrakt
-
-Formattering sker **kun post-commit** og defineres alene af:
-- `format(value: TModel): string`
+```ts
+type FieldCodec<T> = Readonly<{
+  parseForSettle(raw: string): FieldResolution<T>;
+  format(value: T): string;
+  acceptsInitialKey(key: string): boolean;
+  normalizePaste?(raw: string): string;
+}>;
+```
 
 Krav:
-- deterministisk og stabil
-- canonical committed repræsentation for dette felt
-- må ikke kollapse distinkte committede værdier inden for feltets semantik
 
-## Keyboard/commit-policy (standard)
+1. `parseForSettle` returnerer enten canonical værdi eller deterministisk ugyldighed.
+2. Tom tekst mapper til feltets canonical tomme værdi.
+3. `format` er deterministisk og bruges kun for afsluttede gyldige værdier.
+4. Canonicalisering må kun ske ved settle og kun efter den eksisterende felt-/numerikregel.
+5. Dato, beløb, procent, heltal, brøk, uge, år og tekst må ikke have separate form- og tabelcodecs.
+6. Domæne-bounds hører til rene validatorer/projektioner, medmindre grænsen er en del af syntaksen.
 
-Standard-policy (alle felter medmindre eksplicit begrundet):
-- `Blur` → commit-forsøg
-- `Enter` → commit-forsøg (prevent default)
-- `Escape` → annullér (committer aldrig; undertrykker det umiddelbart efterfølgende blur-udløste commit)
-- `Backspace`/`Delete` i fokuseret lukket-editor-tilstand (grid-celle) → ryd og committ med det samme uden at åbne editoren
+### Lag D — surface-adaptere
 
-`useDraftField` implementerer `Blur`/`Enter`/`Escape`-policyen for åben-editor-tilstanden. Lukket-celles `Backspace`/`Delete`-rydning er en grid-celle-tilstand, der ejes af gridCore (`src/components/tables/gridCore/tableKeyboardNavigation.ts` og `gridUxSpec.ts`), ikke af `useDraftField`.
+Form- og grid-adaptere må kun tilføje:
 
-`Backspace`/`Delete`-undtagelsen matcher `form-contract.md` og `keyboard-navigation.md`: rydning er en eksplicit brugerhandling, så den må committe med det samme, men den må ikke starte redigering eller parse vilkårlig draft-tekst.
+- konkret rendering og hit-area,
+- grid-navigation,
+- kopiér/indsæt-integration,
+- registrering hos `CriticalActionCoordinator`,
+- projektion af feltreference til DOM-fokusmetadata.
 
-## Fejl-ejerskab (én kilde i UI)
+De må ikke parse, skrive persistence, eje history, oprette fingerprints eller holde parallelle draft-/invalid-stores.
 
-UI SKAL vise højst én fejlkilde ad gangen pr. felt-instans:
-1) ekstern fejl (autoritativ)
-2) lokal parse-fejl (gated af `touched`)
-3) visuel fejl afledt af committed værdi (fx bounds/range)
-4) ingen
+## 3. Feltdefinition, reference og adresse
 
-Lokal fejltilstand SKAL bevares, selv mens en ekstern fejl vises (suspenderet, ikke nulstillet).
+```ts
+type FieldDefinition<T> = Readonly<{
+  codec: FieldCodec<T>;
+  label: string;
+  controlKind: 'text' | 'choice' | 'toggle';
+  focusTarget: FieldFocusTarget;
+}>;
 
-Lokal fejltilstand genopstår automatisk, når den eksterne fejl ryddes. Suspensionen er passiv: den lokale fejl re-evalueres ikke, bare fordi den bliver synlig igen.
+type FieldRef<T> = Readonly<{
+  address: FieldAddress;
+  definition: FieldDefinition<T>;
+}>;
+```
 
-For `Styled*Field` ejer `useStyledFieldAdapter` den fælles `getVisualError(value)`-seam.
-Fejlen må kun udledes af committed state, skal rekonstrueres efter load/remount og rapporteres
-som `blocksSave:false`. Komponenten må ikke opretholde en parallel range-state eller rapporteringseffekt.
+Regler:
 
-## Tabel-inputs
+1. Samme `FieldRef` følger feltet gennem render, settle, issue, projektion, gate, history og fokus-restore.
+2. Statiske felter kommer fra ét feltkatalog; dynamiske felter dannes af typed entity-/row-builders.
+3. Adressen beskriver data strukturelt og versioneres/migreres som persistenceformat.
+4. Label og kontroltype kommer fra definitionen, aldrig fra parsing af en key eller fri streng.
+5. Rækkeidentitet er datanøglen; kolonneindeks må ikke indgå i persistent feltidentitet.
+6. Transiente UI-hjælpefelter bruger samme codec/editor, men har ingen persisted `FieldRef` og deltager ikke i history.
 
-Tabel-inputs er UI-specialiserede, men SKAL bevare de samme principper:
-- `onChange` = kun draft
-- `onBlur` = kun commit-forsøg. Den tabel-specifikke afvigelse er triggeren, ikke commit-semantikken: Tab/Enter/celle-overgang kan committe ved tabel-grænsen, selv når den fysiske focus-håndtering afviger fra Styled*Field-blur.
-- Validering må ikke køre kontinuerligt via `useEffect` mens der skrives
-- Enhver normalisering/canonicalisering SKAL kun ske ved blur (commit)
-- GridCore-tabel-inputs SKAL bruge `useTableInputCore` med en type-specifik tabel-input-adapter.
-- Parser, formatter, canonical payload, fingerprint, paste-normalisering og key-filtrering hører til
-  i adapteren.
-- Rendering, styling, ikoner/indikatorer og komponent-specifikke DOM-timing-udvidelser forbliver i
-  `Table*Input`-komponenten.
-- `useTableInputCore` ejer resync af committed værdi (autoritativ snapshot-epoch + committed value),
-  fysisk-focus-beskyttelse, `invalidDrafts`-recovery-kanalen (via `useCellInvalidDraftChannel`),
-  no-op-detektion og GridCore-editor-handle-wiring. En ikke-committbar rå draft persisteres til den
-  fælles `invalidDrafts`-store-slice (jf. `persistence-contract.md` §11) og driver både fejlvisning og
-  save-blokering; der findes intet separat draft-/save-error-registry for tabelceller længere.
-- De enkelte `Table*Input`-komponenter må ikke hver især implementere deres egne uafhængige
-  resync-, no-op-fingerprint- eller editor-handle-pipelines.
+## 4. Settle-kontrakt
 
-## Instant-commit-kontroller (eksplicitte undtagelser)
+- `onChange` ændrer kun den åbne draft.
+- Blur og Enter udløser samme `settle`.
+- Escape gendanner præcis tilstanden ved editorens åbning og committer aldrig.
+- Et succesfuldt settle skriver canonical værdi og fjerner tidligere rejection atomisk.
+- Et ugyldigt settle skriver rejected rå tekst og maskerer den tidligere canonical værdi atomisk.
+- Et no-op-settle skriver hverken storage eller history og stiger ikke revisionen.
+- Kritiske handlinger bruger samme settle-handle; der findes ingen særskilt preflight-parser.
 
-Visse kontroller er bevidst **instant commit** (ingen draft/cancel-fase):
-- Toggle switches (fx `StyledToggleSwitch.tsx`)
-- Radio groups (fx `StyledRadioButton.tsx`)
-- Select-lignende kontroller (fx `StyledDropdown.tsx`)
+Mens editoren er åben, forbliver resten af UI'et på seneste afsluttede revision. Den åbne draft må ikke drive
+feltissues, beregning, resultatvisning eller download-gate.
 
-Regler for instant-commit-kontroller:
-- `onCommit` fyres med det samme ved brugerinteraktion (samme tick som kontrollens native change-event).
-- Der bruges ikke `useDraftField`, og der er ingen `Escape`/rollback-semantik.
-- `onCommit` kan være semantisk identisk med kontrollens native change-callback (fx radio-selektion).
-- For radio groups følger keyboard-selektion via `Enter` og `ArrowLeft`/`ArrowRight` `keyboard-navigation.md` og er stadig et øjeblikkeligt commit.
-- For select/combobox-lignende kontroller sker commit ved selektion (`onChange`); `Escape` lukker typisk kun popover/menu.
-- Hvis kontrollen har en popover/menu-interaktion, eksponér en eksplicit `onClose` (interaktion afsluttet) adskilt fra fysisk `onBlur`. `onClose` betyder, at popup/menu lukkede, uanset om der skete en selektion; `onCommit` betyder, at en konkret værdi blev committet. Begge kan fyre for en valgt option.
-- Hvis et imperativt handle eksponeres (fx `shake()`), SKAL dets semantik dokumenteres, og det MÅ IKKE mutere committed form-state.
+## 5. Keyboard-policy
 
-Dette er tilladte afvigelser, men de SKAL forblive eksplicitte og konsistente.
+Standard for åbne teksteditorer:
 
-## Felt-identitets-API (normativt hjem)
+- Blur → settle.
+- Enter → settle og derefter den aftalte navigation.
+- Escape → cancel til start-snapshot; efterfølgende blur undertrykkes.
 
-Dette afsnit er det **normative hjem** for felt-identitets-API'et. Reglerne her er en bindende del af felt-mønstret; `undo-redo-contract.md` §4A er forbrugeren, der forklarer *hvorfor* identiteten er en forudsætning for korrekt fokus-restore.
+Tilladte immediate commits:
 
-Felt-identitet er trust-kritisk: lander fokus efter undo på det forkerte felt, fremstår programmet upålideligt. Reglerne er:
+- Delete/Backspace på lukket, fokuseret celle rydder og committer uden at åbne editoren.
+- Valg af dropdown-menupunkt committer straks; filtertekst gør ikke.
+- Toggle/radio committer straks.
 
-1. **Hvert commit SKAL sende `fieldPath`.** Den der committer en ændring til `formPersistenceStore`, SKAL sende ændringens identitet med (`setValues(..., { fieldPath })`). Uden den falder `createUndoOrigin` (`usePersistedForm`) tilbage på focus-trackeren, som ved blur peger på det *næste* fokuserede felt — og undo lander så fokus forkert. For tabelceller er identiteten `rowId:colIndex`. Værn-test: `src/__tests__/quality/immediateCommitWidgetUndoName.test.ts` og regressionstesten `src/__tests__/hooks/undoRedoBlurCommitFocus.test.tsx`.
-2. **Persisterede felter SKAL bære `name`-prop.** Både immediate-commit-widgets (toggle/dropdown/radio) og blur-commit-felter (dato/beløb/tekst/percent/year/integer/week/fraction) SKAL have en `name`-prop lig feltnøglen. UI-baserne projicerer den til `data-mineo-undo-field-path` på det fokuserbare DOM-element (jf. `StyledTextFieldBase.tsx`: `'data-mineo-undo-field-path': … ?? name`), så fokus-restore kan finde målet. For celle-dropdowns SKAL identiteten sidde på den fokuserbare combobox-trigger, ikke på et skjult native `<input>`.
-3. **Tabel-row-id er datanøgle, ikke UI-alias.** Et ikke-tomt, persisteret tabel-row-id må ikke omskrives for at redde fokus efter undo/redo. Hvis en resync skal kunne finde en celle via et tidligere row-id, SKAL det tidligere mål bæres som særskilt fokus-alias (`data-mineo-undo-field-path-aliases`), mens `data-mineo-undo-field-path`, `name`, `invalidDrafts`, validering, beregning og persistence fortsat bruger det faktiske row-id. Tomme syntetiske rækker må arve et tidligere id, fordi de ikke persisteres som brugerinput.
-4. **Transiente felter deltager ikke.** Felter, der kun skriver til lokal React-state og aldrig committer til persisteret state (fx løntrin-finder, sygedagpenge-indsæt), bærer hverken `name` eller `fieldPath` og indgår ikke i undo/redo.
-5. **Binding til den afsluttede inputtilstand er obligatorisk for persisterede sagsfelter (greenfield draft/commit
-   2026-07-14).** Et persisteret sagsfelt må **ikke** rendere "ubundet" og derved kun holde en afsluttet ugyldig
-   tilstand lokalt (i adapterens `useState`-fallback). Den ugyldige afsluttede tilstand skal nå den centrale
-   `invalidDrafts`-store, så den overlever `F5`, ses af read-model + save-/download-gate og kan undo/redo'es. Konkret:
-   `useStyledFieldAdapter`-baserede sagsfelter skal have `onFieldError`-bindingen (kanalen), og GridCore-celler skal
-   have `useSaveError`-adaptere under `CellInvalidDraftScopeProvider`. Den lokale fallback i `useInvalidDraftSlot` er
-   forbeholdt reelt transiente/ubundne felter (punkt 4) — ikke persisterede sagsfelter. `Satser`s `aargang` var et
-   konkret eksempel på et fejlagtigt ubundet sagsfelt og skal bindes.
+Den fulde navigationsadfærd ejes af `keyboard-navigation.md`.
 
-Dette er forudsætningen for korrekt undo/redo-fokus-restore og for, at et afsluttet ugyldigt input aldrig usynligt
-maskeres af en tidligere gyldig værdi. Reglerne er kode-håndhævet af ovennævnte guard-tests.
+## 6. Fejlvisning
 
-## Skjulte domæneregler (SKAL være eksplicitte)
+Et felt viser højst ét aktivt issue ad gangen efter den centrale, deterministiske prioritet i `error-contract.md`.
 
-Hvis en komponent har en uundgåelig default (eller en ikke-indlysende constraint), SKAL den eksponeres eksplicit via props og/eller dokumenteres i komponentens props.
+- Ugyldigt input, range/bounds og domæneregler afledes fra senest afsluttede input.
+- Den åbne draft viser ingen afledt fejlfeedback.
+- Fejl vises som rød kant og tooltip ved hover; der vises ingen inline-valideringstekst under feltet.
+- `error=true` kræver en ikke-tom dansk tooltip/a11y-beskrivelse.
+- Monterede komponenter må ikke rapportere afledelige fejl til en central store.
 
-Eksempler i Mineo:
-- Percent-felter kræver eksplicit opt-in for default-intervallet (`useDefaultPercentRange`).
-- År/uge-parsing af 1-2-cifrede årstal SKAL være policy-styret (`twoDigitYearPolicy`).
-- Cifferspærringer (fx integer `safetyMaxDigits`) SKAL være eksplicitte.
+## 7. Dynamiske tabeller
 
-## Bemærkninger om UI-baser
+- Hver celle bruger den fælles editor-state machine og feltets fælles codec.
+- Grid-adapteren må ændre commit-triggeren ved navigation, men ikke commit-semantikken.
+- Rækkeinfrastrukturen må ikke holde en ekstra værdibærende `draftRows`-kopi.
+- Første settle i en tom UI-række promoverer rækken atomisk, også ved rejected input.
+- Rækkesletning fjerner descendant-rejections i samme transaktion; efterfølgende reconcile-effects er forbudt.
+- Paste-normalisering og første-tast-filter ligger i det fælles codec, ikke i hver `Table*Input`.
 
-UI-base-komponenter (Lag A) bruger bevidst det enklest mulige API:
-- `onDraftChange(draft: string)` (ikke event-formet)
+## 8. Immediate-commit-kontroller
 
-Felt-adaptere (Lag C) er ansvarlige for at wrappe draft-ændringer ind i Mineos event-form (`DraftChangeEvent`)
-for konsistens ved Styled*Field-grænsen.
+Toggle, radio og dropdownvalg har ingen cancel-fase og committer i samme brugerhandling. De bruger fortsat
+`FieldRef`, transaktionsrunner, issue-model og history-origin. Popupens `onClose` er en interaktionshændelse og må ikke
+forveksles med et værdi-commit.
 
-UI-base-invarianter (a11y + kontrakt):
-- Fejl for ugyldigt input SKAL vises via rød ramme + tooltip ved hover (ingen inline helper-text-fejl-rendering).
-- `error === true` MÅ IKKE være stille: `helperText` SKAL leveres (DEV-asserteret af baserne) og bruges som tooltip + a11y described-by-tekst.
-- `htmlInputAttributes`/`htmlTextAreaAttributes` SKAL behandles som adapter-interne; videregiv dem ikke fra sider/call-sites.
+## 9. Skjulte domæneregler
 
-## Reference-implementeringer
+Ikke-indlysende defaults og constraints skal være eksplicitte i feltdefinitionen eller den relevante domænekontrakt.
+Eksempler er procentintervaller, to-cifret årspolitik og sikkerhedsgrænser for cifferantal.
 
-Brug disse som canonical eksempler:
-- `src/hooks/useDraftField.ts`
-- `src/components/inputs/StyledTextFieldBase.tsx`
-- `src/components/inputs/StyledYearField.tsx`
+## 10. Reference og migrationsværn
 
-## Tjekliste for nye felter
+Den normative reference er denne kontrakt sammen med `form-contract.md` og
+`docs/architecture/draft-commit-greenfield-design.md`.
 
-- Én commit-kanal (`onCommit`)
-- `onBlur` er kun fysisk blur (intet skjult commit)
-- Parseren er eneste kilde til sandhed; ingen draft-mutation mens der skrives
-- UI-constraints (maxLength/inputMode/osv.) matcher parser-reglerne
-- Prop-kombinationer valideres deterministisk (DEV fail-fast)
-- Formattering sker kun post-commit og er deterministisk
+`useDraftField`, `useTableInputCore`, `useRowDrafts`, `useCellInvalidDraftChannel`, `onFieldError`-kanaler,
+fingerprints og `rowId:colIndex` er overgangsmekanismer. De må ikke kopieres eller udvides som nye referenceeksempler.
+
+## 11. Tjekliste
+
+- Én feltdefinition og ét codec pr. inputfamilie.
+- Én editor-state machine på tværs af formular og grid.
+- Én strukturel `FieldRef` gennem hele flowet.
+- Ingen parsing, validering eller afledt feedback under tastning.
+- Ét atomisk settle med højst ét history-trin og én revision.
+- Escape gendanner editorens start-snapshot.
+- Ingen local fallback-state for persisterede felter.

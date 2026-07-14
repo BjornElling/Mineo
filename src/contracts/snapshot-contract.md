@@ -1,166 +1,109 @@
 # Mineo – Snapshot-kontrakt
 
-**Status:** Gældende arkitektur (normativ)
+**Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
-**Prioritet:** Tværgående snapshot-mønster; specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og `forsoergertab-snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-07-12
-
-Denne kontrakt fastlægger, hvad et domæne-snapshot er, og hvordan snapshot-first bruges uden at tvinge alle domæner ind i samme datastruktur.
-
----
+**Prioritet:** Specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og
+`forsoergertab-snapshot-contract.md`.
+**Senest verificeret mod kode:** 2026-07-14
 
 ## 1. Formål
 
-Et snapshot er et autoritativt, read-only projektionsobjekt bygget fra committed input for ét domæne.
+Et domænesnapshot er et autoritativt, read-only beregnings-/projektionsobjekt bygget fra en `ready`, revisionsbundet
+inputprojektion. Det samler domænets beregnings-entry og forhindrer parallelle beregningsveje i UI, kontrol og dokument.
 
-Snapshot’et findes for at:
+Et snapshot er ikke persisted state, åben draft, en generel inputreader eller et framework for alle domæner.
 
-- samle domænets beregnings-entry til ét kanonisk sted
-- sikre at page-, tab- og PDF-lag bruger samme committed grundlag
-- forhindre parallelle, inkonsistente beregningsveje i UI-laget
+## 2. Inputgrænse
 
-Et snapshot er ikke persisted state, ikke draft-state og ikke et generelt framework.
+1. Snapshot-entrypointet modtager en typed `ready` inputprojektion eller en `InputReader`, som det selv projekterer.
+2. Det må ikke modtage rå canonical sektioner som en bypass til maskeret rejected input.
+3. Rejected afhængigt input, manglende requirements og blokerende domæneissues skal stoppe den relevante projektion,
+   før motoren kaldes.
+4. Åben draft er usynlig for snapshottet. Mens en editor er åben, bruges snapshottet for senest afsluttede revision.
+5. Snapshot og alle consumerprojektioner bærer den inputrevision, de er bygget fra.
 
----
+## 3. Grundregler
 
-## 2. Grundregler
+- Snapshottet er read-only og side-effect-frit.
+- Domænets motorer modtager deres eksisterende typed input fra en godkendt projektion.
+- UI, kontrol og dokument må ikke genberegne canonical værdier uden om snapshottet, når domænet er snapshot-first.
+- Runtime-schema- eller invariantbrud giver eksplicit fail-closed status/issue, aldrig tilsyneladende gyldigt tomt output.
+- Projektioner må udvælge og formatere snapshotdata, men ikke genberegne canonical resultater.
+- En tværdomæneconsumer modtager en navngiven typed port, ikke interne engine-resultater eller rå inputsektioner.
 
-1. Et snapshot bygges kun fra committed, schema-valideret input.
-2. Et snapshot må ikke læse draft-state, lokal view-state eller ucommittede mellemtilstande.
-3. Et snapshot er read-only og må ikke have side-effects.
-4. Et snapshot-entrypoint er domænets autoritative beregnings-exit for de forbrugere kontrakten dækker.
-5. UI-, tab- og PDF-lag må ikke lave parallelle domæneberegninger uden om snapshot’et, når domænekontrakten siger snapshot-first.
+## 4. Minimumsindhold
 
----
+Et snapshot-first-domæne deklarerer mindst:
 
-## 3. Minimumsindhold
-
-Et snapshot-entrypoint skal eksplicit deklarere de projektioner, som dets forbrugere må bruge. Kontrakten kræver ikke én universel TypeScript-shape, men hvert snapshot-first domæne skal opfylde denne checklist.
-
-Minimum for alle snapshot-former:
-
-1. autoritativ inputpakke og hvilke persisted sektioner den må læse,
-2. projections der må forbruges af UI, PDF og kontrolvisning,
-3. gating-/statusfelter,
-4. issue-/fejlklassifikation,
+1. inputdependencies og tilladte domænegrænser,
+2. revision/friskhed,
+3. projektioner til UI, kontrol og dokument,
+4. issues og blocking-status,
 5. runtime fail-closed adfærd,
-6. om eksponeret `input` er original committed state eller effektiv/transient beregningsinput.
+6. om eksponeret audit-input er originalt afsluttet input eller effektiv/transient beregningsinput.
 
-Et domæne kan derudover gøre selve snapshotformen til sit canonical output. Når en
-domænekontrakt vælger dette mønster, gælder følgende:
+Hvis snapshotformen er domænets canonical output, skal den runtime-valideres af et Zod-schema, og typen afledes af
+schemaet.
 
-1. Snapshotformen skal være runtime-valideret af et Zod-schema, som også er typeautoritet.
-2. Et schema-, source- eller runtimebrud skal give en eksplicit blokerende issue og må ikke
-   repræsenteres som et tilsyneladende gyldigt eller blot tomt output.
-3. Projektioner må udvælge og formatere snapshotdata, men ikke genberegne canonical værdier.
-4. En tværdomæne-forbruger skal modtage en navngiven, typed port/projektion; den må ikke kende
-   producentdomænets interne engine-resultater.
+## 5. To gyldige snapshotformer
 
-Kontrakten kræver ikke én universel shape på tværs af alle domæner. Den kræver ét eksplicit valgt mønster pr. domæne.
+### 5.1 Felt-UI-form
 
----
+Bruges, når siden primært renderer feltorienteret feedback og få samlede gates. Formen indeholder feltprojektioner,
+issues og page-level resultat-/dokumentstatus. Forsørgertab er det nuværende eksempel.
 
-## 4. To gyldige snapshot-former
+### 5.2 Issue-/tab-projektionsform
 
-### 4.1 Felt-UI-form
+Bruges, når domænet har flere tabs eller delberegninger. Hver projektion indeholder issues, blocking-status og et
+beregningsresultat eller `null`. EO og EET er de nuværende eksempler.
 
-Brug felt-UI-formen, når siden primært renderer feltorienteret feedback og simple page-level gating-flags.
+EET specialiserer formen ved at gøre `EetSnapshot` til Zod-valideret canonical output. Det gør ikke formen obligatorisk
+for EO eller Forsørgertab.
 
-Kendetegn:
+## 6. Afgrænsning
 
-- `fieldUi`-projektioner pr. relevant felt
-- helpertekster og feltfejl samlet dér, hvor UI direkte bruger dem
-- page-level flags som `canShowResult`, `canDownloadPdf` eller tilsvarende
+Snapshot-first bruges præcis for:
 
-Aktuelt eksempel:
+- Erstatningsopgørelse,
+- Erhvervsevnetab,
+- Forsørgertab.
 
-- `computeForsoergertabSnapshot(...)`
+Årsløn, Renteberegning og Varige mén er ikke snapshot-first, fordi deres engine-resultat allerede beregnes ét sted og
+genbruges. De skal stadig bruge den fælles inputprojektionsgrænse og revisionsbundne dokumentpreflight. Der indføres
+ikke snapshots alene som hypotetisk udvidelsespunkt.
 
-### 4.2 Issue-/tab-projektionsform
+## 7. Issues og dokumentgate
 
-Brug issue-/tab-formen, når domænet består af flere beregningstabber eller delprojektioner med egne blocking-regler.
+Snapshotissues er afledt state efter `error-contract.md`; de lagres ikke i history eller en field-error-bus. Relevante
+inputissues fra dokumentdefinitionens dependencies skal indgå i dokumentgaten, også hvis det konkrete snapshots
+domæneissue-array ikke selv ejer feltvisningen.
 
-Kendetegn:
+Et dokument må kun modtage en godkendt snapshot-/dokumentprojektion med samme revision som preflighten. Den reaktive
+gate og click-preflight bruger samme dokumentdefinition.
 
-- én projektion pr. tab/delberegning
-- `issues`, `hasBlockingErrors` og `computation` eller tilsvarende samlet pr. projektion
-- page-laget sender projektioner top-down til tabs i stedet for at lade tabs kalde motorer direkte
+## 8. Runtimefejl
 
-Aktuelt eksempel:
+Uventede runtimefejl må aldrig give gyldige totals, dokumentprojektioner eller kontrol-output. De skal:
 
-- `computeEetSnapshot(...)`
-- `computeEoSnapshot(...)`
-
-EET specialiserer formen yderligere: `EetSnapshot` er selv domænets Zod-validerede canonical
-output. Det indebærer ikke, at EO eller andre snapshot-first-domæner skal bruge samme samlede
-snapshotshape.
-
----
-
-## 5. Hvilke domæner er snapshot-first (afgrænsning)
-
-Snapshot-first er et **bevidst afgrænset** mønster, ikke en destination alle domæner migrerer mod. Det er forbeholdt domæner, der er komplekse nok til reelt at risikere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF — dvs. domæner med flere tabber/delberegninger, selvstændige blocking-regler eller en PDF-sti der ellers ville genberegne domæneafledninger.
-
-**Snapshot-first-domænerne er præcis disse tre:**
-
-- erstatningsopgørelse (`computeEoSnapshot`)
-- erhvervsevnetab (`computeEetSnapshot`)
-- forsørgertab (`computeForsoergertabSnapshot`)
-
-De øvrige beregningsdomæner (årsløn, renteberegning, varige mén) er **bevidst ikke** snapshot-first: deres engine-resultat beregnes ét sted og genbruges af PDF-stien uden genberegning, så der er ingen parallel beregning at konsolidere. Det er deres slutarkitektur, ikke en umoden tilstand — se de respektive domænekontrakters §3. Indfør ikke et snapshot-lag for et af disse domæner uden at et reelt parallel-beregnings- eller genberegningsproblem først er opstået og dokumenteret; ellers strider det mod konvergensreglen i `AGENTS.md`.
-
-### Valg af form for et snapshot-first-domæne
-
-Når et af de tre domæner (eller et fremtidigt domæne, der reelt udløser ovenstående afgrænsning) struktureres som snapshot, vælges formen ud fra brugeroplevelsen og domænets struktur:
-
-1. Vælg felt-UI-formen, hvis siden i praksis er én samlet visning med feltlokale helpertekster og få resultatgates.
-2. Vælg issue-/tab-formen, hvis siden har flere delberegninger eller tabs med selvstændige blocking-regler.
-3. Divergér kun fra disse to former, hvis domænet meningsfuldt kræver det; så skal afvigelsen dokumenteres eksplicit i domænets kontrakt eller ved snapshot-entrypointet.
-
----
-
-## 6. Forhold til andre kontrakter
-
-1. `domain-boundary-contract.md` bestemmer hvilke sektioner snapshot’et må læse.
-2. `form-contract.md` bestemmer at snapshot’et kun må bruge committed input.
-3. `page-component-contract.md` bestemmer at page-laget orkestrerer snapshot’et og sender projektioner videre top-down.
-4. Domænespecifikke kontrakter kan indsnævre, hvilke forbrugere et konkret snapshot-entrypoint er autoritativt for.
-5. `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og `forsoergertab-snapshot-contract.md` er domænespecifikke specialiseringer af denne kontrakt.
-6. `error-contract.md` ejer den runtime-only field-error-bus. Feltfejl kan adapteres til
-   snapshot-issues som diagnostisk input, men må ikke gøre field-error-modellen til en del af
-   det canonical beregningsoutput eller skabe en parallel persisted fejlkanal.
-
----
-
-## 6A. Runtimefejl
-
-Uventede runtimefejl i snapshot-entrypoints må aldrig give gyldige totals, PDF-projektioner eller kontrol-output, der ligner autoritativ beregning.
-
-Runtimefejl skal:
-
-1. fail-close i domænets egen status-/issue-model,
+1. fail-close i domænets status-/issue-model,
 2. rapporteres efter `error-contract.md`,
-3. give dansk blokerende brugerbesked,
-4. undgå fallback-beregninger i UI/PDF/kontrol.
+3. give en dansk blokerende brugerbesked,
+4. undgå fallback-beregninger i UI, dokument og kontrol.
 
----
+## 9. Originalt og effektivt input
 
-## 6B. Original vs. effektiv input
+Når domænet bruger transient/virtuelt input, skal det originale afsluttede input kunne auditeres uden at eksponere en
+rå bypass til consumers. Effektivt input må bruges til beregning, men må ikke persisteres eller fremstilles som
+brugerens input. EO's midlertidigt-EET-injection er referenceeksemplet.
 
-Hvis et snapshot bruger transient eller virtuel input, skal original committed input bevares uændret i snapshotets audit-/inputprojektion.
+## 10. Friskhed
 
-Effektiv input må bruges til beregning, men må ikke persisteres eller skjules som om den var brugerens committed state. EO's midlertidigt-EET-injection er referenceeksemplet på dette mønster.
+- Snapshotrevisionen svarer til den `ready` inputrevision, som beregningen brugte.
+- Et stale snapshot må ikke bruges til gate, invariant eller dokument.
+- En ny inputtransaktion udsteder ny revision; snapshottet genberegnes eller consumeren fail-closer.
+- Stale state er et refresh-behov, ikke i sig selv en systemfejl.
 
----
+## 11. Ikke-krav
 
-## 7. Hvad kontrakten ikke kræver
-
-Denne kontrakt kræver ikke:
-
-- en fælles `SnapshotInput`-base type for hele kodebasen
-- en generisk snapshot-factory eller cross-domain framework
-- identiske feltnavne mellem alle domæner
-- at alle delresultater pakkes i `Calculable<T>`; en projektion med `computation: null` og
-  eksplicitte issues er canonical, når domænekontrakten vælger den form
-
-Målet er kanonisk beslutning og ensartet retning, ikke tvungen teknisk ensformighed.
+Kontrakten kræver ikke en fælles snapshot-base type, generisk factory, identiske feltnavne eller `Calculable<T>` i alle
+domæner. Den kræver én autoritativ entry, en uomgåelig inputgrænse og revisionskonsistente projektioner.

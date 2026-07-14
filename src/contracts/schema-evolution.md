@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-14
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -16,7 +16,7 @@ Dette dokument har to niveauer:
 
 Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-contract.md`.
 
-`FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §7. Denne kontrakt ejer reglerne for persisted sektionsschemas, kildeversions-resolution, migration og load-sanitization.
+`FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §9. Denne kontrakt ejer reglerne for persisted sektionsschemas, kildeversions-resolution, migration og load-sanitization.
 
 Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Hvis parse fejler, droppes **hele sektionen** — ikke bare det enkelte felt. Det er den nuværende fail-closed model og skal forklares i preflight.
 
@@ -30,9 +30,10 @@ Ikke alle nye felter på skærmen er nye felter i sags-skemaet. Før implementer
 
 Et felt er et **sagsfelt**, hvis det er en del af den autoritative brugerindtastning for sagen og derfor skal:
 - gemmes i `.eo`
-- indgå i `FormPersistenceContext`
+- indgå i inputaggregatets canonical sektion
+- have en typed feltdefinition og strukturel `FieldRef`, hvis det kan redigeres
 - kunne indlæses igen efter save/load
-- kunne bruges af beregninger, PDF eller andre persisted flows
+- kunne bruges af beregninger, dokumenter eller andre persisted flows gennem `InputReader`
 
 For disse felter gælder hele resten af denne kontrakt uændret.
 
@@ -132,7 +133,8 @@ Når et nyt persisted felt tilføjes, skal man altid gennemgå følgende typer s
 
 3. **UI/page/tab (PÅKRÆVET hvis feltet vises eller kan redigeres)**
    - relevant page-komponent og eventuelle tabs/underkomponenter
-   - feltet skal bindes med korrekt commit-semantik
+   - feltet skal registreres i feltkataloget med codec, label, kontroltype og strukturel adresse
+   - formular og tabel skal bruge den fælles editor-state machine og settle-semantik
    - tabeller/række-generatorer skal opdateres hvis feltet lever i en række
 
 4. **Validator / krydsregler (BETINGET)**
@@ -143,18 +145,20 @@ Når et nyt persisted felt tilføjes, skal man altid gennemgå følgende typer s
    - relevante domain engines / snapshots / output-projektioner
    - påkrævet hvis feltet påvirker beregning, kontrol eller afledte resultater
 
-6. **PDF-lag (BETINGET)**
-   - relevante PDF-projektioner/renderere
-   - påkrævet hvis feltet skal vises i PDF eller gate PDF-output
+6. **Dokumentdefinition og output (BETINGET)**
+   - relevante dokumentdependencies, projektioner og generatorer
+   - påkrævet hvis feltet skal vises i eller gate PDF/Word-output
+   - den reaktive gate og click-preflight skal fortsat bruge samme dokumentdefinition
 
 7. **AppSettings (BETINGET)**
    - kun hvis feltet skal have brugerindstillingsstyret default
    - se `src/contracts/app-settings.md`
 
-8. **Tests (STÆRKT ANBEFALET)**
+8. **Tests (PÅKRÆVET)**
    - initial values
    - load af ældre filer uden feltet
-   - validator/beregning/PDF når feltet påvirker disse lag
+   - feltadresse-/envelopemigration ved ændret strukturel identitet
+   - validator/beregning/dokumentgate når feltet påvirker disse lag
 
 ### 2.2 Domænespecifikke stier
 
@@ -268,7 +272,22 @@ I `erstatningsopgoerelseInitialValues.ts` bruges `.parse()` (ikke `.safeParse()`
 
 ### 3.4 Row-generatorer for tabel-felter
 
-Nye felter inde i tabel-rækker (f.eks. en ny kolonne i `svieSmertePeriodeRowSchema`) kræver opdatering af den tilhørende row-generator (`ensureSvieRows`, `ensureTafRows` o.l.) og formentlig `useRowDrafts`-opsætningen i den tilhørende tabelkomponent. Disse er ikke dækket af skema-defaulten alene.
+Nye felter inde i tabelrækker (f.eks. en ny kolonne i `svieSmertePeriodeRowSchema`) kræver opdatering af den
+tilhørende row-generator (`ensureSvieRows`, `ensureTafRows` o.l.), collection-/entity-feltbuilderen og relevante
+dokument-/beregningsdependencies. Der oprettes ikke en rækkevis værdibærende draftkopi; hver celle bruger den fælles
+feltmotor. Disse led er ikke dækket af schema-defaulten alene.
+
+### 3.4a Feltadresse- og envelope-evolution
+
+Omdøbning/flytning af et redigerbart felt eller ændring af rækkeidentitet skal klassificeres både som schemaændring og
+som feltadressemigration:
+
+1. `PERSISTED_DATA_VERSION` håndterer canonical sektionsdata.
+2. `fieldAddressVersion` håndterer rejected inputs og history-/fokusidentitet.
+3. `InputEnvelope.envelopeVersion` håndterer den samlede sessionstruktur.
+
+Migrationerne skal være eksplicitte og tabsfri, når sikker mapping findes. Der må ikke etableres permanent dual-read,
+dual-write eller string-key-fallback.
 
 ### 3.5 AppSettings
 
@@ -293,7 +312,10 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
   → snapshot opdateres med sektionens data
 ```
 
-Samme sanitization-rækkefølge gælder session-hydrering. Zod-versioner og `stripUnknownFieldsBySchema`'s `.shape`/pipe-afhængigheder skal verificeres ved Zod-opgradering, fordi fejl her kan give forkert strip eller fingerprint-drift.
+Session-hydrering validerer først den samlede inputenvelope og anvender derefter samme sektionsmigration/
+sanitization på canonical data. Rejected input valideres særskilt mod feltkatalog og adresseversion. Zod-versioner og
+`stripUnknownFieldsBySchema`'s `.shape`/pipe-afhængigheder skal verificeres ved Zod-opgradering, fordi fejl her kan give
+forkert strip eller fingerprint-drift.
 
 ---
 
@@ -305,6 +327,10 @@ Samme sanitization-rækkefølge gælder session-hydrering. Zod-versioner og `str
 2. ændret migrator-/parse-semantik,
 3. ændret load-sanitization der påvirker sagsinput,
 4. bevidst breaking schema-ændring.
+
+`fieldAddressVersion` bumpes ved inkompatibel ændring af strukturelle feltadresser eller katalogmapping.
+`InputEnvelope.envelopeVersion` bumpes ved ændring af sessionaggregatets serialiserede struktur. Versionerne må ikke
+bumpes samlet uden klassifikation.
 
 `FILE_FORMAT_VERSION` bumpes kun ved inkompatible containerændringer uden for persisted sektionsdata, fx nye obligatoriske load-krav, inkompatibel metadata-struktur eller krypterings-/indpakningsformat. Additive metadatafelter, som er optionelle ved load, kræver ikke bump.
 

@@ -5,20 +5,26 @@
 
 Dette dokument er et arbejdsredskab for ændringer i EO-række-evaluering og EO-kontrol. Bindende fejl-/diagnostikregler ligger i `src/contracts/error-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
 
+> **Greenfield-retning 2026-07-14:** Filnavne og signaturer nedenfor beskriver fortsat den nuværende
+> implementeringsplacering, men input- og fejlgrænsen er erstattet som målarkitektur. Række-evalueringen skal modtage
+> én revisionskonsistent, ready snapshot-/kontrolprojektion med afledte issues. Rå canonical sektioner,
+> `fieldErrors`-stores og fallback til skjulte recovery-værdier er ikke fremtidige inputporte. Migrationen styres af
+> `draft-commit-greenfield-design.md`.
+
 > **Lagfordeling — læs dette først.** Række-evaluerings-motoren (builder-registry + alle `buildEo…Rows` + aggregator + delte typer/helpers) ligger i den autoritative placering **`src/domain/eoRowEvaluation/`**, fordi den driver den trust-kritiske download-gate og derfor ikke må ligge i et nominelt "DEV"-lag. Dette er resultatet af arkitektur-kandidat B9 (2026-06-25), der flyttede motoren ud af det tidligere `src/domain/debug/`-lag og omdøbte symbolerne `eoDebug…`→`eoRow…` (fx `collectAllDebugRows`→`collectAllEoRows`, `DebugRowModel`→`EoRowModel`, `EO_DEBUG_BUILDERS`→`EO_ROW_BUILDERS`). I **`src/domain/eoInspektion/`** ligger det rene kontrollag (page-/regulerings-viewmodel, CSV, integritet, parity, sammentælling) — det importerer motoren, aldrig omvendt. Den sproglige oprydning (2026-07-02) omdøbte dette lag fra `debug` til `eoInspektion` og dets brugervendte faner til "EO-kontrol" og "Kontroltabel", fordi de er inspektions-/kontrolvisninger, ikke fejlsøgningsværktøjer. Generiske række-format-helpere i motoren bærer ikke længere et `Debug`-suffiks (fx `RowDay`, `RowCellValue`, `parseDanishToIso`); den private exception-isolerings-helper hedder `executeEoRowBuilderEntry`, og fallback-rækkens id er `eo.rowBuilder.<section>.exception`.
 
 ---
 
 ## 1. Formål
 
-EO-kontrol skal vise committed, auditérbare og forklarlige oplysninger om sagen.
+EO-kontrol skal vise afsluttede, revisionskonsistente, auditérbare og forklarlige oplysninger om sagen.
 
 EO-kontrol er et visnings- og forklaringslag. Det er ikke den autoritative beregningspipeline.
 
 Konsekvens:
 - kontrollaget må gerne projektere, forklare og strukturere motorens resultater
 - kontrollaget må ikke indføre alternative beregningsforudsætninger i strid med motoren
-- kontrollaget må ikke gøre lovlige committed input "forkerte" ved at kalde delmotorer på et for bredt eller forkert grundlag
+- kontrollaget må ikke gøre lovlige afsluttede input "forkerte" ved at kalde delmotorer på et for bredt eller forkert grundlag
 - kontrollaget må gerne have fallback-visning uden `canonicalOutput`, men fallback må være tydeligt begrænset til forklaring og ikke udgive sig for at være autoritativ beregning
 
 ---
@@ -47,7 +53,7 @@ rowsBySection: Map<SectionId, EoRowModel[]>
 
 samtidig:
 
-inspektionSnapshot.inspektionDays + committed values + canonicalOutput?
+inspektionSnapshot.inspektionDays + ready kontrolprojektion + canonicalOutput?
   ↓
 buildRegulationTimeline(...)
   ↓
@@ -103,13 +109,15 @@ De deler samme builder-kilde, men har forskellig efterbehandling.
 
 Kun når `inspektionSnapshot` findes, returneres `kind: 'ready'`.
 
-Ved `ready` bruger viewet altid værdierne fra `inspektionSnapshot` som committed kontrolgrundlag:
+Ved `ready` bruger viewet altid værdierne fra `inspektionSnapshot` som revisionskonsistent kontrolgrundlag:
 - `inspektionSnapshot.stamdataValues`
 - `inspektionSnapshot.eoValues`
-- `inspektionSnapshot.fieldErrors`
+- `inspektionSnapshot.issues`
 - `inspektionSnapshot.inspektionDays`
 
-Det er korrekt og vigtigt, fordi kontrollaget ikke må læse "stale" input direkte fra `snapshot.input`, hvis snapshot allerede indeholder et konsistent committed kontrolgrundlag.
+Det er korrekt og vigtigt, fordi kontrollaget ikke må læse rå eller stale input direkte fra `snapshot.input`, hvis
+snapshot allerede indeholder et konsistent kontrolgrundlag. Et eventuelt audit-input må ikke eksponeres som en
+consumer-bypass.
 
 Der findes test for dette i `src/__tests__/domain/erstatningsopgoerelse/eoSnapshotToInspektionView.test.ts`.
 
@@ -120,10 +128,9 @@ Der findes test for dette i `src/__tests__/domain/erstatningsopgoerelse/eoSnapsh
 ```ts
 type EoRowEvaluationContext = {
   stamdataValues: StamdataValues;
-  stamdataErrors: StamdataFieldErrorsBySource;
   eoValues: ErstatningsopgoerelseValues;
-  eoErrors: ErstatningsopgoerelseFieldErrorsBySource;
-  loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>>;
+  issues: readonly EoInputIssue[];
+  revision: ReadyInputRevision;
   appSettings: AppSettings;
   canonicalOutput?: EoCanonicalOutput;
   pdfModel?: EoModel;
@@ -202,13 +209,13 @@ Rationale:
 
 ### Nuværende builders med canonical-output-kobling
 
-| Builder / modul | Læser fra canonical output | Fallback når canonical mangler |
+| Builder / modul | Læser fra canonical output | Når canonical mangler |
 |---|---|---|
 | `buildEoSvieSmerteRows` | `totals.svieSmerteOre`, `svieSmerte.maxApplied` | viser `'-'` for beregnet beløb |
-| `buildEoTaftRows` | `taf.tidligereModtagetTafOre` | falder tilbage til committed input |
-| `buildEoSygeferiegodtgoerelseRows` | `periodiseringer.tafPerioder` | falder tilbage til `buildTafRanges(values)` |
-| `buildEoOevrigeKravRows` | `periodiseringer.tafPerioder` | falder tilbage til `buildTafRanges(values)` |
-| `buildRegulationInspektionSections` | `regulering.perAnsaettelse[*].loenudviklingSegmenter`, `periodiseringer.tafPerioder` | falder tilbage til tidslinje/TAF-ranges |
+| `buildEoTaftRows` | `taf.tidligereModtagetTafOre` | viser sikker ikke-beregnet værdi; ingen fallback til rå input |
+| `buildEoSygeferiegodtgoerelseRows` | `periodiseringer.tafPerioder` | bruger kun en særskilt sikker kontrolprojektion, hvis snapshottet udtrykkeligt leverer den |
+| `buildEoOevrigeKravRows` | `periodiseringer.tafPerioder` | bruger kun en særskilt sikker kontrolprojektion, hvis snapshottet udtrykkeligt leverer den |
+| `buildRegulationInspektionSections` | `regulering.perAnsaettelse[*].loenudviklingSegmenter`, `periodiseringer.tafPerioder` | viser placeholders; ingen re-derivation fra rå data |
 
 ### Vigtig præcisering
 

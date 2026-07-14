@@ -18,7 +18,7 @@ AppSettings består af fire kategorier med forskellig semantik:
 `.eo`-filer er **trust-critical** og må kun indeholde **schema-valideret brugerinput** (sagsdata).
 
 Programindstillinger er **ikke** sagsdata og **må derfor aldrig**:
-- ligge i `FormPersistenceContext` / sessionStorage `STORAGE_KEYS`
+- ligge i sagens inputaggregate eller `sessionStorage`-inputenvelope
 - indgå i `.eo` save/load
 - være en del af nogen Zod-skemaer som repræsenterer persisted user input
 

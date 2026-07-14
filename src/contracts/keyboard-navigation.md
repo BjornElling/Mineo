@@ -3,8 +3,8 @@
 **Status:** Normativ
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
-**Implementeret i:** `src/components/layout/Container.tsx`
-**Senest verificeret mod kode:** 2026-07-12
+**Målgrænser:** `Container`, fælles felt-editor-state machine og grid-navigation
+**Senest verificeret mod kode:** 2026-07-14
 
 ---
 
@@ -62,6 +62,24 @@ Konsekvens:
 
 Konsekvens:
 - Enter-navigation må gerne dele intern mekanik med Tab-navigation, men kontrakten kræver kun den observerbare adfærd.
+
+---
+
+### Escape
+
+**Åben tekst-/talfelt- eller grid-editor:**
+
+- Escape annullerer universelt alt siden editoren blev åbnet.
+- Feltet gendanner editorens start-snapshot og committer ikke.
+- Hvis starttilstanden var et afsluttet ugyldigt input, gendannes den ugyldige rå tekst; en skjult tidligere canonical
+  værdi må ikke vises i stedet.
+- Det efterfølgende blur må ikke settle den annullerede tekst.
+- Beregning, visning og dokumentgate ændres ikke, fordi åben draft aldrig har ændret den afsluttede revision.
+
+**Lukket editor:** Escape ændrer ikke sagsinput.
+
+Popup-/overlay-Escape følger den konkrete widgets lukkeadfærd. Hvis en teksteditor er åben inde i en popup, skal
+editorens cancel håndteres før popupen eventuelt lukkes; én Escape-handling må ikke både committe og lukke.
 
 ---
 
@@ -182,7 +200,7 @@ Det betyder:
 
 ---
 
-## Test-garanti
+## Testkrav
 
 Container keyboard-navigation testes på to niveauer:
 
@@ -190,7 +208,7 @@ Container keyboard-navigation testes på to niveauer:
 
 **Placering:** `src/__tests__/components/layout/Container.test.tsx` og `src/__tests__/components/layout/Container.checklistGaps.test.tsx`
 
-**Dækker:**
+**Skal dække:**
 - Tab flytter fokus fremad (ingen selection)
 - Shift+Tab flytter fokus baglæns (ingen selection)
 - Enter flytter fokus fremad (ingen selection), undtagen på radiofelter
@@ -207,6 +225,8 @@ Container keyboard-navigation testes på to niveauer:
 - Container intercepter IKKE museklik; klik giver fokus til det klikkede felt (Container.checklistGaps)
 - Den rigtige `StyledDropdown` (readOnly combobox) indgår i Tab-rækkefølgen og åbner på Enter/første klik uden at Container kaprer (Container.checklistGaps)
 - `StyledDateField`/`StyledTextField` får fokus uden selection (Container.checklistGaps)
+- Escape gendanner editorens starttilstand for både tidligere gyldigt og tidligere rejected input
+- blur efter Escape committer ikke den annullerede draft
 
 ### 2. Residual manuel/visuel kontrol
 

@@ -1,15 +1,16 @@
 # Mineo - EET snapshot-kontrakt
 
-**Status:** Gældende arkitektur (normativ)
+**Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-14
 
 ---
 
 ## 1. Autoritativ entry og canonical output
 
-`computeEetSnapshot(...)` er den autoritative entry for Erhvervsevnetab-sidevisning, tabprojektioner og EET-PDF-flow.
+`computeEetSnapshot(...)` er den autoritative entry for Erhvervsevnetab-sidevisning, tabprojektioner og EET-dokumentflow.
+Den modtager kun en `ready`, revisionsbundet EET-inputprojektion; rå canonical sektioner må ikke gives som bypass.
 
 UI, PDF og EO-import må ikke lave parallelle EET-beregninger uden om snapshot/projektioner eller de helpers, som denne kontrakt udpeger.
 
@@ -62,17 +63,14 @@ fra snapshot-orchestreringen og rapporterer enhver blokering som issue.
 
 ---
 
-## 4. Row-level Fejl
+## 4. Row-level issues
 
-Row-level valideringsfejl på ASL-/EAL-afgørelsesrækker kan rapporteres via den centrale field-error bus og indgår ikke nødvendigvis i `EetSnapshot.hasBlockingErrors`.
+ASL-/EAL-rækkeissues afledes fra samme `InputReader` og rækkevalidatorer som snapshotinputtet. De lagres ikke i en
+field-error-bus og må ikke afhænge af, om rækkekomponenten er mounted.
 
-Kaldere må derfor ikke antage, at snapshotets blocking-flag alene er komplet save-/UI-gate for hele siden.
-
-Field-error-bussen er fortsat runtime-only UI-diagnostik efter `error-contract.md`. Adaptere må
-projicere relevante field errors til snapshot-issues, men `EetSnapshot` må ikke eje eller
-duplikere field-error-state, og adapterinput må ikke persisteres. Den eksisterende row-level
-UI-adfærd bevares; en migration til canonical snapshot ændrer ikke i sig selv, hvilke
-rækkefejl der vises inline.
+Kaldere må ikke antage, at snapshotets eget blocking-flag alene er komplet dokumentgate. Dokumentdefinitionen
+aggregerer snapshotissues, relevante rækkeissues og output-invariants ud fra sine strukturelle dependencies. Issues
+persisteres ikke og duplikeres ikke i `EetSnapshot` som selvstændig state.
 
 ---
 
@@ -98,13 +96,13 @@ uden relevante afgørelser og skal give en blokerende issue.
 
 Tests skal dække:
 
-1. snapshot bygges fra committed state,
+1. snapshot bygges fra en ready, revisionsbundet inputprojektion uden raw-section-bypass,
 2. runtime exception giver blokerende tom projektion,
 3. schemafejl og manglende source giver en eksplicit blokerende issue,
 4. de fire projektioners blocking-status og sammenhængen mellem blocking-flag og issues,
 5. `differencekrav` bruger eksplicit komponerede underberegninger,
 6. alle offentlige pengebeløb er `MoneyOre` efter uændret domæneafrunding,
-7. row-level error-bus-undtagelsen og adaptergrænsen,
+7. row-level issues er mount-uafhængige og indgår i relevante dokumentdefinitioner,
 8. importportens schema, revision og øre→krone-grænse.
 
 EO-import-konsekvensen (`Midlertidig`/`Delvist endelig` importeres, `Endelig` ignoreres, schema-/kontraktstridigt output fail-closer) testdækkes på EO-importens test-flade, ikke EET-snapshottets: se `src/__tests__/domain/erstatningsopgoerelse/midlertidigtEetTransientInjection.test.ts` og `midlertidigtEetInsertRows.test.ts`.

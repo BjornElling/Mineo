@@ -139,7 +139,8 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 3. `Erhvervsevnetab` og `Forsørgertab` må læse og skrive sektionen som en navngiven multi-writer-undtagelse.
 4. Felterne må ikke persisteres parallelt i de to domæne-sektioner.
 5. Fælles regler for disse felter skal implementeres i neutrale moduler under `src/domain/aslEalAarsloen/`.
-6. Ingen page-local default, hydration eller initialValues-materialisering må overskrive en eksisterende committed `faellesAarsloen`-værdi uden eksplicit brugercommit.
+6. Ingen page-local default, hydration eller initialValues-materialisering må overskrive en eksisterende afsluttet
+   `faellesAarsloen`-værdi uden en eksplicit brugercommand.
 7. Begge sider skal bruge samme schema, initial values og valideringsregler for sektionen.
 
 ---
@@ -185,7 +186,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 9. Manglende, schema-ugyldig eller runtime-fejlende import-context, mens togglen er aktiveret,
    skal give en eksplicit blokerende issue. Tilstanden må ikke maskeres som "ingen relevante
    EET-rækker".
-10. Virtuelle rækker injiceres aldrig i committed form-state. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
+10. Virtuelle rækker injiceres aldrig i inputaggregatet. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
 
 ---
 
@@ -199,17 +200,17 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    samme globale store-slice, så ændringer slår igennem begge steder.
 3. Undtagelsen er bevidst bidirektionel (til forskel fra §9, der er read-only): forligsgraden
    redigeres ligeværdigt fra begge faner. Settings-afledte initialværdier på `Erhvervsevnetab`-siden
-   skal matche EO-sidens egne, så et commit herfra ikke materialiserer afvigende EO-defaults.
-4. Undtagelsen giver **ikke** adgang til øvrige EO-felter eller EO-beregnet output. Råt
-   snapshot-opslag (`getPersistedData`/`usePersistedSection`) af `erstatningsopgoerelse` fra
-   `Erhvervsevnetab`-laget er fortsat forbudt; kun den schema-bundne forligs-slice er tilladt.
+   skal matche EO-sidens egne, så en command herfra ikke materialiserer afvigende EO-defaults.
+4. Undtagelsen giver **ikke** adgang til øvrige EO-felter eller EO-beregnet output. Råt aggregate-/sektionsopslag af
+   `erstatningsopgoerelse` fra `Erhvervsevnetab`-laget er forbudt; kun den navngivne, typed forligsprojektion gennem
+   `InputReader` er tilladt. Nuværende `getPersistedData`/`usePersistedSection`-kald er migrationskode.
 
 ---
 
 ## 11. Håndhævelse
 
 1. Nye hooks, viewmodels og pipelines må ikke hente persisted data fra andre fagsider end egen side plus de sags-globale sektioner, de er autoriseret til.
-2. Reviews skal afvise skjulte afhængigheder mellem fagsiders committed state.
+2. Reviews skal afvise skjulte afhængigheder mellem fagsiders afsluttede inputprojektioner.
 3. Ved tvivl gælder fail-closed: afvis koblingen, dokumentér behovet, og afvent kontraktændring.
 4. Når et domæne bruger snapshot-first, skal snapshot-entrypointet også følge `src/contracts/snapshot-contract.md` og en domænespecifik kontrakt eller dokumenteret entrypoint-deklaration med:
    - autoritative inputsektioner

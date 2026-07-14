@@ -2,15 +2,15 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Prioritet:** Tværgående; supplerer `form-contract.md §4` (form ejer parsing/coercion frem til valideret instans, denne kontrakt ejer kalendermatematik derefter).  
+**Prioritet:** Tværgående; supplerer `form-contract.md §8` (form/feltcodec ejer parsing/coercion frem til valideret instans, denne kontrakt ejer kalendermatematik derefter).
 **Senest verificeret mod kode:** 2026-06-10
 
 ## Scope
 - Al logik der tæller kalenderdage eller udleder dag-baserede perioder.
 - Al logik der beregner rentedage, svie/smerte-dage, TAF-dage eller periodedage.
 - Persistence-/form-laget ejer `ISODateString`; denne kontrakt ejer kalendermatematikken, efter værdien er valideret eller normaliseret.
-- Parsing og coercion af `ISODateString` fra brugerinput eller persistering hører til `form-contract.md` §4. Denne kontrakt gælder fra og med en valideret UTC-dato-instans.
-- **Uden for scope:** instant-tidsstempler med klokkeslæt (fx logs/fejlrapport). De lagres som UTC og *præsenteres* i dansk tidszone (Europe/Copenhagen) — se `error-contract.md` §8.5. UTC-getter-reglerne nedenfor gælder dato-kun-matematik, ikke disse tidszone-bevidste formateringer (`formatCopenhagenTimestampSeconds` / `formatCopenhagenISODate`).
+- Parsing og coercion af `ISODateString` fra brugerinput eller persistering hører til `form-contract.md` §8. Denne kontrakt gælder fra og med en valideret UTC-dato-instans.
+- **Uden for scope:** instant-tidsstempler med klokkeslæt (fx logs/fejlrapport). De lagres som UTC og *præsenteres* i dansk tidszone (Europe/Copenhagen) — se `error-contract.md` §10. UTC-getter-reglerne nedenfor gælder dato-kun-matematik, ikke disse tidszone-bevidste formateringer (`formatCopenhagenTimestampSeconds` / `formatCopenhagenISODate`).
 
 ## Regler
 - Alle dato-kun `Date`-instanser SKAL behandles som UTC-kalenderdage.

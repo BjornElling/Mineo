@@ -1,482 +1,245 @@
-# Mineo – Form Contract
+# Mineo – Form-kontrakt
 
-**Version:** 0.2
-**Status:** Gældende arkitektur
+**Version:** 1.0
+**Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
 **Senest verificeret mod kode:** 2026-07-14
-**Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
+**Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
----
-
-Dette dokument er **normativt**.
-Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
+Denne kontrakt beskriver slutarkitekturen. Den eksisterende implementering migreres efter
+`docs/architecture/draft-commit-greenfield-design.md`; overgangs-API'er er ikke præcedens for nye løsninger.
 
 ---
 
 ## 1. Grundprincipper
 
-1. Applikationen kører **100 % client-side**.
-2. Ingen brugerdata må forlade browseren.
-3. Domænegrænser mellem sider er bindende og styres af `src/contracts/domain-boundary-contract.md`.
-4. Al state-håndtering skal være:
-   - deterministisk
-   - forudsigelig
-   - fri for skjulte side-effects
-5. Korrekthed prioriteres altid over:
-   - kort kode
-   - "nemme løsninger"
-   - midlertidige hacks
+1. Applikationen kører 100 % client-side, og brugerdata må ikke forlade browseren.
+2. Draft, afsluttet input og beregningsklart input er tre forskellige semantiske niveauer.
+3. Alle autoritative inputændringer går gennem én atomisk inputtransaktion.
+4. Beregning, save og dokument-output må kun læse gennem den autoritative read-/projektionsgrænse.
+5. Samme problem løses med samme feltmotor, codec, feltidentitet og issue-model på formular- og tabeloverflader.
+6. Domænegrænser styres af `domain-boundary-contract.md`.
 
----
+## 2. Tre inputniveauer
 
-## 2. Draft vs Committed State
+### 2.1 Åben draft
 
-### 2.1 Definitioner
+En åben draft er den rå tekst, brugeren redigerer, mens editoren er åben.
 
-- **Draft state**
-  - Bruges til UI-interaktion
-  - Må indeholde:
-    - tomme værdier
-    - delvist indtastede værdier
-    - invalide værdier
-  - Er *aldrig* grundlag for beregning
+- Den må være tom, delvis eller ugyldig.
+- Den lever kun i felt-editorens state machine.
+- Den indgår ikke i undo/redo, `sessionStorage`, `.eo`, validering, beregning eller output.
+- `onChange` må kun ændre denne draft.
 
-- **Committed state**
-  - Er domænestate
-  - Skal altid være schema-valideret
-  - Bruges til:
-    - constraints
-    - beregning
-    - videre afhængigheder
+Mens editoren er åben, bygger visning, beregninger og download-gates fortsat på den senest afsluttede inputtilstand.
+At åbne editoren eller skrive må derfor ikke få beregnede sektioner til skiftevis at blive vist og skjult.
 
-### 2.2 Ufravigelige regler
+### 2.2 Afsluttet input
 
-- Draft ≠ committed
-- Parsing må **kun** ske ved commit
-- Committed state må **aldrig** indeholde invalide værdier
-- Draft state må **aldrig** anvendes direkte i beregninger
-- En tredje, eksplicit tier — **afsluttet ugyldigt input** — håndterer det input, der blev afsluttet, men ikke kunne parses (jf. §2.4). Den er en separat, string-typet recovery-kanal (`invalidDrafts`), ikke canonical domænestate, og indgår derfor aldrig i beregning eller `.eo`.
-- Synlighed/rendering må **ikke** i sig selv rydde allerede committet brugerinput i persisted sagsfelter
-- Hvis et persisted sagsfelt eller en persisted række skjules, skal den committede værdi fortsat kunne overleve `F5`, `.eo`-save og `.eo`-load
-- Skjulte committed værdier må kun neutraliseres ved, at validering og beregning eksplicit gater på de aktive domæneregler; de må ikke neutraliseres ved skjult state-clearing
-- Når et eksplicit brugercommit på et styrende valg gør et parse-kompetent felt eller en feltgruppe irrelevant og
-  skjuler den, skal eventuelle `invalidDrafts` for de netop skjulte felter ryddes **atomisk i samme finalize-transaktion**.
-  Reglen rydder kun ikke-committbar recovery-state; den må aldrig rydde eller ændre de skjulte committede værdier.
-  Skjules en hel tabel, omfatter rydningen dens aktuelle celle-`invalidDrafts`.
-- **Synlighed og beregnings-relevans har ét sandt sted.** Et felts synlighed (vis/skjul) og dets neutralisering i beregningen skal udledes af **samme** relevans-prædikat, så "skjult i UI" og "ignoreret i beregning" ikke kan divergere. Sidekomponenter må ikke gen-introducere inline-synlighedsbetingelser (`values.x === 'Ja' && …`, `getChecked(values.x) && …`) på felter hvis relevans ejes af et prædikat. Kanoniske prædikat-moduler: `domain/erstatningsopgoerelse/helpers/eoInputRelevance.ts` (EO; talfødende skjulte felter neutraliseres fail-closed via `neutralizeIrrelevantEoInputs` før motorerne) og `domain/policies/aarsloenPolicy.ts` (årsløn). Per-række relevans der afhænger af domæne-policy-opslag (fx sygeferiegodtgørelse via `resolveSfggSource`) ejes bevidst af den motor der allerede resolver kilden — den er ét sandt sted i sig selv og spejles ikke i prædikat-modulet.
+Afsluttet input er feltets autoritative tilstand efter blur, Enter eller en tilladt immediate-commit-handling. Tilstanden
+er enten:
 
-### 2.3 `initialValues`-materialisering
+- **gyldig:** en typet canonical værdi, eller
+- **ugyldig:** den ikke-tomme rå tekst, som ikke kunne parses.
 
-- `initialValues` er kun fallback for fraværende committed sektioner eller nye sagsdata.
-- Før `initialValues` bruges som committed fallback, skal de materialiseres gennem sektionens Zod-schema.
-- Schema-defaults må dermed anvendes ved oprettelse af nye runtime-værdier, men må ikke injiceres i `.eo` load for at skjule manglende nyere felter, jf. `persistence-contract.md`.
-- En eksisterende committed sektion må aldrig overskrives med `initialValues` pga. navigation, rerender, settings-ændring eller lokal resync.
-- Funktionelle form-commits via `usePersistedForm().setValues` må returnere en fuld sektion eller et subset-patch. Subset-patches skal materialiseres oven på seneste committed schema-værdi og derefter gennem den normale schema-validerede persistence-vej.
+Et ugyldigt afsluttet input maskerer altid en eventuel tidligere gyldig canonical værdi. Den tidligere værdi er kun
+recovery-data og må ikke nå en consumer, så længe masken findes.
 
-### 2.4 Afsluttet ugyldigt input (`invalidDrafts`)
+Tom tekst parser til feltets definerede tomme canonical værdi, normalt `undefined`. Om tomhed er en fejl, afgøres af den
+consumer, som kræver feltet.
 
-> **Terminologi (greenfield draft/commit-design 2026-07-14):** Det, denne kontrakt tidligere kaldte *committed rå
-> draft*, er præcisere en **afsluttet ugyldig inputtilstand**: brugeren har *afsluttet* redigeringen (blur/Enter/immediate
-> commit), men resultatet kunne ikke parses. Både et gyldigt og et ugyldigt resultat er en vellykket *afslutning* af
-> redigeringen; forskellen er, om den afsluttede tilstand er gyldig eller ugyldig. `invalidDrafts` er den nuværende
-> persistering af den afsluttede ugyldige tilstand og er migrationssubstrat for målarkitekturen i §2.5. Den forbliver den
-> autoritative beskrivelse af, hvad feltet aktuelt indeholder — den tidligere gyldige canonical værdi bag masken er
-> **ikke** feltets aktuelle domænestate (§2.5).
+### 2.3 Domæneprojektion
 
-Når et commit-forsøg ikke kan parses (ikke-committbart format, fx `"12.x.20"` i et datofelt), beholdes den committede værdi uændret (sidst gyldige eller `undefined`), og den rå streng skrives til en separat persisteret recovery-kanal:
+En domæneprojektion bygges fra ét revisionsbundet input-snapshot gennem den fælles `InputReader`.
 
-```
-invalidDrafts[pageKey][fieldPath] = råstreng (ikke-tom)
+- Kun en `ready` projektion må fodre beregningsmotorer, save eller dokumentgeneratorer.
+- En `blocked` projektion bærer strukturelle blockers med feltreference og årsag.
+- Domænekode må ikke modtage rå canonical sektioner som alternativ adgangsvej.
+- Uafhængige projektioner må fortsat være `ready`, selv om en anden consumer er blokeret.
+
+## 3. Autoritativ inputaggregate
+
+Den autoritative runtime-tilstand består konceptuelt af:
+
+```ts
+type PersistedInputState = Readonly<{
+  sections: FormPersistenceSections;
+  rejectedInputs: Readonly<Record<SerializedFieldAddress, RejectedInput>>;
+}>;
+
+type InputRuntimeState = Readonly<{
+  input: PersistedInputState;
+  revision: InputRevision;
+}>;
 ```
 
 Regler:
 
-- `invalidDrafts` er **ikke** committed domænestate. Den er string-typet og indgår aldrig i beregning.
-- Den flyder ad den normale committed-tier-vej: store → `sessionStorage` → undo/redo-snapshot. Den overlever derfor `F5` og kan undo/redo'es som alt andet committed input.
-- Den ekskluderes fra `.eo` (se `persistence-contract.md`). Da Gem blokeres ved enhver `invalidDrafts`-entry, kan en gemt fil per definition aldrig indeholde et entry.
-- Et vellykket commit på feltet rydder dets `invalidDrafts`-entry; et fejlende commit skriver/opdaterer det. Skrivning sker **kun** ved commit (blur/Enter), aldrig i `onChange` (no-live-preview).
-- Et styrende immediate commit kan rydde flere entries via `clearInvalidDrafts`; værdien og alle rydninger er ét
-  persistence-write, ét store-commit og ét undo-frame. Dette er den eneste tilladte skjulte rydning ved vis/skjul.
-- Feltets rød kant + tooltip for parse-fejl er en **afledt** visning af `invalidDrafts` (jf. `error-contract.md`). Range/rule/schema-fejl forbliver i `fieldErrors`.
-
-### 2.5 Afsluttet input er den autoritative feltbeskrivelse (normativt)
-
-Dette afsnit er den bindende kerneinvariant fra greenfield draft/commit-designet (2026-07-14). Det er **normativt** og
-overordnet enhver domænespecifik download-/beregnings-gate for det samme felt.
-
-**Tre tilstande, ét autoritativt lag:**
-
-1. **Åben draft** — det brugeren skriver, mens editoren er åben. Ren lokal UI-state (no-live-preview, §3).
-2. **Afsluttet input** — den aktuelle værdi efter blur/Enter/immediate-commit. Enten gyldig eller ugyldig (§2.4).
-3. **Domæneprojektion** — schema-validerede værdier, der må bruges til beregning, save og dokument-output.
-
-**Kerneinvariant:** Når editoren er lukket, skal vist feltværdi, aktuel inputtilstand, gate-status og undo/redo-status
-beskrive **samme brugerhandling**. Et afsluttet ugyldigt input er den autoritative beskrivelse af feltets aktuelle
-indhold og må aldrig behandles som den tidligere gyldige værdi.
-
-**Fail-closed projektion (ikke-omgåelig):**
-
-- En tidligere gyldig canonical værdi bag en afsluttet ugyldig maske er kun skjult recovery-data. Den må **ikke** nå
-  beregning, save eller dokument-output, så længe feltets afsluttede tilstand er ugyldig.
-- Domænekode (beregning, dokument-gates, generator-input) må **ikke** læse en canonical sektion direkte og derved omgå
-  masken. Al aktuel brugerinput-tilstand nås gennem en fail-closed projektion, der samtidig kender feltets ugyldige
-  tilstand. Er et relevant felt afsluttet ugyldigt, må den gyldige gren af projektionen ikke kunne dannes.
-- Dette er den strukturelle rettelse af klassen af fejl, hvor en gate fodres af et signal (fx en lokal `hasError`-boolean),
-  der pr. design er blankt præcis når inputtet er ikke-committbart. Lokale felt-fejl-booleans må ikke være selvstændige
-  sandhedskilder for output; se `document-output-contract.md`.
-
-**Migration, ikke big-bang:** `invalidDrafts` + read-modellens projektion genbruges som substrat (§2.4). Målet er at gøre
-projektionsvejen obligatorisk og ikke-omgåelig for alle legitime consumers, domæne for domæne, før legacy-sidekanalerne
-fjernes. Sondringen *ikke udfyldt* vs. *ugyldig værdi* ejes af den forbrugende projektion, ikke af feltet (§7.3,
-`error-contract.md`).
-
----
-
-## 3. Event-semantik
-
-### 3.1 onChange
-
-- Bruges **kun** til:
-  - opdatering af draft state
-  - visuel feedback
-- onChange må **ikke**:
-  - parse
-  - validere domænedata
-  - opdatere committed state
-  - trigge beregninger
-  - opdatere beregnede/afledte værdier (beregnede outputs må først opdatere ved commit)
-
-### 3.2 onBlur
-
-- onBlur er **primær commit-mekanisme**
-- onBlur må:
-  - parse draft → domænetype
-  - validere
-  - committe til committed state
-
-**Terminologi**
-- I Mineo er det mere præcist at tænke i et konceptuelt `onCommit` end i `onBlur`.
-- `onBlur` er standard-mekanismen, som udløser commit.
-- I tabeller kan commit også være bundet til eksplicit navigation (fx Enter/Tab) via tabel-kontrakterne, men semantikken er den samme: det er stadig commit.
-- onBlur skal være:
-  - imperativ
-  - entydig
-  - fri for async-hacks
-
-Globale handlinger må udløse samme commitvej gennem den registrerede felt-/grid-deltager efter
-`critical-action-contract.md`. Det er ikke en alternativ parse- eller valideringssti.
-
-### 3.3 Forbudte patterns
-
-- Ingen commit i onChange
-- Ingen implicit commit via useEffect
-- Ingen queueMicrotask / setTimeout / Promise-hacks
-- Ingen setState inde i setState
-
-### 3.4 Input-fokus og redigeringsmodel (2-trins)
-
-Mineo anvender en bevidst 2-trins interaktionsmodel for tekst-/tal-inputs (både på sider og i tabeller).
-Dette afviger fra standard MUI-/browser-adfærd og er **normativt**: fremtidige refactors, komponent-udskiftninger
-eller library-opgraderinger må ikke bryde disse semantikker.
-
-**Scope**
-- Gælder for Mineos “draft/commit”-inputs (de felter hvor parsing/validering er bundet til blur/commit).
-- Gælder ikke for popup-widgets/combobox/dropdowns (fx `StyledDropdown`, `TableDropdown`) hvor 1. klik typisk skal åbne en menu.
-
-**Definitioner**
-- **Fokus, editor lukket**: Feltet er fokuseret men er `readOnly` (caret skjules). Brugeren kan navigere mellem felter/celler uden at utilsigtet starte redigering.
-- **Editor åben**: Feltet er ikke `readOnly` (caret synlig). Brugeren kan redigere (cursor, selection, etc.).
-
-**Ufravigelige regler**
-- 1. fokus-handling (klik eller Tab ind) må **kun** give fokus; den må **ikke** åbne editor.
-- Klik på et allerede fokuseret felt må åbne editor (cursor placeres ved musen via browserens normale caret-placement).
-- Når editor er lukket og feltet har fokus:
-  - Et printbart tegn må åbne editor og **overskrive** eksisterende indhold (feltets draft sættes til den tastede karakter).
-  - Paste må **aldrig** åbne editor. Paste håndteres i lukket editor-tilstand efter feltets egne paste-regler.
-  - `Backspace`/`Delete` må rydde feltets indhold, men må **ikke** åbne editor.
-- Tastemodellen ejes normativt af `keyboard-navigation.md`.
-- Feltadaptere eller `mineo-field-pattern.md` ejer, hvilke første tegn der er plausible for hver inputfamilie.
-- En key-startet edit må højst opdatere draft og må aldrig parse, validere domænedata eller committe før commit-eventet.
-
-**Commit og validering**
-- Parsing/validering/commit må fortsat **kun** ske ved blur (eller Enter-commit hvor det allerede er en eksplicit del af feltets kontrakt).
-- Fokus uden åbnet editor må ikke trigge:
-  - commit
-  - touched/fejl-UI
-  - schema-commit
-
-**Table-note**
-- Tabel-inputs kan implementere “fokus-men-ikke-redigær” ved at styre `readOnly` pr. celle.
-- Rydning (`Backspace`/`Delete`) i fokus-men-ikke-redigær må ikke åbne editor, og må ikke forstyrre tabel-navigationens Tab/Enter-kontrakt.
-
----
-
-## 4. Date-håndtering
-
-### 4.1 Draft dates
-
-- Draft-dates repræsenteres som:
-  ```ts
-  string | undefined
-  ```
-- Draft-dates må være:
-  - tomme
-  - delvist indtastede
-  - ugyldige
-
-### 4.2 Committed dates
-
-- Committed-dates repræsenteres som:
-  ```ts
-  ISODateString | undefined
-  ```
-- Parsing sker kun:
-  - i onBlur
-  - via `coerceToISODateString`
-  - evt. schema-validering
-
-### 4.3 Constraints
-
-- Min/max constraints må kun læse:
-  - committed values
-- Draft values må aldrig bruges til constraints
-- Dato-intervalfejl (min/max) er **ikke** commit-blokerende:
-  - Gyldigt datoformat committes altid og formateres til canonical form (dd-mm-åååå/ISO)
-  - Udenfor interval giver fejlvisning (tooltip + rød ramme), men commit sker
-  - Ugyldigt format committes ikke
-- Undtagelse: visse domænespecifikke bounds kan give fejlvisning direkte i feltet fra commit-tidspunktet, når dette er normativt defineret i den relevante domænekontrakt.
-
-### 4.4 Gem-gating følger commitbarhed, ikke al rød fejl-UI
-
-Dette er et bevidst designvalg og er normativt for Mineo:
-
-- `.eo`-gem må gerne fortsætte, når et felt allerede har committet en gyldig canonical værdi, selv om
-  feltet viser rød fejlmarkering pga. bounds/afgrænsning.
-- `.eo`-gem må kun blokeres af fejl, der betyder at brugerens aktuelle input **ikke kunne committes** til
-  committed state.
-- Konsekvens:
-  - Gyldig dato i forkert interval må gemmes.
-  - Gyldigt heltal uden for UI-only range må gemmes.
-  - Ugyldig dato, ugyldigt talformat eller andre ikke-committable input må ikke gemmes.
-
-Rationale:
-- Save/load skal persistere schema-valideret committed brugerinput.
-- Rød fejlvisning i UI er ikke i sig selv nok til at blokere save; blokering afhænger af om committed
-  state findes og er gyldig.
-- Dette skel skal bevares ved fremtidige refactors for at undgå regression i save-flowet.
-
-`blocksSave` er normativt defineret i `error-contract.md`. Save-gating følger commitbarhed, ikke `severity` alene. Konkret blokeres Gem af: (1) enhver `invalidDrafts`-entry (ikke-committbart input, jf. §2.4), og (2) enhver blokerende `fieldErrors`-entry med `severity:'error'` og `blocksSave!==false` (typisk `rule`/`schema`-fejl). Range/bounds-fejl (`blocksSave:false`) blokerer aldrig.
-
----
-
-## 5. Tables
-
-### 5.1 Ansvar
-
-Tables er rene UI-komponenter.
-
-**Tables må:**
-- vise data
-- kalde callbacks
-- vise beregnede værdier leveret udefra
-
-**Tables må ikke:**
-- parse datoer
-- validere domænedata
-- kende ISO-formater
-- indeholde forretningslogik
-- beregne domæneværdier
+1. Canonical sektioner er altid valideret af deres Zod-schema.
+2. Rejected inputs er dækket af eget Zod-schema og validerede strukturelle feltadresser.
+3. Aggregate og revision ændres atomisk; en inputhandling må aldrig efterlade deltilstand.
+4. Revisionen stiger præcis én gang ved en reel transaktion og ikke ved en no-op.
+5. Revisionen persisteres ikke som brugerdata og gendannes ikke fra history.
+6. Eksisterende `invalidDrafts`, separate feltfejl-slices og sektionsvise skrive-API'er er migrationssubstrat, ikke
+   tilladte slut-API'er.
 
-### 5.2 Dataflow
-
-**Tables modtager:**
-- draft-strings
-- numbers
-- precomputed values
-
-**Al parsing og beregning sker i:**
-- parent-komponent
-- eller dedikerede hooks
-
-### 5.3 Standardiseret løntabel
-
-- Den standardiserede løntabel i `Årsløn` og `Lønindkomst` har to separate lønfelter med overskrifterne `Løn` og `Løn (2)`.
-- De to felter har identisk domænebetydning.
-- Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i løngrundlaget.
-- Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af lønindtastningen.
-- UI-tekster, PDF-headere, kontrolvisninger og tests skal afspejle denne regel.
-
-### 5.4 Offentlige ydelser-tabel
+## 4. Feltdefinition og identitet
 
-- Tabellen for `Offentlige ydelser` har to separate ydelsesfelter med overskrifterne `Ydelse` og `Ydelse (2)`.
-- De to felter har identisk domænebetydning.
-- Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i én samlet ydelse.
-- Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af ydelsesindtastningen.
-- UI-tekster, PDF-headere, kontrolvisninger og tests skal afspejle denne regel.
-
----
-
-## 6. Row-drafts
-
-### 6.1 Generelle regler
+Hvert persisteret felt har én typed `FieldRef<T>`, der forbinder:
 
-- Dynamiske tabelrækker med add/remove/reorder skal bruge `useRowDrafts`
-- Statiske eller domænespecifikke grid-tabeller må kun bruge direkte `commitRowUpdate`, hvis hver celle stadig følger Table*Input commit-kontrakten og tabellen ikke har row-draft isolation som brugerforventning.
-- Row-drafts følger samme principper som øvrige drafts:
-  - strings i draft
-  - parsing på blur
-  - committed state er schema-valideret
+- en strukturel `FieldAddress`,
+- feltets codec,
+- brugervendt label,
+- kontroltype,
+- fokusmål.
 
-### 6.2 useRowDrafts-kontrakt
+Samme reference bruges ved render, settle, validering, projektion, history-origin, gate og fokus-restore.
 
-- onChange opdaterer kun draft (strings)
-- `onRowBlur(rowId)` er række-granulær: ét felt-blur committer hele rækkens aktuelle draft mod committed state.
-- Commit (typisk row blur) opdaterer committed funktionelt og resyncer kun draft til ensured state, når committed rows faktisk ændrer sig.
-- No-op blur må ikke bumpe interne resync-tokens eller nulstille andre drafts.
-- Ingen side-effects i state-updaters
-- `useRowDrafts` må ikke eksponere rå `setDraftRows`; draft-opdateringer skal gå gennem hookets kontrollerede API, så ref-state og React-state er synkrone i samme event-handler.
+- Statiske felter defineres én gang.
+- Dynamiske række-/entity-felter dannes af typed builders.
+- Adresser beskriver data, ikke DOM eller tabelgeometri.
+- Frie strengnøgler og identitet som `rowId:colIndex` er forbudt.
+- DOM-attributter må være en projektion af feltreferencen, men må ikke være dens autoritet.
 
-### 6.3 Row Draft Resync Policy
+Det normative komponent- og codec-mønster findes i `mineo-field-pattern.md`.
 
-Row-drafts resynkroniseres kun efter autoritative hændelser:
+## 5. Event-semantik
 
-Dette sker ved:
-- Initial mount
-- Faktiske interne row-commits/add/remove/reorder, hvor committed rows ændrer sig
-- Form reset
-- Indlæsning af sag
-- Versions-migration
-- Undo/redo-restore
+### 5.1 Tastning
 
-Drafts resynkroniseres **ikke** ved no-op blur/commit, hvor den normaliserede committed række er uændret.
+`onChange` må kun opdatere den åbne draft. Det må ikke:
 
-**Normativ beslutning (Mineo pt.):**
-- `resyncToken` er obligatorisk i `useRowDrafts`.
-- Mineo bruger et form-wide `formVersion` som `resyncToken`.
-- Load, reset, migration og undo/redo er autoritative hændelser, hvor ucommitted row-draft bevidst kan tabes efter eksplicit brugerhandling eller global restore.
-- Section-granulær resync er ikke et generelt mål nu. Den må kun genåbnes, hvis et konkret datatabsscenarie dokumenteres.
-- Form-wide resync må ikke udvides til no-op commit-flows.
+- parse eller validere domænedata,
+- ændre afsluttet input,
+- trigge beregninger eller afledt feedback,
+- skrive persistence eller history.
 
-Debug-regel:
-Hvis en række “nulstilles”, skal man altid kunne pege på en faktisk intern row-ændring eller en `resyncToken`-ændring.
+### 5.2 Settle
 
-### 6.4 Draft-systemernes ansvarsfordeling
+Blur og Enter bruger samme feltmotor og samme `settleField`-transaktion:
 
-Tre kanoniske mekanismer implementerer draft/committed-separationen. De løser det samme grundproblem
-(brugerinput ≠ domænestate), men for forskellige UI- og datastrukturer:
+1. codec parser den aktuelle rå tekst,
+2. gyldigt resultat skriver canonical værdi og fjerner en eventuel rejection,
+3. ugyldigt resultat skriver den rå tekst som rejection og bevarer recovery-værdien maskeret,
+4. storage, aggregate, history og revision ændres som én transaktion.
 
-| Mekanisme | Datastruktur | Bruges til |
-|------|-------------|-----------|
-| `useDraftField` | Enkelt almindeligt felt (string → parsed value) | Individuelle Styled* text/number/date-felter uden grid-editor. Håndterer parse-on-blur, focus snapshot, cancel (Escape), error state per felt. |
-| `useRowDrafts` | Array af rækker (draft rows ↔ committed rows) | Dynamiske tabelrækker. Håndterer add/remove/commit row og resync via `resyncToken`. Validering hører til Table*Input eller tabelspecifik committed validering, ikke hookets tastetryks-hot path. |
-| `useTableInputCore` + tabel-input-adapter | Enkelt grid-cellefelt | Table*Input-komponenter, hvor GridCore ejer editoråbning, `commitCurrent`, `clearAndCommit`, key-startet edit og cellenavigation. Kernen ejer committed-resync (autoritativ snapshot-epoch + committed value), `invalidDrafts`-recovery-kanalen (via `useCellInvalidDraftChannel`), no-op fingerprinting og editor-handle wiring, så dette ikke duplikeres per inputtype. |
+En global kritisk handling må udløse den samme settle-sti gennem en registreret deltager. Der må ikke findes en separat
+parse-, validerings- eller persistencevej til kritiske handlinger.
 
-**Hvornår bruges hvad:**
-- Er inputtet et almindeligt enkeltfelt uden GridCore? → `useDraftField`
-- Er inputtet en dynamisk tabel med rækker der kan tilføjes/fjernes? → `useRowDrafts`
-- Er inputtet en GridCore-tabelcelle? → Table*Input skal bruge `useTableInputCore` med en type-specifik adapter. Parser/formatter/fingerprint-regler hører til adapteren; committed-resync, `invalidDrafts`-recovery-kanalen og GridCore editor-handle wiring hører til kernen.
-- Disse mekanismer må ikke overlappe for det samme ansvar på samme stykke data.
+### 5.3 Escape
 
----
+Escape annullerer universelt alt siden editoren blev åbnet:
 
-## 7. Validering
+- den åbne draft erstattes med editorens start-snapshot,
+- intet committes eller valideres,
+- det umiddelbart efterfølgende blur må ikke settle den annullerede tekst.
 
-### 7.1 Valideringslag
+Hvis feltet var afsluttet ugyldigt før åbning, gendannes den ugyldige tekst; den skjulte tidligere canonical værdi må
+ikke vises i stedet.
 
-Validering opdeles i to eksplicitte lag:
+### 5.4 Immediate commit
 
-**Lag 1 – Felt-lokal validering ved commit**
-- Format
-- Range
-- Feltets egne syntaks- og commit-regler
-- Kører på onBlur/onCommit
+Kun disse handlinger må committe uden en åben draft/blur-grænse:
 
-**Lag 2 – Fuld form / cross-field**
-- Tværfelt-regler
-- Beregningsforudsætninger
-- Tab- eller beregningsspecifikke blokeringer
-- Kører kun ved:
-  - tab-skift til beregningsvisning
-  - klik på "Beregn"
+1. Delete/Backspace på en fokuseret, lukket celle rydder feltet.
+2. Valg af dropdown-menupunkt committer valget; søge-/filtertekst gør ikke.
+3. Toggle- eller radioaktivering committer valget.
 
-### 7.2 Forbudte patterns
+De går gennem samme transaktionsrunner og feltreference som øvrige commits.
 
-- Ingen global `useEffect(() => validate(values))`
-- Ingen validering på hver keystroke
-- Ingen skjult auto-validering
+### 5.5 Forbudte mønstre
 
-### 7.3 *Ikke udfyldt* vs. *ugyldig værdi* afgøres i den forbrugende projektion, ikke i feltet
+- commit eller domænevalidering i `onChange`,
+- implicit commit via effect,
+- `queueMicrotask`, timeout, Promise-tick eller render-rækkefølge som korrekthedsforudsætning,
+- side-effects i state-updaters,
+- flere writes, der bagefter forsøges coalescet til én brugerhandling,
+- lokale fallback-stores for persisterede felter.
 
-Et felt-lokalt parse-kald kan afgøre, om et input er *committbart* (gyldigt) eller *ikke-committbart* (ugyldigt format),
-men det kan **ikke** afgøre, om et tomt felt er en fejl — "påkrævet" er næsten altid kontekstafhængigt (fx "Månedsløn
-skal udfyldes *når* 'Angivet månedsløn' er valgt"). Derfor:
+## 6. Fokus- og redigeringsmodel
 
-- Tom tekst er **ikke** en ugyldig værdi. Parseren mapper tom tekst til gyldig med værdi `undefined`.
-- En ikke-tom, ikke-committbar draft (herunder en delvis indtastning som `12-05-`) er **ugyldig** (`invalidDrafts`, §2.4).
-- Sondringen mellem *ikke udfyldt* (`missing`) og *ugyldig værdi* (`invalid`) afgøres af den forbrugende projektion/
-  blocker, der kender kravet — ikke af feltet. Den maskinlæsbare taksonomi (`missing`/`invalid`) og de brugervendte
-  besked-skabeloner ejes af `error-contract.md`.
+Mineos tekst-, dato- og talfelter bruger den eksisterende to-trinsmodel:
 
----
+1. Første fokus giver fokus uden at åbne editoren.
+2. Klik på et allerede fokuseret felt eller et plausibelt starttegn åbner editoren.
 
-## 8. Side-effects og state-sikkerhed
+Når editoren er lukket:
 
-### 8.1 Forbudte patterns
+- et printbart tegn åbner editoren og erstatter det viste indhold med tegnet,
+- paste åbner ikke editoren og følger feltets codec-regler,
+- Delete/Backspace følger immediate-commit-undtagelsen for tabelceller.
 
-- setState inde i setState
-- Async side-effects i state-updaters
-- Implicit state-sync via referencer
-- Læsning af stale closures i commit-logik
+Keyboard-navigation ejes af `keyboard-navigation.md`.
 
-### 8.2 Krav
+## 7. Initialisering, synlighed og relevans
 
-Alle commits skal være:
-- imperativt udløst
-- entydige
-- lette at følge i stack traces
+1. Initial values materialiseres gennem sektionens Zod-schema og bruges kun ved oprettelse eller reelt fravær.
+2. En eksisterende afsluttet værdi må aldrig overskrives af initial values ved navigation, rerender, settings-ændring
+   eller lokal resync.
+3. Synlighed og beregningsrelevans udledes af samme domæneprædikat.
+4. Skjult canonical input bevares gennem F5 og `.eo`, medmindre brugeren eksplicit sletter det.
+5. Når et styrende valg efter den gældende produktregel gør rejected input irrelevant, skal rydningen udtrykkes som én
+   typed domænecommand i samme transaktion som valget. Canonical skjulte værdier må ikke ryddes implicit.
 
----
+## 8. Datoer, bounds og save-policy
 
-## 9. Arkitektonisk konsekvens
+- Dato-draft er rå tekst; canonical dato er `ISODateString | undefined`.
+- Datoformat parses kun ved settle gennem det kanoniske datocodec.
+- Min/max og tværfeltgrænser læser kun senest afsluttet input.
+- En parsebar dato uden for interval committes canonical og giver et afledt range-/bounds-issue.
+- Ugyldigt format giver rejected input og ingen ny canonical værdi.
 
-Hvis kode:
-- føles "lidt forkert"
-- kræver forklaring for at give mening
-- bryder ovenstående regler
+`.eo`-save følger commitbarhed, ikke enhver rød fejlmarkering:
 
-**så er den forkert, også selvom den "virker".**
+- rejected input blokerer save,
+- schema-/regel-fejl blokerer efter deres save-policy,
+- range/bounds med en schema-gyldig canonical værdi kan fortsat gemmes, når domænet foreskriver det.
 
-Denne kontrakt prioriterer:
-- korrekthed
-- forudsigelighed
-- langsigtet vedligeholdelse
+Dokument-output har en strengere policy: ethvert dokumentrelevant issue med fejlseverity blokerer dokumentet, herunder
+range/bounds. Se `document-output-contract.md`.
 
-over:
-- hurtig implementering
-- kort kode
-- lokale kompromiser
+## 9. Dynamiske tabeller
 
----
+Rækkeinfrastrukturen ejer kun stabil rækkeidentitet, rækkefølge, add/delete/reorder og eventuelle tomme UI-rækkers
+livscyklus. Den ejer ikke en parallel `draftRows`-kopi af celleværdier.
 
-## 10. Ændringer af kontrakten
+- Hver celle bruger samme feltmotor og codec som formularfelter.
+- Første settle i en tom UI-række promoverer rækken atomisk, også hvis inputtet er ugyldigt.
+- Sletning af en række fjerner række og alle descendant-rejections i samme transaktion.
+- Orphan-state skal være urepræsenterbar; reconcile-effects er forbudt som slutarkitektur.
+- Add, delete og reorder bruger samme command-runner som feltændringer.
 
-Ændringer skal være:
-- eksplicitte
-- begrundede
-- versionsstyrede
+De to lønfelter `Løn`/`Løn (2)` og ydelsesfelterne `Ydelse`/`Ydelse (2)` har fortsat identisk domænebetydning inden
+for hvert par og summeres uden særbehandling.
 
-**Kode må aldrig stiltiende afvige fra kontrakten.**
+## 10. Validering og issues
 
----
+Issues afledes rent fra `InputReader`, feltmetadata, domænevalidatorer og relevante AppSettings:
 
-## 11. Beløbsfelter og numerik
+- `invalid` fra rejected input,
+- `missing` fra consumerens requirement,
+- `range`/`bounds` fra canonical værdi og konkrete grænser,
+- `schema`/`rule` fra domænevalidatoren.
 
-Beløbs- og afrundingsregler er samlet i `src/contracts/amount-contract.md`.
+Mounted komponenter rapporterer ikke afledelige fejl til en central store. Samme issue-model driver feltmarkering,
+tooltip, kontrolvisning, save-gate og dokument-gate med deres respektive policy.
 
-Form-kontrakten ejer kun commit-semantikken: beløb må parse/normalisere ved commit, ikke mens brugeren skriver. `AmountValue` er 2-decimalers beløb; felter med anden precision må ikke bruge `AmountValue`.
+Fejl- og beskedregler ejes af `error-contract.md`.
 
----
+## 11. Kritiske handlinger
 
-## 12. Domænespecifikke undtagelser
+Kritiske handlinger følger `critical-action-contract.md`.
 
-EO-specifikke feltklassificeringer, bounds-regler, TAF-konsistens og `tidligereModtagetTaf`-isometri er normativt defineret i `src/contracts/eo-snapshot-contract.md`.
+Særligt for dokument-download:
+
+1. Den reaktive gate bygger på senest afsluttede input, også mens en editor er åben.
+2. Klik/aktivering finaliserer editoren før dokumentpreflight.
+3. Preflight læser en frisk revision og bruger samme dokumentdefinition som den reaktive gate.
+4. Ved et nyt relevant fejl-issue bliver knappen visuelt og funktionelt disabled.
+5. Generator, lazy-load og fil-I/O må aldrig starte ved blokering.
+
+## 12. Migrationsregel
+
+`useDraftField`, `useTableInputCore`, `useRowDrafts`, `useSliceRowDrafts`, `FormPersistenceContext`, offentlige
+`invalidDrafts`-/`fieldErrors`-API'er og deres string-key-builders må eksistere midlertidigt under migrationen. De må
+ikke udvides, kopieres eller bruges som normativt eksempel. De slettes efter acceptkriterierne i greenfield-planen.

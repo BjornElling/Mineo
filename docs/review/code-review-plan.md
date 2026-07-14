@@ -1,5 +1,12 @@
 # Systematisk kode-review og refaktorering — Mineo
 
+> **Routingnote 2026-07-14:** Review af draft/settle, formular-/tabelinput, runtime-persistence, undo/redo,
+> afledte issues og dokumentgates følger `docs/architecture/draft-commit-greenfield-design.md` og de opdaterede
+> kontrakter. Nuværende `invalidDrafts`, `fieldErrors`, `useDraftField`, `useTableInputCore`, `useRowDrafts`,
+> `FormPersistenceContext`, per-sektion-storage og manuelle blocker-scopes er migrationskode, ikke mønstre der skal
+> konsolideres eller bevares. Ældre reviewfund om disse mekanismer er stadig nyttige som regressionsevidens, men kan
+> ikke overstyre målarkitekturen.
+
 Dette er arbejdsgrundlaget for et gennemgribende review af hele Mineos kodebase.
 Planen er ikke en passiv audit-liste: hvert punkt skal gennemgå, rette, teste og
 dokumentere den relevante del af systemet, så kode, kontrakter og tests konvergerer
@@ -19,8 +26,8 @@ gælder `src/contracts/*.md` over denne plan.
   og udføres direkte.
 - Zod-schemas er eneste runtime-sandhed for persisteret input og afledte typer.
   Ingen parallel TS/Zod-sandhed og ingen persisteret brugerdata uden schema-dækning.
-- Draft og committed state holdes strengt adskilt. Ingen beregning, validering
-  eller afledt feedback fra `onChange`-draft.
+- Åben draft, afsluttet input og domæneprojektion holdes strengt adskilt. Ingen beregning, validering
+  eller afledt feedback fra `onChange`-draft; åben editor bevarer visning/gate fra senest afsluttede revision.
 - Save/load er atomisk, forward/backward-tolerant og må ikke give stille datatab.
   Afledte værdier gemmes ikke som brugerinput.
 - Beregningsrefaktorering skal bevise tal-identitet med tests. Ændrer tallene sig,
@@ -335,8 +342,8 @@ Underpunkter:
   varige mén, erhvervsevnetab og erstatningsopgørelse.
 - **4.3 `.eo`-format:** `eoFileSchema`, forward/backward tolerance,
   strictness-guards og pre-save/pre-load alignment.
-- **4.4 Invalid drafts:** `invalidDraftsSchema`, recovery og schema-dækning.
-- **4.5 Fingerprint og save-order:** determinisme, row order og kobling til
+- **4.4 Rejected input og feltadresser:** schema, feltkatalog, adresseversion og recovery.
+- **4.5 Input-envelope og save-order:** determinisme, row order og kobling til
   persistence/tests.
 
 Kontroller:
@@ -345,7 +352,7 @@ Kontroller:
 - gamle `.eo`-filer kan loades med så meget gyldigt input som muligt;
 - nye manglende felter i gamle filer blokerer ikke load;
 - ukendte/fjernede felter håndteres tolerant uden at blive runtime-state;
-- `invalidDrafts` er schema-dækket og recovery-testet.
+- rejected input og strukturelle feltadresser er schema-dækket og recovery-/migrationstestet.
 
 ### 5 — Persistence, load og undo
 
@@ -370,21 +377,20 @@ Primært scope:
 
 Underpunkter:
 
-- **5.1 Persistence-store og read model:** source of truth, selectors,
-  immutable updates og committed-state invariants.
-- **5.2 Context-facade:** `FormPersistenceContext*` og tilladte importveje.
+- **5.1 Inputaggregate og read model:** én source of truth, `InputReader`,
+  immutable updates og afsluttet-input-invarianter.
+- **5.2 Transaktions- og systemporte:** typed commands, editorfacade og autoritative replacements;
+  de nuværende context-/hookfacader er migrationsscope.
 - **5.3 Save/load og file access:** file helpers, metadata, handles,
   kryptering, preflight, apply, rollback og round-trip.
 - **5.4 Hydration og migrations:** session hydration, migrations,
   load-sanitization, null/undefined-håndtering og schema-evolution-grænser.
-- **5.5 Invalid drafts:** storage, reconcile og bevaring uden at blive
-  beregningsinput.
-- **5.6 Undo/redo og fokus:** store, shortcuts, focus restore, editor guards og
-  navigation guards.
+- **5.5 Session-envelope og rejected input:** én nøgle, startup-migration, strukturelle adresser og ingen orphan-state.
+- **5.6 Undo/redo og fokus:** history i samme runtime-store, `FieldRef`-origin, shortcuts, focus restore og editor guards.
 
 Kontroller:
 
-- kun de kanoniske persistence-hooks bruges på rette niveau;
+- kun editorfacade, `InputReader`/typed projektioner og systemport bruges på rette niveau;
 - load preflight muterer ikke in-memory state før brugerbeslutning;
 - apply-fejl bevarer eksisterende state;
 - save indeholder kun schema-valideret brugerinput;
@@ -473,16 +479,15 @@ Primært scope:
 
 Underpunkter:
 
-- **8.1 Form- og draft-hooks:** `useDraftField`, `useFormFieldErrors`,
-  `useTwoStageInputActivation`, `useStyledFieldAdapter`.
+- **8.1 Fælles feltmotor:** editor-state machine, codecs, form-/grid-adaptere og migration væk fra
+  `useDraftField`, `useTableInputCore`, row-drafts og reporterbaserede feltfejl.
 - **8.2 Navigation- og interaktionshooks:** persisted active tab,
   unsaved-changes guard, scroll/shake helpers og route/scroll contexts.
 - **8.3 PWA/devtools-hooks:** launch queue, installed display mode og
   devtools monitoring.
-- **8.4 Domæne-hooks:** årsløn, ASL-årsløn reporter, document gates,
+- **8.4 Domæne-hooks:** årsløn, typed inputprojektioner, document definitions,
   omregning toggle, forligsansvarsgrad og midlertidigt EET insert source.
-- **8.5 Context-afgrænsning:** AppSettings/FormPersistence-contexts kun hvor
-  punkt 5/11 ikke allerede ejer det primære review.
+- **8.5 Context-afgrænsning:** AppSettings samt udfasning af FormPersistence-context som domæne-/pageadgang.
 
 Kontroller:
 
@@ -516,9 +521,9 @@ Underpunkter:
 
 Kontroller:
 
-- pages bruger `usePersistedForm` eller selectors efter kontrakten;
+- pages bruger felt-editorfacaden og typed read-/inputprojektioner efter kontrakten;
 - ingen afledt feedback fra draft-state;
-- sync-effekter overskriver ikke committed input;
+- sync-effekter overskriver ikke afsluttet canonical eller rejected input;
 - store komponenter opdeles kun når det reducerer faktisk kompleksitet;
 - debug-visninger må ikke blive domænesandhed.
 
@@ -554,7 +559,7 @@ Underpunkter:
 - **10.5 Øvrige generatorer:** årsløn, SH-dage, satser, varige mén,
   forsørgertab, rente, KRL, KL-lønaftaler og TAF-fordelt/graf/opreguleret.
 - **10.6 Download-/rapport-UI:** report dialog, artifact download,
-  committed-state gates og filnavne.
+  typed dokumentdefinitioner, reaktiv gate/click-preflight og filnavne.
 - **10.7 Paritetstests:** Word/PDF content harness, document tests og
   legacy-stier der skal afvikles.
 
@@ -562,7 +567,8 @@ Kontroller:
 
 - generatorer skriver mod `DocumentWriter`-grænsefladen;
 - PDF og Word har paritet for indhold, rækkefølge, tal og udeladelser;
-- dokumenter bruger committed state og domænesnapshots;
+- dokumenter bruger `InputReader`, ready domæne-/snapshotprojektioner og revisionsbundet `PreparedDocument`;
+- samme dokumentdefinition driver reaktiv gate og click-preflight, og alle relevante fejlissues blokerer;
 - filnavne og datoformater følger kontrakter;
 - legacy- eller duplikerede PDF/Word-stier fjernes når de ikke længere er autoritative.
 
@@ -583,7 +589,7 @@ Underpunkter:
   isolation fra `.eo`.
 - **11.2 Auth gate:** auth, auth config, AuthGate/LoginPage og contract guards.
 - **11.3 Beregnings-/app-config:** date ranges, page navigation,
-  persistence registry/version, storage manifest, invalid draft scopes og
+  persistence registry/version, storage manifest, feltkatalog/adresseversion og
   scroll config.
 - **11.4 Tema og build-info:** app theme, table theme, generated build info og
   version.

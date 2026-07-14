@@ -1,6 +1,6 @@
 # Mineo - Renteberegning domænekontrakt
 
-**Status:** Minimal domænekontrakt (normativ)  
+**Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
 **Senest verificeret mod kode:** 2026-07-14
@@ -17,32 +17,35 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 
 ## 2. Kanoniske Regler
 
-1. Renteberegning må kun bruge committed input, og kun via de autoritative moduler i §1.
+1. Renteberegning må kun bruge en `ready`, revisionsbundet inputprojektion fra `InputReader`, og kun via de
+   autoritative moduler i §1. Rå canonical sektioner er ikke en tilladt engine-/gate-adgang.
 2. Dato- og dagtælling følger `date-contract.md`.
 3. Beløb og afrunding følger `amount-contract.md`, medmindre rentedomænet får en mere specifik dokumenteret regel.
-4. PDF-download og nulstilling ("Slet alle indtastninger") kræver begge en eksplicit, auditerbar gate beregnet fra **afsluttet** input, ikke implicit tabelcontext. Download-gaten bygges på det fælles `documentGateTypes`-primitiv (jf. `document-output-contract.md §A2`) via de rene domæne-funktioner `evaluateDownloadAllGate`/`evaluateOversigtDownloadGate` (`src/domain/renteberegning/renteberegningDownloadGate.ts`), som `RenteberegningTab.tsx` forbruger til `downloadAllDisabled`/`oversigtDownloadDisabled`. Nulstillings-gaten (`clearAllDisabled`) udledes fortsat committed-only i `RenteberegningTab.tsx`.
-   - **"Committed-only" betyder afsluttet input (greenfield draft/commit 2026-07-14).** Et afsluttet ugyldigt input
-     (`invalidDrafts`) på et felt, download afhænger af — `beregningsdato` (globalt) eller en inkluderet rækkes
-     `renterFra`/`belob`/`tillaegstid` (per-række) — **skal** blokere den relevante download, også når der bag masken
-     ligger en tidligere gyldig canonical værdi. Gaten må ikke fodres af en lokal `hasError`-boolean, der er blank for
-     ikke-committbart format (`beregningsdatoHasError`/`renterFraHasError` fjernes som selvstændige sandhedskilder, jf.
-     `document-output-contract.md §A2.1`). Scope er præcist: en ugyldig celle i én række blokerer kun den rækkes
-     per-række-download + aggregat-downloads, ikke de øvrige gyldige rækkers per-række-download.
+4. Dokument-download og nulstilling ("Slet alle indtastninger") kræver eksplicitte, auditerbare gates fra afsluttet
+   input, ikke implicit tabelcontext. Hvert rentedokument definerer sine dependencies: fælles `beregningsdato` samt
+   felterne i den eller de inkluderede rækker. Den fælles projektion resolver rejected, missing, range/bounds og
+   regelissues; et manuelt global/row-scope eller lokale `hasError`-booleans er ikke tilladt. Dermed blokerer en
+   ugyldig celle automatisk sin per-række-download og aggregater, der inkluderer rækken, men ikke andre uafhængige
+   per-række-dokumenter. Nulstillings-gaten udledes af samme afsluttede inputmodel, men er ikke en dokumentgate.
 5. Renderer-fejl må ikke være primær gate for ugyldigt brugerinput.
 
 ---
 
 ## 3. Arkitekturvalg: ikke snapshot-first (bevidst)
 
-Renteberegning er **bevidst ikke** snapshot-first. Den tabel-/engine-drevne model i §1 er den valgte slutarkitektur for dette domæne. Domænet bruger dog en let, revisionsbundet `InputProjection` foran motoren; den er en inputintegritetsgrænse, ikke et beregningssnapshot.
+Renteberegning er **bevidst ikke** snapshot-first. Den tabel-/engine-drevne model i §1 er den valgte slutarkitektur.
+Domænet bruger en revisionsbundet `InputProjection` foran motoren; den er en inputintegritetsgrænse, ikke et
+beregningssnapshot.
 
-Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Hver rentekravsrække beregnes idempotent af `computeRentekravRow`, og PDF-stien **genbruger** rækkens `pdfContext` fra den samme ready-projektion (periodeoutput m.m.) — den genberegner ikke renteperioder. `buildRenteberegningInputProjection` maskerer en blokeret række, før motoren kaldes, og samler de scoped blockers som aggregat-gaten kræver. Et yderligere domænesnapshot ville tilføje vægt uden at fjerne en risiko.
+Begrundelse: hver rentekravsrække beregnes idempotent af `computeRentekravRow`, og dokumentstien genbruger rækkens
+beregnede context fra samme ready-projektion. Inputprojectionen bygger kun engine-input, når dokumentets/consumerens
+strukturelle dependencies er anvendelige. Et yderligere snapshot ville ikke fjerne en parallel beregningssti.
 
-Ved dokumentklik kører critical-action-preflight først. Derefter bygges projektionen igen fra det seneste imperative
-committed snapshot + `invalidDrafts`; kun ready-grenens branded revision må nå dokumentservicen. Servicen kontrollerer
-revisionen igen umiddelbart før generatoren og afviser fail-closed ved drift.
+Ved dokumentklik kører critical-action-preflight først. Derefter bygges projektionen fra en frisk `InputReader`; kun
+ready-grenens branded revision må nå dokumentservicen. Servicen kontrollerer revisionen efter lazy-load og umiddelbart
+før generatoren og afviser fail-closed ved drift.
 
-Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §5`.
+Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §6`.
 
 ---
 

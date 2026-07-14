@@ -83,38 +83,41 @@ Sproget skal være ensartet overalt efter disse regler — afvigelser rettes, hv
 - Design/opdatér schemas og typer **før** du ændrer implementeringslogik.
 
 ## Form-kerneregel: Ingen live preview
-- **Draft** = igangværende input under indtastning. **Committed** = schema-valideret kanonisk input brugt til beregning og save/load.
-- Commit sker på `onBlur` (forms) og `onPersist` (table-grænse). Beregn/validér/vis **aldrig** afledt feedback fra `onChange`-draft. Beregninger og "har ændret sig"-baselines bruger kun committed state.
+- **Åben draft** = igangværende tekst under redigering. **Afsluttet input** = enten schema-valideret canonical værdi eller rejected rå tekst efter settle. **Domæneprojektion** = beregningsklart input afledt gennem `InputReader`.
+- Settle sker ved blur/Enter gennem samme feltmotor på formular- og tabeloverflader. Beregn/validér/vis **aldrig** afledt feedback fra `onChange`-draft. Mens editoren er åben, bruger visning, beregning og dokumentgate senest afsluttede revision.
+- Escape annullerer universelt til feltets tilstand ved editorens åbning og må ikke committe ved efterfølgende blur.
 - **Eneste 3 immediate-commit-undtagelser:** (1) Delete/Backspace på fokuseret ikke-redigerende celle rydder og committer straks; (2) valg af dropdown-menupunkt committer straks (ikke søge-/filter-tekst); (3) toggle/radio-aktivering committer straks.
 
 ## Runtime data-integritet
-- I en aktiv session må committed brugerinput ikke forsvinde, nulstilles eller muteres implicit pga. navigation, re-renders, tab-skift eller intern sync.
-- State-synkronisering må aldrig overskrive committed brugerinput med afledte/default-værdier uden eksplicit brugerhandling. Effekter der synker props→state må aldrig overskrive allerede committed input.
+- I en aktiv session må afsluttet canonical eller rejected brugerinput ikke forsvinde, nulstilles eller muteres implicit pga. navigation, re-renders, tab-skift eller intern sync.
+- State-synkronisering må aldrig overskrive afsluttet input med afledte/default-værdier uden eksplicit brugerhandling. Effekter der synker props→state må aldrig overskrive allerede afsluttet input.
 - Brug eksplicitte immutable opdateringer; undgå skjult mutation i domæne-/state-flows.
 
 ## Save/load (.eo) — trust-kritisk
-- Stille datatab er uacceptabelt. Save inkluderer alt brugerindtastet input og kun schema-valideret brugerinput. Persistér kun brugerindtastet/-valgt data; genberegn afledte værdier efter load.
+- Stille datatab er uacceptabelt. Save inkluderer alt canonical brugerinput og kun schema-valideret brugerinput. Rejected input overlever F5 i sessionen, men blokerer `.eo`-save og skrives aldrig i filen. Persistér kun brugerindtastet/-valgt data; genberegn afledte værdier efter load.
 - Load er atomisk medmindre brugeren eksplicit accepterer delvis load i preflight. Ingen in-memory state muteres før preflight-beslutningen er bekræftet. Ved load/apply-fejl: bevar nuværende state uændret og vis eksplicit fejl.
 - Samme Zod-schemas (eller direkte schema-afledte validatorer) validerer både pre-save state og loaded `.eo`-data før apply.
 - **Forward/backward-tolerant load:** En gammel `.eo`-fil indlæses med så meget schema-gyldigt input som muligt. Ukendte/fjernede felter eller sektioner må ikke i sig selv fejle hele loadet. Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel. App-settings/device-lokale defaults må ikke injiceres under load for at få en gammel fil til at se komplet ud. Kan alle faktisk tilstedeværende værdier loades, tæller loadet som vellykket.
 - **Preflight** viser forventede/loadbare/fejlende counts og brugervenlige fejlårsager, med præcis disse valg: "Indlæs trods fejl", "Send fejloplysninger", "Stop og gør intet".
 - Vellykket fejlfrit load skal opfylde streng save→load round-trip for brugerinput. Behold ikke legacy-runtimekode eller kompatibilitets-stier alene for at bevare gamle interne modeller.
 
-## Kanoniske persistence-hooks
-Brug det mest restriktive niveau der dækker behovet:
+## Kanoniske inputgrænser
+Brug det mest restriktive niveau, der dækker behovet:
 
-| Niveau | Hook / API | Bruges af |
-|--------|-----------|-----------|
-| **Læs** | `usePersistedSectionSelector(pageKey)` (`hooks/useFormPersistenceSelectors`) | Al kode der læser persisted data (read-only, re-rendrer kun ved ændring i sektionen) |
-| **Rediger** | `usePersistedForm(schema, pageKey, initialValues)` | Sidekomponenter med formularer (`setValues`, `handleChange`, commitOnBlur) |
-| **System** | `useFormPersistence()` context direkte | Kun `MainLayout`, `FormPersistenceProvider`, persistence-infrastruktur (fuld API: `replaceAllPersistedData`, `clearAllData`, `persistData`) |
+| Niveau | Grænse | Bruges af |
+|--------|--------|-----------|
+| **Læs** | `InputReader` eller navngiven typed projektion | Beregning, validering, save, dokumenter og read-only sideforbrug |
+| **Rediger** | Felt-editorfacade med `FieldRef` og typed commands | Formular- og tabeloverflader; ingen rå sektionswrites |
+| **System** | Autoritativ transaction/replace-port | Kun input-, persistence-, load/reset- og history-infrastruktur |
 
-`FormPersistenceContext` er en facade over `formPersistenceStore` (Zustand) — storen er source of truth. Importér aldrig `FormPersistenceContext` direkte fra domæne-/sidekomponenter.
+Kun inputinfrastrukturen må se aggregatets rå `sections` og rejected-input-map. `FormPersistenceContext`, sektionsselectors, `usePersistedForm`, `invalidDrafts`-/`fieldErrors`-API'er og de tre nuværende draft-hooks er migrationskode; de må ikke bruges som ny arkitektur eller udvides under migrationen.
 
 ## Validering og fejl-UI
 - Ugyldigt input: rød kant + tooltip ved hover. Ingen inline-valideringstekst under felter.
 - Range/dato-tooltips skal indeholde konkrete grænser. Findes ingen gyldige datoer (min > max): tooltippen forklarer dette, viser begge grænser og navngiver de brugervendte inputs der producerer dem.
 - Talformattering i UI/tooltips følger danske konventioner.
+- Afledelige issues beregnes rent fra `InputReader`, feltdefinitioner og domænevalidatorer; mounted komponenter rapporterer dem ikke til en central store.
+- Ethvert dokumentrelevant issue med fejlseverity blokerer download. Downloadknappen er både visuelt og funktionelt disabled på den senest afsluttede blokerede revision. En åben draft ændrer ikke gaten; aktivering finaliserer editoren og kører samme dokumentdefinition igen på en frisk revision før generator eller fil-I/O.
 
 ## Numerik
 - Deterministisk numerik. Genbrug kanoniske afrundings-/formatterings-/currency-helpers; ingen ad hoc-afrunding eller inline numerik/currency i feature-komponenter. Indfør ikke nye numeriske strategier.

@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Prioritet:** Underordnet `form-contract.md` for draft/commit-semantik; overordnet arkitekturdokumenter ved konflikt.  
+**Prioritet:** Underordnet `form-contract.md` for draft/settle-semantik; overordnet arkitekturdokumenter ved konflikt.
 **Senest verificeret mod kode:** 2026-07-12
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
@@ -11,7 +11,7 @@ Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form-
 
 ## 1. Grundregel
 
-1. Numeriske værdier, der indgår i beregning, skal komme fra schema-valideret committed state.
+1. Numeriske værdier, der indgår i beregning, skal komme fra en schema-valideret ready inputprojektion.
 2. Featurekode må ikke indføre lokal afrunding, lokal valutaformatering eller lokal parsing.
 3. Brug eksisterende canonical helpers for parsing, afrunding og dansk formattering.
 4. Beregningslag skal arbejde på maskinvenlige talværdier, ikke locale-formaterede strings.
@@ -27,11 +27,11 @@ Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form-
 
 Regler:
 
-1. `value` findes på begge varianter og er den autoritative committed beregningsværdi.
+1. `value` findes på begge varianter og er den autoritative canonical beregningsværdi.
 2. `expression` findes **kun** på `'expression'`-varianten og er ren audit-/UI-repræsentation; adgang skal ske via `kind`-narrowing, aldrig som om feltet altid findes.
 3. Nedstrøms domæneberegning skal bruge `value`, aldrig genberegne fra `expression`.
 4. Operander i brugerens udtryk må ikke pre-afrundes eller pre-afskæres før evaluering.
-5. Kun slutresultatet må afrundes ved commit.
+5. Kun slutresultatet må afrundes ved settle.
 
 ---
 
@@ -43,7 +43,7 @@ Felter med anden precision må ikke bruge `AmountValue`. De kræver:
 
 1. ny særskilt type eller schema-adapter,
 2. eksplicit kontraktændring,
-3. test der dokumenterer precision, commit-normalisering og load-normalisering.
+3. test der dokumenterer precision, settle-normalisering og load-normalisering.
 
 Ad hoc-afrunding i featurekomponenter er arkitektonisk fejl.
 
@@ -82,7 +82,7 @@ Regler:
 
 Standard for beløb er 2 decimaler med `half away from zero`, medmindre en mere specifik domænekontrakt definerer en anden regel.
 
-Indlæste beløb skal normaliseres til samme committed semantik som almindelig commit. Load må ikke sende uafrundede beløb videre til beregningslaget. Den kanoniske normalisering (`normalizeAmountToTwoDecimals` i `src/schemas/amountExpressionSchema.ts`) anvendes både ved commit (`amountNumberSchema`/`amountExpressionSchema`) og ved coercion af persisteret input (`coerceToAmountValue`), så de to veje ikke kan drive fra hinanden.
+Indlæste beløb skal normaliseres til samme canonical semantik som almindelig settle. Load må ikke sende uafrundede beløb videre til beregningslaget. Den kanoniske normalisering (`normalizeAmountToTwoDecimals` i `src/schemas/amountExpressionSchema.ts`) anvendes både ved settle (`amountNumberSchema`/`amountExpressionSchema`) og ved coercion af persisteret input (`coerceToAmountValue`), så de to veje ikke kan drive fra hinanden.
 
 Bemærk: `.refine(Number.isFinite, …)` på `value` er load-bearing, fordi den ligger **efter** `normalizeAmountToTwoDecimals`-transformen, som kan videreføre et ikke-endeligt input uændret. Den må ikke fjernes som "død" (Zod 4's `z.number()` afviser ganske vist Infinity/NaN ved input, men ikke efter en transform).
 
@@ -92,7 +92,7 @@ Bemærk: `.refine(Number.isFinite, …)` på `value` er load-bearing, fordi den 
 
 Trust-kritiske numeriske ændringer skal have tests for:
 
-1. commit-afrunding,
+1. settle-afrunding,
 2. load-normalisering,
 3. negative værdier hvor det er tilladt,
 4. udtryk hvor operander ikke pre-afrundes,

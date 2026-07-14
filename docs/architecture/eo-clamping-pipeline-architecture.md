@@ -5,7 +5,7 @@
 
 ---
 
-Dette dokument beskriver **den faktiske behandlingsrækkefølge** for committede TAF- og
+Dette dokument beskriver **målarkitekturens behandlingsrækkefølge** for afsluttede canonical TAF- og
 svie/smerte-perioder i `computeEoSnapshot`. Det er en informativ pipeline-beskrivelse, der
 udfolder rækkefølgen og trinene bag de normative invarianter i `eo-snapshot-contract.md`.
 
@@ -19,16 +19,16 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
 
 ## Fuld behandlingsrækkefølge for TAF-perioder
 
-1. **Syntaksvalidering:** Ufuldstændige datoer (fx `dd-mm`) afvises i inputfeltet og
-   committes ikke. Kun gyldige ISO-datoer committes.
+1. **Syntaksvalidering ved settle:** Ufuldstændige datoer (fx `dd-mm`) bliver rejected input og maskerer en eventuel
+   tidligere canonical dato. Kun gyldige ISO-datoer når domæneprojektionen.
 
-2. **Semantisk validering (fejlgivende bounds):** Efter commit undersøges de committede
-   datoer mod fejlgivende bounds (kontrakt §2.2). Violation giver feltfejl (rød kant + tooltip) og
-   blokerer download via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
+2. **Semantisk validering (fejlgivende bounds):** Efter settle undersøges de afsluttede canonical
+   datoer mod fejlgivende bounds (kontrakt §2.2). Violation giver et afledt issue (rød kant + tooltip) og
+   blokerer relevante dokumentdefinitioner via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
    skadedato/anmeldedato-grænse, fra > til, til < fra, til >= differencekravDato,
    til >= EET-virkningsdato (ikke påklaget), overlap mellem rækker.
 
-   Validering sker på de committede rækker som sådanne — ikke først efter en
+   Validering sker på de afsluttede canonical rækker som sådanne — ikke først efter en
    relevansvurdering mod de autoritative, clampede ranges. En ugyldig TAF-række bliver
    derfor ikke "reddet" af, at den senere ville være uden betydning for det autoritative
    beregningsinterval.
@@ -36,8 +36,8 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
 3. **Clamping mod fejlgivende øvre grænser:** Til-dato clampes mod strengeste af:
    `differencekravDato − 1`, `endelig EET-virkningsdato − 1`, og (ved skadedato < 2011-06-16)
    `midlertidig EET-virkningsdato − 1`. Alle tre EET-grænser ophæves hvis `verserendeKlageEet = 'Ja'`.
-   Validator rapporterer violation som feltfejl der blokerer download. Rækkefølge: FØR
-   EO-periode-clamping, så feltfejlen ikke skjules af at EO-perioden forinden har afkortet perioden.
+   Validator rapporterer violation som issue, der blokerer relevante dokumenter. Rækkefølge: FØR
+   EO-periode-clamping, så issuet ikke skjules af at EO-perioden forinden har afkortet perioden.
 
 4. **Løse feriedage er række-bundne før merge:** Hvis brugeren har indtastet
    `loseFeriedage` på en TAF-række, knyttes disse dage til den oprindelige indtastede række
@@ -54,7 +54,7 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
    Ingen fejlindikation. Sker EFTER fejlgivende clamping.
 
 7. De resulterende ranges lægges til grund for beregning i EO-kontrol, Kontroltabel og
-   EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
+   EOBeregning. Dokumenter er blokeret, hvis deres dependencies rammes af fejlissues fra trin 1 eller 2.
 
 Bemærk om projektioner: EO-domænet kan have flere tekniske TAF-forbrugere, fx en
 per-række/merged-output-sti og en snapshot-baseret aggregationssti. Det er ikke i sig selv
@@ -65,20 +65,20 @@ beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle f
 
 ## Tilsvarende proces for svie/smerte-perioder
 
-1. **Syntaksvalidering:** Ufuldstændige datoer (fx `dd-mm`) afvises i inputfeltet og
-   committes ikke. Kun gyldige ISO-datoer committes.
+1. **Syntaksvalidering ved settle:** Ufuldstændige datoer (fx `dd-mm`) bliver rejected input og maskerer en eventuel
+   tidligere canonical dato. Kun gyldige ISO-datoer når domæneprojektionen.
 
-2. **Semantisk validering (fejlgivende bounds):** Efter commit undersøges de committede
-   datoer mod fejlgivende bounds (kontrakt §2.2). Violation giver feltfejl (rød kant + tooltip) og
-   blokerer download via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
+2. **Semantisk validering (fejlgivende bounds):** Efter settle undersøges de afsluttede canonical
+   datoer mod fejlgivende bounds (kontrakt §2.2). Violation giver et afledt issue (rød kant + tooltip) og
+   blokerer relevante dokumentdefinitioner via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
    skadedato/anmeldedato-grænse, fra > til, til < fra, til >= ménafgørelsesdato
    (ikke påklaget), overlap mellem rækker.
 
 3. **Clamping mod fejlgivende øvre grænse:** Til-dato clampes mod
    `menAfgoerelseDato − 1`, når ménafgørelsen er endelig
    (`varigeMenAfgorelse = 'Ja'` og `verserendeKlageMen = 'Nej'`).
-   Validator rapporterer violation som feltfejl der blokerer download. Rækkefølge: FØR
-   EO-periode-clamping, så feltfejlen ikke skjules af at EO-perioden forinden har afkortet
+   Validator rapporterer violation som issue, der blokerer relevante dokumenter. Rækkefølge: FØR
+   EO-periode-clamping, så issuet ikke skjules af at EO-perioden forinden har afkortet
    perioden.
 
 4. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
@@ -90,11 +90,11 @@ beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle f
    Ingen fejlindikation. Sker EFTER fejlgivende clamping.
 
 6. De resulterende ranges lægges til grund for beregning i EO-kontrol, Kontroltabel og
-   EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
+   EOBeregning. Dokumenter er blokeret, hvis deres dependencies rammes af fejlissues fra trin 1 eller 2.
 
-Implementeringen bruger parallelle constraint-typer (`SvieSmerteConstraintBounds`,
-`resolveSvieSmerteFejlgivendeBounds`, `resolveSvieSmerteEoPeriodeBounds`) i
-`svieSmerteConstraints.ts`.
+De domænespecifikke constraint-resolvers (`SvieSmerteConstraintBounds`,
+`resolveSvieSmerteFejlgivendeBounds`, `resolveSvieSmerteEoPeriodeBounds`) kan fortsat ligge samlet i
+`svieSmerteConstraints.ts`; issueprojektionen er den fælles consumergrænse.
 
 > **Bemærk om overlap (svie/smerte):** Ethvert overlap mellem svie/smerte-perioder afvises —
 > også overlap mellem perioder med samme tilstand. Validator og `svieSmerteEngine` afviser

@@ -1,29 +1,31 @@
 # Mineo - Forsørgertab snapshot-kontrakt
 
-**Status:** Minimal domænekontrakt (normativ)  
+**Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-07-14
 
 ---
 
-## 1. Autoritativ Entry
+## 1. Autoritativ indgang
 
-`computeForsoergertabSnapshot(...)` er den autoritative entry for Forsørgertab-sidevisning, felt-UI, beregning og PDF-projektion.
+`computeForsoergertabSnapshot(...)` er den autoritative entry for Forsørgertab-sidevisning, felt-UI, beregning og
+dokumentprojektion.
 
-UI og PDF-flow må ikke lave parallelle Forsørgertab-beregninger uden om snapshot-projektionen.
+UI og dokumentflow må ikke lave parallelle Forsørgertab-beregninger uden om snapshot-projektionen.
 
 ---
 
 ## 2. Inputgrænser
 
-Snapshot må læse:
+Snapshotprojektionen deklarerer strukturelle dependencies i:
 
 1. `forsoergertab`,
 2. `stamdata`,
 3. `faellesAarsloen`.
 
-Andre persisted sektioner kræver ændring i `domain-boundary-contract.md`.
+Dependencies resolver gennem én `InputReader`-revision. Snapshotentrypointet modtager kun `ready` input; rejected
+input må aldrig omgås via rå canonical sektioner. Andre domæner kræver ændring i `domain-boundary-contract.md`.
 
 ---
 
@@ -34,15 +36,15 @@ Snapshot skal mindst deklarere:
 1. felt-UI projektioner,
 2. gates for ASL/EAL/resultatvisning,
 3. beregningsresultat eller tom tilstand,
-4. `pdfGate`,
-5. PDF-projektion,
+4. dokumentgate fra den fælles dokumentdefinition,
+5. dokumentprojektion,
 6. issues/fejlklassifikation.
 
 ---
 
 ## 4. Fail-closed
 
-Forventelige brugerinputtilstande skal give feltfejl eller issues. Uventede runtimefejl må aldrig give gyldige totals eller PDF-projektion.
+Forventelige brugerinputtilstande skal give afledte issues. Uventede runtimefejl må aldrig give gyldige totals eller dokumentprojektion.
 
 Runtimefejl skal routes efter `error-contract.md` og give dansk blokerende brugerbesked.
 
@@ -52,8 +54,8 @@ Runtimefejl skal routes efter `error-contract.md` og give dansk blokerende bruge
 
 Tests skal dække:
 
-1. snapshot bygges kun fra committed input,
-2. `pdfGate.canDownload` følger samme gate som PDF-projektionen og `pdfGate.reasons` angiver blokerende årsager,
+1. snapshot bygges kun fra en ready, revisionsbundet inputprojektion,
+2. dokumentgaten og dokumentprojektionen kommer fra samme dokumentdefinition og angiver blokerende årsager,
 3. runtime exception blokerer output,
-4. changes i `faellesAarsloen` påvirker snapshot deterministisk,
-5. PDF-flow bruger snapshot-projektionen.
+4. ændringer i `faellesAarsloen` påvirker snapshot deterministisk,
+5. dokumentflow bruger snapshot-projektionen og afviser stale revision.

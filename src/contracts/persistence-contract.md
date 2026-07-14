@@ -1,249 +1,213 @@
 # Mineo – Persistence-kontrakt
 
-**Status:** Gældende arkitektur (normativ)
+**Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
-**Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter. `schema-evolution.md` ejer konkrete schema-ændringsregler.
+**Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
 **Senest verificeret mod kode:** 2026-07-14
 
-Denne kontrakt samler de trust-kritiske regler for persistence, save/load og autoritative state replacements.
+Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
+Eksisterende per-sektion-storage og `invalidDrafts` migreres efter
+`docs/architecture/draft-commit-greenfield-design.md`; de er ikke slutarkitektur.
 
----
+## 1. Scope og dataklasser
 
-## 1. Scope
+Kontrakten gælder:
 
-Kontrakten gælder for:
+- runtime-aggregatet for sagsinput,
+- den ene `sessionStorage`-envelope for aktiv sag,
+- `.eo` save/load,
+- atomiske inputtransaktioner og replacements,
+- schema- og adresse-evolution.
 
-- `sessionStorage`-persistens af sagsdata
-- `.eo` save/load
-- atomisk apply af indlæst snapshot
-- schema-evolution og preflight
+AppSettings og uafhængig UI-sessionstate er ikke sagsinput og ligger fortsat under deres egne kontrakter/nøgler.
 
-App-settings er ikke omfattet; se `app-settings.md`.
+Sagsinput har to autoritative dele:
 
----
+1. Zod-validerede canonical sektioner.
+2. Zod-validerede rejected inputs med rå tekst og strukturel feltadresse.
 
-## 2. Kun schema-valideret brugerinput
+Rejected input er afsluttet brugerinput, men ikke canonical domænedata. Det overlever F5 og undo/redo, men skrives
+aldrig til `.eo` og må aldrig nå beregning eller dokument-output som en tidligere gyldig værdi.
 
-1. Persistens af **sagsdata** (`.eo` + de versionerede sektioner i `persistenceRegistry`) må kun indeholde schema-valideret brugerinput.
-2. Runtime-fejl, debug-state, UI-state og derived outputs må ikke persisteres som sagsdata.
-3. Samme Zod-schemas skal beskytte både save og load.
-4. Den persisterede `invalidDrafts`-recovery-kanal (§11) er en bevidst undtagelse fra punkt 1: den lagres i `sessionStorage` for at overleve `F5`, men er **ikke** sagsdata, indgår aldrig i `.eo` og er fuldt Zod-dækket af sit eget schema.
+Afledte issues, beregninger, gates, runtimefejl, åbne drafts og history er ikke sagsdata.
 
----
+## 2. Én runtime-sandhed og én transaktionsgrænse
 
-## 3. Save-garantier
+Den autoritative runtime-sandhed er ét inputaggregate med én monoton revision. Alle ændringer går gennem én intern
+command-runner, herunder:
 
-1. Save skal inkludere alt brugerindtastet, schema-valideret sagsinput.
-2. Save må ikke inkludere device-lokale defaults eller afledte værdier kun for at gøre filen "komplet".
-3. Save-gating følger commitbarhed, ikke al rød fejl-UI.
-4. Felter eller rækker, der er schema-valideret brugerinput men aktuelt skjult i UI, skal stadig gemmes i `.eo`, medmindre brugeren eksplicit sletter dem.
-5. Save-snapshot må først aflæses, når den kanoniske kritiske handlingsbarriere har returneret
-   `committed`; et blokeret eller fejlende resultat må ikke starte fil-I/O.
-6. Save bygger og verificerer ét artefakt før enhver sink. En sink uden read-back
-   (fallback-browser-download) verificeres i hukommelsen *før* download, så et korrupt artefakt
-   aldrig downloades. En sink med read-back (File System Access) verificeres ved at læse de
-   faktisk skrevne bytes tilbage. Ved verifikationsfejl afbrydes gemningen med en synlig dansk fejl.
+- settle og immediate commit,
+- insert/delete/reorder af rækker,
+- reset af sektion,
+- replace/clear af sag,
+- undo/redo.
 
-`.eo`-bytes ↔ container-model: al **load-inbound** afkodning går gennem præcis én grænse
-(`EoFileCodec`): `buildEoFileContainer` + `encodeEoFile` outbound (save), `decodeEoFile` inbound
-(load, delt af manuel picker og PWA-handle). Samme rå bytes afkodes altid ens uanset kilde.
-Save-sidens read-back-verifikation (`verifyAfterSave`) er en bevidst SEPARAT, strikt
-integritetskontrol (dekrypter → re-parse mod det strikte container-schema) og deler ikke
-grænse med den load-tolerante/migrerende afkodning.
+For hver reel transaktion gælder:
 
-**I/O-porte og diskriminerede resultater.** Hvor bytes læses fra og skrives til er typede porte, adskilt
-fra kodning/verifikation/UI-flow:
+1. Læs ét før-snapshot.
+2. Byg kandidattilstanden med en ren reducer.
+3. Valider berørte canonical sektioner med deres Zod-schemas.
+4. Valider rejected inputs og adresser mod rejected-schema og feltkatalog.
+5. Afvis semantisk no-op uden write, history eller revisionsstigning.
+6. Serialisér hele inputenvelopen.
+7. Skriv og verificér den ene sessionnøgle.
+8. Opdatér aggregate og history i ét observerbart store-write; stig revisionen én gang.
 
-- Load: en `LoadSource` (`fileLoadSource.ts`) leverer en `File` + provenance (`manual` picker/fallback
-  eller `pwa`-handle); `loadFromSource` ejer den delte kæde valider→læs→afkod→processér.
-- Save: `resolveSaveTarget` (`fileSaveTarget.ts`) resolver et diskrimineret `SaveTarget`
-  (`fileHandle` read-back-sink | `download` in-memory-sink | `cancelled`); `saveToFile` ejer
-  write+verifikation og forgrener kun på `target.kind`.
-- Resultattyperne er diskriminerede på `status`, ikke `success: boolean`: `SaveFileResult`
-  (`saved | cancelled`) og `LoadFileResult` (`loaded | preflight | cancelled`). Egentlige fejl kastes
-  som exceptions; et snapshot findes præcis når `status` er `loaded`/`preflight`.
+Ved fejl skal storage, aggregate og history stå i før-tilstand. Delvis mutation må aldrig blive observerbar.
 
-**Filhandlingsserialisering.** Højst én Gem/Hent-handling må være aktiv ad gangen. Ejerskabet
-omfatter både preparation, fil-I/O og eventuelle preflight-/overskrivelsesdialoger. En ny manuel
-Gem/Hent afvises med `En filhandling er allerede i gang.` En PWA-fil, der ankommer imens, må
-ikke auto-indlæses eller tabes: kun den seneste request bevares, og når den aktive handling er helt
-afsluttet, spørges brugeren med valgene `Indlæs fil` og `Ignorer`.
+Offentlige sektionswrites, særskilte rejected-input-writes og fejlreporter-writes er forbudt som slut-API. Editorlaget
+udsteder typed commands; consumers får read-only `InputReader` eller godkendte projektioner.
 
----
+## 3. Én `sessionStorage`-envelope
 
-## 4. Load-garantier
+Aktiv sagsinput lagres under én namespace-aware Mineo-nøgle:
 
-1. Load skal være atomisk, medmindre brugeren eksplicit vælger delvis indlæsning efter preflight.
-2. Ingen in-memory state må muteres før preflight-beslutningen er truffet.
-3. Ved apply-fejl skal eksisterende in-memory state bevares uændret.
-4. Filer skal kunne indlæses så langt det er sikkert muligt inden for den aktuelle schema-/formatpolitik:
-   - ukendte/udgåede felter strippes og rapporteres
-   - manglende nyere felter må ikke alene få hele sektionen til at fejle, hvis de kan håndteres via `optional()`, sikker default eller eksplicit migrator
-   - ugyldige eksisterende felter kan medføre hel-sektion-drop, hvis de ikke sikkert kan migreres
-5. Ved schema-udvikling skal manglende felter derfor være `optional()` eller have sikker default, medmindre en eksplicit breaking-change beslutning i `schema-evolution.md` siger andet.
-6. Ukendte sektioner i `.eo`-filer må ikke i sig selv få hele loaden til at fejle; de skal rapporteres som ikke-indlæste og holdes ude af apply-snapshot’et.
-7. Manuel og PWA-initieret load må først starte fil-I/O efter `prepare('load')=committed`, jf.
-   `critical-action-contract.md`.
-
-**Implementation status:** Den aktuelle load-model er sektion-baseret: efter sanitization parses hver sektion med Zod. Fejler en sektion parse, indlæses den ikke delvist. Denne kontrakts "så langt det er sikkert muligt" betyder derfor aktuelt: bevar sektioner der parser sikkert; drop sektioner der ikke parser; rapportér årsagen i preflight. Feltvis recovery kræver eksplicit migrator/recovery-lag og må ikke antages implicit.
-
----
-
-## 5. Preflight
-
-Preflight skal mindst indeholde:
-
-- forventet antal felter
-- antal felter/sektioner der kan indlæses
-- antal fejl
-- brugerrettede årsager per fejl
-
-Preflight skal tilbyde præcis disse valg:
-
-- `Indlæs trods fejl`
-- `Send fejloplysninger`
-- `Stop og gør intet`
-
-Semantik:
-
-1. `Indlæs trods fejl` betyder hel-sags-erstatning med de sektioner, der er loadbare efter preflight. Sektioner der ikke kan indlæses, bevares ikke fra den aktive runtime-sag.
-2. `Send fejloplysninger` må ikke sende brugerdata ud af browseren. Funktionen skal være lokal, fx kopiering/eksport af sanitiserede fejloplysninger eller åbning af eksisterende lokale bugrapport-flow.
-3. `Stop og gør intet` må ikke mutere in-memory state, `sessionStorage` eller undo/redo-historik.
-
-Preflight-UI skal gøre destruktiv partial-load tydelig: ved `Indlæs trods fejl` fjernes fejlede sektioner fra den aktive sag.
-
-Hvis filen ikke indeholder ét eneste udfyldt felt, der kan indlæses mod den aktuelle struktur,
-stoppes load fail-closed før preflight. `Indlæs trods fejl` må ikke tilbyde en tom hel-sags-erstatning,
-fordi handlingen da alene ville slette den aktive sag uden at bevare brugerdata fra filen.
-
----
-
-## 6. Autoritative state replacements
-
-Ved reset, load eller anden autoritativ erstatning gælder:
-
-1. Hele snapshot’et valideres før apply.
-2. Sektioner erstattes atomisk.
-3. Runtime-feltfejl ryddes atomisk sammen med apply.
-4. Draft-resync må kun trigges af autoritative replace-events.
-5. Undo/redo-history ryddes ved succesfuld autoritativ hel-sags-erstatning, jf. `undo-redo-contract.md`.
-
-Den kanoniske load-rækkefølge er:
-
-1. læs/dekryptér fil eller storage og resolvér sektionsdataenes kildeversion
-2. normalisér + anvend en eventuel eksakt, eksplicit migrator for kildeversionen på sektionsværdien (detaljeret trin-rækkefølge ejes af `schema-evolution.md` §3.1a)
-3. strip ukendte felter/sektioner efter schema
-4. valider sektioner/snapshot
-5. vis preflight og afvent brugerbeslutning
-6. skriv/replace autoritativt snapshot
-7. ryd runtime-fejl, ryd undo/redo-history ved hel-sags-apply og trig resync
-
-Ingen sidekomponent eller almindelig page-hook må omgå denne rækkefølge.
-
-Versionsmismatch er ikke i sig selv en migration. Hvis en sektion fra en anden `PERSISTED_DATA_VERSION` validerer mod aktuel struktur efter migrator/sanitization, betyder det kun at den kan bevares; eventuelle nye schema-defaults kan være anvendt under parse. Feltvis brugerinformation om breaking changes kræver eksplicit migrator-resultat.
-
----
-
-## 7. Schema-evolution fra version 1.0
-
-Mineo har to uafhængige versionsbegreber:
-
-1. `FILE_FORMAT_VERSION` er `.eo`-containerens version. Den bumpes kun ved inkompatible ændringer i container/top-level format, metadata eller krypterings-/indpakningsstruktur.
-2. `PERSISTED_DATA_VERSION` er sagsinput-schema-versionen for sektionerne i `persistenceRegistry`. Den bumpes ved ændringer i persisted sektionsschemas, migrator-/parse-semantik eller load-sanitization der ændrer sagsinput-kontrakten.
-
-Den aktuelle runtime-konstant ejes alene af `PERSISTED_DATA_VERSION` i `src/config/persistenceVersion.ts`; kontrakten må ikke hardkode konstantværdien. Version `1.0` er historisk kompatibilitetsbaseline, ikke den aktuelle konstantværdi.
-
-Nye `.eo`-filer skal skrive `PERSISTED_DATA_VERSION` i
-`_metadata.persistedDataVersion`. Save-schemaet kræver den aktuelle literal, mens
-load-schemaet accepterer en vilkårlig ikke-tom streng eller et manglende felt. Et
-manglende felt resolveres til den navngivne `LEGACY_PERSISTED_DATA_VERSION`-sentinel;
-det må ikke udledes ved shape-gæt. Feltet er container-metadata, ikke sagsinput, og
-indgår derfor hverken i `fieldCount` eller schema-fingerprintet.
-
-Den additive, load-optionelle metadataudvidelse er bagudkompatibel og kræver ikke i
-sig selv bump af `FILE_FORMAT_VERSION`. Container-versionen bumpes kun ved en
-inkompatibel ændring. En manglende, ældre, nyere eller ukendt dataversion må aldrig
-alene blokere load eller udløse preflight; kun konkret strip eller section-drop gør.
-
-De to versioner må ikke bumpes "for en sikkerheds skyld" uden klassifikation. De behøver ikke følges ad.
-
-Fremadrettede ændringer af persisted struktur skal ske efter følgende prioritet:
-
-1. Bevar brugerdata hvis den gamle betydning sikkert kan mappes til ny struktur.
-2. Strip ukendte eller fjernede felter, når sikker mapping ikke findes.
-3. Rapportér tab eller strip via preflight i stedet for at gætte.
-4. `sessionStorage`-hydrering må ikke bruge global hard wipe alene pga. versionsmismatch:
-   - hver persisted sektion vurderes separat
-   - kompatible sektioner bevares
-   - ukendte/fjernede felter strippes
-   - inkompatible eller korrupte sektioner ryddes fail-closed
-5. Hvis en fremtidig schema-ændring kræver mapping, skal mappingen være eksplicit, entydig og testet.
-6. Migratorregistret er per sektion og bruger eksakt `fromVersion -> current`-opslag. Der anvendes ingen versionssortering eller shape-gæt. En version uden registreret migrator går direkte videre til sanitization og current schema-parse.
-
-Der holdes ikke legacy runtime-kode eller kompatibilitetslag alene for at bevare forældede interne modeller. Ved breaking schema- eller container-ændringer er en klar dansk afvisnings-/preflight-fejl acceptabel, hvis migration ikke er sikker eller proportional.
-
----
-
-## 8. SessionStorage-livscyklus
-
-1. `sessionStorage` er browser-sessionens durable cache, ikke den autoritative runtime-sandhed.
-2. Data i `sessionStorage` må forsvinde ved tab-/vindueslukning eller browseroprydning; `.eo` er den eneste brugerrettede, eksplicitte langtidsbevaring.
-3. Hydrering fra `sessionStorage` må kun ske som autoritativ initialization/replacement, ikke som skjult løbende overskrivning af aktiv committed state.
-4. Initial hydrering skal ske før React-render via `initializePersistenceRuntime()`, efter app-variantens storage-namespace er fastlagt. Hver app-root opretter præcis én runtime og giver den uændret til `FormPersistenceProvider`; provider-mount/remount må aldrig læse `sessionStorage` eller genhydrere storen. Børn under provideren må ikke basere beregning på et unhydreret `null`-snapshot.
-5. Fejl ved skrivning til `sessionStorage` skal behandles fail-closed og må ikke skjules som om persist lykkedes.
-   - Gælder `persistData`, `replaceAllPersistedData`, `clearPageData` og `clearAllData`.
-   - Hvis storage-mutationen fejler, må committed runtime-store ikke ændres.
-   - Hvis fejl opstår efter delvis mutation, skal store, storage og undo/redo-state rulles tilbage eller operationen rapporteres som ikke gennemført.
-   - Brugeren skal have synlig dansk fejlfeedback; normal drift skal være console-silent.
-6. Skjult persisted sagsinput skal forblive i `sessionStorage`, indtil brugeren eksplicit ændrer eller sletter det; ren visningslogik må ikke strippe det.
-7. Afviste/korrupte storage-nøgler fra startup-hydrering må ryddes som efterfølgende cleanup. Runtime-apply af det hydrerede snapshot skal stadig være atomisk; cleanup-vinduet må ikke anvende afviste nøgler i runtime.
-8. `Slet alt` / `clearAllData` er et fuldt session-reset for Mineo-ejede nøgler: domænesektioner, `invalidDrafts`, statiske UI-keys og dynamiske UI-prefix-keys (fx aktive faner) ryddes atomisk. Fil-load / `replaceAllPersistedData` må fortsat kun erstatte sagsdata og `invalidDrafts`, så indlæsning af en `.eo` ikke ændrer uafhængig UI-sessionstate.
-
-SessionStorage keys ejes af `src/config/storageManifest.ts`. Manifestet er eneste registry for domæne-keys, UI-state keys og dynamiske prefix-keys. Rename eller fjernelse af en Mineo-key kræver eksplicit obsolete-key politik: rydning, migration eller bevidst bevarelse.
-
----
-
-## 9. Runtime-arkitekturgrænser
-
-Følgende regler er bindende for persistence-laget under aktiv runtime:
-
-1. `formPersistenceStore` er den eneste committed runtime-sandhed for persisted sagsinput.
-2. `sessionStorage` er durable browser-persistens og må ikke fungere som et parallelt aktivt state-lag.
-3. Persistence-hooks må ikke holde en separat lokal committed kopi af en persisted sektion.
-4. Reaktive læsninger af persisted sektioner, revisions eller feltfejl skal gå via store-selectors/read-model hooks, ikke via providerens render-cyklus.
-5. `FormPersistenceContext` er et infrastrukturlag for imperative persistence-operationer, startup-notices/cleanup og autoritative replaces; det må ikke initialisere/hydrere runtime under render og må ikke udvikle sig til generel state-broker for almindelige sektionslæsninger.
-6. Persistence-API'er må ikke eksponere `onChange`-lignende convenience-API'er, der inviterer til commit af committed state fra draft-semantik.
-7. Tværsektion-readmodels skal være eksplicitte og read-only. `usePersistedSectionSelector(pageKey)` er den kanoniske read-only adgang til enkeltsektioner. Gentagne sammensatte tværsektion-læsninger skal samles i navngivne hooks/readmodels senest ved anden forekomst.
-8. UI-synlighed er ikke i sig selv en persistence-grænse: når et persisted sagsfelt eller en persisted række skjules, skal committed værdier fortsat bevares, mens validering og beregning eksplicit skal ignorere dem, når de ikke længere er domænemæssigt aktive.
-9. Der findes en monotont stigende global committed-change token for "noget committed er ændret". Sektion-revisions må bruges til fine-grained selectors, men ikke som kollisionsfri global change-identitet.
-
----
-
-## 10. Post-apply metadata
-
-Load består af to faser:
-
-1. atomisk apply af sagsdata,
-2. efterfølgende metadata-synkronisering, fx filnavn, file handle og PWA pending-request.
-
-Hvis fase 1 fejler, er load ikke anvendt, og eksisterende state skal være uændret.
-
-Hvis fase 2 fejler efter succesfuld fase 1, må fejlen ikke præsenteres som om sagsdata ikke blev indlæst. UI skal vise en separat dansk advarsel om, at sagen er indlæst, men efterfølgende filmetadata eller direkte "Gem"-kobling muligvis ikke er synkroniseret.
-
----
-
-## 11. `invalidDrafts` — afsluttet ugyldigt input (recovery-kanal)
-
-`invalidDrafts` persisterer det input, der blev forsøgt committet, men ikke kunne parses (jf. `form-contract.md` §2.4). Det er en separat store-slice ved siden af `fieldErrors`, ikke en sektion i `persistenceRegistry`.
-
-Form: `invalidDrafts[pageKey][fieldPath] = råstreng (ikke-tom)`.
+```ts
+type InputEnvelope = Readonly<{
+  envelopeVersion: string;
+  fieldAddressVersion: string;
+  persistedDataVersion: string;
+  input: PersistedInputState;
+}>;
+```
 
 Regler:
 
-1. **Eget schema og egen version.** `invalidDrafts` er fuldt Zod-dækket og har en selvstændig envelope-version. Den indgår ikke i `computeSchemaFingerprint`/`PERSISTED_DATA_VERSION`, fordi feltadresser og recovery-format udvikler sig uafhængigt af canonical sektionsschemas. De tidligere numeriske envelope-versioner migreres tabsfrit ved læsning. Et fremtidigt feltadresseskift kræver en eksplicit nøglemigration eller en dokumenteret inkompatibilitetsbeslutning; et almindeligt sektionsschema-bump må aldrig tavst droppe aktuelt synligt input.
-2. **Egen `sessionStorage`-nøgle.** Hele cachen lagres under én dedikeret, namespace-aware nøgle ejet af `storageManifest.ts`. Den overlever `F5`. Ved korrupt/ugyldig envelope eller ukendt egen version ryddes nøglen fail-closed. En ny egen version må kun afvise en tidligere version efter en dokumenteret vurdering af, at en tabsfri migration er umulig.
-3. **`.eo`-eksklusion.** `invalidDrafts` skrives aldrig til `.eo` og læses aldrig derfra. Da Gem blokeres ved enhver `invalidDrafts`-entry, vil cachen per definition være tom på gemme-tidspunktet.
-4. **Skrive/rydde-vej.** Et fejlende felt-commit skriver/opdaterer feltets entry; et vellykket commit rydder det. Hver skrivning er atomisk (store + `sessionStorage`) med rollback efter samme fail-closed-regler som `persistData` (§8 punkt 5). Et nyt entry kan oprette en undo/redo-frame; et entry der ryddes som del af et samtidigt sektion-commit rider på sektion-commitets frame (ingen separat frame).
-5. **Undo/redo.** `invalidDrafts` indgår i hver history-frame og gendannes atomisk ved restore (jf. `undo-redo-contract.md` §6).
-6. **Autoritativ replace.** Reset, load og `clearAll` rydder `invalidDrafts` atomisk sammen med sektioner og `fieldErrors`, så der ikke efterlades ghost-drafts.
-7. **Reconcile mod levende rækker (celle-drafts).** En celle-draft er nøglet på rækkens id (`${tableId}:${rowScope}:${rowId}:${col}`). Sletter man en række/rowScope, forsvinder kun rækken fra sektionen — celle-draften ville ellers blive forældreløs og blokere Gem som et mål uden synligt felt. Hver celle-bærende tabel SKAL derfor rydde forældreløse drafts mod sine RENDEREDE rækker via `useReconcileInvalidDraftsToLiveRows` (modstykket til `useTableCellErrorTracker`s read-time-filtrering af `fieldErrors`); et slettet rowScope (fx ansættelsesforhold, hvis tabeller er afmonteret) ryddes på sektions-niveau. Liveness er bevidst de renderede rækker, ikke de committede (en tom-men-synlig rækkes draft blokerer fortsat). Oprydningen sker via `reconcileInvalidDrafts(pageKey, isOrphan)`: atomisk (store + `sessionStorage`, fail-closed rollback) men **uden** undo-frame — det er housekeeping, og selve sletningens egen frame bærer draften, så undo af sletningen gendanner den.
+1. Envelopen og alle underdele er Zod-dækket.
+2. `sessionStorage` er durable browsercache, ikke en parallel runtime-sandhed.
+3. Hydrering sker én gang før React-render, efter appens namespace er fastlagt.
+4. Provider-mount/remount må ikke genhydrere eller overskrive aktiv inputtilstand.
+5. En storage-write, som fejler eller ikke kan verificeres, må ikke ændre runtime.
+6. Skjult canonical sagsinput bevares, indtil brugeren eksplicit ændrer/sletter det eller en godkendt load/reset erstatter
+   det.
+7. UI-sessionstate som aktive faner forbliver i egne manifest-ejede nøgler og er ikke del af inputenvelopen.
+8. `Slet alt` rydder inputenvelope og Mineo-ejet UI-sessionstate efter den særskilte reset-policy; fil-load erstatter kun
+   sagsinput og ændrer ikke uafhængig UI-sessionstate.
+
+Storage keys ejes af `src/config/storageManifest.ts`. Rename/fjernelse kræver eksplicit migrations- eller rydningspolitik.
+
+## 4. Startup-migration fra gammel runtime-model
+
+Per-sektion-nøgler og den separate `invalidDrafts`-envelope migreres én gang:
+
+1. Læs alle gamle nøgler uden mutation.
+2. Valider hver kilde efter dens eksisterende schema/version.
+3. Oversæt rejected string-keys til versionerede strukturelle feltadresser.
+4. Byg og valider den nye samlede envelope.
+5. Skriv, genlæs og verificér den nye nøgle.
+6. Fjern først derefter de gamle nøgler.
+
+Ved fejl bevares alle gamle nøgler uændret, og runtime må ikke anvende et delvist snapshot. Brugeren får en eksplicit
+dansk systemfejl. Der etableres ikke permanent dual-read, dual-write eller compatibility-facade.
+
+## 5. `.eo` save-garantier
+
+1. `.eo` indeholder alt schema-valideret brugerinput og kun canonical sagsinput.
+2. Rejected inputs, åbne drafts, UI-state, device-lokale defaults, issues, history og afledte værdier inkluderes ikke.
+3. Skjult canonical input gemmes, medmindre brugeren eksplicit har slettet det.
+4. Save må først læse input efter `prepare('save')=committed` fra den kritiske handlingsbarriere.
+5. Save-projektionen skal være `ready`; rejected input eller øvrige save-blokeringer stopper før fil-I/O.
+6. Canonical snapshot valideres med de samme Zod-schemas som load.
+7. Artefaktet bygges og verificeres før sink. In-memory download verificeres før browserdownload; en read-back-sink
+   verificeres mod de faktisk skrevne bytes.
+
+Range/bounds på en schema-gyldig canonical værdi kan fortsat være ikke-save-blokerende efter `form-contract.md` og
+domænets policy. Dokument-output følger den strengere dokumentpolicy.
+
+Al inbound `.eo`-afkodning går gennem én `EoFileCodec`. Save-read-back-verifikation er en separat strikt
+integritetskontrol og må ikke blandes med loadens tolerante migrering.
+
+Load- og savekilder/sinks er typede porte med diskriminerede resultater. Egentlige fejl kastes; cancel er et eksplicit
+resultat. Højst én filhandling må være aktiv ad gangen. En PWA-loadrequest under en aktiv filhandling må ikke tabes:
+seneste request bevares og tilbydes med `Indlæs fil`/`Ignorer`, når den aktive handling er afsluttet.
+
+## 6. Load-garantier
+
+1. Load er atomisk, medmindre brugeren eksplicit accepterer delvis load i preflight.
+2. Ingen runtime-, storage- eller history-state muteres før preflight-beslutningen.
+3. Ved apply-fejl bevares den aktive sag uændret.
+4. Ukendte/fjernede felter og sektioner rapporteres og holdes ude af apply-snapshotet.
+5. Manglende nyere felter må ikke alene blokere eller advare; de håndteres med `optional()`, sikker schema-default eller
+   eksplicit migrator.
+6. En sektion, som ikke sikkert kan parses efter migration/sanitization, droppes som hel sektion og forklares i preflight.
+7. Godkendt load oversætter canonical sektioner til gyldige settled felter, har ingen rejected inputs og erstatter hele
+   inputaggregaten i én transaktion.
+8. Manuel og PWA-initieret load må først starte fil-I/O efter `prepare('load')=committed`.
+
+Den kanoniske rækkefølge er:
+
+1. læs/dekryptér og resolvér kildeversion,
+2. normalisér og anvend eventuel eksakt migrator,
+3. strip ukendte felter/sektioner,
+4. valider hver sektion og byg kandidat,
+5. vis preflight og afvent beslutning,
+6. replace hele aggregaten atomisk,
+7. ryd history ved succesfuld hel-sags-erstatning og udsted ny revision.
+
+Ingen page, hook eller domæneconsumer må omgå rækkefølgen.
+
+## 7. Preflight
+
+Preflight viser mindst:
+
+- forventede/loadbare/fejlende antal,
+- brugerrettede årsager per fejl.
+
+Den tilbyder præcis:
+
+- `Indlæs trods fejl`,
+- `Send fejloplysninger`,
+- `Stop og gør intet`.
+
+`Indlæs trods fejl` erstatter hele sagen med de loadbare sektioner; fejlede sektioner bevares ikke fra den aktive sag.
+Dette skal stå tydeligt. `Send fejloplysninger` må kun bruge et lokalt, sanitiseret flow og må aldrig sende brugerdata
+ud af browseren. `Stop og gør intet` må ikke mutere noget.
+
+Hvis filen ikke indeholder ét eneste meningsfuldt felt, der kan indlæses, stoppes fail-closed før preflight; en tom
+destruktiv erstatning må ikke tilbydes.
+
+## 8. Autoritative replacements og history
+
+- Load, hel-sags-clear og migration/recovery, der erstatter hele sagen, er autoritative replacements.
+- Hele kandidataggregaten valideres før apply.
+- Rejected inputs erstattes/ryddes som del af samme aggregate, aldrig i en efterfølgende cleanup.
+- Afledte issues genberegnes og lagres ikke.
+- En succesfuld hel-sags-erstatning rydder history; save påvirker ikke history.
+- En side-reset er en almindelig inputtransaktion og kan fortrydes, medmindre en mere specifik produktregel siger andet.
+- Hver succesfuld replacement skaber en ny runtime-revision; en gammel revision genbruges ikke.
+
+## 9. Schema- og versionsansvar
+
+`FILE_FORMAT_VERSION`, `PERSISTED_DATA_VERSION`, `InputEnvelope.envelopeVersion` og `fieldAddressVersion` er forskellige:
+
+- filformatversion: container/indpakning,
+- persisted dataversion: canonical sektionsschemas og load-semantik,
+- envelopeversion: sessionaggregatets struktur,
+- feltadresseversion: persistent adresseformat og katalogmapping.
+
+De bumpes kun ved ændringer i deres eget ansvar. Migrationer er eksakte og typed; der gættes aldrig ud fra shape eller
+versionssortering. En version uden sikker mapping går til den dokumenterede fail-closed/preflight-sti.
+
+Der beholdes ikke legacy-runtimekode alene for gamle interne modeller.
+
+## 10. Runtime-read-grænser
+
+Kun inputinfrastrukturen må se aggregate-internals. Den eksponerer:
+
+- editorfacader til typed commands og feltstate,
+- read-only `InputReader` til domæne/projektion,
+- autoritative replace-porte til persistence-infrastruktur.
+
+Rå sektionsselectors, `FormPersistenceContext` som generel broker og offentlige `persistData`-/`commitInvalidDraft`-
+lignende API'er er forbudt i slutarkitekturen. Tværsektion-consumers modtager en navngiven typed projektion, ikke et
+vilkårligt aggregate-udsnit.
+
+## 11. Post-apply metadata
+
+Load har to resultater:
+
+1. atomisk apply af sagsinput,
+2. efterfølgende synkronisering af filnavn, handle og PWA-metadata.
+
+Fejler fase 1, er intet indlæst. Fejler fase 2 efter en vellykket fase 1, skal UI sige, at sagen er indlæst, men at
+filmetadata eller direkte Gem-kobling muligvis ikke er synkroniseret. Det må ikke fremstilles som en rollback af sagen.
