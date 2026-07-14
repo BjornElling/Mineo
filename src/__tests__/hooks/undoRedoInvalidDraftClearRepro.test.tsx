@@ -36,13 +36,13 @@ const TwoDatePage = () => {
         name="skadedato"
         value={form.values.skadedato}
         onFieldError={reportSkade}
-        onCommit={(e) => form.setValues((p) => ({ ...p, skadedato: e.target.value as ISODateString | undefined }), { fieldPath: 'skadedato' })}
+        onCommit={(e) => form.setFieldValue('skadedato', e.target.value as ISODateString | undefined)}
       />
       <StyledDateField
         name="skadelidteFodselsdato"
         value={form.values.skadelidteFodselsdato}
         onFieldError={reportFoedsel}
-        onCommit={(e) => form.setValues((p) => ({ ...p, skadelidteFodselsdato: e.target.value as ISODateString | undefined }), { fieldPath: 'skadelidteFodselsdato' })}
+        onCommit={(e) => form.setFieldValue('skadelidteFodselsdato', e.target.value as ISODateString | undefined)}
       />
     </div>
   );

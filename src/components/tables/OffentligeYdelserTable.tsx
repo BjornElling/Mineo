@@ -26,7 +26,7 @@ import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
-import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useGridRowPersistenceCore, type GridRowCommitOrigin } from './gridCore/useGridRowPersistenceCore';
 import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
 import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
@@ -49,7 +49,7 @@ export type OffentligeYdelserDerivedCellValues = Readonly<{
 export type OffentligeYdelserTableProps = {
   tableData: OffentligeYdelserRow[];
   derivedByRowId?: ReadonlyMap<string, OffentligeYdelserDerivedCellValues>;
-  onTableDataChange?: (data: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => boolean;
+  onTableDataChange?: (data: OffentligeYdelserRow[], origin?: GridRowCommitOrigin) => boolean;
   onValidationChange?: (summary: OffentligeYdelserTableValidationSummary) => void;
   saveOrderPath?: TableSaveOrderPath;
   /**

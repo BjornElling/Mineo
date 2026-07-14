@@ -1,4 +1,4 @@
-import { type HistoryFrame } from '../stores/undoRedoStore';
+import { type HistoryFrame } from '../stores/inputRuntimeStore';
 import { scrollTargetIntoView } from './scrollTargetIntoView';
 
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;

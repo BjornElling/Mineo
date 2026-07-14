@@ -98,7 +98,21 @@ Per-sektion-nøgler og den separate `invalidDrafts`-envelope migreres én gang:
 6. Fjern først derefter de gamle nøgler.
 
 Ved fejl bevares alle gamle nøgler uændret, og runtime må ikke anvende et delvist snapshot. Brugeren får en eksplicit
-dansk systemfejl. Der etableres ikke permanent dual-read, dual-write eller compatibility-facade.
+dansk systemfejl. Normale inputwrites blokeres derefter fail-closed, så den tomme recovery-runtime ikke kan
+overskrive eller skygge de bevarede kilder. Kun brugerens eksplicitte `Slet alt` må ophæve blokeringen ved at fjerne
+kilderne. Der etableres ikke permanent dual-read eller dual-write.
+
+### 4.1 Midlertidig fase-3-adressebro
+
+Fase 3 ligger før den horisontale FieldRef-migration i fase 4. Den samlede envelope bruger derfor den særskilte
+`fieldAddressVersion = legacy-bridge-1` og accepterer kun strukturelle sentinel-adresser skabt af den ene
+legacy-adapter. De er transportidentitet for eksisterende callsites, ikke kendte `FieldRef`s, og må ikke læses af
+domæne-, beregnings- eller dokumentkode.
+
+I fase 4 registreres alle faktiske bindings i det forseglede `InputCatalog`; hele envelopen oversættes atomisk til
+`FIELD_ADDRESS_VERSION`, og sentinel-adapteren samt bridge-versionen slettes. Først dette current-format valideres
+mod katalog og konkret entity-medlemskab. Envelopen må aldrig mærkes med `FIELD_ADDRESS_VERSION`, mens den indeholder
+sentinel-adresser.
 
 Current-formatets serialiserede feltadresse har én byte-for-byte kanonisk JSON-repræsentation. Alternative
 property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter accepteres ikke som current keys; gamle

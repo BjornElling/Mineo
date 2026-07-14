@@ -31,11 +31,9 @@ export type PersistedSectionBuildResult<K extends StorageKey> =
  *   nullToUndefinedDeep → schema-validér → serialiser → re-validér (reload-ækvivalens-invarianten)
  *   → pak i { version, timestamp, data }.
  *
- * De tre gem-stier (`persistData`, `replaceAllPersistedData`, `atomicWritePersistenceSections`) byggede
- * tidligere denne kæde hver for sig med subtilt forskellig — og dermed drift-udsat — kode. De forbliver
- * bevidst forskellige i KONTROL-flow (persistData giver notice + returnerer false; snapshot-stierne kaster),
- * men deler nu selve transformationen, så et trin aldrig kan afvige mellem stierne. Fejl-ordlyden ejes
- * fortsat af hver caller via `stage` + den returnerede `error`.
+ * De tidligere sektionsvise gem-stier byggede oprindeligt kæden hver for sig med subtilt forskellig
+ * og dermed drift-udsat kode. Fase 3 bruger helperen ved kompatibilitetsgrænsen, før hele inputaggregatet
+ * skrives af transaktionsrunneren. Fejlordlyden ejes fortsat af caller via `stage` og `error`.
  *
  * `timestamp` gives af caller, så loop-stier kan stemple alle sektioner med ét fælles Date.now().
  */

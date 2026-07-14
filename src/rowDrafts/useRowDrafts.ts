@@ -1,12 +1,17 @@
 import * as React from 'react';
 import type { RowId, WithId } from './types';
+import type { InvalidDraftClear } from '../types/invalidDrafts';
+import { claimActiveLegacyGridRejectedClear } from '../input/legacyGridTransactionBridge';
 
 /**
  * Celle-identitet for et commit, så undo/redo kan tagge history-framet med den celle
  * brugeren faktisk redigerede (fieldPath = `rowId:colIndex`). Uden den falder
  * `createUndoOrigin` tilbage på focus-trackeren, som ved blur peger på det *næste* felt.
  */
-export type RowCommitOrigin = Readonly<{ fieldPath?: string }>;
+export type RowCommitOrigin = Readonly<{
+  fieldPath?: string;
+  clearInvalidDraft?: InvalidDraftClear;
+}>;
 
 export type UseRowDraftsConfig<
   TDraft extends WithId,
@@ -164,7 +169,10 @@ export const useRowDrafts = <
     if (!map || !last || last.rowId !== rowId) return undefined;
     const colIndex = map[last.field];
     if (colIndex === undefined) return undefined;
-    return { fieldPath: `${rowId}:${colIndex}` };
+    return {
+      fieldPath: `${rowId}:${colIndex}`,
+      clearInvalidDraft: claimActiveLegacyGridRejectedClear(),
+    };
   }, []);
 
   const [draftRows, setDraftRows] = React.useState<TDraft[]>(() => {

@@ -28,7 +28,7 @@ import {
   writeOptionalSessionStorageValue,
 } from '../../../utils/safeSessionStorage';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
-import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import { type CommitOriginOptions, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { CommitEvent } from '../../../types/fieldEvents';
 import { asError } from '../../../utils/typeGuards';
 
@@ -47,7 +47,7 @@ type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelp
 
 type Props = Readonly<{
   rows: OffentligeYdelserRow[];
-  onRowsChange: (rows: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => boolean;
+  onRowsChange: (rows: OffentligeYdelserRow[], origin?: CommitOriginOptions) => boolean;
   kommentarer: ErstatningsopgoerelseValues['offentligeYdelserKommentarer'];
   midlertidigtEetFraEetSiden: ErstatningsopgoerelseValues['midlertidigtEetFraEetSiden'];
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;

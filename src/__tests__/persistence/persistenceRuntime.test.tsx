@@ -27,7 +27,7 @@ describe('initializePersistenceRuntime', () => {
     });
   });
 
-  it('hydrater store atomisk før første React-render med uændret revisionssemantik', () => {
+  it('hydrater store atomisk før første React-render som autoritativ revision', () => {
     writeSatser(2026);
     formPersistenceStore.getState().setFieldError(
       'satser',
@@ -42,7 +42,7 @@ describe('initializePersistenceRuntime', () => {
 
     expect(after.sections.satser).toEqual({ aargang: 2026 });
     expect(after.meta.hydrated).toBe(true);
-    expect(after.sectionRevisions).toEqual(before.sectionRevisions);
+    expect(after.sectionRevisions.satser).toBe(before.sectionRevisions.satser + 1);
     expect(after.committedChangeCounter).toBe(before.committedChangeCounter);
     expect(after.authoritativeSnapshotEpoch).toBe(before.authoritativeSnapshotEpoch + 1);
     expect(after.fieldErrors.satser).toEqual({});

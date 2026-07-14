@@ -161,20 +161,10 @@ const formPersistenceStoreImport = forbidImports({
   description:
     'Direkte import af stores/formPersistenceStore er kun tilladt i de kanoniske adgangspunkter.',
   allow: [
-    'src/contexts/FormPersistenceContext.tsx',
-    // Autoritativ pre-render-initialisering: hydraterer storen én gang før app-rooten oprettes.
-    'src/persistence/persistenceRuntime.ts',
     'src/hooks/useFormPersistenceSelectors.ts',
-    'src/hooks/useUndoRedo.ts',
     // Domæne-specifik read model: abonnerer direkte på storen for ét cachet tværsektion-snapshot.
     'src/hooks/useMidlertidigtEetInsertSource.ts',
-    'src/stores/undoRedoStore.ts',
-    'src/utils/persistenceSnapshotStorage.ts',
-    // Type-only import af InvalidDraftsCache (slice-typen bor i storen).
-    'src/utils/invalidDraftsStorage.ts',
     'src/utils/persistenceSessionHydration.ts',
-    // Fælles capture/restore af committed-tier runtime-state (delt af alle atomiske skrive-/restore-flows).
-    'src/utils/persistenceStoreRollback.ts',
   ],
   forbidden: (ref) => ref.moduleSpecifier.endsWith('stores/formPersistenceStore'),
   message: (ref) =>

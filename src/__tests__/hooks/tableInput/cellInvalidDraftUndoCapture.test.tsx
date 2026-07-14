@@ -11,6 +11,7 @@ import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraf
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import { __resetUndoRedoStoreForTests, undoRedoStore } from '../../../stores/undoRedoStore';
+import { executeInputTransaction } from '../../../input/inputTransactionRunner';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
 
@@ -68,20 +69,8 @@ describe('tabelcelle invalidDraft → undo-frame-capture', () => {
     expect(draftsForSection()[fieldPath]).toBeUndefined();
 
     // Undo: gendan frame F2's target (committed state FØR rydningen) = invalidDraft "12".
-    const plan = undoRedoStore.getState().planUndo();
-    expect(plan).not.toBeNull();
     act(() => {
-      formPersistenceStore.getState().restoreHistoryFrame(
-        plan!.target.sections,
-        plan!.target.sectionRevisions,
-        plan!.target.fieldErrors,
-        plan!.target.fieldErrorRevisions,
-        plan!.target.invalidDrafts,
-        plan!.target.invalidDraftRevisions,
-        plan!.target.meta,
-        2
-      );
-      undoRedoStore.getState().commitPlannedTransition(plan!);
+      executeInputTransaction({ kind: 'undo' });
     });
 
     expect(draftsForSection()[fieldPath]).toBe('12'); // ← fejler før fix (forblev tom)

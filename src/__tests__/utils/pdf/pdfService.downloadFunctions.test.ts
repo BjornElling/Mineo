@@ -6,7 +6,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { readyInputProjection } from '../../../domain/inputIntegrity/inputBlocker';
 import { getCommittedChangeCounterSnapshot } from '../../../stores/formPersistenceReadModel';
-import { formPersistenceStore } from '../../../stores/formPersistenceStore';
+import { executeInputTransaction } from '../../../input/inputTransactionRunner';
 
 const currentInputRevision = () => readyInputProjection(
   undefined,
@@ -327,7 +327,10 @@ describe('downloadSatserDokument', () => {
   it('afviser fail-closed hvis inputrevisionen ændres under lazy load', async () => {
     const inputRevision = currentInputRevision();
     mockLoadSatserPdfModule.mockImplementationOnce(async () => {
-      formPersistenceStore.getState().setInvalidDraft('satser', 'revision-test', 'ændret');
+      executeInputTransaction({
+        kind: 'changeRejectedInputs',
+        changes: [{ pageKey: 'satser', fieldPath: 'revision-test', draft: 'ændret' }],
+      });
       return { generateSatserDocument: mockGenerateSatserPdf };
     });
 

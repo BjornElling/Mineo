@@ -17,7 +17,7 @@ import {
   useResolvedFieldErrorsSelector,
 } from './useFormPersistenceSelectors';
 import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
-import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
+import type { HistoryFrameOrigin } from '../stores/inputRuntimeStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
 import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.shared';
@@ -142,8 +142,8 @@ const useFieldErrorReporter = (
   );
 
   const clearInvalidDraftForField = React.useCallback(() => {
-    // Send undoOrigin med: en rydning af et felts rå draft skal kunne undo'es. captureUndoFrameCoalesced
-    // sikrer at det ikke giver en ekstra frame, når rydningen sker sammen med et sektion-commit.
+    // Send undoOrigin med: en selvstændig rydning af et felts rå draft skal kunne undo'es. Når den
+    // canonical commit allerede har ryddet samme entry atomisk, undertrykker runneren kaldet som no-op.
     return clearInvalidDraft(pageKey, fieldName, {
       undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, pathname),
     });

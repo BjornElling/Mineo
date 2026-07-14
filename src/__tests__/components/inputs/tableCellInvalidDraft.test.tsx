@@ -139,7 +139,7 @@ describe('tabelcelle invalidDrafts-kanal (bundet)', () => {
     expect(input.getAttribute('aria-describedby')).toBeTruthy();
   });
 
-  it('rydder invalidDrafts-entryet ved et efterfølgende gyldigt commit', () => {
+  it('bevarer invalidDrafts-entryet indtil den mockede værdipersistence anvender staged clear', () => {
     const ctx = makeStoreBackedCtx();
     act(() => {
       formPersistenceStore.getState().setInvalidDraft('erstatningsopgoerelse', expectedFieldPath, '1+');
@@ -156,7 +156,9 @@ describe('tabelcelle invalidDrafts-kanal (bundet)', () => {
       fireEvent.blur(input);
     });
 
-    expect(formPersistenceStore.getState().invalidDrafts.erstatningsopgoerelse[expectedFieldPath]).toBeUndefined();
+    // Testens onBlur-stub persisterer ingen sektion. Gridlaget må derfor ikke rydde teksten separat,
+    // da en virkelig persistencefejl ellers ville give datatab.
+    expect(formPersistenceStore.getState().invalidDrafts.erstatningsopgoerelse[expectedFieldPath]).toBe('1+');
   });
 });
 

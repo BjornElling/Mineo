@@ -199,11 +199,9 @@ describe('usePersistedForm', () => {
       captured.setValues!(() => ({ eoNummer: 'Patch' }));
     });
 
-    expect(captured.values).toMatchObject({
-      ...eoInitialValues,
-      eoNummer: 'Patch',
-      regulerOffentligeYdelser: 'Ja',
-    });
+    // JSON-envelopen udelader eksplicitte `undefined`-properties. Det afgørende er, at schemaets
+    // reelle defaults materialiseres igen, før subset-opdateringen flettes ind.
+    expect(captured.values).toMatchObject({ eoNummer: 'Patch', regulerOffentligeYdelser: 'Ja' });
     expect(formPersistenceStore.getState().sections.erstatningsopgoerelse).toMatchObject({
       eoNummer: 'Patch',
       regulerOffentligeYdelser: 'Ja',
@@ -275,7 +273,7 @@ describe('usePersistedForm', () => {
     });
 
     expect(undoRedoStore.getState().past).toHaveLength(1);
-    expect(undoRedoStore.getState().past[0].sections.stamdata).toBeNull();
+    expect(undoRedoStore.getState().past[0].input.sections.stamdata).toBeNull();
 
     act(() => {
       captured.setFieldValue!('journalnr', 'A');
@@ -313,7 +311,7 @@ describe('usePersistedForm', () => {
 
     expect(undoRedoStore.getState().canUndo()).toBe(true);
     expect(undoRedoStore.getState().past).toHaveLength(2);
-    expect(undoRedoStore.getState().past[1].sections.stamdata).toMatchObject({ journalnr: 'A' });
+    expect(undoRedoStore.getState().past[1].input.sections.stamdata).toMatchObject({ journalnr: 'A' });
     expect(formPersistenceStore.getState().sections.stamdata).toBeNull();
   });
 

@@ -20,7 +20,7 @@ import {
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { createEmptyRowId } from '../../utils/rowId';
 import { normalizeGridRows } from './gridCore/gridModel';
-import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useGridRowPersistenceCore, type GridRowCommitOrigin } from './gridCore/useGridRowPersistenceCore';
 import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
@@ -32,7 +32,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   skadedatoMin: ISODateString;
   beregningsdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
-  onTableDataChange?: (rows: AslAfgoerelseRow[], origin?: { fieldPath?: string }) => boolean;
+  onTableDataChange?: (rows: AslAfgoerelseRow[], origin?: GridRowCommitOrigin) => boolean;
   saveOrderPath?: TableSaveOrderPath;
 }>;
 

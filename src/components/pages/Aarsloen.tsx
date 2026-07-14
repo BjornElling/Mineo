@@ -10,7 +10,7 @@ import StandardLoenTable from '../tables/StandardLoenTable';
 import { CellInvalidDraftScopeProvider } from '../../contexts/CellInvalidDraftScopeContext';
 import { CELL_TABLE_IDS } from '../../config/cellInvalidDraftScopes';
 import ContentBox from '../layout/ContentBox';
-import { usePersistedForm } from '../../hooks/usePersistedForm';
+import { usePersistedForm, type CommitOriginOptions } from '../../hooks/usePersistedForm';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
@@ -191,8 +191,11 @@ const Aarsloen = React.memo(() => {
   }, [setField]);
 
   // Funktion til at opdatere tabeldata (type-safe)
-  const handleTableDataChange = React.useCallback((newTableData: AarsloenValues['tableData'], options?: Readonly<{ fieldPath?: string }>) => {
-    return setValues(prev => ({ ...prev, tableData: newTableData }), { fieldPath: options?.fieldPath ?? 'tableData' });
+  const handleTableDataChange = React.useCallback((newTableData: AarsloenValues['tableData'], options?: CommitOriginOptions) => {
+    return setValues(prev => ({ ...prev, tableData: newTableData }), {
+      ...options,
+      fieldPath: options?.fieldPath ?? 'tableData',
+    });
   }, [setValues]);
 
   // Type-safe funktion til at opdatere toggle-felter

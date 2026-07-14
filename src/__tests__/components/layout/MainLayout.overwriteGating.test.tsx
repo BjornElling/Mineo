@@ -4,10 +4,12 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
+import { getInputEnvelopeStorageKey } from '../../../config/storageManifest';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { clearResolvedFieldErrorsCache } from '../../../hooks/useFormPersistenceSelectors';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
+import { parseInputEnvelope } from '../../../input/inputEnvelope';
 import type { LoadFileResult } from '../../../types/fileOperations';
 
 vi.mock('../../../utils/fileLoad', () => ({
@@ -56,6 +58,10 @@ const stampStamdata = (skadelidte: string) => ({
 const stampSatser = (aargang: number) => ({
   aargang,
 });
+
+const storedInput = () => parseInputEnvelope(
+  sessionStorage.getItem(getInputEnvelopeStorageKey())!
+).input;
 
 describe('MainLayout (overwrite gating)', () => {
   const RouteProbe = () => {
@@ -106,7 +112,7 @@ describe('MainLayout (overwrite gating)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
     });
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('Y');
+    expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
   });
 
   it('shows overwrite dialog when data exists; does not mutate until confirm', async () => {
@@ -139,8 +145,8 @@ describe('MainLayout (overwrite gating)', () => {
 
     await screen.findByText('Overskriv eksisterende data?');
 
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
-    expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
+    expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
+    expect(storedInput().sections.satser?.aargang).toBe(2020);
 
     await act(async () => {
       screen.getByText('Stop og gør intet').click();
@@ -149,16 +155,16 @@ describe('MainLayout (overwrite gating)', () => {
     await waitFor(() => {
       expect(screen.queryByText('Overskriv eksisterende data?')).toBeNull();
     });
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
-    expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
+    expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
+    expect(storedInput().sections.satser?.aargang).toBe(2020);
 
     await clickMainLayoutAction('Hent');
     await screen.findByText('Overskriv eksisterende data?');
 
     await clickMainLayoutAction('Overskriv');
 
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('Y');
-    expect(sessionStorage.getItem('mineo_satser')).toContain('2021');
+    expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
+    expect(storedInput().sections.satser?.aargang).toBe(2021);
     expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
   });
 
@@ -216,16 +222,16 @@ describe('MainLayout (overwrite gating)', () => {
 
     expect(screen.getByText('Overskriv eksisterende data?')).toBeInTheDocument();
 
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
-    expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
+    expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
+    expect(storedInput().sections.satser?.aargang).toBe(2020);
 
     await clickMainLayoutAction('Stop og gør intet');
 
     await waitFor(() => {
       expect(screen.queryByText('Overskriv eksisterende data?')).toBeNull();
     });
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
-    expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
+    expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
+    expect(storedInput().sections.satser?.aargang).toBe(2020);
 
     let resolveSecondPwaLoad: ((result: LoadFileResult) => void) | null = null;
     const secondPwaLoad = new Promise<LoadFileResult>((resolve) => {
@@ -264,8 +270,8 @@ describe('MainLayout (overwrite gating)', () => {
 
     await clickMainLayoutAction('Overskriv');
 
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('Y');
-    expect(sessionStorage.getItem('mineo_satser')).toContain('2021');
+    expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
+    expect(storedInput().sections.satser?.aargang).toBe(2021);
     expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
   });
 

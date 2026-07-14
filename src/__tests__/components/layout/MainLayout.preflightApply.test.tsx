@@ -5,10 +5,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
+import { getInputEnvelopeStorageKey } from '../../../config/storageManifest';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useAuthoritativeSnapshotEpochSelector } from '../../../hooks/useFormPersistenceSelectors';
 import type { LoadFileResult } from '../../../types/fileOperations';
+import { parseInputEnvelope } from '../../../input/inputEnvelope';
 
 vi.mock('../../../utils/fileLoad', () => ({
   loadFromFile: vi.fn(),
@@ -30,6 +32,7 @@ const stampStamdata = (skadelidte: string) => ({
 
 describe('MainLayout (preflight apply)', () => {
   it('applies only schema-valid sections on "Indlæs trods fejl" and clears runtime field errors', async () => {
+    sessionStorage.clear();
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({
       status: 'preflight',
@@ -105,8 +108,8 @@ describe('MainLayout (preflight apply)', () => {
     expect(Object.keys(ctx!.getFieldErrorsBySource('stamdata')).length).toBe(0);
     expect(Object.keys(ctx!.getFieldErrorsBySource('satser')).length).toBe(0);
 
-    const stored = sessionStorage.getItem('mineo_stamdata');
-    expect(stored).toContain('Y');
-    expect(sessionStorage.getItem('mineo_satser')).toBeNull();
+    const stored = parseInputEnvelope(sessionStorage.getItem(getInputEnvelopeStorageKey())!).input;
+    expect(stored.sections.stamdata?.skadelidte).toBe('Y');
+    expect(stored.sections.satser).toBeNull();
   });
 });

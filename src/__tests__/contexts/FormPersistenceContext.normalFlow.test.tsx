@@ -7,6 +7,8 @@ import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../stores/undoRedoStore';
 import { toISODateString } from '../../types/branded';
+import { getInputEnvelopeStorageKey } from '../../config/storageManifest';
+import { parseInputEnvelope } from '../../input/inputEnvelope';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -102,11 +104,11 @@ describe('FormPersistenceContext – normalFlow', () => {
       });
     });
 
-    const raw = sessionStorage.getItem('mineo_stamdata');
+    const raw = sessionStorage.getItem(getInputEnvelopeStorageKey());
     expect(raw).not.toBeNull();
-    const parsed = JSON.parse(raw!) as { version: string; data: Record<string, unknown> };
-    expect(parsed.version).toBe(PERSISTED_DATA_VERSION);
-    expect(parsed.data.skadelidte).toBe('StorageTest');
+    const parsed = parseInputEnvelope(raw!);
+    expect(parsed.persistedDataVersion).toBe(PERSISTED_DATA_VERSION);
+    expect(parsed.input.sections.stamdata?.skadelidte).toBe('StorageTest');
   });
 
   it('ruller persistData storage tilbage hvis cache-commit fejler', async () => {
@@ -124,7 +126,8 @@ describe('FormPersistenceContext – normalFlow', () => {
     const { getCtx } = renderProvider();
     await waitFor(() => expect(getCtx()).not.toBeNull());
 
-    const commitSpy = vi.spyOn(formPersistenceStore.getState(), 'commitSection').mockImplementation(() => {
+    const beforeEnvelope = sessionStorage.getItem(getInputEnvelopeStorageKey());
+    const commitSpy = vi.spyOn(formPersistenceStore.getState(), 'applyInputRuntimeCommit').mockImplementation(() => {
       throw new Error('Injected commit failure');
     });
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -145,7 +148,7 @@ describe('FormPersistenceContext – normalFlow', () => {
     consoleErrorSpy.mockRestore();
 
     expect(didPersist).toBe(false);
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('Før');
+    expect(sessionStorage.getItem(getInputEnvelopeStorageKey())).toBe(beforeEnvelope);
     expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Før');
   });
 
@@ -153,12 +156,12 @@ describe('FormPersistenceContext – normalFlow', () => {
     const { getCtx } = renderProvider();
     await waitFor(() => expect(getCtx()).not.toBeNull());
 
-    const commitSpy = vi.spyOn(formPersistenceStore.getState(), 'commitSection').mockImplementation(() => {
+    const commitSpy = vi.spyOn(formPersistenceStore.getState(), 'applyInputRuntimeCommit').mockImplementation(() => {
       throw new Error('Injected commit failure');
     });
     const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
     const removeSpy = vi.spyOn(storageProto, 'removeItem').mockImplementation(() => {
-      throw new Error('Injected remove failure');
+      throw new Error('Injected rollback failure');
     });
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -179,37 +182,6 @@ describe('FormPersistenceContext – normalFlow', () => {
     consoleErrorSpy.mockRestore();
 
     expect(didPersist).toBe(false);
-    expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
-  });
-
-  it('ruller storage og store tilbage hvis undo-capture fejler under persistData', async () => {
-    const { getCtx } = renderProvider();
-    await waitFor(() => expect(getCtx()).not.toBeNull());
-
-    const captureSpy = vi.spyOn(undoRedoStore.getState(), 'capture').mockImplementation(() => {
-      throw new Error('Injected undo capture failure');
-    });
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    let didPersist = true;
-    await act(async () => {
-      didPersist = getCtx()!.persistData('stamdata', {
-        journalnr: '',
-        advokat: '',
-        sagsbehandler: '',
-        skadelidte: 'Efter',
-        skadestype: undefined,
-        skadedato: undefined,
-      }, {
-        undoOrigin: { route: '/stamdata', tabKey: null, sectionKey: 'stamdata', fieldPath: 'skadelidte', focusToken: null },
-      });
-    });
-
-    captureSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
-
-    expect(didPersist).toBe(false);
-    expect(sessionStorage.getItem('mineo_stamdata')).toBeNull();
     expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
   });
 
@@ -239,7 +211,7 @@ describe('FormPersistenceContext – normalFlow', () => {
     expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en anden dataversion blev valideret med den aktuelle struktur');
   });
 
-  it('rydder kun inkompatible sektioner ved version-mismatch og bevarer de kompatible', async () => {
+  it('bevarer alle legacy-nøgler og starter tomt hvis én sektion ikke kan migreres', async () => {
     sessionStorage.setItem(
       'mineo_stamdata',
       JSON.stringify({
@@ -269,18 +241,15 @@ describe('FormPersistenceContext – normalFlow', () => {
     const { getCtx } = renderProvider();
     await waitFor(() => expect(getCtx()).not.toBeNull());
 
-    expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Bevares');
+    expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
     expect(getCtx()!.getPersistedData('renteberegning')).toBeNull();
     expect(getCtx()!.lastNotice?.type).toBe('error');
-    expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en anden dataversion blev valideret med den aktuelle struktur');
-    expect(getCtx()!.lastNotice?.message).toContain('1 sektion kunne ikke overføres sikkert og blev ryddet');
-    await waitFor(() => {
-      expect(sessionStorage.getItem('mineo_renteberegning')).toBeNull();
-    });
+    expect(getCtx()!.lastNotice?.message).toContain('kunne ikke overføres sikkert');
+    expect(sessionStorage.getItem('mineo_renteberegning')).not.toBeNull();
     expect(sessionStorage.getItem('mineo_stamdata')).not.toBeNull();
   });
 
-  it('rydder korrupt JSON ved initialisering', async () => {
+  it('afviser korrupt legacy-JSON uden at anvende deldata', async () => {
     sessionStorage.setItem('mineo_stamdata', 'ikke-json {{{');
 
     const { getCtx } = renderProvider();

@@ -2,7 +2,7 @@
 //
 // Bred ende-til-ende-dækning af undo/redo for UGYLDIGE indtastninger i TABEL-celler — drevet gennem
 // den rigtige useTableInputCore (med dens reelle commitAndEmitBlur/clearAndCommit/cancelEdit-stier),
-// den rigtige FormPersistenceProvider (reel writeInvalidDraft + asymmetrisk capture-coalescing) og
+// den rigtige FormPersistenceProvider og den samlede input-history. Formålet er at fange
 // den rigtige undoRedoStore. Formålet er at fange "rydning fanger ingen undo-frame"-klassen af fejl
 // (rapporteret for datoceller) bredt — på tværs af clear-stier, redo, flere celler og samspil med
 // værdi-commits.
@@ -17,7 +17,9 @@ import { useTableInputCore } from '../../../hooks/tableInput';
 import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
-import { __resetUndoRedoStoreForTests, undoRedoStore, type HistoryTransitionPlan } from '../../../stores/undoRedoStore';
+import { __resetUndoRedoStoreForTests, undoRedoStore } from '../../../stores/undoRedoStore';
+import { executeInputTransaction } from '../../../input/inputTransactionRunner';
+import { __resetLegacyGridTransactionBridgeForTests } from '../../../input/legacyGridTransactionBridge';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
 
@@ -112,22 +114,8 @@ const pastLen = () => undoRedoStore.getState().past.length;
 const futureLen = () => undoRedoStore.getState().future.length;
 
 // Anvend en planlagt transition på den rigtige store (samme sekvens som useUndoRedo's restorePlannedTransition).
-const applyTransition = (plan: HistoryTransitionPlan | null) => {
-  if (!plan) throw new Error('ingen transition planlagt');
-  formPersistenceStore.getState().restoreHistoryFrame(
-    plan.target.sections,
-    plan.target.sectionRevisions,
-    plan.target.fieldErrors,
-    plan.target.fieldErrorRevisions,
-    plan.target.invalidDrafts,
-    plan.target.invalidDraftRevisions,
-    plan.target.meta,
-    Date.now(),
-  );
-  undoRedoStore.getState().commitPlannedTransition(plan);
-};
-const undo = () => act(() => { applyTransition(undoRedoStore.getState().planUndo()); });
-const redo = () => act(() => { applyTransition(undoRedoStore.getState().planRedo()); });
+const undo = () => act(() => { executeInputTransaction({ kind: 'undo' }); });
+const redo = () => act(() => { executeInputTransaction({ kind: 'redo' }); });
 
 // Skriv en ugyldig draft i cellen (svarer til at taste den + blur/commit).
 const typeAndCommit = (h: CellHarness, raw: string) => {
@@ -144,6 +132,7 @@ const clearViaDelete = (h: CellHarness) => {
 
 beforeEach(() => {
   sessionStorage.clear();
+  __resetLegacyGridTransactionBridgeForTests();
   __resetUndoRedoStoreForTests();
   formPersistenceStore.getState().clearAll({ hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION, lastCommittedAt: 1 });
 });
@@ -265,11 +254,10 @@ describe('tabelcelle undo/redo af ugyldige indtastninger (ende-til-ende)', () =>
     expect(drafts()[fp]).toBeUndefined();
   });
 
-  it('rettelse ugyldig→gyldig: value-commit (onBlur) kører FØR invalid-draft-clear (coalesce-rækkefølge)', () => {
-    // Regression: useTableInputCore committede tidligere clearInvalidDraft FØR onBlur. FormPersistenceContexts
-    // asymmetriske coalescing kræver omvendt rækkefølge (value-commit sætter markøren, den parrede clear rider
-    // på den) for at give ÉN undo-frame i stedet for to. Vi beviser rækkefølgen ved at lade onBlur observere,
-    // at den ugyldige draft STADIG er til stede når value-commit'et fyrer (clear er endnu ikke kørt).
+  it('rettelse ugyldig→gyldig bevarer rejected tekst, indtil værdipersistencen anvender staged clear', () => {
+    // Denne isolerede callback persisterer bevidst ingen sektionsværdi. Gridbroen må derfor ikke rydde
+    // rejected input separat; ellers ville en efterfølgende persistencefejl give datatab. Den fulde
+    // atomiske consumption dækkes i legacyGridTransactionBridge.test.tsx.
     let draftPresentAtValueCommit: boolean | null = null;
     const fp = pathFor('row1:2');
     const onBlur = () => {
@@ -280,9 +268,9 @@ describe('tabelcelle undo/redo af ugyldige indtastninger (ende-til-ende)', () =>
     typeAndCommit(h, '12'); // ugyldig → skriver invalid draft
     expect(drafts()[fp]).toBe('12');
 
-    typeAndCommit(h, '01-01-2020'); // gyldig → value-commit (onBlur) EFTERFULGT af clear
-    expect(draftPresentAtValueCommit).toBe(true); // value-commit kørte før clear
-    expect(drafts()[fp]).toBeUndefined(); // clear kørte (efter value-commit)
+    typeAndCommit(h, '01-01-2020');
+    expect(draftPresentAtValueCommit).toBe(true);
+    expect(drafts()[fp]).toBe('12');
   });
 
   it('DEV-guard: adapter med visualErrorMessage uden getCommittedVisualError logger fejl (parret invariant)', () => {
@@ -337,7 +325,7 @@ describe('tabelcelle undo/redo af ugyldige indtastninger (ende-til-ende)', () =>
     }
   });
 
-  it('Escape (cancelEdit) på en committet ugyldig draft er undo-bar', () => {
+  it('Escape gendanner en allerede afsluttet ugyldig draft uden ny transaktion', () => {
     const h = renderCell({ rowId: 'row1', colIndex: 2 }, '');
     const fp = pathFor('row1:2');
     typeAndCommit(h, '12');
@@ -345,12 +333,32 @@ describe('tabelcelle undo/redo af ugyldige indtastninger (ende-til-ende)', () =>
     const pastAfterCommit = pastLen();
 
     h.setEditing(true);
+    act(() => {
+      h.result.current.handleChange({ target: { value: '01-01-2024' } } as React.ChangeEvent<HTMLInputElement>);
+    });
+    expect(h.result.current.draft).toBe('01-01-2024');
     act(() => { h.editor().cancelEdit(); });
 
-    // cancelEdit rydder den committede ugyldige draft; rydningen SKAL kunne undo'es (fanger en frame).
-    expect(drafts()[fp]).toBeUndefined();
-    expect(pastLen()).toBe(pastAfterCommit + 1);
-    undo();
     expect(drafts()[fp]).toBe('12');
+    expect(h.result.current.draft).toBe('12');
+    expect(pastLen()).toBe(pastAfterCommit);
+  });
+
+  it('Escape efter tastaturåbning gendanner den ugyldige starttilstand', () => {
+    const h = renderCell({ rowId: 'row1', colIndex: 2 }, '');
+    const fp = pathFor('row1:2');
+    typeAndCommit(h, '12');
+    const pastAfterCommit = pastLen();
+
+    act(() => {
+      expect(h.editor().prepareEditFromKey('0')).toBe(true);
+    });
+    h.setEditing(true);
+    expect(h.result.current.draft).toBe('0');
+    act(() => { h.editor().cancelEdit(); });
+
+    expect(drafts()[fp]).toBe('12');
+    expect(h.result.current.draft).toBe('12');
+    expect(pastLen()).toBe(pastAfterCommit);
   });
 });

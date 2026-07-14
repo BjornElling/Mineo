@@ -187,7 +187,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [currentInspektionRevision, eoSnapshot?.revision, isSnapshotTabActive]);
 
   const handleOffentligeYdelserRowsChange = React.useCallback(
-    (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>, origin?: { fieldPath?: string }) => {
+    (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>, origin?: CommitOriginOptions) => {
       return setFormValues((prev) => ({
         ...prev,
         offentligeYdelserRows: newData,

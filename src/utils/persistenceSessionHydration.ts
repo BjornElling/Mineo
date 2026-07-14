@@ -12,7 +12,11 @@ import type { PersistedData } from '../types/persistence';
 import { parseInboundPersistedSection } from './inboundPersistedSection';
 import { readSessionStorageValue } from './safeSessionStorage';
 import { getInvalidDraftsStorageKey } from '../config/storageManifest';
-import { readInvalidDraftsFromStorage } from './invalidDraftsStorage';
+import {
+  createEmptyInvalidDraftsCacheForStorage,
+  parseInvalidDraftsStorageValue,
+  readInvalidDraftsFromStorage,
+} from './invalidDraftsStorage';
 import type { InvalidDraftsCache } from '../stores/formPersistenceStore';
 
 export type SessionHydrationNotice = { message: string; type: 'warning' | 'error' };
@@ -104,7 +108,9 @@ const createStorageReadFailedNotice = (): SessionHydrationNotice => ({
   message: 'Gemte browserdata kunne ikke gennemgås ved opstart. Den aktive sag blev derfor startet uden sessiondata.',
 });
 
-export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
+export const buildSessionStorageHydrationPlan = (
+  preloaded?: ReadonlyMap<string, string | null>
+): SessionHydrationPlan => {
   const sections = createEmptySectionsSnapshot();
   const keysToRemove: string[] = [];
   const summary: HydrationSummary = {
@@ -119,7 +125,10 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     const storageKey = getStorageKey(pageKey);
     let stored: string | null;
     try {
-      stored = readSessionStorageValue(storageKey);
+      if (preloaded !== undefined && !preloaded.has(storageKey)) {
+        throw new Error(`Hydration-snapshot mangler nøglen '${storageKey}'.`);
+      }
+      stored = preloaded === undefined ? readSessionStorageValue(storageKey) : preloaded.get(storageKey) ?? null;
     } catch {
       // En læsefejl på én nøgle må ikke kassere cleanup for allerede gennemgåede nøgler eller
       // afbryde de resterende sektioner. Markér fejlen (fail-closed) og fortsæt.
@@ -167,7 +176,19 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     summary.strippedUnknownFieldCount += result.unknownPaths.length;
   }
 
-  const invalidDraftsResult = readInvalidDraftsFromStorage();
+  const invalidDraftsKey = getInvalidDraftsStorageKey();
+  let invalidDraftsResult: ReturnType<typeof readInvalidDraftsFromStorage>;
+  try {
+    if (preloaded !== undefined && !preloaded.has(invalidDraftsKey)) {
+      throw new Error(`Hydration-snapshot mangler nøglen '${invalidDraftsKey}'.`);
+    }
+    invalidDraftsResult = preloaded === undefined
+      ? readInvalidDraftsFromStorage()
+      : parseInvalidDraftsStorageValue(preloaded.get(invalidDraftsKey) ?? null);
+  } catch {
+    storageReadFailed = true;
+    invalidDraftsResult = { cache: createEmptyInvalidDraftsCacheForStorage(), shouldRemove: false };
+  }
   if (invalidDraftsResult.shouldRemove) {
     keysToRemove.push(getInvalidDraftsStorageKey());
   }

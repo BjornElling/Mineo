@@ -551,7 +551,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
 
   const handleTableDataChange = React.useCallback(
     (id: string) =>
-      (newTableData: Ansaettelsesforhold['indtaegtsoplysningerTableData'], origin?: { fieldPath?: string }) => {
+      (newTableData: Ansaettelsesforhold['indtaegtsoplysningerTableData'], origin?: CommitOriginOptions) => {
         return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, indtaegtsoplysningerTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
@@ -645,7 +645,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
 
   const handleLoenudviklingManuelTableChange = React.useCallback(
     (id: string) =>
-      (newTableData: Ansaettelsesforhold['loenudviklingManuelTableData'], origin?: { fieldPath?: string }) => {
+      (newTableData: Ansaettelsesforhold['loenudviklingManuelTableData'], origin?: CommitOriginOptions) => {
         return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
@@ -653,7 +653,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
 
   const handleLoenudviklingManuelProcentsatsTableChange = React.useCallback(
     (id: string) =>
-      (newTableData: Ansaettelsesforhold['loenudviklingManuelProcentsatsTableData'], origin?: { fieldPath?: string }) => {
+      (newTableData: Ansaettelsesforhold['loenudviklingManuelProcentsatsTableData'], origin?: CommitOriginOptions) => {
         return updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelProcentsatsTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]

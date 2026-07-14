@@ -8,7 +8,7 @@ import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
-import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useGridRowPersistenceCore, type GridRowCommitOrigin } from './gridCore/useGridRowPersistenceCore';
 import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
 import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
@@ -29,7 +29,7 @@ import { GridReadOnlyLockedCell as ReadOnlyLockedCell } from './GridReadOnlyLock
 
 export type LoenudviklingManuelTableProps = Readonly<{
   tableData: LoenudviklingManuelRow[];
-  onTableDataChange?: (data: LoenudviklingManuelRow[], origin?: { fieldPath?: string }) => boolean;
+  onTableDataChange?: (data: LoenudviklingManuelRow[], origin?: GridRowCommitOrigin) => boolean;
   onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
   /**

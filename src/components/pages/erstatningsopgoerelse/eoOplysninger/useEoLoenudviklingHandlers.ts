@@ -12,12 +12,13 @@ import { EO_ANGIVET_LOEN_ID } from '../../../../domain/erstatningsopgoerelse/hel
 import { applyLoenudviklingBeregningsgrundlagChange } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { normalizeOptionalFreeText } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { isOffentligOverenskomstId } from '../../../../data/overenskomstRates';
+import type { CommitOriginOptions } from '../../../../hooks/usePersistedForm';
 
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 type UpdateEoLoenudvikling = (
   updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling,
-  origin?: { fieldPath?: string }
+  origin?: CommitOriginOptions
 ) => boolean;
 
 type ReportDynamicFieldError = (fieldKey: string, message: string | undefined) => void;
@@ -43,11 +44,11 @@ export type EoLoenudviklingHandlers = Readonly<{
   handleLoenudviklingManuelNavnCommit: (event: CommitEvent<string | undefined>) => boolean;
   handleLoenudviklingManuelTableChange: (
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData'],
-    origin?: { fieldPath?: string }
+    origin?: CommitOriginOptions
   ) => boolean;
   handleLoenudviklingManuelProcentsatsTableChange: (
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelProcentsatsTableData'],
-    origin?: { fieldPath?: string }
+    origin?: CommitOriginOptions
   ) => boolean;
   handleLoenudviklingManuelInputErrorChange: (hasError: boolean) => void;
 }>;
@@ -183,7 +184,7 @@ export const useEoLoenudviklingHandlers = ({
 
   const handleLoenudviklingManuelTableChange = React.useCallback((
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData'],
-    origin?: { fieldPath?: string }
+    origin?: CommitOriginOptions
   ) => {
     return updateEoLoenudvikling((prev) => ({
       ...prev,
@@ -193,7 +194,7 @@ export const useEoLoenudviklingHandlers = ({
 
   const handleLoenudviklingManuelProcentsatsTableChange = React.useCallback((
     tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelProcentsatsTableData'],
-    origin?: { fieldPath?: string }
+    origin?: CommitOriginOptions
   ) => {
     return updateEoLoenudvikling((prev) => ({
       ...prev,

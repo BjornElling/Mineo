@@ -8,7 +8,7 @@ import type {
   FieldErrorSeverity,
   FieldErrorSource,
 } from '../types/fieldErrors';
-import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
+import type { HistoryFrameOrigin } from '../stores/inputRuntimeStore';
 import type { InvalidDraftClear } from '../types/invalidDrafts';
 
 export type ReplaceAllPersistedData = (snapshot: PersistedSectionsSnapshot) => void;
@@ -53,7 +53,7 @@ export type FormPersistenceContextValue = {
   clearAllFieldErrors: () => void;
   // `invalidDrafts`-recovery-kanal (afsluttet ugyldigt input, jf. form-contract.md §2.4 / persistence-contract.md §11).
   // commitInvalidDraft skrives ved fejlende commit; clearInvalidDraft ved rydning. Begge tager undoOrigin
-  // (opretter en undo-frame, coalesced pr. commit-flow), så både ugyldigt input OG rydning kan undo'es.
+  // (opretter en undo-frame, når ændringen ikke er en no-op), så både ugyldigt input og rydning kan undo'es.
   commitInvalidDraft: (pageKey: StorageKey, fieldPath: string, rawDraft: string, options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
   clearInvalidDraft: (pageKey: StorageKey, fieldPath: string, options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
   getInvalidDraft: (pageKey: StorageKey, fieldPath: string) => string | undefined;

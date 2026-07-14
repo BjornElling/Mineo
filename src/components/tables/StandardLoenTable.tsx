@@ -40,7 +40,7 @@ import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
-import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useGridRowPersistenceCore, type GridRowCommitOrigin } from './gridCore/useGridRowPersistenceCore';
 import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
 import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
@@ -59,7 +59,7 @@ export type StandardLoenTableProps = {
   // Beløb-tilstand: kolonnerne "FP/FV/SH/SO/St.B." og "Arb.g. Pension" bliver redigerbare
   // beløbsfelter i stedet for beregnede visningsfelter. Default 'procent' (nuværende adfærd).
   tillaegAngivesSom?: TillaegAngivesSom;
-  onTableDataChange?: (data: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => boolean;
+  onTableDataChange?: (data: StandardLoenTableRow[], options?: GridRowCommitOrigin) => boolean;
   onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;

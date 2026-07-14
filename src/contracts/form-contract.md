@@ -248,3 +248,7 @@ Særligt for dokument-download:
 `useDraftField`, `useTableInputCore`, `useRowDrafts`, `useSliceRowDrafts`, `FormPersistenceContext`, offentlige
 `invalidDrafts`-/`fieldErrors`-API'er og deres string-key-builders må eksistere midlertidigt under migrationen. De må
 ikke udvides, kopieres eller bruges som normativt eksempel. De slettes efter acceptkriterierne i greenfield-planen.
+
+Fase-3-gridbroen er den eneste tilladte tilføjelse til migrationslaget: den bærer en konkret rejected-clear fra
+celle-blur til den eksisterende effektbaserede sektionspersistence, så begge dele rammer samme transaktionscommand.
+Den skriver ingen state/storage selv, er uafhængig af timing og slettes sammen med grid-pipelinen i fase 4.

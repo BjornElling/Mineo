@@ -1,0 +1,85 @@
+import type { StorageKey } from '../config/storageManifest';
+import type { InvalidDraftsCache } from '../stores/inputRuntimeStore';
+import {
+  createFieldAddress,
+  deserializeFieldAddress,
+  serializeFieldAddress,
+  type FieldAddress,
+} from './fieldAddress';
+import type { RejectedInputs } from './inputState';
+
+/**
+ * Midlertidig fase-3-adapter for de endnu ikke migrerede felt-callsites.
+ * Sentinel-leddet gør adresserne entydigt genkendelige og dermed migrerbare i fase 4; ingen consumer
+ * må fortolke dem som rigtige FieldRefs eller bruge dem uden for kompatibilitetsfacaden.
+ */
+const LEGACY_FIELD_PATH_SENTINEL = 'legacy-field-path';
+
+export const createLegacyFieldAddress = (section: StorageKey, fieldPath: string): FieldAddress => {
+  if (fieldPath === '' || fieldPath.trim() !== fieldPath) {
+    throw new Error('Legacy-feltstien skal være ikke-tom og uden ydre mellemrum.');
+  }
+  return createFieldAddress({
+    section,
+    path: [{ kind: 'property', name: LEGACY_FIELD_PATH_SENTINEL }],
+    field: fieldPath,
+  });
+};
+
+export const readLegacyFieldPath = (address: FieldAddress): Readonly<{
+  section: StorageKey;
+  fieldPath: string;
+}> | null => {
+  if (
+    address.path.length !== 1
+    || address.path[0]?.kind !== 'property'
+    || address.path[0].name !== LEGACY_FIELD_PATH_SENTINEL
+  ) {
+    return null;
+  }
+  return { section: address.section, fieldPath: address.field };
+};
+
+export const legacyInvalidDraftsToRejectedInputs = (cache: InvalidDraftsCache): RejectedInputs => {
+  const entries: Array<readonly [string, { raw: string }]> = [];
+  for (const [section, drafts] of Object.entries(cache) as Array<[StorageKey, Record<string, string>]>) {
+    for (const [fieldPath, raw] of Object.entries(drafts)) {
+      entries.push([serializeFieldAddress(createLegacyFieldAddress(section, fieldPath)), { raw }]);
+    }
+  }
+  return Object.fromEntries(entries);
+};
+
+export const rejectedInputsToLegacyInvalidDrafts = (
+  rejectedInputs: RejectedInputs,
+  createEmptyCache: () => InvalidDraftsCache
+): InvalidDraftsCache => {
+  const cache = createEmptyCache();
+  for (const [serializedAddress, rejected] of Object.entries(rejectedInputs)) {
+    const address = deserializeFieldAddress(serializedAddress);
+    const legacy = address === null ? null : readLegacyFieldPath(address);
+    if (legacy !== null) cache[legacy.section][legacy.fieldPath] = rejected.raw;
+  }
+  return cache;
+};
+
+export type LegacyRejectedInputChange = Readonly<{
+  pageKey: StorageKey;
+  fieldPath: string;
+  draft: string | null;
+  expectedRaw?: string;
+}>;
+
+export const applyLegacyRejectedInputChanges = (
+  rejectedInputs: RejectedInputs,
+  changes: readonly LegacyRejectedInputChange[]
+): RejectedInputs => {
+  const next: Record<string, { raw: string }> = { ...rejectedInputs };
+  for (const { pageKey, fieldPath, draft, expectedRaw } of changes) {
+    const key = serializeFieldAddress(createLegacyFieldAddress(pageKey, fieldPath));
+    if (expectedRaw !== undefined && next[key]?.raw !== expectedRaw) continue;
+    if (draft === null || draft === '') delete next[key];
+    else next[key] = { raw: draft };
+  }
+  return next;
+};

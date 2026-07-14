@@ -62,6 +62,7 @@ const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
  * input overlever F5 (jf. persistence-contract.md §11).
  */
 const INVALID_DRAFTS_SUFFIX = 'invalidDrafts';
+const INPUT_ENVELOPE_SUFFIX = 'input';
 
 const buildKeyMap = <T extends Record<string, string>>(suffixes: T): { readonly [K in keyof T]: string } => {
   const descriptors = {} as { [K in keyof T]: PropertyDescriptor };
@@ -89,12 +90,16 @@ export const createActiveTabStorageKey = (pageId: string): string => ns(`${ACTIV
  */
 export const getInvalidDraftsStorageKey = (): string => ns(INVALID_DRAFTS_SUFFIX);
 
+/** Eneste current-format-nøgle for den aktive sags samlede inputaggregate. */
+export const getInputEnvelopeStorageKey = (): string => ns(INPUT_ENVELOPE_SUFFIX);
+
 const isValidStorageKeyForCurrentNamespace = (key: string): boolean => {
   const domainKeys = Object.values(STORAGE_KEYS) as string[];
   const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
   return domainKeys.includes(key)
     || uiKeys.includes(key)
     || key === ns(INVALID_DRAFTS_SUFFIX)
+    || key === ns(INPUT_ENVELOPE_SUFFIX)
     || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
 };
 
@@ -102,6 +107,7 @@ export const getKnownStaticStorageKeys = (): string[] => [
   ...Object.values(STORAGE_KEYS),
   ...Object.values(UI_STORAGE_KEYS),
   getInvalidDraftsStorageKey(),
+  getInputEnvelopeStorageKey(),
 ];
 
 export const getKnownStorageKeys = (existingStorageKeys: readonly string[] = []): string[] => {

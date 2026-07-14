@@ -16,6 +16,10 @@ import { useInvalidDraftSlot } from '../fieldState/useInvalidDraftSlot';
 import { useCellInvalidDraftChannel } from './useCellInvalidDraftChannel';
 import type { TableInputAdapter } from './tableInputAdapter';
 import {
+  cancelLegacyGridRejectedClear,
+  withActiveLegacyGridRejectedClear,
+} from '../../input/legacyGridTransactionBridge';
+import {
   mapSelectionThroughDraftNormalization,
   restoreInputSelectionAfterControlledChange,
   type NormalizedSelection,
@@ -104,6 +108,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     committedInvalidDraft: channelCommittedInvalidDraft,
     onCommitInvalid: channelCommitInvalid,
     clearInvalidDraft: channelClearInvalid,
+    rejectedClear: channelRejectedClear,
   } = channel;
   const useChannel = channelFieldPath !== undefined && (adapter.useSaveError ?? false);
 
@@ -143,9 +148,13 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   // queueMicrotask, så `isEditing`-guarden ikke længere dækker vinduet.)
   const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string } | null>(null);
   const originalValueOnEditStartRef = React.useRef<string>('');
+  const originalTouchedOnEditStartRef = React.useRef(false);
+  const originalLocalVisualErrorOnEditStartRef = React.useRef('');
   const keyInitiatedEditRef = React.useRef(false);
   const wasEditingRef = React.useRef(false);
   const effectiveInvalidDraftRef = React.useRef<string | undefined>(effectiveInvalidDraft);
+  const touchedRef = React.useRef(touched);
+  const localVisualErrorRef = React.useRef(localVisualError);
   const latestCommittedPayloadRef = React.useRef<CommittedPayload<TModel, TCanonical, TFingerprint>>(
     adapter.toCommittedPayload(value)
   );
@@ -162,6 +171,11 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   React.useLayoutEffect(() => {
     effectiveInvalidDraftRef.current = effectiveInvalidDraft;
   }, [effectiveInvalidDraft]);
+
+  React.useLayoutEffect(() => {
+    touchedRef.current = touched;
+    localVisualErrorRef.current = localVisualError;
+  }, [localVisualError, touched]);
 
   React.useEffect(() => {
     draftRef.current = draft;
@@ -252,6 +266,8 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       return;
     }
     if (wasEditing) return;
+    originalTouchedOnEditStartRef.current = touchedRef.current;
+    originalLocalVisualErrorOnEditStartRef.current = localVisualErrorRef.current;
     if (!keyInitiatedEditRef.current) {
       if ((adapter.preserveInvalidDraft ?? true) && effectiveInvalidDraftRef.current !== undefined) {
         originalValueOnEditStartRef.current = draftRef.current;
@@ -355,8 +371,8 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       if (isNoop) {
         pendingCommitRef.current = null;
         // Værdi-commit er en no-op (committed værdi uændret) → intet onBlur/value-commit. Ryd alligevel en
-        // evt. tilbageværende ugyldig rå draft; den fanger sin egen undo-frame (jf. FormPersistenceContext
-        // asymmetrisk coalescing: en clear uden parret value-commit skal fanges, ellers springer undo den over).
+        // evt. tilbageværende ugyldig rå draft; den fanger sin egen undo-frame, så undo ikke springer
+        // rydningen over.
         return clearInvalidDraftEntry();
       }
 
@@ -369,23 +385,42 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       // Kun nødvendigt når display'et faktisk ændrer sig; ellers ingen flicker-risiko (og guarden ville
       // ikke kunne afmeldes, fordi committedDisplayValue aldrig divergerer fra formattedValueAtCommit).
       pendingCommitRef.current = target !== formattedValueAtCommit ? { formattedValueAtCommit } : null;
-      // Rækkefølge er kontrakt-kritisk: value-commit (onBlur→setValues→persistData) FØRST, DEREFTER clear af
-      // den ugyldige rå draft. FormPersistenceContexts asymmetriske coalescing markerer fieldPath ved
-      // value-commit, og den parrede clearInvalidDraft rider på samme frame. Modsat rækkefølge (clear først)
-      // ville give TO undo-frames ved en rettelse fra ugyldigt→gyldigt input (undo skulle trykkes to gange).
-      // Spejler useDraftField/felt-stien og kontrakt-noten i FormPersistenceContext ("onCommit EFTERFULGT af clear").
+      // Gridets row-pipeline persisterer i et efterfølgende React-trin. Stage derfor den præcise clear,
+      // så usePersistedForm kan flette den ind i samme transaktion som sektionsværdien. Den rå ugyldige
+      // tekst bliver stående, hvis værdipersistencen fejler.
+      const stagedClear = useChannel
+        && channelRejectedClear !== undefined
+        && effectiveInvalidDraftRef.current !== undefined
+        && current.onBlur !== undefined
+        ? {
+            ...channelRejectedClear,
+            expectedRaw: effectiveInvalidDraftRef.current,
+          }
+        : undefined;
       try {
-        const committed = current.onBlur?.({ target: { value: nextPayload.model } });
+        const committed = stagedClear === undefined
+          ? current.onBlur?.({ target: { value: nextPayload.model } })
+          : withActiveLegacyGridRejectedClear({
+              section: stagedClear.pageKey,
+              undoFieldPath: resolvedGridCellKey,
+              clear: stagedClear,
+            }, () => current.onBlur?.({ target: { value: nextPayload.model } }));
         if (
           committed === false ||
-          !clearInvalidDraftEntry()
+          (stagedClear === undefined && !clearInvalidDraftEntry())
         ) {
+          if (stagedClear !== undefined) {
+            cancelLegacyGridRejectedClear(stagedClear.pageKey, stagedClear.fieldPath);
+          }
           pendingCommitRef.current = null;
           draftRef.current = committedDisplayValue;
           setDraft(committedDisplayValue);
           return false;
         }
       } catch {
+        if (stagedClear !== undefined) {
+          cancelLegacyGridRejectedClear(stagedClear.pageKey, stagedClear.fieldPath);
+        }
         pendingCommitRef.current = null;
         draftRef.current = committedDisplayValue;
         setDraft(committedDisplayValue);
@@ -393,7 +428,14 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       }
       return true;
     },
-    [clearInvalidDraftEntry, committedDisplayValue, writeInvalidDraft]
+    [
+      channelRejectedClear,
+      clearInvalidDraftEntry,
+      committedDisplayValue,
+      resolvedGridCellKey,
+      useChannel,
+      writeInvalidDraft,
+    ]
   );
 
   const handleChange = React.useCallback(
@@ -551,25 +593,25 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         resetEditingState();
         pendingDraftCommitRef.current = false;
         pendingCommitRef.current = null;
-        setTouched(false);
-        // Escape/cancel forkaster det igangværende (evt. ikke-committbare) input og vender tilbage til
-        // den sidst committede værdi — inkl. rydning af en bevaret rå draft, så fejl-UI'et forsvinder.
-        clearInvalidDraftEntry();
-        setLocalVisualError('');
-        const committedValue =
-          latest.current.adapter.toDraftString?.(latestCommittedPayloadRef.current.model) ??
-          latest.current.adapter.format(latestCommittedPayloadRef.current.model);
-        draftRef.current = committedValue;
-        setDraft(committedValue);
+        setTouched(originalTouchedOnEditStartRef.current);
+        setLocalVisualError(originalLocalVisualErrorOnEditStartRef.current);
+        // Escape gendanner præcis den afsluttede starttilstand. Et allerede rejected input er derfor
+        // fortsat aktuelt input; rydning her ville være en ny brugerhandling og kunne afdække stale canonical data.
+        const startValue = originalValueOnEditStartRef.current;
+        draftRef.current = startValue;
+        setDraft(startValue);
         gridApi.closeEditing();
       },
       prepareEditFromKey: (key: string) => {
         if (latest.current.locked) return false;
         if (!latest.current.adapter.isValidStartKey(key)) return false;
-        const committedValue =
-          latest.current.adapter.toDraftString?.(latestCommittedPayloadRef.current.model) ??
-          latest.current.adapter.format(latestCommittedPayloadRef.current.model);
-        originalValueOnEditStartRef.current = committedValue;
+        const startValue = effectiveInvalidDraftRef.current === undefined
+          ? latest.current.adapter.toDraftString?.(latestCommittedPayloadRef.current.model)
+            ?? latest.current.adapter.format(latestCommittedPayloadRef.current.model)
+          : draftRef.current;
+        originalValueOnEditStartRef.current = startValue;
+        originalTouchedOnEditStartRef.current = touchedRef.current;
+        originalLocalVisualErrorOnEditStartRef.current = localVisualErrorRef.current;
         keyInitiatedEditRef.current = true;
         setKeyInitiatedEdit(true);
         setTouched(false);
@@ -601,7 +643,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         requestAnimationFrame(() => inputElRef.current?.select());
       },
     };
-  }, [clearInvalidDraftEntry, commitAndEmitBlur, gridApi, resetEditingState]);
+  }, [commitAndEmitBlur, gridApi, resetEditingState]);
 
   React.useEffect(() => {
     gridApi.registerEditor(gridCell, editorHandle);

@@ -2,6 +2,9 @@ import * as React from 'react';
 
 import { reconcileGridRowIdentityForRestore } from './gridModel';
 import { useCriticalActionParticipant } from '../../../criticalActions/CriticalActionContext';
+import type { InvalidDraftClear } from '../../../types/invalidDrafts';
+import type { CommitOriginOptions } from '../../../hooks/usePersistedForm';
+import { claimActiveLegacyGridRejectedClear } from '../../../input/legacyGridTransactionBridge';
 
 /**
  * Fælles persist-/resync-kerne for de tabel-lokale grid-tabeller (Standard løn, Offentlige ydelser,
@@ -33,6 +36,7 @@ export type GridRowPersistencePending<TRow> = Readonly<{
   rows: TRow[];
   fingerprint: string;
   fieldPath?: string;
+  clearInvalidDrafts?: readonly InvalidDraftClear[];
   completion: Readonly<{
     promise: Promise<void>;
     resolve: () => void;
@@ -40,9 +44,11 @@ export type GridRowPersistencePending<TRow> = Readonly<{
   }>;
 }>;
 
+export type GridRowCommitOrigin = CommitOriginOptions;
+
 export type UseGridRowPersistenceCoreConfig<TRow> = Readonly<{
   tableData: readonly TRow[];
-  onTableDataChange?: (rows: TRow[], origin?: Readonly<{ fieldPath?: string }>) => boolean;
+  onTableDataChange?: (rows: TRow[], origin?: GridRowCommitOrigin) => boolean;
   /** Normaliser en rækkeliste (min-rows + én efterfølgende tom række; evt. låst basisrække). */
   normalizeRows: (rows: readonly TRow[]) => TRow[];
   isRowEmpty: (row: TRow) => boolean;
@@ -122,7 +128,10 @@ export const useGridRowPersistenceCore = <TRow>(
   const queuePersist = React.useCallback((normalizedRows: readonly TRow[], fieldPath?: string) => {
     const { isRowEmpty: empty, getStrippedFingerprint: fp, keepLeadingRows: keep } = stableRef.current;
     // Last-write-wins: en nyere payload erstatter den tidligere før effekt-flush. Den tidligere
-    // kvittering kan afsluttes, fordi kun den nye payload nu er autoritativt ventepunkt.
+    // kvittering kan afsluttes, fordi kun den nye payload nu er autoritativt ventepunkt. Allerede
+    // krævede rejected-clears følger med, da den nyeste rækkeliste også indeholder de ældre commits.
+    const previousClears = pendingPersistRef.current?.clearInvalidDrafts ?? [];
+    const activeClear = claimActiveLegacyGridRejectedClear();
     pendingPersistRef.current?.completion.resolve();
     let resolveCompletion: () => void = () => undefined;
     let rejectCompletion: (reason: unknown) => void = () => undefined;
@@ -137,6 +146,7 @@ export const useGridRowPersistenceCore = <TRow>(
       rows: stripPersistableRows(normalizedRows, empty, keep),
       fingerprint: fp(normalizedRows),
       fieldPath,
+      clearInvalidDrafts: activeClear === undefined ? previousClears : [...previousClears, activeClear],
       completion: {
         promise,
         resolve: resolveCompletion,
@@ -187,7 +197,19 @@ export const useGridRowPersistenceCore = <TRow>(
     }
     // pending.rows er allerede strippet; pending.fingerprint er fingerprintet af præcis dem.
     try {
-      const committed = onChange(pending.rows, pending.fieldPath ? { fieldPath: pending.fieldPath } : undefined);
+      const origin: GridRowCommitOrigin | undefined =
+        pending.fieldPath === undefined && (pending.clearInvalidDrafts?.length ?? 0) === 0
+          ? undefined
+          : {
+              ...(pending.fieldPath === undefined ? {} : { fieldPath: pending.fieldPath }),
+              ...((pending.clearInvalidDrafts?.length ?? 0) === 0
+                ? {}
+                : { clearInvalidDrafts: pending.clearInvalidDrafts }),
+            };
+      const committed = onChange(
+        pending.rows,
+        origin
+      );
       if (committed === false) {
         pending.completion.reject(new Error('Grid-rækken kunne ikke persisteres.'));
       } else {

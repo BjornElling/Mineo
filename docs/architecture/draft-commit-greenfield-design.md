@@ -1,10 +1,11 @@
 # Greenfield-design for draft, afsluttet input og commit
 
-**Status:** Revideret målarkitektur og implementeringsplan — produktadfærden i §9 er godkendt
+**Status:** Fase 0–3 er gennemført. Fase 4 er næste implementeringsfase; fase 4–8 er ikke påbegyndt.
 
 **Dato:** 2026-07-14
 
-**Type:** Informativ målarkitektur. De normative kontrakter opdateres i fase 1, før ny implementering følger designet.
+**Type:** Informativ målarkitektur. De normative kontrakter blev konvergeret i fase 1, og implementeringen til og med
+fase 3 følger dem.
 
 **Scope:** Persisterede formularfelter og tabelceller, beregninger, dokument-output, `.eo`-save, `sessionStorage` samt undo/redo
 
@@ -134,8 +135,9 @@ og indgår ikke i undo/redo.
 Commit-hashes, tidligere review-dialog, midlertidige statusprocenter og statiske testtællere har gjort dokumentet
 svært at bruge som beslutningsgrundlag og bliver hurtigt forældede.
 
-**Rettelse:** Dette dokument beskriver mål, rækkefølge og acceptkriterier. Faktisk status rapporteres i handoffs og kan
-læses i git. Midlertidige afvigelser skal have en udløbsbetingelse i kode eller plan — ikke en permanent forklaring her.
+**Rettelse:** Dette dokument beskriver mål, rækkefølge, acceptkriterier og den aktuelle status på faseniveau. Detaljeret
+implementeringshistorik og testtal hører fortsat til i git og handoffs. Midlertidige afvigelser skal have en
+udløbsbetingelse i kode eller plan — ikke en permanent kronologi her.
 
 ## 3. Målmodel
 
@@ -495,12 +497,23 @@ Hver fase afsluttes med sin egen sletteliste; midlertidige facader må ikke bliv
 
 ### Fase 0 — Produktadfærd låses
 
+**Status 2026-07-14:** Gennemført. Den godkendte Escape- og downloadadfærd er låst med tværgående kontrakt- og
+integrationstests, herunder start fra allerede rejected input og den åbne draft før settle. Persisted felt- og
+collection-stier genereres maskinelt fra Zod-schemas i
+`greenfield-phase-0-persisted-input-inventory.json`; beregningsentrypoints, sagsfilstier og samtlige aktuelle
+dokumentoutputs er fastlåst i `greenfieldPhase0Inventory.ts` med udtømmende coverage-test. Inventaret er kun
+migrationsgrundlag og må ikke blive en parallel runtime-autoritet.
+
 1. Fasthold den godkendte adfærd i §9 med karakteriseringstests før intern omskrivning.
 2. Verificér særskilt, at åben draft ikke påvirker visning/gate, og at blur/finalize sker før dokument-preflight.
 3. Inventariser alle persisted felter, dynamiske samlinger, beregningsentrypoints, save-paths og dokumentdefinitioner
    maskinelt, så planen ikke afhænger af et manuelt antal.
 
 ### Fase 1 — Normative kontrakter konvergeres
+
+**Status 2026-07-14:** Gennemført. De normative tværgående kontrakter og domænekontrakter, `AGENTS.md`, de berørte
+arkitekturdokumenter og begge reviewplaner beskriver nu målgrænserne. De afløste mekanismer er kun bevaret som
+eksplicit migrationskode med en sletteliste.
 
 Opdatér mindst:
 
@@ -518,7 +531,7 @@ Opdatér mindst:
 - domænekontrakterne for Renteberegning, Satser, EO, EET, Forsørgertab, Årsløn og Varige mén.
 
 Fjern normative krav om de konkrete overgangsmekanismer (`invalidDrafts` som offentlig kanal, tre draft-systemer,
-kolonneindeks-identitet, component-reported `fieldErrors` og history-coalescing). Kontrakterne beskriver målinvarianter
+kolonneindeks-identitet, komponentrapporterede `fieldErrors` og history-coalescing). Kontrakterne beskriver målinvarianter
 og autoritative grænser, ikke filnavnene på midlertidig kode.
 
 Opdatér i samme dokumentationscut `AGENTS.md`, undo/redo-, beregnings-, dokument-output-, EO-row-evaluation- og
@@ -526,6 +539,11 @@ EO-clamping-arkitekturen. Markér de berørte kandidater i `greenfield-review-pl
 historiske overgangstrin, så deres tidligere ✅-status ikke kan læses som krav om at bevare den afløste arkitektur.
 
 ### Fase 2 — Ren inputkerne uden React
+
+**Status 2026-07-14:** Gennemført. Den rene kerne indeholder strukturelle feltadresser og refs, definitioner og fælles
+codecs, Zod-dækket inputstate, typed commands og reducer, et forseglbart `InputCatalog`, `InputReader`, projektioner
+og den fælles issue-/blocker-model. Kernen er kontrakttestet uden React eller Zustand. Registrering af produktets
+faktiske feltbindinger hører til den samlede overflademigration i fase 4.
 
 Implementér og test som rene moduler:
 
@@ -545,6 +563,12 @@ Ingen eksisterende UI-hook må kopieres ind i kernen. Kernen skal kunne kontrakt
 
 ### Fase 3 — Runtime, storage og history udskiftes i ét cut
 
+**Status 2026-07-14:** Gennemført. Runtime har én inputaggregate med fælles revision og history, én
+versionsmærket session-envelope og én transaktionsrunner. Startup migrerer de tidligere sektionsnøgler og
+`invalidDrafts` atomisk med read-back før kilderne slettes. Load, reset, clear, undo og redo går gennem samme runner;
+der findes ingen sektionsvis runtime-write eller separat history-store. Indtil fase 4 er envelope-adresser eksplicit
+mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-format.
+
 1. Indfør én input-store med aggregate, monoton revision og history.
 2. Indfør én session-envelope og atomisk startup-migration fra nuværende nøgler/adresser.
 3. Route alle eksisterende persistencefacader gennem den nye transaktionsrunner uden dual-write.
@@ -553,7 +577,24 @@ Ingen eksisterende UI-hook må kopieres ind i kernen. Kernen skal kunne kontrakt
 5. Flyt load, reset, clear og undo/redo til commands.
 6. Fjern den gamle store/history som autoritative kilder, før næste fase starter.
 
+**Midlertidig sletteliste:**
+
+- I fase 4 slettes `FormPersistenceContext`-inputfacaden, `formPersistenceStore`-/`undoRedoStore`-facaderne og deres
+  test-only mutations, de afledte `sections`-/`invalidDrafts`-views og deres revisionscounters samt den strengbaserede
+  `HistoryFrameOrigin`.
+- I fase 4 erstattes `legacyInputCompatibility` og dens sentinel-adresser med katalogvaliderede `FieldRef`-adresser;
+  eksisterende rejected input oversættes i samme atomiske address-migration. Orphan-reconcile-callsites slettes med
+  den nye rækkeinfrastruktur. `legacyGridTransactionBridge` slettes samtidig med den effektbaserede grid-pipeline.
+- I fase 5 slettes komponentrapporterede `fieldErrors` og de tilhørende store-metoder, når alle afledelige issues kommer
+  fra de rene validatorer.
+- I fase 7 slettes startup-læsning af de gamle sektions-/`invalidDrafts`-nøgler, den gamle sektions-envelope-builder
+  og de gamle nøgler i storage-manifestet. Indtil da er de kun en engangsmigrationskilde og aldrig en runtime-fallback
+  eller dual-write-destination.
+
 ### Fase 4 — Alle inputoverflader migreres horisontalt
+
+**Status 2026-07-14:** Ikke påbegyndt. De eksisterende formular- og gridmotorer kører fortsat bag fase-3-facaderne;
+`legacyInputCompatibility` og `legacyGridTransactionBridge` markerer den bevidste overgangsgrænse.
 
 1. Implementér den fælles felt-editor-state machine.
 2. Migrér samtlige Styled-felter og Table-inputs til de samme codecs og `settleField`.
@@ -566,6 +607,9 @@ Ingen eksisterende UI-hook må kopieres ind i kernen. Kernen skal kunne kontrakt
 Fasen afleveres ikke med to feltmotorer i normal runtime.
 
 ### Fase 5 — Validering og beregningsprojektioner migreres domænevis
+
+**Status 2026-07-14:** Ikke påbegyndt. Projektionskernen fra fase 2 findes, men produktdomænerne er endnu ikke migreret
+til den som eneste read-grænse, og komponentrapporterede `fieldErrors` er derfor fortsat migrationsstate.
 
 For hvert domæne migreres hele consumer-grafen som én vertikal slice:
 
@@ -583,6 +627,9 @@ Når sidste domæne er migreret, slettes den stored/reporter-baserede `fieldErro
 
 ### Fase 6 — Alle kritiske dokumenthandlinger konvergeres
 
+**Status 2026-07-14:** Ikke påbegyndt. Eksisterende dokumentgates og referenceimplementeringer bevares, men hele
+outputkataloget er endnu ikke migreret til typed dokumentdefinitioner og det fælles prepare-flow.
+
 1. Opret typed dokumentdefinitioner for hele det maskinelt inventariserede outputkatalog.
 2. Route alle UI-knapper gennem samme prepare-flow.
 3. Kræv `PreparedDocument<T>` og frisk revision ved servicegrænsen.
@@ -590,6 +637,9 @@ Når sidste domæne er migreret, slettes den stored/reporter-baserede `fieldErro
 5. Fjern lokale downloadbooleans, separate click-gates og direkte generator-/servicekald.
 
 ### Fase 7 — Legacy slettes og grænser håndhæves
+
+**Status 2026-07-14:** Ikke påbegyndt. Fase 3 har fjernet de afløste autoritative storage-/history-primitiver, men de
+eksplicit listede compatibility-facader og feltmotorer skal først slettes efter migrationerne i fase 4–6.
 
 Slet mindst:
 
@@ -610,6 +660,9 @@ Tilføj AST-baserede arkitekturværn, der beviser:
 - legacy-symbolerne ikke genindføres.
 
 ### Fase 8 — Samlet verifikation
+
+**Status 2026-07-14:** Ikke påbegyndt som afsluttende fase. Fase 3 er verificeret med de fulde automatiske gates og
+build, men slutarkitekturens samlede gate og manuelle browserverifikation kan først udføres efter fase 4–7.
 
 Kør fuld typecheck, test-typecheck, lint og fuld testsuite. Build køres, fordi storage/bootstrap, app-runtime og
 standalone entrypoint er berørt. Udfør desuden manuel browserverifikation af de godkendte synlige flows.

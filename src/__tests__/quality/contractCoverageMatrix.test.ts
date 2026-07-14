@@ -63,8 +63,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       // håndhæves nu af det AST-baserede arkitektur-harness.
       // Import-/adgangs-grænserne + committed-section-mirror håndhæves nu af harnesset.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
+      'src/__tests__/input/inputTransactionRunner.test.ts',
+      'src/__tests__/input/legacyGridTransactionBridge.test.tsx',
+      'src/__tests__/persistence/inputSessionMigration.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
-      'src/__tests__/utils/persistenceSnapshotStorage.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
       'src/__tests__/utils/fileSave.test.ts',
       'src/__tests__/utils/fileLoad.normalLoad.test.ts',
@@ -176,7 +178,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/satser-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/calculations/satserCalculations.test.ts',
-      'src/__tests__/stores/formPersistenceStore.satser.test.ts',
+      'src/__tests__/input/inputTransactionRunner.test.ts',
     ],
   },
   {
@@ -192,7 +194,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/undo-redo-contract.md',
     requiredTestPaths: [
-      'src/__tests__/stores/undoRedoStore.test.ts',
+      'src/__tests__/input/inputTransactionRunner.test.ts',
+      'src/__tests__/input/legacyGridTransactionBridge.test.tsx',
+      'src/__tests__/hooks/useUndoRedo.test.tsx',
       'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
     ],
   },

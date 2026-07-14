@@ -4,6 +4,11 @@ import { act, render } from '@testing-library/react';
 import { useGridRowPersistenceCore } from '../../../components/tables/gridCore/useGridRowPersistenceCore';
 import { normalizeGridRows } from '../../../components/tables/gridCore/gridModel';
 import { createEmptyRowId } from '../../../utils/rowId';
+import type { CommitOriginOptions } from '../../../hooks/usePersistedForm';
+import {
+  __resetLegacyGridTransactionBridgeForTests,
+  withActiveLegacyGridRejectedClear,
+} from '../../../input/legacyGridTransactionBridge';
 
 type Row = { id: string; value?: string };
 
@@ -12,7 +17,7 @@ const getRowId = (row: Row): string => row.id;
 const withRowId = (row: Row, id: string): Row => ({ ...row, id });
 const fingerprint = (rows: readonly Row[]): string => JSON.stringify(rows.map((r) => [r.id, r.value ?? null]));
 const createOnChange = (result = true) =>
-  vi.fn((_rows: Row[], _origin?: { fieldPath?: string }): boolean => result);
+  vi.fn((_rows: Row[], _origin?: CommitOriginOptions): boolean => result);
 
 const makeNormalize = (minRows: number, prefix = 'row') => (rows: readonly Row[]): Row[] =>
   normalizeGridRows({ rows, minRows, getRowId, isRowEmpty, createEmptyRow: (seed) => ({ id: createEmptyRowId(prefix, seed) }) });
@@ -23,7 +28,7 @@ type Harness = {
 
 const renderCore = (
   initialTableData: Row[],
-  onTableDataChange: (rows: Row[], origin?: { fieldPath?: string }) => boolean,
+  onTableDataChange: (rows: Row[], origin?: CommitOriginOptions) => boolean,
   options?: { minRows?: number; keepLeadingRows?: number; normalizeRows?: (rows: readonly Row[]) => Row[] }
 ) => {
   const ref: Harness = { api: null as unknown as Harness['api'] };
@@ -46,6 +51,10 @@ const renderCore = (
 };
 
 describe('useGridRowPersistenceCore', () => {
+  afterEach(() => {
+    __resetLegacyGridTransactionBridgeForTests();
+  });
+
   it('strip-empties: en commit persisterer kun non-empty rækker (ikke den efterfølgende tomme)', async () => {
     const onChange = createOnChange();
     const { ref } = renderCore([{ id: 'r1', value: 'a' }], onChange);
@@ -167,5 +176,33 @@ describe('useGridRowPersistenceCore', () => {
 
     expect(onChange).toHaveBeenCalled();
     expect(ref.api.lastPersistedFingerprintRef.current).toBe(before);
+  });
+
+  it('bevarer alle rejected-clears når flere commits samles i nyeste payload', async () => {
+    const onChange = createOnChange();
+    const { ref } = renderCore([{ id: 'r1', value: 'a' }], onChange);
+    const firstRows = makeNormalize(2)([{ id: 'r1', value: 'b' }]);
+    const latestRows = makeNormalize(2)([{ id: 'r1', value: 'c' }]);
+    const firstClear = { pageKey: 'aarsloen' as const, fieldPath: 'table:first', expectedRaw: 'ugyldig 1' };
+    const secondClear = { pageKey: 'aarsloen' as const, fieldPath: 'table:second', expectedRaw: 'ugyldig 2' };
+
+    await act(async () => {
+      withActiveLegacyGridRejectedClear(
+        { section: 'aarsloen', undoFieldPath: 'r1:0', clear: firstClear },
+        () => ref.api.queuePersist(firstRows, 'r1:0')
+      );
+      withActiveLegacyGridRejectedClear(
+        { section: 'aarsloen', undoFieldPath: 'r1:1', clear: secondClear },
+        () => ref.api.queuePersist(latestRows, 'r1:1')
+      );
+      ref.api.setInternalTableData(latestRows);
+    });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0]?.[0]).toEqual([{ id: 'r1', value: 'c' }]);
+    expect(onChange.mock.calls[0]?.[1]).toEqual({
+      fieldPath: 'r1:1',
+      clearInvalidDrafts: [firstClear, secondClear],
+    });
   });
 });

@@ -17,10 +17,9 @@ import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import {
   __resetUndoRedoStoreForTests,
   undoRedoStore,
-  type HistoryFrame,
   type HistoryFrameOrigin,
-  type HistoryTransitionPlan,
 } from '../../../stores/undoRedoStore';
+import { executeInputTransaction } from '../../../input/inputTransactionRunner';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import {
   CELL_TABLE_IDS,
@@ -242,26 +241,6 @@ describe('undo-roundtrip: sletning genskaber en housekeeping-pruned celle-draft'
     focusToken: null,
   };
 
-  const restoreFrameToFormStore = (frame: HistoryFrame): void => {
-    formPersistenceStore.getState().restoreHistoryFrame(
-      frame.sections,
-      frame.sectionRevisions,
-      frame.fieldErrors,
-      frame.fieldErrorRevisions,
-      frame.invalidDrafts,
-      frame.invalidDraftRevisions,
-      frame.meta,
-      frame.timestamp
-    );
-  };
-
-  const applyPlan = (plan: HistoryTransitionPlan | null): HistoryFrame | null => {
-    if (!plan) return null;
-    restoreFrameToFormStore(plan.target);
-    expect(undoRedoStore.getState().commitPlannedTransition(plan)).toBe(true);
-    return plan.target;
-  };
-
   it('undo gendanner den forældreløse draft, redo fjerner den igen', () => {
     const fp = buildCellInvalidDraftFieldPath(TABLE_ID, '', 'doomed-row:2');
     seedDraft(fp, '12');
@@ -276,13 +255,11 @@ describe('undo-roundtrip: sletning genskaber en housekeeping-pruned celle-draft'
     expect(pastLen()).toBe(pastAfterCapture); // prune fangede ingen frame
 
     // UNDO af sletningen → draften tilbage (laget i sletningens frame, ikke i en prune-frame).
-    const undoFrame = applyPlan(undoRedoStore.getState().planUndo());
-    expect(undoFrame?.invalidDrafts[PAGE_KEY]?.[fp]).toBe('12');
+    act(() => { executeInputTransaction({ kind: 'undo' }); });
     expect(drafts()[fp]).toBe('12');
 
     // REDO → draften væk igen (post-slet-tilstanden).
-    const redoFrame = applyPlan(undoRedoStore.getState().planRedo());
-    expect(redoFrame?.invalidDrafts[PAGE_KEY]?.[fp]).toBeUndefined();
+    act(() => { executeInputTransaction({ kind: 'redo' }); });
     expect(drafts()[fp]).toBeUndefined();
   });
 });

@@ -73,8 +73,8 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     expect(getDownloadButton()).toBeEnabled();
 
     // Erstat med et uparseligt årstal og afslut redigeringen (blur).
-    await user.click(input);
-    await user.keyboard('{Control>}a{/Control}{Delete}');
+    await user.dblClick(input);
+    await user.clear(input);
     await user.type(input, '123');
     await user.tab();
 
@@ -93,12 +93,20 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     renderSatser(satserAngivAarYearBounds.maxYear);
     const input = getYearInput();
 
-    await user.click(input);
-    await user.keyboard('{Control>}a{/Control}{Delete}');
+    await user.dblClick(input);
+    await user.clear(input);
     await user.type(input, '123');
+
+    // Åben draft er ikke afsluttet input: visning og gate bruger fortsat den senest afsluttede årgang.
+    expect(input).toHaveValue('123');
+    expect(aargangInvalidDraft()).toBeUndefined();
+    expect(getDownloadButton()).toBeEnabled();
+    expect(screen.getByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).toBeInTheDocument();
+
     await user.click(getDownloadButton());
 
     expect(aargangInvalidDraft()).toBe('123');
+    expect(getDownloadButton()).toBeDisabled();
     expect(mockDownloadSatserDokument).not.toHaveBeenCalled();
   });
 

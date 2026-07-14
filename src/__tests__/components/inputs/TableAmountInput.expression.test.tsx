@@ -107,7 +107,7 @@ describe('TableAmountInput expression behavior', () => {
     expect(input).toHaveValue('1+');
   }, TEST_TIMEOUT_MS);
 
-  it('cancelEdit restores the last committed value', async () => {
+  it('cancelEdit restores the rejected value present when editing started', async () => {
     const user = userEvent.setup();
     const { input, setEditingCell, getEditor } = setup(undefined);
 
@@ -124,7 +124,7 @@ describe('TableAmountInput expression behavior', () => {
       editor?.cancelEdit();
     });
 
-    expect(input).toHaveValue('');
+    expect(input).toHaveValue('1+');
   }, TEST_TIMEOUT_MS);
 
   it('clearAndCommit emits undefined and clears the display', async () => {

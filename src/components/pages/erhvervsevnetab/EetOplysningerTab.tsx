@@ -22,7 +22,7 @@ import {
   validatePercentDivisibleBy5FromValue,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import AarsloenAmountFieldRow from '../../inputs/AarsloenAmountFieldRow';
-import { type SetFieldValue, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import { type CommitOriginOptions, type SetFieldValue, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { opregulerMedAkkumuleretReguleringssats } from '../../../domain/satser/opreguleringsmotorer';
 import { reguleringssats } from '../../../data/lovbestemteRates';
 
@@ -125,7 +125,7 @@ const EetOplysningerTab = ({
   }, [koenError, reportKoenRuleError]);
 
   const handleAslAfgoerelserChange = React.useCallback(
-    (rows: ErhvervsevnetabValues['aslAfgoerelser'], origin?: { fieldPath?: string }) => {
+    (rows: ErhvervsevnetabValues['aslAfgoerelser'], origin?: CommitOriginOptions) => {
       return setValues((prev) => ({ ...prev, aslAfgoerelser: rows }), origin);
     },
     [setValues]

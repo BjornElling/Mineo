@@ -11,11 +11,12 @@ import {
 } from './useFormPersistenceSelectors';
 import { createActiveTabStorageKey } from '../config/storageManifest';
 import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
-import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
+import type { HistoryFrameOrigin } from '../stores/inputRuntimeStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
 import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.shared';
 import { reportSystemIssue } from '../utils/systemIssueReporter';
 import type { InvalidDraftClear } from '../types/invalidDrafts';
+import { consumeLegacyGridRejectedClear } from '../input/legacyGridTransactionBridge';
 
 /**
  * Signatur for setValues: funktionel updater-baseret felt-commit.
@@ -246,9 +247,10 @@ export const usePersistedForm = <K extends StorageKey>(
     (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K] | Partial<PersistedSectionMap[K]>, options?: CommitOriginOptions) => {
       const current = resolveCurrentValues();
       const next = { ...current, ...updater(current) };
+      const stagedGridClear = consumeLegacyGridRejectedClear(pageKey, options?.fieldPath);
       return persistDataRef.current(pageKey, next, {
         undoOrigin: createUndoOrigin(options),
-        clearInvalidDraft: options?.clearInvalidDraft,
+        clearInvalidDraft: options?.clearInvalidDraft ?? stagedGridClear,
         clearInvalidDrafts: options?.clearInvalidDrafts,
       });
     },

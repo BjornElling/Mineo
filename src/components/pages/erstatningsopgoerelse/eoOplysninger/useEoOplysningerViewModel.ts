@@ -6,7 +6,7 @@ import useFerieRows from '../../../tables/useFerieRows';
 import useFravaerRows from '../../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../../tables/useOevrigeKravRows';
 import { type ReportableFieldError } from '../../../../types/fieldErrors';
-import type { UsePersistedFormReturn } from '../../../../hooks/usePersistedForm';
+import type { CommitOriginOptions, UsePersistedFormReturn } from '../../../../hooks/usePersistedForm';
 import { useEoFieldCommitHandlers } from './useEoFieldCommitHandlers';
 import { useEoLoenudviklingHandlers } from './useEoLoenudviklingHandlers';
 import { useEoLoentrinFinder } from './useEoLoentrinFinder';
@@ -207,7 +207,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
   const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
 
   const updateEoLoenudvikling = React.useCallback(
-    (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling, origin?: { fieldPath?: string }) => {
+    (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling, origin?: CommitOriginOptions) => {
       return setValues((prev) => ({ ...prev, eoAngivetLoenLoenudvikling: updater(prev.eoAngivetLoenLoenudvikling) }), origin);
     },
     [setValues]

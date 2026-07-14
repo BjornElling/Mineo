@@ -17,6 +17,11 @@ Undo/redo omfatter kun autoritativ inputdata:
 Det omfatter ikke åbne drafts, afledte issues, gates, beregninger, browserens native tekst-history, AppSettings,
 `.eo`-filer eller selve `sessionStorage`-envelopen. History er runtime-only og persisteres aldrig.
 
+Indtil fase 5 har erstattet komponentrapporterede `fieldErrors` med rene validatorer, bærer hvert frame desuden et
+midlertidigt kompatibilitetssnapshot af disse fejl. Det gendannes i samme Zustand-write som inputtet, så en restore
+aldrig åbner save-/dokumentgates mellem inputskiftet og en senere React-effekt. Snapshotfeltet slettes i fase 5 og er
+ikke sagsinput.
+
 ## 2. Keyboard-adfærd
 
 Når en tekst- eller grid-editor er åben, er Mineos globale undo/redo et stille no-op, og browserens native tekst-undo

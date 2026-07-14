@@ -5,16 +5,11 @@ import {
   isLegacyInvalidDraftsEnvelopeVersion,
 } from '../config/invalidDraftsVersion';
 import { invalidDraftsCacheSchema } from '../schemas/invalidDraftsSchema';
-import { createEmptyInvalidDraftsCache, type InvalidDraftsCache } from '../stores/formPersistenceStore';
-import {
-  readSessionStorageValue,
-  removeSessionStorageValue,
-  writeSessionStorageValue,
-} from './safeSessionStorage';
+import { createEmptyInvalidDraftsCache, type InvalidDraftsCache } from '../stores/inputRuntimeStore';
+import { readSessionStorageValue } from './safeSessionStorage';
 
 /**
- * Serialisering + hydrering af `invalidDrafts`-recovery-kanalen til/fra dens dedikerede
- * sessionStorage-nøgle (jf. persistence-contract.md §11).
+ * Legacy-reader for `invalidDrafts`-recovery-kanalen under fase-3-startupmigrationen.
  *
  * Envelopen har sin egen version, fordi feltadresser og canonical sektionsschemas udvikler sig
  * uafhængigt. Legacy-enveloper, der bar en numerisk `PERSISTED_DATA_VERSION`, accepteres kun gennem
@@ -25,8 +20,8 @@ type InvalidDraftsEnvelope = {
   data: Record<string, Record<string, string>>;
 };
 
-// Deler den kanoniske konstruktor fra formPersistenceStore, så der ikke findes en fjerde parallel
-// tom-cache-kopi. Navnet bevares som det storage-lokale indgangspunkt.
+// Deler fase-3-runtimekernens konstruktor, så startupmigrationen ikke har en parallel tom-cache-kopi.
+// Navnet bevares som det storage-lokale indgangspunkt, indtil legacy-readeren slettes i fase 7.
 export const createEmptyInvalidDraftsCacheForStorage = (): InvalidDraftsCache => createEmptyInvalidDraftsCache();
 
 const isEnvelope = (value: unknown): value is InvalidDraftsEnvelope => {
@@ -38,60 +33,15 @@ const isEnvelope = (value: unknown): value is InvalidDraftsEnvelope => {
     && !Array.isArray(obj.data);
 };
 
-const hasAnyEntry = (cache: InvalidDraftsCache): boolean => {
-  return PERSISTED_SECTION_KEYS.some((key) => Object.keys(cache[key]).length > 0);
-};
-
-const stripEmptySections = (cache: InvalidDraftsCache): Record<string, Record<string, string>> => {
-  const data: Record<string, Record<string, string>> = {};
-  for (const key of PERSISTED_SECTION_KEYS) {
-    if (Object.keys(cache[key]).length > 0) {
-      data[key] = { ...cache[key] };
-    }
-  }
-  return data;
-};
-
-export const serializeInvalidDraftsCache = (cache: InvalidDraftsCache): string => {
-  const envelope: InvalidDraftsEnvelope = {
-    version: INVALID_DRAFTS_ENVELOPE_VERSION,
-    data: stripEmptySections(cache),
-  };
-  return JSON.stringify(envelope);
-};
-
 /**
- * Skriv cachen til sessionStorage. Er cachen tom, fjernes nøglen helt i stedet for at skrive en
- * tom envelope (holder storage rent).
- */
-export const writeInvalidDraftsToStorage = (cache: InvalidDraftsCache): void => {
-  const storageKey = getInvalidDraftsStorageKey();
-  if (!hasAnyEntry(cache)) {
-    removeSessionStorageValue(storageKey);
-    return;
-  }
-  writeSessionStorageValue(storageKey, serializeInvalidDraftsCache(cache));
-};
-
-export const removeInvalidDraftsFromStorage = (): void => {
-  removeSessionStorageValue(getInvalidDraftsStorageKey());
-};
-
-/**
- * Læs + valider cachen fra sessionStorage. Returnerer altid en fuld cache (alle sektions-nøgler).
+ * Læs + valider legacy-cachen. Current runtime må aldrig skrive denne nøgle.
  * Ved manglende nøgle, korrupt JSON, ukendt form eller versions-mismatch returneres en tom cache,
  * og `shouldRemove` markerer at den ugyldige nøgle bør ryddes som efterfølgende cleanup.
  */
-export const readInvalidDraftsFromStorage = (): { cache: InvalidDraftsCache; shouldRemove: boolean } => {
+export const parseInvalidDraftsStorageValue = (
+  stored: string | null
+): { cache: InvalidDraftsCache; shouldRemove: boolean } => {
   const empty = createEmptyInvalidDraftsCacheForStorage();
-  const storageKey = getInvalidDraftsStorageKey();
-
-  let stored: string | null;
-  try {
-    stored = readSessionStorageValue(storageKey);
-  } catch {
-    return { cache: empty, shouldRemove: false };
-  }
   if (!stored) return { cache: empty, shouldRemove: false };
 
   let parsed: unknown;
@@ -125,3 +75,6 @@ export const readInvalidDraftsFromStorage = (): { cache: InvalidDraftsCache; sho
   }
   return { cache, shouldRemove: false };
 };
+
+export const readInvalidDraftsFromStorage = (): { cache: InvalidDraftsCache; shouldRemove: boolean } =>
+  parseInvalidDraftsStorageValue(readSessionStorageValue(getInvalidDraftsStorageKey()));

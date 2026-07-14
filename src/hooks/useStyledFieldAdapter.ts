@@ -199,9 +199,9 @@ export const useStyledFieldAdapter = <TModel>(
   // Atomisk finalize (greenfield draft/commit §4.4): committer et felt gennem `setFieldValue` (den
   // kanoniske skalar-felt-committer, hvor feltnavnet ER invalidDrafts-storage-nøglen), rydder sektion-
   // committen selv draften ATOMISK i samme transaktion. Den efterfølgende `channelClearInvalidDraft`
-  // her er da en no-op (draften er allerede væk) og fanger ingen ekstra undo-frame. Felter der committer
-  // gennem `setValues`/nested-updatere uden atomisk clear bevarer den (coalescede) rydning her, indtil de
-  // ensartes. Den bundne rydning ejes bevidst her (commit-rækkefølge: værdi FØRST, så clear); den ubundne
+  // her er da en no-op og fanger ingen ekstra undo-frame. Nested-updatere skal sende den præcise
+  // `clearInvalidDraft` sammen med sektionscommittet; resterende adapters migreres i fase 4. Den bundne
+  // rydning ejes bevidst her (commit-rækkefølge: værdi først, så defensiv clear); den ubundne
   // (lokale) ejer useDraftField selv. Bruges af både useDraftField og Backspace/Delete-clear-stien.
   const commitValue = React.useCallback(
     (nextValue: TModel) => {

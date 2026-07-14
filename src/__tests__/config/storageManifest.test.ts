@@ -3,6 +3,7 @@ import {
   STORAGE_KEYS,
   UI_STORAGE_KEYS,
   getStorageKey,
+  getInputEnvelopeStorageKey,
   isValidStorageKey,
   createActiveTabStorageKey,
   getKnownStorageKeys,
@@ -80,6 +81,11 @@ describe('isValidStorageKey', () => {
     }
   });
 
+  it('den samlede input-envelope er en kendt nøgle', () => {
+    expect(getInputEnvelopeStorageKey()).toBe('mineo_input');
+    expect(isValidStorageKey(getInputEnvelopeStorageKey())).toBe(true);
+  });
+
   it('dynamiske activeTab keys er gyldige', () => {
     expect(isValidStorageKey('mineo_ui_activeTab_erstatningsopgoerelse')).toBe(true);
     expect(isValidStorageKey('mineo_ui_activeTab_aarsloen')).toBe(true);
@@ -137,6 +143,7 @@ describe('storage namespace isolation', () => {
     setStorageNamespace('minprocesrente');
     expect(getStorageKey('renteberegning')).toBe('minprocesrente_renteberegning');
     expect(getStorageKey('stamdata')).toBe('minprocesrente_stamdata');
+    expect(getInputEnvelopeStorageKey()).toBe('minprocesrente_input');
   });
 
   it('setStorageNamespace ændrer UI-keys og activeTab-keys', () => {
