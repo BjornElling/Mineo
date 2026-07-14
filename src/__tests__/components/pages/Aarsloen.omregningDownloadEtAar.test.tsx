@@ -41,12 +41,21 @@ vi.mock('../../../hooks/usePersistedForm', () => ({
       stateRef.values = values;
     }, [values]);
 
-    return { values, setValues };
+    const setFieldValue = (fieldName: string, value: unknown) =>
+      setValues((prev: AarsloenValues) => ({ ...prev, [fieldName]: value }));
+
+    return { values, setValues, setFieldValue };
   },
 }));
 
 vi.mock('../../../hooks/useFormPersistenceSelectors', () => ({
   usePersistedSectionSelector: () => ({}),
+}));
+
+// Felt-fejl-reportere kræver FormPersistenceProvider; denne test dækker download-gate uden den fulde
+// provider-stak, så reporteren mockes til en no-op (bindingen dækkes af integrationstests med provider).
+vi.mock('../../../hooks/useFormFieldErrors', () => ({
+  useFormFieldErrorReporter: () => () => {},
 }));
 
 vi.mock('../../../contexts/useAppSettings', () => ({

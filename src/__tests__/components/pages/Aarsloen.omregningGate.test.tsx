@@ -39,12 +39,21 @@ vi.mock('../../../hooks/usePersistedForm', () => ({
       stateRef.values = values;
     }, [values]);
 
-    return { values, setValues };
+    const setFieldValue = (fieldName: string, value: unknown) =>
+      setValues((prev: Record<string, unknown>) => ({ ...prev, [fieldName]: value }));
+
+    return { values, setValues, setFieldValue };
   },
 }));
 
 vi.mock('../../../hooks/useFormPersistenceSelectors', () => ({
   usePersistedSectionSelector: () => ({}),
+}));
+
+// Felt-fejl-reportere kræver FormPersistenceProvider; her testes gate-UI uden den fulde provider-stak,
+// så reporteren mockes til en no-op (bindingen selv dækkes af integrationstests med rigtig provider).
+vi.mock('../../../hooks/useFormFieldErrors', () => ({
+  useFormFieldErrorReporter: () => () => {},
 }));
 
 vi.mock('../../../contexts/useAppSettings', () => ({

@@ -11,6 +11,7 @@ import { CellInvalidDraftScopeProvider } from '../../contexts/CellInvalidDraftSc
 import { CELL_TABLE_IDS } from '../../config/cellInvalidDraftScopes';
 import ContentBox from '../layout/ContentBox';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
+import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
@@ -60,11 +61,21 @@ const Aarsloen = React.memo(() => {
   );
 
   // Persisted state for satser og beregning (med Zod-schema validering)
-  const { values, setValues } = usePersistedForm(
+  const { values, setValues, setFieldValue } = usePersistedForm(
     aarsloenSchema,
     'aarsloen',
     initialValues
   );
+
+  // Felt-fejl-reportere: binder hvert persisteret felts ugyldige rå draft til den centrale invalidDrafts-
+  // kanal (greenfield draft/commit §4.3 — binding er obligatorisk for sagsfelter). Uden dem lever et
+  // ugyldigt input kun i useDraftields lokale fallback: usynligt for read-model/save-gate og tabt ved F5.
+  const feriePctError = useFormFieldErrorReporter('aarsloen', 'feriePct');
+  const fritvalgPctError = useFormFieldErrorReporter('aarsloen', 'fritvalgPct');
+  const shSoPctError = useFormFieldErrorReporter('aarsloen', 'shSoPct');
+  const storeBededagPctError = useFormFieldErrorReporter('aarsloen', 'storeBededagPct');
+  const pensionPctError = useFormFieldErrorReporter('aarsloen', 'pensionPct');
+  const antalFeriedageError = useFormFieldErrorReporter('aarsloen', 'antalFeriedage');
 
   // Destrukturér værdier for nem adgang
   const persistedStamdata = usePersistedSectionSelector('stamdata');
@@ -150,14 +161,11 @@ const Aarsloen = React.memo(() => {
   // FIELD HANDLERS
   // ============================================================================
 
-  // Stabile callbacks for alle felt-opdateringer (memoized map)
+  // Stabile callbacks for alle felt-opdateringer (memoized map). Via setFieldValue → gyldigt commit
+  // rydder feltets ugyldige rå draft ATOMISK i samme transaktion (greenfield draft/commit §4.4).
   const setField = React.useCallback(<K extends keyof AarsloenValues>(fieldName: K, value: AarsloenValues[K]) => {
-    return setValues(prev => {
-      const next: AarsloenValues = { ...prev };
-      next[fieldName] = value;
-      return next;
-    }, { fieldPath: String(fieldName) });
-  }, [setValues]);
+    return setFieldValue(fieldName, value);
+  }, [setFieldValue]);
 
   const fieldHandlers = React.useMemo(() => {
     type PercentFieldName = 'feriePct' | 'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct';
@@ -341,6 +349,7 @@ const Aarsloen = React.memo(() => {
                 name="feriePct"
                 value={feriePct}
                 onCommit={fieldHandlers.feriePct}
+                onFieldError={feriePctError}
                 placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
@@ -352,6 +361,7 @@ const Aarsloen = React.memo(() => {
                 name="fritvalgPct"
                 value={fritvalgPct}
                 onCommit={fieldHandlers.fritvalgPct}
+                onFieldError={fritvalgPctError}
                 placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
@@ -365,6 +375,7 @@ const Aarsloen = React.memo(() => {
                 name="shSoPct"
                 value={shSoPct}
                 onCommit={fieldHandlers.shSoPct}
+                onFieldError={shSoPctError}
                 placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
@@ -390,6 +401,7 @@ const Aarsloen = React.memo(() => {
                 name="storeBededagPct"
                 value={storeBededagPct}
                 onCommit={fieldHandlers.storeBededagPct}
+                onFieldError={storeBededagPctError}
                 placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
@@ -403,6 +415,7 @@ const Aarsloen = React.memo(() => {
                 name="pensionPct"
                 value={pensionPct}
                 onCommit={fieldHandlers.pensionPct}
+                onFieldError={pensionPctError}
                 placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
@@ -505,6 +518,7 @@ const Aarsloen = React.memo(() => {
                   name="antalFeriedage"
                   value={antalFeriedage}
                   onCommit={fieldHandlers.antalFeriedage}
+                  onFieldError={antalFeriedageError}
                   placeholder="0"
                   minValue={0}
                   maxValue={99}
