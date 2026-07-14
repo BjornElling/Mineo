@@ -41,8 +41,8 @@ Faktatjek står i §14.1; regressionsrisici i §14.3; kodereferencer i inline-no
    Sekvensen (uddybet i §10) er: **(I)** normativt fundament + stabil feltadresse + obligatorisk binding + atomisk
    finalize i den *eksisterende* motor → **(II)** renteberegning og Satser som komplette vertikale slices (projektion
    + gate + click-preflight) → **(III)** domænevis migration → **(IV)** fjern legacy. Den A/B-opdeling, Opus tidligere
-   foreslog, er **forkastet** til fordel for denne. **Brugerens rapporterede fejl (og Satser-tvillingen) er lukket
-   efter trin II.**
+   foreslog, er **forkastet** til fordel for denne. **Brugerens rapporterede fejl (og Satser-tvillingen) er først
+   lukket, når hele trin II — inklusive outputprojektion og click-preflight — er gennemført.**
 
 5. **`beregningsdato` ER buggy — for ikke-committbart *format* (ikke for range-fejl).** Verificeret: `beregningsdato`
    blokerer korrekt ved en *parseable men out-of-bounds* dato (range-fejl), men **ikke** ved et *uparseligt* format.
@@ -78,19 +78,21 @@ Status pr. fase (§10). ✅ = færdig, 🟡 = delvist, ⬜ = ikke påbegyndt. Co
 
 | Fase | Emne | Status | Note |
 |---|---|---|---|
-| 1 | Normativt fundament (8 kontrakter + reason-taksonomi) | ✅ | 8 kontrakter opdateret additivt-normativt; `error-contract` §3A `missing`/`invalid`/`range` |
+| 1 | Normativt fundament (8 kontrakter + reason-taksonomi) | 🟡 | Kernekontrakter opdateret; terminologi og enkelte krydshenvisninger konvergeres fortsat |
 | 2 | Typer, `FieldId`, obligatorisk binding | 🟡 | **Binding gennemført** (se §0.3.1); typed `FieldId` + celle-identitets-migration (kolonneindeks) **udestår** |
-| 3 | Atomisk `finalizeEdit` i eksisterende motor | 🟡 | **Skalar-felt-stien atomisk** (commit `a5ef0f17`); tabelceller + direkte-`setValues`-felter bevidst udenfor (kobler til Fase 4) |
+| 3 | Atomisk `finalizeEdit` i eksisterende motor | 🟡 | Skalarfelter og styrende `setValues`-commits med flere draft-rydninger er atomiske; tabelcellers egen finalize konsolideres i Fase 4 |
 | 4 | Fælles feltmotor (nedlæg `useRowDrafts`/`useTableInputCore`-overlap) | ⬜ | Trin III-IV; ikke påbegyndt |
 | 5 | Undo/redo på snapshot; fjern coalescing | 🟡 | Forward-commit-atomicitet leveret for skalar-felter; **coalescing-fjernelse blokeret på Fase 4** (celler + direkte-`setValues` bruger den stadig) |
-| 6.1 | `InputProjection`/`InputScope`/`InputBlocker`-kerne | ✅ | `src/domain/inputIntegrity/` (commit `183aec3b`) |
-| 6.2-6.4 | Projektion/gate/critical-action pr. domæne | 🟡 | Anvendt på renteberegning + Satser (Trin II); critical-action-udvidelse (dokument-download) **udestår** |
-| 7 | Renteberegning som vertikal reference | ✅ | Bug lukket (commit `25cf43c5`); download blokerer på afsluttet ugyldigt input; `beregningsdatoHasError`/`renterFraHasError` fjernet som output-kilder |
-| 8 | Domænevis migration | 🟡 | Satser ✅; **binding-migration af alle 37 ubundne felter ✅** (§0.3.1); resterende domæne-gates via `InputProjection` udestår |
+| 6.1 | `InputProjection`/`InputScope`/`InputBlocker`-kerne | ✅ | Ready/blocked-projektion, scoped blockers og branded ready-revision bruges nu i produktion |
+| 6.2-6.4 | Projektion/gate/critical-action pr. domæne | 🟡 | Fuldt implementeret i reference-slices renteberegning + Satser; øvrige dokumentdomæner migreres i Fase 8 |
+| 7 | Renteberegning som vertikal reference | ✅ | UI, række-/aggregatgates, click-preflight og servicegrænse bruger samme revisionsbundne projektion |
+| 8 | Domænevis migration | 🟡 | Satser er komplet migreret; binding-migration er gennemført, mens øvrige dokument-/beregningsentrypoints udestår |
 | 9 | Fjern legacy | ⬜ | Trin IV; ikke påbegyndt |
 
-**Brugerens oprindeligt rapporterede fejl (renteberegning-download på ugyldigt input) + Satser-tvillingen er LUKKET**
-(Trin II, Fase 7-8). Fuld testsuite grøn: **6342 tests / 537 filer**.
+**Brugerens oprindeligt rapporterede fejl og Satser-tvillingen er lukket.** Afsluttet ugyldigt input maskerer straks
+den tidligere canonical værdi i visning og outputprojektion. Et dokumentklik finaliserer først en åben editor, bygger
+projektionen igen fra seneste state og får en afsluttende revisionskontrol i servicen. Aktuelt verifikationsresultat
+skal læses fra den seneste implementerings-handoff, ikke fastholdes som en statisk tæller her.
 
 #### 0.3.1 Leveret siden designet (kronologisk, med afvigelser fra planen)
 
@@ -98,7 +100,8 @@ Status pr. fase (§10). ✅ = færdig, 🟡 = delvist, ⬜ = ikke påbegyndt. Co
   `InputScope` (global/section/row), `InputProjection<T>`, central besked-skabelon, `documentGateFromBlockers` +
   `blockersForScope` (scope-præcis → `DocumentDownloadGateResult`). Genbruger EO's *ydre* gate-mønster; generaliserer
   **ikke** `collectAllEoRows` (§0.1-punkt 3 overholdt).
-- **Fase 8 (Satser) + Fase 7 (renteberegning)** (`183aec3b`, `25cf43c5`): begge vertikale slices lukket.
+- **Fase 8 (Satser) + Fase 7 (renteberegning)** (`183aec3b`, `25cf43c5`): reaktiv gating, outputprojektion,
+  revisionsbinding, click-preflight og fail-closed servicekontrol er leveret i begge reference-slices.
   `renteInputIntegrity.ts` oversætter sektionens `invalidDrafts` → scoped blockers (beregningsdato=global,
   celler=per-række). `beregningsdato` bundet via rigtig reporter (erstatter den blanke `beregningsdatoHasError`-boolean =
   selve bug'en). `downloadGate.test` vendt fra mock → rigtig provider (§14.3-risiko #2 respekteret).
@@ -685,7 +688,7 @@ De ni faser nedenfor realiserer de fire trin i §0.1-punkt 4:
   projektion).
 - **Trin II (vertikale reference-slices):** Fase 7 (renteberegning) og starten af Fase 8 (Satser), inkl. Fase 6.2-6.4
   (projektion/gate/critical-action) anvendt på disse to domæner. **Brugerens rapporterede fejl + Satser-tvillingen er
-  lukket ved afslutningen af trin II.**
+  først lukket ved afslutningen af hele trin II.**
 - **Trin III (domænevis migration):** resten af Fase 8 + Fase 4 (fælles feltmotor udbredt til alle familier).
 - **Trin IV (fjern legacy):** Fase 9.
 

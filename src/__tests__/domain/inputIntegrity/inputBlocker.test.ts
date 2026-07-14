@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import {
   formatInputBlockerMessage,
   globalScope,
@@ -59,6 +58,16 @@ describe('formatInputBlockerMessage — central skabelon (error-contract §3A.2)
         controlKind: 'toggle',
       })
     ).toBe('Beregnes tabt arbejdsfortjeneste er ikke angivet');
+  });
+
+  it('intervalfejl bruger den konkrete domæneforklaring', () => {
+    expect(formatInputBlockerMessage({
+      fieldId: 'aargang',
+      fieldLabel: 'Satsår',
+      reason: 'range',
+      scope: sectionScope(),
+      detail: 'Årstallet skal være mellem 2000 og 2026',
+    })).toBe('Årstallet skal være mellem 2000 og 2026');
   });
 
   it('ingen brugervendt tekst må ende på " mangler" (error-contract §8.1-værn)', () => {

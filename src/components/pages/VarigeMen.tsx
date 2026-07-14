@@ -23,7 +23,7 @@ const VarigeMen = React.memo(() => {
     defaultTab: TAB_KEYS.MENBEREGNING,
   });
 
-  const { values, setValues, setFieldValue } = usePersistedForm(varigeMenSchema, 'varigemen', VARIGE_MEN_INITIAL_VALUES);
+  const { values, setFieldValue } = usePersistedForm(varigeMenSchema, 'varigemen', VARIGE_MEN_INITIAL_VALUES);
   const stamdata = usePersistedSectionSelector('stamdata');
   const menberegningStamdata = React.useMemo(
     () => ({
@@ -62,7 +62,6 @@ const VarigeMen = React.memo(() => {
       ) : (
         <MenberegningTab
           values={values}
-          setValues={setValues}
           setFieldValue={setFieldValue}
           stamdata={menberegningStamdata}
         />

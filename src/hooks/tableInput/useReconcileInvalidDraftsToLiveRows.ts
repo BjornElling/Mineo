@@ -5,7 +5,11 @@ import * as React from 'react';
 // `persistence/form-persistence-context-import` (src/__tests__/quality/architecture/architectureRules.ts).
 import { FormPersistenceContext } from '../../contexts/FormPersistenceContext.internal';
 import { CellInvalidDraftScopeContext } from '../../contexts/CellInvalidDraftScopeContext';
-import { isCellInvalidDraftRowOrphan, isCellInvalidDraftScopeOrphan } from '../../config/cellInvalidDraftScopes';
+import {
+  isCellInvalidDraftRowOrphan,
+  isCellInvalidDraftScopeOrphan,
+} from '../../config/cellInvalidDraftScopes';
+import { isEntityInvalidDraftScopeOrphan } from '../../config/entityInvalidDraftScopes';
 import type { StorageKey } from '../../config/storageManifest';
 
 /**
@@ -52,7 +56,8 @@ export const useReconcileInvalidDraftsToLiveRows = (liveRowIds: ReadonlySet<stri
 export const useReconcileInvalidDraftScopes = (
   pageKey: StorageKey,
   scopedTableIds: readonly string[],
-  liveRowScopes: ReadonlySet<string>
+  liveRowScopes: ReadonlySet<string>,
+  entityFieldNames?: ReadonlySet<string>
 ): void => {
   const persistence = React.useContext(FormPersistenceContext);
 
@@ -60,6 +65,8 @@ export const useReconcileInvalidDraftScopes = (
     if (persistence === null) return;
     persistence.reconcileInvalidDrafts(pageKey, (fieldPath) =>
       isCellInvalidDraftScopeOrphan(fieldPath, scopedTableIds, liveRowScopes)
+      || (entityFieldNames !== undefined
+        && isEntityInvalidDraftScopeOrphan(fieldPath, entityFieldNames, liveRowScopes))
     );
-  }, [persistence, pageKey, scopedTableIds, liveRowScopes]);
+  }, [entityFieldNames, persistence, pageKey, scopedTableIds, liveRowScopes]);
 };

@@ -44,7 +44,7 @@ export type FieldErrorCache = { [K in keyof FormPersistenceSections]: FieldError
 export type FieldErrorRevisionMap = SectionKeyedRevisions;
 
 /**
- * `invalidDrafts`-recovery-kanal (committed rå draft, jf. persistence-contract.md §11).
+ * `invalidDrafts`-recovery-kanal (afsluttet ugyldigt input, jf. persistence-contract.md §11).
  * Pr. sektion en map fra fieldPath til ikke-tom råstreng. Separat slice ved siden af fieldErrors;
  * IKKE en persisteret sektion (indgår ikke i sectionRevisions/persistedDataVersion).
  */
@@ -75,9 +75,20 @@ export type FormPersistenceStoreState = {
   finalizeEdit: <K extends keyof FormPersistenceSections>(args: {
     sectionKey: K;
     sectionValue: FormPersistenceSections[K] | null;
-    invalidDraft: { pageKey: keyof FormPersistenceSections; fieldPath: string; draft: string | null };
+    invalidDraftChanges: readonly {
+      pageKey: keyof FormPersistenceSections;
+      fieldPath: string;
+      draft: string | null;
+    }[];
     metaPatch?: SectionMetaPatch;
   }) => void;
+  setInvalidDrafts: (changes: readonly {
+    pageKey: keyof FormPersistenceSections;
+    fieldPath: string;
+    draft: string | null;
+  }[]) => void;
+  /** Nulstil én sektion og alle dens feltstates i samme observerbare store-commit. */
+  resetSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: SectionMetaPatch) => void;
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: SectionMetaPatch) => void;
   // NOTE: replaceSections bevarer eksisterende field-errors.
   // Brug replaceSectionsAndClearFieldErrors til load/replace-flows, der skal rydde fejl atomisk
@@ -92,6 +103,18 @@ export type FormPersistenceStoreState = {
     authoritativeSnapshotEpoch: number,
     meta: FormPersistenceMeta
   ) => void;
+  /** Gendan hele den rollback-beskyttede aggregate i ét Zustand-write. */
+  restoreTransactionSnapshot: (snapshot: {
+    sections: FormPersistenceSections;
+    sectionRevisions: SectionRevisionMap;
+    fieldErrors: FieldErrorCache;
+    fieldErrorRevisions: FieldErrorRevisionMap;
+    invalidDrafts: InvalidDraftsCache;
+    invalidDraftRevisions: InvalidDraftRevisionMap;
+    committedChangeCounter: number;
+    authoritativeSnapshotEpoch: number;
+    meta: FormPersistenceMeta;
+  }) => void;
   restoreHistoryFrame: (
     next: FormPersistenceSections,
     sectionRevisions: SectionRevisionMap,
@@ -298,6 +321,28 @@ const computeInvalidDraftsUpdate = (
   return { ...prev, [pageKey]: { ...prevForPage, [fieldPath]: normalized } };
 };
 
+const computeInvalidDraftsUpdates = (
+  prev: InvalidDraftsCache,
+  changes: readonly {
+    pageKey: keyof FormPersistenceSections;
+    fieldPath: string;
+    draft: string | null;
+  }[]
+): { cache: InvalidDraftsCache; changedPageKeys: ReadonlySet<keyof FormPersistenceSections> } | null => {
+  let next = prev;
+  const changedPageKeys = new Set<keyof FormPersistenceSections>();
+
+  for (const change of changes) {
+    const updated = computeInvalidDraftsUpdate(next, change.pageKey, change.fieldPath, change.draft);
+    if (updated !== null) {
+      next = updated;
+      changedPageKeys.add(change.pageKey);
+    }
+  }
+
+  return next === prev ? null : { cache: next, changedPageKeys };
+};
+
 type FieldErrorUpdateResult =
   | { kind: 'noop' }
   | { kind: 'deleteField' }
@@ -464,6 +509,25 @@ const createFormPersistenceStore = () =>
         meta: stampMeta(meta),
       }));
     },
+    restoreTransactionSnapshot: (snapshot) => {
+      assertKeyCoverage(snapshot.sections);
+      assertMetaVersionMatch(snapshot.meta);
+      assertAllSectionsValid(snapshot.sections);
+      assertFieldErrorKeyCoverage(snapshot.fieldErrors);
+      assertFieldErrorRevisionKeyCoverage(snapshot.fieldErrorRevisions);
+      assertInvalidDraftsKeyCoverage(snapshot.invalidDrafts);
+      set({
+        sections: { ...snapshot.sections },
+        sectionRevisions: { ...snapshot.sectionRevisions },
+        fieldErrors: { ...snapshot.fieldErrors },
+        fieldErrorRevisions: { ...snapshot.fieldErrorRevisions },
+        invalidDrafts: { ...snapshot.invalidDrafts },
+        invalidDraftRevisions: { ...snapshot.invalidDraftRevisions },
+        committedChangeCounter: snapshot.committedChangeCounter,
+        authoritativeSnapshotEpoch: snapshot.authoritativeSnapshotEpoch,
+        meta: stampMeta(snapshot.meta),
+      });
+    },
     restoreHistoryFrame: (next, sectionRevisions, fieldErrors, fieldErrorRevisions, invalidDrafts, invalidDraftRevisions, meta, committedAt) => {
       assertKeyCoverage(next);
       assertMetaVersionMatch(meta);
@@ -559,27 +623,73 @@ const createFormPersistenceStore = () =>
         return {
           invalidDrafts: nextInvalidDrafts,
           invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+          committedChangeCounter: state.committedChangeCounter + 1,
         };
       });
     },
-    finalizeEdit: ({ sectionKey, sectionValue, invalidDraft, metaPatch }) => {
+    setInvalidDrafts: (changes) => {
+      set((state) => {
+        const result = computeInvalidDraftsUpdates(state.invalidDrafts, changes);
+        if (result === null) return state;
+
+        let invalidDraftRevisions = state.invalidDraftRevisions;
+        for (const pageKey of result.changedPageKeys) {
+          invalidDraftRevisions = incrementInvalidDraftRevision(invalidDraftRevisions, pageKey);
+        }
+
+        return {
+          invalidDrafts: result.cache,
+          invalidDraftRevisions,
+          committedChangeCounter: state.committedChangeCounter + 1,
+        };
+      });
+    },
+    finalizeEdit: ({ sectionKey, sectionValue, invalidDraftChanges, metaPatch }) => {
       assertSectionValid(sectionKey, sectionValue);
       set((state) => {
-        const nextInvalidDrafts = computeInvalidDraftsUpdate(
-          state.invalidDrafts,
-          invalidDraft.pageKey,
-          invalidDraft.fieldPath,
-          invalidDraft.draft
-        );
+        const invalidDraftUpdate = computeInvalidDraftsUpdates(state.invalidDrafts, invalidDraftChanges);
+        let invalidDraftRevisions = state.invalidDraftRevisions;
+        if (invalidDraftUpdate !== null) {
+          for (const pageKey of invalidDraftUpdate.changedPageKeys) {
+            invalidDraftRevisions = incrementInvalidDraftRevision(invalidDraftRevisions, pageKey);
+          }
+        }
         // Sektion og invalidDraft opdateres i samme set(): ét committedChangeCounter-bump, ét
         // authoritativeSnapshotEpoch uændret. Revisioner bumpes kun for de slices der reelt ændrer sig.
         return {
           sections: { ...state.sections, [sectionKey]: sectionValue },
           sectionRevisions: incrementSectionRevision(state.sectionRevisions, sectionKey),
-          invalidDrafts: nextInvalidDrafts ?? state.invalidDrafts,
-          invalidDraftRevisions: nextInvalidDrafts === null
-            ? state.invalidDraftRevisions
-            : incrementInvalidDraftRevision(state.invalidDraftRevisions, invalidDraft.pageKey),
+          invalidDrafts: invalidDraftUpdate?.cache ?? state.invalidDrafts,
+          invalidDraftRevisions,
+          committedChangeCounter: state.committedChangeCounter + 1,
+          meta: resolveMeta(state.meta, metaPatch),
+        };
+      });
+    },
+    resetSection: (key, metaPatch) => {
+      set((state) => {
+        const hasSection = state.sections[key] !== null;
+        const hasFieldErrors = Object.keys(state.fieldErrors[key]).length > 0;
+        const hasInvalidDrafts = Object.keys(state.invalidDrafts[key]).length > 0;
+        if (!hasSection && !hasFieldErrors && !hasInvalidDrafts) return state;
+
+        return {
+          sections: { ...state.sections, [key]: null },
+          sectionRevisions: hasSection
+            ? incrementSectionRevision(state.sectionRevisions, key)
+            : state.sectionRevisions,
+          fieldErrors: hasFieldErrors
+            ? { ...state.fieldErrors, [key]: {} } as FieldErrorCache
+            : state.fieldErrors,
+          fieldErrorRevisions: hasFieldErrors
+            ? incrementFieldErrorRevision(state.fieldErrorRevisions, key)
+            : state.fieldErrorRevisions,
+          invalidDrafts: hasInvalidDrafts
+            ? { ...state.invalidDrafts, [key]: {} }
+            : state.invalidDrafts,
+          invalidDraftRevisions: hasInvalidDrafts
+            ? incrementInvalidDraftRevision(state.invalidDraftRevisions, key)
+            : state.invalidDraftRevisions,
           committedChangeCounter: state.committedChangeCounter + 1,
           meta: resolveMeta(state.meta, metaPatch),
         };
@@ -591,6 +701,7 @@ const createFormPersistenceStore = () =>
         return {
           invalidDrafts: { ...state.invalidDrafts, [key]: {} },
           invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+          committedChangeCounter: state.committedChangeCounter + 1,
         };
       });
     },
@@ -609,6 +720,7 @@ const createFormPersistenceStore = () =>
         return {
           invalidDrafts: { ...state.invalidDrafts, [key]: nextForPage },
           invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+          committedChangeCounter: state.committedChangeCounter + 1,
         };
       });
     },
@@ -616,6 +728,7 @@ const createFormPersistenceStore = () =>
       set((state) => ({
         invalidDrafts: createEmptyInvalidDraftsCache(),
         invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
+        committedChangeCounter: state.committedChangeCounter + 1,
       }));
     },
     restoreInvalidDrafts: (invalidDrafts, invalidDraftRevisions) => {

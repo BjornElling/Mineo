@@ -115,9 +115,9 @@ const createFieldErrorUndoOrigin = (
  * - Bind denne reporter på det call-site, der ejer fejlen (typisk en input-adapter).
  * - Driv den fra samme commit-/valideringslivscyklus som feltet (se `src/contracts/error-contract.md`).
  */
-export const useFormFieldErrorReporter = <K extends StorageKey>(
-  pageKey: K,
-  fieldName: FieldName<K>,
+const useFieldErrorReporter = (
+  pageKey: StorageKey,
+  fieldName: string,
   options?: ReporterOptions
 ): FieldErrorReporter => {
   const { getFieldError, setFieldError, commitInvalidDraft, clearInvalidDraft } = useFormPersistence();
@@ -198,6 +198,12 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   }) as FieldErrorReporter;
 };
 
+export const useFormFieldErrorReporter = <K extends StorageKey>(
+  pageKey: K,
+  fieldName: FieldName<K>,
+  options?: ReporterOptions
+): FieldErrorReporter => useFieldErrorReporter(pageKey, fieldName, options);
+
 /**
  * Som `useFormFieldErrorReporter`, men for en NESTED/sammensat felt-identitet, hvis nøgle ikke er en
  * top-level sektions-key (fx `eoAngivetLoenLoenudvikling`-felter der committer med `fieldPath:'offentligLoenTrin'`,
@@ -212,7 +218,7 @@ export const useKeyedFieldErrorReporter = <K extends StorageKey>(
   fieldName: DynamicFieldName<K>,
   options?: ReporterOptions
 ): FieldErrorReporter =>
-  useFormFieldErrorReporter(pageKey, fieldName as FieldName<K>, options);
+  useFieldErrorReporter(pageKey, fieldName, options);
 
 /**
  * Felt-side binding til `invalidDrafts`-recovery-kanalen.

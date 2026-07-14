@@ -4,6 +4,14 @@
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import { readyInputProjection } from '../../../domain/inputIntegrity/inputBlocker';
+import { getCommittedChangeCounterSnapshot } from '../../../stores/formPersistenceReadModel';
+import { formPersistenceStore } from '../../../stores/formPersistenceStore';
+
+const currentInputRevision = () => readyInputProjection(
+  undefined,
+  getCommittedChangeCounterSnapshot()
+).revision;
 
 // ─── Logger mock (forhindrer console-output fra error-stier) ─────────────────
 
@@ -294,6 +302,7 @@ describe('downloadSatserDokument', () => {
       satser: {} as never,
       settings,
       persistedStamdata: stamdata,
+      inputRevision: currentInputRevision(),
     });
     expect(result.success).toBe(true);
     expect(mockGenerateSatserPdf).toHaveBeenCalled();
@@ -307,11 +316,31 @@ describe('downloadSatserDokument', () => {
       satser: {} as never,
       settings,
       persistedStamdata: null,
+      inputRevision: currentInputRevision(),
     });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBeTruthy();
     }
+  });
+
+  it('afviser fail-closed hvis inputrevisionen ændres under lazy load', async () => {
+    const inputRevision = currentInputRevision();
+    mockLoadSatserPdfModule.mockImplementationOnce(async () => {
+      formPersistenceStore.getState().setInvalidDraft('satser', 'revision-test', 'ændret');
+      return { generateSatserDocument: mockGenerateSatserPdf };
+    });
+
+    const result = await downloadSatserDokument({
+      year: 2024,
+      satser: {} as never,
+      settings,
+      persistedStamdata: null,
+      inputRevision,
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockGenerateSatserPdf).not.toHaveBeenCalled();
   });
 });
 
@@ -327,6 +356,7 @@ describe('downloadRenteDokument', () => {
       latestReferenceRateDate: null,
       settings,
       persistedStamdata: null,
+      inputRevision: currentInputRevision(),
     });
     expect(result.success).toBe(true);
     expect(mockGenerateRentePdf).toHaveBeenCalled();
@@ -342,6 +372,7 @@ describe('downloadRenteDokument', () => {
       latestReferenceRateDate: null,
       settings,
       persistedStamdata: null,
+      inputRevision: currentInputRevision(),
     });
     expect(result.success).toBe(false);
   });
@@ -355,6 +386,7 @@ describe('downloadRenteOversigtDokument', () => {
       latestReferenceRateDate: toISODateString('2024-01-31'),
       settings,
       persistedStamdata: null,
+      inputRevision: currentInputRevision(),
     });
 
     expect(result.success).toBe(true);

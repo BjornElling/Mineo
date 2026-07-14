@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import PageTabs from '../layout/PageTabs';
 import SideTab from '../layout/SideTab';
-import { usePersistedForm } from '../../hooks/usePersistedForm';
+import { usePersistedForm, type CommitOriginOptions } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { useMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
 import { useScrollToSectionWithRetry } from '../../hooks/useScrollToSectionWithRetry';
@@ -199,7 +199,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   const handleLoenindkomstAnsaettelsesforholdChange = React.useCallback(
     (
       updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'],
-      origin?: { fieldPath?: string }
+      origin?: CommitOriginOptions
     ) => {
       return setFormValues((prev) => ({
         ...prev,

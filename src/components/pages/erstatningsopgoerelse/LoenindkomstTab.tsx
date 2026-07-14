@@ -5,7 +5,7 @@ import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import ContentBox from '../../layout/ContentBox';
 import { type ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import { type CommitOriginOptions, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { useLoenindkomstViewModel } from './loenindkomst/useLoenindkomstViewModel';
 import { LoenindkomstVmProvider, type LoenindkomstVm } from './loenindkomst/loenindkomstContext';
 import AnsaettelsesforholdCard from './loenindkomst/AnsaettelsesforholdCard';
@@ -22,7 +22,7 @@ type Props = {
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => boolean;
+  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: CommitOriginOptions) => boolean;
   onNavigateToTabtArbejdsfortjeneste: () => void;
   /** Id'er på ansættelsesforhold hvor SFGG løber >6 mdr. efter sidste indkomst.
    *  Beregnet i EO-snapshot (committed-state); tom liste når snapshot.data er null. */

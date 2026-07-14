@@ -59,6 +59,8 @@ import {
   type DocumentGenerationSession,
 } from '../documentGenerationSession';
 import { triggerDocumentDownload, type DocumentArtifact } from '../downloadArtifact';
+import type { ReadyInputRevision } from '../../domain/inputIntegrity/inputBlocker';
+import { isReadyInputRevisionCurrent } from './documentInputRevision';
 
 type ReguleringInterval = Readonly<{
   fraDato: string;
@@ -373,16 +375,20 @@ const resolveReguleringInterval = (interval: ReguleringInterval) => {
 export const downloadSatserDokument = async (params: Readonly<{
   year: number;
   satser: SatserData;
+  inputRevision: ReadyInputRevision;
   settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
-  const { year, satser, settings, persistedStamdata } = params;
+  const { year, satser, inputRevision, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'satser', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadSatserDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
     const { generateSatserDocument } = await loadSatserDocumentModule();
+    if (!isReadyInputRevisionCurrent(inputRevision)) {
+      return { success: false, error: buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF') };
+    }
     return await runSelectedDocumentFormat(settings, (session) => generateSatserDocument(session, year, satser, common));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF'), 'pdfService.downloadSatserDokument', error);
@@ -395,6 +401,7 @@ export const downloadRenteDokument = async (params: Readonly<{
   beregningsdato: string;
   periods: ReadonlyArray<ProcessInterestPeriod>;
   latestReferenceRateDate: string | null;
+  inputRevision: ReadyInputRevision;
   kommentarer?: string;
   settings: DocumentSettings;
   persistedStamdata: unknown;
@@ -405,6 +412,7 @@ export const downloadRenteDokument = async (params: Readonly<{
     beregningsdato,
     periods,
     latestReferenceRateDate,
+    inputRevision,
     kommentarer,
     settings,
     persistedStamdata,
@@ -415,6 +423,9 @@ export const downloadRenteDokument = async (params: Readonly<{
 
   try {
     const { generateRenteDocument } = await loadRenteDocumentModule();
+    if (!isReadyInputRevisionCurrent(inputRevision)) {
+      return { success: false, error: buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-PDF') };
+    }
     return await runSelectedDocumentFormat(settings, (session) => generateRenteDocument(session, beloeb, actualInterestDate, beregningsdato, periods, {
         ...common,
         kommentarer,
@@ -429,17 +440,21 @@ export const downloadRenteOversigtDokument = async (params: Readonly<{
   beregningsdato: ISODateString;
   rows: ReadonlyArray<RenteOversigtRow>;
   latestReferenceRateDate: ISODateString | null;
+  inputRevision: ReadyInputRevision;
   kommentarer?: string;
   settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
-  const { beregningsdato, rows, latestReferenceRateDate, kommentarer, settings, persistedStamdata } = params;
+  const { beregningsdato, rows, latestReferenceRateDate, inputRevision, kommentarer, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'renteberegning', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRenteOversigtDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
     const { generateRenteOversigtDocument } = await loadRenteOversigtDocumentModule();
+    if (!isReadyInputRevisionCurrent(inputRevision)) {
+      return { success: false, error: buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-oversigt-PDF') };
+    }
     return await runSelectedDocumentFormat(settings, (session) => generateRenteOversigtDocument(session, beregningsdato, rows, { ...common, kommentarer, latestReferenceRateDate }));
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-oversigt-PDF'), 'pdfService.downloadRenteOversigtDokument', error);

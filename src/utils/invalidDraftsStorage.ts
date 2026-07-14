@@ -1,6 +1,9 @@
-import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 import { getInvalidDraftsStorageKey, type StorageKey } from '../config/storageManifest';
+import {
+  INVALID_DRAFTS_ENVELOPE_VERSION,
+  isLegacyInvalidDraftsEnvelopeVersion,
+} from '../config/invalidDraftsVersion';
 import { invalidDraftsCacheSchema } from '../schemas/invalidDraftsSchema';
 import { createEmptyInvalidDraftsCache, type InvalidDraftsCache } from '../stores/formPersistenceStore';
 import {
@@ -13,9 +16,9 @@ import {
  * Serialisering + hydrering af `invalidDrafts`-recovery-kanalen til/fra dens dedikerede
  * sessionStorage-nøgle (jf. persistence-contract.md §11).
  *
- * Envelope-version følger `PERSISTED_DATA_VERSION`: hvis sagsinput-schemaet er bumpet, kan gamle
- * fieldPaths være forsvundet, så cachen droppes fail-closed ved versions-mismatch. invalidDrafts
- * er ikke-kritisk recovery-state og må gerne tabes sikkert.
+ * Envelopen har sin egen version, fordi feltadresser og canonical sektionsschemas udvikler sig
+ * uafhængigt. Legacy-enveloper, der bar en numerisk `PERSISTED_DATA_VERSION`, accepteres kun gennem
+ * den eksplicitte, tabsfri migration i `readInvalidDraftsFromStorage`.
  */
 type InvalidDraftsEnvelope = {
   version: string;
@@ -51,7 +54,7 @@ const stripEmptySections = (cache: InvalidDraftsCache): Record<string, Record<st
 
 export const serializeInvalidDraftsCache = (cache: InvalidDraftsCache): string => {
   const envelope: InvalidDraftsEnvelope = {
-    version: PERSISTED_DATA_VERSION,
+    version: INVALID_DRAFTS_ENVELOPE_VERSION,
     data: stripEmptySections(cache),
   };
   return JSON.stringify(envelope);
@@ -98,7 +101,13 @@ export const readInvalidDraftsFromStorage = (): { cache: InvalidDraftsCache; sho
     return { cache: empty, shouldRemove: true };
   }
 
-  if (!isEnvelope(parsed) || parsed.version !== PERSISTED_DATA_VERSION) {
+  if (
+    !isEnvelope(parsed)
+    || (
+      parsed.version !== INVALID_DRAFTS_ENVELOPE_VERSION
+      && !isLegacyInvalidDraftsEnvelopeVersion(parsed.version)
+    )
+  ) {
     return { cache: empty, shouldRemove: true };
   }
 

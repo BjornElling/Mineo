@@ -83,7 +83,7 @@ export const useInvalidDraftsForSectionSelector = (pageKey: StorageKey): Record<
 };
 
 /**
- * Reaktiv læsning af ét felts committede rå draft (`invalidDrafts`).
+ * Reaktiv læsning af ét felts afsluttede ugyldige input (`invalidDrafts`).
  *
  * Tager bevidst `undefined`-binding (pageKey/fieldPath), så generiske input-komponenter kan kalde
  * hooken ubetinget, også når de bruges uden for en persisteret form (returnerer da altid `undefined`).

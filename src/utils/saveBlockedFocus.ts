@@ -9,6 +9,7 @@ import { resolveActiveFieldError, type FieldErrorBySource } from '../types/field
 import { EO_ANGIVET_LOEN_ID } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { APP_ROUTES, getRouteForPageKey, routeToPageId, PAGE_DEFAULT_TAB } from '../config/pageNavigation';
 import { resolveTabForCellFieldPath } from '../config/cellInvalidDraftScopes';
+import { isEoAfInvalidDraftFieldPath } from '../config/entityInvalidDraftScopes';
 
 // Tabel-input-fejl i EO rapporteres (stadig) som en syntetisk dynamisk felt-fejl med dette suffix
 // (se LoenindkomstTab/EOOplysningerTab). Den lever ud over de per-celle `invalidDrafts` og fodrer
@@ -103,6 +104,10 @@ const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
   }
 
   if (target.pageKey === 'erstatningsopgoerelse') {
+    if (isEoAfInvalidDraftFieldPath(target.fieldName)) {
+      setActiveTabForPage('erstatningsopgoerelse', 'loenindkomst');
+      return;
+    }
     // Syntetiske tabel-input-fejl (suffix ':loenindkomst'): "angivet løn"-tabellen hører til
     // EO-oplysninger; alle øvrige (per ansættelsesforhold) hører til lønindkomst-fanen.
     if (target.fieldName.endsWith(EO_LOENINDKOMST_INPUT_ERROR_SUFFIX)) {

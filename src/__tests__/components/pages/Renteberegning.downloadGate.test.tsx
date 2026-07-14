@@ -177,7 +177,8 @@ describe('Renteberegning download-gate (§2.4: udledt fra afsluttet input)', () 
     expect(onDownloadOversigt).toHaveBeenCalledWith(
       [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: expect.any(Number) }],
       toISODateString('2024-07-01'),
-      toISODateString('2024-06-30')
+      toISODateString('2024-06-30'),
+      expect.any(Number)
     );
   });
 });

@@ -58,15 +58,27 @@ export const buildRenteInputBlockers = (
     if (extractCellTableId(fieldPath) === CELL_TABLE_IDS.renteBeregnet) {
       const rowId = extractCellRowIdForScope(fieldPath, CELL_TABLE_IDS.renteBeregnet, '');
       const col = extractCellColIndex(fieldPath);
-      if (rowId === null || col === undefined) continue;
-      blockers.push({
-        fieldId: fieldPath,
-        fieldLabel: RENTE_CELL_COLUMN_LABELS[col] ?? 'Rentekrav',
-        reason: 'invalid',
-        scope: rowScope(rowId),
-        controlKind: 'text',
-      });
+      if (rowId !== null && col !== undefined && RENTE_CELL_COLUMN_LABELS[col] !== undefined) {
+        blockers.push({
+          fieldId: fieldPath,
+          fieldLabel: RENTE_CELL_COLUMN_LABELS[col],
+          reason: 'invalid',
+          scope: rowScope(rowId),
+          controlKind: 'text',
+        });
+        continue;
+      }
     }
+
+    // En ukendt/malformed persisted feltadresse må ikke gøre input-integritetsgaten fail-open.
+    // Scope kan ikke bevises, så hele domænets output blokeres indtil recovery-state er ryddet.
+    blockers.push({
+      fieldId: fieldPath,
+      fieldLabel: 'Renteberegning',
+      reason: 'invalid',
+      scope: globalScope(),
+      controlKind: 'text',
+    });
   }
   return blockers;
 };

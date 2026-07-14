@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { runAtomicPersistenceMutation } from '../../utils/persistenceStoreRollback';
+import {
+  captureStoreRollbackSnapshot,
+  restoreStoreRollbackSnapshot,
+  runAtomicPersistenceMutation,
+} from '../../utils/persistenceStoreRollback';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { __resetUndoRedoStoreForTests, undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
 import { readSessionStorageValue, writeSessionStorageValue } from '../../utils/safeSessionStorage';
@@ -55,6 +59,44 @@ describe('runAtomicPersistenceMutation', () => {
 
     expect(readSessionStorageValue(KEY)).toBe('oprindelig');
     expect(formPersistenceStore.getState().sections.satser).toEqual({ aargang: 2020 });
+  });
+
+  it('gendanner alle store-slices i ét observerbart write', () => {
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2020 }, {});
+    formPersistenceStore.getState().setInvalidDraft('satser', 'aargang', 'ugyldigt');
+    formPersistenceStore.getState().setFieldError(
+      'satser',
+      'aargang',
+      'input',
+      { message: 'Ugyldigt år', severity: 'error' }
+    );
+    const snapshot = captureStoreRollbackSnapshot();
+
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2099 }, {});
+    formPersistenceStore.getState().setInvalidDraft('satser', 'aargang', null);
+    formPersistenceStore.getState().clearFieldErrorsForSection('satser');
+
+    const observed: Array<{
+      section: unknown;
+      invalidDraft: string | undefined;
+      hasFieldError: boolean;
+    }> = [];
+    const unsubscribe = formPersistenceStore.subscribe((state) => {
+      observed.push({
+        section: state.sections.satser,
+        invalidDraft: state.invalidDrafts.satser.aargang,
+        hasFieldError: state.fieldErrors.satser.aargang !== undefined,
+      });
+    });
+
+    restoreStoreRollbackSnapshot(snapshot);
+    unsubscribe();
+
+    expect(observed).toEqual([{
+      section: { aargang: 2020 },
+      invalidDraft: 'ugyldigt',
+      hasFieldError: true,
+    }]);
   });
 
   it('fjerner en nyskrevet nøgle igen ved rollback (oprindeligt fraværende)', () => {

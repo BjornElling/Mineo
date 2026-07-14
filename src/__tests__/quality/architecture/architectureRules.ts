@@ -196,7 +196,9 @@ const failOpenDisplayLookupImport = forbidImports({
   description:
     'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag — aldrig en beregningssti.',
   allow: [
-    'src/components/pages/Satser.tsx',
+    // Inputintegritetsprojektionen er display-/dokument-grænsen for Satser. Den udsteder kun
+    // satsdata i sin ready-gren og er derfor den ene tilladte domæne-nære consumer.
+    'src/domain/satser/satserInputProjection.ts',
     'src/document/generators/satser/satserDocument.ts',
     'src/document/service/documentService.ts',
   ],
@@ -337,6 +339,10 @@ const SECTION_ACCESS_HOOKS = new Set<string>([
   'usePersistedSection',
   'useFormFieldErrors',
   'useFormFieldErrorReporter',
+  'useKeyedFieldErrorReporter',
+  'useDynamicFormFieldErrorReporter',
+  'useInvalidDraftForFieldSelector',
+  'useInvalidDraftsForSectionSelector',
   'getPersistedSectionSnapshot',
   'getPersistedData',
   'getFieldErrorsBySourceSnapshot',
@@ -460,6 +466,86 @@ const pageSectionAccessBoundary = defineRule({
     { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: "const x = useMemo(() => 1, []);" },
     // Ikke-sektions string-argument til et adgangs-hook flages ikke.
     { relativePath: 'src/components/pages/Aarsloen.tsx', code: "useFormFieldErrorReporter('aarsloen', 'etFeltNavn');" },
+  ],
+});
+
+// --- Persisterede parse-felter skal rapportere deres afsluttede fejltilstand ---
+
+const PARSE_CAPABLE_STYLED_FIELDS = new Set([
+  'StyledAmountField',
+  'StyledDateField',
+  'StyledFractionField',
+  'StyledIntegerField',
+  'StyledPercentField',
+  'StyledWeekField',
+  'StyledYearField',
+]);
+
+const jsxAttribute = (
+  node: ts.JsxOpeningLikeElement,
+  name: string
+): ts.JsxAttribute | undefined =>
+  node.attributes.properties.find(
+    (property): property is ts.JsxAttribute =>
+      ts.isJsxAttribute(property)
+      && ts.isIdentifier(property.name)
+      && property.name.text === name
+  );
+
+const isExplicitUndefinedJsxAttribute = (attribute: ts.JsxAttribute | undefined): boolean =>
+  attribute?.initializer !== undefined
+  && ts.isJsxExpression(attribute.initializer)
+  && attribute.initializer.expression !== undefined
+  && ts.isIdentifier(attribute.initializer.expression)
+  && attribute.initializer.expression.text === 'undefined';
+
+const persistedStyledFieldErrorReporter = defineRule({
+  id: 'form/persisted-styled-field-error-reporter',
+  description:
+    'Parse-kompetente Styled-felter på produktionssider skal have onFieldError, medmindre feltet eksplicit er read-only via onCommit={undefined}.',
+  appliesTo: (relativePath) =>
+    relativePath.startsWith(`${PAGES_ROOT}/`)
+    && relativePath.endsWith('.tsx')
+    && !relativePath.endsWith('/StamdataTestTab.tsx'),
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const visit = (node: ts.Node): void => {
+      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const componentName = node.tagName.getText(entry.ast);
+        if (PARSE_CAPABLE_STYLED_FIELDS.has(componentName)) {
+          const onCommit = jsxAttribute(node, 'onCommit');
+          const onFieldError = jsxAttribute(node, 'onFieldError');
+          if (!isExplicitUndefinedJsxAttribute(onCommit) && onFieldError === undefined) {
+            const position = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+            findings.push({
+              position: { line: position.line + 1, column: position.character + 1 },
+              message: `${componentName} mangler onFieldError og kan derfor fejle åbent efter blur.`,
+            });
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(entry.ast);
+    return findings;
+  },
+  violatingFixtures: [{
+    relativePath: 'src/components/pages/X.tsx',
+    code: '<StyledDateField name="dato" onCommit={handleCommit} />;',
+  }],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: '<StyledDateField name="dato" onCommit={handleCommit} onFieldError={reportError} />;',
+    },
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: '<StyledYearField name="aar" onCommit={undefined} />;',
+    },
+    {
+      relativePath: 'src/components/pages/StamdataTestTab.tsx',
+      code: '<StyledAmountField name="test" onCommit={handleCommit} />;',
+    },
   ],
 });
 
@@ -1236,6 +1322,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   eetCrossDomainPersistedLookup,
   moneyOreTypeAssertion,
   pageSectionAccessBoundary,
+  persistedStyledFieldErrorReporter,
   pdfDownloadCommittedState,
   minprocesrenteStandaloneImport,
   persistenceCommittedMirror,

@@ -34,9 +34,13 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 
 ## 3. Arkitekturvalg: ikke snapshot-first (bevidst)
 
-Renteberegning er **bevidst ikke** snapshot-first. Den tabel-/engine-drevne model i §1 er den valgte slutarkitektur for dette domæne — ikke et mellemtrin på vej mod en snapshot-/preflight-projektion.
+Renteberegning er **bevidst ikke** snapshot-first. Den tabel-/engine-drevne model i §1 er den valgte slutarkitektur for dette domæne. Domænet bruger dog en let, revisionsbundet `InputProjection` foran motoren; den er en inputintegritetsgrænse, ikke et beregningssnapshot.
 
-Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Hver rentekravsrække beregnes idempotent af `computeRentekravRow`, og PDF-stien **genbruger** rækkens allerede beregnede `pdfContext` (periodeoutput m.m.) — den genberegner ikke renteperioder. Beregningen er rækkelokal og selvstændig pr. række; der er ingen tværgående delberegninger eller blocking-projektioner, et snapshot skulle samle. Et snapshot-lag ville her tilføje vægt uden at fjerne en risiko, hvilket strider mod konvergensreglen i `AGENTS.md`.
+Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Hver rentekravsrække beregnes idempotent af `computeRentekravRow`, og PDF-stien **genbruger** rækkens `pdfContext` fra den samme ready-projektion (periodeoutput m.m.) — den genberegner ikke renteperioder. `buildRenteberegningInputProjection` maskerer en blokeret række, før motoren kaldes, og samler de scoped blockers som aggregat-gaten kræver. Et yderligere domænesnapshot ville tilføje vægt uden at fjerne en risiko.
+
+Ved dokumentklik kører critical-action-preflight først. Derefter bygges projektionen igen fra det seneste imperative
+committed snapshot + `invalidDrafts`; kun ready-grenens branded revision må nå dokumentservicen. Servicen kontrollerer
+revisionen igen umiddelbart før generatoren og afviser fail-closed ved drift.
 
 Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §5`.
 

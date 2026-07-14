@@ -232,7 +232,7 @@ Hvis fase 2 fejler efter succesfuld fase 1, må fejlen ikke præsenteres som om 
 
 ---
 
-## 11. `invalidDrafts` — committed rå draft (recovery-kanal)
+## 11. `invalidDrafts` — afsluttet ugyldigt input (recovery-kanal)
 
 `invalidDrafts` persisterer det input, der blev forsøgt committet, men ikke kunne parses (jf. `form-contract.md` §2.4). Det er en separat store-slice ved siden af `fieldErrors`, ikke en sektion i `persistenceRegistry`.
 
@@ -240,15 +240,8 @@ Form: `invalidDrafts[pageKey][fieldPath] = råstreng (ikke-tom)`.
 
 Regler:
 
-1. **Eget schema.** `invalidDrafts` er fuldt Zod-dækket af sit eget schema. Da det ikke er en `persistenceRegistry`-sektion, indgår det ikke i `computeSchemaFingerprint`/`PERSISTED_DATA_VERSION` og kræver ikke versionsbump ved struktur-ændring i sektionsschemas.
-   - **Feltadresse-migration (greenfield draft/commit 2026-07-14, normativt for fremtidige ændringer):** Envelopen
-     fail-closer i dag ved uoverensstemmelse med `PERSISTED_DATA_VERSION` (recovery-state er ikke-kritisk). Et fremtidigt
-     skift af selve feltadresse-nøglerne (fx kolonneindeks → feltnavn) må **ikke** løses ved at bumpe
-     `PERSISTED_DATA_VERSION` og lade version-gaten droppe aktuelt synligt ugyldigt input i en aktiv, opgraderet session —
-     det ville tavst tabe det, brugeren netop ser. En sådan feltadresse-ændring skal enten give envelopen sin **egen**
-     version eller implementeres som en **eksplicit nøglemigration** (oversæt gamle nøgler → nye), ikke en forkastelse.
-     Stiltiende forkastelse er kun tilladt for reelt inkompatibel recovery-state efter en dokumenteret vurdering.
-2. **Egen `sessionStorage`-nøgle.** Hele cachen lagres under én dedikeret, namespace-aware nøgle ejet af `storageManifest.ts`. Den overlever `F5`. Ved korrupt/ugyldig/versions-uoverensstemmende værdi ryddes nøglen fail-closed (recovery-state er ikke-kritisk og må droppes sikkert).
+1. **Eget schema og egen version.** `invalidDrafts` er fuldt Zod-dækket og har en selvstændig envelope-version. Den indgår ikke i `computeSchemaFingerprint`/`PERSISTED_DATA_VERSION`, fordi feltadresser og recovery-format udvikler sig uafhængigt af canonical sektionsschemas. De tidligere numeriske envelope-versioner migreres tabsfrit ved læsning. Et fremtidigt feltadresseskift kræver en eksplicit nøglemigration eller en dokumenteret inkompatibilitetsbeslutning; et almindeligt sektionsschema-bump må aldrig tavst droppe aktuelt synligt input.
+2. **Egen `sessionStorage`-nøgle.** Hele cachen lagres under én dedikeret, namespace-aware nøgle ejet af `storageManifest.ts`. Den overlever `F5`. Ved korrupt/ugyldig envelope eller ukendt egen version ryddes nøglen fail-closed. En ny egen version må kun afvise en tidligere version efter en dokumenteret vurdering af, at en tabsfri migration er umulig.
 3. **`.eo`-eksklusion.** `invalidDrafts` skrives aldrig til `.eo` og læses aldrig derfra. Da Gem blokeres ved enhver `invalidDrafts`-entry, vil cachen per definition være tom på gemme-tidspunktet.
 4. **Skrive/rydde-vej.** Et fejlende felt-commit skriver/opdaterer feltets entry; et vellykket commit rydder det. Hver skrivning er atomisk (store + `sessionStorage`) med rollback efter samme fail-closed-regler som `persistData` (§8 punkt 5). Et nyt entry kan oprette en undo/redo-frame; et entry der ryddes som del af et samtidigt sektion-commit rider på sektion-commitets frame (ingen separat frame).
 5. **Undo/redo.** `invalidDrafts` indgår i hver history-frame og gendannes atomisk ved restore (jf. `undo-redo-contract.md` §6).

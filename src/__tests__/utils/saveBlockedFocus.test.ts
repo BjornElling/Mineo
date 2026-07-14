@@ -200,6 +200,22 @@ describe('navigateToBlockingInputError — fane-routing', () => {
     expect(setActiveTabMock()).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
   });
 
+  it('ruter et nested ansættelsesforholdsfelt til lønindkomst-fanen', async () => {
+    const target = {
+      kind: 'field' as const,
+      pageKey: 'erstatningsopgoerelse' as const,
+      fieldName: 'af-123:feriePct',
+      message: '',
+    };
+    const navigate = vi.fn();
+
+    await navigateToBlockingInputError(target, '/stamdata', navigate as never);
+    await flushRaf();
+
+    expect(navigate).toHaveBeenCalledWith('/erstatningsopgoerelse');
+    expect(setActiveTabMock()).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
+  });
+
   it('ruter en "angivet løn"-lønudviklingscelle til EO-oplysninger-fanen', async () => {
     const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoAngivetLoenudvikling, '', 'loenudvikling1:1');
     const target = {

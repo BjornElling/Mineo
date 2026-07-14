@@ -9,6 +9,7 @@ import type {
   FieldErrorSource,
 } from '../types/fieldErrors';
 import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
+import type { InvalidDraftClear } from '../types/invalidDrafts';
 
 export type ReplaceAllPersistedData = (snapshot: PersistedSectionsSnapshot) => void;
 
@@ -17,14 +18,19 @@ export type FormPersistenceContextValue = {
   // Reaktive UI-callsites skal som udgangspunkt bruge selector-hooks i stedet.
   getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
   // Autoritativ commit af én sektion. Returnerer false hvis persistence afvises eller fejler.
-  // `clearInvalidDraft` (valgfri): ryd et felts `invalidDrafts`-entry ATOMISK i samme finalize-transaktion
-  // (greenfield draft/commit §4.4) — ét undo-frame, ét revision-progression. Storage-fieldPath, ikke undo-DOM-path.
+  // `clearInvalidDraft(s)` (valgfri): ryd et eller flere `invalidDrafts`-entries ATOMISK i samme
+  // finalize-transaktion (greenfield draft/commit §4.4) — ét undo-frame, én revisionsprogression.
+  // Storage-fieldPath, ikke undo-DOM-path.
   persistData: <K extends StorageKey>(
     pageKey: K,
     data: PersistedSectionMap[K],
-    options?: { undoOrigin?: HistoryFrameOrigin; clearInvalidDraft?: { pageKey: StorageKey; fieldPath: string } }
+    options?: {
+      undoOrigin?: HistoryFrameOrigin;
+      clearInvalidDraft?: InvalidDraftClear;
+      clearInvalidDrafts?: readonly InvalidDraftClear[];
+    }
   ) => boolean;
-  clearPageData: (pageKey: StorageKey) => void;
+  clearPageData: (pageKey: StorageKey, options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
   clearAllData: () => void;
   hasAnyData: () => boolean;
   getFieldErrors: <K extends StorageKey>(
@@ -45,7 +51,7 @@ export type FormPersistenceContextValue = {
   ) => void;
   clearFieldErrors: (pageKey: StorageKey) => void;
   clearAllFieldErrors: () => void;
-  // `invalidDrafts`-recovery-kanal (committed rå draft, jf. form-contract.md §2.4 / persistence-contract.md §11).
+  // `invalidDrafts`-recovery-kanal (afsluttet ugyldigt input, jf. form-contract.md §2.4 / persistence-contract.md §11).
   // commitInvalidDraft skrives ved fejlende commit; clearInvalidDraft ved rydning. Begge tager undoOrigin
   // (opretter en undo-frame, coalesced pr. commit-flow), så både ugyldigt input OG rydning kan undo'es.
   commitInvalidDraft: (pageKey: StorageKey, fieldPath: string, rawDraft: string, options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;

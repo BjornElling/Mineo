@@ -63,15 +63,7 @@ export const captureStoreRollbackSnapshot = (): StoreRollbackSnapshot => {
 };
 
 export const restoreStoreRollbackSnapshot = (snapshot: StoreRollbackSnapshot): void => {
-  formPersistenceStore.getState().rollbackSections(
-    snapshot.sections,
-    snapshot.sectionRevisions,
-    snapshot.committedChangeCounter,
-    snapshot.authoritativeSnapshotEpoch,
-    snapshot.meta
-  );
-  formPersistenceStore.getState().restoreFieldErrors(snapshot.fieldErrors, snapshot.fieldErrorRevisions);
-  formPersistenceStore.getState().restoreInvalidDrafts(snapshot.invalidDrafts, snapshot.invalidDraftRevisions);
+  formPersistenceStore.getState().restoreTransactionSnapshot(snapshot);
   clearResolvedFieldErrorsCache();
 };
 

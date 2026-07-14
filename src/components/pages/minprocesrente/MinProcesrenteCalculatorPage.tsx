@@ -10,6 +10,7 @@ import type { RentePdfContext, RentekravPdfContextMap } from '../../tables/Bereg
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import type { CommitHandler } from '../../../types/fieldEvents';
+import type { ReadyInputRevision } from '../../../domain/inputIntegrity/inputBlocker';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
@@ -89,7 +90,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   );
 
   const handleDownloadRentePdf = React.useCallback(
-    async (pdfContext: RentePdfContext) => {
+    async (pdfContext: RentePdfContext, inputRevision: ReadyInputRevision) => {
       const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
@@ -104,6 +105,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         beregningsdato: beregningsdatoDanish,
         periods: pdfContext.periods,
         latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
+        inputRevision,
         kommentarer: values.kommentarer,
       });
       setPdfErrorMessage(result.success ? null : result.error);
@@ -111,7 +113,10 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     [values.kommentarer]
   );
 
-  const handleDownloadAllSpecifikationer = React.useCallback(async (contexts: RentekravPdfContextMap) => {
+  const handleDownloadAllSpecifikationer = React.useCallback(async (
+    contexts: RentekravPdfContextMap,
+    inputRevision: ReadyInputRevision
+  ) => {
     setDownloadAllErrorMessage(null);
     const rows = Array.from(contexts.values()).flatMap((ctx) => {
       const actualInterestDateDanish = isoToDanish(ctx.actualInterestDate);
@@ -129,6 +134,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     const { downloadAllStandaloneRentePdf } = await loadStandaloneRentePdfService();
     const result = await downloadAllStandaloneRentePdf({
       rows,
+      inputRevision,
       kommentarer: values.kommentarer,
     });
     setDownloadAllErrorMessage(result.success ? null : result.error);
@@ -138,12 +144,14 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     rows: readonly RenteOversigtRow[],
     beregningsdato: ISODateString,
     latestReferenceRateDate: ISODateString | null,
+    inputRevision: ReadyInputRevision,
   ) => {
     const { downloadStandaloneRenteOversigtPdf } = await loadStandaloneRentePdfService();
     const result = await downloadStandaloneRenteOversigtPdf({
       beregningsdato,
       rows,
       latestReferenceRateDate,
+      inputRevision,
       kommentarer: values.kommentarer,
     });
     setOversigtErrorMessage(result.success ? null : result.error);

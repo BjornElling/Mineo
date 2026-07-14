@@ -16,6 +16,8 @@ import { getDocumentCreatorBrand } from '../../document/layout/documentLayoutHel
 import { asError } from '../../utils/typeGuards';
 import { resolveDocumentArtifactFileName } from '../../document/layout/documentFormatUtils';
 import { createDocumentComposer } from '../../document/model/documentModel';
+import type { ReadyInputRevision } from '../../domain/inputIntegrity/inputBlocker';
+import { isReadyInputRevisionCurrent } from '../../document/service/documentInputRevision';
 
 const PDF_DOWNLOAD_SUCCESS: DocumentDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
@@ -41,6 +43,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
   beregningsdato: string;
   periods: ReadonlyArray<ProcessInterestPeriod>;
   latestReferenceRateDate: string | null;
+  inputRevision: ReadyInputRevision;
   kommentarer?: string;
 }>): Promise<DocumentDownloadResult> => {
   const {
@@ -49,8 +52,13 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
     beregningsdato,
     periods,
     latestReferenceRateDate,
+    inputRevision,
     kommentarer,
   } = params;
+
+  if (!isReadyInputRevisionCurrent(inputRevision)) {
+    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
+  }
 
   try {
     // Standalone MinProcesrente understøtter kun PDF og opretter derfor sin session
@@ -74,12 +82,16 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
   beregningsdato: ISODateString;
   rows: ReadonlyArray<RenteOversigtRow>;
   latestReferenceRateDate?: ISODateString | null;
+  inputRevision: ReadyInputRevision;
   kommentarer?: string;
 }>): Promise<DocumentDownloadResult> => {
-  const { beregningsdato, rows, latestReferenceRateDate = null, kommentarer } = params;
+  const { beregningsdato, rows, latestReferenceRateDate = null, inputRevision, kommentarer } = params;
 
   if (rows.length === 0) {
     return { success: false, error: 'Ingen renteberegninger at downloade' };
+  }
+  if (!isReadyInputRevisionCurrent(inputRevision)) {
+    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
   }
 
   try {
@@ -109,12 +121,16 @@ export type RentePdfRowParams = Readonly<{
 
 export const downloadAllStandaloneRentePdf = async (params: Readonly<{
   rows: ReadonlyArray<RentePdfRowParams>;
+  inputRevision: ReadyInputRevision;
   kommentarer?: string;
 }>): Promise<DocumentDownloadResult> => {
-  const { rows, kommentarer } = params;
+  const { rows, inputRevision, kommentarer } = params;
 
   if (rows.length === 0) {
     return { success: false, error: 'Ingen rækker at downloade' };
+  }
+  if (!isReadyInputRevisionCurrent(inputRevision)) {
+    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
   }
 
   try {

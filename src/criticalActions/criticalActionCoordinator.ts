@@ -1,6 +1,6 @@
 import { createElementFocusTarget } from './focusTarget';
 
-export type CriticalAction = 'save' | 'load' | 'navigate' | 'undo' | 'redo';
+export type CriticalAction = 'save' | 'load' | 'navigate' | 'undo' | 'redo' | 'download';
 
 export type CriticalActionParticipantKind = 'form-field' | 'grid-editor' | 'commit-pipeline';
 
@@ -37,6 +37,7 @@ const EDITING_POLICY: Readonly<Record<CriticalAction, Readonly<Record<'form-fiel
   navigate: { 'form-field': 'block', 'grid-editor': 'commit' },
   undo: { 'form-field': 'block', 'grid-editor': 'block' },
   redo: { 'form-field': 'block', 'grid-editor': 'block' },
+  download: { 'form-field': 'commit', 'grid-editor': 'commit' },
 };
 
 const participantPriority = (kind: CriticalActionParticipantKind): number => {

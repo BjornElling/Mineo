@@ -4,6 +4,7 @@ import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import {
   type ReplaceAllPersistedData,
 } from './FormPersistenceContext.shared';
+import type { InvalidDraftClear } from '../types/invalidDrafts';
 import { FormPersistenceContext } from './FormPersistenceContext.internal';
 import {
   type FieldErrorsForSection,
@@ -114,6 +115,83 @@ export const FormPersistenceProvider = ({
   // Undo-frame-coalescing (ét felt-commit → præcis ÉN frame) ejes nu af undoRedoStore
   // (captureValueCommit / captureCoalescing / consumeCoalesceMarker); det er undo-semantik.
 
+  const computeNextInvalidDrafts = React.useCallback(
+    (changes: readonly { pageKey: StorageKey; fieldPath: string; draft: string | null }[]): InvalidDraftsCache => {
+      const current = formPersistenceStore.getState().invalidDrafts;
+      let next = current;
+
+      for (const { pageKey, fieldPath, draft } of changes) {
+        const section = { ...next[pageKey] };
+        if (draft === null || draft === '') {
+          delete section[fieldPath];
+        } else {
+          section[fieldPath] = draft;
+        }
+        next = { ...next, [pageKey]: section };
+      }
+
+      return next;
+    },
+    []
+  );
+
+  const writeInvalidDraftChanges = React.useCallback(
+    (
+      changes: readonly { pageKey: StorageKey; fieldPath: string; draft: string | null }[],
+      options?: { undoOrigin?: HistoryFrameOrigin }
+    ): boolean => {
+      try {
+        const effectiveChanges = changes.filter(({ pageKey, fieldPath, draft }) => {
+          const current = getInvalidDraftForFieldSnapshot(pageKey, fieldPath) ?? null;
+          const normalized = draft === null || draft === '' ? null : draft;
+          return current !== normalized;
+        });
+
+        if (effectiveChanges.length === 0) {
+          if (options?.undoOrigin) undoRedoStore.getState().consumeCoalesceMarker(options.undoOrigin.fieldPath);
+          return true;
+        }
+
+        const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
+        const nextCache = computeNextInvalidDrafts(effectiveChanges);
+        runAtomicPersistenceMutation({
+          operation: 'writeInvalidDrafts',
+          affectedStorageKeys: [invalidDraftsStorageKey],
+          captureUndo: true,
+          mutate: () => {
+            writeInvalidDraftsToStorage(nextCache);
+            if (options?.undoOrigin) {
+              undoRedoStore.getState().captureCoalescing(options.undoOrigin);
+            }
+            formPersistenceStore.getState().setInvalidDrafts(effectiveChanges);
+          },
+        });
+        return true;
+      } catch (error) {
+        console.error('[Persistence] Fejl ved skrivning af invalid drafts:', error);
+        emitUserNotice('Kunne ikke gemme det aktuelle input pga. en intern fejl.', 'error');
+        return false;
+      }
+    },
+    [computeNextInvalidDrafts, emitUserNotice]
+  );
+
+  /**
+   * Skriv/ryd ét felts afsluttede ugyldige input (`invalidDrafts`). Atomisk på tværs af store +
+   * sessionStorage med rollback, efter samme fail-closed-mønster som persistData.
+   *
+   * `undoOrigin` opretter en undo/redo-frame, så både et nyt ugyldigt input OG en rydning af det kan
+   * undo'es. Captures coalesces pr. synkront commit-flow (asymmetrisk markør, se ovenfor), så et felt-commit
+   * der både rører sektionen og rydder draften kun giver ÉN frame — og en rydning hvis sektion-commit
+   * er en no-op stadig får sin egen frame (ellers ville undo springe rydningen over).
+   */
+  const writeInvalidDraft = React.useCallback(
+    (pageKey: StorageKey, fieldPath: string, draft: string | null, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
+      return writeInvalidDraftChanges([{ pageKey, fieldPath, draft }], options);
+    },
+    [writeInvalidDraftChanges]
+  );
+
   /**
    * Gem data i sessionStorage med versionering
    *
@@ -122,7 +200,11 @@ export const FormPersistenceProvider = ({
   const persistData = React.useCallback(<K extends StorageKey>(
     pageKey: K,
     data: PersistedSectionMap[K],
-    options?: { undoOrigin?: HistoryFrameOrigin; clearInvalidDraft?: { pageKey: StorageKey; fieldPath: string } }
+    options?: {
+      undoOrigin?: HistoryFrameOrigin;
+      clearInvalidDraft?: InvalidDraftClear;
+      clearInvalidDrafts?: readonly InvalidDraftClear[];
+    }
   ): boolean => {
     try {
       const storageKey = getStorageKey(pageKey);
@@ -161,28 +243,35 @@ export const FormPersistenceProvider = ({
         valueIsNoop = currentSerializedFingerprint === nextSerializedFingerprint;
       }
 
+      const clearInvalidDrafts = [
+        ...(options?.clearInvalidDraft ? [options.clearInvalidDraft] : []),
+        ...(options?.clearInvalidDrafts ?? []),
+      ].filter(
+        (clear, index, all) => all.findIndex(
+          (candidate) => candidate.pageKey === clear.pageKey && candidate.fieldPath === clear.fieldPath
+        ) === index
+      );
+
       // Værdi-commit er en no-op (uændret sektion). Er der en parret invalidDraft-clear, skal den stadig
       // udføres — som sin egen transaktion med sin egen undo-frame (standalone clear). Ellers ren no-op.
       if (valueIsNoop) {
-        if (options?.clearInvalidDraft) {
-          return writeInvalidDraft(
-            options.clearInvalidDraft.pageKey,
-            options.clearInvalidDraft.fieldPath,
-            null,
-            { undoOrigin: options.undoOrigin }
+        if (clearInvalidDrafts.length > 0) {
+          return writeInvalidDraftChanges(
+            clearInvalidDrafts.map((clear) => ({ ...clear, draft: null })),
+            { undoOrigin: options?.undoOrigin }
           );
         }
         return true;
       }
 
-      const clear = options?.clearInvalidDraft;
-      if (clear) {
-        // ATOMISK finalize (greenfield draft/commit §4.4): sektionsværdi committes OG feltets ugyldige rå
-        // draft ryddes i ÉN transaktion over BEGGE storage-nøgler, med ÉT undo-frame og ÉN revision-
+      if (clearInvalidDrafts.length > 0) {
+        // ATOMISK finalize (greenfield draft/commit §4.4): sektionsværdi committes OG feltets afsluttede
+        // ugyldige input ryddes i ÉN transaktion over BEGGE storage-nøgler, med ÉT undo-frame og ÉN revision-
         // progression. Erstatter det tidligere par (persistData + separat clearInvalidDraft) og gør
         // undo-coalescing overflødig. Forward-paritet med den allerede-atomiske restore-sti.
         const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
-        const nextInvalidDrafts = computeNextInvalidDrafts(clear.pageKey, clear.fieldPath, null);
+        const invalidDraftChanges = clearInvalidDrafts.map((clear) => ({ ...clear, draft: null as null }));
+        const nextInvalidDrafts = computeNextInvalidDrafts(invalidDraftChanges);
         runAtomicPersistenceMutation({
           operation: 'finalizeEdit',
           affectedStorageKeys: [storageKey, invalidDraftsStorageKey],
@@ -196,7 +285,7 @@ export const FormPersistenceProvider = ({
             formPersistenceStore.getState().finalizeEdit({
               sectionKey: pageKey,
               sectionValue: built.validatedData,
-              invalidDraft: { pageKey: clear.pageKey, fieldPath: clear.fieldPath, draft: null },
+              invalidDraftChanges,
               metaPatch: { lastCommittedAt: Date.now() },
             });
           },
@@ -233,71 +322,7 @@ export const FormPersistenceProvider = ({
       emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern fejl.`, 'error');
       return false;
     }
-  }, [emitUserNotice]);
-
-  /**
-   * Beregn næste invalidDrafts-cache fra nuværende store + én feltændring (uden at mutere store).
-   * Bruges til at skrive sessionStorage FØR store-commit, så skrivning er atomisk med rollback.
-   */
-  const computeNextInvalidDrafts = React.useCallback(
-    (pageKey: StorageKey, fieldPath: string, draft: string | null): InvalidDraftsCache => {
-      const current = formPersistenceStore.getState().invalidDrafts;
-      const section = { ...current[pageKey] };
-      if (draft === null || draft === '') {
-        delete section[fieldPath];
-      } else {
-        section[fieldPath] = draft;
-      }
-      return { ...current, [pageKey]: section };
-    },
-    []
-  );
-
-  /**
-   * Skriv/ryd ét felts committede rå draft (`invalidDrafts`). Atomisk på tværs af store +
-   * sessionStorage med rollback, efter samme fail-closed-mønster som persistData.
-   *
-   * `undoOrigin` opretter en undo/redo-frame, så både et nyt ugyldigt input OG en rydning af det kan
-   * undo'es. Captures coalesces pr. synkront commit-flow (asymmetrisk markør, se ovenfor), så et felt-commit
-   * der både rører sektionen og rydder draften kun giver ÉN frame — og en rydning hvis sektion-commit
-   * er en no-op stadig får sin egen frame (ellers ville undo springe rydningen over).
-   */
-  const writeInvalidDraft = React.useCallback(
-    (pageKey: StorageKey, fieldPath: string, draft: string | null, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
-      try {
-        const currentForField = getInvalidDraftForFieldSnapshot(pageKey, fieldPath);
-        const normalizedDraft = draft === null || draft === '' ? null : draft;
-        if ((currentForField ?? null) === normalizedDraft) {
-          // No-op (fx en valid-commits parrede clear hvor feltet ingen rå draft havde). Forbrug en evt.
-          // matchende value-commit-markør, så den ikke dingler og fejlagtigt coalescer en senere handling.
-          if (options?.undoOrigin) undoRedoStore.getState().consumeCoalesceMarker(options.undoOrigin.fieldPath);
-          return true;
-        }
-
-        const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
-        const nextCache = computeNextInvalidDrafts(pageKey, fieldPath, normalizedDraft);
-        runAtomicPersistenceMutation({
-          operation: 'writeInvalidDraft',
-          affectedStorageKeys: [invalidDraftsStorageKey],
-          captureUndo: true,
-          mutate: () => {
-            writeInvalidDraftsToStorage(nextCache);
-            if (options?.undoOrigin) {
-              // Rid på et parret value-commits frame fra samme flow (coalesce); ellers fang vores egen.
-              undoRedoStore.getState().captureCoalescing(options.undoOrigin);
-            }
-            formPersistenceStore.getState().setInvalidDraft(pageKey, fieldPath, normalizedDraft);
-          },
-        });
-        return true;
-      } catch (error) {
-        console.error(`[Persistence] Fejl ved skrivning af invalid draft for '${pageKey}.${fieldPath}':`, error);
-        emitUserNotice(`Kunne ikke gemme det aktuelle input for '${pageKey}' pga. en intern fejl.`, 'error');
-        return false;
-      }
-    },
-    [computeNextInvalidDrafts, emitUserNotice]
-  );
+  }, [computeNextInvalidDrafts, emitUserNotice, writeInvalidDraftChanges]);
 
   const commitInvalidDraft = React.useCallback(
     (pageKey: StorageKey, fieldPath: string, rawDraft: string, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
@@ -397,6 +422,7 @@ export const FormPersistenceProvider = ({
       runAtomicPersistenceMutation({
         operation: 'replaceAllPersistedData',
         affectedStorageKeys: keysToReplace,
+        captureUndo: true,
         mutate: () => {
           for (const key of keysToReplace) {
             removeSessionStorageValue(key);
@@ -420,27 +446,36 @@ export const FormPersistenceProvider = ({
   /**
    * Slet data for en specifik side
    */
-  const clearPageData = React.useCallback((pageKey: StorageKey) => {
+  const clearPageData = React.useCallback((pageKey: StorageKey, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
     try {
       const storageKey = getStorageKey(pageKey);
       const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
+      const current = formPersistenceStore.getState();
+      const hasStateChange = current.sections[pageKey] !== null
+        || Object.keys(current.fieldErrors[pageKey]).length > 0
+        || Object.keys(current.invalidDrafts[pageKey]).length > 0;
+      const nextInvalidDrafts = { ...current.invalidDrafts, [pageKey]: {} };
       runAtomicPersistenceMutation({
         operation: 'clearPageData',
         affectedStorageKeys: [storageKey, invalidDraftsStorageKey],
+        captureUndo: hasStateChange && options?.undoOrigin !== undefined,
         mutate: () => {
           removeSessionStorageValue(storageKey);
-          formPersistenceStore.getState().clearSection(pageKey, {
+          writeInvalidDraftsToStorage(nextInvalidDrafts);
+          if (hasStateChange && options?.undoOrigin) {
+            undoRedoStore.getState().capture(options.undoOrigin);
+          }
+          formPersistenceStore.getState().resetSection(pageKey, {
             lastCommittedAt: Date.now(),
           });
-          formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
-          formPersistenceStore.getState().clearInvalidDraftsForSection(pageKey);
-          writeInvalidDraftsToStorage(formPersistenceStore.getState().invalidDrafts);
           clearResolvedFieldErrorsCache();
         },
       });
+      return true;
     } catch (error) {
       emitUserNotice(`Kunne ikke slette data for '${pageKey}'. Ingen data blev ændret.`, 'error');
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
+      return false;
     }
   }, [emitUserNotice]);
 
@@ -457,6 +492,7 @@ export const FormPersistenceProvider = ({
       runAtomicPersistenceMutation({
         operation: 'clearAllData',
         affectedStorageKeys: storageKeys,
+        captureUndo: true,
         mutate: () => {
           storageKeys.forEach(key => {
             removeSessionStorageValue(key);

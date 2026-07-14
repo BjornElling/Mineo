@@ -176,7 +176,7 @@ const EetOplysningerTab = ({
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                return setValues((prev) => ({ ...prev, beregningsdato: today }), { fieldPath: 'beregningsdato' });
+                return setFieldValue('beregningsdato', today);
               }}
               focusRef={beregningsdatoInputRef}
             />

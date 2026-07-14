@@ -112,6 +112,38 @@ describe('usePersistedForm', () => {
     expect(formPersistenceStore.getState().sections.stamdata).toEqual({ ...committedInitialValues, journalnr: 'AB' });
   });
 
+  it('committer et styrende valg og rydder flere skjulte ugyldige drafts atomisk', () => {
+    const captured: {
+      setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
+    } = { setValues: null };
+
+    const Capture = () => {
+      captured.setValues = usePersistedForm(stamdataSchema, 'stamdata', initialValues).setValues;
+      return null;
+    };
+
+    renderWithProviders(<Capture />);
+    act(() => {
+      formPersistenceStore.getState().setInvalidDraft('stamdata', 'skadedato', '31-02-2024');
+      formPersistenceStore.getState().setInvalidDraft('stamdata', 'foedselsdato', 'ugyldig');
+    });
+    const counter0 = formPersistenceStore.getState().committedChangeCounter;
+
+    act(() => {
+      captured.setValues!((prev) => ({ ...prev, journalnr: 'Styrende valg' }), {
+        fieldPath: 'journalnr',
+        clearInvalidDrafts: [
+          { pageKey: 'stamdata', fieldPath: 'skadedato' },
+          { pageKey: 'stamdata', fieldPath: 'foedselsdato' },
+        ],
+      });
+    });
+
+    expect(formPersistenceStore.getState().sections.stamdata?.journalnr).toBe('Styrende valg');
+    expect(formPersistenceStore.getState().invalidDrafts.stamdata).toEqual({});
+    expect(formPersistenceStore.getState().committedChangeCounter).toBe(counter0 + 1);
+  });
+
   it('materialiserer subset-return fra setValues oven på seneste committed schema-værdi', () => {
     const captured: {
       setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
@@ -280,6 +312,9 @@ describe('usePersistedForm', () => {
     });
 
     expect(undoRedoStore.getState().canUndo()).toBe(true);
+    expect(undoRedoStore.getState().past).toHaveLength(2);
+    expect(undoRedoStore.getState().past[1].sections.stamdata).toMatchObject({ journalnr: 'A' });
+    expect(formPersistenceStore.getState().sections.stamdata).toBeNull();
   });
 
   it('fail-closed uden render-throw hvis committed sektion ikke matcher schema', () => {

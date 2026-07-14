@@ -62,7 +62,6 @@ describe('MenberegningTab', () => {
         <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MenberegningTab
             values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
-            setValues={vi.fn()}
             setFieldValue={setFieldValue}
             stamdata={{
               journalnr: mockStamValues.journalnr,
@@ -100,7 +99,6 @@ describe('MenberegningTab', () => {
         <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
           <MenberegningTab
             values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
-            setValues={vi.fn()}
             setFieldValue={setFieldValue}
             stamdata={{
               journalnr: mockStamValues.journalnr,
@@ -133,7 +131,6 @@ describe('MenberegningTab', () => {
         <FormPersistenceProvider runtime={runtime}>
           <MenberegningTab
             values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
-            setValues={vi.fn()}
             setFieldValue={setFieldValue}
             stamdata={{
               journalnr: mockStamValues.journalnr,

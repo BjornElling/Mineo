@@ -14,6 +14,8 @@ import type { OverenskomstSfggPolicy } from '../../../../data/overenskomstRates'
 import { applySfggBeregningskildeChange } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { normalizeOptionalFreeText } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import type { FieldErrorReporter } from '../../../../types/fieldErrors';
+import type { CommitOriginOptions } from '../../../../hooks/usePersistedForm';
+import { createEoAfInvalidDraftClears } from '../../../../config/entityInvalidDraftScopes';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
@@ -37,7 +39,7 @@ type Props = Readonly<{
   updateSfggAnsaettelsesforhold: (
     ansaettelsesforholdId: string,
     updater: (current: SfggRow) => SfggRow,
-    origin?: { fieldPath?: string }
+    origin?: CommitOriginOptions
   ) => boolean;
   // Felt-fejl-reportere (oprettet i AnsaettelsesforholdCard hvor af.id + hooks er tilgængelige; denne
   // sektion har en tidlig return og kan ikke selv kalde hooks). Binder SFGG-felternes ugyldige rå draft.
@@ -140,10 +142,34 @@ const SygeferiegodtgoerelseSection = ({
                 nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
                   ? nextValue
                   : undefined;
+              const canShowNextSourceDetails = nextBeregningskilde !== 'Overenskomst'
+                || Boolean(af.overenskomstId?.trim());
+              const showsReferenceperiode = nextBeregningskilde === 'Ferieloven'
+                || (nextBeregningskilde === 'Overenskomst'
+                  && canShowNextSourceDetails
+                  && sfggPolicy?.model !== 'direkte_sats');
+              const hiddenFieldNames = [
+                ...(showsReferenceperiode
+                  ? []
+                  : [
+                      'sfggReferenceperiodeFra',
+                      'sfggReferenceperiodeTil',
+                      'sfggReferenceperiodeFravaersdageUdenLoen',
+                    ] as const),
+                ...(nextBeregningskilde === 'Manuelt angivet' ? [] : ['sfggManuelDagssats'] as const),
+                ...(nextBeregningskilde !== undefined
+                  && nextBeregningskilde !== 'Ingen'
+                  && canShowNextSourceDetails
+                  ? []
+                  : ['sfggAlleredeBetaltBeloeb'] as const),
+              ];
               return updateSfggAnsaettelsesforhold(
                 af.id,
                 (current) => applySfggBeregningskildeChange(current, nextBeregningskilde),
-                { fieldPath: `${af.id}:sfggBeregningskilde` }
+                {
+                  fieldPath: `${af.id}:sfggBeregningskilde`,
+                  clearInvalidDrafts: createEoAfInvalidDraftClears(af.id, hiddenFieldNames),
+                }
               );
             }}
           >

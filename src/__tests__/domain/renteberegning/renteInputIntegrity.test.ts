@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { buildRenteInputBlockers } from '../../../domain/renteberegning/renteInputIntegrity';
 import { buildCellInvalidDraftFieldPath, CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import { documentGateFromBlockers } from '../../../domain/inputIntegrity/inputBlockerGate';
@@ -31,9 +30,24 @@ describe('buildRenteInputBlockers', () => {
     expect(blockers.map((b) => b.scope.kind).sort()).toEqual(['global', 'row']);
   });
 
-  it('ignorerer fremmede tableId-nøgler', () => {
+  it('fail-closer globalt ved en ukendt feltadresse', () => {
     const foreign = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, '', 'r1:0');
-    expect(buildRenteInputBlockers({ [foreign]: 'z' })).toEqual([]);
+    expect(buildRenteInputBlockers({ [foreign]: 'z' })).toEqual([
+      expect.objectContaining({
+        fieldId: foreign,
+        fieldLabel: 'Renteberegning',
+        reason: 'invalid',
+        scope: { kind: 'global' },
+      }),
+    ]);
+  });
+
+  it('fail-closer globalt ved en malformed rentecelle-adresse', () => {
+    const malformed = `${CELL_TABLE_IDS.renteBeregnet}:r1:99`;
+    expect(buildRenteInputBlockers({ [malformed]: 'z' })[0]).toMatchObject({
+      fieldId: malformed,
+      scope: { kind: 'global' },
+    });
   });
 });
 

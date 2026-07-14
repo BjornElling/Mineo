@@ -71,6 +71,9 @@ describe('Renteberegning — uparseligt beregningsdato blokerer download (rappor
     await user.tab();
 
     expect(getOversigtButton()).toBeEnabled();
+    const calculatedInterestCell = within(renterFraRow).getAllByRole('cell')[5];
+    expect(calculatedInterestCell).toBeDefined();
+    expect(calculatedInterestCell).not.toHaveTextContent(/^\s*-\s*$/);
 
     // 3) Erstat beregningsdato med et UPARSELIGT format og afslut redigeringen.
     await user.click(dato);
@@ -82,5 +85,6 @@ describe('Renteberegning — uparseligt beregningsdato blokerer download (rappor
     // bogstaver, men "12..20" er stadig et ikke-committbart format), og download er blokeret.
     expect(beregningsdatoInvalidDraft()).toBeTruthy();
     expect(getOversigtButton()).toBeDisabled();
+    expect(calculatedInterestCell).toHaveTextContent(/^\s*-\s*$/);
   });
 });

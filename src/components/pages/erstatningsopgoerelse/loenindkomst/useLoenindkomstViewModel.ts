@@ -23,6 +23,10 @@ import {
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../../hooks/useFormPersistenceSelectors';
 import { useReconcileInvalidDraftScopes } from '../../../../hooks/tableInput';
 import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
+import {
+  createEoAfInvalidDraftClears,
+  EO_AF_INVALID_DRAFT_FIELD_NAMES,
+} from '../../../../config/entityInvalidDraftScopes';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { downloadKlLoenaftalerDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -46,8 +50,9 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations';
 import { useDynamicFormFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
 import { updateValidationFlagById } from '../../../../utils/validationFlagMap';
-import { type SetValuesUpdater } from '../../../../hooks/usePersistedForm';
+import { type CommitOriginOptions, type SetValuesUpdater } from '../../../../hooks/usePersistedForm';
 import { useLoentrinFinder } from './useLoentrinFinder';
+import { TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
 
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 type Ansaettelsesforhold = AnsaettelsesforholdList[number];
@@ -91,7 +96,7 @@ export type UseLoenindkomstViewModelParams = Readonly<{
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => boolean;
+  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: CommitOriginOptions) => boolean;
 }>;
 
 /**
@@ -139,7 +144,12 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     () => new Set(loenindkomstAnsaettelsesforhold.map((af) => af.id)),
     [loenindkomstAnsaettelsesforhold]
   );
-  useReconcileInvalidDraftScopes('erstatningsopgoerelse', AF_SCOPED_CELL_TABLE_IDS, liveAfIds);
+  useReconcileInvalidDraftScopes(
+    'erstatningsopgoerelse',
+    AF_SCOPED_CELL_TABLE_IDS,
+    liveAfIds,
+    EO_AF_INVALID_DRAFT_FIELD_NAMES
+  );
 
   // Hele den rene afledning (maps + per-af-funktioner) bor i domænets view-model-lag, så den er
   // testbar uden React-render (jf. A1). Hooken ejer kun React-state/effekter/handlers og kalder
@@ -283,7 +293,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     updater: (
       current: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]
     ) => ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number],
-    origin?: { fieldPath?: string }
+    origin?: CommitOriginOptions
   ) => {
     return setEOValues((prev) => updateSfggAnsaettelsesforholdRow(prev, ansaettelsesforholdId, updater), origin);
   }, [setEOValues]);
@@ -292,7 +302,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
   const updateAnsaettelsesforhold = React.useCallback(
-    (id: string, updater: (prev: Ansaettelsesforhold) => Ansaettelsesforhold, origin?: { fieldPath?: string }) => {
+    (id: string, updater: (prev: Ansaettelsesforhold) => Ansaettelsesforhold, origin?: CommitOriginOptions) => {
       return onAnsaettelsesforholdChange((prev) => {
         const index = prev.findIndex((item) => item.id === id);
         if (index === -1) return prev;
@@ -325,10 +335,20 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       >
     ): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
+        const hiddenInvalidDraftFields = !event.target.value
+          ? field === 'ansatPaaSkadestidspunktet' || field === 'ansaettelsesforholdOphoert'
+            ? createEoAfInvalidDraftClears(id, ['sidsteArbejdsdag'])
+            : field === 'harAnciennitetstillaegEfterSkadedatoen'
+              ? createEoAfInvalidDraftClears(id, ['anciennitetstillaegDato', 'anciennitetstillaegSats'])
+              : []
+          : [];
         return updateAnsaettelsesforhold(id, (prev) => {
           const next = applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value);
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
-        }, { fieldPath: `${id}:${field}` });
+        }, {
+          fieldPath: `${id}:${field}`,
+          clearInvalidDrafts: hiddenInvalidDraftFields,
+        });
       },
     [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold]
   );
@@ -337,6 +357,13 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string) =>
       (e: StyledDropdownChangeEvent<string | undefined>) => {
         const nextOverenskomstId = normalizeOptionalFreeText(e.target.value);
+        const clearInvalidDrafts = nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
+          ? []
+          : createEoAfInvalidDraftClears(id, [
+              'offentligLoenTrin',
+              'offentligLoenGruppe',
+              'offentligLoenEkstraGrundloen',
+            ]);
         return updateAnsaettelsesforhold(id, (prev) => {
           const next = {
             ...prev,
@@ -347,7 +374,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
                 : prev.offentligLoenType,
           };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
-        }, { fieldPath: `${id}:overenskomstId` });
+        }, { fieldPath: `${id}:overenskomstId`, clearInvalidDrafts });
         // Sats-fejlene revalideres automatisk af satErrors-memo'en fra den nye committede værdi.
       },
     [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold]
@@ -488,7 +515,12 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           const next = { ...prev, tillaegAngivesSom: parsed.data };
           // I Beløb-tilstand er basisrækkens procentsatser brugerinput; sync-helperen bevarer dem.
           return syncManualBaseRowSatser(next);
-        }, { fieldPath: `${id}:tillaegAngivesSom` });
+        }, {
+          fieldPath: `${id}:tillaegAngivesSom`,
+          clearInvalidDrafts: parsed.data === TILLAEG_ANGIVES_SOM.BELOEB
+            ? createEoAfInvalidDraftClears(id, ['feriePct', 'fritvalgPct', 'shSoPct', 'pensionPct'])
+            : [],
+        });
       },
     [updateAnsaettelsesforhold]
   );
@@ -538,6 +570,17 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     (id: string) =>
       (event: StyledDropdownChangeEvent<string | undefined>) => {
         const raw = event.target.value;
+        const clearHiddenDrafts = (nextBasis: Ansaettelsesforhold['loenudviklingBeregningsgrundlag']) => {
+          const fields = nextBasis === 'Overenskomst'
+            ? []
+            : ['offentligLoenTrin', 'offentligLoenGruppe', 'offentligLoenEkstraGrundloen'] as const;
+          const current = loenindkomstAnsaettelsesforhold.find((item) => item.id === id);
+          const hidesAnciennitet = nextBasis !== 'Overenskomst' || !current?.overenskomstId?.trim();
+          return createEoAfInvalidDraftClears(
+            id,
+            hidesAnciennitet ? [...fields, 'anciennitetstillaegDato', 'anciennitetstillaegSats'] : fields
+          );
+        };
         if (!raw) {
           setManuelReguleringHasErrorsByAfId((prev) => {
             const next = { ...prev };
@@ -546,7 +589,10 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           });
           return updateAnsaettelsesforhold(id, (prev) =>
             applyLoenudviklingBeregningsgrundlagChange(prev, undefined)
-          , { fieldPath: `${id}:loenudviklingBeregningsgrundlag` });
+          , {
+            fieldPath: `${id}:loenudviklingBeregningsgrundlag`,
+            clearInvalidDrafts: clearHiddenDrafts(undefined),
+          });
         }
         const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(raw);
         if (!parsed.success) return;
@@ -561,9 +607,12 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
 
         return updateAnsaettelsesforhold(id, (prev) =>
           applyLoenudviklingBeregningsgrundlagChange(prev, parsed.data)
-        , { fieldPath: `${id}:loenudviklingBeregningsgrundlag` });
+        , {
+          fieldPath: `${id}:loenudviklingBeregningsgrundlag`,
+          clearInvalidDrafts: clearHiddenDrafts(parsed.data),
+        });
       },
-    [updateAnsaettelsesforhold]
+    [loenindkomstAnsaettelsesforhold, updateAnsaettelsesforhold]
   );
 
   const handleLoenudviklingStatistikModelChange = React.useCallback(

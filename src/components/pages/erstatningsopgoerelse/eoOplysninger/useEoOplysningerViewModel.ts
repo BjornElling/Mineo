@@ -17,7 +17,10 @@ import {
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { useDynamicFormFieldErrorReporter, useFormFieldErrorReporter, useKeyedFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
 import { useForligAnsvarsgradValidation } from '../../../../hooks/useForligAnsvarsgradValidation';
-import { usePersistedSectionSelector } from '../../../../hooks/useFormPersistenceSelectors';
+import {
+  getInvalidDraftsForSectionSnapshot,
+  usePersistedSectionSelector,
+} from '../../../../hooks/useFormPersistenceSelectors';
 import {
   type ErstatningsopgoerelseValues,
   type EOAngivetLoenLoenudvikling,
@@ -50,6 +53,8 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { downloadKlLoenaftalerDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
+import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
+import { createEoAfInvalidDraftClears } from '../../../../config/entityInvalidDraftScopes';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -133,6 +138,43 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
   const handleBeregnesUdFraChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = beregningsmetodeEnum.safeParse(event.target.value);
     if (!parsed.success) return;
+    const hiddenTopLevelFields = parsed.data === 'Beregningsperiode'
+      ? [
+          'maanedsloenenUdgoer',
+          'dagsloenenUdgoer',
+          'angivetMaanedsloenOpreguleresFraDato',
+          'angivetDagsloenOpreguleresFraDato',
+          'offentligLoenTrin',
+          'offentligLoenGruppe',
+          'offentligLoenEkstraGrundloen',
+          'anciennitetstillaegDato',
+          'anciennitetstillaegSats',
+        ]
+      : [
+          'tafBeregningsperiodeFra',
+          'tafBeregningsperiodeTil',
+          'uspecificeredeFerieFridage',
+          'oevrigeFravaersdage',
+          ...(parsed.data === 'Angivet månedsløn'
+            ? ['dagsloenenUdgoer', 'angivetDagsloenOpreguleresFraDato']
+            : ['maanedsloenenUdgoer', 'angivetMaanedsloenOpreguleresFraDato']),
+        ];
+    const hiddenAfDrafts = parsed.data === 'Beregningsperiode'
+      ? []
+      : values.loenindkomstAnsaettelsesforhold.flatMap((af) => createEoAfInvalidDraftClears(af.id, [
+          'saerligFraDatoRegulering',
+          'offentligLoenTrin',
+          'offentligLoenGruppe',
+          'offentligLoenEkstraGrundloen',
+          'anciennitetstillaegDato',
+          'anciennitetstillaegSats',
+        ]));
+    const hiddenTableIds = parsed.data === 'Beregningsperiode'
+      ? [CELL_TABLE_IDS.eoAngivetLoenudvikling, CELL_TABLE_IDS.eoAngivetLoenudviklingManuelProcentsats]
+      : [CELL_TABLE_IDS.eoLoenudvikling, CELL_TABLE_IDS.eoLoenudviklingManuelProcentsats, CELL_TABLE_IDS.eoBeregningsperiodeFerie];
+    const hiddenTableDrafts = Object.keys(getInvalidDraftsForSectionSnapshot('erstatningsopgoerelse'))
+      .filter((fieldPath) => hiddenTableIds.some((tableId) => fieldPath.startsWith(`${tableId}:`)))
+      .map((fieldPath) => ({ pageKey: 'erstatningsopgoerelse' as const, fieldPath }));
     return setValues((prev) => ({
       ...prev,
       beregnesUdFra: parsed.data,
@@ -144,8 +186,15 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
             ? 'Time'
             : 'Måned',
       },
-    }), { fieldPath: 'beregnesUdFra' });
-  }, [ensureEoLoenPaaHelligdage, setValues]);
+    }), {
+      fieldPath: 'beregnesUdFra',
+      clearInvalidDrafts: [
+        ...hiddenTopLevelFields.map((fieldPath) => ({ pageKey: 'erstatningsopgoerelse' as const, fieldPath })),
+        ...hiddenAfDrafts,
+        ...hiddenTableDrafts,
+      ],
+    });
+  }, [ensureEoLoenPaaHelligdage, setValues, values.loenindkomstAnsaettelsesforhold]);
 
   const handleAfsluttesMedChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = afsluttesMedEnum.safeParse(event.target.value);

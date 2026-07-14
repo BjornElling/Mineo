@@ -23,6 +23,10 @@ export const useCriticalActionCoordinator = (): CriticalActionCoordinator => {
   return coordinator;
 };
 
+/** Isolerede komponenttests kan mangle app-shell; produktions-apps leverer altid coordinatoren. */
+export const useOptionalCriticalActionCoordinator = (): CriticalActionCoordinator | null =>
+  React.useContext(CriticalActionContext);
+
 export const useCriticalActionParticipant = (participant: CriticalActionParticipant): void => {
   const coordinator = React.useContext(CriticalActionContext);
   const latestParticipantRef = React.useRef(participant);

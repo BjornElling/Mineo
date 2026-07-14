@@ -17,7 +17,7 @@ import {
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { computeVarigeMenEngine } from '../../../domain/varigemen/varigeMenEngine';
-import type { SetFieldValue, SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import type { SetFieldValue } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { dateRanges_varigemen } from '../../../config/dateRanges';
@@ -35,9 +35,8 @@ type MenberegningStamdataView = Pick<
   'journalnr' | 'advokat' | 'sagsbehandler' | 'skadelidteFodselsdato' | 'skadedato' | 'skadestype'
 >;
 
-const MenberegningTab = ({ values, setValues, setFieldValue, stamdata }: {
+const MenberegningTab = ({ values, setFieldValue, stamdata }: {
   values: VarigeMenValues;
-  setValues: SetValuesUpdater<VarigeMenValues>;
   setFieldValue: SetFieldValue<VarigeMenValues>;
   stamdata: MenberegningStamdataView;
 }) => {
@@ -342,10 +341,7 @@ const beregningsResultat = React.useMemo(() => {
           />
           <InsertTodayDateButton
             onCommit={(today) => {
-              return setValues((prev) => ({
-                ...prev,
-                beregningsdato: today,
-              }), { fieldPath: 'beregningsdato' });
+              return setFieldValue('beregningsdato', today);
             }}
             focusRef={beregningsdatoInputRef}
           />

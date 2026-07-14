@@ -106,6 +106,30 @@ describe('formPersistenceStore invalidDrafts-slice', () => {
     expect(store.getState().invalidDrafts.stamdata).toEqual({});
   });
 
+  it('resetSection rydder sektion, feltfejl og ugyldigt input i ét store-write', () => {
+    const store = __createTestStore();
+    store.getState().commitSection('satser', { aargang: 2025 }, {});
+    store.getState().setInvalidDraft('satser', 'aargang', 'ugyldigt');
+    store.getState().setFieldError(
+      'satser',
+      'aargang',
+      'input',
+      { message: 'Ugyldigt år', severity: 'error' }
+    );
+    let notifications = 0;
+    const unsubscribe = store.subscribe(() => {
+      notifications += 1;
+    });
+
+    store.getState().resetSection('satser');
+    unsubscribe();
+
+    expect(notifications).toBe(1);
+    expect(store.getState().sections.satser).toBeNull();
+    expect(store.getState().fieldErrors.satser).toEqual({});
+    expect(store.getState().invalidDrafts.satser).toEqual({});
+  });
+
   it('hydrate installerer den hydrerede invalidDrafts-cache', () => {
     const store = __createTestStore();
     const sections = createValidSections();
@@ -127,7 +151,7 @@ describe('formPersistenceStore invalidDrafts-slice', () => {
 });
 
 describe('formPersistenceStore finalizeEdit (atomisk sektion-commit + invalidDraft-clear)', () => {
-  // §4.4: sektionsværdi committes OG feltets ugyldige rå draft ryddes i ÉN set() — ét
+  // §4.4: sektionsværdi committes OG feltets afsluttede ugyldige input ryddes i ÉN set() — ét
   // committedChangeCounter-bump, revisioner kun for de slices der reelt ændrer sig.
   it('committer sektionsværdi OG rydder feltets invalidDraft i samme set()', () => {
     const store = __createTestStore();
@@ -140,7 +164,7 @@ describe('formPersistenceStore finalizeEdit (atomisk sektion-commit + invalidDra
     store.getState().finalizeEdit({
       sectionKey: 'satser',
       sectionValue: { aargang: 2026 },
-      invalidDraft: { pageKey: 'satser', fieldPath: 'aargang', draft: null },
+      invalidDraftChanges: [{ pageKey: 'satser', fieldPath: 'aargang', draft: null }],
     });
 
     expect(store.getState().sections.satser).toEqual({ aargang: 2026 });
@@ -159,7 +183,7 @@ describe('formPersistenceStore finalizeEdit (atomisk sektion-commit + invalidDra
     store.getState().finalizeEdit({
       sectionKey: 'satser',
       sectionValue: { aargang: 2027 },
-      invalidDraft: { pageKey: 'satser', fieldPath: 'aargang', draft: null },
+      invalidDraftChanges: [{ pageKey: 'satser', fieldPath: 'aargang', draft: null }],
     });
 
     expect(store.getState().sections.satser).toEqual({ aargang: 2027 });
@@ -174,11 +198,33 @@ describe('formPersistenceStore finalizeEdit (atomisk sektion-commit + invalidDra
     store.getState().finalizeEdit({
       sectionKey: 'satser',
       sectionValue: { aargang: 2028 },
-      invalidDraft: { pageKey: 'stamdata', fieldPath: 'skadedato', draft: null },
+      invalidDraftChanges: [{ pageKey: 'stamdata', fieldPath: 'skadedato', draft: null }],
     });
 
     expect(store.getState().sections.satser).toEqual({ aargang: 2028 });
     expect(store.getState().invalidDrafts.stamdata).toEqual({});
+  });
+
+  it('rydder flere skjulte invalidDrafts i samme store-commit', () => {
+    const store = __createTestStore();
+    store.getState().hydrate(createValidSections(), VALID_META);
+    store.getState().setInvalidDraft('erstatningsopgoerelse', 'af-1:anciennitetstillaegDato', '31-02-2024');
+    store.getState().setInvalidDraft('erstatningsopgoerelse', 'af-1:anciennitetstillaegSats', 'ugyldig');
+    const counter0 = store.getState().committedChangeCounter;
+    const draftRev0 = store.getState().invalidDraftRevisions.erstatningsopgoerelse;
+
+    store.getState().finalizeEdit({
+      sectionKey: 'satser',
+      sectionValue: { aargang: 2026 },
+      invalidDraftChanges: [
+        { pageKey: 'erstatningsopgoerelse', fieldPath: 'af-1:anciennitetstillaegDato', draft: null },
+        { pageKey: 'erstatningsopgoerelse', fieldPath: 'af-1:anciennitetstillaegSats', draft: null },
+      ],
+    });
+
+    expect(store.getState().invalidDrafts.erstatningsopgoerelse).toEqual({});
+    expect(store.getState().committedChangeCounter).toBe(counter0 + 1);
+    expect(store.getState().invalidDraftRevisions.erstatningsopgoerelse).toBe(draftRev0 + 1);
   });
 
   it('afviser en sektionsværdi der ikke matcher schema (fail-closed, ingen mutation)', () => {
@@ -190,7 +236,7 @@ describe('formPersistenceStore finalizeEdit (atomisk sektion-commit + invalidDra
         sectionKey: 'satser',
         // aargang skal være number; en streng bryder schema → assertSectionValid kaster.
         sectionValue: { aargang: 'ikke-et-tal' } as unknown as { aargang: number },
-        invalidDraft: { pageKey: 'satser', fieldPath: 'aargang', draft: null },
+        invalidDraftChanges: [{ pageKey: 'satser', fieldPath: 'aargang', draft: null }],
       })
     ).toThrow();
     expect(store.getState().sections.satser).toEqual(before);

@@ -35,10 +35,7 @@ const baseProps = {
   beregningsdato: undefined,
   onDownloadSpecifikation: vi.fn(async () => undefined),
   onError: () => undefined,
-  hasGlobalInputBlocker: false,
-  rowIdsWithInputBlocker: new Set<string>(),
-  referenceRates: [],
-  surchargeRates: [],
+  rowProjections: new Map(),
   documentDownloadFormat: DEFAULT_DOCUMENT_DOWNLOAD_FORMAT,
 };
 

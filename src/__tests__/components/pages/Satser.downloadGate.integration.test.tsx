@@ -14,6 +14,14 @@ import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { satserAngivAarYearBounds } from '../../../data/lovbestemteRates';
+import { CriticalActionProvider } from '../../../criticalActions/CriticalActionContext';
+
+const mockDownloadSatserDokument = vi.hoisted(() => vi.fn(async () => ({ success: true as const })));
+
+vi.mock('../../../document/service/documentService', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../document/service/documentService')>(),
+  downloadSatserDokument: mockDownloadSatserDokument,
+}));
 
 const aargangInvalidDraft = (): string | undefined =>
   (formPersistenceStore.getState().invalidDrafts.satser ?? {}).aargang;
@@ -27,9 +35,11 @@ const renderSatser = (committedAargang: number) => {
     <MemoryRouter initialEntries={['/satser']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-            <Satser />
-          </FormPersistenceProvider>
+          <CriticalActionProvider>
+            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+              <Satser />
+            </FormPersistenceProvider>
+          </CriticalActionProvider>
         </RoutePathnameProvider>
       </AppSettingsProvider>
     </MemoryRouter>
@@ -46,6 +56,7 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     sessionStorage.clear();
     formPersistenceStore.getState().clearAllFieldErrors();
     formPersistenceStore.getState().clearAllInvalidDrafts();
+    mockDownloadSatserDokument.mockClear();
   });
 
   it('download er aktiv for en gyldig committed årgang', () => {
@@ -72,6 +83,23 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     expect(input).toHaveValue('123');
     expect(aargangInvalidDraft()).toBe('123');
     expect(getDownloadButton()).toBeDisabled();
+    expect(screen.getByText('Arbejdsskadesatser')).toBeInTheDocument();
+    expect(screen.getByText('Vælg et gyldigt år for at se satserne.')).toBeInTheDocument();
+    expect(screen.queryByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).not.toBeInTheDocument();
+  });
+
+  it('et downloadklik med åben ugyldig editor må ikke nå dokumentservicen', async () => {
+    const user = userEvent.setup();
+    renderSatser(satserAngivAarYearBounds.maxYear);
+    const input = getYearInput();
+
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}');
+    await user.type(input, '123');
+    await user.click(getDownloadButton());
+
+    expect(aargangInvalidDraft()).toBe('123');
+    expect(mockDownloadSatserDokument).not.toHaveBeenCalled();
   });
 
   it('at rette den ugyldige årgang tilbage til en gyldig værdi åbner download igen', async () => {

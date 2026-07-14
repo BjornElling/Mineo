@@ -40,7 +40,7 @@ vi.mock('../../../hooks/usePersistedForm', () => ({
     }, [values]);
 
     const setFieldValue = (fieldName: string, value: unknown) =>
-      setValues((prev: Record<string, unknown>) => ({ ...prev, [fieldName]: value }));
+      setValues((prev) => ({ ...prev, [fieldName]: value }));
 
     return { values, setValues, setFieldValue };
   },

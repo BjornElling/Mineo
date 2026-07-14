@@ -17,7 +17,7 @@ const registerEditingParticipant = (
 });
 
 describe('CriticalActionCoordinator', () => {
-  it.each<CriticalAction>(['save', 'load', 'navigate', 'undo', 'redo'])(
+  it.each<CriticalAction>(['save', 'load', 'navigate', 'undo', 'redo', 'download'])(
     'godkender %s uden deltagere uden browser-ticks',
     async (action) => {
       const coordinator = new CriticalActionCoordinator();
@@ -50,6 +50,8 @@ describe('CriticalActionCoordinator', () => {
     ['save', 'grid-editor'],
     ['load', 'grid-editor'],
     ['navigate', 'grid-editor'],
+    ['download', 'form-field'],
+    ['download', 'grid-editor'],
   ] as const)('committer en åben %s-deltager før %s fortsætter', async (action, kind) => {
     const coordinator = new CriticalActionCoordinator();
     const commit = vi.fn(() => true);

@@ -119,6 +119,7 @@ Skabelonerne (UI/UX-godkendt 2026-07-14) er kontroltype-tilpassede for `missing`
 | `missing` | Dropdown/valg | `<navn> er ikke valgt` |
 | `missing` | Til/fra (toggle/radio) | `<navn> er ikke angivet` |
 | `invalid` | Alle | `Der er udfyldt en ugyldig værdi i feltet <navn>` |
+| `range` | Alle | Domænets konkrete intervaltekst med begge relevante grænser |
 
 Dette er foreneligt med §8.1's konvention ("er ikke udfyldt/angivet/valgt"; aldrig et bart "<felt> mangler") og med
 værn-testens forbud mod en vist tekst, der ender på " mangler". Kontroltypen skal derfor være kendt, hvor beskeden dannes;

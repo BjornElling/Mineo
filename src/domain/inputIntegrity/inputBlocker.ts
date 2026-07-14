@@ -14,13 +14,14 @@
  */
 
 /**
- * Maskinlæsbar fejlårsag. `range`/`bounds` (parseable men uden for interval) er en tredje,
- * eksisterende kategori med gyldig canonical værdi og hører hverken under `missing` eller
- * `invalid`; den bevarer sin nuværende `blocksSave:false`-semantik og modelleres ikke her.
+ * Maskinlæsbar fejlårsag. `range` er en parsebar canonical værdi uden for det tilladte interval;
+ * den hører hverken under `missing` eller `invalid`, men skal stadig kunne blokere det afhængige
+ * output uden at ændre feltfejlens eksisterende save-semantik.
  */
 export type InputBlockerReason =
   | 'missing' // påkrævet i konteksten, men feltet er tomt (gyldigt/undefined)
-  | 'invalid'; // feltets afsluttede tilstand er ikke-committbar (invalidDrafts)
+  | 'invalid' // feltets afsluttede tilstand er ikke-committbar (invalidDrafts)
+  | 'range'; // parsebar canonical værdi uden for det tilladte interval
 
 /**
  * Kontroltype — afgør den kontroltype-tilpassede `missing`-ordlyd (jf. error-contract.md §3A.2).
@@ -62,9 +63,28 @@ export type InputBlocker = Readonly<{
  * Den tidligere canonical værdi må ALDRIG være tilgængelig i den blokerede gren — er et relevant
  * felt ugyldigt, kan `ready.data` ikke dannes.
  */
+declare const READY_INPUT_REVISION: unique symbol;
+
+/** Revision der kun kan udstedes sammen med en ready-projektion. */
+export type ReadyInputRevision = number & { readonly [READY_INPUT_REVISION]: true };
+
 export type InputProjection<T> =
-  | Readonly<{ status: 'ready'; data: T }>
-  | Readonly<{ status: 'blocked'; blockers: readonly InputBlocker[] }>;
+  | Readonly<{ status: 'ready'; data: T; revision: ReadyInputRevision }>
+  | Readonly<{ status: 'blocked'; blockers: readonly InputBlocker[]; revision: number }>;
+
+export const readyInputProjection = <T>(
+  data: T,
+  revision: number
+): Extract<InputProjection<T>, { status: 'ready' }> => ({
+  status: 'ready',
+  data,
+  revision: revision as ReadyInputRevision,
+});
+
+export const blockedInputProjection = <T>(
+  blockers: readonly InputBlocker[],
+  revision: number
+): Extract<InputProjection<T>, { status: 'blocked' }> => ({ status: 'blocked', blockers, revision });
 
 /**
  * Central besked-skabelon: danner den brugervendte, navngivne fejltekst ud fra `reason` +
@@ -72,6 +92,9 @@ export type InputProjection<T> =
  * "ikke udfyldt/angivet/valgt"-konventionen — aldrig et bart "<felt> mangler".
  */
 export const formatInputBlockerMessage = (blocker: InputBlocker): string => {
+  if (blocker.reason === 'range') {
+    return blocker.detail ?? `Værdien i feltet ${blocker.fieldLabel} er uden for det tilladte interval`;
+  }
   if (blocker.reason === 'invalid') {
     return `Der er udfyldt en ugyldig værdi i feltet ${blocker.fieldLabel}`;
   }

@@ -57,7 +57,7 @@ const UI_STORAGE_KEY_SUFFIXES = {
 const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 
 /**
- * Dedikeret nøgle til `invalidDrafts`-recovery-kanalen (committed rå draft).
+ * Dedikeret nøgle til `invalidDrafts`-recovery-kanalen (afsluttet ugyldigt input).
  * Ikke en sektions-nøgle: hele cachen lagres under denne ene nøgle, så ikke-committbart
  * input overlever F5 (jf. persistence-contract.md §11).
  */

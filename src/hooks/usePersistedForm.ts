@@ -15,6 +15,7 @@ import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
 import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.shared';
 import { reportSystemIssue } from '../utils/systemIssueReporter';
+import type { InvalidDraftClear } from '../types/invalidDrafts';
 
 /**
  * Signatur for setValues: funktionel updater-baseret felt-commit.
@@ -32,6 +33,11 @@ export type CommitOriginOptions = {
    * som afviger fra undo-origin'ens DOM-`fieldPath`).
    */
   clearInvalidDraft?: { pageKey: StorageKey; fieldPath: string };
+  /**
+   * Atomisk rydning af flere ugyldige drafts, når ét immediate commit gør flere felter irrelevante.
+   * Bruges især af styrende valg, der skjuler en hel feltgruppe.
+   */
+  clearInvalidDrafts?: readonly InvalidDraftClear[];
 };
 
 export type SetValuesUpdater<T extends object> = (updater: (prev: T) => T | Partial<T>, options?: CommitOriginOptions) => boolean;
@@ -243,6 +249,7 @@ export const usePersistedForm = <K extends StorageKey>(
       return persistDataRef.current(pageKey, next, {
         undoOrigin: createUndoOrigin(options),
         clearInvalidDraft: options?.clearInvalidDraft,
+        clearInvalidDrafts: options?.clearInvalidDrafts,
       });
     },
     [createUndoOrigin, pageKey, resolveCurrentValues]
@@ -263,6 +270,7 @@ export const usePersistedForm = <K extends StorageKey>(
       return setValues((prev) => ({ ...prev, [fieldName]: value }), {
         fieldPath,
         clearInvalidDraft: options?.clearInvalidDraft ?? { pageKey, fieldPath },
+        clearInvalidDrafts: options?.clearInvalidDrafts,
       });
     },
     [pageKey, setValues]
@@ -275,12 +283,12 @@ export const usePersistedForm = <K extends StorageKey>(
    * (det er ikke en autoritativ snapshot-replace, men en lokal, eksplicit
    * nulstilling af sektionen — derfor bumpes formVersion direkte, ikke via
    * authoritative epoch). clearPageData håndterer: sessionStorage-sletning,
-   * cache-sync(null), clearFieldErrorsForSection og runAllDomainCleanups.
+   * committed sektion, feltfejl og afsluttede ugyldige input i samme persistence-transaktion.
    */
   const resetForm = React.useCallback(() => {
-    clearPageDataRef.current(pageKey);
-    bumpFormVersion();
-  }, [pageKey]);
+    const reset = clearPageDataRef.current(pageKey, { undoOrigin: createUndoOrigin() });
+    if (reset) bumpFormVersion();
+  }, [createUndoOrigin, pageKey]);
 
   return {
     values,

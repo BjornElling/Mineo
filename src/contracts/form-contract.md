@@ -55,10 +55,14 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - Parsing må **kun** ske ved commit
 - Committed state må **aldrig** indeholde invalide værdier
 - Draft state må **aldrig** anvendes direkte i beregninger
-- En tredje, eksplicit tier — **committed rå draft** — håndterer det input, der blev forsøgt committet, men ikke kunne parses (jf. §2.4). Den er en separat, string-typet recovery-kanal (`invalidDrafts`), ikke committed domænestate, og indgår derfor aldrig i beregning eller `.eo`.
+- En tredje, eksplicit tier — **afsluttet ugyldigt input** — håndterer det input, der blev afsluttet, men ikke kunne parses (jf. §2.4). Den er en separat, string-typet recovery-kanal (`invalidDrafts`), ikke canonical domænestate, og indgår derfor aldrig i beregning eller `.eo`.
 - Synlighed/rendering må **ikke** i sig selv rydde allerede committet brugerinput i persisted sagsfelter
 - Hvis et persisted sagsfelt eller en persisted række skjules, skal den committede værdi fortsat kunne overleve `F5`, `.eo`-save og `.eo`-load
 - Skjulte committed værdier må kun neutraliseres ved, at validering og beregning eksplicit gater på de aktive domæneregler; de må ikke neutraliseres ved skjult state-clearing
+- Når et eksplicit brugercommit på et styrende valg gør et parse-kompetent felt eller en feltgruppe irrelevant og
+  skjuler den, skal eventuelle `invalidDrafts` for de netop skjulte felter ryddes **atomisk i samme finalize-transaktion**.
+  Reglen rydder kun ikke-committbar recovery-state; den må aldrig rydde eller ændre de skjulte committede værdier.
+  Skjules en hel tabel, omfatter rydningen dens aktuelle celle-`invalidDrafts`.
 - **Synlighed og beregnings-relevans har ét sandt sted.** Et felts synlighed (vis/skjul) og dets neutralisering i beregningen skal udledes af **samme** relevans-prædikat, så "skjult i UI" og "ignoreret i beregning" ikke kan divergere. Sidekomponenter må ikke gen-introducere inline-synlighedsbetingelser (`values.x === 'Ja' && …`, `getChecked(values.x) && …`) på felter hvis relevans ejes af et prædikat. Kanoniske prædikat-moduler: `domain/erstatningsopgoerelse/helpers/eoInputRelevance.ts` (EO; talfødende skjulte felter neutraliseres fail-closed via `neutralizeIrrelevantEoInputs` før motorerne) og `domain/policies/aarsloenPolicy.ts` (årsløn). Per-række relevans der afhænger af domæne-policy-opslag (fx sygeferiegodtgørelse via `resolveSfggSource`) ejes bevidst af den motor der allerede resolver kilden — den er ét sandt sted i sig selv og spejles ikke i prædikat-modulet.
 
 ### 2.3 `initialValues`-materialisering
@@ -91,6 +95,8 @@ Regler:
 - Den flyder ad den normale committed-tier-vej: store → `sessionStorage` → undo/redo-snapshot. Den overlever derfor `F5` og kan undo/redo'es som alt andet committed input.
 - Den ekskluderes fra `.eo` (se `persistence-contract.md`). Da Gem blokeres ved enhver `invalidDrafts`-entry, kan en gemt fil per definition aldrig indeholde et entry.
 - Et vellykket commit på feltet rydder dets `invalidDrafts`-entry; et fejlende commit skriver/opdaterer det. Skrivning sker **kun** ved commit (blur/Enter), aldrig i `onChange` (no-live-preview).
+- Et styrende immediate commit kan rydde flere entries via `clearInvalidDrafts`; værdien og alle rydninger er ét
+  persistence-write, ét store-commit og ét undo-frame. Dette er den eneste tilladte skjulte rydning ved vis/skjul.
 - Feltets rød kant + tooltip for parse-fejl er en **afledt** visning af `invalidDrafts` (jf. `error-contract.md`). Range/rule/schema-fejl forbliver i `fieldErrors`.
 
 ### 2.5 Afsluttet input er den autoritative feltbeskrivelse (normativt)

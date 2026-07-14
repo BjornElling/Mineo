@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Box, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import DownloadIconButton from '../inputs/DownloadIconButton';
-import type { RateEntry } from '../../data/interestRates';
 import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
@@ -15,9 +14,10 @@ import { isoToDanish } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
-import { computeRentekravRow, type RentekravRowResult } from '../../domain/renteberegning/renteberegningEngine';
+import type { RentekravRowResult } from '../../domain/renteberegning/renteberegningEngine';
 import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
+import type { InputProjection } from '../../domain/inputIntegrity/inputBlocker';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
@@ -33,18 +33,6 @@ const ENHED_OPTIONS = [
   { value: 'maaneder', label: 'Måneder' },
 ] satisfies readonly TableDropdownOption[];
 
-const useRentekravRowResult = (
-  committedRow: RentekravRow,
-  beregningsdato: ISODateString | undefined,
-  referenceRates: ReadonlyArray<RateEntry>,
-  surchargeRates: ReadonlyArray<RateEntry>,
-): RentekravRowResult => {
-  return React.useMemo(
-    () => computeRentekravRow(committedRow, beregningsdato, referenceRates, surchargeRates),
-    [committedRow, beregningsdato, referenceRates, surchargeRates]
-  );
-};
-
 export type RentekravPdfContextMap = ReadonlyMap<string, RentePdfContext>;
 
 export type BeregnetRenteTableProps = Readonly<{
@@ -55,14 +43,9 @@ export type BeregnetRenteTableProps = Readonly<{
   /** Sletter hele rækken i én undo-handling (committed removeRow fra row-hooken). */
   onDeleteRow?: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
-  onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
+  onDownloadSpecifikation: (rowId: string) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
-  /** Global afsluttet ugyldig input (fx beregningsdato) → blokerer ALLE rækkers per-række-download. */
-  hasGlobalInputBlocker: boolean;
-  /** Rækker med en afsluttet ugyldig celle-input → per-række-download blokeres for netop disse rækker. */
-  rowIdsWithInputBlocker: ReadonlySet<string>;
-  referenceRates: ReadonlyArray<RateEntry>;
-  surchargeRates: ReadonlyArray<RateEntry>;
+  rowProjections: ReadonlyMap<string, InputProjection<RentekravRowResult>>;
   saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
   isMobile?: boolean;
@@ -77,12 +60,9 @@ type BeregnetRenteRowProps = Readonly<{
   onRowBlur: (rowId: string) => void;
   onDeleteRow?: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
-  onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
+  onDownloadSpecifikation: (rowId: string) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
-  /** Global (fx beregningsdato) eller denne rækkes egen afsluttede ugyldige input → skjul per-række-download. */
-  rowDownloadBlocked: boolean;
-  referenceRates: ReadonlyArray<RateEntry>;
-  surchargeRates: ReadonlyArray<RateEntry>;
+  projection: InputProjection<RentekravRowResult> | undefined;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
 }>;
@@ -98,9 +78,7 @@ const BeregnetRenteRow = React.memo(
     beregningsdato,
     onDownloadSpecifikation,
     onError: _onError,
-    rowDownloadBlocked,
-    referenceRates,
-    surchargeRates,
+    projection,
     isMobile,
     documentDownloadFormat,
   }: BeregnetRenteRowProps) => {
@@ -115,18 +93,15 @@ const BeregnetRenteRow = React.memo(
       return minISO(beregningsdato, standardMaxDate);
     }, [beregningsdato, standardMaxDate]);
 
-    const { actualInterestDate, calculatedInterest, pdfContext } = useRentekravRowResult(
-      committedRow,
-      beregningsdato,
-      referenceRates,
-      surchargeRates
-    );
+    const { actualInterestDate, calculatedInterest, pdfContext } = projection?.status === 'ready'
+      ? projection.data
+      : { actualInterestDate: null, calculatedInterest: null, pdfContext: null };
 
     const actualInterestDateDanish = isoToDanish(actualInterestDate ?? undefined) ?? null;
     // Per-række-download vises kun for en gyldig række uden nogen afsluttet ugyldig input (global eller
     // rækkens egen celle). Blokeringen udledes nu af invalidDrafts via forælderen — ikke af en lokal
     // renterFraHasError-boolean (document-output-contract.md §A2.1).
-    const showDownloadButton = pdfContext !== null && !rowDownloadBlocked;
+    const showDownloadButton = pdfContext !== null;
 
     return (
       <TableRow data-mineo-row-id={row.id}>
@@ -223,7 +198,7 @@ const BeregnetRenteRow = React.memo(
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showDownloadButton ? (
                 <DownloadIconButton
-                  onClick={() => { void onDownloadSpecifikation(pdfContext); }}
+                  onClick={() => { void onDownloadSpecifikation(row.id); }}
                   tooltip={`Download som ${formatLabel}`}
                   ariaLabel={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
                 />
@@ -257,10 +232,7 @@ const BeregnetRenteTable = React.memo(
     onDownloadSpecifikation,
     committedById,
     onError,
-    hasGlobalInputBlocker,
-    rowIdsWithInputBlocker,
-    referenceRates,
-    surchargeRates,
+    rowProjections,
     saveOrderPath,
     onRowsReorder,
     isMobile = false,
@@ -375,9 +347,7 @@ const BeregnetRenteTable = React.memo(
                 beregningsdato={beregningsdato}
                 onDownloadSpecifikation={onDownloadSpecifikation}
                 onError={onError}
-                rowDownloadBlocked={hasGlobalInputBlocker || rowIdsWithInputBlocker.has(row.id)}
-                referenceRates={referenceRates}
-                surchargeRates={surchargeRates}
+                projection={rowProjections.get(row.id)}
                 isMobile={isMobile}
                 documentDownloadFormat={documentDownloadFormat}
               />

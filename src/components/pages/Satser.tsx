@@ -2,21 +2,24 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
 import StyledYearField from '../inputs/StyledYearField';
-import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestemteRates';
+import { satserAngivAarYearBounds } from '../../data/lovbestemteRates';
 import { downloadSatserDokument } from '../../document/service/documentService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
-import { usePersistedSectionSelector, useInvalidDraftForFieldSelector } from '../../hooks/useFormPersistenceSelectors';
+import {
+  getCommittedChangeCounterSnapshot,
+  getInvalidDraftForFieldSnapshot,
+  getPersistedSectionSnapshot,
+  useCombinedSectionRevisionSelector,
+  useInvalidDraftForFieldSelector,
+} from '../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import {
-  resolveSatserAargangErrorMessage,
-  resolveSatserEffectiveAargang,
-  resolveSatserPdfGate,
-} from '../../domain/policies';
-import { sectionScope, type InputBlocker } from '../../domain/inputIntegrity/inputBlocker';
+import { resolveSatserAargangErrorMessage } from '../../domain/policies';
 import { documentGateFromBlockers } from '../../domain/inputIntegrity/inputBlockerGate';
 import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
+import { buildSatserInputProjection } from '../../domain/satser/satserInputProjection';
+import { useOptionalCriticalActionCoordinator } from '../../criticalActions/CriticalActionContext';
 import ContentBox from '../layout/ContentBox';
 import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import { formatAsAmount, formatKr, formatPercent } from '../../utils/formatUtils';
@@ -121,14 +124,15 @@ const Satser = React.memo(() => {
   const MIN_SATSER_YEAR = satserAngivAarYearBounds.minYear;
   const MAX_SATSER_YEAR = satserAngivAarYearBounds.maxYear;
 
-  const { values, setValues } = usePersistedForm(
+  const { values, setFieldValue } = usePersistedForm(
     satserSchema,
     'satser',
     SATSER_INITIAL_VALUES
   );
 
-  const persistedStamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
+  const criticalActions = useOptionalCriticalActionCoordinator();
+  const inputRevision = useCombinedSectionRevisionSelector();
 
   // Binding til invalidDrafts (obligatorisk for persisterede sagsfelter, jf. mineo-field-pattern.md
   // "Felt-identitets-API" punkt 5). Uden denne binding ville en afsluttet ugyldig årgang kun leve i
@@ -141,16 +145,23 @@ const Satser = React.memo(() => {
    */
   const handleYearCommit = React.useCallback(
     (e: { target: { value: number | undefined } }) => {
-      return setValues((prev) => ({ ...prev, aargang: e.target.value }), { fieldPath: 'aargang' });
+      return setFieldValue('aargang', e.target.value);
     },
-    [setValues]
+    [setFieldValue]
   );
 
   // Opdater satser når årstal ændres og er gyldigt
-  const effectiveYear = React.useMemo(
-    () => resolveSatserEffectiveAargang(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
-    [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
+  const inputProjection = React.useMemo(
+    () => buildSatserInputProjection({
+      values,
+      aargangInvalidDraft,
+      minYear: MIN_SATSER_YEAR,
+      maxYear: MAX_SATSER_YEAR,
+      revision: inputRevision,
+    }),
+    [MAX_SATSER_YEAR, MIN_SATSER_YEAR, aargangInvalidDraft, inputRevision, values]
   );
+  const effectiveYear = inputProjection.status === 'ready' ? inputProjection.data.year : undefined;
   const yearErrorMessage = React.useMemo(
     () => resolveSatserAargangErrorMessage(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
@@ -160,37 +171,47 @@ const Satser = React.memo(() => {
   // Download-gate: et afsluttet ugyldigt årstal (invalidDrafts) skal blokere download, også når der
   // bag masken ligger en tidligere gyldig committed årgang (document-output-contract.md §A2.1). Er
   // der ingen ugyldig draft, falder vi tilbage på den committed-afledte gate (manglende/uden-for-interval).
-  const pdfGate = React.useMemo(() => {
-    if (aargangInvalidDraft !== undefined) {
-      const blockers: readonly InputBlocker[] = [
-        { fieldId: 'aargang', fieldLabel: 'Satsår', reason: 'invalid', scope: sectionScope(), controlKind: 'text' },
-      ];
-      return documentGateFromBlockers(blockers, 'satser');
-    }
-    return resolveSatserPdfGate(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR);
-  }, [aargangInvalidDraft, MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]);
+  const pdfGate = React.useMemo(
+    () => inputProjection.status === 'ready'
+      ? documentGateFromBlockers([], 'satser')
+      : documentGateFromBlockers(inputProjection.blockers, 'satser'),
+    [inputProjection]
+  );
   const canDownload = pdfGate.canDownload;
 
   // Vis kun satser for et gyldigt, valgt år. Er året ugyldigt/uden for interval
   // (feltet viser rød fejl), nedtones rate-sektionerne i stedet for at vise
   // satser for et tilfældigt fallback-år (tidligere MAX_SATSER_YEAR), som ville
   // være vildledende for brugeren.
-  const satser = React.useMemo(
-    () => (effectiveYear !== undefined ? getSatserForYear(effectiveYear) : null),
-    [effectiveYear]
-  );
+  const satser = inputProjection.status === 'ready' ? inputProjection.data.satser : null;
 
   // Håndter download af PDF
   const handleDownloadPdf = React.useCallback(async () => {
-    if (satser && effectiveYear !== undefined) {
-      await downloadSatserDokument({
-        year: effectiveYear,
-        satser,
-        settings,
-        persistedStamdata,
-      });
+    const preparation = criticalActions === null
+      ? { status: 'committed' as const }
+      : await criticalActions.prepare('download');
+    if (preparation.status === 'blocked') {
+      preparation.target?.focus();
+      return;
     }
-  }, [satser, effectiveYear, persistedStamdata, settings]);
+
+    const latestProjection = buildSatserInputProjection({
+      values: getPersistedSectionSnapshot('satser'),
+      aargangInvalidDraft: getInvalidDraftForFieldSnapshot('satser', 'aargang'),
+      minYear: MIN_SATSER_YEAR,
+      maxYear: MAX_SATSER_YEAR,
+      revision: getCommittedChangeCounterSnapshot(),
+    });
+    if (latestProjection.status === 'blocked') return;
+
+    await downloadSatserDokument({
+      year: latestProjection.data.year,
+      satser: latestProjection.data.satser,
+      inputRevision: latestProjection.revision,
+      settings,
+      persistedStamdata: getPersistedSectionSnapshot('stamdata'),
+    });
+  }, [MAX_SATSER_YEAR, MIN_SATSER_YEAR, criticalActions, settings]);
 
   const renderReferenceValue = React.useCallback((links: readonly RetsinfoLink[]) => {
     if (links.length === 0) return '';

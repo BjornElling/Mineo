@@ -19,6 +19,7 @@ import ContentBox from '../layout/ContentBox';
 import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
 import { getDocumentFormatLabel } from '../../document/documentFormat';
+import type { ReadyInputRevision } from '../../domain/inputIntegrity/inputBlocker';
 
 /**
  * Tab-nøgler for navigation mellem Rentesatser og Beregning
@@ -73,7 +74,7 @@ const Renteberegning = React.memo(() => {
   );
 
   const handleDownloadRentePdf = React.useCallback(
-    async (pdfContext: RentePdfContext) => {
+    async (pdfContext: RentePdfContext, inputRevision: ReadyInputRevision) => {
       const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
@@ -87,6 +88,7 @@ const Renteberegning = React.memo(() => {
         beregningsdato: beregningsdatoDanish,
         periods: pdfContext.periods,
         latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
+        inputRevision,
         kommentarer: values.kommentarer,
         settings,
         persistedStamdata,
@@ -101,11 +103,13 @@ const Renteberegning = React.memo(() => {
       rows: readonly RenteOversigtRow[],
       beregningsdato: ISODateString,
       latestReferenceRateDate: ISODateString | null,
+      inputRevision: ReadyInputRevision,
     ) => {
       const result = await downloadRenteOversigtDokument({
         beregningsdato,
         rows,
         latestReferenceRateDate,
+        inputRevision,
         kommentarer: values.kommentarer,
         settings,
         persistedStamdata,

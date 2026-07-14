@@ -3,7 +3,7 @@ import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 
 /**
- * Schema for `invalidDrafts`-recovery-kanalen (committed rå draft).
+ * Schema for `invalidDrafts`-recovery-kanalen (afsluttet ugyldigt input).
  *
  * Form: `invalidDrafts[pageKey][fieldPath] = råstreng (ikke-tom)`.
  *

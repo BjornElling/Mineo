@@ -30,6 +30,7 @@ import {
   isCellInvalidDraftRowOrphan,
   isCellInvalidDraftScopeOrphan,
 } from '../../../config/cellInvalidDraftScopes';
+import { isEntityInvalidDraftScopeOrphan } from '../../../config/entityInvalidDraftScopes';
 import { useReconcileInvalidDraftsToLiveRows } from '../../../hooks/tableInput';
 import { getFirstBlockingInputErrorTarget } from '../../../utils/saveBlockedFocus';
 import {
@@ -88,6 +89,14 @@ describe('fieldPath-scope helpers', () => {
     expect(isCellInvalidDraftScopeOrphan(fp, tableIds, new Set(['af-1']))).toBe(true);
     // Fremmed tabel-id → ikke en af-scoped nøgle → aldrig forældreløs ad denne vej.
     expect(isCellInvalidDraftScopeOrphan(buildCellInvalidDraftFieldPath(TABLE_ID, '', 'r:1'), tableIds, new Set())).toBe(false);
+  });
+
+  it('isEntityInvalidDraftScopeOrphan rydder kun whitelisted feltstate for slettede entities', () => {
+    const fieldNames = new Set(['feriePct']);
+    expect(isEntityInvalidDraftScopeOrphan('af-7:feriePct', fieldNames, new Set(['af-7']))).toBe(false);
+    expect(isEntityInvalidDraftScopeOrphan('af-7:feriePct', fieldNames, new Set(['af-1']))).toBe(true);
+    expect(isEntityInvalidDraftScopeOrphan('af-7:ukendt', fieldNames, new Set(['af-1']))).toBe(false);
+    expect(isEntityInvalidDraftScopeOrphan('rente-beregnet:r1:0', fieldNames, new Set())).toBe(false);
   });
 });
 
@@ -200,6 +209,23 @@ describe('Gem-gaten: forældreløs draft går fra blokeret til fri', () => {
     expect(drafts()[fpStd]).toBeUndefined();
     expect(drafts()[fpLoen]).toBeUndefined();
     expect(drafts()[fpAlive]).toBe('56'); // levende af urørt
+  });
+
+  it('af-scope reconcile rydder scalar-feltstate for et slettet ansættelsesforhold', () => {
+    const { result } = renderHook(() => useFormPersistence(), { wrapper: createRuntimeProvider() });
+    seedDraft('af-dead:feriePct', 'x');
+    seedDraft('af-alive:feriePct', 'y');
+    seedDraft('af-dead:ukendt', 'z');
+
+    act(() => {
+      result.current.reconcileInvalidDrafts(PAGE_KEY, (candidate) =>
+        isEntityInvalidDraftScopeOrphan(candidate, new Set(['feriePct']), new Set(['af-alive']))
+      );
+    });
+
+    expect(drafts()['af-dead:feriePct']).toBeUndefined();
+    expect(drafts()['af-alive:feriePct']).toBe('y');
+    expect(drafts()['af-dead:ukendt']).toBe('z');
   });
 });
 

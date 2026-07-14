@@ -78,7 +78,12 @@ export const useEoFieldCommitHandlers = ({ setValues, setFieldValue }: FormApi):
       (event: CommitEvent<boolean>) => {
         // Immediate-commit widget: send fieldPath, ellers gætter undo-origin via focus-trackeren,
         // som peger på det forrige (tekst)felt — derfor lander undo-fokus forkert (fejl B).
-        return setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }), { fieldPath: String(fieldName) });
+        return setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }), {
+          fieldPath: String(fieldName),
+          clearInvalidDrafts: fieldName === 'oevrigtFravaerUdenLoen' && !event.target.value
+            ? [{ pageKey: 'erstatningsopgoerelse', fieldPath: 'oevrigeFravaersdage' }]
+            : [],
+        });
       },
     [setValues]
   );

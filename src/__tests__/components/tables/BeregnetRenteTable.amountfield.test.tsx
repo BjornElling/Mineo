@@ -46,10 +46,7 @@ describe('BeregnetRenteTable amount commit wiring', () => {
         beregningsdato={undefined}
         onDownloadSpecifikation={vi.fn(async () => undefined)}
         onError={() => undefined}
-        hasGlobalInputBlocker={false}
-        rowIdsWithInputBlocker={new Set()}
-        referenceRates={[]}
-        surchargeRates={[]}
+        rowProjections={new Map()}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
