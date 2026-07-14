@@ -1,5 +1,4 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import { createActiveTabStorageKey } from '../config/storageManifest';
@@ -21,6 +20,7 @@ import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
 import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
 import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
+import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.shared';
 
 const debugFieldErrorReporter = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -121,27 +121,33 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   options?: ReporterOptions
 ): FieldErrorReporter => {
   const { getFieldError, setFieldError, commitInvalidDraft, clearInvalidDraft } = useFormPersistence();
-  const location = useLocation();
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
 
+  // Router-optionel pathname: brug RoutePathnameContext (fodret af useLocation i hovedappen), så
+  // undo-origin's route matcher routeren og fokus-restore navigerer korrekt. Falder tilbage til
+  // window.location.pathname, når konteksten mangler (den routerløse standalone minProcesrente-app),
+  // så reporteren kan bruges i delte komponenter uden at kræve en Router.
+  const routePathname = useRoutePathnameSnapshot();
+  const pathname = routePathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
+
   const commitInvalidDraftForField = React.useCallback(
     (rawDraft: string) => {
       return commitInvalidDraft(pageKey, fieldName, rawDraft, {
-        undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname),
+        undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, pathname),
       });
     },
-    [commitInvalidDraft, fieldName, location.pathname, pageKey]
+    [commitInvalidDraft, fieldName, pageKey, pathname]
   );
 
   const clearInvalidDraftForField = React.useCallback(() => {
     // Send undoOrigin med: en rydning af et felts rå draft skal kunne undo'es. captureUndoFrameCoalesced
     // sikrer at det ikke giver en ekstra frame, når rydningen sker sammen med et sektion-commit.
     return clearInvalidDraft(pageKey, fieldName, {
-      undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname),
+      undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, pathname),
     });
-  }, [clearInvalidDraft, fieldName, location.pathname, pageKey]);
+  }, [clearInvalidDraft, fieldName, pageKey, pathname]);
 
   const reportError = React.useCallback(
     (error: ReportableFieldError | undefined) => {

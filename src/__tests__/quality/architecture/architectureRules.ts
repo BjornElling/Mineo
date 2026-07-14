@@ -386,6 +386,14 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
   },
   { label: 'Forsørgertab', root: 'src/components/pages/Forsoergertab.tsx', allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'] },
   { label: 'Renteberegning', root: 'src/components/pages/Renteberegning.tsx', allowedSections: ['renteberegning', 'stamdata'] },
+  {
+    // Delte renteberegning-faner (bruges af både hovedapp og standalone minProcesrente). RenteberegningTab
+    // binder beregningsdato til invalidDrafts og læser sektionens afsluttede ugyldige inputs (greenfield
+    // draft/commit-design, Fase 7), så filen tilgår `renteberegning`-sektionen.
+    label: 'Renteberegning-faner',
+    root: 'src/components/pages/renteberegning',
+    allowedSections: ['renteberegning'],
+  },
   { label: 'Satser', root: 'src/components/pages/Satser.tsx', allowedSections: ['satser', 'stamdata'] },
   { label: 'Stamdata', root: 'src/components/pages/Stamdata.tsx', allowedSections: ['stamdata'] },
   { label: 'Varige mén', root: 'src/components/pages/VarigeMen.tsx', allowedSections: ['stamdata', 'varigemen'] },

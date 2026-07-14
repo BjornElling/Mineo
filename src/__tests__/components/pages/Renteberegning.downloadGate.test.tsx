@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import RenteberegningTab from '../../../components/pages/renteberegning/RenteberegningTab';
 import ContentBoxFrame from '../../../components/layout/ContentBoxFrame';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
+import { formPersistenceStore } from '../../../stores/formPersistenceStore';
+import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
+import { buildCellInvalidDraftFieldPath, CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
 import { rentekravDraftToCommittedRow } from '../../../domain/renteberegning/rentekravTableModel';
@@ -11,16 +15,10 @@ import { referenceRates, surchargeRates, type RateEntry } from '../../../data/in
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 import { toISODateString } from '../../../types/branded';
 
-// §2.4 (renteberegning-contract): download-gaten skal udledes fra COMMITTED input
-// hos parent (RenteberegningTab) via computeRentekravRow — ikke fra draft-state via
-// en child→parent callback. Disse tests beviser at gaten reagerer på committed input
-// og IKKE på draft-kun fejl.
-
-vi.mock('../../../contexts/useFormPersistence', () => ({
-  useFormPersistence: () => ({
-    getPersistedData: () => undefined,
-  }),
-}));
+// §2.4 (renteberegning-contract): download-gaten skal udledes fra den AFSLUTTEDE inputtilstand — committed
+// input via computeRentekravRow OG afsluttede ugyldige inputs (invalidDrafts). Denne test kører gennem en
+// rigtig FormPersistenceProvider (ikke en mock), så den både beviser committed-only-reglen OG at et
+// afsluttet ugyldigt input blokerer download (document-output-contract.md §A2.1, design §11.4).
 
 const makeDraftRow = (id: string, overrides: Partial<RentekravDraftRow> = {}): RentekravDraftRow => ({
   id,
@@ -44,6 +42,18 @@ const makeCommittedRow = (
 
 const VALID_BEREGNINGSDATO = toISODateString('2024-12-31');
 
+// Seed EFTER mount: initializePersistenceRuntime() hydrerer invalidDrafts fra (tom) sessionStorage ved
+// render, så en seeding før render ville blive nulstillet. act() sikrer at store-opdateringen flusher
+// re-renderet, så gaten reagerer — dette svarer til en afsluttet ugyldig celle-/felt-tilstand i storen.
+const seedInvalidDraftAfterMount = (fieldPath: string, raw: string): void => {
+  act(() => {
+    formPersistenceStore.getState().setInvalidDraft('renteberegning', fieldPath, raw);
+  });
+};
+
+const cellFieldPath = (rowId: string, col: number): string =>
+  buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.renteBeregnet, '', `${rowId}:${col}`);
+
 const renderTab = (args: {
   draftRows: RentekravDraftRow[];
   committedById: ReadonlyMap<string, RentekravRow>;
@@ -53,33 +63,44 @@ const renderTab = (args: {
   onDownloadOversigt?: ComponentProps<typeof RenteberegningTab>['onDownloadOversigt'];
 }) => {
   return render(
-    <RenteberegningTab
-      beregningsdato={args.beregningsdato ?? VALID_BEREGNINGSDATO}
-      kommentarer={undefined}
-      onBeregningsdatoCommit={() => true}
-      onKommentarerCommit={() => true}
-      rentekravRows={args.draftRows}
-      onRentekravChange={() => () => undefined}
-      onRentekravBlur={() => undefined}
-      onRentekravReorder={() => undefined}
-      onDownloadSpecifikation={async () => undefined}
-      committedRentekravById={args.committedById}
-      onError={() => undefined}
-      pdfErrorMessage={null}
-      referenceRates={args.referenceRates ?? referenceRates}
-      surchargeRates={args.surchargeRates ?? surchargeRates}
-      ContentBoxComponent={ContentBoxFrame}
-      onDownloadOversigt={args.onDownloadOversigt ?? (async () => undefined)}
-      oversigtErrorMessage={null}
-      showOversigtBox
-      documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
-    />,
+    <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+      <RenteberegningTab
+        beregningsdato={args.beregningsdato ?? VALID_BEREGNINGSDATO}
+        kommentarer={undefined}
+        onBeregningsdatoCommit={() => true}
+        onKommentarerCommit={() => true}
+        rentekravRows={args.draftRows}
+        onRentekravChange={() => () => undefined}
+        onRentekravBlur={() => undefined}
+        onRentekravReorder={() => undefined}
+        onDownloadSpecifikation={async () => undefined}
+        committedRentekravById={args.committedById}
+        onError={() => undefined}
+        pdfErrorMessage={null}
+        referenceRates={args.referenceRates ?? referenceRates}
+        surchargeRates={args.surchargeRates ?? surchargeRates}
+        ContentBoxComponent={ContentBoxFrame}
+        onDownloadOversigt={args.onDownloadOversigt ?? (async () => undefined)}
+        oversigtErrorMessage={null}
+        showOversigtBox
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
+      />
+    </FormPersistenceProvider>,
   );
 };
 
 const getOversigtButton = () => screen.getByRole('button', { name: 'Download samlet oversigt' });
 
-describe('Renteberegning download-gate (§2.4: udledt fra committed input)', () => {
+describe('Renteberegning download-gate (§2.4: udledt fra afsluttet input)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    formPersistenceStore.setState({
+      meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
+    });
+    formPersistenceStore.getState().clearAllFieldErrors();
+    formPersistenceStore.getState().clearAllInvalidDrafts();
+  });
+
   it('aktiverer download når en committed række er fuldt gyldig', () => {
     const committed = makeCommittedRow('r1', { belob: '1000,00', renterFra: '01-01-2020' });
     renderTab({
@@ -110,16 +131,33 @@ describe('Renteberegning download-gate (§2.4: udledt fra committed input)', () 
     expect(getOversigtButton()).toBeDisabled();
   });
 
-  it('en draft-kun dato-fejl driver IKKE den samlede gate (committed input forbliver gyldigt)', () => {
-    // committed input er gyldigt; draft-rækken indeholder en ugyldig dato-tekst der ville
-    // udløse renterFraHasError i feltet, men §2.4 udelukker det fra den samlede gate.
+  it('VENDT (design §11.4): et afsluttet ugyldigt renterFra oven på en gyldig committed række blokerer den samlede gate', () => {
+    // Committed input er gyldigt, men brugeren har AFSLUTTET et uparseligt renterFra i cellen →
+    // invalidDrafts-entry. Tidligere holdt gaten download AKTIV (renterFraHasError var ekskluderet);
+    // nu blokerer den afsluttede ugyldige tilstand aggregat-downloaden.
     const committed = makeCommittedRow('r1', { belob: '1000,00', renterFra: '01-01-2020' });
     renderTab({
-      draftRows: [makeDraftRow('r1', { belob: '1.000,00', renterFra: '99-99-9999' })],
+      draftRows: [makeDraftRow('r1', { belob: '1.000,00', renterFra: '01-01-2020' })],
       committedById: new Map([['r1', committed]]),
     });
-
     expect(getOversigtButton()).toBeEnabled();
+
+    seedInvalidDraftAfterMount(cellFieldPath('r1', 1), '99-99-9999');
+
+    expect(getOversigtButton()).toBeDisabled();
+  });
+
+  it('et afsluttet ugyldigt beregningsdato (global) blokerer den samlede gate', () => {
+    const committed = makeCommittedRow('r1', { belob: '1000,00', renterFra: '01-01-2020' });
+    renderTab({
+      draftRows: [makeDraftRow('r1', { belob: '1.000,00', renterFra: '01-01-2020' })],
+      committedById: new Map([['r1', committed]]),
+    });
+    expect(getOversigtButton()).toBeEnabled();
+
+    seedInvalidDraftAfterMount('beregningsdato', '99-99-9999');
+
+    expect(getOversigtButton()).toBeDisabled();
   });
 
   it('sender seneste referenceperiode-slutdato med ved samlet oversigt', async () => {

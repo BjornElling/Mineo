@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react';
+import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
+
+// RenteberegningTab binder nu beregningsdato til invalidDrafts (useFormFieldErrorReporter) og læser
+// sektionens invalidDrafts, så den kræver en FormPersistenceProvider. StyledDateField/BeregnetRenteTable
+// er mocket ud i denne layout-test, så provideren er kun til stede for de tab-interne hooks.
+const render = (ui: React.ReactElement) =>
+  rtlRender(<FormPersistenceProvider runtime={initializePersistenceRuntime()}>{ui}</FormPersistenceProvider>);
 
 vi.mock('../../../components/inputs/StyledDateField', () => ({
   __esModule: true,

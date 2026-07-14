@@ -18,6 +18,10 @@ import type { RentePdfContext } from '../../tables/BeregnetRenteTable';
 import { computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
 import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
 import { evaluateDownloadAllGate, evaluateOversigtDownloadGate } from '../../../domain/renteberegning/renteberegningDownloadGate';
+import { buildRenteInputBlockers } from '../../../domain/renteberegning/renteInputIntegrity';
+import { blockersForScope } from '../../../domain/inputIntegrity/inputBlockerGate';
+import { useInvalidDraftsForSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
+import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
@@ -101,10 +105,39 @@ const RenteberegningTab = React.memo(({
   onClearAll,
   documentDownloadFormat,
 }: RenteberegningTabProps) => {
-  const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const [downloadAllIsLoading, setDownloadAllIsLoading] = React.useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = React.useState(false);
+
+  // Binding af beregningsdato til invalidDrafts (obligatorisk for persisterede sagsfelter, jf.
+  // mineo-field-pattern.md "Felt-identitets-API" punkt 5). Erstatter den lokale beregningsdatoHasError-
+  // boolean, der pr. design var blank for uparseligt format (visualErrorMessage tvinges til '') og
+  // derfor ikke kunne gate download (document-output-contract.md §A2.1). Reporteren er router-fri, så
+  // den også virker i den routerløse standalone minProcesrente-app.
+  const beregningsdatoErrorReporter = useFormFieldErrorReporter('renteberegning', 'beregningsdato');
+
+  // Afsluttede ugyldige inputs (beregningsdato + rentekrav-celler) → scope-bærende blockers, der
+  // driver download-gaten oven på den committed-afledte gate (renteberegning-contract.md §2).
+  const renteInvalidDrafts = useInvalidDraftsForSectionSelector('renteberegning');
+  const inputBlockers = React.useMemo(
+    () => buildRenteInputBlockers(renteInvalidDrafts),
+    [renteInvalidDrafts],
+  );
+  // Én ugyldig beregningsdato (global scope) blokerer alle downloads; en ugyldig celle blokerer kun
+  // sin egen rækkes per-række-download + aggregater.
+  const hasGlobalInputBlocker = React.useMemo(
+    () => inputBlockers.some((b) => b.scope.kind === 'global'),
+    [inputBlockers],
+  );
+  const hasAnyInputBlocker = inputBlockers.length > 0;
+  // Rækker med en afsluttet ugyldig celle-input → per-række-download blokeres for netop disse rækker.
+  const rowIdsWithInputBlocker = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const blocker of inputBlockers) {
+      if (blocker.scope.kind === 'row') ids.add(blocker.scope.rowId);
+    }
+    return ids;
+  }, [inputBlockers]);
 
   // §2.4 (renteberegning-contract): download-gaten beregnes auditerbart hos parent
   // DIREKTE fra committed input via den kanoniske computeRentekravRow — IKKE via
@@ -151,17 +184,20 @@ const RenteberegningTab = React.memo(({
   // output-kontrakt §A2): committed-only-reglen er nu konstruktion, ikke kommentar.
   // Gate-funktionerne er rene og committed-afledte; loading-tilstanden er en separat
   // UI-transient der OR'es på download-alle-knappens disabled nedenfor.
+  // Aggregat-downloads blokeres af ENHVER afsluttet ugyldig input (global eller en hvilken som helst
+  // rækkes celle) — en samlet oversigt/alle-download inkluderer alle rækker. `hasAnyInputBlocker`
+  // erstatter den gamle beregningsdatoHasError-boolean som output-sandhedskilde (§A2.1).
   const downloadAllGate = React.useMemo(
-    () => evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError }),
-    [hasValidPdfContexts, anyRowHasError, beregningsdatoHasError],
+    () => evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: hasAnyInputBlocker }),
+    [hasValidPdfContexts, anyRowHasError, hasAnyInputBlocker],
   );
   const downloadAllDisabled = !downloadAllGate.canDownload || downloadAllIsLoading;
 
   const showDownloadAllBox = isMobile && onDownloadAllSpecifikationer !== undefined;
 
   const oversigtDownloadGate = React.useMemo(
-    () => evaluateOversigtDownloadGate({ beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError }),
-    [beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError],
+    () => evaluateOversigtDownloadGate({ beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: hasAnyInputBlocker }),
+    [beregningsdato, hasValidPdfContexts, anyRowHasError, hasAnyInputBlocker],
   );
   const oversigtDownloadDisabled = !oversigtDownloadGate.canDownload;
 
@@ -217,7 +253,7 @@ const RenteberegningTab = React.memo(({
                 onCommit={onBeregningsdatoCommit}
                 minDate={dateRanges_renteberegning.renteTil.min}
                 maxDate={dateRanges_renteberegning.renteTil.max}
-                onFieldError={(errorMsg) => setBeregningsdatoHasError(!!errorMsg)}
+                onFieldError={beregningsdatoErrorReporter}
                 inputRef={beregningsdatoInputRef}
                 width={isMobile ? 110 : 130}
                 singleStageClick={isMobile}
@@ -270,7 +306,8 @@ const RenteberegningTab = React.memo(({
             onDownloadSpecifikation={onDownloadSpecifikation}
             committedById={committedRentekravById}
             onError={onError}
-            beregningsdatoHasError={beregningsdatoHasError}
+            hasGlobalInputBlocker={hasGlobalInputBlocker}
+            rowIdsWithInputBlocker={rowIdsWithInputBlocker}
             referenceRates={referenceRates}
             surchargeRates={surchargeRates}
             saveOrderPath="renteberegning.rentekravRows"

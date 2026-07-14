@@ -57,7 +57,10 @@ export type BeregnetRenteTableProps = Readonly<{
   beregningsdato: ISODateString | undefined;
   onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
-  beregningsdatoHasError: boolean;
+  /** Global afsluttet ugyldig input (fx beregningsdato) → blokerer ALLE rækkers per-række-download. */
+  hasGlobalInputBlocker: boolean;
+  /** Rækker med en afsluttet ugyldig celle-input → per-række-download blokeres for netop disse rækker. */
+  rowIdsWithInputBlocker: ReadonlySet<string>;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
   saveOrderPath?: TableSaveOrderPath;
@@ -76,7 +79,8 @@ type BeregnetRenteRowProps = Readonly<{
   beregningsdato: ISODateString | undefined;
   onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
-  beregningsdatoHasError: boolean;
+  /** Global (fx beregningsdato) eller denne rækkes egen afsluttede ugyldige input → skjul per-række-download. */
+  rowDownloadBlocked: boolean;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
   isMobile: boolean;
@@ -94,14 +98,13 @@ const BeregnetRenteRow = React.memo(
     beregningsdato,
     onDownloadSpecifikation,
     onError: _onError,
-    beregningsdatoHasError,
+    rowDownloadBlocked,
     referenceRates,
     surchargeRates,
     isMobile,
     documentDownloadFormat,
   }: BeregnetRenteRowProps) => {
     const formatLabel = getDocumentFormatLabel(documentDownloadFormat);
-    const [renterFraHasError, setRenterFraHasError] = React.useState(false);
     const standardMaxDate = dateRanges_renteberegning.renteTil.max;
 
     const dynamicMaxDate = React.useMemo((): ISODateString => {
@@ -120,7 +123,10 @@ const BeregnetRenteRow = React.memo(
     );
 
     const actualInterestDateDanish = isoToDanish(actualInterestDate ?? undefined) ?? null;
-    const showDownloadButton = pdfContext !== null && !renterFraHasError && !beregningsdatoHasError;
+    // Per-række-download vises kun for en gyldig række uden nogen afsluttet ugyldig input (global eller
+    // rækkens egen celle). Blokeringen udledes nu af invalidDrafts via forælderen — ikke af en lokal
+    // renterFraHasError-boolean (document-output-contract.md §A2.1).
+    const showDownloadButton = pdfContext !== null && !rowDownloadBlocked;
 
     return (
       <TableRow data-mineo-row-id={row.id}>
@@ -151,7 +157,6 @@ const BeregnetRenteRow = React.memo(
             }}
             minDate={dateRanges_renteberegning.renteTil.min}
             maxDate={dynamicMaxDate}
-            onErrorChange={(info) => setRenterFraHasError(info.hasError)}
             inputMode={isMobile ? 'numeric' : 'text'}
             sx={isMobile ? { paddingLeft: '4px', paddingRight: '4px' } : undefined}
           />
@@ -252,7 +257,8 @@ const BeregnetRenteTable = React.memo(
     onDownloadSpecifikation,
     committedById,
     onError,
-    beregningsdatoHasError,
+    hasGlobalInputBlocker,
+    rowIdsWithInputBlocker,
     referenceRates,
     surchargeRates,
     saveOrderPath,
@@ -369,7 +375,7 @@ const BeregnetRenteTable = React.memo(
                 beregningsdato={beregningsdato}
                 onDownloadSpecifikation={onDownloadSpecifikation}
                 onError={onError}
-                beregningsdatoHasError={beregningsdatoHasError}
+                rowDownloadBlocked={hasGlobalInputBlocker || rowIdsWithInputBlocker.has(row.id)}
                 referenceRates={referenceRates}
                 surchargeRates={surchargeRates}
                 isMobile={isMobile}
