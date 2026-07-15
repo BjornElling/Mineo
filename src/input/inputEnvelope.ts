@@ -8,7 +8,6 @@ import {
   type RejectedInputs,
 } from './inputState';
 import { deserializeFieldAddress } from './fieldAddress';
-import { readLegacyFieldPath } from './legacyInputCompatibility';
 
 export const INPUT_ENVELOPE_VERSION = '1' as const;
 /** Fase-3-formatet indeholder sentinel-adresser; fase 4 oversætter dem atomisk til FIELD_ADDRESS_VERSION. */
@@ -18,13 +17,18 @@ const envelopeInputSchema = z.object({
   sections: persistedInputSectionsSchema,
   rejectedInputs: rejectedInputsSchema,
 }).strict().superRefine((input, context) => {
+  // Transitionel fase-4-accept: envelopen godtager både strukturelle current-adresser (migrerede
+  // top-level felter) OG legacy-bro-celleadresser (endnu ikke migrerede celler). Katalog-korrekthed
+  // for de strukturelle adresser ejes af reduceren/`InputReader`; envelopen kræver kun en velformet
+  // adresse for storage-integritet.
+  // SLETTELISTE (fase 7): når sidste celle er migreret struktureret, erstattes dette af fuld
+  // katalog-validering, og `INPUT_ENVELOPE_FIELD_ADDRESS_VERSION` bumpes fra `legacy-bridge-1`.
   for (const serializedAddress of Object.keys(input.rejectedInputs)) {
-    const address = deserializeFieldAddress(serializedAddress);
-    if (address === null || readLegacyFieldPath(address) === null) {
+    if (deserializeFieldAddress(serializedAddress) === null) {
       context.addIssue({
         code: 'custom',
         path: ['rejectedInputs', serializedAddress],
-        message: 'Fase-3-envelopen accepterer kun eksplicitte legacy-broadresser',
+        message: 'Inputenvelopen indeholder en ugyldig serialiseret feltadresse',
       });
     }
   }

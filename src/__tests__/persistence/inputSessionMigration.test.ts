@@ -33,7 +33,9 @@ describe('loadOrMigrateInputSession', () => {
     expect(sessionStorage.getItem(getStorageKey('satser'))).toBe('legacy-bevares');
   });
 
-  it('afviser en current-lignende envelope med adresse uden for fase-3-broen', () => {
+  it('accepterer en strukturel current-adresse for et migreret top-level felt', () => {
+    // Fase-4-keystone: den transitionelle envelope godtager nu strukturelle current-adresser (ikke kun
+    // legacy-bro-adresser), så et migreret top-level felts rejected input indlæses uændret.
     const empty = createEmptyRuntimeInput();
     const address = serializeFieldAddress(createFieldAddress({
       section: 'satser',
@@ -44,6 +46,24 @@ describe('loadOrMigrateInputSession', () => {
     rawEnvelope.input = {
       sections: empty.sections,
       rejectedInputs: { [address]: { raw: '20x' } },
+    };
+    sessionStorage.setItem(getInputEnvelopeStorageKey(), JSON.stringify(rawEnvelope));
+
+    const result = loadOrMigrateInputSession();
+
+    expect(result.notice?.type).not.toBe('error');
+    expect(result.writesBlocked).toBe(false);
+    expect(result.input.rejectedInputs[address]).toEqual({ raw: '20x' });
+  });
+
+  it('afviser en envelope med en misdannet serialiseret feltadresse', () => {
+    // Storage-integritet: en rejected-nøgle, der ikke deserialiserer til en velformet feltadresse,
+    // blokerer fortsat writes og efterlader kilden urørt (intet delvist snapshot anvendes).
+    const empty = createEmptyRuntimeInput();
+    const rawEnvelope = JSON.parse(serializeInputEnvelope(empty)) as Record<string, unknown>;
+    rawEnvelope.input = {
+      sections: empty.sections,
+      rejectedInputs: { 'ikke-en-adresse': { raw: '20x' } },
     };
     sessionStorage.setItem(getInputEnvelopeStorageKey(), JSON.stringify(rawEnvelope));
 

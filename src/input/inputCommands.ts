@@ -227,8 +227,16 @@ const removeRejectedBelowEntity = (
   }));
 };
 
-const reduceCandidate = <TField, TEntity>(
-  input: PersistedInputState,
+/**
+ * Bygger den strukturelle kandidataggregate for én mutation. Delt af den validerende {@link reduceInputCommand}
+ * (fase 2/ren kerne) OG af fase-4-runnerens typed-spor, så der kun findes ÉN reducer-logik: strukturelle
+ * rejected-adresser, celle-/rækkefelter og atomisk descendant-oprydning ved sletning. Runneren genbruger
+ * kandidatbygningen uden den fuld-katalog-validering, som `reduceInputCommand` lægger ovenpå, fordi storen i
+ * fase 4 endnu kan indeholde legacy-bro-adresser (celler) side om side; envelope-valideringen ejer den
+ * transitionelle accept, indtil sidste celle er migreret struktureret.
+ */
+export const buildInputCommandCandidate = <TField, TEntity>(
+  input: InputStateParts,
   command: InputMutationCommand<TField, TEntity>,
   catalog: InputCatalog
 ): PersistedInputStateCandidate => {
@@ -304,7 +312,7 @@ export const reduceInputCommand = <TField, TEntity>(
   command: InputMutationCommand<TField, TEntity>,
   catalog: InputCatalog
 ): InputReducerResult => {
-  const parsed = createPersistedInputStateSchema(catalog).safeParse(reduceCandidate(input, command, catalog));
+  const parsed = createPersistedInputStateSchema(catalog).safeParse(buildInputCommandCandidate(input, command, catalog));
   if (!parsed.success) {
     throw new Error(`InputCommand: kandidataggregat fejlede schema-validering: ${parsed.error.message}`);
   }

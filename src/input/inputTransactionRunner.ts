@@ -9,17 +9,18 @@ import {
   applyLegacyRejectedInputChanges,
   type LegacyRejectedInputChange,
 } from './legacyInputCompatibility';
-import { deserializeFieldAddress } from './fieldAddress';
+import { deserializeFieldAddress, serializeFieldAddress } from './fieldAddress';
+import { createLegacyFieldAddress } from './legacyInputCompatibility';
 import { getProductionInputCatalog } from './catalog/productionInputCatalog';
+import { buildInputCommandCandidate } from './inputCommands';
 import type {
   CommitImmediateFieldCommand,
   DeleteRowCommand,
   InsertRowCommand,
   ReorderRowsCommand,
   SettleFieldCommand,
+  SettleFieldInNewRowCommand,
 } from './inputCommands';
-import type { FieldRefBase } from './fieldDefinition';
-import type { PersistedInputSections } from './inputState';
 import { deepEqual } from '../utils/deepEqual';
 import {
   readSessionStorageValue,
@@ -407,77 +408,50 @@ export const executeInputTransaction = (
 
 /**
  * Typed inputkommandoer fra de migrerede overflader (fase 4). Kommandoen bærer en katalogvalideret
- * `FieldRef`; runneren muterer sektionen via kataloget og deler commit-kernen med kompatibilitetsvejen.
+ * `FieldRef`; runneren bygger kandidaten via den ÉNE fælles reducer ({@link buildInputCommandCandidate})
+ * og deler commit-kernen med kompatibilitetsvejen.
  *
- * Fase-4-afgrænsning bevidst: afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
- * legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så samtlige endnu ikke migrerede
- * read-consumers ser identisk store-state. Den fulde strukturelle adresse-cutover kræver, at HELE
- * kataloget er registreret, og hører derfor til en senere runde. Kun top-level felter understøttes;
- * celle-/rækkefelter migreres sammen med tabelinfrastrukturen.
+ * Rejected input adresseres nu strukturelt (feltets rigtige `FieldAddress`), ikke via en sentinel — så
+ * celle-/rækkefelter er understøttet, og sletning fjerner descendant-rejections atomisk. De endnu ikke
+ * migrerede read-consumers ser fortsat identisk `invalidDrafts`-view: den strukturelle top-level-adresse
+ * projiceres i ét choke-point tilbage til feltnavnet (= det gamle fieldPath). Den transitionelle
+ * projektion + envelope-accept af legacy-bro-celleadresser slettes, når sidste overflade er migreret.
  */
 export type TypedRuntimeInputCommand<TField = unknown, TEntity = unknown> =
   | CommitImmediateFieldCommand<TField>
   | SettleFieldCommand<TField>
   | InsertRowCommand<TEntity>
   | DeleteRowCommand<TEntity>
-  | ReorderRowsCommand<TEntity>;
+  | ReorderRowsCommand<TEntity>
+  | SettleFieldInNewRowCommand<TEntity, TField>;
 
-const topLevelTarget = (field: FieldRefBase): Readonly<{ section: StorageKey; fieldPath: string }> => {
-  if (field.address.path.length !== 0) {
-    throw new Error('executeTypedInputTransaction: kun top-level felter understøttes i fase 4');
-  }
-  return { section: field.address.section, fieldPath: field.address.field };
+/**
+ * TRANSITIONEL BRO (sletteliste, fase 4): invalid-draft-WRITE-siden bruger endnu feltfejl-kanalens
+ * legacy-sentinel-adresse, mens den strukturelle reducer rydder feltets STRUKTURELLE adresse. Når et
+ * migreret top-level felt settler/committer via det strukturelle spor, ryddes feltets evt. sentinel-
+ * tvilling i SAMME kandidat, så clear forbliver atomisk (ét undo-trin) og invalidDrafts-viewet ikke
+ * kan vise en efterladt gammel værdi. Fjernes når invalid-write-kanalen skriver strukturelt.
+ */
+const stripCoexistingLegacyRejectedTwin = <TField, TEntity>(
+  candidate: RuntimePersistedInputState,
+  command: TypedRuntimeInputCommand<TField, TEntity>
+): RuntimePersistedInputState => {
+  if (command.kind !== 'settleField' && command.kind !== 'commitImmediateField') return candidate;
+  const { address } = command.field;
+  if (address.path.length !== 0) return candidate; // kun top-level felter har en sentinel-tvilling
+  const sentinelKey = serializeFieldAddress(createLegacyFieldAddress(address.section, address.field));
+  if (candidate.rejectedInputs[sentinelKey] === undefined) return candidate;
+  const { [sentinelKey]: _removedTwin, ...rejectedInputs } = candidate.rejectedInputs;
+  return { ...candidate, rejectedInputs };
 };
 
 const buildTypedCandidate = <TField, TEntity>(
   input: RuntimePersistedInputState,
   command: TypedRuntimeInputCommand<TField, TEntity>
-): RuntimePersistedInputState => {
-  const catalog = getProductionInputCatalog();
-  const sections = input.sections as PersistedInputSections;
-  switch (command.kind) {
-    case 'commitImmediateField': {
-      const { section, fieldPath } = topLevelTarget(command.field);
-      return {
-        sections: catalog.writeCanonical(sections, command.field, command.value) as RuntimePersistedInputState['sections'],
-        rejectedInputs: applyLegacyRejectedInputChanges(input.rejectedInputs, [{ pageKey: section, fieldPath, draft: null }]),
-      };
-    }
-    case 'settleField': {
-      const { section, fieldPath } = topLevelTarget(command.field);
-      const resolution = command.field.definition.codec.parseForSettle(command.raw);
-      if (resolution.status === 'valid') {
-        return {
-          sections: catalog.writeCanonical(sections, command.field, resolution.value) as RuntimePersistedInputState['sections'],
-          rejectedInputs: applyLegacyRejectedInputChanges(input.rejectedInputs, [{ pageKey: section, fieldPath, draft: null }]),
-        };
-      }
-      // Tom tekst er canonical tomhed; kun ikke-tom uparselig tekst bliver rejected input.
-      if (command.raw === '') {
-        throw new Error('executeTypedInputTransaction: codec afviste tom tekst, som ikke kan være rejected input');
-      }
-      return {
-        sections: input.sections,
-        rejectedInputs: applyLegacyRejectedInputChanges(input.rejectedInputs, [{ pageKey: section, fieldPath, draft: command.raw }]),
-      };
-    }
-    case 'insertRow':
-      return {
-        sections: catalog.insertEntity(sections, command.binding, command.collection, command.entity, command.index) as RuntimePersistedInputState['sections'],
-        rejectedInputs: input.rejectedInputs,
-      };
-    case 'deleteRow':
-      return {
-        sections: catalog.deleteEntity(sections, command.binding, command.collection, command.entityId) as RuntimePersistedInputState['sections'],
-        rejectedInputs: input.rejectedInputs,
-      };
-    case 'reorderRows':
-      return {
-        sections: catalog.reorderEntities(sections, command.binding, command.collection, command.orderedEntityIds) as RuntimePersistedInputState['sections'],
-        rejectedInputs: input.rejectedInputs,
-      };
-  }
-};
+): RuntimePersistedInputState => stripCoexistingLegacyRejectedTwin(
+  buildInputCommandCandidate(input, command, getProductionInputCatalog()) as RuntimePersistedInputState,
+  command
+);
 
 export const executeTypedInputTransaction = <TField, TEntity>(
   command: TypedRuntimeInputCommand<TField, TEntity>,

@@ -57,8 +57,20 @@ export const rejectedInputsToLegacyInvalidDrafts = (
   const cache = createEmptyCache();
   for (const [serializedAddress, rejected] of Object.entries(rejectedInputs)) {
     const address = deserializeFieldAddress(serializedAddress);
-    const legacy = address === null ? null : readLegacyFieldPath(address);
-    if (legacy !== null) cache[legacy.section][legacy.fieldPath] = rejected.raw;
+    if (address === null) continue;
+    const legacy = readLegacyFieldPath(address);
+    if (legacy !== null) {
+      // Endnu ikke migrerede felter/celler: legacy-bro-adressens fieldPath ER cache-nøglen.
+      cache[legacy.section][legacy.fieldPath] = rejected.raw;
+      continue;
+    }
+    // TRANSITIONEL BRO (sletteliste, fase 7): en migreret top-level scalar bruger nu sin strukturelle
+    // adresse. For et top-level felt (tom path) ER feltnavnet identisk med det gamle fieldPath, så det
+    // legacy invalidDrafts-view forbliver byte-identisk for alle endnu ikke migrerede read-consumers.
+    // Strukturelle celle-adresser (path med entities) projiceres først, når celle-læsesiden er migreret.
+    if (address.path.length === 0) {
+      cache[address.section][address.field] = rejected.raw;
+    }
   }
   return cache;
 };
