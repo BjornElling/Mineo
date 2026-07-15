@@ -6,7 +6,7 @@ import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterPercentKeyDown } from './inputKeyFilters';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { normalizePercentPaste } from '../../utils/inputPasteNormalization';
-import { buildPercentRangeErrorMessage, formatPercentDraft, parsePercentDraftForCommit } from '../../utils/percentDraftCore';
+import { buildPercentRangeErrorMessage, formatPercentDisplay, parsePercentDraftForCommit } from '../../utils/percentDraftCore';
 import {
   DEFAULT_PERCENT_PLACEHOLDER,
 } from '../../utils/percentInputUtils';
@@ -188,38 +188,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       (allowDecimals ? 3 : 0) +
       (allowNegative ? 1 : 0); // [-]iiii[,dd]
 
-    type PercentDisplayFormat = Readonly<{ value: number | undefined; decimals: 0 | 1 | 2 }>;
-    const lastCommittedDisplayRef = React.useRef<PercentDisplayFormat | null>(null);
-    const pendingCommitDecimalsRef = React.useRef<0 | 1 | 2>(allowDecimals ? 2 : 0);
-
-    const normalizePercentValueForIdentity = React.useCallback((v: number | undefined): number | undefined => {
-      if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
-      return v === 0 ? 0 : v;
-    }, []);
-
-    React.useEffect(() => {
-      const last = lastCommittedDisplayRef.current;
-      if (!last) return;
-      const lastValue = normalizePercentValueForIdentity(last.value);
-      const currentValue = normalizePercentValueForIdentity(value);
-      if (!Object.is(lastValue, currentValue)) {
-        lastCommittedDisplayRef.current = null;
-      }
-    }, [normalizePercentValueForIdentity, value]);
-
-    const formatPercent = React.useCallback((v: number | undefined): string => {
-      if (typeof v !== 'number' || !Number.isFinite(v)) return '';
-
-      const last = lastCommittedDisplayRef.current;
-      const normalized = normalizePercentValueForIdentity(v);
-      if (last && Object.is(normalizePercentValueForIdentity(last.value), normalized)) {
-        const decimals = last.decimals;
-        if (decimals === 0) return String(Math.trunc(v));
-        return formatPercentDraft(v, decimals);
-      }
-
-      return formatPercentDraft(v, allowDecimals ? 2 : 0);
-    }, [allowDecimals, normalizePercentValueForIdentity]);
+    // Fast præcision overalt (brugergodkendt UI/UX 2026-07-15, [[project_percent_fixed_precision_decision]]):
+    // feltet viser altid samme antal decimaler det accepterer, uden den tidligere per-commit
+    // decimal-hukommelse. Form og tabel viser dermed ens via den fælles `formatPercentDisplay`
+    // (= procent-codecens `format`).
+    const formatPercent = React.useCallback(
+      (v: number | undefined): string => formatPercentDisplay(v, allowDecimals),
+      [allowDecimals]
+    );
 
     const parsePercent: DraftParse<number | undefined> = React.useCallback(
       (draft) => {
@@ -235,15 +211,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         });
         if (!result.ok) return invalid(result.errorMessage);
 
-        const [, decimalPart] = draft.trim().replace(/\s+/g, '').split(',') as [string, string | undefined];
-        const decimals = allowDecimals
-          ? decimalPart?.length === 2
-            ? 2
-            : decimalPart?.length === 1
-              ? 1
-              : 0
-          : 0;
-        pendingCommitDecimalsRef.current = decimals;
         return { ok: true, value: result.value };
       },
       [
@@ -317,12 +284,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         minValue: enforceRange ? resolvedRange.effectiveMin : undefined,
         maxValue: enforceRange ? resolvedRange.effectiveMax : undefined,
       }),
-      onCommit: (nextValue) => {
-        const committed = onCommit?.(createCommitEvent(nextValue)) ?? true;
-        if (!committed) return false;
-        lastCommittedDisplayRef.current = { value: nextValue, decimals: pendingCommitDecimalsRef.current };
-        return true;
-      },
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,
       getVisualError: enforceRange ? undefined : getVisualError,

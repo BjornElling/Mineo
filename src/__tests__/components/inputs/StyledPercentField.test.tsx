@@ -36,7 +36,7 @@ describe('StyledPercentField', () => {
 
     // I hvile: enheden er synlig, og input-værdien er rent tallet (enheden er ikke en del af værdien).
     expect(window.getComputedStyle(adornment).visibility).toBe('visible');
-    expect(input).toHaveValue('12,5');
+    expect(input).toHaveValue('12,50');
 
     // Under indtastning: enheden forbliver synlig, og værdien er stadig kun tallet.
     const inputRoot = input.closest('.MuiOutlinedInput-root') as HTMLElement;
@@ -44,7 +44,7 @@ describe('StyledPercentField', () => {
     await user.click(inputRoot);
     expect(input.readOnly).toBe(false);
     expect(window.getComputedStyle(adornment).visibility).toBe('visible');
-    expect(input).toHaveValue('12,5');
+    expect(input).toHaveValue('12,50');
   });
 
   it('bruger det konfigurerede maksimum under typing', async () => {
@@ -204,7 +204,8 @@ describe('StyledPercentField', () => {
     // commit-historik. Værner mod, at det ref-baserede decimal-minde lækker på tværs af værdier.
     const { rerender } = render(<StyledPercentField value={12.5} useDefaultPercentRange />);
     const input = screen.getByRole('textbox') as HTMLInputElement;
-    expect(input).toHaveValue('12,5');
+    // Fast præcision overalt (brugergodkendt): 12,5 vises med feltets faste 2 decimaler.
+    expect(input).toHaveValue('12,50');
 
     // Ny ekstern værdi (fx efter undo) skal også formatere deterministisk efter værdien alene —
     // det tidligere ref-baserede decimal-minde må ikke lække over på den nye værdi.
@@ -224,7 +225,7 @@ describe('StyledPercentField', () => {
     await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
-    expect(input).toHaveValue('17');
+    expect(input).toHaveValue('17,00');
     expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ target: { value: 17 } }));
     expect(screen.queryByText('Procent skal være mellem 0,00 og 100,00')).not.toBeInTheDocument();
   });
