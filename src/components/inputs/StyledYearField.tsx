@@ -4,12 +4,11 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { type DraftParse } from '../../hooks/useDraftField';
 import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterYearKeyDown } from './inputKeyFilters';
-import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
-import { parseYearDraftForCommit } from '../../utils/yearDraftCore';
-import { normalizeYearPaste } from '../../utils/inputPasteNormalization';
+import { getYearRangeErrorMessage } from '../../utils/yearDraftCore';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { mergeSx } from '../../utils/mergeSx';
+import { createYearFieldCodec } from '../../input/fieldCodecs';
 
 export type StyledYearFieldProps = {
   value: number | undefined;
@@ -66,10 +65,6 @@ export type StyledYearFieldProps = {
   sx?: SxProps<Theme>;
 };
 
-const formatYear = (value: number | undefined): string => {
-  return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
-};
-
 const MAX_YEAR_DRAFT_LENGTH = 6; // 4 cifre + whitespace-tolerance
 
 /**
@@ -102,37 +97,39 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
     },
     ref
   ) => {
+    const codec = React.useMemo(
+      () => createYearFieldCodec({ minYear, maxYear, twoDigitYearPolicy }),
+      [maxYear, minYear, twoDigitYearPolicy]
+    );
+
     const parseYear: DraftParse<number | undefined> = React.useCallback(
       (draft) => {
         if (draft.length > MAX_YEAR_DRAFT_LENGTH) {
           return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
         }
 
-        const trimmed = draft.trim();
-
-        if (trimmed === '') {
-          if (allowEmpty) {
-            return { ok: true, value: undefined };
-          }
+        const resolution = codec.parseForSettle(draft);
+        if (resolution.status === 'invalid') {
+          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
+        }
+        if (resolution.value === undefined) {
+          if (allowEmpty) return { ok: true, value: undefined };
           return { ok: false, kind: 'empty', message: 'Årstal er påkrævet' };
         }
 
-        if (/[^0-9]/.test(trimmed)) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
-        }
-
-        // Selve fortolkningen (2-/4-cifret-politik + interval) deles med tabel-cellen via kernen.
-        const result = parseYearDraftForCommit(trimmed, { minYear, maxYear, twoDigitYearPolicy });
-        if (!result.ok) return { ok: false, kind: 'invalid', message: result.errorMessage };
-        return { ok: true, value: result.value };
+        // Intervallet er fortsat en commit-blokerende UI-regel, indtil fase 5 flytter bounds til den rene issue-model.
+        const rangeError = getYearRangeErrorMessage(resolution.value, minYear, maxYear);
+        return rangeError === ''
+          ? { ok: true, value: resolution.value }
+          : { ok: false, kind: 'invalid', message: rangeError };
       },
-      [allowEmpty, maxYear, minYear, twoDigitYearPolicy]
+      [allowEmpty, codec, maxYear, minYear]
     );
 
-    const getDraftForKey = React.useCallback((key: string): string | null => {
-      if (/^[0-9]$/.test(key)) return key;
-      return null;
-    }, []);
+    const getDraftForKey = React.useCallback(
+      (key: string): string | null => codec.acceptsInitialKey(key) ? key : null,
+      [codec]
+    );
 
     const {
       draft,
@@ -148,15 +145,10 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       handleClick,
     } = useStyledFieldAdapter<number | undefined>({
       value,
-      format: formatYear,
+      format: codec.format,
       parse: parseYear,
-      normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
-      normalizePasteText: (text) => normalizeYearPaste(text, {
-        minYear,
-        maxYear,
-        twoDigitYearPolicy,
-      }),
+      normalizePasteText: codec.normalizePaste,
       onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,

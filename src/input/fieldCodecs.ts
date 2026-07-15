@@ -88,12 +88,15 @@ const assertNumericBoundsConfig = (
 };
 
 /** Formular- og tabeltekst bruger samme canonical trimning ved settle. */
-export const createTextFieldCodec = (): FieldCodec<string> => Object.freeze({
+export const textFieldCodec: FieldCodec<string> = Object.freeze({
   parseForSettle: (raw) => valid(trimWhitespaceEdges(raw)),
   format: (value) => value,
   formatForEdit: (value) => value,
   acceptsInitialKey: initialKey(/^.$/u),
 });
+
+/** Bevarer factory-API'et for feltdefinitioner, men returnerer den ene immutable tekstcodec. */
+export const createTextFieldCodec = (): FieldCodec<string> => textFieldCodec;
 
 /**
  * Optional fritekst: canonical tomhed er `undefined`, ikke den tomme streng. Bruges af alle

@@ -4,7 +4,6 @@ import StyledTextFieldBase, { type StyledTextFieldBaseInputType } from './Styled
 import StyledTextAreaBase from './StyledTextAreaBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
-import { trimWhitespaceEdges } from '../../utils/draftNormalization';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
@@ -13,13 +12,12 @@ import { mergeSx } from '../../utils/mergeSx';
 import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 import { useCriticalActionParticipant } from '../../criticalActions/CriticalActionContext';
 import { createElementFocusTarget } from '../../criticalActions/focusTarget';
+import { textFieldCodec } from '../../input/fieldCodecs';
 
 const debugStyledTextField = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
   console.debug('[StyledTextField]', event, details);
 };
-
-const formatStyledTextValue = (value: string): string => value;
 
 export type StyledTextFieldValueCommitEvent = CommitEvent<string>;
 export type StyledTextFieldDraftChangeEvent = DraftChangeEvent;
@@ -150,11 +148,15 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
 
     const parseString: DraftParse<string> = React.useCallback(
       (draft) => {
-        const message = validateOnCommit?.(draft);
+        const resolution = textFieldCodec.parseForSettle(draft);
+        if (resolution.status === 'invalid') {
+          return { ok: false, kind: 'invalid', message: 'Teksten kunne ikke gemmes' };
+        }
+        const message = validateOnCommit?.(resolution.value);
         if (message) {
           return { ok: false, kind: 'invalid', message };
         }
-        return { ok: true, value: draft };
+        return { ok: true, value: resolution.value };
       },
       [validateOnCommit]
     );
@@ -180,7 +182,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       commit,
     } = useDraftField<string>({
       value,
-      format: formatStyledTextValue,
+      format: textFieldCodec.format,
       parse: parseString,
       onCommit: (nextValue) => {
         const committed = onCommit?.(createCommitEvent(nextValue));
@@ -192,7 +194,6 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       committedInvalidDraft: channelCommittedInvalidDraft,
       clearInvalidDraft: channelClearInvalidDraft,
       inputElementRef: elementRefForHook as React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
-      normalizeDraftOnCommit: trimWhitespaceEdges,
       commitOnBlur: false,
     });
 
@@ -213,6 +214,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       [onDraftChange, setDraftBase]
     );
 
+    // Bevar Styled-feltets eksisterende aktiveringsregel; første-tast-policy migreres samlet med surface-adapteren.
     const getDraftForKey = React.useCallback((key: string): string | null => key, []);
 
     // Caret-etablering ved editor-åbning (to-trins-aktivering) ejes nu af hook'en
@@ -260,8 +262,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
               e.stopPropagation();
               // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
               // Parse og commit direkte (synkront) som table-felter gør
-              const normalized = trimWhitespaceEdges('');
-              const result = parseString(normalized);
+              const result = parseString('');
               // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
               // (jf. StyledDateField/StyledAmountField).
               if (result.ok && (value !== result.value || effectiveInvalidDraft !== undefined)) {
@@ -296,8 +297,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             e.stopPropagation();
             // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
             // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimWhitespaceEdges('');
-            const result = parseString(normalized);
+            const result = parseString('');
             // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
             // (jf. StyledDateField/StyledAmountField).
             if (result.ok && (value !== result.value || effectiveInvalidDraft !== undefined)) {

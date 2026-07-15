@@ -6,10 +6,10 @@ import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterWeekKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { parseWeekDraftForCommit } from '../../utils/weekDraftCore';
-import { normalizeWeekPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { mergeSx } from '../../utils/mergeSx';
+import { createWeekFieldCodec } from '../../input/fieldCodecs';
 
 export type StyledWeekFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledWeekFieldDraftChangeEvent = DraftChangeEvent;
@@ -52,7 +52,6 @@ export type StyledWeekFieldProps = {
   sx?: SxProps<Theme>;
 };
 
-const formatWeek = (value: string | undefined): string => value ?? '';
 const MAX_CANONICAL_WEEK_LENGTH = 7; // uu/åååå
 // Tillad lidt flere draft-tegn end den kanoniske committede form for at understøtte eftergivende typing
 // (fx separatorer/whitespace) uden at UI'et blokerer midt i indtastningen. Dette er en eksplicit UX-tolerance.
@@ -86,25 +85,52 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
     },
     ref
   ) => {
-    const parseWeek: DraftParse<string | undefined> = React.useCallback(
-      (draft) => {
-        // Hele uge-/år-fortolkningen deles med tabel-cellen via kernen (ensartet ordlyd, A2).
-        const result = parseWeekDraftForCommit(draft, {
-          minYear,
-          maxYear,
-          twoDigitYearPolicy,
-          maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
-        });
-        if (result.ok) return { ok: true, value: result.value };
-        return { ok: false, kind: 'invalid', message: result.errorMessage };
-      },
+    const codec = React.useMemo(
+      () => createWeekFieldCodec({
+        minYear,
+        maxYear,
+        twoDigitYearPolicy,
+        maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
+      }),
       [maxYear, minYear, twoDigitYearPolicy]
     );
 
-    const getDraftForKey = React.useCallback((key: string): string | null => {
-      if (/^[0-9]$/.test(key)) return key;
-      return null;
-    }, []);
+    const parseWeek: DraftParse<string | undefined> = React.useCallback(
+      (draft) => {
+        const resolution = codec.parseForSettle(draft);
+        if (resolution.status === 'invalid') {
+          // Fejlteksten er endnu en migrations-seam. Resolutionen ejes alene af codecet; den gamle kerne
+          // klassificerer kun den allerede afviste råtekst, indtil fase 5 indfører strukturelle issues.
+          const failure = parseWeekDraftForCommit(trimToAlphanumericEdges(draft), {
+            twoDigitYearPolicy,
+            maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
+          });
+          return {
+            ok: false,
+            kind: 'invalid',
+            message: failure.ok ? 'Ugyldigt format' : failure.errorMessage,
+          };
+        }
+        if (resolution.value === undefined) return { ok: true, value: undefined };
+
+        // Intervallet er fortsat en commit-blokerende UI-regel, indtil fase 5 flytter bounds til den rene issue-model.
+        const bounded = parseWeekDraftForCommit(resolution.value, {
+          minYear,
+          maxYear,
+          twoDigitYearPolicy: 'reject',
+          maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
+        });
+        return bounded.ok
+          ? { ok: true, value: resolution.value }
+          : { ok: false, kind: 'invalid', message: bounded.errorMessage };
+      },
+      [codec, maxYear, minYear, twoDigitYearPolicy]
+    );
+
+    const getDraftForKey = React.useCallback(
+      (key: string): string | null => codec.acceptsInitialKey(key) ? key : null,
+      [codec]
+    );
 
     const {
       draft,
@@ -120,16 +146,10 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
       handleClick,
     } = useStyledFieldAdapter<string | undefined>({
       value,
-      format: formatWeek,
+      format: codec.format,
       parse: parseWeek,
-      normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
-      normalizePasteText: (text) => normalizeWeekPaste(text, {
-        minYear,
-        maxYear,
-        twoDigitYearPolicy,
-        maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
-      }),
+      normalizePasteText: codec.normalizePaste,
       onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,

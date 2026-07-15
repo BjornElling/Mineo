@@ -1,5 +1,5 @@
 import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../../../types/parserSpec';
-import { trimWhitespaceEdges } from '../../../utils/draftNormalization';
+import { textFieldCodec } from '../../../input/fieldCodecs';
 import type { TableInputAdapter } from '../tableInputAdapter';
 
 export type TableTextInputModel = string;
@@ -16,9 +16,16 @@ export const toCommittedTextPayload = (
 };
 
 export const textTableInputAdapter: TableInputAdapter<TableTextInputModel, string, StringFingerprint> = {
-  format: (value) => value,
-  parse: (draft) => ({ ok: true, value: trimWhitespaceEdges(draft) }),
+  format: textFieldCodec.format,
+  parse: (draft) => {
+    const resolution = textFieldCodec.parseForSettle(draft);
+    // Tekstcodecet accepterer alle rå strenge; grenen beskytter adapterkontrakten, hvis codecet ændres senere.
+    return resolution.status === 'valid'
+      ? { ok: true, value: resolution.value }
+      : { ok: false, errorMessage: 'Teksten kunne ikke gemmes' };
+  },
   toCommittedPayload: toCommittedTextPayload,
+  // Bevar gridets eksisterende aktiveringsregel; første-tast-policy migreres samlet med surface-adapteren.
   isValidStartKey: (key) => key.length === 1,
   preserveInvalidDraft: false,
   useSaveError: false,

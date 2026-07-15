@@ -4,11 +4,13 @@
 (generiske katalog-accessorer, et forseglet produktions-`InputCatalog`, en typed-command-sti gennem
 transaktionsrunneren og katalog-routing af skalar-commits), er bygget og kontrakttestet, og referencedomænerne
 Satser + Renteberegning er routet gennem det typed spor. Den samlede felt-editor-livscyklus (`useDraftLifecycle`)
-er nu bygget og driver begge feltmotorer. Resten af fase 4 (rækkeinfrastruktur uden værdi-drafts,
+er nu bygget og driver begge feltmotorer, og tekst-, års- og ugeinputfamilierne bruger én fælles codec-autoritet på
+begge overflader.
+Resten af fase 4 (de øvrige inputfamiliers codec-cutover, rækkeinfrastruktur uden værdi-drafts,
 celle-/tabelmigration, strukturel adresse-cutover og sletterne) udestår.
 Fase 5–8 er ikke påbegyndt.
 
-**Dato:** 2026-07-14
+**Dato:** 2026-07-15
 
 **Type:** Informativ målarkitektur. De normative kontrakter blev konvergeret i fase 1, og implementeringen til og med
 fase 3 følger dem.
@@ -600,7 +602,9 @@ mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-f
 ### Fase 4 — Alle inputoverflader migreres horisontalt
 
 **Status 2026-07-15:** Delvist gennemført — fundamentet og det komplette produktionskatalog (Etape A) samt
-den delte draft-livscyklus (første del af Etape B) er gennemført. Celle-/række-cutover og sletterne udestår.
+den delte draft-livscyklus og tekst-, års- og ugeinputfamiliernes fælles codec-cutover (første del af Etape B) er
+gennemført.
+Celle-/række-cutover og de øvrige inputfamiliers codec-cutover samt sletterne udestår.
 
 *Gennemført i Etape A — komplet katalog:*
 
@@ -629,6 +633,15 @@ den delte draft-livscyklus (første del af Etape B) er gennemført. Celle-/rækk
   fingerprint-no-op, visual-fejl-state, staged rejected-clear og ruller en fejlet commit tilbage til den rene
   committede visning (`rollbackDraft`). Ren kontrakttest: `useDraftLifecycle.test.tsx`.
 - Der er dermed én fælles felt-editor-livscyklus i normal runtime; de to hooks er tynde migrationsadaptere.
+- Tekstinput har nu én immutable `textFieldCodec`, som både `StyledTextField`, `TableTextInput`-adapteren og
+  katalogets tekstfeltdefinitioner bruger til canonical trimning og formatering. Lokal `validateOnCommit` ligger
+  fortsat som feltets eksisterende validerings-seam efter codec-resolutionen. Surface-adapterernes forskellige
+  første-tast-regler bevares, indtil deres samlede cutover kan fastlægge én regel uden en utilsigtet UX-ændring.
+- Års- og ugeinput bruger nu henholdsvis `createYearFieldCodec` og `createWeekFieldCodec` til canonical parsing,
+  formatering, første-tast-filter og paste på både Styled- og tabeloverfladen. Tabelmodellernes historiske
+  strengrepræsentation bevares gennem `createStringBackedFieldCodec`. De eksisterende commit-blokerende årsbounds og
+  præcise fejltekster ligger som eksplicitte migrations-seams efter codec-resolutionen, indtil fase 5 flytter dem til
+  den rene issue-model; overfladernes eksisterende draft-længdetolerance er uændret.
 
 *Bevidst afgrænsning (udestår i fase 4):* Afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
 legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så alle endnu ikke migrerede read-consumers ser

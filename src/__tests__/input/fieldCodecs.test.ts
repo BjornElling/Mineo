@@ -10,6 +10,7 @@ import {
   createStringBackedFieldCodec,
   createPercentFieldCodec,
   createTextFieldCodec,
+  textFieldCodec,
   createWeekFieldCodec,
   createYearFieldCodec,
 } from '../../input/fieldCodecs';
@@ -118,6 +119,7 @@ describe('fieldCodecs', () => {
   });
 
   it('bruger samme canonical trimning for alle tekstfelter', () => {
+    expect(createTextFieldCodec()).toBe(textFieldCodec);
     expect(createTextFieldCodec().parseForSettle('  Mineo  ')).toEqual({ status: 'valid', value: 'Mineo' });
     expect(createTextFieldCodec().formatForEdit('  Mineo  ')).toBe('  Mineo  ');
   });
