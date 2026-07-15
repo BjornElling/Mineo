@@ -12,6 +12,7 @@ import type { PersistedInputSections } from '../../input/inputState';
 import { rentekravRowsBinding } from '../../input/catalog/renteberegningInputBindings';
 import {
   eoBilagSelectionOpgoerelseBinding,
+  eoForligAnsvarsgradBroekBinding,
   eoSfggAnsaettelsesforholdBinding,
   eoSfggSatsvalgBinding,
 } from '../../input/catalog/erstatningsopgoerelseInputBindings';
@@ -131,6 +132,25 @@ describe('produktions-InputCatalog', () => {
     const reader = readerFor(catalog, written);
     expect(reader.read(satsvalgRef)).toEqual({ status: 'valid', value: 'Faglaert-Koebenhavn' });
     expect(reader.read(eoSfggSatsvalgBinding.createRef('af-1'))).toEqual({ status: 'valid', value: undefined });
+  });
+
+  it('registrerer forligAnsvarsgradBroek med brøk-codecet (matcher StyledFractionField, ikke fritekst)', () => {
+    const codec = eoForligAnsvarsgradBroekBinding.definition.codec;
+
+    // Brøk-codec, ikke fritekst: en gyldig brøk forkortes/valideres, og en ugyldig brøk afvises.
+    // (Et fritekst-codec ville acceptere "2/x" som canonical streng.)
+    expect(codec.parseForSettle('1/3')).toEqual({ status: 'valid', value: '1/3' });
+    expect(codec.parseForSettle('2/x')).toEqual({ status: 'invalid' });
+    // Tom brøk = canonical tomhed; kanttegn afskæres som i UI-controllen.
+    expect(codec.parseForSettle('')).toEqual({ status: 'valid', value: undefined });
+    expect(codec.parseForSettle(' (1/3) ')).toEqual({ status: 'valid', value: '1/3' });
+
+    // Round-trip gennem katalogets writeCanonical/read for det top-level felt.
+    const catalog = getProductionInputCatalog();
+    const field = resolveTopLevelFieldRef('erstatningsopgoerelse', 'forligAnsvarsgradBroek');
+    expect(field).not.toBeNull();
+    const sections = catalog.writeCanonical(createEmptyPersistedInputSections(), field!, '1/3');
+    expect(readerFor(catalog, sections).read(field!)).toEqual({ status: 'valid', value: '1/3' });
   });
 
   it('round-tripper et nested boolean-bilagsvalg (eoBilagSelection) via property-pathen', () => {

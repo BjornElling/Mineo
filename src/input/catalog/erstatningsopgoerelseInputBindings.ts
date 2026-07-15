@@ -22,6 +22,7 @@ import {
   type TafPeriodeRow,
 } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 import { CURRENT_YEAR, MIN_SVIESMERTE_YEAR } from '../../config/dateRanges';
+import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
 import type { ISODateString } from '../../types/branded';
 import type { CollectionBinding, FieldAddressTemplate, FieldBinding } from '../fieldCatalog';
 import {
@@ -29,6 +30,7 @@ import {
   createAmountFieldCodec,
   createChoiceFieldCodec,
   createDateFieldCodec,
+  createFractionFieldCodec,
   createIntegerFieldCodec,
   createOptionalTextFieldCodec,
   createPercentFieldCodec,
@@ -51,8 +53,6 @@ import { createStructuralCollectionBinding, createStructuralFieldBinding } from 
  *    `loenudviklingManuelTableData`, `loenudviklingManuelProcentsatsTableData`) og `eoAngivetLoen-
  *    Loenudvikling`-objektets nested tabeller: standardløn-tabellernes måned/uge-kolonner har samme
  *    streng-vs-tal-mismatch som `aarsloen.tableData` (rører .eo-formatet; forelægges særskilt).
- *  - `forligAnsvarsgradBroek`: brøk-controllens præcise config er ikke bekræftet endnu; registreres som
- *    optional fritekst (schematypen er `optionalString`), indtil brøk-codecet er verificeret mod UI'et.
  *
  * Den tomme sektion er den fulde canonical default: `loenindkomstAnsaettelsesforhold` er en påkrævet
  * (ikke-defaultet) array, så den skal angives eksplicit for at parse.
@@ -161,7 +161,25 @@ export const eoForligAnsvarsgradProcentBinding: FieldBinding<number | undefined>
   template: { section: 'erstatningsopgoerelse', path: [], field: 'forligAnsvarsgradProcent' },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
-export const eoForligAnsvarsgradBroekBinding = optionalTextField('forligAnsvarsgradBroek', 'Forlig ansvarsgrad (brøk)', EO_OPLYSNINGER);
+// Brøk-controllen (`StyledFractionField` i ForligSection.tsx og EetDifferencekravTab.tsx) bruges begge
+// steder med feltets standard-props; codec-configen afspejler dem eksplicit, så katalogets raw→canonical
+// er identisk med UI-controllens. Schematypen forbliver `optionalString` (tom brøk = `undefined`).
+export const eoForligAnsvarsgradBroekBinding: FieldBinding<string | undefined> = createStructuralFieldBinding({
+  definition: defineField<string | undefined>({
+    label: 'Forlig ansvarsgrad (brøk)',
+    controlKind: 'text',
+    focusTarget: focus(EO_OPLYSNINGER),
+    codec: createFractionFieldCodec({
+      maxDigits: DEFAULT_FRACTION_MAX_DIGITS,
+      allowNegative: false,
+      allowZeroNumerator: false,
+      canonicalizeOnCommit: false,
+      requireIntegerFraction: false,
+    }),
+  }),
+  template: { section: 'erstatningsopgoerelse', path: [], field: 'forligAnsvarsgradBroek' },
+  createEmptySection: createEmptyErstatningsopgoerelseSection,
+});
 export const eoForligDatoBinding = dateField('forligDato', 'Forligsdato', EO_OPLYSNINGER);
 export const eoKravPaaOevrigeErstatningskravBinding = jaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', EO_OPLYSNINGER);
 export const eoOffentligeYdelserKommentarerBinding = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer', EO_OFFENTLIGE_YDELSER);

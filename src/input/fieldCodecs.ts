@@ -1,7 +1,7 @@
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 import type { ISODateString } from '../types/branded';
 import { coerceToDanishDateString } from '../types/branded';
-import { trimWhitespaceEdges } from '../utils/draftNormalization';
+import { trimToAlphanumericEdges, trimWhitespaceEdges } from '../utils/draftNormalization';
 import {
   parseAmountInput,
   amountValueToDisplayString,
@@ -316,7 +316,11 @@ export const createFractionFieldCodec = (config: FractionParseOptions): FieldCod
   assertOptionalBooleanConfig('FractionFieldCodec', 'requireIntegerFraction', config.requireIntegerFraction);
   return Object.freeze({
     parseForSettle: (raw) => {
-      const trimmed = raw.trim();
+      // Samme edge-normalisering som StyledFractionField's `normalizeDraftOnCommit`
+      // (`trimToAlphanumericEdges`), så codecet er den fælles raw→canonical-kilde for
+      // form og en evt. senere typed-commit-sti: begge afskærer ikke-alfanumeriske kanttegn
+      // (fx omsluttende parenteser/mellemrum) før parse, i stedet for kun whitespace.
+      const trimmed = trimToAlphanumericEdges(raw);
       if (trimmed === '') return valid(undefined);
       const parsed = parseFractionString(trimmed, config);
       return parsed.ok ? valid(parsed.parsed.value) : invalid();

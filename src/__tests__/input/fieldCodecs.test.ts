@@ -12,6 +12,7 @@ import {
   createYearFieldCodec,
 } from '../../input/fieldCodecs';
 import { toISODateString } from '../../types/branded';
+import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
 
 describe('fieldCodecs', () => {
   it('deler canonical parsing og formatering for de numeriske inputfamilier', () => {
@@ -90,6 +91,28 @@ describe('fieldCodecs', () => {
   it('bruger samme canonical trimning for alle tekstfelter', () => {
     expect(createTextFieldCodec().parseForSettle('  Mineo  ')).toEqual({ status: 'valid', value: 'Mineo' });
     expect(createTextFieldCodec().formatForEdit('  Mineo  ')).toBe('  Mineo  ');
+  });
+
+  it('afskærer brøk-kanttegn som StyledFractionField-controllen (trimToAlphanumericEdges)', () => {
+    const fraction = createFractionFieldCodec({
+      maxDigits: DEFAULT_FRACTION_MAX_DIGITS,
+      allowNegative: false,
+      allowZeroNumerator: false,
+      canonicalizeOnCommit: false,
+      requireIntegerFraction: false,
+    });
+
+    // Ikke-alfanumeriske kanttegn (parenteser/mellemrum) afskæres før parse — samme
+    // normalisering controllen bruger via `normalizeDraftOnCommit`, så katalog og UI giver
+    // identisk canonical resultat.
+    expect(fraction.parseForSettle('  1/3  ')).toEqual({ status: 'valid', value: '1/3' });
+    expect(fraction.parseForSettle('(1/3)')).toEqual({ status: 'valid', value: '1/3' });
+    // Kun kanttegn, ingen cifre → canonical tomhed (undefined), ikke rejected.
+    expect(fraction.parseForSettle('   ')).toEqual({ status: 'valid', value: undefined });
+    expect(fraction.parseForSettle('()')).toEqual({ status: 'valid', value: undefined });
+    // Et førende minus er et kanttegn og afskæres FØR parse — præcis som controllen gør: "-1/3"
+    // bliver "1/3" og accepteres, selv med allowNegative=false. (Minus midt i draften ville nå parseren.)
+    expect(fraction.parseForSettle('-1/3')).toEqual({ status: 'valid', value: '1/3' });
   });
 
   it('bevarer beløbsudtrykket som edit-tekst uden at ændre den lukkede visning', () => {

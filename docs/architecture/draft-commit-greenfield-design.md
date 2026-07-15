@@ -656,8 +656,12 @@ den delte draft-livscyklus (Etape B, resten-punkt 1).
   codecs; en tvungen binding ville ændre .eo-formatet — forelægges særskilt).
 - EO's `loenindkomstAnsaettelsesforhold` + dens nested standardløn-/lønudviklings-tabeller og
   `eoAngivetLoenLoenudvikling`-objektets nested tabeller (samme streng-kolonne-problematik).
-- `erstatningsopgoerelse.forligAnsvarsgradBroek` registreret som optional fritekst, indtil brøk-codecet er bekræftet
-  mod UI-controllen.
+
+`erstatningsopgoerelse.forligAnsvarsgradBroek` er nu lukket: den var midlertidigt registreret som optional fritekst,
+og er nu bundet til `createFractionFieldCodec` med præcis de defaults, `StyledFractionField` bruges med begge steder
+(ForligSection + EetDifferencekravTab). Fraction-codecets `parseForSettle` afskærer samtidig ikke-alfanumeriske
+kanttegn (`trimToAlphanumericEdges`), så det er den fælles raw→canonical-kilde identisk med controllens
+`normalizeDraftOnCommit`. Kun de to streng-kolonne-berørte defer-punkter ovenfor står tilbage i Etape A.
 
 EO's `sfggAnsaettelsesforhold` (rækkeid `ansaettelsesforholdId`, ikke `id`) er nu registreret: den strukturelle
 collection-binding fik en valgfri `entityIdProperty`, som threades gennem de generiske accessorer, så et rækkefelts
