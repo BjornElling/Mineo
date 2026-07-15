@@ -19,30 +19,53 @@ type ReadonlySections = DeepReadonly<PersistedInputSections>;
  * for "hvor i sektionen ligger dette felt".
  */
 
-/** Persisterede entities identificeres altid på `id` (jf. `entityId()`/`WithId` i schemas). */
+/**
+ * De fleste persisterede entities identificeres på `id` (jf. `entityId()`/`WithId` i schemas). Nogle
+ * få samlinger bruger et andet id-egenskabsnavn (fx `sfggAnsaettelsesforhold` → `ansaettelsesforholdId`),
+ * så accessoren slår id-egenskaben op per samlingsnavn via en {@link EntityIdPropertyResolver}.
+ */
 export const ENTITY_ID_PROPERTY = 'id';
+
+/**
+ * Afgør hvilken egenskab et entity-array identificeres på for et givet samlingsnavn. Default-resolveren
+ * returnerer altid `'id'`; bindinger med afvigende id-egenskab leverer deres egen.
+ */
+export type EntityIdPropertyResolver = (collection: string) => string;
+
+export const defaultEntityIdPropertyResolver: EntityIdPropertyResolver = () => ENTITY_ID_PROPERTY;
 
 type MutableSection = Record<string, unknown>;
 
 const isPlainObject = (value: unknown): value is MutableSection =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const findEntity = (container: unknown, collection: string, entityId: string): unknown => {
+const findEntity = (
+  container: unknown,
+  collection: string,
+  entityId: string,
+  entityIdProperty: EntityIdPropertyResolver
+): unknown => {
   if (!isPlainObject(container)) return undefined;
   const array = container[collection];
   if (!Array.isArray(array)) return undefined;
-  return array.find((entity) => isPlainObject(entity) && entity[ENTITY_ID_PROPERTY] === entityId);
+  const idProperty = entityIdProperty(collection);
+  return array.find((entity) => isPlainObject(entity) && entity[idProperty] === entityId);
 };
 
-const descend = (container: unknown, segment: FieldAddressPathSegment): unknown =>
+const descend = (
+  container: unknown,
+  segment: FieldAddressPathSegment,
+  entityIdProperty: EntityIdPropertyResolver
+): unknown =>
   segment.kind === 'property'
     ? (isPlainObject(container) ? container[segment.name] : undefined)
-    : findEntity(container, segment.collection, segment.entityId);
+    : findEntity(container, segment.collection, segment.entityId, entityIdProperty);
 
 const resolveContainer = (
   root: unknown,
-  path: readonly FieldAddressPathSegment[]
-): unknown => path.reduce<unknown>((container, segment) => descend(container, segment), root);
+  path: readonly FieldAddressPathSegment[],
+  entityIdProperty: EntityIdPropertyResolver
+): unknown => path.reduce<unknown>((container, segment) => descend(container, segment, entityIdProperty), root);
 
 /**
  * Læser feltets canonical værdi. Modtageren fra `InputCatalog.readCanonical` er allerede et frosset
@@ -51,9 +74,14 @@ const resolveContainer = (
  */
 export const readCanonicalAtAddress = (
   sections: ReadonlySections,
-  address: FieldAddress
+  address: FieldAddress,
+  entityIdProperty: EntityIdPropertyResolver = defaultEntityIdPropertyResolver
 ): unknown => {
-  const container = resolveContainer((sections as Record<string, unknown>)[address.section], address.path);
+  const container = resolveContainer(
+    (sections as Record<string, unknown>)[address.section],
+    address.path,
+    entityIdProperty
+  );
   return isPlainObject(container) ? container[address.field] : undefined;
 };
 
@@ -67,7 +95,8 @@ export const writeCanonicalAtAddress = (
   sections: PersistedInputSections,
   address: FieldAddress,
   value: unknown,
-  createEmptySection: () => unknown
+  createEmptySection: () => unknown,
+  entityIdProperty: EntityIdPropertyResolver = defaultEntityIdPropertyResolver
 ): PersistedInputSections => {
   const mutable = sections as MutableSection;
   const sectionValue = mutable[address.section] ?? createEmptySection();
@@ -76,7 +105,7 @@ export const writeCanonicalAtAddress = (
   }
   mutable[address.section] = sectionValue;
 
-  const container = resolveContainer(sectionValue, address.path);
+  const container = resolveContainer(sectionValue, address.path, entityIdProperty);
   if (!isPlainObject(container)) {
     throw new Error('StructuralAccessor: feltets container findes ikke i sektionen');
   }
@@ -87,9 +116,14 @@ export const writeCanonicalAtAddress = (
 /** Læser en samlings entities read-only via samme navigation som feltaccessoren. */
 export const readEntitiesAtCollection = (
   sections: ReadonlySections,
-  collection: CollectionRef
+  collection: CollectionRef,
+  entityIdProperty: EntityIdPropertyResolver = defaultEntityIdPropertyResolver
 ): readonly unknown[] => {
-  const container = resolveContainer((sections as Record<string, unknown>)[collection.section], collection.path);
+  const container = resolveContainer(
+    (sections as Record<string, unknown>)[collection.section],
+    collection.path,
+    entityIdProperty
+  );
   if (!isPlainObject(container)) return [];
   const array = container[collection.collection];
   return Array.isArray(array) ? array : [];
@@ -103,7 +137,8 @@ export const writeEntitiesAtCollection = (
   sections: PersistedInputSections,
   collection: CollectionRef,
   entities: readonly unknown[],
-  createEmptySection: () => unknown
+  createEmptySection: () => unknown,
+  entityIdProperty: EntityIdPropertyResolver = defaultEntityIdPropertyResolver
 ): PersistedInputSections => {
   const mutable = sections as MutableSection;
   const sectionValue = mutable[collection.section] ?? createEmptySection();
@@ -112,7 +147,7 @@ export const writeEntitiesAtCollection = (
   }
   mutable[collection.section] = sectionValue;
 
-  const container = resolveContainer(sectionValue, collection.path);
+  const container = resolveContainer(sectionValue, collection.path, entityIdProperty);
   if (!isPlainObject(container)) {
     throw new Error('StructuralAccessor: samlingens container findes ikke i sektionen');
   }

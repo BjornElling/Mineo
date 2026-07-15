@@ -602,6 +602,17 @@ mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-f
 **Status 2026-07-15:** Delvist gennemført — fundament + katalogregistrering af alle domæner (Etape A) samt
 den delte draft-livscyklus (Etape B, resten-punkt 1).
 
+*Landet i denne runde (Etape A — custom entity-id-samling):*
+
+- Den strukturelle collection-binding understøtter nu en valgfri `entityIdProperty` (og
+  `parentEntityIdProperties` for nested samlinger). Den threades gennem de generiske accessorer
+  (`structuralCanonicalAccessors`), så et rækkefelts entity-led resolver på den rigtige id-egenskab i stedet for
+  det hardcodede `id`. `getEntityId` fail-closer nu, hvis id-egenskaben ikke er en streng.
+- EO's `sfggAnsaettelsesforhold` (rækkeid `ansaettelsesforholdId`, ikke `id`) er dermed registreret i
+  produktionskataloget med sine ni rene canonical rækkefelter. Én af Etape A's fire defer-punkter er hermed lukket;
+  tilbage står kun de tre streng-kolonne-/format-berørte (aarsloen.tableData, loenindkomst-tabellerne,
+  eoAngivetLoenLoenudvikling) plus `forligAnsvarsgradBroek`-brøk-codecet.
+
 *Landet i denne runde (Etape B — delt draft-livscyklus):*
 
 - `useDraftLifecycle` (`src/hooks/fieldState/useDraftLifecycle.ts`) ejer nu den React-tynde draft-livscyklus,
@@ -645,10 +656,12 @@ den delte draft-livscyklus (Etape B, resten-punkt 1).
   codecs; en tvungen binding ville ændre .eo-formatet — forelægges særskilt).
 - EO's `loenindkomstAnsaettelsesforhold` + dens nested standardløn-/lønudviklings-tabeller og
   `eoAngivetLoenLoenudvikling`-objektets nested tabeller (samme streng-kolonne-problematik).
-- EO's `sfggAnsaettelsesforhold` (rækkeid er `ansaettelsesforholdId`, ikke `id`; kræver en custom entity-id-egenskab
-  i den strukturelle collection-binding).
 - `erstatningsopgoerelse.forligAnsvarsgradBroek` registreret som optional fritekst, indtil brøk-codecet er bekræftet
   mod UI-controllen.
+
+EO's `sfggAnsaettelsesforhold` (rækkeid `ansaettelsesforholdId`, ikke `id`) er nu registreret: den strukturelle
+collection-binding fik en valgfri `entityIdProperty`, som threades gennem de generiske accessorer, så et rækkefelts
+entity-led resolver på den rigtige id-egenskab.
 
 *Bevidst afgrænsning (udestår i fase 4):* Afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
 legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så alle endnu ikke migrerede read-consumers ser

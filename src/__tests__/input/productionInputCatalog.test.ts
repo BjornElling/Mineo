@@ -10,7 +10,12 @@ import { createInputReader, createInputRevision } from '../../input/inputReader'
 import type { InputCatalog } from '../../input/fieldCatalog';
 import type { PersistedInputSections } from '../../input/inputState';
 import { rentekravRowsBinding } from '../../input/catalog/renteberegningInputBindings';
-import { eoBilagSelectionOpgoerelseBinding } from '../../input/catalog/erstatningsopgoerelseInputBindings';
+import {
+  eoBilagSelectionOpgoerelseBinding,
+  eoSfggAnsaettelsesforholdBinding,
+  eoSfggSatsvalgBinding,
+} from '../../input/catalog/erstatningsopgoerelseInputBindings';
+import { sygeferiegodtgoerelseAnsaettelsesforholdRowSchema } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
 import type { StorageKey } from '../../config/storageManifest';
 
@@ -100,6 +105,32 @@ describe('produktions-InputCatalog', () => {
       createEmptyRentekravCommittedRow('b')
     );
     expect(catalog.listEntityIds(sections, rentekravRowsBinding.createRef())).toEqual(['a', 'b']);
+  });
+
+  it('håndterer en samling med custom entity-id (sfggAnsaettelsesforhold → ansaettelsesforholdId)', () => {
+    const catalog = getProductionInputCatalog();
+    const row = sygeferiegodtgoerelseAnsaettelsesforholdRowSchema.parse({ ansaettelsesforholdId: 'af-1' });
+    const otherRow = sygeferiegodtgoerelseAnsaettelsesforholdRowSchema.parse({ ansaettelsesforholdId: 'af-2' });
+
+    // Indsæt to rækker; catalogets getEntityId skal læse `ansaettelsesforholdId`, ikke `id`.
+    let sections = catalog.insertEntity(
+      createEmptyPersistedInputSections(),
+      eoSfggAnsaettelsesforholdBinding,
+      eoSfggAnsaettelsesforholdBinding.createRef(),
+      row
+    );
+    sections = catalog.insertEntity(sections, eoSfggAnsaettelsesforholdBinding, eoSfggAnsaettelsesforholdBinding.createRef(), otherRow);
+    expect(catalog.listEntityIds(sections, eoSfggAnsaettelsesforholdBinding.createRef())).toEqual(['af-1', 'af-2']);
+
+    // Skriv et rækkefelt på den anden række via en bundet ref (entity-led resolver på custom id).
+    const satsvalgRef = eoSfggSatsvalgBinding.createRef('af-2');
+    expect(satsvalgRef.address.path).toEqual([{ kind: 'entity', collection: 'sfggAnsaettelsesforhold', entityId: 'af-2' }]);
+    const written = catalog.writeCanonical(sections, satsvalgRef, 'Faglaert-Koebenhavn');
+
+    // Read-back gennem reader; nabo-rækken forbliver urørt.
+    const reader = readerFor(catalog, written);
+    expect(reader.read(satsvalgRef)).toEqual({ status: 'valid', value: 'Faglaert-Koebenhavn' });
+    expect(reader.read(eoSfggSatsvalgBinding.createRef('af-1'))).toEqual({ status: 'valid', value: undefined });
   });
 
   it('round-tripper et nested boolean-bilagsvalg (eoBilagSelection) via property-pathen', () => {

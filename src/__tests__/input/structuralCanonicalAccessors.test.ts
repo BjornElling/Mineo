@@ -74,6 +74,38 @@ describe('structuralCanonicalAccessors', () => {
     );
     expect(next.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['row-3']);
   });
+
+  it('resolver et rækkefelts entity-led på en custom id-egenskab', () => {
+    // En samling der identificeres på et andet felt end `id` (fx sfggAnsaettelsesforhold →
+    // `ansaettelsesforholdId`): resolveren SKAL bruge den rigtige egenskab, ellers finder
+    // read/write ingen række, og default-`id`-opslaget ville altid ramme undefined.
+    const resolver = (collection: string) => (collection === 'rows' ? 'customId' : 'id');
+    const address = {
+      section: 'erstatningsopgoerelse' as const,
+      path: [{ kind: 'entity' as const, collection: 'rows', entityId: 'b' }],
+      field: 'note',
+    };
+    const sections = {
+      ...createEmptyPersistedInputSections(),
+      erstatningsopgoerelse: { rows: [{ customId: 'a', note: 'A' }, { customId: 'b', note: 'B' }] },
+    } as unknown as PersistedInputSections;
+
+    // Uden resolveren (default `id`) findes rækken ikke; med resolveren rammer vi 'b'.
+    expect(readCanonicalAtAddress(sections, address)).toBeUndefined();
+    expect(readCanonicalAtAddress(sections, address, resolver)).toBe('B');
+
+    const written = writeCanonicalAtAddress(
+      structuredClone(sections),
+      address,
+      'B2',
+      () => ({ rows: [] }),
+      resolver
+    );
+    const rows = (written.erstatningsopgoerelse as unknown as { rows: { customId: string; note: string }[] }).rows;
+    expect(rows.find((row) => row.customId === 'b')?.note).toBe('B2');
+    // Nabo-rækken er uændret.
+    expect(rows.find((row) => row.customId === 'a')?.note).toBe('A');
+  });
 });
 
 describe('produktionskatalog', () => {

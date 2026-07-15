@@ -7,6 +7,8 @@ import type {
   JaNej,
   JaNejSkjul,
   SvieSmerteDelvisSygemeldingSats,
+  SygeferiegodtgoerelseBeregningskilde,
+  SygeferiegodtgoerelseSatsvalg,
   Tilstand,
 } from '../../schemas/formSchemas/enumSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
@@ -16,6 +18,7 @@ import {
   type OevrigeKravRow,
   type OffentligeYdelserRow,
   type SvieSmertePeriodeRow,
+  type SygeferiegodtgoerelseAnsaettelsesforholdRow,
   type TafPeriodeRow,
 } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 import { CURRENT_YEAR, MIN_SVIESMERTE_YEAR } from '../../config/dateRanges';
@@ -39,13 +42,15 @@ import { createStructuralCollectionBinding, createStructuralFieldBinding } from 
  * Strukturelle bindinger for `erstatningsopgoerelse`-sektionen: top-level skalarer (incl. nested
  * bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter.
  *
+ * `sfggAnsaettelsesforhold` er en ren top-level samling som de øvrige (kun rene canonical rækkefelter),
+ * men identificeres på `ansaettelsesforholdId` i stedet for `id`; den registreres derfor med en
+ * `entityIdProperty` på den strukturelle collection-binding (jf. `createStructuralCollectionBinding`).
+ *
  * BEVIDST DEFER (egen sub-sletteliste, hører til senere runder):
  *  - `loenindkomstAnsaettelsesforhold` + dens nested tabeller (`indtaegtsoplysningerTableData`,
  *    `loenudviklingManuelTableData`, `loenudviklingManuelProcentsatsTableData`) og `eoAngivetLoen-
  *    Loenudvikling`-objektets nested tabeller: standardløn-tabellernes måned/uge-kolonner har samme
  *    streng-vs-tal-mismatch som `aarsloen.tableData` (rører .eo-formatet; forelægges særskilt).
- *  - `sfggAnsaettelsesforhold`: rækkeidentiteten er `ansaettelsesforholdId`, ikke `id`; kræver en
- *    custom entity-id-egenskab i den strukturelle collection-binding (senere kerneudvidelse).
  *  - `forligAnsvarsgradBroek`: brøk-controllens præcise config er ikke bekræftet endnu; registreres som
  *    optional fritekst (schematypen er `optionalString`), indtil brøk-codecet er verificeret mod UI'et.
  *
@@ -483,3 +488,100 @@ export const eoOffentligeYdelserYdelsestypeBinding: FieldBinding<string | undefi
   template: rowFieldTemplate('offentligeYdelserRows', 'ydelsestype'),
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
+
+// sfggAnsaettelsesforhold — samling med custom entity-id (`ansaettelsesforholdId`, ikke `id`).
+// Kun rene canonical rækkefelter (enum/dato/heltal/beløb/fritekst/JaNej), så de registreres som
+// de øvrige samlinger; entity-id'et threades gennem den strukturelle collection-binding.
+const SFGG = 'sfggAnsaettelsesforhold';
+
+export const eoSfggAnsaettelsesforholdBinding: CollectionBinding<SygeferiegodtgoerelseAnsaettelsesforholdRow> =
+  createStructuralCollectionBinding<SygeferiegodtgoerelseAnsaettelsesforholdRow>({
+    template: { section: 'erstatningsopgoerelse', path: [], collection: SFGG },
+    createEmptySection: createEmptyErstatningsopgoerelseSection,
+    entityIdProperty: 'ansaettelsesforholdId',
+  });
+
+/** Rækkefelt-binding under sfgg-samlingen; entity-led resolver på `ansaettelsesforholdId`. */
+const sfggRowField = <T>(field: string, definition: FieldBinding<T>['definition']): FieldBinding<T> =>
+  createStructuralFieldBinding<T>({
+    definition,
+    template: rowFieldTemplate(SFGG, field),
+    createEmptySection: createEmptyErstatningsopgoerelseSection,
+    entityIdProperties: { [SFGG]: 'ansaettelsesforholdId' },
+  });
+
+export const eoSfggBeregningskildeBinding = sfggRowField<SygeferiegodtgoerelseBeregningskilde | undefined>(
+  'sfggBeregningskilde',
+  defineField<SygeferiegodtgoerelseBeregningskilde | undefined>({
+    label: 'Beregningskilde',
+    controlKind: 'choice',
+    focusTarget: focus(EO_LOENINDKOMST),
+    codec: createChoiceFieldCodec<SygeferiegodtgoerelseBeregningskilde>([
+      'Overenskomst',
+      'Manuelt angivet',
+      'Ferieloven',
+      'Ingen',
+    ]),
+  })
+);
+export const eoSfggReferenceperiodeFraBinding = rowDateField(SFGG, 'sfggReferenceperiodeFra', 'Referenceperiode fra', EO_LOENINDKOMST);
+export const eoSfggReferenceperiodeTilBinding = rowDateField(SFGG, 'sfggReferenceperiodeTil', 'Referenceperiode til', EO_LOENINDKOMST);
+export const eoSfggReferenceperiodeFravaersdageUdenLoenBinding = sfggRowField<number | undefined>(
+  'sfggReferenceperiodeFravaersdageUdenLoen',
+  defineField<number | undefined>({
+    label: 'Fraværsdage uden løn i referenceperioden',
+    controlKind: 'text',
+    focusTarget: focus(EO_LOENINDKOMST),
+    codec: createIntegerFieldCodec({ allowNegative: false }),
+  })
+);
+export const eoSfggManuelDagssatsBinding = sfggRowField<AmountValue | undefined>(
+  'sfggManuelDagssats',
+  defineField<AmountValue | undefined>({
+    label: 'Manuel dagssats',
+    controlKind: 'text',
+    focusTarget: focus(EO_LOENINDKOMST),
+    codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true }),
+  })
+);
+export const eoSfggManuelBeloebIHenholdTilBinding = sfggRowField<string | undefined>(
+  'sfggManuelBeloebIHenholdTil',
+  defineField<string | undefined>({
+    label: 'Beløb i henhold til',
+    controlKind: 'text',
+    focusTarget: focus(EO_LOENINDKOMST),
+    codec: createOptionalTextFieldCodec(),
+  })
+);
+export const eoSfggManuelFoerstEfterSygeloenBinding = sfggRowField<JaNej | undefined>(
+  'sfggManuelFoerstEfterSygeloen',
+  defineField<JaNej | undefined>({
+    label: 'Først efter sygeløn',
+    controlKind: 'choice',
+    focusTarget: focus(EO_LOENINDKOMST),
+    codec: createChoiceFieldCodec<JaNej>(['Ja', 'Nej']),
+  })
+);
+export const eoSfggSatsvalgBinding = sfggRowField<SygeferiegodtgoerelseSatsvalg | undefined>(
+  'sfggSatsvalg',
+  defineField<SygeferiegodtgoerelseSatsvalg | undefined>({
+    label: 'Satsvalg',
+    controlKind: 'choice',
+    focusTarget: focus(EO_LOENINDKOMST),
+    codec: createChoiceFieldCodec<SygeferiegodtgoerelseSatsvalg>([
+      'Faglaert-Koebenhavn',
+      'Faglaert-Provinsen',
+      'Ufaglaert-Koebenhavn',
+      'Ufaglaert-Provinsen',
+    ]),
+  })
+);
+export const eoSfggAlleredeBetaltBeloebBinding = sfggRowField<AmountValue | undefined>(
+  'sfggAlleredeBetaltBeloeb',
+  defineField<AmountValue | undefined>({
+    label: 'Allerede betalt beløb',
+    controlKind: 'text',
+    focusTarget: focus(EO_LOENINDKOMST),
+    codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true }),
+  })
+);

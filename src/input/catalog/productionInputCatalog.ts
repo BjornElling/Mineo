@@ -151,6 +151,16 @@ import {
   eoRegulerOffentligeYdelserBinding,
   eoRevideretOpgoerelseBinding,
   eoSaerligeKommentarerBinding,
+  eoSfggAlleredeBetaltBeloebBinding,
+  eoSfggAnsaettelsesforholdBinding,
+  eoSfggBeregningskildeBinding,
+  eoSfggManuelBeloebIHenholdTilBinding,
+  eoSfggManuelDagssatsBinding,
+  eoSfggManuelFoerstEfterSygeloenBinding,
+  eoSfggReferenceperiodeFraBinding,
+  eoSfggReferenceperiodeFravaersdageUdenLoenBinding,
+  eoSfggReferenceperiodeTilBinding,
+  eoSfggSatsvalgBinding,
   eoSfggSygeperioderFoer2015Binding,
   eoSfggSygeperiodeFraBinding,
   eoSfggSygeperiodeTilBinding,
@@ -190,8 +200,10 @@ import {
  * BEVIDST DEFER (senere runder, forelægges hvor .eo-format berøres):
  *  - `aarsloen.tableData` måned/uge-kolonner (streng-vs-tal-mismatch),
  *  - EO's `loenindkomstAnsaettelsesforhold` + nested standardløn-/lønudviklings-tabeller,
- *  - EO's `eoAngivetLoenLoenudvikling`-objekts nested tabeller,
- *  - EO's `sfggAnsaettelsesforhold` (rækkeid = `ansaettelsesforholdId`, ikke `id`).
+ *  - EO's `eoAngivetLoenLoenudvikling`-objekts nested tabeller.
+ *
+ * `sfggAnsaettelsesforhold` (rækkeid = `ansaettelsesforholdId`) er nu registreret via en custom
+ * entity-id på den strukturelle collection-binding.
  *
  * Samlinger registreres før deres rækkefelter, så parent-invarianten i `seal()` holder.
  */
@@ -366,6 +378,18 @@ export const buildProductionInputCatalog = (): InputCatalog => {
   catalog.registerCollection(eoSfggSygeperioderFoer2015Binding);
   catalog.registerField(eoSfggSygeperiodeFraBinding);
   catalog.registerField(eoSfggSygeperiodeTilBinding);
+
+  // sfggAnsaettelsesforhold — custom entity-id (`ansaettelsesforholdId`)
+  catalog.registerCollection(eoSfggAnsaettelsesforholdBinding);
+  catalog.registerField(eoSfggBeregningskildeBinding);
+  catalog.registerField(eoSfggReferenceperiodeFraBinding);
+  catalog.registerField(eoSfggReferenceperiodeTilBinding);
+  catalog.registerField(eoSfggReferenceperiodeFravaersdageUdenLoenBinding);
+  catalog.registerField(eoSfggManuelDagssatsBinding);
+  catalog.registerField(eoSfggManuelBeloebIHenholdTilBinding);
+  catalog.registerField(eoSfggManuelFoerstEfterSygeloenBinding);
+  catalog.registerField(eoSfggSatsvalgBinding);
+  catalog.registerField(eoSfggAlleredeBetaltBeloebBinding);
 
   catalog.registerCollection(eoFravaerPerioderBinding);
   catalog.registerField(eoFravaerPeriodeFraBinding);
