@@ -3,8 +3,9 @@
 **Status:** Fase 0–3 er gennemført. Fase 4 er delvist gennemført: det greenfield-fundament, fasen manglede
 (generiske katalog-accessorer, et forseglet produktions-`InputCatalog`, en typed-command-sti gennem
 transaktionsrunneren og katalog-routing af skalar-commits), er bygget og kontrakttestet, og referencedomænerne
-Satser + Renteberegning er routet gennem det typed spor. Resten af fase 4 (samlet felt-editor-state machine,
-rækkeinfrastruktur uden værdi-drafts, celle-/tabelmigration, strukturel adresse-cutover og sletterne) udestår.
+Satser + Renteberegning er routet gennem det typed spor. Den samlede felt-editor-livscyklus (`useDraftLifecycle`)
+er nu bygget og driver begge feltmotorer. Resten af fase 4 (rækkeinfrastruktur uden værdi-drafts,
+celle-/tabelmigration, strukturel adresse-cutover og sletterne) udestår.
 Fase 5–8 er ikke påbegyndt.
 
 **Dato:** 2026-07-14
@@ -598,7 +599,23 @@ mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-f
 
 ### Fase 4 — Alle inputoverflader migreres horisontalt
 
-**Status 2026-07-15:** Delvist gennemført — fundament + katalogregistrering af alle domæner (Etape A).
+**Status 2026-07-15:** Delvist gennemført — fundament + katalogregistrering af alle domæner (Etape A) samt
+den delte draft-livscyklus (Etape B, resten-punkt 1).
+
+*Landet i denne runde (Etape B — delt draft-livscyklus):*
+
+- `useDraftLifecycle` (`src/hooks/fieldState/useDraftLifecycle.ts`) ejer nu den React-tynde draft-livscyklus,
+  begge feltmotorer tidligere hånd-duplikerede: draft-state + eager `draftRef`, den optimistiske commit-guard
+  (`pendingRef`), den autoritative epoch-resync (driver `decideFieldResync`) og settle-eksekveringen omkring
+  `decideFieldSettle` (write-rejected / value-commit / clear / draft-sync + rollback i korrekt rækkefølge).
+- `useDraftField` (form) og `useTableInputCore` (grid) driver den nu via *seams* (callbacks) i stedet for at
+  reimplementere resync-effekten og pending-guarden. Bevarede surface-divergenser er eksplicitte seams:
+  form har `inert`/ingen fingerprint-no-op og rydder bundet slot i sin `onCommit`-wrapper; grid har
+  fingerprint-no-op, visual-fejl-state, staged rejected-clear og ruller en fejlet commit tilbage til den rene
+  committede visning (`rollbackDraft`). Ren kontrakttest: `useDraftLifecycle.test.tsx`.
+- Der er dermed én fælles felt-editor-livscyklus i normal runtime; de to hooks er nu tynde overflade-adaptere.
+  (Rene decision-kerner `fieldResyncMachine`/`fieldSettleMachine`/`useInvalidDraftSlot` er uændrede og forbliver
+  livscyklussens indre.)
 
 *Landet i tidligere runde:*
 
@@ -641,7 +658,7 @@ den rene fase-2-reducer.
 
 *Resten af fasen (uændret plan):*
 
-1. Implementér den fælles felt-editor-state machine.
+1. ~~Implementér den fælles felt-editor-state machine.~~ (Etape B ovenfor: `useDraftLifecycle`.)
 2. Migrér samtlige Styled-felter og Table-inputs til de samme codecs og `settleField`.
 3. Migrér dropdown/toggle/radio og lukket-celle-clear til `commitImmediateField`.
 4. Erstat `useRowDrafts`/`useSliceRowDrafts` med rækkeinfrastruktur uden værdi-drafts.

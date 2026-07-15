@@ -5,11 +5,11 @@ import type {
 } from '../types/fieldEvents';
 import { useAuthoritativeSnapshotEpochSelector } from './useFormPersistenceSelectors';
 import { isRestoreFocusInProgress } from '../utils/historyTargetRestore';
-import { decideFieldResync } from './fieldState/fieldResyncMachine';
-import { decideFieldSettle, type FieldSettleParse } from './fieldState/fieldSettleMachine';
+import type { FieldSettleParse } from './fieldState/fieldSettleMachine';
 import { elementHasPhysicalFocus } from './fieldState/elementHasPhysicalFocus';
 import { shouldDeriveInvalidDraftError } from './fieldState/shouldDeriveInvalidDraftError';
 import { useInvalidDraftSlot } from './fieldState/useInvalidDraftSlot';
+import { useDraftLifecycle } from './fieldState/useDraftLifecycle';
 
 export type {
   DraftParse,
@@ -155,7 +155,6 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
   const [isFocused, setIsFocused] = React.useState(false);
   const [touched, setTouched] = React.useState(() => effectiveInvalidDraft !== undefined);
-  const [draft, setDraftState] = React.useState<string>(externalSource);
 
   const isFocusedRef = React.useRef(isFocused);
   React.useLayoutEffect(() => {
@@ -169,12 +168,6 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   // one-shot for det næste blur-commit.
   const suppressNextBlurCommitRef = React.useRef(false);
 
-  // Post-commit-guard mod silent-rollback: efter et vellykket commit står draften optimistisk på den
-  // committede repræsentation, mens `value`-proppen endnu ikke har indhentet (parent-rerender lagger).
-  // Indtil `format(value)` faktisk ændrer sig fra værdien-ved-commit, må resync IKKE trække draften
-  // tilbage til den stale committede værdi. (Bevarer den gamle pendingValueResync-determinisme.)
-  const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string } | null>(null);
-
   const hasPhysicalFocus = React.useCallback(
     (): boolean => elementHasPhysicalFocus(inputElementRef?.current ?? null),
     [inputElementRef]
@@ -185,28 +178,32 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   // derfor SKAL draften resyncs selv hvis feltet aktuelt har (read-only) DOM-fokus. Det erstatter det
   // tidligere eksplicitte draftHistoryRegistry-push, som overskrev fokus-guarden ved restore.
   const authoritativeEpoch = useAuthoritativeSnapshotEpochSelector();
-  const lastAuthoritativeEpochRef = React.useRef(authoritativeEpoch);
+  const isActivelyEditing = React.useCallback(
+    () => isFocusedRef.current || hasPhysicalFocus(),
+    [hasPhysicalFocus]
+  );
+  // Form-stiens resync rørte ALDRIG `touched` (heller ikke ved autoritativt replace) — bevaret som no-op,
+  // så load/reset/undo-redo ikke ændrer feltets touched-tilstand. (Grid'en har sin egen touched-/keyInitiated-
+  // reset ved replace; det er en bevidst surface-divergens.)
+  const onAuthoritativeReplace = React.useCallback(() => {}, []);
 
-  // Resync: når feltet ikke er aktivt redigeret, følger draften den eksterne kilde
-  // (`committedInvalidDraft ?? format(value)`). Dette dækker committed value-ændringer, F5-rehydrering
-  // og undo/redo-restore — alt sammen via den normale store→prop-vej, uden et separat draft-transportlag.
-  React.useEffect(() => {
-    const command = decideFieldResync(
-      {
-        epochChanged: authoritativeEpoch !== lastAuthoritativeEpochRef.current,
-        externalSource,
-        currentFormattedValue: formattedValue,
-        pending: pendingCommitRef.current,
-        isActivelyEditing: isFocused || hasPhysicalFocus(),
-      }
-    );
-    if (command.commitEpoch) lastAuthoritativeEpochRef.current = authoritativeEpoch;
-    if (command.clearPending) pendingCommitRef.current = null;
-    if (command.nextDraft !== null) {
-      const next = command.nextDraft;
-      setDraftState((prev) => (prev === next ? prev : next));
-    }
-  }, [authoritativeEpoch, externalSource, formattedValue, hasPhysicalFocus, isFocused]);
+  // Delt draft-livscyklus (draft-state + eager ref, pending-commit-guard og epoch-resync). Erstatter
+  // den tidligere hånd-duplikerede resync-effekt + pendingCommitRef, som `useTableInputCore` spejlede.
+  const {
+    draft,
+    setDraft: setLifecycleDraft,
+    pendingRef: pendingCommitRef,
+    executeSettle,
+  } = useDraftLifecycle<TModel>({
+    initialDraft: externalSource,
+    authoritativeEpoch,
+    externalSource,
+    currentFormattedValue: formattedValue,
+    isActivelyEditing,
+    // Form-resyncens gamle dep-array indeholdt `isFocused` — før den ind, så et fokus-skift re-kører resync.
+    resyncDeps: [isFocused],
+    onAuthoritativeReplace,
+  });
 
   // Fejlvisning afledes af råstrengen: kun når draften aktuelt VISER den effektive ugyldige draft
   // (ikke mens brugeren taster en ny værdi). Beskeden gen-udledes ved at parse den normaliserede råstreng.
@@ -225,12 +222,12 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     (nextDraft: string) => {
       suppressNextBlurCommitRef.current = false;
       pendingCommitRef.current = null;
-      setDraftState(nextDraft);
+      setLifecycleDraft(nextDraft);
       if (clearTouchedOnEmptyDraft && nextDraft === '') {
         setTouched(false);
       }
     },
-    [clearTouchedOnEmptyDraft]
+    [clearTouchedOnEmptyDraft, pendingCommitRef, setLifecycleDraft]
   );
 
   const commitFromDraft = React.useCallback(
@@ -241,7 +238,6 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       // korrekt af den autoritative epoch-effekt; her gør vi ingenting.
       if (isRestoreFocusInProgress()) return true;
       setTouched(true);
-      pendingCommitRef.current = null;
       const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
       const result = parse(draftForCommit);
 
@@ -254,50 +250,36 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
         : result.kind === 'invalid' || result.message !== undefined
           ? { status: 'invalid' }
           : { status: 'inert' };
-      const command = decideFieldSettle(rawDraft, {
+
+      // Den delte livscyklus kører settle-kernen og ejer pending-guard + rollback. Form-grenene:
+      //  - commit: `onCommit`-wrapper (bundne felter rydder invalidDrafts der; ubundne rydder slotten),
+      //  - inert: ryd kun den ubundne slot (bundet clear ejes af onCommit-wrapperen),
+      //  - invalid: skriv den rå draft til slotten.
+      return executeSettle(rawDraft, {
         parse: settleParse,
         isNoop: false,
         formattedValueAtCommit: formattedValue,
         target: result.ok ? format(result.value) : formattedValue,
+      }, {
+        writeInvalidDraft,
+        commitValue: onCommit,
+        // Efter en vellykket reel commit: ryd den ubundne slot (bundet clear ejes af kalderens
+        // onCommit-wrapper). Slot-clearens resultat ignoreres bevidst — som i den tidligere form-sti.
+        afterValueCommit: () => {
+          if (!isBound) clearInvalidDraftSlot();
+          return true;
+        },
+        onInert: () => {
+          if (!isBound) clearInvalidDraftSlot();
+          return true;
+        },
+        onNoopCommit: () => {
+          if (!isBound) clearInvalidDraftSlot();
+          return true;
+        },
       });
-
-      if (command.kind === 'commit') {
-        // Vellykket commit: ryd evt. lokal ugyldig draft og synk optimistisk til committed repræsentation.
-        // Bundne felter rydder `invalidDrafts` via kalderens onCommit-wrapper (efter sektion-commit).
-        try {
-          const committed = onCommit(command.value);
-          if (committed === false) {
-            pendingCommitRef.current = null;
-            setDraftState(externalSource);
-            return false;
-          }
-        } catch {
-          pendingCommitRef.current = null;
-          setDraftState(externalSource);
-          return false;
-        }
-        if (!isBound) clearInvalidDraftSlot();
-        pendingCommitRef.current = command.pending;
-        setDraftState(command.target);
-        return true;
-      }
-
-      if (command.kind === 'invalid') {
-        // Ikke-committbart: bevar committed værdi; persistér/bevar den RÅ draft (det brugeren ser),
-        // så fejlvisningen (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
-        if (!writeInvalidDraft(command.raw)) {
-          setDraftState(externalSource);
-          return false;
-        }
-        setDraftState(command.raw);
-        return false;
-      }
-
-      // Inert (partial/empty uden besked): ingen fejl-tilstand, ingen commit (fx tom draft uden krav).
-      if (!isBound) clearInvalidDraftSlot();
-      return true;
     },
-    [clearInvalidDraftSlot, externalSource, format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, parse, writeInvalidDraft]
+    [clearInvalidDraftSlot, executeSettle, format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, parse, writeInvalidDraft]
   );
 
   const commit = React.useCallback((): boolean => {
@@ -307,18 +289,18 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   const commitDraft = React.useCallback(
     (nextDraft: string) => {
       suppressNextBlurCommitRef.current = true;
-      setDraftState(nextDraft);
+      setLifecycleDraft(nextDraft);
       return commitFromDraft(nextDraft);
     },
-    [commitFromDraft]
+    [commitFromDraft, setLifecycleDraft]
   );
 
   const cancel = React.useCallback(() => {
     const snapshot = focusSnapshotRef.current;
     pendingCommitRef.current = null;
-    setDraftState(snapshot ?? externalSource);
+    setLifecycleDraft(snapshot ?? externalSource);
     suppressNextBlurCommitRef.current = true;
-  }, [externalSource]);
+  }, [externalSource, pendingCommitRef, setLifecycleDraft]);
 
   const shouldBubbleEnterForNavigation = React.useCallback((target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false;

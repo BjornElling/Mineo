@@ -86,5 +86,7 @@ describe('Renteberegning — uparseligt beregningsdato blokerer download (rappor
     expect(beregningsdatoInvalidDraft()).toBeTruthy();
     expect(getOversigtButton()).toBeDisabled();
     expect(calculatedInterestCell).toHaveTextContent(/^\s*-\s*$/);
-  });
+    // Hævet timeout: fuld end-to-end userEvent-drevet sidetest, der kan overskride default-5s under
+    // tung parallel suite-belastning (samme mønster som OffentligeYdelserTab.keyboardNavigation-testen).
+  }, 10000);
 });
