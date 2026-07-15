@@ -16,9 +16,32 @@ import {
   eoSfggAnsaettelsesforholdBinding,
   eoSfggSatsvalgBinding,
 } from '../../input/catalog/erstatningsopgoerelseInputBindings';
+import {
+  eoLoenCollectionBindings,
+  eoLoenFieldBindings,
+  eoAngivetLoenManualPercentRowsBinding,
+  eoAngivetLoenManualRowsBinding,
+  eoLoenindkomstAnsaettelsesforholdBinding,
+  eoLoenindkomstManualPercentRowsBinding,
+  eoLoenindkomstManualRowsBinding,
+  eoLoenindkomstStandardRowsBinding,
+} from '../../input/catalog/erstatningsopgoerelseLoenInputBindings';
+import {
+  aarsloenTableCol0MaanedBinding,
+  aarsloenTableCol0UgeBinding,
+  aarsloenTableCol1MaanedBinding,
+  aarsloenTableCol1UgeBinding,
+  aarsloenTableDataBinding,
+} from '../../input/catalog/aarsloenInputBindings';
 import { sygeferiegodtgoerelseAnsaettelsesforholdRowSchema } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
 import type { StorageKey } from '../../config/storageManifest';
+import {
+  initialLoenudviklingManuelProcentsatsRow,
+  initialLoenudviklingManuelRow,
+  initialRow,
+} from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 afterEach(() => {
   __resetProductionInputCatalogForTests();
@@ -151,6 +174,157 @@ describe('produktions-InputCatalog', () => {
     expect(field).not.toBeNull();
     const sections = catalog.writeCanonical(createEmptyPersistedInputSections(), field!, '1/3');
     expect(readerFor(catalog, sections).read(field!)).toEqual({ status: 'valid', value: '1/3' });
+  });
+
+  it('bevarer standardløn-tabellens canonical strenge gennem de fælles tal- og ugecodecs', () => {
+    const catalog = getProductionInputCatalog();
+    let sections = catalog.insertEntity(
+      createEmptyPersistedInputSections(),
+      aarsloenTableDataBinding,
+      aarsloenTableDataBinding.createRef(),
+      { ...initialRow, id: 'loen-1' }
+    );
+
+    const maaned = aarsloenTableCol0MaanedBinding.createRef('loen-1');
+    const aar = aarsloenTableCol1MaanedBinding.createRef('loen-1');
+    const ugeFra = aarsloenTableCol0UgeBinding.createRef('loen-1');
+    const ugeTil = aarsloenTableCol1UgeBinding.createRef('loen-1');
+    expect(maaned.definition.codec.parseForSettle('07')).toEqual({ status: 'valid', value: '7' });
+    expect(aar.definition.codec.parseForSettle('2024')).toEqual({ status: 'valid', value: '2024' });
+    expect(ugeFra.definition.codec.parseForSettle('1/2024')).toEqual({ status: 'valid', value: '01/2024' });
+    expect(maaned.definition.codec.parseForSettle(' (07) ')).toEqual({ status: 'valid', value: '7' });
+    expect(aar.definition.codec.parseForSettle(' (2024) ')).toEqual({ status: 'valid', value: '2024' });
+    expect(ugeFra.definition.codec.parseForSettle(' (1/2024) ')).toEqual({ status: 'valid', value: '01/2024' });
+    expect(maaned.definition.codec.parseForSettle('')).toEqual({ status: 'valid', value: '' });
+    expect(aar.definition.codec.parseForSettle('')).toEqual({ status: 'valid', value: '' });
+    expect(ugeFra.definition.codec.parseForSettle('')).toEqual({ status: 'valid', value: '' });
+
+    sections = catalog.writeCanonical(sections, maaned, '7');
+    sections = catalog.writeCanonical(sections, aar, '2024');
+    sections = catalog.writeCanonical(sections, ugeFra, '01/2024');
+    sections = catalog.writeCanonical(sections, ugeTil, '02/2024');
+
+    const parsed = persistenceSchemas.aarsloen.parse(sections.aarsloen);
+    expect(parsed.tableData[0]).toMatchObject({
+      col0_maaned: '7',
+      col1_maaned: '2024',
+      col0_uge: '01/2024',
+      col1_uge: '02/2024',
+    });
+    expect(typeof parsed.tableData[0]?.col0_maaned).toBe('string');
+    expect(JSON.stringify(parsed.tableData[0])).toContain('"col0_maaned":"7"');
+    expect(readerFor(catalog, sections).read(maaned)).toEqual({ status: 'valid', value: '7' });
+
+    const cleared = persistenceSchemas.aarsloen.parse(
+      catalog.writeCanonical(sections, maaned, '').aarsloen
+    );
+    expect(cleared.tableData[0]?.col0_maaned).toBe('');
+    expect(JSON.stringify(cleared.tableData[0])).toContain('"col0_maaned":""');
+  });
+
+  it('registrerer hele EO-løntræet og round-tripper en nested standardlønscelle', () => {
+    const catalog = getProductionInputCatalog();
+
+    for (const binding of eoLoenFieldBindings) {
+      const entityIds = binding.template.path
+        .filter((segment) => segment.kind === 'entity')
+        .map((_, index) => `entity-${index + 1}`);
+      expect(catalog.isKnownField(binding.createRef(...entityIds))).toBe(true);
+    }
+
+    const employment = { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1' };
+    let sections = catalog.insertEntity(
+      createEmptyPersistedInputSections(),
+      eoLoenindkomstAnsaettelsesforholdBinding,
+      eoLoenindkomstAnsaettelsesforholdBinding.createRef(),
+      employment
+    );
+    sections = catalog.insertEntity(
+      sections,
+      eoLoenindkomstStandardRowsBinding,
+      eoLoenindkomstStandardRowsBinding.createRef('af-1'),
+      { ...initialRow, id: 'loen-1' }
+    );
+
+    const monthBinding = eoLoenFieldBindings.find((binding) =>
+      binding.template.field === 'col0_maaned'
+      && binding.template.path.some((segment) => segment.kind === 'entity' && segment.collection === 'indtaegtsoplysningerTableData')
+    );
+    expect(monthBinding).toBeDefined();
+    const month = monthBinding!.createRef('af-1', 'loen-1');
+    expect(month.definition.codec.parseForSettle('09')).toEqual({ status: 'valid', value: '9' });
+    sections = catalog.writeCanonical(sections, month, '9');
+
+    const parsed = persistenceSchemas.erstatningsopgoerelse.parse(sections.erstatningsopgoerelse);
+    expect(parsed.loenindkomstAnsaettelsesforhold[0]?.indtaegtsoplysningerTableData[0]?.col0_maaned).toBe('9');
+    expect(readerFor(catalog, sections).read(month)).toEqual({ status: 'valid', value: '9' });
+
+    const findField = (
+      owner: 'employment' | 'eo-property',
+      collection: string | null,
+      field: string
+    ) => eoLoenFieldBindings.find((binding) => {
+      if (binding.template.field !== field) return false;
+      const hasEmployment = binding.template.path.some((segment) =>
+        segment.kind === 'entity' && segment.collection === 'loenindkomstAnsaettelsesforhold'
+      );
+      const hasEoProperty = binding.template.path.some((segment) =>
+        segment.kind === 'property' && segment.name === 'eoAngivetLoenLoenudvikling'
+      );
+      const hasCollection = collection === null || binding.template.path.some((segment) =>
+        segment.kind === 'entity' && segment.collection === collection
+      );
+      return (owner === 'employment' ? hasEmployment : hasEoProperty) && hasCollection;
+    });
+
+    sections = catalog.insertEntity(
+      sections,
+      eoLoenindkomstManualRowsBinding,
+      eoLoenindkomstManualRowsBinding.createRef('af-1'),
+      { ...initialLoenudviklingManuelRow, id: 'manuel-af-1' }
+    );
+    sections = catalog.insertEntity(
+      sections,
+      eoLoenindkomstManualPercentRowsBinding,
+      eoLoenindkomstManualPercentRowsBinding.createRef('af-1'),
+      { ...initialLoenudviklingManuelProcentsatsRow, id: 'manuel-pct-af-1' }
+    );
+    sections = catalog.insertEntity(
+      sections,
+      eoAngivetLoenManualRowsBinding,
+      eoAngivetLoenManualRowsBinding.createRef(),
+      { ...initialLoenudviklingManuelRow, id: 'manuel-eo-1' }
+    );
+    sections = catalog.insertEntity(
+      sections,
+      eoAngivetLoenManualPercentRowsBinding,
+      eoAngivetLoenManualPercentRowsBinding.createRef(),
+      { ...initialLoenudviklingManuelProcentsatsRow, id: 'manuel-pct-eo-1' }
+    );
+
+    const employmentManualPercent = findField('employment', 'loenudviklingManuelTableData', 'feriepenge');
+    const employmentPercentRow = findField('employment', 'loenudviklingManuelProcentsatsTableData', 'procent');
+    const eoManualPercent = findField('eo-property', 'loenudviklingManuelTableData', 'feriepenge');
+    const eoPercentRow = findField('eo-property', 'loenudviklingManuelProcentsatsTableData', 'procent');
+    const eoLoenTrin = findField('eo-property', null, 'offentligLoenTrin');
+    expect([employmentManualPercent, employmentPercentRow, eoManualPercent, eoPercentRow, eoLoenTrin])
+      .not.toContain(undefined);
+
+    sections = catalog.writeCanonical(sections, employmentManualPercent!.createRef('af-1', 'manuel-af-1'), 12.5);
+    sections = catalog.writeCanonical(sections, employmentPercentRow!.createRef('af-1', 'manuel-pct-af-1'), 3.5);
+    sections = catalog.writeCanonical(sections, eoManualPercent!.createRef('manuel-eo-1'), 10);
+    sections = catalog.writeCanonical(sections, eoPercentRow!.createRef('manuel-pct-eo-1'), 4);
+    sections = catalog.writeCanonical(sections, eoLoenTrin!.createRef(), 12);
+
+    const nestedParsed = persistenceSchemas.erstatningsopgoerelse.parse(sections.erstatningsopgoerelse);
+    expect(nestedParsed.loenindkomstAnsaettelsesforhold[0]?.loenudviklingManuelTableData[0]?.feriepenge).toBe(12.5);
+    expect(nestedParsed.loenindkomstAnsaettelsesforhold[0]?.loenudviklingManuelProcentsatsTableData[0]?.procent).toBe(3.5);
+    expect(nestedParsed.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData[0]?.feriepenge).toBe(10);
+    expect(nestedParsed.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData[0]?.procent).toBe(4);
+    expect(nestedParsed.eoAngivetLoenLoenudvikling.offentligLoenTrin).toBe(12);
+
+    // Alle seks samlinger (parent + nested tabeller i begge EO-løngrene) er med i kataloggruppen.
+    expect(eoLoenCollectionBindings).toHaveLength(6);
   });
 
   it('round-tripper et nested boolean-bilagsvalg (eoBilagSelection) via property-pathen', () => {

@@ -6,6 +6,8 @@ import {
   createDateFieldCodec,
   createFractionFieldCodec,
   createIntegerFieldCodec,
+  createRequiredChoiceFieldCodec,
+  createStringBackedFieldCodec,
   createPercentFieldCodec,
   createTextFieldCodec,
   createWeekFieldCodec,
@@ -15,6 +17,33 @@ import { toISODateString } from '../../types/branded';
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
 
 describe('fieldCodecs', () => {
+  it('afviser tom tekst for påkrævede valg', () => {
+    const codec = createRequiredChoiceFieldCodec(['Ja', 'Nej'] as const);
+
+    expect(codec.parseForSettle('Ja')).toEqual({ status: 'valid', value: 'Ja' });
+    expect(codec.parseForSettle('')).toEqual({ status: 'invalid' });
+    expect(codec.parseForSettle('Måske')).toEqual({ status: 'invalid' });
+  });
+
+  it('genbruger talcodecets semantik uden at ændre canonical strengrepræsentation', () => {
+    const codec = createStringBackedFieldCodec(createIntegerFieldCodec({
+      allowNegative: false,
+      maxDigits: 2,
+      minValue: 1,
+      maxValue: 12,
+    }));
+
+    expect(codec.parseForSettle(' 07 ')).toEqual({ status: 'valid', value: '7' });
+    expect(codec.parseForSettle('')).toEqual({ status: 'valid', value: '' });
+    expect(codec.parseForSettle(' (07) ')).toEqual({ status: 'valid', value: '7' });
+    expect(codec.parseForSettle('x')).toEqual({ status: 'invalid' });
+    expect(codec.format('legacy-værdi')).toBe('legacy-værdi');
+    expect(codec.formatForEdit('07')).toBe('07');
+    expect(codec.acceptsInitialKey('7')).toBe(true);
+    expect(codec.acceptsInitialKey('-')).toBe(false);
+    expect(codec.normalizePaste?.('12,9')).toBe('12');
+  });
+
   it('deler canonical parsing og formatering for de numeriske inputfamilier', () => {
     const amount = createAmountFieldCodec({
       allowNegative: false,

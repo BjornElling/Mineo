@@ -599,21 +599,25 @@ mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-f
 
 ### Fase 4 — Alle inputoverflader migreres horisontalt
 
-**Status 2026-07-15:** Delvist gennemført — fundament + katalogregistrering af alle domæner (Etape A) samt
-den delte draft-livscyklus (Etape B, resten-punkt 1).
+**Status 2026-07-15:** Delvist gennemført — fundamentet og det komplette produktionskatalog (Etape A) samt
+den delte draft-livscyklus (første del af Etape B) er gennemført. Celle-/række-cutover og sletterne udestår.
 
-*Landet i denne runde (Etape A — custom entity-id-samling):*
+*Gennemført i Etape A — komplet katalog:*
 
-- Den strukturelle collection-binding understøtter nu en valgfri `entityIdProperty` (og
-  `parentEntityIdProperties` for nested samlinger). Den threades gennem de generiske accessorer
-  (`structuralCanonicalAccessors`), så et rækkefelts entity-led resolver på den rigtige id-egenskab i stedet for
-  det hardcodede `id`. `getEntityId` fail-closer nu, hvis id-egenskaben ikke er en streng.
-- EO's `sfggAnsaettelsesforhold` (rækkeid `ansaettelsesforholdId`, ikke `id`) er dermed registreret i
-  produktionskataloget med sine ni rene canonical rækkefelter. Én af Etape A's fire defer-punkter er hermed lukket;
-  tilbage står kun de tre streng-kolonne-/format-berørte (aarsloen.tableData, loenindkomst-tabellerne,
-  eoAngivetLoenLoenudvikling) plus `forligAnsvarsgradBroek`-brøk-codecet.
+- Generiske strukturelle canonical-accessorer navigerer `FieldAddress`/`CollectionRef` direkte over
+  sektionsobjektet. Collection-bindings understøtter både custom entity-id-egenskaber og nested samlinger.
+- Det forseglede produktions-`InputCatalog` registrerer samtlige persisted felter og samlinger i alle domæner,
+  inklusive `aarsloen.tableData`, EO's `loenindkomstAnsaettelsesforhold` med alle nested standardløn-/
+  lønudviklingstabeller samt `eoAngivetLoenLoenudvikling` med sine nested tabeller.
+- Standardløn-tabellernes fire periodefelter bevarer deres eksisterende canonical strengrepræsentation gennem
+  `createStringBackedFieldCodec` omkring de fælles heltals-, års- og ugecodecs. Parser, starttegn og
+  paste-normalisering kommer dermed fra de fælles codecs, mens `.eo`-format og beregningsinput er uændret.
+- `sfggAnsaettelsesforhold` er registreret med `ansaettelsesforholdId` som custom entity-id, og
+  `forligAnsvarsgradBroek` bruger det fælles brøkcodec.
+- Typed commands (`settleField`, `commitImmediateField`, insert/delete/reorder) går gennem den fælles
+  transaktionsrunner. Migrerede top-level skalarer routes allerede gennem dette spor.
 
-*Landet i denne runde (Etape B — delt draft-livscyklus):*
+*Gennemført i Etape B — delt draft-livscyklus:*
 
 - `useDraftLifecycle` (`src/hooks/fieldState/useDraftLifecycle.ts`) ejer nu den React-tynde draft-livscyklus,
   begge feltmotorer tidligere hånd-duplikerede: draft-state + eager `draftRef`, den optimistiske commit-guard
@@ -624,48 +628,7 @@ den delte draft-livscyklus (Etape B, resten-punkt 1).
   form har `inert`/ingen fingerprint-no-op og rydder bundet slot i sin `onCommit`-wrapper; grid har
   fingerprint-no-op, visual-fejl-state, staged rejected-clear og ruller en fejlet commit tilbage til den rene
   committede visning (`rollbackDraft`). Ren kontrakttest: `useDraftLifecycle.test.tsx`.
-- Der er dermed én fælles felt-editor-livscyklus i normal runtime; de to hooks er nu tynde overflade-adaptere.
-  (Rene decision-kerner `fieldResyncMachine`/`fieldSettleMachine`/`useInvalidDraftSlot` er uændrede og forbliver
-  livscyklussens indre.)
-
-*Landet i tidligere runde:*
-
-- Generiske strukturelle canonical-accessorer (`structuralCanonicalAccessors.ts`) navigerer en `FieldAddress`/
-  `CollectionRef` direkte over sektionsobjektet, så feltbindinger bliver mekaniske (`structuralBindings.ts`) i
-  stedet for håndskrevne per-felt-lukninger.
-- En typed-command-sti gennem runneren: `executeTypedInputTransaction` (settleField/commitImmediateField/insert/
-  delete/reorder) deler nu en fælles, udtrukket commit-kerne (`commitValidatedCandidate`) med
-  kompatibilitetssporet — samme envelope-write, history, revision og rollback.
-
-*Landet i denne runde (Etape A — fuld katalogregistrering):*
-
-- `createOptionalTextFieldCodec` udtrukket til den delte codec-familie (empty→undefined), så alle `optionalString`-
-  felter deler ét codec i stedet for lokale kopier.
-- Det forseglede produktions-`InputCatalog` dækker nu **alle domæner** for de felter/samlinger, der passer rent ind i
-  den strukturelle model: stamdata, satser, årsløn (skalarer + værdi-persisterede tabelkolonner), fælles årsløn,
-  renteberegning, varige mén, forsørgertab, erhvervsevnetab (skalarer + nested bilagsvalg + `aslAfgoerelser`) og
-  erstatningsopgørelse (top-level skalarer + de rene top-level samlinger). Bygges/forsegles ved bootstrap, dækket af
-  `productionInputCatalog.test.ts` (bygger+forsegler, tomme sektioner er schema-gyldige, round-trip read/write).
-- `usePersistedForm.setFieldValue` router nu alle disse migrerede top-level felter gennem `commitImmediateField`,
-  når det er beviseligt observationelt identisk (feltets egen identitet + sektionen findes allerede committed).
-  Ethvert runner-fejl falder tilbage til den fælles vej, så brugerfejl-notice bevares.
-
-*Bevidst defer i Etape A (egen sub-sletteliste, senere runder):*
-
-- `aarsloen.tableData` måned/uge-kolonner (`allowEmptyString` → canonical STRENG, men indtastes via heltals-/uge-
-  codecs; en tvungen binding ville ændre .eo-formatet — forelægges særskilt).
-- EO's `loenindkomstAnsaettelsesforhold` + dens nested standardløn-/lønudviklings-tabeller og
-  `eoAngivetLoenLoenudvikling`-objektets nested tabeller (samme streng-kolonne-problematik).
-
-`erstatningsopgoerelse.forligAnsvarsgradBroek` er nu lukket: den var midlertidigt registreret som optional fritekst,
-og er nu bundet til `createFractionFieldCodec` med præcis de defaults, `StyledFractionField` bruges med begge steder
-(ForligSection + EetDifferencekravTab). Fraction-codecets `parseForSettle` afskærer samtidig ikke-alfanumeriske
-kanttegn (`trimToAlphanumericEdges`), så det er den fælles raw→canonical-kilde identisk med controllens
-`normalizeDraftOnCommit`. Kun de to streng-kolonne-berørte defer-punkter ovenfor står tilbage i Etape A.
-
-EO's `sfggAnsaettelsesforhold` (rækkeid `ansaettelsesforholdId`, ikke `id`) er nu registreret: den strukturelle
-collection-binding fik en valgfri `entityIdProperty`, som threades gennem de generiske accessorer, så et rækkefelts
-entity-led resolver på den rigtige id-egenskab.
+- Der er dermed én fælles felt-editor-livscyklus i normal runtime; de to hooks er tynde migrationsadaptere.
 
 *Bevidst afgrænsning (udestår i fase 4):* Afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
 legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så alle endnu ikke migrerede read-consumers ser

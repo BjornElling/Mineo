@@ -6,6 +6,7 @@ import type {
 } from '../../schemas/formSchemas/enumSchemas';
 import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aarsloenSchemas';
 import type { ISODateString } from '../../types/branded';
+import { CURRENT_YEAR, MIN_YEAR } from '../../config/dateRanges';
 import type { CollectionBinding, FieldAddressTemplate, FieldBinding } from '../fieldCatalog';
 import {
   booleanFieldCodec,
@@ -14,19 +15,18 @@ import {
   createDateFieldCodec,
   createIntegerFieldCodec,
   createPercentFieldCodec,
+  createStringBackedFieldCodec,
+  createWeekFieldCodec,
+  createYearFieldCodec,
 } from '../fieldCodecs';
 import { defineField } from '../fieldDefinition';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
 
 /**
  * Strukturelle bindinger for `aarsloen`-sektionen. Skalarerne og samlingen `tableData`s
- * VÆRDI-persisterede rækkefelter (dato- og beløbskolonner) registreres her.
- *
- * BEVIDST DEFER (egen sub-sletteliste): tabellens `col0_maaned`/`col1_maaned`/`col0_uge`/`col1_uge`
- * persisteres som `allowEmptyString` (canonical STRENG), men indtastes via heltals-/uge-codecs, hvis
- * output-type ikke matcher schema-strengen. En binding kræver enten et streng-producerende måned/uge-
- * codec eller en schema-evolution af kolonnerne (som ville ændre .eo-formatet). Det hører til en senere,
- * dedikeret runde og forelægges særskilt, fordi det rører .eo-repræsentationen.
+ * rækkefelter registreres her. Måned/år bevarer schemaets historiske canonical strengrepræsentation
+ * gennem `createStringBackedFieldCodec`, mens inputsemantikken fortsat kommer fra de fælles
+ * heltals-/årscodecs. Ugefelterne er allerede canonical strenge og bruger ugecodecet direkte.
  */
 const createEmptyAarsloenSection = (): unknown => ({ tableData: [] });
 
@@ -145,6 +145,21 @@ const tableDateField = (field: string, label: string): FieldBinding<ISODateStrin
     createEmptySection: createEmptyAarsloenSection,
   });
 
+const tableStringField = (
+  field: string,
+  label: string,
+  codec: FieldBinding<string | undefined>['definition']['codec']
+): FieldBinding<string | undefined> => createStructuralFieldBinding({
+  definition: defineField<string | undefined>({
+    label,
+    controlKind: 'text',
+    focusTarget: AARSLOEN_FOCUS,
+    codec,
+  }),
+  template: tableRowFieldTemplate(field),
+  createEmptySection: createEmptyAarsloenSection,
+});
+
 // Tabellens beløbskolonner tillader negative (canBeNegative-default i TableAmountInput).
 const tableAmountField = (field: string, label: string): FieldBinding<AmountValue | undefined> =>
   createStructuralFieldBinding({
@@ -160,6 +175,39 @@ const tableAmountField = (field: string, label: string): FieldBinding<AmountValu
 
 export const aarsloenTableCol0DagBinding = tableDateField('col0_dag', 'Dato fra');
 export const aarsloenTableCol1DagBinding = tableDateField('col1_dag', 'Dato til');
+export const aarsloenTableCol0MaanedBinding = tableStringField(
+  'col0_maaned',
+  'Måned',
+  createStringBackedFieldCodec(createIntegerFieldCodec({
+    allowNegative: false,
+    maxDigits: 2,
+    minValue: 1,
+    maxValue: 12,
+  }))
+);
+export const aarsloenTableCol1MaanedBinding = tableStringField(
+  'col1_maaned',
+  'År',
+  createStringBackedFieldCodec(createYearFieldCodec({
+    twoDigitYearPolicy: 'infer',
+    minYear: MIN_YEAR,
+    maxYear: CURRENT_YEAR,
+  }))
+);
+export const aarsloenTableCol0UgeBinding = tableStringField(
+  'col0_uge',
+  'Uge fra',
+  createStringBackedFieldCodec(createWeekFieldCodec({
+    twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8,
+  }))
+);
+export const aarsloenTableCol1UgeBinding = tableStringField(
+  'col1_uge',
+  'Uge til',
+  createStringBackedFieldCodec(createWeekFieldCodec({
+    twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8,
+  }))
+);
 export const aarsloenTableCol2Binding = tableAmountField('col2', 'Løn');
 export const aarsloenTableCol3Binding = tableAmountField('col3', 'Løn (2)');
 export const aarsloenTableCol4Binding = tableAmountField('col4', 'Løn (3)');

@@ -1,7 +1,11 @@
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 import type { ISODateString } from '../types/branded';
 import { coerceToDanishDateString } from '../types/branded';
-import { trimToAlphanumericEdges, trimWhitespaceEdges } from '../utils/draftNormalization';
+import {
+  trimToAlphanumericEdges,
+  trimToNumericEdgesPreserveLeadingMinus,
+  trimWhitespaceEdges,
+} from '../utils/draftNormalization';
 import {
   parseAmountInput,
   amountValueToDisplayString,
@@ -143,6 +147,22 @@ export const createChoiceFieldCodec = <T extends string>(values: readonly T[]): 
   return createSelectionFieldCodec({ values });
 };
 
+/** Påkrævede dropdown-/radiovalg afviser tom tekst i stedet for at producere `undefined`. */
+export const createRequiredChoiceFieldCodec = <T extends string>(values: readonly T[]): FieldCodec<T> => {
+  const optionalCodec = createChoiceFieldCodec(values);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const resolution = optionalCodec.parseForSettle(raw);
+      return resolution.status === 'valid' && resolution.value !== undefined
+        ? valid(resolution.value)
+        : invalid();
+    },
+    format: optionalCodec.format,
+    formatForEdit: optionalCodec.formatForEdit,
+    acceptsInitialKey: optionalCodec.acceptsInitialKey,
+  });
+};
+
 /** Toggle og checkbox bruger samme immediate-commit-sti, men bevarer boolean som canonical værdi. */
 export const booleanFieldCodec: FieldCodec<boolean> = Object.freeze({
   parseForSettle: (raw) => raw === 'true' ? valid(true) : raw === 'false' ? valid(false) : invalid(),
@@ -249,7 +269,11 @@ export const createIntegerFieldCodec = (
   assertNumericBoundsConfig('IntegerFieldCodec', config, isSafeCanonicalInteger);
   return Object.freeze({
     parseForSettle: (raw) => {
-      const parsed = parseIntegerDraftForCommit(raw, config);
+      const edgeNormalized = trimToNumericEdgesPreserveLeadingMinus(raw);
+      // Kantnormalisering må ikke forvandle ikke-tom, ikke-numerisk tekst til canonical tomhed.
+      // Bevar råteksten i den gren, så parseren afviser den og rejected input ikke går tabt.
+      const normalized = edgeNormalized === '' && raw.trim() !== '' ? raw.trim() : edgeNormalized;
+      const parsed = parseIntegerDraftForCommit(normalized, config);
       return parsed.ok ? valid(parsed.value) : invalid();
     },
     format: (value) => value === undefined ? '' : String(value),
@@ -264,6 +288,32 @@ export const createIntegerFieldCodec = (
   });
 };
 
+/**
+ * Bevarer et eksisterende strengbaseret canonical schema omkring et fælles tal-/ugecodec.
+ * Standardløn-tabellens periodefelter er historisk persisteret som tekst. Adapteren genbruger
+ * derfor parser, starttegn og paste-regler uden at ændre `.eo`-repræsentationen eller indføre
+ * parallel parsing.
+ */
+export const createStringBackedFieldCodec = <T extends string | number>(
+  sourceCodec: FieldCodec<T | undefined>
+): FieldCodec<string | undefined> => Object.freeze({
+  parseForSettle: (raw) => {
+    const resolution = sourceCodec.parseForSettle(raw);
+    if (resolution.status === 'invalid') return invalid();
+    // Standardløn-rækker har historisk persisteret ryddede periodeceller som `""`.
+    // Bevar denne canonical tomhed byte-for-byte i `.eo` i stedet for at skrive `undefined`.
+    return valid(resolution.value === undefined ? '' : String(resolution.value));
+  },
+  // Schemaet har historisk tilladt vilkårlige strenge. Visningen må derfor bevare en indlæst
+  // legacy-værdi ordret; først næste settle canonicaliserer gennem kildecodecet.
+  format: (value) => value ?? '',
+  formatForEdit: (value) => value ?? '',
+  acceptsInitialKey: sourceCodec.acceptsInitialKey,
+  ...(sourceCodec.normalizePaste === undefined
+    ? {}
+    : { normalizePaste: sourceCodec.normalizePaste }),
+});
+
 export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<number | undefined> => {
   assertYearPolicyConfig('YearFieldCodec', config.twoDigitYearPolicy);
   assertNumericBoundsConfig('YearFieldCodec', {
@@ -274,7 +324,9 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
   return Object.freeze({
     parseForSettle: (raw) => {
       // Feltets tilladte årinterval valideres som bounds efter canonical parsing.
-      const parsed = parseYearDraftForCommit(raw, { twoDigitYearPolicy: config.twoDigitYearPolicy });
+      const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), {
+        twoDigitYearPolicy: config.twoDigitYearPolicy,
+      });
       return parsed.ok ? valid(parsed.value) : invalid();
     },
     format: (value) => value === undefined ? '' : String(value),
@@ -295,7 +347,7 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
   return Object.freeze({
     parseForSettle: (raw) => {
       // Årsintervallet er et bounds-issue; kalenderugens eksistens er fortsat en del af syntaksen.
-      const parsed = parseWeekDraftForCommit(raw, {
+      const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), {
         twoDigitYearPolicy: config.twoDigitYearPolicy,
         maxDraftLength: config.maxDraftLength,
       });

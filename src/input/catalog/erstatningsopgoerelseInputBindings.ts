@@ -48,16 +48,14 @@ import { createStructuralCollectionBinding, createStructuralFieldBinding } from 
  * men identificeres på `ansaettelsesforholdId` i stedet for `id`; den registreres derfor med en
  * `entityIdProperty` på den strukturelle collection-binding (jf. `createStructuralCollectionBinding`).
  *
- * BEVIDST DEFER (egen sub-sletteliste, hører til senere runder):
- *  - `loenindkomstAnsaettelsesforhold` + dens nested tabeller (`indtaegtsoplysningerTableData`,
- *    `loenudviklingManuelTableData`, `loenudviklingManuelProcentsatsTableData`) og `eoAngivetLoen-
- *    Loenudvikling`-objektets nested tabeller: standardløn-tabellernes måned/uge-kolonner har samme
- *    streng-vs-tal-mismatch som `aarsloen.tableData` (rører .eo-formatet; forelægges særskilt).
+ * Lønindkomstens og EO-angivet løns nested træ ligger i den særskilte
+ * `erstatningsopgoerelseLoenInputBindings.ts`, fordi det udgør én sammenhængende bindinggraf med
+ * parent-samling, nested tabeller og fælles løncodecs.
  *
  * Den tomme sektion er den fulde canonical default: `loenindkomstAnsaettelsesforhold` er en påkrævet
  * (ikke-defaultet) array, så den skal angives eksplicit for at parse.
  */
-const createEmptyErstatningsopgoerelseSection = (): unknown =>
+export const createEmptyErstatningsopgoerelseSection = (): unknown =>
   erstatningsopgoerelseSchema.parse({ loenindkomstAnsaettelsesforhold: [] });
 
 const EO_OPLYSNINGER = 'eo_oplysninger';

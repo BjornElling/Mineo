@@ -33,7 +33,11 @@ import {
   aarsloenShSoPctBinding,
   aarsloenStoreBededagPctBinding,
   aarsloenTableCol0DagBinding,
+  aarsloenTableCol0MaanedBinding,
+  aarsloenTableCol0UgeBinding,
   aarsloenTableCol1DagBinding,
+  aarsloenTableCol1MaanedBinding,
+  aarsloenTableCol1UgeBinding,
   aarsloenTableCol2Binding,
   aarsloenTableCol3Binding,
   aarsloenTableCol4Binding,
@@ -191,16 +195,16 @@ import {
   eoVerserendeKlageMenBinding,
   eoVisBilagsnumreBinding,
 } from './erstatningsopgoerelseInputBindings';
+import {
+  eoLoenCollectionBindings,
+  eoLoenFieldBindings,
+} from './erstatningsopgoerelseLoenInputBindings';
 
 /**
  * Eneste produktions-`InputCatalog`. Det bygges én gang, forsegles og deles af runneren og
  * readeren. Kataloget dækker nu alle domæner for de felter/samlinger, der passer rent ind i den
- * strukturelle model (observationelt identisk, ingen .eo-formatændring).
- *
- * BEVIDST DEFER (senere runder, forelægges hvor .eo-format berøres):
- *  - `aarsloen.tableData` måned/uge-kolonner (streng-vs-tal-mismatch),
- *  - EO's `loenindkomstAnsaettelsesforhold` + nested standardløn-/lønudviklings-tabeller,
- *  - EO's `eoAngivetLoenLoenudvikling`-objekts nested tabeller.
+ * strukturelle model. Standardløn-tabellernes historiske strengrepræsentation bevares af en
+ * codec-adapter, så kataloget er komplet uden `.eo`-formatændring.
  *
  * `sfggAnsaettelsesforhold` (rækkeid = `ansaettelsesforholdId`) er nu registreret via en custom
  * entity-id på den strukturelle collection-binding.
@@ -236,6 +240,10 @@ export const buildProductionInputCatalog = (): InputCatalog => {
   catalog.registerField(aarsloenRetTilSjetteFerieugeBinding);
   catalog.registerField(aarsloenAntalFeriedageBinding);
   catalog.registerCollection(aarsloenTableDataBinding);
+  catalog.registerField(aarsloenTableCol0MaanedBinding);
+  catalog.registerField(aarsloenTableCol1MaanedBinding);
+  catalog.registerField(aarsloenTableCol0UgeBinding);
+  catalog.registerField(aarsloenTableCol1UgeBinding);
   catalog.registerField(aarsloenTableCol0DagBinding);
   catalog.registerField(aarsloenTableCol1DagBinding);
   catalog.registerField(aarsloenTableCol2Binding);
@@ -411,6 +419,11 @@ export const buildProductionInputCatalog = (): InputCatalog => {
   catalog.registerField(eoOffentligeYdelserYdelseBinding);
   catalog.registerField(eoOffentligeYdelserTillaegBinding);
   catalog.registerField(eoOffentligeYdelserYdelsestypeBinding);
+
+  // Erstatningsopgørelse — lønindkomst og EO-angivet lønudvikling, inkl. nested tabeller.
+  // Parent-samlinger registreres før deres rækkefelter, jf. katalogets seal-invariant.
+  for (const binding of eoLoenCollectionBindings) catalog.registerCollection(binding);
+  for (const binding of eoLoenFieldBindings) catalog.registerField(binding);
 
   return catalog.seal();
 };
