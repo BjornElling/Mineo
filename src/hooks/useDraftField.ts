@@ -6,6 +6,7 @@ import type {
 import { useAuthoritativeSnapshotEpochSelector } from './useFormPersistenceSelectors';
 import { isRestoreFocusInProgress } from '../utils/historyTargetRestore';
 import { decideFieldResync } from './fieldState/fieldResyncMachine';
+import { decideFieldSettle, type FieldSettleParse } from './fieldState/fieldSettleMachine';
 import { elementHasPhysicalFocus } from './fieldState/elementHasPhysicalFocus';
 import { shouldDeriveInvalidDraftError } from './fieldState/shouldDeriveInvalidDraftError';
 import { useInvalidDraftSlot } from './fieldState/useInvalidDraftSlot';
@@ -244,12 +245,27 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
       const result = parse(draftForCommit);
 
-      if (result.ok) {
+      // Klassificér parse-udfaldet til den delte settle-kerne. Form-stien har intet fingerprint-no-op-
+      // begreb (isNoop: false); dens pending-guard afgøres alene af target vs formattedValue, som kernen
+      // udleder. En ikke-committbar råstreng med fejlsemantik (invalid, eller partial/empty med besked)
+      // bevares som ugyldig draft; en partial/empty uden besked er inert.
+      const settleParse: FieldSettleParse<TModel> = result.ok
+        ? { status: 'valid', value: result.value }
+        : result.kind === 'invalid' || result.message !== undefined
+          ? { status: 'invalid' }
+          : { status: 'inert' };
+      const command = decideFieldSettle(rawDraft, {
+        parse: settleParse,
+        isNoop: false,
+        formattedValueAtCommit: formattedValue,
+        target: result.ok ? format(result.value) : formattedValue,
+      });
+
+      if (command.kind === 'commit') {
         // Vellykket commit: ryd evt. lokal ugyldig draft og synk optimistisk til committed repræsentation.
         // Bundne felter rydder `invalidDrafts` via kalderens onCommit-wrapper (efter sektion-commit).
-        const target = format(result.value);
         try {
-          const committed = onCommit(result.value);
+          const committed = onCommit(command.value);
           if (committed === false) {
             pendingCommitRef.current = null;
             setDraftState(externalSource);
@@ -261,23 +277,23 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
           return false;
         }
         if (!isBound) clearInvalidDraftSlot();
-        pendingCommitRef.current = target !== formattedValue ? { formattedValueAtCommit: formattedValue } : null;
-        setDraftState(target);
+        pendingCommitRef.current = command.pending;
+        setDraftState(command.target);
         return true;
       }
 
-      // Ikke-committbart: bevar committed værdi; persistér/bevar den RÅ draft (det brugeren ser),
-      // så fejlvisningen (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
-      if (result.kind === 'invalid' || result.message !== undefined) {
-        if (!writeInvalidDraft(rawDraft)) {
+      if (command.kind === 'invalid') {
+        // Ikke-committbart: bevar committed værdi; persistér/bevar den RÅ draft (det brugeren ser),
+        // så fejlvisningen (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
+        if (!writeInvalidDraft(command.raw)) {
           setDraftState(externalSource);
           return false;
         }
-        setDraftState(rawDraft);
+        setDraftState(command.raw);
         return false;
       }
 
-      // partial/empty uden besked: ingen fejl-tilstand, ingen commit (fx tom draft uden krav).
+      // Inert (partial/empty uden besked): ingen fejl-tilstand, ingen commit (fx tom draft uden krav).
       if (!isBound) clearInvalidDraftSlot();
       return true;
     },

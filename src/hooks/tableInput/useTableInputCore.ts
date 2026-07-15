@@ -10,6 +10,7 @@ import type { CommittedPayload } from '../../types/parserSpec';
 import { useAuthoritativeSnapshotEpochSelector } from '../useFormPersistenceSelectors';
 import { isRestoreFocusInProgress } from '../../utils/historyTargetRestore';
 import { decideFieldResync } from '../fieldState/fieldResyncMachine';
+import { decideFieldSettle } from '../fieldState/fieldSettleMachine';
 import { elementHasPhysicalFocus } from '../fieldState/elementHasPhysicalFocus';
 import { shouldDeriveInvalidDraftError } from '../fieldState/shouldDeriveInvalidDraftError';
 import { useInvalidDraftSlot } from '../fieldState/useInvalidDraftSlot';
@@ -335,24 +336,38 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       setTouched(true);
       const current = latest.current;
       const parsed = current.adapter.parse(rawDraft);
-      if (!parsed.ok) {
+
+      // Klassificér parse-udfaldet til den delte settle-kerne. Grid-cellen har intet inert-udfald:
+      // enhver ikke-committbar råstreng bevares som ugyldig draft. isNoop = fingerprint-match; target
+      // og formattedValueAtCommit udledes af adapterens format, så kernen kan sætte pending-guarden.
+      const nextPayload = parsed.ok ? current.adapter.toCommittedPayload(parsed.value) : null;
+      const command = decideFieldSettle(rawDraft, {
+        parse: parsed.ok ? { status: 'valid', value: parsed.value } : { status: 'invalid' },
+        isNoop: nextPayload !== null && nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint,
+        formattedValueAtCommit: current.adapter.format(latestCommittedPayloadRef.current.model),
+        target: parsed.ok ? current.adapter.format(parsed.value) : committedDisplayValue,
+      });
+
+      if (command.kind === 'invalid') {
         // Ikke-committbar: bevar committed værdi; persistér/bevar den RÅ draft, så fejlvisningen
         // (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
         pendingCommitRef.current = null;
-        if (!writeInvalidDraft(rawDraft)) {
+        if (!writeInvalidDraft(command.raw)) {
           draftRef.current = committedDisplayValue;
           setDraft(committedDisplayValue);
           return false;
         }
         setLocalVisualError('');
-        draftRef.current = rawDraft;
-        setDraft(rawDraft);
+        draftRef.current = command.raw;
+        setDraft(command.raw);
         return false;
       }
 
-      // Committbar.
-      const nextPayload = current.adapter.toCommittedPayload(parsed.value);
-      const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+      // Committbar. Grid-cellen producerer aldrig 'inert' (ikke-committbar parse → 'invalid' ovenfor),
+      // så et resterende udfald er altid 'commit'; guarden narrower typen og fail-closer på en umulig sti.
+      if (command.kind !== 'commit' || !parsed.ok || nextPayload === null) {
+        throw new Error('useTableInputCore: settle-kernen returnerede et uventet udfald for en committbar parse');
+      }
       if (parsed.visualErrorMessage !== undefined && parsed.visualErrorMessage.trim() !== '') {
         // Parret invariant (jf. tableInputAdapter.ts): en adapter der kan returnere visualErrorMessage SKAL
         // også implementere getCommittedVisualError. Ellers rydder idle-reconcile-effekten den lokale
@@ -368,7 +383,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       } else {
         setLocalVisualError('');
       }
-      if (isNoop) {
+      if (command.noop) {
         pendingCommitRef.current = null;
         // Værdi-commit er en no-op (committed værdi uændret) → intet onBlur/value-commit. Ryd alligevel en
         // evt. tilbageværende ugyldig rå draft; den fanger sin egen undo-frame, så undo ikke springer
@@ -378,13 +393,12 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
       // Synk optimistisk til den committede repræsentation og hold resync tilbage, indtil `value`
       // (og evt. invalidDraft-rydning) har indhentet — undgår flicker til den stale committede display.
-      const formattedValueAtCommit = current.adapter.format(latestCommittedPayloadRef.current.model);
-      const target = current.adapter.format(parsed.value);
+      const target = command.target;
       draftRef.current = target;
       setDraft(target);
       // Kun nødvendigt når display'et faktisk ændrer sig; ellers ingen flicker-risiko (og guarden ville
       // ikke kunne afmeldes, fordi committedDisplayValue aldrig divergerer fra formattedValueAtCommit).
-      pendingCommitRef.current = target !== formattedValueAtCommit ? { formattedValueAtCommit } : null;
+      pendingCommitRef.current = command.pending;
       // Gridets row-pipeline persisterer i et efterfølgende React-trin. Stage derfor den præcise clear,
       // så usePersistedForm kan flette den ind i samme transaktion som sektionsværdien. Den rå ugyldige
       // tekst bliver stående, hvis værdipersistencen fejler.
