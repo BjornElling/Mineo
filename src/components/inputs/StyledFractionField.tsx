@@ -7,9 +7,9 @@ import { filterFractionKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString } from '../../utils/fraction';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
-import { normalizeFractionPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { mergeSx } from '../../utils/mergeSx';
+import { createFractionFieldCodec } from '../../input/fieldCodecs';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;
@@ -58,8 +58,6 @@ export type StyledFractionFieldProps = {
   sx?: SxProps<Theme>;
 };
 
-const formatFraction = (value: string | undefined): string => value ?? '';
-
 const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionFieldProps>(
   (
     {
@@ -95,6 +93,27 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     if (import.meta.env.DEV && configErrorMessage.trim() !== '') {
       throw new Error(configErrorMessage);
     }
+
+    // Fælles brøk-codec: ét raw→canonical-format, starttegns-filter og paste-normalisering deles med
+    // katalogets brøkfelter (fx forligAnsvarsgradBroek). Feltets egen `parseFraction` bevarer den
+    // finkornede fejlordlyd (codec'et returnerer kun valid/invalid), præcis som StyledYearField.
+    //
+    // Ved en config-fejl (fx `maxDigits` uden for [1,10]) bygges codec'et med den default-gyldige
+    // `maxDigits`: codec-factory'en ville ellers kaste i PROD, hvor feltet før blot renderede og afviste
+    // input via `parseFraction`s config-fejl. Den default fallback bevarer nøjagtigt den tidligere
+    // format/paste/starttegns-adfærd (`normalizeFractionPaste` sanerede allerede en ugyldig `maxDigits`
+    // til default), mens `parseFraction` fortsat afviser alt input med config-fejlen.
+    const codec = React.useMemo(
+      () => createFractionFieldCodec({
+        maxDigits: configErrorMessage.trim() === '' ? maxDigits : DEFAULT_FRACTION_MAX_DIGITS,
+        allowNegative,
+        allowZeroNumerator,
+        canonicalizeOnCommit,
+        requireIntegerFraction,
+      }),
+      [allowNegative, allowZeroNumerator, canonicalizeOnCommit, configErrorMessage, maxDigits, requireIntegerFraction]
+    );
+
     const parseFraction: DraftParse<string | undefined> = React.useCallback(
       (draft) => {
         const trimmed = draft.trim();
@@ -137,11 +156,10 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       [allowNegative, allowZeroNumerator, canonicalizeOnCommit, configErrorMessage, maxDigits, requireIntegerFraction]
     );
 
-    const getDraftForKey = React.useCallback((key: string): string | null => {
-      if (/^[0-9/,]$/.test(key)) return key;
-      if (allowNegative && key === '-') return key;
-      return null;
-    }, [allowNegative]);
+    const getDraftForKey = React.useCallback(
+      (key: string): string | null => codec.acceptsInitialKey(key) ? key : null,
+      [codec]
+    );
 
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) => filterFractionKeyDown(e, { maxDigits, allowNegative }),
@@ -162,15 +180,11 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       handleClick,
     } = useStyledFieldAdapter<string | undefined>({
       value,
-      format: formatFraction,
+      format: codec.format,
       parse: parseFraction,
       normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
-      normalizePasteText: (text) => normalizeFractionPaste(text, {
-        maxDigits,
-        allowNegative,
-        requireIntegerFraction,
-      }),
+      normalizePasteText: codec.normalizePaste,
       onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)) ?? true,
       onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
       onFieldError,

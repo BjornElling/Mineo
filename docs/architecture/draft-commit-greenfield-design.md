@@ -4,10 +4,10 @@
 (generiske katalog-accessorer, et forseglet produktions-`InputCatalog`, en typed-command-sti gennem
 transaktionsrunneren og katalog-routing af skalar-commits), er bygget og kontrakttestet, og referencedomænerne
 Satser + Renteberegning er routet gennem det typed spor. Den samlede felt-editor-livscyklus (`useDraftLifecycle`)
-er nu bygget og driver begge feltmotorer, og tekst-, års- og ugeinputfamilierne bruger én fælles codec-autoritet på
-begge overflader.
-Resten af fase 4 (de øvrige inputfamiliers codec-cutover, rækkeinfrastruktur uden værdi-drafts,
-celle-/tabelmigration, strukturel adresse-cutover og sletterne) udestår.
+er nu bygget og driver begge feltmotorer, tekst-, års- og ugeinputfamilierne bruger én fælles codec-autoritet på
+begge overflader, og brøkinputtets Styled-felt bruger nu også sit fælles codec.
+Resten af fase 4 (heltal/procent/beløb/dato-codec-cutover — bevidst afgrænset, se nedenfor —, rækkeinfrastruktur uden
+værdi-drafts, celle-/tabelmigration, strukturel adresse-cutover og sletterne) udestår.
 Fase 5–8 er ikke påbegyndt.
 
 **Dato:** 2026-07-15
@@ -602,9 +602,9 @@ mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-f
 ### Fase 4 — Alle inputoverflader migreres horisontalt
 
 **Status 2026-07-15:** Delvist gennemført — fundamentet og det komplette produktionskatalog (Etape A) samt
-den delte draft-livscyklus og tekst-, års- og ugeinputfamiliernes fælles codec-cutover (første del af Etape B) er
-gennemført.
-Celle-/række-cutover og de øvrige inputfamiliers codec-cutover samt sletterne udestår.
+den delte draft-livscyklus og tekst-, års-, uge- og brøkinputfamiliernes fælles codec-cutover (første del af Etape B) er
+gennemført. Celle-/række-cutover og de resterende inputfamiliers codec-cutover (heltal/procent/beløb/dato — bevidst
+afgrænset, se nedenfor) samt sletterne udestår.
 
 *Gennemført i Etape A — komplet katalog:*
 
@@ -642,12 +642,28 @@ Celle-/række-cutover og de øvrige inputfamiliers codec-cutover samt sletterne 
   strengrepræsentation bevares gennem `createStringBackedFieldCodec`. De eksisterende commit-blokerende årsbounds og
   præcise fejltekster ligger som eksplicitte migrations-seams efter codec-resolutionen, indtil fase 5 flytter dem til
   den rene issue-model; overfladernes eksisterende draft-længdetolerance er uændret.
+- Brøkinput (`StyledFractionField`) bruger nu `createFractionFieldCodec` til canonical format, første-tast-filter og
+  paste-normalisering — samme codec som katalogets brøkfelt `forligAnsvarsgradBroek`. Feltets egen `parseFraction`
+  bevarer den finkornede danske fejlordlyd (codec'et returnerer kun valid/invalid). Ved en `maxDigits`-config-fejl
+  bygges codec'et bevidst med default-`maxDigits`, så feltets tidligere PROD-adfærd (render + afvis via config-fejl)
+  bevares i stedet for at codec-factory'ens assert kaster.
 
 *Bevidst afgrænsning (udestår i fase 4):* Afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
 legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så alle endnu ikke migrerede read-consumers ser
 identisk store-state. Den strukturelle rejected-adresse-cutover kræver, at hele det relevante katalog er registreret
 og alle overflader migreret, og hører til Etape E. `buildTypedCandidate` er derfor en bevidst transition-variant af
 den rene fase-2-reducer.
+
+*Bevidst afgrænset codec-cutover (heltal, procent, beløb, dato):* Disse familiers Styled-felter er IKKE cuttet over
+i denne runde, fordi en tro cutover ikke er en ren refaktor på nuværende codec-form: (a) heltal-feltets `format`,
+`getDraftForKey` og paste er enten trivielle eller rigere konfigureret (`enforceRange`-gatet paste, `effectiveMaxDigits`,
+defensiv non-finite-`format`) end codec'et understøtter — dens parse/paste-primitiver er desuden allerede den fælles
+kilde (A2), så en cutover ville tilføje forgrening frem for at fjerne duplikering; (b) procent/beløb har rigere
+visningslogik (procentens decimal-hukommelse, beløbets `format` vs `formatForEdit`) som codec'ets nuværende samlede
+`format` ikke replikerer. En korrekt cutover af disse kræver, at codec'ets `format`/`formatForEdit` faktisk adskilles
+(§3.4) — en visnings-semantisk ændring, der skal UX-verificeres — og hører til en dedikeret runde. Tabel-adapterne for
+disse familier har tilsvarende normaliserings-divergenser (fx integer-cellens `trimToAlphanumericEdges` vs codec'ets
+numeriske kanttrimning), der ligeledes ville ændre observérbar adfærd.
 
 *Resten af fasen (uændret plan):*
 
