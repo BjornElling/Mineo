@@ -18,6 +18,7 @@ import {
   type SvieSmertePeriodeRow,
   type TafPeriodeRow,
 } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
+import { CURRENT_YEAR, MIN_SVIESMERTE_YEAR } from '../../config/dateRanges';
 import type { ISODateString } from '../../types/branded';
 import type { CollectionBinding, FieldAddressTemplate, FieldBinding } from '../fieldCatalog';
 import {
@@ -29,6 +30,7 @@ import {
   createOptionalTextFieldCodec,
   createPercentFieldCodec,
   createTextFieldCodec,
+  createYearFieldCodec,
 } from '../fieldCodecs';
 import { defineField } from '../fieldDefinition';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
@@ -239,7 +241,22 @@ export const eoSvieSmerteHelbredsstatusBinding: FieldBinding<Helbredsstatus | un
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
 export const eoTidligereSsMaxBinding = jaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået', EO_OPLYSNINGER);
-export const eoSvieSmerteSatserAarBinding = integerField('svieSmerteSatserAar', 'Svie/smerte satsår', EO_OPLYSNINGER);
+// Årsfelt (StyledYearField): tocifrede år infereres, og MIN_SVIESMERTE_YEAR..CURRENT_YEAR er
+// det afledte bounds-issue. Et heltalscodec ville fortolke "23" som 23 i stedet for 2023.
+export const eoSvieSmerteSatserAarBinding: FieldBinding<number | undefined> = createStructuralFieldBinding({
+  definition: defineField<number | undefined>({
+    label: 'Svie/smerte satsår',
+    controlKind: 'text',
+    focusTarget: focus(EO_OPLYSNINGER),
+    codec: createYearFieldCodec({
+      twoDigitYearPolicy: 'infer',
+      minYear: MIN_SVIESMERTE_YEAR,
+      maxYear: CURRENT_YEAR,
+    }),
+  }),
+  template: { section: 'erstatningsopgoerelse', path: [], field: 'svieSmerteSatserAar' },
+  createEmptySection: createEmptyErstatningsopgoerelseSection,
+});
 export const eoSvieSmerteDelvisSygemeldingSatsBinding: FieldBinding<SvieSmerteDelvisSygemeldingSats | undefined> =
   createStructuralFieldBinding({
     definition: defineField<SvieSmerteDelvisSygemeldingSats | undefined>({
