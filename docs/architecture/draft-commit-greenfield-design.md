@@ -598,26 +598,46 @@ mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-f
 
 ### Fase 4 — Alle inputoverflader migreres horisontalt
 
-**Status 2026-07-14:** Delvist gennemført — fundament + referencedomæne-skalarer.
+**Status 2026-07-15:** Delvist gennemført — fundament + katalogregistrering af alle domæner (Etape A).
 
-*Landet i denne runde:*
+*Landet i tidligere runde:*
 
 - Generiske strukturelle canonical-accessorer (`structuralCanonicalAccessors.ts`) navigerer en `FieldAddress`/
   `CollectionRef` direkte over sektionsobjektet, så feltbindinger bliver mekaniske (`structuralBindings.ts`) i
   stedet for håndskrevne per-felt-lukninger.
-- Et forseglet produktions-`InputCatalog` (`input/catalog/`) med Satser + Renteberegning registreret (skalarfelter,
-  `rentekravRows`-samlingen og dens rækkefelter). Bygges og forsegles ved bootstrap i `initializePersistenceRuntime`.
 - En typed-command-sti gennem runneren: `executeTypedInputTransaction` (settleField/commitImmediateField/insert/
   delete/reorder) deler nu en fælles, udtrukket commit-kerne (`commitValidatedCandidate`) med
   kompatibilitetssporet — samme envelope-write, history, revision og rollback.
-- `usePersistedForm.setFieldValue` router migrerede top-level felter (Satser + Renteberegning-skalarer) gennem
-  `commitImmediateField`, når det er beviseligt observationelt identisk (feltets egen identitet + sektionen findes
-  allerede committed). Ethvert runner-fejl falder tilbage til den fælles vej, så brugerfejl-notice bevares.
+
+*Landet i denne runde (Etape A — fuld katalogregistrering):*
+
+- `createOptionalTextFieldCodec` udtrukket til den delte codec-familie (empty→undefined), så alle `optionalString`-
+  felter deler ét codec i stedet for lokale kopier.
+- Det forseglede produktions-`InputCatalog` dækker nu **alle domæner** for de felter/samlinger, der passer rent ind i
+  den strukturelle model: stamdata, satser, årsløn (skalarer + værdi-persisterede tabelkolonner), fælles årsløn,
+  renteberegning, varige mén, forsørgertab, erhvervsevnetab (skalarer + nested bilagsvalg + `aslAfgoerelser`) og
+  erstatningsopgørelse (top-level skalarer + de rene top-level samlinger). Bygges/forsegles ved bootstrap, dækket af
+  `productionInputCatalog.test.ts` (bygger+forsegler, tomme sektioner er schema-gyldige, round-trip read/write).
+- `usePersistedForm.setFieldValue` router nu alle disse migrerede top-level felter gennem `commitImmediateField`,
+  når det er beviseligt observationelt identisk (feltets egen identitet + sektionen findes allerede committed).
+  Ethvert runner-fejl falder tilbage til den fælles vej, så brugerfejl-notice bevares.
+
+*Bevidst defer i Etape A (egen sub-sletteliste, senere runder):*
+
+- `aarsloen.tableData` måned/uge-kolonner (`allowEmptyString` → canonical STRENG, men indtastes via heltals-/uge-
+  codecs; en tvungen binding ville ændre .eo-formatet — forelægges særskilt).
+- EO's `loenindkomstAnsaettelsesforhold` + dens nested standardløn-/lønudviklings-tabeller og
+  `eoAngivetLoenLoenudvikling`-objektets nested tabeller (samme streng-kolonne-problematik).
+- EO's `sfggAnsaettelsesforhold` (rækkeid er `ansaettelsesforholdId`, ikke `id`; kræver en custom entity-id-egenskab
+  i den strukturelle collection-binding).
+- `erstatningsopgoerelse.forligAnsvarsgradBroek` registreret som optional fritekst, indtil brøk-codecet er bekræftet
+  mod UI-controllen.
 
 *Bevidst afgrænsning (udestår i fase 4):* Afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
 legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så alle endnu ikke migrerede read-consumers ser
-identisk store-state. Den strukturelle rejected-adresse-cutover kræver, at HELE kataloget er registreret, og hører
-til en senere runde. `buildTypedCandidate` er derfor en bevidst transition-variant af den rene fase-2-reducer.
+identisk store-state. Den strukturelle rejected-adresse-cutover kræver, at hele det relevante katalog er registreret
+og alle overflader migreret, og hører til Etape E. `buildTypedCandidate` er derfor en bevidst transition-variant af
+den rene fase-2-reducer.
 
 *Resten af fasen (uændret plan):*
 

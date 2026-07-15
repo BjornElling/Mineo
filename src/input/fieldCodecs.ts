@@ -91,6 +91,20 @@ export const createTextFieldCodec = (): FieldCodec<string> => Object.freeze({
   acceptsInitialKey: initialKey(/^.$/u),
 });
 
+/**
+ * Optional fritekst: canonical tomhed er `undefined`, ikke den tomme streng. Bruges af alle
+ * `optionalString`-felter (fx stamdata-initialer, kommentarer), så tom tekst ikke persisteres som `''`.
+ */
+export const createOptionalTextFieldCodec = (): FieldCodec<string | undefined> => Object.freeze({
+  parseForSettle: (raw) => {
+    const trimmed = trimWhitespaceEdges(raw);
+    return valid(trimmed === '' ? undefined : trimmed);
+  },
+  format: (value) => value ?? '',
+  formatForEdit: (value) => value ?? '',
+  acceptsInitialKey: initialKey(/^.$/u),
+});
+
 /** Dropdown- og radio-værdier parses mod controllets eksplicitte canonical valg. */
 export const createSelectionFieldCodec = <T extends string | number>(options: Readonly<{
   values: readonly T[];

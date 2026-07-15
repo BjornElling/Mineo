@@ -2,14 +2,14 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { RentekravRow } from '../../schemas/formSchemas/sections/renteberegningSchemas';
 import type { ISODateString } from '../../types/branded';
-import { trimWhitespaceEdges } from '../../utils/draftNormalization';
 import {
   createAmountFieldCodec,
   createChoiceFieldCodec,
   createDateFieldCodec,
   createIntegerFieldCodec,
+  createOptionalTextFieldCodec,
 } from '../fieldCodecs';
-import { defineField, type FieldCodec } from '../fieldDefinition';
+import { defineField } from '../fieldDefinition';
 import type { CollectionBinding, FieldBinding } from '../fieldCatalog';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
 
@@ -22,17 +22,6 @@ const createEmptyRenteberegningSection = (): unknown => ({ rentekravRows: [] });
 
 const RENTE_FOCUS = { route: '/renteberegning', tab: null } as const;
 
-/** Optional fritekst: tom tekst er canonical `undefined`, ikke den tomme streng. */
-const optionalTextCodec: FieldCodec<string | undefined> = Object.freeze({
-  parseForSettle: (raw) => {
-    const trimmed = trimWhitespaceEdges(raw);
-    return { status: 'valid', value: trimmed === '' ? undefined : trimmed };
-  },
-  format: (value) => value ?? '',
-  formatForEdit: (value) => value ?? '',
-  acceptsInitialKey: (key) => key.length === 1,
-});
-
 const beregningsdatoDefinition = defineField<ISODateString | undefined>({
   label: 'Beregningsdato',
   controlKind: 'text',
@@ -44,7 +33,7 @@ const kommentarerDefinition = defineField<string | undefined>({
   label: 'Kommentarer',
   controlKind: 'text',
   focusTarget: RENTE_FOCUS,
-  codec: optionalTextCodec,
+  codec: createOptionalTextFieldCodec(),
 });
 
 const belobDefinition = defineField<AmountValue | undefined>({
