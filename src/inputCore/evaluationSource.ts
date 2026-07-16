@@ -29,6 +29,8 @@ export const createEvaluationSourceToken = (
 export const sourceTokensEqual = (left: EvaluationSourceToken, right: EvaluationSourceToken): boolean =>
   left.inputRevision === right.inputRevision && left.settingsRevision === right.settingsRevision;
 
+const STABLE_SOURCE_RETRY_COUNT = 3;
+
 /**
  * Stabil dobbeltlæsning (§3.4): læs token, læs data, læs token igen. Kun hvis før/efter-tokenet er
  * identisk må data og token bruges sammen. Ved samtidig ændring forsøges igen; kan et stabilt snapshot
@@ -39,10 +41,9 @@ export const sourceTokensEqual = (left: EvaluationSourceToken, right: Evaluation
  */
 export const captureStableSource = <T>(
   readToken: () => EvaluationSourceToken,
-  readData: () => T,
-  retryLimit = 3
+  readData: () => T
 ): Readonly<{ token: EvaluationSourceToken; data: T }> => {
-  for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
+  for (let attempt = 0; attempt <= STABLE_SOURCE_RETRY_COUNT; attempt += 1) {
     const before = readToken();
     const data = readData();
     const after = readToken();

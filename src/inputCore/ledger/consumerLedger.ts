@@ -4,7 +4,7 @@ import {
   GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS,
 } from '../../config/greenfieldPhase0Inventory';
 
-// Greenfield-kerne (§6.3): én entry pr. consumer — beregning, sagsfil eller dokumentoutput. Bygger PÅ det
+// Midlertidigt fase-0-inventar (§6.3): én entry pr. makro-consumer — beregning, sagsfil eller dokumentoutput. Bygger PÅ det
 // eksisterende maskinlåste `greenfieldPhase0Inventory.ts` (som allerede peger på faktiske exports/callsites og
 // er dækket af sin coverage-test) frem for at oprette en parallel autoritet. Her tilføjes consumer-klassen og
 // — for dokumenter — hvilken beregning outputtet projekterer fra. De rene projektioner, missing-regler,
@@ -22,7 +22,9 @@ export type ConsumerLedgerEntry = Readonly<{
 }>;
 
 /** Dokument → kilde-beregning (eller statisk programdata). Bruges til at binde outputs til deres dependency. */
-const DOCUMENT_SOURCE: Readonly<Record<string, string>> = {
+type DocumentId = (typeof GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS)[number]['id'];
+
+const DOCUMENT_SOURCE: Readonly<Record<DocumentId, string>> = {
   satser: 'satser',
   rente: 'renteberegning',
   'rente-oversigt': 'renteberegning',
@@ -52,7 +54,7 @@ export const INPUT_CONSUMER_LEDGER: readonly ConsumerLedgerEntry[] = [
   })),
   ...GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS.map((entry): ConsumerLedgerEntry => ({
     id: `document:${entry.id}`, type: 'document', module: entry.module, symbol: entry.symbol,
-    projectsFrom: DOCUMENT_SOURCE[entry.id] ?? 'ukendt',
+    projectsFrom: DOCUMENT_SOURCE[entry.id],
   })),
 ] as const;
 

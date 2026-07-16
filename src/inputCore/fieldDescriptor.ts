@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { deepEqual } from '../utils/deepEqual';
+import { cloneAndDeepFreeze } from '../utils/deepFreeze';
+import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 import {
   createFieldAddress,
   type FieldAddress,
@@ -46,8 +49,6 @@ export type CanonicalView = Readonly<{
  * Inputdrevet relevansregel (§3.1 pkt. 4). Ren funktion af andre felters canonical værdier; må ALDRIG
  * afhænge af mounted componentstate eller AppSettings for et persisteret felt (§3.1).
  */
-export type RelevanceRule = (view: CanonicalView) => boolean;
-
 export type FieldIssueSpec = Readonly<{
   reason: 'bounds' | 'rule';
   code: string;
@@ -59,7 +60,13 @@ export type FieldIssueSpec = Readonly<{
  * Feltvalidator på en canonical værdi (§1.6): kronologiske/tværgående bounds og feltplacerede domæneregler,
  * som forbliver canonical med et afledt rødt issue (i modsætning til format/range, der er rejected råtekst).
  */
-export type FieldValidator<T> = (value: T, view: CanonicalView) => FieldIssueSpec | undefined;
+export type RelevanceRule<T> = (field: FieldRef<T>, view: CanonicalView) => boolean;
+
+export type FieldValidator<T> = (
+  value: T,
+  field: FieldRef<T>,
+  view: CanonicalView
+) => FieldIssueSpec | undefined;
 
 export type FieldDescriptorConfig<T> = Readonly<{
   /** Stabil, menneskelæsbar id — den ene dataidentitet for feltet (§6.1), uafhængig af editorlokation. */
@@ -68,12 +75,14 @@ export type FieldDescriptorConfig<T> = Readonly<{
   codec: FieldCodec<T>;
   /** Canonical tomværdi/clear-operation — obligatorisk del af hvert felt (§3.1 pkt. 3, Fase 1 trin 2). */
   emptyValue: T;
+  /** Semantisk tomhed er eksplicit; gyldige defaults som `false` eller `'dage'` må ikke gættes som missing. */
+  isEmpty: (value: T) => boolean;
   label: string;
   controlKind: FieldControlKind;
   readCanonical: CanonicalRead<T>;
   writeCanonical: CanonicalWrite<T>;
   /** Udeladt = altid relevant. */
-  relevance?: RelevanceRule;
+  relevance?: RelevanceRule<T>;
   /** Canonical-værdi-validatorer (bounds/rule). Format/range håndteres af codecet, ikke her. */
   validators?: readonly FieldValidator<T>[];
 }>;
@@ -96,6 +105,19 @@ export type AnyFieldRef = Readonly<{
 
 const idSchema = z.string().min(1).refine((v) => v.trim() === v, 'Felt-id må ikke have ydre mellemrum');
 const labelSchema = z.string().min(1).refine((v) => v.trim() === v, 'Feltlabel må ikke have ydre mellemrum');
+const templatePartSchema = z.string().min(1).refine((v) => v.trim() === v, 'Templateled må ikke have ydre mellemrum');
+const templatePathSegmentSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('property'), name: templatePartSchema }).strict().readonly(),
+  z.object({ kind: z.literal('entity'), collection: templatePartSchema }).strict().readonly(),
+]);
+export const fieldAddressTemplateSchema = z.object({
+  section: z.enum(PERSISTED_SECTION_KEYS as [
+    (typeof PERSISTED_SECTION_KEYS)[number],
+    ...(typeof PERSISTED_SECTION_KEYS)[number][],
+  ]),
+  path: z.array(templatePathSegmentSchema).readonly(),
+  field: templatePartSchema,
+}).strict().readonly();
 
 const templateSegmentCountEntities = (path: readonly FieldAddressTemplateSegment[]): number =>
   path.filter((segment) => segment.kind === 'entity').length;
@@ -120,31 +142,45 @@ const bindTemplatePath = (
 export const defineField = <T>(config: FieldDescriptorConfig<T>): FieldDescriptor<T> => {
   idSchema.parse(config.id);
   labelSchema.parse(config.label);
+  const template = fieldAddressTemplateSchema.parse(config.template);
   for (const [name, fn] of [
     ['parseForSettle', config.codec.parseForSettle],
     ['format', config.codec.format],
     ['formatForEdit', config.codec.formatForEdit],
     ['acceptsInitialKey', config.codec.acceptsInitialKey],
+    ['isEmpty', config.isEmpty],
     ['readCanonical', config.readCanonical],
     ['writeCanonical', config.writeCanonical],
   ] as const) {
     if (typeof fn !== 'function') throw new Error(`FieldDescriptor(${config.id}): ${name} skal være en funktion`);
   }
 
-  const descriptor = {
+  const emptyValue = cloneAndDeepFreeze(config.emptyValue) as T;
+  for (const raw of ['', '   ']) {
+    const emptyResolution = config.codec.parseForSettle(raw);
+    if (emptyResolution.status !== 'valid' || !deepEqual(emptyResolution.value, emptyValue)) {
+      throw new Error(`FieldDescriptor(${config.id}): codec skal resolve semantisk tom tekst til feltets tomværdi`);
+    }
+  }
+
+  let descriptor: FieldDescriptor<T>;
+  descriptor = Object.freeze({
     ...config,
+    template,
+    emptyValue,
     codec: Object.freeze({ ...config.codec }),
+    validators: config.validators === undefined ? undefined : Object.freeze([...config.validators]),
     bind: (...entityIds: readonly string[]): FieldRef<T> => Object.freeze({
       address: createFieldAddress({
-        section: config.template.section,
-        path: bindTemplatePath(config.template, entityIds),
-        field: config.template.field,
+        section: template.section,
+        path: bindTemplatePath(template, entityIds),
+        field: template.field,
       }),
       descriptor,
     }),
-  } as FieldDescriptor<T>;
+  });
 
-  return Object.freeze(descriptor);
+  return descriptor;
 };
 
 export const toAnyFieldRef = <T>(field: FieldRef<T>): AnyFieldRef => Object.freeze({

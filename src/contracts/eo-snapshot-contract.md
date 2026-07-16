@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ---
 
@@ -262,9 +262,9 @@ settingsrevision (jf. `form-contract.md` §3 og `snapshot-contract.md` §10). En
 stale på samme måde som en ændring i input.
 
 **Regler:**
-- `snapshot.revision` skal altid svare til den ready inputrevision der blev brugt til
-  den autoritative beregning; en settingsændring gør ligeledes snapshottet stale.
-- Hvis `snapshot.revision !== currentInputRevision`, er snapshot stale og må ikke bruges
+- `snapshot.sourceToken` skal altid svare til det ready `EvaluationSourceToken`, der blev brugt til
+  den autoritative beregning.
+- Hvis `snapshot.sourceToken` ikke matcher det aktuelle samlede token, er snapshot stale og må ikke bruges
   som grundlag for at konstatere kontroluoverensstemmelse eller anden blokering, der
   forudsætter et friskt snapshot.
 - Ved visning af Beregning, EOInspektion og EOKontrolTabel skal et stale snapshot erstattes af en ny

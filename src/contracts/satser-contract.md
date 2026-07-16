@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Domæne-/sagsglobal kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ---
 
@@ -26,7 +26,7 @@ Reference-dataenes katalogmetadata og integritetskrav følger desuden `calculati
 2. Persisted `satser` er brugerens sagsspecifikke satsgrundlag og gemmes i `.eo`.
 3. Andre domæner må læse `satser` som autoritativt sagsinput, når deres domænekontrakt tillader det.
 4. PDF-output for satser skal bruge samme kildehierarki og må ikke blande reference-data og brugerinput implicit.
-5. Satsår og øvrige sagsspecifikke dependencies læses gennem en revisionsbundet inputprojektion. Rejected input,
+5. Satsår og øvrige sagsspecifikke dependencies læses gennem en `EvaluationSourceToken`-bundet inputprojektion. Rejected input,
    manglende valg, range/bounds og domænefejl med fejlseverity blokerer dokumentdefinitionen; direkte sektionslæsning
    og lokale feltbooleans er ikke gyldige dokumentgates.
 
@@ -46,7 +46,7 @@ Tests skal dække:
 
 1. hvad der gemmes i `.eo`,
 2. hvad der kommer fra reference-data,
-3. at andre domæner læser satser via en autoriseret, revisionsbundet inputprojektion,
+3. at andre domæner læser satser via en autoriseret, `EvaluationSourceToken`-bundet inputprojektion,
 4. at satser-PDF følger samme kildehierarki,
 5. at rejected og øvrige dokumentrelevante fejlissues blokerer samme definition i reaktiv gate og click-preflight,
 6. at begge opregulerings-motorer fail-closer med ikke-tom `manglendeAar` ved manglende indeks/sats — herunder at akkumuleret reguleringssats kræver dækning for start-, slut- og mellemår (`src/__tests__/domain/satser/opreguleringsmotorer.test.ts`).

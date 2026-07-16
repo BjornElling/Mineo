@@ -84,7 +84,8 @@ Fallback til det element, der tilfældigvis har DOM-fokus efter blur, er ikke en
 
 ## 6. Autoritative replacements
 
-Succesfuld load, hel-sags-clear og migrations-recovery rydder undo/redo efter apply. Ejeransvaret ligger i den fælles
+Succesfuld load og hel-sags-clear rydder undo/redo efter apply. Recovery fra en korrupt current-session sker kun gennem
+brugerens eksplicitte `Slet alt` og følger samme clear-regel. Ejeransvaret ligger i den fælles
 replace-command og må ikke duplikeres i load-callsites.
 
 En side-/sektionsreset er derimod en normal command og kan fortrydes, medmindre en mere specifik godkendt produktregel

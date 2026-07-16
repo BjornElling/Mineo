@@ -70,7 +70,7 @@
     "import:loen": "node scripts/import-offentlig-loen.mjs",
     "check:offentlig-loen": "node scripts/import-offentlig-loen.mjs --check",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
-    "verify:release": "npm run typecheck && npm run typecheck:test && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run test:coverage && npm run build:all",
+    "verify:release": "npm run typecheck && npm run typecheck:test && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run verify:ledgers && npm run test:coverage && npm run build:all",
     "check": "npm run verify:release"
   },
   "overrides": {

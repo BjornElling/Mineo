@@ -1,4 +1,8 @@
-# Greenfield-review — Mineo
+# Parallelt redesign-review — Mineo
+
+> **Status:** Projektet er sat i bero, mens `docs/architecture/draft-commit-greenfield-design.md` gennemføres.
+> Dokumentet er en selvstændig, halvfærdig kandidatliste og må ikke bruges som status- eller migrationsplan for det
+> aktive inputarkitekturprojekt.
 
 > **Delvist afløst 2026-07-14:** For draft/settle, feltmotor, input-persistence, history, issue-model og
 > dokumentpreflight er `docs/architecture/draft-commit-greenfield-design.md` den samlede målarkitektur, og de

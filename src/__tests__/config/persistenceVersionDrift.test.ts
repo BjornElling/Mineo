@@ -57,7 +57,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Opdateret 2026-07-14: alle persisted række-id’er kræver nu ikke-tom, trimmet identitet, numeriske værdier skal
 // kunne repræsenteres præcist, og parsebare range-/domæneværdier bevares canonical til den afledte issue-model.
 // PERSISTED_DATA_VERSION bumpet til 3.9 (parse-semantikændringer; Zod-refinements ændrer ikke fingerprintet).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-145cd135';
+// Opdateret 2026-07-16: tre ubrugte schemafelter uden editor eller consumer er fjernet fra
+// erstatningsopgørelsen. PERSISTED_DATA_VERSION bumpet til 3.10 (reel persisted schema-ændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-e58e35db';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

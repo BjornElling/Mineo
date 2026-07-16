@@ -8,9 +8,10 @@ import {
   type FieldAddressPathSegment,
   type SectionKey,
 } from './fieldAddress';
-import type { FieldDescriptor, FieldRef } from './fieldDescriptor';
+import type { CanonicalView, FieldDescriptor, FieldRef } from './fieldDescriptor';
 
-type AnyFieldRef = FieldRef<any>;
+// Type-erasure er isoleret til katalogets heterogene samling; alle writes forbliver typed ved FieldRef-callsitet.
+type AnyFieldRef = FieldRef<unknown>;
 import {
   persistedInputSectionsSchema,
   rejectedInputsSchema,
@@ -45,35 +46,74 @@ export type CollectionDescriptor<TEntity> = Readonly<{
   ) => PersistedInputSections;
 }>;
 
-type AnyFieldDescriptor = FieldDescriptor<any>;
-type AnyCollectionDescriptor = CollectionDescriptor<any>;
+type AnyFieldDescriptor = FieldDescriptor<unknown>;
+type AnyCollectionDescriptor = CollectionDescriptor<unknown>;
+
+/**
+ * Samler heterogene, allerede typed descriptors til katalogets eksistentielle registry-visning. Castet er
+ * sikkert, fordi hvert descriptor fortsat ejer codec/read/write/relevans som én udelelig enhed; kataloget
+ * flytter aldrig en værdi mellem descriptors.
+ */
+export const catalogFields = <TValues extends readonly unknown[]>(
+  ...descriptors: { readonly [K in keyof TValues]: FieldDescriptor<TValues[K]> }
+): readonly AnyFieldDescriptor[] => Object.freeze(
+  descriptors.map((descriptor) => descriptor as unknown as AnyFieldDescriptor)
+);
+
+/** Samme eksistentielle indkapsling for collections; entity-værdier bruges kun med deres eget descriptor. */
+export const catalogCollections = <TEntities extends readonly unknown[]>(
+  ...descriptors: { readonly [K in keyof TEntities]: CollectionDescriptor<TEntities[K]> }
+): readonly AnyCollectionDescriptor[] => Object.freeze(
+  descriptors.map((descriptor) => descriptor as unknown as AnyCollectionDescriptor)
+);
 
 // Læse-closures får en dybtfrossen, isoleret kopi, så binding-callbacks aldrig kan mutere kildesnapshottet.
 // Den frosne kopi castes til `PersistedInputSections`; read-closures muterer den aldrig (og kan det ikke).
 const isolateSections = (sections: PersistedInputSections): PersistedInputSections =>
   cloneAndDeepFreeze(sections) as unknown as PersistedInputSections;
 
-const templateKey = (template: object): string => JSON.stringify(template);
+const templatePathKey = (path: readonly CollectionTemplateSegment[]): readonly (readonly string[])[] =>
+  path.map((segment) => segment.kind === 'property'
+    ? ['property', segment.name]
+    : ['entity', segment.collection]);
 
-const addressTemplateKey = (address: FieldAddress): string => JSON.stringify({
-  section: address.section,
-  path: address.path.map((segment) => segment.kind === 'property'
-    ? { kind: 'property', name: segment.name }
-    : { kind: 'entity', collection: segment.collection }),
-  field: address.field,
-});
+const fieldTemplateKey = (template: AnyFieldDescriptor['template']): string => JSON.stringify([
+  template.section,
+  templatePathKey(template.path),
+  template.field,
+]);
 
-const collectionTemplateKeyFromRef = (collection: CollectionRef): string => JSON.stringify({
-  section: collection.section,
-  path: collection.path.map((segment) => segment.kind === 'property'
-    ? { kind: 'property', name: segment.name }
-    : { kind: 'entity', collection: segment.collection }),
-  collection: collection.collection,
-});
+const collectionTemplateKey = (template: CollectionTemplate): string => JSON.stringify([
+  template.section,
+  templatePathKey(template.path),
+  template.collection,
+]);
+
+const addressTemplateKey = (address: FieldAddress): string => JSON.stringify([
+  address.section,
+  address.path.map((segment) => segment.kind === 'property'
+    ? ['property', segment.name]
+    : ['entity', segment.collection]),
+  address.field,
+]);
+
+const collectionTemplateKeyFromRef = (collection: CollectionRef): string => JSON.stringify([
+  collection.section,
+  collection.path.map((segment) => segment.kind === 'property'
+    ? ['property', segment.name]
+    : ['entity', segment.collection]),
+  collection.collection,
+]);
 
 const assertEntityIds = (ids: readonly string[]): void => {
   if (ids.some((id) => id === '' || id.trim() !== id) || new Set(ids).size !== ids.length) {
     throw new Error('InputCatalog: entity-id’er skal være ikke-tomme, trimmede og unikke');
+  }
+};
+
+const assertMetadataPart = (value: string, description: string): void => {
+  if (value === '' || value.trim() !== value) {
+    throw new Error(`InputCatalog: ${description} skal være ikke-tom og uden ydre mellemrum`);
   }
 };
 
@@ -104,16 +144,26 @@ export type InputCatalog = Readonly<{
   listFieldInstances: (sections: PersistedInputSections) => readonly AnyFieldRef[];
   /** Katalog-afhængig envelope-validering: struktur + XOR + inputdrevet eksistens (§3.1). */
   validateSettledInput: (candidate: SettledInputCandidate) => SettledInput;
+  /** Reducer-intern før/efter-validering, før ny-irrelevante rejected inputs er ryddet. */
+  validateSettledInputBeforeRelevanceCleanup: (candidate: SettledInputCandidate) => SettledInput;
 }>;
 
 export const createInputCatalog = (options: Readonly<{
   fields: readonly AnyFieldDescriptor[];
   collections: readonly AnyCollectionDescriptor[];
 }>): InputCatalog => {
+  const fields = Object.freeze([...options.fields]);
+  const collections = Object.freeze(options.collections.map((descriptor) => Object.freeze({
+    ...descriptor,
+    template: Object.freeze({
+      ...descriptor.template,
+      path: Object.freeze(descriptor.template.path.map((segment) => Object.freeze({ ...segment }))),
+    }),
+  })));
   const fieldsByTemplate = new Map<string, AnyFieldDescriptor>();
   const fieldIds = new Set<string>();
-  for (const descriptor of options.fields) {
-    const key = templateKey(descriptor.template);
+  for (const descriptor of fields) {
+    const key = fieldTemplateKey(descriptor.template);
     if (fieldsByTemplate.has(key)) throw new Error(`InputCatalog: dubleret feltadresse (${descriptor.id})`);
     if (fieldIds.has(descriptor.id)) throw new Error(`InputCatalog: dubleret felt-id (${descriptor.id})`);
     fieldsByTemplate.set(key, descriptor);
@@ -122,8 +172,23 @@ export const createInputCatalog = (options: Readonly<{
 
   const collectionsByTemplate = new Map<string, AnyCollectionDescriptor>();
   const collectionIds = new Set<string>();
-  for (const descriptor of options.collections) {
-    const key = templateKey(descriptor.template);
+  for (const descriptor of collections) {
+    assertMetadataPart(descriptor.id, 'samlings-id');
+    assertMetadataPart(descriptor.template.collection, 'samlingsnavn');
+    for (const segment of descriptor.template.path) {
+      assertMetadataPart(
+        segment.kind === 'property' ? segment.name : segment.collection,
+        'samlingssti-led'
+      );
+    }
+    for (const [name, fn] of [
+      ['getEntityId', descriptor.getEntityId],
+      ['readEntities', descriptor.readEntities],
+      ['writeEntities', descriptor.writeEntities],
+    ] as const) {
+      if (typeof fn !== 'function') throw new Error(`InputCatalog: ${descriptor.id}.${name} skal være en funktion`);
+    }
+    const key = collectionTemplateKey(descriptor.template);
     if (collectionsByTemplate.has(key)) throw new Error(`InputCatalog: dubleret samling (${descriptor.id})`);
     if (collectionIds.has(descriptor.id)) throw new Error(`InputCatalog: dubleret samlings-id (${descriptor.id})`);
     collectionsByTemplate.set(key, descriptor);
@@ -135,7 +200,7 @@ export const createInputCatalog = (options: Readonly<{
     const parent: CollectionTemplateSegment[] = [];
     for (const segment of path) {
       if (segment.kind === 'entity') {
-        const parentKey = templateKey({ section, path: parent, collection: segment.collection });
+        const parentKey = collectionTemplateKey({ section, path: parent, collection: segment.collection });
         if (!collectionsByTemplate.has(parentKey)) {
           throw new Error(`InputCatalog: entity-sti mangler registrering af parentsamlingen '${segment.collection}'`);
         }
@@ -143,8 +208,8 @@ export const createInputCatalog = (options: Readonly<{
       parent.push(segment);
     }
   };
-  for (const descriptor of options.fields) assertTemplateParents(descriptor.template.section, descriptor.template.path);
-  for (const descriptor of options.collections) {
+  for (const descriptor of fields) assertTemplateParents(descriptor.template.section, descriptor.template.path);
+  for (const descriptor of collections) {
     assertTemplateParents(descriptor.template.section, descriptor.template.path);
   }
 
@@ -304,7 +369,7 @@ export const createInputCatalog = (options: Readonly<{
 
   const listFieldInstances = (sections: PersistedInputSections): readonly AnyFieldRef[] => {
     const instances: AnyFieldRef[] = [];
-    for (const descriptor of options.fields) {
+    for (const descriptor of fields) {
       for (const path of expandConcretePaths(descriptor.template.section, descriptor.template.path, sections)) {
         const entityIds = path.filter((segment): segment is Extract<FieldAddressPathSegment, { kind: 'entity' }> =>
           segment.kind === 'entity').map((segment) => segment.entityId);
@@ -314,7 +379,10 @@ export const createInputCatalog = (options: Readonly<{
     return Object.freeze(instances);
   };
 
-  const validateSettledInput = (candidate: SettledInputCandidate): SettledInput => {
+  const validateSettledInputCandidate = (
+    candidate: SettledInputCandidate,
+    enforceRejectedRelevance: boolean
+  ): SettledInput => {
     const structural = settledInputBaseSchema.parse(candidate);
     const sections = persistedInputSectionsSchema.parse(structural.sections);
 
@@ -325,6 +393,14 @@ export const createInputCatalog = (options: Readonly<{
         readEntityIds(descriptor, sections, collection);
       }
     }
+
+    const readCanonical = <T>(field: FieldRef<T>): T => {
+      if (!isKnownField(field) || !containsAddressEntities(sections, field.address)) {
+        throw new Error('SettledInput: relevansregel læste en ukendt eller slettet feltreference');
+      }
+      return cloneAndDeepFreeze(field.descriptor.readCanonical(isolateSections(sections), field.address)) as T;
+    };
+    const view: CanonicalView = Object.freeze({ readCanonical });
 
     for (const [serialized, rejected] of Object.entries(structural.rejectedInputs)) {
       const address = deserializeFieldAddress(serialized);
@@ -338,12 +414,29 @@ export const createInputCatalog = (options: Readonly<{
       if (!deepEqual(canonical, descriptor.emptyValue)) {
         throw new Error(`SettledInput: rejected felt har en ikke-tom canonical værdi (${serialized})`);
       }
-      void rejected;
+      const reparsed = descriptor.codec.parseForSettle(rejected.raw);
+      if (reparsed.status !== 'rejected'
+        || reparsed.reason !== rejected.reason
+        || !deepEqual(reparsed.detail, rejected.detail)) {
+        throw new Error(`SettledInput: rejected input matcher ikke feltets codec (${serialized})`);
+      }
+      if (enforceRejectedRelevance) {
+        const entityIds = address.path
+          .filter((segment): segment is Extract<FieldAddressPathSegment, { kind: 'entity' }> => segment.kind === 'entity')
+          .map((segment) => segment.entityId);
+        const field = descriptor.bind(...entityIds);
+        if (descriptor.relevance !== undefined && !descriptor.relevance(field, view)) {
+          throw new Error(`SettledInput: rejected felt er ikke relevant (${serialized})`);
+        }
+      }
     }
 
     rejectedInputsSchema.parse(structural.rejectedInputs);
     return cloneAndDeepFreeze(structural) as SettledInput;
   };
+
+  const validateSettledInput = (candidate: SettledInputCandidate): SettledInput =>
+    validateSettledInputCandidate(candidate, true);
 
   return Object.freeze({
     resolveField,
@@ -357,5 +450,7 @@ export const createInputCatalog = (options: Readonly<{
     getEntityId,
     listFieldInstances,
     validateSettledInput,
+    validateSettledInputBeforeRelevanceCleanup: (candidate) =>
+      validateSettledInputCandidate(candidate, false),
   });
 };

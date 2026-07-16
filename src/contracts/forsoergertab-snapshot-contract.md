@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ---
 
@@ -54,8 +54,8 @@ Runtimefejl skal routes efter `error-contract.md` og give dansk blokerende bruge
 
 Tests skal dække:
 
-1. snapshot bygges kun fra en ready, revisionsbundet inputprojektion,
+1. snapshot bygges kun fra en ready, `EvaluationSourceToken`-bundet inputprojektion,
 2. dokumentgaten og dokumentprojektionen kommer fra samme dokumentdefinition og angiver blokerende årsager,
 3. runtime exception blokerer output,
 4. ændringer i `faellesAarsloen` påvirker snapshot deterministisk,
-5. dokumentflow bruger snapshot-projektionen og afviser stale revision.
+5. dokumentflow bruger snapshot-projektionen og afviser et stale `EvaluationSourceToken`.

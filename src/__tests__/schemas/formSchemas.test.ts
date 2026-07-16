@@ -197,7 +197,6 @@ describe('erstatningsopgoerelseSchema', () => {
       verserendeKlageEet: undefined,
       tidligereSsMax: undefined,
       svieSmerteDelvisSygemeldingSats: undefined,
-      opsagtFraStilling: undefined,
       beregnesUdFra: undefined,
       erstatningsopgoerelseAfsluttesMed: undefined,
       eoBilagSelection: {},

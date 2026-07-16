@@ -8,7 +8,13 @@ export * from './fieldDescriptor';
 export * from './settledInput';
 export * from './fieldCatalog';
 export * from './inputIssue';
-export * from './inputReader';
+export { createInputEvaluation } from './inputReader';
+export type {
+  EntityRef,
+  InputEvaluation,
+  InputReader,
+  ReadFieldResult,
+} from './inputReader';
 export * from './inputReducer';
 export * from './evaluationSource';
 export * from './projection';

@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ---
 
@@ -17,7 +17,7 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 
 ## 2. Kanoniske Regler
 
-1. Renteberegning må kun bruge en `ready`, revisionsbundet inputprojektion fra `InputReader`, og kun via de
+1. Renteberegning må kun bruge en `ready`, `EvaluationSourceToken`-bundet inputprojektion fra `InputReader`, og kun via de
    autoritative moduler i §1. Rå canonical sektioner er ikke en tilladt engine-/gate-adgang.
 2. Dato- og dagtælling følger `date-contract.md`.
 3. Beløb og afrunding følger `amount-contract.md`, medmindre rentedomænet får en mere specifik dokumenteret regel.
@@ -34,7 +34,7 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 ## 3. Arkitekturvalg: ikke snapshot-first (bevidst)
 
 Renteberegning er **bevidst ikke** snapshot-first. Den tabel-/engine-drevne model i §1 er den valgte slutarkitektur.
-Domænet bruger en revisionsbundet `InputProjection` foran motoren; den er en inputintegritetsgrænse, ikke et
+Domænet bruger en `EvaluationSourceToken`-bundet `InputProjection` foran motoren; den er en inputintegritetsgrænse, ikke et
 beregningssnapshot.
 
 Begrundelse: hver rentekravsrække beregnes idempotent af `computeRentekravRow`, og dokumentstien genbruger rækkens
@@ -42,8 +42,8 @@ beregnede context fra samme ready-projektion. Inputprojectionen bygger kun engin
 strukturelle dependencies er anvendelige. Et yderligere snapshot ville ikke fjerne en parallel beregningssti.
 
 Ved dokumentklik kører critical-action-preflight først. Derefter bygges projektionen fra en frisk `InputReader`; kun
-ready-grenens branded revision må nå dokumentservicen. Servicen kontrollerer revisionen efter lazy-load og umiddelbart
-før generatoren og afviser fail-closed ved drift.
+ready-grenens `EvaluationSourceToken` må nå dokumentservicen. Servicen kontrollerer hele tokenet efter lazy-load og
+umiddelbart før generatoren og afviser fail-closed ved input- eller settingsdrift.
 
 Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §6`.
 

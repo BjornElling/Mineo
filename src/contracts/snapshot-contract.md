@@ -4,11 +4,12 @@
 **Type:** Tværgående kontrakt
 **Prioritet:** Specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og
 `forsoergertab-snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ## 1. Formål
 
-Et domænesnapshot er et autoritativt, read-only beregnings-/projektionsobjekt bygget fra en `ready`, revisionsbundet
+Et domænesnapshot er et autoritativt, read-only beregnings-/projektionsobjekt bygget fra en `ready`,
+`EvaluationSourceToken`-bundet
 inputprojektion. Det samler domænets beregnings-entry og forhindrer parallelle beregningsveje i UI, kontrol og dokument.
 
 Et snapshot er ikke persisted state, åben draft, en generel inputreader eller et framework for alle domæner.

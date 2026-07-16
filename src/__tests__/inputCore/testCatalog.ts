@@ -1,4 +1,7 @@
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
+import type { RenteberegningValues, RentekravRow } from '../../schemas/formSchemas/sections/renteberegningSchemas';
+import type { SatserValues } from '../../schemas/formSchemas/sections/satserSchemas';
 import type { ISODateString } from '../../types/branded';
 import {
   createInputCatalog,
@@ -9,6 +12,8 @@ import {
   optionalTextFieldCodec,
   createRequiredChoiceFieldCodec,
   createCollectionRef,
+  catalogFields,
+  catalogCollections,
   type CollectionDescriptor,
   type FieldAddress,
   type FieldDescriptor,
@@ -18,26 +23,10 @@ import {
 // Ren, framework-fri testkatalog for greenfield-inputkernen. Bygger på ægte sektionsschemas (`satser`,
 // `renteberegning`), så XOR- og eksistens-valideringen køres mod den rigtige Zod-kontrakt.
 
-type SatserSection = { aargang: number | undefined };
-type RentekravRow = {
-  id: string;
-  belob: AmountValue | undefined;
-  renterFra: ISODateString | undefined;
-  tillaegstid: number | undefined;
-  enhed: 'dage' | 'uger' | 'maaneder';
-};
-type RenteberegningSection = {
-  beregningsdato: ISODateString | undefined;
-  kommentarer: string | undefined;
-  rentekravRows: RentekravRow[];
-};
+const readSatser = (sections: PersistedInputSections): SatserValues | null => sections.satser;
+const readRente = (sections: PersistedInputSections): RenteberegningValues | null => sections.renteberegning;
 
-const readSatser = (sections: PersistedInputSections): SatserSection | null =>
-  sections.satser as SatserSection | null;
-const readRente = (sections: PersistedInputSections): RenteberegningSection | null =>
-  sections.renteberegning as RenteberegningSection | null;
-
-const ensureRente = (section: RenteberegningSection | null): RenteberegningSection =>
+const ensureRente = (section: RenteberegningValues | null): RenteberegningValues =>
   section ?? { beregningsdato: undefined, kommentarer: undefined, rentekravRows: [] };
 
 const findRowId = (address: FieldAddress): string => {
@@ -46,12 +35,15 @@ const findRowId = (address: FieldAddress): string => {
   return entity.entityId;
 };
 
+const isUndefined = (value: unknown): boolean => value === undefined;
+
 // ── Statisk felt: satser.aargang (heltal med range 1900–2100) ────────────────────────────────────────
 export const aargangField: FieldDescriptor<number | undefined> = defineField({
   id: 'satser.aargang',
   template: { section: 'satser', path: [], field: 'aargang' },
   codec: createIntegerFieldCodec({ allowNegative: false, minValue: 1900, maxValue: 2100 }),
   emptyValue: undefined,
+  isEmpty: isUndefined,
   label: 'Satsår',
   controlKind: 'text',
   readCanonical: (sections) => readSatser(sections)?.aargang,
@@ -64,6 +56,7 @@ export const beregningsdatoField: FieldDescriptor<ISODateString | undefined> = d
   template: { section: 'renteberegning', path: [], field: 'beregningsdato' },
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
   emptyValue: undefined,
+  isEmpty: isUndefined,
   label: 'Beregningsdato',
   controlKind: 'text',
   // Bounds på en CANONICAL værdi (§1.6, anden repræsentation): datoen forbliver canonical, men et afledt
@@ -83,6 +76,7 @@ export const kommentarerField: FieldDescriptor<string | undefined> = defineField
   template: { section: 'renteberegning', path: [], field: 'kommentarer' },
   codec: optionalTextFieldCodec,
   emptyValue: undefined,
+  isEmpty: isUndefined,
   label: 'Kommentarer',
   controlKind: 'text',
   readCanonical: (sections) => readRente(sections)?.kommentarer,
@@ -128,6 +122,7 @@ export const belobField: FieldDescriptor<AmountValue | undefined> = defineField(
   template: { section: 'renteberegning', path: [{ kind: 'entity', collection: 'rentekravRows' }], field: 'belob' },
   codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true, minValue: 0, maxValue: 1_000_000 }),
   emptyValue: undefined,
+  isEmpty: isUndefined,
   label: 'Beløb',
   controlKind: 'text',
   readCanonical: (sections, address) => readRow(sections, findRowId(address))?.belob,
@@ -143,18 +138,23 @@ export const tillaegstidField: FieldDescriptor<number | undefined> = defineField
   template: { section: 'renteberegning', path: [{ kind: 'entity', collection: 'rentekravRows' }], field: 'tillaegstid' },
   codec: createIntegerFieldCodec({ allowNegative: false, minValue: 0, maxValue: 100 }),
   emptyValue: undefined,
+  isEmpty: isUndefined,
   label: 'Tillægstid',
   controlKind: 'text',
-  relevance: (view) => view.readCanonical(aargangField.bind()) !== 2000,
+  relevance: (field, view) => {
+    const rowId = findRowId(field.address);
+    return view.readCanonical(enhedField.bind(rowId)) !== 'uger';
+  },
   readCanonical: (sections, address) => readRow(sections, findRowId(address))?.tillaegstid,
   writeCanonical: (sections, address, value) => updateRow(sections, findRowId(address), (row) => ({ ...row, tillaegstid: value })),
 });
 
-export const enhedField: FieldDescriptor<'dage' | 'uger' | 'maaneder'> = defineField({
+export const enhedField: FieldDescriptor<TillaegstidEnhed> = defineField({
   id: 'renteberegning.rentekravRows.enhed',
   template: { section: 'renteberegning', path: [{ kind: 'entity', collection: 'rentekravRows' }], field: 'enhed' },
-  codec: createRequiredChoiceFieldCodec(['dage', 'uger', 'maaneder']),
+  codec: createRequiredChoiceFieldCodec<TillaegstidEnhed>(['dage', 'uger', 'maaneder'], 'dage'),
   emptyValue: 'dage',
+  isEmpty: () => false,
   label: 'Enhed',
   controlKind: 'choice',
   readCanonical: (sections, address) => readRow(sections, findRowId(address))?.enhed ?? 'dage',
@@ -162,8 +162,8 @@ export const enhedField: FieldDescriptor<'dage' | 'uger' | 'maaneder'> = defineF
 });
 
 export const createTestCatalog = () => createInputCatalog({
-  fields: [aargangField, beregningsdatoField, kommentarerField, belobField, tillaegstidField, enhedField],
-  collections: [rentekravRowsCollection],
+  fields: catalogFields(aargangField, beregningsdatoField, kommentarerField, belobField, tillaegstidField, enhedField),
+  collections: catalogCollections(rentekravRowsCollection),
 });
 
 export const makeRow = (id: string, overrides: Partial<RentekravRow> = {}): RentekravRow => ({

@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ---
 
@@ -18,7 +18,7 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
 ## 2. Kanoniske Regler
 
 1. Siden må læse `stamdata` og egen `varigemen`-sektion.
-2. Beregning må kun modtage en `ready`, revisionsbundet projektion af `stamdata` og `varigemen`; rå canonical
+2. Beregning må kun modtage en `ready`, `EvaluationSourceToken`-bundet projektion af `stamdata` og `varigemen`; rå canonical
    sektioner, åben draft og lokal UI-state er ikke engine-input.
 3. Dokumentdownload gates før renderer-kald af en typed dokumentdefinition. Den samme definition driver reaktiv gate
    og click-preflight og aggregerer alle relevante fejlissues; lokale feltbooleans er ikke gatekilder.

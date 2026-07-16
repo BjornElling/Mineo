@@ -1,6 +1,6 @@
 import type { CodecFamily, ControlKind, SectionKey } from './ledgerTypes';
 
-// Greenfield-kerne (§6.1): én dataidentitet pr. persisteret felt (IKKE pr. Zod-leaf — en AmountValue er ÉT
+// Midlertidigt fase-0-inventar (§6.1): én dataidentitet pr. persisteret felt (IKKE pr. Zod-leaf — en AmountValue er ÉT
 // felt, selv om schemaet har `kind`/`value`/`expression`; entity-id'er er strukturelle, ikke felter).
 //
 // Feltidentiteterne + baseline-count udledes MASKINELT fra de levende Zod-schemas i completeness-testen, så
@@ -68,9 +68,10 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
   erstatningsopgoerelse: {
     // Basisblok
     eoNummer: t('optionalText'), eoLedsagetekst: t('optionalText'), offentligeYdelserKommentarer: t('optionalText'),
-    loenudviklingPaaGrundlagAf: t('optionalText'), saerligeKommentarer: t('optionalText'),
+    saerligeKommentarer: t('optionalText'),
     opgørelseLavetDen: t('date'), vedroererPeriodeFra: t('date'), vedroererPeriodeTil: t('date'), forligDato: t('date'),
-    indsaetUdkastStempel: c(), revideretOpgoerelse: c(), midlertidigtEetFraEetSiden: c(), regulerOffentligeYdelser: c(),
+    indsaetUdkastStempel: tog('choice'), revideretOpgoerelse: tog('choice'),
+    midlertidigtEetFraEetSiden: tog('choice'), regulerOffentligeYdelser: tog('choice'),
     erstatningsopgoerelseAfsluttesMed: c(),
     forligAnsvarsgradProcent: t('percent'), forligAnsvarsgradBroek: t('fraction'),
     kravPaaOevrigeErstatningskrav: c(), eoBilagLoenindkomstOgOffentligeYdelserIndgaar: c(),
@@ -80,19 +81,21 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
     'eoBilagSelection.shDage': tog(), 'eoBilagSelection.regulering': tog(),
     'eoBilagSelection.okSatser': tog(), 'eoBilagSelection.sygeferiegodtgoerelse': tog(),
     // AES-afgørelser
-    varigeMenAfgorelse: c(), verserendeKlageMen: c(), midlertidigtEETAfgorelse: c(), endeligtEETAfgorelse: c(),
-    verserendeKlageEet: c(),
+    varigeMenAfgorelse: tog('choice'), verserendeKlageMen: tog('choice'),
+    midlertidigtEETAfgorelse: tog('choice'), endeligtEETAfgorelse: tog('choice'),
+    verserendeKlageEet: tog('choice'),
     menAfgoerelseDato: t('date'), midlertidigEETAfgoerelseDato: t('date'), midlertidigEETVirkningsdato: t('date'),
     endeligEETAfgoerelseDato: t('date'), endeligEETVirkningsdato: t('date'), differencekravDato: t('date'),
     // Svie/smerte
-    kravPaaSvieSmerteGodtgoerelse: c(), svieSmerteHelbredsstatus: c(), tidligereSsMax: c(),
+    kravPaaSvieSmerteGodtgoerelse: c(), svieSmerteHelbredsstatus: c(), tidligereSsMax: tog('choice'),
     svieSmerteSatserAar: t('year'), svieSmerteDelvisSygemeldingSats: c(),
     svieSmerteTidligereTotal: t('amount'), svieSmerteAktuelPeriode: t('amount'),
     // TAF
-    kravPaaTabtArbejdsfortjeneste: c(), tafArbejdsstatus: c(), opsagtFraStilling: c(),
+    kravPaaTabtArbejdsfortjeneste: c(), tafArbejdsstatus: c(),
     sidsteDagAnsaettelsesforhold: t('date'), tidligereModtagetTaf: t('amount'),
     // Indtægt før skaden
-    komprimerBeregningEfterFoersteOpgoerelse: c(), oevrigtFravaerUdenLoen: c(), beregnesUdFra: c(),
+    komprimerBeregningEfterFoersteOpgoerelse: tog('choice'),
+    oevrigtFravaerUdenLoen: tog('choice'), beregnesUdFra: c(),
     tafBeregningsperiodeFra: t('date'), tafBeregningsperiodeTil: t('date'),
     angivetMaanedsloenOpreguleresFraDato: t('date'), angivetDagsloenOpreguleresFraDato: t('date'),
     uspecificeredeFerieFridage: t('integer'), oevrigeFravaersdage: t('integer'),
@@ -100,7 +103,7 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
     angivetMaanedsloenBaseretPaa: t('optionalText'), angivetDagsloenBaseretPaa: t('optionalText'),
     maanedsloenenUdgoer: t('amount'), dagsloenenUdgoer: t('amount'),
     // Bilagsnumre
-    visBilagsnumre: c(), bilagsnumreMenAfgoerelse: t('optionalText'), bilagsnumreEetAfgoerelser: t('optionalText'),
+    visBilagsnumre: tog('choice'), bilagsnumreMenAfgoerelse: t('optionalText'), bilagsnumreEetAfgoerelser: t('optionalText'),
     bilagsnumreSvieSmerteDokumentation: t('optionalText'), bilagsnumreBeregningsgrundlagTaf: t('optionalText'),
     bilagsnumreLoenISygeperioden: t('optionalText'), bilagsnumreOffentligeYdelser: t('optionalText'),
     bilagsnumreOevrigeErstatningskrav: t('optionalText'),
@@ -122,32 +125,9 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
     'eoAngivetLoenLoenudvikling.offentligLoenGruppe': t('integer'),
     'eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen': t('amount'),
     'eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager': c(),
-    'eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver': t('optionalText'),
+    'eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver': c('optionalText'),
   },
 };
 
 /** Baseline-count (§6, Fase 0 trin 13). Låst mod de levende schemas i completeness-testen — ingen placeholder. */
-export const EXPECTED_FIELD_REF_COUNT = 243;
-
-/**
- * Editorlokationer (§6.1): den primære editorside/route pr. sektion. Fokusmål-id'er pr. felt populeres i
- * Fase-1/2-descriptorerne. Delte felter (redigeres flere steder) er markeret særskilt.
- */
-export const SECTION_PRIMARY_EDITOR_ROUTE: Readonly<Record<SectionKey, string | null>> = {
-  stamdata: '/stamdata',
-  satser: '/satser',
-  aarsloen: '/aarsloen',
-  // faellesAarsloen har ingen egen route — den redigeres i EET-, Forsørgertab- og EO-kontekster (delt felt).
-  faellesAarsloen: null,
-  renteberegning: '/renteberegning',
-  varigemen: '/varige-men',
-  forsoergertab: '/forsoergertab',
-  erstatningsopgoerelse: '/erstatningsopgoerelse',
-  erhvervsevnetab: '/erhvervsevnetab',
-};
-
-/** Datafelter der redigeres på flere editorlokationer (§6.1 delte felter). */
-export const SHARED_FIELD_PATHS: readonly Readonly<{ section: SectionKey; path: string }>[] = [
-  { section: 'faellesAarsloen', path: 'aslAarsloen' },
-  { section: 'faellesAarsloen', path: 'ealAarsloen' },
-];
+export const EXPECTED_FIELD_REF_COUNT = 239;

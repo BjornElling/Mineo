@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
 Eksisterende per-sektion-storage og `invalidDrafts` migreres efter
@@ -95,7 +95,9 @@ ingen legacy-sessionreader, per-sektion-nøgle-migration, `invalidDrafts`-overs�
 kompatibilitetsdialog. Kun `.eo`-fil-load er bagud-/fremadtolerant (§5); det er en separat produktgaranti og må aldrig
 bruges som begrundelse for runtime-kompatibilitet.
 
-Bootstrap læser den ene current-session-envelope én gang før React-render:
+Bootstrap læser kun den nye, manifest-ejede current-session-nøgle én gang før React-render. Data under pensionerede
+browsernøgler læses eller dekodes aldrig og er derfor hverken current-data eller current-korruption. En inkompatibel
+envelopeændring kræver en ny nøgle; kun indhold under den aktuelle nøgle klassificeres efter følgende regler:
 
 1. Findes ingen envelope, starter sagen tom.
 2. Findes en gyldig envelope, hydreres den.
@@ -180,7 +182,8 @@ destruktiv erstatning må ikke tilbydes.
 
 ## 8. Autoritative replacements og history
 
-- Load, hel-sags-clear og migration/recovery, der erstatter hele sagen, er autoritative replacements.
+- Load og hel-sags-clear, der erstatter hele sagen, er autoritative replacements. Recovery fra en korrupt current-
+  session sker kun gennem brugerens eksplicitte `Slet alt` og er samme hel-sags-clear, ikke en migrator.
 - Hele kandidataggregaten valideres før apply.
 - Rejected inputs erstattes/ryddes som del af samme aggregate, aldrig i en efterfølgende cleanup.
 - Afledte issues genberegnes og lagres ikke.

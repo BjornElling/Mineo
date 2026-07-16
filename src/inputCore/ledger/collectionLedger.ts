@@ -1,6 +1,6 @@
 import type { CodecFamily, ControlKind, SectionKey } from './ledgerTypes';
 
-// Greenfield-kerne (§6.2): én entry pr. dynamisk collection. `path` er den strukturelle sti til collectionen
+// Midlertidigt fase-0-inventar (§6.2): én entry pr. dynamisk collection. `path` er den strukturelle sti til collectionen
 // (tom for top-level; en forælder-collection-sti udtrykkes med `[]`). Completeness-testen verificerer, at
 // nøjagtig disse collections findes i de faktiske Zod-schemas, og at hver childfield hører til collectionen.
 
@@ -80,10 +80,6 @@ export const INPUT_COLLECTION_LEDGER: readonly CollectionLedgerEntry[] = [
     entityIdProperty: 'id', childFields: [f('fra', 'date'), f('til', 'date')], nestedCollectionIds: [],
   },
   {
-    id: 'eo.sfggSygeperioderFoer2015', section: 'erstatningsopgoerelse', path: '', collection: 'sfggSygeperioderFoer2015',
-    entityIdProperty: 'id', childFields: [f('fra', 'date'), f('til', 'date')], nestedCollectionIds: [],
-  },
-  {
     id: 'eo.fravaerPerioder', section: 'erstatningsopgoerelse', path: '', collection: 'fravaerPerioder',
     entityIdProperty: 'id', childFields: [f('fra', 'date'), f('til', 'date')], nestedCollectionIds: [],
   },
@@ -104,7 +100,7 @@ export const INPUT_COLLECTION_LEDGER: readonly CollectionLedgerEntry[] = [
     entityIdProperty: 'id',
     childFields: [
       f('fraDato', 'date'), f('tilDato', 'date'),
-      f('ydelse', 'amount'), f('tillaeg', 'amount'), f('ydelsestype', 'optionalText'),
+      f('ydelse', 'amount'), f('tillaeg', 'amount'), f('ydelsestype', 'optionalText', 'choice'),
     ],
     nestedCollectionIds: [],
   },
@@ -139,7 +135,7 @@ export const INPUT_COLLECTION_LEDGER: readonly CollectionLedgerEntry[] = [
       f('offentligLoenType', 'choice', 'choice'), f('anciennitetstillaegSats', 'amount'),
       f('offentligLoenEkstraGrundloen', 'amount'), f('loenudviklingManuelNavn', 'optionalText'),
       f('offentligLoenTrin', 'integer'), f('offentligLoenGruppe', 'integer'),
-      f('overenskomstFilter.loenmodtager', 'choice', 'choice'), f('overenskomstFilter.arbejdsgiver', 'optionalText'),
+      f('overenskomstFilter.loenmodtager', 'choice', 'choice'), f('overenskomstFilter.arbejdsgiver', 'optionalText', 'choice'),
     ],
     nestedCollectionIds: [
       'eo.loenindkomstAnsaettelsesforhold.indtaegtsoplysningerTableData',
@@ -190,4 +186,4 @@ export const INPUT_COLLECTION_LEDGER: readonly CollectionLedgerEntry[] = [
   },
 ] as const;
 
-export const EXPECTED_COLLECTION_COUNT = 17;
+export const EXPECTED_COLLECTION_COUNT = 16;

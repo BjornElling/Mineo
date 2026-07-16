@@ -10,8 +10,6 @@ export const createTafFerieRowId = (): RowId => createRowId('taf_ferie_row');
 
 export const createFravaerRowId = (): RowId => createRowId('fravaer_row');
 
-export const createSfggSygeperiodeRowId = (): RowId => createRowId('sfgg_sygeperiode_row');
-
 export const createEmptyFerieCommittedRow = (id: RowId): FerieperiodeRow => ({
   id,
   fra: undefined,
@@ -40,10 +38,6 @@ export const ensureTafFerieRows = (rows: FerieperiodeRow[] | undefined): Feriepe
 
 export const ensureFravaerRows = (rows: FerieperiodeRow[] | undefined): FerieperiodeRow[] => {
   return ensureFerieRowsWithIdFactory(rows, createFravaerRowId);
-};
-
-export const ensureSfggSygeperioderRows = (rows: FerieperiodeRow[] | undefined): FerieperiodeRow[] => {
-  return ensureFerieRowsWithIdFactory(rows, createSfggSygeperiodeRowId);
 };
 
 export const committedToFerieDraftRows = (rows: FerieperiodeRow[]): FerieDraftRow[] => {

@@ -17,7 +17,7 @@ import {
   type SettledInput,
   type SettledInputCandidate,
 } from './settledInput';
-import { createValidationReader, deriveFieldIssueSnapshot } from './inputReader';
+import { createValidationReader, deriveFieldIssueSet } from './inputReader';
 import { activeFieldIssue } from './inputIssue';
 
 // Greenfield-kerne (§3.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
@@ -27,13 +27,6 @@ import { activeFieldIssue } from './inputIssue';
 export type SettleFieldCommand<T> = Readonly<{ kind: 'settleField'; field: FieldRef<T>; raw: string }>;
 export type SetImmediateFieldCommand<T> = Readonly<{ kind: 'setImmediateField'; field: FieldRef<T>; value: T }>;
 export type ClearFieldCommand<T> = Readonly<{ kind: 'clearField'; field: FieldRef<T> }>;
-
-/** Atomisk styrende valg (§3.6): committer valget OG rydder feltfejl, der bliver irrelevante, i ét trin. */
-export type ApplyControllingChoiceCommand<T> = Readonly<{
-  kind: 'applyControllingChoice';
-  field: FieldRef<T>;
-  value: T;
-}>;
 
 export type InsertRowCommand<TEntity> = Readonly<{
   kind: 'insertRow';
@@ -56,11 +49,9 @@ export type SettleFieldInNewRowCommand<TEntity, TField> = Readonly<{
   raw: string;
 }>;
 
-export type ResetSectionCommand = Readonly<{
-  kind: 'resetSection';
-  section: SectionKey;
-  value: PersistedInputSections[SectionKey];
-}>;
+export type ResetSectionCommand = {
+  [K in SectionKey]: Readonly<{ kind: 'resetSection'; section: K; value: PersistedInputSections[K] }>;
+}[SectionKey];
 export type ReplaceCaseCommand = Readonly<{ kind: 'replaceCase'; input: SettledInputCandidate }>;
 export type ClearCaseCommand = Readonly<{ kind: 'clearCase' }>;
 
@@ -68,7 +59,6 @@ export type InputMutationCommand<TField = unknown, TEntity = unknown> =
   | SettleFieldCommand<TField>
   | SetImmediateFieldCommand<TField>
   | ClearFieldCommand<TField>
-  | ApplyControllingChoiceCommand<TField>
   | InsertRowCommand<TEntity>
   | DeleteRowCommand
   | ReorderRowsCommand
@@ -84,8 +74,6 @@ export const setImmediateField = <T>(field: FieldRef<T>, value: T): SetImmediate
   Object.freeze({ kind: 'setImmediateField', field, value });
 export const clearField = <T>(field: FieldRef<T>): ClearFieldCommand<T> =>
   Object.freeze({ kind: 'clearField', field });
-export const applyControllingChoice = <T>(field: FieldRef<T>, value: T): ApplyControllingChoiceCommand<T> =>
-  Object.freeze({ kind: 'applyControllingChoice', field, value });
 export const insertRow = <TEntity>(collection: CollectionRef, entity: TEntity, index?: number): InsertRowCommand<TEntity> =>
   Object.freeze({ kind: 'insertRow', collection, entity, ...(index === undefined ? {} : { index }) });
 export const deleteRow = (collection: CollectionRef, entityId: string): DeleteRowCommand =>
@@ -100,8 +88,11 @@ export const settleFieldInNewRow = <TEntity, TField>(
   index?: number
 ): SettleFieldInNewRowCommand<TEntity, TField> =>
   Object.freeze({ kind: 'settleFieldInNewRow', collection, entity, field, raw, ...(index === undefined ? {} : { index }) });
-export const resetSection = (section: SectionKey, value: PersistedInputSections[SectionKey]): ResetSectionCommand =>
-  Object.freeze({ kind: 'resetSection', section, value });
+export const resetSection = <K extends SectionKey>(
+  section: K,
+  value: PersistedInputSections[K]
+): Extract<ResetSectionCommand, { section: K }> =>
+  Object.freeze({ kind: 'resetSection', section, value }) as Extract<ResetSectionCommand, { section: K }>;
 export const replaceCase = (input: SettledInputCandidate): ReplaceCaseCommand =>
   Object.freeze({ kind: 'replaceCase', input });
 export const clearCase = (): ClearCaseCommand => Object.freeze({ kind: 'clearCase' });
@@ -143,7 +134,7 @@ const reduceSettle = <T>(parts: InputParts, field: FieldRef<T>, raw: string, cat
   assertWritable(parts, field, catalog);
   const resolution = field.descriptor.codec.parseForSettle(raw);
   if (resolution.status === 'valid') return withCanonicalValue(parts, field, resolution.value);
-  if (raw === '') throw new Error('InputReducer: codec afviste tom tekst, som ikke kan være rejected input');
+  if (raw.trim() === '') throw new Error('InputReducer: codec afviste tom tekst, som ikke kan være rejected input');
   return withRejectedInput(parts, field, {
     raw,
     reason: resolution.reason,
@@ -168,7 +159,7 @@ const removeRejectedBelowEntity = (
 };
 
 /** §3.6 fast før/efter-procedure for et styrende valg: commit + atomisk oprydning af nu-irrelevante feltfejl. */
-const reduceControllingChoice = <T>(
+const reduceImmediateChoice = <T>(
   input: SettledInput,
   field: FieldRef<T>,
   value: T,
@@ -176,17 +167,24 @@ const reduceControllingChoice = <T>(
 ): InputParts => {
   // 1. Fasthold før-snapshottets aktive feltissues og inputdrevne relevans.
   const beforeReader = createValidationReader(input, catalog);
-  const beforeIssues = deriveFieldIssueSnapshot(beforeReader, catalog);
+  const beforeIssues = deriveFieldIssueSet(beforeReader, catalog);
   const beforeFields = catalog.listFieldInstances(input.sections);
   const beforeRelevant = new Map(beforeFields.map((f) => [serializeFieldAddress(f.address), beforeReader.isRelevant(f)]));
 
   // 2. Anvend valget på kandidaten.
   assertWritable(input, field, catalog);
+  if (field.descriptor.controlKind === 'text') {
+    throw new Error('InputReducer: setImmediateField er kun tilladt for choice/toggle');
+  }
+  const reparsed = field.descriptor.codec.parseForSettle(field.descriptor.codec.formatForEdit(value));
+  if (reparsed.status !== 'valid' || !deepEqual(reparsed.value, value)) {
+    throw new Error('InputReducer: immediate-værdien accepteres ikke af feltets codec');
+  }
   let candidate = withCanonicalValue(input, field, value);
 
   // 3-4. Beregn efter-relevans; find felter med overgangen relevant → irrelevant.
   const afterReader = createValidationReader(
-    catalog.validateSettledInput(candidate),
+    catalog.validateSettledInputBeforeRelevanceCleanup(candidate),
     catalog
   );
 
@@ -216,13 +214,10 @@ const buildCandidate = <TField, TEntity>(
     case 'settleField':
       return reduceSettle(input, command.field, command.raw, catalog);
     case 'setImmediateField':
-      assertWritable(input, command.field, catalog);
-      return withCanonicalValue(input, command.field, command.value);
+      return reduceImmediateChoice(input, command.field, command.value, catalog);
     case 'clearField':
       assertWritable(input, command.field, catalog);
       return withCanonicalValue(input, command.field, command.field.descriptor.emptyValue);
-    case 'applyControllingChoice':
-      return reduceControllingChoice(input, command.field, command.value, catalog);
     case 'insertRow':
       return {
         sections: catalog.insertEntity(input.sections, command.collection, command.entity, command.index),

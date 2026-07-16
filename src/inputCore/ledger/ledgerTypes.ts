@@ -1,9 +1,9 @@
 import type { SectionKey } from '../fieldAddress';
 
-// Greenfield-kerne (§6): maskinlæsbare migrationsledgers med én dataidentitet pr. felt, collection og
-// consumer. Ledgerne er coverage-backstops og migrationschecklister — ikke runtime-routere. De fastlåser
+// Greenfield-kerne (§6): maskinlæsbare, midlertidige migrationsinventarer med én dataidentitet pr. felt,
+// collection og makro-consumer. De er coverage-backstops — ikke runtime-routere. De fastlåser
 // den eksisterende, låste feature-flade, indtil de enkelte entrypoints fuses ind i `src/inputCore`-
-// descriptorkataloget (Fase 1/2) og consumer-cutoveren (Fase 3–5).
+// descriptorkataloget (Fase 2) og consumer-cutoveren (Fase 3–5), hvorefter de slettes.
 
 /** Codec-familier på tværs af form og grid (§3.3). Én familie pr. inputtype. */
 export type CodecFamily =

@@ -3,16 +3,18 @@ import {
   settleField,
   setImmediateField,
   clearField,
-  applyControllingChoice,
   insertRow,
   deleteRow,
+  reorderRows,
   settleFieldInNewRow,
-  createValidationReader,
-  deriveFieldIssueSnapshot,
-  createInputReader,
+  resetSection,
+  replaceCase,
+  clearCase,
+  createInputEvaluation,
   createEvaluationSourceToken,
   createInputRevision,
   createSettingsRevision,
+  captureStableSource,
   runProjection,
   createInputHistory,
   pushInputHistory,
@@ -21,13 +23,16 @@ import {
   blocksEoSave,
   serializeFieldAddress,
   createInputCatalog,
+  catalogFields,
   defineField,
   createIntegerFieldCodec,
   type SettledInput,
   type InputMutationCommand,
   type InputHistory,
   type FieldRef,
+  MAX_INPUT_HISTORY_STEPS,
 } from '../../inputCore';
+import { createValidationReader, deriveFieldIssueSet } from '../../inputCore/inputReader';
 import {
   createTestCatalog,
   aargangField,
@@ -55,18 +60,16 @@ const empty = (): SettledInput => catalog.validateSettledInput({
 type State = Readonly<{ input: SettledInput; history: InputHistory }>;
 const start = (): State => {
   const input = empty();
-  return { input, history: createInputHistory(input) };
+  return { input, history: createInputHistory() };
 };
 const apply = <TField, TEntity>(state: State, command: InputMutationCommand<TField, TEntity>): State => {
   const result = reduceInputCommand(state.input, command, catalog);
   if (!result.changed) return state;
-  return { input: result.input, history: pushInputHistory(state.history, result.input) };
+  return { input: result.input, history: pushInputHistory(state.history, state.input) };
 };
 
 const reader = (input: SettledInput) => {
-  const validation = createValidationReader(input, catalog);
-  const issues = deriveFieldIssueSnapshot(validation, catalog);
-  return createInputReader({ input, catalog, issues, sourceToken: token });
+  return createInputEvaluation({ input, catalog, sourceToken: token, settings: {} }).reader;
 };
 
 const rejectedAt = <T>(input: SettledInput, field: FieldRef<T>) =>
@@ -92,10 +95,38 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
     })).toThrow(/ikke-tom canonical/);
   });
 
+  it('afviser rejected råtekst, der ikke matcher feltets codec eller aktuelle relevans', () => {
+    const address = serializeFieldAddress(tillaegstidField.bind('r1').address);
+    const sections = {
+      ...empty().sections,
+      renteberegning: { beregningsdato: undefined, kommentarer: undefined, rentekravRows: [makeRow('r1')] },
+    };
+    expect(() => catalog.validateSettledInput({
+      sections,
+      rejectedInputs: { [address]: { raw: '999', reason: 'format' } },
+    })).toThrow(/matcher ikke feltets codec/);
+
+    expect(() => catalog.validateSettledInput({
+      sections: {
+        ...sections,
+        renteberegning: { ...sections.renteberegning, rentekravRows: [makeRow('r1', { enhed: 'uger' })] },
+      },
+      rejectedInputs: { [address]: { raw: '999', reason: 'range', detail: { minValue: 0, maxValue: 100 } } },
+    })).toThrow(/ikke relevant/);
+  });
+
   it('ugyldigt settle af tom tekst er umuligt — codec resolver tom som canonical tomværdi', () => {
     const cleared = apply(apply(start(), settleField(aargangField.bind(), '2020')), settleField(aargangField.bind(), '   '));
     expect(rejectedAt(cleared.input, aargangField.bind())).toBeUndefined();
     expect(createValidationReader(cleared.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
+  });
+
+  it('ugyldig råtekst → tomt settle rydder rejected uden at genoplive en gammel canonical værdi', () => {
+    let state = apply(start(), settleField(aargangField.bind(), '2020'));
+    state = apply(state, settleField(aargangField.bind(), 'abc'));
+    state = apply(state, settleField(aargangField.bind(), ''));
+    expect(rejectedAt(state.input, aargangField.bind())).toBeUndefined();
+    expect(createValidationReader(state.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
   });
 });
 
@@ -108,7 +139,7 @@ describe('Ens konsekvens for format og range (§1.6)', () => {
       expect(rejectedAt(state.input, aargangField.bind())?.reason).toBe(reason);
       const read = reader(state.input).read(aargangField.bind());
       expect(read.status).toBe('error');
-      const snapshot = deriveFieldIssueSnapshot(createValidationReader(state.input, catalog), catalog);
+      const snapshot = deriveFieldIssueSet(createValidationReader(state.input, catalog), catalog);
       expect(snapshot.all.every(blocksEoSave)).toBe(true);
     }
   });
@@ -127,7 +158,7 @@ describe('Ens konsekvens for format og range (§1.6)', () => {
 
 describe('Tomhed og missing (§1.7)', () => {
   it('et tomt felt giver ingen rød feltfejl og blokerer ikke .eo', () => {
-    const snapshot = deriveFieldIssueSnapshot(createValidationReader(empty(), catalog), catalog);
+    const snapshot = deriveFieldIssueSet(createValidationReader(empty(), catalog), catalog);
     expect(snapshot.all).toHaveLength(0);
     expect(reader(empty()).read(aargangField.bind()).status).toBe('usable');
   });
@@ -138,6 +169,12 @@ describe('Tomhed og missing (§1.7)', () => {
     expect(projection.status === 'blocked' && projection.issues[0]?.kind).toBe('consumer');
     expect(projection.status === 'blocked' && projection.issues.some(blocksEoSave)).toBe(false);
   });
+
+  it('en gyldig default er ikke missing, selv om den også er feltets clear-værdi', () => {
+    const withRow = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
+    const projection = runProjection(reader(withRow.input), 'default-consumer', (c) => c.require(enhedField.bind('r1')));
+    expect(projection.status).toBe('ready');
+  });
 });
 
 describe('Immediate commit og clear (§1.3)', () => {
@@ -147,6 +184,16 @@ describe('Immediate commit og clear (§1.3)', () => {
     expect(createValidationReader(set.input, catalog).readCanonical(enhedField.bind('r1'))).toBe('uger');
     const cleared = apply(set, clearField(enhedField.bind('r1')));
     expect(createValidationReader(cleared.input, catalog).readCanonical(enhedField.bind('r1'))).toBe('dage');
+  });
+
+  it('afviser immediate commit på tekstfelter og værdier uden for codecets kontrakt', () => {
+    expect(() => reduceInputCommand(empty(), setImmediateField(aargangField.bind(), 2020), catalog)).toThrow(/choice\/toggle/);
+    const withRow = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
+    expect(() => reduceInputCommand(
+      withRow.input,
+      setImmediateField(enhedField.bind('r1'), 'ukendt' as 'dage'),
+      catalog
+    )).toThrow(/accepteres ikke/);
   });
 });
 
@@ -162,20 +209,33 @@ describe('Styrende valg rydder nu-irrelevante feltfejl, bevarer gyldigt (§1.9, 
     const seeded = seedRowWithRejectedTillaegstid();
     expect(rejectedAt(seeded.input, tillaegstidField.bind('r1'))).toBeDefined();
 
-    // aargang=2000 gør tillaegstid irrelevant (relevance: aargang !== 2000).
-    const chosen = apply(seeded, applyControllingChoice(aargangField.bind(), 2000));
+    // Enhed=uger gør tillægstid irrelevant efter testkatalogets inputdrevne relevansregel.
+    const chosen = apply(seeded, setImmediateField(enhedField.bind('r1'), 'uger'));
 
     expect(rejectedAt(chosen.input, tillaegstidField.bind('r1'))).toBeUndefined(); // ryddet
     const validation = createValidationReader(chosen.input, catalog);
     expect(validation.readCanonical(belobField.bind('r1'))).toBeDefined(); // bevaret
-    expect(validation.readCanonical(aargangField.bind())).toBe(2000);
+    expect(validation.readCanonical(enhedField.bind('r1'))).toBe('uger');
   });
 
   it('bevarer en GYLDIG værdi, der bliver irrelevant (§1.9)', () => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
     state = apply(state, settleField(tillaegstidField.bind('r1'), '50')); // gyldig
-    const chosen = apply(state, applyControllingChoice(aargangField.bind(), 2000));
+    const chosen = apply(state, setImmediateField(enhedField.bind('r1'), 'uger'));
     expect(createValidationReader(chosen.input, catalog).readCanonical(tillaegstidField.bind('r1'))).toBe(50);
+  });
+
+  it('undo/redo omkring skjul af fejl gendanner begge hele tilstande', () => {
+    const seeded = seedRowWithRejectedTillaegstid();
+    const hidden = apply(seeded, setImmediateField(enhedField.bind('r1'), 'uger'));
+    const undone = undoInputHistory(hidden.history, hidden.input);
+    if (!undone.changed) throw new Error('Testinvariant: undo-target mangler');
+    expect(rejectedAt(undone.target.input, tillaegstidField.bind('r1'))?.raw).toBe('999');
+    expect(createValidationReader(undone.target.input, catalog).readCanonical(enhedField.bind('r1'))).toBe('dage');
+    const redone = redoInputHistory(undone.history, undone.target.input);
+    if (!redone.changed) throw new Error('Testinvariant: redo-target mangler');
+    expect(rejectedAt(redone.target.input, tillaegstidField.bind('r1'))).toBeUndefined();
+    expect(createValidationReader(redone.target.input, catalog).readCanonical(enhedField.bind('r1'))).toBe('uger');
   });
 });
 
@@ -195,6 +255,15 @@ describe('Dynamiske tabeller (§1.11, §3.8, §7.4)', () => {
     expect(reader(deleted.input).listEntities(rentekravRowsRef())).toHaveLength(0);
     expect(Object.keys(deleted.input.rejectedInputs)).toHaveLength(0);
   });
+
+  it('reorder ændrer kun rækkefølgen og bevarer feltidentitet/rejected input', () => {
+    let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
+    state = apply(state, insertRow(rentekravRowsRef(), makeRow('r2')));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), '999'));
+    state = apply(state, reorderRows(rentekravRowsRef(), ['r2', 'r1']));
+    expect(state.input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+    expect(rejectedAt(state.input, tillaegstidField.bind('r1'))?.raw).toBe('999');
+  });
 });
 
 describe('Transaktionsinvarianter (§7.4)', () => {
@@ -208,6 +277,21 @@ describe('Transaktionsinvarianter (§7.4)', () => {
   it('en command mod en slettet/ukendt feltreference afvises før mutation', () => {
     const missingRowRef = tillaegstidField.bind('does-not-exist');
     expect(() => reduceInputCommand(empty(), settleField(missingRowRef, '5'), catalog)).toThrow();
+  });
+
+  it('resetSection rydder kun sektionens rejected input; replace og clear validerer hele casen', () => {
+    let state = apply(start(), settleField(aargangField.bind(), 'abc'));
+    state = apply(state, insertRow(rentekravRowsRef(), makeRow('r1')));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), '999'));
+
+    state = apply(state, resetSection('satser', { aargang: 2020 }));
+    expect(rejectedAt(state.input, aargangField.bind())).toBeUndefined();
+    expect(rejectedAt(state.input, tillaegstidField.bind('r1'))).toBeDefined();
+
+    state = apply(state, replaceCase({ sections: empty().sections, rejectedInputs: {} }));
+    expect(state.input).toEqual(empty());
+    const noOpClear = apply(state, clearCase());
+    expect(noOpClear).toBe(state);
   });
 });
 
@@ -236,6 +320,16 @@ describe('Reader skjuler aldrig andre rækkers/felters værdier unødigt (§1.10
       r.listEntities(rentekravRowsRef()).map((entity) => c.require(belobField.bind(entity.entityId))));
     expect(aggregate.status).toBe('blocked');
   });
+
+  it('blokerer også når kroppen ignorerer unavailable-resultatet og samler alle blockers', () => {
+    const blocked = runProjection(reader(empty()), 'aggregate', (c) => {
+      c.require(aargangField.bind());
+      c.require(beregningsdatoField.bind());
+      return 'må ikke blive ready';
+    });
+    expect(blocked.status).toBe('blocked');
+    expect(blocked.status === 'blocked' ? blocked.issues : []).toHaveLength(2);
+  });
 });
 
 describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§7.2)', () => {
@@ -246,32 +340,115 @@ describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§7
     // Nuværende: rejected 'abc', canonical tom.
     expect(rejectedAt(state.input, aargangField.bind())?.raw).toBe('abc');
 
-    const undone = undoInputHistory(state.history);
-    expect(createValidationReader(undone.present, catalog).readCanonical(aargangField.bind())).toBe(2020);
-    expect(rejectedAt(undone.present, aargangField.bind())).toBeUndefined();
+    const undone = undoInputHistory(state.history, state.input);
+    expect(undone.changed).toBe(true);
+    if (!undone.changed) throw new Error('Testinvariant: undo-target mangler');
+    expect(createValidationReader(undone.target.input, catalog).readCanonical(aargangField.bind())).toBe(2020);
+    expect(rejectedAt(undone.target.input, aargangField.bind())).toBeUndefined();
 
-    const redone = redoInputHistory(undone);
-    expect(createValidationReader(redone.present, catalog).readCanonical(aargangField.bind())).toBeUndefined();
-    expect(rejectedAt(redone.present, aargangField.bind())?.raw).toBe('abc');
+    const redone = redoInputHistory(undone.history, undone.target.input);
+    expect(redone.changed).toBe(true);
+    if (!redone.changed) throw new Error('Testinvariant: redo-target mangler');
+    expect(createValidationReader(redone.target.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
+    expect(rejectedAt(redone.target.input, aargangField.bind())?.raw).toBe('abc');
+  });
+
+  it('ugyldig X → ugyldig Y og ugyldig → gyldig erstatter tilstanden atomisk', () => {
+    let state = apply(start(), settleField(aargangField.bind(), 'abc'));
+    state = apply(state, settleField(aargangField.bind(), 'def'));
+    expect(rejectedAt(state.input, aargangField.bind())?.raw).toBe('def');
+    state = apply(state, settleField(aargangField.bind(), '2020'));
+    expect(rejectedAt(state.input, aargangField.bind())).toBeUndefined();
+    expect(createValidationReader(state.input, catalog).readCanonical(aargangField.bind())).toBe(2020);
+  });
+
+  it('række-fejl → slet → undo → redo bevarer hele snapshotkæden', () => {
+    let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), '999'));
+    state = apply(state, deleteRow(rentekravRowsRef(), 'r1'));
+    const undone = undoInputHistory(state.history, state.input);
+    if (!undone.changed) throw new Error('Testinvariant: undo-target mangler');
+    expect(rejectedAt(undone.target.input, tillaegstidField.bind('r1'))).toBeDefined();
+    const redone = redoInputHistory(undone.history, undone.target.input);
+    if (!redone.changed) throw new Error('Testinvariant: redo-target mangler');
+    expect(redone.target.input.sections.renteberegning?.rentekravRows).toHaveLength(0);
+    expect(redone.target.input.rejectedInputs).toEqual({});
+  });
+});
+
+describe('Kildesnapshot og history-grænser (§3.4, §3.7)', () => {
+  it('binder input/issues/settings til samme token og isolerer settings fra mutation', () => {
+    const settings = { nested: { enabled: true } };
+    let receivedFrozen = false;
+    const evaluation = createInputEvaluation({
+      input: empty(), catalog, sourceToken: token, settings,
+      deriveSettingsFieldIssues: (_validation, snapshot) => {
+        receivedFrozen = Object.isFrozen(snapshot) && Object.isFrozen(snapshot.nested);
+        return [];
+      },
+    });
+    expect(receivedFrozen).toBe(true);
+    expect(evaluation.issues.sourceToken).toBe(token);
+    expect(evaluation.reader.sourceToken).toBe(token);
+  });
+
+  it('genprøver ved input- eller settingsdrift og stopper fail-closed ved vedvarende drift', () => {
+    let revision = 0;
+    let tokenReads = 0;
+    const captured = captureStableSource(
+      () => {
+        tokenReads += 1;
+        if (tokenReads === 2) revision = 1;
+        return createEvaluationSourceToken(createInputRevision(revision), createSettingsRevision(revision));
+      },
+      () => ({ revision })
+    );
+    expect(captured.token.inputRevision).toBe(1);
+    expect(() => captureStableSource(
+      () => createEvaluationSourceToken(createInputRevision(revision += 1), createSettingsRevision(revision)),
+      () => null
+    )).toThrow(/stabilt kildesnapshot/);
+  });
+
+  it('history beholder højst 50 før-snapshots', () => {
+    let history = createInputHistory();
+    let current = empty();
+    for (let value = 1900; value < 1900 + MAX_INPUT_HISTORY_STEPS + 5; value += 1) {
+      const result = reduceInputCommand(current, settleField(aargangField.bind(), String(value)), catalog);
+      if (!result.changed) throw new Error('Testinvariant: forventede reel ændring');
+      history = pushInputHistory(history, current);
+      current = result.input;
+    }
+    expect(history.past).toHaveLength(MAX_INPUT_HISTORY_STEPS);
+    expect(createValidationReader(history.past[0]!.input, catalog).readCanonical(aargangField.bind())).toBe(1904);
   });
 });
 
 describe('Katalog valideres én gang ved konstruktion (§3.2)', () => {
+  it('isolerer kataloget fra efterfølgende mutation af callerens arrays', () => {
+    const fields = [...catalogFields(aargangField)];
+    const isolatedCatalog = createInputCatalog({ fields, collections: [] });
+    fields.length = 0;
+    expect(isolatedCatalog.isKnownField(aargangField.bind())).toBe(true);
+    expect(isolatedCatalog.listFieldInstances(empty().sections)).toHaveLength(1);
+  });
+
   it('afviser dubleret felt-id', () => {
     const dup = defineField({
       id: 'satser.aargang',
       template: { section: 'satser', path: [], field: 'aargangDuplikat' },
       codec: createIntegerFieldCodec({ allowNegative: false }),
       emptyValue: undefined,
+      isEmpty: (value) => value === undefined,
       label: 'Dup',
       controlKind: 'text',
       readCanonical: () => undefined,
       writeCanonical: (sections) => sections,
     });
-    expect(() => createInputCatalog({ fields: [aargangField, dup], collections: [] })).toThrow(/dubleret felt-id/);
+    expect(() => createInputCatalog({ fields: catalogFields(aargangField, dup), collections: [] })).toThrow(/dubleret felt-id/);
   });
 
   it('afviser et entity-felt uden registreret parentsamling', () => {
-    expect(() => createInputCatalog({ fields: [belobField], collections: [] })).toThrow(/parentsamling/);
+    expect(() => createInputCatalog({ fields: catalogFields(belobField), collections: [] })).toThrow(/parentsamling/);
   });
 });

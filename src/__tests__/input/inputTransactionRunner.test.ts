@@ -15,7 +15,7 @@ const origin: HistoryFrameOrigin = {
 describe('executeLegacyInputTransaction', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    inputRuntimeStore.getState().clearAll({ hydrated: true, persistedDataVersion: '3.9' });
+    inputRuntimeStore.getState().clearAll({ hydrated: true, persistedDataVersion: '3.10' });
   });
 
   it('skriver aggregate, revision og history som én transaktion', () => {

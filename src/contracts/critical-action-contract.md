@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ## 1. Scope
 
@@ -63,7 +63,7 @@ Enhver aktivering, også tastatur/programmatisk og et click der allerede er leve
 3. læs en ny `InputReader`,
 4. evaluer dokumentets typed definition,
 5. stop før lazy-load, generator og fil-I/O ved blokering,
-6. send kun et revisionsbundet `PreparedDocument<T>` videre.
+6. send kun et `EvaluationSourceToken`-bundet `PreparedDocument<T>` videre.
 
 Ved ugyldigt settle bliver knappen visuelt og funktionelt disabled. Hvis aktiveringen allerede nåede preflight, stoppes
 handlingen, feltet fokuseres uden scroll, og den eksisterende danske inputadvarsel vises. Dette er defense-in-depth;

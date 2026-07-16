@@ -258,7 +258,6 @@
       "loenindkomstAnsaettelsesforhold[].sidsteArbejdsdag",
       "loenindkomstAnsaettelsesforhold[].storeBededagPct",
       "loenindkomstAnsaettelsesforhold[].tillaegAngivesSom",
-      "loenudviklingPaaGrundlagAf",
       "menAfgoerelseDato",
       "midlertidigEETAfgoerelseDato",
       "midlertidigEETVirkningsdato",
@@ -288,7 +287,6 @@
       "offentligeYdelserRows[].ydelse.value",
       "offentligeYdelserRows[].ydelsestype",
       "opgørelseLavetDen",
-      "opsagtFraStilling",
       "regulerOffentligeYdelser",
       "revideretOpgoerelse",
       "saerligeKommentarer",
@@ -306,9 +304,6 @@
       "sfggAnsaettelsesforhold[].sfggReferenceperiodeFravaersdageUdenLoen",
       "sfggAnsaettelsesforhold[].sfggReferenceperiodeTil",
       "sfggAnsaettelsesforhold[].sfggSatsvalg",
-      "sfggSygeperioderFoer2015[].fra",
-      "sfggSygeperioderFoer2015[].id",
-      "sfggSygeperioderFoer2015[].til",
       "sidsteDagAnsaettelsesforhold",
       "svieSmerteAktuelPeriode.expression",
       "svieSmerteAktuelPeriode.kind",
@@ -354,7 +349,6 @@
       "oevrigeKravPerioder",
       "offentligeYdelserRows",
       "sfggAnsaettelsesforhold",
-      "sfggSygeperioderFoer2015",
       "svieSmertePerioder",
       "tafPerioder"
     ]

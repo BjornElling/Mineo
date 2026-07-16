@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-06-19
+**Senest verificeret mod kode:** 2026-07-16
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -54,6 +54,10 @@ Konsekvens:
 - Save/Load: `src/utils/fileSave.ts` og `src/utils/fileLoad.ts`
 
 ## Designkrav (sikkerhed og forudsigelighed)
+- **Monoton settingsrevision**: runtime ejer én ikke-persisteret settingsrevision. Den stiger præcis én gang ved en reel
+  ændring af de settings, som kan påvirke validering, beregning eller dokumentoutput, og ikke ved no-op. Snapshot og
+  revision læses atomisk og indgår sammen med inputrevisionen i `EvaluationSourceToken`; async-gates sammenligner altid
+  hele tokenet.
 - **Fail-safe**: hvis `localStorage` er blokeret/fejler, må app’en stadig fungere (fallback til in-memory state).
 - **Schema-alignment**: settings skal valideres via Zod; invalid/ukendt data skal falde tilbage til defaults.
 - **Ingen netværk/telemetri**: settings må ikke forårsage data-overførsel ud af browseren.

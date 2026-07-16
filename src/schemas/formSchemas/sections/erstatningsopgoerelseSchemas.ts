@@ -155,7 +155,6 @@ const tafSchema = z.object({
   tafArbejdsstatus: z.preprocess(normalizeEmptyToUndefined, arbejdsstatusEnum.optional()),
   tafPerioder: z.array(tafPeriodeRowSchema).default([]),
   ferieperioder: z.array(ferieperiodeRowSchema).default([]),
-  opsagtFraStilling: jaNejEnum.default('Nej'),
   sidsteDagAnsaettelsesforhold: optionalIsoDateString,
   tidligereModtagetTaf: amountValue,
 }).strict();
@@ -179,10 +178,6 @@ const indtaegtFoerSkadenSchema = z.object({
 }).strict();
 
 const sygeferiegodtgoerelseSchema = z.object({
-  // ferieperiodeRowSchema genbruges bevidst her: sfggSygeperioderFoer2015 har samme struktur
-  // (fra/til/id) som ferieperioder. Invariant: kun fra, til og id bruges — øvrige evt. ferieperiode-felter
-  // er irrelevante for dette domæne og ignoreres ved læsning.
-  sfggSygeperioderFoer2015: z.array(ferieperiodeRowSchema).default([]),
   sfggAnsaettelsesforhold: z.array(sygeferiegodtgoerelseAnsaettelsesforholdRowSchema).default([]),
 }).strict();
 
@@ -229,7 +224,6 @@ const erstatningsopgoerelseBaseSchema = z.object({
   oevrigeKravPerioder: z.array(oevrigeKravRowSchema).default([]),
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema).default([]),
   offentligeYdelserKommentarer: optionalString,
-  loenudviklingPaaGrundlagAf: optionalString,
   saerligeKommentarer: optionalString,
   // Zod 4 .default() returnerer output-værdien direkte (re-parser den ikke), så defaulten skal være
   // det fulde objekt. Vi udleder det fra schemaets egne felt-defaults via parse({}) i stedet for at

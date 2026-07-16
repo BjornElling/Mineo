@@ -58,10 +58,6 @@ describe('createErstatningsopgoerelseInitialValues – defaults', () => {
     expect(values.loenindkomstAnsaettelsesforhold).toHaveLength(0);
   });
 
-  it('opsagtFraStilling er "Nej"', () => {
-    const values = createErstatningsopgoerelseInitialValues();
-    expect(values.opsagtFraStilling).toBe('Nej');
-  });
 });
 
 // ─── Schema-afledte objekt-defaults (regressions-lås for C13) ─────────────────

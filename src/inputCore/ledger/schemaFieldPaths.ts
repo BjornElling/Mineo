@@ -72,7 +72,10 @@ const collectSchemaPaths = (schema: JsonObject): Readonly<{ fields: readonly str
   };
 
   visit(schema, '');
-  return { fields: [...fields], collections: [...collections] };
+  return {
+    fields: [...fields].sort((left, right) => left.localeCompare(right, 'da')),
+    collections: [...collections].sort((left, right) => left.localeCompare(right, 'da')),
+  };
 };
 
 const sectionJsonSchema = (section: SectionKey): JsonObject =>

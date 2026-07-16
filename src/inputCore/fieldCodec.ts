@@ -21,7 +21,7 @@ export type FieldResolution<T> =
   | Readonly<{ status: 'rejected'; reason: FieldRejectReason; detail?: FieldRejectDetail }>;
 
 export type FieldCodec<T> = Readonly<{
-  /** Parser rå editortekst ved settle. Tom tekst skal altid resolve `valid` til feltets tomværdi. */
+  /** Parser rå editortekst ved settle. Semantisk tom tekst skal resolve `valid` til feltets tomværdi. */
   parseForSettle: (raw: string) => FieldResolution<T>;
   /** Visning af en canonical værdi i lukket tilstand. */
   format: (value: T) => string;

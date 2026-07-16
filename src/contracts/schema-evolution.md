@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -248,14 +248,14 @@ Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `Storag
 3. `stripUnknownFieldsBySchema`
 4. `schema.safeParse`
 
-Før trin 1 resolverer kalderen en eksplicit kildeversion: `.eo` bruger
-`_metadata.persistedDataVersion` eller `LEGACY_PERSISTED_DATA_VERSION`, mens
-session-hydrering bruger sektionens envelope-version. Trin 1–2 ejes derefter af
+Før trin 1 resolverer `.eo`-loaderen en eksplicit kildeversion fra
+`_metadata.persistedDataVersion` eller `LEGACY_PERSISTED_DATA_VERSION`. Trin 1–2 ejes derefter af
 `migratePersistedSectionValue(pageKey, value, sourceVersion)` i
 `src/utils/persistenceMigrations.ts`: den normaliserer (`nullToUndefinedDeep`) før
 et eksakt per-sektion `fromVersion -> current`-opslag. Manglende register-entry er
 identity; der gættes aldrig ud fra shape eller versionsrækkefølge. Trin 3 ligger i
-`sanitizePersistedValueForSchema()`, trin 4 hos kalderen.
+`sanitizePersistedValueForSchema()`, trin 4 hos kalderen. Denne pipeline er kun `.eo`-load; current-session-
+hydrering validerer én samlet current-format-envelope og kører aldrig per-sektionsmigratorer.
 
 Migratorer må kun mappe kendte gamle strukturer til current struktur. De må ikke gætte domæneværdier. En migrator er et extension point, ikke en generel forpligtelse til bagudkompatibilitet.
 

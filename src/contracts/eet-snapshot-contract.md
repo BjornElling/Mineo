@@ -3,14 +3,14 @@
 **Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ---
 
 ## 1. Autoritativ entry og canonical output
 
 `computeEetSnapshot(...)` er den autoritative entry for Erhvervsevnetab-sidevisning, tabprojektioner og EET-dokumentflow.
-Den modtager kun en `ready`, revisionsbundet EET-inputprojektion; rå canonical sektioner må ikke gives som bypass.
+Den modtager kun en `ready`, `EvaluationSourceToken`-bundet EET-inputprojektion; rå canonical sektioner må ikke gives som bypass.
 
 UI, PDF og EO-import må ikke lave parallelle EET-beregninger uden om snapshot/projektioner eller de helpers, som denne kontrakt udpeger.
 
@@ -96,7 +96,7 @@ uden relevante afgørelser og skal give en blokerende issue.
 
 Tests skal dække:
 
-1. snapshot bygges fra en ready, revisionsbundet inputprojektion uden raw-section-bypass,
+1. snapshot bygges fra en ready, `EvaluationSourceToken`-bundet inputprojektion uden raw-section-bypass,
 2. runtime exception giver blokerende tom projektion,
 3. schemafejl og manglende source giver en eksplicit blokerende issue,
 4. de fire projektioners blocking-status og sammenhængen mellem blocking-flag og issues,

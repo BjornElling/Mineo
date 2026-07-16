@@ -53,7 +53,8 @@ consumer, som kræver feltet.
 
 ### 2.3 Domæneprojektion
 
-En domæneprojektion bygges fra ét revisionsbundet input-snapshot gennem den fælles `InputReader`.
+En domæneprojektion bygges fra ét `EvaluationSourceToken`-bundet input-/settingssnapshot gennem den fælles
+`InputReader`.
 
 - Kun en `ready` projektion må fodre beregningsmotorer, save eller dokumentgeneratorer.
 - En `blocked` projektion bærer strukturelle blockers med feltreference og årsag.
@@ -107,7 +108,8 @@ datafeltets reference med den konkrete editors eksplicitte fokusmål, fordi samm
 
 - Statiske felter defineres én gang.
 - Dynamiske række-/entity-felter dannes af typed builders.
-- Felt- og collection-bindings samles i ét katalog, der forsegles før state-validering og læsning.
+- Felt- og collection-bindings samles i ét statisk, valideret og immutable katalog før state-validering og læsning;
+  kataloget har ingen runtime-registration eller seal-livscyklus.
 - En dynamisk reference er kun gyldig, når alle dens entities findes i det konkrete input-snapshot.
 - Adresser beskriver data, ikke DOM eller tabelgeometri.
 - Frie strengnøgler og identitet som `rowId:colIndex` er forbudt.
@@ -179,7 +181,8 @@ Mineos tekst-, dato- og talfelter bruger den eksisterende to-trinsmodel:
 
 Felt-editoren holder kun en rå draft, mens editoren er åben. Når editoren er lukket, afledes visningen direkte af det
 afsluttede revisionsbundne feltstate. Der findes derfor ingen lukket draftkopi, prop-lag-guard, fingerprint eller
-resync-effect. Autoritative replacements og global undo/redo er blokeret af commit-barrieren, mens editoren er åben.
+resync-effect. Global undo/redo er et stille no-op, mens editoren er åben. Load, reset og `Slet alt` følger derimod
+`critical-action-contract.md`: de settler ikke draften og kasserer den kun efter succesfuld apply.
 
 Når editoren er lukket:
 
@@ -255,7 +258,7 @@ Særligt for dokument-download:
 
 1. Den reaktive gate bygger på senest afsluttede input, også mens en editor er åben.
 2. Klik/aktivering finaliserer editoren før dokumentpreflight.
-3. Preflight læser en frisk revision og bruger samme dokumentdefinition som den reaktive gate.
+3. Preflight læser et frisk `EvaluationSourceToken` og bruger samme dokumentdefinition som den reaktive gate.
 4. Ved et nyt relevant fejl-issue bliver knappen visuelt og funktionelt disabled.
 5. Generator, lazy-load og fil-I/O må aldrig starte ved blokering.
 

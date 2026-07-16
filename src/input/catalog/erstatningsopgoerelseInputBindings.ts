@@ -111,7 +111,7 @@ const jaNejField = (field: string, label: string): FieldBinding<JaNej | undefine
   createStructuralFieldBinding({
     definition: defineField<JaNej | undefined>({
       label,
-      controlKind: 'choice',
+      controlKind: 'toggle',
       codec: createChoiceFieldCodec<JaNej>(['Ja', 'Nej']),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field },
@@ -170,7 +170,6 @@ export const eoForligAnsvarsgradBroekBinding: FieldBinding<string | undefined> =
 export const eoForligDatoBinding = dateField('forligDato', 'Forligsdato');
 export const eoKravPaaOevrigeErstatningskravBinding = jaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav');
 export const eoOffentligeYdelserKommentarerBinding = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer');
-export const eoLoenudviklingPaaGrundlagAfBinding = optionalTextField('loenudviklingPaaGrundlagAf', 'Lønudvikling på grundlag af');
 export const eoSaerligeKommentarerBinding = optionalTextField('saerligeKommentarer', 'Særlige kommentarer');
 
 export const eoAfsluttesMedBinding: FieldBinding<AfsluttesMed | undefined> = createStructuralFieldBinding({
@@ -299,7 +298,6 @@ export const eoTafArbejdsstatusBinding: FieldBinding<Arbejdsstatus | undefined> 
   template: { section: 'erstatningsopgoerelse', path: [], field: 'tafArbejdsstatus' },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
-export const eoOpsagtFraStillingBinding = jaNejField('opsagtFraStilling', 'Opsagt fra stilling');
 export const eoSidsteDagAnsaettelsesforholdBinding = dateField('sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold');
 export const eoTidligereModtagetTafBinding = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF');
 
@@ -384,15 +382,6 @@ export const eoFerieperioderBinding: CollectionBinding<FerieperiodeRow> =
   });
 export const eoFerieperiodeFraBinding = rowDateField('ferieperioder', 'fra', 'Fra o.m.');
 export const eoFerieperiodeTilBinding = rowDateField('ferieperioder', 'til', 'Til o.m.');
-
-// sfggSygeperioderFoer2015 (samme rækkeform som ferieperioder)
-export const eoSfggSygeperioderFoer2015Binding: CollectionBinding<FerieperiodeRow> =
-  createStructuralCollectionBinding<FerieperiodeRow>({
-    template: { section: 'erstatningsopgoerelse', path: [], collection: 'sfggSygeperioderFoer2015' },
-    createEmptySection: createEmptyErstatningsopgoerelseSection,
-  });
-export const eoSfggSygeperiodeFraBinding = rowDateField('sfggSygeperioderFoer2015', 'fra', 'Fra o.m.');
-export const eoSfggSygeperiodeTilBinding = rowDateField('sfggSygeperioderFoer2015', 'til', 'Til o.m.');
 
 // fravaerPerioder (samme rækkeform som ferieperioder)
 export const eoFravaerPerioderBinding: CollectionBinding<FerieperiodeRow> =
@@ -587,7 +576,6 @@ export const erstatningsopgoerelseInputManifest = defineInputManifest({
     eoForligDatoBinding,
     eoKravPaaOevrigeErstatningskravBinding,
     eoOffentligeYdelserKommentarerBinding,
-    eoLoenudviklingPaaGrundlagAfBinding,
     eoSaerligeKommentarerBinding,
     eoBilagIndgaarBinding,
     eoBilagSelectionOpgoerelseBinding,
@@ -618,7 +606,6 @@ export const erstatningsopgoerelseInputManifest = defineInputManifest({
     eoSvieSmerteAktuelPeriodeBinding,
     eoKravPaaTabtArbejdsfortjenesteBinding,
     eoTafArbejdsstatusBinding,
-    eoOpsagtFraStillingBinding,
     eoSidsteDagAnsaettelsesforholdBinding,
     eoTidligereModtagetTafBinding,
     eoKomprimerBeregningBinding,
@@ -648,8 +635,6 @@ export const erstatningsopgoerelseInputManifest = defineInputManifest({
     eoTafPeriodeLoseFeriedageBinding,
     eoFerieperiodeFraBinding,
     eoFerieperiodeTilBinding,
-    eoSfggSygeperiodeFraBinding,
-    eoSfggSygeperiodeTilBinding,
     eoSfggBeregningskildeBinding,
     eoSfggReferenceperiodeFraBinding,
     eoSfggReferenceperiodeTilBinding,
@@ -676,7 +661,6 @@ export const erstatningsopgoerelseInputManifest = defineInputManifest({
   collections: [
     eoTafPerioderBinding,
     eoFerieperioderBinding,
-    eoSfggSygeperioderFoer2015Binding,
     eoSfggAnsaettelsesforholdBinding,
     eoFravaerPerioderBinding,
     eoSvieSmertePerioderBinding,

@@ -8,9 +8,11 @@ import type { InputCatalog } from './fieldCatalog';
 import type { RejectedInput, SettledInput } from './settledInput';
 import {
   buildFieldIssueMessage,
-  buildFieldIssueSnapshot,
+  buildFieldIssueSet,
+  bindFieldIssueSnapshot,
   activeFieldIssue,
   type FieldIssue,
+  type FieldIssueSet,
   type FieldIssueSnapshot,
 } from './inputIssue';
 import { toAnyFieldRef } from './fieldDescriptor';
@@ -45,14 +47,17 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
 
   const isRelevant = <T>(field: FieldRef<T>): boolean => {
     const relevance = field.descriptor.relevance;
-    return relevance === undefined ? true : relevance(view);
+    return relevance === undefined ? true : relevance(field, view);
   };
 
   return Object.freeze({
     input: snapshot,
     readCanonical,
-    readRejected: <T>(field: FieldRef<T>): RejectedInput | undefined =>
-      snapshot.rejectedInputs[serializeFieldAddress(field.address)],
+    readRejected: <T>(field: FieldRef<T>): RejectedInput | undefined => {
+      // Samme grænse som canonical read: ukendte/slettede refs må aldrig bruges som valideringsbypass.
+      readCanonical(field);
+      return snapshot.rejectedInputs[serializeFieldAddress(field.address)];
+    },
     isRelevant,
     listEntities: (collection) => Object.freeze(
       catalog.listEntityIds(snapshot.sections, collection).map((entityId) =>
@@ -68,7 +73,7 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
  * issue; canonical validatorer giver bounds/rule-issues. Irrelevante felter giver aldrig et aktivt issue
  * (§1.9). Mounted komponenter indgår aldrig.
  */
-export const deriveFieldIssueSnapshot = (reader: ValidationReader, catalog: InputCatalog): FieldIssueSnapshot => {
+export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCatalog): FieldIssueSet => {
   const issues: FieldIssue[] = [];
   const view: CanonicalView = Object.freeze({ readCanonical: reader.readCanonical });
 
@@ -80,6 +85,8 @@ export const deriveFieldIssueSnapshot = (reader: ValidationReader, catalog: Inpu
     if (rejected !== undefined) {
       issues.push(Object.freeze({
         kind: 'field',
+        code: `${field.descriptor.id}.${rejected.reason}`,
+        severity: 'error',
         field: anyRef,
         reason: rejected.reason,
         message: buildFieldIssueMessage(anyRef, rejected.reason, rejected.detail),
@@ -91,11 +98,15 @@ export const deriveFieldIssueSnapshot = (reader: ValidationReader, catalog: Inpu
     const validators = field.descriptor.validators;
     if (validators === undefined || validators.length === 0) continue;
     const value = reader.readCanonical(field);
+    // Tomhed er consumerens `missing`, aldrig en rød feltfejl.
+    if (field.descriptor.isEmpty(value)) continue;
     for (const validate of validators) {
-      const spec = validate(value, view);
+      const spec = validate(value, field, view);
       if (spec === undefined) continue;
       issues.push(Object.freeze({
         kind: 'field',
+        code: spec.code,
+        severity: 'error',
         field: anyRef,
         reason: spec.reason,
         message: spec.message,
@@ -104,7 +115,7 @@ export const deriveFieldIssueSnapshot = (reader: ValidationReader, catalog: Inpu
     }
   }
 
-  return buildFieldIssueSnapshot(issues);
+  return buildFieldIssueSet(issues);
 };
 
 // ── §3.4 pkt. 3: den offentlige InputReader ─────────────────────────────────────────────────────────
@@ -117,20 +128,21 @@ export type ReadFieldResult<T> =
 
 export type InputReader = Readonly<{
   sourceToken: EvaluationSourceToken;
+  fieldIssues: FieldIssueSnapshot;
   read: <T>(field: FieldRef<T>) => ReadFieldResult<T>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
 }>;
 
-export const createInputReader = (options: Readonly<{
+const createInputReader = (options: Readonly<{
   input: SettledInput;
   catalog: InputCatalog;
   issues: FieldIssueSnapshot;
-  sourceToken: EvaluationSourceToken;
 }>): InputReader => {
   const validation = createValidationReader(options.input, options.catalog);
 
   return Object.freeze({
-    sourceToken: options.sourceToken,
+    sourceToken: options.issues.sourceToken,
+    fieldIssues: options.issues,
     read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
       const value = validation.readCanonical(field); // verificerer også kendt + eksisterende entity
       const issue = activeFieldIssue(options.issues, serializeFieldAddress(field.address));
@@ -138,5 +150,40 @@ export const createInputReader = (options: Readonly<{
       return Object.freeze({ status: 'usable', value });
     },
     listEntities: validation.listEntities,
+  });
+};
+
+export type InputEvaluation = Readonly<{
+  issues: FieldIssueSnapshot;
+  reader: InputReader;
+}>;
+
+/**
+ * Kobler input, issue-snapshot og token i én factory. Consumers kan derfor ikke ved en fejl sætte et gammelt
+ * issue-snapshot sammen med et nyt input/token og eksponere en bounds-fejlende canonical værdi.
+ */
+export const createInputEvaluation = <TSettings>(options: Readonly<{
+  input: SettledInput;
+  catalog: InputCatalog;
+  sourceToken: EvaluationSourceToken;
+  settings: TSettings;
+  deriveSettingsFieldIssues?: (
+    reader: ValidationReader,
+    settings: TSettings
+  ) => readonly FieldIssue[];
+}>): InputEvaluation => {
+  const validation = createValidationReader(options.input, options.catalog);
+  const settings = cloneAndDeepFreeze(options.settings) as TSettings;
+  const settingsIssues = options.deriveSettingsFieldIssues?.(validation, settings) ?? [];
+  const issues = bindFieldIssueSnapshot(
+    buildFieldIssueSet([
+      ...deriveFieldIssueSet(validation, options.catalog).all,
+      ...settingsIssues,
+    ]),
+    options.sourceToken
+  );
+  return Object.freeze({
+    issues,
+    reader: createInputReader({ input: validation.input, catalog: options.catalog, issues }),
   });
 };

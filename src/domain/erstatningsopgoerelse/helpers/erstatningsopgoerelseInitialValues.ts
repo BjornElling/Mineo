@@ -138,7 +138,6 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   tafArbejdsstatus: undefined,
   tafPerioder: ensureTafRows(undefined),
   ferieperioder: ensureTafFerieRows(undefined),
-  opsagtFraStilling: 'Nej',
   sidsteDagAnsaettelsesforhold: undefined,
   tidligereModtagetTaf: undefined,
 
@@ -175,16 +174,12 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   angivetDagsloenOpreguleresFraDato: undefined,
 
   // Sygeferiegodtgørelse
-  sfggSygeperioderFoer2015: [],
   sfggAnsaettelsesforhold: [],
 
   // Lønindkomst
   loenindkomstAnsaettelsesforhold: [],
 
   eoAngivetLoenLoenudvikling: createDefaultAngivetLoenLoenudvikling(safeSettings),
-
-  // Løn-udvikling
-  loenudviklingPaaGrundlagAf: '',
 
   // Kommentarer
   saerligeKommentarer: '',

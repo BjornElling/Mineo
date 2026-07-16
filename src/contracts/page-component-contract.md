@@ -3,7 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ målarkitektur
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -412,7 +412,8 @@ Hvis en knap eller ikonhandling henter det aktive dokumentformat, skal brugeren 
 formatet i tekst, tooltip eller aria-label.
 
 Hvert downloadflow bruger én typed dokumentdefinition efter `document-output-contract.md`. Den samme definition driver
-den reaktive gate og click-preflight. Aktivering finaliserer eventuel åben editor før en frisk revision evalueres;
+den reaktive gate og click-preflight. Aktivering finaliserer eventuel åben editor før et frisk
+`EvaluationSourceToken` evalueres;
 generator, lazy-load og fil-I/O starter aldrig ved blokering.
 
 Download-ikonet skal altid vises sammen med sin tekstlinje. Når den tekstlinje/label, som

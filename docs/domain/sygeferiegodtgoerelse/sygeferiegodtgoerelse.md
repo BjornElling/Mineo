@@ -513,7 +513,6 @@ Løsningen betragtes nu som færdig på modulniveau. Eventuelt efterfølgende ar
 #### 1. Datamodel og persistence
 
 Den persistede model omfatter:
-- `sfggSygeperioderFoer2015` (reserveret felt, bruges ikke i beregning eller UI)
 - `sfggAnsaettelsesforhold`
 
 Pr. ansættelsesforhold persisted blandt andet:

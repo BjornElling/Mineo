@@ -7,9 +7,7 @@ import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/ta
 import {
   committedToFerieDraftRows,
   createEmptyFerieCommittedRow,
-  createSfggSygeperiodeRowId,
   createTafFerieRowId,
-  ensureSfggSygeperioderRows,
   ensureTafFerieRows,
   ferieDraftToCommittedRow,
 } from '../../domain/erstatningsopgoerelse/tables/ferieTableModel';
@@ -18,25 +16,22 @@ export type UseFerieRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;
   setValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   resyncToken: unknown;
-  fieldName?: 'ferieperioder' | 'sfggSygeperioderFoer2015';
 }>;
 
 export type UseFerieRowsResult = UseSliceRowDraftsResult<FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>;
 
-const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperioder' }: UseFerieRowsArgs): UseFerieRowsResult => {
-  const ensureRows = fieldName === 'sfggSygeperioderFoer2015' ? ensureSfggSygeperioderRows : ensureTafFerieRows;
-  const createId = fieldName === 'sfggSygeperioderFoer2015' ? createSfggSygeperiodeRowId : createTafFerieRowId;
+const useFerieRows = ({ values, setValues, resyncToken }: UseFerieRowsArgs): UseFerieRowsResult => {
   return useSliceRowDrafts<ErstatningsopgoerelseValues, FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>({
     values,
     setValues,
     resyncToken,
-    getSlice: (v) => v[fieldName],
-    setSlice: (v, rows) => ({ ...v, [fieldName]: rows }),
+    getSlice: (v) => v.ferieperioder,
+    setSlice: (v, rows) => ({ ...v, ferieperioder: rows }),
     toDraft: committedToFerieDraftRows,
     toCommittedRow: (draft) => ferieDraftToCommittedRow(draft),
     isRowEmpty: isFerieRowEmpty,
-    ensureRows,
-    createId,
+    ensureRows: ensureTafFerieRows,
+    createId: createTafFerieRowId,
     createEmptyCommittedRow: createEmptyFerieCommittedRow,
     // colIndex matcher Ferie-/BeregningsperiodeFerieTable: fra=0, til=1
     fieldColIndex: { fra: 0, til: 1 },
@@ -44,4 +39,3 @@ const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperiod
 };
 
 export default useFerieRows;
-

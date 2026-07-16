@@ -22,7 +22,7 @@ const rejectReasonSchema = z.enum(['format', 'range']);
  * Årsagen persisteres, så issue-/tooltipteksten kan bygges uden at reparse råteksten (§1.8).
  */
 export const rejectedInputSchema = z.object({
-  raw: z.string().min(1, 'Rejected input må ikke være tomt'),
+  raw: z.string().refine((value) => value.trim() !== '', 'Rejected input må ikke være tomt'),
   reason: rejectReasonSchema,
   detail: z.record(z.string().min(1), z.union([z.string(), z.number().finite(), z.boolean()]))
     .optional(),
@@ -35,7 +35,7 @@ export type RejectedInput = z.infer<typeof rejectedInputSchema> & Readonly<{
 
 export const rejectedInputsSchema = z.record(serializedFieldAddressSchema, rejectedInputSchema).readonly();
 
-export type RejectedInputs = Readonly<Record<string, RejectedInput>>;
+export type RejectedInputs = z.output<typeof rejectedInputsSchema>;
 
 /** Strukturelt basisskema. Katalog-afhængig XOR-/eksistens-validering ligger på `InputCatalog`. */
 export const settledInputBaseSchema = z.object({

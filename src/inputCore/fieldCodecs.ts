@@ -2,6 +2,7 @@ import type { AmountValue } from '../schemas/amountExpressionSchema';
 import type { ISODateString } from '../types/branded';
 import { coerceToDanishDateString } from '../types/branded';
 import {
+  trimToAlphanumericEdges,
   trimToNumericEdgesPreserveLeadingMinus,
   trimWhitespaceEdges,
 } from '../utils/draftNormalization';
@@ -12,6 +13,7 @@ import {
   amountValueToDraftString,
 } from '../utils/expressionAmount';
 import { parseIntegerDraftForCommit, type IntegerDraftParseConfig } from '../utils/integerDraftCore';
+import { parseFractionString, type FractionParseOptions } from '../utils/fraction';
 import { isSafeCanonicalInteger, isSafeCanonicalDecimal, isSafeCanonicalNumber } from '../utils/numericSafety';
 import { getNumericBoundsConfigErrors } from '../utils/numericFieldConfig';
 import {
@@ -23,8 +25,11 @@ import { parseDateDraftForCommit, type DateYearPolicy } from '../utils/dateDraft
 import {
   normalizeAmountPaste,
   normalizeDatePaste,
+  normalizeFractionPaste,
   normalizeIntegerPaste,
   normalizePercentPaste,
+  normalizeWeekPaste,
+  normalizeYearPaste,
 } from '../utils/inputPasteNormalization';
 import {
   formatPercentDisplay,
@@ -32,6 +37,8 @@ import {
   buildPercentRangeErrorMessage,
   type PercentParseConfig,
 } from '../utils/percentDraftCore';
+import { parseWeekDraftForCommit, type WeekDraftParseConfig } from '../utils/weekDraftCore';
+import { parseYearDraftForCommit, type YearDraftParseConfig } from '../utils/yearDraftCore';
 import {
   type FieldCodec,
   type FieldResolution,
@@ -47,6 +54,18 @@ const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pat
 
 const assertBoolean = (codec: string, name: string, value: boolean): void => {
   if (typeof value !== 'boolean') throw new Error(`${codec}: ${name} skal være en boolean`);
+};
+
+const assertOptionalBoolean = (codec: string, name: string, value: boolean | undefined): void => {
+  if (value !== undefined && typeof value !== 'boolean') {
+    throw new Error(`${codec}: ${name} skal være en boolean`);
+  }
+};
+
+const assertPositiveInteger = (codec: string, name: string, value: number | undefined): void => {
+  if (value !== undefined && (!Number.isInteger(value) || value < 1)) {
+    throw new Error(`${codec}: ${name} skal være et positivt heltal`);
+  }
 };
 
 const assertNumericBounds = (
@@ -119,10 +138,17 @@ export const createChoiceFieldCodec = <T extends string>(values: readonly T[]): 
   return createSelectionFieldCodec({ values });
 };
 
-export const createRequiredChoiceFieldCodec = <T extends string>(values: readonly T[]): FieldCodec<T> => {
+export const createRequiredChoiceFieldCodec = <T extends string>(
+  values: readonly T[],
+  emptyValue: T
+): FieldCodec<T> => {
   const optional = createChoiceFieldCodec(values);
+  if (!values.includes(emptyValue)) {
+    throw new Error('RequiredChoiceFieldCodec: tomværdien skal findes i valgmængden');
+  }
   return Object.freeze({
     parseForSettle: (raw): FieldResolution<T> => {
+      if (raw.trim() === '') return validResolution(emptyValue);
       const resolution = optional.parseForSettle(raw);
       return resolution.status === 'valid' && resolution.value !== undefined
         ? validResolution(resolution.value)
@@ -135,12 +161,20 @@ export const createRequiredChoiceFieldCodec = <T extends string>(values: readonl
 };
 
 /** Toggle/checkbox: immediate-commit-sti, boolean canonical. */
-export const booleanFieldCodec: FieldCodec<boolean> = Object.freeze({
-  parseForSettle: (raw) => raw === 'true' ? validResolution(true) : raw === 'false' ? validResolution(false) : rejectedResolution('format'),
+export const createBooleanFieldCodec = (emptyValue = false): FieldCodec<boolean> => Object.freeze({
+  parseForSettle: (raw) => raw.trim() === ''
+    ? validResolution(emptyValue)
+    : raw === 'true'
+      ? validResolution(true)
+      : raw === 'false'
+        ? validResolution(false)
+        : rejectedResolution('format'),
   format: (value) => String(value),
   formatForEdit: (value) => String(value),
   acceptsInitialKey: () => false,
 });
+
+export const booleanFieldCodec: FieldCodec<boolean> = createBooleanFieldCodec(false);
 
 export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: DateYearPolicy }>): FieldCodec<ISODateString | undefined> =>
   Object.freeze({
@@ -256,6 +290,89 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
       minValue: config.minValue,
       maxValue: config.maxValue,
     }),
+  });
+};
+
+/** Adapter til eksisterende string-backed periodefelter; tomhed bevares som `''` i canonical data. */
+export const createStringBackedFieldCodec = <T extends string | number>(
+  sourceCodec: FieldCodec<T | undefined>
+): FieldCodec<string | undefined> => Object.freeze({
+  parseForSettle: (raw) => {
+    const resolution = sourceCodec.parseForSettle(raw);
+    if (resolution.status === 'rejected') {
+      return rejectedResolution(resolution.reason, resolution.detail);
+    }
+    return validResolution(resolution.value === undefined ? '' : String(resolution.value));
+  },
+  // Tolerant `.eo`-load kan have bevaret en historisk streng. Den canonicaliseres først ved næste settle.
+  format: (value) => value ?? '',
+  formatForEdit: (value) => value ?? '',
+  acceptsInitialKey: sourceCodec.acceptsInitialKey,
+  ...(sourceCodec.normalizePaste === undefined ? {} : { normalizePaste: sourceCodec.normalizePaste }),
+});
+
+export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<number | undefined> => {
+  assertNumericBounds('YearFieldCodec', {
+    minValue: config.minYear,
+    maxValue: config.maxYear,
+    allowNegative: false,
+  }, isSafeCanonicalInteger);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), config);
+      if (parsed.ok) return validResolution(parsed.value);
+      return parsed.errorMessage.startsWith('Årstallet skal være')
+        ? rejectedResolution('range', boundsDetail({ minValue: config.minYear, maxValue: config.maxYear }))
+        : rejectedResolution('format');
+    },
+    format: (value) => value === undefined ? '' : String(value),
+    formatForEdit: (value) => value === undefined ? '' : String(value),
+    acceptsInitialKey: initialKey(/^\d$/),
+    normalizePaste: (raw) => normalizeYearPaste(raw, config),
+  });
+};
+
+export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<string | undefined> => {
+  assertPositiveInteger('WeekFieldCodec', 'maxDraftLength', config.maxDraftLength);
+  assertNumericBounds('WeekFieldCodec', {
+    minValue: config.minYear,
+    maxValue: config.maxYear,
+    allowNegative: false,
+  }, isSafeCanonicalInteger);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), config);
+      if (parsed.ok) return validResolution(parsed.value);
+      const isRange = parsed.errorMessage.startsWith('Årstallet skal være')
+        || parsed.errorMessage.startsWith('Uge skal være mellem');
+      return isRange
+        ? rejectedResolution('range', boundsDetail({ minValue: config.minYear, maxValue: config.maxYear }))
+        : rejectedResolution('format');
+    },
+    format: (value) => value ?? '',
+    formatForEdit: (value) => value ?? '',
+    acceptsInitialKey: initialKey(/^\d$/),
+    normalizePaste: (raw) => normalizeWeekPaste(raw, config),
+  });
+};
+
+export const createFractionFieldCodec = (config: FractionParseOptions): FieldCodec<string | undefined> => {
+  assertPositiveInteger('FractionFieldCodec', 'maxDigits', config.maxDigits);
+  assertOptionalBoolean('FractionFieldCodec', 'allowNegative', config.allowNegative);
+  assertOptionalBoolean('FractionFieldCodec', 'allowZeroNumerator', config.allowZeroNumerator);
+  assertOptionalBoolean('FractionFieldCodec', 'canonicalizeOnCommit', config.canonicalizeOnCommit);
+  assertOptionalBoolean('FractionFieldCodec', 'requireIntegerFraction', config.requireIntegerFraction);
+  return Object.freeze({
+    parseForSettle: (raw) => {
+      const trimmed = trimToAlphanumericEdges(raw);
+      if (trimmed === '') return validResolution(undefined);
+      const parsed = parseFractionString(trimmed, config);
+      return parsed.ok ? validResolution(parsed.parsed.value) : rejectedResolution('format');
+    },
+    format: (value) => value ?? '',
+    formatForEdit: (value) => value ?? '',
+    acceptsInitialKey: (key) => /^[0-9/,]$/.test(key) || (key === '-' && config.allowNegative === true),
+    normalizePaste: (raw) => normalizeFractionPaste(raw, config),
   });
 };
 

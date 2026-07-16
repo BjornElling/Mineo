@@ -1,100 +1,50 @@
 #!/usr/bin/env node
-// Greenfield-ledger-validator (§6). Producerer en sammenlignelig inventoryrapport fra det maskingenererede
-// persisted-path-snapshot og fejler ved dublerede eller forældreløse entries samt ved drift mellem de
-// baseline-counts, ledgerne fastlåser, og den faktiske schema-/inventar-flade. Den rigorøse felt/collection/
-// consumer-reconciliation mod de LEVENDE Zod-schemas køres af completeness-testen
-// (`src/__tests__/inputCore/ledger/ledgerCompleteness.test.ts`); denne .mjs er backstop + menneskelig rapport.
+// Fase-0-inventarvalidator (§6). Den kører de tests, der udleder felter/collections direkte fra de levende
+// Zod-schemas og sammenholder consumers med faktiske exports/callsites. Dermed kan en statisk JSON-kopi ikke
+// få validatoren til at rapportere falsk grønt ved schema- eller entrypointdrift.
 
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const root = process.cwd();
 const read = (relativePath) => readFileSync(resolve(root, relativePath), 'utf8');
 
-const SNAPSHOT_PATH = 'docs/architecture/greenfield-phase-0-persisted-input-inventory.json';
-const FIELD_LEDGER = 'src/inputCore/ledger/fieldLedger.ts';
-const COLLECTION_LEDGER = 'src/inputCore/ledger/collectionLedger.ts';
-const CONSUMER_LEDGER = 'src/inputCore/ledger/consumerLedger.ts';
-const INVENTORY = 'src/config/greenfieldPhase0Inventory.ts';
-
-const ENTITY_ID_LEAF = /(?:^|\.)(?:id|ansaettelsesforholdId)$/;
-const AMOUNT_LEAF_SUFFIX = /\.(kind|value|expression)$/;
-
-const leafToDataFieldPath = (leaf) => (ENTITY_ID_LEAF.test(leaf) ? null : leaf.replace(AMOUNT_LEAF_SUFFIX, ''));
-
-const problems = [];
-const fail = (message) => problems.push(message);
-
 const readConstant = (source, name) => {
   const match = source.match(new RegExp(`${name}\\s*=\\s*(\\d+)`));
-  if (match === null) fail(`Kunne ikke læse ${name}`);
-  return match === null ? null : Number(match[1]);
+  if (match === null) throw new Error(`Kunne ikke læse ${name}`);
+  return Number(match[1]);
 };
 
-const snapshot = JSON.parse(read(SNAPSHOT_PATH));
+const fieldSource = read('src/inputCore/ledger/fieldLedger.ts');
+const collectionSource = read('src/inputCore/ledger/collectionLedger.ts');
+const consumerSource = read('src/inputCore/ledger/consumerLedger.ts');
 
-let totalDataFields = 0;
-let totalCollections = 0;
-const report = [];
+const fieldCount = readConstant(fieldSource, 'EXPECTED_FIELD_REF_COUNT');
+const collectionCount = readConstant(collectionSource, 'EXPECTED_COLLECTION_COUNT');
+const calculationCount = readConstant(consumerSource, 'EXPECTED_BEREGNING_COUNT');
+const caseFileCount = readConstant(consumerSource, 'EXPECTED_CASEFILE_COUNT');
+const documentCount = readConstant(consumerSource, 'EXPECTED_DOCUMENT_COUNT');
 
-for (const [section, { fields, collections }] of Object.entries(snapshot)) {
-  const dataFields = new Set();
-  const rawLeaves = new Set();
-  for (const leaf of fields) {
-    if (rawLeaves.has(leaf)) fail(`Dubleret leaf i ${section}: ${leaf}`);
-    rawLeaves.add(leaf);
-    const path = leafToDataFieldPath(leaf);
-    if (path !== null) dataFields.add(path);
-  }
-  const collectionSet = new Set(collections);
-  if (collectionSet.size !== collections.length) fail(`Dublerede collections i ${section}`);
-  totalDataFields += dataFields.size;
-  totalCollections += collectionSet.size;
-  report.push({ section, felter: dataFields.size, collections: collectionSet.size });
-}
+const vitest = resolve(root, 'node_modules/vitest/vitest.mjs');
+const result = spawnSync(process.execPath, [
+  vitest,
+  'run',
+  'src/__tests__/inputCore/ledger/ledgerCompleteness.test.ts',
+  'src/__tests__/quality/greenfieldPhase0Inventory.test.ts',
+], {
+  cwd: root,
+  encoding: 'utf8',
+  stdio: 'inherit',
+});
 
-// Baseline-counts fra ledgerne.
-const fieldLedgerSource = read(FIELD_LEDGER);
-const collectionLedgerSource = read(COLLECTION_LEDGER);
-const consumerLedgerSource = read(CONSUMER_LEDGER);
-const inventorySource = read(INVENTORY);
+if (result.error !== undefined) throw result.error;
+if (result.status !== 0) process.exit(result.status ?? 1);
 
-const expectedFieldRefCount = readConstant(fieldLedgerSource, 'EXPECTED_FIELD_REF_COUNT');
-const expectedCollectionCount = readConstant(collectionLedgerSource, 'EXPECTED_COLLECTION_COUNT');
-const expectedBeregning = readConstant(consumerLedgerSource, 'EXPECTED_BEREGNING_COUNT');
-const expectedCasefile = readConstant(consumerLedgerSource, 'EXPECTED_CASEFILE_COUNT');
-const expectedDocument = readConstant(consumerLedgerSource, 'EXPECTED_DOCUMENT_COUNT');
-
-if (expectedFieldRefCount !== null && totalDataFields !== expectedFieldRefCount) {
-  fail(`Feltantal driftet: snapshot=${totalDataFields}, ledger EXPECTED_FIELD_REF_COUNT=${expectedFieldRefCount}`);
-}
-if (expectedCollectionCount !== null && totalCollections !== expectedCollectionCount) {
-  fail(`Collection-antal driftet: snapshot=${totalCollections}, ledger=${expectedCollectionCount}`);
-}
-
-// Consumer-inventar: tæl faktiske entrypoints i det maskinlåste inventar.
-const countMatches = (source, pattern) => (source.match(pattern) ?? []).length;
-const documentSymbols = countMatches(inventorySource, /symbol:\s*'download[A-Za-zÆØÅæøå]*Dokument'/g);
-if (expectedDocument !== null && documentSymbols !== expectedDocument) {
-  fail(`Dokumentoutputs driftet: inventar=${documentSymbols}, ledger=${expectedDocument}`);
-}
-
-// Rapport.
-const line = (left, right) => `  ${String(left).padEnd(26)} ${String(right).padStart(4)}`;
-process.stdout.write('\nGreenfield input-ledger — inventoryrapport (§6)\n');
-process.stdout.write('══════════════════════════════════════════════\n');
-for (const row of report) process.stdout.write(`${line(row.section, `${row.felter} felt / ${row.collections} coll`)}\n`);
-process.stdout.write('----------------------------------------------\n');
-process.stdout.write(`${line('I ALT felter', totalDataFields)}\n`);
-process.stdout.write(`${line('I ALT collections', totalCollections)}\n`);
-process.stdout.write(`${line('Beregninger (ledger)', expectedBeregning ?? '?')}\n`);
-process.stdout.write(`${line('Sagsfiler (ledger)', expectedCasefile ?? '?')}\n`);
-process.stdout.write(`${line('Dokumentoutputs', documentSymbols)}\n`);
-process.stdout.write('══════════════════════════════════════════════\n');
-
-if (problems.length > 0) {
-  process.stderr.write('\nLEDGER-VALIDATOR FEJLEDE:\n');
-  for (const problem of problems) process.stderr.write(`  - ${problem}\n`);
-  process.exit(1);
-}
-process.stdout.write('Ledger-validator OK — baseline-counts stemmer.\n\n');
+process.stdout.write('\nGreenfield fase-0-inventar — verificeret mod levende kilder\n');
+process.stdout.write(`  Datafelter:       ${fieldCount}\n`);
+process.stdout.write(`  Collections:      ${collectionCount}\n`);
+process.stdout.write(`  Beregninger:      ${calculationCount}\n`);
+process.stdout.write(`  Sagsfilstier:     ${caseFileCount}\n`);
+process.stdout.write(`  Dokumentoutputs:  ${documentCount}\n`);
+process.stdout.write('Inventarvalidator OK.\n\n');

@@ -1,5 +1,7 @@
 import { serializeFieldAddress, type SerializedFieldAddress } from './fieldAddress';
 import type { AnyFieldRef } from './fieldDescriptor';
+import type { EvaluationSourceToken } from './evaluationSource';
+import { formatDanishNumber } from '../utils/numberFormatting';
 
 // Greenfield-kerne (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
 // INGEN `blocksSave`/`blocksProjection`-booleans. Konsekvensen udledes STRUKTURELT af kind + placering +
@@ -13,6 +15,8 @@ export type IssueDetail = Readonly<Record<string, string | number | boolean>>;
 /** En rød feltfejl. Blokerer ALTID `.eo` globalt og enhver afhængig consumer (§1.6, §1.10). */
 export type FieldIssue = Readonly<{
   kind: 'field';
+  code: string;
+  severity: 'error';
   field: AnyFieldRef;
   reason: FieldIssueReason;
   message: string;
@@ -22,6 +26,8 @@ export type FieldIssue = Readonly<{
 /** En consumer-fejl (fx `missing`). Ingen rød markering; blokerer KUN den konkrete consumer (§1.7). */
 export type ConsumerIssue = Readonly<{
   kind: 'consumer';
+  code: string;
+  severity: 'error';
   consumerId: string;
   reason: 'missing' | 'rule';
   message: string;
@@ -32,6 +38,9 @@ export type ConsumerIssue = Readonly<{
 /** En warning. Vises, men blokerer aldrig beregning, dokument eller `.eo` (§1.7). */
 export type Warning = Readonly<{
   kind: 'warning';
+  code: string;
+  reason: 'rule';
+  severity: 'warning';
   message: string;
   field?: AnyFieldRef;
   consumerId?: string;
@@ -42,10 +51,6 @@ export type InputIssue = FieldIssue | ConsumerIssue | Warning;
 
 /** Enhver aktiv rød feltfejl blokerer `.eo` globalt (§1.10). Missing/warning gør aldrig. */
 export const blocksEoSave = (issue: InputIssue): boolean => issue.kind === 'field';
-
-/** Feltfejl og consumerfejl blokerer en afhængig consumer; warnings gør ikke (§1.6/§1.7). */
-export const blocksConsumer = (issue: InputIssue): boolean =>
-  issue.kind === 'field' || issue.kind === 'consumer';
 
 // Deterministisk prioritet (§1.8): den mest direkte feltfejl vinder, uafhængigt af validator-rækkefølge.
 const FIELD_REASON_PRIORITY: Readonly<Record<FieldIssueReason, number>> = {
@@ -60,9 +65,11 @@ const compareText = (left: string, right: string): number => left < right ? -1 :
 
 export const compareFieldIssues = (left: FieldIssue, right: FieldIssue): number =>
   FIELD_REASON_PRIORITY[left.reason] - FIELD_REASON_PRIORITY[right.reason]
+  || compareText(left.code, right.code)
   || compareText(left.message, right.message);
 
-const formatBound = (value: string | number | boolean | undefined): string => String(value);
+const formatBound = (value: string | number | boolean | undefined): string =>
+  typeof value === 'number' ? formatDanishNumber(value) : String(value);
 
 /**
  * Bygger den konkrete danske besked for en format-/range-feltfejl uden at reparse råteksten (§1.8).
@@ -75,11 +82,7 @@ export const buildFieldIssueMessage = (
 ): string => {
   const label = field.descriptor.label;
   if (reason === 'format') {
-    switch (field.descriptor.controlKind) {
-      case 'choice': return `${label} har et ugyldigt valg`;
-      case 'toggle': return `${label} har en ugyldig værdi`;
-      case 'text': return `Der er udfyldt en ugyldig værdi i feltet ${label}`;
-    }
+    return `Der er udfyldt en ugyldig værdi i feltet ${label}`;
   }
   const min = detail?.minValue;
   const max = detail?.maxValue;
@@ -99,14 +102,22 @@ export const buildFieldIssueMessage = (
  * Immutabelt feltissue-snapshot: højst ét aktivt rødt issue pr. felt (§1.8). Bygges af feltvalidatorerne
  * fra afsluttet input; mounted komponenter rapporterer aldrig ind i det (§1.8/§3.4).
  */
-export type FieldIssueSnapshot = Readonly<{
-  byAddress: ReadonlyMap<SerializedFieldAddress, FieldIssue>;
+export type FieldIssueSet = Readonly<{
+  get: (address: SerializedFieldAddress) => FieldIssue | undefined;
   all: readonly FieldIssue[];
 }>;
 
-export const buildFieldIssueSnapshot = (issues: readonly FieldIssue[]): FieldIssueSnapshot => {
+export type FieldIssueSnapshot = FieldIssueSet & Readonly<{
+  sourceToken: EvaluationSourceToken;
+}>;
+
+export const buildFieldIssueSet = (issues: readonly FieldIssue[]): FieldIssueSet => {
   const grouped = new Map<SerializedFieldAddress, FieldIssue[]>();
-  for (const issue of issues) {
+  for (const candidate of issues) {
+    const issue: FieldIssue = Object.freeze({
+      ...candidate,
+      ...(candidate.detail === undefined ? {} : { detail: Object.freeze({ ...candidate.detail }) }),
+    });
     const key = serializeFieldAddress(issue.field.address);
     const bucket = grouped.get(key);
     if (bucket === undefined) grouped.set(key, [issue]);
@@ -119,10 +130,22 @@ export const buildFieldIssueSnapshot = (issues: readonly FieldIssue[]): FieldIss
     byAddress.set(key, active);
     all.push(active);
   }
-  return Object.freeze({ byAddress, all: Object.freeze(all) });
+  return Object.freeze({
+    get: (address: SerializedFieldAddress) => byAddress.get(address),
+    all: Object.freeze(all),
+  });
 };
 
+export const bindFieldIssueSnapshot = (
+  issues: FieldIssueSet,
+  sourceToken: EvaluationSourceToken
+): FieldIssueSnapshot => Object.freeze({
+  sourceToken,
+  get: issues.get,
+  all: issues.all,
+});
+
 export const activeFieldIssue = (
-  snapshot: FieldIssueSnapshot,
+  snapshot: FieldIssueSet,
   address: SerializedFieldAddress
-): FieldIssue | undefined => snapshot.byAddress.get(address);
+): FieldIssue | undefined => snapshot.get(address);

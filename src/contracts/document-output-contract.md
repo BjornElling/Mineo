@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ## 1. Scope
 
@@ -37,7 +37,8 @@ Reglerne i dette afsnit er uafhængige af outputkanal. De gælder uændret for b
 
 1. Dokument-output er trust-kritisk output.
 2. Hvert output har én typed dokumentdefinition, der ejer dependencies, domæneprojektion og output-invariants.
-3. Dokumentdefinitionen læser gennem `InputReader` og må kun danne et revisionsbundet `PreparedDocument<T>` fra en
+3. Dokumentdefinitionen læser gennem `InputReader` og må kun danne et `EvaluationSourceToken`-bundet
+   `PreparedDocument<T>` fra en
    `ready` projektion.
 4. Renderere og generatorer modtager kun den godkendte dokumentmodel/projektion. De må ikke læse rå canonical
    sektioner, rejected input, åben draft, UI-state eller uautoriserede domæner.
@@ -60,10 +61,10 @@ Download er blokeret, hvis mindst én af følgende er sand:
 Konsekvens:
 
 - Dependencies, domænestatus og output-invariants aggregeres af dokumentdefinitionen, ikke React-handleren eller rendereren.
-- Download-knappen modtager et samlet gate-resultat med `canDownload`, revision og auditerbare årsager.
+- Download-knappen modtager et samlet gate-resultat med `canDownload`, `EvaluationSourceToken` og auditerbare årsager.
 - Ved blokering er knappen både visuelt og funktionelt disabled efter reglerne i `page-component-contract.md`.
 - Generatorer afgør ikke selv, om domænet er `fail_closed`; de modtager en godkendt model eller returnerer runtimefejl.
-- En tidligere godkendelse må ikke genbruges efter en ny inputrevision.
+- En tidligere godkendelse må ikke genbruges efter et nyt input- eller settingsrevisionstoken.
 
 Gate-definitionen er kanal-neutral: et dokument der er blokeret for PDF, er også blokeret for Word, og omvendt. Formatvalget ændrer ikke gaten.
 

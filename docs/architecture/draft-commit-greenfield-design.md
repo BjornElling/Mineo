@@ -4,14 +4,17 @@
 migrationsgrundlag. Fase 0–4 har leveret nyttige karakteriseringstests, codecs, inventarer og tekniske erfaringer, men
 ingen af faserne betragtes længere som en færdig del af målarkitekturen. Implementeringen skal rebaseres efter §8.
 
-**Implementeringsstatus (rebase):** Den tidligere Fase 0–4-implementering på `greenfield`-branchen (typed spor,
-sentinel-adresser, Satser-kernelprojektion m.m.) er forkastet som migrationsgrundlag og betragtes udelukkende som
-historiske karakteriseringstests/erfaringer. Den bindende migrationsplan er §8 (Fase 0–7). Faktisk fremdrift efter
-rebasen: **Fase 1** — den rene inputkerne er genopbygget fra bunden i `src/inputCore/` (framework-fri: XOR-invariant,
-issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog, `ready|blocked`-projektioner).
-**Fase 0** — kontrakterne er rebaset (AGENTS.md + de normative kontrakter), og de kanoniske felt-, collection- og
-consumerledgers er bygget i `src/inputCore/ledger/` med maskinlåste baseline-counts og validator
-(`npm run verify:ledgers`). Næste er Fase 2's atomiske runtime- og inputoverflade-cutover.
+**Implementeringsstatus (rebase):** Fase 0 og 1 er gennemført, reviewet og kvalitetssikret 2026-07-16. Den tidligere
+Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
+forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakteriseringstests/erfaringer. Den
+bindende migrationsplan er §8 (Fase 0–7). Fase 0 har rebaset kontrakterne og etableret de midlertidige, maskinverificerede
+inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie inputkerne i `src/inputCore/` med
+XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
+`ready | blocked`-projektioner. Næste arbejdspakke er Fase 2's atomiske runtime- og inputoverflade-cutover.
+
+Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
+migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
+dokumentlayout og numeriske primitiver, bevares som selvstændige resultater.
 
 **Dato:** 2026-07-16
 
@@ -619,63 +622,51 @@ Følgende er hårde stop:
 - behov for at slette gyldigt brugerinput automatisk,
 - behov for en raw-section-bypass for at få en consumer til at virke.
 
-## 6. Kanonisk migrationsledger
+## 6. Midlertidige migrationsinventarer
 
-Før kodecutover oprettes maskinlæsbare ledgers med én dataidentitet pr. felt, collection eller consumer—ikke pr.
-schema-leaf og ikke pr. rendersted.
+Før kodecutover oprettes små maskinlæsbare coverage-inventarer med én dataidentitet pr. felt, collection eller
+makro-consumer—ikke pr. schema-leaf og ikke pr. rendersted. De er migrationsbackstops og slettes i fase 6; de må ikke
+blive en parallel runtime-autoritet.
+
+Det tidligere krav om at duplikere alle editorlokationer, validators, missing-regler og output-invariants i fase 0
+forkastes: disse data skal bo direkte i de endelige descriptors/projektioner, når de bygges i fase 2–5. Et fuldt
+engangsregister med samme data ville være den migrationsarkitektur-for-migrationens-skyld, som §5.3 forbyder, og ville
+kunne drifte fra slutkatalogerne før cutover.
 
 ### 6.1 Feltledger
 
-`src/input/catalog/inputFieldLedger.ts` er selv det ene kanoniske descriptor-katalog fra §3.2 og har én entry pr.
-persisted datafelt/`FieldRef`; der oprettes ikke et separat manuelt feltregister. Hver entry skal angive:
-
-- stabil id,
-- sektion og strukturel adresse/builder,
-- alle editorlokationer som særskilte ids med filsti, route, fane og fokusmål,
-- codec,
-- canonical Zod-schema/typekilde og tomværdi,
-- form/grid/control-kind,
-- relevansregel,
-- feltvalidatorer og beskedkoder,
-- om feltet er delt mellem flere sider.
-
-Flere editorlokationer skaber aldrig flere feltentries. En completeness-test i
-`src/__tests__/input/inputFieldLedgerCompleteness.test.ts` sammenholder katalog, faktiske persisted controls,
-Zod-stier og alle registrerede lokationer.
+Feltinventaret udledes fra de levende Zod-schemas, samler `AmountValue`-leaves til ét brugerfelt og udelader kun
+verificerede entity-id-leaves. Den sammenholdes med de eksisterende produktionsbindings, så schema-only legacy og
+bindings uden schema opdages. Codec-/control-annotationer er kun migrationsklassifikation; det endelige descriptor-
+katalog i fase 2 ejer id, typed ref, codec, tomhed, editorlokationer, relevans, validators og beskedkoder.
 
 ### 6.2 Collectionledger
 
-`src/input/catalog/inputCollectionLedger.ts` har én entry pr. dynamisk collection og angiver:
+Collectioninventaret har én entry pr. dynamisk collection og angiver:
 
 - strukturel sti,
 - entity-id-egenskab,
-- placeholder-policy,
-- add/delete/reorder-entrypoints,
 - child-felter og nested collections,
-- alle aktuelle tabeller, der renderer collectionen.
+- codec- og kontroltypeklassifikation for child-felterne.
 
-`src/__tests__/input/inputCollectionLedgerCompleteness.test.ts` verificerer entity-schema, refs, child-felter,
-editorlokationer og alle add/delete/reorder-entrypoints.
+Completeness-testen sammenholder inventaret med Zod-collections og de eksisterende produktionsbindings. Placeholder-
+policy, renderer og add/delete/reorder-entrypoints flyttes direkte til slutdescriptoren i fase 2.
 
 ### 6.3 Consumerledger
 
-`src/domain/projections/inputConsumerLedger.ts` har én entry pr. consumer og angiver:
+Consumerinventaret dækker de låste makro-entrypoints:
 
-- beregning, contentbox, `.eo` eller dokument-id,
-- konkrete projektioner,
-- row-/aggregatsemantik,
-- missing-regler,
-- output-invariants,
-- UI-entrypoint, konkret filsti og testbevis,
-- prioriterede editorlokationer for hvert navigerbart issue.
+- 8 beregningsentries,
+- 4 sagsfilstier,
+- 18 dokumentoutputs.
 
-`src/__tests__/domain/inputConsumerLedgerCompleteness.test.ts` verificerer registrene mod alle beregnings-,
-contentbox-, `.eo`- og dokumententrypoints.
+Contentbox-consumers, konkrete projektioner, row-/aggregatsemantik, missing-regler, output-invariants og prioriterede
+editorlokationer registreres kun i de endelige projection-/documentdefinitioner i fase 3–5 og completeness-testes dér.
 
-Fase 0 registrerer og fastlåser de faktiske baseline-counts i testfixtures som
-`EXPECTED_FIELD_REF_COUNT`, `EXPECTED_EDITOR_LOCATION_COUNT`, `EXPECTED_COLLECTION_COUNT` og
-`EXPECTED_CONSUMER_COUNT`; ingen placeholder eller ukendt count må bestå exitgaten. De kendte backstops er desuden 8
-beregningsentries, 4 sagsfilstier og 18 dokumentoutputs. En lille ledger-validator under
+Fase 0 registrerer og fastlåser de faktiske baseline-counts i testfixtures som `EXPECTED_FIELD_REF_COUNT`,
+`EXPECTED_COLLECTION_COUNT` og `EXPECTED_CONSUMER_COUNT`; ingen placeholder eller ukendt count må bestå exitgaten.
+Efter fjernelsen af schema-only legacy i fase-0-reviewet er baseline 239 feltrefs, 16 collections og 30 makro-
+consumers. En lille ledger-validator under
 `scripts/architecture/verify-input-ledgers.mjs` producerer den sammenlignelige inventoryrapport og fejler ved
 uregistrerede, dublerede eller forældreløse entries.
 
@@ -755,7 +746,14 @@ Integrationstests dækker form og grid ens for:
 
 ### Fase 0 — Rebasér kontrakter og inventarer
 
-**Status:** Ikke påbegyndt efter kravgennemgangen.
+**Status:** Gennemført og reviewet 2026-07-16. Kontrakterne er rebaset (AGENTS.md + de normative
+kontrakter, guidet af en linjepræcis contract-audit): masking→XOR, uniform `.eo`-gate uden per-issue save-policy
+(§1.6-matrixen er nu normativ i `error-contract.md`), `missing` som consumerfejl, legacy-session-/feltadressemigration
+fjernet, critical-action-matricen rettet og friskhed = `EvaluationSourceToken` (input + settings). De tre midlertidige
+inventarer er bygget i `src/inputCore/ledger/` (239 datafelter, 16 collections, 30 makro-consumers) med maskinlåste
+baseline-counts, completeness-test mod de levende Zod-schemas/produktionsbindings og validator
+(`npm run verify:ledgers`). Reviewet fjernede to schema-only legacyfelter og én ubrugt collection; de endelige
+descriptors, editorlokationer og consumerdependencies bygges kun én gang i fase 2–5 efter den korrigerede §6.
 
 **Afhængighed:** Ingen.
 
@@ -774,7 +772,8 @@ Integrationstests dækker form og grid ens for:
 9. Fjern normative krav om legacy-session- og feltadressemigration. Bevar `.eo`-tolerance.
 10. Fastlås current-session-korruptionsflowet fra §1.12 og den samlede input-/settingsfriskhed fra §3.4.
 11. Markér de tidligere fase 0–4-statusser i reviewplanerne som historiske og afløste.
-12. Byg felt-, collection- og consumerledgeren i §6 og verificér den mod fase-0-inventaret.
+12. Byg de midlertidige felt-, collection- og consumerinventarer i §6 og verificér dem mod levende schemas,
+    produktionsbindings og fase-0-consumerinventaret.
 13. Registrér de faktiske baseline-counts; ingen ukendt eller midlertidig count accepteres.
 14. Klassificér hver nuværende synlig fejl som feltfejl, consumerfejl eller warning.
 
@@ -784,9 +783,9 @@ Integrationstests dækker form og grid ens for:
 - Ingen kontrakt tillader `.eo`-save med en aktiv rød feltfejl.
 - Ingen kontrakt kan gøre `missing` rødt eller save-blokerende.
 - Ingen kontrakt kræver browser-sessionkompatibilitet.
-- Hver persisted editor, collection, beregningsentry og dokumentoutput findes i præcis én ledger.
-- Alle relevansregler kan evalueres uden mounted komponentstate.
-- Alle delte felters contentbox-consumers har en eksplicit prioriteret editorlokation.
+- Hvert schemafelt og hver collection findes i præcis ét inventory-entry og ét eksisterende produktionsbinding.
+- Alle 8 beregningsentries, 4 sagsfilstier og 18 dokumentoutputs findes i consumerinventaret.
+- Schema-only legacy er fjernet i stedet for at blive båret ind i slutkataloget.
 - Friskhed omfatter både input og relevante AppSettings.
 
 #### Verifikation
@@ -796,7 +795,14 @@ ved topologiændring følges `docs/architecture/contract-topology-procedure.md`.
 
 ### Fase 1 — Omskriv den rene inputkerne
 
-**Status:** Ikke påbegyndt.
+**Status:** Gennemført og reviewet 2026-07-16. Den rene, framework-frie inputkerne er genopbygget fra
+bunden i `src/inputCore/` (ingen React, Zustand, DOM eller storage): XOR-invariant (`SettledInput` + reducer der rydder
+canonical til tomværdien ved ugyldigt settle), reason-bærende codecs over de uændrede parse-kerner, statisk katalog uden
+seal/brand/WeakSet, issue-model (felt/consumer/warning) uden `blocksSave`, `ValidationReader`→issue-snapshot→
+`InputReader` (skjuler værdi bag rød feltfejl), tokenbundet issue-evaluering og en lille `ready | blocked`-
+projektionscollector. Reviewet tilføjede uge/år/brøk/string-backed-codecs, eksplicit semantisk tomhed, rejected-
+relevansinvarianten, codec-konsistens ved sessionvalidering, 50-trins history og fuld issuekode/severity. Kernen har nul
+produktionscallsites; produktdescriptors bygges direkte ved fase-2-cutoveren uden et parallelt fase-1-katalog.
 
 **Afhængighed:** Fase 0.
 
@@ -823,7 +829,8 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 
 - `gyldig A → ugyldig X` efterlader ikke A i current snapshot.
 - Samme reducer håndterer form, grid, row og systemcommands.
-- Kataloget har ingen parallel manuel path-autoritet ud over de faktiske descriptors og Zod-schemas.
+- Katalogprimitivet har ingen runtime registration/seal/brand; produktets faktiske descriptors bygges én gang i fase 2
+  og erstatter da både migrationsinventaret og legacybindings.
 - Format- og bounds-feltfejl giver samme UI-/gatekonsekvens, mens repræsentationsforskellen i §1.6 er eksplicit testet.
 - Missing kan ikke konstrueres som feltfejl.
 - Kernen har ingen timing, effects eller UI-callbacks.
@@ -851,13 +858,16 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 
 #### 2.1 Slim runtime
 
-1. Erstat runtime-storen med `input`, `revision`, `history` og nødvendig hydration-/systemfejlstatus.
-2. Slet afledte sections/invalidDraft-views, revisionsmaps, epochs, counters og stored fieldErrors.
-3. Erstat typed + legacy runner med én command-union og én entrypoint.
-4. Indfør current-only session-envelope på en ny intern nøgle/version.
-5. Bevar current-format schema/katalogvalidering, read-back og rollback.
-6. Slet al læsning og oversættelse af gamle browserformater.
-7. Giv AppSettings én monoton settingsrevision, så `EvaluationSourceToken` altid kan verificeres samlet.
+1. Byg produktets ene descriptor-/collectionkatalog direkte fra de eksisterende bindings og faktiske editorcallsites;
+   hver descriptor ejer typed read/write, codec, semantisk tomhed, alle editorlokationer, relevans og validators.
+2. Bevis descriptor-/editor-completeness mod fase-0-inventaret, og slet derefter de gamle bindings som del af cutoveren.
+3. Erstat runtime-storen med `input`, `revision`, `history` og nødvendig hydration-/systemfejlstatus.
+4. Slet afledte sections/invalidDraft-views, revisionsmaps, epochs, counters og stored fieldErrors.
+5. Erstat typed + legacy runner med én command-union og én entrypoint.
+6. Indfør current-only session-envelope på en ny intern nøgle/version.
+7. Bevar current-format schema/katalogvalidering, read-back og rollback.
+8. Slet al læsning og oversættelse af gamle browserformater.
+9. Giv AppSettings én monoton settingsrevision, så `EvaluationSourceToken` altid kan verificeres samlet.
 
 #### 2.2 Kritiske handlinger og editorregistry
 
