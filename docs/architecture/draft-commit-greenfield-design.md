@@ -4,6 +4,15 @@
 migrationsgrundlag. Fase 0–4 har leveret nyttige karakteriseringstests, codecs, inventarer og tekniske erfaringer, men
 ingen af faserne betragtes længere som en færdig del af målarkitekturen. Implementeringen skal rebaseres efter §8.
 
+**Implementeringsstatus (rebase):** Den tidligere Fase 0–4-implementering på `greenfield`-branchen (typed spor,
+sentinel-adresser, Satser-kernelprojektion m.m.) er forkastet som migrationsgrundlag og betragtes udelukkende som
+historiske karakteriseringstests/erfaringer. Den bindende migrationsplan er §8 (Fase 0–7). Faktisk fremdrift efter
+rebasen: **Fase 1** — den rene inputkerne er genopbygget fra bunden i `src/inputCore/` (framework-fri: XOR-invariant,
+issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog, `ready|blocked`-projektioner).
+**Fase 0** — kontrakterne er rebaset (AGENTS.md + de normative kontrakter), og de kanoniske felt-, collection- og
+consumerledgers er bygget i `src/inputCore/ledger/` med maskinlåste baseline-counts og validator
+(`npm run verify:ledgers`). Næste er Fase 2's atomiske runtime- og inputoverflade-cutover.
+
 **Dato:** 2026-07-16
 
 **Type:** Informativ målarkitektur og bindende migrationsplan. Normative kontrakter opdateres som første

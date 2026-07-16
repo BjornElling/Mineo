@@ -16,11 +16,12 @@ Et snapshot er ikke persisted state, åben draft, en generel inputreader eller e
 ## 2. Inputgrænse
 
 1. Snapshot-entrypointet modtager en typed `ready` inputprojektion eller en `InputReader`, som det selv projekterer.
-2. Det må ikke modtage rå canonical sektioner som en bypass til maskeret rejected input.
+2. Det må ikke modtage rå canonical sektioner som en bypass uden om `InputReader`s feltfejl-skjul (et felt med aktiv rød
+   feltfejl eksponerer aldrig sin canonical værdi).
 3. Rejected afhængigt input, manglende requirements og blokerende domæneissues skal stoppe den relevante projektion,
    før motoren kaldes.
 4. Åben draft er usynlig for snapshottet. Mens en editor er åben, bruges snapshottet for senest afsluttede revision.
-5. Snapshot og alle consumerprojektioner bærer den inputrevision, de er bygget fra.
+5. Snapshot og alle consumerprojektioner bærer det `EvaluationSourceToken` (input- + settingsrevision), de er bygget fra.
 
 ## 3. Grundregler
 
@@ -98,9 +99,10 @@ brugerens input. EO's midlertidigt-EET-injection er referenceeksemplet.
 
 ## 10. Friskhed
 
-- Snapshotrevisionen svarer til den `ready` inputrevision, som beregningen brugte.
+- Snapshottet bindes til det `EvaluationSourceToken`, beregningen brugte — dvs. både inputrevisionen og den relevante
+  settingsrevision. En ændring i AppSettings gør snapshottet stale på samme måde som en ændring i input.
 - Et stale snapshot må ikke bruges til gate, invariant eller dokument.
-- En ny inputtransaktion udsteder ny revision; snapshottet genberegnes eller consumeren fail-closer.
+- En ny inputtransaktion eller settingsændring udsteder et nyt token; snapshottet genberegnes eller consumeren fail-closer.
 - Stale state er et refresh-behov, ikke i sig selv en systemfejl.
 
 ## 11. Ikke-krav

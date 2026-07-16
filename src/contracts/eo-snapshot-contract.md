@@ -257,11 +257,13 @@ Projektioner må ikke gætte på statusnavn alene. De skal også respektere `dat
 
 ## 5. Snapshot-livscyklus og friskhed
 
-Snapshot er bundet til en afsluttet inputrevision.
+Snapshot er bundet til et afsluttet `EvaluationSourceToken` — dvs. både den afsluttede inputrevision OG den relevante
+settingsrevision (jf. `form-contract.md` §3 og `snapshot-contract.md` §10). En ændring i AppSettings gør snapshottet
+stale på samme måde som en ændring i input.
 
 **Regler:**
 - `snapshot.revision` skal altid svare til den ready inputrevision der blev brugt til
-  den autoritative beregning.
+  den autoritative beregning; en settingsændring gør ligeledes snapshottet stale.
 - Hvis `snapshot.revision !== currentInputRevision`, er snapshot stale og må ikke bruges
   som grundlag for at konstatere kontroluoverensstemmelse eller anden blokering, der
   forudsætter et friskt snapshot.

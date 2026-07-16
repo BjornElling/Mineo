@@ -128,7 +128,8 @@ Regler:
 - Blur og Enter udløser samme `settle`.
 - Escape gendanner præcis tilstanden ved editorens åbning og committer aldrig.
 - Et succesfuldt settle skriver canonical værdi og fjerner tidligere rejection atomisk.
-- Et ugyldigt settle skriver rejected rå tekst og maskerer den tidligere canonical værdi atomisk.
+- Et ugyldigt settle rydder feltets canonical slot til tomværdien og skriver rejected rå tekst atomisk — gensidigt
+  udelukkende (XOR). Der maskeres ingen tidligere canonical værdi; en afløst gyldig værdi findes kun i undo-historikken.
 - Et no-op-settle skriver hverken storage eller history og stiger ikke revisionen.
 - Kritiske handlinger bruger samme settle-handle; der findes ingen særskilt preflight-parser.
 - Felt-editoren modtager ikke `value`, `parse`, `format`, `onCommit` eller rejected-callbacks som alternative porte.

@@ -25,9 +25,10 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
 4. Runtimefejl må ikke give gyldige totals eller PDF-projektion.
 5. **Bevidst domænebeslutning:** Méngrad er et heltal fra og med 1 til og med 120. Værdier over 100 er gyldigt beregningsinput og anvendes direkte i samme formel som øvrige méngrader.
 6. **Bevidst valideringsbeslutning:** En parsebar heltals-méngrad uden for 1..120 committes canonical og giver et
-   afledt range-issue. Værdien må gemmes i `.eo`, men den må ikke nå beregningsmotoren eller passere PDF-gaten.
-   Persistence-schemaet validerer heltalssyntaks; feltdefinition, projektion og engine deler domænegrænsen
-   `VARIGE_MEN_MAX_MENGRAD`.
+   afledt **rødt** range-issue. Værdien bevares canonical (den maskeres ikke), men den røde feltfejl blokerer efter den
+   uniforme save-gate (`form-contract.md` §8): den må hverken nå beregningsmotoren, passere PDF-gaten eller gemmes i
+   `.eo`, før fejlen er rettet. Persistence-schemaet validerer heltalssyntaks; feltdefinition, projektion og engine deler
+   domænegrænsen `VARIGE_MEN_MAX_MENGRAD`.
 
 ---
 

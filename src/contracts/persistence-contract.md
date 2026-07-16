@@ -65,11 +65,13 @@ Aktiv sagsinput lagres under én namespace-aware Mineo-nøgle:
 ```ts
 type InputEnvelope = Readonly<{
   envelopeVersion: string;
-  fieldAddressVersion: string;
   persistedDataVersion: string;
   input: PersistedInputState;
 }>;
 ```
+
+Envelopen har **ét** current-only format. Der findes ingen `fieldAddressVersion`-bro, sentinel-adresser eller
+adresseoversættelse: feltadresser er altid det aktuelle kanoniske strukturelle format, valideret mod kataloget.
 
 Regler:
 
@@ -86,41 +88,24 @@ Regler:
 
 Storage keys ejes af `src/config/storageManifest.ts`. Rename/fjernelse kræver eksplicit migrations- eller rydningspolitik.
 
-## 4. Startup-migration fra gammel runtime-model
+## 4. Bootstrap og current-session-korruption
 
-Per-sektion-nøgler og den separate `invalidDrafts`-envelope migreres én gang:
+Gamle interne browser-sessioner migreres **ikke**. Programmet opdateres kun, når ingen brugere er aktive, så der bygges
+ingen legacy-sessionreader, per-sektion-nøgle-migration, `invalidDrafts`-oversættelse, adressebro, dual-read eller
+kompatibilitetsdialog. Kun `.eo`-fil-load er bagud-/fremadtolerant (§5); det er en separat produktgaranti og må aldrig
+bruges som begrundelse for runtime-kompatibilitet.
 
-1. Læs alle gamle nøgler uden mutation.
-2. Valider hver kilde efter dens eksisterende schema/version.
-3. Oversæt rejected string-keys til versionerede strukturelle feltadresser.
-4. Byg og valider den nye samlede envelope.
-5. Skriv, genlæs og verificér den nye nøgle.
-6. Fjern først derefter de gamle nøgler.
+Bootstrap læser den ene current-session-envelope én gang før React-render:
 
-Ved fejl bevares alle gamle nøgler uændret, og runtime må ikke anvende et delvist snapshot. Brugeren får en eksplicit
-dansk systemfejl. Normale inputwrites blokeres derefter fail-closed, så den tomme recovery-runtime ikke kan
-overskrive eller skygge de bevarede kilder. Kun brugerens eksplicitte `Slet alt` må ophæve blokeringen ved at fjerne
-kilderne. Der etableres ikke permanent dual-read eller dual-write.
-
-### 4.1 Midlertidig fase-3-adressebro
-
-Fase 3 ligger før den horisontale FieldRef-migration i fase 4. Den samlede envelope bruger derfor den særskilte
-`fieldAddressVersion = legacy-bridge-1` og accepterer kun strukturelle sentinel-adresser skabt af den ene
-legacy-adapter. De er transportidentitet for eksisterende callsites, ikke kendte `FieldRef`s, og må ikke læses af
-domæne-, beregnings- eller dokumentkode.
-
-I fase 4 registreres alle faktiske bindings i det forseglede `InputCatalog`; hele envelopen oversættes atomisk til
-`FIELD_ADDRESS_VERSION`, og sentinel-adapteren samt bridge-versionen slettes. Først dette current-format valideres
-mod katalog og konkret entity-medlemskab. Envelopen må aldrig mærkes med `FIELD_ADDRESS_VERSION`, mens den indeholder
-sentinel-adresser.
-
-Cutover må heller ikke ske feltvis inde i `legacy-bridge-1`: runtime og storage må aldrig indeholde en blanding af
-sentinel- og current-adresser. Overfladerne kan først skifte samlet, når den fulde legacy→`FieldRef`-mapping er bygget
-fra samme manifests som produktionskataloget og hele envelopen kan migreres i én verificeret transaktion.
+1. Findes ingen envelope, starter sagen tom.
+2. Findes en gyldig envelope, hydreres den.
+3. Er den tilstedeværende envelope korrupt (kan ikke parses/valideres mod current-format), håndteres det **fail-closed**
+   som dataintegritet, ikke versionskompatibilitet: den rå envelope bevares uændret, alle normale inputwrites blokeres,
+   og brugeren får den eksisterende eksplicitte danske systemfejl. Bootstrap må aldrig stiltiende starte tomt og senere
+   overskrive den korrupte kilde. Kun brugerens eksplicitte `Slet alt` må fjerne den korrupte kilde og starte en tom sag.
 
 Current-formatets serialiserede feltadresse har én byte-for-byte kanonisk JSON-repræsentation. Alternative
-property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter accepteres ikke som current keys; gamle
-formater og aliases må kun oversættes i det versionsbårne migrationslag.
+property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter accepteres ikke som current keys.
 
 ## 5. `.eo` save-garantier
 
@@ -133,8 +118,9 @@ formater og aliases må kun oversættes i det versionsbårne migrationslag.
 7. Artefaktet bygges og verificeres før sink. In-memory download verificeres før browserdownload; en read-back-sink
    verificeres mod de faktisk skrevne bytes.
 
-Range/bounds på en schema-gyldig canonical værdi kan fortsat være ikke-save-blokerende efter `form-contract.md` og
-domænets policy. Dokument-output følger den strengere dokumentpolicy.
+`.eo`-save-gaten er uniform: enhver aktiv rød feltfejl blokerer save globalt, herunder et afledt rødt range-/bounds-
+issue på en ellers schema-gyldig canonical værdi. En sådan værdi må ikke gemmes, før fejlen er rettet (se
+`form-contract.md` §8). `missing` og warnings blokerer aldrig save.
 
 Sektionsschemas validerer canonical syntaks, shape og sikker numerisk repræsentation — ikke feltets fortegn, min/max,
 tværfeltsrelationer eller øvrige domæneregler. Sådanne regler afledes som issues fra samme canonical snapshot og må
@@ -204,15 +190,17 @@ destruktiv erstatning må ikke tilbydes.
 
 ## 9. Schema- og versionsansvar
 
-`FILE_FORMAT_VERSION`, `PERSISTED_DATA_VERSION`, `InputEnvelope.envelopeVersion` og `fieldAddressVersion` er forskellige:
+`FILE_FORMAT_VERSION`, `PERSISTED_DATA_VERSION` og `InputEnvelope.envelopeVersion` er forskellige:
 
 - filformatversion: container/indpakning,
 - persisted dataversion: canonical sektionsschemas og load-semantik,
-- envelopeversion: sessionaggregatets struktur,
-- feltadresseversion: persistent adresseformat og katalogmapping.
+- envelopeversion: sessionaggregatets struktur.
 
-De bumpes kun ved ændringer i deres eget ansvar. Migrationer er eksakte og typed; der gættes aldrig ud fra shape eller
-versionssortering. En version uden sikker mapping går til den dokumenterede fail-closed/preflight-sti.
+Der findes **ingen** særskilt feltadresseversion: feltadresser er altid current-formatet. De øvrige versioner bumpes kun
+ved ændringer i deres eget ansvar. `.eo`-load-migrationer er eksakte og typed; der gættes aldrig ud fra shape eller
+versionssortering. En version uden sikker mapping går til den dokumenterede fail-closed/preflight-sti. En inkompatibel
+ændring af de strukturelle feltadresser er ikke en versioneret migration, men en current-session-korruption efter §4,
+fordi gamle interne sessioner aldrig migreres.
 
 Der beholdes ikke legacy-runtimekode alene for gamle interne modeller.
 

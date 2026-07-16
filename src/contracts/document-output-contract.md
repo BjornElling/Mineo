@@ -48,11 +48,14 @@ Reglerne i dette afsnit er uafhængige af outputkanal. De gælder uændret for b
 Download er blokeret, hvis mindst én af følgende er sand:
 
 1. Et issue med `severity: 'error'` rammer et input, som dokumentdefinitionen afhænger af. Det omfatter `invalid`,
-   `missing`, `range`/`bounds`, `schema` og `rule`, også når en range/bounds-værdi er canonical og kan gemmes i `.eo`.
+   `missing`, `range`/`bounds`, `schema` og `rule`. En rød range/bounds-feltfejl blokerer uanset repræsentation — både
+   når den er rejected råtekst, og når den er en canonical værdi med et afledt rødt issue (sidstnævnte kan i øvrigt
+   heller ikke gemmes i `.eo`, jf. den uniforme save-gate).
 2. Den autoritative beregning/projektion kan ikke dannes. Snapshot-first-domæner bruger deres typed snapshotprojektion;
    øvrige domæner leverer et typed gate-/preflight-resultat med samme semantik.
 3. Output-specifikke invariants eller guards er brudt.
-4. Den godkendte projektion er stale i forhold til den aktuelle inputrevision.
+4. Den godkendte projektion er stale i forhold til det aktuelle `EvaluationSourceToken` — dvs. hvis enten inputrevisionen
+   eller den relevante settingsrevision har ændret sig siden optagelsen.
 
 Konsekvens:
 
@@ -86,8 +89,9 @@ fælles preflight, så lokale gates ikke kan genindføre forskellen mellem forma
 
 - Mens editoren er åben, bygger den reaktive gate på den senest afsluttede revision. Åben draft må ikke få knappen eller
   den beregnede visning til at skifte tilstand.
-- Et afsluttet rejected input maskerer altid en tidligere canonical værdi i `InputReader`. Dokumentdefinitionen kan
-  derfor ikke utilsigtet godkende den skjulte værdi.
+- Et afsluttet rejected input har ryddet feltets canonical slot til tomværdien (XOR); der findes ingen maskeret tidligere
+  værdi. Dokumentdefinitionen kan derfor ikke utilsigtet godkende en skjult værdi, og `InputReader` eksponerer aldrig en
+  værdi fra et felt med en aktiv rød feltfejl.
 - Lokale feltbooleans, reporterstate og direkte sektionslæsning er ikke gyldige gatekilder.
 - Afhængighedsscope udledes strukturelt: et per-række-dokument afhænger af fælles felter og den konkrete række; et
   aggregat afhænger af fælles felter og alle inkluderede rækker. Et manuelt `global/section/row`-scope er forbudt.

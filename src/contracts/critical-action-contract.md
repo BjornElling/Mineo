@@ -29,13 +29,22 @@ deltagere med symmetrisk lifecycle.
 
 ## 3. Handlingspolicy
 
-| Handling | Åben form-editor | Åben grid-editor | Pending inputtransaktion |
-|---|---|---|---|
-| Gem | settle | settle eller blokér | afvent |
-| Manuel/PWA-indlæsning | blokér uden settle | settle eller blokér | afvent |
-| Sidenavigation | blokér uden settle | settle eller blokér | afvent |
-| Undo/redo | stille blokering uden settle | stille blokering uden settle | afvent |
-| Dokument-output | settle | settle eller blokér | afvent |
+Policyen er ens for form- og grid-editoren; korrekthed må aldrig afhænge af browserens blur/click-rækkefølge.
+
+| Handling | Åben editor (form og grid) | Pending inputtransaktion |
+|---|---|---|
+| Gem | settle først, evaluér derefter frisk input-/settingssnapshot | afvent |
+| Dokument-output | settle først, evaluér derefter frisk input-/settingssnapshot | afvent |
+| Sidenavigation | settle og fortsæt (også ved fejlende settle) | afvent |
+| Manuel/PWA-indlæsning | gennemfør uden settle; den åbne draft må aldrig blokere handlingen | afvent |
+| Load, reset og `Slet alt` | gennemfør uden settle; den åbne draft må aldrig blokere handlingen | afvent |
+| Undo/redo | stille no-op; den åbne draft ændres ikke | afvent |
+
+Load, reset og `Slet alt` er anderledes end save/navigation, fordi en gennemført handling under alle omstændigheder
+erstatter eller sletter det input, draften kunne være blevet til. De må derfor hverken settle, validere eller bevare
+draften som en del af handlingen. Ved en handling med bekræftelse/preflight forbliver draften urørt, indtil brugeren
+faktisk godkender apply: ved succes bortfalder draften sammen med den erstattede tilstand; ved annullering eller
+apply-fejl forbliver både afsluttet input og åben draft uændret.
 
 Klargøring må ikke starte fil-I/O, routeændring, history-restore eller dokumentgenerator ved et blokeret resultat.
 
@@ -65,11 +74,11 @@ ejes af dokumentdefinitionen efter `document-output-contract.md`.
 
 ## 5. Friskhed
 
-Efter en vellykket preparation skal consumeren læse et nyt revisionsbundet snapshot. En godkendelse eller projektion
-fra en tidligere revision må ikke genbruges.
+Efter en vellykket preparation skal consumeren læse et snapshot bundet til et nyt `EvaluationSourceToken` (input- +
+settingsrevision). En godkendelse eller projektion fra et tidligere token må ikke genbruges.
 
-Async flows kontrollerer revision igen efter lazy-load og umiddelbart før irreversible handlinger. Er revisionen ændret,
-evalueres preflight på ny eller handlingen stoppes fail-closed.
+Async flows genlæser og sammenligner hele tokenet efter lazy-load og umiddelbart før irreversible handlinger. Er enten
+input- eller settingsrevisionen ændret, evalueres preflight på ny, eller handlingen stoppes fail-closed.
 
 ## 6. Autoritative grænser
 
@@ -81,8 +90,13 @@ evalueres preflight på ny eller handlingen stoppes fail-closed.
 Nuværende `useStyledFieldAdapter`, `useGridCoreController` og `useGridRowPersistenceCore` er migrationsintegrationer,
 ikke normative API-navne.
 
-## 7. Kendt undtagelse
+## 7. Reset, `Slet alt` og load — ingen settle
 
-`Slet alt` kan fortsat stå uden for coordinatoren, når handlingen efter bekræftelse destruerer hele sagen og udfører en
-fuld sidegenindlæsning. En åben draft ville under alle omstændigheder blive slettet; commit-klargøring har derfor ingen
-databevarende funktion. Annullering må fortsat genskabe fokus.
+Load, reset og `Slet alt` følger den samme regel (jf. §3): de gennemføres uden settle, den åbne draft blokerer aldrig
+handlingen, og draften kasseres først ved en vellykket apply. Det er korrekt netop fordi en gennemført handling under
+alle omstændigheder erstatter eller sletter det input, draften kunne være blevet til — commit-klargøring har derfor ingen
+databevarende funktion. Annullering (eller apply-fejl) bevarer både afsluttet input og åben draft og genskaber fokus.
+
+I målarkitekturen ejes reset/`Slet alt` af `CaseResetOperations`-porten (jf. greenfield-designets §3.10) og routes
+gennem den samme replacement-command som load. En eventuel fuld sidegenindlæsning er en implementeringsdetalje, ikke en
+undtagelse fra no-settle/kassér-kun-ved-succes-reglen.

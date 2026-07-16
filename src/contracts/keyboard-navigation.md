@@ -71,8 +71,8 @@ Konsekvens:
 
 - Escape annullerer universelt alt siden editoren blev åbnet.
 - Editorens draft forkastes uden command, så feltets uændrede afsluttede starttilstand vises igen.
-- Hvis starttilstanden var et afsluttet ugyldigt input, gendannes den ugyldige rå tekst; en skjult tidligere canonical
-  værdi må ikke vises i stedet.
+- Hvis starttilstanden var et afsluttet ugyldigt input, gendannes den ugyldige rå tekst. Feltets canonical slot var
+  allerede ryddet til tomværdien ved det ugyldige settle (XOR), så der findes ingen tidligere canonical værdi at vise.
 - Det efterfølgende blur må ikke settle den annullerede tekst.
 - Beregning, visning og dokumentgate ændres ikke, fordi åben draft aldrig har ændret den afsluttede revision.
 

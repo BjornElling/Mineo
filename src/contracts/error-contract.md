@@ -16,17 +16,45 @@ Et issue skal mindst kunne bære:
 - `reason`,
 - `severity: 'error' | 'warning'`,
 - deterministisk dansk besked,
-- eksplicit save-policy og eventuel domænedetalje.
+- eventuel domænedetalje.
 
-Normative inputårsager:
+Et issue bærer **ingen** `blocksSave`- eller `blocksProjection`-boolean. Konsekvensen udledes strukturelt af issuets
+klasse, dets placering og consumerens faktiske reads (§ konsekvensmodellen nedenfor og `form-contract.md` §8) — den er
+aldrig et konfigurerbart flag per issue.
 
-- `invalid` — feltets afsluttede input er rejected på grund af syntaks eller et aktivt commit-interval,
-- `missing` — en consumer kræver et tomt canonical felt,
-- `range`/`bounds` — canonical værdi ligger uden for konkrete grænser,
-- `schema` — runtime-schema kan ikke opfyldes,
-- `rule` — en domæneregel er brudt.
+Der findes tre issue-klasser:
+
+- **feltfejl** (rød): vises med rød kant + tooltip på feltet, blokerer `.eo` globalt og enhver afhængig consumer,
+- **consumerfejl** (fx `missing`): ingen rød markering; vises i contentboxen og blokerer kun den konkrete consumer,
+- **warning**: vises, men blokerer aldrig beregning, dokument eller `.eo`.
+
+Normative årsager:
+
+- `invalid` — feltets afsluttede input er rejected på grund af syntaks (`format`) eller et aktivt commit-interval
+  (`range`); altid en **feltfejl**,
+- `range`/`bounds` — canonical værdi ligger uden for konkrete grænser; en **feltfejl**,
+- `schema` — runtime-schema kan ikke opfyldes; en **feltfejl**,
+- `rule` — en feltplaceret domæneregel er brudt; en **feltfejl** (en output-/tværgående regel kan i stedet være en
+  consumerfejl),
+- `missing` — en consumer kræver et tomt canonical felt; altid en **consumerfejl**, aldrig en rød feltfejl og aldrig
+  save-blokerende.
 
 Tekniske runtimefejl er ikke inputissues og følger §8.
+
+### 1.1 Konsekvensmatrix (normativ)
+
+Konsekvensen er deterministisk og følger af klassen — ikke af et flag:
+
+| Tilstand | Rød feltmarkering | Blokerer `.eo` globalt | Blokerer afhængig beregning/dokument | Blokerer uafhængig consumer |
+|---|---:|---:|---:|---:|
+| Ugyldigt format | Ja | Ja | Ja | Nej |
+| Range/bounds-fejl | Ja | Ja | Ja | Nej |
+| Anden feltplaceret error (schema/rule) | Ja | Ja | Ja | Nej |
+| Tomt felt / `missing` | Nej | Nej | Ja, hvis consumeren kræver feltet | Nej |
+| Warning | Nej | Nej | Nej | Nej |
+
+Kun tooltip-/contentboxteksten varierer mellem de røde feltfejl. Matrixen må ikke omgås af et `blocksSave`- eller
+`blocksProjection`-flag.
 
 ## 2. Ren afledning og ejerskab
 
@@ -43,10 +71,13 @@ ved mount, effect eller unmount. Samme afsluttede input skal give samme issues u
 Issues persisteres hverken i `.eo`, `sessionStorage` eller history. De genafledes efter load, reset og undo/redo.
 
 En projektion bærer sine relevante issues i både `ready`- og `blocked`-grenen. Blockers er en kontekstafhængig
-delmængde: samme
-canonical issue kan gøre én consumer uanvendelig og være ikke-blokerende for en anden. Beregningsblokering må derfor
-ikke lagres som et globalt flag på issueet. Dokumentpolicy er derimod fælles: ethvert relevant `error` blokerer.
-`invalid` er altid `error` og save-blokerende. `missing` er consumerdefineret og skal angive save-policy eksplicit.
+delmængde: samme feltfejl kan gøre én consumer uanvendelig, mens en uafhængig consumer forbliver `ready`.
+Beregningsblokering lagres derfor ikke som et flag på issueet, men følger af hvilke refs consumeren faktisk læser.
+
+`.eo`-save-gaten er uniform: **enhver aktiv rød feltfejl blokerer `.eo` globalt**, uanset reason (format, range, bounds,
+schema, feltplaceret rule). `missing` og warnings blokerer aldrig `.eo`. Dokument-/beregningspolicy er dependency-
+specifik: et relevant `error` (feltfejl eller consumerfejl på et læst felt) blokerer den konkrete consumer; en warning
+blokerer aldrig.
 
 Eksisterende `fieldErrors`, `useFormFieldErrorReporter`, `onFieldError` og tabeltrackere er migrationskode. De må ikke
 bruges som ny sandhedskilde eller kopieres til nye områder.
@@ -90,11 +121,12 @@ begge grænser og navngiver de brugervendte input, der skabte dem.
 Kontrolvisninger må gruppere alle relevante issues, men må ikke gætte fra beskedtekst. Links skal bruge issueets
 strukturelle fokusmål. Henvises til en anden side, er kun sidens navn klikbart.
 
-## 5. Policy for save, beregning og dokumenter
+## 5. Konsekvens for save, beregning og dokumenter
 
 - En projektion kalder ikke beregningsmotoren, hvis et afhængigt issue gør input uanvendeligt.
-- `.eo`-save blokeres af rejected input og øvrige issues efter save-policy. Range/bounds kan være ikke-save-blokerende,
-  når canonical værdi er schema-gyldig og domænereglen siger det.
+- `.eo`-save blokeres uniformt af **enhver aktiv rød feltfejl** i sagen, uanset reason (format, range, bounds, schema,
+  feltplaceret rule) og uanset repræsentation (rejected råtekst eller canonical værdi med afledt rødt issue). `missing`
+  og warnings blokerer aldrig save.
 - Ethvert dokumentrelevant issue med `severity: 'error'` blokerer dokument-output, også `range`/`bounds`.
 - Dokumentknappen er både visuelt og funktionelt disabled på den senest afsluttede blokerede revision.
 - En åben draft ændrer ikke issues eller gate; settle skifter input og afledte issues atomisk til en ny revision.

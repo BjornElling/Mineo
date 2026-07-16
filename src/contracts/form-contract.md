@@ -43,8 +43,10 @@ er enten:
 - **ugyldig:** den ikke-tomme rå tekst, som ikke kunne parses eller ligger uden for tal-, år- eller ugefeltets aktive
   commit-interval.
 
-Et ugyldigt afsluttet input maskerer altid en eventuel tidligere gyldig canonical værdi. Den tidligere værdi er kun
-recovery-data og må ikke nå en consumer, så længe masken findes.
+Et ugyldigt afsluttet input rydder feltets canonical slot til dets tomværdi og gemmer den rå fejlende tekst atomisk.
+Samme aktuelle felt kan aldrig samtidig have en ikke-tom canonical værdi og rejected råtekst (XOR-invarianten). Der
+findes ingen maskeret recovery-værdi under det rejected input: en tidligere gyldig canonical værdi findes udelukkende i
+undo-historikken og kan derfor aldrig nå en consumer i den aktuelle tilstand.
 
 Tom tekst parser til feltets definerede tomme canonical værdi, normalt `undefined`. Om tomhed er en fejl, afgøres af den
 consumer, som kræver feltet.
@@ -86,6 +88,10 @@ Regler:
 5. Revisionen persisteres ikke som brugerdata og gendannes ikke fra history.
 6. Eksisterende `invalidDrafts`, separate feltfejl-slices og sektionsvise skrive-API'er er migrationssubstrat, ikke
    tilladte slut-API'er.
+7. Evalueringsfriskhed bindes til et `EvaluationSourceToken`, der omfatter **både** inputrevisionen og en monoton
+   settingsrevision. Et issue-snapshot, en consumerprojektion eller et forberedt dokument er stale, hvis enten input
+   eller de relevante AppSettings har ændret sig siden optagelsen. AppSettings må påvirke validering, beregning og
+   visning, men aldrig styre synlighed/relevans for et persisteret inputfelt.
 
 ## 4. Feltdefinition og identitet
 
@@ -127,7 +133,8 @@ Blur og Enter bruger samme feltmotor og samme `settleField`-transaktion:
 
 1. codec parser den aktuelle rå tekst,
 2. gyldigt resultat skriver canonical værdi og fjerner en eventuel rejection,
-3. ugyldigt resultat skriver den rå tekst som rejection og bevarer recovery-værdien maskeret,
+3. ugyldigt resultat rydder canonical slot til feltets tomværdi og skriver den rå tekst som rejection — atomisk og
+   gensidigt udelukkende (XOR); der bevares ingen maskeret recovery-værdi,
 4. storage, aggregate, history og revision ændres som én transaktion.
 
 En global kritisk handling må udløse den samme settle-sti gennem en registreret deltager. Der må ikke findes en separat
@@ -141,8 +148,8 @@ Escape annullerer universelt alt siden editoren blev åbnet:
 - intet committes eller valideres,
 - det umiddelbart efterfølgende blur må ikke settle den annullerede tekst.
 
-Hvis feltet var afsluttet ugyldigt før åbning, gendannes den ugyldige tekst; den skjulte tidligere canonical værdi må
-ikke vises i stedet.
+Hvis feltet var afsluttet ugyldigt før åbning, gendannes den ugyldige tekst. Feltets canonical slot var allerede ryddet
+til tomværdien ved det ugyldige settle (XOR), så der findes ingen tidligere canonical værdi at vise i stedet.
 
 ### 5.4 Immediate commit
 
@@ -192,22 +199,25 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
 5. Når et styrende valg efter den gældende produktregel gør rejected input irrelevant, skal rydningen udtrykkes som én
    typed domænecommand i samme transaktion som valget. Canonical skjulte værdier må ikke ryddes implicit.
 
-## 8. Datoer, bounds og save-policy
+## 8. Datoer, bounds og save-gate
 
 - Dato-draft er rå tekst; canonical dato er `ISODateString | undefined`.
 - Datoformat parses kun ved settle gennem det kanoniske datocodec.
 - Min/max og tværfeltgrænser læser kun senest afsluttet input.
-- En parsebar dato uden for interval committes canonical og giver et afledt range-/bounds-issue.
+- En parsebar dato uden for interval committes canonical og giver et afledt rødt range-/bounds-issue.
 - Ugyldigt format giver rejected input og ingen ny canonical værdi.
 
-`.eo`-save følger commitbarhed, ikke enhver rød fejlmarkering:
+`.eo`-save-gaten er uniform og styres ikke af en per-issue save-policy: **enhver aktiv rød feltfejl blokerer `.eo`-save
+globalt** — uanset om årsagen er ugyldigt format, commit-interval, range, bounds, schema eller en feltplaceret
+domæneregel. Kun tooltip-/beskedteksten varierer.
 
-- rejected input blokerer save,
-- schema-/regel-fejl blokerer efter deres save-policy,
-- range/bounds med en schema-gyldig canonical værdi kan fortsat gemmes, når domænet foreskriver det.
+- Rejected råtekst (format/range) blokerer save.
+- Et afledt rødt range-/bounds-/regel-issue på en ellers schema-gyldig canonical værdi blokerer også save globalt; en
+  sådan værdi må ikke gemmes, før fejlen er rettet.
+- Tomhed/`missing` og warnings blokerer aldrig save.
 
-Dokument-output har en strengere policy: ethvert dokumentrelevant issue med fejlseverity blokerer dokumentet, herunder
-range/bounds. Se `document-output-contract.md`.
+Dokument-output følger samme uniforme regel for egne dependencies: ethvert dokumentrelevant issue med fejlseverity
+blokerer dokumentet, herunder range/bounds. Se `document-output-contract.md`.
 
 ## 9. Dynamiske tabeller
 

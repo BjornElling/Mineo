@@ -346,7 +346,8 @@ Page- og tab-komponenter skal respektere `form-contract.md`:
 - åben draft ændrer kun editorens lokale tekst,
 - settle/immediate commit går gennem den fælles inputtransaktion,
 - beregning og afledt feedback bruger kun en `ready` inputprojektion,
-- et rejected afhængigt felt må ikke erstattes med en skjult tidligere canonical værdi,
+- et rejected afhængigt felt har ingen skjult tidligere canonical værdi at falde tilbage på (XOR); dets canonical slot er
+  ryddet til tomværdien, og readeren skjuler feltet bag den røde fejl,
 - en åben editor bevarer visning og gates fra senest afsluttede revision.
 
 Pages må orkestrere projektioner og viewmodels, men må ikke selv sammensætte motorinput fra rå sektioner.
