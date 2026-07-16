@@ -1,0 +1,282 @@
+import { deepEqual } from '../utils/deepEqual';
+import {
+  createEntityPath,
+  deserializeFieldAddress,
+  isFieldAddressBelowEntity,
+  serializeFieldAddress,
+  type CollectionRef,
+  type SectionKey,
+} from './fieldAddress';
+import type { FieldRef } from './fieldDescriptor';
+import type { InputCatalog } from './fieldCatalog';
+import {
+  createEmptyPersistedInputSections,
+  type PersistedInputSections,
+  type RejectedInput,
+  type RejectedInputs,
+  type SettledInput,
+  type SettledInputCandidate,
+} from './settledInput';
+import { createValidationReader, deriveFieldIssueSnapshot } from './inputReader';
+import { activeFieldIssue } from './inputIssue';
+
+// Greenfield-kerne (§3.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
+// og history ejes af runtime-runneren (Fase 2). Reduceren håndhæver XOR-invarianten (§1.5): et ugyldigt settle
+// rydder feltets canonical slot til tomværdien OG skriver den rå fejlende tekst atomisk.
+
+export type SettleFieldCommand<T> = Readonly<{ kind: 'settleField'; field: FieldRef<T>; raw: string }>;
+export type SetImmediateFieldCommand<T> = Readonly<{ kind: 'setImmediateField'; field: FieldRef<T>; value: T }>;
+export type ClearFieldCommand<T> = Readonly<{ kind: 'clearField'; field: FieldRef<T> }>;
+
+/** Atomisk styrende valg (§3.6): committer valget OG rydder feltfejl, der bliver irrelevante, i ét trin. */
+export type ApplyControllingChoiceCommand<T> = Readonly<{
+  kind: 'applyControllingChoice';
+  field: FieldRef<T>;
+  value: T;
+}>;
+
+export type InsertRowCommand<TEntity> = Readonly<{
+  kind: 'insertRow';
+  collection: CollectionRef;
+  entity: TEntity;
+  index?: number;
+}>;
+export type DeleteRowCommand = Readonly<{ kind: 'deleteRow'; collection: CollectionRef; entityId: string }>;
+export type ReorderRowsCommand = Readonly<{
+  kind: 'reorderRows';
+  collection: CollectionRef;
+  orderedEntityIds: readonly string[];
+}>;
+export type SettleFieldInNewRowCommand<TEntity, TField> = Readonly<{
+  kind: 'settleFieldInNewRow';
+  collection: CollectionRef;
+  entity: TEntity;
+  index?: number;
+  field: FieldRef<TField>;
+  raw: string;
+}>;
+
+export type ResetSectionCommand = Readonly<{
+  kind: 'resetSection';
+  section: SectionKey;
+  value: PersistedInputSections[SectionKey];
+}>;
+export type ReplaceCaseCommand = Readonly<{ kind: 'replaceCase'; input: SettledInputCandidate }>;
+export type ClearCaseCommand = Readonly<{ kind: 'clearCase' }>;
+
+export type InputMutationCommand<TField = unknown, TEntity = unknown> =
+  | SettleFieldCommand<TField>
+  | SetImmediateFieldCommand<TField>
+  | ClearFieldCommand<TField>
+  | ApplyControllingChoiceCommand<TField>
+  | InsertRowCommand<TEntity>
+  | DeleteRowCommand
+  | ReorderRowsCommand
+  | SettleFieldInNewRowCommand<TEntity, TField>
+  | ResetSectionCommand
+  | ReplaceCaseCommand
+  | ClearCaseCommand;
+
+// ── Command-konstruktører ────────────────────────────────────────────────────────────────────────
+export const settleField = <T>(field: FieldRef<T>, raw: string): SettleFieldCommand<T> =>
+  Object.freeze({ kind: 'settleField', field, raw });
+export const setImmediateField = <T>(field: FieldRef<T>, value: T): SetImmediateFieldCommand<T> =>
+  Object.freeze({ kind: 'setImmediateField', field, value });
+export const clearField = <T>(field: FieldRef<T>): ClearFieldCommand<T> =>
+  Object.freeze({ kind: 'clearField', field });
+export const applyControllingChoice = <T>(field: FieldRef<T>, value: T): ApplyControllingChoiceCommand<T> =>
+  Object.freeze({ kind: 'applyControllingChoice', field, value });
+export const insertRow = <TEntity>(collection: CollectionRef, entity: TEntity, index?: number): InsertRowCommand<TEntity> =>
+  Object.freeze({ kind: 'insertRow', collection, entity, ...(index === undefined ? {} : { index }) });
+export const deleteRow = (collection: CollectionRef, entityId: string): DeleteRowCommand =>
+  Object.freeze({ kind: 'deleteRow', collection, entityId });
+export const reorderRows = (collection: CollectionRef, orderedEntityIds: readonly string[]): ReorderRowsCommand =>
+  Object.freeze({ kind: 'reorderRows', collection, orderedEntityIds: Object.freeze([...orderedEntityIds]) });
+export const settleFieldInNewRow = <TEntity, TField>(
+  collection: CollectionRef,
+  entity: TEntity,
+  field: FieldRef<TField>,
+  raw: string,
+  index?: number
+): SettleFieldInNewRowCommand<TEntity, TField> =>
+  Object.freeze({ kind: 'settleFieldInNewRow', collection, entity, field, raw, ...(index === undefined ? {} : { index }) });
+export const resetSection = (section: SectionKey, value: PersistedInputSections[SectionKey]): ResetSectionCommand =>
+  Object.freeze({ kind: 'resetSection', section, value });
+export const replaceCase = (input: SettledInputCandidate): ReplaceCaseCommand =>
+  Object.freeze({ kind: 'replaceCase', input });
+export const clearCase = (): ClearCaseCommand => Object.freeze({ kind: 'clearCase' });
+
+// ── Kandidatbygning ────────────────────────────────────────────────────────────────────────────────
+
+type InputParts = Readonly<{ sections: PersistedInputSections; rejectedInputs: RejectedInputs }>;
+
+const assertWritable = <T>(parts: InputParts, field: FieldRef<T>, catalog: InputCatalog): void => {
+  if (!catalog.isKnownField(field) || !catalog.containsAddressEntities(parts.sections, field.address)) {
+    throw new Error('InputReducer: ukendt, slettet eller forkert bundet feltreference');
+  }
+};
+
+/** Skriver den canonical værdi og fjerner et eventuelt rejected råinput (§1.5: gyldigt/tomt settle). */
+const withCanonicalValue = <T>(parts: InputParts, field: FieldRef<T>, value: T): InputParts => {
+  const address = serializeFieldAddress(field.address);
+  const { [address]: _removed, ...rejectedInputs } = parts.rejectedInputs;
+  return {
+    sections: field.descriptor.writeCanonical(structuredClone(parts.sections), field.address, value),
+    rejectedInputs,
+  };
+};
+
+/** Rydder canonical til tomværdien OG skriver rå fejlende tekst atomisk (§1.5: ugyldigt settle). */
+const withRejectedInput = <T>(parts: InputParts, field: FieldRef<T>, rejected: RejectedInput): InputParts => {
+  const address = serializeFieldAddress(field.address);
+  return {
+    sections: field.descriptor.writeCanonical(
+      structuredClone(parts.sections),
+      field.address,
+      field.descriptor.emptyValue
+    ),
+    rejectedInputs: { ...parts.rejectedInputs, [address]: rejected },
+  };
+};
+
+const reduceSettle = <T>(parts: InputParts, field: FieldRef<T>, raw: string, catalog: InputCatalog): InputParts => {
+  assertWritable(parts, field, catalog);
+  const resolution = field.descriptor.codec.parseForSettle(raw);
+  if (resolution.status === 'valid') return withCanonicalValue(parts, field, resolution.value);
+  if (raw === '') throw new Error('InputReducer: codec afviste tom tekst, som ikke kan være rejected input');
+  return withRejectedInput(parts, field, {
+    raw,
+    reason: resolution.reason,
+    ...(resolution.detail === undefined ? {} : { detail: resolution.detail }),
+  });
+};
+
+const removeRejectedBelowEntity = (
+  rejectedInputs: RejectedInputs,
+  collection: CollectionRef,
+  entityId: string
+): RejectedInputs => {
+  const entityPath = createEntityPath([
+    ...collection.path,
+    { kind: 'entity', collection: collection.collection, entityId },
+  ]);
+  return Object.fromEntries(Object.entries(rejectedInputs).filter(([serialized]) => {
+    const address = deserializeFieldAddress(serialized);
+    if (address === null) throw new Error('InputReducer: current-state indeholder en ugyldig feltadresse');
+    return !isFieldAddressBelowEntity(address, collection.section, entityPath);
+  }));
+};
+
+/** §3.6 fast før/efter-procedure for et styrende valg: commit + atomisk oprydning af nu-irrelevante feltfejl. */
+const reduceControllingChoice = <T>(
+  input: SettledInput,
+  field: FieldRef<T>,
+  value: T,
+  catalog: InputCatalog
+): InputParts => {
+  // 1. Fasthold før-snapshottets aktive feltissues og inputdrevne relevans.
+  const beforeReader = createValidationReader(input, catalog);
+  const beforeIssues = deriveFieldIssueSnapshot(beforeReader, catalog);
+  const beforeFields = catalog.listFieldInstances(input.sections);
+  const beforeRelevant = new Map(beforeFields.map((f) => [serializeFieldAddress(f.address), beforeReader.isRelevant(f)]));
+
+  // 2. Anvend valget på kandidaten.
+  assertWritable(input, field, catalog);
+  let candidate = withCanonicalValue(input, field, value);
+
+  // 3-4. Beregn efter-relevans; find felter med overgangen relevant → irrelevant.
+  const afterReader = createValidationReader(
+    catalog.validateSettledInput(candidate),
+    catalog
+  );
+
+  for (const beforeField of beforeFields) {
+    const key = serializeFieldAddress(beforeField.address);
+    const wasRelevant = beforeRelevant.get(key) === true;
+    if (!wasRelevant) continue;
+    // Feltet kan være slettet i kandidaten (bør ikke ske ved et rent valg), så guard eksistens.
+    if (!catalog.containsAddressEntities(candidate.sections, beforeField.address)) continue;
+    const nowIrrelevant = !afterReader.isRelevant(beforeField);
+    if (!nowIrrelevant) continue;
+    // 5. Ryd feltet HVIS OG KUN HVIS det havde en aktiv rød feltfejl i før-snapshottet.
+    if (activeFieldIssue(beforeIssues, key) === undefined) continue;
+    candidate = withCanonicalValue(candidate, beforeField, beforeField.descriptor.emptyValue);
+  }
+
+  // 6. Øvrige værdier bevares; validering sker i reduceInputCommand.
+  return candidate;
+};
+
+const buildCandidate = <TField, TEntity>(
+  input: SettledInput,
+  command: InputMutationCommand<TField, TEntity>,
+  catalog: InputCatalog
+): SettledInputCandidate => {
+  switch (command.kind) {
+    case 'settleField':
+      return reduceSettle(input, command.field, command.raw, catalog);
+    case 'setImmediateField':
+      assertWritable(input, command.field, catalog);
+      return withCanonicalValue(input, command.field, command.value);
+    case 'clearField':
+      assertWritable(input, command.field, catalog);
+      return withCanonicalValue(input, command.field, command.field.descriptor.emptyValue);
+    case 'applyControllingChoice':
+      return reduceControllingChoice(input, command.field, command.value, catalog);
+    case 'insertRow':
+      return {
+        sections: catalog.insertEntity(input.sections, command.collection, command.entity, command.index),
+        rejectedInputs: input.rejectedInputs,
+      };
+    case 'deleteRow':
+      return {
+        sections: catalog.deleteEntity(input.sections, command.collection, command.entityId),
+        rejectedInputs: removeRejectedBelowEntity(input.rejectedInputs, command.collection, command.entityId),
+      };
+    case 'reorderRows':
+      return {
+        sections: catalog.reorderEntities(input.sections, command.collection, command.orderedEntityIds),
+        rejectedInputs: input.rejectedInputs,
+      };
+    case 'settleFieldInNewRow': {
+      const entityId = catalog.getEntityId(command.collection, command.entity);
+      const entityPath = createEntityPath([
+        ...command.collection.path,
+        { kind: 'entity', collection: command.collection.collection, entityId },
+      ]);
+      if (!isFieldAddressBelowEntity(command.field.address, command.collection.section, entityPath)) {
+        throw new Error('InputReducer: feltet tilhører ikke den nye række');
+      }
+      const inserted: InputParts = {
+        sections: catalog.insertEntity(input.sections, command.collection, command.entity, command.index),
+        rejectedInputs: input.rejectedInputs,
+      };
+      return reduceSettle(inserted, command.field, command.raw, catalog);
+    }
+    case 'resetSection': {
+      const rejectedInputs = Object.fromEntries(Object.entries(input.rejectedInputs).filter(([serialized]) => {
+        const address = deserializeFieldAddress(serialized);
+        if (address === null) throw new Error('InputReducer: current-state indeholder en ugyldig feltadresse');
+        return address.section !== command.section;
+      }));
+      return { sections: { ...input.sections, [command.section]: command.value }, rejectedInputs };
+    }
+    case 'replaceCase':
+      return command.input;
+    case 'clearCase':
+      return { sections: createEmptyPersistedInputSections(), rejectedInputs: {} };
+  }
+};
+
+export type InputReducerResult = Readonly<{ changed: boolean; input: SettledInput }>;
+
+/** Ren, exhaustiv, validerende reducer. Afviser semantisk no-op uden en ny revision (§3.6 pkt. 4). */
+export const reduceInputCommand = <TField, TEntity>(
+  input: SettledInput,
+  command: InputMutationCommand<TField, TEntity>,
+  catalog: InputCatalog
+): InputReducerResult => {
+  const candidate = catalog.validateSettledInput(buildCandidate(input, command, catalog));
+  if (deepEqual(input, candidate)) return Object.freeze({ changed: false, input });
+  return Object.freeze({ changed: true, input: candidate });
+};
