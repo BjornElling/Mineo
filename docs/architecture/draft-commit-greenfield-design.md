@@ -1,260 +1,358 @@
-# Greenfield-design for draft, afsluttet input og commit
+# Greenfield-design for draft, afsluttet input og projektion
 
-**Status:** Fase 0–3 er gennemført. Den første implementering af fase 4 er gennemgået og forkastet som målarkitektur.
-Den typed fallback, den delvise adresse-cutover, parallelregisteret og fokusmetadata i feltdefinitionerne er
-fjernet; den kanoniske runner er samlet, og legacy-entrypointet er isoleret. `useDraftLifecycle`, de eksisterende
-feltmotorer og de delvise codec-cutovers har derimod ikke erstattet legacy-systemet og tæller ikke som gennemført fase
-4. Overflademigrationen genstartes som ét sammenhængende cut efter planen i §7. Fase 5–8 er ikke påbegyndt.
+**Status:** Krav og produktadfærd er genfastlagt 2026-07-16. Den tidligere faseinddeling er forkastet som
+migrationsgrundlag. Fase 0–4 har leveret nyttige karakteriseringstests, codecs, inventarer og tekniske erfaringer, men
+ingen af faserne betragtes længere som en færdig del af målarkitekturen. Implementeringen skal rebaseres efter §8.
 
 **Dato:** 2026-07-16
 
-**Type:** Informativ målarkitektur. De normative kontrakter blev konvergeret i fase 1, og implementeringen til og med
-fase 3 følger dem.
+**Type:** Informativ målarkitektur og bindende migrationsplan. Normative kontrakter opdateres som første
+implementeringsfase, før produktionskode ændres.
 
-**Scope:** Persisterede formularfelter og tabelceller, beregninger, dokument-output, `.eo`-save, `sessionStorage` samt undo/redo
+**Scope:** Persisterede sagsinput i formularer og tabeller, feltfejl, beregningsprojektioner, dokument-output,
+`.eo`-save/load, `sessionStorage`, undo/redo og kritiske handlinger.
 
 ---
 
-## 0. Konklusion på den kritiske gennemgang
+## 0. Konklusion
 
-Den hidtidige plan har den rigtige kerneinvariant, men den valgte migrationsretning er ikke tilstrækkeligt greenfield.
-Planen har behandlet eksisterende mekanismer som midlertidige, samtidig med at implementeringen har udbygget dem med
-flere bindinger, specialiserede nøgler, reconcile-effekter, coalescing og domænevise oversættelser. Det har rettet
-konkrete fejl, men også gjort overgangsarkitekturen større.
+Den hidtidige retning skal ikke færdiggøres trinvis. Den skal rebaseres.
 
-Slutmålet ændres derfor fra "gør de eksisterende kanaler obligatoriske" til følgende fire sammenhængende grænser:
+Reviewet bekræfter tre samtidige problemer:
 
-1. **Én autoritativ inputaggregate** for schema-gyldige værdier og afsluttede ugyldige input.
-2. **Én transaktionsgrænse** for alle afsluttede brugerhandlinger, strukturelle rækkeændringer, reset, load og undo/redo.
-3. **Én feltmotor og ét codec-system** for almindelige felter og tabelceller; UI-overfladerne må kun eje forskellig
-   aktivering, rendering og navigation.
-4. **Én ikke-omgåelig read-/projektionsgrænse** mellem input og beregning, validering, save og dokument-output.
+1. Den nye kerne bevarer stadig centrale antagelser fra legacy-modellen, især at et afsluttet ugyldigt input blot
+   maskerer en tidligere gyldig værdi.
+2. Nye typed katalog-, command- og projektionssystemer er etableret ved siden af de fortsat aktive form-, grid-,
+   fejl- og beregningssystemer. De er hovedsageligt sidespor, ikke en gennemført cutover.
+3. Flere sikkerhedskrav er gjort konfigurerbare gennem policies, callbacks, brands, facader og kompatibilitetslag,
+   selv om den låste feature-flade tillader enklere universelle regler.
 
-Eksisterende `invalidDrafts`, `fieldErrors`, `useDraftField`, `useTableInputCore`, `useRowDrafts`,
-`FormPersistenceContext` og domænespecifikke `InputBlocker`-byggere er migrationskilder eller facadepunkter — ikke
-slutarkitektur. Der må ikke bygges flere domæner oven på deres nuværende offentlige API'er.
+Slutproduktet skal i stedet have følgende fem egenskaber:
 
-Den seneste implementering i renteberegning og Satser bevares som regressionbeskyttelse og adfærdsmæssig reference,
-men dens lokale projektioner og nøglefortolkning skal migreres igen til den fælles kerne.
+1. Ét aktuelt inputaggregate og én write-grænse.
+2. Én felteditor og ét codec pr. inputfamilie på tværs af formular og grid.
+3. Ingen tidligere gyldig værdi i den aktuelle tilstand efter et ugyldigt settle. Den må kun findes i undo-historikken.
+4. Én ren feltfejl-/læsegrænse, som gør formatfejl, bounds-fejl og øvrige røde feltfejl ens for alle gates.
+5. Almindelige, rene domæneprojektioner uden en generisk projektions-DSL eller parallel blocker-model.
 
-## 1. Produktinvarianter, designet skal bevare
+Der bygges ingen kompatibilitet for gamle interne browser-sessioner. Bagud-/fremadtolerant `.eo`-load bevares.
 
-Dette design ændrer ikke beregningsregler, dato-/range-regler, dokumentindhold eller den godkendte brugeroplevelse.
-Arkitekturen skal bevare følgende:
+## 1. Godkendt produktadfærd
 
-1. **Ingen live preview.** Tastning ændrer kun den åbne draft. Mens editoren er åben, bygger visning, beregning og
-   download-gate uændret på den senest afsluttede inputtilstand. En gyldig tilstand forbliver gyldig; en allerede
-   ugyldig tilstand forbliver blokeret. Den åbne draft må hverken skjule/vise indhold eller åbne/lukke gates.
-2. **Afslutning sker ved de eksisterende grænser.** Formularfelter afsluttes ved blur/Enter. Dropdownvalg og
-   toggle/radio committer straks. Delete/Backspace i et fokuseret, lukket formularfelt eller en celle rydder og
-   committer straks.
-3. **Canonical data er altid Zod-gyldige.** Ugyldig rå tekst må aldrig placeres i domænesektionerne.
-4. **Afsluttet ugyldigt input er aktuelt input.** En tidligere gyldig værdi må ikke nå en afhængig beregning, save eller
-   dokumentmodel, mens feltet indeholder en afsluttet ugyldig værdi.
-5. **Den rå ugyldige tekst bevares.** Den skal overleve navigation, remount, F5, undo og redo i den aktive session.
-6. **Afledt output fail-closer præcist.** Enhver afsluttet fejl i et felts dokumentgrundlag — herunder missing,
-   ugyldigt format, range/bounds eller domæneregel — blokerer det afhængige dokument. Dets downloadknap er både visuelt
-   og funktionelt disabled. En gyldig række må ikke blokeres af en anden rækkes fejl, mens et aggregat, der inkluderer
-   begge rækker, skal blokeres.
-7. **Save/load forbliver trust-kritisk.** `.eo` indeholder kun schema-valideret brugerinput. En synlig afsluttet
-   ugyldig værdi må aldrig erstattes stiltiende af en ældre gyldig værdi i filen.
-8. **Én brugerhandling giver ét undo-trin.** Restore genskaber afsluttet tekst, feltstatus, beregningsstatus og gates
-   som én sammenhængende tilstand.
-9. **Ingen korrekthed afhænger af timing.** Microtasks, timeouts, render-rækkefølge og effekt-rækkefølge må ikke indgå i
-   commit-, persistence-, gate- eller history-korrekthed.
-10. **Brugervendt fejltekst er fortsat den godkendte danske ordlyd.** `missing`, `invalid` og eksisterende
-    range/bounds-årsager er maskinlæsbare og formateres centralt.
+Dette afsnit er resultatet af kravgennemgangen. Det må ikke genfortolkes som tekniske valgmuligheder under
+implementeringen.
 
-## 2. Det den hidtidige plan tog fejl af
+### 1.1 De tre semantiske niveauer
 
-### 2.1 En aggregate er ikke tre offentlige slices
-
-Den nuværende runtime har schema-gyldige sektioner, `invalidDrafts` og `fieldErrors` som selvstændigt læsbare og
-skrivbare kanaler. `finalizeEdit` i Zustand-storen gør ikke i sig selv helheden atomisk, fordi parsing,
-`sessionStorage`, history-capture og flere fallback-skriveveje fortsat ligger udenfor.
-
-**Rettelse:** Slutarkitekturen eksponerer kun en samlet inputaggregate og en samlet transaktionsrunner. Gyldige værdier
-og afsluttede ugyldige input kan godt have forskellige interne repræsentationer, men de kan ikke læses, skrives,
-versioneres eller gendannes uafhængigt.
-
-### 2.2 `finalizeEdit` er for snæver som universel mutation
-
-Et felt-finalize er kun én af flere inputtransaktioner. Add/delete/reorder af rækker, styrende valg, reset, load og
-undo/redo ændrer også den autoritative inputtilstand. Den hidtidige plan har derfor fået valgfri options som
-`clearInvalidDraft` og `clearInvalidDrafts`, der flytter strukturel viden ud til callsites.
-
-**Rettelse:** Én transaktionsrunner modtager typed commands. Feltmotoren udsteder en `settleField`-command;
-rækkeinfrastrukturen udsteder strukturelle commands; load/reset/undo bruger deres egne commands. Alle går gennem samme
-validering, persistence, history og revisionsmodel.
-
-### 2.3 Feltidentitet må ikke være en formatteret streng
-
-Nuværende feltidentiteter findes i flere strengformater. Tabelceller bruger blandt andet tabel-id, valgfrit scope,
-row-id og kolonneindeks sammenkædet med kolon. Domænekode parser derefter strengen igen for at finde label og scope.
-Det er parallel logik og gør UI-geometri til persistent identitet.
-
-**Rettelse:** Feltadresser er strukturelle og typed. En tabelcelle adresseres med sektion, samling, eventuelt
-entity-scope, stabilt row-id og feltnavn. Kolonneindeks indgår aldrig. Serialisering findes ét sted og er versioneret.
-
-### 2.4 Scope skal udledes af dependencies, ikke påsættes fejl
-
-`global | section | row` er en for grov og manuelt vedligeholdt klassifikation. Et `rowId` er ikke globalt unikt, og
-samme felt kan være relevant for én consumer og irrelevant for en anden. Når hver domænebygger selv tildeler scope,
-opstår den lokale logik, planen skulle fjerne.
-
-**Rettelse:** En consumer deklarerer de konkrete feltreferencer eller samlinger, den afhænger af. En blocker bærer
-feltreferencen og årsagen; relevansen følger af consumerens dependency-set. Per-række- og aggregatprojektioner er
-dermed to sammensætninger af samme dependencies, ikke to gate-implementeringer.
-
-### 2.5 En projektion må ikke modtage bypass-data
-
-De nuværende referenceprojektioner modtager canonical værdier og `invalidDrafts` som separate argumenter. Det kræver,
-at hver projektion manuelt matcher de to datasæt korrekt, og det er fortsat muligt at kalde beregningsmotoren direkte
-med canonical data.
-
-**Rettelse:** Projektioner modtager kun en read-only `InputReader`, som resolver en typed feltreference til dens
-afsluttede tilstand. Domænekode kan ikke få den tidligere canonical værdi fra en ugyldig feltgren. De rene
-beregningsmotorer modtager først almindelige typed data efter en succesfuld projektion.
-
-### 2.6 Tre draft-mekanismer er ikke konvergens
-
-`useDraftField`, `useTableInputCore` og `useRowDrafts` overlapper på draft-resync, commit, fokus, invalid-state og
-history-origin. Især dynamiske tabeller har både en række-draft og en celledraft for samme værdier.
-
-**Rettelse:** Én felt-editor ejer kun den åbne draft. Lukket visning afledes af det afsluttede input, så cancel ikke
-kræver en konkurrerende startkopi. Form- og grid-adaptere ejer kun overfladespecifik aktivering/navigation. Dynamiske
-tabeller har ingen kopi af alle cellers værdier som `draftRows`; rækkeinfrastrukturen ejer kun stabile rækker og
-add/delete/reorder.
-
-### 2.7 Afledte fejl skal ikke være history-data
-
-De fleste `fieldErrors` kan udledes deterministisk af afsluttet input, domæneregler og settings. Når de lagres,
-rapporteres fra mounted komponenter og snapshotttes i history, kan fejltilstand afvige fra inputtilstand og afhænge af,
-om en fane har været mounted.
-
-**Rettelse:** Parsefejl udledes af afsluttet ugyldigt input og feltets codec. Range-, schema- og domænefejl udledes af
-rene validatorer/projektioner. Kun reelle, ikke-afledelige systemfejl har særskilt runtime-state; de er ikke feltinput
-og indgår ikke i undo/redo.
-
-### 2.8 Implementeringshistorik hører ikke til i målarkitekturen
-
-Commit-hashes, tidligere review-dialog, midlertidige statusprocenter og statiske testtællere har gjort dokumentet
-svært at bruge som beslutningsgrundlag og bliver hurtigt forældede.
-
-**Rettelse:** Dette dokument beskriver mål, rækkefølge, acceptkriterier og den aktuelle status på faseniveau. Detaljeret
-implementeringshistorik og testtal hører fortsat til i git og handoffs. Midlertidige afvigelser skal have en
-udløbsbetingelse i kode eller plan — ikke en permanent kronologi her.
-
-### 2.9 En fælles delrutine er ikke én feltmotor
-
-Den første fase-4-implementering samlede draft/resync og dele af settle-rækkefølgen i `useDraftLifecycle`, men efterlod
-fokus, open/closed-state, cancel, touched, parsing, rejected-kanal, fingerprints, rollback og persistence fordelt på
-`useDraftField`, `useStyledFieldAdapter`, `useTwoStageInputActivation` og `useTableInputCore`. Den fælles hook gjorde de
-fortsatte forskelle konfigurerbare gennem callbacks; den fjernede dem ikke.
-
-**Rettelse:** Felt-editoren må ikke modtage surface-ejede callbacks til parsing, canonical commit, rejected write/clear
-eller no-op. Den modtager en konkret `FieldRef`, læser afsluttet state gennem `InputReader` og udsteder samme typed
-command direkte. Surface-laget mapper kun interaktioner.
-
-### 2.10 Et typed sidespor er værre end ingen cutover
-
-Den første fase-4-implementering tilføjede en typed runner ved siden af compatibility-runneren. Kun et snævert
-top-level-skalarsæt forsøgte det typed spor; ved fejl faldt det tilbage til hel-sektionswrite. Envelopen kunne samtidig
-indeholde både strukturelle og sentinel-baserede rejected-adresser. Det gjorde kataloget valgfrit og skabte to
-command-algebraer, to reducers og to identitetsprotokoller.
-
-**Rettelse:** Ingen feltvis fallback eller blandet adresseversion. Kerne og runner konvergeres først; derefter migreres
-komplette overflader til én fail-closed vej. Hele adresseformatet skifter atomisk, når alle legacy-identiteter kan
-oversættes fra samme manifests som kataloget.
-
-### 2.11 Datafelt og editorlokation er forskellige identiteter
-
-Et fokusmål i `FieldDefinition` antager, at et datafelt kun redigeres ét sted. Mineo har allerede delte felter, som
-redigeres fra flere domænesider. Ét globalt route-/fanemål er derfor enten forkert på mindst én overflade eller bliver
-endnu en specialcase.
-
-**Rettelse:** `FieldRef` er kun dataidentitet og inputsemantik. History-origin kombinerer den med den konkrete editors
-eksplicitte fokusmål. Flere editorlokationer skaber aldrig flere dataidentiteter.
-
-## 3. Målmodel
-
-### 3.1 Tre semantiske niveauer
-
-| Niveau | Levetid | Må være ugyldigt | Undo/redo | Beregning/output |
+| Niveau | Levetid | Må være ugyldigt | Persistens/history | Beregning og output |
 |---|---:|---:|---:|---:|
-| Åben draft | Mens editoren er åben | Ja | Nej | Aldrig |
-| Afsluttet input | Indtil næste afslutning/reset/load | Ja | Ja | Kun via projektion |
-| Domæneprojektion | Afledt af ét snapshot | Nej | Genafledes | Ja |
+| Åben draft | Kun mens editoren er åben | Ja | Nej | Aldrig |
+| Afsluttet input | Indtil næste brugerhandling/load/reset | Ja | Session + undo/redo | Kun gennem feltvurdering og projektion |
+| Consumerprojektion | Afledt af én afsluttet revision | Nej | Nej | Ja, når `ready` |
 
-`commit` reserveres i ny kode til den atomiske inputtransaktion. Feltets hændelse hedder `settle`/`finalize`, fordi
-både et gyldigt og et ugyldigt resultat afslutter redigeringen.
+Begreberne betyder:
 
-### 3.2 Autoritativ inputaggregate
+- **Åben draft:** den rå tekst, brugeren aktuelt skriver.
+- **Afsluttet input:** feltets aktuelle tomme, gyldige eller fejlende tilstand efter blur, Enter eller immediate commit.
+- **Consumerprojektion:** det konkrete, beregningsklare input til én beregning, contentbox eller dokumentdefinition.
 
-Den konceptuelle model er:
+`commit` reserveres til den atomiske inputtransaktion. Feltets afslutning kaldes `settle`, fordi både gyldigt, tomt og
+fejlende input afslutter redigeringen.
+
+### 1.2 Åben draft er universelt inert
+
+Mens editoren er åben:
+
+- ændrer tastning kun den lokale draft,
+- ændres afsluttet input, revision, history og sessiondata ikke,
+- ændres beregninger, viste resultater, contentboxes og downloadgates ikke,
+- opstår eller forsvinder ingen feltfejl på baggrund af den nye tekst,
+- bliver en allerede vist rød feltfejl stående uændret, indtil editoren afsluttes,
+- forbliver et hidtil fejlfrit felt fejlfrit, indtil editoren afsluttes.
+
+Denne regel gælder ens for formularfelter og tabelceller. Den åbne draft er ikke live preview og er ikke en skjult
+fjerde inputkanal.
+
+### 1.3 Settle, cancel og navigation
+
+- Blur, Enter, klik uden for feltet og almindelig side-/fanenavigation afslutter editoren gennem samme settle-sti.
+- Navigation fortsætter også efter et fejlende settle. Fejlen bevares og vises igen, når brugeren vender tilbage.
+- Escape lukker editoren uden at udstede en command. Et efterfølgende blur må ikke settle.
+- Hvis editoren blev åbnet fra et afsluttet fejlende input, forbliver denne fejlende tekst og tilstand derfor uændret.
+- Delete/Backspace på et fokuseret, lukket redigerbart felt eller en celle rydder og committer straks.
+- Dropdownvalg og toggle/radio committer straks.
+- Når editoren er åben, redigerer Delete/Backspace kun draften.
+
+### 1.4 Kritiske og destruktive handlinger
+
+| Handling | Åben editor |
+|---|---|
+| `.eo`-save | Settle først; evaluér derefter friskt input-/settingssnapshot |
+| Dokumentdownload | Settle først; evaluér derefter friskt input-/settingssnapshot |
+| Almindelig navigation | Settle og fortsæt |
+| Load, reset og `Slet alt` | Gennemfør uden settle; den åbne draft må aldrig blokere handlingen |
+| Global undo/redo | Stille no-op; draften ændres ikke |
+| Escape | Cancel; ingen transaktion |
+| F5 | Åben draft tabes; senest afsluttede tilstand genindlæses |
+
+Korrekthed må ikke afhænge af browserens blur/click-rækkefølge. Save og dokumentdownload skal altid have en eksplicit
+preflight efter settle.
+
+Load, reset og `Slet alt` er anderledes, fordi en gennemført handling under alle omstændigheder erstatter eller
+sletter det input, som draften kunne være blevet til. De må derfor hverken settle, validere eller bevare draften som
+en del af handlingen. Ved en handling med bekræftelse/preflight forbliver draften urørt, indtil brugeren faktisk
+godkender apply. Ved succes bortfalder draften sammen med den erstattede tilstand; ved annullering eller apply-fejl
+forbliver både afsluttet input og åben draft uændret.
+
+### 1.5 Ugyldigt settle erstatter den gamle værdi
+
+Eksempel:
+
+```text
+Afsluttet 100 → åben draft "abc" → blur
+```
+
+Efter blur er feltets aktuelle tilstand kun `abc` + fejl. `100` findes ikke længere i det aktuelle inputaggregate og
+må ikke kunne nå en beregning, selector, save-model eller dokumentmodel. `100` findes kun i undo-framet.
+
+Den tekniske invariant er derfor:
+
+- gyldigt settle skriver den nye canonical værdi og fjerner eventuelt fejlende råinput,
+- tomt settle skriver feltets canonical tomværdi og fjerner eventuelt fejlende råinput,
+- ugyldigt settle skriver feltets canonical tomværdi og den rå fejlende tekst atomisk,
+- samme aktuelle felt må aldrig samtidig have en ikke-tom canonical værdi og fejlende råinput,
+- undo gendanner den tidligere samlede tilstand,
+- redo gendanner fejltilstanden uden den tidligere canonical værdi.
+
+Efter F5 findes en afløst gyldig værdi ikke længere, fordi undo-history er runtime-only.
+
+### 1.6 Ens konsekvens for alle røde feltfejl
+
+En rød feltfejl er en rød feltfejl, uanset årsag. Ugyldigt format, commit-interval, range, bounds, schema og
+feltplaceret domæneregel har samme UI-, gate- og consumerkonsekvenser. Kun tooltip- og contentboxteksten varierer.
+
+Ens konsekvens betyder ikke ens current-state-repræsentation:
+
+- Syntaktisk parsebare tal-, års- og ugeværdier uden for feltets aktive commit-interval er rejected råtekst, mens det
+  canonical slot ryddes til feltets tomværdi.
+- Kronologiske dato-/tværgående bounds samt canonical værdier fra tolerant `.eo`-load kan fortsat være canonical
+  input med et rent afledt feltissue.
+
+Readeren blokerer begge former ens, og ingen consumer må skelne mellem dem for at omgå gaten.
+
+| Tilstand | Rød feltmarkering | Blokerer `.eo` globalt | Blokerer afhængig beregning/dokument | Blokerer uafhængig consumer |
+|---|---:|---:|---:|---:|
+| Ugyldigt format | Ja | Ja | Ja | Nej |
+| Range/bounds-fejl | Ja | Ja | Ja | Nej |
+| Anden feltplaceret error | Ja | Ja | Ja | Nej |
+| Tomt felt / `missing` | Nej | Nej | Ja, hvis consumeren kræver feltet | Nej |
+| Warning | Nej | Nej | Nej | Nej |
+
+Konsekvenserne må ikke styres af et frit `blocksSave`- eller `blocksProjection`-flag.
+
+### 1.7 Tomhed og warnings
+
+- Et tomt felt må aldrig i sig selv få rød kant/ring eller tooltipfejl.
+- Tomhed må aldrig blokere `.eo`-save.
+- En consumer, der kræver feltet, må udlede en `missing`-fejl i contentboxen og blokere netop sin beregning eller sit
+  dokument.
+- Et link fra contentboxen må fortsat navigere til og fokusere det tomme felt uden at gøre feltet rødt.
+- En warning må vises i contentboxen, men må aldrig blokere beregning, dokument eller `.eo`.
+
+### 1.8 Fejlvisning
+
+- Et felt viser højst én aktiv rød fejl og én konkret tooltip ad gangen.
+- En central deterministisk prioritet vælger den mest direkte fejl, hvis flere regler rammer samme felt.
+- Contentboxen må vise yderligere relevante fejl, hvis de hjælper brugeren.
+- Format-, range- og bounds-fejl har forskellige, konkrete danske beskeder.
+- Range-/datotooltips viser de faktiske grænser. Hvis `min > max`, forklarer beskeden, at ingen gyldige værdier
+  findes, og navngiver de inputs, der skabte grænserne.
+- Fejl og warnings afledes fra afsluttet input. Mounted komponenter rapporterer dem ikke til en store.
+
+### 1.9 Skjulte og irrelevante felter
+
+Et input, som bliver skjult eller irrelevant ved et eksplicit styrende valg, behandles sådan i samme undo-trin som
+valget:
+
+- Har inputtet en aktiv rød feltfejl, ryddes det. Dette gælder ens for format-, range-, bounds- og øvrige røde fejl.
+- Er inputtet gyldigt, bevares det uændret og vises igen, hvis feltet senere bliver relevant.
+- En skjult fejl må aldrig blokere `.eo`, beregning eller dokument.
+
+Universel dataintegritetsregel: Programmet må aldrig automatisk slette eller overskrive gyldigt brugerinput på grund af
+navigation, visibility, defaults, rerender eller intern synkronisering. Kun en eksplicit brugerhandling, som faktisk
+anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Slet alt`, load eller undo/redo—må gøre det.
+
+### 1.10 Afhængighedsspecifik blokering
+
+- En fejl blokerer kun consumers, der faktisk afhænger af feltet.
+- En fejl i række 2 blokerer ikke beregningen af række 1 og 3.
+- En total, der inkluderer række 2, blokeres.
+- Et dokument blokeres kun af egne dependencies og egne output-invariants.
+- `.eo`-save er undtagelsen: enhver aktiv rød feltfejl i sagen blokerer globalt.
+- Når en afsluttet fejl blokerer en tidligere beregning, må det tidligere resultat ikke blive stående som gyldigt.
+  Området skifter til sin eksisterende ikke-beregnet-/fejlvisning på den nye revision.
+
+### 1.11 Dynamiske tabeller
+
+- Første ikke-tomme settle i en placeholder-række promoverer rækken atomisk, både når inputtet er gyldigt og
+  fejlende. Et rent fokus+blur, tomt settle eller immediate clear på den tomme placeholder er no-op og opretter ingen
+  række.
+- Den fejlende tekst og rækken overlever navigation og F5.
+- Enter, Tab og klik væk settler og fortsætter navigationen, også ved fejl.
+- Sletning af en række fjerner rækken og al dens aktuelle inputtilstand som ét undo-trin.
+- Undo/redo gendanner/fjerner rækken, dens gyldige værdier, fejlende råinput, feltfejl og gates som én tilstand.
+- Rækkeinfrastrukturen må ikke holde en konkurrerende værdikopi af alle celler.
+
+### 1.12 Session, `.eo` og historisk kompatibilitet
+
+- Åben draft persisteres ikke og tabes ved F5.
+- Alt afsluttet input—også fejlende rå tekst—overlever F5 i den aktuelle programversion.
+- `.eo` indeholder kun schema-gyldigt canonical brugerinput og aldrig fejlende rå tekst.
+- `.eo`-save blokeres, før fil-I/O, hvis der findes en rød feltfejl.
+- Manglende felter og warnings blokerer ikke `.eo`.
+- Gamle `.eo`-filer indlæses fortsat tolerant efter persistence-kontrakten.
+- En gammel `.eo`-fil kan indlæses med en canonical værdi, som nu giver rød bounds-fejl; værdien vises, men sagen kan
+  ikke gemmes igen, før fejlen er rettet.
+- Gamle interne browser-sessioner skal ikke migreres. Programmet opdateres kun, når ingen brugere er aktive, og der
+  bygges derfor ingen legacy-sessionreader, adresseoversættelse, dual-read eller kompatibilitetsdialog.
+- Korruption i den aktuelle sessionversion skal fortsat håndteres fail-closed. Den rå envelope bevares uændret,
+  alle normale writes blokeres, og brugeren får den eksisterende eksplicitte danske systemfejl. Kun brugerens
+  eksplicitte `Slet alt` må fjerne den korrupte kilde og starte en tom sag. Bootstrap må aldrig stiltiende starte tomt
+  og senere overskrive kilden. Det er dataintegritet, ikke versionskompatibilitet.
+
+## 2. Kritisk review af fase 0–4
+
+### 2.1 Den aktuelle stale-værdi er bevaret
+
+`withRejectedInput` i `src/input/inputCommands.ts` skriver kun rejected råtekst. Den tidligere canonical værdi bliver
+liggende i `sections` og maskeres af `InputReader`. Det er direkte uforeneligt med §1.5.
+
+En læsebarriere er stadig nødvendig, men må ikke være eneste forsvar mod en stale værdi, som slet ikke har et legitimt
+formål i den aktuelle tilstand.
+
+### 2.2 Den typed kerne er et sidespor
+
+Den nye projektionskerne bruges i produktionskode kun af en Satser-kernelprojektion, mens den aktive side fortsat går
+gennem den gamle projektion. Typed commands bruges produktionsmæssigt hovedsageligt af undo/redo; formularer og grids
+skriver fortsat gennem kompatibilitetsfacader og hel-sektionsflow.
+
+Der findes derfor ikke en delvist færdig målarkitektur, som blot mangler flere callsites. Der findes to konkurrerende
+retninger.
+
+### 2.3 Editorlaget er konfigureret duplikering
+
+`useDraftLifecycle` samler callbacks og rækkefølge, men parsing, fejltilstand, fokus, pending guards, resync,
+fingerprints, rollback og persistence er fortsat fordelt mellem `useDraftField`, `useStyledFieldAdapter`,
+`useTableInputCore` og grid-pipelinen.
+
+En fælles callback-orkestrator er ikke én felteditor.
+
+### 2.4 Runtime indeholder flere samtidige sandheder
+
+`inputRuntimeStore` indeholder samtidig:
+
+- inputaggregate,
+- afledte `sections`- og `invalidDrafts`-views,
+- flere revisionsmaps og epochs,
+- stored `fieldErrors`,
+- compatibility-history,
+- test-only mutations og legacy-facader.
+
+Det øger både tilstandsrum og migrationsarbejde uden at være slutproduktfunktionalitet.
+
+### 2.5 Projektions- og issuekernen er unødigt generisk
+
+Den nuværende projektions-DSL bruger symbols, phantom types, brands, WeakSet-autorisering, factory-validering og
+map/flatMap/collect-lag. Samtidig findes den gamle `domain/inputIntegrity`-blockermodel fortsat.
+
+Mineos låste consumers har behov for almindelige rene funktioner, præcise reads og et lille `ready | blocked`-resultat,
+ikke et generisk projectionsframework.
+
+Den nuværende issue-model gør save- og beregningsblokering konfigurerbar per issue. §1.6–1.7 gør disse regler
+deterministiske og fjerner behovet.
+
+### 2.6 Sessionmigrationen er et ikke-mål
+
+`legacy-bridge-1`, sentinel-adresser, startupmigration fra sektionsnøgler og den planlagte atomiske adresse-cutover
+løser kun kompatibilitet med gamle interne browser-sessioner. Dette behov er udtrykkeligt afvist.
+
+`.eo`-tolerance er et separat produktkrav og må ikke bruges som begrundelse for runtime-kompatibilitet.
+
+### 2.7 Den tidligere faserækkefølge skaber et usikkert mellemrum
+
+Den tidligere plan migrerede inputoverflader før alle beregnings-, validerings-, save- og dokumentconsumers. Dermed
+kunne et felt få en ny writevej, mens en consumer fortsat læste rå canonical sektioner.
+
+Inputoverflade og alle dens consumers skal enten cuttes samlet eller behandles som en ikke-deploybar intern
+mellemtilstand. En compatibility-fallback er ikke en løsning.
+
+### 2.8 Fase-0-inventaret tæller schema-leaves, ikke editorfelter
+
+Det persisterede path-inventar er nyttigt som coverage-backstop, men fx er et `AmountValue` ét brugerfelt, selv om
+schemaet har leaves for `kind`, `value` og `expression`. Inventaret kan derfor ikke bruges direkte som feltkatalog eller
+migrationsledger.
+
+## 3. Mindste målarkitektur
+
+### 3.1 Autoritativ inputtilstand
+
+Den autoritative tilstand bevarer de eksisterende Zod-validerede sektionsformer:
 
 ```ts
-type PersistedInputState = Readonly<{
-  sections: FormPersistenceSections;
+type SettledInput = Readonly<{
+  sections: PersistedInputSections;
   rejectedInputs: Readonly<Record<SerializedFieldAddress, RejectedInput>>;
 }>;
 
-type InputRuntimeState = Readonly<{
-  input: PersistedInputState;
+type InputRuntime = Readonly<{
+  input: SettledInput;
   revision: InputRevision;
-}>;
-
-type RejectedInput = Readonly<{
-  raw: string;
+  history: InputHistory;
 }>;
 ```
 
-For en konkret `FieldRef<T>` resolver read-modellen:
+`rejectedInputs` er ikke en maske over en recovery-værdi. Det er den rå del af et aktuelt fejlende felt, hvis canonical
+slot samtidig er feltets tomværdi.
 
-```ts
-type SettledFieldState<T> =
-  | Readonly<{ status: 'valid'; value: T }>
-  | Readonly<{ status: 'invalid'; raw: string }>;
-```
+Inputschemaet håndhæver for hvert rejected felt:
 
-Regler:
+1. adressen er kendt og peger på en eksisterende entity,
+2. råteksten er ikke tom,
+3. canonical slot er feltets definerede tomværdi,
+4. feltets strukturelle ejer/entity findes, og feltet er relevant efter den kanoniske inputdrevne relevansregel.
 
-- Et matchende `rejectedInputs`-entry maskerer altid den canonical værdi.
-- Den gyldige visning formateres af feltets codec; `displayValue` lagres ikke parallelt.
-- Tom tekst parser til den feltdefinerede tomme canonical værdi, typisk `undefined`. `missing` afgøres senere af den
-  consumer, som kræver feltet.
-- `revision` er en monotont stigende runtime-token. Den persisteres ikke som brugerdata og gendannes ikke fra history.
-  Undo, redo, load og reset skaber en ny revision i stedet for at genbruge en gammel.
+Kun deterministisk, inputdrevet strukturel eksistens og relevans er envelope-invarianter. AppSettings må påvirke validering,
+beregning og visning af ikke-persisterede udvikler-/inspektionsflader, men må ikke styre synlighed/relevans for et
+persisteret inputfelt. Hvis inventaret mod forventning finder en sådan kobling, er det et fase-0-stop, der forelægges
+som en konkret UI/UX-beslutning; den må ikke løses med implicit sletning eller en svagere save-gate.
 
-### 3.3 Feltdefinition, feltreference og adresse
+Afledte issues, gates, beregninger, UI-tabs og åbne drafts er ikke del af inputtilstanden.
 
-Identitet, inputsemantik og præsentationsmetadata skal være forbundet, men ikke sammenblandet:
+### 3.2 Enkel feltbeskrivelse
 
-```ts
-type FieldDefinition<T> = Readonly<{
-  codec: FieldCodec<T>;
-  label: string;
-  controlKind: 'text' | 'choice' | 'toggle';
-}>;
+Hvert persisteret brugerfelt har én immutable beskrivelse med kun de egenskaber, der bruges nu:
 
-type FieldRef<T> = Readonly<{
-  address: FieldAddress;
-  definition: FieldDefinition<T>;
-}>;
-```
+- strukturel adresse eller typed builder for dynamiske entities,
+- codec,
+- canonical tomværdi/clear-operation,
+- canonical read/write,
+- dansk label og kontroltype,
+- eventuel relevans- og feltvalidator, når den reelt er fælles for feltet.
 
-- `FieldAddress` beskriver data strukturelt, ikke DOM eller tabelgeometri.
-- Statiske felter defineres én gang. Dynamiske entity-/række-felter dannes af typed builders.
-- Samme `FieldRef` bruges ved rendering, settle, fejl, projektion og save-gate.
-- Label og kontroltype slås aldrig op ved at parse en fri streng.
-- Persistente adresser valideres mod det kendte feltkatalog og har egen migrationsversion.
-- Fokusdestination er ikke en del af datafeltets definition. Det samme felt kan redigeres på flere sider eller faner.
-  History-origin binder derfor feltreferencen til den konkrete editors eksplicitte fokusmål; feltets dataidentitet
-  forbliver den samme på tværs af overflader.
+Feltadressen indeholder sektion, properties, stabile entity-id'er og feltnavn. Den indeholder aldrig kolonneindeks,
+DOM-id, route eller formatteret string-key.
 
-### 3.4 Fælles codecs
+Produktkataloget er et almindeligt statisk readonly katalog, som valideres én gang. Der er ikke behov for en stateful
+klasse, runtime-registrering, seal-lifecycle, factory-brands eller WeakSet-autorisering.
 
-Hver inputfamilie har ét codec, som genbruges af både formular- og tabeloverfladen:
+Fokusdestination er editorlokationens metadata, ikke datafeltets identitet. Samme datafelt kan derfor redigeres flere
+steder uden at få flere dataidentiteter. Et contentbox-link ejer selv den foretrukne editorlokation for sin kontekst;
+en fælles resolver vælger derefter route, fane og fokusmål fra consumerens prioriterede lokationer. Der lægges aldrig
+en global standardlokation på `FieldRef`.
+
+### 3.3 Fælles codecs
+
+Codec-semantikken fra den nuværende kerne bevares og konsolideres:
 
 ```ts
 type FieldCodec<T> = Readonly<{
@@ -266,635 +364,911 @@ type FieldCodec<T> = Readonly<{
 }>;
 ```
 
-Dato, beløb, procent, heltal, brøk, uge, år og tekst må ikke have separate form-/table-parsere eller fingerprints.
-`format` ejer den lukkede visning, mens `formatForEdit` ejer den tekst, editoren åbner med. Forskellen er nødvendig for
-fx beløbsudtryk, hvor den lukkede visning er formateret som et beløb, men den indtastede udtryksform skal bevares til
-næste redigering. En syntaktisk parsebar tal-, år- eller ugeværdi uden for feltets aktive commit-interval er rejected
-rå tekst, ikke canonical input. Settle-policyen ejer denne afvisning, og `InputReader` maskerer den tidligere canonical
-værdi for alle afhængige beregninger. Kronologiske datobounds og tværgående domæneregler, som de specifikke kontrakter
-klassificerer som canonical issues, implementeres kun i validator/projektion og aldrig samtidig i settle-policyen.
+`FieldResolution` bærer en maskinlæsbar årsag og nødvendige detaljer ved fejl. UI må ikke reparse råteksten for at
+finde tooltipteksten.
 
-Paste normaliseres efter én fælles afskæringsregel: Behold feltets tilladte format og afskær fra højre til det længste
-præfiks, der kan rummes af format, præcision, cifferloft og et aktivt commit-interval. Et heltalsfelt fjerner separator
-og hele decimaldelen uden afrunding; et decimalaktiveret felt bevarer decimalerne op til sin præcision. Gyldige
-beløbsoperatorer bevares som udtryk. `infer` for tocifrede år bruger fortsat en løbende kalenderårsgrænse: `20xx` til
-og med fem år efter det aktuelle kalenderår, derefter `19xx`. Denne grænse må ikke fastlåses til et bestemt årstal.
-Datoens syntaktiske dag- og månedsgrænser følger afskæringsreglen. Kronologiske min/max-datobounds gør ikke: at
-afskære en årdel kan flytte datoen til et andet århundrede og er derfor en værdiforvanskning. Sådanne bounds udledes
-fortsat som issues efter settle, uanset om de er statiske eller afhænger af andre felter.
+Dato, beløb, procent, heltal, brøk, uge, år og tekst har hver ét codec på tværs af form og grid. Eksisterende godkendte
+normaliserings-, infer-, præcisions- og paste-regler ændres ikke af denne arkitektur.
 
-### 3.5 Én felt-editor
+### 3.4 Ren feltvurdering og lille `InputReader`
 
-Den fælles felt-editor har kun lokal state, mens en editor er åben. Lukket visning afledes altid direkte af ét
-revisionsbundet `SettledFieldState`: rejected rå tekst vises ordret; ellers bruges `codec.format(value)`. Derfor findes
-der ingen lukket draftkopi, prop-lag-guard, fingerprint eller resync-effect.
+For hvert samlet kildesnapshot bygges et rent feltissue-snapshot ud fra:
 
-Ved åbning oprettes præcis én lokal rå draft fra rejected tekst eller `codec.formatForEdit(value)`. Tastning ændrer kun
-denne draft. Blur, Enter og kritisk handling udsteder samme `settleField(FieldRef, raw)` direkte til
-transaktionsrunneren. Escape lukker editoren uden command; den afsluttede starttilstand bliver automatisk synlig igen,
-fordi den aldrig blev ændret. Et efterfølgende blur må ikke settle.
+- `SettledInput`,
+- feltbeskrivelser og relevansregler,
+- domænevalidatorer,
+- relevante AppSettings med settingsrevision.
 
-Autoritative replacements og global undo/redo kan ikke køre gennem commit-barrieren, mens editoren er åben. Editorens
-korrekthed kræver derfor hverken epoch-resync, DOM-fokusscanning eller timingværn.
+Validering og consumerlæsning har to forskellige, snævre grænser i fast rækkefølge:
 
-Form- og grid-adaptere må kun tilføje rendering, to-trins-aktivering, hit-area, celle-navigation,
-kopiér/indsæt-integration og registrering i `CriticalActionCoordinator`. De må ikke parse, skrive persistence, holde
-draft/rejected/fejltilstand eller beslutte history-semantik. Transiente UI-felter bruger en eksplicit transient host
-om den samme rene editorreducer; persisted/transient må aldrig udledes af en manglende callback eller provider.
+1. En intern `ValidationReader` læser afsluttet canonical/rejected input og dependencies uden at anvende feltissues.
+   Kun input-/valideringsinfrastrukturen må bruge den.
+2. Feltvalidatorerne udleder det immutable issue-snapshot.
+3. Den offentlige `InputReader` kombinerer samme input med snapshottene og skjuler enhver værdi med aktiv feltfejl.
 
-### 3.6 Dynamiske tabeller
+Dermed opstår ingen cirkel, hvor readeren behøver et issue, som validatoren først skal bruge readeren til at udlede.
 
-Rækkeinfrastrukturen ejer kun:
+Issue-modellen skelner mellem:
 
-- stabil row-identitet,
-- rækkefølge,
-- add/delete/reorder,
-- eventuelle tomme UI-rækkers eksplicitte livscyklus.
+- **feltfejl:** vises rødt og blokerer `.eo` samt afhængige consumers,
+- **consumerfejl:** fx `missing`; vises i contentbox og blokerer kun den konkrete consumer,
+- **warning:** vises, men blokerer intet.
 
-Den ejer ikke en `draftRows`-kopi af celleværdierne. Hver celle bruger feltmotoren og en strukturel `FieldRef`.
+Der lagres ingen `blocksSave`- eller `blocksProjection`-booleans. Placering, severity og consumerens faktiske reads
+afgør konsekvensen.
 
-En tom UI-række, der modtager sit første afsluttede input, promoveres atomisk til en rigtig række. Dette gælder også,
-hvis det første input er ugyldigt, så teksten kan overleve F5. Sletning af en række fjerner rækken og alle dens
-tilknyttede rejected inputs i samme transaktion. Orphan-state skal være urepræsenterbar; reconcile-effekter er ikke en
-del af slutarkitekturen.
-
-## 4. Transaktions- og persistencearkitektur
-
-### 4.1 Én command-runner
-
-Alle autoritative ændringer går gennem én intern operation:
+Den offentlige reader eksponerer ikke en værdi fra et felt med aktiv feltfejl:
 
 ```ts
-executeInputTransaction(command, origin): InputTransactionResult
-```
+type ReadFieldResult<T> =
+  | Readonly<{ status: 'usable'; value: T }>
+  | Readonly<{ status: 'error'; issue: FieldIssue }>;
 
-Command-familien omfatter mindst:
-
-- `settleField` — gyldig værdi eller ugyldig rå tekst,
-- `commitImmediateField` — dropdown/toggle/radio og clear af et lukket formularfelt eller en celle,
-- `insertRow`, `deleteRow`, `reorderRows`,
-- `settleFieldInNewRow` — atomisk promovering af en tom UI-række og dens første settle,
-- `resetSection`, `replaceCase`, `clearCase`,
-- `undo`, `redo`.
-
-Der findes ingen offentlige operationer svarende til `commitInvalidDraft`, `clearInvalidDraft`, `setFieldError`,
-`commitSection` eller `persistData`. En styrende ændring, som efter gældende produktregel rydder afsluttede ugyldige
-input i felter, der bliver skjult, udtrykkes som én typed domænecommand/relevansregel — ikke som en callsite-liste af
-strengnøgler.
-
-Der findes heller ikke en `typed` og en `compatibility` command-algebra, to reducers eller en fallback fra katalogfejl
-til hel-sektionswrite. Under migrationen har hvert felt præcis én writevej. Når et felt er flyttet til `FieldRef`, er
-katalog-/schemafejl fail-closed; legacyvejen må ikke forsøges bagefter.
-
-### 4.2 Transaktionsforløb
-
-For hver command:
-
-1. Læs ét aktuelt runtime-snapshot.
-2. Anvend en ren reducer og byg kandidattilstanden.
-3. Validér berørte canonical sektioner med deres eksisterende Zod-schemas.
-4. Validér alle rejected adresser mod feltkataloget og rejected-input-schemaet.
-5. Afvis en semantisk no-op uden history, storage-write eller revisionsstigning.
-6. Serialisér hele inputenvelopen.
-7. Skriv den ene inputnøgle i `sessionStorage`.
-8. Opdatér inputaggregate og history i ét Zustand-write og stig revisionen præcis én gang.
-
-Hvis et uventet trin fejler, gendannes storage og runtime til før-snapshot. Ingen deltilstand må blive observerbar.
-
-### 4.3 Én session-envelope
-
-Persisteret sagsinput i den aktive browser-session samles under én Mineo-ejet `sessionStorage`-nøgle:
-
-```ts
-type InputEnvelope = Readonly<{
-  envelopeVersion: string;
-  fieldAddressVersion: string;
-  persistedDataVersion: string;
-  input: PersistedInputState;
-}>;
-```
-
-Det giver én reel browser-write pr. inputtransaktion og fjerner behovet for rollback hen over en sektionsnøgle og en
-separat invalid-draft-nøgle. UI-sessionstate som aktive faner forbliver i sine egne manifest-ejede nøgler.
-
-Den nuværende per-sektion-storage og invalid-draft-envelope migreres én gang ved startup:
-
-- alle gamle nøgler læses uden mutation,
-- de valideres og oversættes til strukturelle feltadresser,
-- den nye envelope skrives og genlæses/verificeres,
-- først derefter fjernes de gamle nøgler.
-
-Ved migrationsfejl bevares de gamle nøgler uændret, runtime anvender ikke et delvist snapshot, og brugeren får den
-eksisterende eksplicitte systemfejl. Der etableres ikke permanent dual-read eller dual-write.
-
-### 4.4 `.eo`
-
-`.eo`-formatet forbliver canonical og indeholder ikke rejected inputs. Save-flowet er:
-
-1. klargør åben editor gennem commit-barrieren,
-2. læs et nyt input-snapshot,
-3. kræv global save-projektion uden relevante rejected inputs eller øvrige save-blokeringer,
-4. byg canonical sagsdata,
-5. validér med de samme Zod-schemas,
-6. serialisér og skriv filen.
-
-Load preflighter `.eo` som hidtil, oversætter et godkendt canonical snapshot til gyldige settled felter og erstatter
-hele inputaggregaten i én transaktion. Ukendte/fjernede `.eo`-felter og manglende nyere felter følger fortsat
-persistence-kontraktens tolerante regler.
-
-### 4.5 Undo/redo
-
-History ligger i samme runtime-store som inputaggregaten og snapshotter kun autoritativ inputdata samt fokus-origin.
-Afledte fejl, beregninger og gates gemmes ikke.
-
-- Capture sker i samme Zustand-write som den forward mutation, den beskriver.
-- Restore erstatter inputdata og skaber en ny monoton revision.
-- `sessionStorage` skrives før det observerbare runtime-write og rulles tilbage ved fejl.
-- Coalescing-markører, `queueMicrotask` og separate restore-kanaler fjernes.
-- Fokus-origin bruger `FieldRef` sammen med den konkrete editors eksplicitte fokusmål, ikke DOM-fallback,
-  feltdefinitionens standardrute eller kolonneindeks.
-
-## 5. Read-model, validering og projektioner
-
-### 5.1 Ikke-omgåelig `InputReader`
-
-Kun inputinfrastrukturen kan se aggregatens interne `sections` og `rejectedInputs`. Den eksponerer et read-only snapshot:
-
-```ts
 type InputReader = Readonly<{
-  revision: InputRevision;
-  read<T>(field: FieldRef<T>): SettledFieldState<T>;
+  sourceToken: EvaluationSourceToken;
+  read<T>(field: FieldRef<T>): ReadFieldResult<T>;
   listEntities(collection: CollectionRef): readonly EntityRef[];
 }>;
 ```
 
-Domæne-, beregnings-, save- og dokumentkode må kun modtage `InputReader` eller en allerede godkendt typed projektion.
-Rå selectors til canonical sektioner begrænses til input-editorfacaden og migrationsinfrastrukturen.
-`listEntities` eksponerer kun stabil identitet og rækkefølge; feltværdier skal stadig læses gennem `read(FieldRef)`, så
-en collection-læsning ikke bliver en bypass til maskeret canonical data.
+`EvaluationSourceToken` indeholder mindst inputrevision og settingsrevision. Issue-snapshots, consumerprojektioner og
+`PreparedDocument` bindes til dette token. Ved enhver async-grænse genlæses og sammenlignes hele tokenet; en ændring i
+AppSettings gør resultatet stale på samme måde som en ændring i input.
 
-### 5.2 Dependency-baseret projektion
+Et kildesnapshot optages med en stabil dobbeltlæsning: læs begge revisioner, læs begge immutable snapshots, og læs
+begge revisioner igen. Kun hvis før/efter-revisionerne er identiske, må data og token bruges sammen. Ved samtidig
+ændring forsøges optagelsen igen; kan et stabilt snapshot ikke opnås inden for den faste, lille retrygrænse, stoppes
+operationen fail-closed som en transient systemfejl. Den samme helper bruges af issues, beregninger, `.eo` og
+dokumenter.
 
-En projektion definerer sine dependencies eksplicit. Den fælles evaluator:
+Tom canonical værdi er `usable`; det er consumerens `required`-read, der udleder `missing`.
 
-1. resolver hvert afhængigt felt,
-2. producerer `invalid` for rejected input,
-3. lader domænespecifikke requirements producere `missing`, range/bounds eller rule-blockers,
-4. bygger kun data, hvis alle relevante dependencies er anvendelige.
+Domæneprojektioner er almindelige rene funktioner. De læser konkrete refs, samler issues og returnerer
+`ready | blocked`. De må ikke modtage rå sektioner. Den præcise dependency følger af de refs, funktionen faktisk
+læser; der findes ikke et manuelt `global | section | row`-scope.
 
-```ts
-type InputProjection<T> =
-  | Readonly<{
-      status: 'ready';
-      data: T;
-      issues: readonly InputIssue[];
-      revision: ReadyInputRevision;
-    }>
-  | Readonly<{
-      status: 'blocked';
-      blockers: readonly InputBlocker[];
-      issues: readonly InputIssue[];
-      revision: InputRevision;
-    }>;
-```
+### 3.5 Én felteditor
 
-En `InputBlocker` bærer `FieldRef`, reason og eventuel domænedetalje. Den bærer ikke et manuelt `global/section/row`-
-scope. En per-række-consumer afhænger af fælles felter plus den konkrete rækkes felter; et aggregat afhænger af fælles
-felter plus alle inkluderede rækker. Dermed kan scope ikke drifte fra datarelationen.
+Den fælles persisted editor ejer kun:
 
-Issues følger begge grene, så warnings og canonical range-/bounds-fejl ikke tabes i en ellers `ready` beregning.
-Blockers er consumerens kontekstafhængige delmængde af issues; beregningsblokering er ikke et globalt issueflag. Save-policy er
-eksplicit på issueet, mens ethvert dokumentrelevant issue med `severity: 'error'` følger den fælles dokumentblokering.
+- om editoren er åben,
+- den lokale rå draft,
+- åbningsrevision og fokusmetadata,
+- det konkrete fokusmål for history/fejlnavigation.
 
-### 5.3 Beregninger
+Når editoren er lukket, læses visningen direkte fra den afsluttede revision. Der findes ingen lukket draftkopi,
+pending-prop-guard, fingerprint, epoch eller resync-effect.
 
-Rene beregningsmotorer ændres ikke og modtager fortsat deres eksisterende typed input. Forskellen er alene, at inputtet
-først kan bygges af en `ready` projektion.
+Form- og grid-adaptere ejer kun rendering, aktivering, hit-area og navigation. De må ikke parse, persistere, holde
+fejlstate eller vælge history-policy.
 
-Mens en editor er åben, genbruges projektionen fra den senest afsluttede inputtilstand. At åbne editoren eller skrive i
-den må derfor ikke få beregnede sektioner til skiftevis at blive skjult og vist. Først settle-transaktionen udsteder en
-ny revision og genberegner projektionen.
+Rene UI-controls som søgning, filtertekst og overlays bruger almindelig lokal state og trækkes ikke ind i
+inputarkitekturen.
 
-Et afsluttet ugyldigt afhængigt felt betyder derfor:
+### 3.6 Én command-runner
 
-- motoren kaldes ikke med den skjulte tidligere værdi,
-- den berørte beregnede visning bruger sin eksisterende ikke-beregnet-/fejltilstand,
-- uafhængige beregninger fortsætter.
+Alle autoritative ændringer går gennem én `dispatchInput(command, origin)`:
 
-Range/bounds-værdier er fortsat canonical og følger de eksisterende domæneregler. Dette design ændrer ingen formel,
-afrunding, sats, clamping eller datoafgrænsning.
-
-### 5.4 Afledt fejlmodel
-
-Felt- og kontrolfejl bygges af rene funktioner ud fra `InputReader`, domæneinput og relevante AppSettings:
-
-- `invalid` fra rejected input + feltcodec,
-- `missing` fra consumerens requirement,
-- range/bounds fra canonical værdi + konkrete grænser,
-- schema/rule fra domænevalidatoren.
+- `settleField`,
+- `setImmediateField`,
+- `clearField`,
+- atomisk styrende valg + oprydning af nye skjulte feltfejl,
+- `insertRow`, `deleteRow`, `reorderRows`,
+- `settleFieldInNewRow`,
+- `resetSection`, `replaceCase`, `clearCase`,
+- `undo`, `redo`.
 
-Samme issue-model driver rød feltmarkering, tooltip, fejl-/advarselsbokse, save-gate og dokument-gate efter deres
-respektive policy. Alle relevante issues med fejlseverity blokerer dokument-output, også når range/bounds fortsat har
-en canonical værdi og efter den særskilte save-policy ikke blokerer `.eo`-save. Mounted komponenter rapporterer ikke
-fejl til en central store, og unmount kan derfor ikke fjerne en ellers gældende fejl.
+For hver command:
 
-## 6. Kritiske handlinger og dokument-output
+1. Læs ét før-snapshot.
+2. Byg kandidat med en ren reducer.
+3. Validér canonical sektioner, feltadresser, entities og XOR-invarianten.
+4. Afvis semantisk no-op.
+5. Serialisér den ene aktuelle session-envelope.
+6. Skriv og verificér én `sessionStorage`-værdi.
+7. Opdatér input, revision og history i ét Zustand-write.
+8. Rul storage og runtime tilbage til før-snapshottet ved uventet fejl.
 
-### 6.1 Commit-barrieren
-
-`CriticalActionCoordinator` bevares som den eneste runtime-barriere. Den klargør form/grid og afventer persistence; den
-ejer ikke domæneregler.
+Et eksplicit styrende valg bruger en fast før/efter-procedure i samme transaktion:
 
-Den reaktive download-gate læser kun senest afsluttede input. Hvis en relevant editor er åben, kan knappen derfor godt
-være aktiv på baggrund af en tidligere gyldig tilstand; den åbne draft valideres ikke og ændrer ikke visningen.
-
-Ved et almindeligt pointerklik forlader fokus feltet før browserens efterfølgende click-event. Feltets blur udfører den
-synkrone settle-transaktion, og den nye revision gør straks knappen disabled, hvis inputtet blev afsluttet med en fejl.
-Browseren kan dermed undertrykke click-eventet. Korrektheden må dog ikke afhænge af browser-/React-eventrækkefølgen:
-selv hvis click-eventet leveres, eller handlingen aktiveres med tastatur/programmatisk, går den altid gennem samme
-preflight og kan ikke nå dokumentservice eller fil-I/O på en blokeret revision.
+1. Fasthold før-snapshottets aktive feltissues og inputdrevne relevans.
+2. Anvend valget på kandidaten.
+3. Beregn før/efter-relevans fra det kanoniske relevansregister.
+4. Find kun felter med overgangen `relevant → irrelevant`.
+5. Ryd feltet, hvis og kun hvis det havde en aktiv rød feltfejl i før-snapshottet; både rejected raw og en eventuel
+   canonical range-/bounds-værdi ryddes.
+6. Bevar alle øvrige værdier og validér/skrive kandidaten som én command og ét history-trin.
 
-Ved download:
+UI må ikke levere en oprydningsliste. En settingsændring er ikke et styrende inputvalg og må aldrig i sig selv slette
+input; den kan efter §3.1 heller ikke skjule et persisteret felt. Dens øvrige issues og beregningsvirkning genafledes
+under et nyt `EvaluationSourceToken`.
 
-1. finalisér en eventuelt åben editor gennem feltmotorens normale settle-sti,
-2. afvent transaktionens eksplicitte resultat,
-3. læs en ny `InputReader`,
-4. byg dokumentets typed domæneprojektion og output-invariants,
-5. start ingen lazy-load, generator eller fil-I/O ved blokering,
-6. send kun et revisionsbundet `PreparedDocument<T>` til dokumentservicen.
-
-Hvis settle giver en fejl, bliver knappen disabled. Når et click-event alligevel er nået frem til preflighten, stoppes
-handlingen, feltet fokuseres uden scroll, og den eksisterende danske advarsel om ugyldigt input vises. Det er et sidste
-sikkerhedsværn; normal pointeradfærd skal allerede have afsluttet editoren og opdateret den reaktive gate.
-
-### 6.2 Én dokumentdefinition pr. output
-
-Hvert dokument ejer en typed definition af dependencies, domæneprojektion og output-invariants. Den fælles
-orchestrator ejer rækkefølgen ovenfor. Domænelogik placeres hverken i coordinatoren, React-click-handleren eller
-`documentService`.
-
-Den reaktive knap-gate og click-preflight evaluerer samme dokumentdefinition. Dokumentservicen kontrollerer revisionen
-igen efter eventuelle async lazy-loads og umiddelbart før generatoren kaldes. En gammel godkendelse kan derfor ikke
-bruges efter en ny inputtransaktion.
-
-PDF og Word bruger samme preflight; formatvalg ligger efter gaten. Standalone MinProcesrente bruger samme input- og
-revisionskerne, men bevarer sin særskilte app-shell og PDF-only-adfærd.
-
-## 7. Revideret implementeringsplan
-
-Implementeringen fortsætter ikke med flere domænevise patches på det nuværende `invalidDrafts`/`InputScope`-mønster.
-Hver fase afsluttes med sin egen sletteliste; midlertidige facader må ikke blive permanente udvidelsespunkter.
-
-### Fase 0 — Produktadfærd låses
-
-**Status 2026-07-14:** Gennemført. Den godkendte Escape- og downloadadfærd er låst med tværgående kontrakt- og
-integrationstests, herunder start fra allerede rejected input og den åbne draft før settle. Persisted felt- og
-collection-stier genereres maskinelt fra Zod-schemas i
-`greenfield-phase-0-persisted-input-inventory.json`; beregningsentrypoints, sagsfilstier og samtlige aktuelle
-dokumentoutputs er fastlåst i `greenfieldPhase0Inventory.ts` med udtømmende coverage-test. Inventaret er kun
-migrationsgrundlag og må ikke blive en parallel runtime-autoritet.
-
-1. Fasthold den godkendte adfærd i §9 med karakteriseringstests før intern omskrivning.
-2. Verificér særskilt, at åben draft ikke påvirker visning/gate, og at blur/finalize sker før dokument-preflight.
-3. Inventariser alle persisted felter, dynamiske samlinger, beregningsentrypoints, save-paths og dokumentdefinitioner
-   maskinelt, så planen ikke afhænger af et manuelt antal.
-
-### Fase 1 — Normative kontrakter konvergeres
-
-**Status 2026-07-14:** Gennemført. De normative tværgående kontrakter og domænekontrakter, `AGENTS.md`, de berørte
-arkitekturdokumenter og begge reviewplaner beskriver nu målgrænserne. De afløste mekanismer er kun bevaret som
-eksplicit migrationskode med en sletteliste.
-
-Opdatér mindst:
-
-- `form-contract.md`,
-- `mineo-field-pattern.md`,
-- `persistence-contract.md`,
-- `undo-redo-contract.md`,
-- `error-contract.md`,
-- `critical-action-contract.md`,
-- `document-output-contract.md`,
-- `page-component-contract.md`,
-- `snapshot-contract.md`,
-- `schema-evolution.md`,
-- `keyboard-navigation.md`,
-- domænekontrakterne for Renteberegning, Satser, EO, EET, Forsørgertab, Årsløn og Varige mén.
-
-Fjern normative krav om de konkrete overgangsmekanismer (`invalidDrafts` som offentlig kanal, tre draft-systemer,
-kolonneindeks-identitet, komponentrapporterede `fieldErrors` og history-coalescing). Kontrakterne beskriver målinvarianter
-og autoritative grænser, ikke filnavnene på midlertidig kode.
-
-Opdatér i samme dokumentationscut `AGENTS.md`, undo/redo-, beregnings-, dokument-output-, EO-row-evaluation- og
-EO-clamping-arkitekturen. Markér de berørte kandidater i `greenfield-review-plan.md` og `code-review-plan.md` som
-historiske overgangstrin, så deres tidligere ✅-status ikke kan læses som krav om at bevare den afløste arkitektur.
-
-### Fase 2 — Ren inputkerne uden React
-
-**Status 2026-07-14:** Gennemført. Den rene kerne indeholder strukturelle feltadresser og refs, definitioner og fælles
-codecs, Zod-dækket inputstate, typed commands og reducer, et forseglbart `InputCatalog`, `InputReader`, projektioner
-og den fælles issue-/blocker-model. Kernen er kontrakttestet uden React eller Zustand. Registrering af produktets
-faktiske feltbindinger hører til den samlede overflademigration i fase 4.
-
-Implementér og test som rene moduler:
-
-1. `FieldDefinition`, strukturel `FieldAddress`, `FieldRef` og typed builders.
-2. Fælles codecs for alle eksisterende inputfamilier.
-3. `PersistedInputState`, rejected-input-schema og resolver til `SettledFieldState`.
-4. Typed inputcommands og ren transaktionsreducer.
-5. Dependency-baseret `InputReader`/projektionskerne.
-6. Fælles issue-/blocker-model og den allerede godkendte danske tekstformatering.
-
-Felt- og collection-bindings registreres i ét `InputCatalog`, som forsegles før state-validering og læsning. Dynamiske
-feltreferencer er kun gyldige, når alle entities i adressen findes i det konkrete snapshot; template-match alene er
-ikke tilstrækkeligt. Current-formatets serialiserede feltadresse er byte-for-byte kanonisk, så samme felt ikke kan
-optræde under flere rejected-input-nøgler.
-
-Ingen eksisterende UI-hook må kopieres ind i kernen. Kernen skal kunne kontrakttestes uden DOM, React eller Zustand.
-
-### Fase 3 — Runtime, storage og history udskiftes i ét cut
-
-**Status 2026-07-14:** Gennemført. Runtime har én inputaggregate med fælles revision og history, én
-versionsmærket session-envelope og én transaktionsrunner. Startup migrerer de tidligere sektionsnøgler og
-`invalidDrafts` atomisk med read-back før kilderne slettes. Load, reset, clear, undo og redo går gennem samme runner;
-der findes ingen sektionsvis runtime-write eller separat history-store. Indtil fase 4 er envelope-adresser eksplicit
-mærket `legacy-bridge-1`; de kan ikke forveksles med katalogvalideret current-format.
-
-1. Indfør én input-store med aggregate, monoton revision og history.
-2. Indfør én session-envelope og atomisk startup-migration fra nuværende nøgler/adresser.
-3. Route alle eksisterende persistencefacader gennem den nye transaktionsrunner uden dual-write.
-4. Bevar kortvarigt kompatibilitetsfacader for eksisterende callsites, men gør dem interne og marker hele deres
-   sletteliste i fasen.
-5. Flyt load, reset, clear og undo/redo til commands.
-6. Fjern den gamle store/history som autoritative kilder, før næste fase starter.
-
-**Midlertidig sletteliste:**
-
-- I fase 4 slettes `FormPersistenceContext`-inputfacaden, `formPersistenceStore`-/`undoRedoStore`-facaderne og deres
-  test-only mutations, de afledte `sections`-/`invalidDrafts`-views og deres revisionscounters samt den strengbaserede
-  `HistoryFrameOrigin`.
-- I fase 4 erstattes `legacyInputCompatibility` og dens sentinel-adresser med katalogvaliderede `FieldRef`-adresser;
-  eksisterende rejected input oversættes i samme atomiske address-migration. Orphan-reconcile-callsites slettes med
-  den nye rækkeinfrastruktur. `legacyGridTransactionBridge` slettes samtidig med den effektbaserede grid-pipeline.
-- I fase 5 slettes komponentrapporterede `fieldErrors` og de tilhørende store-metoder, når alle afledelige issues kommer
-  fra de rene validatorer.
-- I fase 7 slettes startup-læsning af de gamle sektions-/`invalidDrafts`-nøgler, den gamle sektions-envelope-builder
-  og de gamle nøgler i storage-manifestet. Indtil da er de kun en engangsmigrationskilde og aldrig en runtime-fallback
-  eller dual-write-destination.
-
-### Fase 4 — Inputoverflader erstattes som ét sammenhængende cut
-
-**Status 2026-07-16:** Genstartet efter arkitekturreview. De rene katalog-, adresse-, codec- og command-primitiver er
-brugbare byggesten. Manifestregistrering og runner er konvergeret, og typed-til-legacy fallback samt delvis top-level-
-adressering er fjernet. Følgende tæller fortsat ikke som gennemført målarkitektur og må ikke udbygges:
-`useDraftLifecycle`, lokal codec-parsing i Styled-/tabeladaptere og katalog-routing gennem frie
-`(section, fieldName)`-strenge.
-
-Fasen udføres i denne rækkefølge:
-
-1. **Én manifestautoritet.** Hver sektion eksponerer ét typed manifest med felt- og collection-bindings.
-   Produktionskatalog, konkrete refs/builders og legacy-adressemigration komponeres mekanisk af de samme manifests.
-   Manuelle parallelregistre og `FieldRef<unknown>`-opslag slettes.
-2. **Én kanonisk runner før UI-cutover.** Den typed command-algebra, reducer og execute-entrypoint er målvejen.
-   Compatibility isoleres bag én eksplicit navngivet migrationsindgang, som kun de endnu ikke migrerede overflader må
-   importere. Et felt har enten gammel eller ny writevej, aldrig fallback mellem dem. Legacy-indgangen kan først
-   slettes, når trin 4–6 har fjernet sidste caller; derefter findes legacy kun i den versionsafgrænsede inbound
-   sessionmigrator.
-3. **Én rigtig felt-editor.** Implementér §3.5 direkte over `FieldRef`, `InputReader` og runneren. Codec-invaliditet
-   bærer en typed syntaksårsag, så UI ikke reparser for at finde fejltekst. `formatForEdit` bruges ved åbning.
-4. **Migrér komplette formularfelter.** Et migreret persisted felt modtager den konkrete typed ref og har ingen
-   `value`/`parse`/`format`/`onCommit`/invalid-callbacks. Dropdown, toggle og radio bruger samme ref og
-   `commitImmediateField`. Transiente felter er eksplicit typed som transiente.
-5. **Migrér komplette tabeller én ad gangen.** Hver tabel flyttes samlet: strukturelle cellerefs, direkte canonical
-   row-read, placeholder-promotion, typed insert/delete/reorder og rene feltissues. Der må ikke være både gammel og ny
-   værdipipeline i samme tabel. Navigation må bruge række-/kolonneposition, men position er aldrig inputidentitet.
-6. **Fjern række- og gridkopier.** Slet `useRowDrafts`/`useSliceRowDrafts`, `internalTableData`, pending effect-flush,
-   fingerprints, id-grafting, undo-aliaser, celle-key-parsere, invalid channels og orphan-reconcile-effects. Gridets
-   controller er eneste navigation-/editorregistry og kalder felteditorens samme `settle`/`cancel`.
-7. **Atomisk adresse-cutover.** Først når alle persisted overflader har konkrete refs, oversættes hele den eksisterende
-   legacy-envelope i én versioneret migration. Kilden læses uden mutation; alle keys mappes via manifests; current
-   kandidat katalogvalideres; ny envelope skrives og genlæses; legacykilden fjernes først derefter. Runtime må aldrig
-   indeholde eller serialisere en blanding af sentinel- og current-adresser.
-8. **Slet migrationen fra normal runtime.** Fjern compatibility-facader, legacy-views/-revisionscounters,
-   `FormPersistenceContext`-writes, separate history-origin-strenge og de afløste feltmotorer. Behold kun den snævre
-   startup-migrator til fase 7's senere endelige oprydning.
-
-Fase 4 afleveres kun, når et persisted felt har én strukturel identitet, én codec, én editor, én command og én
-transaktion — og når lukket visning ikke har en værdibærende lokal kopi.
-
-### Fase 5 — Validering og beregningsprojektioner migreres domænevis
-
-**Status 2026-07-14:** Ikke påbegyndt. Projektionskernen fra fase 2 findes, men produktdomænerne er endnu ikke migreret
-til den som eneste read-grænse, og komponentrapporterede `fieldErrors` er derfor fortsat migrationsstate.
-
-For hvert domæne migreres hele consumer-grafen som én vertikal slice:
-
-- sidevisning og beregnede felter,
-- tværside-readmodels,
-- kontrol-/fejlbokse,
-- save-relevans,
-- alle dokumentprojektioner.
-
-En slice er først færdig, når ingen consumer i domænet kan læse rå canonical data uden `InputReader`. Renteberegning
-og Satser migreres først som reference, men til den nye fælles kerne — deres nuværende lokale key-/scope-byggere
-videreføres ikke.
-
-Når sidste domæne er migreret, slettes den stored/reporter-baserede `fieldErrors`-model for afledelige fejl.
-
-### Fase 6 — Alle kritiske dokumenthandlinger konvergeres
-
-**Status 2026-07-14:** Ikke påbegyndt. Eksisterende dokumentgates og referenceimplementeringer bevares, men hele
-outputkataloget er endnu ikke migreret til typed dokumentdefinitioner og det fælles prepare-flow.
-
-1. Opret typed dokumentdefinitioner for hele det maskinelt inventariserede outputkatalog.
-2. Route alle UI-knapper gennem samme prepare-flow.
-3. Kræv `PreparedDocument<T>` og frisk revision ved servicegrænsen.
-4. Verificér revision efter alle async-grænser før generatorstart.
-5. Fjern lokale downloadbooleans, separate click-gates og direkte generator-/servicekald.
-
-### Fase 7 — Legacy slettes og grænser håndhæves
-
-**Status 2026-07-14:** Ikke påbegyndt. Fase 3 har fjernet de afløste autoritative storage-/history-primitiver, men de
-eksplicit listede compatibility-facader og feltmotorer skal først slettes efter migrationerne i fase 4–6.
-
-Slet mindst:
-
-- offentlige `invalidDrafts`-read/write-API'er og strengnøgle-builders,
-- `useDraftField`, `useTableInputCore`, `useRowDrafts` og `useSliceRowDrafts` i deres nuværende roller,
-- `FieldErrorReporter`-baseret persistence af afledelige fejl,
-- `captureValueCommit`, `captureCoalescing` og microtask-markører,
-- per-sektion input-storage og permanent migrationsfallback,
-- rå canonical selectors uden for editor-/migrationsgrænsen,
-- domænespecifik parsing af feltadresser og manuelt påsat blocker-scope.
-
-Tilføj AST-baserede arkitekturværn, der beviser:
-
-- kun transaktionsrunneren skriver input,
-- persisted felter bruger kendte `FieldRef`s,
-- domæne-/dokumentkode ikke importerer rå input-store/selectors,
-- dokumententrypoints ikke omgår preflight,
-- legacy-symbolerne ikke genindføres.
-
-### Fase 8 — Samlet verifikation
-
-**Status 2026-07-14:** Ikke påbegyndt som afsluttende fase. Fase 3 er verificeret med de fulde automatiske gates og
-build, men slutarkitekturens samlede gate og manuelle browserverifikation kan først udføres efter fase 4–7.
-
-Kør fuld typecheck, test-typecheck, lint og fuld testsuite. Build køres, fordi storage/bootstrap, app-runtime og
-standalone entrypoint er berørt. Udfør desuden manuel browserverifikation af de godkendte synlige flows.
-
-## 8. Teststrategi
-
-### 8.1 Fælles feltkontrakt
-
-Samme tabeldrevne kontraktsuite køres mod alle codecs og begge UI-overflader:
-
-- tastning ændrer ikke settled state,
-- blur/Enter afslutter præcis én gang,
-- gyldigt, ugyldigt, tomt og no-op input,
-- F5/remount med gyldigt og ugyldigt input,
-- kritisk handling med åben editor,
-- immediate clear/dropdown/toggle,
-- cancel-adfærd efter beslutning i §9,
-- samme rå input giver samme resolution i form og tabel.
-
-### 8.2 Transaktionsinvarianter
-
-For hver command-type testes:
-
-- schema-afvisning før mutation,
-- ét storage-write og ét observerbart store-write,
-- monoton revision,
-- præcis ét eller nul history-trin,
-- rollback ved storage-/serialiseringsfejl,
+Én brugerhandling giver højst ét history-trin og præcis én ny revision ved reel ændring.
+
+### 3.7 Session og history
+
+Sessionen har én current-only envelopeversion. Den har ingen `fieldAddressVersion`-bro, sentinel-adresser eller
+legacy-migrator.
+
+History snapshotter kun afsluttet input og fokus-origin. Issues, beregninger, gates og åbne drafts genafledes eller
+ignoreres. Restore skriver sessionen først, erstatter derefter input og skaber altid en ny monoton revision.
+
+### 3.8 Tabeller
+
+Rækkeinfrastrukturen ejer kun stabile id'er, rækkefølge, add/delete/reorder og én transient placeholder. Canonical
+rækker læses direkte fra inputaggregaten. Der findes ingen `draftRows`, `internalTableData`, fingerprint-kopi eller
+effect-flush til persistence.
+
+Placeholder-promotion og første settle er én command. Row-delete fjerner rejected descendants i samme reducertrin.
+
+### 3.9 `.eo`, beregninger og dokumenter
+
+`.eo`-save:
+
+1. settler eventuel åben editor,
+2. læser frisk `EvaluationSourceToken`,
+3. udleder alle aktive feltfejl uden mount-afhængighed,
+4. stopper ved mindst én rød feltfejl,
+5. bygger canonical snapshot,
+6. Zod-validerer og skriver filen.
+
+Beregningsmotorer modtager kun data fra en `ready` projektion.
+
+Hvert af de 18 dokumentoutputs har én typed definition, som ejer projektion og output-invariants. Samme definition
+bruges af reaktiv gate og click-preflight. Generatoren modtager kun et kilde-tokenbundet `PreparedDocument<T>`.
+
+### 3.10 Små systemporte efter `FormPersistenceContext`
+
+`FormPersistenceContext` erstattes ikke af en ny altomfattende facade. Dets øvrige ansvar fordeles eksplicit:
+
+- `initializeInputRuntime` hydraterer før React-render og returnerer current-session-/startupstatus.
+- `InputCommandPort` eksponerer kun typed commands; ingen raw sections eller rejected maps.
+- `CaseFileOperations` ejer `.eo`-save, preflight/load/apply og `hasAnyData` over reader-/replacement-grænserne.
+- `CaseResetOperations` ejer reset og `Slet alt`, inklusive sikker kassation af åben draft ved succes og recovery fra
+  blokeret current-session.
+- den eksisterende centrale systemfejl-/noticeoverflade viser startupfejl og brugerrettede operationsfejl.
+
+Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. Begge app-entrypoints initialiserer den
+samme runtime før render; provider-remount må aldrig rehydrere eller overskrive input.
+
+## 4. Det der bevares, omskrives og slettes
+
+### 4.1 Bevar som adfærd eller byggesten
+
+- Zod-sektionsschemas og schema-afledte typer.
+- `.eo`-preflight og tolerant load.
+- Codec- og parsersemantikken i `fieldCodecs.ts` og eksisterende canonical utils.
+- Strukturelle felt-/entity-adresser og stabile row-id'er, når de ikke bruger UI-geometri.
+- Command-cases for felt-, række-, reset-, load- og historyhandlinger.
+- Verificeret session-write, rollback, monotone revisioner og history-symmetri.
+- `InputReader`-ideen og `CriticalActionCoordinator`-ideen.
+- Fase-0-outputinventaret som midlertidig, udtømmende migrationscheckliste.
+- Adfærdsorienterede tests for editor, F5, undo/redo, gates, tabeller, beregninger og persistence.
+
+### 4.2 Omskriv, ikke udbyg
+
+- `inputState`, `inputCommands`, `inputReader`, `inputIssue`, `inputProjection` og `inputTransactionRunner`.
+- Feltkataloget til et lille statisk descriptor-katalog.
+- Runtime-storen til input + revision + history + nødvendig systemstatus.
+- Felt- og tabelinput til én editor med to tynde surface-adaptere.
+- Domæneprojektioner til almindelige rene funktioner.
+- Save- og dokumentgates til samme issue-/projektionsresultater som deres preflight.
+
+### 4.3 Slet ved cutover
+
+- Legacy command-algebra og compatibility-runner.
+- Sentinel-/legacy-adresser og mixed envelope.
+- Browser-sessionmigration fra gamle sektions- og `invalidDrafts`-nøgler.
+- Offentlige `invalidDrafts`- og stored `fieldErrors`-API'er.
+- `FormPersistenceContext` som inputfacade og skrivbare hel-sektionshooks.
+- `useDraftField`, `useDraftLifecycle`, `useTableInputCore`, `useRowDrafts` og `useSliceRowDrafts` i deres nuværende
+  roller.
+- Gridets værdikopier, fingerprints, pending effect-flush, id-grafting og orphan-reconcile-effects.
+- Den generiske projektions-DSL og den gamle `domain/inputIntegrity`-blockermodel.
+- Per-issue `blocksSave`, manuelt blocker-scope og komponentrapporterede fejl.
+- Implementeringsspecifikke tests, som kun beskytter de afløste mekanismer.
+
+## 5. Migrationsprincipper
+
+### 5.1 Én koordineret cutover
+
+Fase 1–5 i §8 udgør én samlet, ikke-deploybar implementeringstranche. Faseoverskrifterne er arbejdspakker og
+kontrolpunkter, ikke selvstændigt grønne afleveringsgates. Der må ikke afleveres eller deployes en blanding, hvor:
+
+- nogle persisted felter bruger gammel og andre ny runtime,
+- samme felt har fallback mellem gammel og ny writevej,
+- UI er migreret, men en afhængig beregning fortsat læser rå sektioner,
+- gammel og ny adresseform kan ligge i samme envelope,
+- et featureflag, dual-read eller dual-write holder begge systemer aktive.
+
+Interne checkpoints må være midlertidigt ikke-kompilerbare. Målrettede rene tests køres, når deres modulgrænse er
+sammenhængende; fuld typecheck, lint og produktsuite er først en gate efter fase 5. Den gamle build forbliver eneste
+deploybare version, indtil hele cutoveren er grøn. Ingen af fase 1–4 må markeres færdig eller lande som et ubrugt nyt
+produktionssidespor.
+
+### 5.2 Compilerfejl er migrationslisten
+
+Legacy-entrypoints slettes tidligt i cutoveren. TypeScript-fejl bruges derefter som konkret callsite-ledger. Der
+oprettes ikke compatibility-facader for at få en delmigreret app til at kompilere.
+
+### 5.3 Ingen migrationsarkitektur for migrationsarkitekturens skyld
+
+Midlertidig kode skal enten:
+
+- være en ren testfixture uden produktionsimport, eller
+- slettes i samme ikke-deploybare cutover.
+
+Den må ikke få public API, runtime fallback, egen persistence eller permanente arkitekturværn.
+
+### 5.4 Stop ved produktændringer
+
+Følgende er hårde stop:
+
+- ændrede beregningstal, afrundinger, satser eller dokumentindhold,
+- anden synlig adfærd end §1 og de eksisterende godkendte kontrakter,
+- et inputfelt, collection eller output, som ikke kan placeres entydigt i den nye model,
+- behov for at slette gyldigt brugerinput automatisk,
+- behov for en raw-section-bypass for at få en consumer til at virke.
+
+## 6. Kanonisk migrationsledger
+
+Før kodecutover oprettes maskinlæsbare ledgers med én dataidentitet pr. felt, collection eller consumer—ikke pr.
+schema-leaf og ikke pr. rendersted.
+
+### 6.1 Feltledger
+
+`src/input/catalog/inputFieldLedger.ts` er selv det ene kanoniske descriptor-katalog fra §3.2 og har én entry pr.
+persisted datafelt/`FieldRef`; der oprettes ikke et separat manuelt feltregister. Hver entry skal angive:
+
+- stabil id,
+- sektion og strukturel adresse/builder,
+- alle editorlokationer som særskilte ids med filsti, route, fane og fokusmål,
+- codec,
+- canonical Zod-schema/typekilde og tomværdi,
+- form/grid/control-kind,
+- relevansregel,
+- feltvalidatorer og beskedkoder,
+- om feltet er delt mellem flere sider.
+
+Flere editorlokationer skaber aldrig flere feltentries. En completeness-test i
+`src/__tests__/input/inputFieldLedgerCompleteness.test.ts` sammenholder katalog, faktiske persisted controls,
+Zod-stier og alle registrerede lokationer.
+
+### 6.2 Collectionledger
+
+`src/input/catalog/inputCollectionLedger.ts` har én entry pr. dynamisk collection og angiver:
+
+- strukturel sti,
+- entity-id-egenskab,
+- placeholder-policy,
+- add/delete/reorder-entrypoints,
+- child-felter og nested collections,
+- alle aktuelle tabeller, der renderer collectionen.
+
+`src/__tests__/input/inputCollectionLedgerCompleteness.test.ts` verificerer entity-schema, refs, child-felter,
+editorlokationer og alle add/delete/reorder-entrypoints.
+
+### 6.3 Consumerledger
+
+`src/domain/projections/inputConsumerLedger.ts` har én entry pr. consumer og angiver:
+
+- beregning, contentbox, `.eo` eller dokument-id,
+- konkrete projektioner,
+- row-/aggregatsemantik,
+- missing-regler,
+- output-invariants,
+- UI-entrypoint, konkret filsti og testbevis,
+- prioriterede editorlokationer for hvert navigerbart issue.
+
+`src/__tests__/domain/inputConsumerLedgerCompleteness.test.ts` verificerer registrene mod alle beregnings-,
+contentbox-, `.eo`- og dokumententrypoints.
+
+Fase 0 registrerer og fastlåser de faktiske baseline-counts i testfixtures som
+`EXPECTED_FIELD_REF_COUNT`, `EXPECTED_EDITOR_LOCATION_COUNT`, `EXPECTED_COLLECTION_COUNT` og
+`EXPECTED_CONSUMER_COUNT`; ingen placeholder eller ukendt count må bestå exitgaten. De kendte backstops er desuden 8
+beregningsentries, 4 sagsfilstier og 18 dokumentoutputs. En lille ledger-validator under
+`scripts/architecture/verify-input-ledgers.mjs` producerer den sammenlignelige inventoryrapport og fejler ved
+uregistrerede, dublerede eller forældreløse entries.
+
+## 7. Testmodel
+
+### 7.1 Fælles feltkontrakt
+
+Samme suite køres mod form- og grid-adapteren for hver codecfamilie:
+
+- åben draft ændrer intet afsluttet,
+- eksisterende rød fejl bliver stående under redigering,
+- ny fejl vises først efter settle,
+- blur og Enter settler præcis én gang,
+- Escape fra gyldigt, tomt og allerede fejlende afsluttet udgangspunkt,
+- gyldigt, tomt, ugyldigt format og out-of-bounds,
 - no-op uden revision/history,
-- row-delete uden descendants/orphans,
-- startup-migration uden datatab og uden sletning før verificeret ny envelope.
+- Delete/Backspace fra lukket felt,
+- dropdown/toggle immediate commit,
+- paste og tast-initieret åbning,
+- F5/remount efter gyldigt og fejlende settle.
 
-### 8.3 Undo/redo
-
-Mindst følgende transitioner dækkes for både almindeligt felt og tabelcelle:
+### 7.2 Obligatoriske statekæder
 
 ```text
 gyldig A → ugyldig X → undo → redo
 ugyldig X → ugyldig Y → undo → redo
 ugyldig X → gyldig B → undo → redo
 gyldig A → tom → undo → redo
-række med ugyldig celle → slet række → undo → redo
+gyldig A → bounds-fejl B → undo → redo
+skjult gyldig A → vis igen
+skjult fejl X → undo → redo
+række med fejl → slet række → undo → redo
 ```
 
-Hvert trin hævder visning, feltissue, beregningsprojektion, save-gate, dokument-gate og fokusmål.
+Hvert trin hævder current canonical slot, rejected råtekst, visning, feltissue, consumerstatus, `.eo`-gate,
+dokumentgate, revision og history.
 
-### 8.4 Dependency- og domæneprojektioner
+### 7.3 Issue-/gate-matrix
 
-For hver projection spec testes begge retninger:
+Alle relevante field- og domænetests dækker mindst:
 
-- rejected dependency gør `ready` urepræsenterbar,
-- rejected ikke-dependency overblokerer ikke,
-- per-række-projektion isolerer andre rækker,
+- formatfejl og bounds-fejl giver identiske gates,
+- kun besked/reason varierer,
+- missing giver ingen rød markering og ingen `.eo`-blokering,
+- warning blokerer intet,
+- irrelevant felt overblokerer ikke,
+- rækkeprojektion isolerer øvrige rækker,
 - aggregatprojektion inkluderer alle valgte rækker,
-- `missing`, `invalid`, range/bounds og domæneregler bevarer deres forskellige policy,
-- beregningsmotoren kaldes ikke, når inputprojektionen er blocked.
+- beregningsmotor kaldes aldrig fra en blocked projektion.
 
-### 8.5 Kritiske handlinger
+### 7.4 Transaktionsinvarianter
 
-Integrationstests bruger rigtige felter, store og coordinator og dækker:
+For hver command-type testes:
 
-- Gem/download med åben gyldig og ugyldig editor,
-- pending persistence,
-- ingen fil-I/O eller generatorimport ved blokering,
-- revisionsændring før klik, under lazy-load og umiddelbart før generator,
-- samme gate for PDF og Word,
-- standalone MinProcesrente,
-- den godkendte brugerfeedback i §9.
+- schema-/katalogafvisning før observerbar mutation,
+- canonical clear + rejected write i samme kandidat,
+- én session-write og ét store-write,
+- én monoton revision,
+- højst ét history-trin,
+- no-op uden write/revision/history,
+- rollback ved serialization/storage/store-fejl,
+- row-delete uden descendants/orphans,
+- authoritative replacement rydder history efter policy.
 
-### 8.6 Udtømmende dokumentgate-matrix
+### 7.5 Kritiske handlinger
 
-Det maskinelt inventariserede outputkatalog driver en tabeltest, der for hver typed dokumentdefinition særskilt
-indsætter begge relevante fejlklasser:
+Integrationstests dækker form og grid ens for:
 
-- afsluttet rejected input med ugyldigt format (`invalid`),
-- canonical input med et dokumentrelevant `range`-/`bounds`-issue med fejlseverity.
+- save/download med åben gyldig og ugyldig draft,
+- navigation med settle og fortsat navigation,
+- load/reset/clear med åben editor: succes kasserer draften uden settle; annullering/fejl bevarer den,
+- undo/redo med åben editor,
+- friskt input-/settingssnapshot efter settle,
+- ingen lazy-load, generator eller fil-I/O ved blokering.
 
-For begge klasser hævder testen både, at den reaktive knap er visuelt og funktionelt disabled, og at en direkte
-aktivering stoppes før lazy-load, generator og fil-I/O. Et output kan ikke markeres migreret, hvis definitionen eller en
-af de to cases mangler. Sammen med fase 7-værnet mod preflight-bypass gør det outputkataloget udtømmende i stedet for at
-basere sikkerheden på manuelt udvalgte sidespecifikke tests.
+## 8. Detaljeret migrationsplan
 
-## 9. Godkendte synlige beslutninger
+### Fase 0 — Rebasér kontrakter og inventarer
 
-Beslutningerne nedenfor er godkendt 2026-07-14 og skal fastlåses i de normative kontrakter i fase 1.
+**Status:** Ikke påbegyndt efter kravgennemgangen.
 
-### 9.1 Escape i en åben editor
+**Afhængighed:** Ingen.
 
-Escape annullerer universelt alt siden editoren blev åbnet.
+#### Arbejdstrin
 
-**Konkret eksempel:** Feltet viser den afsluttede ugyldige tekst `12..20`. Brugeren åbner editoren, skriver
-`01-01-2024` og trykker Escape. Feltet viser igen `12..20`; intet committes, og den tidligere gyldige canonical dato
-vises ikke.
+1. Opdatér `AGENTS.md` og de normative kontrakter for form, mineo-field, error, persistence, undo/redo,
+   critical-action, keyboard-navigation, document-output, snapshot, page-component og schema-evolution.
+2. Opdatér berørte domænekontrakter, mindst Varige mén og alle kontrakter med save-/range-/visibility-regler.
+3. Fjern masking/recovery som målregel og indfør XOR-invarianten fra §1.5.
+4. Fjern per-issue save-policy. Fastlås tabellen i §1.6 normativt.
+5. Fastlås, at `missing` aldrig er et aktivt rødt feltissue.
+6. Fastlås, at warnings aldrig er blockers.
+7. Fastlås universel oprydning af fejlende skjult input og bevaring af gyldigt skjult input.
+8. Ret critical-action-matricen: navigation settler begge surfaces; load/reset/clear gennemføres uden settle og
+   kasserer kun draften ved succes.
+9. Fjern normative krav om legacy-session- og feltadressemigration. Bevar `.eo`-tolerance.
+10. Fastlås current-session-korruptionsflowet fra §1.12 og den samlede input-/settingsfriskhed fra §3.4.
+11. Markér de tidligere fase 0–4-statusser i reviewplanerne som historiske og afløste.
+12. Byg felt-, collection- og consumerledgeren i §6 og verificér den mod fase-0-inventaret.
+13. Registrér de faktiske baseline-counts; ingen ukendt eller midlertidig count accepteres.
+14. Klassificér hver nuværende synlig fejl som feltfejl, consumerfejl eller warning.
 
-### 9.2 Downloadklik, som afslutter en åben editor
+#### Exitkriterier
 
-Mens editoren er åben, beror visning, beregning og download-gate på den senest afsluttede inputtilstand. En tidligere
-gyldig tilstand kan derfor holde indholdet vist og downloadknappen aktiv, mens brugeren skriver. Dette er ikke live
-validering og må ikke give visningsmæssig flimmer.
+- Ingen kontrakt omtaler en skjult recovery-værdi under rejected input.
+- Ingen kontrakt tillader `.eo`-save med en aktiv rød feltfejl.
+- Ingen kontrakt kan gøre `missing` rødt eller save-blokerende.
+- Ingen kontrakt kræver browser-sessionkompatibilitet.
+- Hver persisted editor, collection, beregningsentry og dokumentoutput findes i præcis én ledger.
+- Alle relevansregler kan evalueres uden mounted komponentstate.
+- Alle delte felters contentbox-consumers har en eksplicit prioriteret editorlokation.
+- Friskhed omfatter både input og relevante AppSettings.
 
-Når brugeren forlader editoren — også ved at pege på downloadknappen — afsluttes inputtet først. Hvis resultatet har en
-fejl, opdateres den reaktive gate, og knappen bliver visuelt og funktionelt disabled, før en dokumenthandling kan
-gennemføres. Har inputtet ingen fejl, fortsætter dokumenthandlingen på den nye revision.
+#### Verifikation
 
-Click-preflighten er obligatorisk defense-in-depth. Modtager applikationen alligevel click-eventet, finaliserer den
-først editoren, genlæser den nye revision og starter ingen dokumenthandling ved blokering. I det tilfælde fokuseres det
-ugyldige felt uden scroll, og den eksisterende danske advarsel vises.
+Ren kontraktændring kræver ingen kodegate. Ledger-validatoren og completeness-tests køres, når ledgerne er oprettet;
+ved topologiændring følges `docs/architecture/contract-topology-procedure.md`.
 
-Denne event-grænse ændrer ikke beregningsregler eller de tal, en gyldig beregning producerer.
+### Fase 1 — Omskriv den rene inputkerne
 
-## 10. Godkendte produktbeslutninger for fase-4-cutover
+**Status:** Ikke påbegyndt.
 
-1. **Delete/Backspace i lukket felt.** På både almindelige formularfelter og tabelceller rydder Delete/Backspace og
-   committer straks, når feltet har fokus, men editoren er lukket.
-2. **Parsebar værdi uden for feltets commit-interval.** Beløbs-, heltals-, procent-, års- og ugeinput bevarer den rå
-   tekst som rejected input. Den tidligere canonical værdi maskeres og må aldrig nå en afhængig beregning. Reglen
-   omklassificerer ikke kronologiske datobounds eller tværgående domæneregler, som en mere specifik kontrakt bevidst
-   definerer som canonical issues; sådanne fejl skal fortsat blokere de beregningsprojektioner, de gør uanvendelige.
+**Afhængighed:** Fase 0.
 
-## 11. Acceptkriterier for slutarkitekturen
+Fasen må ikke indføre React, Zustand, DOM eller storage.
 
-Designet er først færdigimplementeret, når alle følgende udsagn er sande:
+#### Arbejdstrin
 
-1. Der findes én autoritativ inputaggregate og én autoritativ write-grænse.
-2. Der findes én felt-editor og ét codec pr. inputfamilie på tværs af form og grid.
-3. Ingen dynamisk tabel holder en konkurrerende draft-kopi af alle celleværdier.
-4. Alle persisted feltadresser er strukturelle, typed og uafhængige af kolonneindeks/DOM.
-5. Et afsluttet ugyldigt felt viser sin rå tekst efter blur, navigation, F5, undo og redo.
-6. Ingen beregning, save- eller dokumentmodel kan modtage den tidligere gyldige værdi som aktuel værdi for feltet.
-7. Dependencies, ikke manuelt blocker-scope, afgør præcis hvilke consumers der blokeres.
-8. Afledelige feltfejl beregnes uafhængigt af component mount og ligger ikke i history.
-9. Hver inputhandling giver ét atomisk storage-/store-resultat og præcis ét eller nul history-trin.
-10. Undo/redo/load/reset skaber nye monotone revisioner og kan ikke genvalidere en gammel dokumentgodkendelse.
-11. Sletning af række/entity fjerner tilknyttet inputstate atomisk; orphan-state er urepræsenterbar.
-12. `.eo` round-trip bevarer alt schema-gyldigt brugerinput og kan ikke gemme en maskeret gammel værdi.
-13. Alle dokumenter bruger samme definition til reaktiv gate og click-preflight, med friskhedskontrol efter async.
-14. Ingen commit-korrekthed afhænger af microtasks, timeouts, effects eller write-rækkefølge mellem stores.
-15. Normative kontrakter, kode, tests og arkitekturværn beskriver samme model.
-16. Der findes ingen permanente compatibility-facader, dual-read/dual-write eller legacy-fallbacks fra migrationen.
-17. Åben draft ændrer aldrig visning eller download-gate; settle skifter dem atomisk til den nye afsluttede tilstand.
-18. Ethvert dokumentrelevant issue med fejlseverity giver en visuelt og funktionelt disabled downloadknap.
-19. Hver dokumentdefinition i det maskinelt inventariserede outputkatalog består gate-matricen for både ugyldigt format
-    og range/bounds-fejl, og intet dokumententrypoint kan omgå preflight.
-20. Et lukket felt har ingen lokal værdibærende draftkopi, pending-guard, fingerprint eller resync-effect.
-21. History-origin bruger datafeltets strukturelle ref og den konkrete editors fokusmål som to eksplicitte ansvarsområder.
-22. Runtime/envelope indeholder aldrig en blanding af legacy- og current-feltadresser.
+1. Omskriv `SettledInput`-schemaet med katalogvalideret rejected↔canonical-XOR.
+2. Gør canonical tomværdi/clear til en obligatorisk del af hvert persisted felt.
+3. Forenkl feltbeskrivelse og statisk katalog; fjern runtime registration/seal/brand-lag.
+4. Bevar strukturelle adresser og builders, men fjern legacy-/sentinel-formatet.
+5. Konsolidér codecs og lad invalid resolution bære konkret reason/detail.
+6. Omskriv reduceren for alle commands i §3.6.
+7. Implementér før/efter-proceduren i §3.6 for atomisk oprydning af feltfejl, der bliver irrelevant; bevar gyldigt
+   input.
+8. Omskriv issue-modellen til field/consumer/warning uden `blocksSave` og `blocksProjection`.
+9. Omskriv `ValidationReader` og den efterfølgende offentlige `InputReader`, så feltvalidering ikke er cirkulær, og et
+   felt med aktiv feltfejl aldrig eksponerer sin canonical værdi til consumers.
+10. Erstat projektions-DSL'en med en lille collector og almindelige rene funktioner.
+11. Indfør `EvaluationSourceToken` med input- og settingsrevision.
+12. Port adfærdstests og slet tests, som hævder masking, policy-flags, brands eller factory-autorisering.
 
-## 12. Ikke-mål
+#### Exitkriterier
+
+- `gyldig A → ugyldig X` efterlader ikke A i current snapshot.
+- Samme reducer håndterer form, grid, row og systemcommands.
+- Kataloget har ingen parallel manuel path-autoritet ud over de faktiske descriptors og Zod-schemas.
+- Format- og bounds-feltfejl giver samme UI-/gatekonsekvens, mens repræsentationsforskellen i §1.6 er eksplicit testet.
+- Missing kan ikke konstrueres som feltfejl.
+- Kernen har ingen timing, effects eller UI-callbacks.
+
+#### Stopkriterier
+
+- Et schema kan ikke repræsentere feltets tomværdi uden ændring af beregningslogik.
+- Et nuværende felt kan ikke gives én entydig strukturel adresse.
+- En feltvalidator kræver mounted componentstate.
+
+#### Verifikation
+
+- Målrettede codec-, state-, reducer-, reader-, issue-, relevance- og projectiontests for den sammenhængende rene
+  kerne.
+- Dette er et internt kontrolpunkt i den ikke-deploybare tranche; fuld typecheck, test-typecheck og lint er ikke en
+  fasegate før fase 5.
+
+### Fase 2 — Atomisk runtime- og inputoverflade-cutover
+
+**Status:** Ikke påbegyndt.
+
+**Afhængighed:** Fase 1.
+
+**Deployregel:** Ingen handoff mellem fase 1 og fase 5.
+
+#### 2.1 Slim runtime
+
+1. Erstat runtime-storen med `input`, `revision`, `history` og nødvendig hydration-/systemfejlstatus.
+2. Slet afledte sections/invalidDraft-views, revisionsmaps, epochs, counters og stored fieldErrors.
+3. Erstat typed + legacy runner med én command-union og én entrypoint.
+4. Indfør current-only session-envelope på en ny intern nøgle/version.
+5. Bevar current-format schema/katalogvalidering, read-back og rollback.
+6. Slet al læsning og oversættelse af gamle browserformater.
+7. Giv AppSettings én monoton settingsrevision, så `EvaluationSourceToken` altid kan verificeres samlet.
+
+#### 2.2 Kritiske handlinger og editorregistry
+
+1. Registrér højst én aktiv persisted editor pr. app-runtime.
+2. Implementér actionmatricen i §1.4 ens for form og grid.
+3. Lad save/download modtage settle-resultat og friskt `EvaluationSourceToken` eksplicit.
+4. Fjern form/grid-policyforskelle og DOM-scanning som korrekthedsmekanisme.
+
+#### 2.3 Én persisted editor
+
+1. Implementér editoren direkte over `FieldRef`, reader og runner.
+2. Afled lukket visning direkte fra den afsluttede revision.
+3. Seed åben draft fra rejected raw eller `formatForEdit`.
+4. Escape lukker uden command; behold kun åbningsrevision/fokusmetadata og ingen værdibærende startkopi.
+5. Vis feltissue fra den afsluttede revision uændret under redigering.
+6. Implementér form- og grid-adaptere uden parsing/persistence/errorstate.
+7. Hold transient UI-controls eksplicit uden for persisted editor.
+
+#### 2.4 Formularmigration i fast rækkefølge
+
+1. Stamdata.
+2. Satser.
+3. Årsløn og Fælles årsløn.
+4. Renteberegning i hovedapp og standalone MinProcesrente.
+5. Varige mén.
+6. Forsørgertab.
+7. Erhvervsevnetab.
+8. Erstatningsopgørelse, inklusive nested ansættelsesforhold.
+
+Et callsite er først migreret, når det kun modtager sin konkrete ref/editorlocation og ikke længere `value`,
+`parse`, `format`, `onCommit`, invalid-key eller error-reporter.
+
+#### 2.5 Tabelmigration i fast rækkefølge
+
+1. Fælles celleeditorer og gridregistry.
+2. Rentekrav.
+3. Ferie-, fravær-, svie/smerte-, TAF- og øvrige-krav-perioder.
+4. EET-afgørelser.
+5. Offentlige ydelser.
+6. Manuel lønudvikling og manuelle procentsatser.
+7. Standardløn top-level.
+8. Standardløn og lønudvikling i nested ansættelsesforhold.
+9. Øvrige collections fra ledgeren, indtil completeness-testen er tom.
+
+For hver tabel fjernes i samme arbejdspakke:
+
+- row/celle-draftkopier,
+- fingerprints,
+- pending persistence-effects,
+- string-key invalid channels,
+- orphan reconcile,
+- kolonneindeks som dataidentitet.
+
+#### 2.6 Sletteliste
+
+Slet mindst:
+
+- `src/input/legacyInputCompatibility.ts`,
+- `src/input/legacyGridTransactionBridge.ts`,
+- `src/persistence/inputSessionMigration.ts`,
+- `src/schemas/invalidDraftsSchema.ts`,
+- `src/types/invalidDrafts.ts`,
+- `src/config/invalidDraftsVersion.ts`,
+- `src/config/cellInvalidDraftScopes.ts`,
+- `src/config/entityInvalidDraftScopes.ts`,
+- `src/utils/invalidDraftsStorage.ts`,
+- `src/contexts/CellInvalidDraftScopeContext.tsx`,
+- `src/hooks/useDraftField.ts`,
+- `src/hooks/fieldState/` i nuværende rolle,
+- `src/hooks/tableInput/` i nuværende rolle,
+- `src/rowDrafts/`,
+- `src/components/tables/gridCore/useGridRowPersistenceCore.ts`,
+- compatibility-rollerne i `formPersistenceStore`, `undoRedoStore` og `formPersistenceReadModel`,
+- legacy test-only store mutations.
+
+`FormPersistenceContext*`, `useFormPersistence`, `usePersistedForm` og gamle persistence-selectors slettes først i
+fase 4, når deres ikke-inputansvar er flyttet til de små porte i §3.10.
+
+#### Exitkriterier
+
+- Et persisted felt har én ref, én codec, én editor og én commandvej.
+- Ingen persisted surface skriver helsektioner eller rejected input direkte.
+- Ingen tabel har en konkurrerende værdikopi.
+- Lukket felt har ingen værdibærende lokal state eller resync-effect.
+- Runtime/envelope kan ikke repræsentere legacy-adresser.
+- Alle legacy input-write-/editor-symboler har nul produktionscallsites; case-/dokumentansvar fjernes i fase 4–5.
+
+#### Verifikation
+
+- Målrettede editor-/adaptertests mod syntetiske immutable issue-snapshots.
+- Alle codecfamilier, placeholder-first-invalid, row-delete og undo/redo.
+- Fuld field-contract-, actionmatrix- og komponentgate afventer fase 3–4, hvor validatorer og caseporte findes.
+- Dette er et internt kontrolpunkt; appen forventes ikke at kompilere eller være deploybar endnu.
+
+### Fase 3 — Domæneprojektioner og ren fejlmodel
+
+**Status:** Ikke påbegyndt.
+
+**Afhængighed:** Fase 2. Ingen handoff før fasen er gennemført.
+
+Migrér komplette consumerslices i denne rækkefølge:
+
+| Slice | Skal med i samme arbejdspakke |
+|---|---|
+| Satser | sidevisning, feltissues, beregning og dokumentprojektion/dependencies |
+| Renteberegning | rækker, totaler, hovedapp, MinProcesrente og dokumentprojektion/dependencies |
+| Stamdata/fælles input | tværsideprojektioner, dato-/personissues og dokumentdependencies |
+| Årsløn | beregning, tabeller, fælles årsløn og dokumentprojektion/dependencies |
+| Varige mén | beregning, bounds, kontrol og dokumentprojektion/dependencies |
+| Forsørgertab | snapshot, kontrol og dokumentprojektion/dependencies |
+| Erhvervsevnetab | alle row-/aggregatprojektioner og dokumentprojektion/dependencies |
+| Erstatningsopgørelse | EO-snapshot, kontrol/inspektion, alle tabs og dokumentprojektion/dependencies |
+
+Fase 3 leverer alene de rene projektioner, issues og dependencydefinitioner, som dokumentkataloget senere bruger. Den
+migrerer ikke dokumentknapper, click-preflight, lazy-load eller generatorentrypoints; det sker én gang i fase 5.
+
+For hver slice:
+
+1. Definér field validators og contentbox-issues som rene funktioner.
+2. Byg beregningsinput gennem readeren.
+3. Kald kun beregningsmotoren ved `ready`.
+4. Bevis at format- og bounds-feltfejl giver samme gate/resultatstatus.
+5. Bevis at missing ikke giver rød markering eller `.eo`-blokering.
+6. Bevis at warnings ikke blokerer.
+7. Bevis row-isolation og korrekt aggregatblokering.
+8. Fjern tidligere resultat ved ny blocked revision.
+9. Fjern component-reporters og raw-section-reads i domæne- og beregningskode. Dokumententrypoints fjernes først i
+   fase 5, når deres fælles prepare-flow findes.
+10. Bevar alle eksisterende tal-/golden-tests uændret.
+
+#### Sletteliste
+
+- `src/types/fieldErrors.ts`,
+- `src/hooks/useFormFieldErrors.ts`,
+- form-/tabel-error-reporters og `useTableCellErrorTracker`,
+- `src/domain/inputIntegrity/` i den gamle blocker-/scope-rolle,
+- rå canonical selectors i domæne- og beregningskode,
+- lokale Renteberegning-/Satser-key- og scope-builders.
+
+#### Exitkriterier
+
+- Ingen beregningsmotor kan kaldes med et felt, som readeren vurderer fejlende.
+- Ingen mounted komponent kan tilføje/fjerne en autoritativ fejl.
+- Ikke-dependencies overblokerer ikke.
+- Alle synlige resultater følger den seneste afsluttede revision.
+- Beregningstal er uændrede for alle tidligere gyldige fixtures.
+
+#### Verifikation
+
+- Domænemålrettede tests efter hver slice.
+- Fuld field-contract-suite mod form og grid, nu med de faktiske validatorer og issues.
+- Fuld app-typecheck og produktsuite afventer fase 5; dette er fortsat et internt kontrolpunkt.
+- Ethvert ændret beregningstal er hårdt stop og forelægges brugeren.
+
+### Fase 4 — `.eo`, session og kritiske sagsoperationer
+
+**Status:** Ikke påbegyndt.
+
+**Afhængighed:** Alle field validators og projectionslices i fase 3.
+
+#### Arbejdstrin
+
+1. Byg global `.eo`-save-evaluering fra det komplette feltissue-snapshot.
+2. Blokér præcis ved mindst én aktiv rød feltfejl; missing og warnings tillader save.
+3. Finalisér åben editor før save og genlæs revisionen.
+4. Byg save-snapshot fra canonical input gennem reader-/savegrænsen.
+5. Fail-close direkte på ethvert aktivt/relevant rejected input som defense-in-depth. Et irrelevant rejected input er
+   et brud på inputtransaktionens cleanup-invariant og skal være afvist allerede ved current-envelope-validering; det
+   må hverken behandles som en skjult brugerfejl eller gemmes.
+6. Bevar streng save→load round-trip for schema-gyldigt brugerinput.
+7. Bevar tolerant `.eo`-preflight og de tre godkendte valg.
+8. Load en gammel out-of-bounds canonical værdi, vis feltfejlen og blokér nyt save indtil rettelse.
+9. Route load, reset og `Slet alt` gennem critical-action-koordinatoren og én replacement-command. Åben draft
+   ignoreres under apply, blokerer aldrig og kasseres først efter succes.
+10. Ryd history atomisk efter succesfuld hel-sags-replacement.
+11. Flyt startupnotice, brugerfejl, `hasAnyData`, bootstrap og caseoperationer til de adskilte porte i §3.10.
+12. Bevis current-session-korruptionsflowet: rå envelope bevares, normale writes blokeres, systemfejl vises, og kun
+    eksplicit `Slet alt` kan rydde kilden.
+13. Slet `FormPersistenceContext*`, `useFormPersistence`, `usePersistedForm`, gamle persistence-selectors,
+    per-sektion/session-hydrators og compatibility-cleanup.
+
+#### Testmatrix
+
+- gyldig sag,
+- formatfeltfejl,
+- boundsfeltfejl,
+- tomt required felt,
+- warning,
+- fejl på umounted side,
+- åben editor ved save,
+- åben editor ved succesfuld og annulleret/fejlende load/reset/clear,
+- gammel `.eo` med ukendte/fjernede/manglende felter,
+- load trods fejl,
+- storage-/fil-I/O-fejl og rollback.
+
+#### Exitkriterier
+
+- Saveknappen og click-preflight bruger samme feltissue-snapshot.
+- Ingen fil-I/O starter ved en rød feltfejl.
+- Missing og warning kan ikke blokere `.eo`.
+- Rejected raw kan ikke serialiseres til `.eo`.
+- Der findes ingen legacy browser-sessionreader.
+
+#### Verifikation
+
+- Alle fire fase-0-sagsfilentrypoints.
+- Fuld persistence- og load/save-suite.
+- Målrettede persistence-, startup- og load/save-suiter.
+- Fuld app-typecheck og produktsuite afventer fase 5, fordi dokumententrypoints endnu migreres.
+
+### Fase 5 — Alle dokumentoutputs
+
+**Status:** Ikke påbegyndt.
+
+**Afhængighed:** Fase 3–4.
+
+De 18 output-id'er er:
+
+```text
+satser, rente, rente-oversigt, regulering, krl, kl-loenaftaler,
+erstatningsopgoerelse, taf-fordelt-paa-aar, taf-opreguleret-paa-aar,
+taf-krav-graf, varigemen, aarsloen, sh-dage, kapitalisering,
+efter-eal, differencekrav, loebende-ydelser, forsoergertab
+```
+
+For hvert output:
+
+1. Opret én typed dokumentdefinition.
+2. Brug samme projektion til reaktiv gate og click-preflight.
+3. Blokér på relevante field- og consumererrors; ignorér ikke-dependencies.
+4. Lad warnings passere.
+5. Settle åben editor før preflight.
+6. Kræv frisk `EvaluationSourceToken` efter lazy-load og umiddelbart før generatorstart.
+7. Send kun `PreparedDocument<T>` til generator/service.
+8. Placér PDF/Word-formatvalg efter gaten.
+9. Fjern lokale booleans, click-gates og direkte generator-/servicekald.
+10. Markér først outputtet migreret, når matrix-testen er grøn.
+
+#### Udtømmende matrix pr. output
+
+- relevant ugyldigt format,
+- relevant bounds-fejl,
+- relevant missing-fejl, hvor outputtet har required input,
+- relevant warning,
+- ikke-relevant fejl,
+- åben draft, som settler gyldigt,
+- åben draft, som settler fejlende,
+- input- eller settingsrevisionsændring under lazy-load,
+- direkte programmatisk aktivering.
+
+For blokerede cases beviser testen, at der ikke sker lazy-load, generatorimport eller fil-I/O.
+
+#### Exitkriterier
+
+- Alle 18 outputs findes i det kanoniske outputkatalog og matrixen.
+- Ingen dokumententrypoint kan omgå prepare-flowet.
+- Reaktiv gate og click-preflight kan ikke drifte fra hinanden.
+- Standalone MinProcesrente bruger samme input-/revisionskerne.
+
+#### Verifikation og samlet deploygate
+
+- Kør målrettede dokumenttests og den udtømmende matrix for alle 18 outputs.
+- Kør `npm run typecheck`, `npm run typecheck:test`, `npm run lint` og `npm run test`.
+- Først når disse gates er grønne, må fase 1–5 samlet betragtes som kompilerbar og klar til legacyoprydningen i fase
+  6. Den er fortsat ikke færdigleveret før fase 7.
+
+### Fase 6 — Slet legacy og håndhæv grænserne
+
+**Status:** Ikke påbegyndt.
+
+**Afhængighed:** Fase 1–5.
+
+#### Arbejdstrin
+
+1. Gennemfør alle slettelister i fase 1–5.
+2. Fjern fase-0-migrationsinventaret, når slutkatalogerne selv giver udtømmende coverage.
+3. Port eller slet implementeringsspecifikke tests for afløste mekanismer.
+4. Tilføj AST-baserede regler i det eksisterende architecture-harness uden ny dependency.
+
+Reglerne beviser:
+
+- kun runneren skriver input,
+- persisted controls kræver konkrete refs,
+- domæne-/dokumentkode ikke importerer raw store/sections,
+- dokumententrypoints ikke omgår prepare,
+- transient UI-controls ikke kan skrive sagsinput,
+- legacy-symboler ikke genindføres.
+
+Forbudt-symbol-gaten dækker mindst:
+
+```text
+invalidDrafts
+fieldErrors
+executeLegacyInputTransaction
+useDraftField
+useDraftLifecycle
+useTableInputCore
+useRowDrafts
+useSliceRowDrafts
+usePersistedForm
+FormPersistenceContext
+legacyGridTransactionBridge
+blocksSave
+```
+
+#### Exitkriterier
+
+- Ingen permanent compatibility-facade, fallback, dual-read eller dual-write.
+- Ingen produktionsforekomst af de forbudte symboler.
+- Slutregistrene, ikke migrationsinventarer, driver completeness-tests.
+- Kontrakter, kode, tests og guards beskriver samme model.
+
+### Fase 7 — Samlet accept
+
+**Status:** Ikke påbegyndt.
+
+#### Automatiske gates
+
+Kør i rækkefølge:
+
+```text
+npm run typecheck
+npm run typecheck:test
+npm run lint
+npm run test
+npm run build:all
+```
+
+Kør desuden `check:mojibake`, `check:filename-case` og øvrige releasechecks, når cutoveren skal committes eller
+frigives.
+
+#### Manuel browsermatrix
+
+Verificér i både hovedapp og relevante standalone flows:
+
+1. Åben valid draft uden live hop.
+2. Åben allerede fejlende draft med uændret rød markering.
+3. Blur, Enter, klik væk og side-/fanenavigation.
+4. Escape fra gyldigt, tomt og fejlende afsluttet udgangspunkt.
+5. Formatfejl og bounds-fejl med samme gates og forskellige beskeder.
+6. Tomt required felt: ingen rød markering, contentbox-fejl og relevant outputblokering.
+7. Warning uden blokering.
+8. Skjul fejlende input; vis gyldigt input igen.
+9. Undo/redo-kæderne i §7.2.
+10. F5 med gyldigt og fejlende afsluttet input samt åben draft.
+11. Placeholder-række med første fejlende input.
+12. Række-delete og undo/redo.
+13. `.eo`-save/load og gammel tolerant `.eo`.
+14. Hvert dokumentdomæne og begge outputformater, hvor de findes.
+15. Revisionændring under async dokumentforberedelse.
+
+#### Endelig afleveringsgate
+
+Cutoveren er først færdig, når:
+
+- alle automatiske gates er grønne,
+- browsermatrixen er dokumenteret gennemført,
+- ledgeren har nul umigrerede entries,
+- alle slettelister er tomme,
+- beregningstal og dokumentindhold er uændrede for gyldige fixtures,
+- ingen godkendt produktregel i §1 afhænger af timing eller component mount.
+
+## 9. Rollback- og fejlprincip under migrationen
+
+Der bygges ikke runtime-rollback til legacy.
+
+- Den gamle build er eneste deploybare version, indtil fase 1–5 samlet er grøn.
+- Interne delmål aktiveres ikke gennem flags, dual-read, fallback eller compatibility.
+- Ved forkert arkitekturantagelse stoppes cutoveren, og den nye løsning omarbejdes. Legacyvejen udbygges ikke som
+  nødløsning.
+- Ved ændret beregning, dokumentindhold eller ikke-godkendt synlig adfærd stoppes arbejdet og forelægges brugeren.
+- Current-format sessionkorruption håndteres fail-closed; gamle interne browserformater ignoreres.
+- `.eo` er den eneste historiske brugerdata-kompatibilitet, som bevares.
+
+## 10. Acceptkriterier for slutarkitekturen
+
+1. Der findes ét autoritativt inputaggregate og én autoritativ write-grænse.
+2. Ugyldigt settle fjerner den tidligere canonical værdi fra current state; den findes kun i undo-history.
+3. Samme current felt kan ikke have både ikke-tom canonical værdi og rejected raw.
+4. Åben draft ændrer aldrig afsluttet visning, fejl, beregning eller gate.
+5. Eksisterende feltfejl forbliver synlig under redigering; nye fejl vises først efter settle.
+6. Form og grid bruger samme editor og codec; deres adaptere ejer kun interaktion/rendering/navigation.
+7. Et lukket felt har ingen værdibærende lokal kopi, pending guard, fingerprint eller resync-effect.
+8. Alle persisted feltadresser er strukturelle og uafhængige af DOM/kolonneindeks.
+9. Format- og bounds-feltfejl har identiske gates; kun beskeder varierer.
+10. Enhver aktiv rød feltfejl blokerer `.eo` globalt.
+11. Tomhed giver aldrig rød feltfejl og blokerer aldrig `.eo`.
+12. Missing kan blokere en afhængig beregning eller et dokument gennem contentboxen.
+13. Warning blokerer aldrig beregning, dokument eller `.eo`.
+14. Gyldigt skjult brugerinput bevares; fejlende skjult input ryddes atomisk med det styrende valg.
+15. Uafhængige beregninger og dokumenter overblokeres ikke.
+16. En blokeret ny revision viser ikke et tidligere resultat som gyldigt.
+17. Rækkeprojektioner isolerer andre rækker; aggregater inkluderer alle valgte rækker.
+18. Første fejlende settle i placeholder-række overlever F5.
+19. Row-delete fjerner alle descendants atomisk og kan undo'es fuldstændigt.
+20. Hver reel inputhandling giver én revision og højst ét history-trin.
+21. Undo/redo/load/reset skaber nye monotone revisioner.
+22. Issues, beregninger og gates afhænger ikke af component mount.
+23. `.eo` indeholder kun schema-gyldigt canonical brugerinput og aldrig rejected raw.
+24. `.eo`-load er tolerant; browser-sessioner har ingen legacy-kompatibilitet.
+25. Navigation settler begge surfaces; load/reset/clear gennemføres uden settle og kasserer kun åben draft ved
+    succes.
+26. Save/download settler og evaluerer friskt input-/settingssnapshot før fil-/generatorarbejde.
+27. Alle 18 dokumentoutputs bruger samme definition til reaktiv gate og click-preflight.
+28. Ingen beregnings-, save- eller dokumentkode kan importere raw canonical sections.
+29. Ingen permanent compatibility-facade, dual-read, dual-write eller fallback eksisterer.
+30. Kontrakter, kode, tests, ledger og arkitekturværn beskriver samme model.
+
+## 11. Ikke-mål
 
 Designet indfører ikke:
 
-- nye beregningstyper eller andre features,
-- nye beregningsregler, satser, afrundinger eller clampingregler,
-- ændringer af dokumentlayout eller dokumentindhold,
+- nye beregningstyper, features eller dokumenter,
+- ændringer af beregningsregler, satser, afrunding, clamping eller dokumentindhold,
+- live preview eller live validering af åben draft,
 - serverkommunikation, eksterne API'er, telemetri eller ekstern logging,
 - nye dependencies,
-- generiske udvidelsespunkter for hypotetiske fremtidige beregningstyper.
+- kompatibilitet med gamle interne browser-sessioner,
+- generiske udvidelsespunkter til hypotetiske fremtidige beregningstyper,
+- en generisk form-/projektionsframework ud over Mineos aktuelle behov.
 
-Målet er at konsolidere den låste feature-flade til den mindste arkitektur, der kan håndhæve Mineos eksisterende
-produktregler deterministisk.
+Målet er den mindste auditerbare arkitektur, som gør den godkendte adfærd deterministisk og gør stale input,
+mount-afhængige fejl og parallelle write-/readveje urepræsenterbare.
