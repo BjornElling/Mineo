@@ -7,6 +7,9 @@ export * from './fieldCodecs';
 export * from './fieldDescriptor';
 export * from './settledInput';
 export * from './fieldCatalog';
+export * from './structuralAccessors';
+export * from './structuralDescriptors';
+export { buildProductionInputCatalog, getProductionInputCatalog } from './catalog/productionCatalog';
 export * from './inputIssue';
 export { createInputEvaluation } from './inputReader';
 export type {

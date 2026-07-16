@@ -90,6 +90,9 @@ export const textFieldCodec: FieldCodec<string> = Object.freeze({
   acceptsInitialKey: initialKey(/^.$/u),
 });
 
+/** Factory-form af {@link textFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil. */
+export const createTextFieldCodec = (): FieldCodec<string> => textFieldCodec;
+
 /** Optional fritekst: canonical tomhed er `undefined`, ikke `''`. */
 export const optionalTextFieldCodec: FieldCodec<string | undefined> = Object.freeze({
   parseForSettle: (raw) => {
@@ -100,6 +103,9 @@ export const optionalTextFieldCodec: FieldCodec<string | undefined> = Object.fre
   formatForEdit: (value) => value ?? '',
   acceptsInitialKey: initialKey(/^.$/u),
 });
+
+/** Factory-form af {@link optionalTextFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil. */
+export const createOptionalTextFieldCodec = (): FieldCodec<string | undefined> => optionalTextFieldCodec;
 
 /** Dropdown-/radio-valg. Tom tekst er canonical `undefined`; ukendt tekst afvises som format. */
 export const createSelectionFieldCodec = <T extends string | number>(options: Readonly<{
