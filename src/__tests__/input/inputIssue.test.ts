@@ -15,7 +15,6 @@ const createField = (label: string, controlKind: 'text' | 'choice' | 'toggle') =
   defineField<string | undefined>({
     label,
     controlKind,
-    focusTarget: { route: '/test', tab: null },
     codec: {
       parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
       format: (value) => value ?? '',

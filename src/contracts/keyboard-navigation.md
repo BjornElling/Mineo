@@ -3,8 +3,8 @@
 **Status:** Normativ
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
-**Målgrænser:** `Container`, fælles felt-editor-state machine og grid-navigation
-**Senest verificeret mod kode:** 2026-07-14
+**Målgrænser:** `Container`, fælles felt-editor og grid-navigation
+**Senest verificeret mod kode:** 2026-07-16
 
 ---
 
@@ -70,7 +70,7 @@ Konsekvens:
 **Åben tekst-/talfelt- eller grid-editor:**
 
 - Escape annullerer universelt alt siden editoren blev åbnet.
-- Feltet gendanner editorens start-snapshot og committer ikke.
+- Editorens draft forkastes uden command, så feltets uændrede afsluttede starttilstand vises igen.
 - Hvis starttilstanden var et afsluttet ugyldigt input, gendannes den ugyldige rå tekst; en skjult tidligere canonical
   værdi må ikke vises i stedet.
 - Det efterfølgende blur må ikke settle den annullerede tekst.
@@ -80,6 +80,14 @@ Konsekvens:
 
 Popup-/overlay-Escape følger den konkrete widgets lukkeadfærd. Hvis en teksteditor er åben inde i en popup, skal
 editorens cancel håndteres før popupen eventuelt lukkes; én Escape-handling må ikke både committe og lukke.
+
+---
+
+### Delete/Backspace
+
+Når et almindeligt formularfelt eller en tabelcelle har fokus, men editoren er lukket, rydder Delete/Backspace feltet
+og committer straks uden at åbne editoren. Når editoren er åben, redigerer tasterne kun den åbne draft og committer
+først ved den normale settle-grænse.
 
 ---
 

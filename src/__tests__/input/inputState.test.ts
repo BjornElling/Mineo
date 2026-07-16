@@ -14,7 +14,6 @@ import type { RentekravRow } from '../../schemas/formSchemas/sections/rentebereg
 const definition = defineField<string | undefined>({
   label: 'Hovedstol',
   controlKind: 'text',
-  focusTarget: { route: '/renteberegning', tab: null },
   codec: {
     parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
     format: (value) => value ?? '',

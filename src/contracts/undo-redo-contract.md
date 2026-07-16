@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 ## 1. Scope
 
@@ -12,7 +12,7 @@ Undo/redo omfatter kun autoritativ inputdata:
 
 - canonical sektioner,
 - rejected inputs,
-- fokus-origin som strukturel `FieldRef`.
+- fokus-origin som strukturel `FieldRef` kombineret med den konkrete editors eksplicitte fokusmål.
 
 Det omfatter ikke åbne drafts, afledte issues, gates, beregninger, browserens native tekst-history, AppSettings,
 `.eo`-filer eller selve `sessionStorage`-envelopen. History er runtime-only og persisteres aldrig.
@@ -25,7 +25,7 @@ ikke sagsinput.
 ## 2. Keyboard-adfærd
 
 Når en tekst- eller grid-editor er åben, er Mineos globale undo/redo et stille no-op, og browserens native tekst-undo
-forhindres, så draften ikke kan ændres uden om editor-state machine.
+forhindres, så draften ikke kan ændres uden om felt-editoren.
 
 Når editoren er lukket:
 
@@ -68,14 +68,16 @@ revision. Fejler restore, forbliver input, storage, history, route og fokus uæn
 
 ## 5. Feltidentitet og fokus-origin
 
-History-origin er en strukturel `FieldRef`, jf. `mineo-field-pattern.md`.
+History-origin er en strukturel `FieldRef` kombineret med den konkrete editors eksplicitte fokusmål, jf.
+`mineo-field-pattern.md`.
 
 - Hver command-kørsel modtager sin origin eksplicit sammen med commanden; origin er runner-metadata og må ikke udledes
   af DOM-fokus eller pakkes ind i den rene reducercommand.
 - Tabelceller identificeres af collection/entity/felt, aldrig `rowId:colIndex`.
 - DOM-attributter er kun fokusmål projekteret fra feltreferencen.
+- Samme datafelt kan have flere editorlokationer; route/fane er derfor origin-metadata og aldrig én global egenskab på
+  feltdefinitionen.
 - Et stabilt persisted row-id omskrives ikke for fokusrestore.
-- Et nødvendigt tidligere fokusmål bæres som eksplicit aliasmetadata og må ikke ændre dataidentiteten.
 - Transiente UI-felter deltager ikke i global history.
 
 Fallback til det element, der tilfældigvis har DOM-fokus efter blur, er ikke en korrekt identitetskilde.

@@ -17,9 +17,6 @@ import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.share
 import { reportSystemIssue } from '../utils/systemIssueReporter';
 import type { InvalidDraftClear } from '../types/invalidDrafts';
 import { consumeLegacyGridRejectedClear } from '../input/legacyGridTransactionBridge';
-import { executeTypedInputTransaction } from '../input/inputTransactionRunner';
-import { commitImmediateField } from '../input/inputCommands';
-import { resolveTopLevelFieldRef } from '../input/catalog/productionInputCatalog';
 
 /**
  * Signatur for setValues: funktionel updater-baseret felt-commit.
@@ -273,42 +270,13 @@ export const usePersistedForm = <K extends StorageKey>(
       // committer, så den fuldt kvalificerede-nøgle-problematik opstår ikke her.)
       const fieldPath = options?.fieldPath ?? String(fieldName);
 
-      // Fase 4: migrerede top-level felter (referencedomænerne) committer via det typed katalog-spor.
-      // commitImmediateField skriver feltet via kataloget og rydder feltets eget rejected input atomisk.
-      //
-      // Vi router KUN, når det er beviseligt observationelt identisk med replaceSection-vejen:
-      //  - feltets egen identitet (ingen alias-fieldPath / fremmed clearInvalidDraft(s)), og
-      //  - sektionen findes allerede committed. Et enkeltfelt-merge i en tom sektion ville ellers
-      //    afvige fra legacy-basen (usePersistedForm's initialValues, fx et seeded tomt rentekrav),
-      //    så den første commit i en tom sektion går bevidst gennem den fælles setValues-vej.
-      // Ved enhver runner-fejl falder vi tilbage til setValues → persistData, så den eksisterende
-      // brugerfejl-notice og false-retur bevares uændret.
-      const usesOwnIdentity = fieldPath === String(fieldName);
-      const ownClearOnly = options?.clearInvalidDrafts === undefined
-        && (options?.clearInvalidDraft === undefined
-          || (options.clearInvalidDraft.pageKey === pageKey && options.clearInvalidDraft.fieldPath === fieldPath));
-      const typedField = usesOwnIdentity && ownClearOnly && getPersistedSectionSnapshot(pageKey) !== null
-        ? resolveTopLevelFieldRef(pageKey, String(fieldName))
-        : null;
-      if (typedField !== null) {
-        try {
-          executeTypedInputTransaction(commitImmediateField(typedField, value), {
-            origin: createUndoOrigin({ fieldPath }),
-          });
-          return true;
-        } catch (error) {
-          console.error(`[Persistence] Feltet '${pageKey}.${fieldPath}' committes via den fælles vej efter kataloglfejl.`, error);
-          // fald igennem til setValues nedenfor
-        }
-      }
-
       return setValues((prev) => ({ ...prev, [fieldName]: value }), {
         fieldPath,
         clearInvalidDraft: options?.clearInvalidDraft ?? { pageKey, fieldPath },
         clearInvalidDrafts: options?.clearInvalidDrafts,
       });
     },
-    [createUndoOrigin, pageKey, setValues]
+    [pageKey, setValues]
   );
 
   /**

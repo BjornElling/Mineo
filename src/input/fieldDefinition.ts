@@ -15,15 +15,9 @@ export type FieldCodec<T> = Readonly<{
 
 export type FieldControlKind = 'text' | 'choice' | 'toggle';
 
-export type FieldFocusTarget = Readonly<{
-  route: string;
-  tab: string | null;
-}>;
-
 export type FieldDefinitionBase = Readonly<{
   label: string;
   controlKind: FieldControlKind;
-  focusTarget: FieldFocusTarget;
 }>;
 
 export type FieldDefinitionConfig<T> = FieldDefinitionBase & Readonly<{
@@ -55,17 +49,12 @@ const nonBlankMetadataSchema = z.string()
 const fieldDefinitionMetadataSchema = z.object({
   label: nonBlankMetadataSchema,
   controlKind: z.enum(['text', 'choice', 'toggle']),
-  focusTarget: z.object({
-    route: nonBlankMetadataSchema.refine((value) => value.startsWith('/'), 'Feltets route skal være intern'),
-    tab: nonBlankMetadataSchema.nullable(),
-  }).strict().readonly(),
 }).strict().readonly();
 
 export const defineField = <T>(definition: FieldDefinitionConfig<T>): FieldDefinition<T> => {
   const metadata = fieldDefinitionMetadataSchema.parse({
     label: definition.label,
     controlKind: definition.controlKind,
-    focusTarget: definition.focusTarget,
   });
   const codecFunctions: ReadonlyArray<readonly [string, unknown]> = [
     ['parseForSettle', definition.codec.parseForSettle],

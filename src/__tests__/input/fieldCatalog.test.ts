@@ -11,7 +11,6 @@ import type { RentekravRow } from '../../schemas/formSchemas/sections/rentebereg
 const textDefinition = defineField<string | undefined>({
   label: 'Felt',
   controlKind: 'text',
-  focusTarget: { route: '/renteberegning', tab: null },
   codec: {
     parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
     format: (value) => value ?? '',
@@ -23,7 +22,6 @@ const textDefinition = defineField<string | undefined>({
 const dateDefinition = defineField<RentekravRow['renterFra']>({
   label: 'Renter fra',
   controlKind: 'text',
-  focusTarget: { route: '/renteberegning', tab: null },
   codec: {
     parseForSettle: () => ({ status: 'invalid' }),
     format: (value) => value ?? '',

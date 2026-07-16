@@ -33,7 +33,6 @@ import { toISODateString } from '../../types/branded';
 const textDefinition = (label: string) => defineField<string | undefined>({
   label,
   controlKind: 'text',
-  focusTarget: { route: '/stamdata', tab: null },
   codec: {
     parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
     format: (value) => value ?? '',

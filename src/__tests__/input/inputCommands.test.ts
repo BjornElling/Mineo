@@ -31,7 +31,6 @@ const parseNameForSettle = vi.fn((raw: string) => /^[!?]/.test(raw)
 const nameDefinition = defineField<string | undefined>({
   label: 'Skadelidte',
   controlKind: 'text',
-  focusTarget: { route: '/stamdata', tab: null },
   codec: {
     parseForSettle: parseNameForSettle,
     format: (value) => value ?? '',
@@ -43,7 +42,6 @@ const nameDefinition = defineField<string | undefined>({
 const supplementDefinition = defineField<number | undefined>({
   label: 'Tillægstid',
   controlKind: 'text',
-  focusTarget: { route: '/renteberegning', tab: null },
   codec: {
     parseForSettle: (raw) => {
       const trimmed = raw.trim();
@@ -295,7 +293,6 @@ describe('reduceInputCommand', () => {
     const forgedDefinition = defineField<string | undefined>({
       label: 'Forfalsket felt',
       controlKind: 'text',
-      focusTarget: { route: '/stamdata', tab: null },
       codec: nameDefinition.codec,
     });
     const forgedField = bindField(forgedDefinition, field.address);

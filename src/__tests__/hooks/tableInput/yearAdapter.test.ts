@@ -25,8 +25,8 @@ describe('createYearTableInputAdapter', () => {
     }
   );
 
-  it('bevarer den eksisterende commit-blokering for årsintervallet', () => {
-    expect(codec.parseForSettle('1999')).toEqual({ status: 'valid', value: '1999' });
+  it('afviser årsintervallet i både codec og den midlertidige adapter', () => {
+    expect(codec.parseForSettle('1999')).toEqual({ status: 'invalid' });
     expect(adapter.parse('1999')).toEqual({
       ok: false,
       errorMessage: 'Årstallet skal være mellem 2000 og 2030',

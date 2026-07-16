@@ -102,6 +102,8 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
           // Fejlteksten er endnu en migrations-seam. Resolutionen ejes alene af codecet; den gamle kerne
           // klassificerer kun den allerede afviste råtekst, indtil fase 5 indfører strukturelle issues.
           const failure = parseWeekDraftForCommit(trimToAlphanumericEdges(draft), {
+            minYear,
+            maxYear,
             twoDigitYearPolicy,
             maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
           });
@@ -112,17 +114,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
           };
         }
         if (resolution.value === undefined) return { ok: true, value: undefined };
-
-        // Intervallet er fortsat en commit-blokerende UI-regel, indtil fase 5 flytter bounds til den rene issue-model.
-        const bounded = parseWeekDraftForCommit(resolution.value, {
-          minYear,
-          maxYear,
-          twoDigitYearPolicy: 'reject',
-          maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
-        });
-        return bounded.ok
-          ? { ok: true, value: resolution.value }
-          : { ok: false, kind: 'invalid', message: bounded.errorMessage };
+        return { ok: true, value: resolution.value };
       },
       [codec, maxYear, minYear, twoDigitYearPolicy]
     );

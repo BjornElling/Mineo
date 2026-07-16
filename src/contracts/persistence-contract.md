@@ -114,6 +114,10 @@ I fase 4 registreres alle faktiske bindings i det forseglede `InputCatalog`; hel
 mod katalog og konkret entity-medlemskab. Envelopen må aldrig mærkes med `FIELD_ADDRESS_VERSION`, mens den indeholder
 sentinel-adresser.
 
+Cutover må heller ikke ske feltvis inde i `legacy-bridge-1`: runtime og storage må aldrig indeholde en blanding af
+sentinel- og current-adresser. Overfladerne kan først skifte samlet, når den fulde legacy→`FieldRef`-mapping er bygget
+fra samme manifests som produktionskataloget og hele envelopen kan migreres i én verificeret transaktion.
+
 Current-formatets serialiserede feltadresse har én byte-for-byte kanonisk JSON-repræsentation. Alternative
 property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter accepteres ikke som current keys; gamle
 formater og aliases må kun oversættes i det versionsbårne migrationslag.

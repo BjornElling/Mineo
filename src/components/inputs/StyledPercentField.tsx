@@ -294,7 +294,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       disabled,
       blocked: hasConfigError,
       keyFilter,
-      escapeRevertsToFormatted: true,
     });
 
     const assignInputRef = React.useCallback(

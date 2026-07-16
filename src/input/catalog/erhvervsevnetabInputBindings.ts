@@ -17,6 +17,7 @@ import {
 } from '../fieldCodecs';
 import { defineField, type FieldCodec } from '../fieldDefinition';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 
 /**
  * Strukturelle bindinger for `erhvervsevnetab`-sektionen: skalarer (herunder differencekrav-fanens
@@ -29,11 +30,6 @@ import { createStructuralCollectionBinding, createStructuralFieldBinding } from 
 const createEmptyErhvervsevnetabSection = (): unknown =>
   structuredClone(ERHVERVSEVNETAB_INITIAL_VALUES as PersistedSectionMap['erhvervsevnetab']);
 
-const EET_OPLYSNINGER_FOCUS = { route: '/erhvervsevnetab', tab: 'eet-oplysninger' } as const;
-const EET_DIFFERENCEKRAV_FOCUS = { route: '/erhvervsevnetab', tab: 'differencekrav' } as const;
-
-type EetFocus = typeof EET_OPLYSNINGER_FOCUS | typeof EET_DIFFERENCEKRAV_FOCUS;
-
 // ─── Skalarfelter ─────────────────────────────────────────────────────────────
 
 export const erhvervsevnetabBeregningsdatoBinding: FieldBinding<ISODateString | undefined> =
@@ -41,7 +37,6 @@ export const erhvervsevnetabBeregningsdatoBinding: FieldBinding<ISODateString | 
     definition: defineField<ISODateString | undefined>({
       label: 'Beregningsdato',
       controlKind: 'text',
-      focusTarget: EET_OPLYSNINGER_FOCUS,
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: { section: 'erhvervsevnetab', path: [], field: 'beregningsdato' },
@@ -52,7 +47,6 @@ export const erhvervsevnetabKoenBinding: FieldBinding<Koen | undefined> = create
   definition: defineField<Koen | undefined>({
     label: 'Køn',
     controlKind: 'choice',
-    focusTarget: EET_OPLYSNINGER_FOCUS,
     codec: createChoiceFieldCodec<Koen>(['Mand', 'Kvinde']),
   }),
   template: { section: 'erhvervsevnetab', path: [], field: 'koen' },
@@ -65,19 +59,17 @@ export const erhvervsevnetabEalEetPctBinding: FieldBinding<number | undefined> =
     definition: defineField<number | undefined>({
       label: 'EET % (hvis afviger fra ASL)',
       controlKind: 'text',
-      focusTarget: EET_OPLYSNINGER_FOCUS,
       codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: false }),
     }),
     template: { section: 'erhvervsevnetab', path: [], field: 'ealEetPct' },
     createEmptySection: createEmptyErhvervsevnetabSection,
   });
 
-const eetToggleField = (field: string, label: string, focus: EetFocus): FieldBinding<boolean> =>
+const eetToggleField = (field: string, label: string): FieldBinding<boolean> =>
   createStructuralFieldBinding({
     definition: defineField<boolean>({
       label,
       controlKind: 'toggle',
-      focusTarget: focus,
       codec: booleanFieldCodec,
     }),
     template: { section: 'erhvervsevnetab', path: [], field },
@@ -86,13 +78,11 @@ const eetToggleField = (field: string, label: string, focus: EetFocus): FieldBin
 
 export const erhvervsevnetabEndeligEetTilbagevirkendeBinding = eetToggleField(
   'endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft',
-  'Endelig EET gør midlertidig endelig med tilbagevirkende kraft',
-  EET_DIFFERENCEKRAV_FOCUS
+  'Endelig EET gør midlertidig endelig med tilbagevirkende kraft'
 );
 export const erhvervsevnetabIndregnMerErstatningBinding = eetToggleField(
   'indregnMerErstatningVedForhoejetPensionsalder',
-  'Indregn mer-erstatning ved forhøjet pensionsalder',
-  EET_DIFFERENCEKRAV_FOCUS
+  'Indregn mer-erstatning ved forhøjet pensionsalder'
 );
 
 // ─── Nested bilagsvalg (eetDifferencekravBilagSelection) ────────────────────────
@@ -108,7 +98,6 @@ const bilagToggleField = (field: string, label: string): FieldBinding<boolean> =
     definition: defineField<boolean>({
       label,
       controlKind: 'toggle',
-      focusTarget: EET_DIFFERENCEKRAV_FOCUS,
       codec: booleanFieldCodec,
     }),
     template: bilagSelectionTemplate(field),
@@ -154,7 +143,6 @@ const aslDateField = (field: string, label: string): FieldBinding<ISODateString 
     definition: defineField<ISODateString | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: EET_OPLYSNINGER_FOCUS,
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: aslRowFieldTemplate(field),
@@ -166,7 +154,6 @@ const aslPctField = (field: string, label: string): FieldBinding<number | undefi
     definition: defineField<number | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: EET_OPLYSNINGER_FOCUS,
       codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: false }),
     }),
     template: aslRowFieldTemplate(field),
@@ -185,7 +172,6 @@ export const aslAfgoerelseAfgoerelseTypeBinding: FieldBinding<AfgoerelseType | u
     definition: defineField<AfgoerelseType | undefined>({
       label: 'Afgørelsestype',
       controlKind: 'choice',
-      focusTarget: EET_OPLYSNINGER_FOCUS,
       codec: createChoiceFieldCodec<AfgoerelseType>(['Midlertidig', 'Delvist endelig', 'Endelig']),
     }),
     template: aslRowFieldTemplate('afgoerelseType'),
@@ -202,9 +188,35 @@ export const aslAfgoerelseFsTilbageholdtEetBinding: FieldBinding<JaNej | undefin
     definition: defineField<JaNej | undefined>({
       label: 'FS tilbageholdt EET',
       controlKind: 'choice',
-      focusTarget: EET_OPLYSNINGER_FOCUS,
       codec: jaNejChoiceCodec,
     }),
     template: aslRowFieldTemplate('fsTilbageholdtEet'),
     createEmptySection: createEmptyErhvervsevnetabSection,
   });
+
+export const erhvervsevnetabInputManifest = defineInputManifest({
+  id: 'erhvervsevnetab',
+  fields: [
+    erhvervsevnetabBeregningsdatoBinding,
+    erhvervsevnetabKoenBinding,
+    erhvervsevnetabEalEetPctBinding,
+    erhvervsevnetabEndeligEetTilbagevirkendeBinding,
+    erhvervsevnetabIndregnMerErstatningBinding,
+    erhvervsevnetabBilagLoebendeYdelserBinding,
+    erhvervsevnetabBilagKapitaliseringBinding,
+    erhvervsevnetabBilagEetEfterEalBinding,
+    erhvervsevnetabBilagProformaKapitaliseringBinding,
+    erhvervsevnetabBilagMerErstatningPensionsalderBinding,
+    erhvervsevnetabBilagVisUdvidetSpecifikationBinding,
+    erhvervsevnetabBilagVisUdvidetSpecLoebendeBinding,
+    aslAfgoerelseAfgoerelsesDatoBinding,
+    aslAfgoerelseVirkningsDatoBinding,
+    aslAfgoerelseEetPctBinding,
+    aslAfgoerelseKapDatoBinding,
+    aslAfgoerelseKapPctBinding,
+    aslAfgoerelseTidlKapDatoBinding,
+    aslAfgoerelseAfgoerelseTypeBinding,
+    aslAfgoerelseFsTilbageholdtEetBinding,
+  ],
+  collections: [erhvervsevnetabAslAfgoerelserBinding],
+});

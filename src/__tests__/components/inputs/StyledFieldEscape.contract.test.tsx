@@ -189,4 +189,37 @@ describe('Escape-kontrakt for almindelige styled-felter', () => {
       await waitFor(() => expect(input).toHaveAttribute('readonly'));
     });
   });
+
+  it('Escape gendanner procentfeltets rejected starttekst uden at afdække den ældre canonical værdi', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+    render(
+      <StyledPercentField
+        value={12.5}
+        useDefaultPercentRange
+        onCommit={onCommit}
+      />
+    );
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    await user.click(input);
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '150');
+    await user.tab();
+
+    expect(input).toHaveValue('150');
+    expect(onCommit).not.toHaveBeenCalled();
+
+    await user.click(input);
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '33');
+    await user.keyboard('{Escape}');
+
+    expect(input).toHaveValue('150');
+    expect(input).toHaveAttribute('readonly');
+    expect(onCommit).not.toHaveBeenCalled();
+  });
 });

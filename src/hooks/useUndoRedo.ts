@@ -1,5 +1,6 @@
 import React from 'react';
 import { executeInputTransaction } from '../input/inputTransactionRunner';
+import { redoInput, undoInput } from '../input/inputCommands';
 import { inputRuntimeStore, type HistoryFrame } from '../stores/inputRuntimeStore';
 import { scheduleHistoryTargetRestore } from '../utils/historyTargetRestore';
 import { setActiveTabForPage } from './usePersistedActiveTab';
@@ -30,7 +31,7 @@ export const useUndoRedo = (navigate: UndoRedoNavigate) => {
 
   const run = React.useCallback((kind: 'undo' | 'redo') => {
     try {
-      applyFrame(executeInputTransaction({ kind }).restoredFrame);
+      applyFrame(executeInputTransaction(kind === 'undo' ? undoInput() : redoInput()).restoredFrame);
     } catch (error) {
       console.error(`${kind === 'undo' ? 'Undo' : 'Redo'} kunne ikke gennemføres; tilstanden er uændret.`, error);
     }

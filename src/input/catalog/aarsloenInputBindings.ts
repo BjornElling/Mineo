@@ -21,6 +21,7 @@ import {
 } from '../fieldCodecs';
 import { defineField } from '../fieldDefinition';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 
 /**
  * Strukturelle bindinger for `aarsloen`-sektionen. Skalarerne og samlingen `tableData`s
@@ -30,17 +31,19 @@ import { createStructuralCollectionBinding, createStructuralFieldBinding } from 
  */
 const createEmptyAarsloenSection = (): unknown => ({ tableData: [] });
 
-const AARSLOEN_FOCUS = { route: '/aarsloen', tab: null } as const;
-
-// ─── Procentskalarer (0..100 er afledt bounds-issue) ────────────────────────────
+// ─── Procentskalarer (0..100 er feltets commit-interval) ─────────────────────────
 
 const percentField = (field: string, label: string): FieldBinding<number | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<number | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: AARSLOEN_FOCUS,
-      codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: true }),
+      codec: createPercentFieldCodec({
+        allowNegative: false,
+        allowDecimals: true,
+        minValue: 0,
+        maxValue: 100,
+      }),
     }),
     template: { section: 'aarsloen', path: [], field },
     createEmptySection: createEmptyAarsloenSection,
@@ -59,7 +62,6 @@ export const aarsloenLoenperiodeBinding: FieldBinding<Loenperiode | undefined> =
     definition: defineField<Loenperiode | undefined>({
       label: 'Løn indtastes som',
       controlKind: 'choice',
-      focusTarget: AARSLOEN_FOCUS,
       codec: createChoiceFieldCodec<Loenperiode>(['maaned', 'uge', 'dag']),
     }),
     template: { section: 'aarsloen', path: [], field: 'loenperiode' },
@@ -71,7 +73,6 @@ export const aarsloenTillaegAngivesSomBinding: FieldBinding<TillaegAngivesSom | 
     definition: defineField<TillaegAngivesSom | undefined>({
       label: 'Tillæg angives som',
       controlKind: 'choice',
-      focusTarget: AARSLOEN_FOCUS,
       codec: createChoiceFieldCodec<TillaegAngivesSom>(['procent', 'beloeb']),
     }),
     template: { section: 'aarsloen', path: [], field: 'tillaegAngivesSom' },
@@ -83,7 +84,6 @@ export const aarsloenLoenPaaHelligdageBinding: FieldBinding<LoenPaaHelligdage | 
     definition: defineField<LoenPaaHelligdage | undefined>({
       label: 'Løn på helligdage',
       controlKind: 'choice',
-      focusTarget: AARSLOEN_FOCUS,
       codec: createChoiceFieldCodec<LoenPaaHelligdage>(['Almindelig løn', 'SH-udbetaling', 'Ingen']),
     }),
     template: { section: 'aarsloen', path: [], field: 'loenPaaHelligdage' },
@@ -95,7 +95,6 @@ const aarsloenToggle = (field: string, label: string): FieldBinding<boolean> =>
     definition: defineField<boolean>({
       label,
       controlKind: 'toggle',
-      focusTarget: AARSLOEN_FOCUS,
       codec: booleanFieldCodec,
     }),
     template: { section: 'aarsloen', path: [], field },
@@ -112,7 +111,6 @@ export const aarsloenAntalFeriedageBinding: FieldBinding<number | undefined> =
     definition: defineField<number | undefined>({
       label: 'Antal feriedage (mandag-fredag) i de indtastede perioder',
       controlKind: 'text',
-      focusTarget: AARSLOEN_FOCUS,
       codec: createIntegerFieldCodec({ allowNegative: false }),
     }),
     template: { section: 'aarsloen', path: [], field: 'antalFeriedage' },
@@ -138,7 +136,6 @@ const tableDateField = (field: string, label: string): FieldBinding<ISODateStrin
     definition: defineField<ISODateString | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: AARSLOEN_FOCUS,
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: tableRowFieldTemplate(field),
@@ -153,7 +150,6 @@ const tableStringField = (
   definition: defineField<string | undefined>({
     label,
     controlKind: 'text',
-    focusTarget: AARSLOEN_FOCUS,
     codec,
   }),
   template: tableRowFieldTemplate(field),
@@ -166,7 +162,6 @@ const tableAmountField = (field: string, label: string): FieldBinding<AmountValu
     definition: defineField<AmountValue | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: AARSLOEN_FOCUS,
       codec: createAmountFieldCodec({ allowNegative: true, allowDecimals: true }),
     }),
     template: tableRowFieldTemplate(field),
@@ -214,3 +209,34 @@ export const aarsloenTableCol4Binding = tableAmountField('col4', 'Løn (3)');
 export const aarsloenTableCol5Binding = tableAmountField('col5', 'Løn (4)');
 export const aarsloenTableFpFvShSoBeloebBinding = tableAmountField('fpFvShSoBeloeb', 'FP/FV/SH/SO/St.B.');
 export const aarsloenTablePensionBeloebBinding = tableAmountField('pensionBeloeb', 'Arb.g. Pension');
+
+export const aarsloenInputManifest = defineInputManifest({
+  id: 'aarsloen',
+  fields: [
+    aarsloenFeriePctBinding,
+    aarsloenFritvalgPctBinding,
+    aarsloenShSoPctBinding,
+    aarsloenStoreBededagPctBinding,
+    aarsloenPensionPctBinding,
+    aarsloenLoenperiodeBinding,
+    aarsloenTillaegAngivesSomBinding,
+    aarsloenLoenPaaHelligdageBinding,
+    aarsloenOmregningTilFuldtAarBinding,
+    aarsloenFuldLoenUnderFerieBinding,
+    aarsloenRetTilSjetteFerieugeBinding,
+    aarsloenAntalFeriedageBinding,
+    aarsloenTableCol0MaanedBinding,
+    aarsloenTableCol1MaanedBinding,
+    aarsloenTableCol0UgeBinding,
+    aarsloenTableCol1UgeBinding,
+    aarsloenTableCol0DagBinding,
+    aarsloenTableCol1DagBinding,
+    aarsloenTableCol2Binding,
+    aarsloenTableCol3Binding,
+    aarsloenTableCol4Binding,
+    aarsloenTableCol5Binding,
+    aarsloenTableFpFvShSoBeloebBinding,
+    aarsloenTablePensionBeloebBinding,
+  ],
+  collections: [aarsloenTableDataBinding],
+});

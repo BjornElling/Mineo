@@ -86,7 +86,8 @@ Sproget skal være ensartet overalt efter disse regler — afvigelser rettes, hv
 - **Åben draft** = igangværende tekst under redigering. **Afsluttet input** = enten schema-valideret canonical værdi eller rejected rå tekst efter settle. **Domæneprojektion** = beregningsklart input afledt gennem `InputReader`.
 - Settle sker ved blur/Enter gennem samme feltmotor på formular- og tabeloverflader. Beregn/validér/vis **aldrig** afledt feedback fra `onChange`-draft. Mens editoren er åben, bruger visning, beregning og dokumentgate senest afsluttede revision.
 - Escape annullerer universelt til feltets tilstand ved editorens åbning og må ikke committe ved efterfølgende blur.
-- **Eneste 3 immediate-commit-undtagelser:** (1) Delete/Backspace på fokuseret ikke-redigerende celle rydder og committer straks; (2) valg af dropdown-menupunkt committer straks (ikke søge-/filter-tekst); (3) toggle/radio-aktivering committer straks.
+- **Eneste 3 immediate-commit-undtagelser:** (1) Delete/Backspace på et fokuseret ikke-redigerende formularfelt eller en celle rydder og committer straks; (2) valg af dropdown-menupunkt committer straks (ikke søge-/filter-tekst); (3) toggle/radio-aktivering committer straks.
+- En syntaktisk parsebar tal-/år-/ugeværdi uden for feltets aktive commit-interval er rejected rå tekst, ikke canonical input. Den tidligere canonical værdi maskeres, og den rejected værdi må aldrig nå beregninger. Kronologiske datobounds og tværgående domæneregler følger fortsat deres specifikke kontrakter.
 
 ## Runtime data-integritet
 - I en aktiv session må afsluttet canonical eller rejected brugerinput ikke forsvinde, nulstilles eller muteres implicit pga. navigation, re-renders, tab-skift eller intern sync.

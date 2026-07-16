@@ -13,12 +13,8 @@ import { deserializeFieldAddress } from './fieldAddress';
 import { getProductionInputCatalog } from './catalog/productionInputCatalog';
 import { buildInputCommandCandidate } from './inputCommands';
 import type {
-  CommitImmediateFieldCommand,
-  DeleteRowCommand,
-  InsertRowCommand,
-  ReorderRowsCommand,
-  SettleFieldCommand,
-  SettleFieldInNewRowCommand,
+  InputCommand,
+  InputHistoryCommand,
 } from './inputCommands';
 import { deepEqual } from '../utils/deepEqual';
 import {
@@ -35,7 +31,7 @@ import {
   type InputHistoryState,
 } from '../stores/inputRuntimeStore';
 
-export type CompatibilityInputCommand =
+export type LegacyInputCommand =
   | Readonly<{
       kind: 'replaceSection';
       section: StorageKey;
@@ -126,7 +122,7 @@ const removeRejectedForSection = (
 
 const buildCandidate = (
   input: RuntimePersistedInputState,
-  command: Exclude<CompatibilityInputCommand, { kind: 'undo' | 'redo' }>
+  command: Exclude<LegacyInputCommand, { kind: 'undo' | 'redo' }>
 ): RuntimePersistedInputState => {
   switch (command.kind) {
     case 'replaceSection': {
@@ -209,7 +205,7 @@ const createHistoryAfterMutation = (
 };
 
 const planHistoryRestore = (
-  command: Extract<CompatibilityInputCommand, { kind: 'undo' | 'redo' }>,
+  command: InputHistoryCommand,
   input: RuntimePersistedInputState,
   history: InputHistoryState,
   compatibility: Readonly<{
@@ -348,39 +344,50 @@ const assertWritesNotBlocked = (beforeState: InputRuntimeState, isClearCase: boo
   }
 };
 
-/** Eneste write-grænse for afsluttet input, replacements og history-restore. */
-export const executeInputTransaction = (
-  command: CompatibilityInputCommand,
-  options: InputTransactionOptions = {}
+const executePlannedTransaction = (
+  command: Readonly<{
+    kind: string;
+    historyCommand: InputHistoryCommand | null;
+    buildCandidate: ((input: RuntimePersistedInputState) => RuntimePersistedInputState) | null;
+    forceReplacement: boolean;
+    resetSection: StorageKey | null;
+    removeEnvelope: boolean;
+  }>,
+  options: InputTransactionOptions
 ): InputTransactionResult => {
   const beforeState = inputRuntimeStore.getState();
   assertWritesNotBlocked(beforeState, command.kind === 'clearCase');
   const timestamp = options.now ?? Date.now();
-  const restore = command.kind === 'undo' || command.kind === 'redo'
-    ? planHistoryRestore(command, beforeState.input, beforeState.history, {
+  const restore = command.historyCommand === null
+    ? null
+    : planHistoryRestore(command.historyCommand, beforeState.input, beforeState.history, {
         fieldErrors: beforeState.fieldErrors,
         fieldErrorRevisions: beforeState.fieldErrorRevisions,
-      }, timestamp)
-    : null;
+      }, timestamp);
 
-  if ((command.kind === 'undo' || command.kind === 'redo') && restore === null) {
+  if (command.historyCommand !== null && restore === null) {
     return { changed: false, revision: beforeState.revision, restoredFrame: null };
   }
 
-  const candidate = restore?.input ?? buildCandidate(
-    beforeState.input,
-    command as Exclude<CompatibilityInputCommand, { kind: 'undo' | 'redo' }>
-  );
-  const forceReplacement = command.kind === 'replaceCase' || command.kind === 'clearCase';
-  if (!forceReplacement && restore === null && deepEqual(candidate, beforeState.input)) {
+  let candidate: RuntimePersistedInputState;
+  if (restore !== null) {
+    candidate = restore.input;
+  } else {
+    const buildTransactionCandidate = command.buildCandidate;
+    if (buildTransactionCandidate === null) {
+      throw new Error('Inputtransaktionen mangler en kandidatbygger');
+    }
+    candidate = buildTransactionCandidate(beforeState.input);
+  }
+  if (!command.forceReplacement && restore === null && deepEqual(candidate, beforeState.input)) {
     return { changed: false, revision: beforeState.revision, restoredFrame: null };
   }
 
-  const authoritativeReplacement = restore !== null || forceReplacement;
+  const authoritativeReplacement = restore !== null || command.forceReplacement;
   const clearFieldErrorsFor = authoritativeReplacement
     ? new Set(PERSISTED_SECTION_KEYS)
-    : command.kind === 'resetSection'
-      ? new Set<StorageKey>([command.section])
+    : command.resetSection !== null
+      ? new Set<StorageKey>([command.resetSection])
       : new Set<StorageKey>();
 
   return commitValidatedCandidate(beforeState, {
@@ -394,7 +401,7 @@ export const executeInputTransaction = (
       options,
       timestamp
     ),
-    removeEnvelope: command.kind === 'clearCase',
+    removeEnvelope: command.removeEnvelope,
     restoredFrame: restore?.frame ?? null,
     ...(restore?.frame.compatibilityFieldErrors === undefined ? {} : {
       restoredFieldErrors: {
@@ -406,54 +413,38 @@ export const executeInputTransaction = (
 };
 
 /**
- * Typed inputkommandoer fra de migrerede overflader (fase 4). Kommandoen bærer en katalogvalideret
- * `FieldRef`; runneren bygger kandidaten via den ÉNE fælles reducer ({@link buildInputCommandCandidate})
- * og deler commit-kernen med kompatibilitetsvejen.
- *
- * Rejected input adresseres nu strukturelt (feltets rigtige `FieldAddress`), ikke via en sentinel — så
- * celle-/rækkefelter er understøttet, og sletning fjerner descendant-rejections atomisk. De endnu ikke
- * migrerede read-consumers ser fortsat identisk `invalidDrafts`-view: den strukturelle top-level-adresse
- * projiceres i ét choke-point tilbage til feltnavnet (= det gamle fieldPath). Den transitionelle
- * projektion + envelope-accept af legacy-bro-celleadresser slettes, når sidste overflade er migreret.
+ * Midlertidig indgang for de endnu ikke migrerede sektions- og string-key-callsites. Algebraen er
+ * eksplicit isoleret; kun commit/storage/history-kernen deles med den kanoniske typed indgang.
  */
-export type TypedRuntimeInputCommand<TField = unknown, TEntity = unknown> =
-  | CommitImmediateFieldCommand<TField>
-  | SettleFieldCommand<TField>
-  | InsertRowCommand<TEntity>
-  | DeleteRowCommand<TEntity>
-  | ReorderRowsCommand<TEntity>
-  | SettleFieldInNewRowCommand<TEntity, TField>;
-
-const buildTypedCandidate = <TField, TEntity>(
-  input: RuntimePersistedInputState,
-  command: TypedRuntimeInputCommand<TField, TEntity>
-): RuntimePersistedInputState =>
-  buildInputCommandCandidate(input, command, getProductionInputCatalog()) as RuntimePersistedInputState;
-
-export const executeTypedInputTransaction = <TField, TEntity>(
-  command: TypedRuntimeInputCommand<TField, TEntity>,
+export const executeLegacyInputTransaction = (
+  command: LegacyInputCommand,
   options: InputTransactionOptions = {}
-): InputTransactionResult => {
-  const beforeState = inputRuntimeStore.getState();
-  assertWritesNotBlocked(beforeState, false);
-  const timestamp = options.now ?? Date.now();
-  const candidate = buildTypedCandidate(beforeState.input, command);
-  if (deepEqual(candidate, beforeState.input)) {
-    return { changed: false, revision: beforeState.revision, restoredFrame: null };
-  }
+): InputTransactionResult => executePlannedTransaction({
+  kind: command.kind,
+  historyCommand: command.kind === 'undo' || command.kind === 'redo' ? command : null,
+  buildCandidate: command.kind === 'undo' || command.kind === 'redo'
+    ? null
+    : (input) => buildCandidate(input, command),
+  forceReplacement: command.kind === 'replaceCase' || command.kind === 'clearCase',
+  resetSection: command.kind === 'resetSection' ? command.section : null,
+  removeEnvelope: command.kind === 'clearCase',
+}, options);
 
-  return commitValidatedCandidate(beforeState, {
-    candidate,
-    authoritativeReplacement: false,
-    clearFieldErrorsFor: new Set<StorageKey>(),
-    history: createHistoryAfterMutation(
-      beforeState.history,
-      beforeState.input,
-      { fieldErrors: beforeState.fieldErrors, fieldErrorRevisions: beforeState.fieldErrorRevisions },
-      options,
-      timestamp
-    ),
-    removeEnvelope: false,
-    restoredFrame: null,
-  }, timestamp, options.additionalStorageKeysToRemove ?? []);
-};
+/** Kanonisk write-grænse for typed felt-, række-, system- og history-commands. */
+export const executeInputTransaction = <TField, TEntity>(
+  command: InputCommand<TField, TEntity>,
+  options: InputTransactionOptions = {}
+): InputTransactionResult => executePlannedTransaction({
+  kind: command.kind,
+  historyCommand: command.kind === 'undo' || command.kind === 'redo' ? command : null,
+  buildCandidate: command.kind === 'undo' || command.kind === 'redo'
+    ? null
+    : (input) => buildInputCommandCandidate(
+        input,
+        command,
+        getProductionInputCatalog()
+      ) as RuntimePersistedInputState,
+  forceReplacement: command.kind === 'replaceCase' || command.kind === 'clearCase',
+  resetSection: command.kind === 'resetSection' ? command.section : null,
+  removeEnvelope: command.kind === 'clearCase',
+}, options);

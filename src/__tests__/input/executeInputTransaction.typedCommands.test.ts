@@ -1,18 +1,21 @@
 // @vitest-environment jsdom
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { getInputEnvelopeStorageKey } from '../../config/storageManifest';
-import {
-  executeInputTransaction,
-  executeTypedInputTransaction,
-} from '../../input/inputTransactionRunner';
+import { executeInputTransaction } from '../../input/inputTransactionRunner';
 import { parseInputEnvelope } from '../../input/inputEnvelope';
 import {
+  clearCase,
   commitImmediateField,
   deleteRow,
   insertRow,
+  redoInput,
   reorderRows,
+  replaceCase,
+  resetSection,
   settleField,
+  undoInput,
 } from '../../input/inputCommands';
+import { createEmptyPersistedInputSections } from '../../input/inputState';
 import {
   renteberegningBeregningsdatoBinding,
   rentekravRowsBinding,
@@ -39,12 +42,12 @@ const storedSections = () => {
   return raw === null ? null : parseInputEnvelope(raw).input.sections;
 };
 
-describe('executeTypedInputTransaction', () => {
+describe('executeInputTransaction — typed commands', () => {
   beforeEach(reset);
 
   it('commitImmediateField skriver canonical værdi, revision og history som én transaktion', () => {
     const before = inputRuntimeStore.getState().revision;
-    const result = executeTypedInputTransaction(
+    const result = executeInputTransaction(
       commitImmediateField(satserAargangBinding.createRef(), 2025),
       { origin, now: 100 }
     );
@@ -55,16 +58,8 @@ describe('executeTypedInputTransaction', () => {
     expect(storedSections()?.satser).toEqual({ aargang: 2025 });
   });
 
-  it('er observationelt identisk med den tilsvarende replaceSection', () => {
-    executeTypedInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025), { origin });
-    const viaTyped = inputRuntimeStore.getState().input.sections.satser;
-    reset();
-    executeInputTransaction({ kind: 'replaceSection', section: 'satser', value: { aargang: 2025 } }, { origin });
-    expect(inputRuntimeStore.getState().input.sections.satser).toEqual(viaTyped);
-  });
-
   it('settleField gyldig fletter feltet ind i en tom sektion', () => {
-    executeTypedInputTransaction(
+    executeInputTransaction(
       settleField(renteberegningBeregningsdatoBinding.createRef(), '01-01-2024'),
       { origin }
     );
@@ -74,25 +69,21 @@ describe('executeTypedInputTransaction', () => {
     });
   });
 
-  it('settleField ugyldig bevarer den rå tekst under feltets legacy-fieldPath (identisk read-view)', () => {
-    executeTypedInputTransaction(
+  it('settleField ugyldig bevarer den rå tekst i compatibility-read-viewet', () => {
+    executeInputTransaction(
       settleField(renteberegningBeregningsdatoBinding.createRef(), '12..20'),
       { origin }
     );
-    // Canonical sektion er uændret (ingen gyldig værdi skrevet)
     expect(inputRuntimeStore.getState().input.sections.renteberegning).toBeNull();
-    // Legacy invalidDrafts-viewet ser den rå tekst under 'beregningsdato' — som reporter-kanalen ville.
     expect(inputRuntimeStore.getState().invalidDrafts.renteberegning.beregningsdato).toBe('12..20');
   });
 
   it('commitImmediateField rydder feltets rejected input atomisk', () => {
-    executeTypedInputTransaction(
+    executeInputTransaction(
       settleField(renteberegningBeregningsdatoBinding.createRef(), '12..20'),
       { origin }
     );
-    expect(inputRuntimeStore.getState().invalidDrafts.renteberegning.beregningsdato).toBe('12..20');
-
-    executeTypedInputTransaction(
+    executeInputTransaction(
       commitImmediateField(renteberegningBeregningsdatoBinding.createRef(), undefined),
       { origin }
     );
@@ -100,11 +91,11 @@ describe('executeTypedInputTransaction', () => {
   });
 
   it('afviser semantisk no-op uden storage-write, history eller revision', () => {
-    executeTypedInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025), { origin });
+    executeInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025), { origin });
     const before = inputRuntimeStore.getState();
     const setItem = vi.spyOn(Object.getPrototypeOf(window.sessionStorage) as Storage, 'setItem');
 
-    const result = executeTypedInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025), { origin });
+    const result = executeInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025), { origin });
     setItem.mockRestore();
 
     expect(result.changed).toBe(false);
@@ -113,23 +104,63 @@ describe('executeTypedInputTransaction', () => {
   });
 
   it('insert/reorder/delete muterer collection-sektionen', () => {
-    executeTypedInputTransaction(insertRow(rentekravRowsBinding, createEmptyRentekravCommittedRow('a')), { origin });
-    executeTypedInputTransaction(insertRow(rentekravRowsBinding, createEmptyRentekravCommittedRow('b')), { origin });
+    executeInputTransaction(insertRow(rentekravRowsBinding, createEmptyRentekravCommittedRow('a')), { origin });
+    executeInputTransaction(insertRow(rentekravRowsBinding, createEmptyRentekravCommittedRow('b')), { origin });
     expect(inputRuntimeStore.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id))
       .toEqual(['a', 'b']);
 
-    executeTypedInputTransaction(reorderRows(rentekravRowsBinding, ['b', 'a']), { origin });
+    executeInputTransaction(reorderRows(rentekravRowsBinding, ['b', 'a']), { origin });
     expect(inputRuntimeStore.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id))
       .toEqual(['b', 'a']);
 
-    executeTypedInputTransaction(deleteRow(rentekravRowsBinding, 'b'), { origin });
+    executeInputTransaction(deleteRow(rentekravRowsBinding, 'b'), { origin });
     expect(inputRuntimeStore.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id))
       .toEqual(['a']);
   });
 
-  it('afviser typed write når storage er blokeret', () => {
+  it('resetSection bruger samme typed reducer og kan fortrydes', () => {
+    executeInputTransaction(
+      settleField(renteberegningBeregningsdatoBinding.createRef(), '12..20'),
+      { origin }
+    );
+    executeInputTransaction(resetSection('renteberegning', null), { origin });
+    expect(inputRuntimeStore.getState().input.sections.renteberegning).toBeNull();
+    expect(inputRuntimeStore.getState().invalidDrafts.renteberegning).toEqual({});
+
+    executeInputTransaction(undoInput());
+    expect(inputRuntimeStore.getState().invalidDrafts.renteberegning.beregningsdato).toBe('12..20');
+  });
+
+  it('replaceCase og clearCase går gennem det kanoniske system-command-spor', () => {
+    const sections = {
+      ...createEmptyPersistedInputSections(),
+      satser: { aargang: 2024 },
+    };
+    executeInputTransaction(replaceCase({ sections, rejectedInputs: {} }), { history: 'clear' });
+    expect(inputRuntimeStore.getState().input.sections.satser).toEqual({ aargang: 2024 });
+    expect(inputRuntimeStore.getState().history.past).toEqual([]);
+
+    executeInputTransaction(clearCase(), { history: 'clear' });
+    expect(inputRuntimeStore.getState().input.sections.satser).toBeNull();
+    expect(sessionStorage.getItem(getInputEnvelopeStorageKey())).toBeNull();
+  });
+
+  it('undoInput og redoInput gendanner typed commits', () => {
+    executeInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2024), { origin });
+    executeInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025), { origin });
+
+    executeInputTransaction(undoInput());
+    expect(inputRuntimeStore.getState().input.sections.satser).toEqual({ aargang: 2024 });
+    executeInputTransaction(redoInput());
+    expect(inputRuntimeStore.getState().input.sections.satser).toEqual({ aargang: 2025 });
+  });
+
+  it('afviser typed writes når storage er blokeret, men tillader clearCase', () => {
     inputRuntimeStore.getState().__setMetaUnsafe({ inputWritesBlocked: true });
-    expect(() => executeTypedInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025)))
+    expect(() => executeInputTransaction(commitImmediateField(satserAargangBinding.createRef(), 2025)))
       .toThrow('Inputændringer er blokeret');
+
+    expect(executeInputTransaction(clearCase(), { history: 'clear' }).changed).toBe(true);
+    expect(inputRuntimeStore.getState().meta.inputWritesBlocked).not.toBe(true);
   });
 });

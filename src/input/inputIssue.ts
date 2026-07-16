@@ -104,7 +104,6 @@ const assertImmutableFieldRef = (field: FieldRefBase): void => {
     || !Object.isFrozen(field.address)
     || !Object.isFrozen(field.address.path)
     || !Object.isFrozen(field.definition)
-    || !Object.isFrozen(field.definition.focusTarget)
   ) {
     throw new Error('InputIssue: feltreferencen skal være oprettet af de immutable feltbuilders');
   }

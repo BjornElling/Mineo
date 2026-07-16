@@ -6,6 +6,7 @@ import {
   trimToNumericEdgesPreserveLeadingMinus,
   trimWhitespaceEdges,
 } from '../utils/draftNormalization';
+import { getIntegerRangeErrorMessage } from '../utils/integerRange';
 import {
   parseAmountInput,
   amountValueToDisplayString,
@@ -215,7 +216,16 @@ export const createAmountFieldCodec = (options: Readonly<{
         maxRawLength: MAX_AMOUNT_RAW_LENGTH,
       });
       // Et ikke-tomt beløbsudtryk uden cifre er ugyldigt, ikke en implicit rydning af feltet.
-      return parsed.ok && (parsed.value !== undefined || raw.trim() === '') ? valid(parsed.value) : invalid();
+      if (!parsed.ok || (parsed.value === undefined && raw.trim() !== '')) return invalid();
+      const numericValue = parsed.value?.value;
+      if (
+        numericValue !== undefined
+        && (
+          (options.minValue !== undefined && numericValue < options.minValue)
+          || (options.maxValue !== undefined && numericValue > options.maxValue)
+        )
+      ) return invalid();
+      return valid(parsed.value);
     },
     format: (value) => amountValueToDisplayString(value, DEFAULT_AMOUNT_PRECISION),
     formatForEdit: (value) => amountValueToDraftString(value, DEFAULT_AMOUNT_PRECISION),
@@ -244,11 +254,7 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
   );
   return Object.freeze({
     parseForSettle: (raw) => {
-      // Min/max er afledte bounds-issues. Codecet afgør kun, om teksten kan blive canonical.
-      const parsed = parsePercentDraftForCommit(raw, {
-        allowNegative: config.allowNegative,
-        allowDecimals: config.allowDecimals,
-      });
+      const parsed = parsePercentDraftForCommit(raw, config);
       return parsed.ok ? valid(parsed.value) : invalid();
     },
     format: (value) => formatPercentDisplay(value, config.allowDecimals),
@@ -277,7 +283,12 @@ export const createIntegerFieldCodec = (
       // Bevar råteksten i den gren, så parseren afviser den og rejected input ikke går tabt.
       const normalized = edgeNormalized === '' && raw.trim() !== '' ? raw.trim() : edgeNormalized;
       const parsed = parseIntegerDraftForCommit(normalized, config);
-      return parsed.ok ? valid(parsed.value) : invalid();
+      if (!parsed.ok) return invalid();
+      if (
+        parsed.value !== undefined
+        && getIntegerRangeErrorMessage(parsed.value, config.minValue, config.maxValue) !== ''
+      ) return invalid();
+      return valid(parsed.value);
     },
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
@@ -326,10 +337,7 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
   }, isSafeCanonicalInteger);
   return Object.freeze({
     parseForSettle: (raw) => {
-      // Feltets tilladte årinterval valideres som bounds efter canonical parsing.
-      const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), {
-        twoDigitYearPolicy: config.twoDigitYearPolicy,
-      });
+      const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), config);
       return parsed.ok ? valid(parsed.value) : invalid();
     },
     format: (value) => value === undefined ? '' : String(value),
@@ -349,11 +357,7 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
   }, isSafeCanonicalInteger);
   return Object.freeze({
     parseForSettle: (raw) => {
-      // Årsintervallet er et bounds-issue; kalenderugens eksistens er fortsat en del af syntaksen.
-      const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), {
-        twoDigitYearPolicy: config.twoDigitYearPolicy,
-        maxDraftLength: config.maxDraftLength,
-      });
+      const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), config);
       return parsed.ok ? valid(parsed.value) : invalid();
     },
     format: (value) => value ?? '',

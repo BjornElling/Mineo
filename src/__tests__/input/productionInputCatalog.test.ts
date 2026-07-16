@@ -2,7 +2,6 @@ import {
   __resetProductionInputCatalogForTests,
   buildProductionInputCatalog,
   getProductionInputCatalog,
-  resolveTopLevelFieldRef,
 } from '../../input/catalog/productionInputCatalog';
 import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persistenceRegistry';
 import { createEmptyPersistedInputSections, createPersistedInputStateSchema } from '../../input/inputState';
@@ -10,6 +9,7 @@ import { createInputReader, createInputRevision } from '../../input/inputReader'
 import type { InputCatalog } from '../../input/fieldCatalog';
 import type { PersistedInputSections } from '../../input/inputState';
 import { rentekravRowsBinding } from '../../input/catalog/renteberegningInputBindings';
+import { satserAargangBinding } from '../../input/catalog/satserInputBindings';
 import {
   eoBilagSelectionOpgoerelseBinding,
   eoForligAnsvarsgradBroekBinding,
@@ -35,7 +35,6 @@ import {
 } from '../../input/catalog/aarsloenInputBindings';
 import { sygeferiegodtgoerelseAnsaettelsesforholdRowSchema } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
-import type { StorageKey } from '../../config/storageManifest';
 import {
   initialLoenudviklingManuelProcentsatsRow,
   initialLoenudviklingManuelRow,
@@ -79,39 +78,13 @@ describe('produktions-InputCatalog', () => {
 
   it('round-tripper et migreret top-level felt gennem writeCanonical/read', () => {
     const catalog = getProductionInputCatalog();
-    const field = resolveTopLevelFieldRef('satser', 'aargang');
-    expect(field).not.toBeNull();
+    const field = satserAargangBinding.createRef();
 
-    const sections = catalog.writeCanonical(createEmptyPersistedInputSections(), field!, 2025);
+    const sections = catalog.writeCanonical(createEmptyPersistedInputSections(), field, 2025);
     const parsed = persistenceSchemas.satser.parse(sections.satser);
     expect(parsed).toEqual({ aargang: 2025 });
 
-    expect(readerFor(catalog, sections).read(field!)).toEqual({ status: 'valid', value: 2025 });
-  });
-
-  it('resolver top-level felter for alle domæner og afviser ukendte', () => {
-    // Stikprøve på tværs af domæner: hvert felt skal kunne resolves til en gyldig FieldRef.
-    const known: ReadonlyArray<readonly [StorageKey, string]> = [
-      ['stamdata', 'journalnr'],
-      ['satser', 'aargang'],
-      ['aarsloen', 'feriePct'],
-      ['faellesAarsloen', 'aslAarsloen'],
-      ['renteberegning', 'beregningsdato'],
-      ['varigemen', 'mengrad'],
-      ['forsoergertab', 'koen'],
-      ['erhvervsevnetab', 'ealEetPct'],
-      ['erstatningsopgoerelse', 'eoNummer'],
-    ];
-    for (const [section, field] of known) {
-      const ref = resolveTopLevelFieldRef(section, field);
-      expect(ref, `${section}.${field}`).not.toBeNull();
-      expect(ref!.address.section).toBe(section);
-      expect(ref!.address.field).toBe(field);
-      expect(ref!.address.path).toHaveLength(0);
-    }
-    expect(resolveTopLevelFieldRef('satser', 'findes-ikke')).toBeNull();
-    // Nested/rækkefelter er ikke top-level og resolves ikke via skalar-sporet.
-    expect(resolveTopLevelFieldRef('erstatningsopgoerelse', 'tilstand')).toBeNull();
+    expect(readerFor(catalog, sections).read(field)).toEqual({ status: 'valid', value: 2025 });
   });
 
   it('opererer på registrerede samlinger (rentekrav) uden fejl', () => {
@@ -170,10 +143,9 @@ describe('produktions-InputCatalog', () => {
 
     // Round-trip gennem katalogets writeCanonical/read for det top-level felt.
     const catalog = getProductionInputCatalog();
-    const field = resolveTopLevelFieldRef('erstatningsopgoerelse', 'forligAnsvarsgradBroek');
-    expect(field).not.toBeNull();
-    const sections = catalog.writeCanonical(createEmptyPersistedInputSections(), field!, '1/3');
-    expect(readerFor(catalog, sections).read(field!)).toEqual({ status: 'valid', value: '1/3' });
+    const field = eoForligAnsvarsgradBroekBinding.createRef();
+    const sections = catalog.writeCanonical(createEmptyPersistedInputSections(), field, '1/3');
+    expect(readerFor(catalog, sections).read(field)).toEqual({ status: 'valid', value: '1/3' });
   });
 
   it('bevarer standardløn-tabellens canonical strenge gennem de fælles tal- og ugecodecs', () => {

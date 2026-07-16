@@ -9,7 +9,7 @@ import {
   consumeLegacyGridRejectedClear,
   stageLegacyGridRejectedClear,
 } from '../../input/legacyGridTransactionBridge';
-import { executeInputTransaction } from '../../input/inputTransactionRunner';
+import { executeLegacyInputTransaction as executeInputTransaction } from '../../input/inputTransactionRunner';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 import { inputRuntimeStore, type HistoryFrameOrigin } from '../../stores/inputRuntimeStore';

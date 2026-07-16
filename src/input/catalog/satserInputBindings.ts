@@ -2,6 +2,7 @@ import { satserAngivAarYearBounds } from '../../data/lovbestemteRates';
 import { createYearFieldCodec } from '../fieldCodecs';
 import { defineField } from '../fieldDefinition';
 import { createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 import type { FieldBinding } from '../fieldCatalog';
 
 /**
@@ -13,8 +14,7 @@ const createEmptySatserSection = (): unknown => ({});
 const aargangDefinition = defineField<number | undefined>({
   label: 'Satsår',
   controlKind: 'text',
-  focusTarget: { route: '/satser', tab: null },
-  // Årintervallet er et afledt bounds-issue; codecet afgør kun canonical parsebarhed.
+  // Satsårets faste feltinterval er en commit-grænse; værdier udenfor bevares som rejected rå tekst.
   codec: createYearFieldCodec({
     twoDigitYearPolicy: 'infer',
     minYear: satserAngivAarYearBounds.minYear,
@@ -26,4 +26,10 @@ export const satserAargangBinding: FieldBinding<number | undefined> = createStru
   definition: aargangDefinition,
   template: { section: 'satser', path: [], field: 'aargang' },
   createEmptySection: createEmptySatserSection,
+});
+
+export const satserInputManifest = defineInputManifest({
+  id: 'satser',
+  fields: [satserAargangBinding],
+  collections: [],
 });

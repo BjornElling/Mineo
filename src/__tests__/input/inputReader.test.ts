@@ -16,7 +16,6 @@ import type { RentekravRow } from '../../schemas/formSchemas/sections/rentebereg
 const textDefinition = defineField<string | undefined>({
   label: 'Skadelidtes navn',
   controlKind: 'text',
-  focusTarget: { route: '/stamdata', tab: null },
   codec: {
     parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
     format: (value) => value ?? '',
@@ -38,7 +37,6 @@ const nameBinding = createFieldBinding({
 const objectDefinition = defineField<Readonly<{ value: string }>>({
   label: 'Objektfelt',
   controlKind: 'text',
-  focusTarget: { route: '/stamdata', tab: null },
   codec: {
     parseForSettle: (raw) => ({ status: 'valid', value: { value: raw } }),
     format: (value) => value.value,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { getKnownStorageKeys, type StorageKey } from '../config/storageManifest';
-import { executeInputTransaction } from '../input/inputTransactionRunner';
+import { executeLegacyInputTransaction } from '../input/inputTransactionRunner';
 import { cancelLegacyGridRejectedClearForAddress } from '../input/legacyGridTransactionBridge';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { countFilledFields } from '../utils/dataCollection';
@@ -76,7 +76,7 @@ export const FormPersistenceProvider = ({
       for (const change of changes) {
         cancelLegacyGridRejectedClearForAddress(change.pageKey, change.fieldPath);
       }
-      executeInputTransaction(
+      executeLegacyInputTransaction(
         { kind: 'changeRejectedInputs', changes },
         { origin: options?.undoOrigin }
       );
@@ -113,7 +113,7 @@ export const FormPersistenceProvider = ({
       ...(options?.clearInvalidDrafts ?? []),
     ]);
     try {
-      executeInputTransaction({
+      executeLegacyInputTransaction({
         kind: 'replaceSection',
         section: pageKey,
         value: built.validatedData,
@@ -147,7 +147,7 @@ export const FormPersistenceProvider = ({
     const fieldPaths = Object.keys(getInvalidDraftsForSectionSnapshot(pageKey)).filter(isOrphan);
     if (fieldPaths.length === 0) return true;
     try {
-      executeInputTransaction(
+      executeLegacyInputTransaction(
         { kind: 'pruneRejectedInputs', section: pageKey, fieldPaths },
         { history: 'preserve' }
       );
@@ -166,7 +166,7 @@ export const FormPersistenceProvider = ({
       }
     }
     try {
-      executeInputTransaction({ kind: 'replaceCase', sections: snapshot }, { history: 'clear' });
+      executeLegacyInputTransaction({ kind: 'replaceCase', sections: snapshot }, { history: 'clear' });
       clearResolvedFieldErrorsCache();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -179,7 +179,7 @@ export const FormPersistenceProvider = ({
     options?: { undoOrigin?: HistoryFrameOrigin }
   ): boolean => {
     try {
-      executeInputTransaction({ kind: 'resetSection', section: pageKey }, { origin: options?.undoOrigin });
+      executeLegacyInputTransaction({ kind: 'resetSection', section: pageKey }, { origin: options?.undoOrigin });
       clearResolvedFieldErrorsCache();
       return true;
     } catch (error) {
@@ -192,7 +192,7 @@ export const FormPersistenceProvider = ({
   const clearAllData = React.useCallback(() => {
     try {
       const storageKeys = getKnownStorageKeys(listSessionStorageKeys());
-      executeInputTransaction(
+      executeLegacyInputTransaction(
         { kind: 'clearCase' },
         { history: 'clear', additionalStorageKeysToRemove: storageKeys }
       );

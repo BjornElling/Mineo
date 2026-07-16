@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { getInputEnvelopeStorageKey } from '../../config/storageManifest';
-import { executeInputTransaction } from '../../input/inputTransactionRunner';
+import { executeLegacyInputTransaction as executeInputTransaction } from '../../input/inputTransactionRunner';
 import { parseInputEnvelope } from '../../input/inputEnvelope';
 import { inputRuntimeStore, type HistoryFrameOrigin } from '../../stores/inputRuntimeStore';
 
@@ -12,7 +12,7 @@ const origin: HistoryFrameOrigin = {
   focusToken: null,
 };
 
-describe('executeInputTransaction', () => {
+describe('executeLegacyInputTransaction', () => {
   beforeEach(() => {
     sessionStorage.clear();
     inputRuntimeStore.getState().clearAll({ hydrated: true, persistedDataVersion: '3.9' });

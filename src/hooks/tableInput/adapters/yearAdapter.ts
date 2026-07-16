@@ -1,6 +1,6 @@
 import { makeYearFingerprintFromCanonical, type CommittedPayload, type YearFingerprint } from '../../../types/parserSpec';
 import { filterYearKeyDown } from '../../../components/inputs/inputKeyFilters';
-import { getYearRangeErrorMessage, type TwoDigitYearPolicy } from '../../../utils/yearDraftCore';
+import { parseYearDraftForCommit, type TwoDigitYearPolicy } from '../../../utils/yearDraftCore';
 import { createStringBackedFieldCodec, createYearFieldCodec } from '../../../input/fieldCodecs';
 import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 
@@ -35,15 +35,15 @@ export const createYearTableInputAdapter = (
     format: codec.format,
     parse: (draft) => {
       const resolution = codec.parseForSettle(draft);
-      if (resolution.status === 'invalid') return { ok: false, errorMessage: 'Ugyldigt årstal' };
+      if (resolution.status === 'invalid') {
+        const failure = parseYearDraftForCommit(draft, config);
+        return {
+          ok: false,
+          errorMessage: failure.ok ? 'Ugyldigt årstal' : failure.errorMessage,
+        };
+      }
       const value = resolution.value ?? '';
-      if (value === '') return { ok: true, value };
-
-      // Bevar den eksisterende commit-blokering, indtil fase 5 flytter bounds til den rene issue-model.
-      const rangeError = getYearRangeErrorMessage(Number(value), config.minYear, config.maxYear);
-      return rangeError === ''
-        ? { ok: true, value }
-        : { ok: false, errorMessage: rangeError };
+      return { ok: true, value };
     },
     toCommittedPayload: toCommittedYearPayload,
     isValidStartKey: codec.acceptsInitialKey,

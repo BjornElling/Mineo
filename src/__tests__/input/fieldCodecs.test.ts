@@ -49,7 +49,6 @@ describe('fieldCodecs', () => {
     const amount = createAmountFieldCodec({
       allowNegative: false,
       allowDecimals: true,
-      maxValue: 100,
     });
     const percent = createPercentFieldCodec({ allowNegative: false, allowDecimals: true });
     const integer = createIntegerFieldCodec({ allowNegative: false, maxDigits: 3 });
@@ -100,21 +99,29 @@ describe('fieldCodecs', () => {
     expect(fraction.format('1/2')).toBe('1/2');
   });
 
-  it('holder syntaktisk gyldige procent-, års- og ugeinput canonical uden for domænegrænser', () => {
+  it('afviser parsebare værdier uden for codecets aktive commit-interval', () => {
+    const amount = createAmountFieldCodec({
+      allowNegative: false,
+      allowDecimals: true,
+      maxValue: 100,
+    });
     const percent = createPercentFieldCodec({
       allowNegative: false,
       allowDecimals: true,
       minValue: 0,
       maxValue: 100,
     });
+    const integer = createIntegerFieldCodec({ allowNegative: false, minValue: 1, maxValue: 12 });
     const year = createYearFieldCodec({ twoDigitYearPolicy: 'reject', minYear: 2000, maxYear: 2100 });
     const week = createWeekFieldCodec({
       twoDigitYearPolicy: 'reject', minYear: 2000, maxYear: 2100, maxDraftLength: 8,
     });
 
-    expect(percent.parseForSettle('150')).toEqual({ status: 'valid', value: 150 });
-    expect(year.parseForSettle('1999')).toEqual({ status: 'valid', value: 1999 });
-    expect(week.parseForSettle('52/1999')).toEqual({ status: 'valid', value: '52/1999' });
+    expect(amount.parseForSettle('150')).toEqual({ status: 'invalid' });
+    expect(percent.parseForSettle('150')).toEqual({ status: 'invalid' });
+    expect(integer.parseForSettle('13')).toEqual({ status: 'invalid' });
+    expect(year.parseForSettle('1999')).toEqual({ status: 'invalid' });
+    expect(week.parseForSettle('52/1999')).toEqual({ status: 'invalid' });
     expect(week.parseForSettle('53/2023')).toEqual({ status: 'invalid' });
   });
 
@@ -243,7 +250,7 @@ describe('fieldCodecs', () => {
     expect(fraction.normalizePaste?.('12345,6/98765,4')).toBe('123/987');
   });
 
-  it('bruger statiske bounds til paste uden at flytte dem ind i syntaksparseren', () => {
+  it('bruger samme statiske commit-interval ved paste og settle', () => {
     const amount = createAmountFieldCodec({
       allowNegative: false,
       allowDecimals: true,
@@ -253,13 +260,11 @@ describe('fieldCodecs', () => {
     const year = createYearFieldCodec({ twoDigitYearPolicy: 'infer', maxYear: 2030 });
 
     expect(amount.normalizePaste?.('1250,50')).toBe('12');
-    expect(amount.parseForSettle('1250,50')).toEqual({
-      status: 'valid', value: { kind: 'number', value: 1250.5 },
-    });
+    expect(amount.parseForSettle('1250,50')).toEqual({ status: 'invalid' });
     expect(integer.normalizePaste?.('1712')).toBe('17');
-    expect(integer.parseForSettle('1712')).toEqual({ status: 'valid', value: 1712 });
+    expect(integer.parseForSettle('1712')).toEqual({ status: 'invalid' });
     expect(year.normalizePaste?.('2035')).toBe('20');
-    expect(year.parseForSettle('2035')).toEqual({ status: 'valid', value: 2035 });
+    expect(year.parseForSettle('2035')).toEqual({ status: 'invalid' });
   });
 
   it('afviser ugyldig codec-konfiguration ved konstruktion', () => {

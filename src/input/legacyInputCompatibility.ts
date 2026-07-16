@@ -6,7 +6,6 @@ import {
   serializeFieldAddress,
   type FieldAddress,
 } from './fieldAddress';
-import { resolveTopLevelFieldRef } from './catalog/productionInputCatalog';
 import type { RejectedInputs } from './inputState';
 
 /**
@@ -27,20 +26,12 @@ export const createLegacyFieldAddress = (section: StorageKey, fieldPath: string)
   });
 };
 
-/**
- * ÉT sandt sted for "hvor bor en rejected input for (section, fieldPath)". Et migreret top-level felt
- * (fieldPath === feltnavnet, ingen entity-sti) lagres nu på sin katalogvaliderede STRUKTURELLE adresse;
- * alt andet — tabelceller (`tableId:rowScope:rowId:colIndex`) og endnu ikke migrerede nested felter —
- * bruger fortsat sentinel-bro-adressen. Migration, skrivning og rydning deler denne resolver, så samme
- * felt aldrig kan optræde under to rejected-input-nøgler, og det legacy `invalidDrafts`-view forbliver
- * byte-identisk (den strukturelle top-level-adresse projiceres tilbage til `${section}.${feltnavn}`).
- *
- * Sentinel-grenen (og hele denne bro) fjernes, når celle-/nested-feltmotorerne selv adresserer strukturelt.
- */
-export const resolveRejectedInputAddress = (section: StorageKey, fieldPath: string): FieldAddress => {
-  const topLevel = resolveTopLevelFieldRef(section, fieldPath);
-  return topLevel === null ? createLegacyFieldAddress(section, fieldPath) : topLevel.address;
-};
+/** Legacy-overfladen har én adresseform, indtil alle callsites kan udstede konkrete `FieldRef`s. */
+export const resolveRejectedInputAddress = (section: StorageKey, fieldPath: string): FieldAddress =>
+  createLegacyFieldAddress(section, fieldPath);
+
+const createStructuralTopLevelAddress = (section: StorageKey, fieldPath: string): FieldAddress =>
+  createFieldAddress({ section, path: [], field: fieldPath });
 
 export const readLegacyFieldPath = (address: FieldAddress): Readonly<{
   section: StorageKey;
@@ -75,18 +66,16 @@ export const rejectedInputsToLegacyInvalidDrafts = (
     const address = deserializeFieldAddress(serializedAddress);
     if (address === null) continue;
     const legacy = readLegacyFieldPath(address);
-    if (legacy !== null) {
-      // Endnu ikke migrerede felter/celler: legacy-bro-adressens fieldPath ER cache-nøglen.
-      cache[legacy.section][legacy.fieldPath] = rejected.raw;
-      continue;
+    const target = legacy ?? (address.path.length === 0
+      ? { section: address.section, fieldPath: address.field }
+      : null);
+    if (target === null) continue;
+
+    const existing = cache[target.section][target.fieldPath];
+    if (existing !== undefined && existing !== rejected.raw) {
+      throw new Error('Legacy input compatibility: samme felt findes med modstridende rejected input');
     }
-    // TRANSITIONEL BRO (sletteliste, fase 7): en migreret top-level scalar bruger nu sin strukturelle
-    // adresse. For et top-level felt (tom path) ER feltnavnet identisk med det gamle fieldPath, så det
-    // legacy invalidDrafts-view forbliver byte-identisk for alle endnu ikke migrerede read-consumers.
-    // Strukturelle celle-adresser (path med entities) projiceres først, når celle-læsesiden er migreret.
-    if (address.path.length === 0) {
-      cache[address.section][address.field] = rejected.raw;
-    }
+    cache[target.section][target.fieldPath] = rejected.raw;
   }
   return cache;
 };
@@ -104,10 +93,21 @@ export const applyLegacyRejectedInputChanges = (
 ): RejectedInputs => {
   const next: Record<string, { raw: string }> = { ...rejectedInputs };
   for (const { pageKey, fieldPath, draft, expectedRaw } of changes) {
-    const key = serializeFieldAddress(resolveRejectedInputAddress(pageKey, fieldPath));
-    if (expectedRaw !== undefined && next[key]?.raw !== expectedRaw) continue;
-    if (draft === null || draft === '') delete next[key];
-    else next[key] = { raw: draft };
+    const legacyKey = serializeFieldAddress(resolveRejectedInputAddress(pageKey, fieldPath));
+    const structuralKey = serializeFieldAddress(createStructuralTopLevelAddress(pageKey, fieldPath));
+    const legacyRaw = next[legacyKey]?.raw;
+    const structuralRaw = next[structuralKey]?.raw;
+    if (legacyRaw !== undefined && structuralRaw !== undefined && legacyRaw !== structuralRaw) {
+      throw new Error('Legacy input compatibility: samme felt findes med modstridende rejected input');
+    }
+    const currentRaw = legacyRaw ?? structuralRaw;
+    if (expectedRaw !== undefined && currentRaw !== expectedRaw) continue;
+
+    // En tidligere fase-4-build kan have skrevet top-level input strukturelt. En eksplicit legacy-write
+    // eller -clear samler begge repræsentationer atomisk på sentinel-nøglen, så der aldrig opstår twins.
+    delete next[legacyKey];
+    delete next[structuralKey];
+    if (draft !== null && draft !== '') next[legacyKey] = { raw: draft };
   }
   return next;
 };

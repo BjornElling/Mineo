@@ -3,7 +3,6 @@ import { bindField, defineField, type FieldDefinition } from '../../input/fieldD
 const createDefinition = () => defineField<string | undefined>({
   label: 'Skadelidtes navn',
   controlKind: 'text',
-  focusTarget: { route: '/stamdata', tab: null },
   codec: {
     parseForSettle: (raw) => ({ status: 'valid', value: raw || undefined }),
     format: (value) => value ?? '',
@@ -19,12 +18,10 @@ describe('fieldDefinition', () => {
     expect(definition.codec.formatForEdit('Anna')).toBe('Anna');
     expect(Object.isFrozen(definition)).toBe(true);
     expect(Object.isFrozen(definition.codec)).toBe(true);
-    expect(Object.isFrozen(definition.focusTarget)).toBe(true);
 
     expect(() => defineField({
       label: 'Navn',
       controlKind: 'text',
-      focusTarget: { route: '/stamdata', tab: null },
       codec: {
         parseForSettle: (raw: string) => ({ status: 'valid' as const, value: raw }),
         format: (value: string) => value,
@@ -38,7 +35,6 @@ describe('fieldDefinition', () => {
     const definition = defineField<number>({
       label: 'Beløb',
       controlKind: 'text',
-      focusTarget: { route: '/erstatningsopgoerelse', tab: 'tab' },
       codec: {
         parseForSettle: (raw) => ({ status: 'valid', value: Number(raw) }),
         format: (value) => `${value} kr.`,
@@ -56,8 +52,6 @@ describe('fieldDefinition', () => {
 
     expect(() => defineField({ ...valid, label: '' })).toThrow();
     expect(() => defineField({ ...valid, label: ' Navn' })).toThrow();
-    expect(() => defineField({ ...valid, focusTarget: { route: 'stamdata', tab: null } })).toThrow();
-    expect(() => defineField({ ...valid, focusTarget: { route: '/stamdata', tab: '' } })).toThrow();
   });
 
   it('canonicaliserer og isolerer adressen ved binding', () => {
@@ -81,7 +75,6 @@ describe('fieldDefinition', () => {
     const rawDefinition = {
       label: 'Skadelidtes navn',
       controlKind: 'text' as const,
-      focusTarget: { route: '/stamdata', tab: null },
       codec: {
         parseForSettle: (raw: string) => ({ status: 'valid' as const, value: raw }),
         format: (value: string) => value,

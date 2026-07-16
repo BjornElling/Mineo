@@ -112,9 +112,6 @@ export type UseStyledFieldAdapterConfig<TModel> = Readonly<{
    */
   shouldCommitOnBlur?: (ctx: Readonly<{ draft: string; value: TModel; committedInvalidDraft: string | undefined }>) => boolean;
 
-  /** Ved Escape: revert draften til `format(value)` før editoren lukkes (fx Percent's display-memory). */
-  escapeRevertsToFormatted?: boolean;
-
   /** Sæt caret efter en åben-editor-splice-paste (Amount/Date/Fraction). */
   setPasteCaret?: boolean;
   /** Commit direkte ved paste mens editoren er lukket (fx Amount), i stedet for at åbne editoren. */
@@ -178,7 +175,6 @@ export const useStyledFieldAdapter = <TModel>(
     gateKeyFilterOnInvalidTouched = false,
     onClearSideEffect,
     shouldCommitOnBlur,
-    escapeRevertsToFormatted = false,
     setPasteCaret = false,
     commitOnClosedPaste = false,
   } = config;
@@ -326,7 +322,6 @@ export const useStyledFieldAdapter = <TModel>(
         skipNextBlurCommitRef.current = true;
       }
       if (e.defaultPrevented && e.key === 'Escape') {
-        if (escapeRevertsToFormatted) handleDraftChange(format(value));
         // Et blur følger umiddelbart efter editor-luk; det må aldrig committe den forkastede draft.
         skipNextBlurCommitRef.current = true;
         activation.closeEditor();
@@ -347,10 +342,7 @@ export const useStyledFieldAdapter = <TModel>(
       commitValue,
       effectiveInvalidDraft,
       error?.kind,
-      escapeRevertsToFormatted,
-      format,
       gateKeyFilterOnInvalidTouched,
-      handleDraftChange,
       keyFilter,
       normalizeDraftOnCommit,
       onClearSideEffect,

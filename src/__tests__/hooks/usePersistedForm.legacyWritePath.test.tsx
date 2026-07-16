@@ -10,13 +10,13 @@ import { inputRuntimeStore } from '../../stores/inputRuntimeStore';
 import { satserSchema, type SatserValues } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
-// Ombryd den ægte runner, så call-tracking af det typed spor virker på det named import i usePersistedForm.
+// Ombryd den ægte runner, så testen kan bevise, at legacy-hooken kun bruger compatibility-vejen.
 vi.mock('../../input/inputTransactionRunner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../input/inputTransactionRunner')>();
-  return { ...actual, executeTypedInputTransaction: vi.fn(actual.executeTypedInputTransaction) };
+  return { ...actual, executeLegacyInputTransaction: vi.fn(actual.executeLegacyInputTransaction) };
 });
 
-const typedSpy = runner.executeTypedInputTransaction as unknown as ReturnType<typeof vi.fn>;
+const transactionSpy = runner.executeLegacyInputTransaction as unknown as ReturnType<typeof vi.fn>;
 
 const SATSER_INITIAL: SatserValues = { aargang: 2020 };
 
@@ -37,41 +37,57 @@ const renderSatserForm = () => {
   return captured;
 };
 
-describe('usePersistedForm — typed catalog-routing for migrerede referencefelter', () => {
+describe('usePersistedForm — entydig legacy-writevej', () => {
   beforeEach(() => {
     sessionStorage.clear();
     clearResolvedFieldErrorsCache();
     inputRuntimeStore.getState().clearAll({ hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION });
-    typedSpy.mockClear();
+    transactionSpy.mockClear();
   });
 
-  it('routes NOT den første commit i en tom sektion (går gennem den fælles seed-vej)', () => {
+  it('committer det første felt i en tom sektion som én replaceSection-transaktion', () => {
     const captured = renderSatserForm();
     act(() => { captured.form!.setFieldValue('aargang', 2024); });
-    expect(typedSpy).not.toHaveBeenCalled();
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
+    expect(transactionSpy.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'replaceSection',
+      section: 'satser',
+      value: { aargang: 2024 },
+    });
     expect(inputRuntimeStore.getState().input.sections.satser).toEqual({ aargang: 2024 });
   });
 
-  it('router steady-state satser.aargang-commit gennem det typed katalog-spor', () => {
+  it('bruger samme replaceSection-vej ved efterfølgende feltcommits', () => {
     const captured = renderSatserForm();
     act(() => { captured.form!.setFieldValue('aargang', 2024); }); // seeder sektionen (fælles vej)
-    typedSpy.mockClear();
+    transactionSpy.mockClear();
 
     act(() => { captured.form!.setFieldValue('aargang', 2025); });
 
-    expect(typedSpy).toHaveBeenCalledTimes(1);
-    expect(typedSpy.mock.calls[0]?.[0]).toMatchObject({ kind: 'commitImmediateField', value: 2025 });
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
+    expect(transactionSpy.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'replaceSection',
+      section: 'satser',
+      value: { aargang: 2025 },
+    });
     expect(inputRuntimeStore.getState().input.sections.satser).toEqual({ aargang: 2025 });
   });
 
-  it('producerer identisk store-state som den tilsvarende replaceSection', () => {
+  it('rydder tidligere rejected input i samme replaceSection-transaktion', () => {
     const captured = renderSatserForm();
-    act(() => { captured.form!.setFieldValue('aargang', 2024); });
-    act(() => { captured.form!.setFieldValue('aargang', 2025); });
-    const viaTyped = inputRuntimeStore.getState().input.sections.satser;
+    runner.executeLegacyInputTransaction({
+      kind: 'changeRejectedInputs',
+      changes: [{ pageKey: 'satser', fieldPath: 'aargang', draft: '20x' }],
+    });
+    transactionSpy.mockClear();
 
-    inputRuntimeStore.getState().clearAll({ hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION });
-    runner.executeInputTransaction({ kind: 'replaceSection', section: 'satser', value: { aargang: 2025 } });
-    expect(inputRuntimeStore.getState().input.sections.satser).toEqual(viaTyped);
+    act(() => { captured.form!.setFieldValue('aargang', 2025); });
+
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
+    expect(transactionSpy.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'replaceSection',
+      rejectedChanges: [{ pageKey: 'satser', fieldPath: 'aargang', draft: null }],
+    });
+    expect(inputRuntimeStore.getState().input.rejectedInputs).toEqual({});
   });
 });

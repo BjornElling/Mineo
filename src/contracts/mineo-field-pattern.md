@@ -2,8 +2,8 @@
 
 **Status:** Normativ målarkitektur
 **Type:** Tværgående komponent-/adapterkontrakt  
-**Prioritet:** Supplement til `form-contract.md`; ejer feltdefinitioner, codecs, editor-state machine og surface-adaptere.
-**Senest verificeret mod kode:** 2026-07-14
+**Prioritet:** Supplement til `form-contract.md`; ejer feltdefinitioner, codecs, felt-editor og surface-adaptere.
+**Senest verificeret mod kode:** 2026-07-16
 
 Denne kontrakt fastlægger ét fælles feltmønster for Styled-felter og tabelceller. Eksisterende hooks og adaptere er
 migrationskode, indtil de er erstattet efter `docs/architecture/draft-commit-greenfield-design.md`.
@@ -32,20 +32,20 @@ Den må ikke:
 Den modtager en draft-string og en string-callback. Inputsemantiske handlers bindes til det faktiske input; musehandlers
 kan bindes til feltroden for at bevare to-trins-aktiveringen.
 
-### Lag B — fælles editor-state machine
+### Lag B — fælles felt-editor
 
-Én reducer/state machine ejer for både formular og grid:
+Én reducer/editor ejer for både formular og grid kun den åbne editors rå draft og lifecycle. Lukket visning er ikke
+lokal state, men afledes direkte af `SettledFieldState`:
 
-- lukket, fokuseret og åben editorstatus,
-- lokal rå draft,
-- start-snapshot til Escape,
-- touched-status,
-- settle ved blur, Enter og kritisk handling,
-- undertrykkelse af blur efter cancel,
-- resync ved autoritativt snapshot-skift.
+- rejected rå tekst vises ordret,
+- canonical værdi vises med `codec.format`,
+- åbning starter draften med rejected tekst eller `codec.formatForEdit`,
+- blur, Enter og kritisk handling udsteder samme `settleField(FieldRef, raw)`,
+- Escape lukker uden command og undertrykker det efterfølgende blur-settle.
 
-State machine kalder kun den fælles inputtransaktion. Den må ikke kende et konkret domæne eller have surface-specifik
-parsing.
+Der findes ingen lukket draftkopi, touched-kopi af input, pending-prop-guard, fingerprint eller epoch-resync. En
+autoritativ replacement kan ikke passere commit-barrieren, mens editoren er åben. Editorlaget kalder kun den fælles
+inputtransaktion og må ikke kende et konkret domæne eller have surface-specifik parsing.
 
 ### Lag C — feltdefinition og codec
 
@@ -70,7 +70,10 @@ Krav:
    beløbsudtryk bevares udtrykket her, selv om `format` viser det beregnede og dansk formaterede beløb.
 5. Canonicalisering må kun ske ved settle og kun efter den eksisterende felt-/numerikregel.
 6. Dato, beløb, procent, heltal, brøk, uge, år og tekst må ikke have separate form- og tabelcodecs.
-7. Domæne-bounds hører til rene validatorer/projektioner, medmindre grænsen er en del af syntaksen.
+7. En syntaktisk parsebar tal-, år- eller ugeværdi uden for feltets aktive commit-interval er rejected rå tekst og må
+   ikke blive canonical input. Kronologiske datobounds og tværgående domæneregler, som en mere specifik kontrakt
+   klassificerer som canonical issues, hører til rene validatorer/projektioner og må ikke samtidig implementeres i
+   settle-policyen.
 8. Paste bevarer mest muligt input efter én regel: normalisér feltets tilladte format, og afskær derefter fra højre
    til det længste præfiks, som feltets format, præcision, cifferloft og aktive commit-interval kan rumme. Heltalsfelter
    fjerner separatoren og hele decimaldelen uden afrunding; decimalaktiverede felter bevarer decimaler op til deres
@@ -98,7 +101,6 @@ type FieldDefinition<T> = Readonly<{
   codec: FieldCodec<T>;
   label: string;
   controlKind: 'text' | 'choice' | 'toggle';
-  focusTarget: FieldFocusTarget;
 }>;
 
 type FieldRef<T> = Readonly<{
@@ -109,7 +111,7 @@ type FieldRef<T> = Readonly<{
 
 Regler:
 
-1. Samme `FieldRef` følger feltet gennem render, settle, issue, projektion, gate, history og fokus-restore.
+1. Samme `FieldRef` følger feltet gennem render, settle, issue, projektion, gate og history.
 2. Statiske felter kommer fra ét feltkatalog; dynamiske felter dannes af typed entity-/row-builders.
 3. Adressen beskriver data strukturelt og versioneres/migreres som persistenceformat.
 4. Label og kontroltype kommer fra definitionen, aldrig fra parsing af en key eller fri streng.
@@ -117,6 +119,8 @@ Regler:
 6. Transiente UI-hjælpefelter bruger samme codec/editor, men har ingen persisted `FieldRef` og deltager ikke i history.
 7. Felt- og collection-bindings registreres i ét forseglet `InputCatalog`; dynamiske refs skal både matche templaten
    og pege på entities, der findes i det konkrete input-snapshot.
+8. History-origin kombinerer `FieldRef` med den konkrete editors fokusmål. Fokusmålet er overflademetadata, ikke en del
+   af datafeltets definition; samme felt kan derfor have flere gyldige editorlokationer uden parallel dataidentitet.
 
 ## 4. Settle-kontrakt
 
@@ -127,6 +131,7 @@ Regler:
 - Et ugyldigt settle skriver rejected rå tekst og maskerer den tidligere canonical værdi atomisk.
 - Et no-op-settle skriver hverken storage eller history og stiger ikke revisionen.
 - Kritiske handlinger bruger samme settle-handle; der findes ingen særskilt preflight-parser.
+- Felt-editoren modtager ikke `value`, `parse`, `format`, `onCommit` eller rejected-callbacks som alternative porte.
 
 Mens editoren er åben, forbliver resten af UI'et på seneste afsluttede revision. Den åbne draft må ikke drive
 feltissues, beregning, resultatvisning eller download-gate.
@@ -137,11 +142,11 @@ Standard for åbne teksteditorer:
 
 - Blur → settle.
 - Enter → settle og derefter den aftalte navigation.
-- Escape → cancel til start-snapshot; efterfølgende blur undertrykkes.
+- Escape → luk uden command, så den uændrede afsluttede starttilstand vises igen; efterfølgende blur undertrykkes.
 
 Tilladte immediate commits:
 
-- Delete/Backspace på lukket, fokuseret celle rydder og committer uden at åbne editoren.
+- Delete/Backspace på et lukket, fokuseret formularfelt eller en celle rydder og committer uden at åbne editoren.
 - Valg af dropdown-menupunkt committer straks; filtertekst gør ikke.
 - Toggle/radio committer straks.
 
@@ -159,7 +164,7 @@ Et felt viser højst ét aktivt issue ad gangen efter den centrale, deterministi
 
 ## 7. Dynamiske tabeller
 
-- Hver celle bruger den fælles editor-state machine og feltets fælles codec.
+- Hver celle bruger den fælles felt-editor og feltets fælles codec.
 - Grid-adapteren må ændre commit-triggeren ved navigation, men ikke commit-semantikken.
 - Rækkeinfrastrukturen må ikke holde en ekstra værdibærende `draftRows`-kopi.
 - Første settle i en tom UI-række promoverer rækken atomisk, også ved rejected input.
@@ -192,9 +197,9 @@ fingerprints og `rowId:colIndex` er overgangsmekanismer. De må ikke kopieres el
 ## 11. Tjekliste
 
 - Én feltdefinition og ét codec pr. inputfamilie.
-- Én editor-state machine på tværs af formular og grid.
+- Én felt-editor på tværs af formular og grid.
 - Én strukturel `FieldRef` gennem hele flowet.
 - Ingen parsing, validering eller afledt feedback under tastning.
 - Ét atomisk settle med højst ét history-trin og én revision.
-- Escape gendanner editorens start-snapshot.
-- Ingen local fallback-state for persisterede felter.
+- Escape lukker uden command og viser igen det uændrede afsluttede input.
+- Ingen lokal fallback-state for persisterede felter.

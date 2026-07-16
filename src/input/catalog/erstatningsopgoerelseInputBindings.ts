@@ -39,6 +39,7 @@ import {
 } from '../fieldCodecs';
 import { defineField } from '../fieldDefinition';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 
 /**
  * Strukturelle bindinger for `erstatningsopgoerelse`-sektionen: top-level skalarer (incl. nested
@@ -58,80 +59,70 @@ import { createStructuralCollectionBinding, createStructuralFieldBinding } from 
 export const createEmptyErstatningsopgoerelseSection = (): unknown =>
   erstatningsopgoerelseSchema.parse({ loenindkomstAnsaettelsesforhold: [] });
 
-const EO_OPLYSNINGER = 'eo_oplysninger';
-const EO_LOENINDKOMST = 'loenindkomst';
-const EO_OFFENTLIGE_YDELSER = 'offentlige_ydelser';
 
-const focus = (tab: string) => ({ route: '/erstatningsopgoerelse', tab } as const);
 
 // ─── Generiske top-level felt-hjælpere ──────────────────────────────────────────
 
-const optionalTextField = (field: string, label: string, tab: string): FieldBinding<string | undefined> =>
+const optionalTextField = (field: string, label: string): FieldBinding<string | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<string | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: focus(tab),
       codec: createOptionalTextFieldCodec(),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-const dateField = (field: string, label: string, tab: string): FieldBinding<ISODateString | undefined> =>
+const dateField = (field: string, label: string): FieldBinding<ISODateString | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<ISODateString | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: focus(tab),
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-const amountField = (field: string, label: string, tab: string): FieldBinding<AmountValue | undefined> =>
+const amountField = (field: string, label: string): FieldBinding<AmountValue | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<AmountValue | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: focus(tab),
       codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true }),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-const integerField = (field: string, label: string, tab: string): FieldBinding<number | undefined> =>
+const integerField = (field: string, label: string): FieldBinding<number | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<number | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: focus(tab),
       codec: createIntegerFieldCodec({ allowNegative: false }),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-const jaNejField = (field: string, label: string, tab: string): FieldBinding<JaNej | undefined> =>
+const jaNejField = (field: string, label: string): FieldBinding<JaNej | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<JaNej | undefined>({
       label,
       controlKind: 'choice',
-      focusTarget: focus(tab),
       codec: createChoiceFieldCodec<JaNej>(['Ja', 'Nej']),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-const jaNejSkjulField = (field: string, label: string, tab: string): FieldBinding<JaNejSkjul | undefined> =>
+const jaNejSkjulField = (field: string, label: string): FieldBinding<JaNejSkjul | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<JaNejSkjul | undefined>({
       label,
       controlKind: 'choice',
-      focusTarget: focus(tab),
       codec: createChoiceFieldCodec<JaNejSkjul>(['Ja', 'Nej', 'Skjul']),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field },
@@ -140,20 +131,19 @@ const jaNejSkjulField = (field: string, label: string, tab: string): FieldBindin
 
 // ─── Base-blok ──────────────────────────────────────────────────────────────────
 
-export const eoNummerBinding = optionalTextField('eoNummer', 'EO-nummer', EO_OPLYSNINGER);
-export const eoLedsagetekstBinding = optionalTextField('eoLedsagetekst', 'Ledsagetekst', EO_OPLYSNINGER);
-export const eoOpgørelseLavetDenBinding = dateField('opgørelseLavetDen', 'Opgørelse lavet den', EO_OPLYSNINGER);
-export const eoIndsaetUdkastStempelBinding = jaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel', EO_OPLYSNINGER);
-export const eoVedroererPeriodeFraBinding = dateField('vedroererPeriodeFra', 'Vedrører periode fra', EO_OPLYSNINGER);
-export const eoVedroererPeriodeTilBinding = dateField('vedroererPeriodeTil', 'Vedrører periode til', EO_OPLYSNINGER);
-export const eoRevideretOpgoerelseBinding = jaNejField('revideretOpgoerelse', 'Revideret opgørelse', EO_OPLYSNINGER);
-export const eoMidlertidigtEetFraEetSidenBinding = jaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', EO_OPLYSNINGER);
-export const eoRegulerOffentligeYdelserBinding = jaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser', EO_OFFENTLIGE_YDELSER);
+export const eoNummerBinding = optionalTextField('eoNummer', 'EO-nummer');
+export const eoLedsagetekstBinding = optionalTextField('eoLedsagetekst', 'Ledsagetekst');
+export const eoOpgørelseLavetDenBinding = dateField('opgørelseLavetDen', 'Opgørelse lavet den');
+export const eoIndsaetUdkastStempelBinding = jaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel');
+export const eoVedroererPeriodeFraBinding = dateField('vedroererPeriodeFra', 'Vedrører periode fra');
+export const eoVedroererPeriodeTilBinding = dateField('vedroererPeriodeTil', 'Vedrører periode til');
+export const eoRevideretOpgoerelseBinding = jaNejField('revideretOpgoerelse', 'Revideret opgørelse');
+export const eoMidlertidigtEetFraEetSidenBinding = jaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden');
+export const eoRegulerOffentligeYdelserBinding = jaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser');
 export const eoForligAnsvarsgradProcentBinding: FieldBinding<number | undefined> = createStructuralFieldBinding({
   definition: defineField<number | undefined>({
     label: 'Forlig ansvarsgrad (%)',
     controlKind: 'text',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: true }),
   }),
   template: { section: 'erstatningsopgoerelse', path: [], field: 'forligAnsvarsgradProcent' },
@@ -166,7 +156,6 @@ export const eoForligAnsvarsgradBroekBinding: FieldBinding<string | undefined> =
   definition: defineField<string | undefined>({
     label: 'Forlig ansvarsgrad (brøk)',
     controlKind: 'text',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createFractionFieldCodec({
       maxDigits: DEFAULT_FRACTION_MAX_DIGITS,
       allowNegative: false,
@@ -178,17 +167,16 @@ export const eoForligAnsvarsgradBroekBinding: FieldBinding<string | undefined> =
   template: { section: 'erstatningsopgoerelse', path: [], field: 'forligAnsvarsgradBroek' },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
-export const eoForligDatoBinding = dateField('forligDato', 'Forligsdato', EO_OPLYSNINGER);
-export const eoKravPaaOevrigeErstatningskravBinding = jaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', EO_OPLYSNINGER);
-export const eoOffentligeYdelserKommentarerBinding = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer', EO_OFFENTLIGE_YDELSER);
-export const eoLoenudviklingPaaGrundlagAfBinding = optionalTextField('loenudviklingPaaGrundlagAf', 'Lønudvikling på grundlag af', EO_LOENINDKOMST);
-export const eoSaerligeKommentarerBinding = optionalTextField('saerligeKommentarer', 'Særlige kommentarer', EO_OPLYSNINGER);
+export const eoForligDatoBinding = dateField('forligDato', 'Forligsdato');
+export const eoKravPaaOevrigeErstatningskravBinding = jaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav');
+export const eoOffentligeYdelserKommentarerBinding = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer');
+export const eoLoenudviklingPaaGrundlagAfBinding = optionalTextField('loenudviklingPaaGrundlagAf', 'Lønudvikling på grundlag af');
+export const eoSaerligeKommentarerBinding = optionalTextField('saerligeKommentarer', 'Særlige kommentarer');
 
 export const eoAfsluttesMedBinding: FieldBinding<AfsluttesMed | undefined> = createStructuralFieldBinding({
   definition: defineField<AfsluttesMed | undefined>({
     label: 'Afsluttes med',
     controlKind: 'choice',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createChoiceFieldCodec<AfsluttesMed>(['Bekræftet godkendt', 'Underskrift-linje', 'Ingen']),
   }),
   template: { section: 'erstatningsopgoerelse', path: [], field: 'erstatningsopgoerelseAfsluttesMed' },
@@ -200,7 +188,6 @@ export const eoBilagIndgaarBinding: FieldBinding<EoBilagLoenindkomstOgOffentlige
     definition: defineField<EoBilagLoenindkomstOgOffentligeYdelserIndgaar | undefined>({
       label: 'Bilag: lønindkomst/off. ydelser indgår',
       controlKind: 'choice',
-      focusTarget: focus(EO_OPLYSNINGER),
       codec: createChoiceFieldCodec<EoBilagLoenindkomstOgOffentligeYdelserIndgaar>(['Alle', 'Perioden']),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field: 'eoBilagLoenindkomstOgOffentligeYdelserIndgaar' },
@@ -214,7 +201,6 @@ const eoBilagSelectionToggle = (field: string, label: string): FieldBinding<bool
     definition: defineField<boolean>({
       label,
       controlKind: 'toggle',
-      focusTarget: focus(EO_OPLYSNINGER),
       codec: booleanFieldCodec,
     }),
     template: {
@@ -236,39 +222,37 @@ export const eoBilagSelectionSygeferiegodtgoerelseBinding = eoBilagSelectionTogg
 
 // ─── AES afgørelser (skalarer) ──────────────────────────────────────────────────
 
-export const eoVarigeMenAfgorelseBinding = jaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse', EO_OPLYSNINGER);
-export const eoMenAfgoerelseDatoBinding = dateField('menAfgoerelseDato', 'Mén-afgørelsesdato', EO_OPLYSNINGER);
-export const eoVerserendeKlageMenBinding = jaNejField('verserendeKlageMen', 'Verserende klage (mén)', EO_OPLYSNINGER);
-export const eoMidlertidigtEETAfgorelseBinding = jaNejField('midlertidigtEETAfgorelse', 'Midlertidigt EET-afgørelse', EO_OPLYSNINGER);
-export const eoMidlertidigEETAfgoerelseDatoBinding = dateField('midlertidigEETAfgoerelseDato', 'Midlertidigt EET-afgørelsesdato', EO_OPLYSNINGER);
-export const eoMidlertidigEETVirkningsdatoBinding = dateField('midlertidigEETVirkningsdato', 'Midlertidigt EET-virkningsdato', EO_OPLYSNINGER);
-export const eoEndeligtEETAfgorelseBinding = jaNejField('endeligtEETAfgorelse', 'Endeligt EET-afgørelse', EO_OPLYSNINGER);
-export const eoEndeligEETAfgoerelseDatoBinding = dateField('endeligEETAfgoerelseDato', 'Endeligt EET-afgørelsesdato', EO_OPLYSNINGER);
-export const eoEndeligEETVirkningsdatoBinding = dateField('endeligEETVirkningsdato', 'Endeligt EET-virkningsdato', EO_OPLYSNINGER);
-export const eoVerserendeKlageEetBinding = jaNejField('verserendeKlageEet', 'Verserende klage (EET)', EO_OPLYSNINGER);
-export const eoDifferencekravDatoBinding = dateField('differencekravDato', 'Differencekravsdato', EO_OPLYSNINGER);
+export const eoVarigeMenAfgorelseBinding = jaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse');
+export const eoMenAfgoerelseDatoBinding = dateField('menAfgoerelseDato', 'Mén-afgørelsesdato');
+export const eoVerserendeKlageMenBinding = jaNejField('verserendeKlageMen', 'Verserende klage (mén)');
+export const eoMidlertidigtEETAfgorelseBinding = jaNejField('midlertidigtEETAfgorelse', 'Midlertidigt EET-afgørelse');
+export const eoMidlertidigEETAfgoerelseDatoBinding = dateField('midlertidigEETAfgoerelseDato', 'Midlertidigt EET-afgørelsesdato');
+export const eoMidlertidigEETVirkningsdatoBinding = dateField('midlertidigEETVirkningsdato', 'Midlertidigt EET-virkningsdato');
+export const eoEndeligtEETAfgorelseBinding = jaNejField('endeligtEETAfgorelse', 'Endeligt EET-afgørelse');
+export const eoEndeligEETAfgoerelseDatoBinding = dateField('endeligEETAfgoerelseDato', 'Endeligt EET-afgørelsesdato');
+export const eoEndeligEETVirkningsdatoBinding = dateField('endeligEETVirkningsdato', 'Endeligt EET-virkningsdato');
+export const eoVerserendeKlageEetBinding = jaNejField('verserendeKlageEet', 'Verserende klage (EET)');
+export const eoDifferencekravDatoBinding = dateField('differencekravDato', 'Differencekravsdato');
 
 // ─── Svie/smerte (skalarer) ─────────────────────────────────────────────────────
 
-export const eoKravPaaSvieSmerteGodtgoerelseBinding = jaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Krav på svie- og smertegodtgørelse', EO_OPLYSNINGER);
+export const eoKravPaaSvieSmerteGodtgoerelseBinding = jaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Krav på svie- og smertegodtgørelse');
 export const eoSvieSmerteHelbredsstatusBinding: FieldBinding<Helbredsstatus | undefined> = createStructuralFieldBinding({
   definition: defineField<Helbredsstatus | undefined>({
     label: 'Helbredsstatus',
     controlKind: 'choice',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createChoiceFieldCodec<Helbredsstatus>(['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt']),
   }),
   template: { section: 'erstatningsopgoerelse', path: [], field: 'svieSmerteHelbredsstatus' },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
-export const eoTidligereSsMaxBinding = jaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået', EO_OPLYSNINGER);
+export const eoTidligereSsMaxBinding = jaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået');
 // Årsfelt (StyledYearField): tocifrede år infereres, og MIN_SVIESMERTE_YEAR..CURRENT_YEAR er
 // det afledte bounds-issue. Et heltalscodec ville fortolke "23" som 23 i stedet for 2023.
 export const eoSvieSmerteSatserAarBinding: FieldBinding<number | undefined> = createStructuralFieldBinding({
   definition: defineField<number | undefined>({
     label: 'Svie/smerte satsår',
     controlKind: 'text',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createYearFieldCodec({
       twoDigitYearPolicy: 'infer',
       minYear: MIN_SVIESMERTE_YEAR,
@@ -283,23 +267,21 @@ export const eoSvieSmerteDelvisSygemeldingSatsBinding: FieldBinding<SvieSmerteDe
     definition: defineField<SvieSmerteDelvisSygemeldingSats | undefined>({
       label: 'Sats ved delvis sygemelding',
       controlKind: 'choice',
-      focusTarget: focus(EO_OPLYSNINGER),
       codec: createChoiceFieldCodec<SvieSmerteDelvisSygemeldingSats>(['fuld', 'halv']),
     }),
     template: { section: 'erstatningsopgoerelse', path: [], field: 'svieSmerteDelvisSygemeldingSats' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoSvieSmerteTidligereTotalBinding = amountField('svieSmerteTidligereTotal', 'Tidligere udbetalt svie/smerte', EO_OPLYSNINGER);
-export const eoSvieSmerteAktuelPeriodeBinding = amountField('svieSmerteAktuelPeriode', 'Svie/smerte aktuel periode', EO_OPLYSNINGER);
+export const eoSvieSmerteTidligereTotalBinding = amountField('svieSmerteTidligereTotal', 'Tidligere udbetalt svie/smerte');
+export const eoSvieSmerteAktuelPeriodeBinding = amountField('svieSmerteAktuelPeriode', 'Svie/smerte aktuel periode');
 
 // ─── TAF (skalarer) ─────────────────────────────────────────────────────────────
 
-export const eoKravPaaTabtArbejdsfortjenesteBinding = jaNejSkjulField('kravPaaTabtArbejdsfortjeneste', 'Krav på tabt arbejdsfortjeneste', EO_OPLYSNINGER);
+export const eoKravPaaTabtArbejdsfortjenesteBinding = jaNejSkjulField('kravPaaTabtArbejdsfortjeneste', 'Krav på tabt arbejdsfortjeneste');
 export const eoTafArbejdsstatusBinding: FieldBinding<Arbejdsstatus | undefined> = createStructuralFieldBinding({
   definition: defineField<Arbejdsstatus | undefined>({
     label: 'Arbejdsstatus',
     controlKind: 'choice',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createChoiceFieldCodec<Arbejdsstatus>([
       'Uarbejdsdygtig',
       'Delvist raskmeldt',
@@ -317,46 +299,45 @@ export const eoTafArbejdsstatusBinding: FieldBinding<Arbejdsstatus | undefined> 
   template: { section: 'erstatningsopgoerelse', path: [], field: 'tafArbejdsstatus' },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
-export const eoOpsagtFraStillingBinding = jaNejField('opsagtFraStilling', 'Opsagt fra stilling', EO_OPLYSNINGER);
-export const eoSidsteDagAnsaettelsesforholdBinding = dateField('sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold', EO_OPLYSNINGER);
-export const eoTidligereModtagetTafBinding = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF', EO_OPLYSNINGER);
+export const eoOpsagtFraStillingBinding = jaNejField('opsagtFraStilling', 'Opsagt fra stilling');
+export const eoSidsteDagAnsaettelsesforholdBinding = dateField('sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold');
+export const eoTidligereModtagetTafBinding = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF');
 
 // ─── Indtægt før skaden (skalarer, fanen lønindkomst) ───────────────────────────
 
-export const eoKomprimerBeregningBinding = jaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Komprimér beregning efter første opgørelse', EO_LOENINDKOMST);
+export const eoKomprimerBeregningBinding = jaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Komprimér beregning efter første opgørelse');
 export const eoBeregnesUdFraBinding: FieldBinding<Beregningsmetode | undefined> = createStructuralFieldBinding({
   definition: defineField<Beregningsmetode | undefined>({
     label: 'Beregnes ud fra',
     controlKind: 'choice',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createChoiceFieldCodec<Beregningsmetode>(['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn']),
   }),
   template: { section: 'erstatningsopgoerelse', path: [], field: 'beregnesUdFra' },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
-export const eoTafBeregningsperiodeFraBinding = dateField('tafBeregningsperiodeFra', 'Beregningsperiode fra', EO_LOENINDKOMST);
-export const eoTafBeregningsperiodeTilBinding = dateField('tafBeregningsperiodeTil', 'Beregningsperiode til', EO_LOENINDKOMST);
-export const eoUspecificeredeFerieFridageBinding = integerField('uspecificeredeFerieFridage', 'Uspecificerede ferie-/fridage', EO_LOENINDKOMST);
-export const eoOevrigtFravaerUdenLoenBinding = jaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', EO_LOENINDKOMST);
-export const eoOevrigeFravaersdageBinding = integerField('oevrigeFravaersdage', 'Øvrige fraværsdage', EO_LOENINDKOMST);
-export const eoOevrigeFravaersdageBeskrivelseBinding = optionalTextField('oevrigeFravaersdageBeskrivelse', 'Beskrivelse af øvrige fraværsdage', EO_LOENINDKOMST);
-export const eoMaanedsloenenUdgoerBinding = amountField('maanedsloenenUdgoer', 'Månedslønnen udgør', EO_LOENINDKOMST);
-export const eoDagsloenenUdgoerBinding = amountField('dagsloenenUdgoer', 'Dagslønnen udgør', EO_LOENINDKOMST);
-export const eoAngivetMaanedsloenBaseretPaaBinding = optionalTextField('angivetMaanedsloenBaseretPaa', 'Angivet månedsløn baseret på', EO_LOENINDKOMST);
-export const eoAngivetMaanedsloenOpreguleresFraDatoBinding = dateField('angivetMaanedsloenOpreguleresFraDato', 'Angivet månedsløn opreguleres fra', EO_LOENINDKOMST);
-export const eoAngivetDagsloenBaseretPaaBinding = optionalTextField('angivetDagsloenBaseretPaa', 'Angivet dagsløn baseret på', EO_LOENINDKOMST);
-export const eoAngivetDagsloenOpreguleresFraDatoBinding = dateField('angivetDagsloenOpreguleresFraDato', 'Angivet dagsløn opreguleres fra', EO_LOENINDKOMST);
+export const eoTafBeregningsperiodeFraBinding = dateField('tafBeregningsperiodeFra', 'Beregningsperiode fra');
+export const eoTafBeregningsperiodeTilBinding = dateField('tafBeregningsperiodeTil', 'Beregningsperiode til');
+export const eoUspecificeredeFerieFridageBinding = integerField('uspecificeredeFerieFridage', 'Uspecificerede ferie-/fridage');
+export const eoOevrigtFravaerUdenLoenBinding = jaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn');
+export const eoOevrigeFravaersdageBinding = integerField('oevrigeFravaersdage', 'Øvrige fraværsdage');
+export const eoOevrigeFravaersdageBeskrivelseBinding = optionalTextField('oevrigeFravaersdageBeskrivelse', 'Beskrivelse af øvrige fraværsdage');
+export const eoMaanedsloenenUdgoerBinding = amountField('maanedsloenenUdgoer', 'Månedslønnen udgør');
+export const eoDagsloenenUdgoerBinding = amountField('dagsloenenUdgoer', 'Dagslønnen udgør');
+export const eoAngivetMaanedsloenBaseretPaaBinding = optionalTextField('angivetMaanedsloenBaseretPaa', 'Angivet månedsløn baseret på');
+export const eoAngivetMaanedsloenOpreguleresFraDatoBinding = dateField('angivetMaanedsloenOpreguleresFraDato', 'Angivet månedsløn opreguleres fra');
+export const eoAngivetDagsloenBaseretPaaBinding = optionalTextField('angivetDagsloenBaseretPaa', 'Angivet dagsløn baseret på');
+export const eoAngivetDagsloenOpreguleresFraDatoBinding = dateField('angivetDagsloenOpreguleresFraDato', 'Angivet dagsløn opreguleres fra');
 
 // ─── Bilagsnumre (skalarer) ─────────────────────────────────────────────────────
 
-export const eoVisBilagsnumreBinding = jaNejField('visBilagsnumre', 'Vis bilagsnumre', EO_OPLYSNINGER);
-export const eoBilagsnumreMenAfgoerelseBinding = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse', EO_OPLYSNINGER);
-export const eoBilagsnumreEetAfgoerelserBinding = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser', EO_OPLYSNINGER);
-export const eoBilagsnumreSvieSmerteDokumentationBinding = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation', EO_OPLYSNINGER);
-export const eoBilagsnumreBeregningsgrundlagTafBinding = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF', EO_OPLYSNINGER);
-export const eoBilagsnumreLoenISygeperiodenBinding = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden', EO_OPLYSNINGER);
-export const eoBilagsnumreOffentligeYdelserBinding = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser', EO_OPLYSNINGER);
-export const eoBilagsnumreOevrigeErstatningskravBinding = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav', EO_OPLYSNINGER);
+export const eoVisBilagsnumreBinding = jaNejField('visBilagsnumre', 'Vis bilagsnumre');
+export const eoBilagsnumreMenAfgoerelseBinding = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse');
+export const eoBilagsnumreEetAfgoerelserBinding = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser');
+export const eoBilagsnumreSvieSmerteDokumentationBinding = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation');
+export const eoBilagsnumreBeregningsgrundlagTafBinding = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF');
+export const eoBilagsnumreLoenISygeperiodenBinding = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden');
+export const eoBilagsnumreOffentligeYdelserBinding = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser');
+export const eoBilagsnumreOevrigeErstatningskravBinding = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav');
 
 // ─── Rene top-level samlinger + rækkefelter ─────────────────────────────────────
 
@@ -366,12 +347,11 @@ const rowFieldTemplate = (collection: string, field: string): FieldAddressTempla
   field,
 });
 
-const rowDateField = (collection: string, field: string, label: string, tab: string): FieldBinding<ISODateString | undefined> =>
+const rowDateField = (collection: string, field: string, label: string): FieldBinding<ISODateString | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<ISODateString | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: focus(tab),
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: rowFieldTemplate(collection, field),
@@ -384,13 +364,12 @@ export const eoTafPerioderBinding: CollectionBinding<TafPeriodeRow> =
     template: { section: 'erstatningsopgoerelse', path: [], collection: 'tafPerioder' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoTafPeriodeFraBinding = rowDateField('tafPerioder', 'fra', 'Fra o.m.', EO_OPLYSNINGER);
-export const eoTafPeriodeTilBinding = rowDateField('tafPerioder', 'til', 'Til o.m.', EO_OPLYSNINGER);
+export const eoTafPeriodeFraBinding = rowDateField('tafPerioder', 'fra', 'Fra o.m.');
+export const eoTafPeriodeTilBinding = rowDateField('tafPerioder', 'til', 'Til o.m.');
 export const eoTafPeriodeLoseFeriedageBinding: FieldBinding<number | undefined> = createStructuralFieldBinding({
   definition: defineField<number | undefined>({
     label: 'Løse feriedage',
     controlKind: 'text',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createIntegerFieldCodec({ allowNegative: false }),
   }),
   template: rowFieldTemplate('tafPerioder', 'loseFeriedage'),
@@ -403,8 +382,8 @@ export const eoFerieperioderBinding: CollectionBinding<FerieperiodeRow> =
     template: { section: 'erstatningsopgoerelse', path: [], collection: 'ferieperioder' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoFerieperiodeFraBinding = rowDateField('ferieperioder', 'fra', 'Fra o.m.', EO_OPLYSNINGER);
-export const eoFerieperiodeTilBinding = rowDateField('ferieperioder', 'til', 'Til o.m.', EO_OPLYSNINGER);
+export const eoFerieperiodeFraBinding = rowDateField('ferieperioder', 'fra', 'Fra o.m.');
+export const eoFerieperiodeTilBinding = rowDateField('ferieperioder', 'til', 'Til o.m.');
 
 // sfggSygeperioderFoer2015 (samme rækkeform som ferieperioder)
 export const eoSfggSygeperioderFoer2015Binding: CollectionBinding<FerieperiodeRow> =
@@ -412,8 +391,8 @@ export const eoSfggSygeperioderFoer2015Binding: CollectionBinding<FerieperiodeRo
     template: { section: 'erstatningsopgoerelse', path: [], collection: 'sfggSygeperioderFoer2015' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoSfggSygeperiodeFraBinding = rowDateField('sfggSygeperioderFoer2015', 'fra', 'Fra o.m.', EO_LOENINDKOMST);
-export const eoSfggSygeperiodeTilBinding = rowDateField('sfggSygeperioderFoer2015', 'til', 'Til o.m.', EO_LOENINDKOMST);
+export const eoSfggSygeperiodeFraBinding = rowDateField('sfggSygeperioderFoer2015', 'fra', 'Fra o.m.');
+export const eoSfggSygeperiodeTilBinding = rowDateField('sfggSygeperioderFoer2015', 'til', 'Til o.m.');
 
 // fravaerPerioder (samme rækkeform som ferieperioder)
 export const eoFravaerPerioderBinding: CollectionBinding<FerieperiodeRow> =
@@ -421,8 +400,8 @@ export const eoFravaerPerioderBinding: CollectionBinding<FerieperiodeRow> =
     template: { section: 'erstatningsopgoerelse', path: [], collection: 'fravaerPerioder' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoFravaerPeriodeFraBinding = rowDateField('fravaerPerioder', 'fra', 'Fra o.m.', EO_LOENINDKOMST);
-export const eoFravaerPeriodeTilBinding = rowDateField('fravaerPerioder', 'til', 'Til o.m.', EO_LOENINDKOMST);
+export const eoFravaerPeriodeFraBinding = rowDateField('fravaerPerioder', 'fra', 'Fra o.m.');
+export const eoFravaerPeriodeTilBinding = rowDateField('fravaerPerioder', 'til', 'Til o.m.');
 
 // svieSmertePerioder
 export const eoSvieSmertePerioderBinding: CollectionBinding<SvieSmertePeriodeRow> =
@@ -430,13 +409,12 @@ export const eoSvieSmertePerioderBinding: CollectionBinding<SvieSmertePeriodeRow
     template: { section: 'erstatningsopgoerelse', path: [], collection: 'svieSmertePerioder' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoSvieSmertePeriodeFraBinding = rowDateField('svieSmertePerioder', 'fra', 'Fra o.m.', EO_OPLYSNINGER);
-export const eoSvieSmertePeriodeTilBinding = rowDateField('svieSmertePerioder', 'til', 'Til o.m.', EO_OPLYSNINGER);
+export const eoSvieSmertePeriodeFraBinding = rowDateField('svieSmertePerioder', 'fra', 'Fra o.m.');
+export const eoSvieSmertePeriodeTilBinding = rowDateField('svieSmertePerioder', 'til', 'Til o.m.');
 export const eoSvieSmertePeriodeTilstandBinding: FieldBinding<Tilstand | undefined> = createStructuralFieldBinding({
   definition: defineField<Tilstand | undefined>({
     label: 'Tilstand',
     controlKind: 'choice',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createChoiceFieldCodec<Tilstand>(['sygemeldt', 'delvist-sygemeldt']),
   }),
   template: rowFieldTemplate('svieSmertePerioder', 'tilstand'),
@@ -449,12 +427,11 @@ export const eoOevrigeKravPerioderBinding: CollectionBinding<OevrigeKravRow> =
     template: { section: 'erstatningsopgoerelse', path: [], collection: 'oevrigeKravPerioder' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoOevrigeKravDatoBinding = rowDateField('oevrigeKravPerioder', 'dato', 'Dato', EO_OPLYSNINGER);
+export const eoOevrigeKravDatoBinding = rowDateField('oevrigeKravPerioder', 'dato', 'Dato');
 export const eoOevrigeKravUdgiftTilBinding: FieldBinding<string> = createStructuralFieldBinding({
   definition: defineField<string>({
     label: 'Udgift til',
     controlKind: 'text',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createTextFieldCodec(),
   }),
   template: rowFieldTemplate('oevrigeKravPerioder', 'udgiftTil'),
@@ -464,7 +441,6 @@ export const eoOevrigeKravBeloebBinding: FieldBinding<AmountValue | undefined> =
   definition: defineField<AmountValue | undefined>({
     label: 'Beløb',
     controlKind: 'text',
-    focusTarget: focus(EO_OPLYSNINGER),
     codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true }),
   }),
   template: rowFieldTemplate('oevrigeKravPerioder', 'beloeb'),
@@ -477,14 +453,13 @@ export const eoOffentligeYdelserRowsBinding: CollectionBinding<OffentligeYdelser
     template: { section: 'erstatningsopgoerelse', path: [], collection: 'offentligeYdelserRows' },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
-export const eoOffentligeYdelserFraDatoBinding = rowDateField('offentligeYdelserRows', 'fraDato', 'Fra dato', EO_OFFENTLIGE_YDELSER);
-export const eoOffentligeYdelserTilDatoBinding = rowDateField('offentligeYdelserRows', 'tilDato', 'Til dato', EO_OFFENTLIGE_YDELSER);
+export const eoOffentligeYdelserFraDatoBinding = rowDateField('offentligeYdelserRows', 'fraDato', 'Fra dato');
+export const eoOffentligeYdelserTilDatoBinding = rowDateField('offentligeYdelserRows', 'tilDato', 'Til dato');
 const offentligYdelseAmount = (field: string, label: string): FieldBinding<AmountValue | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<AmountValue | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: focus(EO_OFFENTLIGE_YDELSER),
       codec: createAmountFieldCodec({ allowNegative: true, allowDecimals: true }),
     }),
     template: rowFieldTemplate('offentligeYdelserRows', field),
@@ -498,7 +473,6 @@ export const eoOffentligeYdelserYdelsestypeBinding: FieldBinding<string | undefi
   definition: defineField<string | undefined>({
     label: 'Ydelsestype',
     controlKind: 'choice',
-    focusTarget: focus(EO_OFFENTLIGE_YDELSER),
     codec: createOptionalTextFieldCodec(),
   }),
   template: rowFieldTemplate('offentligeYdelserRows', 'ydelsestype'),
@@ -531,7 +505,6 @@ export const eoSfggBeregningskildeBinding = sfggRowField<SygeferiegodtgoerelseBe
   defineField<SygeferiegodtgoerelseBeregningskilde | undefined>({
     label: 'Beregningskilde',
     controlKind: 'choice',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createChoiceFieldCodec<SygeferiegodtgoerelseBeregningskilde>([
       'Overenskomst',
       'Manuelt angivet',
@@ -540,14 +513,13 @@ export const eoSfggBeregningskildeBinding = sfggRowField<SygeferiegodtgoerelseBe
     ]),
   })
 );
-export const eoSfggReferenceperiodeFraBinding = rowDateField(SFGG, 'sfggReferenceperiodeFra', 'Referenceperiode fra', EO_LOENINDKOMST);
-export const eoSfggReferenceperiodeTilBinding = rowDateField(SFGG, 'sfggReferenceperiodeTil', 'Referenceperiode til', EO_LOENINDKOMST);
+export const eoSfggReferenceperiodeFraBinding = rowDateField(SFGG, 'sfggReferenceperiodeFra', 'Referenceperiode fra');
+export const eoSfggReferenceperiodeTilBinding = rowDateField(SFGG, 'sfggReferenceperiodeTil', 'Referenceperiode til');
 export const eoSfggReferenceperiodeFravaersdageUdenLoenBinding = sfggRowField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen',
   defineField<number | undefined>({
     label: 'Fraværsdage uden løn i referenceperioden',
     controlKind: 'text',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createIntegerFieldCodec({ allowNegative: false }),
   })
 );
@@ -556,7 +528,6 @@ export const eoSfggManuelDagssatsBinding = sfggRowField<AmountValue | undefined>
   defineField<AmountValue | undefined>({
     label: 'Manuel dagssats',
     controlKind: 'text',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true }),
   })
 );
@@ -565,7 +536,6 @@ export const eoSfggManuelBeloebIHenholdTilBinding = sfggRowField<string | undefi
   defineField<string | undefined>({
     label: 'Beløb i henhold til',
     controlKind: 'text',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createOptionalTextFieldCodec(),
   })
 );
@@ -574,7 +544,6 @@ export const eoSfggManuelFoerstEfterSygeloenBinding = sfggRowField<JaNej | undef
   defineField<JaNej | undefined>({
     label: 'Først efter sygeløn',
     controlKind: 'choice',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createChoiceFieldCodec<JaNej>(['Ja', 'Nej']),
   })
 );
@@ -583,7 +552,6 @@ export const eoSfggSatsvalgBinding = sfggRowField<SygeferiegodtgoerelseSatsvalg 
   defineField<SygeferiegodtgoerelseSatsvalg | undefined>({
     label: 'Satsvalg',
     controlKind: 'choice',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createChoiceFieldCodec<SygeferiegodtgoerelseSatsvalg>([
       'Faglaert-Koebenhavn',
       'Faglaert-Provinsen',
@@ -597,7 +565,122 @@ export const eoSfggAlleredeBetaltBeloebBinding = sfggRowField<AmountValue | unde
   defineField<AmountValue | undefined>({
     label: 'Allerede betalt beløb',
     controlKind: 'text',
-    focusTarget: focus(EO_LOENINDKOMST),
     codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true }),
   })
 );
+
+export const erstatningsopgoerelseInputManifest = defineInputManifest({
+  id: 'erstatningsopgoerelse',
+  fields: [
+    eoNummerBinding,
+    eoLedsagetekstBinding,
+    eoOpgørelseLavetDenBinding,
+    eoIndsaetUdkastStempelBinding,
+    eoVedroererPeriodeFraBinding,
+    eoVedroererPeriodeTilBinding,
+    eoRevideretOpgoerelseBinding,
+    eoMidlertidigtEetFraEetSidenBinding,
+    eoRegulerOffentligeYdelserBinding,
+    eoAfsluttesMedBinding,
+    eoForligAnsvarsgradProcentBinding,
+    eoForligAnsvarsgradBroekBinding,
+    eoForligDatoBinding,
+    eoKravPaaOevrigeErstatningskravBinding,
+    eoOffentligeYdelserKommentarerBinding,
+    eoLoenudviklingPaaGrundlagAfBinding,
+    eoSaerligeKommentarerBinding,
+    eoBilagIndgaarBinding,
+    eoBilagSelectionOpgoerelseBinding,
+    eoBilagSelectionLoenindkomstBinding,
+    eoBilagSelectionOffentligeYdelserBinding,
+    eoBilagSelectionMidlertidigEetBinding,
+    eoBilagSelectionShDageBinding,
+    eoBilagSelectionReguleringBinding,
+    eoBilagSelectionOkSatserBinding,
+    eoBilagSelectionSygeferiegodtgoerelseBinding,
+    eoVarigeMenAfgorelseBinding,
+    eoMenAfgoerelseDatoBinding,
+    eoVerserendeKlageMenBinding,
+    eoMidlertidigtEETAfgorelseBinding,
+    eoMidlertidigEETAfgoerelseDatoBinding,
+    eoMidlertidigEETVirkningsdatoBinding,
+    eoEndeligtEETAfgorelseBinding,
+    eoEndeligEETAfgoerelseDatoBinding,
+    eoEndeligEETVirkningsdatoBinding,
+    eoVerserendeKlageEetBinding,
+    eoDifferencekravDatoBinding,
+    eoKravPaaSvieSmerteGodtgoerelseBinding,
+    eoSvieSmerteHelbredsstatusBinding,
+    eoTidligereSsMaxBinding,
+    eoSvieSmerteSatserAarBinding,
+    eoSvieSmerteDelvisSygemeldingSatsBinding,
+    eoSvieSmerteTidligereTotalBinding,
+    eoSvieSmerteAktuelPeriodeBinding,
+    eoKravPaaTabtArbejdsfortjenesteBinding,
+    eoTafArbejdsstatusBinding,
+    eoOpsagtFraStillingBinding,
+    eoSidsteDagAnsaettelsesforholdBinding,
+    eoTidligereModtagetTafBinding,
+    eoKomprimerBeregningBinding,
+    eoBeregnesUdFraBinding,
+    eoTafBeregningsperiodeFraBinding,
+    eoTafBeregningsperiodeTilBinding,
+    eoUspecificeredeFerieFridageBinding,
+    eoOevrigtFravaerUdenLoenBinding,
+    eoOevrigeFravaersdageBinding,
+    eoOevrigeFravaersdageBeskrivelseBinding,
+    eoMaanedsloenenUdgoerBinding,
+    eoDagsloenenUdgoerBinding,
+    eoAngivetMaanedsloenBaseretPaaBinding,
+    eoAngivetMaanedsloenOpreguleresFraDatoBinding,
+    eoAngivetDagsloenBaseretPaaBinding,
+    eoAngivetDagsloenOpreguleresFraDatoBinding,
+    eoVisBilagsnumreBinding,
+    eoBilagsnumreMenAfgoerelseBinding,
+    eoBilagsnumreEetAfgoerelserBinding,
+    eoBilagsnumreSvieSmerteDokumentationBinding,
+    eoBilagsnumreBeregningsgrundlagTafBinding,
+    eoBilagsnumreLoenISygeperiodenBinding,
+    eoBilagsnumreOffentligeYdelserBinding,
+    eoBilagsnumreOevrigeErstatningskravBinding,
+    eoTafPeriodeFraBinding,
+    eoTafPeriodeTilBinding,
+    eoTafPeriodeLoseFeriedageBinding,
+    eoFerieperiodeFraBinding,
+    eoFerieperiodeTilBinding,
+    eoSfggSygeperiodeFraBinding,
+    eoSfggSygeperiodeTilBinding,
+    eoSfggBeregningskildeBinding,
+    eoSfggReferenceperiodeFraBinding,
+    eoSfggReferenceperiodeTilBinding,
+    eoSfggReferenceperiodeFravaersdageUdenLoenBinding,
+    eoSfggManuelDagssatsBinding,
+    eoSfggManuelBeloebIHenholdTilBinding,
+    eoSfggManuelFoerstEfterSygeloenBinding,
+    eoSfggSatsvalgBinding,
+    eoSfggAlleredeBetaltBeloebBinding,
+    eoFravaerPeriodeFraBinding,
+    eoFravaerPeriodeTilBinding,
+    eoSvieSmertePeriodeFraBinding,
+    eoSvieSmertePeriodeTilBinding,
+    eoSvieSmertePeriodeTilstandBinding,
+    eoOevrigeKravDatoBinding,
+    eoOevrigeKravUdgiftTilBinding,
+    eoOevrigeKravBeloebBinding,
+    eoOffentligeYdelserFraDatoBinding,
+    eoOffentligeYdelserTilDatoBinding,
+    eoOffentligeYdelserYdelseBinding,
+    eoOffentligeYdelserTillaegBinding,
+    eoOffentligeYdelserYdelsestypeBinding,
+  ],
+  collections: [
+    eoTafPerioderBinding,
+    eoFerieperioderBinding,
+    eoSfggSygeperioderFoer2015Binding,
+    eoSfggAnsaettelsesforholdBinding,
+    eoFravaerPerioderBinding,
+    eoSvieSmertePerioderBinding,
+    eoOevrigeKravPerioderBinding,
+    eoOffentligeYdelserRowsBinding,
+  ],
+});

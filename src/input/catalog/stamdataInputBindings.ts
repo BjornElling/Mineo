@@ -8,6 +8,7 @@ import {
 import { defineField } from '../fieldDefinition';
 import type { FieldBinding } from '../fieldCatalog';
 import { createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 
 /**
  * Strukturelle bindinger for `stamdata`-sektionen. Alle felter er top-level skalarer; sektionen har
@@ -15,14 +16,11 @@ import { createStructuralFieldBinding } from '../structuralBindings';
  */
 const createEmptyStamdataSection = (): unknown => ({});
 
-const STAMDATA_FOCUS = { route: '/stamdata', tab: null } as const;
-
 const textField = (field: string, label: string): FieldBinding<string | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<string | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: STAMDATA_FOCUS,
       codec: createOptionalTextFieldCodec(),
     }),
     template: { section: 'stamdata', path: [], field },
@@ -39,7 +37,6 @@ export const stamdataSkadelidteFodselsdatoBinding: FieldBinding<ISODateString | 
     definition: defineField<ISODateString | undefined>({
       label: 'Fødselsdato',
       controlKind: 'text',
-      focusTarget: STAMDATA_FOCUS,
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: { section: 'stamdata', path: [], field: 'skadelidteFodselsdato' },
@@ -51,7 +48,6 @@ export const stamdataSkadestypeBinding: FieldBinding<Skadestype | undefined> =
     definition: defineField<Skadestype | undefined>({
       label: 'Skadestype',
       controlKind: 'choice',
-      focusTarget: STAMDATA_FOCUS,
       codec: createChoiceFieldCodec<Skadestype>(['Arbejdsulykke', 'Erhvervssygdom']),
     }),
     template: { section: 'stamdata', path: [], field: 'skadestype' },
@@ -66,9 +62,22 @@ export const stamdataSkadedatoBinding: FieldBinding<ISODateString | undefined> =
     definition: defineField<ISODateString | undefined>({
       label: 'Skadedato',
       controlKind: 'text',
-      focusTarget: STAMDATA_FOCUS,
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: { section: 'stamdata', path: [], field: 'skadedato' },
     createEmptySection: createEmptyStamdataSection,
   });
+
+export const stamdataInputManifest = defineInputManifest({
+  id: 'stamdata',
+  fields: [
+    stamdataJournalnrBinding,
+    stamdataAdvokatBinding,
+    stamdataSagsbehandlerBinding,
+    stamdataSkadelidteBinding,
+    stamdataSkadelidteFodselsdatoBinding,
+    stamdataSkadestypeBinding,
+    stamdataSkadedatoBinding,
+  ],
+  collections: [],
+});

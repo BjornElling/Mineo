@@ -1,6 +1,6 @@
 /**
  * Midlertidig read-facade. History er ikke længere en separat store; alle værdier kommer direkte
- * fra inputRuntimeStore og alle mutationer går gennem executeInputTransaction.
+ * fra inputRuntimeStore og alle mutationer går gennem den fælles transaktionsrunner.
  */
 import {
   INPUT_HISTORY_LIMIT,

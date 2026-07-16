@@ -12,6 +12,7 @@ import {
 import { defineField } from '../fieldDefinition';
 import type { CollectionBinding, FieldBinding } from '../fieldCatalog';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 
 /**
  * Strukturelle bindinger for `renteberegning`-sektionen: to skalarfelter og samlingen `rentekravRows`
@@ -20,47 +21,39 @@ import { createStructuralCollectionBinding, createStructuralFieldBinding } from 
  */
 const createEmptyRenteberegningSection = (): unknown => ({ rentekravRows: [] });
 
-const RENTE_FOCUS = { route: '/renteberegning', tab: null } as const;
-
 const beregningsdatoDefinition = defineField<ISODateString | undefined>({
   label: 'Beregningsdato',
   controlKind: 'text',
-  focusTarget: RENTE_FOCUS,
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
 });
 
 const kommentarerDefinition = defineField<string | undefined>({
   label: 'Kommentarer',
   controlKind: 'text',
-  focusTarget: RENTE_FOCUS,
   codec: createOptionalTextFieldCodec(),
 });
 
 const belobDefinition = defineField<AmountValue | undefined>({
   label: 'Beløb',
   controlKind: 'text',
-  focusTarget: RENTE_FOCUS,
   codec: createAmountFieldCodec({ allowNegative: false, allowDecimals: true }),
 });
 
 const renterFraDefinition = defineField<ISODateString | undefined>({
   label: 'Renter fra',
   controlKind: 'text',
-  focusTarget: RENTE_FOCUS,
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
 });
 
 const tillaegstidDefinition = defineField<number | undefined>({
   label: 'Tillægstid',
   controlKind: 'text',
-  focusTarget: RENTE_FOCUS,
   codec: createIntegerFieldCodec({ allowNegative: false }),
 });
 
 const enhedDefinition = defineField<TillaegstidEnhed | undefined>({
   label: 'Enhed',
   controlKind: 'choice',
-  focusTarget: RENTE_FOCUS,
   codec: createChoiceFieldCodec<TillaegstidEnhed>(['dage', 'uger', 'maaneder']),
 });
 
@@ -111,4 +104,17 @@ export const rentekravEnhedBinding: FieldBinding<TillaegstidEnhed | undefined> =
   definition: enhedDefinition,
   template: rentekravRowFieldTemplate('enhed'),
   createEmptySection: createEmptyRenteberegningSection,
+});
+
+export const renteberegningInputManifest = defineInputManifest({
+  id: 'renteberegning',
+  fields: [
+    renteberegningBeregningsdatoBinding,
+    renteberegningKommentarerBinding,
+    rentekravBelobBinding,
+    rentekravRenterFraBinding,
+    rentekravTillaegstidBinding,
+    rentekravEnhedBinding,
+  ],
+  collections: [rentekravRowsBinding],
 });

@@ -4,7 +4,8 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { type DraftParse } from '../../hooks/useDraftField';
 import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterYearKeyDown } from './inputKeyFilters';
-import { getYearRangeErrorMessage } from '../../utils/yearDraftCore';
+import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { parseYearDraftForCommit } from '../../utils/yearDraftCore';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { mergeSx } from '../../utils/mergeSx';
@@ -110,20 +111,25 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
 
         const resolution = codec.parseForSettle(draft);
         if (resolution.status === 'invalid') {
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
+          const failure = parseYearDraftForCommit(trimToAlphanumericEdges(draft), {
+            minYear,
+            maxYear,
+            twoDigitYearPolicy,
+          });
+          return {
+            ok: false,
+            kind: 'invalid',
+            message: failure.ok ? 'Ugyldigt årstal' : failure.errorMessage,
+          };
         }
         if (resolution.value === undefined) {
           if (allowEmpty) return { ok: true, value: undefined };
           return { ok: false, kind: 'empty', message: 'Årstal er påkrævet' };
         }
 
-        // Intervallet er fortsat en commit-blokerende UI-regel, indtil fase 5 flytter bounds til den rene issue-model.
-        const rangeError = getYearRangeErrorMessage(resolution.value, minYear, maxYear);
-        return rangeError === ''
-          ? { ok: true, value: resolution.value }
-          : { ok: false, kind: 'invalid', message: rangeError };
+        return { ok: true, value: resolution.value };
       },
-      [allowEmpty, codec, maxYear, minYear]
+      [allowEmpty, codec, maxYear, minYear, twoDigitYearPolicy]
     );
 
     const getDraftForKey = React.useCallback(

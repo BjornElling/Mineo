@@ -2,7 +2,7 @@
 
 **Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -20,7 +20,7 @@ Et issue skal mindst kunne bære:
 
 Normative inputårsager:
 
-- `invalid` — feltets afsluttede input er rejected,
+- `invalid` — feltets afsluttede input er rejected på grund af syntaks eller et aktivt commit-interval,
 - `missing` — en consumer kræver et tomt canonical felt,
 - `range`/`bounds` — canonical værdi ligger uden for konkrete grænser,
 - `schema` — runtime-schema kan ikke opfyldes,
@@ -60,6 +60,10 @@ Sondringen mellem `missing` og `invalid` afgøres af consumeren:
 
 - tom canonical værdi kan være `missing`, hvis consumeren kræver den,
 - ikke-tom rejected tekst er `invalid`.
+
+En syntaktisk parsebar tal-, år- eller ugeværdi uden for feltets aktive commit-interval er `invalid`, ikke et canonical
+`range`-/`bounds`-issue. Kronologiske datobounds og tværgående domæneregler kan fortsat være canonical issues, når den
+relevante specifikke kontrakt foreskriver det.
 
 De godkendte beskedskabeloner er:
 

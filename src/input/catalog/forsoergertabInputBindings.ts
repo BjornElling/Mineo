@@ -8,20 +8,18 @@ import {
 import { defineField } from '../fieldDefinition';
 import type { FieldBinding } from '../fieldCatalog';
 import { createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 
 /**
  * Strukturelle bindinger for `forsoergertab`-sektionen. Kun top-level skalarer; siden er ikke fanet.
  */
 const createEmptyForsoergertabSection = (): unknown => ({});
 
-const FORSOERGERTAB_FOCUS = { route: '/forsoergertab', tab: null } as const;
-
 const dateField = (field: string, label: string): FieldBinding<ISODateString | undefined> =>
   createStructuralFieldBinding({
     definition: defineField<ISODateString | undefined>({
       label,
       controlKind: 'text',
-      focusTarget: FORSOERGERTAB_FOCUS,
       codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     }),
     template: { section: 'forsoergertab', path: [], field },
@@ -39,7 +37,6 @@ export const forsoergertabKoenBinding: FieldBinding<Koen | undefined> = createSt
   definition: defineField<Koen | undefined>({
     label: 'Køn',
     controlKind: 'choice',
-    focusTarget: FORSOERGERTAB_FOCUS,
     codec: createChoiceFieldCodec<Koen>(['Mand', 'Kvinde']),
   }),
   template: { section: 'forsoergertab', path: [], field: 'koen' },
@@ -52,9 +49,20 @@ export const forsoergertabTilkendtForPeriodeAarBinding: FieldBinding<number | un
     definition: defineField<number | undefined>({
       label: 'Tilkendt for periode',
       controlKind: 'text',
-      focusTarget: FORSOERGERTAB_FOCUS,
       codec: createIntegerFieldCodec({ allowNegative: false }),
     }),
     template: { section: 'forsoergertab', path: [], field: 'tilkendtForPeriodeAar' },
     createEmptySection: createEmptyForsoergertabSection,
   });
+
+export const forsoergertabInputManifest = defineInputManifest({
+  id: 'forsoergertab',
+  fields: [
+    forsoergertabEfterladteFodselsdatoBinding,
+    forsoergertabBeregningsdatoBinding,
+    forsoergertabVirkningsdatoBinding,
+    forsoergertabKoenBinding,
+    forsoergertabTilkendtForPeriodeAarBinding,
+  ],
+  collections: [],
+});

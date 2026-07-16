@@ -33,6 +33,7 @@ import {
 } from '../fieldCodecs';
 import { defineField } from '../fieldDefinition';
 import { createStructuralCollectionBinding, createStructuralFieldBinding } from '../structuralBindings';
+import { defineInputManifest } from './inputManifest';
 import { createEmptyErstatningsopgoerelseSection } from './erstatningsopgoerelseInputBindings';
 
 const EMPLOYMENTS = 'loenindkomstAnsaettelsesforhold';
@@ -41,21 +42,16 @@ const MANUAL_ROWS = 'loenudviklingManuelTableData';
 const MANUAL_PERCENT_ROWS = 'loenudviklingManuelProcentsatsTableData';
 const EO_LOEN_PROPERTY = 'eoAngivetLoenLoenudvikling';
 
-const FOCUS_LOENINDKOMST = { route: '/erstatningsopgoerelse', tab: 'loenindkomst' } as const;
-const FOCUS_EO_OPLYSNINGER = { route: '/erstatningsopgoerelse', tab: 'eo_oplysninger' } as const;
-
 const createBinding = <T>(options: Readonly<{
   field: string;
   label: string;
   controlKind: FieldControlKind;
   codec: FieldCodec<T>;
   path: FieldAddressTemplate['path'];
-  focusTarget: typeof FOCUS_LOENINDKOMST | typeof FOCUS_EO_OPLYSNINGER;
 }>): FieldBinding<T> => createStructuralFieldBinding({
   definition: defineField({
     label: options.label,
     controlKind: options.controlKind,
-    focusTarget: options.focusTarget,
     codec: options.codec,
   }),
   template: { section: 'erstatningsopgoerelse', path: options.path, field: options.field },
@@ -74,7 +70,6 @@ const employmentField = <K extends keyof LoenindkomstAnsaettelsesforhold>(option
   ...options,
   field: String(options.field),
   path: employmentPath,
-  focusTarget: FOCUS_LOENINDKOMST,
 });
 
 const eoLoenField = <K extends keyof EOAngivetLoenLoenudvikling>(options: Readonly<{
@@ -86,7 +81,6 @@ const eoLoenField = <K extends keyof EOAngivetLoenLoenudvikling>(options: Readon
   ...options,
   field: String(options.field),
   path: eoLoenPath,
-  focusTarget: FOCUS_EO_OPLYSNINGER,
 });
 
 const optionalTextCodec = createOptionalTextFieldCodec();
@@ -145,50 +139,48 @@ const employmentFields = [
 
 const filterField = (
   ownerPath: FieldAddressTemplate['path'],
-  field: 'loenmodtager' | 'arbejdsgiver',
-  focusTarget: typeof FOCUS_LOENINDKOMST | typeof FOCUS_EO_OPLYSNINGER
+  field: 'loenmodtager' | 'arbejdsgiver'
 ): FieldBinding<string | undefined> => createBinding({
   field,
   label: field === 'loenmodtager' ? 'Lønmodtagerfilter' : 'Arbejdsgiverfilter',
   controlKind: 'choice',
   codec: optionalTextCodec,
   path: [...ownerPath, { kind: 'property', name: 'overenskomstFilter' }],
-  focusTarget,
 });
 
 const employmentFilterFields = [
-  filterField(employmentPath, 'loenmodtager', FOCUS_LOENINDKOMST),
-  filterField(employmentPath, 'arbejdsgiver', FOCUS_LOENINDKOMST),
+  filterField(employmentPath, 'loenmodtager'),
+  filterField(employmentPath, 'arbejdsgiver'),
 ] as const;
 
-const standardLoenDefinitions = (focusTarget: typeof FOCUS_LOENINDKOMST) => ({
+const standardLoenDefinitions = () => ({
   col0_maaned: defineField<string | undefined>({
-    label: 'Måned', controlKind: 'text', focusTarget,
+    label: 'Måned', controlKind: 'text',
     codec: createStringBackedFieldCodec(integerCodec(1, 12, 2)),
   }),
   col1_maaned: defineField<string | undefined>({
-    label: 'År', controlKind: 'text', focusTarget,
+    label: 'År', controlKind: 'text',
     codec: createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR })),
   }),
   col0_uge: defineField<string | undefined>({
-    label: 'Uge fra', controlKind: 'text', focusTarget,
+    label: 'Uge fra', controlKind: 'text',
     codec: createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })),
   }),
   col1_uge: defineField<string | undefined>({
-    label: 'Uge til', controlKind: 'text', focusTarget,
+    label: 'Uge til', controlKind: 'text',
     codec: createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })),
   }),
-  col0_dag: defineField<ISODateString | undefined>({ label: 'Dato fra', controlKind: 'text', focusTarget, codec: dateCodec }),
-  col1_dag: defineField<ISODateString | undefined>({ label: 'Dato til', controlKind: 'text', focusTarget, codec: dateCodec }),
-  col2: defineField<AmountValue | undefined>({ label: 'Løn', controlKind: 'text', focusTarget, codec: tableAmountCodec }),
-  col3: defineField<AmountValue | undefined>({ label: 'Løn (2)', controlKind: 'text', focusTarget, codec: tableAmountCodec }),
-  col4: defineField<AmountValue | undefined>({ label: 'Løn (3)', controlKind: 'text', focusTarget, codec: tableAmountCodec }),
-  col5: defineField<AmountValue | undefined>({ label: 'Løn (4)', controlKind: 'text', focusTarget, codec: tableAmountCodec }),
-  fpFvShSoBeloeb: defineField<AmountValue | undefined>({ label: 'FP/FV/SH/SO/St.B.', controlKind: 'text', focusTarget, codec: tableAmountCodec }),
-  pensionBeloeb: defineField<AmountValue | undefined>({ label: 'Arb.g. Pension', controlKind: 'text', focusTarget, codec: tableAmountCodec }),
+  col0_dag: defineField<ISODateString | undefined>({ label: 'Dato fra', controlKind: 'text', codec: dateCodec }),
+  col1_dag: defineField<ISODateString | undefined>({ label: 'Dato til', controlKind: 'text', codec: dateCodec }),
+  col2: defineField<AmountValue | undefined>({ label: 'Løn', controlKind: 'text', codec: tableAmountCodec }),
+  col3: defineField<AmountValue | undefined>({ label: 'Løn (2)', controlKind: 'text', codec: tableAmountCodec }),
+  col4: defineField<AmountValue | undefined>({ label: 'Løn (3)', controlKind: 'text', codec: tableAmountCodec }),
+  col5: defineField<AmountValue | undefined>({ label: 'Løn (4)', controlKind: 'text', codec: tableAmountCodec }),
+  fpFvShSoBeloeb: defineField<AmountValue | undefined>({ label: 'FP/FV/SH/SO/St.B.', controlKind: 'text', codec: tableAmountCodec }),
+  pensionBeloeb: defineField<AmountValue | undefined>({ label: 'Arb.g. Pension', controlKind: 'text', codec: tableAmountCodec }),
 });
 
-const standardDefinitions = standardLoenDefinitions(FOCUS_LOENINDKOMST);
+const standardDefinitions = standardLoenDefinitions();
 
 export const eoLoenindkomstStandardRowsBinding: CollectionBinding<StandardLoenTableRow> =
   createStructuralCollectionBinding({
@@ -222,10 +214,7 @@ const standardRowFields = [
   standardRowField('pensionBeloeb'),
 ] as const;
 
-const createManualCollectionBindings = (
-  ownerPath: FieldAddressTemplate['path'],
-  focusTarget: typeof FOCUS_LOENINDKOMST | typeof FOCUS_EO_OPLYSNINGER
-) => {
+const createManualCollectionBindings = (ownerPath: FieldAddressTemplate['path']) => {
   const manualCollection = createStructuralCollectionBinding<LoenudviklingManuelRow>({
     template: { section: 'erstatningsopgoerelse', path: ownerPath, collection: MANUAL_ROWS },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
@@ -241,14 +230,14 @@ const createManualCollectionBindings = (
     label: string,
     codec: FieldCodec<LoenudviklingManuelRow[K]>
   ): FieldBinding<LoenudviklingManuelRow[K]> => createBinding({
-    field: String(name), label, controlKind: 'text', codec, path: manualEntityPath, focusTarget,
+    field: String(name), label, controlKind: 'text', codec, path: manualEntityPath,
   });
   const manualPercentField = <K extends Exclude<keyof LoenudviklingManuelProcentsatsRow, 'id'>>(
     name: K,
     label: string,
     codec: FieldCodec<LoenudviklingManuelProcentsatsRow[K]>
   ): FieldBinding<LoenudviklingManuelProcentsatsRow[K]> => createBinding({
-    field: String(name), label, controlKind: 'text', codec, path: manualPercentEntityPath, focusTarget,
+    field: String(name), label, controlKind: 'text', codec, path: manualPercentEntityPath,
   });
 
   const manualFields = [
@@ -270,7 +259,7 @@ const createManualCollectionBindings = (
   };
 };
 
-const employmentManualBindings = createManualCollectionBindings(employmentPath, FOCUS_LOENINDKOMST);
+const employmentManualBindings = createManualCollectionBindings(employmentPath);
 
 const eoLoenFields = [
   eoLoenField({ field: 'overenskomstId', label: 'Vælg overenskomst', controlKind: 'choice', codec: optionalTextCodec }),
@@ -292,11 +281,11 @@ const eoLoenFields = [
 ] as const;
 
 const eoFilterFields = [
-  filterField(eoLoenPath, 'loenmodtager', FOCUS_EO_OPLYSNINGER),
-  filterField(eoLoenPath, 'arbejdsgiver', FOCUS_EO_OPLYSNINGER),
+  filterField(eoLoenPath, 'loenmodtager'),
+  filterField(eoLoenPath, 'arbejdsgiver'),
 ] as const;
 
-const eoManualBindings = createManualCollectionBindings(eoLoenPath, FOCUS_EO_OPLYSNINGER);
+const eoManualBindings = createManualCollectionBindings(eoLoenPath);
 
 export const eoLoenindkomstManualRowsBinding = employmentManualBindings.manualCollection;
 export const eoLoenindkomstManualPercentRowsBinding = employmentManualBindings.manualPercentCollection;
@@ -319,3 +308,9 @@ export const eoLoenFieldBindings = [
   ...eoFilterFields,
   ...eoManualBindings.fields,
 ] as readonly FieldBinding<unknown>[];
+
+export const erstatningsopgoerelseLoenInputManifest = defineInputManifest({
+  id: 'erstatningsopgoerelse-loen',
+  fields: eoLoenFieldBindings,
+  collections: eoLoenCollectionBindings,
+});

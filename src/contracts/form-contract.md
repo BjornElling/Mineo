@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-16
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
 Denne kontrakt beskriver slutarkitekturen. Den eksisterende implementering migreres efter
@@ -27,7 +27,7 @@ Denne kontrakt beskriver slutarkitekturen. Den eksisterende implementering migre
 En åben draft er den rå tekst, brugeren redigerer, mens editoren er åben.
 
 - Den må være tom, delvis eller ugyldig.
-- Den lever kun i felt-editorens state machine.
+- Den lever kun i den fælles felt-editor.
 - Den indgår ikke i undo/redo, `sessionStorage`, `.eo`, validering, beregning eller output.
 - `onChange` må kun ændre denne draft.
 
@@ -40,7 +40,8 @@ Afsluttet input er feltets autoritative tilstand efter blur, Enter eller en till
 er enten:
 
 - **gyldig:** en typet canonical værdi, eller
-- **ugyldig:** den ikke-tomme rå tekst, som ikke kunne parses.
+- **ugyldig:** den ikke-tomme rå tekst, som ikke kunne parses eller ligger uden for tal-, år- eller ugefeltets aktive
+  commit-interval.
 
 Et ugyldigt afsluttet input maskerer altid en eventuel tidligere gyldig canonical værdi. Den tidligere værdi er kun
 recovery-data og må ikke nå en consumer, så længe masken findes.
@@ -93,10 +94,10 @@ Hvert persisteret felt har én typed `FieldRef<T>`, der forbinder:
 - en strukturel `FieldAddress`,
 - feltets codec,
 - brugervendt label,
-- kontroltype,
-- fokusmål.
+- kontroltype.
 
-Samme reference bruges ved render, settle, validering, projektion, history-origin, gate og fokus-restore.
+Samme reference bruges ved render, settle, validering, projektion, history-origin og gate. Fokus-restore kombinerer
+datafeltets reference med den konkrete editors eksplicitte fokusmål, fordi samme felt kan redigeres på flere sider.
 
 - Statiske felter defineres én gang.
 - Dynamiske række-/entity-felter dannes af typed builders.
@@ -105,6 +106,7 @@ Samme reference bruges ved render, settle, validering, projektion, history-origi
 - Adresser beskriver data, ikke DOM eller tabelgeometri.
 - Frie strengnøgler og identitet som `rowId:colIndex` er forbudt.
 - DOM-attributter må være en projektion af feltreferencen, men må ikke være dens autoritet.
+- Fokusmål må ikke ligge som én global standard på feltdefinitionen eller udledes af DOM efter blur.
 
 Det normative komponent- og codec-mønster findes i `mineo-field-pattern.md`.
 
@@ -135,7 +137,7 @@ parse-, validerings- eller persistencevej til kritiske handlinger.
 
 Escape annullerer universelt alt siden editoren blev åbnet:
 
-- den åbne draft erstattes med editorens start-snapshot,
+- editoren lukkes, og den uændrede afsluttede starttilstand bliver igen den afledte visning,
 - intet committes eller valideres,
 - det umiddelbart efterfølgende blur må ikke settle den annullerede tekst.
 
@@ -146,7 +148,7 @@ ikke vises i stedet.
 
 Kun disse handlinger må committe uden en åben draft/blur-grænse:
 
-1. Delete/Backspace på en fokuseret, lukket celle rydder feltet.
+1. Delete/Backspace på et fokuseret, lukket formularfelt eller en celle rydder feltet.
 2. Valg af dropdown-menupunkt committer valget; søge-/filtertekst gør ikke.
 3. Toggle- eller radioaktivering committer valget.
 
@@ -168,19 +170,23 @@ Mineos tekst-, dato- og talfelter bruger den eksisterende to-trinsmodel:
 1. Første fokus giver fokus uden at åbne editoren.
 2. Klik på et allerede fokuseret felt eller et plausibelt starttegn åbner editoren.
 
+Felt-editoren holder kun en rå draft, mens editoren er åben. Når editoren er lukket, afledes visningen direkte af det
+afsluttede revisionsbundne feltstate. Der findes derfor ingen lukket draftkopi, prop-lag-guard, fingerprint eller
+resync-effect. Autoritative replacements og global undo/redo er blokeret af commit-barrieren, mens editoren er åben.
+
 Når editoren er lukket:
 
 - et printbart tegn åbner editoren og erstatter det viste indhold med tegnet,
 - paste åbner ikke editoren og følger feltets codec-regler,
-- Delete/Backspace følger immediate-commit-undtagelsen for tabelceller.
+- Delete/Backspace følger immediate-commit-undtagelsen for både formularfelter og tabelceller.
 
 Keyboard-navigation ejes af `keyboard-navigation.md`.
 
 ## 7. Initialisering, synlighed og relevans
 
 1. Initial values materialiseres gennem sektionens Zod-schema og bruges kun ved oprettelse eller reelt fravær.
-2. En eksisterende afsluttet værdi må aldrig overskrives af initial values ved navigation, rerender, settings-ændring
-   eller lokal resync.
+2. En eksisterende afsluttet værdi må aldrig overskrives af initial values ved navigation, rerender eller
+   settings-ændring.
 3. Synlighed og beregningsrelevans udledes af samme domæneprædikat.
 4. Skjult canonical input bevares gennem F5 og `.eo`, medmindre brugeren eksplicit sletter det.
 5. Når et styrende valg efter den gældende produktregel gør rejected input irrelevant, skal rydningen udtrykkes som én

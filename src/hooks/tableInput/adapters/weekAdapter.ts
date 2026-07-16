@@ -41,7 +41,7 @@ export const createWeekTableInputAdapter = (
       const resolution = codec.parseForSettle(draft);
       if (resolution.status === 'invalid') {
         const failure = parseWeekDraftForCommit(trimToAlphanumericEdges(draft), {
-          twoDigitYearPolicy: config.twoDigitYearPolicy,
+          ...config,
           maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
         });
         return {
@@ -50,17 +50,7 @@ export const createWeekTableInputAdapter = (
         };
       }
       const value = resolution.value ?? '';
-      if (value === '') return { ok: true, value };
-
-      // Bevar den eksisterende commit-blokering, indtil fase 5 flytter bounds til den rene issue-model.
-      const bounded = parseWeekDraftForCommit(value, {
-        ...config,
-        twoDigitYearPolicy: 'reject',
-        maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
-      });
-      return bounded.ok
-        ? { ok: true, value }
-        : { ok: false, errorMessage: bounded.errorMessage };
+      return { ok: true, value };
     },
     toCommittedPayload: toCommittedWeekPayload,
     isValidStartKey: codec.acceptsInitialKey,
