@@ -594,9 +594,16 @@ kontrolpunkter, ikke selvstændigt grønne afleveringsgates. Der må ikke afleve
 - et featureflag, dual-read eller dual-write holder begge systemer aktive.
 
 Interne checkpoints må være midlertidigt ikke-kompilerbare. Målrettede rene tests køres, når deres modulgrænse er
-sammenhængende; fuld typecheck, lint og produktsuite er først en gate efter fase 5. Den gamle build forbliver eneste
-deploybare version, indtil hele cutoveren er grøn. Ingen af fase 1–4 må markeres færdig eller lande som et ubrugt nyt
-produktionssidespor.
+sammenhængende; fuld typecheck, lint og produktsuite er først en gate efter fase 5. Det er ikke en forudsætning, at
+programmet kan kompilere, starte, fungere eller bruges, mens denne tranche implementeres. Legacykode må derfor ikke
+bevares alene for at holde den ufærdige arbejdsgren funktionel eller grøn. Den seneste grønne version i git-historikken
+er den eneste deploybare reference, indtil hele cutoveren er grøn. Ingen af fase 1–4 må markeres færdig eller lande som
+et ubrugt nyt produktionssidespor.
+
+Legacykode må kun bevares midlertidigt, når den aktivt bruges som sammenlignings-/karakteriseringsgrundlag, eller når
+den endnu indeholder et ansvar, som skal identificeres og overføres. Den må ikke være runtime-fallback eller en parallel
+produktionsvej. Når sammenligningen eller ansvarsoverførslen er afsluttet, slettes koden i den relevante arbejdspakke;
+fase 6 er kontrol og sikkerhedsnet, ikke standardtidspunktet for udsat legacyoprydning.
 
 ### 5.2 Compilerfejl er migrationslisten
 
@@ -850,7 +857,18 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 
 ### Fase 2 — Atomisk runtime- og inputoverflade-cutover
 
-**Status:** Ikke påbegyndt.
+**Status:** Runtime-fundamentet er bygget og testet 2026-07-16 (internt kontrolpunkt, ikke hele fasen). Bindingslaget i
+`src/inputCore/runtime/` gør den rene kerne levende: current-only envelope (`currentSessionEnvelope.ts`, ny nøgle
+`*_input_v2`, ingen `fieldAddressVersion`/sentinel), slank store (`slimInputStore.ts` — kun input/revision/history/
+settingsRevision/meta, ingen compat-views), den ene write-grænse (`dispatchInput.ts` — union inkl. undo/redo,
+verificeret byte-for-byte session-write, rollback af BÅDE storage og store, force ved autoritativ replacement),
+hydration-før-render med fail-closed korruption (`initializeInputRuntime.ts`) og token-binding
+(`evaluationSourceBinding.ts`). 21 målrettede tests (transaktionsinvarianter §7.4, undo/redo §7.2, styrende valg §3.6,
+envelope-round-trip, hydration/korruption §1.12, tokenfriskhed §3.4); typecheck/typecheck:test/lint grønne.
+Fundamentet har **nul produktionscallsites** (ingen dual-read/write) og er den udpegede erstatning for
+`inputRuntimeStore` + `inputTransactionRunner`. **Udestår i Fase 2:** produkt-descriptor-kataloget (fusion af de 10
+legacy-manifester) og den kompilerings-brydende in-place cutover (2.4/2.5: slet legacy, migrér ~600 callsites, TS-fejl
+= migrationsliste). Editor-laget (§2.3) og kritiske-handlinger-registry (§2.2) følger callsite-migreringen.
 
 **Afhængighed:** Fase 1.
 
@@ -1131,10 +1149,10 @@ For blokerede cases beviser testen, at der ikke sker lazy-load, generatorimport 
 
 - Kør målrettede dokumenttests og den udtømmende matrix for alle 18 outputs.
 - Kør `npm run typecheck`, `npm run typecheck:test`, `npm run lint` og `npm run test`.
-- Først når disse gates er grønne, må fase 1–5 samlet betragtes som kompilerbar og klar til legacyoprydningen i fase
-  6. Den er fortsat ikke færdigleveret før fase 7.
+- Først når disse gates er grønne, må fase 1–5 samlet betragtes som kompilerbar og klar til den afsluttende
+  legacykontrol og grænsehåndhævelse i fase 6. Den er fortsat ikke færdigleveret før fase 7.
 
-### Fase 6 — Slet legacy og håndhæv grænserne
+### Fase 6 — Bekræft legacyfjernelse og håndhæv grænserne
 
 **Status:** Ikke påbegyndt.
 
@@ -1142,7 +1160,8 @@ For blokerede cases beviser testen, at der ikke sker lazy-load, generatorimport 
 
 #### Arbejdstrin
 
-1. Gennemfør alle slettelister i fase 1–5.
+1. Verificér, at alle slettelister i fase 1–5 er gennemført. Slet kun rester, som bevidst blev beholdt til aktiv
+   sammenligning eller ansvarsoverførsel.
 2. Fjern fase-0-migrationsinventaret, når slutkatalogerne selv giver udtømmende coverage.
 3. Port eller slet implementeringsspecifikke tests for afløste mekanismer.
 4. Tilføj AST-baserede regler i det eksisterende architecture-harness uden ny dependency.
@@ -1234,7 +1253,8 @@ Cutoveren er først færdig, når:
 
 Der bygges ikke runtime-rollback til legacy.
 
-- Den gamle build er eneste deploybare version, indtil fase 1–5 samlet er grøn.
+- Den seneste grønne version i git-historikken er eneste deploybare version, indtil fase 1–5 samlet er grøn; legacykode
+  skal ikke holdes kørbar i den aktuelle arbejdsgren som rollbackmekanisme.
 - Interne delmål aktiveres ikke gennem flags, dual-read, fallback eller compatibility.
 - Ved forkert arkitekturantagelse stoppes cutoveren, og den nye løsning omarbejdes. Legacyvejen udbygges ikke som
   nødløsning.

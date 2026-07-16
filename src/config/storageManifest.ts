@@ -64,6 +64,13 @@ const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 const INVALID_DRAFTS_SUFFIX = 'invalidDrafts';
 const INPUT_ENVELOPE_SUFFIX = 'input';
 
+/**
+ * Current-only envelope-nøgle for greenfield-inputkernen (draft/commit-designet §2.1.6/§3.7). Bevidst
+ * disjunkt fra den legacy `input`-nøgle, så de to envelopes aldrig kolliderer under cutover-tranchen.
+ * Ingen `fieldAddressVersion`/sentinel/legacy-migrator er knyttet til denne nøgle.
+ */
+const CURRENT_INPUT_ENVELOPE_SUFFIX = 'input_v2';
+
 const buildKeyMap = <T extends Record<string, string>>(suffixes: T): { readonly [K in keyof T]: string } => {
   const descriptors = {} as { [K in keyof T]: PropertyDescriptor };
   for (const name of Object.keys(suffixes) as (keyof T)[]) {
@@ -93,6 +100,9 @@ export const getInvalidDraftsStorageKey = (): string => ns(INVALID_DRAFTS_SUFFIX
 /** Eneste current-format-nøgle for den aktive sags samlede inputaggregate. */
 export const getInputEnvelopeStorageKey = (): string => ns(INPUT_ENVELOPE_SUFFIX);
 
+/** Current-only envelope-nøgle for greenfield-inputkernen (§2.1.6). Namespace-aware og dovent resolveret. */
+export const getCurrentInputEnvelopeStorageKey = (): string => ns(CURRENT_INPUT_ENVELOPE_SUFFIX);
+
 const isValidStorageKeyForCurrentNamespace = (key: string): boolean => {
   const domainKeys = Object.values(STORAGE_KEYS) as string[];
   const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
@@ -100,6 +110,7 @@ const isValidStorageKeyForCurrentNamespace = (key: string): boolean => {
     || uiKeys.includes(key)
     || key === ns(INVALID_DRAFTS_SUFFIX)
     || key === ns(INPUT_ENVELOPE_SUFFIX)
+    || key === ns(CURRENT_INPUT_ENVELOPE_SUFFIX)
     || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
 };
 
@@ -108,6 +119,7 @@ export const getKnownStaticStorageKeys = (): string[] => [
   ...Object.values(UI_STORAGE_KEYS),
   getInvalidDraftsStorageKey(),
   getInputEnvelopeStorageKey(),
+  getCurrentInputEnvelopeStorageKey(),
 ];
 
 export const getKnownStorageKeys = (existingStorageKeys: readonly string[] = []): string[] => {
