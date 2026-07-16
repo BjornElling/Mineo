@@ -6,6 +6,7 @@ import {
   serializeFieldAddress,
   type FieldAddress,
 } from './fieldAddress';
+import { resolveTopLevelFieldRef } from './catalog/productionInputCatalog';
 import type { RejectedInputs } from './inputState';
 
 /**
@@ -26,6 +27,21 @@ export const createLegacyFieldAddress = (section: StorageKey, fieldPath: string)
   });
 };
 
+/**
+ * ÉT sandt sted for "hvor bor en rejected input for (section, fieldPath)". Et migreret top-level felt
+ * (fieldPath === feltnavnet, ingen entity-sti) lagres nu på sin katalogvaliderede STRUKTURELLE adresse;
+ * alt andet — tabelceller (`tableId:rowScope:rowId:colIndex`) og endnu ikke migrerede nested felter —
+ * bruger fortsat sentinel-bro-adressen. Migration, skrivning og rydning deler denne resolver, så samme
+ * felt aldrig kan optræde under to rejected-input-nøgler, og det legacy `invalidDrafts`-view forbliver
+ * byte-identisk (den strukturelle top-level-adresse projiceres tilbage til `${section}.${feltnavn}`).
+ *
+ * Sentinel-grenen (og hele denne bro) fjernes, når celle-/nested-feltmotorerne selv adresserer strukturelt.
+ */
+export const resolveRejectedInputAddress = (section: StorageKey, fieldPath: string): FieldAddress => {
+  const topLevel = resolveTopLevelFieldRef(section, fieldPath);
+  return topLevel === null ? createLegacyFieldAddress(section, fieldPath) : topLevel.address;
+};
+
 export const readLegacyFieldPath = (address: FieldAddress): Readonly<{
   section: StorageKey;
   fieldPath: string;
@@ -44,7 +60,7 @@ export const legacyInvalidDraftsToRejectedInputs = (cache: InvalidDraftsCache): 
   const entries: Array<readonly [string, { raw: string }]> = [];
   for (const [section, drafts] of Object.entries(cache) as Array<[StorageKey, Record<string, string>]>) {
     for (const [fieldPath, raw] of Object.entries(drafts)) {
-      entries.push([serializeFieldAddress(createLegacyFieldAddress(section, fieldPath)), { raw }]);
+      entries.push([serializeFieldAddress(resolveRejectedInputAddress(section, fieldPath)), { raw }]);
     }
   }
   return Object.fromEntries(entries);
@@ -88,7 +104,7 @@ export const applyLegacyRejectedInputChanges = (
 ): RejectedInputs => {
   const next: Record<string, { raw: string }> = { ...rejectedInputs };
   for (const { pageKey, fieldPath, draft, expectedRaw } of changes) {
-    const key = serializeFieldAddress(createLegacyFieldAddress(pageKey, fieldPath));
+    const key = serializeFieldAddress(resolveRejectedInputAddress(pageKey, fieldPath));
     if (expectedRaw !== undefined && next[key]?.raw !== expectedRaw) continue;
     if (draft === null || draft === '') delete next[key];
     else next[key] = { raw: draft };

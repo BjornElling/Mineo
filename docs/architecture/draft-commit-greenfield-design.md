@@ -648,11 +648,18 @@ afgrænset, se nedenfor) samt sletterne udestår.
   bygges codec'et bevidst med default-`maxDigits`, så feltets tidligere PROD-adfærd (render + afvis via config-fejl)
   bevares i stedet for at codec-factory'ens assert kaster.
 
-*Bevidst afgrænsning (udestår i fase 4):* Afsluttet ugyldigt input og rejected-clear adresseres fortsat via feltets
-legacy-fieldPath (samme sentinel-adresse som reporter-kanalen), så alle endnu ikke migrerede read-consumers ser
-identisk store-state. Den strukturelle rejected-adresse-cutover kræver, at hele det relevante katalog er registreret
-og alle overflader migreret, og hører til Etape E. `buildTypedCandidate` er derfor en bevidst transition-variant af
-den rene fase-2-reducer.
+*Delvist gennemført — strukturel rejected-adresse for top-level felter:* Afsluttet ugyldigt input og rejected-clear for
+et migreret **top-level** felt adresseres nu på feltets katalogvaliderede STRUKTURELLE adresse (ikke længere sentinel-
+broen). `resolveRejectedInputAddress` er det ene sande sted for beslutningen (top-level → strukturel, celle/nested →
+sentinel) og deles af migration, skrivning og rydning, så et felt aldrig kan optræde under to rejected-input-nøgler.
+Det legacy `invalidDrafts`-view er byte-identisk (den strukturelle top-level-adresse projiceres tilbage til
+`${section}.${feltnavn}`), så ingen endnu ikke migreret read-consumer påvirkes. Broen `stripCoexistingLegacyRejectedTwin`
+er dermed slettet, og `buildTypedCandidate` er en tynd pass-through til den fælles reducer.
+
+*Bevidst afgrænsning (udestår i fase 4):* Tabelceller og nested felter adresserer fortsat rejected input via sentinel-
+broen, fordi deres feltmotorer endnu ikke resolver en strukturel `FieldRef` (celle-identitet er `rowId:colIndex`).
+Sentinel-grenen i `resolveRejectedInputAddress` og `rejectedInputsToLegacyInvalidDrafts` fjernes sammen med celle-/
+tabelmigrationen (Etape E).
 
 *Bevidst afgrænset codec-cutover (heltal, procent, beløb, dato):* Disse familiers Styled-felter er IKKE cuttet over
 i denne runde, fordi en tro cutover ikke er en ren refaktor på nuværende codec-form: (a) heltal-feltets `format`,

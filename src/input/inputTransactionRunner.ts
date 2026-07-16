@@ -9,8 +9,7 @@ import {
   applyLegacyRejectedInputChanges,
   type LegacyRejectedInputChange,
 } from './legacyInputCompatibility';
-import { deserializeFieldAddress, serializeFieldAddress } from './fieldAddress';
-import { createLegacyFieldAddress } from './legacyInputCompatibility';
+import { deserializeFieldAddress } from './fieldAddress';
 import { getProductionInputCatalog } from './catalog/productionInputCatalog';
 import { buildInputCommandCandidate } from './inputCommands';
 import type {
@@ -425,33 +424,11 @@ export type TypedRuntimeInputCommand<TField = unknown, TEntity = unknown> =
   | ReorderRowsCommand<TEntity>
   | SettleFieldInNewRowCommand<TEntity, TField>;
 
-/**
- * TRANSITIONEL BRO (sletteliste, fase 4): invalid-draft-WRITE-siden bruger endnu feltfejl-kanalens
- * legacy-sentinel-adresse, mens den strukturelle reducer rydder feltets STRUKTURELLE adresse. Når et
- * migreret top-level felt settler/committer via det strukturelle spor, ryddes feltets evt. sentinel-
- * tvilling i SAMME kandidat, så clear forbliver atomisk (ét undo-trin) og invalidDrafts-viewet ikke
- * kan vise en efterladt gammel værdi. Fjernes når invalid-write-kanalen skriver strukturelt.
- */
-const stripCoexistingLegacyRejectedTwin = <TField, TEntity>(
-  candidate: RuntimePersistedInputState,
-  command: TypedRuntimeInputCommand<TField, TEntity>
-): RuntimePersistedInputState => {
-  if (command.kind !== 'settleField' && command.kind !== 'commitImmediateField') return candidate;
-  const { address } = command.field;
-  if (address.path.length !== 0) return candidate; // kun top-level felter har en sentinel-tvilling
-  const sentinelKey = serializeFieldAddress(createLegacyFieldAddress(address.section, address.field));
-  if (candidate.rejectedInputs[sentinelKey] === undefined) return candidate;
-  const { [sentinelKey]: _removedTwin, ...rejectedInputs } = candidate.rejectedInputs;
-  return { ...candidate, rejectedInputs };
-};
-
 const buildTypedCandidate = <TField, TEntity>(
   input: RuntimePersistedInputState,
   command: TypedRuntimeInputCommand<TField, TEntity>
-): RuntimePersistedInputState => stripCoexistingLegacyRejectedTwin(
-  buildInputCommandCandidate(input, command, getProductionInputCatalog()) as RuntimePersistedInputState,
-  command
-);
+): RuntimePersistedInputState =>
+  buildInputCommandCandidate(input, command, getProductionInputCatalog()) as RuntimePersistedInputState;
 
 export const executeTypedInputTransaction = <TField, TEntity>(
   command: TypedRuntimeInputCommand<TField, TEntity>,
