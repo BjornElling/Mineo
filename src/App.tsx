@@ -1,14 +1,12 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material';
-import { FormPersistenceProvider } from './contexts/FormPersistenceContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { RoutePathnameProvider } from './contexts/RoutePathnameProvider';
 import MainLayout from './components/layout/MainLayout';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
-import type { PersistenceRuntime } from './persistence/persistenceRuntime';
 import {
   ProductionInputRuntimeProvider,
   useSettingsRevisionBridge,
@@ -113,10 +111,8 @@ const RootRedirect = () => {
 };
 
 const ThemedApp = ({
-  persistenceRuntime,
   inputRuntimeBinding,
 }: {
-  persistenceRuntime: PersistenceRuntime;
   inputRuntimeBinding: InputRuntimeBinding;
 }) => {
   const { settings } = useAppSettings();
@@ -140,8 +136,7 @@ const ThemedApp = ({
     <ThemeProvider theme={theme}>
       <BrowserRouter>
         <RoutePathnameProvider>
-          <FormPersistenceProvider runtime={persistenceRuntime}>
-            <ProductionInputRuntimeProvider binding={inputRuntimeBinding}>
+          <ProductionInputRuntimeProvider binding={inputRuntimeBinding}>
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               {pageWrappers.map(({ path, element: PageWrapper }) => (
@@ -157,8 +152,7 @@ const ThemedApp = ({
                 }
               />
             </Routes>
-            </ProductionInputRuntimeProvider>
-          </FormPersistenceProvider>
+          </ProductionInputRuntimeProvider>
         </RoutePathnameProvider>
       </BrowserRouter>
     </ThemeProvider>
@@ -169,10 +163,8 @@ const ThemedApp = ({
  * Hovedkomponent for Mineo applikationen
  */
 function App({
-  persistenceRuntime,
   inputRuntimeBinding,
 }: {
-  persistenceRuntime: PersistenceRuntime;
   inputRuntimeBinding: InputRuntimeBinding;
 }) {
   // Håndter browser back/forward cache (bfcache) for at undgå React hook fejl
@@ -193,7 +185,7 @@ function App({
 
   return (
     <AppSettingsProvider>
-      <ThemedApp persistenceRuntime={persistenceRuntime} inputRuntimeBinding={inputRuntimeBinding} />
+      <ThemedApp inputRuntimeBinding={inputRuntimeBinding} />
     </AppSettingsProvider>
   );
 }

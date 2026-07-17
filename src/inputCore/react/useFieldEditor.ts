@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useSyncExternalStore } from 'react';
 import type { FieldRef } from '../fieldDescriptor';
 import type { FieldIssue } from '../inputIssue';
 import {
@@ -22,6 +23,7 @@ import {
 } from '../editor/fieldEditorEngine';
 import { useInputRuntime, useSettledSnapshot } from './inputRuntimeContext';
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
+import { fieldAddressesEqual } from '../fieldAddress';
 
 // Greenfield-React (§2.3/§3.5): ÉN persisted felt-editor direkte over `FieldRef`, reader og runner. Adapteren
 // ejer KUN rendering, aktivering, hit-area og navigation — den parser ikke, persisterer ikke, holder ingen
@@ -68,19 +70,40 @@ export const useFieldEditor = <T>(
 ): FieldEditorController<T> => {
   const runtime = useInputRuntime();
   const snapshot = useSettledSnapshot();
+  // Feltissues kan flytte sig ved en settingsrevision uden en inputrevision. Et særskilt abonnement på det
+  // tokenbundne issue-snapshot sikrer derfor, at den røde feltvisning ikke bliver stale, blot fordi det
+  // afsluttede input er uændret.
+  const issueSnapshot = useSyncExternalStore(runtime.subscribe, runtime.getIssues, runtime.getIssues);
 
   const [state, setState] = React.useState<FieldEditorState<T>>(() => createClosedEditor(field, location));
+  const sameEditorIdentity = state.field.descriptor.id === field.descriptor.id
+    && fieldAddressesEqual(state.field.address, field.address)
+    && state.location.locationId === location.locationId;
+  if (!sameEditorIdentity && isEditorOpen(state)) {
+    throw new Error(
+      `useFieldEditor: en åben editor (${state.location.locationId}) må ikke genbruges til ${location.locationId}.`
+    );
+  }
+  // En lukket, genbrugt React-instans må straks binde næste åbning til de aktuelle props. State opdateres ved
+  // selve åbningen; der er derfor ingen prop→state-effect, som kan overskrive afsluttet input eller en draft.
+  const boundState = sameEditorIdentity ? state : createClosedEditor(field, location);
 
   // Den lukkede visning + aktive issue afledes ALTID fra den aktuelle afsluttede revision (§3.5/§1.8), aldrig
   // fra state.open.draft. Under redigering vises den åbne draft, men issuet forbliver revisionens (§1.2).
   const view = deriveSettledFieldView(snapshot.input, field);
-  const issue = activeFieldIssueFor(runtime.getIssues(), field);
+  const issue = activeFieldIssueFor(issueSnapshot, field);
 
   // Én stabil ref til det aktuelle {state, view, snapshot, focusTarget} for imperative kald (registrets settle,
   // blur). `focusTarget` holdes i refen, så registreringen ikke churner, selv om kalderen sender et frisk
   // fokusmål-objekt hver render (typisk `{ focus: () => ref.current?.focus() }`).
-  const latest = React.useRef({ state, view, snapshot, focusTarget });
-  latest.current = { state, view, snapshot, focusTarget };
+  const latest = React.useRef({ state: boundState, view, snapshot, focusTarget });
+  latest.current = { state: boundState, view, snapshot, focusTarget };
+  const unregisterRef = React.useRef<(() => void) | null>(null);
+
+  const closeActiveRegistration = React.useCallback(() => {
+    unregisterRef.current?.();
+    unregisterRef.current = null;
+  }, []);
 
   const settle = React.useCallback(() => {
     // Dispatch sker SYNKRONT her (ikke inde i setState-updateren), så en kritisk handling, der afventer
@@ -94,34 +117,63 @@ export const useFieldEditor = <T>(
     if (current.open === null) return;
     // §3.5: en autoritativ replacement (load/reset) på en nyere revision må ikke settle draften ind i den
     // erstattede tilstand. Luk da uden command.
-    if (isSettleStale(current, latest.current.snapshot.revision)) {
+    if (isSettleStale(current, latest.current.snapshot.replacementGeneration)) {
       const closed = cancelEditor(current);
       latest.current = { ...latest.current, state: closed };
+      closeActiveRegistration();
       setState(closed);
       return;
     }
     const { next, intent } = settleEditor(current);
-    latest.current = { ...latest.current, state: next };
     const dispatch = settleIntentToCommand(intent);
+    // Bevar editor og draft fuldt aktive, hvis den atomiske runtime-transaktion fejler. Ellers kunne registryet
+    // tro, at feltet var lukket, mens brugeren stadig så den fejlende draft, og næste kritiske handling passere.
     if (dispatch !== null) runtime.dispatch(dispatch.command, dispatch.origin);
+    latest.current = { ...latest.current, state: next };
+    closeActiveRegistration();
     setState(next);
-  }, [runtime]);
+  }, [closeActiveRegistration, runtime]);
 
   const cancel = React.useCallback(() => {
-    setState((current) => cancelEditor(current));
-  }, []);
+    // Opdatér den imperative ref synkront. Escape kan efterfølges af blur i samme browser-task, før React har
+    // rendret igen; blur må da se editoren som lukket og må aldrig settle den annullerede draft.
+    const closed = cancelEditor(latest.current.state);
+    latest.current = { ...latest.current, state: closed };
+    closeActiveRegistration();
+    setState(closed);
+  }, [closeActiveRegistration]);
 
   const open = React.useCallback(
     (initialKey?: string) => {
-      setState((current) =>
-        openEditor(current, latest.current.view, latest.current.snapshot.revision, initialKey)
+      const current = latest.current.state;
+      const next = openEditor(
+        current,
+        latest.current.view,
+        latest.current.snapshot.replacementGeneration,
+        initialKey
       );
+      if (next === current) return;
+
+      // Registreringen er en synkron del af editoråbningen. En programmatisk save/navigation i samme task må
+      // ikke kunne passere i vinduet før en React-effect.
+      const unregister = runtime.registry.register({
+        id: location.locationId,
+        isEditing: () => isEditorOpen(latest.current.state),
+        settle,
+        discard: cancel,
+        getFocusTarget: () => latest.current.focusTarget ?? null,
+      });
+      unregisterRef.current = unregister;
+      latest.current = { ...latest.current, state: next };
+      setState(next);
     },
-    []
+    [cancel, location.locationId, runtime.registry, settle]
   );
 
   const changeDraftCallback = React.useCallback((draft: string) => {
-    setState((current) => changeDraft(current, draft));
+    const next = changeDraft(latest.current.state, draft);
+    latest.current = { ...latest.current, state: next };
+    setState(next);
   }, []);
 
   const clearImmediate = React.useCallback(() => {
@@ -131,29 +183,25 @@ export const useFieldEditor = <T>(
 
   const commitImmediate = React.useCallback(
     (value: T) => {
-      // Immediate commit lukker en evt. åben editor uden at settle dens draft: valget er den autoritative kilde.
-      setState((current) => (isEditorOpen(current) ? cancelEditor(current) : current));
+      // Valget er den autoritative kilde. Luk først draften, når dispatch er lykkedes; ved storagefejl skal
+      // brugeren fortsat kunne se og håndtere sin åbne draft.
+      const current = latest.current.state;
       const dispatch = immediateCommitCommand(field, value, location);
       runtime.dispatch(dispatch.command, dispatch.origin);
+      if (isEditorOpen(current)) {
+        const closed = cancelEditor(current);
+        latest.current = { ...latest.current, state: closed };
+        closeActiveRegistration();
+        setState(closed);
+      }
     },
-    [field, location, runtime]
+    [closeActiveRegistration, field, location, runtime]
   );
 
-  // §2.2.1/§3.5: registrér den åbne editor i højst-én-aktiv-registret, mens den er åben, så critical-action-
-  // coordinatoren kan settle den. Afmeldes, så snart editoren lukker eller komponenten unmountes.
-  const open_ = isEditorOpen(state);
-  React.useEffect(() => {
-    if (!open_) return undefined;
-    const unregister = runtime.registry.register({
-      id: location.locationId,
-      isEditing: () => isEditorOpen(latest.current.state),
-      settle,
-      getFocusTarget: () => latest.current.focusTarget ?? null,
-    });
-    return unregister;
-  }, [open_, location.locationId, runtime.registry, settle]);
+  const open_ = isEditorOpen(boundState);
+  React.useEffect(() => closeActiveRegistration, [closeActiveRegistration]);
 
-  const displayText = state.open !== null ? state.open.draft : formatSettledFieldText(field, view);
+  const displayText = boundState.open !== null ? boundState.open.draft : formatSettledFieldText(field, view);
 
   return {
     isOpen: open_,

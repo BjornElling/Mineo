@@ -1,8 +1,7 @@
 import { captureStableSource, type EvaluationSourceToken } from '../evaluationSource';
 import { readSourceToken } from './evaluationSourceBinding';
-import { slimInputStore, type SlimInputStore } from './slimInputStore';
+import type { SlimInputStore } from './slimInputStore';
 import {
-  activeEditorRegistry,
   type ActiveEditor,
   type ActiveEditorRegistry,
   type EditorFocusTarget,
@@ -28,26 +27,28 @@ export type CriticalAction = 'save' | 'download' | 'navigate' | 'load' | 'undo' 
 /**
  * Hvordan den åbne editor behandles for en given handling (§1.4):
  * - `settle`: afslut editoren gennem normal settle-sti, også ved fejlende settle (save/download/navigate).
- * - `ignore`: gennemfør uden settle; den åbne draft rører ikke handlingen (load/reset/`Slet alt`, undo/redo).
+ * - `replace`: klargør uden settle; replacement-porten kasserer først draften efter vellykket apply.
+ * - `noop`: handlingen må ikke nå history, mens editoren er åben.
  */
-type EditorHandling = 'settle' | 'ignore';
+type EditorHandling = 'settle' | 'replace' | 'noop';
 
 const EDITOR_HANDLING: Readonly<Record<CriticalAction, EditorHandling>> = {
   save: 'settle',
   download: 'settle',
   navigate: 'settle',
-  load: 'ignore',
-  undo: 'ignore',
-  redo: 'ignore',
+  load: 'replace',
+  undo: 'noop',
+  redo: 'noop',
 };
 
 /**
  * Resultatet af klargøringen. `committed` bærer et frisk `EvaluationSourceToken`, som save/download evaluerer
- * imod (contract §5): en godkendelse fra et tidligere token må ikke genbruges. `blocked` opstår kun fail-closed
- * ved en uventet fejl under settle (contract §2) — den rebasede matrix har ingen editor-open-blokering.
+ * imod (contract §5): en godkendelse fra et tidligere token må ikke genbruges. `noop` er undo/redo med åben editor.
+ * `blocked` opstår kun fail-closed ved en uventet fejl under settle (contract §2).
  */
 export type CriticalActionPreparationResult =
   | Readonly<{ status: 'committed'; token: EvaluationSourceToken }>
+  | Readonly<{ status: 'noop'; reason: 'editor-open' }>
   | Readonly<{
       status: 'blocked';
       reason: 'settle-failed';
@@ -78,8 +79,28 @@ export class CriticalActionCoordinator {
     return preparation;
   }
 
+  /**
+   * Udfører den autoritative replace/clear/reset-transaktion og kasserer først derefter en eventuel åben draft.
+   * Ved annullering eller apply-fejl skal kalderen undlade dette kald eller kaste; begge dele bevarer draften.
+   */
+  applyReplacement<T>(apply: () => T | Promise<T>): Promise<T> {
+    const replacement = this.preparationTail
+      .catch(() => undefined)
+      .then(async () => {
+        const result = await apply();
+        this.registry.getEditing()?.discard();
+        return result;
+      });
+    this.preparationTail = replacement.catch(() => undefined);
+    return replacement;
+  }
+
   private async prepareSerial(action: CriticalAction): Promise<CriticalActionPreparationResult> {
     const editor = this.registry.getEditing();
+
+    if (editor !== null && EDITOR_HANDLING[action] === 'noop') {
+      return Object.freeze({ status: 'noop' as const, reason: 'editor-open' as const });
+    }
 
     if (editor !== null && EDITOR_HANDLING[action] === 'settle') {
       const blocked = await this.settleEditor(editor);
@@ -114,6 +135,3 @@ export class CriticalActionCoordinator {
     }
   }
 }
-
-/** Applikations-singleton (jf. `slimInputStore`/`activeEditorRegistry`). Én barriere pr. app-runtime. */
-export const criticalActionCoordinator = new CriticalActionCoordinator(slimInputStore, activeEditorRegistry);

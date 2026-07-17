@@ -9,8 +9,8 @@ import {
 } from '../../../inputCore/runtime';
 
 // Fase 2.2 (§1.4/§2.2, critical-action-contract §3/§5/§7): den greenfield-coordinator afsluttes gennem den
-// rebasede handlingsmatrix — INGEN `block`-policy. Navigation/save/download settler; load/undo/redo ignorerer
-// den åbne editor. Testene driver en syntetisk `ActiveEditor`, så coordinatoren isoleres fra React/DOM.
+// rebasede handlingsmatrix — INGEN `block`-policy. Navigation/save/download settler; load bevarer draften frem til
+// vellykket replacement; undo/redo er no-op. Testene driver en syntetisk editor uden React/DOM.
 
 let store: SlimInputStore;
 let registry: ActiveEditorRegistry;
@@ -28,6 +28,7 @@ const makeEditor = (options?: Partial<ActiveEditor> & { throwOnSettle?: boolean 
   settleCount: () => number;
 } => {
   let settles = 0;
+  const discard = options?.discard ?? (() => undefined);
   const editor: ActiveEditor = Object.freeze({
     id: options?.id ?? 'test-editor',
     isEditing: options?.isEditing ?? (() => true),
@@ -35,14 +36,13 @@ const makeEditor = (options?: Partial<ActiveEditor> & { throwOnSettle?: boolean 
       settles += 1;
       if (options?.throwOnSettle === true) throw new Error('settle sprang');
     },
+    discard,
     ...(options?.getFocusTarget ? { getFocusTarget: options.getFocusTarget } : {}),
   });
   return { editor, settleCount: () => settles };
 };
 
 const SETTLE_ACTIONS: CriticalAction[] = ['save', 'download', 'navigate'];
-const IGNORE_ACTIONS: CriticalAction[] = ['load', 'undo', 'redo'];
-
 describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
   it.each(SETTLE_ACTIONS)('settler den åbne editor for %s', async (action) => {
     const { editor, settleCount } = makeEditor();
@@ -54,14 +54,46 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     expect(result.status).toBe('committed');
   });
 
-  it.each(IGNORE_ACTIONS)('settler ALDRIG editoren for %s (no-settle-reglen)', async (action) => {
+  it('klargør load uden at settle eller kassere draften', async () => {
+    const { editor, settleCount } = makeEditor();
+    registry.register(editor);
+
+    const result = await coordinator.prepare('load');
+
+    expect(settleCount()).toBe(0);
+    expect(result.status).toBe('committed');
+  });
+
+  it.each(['undo', 'redo'] as const)('gør %s til no-op, mens editoren er åben', async (action) => {
     const { editor, settleCount } = makeEditor();
     registry.register(editor);
 
     const result = await coordinator.prepare(action);
 
     expect(settleCount()).toBe(0);
-    expect(result.status).toBe('committed');
+    expect(result).toEqual({ status: 'noop', reason: 'editor-open' });
+  });
+
+  it('kasserer draften efter en vellykket replacement', async () => {
+    const discard = vi.fn();
+    const { editor } = makeEditor({ discard });
+    registry.register(editor);
+
+    await expect(coordinator.applyReplacement(() => 'erstattet')).resolves.toBe('erstattet');
+    expect(discard).toHaveBeenCalledOnce();
+  });
+
+  it('bevarer draften, når replacement fejler', async () => {
+    const discard = vi.fn();
+    const { editor } = makeEditor({ discard });
+    registry.register(editor);
+
+    await expect(
+      coordinator.applyReplacement(() => {
+        throw new Error('apply fejlede');
+      })
+    ).rejects.toThrow('apply fejlede');
+    expect(discard).not.toHaveBeenCalled();
   });
 
   it('gør ingenting med editoren, når den ikke redigerer', async () => {
@@ -115,6 +147,7 @@ describe('CriticalActionCoordinator — fail-closed og serialisering', () => {
         await Promise.resolve();
         concurrent -= 1;
       },
+      discard: () => undefined,
     });
     registry.register(editor);
 

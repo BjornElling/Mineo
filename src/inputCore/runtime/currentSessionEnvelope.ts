@@ -12,7 +12,9 @@ export const CURRENT_INPUT_ENVELOPE_VERSION = '2';
 
 const currentInputEnvelopeSchema = z.object({
   envelopeVersion: z.literal(CURRENT_INPUT_ENVELOPE_VERSION),
-  persistedDataVersion: z.string().min(1),
+  // Current-session har ingen migrationssti. En anden dataversion under den aktuelle nøgle er derfor
+  // korruption/incompatibilitet og skal fail-close i bootstrap i stedet for stiltiende at blive accepteret.
+  persistedDataVersion: z.literal(PERSISTED_DATA_VERSION),
   input: settledInputBaseSchema,
 }).strict().readonly();
 

@@ -186,11 +186,8 @@ const failOpenDisplayLookupImport = forbidImports({
   description:
     'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag — aldrig en beregningssti.',
   allow: [
-    // Inputprojektionen er display-/dokument-grænsen for Satser. Den udsteder kun satsdata i sin
-    // ready-gren og er derfor den ene tilladte domæne-nære consumer. Både den hånd-rullede
-    // inputIntegrity-projektion og dens greenfield-kerne-efterfølger (src/input) er samme grænse.
-    'src/domain/satser/satserInputProjection.ts',
-    'src/domain/satser/satserKernelProjection.ts',
+    // Den typed reader-projektion er display-/dokument-grænsen for Satser og kalder kun opslaget på ready-grenen.
+    'src/domain/satser/satserProjection.ts',
     'src/document/generators/satser/satserDocument.ts',
     'src/document/service/documentService.ts',
   ],

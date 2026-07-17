@@ -3,7 +3,13 @@
 // udpegede erstatning for `inputRuntimeStore` + `inputTransactionRunner`; cutoveren peger produktionen hertil.
 
 export * from './currentSessionEnvelope';
-export * from './slimInputStore';
+export {
+  __createSlimInputTestStore,
+  type SlimInputCommit,
+  type SlimInputMeta,
+  type SlimInputStore,
+  type SlimInputStoreState,
+} from './slimInputStore';
 export * from './dispatchInput';
 export * from './initializeInputRuntime';
 export * from './evaluationSourceBinding';

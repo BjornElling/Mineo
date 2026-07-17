@@ -4,12 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import App from '../App';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../settings/appSettingsStorage';
 import { DEFAULT_APP_SETTINGS } from '../settings/appSettingsSchema';
-import { initializePersistenceRuntime } from '../persistence/persistenceRuntime';
 import { bootstrapProductionInputRuntime } from '../inputCore/react/productionInputRuntime';
-
-vi.mock('../contexts/FormPersistenceContext', () => ({
-  FormPersistenceProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
 
 vi.mock('../components/layout/MainLayout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -70,7 +65,7 @@ describe('App default landing route', () => {
   });
 
   it('lander på Mineo når standard-startside-setting er false', async () => {
-    render(<App persistenceRuntime={initializePersistenceRuntime()} inputRuntimeBinding={bootstrapProductionInputRuntime().binding} />);
+    render(<App inputRuntimeBinding={bootstrapProductionInputRuntime().binding} />);
 
     await waitFor(() => {
       expect(screen.getByText('MOCK_Mineo')).toBeInTheDocument();
@@ -84,7 +79,7 @@ describe('App default landing route', () => {
       defaultStartsideErStamdata: true,
     }));
 
-    render(<App persistenceRuntime={initializePersistenceRuntime()} inputRuntimeBinding={bootstrapProductionInputRuntime().binding} />);
+    render(<App inputRuntimeBinding={bootstrapProductionInputRuntime().binding} />);
 
     await waitFor(() => {
       expect(screen.getByText('MOCK_STAMDATA')).toBeInTheDocument();

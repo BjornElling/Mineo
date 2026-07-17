@@ -22,13 +22,15 @@ export type SatserProjectionValue = Readonly<{
   satser: ReturnType<typeof getSatserForYear>;
 }>;
 
-export const projectSatser = (reader: InputReader): ProjectionResult<SatserProjectionValue> =>
-  runProjection(reader, CONSUMER_ID, (collector): SatserProjectionValue => {
+export const projectSatser = (reader: InputReader): ProjectionResult<SatserProjectionValue> => {
+  const result = runProjection<SatserProjectionValue | null>(reader, CONSUMER_ID, (collector) => {
     const year = collector.require(satserAargangRef);
-    // Er året utilgængeligt (rejected range / tomt), har `require` allerede registreret det blokerende issue;
-    // `runProjection` returnerer da `blocked` og ignorerer denne værdi. `getSatserForYear` kaldes derfor kun for
-    // et gyldigt år, og et vilkårligt dækket år på den døde gren ville alligevel aldrig blive observeret.
-    // `require` udelukker tomt (missing), men feltets type er `number | undefined`; NaN dækker den døde gren.
-    const resolvedYear = year.status === 'usable' && year.value !== undefined ? year.value : Number.NaN;
-    return { year: resolvedYear, satser: getSatserForYear(resolvedYear) };
+    if (year.status !== 'usable' || year.value === undefined) return null;
+    return { year: year.value, satser: getSatserForYear(year.value) };
   });
+  if (result.status === 'blocked') return result;
+  if (result.value === null) {
+    throw new Error('Satser-projektionen blev ready uden et anvendeligt satsår.');
+  }
+  return Object.freeze({ ...result, value: result.value });
+};

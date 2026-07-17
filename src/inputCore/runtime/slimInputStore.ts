@@ -27,6 +27,7 @@ export type SlimInputCommit = Readonly<{
   input: SettledInput;
   history: InputHistory;
   committedAt: number;
+  authoritativeReplacement: boolean;
 }>;
 
 export type SlimInputStoreState = {
@@ -34,6 +35,8 @@ export type SlimInputStoreState = {
   revision: InputRevision;
   history: InputHistory;
   settingsRevision: SettingsRevision;
+  /** Ændres kun ved hel-sags-replacement/hydration, ikke ved almindelige feltcommits. */
+  replacementGeneration: number;
   meta: SlimInputMeta;
 
   /** Anvender en valideret commit; skaber altid præcis én ny monoton revision. Kaldes kun af `dispatchInput`. */
@@ -51,12 +54,16 @@ const createSlimInputStore = (): SlimInputStore => createStore<SlimInputStoreSta
   revision: createInputRevision(0),
   history: createInputHistory(),
   settingsRevision: createSettingsRevision(0),
+  replacementGeneration: 0,
   meta: { hydrated: false, persistedDataVersion: PERSISTED_DATA_VERSION },
 
   applyCommit: (commit) => set((state) => ({
     input: commit.input,
     revision: createInputRevision(state.revision + 1),
     history: commit.history,
+    replacementGeneration: commit.authoritativeReplacement
+      ? state.replacementGeneration + 1
+      : state.replacementGeneration,
     meta: {
       hydrated: true,
       persistedDataVersion: PERSISTED_DATA_VERSION,
@@ -68,6 +75,7 @@ const createSlimInputStore = (): SlimInputStore => createStore<SlimInputStoreSta
     input,
     revision: createInputRevision(state.revision + 1),
     history: createInputHistory(),
+    replacementGeneration: state.replacementGeneration + 1,
     meta: {
       hydrated: true,
       persistedDataVersion: PERSISTED_DATA_VERSION,

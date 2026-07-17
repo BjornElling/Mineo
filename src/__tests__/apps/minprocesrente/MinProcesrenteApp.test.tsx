@@ -7,7 +7,6 @@ import { clearResolvedFieldErrorsCache } from '../../../hooks/useFormPersistence
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../../stores/undoRedoStore';
 import { initializePersistenceRuntime } from '../../../persistence/persistenceRuntime';
-import { bootstrapProductionInputRuntime } from '../../../inputCore/react/productionInputRuntime';
 
 vi.mock('../../../components/tables/useRentekravRows', () => ({
   __esModule: true,
@@ -81,7 +80,7 @@ describe('MinProcesrenteApp', () => {
   it('monterer standalone provider-kæden og committer renteberegning via den faktiske persistence-hook', async () => {
     const user = userEvent.setup();
 
-    render(<MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} inputRuntimeBinding={bootstrapProductionInputRuntime().binding} />);
+    render(<MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} />);
 
     expect(screen.getByRole('heading', { name: 'minProcesrente.dk' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Procesrente beregner' })).toBeInTheDocument();
@@ -99,7 +98,7 @@ describe('MinProcesrenteApp', () => {
   it('fortryder et committed felt med Ctrl+Z (undo virker på standalone-siden)', async () => {
     const user = userEvent.setup();
 
-    render(<MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} inputRuntimeBinding={bootstrapProductionInputRuntime().binding} />);
+    render(<MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} />);
 
     await user.click(screen.getByRole('button', { name: 'Commit kommentar' }));
     await waitFor(() => {
@@ -135,7 +134,7 @@ describe('MinProcesrenteApp', () => {
     }));
 
     const { unmount } = render(
-      <MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} inputRuntimeBinding={bootstrapProductionInputRuntime().binding} />
+      <MinProcesrenteApp persistenceRuntime={initializePersistenceRuntime()} />
     );
 
     expect(document.documentElement.style.backgroundColor).toBe('rgb(248, 249, 250)');

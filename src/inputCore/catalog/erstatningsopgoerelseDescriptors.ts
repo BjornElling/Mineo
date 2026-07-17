@@ -25,7 +25,7 @@ import { CURRENT_YEAR, MIN_SVIESMERTE_YEAR } from '../../config/dateRanges';
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
 import type { ISODateString } from '../../types/branded';
 import {
-  booleanFieldCodec,
+  createBooleanFieldCodec,
   createAmountFieldCodec,
   createChoiceFieldCodec,
   createDateFieldCodec,
@@ -33,6 +33,7 @@ import {
   createIntegerFieldCodec,
   createOptionalTextFieldCodec,
   createPercentFieldCodec,
+  createRequiredChoiceFieldCodec,
   createTextFieldCodec,
   createYearFieldCodec,
 } from '../fieldCodecs';
@@ -106,30 +107,6 @@ const integerField = (field: string, label: string): FieldDescriptor<number | un
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-const jaNejField = (field: string, label: string): FieldDescriptor<JaNej | undefined> =>
-  defineStructuralField<JaNej | undefined>({
-    id: `eo.${field}`,
-    template: { section: S, path: [], field },
-    codec: createChoiceFieldCodec<JaNej>(['Ja', 'Nej']),
-    emptyValue: undefined,
-    isEmpty: isUndefined,
-    label,
-    controlKind: 'toggle',
-    createEmptySection: createEmptyErstatningsopgoerelseSection,
-  });
-
-const jaNejSkjulField = (field: string, label: string): FieldDescriptor<JaNejSkjul | undefined> =>
-  defineStructuralField<JaNejSkjul | undefined>({
-    id: `eo.${field}`,
-    template: { section: S, path: [], field },
-    codec: createChoiceFieldCodec<JaNejSkjul>(['Ja', 'Nej', 'Skjul']),
-    emptyValue: undefined,
-    isEmpty: isUndefined,
-    label,
-    controlKind: 'choice',
-    createEmptySection: createEmptyErstatningsopgoerelseSection,
-  });
-
 const choiceField = <T extends string>(
   field: string,
   label: string,
@@ -147,16 +124,44 @@ const choiceField = <T extends string>(
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
+const requiredChoiceField = <T extends string>(
+  field: string,
+  label: string,
+  values: readonly T[],
+  emptyValue: T,
+  controlKind: FieldControlKind = 'choice',
+): FieldDescriptor<T> =>
+  defineStructuralField<T>({
+    id: `eo.${field}`,
+    template: { section: S, path: [], field },
+    codec: createRequiredChoiceFieldCodec(values, emptyValue),
+    emptyValue,
+    isEmpty: () => false,
+    label,
+    controlKind,
+    createEmptySection: createEmptyErstatningsopgoerelseSection,
+  });
+
+const requiredJaNejField = (field: string, label: string, emptyValue: JaNej): FieldDescriptor<JaNej> =>
+  requiredChoiceField(field, label, ['Ja', 'Nej'], emptyValue, 'toggle');
+
+const requiredJaNejSkjulField = (
+  field: string,
+  label: string,
+  emptyValue: JaNejSkjul
+): FieldDescriptor<JaNejSkjul> =>
+  requiredChoiceField(field, label, ['Ja', 'Nej', 'Skjul'], emptyValue);
+
 // ── Base-blok ─────────────────────────────────────────────────────────────────────
 export const eoNummerField = optionalTextField('eoNummer', 'EO-nummer');
 export const eoLedsagetekstField = optionalTextField('eoLedsagetekst', 'Ledsagetekst');
 export const eoOpgørelseLavetDenField = dateField('opgørelseLavetDen', 'Opgørelse lavet den');
-export const eoIndsaetUdkastStempelField = jaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel');
+export const eoIndsaetUdkastStempelField = requiredJaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel', 'Nej');
 export const eoVedroererPeriodeFraField = dateField('vedroererPeriodeFra', 'Vedrører periode fra');
 export const eoVedroererPeriodeTilField = dateField('vedroererPeriodeTil', 'Vedrører periode til');
-export const eoRevideretOpgoerelseField = jaNejField('revideretOpgoerelse', 'Revideret opgørelse');
-export const eoMidlertidigtEetFraEetSidenField = jaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden');
-export const eoRegulerOffentligeYdelserField = jaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser');
+export const eoRevideretOpgoerelseField = requiredJaNejField('revideretOpgoerelse', 'Revideret opgørelse', 'Nej');
+export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', 'Nej');
+export const eoRegulerOffentligeYdelserField = requiredJaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser', 'Ja');
 
 export const eoForligAnsvarsgradProcentField = defineStructuralField<number | undefined>({
   id: 'eo.forligAnsvarsgradProcent',
@@ -188,68 +193,65 @@ export const eoForligAnsvarsgradBroekField = defineStructuralField<string | unde
 });
 
 export const eoForligDatoField = dateField('forligDato', 'Forligsdato');
-export const eoKravPaaOevrigeErstatningskravField = jaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav');
+export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
 export const eoOffentligeYdelserKommentarerField = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer');
 export const eoSaerligeKommentarerField = optionalTextField('saerligeKommentarer', 'Særlige kommentarer');
 
-export const eoAfsluttesMedField = defineStructuralField<AfsluttesMed | undefined>({
-  id: 'eo.erstatningsopgoerelseAfsluttesMed',
-  template: { section: S, path: [], field: 'erstatningsopgoerelseAfsluttesMed' },
-  codec: createChoiceFieldCodec<AfsluttesMed>(['Bekræftet godkendt', 'Underskrift-linje', 'Ingen']),
-  emptyValue: undefined,
-  isEmpty: isUndefined,
-  label: 'Afsluttes med',
-  controlKind: 'choice',
-  createEmptySection: createEmptyErstatningsopgoerelseSection,
-});
+export const eoAfsluttesMedField = requiredChoiceField<AfsluttesMed>(
+  'erstatningsopgoerelseAfsluttesMed',
+  'Afsluttes med',
+  ['Bekræftet godkendt', 'Underskrift-linje', 'Ingen'],
+  'Bekræftet godkendt'
+);
 
-export const eoBilagIndgaarField = choiceField<EoBilagLoenindkomstOgOffentligeYdelserIndgaar>(
+export const eoBilagIndgaarField = requiredChoiceField<EoBilagLoenindkomstOgOffentligeYdelserIndgaar>(
   'eoBilagLoenindkomstOgOffentligeYdelserIndgaar',
   'Bilag: lønindkomst/off. ydelser indgår',
   ['Alle', 'Perioden'],
+  'Perioden',
 );
 
 // ── Nested bilagsvalg (eoBilagSelection, 8 booleans) ──────────────────────────────
-const bilagToggle = (field: string, label: string): FieldDescriptor<boolean> =>
+const bilagToggle = (field: string, label: string, emptyValue: boolean): FieldDescriptor<boolean> =>
   defineStructuralField<boolean>({
     id: `eo.eoBilagSelection.${field}`,
     template: { section: S, path: [{ kind: 'property', name: 'eoBilagSelection' }], field },
-    codec: booleanFieldCodec,
-    emptyValue: false,
+    codec: createBooleanFieldCodec(emptyValue),
+    emptyValue,
     isEmpty: () => false,
     label,
     controlKind: 'toggle',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-export const eoBilagSelectionOpgoerelseField = bilagToggle('opgoerelse', 'Bilag: opgørelse');
-export const eoBilagSelectionLoenindkomstField = bilagToggle('loenindkomst', 'Bilag: lønindkomst');
-export const eoBilagSelectionOffentligeYdelserField = bilagToggle('offentligeYdelser', 'Bilag: offentlige ydelser');
-export const eoBilagSelectionMidlertidigEetField = bilagToggle('midlertidigEet', 'Bilag: midlertidigt EET');
-export const eoBilagSelectionShDageField = bilagToggle('shDage', 'Bilag: SH-dage');
-export const eoBilagSelectionReguleringField = bilagToggle('regulering', 'Bilag: regulering');
-export const eoBilagSelectionOkSatserField = bilagToggle('okSatser', 'Bilag: OK-satser');
-export const eoBilagSelectionSygeferiegodtgoerelseField = bilagToggle('sygeferiegodtgoerelse', 'Bilag: sygeferiegodtgørelse');
+export const eoBilagSelectionOpgoerelseField = bilagToggle('opgoerelse', 'Bilag: opgørelse', true);
+export const eoBilagSelectionLoenindkomstField = bilagToggle('loenindkomst', 'Bilag: lønindkomst', true);
+export const eoBilagSelectionOffentligeYdelserField = bilagToggle('offentligeYdelser', 'Bilag: offentlige ydelser', true);
+export const eoBilagSelectionMidlertidigEetField = bilagToggle('midlertidigEet', 'Bilag: midlertidigt EET', true);
+export const eoBilagSelectionShDageField = bilagToggle('shDage', 'Bilag: SH-dage', false);
+export const eoBilagSelectionReguleringField = bilagToggle('regulering', 'Bilag: regulering', true);
+export const eoBilagSelectionOkSatserField = bilagToggle('okSatser', 'Bilag: OK-satser', true);
+export const eoBilagSelectionSygeferiegodtgoerelseField = bilagToggle('sygeferiegodtgoerelse', 'Bilag: sygeferiegodtgørelse', false);
 
 // ── AES afgørelser (skalarer) ─────────────────────────────────────────────────────
-export const eoVarigeMenAfgorelseField = jaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse');
+export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse', 'Nej');
 export const eoMenAfgoerelseDatoField = dateField('menAfgoerelseDato', 'Mén-afgørelsesdato');
-export const eoVerserendeKlageMenField = jaNejField('verserendeKlageMen', 'Verserende klage (mén)');
-export const eoMidlertidigtEETAfgorelseField = jaNejField('midlertidigtEETAfgorelse', 'Midlertidigt EET-afgørelse');
+export const eoVerserendeKlageMenField = requiredJaNejField('verserendeKlageMen', 'Verserende klage (mén)', 'Nej');
+export const eoMidlertidigtEETAfgorelseField = requiredJaNejField('midlertidigtEETAfgorelse', 'Midlertidigt EET-afgørelse', 'Nej');
 export const eoMidlertidigEETAfgoerelseDatoField = dateField('midlertidigEETAfgoerelseDato', 'Midlertidigt EET-afgørelsesdato');
 export const eoMidlertidigEETVirkningsdatoField = dateField('midlertidigEETVirkningsdato', 'Midlertidigt EET-virkningsdato');
-export const eoEndeligtEETAfgorelseField = jaNejField('endeligtEETAfgorelse', 'Endeligt EET-afgørelse');
+export const eoEndeligtEETAfgorelseField = requiredJaNejField('endeligtEETAfgorelse', 'Endeligt EET-afgørelse', 'Nej');
 export const eoEndeligEETAfgoerelseDatoField = dateField('endeligEETAfgoerelseDato', 'Endeligt EET-afgørelsesdato');
 export const eoEndeligEETVirkningsdatoField = dateField('endeligEETVirkningsdato', 'Endeligt EET-virkningsdato');
-export const eoVerserendeKlageEetField = jaNejField('verserendeKlageEet', 'Verserende klage (EET)');
+export const eoVerserendeKlageEetField = requiredJaNejField('verserendeKlageEet', 'Verserende klage (EET)', 'Nej');
 export const eoDifferencekravDatoField = dateField('differencekravDato', 'Differencekravsdato');
 
 // ── Svie/smerte (skalarer) ──────────────────────────────────────────────────────
-export const eoKravPaaSvieSmerteGodtgoerelseField = jaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Krav på svie- og smertegodtgørelse');
+export const eoKravPaaSvieSmerteGodtgoerelseField = requiredJaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Krav på svie- og smertegodtgørelse', 'Ja');
 export const eoSvieSmerteHelbredsstatusField = choiceField<Helbredsstatus>(
   'svieSmerteHelbredsstatus', 'Helbredsstatus', ['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt'],
 );
-export const eoTidligereSsMaxField = jaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået');
+export const eoTidligereSsMaxField = requiredJaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej');
 // Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..CURRENT_YEAR er det afledte bounds-issue.
 export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefined>({
   id: 'eo.svieSmerteSatserAar',
@@ -261,14 +263,14 @@ export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefin
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
-export const eoSvieSmerteDelvisSygemeldingSatsField = choiceField<SvieSmerteDelvisSygemeldingSats>(
-  'svieSmerteDelvisSygemeldingSats', 'Sats ved delvis sygemelding', ['fuld', 'halv'],
+export const eoSvieSmerteDelvisSygemeldingSatsField = requiredChoiceField<SvieSmerteDelvisSygemeldingSats>(
+  'svieSmerteDelvisSygemeldingSats', 'Sats ved delvis sygemelding', ['fuld', 'halv'], 'halv',
 );
 export const eoSvieSmerteTidligereTotalField = amountField('svieSmerteTidligereTotal', 'Tidligere udbetalt svie/smerte');
 export const eoSvieSmerteAktuelPeriodeField = amountField('svieSmerteAktuelPeriode', 'Svie/smerte aktuel periode');
 
 // ── TAF (skalarer) ──────────────────────────────────────────────────────────────
-export const eoKravPaaTabtArbejdsfortjenesteField = jaNejSkjulField('kravPaaTabtArbejdsfortjeneste', 'Krav på tabt arbejdsfortjeneste');
+export const eoKravPaaTabtArbejdsfortjenesteField = requiredJaNejSkjulField('kravPaaTabtArbejdsfortjeneste', 'Krav på tabt arbejdsfortjeneste', 'Ja');
 export const eoTafArbejdsstatusField = choiceField<Arbejdsstatus>('tafArbejdsstatus', 'Arbejdsstatus', [
   'Uarbejdsdygtig', 'Delvist raskmeldt', 'Fuldt arbejdsdygtig', 'Fleksjob', 'Revalidering', 'Uddannelse',
   'Førtidspension', 'Seniorpension', 'Folkepension', 'Efterløn', 'Kontanthjælp',
@@ -277,14 +279,14 @@ export const eoSidsteDagAnsaettelsesforholdField = dateField('sidsteDagAnsaettel
 export const eoTidligereModtagetTafField = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF');
 
 // ── Indtægt før skaden (skalarer, fanen lønindkomst) ──────────────────────────────
-export const eoKomprimerBeregningField = jaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Komprimér beregning efter første opgørelse');
-export const eoBeregnesUdFraField = choiceField<Beregningsmetode>(
-  'beregnesUdFra', 'Beregnes ud fra', ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'],
+export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Komprimér beregning efter første opgørelse', 'Ja');
+export const eoBeregnesUdFraField = requiredChoiceField<Beregningsmetode>(
+  'beregnesUdFra', 'Beregnes ud fra', ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'], 'Beregningsperiode',
 );
 export const eoTafBeregningsperiodeFraField = dateField('tafBeregningsperiodeFra', 'Beregningsperiode fra');
 export const eoTafBeregningsperiodeTilField = dateField('tafBeregningsperiodeTil', 'Beregningsperiode til');
 export const eoUspecificeredeFerieFridageField = integerField('uspecificeredeFerieFridage', 'Uspecificerede ferie-/fridage');
-export const eoOevrigtFravaerUdenLoenField = jaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn');
+export const eoOevrigtFravaerUdenLoenField = requiredJaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', 'Nej');
 export const eoOevrigeFravaersdageField = integerField('oevrigeFravaersdage', 'Øvrige fraværsdage');
 export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField('oevrigeFravaersdageBeskrivelse', 'Beskrivelse af øvrige fraværsdage');
 export const eoMaanedsloenenUdgoerField = amountField('maanedsloenenUdgoer', 'Månedslønnen udgør');
@@ -295,7 +297,7 @@ export const eoAngivetDagsloenBaseretPaaField = optionalTextField('angivetDagslo
 export const eoAngivetDagsloenOpreguleresFraDatoField = dateField('angivetDagsloenOpreguleresFraDato', 'Angivet dagsløn opreguleres fra');
 
 // ── Bilagsnumre (skalarer) ────────────────────────────────────────────────────────
-export const eoVisBilagsnumreField = jaNejField('visBilagsnumre', 'Vis bilagsnumre');
+export const eoVisBilagsnumreField = requiredJaNejField('visBilagsnumre', 'Vis bilagsnumre', 'Nej');
 export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse');
 export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser');
 export const eoBilagsnumreSvieSmerteDokumentationField = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation');
@@ -483,9 +485,9 @@ export const eoSfggManuelBeloebIHenholdTilField = sfggField<string | undefined>(
   'sfggManuelBeloebIHenholdTil', 'Beløb i henhold til',
   createOptionalTextFieldCodec(), undefined, isUndefined, 'text',
 );
-export const eoSfggManuelFoerstEfterSygeloenField = sfggField<JaNej | undefined>(
+export const eoSfggManuelFoerstEfterSygeloenField = sfggField<JaNej>(
   'sfggManuelFoerstEfterSygeloen', 'Først efter sygeløn',
-  createChoiceFieldCodec<JaNej>(['Ja', 'Nej']), undefined, isUndefined, 'choice',
+  createRequiredChoiceFieldCodec<JaNej>(['Ja', 'Nej'], 'Nej'), 'Nej', () => false, 'choice',
 );
 export const eoSfggSatsvalgField = sfggField<SygeferiegodtgoerelseSatsvalg | undefined>(
   'sfggSatsvalg', 'Satsvalg',

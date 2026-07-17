@@ -26,6 +26,8 @@ deltagere med symmetrisk lifecycle.
 - Promise-ticks, animation frames, timeouts og effekter er ikke kvitteringer.
 - Samtidige preparations serialiseres, så samme editor ikke finaliseres parallelt.
 - Exception, afvist promise, låst editor eller storagefejl håndteres fail-closed med årsag og fokusmål.
+- Autoritativ load/reset/clear udføres gennem coordinatorens replacement-port: apply kører først, og en åben draft
+  kasseres kun efter en vellykket transaktion. En preparation alene må aldrig kassere draften.
 
 ## 3. Handlingspolicy
 

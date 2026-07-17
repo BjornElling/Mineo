@@ -4,13 +4,26 @@
 migrationsgrundlag. Fase 0–4 har leveret nyttige karakteriseringstests, codecs, inventarer og tekniske erfaringer, men
 ingen af faserne betragtes længere som en færdig del af målarkitekturen. Implementeringen skal rebaseres efter §8.
 
-**Implementeringsstatus (rebase):** Fase 0 og 1 er gennemført, reviewet og kvalitetssikret 2026-07-16. Den tidligere
+**Implementeringsstatus (rebase):** Fase 0 og 1 er gennemført, reviewet og kvalitetssikret 2026-07-16. Fase 2 er
+påbegyndt og blev kritisk reviewet 2026-07-17; den er ikke færdig. Reviewet fjernede den utilsigtede parallelle
+produktionsruntime, så Mineo nu kun monterer greenfield-runtime, mens standalone alene beholder legacy-runtime frem
+til den atomiske Renteberegning-cutover. Runtime, current-envelope, command-runner, aktiv-editor-registry, fælles
+form-surface og det strukturelle produktkatalog er etableret. Stamdata og Satser er de eneste migrerede
+formularsurfaces. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
+ingen runtime-fallback. Reviewet rettede desuden replacement/no-op-matricen, synkron editorregistrering,
+dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede
+tomværdier og rå section-bypass i Stamdata/Satser. Katalogets paths/counts er komplette, men editorlokationer,
+relevans, validators, collection-adaptere og de resterende callsite-cutovers udestår; denne strukturelle completeness
+må derfor ikke omtales som færdig descriptor-completeness.
+
+Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
 forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakteriseringstests/erfaringer. Den
 bindende migrationsplan er §8 (Fase 0–7). Fase 0 har rebaset kontrakterne og etableret de midlertidige, maskinverificerede
 inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie inputkerne i `src/inputCore/` med
 XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
-`ready | blocked`-projektioner. Næste arbejdspakke er Fase 2's atomiske runtime- og inputoverflade-cutover.
+`ready | blocked`-projektioner. Næste arbejdspakke er fortsat Fase 2's atomiske runtime- og inputoverflade-cutover fra
+Årsløn/Fælles årsløn og frem; den delvise hovedapp må ikke repareres med legacy-providers.
 
 Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
@@ -445,7 +458,7 @@ Den fælles persisted editor ejer kun:
 
 - om editoren er åben,
 - den lokale rå draft,
-- åbningsrevision og fokusmetadata,
+- åbnings-replacement-generation og fokusmetadata,
 - det konkrete fokusmål for history/fejlnavigation.
 
 Når editoren er lukket, læses visningen direkte fra den afsluttede revision. Der findes ingen lukket draftkopi,
@@ -540,8 +553,10 @@ bruges af reaktiv gate og click-preflight. Generatoren modtager kun et kilde-tok
   blokeret current-session.
 - den eksisterende centrale systemfejl-/noticeoverflade viser startupfejl og brugerrettede operationsfejl.
 
-Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. Begge app-entrypoints initialiserer den
-samme runtime før render; provider-remount må aldrig rehydrere eller overskrive input.
+Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. Hver app-variant initialiserer sin ene
+aktive runtime før render; provider-remount må aldrig rehydrere eller overskrive input. Under cutoveren skifter en
+variant kun runtime ved en atomisk slice: Mineo må ikke genmontere legacy-provider for at holde ikke-migrerede sider
+funktionelle, og standalone må ikke montere en ubrugt greenfield-runtime ved siden af sin aktive legacy-runtime.
 
 ## 4. Det der bevares, omskrives og slettes
 
@@ -644,8 +659,11 @@ kunne drifte fra slutkatalogerne før cutover.
 
 Feltinventaret udledes fra de levende Zod-schemas, samler `AmountValue`-leaves til ét brugerfelt og udelader kun
 verificerede entity-id-leaves. Den sammenholdes med de eksisterende produktionsbindings, så schema-only legacy og
-bindings uden schema opdages. Codec-/control-annotationer er kun migrationsklassifikation; det endelige descriptor-
-katalog i fase 2 ejer id, typed ref, codec, tomhed, editorlokationer, relevans, validators og beskedkoder.
+bindings uden schema opdages. Codec-/control-annotationer er kun migrationsklassifikation. Det endelige data-descriptor-
+katalog i fase 2 ejer id, typed ref, strukturel adresse, codec, tomhed, relevans, validators og beskedkoder.
+Editorlokationer er overflade-/navigationsmetadata og registreres i den konkrete form-/grid-adapter; de må ikke gøre
+datafeltets descriptor afhængig af route, DOM eller renderer. Completeness bevises derfor separat for datafelter og
+aktive editorlokationer.
 
 ### 6.2 Collectionledger
 
@@ -657,7 +675,8 @@ Collectioninventaret har én entry pr. dynamisk collection og angiver:
 - codec- og kontroltypeklassifikation for child-felterne.
 
 Completeness-testen sammenholder inventaret med Zod-collections og de eksisterende produktionsbindings. Placeholder-
-policy, renderer og add/delete/reorder-entrypoints flyttes direkte til slutdescriptoren i fase 2.
+promotion, row factory samt add/delete/reorder-commands flyttes til den fælles collection-/gridadapter i fase 2.
+Rendereren og editorlokationerne hører til surface-registret, ikke den framework-frie collectiondescriptor.
 
 ### 6.3 Consumerledger
 
@@ -857,18 +876,20 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 
 ### Fase 2 — Atomisk runtime- og inputoverflade-cutover
 
-**Status:** Runtime-fundamentet er bygget og testet 2026-07-16 (internt kontrolpunkt, ikke hele fasen). Bindingslaget i
-`src/inputCore/runtime/` gør den rene kerne levende: current-only envelope (`currentSessionEnvelope.ts`, ny nøgle
-`*_input_v2`, ingen `fieldAddressVersion`/sentinel), slank store (`slimInputStore.ts` — kun input/revision/history/
-settingsRevision/meta, ingen compat-views), den ene write-grænse (`dispatchInput.ts` — union inkl. undo/redo,
-verificeret byte-for-byte session-write, rollback af BÅDE storage og store, force ved autoritativ replacement),
-hydration-før-render med fail-closed korruption (`initializeInputRuntime.ts`) og token-binding
-(`evaluationSourceBinding.ts`). 21 målrettede tests (transaktionsinvarianter §7.4, undo/redo §7.2, styrende valg §3.6,
-envelope-round-trip, hydration/korruption §1.12, tokenfriskhed §3.4); typecheck/typecheck:test/lint grønne.
-Fundamentet har **nul produktionscallsites** (ingen dual-read/write) og er den udpegede erstatning for
-`inputRuntimeStore` + `inputTransactionRunner`. **Udestår i Fase 2:** produkt-descriptor-kataloget (fusion af de 10
-legacy-manifester) og den kompilerings-brydende in-place cutover (2.4/2.5: slet legacy, migrér ~600 callsites, TS-fejl
-= migrationsliste). Editor-laget (§2.3) og kritiske-handlinger-registry (§2.2) følger callsite-migreringen.
+**Status:** Delvist gennemført og kritisk reviewet 2026-07-17 (internt kontrolpunkt, ikke faseafslutning). Den slanke
+runtime, current-only envelope, verificerede command-runner, replacement-generation, aktiv-editor-registry, kritiske
+handlingsbarriere, fælles persisted editor og form-surface er bygget. Produktkataloget dækker strukturelt alle 239
+felter og 16 collections og verificerer nu også schema-defaultede tomværdier; denne test beviser endnu ikke relevans,
+validators, row factories eller editorlokationer. Kun Stamdata og Satser er migreret som surfaces. Satser har en tidlig
+typed projektion og typed brevhovedprojektion, fordi en aktiv rå-section-bypass ville være værre end at flytte denne
+consumerdel frem; det markerer ikke fase 3 eller 5 som gennemført.
+
+Reviewet fjernede hovedappens parallelle `FormPersistenceProvider`, den ubrugte greenfield-runtime i standalone,
+legacy-PWA-load fra Mineos midlertidige entry og singleton-bypass fra React-consumers. Mineo bruger derfor kun den nye
+runtime, selv om de resterende legacy-sider/shell ikke fungerer i mellemtilstanden; standalone bruger kun legacy,
+indtil Renteberegning flyttes atomisk. Udestår: alle resterende formular- og tabelcallsites, de faktiske
+relevans-/validatorregler, collectionadaptere, location-completeness samt sletning af de legacy-bindings og
+runtimeflader, hvis ansvar er overført. Fuld produktsuite er fortsat først gate efter fase 5.
 
 **Afhængighed:** Fase 1.
 
@@ -876,9 +897,11 @@ legacy-manifester) og den kompilerings-brydende in-place cutover (2.4/2.5: slet 
 
 #### 2.1 Slim runtime
 
-1. Byg produktets ene descriptor-/collectionkatalog direkte fra de eksisterende bindings og faktiske editorcallsites;
-   hver descriptor ejer typed read/write, codec, semantisk tomhed, alle editorlokationer, relevans og validators.
-2. Bevis descriptor-/editor-completeness mod fase-0-inventaret, og slet derefter de gamle bindings som del af cutoveren.
+1. Byg produktets ene descriptor-/collectionkatalog direkte fra schemas, verificeret eksisterende adfærd og faktiske
+   editorcallsites; hver datadescriptor ejer typed read/write, codec, semantisk tomhed, relevans og validators.
+   Editorlokationer/renderere registreres separat i surface-laget jf. §6.1–6.2.
+2. Bevis data-descriptor-, collection- og editorlocation-completeness separat mod fase-0-inventaret/callsites, og slet
+   derefter de gamle bindings som del af cutoveren. Path/count-completeness alene er ikke en exitgate.
 3. Erstat runtime-storen med `input`, `revision`, `history` og nødvendig hydration-/systemfejlstatus.
 4. Slet afledte sections/invalidDraft-views, revisionsmaps, epochs, counters og stored fieldErrors.
 5. Erstat typed + legacy runner med én command-union og én entrypoint.
@@ -899,7 +922,7 @@ legacy-manifester) og den kompilerings-brydende in-place cutover (2.4/2.5: slet 
 1. Implementér editoren direkte over `FieldRef`, reader og runner.
 2. Afled lukket visning direkte fra den afsluttede revision.
 3. Seed åben draft fra rejected raw eller `formatForEdit`.
-4. Escape lukker uden command; behold kun åbningsrevision/fokusmetadata og ingen værdibærende startkopi.
+4. Escape lukker uden command; behold kun åbnings-replacement-generation/fokusmetadata og ingen værdibærende startkopi.
 5. Vis feltissue fra den afsluttede revision uændret under redigering.
 6. Implementér form- og grid-adaptere uden parsing/persistence/errorstate.
 7. Hold transient UI-controls eksplicit uden for persisted editor.
@@ -939,6 +962,14 @@ For hver tabel fjernes i samme arbejdspakke:
 - orphan reconcile,
 - kolonneindeks som dataidentitet.
 
+Hvis en migreret surface fortsat har en aktiv beregnings- eller dokumentconsumer, må consumeren ikke holdes i live med
+raw sections eller legacy-runtime. Den må enten være bevidst brudt i den ikke-deploybare mellemtilstand eller flyttes
+frem som en lille typed reader-projektion. En sådan nødvendig fremflytning ændrer ikke fase 3–5's øvrige exitstatus.
+
+Før beløbsfelter og grid-paste migreres, sammenholdes den faktiske nuværende adfærd med form-/keyboardkontrakten:
+legacy-familierne er ikke ens om lukket paste åbner editoren eller committer straks. Da en ensretning er synlig
+UI-adfærd, er uklarheden et stopkriterium og forelægges brugeren; den må ikke afgøres ved at kopiere den første adapter.
+
 #### 2.6 Sletteliste
 
 Slet mindst:
@@ -967,6 +998,7 @@ fase 4, når deres ikke-inputansvar er flyttet til de små porte i §3.10.
 #### Exitkriterier
 
 - Et persisted felt har én ref, én codec, én editor og én commandvej.
+- Alle aktive editorlokationer er dækket af surface-completeness; datafelt-counts kan ikke stå alene.
 - Ingen persisted surface skriver helsektioner eller rejected input direkte.
 - Ingen tabel har en konkurrerende værdikopi.
 - Lukket felt har ingen værdibærende lokal state eller resync-effect.
@@ -982,7 +1014,8 @@ fase 4, når deres ikke-inputansvar er flyttet til de små porte i §3.10.
 
 ### Fase 3 — Domæneprojektioner og ren fejlmodel
 
-**Status:** Ikke påbegyndt.
+**Status:** Ikke systematisk påbegyndt. Satser-projektionen og den typed dokument-stamdataprojektion er flyttet frem
+som en snæver integritetsrettelse efter reglen ovenfor; ingen øvrige fase-3-exitkriterier er dermed opfyldt.
 
 **Afhængighed:** Fase 2. Ingen handoff før fasen er gennemført.
 

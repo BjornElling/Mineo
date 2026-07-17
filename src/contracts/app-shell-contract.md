@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-07-09
+**Senest verificeret mod kode:** 2026-07-17
 
 ## 1. Scope
 
@@ -23,7 +23,12 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 1. **Tynde app-entries; ét sted ejer opstart.** Hver entry (`main.tsx`, `minprocesrenteMain.tsx`) skal være tynd: den vælger app-roden og leverer variant-specifik opstart som callbacks, men delegerer al fælles runtime-opstart (device-gate, render-beslutning, install-prompt) til `bootstrapClientApp`. Device-gate-logik må aldrig duplikeres i en entry.
 
-   Efter device-gaten og før app-roden returneres fra `renderApp`, initialiserer hver understøttet variant sin persistence-runtime præcis én gang via `initializePersistenceRuntime()`. Standalone-entryens namespace-side-effect skal være etableret før dette kald. Den færdige runtime føres eksplicit til app-roden og videre til `FormPersistenceProvider`; unsupported-device hard-stop må ikke initialisere sagsstate.
+   Efter device-gaten og før app-roden returneres fra `renderApp`, initialiseres variantens ene aktive inputruntime
+   præcis én gang. Mineo bruger greenfield-`initializeInputRuntime`; en entry/provider-remount må aldrig rehydrere.
+   Under den ikke-deploybare cutover må en variant aldrig montere både `FormPersistenceProvider` og greenfield-
+   runtime. Standalone beholder derfor sin legacy-runtime alene, indtil Renteberegning-slicen kan skifte entry,
+   surface og consumers atomisk. Standalone-entryens namespace-side-effect skal være etableret før enhver
+   runtimeinitialisering. Unsupported-device hard-stop må ikke initialisere sagsstate.
 
 2. **Device-gaten ejes af app-shellen.** `isUnsupportedDevice` og `UNSUPPORTED_MAX_SCREEN_WIDTH_PX` lever kun i `bootstrapClientApp.tsx`. Rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer (`isTouchLikeDevice`, fysisk skærmbredde/kortside, viewport-kortside, `isTouchLikeDeviceWithShortestSideAtMost`) lever i `src/utils/clientDevice.ts`, så samme aflæsninger kan genbruges uden at duplikere device-logik i sidekomponenter. Ved uunderstøttet enhed renderes `UnsupportedDevicePage` som hård stop, og App-roden monteres ikke. Gaten er **fail-closed**: kan den fysiske skærmbredde ikke aflæses på en touch-lignende enhed, behandles enheden som uunderstøttet. En app-variant kan eksplicit fravælge gaten via `enforceUnsupportedDeviceGate: false` (kun standalone-beregneren, der bevidst skal virke på mobil).
 

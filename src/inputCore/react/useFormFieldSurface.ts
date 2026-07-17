@@ -82,7 +82,10 @@ export const useFormFieldSurface = <T>(
   const { disabled = false, singleStageClick = false, keyFilter, gateKeyFilterOnIssue = false, setPasteCaret = false } = config;
 
   const inputElementRef = React.useRef<HTMLInputElement>(null);
-  const focusTarget = React.useMemo(() => ({ focus: () => inputElementRef.current?.focus() }), []);
+  const focusTarget = React.useMemo(
+    () => ({ focus: () => inputElementRef.current?.focus({ preventScroll: true }) }),
+    []
+  );
   const controller = useFieldEditor(field, location, focusTarget);
   const { isOpen } = controller;
 

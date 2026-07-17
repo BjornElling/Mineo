@@ -78,7 +78,12 @@ const commitCandidate = (
     if (readSessionStorageValue(key) !== serialized) {
       throw new Error('Inputenvelopen kunne ikke genlæses byte-for-byte efter skrivning.');
     }
-    store.getState().applyCommit({ input: persisted, history: nextHistory, committedAt });
+    store.getState().applyCommit({
+      input: persisted,
+      history: nextHistory,
+      committedAt,
+      authoritativeReplacement: force,
+    });
   } catch (error) {
     const rollbackErrors: Error[] = [];
     try {

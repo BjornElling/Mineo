@@ -4,10 +4,10 @@ import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
 import { downloadSatserDokument } from '../../document/service/documentService';
 import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import GreenfieldYearField from '../../inputCore/react/fields/GreenfieldYearField';
-import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
-import { captureProductionDownloadSource } from '../../inputCore/react/productionInputRuntime';
-import { criticalActionCoordinator } from '../../inputCore/runtime/criticalActionCoordinator';
+import { useCriticalInputActions, useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
+import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
 import { projectSatser } from '../../domain/satser/satserProjection';
+import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
 import InfoTooltipIcon from '../common/InfoTooltipIcon';
@@ -15,11 +15,12 @@ import { formatAsAmount, formatKr, formatPercent } from '../../utils/formatUtils
 import type { RetsinfoLink } from '../../data/retsinfoLinks';
 
 // Greenfield-migreret (§2.4 formularrækkefølge trin 2 + Fase 3 Satser-slice). Erstatter den legacy
-// `usePersistedForm`+`StyledYearField`+`useFormFieldErrorReporter`+`buildSatserInputProjection`-vej med:
+// Den gamle persistence-/feltfejl-/projektionvej er erstattet med:
 //  - `GreenfieldYearField` (field = descriptor.bind(), location = stabilt locationId) — ingen value/onCommit/
 //    minYear/maxYear/onFieldError; satsårets commit-interval er codec-`range` → rødt issue.
 //  - `projectSatser(reader)` over den offentlige `InputReader` (`useInputEvaluation`) til visning OG gate.
-//  - `captureProductionDownloadSource` + greenfield `criticalActionCoordinator` til download-preflight (§1.4/§3.9).
+//  - samme runtimebindings coordinator + frisk typed evaluation til download-preflight (§1.4/§3.9).
+// Brevhovedet går gennem en typed Stamdata-projektion; rå sektioner forlader aldrig runtimebindingen.
 // Default-satsåret for en frisk sag seedes committed ved bootstrap (`seedSatserNewCase`), ikke som skygge-visning.
 
 /**
@@ -124,39 +125,48 @@ const aargangLocation = { locationId: 'satser:aargang' } as const;
 const Satser = React.memo(() => {
   const { settings } = useAppSettings();
   const evaluation = useInputEvaluation();
+  const criticalActions = useCriticalInputActions();
 
   // Vist = beregnet (§3.9): både sidevisning og downloadgate udledes af SAMME reader-projektion. Et out-of-bounds
   // eller tomt år giver `blocked` → satser skjules og download blokeres; kun et gyldigt år giver `ready`.
   const projection = React.useMemo(() => projectSatser(evaluation.reader), [evaluation]);
+  const stamdataProjection = React.useMemo(
+    () => projectStamdataForDocument(evaluation.reader, 'document.satser'),
+    [evaluation]
+  );
   const effectiveYear = projection.status === 'ready' ? projection.value.year : undefined;
   const satser = projection.status === 'ready' ? projection.value.satser : null;
-  const canDownload = projection.status === 'ready';
-  const disabledReason = projection.status === 'blocked' ? projection.issues[0]?.message : undefined;
+  const canDownload = projection.status === 'ready' && stamdataProjection.status === 'ready';
+  const disabledReason = projection.status === 'blocked'
+    ? projection.issues[0]?.message
+    : stamdataProjection.status === 'blocked'
+      ? stamdataProjection.issues[0]?.message
+      : undefined;
 
   // Håndter download af PDF
   const handleDownloadPdf = React.useCallback(async () => {
     // §1.4: download settler først den åbne editor og evaluerer derefter et frisk kildesnapshot.
-    const preparation = await criticalActionCoordinator.prepare('download');
-    if (preparation.status === 'blocked') {
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status !== 'blocked') return;
       preparation.target?.focus();
       return;
     }
 
     // Frisk, stabilt kildesnapshot efter settle (§3.9): projektion + freshness-closure bygges HER, ikke fra render.
-    const source = captureProductionDownloadSource();
+    const source = captureProductionEvaluationSource();
     const latest = projectSatser(source.evaluation.reader);
-    if (latest.status !== 'ready') return;
+    const latestStamdata = projectStamdataForDocument(source.evaluation.reader, 'document.satser');
+    if (latest.status !== 'ready' || latestStamdata.status !== 'ready') return;
 
     await downloadSatserDokument({
       year: latest.value.year,
       satser: latest.value.satser,
       isSourceCurrent: source.isSourceCurrent,
       settings,
-      // Brevhoved-stamdata læses tolerant fra den rå sektion (dokument-context, ikke en gate) — se
-      // `resolvePdfStamdata`. Satser-gaten er allerede afgjort af reader-projektionen ovenfor.
-      persistedStamdata: source.input.sections.stamdata,
+      persistedStamdata: latestStamdata.value,
     });
-  }, [settings]);
+  }, [criticalActions, settings]);
 
   const renderReferenceValue = React.useCallback((links: readonly RetsinfoLink[]) => {
     if (links.length === 0) return '';

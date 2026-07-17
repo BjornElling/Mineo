@@ -27,6 +27,7 @@ import {
 } from '../../../inputCore';
 import { createValidationReader } from '../../../inputCore/inputReader';
 import { getCurrentInputEnvelopeStorageKey } from '../../../config/storageManifest';
+import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import {
   createTestCatalog,
   aargangField,
@@ -269,6 +270,15 @@ describe('currentSessionEnvelope', () => {
     expect(() => parseCurrentEnvelope(wrongVersion)).toThrow();
     expect(() => parseCurrentEnvelope('ikke json{')).toThrow();
   });
+
+  it('afviser en anden persisted dataversion som current-session-korruption', () => {
+    const serialized = JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())) as Record<string, unknown>;
+    expect(serialized.persistedDataVersion).toBe(PERSISTED_DATA_VERSION);
+    expect(() => parseCurrentEnvelope(JSON.stringify({
+      ...serialized,
+      persistedDataVersion: 'forældet-version',
+    }))).toThrow();
+  });
 });
 
 describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', () => {
@@ -311,6 +321,20 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
     expect(parseCurrentEnvelope(sessionStorage.getItem(key)!)).toEqual(createEmptySettledInput());
     // Efter recovery er writes tilladt igen.
     expect(dispatchInput(store, catalog, settleField(aargangField.bind(), '2020')).changed).toBe(true);
+  });
+
+  it('fail-closer en envelope med anden persisted dataversion og bevarer de rå bytes', () => {
+    const raw = JSON.stringify({
+      ...JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())),
+      persistedDataVersion: 'forældet-version',
+    });
+    sessionStorage.setItem(key, raw);
+
+    const startup = initializeInputRuntime(store, catalog);
+
+    expect(startup.notice?.type).toBe('error');
+    expect(store.getState().meta.inputWritesBlocked).toBe(true);
+    expect(sessionStorage.getItem(key)).toBe(raw);
   });
 });
 

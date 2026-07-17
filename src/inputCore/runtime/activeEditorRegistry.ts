@@ -20,6 +20,8 @@ export type ActiveEditor = Readonly<{
   id: string;
   isEditing: () => boolean;
   settle: () => void | Promise<void>;
+  /** Kasserer den åbne draft uden command efter en vellykket autoritativ replacement. */
+  discard: () => void;
   getFocusTarget?: () => EditorFocusTarget | null;
 }>;
 
@@ -50,5 +52,5 @@ export class ActiveEditorRegistry {
   }
 }
 
-/** Applikations-singleton (jf. `slimInputStore`). Begge app-entrypoints deler samme register. */
+/** Mineo-runtime-singleton. Standalone tilkobles først ved sin atomiske runtime-cutover. */
 export const activeEditorRegistry = new ActiveEditorRegistry();

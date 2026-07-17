@@ -2,12 +2,14 @@ import * as React from 'react';
 import { useSyncExternalStore } from 'react';
 import type { InputCatalog } from '../fieldCatalog';
 import type { SettledInput } from '../settledInput';
-import type { InputRevision } from '../evaluationSource';
+import { sourceTokensEqual, type InputRevision } from '../evaluationSource';
 import type { FieldIssueSnapshot } from '../inputIssue';
+import type { InputEvaluation } from '../inputReader';
 import { dispatchInput, type DispatchInputResult, type RuntimeInputCommand } from '../runtime/dispatchInput';
 import type { HistoryOrigin } from '../inputHistory';
 import type { SlimInputStore } from '../runtime/slimInputStore';
 import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
+import { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator';
 
 // Greenfield-React (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Til forskel fra den legacy
 // `FormPersistenceContext` eksponerer den hverken rå sektioner, `invalidDrafts`, `fieldErrors` eller skrivbare
@@ -17,7 +19,11 @@ import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
 // injiceres et syntetisk snapshot i test (§2.3-verifikation).
 
 /** Det aktuelle afsluttede input bundet til sin revision. Adapteren afleder lukket visning HERFRA (§3.5). */
-export type SettledSnapshot = Readonly<{ input: SettledInput; revision: InputRevision }>;
+export type SettledSnapshot = Readonly<{
+  input: SettledInput;
+  revision: InputRevision;
+  replacementGeneration: number;
+}>;
 
 export type InputRuntimeBinding = Readonly<{
   catalog: InputCatalog;
@@ -27,12 +33,15 @@ export type InputRuntimeBinding = Readonly<{
   subscribe: (listener: () => void) => () => void;
   /** Det aktuelle tokenbundne feltissue-snapshot (§1.8). */
   getIssues: () => FieldIssueSnapshot;
+  /** Offentlig, tokenbundet reader til projektioner; rå sections forlader aldrig runtimebindingen. */
+  getEvaluation: () => InputEvaluation;
   /** Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands. */
   dispatch: <TField, TEntity>(
     command: RuntimeInputCommand<TField, TEntity>,
     origin?: HistoryOrigin
   ) => DispatchInputResult;
   registry: ActiveEditorRegistry;
+  criticalActions: CriticalActionCoordinator;
 }>;
 
 const InputRuntimeContext = React.createContext<InputRuntimeBinding | null>(null);
@@ -60,23 +69,40 @@ export const createInputRuntimeBinding = (
   store: SlimInputStore,
   catalog: InputCatalog,
   registry: ActiveEditorRegistry,
-  getIssues: () => FieldIssueSnapshot
+  getEvaluation: () => InputEvaluation,
+  getIssues: () => FieldIssueSnapshot = () => getEvaluation().issues
 ): InputRuntimeBinding => {
   let cached: SettledSnapshot | null = null;
+  let cachedIssues: FieldIssueSnapshot | null = null;
   const getSettled = (): SettledSnapshot => {
     const state = store.getState();
     if (cached === null || cached.revision !== state.revision) {
-      cached = Object.freeze({ input: state.input, revision: state.revision });
+      cached = Object.freeze({
+        input: state.input,
+        revision: state.revision,
+        replacementGeneration: state.replacementGeneration,
+      });
     }
     return cached;
+  };
+  const getStableIssues = (): FieldIssueSnapshot => {
+    const next = getIssues();
+    if (cachedIssues === null || !sourceTokensEqual(cachedIssues.sourceToken, next.sourceToken)) {
+      cachedIssues = next;
+    }
+    return cachedIssues;
   };
   return Object.freeze({
     catalog,
     getSettled,
     subscribe: (listener) => store.subscribe(listener),
-    getIssues,
+    // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme
+    // rene issueprojektion, så en leverandør, der bygger et nyt wrapperobjekt pr. kald, normaliseres her.
+    getIssues: getStableIssues,
+    getEvaluation,
     dispatch: (command, origin) => dispatchInput(store, catalog, command, origin === undefined ? {} : { origin }),
     registry,
+    criticalActions: new CriticalActionCoordinator(store, registry),
   });
 };
 

@@ -20,14 +20,13 @@ import {
   dispatchInput,
   initializeInputRuntime,
   captureStableInputEvaluation,
-  readSourceToken,
   type SlimInputStore,
 } from '../../../inputCore/runtime';
 import {
   insertRow,
+  settleField,
   clearCase,
   serializeFieldAddress,
-  createInputRevision,
   type FieldRef,
   type InputCatalog,
 } from '../../../inputCore';
@@ -76,7 +75,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
   it('åben draft ændrer intet afsluttet input eller revision (§1.2)', () => {
     // Afsæt en gyldig værdi.
     dispatchInput(store, catalog, settleIntentToCommand(
-      settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), readSourceToken(store).inputRevision), '2010')).intent
+      settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().replacementGeneration), '2010')).intent
     )!.command, {});
     const revisionEfterCommit = store.getState().revision;
 
@@ -161,7 +160,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
 
   it('eksisterende rød fejl bliver stående uændret under redigering; ny fejl vises først efter settle (§1.2)', () => {
     // afsæt en rejected format-fejl (ren ikke-parsebar tekst)
-    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), 'abc')));
+    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().replacementGeneration), 'abc')));
     const issueFoer = activeFieldIssueFor(evaluate().issues, aargangRef);
     expect(issueFoer?.reason).toBe('format');
 
@@ -237,22 +236,33 @@ describe('felt-editor-engine — visning, issues og immediate commit', () => {
     expect(translated?.command.kind).toBe('clearField');
   });
 
-  it('åbningsrevisionen fastholdes, så en senere autoritativ replacement kan opdages som stale', () => {
-    const editor = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), createInputRevision(store.getState().revision));
-    expect(editor.open?.openedAtRevision).toBe(store.getState().revision);
+  it('replacement-generationen fastholdes ved åbning', () => {
+    const editor = openEditor(
+      createClosedEditor(aargangRef, LOC),
+      viewOf(aargangRef),
+      store.getState().replacementGeneration
+    );
+    expect(editor.open?.openedAtReplacementGeneration).toBe(store.getState().replacementGeneration);
   });
 
   it('isSettleStale opdager en autoritativ replacement, mens editoren er åben (§3.5)', () => {
-    const editor = changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '2010');
-    // Ikke stale endnu: intet har hævet revisionen, mens editoren var åben.
-    expect(isSettleStale(editor, store.getState().revision)).toBe(false);
+    const editor = changeDraft(openEditor(
+      createClosedEditor(aargangRef, LOC),
+      viewOf(aargangRef),
+      store.getState().replacementGeneration
+    ), '2010');
+    expect(isSettleStale(editor, store.getState().replacementGeneration)).toBe(false);
 
-    // En autoritativ hel-sags-replacement (fx load/reset) hæver revisionen uden at settle editoren (§1.4).
+    // Et almindeligt commit må ikke ligne en replacement.
+    dispatchInput(store, catalog, settleField(aargangRef, '2020'), {});
+    expect(isSettleStale(editor, store.getState().replacementGeneration)).toBe(false);
+
+    // En autoritativ hel-sags-replacement hæver kun replacement-generationen.
     dispatchInput(store, catalog, clearCase(), {});
-    expect(isSettleStale(editor, store.getState().revision)).toBe(true);
+    expect(isSettleStale(editor, store.getState().replacementGeneration)).toBe(true);
 
     // En lukket editor er aldrig stale.
-    expect(isSettleStale(cancelEditor(editor), store.getState().revision)).toBe(false);
+    expect(isSettleStale(cancelEditor(editor), store.getState().replacementGeneration)).toBe(false);
   });
 });
 
@@ -260,7 +270,7 @@ describe('felt-editor i dynamisk række — placeholder-first-invalid overlever 
   it('første fejlende settle i en ny række promoverer rækken og bevarer den rå tekst', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('row-a')), {});
     const belob = belobField.bind('row-a');
-    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(belob, { locationId: 'grid:belob:row-a' }), deriveSettledFieldView(store.getState().input, belob), store.getState().revision), 'ikke-et-beløb')));
+    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(belob, { locationId: 'grid:belob:row-a' }), deriveSettledFieldView(store.getState().input, belob), store.getState().replacementGeneration), 'ikke-et-beløb')));
 
     const view = deriveSettledFieldView(store.getState().input, belob);
     expect(view.kind).toBe('rejected');

@@ -1,5 +1,4 @@
 import type { FieldRef } from '../fieldDescriptor';
-import type { InputRevision } from '../evaluationSource';
 import type { RejectedInput } from '../settledInput';
 
 // Greenfield-kerne (§3.5, mineo-field-pattern Lag B): ÉN felt-editor-state-machine for både formular og
@@ -33,8 +32,8 @@ export type FieldEditorState<T> = Readonly<{
    */
   open: Readonly<{
     draft: string;
-    /** Revisionen editoren blev åbnet på. En autoritativ replacement på en nyere revision må ikke settle. */
-    openedAtRevision: InputRevision;
+    /** Replacement-generationen ved åbning; almindelige inputcommits gør ikke editoren stale. */
+    openedAtReplacementGeneration: number;
   }> | null;
 }>;
 
@@ -60,25 +59,28 @@ export const isEditorOpen = <T>(state: FieldEditorState<T>): boolean => state.op
 export const openEditor = <T>(
   state: FieldEditorState<T>,
   view: SettledFieldView<T>,
-  currentRevision: InputRevision,
+  currentReplacementGeneration: number,
   initialKey?: string
 ): FieldEditorState<T> => {
   if (state.open !== null) return state;
   return Object.freeze({
     ...state,
-    open: Object.freeze({ draft: seedDraft(state.field, view, initialKey), openedAtRevision: currentRevision }),
+    open: Object.freeze({
+      draft: seedDraft(state.field, view, initialKey),
+      openedAtReplacementGeneration: currentReplacementGeneration,
+    }),
   });
 };
 
 /**
- * Om et settle ville lande på en NYERE revision end den, editoren blev åbnet på (§3.5, mineo-field-pattern
+ * Om et settle ville lande efter en autoritativ replacement siden editorens åbning (§3.5, mineo-field-pattern
  * Lag B: "En autoritativ replacement kan ikke passere commit-barrieren, mens editoren er åben"). En autoritativ
- * hel-sags-replacement (load/reset/`Slet alt`) hæver revisionen; en åben editor må da ikke settle sin draft
- * ind i den erstattede tilstand. Runtime-bindingen konsulterer denne før den udsteder et settle-intent.
+ * hel-sags-replacement (load/reset/`Slet alt`) hæver replacement-generationen; almindelige feltcommits gør ikke.
+ * Runtime-bindingen konsulterer denne før den udsteder et settle-intent.
  * En lukket editor er aldrig stale.
  */
-export const isSettleStale = <T>(state: FieldEditorState<T>, currentRevision: InputRevision): boolean =>
-  state.open !== null && currentRevision !== state.open.openedAtRevision;
+export const isSettleStale = <T>(state: FieldEditorState<T>, currentReplacementGeneration: number): boolean =>
+  state.open !== null && currentReplacementGeneration !== state.open.openedAtReplacementGeneration;
 
 /** Ændrer KUN den åbne draft (§1.2). Er editoren lukket, er det et no-op. */
 export const changeDraft = <T>(state: FieldEditorState<T>, draft: string): FieldEditorState<T> => {

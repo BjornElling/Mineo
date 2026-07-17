@@ -13,7 +13,7 @@ import {
   useFormFieldSurface,
   type InputRuntimeBinding,
 } from '../../../inputCore/react';
-import { createValidationReader } from '../../../inputCore/inputReader';
+import { createInputEvaluation, createValidationReader } from '../../../inputCore/inputReader';
 import {
   settleField,
   serializeFieldAddress,
@@ -55,7 +55,21 @@ const buildIssues = (): FieldIssueSnapshot => {
 };
 
 const makeBinding = (): InputRuntimeBinding =>
-  createInputRuntimeBinding(store, catalog, registry, buildIssues);
+  createInputRuntimeBinding(
+    store,
+    catalog,
+    registry,
+    () => {
+      const state = store.getState();
+      return createInputEvaluation({
+        input: state.input,
+        catalog,
+        sourceToken: createEvaluationSourceToken(state.revision, state.settingsRevision),
+        settings: {},
+      });
+    },
+    buildIssues
+  );
 
 const wrapper = (binding: InputRuntimeBinding) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) =>
@@ -148,6 +162,22 @@ describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
     act(() => result.current.onKeyDown(keyEvent('Escape')));
     expect(result.current.isOpen).toBe(false);
     act(() => result.current.onBlur(focusEvent()));
+    expect(canonical(field)).toBe(2020);
+    expect(store.getState().revision).toBe(revBefore);
+  });
+
+  it('Escape og blur i samme task kan ikke committe den annullerede draft', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderSurface(field);
+    const revBefore = store.getState().revision;
+    act(() => result.current.onKeyDown(keyEvent('9')));
+    act(() => result.current.onDraftChange('2099'));
+
+    act(() => {
+      result.current.onKeyDown(keyEvent('Escape'));
+      result.current.onBlur(focusEvent());
+    });
+
     expect(canonical(field)).toBe(2020);
     expect(store.getState().revision).toBe(revBefore);
   });

@@ -9,11 +9,12 @@ import type { ISODateString } from '../../types/branded';
 import { CURRENT_YEAR, MIN_YEAR } from '../../config/dateRanges';
 import {
   booleanFieldCodec,
+  createBooleanFieldCodec,
   createAmountFieldCodec,
-  createChoiceFieldCodec,
   createDateFieldCodec,
   createIntegerFieldCodec,
   createPercentFieldCodec,
+  createRequiredChoiceFieldCodec,
   createStringBackedFieldCodec,
   createWeekFieldCodec,
   createYearFieldCodec,
@@ -51,54 +52,57 @@ export const aarsloenShSoPctField = percentField('shSoPct', 'SH/SO-sats');
 export const aarsloenStoreBededagPctField = percentField('storeBededagPct', 'Store Bededagstillæg');
 export const aarsloenPensionPctField = percentField('pensionPct', 'Arbejdsgivers pensionsbidrag');
 
-export const aarsloenLoenperiodeField = defineStructuralField<Loenperiode | undefined>({
+export const aarsloenLoenperiodeField = defineStructuralField<Loenperiode>({
   id: 'aarsloen.loenperiode',
   template: { section: 'aarsloen', path: [], field: 'loenperiode' },
-  codec: createChoiceFieldCodec<Loenperiode>(['maaned', 'uge', 'dag']),
-  emptyValue: undefined,
-  isEmpty: isUndefined,
+  codec: createRequiredChoiceFieldCodec<Loenperiode>(['maaned', 'uge', 'dag'], 'maaned'),
+  emptyValue: 'maaned',
+  isEmpty: () => false,
   label: 'Løn indtastes som',
   controlKind: 'choice',
   createEmptySection: createEmptyAarsloenSection,
 });
 
-export const aarsloenTillaegAngivesSomField = defineStructuralField<TillaegAngivesSom | undefined>({
+export const aarsloenTillaegAngivesSomField = defineStructuralField<TillaegAngivesSom>({
   id: 'aarsloen.tillaegAngivesSom',
   template: { section: 'aarsloen', path: [], field: 'tillaegAngivesSom' },
-  codec: createChoiceFieldCodec<TillaegAngivesSom>(['procent', 'beloeb']),
-  emptyValue: undefined,
-  isEmpty: isUndefined,
+  codec: createRequiredChoiceFieldCodec<TillaegAngivesSom>(['procent', 'beloeb'], 'procent'),
+  emptyValue: 'procent',
+  isEmpty: () => false,
   label: 'Tillæg angives som',
   controlKind: 'choice',
   createEmptySection: createEmptyAarsloenSection,
 });
 
-export const aarsloenLoenPaaHelligdageField = defineStructuralField<LoenPaaHelligdage | undefined>({
+export const aarsloenLoenPaaHelligdageField = defineStructuralField<LoenPaaHelligdage>({
   id: 'aarsloen.loenPaaHelligdage',
   template: { section: 'aarsloen', path: [], field: 'loenPaaHelligdage' },
-  codec: createChoiceFieldCodec<LoenPaaHelligdage>(['Almindelig løn', 'SH-udbetaling', 'Ingen']),
-  emptyValue: undefined,
-  isEmpty: isUndefined,
+  codec: createRequiredChoiceFieldCodec<LoenPaaHelligdage>(
+    ['Almindelig løn', 'SH-udbetaling', 'Ingen'],
+    'Almindelig løn'
+  ),
+  emptyValue: 'Almindelig løn',
+  isEmpty: () => false,
   label: 'Løn på helligdage',
   controlKind: 'choice',
   createEmptySection: createEmptyAarsloenSection,
 });
 
-const toggle = (field: string, label: string): FieldDescriptor<boolean> =>
+const toggle = (field: string, label: string, emptyValue: boolean): FieldDescriptor<boolean> =>
   defineStructuralField<boolean>({
     id: `aarsloen.${field}`,
     template: { section: 'aarsloen', path: [], field },
-    codec: booleanFieldCodec,
-    emptyValue: false,
+    codec: emptyValue ? createBooleanFieldCodec(true) : booleanFieldCodec,
+    emptyValue,
     isEmpty: () => false,
     label,
     controlKind: 'toggle',
     createEmptySection: createEmptyAarsloenSection,
   });
 
-export const aarsloenOmregningTilFuldtAarField = toggle('omregningTilFuldtAar', 'Omregning til fuldt år');
-export const aarsloenFuldLoenUnderFerieField = toggle('fuldLoenUnderFerie', 'Fuld løn under ferie');
-export const aarsloenRetTilSjetteFerieugeField = toggle('retTilSjetteFerieuge', 'Ret til 6. ferieuge');
+export const aarsloenOmregningTilFuldtAarField = toggle('omregningTilFuldtAar', 'Omregning til fuldt år', false);
+export const aarsloenFuldLoenUnderFerieField = toggle('fuldLoenUnderFerie', 'Fuld løn under ferie', true);
+export const aarsloenRetTilSjetteFerieugeField = toggle('retTilSjetteFerieuge', 'Ret til 6. ferieuge', true);
 
 // 0..99 er en afledt bounds-issue, ikke codec-config.
 export const aarsloenAntalFeriedageField = defineStructuralField<number | undefined>({

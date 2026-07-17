@@ -8,10 +8,11 @@ import type {
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas/sections/erhvervsevnetabSchemas';
 import type { ISODateString } from '../../types/branded';
 import {
-  booleanFieldCodec,
+  createBooleanFieldCodec,
   createChoiceFieldCodec,
   createDateFieldCodec,
   createPercentFieldCodec,
+  createRequiredChoiceFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import type { FieldAddressTemplate, FieldDescriptor } from '../fieldDescriptor';
@@ -67,8 +68,8 @@ const eetToggle = (field: string, label: string): FieldDescriptor<boolean> =>
   defineStructuralField<boolean>({
     id: `erhvervsevnetab.${field}`,
     template: { section: 'erhvervsevnetab', path: [], field },
-    codec: booleanFieldCodec,
-    emptyValue: false,
+    codec: createBooleanFieldCodec(true),
+    emptyValue: true,
     isEmpty: () => false,
     label,
     controlKind: 'toggle',
@@ -91,25 +92,25 @@ const bilagTemplate = (field: string): FieldAddressTemplate => ({
   field,
 });
 
-const bilagToggle = (field: string, label: string): FieldDescriptor<boolean> =>
+const bilagToggle = (field: string, label: string, emptyValue: boolean): FieldDescriptor<boolean> =>
   defineStructuralField<boolean>({
     id: `erhvervsevnetab.eetDifferencekravBilagSelection.${field}`,
     template: bilagTemplate(field),
-    codec: booleanFieldCodec,
-    emptyValue: false,
+    codec: createBooleanFieldCodec(emptyValue),
+    emptyValue,
     isEmpty: () => false,
     label,
     controlKind: 'toggle',
     createEmptySection: createEmptyErhvervsevnetabSection,
   });
 
-export const erhvervsevnetabBilagLoebendeYdelserField = bilagToggle('loebendeYdelser', 'Løbende ydelser');
-export const erhvervsevnetabBilagKapitaliseringField = bilagToggle('kapitalisering', 'Kapitalisering');
-export const erhvervsevnetabBilagEetEfterEalField = bilagToggle('eetEfterEal', 'EET efter EAL');
-export const erhvervsevnetabBilagProformaKapitaliseringField = bilagToggle('proformaKapitalisering', 'Proformakap. af rest-EET');
-export const erhvervsevnetabBilagMerErstatningPensionsalderField = bilagToggle('merErstatningPensionsalder', 'Mer-erstatning forhøjet folkepension');
-export const erhvervsevnetabBilagVisUdvidetSpecifikationField = bilagToggle('visUdvidetSpecifikation', 'Vis udvidet specifikation');
-export const erhvervsevnetabBilagVisUdvidetSpecLoebendeField = bilagToggle('visUdvidetSpecifikationLoebendeYdelserBilag', 'Medtag udvidet specifikation på løbende ydelser');
+export const erhvervsevnetabBilagLoebendeYdelserField = bilagToggle('loebendeYdelser', 'Løbende ydelser', true);
+export const erhvervsevnetabBilagKapitaliseringField = bilagToggle('kapitalisering', 'Kapitalisering', true);
+export const erhvervsevnetabBilagEetEfterEalField = bilagToggle('eetEfterEal', 'EET efter EAL', true);
+export const erhvervsevnetabBilagProformaKapitaliseringField = bilagToggle('proformaKapitalisering', 'Proformakap. af rest-EET', true);
+export const erhvervsevnetabBilagMerErstatningPensionsalderField = bilagToggle('merErstatningPensionsalder', 'Mer-erstatning forhøjet folkepension', true);
+export const erhvervsevnetabBilagVisUdvidetSpecifikationField = bilagToggle('visUdvidetSpecifikation', 'Vis udvidet specifikation', false);
+export const erhvervsevnetabBilagVisUdvidetSpecLoebendeField = bilagToggle('visUdvidetSpecifikationLoebendeYdelserBilag', 'Medtag udvidet specifikation på løbende ydelser', false);
 
 // ── Samlingen aslAfgoerelser ─────────────────────────────────────────────────────
 export const erhvervsevnetabAslAfgoerelserCollection = defineStructuralCollection<AslAfgoerelseRow>({
@@ -168,12 +169,12 @@ export const aslAfgoerelseAfgoerelseTypeField = defineStructuralField<Afgoerelse
 
 // fsTilbageholdtEet er en defaulted enum ('Nej'); choice-codecet parser tom tekst til undefined, men den
 // optræder aldrig i en committed række (schemaet defaulter). Readeren returnerer den defaultede canonical værdi.
-export const aslAfgoerelseFsTilbageholdtEetField = defineStructuralField<JaNej | undefined>({
+export const aslAfgoerelseFsTilbageholdtEetField = defineStructuralField<JaNej>({
   id: 'erhvervsevnetab.aslAfgoerelser.fsTilbageholdtEet',
   template: aslRowTemplate('fsTilbageholdtEet'),
-  codec: createChoiceFieldCodec<JaNej>(['Ja', 'Nej']),
-  emptyValue: undefined,
-  isEmpty: isUndefined,
+  codec: createRequiredChoiceFieldCodec<JaNej>(['Ja', 'Nej'], 'Nej'),
+  emptyValue: 'Nej',
+  isEmpty: () => false,
   label: 'FS tilbageholdt EET',
   controlKind: 'choice',
   createEmptySection: createEmptyErhvervsevnetabSection,

@@ -9,7 +9,6 @@ import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import { FormPersistenceProvider, initializePersistenceRuntime } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
-import Stamdata from '../../components/pages/Stamdata';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { __resetUndoRedoStoreForTests, undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
@@ -20,6 +19,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatnin
 import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
 import { toISODateString } from '../../types/branded';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 
 const VALID_META = { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION };
 
@@ -79,12 +79,37 @@ const TargetPage = () => {
   );
 };
 
+// Stamdata er migreret til greenfield-runtime og må ikke trækkes tilbage under legacy-provider i denne
+// karakterisering af den gamle undo-port. En ren testfixture viser derfor legacy-snapshottet uden produktionsimport.
+const LegacyStamdataUndoFixture = () => {
+  const state = React.useSyncExternalStore(
+    formPersistenceStore.subscribe,
+    formPersistenceStore.getState,
+    formPersistenceStore.getState
+  );
+  const values = state.sections.stamdata ?? {};
+  const invalid = state.invalidDrafts.stamdata;
+  const input = (fieldPath: string, value: string) => (
+    <input data-mineo-undo-field-path={fieldPath} value={value} readOnly />
+  );
+  return (
+    <div>
+      {input('journalnr', invalid.journalnr ?? values.journalnr ?? '')}
+      {input('skadelidte', invalid.skadelidte ?? values.skadelidte ?? '')}
+      {input(
+        'skadelidteFodselsdato',
+        invalid.skadelidteFodselsdato ?? formatISOToDanish(values.skadelidteFodselsdato)
+      )}
+    </div>
+  );
+};
+
 const StamdataControls = () => {
   controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/satser" element={<div>Satser</div>} />
-      <Route path="/stamdata" element={<Stamdata />} />
+      <Route path="/stamdata" element={<LegacyStamdataUndoFixture />} />
     </Routes>
   );
 };

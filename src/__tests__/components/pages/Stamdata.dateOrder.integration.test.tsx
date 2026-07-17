@@ -4,34 +4,33 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Stamdata from '../../../components/pages/Stamdata';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
-import { CriticalActionProvider } from '../../../criticalActions/CriticalActionContext';
-import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
-import { createEmptyFormPersistenceSections, formPersistenceStore } from '../../../stores/formPersistenceStore';
+import {
+  ProductionInputRuntimeProvider,
+  bootstrapProductionInputRuntime,
+} from '../../../inputCore/react';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../../inputCore/catalog/stamdataDescriptors';
 
 const renderPage = () => {
   sessionStorage.clear();
-  formPersistenceStore.setState({
-    sections: createEmptyFormPersistenceSections(),
-    meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
-  });
-  formPersistenceStore.getState().clearAllFieldErrors();
-  formPersistenceStore.getState().clearAllInvalidDrafts();
-
-  return render(
-    <MemoryRouter initialEntries={['/stamdata']}>
-      <AppSettingsProvider>
-        <RoutePathnameProvider>
-          <CriticalActionProvider>
-            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+  const { binding } = bootstrapProductionInputRuntime();
+  return {
+    binding,
+    ...render(
+      <MemoryRouter initialEntries={['/stamdata']}>
+        <AppSettingsProvider>
+          <RoutePathnameProvider>
+            <ProductionInputRuntimeProvider binding={binding}>
               <Stamdata />
-            </FormPersistenceProvider>
-          </CriticalActionProvider>
-        </RoutePathnameProvider>
-      </AppSettingsProvider>
-    </MemoryRouter>
-  );
+            </ProductionInputRuntimeProvider>
+          </RoutePathnameProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    ),
+  };
 };
 
 const inputForRow = (label: string): HTMLInputElement => {
@@ -40,9 +39,9 @@ const inputForRow = (label: string): HTMLInputElement => {
 };
 
 describe('Stamdata — canonical datoordensfejl', () => {
-  it('committer begge datoer canonical og viser et blokerende issue på begge felter', async () => {
+  it('bevarer begge datoer canonical og viser samme afledte issue på felterne', async () => {
     const user = userEvent.setup();
-    renderPage();
+    const { binding } = renderPage();
     const fodselsdato = inputForRow('Fødselsdato');
     const skadedato = inputForRow('Skadedato');
 
@@ -54,26 +53,24 @@ describe('Stamdata — canonical datoordensfejl', () => {
     await user.tab();
 
     await waitFor(() => {
-      expect(formPersistenceStore.getState().sections.stamdata).toEqual(expect.objectContaining({
-        skadelidteFodselsdato: '2010-01-01',
-        skadedato: '2009-12-31',
-      }));
+      const sections = binding.getSettled().input.sections;
+      expect(stamdataSkadelidteFodselsdatoField.readCanonical(
+        sections,
+        stamdataSkadelidteFodselsdatoField.bind().address
+      )).toBe('2010-01-01');
+      expect(stamdataSkadedatoField.readCanonical(
+        sections,
+        stamdataSkadedatoField.bind().address
+      )).toBe('2009-12-31');
     });
-    expect(formPersistenceStore.getState().invalidDrafts.stamdata).toEqual({});
 
     await waitFor(() => {
       expect(fodselsdato).toHaveAttribute('aria-invalid', 'true');
       expect(skadedato).toHaveAttribute('aria-invalid', 'true');
     });
-    expect(formPersistenceStore.getState().fieldErrors.stamdata.skadedato?.input).toEqual(expect.objectContaining({
-      message: 'Skadedato kan ikke være før fødselsdatoen (01-01-2010)',
-      severity: 'error',
-      blocksSave: false,
-    }));
-    expect(formPersistenceStore.getState().fieldErrors.stamdata.skadelidteFodselsdato?.input).toEqual(expect.objectContaining({
-      message: 'Fødselsdato kan ikke være efter skadedatoen (31-12-2009)',
-      severity: 'error',
-      blocksSave: false,
-    }));
+    expect(binding.getIssues().all.map((issue) => issue.message)).toEqual(expect.arrayContaining([
+      'Skadedato kan ikke være før fødselsdatoen (01-01-2010)',
+      'Fødselsdato kan ikke være efter skadedatoen (31-12-2009)',
+    ]));
   });
 });

@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { getProductionInputCatalog } from '../catalog/productionCatalog';
-import type { FieldIssueSnapshot } from '../inputIssue';
 import type { EvaluationSourceToken } from '../evaluationSource';
 import { sourceTokensEqual } from '../evaluationSource';
 import { createInputEvaluation, type InputEvaluation } from '../inputReader';
-import type { SettledInput } from '../settledInput';
 import { slimInputStore } from '../runtime/slimInputStore';
 import { captureStableInput, captureStableInputEvaluation } from '../runtime/evaluationSourceBinding';
 import { activeEditorRegistry } from '../runtime/activeEditorRegistry';
@@ -55,8 +53,12 @@ const readProductionEvaluation = (): InputEvaluation => {
  */
 export const createProductionInputRuntimeBinding = (): InputRuntimeBinding => {
   const catalog = getProductionInputCatalog();
-  const getIssues = (): FieldIssueSnapshot => readProductionEvaluation().issues;
-  return createInputRuntimeBinding(slimInputStore, catalog, activeEditorRegistry, getIssues);
+  return createInputRuntimeBinding(
+    slimInputStore,
+    catalog,
+    activeEditorRegistry,
+    readProductionEvaluation
+  );
 };
 
 /**
@@ -72,9 +74,8 @@ export const getProductionInputEvaluation = (): InputEvaluation => readProductio
  * input- eller settingsrevisionen flytter under en efterfølgende async-grænse (lazy-load, generatorstart).
  * Adskilt fra render-cachen (`getProductionInputEvaluation`), fordi en kritisk handling altid skal genlæse.
  */
-export const captureProductionDownloadSource = (): Readonly<{
+export const captureProductionEvaluationSource = (): Readonly<{
   evaluation: InputEvaluation;
-  input: SettledInput;
   isSourceCurrent: () => boolean;
 }> => {
   const { token, input } = captureStableInput(slimInputStore);
@@ -86,9 +87,6 @@ export const captureProductionDownloadSource = (): Readonly<{
   });
   return Object.freeze({
     evaluation,
-    // Rå sektioner udleveres KUN til brevhoved-stamdata (dokument-context, ikke en gate): `resolvePdfStamdata`
-    // parser tolerant og er bevidst ikke en downloadgate. Satser-gaten køres separat gennem reader-projektionen.
-    input,
     isSourceCurrent: () => {
       const state = slimInputStore.getState();
       return sourceTokensEqual(token, {
@@ -107,11 +105,21 @@ export const bootstrapProductionInputRuntime = (): Readonly<{
   binding: InputRuntimeBinding;
   startup: InputRuntimeStartup;
 }> => {
+  if (bootstrappedProductionRuntime !== null) return bootstrappedProductionRuntime;
   const catalog = getProductionInputCatalog();
   // En frisk sag seedes med Satsers default-år (§1.12, brugerbeslutning) — kun når der ikke findes en aktiv session.
   const startup = initializeInputRuntime(slimInputStore, catalog, { seedNewCase: seedSatserNewCase });
-  return Object.freeze({ binding: createProductionInputRuntimeBinding(), startup });
+  bootstrappedProductionRuntime = Object.freeze({
+    binding: createProductionInputRuntimeBinding(),
+    startup,
+  });
+  return bootstrappedProductionRuntime;
 };
+
+let bootstrappedProductionRuntime: Readonly<{
+  binding: InputRuntimeBinding;
+  startup: InputRuntimeStartup;
+}> | null = null;
 
 /**
  * Bumper store'ens settingsrevision, når AppSettings ændrer sig, så `EvaluationSourceToken` bevæger sig samlet
@@ -121,7 +129,7 @@ export const bootstrapProductionInputRuntime = (): Readonly<{
  */
 export const useSettingsRevisionBridge = (settingsFingerprint: string): void => {
   const previousRef = React.useRef(settingsFingerprint);
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (previousRef.current === settingsFingerprint) return;
     previousRef.current = settingsFingerprint;
     slimInputStore.getState().bumpSettingsRevision();

@@ -13,8 +13,7 @@ import {
   stamdataSkadestypeField,
   stamdataSkadedatoField,
 } from '../../inputCore/catalog/stamdataDescriptors';
-import { createValidationReader } from '../../inputCore/inputReader';
-import { useInputRuntime, useSettledSnapshot } from '../../inputCore/react';
+import { useInputEvaluation } from '../../inputCore/react';
 import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
 import GreenfieldDateField from '../../inputCore/react/fields/GreenfieldDateField';
 import GreenfieldTextField from '../../inputCore/react/fields/GreenfieldTextField';
@@ -59,14 +58,11 @@ const Stamdata = React.memo(() => {
     }
   }, [showTestTab, activeTab]);
 
-  // Den dynamiske datolabel afhænger af den afsluttede skadestype-værdi (§1.2: afledt af afsluttet revision,
-  // ikke af en åben draft). Læses gennem den rene ValidationReader over det aktuelle snapshot.
-  const { catalog } = useInputRuntime();
-  const snapshot = useSettledSnapshot();
-  const skadestype = React.useMemo(
-    () => createValidationReader(snapshot.input, catalog).readCanonical(skadestypeRef),
-    [snapshot.input, catalog]
-  );
+  // Den dynamiske datolabel afhænger af den afsluttede skadestype-værdi (§1.2) og læses gennem samme offentlige
+  // reader som øvrige consumers. Et fejlende felt kan derfor aldrig omgå issue-grænsen via rå canonical read.
+  const evaluation = useInputEvaluation();
+  const skadestypeRead = evaluation.reader.read(skadestypeRef);
+  const skadestype = skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined;
   const datoLabel = React.useMemo(
     () => resolveStamdataDatoLabel(skadestype === undefined ? null : { skadestype }),
     [skadestype]

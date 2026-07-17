@@ -18,8 +18,8 @@ export type GreenfieldConsumedInventoryEntry = GreenfieldInventoryEntry & Readon
 export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
   {
     id: 'satser',
-    module: 'src/domain/satser/satserInputProjection.ts',
-    symbol: 'buildSatserInputProjection',
+    module: 'src/domain/satser/satserProjection.ts',
+    symbol: 'projectSatser',
     consumers: ['src/components/pages/Satser.tsx'],
   },
   {

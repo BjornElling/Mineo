@@ -67,10 +67,9 @@ export const catalogCollections = <TEntities extends readonly unknown[]>(
   descriptors.map((descriptor) => descriptor as unknown as AnyCollectionDescriptor)
 );
 
-// Læse-closures får en dybtfrossen, isoleret kopi, så binding-callbacks aldrig kan mutere kildesnapshottet.
-// Den frosne kopi castes til `PersistedInputSections`; read-closures muterer den aldrig (og kan det ikke).
-const isolateSections = (sections: PersistedInputSections): PersistedInputSections =>
-  cloneAndDeepFreeze(sections) as unknown as PersistedInputSections;
+// Descriptors er katalog-ejede, validerede closures; deres read-funktioner er rene. Et valideret SettledInput
+// fryses én gang ved revisionsgrænsen, så en hel sagsgraf ikke skal structuredClone's for hvert felt-/entity-read.
+const isolateSections = (sections: PersistedInputSections): PersistedInputSections => sections;
 
 const templatePathKey = (path: readonly CollectionTemplateSegment[]): readonly (readonly string[])[] =>
   path.map((segment) => segment.kind === 'property'

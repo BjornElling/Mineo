@@ -13,6 +13,8 @@ import {
 } from '../../../inputCore/ledger/schemaFieldPaths';
 import { EXPECTED_FIELD_REF_COUNT } from '../../../inputCore/ledger/fieldLedger';
 import { EXPECTED_COLLECTION_COUNT } from '../../../inputCore/ledger/collectionLedger';
+import { createEmptySettledInput, persistedInputSectionsSchema } from '../../../inputCore/settledInput';
+import { deepEqual } from '../../../utils/deepEqual';
 
 // Fase 2.1 exitkontrol: det ene produkt-descriptor-katalog dækker NØJAGTIG de persisterede datafelter og
 // collections, som de levende Zod-schemas producerer (samme autoritet som ledger-baselinen 239/16). Testen
@@ -81,5 +83,28 @@ describe('greenfield produkt-descriptor-katalog (§3.2, Fase 2.1)', () => {
       const resolution = field.codec.parseForSettle('');
       expect(resolution.status).toBe('valid');
     }
+  });
+
+  it('statiske descriptors har samme tomværdi som schemaets canonical round-trip', () => {
+    const mismatches: string[] = [];
+    for (const descriptor of productionInputFields.filter(
+      (field) => field.template.path.every((segment) => segment.kind !== 'entity')
+    )) {
+      const field = descriptor.bind();
+      const written = descriptor.writeCanonical(
+        structuredClone(createEmptySettledInput().sections),
+        field.address,
+        descriptor.emptyValue
+      );
+      const parsed = persistedInputSectionsSchema.parse(written);
+      const roundTripped = descriptor.readCanonical(parsed, field.address);
+      if (!deepEqual(roundTripped, descriptor.emptyValue)) {
+        mismatches.push(
+          `${descriptor.id}: descriptor=${JSON.stringify(descriptor.emptyValue)}, schema=${JSON.stringify(roundTripped)}`
+        );
+      }
+    }
+
+    expect(mismatches).toEqual([]);
   });
 });

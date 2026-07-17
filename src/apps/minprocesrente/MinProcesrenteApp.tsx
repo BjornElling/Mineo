@@ -8,7 +8,6 @@ import StandaloneErrorBoundary from './StandaloneErrorBoundary';
 import MinProcesrenteCalculatorPage from '../../components/pages/minprocesrente/MinProcesrenteCalculatorPage';
 import type { PersistenceRuntime } from '../../persistence/persistenceRuntime';
 import { CriticalActionProvider } from '../../criticalActions/CriticalActionContext';
-import { ProductionInputRuntimeProvider, type InputRuntimeBinding } from '../../inputCore/react';
 
 const theme = buildTheme('light');
 const MOBILE_PAGE_BACKGROUND = '#f8f9fa';
@@ -105,24 +104,20 @@ const useMobileScrollFix = () => {
 
 const MinProcesrenteApp = React.memo(({
   persistenceRuntime,
-  inputRuntimeBinding,
 }: {
   persistenceRuntime: PersistenceRuntime;
-  inputRuntimeBinding: InputRuntimeBinding;
 }) => {
   useMobileScrollFix();
   return (
     <ThemeProvider theme={theme}>
       <FormPersistenceProvider runtime={persistenceRuntime}>
-        <ProductionInputRuntimeProvider binding={inputRuntimeBinding}>
-          <CriticalActionProvider>
+        <CriticalActionProvider>
             <StandaloneCalculatorLayout>
               <StandaloneErrorBoundary>
                 <MinProcesrenteCalculatorPage />
               </StandaloneErrorBoundary>
             </StandaloneCalculatorLayout>
-          </CriticalActionProvider>
-        </ProductionInputRuntimeProvider>
+        </CriticalActionProvider>
       </FormPersistenceProvider>
     </ThemeProvider>
   );

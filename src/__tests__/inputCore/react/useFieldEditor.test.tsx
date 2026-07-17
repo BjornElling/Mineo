@@ -14,7 +14,7 @@ import {
   useFieldEditor,
   type InputRuntimeBinding,
 } from '../../../inputCore/react';
-import { createValidationReader } from '../../../inputCore/inputReader';
+import { createInputEvaluation, createValidationReader } from '../../../inputCore/inputReader';
 import {
   settleField,
   serializeFieldAddress,
@@ -57,7 +57,21 @@ const buildIssues = (): FieldIssueSnapshot => {
 };
 
 const makeBinding = (): InputRuntimeBinding =>
-  createInputRuntimeBinding(store, catalog, registry, buildIssues);
+  createInputRuntimeBinding(
+    store,
+    catalog,
+    registry,
+    () => {
+      const state = store.getState();
+      return createInputEvaluation({
+        input: state.input,
+        catalog,
+        sourceToken: createEvaluationSourceToken(state.revision, state.settingsRevision),
+        settings: {},
+      });
+    },
+    buildIssues
+  );
 
 const wrapper = (binding: InputRuntimeBinding) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) =>
@@ -148,6 +162,23 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
     expect(store.getState().revision).toBe(revBefore);
   });
 
+  it('Escape efterfulgt af blur i samme task kan ikke settle den annullerede draft', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderEditor(field);
+    const revBefore = store.getState().revision;
+    act(() => result.current.open());
+    act(() => result.current.changeDraft('2099'));
+
+    // Browseren kan levere blur, før React har nået et nyt render efter Escape.
+    act(() => {
+      result.current.cancel();
+      result.current.settle();
+    });
+
+    expect(canonical(field)).toBe(2020);
+    expect(store.getState().revision).toBe(revBefore);
+  });
+
   it('viser eksisterende rødt issue uændret under redigering (§1.2/§1.8)', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     issues = [Object.freeze({
@@ -160,6 +191,19 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
     act(() => result.current.open());
     act(() => result.current.changeDraft('2021'));
     expect(result.current.issue?.code).toBe('x.bounds'); // uændret under redigering
+  });
+
+  it('genlæser feltissues ved en ren settingsrevision', () => {
+    const { result } = renderEditor(field);
+    expect(result.current.issue).toBeUndefined();
+
+    issues = [Object.freeze({
+      kind: 'field', code: 'settings.bounds', severity: 'error', field: toAnyFieldRef(field),
+      reason: 'bounds', message: 'settings ændrede grænsen',
+    })];
+    act(() => store.getState().bumpSettingsRevision());
+
+    expect(result.current.issue?.code).toBe('settings.bounds');
   });
 
   it('no-op settle uden ændring giver ingen ny revision', () => {
@@ -197,6 +241,40 @@ describe('useFieldEditor — registrering + kritisk handling', () => {
 
     act(() => result.current.settle());
     expect(registry.getEditing()).toBeNull();
+  });
+
+  it('binder en genbrugt lukket hook-instans til den nye editorlokation', () => {
+    const binding = makeBinding();
+    const { result, rerender } = renderHook(
+      ({ locationId }) => useFieldEditor(field, { locationId }),
+      { initialProps: { locationId: 'loc-1' }, wrapper: wrapper(binding) }
+    );
+
+    rerender({ locationId: 'loc-2' });
+    act(() => result.current.open());
+
+    expect(registry.getEditing()?.id).toBe('loc-2');
+  });
+
+  it('bevarer åben draft og registrering, hvis dispatch fejler', () => {
+    const base = makeBinding();
+    const binding: InputRuntimeBinding = Object.freeze({
+      ...base,
+      dispatch: () => {
+        throw new Error('storagefejl');
+      },
+    });
+    const { result } = renderHook(
+      () => useFieldEditor(field, { locationId: 'loc-fejl' }),
+      { wrapper: wrapper(binding) }
+    );
+    act(() => result.current.open());
+    act(() => result.current.changeDraft('2022'));
+
+    expect(() => act(() => result.current.settle())).toThrow('storagefejl');
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.displayText).toBe('2022');
+    expect(registry.getEditing()?.id).toBe('loc-fejl');
   });
 
   it('coordinatorens settle finaliserer den åbne editor og lander transaktionen', async () => {
