@@ -22,3 +22,4 @@ export * from './inputReducer';
 export * from './evaluationSource';
 export * from './projection';
 export * from './inputHistory';
+export * from './editor';
