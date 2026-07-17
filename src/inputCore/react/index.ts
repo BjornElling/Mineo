@@ -4,3 +4,4 @@
 
 export * from './inputRuntimeContext';
 export * from './useFieldEditor';
+export * from './useFormFieldSurface';
