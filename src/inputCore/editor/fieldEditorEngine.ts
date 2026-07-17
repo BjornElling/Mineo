@@ -4,18 +4,26 @@ import type { SettledInput } from '../settledInput';
 import type { FieldIssue, FieldIssueSnapshot } from '../inputIssue';
 import { activeFieldIssue } from '../inputIssue';
 import type { EditorLocation, EditorSettleIntent, SettledFieldView } from './fieldEditorState';
-import { settleField, setImmediateField, clearField } from '../inputReducer';
+import { settleField, setImmediateField, clearField, settleFieldInNewRow } from '../inputReducer';
 import type {
   SettleFieldCommand,
   SetImmediateFieldCommand,
   ClearFieldCommand,
+  SettleFieldInNewRowCommand,
 } from '../inputReducer';
+import type { CollectionRef } from '../fieldAddress';
 import type { HistoryOrigin } from '../inputHistory';
 
 // Kun de tre felt-scopede commands udstedes herfra; entity-/system-commands ejes af række- og case-portene.
 // En præcis command-type (ikke den brede union) undgår den contravariante generiske variansfælde, som
 // `dispatchInput`'s løse parametertype allerede beskriver (jf. dispatchInput.ts).
-type EditorFieldCommand<T> = SettleFieldCommand<T> | SetImmediateFieldCommand<T> | ClearFieldCommand<T>;
+// `settleFieldInNewRow` er editorens ENESTE entity-command (§1.11): den atomiske placeholder-promotion, hvor
+// det første ikke-tomme settle i en tom række-placeholder opretter rækken OG skriver feltet i én transaktion.
+type EditorFieldCommand<T> =
+  | SettleFieldCommand<T>
+  | SetImmediateFieldCommand<T>
+  | ClearFieldCommand<T>
+  | SettleFieldInNewRowCommand<unknown, T>;
 
 export type EditorDispatch<T> = Readonly<{ command: EditorFieldCommand<T>; origin: HistoryOrigin }>;
 
@@ -68,6 +76,29 @@ export const settleIntentToCommand = <T>(intent: EditorSettleIntent<T>): EditorD
     ? clearField(intent.field)
     : settleField(intent.field, intent.raw);
   return Object.freeze({ command, origin });
+};
+
+/**
+ * Placeholder-promotion (§1.11): oversætter et settle-intent på en IKKE-eksisterende række-placeholder til én
+ * atomisk `settleFieldInNewRow`-command, der opretter rækken og skriver feltet i samme transaktion. Et tomt
+ * settle på placeholderen er `null` (no-op — et rent fokus+blur på en tom placeholder opretter ingen række).
+ *
+ * `field` er den FÆRDIGT bundne cellereference for den nye række (bundet til placeholderens entity-id), og
+ * `entity` er den fulde placeholder-entity, `insertRow`-siden af transaktionen indsætter. Reduceren verificerer,
+ * at feltet tilhører netop den nye række.
+ */
+export const promoteRowSettleIntentToCommand = <TEntity, TField>(
+  intent: EditorSettleIntent<TField>,
+  collection: CollectionRef,
+  entity: TEntity,
+  index?: number
+): EditorDispatch<TField> | null => {
+  if (intent.kind === 'none') return null;
+  if (intent.raw.trim() === '') return null;
+  return Object.freeze({
+    command: settleFieldInNewRow(collection, entity, intent.field, intent.raw, index),
+    origin: originFor(intent.location, intent.field),
+  });
 };
 
 /**

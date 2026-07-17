@@ -20,7 +20,9 @@ import {
   settleIntentToCommand,
   immediateCommitCommand,
   immediateClearCommand,
+  type EditorDispatch,
 } from '../editor/fieldEditorEngine';
+import type { EditorSettleIntent } from '../editor/fieldEditorState';
 import { useInputRuntime, useSettledSnapshot } from './inputRuntimeContext';
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 import { fieldAddressesEqual } from '../fieldAddress';
@@ -60,13 +62,25 @@ export type FieldEditorController<T> = FieldEditorView<T> & Readonly<{
 }>;
 
 /**
+ * En settle-command-override (§1.11): oversætter et settle-intent til en ALTERNATIV command i stedet for den
+ * normale `settleField`/`clearField`. Bruges KUN af placeholder-celleeditoren, hvor det første ikke-tomme settle
+ * skal blive en atomisk `settleFieldInNewRow` (rækkeoprettelse + feltskrivning i én transaktion). Returnerer den
+ * `null`, sker der intet dispatch (tomt settle på en placeholder = ingen række oprettes). Kaldet er rent og bygger
+ * kun på intentet, så editorens state-machine forbliver uændret — der er fortsat kun ÉN motor (§3.5).
+ */
+export type SettleCommandOverride<T> = (intent: EditorSettleIntent<T>) => EditorDispatch<T> | null;
+
+/**
  * Den fælles persisted felt-editor. Bruges af både form- og grid-adapteren (§7.1 — samme suite mod begge). En
  * `focusTarget` (fx et input-element via ref) gives, så en kritisk handling kan fokusere feltet ved fail-closed.
+ * `settleOverride` re-router KUN settle-command'en (placeholder-promotion, §1.11); alt andet — draft, cancel,
+ * clear, issue-visning, registrering — er identisk med et almindeligt felt.
  */
 export const useFieldEditor = <T>(
   field: FieldRef<T>,
   location: EditorLocation,
-  focusTarget?: EditorFocusTarget
+  focusTarget?: EditorFocusTarget,
+  settleOverride?: SettleCommandOverride<T>
 ): FieldEditorController<T> => {
   const runtime = useInputRuntime();
   const snapshot = useSettledSnapshot();
@@ -96,8 +110,8 @@ export const useFieldEditor = <T>(
   // Én stabil ref til det aktuelle {state, view, snapshot, focusTarget} for imperative kald (registrets settle,
   // blur). `focusTarget` holdes i refen, så registreringen ikke churner, selv om kalderen sender et frisk
   // fokusmål-objekt hver render (typisk `{ focus: () => ref.current?.focus() }`).
-  const latest = React.useRef({ state: boundState, view, snapshot, focusTarget });
-  latest.current = { state: boundState, view, snapshot, focusTarget };
+  const latest = React.useRef({ state: boundState, view, snapshot, focusTarget, settleOverride });
+  latest.current = { state: boundState, view, snapshot, focusTarget, settleOverride };
   const unregisterRef = React.useRef<(() => void) | null>(null);
 
   const closeActiveRegistration = React.useCallback(() => {
@@ -125,7 +139,9 @@ export const useFieldEditor = <T>(
       return;
     }
     const { next, intent } = settleEditor(current);
-    const dispatch = settleIntentToCommand(intent);
+    // Placeholder-promotion re-router settle til `settleFieldInNewRow` (§1.11); ellers den normale settle-command.
+    const override = latest.current.settleOverride;
+    const dispatch = override !== undefined ? override(intent) : settleIntentToCommand(intent);
     // Bevar editor og draft fuldt aktive, hvis den atomiske runtime-transaktion fejler. Ellers kunne registryet
     // tro, at feltet var lukket, mens brugeren stadig så den fejlende draft, og næste kritiske handling passere.
     if (dispatch !== null) runtime.dispatch(dispatch.command, dispatch.origin);

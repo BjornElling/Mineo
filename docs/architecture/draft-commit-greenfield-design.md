@@ -891,6 +891,17 @@ indtil Renteberegning flyttes atomisk. Udestår: alle resterende formular- og ta
 relevans-/validatorregler, collectionadaptere, location-completeness samt sletning af de legacy-bindings og
 runtimeflader, hvis ansvar er overført. Fuld produktsuite er fortsat først gate efter fase 5.
 
+**§2.5 trin 1 (fælles grid-adapter) LANDET som isoleret kontrolpunkt (2026-07-17).** Rækkeinfrastruktur og
+celleeditor er bygget i `src/inputCore/react/` oven på den ENE editor-motor — ikke en anden editor: `useCollectionRows`
+(row-id-liste + insert/delete/reorder direkte over reducerens row-commands; ingen `draftRows`/fingerprint/
+persistence-effect, §3.8) og `useCellEditor` (en eksisterende-række-celle er 1:1 `useFieldEditor`; en placeholder-celle
+tilføjer KUN en ren settle-override, `promoteRowSettleIntentToCommand`, der re-router første ikke-tomme settle til
+`settleFieldInNewRow`, §1.11). Motoren udvidedes minimalt: `useFieldEditor` fik en valgfri `settleOverride`, og
+`fieldEditorEngine` fik placeholder-promotion-command'en. 12 målrettede tests (`gridAdapter.test.tsx`): row-liste/
+insert/delete/reorder, atomisk descendant-oprydning ved row-delete, placeholder-promotion (gyldig/ugyldig/tom=no-op),
+celle-issue uændret under redigering, og §7.2-kæden række-med-fejl→slet→undo→redo. Grid-adapteren har fortsat NUL
+produktionscallsites; den konsumeres første gang ved §2.4-trin-3-cutoveren (Årsløn + StandardLoenTable samlet).
+
 **Afhængighed:** Fase 1.
 
 **Deployregel:** Ingen handoff mellem fase 1 og fase 5.

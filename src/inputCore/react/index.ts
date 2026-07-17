@@ -11,4 +11,6 @@ export {
 export * from './productionInputRuntime';
 export * from './useFieldEditor';
 export * from './useFormFieldSurface';
+export * from './useCollectionRows';
+export * from './useCellEditor';
 export * from './useInputEvaluation';
