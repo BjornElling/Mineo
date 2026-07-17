@@ -6,7 +6,6 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { readyInputProjection } from '../../../domain/inputIntegrity/inputBlocker';
 import { getCommittedChangeCounterSnapshot } from '../../../stores/formPersistenceReadModel';
-import { executeLegacyInputTransaction } from '../../../input/inputTransactionRunner';
 
 const currentInputRevision = () => readyInputProjection(
   undefined,
@@ -296,13 +295,17 @@ afterEach(() => {
 // ─── downloadSatserDokument ────────────────────────────────────────────────────────
 
 describe('downloadSatserDokument', () => {
+  // Greenfield-freshness (Fase 3-slice): download bindes til et `EvaluationSourceToken` via `isSourceCurrent`
+  // (en closure kalderen bygger fra runtime), ikke længere til den legacy `ReadyInputRevision`/committed-counter.
+  const sourceCurrent = () => true;
+
   it('returnerer success=true og kalder generator', async () => {
     const result = await downloadSatserDokument({
       year: 2024,
       satser: {} as never,
       settings,
       persistedStamdata: stamdata,
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: sourceCurrent,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateSatserPdf).toHaveBeenCalled();
@@ -316,7 +319,7 @@ describe('downloadSatserDokument', () => {
       satser: {} as never,
       settings,
       persistedStamdata: null,
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: sourceCurrent,
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -324,13 +327,11 @@ describe('downloadSatserDokument', () => {
     }
   });
 
-  it('afviser fail-closed hvis inputrevisionen ændres under lazy load', async () => {
-    const inputRevision = currentInputRevision();
+  it('afviser fail-closed hvis kildesnapshottet ændres under lazy load', async () => {
+    // Simulér en input-/settingsændring under lazy-load: tokenet er ikke længere aktuelt ved generatorstart.
+    let current = true;
     mockLoadSatserPdfModule.mockImplementationOnce(async () => {
-      executeLegacyInputTransaction({
-        kind: 'changeRejectedInputs',
-        changes: [{ pageKey: 'satser', fieldPath: 'revision-test', draft: 'ændret' }],
-      });
+      current = false;
       return { generateSatserDocument: mockGenerateSatserPdf };
     });
 
@@ -339,7 +340,7 @@ describe('downloadSatserDokument', () => {
       satser: {} as never,
       settings,
       persistedStamdata: null,
-      inputRevision,
+      isSourceCurrent: () => current,
     });
 
     expect(result.success).toBe(false);

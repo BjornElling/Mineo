@@ -1,45 +1,57 @@
 // @vitest-environment jsdom
 //
-// Fase 8 (greenfield draft/commit): Satser-sidens `aargang` er nu BUNDET (onFieldError), så en afsluttet
-// ugyldig årgang når `invalidDrafts`-storen og ses af download-gaten. Denne integrationstest kører gennem
-// den RIGTIGE Satser-side + en rigtig FormPersistenceProvider (ikke en mock), så den beviser den virkelige
-// sti felt → invalidDrafts → gate — jf. document-output-contract.md §A2.1 og design §5.4.
+// Greenfield Satser-slice (§2.4 + Fase 3): Satser-sidens `aargang` er nu et `GreenfieldYearField` over den ene
+// input-runtime. Denne integrationstest kører gennem den RIGTIGE migrerede side + den ægte produktions-runtime
+// (`ProductionInputRuntimeProvider` mod `slimInputStore`/`criticalActionCoordinator`) — den beviser den
+// virkelige sti felt → settle → reader-projektion → download-gate (§1.5/§1.6/§3.9), uden legacy
+// `invalidDrafts`/`FormPersistenceProvider`.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Satser from '../../../components/pages/Satser';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
-import { formPersistenceStore } from '../../../stores/formPersistenceStore';
-import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { satserAngivAarYearBounds } from '../../../data/lovbestemteRates';
-import { CriticalActionProvider } from '../../../criticalActions/CriticalActionContext';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
+import {
+  ProductionInputRuntimeProvider,
+  createProductionInputRuntimeBinding,
+} from '../../../inputCore/react/productionInputRuntime';
 
-const mockDownloadSatserDokument = vi.hoisted(() => vi.fn(async () => ({ success: true as const })));
+const mockDownloadSatserDokument = vi.hoisted(() =>
+  vi.fn(async (_params: { year: number }) => ({ success: true as const }))
+);
 
 vi.mock('../../../document/service/documentService', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../../document/service/documentService')>(),
   downloadSatserDokument: mockDownloadSatserDokument,
 }));
 
-const aargangInvalidDraft = (): string | undefined =>
-  (formPersistenceStore.getState().invalidDrafts.satser ?? {}).aargang;
+const catalog = getProductionInputCatalog();
+
+// Hydrer produktions-runtime med en committed årgang (som en indlæst sag). `hydrate` skaber en ny revision, så
+// den token-cachede evaluering i produktions-wiringen genberegnes rent pr. test.
+const hydrateCommittedAargang = (aargang: number): void => {
+  const input = catalog.validateSettledInput({
+    sections: {
+      stamdata: null, satser: { aargang }, aarsloen: null, faellesAarsloen: null, renteberegning: null,
+      varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
+    },
+    rejectedInputs: {},
+  });
+  slimInputStore.getState().hydrate(input);
+};
 
 const renderSatser = (committedAargang: number) => {
-  formPersistenceStore.setState({
-    sections: { ...formPersistenceStore.getState().sections, satser: { aargang: committedAargang } },
-    meta: { hydrated: true, persistedDataVersion: PERSISTED_DATA_VERSION },
-  });
+  hydrateCommittedAargang(committedAargang);
   return render(
     <MemoryRouter initialEntries={['/satser']}>
       <AppSettingsProvider>
         <RoutePathnameProvider>
-          <CriticalActionProvider>
-            <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-              <Satser />
-            </FormPersistenceProvider>
-          </CriticalActionProvider>
+          <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
+            <Satser />
+          </ProductionInputRuntimeProvider>
         </RoutePathnameProvider>
       </AppSettingsProvider>
     </MemoryRouter>
@@ -54,17 +66,16 @@ const getDownloadButton = () => screen.getByRole('button');
 describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    formPersistenceStore.getState().clearAllFieldErrors();
-    formPersistenceStore.getState().clearAllInvalidDrafts();
     mockDownloadSatserDokument.mockClear();
   });
 
   it('download er aktiv for en gyldig committed årgang', () => {
     renderSatser(satserAngivAarYearBounds.maxYear);
     expect(getDownloadButton()).toBeEnabled();
+    expect(screen.getByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).toBeInTheDocument();
   });
 
-  it('en afsluttet ugyldig årgang oven på en gyldig committed årgang blokerer download', async () => {
+  it('en afsluttet ugyldig årgang oven på en gyldig committed årgang blokerer download (§1.5)', async () => {
     const user = userEvent.setup();
     renderSatser(satserAngivAarYearBounds.maxYear);
     const input = getYearInput();
@@ -78,17 +89,16 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     await user.type(input, '123');
     await user.tab();
 
-    // Den rå ugyldige streng er nået invalidDrafts (feltet er bundet), og gaten blokerer download —
-    // selv om den tidligere gyldige canonical årgang stadig ligger bag masken.
+    // Den rå ugyldige streng er nu afsluttet input (rejected), og gaten blokerer download — den tidligere gyldige
+    // canonical årgang er FJERNET fra current state (§1.5) og når hverken visning eller gate.
     expect(input).toHaveValue('123');
-    expect(aargangInvalidDraft()).toBe('123');
     expect(getDownloadButton()).toBeDisabled();
     expect(screen.getByText('Arbejdsskadesatser')).toBeInTheDocument();
     expect(screen.getByText('Vælg et gyldigt år for at se satserne.')).toBeInTheDocument();
     expect(screen.queryByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).not.toBeInTheDocument();
   });
 
-  it('et downloadklik med åben ugyldig editor må ikke nå dokumentservicen', async () => {
+  it('en åben ugyldig draft ændrer intet afsluttet; et downloadklik settler først og når ikke servicen (§1.2/§1.4)', async () => {
     const user = userEvent.setup();
     renderSatser(satserAngivAarYearBounds.maxYear);
     const input = getYearInput();
@@ -97,15 +107,15 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     await user.clear(input);
     await user.type(input, '123');
 
-    // Åben draft er ikke afsluttet input: visning og gate bruger fortsat den senest afsluttede årgang.
+    // Åben draft er ikke afsluttet input (§1.2): visning og gate bruger fortsat den senest afsluttede årgang.
     expect(input).toHaveValue('123');
-    expect(aargangInvalidDraft()).toBeUndefined();
     expect(getDownloadButton()).toBeEnabled();
     expect(screen.getByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).toBeInTheDocument();
 
+    // Downloadklik settler den åbne editor først (§1.4). Settle gør årgangen rejected → gaten blokerer, og
+    // dokumentservicen nås aldrig.
     await user.click(getDownloadButton());
 
-    expect(aargangInvalidDraft()).toBe('123');
     expect(getDownloadButton()).toBeDisabled();
     expect(mockDownloadSatserDokument).not.toHaveBeenCalled();
   });
@@ -121,13 +131,23 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     await user.tab();
     expect(getDownloadButton()).toBeDisabled();
 
-    // Ret til en gyldig årgang: invalidDrafts ryddes, gaten åbner igen.
+    // Ret til en gyldig årgang: den rejected råtekst ryddes, gaten åbner igen.
     await user.click(input);
     await user.keyboard('{Control>}a{/Control}{Delete}');
     await user.type(input, String(satserAngivAarYearBounds.maxYear));
     await user.tab();
 
-    expect(aargangInvalidDraft()).toBeUndefined();
     expect(getDownloadButton()).toBeEnabled();
+    expect(screen.getByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).toBeInTheDocument();
+  });
+
+  it('download af en gyldig årgang når dokumentservicen', async () => {
+    const user = userEvent.setup();
+    renderSatser(satserAngivAarYearBounds.maxYear);
+
+    await user.click(getDownloadButton());
+
+    expect(mockDownloadSatserDokument).toHaveBeenCalledTimes(1);
+    expect(mockDownloadSatserDokument.mock.calls[0]?.[0]?.year).toBe(satserAngivAarYearBounds.maxYear);
   });
 });

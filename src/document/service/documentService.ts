@@ -378,21 +378,28 @@ const resolveReguleringInterval = (interval: ReguleringInterval) => {
   return { fraDato, tilDato };
 };
 
+// Greenfield Satser-download (Fase 3-slice): til forskel fra de endnu ikke-migrerede slices bindes friskheden
+// her til det greenfield `EvaluationSourceToken`, ikke til den legacy `ReadyInputRevision`/committed-counter.
+// Kalderen bygger `year`/`satser` fra en `ready` reader-projektion og leverer `isSourceCurrent` — en closure,
+// der sammenligner det optagne token med et FRISK token fra runtime. Vi re-tjekker den EFTER den asynkrone
+// modul-load og umiddelbart før generatoren starter, så en input-/settingsændring under lazy-load fail-closer
+// (§3.4/§3.9). Dokumententrypunktet (typed definition + prepare-flow) migreres først i Fase 5; dette er den
+// slice-lokale, korrekte freshness-grænse indtil da.
 export const downloadSatserDokument = async (params: Readonly<{
   year: number;
   satser: SatserData;
-  inputRevision: ReadyInputRevision;
+  isSourceCurrent: () => boolean;
   settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
-  const { year, satser, inputRevision, settings, persistedStamdata } = params;
+  const { year, satser, isSourceCurrent, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'satser', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadSatserDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
     const { generateSatserDocument } = await loadSatserDocumentModule();
-    if (!isReadyInputRevisionCurrent(inputRevision)) {
+    if (!isSourceCurrent()) {
       return { success: false, error: buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF') };
     }
     return await runSelectedDocumentFormat(settings, (session) => generateSatserDocument(session, year, satser, common));

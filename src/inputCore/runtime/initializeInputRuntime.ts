@@ -18,6 +18,18 @@ export type InputRuntimeStartup = Readonly<{
   notice: InputRuntimeStartupNotice | null;
 }>;
 
+/**
+ * Valgfri engangs-seed af en HELT NY sag (§1.12). Kaldes KUN, når der ikke findes en aktiv session (`raw ===
+ * null`) — aldrig oven på en indlæst eller korrupt kilde. Domænet leverer den (fx Satsers default-år); kernen
+ * er domæneneutral og anvender kun resultatet som den hydrerede baseline (ingen ekstra revision/history-frame).
+ * Resultatet valideres gennem `catalog.validateSettledInput`, så en seed aldrig kan bryde envelope-invarianterne.
+ */
+export type NewCaseSeed = (empty: ReturnType<typeof createEmptySettledInput>) => ReturnType<typeof createEmptySettledInput>;
+
+export type InitializeInputRuntimeOptions = Readonly<{
+  seedNewCase?: NewCaseSeed;
+}>;
+
 const CORRUPTION_NOTICE: InputRuntimeStartupNotice = Object.freeze({
   message: 'Gemte browserdata kunne ikke indlæses sikkert. For at beskytte dine data er ændringer låst, '
     + 'indtil du starter forfra med "Slet alt".',
@@ -36,7 +48,8 @@ const UNAVAILABLE_NOTICE: InputRuntimeStartupNotice = Object.freeze({
  */
 export const initializeInputRuntime = (
   store: SlimInputStore,
-  catalog: InputCatalog
+  catalog: InputCatalog,
+  options: InitializeInputRuntimeOptions = {}
 ): InputRuntimeStartup => {
   let raw: string | null;
   try {
@@ -47,8 +60,11 @@ export const initializeInputRuntime = (
   }
 
   if (raw === null) {
-    // Ingen aktiv session: normal førstegangs-load. Writes tilladt.
-    store.getState().hydrate(createEmptySettledInput());
+    // Ingen aktiv session: normal førstegangs-load. Writes tilladt. En eventuel domæne-seed anvendes HER, som
+    // den hydrerede baseline (§1.12: eksplicit engangs-seed af en tom ny sag, aldrig en stille overskrivning).
+    const empty = createEmptySettledInput();
+    const seeded = options.seedNewCase === undefined ? empty : catalog.validateSettledInput(options.seedNewCase(empty));
+    store.getState().hydrate(seeded);
     return Object.freeze({ notice: null });
   }
 

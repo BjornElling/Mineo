@@ -7,3 +7,7 @@ export { default as GreenfieldDateField } from './GreenfieldDateField';
 export type { GreenfieldDateFieldProps } from './GreenfieldDateField';
 export { default as GreenfieldChoiceField } from './GreenfieldChoiceField';
 export type { GreenfieldChoiceFieldProps } from './GreenfieldChoiceField';
+export { default as GreenfieldNumericTextField } from './GreenfieldNumericTextField';
+export type { GreenfieldNumericTextFieldProps } from './GreenfieldNumericTextField';
+export { default as GreenfieldYearField } from './GreenfieldYearField';
+export type { GreenfieldYearFieldProps } from './GreenfieldYearField';
