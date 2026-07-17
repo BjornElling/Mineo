@@ -26,8 +26,23 @@ export type GreenfieldNumericTextFieldProps<T> = Readonly<{
   singleStageClick?: boolean;
   /** Draft-maks under indtastning (eftergivende over den kanoniske form). */
   maxDraftLength?: number;
-  /** Centrér teksten (default sandt — matcher legacy numeriske felter). */
-  centerText?: boolean;
+  /**
+   * Tekstjustering i inputfeltet. `center` matcher år/heltal (legacy), `right` matcher beløb/procent (legacy
+   * tabular-nums, højrestillet). Default `center`.
+   */
+  textAlign?: 'center' | 'right';
+  /** Højrestil tabular-nums (matcher legacy beløbs-/procentfelter). Sættes automatisk ved `textAlign='right'`. */
+  tabularNums?: boolean;
+  /**
+   * Enheds-adornment (kr./%) — den delte `InputUnitAdornment`. En funktion modtager draftens tomhed OG den
+   * committede canonical værdi, så adornmentet kan mutes ved tomt felt og fx vise et beløbs-`fx`-udtryksmærke —
+   * alt sammen fra `GreenfieldNumericTextField`s ÉNE editor-controller (aldrig en anden controller for feltet).
+   */
+  endAdornment?:
+    | React.ReactNode
+    | ((info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode);
+  /** `inputMode` til det virtuelle tastatur (default `numeric`; beløb/procent bruger `decimal`). */
+  inputMode?: 'numeric' | 'decimal';
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -43,7 +58,10 @@ const GreenfieldNumericTextFieldInner = <T,>(
     disabled,
     singleStageClick = false,
     maxDraftLength,
-    centerText = true,
+    textAlign = 'center',
+    tabularNums,
+    endAdornment,
+    inputMode = 'numeric',
     inputRef,
     sx,
   }: GreenfieldNumericTextFieldProps<T>,
@@ -68,6 +86,11 @@ const GreenfieldNumericTextFieldInner = <T,>(
   );
 
   const hasError = surface.issue !== undefined;
+  const resolvedEndAdornment = typeof endAdornment === 'function'
+    ? (endAdornment as (info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode)(
+        { isDraftEmpty: surface.displayText.trim() === '', value: surface.value }
+      )
+    : endAdornment;
 
   return (
     <StyledTextFieldBase
@@ -87,14 +110,16 @@ const GreenfieldNumericTextFieldInner = <T,>(
       disabled={disabled}
       error={hasError}
       helperText={surface.issue?.message ?? ''}
+      {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
       htmlInputAttributes={{
-        inputMode: 'numeric',
+        inputMode,
         ...(maxDraftLength === undefined ? {} : { maxLength: maxDraftLength }),
         readOnly: surface.readOnly,
       }}
       sx={mergeSx({
         '& .MuiInputBase-input': {
-          ...(centerText ? { textAlign: 'center' } : {}),
+          textAlign,
+          ...((tabularNums ?? textAlign === 'right') ? { fontVariantNumeric: 'tabular-nums' } : {}),
           caretColor: surface.isOpen ? 'auto' : 'transparent',
           cursor: surface.isOpen ? 'text' : 'pointer',
         },
