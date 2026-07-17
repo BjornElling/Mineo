@@ -24,6 +24,7 @@ import {
   resolveStandardLoenTableValidation,
 } from '../../domain/aarsloen/aarsloenProjection';
 import type { StandardLoenTableValidationResult } from '../../domain/aarsloen/standardLoenTableValidation';
+import { createEmptyStandardLoenRow } from '../../domain/aarsloen/standardLoenRowInitialValues';
 
 // Greenfield-parametrisering af den delte StandardLoenTable (§2.5): tabellen deles mellem Årsløn (top-level
 // `aarsloen.tableData`) og senere EO's loenindkomst (nested `ansaettelsesforhold[i].indtaegtsoplysningerTableData`).
@@ -46,6 +47,8 @@ export type StandardLoenTableFieldSet = Readonly<{
   col5: FieldDescriptor<AmountValue | undefined>;
   fpFvShSoBeloeb: FieldDescriptor<AmountValue | undefined>;
   pensionBeloeb: FieldDescriptor<AmountValue | undefined>;
+  /** Opret en fuldt schemaformet tom række for collectionen. */
+  createRow: (id: string) => StandardLoenTableRow;
   /** Rekonstruér de committede rækker (read-only) for feltsættets collection. */
   readRows: (reader: InputReader) => StandardLoenTableRow[];
   /** Reader-afledt valideringssummary + errors for feltsættets collection. */
@@ -67,6 +70,7 @@ export const aarsloenStandardLoenFieldSet: StandardLoenTableFieldSet = {
   col5: aarsloenTableCol5Field,
   fpFvShSoBeloeb: aarsloenTableFpFvShSoBeloebField,
   pensionBeloeb: aarsloenTablePensionBeloebField,
+  createRow: createEmptyStandardLoenRow,
   readRows: readAarsloenTableRows,
   resolveValidation: resolveStandardLoenTableValidation,
 };

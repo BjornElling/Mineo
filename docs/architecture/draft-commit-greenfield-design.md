@@ -14,9 +14,11 @@ der bro-forbinder den ene editor-motor til grid-navigationens celleeditor-regist
 brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
 ingen runtime-fallback. Reviewet rettede desuden replacement/no-op-matricen, synkron editorregistrering,
 dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede
-tomværdier og rå section-bypass i Stamdata/Satser. Katalogets paths/counts er komplette, men editorlokationer,
-relevans, validators, collection-adaptere og de resterende callsite-cutovers udestår; denne strukturelle completeness
-må derfor ikke omtales som færdig descriptor-completeness.
+tomværdier og rå section-bypass i Stamdata/Satser. Det efterfølgende review af Årsløn-kontrolpunktet rettede faste
+og dynamiske datogrænser, periodeorden som feltissues, inputdrevet relevans, grid-editorens synkrone lifecycle,
+rejected-only-rækkesletning, byte-verificeret rollback, settingssnapshot og frisk dokumentpreflight. Katalogets
+paths/counts er komplette, men editorlokationer, relevans, validators, row factories og collection-adaptere er kun
+adfærdskomplette for de migrerede slices; de resterende callsite-cutovers udestår fortsat.
 
 Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
@@ -882,16 +884,19 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 runtime, current-only envelope, verificerede command-runner, replacement-generation, aktiv-editor-registry, kritiske
 handlingsbarriere, fælles persisted editor og form-surface er bygget. Produktkataloget dækker strukturelt alle 239
 felter og 16 collections og verificerer nu også schema-defaultede tomværdier; denne test beviser endnu ikke relevans,
-validators, row factories eller editorlokationer. Kun Stamdata og Satser er migreret som surfaces. Satser har en tidlig
-typed projektion og typed brevhovedprojektion, fordi en aktiv rå-section-bypass ville være værre end at flytte denne
-consumerdel frem; det markerer ikke fase 3 eller 5 som gennemført.
+validators, row factories eller editorlokationer for de endnu ikke migrerede slices. Stamdata, Satser og Årsløn er
+migreret som surfaces; Årsløns top-level StandardLoenTable er første migrerede grid. Satser og Årsløn har tidlige
+typed projektioner og dokumentpreflight, fordi aktive rå-section-/stale-render-bypasses ville være værre end at flytte
+disse consumerdele frem; det markerer ikke fase 3 eller 5 som gennemført.
 
 Reviewet fjernede hovedappens parallelle `FormPersistenceProvider`, den ubrugte greenfield-runtime i standalone,
 legacy-PWA-load fra Mineos midlertidige entry og singleton-bypass fra React-consumers. Mineo bruger derfor kun den nye
 runtime, selv om de resterende legacy-sider/shell ikke fungerer i mellemtilstanden; standalone bruger kun legacy,
 indtil Renteberegning flyttes atomisk. Udestår: alle resterende formular- og tabelcallsites, de faktiske
 relevans-/validatorregler, collectionadaptere, location-completeness samt sletning af de legacy-bindings og
-runtimeflader, hvis ansvar er overført. Fuld produktsuite er fortsat først gate efter fase 5.
+runtimeflader, hvis ansvar er overført. Startup-notice, global undo/redo-fokusnavigation og case-replacement-porten
+færdiggøres sammen med deres respektive fase-4/shell-cutovers; de må ikke erstattes af parallel legacylogik. Fuld
+produktsuite er fortsat først gate efter fase 5.
 
 **§2.5 trin 1 (fælles grid-adapter) LANDET som isoleret kontrolpunkt (2026-07-17).** Rækkeinfrastruktur og
 celleeditor er bygget i `src/inputCore/react/` oven på den ENE editor-motor — ikke en anden editor: `useCollectionRows`

@@ -5,8 +5,6 @@ import type {
   StandardLoenTableValidationSummary,
   TableError,
 } from '../../types/table';
-import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
-import { hasAarsloenPeriodOrderError } from './aarsloenRowInterval';
 import { isAmountValueStrict } from '../../utils/tableValidationCommon';
 
 export type StandardLoenTableCellErrorMap = Readonly<Record<string, true>>;
@@ -39,25 +37,6 @@ const PERIOD_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, Sta
 export const getStandardLoenPeriodKeys = (
   loenperiode: Loenperiode
 ): readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey] => PERIOD_KEYS[loenperiode];
-
-export const buildStandardLoenPeriodOrderCellErrorMessages = (
-  rows: readonly StandardLoenTableRow[],
-  loenperiode: Loenperiode
-): Readonly<Record<string, string>> => {
-  // Månedstabellen bruger måned + år som selvstændige felter og har derfor
-  // ingen "fra/til"-rækkefølge, som kan give denne fejltype.
-  if (loenperiode === 'maaned') return {};
-
-  const messages: Record<string, string> = {};
-
-  for (const row of rows) {
-    if (!hasAarsloenPeriodOrderError(row, loenperiode)) continue;
-    messages[`${row.id}:0`] = DATE_ORDER_ERROR_MESSAGE;
-    messages[`${row.id}:1`] = DATE_ORDER_ERROR_MESSAGE;
-  }
-
-  return messages;
-};
 
 // Beløbsfelterne (col2-col5) er altid redigerbare; tillægsbeløbskolonnerne tæller kun med i
 // Beløb-tilstand (hvor de er redigerbare i stedet for beregnede).

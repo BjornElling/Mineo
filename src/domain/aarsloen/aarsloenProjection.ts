@@ -29,11 +29,7 @@ import {
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
-import {
-  buildStandardLoenPeriodOrderCellErrorMessages,
-  getStandardLoenTableValidation,
-  type StandardLoenTableValidationResult,
-} from './standardLoenTableValidation';
+import { getStandardLoenTableValidation, type StandardLoenTableValidationResult } from './standardLoenTableValidation';
 
 // Greenfield Årsløn-projektion (§3.4/§5.4, Fase 3 Årsløn-slice, Pass 1). En ALMINDELIG ren funktion over den
 // offentlige `InputReader`, der genopbygger et komplet, schema-formet `AarsloenValues`-objekt fra readeren, så de
@@ -73,22 +69,6 @@ const tableDataCollection: CollectionRef = createCollectionRef({
   collection: 'tableData',
 });
 
-// Rækkecelle-descriptors i feltnavn-orden, så en genopbygget række matcher `StandardLoenTableRow` 1:1.
-const rowCellDescriptors: readonly FieldDescriptor<unknown>[] = [
-  aarsloenTableCol0MaanedField,
-  aarsloenTableCol1MaanedField,
-  aarsloenTableCol0UgeField,
-  aarsloenTableCol1UgeField,
-  aarsloenTableCol0DagField,
-  aarsloenTableCol1DagField,
-  aarsloenTableCol2Field,
-  aarsloenTableCol3Field,
-  aarsloenTableCol4Field,
-  aarsloenTableCol5Field,
-  aarsloenTableFpFvShSoBeloebField,
-  aarsloenTablePensionBeloebField,
-] as unknown as readonly FieldDescriptor<unknown>[];
-
 /**
  * Ikke-blokerende read: canonical værdi eller feltets tomværdi. Falder tilbage til `emptyValue` både når værdien
  * er skjult bag en rød feltfejl OG når en null-sektion giver `undefined` for et felt, hvis tomværdi ikke er
@@ -100,14 +80,30 @@ const readOrEmpty = <T>(reader: InputReader, field: FieldRef<T>, emptyValue: T):
   return result.value === undefined && emptyValue !== undefined ? emptyValue : result.value;
 };
 
-/** Genopbygger én tabelrække. Feltnavnet udledes af descriptorens `template.field` → præcis `StandardLoenTableRow`. */
-const rebuildRow = (reader: InputReader, rowId: string): StandardLoenTableRow => {
-  const row: Record<string, unknown> = { id: rowId };
-  for (const descriptor of rowCellDescriptors) {
-    row[descriptor.template.field] = readOrEmpty(reader, descriptor.bind(rowId), descriptor.emptyValue);
-  }
-  return row as StandardLoenTableRow;
-};
+/** Genopbygger én tabelrække eksplicit, så schemaændringer giver typefejl i stedet for usikre casts. */
+const rebuildRow = (reader: InputReader, rowId: string): StandardLoenTableRow => ({
+  id: rowId,
+  col0_maaned: readOrEmpty(reader, aarsloenTableCol0MaanedField.bind(rowId), aarsloenTableCol0MaanedField.emptyValue),
+  col1_maaned: readOrEmpty(reader, aarsloenTableCol1MaanedField.bind(rowId), aarsloenTableCol1MaanedField.emptyValue),
+  col0_uge: readOrEmpty(reader, aarsloenTableCol0UgeField.bind(rowId), aarsloenTableCol0UgeField.emptyValue),
+  col1_uge: readOrEmpty(reader, aarsloenTableCol1UgeField.bind(rowId), aarsloenTableCol1UgeField.emptyValue),
+  col0_dag: readOrEmpty(reader, aarsloenTableCol0DagField.bind(rowId), aarsloenTableCol0DagField.emptyValue),
+  col1_dag: readOrEmpty(reader, aarsloenTableCol1DagField.bind(rowId), aarsloenTableCol1DagField.emptyValue),
+  col2: readOrEmpty(reader, aarsloenTableCol2Field.bind(rowId), aarsloenTableCol2Field.emptyValue),
+  col3: readOrEmpty(reader, aarsloenTableCol3Field.bind(rowId), aarsloenTableCol3Field.emptyValue),
+  col4: readOrEmpty(reader, aarsloenTableCol4Field.bind(rowId), aarsloenTableCol4Field.emptyValue),
+  col5: readOrEmpty(reader, aarsloenTableCol5Field.bind(rowId), aarsloenTableCol5Field.emptyValue),
+  fpFvShSoBeloeb: readOrEmpty(
+    reader,
+    aarsloenTableFpFvShSoBeloebField.bind(rowId),
+    aarsloenTableFpFvShSoBeloebField.emptyValue
+  ),
+  pensionBeloeb: readOrEmpty(
+    reader,
+    aarsloenTablePensionBeloebField.bind(rowId),
+    aarsloenTablePensionBeloebField.emptyValue
+  ),
+});
 
 /** Den kanoniske CollectionRef for løntabellen (top-level collection, ingen entity-parent). */
 export const aarsloenTableDataCollectionRef: CollectionRef = tableDataCollection;
@@ -188,31 +184,21 @@ export const resolveAarsloenFieldErrorGate = (
 // ── Reader-afledt tabelvalidering (§2.5/§3.4) ──────────────────────────────────
 // Legacy StandardLoenTable samlede tre celle-fejl-kilder i `cellErrorsByCellKey` og fodrede dem til den rene
 // `getStandardLoenTableValidation`: (1) input-fejl via imperativt `onErrorChange`, (2) periode-rækkefølge-fejl,
-// (3) eksterne fejl. Greenfield fjerner det imperative handle: input-fejlen ER nu et rødt feltissue i readerens
-// tokenbundne snapshot (læs cellens ref → `status==='error'`), og periode-rækkefølgen er ren over de
-// rekonstruerede rækker. Denne funktion er derfor den ENE kilde til tabellens valideringssummary — omregning-
+// (3) eksterne fejl. Greenfield fjerner det imperative handle: både codec-fejl, datogrænser og periodeorden ER
+// nu røde feltissues i readerens tokenbundne snapshot. Denne funktion er derfor den ENE kilde til tabellens summary — omregning-
 // gaten og dokumentgaten afledes af den, så der ikke længere er et imperativt `getValidationSummary`/`getErrors`.
 
 // Kolonneindeks pr. rækkecelle-descriptor (matcher legacy `resolveColIdxFromKey`): periodekolonner 0/1 er de
 // synlige for den aktuelle lønperiode; beløb 2–5; tillægsbeløb 6/7 (kun redigerbare i Beløb-tilstand).
-// Descriptor-typerne er invariante i deres værditype; til det generiske celle-error-scan behøver vi kun
-// `bind(rowId)` + `read`-status, så vi caster hver descriptor til den uniforme `FieldDescriptor<unknown>`.
-const asAny = (descriptor: object): FieldDescriptor<unknown> => descriptor as FieldDescriptor<unknown>;
-
-const cellDescriptorsByColIndex: Readonly<Record<Loenperiode, readonly (readonly [number, FieldDescriptor<unknown>])[]>> = {
-  maaned: [[0, asAny(aarsloenTableCol0MaanedField)], [1, asAny(aarsloenTableCol1MaanedField)]],
-  uge: [[0, asAny(aarsloenTableCol0UgeField)], [1, asAny(aarsloenTableCol1UgeField)]],
-  dag: [[0, asAny(aarsloenTableCol0DagField)], [1, asAny(aarsloenTableCol1DagField)]],
+const recordCellError = <T>(
+  reader: InputReader,
+  rowId: string,
+  colIndex: number,
+  descriptor: FieldDescriptor<T>,
+  target: Record<string, true>
+): void => {
+  if (reader.read(descriptor.bind(rowId)).status === 'error') target[`${rowId}:${colIndex}`] = true;
 };
-
-const baseAmountDescriptorsByColIndex: readonly (readonly [number, FieldDescriptor<unknown>])[] = [
-  [2, asAny(aarsloenTableCol2Field)], [3, asAny(aarsloenTableCol3Field)],
-  [4, asAny(aarsloenTableCol4Field)], [5, asAny(aarsloenTableCol5Field)],
-];
-
-const beloebAmountDescriptorsByColIndex: readonly (readonly [number, FieldDescriptor<unknown>])[] = [
-  [6, asAny(aarsloenTableFpFvShSoBeloebField)], [7, asAny(aarsloenTablePensionBeloebField)],
-];
 
 /**
  * Samler cellernes RØDE feltissues (rejected format/range) fra readeren til det numeriske `${rowId}:${colIndex}`-
@@ -225,16 +211,25 @@ const collectReaderCellErrorsByCellKey = (
   loenperiode: Loenperiode,
   tillaegAngivesSom: TillaegAngivesSom
 ): Record<string, true> => {
-  const relevant: (readonly [number, FieldDescriptor<unknown>])[] = [
-    ...cellDescriptorsByColIndex[loenperiode],
-    ...baseAmountDescriptorsByColIndex,
-    ...(tillaegAngivesSom === 'beloeb' ? beloebAmountDescriptorsByColIndex : []),
-  ];
   const cellErrors: Record<string, true> = {};
   for (const rowId of rowIds) {
-    for (const [colIndex, descriptor] of relevant) {
-      const result = reader.read(descriptor.bind(rowId));
-      if (result.status === 'error') cellErrors[`${rowId}:${colIndex}`] = true;
+    if (loenperiode === 'maaned') {
+      recordCellError(reader, rowId, 0, aarsloenTableCol0MaanedField, cellErrors);
+      recordCellError(reader, rowId, 1, aarsloenTableCol1MaanedField, cellErrors);
+    } else if (loenperiode === 'uge') {
+      recordCellError(reader, rowId, 0, aarsloenTableCol0UgeField, cellErrors);
+      recordCellError(reader, rowId, 1, aarsloenTableCol1UgeField, cellErrors);
+    } else {
+      recordCellError(reader, rowId, 0, aarsloenTableCol0DagField, cellErrors);
+      recordCellError(reader, rowId, 1, aarsloenTableCol1DagField, cellErrors);
+    }
+    recordCellError(reader, rowId, 2, aarsloenTableCol2Field, cellErrors);
+    recordCellError(reader, rowId, 3, aarsloenTableCol3Field, cellErrors);
+    recordCellError(reader, rowId, 4, aarsloenTableCol4Field, cellErrors);
+    recordCellError(reader, rowId, 5, aarsloenTableCol5Field, cellErrors);
+    if (tillaegAngivesSom === 'beloeb') {
+      recordCellError(reader, rowId, 6, aarsloenTableFpFvShSoBeloebField, cellErrors);
+      recordCellError(reader, rowId, 7, aarsloenTablePensionBeloebField, cellErrors);
     }
   }
   return cellErrors;
@@ -242,7 +237,7 @@ const collectReaderCellErrorsByCellKey = (
 
 /**
  * Den ENE kilde til løntabellens valideringssummary i greenfield. Rekonstruerer rækkerne, samler celle-røde-fejl
- * fra readeren + periode-rækkefølge-fejl, og kører den uændrede rene `getStandardLoenTableValidation`. Resultatet
+ * fra readeren (inklusive descriptorernes periode-rækkefølge-fejl) og kører den rene tabelsummary. Resultatet
  * er 1:1 med legacy's summary (samme funktion, samme cellenøgle-kontrakt) — kun fejl-kilden er nu readeren.
  */
 export const resolveStandardLoenTableValidation = (
@@ -254,12 +249,5 @@ export const resolveStandardLoenTableValidation = (
   const rows = rowIds.map((rowId) => rebuildRow(reader, rowId));
 
   const cellErrorsByCellKey = collectReaderCellErrorsByCellKey(reader, rowIds, loenperiode, tillaegAngivesSom);
-  // Periode-rækkefølge (dato/uge fra > til): ren over de rekonstruerede rækker; slås sammen med celle-røde-fejl.
-  const periodOrderMessages = buildStandardLoenPeriodOrderCellErrorMessages(rows, loenperiode);
-  for (const [cellKey, message] of Object.entries(periodOrderMessages)) {
-    if (message.trim() === '') continue;
-    cellErrorsByCellKey[cellKey] = true;
-  }
-
   return getStandardLoenTableValidation({ rows, loenperiode, cellErrorsByCellKey, tillaegAngivesSom });
 };

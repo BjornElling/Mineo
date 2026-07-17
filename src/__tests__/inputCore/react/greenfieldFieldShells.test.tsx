@@ -17,21 +17,21 @@ import {
   GreenfieldPercentField,
   GreenfieldAmountField,
   GreenfieldRadioField,
+  GreenfieldGridAmountCell,
 } from '../../../inputCore/react/fields';
 import { createInputEvaluation, createValidationReader } from '../../../inputCore/inputReader';
 import {
-  buildFieldIssueSet,
-  bindFieldIssueSnapshot,
   createEvaluationSourceToken,
   createCollectionRef,
   settleField,
   type InputCatalog,
   type FieldRef,
-  type FieldIssueSnapshot,
 } from '../../../inputCore';
 import { insertRow } from '../../../inputCore/inputReducer';
 import { createTestCatalog, aargangField, enhedField, belobField, makeRow } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
+import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
+import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
 
 // Fase 2.4 (§2.4/§3.5): de nye Greenfield-feltskaller. De numeriske presets er tynde over den allerede-testede
 // `useFormFieldSurface`; her verificeres kun, at de mounter korrekt (adornment/committed visning). Radio er en ny
@@ -52,11 +52,6 @@ afterEach(() => sessionStorage.clear());
 
 const rentekravRef = () => createCollectionRef({ section: 'renteberegning', path: [], collection: 'rentekravRows' });
 
-const buildIssues = (): FieldIssueSnapshot => {
-  const state = store.getState();
-  return bindFieldIssueSnapshot(buildFieldIssueSet([]), createEvaluationSourceToken(state.revision, state.settingsRevision));
-};
-
 const makeBinding = (): InputRuntimeBinding =>
   createInputRuntimeBinding(
     store,
@@ -70,8 +65,7 @@ const makeBinding = (): InputRuntimeBinding =>
         sourceToken: createEvaluationSourceToken(state.revision, state.settingsRevision),
         settings: {},
       });
-    },
-    buildIssues
+    }
   );
 
 const renderField = (node: React.ReactNode) => {
@@ -123,5 +117,41 @@ describe('Greenfield immediate-commit control (radio)', () => {
     });
 
     expect(canonical(enhedField.bind('r1'))).toBe('uger');
+  });
+});
+
+describe('Greenfield grid-felt', () => {
+  it('bevarer den røde feltmarkering, mens grid-cellen er åben', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')));
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), 'ugyldig'));
+    const binding = makeBinding();
+    const gridCell: GridCellCoord = { rowId: 'r1', colIndex: 0 };
+    const gridStateStore: GridCoreStateStore = {
+      subscribe: () => () => undefined,
+      getFocusedCell: () => gridCell,
+      getEditingCell: () => gridCell,
+    };
+
+    render(
+      <InputRuntimeProvider binding={binding}>
+        <GridCoreProvider value={{
+          gridStateStore,
+          openEditing: () => undefined,
+          closeEditing: () => undefined,
+          registerEditor: () => undefined,
+          unregisterEditor: () => undefined,
+          getEditor: () => null,
+          requestFocusPlan: () => undefined,
+        }}>
+          <GreenfieldGridAmountCell
+            gridCell={gridCell}
+            cell={{ kind: 'existing', field: belobField.bind('r1'), location: { locationId: 'r1:belob' } }}
+          />
+        </GridCoreProvider>
+      </InputRuntimeProvider>
+    );
+
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByText('Der er udfyldt en ugyldig værdi i feltet Beløb')).toBeInTheDocument();
   });
 });

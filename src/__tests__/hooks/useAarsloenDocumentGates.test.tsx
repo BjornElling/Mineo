@@ -51,10 +51,11 @@ const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenDocumentG
   beregnetAarsloen: 0,
   beregningsData: { metode: 'ingen' as const, erEtAar: false as const },
   harFatalBeregningsFejl: false,
-  tableHasErrors: false,
+  tableErrors: [],
   tabelRef: React.createRef<StandardLoenTableHandle | null>(),
   persistedStamdata: null,
   settings: DEFAULT_APP_SETTINGS,
+  isSourceCurrent: () => true,
   ...overrides,
 });
 

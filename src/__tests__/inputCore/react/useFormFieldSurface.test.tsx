@@ -111,6 +111,12 @@ const keyEvent = (key: string): React.KeyboardEvent<HTMLInputElement> => {
 const focusEvent = (): React.FocusEvent<HTMLInputElement> =>
   ({}) as unknown as React.FocusEvent<HTMLInputElement>;
 
+const pasteEvent = (raw: string): React.ClipboardEvent<HTMLInputElement> => ({
+  clipboardData: { getData: () => raw },
+  preventDefault: () => undefined,
+  stopPropagation: () => undefined,
+}) as unknown as React.ClipboardEvent<HTMLInputElement>;
+
 describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
   it('lukket felt er readOnly og viser canonical fra revisionen', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
@@ -206,6 +212,14 @@ describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
     const revBefore = store.getState().revision;
     act(() => result.current.onKeyDown(keyEvent('Delete')));
     expect(store.getState().revision).toBe(revBefore);
+  });
+
+  it('paste i et lukket felt committer straks uden at efterlade en åben draft', () => {
+    const { result } = renderSurface(field);
+    act(() => result.current.onPaste(pasteEvent('2024')));
+    expect(canonical(field)).toBe(2024);
+    expect(result.current.isOpen).toBe(false);
+    expect(registry.getEditing()).toBeNull();
   });
 });
 

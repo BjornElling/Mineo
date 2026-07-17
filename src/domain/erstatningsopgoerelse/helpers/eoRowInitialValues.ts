@@ -1,26 +1,13 @@
 import type { LoenudviklingManuelProcentsatsRow, LoenudviklingManuelRow, OffentligeYdelserRow, StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { createRowId } from '../../../utils/rowId';
+import { createEmptyStandardLoenRow } from '../../aarsloen/standardLoenRowInitialValues';
 
 /**
  * Initial tom række - indeholder alle periodetyper.
  *
  * VIGTIGT: `id` sættes af caller (fx `generateRowId()`), så her bruges en tom string.
  */
-export const initialRow: Omit<StandardLoenTableRow, 'id'> & { id: '' } = {
-  id: '',
-  col0_maaned: '',
-  col1_maaned: '',
-  col0_uge: '',
-  col1_uge: '',
-  col0_dag: undefined,
-  col1_dag: undefined,
-  col2: undefined,
-  col3: undefined,
-  col4: undefined,
-  col5: undefined,
-  fpFvShSoBeloeb: undefined,
-  pensionBeloeb: undefined,
-};
+export const initialRow: Omit<StandardLoenTableRow, 'id'> & { id: '' } = createEmptyStandardLoenRow('');
 
 export const generateRowId = (): string => createRowId('row');
 

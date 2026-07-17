@@ -1,6 +1,7 @@
 import {
   reduceInputCommand,
   settleField,
+  setImmediateField,
   insertRow,
   createInputEvaluation,
   createEvaluationSourceToken,
@@ -114,7 +115,7 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
 
   it('samme røde satsprocent i beløb-tilstand → IKKE fatal (§1.9 skjult felt overblokerer ikke)', () => {
     let input = dispatch(empty(), settle(feriePctRef, '150'));
-    input = dispatch(input, settle(tillaegAngivesSomRef, 'beloeb'));
+    input = dispatch(input, setImmediateField(tillaegAngivesSomRef, 'beloeb') as AnyInputCommand);
     const values = readAarsloenValues(reader(input));
     expect(values.tillaegAngivesSom).toBe('beloeb');
     const gate = resolveAarsloenFieldErrorGate(reader(input), values, { omregningAktiveret: false });

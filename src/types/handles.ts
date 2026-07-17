@@ -1,15 +1,12 @@
 import type {
   StandardLoenTableFirstErrorCell,
-  StandardLoenTableValidationSummary,
   OffentligeYdelserTableFirstErrorCell,
   OffentligeYdelserTableValidationSummary,
   TableError,
 } from './table';
 
-export interface StandardLoenTableHandle {
-  getErrors: () => TableError[];
-  getValidationSummary: () => StandardLoenTableValidationSummary;
-  showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => void;
+  export interface StandardLoenTableHandle {
+    showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => void;
   flashError: (error: Extract<TableError, { kind: 'cell' }>) => void;
   /**
    * Peg brugeren på første periodecelle med "Indtastning mangler", når der hverken er en konkret

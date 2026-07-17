@@ -278,12 +278,12 @@ describe('grid-adapter — §7.2 statekæde: række med fejl → slet række →
     expect(store.getState().input.rejectedInputs).toEqual({});
 
     // Undo → rækken OG dens rejected råtekst er tilbage som én tilstand.
-    act(() => { binding.dispatch({ kind: 'undo' }); });
+    act(() => { binding.history.undo(); });
     expect(rows.current.rowIds).toEqual(['row-x']);
     expect(rejectedRaw(belobRef('row-x'))).toBe('abc');
 
     // Redo → rækken fjernes igen.
-    act(() => { binding.dispatch({ kind: 'redo' }); });
+    act(() => { binding.history.redo(); });
     expect(rows.current.rowIds).toEqual([]);
     expect(store.getState().input.rejectedInputs).toEqual({});
   });

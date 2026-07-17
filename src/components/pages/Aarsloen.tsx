@@ -13,9 +13,9 @@ import ContentBox from '../layout/ContentBox';
 import { useInputEvaluation, useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
 import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
-import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
+import { computeAarsloenBeregning, useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
-import { useAarsloenDocumentGates } from '../../hooks/useAarsloenDocumentGates';
+import { useAarsloenDocumentGates, type AarsloenDocumentSnapshot } from '../../hooks/useAarsloenDocumentGates';
 import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
@@ -52,6 +52,7 @@ import {
 import type { StandardLoenTableHandle } from '../../types/handles';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import type { LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas/enumSchemas';
+import { sourceTokensEqual, type EvaluationSourceToken } from '../../inputCore/evaluationSource';
 
 // Greenfield-migreret, Pass 2 (§2.4 formularrækkefølge trin 3 + §2.5 / Fase 3 Årsløn-slice). HELE siden kører nu
 // på greenfield-inputCore: Satser-blokken (Pass 1), løntabellen (StandardLoenTable over grid-adapteren) OG
@@ -82,6 +83,48 @@ const LOENPERIODE_OPTIONS: readonly { value: Loenperiode; label: string }[] = [
   { value: LOENPERIODE.UGE, label: 'Uge' },
   { value: LOENPERIODE.DAG, label: 'Dato' },
 ];
+
+const captureFreshAarsloenDocumentSnapshot = (
+  expectedToken: EvaluationSourceToken
+): AarsloenDocumentSnapshot | null => {
+  const source = captureProductionEvaluationSource();
+  if (!sourceTokensEqual(expectedToken, source.evaluation.issues.sourceToken)) return null;
+
+  const latestValues = readAarsloenValues(source.evaluation.reader);
+  const latestTableValidation = resolveStandardLoenTableValidation(
+    source.evaluation.reader,
+    latestValues.loenperiode,
+    latestValues.tillaegAngivesSom
+  );
+  const latestOmregningGate = resolveAarsloenOmregningGate({
+    requestedEnabled: latestValues.omregningTilFuldtAar,
+    tableData: latestValues.tableData,
+    loenperiode: latestValues.loenperiode,
+    validationSummary: latestTableValidation.summary,
+  });
+  const latestCalculation = computeAarsloenBeregning({
+    values: latestValues,
+    omregningAktiveret: latestOmregningGate.effectiveEnabled,
+  });
+  const latestFieldErrors = resolveAarsloenFieldErrorGate(source.evaluation.reader, latestValues, {
+    omregningAktiveret: latestOmregningGate.effectiveEnabled,
+  });
+  const latestStamdata = projectStamdataForDocument(source.evaluation.reader, 'document.aarsloen');
+
+  return {
+    values: latestValues,
+    omregningAktiveret: latestOmregningGate.effectiveEnabled,
+    periodeData: latestCalculation.periodeData,
+    shDageAntal: latestCalculation.shDageAntal,
+    beregnetAarsloen: latestCalculation.beregnetAarsloen,
+    beregningsData: latestCalculation.beregningsData,
+    harFatalBeregningsFejl: latestCalculation.harFatalBeregningsFejl || latestFieldErrors.length > 0,
+    tableErrors: latestTableValidation.errors,
+    persistedStamdata: latestStamdata.status === 'ready' ? latestStamdata.value : null,
+    settings: source.settings,
+    isSourceCurrent: source.isSourceCurrent,
+  };
+};
 
 /**
  * Årsløn-side
@@ -186,10 +229,12 @@ const Aarsloen = React.memo(() => {
     beregnetAarsloen,
     beregningsData,
     harFatalBeregningsFejl,
-    tableHasErrors: tableValidationSummary.hasErrors,
+    tableErrors: tableValidation.errors,
     tabelRef,
     persistedStamdata,
     settings,
+    // Render-snapshottet bruges kun til knaptilstand. Selve downloadhandlingen leverer altid et frisk snapshot.
+    isSourceCurrent: () => false,
   });
 
   // §1.4/§3.9: en download settler først en evt. åben celle-/felt-editor og evaluerer derefter et frisk
@@ -201,9 +246,9 @@ const Aarsloen = React.memo(() => {
       if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
-    // Frisk kildesnapshot efter settle (adskilt fra render-cachen); handleren læser den aktuelle revision.
-    captureProductionEvaluationSource();
-    await handleAarsloenDocumentDownload();
+    const latest = captureFreshAarsloenDocumentSnapshot(preparation.token);
+    if (latest === null) return;
+    await handleAarsloenDocumentDownload(latest);
   }, [criticalActions, handleAarsloenDocumentDownload]);
 
   const runShDageDownload = React.useCallback(async () => {
@@ -212,8 +257,9 @@ const Aarsloen = React.memo(() => {
       if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
-    captureProductionEvaluationSource();
-    await handleSHDageDocumentDownload();
+    const latest = captureFreshAarsloenDocumentSnapshot(preparation.token);
+    if (latest === null) return;
+    await handleSHDageDocumentDownload(latest);
   }, [criticalActions, handleSHDageDocumentDownload]);
 
   // Afledt boolean til betinget rendering

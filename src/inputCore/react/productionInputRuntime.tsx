@@ -16,6 +16,7 @@ import {
   InputRuntimeProvider,
   type InputRuntimeBinding,
 } from './inputRuntimeContext';
+import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 
 // Greenfield-produktions-wiring (§3.10, Fase 2.4/3-cutover): den ene binding, produktions-app'en monterer. Den
 // hydrerer runtime FØR render (`initializeInputRuntime`) mod applikations-singletonerne og distribuerer den
@@ -29,10 +30,19 @@ import {
 // råtekst), så Satser-slicens bounds-fejl er dækket uden en separat validator. Snapshottet caches pr.
 // `EvaluationSourceToken`, så `getIssues` er billig at kalde under render (én gang pr. revision/settingsrevision).
 
-/** Sammen med `settingsFingerprintRef` giver `bumpSettingsRevision` den samlede input-/settings-friskhed. */
+let publishedSettings: AppSettings = DEFAULT_APP_SETTINGS;
+
+const evaluationSettingsFingerprint = (settings: AppSettings): string => JSON.stringify({
+  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden:
+    settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden,
+  allowReguleringMedUdloebMedMaaneder: settings.allowReguleringMedUdloebMedMaaneder,
+  documentDownloadFormat: settings.documentDownloadFormat,
+  brevhovedIndstillinger: settings.brevhovedIndstillinger,
+});
+
+/** Sammen med settingsrevisionen giver snapshotreferencen den samlede input-/settings-friskhed. */
 const buildProductionEvaluation = (): InputEvaluation =>
-  // Settings-issues wires slicevis; friskheden dækker allerede settingsrevisionen via tokenet (§3.4).
-  captureStableInputEvaluation(slimInputStore, getProductionInputCatalog(), undefined);
+  captureStableInputEvaluation(slimInputStore, getProductionInputCatalog(), publishedSettings);
 
 // Cache pr. token: `getIssues`/`getEvaluation` kaldes under render (bl.a. af `useFieldEditor`), så en fuld
 // issue-udledning må ikke køre på hver render. Den genberegnes kun, når input- eller settingsrevisionen flytter.
@@ -76,17 +86,20 @@ export const getProductionInputEvaluation = (): InputEvaluation => readProductio
  */
 export const captureProductionEvaluationSource = (): Readonly<{
   evaluation: InputEvaluation;
+  settings: AppSettings;
   isSourceCurrent: () => boolean;
 }> => {
   const { token, input } = captureStableInput(slimInputStore);
+  const settings = publishedSettings;
   const evaluation = createInputEvaluation({
     input,
     catalog: getProductionInputCatalog(),
     sourceToken: token,
-    settings: undefined,
+    settings,
   });
   return Object.freeze({
     evaluation,
+    settings,
     isSourceCurrent: () => {
       const state = slimInputStore.getState();
       return sourceTokensEqual(token, {
@@ -122,18 +135,21 @@ let bootstrappedProductionRuntime: Readonly<{
 }> | null = null;
 
 /**
- * Bumper store'ens settingsrevision, når AppSettings ændrer sig, så `EvaluationSourceToken` bevæger sig samlet
- * med input- OG settingsændringer (§3.4). Rendres uden for React-visningen (ingen output), monteret under
- * AppSettings-provideren. `settingsFingerprint` er en billig, stabil identitet for de settings, der påvirker
- * validering/beregning; skifter den, bumpes revisionen. Første render bumper ikke (fingerprint-ref matcher).
+ * Publicerer settingssnapshot og revision i samme layoutfase, så kritiske handlinger aldrig kombinerer et nyt
+ * inputtoken med et settingsobjekt fra en ældre React-commit. Første mount flytter kun revisionen, hvis de
+ * indlæste dokument-/valideringssettings afviger fra runtime-defaulten.
  */
-export const useSettingsRevisionBridge = (settingsFingerprint: string): void => {
-  const previousRef = React.useRef(settingsFingerprint);
+export const useSettingsRevisionBridge = (settings: AppSettings): void => {
+  const previousFingerprintRef = React.useRef(evaluationSettingsFingerprint(publishedSettings));
   React.useLayoutEffect(() => {
-    if (previousRef.current === settingsFingerprint) return;
-    previousRef.current = settingsFingerprint;
+    const committedFingerprint = evaluationSettingsFingerprint(settings);
+    const changed = previousFingerprintRef.current !== committedFingerprint;
+    previousFingerprintRef.current = committedFingerprint;
+    publishedSettings = settings;
+    if (!changed) return;
+    cachedEvaluation = null;
     slimInputStore.getState().bumpSettingsRevision();
-  }, [settingsFingerprint]);
+  }, [settings]);
 };
 
 export type ProductionInputRuntimeProviderProps = Readonly<{

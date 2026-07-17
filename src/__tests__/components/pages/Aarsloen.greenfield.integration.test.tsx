@@ -4,7 +4,7 @@
 // ægte produktions-runtime (`ProductionInputRuntimeProvider` mod `slimInputStore`). Beviser den virkelige sti:
 // hydreret sag → reader-projektion → StandardLoenTable over grid-adapteren (afledte kolonner, valideringssummary,
 // række-infrastruktur) + beregningsprincip-blok, uden legacy `usePersistedForm`/`invalidDrafts`.
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Aarsloen from '../../../components/pages/Aarsloen';
@@ -153,6 +153,27 @@ describe('Årsløn (greenfield) — migreret side + løntabel over grid-adaptere
     });
     // Mindst 2 rækker fortsat (den promoverede + en ny placeholder).
     expect(screen.getAllByRole('row').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('kan slette en promoveret række, der kun indeholder rejected råtekst', async () => {
+    const user = userEvent.setup();
+    hydrateAarsloen({ loenperiode: 'maaned', tableData: [] });
+    renderAarsloen();
+
+    const firstMonthInput = within(getDataRowCells(0)[0]).getByRole('textbox') as HTMLInputElement;
+    await user.click(firstMonthInput);
+    await user.click(firstMonthInput);
+    await user.keyboard('13');
+    await user.tab();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Slet rækken' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Slet rækken' }));
+
+    await waitFor(() => {
+      const tableData = slimInputStore.getState().input.sections.aarsloen?.tableData ?? [];
+      expect(tableData).toHaveLength(0);
+      expect(slimInputStore.getState().input.rejectedInputs).toEqual({});
+    });
   });
 
   it('omregning-toggle afspejler den committede canonical værdi', () => {

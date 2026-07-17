@@ -50,6 +50,7 @@ export type GridCellSurface<T> = Readonly<{
   onDraftChange: (nextDraft: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  onBlur: () => void;
 
   controller: FieldEditorController<T>;
 }>;
@@ -84,18 +85,6 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   // stabile handlere altid ser den aktuelle celles felt uden at churne.
   const cellFieldRef = React.useRef<FieldRef<T>>(cellFieldOf(cell));
   cellFieldRef.current = cellFieldOf(cell);
-
-  // Bro-retning 1: grid-core edit-open → greenfield `open()`. Når grid-core markerer cellen som redigerende
-  // (klik, Enter/Tab-nav, dobbeltklik), åbnes den greenfield-editor, så draften seedes fra den afsluttede
-  // revision (§3.5). En tast-initieret edit-open går via `prepareEditFromKey` på handlen (seeder selv draften).
-  React.useEffect(() => {
-    if (!isEditing) return;
-    if (locked) return;
-    if (controller.isOpen) return;
-    controller.open();
-    // Kun ved overgangen til isEditing; controlleren guarder dobbelt-open.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing]);
 
   const onDraftChange = React.useCallback((nextDraft: string) => {
     latest.current.controller.changeDraft(nextDraft);
@@ -154,6 +143,10 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   const editorHandle = React.useMemo<GridCellEditorHandle>(() => ({
     getElement: () => inputElementRef.current,
     getIsLocked: () => latest.current.locked,
+    openCurrent: () => {
+      if (latest.current.locked || latest.current.controller.isOpen) return;
+      latest.current.controller.open();
+    },
     commitCurrent: () => {
       if (latest.current.locked) return true;
       // Greenfield settle er altid "succesfuld" ud fra editorens synspunkt: gyldigt/tomt/rejected settle
@@ -217,6 +210,12 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorHandle, gridApi, resolvedGridCellKey]);
 
+  const onBlur = React.useCallback(() => {
+    if (!latest.current.controller.isOpen) return;
+    latest.current.controller.settle();
+    gridApi.closeEditing();
+  }, [gridApi]);
+
   return {
     displayText: controller.displayText,
     isEditing,
@@ -228,6 +227,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     onDraftChange,
     onKeyDown,
     onPaste,
+    onBlur,
     controller,
   };
 };

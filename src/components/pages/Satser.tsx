@@ -8,7 +8,6 @@ import { useCriticalInputActions, useInputEvaluation } from '../../inputCore/rea
 import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
 import { projectSatser } from '../../domain/satser/satserProjection';
 import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
-import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
 import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import { formatAsAmount, formatKr, formatPercent } from '../../utils/formatUtils';
@@ -123,7 +122,6 @@ const aargangLocation = { locationId: 'satser:aargang' } as const;
  * Indeholder information om relevante satser for erstatningsberegninger.
  */
 const Satser = React.memo(() => {
-  const { settings } = useAppSettings();
   const evaluation = useInputEvaluation();
   const criticalActions = useCriticalInputActions();
 
@@ -163,10 +161,10 @@ const Satser = React.memo(() => {
       year: latest.value.year,
       satser: latest.value.satser,
       isSourceCurrent: source.isSourceCurrent,
-      settings,
+      settings: source.settings,
       persistedStamdata: latestStamdata.value,
     });
-  }, [criticalActions, settings]);
+  }, [criticalActions]);
 
   const renderReferenceValue = React.useCallback((links: readonly RetsinfoLink[]) => {
     if (links.length === 0) return '';

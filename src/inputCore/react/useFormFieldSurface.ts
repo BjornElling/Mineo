@@ -216,8 +216,10 @@ export const useFormFieldSurface = <T>(
     if (normalized === '') return;
 
     if (!ctl.isOpen) {
-      // Lukket paste: åbn og seed draften med den indsatte tekst (som en tast-initieret åbning).
+      // Lukket paste er en afsluttet inputhandling: commit straks gennem samme codec/settle-sti som grid.
+      // Editorens åbne draft må ikke efterlades som en skjult mellemtilstand efter clipboard-handlingen.
       ctl.open(normalized);
+      ctl.settle();
       return;
     }
 

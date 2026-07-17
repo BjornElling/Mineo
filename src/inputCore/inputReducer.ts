@@ -67,6 +67,12 @@ export type InputMutationCommand<TField = unknown, TEntity = unknown> =
   | ReplaceCaseCommand
   | ClearCaseCommand;
 
+/** Commands, som form-/grid-surfaces må udstede; hel-sagsmutationer er kun systeminfrastruktur. */
+export type InputSurfaceCommand<TField = unknown, TEntity = unknown> = Exclude<
+  InputMutationCommand<TField, TEntity>,
+  ResetSectionCommand | ReplaceCaseCommand | ClearCaseCommand
+>;
+
 // ── Command-konstruktører ────────────────────────────────────────────────────────────────────────
 export const settleField = <T>(field: FieldRef<T>, raw: string): SettleFieldCommand<T> =>
   Object.freeze({ kind: 'settleField', field, raw });

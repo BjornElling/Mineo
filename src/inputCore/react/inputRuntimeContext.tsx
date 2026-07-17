@@ -5,7 +5,8 @@ import type { SettledInput } from '../settledInput';
 import { sourceTokensEqual, type InputRevision } from '../evaluationSource';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import type { InputEvaluation } from '../inputReader';
-import { dispatchInput, type DispatchInputResult, type RuntimeInputCommand } from '../runtime/dispatchInput';
+import { dispatchInput, type DispatchInputResult } from '../runtime/dispatchInput';
+import type { InputSurfaceCommand } from '../inputReducer';
 import type { HistoryOrigin } from '../inputHistory';
 import type { SlimInputStore } from '../runtime/slimInputStore';
 import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
@@ -37,9 +38,14 @@ export type InputRuntimeBinding = Readonly<{
   getEvaluation: () => InputEvaluation;
   /** Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands. */
   dispatch: <TField, TEntity>(
-    command: RuntimeInputCommand<TField, TEntity>,
+    command: InputSurfaceCommand<TField, TEntity>,
     origin?: HistoryOrigin
   ) => DispatchInputResult;
+  /** History er en separat port; editor-surfaces kan ikke forveksle restore med en feltkommando. */
+  history: Readonly<{
+    undo: () => DispatchInputResult;
+    redo: () => DispatchInputResult;
+  }>;
   registry: ActiveEditorRegistry;
   criticalActions: CriticalActionCoordinator;
 }>;
@@ -101,6 +107,10 @@ export const createInputRuntimeBinding = (
     getIssues: getStableIssues,
     getEvaluation,
     dispatch: (command, origin) => dispatchInput(store, catalog, command, origin === undefined ? {} : { origin }),
+    history: Object.freeze({
+      undo: () => dispatchInput(store, catalog, { kind: 'undo' }),
+      redo: () => dispatchInput(store, catalog, { kind: 'redo' }),
+    }),
     registry,
     criticalActions: new CriticalActionCoordinator(store, registry),
   });

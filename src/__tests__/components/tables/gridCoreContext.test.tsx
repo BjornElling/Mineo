@@ -4,6 +4,8 @@ import { act, render, screen } from '@testing-library/react';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import { useGridCellEditing, useGridCellFocus } from '../../../components/tables/useGridCore';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
+import type { GridCellEditorHandle, GridCoreController } from '../../../components/tables/gridCore/gridCoreTypes';
+import { useGridCoreController } from '../../../components/tables/useGridCoreController';
 
 const GRID_CELL: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
 
@@ -76,5 +78,38 @@ describe('GridCoreProvider', () => {
     });
 
     expect(screen.getByText('focused:closed')).toBeInTheDocument();
+  });
+});
+
+describe('useGridCoreController', () => {
+  it('åbner den persisted editor synkront med grid-core-editingen', () => {
+    const controllerRef: { current: GridCoreController | null } = { current: null };
+    const openCurrent = vi.fn();
+    const handle: GridCellEditorHandle = {
+      getElement: () => null,
+      getIsLocked: () => false,
+      openCurrent,
+      commitCurrent: () => true,
+      clearAndCommit: () => undefined,
+      cancelEdit: () => undefined,
+      prepareEditFromKey: () => false,
+      selectAll: () => undefined,
+    };
+
+    const Harness = () => {
+      controllerRef.current = useGridCoreController().controller;
+      return null;
+    };
+    render(<Harness />);
+
+    const controller = controllerRef.current;
+    if (controller === null) throw new Error('Grid-controller blev ikke oprettet');
+    act(() => {
+      controller.registerEditor(GRID_CELL, handle);
+      controller.openEditing(GRID_CELL, 'pointer');
+    });
+
+    expect(openCurrent).toHaveBeenCalledTimes(1);
+    expect(controller.getEditingCell()).toEqual(GRID_CELL);
   });
 });

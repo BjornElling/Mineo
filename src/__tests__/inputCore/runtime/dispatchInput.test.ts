@@ -155,6 +155,31 @@ describe('dispatchInput — transaktionsinvarianter (§7.4)', () => {
     expect(sessionStorage.getItem(key)).toBeNull(); // rigtig storage aldrig skrevet
   });
 
+  it('blokerer efterfølgende writes, når storage-rollback ikke kan byte-verificeres', () => {
+    const realStorage = window.sessionStorage;
+    let stored: string | null = null;
+    const corruptStorage: Storage = {
+      getItem: () => stored,
+      setItem: () => { stored = 'korrupt-readback'; },
+      // Simulerer en storage, som ignorerer rollback-fjernelsen.
+      removeItem: () => undefined,
+      clear: () => undefined,
+      key: () => null,
+      length: 1,
+    };
+    Object.defineProperty(window, 'sessionStorage', { value: corruptStorage, configurable: true });
+    try {
+      expect(() => dispatchInput(store, catalog, settleField(aargangField.bind(), '2020')))
+        .toThrow(/rollback fejlede/);
+    } finally {
+      Object.defineProperty(window, 'sessionStorage', { value: realStorage, configurable: true });
+    }
+
+    expect(store.getState().revision).toBe(0);
+    expect(store.getState().meta.inputWritesBlocked).toBe(true);
+    expect(() => dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'))).toThrow(/blokeret/);
+  });
+
   it('ruller runtime tilbage til før-snapshot, hvis et store-write kaster efter set', () => {
     let calls = 0;
     const unsub = store.subscribe(() => { calls += 1; if (calls === 1) throw new Error('subscriber-fejl'); });

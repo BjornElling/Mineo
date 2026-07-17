@@ -126,6 +126,7 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
         pendingFocusPlanRef.current = null;
       }
 
+      handle?.openCurrent?.();
       setEditingCell(cell, { synchronously: true });
       if (source === 'doubleClick') {
         requestAnimationFrame(() => {

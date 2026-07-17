@@ -87,7 +87,11 @@ export class CriticalActionCoordinator {
     const replacement = this.preparationTail
       .catch(() => undefined)
       .then(async () => {
+        const generationBefore = this.store.getState().replacementGeneration;
         const result = await apply();
+        if (this.store.getState().replacementGeneration === generationBefore) {
+          throw new Error('Replacement-handlingen afsluttede uden en autoritativ input-replacement.');
+        }
         this.registry.getEditing()?.discard();
         return result;
       });

@@ -86,17 +86,30 @@ const commitCandidate = (
     });
   } catch (error) {
     const rollbackErrors: Error[] = [];
+    let storageRollbackVerified = false;
     try {
       if (backup === null) removeSessionStorageValue(key);
       else writeSessionStorageValue(key, backup);
+      const restored = readSessionStorageValue(key);
+      storageRollbackVerified = restored === backup;
+      if (!storageRollbackVerified) {
+        throw new Error('Inputenvelopens rollback kunne ikke genlæses byte-for-byte.');
+      }
     } catch (rollbackError) {
       rollbackErrors.push(rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError)));
     }
-    if (store.getState() !== before) {
+    const restoredStoreState = storageRollbackVerified
+      ? before
+      : {
+          ...before,
+          meta: { ...before.meta, inputWritesBlocked: true },
+        };
+    if (store.getState() !== restoredStoreState) {
       try {
         // applyCommit kan have gennemført sit set, før en subscriber kastede. Gendan hele før-snapshot'et, så
-        // storage og runtime aldrig efterlades ude af sync.
-        store.setState(before, true);
+        // storage og runtime aldrig efterlades ude af sync. Kan storage-rollback ikke bevises, blokeres alle
+        // efterfølgende writes fail-closed, indtil brugeren vælger den autoritative "Slet alt"-handling.
+        store.setState(restoredStoreState, true);
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError)));
       }

@@ -8,11 +8,8 @@ import type {
   StandardLoenTableColumnKey,
   StandardLoenTableFirstErrorCell,
   StandardLoenTableSatser,
-  StandardLoenTableValidationSummary,
-  TableError,
 } from '../../types/table';
 import type { StandardLoenTableHandle } from '../../types/handles';
-import { initialRow } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { createRowId } from '../../utils/rowId';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import {
@@ -26,7 +23,7 @@ import {
 } from '../../domain/aarsloen/standardLoenTableValidation';
 import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
 import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
-import { readStandardLoenTableRows, resolveStandardLoenTableValidationFromReader } from './standardLoenTableFieldSet';
+import { readStandardLoenTableRows } from './standardLoenTableFieldSet';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import { useInputEvaluation, useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
@@ -68,7 +65,6 @@ export type StandardLoenTableProps = {
   // Beløb-tilstand: kolonnerne "FP/FV/SH/SO/St.B." og "Arb.g. Pension" bliver redigerbare beløbsfelter i stedet
   // for beregnede visningsfelter. Default 'procent' (nuværende adfærd).
   tillaegAngivesSom?: TillaegAngivesSom;
-  onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   useSmallFont?: boolean;
   saveOrderPath?: TableSaveOrderPath;
   calculateDerivedRow?: (row: StandardLoenTableRow) => StandardLoenRowDerived;
@@ -88,11 +84,8 @@ const COL = {
   beloeb1: 7,
 } as const;
 
-/** Én tom placeholder-række-entity (row-factory): et fuldt formet `StandardLoenTableRow` med et stabilt id. */
-const createEmptyRowEntity = (rowId: string): StandardLoenTableRow => ({ ...initialRow, id: rowId });
-
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', onValidationChange, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
+  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
@@ -142,22 +135,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       },
       [calculateDerivedRow, getSatserInput, tillaegAngivesSom]
     );
-
-    // ── Valideringssummary (REN, reader-afledt) ─────────────────────────────────
-    // Ingen imperativ celle-fejl-tracker: input-fejl er readerens røde issues, periode-rækkefølge er ren over
-    // rækkerne. Underret forælderen deterministisk ved ændring (fingerprint-gate mod loop).
-    const validationSummary = React.useMemo(
-      () => resolveStandardLoenTableValidationFromReader(fieldSet, evaluation.reader, loenperiode, tillaegAngivesSom).summary,
-      [evaluation, fieldSet, loenperiode, tillaegAngivesSom]
-    );
-    const lastSummaryFingerprintRef = React.useRef<string | null>(null);
-    React.useEffect(() => {
-      if (!onValidationChange) return;
-      const fingerprint = JSON.stringify(validationSummary);
-      if (lastSummaryFingerprintRef.current === fingerprint) return;
-      lastSummaryFingerprintRef.current = fingerprint;
-      onValidationChange(validationSummary);
-    }, [onValidationChange, validationSummary]);
 
     // ── Sortering ──────────────────────────────────────────────────────────────
     const resolveCommittedRow = React.useCallback(
@@ -323,8 +300,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     React.useImperativeHandle(
       ref,
       () => ({
-        getErrors: (): TableError[] => resolveStandardLoenTableValidationFromReader(fieldSet, evaluation.reader, loenperiode, tillaegAngivesSom).errors,
-        getValidationSummary: (): StandardLoenTableValidationSummary => validationSummary,
         showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => {
           if (cell.reason !== 'missing') return;
           if (!isVisibleColKey(cell.colKey)) return;
@@ -350,7 +325,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           if (el) scrollTargetIntoView(el, { force: true });
         },
       }),
-      [evaluation, fieldSet, isVisibleColKey, loenperiode, placeholderIds, resolveColIdxFromKey, sortedCommittedRows, tillaegAngivesSom, validationSummary]
+      [isVisibleColKey, loenperiode, placeholderIds, resolveColIdxFromKey, sortedCommittedRows]
     );
 
     const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);
@@ -372,11 +347,11 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         kind: 'placeholder',
         descriptor,
         collection,
-        entity: createEmptyRowEntity(renderRow.rowId),
+        entity: fieldSet.createRow(renderRow.rowId),
         entityId: renderRow.rowId,
         location,
       };
-    }, [collection]);
+    }, [collection, fieldSet]);
 
     return (
       <StandardGridTable
@@ -427,7 +402,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         <tbody>
           {renderRows.map((renderRow, rowIndex) => {
             const rowId = renderRow.rowId;
-            const committedRow = committedById.get(rowId) ?? createEmptyRowEntity(rowId);
+            const committedRow = committedById.get(rowId) ?? fieldSet.createRow(rowId);
             const calculated = calculateRow(committedRow);
             const gc = (colIndex: number) => ({ rowId, colIndex });
 
@@ -543,7 +518,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   }}
                 >
                   {formatKr(calculated.col8, 2)}
-                  {renderRow.kind === 'existing' && !isRowEmpty(committedRow) && (
+                  {renderRow.kind === 'existing' && (
                     <RowDeleteButton onDelete={() => rows.remove(rowId)} />
                   )}
                 </td>

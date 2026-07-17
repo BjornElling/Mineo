@@ -44,14 +44,17 @@ export const resolveDateRangeErrorMessage = (args: {
   minDate: ISODateString | undefined;
   maxDate: ISODateString | undefined;
   special?: DateRangeSpecialErrors;
+  /** Brugervendte inputnavne, som har frembragt et umuligt dynamisk interval. */
+  noValidRangeInputs?: string;
 }): string => {
-  const { iso, minDate, maxDate, special } = args;
+  const { iso, minDate, maxDate, special, noValidRangeInputs } = args;
 
   // Umuligt interval (tidligst tilladte efter senest tilladte) har forrang over alle
   // andre beskeder: når ingen dato er mulig, er den vigtigste oplysning netop dét,
   // med begge grænser (jf. AGENTS.md §Validering og fejl-UI).
   if (minDate && maxDate && minDate > maxDate) {
-    return `Der findes ingen gyldig dato her: tidligst tilladte (${formatISOForTooltip(minDate)}) ligger efter senest tilladte (${formatISOForTooltip(maxDate)}).`;
+    const inputCause = noValidRangeInputs === undefined ? '' : ` Grænserne kommer fra ${noValidRangeInputs}.`;
+    return `Der findes ingen gyldig dato her: tidligst tilladte (${formatISOForTooltip(minDate)}) ligger efter senest tilladte (${formatISOForTooltip(maxDate)}).${inputCause}`;
   }
 
   // Bound-kind-beskeder skal have forrang over parrede Fra/Til-beskeder for at undgå misvisende output.

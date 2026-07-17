@@ -25,6 +25,8 @@ export type FocusPlan = Readonly<{
 export type GridCellEditorHandle = Readonly<{
   getElement: () => HTMLElement | null;
   getIsLocked: () => boolean;
+  /** Åbn den underliggende persisted editor synkront med grid-core-lifecyclen. */
+  openCurrent?: () => void;
   commitCurrent: () => boolean;
   clearAndCommit: () => void;
   cancelEdit: () => void;

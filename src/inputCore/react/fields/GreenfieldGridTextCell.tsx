@@ -62,7 +62,7 @@ const GreenfieldGridTextCellInner = <T, TEntity>(
   );
 
   const hasError = surface.issue !== undefined;
-  const showError = hasError && !surface.isEditing;
+  const showError = hasError;
   const errorMessage = surface.issue?.message ?? '';
 
   const isDraftEmpty = surface.displayText.trim() === '';
@@ -94,7 +94,7 @@ const GreenfieldGridTextCellInner = <T, TEntity>(
             value={surface.displayText}
             readOnly={surface.readOnly}
             onChange={(e) => surface.onDraftChange(e.target.value)}
-            onBlur={() => surface.controller.settle()}
+            onBlur={surface.onBlur}
             onKeyDown={surface.onKeyDown}
             onPaste={surface.onPaste}
             onMouseDown={handleFieldMouseDown}
@@ -103,6 +103,7 @@ const GreenfieldGridTextCellInner = <T, TEntity>(
             inputProps={{
               inputMode,
               readOnly: surface.readOnly,
+              'aria-invalid': showError,
             }}
             sx={{
               ...getTableInputRootStyles({ showError, tableKind: gridApi.tableKind, locked: false }),

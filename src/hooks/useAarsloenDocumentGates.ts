@@ -1,34 +1,18 @@
-/**
- * Custom hook for årsløn dokument-download-gates
- *
- * Ansvar:
- * - Konsolideret dokument-eligibility check
- * - Trigger download shake animation
- * - Håndtering af dokument-downloads
- *
- * Dette hook samler alle dokument-download-gates ét sted for nem vedligeholdelse. Outputtet er
- * format-agnostisk (PDF eller Word afhængigt af documentDownloadFormat).
- */
-
 import React from 'react';
-import type { StandardLoenTableHandle } from '../types/handles';
-import type { AarsloenValues } from '../schemas/formSchemas';
-import type { PeriodeResult } from '../utils/periodeBeregning';
-import type { AarsloenBeregningResult } from '../types/calculation';
-import {
-  resolveAarsloenCanonicalRangeIssues,
-} from '../domain/aarsloen/aarsloenValidationPolicies';
-import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
+
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
-import type { AppSettings } from '../settings/appSettingsSchema';
-import { downloadAarsloenDokument, downloadSHDageDokument } from '../document/service/documentService';
 import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../document/layout/documentGateTypes';
+import { downloadAarsloenDokument, downloadSHDageDokument } from '../document/service/documentService';
+import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
+import { resolveAarsloenCanonicalRangeIssues } from '../domain/aarsloen/aarsloenValidationPolicies';
+import type { AarsloenValues } from '../schemas/formSchemas';
+import type { AppSettings } from '../settings/appSettingsSchema';
+import type { AarsloenBeregningResult } from '../types/calculation';
+import type { StandardLoenTableHandle } from '../types/handles';
+import type { TableError } from '../types/table';
+import type { PeriodeResult } from '../utils/periodeBeregning';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-type UseAarsloenDocumentGatesProps = {
+export type AarsloenDocumentSnapshot = Readonly<{
   values: AarsloenValues;
   omregningAktiveret: boolean;
   periodeData: PeriodeResult | null;
@@ -36,304 +20,158 @@ type UseAarsloenDocumentGatesProps = {
   beregnetAarsloen: number;
   beregningsData: AarsloenBeregningResult;
   harFatalBeregningsFejl: boolean;
-  /** Reader-afledt: har løntabellen mindst én rød celle-/periodefejl (§2.5, erstatter `harTabelValideringsFejl`). */
-  tableHasErrors: boolean;
-  tabelRef: React.RefObject<StandardLoenTableHandle | null>;
+  tableErrors: readonly TableError[];
   persistedStamdata: PersistedSectionMap['stamdata'] | null;
   settings: AppSettings;
-};
+  isSourceCurrent: () => boolean;
+}>;
 
-type UseAarsloenDocumentGatesReturn = {
+type UseAarsloenDocumentGatesProps = AarsloenDocumentSnapshot & Readonly<{
+  tabelRef: React.RefObject<StandardLoenTableHandle | null>;
+}>;
+
+type UseAarsloenDocumentGatesReturn = Readonly<{
   canDownloadDocument: boolean;
-  /** Blokerings-årsag for hoved-download, eller null når download er tilladt. Bruges som tooltip på det nedtonede ikon. */
   documentDisabledReason: string | null;
   canDownloadSHDageDocument: boolean;
-  /** Blokerings-årsag for SH-dage-download, eller null når download er tilladt. */
   shDageDisabledReason: string | null;
-  handleAarsloenDocumentDownload: () => Promise<void>;
-  handleSHDageDocumentDownload: () => Promise<void>;
+  handleAarsloenDocumentDownload: (latest?: AarsloenDocumentSnapshot) => Promise<void>;
+  handleSHDageDocumentDownload: (latest?: AarsloenDocumentSnapshot) => Promise<void>;
   downloadShake: boolean;
   downloadErrorMessage: string | null;
+}>;
+
+export const resolveAarsloenDocumentEligibility = (
+  snapshot: AarsloenDocumentSnapshot
+): DocumentDownloadGateResult => {
+  const { values, omregningAktiveret, tableErrors, harFatalBeregningsFejl, periodeData } = snapshot;
+  const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret })[0];
+  if (canonicalRangeIssue) {
+    return blockDocumentDownload({ code: 'aarsloen:canonical-range-error', message: canonicalRangeIssue.message });
+  }
+  if (values.tableData.length === 0) {
+    return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
+  }
+  if (tableErrors.length > 0) {
+    return blockDocumentDownload({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
+  }
+  if (!hasAtLeastOneValidRow(values.tableData, values.loenperiode, {
+    feriePct: values.feriePct,
+    fritvalgPct: values.fritvalgPct,
+    shSoPct: values.shSoPct,
+    storeBededagPct: values.storeBededagPct,
+    pensionPct: values.pensionPct,
+  }, values.tillaegAngivesSom)) {
+    return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
+  }
+  if (harFatalBeregningsFejl) {
+    return blockDocumentDownload({ code: 'aarsloen:fatal-calculation-error', message: 'Fatale beregningsfejl' });
+  }
+  if (omregningAktiveret && periodeData === null) {
+    return blockDocumentDownload({ code: 'aarsloen:missing-period-data', message: 'Mangler periode-data' });
+  }
+  return allowDocumentDownload();
 };
 
-// ============================================================================
-// HOOK
-// ============================================================================
+export const resolveShDageDocumentEligibility = (
+  snapshot: AarsloenDocumentSnapshot
+): DocumentDownloadGateResult => {
+  const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(snapshot.values, {
+    omregningAktiveret: snapshot.omregningAktiveret,
+  })[0];
+  if (canonicalRangeIssue) {
+    return blockDocumentDownload({ code: 'aarsloen:sh-canonical-range-error', message: canonicalRangeIssue.message });
+  }
+  if (snapshot.periodeData === null) {
+    return blockDocumentDownload({ code: 'aarsloen:sh-missing-period-data', message: 'Mangler periode-data' });
+  }
+  if (snapshot.shDageAntal === null) {
+    return blockDocumentDownload({ code: 'aarsloen:sh-no-count', message: 'Antal SH-dage er ikke beregnet' });
+  }
+  if (snapshot.shDageAntal === 0) {
+    return blockDocumentDownload({ code: 'aarsloen:sh-zero', message: 'Ingen SH-dage i de indtastede perioder' });
+  }
+  return allowDocumentDownload();
+};
 
-/**
- * Hook der håndterer dokument-download-gates og downloads
- *
- * @param props - Se UseAarsloenDocumentGatesProps
- * @returns Dokument-download state og handlers
- */
-export const useAarsloenDocumentGates = ({
-  values,
-  omregningAktiveret,
-  periodeData,
-  shDageAntal,
-  beregnetAarsloen,
-  beregningsData,
-  harFatalBeregningsFejl,
-  tableHasErrors,
-  tabelRef,
-  persistedStamdata,
-  settings,
-}: UseAarsloenDocumentGatesProps): UseAarsloenDocumentGatesReturn => {
-  const {
-    tableData,
-    loenperiode,
-    tillaegAngivesSom,
-    feriePct,
-    fritvalgPct,
-    shSoPct,
-    storeBededagPct,
-    pensionPct,
-    fuldLoenUnderFerie,
-    retTilSjetteFerieuge,
-    antalFeriedage,
-    loenPaaHelligdage,
-  } = values;
-
-  // State til download-knap shake-animation
+export const useAarsloenDocumentGates = (props: UseAarsloenDocumentGatesProps): UseAarsloenDocumentGatesReturn => {
+  const { tabelRef, ...renderSnapshot } = props;
   const [downloadShake, setDownloadShake] = React.useState(false);
   const [downloadErrorMessage, setDownloadErrorMessage] = React.useState<string | null>(null);
   const downloadShakeTimeoutRef = React.useRef<number | null>(null);
 
-  React.useEffect(() => {
-    return () => {
-      if (downloadShakeTimeoutRef.current !== null) {
-        window.clearTimeout(downloadShakeTimeoutRef.current);
-      }
-    };
+  React.useEffect(() => () => {
+    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
   }, []);
 
-  // Trigger shake animation
   const triggerDownloadShake = React.useCallback(() => {
     setDownloadShake(true);
-    if (downloadShakeTimeoutRef.current !== null) {
-      window.clearTimeout(downloadShakeTimeoutRef.current);
-    }
+    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
     downloadShakeTimeoutRef.current = window.setTimeout(() => {
       setDownloadShake(false);
       downloadShakeTimeoutRef.current = null;
     }, 500);
   }, []);
 
-  // ============================================================================
-  // DOKUMENT-ELIGIBILITY GATES
-  // ============================================================================
+  const documentEligibility = resolveAarsloenDocumentEligibility(renderSnapshot);
+  const shDageEligibility = resolveShDageDocumentEligibility(renderSnapshot);
 
-  /**
-   * Hovedfunktion: Evaluér om dokumentet kan downloades
-   *
-   * VIGTIGT: Dette er single source of truth for dokument-eligibility.
-   * Alle gates samlet ét sted for nem vedligeholdelse.
-   */
-  const getDocumentEligibility = React.useMemo((): DocumentDownloadGateResult => {
-    const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret })[0];
-    if (canonicalRangeIssue) {
-      return blockDocumentDownload({
-        code: 'aarsloen:canonical-range-error',
-        message: canonicalRangeIssue.message,
-      });
-    }
-
-    // GATE 1: Data i tabellen
-    if (!tableData || tableData.length === 0) {
-      return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
-    }
-
-    // GATE 2: Valideringsfejl i tabel (reader-afledt — inkluderer røde celle-input-fejl, ikke kun periode-fejl).
-    if (tableHasErrors) {
-      return blockDocumentDownload({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
-    }
-
-    // GATE 3: Mindst én gyldig række (komplet periode + samlet løn ≠ 0)
-    if (
-      !hasAtLeastOneValidRow(tableData, loenperiode, {
-        feriePct,
-        fritvalgPct,
-        shSoPct,
-        storeBededagPct,
-        pensionPct,
-      }, tillaegAngivesSom)
-    ) {
-      return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
-    }
-
-    // GATE 4: Fatale beregningsfejl
-    if (harFatalBeregningsFejl) {
-      return blockDocumentDownload({ code: 'aarsloen:fatal-calculation-error', message: 'Fatale beregningsfejl' });
-    }
-
-    // GATE 5: Hvis omregning aktiveret - kræv periodeData
-    if (omregningAktiveret) {
-      if (!periodeData) {
-        return blockDocumentDownload({ code: 'aarsloen:missing-period-data', message: 'Mangler periode-data' });
-      }
-    }
-
-    return allowDocumentDownload();
-  }, [
-    tableData,
-    loenperiode,
-    tillaegAngivesSom,
-    feriePct,
-    fritvalgPct,
-    shSoPct,
-    storeBededagPct,
-    pensionPct,
-    harFatalBeregningsFejl,
-    tableHasErrors,
-    omregningAktiveret,
-    periodeData,
-    values,
-  ]);
-
-  const canDownloadDocument = getDocumentEligibility.canDownload;
-  const documentDisabledReason = getDocumentEligibility.canDownload
-    ? null
-    : getDocumentEligibility.reasons[0]?.message ?? null;
-
-  /**
-   * Evaluér om SH-dage-dokumentet kan downloades. Returnerer et gate-resultat med
-   * auditerbar årsag, så det nedtonede download-ikon kan vise hvorfor det er blokeret.
-   */
-  const shDageEligibility = React.useMemo((): DocumentDownloadGateResult => {
-    const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret })[0];
-    if (canonicalRangeIssue) {
-      return blockDocumentDownload({
-        code: 'aarsloen:sh-canonical-range-error',
-        message: canonicalRangeIssue.message,
-      });
-    }
-    if (!periodeData) {
-      return blockDocumentDownload({ code: 'aarsloen:sh-missing-period-data', message: 'Mangler periode-data' });
-    }
-    if (shDageAntal == null) {
-      return blockDocumentDownload({ code: 'aarsloen:sh-no-count', message: 'Antal SH-dage er ikke beregnet' });
-    }
-    if (shDageAntal === 0) {
-      return blockDocumentDownload({ code: 'aarsloen:sh-zero', message: 'Ingen SH-dage i de indtastede perioder' });
-    }
-    return allowDocumentDownload();
-  }, [omregningAktiveret, periodeData, shDageAntal, values]);
-
-  const canDownloadSHDageDocument = shDageEligibility.canDownload;
-  const shDageDisabledReason = shDageEligibility.canDownload
-    ? null
-    : shDageEligibility.reasons[0]?.message ?? null;
-
-  /**
-   * Håndter dokument-download for årslønsberegning
-   *
-   * VIGTIGT: Denne funktion udfører ALLE gates før download.
-   */
-  const handleAarsloenDocumentDownload = React.useCallback(async () => {
-    // FATAL GATE 1: Beregningsfejl
-    if (harFatalBeregningsFejl) {
+  const handleAarsloenDocumentDownload = React.useCallback(async (latest = renderSnapshot) => {
+    const eligibility = resolveAarsloenDocumentEligibility(latest);
+    if (!eligibility.canDownload) {
       setDownloadErrorMessage(null);
       triggerDownloadShake();
+      const firstError = latest.tableErrors[0];
+      if (firstError?.kind === 'cell') tabelRef.current?.flashError(firstError);
       return;
     }
 
-    // FATAL GATE 2: Tabel-valideringsfejl (real-time check)
-    const errors = tabelRef.current?.getErrors();
-    if (errors && errors.length > 0) {
-      setDownloadErrorMessage(null);
-      triggerDownloadShake();
-
-      // Flash første fejl-celle
-      const firstError = errors[0];
-      if (firstError.kind === 'cell') {
-        tabelRef.current?.flashError(firstError);
-      }
-
-      return;
-    }
-
-    // Handlingen genkører den samme committed gate som knappen. Dermed kan en
-    // programmatisk aktivering ikke omgå fx en canonical rangefejl.
-    if (!getDocumentEligibility.canDownload) {
-      setDownloadErrorMessage(null);
-      triggerDownloadShake();
-      return;
-    }
-
+    const { values } = latest;
     const result = await downloadAarsloenDokument({
       input: {
         satser: {
-          feriePct,
-          fritvalgPct,
-          shSoPct,
-          storeBededagPct,
-          pensionPct,
+          feriePct: values.feriePct,
+          fritvalgPct: values.fritvalgPct,
+          shSoPct: values.shSoPct,
+          storeBededagPct: values.storeBededagPct,
+          pensionPct: values.pensionPct,
         },
-        loenperiode,
-        tillaegAngivesSom,
-        tableData,
-        beregnetAarsloen,
-        omregningTilFuldtAar: omregningAktiveret,
-        periodeData,
-        fuldLoenUnderFerie,
-        retTilSjetteFerieuge,
-        antalFeriedage,
-        loenPaaHelligdage,
-        shDageAntal,
-        beregningsData,
+        loenperiode: values.loenperiode,
+        tillaegAngivesSom: values.tillaegAngivesSom,
+        tableData: values.tableData,
+        beregnetAarsloen: latest.beregnetAarsloen,
+        omregningTilFuldtAar: latest.omregningAktiveret,
+        periodeData: latest.periodeData,
+        fuldLoenUnderFerie: values.fuldLoenUnderFerie,
+        retTilSjetteFerieuge: values.retTilSjetteFerieuge,
+        antalFeriedage: values.antalFeriedage,
+        loenPaaHelligdage: values.loenPaaHelligdage,
+        shDageAntal: latest.shDageAntal,
+        beregningsData: latest.beregningsData,
       },
-      settings,
-      persistedStamdata,
+      settings: latest.settings,
+      persistedStamdata: latest.persistedStamdata,
+      isSourceCurrent: latest.isSourceCurrent,
     });
     setDownloadErrorMessage(result.success ? null : result.error);
-  }, [
-    feriePct,
-    fritvalgPct,
-    shSoPct,
-    storeBededagPct,
-    pensionPct,
-    loenperiode,
-    tillaegAngivesSom,
-    tableData,
-    beregnetAarsloen,
-    omregningAktiveret,
-    periodeData,
-    fuldLoenUnderFerie,
-    retTilSjetteFerieuge,
-    antalFeriedage,
-    loenPaaHelligdage,
-    shDageAntal,
-    beregningsData,
-    triggerDownloadShake,
-    harFatalBeregningsFejl,
-    persistedStamdata,
-    tabelRef,
-    settings,
-    getDocumentEligibility,
-  ]);
+  }, [renderSnapshot, tabelRef, triggerDownloadShake]);
 
-  /**
-   * Håndter dokument-download for SH-dage
-   */
-  const handleSHDageDocumentDownload = React.useCallback(async () => {
-    if (!shDageEligibility.canDownload || !periodeData) return;
-
-    // Konverter perioder til format som PDF-generatoren forventer
-    const perioder = periodeData.perioder || [];
-
+  const handleSHDageDocumentDownload = React.useCallback(async (latest = renderSnapshot) => {
+    if (!resolveShDageDocumentEligibility(latest).canDownload || latest.periodeData === null) return;
     const result = await downloadSHDageDokument({
-      perioder,
-      settings,
-      persistedStamdata,
+      perioder: latest.periodeData.perioder ?? [],
+      settings: latest.settings,
+      persistedStamdata: latest.persistedStamdata,
+      isSourceCurrent: latest.isSourceCurrent,
     });
     setDownloadErrorMessage(result.success ? null : result.error);
-  }, [periodeData, settings, persistedStamdata, shDageEligibility]);
+  }, [renderSnapshot]);
 
   return {
-    canDownloadDocument,
-    documentDisabledReason,
-    canDownloadSHDageDocument,
-    shDageDisabledReason,
+    canDownloadDocument: documentEligibility.canDownload,
+    documentDisabledReason: documentEligibility.canDownload ? null : documentEligibility.reasons[0]?.message ?? null,
+    canDownloadSHDageDocument: shDageEligibility.canDownload,
+    shDageDisabledReason: shDageEligibility.canDownload ? null : shDageEligibility.reasons[0]?.message ?? null,
     handleAarsloenDocumentDownload,
     handleSHDageDocumentDownload,
     downloadShake,

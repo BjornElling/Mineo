@@ -317,7 +317,8 @@ const buildDocumentFailureMessage = (settings: DocumentSettings, pdfMessage: str
 // altid route en build-fejl gennem sin normale catch-sti, før en download-side-effect startes.
 const runSelectedDocumentFormat = async (
   settings: DocumentSettings,
-  generate: (session: DocumentGenerationSession) => Promise<DocumentArtifact>
+  generate: (session: DocumentGenerationSession) => Promise<DocumentArtifact>,
+  freshness?: Readonly<{ isSourceCurrent: () => boolean; staleError: string }>
 ): Promise<DocumentDownloadResult> => {
   let session: DocumentGenerationSession;
   if (settings.documentDownloadFormat === 'word') {
@@ -328,6 +329,11 @@ const runSelectedDocumentFormat = async (
     session = createDocumentGenerationSession('pdf', createPdfChannelWriter);
   }
 
+  // Writeren lazy-loades også. Friskheden kontrolleres derfor først efter begge modulgrænser og umiddelbart
+  // før generatoren/file-I/O starter; ellers kan et settings- eller inputskift under writer-load slippe igennem.
+  if (freshness !== undefined && !freshness.isSourceCurrent()) {
+    return { success: false, error: freshness.staleError };
+  }
   const artifact = await generate(session);
   triggerDocumentDownload(artifact);
   return DOCUMENT_DOWNLOAD_SUCCESS;
@@ -402,7 +408,11 @@ export const downloadSatserDokument = async (params: Readonly<{
     if (!isSourceCurrent()) {
       return { success: false, error: buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF') };
     }
-    return await runSelectedDocumentFormat(settings, (session) => generateSatserDocument(session, year, satser, common));
+    return await runSelectedDocumentFormat(
+      settings,
+      (session) => generateSatserDocument(session, year, satser, common),
+      { isSourceCurrent, staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF') }
+    );
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF'), 'pdfService.downloadSatserDokument', error);
   }
@@ -746,8 +756,9 @@ export const downloadAarsloenDokument = async (params: Readonly<{
   input: AarsloenDocumentInput;
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
-  const { input, settings, persistedStamdata } = params;
+  const { input, settings, persistedStamdata, isSourceCurrent } = params;
   const common = buildCommonPdfContext(settings, 'aarsloensberegning', persistedStamdata);
   const stamdata = common.stamdata
     ? {
@@ -761,11 +772,15 @@ export const downloadAarsloenDokument = async (params: Readonly<{
 
   try {
     const { generateAarsloenDocument } = await loadAarsloenDocumentModule();
-    return await runSelectedDocumentFormat(settings, (session) => generateAarsloenDocument(session, {
-        ...input,
-        stamdata,
-        visBrevhoved: common.visBrevhoved,
-      }));
+    return await runSelectedDocumentFormat(
+      settings,
+      (session) => generateAarsloenDocument(session, {
+          ...input,
+          stamdata,
+          visBrevhoved: common.visBrevhoved,
+        }),
+      { isSourceCurrent, staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere årsløn-PDF') }
+    );
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere årsløn-PDF'), 'pdfService.downloadAarsloenDokument', error);
   }
@@ -775,15 +790,20 @@ export const downloadSHDageDokument = async (params: Readonly<{
   perioder: readonly SHDagePeriod[];
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
-  const { perioder, settings, persistedStamdata } = params;
+  const { perioder, settings, persistedStamdata, isSourceCurrent } = params;
   const common = buildCommonPdfContext(settings, 'shDage', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadSHDageDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
     const { generateSHDageDocument } = await loadSHDageDocumentModule();
-    return await runSelectedDocumentFormat(settings, (session) => generateSHDageDocument(session, perioder, common));
+    return await runSelectedDocumentFormat(
+      settings,
+      (session) => generateSHDageDocument(session, perioder, common),
+      { isSourceCurrent, staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere SH-dage-PDF') }
+    );
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere SH-dage-PDF'), 'pdfService.downloadSHDageDokument', error);
   }

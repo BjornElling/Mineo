@@ -80,8 +80,6 @@ describe('useOmregningToggle', () => {
         }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
-          getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => summary),
           showMissingEntryError,
           flashError,
           showNeedsPeriodHint: vi.fn(),
@@ -124,8 +122,6 @@ describe('useOmregningToggle', () => {
         }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
-          getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => summary),
           showMissingEntryError: vi.fn(),
           flashError,
           showNeedsPeriodHint: vi.fn(),
@@ -162,8 +158,6 @@ describe('useOmregningToggle', () => {
         }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
-          getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
           showNeedsPeriodHint: vi.fn(),
@@ -197,8 +191,6 @@ describe('useOmregningToggle', () => {
         }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
-          getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError,
           flashError,
           showNeedsPeriodHint: vi.fn(),
@@ -232,8 +224,6 @@ describe('useOmregningToggle', () => {
         }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
-          getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
           showNeedsPeriodHint: vi.fn(),
@@ -269,8 +259,6 @@ describe('useOmregningToggle', () => {
         }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
-          getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError,
           flashError,
           showNeedsPeriodHint,
@@ -306,8 +294,6 @@ describe('useOmregningToggle', () => {
         }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
-          getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
           showNeedsPeriodHint: vi.fn(),
@@ -327,8 +313,6 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
-      getErrors: vi.fn(),
-      getValidationSummary: vi.fn(),
       showMissingEntryError: vi.fn(),
       flashError: vi.fn(),
       showNeedsPeriodHint: vi.fn(),
@@ -379,8 +363,6 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
-      getErrors: vi.fn(),
-      getValidationSummary: vi.fn(),
       showMissingEntryError: vi.fn(),
       flashError: vi.fn(),
       showNeedsPeriodHint: vi.fn(),
@@ -435,8 +417,6 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
-      getErrors: vi.fn(),
-      getValidationSummary: vi.fn(),
       showMissingEntryError: vi.fn(),
       flashError: vi.fn(),
       showNeedsPeriodHint: vi.fn(),

@@ -79,8 +79,20 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     const { editor } = makeEditor({ discard });
     registry.register(editor);
 
-    await expect(coordinator.applyReplacement(() => 'erstattet')).resolves.toBe('erstattet');
+    await expect(coordinator.applyReplacement(() => {
+      store.getState().hydrate(store.getState().input);
+      return 'erstattet';
+    })).resolves.toBe('erstattet');
     expect(discard).toHaveBeenCalledOnce();
+  });
+
+  it('bevarer draften, når callbacken ikke udfører en autoritativ replacement', async () => {
+    const discard = vi.fn();
+    const { editor } = makeEditor({ discard });
+    registry.register(editor);
+
+    await expect(coordinator.applyReplacement(() => 'ingen mutation')).rejects.toThrow(/uden en autoritativ/);
+    expect(discard).not.toHaveBeenCalled();
   });
 
   it('bevarer draften, når replacement fejler', async () => {

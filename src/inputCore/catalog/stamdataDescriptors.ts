@@ -1,6 +1,8 @@
 import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
-import { formatISOToDanish } from '../../utils/dateFormatting';
+import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../config/dateRanges';
+import { maxISO, minISO } from '../../utils/isoDateHelpers';
+import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
 import {
   createChoiceFieldCodec,
   createDateFieldCodec,
@@ -51,11 +53,25 @@ export const stamdataSkadelidteField = textField('skadelidte', 'Skadelidtes navn
 export const stamdataSkadelidteFodselsdatoField = dateField('skadelidteFodselsdato', 'Fødselsdato', [
   (value, _field, view) => {
     const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-    if (value === undefined || skadedato === undefined || value <= skadedato) return undefined;
+    if (value === undefined) return undefined;
+    const minDate = dateRanges_skadelidteFodselsdato.min;
+    const maxDate = skadedato === undefined
+      ? dateRanges_skadelidteFodselsdato.max
+      : minISO(dateRanges_skadelidteFodselsdato.max, skadedato);
+    if (value >= minDate && value <= maxDate) return undefined;
     return {
       reason: 'bounds',
-      code: 'stamdata.foedselsdato-efter-skadedato',
-      message: `Fødselsdato kan ikke være efter skadedatoen (${formatISOToDanish(skadedato)})`,
+      code: 'stamdata.skadelidteFodselsdato.bounds',
+      message: resolveDateRangeErrorMessage({
+        iso: value,
+        minDate,
+        maxDate,
+        special: skadedato === undefined
+          ? undefined
+          : { maxBoundKind: 'skadedato', maxBoundReferenceISO: skadedato },
+        noValidRangeInputs: 'Fødselsdato og Skadedato',
+      }),
+      detail: { minDate, maxDate },
     };
   },
 ]);
@@ -75,11 +91,25 @@ export const stamdataSkadestypeField = defineStructuralField<Skadestype | undefi
 export const stamdataSkadedatoField = dateField('skadedato', 'Skadedato', [
   (value, _field, view) => {
     const foedselsdato = view.readCanonical(stamdataSkadelidteFodselsdatoField.bind());
-    if (value === undefined || foedselsdato === undefined || value >= foedselsdato) return undefined;
+    if (value === undefined) return undefined;
+    const minDate = foedselsdato === undefined
+      ? dateRanges_stamdata.skadedato.min
+      : maxISO(dateRanges_stamdata.skadedato.min, foedselsdato);
+    const maxDate = dateRanges_stamdata.skadedato.max;
+    if (value >= minDate && value <= maxDate) return undefined;
     return {
       reason: 'bounds',
-      code: 'stamdata.skadedato-foer-foedselsdato',
-      message: `Skadedato kan ikke være før fødselsdatoen (${formatISOToDanish(foedselsdato)})`,
+      code: 'stamdata.skadedato.bounds',
+      message: resolveDateRangeErrorMessage({
+        iso: value,
+        minDate,
+        maxDate,
+        special: foedselsdato === undefined
+          ? undefined
+          : { minBoundKind: 'fodselsdato', minBoundReferenceISO: foedselsdato },
+        noValidRangeInputs: 'Fødselsdato og Skadedato',
+      }),
+      detail: { minDate, maxDate },
     };
   },
 ]);

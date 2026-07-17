@@ -42,7 +42,7 @@ export const useOmregningToggle = ({
         toggleRef.current?.shake();
 
         // Hvis der er tabel-fejl, guid brugeren til den relevante celle
-        const summary = tabelRef.current?.getValidationSummary() ?? gate.validationSummary;
+        const summary = gate.validationSummary;
         if (summary.firstErrorCell) {
           if (summary.firstErrorCell.reason === 'missing') {
             tabelRef.current?.showMissingEntryError(summary.firstErrorCell);

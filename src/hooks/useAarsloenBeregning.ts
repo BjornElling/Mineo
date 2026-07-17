@@ -1,65 +1,52 @@
-/**
- * Custom hook for årsløn-beregninger
- *
- * Ansvar:
- * - Alle useMemo beregninger (periode, SH-dage, årsløn, omregning)
- * - Fatal error tracking
- * - Fejlmeddelelser
- *
- * Dette hook er ren beregningslogik uden UI state management.
- */
-
 import React from 'react';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
-import type { AarsloenValues } from '../schemas/formSchemas';
-import { safeCompute } from '../utils/safeComputation';
-import { isErr, type Result } from '../types/result';
-import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from '../domain/aarsloen/standardLoenRowCalculations';
-import {
-  beregnMaanedPeriode,
-  beregnUgePeriode,
-  beregnDagPeriode,
-  type PeriodeResult
-} from '../utils/periodeBeregning';
-import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
+
 import { beregnOmregnetAarsloen } from '../domain/aarsloen/aarsloenCalculations';
-import type { AarsloenBeregningResult } from '../types/calculation';
+import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from '../domain/aarsloen/standardLoenRowCalculations';
 import {
   beregnFejlmeddelelser,
   harTabelData,
   resolveAarsloenCanonicalRangeIssues,
 } from '../domain/aarsloen/aarsloenValidationPolicies';
 import { erAarsloenFerieFelterRelevant } from '../domain/policies/aarsloenPolicy';
+import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
+import type { AarsloenValues } from '../schemas/formSchemas';
+import type { AarsloenBeregningResult } from '../types/calculation';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
+import { isErr, type Result } from '../types/result';
+import {
+  beregnDagPeriode,
+  beregnMaanedPeriode,
+  beregnUgePeriode,
+  type PeriodeResult,
+} from '../utils/periodeBeregning';
+import { safeCompute } from '../utils/safeComputation';
 
-export type AarsloenBeregningState = {
-  // Beregnings-resultater
+export type AarsloenBeregningState = Readonly<{
   periodeData: PeriodeResult | null;
   shDageAntal: number | null;
   beregnetAarsloen: number;
   beregningsData: AarsloenBeregningResult;
-
-  // Fejl-tracking
   fejlmeddelelser: string[];
   beregningsFejl: string | null;
   harFatalBeregningsFejl: boolean;
-};
+}>;
 
-type UseAarsloenBeregningProps = {
+export type AarsloenBeregningInput = Readonly<{
   values: AarsloenValues;
   omregningAktiveret: boolean;
-};
+}>;
+
+const valueOrNull = <T>(result: Result<T> | null): T | null =>
+  result === null || isErr(result) ? null : result.value;
 
 /**
- * Hook der håndterer alle årslønsberegninger
- *
- * @param values - Form values fra usePersistedForm
- * @param omregningAktiveret - Om omregning til fuldt år er aktiveret
- * @returns Beregnings-state og fejl-tracking
+ * Ren, synkron årslønsberegning. Den bruges både af render og af downloadens friske preflight, så dokumentet
+ * aldrig bygges på render-closures fra en ældre inputrevision.
  */
-export const useAarsloenBeregning = ({
+export const computeAarsloenBeregning = ({
   values,
   omregningAktiveret,
-}: UseAarsloenBeregningProps): AarsloenBeregningState => {
+}: AarsloenBeregningInput): AarsloenBeregningState => {
   const {
     tableData,
     loenperiode,
@@ -74,196 +61,77 @@ export const useAarsloenBeregning = ({
     antalFeriedage,
     loenPaaHelligdage,
   } = values;
-  const canonicalRangeIssues = React.useMemo(
-    () => resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret }),
-    [omregningAktiveret, values]
-  );
+  const canonicalRangeIssues = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret });
 
-  // ============================================================================
-  // BEREGNING 1: Periode-data fra tabellen
-  // ============================================================================
-  const periodeDataResult = React.useMemo((): Result<PeriodeResult | null> | null => {
-    if (!tableData || tableData.length === 0) {
-      return null;
-    }
-
-    // Tjek om der er nogen ikke-tomme perioder i tabellen
-    if (!harTabelData(tableData, loenperiode)) {
-      return null;
-    }
-
-    // Beregn samlet periode og unikke enheder
-    return safeCompute(() => {
-      if (loenperiode === LOENPERIODE.MAANED) {
-        return beregnMaanedPeriode(tableData);
-      } else if (loenperiode === LOENPERIODE.UGE) {
-        return beregnUgePeriode(tableData);
-      } else if (loenperiode === LOENPERIODE.DAG) {
-        return beregnDagPeriode(tableData);
-      }
+  let periodeDataResult: Result<PeriodeResult | null> | null = null;
+  if (tableData.length > 0 && harTabelData(tableData, loenperiode)) {
+    periodeDataResult = safeCompute(() => {
+      if (loenperiode === LOENPERIODE.MAANED) return beregnMaanedPeriode(tableData);
+      if (loenperiode === LOENPERIODE.UGE) return beregnUgePeriode(tableData);
+      if (loenperiode === LOENPERIODE.DAG) return beregnDagPeriode(tableData);
       return null;
     }, 'useAarsloenBeregning.periodeBeregning');
-  }, [tableData, loenperiode]);
+  }
+  const periodeData = valueOrNull(periodeDataResult);
 
-  // Udpak periodeData fra Result
-  const periodeData = React.useMemo((): PeriodeResult | null => {
-    if (!periodeDataResult) return null;
-    if (isErr(periodeDataResult)) return null;
-    return periodeDataResult.value;
-  }, [periodeDataResult]);
-
-  // ============================================================================
-  // BEREGNING 2: SH-dage (kun hvis omregning aktiveret)
-  // ============================================================================
-  const shDageAntalResult = React.useMemo((): Result<number> | null => {
-    // Kun beregn hvis omregning er aktiveret
-    if (!omregningAktiveret || !periodeData) {
-      return null;
-    }
-
-    // Kun beregn hvis SH-dage er relevant for valgt helligdagstype
-    if (
-      loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.SH_UDBETALING &&
-      loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.INGEN
-    ) {
-      return null;
-    }
-
-    return safeCompute(() => {
+  let shDageAntalResult: Result<number> | null = null;
+  if (
+    omregningAktiveret
+    && periodeData !== null
+    && (loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.SH_UDBETALING || loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.INGEN)
+  ) {
+    shDageAntalResult = safeCompute(() => {
       const datoSet = periodeData.datoSet;
-      if (!datoSet || datoSet.size === 0) {
-        return 0;
-      }
-      return beregnSHDageForDatoSet(datoSet);
+      return datoSet === undefined || datoSet.size === 0 ? 0 : beregnSHDageForDatoSet(datoSet);
     }, 'useAarsloenBeregning.shDageBeregning');
-  }, [omregningAktiveret, periodeData, loenPaaHelligdage]);
+  }
+  const shDageAntal = valueOrNull(shDageAntalResult);
 
-  // Udpak shDageAntal fra Result (null = fejl eller ikke relevant)
-  const shDageAntal = React.useMemo((): number | null => {
-    if (!shDageAntalResult) return null;
-    if (isErr(shDageAntalResult)) return null;
-    return shDageAntalResult.value;
-  }, [shDageAntalResult]);
+  const beregnetAarsloenResult = tableData.length === 0
+    ? null
+    : safeCompute(
+        () => tableData.reduce((sum, row) => {
+          const derived = calculateStandardLoenRowDerived(row, {
+            feriePct,
+            fritvalgPct,
+            shSoPct,
+            storeBededagPct,
+            pensionPct,
+          }, { mode: tillaegAngivesSom });
+          return sum + roundStandardLoenAmountToTwoDecimals(derived.samlet);
+        }, 0),
+        'useAarsloenBeregning.aarsloenBeregning'
+      );
+  const beregnetAarsloen = valueOrNull(beregnetAarsloenResult) ?? 0;
 
-  // ============================================================================
-  // BEREGNING 3: Beregnet årsløn (sum af tabel)
-  // ============================================================================
-  const beregnetAarsloenResult = React.useMemo((): Result<number> | null => {
-    if (!tableData || tableData.length === 0) {
-      return null;
-    }
-
-    return safeCompute(() => {
-      return tableData.reduce((acc, row) => {
-        if (!row) {
-          return acc;
-        }
-        const derived = calculateStandardLoenRowDerived(row, {
-          feriePct,
-          fritvalgPct,
-          shSoPct,
-          storeBededagPct,
-          pensionPct,
-        }, { mode: tillaegAngivesSom });
-
-        return acc + roundStandardLoenAmountToTwoDecimals(derived.samlet);
-      }, 0);
-    }, 'useAarsloenBeregning.aarsloenBeregning');
-  }, [tableData, tillaegAngivesSom, feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct]);
-
-  // Udpak beregnetAarsloen fra Result (fallback til 0 hvis fejl)
-  const beregnetAarsloen = React.useMemo((): number => {
-    if (!beregnetAarsloenResult) return 0;
-    if (isErr(beregnetAarsloenResult)) return 0;
-    return beregnetAarsloenResult.value;
-  }, [beregnetAarsloenResult]);
-
-  // ============================================================================
-  // BEREGNING 4: Omregnet årsløn (kun hvis omregning aktiveret)
-  // ============================================================================
-  const beregningsDataResult = React.useMemo((): Result<AarsloenBeregningResult> | null => {
-    // Hvis ingen data eller omregning ikke aktiveret
-    if (!periodeData || !omregningAktiveret) {
-      return null;
-    }
-
-    return safeCompute(() => {
-      // Ignorér værdier fra skjulte felter. "Ret til 6. ferieuge" og "Antal feriedage" gates
-      // på PRÆCIS det samme prædikat som UI'en bruger til at vise/skjule dem
-      // (shouldShowAarsloenFerieFields), så "skjult i UI" og "ignoreret i beregning" har ét
-      // sandt sted og ikke kan divergere.
+  let beregningsDataResult: Result<AarsloenBeregningResult> | null = null;
+  if (periodeData !== null && omregningAktiveret) {
+    beregningsDataResult = safeCompute(() => {
       const ferieFelterRelevante = erAarsloenFerieFelterRelevant(fuldLoenUnderFerie);
-      const retTilSjetteFerieugeFinal = ferieFelterRelevante ? retTilSjetteFerieuge : false;
-      const antalFeriedageFinal = ferieFelterRelevante ? antalFeriedage : undefined;
-
       return beregnOmregnetAarsloen({
         periodeData,
         loenperiode,
-        retTilSjetteFerieuge: retTilSjetteFerieugeFinal,
-        antalFeriedage: antalFeriedageFinal,
-        shDageAntal, // Sender null hvis beregning fejlede - domain-lag håndterer det
+        retTilSjetteFerieuge: ferieFelterRelevante ? retTilSjetteFerieuge : false,
+        antalFeriedage: ferieFelterRelevante ? antalFeriedage : undefined,
+        shDageAntal,
         fuldLoenUnderFerie,
         loenPaaHelligdage,
         beregnetAarsloen,
       });
     }, 'useAarsloenBeregning.omregnetAarsloenBeregning');
-  }, [
-    periodeData,
-    loenperiode,
-    retTilSjetteFerieuge,
-    antalFeriedage,
-    shDageAntal,
-    fuldLoenUnderFerie,
-    loenPaaHelligdage,
-    omregningAktiveret,
-    beregnetAarsloen,
-  ]);
+  }
+  const beregningsData = valueOrNull(beregningsDataResult) ?? { metode: 'ingen' as const, erEtAar: false };
 
-  // Udpak beregningsData fra Result
-  const beregningsData = React.useMemo((): AarsloenBeregningResult => {
-    if (!beregningsDataResult) {
-      return { metode: 'ingen' as const, erEtAar: false };
-    }
-    if (isErr(beregningsDataResult)) {
-      return { metode: 'ingen' as const, erEtAar: false };
-    }
-    return beregningsDataResult.value;
-  }, [beregningsDataResult]);
+  const fejlmeddelelser = omregningAktiveret && periodeData !== null
+    ? beregnFejlmeddelelser(feriePct, shSoPct, fuldLoenUnderFerie, retTilSjetteFerieuge, loenPaaHelligdage)
+    : [];
 
-  // ============================================================================
-  // FEJL-TRACKING
-  // ============================================================================
-
-  // Fejlmeddelelser (kun når omregning aktiveret)
-  const fejlmeddelelser = React.useMemo((): string[] => {
-    // Kun valider hvis omregnings-sektionen er synlig
-    if (!omregningAktiveret || !periodeData) {
-      return [];
-    }
-
-    return beregnFejlmeddelelser(
-      feriePct,
-      shSoPct,
-      fuldLoenUnderFerie,
-      retTilSjetteFerieuge,
-      loenPaaHelligdage
-    );
-  }, [omregningAktiveret, periodeData, feriePct, shSoPct, fuldLoenUnderFerie, loenPaaHelligdage, retTilSjetteFerieuge]);
-
-  // Beregningsfejl (samlet)
-  const beregningsFejl = React.useMemo((): string | null => {
-    if (canonicalRangeIssues.length > 0) return canonicalRangeIssues[0]?.message ?? 'Ugyldigt beregningsinput';
-    if (periodeDataResult && isErr(periodeDataResult)) return 'Fejl ved beregning af periode-data';
-    if (shDageAntalResult && isErr(shDageAntalResult)) return 'Fejl ved beregning af SH-dage';
-    if (beregnetAarsloenResult && isErr(beregnetAarsloenResult)) return 'Fejl ved beregning af årsløn';
-    if (beregningsDataResult && isErr(beregningsDataResult)) return 'Fejl ved beregning af omregnet årsløn';
-    return null;
-  }, [beregningsDataResult, beregnetAarsloenResult, canonicalRangeIssues, periodeDataResult, shDageAntalResult]);
-
-  // Fatal gate: Én samlet check for om beregninger er gyldige
-  const harFatalBeregningsFejl = React.useMemo((): boolean => {
-    return beregningsFejl !== null;
-  }, [beregningsFejl]);
+  let beregningsFejl: string | null = null;
+  if (canonicalRangeIssues.length > 0) beregningsFejl = canonicalRangeIssues[0]?.message ?? 'Ugyldigt beregningsinput';
+  else if (periodeDataResult && isErr(periodeDataResult)) beregningsFejl = 'Fejl ved beregning af periode-data';
+  else if (shDageAntalResult && isErr(shDageAntalResult)) beregningsFejl = 'Fejl ved beregning af SH-dage';
+  else if (beregnetAarsloenResult && isErr(beregnetAarsloenResult)) beregningsFejl = 'Fejl ved beregning af årsløn';
+  else if (beregningsDataResult && isErr(beregningsDataResult)) beregningsFejl = 'Fejl ved beregning af omregnet årsløn';
 
   return {
     periodeData,
@@ -272,6 +140,15 @@ export const useAarsloenBeregning = ({
     beregningsData,
     fejlmeddelelser,
     beregningsFejl,
-    harFatalBeregningsFejl,
+    harFatalBeregningsFejl: beregningsFejl !== null,
   };
 };
+
+/** Render-adapteren memoiserer den samme rene beregning, som download-preflighten genkører. */
+export const useAarsloenBeregning = ({
+  values,
+  omregningAktiveret,
+}: AarsloenBeregningInput): AarsloenBeregningState => React.useMemo(
+  () => computeAarsloenBeregning({ values, omregningAktiveret }),
+  [omregningAktiveret, values]
+);

@@ -28,9 +28,8 @@ export type RowDeleteButtonProps = Readonly<{
  * fokus-tyveri (så den fokuserede celle bevares), og `data-mineo-row-delete` får tabellens
  * capture-handlers til at ignorere den (samme mønster som `data-mineo-table-dropdown`).
  *
- * Forbrugeren renderer kun knappen for rækker med faktiske bruger-indtastninger (gated af
- * tabellens egen `isRowEmpty`), så den aldrig vises på tomme rækker eller rækker, der kun
- * indeholder placeholders/default-dropdownværdier.
+ * Forbrugeren renderer kun knappen for en faktisk persisteret række, aldrig for en visuel placeholder. En række,
+ * som kun indeholder rejected råtekst, skal stadig kunne slettes, selv om dens canonical projektion ser tom ud.
  */
 export const RowDeleteButton = React.memo(({ onDelete, title = 'Slet rækken' }: RowDeleteButtonProps) => {
   return (

@@ -380,6 +380,7 @@ describe('downloadRenteDokument', () => {
     });
     expect(result.success).toBe(false);
   });
+
 });
 
 describe('downloadRenteOversigtDokument', () => {
@@ -977,6 +978,7 @@ describe('downloadAarsloenDokument', () => {
       input: {} as never,
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateAarsloenPdf).toHaveBeenCalled();
@@ -988,8 +990,26 @@ describe('downloadAarsloenDokument', () => {
       input: {} as never,
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('afviser fail-closed hvis årslønskilden ændres under lazy load', async () => {
+    let current = true;
+    mockLoadAarsloenPdfModule.mockImplementationOnce(async () => {
+      current = false;
+      return { generateAarsloenDocument: mockGenerateAarsloenPdf };
+    });
+    const result = await downloadAarsloenDokument({
+      input: {} as never,
+      settings,
+      persistedStamdata: null,
+      isSourceCurrent: () => current,
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockGenerateAarsloenPdf).not.toHaveBeenCalled();
   });
 
   it('blokerer ikke første downloadforsøg alene fordi dev-server-ping fejler, når modulindlæsning lykkes', async () => {
@@ -1002,6 +1022,7 @@ describe('downloadAarsloenDokument', () => {
       input: {} as never,
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
 
     expect(result).toEqual({ success: true });
@@ -1022,6 +1043,7 @@ describe('downloadAarsloenDokument', () => {
       input: {} as never,
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
 
     expect(result).toEqual({
@@ -1044,6 +1066,7 @@ describe('downloadAarsloenDokument', () => {
       input: {} as never,
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
 
     expect(secondResult).toEqual(result);
@@ -1060,6 +1083,7 @@ describe('downloadSHDageDokument', () => {
       perioder: [],
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateSHDagePdf).toHaveBeenCalled();
@@ -1071,7 +1095,25 @@ describe('downloadSHDageDokument', () => {
       perioder: [],
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('afviser fail-closed hvis SH-dage-kilden ændres under lazy load', async () => {
+    let current = true;
+    mockLoadSHDagePdfModule.mockImplementationOnce(async () => {
+      current = false;
+      return { generateSHDageDocument: mockGenerateSHDagePdf };
+    });
+    const result = await downloadSHDageDokument({
+      perioder: [],
+      settings,
+      persistedStamdata: null,
+      isSourceCurrent: () => current,
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockGenerateSHDagePdf).not.toHaveBeenCalled();
   });
 });

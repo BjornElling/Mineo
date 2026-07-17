@@ -118,9 +118,8 @@ const ThemedApp = ({
   const { settings } = useAppSettings();
   const theme = React.useMemo(() => buildTheme(settings.themeMode), [settings.themeMode]);
 
-  // Hold `EvaluationSourceToken` samlet med AppSettings-ændringer (§3.4). Fingerprint = hele settings-objektet;
-  // billig og korrekt, indtil Fase 3 snævrer det til de validerings-/beregningsrelevante settings.
-  useSettingsRevisionBridge(React.useMemo(() => JSON.stringify(settings), [settings]));
+  // Hold `EvaluationSourceToken` og det konkrete AppSettings-snapshot samlet (§3.4).
+  useSettingsRevisionBridge(settings);
 
   React.useEffect(() => scheduleRouteModulePreload(), []);
 
