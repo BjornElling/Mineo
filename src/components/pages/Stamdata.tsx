@@ -1,24 +1,48 @@
 import React from 'react';
 import { Box, CircularProgress, MenuItem, Typography } from '@mui/material';
 
-import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../config/dateRanges';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
-import { usePersistedForm } from '../../hooks/usePersistedForm';
-import { skadestypeEnum, stamdataSchema } from '../../schemas/formSchemas';
-import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import { resolveStamdataDateOrder } from '../../domain/stamdata/stamdataDateOrder';
+import { skadestypeEnum } from '../../schemas/formSchemas';
 import { resolveStamdataDatoLabel } from '../../domain/policies';
-import { maxISO, minISO } from '../../utils/isoDateHelpers';
-import StyledDateField from '../inputs/StyledDateField';
-import StyledDropdown from '../inputs/StyledDropdown';
-import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
+import {
+  stamdataJournalnrField,
+  stamdataAdvokatField,
+  stamdataSagsbehandlerField,
+  stamdataSkadelidteField,
+  stamdataSkadelidteFodselsdatoField,
+  stamdataSkadestypeField,
+  stamdataSkadedatoField,
+} from '../../inputCore/catalog/stamdataDescriptors';
+import { createValidationReader } from '../../inputCore/inputReader';
+import { useInputRuntime, useSettledSnapshot } from '../../inputCore/react';
+import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldDateField from '../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldTextField from '../../inputCore/react/fields/GreenfieldTextField';
 import ContentBox from '../layout/ContentBox';
 import SideTab from '../layout/SideTab';
 const StamdataTestTab = React.lazy(async () => import('./StamdataTestTab'));
 
+// Greenfield-migreret (§2.4, formularrækkefølge trin 1 — FØRSTE callsite-cutover). Erstatter den legacy
+// `usePersistedForm`+`Styled*Field`+`useFormFieldErrorReporter`-vej med de tynde `Greenfield*Field`-skaller.
+// Hvert felt modtager KUN sin konkrete `field` (descriptor.bind()) og `location` (stabilt locationId) — ingen
+// `value`/`onCommit`/`parse`/`format`/`onFieldError`/`min`/`max`. Datomodellens kronologiske bounds er
+// FELTVALIDATORER (Fase 3), ikke props; røde feltfejl er derfor midlertidigt fraværende (§5.1), indtil
+// Fase 3-validatorerne wires ind i `getIssues`.
+
 // Afled dropdown-valgmulighederne fra schemaets enum, så UI og validering aldrig kan komme ud af sync.
 const SKADESTYPER = skadestypeEnum.options;
+
+// Bundne field-refs (stabile — alle Stamdata-felter er top-level skalarer uden entity-id).
+const journalnrRef = stamdataJournalnrField.bind();
+const advokatRef = stamdataAdvokatField.bind();
+const sagsbehandlerRef = stamdataSagsbehandlerField.bind();
+const skadelidteRef = stamdataSkadelidteField.bind();
+const skadelidteFodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
+const skadestypeRef = stamdataSkadestypeField.bind();
+const skadedatoRef = stamdataSkadedatoField.bind();
+
+// Stabil editorlokation pr. felt (§3.2): locationId er editor-metadata, ikke datafeltets identitet.
+const loc = (field: string) => ({ locationId: `stamdata:${field}` });
 
 const Stamdata = React.memo(() => {
   const { settings } = useAppSettings();
@@ -35,45 +59,18 @@ const Stamdata = React.memo(() => {
     }
   }, [showTestTab, activeTab]);
 
-  const { values, setValues, setFieldValue } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
-
-  const reportSkadedatoError = useFormFieldErrorReporter('stamdata', 'skadedato', { severity: 'error', source: 'input' });
-  const reportSkadelidteFodselsdatoError = useFormFieldErrorReporter('stamdata', 'skadelidteFodselsdato', { severity: 'error', source: 'input' });
-
-  const handleInitialsChange = (field: 'advokat' | 'sagsbehandler') => (event: StyledTextFieldValueCommitEvent) => {
-    const rawValue = String(event.target.value || '');
-    const normalizedValue = rawValue.trim();
-    return setValues((prev) => ({ ...prev, [field]: normalizedValue }), { fieldPath: field });
-  };
-
-  const commitField = React.useCallback(
-    <K extends keyof typeof values>(fieldName: K) =>
-      (event: { target: { value: (typeof values)[K] } }) => {
-        return setFieldValue(fieldName, event.target.value);
-      },
-    [setFieldValue]
+  // Den dynamiske datolabel afhænger af den afsluttede skadestype-værdi (§1.2: afledt af afsluttet revision,
+  // ikke af en åben draft). Læses gennem den rene ValidationReader over det aktuelle snapshot.
+  const { catalog } = useInputRuntime();
+  const snapshot = useSettledSnapshot();
+  const skadestype = React.useMemo(
+    () => createValidationReader(snapshot.input, catalog).readCanonical(skadestypeRef),
+    [snapshot.input, catalog]
   );
-
   const datoLabel = React.useMemo(
-    () => resolveStamdataDatoLabel(values),
-    [values]
+    () => resolveStamdataDatoLabel(skadestype === undefined ? null : { skadestype }),
+    [skadestype]
   );
-
-  const dateRange = React.useMemo(() => ({
-    min: dateRanges_stamdata.skadedato.min,
-    max: dateRanges_stamdata.skadedato.max,
-  }), []);
-
-  const dateOrder = React.useMemo(
-    () => resolveStamdataDateOrder(values),
-    [values]
-  );
-  const skadedatoMin = dateOrder.skadedatoMin
-    ? maxISO(dateRange.min, dateOrder.skadedatoMin)
-    : dateRange.min;
-  const skadelidteFodselsdatoMax = dateOrder.skadelidteFodselsdatoMax
-    ? minISO(dateRanges_skadelidteFodselsdato.max, dateOrder.skadelidteFodselsdatoMax)
-    : dateRanges_skadelidteFodselsdato.max;
 
   return (
     <Box>
@@ -105,7 +102,7 @@ const Stamdata = React.memo(() => {
                 Journalnr.
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledTextField name="journalnr" value={values.journalnr ?? ''} onCommit={commitField('journalnr')} width={220} />
+                <GreenfieldTextField field={journalnrRef} location={loc('journalnr')} name="journalnr" width={220} />
               </Box>
             </Box>
 
@@ -115,19 +112,19 @@ const Stamdata = React.memo(() => {
               </Typography>
               <Box className="row--label-offset__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={advokatRef}
+                    location={loc('advokat')}
                     name="advokat"
-                    value={values.advokat ?? ''}
-                    onCommit={handleInitialsChange('advokat')}
                     placeholder="(init.)"
                     width={80}
                     sx={{ '& input': { textAlign: 'center' } }}
                   />
                   <Typography className="row--text">/</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={sagsbehandlerRef}
+                    location={loc('sagsbehandler')}
                     name="sagsbehandler"
-                    value={values.sagsbehandler ?? ''}
-                    onCommit={handleInitialsChange('sagsbehandler')}
                     placeholder="(init.)"
                     width={80}
                     sx={{ '& input': { textAlign: 'center' } }}
@@ -145,7 +142,7 @@ const Stamdata = React.memo(() => {
                 Skadelidtes navn
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledTextField name="skadelidte" value={values.skadelidte ?? ''} onCommit={commitField('skadelidte')} width={350} />
+                <GreenfieldTextField field={skadelidteRef} location={loc('skadelidte')} name="skadelidte" width={350} />
               </Box>
             </Box>
 
@@ -154,17 +151,10 @@ const Stamdata = React.memo(() => {
                 Fødselsdato
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledDateField
+                <GreenfieldDateField
+                  field={skadelidteFodselsdatoRef}
+                  location={loc('skadelidteFodselsdato')}
                   name="skadelidteFodselsdato"
-                  value={values.skadelidteFodselsdato}
-                  onCommit={commitField('skadelidteFodselsdato')}
-                  onFieldError={reportSkadelidteFodselsdatoError}
-                  minDate={dateRanges_skadelidteFodselsdato.min}
-                  maxDate={skadelidteFodselsdatoMax}
-                  specialRangeErrors={{
-                    maxBoundKind: 'skadedato',
-                    maxBoundReferenceISO: dateOrder.skadelidteFodselsdatoMax,
-                  }}
                 />
               </Box>
             </Box>
@@ -174,13 +164,19 @@ const Stamdata = React.memo(() => {
                 Skadestype
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledDropdown name="skadestype" value={values.skadestype} onChange={commitField('skadestype')} placeholder="Vælg skadestype" width={200}>
+                <GreenfieldChoiceField
+                  field={skadestypeRef}
+                  location={loc('skadestype')}
+                  name="skadestype"
+                  placeholder="Vælg skadestype"
+                  width={200}
+                >
                   {SKADESTYPER.map((type) => (
                     <MenuItem key={type} value={type}>
                       {type}
                     </MenuItem>
                   ))}
-                </StyledDropdown>
+                </GreenfieldChoiceField>
               </Box>
             </Box>
 
@@ -189,18 +185,7 @@ const Stamdata = React.memo(() => {
                 {datoLabel}
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledDateField
-                  name="skadedato"
-                  value={values.skadedato}
-                  onCommit={commitField('skadedato')}
-                  onFieldError={reportSkadedatoError}
-                  minDate={skadedatoMin}
-                  maxDate={dateRange.max}
-                  specialRangeErrors={{
-                    minBoundKind: 'fodselsdato',
-                    minBoundReferenceISO: dateOrder.skadedatoMin,
-                  }}
-                />
+                <GreenfieldDateField field={skadedatoRef} location={loc('skadedato')} name="skadedato" />
               </Box>
             </Box>
           </ContentBox>

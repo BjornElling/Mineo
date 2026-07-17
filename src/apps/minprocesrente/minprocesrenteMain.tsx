@@ -7,13 +7,16 @@ import MinProcesrenteApp from './MinProcesrenteApp';
 import { bootstrapClientApp } from '../shared/bootstrapClientApp';
 import { setDocumentBrand } from '../../document/documentBrand';
 import { initializePersistenceRuntime } from '../../persistence/persistenceRuntime';
+import { bootstrapProductionInputRuntime } from '../../inputCore/react';
 
 setDocumentBrand('minprocesrente.dk');
 
 void bootstrapClientApp({
   renderApp: () => {
     const persistenceRuntime = initializePersistenceRuntime();
-    return <MinProcesrenteApp persistenceRuntime={persistenceRuntime} />;
+    // Standalone bruger samme greenfield-input-/revisionskerne (§3.10, acceptkriterium 31): hydrér før render.
+    const { binding: inputRuntimeBinding } = bootstrapProductionInputRuntime();
+    return <MinProcesrenteApp persistenceRuntime={persistenceRuntime} inputRuntimeBinding={inputRuntimeBinding} />;
   },
   capturePwaInstallPrompt: false,
   enforceUnsupportedDeviceGate: false,

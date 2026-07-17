@@ -3,5 +3,6 @@
 // `src/inputCore/index.ts` (ren kerne) og `runtime/` (Zustand/storage) afhænger dette lag af React.
 
 export * from './inputRuntimeContext';
+export * from './productionInputRuntime';
 export * from './useFieldEditor';
 export * from './useFormFieldSurface';

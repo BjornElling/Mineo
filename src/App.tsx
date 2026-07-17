@@ -9,6 +9,11 @@ import ErrorBoundary from './components/errors/ErrorBoundary';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
 import type { PersistenceRuntime } from './persistence/persistenceRuntime';
+import {
+  ProductionInputRuntimeProvider,
+  useSettingsRevisionBridge,
+  type InputRuntimeBinding,
+} from './inputCore/react';
 
 type PageComponent = React.ComponentType<Record<string, never>>;
 type AppRoute = { path: string; component: PageComponent };
@@ -107,9 +112,19 @@ const RootRedirect = () => {
   return <Navigate to={settings.defaultStartsideErStamdata ? '/stamdata' : '/mineo'} replace />;
 };
 
-const ThemedApp = ({ persistenceRuntime }: { persistenceRuntime: PersistenceRuntime }) => {
+const ThemedApp = ({
+  persistenceRuntime,
+  inputRuntimeBinding,
+}: {
+  persistenceRuntime: PersistenceRuntime;
+  inputRuntimeBinding: InputRuntimeBinding;
+}) => {
   const { settings } = useAppSettings();
   const theme = React.useMemo(() => buildTheme(settings.themeMode), [settings.themeMode]);
+
+  // Hold `EvaluationSourceToken` samlet med AppSettings-ændringer (§3.4). Fingerprint = hele settings-objektet;
+  // billig og korrekt, indtil Fase 3 snævrer det til de validerings-/beregningsrelevante settings.
+  useSettingsRevisionBridge(React.useMemo(() => JSON.stringify(settings), [settings]));
 
   React.useEffect(() => scheduleRouteModulePreload(), []);
 
@@ -126,6 +141,7 @@ const ThemedApp = ({ persistenceRuntime }: { persistenceRuntime: PersistenceRunt
       <BrowserRouter>
         <RoutePathnameProvider>
           <FormPersistenceProvider runtime={persistenceRuntime}>
+            <ProductionInputRuntimeProvider binding={inputRuntimeBinding}>
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               {pageWrappers.map(({ path, element: PageWrapper }) => (
@@ -141,6 +157,7 @@ const ThemedApp = ({ persistenceRuntime }: { persistenceRuntime: PersistenceRunt
                 }
               />
             </Routes>
+            </ProductionInputRuntimeProvider>
           </FormPersistenceProvider>
         </RoutePathnameProvider>
       </BrowserRouter>
@@ -151,7 +168,13 @@ const ThemedApp = ({ persistenceRuntime }: { persistenceRuntime: PersistenceRunt
 /**
  * Hovedkomponent for Mineo applikationen
  */
-function App({ persistenceRuntime }: { persistenceRuntime: PersistenceRuntime }) {
+function App({
+  persistenceRuntime,
+  inputRuntimeBinding,
+}: {
+  persistenceRuntime: PersistenceRuntime;
+  inputRuntimeBinding: InputRuntimeBinding;
+}) {
   // Håndter browser back/forward cache (bfcache) for at undgå React hook fejl
   React.useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -170,7 +193,7 @@ function App({ persistenceRuntime }: { persistenceRuntime: PersistenceRuntime })
 
   return (
     <AppSettingsProvider>
-      <ThemedApp persistenceRuntime={persistenceRuntime} />
+      <ThemedApp persistenceRuntime={persistenceRuntime} inputRuntimeBinding={inputRuntimeBinding} />
     </AppSettingsProvider>
   );
 }

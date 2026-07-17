@@ -6,8 +6,8 @@ import type { InputRevision } from '../evaluationSource';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import { dispatchInput, type DispatchInputResult, type RuntimeInputCommand } from '../runtime/dispatchInput';
 import type { HistoryOrigin } from '../inputHistory';
-import { slimInputStore, type SlimInputStore } from '../runtime/slimInputStore';
-import { activeEditorRegistry, type ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
+import type { SlimInputStore } from '../runtime/slimInputStore';
+import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
 
 // Greenfield-React (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Til forskel fra den legacy
 // `FormPersistenceContext` eksponerer den hverken rå sektioner, `invalidDrafts`, `fieldErrors` eller skrivbare
@@ -92,9 +92,3 @@ export type InputRuntimeProviderProps = Readonly<{
 export const InputRuntimeProvider = ({ binding, children }: InputRuntimeProviderProps): React.ReactElement => (
   <InputRuntimeContext.Provider value={binding}>{children}</InputRuntimeContext.Provider>
 );
-
-/** Produktions-binding mod applikations-singletonerne. Issue-snapshottet wires ved Fase 3-cutoveren. */
-export const createProductionInputRuntimeBinding = (
-  catalog: InputCatalog,
-  getIssues: () => FieldIssueSnapshot
-): InputRuntimeBinding => createInputRuntimeBinding(slimInputStore, catalog, activeEditorRegistry, getIssues);
