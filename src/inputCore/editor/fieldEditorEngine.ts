@@ -39,7 +39,14 @@ export type EditorDispatch<T> = Readonly<{ command: EditorFieldCommand<T>; origi
 export const deriveSettledFieldView = <T>(input: SettledInput, field: FieldRef<T>): SettledFieldView<T> => {
   const rejected = input.rejectedInputs[serializeFieldAddress(field.address)];
   if (rejected !== undefined) return Object.freeze({ kind: 'rejected', rejected });
-  const value = field.descriptor.readCanonical(input.sections, field.address);
+  const raw = field.descriptor.readCanonical(input.sections, field.address);
+  // `readCanonical` returnerer `undefined` for et fravær (fx en endnu ikke oprettet `null`-sektion) og anvender
+  // BEVIDST ikke feltets `emptyValue` (§3.4-renhed). Den lukkede visning skal derimod vise feltets canonical
+  // TOMVÆRDI ved fravær: for et optionelt felt er tomværdien selv `undefined` (uændret), men for et påkrævet
+  // valg (fx `tillaegAngivesSom`→'procent', `loenperiode`→'maaned') er tomværdien den gyldige default. Uden dette
+  // ville en fresh/`Slet alt`-sag (alle sektioner `null`) give `undefined` til en påkrævet-valg-control og få den
+  // til at kaste. Fald derfor tilbage til descriptorens `emptyValue`, når den canonical læsning er `undefined`.
+  const value = raw === undefined ? field.descriptor.emptyValue : raw;
   return Object.freeze({ kind: 'canonical', value });
 };
 

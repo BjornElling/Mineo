@@ -1,28 +1,46 @@
 import React from 'react';
 import { Box, Typography, MenuItem } from '@mui/material';
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
-import StyledPercentField from '../inputs/StyledPercentField';
-import StyledRadioButton from '../inputs/StyledRadioButton';
+import GreenfieldPercentField from '../../inputCore/react/fields/GreenfieldPercentField';
+import GreenfieldRadioField from '../../inputCore/react/fields/GreenfieldRadioField';
+import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldToggleField from '../../inputCore/react/fields/GreenfieldToggleField';
+import GreenfieldIntegerField from '../../inputCore/react/fields/GreenfieldIntegerField';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
-import StyledIntegerField from '../inputs/StyledIntegerField';
-import StyledDropdown from '../inputs/StyledDropdown';
 import StandardLoenTable from '../tables/StandardLoenTable';
-import { CellInvalidDraftScopeProvider } from '../../contexts/CellInvalidDraftScopeContext';
-import { CELL_TABLE_IDS } from '../../config/cellInvalidDraftScopes';
+import { aarsloenStandardLoenFieldSet } from '../tables/standardLoenTableFieldSet';
 import ContentBox from '../layout/ContentBox';
-import { usePersistedForm, type CommitOriginOptions } from '../../hooks/usePersistedForm';
-import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
-import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
+import { useInputEvaluation, useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
+import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
+import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import { useAarsloenDocumentGates } from '../../hooks/useAarsloenDocumentGates';
+import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../utils/periodeBeregning';
-import { aarsloenSchema } from '../../schemas/formSchemas';
-import { isLoenperiodeValue, isLoenPaaHelligdageValue, isTillaegAngivesSomValue } from '../../utils/zodTypeGuards';
 import {
-  EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+  aarsloenFeriePctField,
+  aarsloenFritvalgPctField,
+  aarsloenFuldLoenUnderFerieField,
+  aarsloenLoenPaaHelligdageField,
+  aarsloenLoenperiodeField,
+  aarsloenOmregningTilFuldtAarField,
+  aarsloenPensionPctField,
+  aarsloenRetTilSjetteFerieugeField,
+  aarsloenAntalFeriedageField,
+  aarsloenShSoPctField,
+  aarsloenStoreBededagPctField,
+  aarsloenTillaegAngivesSomField,
+} from '../../inputCore/catalog/aarsloenDescriptors';
+import {
+  readAarsloenValues,
+  resolveAarsloenFieldErrorGate,
+  resolveStandardLoenTableValidation,
+} from '../../domain/aarsloen/aarsloenProjection';
+import type { FieldRef } from '../../inputCore/fieldDescriptor';
+import {
   resolveAarsloenOmregningGate,
 } from '../../domain/aarsloen/aarsloenValidationPolicies';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../domain/aarsloen/aarsloenPeriodDisplay';
@@ -30,21 +48,40 @@ import {
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
-} from '../../domain/policies';
-import { createAarsloenInitialValues } from '../../domain/aarsloen/aarsloenInitialValues';
-import type { z } from 'zod';
-import type {
-  StandardLoenTableValidationSummary,
-} from '../../types/table';
-import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
+} from '../../domain/policies/aarsloenPolicy';
+import type { StandardLoenTableHandle } from '../../types/handles';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
-import type { StyledPercentFieldValueChangeEvent } from '../inputs/StyledPercentField';
-import type { StyledIntegerFieldValueChangeEvent } from '../inputs/StyledIntegerField';
-import type { StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
-import type { CommitEvent, CommitHandler } from '../../types/fieldEvents';
+import type { LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas/enumSchemas';
 
-// Udled type fra Zod-schema (source of truth for runtime-validering)
-type AarsloenValues = z.infer<typeof aarsloenSchema>;
+// Greenfield-migreret, Pass 2 (§2.4 formularrækkefølge trin 3 + §2.5 / Fase 3 Årsløn-slice). HELE siden kører nu
+// på greenfield-inputCore: Satser-blokken (Pass 1), løntabellen (StandardLoenTable over grid-adapteren) OG
+// beregningsprincip-blokken skriver/læser gennem den offentlige `InputReader` + den ene write-grænse — der er
+// ingen `usePersistedForm`-legacy-sink længere. Alle `values` til calc/render læses via `readAarsloenValues`, og
+// løntabellens valideringssummary er reader-afledt (`resolveStandardLoenTableValidation`), så omregning-gaten og
+// dokumentgaten deler præcis samme sandhed som cellernes røde issues. Beregningstal og synlig adfærd er uændrede.
+
+// Stabile felt-refs + editorlokationer (§3.2): locationId er editor-metadata, ikke dataidentitet.
+const feriePctRef = aarsloenFeriePctField.bind();
+const fritvalgPctRef = aarsloenFritvalgPctField.bind();
+const shSoPctRef = aarsloenShSoPctField.bind();
+const storeBededagPctRef = aarsloenStoreBededagPctField.bind();
+const pensionPctRef = aarsloenPensionPctField.bind();
+const loenperiodeRef = aarsloenLoenperiodeField.bind();
+// Påkrævet valg (allowEmpty=false): descriptorens værditype er ikke-optionel, men Greenfield-choice-/radio-skallen
+// er typet på `TValue | undefined`. Værdien er altid defineret (tomværdi 'procent'/'maaned'); widening er sikker.
+const tillaegAngivesSomRef = aarsloenTillaegAngivesSomField.bind() as FieldRef<TillaegAngivesSom | undefined>;
+const loenPaaHelligdageRef = aarsloenLoenPaaHelligdageField.bind() as FieldRef<LoenPaaHelligdage | undefined>;
+const fuldLoenUnderFerieRef = aarsloenFuldLoenUnderFerieField.bind();
+const retTilSjetteFerieugeRef = aarsloenRetTilSjetteFerieugeField.bind();
+const antalFeriedageRef = aarsloenAntalFeriedageField.bind();
+const omregningTilFuldtAarRef = aarsloenOmregningTilFuldtAarField.bind();
+const loc = (field: string): { locationId: string } => ({ locationId: `aarsloen:${field}` });
+
+const LOENPERIODE_OPTIONS: readonly { value: Loenperiode; label: string }[] = [
+  { value: LOENPERIODE.MAANED, label: 'Måned' },
+  { value: LOENPERIODE.UGE, label: 'Uge' },
+  { value: LOENPERIODE.DAG, label: 'Dato' },
+];
 
 /**
  * Årsløn-side
@@ -53,74 +90,55 @@ type AarsloenValues = z.infer<typeof aarsloenSchema>;
  */
 const Aarsloen = React.memo(() => {
   const { settings } = useAppSettings();
+  const evaluation = useInputEvaluation();
+  const criticalActions = useCriticalInputActions();
 
-  // Initial values baseret på settings (bruges kun ved oprettelse af NY sag)
-  const initialValues = React.useMemo(
-    () => createAarsloenInitialValues(settings),
-    [settings]
-  );
-
-  // Persisted state for satser og beregning (med Zod-schema validering)
-  const { values, setValues, setFieldValue } = usePersistedForm(
-    aarsloenSchema,
-    'aarsloen',
-    initialValues
-  );
-
-  // Felt-fejl-reportere: binder hvert persisteret felts ugyldige rå draft til den centrale invalidDrafts-
-  // kanal (greenfield draft/commit §4.3 — binding er obligatorisk for sagsfelter). Uden dem lever et
-  // ugyldigt input kun i useDraftields lokale fallback: usynligt for read-model/save-gate og tabt ved F5.
-  const feriePctError = useFormFieldErrorReporter('aarsloen', 'feriePct');
-  const fritvalgPctError = useFormFieldErrorReporter('aarsloen', 'fritvalgPct');
-  const shSoPctError = useFormFieldErrorReporter('aarsloen', 'shSoPct');
-  const storeBededagPctError = useFormFieldErrorReporter('aarsloen', 'storeBededagPct');
-  const pensionPctError = useFormFieldErrorReporter('aarsloen', 'pensionPct');
-  const antalFeriedageError = useFormFieldErrorReporter('aarsloen', 'antalFeriedage');
-
-  // Destrukturér værdier for nem adgang
-  const persistedStamdata = usePersistedSectionSelector('stamdata');
+  // Sidens komplette `values` til calc/render læses gennem den offentlige reader (§3.4/§5.4) — aldrig fra rå
+  // sektioner. Rekonstruktionen er ren; skjulte (rød-fejl) felter falder tilbage til deres tomværdi.
+  const values = React.useMemo(() => readAarsloenValues(evaluation.reader), [evaluation]);
 
   const {
-    feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct, loenperiode, tillaegAngivesSom, tableData,
-    fuldLoenUnderFerie, retTilSjetteFerieuge, antalFeriedage, loenPaaHelligdage
+    feriePct, tillaegAngivesSom, tableData, loenperiode,
+    fuldLoenUnderFerie, retTilSjetteFerieuge,
   } = values;
 
-  // Refs til fejl-validering
-  const [tableValidationSummary, setTableValidationSummary] = React.useState<StandardLoenTableValidationSummary>(
-    EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY
+  // Løntabellens valideringssummary er REN og reader-afledt (§2.5) — ét sted for både omregning-gaten og
+  // dokumentgaten, i sync med cellernes røde issues.
+  const tableValidation = React.useMemo(
+    () => resolveStandardLoenTableValidation(evaluation.reader, loenperiode, tillaegAngivesSom),
+    [evaluation, loenperiode, tillaegAngivesSom]
   );
-  const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
-  const toggleRef = React.useRef<StyledToggleSwitchHandle | null>(null);
+  const tableValidationSummary = tableValidation.summary;
 
-  // ============================================================================
-  // CUSTOM HOOKS - Separation of concerns
-  // ============================================================================
+  const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
+
+  // Omregning-toggle: den persisterede canonical værdi + den centrale gate. Toggle-visning og skjult indhold
+  // reagerer på samme committed forudsætninger (gate). Selve committen går gennem den ene write-grænse
+  // (`omregningController.commitImmediate`), men GATES her, så en ugyldig aktivering ikke skriver.
+  const omregningController = useFieldEditor(omregningTilFuldtAarRef, loc('omregningTilFuldtAar'));
+  const toggleRef = React.useRef<{ shake: () => void } | null>(null);
 
   const omregningGate = React.useMemo(
     () => resolveAarsloenOmregningGate({
       requestedEnabled: values.omregningTilFuldtAar,
-      tableData: values.tableData,
-      loenperiode: values.loenperiode,
+      tableData,
+      loenperiode,
       validationSummary: tableValidationSummary,
     }),
-    [tableValidationSummary, values.loenperiode, values.omregningTilFuldtAar, values.tableData]
+    [loenperiode, tableData, tableValidationSummary, values.omregningTilFuldtAar]
   );
 
-  // Toggle state management.
-  // requestedEnabled    = persisted brugerønske.
-  // omregningGate       = centralt gate-resultat fra committed tabelstate.
-  // checked/effectiveEnabled bruger samme gate, så toggle-visning og skjult indhold
-  // altid reagerer på de samme committed forudsætninger.
   const { checked: omregningChecked, effectiveEnabled: omregningAktiveret, handleToggle: handleOmregningToggle } = useOmregningToggle({
     gate: omregningGate,
     tabelRef,
     toggleRef,
     onEnabledChange: (enabled) => {
-      return setValues(prev => ({ ...prev, omregningTilFuldtAar: enabled }), { fieldPath: 'omregningTilFuldtAar' });
+      omregningController.commitImmediate(enabled);
+      return true;
     },
   });
 
-  // Alle beregninger (periode, SH-dage, årsløn, omregning)
+  // Alle beregninger (periode, SH-dage, årsløn, omregning) — kører UÆNDRET på de reader-rekonstruerede `values`.
   const {
     periodeData,
     shDageAntal,
@@ -128,11 +146,27 @@ const Aarsloen = React.memo(() => {
     beregningsData,
     fejlmeddelelser,
     beregningsFejl,
-    harFatalBeregningsFejl,
+    harFatalBeregningsFejl: harFatalBeregningsFejlFraCalc,
   } = useAarsloenBeregning({
     values,
     omregningAktiveret,
   });
+
+  // Greenfield fatal-gate (§1.6/§5.4): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er nu en
+  // RØD feltfejl. Readeren skjuler den værdi, så et misvisende beregnet resultat undertrykkes her — samme gating
+  // som legacy's `harFatalBeregningsFejl`, kun anden præsentation.
+  const fieldErrorGate = React.useMemo(
+    () => resolveAarsloenFieldErrorGate(evaluation.reader, values, { omregningAktiveret }),
+    [evaluation, values, omregningAktiveret]
+  );
+  const harFatalBeregningsFejl = harFatalBeregningsFejlFraCalc || fieldErrorGate.length > 0;
+
+  // Stamdata til dokument-download hentes gennem readeren (§3.4/§5.4), ikke via en rå sektionsselector.
+  const stamdataProjection = React.useMemo(
+    () => projectStamdataForDocument(evaluation.reader, 'document.aarsloen'),
+    [evaluation]
+  );
+  const persistedStamdata = stamdataProjection.status === 'ready' ? stamdataProjection.value : null;
 
   // PDF gates og download handlers
   const {
@@ -152,127 +186,50 @@ const Aarsloen = React.memo(() => {
     beregnetAarsloen,
     beregningsData,
     harFatalBeregningsFejl,
+    tableHasErrors: tableValidationSummary.hasErrors,
     tabelRef,
     persistedStamdata,
     settings,
   });
 
-  // ============================================================================
-  // FIELD HANDLERS
-  // ============================================================================
+  // §1.4/§3.9: en download settler først en evt. åben celle-/felt-editor og evaluerer derefter et frisk
+  // kildesnapshot, før gaten genkøres. Gaten/handleren selv ejer beregningen; her sikrer vi kun, at en netop
+  // indtastet celle er committet, før downloaden læser.
+  const runAarsloenDownload = React.useCallback(async () => {
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
+      return;
+    }
+    // Frisk kildesnapshot efter settle (adskilt fra render-cachen); handleren læser den aktuelle revision.
+    captureProductionEvaluationSource();
+    await handleAarsloenDocumentDownload();
+  }, [criticalActions, handleAarsloenDocumentDownload]);
 
-  // Stabile callbacks for alle felt-opdateringer (memoized map). Via setFieldValue → gyldigt commit
-  // rydder feltets ugyldige rå draft ATOMISK i samme transaktion (greenfield draft/commit §4.4).
-  const setField = React.useCallback(<K extends keyof AarsloenValues>(fieldName: K, value: AarsloenValues[K]) => {
-    return setFieldValue(fieldName, value);
-  }, [setFieldValue]);
-
-  const fieldHandlers = React.useMemo(() => {
-    type PercentFieldName = 'feriePct' | 'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct';
-
-    const createPercentHandler = (fieldName: PercentFieldName) =>
-      (e: StyledPercentFieldValueChangeEvent) => {
-        return setField(fieldName, e.target.value);
-      };
-
-    const createIntegerHandler = (fieldName: 'antalFeriedage') =>
-      (e: StyledIntegerFieldValueChangeEvent) => {
-        return setField(fieldName, e.target.value);
-      };
-
-    return {
-      feriePct: createPercentHandler('feriePct'),
-      fritvalgPct: createPercentHandler('fritvalgPct'),
-      shSoPct: createPercentHandler('shSoPct'),
-      storeBededagPct: createPercentHandler('storeBededagPct'),
-      pensionPct: createPercentHandler('pensionPct'),
-      antalFeriedage: createIntegerHandler('antalFeriedage'),
-    } as const;
-  }, [setField]);
-
-  // Funktion til at opdatere tabeldata (type-safe)
-  const handleTableDataChange = React.useCallback((newTableData: AarsloenValues['tableData'], options?: CommitOriginOptions) => {
-    return setValues(prev => ({ ...prev, tableData: newTableData }), {
-      ...options,
-      fieldPath: options?.fieldPath ?? 'tableData',
-    });
-  }, [setValues]);
-
-  // Type-safe funktion til at opdatere toggle-felter
-  type BooleanFieldName = 'fuldLoenUnderFerie' | 'retTilSjetteFerieuge';
-
-  const updateToggle = React.useCallback(
-    (fieldName: BooleanFieldName): CommitHandler<boolean> =>
-      (event: CommitEvent<boolean>) => {
-        return setField(fieldName, event.target.value);
-      },
-    [setField]
-  );
-
-  const handleLoenperiodeChange = React.useCallback((_event: React.ChangeEvent<HTMLInputElement>, value: string) => {
-    if (!isLoenperiodeValue(value)) return;
-    setField('loenperiode', value);
-  }, [setField]);
-
-  const handleTillaegAngivesSomChange = React.useCallback((e: StyledDropdownChangeEvent) => {
-    const nextValue = e.target.value;
-    if (!isTillaegAngivesSomValue(nextValue)) return;
-    setField('tillaegAngivesSom', nextValue);
-  }, [setField]);
-
-  const handleLoenPaaHelligdageChange = React.useCallback((e: StyledDropdownChangeEvent) => {
-    const nextValue = e.target.value;
-    if (!isLoenPaaHelligdageValue(nextValue)) return;
-    setField('loenPaaHelligdage', nextValue);
-  }, [setField]);
-
-  // Memoized MenuItem children for 'Løn på helligdage'
-  const loenPaaHelligdageOptions = React.useMemo(() => [
-    <MenuItem key="almindelig" value={LOEN_PAA_HELLIGDAGE.ALMINDELIG}>Almindelig løn</MenuItem>,
-    <MenuItem key="sh" value={LOEN_PAA_HELLIGDAGE.SH_UDBETALING}>SH-udbetaling</MenuItem>,
-    <MenuItem key="ingen" value={LOEN_PAA_HELLIGDAGE.INGEN}>Ingen</MenuItem>
-  ], []);
-
-  /**
-   * Callback fra StandardLoenTable når validerings-status ændres (type-safe)
-   */
-  const handleValidationChange = React.useCallback((summary: StandardLoenTableValidationSummary) => {
-    setTableValidationSummary(summary);
-  }, []);
+  const runShDageDownload = React.useCallback(async () => {
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
+      return;
+    }
+    captureProductionEvaluationSource();
+    await handleSHDageDocumentDownload();
+  }, [criticalActions, handleSHDageDocumentDownload]);
 
   // Afledt boolean til betinget rendering
   const canShowOmregning = omregningAktiveret && periodeData !== null;
-  // Når omregning er aktiveret springes mellemregningen (med dens download-knap) over hvis
-  // perioden er præcis ét år (erEtAar). Vis i så fald download-knappen ved sammentællingen i
-  // stedet, så beregningen altid kan downloades — også ved nøjagtig 12 måneder.
   const visDownloadVedSammentaelling = !omregningAktiveret || beregningsData.erEtAar;
-  const shouldShowFerieFields = React.useMemo(
-    () => shouldShowAarsloenFerieFields(values),
-    [values]
-  );
-  const shouldShowShDageFields = React.useMemo(
-    () => shouldShowAarsloenShDageFields(values),
-    [values]
-  );
-  const shouldWarnFeriePct = React.useMemo(
-    () => shouldWarnAarsloenFeriePct(values),
-    [values]
-  );
+  const shouldShowFerieFields = React.useMemo(() => shouldShowAarsloenFerieFields(values), [values]);
+  const shouldShowShDageFields = React.useMemo(() => shouldShowAarsloenShDageFields(values), [values]);
+  const shouldWarnFeriePct = React.useMemo(() => shouldWarnAarsloenFeriePct(values), [values]);
   const indtastetEnhedSummary = React.useMemo(
-    () => resolveAarsloenIndtastetEnhedSummary({
-      tableData,
-      periodeData,
-      beregningsData,
-      loenperiode,
-    }),
+    () => resolveAarsloenIndtastetEnhedSummary({ tableData, periodeData, beregningsData, loenperiode }),
     [beregningsData, loenperiode, periodeData, tableData]
   );
 
-  // Download-ikonet vises altid sammen med sin tekstlinje — nedtonet/inaktivt når download
-  // er blokeret (fx tabel-valideringsfejl eller manglende gyldige rækker), med årsag i tooltip.
   const aarsloenPdfDownloadButton = (
     <DocumentDownloadButton
-      onClick={() => void handleAarsloenDocumentDownload()}
+      onClick={() => void runAarsloenDownload()}
       shake={downloadShake}
       disabled={!canDownloadDocument}
       disabledReason={documentDisabledReason ?? undefined}
@@ -281,10 +238,8 @@ const Aarsloen = React.memo(() => {
 
   return (
     <Box>
-      {/* Header */}
       <Typography className="page-title">Årslønsberegning</Typography>
 
-      {/* Vis beregningsfejl hvis der er nogen */}
       {beregningsFejl && (
         <ContentBox className="content-box">
           <Typography className="section-header">Kritisk Fejl</Typography>
@@ -298,21 +253,15 @@ const Aarsloen = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Satser</Typography>
 
-        {/* Løn indtastes som + Tillæg angives som placeres øverst, jf. EO-siden.
-            I Beløb-tilstand skjules selve sats-procentfelterne. */}
         <Box className="row--label-right-hover">
           <Typography className="row--text">Løn indtastes som:</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledRadioButton
+            <GreenfieldRadioField<Loenperiode>
+              field={loenperiodeRef}
+              location={loc('loenperiode')}
               name="loenperiode"
-              value={loenperiode}
-              onChange={handleLoenperiodeChange}
-              row={true}
-              options={[
-                { value: LOENPERIODE.MAANED, label: 'Måned' },
-                { value: LOENPERIODE.UGE, label: 'Uge' },
-                { value: LOENPERIODE.DAG, label: 'Dato' },
-              ]}
+              row
+              options={LOENPERIODE_OPTIONS}
             />
           </Box>
         </Box>
@@ -320,149 +269,80 @@ const Aarsloen = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Tillæg angives som</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField<TillaegAngivesSom>
+              field={tillaegAngivesSomRef}
+              location={loc('tillaegAngivesSom')}
               name="tillaegAngivesSom"
               width={185}
-              value={tillaegAngivesSom}
-              onChange={handleTillaegAngivesSomChange}
               allowEmpty={false}
             >
               <MenuItem value={TILLAEG_ANGIVES_SOM.PROCENT}>Procent</MenuItem>
               <MenuItem value={TILLAEG_ANGIVES_SOM.BELOEB}>Beløb</MenuItem>
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
 
         {tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB && (
           <>
-        {/* Første række: 3 felter */}
-        <Box className="row--label-right-hover">
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 10,
-              alignItems: 'center',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography className="row--text" sx={{ minWidth: '160px' }}>
-                Feriegodtgørelse/-tillæg:
-              </Typography>
-              <StyledPercentField
-                name="feriePct"
-                value={feriePct}
-                onCommit={fieldHandlers.feriePct}
-                onFieldError={feriePctError}
-                placeholder="0"
-                useDefaultPercentRange
-                sx={{ width: '100px' }}
-              />
+            <Box className="row--label-right-hover">
+              <Box sx={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text" sx={{ minWidth: '160px' }}>Feriegodtgørelse/-tillæg:</Typography>
+                  <GreenfieldPercentField field={feriePctRef} location={loc('feriePct')} name="feriePct" placeholder="0" sx={{ width: '100px' }} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
+                  <GreenfieldPercentField field={fritvalgPctRef} location={loc('fritvalgPct')} name="fritvalgPct" placeholder="0" sx={{ width: '100px' }} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text" sx={{ minWidth: '140px' }}>SH/SO-sats:</Typography>
+                  <GreenfieldPercentField field={shSoPctRef} location={loc('shSoPct')} name="shSoPct" placeholder="0" sx={{ width: '100px' }} />
+                </Box>
+              </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
-              <StyledPercentField
-                name="fritvalgPct"
-                value={fritvalgPct}
-                onCommit={fieldHandlers.fritvalgPct}
-                onFieldError={fritvalgPctError}
-                placeholder="0"
-                useDefaultPercentRange
-                sx={{ width: '100px' }}
-              />
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography className="row--text" sx={{ minWidth: '140px' }}>
-                SH/SO-sats:
-              </Typography>
-              <StyledPercentField
-                name="shSoPct"
-                value={shSoPct}
-                onCommit={fieldHandlers.shSoPct}
-                onFieldError={shSoPctError}
-                placeholder="0"
-                useDefaultPercentRange
-                sx={{ width: '100px' }}
-              />
-            </Box>
-          </Box>
-        </Box>
 
-        {/* Anden række: 2 felter */}
-        <Box className="row--label-right-hover">
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 10,
-              alignItems: 'center',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography className="row--text" sx={{ minWidth: '160px' }}>
-                Store Bededagstillæg:
-              </Typography>
-              <StyledPercentField
-                name="storeBededagPct"
-                value={storeBededagPct}
-                onCommit={fieldHandlers.storeBededagPct}
-                onFieldError={storeBededagPctError}
-                placeholder="0"
-                useDefaultPercentRange
-                sx={{ width: '100px' }}
-              />
+            <Box className="row--label-right-hover">
+              <Box sx={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text" sx={{ minWidth: '160px' }}>Store Bededagstillæg:</Typography>
+                  <GreenfieldPercentField field={storeBededagPctRef} location={loc('storeBededagPct')} name="storeBededagPct" placeholder="0" sx={{ width: '100px' }} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text" sx={{ minWidth: '190px' }}>Arbejdsgivers pensionsbidrag:</Typography>
+                  <GreenfieldPercentField field={pensionPctRef} location={loc('pensionPct')} name="pensionPct" placeholder="0" sx={{ width: '100px' }} />
+                </Box>
+              </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography className="row--text" sx={{ minWidth: '190px' }}>
-                Arbejdsgivers pensionsbidrag:
-              </Typography>
-              <StyledPercentField
-                name="pensionPct"
-                value={pensionPct}
-                onCommit={fieldHandlers.pensionPct}
-                onFieldError={pensionPctError}
-                placeholder="0"
-                useDefaultPercentRange
-                sx={{ width: '100px' }}
-              />
-            </Box>
-          </Box>
-        </Box>
           </>
         )}
-
       </ContentBox>
 
       {/* Container 2: Indtægtsoplysninger */}
       <ContentBox className="content-box">
         <Typography className="section-header">Indtægtsoplysninger</Typography>
 
-        <CellInvalidDraftScopeProvider pageKey="aarsloen" tableId={CELL_TABLE_IDS.aarsloenStandardLoen}>
-          <StandardLoenTable
-            ref={tabelRef}
-            loenperiode={loenperiode}
-            tillaegAngivesSom={tillaegAngivesSom}
-            satser={{
-              ferie: feriePct,
-              fritvalg: fritvalgPct,
-              shSo: shSoPct,
-              bededag: storeBededagPct,
-              pension: pensionPct
-            }}
-            tableData={tableData}
-            onTableDataChange={handleTableDataChange}
-            onValidationChange={handleValidationChange}
-            useSmallFont={true}
-            saveOrderPath="aarsloen.tableData"
-          />
-        </CellInvalidDraftScopeProvider>
+        <StandardLoenTable
+          ref={tabelRef}
+          fieldSet={aarsloenStandardLoenFieldSet}
+          loenperiode={loenperiode}
+          tillaegAngivesSom={tillaegAngivesSom}
+          satser={{
+            ferie: values.feriePct,
+            fritvalg: values.fritvalgPct,
+            shSo: values.shSoPct,
+            bededag: values.storeBededagPct,
+            pension: values.pensionPct,
+          }}
+          useSmallFont={true}
+          saveOrderPath="aarsloen.tableData"
+        />
       </ContentBox>
 
       {/* Container 3: Beregningsprincipper */}
       <ContentBox className="content-box">
         <Typography className="section-header">Beregningsprincipper</Typography>
 
-        {/* Omregning til fuldt år */}
-        {/* checked = persisted input (ikke effectiveEnabled): toggle viser brugerens valg,
-            mens indholdssektionen nedenfor er skjult/disabled når tabellen mangler gyldige data. */}
+        {/* Omregning til fuldt år — GATET immediate-commit (checked = persisted input, ikke effectiveEnabled). */}
         <Box className="row--label-right-hover">
           <Typography className="row--text">Omregning til fuldt år:</Typography>
           <Box className="row--label-right-hover__content">
@@ -475,10 +355,7 @@ const Aarsloen = React.memo(() => {
           </Box>
         </Box>
 
-        {/* Vis periode-information kun hvis omregning er aktiveret OG der er data */}
-        {/* Felter holdes permanent i DOM for at undgå MUI focus-warnings */}
         <Box sx={{ display: canShowOmregning ? 'block' : 'none' }}>
-          {/* Antal indtastede beregningsenheder */}
           <Box className="row--label-right-hover">
             <Typography className="row--text">{`${indtastetEnhedSummary.label}:`}</Typography>
             <Typography className="row--text">{indtastetEnhedSummary.value}</Typography>
@@ -488,43 +365,41 @@ const Aarsloen = React.memo(() => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Fuld løn under ferie:</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledToggleSwitch
+              <GreenfieldToggleField
                 name="fuldLoenUnderFerie"
-                checked={fuldLoenUnderFerie}
-                onCommit={updateToggle('fuldLoenUnderFerie')}
+                field={fuldLoenUnderFerieRef}
+                location={loc('fuldLoenUnderFerie')}
                 disabled={!canShowOmregning}
               />
             </Box>
           </Box>
 
-          {/* Ret til 6. ferieuge - kun synlig hvis IKKE fuld løn under ferie */}
+          {/* Ret til 6. ferieuge — kun synlig hvis IKKE fuld løn under ferie */}
           <Box sx={{ display: shouldShowFerieFields ? 'block' : 'none' }}>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Ret til 6. ferieuge:</Typography>
               <Box className="row--label-right-hover__content">
-                <StyledToggleSwitch
+                <GreenfieldToggleField
                   name="retTilSjetteFerieuge"
-                  checked={retTilSjetteFerieuge}
-                  onCommit={updateToggle('retTilSjetteFerieuge')}
+                  field={retTilSjetteFerieugeRef}
+                  location={loc('retTilSjetteFerieuge')}
                   disabled={!canShowOmregning}
                 />
               </Box>
             </Box>
           </Box>
 
-          {/* Antal feriedage - kun synlig hvis IKKE fuld løn under ferie */}
+          {/* Antal feriedage — kun synlig hvis IKKE fuld løn under ferie */}
           <Box sx={{ display: shouldShowFerieFields ? 'block' : 'none' }}>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Antal feriedage (mandag-fredag) i de indtastede perioder:</Typography>
               <Box className="row--label-right-hover__content">
-                <StyledIntegerField
+                <GreenfieldIntegerField
                   name="antalFeriedage"
-                  value={antalFeriedage}
-                  onCommit={fieldHandlers.antalFeriedage}
-                  onFieldError={antalFeriedageError}
+                  field={antalFeriedageRef}
+                  location={loc('antalFeriedage')}
                   placeholder="0"
-                  minValue={0}
-                  maxValue={99}
+                  maxKeyFilterValue={99}
                   width={50}
                   disabled={!canShowOmregning}
                 />
@@ -536,20 +411,22 @@ const Aarsloen = React.memo(() => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Løn på helligdage:</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledDropdown
+              <GreenfieldChoiceField<LoenPaaHelligdage>
                 name="loenPaaHelligdage"
-                value={loenPaaHelligdage}
-                onChange={handleLoenPaaHelligdageChange}
+                field={loenPaaHelligdageRef}
+                location={loc('loenPaaHelligdage')}
                 width={185}
                 allowEmpty={false}
                 disabled={!canShowOmregning}
               >
-                {loenPaaHelligdageOptions}
-              </StyledDropdown>
+                <MenuItem value={LOEN_PAA_HELLIGDAGE.ALMINDELIG}>Almindelig løn</MenuItem>
+                <MenuItem value={LOEN_PAA_HELLIGDAGE.SH_UDBETALING}>SH-udbetaling</MenuItem>
+                <MenuItem value={LOEN_PAA_HELLIGDAGE.INGEN}>Ingen</MenuItem>
+              </GreenfieldChoiceField>
             </Box>
           </Box>
 
-          {/* SH-dage - kun synlig hvis dropdown er 'SH-udbetaling' eller 'Ingen' */}
+          {/* SH-dage — kun synlig hvis dropdown er 'SH-udbetaling' eller 'Ingen' */}
           <Box sx={{ display: shouldShowShDageFields ? 'block' : 'none' }}>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Antal SH-dage i de indtastede perioder:</Typography>
@@ -557,7 +434,7 @@ const Aarsloen = React.memo(() => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">{shDageAntal ?? 0}</Typography>
                   <DocumentDownloadButton
-                    onClick={() => void handleSHDageDocumentDownload()}
+                    onClick={() => void runShDageDownload()}
                     disabled={!canDownloadSHDageDocument}
                     disabledReason={shDageDisabledReason ?? undefined}
                   />
@@ -568,7 +445,7 @@ const Aarsloen = React.memo(() => {
         </Box>
       </ContentBox>
 
-      {/* Container 3.5: Advarsler - Kun synlig hvis der er fejlmeddelelser eller advarsler */}
+      {/* Container 3.5: Advarsler */}
       {(fejlmeddelelser.length > 0 || shouldWarnFeriePct) && (
         <ContentBox className="content-box">
           <Typography className="section-header">Advarsler</Typography>
@@ -580,7 +457,6 @@ const Aarsloen = React.memo(() => {
             </Box>
           ))}
 
-          {/* Advarsel om feriegodtgørelsessats og 6. ferieuge */}
           {shouldWarnFeriePct && (
             <Box className="row--label-right-hover">
               <Typography className="row--text">{`En feriegodtgørelsessats på ${feriePct} % skaber en klar formodning for, at der er ret til 6. ferieuge.`}</Typography>
@@ -603,7 +479,6 @@ const Aarsloen = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Beregning</Typography>
 
-        {/* LINJE 1: ALTID VIS - Sammentælling af løn fra tabellen */}
         <Box className="row--label-right-hover">
           <Typography className="row--text">Sammentælling af løn fra tabellen:</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -612,19 +487,14 @@ const Aarsloen = React.memo(() => {
           </Box>
         </Box>
 
-        {/* Conditional mellemregning - kun hvis omregning er aktiveret og der ikke er fejl */}
         {omregningAktiveret && !harFatalBeregningsFejl && beregningsData.metode !== 'ingen' && !beregningsData.erEtAar && (
           <>
-            {/* METODE A: Arbejdsdage */}
             {beregningsData.metode === 'A' && (
               <>
-                {/* Linje 2: Arbejdsdage i indtastede perioder */}
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Arbejdsdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput, 'feriedag', 'feriedage')}` : ''}${(shDageAntal ?? 0) > 0 ? ` - ${formatCountWithUnit(shDageAntal ?? 0, 'SH-dag', 'SH-dage')}` : ''}):`}</Typography>
                   <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'arbejdsdag', 'arbejdsdage')}</Typography>
                 </Box>
-
-                {/* Linje 3: Arbejdsdage på et år */}
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">{fuldLoenUnderFerie
                     ? `Arbejdsdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${STANDARD_SH_DAGE_PAA_AAR} SH-dage):`
@@ -632,8 +502,6 @@ const Aarsloen = React.memo(() => {
                   }</Typography>
                   <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdagePaaAar, 'arbejdsdag', 'arbejdsdage')}</Typography>
                 </Box>
-
-                {/* Linje 4: Beregnet årsløn */}
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.arbejdsdagePaaAar}):`}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -644,16 +512,12 @@ const Aarsloen = React.memo(() => {
               </>
             )}
 
-            {/* METODE B: Hverdage */}
             {beregningsData.metode === 'B' && (
               <>
-                {/* Linje 2: Hverdage i indtastede perioder */}
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput, 'feriedag', 'feriedage')}` : ''}):`}</Typography>
                   <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'hverdag', 'hverdage')}</Typography>
                 </Box>
-
-                {/* Linje 3: Hverdage på et år */}
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">{fuldLoenUnderFerie
                     ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage):`
@@ -661,8 +525,6 @@ const Aarsloen = React.memo(() => {
                   }</Typography>
                   <Typography className="row--text">{formatCountWithUnit(beregningsData.hverdagePaaAar, 'hverdag', 'hverdage')}</Typography>
                 </Box>
-
-                {/* Linje 4: Beregnet årsløn */}
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}):`}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -673,18 +535,14 @@ const Aarsloen = React.memo(() => {
               </>
             )}
 
-            {/* METODE C: Måneder/Uger */}
             {beregningsData.metode === 'C' && (
               <>
                 {loenperiode === LOENPERIODE.MAANED && (
                   <>
-                    {/* Linje 2: Antal måneder */}
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Antal måneder i indtastede perioder:</Typography>
                       <Typography className="row--text">{formatCountWithUnit(beregningsData.antalEnheder, 'måned', 'måneder')}</Typography>
                     </Box>
-
-                    {/* Linje 3: Beregnet årsløn */}
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 12):`}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -697,13 +555,10 @@ const Aarsloen = React.memo(() => {
 
                 {loenperiode === LOENPERIODE.UGE && (
                   <>
-                    {/* Linje 2: Antal uger */}
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Antal uger i indtastede perioder:</Typography>
                       <Typography className="row--text">{formatCountWithUnit(beregningsData.antalEnheder, 'uge', 'uger')}</Typography>
                     </Box>
-
-                    {/* Linje 3: Beregnet årsløn */}
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 52,14):`}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -718,14 +573,10 @@ const Aarsloen = React.memo(() => {
                   <>
                     {beregningsData.antalHeleKalendermaaneder !== null ? (
                       <>
-                        {/* Hele kalendermåneder — vis måneds-omregning som ved månedsløn */}
-                        {/* Linje 2: Antal måneder */}
                         <Box className="row--label-right-hover">
                           <Typography className="row--text">Antal måneder i indtastede perioder:</Typography>
                           <Typography className="row--text">{formatCountWithUnit(beregningsData.antalHeleKalendermaaneder, 'måned', 'måneder')}</Typography>
                         </Box>
-
-                        {/* Linje 3: Beregnet årsløn */}
                         <Box className="row--label-right-hover">
                           <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalHeleKalendermaaneder} × 12):`}</Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -736,13 +587,10 @@ const Aarsloen = React.memo(() => {
                       </>
                     ) : (
                       <>
-                        {/* Linje 2: Hverdage i indtastede perioder */}
                         <Box className="row--label-right-hover">
                           <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput, 'feriedag', 'feriedage')}` : ''}):`}</Typography>
                           <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'hverdag', 'hverdage')}</Typography>
                         </Box>
-
-                        {/* Linje 3: Hverdage på et år */}
                         <Box className="row--label-right-hover">
                           <Typography className="row--text">{fuldLoenUnderFerie
                             ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage):`
@@ -750,8 +598,6 @@ const Aarsloen = React.memo(() => {
                           }</Typography>
                           <Typography className="row--text">{formatCountWithUnit(beregningsData.hverdagePaaAar, 'hverdag', 'hverdage')}</Typography>
                         </Box>
-
-                        {/* Linje 4: Beregnet årsløn */}
                         <Box className="row--label-right-hover">
                           <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}):`}</Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

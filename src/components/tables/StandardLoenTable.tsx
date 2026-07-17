@@ -1,13 +1,6 @@
 import * as React from 'react';
 
-import TableAmountInput from '../inputs/table/TableAmountInput';
-import TableIntegerInput from '../inputs/table/TableIntegerInput';
-import TableYearInput from '../inputs/table/TableYearInput';
-import TableWeekInput from '../inputs/table/TableWeekInput';
-import TableDateInput from '../inputs/table/TableDateInput';
-import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
-
-import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
+import { CURRENT_YEAR } from '../../config/dateRanges';
 import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { formatKr } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -19,8 +12,8 @@ import type {
   TableError,
 } from '../../types/table';
 import type { StandardLoenTableHandle } from '../../types/handles';
-import { initialRow, generateRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
-import { createEmptyRowId } from '../../utils/rowId';
+import { initialRow } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
+import { createRowId } from '../../utils/rowId';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import {
   calculateStandardLoenRowDerived,
@@ -29,39 +22,53 @@ import {
   type StandardLoenRowDerived,
 } from '../../domain/aarsloen/standardLoenRowCalculations';
 import {
-  buildStandardLoenPeriodOrderCellErrorMessages,
   getStandardLoenPeriodKeys,
-  getStandardLoenTableValidation,
-  isStandardLoenTableValueEffectivelyEmptyForValidation,
 } from '../../domain/aarsloen/standardLoenTableValidation';
 import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
+import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
+import { readStandardLoenTableRows, resolveStandardLoenTableValidationFromReader } from './standardLoenTableFieldSet';
+import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { useInputEvaluation, useCollectionRows } from '../../inputCore/react';
+import type { CellSpec } from '../../inputCore/react/useCellEditor';
+import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import {
+  GreenfieldGridAmountCell,
+  GreenfieldGridDateCell,
+  GreenfieldGridIntegerCell,
+  GreenfieldGridWeekCell,
+  GreenfieldGridYearCell,
+} from '../../inputCore/react/fields/greenfieldGridCells';
+import type { ISODateString } from '../../types/branded';
+import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { normalizeGridRows } from './gridCore/gridModel';
-import { useGridRowPersistenceCore, type GridRowCommitOrigin } from './gridCore/useGridRowPersistenceCore';
-import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
-import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
-import {
-  applyRowRemovalFocusPlan,
-  evaluateRowCommit,
-  type RowRemovalFocusPlan,
-} from './gridCore/tableRowFocus';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
+// Greenfield-migreret StandardLoenTable (§2.4 trin 3 / §2.5, Pass 2). Rækkeinfrastruktur, celleværdier og
+// celleredigering går nu udelukkende gennem greenfield-inputCore:
+//  - `useCollectionRows(aarsloenTableDataCollectionRef)` ejer rækkernes id'er + insert/delete/reorder (§3.8) —
+//    ingen `useGridRowPersistenceCore`, `internalTableData`, fingerprint eller persistence-effect.
+//  - hver celle er en `GreenfieldGrid*Cell` over `useCellEditor` (draft/commit) bro-forbundet til grid-core-
+//    navigationen (§2.5). En EKSISTERENDE-række-celle binder `descriptor.bind(rowId)`; en trailing PLACEHOLDER-
+//    række promoverer atomisk ved første ikke-tomme settle (§1.11).
+//  - de committede rækker læses read-only via `readAarsloenTableRows(reader)` — KUN til sortering, afledte
+//    kolonner (col6/7/8) og tomheds-vurdering. Der findes ingen konkurrerende celle-værdikopi (§3.8).
+//  - valideringssummaryen er REN og reader-afledt (`resolveStandardLoenTableValidation`) — ikke et imperativt
+//    celle-fejl-handle. Det imperative handle beholder KUN visuel feedback (flash/scroll/missing-hint, §2.5).
+
 export type StandardLoenTableProps = {
+  /** Feltsættet, der binder tabellen til en konkret collection + celle-descriptors (§2.5-parametrisering). */
+  fieldSet: StandardLoenTableFieldSet;
   loenperiode: Loenperiode;
   satser: StandardLoenTableSatser;
-  tableData: StandardLoenTableRow[];
-  // Beløb-tilstand: kolonnerne "FP/FV/SH/SO/St.B." og "Arb.g. Pension" bliver redigerbare
-  // beløbsfelter i stedet for beregnede visningsfelter. Default 'procent' (nuværende adfærd).
+  // Beløb-tilstand: kolonnerne "FP/FV/SH/SO/St.B." og "Arb.g. Pension" bliver redigerbare beløbsfelter i stedet
+  // for beregnede visningsfelter. Default 'procent' (nuværende adfærd).
   tillaegAngivesSom?: TillaegAngivesSom;
-  onTableDataChange?: (data: StandardLoenTableRow[], options?: GridRowCommitOrigin) => boolean;
   onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
-  externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;
   saveOrderPath?: TableSaveOrderPath;
   calculateDerivedRow?: (row: StandardLoenTableRow) => StandardLoenRowDerived;
@@ -69,227 +76,60 @@ export type StandardLoenTableProps = {
 
 const MIN_VISIBLE_ROWS = 2;
 
-const TABLE_FINGERPRINT_KEYS = [
-  'id',
-  'col0_maaned',
-  'col1_maaned',
-  'col0_uge',
-  'col1_uge',
-  'col0_dag',
-  'col1_dag',
-  'col2',
-  'col3',
-  'col4',
-  'col5',
-  // Load-bearing: uden disse persisteres Beløb-tilstandens tillægsbeløb ikke ved commit.
-  'fpFvShSoBeloeb',
-  'pensionBeloeb',
-] as const satisfies ReadonlyArray<keyof StandardLoenTableRow>;
+// Kolonneindeks (matcher legacy) — grid-core-koordinaten `{ rowId, colIndex }`.
+const COL = {
+  period0: 0,
+  period1: 1,
+  col2: 2,
+  col3: 3,
+  col4: 4,
+  col5: 5,
+  beloeb0: 6,
+  beloeb1: 7,
+} as const;
 
-const fingerprintTableData = (rows: readonly StandardLoenTableRow[]): string => {
-  return JSON.stringify(rows.map((row) => TABLE_FINGERPRINT_KEYS.map((key) => row[key] ?? null)));
-};
-
-const fingerprintValidationSummary = (summary: StandardLoenTableValidationSummary): string => {
-  return JSON.stringify(summary);
-};
-
-const resolveColIdxFromKey = (colKey: StandardLoenTableColumnKey): number => {
-  if (colKey === 'fpFvShSoBeloeb') return 6;
-  if (colKey === 'pensionBeloeb') return 7;
-  return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
-};
-
-const buildCellKey = (rowId: string, colKey: StandardLoenTableColumnKey): string => {
-  return `${rowId}:${resolveColIdxFromKey(colKey)}`;
-};
+/** Én tom placeholder-række-entity (row-factory): et fuldt formet `StandardLoenTableRow` med et stabilt id. */
+const createEmptyRowEntity = (rowId: string): StandardLoenTableRow => ({ ...initialRow, id: rowId });
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ loenperiode, satser, tableData, tillaegAngivesSom = 'procent', onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
+  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', onValidationChange, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
     const beloebMode = tillaegAngivesSom === 'beloeb';
-    const defaultTableData = React.useMemo<StandardLoenTableRow[]>(() => {
-      return [
-        { ...initialRow, id: generateRowId() },
-        { ...initialRow, id: generateRowId() },
-      ];
-    }, []);
+    const evaluation = useInputEvaluation();
+    const collection: CollectionRef = fieldSet.collection;
+    const rows = useCollectionRows<StandardLoenTableRow>(collection);
 
     const tableRef = React.useRef<HTMLTableElement | null>(null);
-    const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
-    const visibleRowIdsRef = React.useRef<readonly string[]>([]);
+    const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLInputElement | null>>({});
+    const registerCellRef = React.useCallback(
+      (rowId: string, colIdx: number) => (el: HTMLInputElement | null) => {
+        cellRefsByCellKeyRef.current[`${rowId}:${colIdx}`] = el;
+      },
+      []
+    );
+
+    // Committede rækker læses read-only fra readeren — til sortering, afledte kolonner og tomheds-vurdering.
+    // Celleværdien bor kun i inputaggregaten; dette er ingen konkurrerende værdikopi (§3.8).
+    const committedRows = React.useMemo(
+      () => readStandardLoenTableRows(fieldSet, evaluation.reader),
+      [evaluation, fieldSet]
+    );
+    const committedById = React.useMemo(
+      () => new Map(committedRows.map((row) => [row.id, row])),
+      [committedRows]
+    );
 
     const isRowEmpty = React.useCallback(
       (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row, loenperiode, tillaegAngivesSom),
       [loenperiode, tillaegAngivesSom]
     );
 
-    // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
-    // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
-    const createEmptyRow = React.useCallback((seed: number): StandardLoenTableRow => {
-      return { ...initialRow, id: createEmptyRowId('row', seed) };
-    }, []);
-
-    const manageRows = React.useCallback(
-      (rows: readonly StandardLoenTableRow[]): StandardLoenTableRow[] => {
-        return normalizeGridRows({ rows, minRows: MIN_VISIBLE_ROWS, getRowId: (row) => row.id, isRowEmpty, createEmptyRow });
-      },
-      [createEmptyRow, isRowEmpty]
-    );
-
-    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist, getUndoFieldPathAliases } =
-      useGridRowPersistenceCore<StandardLoenTableRow>({
-        tableData: tableData && tableData.length > 0 ? tableData : defaultTableData,
-        onTableDataChange,
-        normalizeRows: manageRows,
-        isRowEmpty,
-        getRowId: (row) => row.id,
-        withRowId: (row, id) => ({ ...row, id }),
-        fingerprint: fingerprintTableData,
-      });
-
-    const committedTableData = internalTableData;
-
-    // Bevidst: ændring af loenperiode committer alle draft-edits og re-evaluerer rækkers tomhed
-    // mod de nyligt aktive periode-kolonner, så forældede skjulte periodeværdier ikke kan holde rækker i live.
-    React.useEffect(() => {
-      setInternalTableData((current) => manageRows(current));
-    }, [loenperiode, manageRows, setInternalTableData]);
-
-    const reorderRows = React.useCallback((nextRows: StandardLoenTableRow[]) => {
-      const managed = manageRows(nextRows);
-      if (getStrippedFingerprint(managed) !== lastPersistedFingerprintRef.current) {
-        queuePersist(managed);
-      }
-      setInternalTableData(managed);
-    }, [getStrippedFingerprint, lastPersistedFingerprintRef, manageRows, queuePersist, setInternalTableData]);
-
-    const setCellValue = React.useCallback(
-      (row: StandardLoenTableRow, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]): StandardLoenTableRow => {
-        switch (colKey) {
-          case 'col0_maaned':
-            return (row.col0_maaned ?? '') === value ? row : { ...row, col0_maaned: value as StandardLoenTableRow['col0_maaned'] };
-          case 'col1_maaned':
-            return (row.col1_maaned ?? '') === value ? row : { ...row, col1_maaned: value as StandardLoenTableRow['col1_maaned'] };
-          case 'col0_uge':
-            return (row.col0_uge ?? '') === value ? row : { ...row, col0_uge: value as StandardLoenTableRow['col0_uge'] };
-          case 'col1_uge':
-            return (row.col1_uge ?? '') === value ? row : { ...row, col1_uge: value as StandardLoenTableRow['col1_uge'] };
-          case 'col0_dag':
-            return (row.col0_dag ?? '') === value ? row : { ...row, col0_dag: value as StandardLoenTableRow['col0_dag'] };
-          case 'col1_dag':
-            return (row.col1_dag ?? '') === value ? row : { ...row, col1_dag: value as StandardLoenTableRow['col1_dag'] };
-          case 'col2':
-            return row.col2 === value ? row : { ...row, col2: value as StandardLoenTableRow['col2'] };
-          case 'col3':
-            return row.col3 === value ? row : { ...row, col3: value as StandardLoenTableRow['col3'] };
-          case 'col4':
-            return row.col4 === value ? row : { ...row, col4: value as StandardLoenTableRow['col4'] };
-          case 'col5':
-            return row.col5 === value ? row : { ...row, col5: value as StandardLoenTableRow['col5'] };
-          case 'fpFvShSoBeloeb':
-            return row.fpFvShSoBeloeb === value ? row : { ...row, fpFvShSoBeloeb: value as StandardLoenTableRow['fpFvShSoBeloeb'] };
-          case 'pensionBeloeb':
-            return row.pensionBeloeb === value ? row : { ...row, pensionBeloeb: value as StandardLoenTableRow['pensionBeloeb'] };
-          default:
-            return row;
-        }
-      },
-      []
-    );
-
-    const updateCellValueInTable = React.useCallback(
-      (rows: StandardLoenTableRow[], rowId: string, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]): StandardLoenTableRow[] => {
-        const rowIdx = rows.findIndex((row) => row.id === rowId);
-        if (rowIdx < 0) return rows;
-        const currentRow = rows[rowIdx];
-        const nextRow = setCellValue(currentRow, colKey, value);
-        if (nextRow === currentRow) return rows;
-        const nextRows = rows.slice();
-        nextRows[rowIdx] = nextRow;
-        return nextRows;
-      },
-      [setCellValue]
-    );
-
-    const handleFieldBlur = React.useCallback(
-      (rowId: string, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]) => {
-        setInternalTableData((prev) => {
-          const updated = updateCellValueInTable(prev, rowId, colKey, value);
-          const managed = manageRows(updated);
-
-          // Commit-handler: hvis blur ikke ændrede noget (managed === nuværende committed state),
-          // skip setState/fokus-plan/persist helt.
-          if (fingerprintTableData(managed) === fingerprintTableData(prev)) return prev;
-
-          const commitEval = evaluateRowCommit({
-            table: tableRef.current,
-            prevRows: prev,
-            nextRows: managed,
-            rowId,
-            colIndex: resolveColIdxFromKey(colKey),
-            visibleRowIds: visibleRowIdsRef.current,
-            isRowEmpty,
-            getRowId: (row) => row.id,
-            getFingerprint: getStrippedFingerprint,
-            lastPersistedFingerprint: lastPersistedFingerprintRef.current,
-          });
-
-          if (commitEval.focusPlan) {
-            // Last-plan-wins by design: kun det sidste commit i en render-cyklus skal afgøre fokus-gendannelse.
-            pendingRowFocusPlanRef.current = commitEval.focusPlan;
-          }
-
-          if (commitEval.shouldPersist) {
-            queuePersist(managed, `${rowId}:${resolveColIdxFromKey(colKey)}`);
-          }
-          return managed;
-        });
-      },
-      [getStrippedFingerprint, isRowEmpty, lastPersistedFingerprintRef, manageRows, queuePersist, setInternalTableData, updateCellValueInTable]
-    );
-
-    // Slet hele rækken i én undo-handling: filtrér rækken ud, re-normalisér (manageRows fjerner
-    // tomme rækker og genskaber den efterfølgende tomme), og persistér én gang. Ét queuePersist =
-    // ét history-frame, så undo genskaber hele rækken og alle dens indtastninger.
-    const handleDeleteRow = React.useCallback(
-      (rowId: string) => {
-        setInternalTableData((prev) => {
-          const managed = manageRows(prev.filter((row) => row.id !== rowId));
-          if (fingerprintTableData(managed) === fingerprintTableData(prev)) return prev;
-          queuePersist(managed);
-          return managed;
-        });
-      },
-      [manageRows, queuePersist, setInternalTableData]
-    );
-
-    const committedById = React.useMemo(() => new Map(committedTableData.map((row) => [row.id, row])), [committedTableData]);
-    const resolveCommittedRow = React.useCallback((row: StandardLoenTableRow) => committedById.get(row.id) ?? row, [committedById]);
-
-    const cellErrorTracker = useTableCellErrorTracker();
-
-    // Renderede rækker (inkl. efterfølgende tom række) — liveness-grundlag for BÅDE celle-fejl-trackeren
-    // og `invalidDrafts`-reconcile, så en slettet rækkes celle-fejl/rå-draft ikke kan overleve i Gem-gaten.
-    const liveRowIds = React.useMemo(() => new Set(internalTableData.map((row) => row.id)), [internalTableData]);
-
-    React.useEffect(() => {
-      cellErrorTracker.pruneToValidRowIds(liveRowIds);
-    }, [cellErrorTracker, liveRowIds]);
-
-    useReconcileInvalidDraftsToLiveRows(liveRowIds);
-
-    // KRITISK INVARIANT: Table*Input-komponenter SKAL kalde handleErrorChange deterministisk
-    // ved alle transitions mellem {ingen fejl ↔ fejl} og {fejl A ↔ fejl B}.
-    // Hvis error-emission throttles/debounces/kun sker på blur, kan tabel-validering blive stale.
-    const getSatserInput = React.useCallback(() => {
-      return {
-        feriePct: satser?.ferie,
-        fritvalgPct: satser?.fritvalg,
-        shSoPct: satser?.shSo,
-        storeBededagPct: satser?.bededag,
-        pensionPct: satser?.pension,
-      };
-    }, [satser?.bededag, satser?.ferie, satser?.fritvalg, satser?.pension, satser?.shSo]);
+    const getSatserInput = React.useCallback(() => ({
+      feriePct: satser?.ferie,
+      fritvalgPct: satser?.fritvalg,
+      shSoPct: satser?.shSo,
+      storeBededagPct: satser?.bededag,
+      pensionPct: satser?.pension,
+    }), [satser?.bededag, satser?.ferie, satser?.fritvalg, satser?.pension, satser?.shSo]);
 
     const calculateRow = React.useCallback(
       (row: StandardLoenTableRow): { col6: number; col7: number; col8: number } => {
@@ -303,64 +143,33 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [calculateDerivedRow, getSatserInput, tillaegAngivesSom]
     );
 
-    const periodOrderCellErrorMessagesByCellKey = React.useMemo(
-      () => buildStandardLoenPeriodOrderCellErrorMessages(committedTableData, loenperiode),
-      [committedTableData, loenperiode]
+    // ── Valideringssummary (REN, reader-afledt) ─────────────────────────────────
+    // Ingen imperativ celle-fejl-tracker: input-fejl er readerens røde issues, periode-rækkefølge er ren over
+    // rækkerne. Underret forælderen deterministisk ved ændring (fingerprint-gate mod loop).
+    const validationSummary = React.useMemo(
+      () => resolveStandardLoenTableValidationFromReader(fieldSet, evaluation.reader, loenperiode, tillaegAngivesSom).summary,
+      [evaluation, fieldSet, loenperiode, tillaegAngivesSom]
     );
-
-    // Celle-fejl læses via trackerens read-time-filtrering (mod gyldige rækker), så resultatet
-    // altid er aktuelt uanset hvornår React kalder dette — og en fjernet rækkes fejl aldrig
-    // overlever ind i valideringen, selv før prune-effecten er nået at køre.
-    const getValidationResult = React.useCallback(() => {
-      const validRowIds = new Set(committedTableData.map((row) => row.id));
-      const combinedCellErrorsByCellKey: Record<string, true> = {};
-      for (const cellKey of cellErrorTracker.getActiveCellKeys(validRowIds)) {
-        combinedCellErrorsByCellKey[cellKey] = true;
-      }
-      for (const [cellKey, message] of Object.entries(periodOrderCellErrorMessagesByCellKey)) {
-        if (message.trim() === '') continue;
-        combinedCellErrorsByCellKey[cellKey] = true;
-      }
-      for (const [cellKey, message] of Object.entries(externalCellErrorMessagesByCellKey)) {
-        if (message.trim() === '') continue;
-        combinedCellErrorsByCellKey[cellKey] = true;
-      }
-      return getStandardLoenTableValidation({
-        rows: committedTableData,
-        loenperiode,
-        cellErrorsByCellKey: combinedCellErrorsByCellKey,
-        tillaegAngivesSom,
-      });
-    }, [cellErrorTracker, committedTableData, externalCellErrorMessagesByCellKey, loenperiode, periodOrderCellErrorMessagesByCellKey, tillaegAngivesSom]);
-
-    const lastValidationSummaryRef = React.useRef<string | null>(null);
-
-    const notifyValidationChange = React.useCallback(() => {
-      if (!onValidationChange) return;
-      const summary = getValidationResult().summary;
-      const summaryFingerprint = fingerprintValidationSummary(summary);
-      if (lastValidationSummaryRef.current === summaryFingerprint) return;
-      lastValidationSummaryRef.current = summaryFingerprint;
-      onValidationChange(summary);
-    }, [getValidationResult, onValidationChange]);
-
-    const handleErrorChange = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey, info: TableInputErrorInfo) => {
-      if (cellErrorTracker.setCellError(buildCellKey(rowId, colKey), info.hasError)) {
-        notifyValidationChange();
-      }
-    }, [cellErrorTracker, notifyValidationChange]);
-
+    const lastSummaryFingerprintRef = React.useRef<string | null>(null);
     React.useEffect(() => {
-      notifyValidationChange();
-    }, [committedTableData, loenperiode, notifyValidationChange]);
+      if (!onValidationChange) return;
+      const fingerprint = JSON.stringify(validationSummary);
+      if (lastSummaryFingerprintRef.current === fingerprint) return;
+      lastSummaryFingerprintRef.current = fingerprint;
+      onValidationChange(validationSummary);
+    }, [onValidationChange, validationSummary]);
 
+    // ── Sortering ──────────────────────────────────────────────────────────────
+    const resolveCommittedRow = React.useCallback(
+      (row: StandardLoenTableRow) => committedById.get(row.id) ?? row,
+      [committedById]
+    );
     const parseSortableInteger = React.useCallback((value: string | undefined): number | undefined => {
       const trimmed = value?.trim() ?? '';
       if (trimmed === '') return undefined;
       const parsed = Number.parseInt(trimmed, 10);
       return Number.isFinite(parsed) ? parsed : undefined;
     }, []);
-
     const parseSortableWeekKey = React.useCallback((value: string | undefined): string | undefined => {
       const trimmed = value?.trim() ?? '';
       if (trimmed === '') return undefined;
@@ -372,7 +181,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       if (week < 1 || week > 53) return undefined;
       return `${year.toString().padStart(4, '0')}-${week.toString().padStart(2, '0')}`;
     }, []);
-
     const sortColumns = React.useMemo(() => [
       {
         colId: 'col-0',
@@ -411,36 +219,65 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
     ], [beloebMode, calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
 
-    const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-      rows: internalTableData,
+    const handleSortedRowsChange = React.useCallback((sortedRows: StandardLoenTableRow[]) => {
+      rows.reorder(sortedRows.map((row) => row.id));
+    }, [rows]);
+
+    const { sortedRows: sortedCommittedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows: committedRows,
       getRowId: (row) => row.id,
       isRowEmpty,
       columns: sortColumns,
-      onSortedRowsChange: reorderRows,
+      onSortedRowsChange: handleSortedRowsChange,
     });
-    const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
-    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
-    React.useLayoutEffect(() => {
-      visibleRowIdsRef.current = visibleRowIds;
-    }, [visibleRowIds]);
+    // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
+    // Greenfield persisterer ikke tomme rækker. Den viste tabel = de committede rækker + en trailing placeholder-
+    // række til næste indtastning + evt. flere placeholders op til MIN_VISIBLE_ROWS. Hver placeholder-rækkes
+    // celler oprettes atomisk ved første ikke-tomme settle. Placeholder-id'erne er stabile pr. slot (useRef), så
+    // en åben celleeditor ikke skifter identitet under redigering; efter en promotion (rækken dukker op i
+    // committede rækker) nulstilles slottens id, så den næste tomme placeholder får et nyt stabilt id.
+    const placeholderIdsRef = React.useRef<string[]>([]);
+    const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
+    // Antal placeholder-slots: altid mindst én trailing tom, og nok til at nå MIN_VISIBLE_ROWS.
+    const placeholderCount = Math.max(1, MIN_VISIBLE_ROWS - committedRows.length);
+    // Genbrug stabile placeholder-id'er; ryd et id, hvis det er blevet promoveret (findes nu committed).
+    const placeholderIds = React.useMemo(() => {
+      const next: string[] = [];
+      let cursor = 0;
+      for (let i = 0; i < placeholderCount; i += 1) {
+        // Find næste ubrugte (endnu ikke committede) placeholder-id, ellers generér et nyt.
+        let id = placeholderIdsRef.current[cursor];
+        while (id !== undefined && committedIdSet.has(id)) {
+          cursor += 1;
+          id = placeholderIdsRef.current[cursor];
+        }
+        if (id === undefined) {
+          id = createRowId('row');
+          placeholderIdsRef.current[cursor] = id;
+        }
+        next.push(id);
+        cursor += 1;
+      }
+      // Trim overskydende gemte id'er (undgå ubegrænset vækst).
+      placeholderIdsRef.current = placeholderIdsRef.current.slice(0, cursor);
+      return next;
+      // committedIdSet driver re-evalueringen (efter en promotion); placeholderCount er afledt af committedRows.
+    }, [committedIdSet, placeholderCount]);
 
-    React.useLayoutEffect(() => {
-      const plan = pendingRowFocusPlanRef.current;
-      if (!plan) return;
-      applyRowRemovalFocusPlan({ table: tableRef.current, plan, visibleRowIds });
-      pendingRowFocusPlanRef.current = null;
-    }, [visibleRowIds]);
+    type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
+    const renderRows: readonly RenderRow[] = React.useMemo(() => [
+      ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
+      ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
+    ], [sortedCommittedRows, placeholderIds]);
 
-    const [errorCell, setErrorCell] = React.useState<{ rowId: string; colIdx: number } | null>(null);
-    const [externalCellError, setExternalCellError] = React.useState<{ rowId: string; colKey: StandardLoenTableColumnKey; message: string } | null>(null);
-    const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLInputElement | null>>({});
-    const registerCellRef = React.useCallback(
-      (rowId: string, colIdx: number) => (el: HTMLInputElement | null) => {
-        cellRefsByCellKeyRef.current[`${rowId}:${colIdx}`] = el;
-      },
-      []
-    );
+    // Save-order = de committede rækker i sorteret rækkefølge (placeholder-rækker persisteres ikke).
+    const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
+
+    // ── Flash-fejl (visuel peg-mekanisme, surface-lokal) ────────────────────────
+    const [flashCell, setFlashCell] = React.useState<{ rowId: string; colIdx: number } | null>(null);
+    const [missingCell, setMissingCell] = React.useState<{ rowId: string; colKey: StandardLoenTableColumnKey } | null>(null);
 
     const isVisibleColKey = React.useCallback(
       (colKey: StandardLoenTableColumnKey): boolean => {
@@ -452,100 +289,94 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [loenperiode]
     );
 
-    const getExternalErrorMessage = React.useCallback(
-      (rowId: string, colKey: StandardLoenTableColumnKey): string | undefined => {
-        const numericCellKey = buildCellKey(rowId, colKey);
-        const periodOrderMessage = periodOrderCellErrorMessagesByCellKey[numericCellKey];
-        if (periodOrderMessage && isVisibleColKey(colKey)) {
-          return periodOrderMessage;
-        }
-        if (externalCellError && externalCellError.rowId === rowId && externalCellError.colKey === colKey && isVisibleColKey(colKey)) {
-          return externalCellError.message;
-        }
-        const propErrorMessage = externalCellErrorMessagesByCellKey[`${rowId}:${colKey}`];
-        if (!propErrorMessage || !isVisibleColKey(colKey)) return undefined;
-        return propErrorMessage;
-      },
-      [externalCellError, externalCellErrorMessagesByCellKey, isVisibleColKey, periodOrderCellErrorMessagesByCellKey]
-    );
+    const resolveColIdxFromKey = React.useCallback((colKey: StandardLoenTableColumnKey): number => {
+      if (colKey === 'fpFvShSoBeloeb') return COL.beloeb0;
+      if (colKey === 'pensionBeloeb') return COL.beloeb1;
+      if (colKey === 'col0_maaned' || colKey === 'col0_uge' || colKey === 'col0_dag') return COL.period0;
+      if (colKey === 'col1_maaned' || colKey === 'col1_uge' || colKey === 'col1_dag') return COL.period1;
+      return Number.parseInt(colKey.slice(3), 10);
+    }, []);
 
+    const getCellStyle = React.useCallback((rowId: string, colIdx: number, baseStyle: React.CSSProperties = {}): React.CSSProperties => ({
+      ...baseStyle,
+      animation: flashCell?.rowId === rowId && flashCell?.colIdx === colIdx ? 'errorFlash 0.5s ease-in-out 3' : 'none',
+    }), [flashCell]);
+
+    // Missing-hint peger på en tom celle uden at gøre den rød (§1.7): en visuel "Indtastning mangler"-markør.
+    const getMissingHint = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey): string | undefined => {
+      if (!missingCell) return undefined;
+      if (missingCell.rowId !== rowId || missingCell.colKey !== colKey) return undefined;
+      if (!isVisibleColKey(colKey)) return undefined;
+      return 'Indtastning mangler';
+    }, [isVisibleColKey, missingCell]);
+
+    // Ryd missing-hint, når den pegede celle ikke længere er tom eller ikke længere er synlig.
     React.useEffect(() => {
-      if (!externalCellError) return;
-      if (!isVisibleColKey(externalCellError.colKey)) {
-        setExternalCellError(null);
-        return;
-      }
-      const row = committedTableData.find((item) => item.id === externalCellError.rowId);
-      if (!row) {
-        setExternalCellError(null);
-        return;
-      }
-      const value = row[externalCellError.colKey];
-      const isEmpty = isStandardLoenTableValueEffectivelyEmptyForValidation(value);
-      const cellKey = buildCellKey(externalCellError.rowId, externalCellError.colKey);
-      const hasInputError = cellErrorTracker.getActiveCellKeys(new Set([externalCellError.rowId])).includes(cellKey);
-      if (!isEmpty || hasInputError) {
-        setExternalCellError(null);
-      }
-    }, [cellErrorTracker, committedTableData, externalCellError, isVisibleColKey]);
-
-    const getCellStyle = (rowId: string, colIdx: number, baseStyle: React.CSSProperties = {}): React.CSSProperties => {
-      return {
-        ...baseStyle,
-        animation: errorCell?.rowId === rowId && errorCell?.colIdx === colIdx ? 'errorFlash 0.5s ease-in-out 3' : 'none',
-      };
-    };
+      if (!missingCell) return;
+      if (!isVisibleColKey(missingCell.colKey)) { setMissingCell(null); return; }
+      const row = committedById.get(missingCell.rowId);
+      const value = row ? row[missingCell.colKey] : undefined;
+      const isEmpty = value === undefined || (typeof value === 'string' && value.trim() === '');
+      if (!isEmpty) setMissingCell(null);
+    }, [committedById, isVisibleColKey, missingCell]);
 
     React.useImperativeHandle(
       ref,
       () => ({
-        getErrors: (): TableError[] => getValidationResult().errors,
-        getValidationSummary: (): StandardLoenTableValidationSummary => getValidationResult().summary,
+        getErrors: (): TableError[] => resolveStandardLoenTableValidationFromReader(fieldSet, evaluation.reader, loenperiode, tillaegAngivesSom).errors,
+        getValidationSummary: (): StandardLoenTableValidationSummary => validationSummary,
         showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => {
           if (cell.reason !== 'missing') return;
           if (!isVisibleColKey(cell.colKey)) return;
-          setExternalCellError({
-            rowId: cell.rowId,
-            colKey: cell.colKey,
-            message: 'Indtastning mangler',
-          });
-          const colIdx = resolveColIdxFromKey(cell.colKey);
-          if (!Number.isFinite(colIdx)) return;
-          const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${colIdx}`];
-          if (!el) return;
-          // Valideringsfejl peger brugeren på et konkret problem; centrér altid cellen.
-          scrollTargetIntoView(el, { force: true });
+          setMissingCell({ rowId: cell.rowId, colKey: cell.colKey });
+          const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${resolveColIdxFromKey(cell.colKey)}`];
+          if (el) scrollTargetIntoView(el, { force: true });
         },
         flashError: (error) => {
-          const colKey = error.colKey;
-          const colIdx = resolveColIdxFromKey(colKey);
-          if (!Number.isFinite(colIdx)) return;
+          const colIdx = resolveColIdxFromKey(error.colKey);
           const el = cellRefsByCellKeyRef.current[`${error.rowId}:${colIdx}`];
           if (!el) return;
-          setErrorCell({ rowId: error.rowId, colIdx });
+          setFlashCell({ rowId: error.rowId, colIdx });
           scrollTargetIntoView(el, { force: true });
-          window.setTimeout(() => setErrorCell(null), 2000);
+          window.setTimeout(() => setFlashCell(null), 2000);
         },
         showNeedsPeriodHint: () => {
-          // Ingen konkret fejlcelle (typisk en helt tom tabel): peg på første periodecelle med samme
-          // "Indtastning mangler"-visning som øvrige manglende felter, så omregning-aktivering uden
-          // gyldig periode giver en konkret pegepind frem for en stum rystelse.
-          const firstRow = committedTableData[0];
+          const firstRow = sortedCommittedRows[0] ?? { id: placeholderIds[0] };
           if (!firstRow) return;
           const [periodStartKey] = getStandardLoenPeriodKeys(loenperiode);
           if (!isVisibleColKey(periodStartKey)) return;
-          setExternalCellError({ rowId: firstRow.id, colKey: periodStartKey, message: 'Indtastning mangler' });
-          const colIdx = resolveColIdxFromKey(periodStartKey);
-          if (!Number.isFinite(colIdx)) return;
-          const el = cellRefsByCellKeyRef.current[`${firstRow.id}:${colIdx}`];
-          if (!el) return;
-          scrollTargetIntoView(el, { force: true });
+          setMissingCell({ rowId: firstRow.id, colKey: periodStartKey });
+          const el = cellRefsByCellKeyRef.current[`${firstRow.id}:${resolveColIdxFromKey(periodStartKey)}`];
+          if (el) scrollTargetIntoView(el, { force: true });
         },
       }),
-      [committedTableData, getValidationResult, isVisibleColKey, loenperiode]
+      [evaluation, fieldSet, isVisibleColKey, loenperiode, placeholderIds, resolveColIdxFromKey, sortedCommittedRows, tillaegAngivesSom, validationSummary]
     );
 
     const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);
+
+    // ── Celle-spec-byggere ─────────────────────────────────────────────────────
+    // En eksisterende-række-celle binder cellens descriptor til rækkens id. En placeholder-celle bærer
+    // descriptor + collection + tom-række-entity + stabilt id, så første ikke-tomme settle promoverer rækken.
+    const buildCellSpec = React.useCallback(<T,>(
+      renderRow: RenderRow,
+      descriptor: FieldDescriptor<T>,
+      colIdx: number
+    ): CellSpec<T, StandardLoenTableRow> => {
+      const location = { locationId: `${collection.section}.${collection.collection}:${renderRow.rowId}:${colIdx}` };
+      if (renderRow.kind === 'existing') {
+        const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
+        return { kind: 'existing', field, location };
+      }
+      return {
+        kind: 'placeholder',
+        descriptor,
+        collection,
+        entity: createEmptyRowEntity(renderRow.rowId),
+        entityId: renderRow.rowId,
+        location,
+      };
+    }, [collection]);
 
     return (
       <StandardGridTable
@@ -594,202 +425,126 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         </thead>
 
         <tbody>
-          {visibleRows.map((row, rowIndex) => {
-            const committedRow = resolveCommittedRow(row);
+          {renderRows.map((renderRow, rowIndex) => {
+            const rowId = renderRow.rowId;
+            const committedRow = committedById.get(rowId) ?? createEmptyRowEntity(rowId);
             const calculated = calculateRow(committedRow);
+            const gc = (colIndex: number) => ({ rowId, colIndex });
 
             return (
-              <tr key={row.id} data-mineo-row-id={row.id} style={getStandardGridBodyRowStyle(rowIndex)}>
-                <td
-                  style={getCellStyle(row.id, 0, {
-                    ...getStandardGridCellStyle({ align: 'center' }),
-                  })}
-                >
+              <tr key={rowId} data-mineo-row-id={rowId} style={getStandardGridBodyRowStyle(rowIndex)}>
+                {/* Periode fra */}
+                <td style={getCellStyle(rowId, COL.period0, { ...getStandardGridCellStyle({ align: 'center' }) })}>
                   {loenperiode === 'maaned' ? (
-                    <TableIntegerInput
-                      key={`${row.id}-col0-${loenperiode}`}
-                      gridCell={{ rowId: row.id, colIndex: 0 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
-                      inputRef={registerCellRef(row.id, 0)}
-                      value={row.col0_maaned}
-                      onBlur={(e) => handleFieldBlur(row.id, 'col0_maaned', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'col0_maaned', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'col0_maaned')}
-                      minValue={1}
-                      maxValue={12}
-                      placeholder="mm"
+                    <GreenfieldGridIntegerCell
+                      gridCell={gc(COL.period0)}
+                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_maaned, COL.period0)}
+                      maxKeyFilterValue={12}
+                      placeholder={getMissingHint(rowId, 'col0_maaned') ?? 'mm'}
+                      inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   ) : loenperiode === 'uge' ? (
-                    <TableWeekInput
-                      key={`${row.id}-col0-${loenperiode}`}
-                      gridCell={{ rowId: row.id, colIndex: 0 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
-                      inputRef={registerCellRef(row.id, 0)}
-                      value={row.col0_uge}
-                      onBlur={(e) => handleFieldBlur(row.id, 'col0_uge', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'col0_uge', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'col0_uge')}
-                      minYear={MIN_YEAR}
-                      maxYear={CURRENT_YEAR}
+                    <GreenfieldGridWeekCell
+                      gridCell={gc(COL.period0)}
+                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_uge, COL.period0)}
+                      {...(getMissingHint(rowId, 'col0_uge') ? { placeholder: getMissingHint(rowId, 'col0_uge') } : {})}
+                      inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   ) : (
-                    <TableDateInput
-                      key={`${row.id}-col0-${loenperiode}`}
-                      gridCell={{ rowId: row.id, colIndex: 0 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
-                      inputRef={registerCellRef(row.id, 0)}
-                      value={row.col0_dag}
-                      onBlur={(e) => handleFieldBlur(row.id, 'col0_dag', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'col0_dag', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'col0_dag')}
-                      minDate={dateRanges_aarsloen.tabelAarsloenFra.min}
-                      maxDate={committedRow.col1_dag ?? dateRanges_aarsloen.tabelAarsloenFra.fallbackMax}
-                      specialRangeErrors={{ fraTilRole: 'fra' }}
-                      noValidRangeCause="Dato til i samme række"
+                    <GreenfieldGridDateCell
+                      gridCell={gc(COL.period0)}
+                      cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col0_dag, COL.period0)}
+                      {...(getMissingHint(rowId, 'col0_dag') ? { placeholder: getMissingHint(rowId, 'col0_dag') } : {})}
+                      inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   )}
                 </td>
 
-                <td
-                  style={getCellStyle(row.id, 1, {
-                    ...getStandardGridCellStyle({ align: 'center' }),
-                  })}
-                >
+                {/* Periode til */}
+                <td style={getCellStyle(rowId, COL.period1, { ...getStandardGridCellStyle({ align: 'center' }) })}>
                   {loenperiode === 'maaned' ? (
-                    <TableYearInput
-                      key={`${row.id}-col1-${loenperiode}`}
-                      gridCell={{ rowId: row.id, colIndex: 1 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
-                      inputRef={registerCellRef(row.id, 1)}
-                      value={row.col1_maaned}
-                      onBlur={(e) => handleFieldBlur(row.id, 'col1_maaned', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'col1_maaned', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'col1_maaned')}
-                      minYear={MIN_YEAR}
-                      maxYear={CURRENT_YEAR}
+                    <GreenfieldGridYearCell
+                      gridCell={gc(COL.period1)}
+                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_maaned, COL.period1)}
+                      {...(getMissingHint(rowId, 'col1_maaned') ? { placeholder: getMissingHint(rowId, 'col1_maaned') } : { placeholder: `åååå (≤${CURRENT_YEAR})` })}
+                      inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   ) : loenperiode === 'uge' ? (
-                    <TableWeekInput
-                      key={`${row.id}-col1-${loenperiode}`}
-                      gridCell={{ rowId: row.id, colIndex: 1 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
-                      inputRef={registerCellRef(row.id, 1)}
-                      value={row.col1_uge}
-                      onBlur={(e) => handleFieldBlur(row.id, 'col1_uge', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'col1_uge', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'col1_uge')}
-                      minYear={MIN_YEAR}
-                      maxYear={CURRENT_YEAR}
+                    <GreenfieldGridWeekCell
+                      gridCell={gc(COL.period1)}
+                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_uge, COL.period1)}
+                      {...(getMissingHint(rowId, 'col1_uge') ? { placeholder: getMissingHint(rowId, 'col1_uge') } : {})}
+                      inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   ) : (
-                    <TableDateInput
-                      key={`${row.id}-col1-${loenperiode}`}
-                      gridCell={{ rowId: row.id, colIndex: 1 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
-                      inputRef={registerCellRef(row.id, 1)}
-                      value={row.col1_dag}
-                      onBlur={(e) => handleFieldBlur(row.id, 'col1_dag', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'col1_dag', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'col1_dag')}
-                      minDate={committedRow.col0_dag ?? dateRanges_aarsloen.tabelAarsloenTil.fallbackMin}
-                      maxDate={dateRanges_aarsloen.tabelAarsloenTil.max}
-                      specialRangeErrors={{ fraTilRole: 'til' }}
-                      noValidRangeCause="Dato fra i samme række"
+                    <GreenfieldGridDateCell
+                      gridCell={gc(COL.period1)}
+                      cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col1_dag, COL.period1)}
+                      {...(getMissingHint(rowId, 'col1_dag') ? { placeholder: getMissingHint(rowId, 'col1_dag') } : {})}
+                      inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   )}
                 </td>
 
-                {(['col2', 'col3', 'col4', 'col5'] as const).map((colKey, index) => {
-                  const colIdx = index + 2;
-                  return (
-                    <td
-                      key={`${row.id}:${colKey}`}
-                      style={getCellStyle(row.id, colIdx, {
-                        ...getStandardGridCellStyle({ align: 'right' }),
-                      })}
-                    >
-                      <TableAmountInput
-                        gridCell={{ rowId: row.id, colIndex: colIdx }}
-                        undoFieldPathAliases={getUndoFieldPathAliases(row.id, colIdx)}
-                        inputRef={registerCellRef(row.id, colIdx)}
-                        value={row[colKey]}
-                        onBlur={(e) => handleFieldBlur(row.id, colKey, e.target.value)}
-                        onErrorChange={(info) => handleErrorChange(row.id, colKey, info)}
-                        externalErrorMessage={getExternalErrorMessage(row.id, colKey)}
-                      />
-                    </td>
-                  );
-                })}
+                {/* Beløbskolonner col2..col5 */}
+                {([
+                  [COL.col2, fieldSet.col2] as const,
+                  [COL.col3, fieldSet.col3] as const,
+                  [COL.col4, fieldSet.col4] as const,
+                  [COL.col5, fieldSet.col5] as const,
+                ]).map(([colIdx, descriptor]) => (
+                  <td key={colIdx} style={getCellStyle(rowId, colIdx, { ...getStandardGridCellStyle({ align: 'right' }) })}>
+                    <GreenfieldGridAmountCell
+                      gridCell={gc(colIdx)}
+                      cell={buildCellSpec<AmountValue | undefined>(renderRow, descriptor, colIdx)}
+                      inputRef={registerCellRef(rowId, colIdx)}
+                    />
+                  </td>
+                ))}
 
+                {/* FP/FV/SH/SO/St.B. — redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
-                  <td
-                    style={getCellStyle(row.id, 6, {
-                      ...getStandardGridCellStyle({ align: 'right' }),
-                    })}
-                  >
-                    <TableAmountInput
-                      gridCell={{ rowId: row.id, colIndex: 6 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 6)}
-                      inputRef={registerCellRef(row.id, 6)}
-                      value={row.fpFvShSoBeloeb}
-                      onBlur={(e) => handleFieldBlur(row.id, 'fpFvShSoBeloeb', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'fpFvShSoBeloeb', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'fpFvShSoBeloeb')}
+                  <td style={getCellStyle(rowId, COL.beloeb0, { ...getStandardGridCellStyle({ align: 'right' }) })}>
+                    <GreenfieldGridAmountCell
+                      gridCell={gc(COL.beloeb0)}
+                      cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.fpFvShSoBeloeb, COL.beloeb0)}
+                      inputRef={registerCellRef(rowId, COL.beloeb0)}
                     />
                   </td>
                 ) : (
-                  <td
-                    style={{
-                      ...getStandardGridCellStyle({ align: 'right' }),
-                      padding: '4px',
-                      color: calculated.col6 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
-                    }}
-                  >
+                  <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: calculated.col6 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit' }}>
                     {formatKr(calculated.col6, 2)}
                   </td>
                 )}
 
+                {/* Arb.g. Pension — redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
-                  <td
-                    style={getCellStyle(row.id, 7, {
-                      ...getStandardGridCellStyle({ align: 'right' }),
-                    })}
-                  >
-                    <TableAmountInput
-                      gridCell={{ rowId: row.id, colIndex: 7 }}
-                      undoFieldPathAliases={getUndoFieldPathAliases(row.id, 7)}
-                      inputRef={registerCellRef(row.id, 7)}
-                      value={row.pensionBeloeb}
-                      onBlur={(e) => handleFieldBlur(row.id, 'pensionBeloeb', e.target.value)}
-                      onErrorChange={(info) => handleErrorChange(row.id, 'pensionBeloeb', info)}
-                      externalErrorMessage={getExternalErrorMessage(row.id, 'pensionBeloeb')}
+                  <td style={getCellStyle(rowId, COL.beloeb1, { ...getStandardGridCellStyle({ align: 'right' }) })}>
+                    <GreenfieldGridAmountCell
+                      gridCell={gc(COL.beloeb1)}
+                      cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.pensionBeloeb, COL.beloeb1)}
+                      inputRef={registerCellRef(rowId, COL.beloeb1)}
                     />
                   </td>
                 ) : (
-                  <td
-                    style={{
-                      ...getStandardGridCellStyle({ align: 'right' }),
-                      padding: '4px',
-                      color: calculated.col7 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
-                    }}
-                  >
+                  <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: calculated.col7 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit' }}>
                     {formatKr(calculated.col7, 2)}
                   </td>
                 )}
 
+                {/* Samlet løn (altid afledt) + slet-række-knap */}
                 <td
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    // Reserveret bane til højre for værdien, hvor slet-ikonet vises (dækker ikke "I alt").
                     paddingRight: '28px',
                     position: 'relative',
                     color: calculated.col8 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
                   }}
                 >
                   {formatKr(calculated.col8, 2)}
-                  {!isRowEmpty(committedRow) && (
-                    <RowDeleteButton onDelete={() => handleDeleteRow(row.id)} />
+                  {renderRow.kind === 'existing' && !isRowEmpty(committedRow) && (
+                    <RowDeleteButton onDelete={() => rows.remove(rowId)} />
                   )}
                 </td>
               </tr>

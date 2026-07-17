@@ -8,8 +8,10 @@ ingen af faserne betragtes længere som en færdig del af målarkitekturen. Impl
 påbegyndt og blev kritisk reviewet 2026-07-17; den er ikke færdig. Reviewet fjernede den utilsigtede parallelle
 produktionsruntime, så Mineo nu kun monterer greenfield-runtime, mens standalone alene beholder legacy-runtime frem
 til den atomiske Renteberegning-cutover. Runtime, current-envelope, command-runner, aktiv-editor-registry, fælles
-form-surface og det strukturelle produktkatalog er etableret. Stamdata og Satser er de eneste migrerede
-formularsurfaces. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
+form-surface og det strukturelle produktkatalog er etableret. Stamdata, Satser og Årsløn er de migrerede
+formularsurfaces; Årsløn omfatter den første greenfield grid-tabel (StandardLoenTable) via en grid-celle-surface,
+der bro-forbinder den ene editor-motor til grid-navigationens celleeditor-registry. Erstatningsopgørelsens delte
+brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
 ingen runtime-fallback. Reviewet rettede desuden replacement/no-op-matricen, synkron editorregistrering,
 dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede
 tomværdier og rå section-bypass i Stamdata/Satser. Katalogets paths/counts er komplette, men editorlokationer,
@@ -899,8 +901,11 @@ tilføjer KUN en ren settle-override, `promoteRowSettleIntentToCommand`, der re-
 `settleFieldInNewRow`, §1.11). Motoren udvidedes minimalt: `useFieldEditor` fik en valgfri `settleOverride`, og
 `fieldEditorEngine` fik placeholder-promotion-command'en. 12 målrettede tests (`gridAdapter.test.tsx`): row-liste/
 insert/delete/reorder, atomisk descendant-oprydning ved row-delete, placeholder-promotion (gyldig/ugyldig/tom=no-op),
-celle-issue uændret under redigering, og §7.2-kæden række-med-fejl→slet→undo→redo. Grid-adapteren har fortsat NUL
-produktionscallsites; den konsumeres første gang ved §2.4-trin-3-cutoveren (Årsløn + StandardLoenTable samlet).
+celle-issue uændret under redigering, og §7.2-kæden række-med-fejl→slet→undo→redo. Grid-adapteren konsumeres nu i
+produktion af Årsløn (§2.4 trin 3), gennem `useGridCellSurface`, der bro-forbinder `useCellEditor` til
+`GridCoreController`s celleeditor-registry, så pil/Enter/Tab-navigation, to-trins-klik og Delete-i-celle bevares
+1:1. Løntabellens valideringssummary er nu ren og reader-afledt (`resolveStandardLoenTableValidation`); det
+imperative tabel-handle bærer kun visuel feedback (flash/scroll/missing-hint), ikke længere validerings-state.
 
 **Afhængighed:** Fase 1.
 
@@ -1355,3 +1360,22 @@ Designet indfører ikke:
 
 Målet er den mindste auditerbare arkitektur, som gør den godkendte adfærd deterministisk og gør stale input,
 mount-afhængige fejl og parallelle write-/readveje urepræsenterbare.
+
+## 12. Arbejdsaftale under cutoveren (bindende, brugerbekræftet 2026-07-17)
+
+Denne aftale gælder ALLE resterende faser og passes i draft/commit-greenfield-cutoveren:
+
+1. **Jeg (agenten) træffer alle proces- og kodebeslutninger.** Fremgangsmåde, sekventering, pass-afgrænsning,
+   modulopdeling, navngivning, teststrategi, sletterækkefølge og enhver rent teknisk afvejning er mit ansvar. Jeg
+   forelægger dem ikke for brugeren.
+2. **Brugeren forelægges KUN spørgsmål, hvis en beslutning vil ændre UI/UX eller beregninger** — dvs. noget en
+   bruger faktisk kan se eller mærke (synlig adfærd, layout, tekst, feedback, tal, afrunding, dokumentindhold).
+   Rent tekniske valg (hvordan koden struktureres, hvornår et modul cuttes, om noget bliver bevidst brudt i den
+   ikke-deploybare mellemtilstand) er IKKE brugerspørgsmål.
+3. **Når noget forelægges, sker det altid som ikke-tekniske, konkrete eksempler på den forskel en bruger vil
+   opleve** — aldrig som teknisk arkitektur- eller scope-spørgsmål. Fx "i dag ryster knappen når du prøver at slå
+   omregning til med fejl i tabellen; efter ændringen bliver den bare tonet ned" — ikke "skal grid-adapteren
+   eksponere et imperativt handle?".
+4. Dette er en skærpelse af [[feedback_user_decides_only_uiux_calc]] og ændrer ikke §5.4's hårde stop: en faktisk
+   beregnings-/dokumentindholds-/synlig-adfærdsændring er fortsat et stop, der forelægges — men som konkret
+   bruger-oplevet eksempel.

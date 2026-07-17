@@ -104,7 +104,11 @@ export const aarsloenOmregningTilFuldtAarField = toggle('omregningTilFuldtAar', 
 export const aarsloenFuldLoenUnderFerieField = toggle('fuldLoenUnderFerie', 'Fuld løn under ferie', true);
 export const aarsloenRetTilSjetteFerieugeField = toggle('retTilSjetteFerieuge', 'Ret til 6. ferieuge', true);
 
-// 0..99 er en afledt bounds-issue, ikke codec-config.
+// 0..99 er en afledt bounds-issue (feltvalidator), ikke codec-config: antalFeriedage forbliver canonical med et
+// rødt afledt issue uden for [0,99] (§1.6), i modsætning til et format/range-rejected råtekst-felt. Reglen er
+// KUN relevant, når omregning er valgt OG der ikke er fuld løn under ferie — udtrykt som en ren relevansregel
+// over de canonical toggle-felter (§3.1: relevans må aldrig afhænge af mounted state/settings). Et skjult/
+// irrelevant felt overblokerer ikke (§1.9). Spejler legacy `resolveAarsloenCanonicalRangeIssues`.
 export const aarsloenAntalFeriedageField = defineStructuralField<number | undefined>({
   id: 'aarsloen.antalFeriedage',
   template: { section: 'aarsloen', path: [], field: 'antalFeriedage' },
@@ -114,6 +118,24 @@ export const aarsloenAntalFeriedageField = defineStructuralField<number | undefi
   label: 'Antal feriedage (mandag-fredag) i de indtastede perioder',
   controlKind: 'text',
   createEmptySection: createEmptyAarsloenSection,
+  relevance: (_field, view) => {
+    const omregning = view.readCanonical(aarsloenOmregningTilFuldtAarField.bind());
+    const fuldLoen = view.readCanonical(aarsloenFuldLoenUnderFerieField.bind());
+    return omregning === true && fuldLoen !== true;
+  },
+  validators: [
+    (value) => {
+      if (value === undefined) return undefined;
+      if (value < 0 || value > 99) {
+        return {
+          reason: 'bounds',
+          code: 'aarsloen.antalFeriedage.bounds',
+          message: 'Antal feriedage skal være mellem 0 og 99.',
+        };
+      }
+      return undefined;
+    },
+  ],
 });
 
 // ── Samlingen tableData ────────────────────────────────────────────────────────

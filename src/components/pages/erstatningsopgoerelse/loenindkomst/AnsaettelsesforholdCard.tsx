@@ -13,7 +13,6 @@ import StyledPercentField from '../../../inputs/StyledPercentField';
 import StyledRadioButton from '../../../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../../../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../../../inputs/StyledIntegerField';
-import StandardLoenTable from '../../../tables/StandardLoenTable';
 import LoenudviklingManuelTable from '../../../tables/LoenudviklingManuelTable';
 import LoenudviklingManuelProcentsatsTable from '../../../tables/LoenudviklingManuelProcentsatsTable';
 import { CellInvalidDraftScopeProvider } from '../../../../contexts/CellInvalidDraftScopeContext';
@@ -93,10 +92,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     loentrinFinder,
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,
-    satserByAfId,
-    derivedCalculatorByAfId,
-    tableDataChangeByAfId,
-    validationChangeByAfId,
+    // Løntabel-forbrugere: midlertidigt ubrugte, mens EO-loenindkomst-slicen ikke er greenfield-migreret (§5.4).
+    satserByAfId: _satserByAfId,
+    derivedCalculatorByAfId: _derivedCalculatorByAfId,
+    tableDataChangeByAfId: _tableDataChangeByAfId,
+    validationChangeByAfId: _validationChangeByAfId,
     totalAnsaettelsesforhold,
     cannotAddMore,
     showDeleteButton,
@@ -659,19 +659,18 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
 
       <Typography className="row--subheading">Indtægtsoplysninger</Typography>
 
-      <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoStandardLoen} rowScope={af.id}>
-      <StandardLoenTable
-        loenperiode={af.loenperiode}
-        tillaegAngivesSom={af.tillaegAngivesSom}
-        satser={satserByAfId.get(af.id)!}
-        tableData={af.indtaegtsoplysningerTableData}
-        onTableDataChange={tableDataChangeByAfId.get(af.id)}
-        onValidationChange={validationChangeByAfId.get(af.id)}
-        useSmallFont={true}
-        saveOrderPath={`erstatningsopgoerelse.ansaettelsesforhold.${index}.indtaegtsoplysningerTableData`}
-        calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
-      />
-      </CellInvalidDraftScopeProvider>
+      {/* BEVIDST BRUDT MELLEMTILSTAND (§5.4, greenfield draft/commit-cutover, Pass 2 2026-07-17).
+          `StandardLoenTable` er cuttet over til greenfield-inputCore og drives nu af et collection-parametriseret
+          `fieldSet` (jf. Årsløn-siden). EO's loenindkomst-slice (§2.4 trin 8) er endnu IKKE migreret: det nested
+          `ansaettelsesforhold[i].indtaegtsoplysningerTableData`-feltsæt findes ikke i greenfield-kataloget endnu,
+          og den gamle `tableData`/`onTableDataChange`-legacy-vej er fjernet fra komponenten. Løntabellen er derfor
+          bevidst ude af drift her, indtil EO-slicen migreres. En færdig, brugbar version findes på `main`. */}
+      <ContentBox className="content-box">
+        <Typography className="row--text" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+          Løntabellen migreres i erstatningsopgørelse-slicen (greenfield draft/commit) og er midlertidigt ude af
+          drift på denne udviklingsgren.
+        </Typography>
+      </ContentBox>
 
       {beregnesUdFra === 'Beregningsperiode' ? (
         <>

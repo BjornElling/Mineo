@@ -16,7 +16,6 @@ import type { AarsloenValues } from '../schemas/formSchemas';
 import type { PeriodeResult } from '../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../types/calculation';
 import {
-  harTabelValideringsFejl,
   resolveAarsloenCanonicalRangeIssues,
 } from '../domain/aarsloen/aarsloenValidationPolicies';
 import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
@@ -37,6 +36,8 @@ type UseAarsloenDocumentGatesProps = {
   beregnetAarsloen: number;
   beregningsData: AarsloenBeregningResult;
   harFatalBeregningsFejl: boolean;
+  /** Reader-afledt: har løntabellen mindst én rød celle-/periodefejl (§2.5, erstatter `harTabelValideringsFejl`). */
+  tableHasErrors: boolean;
   tabelRef: React.RefObject<StandardLoenTableHandle | null>;
   persistedStamdata: PersistedSectionMap['stamdata'] | null;
   settings: AppSettings;
@@ -73,6 +74,7 @@ export const useAarsloenDocumentGates = ({
   beregnetAarsloen,
   beregningsData,
   harFatalBeregningsFejl,
+  tableHasErrors,
   tabelRef,
   persistedStamdata,
   settings,
@@ -141,8 +143,8 @@ export const useAarsloenDocumentGates = ({
       return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
     }
 
-    // GATE 2: Valideringsfejl i tabel
-    if (harTabelValideringsFejl(tableData, loenperiode, tillaegAngivesSom)) {
+    // GATE 2: Valideringsfejl i tabel (reader-afledt — inkluderer røde celle-input-fejl, ikke kun periode-fejl).
+    if (tableHasErrors) {
       return blockDocumentDownload({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
     }
 
@@ -182,6 +184,7 @@ export const useAarsloenDocumentGates = ({
     storeBededagPct,
     pensionPct,
     harFatalBeregningsFejl,
+    tableHasErrors,
     omregningAktiveret,
     periodeData,
     values,

@@ -23,3 +23,14 @@ export { default as GreenfieldRadioField } from './GreenfieldRadioField';
 export type { GreenfieldRadioFieldProps, GreenfieldRadioOption } from './GreenfieldRadioField';
 export { default as GreenfieldToggleField } from './GreenfieldToggleField';
 export type { GreenfieldToggleFieldProps } from './GreenfieldToggleField';
+
+// Grid-celle-skaller (§2.5): den kompakte pendant til form-skallerne, over `useGridCellSurface`.
+export { default as GreenfieldGridTextCell } from './GreenfieldGridTextCell';
+export type { GreenfieldGridTextCellProps } from './GreenfieldGridTextCell';
+export {
+  GreenfieldGridAmountCell,
+  GreenfieldGridIntegerCell,
+  GreenfieldGridYearCell,
+  GreenfieldGridWeekCell,
+  GreenfieldGridDateCell,
+} from './greenfieldGridCells';

@@ -13,4 +13,5 @@ export * from './useFieldEditor';
 export * from './useFormFieldSurface';
 export * from './useCollectionRows';
 export * from './useCellEditor';
+export * from './useGridCellSurface';
 export * from './useInputEvaluation';

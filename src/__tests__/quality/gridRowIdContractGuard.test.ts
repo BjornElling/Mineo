@@ -73,18 +73,21 @@ describe('grid row-id-kontrakt (struktur-guard)', () => {
   const tableFiles = collectTsx(TABLES_DIR);
   const gridTableFiles = tableFiles.filter((f) => /\bnormalizeGridRows\s*\(/.test(readFileSync(f, 'utf8')));
 
-  it('mindst alle fire kendte grid-tabeller fanges af scanneren', () => {
+  it('mindst de kendte legacy-grid-tabeller fanges af scanneren', () => {
     // Vagt mod at scannerens detektion (normalizeGridRows-kald) holder op med at virke.
+    // BEMÆRK: `StandardLoenTable.tsx` er greenfield-cuttet over (§2.5) og bruger IKKE længere
+    // `normalizeGridRows` — den ejer sine rækker via `useCollectionRows` + placeholder-promotion (§3.8),
+    // så dens tomme-række-id'er dannes af den ene reducer, ikke af en setState-updater-RNG. Den er derfor
+    // med rette uden for denne legacy-determinisme-guard, indtil de tre øvrige tabeller også migreres.
     const names = gridTableFiles.map((f) => f.split(/[\\/]/).pop());
     expect(names).toEqual(
       expect.arrayContaining([
         'EetAslAfgoerelserTable.tsx',
         'OffentligeYdelserTable.tsx',
         'LoenudviklingManuelTable.tsx',
-        'StandardLoenTable.tsx',
       ])
     );
-    expect(gridTableFiles.length).toBeGreaterThanOrEqual(4);
+    expect(gridTableFiles.length).toBeGreaterThanOrEqual(3);
   });
 
   it('hver grid-tabel danner tomme rækker via createEmptyRowId (deterministisk)', () => {
