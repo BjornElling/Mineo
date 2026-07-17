@@ -7,3 +7,5 @@ export * from './slimInputStore';
 export * from './dispatchInput';
 export * from './initializeInputRuntime';
 export * from './evaluationSourceBinding';
+export * from './activeEditorRegistry';
+export * from './criticalActionCoordinator';
