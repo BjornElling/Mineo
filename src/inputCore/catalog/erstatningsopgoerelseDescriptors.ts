@@ -465,7 +465,45 @@ export const eoSvieSmertePeriodeTilstandField = defineStructuralField<Tilstand |
 
 // oevrigeKravPerioder
 export const eoOevrigeKravPerioderCollection = topLevelCollection<OevrigeKravRow>('oevrigeKravPerioder');
-export const eoOevrigeKravDatoField = rowDate('oevrigeKravPerioder', 'dato', 'Dato');
+// Datoens dynamiske grænser (min=skadedatoMinRule / max=i dag) er nu en canonical bounds-feltvalidator (§1.6),
+// byte-identisk med legacy `OevrigeKravSection`'s `minDate`/`maxDate`/`specialRangeErrors`. Krydslæser skadedato +
+// skadestype via `view.readCanonical` (ingen recursion — validators læser canonical, ikke issues).
+export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> = defineStructuralField<ISODateString | undefined>({
+  id: 'eo.oevrigeKravPerioder.dato',
+  template: rowTemplate('oevrigeKravPerioder', 'dato'),
+  codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
+  emptyValue: undefined,
+  isEmpty: isUndefined,
+  label: 'Dato',
+  controlKind: 'text',
+  createEmptySection: createEmptyErstatningsopgoerelseSection,
+  validators: [(value, _field, view) => {
+    if (value === undefined) return undefined;
+    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+    const skadestype = view.readCanonical(stamdataSkadestypeField.bind());
+    const minRule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
+      erErhvervssygdom: skadestype === 'Erhvervssygdom',
+      fallbackMin: dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.fallbackMin,
+    });
+    const maxDate = dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.max;
+    if (value >= minRule.minDate && value <= maxDate) return undefined;
+    return {
+      reason: 'bounds',
+      code: 'eo.oevrigeKravPerioder.dato.bounds',
+      message: resolveDateRangeErrorMessage({
+        iso: value,
+        minDate: minRule.minDate,
+        maxDate,
+        special: {
+          minBoundKind: minRule.minBoundKind,
+          minBoundReferenceISO: minRule.minBoundReferenceISO,
+        },
+      }),
+      detail: { minDate: minRule.minDate, maxDate },
+    };
+  }],
+});
 export const eoOevrigeKravUdgiftTilField = defineStructuralField<string>({
   id: 'eo.oevrigeKravPerioder.udgiftTil',
   template: rowTemplate('oevrigeKravPerioder', 'udgiftTil'),
