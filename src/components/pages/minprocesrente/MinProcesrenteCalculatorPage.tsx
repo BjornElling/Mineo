@@ -1,32 +1,35 @@
 import React from 'react';
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { usePersistedForm } from '../../../hooks/usePersistedForm';
-import { renteberegningSchema } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
-import useRentekravRows from '../../tables/useRentekravRows';
-import { createRenteberegningInitialValues } from '../../../domain/renteberegning/renteberegningInitialValues';
 import type { RentePdfContext, RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
-import type { CommitHandler } from '../../../types/fieldEvents';
-import type { ReadyInputRevision } from '../../../domain/inputIntegrity/inputBlocker';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
-import { useUndoRedoShortcuts } from '../../../hooks/useUndoRedoShortcuts';
+import { useGreenfieldUndoRedoShortcuts } from '../../../inputCore/react/useGreenfieldUndoRedoShortcuts';
+import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
+import { renteberegningKommentarerField } from '../../../inputCore/catalog/renteberegningDescriptors';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
 
 const MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX = 599;
 
-const ignoreStandaloneForwardedError = (): void => {
-  // MinProcesrente viser PDF-fejl lokalt og har ingen overliggende Mineo-fejlkanal.
-};
+const kommentarerRef = renteberegningKommentarerField.bind();
 
-const noopUndoRedoNavigate = (): void => {
-  // Standalone MinProcesrente har kun én side og ingen router. Undo/redo-restore
-  // gendanner committed state og fokus, men navigerer ikke (intet at navigere til).
+/**
+ * Optager ét frisk kildesnapshot fra den ene runtime (§3.9): den afsluttede kommentar OG friskheds-closuren
+ * (`isSourceCurrent`), så et netop indtastet felt kommer med, og downloaden fail-closer, hvis input ændres under
+ * den asynkrone PDF-generering.
+ */
+const captureFreshStandaloneSource = (): Readonly<{ kommentarer: string | undefined; isSourceCurrent: () => boolean }> => {
+  const source = captureProductionEvaluationSource();
+  const read = source.evaluation.reader.read(kommentarerRef);
+  return {
+    kommentarer: read.status === 'usable' ? read.value : undefined,
+    isSourceCurrent: source.isSourceCurrent,
+  };
 };
 
 // PDF-tjenesten trækker jsPDF + dokument-generatorerne ind (~110 KiB). Den er kun
@@ -58,39 +61,15 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   const [isPhoneLikeDevice] = React.useState(isStandalonePhoneLikeDevice);
   const isMobile = isViewportMobile || isPhoneLikeDevice;
   const mobileContentFontSize = '12px';
-  const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
-  const { values, setValues, setFieldValue, resetForm, formVersion } = usePersistedForm(
-    renteberegningSchema,
-    'renteberegning',
-    initialValues
-  );
   const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
   const [downloadAllErrorMessage, setDownloadAllErrorMessage] = React.useState<string | null>(null);
   const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
 
-  // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) + focus-tracker.
-  // Samme delte wiring som Mineos MainLayout; standalone navigerer ikke (én side).
-  useUndoRedoShortcuts(noopUndoRedoNavigate);
-
-  const rentekrav = useRentekravRows({ values, setValues, resyncToken: formVersion });
-
-  const handleBeregningsdatoCommit = React.useCallback<CommitHandler<ISODateString | undefined>>(
-    (event) => {
-      return setFieldValue('beregningsdato', event.target.value);
-    },
-    [setFieldValue]
-  );
-
-  const handleKommentarerChange = React.useCallback<CommitHandler<string>>(
-    (event) => {
-      const normalized = event.target.value.trim();
-      return setFieldValue('kommentarer', normalized === '' ? undefined : normalized);
-    },
-    [setFieldValue]
-  );
+  // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene greenfield write-grænse.
+  useGreenfieldUndoRedoShortcuts();
 
   const handleDownloadRentePdf = React.useCallback(
-    async (pdfContext: RentePdfContext, inputRevision: ReadyInputRevision) => {
+    async (pdfContext: RentePdfContext, _isSourceCurrent: () => boolean) => {
       const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
@@ -98,6 +77,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         return;
       }
 
+      const { kommentarer, isSourceCurrent } = captureFreshStandaloneSource();
       const { downloadStandaloneRentePdf } = await loadStandaloneRentePdfService();
       const result = await downloadStandaloneRentePdf({
         beloeb: pdfContext.beloeb,
@@ -105,17 +85,17 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         beregningsdato: beregningsdatoDanish,
         periods: pdfContext.periods,
         latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
-        inputRevision,
-        kommentarer: values.kommentarer,
+        isSourceCurrent,
+        kommentarer,
       });
       setPdfErrorMessage(result.success ? null : result.error);
     },
-    [values.kommentarer]
+    []
   );
 
   const handleDownloadAllSpecifikationer = React.useCallback(async (
     contexts: RentekravPdfContextMap,
-    inputRevision: ReadyInputRevision
+    _isSourceCurrent: () => boolean
   ) => {
     setDownloadAllErrorMessage(null);
     const rows = Array.from(contexts.values()).flatMap((ctx) => {
@@ -131,31 +111,33 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
       }];
     });
 
+    const { kommentarer, isSourceCurrent } = captureFreshStandaloneSource();
     const { downloadAllStandaloneRentePdf } = await loadStandaloneRentePdfService();
     const result = await downloadAllStandaloneRentePdf({
       rows,
-      inputRevision,
-      kommentarer: values.kommentarer,
+      isSourceCurrent,
+      kommentarer,
     });
     setDownloadAllErrorMessage(result.success ? null : result.error);
-  }, [values.kommentarer]);
+  }, []);
 
   const handleDownloadOversigt = React.useCallback(async (
     rows: readonly RenteOversigtRow[],
     beregningsdato: ISODateString,
     latestReferenceRateDate: ISODateString | null,
-    inputRevision: ReadyInputRevision,
+    _isSourceCurrent: () => boolean,
   ) => {
+    const { kommentarer, isSourceCurrent } = captureFreshStandaloneSource();
     const { downloadStandaloneRenteOversigtPdf } = await loadStandaloneRentePdfService();
     const result = await downloadStandaloneRenteOversigtPdf({
       beregningsdato,
       rows,
       latestReferenceRateDate,
-      inputRevision,
-      kommentarer: values.kommentarer,
+      isSourceCurrent,
+      kommentarer,
     });
     setOversigtErrorMessage(result.success ? null : result.error);
-  }, [values.kommentarer]);
+  }, []);
 
   return (
     <Box
@@ -274,18 +256,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     >
       <MinProcesrenteTitle />
       <RenteberegningTab
-        beregningsdato={values.beregningsdato}
-        kommentarer={values.kommentarer}
-        onKommentarerCommit={handleKommentarerChange}
-        onBeregningsdatoCommit={handleBeregningsdatoCommit}
-        rentekravRows={rentekrav.draftRows}
-        onRentekravChange={rentekrav.onFieldChange}
-        onRentekravBlur={rentekrav.onRowBlur}
-        onRentekravDelete={rentekrav.removeRow}
-        onRentekravReorder={rentekrav.reorderRows}
         onDownloadSpecifikation={handleDownloadRentePdf}
-        committedRentekravById={rentekrav.committedById}
-        onError={ignoreStandaloneForwardedError}
         pdfErrorMessage={pdfErrorMessage}
         referenceRates={referenceRates}
         surchargeRates={surchargeRates}
@@ -296,7 +267,6 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         onDownloadOversigt={handleDownloadOversigt}
         oversigtErrorMessage={oversigtErrorMessage}
         showOversigtBox
-        onClearAll={resetForm}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
       <SiblingSitesFooter currentSite="minprocesrente" />

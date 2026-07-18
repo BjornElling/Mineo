@@ -3,39 +3,40 @@ import { Box, IconButton, Typography } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import type { RateEntry } from '../../../data/interestRates';
-import StyledDateField from '../../inputs/StyledDateField';
+import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldMultilineTextField from '../../../inputCore/react/fields/GreenfieldMultilineTextField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
-import StyledTextField from '../../inputs/StyledTextField';
-import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
-import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
-import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
-import type { RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
+import BeregnetRenteTable, { type RentekravPdfContextMap, type RentePdfContext } from '../../tables/BeregnetRenteTable';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
-import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
-import type { RentePdfContext } from '../../tables/BeregnetRenteTable';
 import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
 import { evaluateDownloadAllGate, evaluateOversigtDownloadGate } from '../../../domain/renteberegning/renteberegningDownloadGate';
-import { buildRenteberegningInputProjection } from '../../../domain/renteberegning/renteberegningInputProjection';
 import {
-  getCommittedChangeCounterSnapshot,
-  getInvalidDraftsForSectionSnapshot,
-  getPersistedSectionSnapshot,
-  useCombinedSectionRevisionSelector,
-  useInvalidDraftsForSectionSelector,
-} from '../../../hooks/useFormPersistenceSelectors';
-import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
-import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
+  buildRenteberegningReaderProjection,
+  readRentekravCommittedRows,
+} from '../../../domain/renteberegning/renteberegningReaderProjection';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
-import { dateRanges_renteberegning } from '../../../config/dateRanges';
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
 import DownloadIconButton from '../../inputs/DownloadIconButton';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
 import { documentGateFromBlockers } from '../../../domain/inputIntegrity/inputBlockerGate';
-import type { ReadyInputRevision } from '../../../domain/inputIntegrity/inputBlocker';
-import { useOptionalCriticalActionCoordinator } from '../../../criticalActions/CriticalActionContext';
+import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
+import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
+import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
+import { useInputRuntime } from '../../../inputCore/react/inputRuntimeContext';
+import { resetSection } from '../../../inputCore/inputReducer';
+import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
+import {
+  renteberegningBeregningsdatoField,
+  renteberegningKommentarerField,
+} from '../../../inputCore/catalog/renteberegningDescriptors';
+
+// Greenfield-migreret RenteberegningTab (§2.4 trin 4 / §2.5 / Fase 3 Renteberegning-slice). Hele fanen kører nu på
+// greenfield-inputCore: beregningsdato + kommentarer skriver/læser gennem den offentlige `InputReader` + den ene
+// write-grænse (ingen `usePersistedForm`); rentekrav-tabellen ejer sine rækker via grid-adapteren; og den ENE
+// reader-afledte projektion (`buildRenteberegningReaderProjection`) driver både tabeloutput og alle download-gates.
+// Beregningstal og synlig adfærd er uændrede (§5.4).
 
 interface TechnicalAssumptionsListProps {
   items: readonly string[];
@@ -49,136 +50,117 @@ const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
   </>
 );
 
+const beregningsdatoRef = renteberegningBeregningsdatoField.bind();
+const kommentarerRef = renteberegningKommentarerField.bind();
+
 export interface RenteberegningTabProps {
-  beregningsdato: ISODateString | undefined;
-  kommentarer: string | undefined;
-  onBeregningsdatoCommit: CommitHandler<ISODateString | undefined>;
-  onKommentarerCommit: CommitHandler<string>;
-  rentekravRows: RentekravDraftRow[];
-  onRentekravChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
-  onRentekravBlur: (rowId: string) => void;
-  /** Sletter hele rentekrav-rækken i én undo-handling (committed removeRow fra useRentekravRows). */
-  onRentekravDelete?: (rowId: string) => void;
-  onRentekravReorder: (orderedIds: readonly string[]) => void;
-  onDownloadSpecifikation: (pdfContext: RentePdfContext, inputRevision: ReadyInputRevision) => Promise<void>;
-  committedRentekravById: ReadonlyMap<string, RentekravRow>;
-  onError: (message: string, context: string, error?: unknown) => void;
-  pdfErrorMessage: string | null;
+  onDownloadSpecifikation: (pdfContext: RentePdfContext, isSourceCurrent: () => boolean) => Promise<void>;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
   ContentBoxComponent: ContentBoxComponent;
   isMobile?: boolean;
+  pdfErrorMessage: string | null;
   onDownloadAllSpecifikationer?: (
     contexts: RentekravPdfContextMap,
-    inputRevision: ReadyInputRevision
+    isSourceCurrent: () => boolean
   ) => Promise<void>;
   downloadAllErrorMessage?: string | null;
   onDownloadOversigt?: (
     rows: readonly RenteOversigtRow[],
     beregningsdato: ISODateString,
     latestReferenceRateDate: ISODateString | null,
-    inputRevision: ReadyInputRevision,
+    isSourceCurrent: () => boolean,
   ) => Promise<void>;
   oversigtErrorMessage?: string | null;
   showOversigtBox?: boolean;
-  /**
-   * Nulstiller alle indtastninger på renteberegning-siden til defaults. Når sat (kun på
-   * desktop-kalderne) vises "Slet alle indtastninger"-rækken under oversigts-download.
-   * Bevidst kun desktop: følger samme synlighed som oversigts-rækken (jf. !isMobile).
-   */
-  onClearAll?: () => void;
   documentDownloadFormat: DocumentDownloadFormat;
 }
 
 const RenteberegningTab = React.memo(({
-  beregningsdato,
-  kommentarer,
-  onBeregningsdatoCommit,
-  onKommentarerCommit,
-  rentekravRows,
-  onRentekravChange,
-  onRentekravBlur,
-  onRentekravDelete,
-  onRentekravReorder,
   onDownloadSpecifikation,
-  committedRentekravById,
-  onError,
-  pdfErrorMessage,
   referenceRates,
   surchargeRates,
   ContentBoxComponent,
   isMobile = false,
+  pdfErrorMessage,
   onDownloadAllSpecifikationer,
   downloadAllErrorMessage = null,
   onDownloadOversigt,
   oversigtErrorMessage = null,
   showOversigtBox = false,
-  onClearAll,
   documentDownloadFormat,
 }: RenteberegningTabProps) => {
-  const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
+  const runtime = useInputRuntime();
+  const evaluation = useInputEvaluation();
+  const criticalActions = useCriticalInputActions();
   const [downloadAllIsLoading, setDownloadAllIsLoading] = React.useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = React.useState(false);
-  const criticalActions = useOptionalCriticalActionCoordinator();
-  const inputRevision = useCombinedSectionRevisionSelector();
 
-  // Binding af beregningsdato til invalidDrafts (obligatorisk for persisterede sagsfelter, jf.
-  // mineo-field-pattern.md "Felt-identitets-API" punkt 5). Erstatter den lokale beregningsdatoHasError-
-  // boolean, der pr. design var blank for uparseligt format (visualErrorMessage tvinges til '') og
-  // derfor ikke kunne gate download (document-output-contract.md §A2.1). Reporteren er router-fri, så
-  // den også virker i den routerløse standalone minProcesrente-app.
-  const beregningsdatoErrorReporter = useFormFieldErrorReporter('renteberegning', 'beregningsdato');
+  const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
+  const beregningsdatoController = useFieldEditor(beregningsdatoRef, { locationId: 'renteberegning:beregningsdato' });
 
-  // Samme revisionsbundne projektion driver tabeloutput og dokumentgates. Blokerede rækker kalder
-  // aldrig beregningsmotoren med den tidligere canonical værdi bag masken.
-  const renteInvalidDrafts = useInvalidDraftsForSectionSelector('renteberegning');
-  const inputProjection = React.useMemo(
-    () => buildRenteberegningInputProjection({
-      beregningsdato,
-      committedRentekravById,
-      invalidDrafts: renteInvalidDrafts,
+  // Den ENE reader-afledte projektion (§3.4/§5.4) — tabeloutput og download-gates deler præcis samme sandhed.
+  const projection = React.useMemo(
+    () => buildRenteberegningReaderProjection({
+      reader: evaluation.reader,
       referenceRates,
       surchargeRates,
-      revision: inputRevision,
+      revision: evaluation.issues.sourceToken.inputRevision,
     }),
-    [
-      beregningsdato,
-      committedRentekravById,
-      inputRevision,
-      referenceRates,
-      renteInvalidDrafts,
-      surchargeRates,
-    ]
+    [evaluation, referenceRates, surchargeRates]
   );
-  const aggregateData = inputProjection.aggregateProjection.status === 'ready'
-    ? inputProjection.aggregateProjection.data
+
+  const committedRows = React.useMemo(() => readRentekravCommittedRows(evaluation.reader), [evaluation]);
+  const beregningsdatoRead = evaluation.reader.read(beregningsdatoRef);
+  const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
+  const kommentarerRead = evaluation.reader.read(kommentarerRef);
+  const kommentarer = kommentarerRead.status === 'usable' ? kommentarerRead.value : undefined;
+
+  const aggregateData = projection.aggregateProjection.status === 'ready'
+    ? projection.aggregateProjection.data
     : null;
-  const pdfContexts: RentekravPdfContextMap = aggregateData?.pdfContexts ?? new Map();
+  const hasValidPdfContexts = (aggregateData?.pdfContexts.size ?? 0) > 0;
   const anyRowHasError = aggregateData?.anyRowHasError ?? false;
+
+  // En frisk projektion til en download (§3.9): efter settle genlæses et frisk kildesnapshot; er tokenet stale
+  // (input/settings flyttede), returneres null og downloaden afbrydes.
+  const captureFreshProjection = React.useCallback(() => {
+    const source = captureProductionEvaluationSource();
+    const fresh = buildRenteberegningReaderProjection({
+      reader: source.evaluation.reader,
+      referenceRates,
+      surchargeRates,
+      revision: source.evaluation.issues.sourceToken.inputRevision,
+    });
+    const freshBeregningsdatoRead = source.evaluation.reader.read(beregningsdatoRef);
+    const freshBeregningsdato = freshBeregningsdatoRead.status === 'usable' ? freshBeregningsdatoRead.value : undefined;
+    return { source, fresh, freshBeregningsdato, isSourceCurrent: source.isSourceCurrent };
+  }, [referenceRates, surchargeRates]);
+
+  const handleDownloadRow = React.useCallback(async (rowId: string) => {
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
+      return;
+    }
+    const { source, fresh, isSourceCurrent } = captureFreshProjection();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    const rowProjection = fresh.rowProjections.get(rowId);
+    if (rowProjection?.status !== 'ready' || rowProjection.data.pdfContext === null) return;
+    await onDownloadSpecifikation(rowProjection.data.pdfContext, isSourceCurrent);
+  }, [captureFreshProjection, criticalActions, onDownloadSpecifikation]);
 
   const handleDownloadAll = React.useCallback(async () => {
     if (!onDownloadAllSpecifikationer) return;
-    const preparation = criticalActions === null
-      ? { status: 'committed' as const }
-      : await criticalActions.prepare('download');
-    if (preparation.status === 'blocked') {
-      preparation.target?.focus();
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
-
-    const latestValues = criticalActions === null ? null : getPersistedSectionSnapshot('renteberegning');
-    const latestProjection = latestValues === null
-      ? inputProjection
-      : buildRenteberegningInputProjection({
-          beregningsdato: latestValues.beregningsdato,
-          committedRentekravById: new Map(latestValues.rentekravRows.map((row) => [row.id, row])),
-          invalidDrafts: getInvalidDraftsForSectionSnapshot('renteberegning'),
-          referenceRates,
-          surchargeRates,
-          revision: getCommittedChangeCounterSnapshot(),
-        });
-    if (latestProjection.aggregateProjection.status === 'blocked') return;
-    const latest = latestProjection.aggregateProjection;
+    const { source, fresh, isSourceCurrent } = captureFreshProjection();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    if (fresh.aggregateProjection.status !== 'ready') return;
+    const latest = fresh.aggregateProjection;
     const gate = evaluateDownloadAllGate({
       hasValidPdfContexts: latest.data.pdfContexts.size > 0,
       anyRowHasError: latest.data.anyRowHasError,
@@ -188,72 +170,26 @@ const RenteberegningTab = React.memo(({
 
     setDownloadAllIsLoading(true);
     try {
-      await onDownloadAllSpecifikationer(latest.data.pdfContexts, latest.revision);
+      await onDownloadAllSpecifikationer(latest.data.pdfContexts, isSourceCurrent);
     } finally {
       setDownloadAllIsLoading(false);
     }
-  }, [criticalActions, inputProjection, onDownloadAllSpecifikationer, referenceRates, surchargeRates]);
-
-  // hasValidPdfContexts: mindst én række med fuldt beregnet pdfContext (belob + renterFra gyldige og beregning ok)
-  const hasValidPdfContexts = pdfContexts.size > 0;
-
-  // Begge download-gates bygges på det fælles documentGateTypes-primitiv (dokument-
-  // output-kontrakt §A2): committed-only-reglen er nu konstruktion, ikke kommentar.
-  // Gate-funktionerne er rene og committed-afledte; loading-tilstanden er en separat
-  // UI-transient der OR'es på download-alle-knappens disabled nedenfor.
-  // Aggregat-downloads blokeres af ENHVER afsluttet ugyldig input (global eller en hvilken som helst
-  // rækkes celle) — en samlet oversigt/alle-download inkluderer alle rækker. `hasAnyInputBlocker`
-  // erstatter den gamle beregningsdatoHasError-boolean som output-sandhedskilde (§A2.1).
-  const downloadAllGate = React.useMemo(() => {
-    if (inputProjection.aggregateProjection.status === 'blocked') {
-      return documentGateFromBlockers(inputProjection.aggregateProjection.blockers, 'renteberegning');
-    }
-    return evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
-  }, [anyRowHasError, hasValidPdfContexts, inputProjection.aggregateProjection]);
-  const downloadAllDisabled = !downloadAllGate.canDownload || downloadAllIsLoading;
-
-  const showDownloadAllBox = isMobile && onDownloadAllSpecifikationer !== undefined;
-
-  const oversigtDownloadGate = React.useMemo(() => {
-    if (inputProjection.aggregateProjection.status === 'blocked') {
-      return documentGateFromBlockers(inputProjection.aggregateProjection.blockers, 'renteberegning');
-    }
-    return evaluateOversigtDownloadGate({
-      beregningsdato,
-      hasValidPdfContexts,
-      anyRowHasError,
-      beregningsdatoHasError: false,
-    });
-  }, [anyRowHasError, beregningsdato, hasValidPdfContexts, inputProjection.aggregateProjection]);
-  const oversigtDownloadDisabled = !oversigtDownloadGate.canDownload;
+  }, [captureFreshProjection, criticalActions, onDownloadAllSpecifikationer]);
 
   const handleDownloadOversigt = React.useCallback(async () => {
     if (!onDownloadOversigt) return;
-    const preparation = criticalActions === null
-      ? { status: 'committed' as const }
-      : await criticalActions.prepare('download');
-    if (preparation.status === 'blocked') {
-      preparation.target?.focus();
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
-
-    const latestValues = criticalActions === null ? null : getPersistedSectionSnapshot('renteberegning');
-    const latestBeregningsdato = latestValues?.beregningsdato ?? beregningsdato;
-    if (latestBeregningsdato === undefined) return;
-    const latestProjection = latestValues === null
-      ? inputProjection
-      : buildRenteberegningInputProjection({
-          beregningsdato: latestBeregningsdato,
-          committedRentekravById: new Map(latestValues.rentekravRows.map((row) => [row.id, row])),
-          invalidDrafts: getInvalidDraftsForSectionSnapshot('renteberegning'),
-          referenceRates,
-          surchargeRates,
-          revision: getCommittedChangeCounterSnapshot(),
-        });
-    if (latestProjection.aggregateProjection.status === 'blocked') return;
-    const latest = latestProjection.aggregateProjection;
+    const { source, fresh, freshBeregningsdato, isSourceCurrent } = captureFreshProjection();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    if (freshBeregningsdato === undefined) return;
+    if (fresh.aggregateProjection.status !== 'ready') return;
+    const latest = fresh.aggregateProjection;
     const gate = evaluateOversigtDownloadGate({
-      beregningsdato: latestBeregningsdato,
+      beregningsdato: freshBeregningsdato,
       hasValidPdfContexts: latest.data.pdfContexts.size > 0,
       anyRowHasError: latest.data.anyRowHasError,
       beregningsdatoHasError: false,
@@ -273,66 +209,43 @@ const RenteberegningTab = React.memo(({
       }
     }
     if (rows.length === 0) return;
-    await onDownloadOversigt(rows, latestBeregningsdato, latestReferenceRateDate, latest.revision);
-  }, [
-    beregningsdato,
-    criticalActions,
-    inputProjection,
-    onDownloadOversigt,
-    referenceRates,
-    surchargeRates,
-  ]);
+    await onDownloadOversigt(rows, freshBeregningsdato, latestReferenceRateDate, isSourceCurrent);
+  }, [captureFreshProjection, criticalActions, onDownloadOversigt]);
 
-  // Vis kun oversigts-linjen på desktop (kalderen sætter showOversigtBox).
+  // Download-gates (§A2): committed-afledte via den reader-projektion, som cellerne allerede afspejler.
+  const downloadAllGate = React.useMemo(() => {
+    if (projection.aggregateProjection.status === 'blocked') {
+      return documentGateFromBlockers(projection.aggregateProjection.blockers, 'renteberegning');
+    }
+    return evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
+  }, [anyRowHasError, hasValidPdfContexts, projection.aggregateProjection]);
+  const downloadAllDisabled = !downloadAllGate.canDownload || downloadAllIsLoading;
+
+  const oversigtDownloadGate = React.useMemo(() => {
+    if (projection.aggregateProjection.status === 'blocked') {
+      return documentGateFromBlockers(projection.aggregateProjection.blockers, 'renteberegning');
+    }
+    return evaluateOversigtDownloadGate({ beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
+  }, [anyRowHasError, beregningsdato, hasValidPdfContexts, projection.aggregateProjection]);
+  const oversigtDownloadDisabled = !oversigtDownloadGate.canDownload;
+
+  const showDownloadAllBox = isMobile && onDownloadAllSpecifikationer !== undefined;
   const renderOversigtRow = showOversigtBox && onDownloadOversigt !== undefined && !isMobile;
+  const renderClearAllRow = !isMobile;
 
-  // "Slet alle indtastninger" vises kun på desktop (samme synlighed som oversigts-rækken)
-  // og kun når kalderen leverer en nulstil-handler.
-  const renderClearAllRow = onClearAll !== undefined && !isMobile;
-
-  // Deaktivér slet-knappen når der intet er at slette. Afgøres KUN fra committed state
-  // (jf. form-contract: ingen afledt feedback fra draft): beregningsdato, kommentarer og
-  // alle committed rentekrav-rækker skal være tomme. 'enhed' tæller ikke (jf. isRentekravRowEmpty).
+  // Slet-knappen deaktiveres når der intet er at slette (afgøres KUN fra afsluttet/committed state).
   const hasAnyCommittedInput = React.useMemo(() => {
     if (beregningsdato !== undefined) return true;
     if (kommentarer !== undefined && kommentarer.trim() !== '') return true;
-    for (const committedRow of committedRentekravById.values()) {
-      if (!isRentekravRowEmpty(committedRow)) return true;
-    }
-    return false;
-  }, [beregningsdato, kommentarer, committedRentekravById]);
+    return committedRows.some((row) => !isRentekravRowEmpty(row));
+  }, [beregningsdato, committedRows, kommentarer]);
   const clearAllDisabled = !hasAnyCommittedInput;
 
-  const handleDownloadRow = React.useCallback(async (rowId: string) => {
-    const preparation = criticalActions === null
-      ? { status: 'committed' as const }
-      : await criticalActions.prepare('download');
-    if (preparation.status === 'blocked') {
-      preparation.target?.focus();
-      return;
-    }
-
-    const latestValues = criticalActions === null ? null : getPersistedSectionSnapshot('renteberegning');
-    const latestProjection = latestValues === null
-      ? inputProjection
-      : buildRenteberegningInputProjection({
-          beregningsdato: latestValues.beregningsdato,
-          committedRentekravById: new Map(latestValues.rentekravRows.map((row) => [row.id, row])),
-          invalidDrafts: getInvalidDraftsForSectionSnapshot('renteberegning'),
-          referenceRates,
-          surchargeRates,
-          revision: getCommittedChangeCounterSnapshot(),
-        });
-    const rowProjection = latestProjection.rowProjections.get(rowId);
-    if (rowProjection?.status !== 'ready' || rowProjection.data.pdfContext === null) return;
-    await onDownloadSpecifikation(rowProjection.data.pdfContext, rowProjection.revision);
-  }, [
-    criticalActions,
-    inputProjection,
-    onDownloadSpecifikation,
-    referenceRates,
-    surchargeRates,
-  ]);
+  const handleClearAll = React.useCallback(() => {
+    // §1.4: reset gennemføres uden settle. ConfirmationDialog betyder ingen åben editor, så en direkte
+    // resetSection gennem system-porten er tilstrækkelig (undoable, som legacy resetForm).
+    runtime.resetSection(resetSection('renteberegning', { rentekravRows: [] }));
+  }, [runtime]);
 
   return (
     <Box>
@@ -342,13 +255,10 @@ const RenteberegningTab = React.memo(({
           <Typography className="row--text">Rente beregnes til og med</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <StyledDateField
+              <GreenfieldDateField
+                field={beregningsdatoRef}
+                location={{ locationId: 'renteberegning:beregningsdato' }}
                 name="beregningsdato"
-                value={beregningsdato}
-                onCommit={onBeregningsdatoCommit}
-                minDate={dateRanges_renteberegning.renteTil.min}
-                maxDate={dateRanges_renteberegning.renteTil.max}
-                onFieldError={beregningsdatoErrorReporter}
                 inputRef={beregningsdatoInputRef}
                 width={isMobile ? 110 : 130}
                 singleStageClick={isMobile}
@@ -370,7 +280,7 @@ const RenteberegningTab = React.memo(({
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
-                  onBeregningsdatoCommit(createCommitEvent(today));
+                  beregningsdatoController.commitImmediate(today);
                 }}
                 focusRef={beregningsdatoInputRef}
               />
@@ -390,23 +300,14 @@ const RenteberegningTab = React.memo(({
           </Box>
         )}
         <Box sx={{ width: '100%', overflowX: { xs: 'hidden', sm: 'auto' }, overflowY: 'hidden' }}>
-          <CellInvalidDraftScopeProvider pageKey="renteberegning" tableId={CELL_TABLE_IDS.renteBeregnet}>
           <BeregnetRenteTable
-            rows={rentekravRows}
-            onFieldChange={onRentekravChange}
-            onRowBlur={onRentekravBlur}
-            onDeleteRow={onRentekravDelete}
-            onRowsReorder={onRentekravReorder}
-            beregningsdato={beregningsdato}
+            committedRows={committedRows}
+            rowProjections={projection.rowProjections}
             onDownloadSpecifikation={handleDownloadRow}
-            committedById={committedRentekravById}
-            onError={onError}
-            rowProjections={inputProjection.rowProjections}
             saveOrderPath="renteberegning.rentekravRows"
             isMobile={isMobile}
             documentDownloadFormat={documentDownloadFormat}
           />
-          </CellInvalidDraftScopeProvider>
         </Box>
         {renderOversigtRow && (
           <>
@@ -452,9 +353,7 @@ const RenteberegningTab = React.memo(({
                     },
                   })}
                 >
-                  {/* Bevidst dæmpet rød (mellem støvet og temaets kraftige error.main) — blødere
-                      signal for en destruktiv, men sjælden handling. Deaktiveret: samme grå som
-                      download-ikonet (action.disabled). */}
+                  {/* Bevidst dæmpet rød — blødere signal for en destruktiv, men sjælden handling. */}
                   <Delete sx={{ fontSize: '24px', color: clearAllDisabled ? 'action.disabled' : '#c25555' }} />
                 </IconButton>
               </Box>
@@ -476,12 +375,11 @@ const RenteberegningTab = React.memo(({
 
       <ContentBoxComponent className="content-box">
         <Typography className="section-header">Kommentarer</Typography>
-        <StyledTextField
+        <GreenfieldMultilineTextField
+          field={kommentarerRef}
+          location={{ locationId: 'renteberegning:kommentarer' }}
           name="kommentarer"
           width="min(800px, 100%)"
-          value={kommentarer ?? ''}
-          onCommit={onKommentarerCommit}
-          multiline
           rows={isMobile ? 3 : 4}
           singleStageClick={isMobile}
           placeholder="Indtast eventuelle kommentarer her..."
@@ -510,7 +408,7 @@ const RenteberegningTab = React.memo(({
           cancelText="Annuller"
           confirmColor="error"
           onConfirm={() => {
-            onClearAll?.();
+            handleClearAll();
             setClearAllDialogOpen(false);
           }}
           onCancel={() => setClearAllDialogOpen(false)}

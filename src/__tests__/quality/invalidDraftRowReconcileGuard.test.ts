@@ -37,8 +37,10 @@ const draftCapableDeletableTables = tableFiles.filter((f) => hasCellInput(f.src)
 
 describe('invalidDraft række-reconcile dækning', () => {
   it('scanner faktisk et meningsfuldt antal draft-bærende, sletbare tabeller (ikke vacuous)', () => {
-    // De ti kendte celle-tabeller (3 grid + EET ASL + 6 løse). Brister glob/detektoren, fanges det her.
-    expect(draftCapableDeletableTables.length).toBeGreaterThanOrEqual(10);
+    // De kendte legacy-celle-tabeller. BeregnetRenteTable er migreret til greenfield-inputCore (grid-adapteren,
+    // ingen invalidDrafts-kanal) og indgår derfor IKKE længere i dette legacy-værn (Renteberegning-slice, §2.5).
+    // Resten af de legacy-tabeller er fortsat dækket, indtil deres slices migreres.
+    expect(draftCapableDeletableTables.length).toBeGreaterThanOrEqual(9);
   });
 
   it.each(draftCapableDeletableTables.map((f) => [f.name, f.src] as const))(

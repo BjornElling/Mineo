@@ -30,8 +30,8 @@ export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
   },
   {
     id: 'renteberegning',
-    module: 'src/domain/renteberegning/renteberegningInputProjection.ts',
-    symbol: 'buildRenteberegningInputProjection',
+    module: 'src/domain/renteberegning/renteberegningReaderProjection.ts',
+    symbol: 'buildRenteberegningReaderProjection',
     consumers: ['src/components/pages/renteberegning/RenteberegningTab.tsx'],
   },
   {
@@ -61,8 +61,8 @@ export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
   {
     // Standalone-appen genbruger bevidst samme beregningsflade som hovedappen.
     id: 'minprocesrente',
-    module: 'src/domain/renteberegning/renteberegningInputProjection.ts',
-    symbol: 'buildRenteberegningInputProjection',
+    module: 'src/domain/renteberegning/renteberegningReaderProjection.ts',
+    symbol: 'buildRenteberegningReaderProjection',
     consumers: ['src/components/pages/renteberegning/RenteberegningTab.tsx'],
   },
 ] as const satisfies readonly GreenfieldConsumedInventoryEntry[];

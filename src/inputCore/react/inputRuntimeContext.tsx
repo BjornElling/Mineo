@@ -6,7 +6,7 @@ import { sourceTokensEqual, type InputRevision } from '../evaluationSource';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import type { InputEvaluation } from '../inputReader';
 import { dispatchInput, type DispatchInputResult } from '../runtime/dispatchInput';
-import type { InputSurfaceCommand } from '../inputReducer';
+import type { InputSurfaceCommand, ResetSectionCommand } from '../inputReducer';
 import type { HistoryOrigin } from '../inputHistory';
 import type { SlimInputStore } from '../runtime/slimInputStore';
 import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
@@ -41,6 +41,12 @@ export type InputRuntimeBinding = Readonly<{
     command: InputSurfaceCommand<TField, TEntity>,
     origin?: HistoryOrigin
   ) => DispatchInputResult;
+  /**
+   * System-reset af én sektion (§3.6). Adskilt fra `dispatch`, så en form-/grid-CELLE ikke kan udstede en
+   * hel-sektionsmutation, men en sidesektions "Slet alle indtastninger" (fx renteberegning) kan. Route reset,
+   * `Slet alt` og load gennem denne/`CaseResetOperations`-porten, aldrig gennem celle-dispatch.
+   */
+  resetSection: (command: ResetSectionCommand) => DispatchInputResult;
   /** History er en separat port; editor-surfaces kan ikke forveksle restore med en feltkommando. */
   history: Readonly<{
     undo: () => DispatchInputResult;
@@ -107,6 +113,7 @@ export const createInputRuntimeBinding = (
     getIssues: getStableIssues,
     getEvaluation,
     dispatch: (command, origin) => dispatchInput(store, catalog, command, origin === undefined ? {} : { origin }),
+    resetSection: (command) => dispatchInput(store, catalog, command),
     history: Object.freeze({
       undo: () => dispatchInput(store, catalog, { kind: 'undo' }),
       redo: () => dispatchInput(store, catalog, { kind: 'redo' }),

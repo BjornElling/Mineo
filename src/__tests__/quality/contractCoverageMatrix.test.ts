@@ -164,7 +164,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/domain/renteberegning/renteberegningEngine.test.ts',
       'src/__tests__/domain/renteberegning/procesrenteCalculator.test.ts',
-      'src/__tests__/components/pages/Renteberegning.pdfDownload.test.tsx',
+      'src/__tests__/domain/renteberegning/renteberegningReaderProjection.test.ts',
+      'src/__tests__/components/pages/Renteberegning.greenfield.integration.test.tsx',
     ],
   },
   {
@@ -188,7 +189,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/utils/amountInputUtils.test.ts',
       'src/__tests__/schemas/amountExpressionSchema.test.ts',
-      'src/__tests__/components/tables/BeregnetRenteTable.amountfield.test.tsx',
+      'src/__tests__/components/pages/Renteberegning.greenfield.integration.test.tsx',
     ],
   },
   {

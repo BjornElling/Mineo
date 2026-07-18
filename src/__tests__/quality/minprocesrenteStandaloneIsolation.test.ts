@@ -71,6 +71,8 @@ describe('MinProcesrente standalone isolation', () => {
     expect(source).not.toContain('usePersistedSectionSelector("stamdata")');
     expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]stamdata['"]/);
     expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]indstillinger['"]/);
-    expect(source).toContain("'renteberegning'");
+    // Standalone bruger fortsat KUN renteberegning-sektionen — nu via greenfield-inputCore's
+    // renteberegning-descriptors (§2.4 trin 4), ikke en legacy `usePersistedForm('renteberegning')`-streng.
+    expect(source).toMatch(/renteberegning(Descriptors|Kommentarer)/);
   });
 });

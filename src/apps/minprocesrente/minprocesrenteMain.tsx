@@ -6,14 +6,16 @@ import React from 'react';
 import MinProcesrenteApp from './MinProcesrenteApp';
 import { bootstrapClientApp } from '../shared/bootstrapClientApp';
 import { setDocumentBrand } from '../../document/documentBrand';
-import { initializePersistenceRuntime } from '../../persistence/persistenceRuntime';
+import { bootstrapProductionInputRuntime } from '../../inputCore/react';
 
 setDocumentBrand('minprocesrente.dk');
 
 void bootstrapClientApp({
   renderApp: () => {
-    const persistenceRuntime = initializePersistenceRuntime();
-    return <MinProcesrenteApp persistenceRuntime={persistenceRuntime} />;
+    // Greenfield-runtime: hydrér den ene input-runtime FØR render (§3.10). Standalone bruger nu samme
+    // greenfield-inputCore som hovedappen — ingen legacy FormPersistence-runtime.
+    const { binding } = bootstrapProductionInputRuntime();
+    return <MinProcesrenteApp inputRuntimeBinding={binding} />;
   },
   capturePwaInstallPrompt: false,
   enforceUnsupportedDeviceGate: false,

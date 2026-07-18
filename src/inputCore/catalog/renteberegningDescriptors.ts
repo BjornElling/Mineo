@@ -10,6 +10,7 @@ import {
   createRequiredChoiceFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
 
 // Greenfield produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
@@ -44,6 +45,13 @@ export const rentekravRowsCollection = defineStructuralCollection<RentekravRow>(
   id: 'renteberegning.rentekravRows',
   template: { section: 'renteberegning', path: [], collection: 'rentekravRows' },
   createEmptySection: createEmptyRenteberegningSection,
+});
+
+/** Den kanoniske CollectionRef for rentekrav-rækkerne (top-level collection, ingen entity-parent). */
+export const rentekravRowsCollectionRef: CollectionRef = createCollectionRef({
+  section: 'renteberegning',
+  path: [],
+  collection: 'rentekravRows',
 });
 
 const rowTemplate = (field: string) => ({

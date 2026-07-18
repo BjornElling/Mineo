@@ -2,8 +2,13 @@ import * as React from 'react';
 import type { CollectionRef } from '../fieldAddress';
 import type { FieldDescriptor, FieldRef } from '../fieldDescriptor';
 import type { EditorLocation } from '../editor/fieldEditorState';
-import { promoteRowSettleIntentToCommand } from '../editor/fieldEditorEngine';
-import { useFieldEditor, type FieldEditorController, type SettleCommandOverride } from './useFieldEditor';
+import { promoteRowSettleIntentToCommand, promoteRowImmediateCommitToCommand } from '../editor/fieldEditorEngine';
+import {
+  useFieldEditor,
+  type FieldEditorController,
+  type ImmediateCommitOverride,
+  type SettleCommandOverride,
+} from './useFieldEditor';
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 
 // Greenfield-React (§2.5 trin 1 / §3.5): celleeditoren for en grid-celle. En celle er blot et persisteret felt
@@ -64,5 +69,13 @@ export const useCellEditor = <T, TEntity = unknown>(
     return (intent) => promoteRowSettleIntentToCommand(intent, cell.collection, cell.entity, cell.index);
   }, [cell]);
 
-  return useFieldEditor(field, cell.location, focusTarget, settleOverride);
+  const immediateCommitOverride = React.useMemo<ImmediateCommitOverride<T> | undefined>(() => {
+    if (cell.kind === 'existing') return undefined;
+    // Placeholder-promotion for et immediate-valg (§1.11): et dropdown-/toggle-valg på den endnu ikke oprettede
+    // række opretter rækken atomisk OG bevarer valget (ellers ville valget falde tilbage til rækkefaktorens default,
+    // når en anden celle senere opretter rækken).
+    return (value) => promoteRowImmediateCommitToCommand(field, value, cell.collection, cell.entity, cell.location, cell.index);
+  }, [cell, field]);
+
+  return useFieldEditor(field, cell.location, focusTarget, settleOverride, immediateCommitOverride);
 };

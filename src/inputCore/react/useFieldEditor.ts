@@ -71,6 +71,14 @@ export type FieldEditorController<T> = FieldEditorView<T> & Readonly<{
 export type SettleCommandOverride<T> = (intent: EditorSettleIntent<T>) => EditorDispatch<T> | null;
 
 /**
+ * En immediate-commit-override (§1.11): oversætter et immediate-commit-VALG (dropdown/toggle) til en ALTERNATIV
+ * command. Bruges KUN af placeholder-celleeditoren, hvor et valg på en endnu ikke oprettet række skal blive en
+ * atomisk `settleFieldInNewRow` (rækkeoprettelse + valg i én transaktion), i stedet for et `setImmediateField` mod
+ * en ikke-eksisterende entity. Ren funktion; editorens state-machine er uændret.
+ */
+export type ImmediateCommitOverride<T> = (value: T) => EditorDispatch<T> | null;
+
+/**
  * Den fælles persisted felt-editor. Bruges af både form- og grid-adapteren (§7.1 — samme suite mod begge). En
  * `focusTarget` (fx et input-element via ref) gives, så en kritisk handling kan fokusere feltet ved fail-closed.
  * `settleOverride` re-router KUN settle-command'en (placeholder-promotion, §1.11); alt andet — draft, cancel,
@@ -80,7 +88,8 @@ export const useFieldEditor = <T>(
   field: FieldRef<T>,
   location: EditorLocation,
   focusTarget?: EditorFocusTarget,
-  settleOverride?: SettleCommandOverride<T>
+  settleOverride?: SettleCommandOverride<T>,
+  immediateCommitOverride?: ImmediateCommitOverride<T>
 ): FieldEditorController<T> => {
   const runtime = useInputRuntime();
   const snapshot = useSettledSnapshot();
@@ -110,8 +119,8 @@ export const useFieldEditor = <T>(
   // Én stabil ref til det aktuelle {state, view, snapshot, focusTarget} for imperative kald (registrets settle,
   // blur). `focusTarget` holdes i refen, så registreringen ikke churner, selv om kalderen sender et frisk
   // fokusmål-objekt hver render (typisk `{ focus: () => ref.current?.focus() }`).
-  const latest = React.useRef({ state: boundState, view, snapshot, focusTarget, settleOverride });
-  latest.current = { state: boundState, view, snapshot, focusTarget, settleOverride };
+  const latest = React.useRef({ state: boundState, view, snapshot, focusTarget, settleOverride, immediateCommitOverride });
+  latest.current = { state: boundState, view, snapshot, focusTarget, settleOverride, immediateCommitOverride };
   const unregisterRef = React.useRef<(() => void) | null>(null);
 
   const closeActiveRegistration = React.useCallback(() => {
@@ -202,8 +211,11 @@ export const useFieldEditor = <T>(
       // Valget er den autoritative kilde. Luk først draften, når dispatch er lykkedes; ved storagefejl skal
       // brugeren fortsat kunne se og håndtere sin åbne draft.
       const current = latest.current.state;
-      const dispatch = immediateCommitCommand(field, value, location);
-      runtime.dispatch(dispatch.command, dispatch.origin);
+      // Placeholder-promotion (§1.11): et immediate-valg på en endnu ikke oprettet række oversættes til én atomisk
+      // `settleFieldInNewRow`. Returnerer override'et `null`, sker der intet dispatch (intet at oprette).
+      const override = latest.current.immediateCommitOverride;
+      const dispatch = override !== undefined ? override(value) : immediateCommitCommand(field, value, location);
+      if (dispatch !== null) runtime.dispatch(dispatch.command, dispatch.origin);
       if (isEditorOpen(current)) {
         const closed = cancelEditor(current);
         latest.current = { ...latest.current, state: closed };

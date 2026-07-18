@@ -120,6 +120,26 @@ export const immediateCommitCommand = <T>(
   Object.freeze({ command: setImmediateField(field, value), origin: originFor(location, field) });
 
 /**
+ * Placeholder-promotion for et IMMEDIATE-COMMIT-valg (§1.11): et dropdown-/toggle-valg i en endnu ikke oprettet
+ * placeholder-række opretter rækken atomisk OG skriver valget i samme transaktion, via `settleFieldInNewRow` med
+ * valgets codec-formaterede råtekst. Modstykket til {@link promoteRowSettleIntentToCommand} for immediate-controls,
+ * så fx et enhed-valg på den tomme trailing række bevares (i stedet for at falde tilbage til rækkefaktorens default,
+ * når en anden celle senere opretter rækken).
+ */
+export const promoteRowImmediateCommitToCommand = <TEntity, TField>(
+  field: FieldRef<TField>,
+  value: TField,
+  collection: CollectionRef,
+  entity: TEntity,
+  location: EditorLocation,
+  index?: number
+): EditorDispatch<TField> =>
+  Object.freeze({
+    command: settleFieldInNewRow(collection, entity, field, field.descriptor.codec.format(value), index),
+    origin: originFor(location, field),
+  });
+
+/**
  * Delete/Backspace på et lukket, fokuseret felt (§1.3): rydder og committer straks til tomværdien. Guardet på
  * feltets aktuelle view, så et allerede tomt felt uden rejected råinput er `null` (ingen command) — ellers
  * ville et strukturelt tom-write (fx `null`-sektion → `{}`) give en overflødig undo-frame (§3.6, jf. legacy

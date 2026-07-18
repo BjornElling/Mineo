@@ -1,139 +1,129 @@
 import * as React from 'react';
-import { Box, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import DownloadIconButton from '../inputs/DownloadIconButton';
-import TableAmountInput from '../inputs/table/TableAmountInput';
-import TableDateInput from '../inputs/table/TableDateInput';
-import TableIntegerInput from '../inputs/table/TableIntegerInput';
-import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { useTableSort } from './useTableSort';
 import { formatKr } from '../../utils/formatUtils';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
-import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
-import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import type { RentekravRowResult } from '../../domain/renteberegning/renteberegningEngine';
-import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
+import {
+  createEmptyRentekravCommittedRow,
+  createRentekravRowId,
+} from '../../domain/renteberegning/rentekravTableModel';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import type { InputProjection } from '../../domain/inputIntegrity/inputBlocker';
-import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
-import { dateRanges_renteberegning } from '../../config/dateRanges';
+import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
-import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { getDocumentFormatLabel, type DocumentDownloadFormat } from '../../document/documentFormat';
+import { useCollectionRows } from '../../inputCore/react';
+import type { CellSpec } from '../../inputCore/react/useCellEditor';
+import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import {
+  GreenfieldGridAmountCell,
+  GreenfieldGridDateCell,
+} from '../../inputCore/react/fields/greenfieldGridCells';
+import GreenfieldGridTextCell from '../../inputCore/react/fields/GreenfieldGridTextCell';
+import GreenfieldGridChoiceCell from '../../inputCore/react/fields/GreenfieldGridChoiceCell';
+import { filterIntegerKeyDown } from '../inputs/inputKeyFilters';
+import {
+  rentekravRowsCollectionRef,
+  rentekravBelobField,
+  rentekravRenterFraField,
+  rentekravTillaegstidField,
+  rentekravEnhedField,
+} from '../../inputCore/catalog/renteberegningDescriptors';
+import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
+import type { AmountValue } from '../../schemas/amountExpressionSchema';
+
+// Greenfield-migreret BeregnetRenteTable (§2.5 trin 2, Renteberegning-slice). Rækkeinfrastruktur, celleværdier og
+// celleredigering går nu udelukkende gennem greenfield-inputCore, som StandardLoenTable:
+//  - `useCollectionRows(rentekravRowsCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
+//    `useSliceRowDrafts`, draftkopi, fingerprint eller persistence-effect.
+//  - hver redigerbar celle er en `GreenfieldGrid*Cell`/`GreenfieldGridChoiceCell` over `useCellEditor`, bro-
+//    forbundet til grid-core-navigationen. En trailing PLACEHOLDER-række promoverer atomisk ved første ikke-tomme
+//    settle (§1.11).
+//  - de committede rækker + rente-resultater kommer fra den reader-afledte projektion (forælderen ejer den, så
+//    både tabellen og download-gaten deler præcis samme sandhed). Der er ingen konkurrerende celle-værdikopi (§3.8).
 
 export type RentePdfContext = NonNullable<RentekravRowResult['pdfContext']>;
+export type RentekravPdfContextMap = ReadonlyMap<string, RentePdfContext>;
 
-const ENHED_OPTIONS = [
+const ENHED_OPTIONS: readonly { value: TillaegstidEnhed; label: string }[] = [
   { value: 'dage', label: 'Dage' },
   { value: 'uger', label: 'Uger' },
   { value: 'maaneder', label: 'Måneder' },
-] satisfies readonly TableDropdownOption[];
+];
 
-export type RentekravPdfContextMap = ReadonlyMap<string, RentePdfContext>;
+// Kolonneindeks (matcher grid-core-koordinaten `{ rowId, colIndex }`): belob=0, renterFra=1, tillaegstid=2, enhed=3.
+const COL = { belob: 0, renterFra: 1, tillaegstid: 2, enhed: 3 } as const;
 
 export type BeregnetRenteTableProps = Readonly<{
-  rows: RentekravDraftRow[];
-  committedById: ReadonlyMap<string, RentekravRow>;
-  onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
-  onRowBlur: (rowId: string) => void;
-  /** Sletter hele rækken i én undo-handling (committed removeRow fra row-hooken). */
-  onDeleteRow?: (rowId: string) => void;
-  beregningsdato: ISODateString | undefined;
-  onDownloadSpecifikation: (rowId: string) => Promise<void>;
-  onError: (message: string, context: string, error?: unknown) => void;
+  /** De committede rækker (læst reader-afledt af forælderen), i den afsluttede rækkefølge. */
+  committedRows: readonly RentekravRow[];
+  /** Per-række rente-projektion (reader-afledt af forælderen). */
   rowProjections: ReadonlyMap<string, InputProjection<RentekravRowResult>>;
+  onDownloadSpecifikation: (rowId: string) => Promise<void>;
   saveOrderPath?: TableSaveOrderPath;
-  onRowsReorder?: (orderedIds: readonly string[]) => void;
   isMobile?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
 }>;
 
+type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
+
 type BeregnetRenteRowProps = Readonly<{
-  row: RentekravDraftRow;
+  renderRow: RenderRow;
   committedRow: RentekravRow;
   rowIndex: number;
-  onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
-  onRowBlur: (rowId: string) => void;
-  onDeleteRow?: (rowId: string) => void;
-  beregningsdato: ISODateString | undefined;
   onDownloadSpecifikation: (rowId: string) => Promise<void>;
-  onError: (message: string, context: string, error?: unknown) => void;
+  onDeleteRow: (rowId: string) => void;
   projection: InputProjection<RentekravRowResult> | undefined;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
+  buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, RentekravRow>;
 }>;
 
 const BeregnetRenteRow = React.memo(
   ({
-    row,
+    renderRow,
     committedRow,
     rowIndex,
-    onFieldChange,
-    onRowBlur,
-    onDeleteRow,
-    beregningsdato,
     onDownloadSpecifikation,
-    onError: _onError,
+    onDeleteRow,
     projection,
     isMobile,
     documentDownloadFormat,
+    buildCellSpec,
   }: BeregnetRenteRowProps) => {
+    const rowId = renderRow.rowId;
     const formatLabel = getDocumentFormatLabel(documentDownloadFormat);
-    const standardMaxDate = dateRanges_renteberegning.renteTil.max;
-
-    const dynamicMaxDate = React.useMemo((): ISODateString => {
-      if (!beregningsdato) {
-        return standardMaxDate;
-      }
-
-      return minISO(beregningsdato, standardMaxDate);
-    }, [beregningsdato, standardMaxDate]);
 
     const { actualInterestDate, calculatedInterest, pdfContext } = projection?.status === 'ready'
       ? projection.data
       : { actualInterestDate: null, calculatedInterest: null, pdfContext: null };
 
     const actualInterestDateDanish = isoToDanish(actualInterestDate ?? undefined) ?? null;
-    // Per-række-download vises kun for en gyldig række uden nogen afsluttet ugyldig input (global eller
-    // rækkens egen celle). Blokeringen udledes nu af invalidDrafts via forælderen — ikke af en lokal
-    // renterFraHasError-boolean (document-output-contract.md §A2.1).
     const showDownloadButton = pdfContext !== null;
 
+    const gc = (colIndex: number) => ({ rowId, colIndex });
+
     return (
-      <TableRow data-mineo-row-id={row.id}>
+      <TableRow data-mineo-row-id={rowId}>
         <TableCell sx={isMobile ? undefined : { textAlign: 'center' }}>
-          <TableAmountInput
-            gridCell={{ rowId: row.id, colIndex: 0 }}
-            value={committedRow.belob}
-            onBlur={(e) => {
-              onFieldChange(row.id, 'belob')(amountValueToDraftString(e.target.value, 2));
-              onRowBlur(row.id);
-            }}
+          <GreenfieldGridAmountCell
+            gridCell={gc(COL.belob)}
+            cell={buildCellSpec<AmountValue | undefined>(renderRow, rentekravBelobField, COL.belob)}
             placeholder="0,00"
-            canBeNegative={false}
-            sx={isMobile
-              ? { width: '100%', paddingLeft: '4px', paddingRight: '4px' }
-              : { width: 156 }
-            }
           />
         </TableCell>
 
         <TableCell>
-          <TableDateInput
-            gridCell={{ rowId: row.id, colIndex: 1 }}
-            value={committedRow.renterFra}
-            onBlur={(e) => {
-              onFieldChange(row.id, 'renterFra')(e.target.value ?? '');
-              onRowBlur(row.id);
-            }}
-            minDate={dateRanges_renteberegning.renteTil.min}
-            maxDate={dynamicMaxDate}
-            inputMode={isMobile ? 'numeric' : 'text'}
-            sx={isMobile ? { paddingLeft: '4px', paddingRight: '4px' } : undefined}
+          <GreenfieldGridDateCell
+            gridCell={gc(COL.renterFra)}
+            cell={buildCellSpec<ISODateString | undefined>(renderRow, rentekravRenterFraField, COL.renterFra)}
           />
         </TableCell>
 
@@ -141,37 +131,37 @@ const BeregnetRenteRow = React.memo(
           <TableCell>
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
               <Typography className="row--text">+</Typography>
-              <TableIntegerInput
-                gridCell={{ rowId: row.id, colIndex: 2 }}
-                value={committedRow.tillaegstid === undefined ? '' : String(committedRow.tillaegstid)}
-                onBlur={(e) => {
-                  onFieldChange(row.id, 'tillaegstid')(e.target.value);
-                  onRowBlur(row.id);
-                }}
-                placeholder="0"
-                minValue={0}
-                maxValue={99}
-                sx={{ width: 50 }}
-              />
+              <Box sx={{ width: 50 }}>
+                <GreenfieldGridTextCell<number | undefined>
+                  gridCell={gc(COL.tillaegstid)}
+                  cell={buildCellSpec<number | undefined>(renderRow, rentekravTillaegstidField, COL.tillaegstid)}
+                  keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: false, maxValue: 99 })}
+                  placeholder="0"
+                  textAlign="center"
+                  inputMode="numeric"
+                />
+              </Box>
             </Box>
           </TableCell>
         )}
 
         {!isMobile && (
           <TableCell>
-            <TableDropdown
-              gridCell={{ rowId: row.id, colIndex: 3 }}
-              value={committedRow.enhed}
+            <GreenfieldGridChoiceCell<TillaegstidEnhed, RentekravRow>
+              gridCell={gc(COL.enhed)}
+              cell={buildCellSpec<TillaegstidEnhed | undefined>(
+                renderRow,
+                rentekravEnhedField as unknown as FieldDescriptor<TillaegstidEnhed | undefined>,
+                COL.enhed
+              )}
               allowEmpty={false}
-              appearance="loose"
               ariaLabel="Enhed for tillægstid"
-              options={ENHED_OPTIONS}
-              sx={{ width: '100%', '& .MuiSelect-select': { textAlign: 'left' } }}
-              onChange={(e) => {
-                onFieldChange(row.id, 'enhed')(e.target.value);
-                onRowBlur(row.id);
-              }}
-            />
+              sx={{ '& .MuiInputBase-input': { textAlign: 'left' } }}
+            >
+              {ENHED_OPTIONS.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+              ))}
+            </GreenfieldGridChoiceCell>
           </TableCell>
         )}
 
@@ -198,7 +188,7 @@ const BeregnetRenteRow = React.memo(
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showDownloadButton ? (
                 <DownloadIconButton
-                  onClick={() => { void onDownloadSpecifikation(row.id); }}
+                  onClick={() => { void onDownloadSpecifikation(rowId); }}
                   tooltip={`Download som ${formatLabel}`}
                   ariaLabel={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
                 />
@@ -208,8 +198,8 @@ const BeregnetRenteRow = React.memo(
                 </Typography>
               )}
             </Box>
-            {onDeleteRow && !isRentekravRowEmpty(committedRow) && (
-              <RowDeleteButton onDelete={() => onDeleteRow(row.id)} />
+            {renderRow.kind === 'existing' && !isRentekravRowEmpty(committedRow) && (
+              <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />
             )}
           </TableCell>
         )}
@@ -220,41 +210,96 @@ const BeregnetRenteRow = React.memo(
 
 BeregnetRenteRow.displayName = 'BeregnetRenteRow';
 
-const getRowId = (row: RentekravDraftRow) => row.id;
-
 const BeregnetRenteTable = React.memo(
   ({
-    rows,
-    onFieldChange,
-    onRowBlur,
-    onDeleteRow,
-    beregningsdato,
-    onDownloadSpecifikation,
-    committedById,
-    onError,
+    committedRows,
     rowProjections,
+    onDownloadSpecifikation,
     saveOrderPath,
-    onRowsReorder,
     isMobile = false,
     documentDownloadFormat,
   }: BeregnetRenteTableProps) => {
-    const sortColumns = React.useMemo(() => [
-      { colId: 'belob', getSortValue: (row: RentekravDraftRow) => amountValueToNumber(committedById.get(row.id)?.belob) },
-      { colId: 'renterFra', getSortValue: (row: RentekravDraftRow) => committedById.get(row.id)?.renterFra },
-    ], [committedById]);
+    const rows = useCollectionRows<RentekravRow>(rentekravRowsCollectionRef);
 
-    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-      rows,
-      getRowId,
-      isRowEmpty: (row) => isRentekravRowEmpty(committedById.get(row.id) ?? createEmptyRentekravCommittedRow(row.id)),
+    const committedById = React.useMemo(
+      () => new Map(committedRows.map((row) => [row.id, row])),
+      [committedRows]
+    );
+
+    const sortColumns = React.useMemo(() => [
+      { colId: 'belob', getSortValue: (row: RentekravRow) => amountValueToNumber(row.belob) },
+      { colId: 'renterFra', getSortValue: (row: RentekravRow) => row.renterFra },
+    ], []);
+
+    const handleSortedRowsChange = React.useCallback((sortedRows: RentekravRow[]) => {
+      rows.reorder(sortedRows.map((row) => row.id));
+    }, [rows]);
+
+    const { sortedRows: sortedCommittedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows: committedRows,
+      getRowId: (row) => row.id,
+      isRowEmpty: isRentekravRowEmpty,
       columns: sortColumns,
-      onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
+      onSortedRowsChange: handleSortedRowsChange,
     });
-    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
-    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
-    // Ryd en slettet rækkes celle-`invalidDraft`, så den ikke blokerer Gem som spøgelses-mål uden synligt felt.
-    const liveRowIds = React.useMemo(() => new Set(visibleRowIds), [visibleRowIds]);
-    useReconcileInvalidDraftsToLiveRows(liveRowIds);
+
+    // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
+    // Greenfield persisterer ikke tomme rækker. Den viste tabel = de committede rækker + en trailing placeholder.
+    // Placeholder-id'et er stabilt pr. slot (useRef), så en åben celleeditor ikke skifter identitet under redigering.
+    const placeholderIdsRef = React.useRef<string[]>([]);
+    const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
+    // Legacy viste altid præcis én trailing tom række (ensureRowsWithTrailingEmpty). Greenfield persisterer ikke
+    // tomme rækker, så den trailing placeholder er den ene indtastningsklare række.
+    const placeholderCount = 1;
+    const placeholderIds = React.useMemo(() => {
+      const next: string[] = [];
+      let cursor = 0;
+      for (let i = 0; i < placeholderCount; i += 1) {
+        let id = placeholderIdsRef.current[cursor];
+        while (id !== undefined && committedIdSet.has(id)) {
+          cursor += 1;
+          id = placeholderIdsRef.current[cursor];
+        }
+        if (id === undefined) {
+          id = createRentekravRowId();
+          placeholderIdsRef.current[cursor] = id;
+        }
+        next.push(id);
+        cursor += 1;
+      }
+      placeholderIdsRef.current = placeholderIdsRef.current.slice(0, cursor);
+      return next;
+    }, [committedIdSet, placeholderCount]);
+
+    const renderRows: readonly RenderRow[] = React.useMemo(() => [
+      ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
+      ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
+    ], [sortedCommittedRows, placeholderIds]);
+
+    const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
+
+    // Celle-spec-bygger: eksisterende-række-celle binder descriptor.bind(rowId); placeholder bærer descriptor +
+    // collection + tom-række-entity + stabilt id, så første ikke-tomme settle promoverer rækken (§1.11).
+    const buildCellSpec = React.useCallback(<T,>(
+      renderRow: RenderRow,
+      descriptor: FieldDescriptor<T>,
+      colIdx: number
+    ): CellSpec<T, RentekravRow> => {
+      const location = { locationId: `renteberegning.rentekravRows:${renderRow.rowId}:${colIdx}` };
+      if (renderRow.kind === 'existing') {
+        const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
+        return { kind: 'existing', field, location };
+      }
+      return {
+        kind: 'placeholder',
+        descriptor,
+        collection: rentekravRowsCollectionRef,
+        entity: createEmptyRentekravCommittedRow(renderRow.rowId),
+        entityId: renderRow.rowId,
+        location,
+      };
+    }, []);
 
     return (
       <StandardLooseTable
@@ -333,23 +378,20 @@ const BeregnetRenteTable = React.memo(
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedRows.map((row, rowIndex) => {
-            const committedRow = committedById.get(row.id) ?? createEmptyRentekravCommittedRow(row.id);
+          {renderRows.map((renderRow, rowIndex) => {
+            const committedRow = committedById.get(renderRow.rowId) ?? createEmptyRentekravCommittedRow(renderRow.rowId);
             return (
               <BeregnetRenteRow
-                key={row.id}
-                row={row}
+                key={renderRow.rowId}
+                renderRow={renderRow}
                 committedRow={committedRow}
                 rowIndex={rowIndex}
-                onFieldChange={onFieldChange}
-                onRowBlur={onRowBlur}
-                onDeleteRow={onDeleteRow}
-                beregningsdato={beregningsdato}
                 onDownloadSpecifikation={onDownloadSpecifikation}
-                onError={onError}
-                projection={rowProjections.get(row.id)}
+                onDeleteRow={rows.remove}
+                projection={rowProjections.get(renderRow.rowId)}
                 isMobile={isMobile}
                 documentDownloadFormat={documentDownloadFormat}
+                buildCellSpec={buildCellSpec}
               />
             );
           })}

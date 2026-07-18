@@ -33,9 +33,11 @@ import {
   createTestCatalog,
   belobField,
   tillaegstidField,
+  enhedField,
   rentekravRowsRef,
   makeRow,
 } from '../testCatalog';
+import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
 // Fase 2.5 trin 1 (§2.5/§3.8, §7.1): grid-adapteren (rækkeinfrastruktur + celleeditor) mod syntetiske issue-
 // snapshots. Rækkeinfrastrukturen ejer KUN id'er/rækkefølge/add/delete/reorder; celleværdier bor i
@@ -247,6 +249,29 @@ describe('useCellEditor — placeholder-promotion (§1.11)', () => {
     act(() => result.current.settle());
     expect(catalog.listEntityIds(store.getState().input.sections, rentekravRowsRef())).toEqual([]);
     expect(store.getState().revision).toBe(revBefore);
+  });
+
+  it('et immediate-commit-VALG på en placeholder promoverer rækken atomisk og bevarer valget (§1.11)', () => {
+    // Bruger-krav: at vælge enhed på en tom række må ALDRIG tabe valget. Placeholder-immediate-override opretter
+    // rækken og skriver valget i én transaktion — enhed nulstilles ikke til rækkefaktorens default.
+    const binding = makeBinding();
+    const revBefore = store.getState().revision;
+    const enhedPlaceholder: CellSpec<TillaegstidEnhed, unknown> = {
+      kind: 'placeholder',
+      descriptor: enhedField,
+      collection: rentekravRowsRef(),
+      entity: makeRow('new-enhed'),
+      entityId: 'new-enhed',
+      location: { locationId: 'placeholder:enhed' },
+    };
+    const { result } = renderHook(() => useCellEditor<TillaegstidEnhed>(enhedPlaceholder), { wrapper: wrapper(binding) });
+
+    act(() => result.current.commitImmediate('uger'));
+
+    expect(catalog.listEntityIds(store.getState().input.sections, rentekravRowsRef())).toEqual(['new-enhed']);
+    expect(canonical(enhedField.bind('new-enhed'))).toBe('uger');
+    expect(store.getState().revision).not.toBe(revBefore);
+    expect(store.getState().history.past.length).toBe(1);
   });
 });
 

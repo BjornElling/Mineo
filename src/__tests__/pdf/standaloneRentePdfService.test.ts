@@ -54,13 +54,6 @@ import {
 } from '../../pdf/infrastructure/standaloneRentePdfService';
 import { setDocumentBrand } from '../../document/documentBrand';
 import { toISODateString } from '../../types/branded';
-import { readyInputProjection } from '../../domain/inputIntegrity/inputBlocker';
-import { getCommittedChangeCounterSnapshot } from '../../stores/formPersistenceReadModel';
-
-const currentInputRevision = () => readyInputProjection(
-  undefined,
-  getCommittedChangeCounterSnapshot()
-).revision;
 
 const makePeriod = (): ProcessInterestPeriod => ({
   startDate: new Date(toISODateString('2024-01-01')),
@@ -102,7 +95,7 @@ describe('downloadStandaloneRentePdf', () => {
       periods: [makePeriod()],
       latestReferenceRateDate: null,
       kommentarer: 'Standalone',
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
 
     expect(result.success).toBe(true);
@@ -134,7 +127,7 @@ describe('downloadStandaloneRentePdf', () => {
       beregningsdato: toISODateString('2024-01-01'),
       periods: [],
       latestReferenceRateDate: null,
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
 
     expect(result).toEqual({ success: false, error: 'Kunne ikke generere rente-PDF' });
@@ -163,7 +156,7 @@ describe('downloadStandaloneRenteOversigtPdf', () => {
       rows: [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 60.87 }],
       latestReferenceRateDate: toISODateString('2024-06-30'),
       kommentarer: 'Oversigt',
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
 
     expect(result.success).toBe(true);
@@ -208,7 +201,7 @@ describe('downloadAllStandaloneRentePdf', () => {
   });
 
   it('returnerer fejl ved 0 rækker', async () => {
-    const result = await downloadAllStandaloneRentePdf({ rows: [], inputRevision: currentInputRevision() });
+    const result = await downloadAllStandaloneRentePdf({ rows: [], isSourceCurrent: () => true });
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -218,7 +211,7 @@ describe('downloadAllStandaloneRentePdf', () => {
   });
 
   it('returnerer success ved 1 række med gyldige perioder', async () => {
-    const result = await downloadAllStandaloneRentePdf({ rows: [ROW], inputRevision: currentInputRevision() });
+    const result = await downloadAllStandaloneRentePdf({ rows: [ROW], isSourceCurrent: () => true });
 
     expect(result.success).toBe(true);
     expect(mockWriter.setProperties).toHaveBeenCalledWith({
@@ -239,7 +232,7 @@ describe('downloadAllStandaloneRentePdf', () => {
   it('returnerer success ved 2 rækker og skriver ét samlet dokument', async () => {
     const result = await downloadAllStandaloneRentePdf({
       rows: [ROW, { ...ROW, beloeb: 2000 }],
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
 
     expect(result.success).toBe(true);
@@ -254,7 +247,7 @@ describe('downloadAllStandaloneRentePdf', () => {
   it('returnerer fejl ved tomme perioder i en række', async () => {
     const result = await downloadAllStandaloneRentePdf({
       rows: [{ ...ROW, periods: [] }],
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
 
     expect(result.success).toBe(false);

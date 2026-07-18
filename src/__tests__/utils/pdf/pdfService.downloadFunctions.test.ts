@@ -4,13 +4,6 @@
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
-import { readyInputProjection } from '../../../domain/inputIntegrity/inputBlocker';
-import { getCommittedChangeCounterSnapshot } from '../../../stores/formPersistenceReadModel';
-
-const currentInputRevision = () => readyInputProjection(
-  undefined,
-  getCommittedChangeCounterSnapshot()
-).revision;
 
 // ─── Logger mock (forhindrer console-output fra error-stier) ─────────────────
 
@@ -360,7 +353,7 @@ describe('downloadRenteDokument', () => {
       latestReferenceRateDate: null,
       settings,
       persistedStamdata: null,
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateRentePdf).toHaveBeenCalled();
@@ -376,7 +369,7 @@ describe('downloadRenteDokument', () => {
       latestReferenceRateDate: null,
       settings,
       persistedStamdata: null,
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(false);
   });
@@ -391,7 +384,7 @@ describe('downloadRenteOversigtDokument', () => {
       latestReferenceRateDate: toISODateString('2024-01-31'),
       settings,
       persistedStamdata: null,
-      inputRevision: currentInputRevision(),
+      isSourceCurrent: () => true,
     });
 
     expect(result.success).toBe(true);
