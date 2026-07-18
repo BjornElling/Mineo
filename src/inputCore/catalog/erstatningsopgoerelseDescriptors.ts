@@ -38,14 +38,24 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
-import type { FieldControlKind, FieldAddressTemplate, FieldDescriptor } from '../fieldDescriptor';
+import type {
+  FieldControlKind,
+  FieldAddressTemplate,
+  FieldDescriptor,
+  FieldValidator,
+} from '../fieldDescriptor';
 import type { FieldCodec } from '../fieldCodec';
 import {
   defineStructuralCollection,
   defineStructuralField,
   isUndefined,
 } from '../structuralDescriptors';
-import { yearBoundsValidator } from './boundsValidators';
+import {
+  amountBoundsValidator,
+  integerBoundsValidator,
+  percentBoundsValidator,
+  yearBoundsValidator,
+} from './boundsValidators';
 
 // Greenfield produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
 // bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter. Lønindkomstens/EO-angivet løns
@@ -94,6 +104,7 @@ const amountField = (field: string, label: string): FieldDescriptor<AmountValue 
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    validators: [amountBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
   });
 
 const integerField = (field: string, label: string): FieldDescriptor<number | undefined> =>
@@ -106,6 +117,7 @@ const integerField = (field: string, label: string): FieldDescriptor<number | un
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    validators: [integerBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
   });
 
 const choiceField = <T extends string>(
@@ -173,6 +185,11 @@ export const eoForligAnsvarsgradProcentField = defineStructuralField<number | un
   label: 'Forlig ansvarsgrad (%)',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  validators: [percentBoundsValidator('eo.forligAnsvarsgradProcent.bounds', {
+    minValue: 0,
+    maxValue: 100,
+    allowDecimals: true,
+  })],
 });
 
 // Brøk-controllen bruges med standard-props; schematypen forbliver optionalString (tom brøk = undefined).
@@ -345,6 +362,7 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
   label: 'Løse feriedage',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  validators: [integerBoundsValidator('eo.tafPerioder.loseFeriedage.bounds', 0, undefined)],
 });
 
 // ferieperioder
@@ -394,6 +412,7 @@ export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | unde
   label: 'Beløb',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  validators: [amountBoundsValidator('eo.oevrigeKravPerioder.beloeb.bounds', 0, undefined)],
 });
 
 // offentligeYdelserRows (ydelse/tillaeg tillader negative jf. TableAmountInput-default)
@@ -443,6 +462,7 @@ const sfggField = <T>(
   emptyValue: T,
   isEmpty: (value: T) => boolean,
   controlKind: FieldControlKind,
+  validators?: readonly FieldValidator<T>[],
 ): FieldDescriptor<T> =>
   defineStructuralField<T>({
     id: `eo.sfggAnsaettelsesforhold.${field}`,
@@ -454,6 +474,7 @@ const sfggField = <T>(
     controlKind,
     createEmptySection: createEmptyErstatningsopgoerelseSection,
     entityIdProperties: sfggEntityIdProps,
+    ...(validators === undefined ? {} : { validators }),
   });
 
 export const eoSfggBeregningskildeField = sfggField<SygeferiegodtgoerelseBeregningskilde | undefined>(
@@ -478,10 +499,12 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen', 'Fraværsdage uden løn i referenceperioden',
   createIntegerFieldCodec({ allowNegative: false }), undefined, isUndefined, 'text',
+  [integerBoundsValidator('eo.sfggAnsaettelsesforhold.sfggReferenceperiodeFravaersdageUdenLoen.bounds', 0, undefined)],
 );
 export const eoSfggManuelDagssatsField = sfggField<AmountValue | undefined>(
   'sfggManuelDagssats', 'Manuel dagssats',
   createAmountFieldCodec({ allowNegative: false, allowDecimals: true }), undefined, isUndefined, 'text',
+  [amountBoundsValidator('eo.sfggAnsaettelsesforhold.sfggManuelDagssats.bounds', 0, undefined)],
 );
 export const eoSfggManuelBeloebIHenholdTilField = sfggField<string | undefined>(
   'sfggManuelBeloebIHenholdTil', 'Beløb i henhold til',
@@ -500,6 +523,7 @@ export const eoSfggSatsvalgField = sfggField<SygeferiegodtgoerelseSatsvalg | und
 export const eoSfggAlleredeBetaltBeloebField = sfggField<AmountValue | undefined>(
   'sfggAlleredeBetaltBeloeb', 'Allerede betalt beløb',
   createAmountFieldCodec({ allowNegative: false, allowDecimals: true }), undefined, isUndefined, 'text',
+  [amountBoundsValidator('eo.sfggAnsaettelsesforhold.sfggAlleredeBetaltBeloeb.bounds', 0, undefined)],
 );
 
 export const erstatningsopgoerelseFields = catalogFields(

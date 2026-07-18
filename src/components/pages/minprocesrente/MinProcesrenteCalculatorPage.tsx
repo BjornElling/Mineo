@@ -5,7 +5,7 @@ import { isoToDanish } from '../../../types/branded';
 import type { RentePdfContext, RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
-import RenteberegningTab from '../renteberegning/RenteberegningTab';
+import RenteberegningTab, { type RenteDocumentSharedSnapshot } from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 import { useGreenfieldUndoRedoShortcuts } from '../../../inputCore/react/useGreenfieldUndoRedoShortcuts';
@@ -69,7 +69,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   useGreenfieldUndoRedoShortcuts();
 
   const handleDownloadRentePdf = React.useCallback(
-    async (pdfContext: RentePdfContext, _isSourceCurrent: () => boolean) => {
+    async (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => {
       const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
@@ -77,7 +77,6 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         return;
       }
 
-      const { kommentarer, isSourceCurrent } = captureFreshStandaloneSource();
       const { downloadStandaloneRentePdf } = await loadStandaloneRentePdfService();
       const result = await downloadStandaloneRentePdf({
         beloeb: pdfContext.beloeb,
@@ -85,8 +84,8 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         beregningsdato: beregningsdatoDanish,
         periods: pdfContext.periods,
         latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
-        isSourceCurrent,
-        kommentarer,
+        isSourceCurrent: shared.isSourceCurrent,
+        kommentarer: shared.kommentarer,
       });
       setPdfErrorMessage(result.success ? null : result.error);
     },
@@ -125,16 +124,15 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     rows: readonly RenteOversigtRow[],
     beregningsdato: ISODateString,
     latestReferenceRateDate: ISODateString | null,
-    _isSourceCurrent: () => boolean,
+    shared: RenteDocumentSharedSnapshot,
   ) => {
-    const { kommentarer, isSourceCurrent } = captureFreshStandaloneSource();
     const { downloadStandaloneRenteOversigtPdf } = await loadStandaloneRentePdfService();
     const result = await downloadStandaloneRenteOversigtPdf({
       beregningsdato,
       rows,
       latestReferenceRateDate,
-      isSourceCurrent,
-      kommentarer,
+      isSourceCurrent: shared.isSourceCurrent,
+      kommentarer: shared.kommentarer,
     });
     setOversigtErrorMessage(result.success ? null : result.error);
   }, []);

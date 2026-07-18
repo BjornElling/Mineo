@@ -22,8 +22,6 @@ export type GreenfieldAmountFieldProps = Readonly<{
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
-  /** Tillad negative beløb under indtastning (default falsk). */
-  allowNegative?: boolean;
   /** Tillad decimaler under indtastning (default sandt). */
   allowDecimals?: boolean;
   singleStageClick?: boolean;
@@ -58,7 +56,6 @@ const GreenfieldAmountField = React.forwardRef<HTMLDivElement, GreenfieldAmountF
       width = 120,
       placeholder = DEFAULT_AMOUNT_PLACEHOLDER,
       disabled,
-      allowNegative = false,
       allowDecimals = true,
       singleStageClick = false,
       inputRef,
@@ -67,8 +64,8 @@ const GreenfieldAmountField = React.forwardRef<HTMLDivElement, GreenfieldAmountF
     ref
   ) => {
     const keyFilter = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals }),
-      [allowNegative, allowDecimals]
+      (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative: true, allowDecimals }),
+      [allowDecimals]
     );
 
     return (

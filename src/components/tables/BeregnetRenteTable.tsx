@@ -18,7 +18,11 @@ import type { InputProjection } from '../../domain/inputIntegrity/inputBlocker';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
-import { getDocumentFormatLabel, type DocumentDownloadFormat } from '../../document/documentFormat';
+import {
+  DOWNLOAD_DISABLED_TOOLTIP,
+  getDocumentFormatLabel,
+  type DocumentDownloadFormat,
+} from '../../document/documentFormat';
 import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
@@ -70,6 +74,7 @@ export type BeregnetRenteTableProps = Readonly<{
   saveOrderPath?: TableSaveOrderPath;
   isMobile?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
+  documentBlocked?: boolean;
 }>;
 
 type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
@@ -83,6 +88,7 @@ type BeregnetRenteRowProps = Readonly<{
   projection: InputProjection<RentekravRowResult> | undefined;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
+  documentBlocked: boolean;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, RentekravRow>;
 }>;
 
@@ -96,6 +102,7 @@ const BeregnetRenteRow = React.memo(
     projection,
     isMobile,
     documentDownloadFormat,
+    documentBlocked,
     buildCellSpec,
   }: BeregnetRenteRowProps) => {
     const rowId = renderRow.rowId;
@@ -135,7 +142,7 @@ const BeregnetRenteRow = React.memo(
                 <GreenfieldGridTextCell<number | undefined>
                   gridCell={gc(COL.tillaegstid)}
                   cell={buildCellSpec<number | undefined>(renderRow, rentekravTillaegstidField, COL.tillaegstid)}
-                  keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: false, maxValue: 99 })}
+                  keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: true })}
                   placeholder="0"
                   textAlign="center"
                   inputMode="numeric"
@@ -189,7 +196,8 @@ const BeregnetRenteRow = React.memo(
               {showDownloadButton ? (
                 <DownloadIconButton
                   onClick={() => { void onDownloadSpecifikation(rowId); }}
-                  tooltip={`Download som ${formatLabel}`}
+                  disabled={documentBlocked}
+                  tooltip={documentBlocked ? DOWNLOAD_DISABLED_TOOLTIP : `Download som ${formatLabel}`}
                   ariaLabel={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
                 />
               ) : (
@@ -218,6 +226,7 @@ const BeregnetRenteTable = React.memo(
     saveOrderPath,
     isMobile = false,
     documentDownloadFormat,
+    documentBlocked = false,
   }: BeregnetRenteTableProps) => {
     const rows = useCollectionRows<RentekravRow>(rentekravRowsCollectionRef);
 
@@ -391,6 +400,7 @@ const BeregnetRenteTable = React.memo(
                 projection={rowProjections.get(renderRow.rowId)}
                 isMobile={isMobile}
                 documentDownloadFormat={documentDownloadFormat}
+                documentBlocked={documentBlocked}
                 buildCellSpec={buildCellSpec}
               />
             );

@@ -25,8 +25,7 @@ const StamdataTestTab = React.lazy(async () => import('./StamdataTestTab'));
 // `usePersistedForm`+`Styled*Field`+`useFormFieldErrorReporter`-vej med de tynde `Greenfield*Field`-skaller.
 // Hvert felt modtager KUN sin konkrete `field` (descriptor.bind()) og `location` (stabilt locationId) — ingen
 // `value`/`onCommit`/`parse`/`format`/`onFieldError`/`min`/`max`. Datomodellens kronologiske bounds er
-// FELTVALIDATORER (Fase 3), ikke props; røde feltfejl er derfor midlertidigt fraværende (§5.1), indtil
-// Fase 3-validatorerne wires ind i `getIssues`.
+// feltvalidatorer, ikke props; de er koblet til runtime-issuet og giver samme røde feltfejl på tværs af consumers.
 
 // Afled dropdown-valgmulighederne fra schemaets enum, så UI og validering aldrig kan komme ud af sync.
 const SKADESTYPER = skadestypeEnum.options;

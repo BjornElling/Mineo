@@ -1117,7 +1117,10 @@ For hver slice:
 
 ### Fase 4 — `.eo`, session og kritiske sagsoperationer
 
-**Status:** Ikke påbegyndt.
+**Status:** Påbegyndt. Den rene, strukturelle save-projektion er implementeret i
+`src/persistence/eoSaveProjection.ts`: rejected input blokerer, mens schema-gyldigt canonical input — også med
+afledte bounds-issues — projekteres til et komplet sektionssnapshot. Koblingen til sagsfiloperationerne samt
+load-, reset-, clear- og session-cutoveren nedenfor er endnu ikke gennemført.
 
 **Afhængighed:** Alle field validators og projectionslices i fase 3.
 

@@ -31,6 +31,20 @@ export const integerBoundsValidator = (
   return { reason: 'bounds', code, message, detail: boundsDetail(minValue, maxValue) };
 };
 
+/** Canonical bounds-validator for et heltal, der historisk persisteres som streng. */
+export const integerStringBoundsValidator = (
+  code: string,
+  minValue: number | undefined,
+  maxValue: number | undefined
+): FieldValidator<string | undefined> => (value) => {
+  if (value === undefined || value.trim() === '') return undefined;
+  const numeric = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(numeric)) return undefined;
+  const message = getIntegerRangeErrorMessage(numeric, minValue, maxValue);
+  if (message === '') return undefined;
+  return { reason: 'bounds', code, message, detail: boundsDetail(minValue, maxValue) };
+};
+
 /** Canonical bounds-validator for et procentfelt (tidligere codec-`range` via `buildPercentRangeErrorMessage`). */
 export const percentBoundsValidator = (
   code: string,

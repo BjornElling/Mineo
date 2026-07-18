@@ -4,6 +4,13 @@ import { act, render } from '@testing-library/react';
 import { useAarsloenDocumentGates } from '../../hooks/useAarsloenDocumentGates';
 import type { StandardLoenTableHandle } from '../../types/handles';
 import type { AarsloenValues } from '../../schemas/formSchemas';
+import type { StamdataValues } from '../../schemas/formSchemas/sections/stamdataSchemas';
+import {
+  createEvaluationSourceToken,
+  createInputRevision,
+  createSettingsRevision,
+  type ProjectionResult,
+} from '../../inputCore';
 import type { PeriodeResult } from '../../utils/periodeBeregning';
 
 // ─── Logger mock ──────────────────────────────────────────────────────────────
@@ -30,6 +37,21 @@ vi.mock('../../document/service/documentService', () => ({
 
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 
+const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
+const readyStamdataProjection = Object.freeze({
+  status: 'ready',
+  value: {},
+  issues: [],
+  warnings: [],
+  sourceToken,
+}) satisfies ProjectionResult<StamdataValues>;
+const blockedStamdataProjection = Object.freeze({
+  status: 'blocked',
+  issues: [],
+  warnings: [],
+  sourceToken,
+}) satisfies ProjectionResult<StamdataValues>;
+
 const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenDocumentGates>[0]> = {}) => ({
   values: {
     tableData: [],
@@ -53,7 +75,7 @@ const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenDocumentG
   harFatalBeregningsFejl: false,
   tableErrors: [],
   tabelRef: React.createRef<StandardLoenTableHandle | null>(),
-  persistedStamdata: null,
+  stamdataProjection: readyStamdataProjection,
   settings: DEFAULT_APP_SETTINGS,
   isSourceCurrent: () => true,
   ...overrides,
@@ -65,6 +87,7 @@ type CapturedHook = {
   canDownloadSHDageDocument: boolean;
   shDageDisabledReason: string | null;
   handleAarsloenDocumentDownload: (() => Promise<void>) | null;
+  handleSHDageDocumentDownload: (() => Promise<void>) | null;
   downloadShake: boolean;
 };
 
@@ -78,6 +101,7 @@ const renderHook = (props: ReturnType<typeof makeBaseProps>): CapturedHook => {
     canDownloadSHDageDocument: false,
     shDageDisabledReason: null,
     handleAarsloenDocumentDownload: null,
+    handleSHDageDocumentDownload: null,
     downloadShake: false,
   };
 
@@ -88,6 +112,7 @@ const renderHook = (props: ReturnType<typeof makeBaseProps>): CapturedHook => {
     captured.canDownloadSHDageDocument = result.canDownloadSHDageDocument;
     captured.shDageDisabledReason = result.shDageDisabledReason;
     captured.handleAarsloenDocumentDownload = result.handleAarsloenDocumentDownload;
+    captured.handleSHDageDocumentDownload = result.handleSHDageDocumentDownload;
     captured.downloadShake = result.downloadShake;
     return null;
   };
@@ -250,5 +275,32 @@ describe('useAarsloenDocumentGates — runtime dokument-fejl', () => {
     });
 
     expect(captured.downloadShake).toBe(false);
+  });
+});
+
+describe('useAarsloenDocumentGates — stamdatafejl', () => {
+  it('blokerer både årsløn og SH-dage, også når handlers kaldes direkte', async () => {
+    const mockPeriodeData = {
+      perioder: [],
+      datoSet: new Set<string>(),
+    } as unknown as PeriodeResult;
+    const captured = renderHook(makeBaseProps({
+      stamdataProjection: blockedStamdataProjection,
+      periodeData: mockPeriodeData,
+      shDageAntal: 3,
+      values: {
+        ...makeBaseProps().values,
+        tableData: [{ id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: { kind: 'number', value: 50000 } } as never],
+      },
+    }));
+
+    expect(captured.canDownloadDocument).toBe(false);
+    expect(captured.canDownloadSHDageDocument).toBe(false);
+    await act(async () => {
+      await captured.handleAarsloenDocumentDownload?.();
+      await captured.handleSHDageDocumentDownload?.();
+    });
+    expect(downloadAarsloenDokumentMock).not.toHaveBeenCalled();
+    expect(downloadSHDageDokumentMock).not.toHaveBeenCalled();
   });
 });

@@ -1,11 +1,12 @@
 import React from 'react';
 
-import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../document/layout/documentGateTypes';
 import { downloadAarsloenDokument, downloadSHDageDokument } from '../document/service/documentService';
 import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
 import { resolveAarsloenCanonicalRangeIssues } from '../domain/aarsloen/aarsloenValidationPolicies';
 import type { AarsloenValues } from '../schemas/formSchemas';
+import type { StamdataValues } from '../schemas/formSchemas/sections/stamdataSchemas';
+import type { ProjectionResult } from '../inputCore/projection';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import type { AarsloenBeregningResult } from '../types/calculation';
 import type { StandardLoenTableHandle } from '../types/handles';
@@ -21,7 +22,7 @@ export type AarsloenDocumentSnapshot = Readonly<{
   beregningsData: AarsloenBeregningResult;
   harFatalBeregningsFejl: boolean;
   tableErrors: readonly TableError[];
-  persistedStamdata: PersistedSectionMap['stamdata'] | null;
+  stamdataProjection: ProjectionResult<StamdataValues>;
   settings: AppSettings;
   isSourceCurrent: () => boolean;
 }>;
@@ -44,6 +45,12 @@ type UseAarsloenDocumentGatesReturn = Readonly<{
 export const resolveAarsloenDocumentEligibility = (
   snapshot: AarsloenDocumentSnapshot
 ): DocumentDownloadGateResult => {
+  if (snapshot.stamdataProjection.status === 'blocked') {
+    return blockDocumentDownload({
+      code: 'aarsloen:stamdata-blocked',
+      message: snapshot.stamdataProjection.issues[0]?.message ?? 'Stamdata indeholder fejl',
+    });
+  }
   const { values, omregningAktiveret, tableErrors, harFatalBeregningsFejl, periodeData } = snapshot;
   const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret })[0];
   if (canonicalRangeIssue) {
@@ -76,6 +83,12 @@ export const resolveAarsloenDocumentEligibility = (
 export const resolveShDageDocumentEligibility = (
   snapshot: AarsloenDocumentSnapshot
 ): DocumentDownloadGateResult => {
+  if (snapshot.stamdataProjection.status === 'blocked') {
+    return blockDocumentDownload({
+      code: 'aarsloen:sh-stamdata-blocked',
+      message: snapshot.stamdataProjection.issues[0]?.message ?? 'Stamdata indeholder fejl',
+    });
+  }
   const canonicalRangeIssue = resolveAarsloenCanonicalRangeIssues(snapshot.values, {
     omregningAktiveret: snapshot.omregningAktiveret,
   })[0];
@@ -125,6 +138,9 @@ export const useAarsloenDocumentGates = (props: UseAarsloenDocumentGatesProps): 
       if (firstError?.kind === 'cell') tabelRef.current?.flashError(firstError);
       return;
     }
+    // Stamdata er en obligatorisk dokumentdependency. Bevar den eksplicitte narrowing ved servicegrænsen,
+    // så en senere ændring af eligibility aldrig kan genindføre den tidligere null-fallback.
+    if (latest.stamdataProjection.status !== 'ready') return;
 
     const { values } = latest;
     const result = await downloadAarsloenDokument({
@@ -150,18 +166,22 @@ export const useAarsloenDocumentGates = (props: UseAarsloenDocumentGatesProps): 
         beregningsData: latest.beregningsData,
       },
       settings: latest.settings,
-      persistedStamdata: latest.persistedStamdata,
+      persistedStamdata: latest.stamdataProjection.value,
       isSourceCurrent: latest.isSourceCurrent,
     });
     setDownloadErrorMessage(result.success ? null : result.error);
   }, [renderSnapshot, tabelRef, triggerDownloadShake]);
 
   const handleSHDageDocumentDownload = React.useCallback(async (latest = renderSnapshot) => {
-    if (!resolveShDageDocumentEligibility(latest).canDownload || latest.periodeData === null) return;
+    if (
+      !resolveShDageDocumentEligibility(latest).canDownload
+      || latest.periodeData === null
+      || latest.stamdataProjection.status !== 'ready'
+    ) return;
     const result = await downloadSHDageDokument({
       perioder: latest.periodeData.perioder ?? [],
       settings: latest.settings,
-      persistedStamdata: latest.persistedStamdata,
+      persistedStamdata: latest.stamdataProjection.value,
       isSourceCurrent: latest.isSourceCurrent,
     });
     setDownloadErrorMessage(result.success ? null : result.error);

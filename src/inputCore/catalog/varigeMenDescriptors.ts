@@ -2,6 +2,7 @@ import type { ISODateString } from '../../types/branded';
 import { createDateFieldCodec, createIntegerFieldCodec } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
+import { integerBoundsValidator } from './boundsValidators';
 
 // Greenfield produkt-descriptors for `varigemen`-sektionen (§3.2). To top-level skalarer, ingen samlinger.
 
@@ -18,6 +19,7 @@ export const varigeMenMengradField = defineStructuralField<number | undefined>({
   label: 'Méngrad',
   controlKind: 'text',
   createEmptySection: createEmptyVarigeMenSection,
+  validators: [integerBoundsValidator('varigemen.mengrad.bounds', 1, 120)],
 });
 
 export const varigeMenBeregningsdatoField = defineStructuralField<ISODateString | undefined>({

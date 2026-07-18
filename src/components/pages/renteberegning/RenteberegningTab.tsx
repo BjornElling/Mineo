@@ -21,6 +21,7 @@ import DownloadIconButton from '../../inputs/DownloadIconButton';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
 import { documentGateFromBlockers } from '../../../domain/inputIntegrity/inputBlockerGate';
+import { blockDocumentDownload } from '../../../document/layout/documentGateTypes';
 import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
@@ -31,6 +32,9 @@ import {
   renteberegningBeregningsdatoField,
   renteberegningKommentarerField,
 } from '../../../inputCore/catalog/renteberegningDescriptors';
+import { projectStamdataForDocument } from '../../../domain/stamdata/stamdataDocumentProjection';
+import type { ProjectionResult } from '../../../inputCore/projection';
+import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 
 // Greenfield-migreret RenteberegningTab (§2.4 trin 4 / §2.5 / Fase 3 Renteberegning-slice). Hele fanen kører nu på
 // greenfield-inputCore: beregningsdato + kommentarer skriver/læser gennem den offentlige `InputReader` + den ene
@@ -54,7 +58,7 @@ const beregningsdatoRef = renteberegningBeregningsdatoField.bind();
 const kommentarerRef = renteberegningKommentarerField.bind();
 
 export interface RenteberegningTabProps {
-  onDownloadSpecifikation: (pdfContext: RentePdfContext, isSourceCurrent: () => boolean) => Promise<void>;
+  onDownloadSpecifikation: (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => Promise<void>;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
   ContentBoxComponent: ContentBoxComponent;
@@ -69,12 +73,20 @@ export interface RenteberegningTabProps {
     rows: readonly RenteOversigtRow[],
     beregningsdato: ISODateString,
     latestReferenceRateDate: ISODateString | null,
-    isSourceCurrent: () => boolean,
+    shared: RenteDocumentSharedSnapshot,
   ) => Promise<void>;
   oversigtErrorMessage?: string | null;
   showOversigtBox?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
+  /** Mineo-variantens fælles dokumentdependency; standalone MinProcesrente har ingen stamdata. */
+  stamdataProjection?: ProjectionResult<StamdataValues>;
 }
+
+export type RenteDocumentSharedSnapshot = Readonly<{
+  stamdataProjection: ProjectionResult<StamdataValues> | null;
+  kommentarer: string | undefined;
+  isSourceCurrent: () => boolean;
+}>;
 
 const RenteberegningTab = React.memo(({
   onDownloadSpecifikation,
@@ -89,6 +101,7 @@ const RenteberegningTab = React.memo(({
   oversigtErrorMessage = null,
   showOversigtBox = false,
   documentDownloadFormat,
+  stamdataProjection,
 }: RenteberegningTabProps) => {
   const runtime = useInputRuntime();
   const evaluation = useInputEvaluation();
@@ -134,8 +147,17 @@ const RenteberegningTab = React.memo(({
     });
     const freshBeregningsdatoRead = source.evaluation.reader.read(beregningsdatoRef);
     const freshBeregningsdato = freshBeregningsdatoRead.status === 'usable' ? freshBeregningsdatoRead.value : undefined;
-    return { source, fresh, freshBeregningsdato, isSourceCurrent: source.isSourceCurrent };
-  }, [referenceRates, surchargeRates]);
+    const freshKommentarerRead = source.evaluation.reader.read(kommentarerRef);
+    const freshStamdataProjection = stamdataProjection === undefined
+      ? null
+      : projectStamdataForDocument(source.evaluation.reader, 'document.rente');
+    const shared: RenteDocumentSharedSnapshot = {
+      stamdataProjection: freshStamdataProjection,
+      kommentarer: freshKommentarerRead.status === 'usable' ? freshKommentarerRead.value : undefined,
+      isSourceCurrent: source.isSourceCurrent,
+    };
+    return { source, fresh, freshBeregningsdato, shared };
+  }, [referenceRates, stamdataProjection, surchargeRates]);
 
   const handleDownloadRow = React.useCallback(async (rowId: string) => {
     const preparation = await criticalActions.prepare('download');
@@ -143,11 +165,12 @@ const RenteberegningTab = React.memo(({
       if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
-    const { source, fresh, isSourceCurrent } = captureFreshProjection();
+    const { source, fresh, shared } = captureFreshProjection();
     if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    if (shared.stamdataProjection?.status === 'blocked') return;
     const rowProjection = fresh.rowProjections.get(rowId);
     if (rowProjection?.status !== 'ready' || rowProjection.data.pdfContext === null) return;
-    await onDownloadSpecifikation(rowProjection.data.pdfContext, isSourceCurrent);
+    await onDownloadSpecifikation(rowProjection.data.pdfContext, shared);
   }, [captureFreshProjection, criticalActions, onDownloadSpecifikation]);
 
   const handleDownloadAll = React.useCallback(async () => {
@@ -157,7 +180,7 @@ const RenteberegningTab = React.memo(({
       if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
-    const { source, fresh, isSourceCurrent } = captureFreshProjection();
+    const { source, fresh, shared } = captureFreshProjection();
     if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
     if (fresh.aggregateProjection.status !== 'ready') return;
     const latest = fresh.aggregateProjection;
@@ -170,7 +193,7 @@ const RenteberegningTab = React.memo(({
 
     setDownloadAllIsLoading(true);
     try {
-      await onDownloadAllSpecifikationer(latest.data.pdfContexts, isSourceCurrent);
+      await onDownloadAllSpecifikationer(latest.data.pdfContexts, shared.isSourceCurrent);
     } finally {
       setDownloadAllIsLoading(false);
     }
@@ -183,8 +206,9 @@ const RenteberegningTab = React.memo(({
       if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
-    const { source, fresh, freshBeregningsdato, isSourceCurrent } = captureFreshProjection();
+    const { source, fresh, freshBeregningsdato, shared } = captureFreshProjection();
     if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    if (shared.stamdataProjection?.status === 'blocked') return;
     if (freshBeregningsdato === undefined) return;
     if (fresh.aggregateProjection.status !== 'ready') return;
     const latest = fresh.aggregateProjection;
@@ -209,24 +233,36 @@ const RenteberegningTab = React.memo(({
       }
     }
     if (rows.length === 0) return;
-    await onDownloadOversigt(rows, freshBeregningsdato, latestReferenceRateDate, isSourceCurrent);
+    await onDownloadOversigt(rows, freshBeregningsdato, latestReferenceRateDate, shared);
   }, [captureFreshProjection, criticalActions, onDownloadOversigt]);
 
   // Download-gates (§A2): committed-afledte via den reader-projektion, som cellerne allerede afspejler.
   const downloadAllGate = React.useMemo(() => {
+    if (stamdataProjection?.status === 'blocked') {
+      return blockDocumentDownload({
+        code: 'renteberegning:stamdata-blocked',
+        message: stamdataProjection.issues[0]?.message ?? 'Stamdata indeholder fejl',
+      });
+    }
     if (projection.aggregateProjection.status === 'blocked') {
       return documentGateFromBlockers(projection.aggregateProjection.blockers, 'renteberegning');
     }
     return evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
-  }, [anyRowHasError, hasValidPdfContexts, projection.aggregateProjection]);
+  }, [anyRowHasError, hasValidPdfContexts, projection.aggregateProjection, stamdataProjection]);
   const downloadAllDisabled = !downloadAllGate.canDownload || downloadAllIsLoading;
 
   const oversigtDownloadGate = React.useMemo(() => {
+    if (stamdataProjection?.status === 'blocked') {
+      return blockDocumentDownload({
+        code: 'renteberegning:stamdata-blocked',
+        message: stamdataProjection.issues[0]?.message ?? 'Stamdata indeholder fejl',
+      });
+    }
     if (projection.aggregateProjection.status === 'blocked') {
       return documentGateFromBlockers(projection.aggregateProjection.blockers, 'renteberegning');
     }
     return evaluateOversigtDownloadGate({ beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
-  }, [anyRowHasError, beregningsdato, hasValidPdfContexts, projection.aggregateProjection]);
+  }, [anyRowHasError, beregningsdato, hasValidPdfContexts, projection.aggregateProjection, stamdataProjection]);
   const oversigtDownloadDisabled = !oversigtDownloadGate.canDownload;
 
   const showDownloadAllBox = isMobile && onDownloadAllSpecifikationer !== undefined;
@@ -307,6 +343,7 @@ const RenteberegningTab = React.memo(({
             saveOrderPath="renteberegning.rentekravRows"
             isMobile={isMobile}
             documentDownloadFormat={documentDownloadFormat}
+            documentBlocked={stamdataProjection?.status === 'blocked'}
           />
         </Box>
         {renderOversigtRow && (

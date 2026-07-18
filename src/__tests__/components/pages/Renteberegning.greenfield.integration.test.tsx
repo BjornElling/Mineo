@@ -18,6 +18,7 @@ import {
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
 import type { RentekravRow } from '../../../schemas/formSchemas';
+import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import { toISODateString } from '../../../types/branded';
 
 const mockDownloadRenteDokument = vi.hoisted(() =>
@@ -39,10 +40,14 @@ vi.mock('../../../hooks/usePersistedActiveTab', () => ({
 
 const catalog = getProductionInputCatalog();
 
-const hydrate = (rows: readonly RentekravRow[], beregningsdato: string | undefined): void => {
+const hydrate = (
+  rows: readonly RentekravRow[],
+  beregningsdato: string | undefined,
+  stamdata: StamdataValues | null = null
+): void => {
   const input = catalog.validateSettledInput({
     sections: {
-      stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+      stamdata, satser: null, aarsloen: null, faellesAarsloen: null,
       renteberegning: {
         beregningsdato: beregningsdato === undefined ? undefined : toISODateString(beregningsdato),
         kommentarer: undefined,
@@ -115,6 +120,25 @@ describe('Renteberegning greenfield — download-gate mod afsluttet input', () =
 
     // Gaten blokerer nu (den globale beregningsdato er rejected) → oversigts-download er deaktiveret og servicen nås ikke.
     expect(screen.getByRole('button', { name: 'Download samlet oversigt' })).toBeDisabled();
+    expect(mockDownloadRenteOversigtDokument).not.toHaveBeenCalled();
+  });
+
+  it('canonical datoordensfejl i stamdata blokerer både række- og oversigtsdownload', async () => {
+    const user = userEvent.setup();
+    hydrate([validRow('r1')], '2024-12-31', {
+      skadelidteFodselsdato: toISODateString('2020-01-02'),
+      skadedato: toISODateString('2020-01-01'),
+    });
+    renderRenteberegning();
+
+    const rowButton = screen.getByRole('button', { name: 'Download PDF-specifikation for række 1' });
+    const oversigtButton = screen.getByRole('button', { name: 'Download samlet oversigt' });
+    expect(rowButton).toBeDisabled();
+    expect(oversigtButton).toBeDisabled();
+
+    await user.click(rowButton);
+    await user.click(oversigtButton);
+    expect(mockDownloadRenteDokument).not.toHaveBeenCalled();
     expect(mockDownloadRenteOversigtDokument).not.toHaveBeenCalled();
   });
 });

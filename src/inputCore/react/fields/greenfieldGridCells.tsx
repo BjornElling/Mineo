@@ -71,12 +71,12 @@ export const GreenfieldGridAmountCell = (
 
 /** Heltalscelle (col0_maaned: måned 1–12). */
 export const GreenfieldGridIntegerCell = (
-  { gridCell, cell, placeholder, inputRef, maxKeyFilterValue }: BaseCellProps<string | undefined> & Readonly<{ maxKeyFilterValue?: number }>
+  { gridCell, cell, placeholder, inputRef }: BaseCellProps<string | undefined>
 ): React.ReactElement => {
   const keyFilter = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) =>
-      filterIntegerKeyDown(e, { allowNegative: false, ...(maxKeyFilterValue === undefined ? {} : { maxValue: maxKeyFilterValue }) }),
-    [maxKeyFilterValue]
+      filterIntegerKeyDown(e, { allowNegative: true }),
+    []
   );
   return (
     <GreenfieldGridTextCell<string | undefined>

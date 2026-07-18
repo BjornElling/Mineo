@@ -206,20 +206,17 @@ export const createIntegerFieldCodec = (
     parseForSettle: (raw): FieldResolution<number | undefined> => {
       const edge = trimToNumericEdgesPreserveLeadingMinus(raw);
       const normalized = edge === '' && raw.trim() !== '' ? raw.trim() : edge;
-      const parsed = parseIntegerDraftForCommit(normalized, config);
-      // Kun format/schema-repræsenterbarhed afvises (§1.6). En schema-gyldig out-of-bounds-værdi committes
-      // canonical; min/max vurderes af en canonical feltvalidator, ikke her.
+      // Fortegn, cifferantal og min/max er feltgrænser, ikke schema-repræsenterbarhed. Parse derfor ethvert
+      // sikkert heltal; descriptorens canonical validator ejer den røde bounds-fejl (§1.6).
+      const parsed = parseIntegerDraftForCommit(normalized, { allowNegative: true });
       if (!parsed.ok) return rejectedResolution('format');
       return validResolution(parsed.value);
     },
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
-    acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
+    acceptsInitialKey: (key) => /^\d$/.test(key) || key === '-',
     normalizePaste: (raw) => normalizeIntegerPaste(raw, {
-      allowNegative: config.allowNegative,
-      maxDigits: config.maxDigits,
-      minValue: config.minValue,
-      maxValue: config.maxValue,
+      allowNegative: true,
     }),
   });
 };
@@ -239,7 +236,8 @@ export const createAmountFieldCodec = (options: Readonly<{
     parseForSettle: (raw): FieldResolution<AmountValue | undefined> => {
       const parsed = parseAmountInput(raw, {
         precision: DEFAULT_AMOUNT_PRECISION,
-        allowNegative: options.allowNegative,
+        // Fortegn er en canonical bounds-regel; parseren afviser kun format og sikker repræsentation.
+        allowNegative: true,
         allowDecimals: options.allowDecimals,
         maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
         maxRawLength: MAX_AMOUNT_RAW_LENGTH,
@@ -251,15 +249,13 @@ export const createAmountFieldCodec = (options: Readonly<{
     },
     format: (value) => amountValueToDisplayString(value, DEFAULT_AMOUNT_PRECISION),
     formatForEdit: (value) => amountValueToDraftString(value, DEFAULT_AMOUNT_PRECISION),
-    acceptsInitialKey: (key) => /^[0-9,()-]$/.test(key) && (key !== '-' || options.allowNegative),
+    acceptsInitialKey: (key) => /^[0-9,()-]$/.test(key),
     normalizePaste: (raw) => normalizeAmountPaste(raw, {
-      allowNegative: options.allowNegative,
+      allowNegative: true,
       allowDecimals: options.allowDecimals,
       maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
       maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
-      minValue: options.minValue,
-      maxValue: options.maxValue,
     }),
   });
 };
@@ -270,7 +266,12 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
   assertNumericBounds('PercentFieldCodec', config, (value) => config.allowDecimals
     ? isSafeCanonicalDecimal(value, 2)
     : isSafeCanonicalInteger(value));
-  const formatOnlyConfig: PercentParseConfig = { ...config, minValue: undefined, maxValue: undefined };
+  const formatOnlyConfig: PercentParseConfig = {
+    ...config,
+    allowNegative: true,
+    minValue: undefined,
+    maxValue: undefined,
+  };
   return Object.freeze({
     parseForSettle: (raw): FieldResolution<number | undefined> => {
       // Kun format afvises (§1.6/§3.3): parse uden grænser. En schema-gyldig out-of-bounds-procent committes
@@ -281,13 +282,10 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
     },
     format: (value) => formatPercentDisplay(value, config.allowDecimals),
     formatForEdit: (value) => formatPercentDisplay(value, config.allowDecimals),
-    acceptsInitialKey: (key) => (config.allowDecimals ? /^[0-9,-]$/ : /^[0-9-]$/).test(key)
-      && (key !== '-' || config.allowNegative),
+    acceptsInitialKey: (key) => (config.allowDecimals ? /^[0-9,-]$/ : /^[0-9-]$/).test(key),
     normalizePaste: (raw) => normalizePercentPaste(raw, {
-      allowNegative: config.allowNegative,
+      allowNegative: true,
       allowDecimals: config.allowDecimals,
-      minValue: config.minValue,
-      maxValue: config.maxValue,
     }),
   });
 };
@@ -327,7 +325,7 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
     acceptsInitialKey: initialKey(/^\d$/),
-    normalizePaste: (raw) => normalizeYearPaste(raw, config),
+    normalizePaste: (raw) => normalizeYearPaste(raw, formatOnlyConfig),
   });
 };
 
@@ -350,7 +348,7 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
     format: (value) => value ?? '',
     formatForEdit: (value) => value ?? '',
     acceptsInitialKey: initialKey(/^\d$/),
-    normalizePaste: (raw) => normalizeWeekPaste(raw, config),
+    normalizePaste: (raw) => normalizeWeekPaste(raw, formatOnlyConfig),
   });
 };
 

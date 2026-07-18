@@ -1,12 +1,12 @@
 import { serializeFieldAddress, type SerializedFieldAddress } from './fieldAddress';
 import type { AnyFieldRef } from './fieldDescriptor';
 import type { EvaluationSourceToken } from './evaluationSource';
-import type { SettledInput } from './settledInput';
 
 // Greenfield-kerne (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
 // INGEN `blocksSave`/`blocksProjection`-booleans. Konsekvensen udledes STRUKTURELT af kind + placering +
 // consumerens faktiske reads — ikke af et konfigurerbart flag. Save-blokering følger `rejectedInputs`, ikke
 // issuefarve (§1.6): kun rejected råtekst blokerer `.eo`; en canonical bounds/rule-feltfejl kan gemmes.
+// Selve save-projektionen ligger ved persistence-grænsen, ikke i issue-modellen.
 
 /**
  * Rød feltfejl-årsag. `format` er den eneste rejected-råtekst-årsag (§1.6); bounds/rule/schema udledes af en
@@ -19,7 +19,7 @@ export type IssueDetail = Readonly<Record<string, string | number | boolean>>;
 /**
  * En rød feltfejl. Blokerer enhver afhængig consumer (§1.6, §1.10). Den blokerer KUN `.eo`, hvis feltets
  * aktuelle tilstand er rejected råtekst (`format`); en canonical bounds/rule-feltfejl kan gemmes. Save-gaten
- * læses strukturelt af {@link eoSaveBlocked} over `rejectedInputs`, ikke af issuefarve eller reason.
+ * læses strukturelt af `projectEoSave` over `rejectedInputs`, ikke af issuefarve eller reason.
  */
 export type FieldIssue = Readonly<{
   kind: 'field';
@@ -56,17 +56,6 @@ export type Warning = Readonly<{
 }>;
 
 export type InputIssue = FieldIssue | ConsumerIssue | Warning;
-
-/**
- * Strukturel `.eo`-save-gate (§1.6/§1.10): save blokeres, hvis og kun hvis inputaggregaten indeholder mindst ét
- * aktivt rejected input. En canonical bounds/rule-feltfejl blokerer IKKE save, selv om den er rød og blokerer
- * afhængige beregninger/dokumenter. Gaten udledes af `rejectedInputs`, aldrig af issuefarve eller reason.
- *
- * Relevans-/synligheds-afgrænsningen af hvilke rejected inputs der er aktive, håndhæves allerede af
- * XOR-/eksistens-invarianten på inputaggregaten (§3.1): et irrelevant felt kan ikke bære rejected råtekst.
- */
-export const eoSaveBlocked = (input: SettledInput): boolean =>
-  Object.keys(input.rejectedInputs).length > 0;
 
 // Deterministisk prioritet (§1.8): den mest direkte feltfejl vinder, uafhængigt af validator-rækkefølge.
 const FIELD_REASON_PRIORITY: Readonly<Record<FieldIssueReason, number>> = {

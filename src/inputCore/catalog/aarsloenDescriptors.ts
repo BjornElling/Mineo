@@ -40,11 +40,11 @@ import {
   isUndefined,
 } from '../structuralDescriptors';
 import {
+  integerStringBoundsValidator,
   percentBoundsValidator,
   weekYearBoundsValidator,
   yearStringBoundsValidator,
 } from './boundsValidators';
-import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
 
 // Greenfield produkt-descriptors for `aarsloen`-sektionen (§3.2). Måned/år bevarer schemaets historiske
 // canonical strengrepræsentation via string-backed codec; ugefelterne er allerede canonical strenge.
@@ -64,17 +64,6 @@ const rowIdOf = <T>(field: FieldRef<T>): string => {
   const entity = field.address.path.find((segment) => segment.kind === 'entity' && segment.collection === 'tableData');
   if (entity?.kind !== 'entity') throw new Error(`Årsløn-feltet ${field.descriptor.id} mangler tableData-entity`);
   return entity.entityId;
-};
-
-// String-backed månedskolonne (canonical værdi er årets-uafhængig månedsstreng "1".."12"). Codecet holder op
-// med at afvise out-of-bounds; 1..12-grænsen er nu en canonical bounds-feltvalidator (§1.6).
-const maanedBoundsValidator = (code: string): FieldValidator<string | undefined> => (value) => {
-  if (value === undefined || value.trim() === '') return undefined;
-  const numeric = Number.parseInt(value, 10);
-  if (!Number.isFinite(numeric)) return undefined;
-  const message = getIntegerRangeErrorMessage(numeric, 1, 12);
-  if (message === '') return undefined;
-  return { reason: 'bounds', code, message, detail: { minValue: 1, maxValue: 12 } };
 };
 
 const percentField = (field: string, label: string): FieldDescriptor<number | undefined> =>
@@ -310,7 +299,7 @@ export const aarsloenTableCol0MaanedField = rowString(
   'col0_maaned', 'Måned',
   createStringBackedFieldCodec(createIntegerFieldCodec({ allowNegative: false, maxDigits: 2, minValue: 1, maxValue: 12 })),
   periodIs('maaned'),
-  [maanedBoundsValidator('aarsloen.tableData.col0_maaned.bounds')],
+  [integerStringBoundsValidator('aarsloen.tableData.col0_maaned.bounds', 1, 12)],
 );
 export const aarsloenTableCol1MaanedField = rowString(
   'col1_maaned', 'År',

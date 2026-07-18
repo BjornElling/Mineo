@@ -10,12 +10,11 @@ import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadRenteDokument, downloadRenteOversigtDokument } from '../../document/service/documentService';
 import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';
 import ContentBox from '../layout/ContentBox';
-import RenteberegningTab from './renteberegning/RenteberegningTab';
+import RenteberegningTab, { type RenteDocumentSharedSnapshot } from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
 import { getDocumentFormatLabel } from '../../document/documentFormat';
-import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
-import { renteberegningKommentarerField } from '../../inputCore/catalog/renteberegningDescriptors';
 import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
+import { useInputEvaluation } from '../../inputCore/react';
 
 // Greenfield-migreret (§2.4 trin 4 / Fase 3 Renteberegning-slice). Siden læser stamdata + kommentarer gennem den
 // offentlige `InputReader`; download-handlerne henter et FRISK kildesnapshot, så en netop indtastet kommentar/stamdata
@@ -28,10 +27,13 @@ const TAB_KEYS = {
   CALCULATION: 'calculation',
 } as const;
 
-const kommentarerRef = renteberegningKommentarerField.bind();
-
 const Renteberegning = React.memo(() => {
   const { settings } = useAppSettings();
+  const evaluation = useInputEvaluation();
+  const stamdataProjection = React.useMemo(
+    () => projectStamdataForDocument(evaluation.reader, 'document.rente'),
+    [evaluation]
+  );
   const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'renteberegning',
@@ -43,30 +45,24 @@ const Renteberegning = React.memo(() => {
   const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
 
   const handleDownloadRentePdf = React.useCallback(
-    async (pdfContext: RentePdfContext, _isSourceCurrent: () => boolean) => {
+    async (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => {
       const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
         setPdfErrorMessage(`Kunne ikke generere rente som ${documentFormatLabel}.`);
         return;
       }
-      // Læs kommentarer + stamdata OG friskheds-closuren fra ÉT frisk kildesnapshot (§3.9), så dokumentet og
-      // dets stale-check hører til samme optagelse.
-      const source = captureProductionEvaluationSource();
-      const kommentarerRead = source.evaluation.reader.read(kommentarerRef);
-      const kommentarer = kommentarerRead.status === 'usable' ? kommentarerRead.value : undefined;
-      const stamdataProjection = projectStamdataForDocument(source.evaluation.reader, 'document.rente');
-      const persistedStamdata = stamdataProjection.status === 'ready' ? stamdataProjection.value : null;
+      if (shared.stamdataProjection?.status !== 'ready') return;
       const result = await downloadRenteDokument({
         beloeb: pdfContext.beloeb,
         actualInterestDate: actualInterestDateDanish,
         beregningsdato: beregningsdatoDanish,
         periods: pdfContext.periods,
         latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
-        isSourceCurrent: source.isSourceCurrent,
-        kommentarer,
+        isSourceCurrent: shared.isSourceCurrent,
+        kommentarer: shared.kommentarer,
         settings,
-        persistedStamdata,
+        persistedStamdata: shared.stamdataProjection.value,
       });
       setPdfErrorMessage(result.success ? null : result.error);
     },
@@ -78,21 +74,17 @@ const Renteberegning = React.memo(() => {
       rows: readonly RenteOversigtRow[],
       beregningsdato: ISODateString,
       latestReferenceRateDate: ISODateString | null,
-      _isSourceCurrent: () => boolean,
+      shared: RenteDocumentSharedSnapshot,
     ) => {
-      const source = captureProductionEvaluationSource();
-      const kommentarerRead = source.evaluation.reader.read(kommentarerRef);
-      const kommentarer = kommentarerRead.status === 'usable' ? kommentarerRead.value : undefined;
-      const stamdataProjection = projectStamdataForDocument(source.evaluation.reader, 'document.rente-oversigt');
-      const persistedStamdata = stamdataProjection.status === 'ready' ? stamdataProjection.value : null;
+      if (shared.stamdataProjection?.status !== 'ready') return;
       const result = await downloadRenteOversigtDokument({
         beregningsdato,
         rows,
         latestReferenceRateDate,
-        isSourceCurrent: source.isSourceCurrent,
-        kommentarer,
+        isSourceCurrent: shared.isSourceCurrent,
+        kommentarer: shared.kommentarer,
         settings,
-        persistedStamdata,
+        persistedStamdata: shared.stamdataProjection.value,
       });
       setOversigtErrorMessage(result.success ? null : result.error);
     },
@@ -125,6 +117,7 @@ const Renteberegning = React.memo(() => {
           oversigtErrorMessage={oversigtErrorMessage}
           showOversigtBox
           documentDownloadFormat={settings.documentDownloadFormat}
+          stamdataProjection={stamdataProjection}
         />
       )}
     </Box>

@@ -8,6 +8,7 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import type { FieldDescriptor } from '../fieldDescriptor';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
+import { integerBoundsValidator } from './boundsValidators';
 
 // Greenfield produkt-descriptors for `forsoergertab`-sektionen (§3.2). Kun top-level skalarer.
 
@@ -50,6 +51,7 @@ export const forsoergertabTilkendtForPeriodeAarField = defineStructuralField<num
   label: 'Tilkendt for periode',
   controlKind: 'text',
   createEmptySection: createEmptyForsoergertabSection,
+  validators: [integerBoundsValidator('forsoergertab.tilkendtForPeriodeAar.bounds', 1, 10)],
 });
 
 export const forsoergertabFields = catalogFields(

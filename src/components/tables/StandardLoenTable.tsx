@@ -414,7 +414,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <GreenfieldGridIntegerCell
                       gridCell={gc(COL.period0)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_maaned, COL.period0)}
-                      maxKeyFilterValue={12}
                       placeholder={getMissingHint(rowId, 'col0_maaned') ?? 'mm'}
                       inputRef={registerCellRef(rowId, COL.period0)}
                     />

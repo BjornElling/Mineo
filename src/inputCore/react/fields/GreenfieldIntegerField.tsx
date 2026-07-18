@@ -18,19 +18,17 @@ export type GreenfieldIntegerFieldProps = Readonly<{
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
-  /** Tegnfilter-loft under indtastning (matcher legacy `StyledIntegerField.maxValue`-guard). */
-  maxKeyFilterValue?: number;
   singleStageClick?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
 
 const GreenfieldIntegerField = React.forwardRef<HTMLDivElement, GreenfieldIntegerFieldProps>(
-  ({ field, location, name, width = 130, placeholder, disabled, maxKeyFilterValue, singleStageClick = false, inputRef, sx }, ref) => {
+  ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => {
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>
-        filterIntegerKeyDown(e, { allowNegative: false, ...(maxKeyFilterValue === undefined ? {} : { maxValue: maxKeyFilterValue }) }),
-      [maxKeyFilterValue]
+        filterIntegerKeyDown(e, { allowNegative: true }),
+      []
     );
     return (
       <GreenfieldNumericTextField

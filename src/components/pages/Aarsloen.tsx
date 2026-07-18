@@ -120,7 +120,7 @@ const captureFreshAarsloenDocumentSnapshot = (
     beregningsData: latestCalculation.beregningsData,
     harFatalBeregningsFejl: latestCalculation.harFatalBeregningsFejl || latestFieldErrors.length > 0,
     tableErrors: latestTableValidation.errors,
-    persistedStamdata: latestStamdata.status === 'ready' ? latestStamdata.value : null,
+    stamdataProjection: latestStamdata,
     settings: source.settings,
     isSourceCurrent: source.isSourceCurrent,
   };
@@ -209,7 +209,6 @@ const Aarsloen = React.memo(() => {
     () => projectStamdataForDocument(evaluation.reader, 'document.aarsloen'),
     [evaluation]
   );
-  const persistedStamdata = stamdataProjection.status === 'ready' ? stamdataProjection.value : null;
 
   // PDF gates og download handlers
   const {
@@ -231,7 +230,7 @@ const Aarsloen = React.memo(() => {
     harFatalBeregningsFejl,
     tableErrors: tableValidation.errors,
     tabelRef,
-    persistedStamdata,
+    stamdataProjection,
     settings,
     // Render-snapshottet bruges kun til knaptilstand. Selve downloadhandlingen leverer altid et frisk snapshot.
     isSourceCurrent: () => false,
@@ -445,7 +444,6 @@ const Aarsloen = React.memo(() => {
                   field={antalFeriedageRef}
                   location={loc('antalFeriedage')}
                   placeholder="0"
-                  maxKeyFilterValue={99}
                   width={50}
                   disabled={!canShowOmregning}
                 />

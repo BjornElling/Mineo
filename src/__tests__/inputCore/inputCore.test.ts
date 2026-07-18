@@ -20,7 +20,6 @@ import {
   pushInputHistory,
   undoInputHistory,
   redoInputHistory,
-  eoSaveBlocked,
   serializeFieldAddress,
   createInputCatalog,
   catalogFields,
@@ -32,6 +31,7 @@ import {
   type FieldRef,
   MAX_INPUT_HISTORY_STEPS,
 } from '../../inputCore';
+import { projectEoSave } from '../../persistence/eoSaveProjection';
 import { createValidationReader, deriveFieldIssueSet } from '../../inputCore/inputReader';
 import {
   createTestCatalog,
@@ -146,7 +146,7 @@ describe('Ens rød konsekvens, men strukturel save-sondring for format og bounds
     const formatState = apply(start(), settleField(aargangField.bind(), 'abc'));
     expect(rejectedAt(formatState.input, aargangField.bind())?.reason).toBe('format');
     expect(createValidationReader(formatState.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
-    expect(eoSaveBlocked(formatState.input)).toBe(true);
+    expect(projectEoSave(formatState.input, catalog).status).toBe('blocked');
   });
 
   it('bounds bevarer den canonical værdi, blokerer IKKE .eo, men skjuler værdien bag et rødt issue (§1.6 anden repr.)', () => {
@@ -155,7 +155,9 @@ describe('Ens rød konsekvens, men strukturel save-sondring for format og bounds
     expect(rejectedAt(boundsState.input, aargangField.bind())).toBeUndefined();
     expect(createValidationReader(boundsState.input, catalog).readCanonical(aargangField.bind())).toBe(1800);
     // Rød feltfejl blokerer afhængige consumers, men save-gaten er strukturel over rejectedInputs → ikke blokeret.
-    expect(eoSaveBlocked(boundsState.input)).toBe(false);
+    const boundsSave = projectEoSave(boundsState.input, catalog);
+    expect(boundsSave.status).toBe('ready');
+    expect(boundsSave.status === 'ready' && boundsSave.snapshot.satser?.aargang).toBe(1800);
     const read = reader(boundsState.input).read(aargangField.bind());
     expect(read.status === 'error' && read.issue.reason).toBe('bounds');
 
@@ -163,7 +165,7 @@ describe('Ens rød konsekvens, men strukturel save-sondring for format og bounds
     const dateState = apply(start(), settleField(beregningsdatoField.bind(), '01-01-1990'));
     expect(createValidationReader(dateState.input, catalog).readCanonical(beregningsdatoField.bind())).toBeDefined();
     expect(rejectedAt(dateState.input, beregningsdatoField.bind())).toBeUndefined();
-    expect(eoSaveBlocked(dateState.input)).toBe(false);
+    expect(projectEoSave(dateState.input, catalog).status).toBe('ready');
     expect(reader(dateState.input).read(beregningsdatoField.bind()).status).toBe('error');
   });
 });
@@ -180,7 +182,7 @@ describe('Tomhed og missing (§1.7)', () => {
     expect(projection.status).toBe('blocked');
     expect(projection.status === 'blocked' && projection.issues[0]?.kind).toBe('consumer');
     // Missing blokerer kun sin egen consumer, aldrig .eo: der er intet rejected input i aggregaten.
-    expect(eoSaveBlocked(empty())).toBe(false);
+    expect(projectEoSave(empty(), catalog).status).toBe('ready');
   });
 
   it('en gyldig default er ikke missing, selv om den også er feltets clear-værdi', () => {

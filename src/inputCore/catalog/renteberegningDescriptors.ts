@@ -12,6 +12,7 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
+import { amountBoundsValidator, integerBoundsValidator } from './boundsValidators';
 
 // Greenfield produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
 // `rentekravRows` med dens rækkefelter. Den tomme sektion har en tom collection (schemaet kræver arrayet,
@@ -69,6 +70,7 @@ export const rentekravBelobField = defineStructuralField<AmountValue | undefined
   label: 'Beløb',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
+  validators: [amountBoundsValidator('renteberegning.rentekravRows.belob.bounds', 0, undefined)],
 });
 
 export const rentekravRenterFraField = defineStructuralField<ISODateString | undefined>({
@@ -91,6 +93,7 @@ export const rentekravTillaegstidField = defineStructuralField<number | undefine
   label: 'Tillægstid',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
+  validators: [integerBoundsValidator('renteberegning.rentekravRows.tillaegstid.bounds', 0, undefined)],
 });
 
 // `enhed` er en required enum med canonical default `'dage'` (rowEmpty.ts) — aldrig tom, aldrig rød.

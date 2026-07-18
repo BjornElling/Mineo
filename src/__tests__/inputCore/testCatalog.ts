@@ -39,7 +39,7 @@ const isUndefined = (value: unknown): boolean => value === undefined;
 
 // ── Statisk felt: satser.aargang (heltal med bounds 1900–2100) ────────────────────────────────────────
 // Efter kravændringen 2026-07-18 er 1900..2100 IKKE en codec-afvisning: et velformet årstal uden for
-// intervallet committes canonical og bærer et afledt bounds-issue (§1.6). Codecet holder kun paste-clamp.
+// intervallet committes canonical og bærer et afledt bounds-issue (§1.6). Det gælder også paste-stien.
 export const aargangField: FieldDescriptor<number | undefined> = defineField({
   id: 'satser.aargang',
   template: { section: 'satser', path: [], field: 'aargang' },

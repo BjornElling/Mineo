@@ -21,10 +21,6 @@ export type GreenfieldPercentFieldProps = Readonly<{
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
-  /** Tillad negative under indtastning (default falsk — satsfelter er ikke-negative). */
-  allowNegative?: boolean;
-  /** Loft på heltalsdelen under indtastning (matcher legacy `maxIntegerPart`). */
-  maxIntegerPart?: number;
   singleStageClick?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
@@ -39,8 +35,6 @@ const GreenfieldPercentField = React.forwardRef<HTMLDivElement, GreenfieldPercen
       width = 100,
       placeholder = DEFAULT_PERCENT_PLACEHOLDER,
       disabled,
-      allowNegative = false,
-      maxIntegerPart,
       singleStageClick = false,
       inputRef,
       sx,
@@ -50,11 +44,10 @@ const GreenfieldPercentField = React.forwardRef<HTMLDivElement, GreenfieldPercen
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>
         filterPercentKeyDown(e, {
-          allowNegative,
+          allowNegative: true,
           allowDecimals: true,
-          ...(maxIntegerPart === undefined ? {} : { maxIntegerPart }),
         }),
-      [allowNegative, maxIntegerPart]
+      []
     );
 
     // Adornmentet mutes, når draften er tom (legacy-adfærd). Muted-flaget kommer fra `GreenfieldNumericTextField`s

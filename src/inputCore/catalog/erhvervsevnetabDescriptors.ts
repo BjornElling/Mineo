@@ -21,6 +21,7 @@ import {
   defineStructuralField,
   isUndefined,
 } from '../structuralDescriptors';
+import { percentBoundsValidator } from './boundsValidators';
 
 // Greenfield produkt-descriptors for `erhvervsevnetab`-sektionen (§3.2): skalarer (herunder differencekrav-
 // booleans), det nested bilagsvalgsobjekt og samlingen `aslAfgoerelser` med dens rækkefelter.
@@ -62,6 +63,11 @@ export const erhvervsevnetabEalEetPctField = defineStructuralField<number | unde
   label: 'EET % (hvis afviger fra ASL)',
   controlKind: 'text',
   createEmptySection: createEmptyErhvervsevnetabSection,
+  validators: [percentBoundsValidator('erhvervsevnetab.ealEetPct.bounds', {
+    minValue: 0,
+    maxValue: 100,
+    allowDecimals: false,
+  })],
 });
 
 const eetToggle = (field: string, label: string): FieldDescriptor<boolean> =>
@@ -147,6 +153,11 @@ const aslPct = (field: string, label: string): FieldDescriptor<number | undefine
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErhvervsevnetabSection,
+    validators: [percentBoundsValidator(`erhvervsevnetab.aslAfgoerelser.${field}.bounds`, {
+      minValue: 0,
+      maxValue: 100,
+      allowDecimals: false,
+    })],
   });
 
 export const aslAfgoerelseAfgoerelsesDatoField = aslDate('afgoerelsesDato', 'Afgørelsesdato');

@@ -17,21 +17,30 @@ import {
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
+import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
+import { toISODateString } from '../../../types/branded';
 
+const { mockDownloadAarsloenDokument, mockDownloadSHDageDokument } = vi.hoisted(() => ({
+  mockDownloadAarsloenDokument: vi.fn(async () => ({ success: true as const })),
+  mockDownloadSHDageDokument: vi.fn(async () => ({ success: true as const })),
+}));
 vi.mock('../../../document/service/documentService', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../../document/service/documentService')>(),
-  downloadAarsloenDokument: vi.fn(async () => ({ success: true as const })),
-  downloadSHDageDokument: vi.fn(async () => ({ success: true as const })),
+  downloadAarsloenDokument: mockDownloadAarsloenDokument,
+  downloadSHDageDokument: mockDownloadSHDageDokument,
 }));
 
 const catalog = getProductionInputCatalog();
 
 const amount = (value: number) => ({ kind: 'number' as const, value });
 
-const hydrateAarsloen = (aarsloen: Record<string, unknown> | null): void => {
+const hydrateAarsloen = (
+  aarsloen: Record<string, unknown> | null,
+  stamdata: StamdataValues | null = null
+): void => {
   const input = catalog.validateSettledInput({
     sections: {
-      stamdata: null, satser: null, aarsloen, faellesAarsloen: null, renteberegning: null,
+      stamdata, satser: null, aarsloen, faellesAarsloen: null, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
     },
     rejectedInputs: {},
@@ -60,6 +69,8 @@ const getDataRowCells = (rowIndex: number): HTMLElement[] => {
 describe('Årsløn (greenfield) — migreret side + løntabel over grid-adapteren', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    mockDownloadAarsloenDokument.mockClear();
+    mockDownloadSHDageDokument.mockClear();
   });
 
   it('renderer på en FRESH sag (aarsloen-sektion = null) uden at kaste; required-valg får deres canonical default', () => {
@@ -188,5 +199,24 @@ describe('Årsløn (greenfield) — migreret side + løntabel over grid-adaptere
     // StyledToggleSwitch eksponerer role="checkbox"; første = omregning-toggle. Committed false → ikke aktiveret.
     const toggles = screen.getAllByRole('checkbox');
     expect(toggles[0]).not.toBeChecked();
+  });
+
+  it('canonical datoordensfejl i stamdata blokerer årslønsdokumentet', async () => {
+    const user = userEvent.setup();
+    hydrateAarsloen({
+      loenperiode: 'maaned',
+      tableData: [
+        { id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: amount(50000) } as StandardLoenTableRow,
+      ],
+    }, {
+      skadelidteFodselsdato: toISODateString('2020-01-02'),
+      skadedato: toISODateString('2020-01-01'),
+    });
+    renderAarsloen();
+
+    const downloadButton = screen.getByRole('button', { name: /Fødselsdato|Skadedato/ });
+    expect(downloadButton).toBeDisabled();
+    await user.click(downloadButton);
+    expect(mockDownloadAarsloenDokument).not.toHaveBeenCalled();
   });
 });
