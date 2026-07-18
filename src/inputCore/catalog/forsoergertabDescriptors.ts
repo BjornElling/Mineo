@@ -1,20 +1,43 @@
 import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
+import { dateRanges_forsoergertab } from '../../config/dateRanges';
+import { maxISO, minISO } from '../../utils/isoDateHelpers';
+import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
 import {
   createChoiceFieldCodec,
   createDateFieldCodec,
   createIntegerFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
-import type { FieldDescriptor } from '../fieldDescriptor';
+import type { FieldDescriptor, FieldValidator } from '../fieldDescriptor';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { integerBoundsValidator } from './boundsValidators';
+import {
+  stamdataSkadedatoField,
+} from './stamdataDescriptors';
 
 // Greenfield produkt-descriptors for `forsoergertab`-sektionen (§3.2). Kun top-level skalarer.
+//
+// **Dato-bounds (§1.6, Fase 3 Forsørgertab-slice):** de dynamiske min/max-grænser, som legacy-siden håndhævede
+// via `StyledDateField`s `minDate`/`maxDate`-props + `onFieldError`, er nu canonical bounds-FELTVALIDATORER på
+// descriptoren. En schema-repræsenterbar dato uden for grænsen committes canonical (kan gemmes i `.eo`) og
+// bærer et rødt bounds-issue, som readeren skjuler for afhængige consumers. Grænserne er byte-identiske med
+// legacy (samme `dateRanges_forsoergertab` + `resolveDateRangeErrorMessage`), så den røde beskedtekst er
+// uændret. Krydsfeltafhængigheder læses via `view.readCanonical` (den raw canonical dependency, uafhængigt af
+// dependencyens eget issue — som legacy brugte den rå `values.virkningsdato`/`stamdata.skadedato` til at udlede
+// grænsen).
 
 const createEmptyForsoergertabSection = (): unknown => ({});
 
-const dateField = (field: string, label: string): FieldDescriptor<ISODateString | undefined> =>
+// Legacy-`skadedatoMin`: `coerceToISODateString(stamdata?.skadedato) ?? fallbackMin`.
+const resolveSkadedatoMin = (skadedato: ISODateString | undefined): ISODateString =>
+  skadedato ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
+
+const dateField = (
+  field: string,
+  label: string,
+  validators?: readonly FieldValidator<ISODateString | undefined>[]
+): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `forsoergertab.${field}`,
     template: { section: 'forsoergertab', path: [], field },
@@ -24,11 +47,74 @@ const dateField = (field: string, label: string): FieldDescriptor<ISODateString 
     label,
     controlKind: 'text',
     createEmptySection: createEmptyForsoergertabSection,
+    ...(validators === undefined ? {} : { validators }),
   });
 
-export const forsoergertabEfterladteFodselsdatoField = dateField('efterladteFodselsdato', 'Efterladte ægtefælle/samlevers fødselsdato');
-export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Beregningsdato');
-export const forsoergertabVirkningsdatoField = dateField('virkningsdato', 'Startdato for ASL-ydelse');
+// Efterladtes fødselsdato: statisk 1900-01-01 .. i dag (dateRanges_forsoergertab.efterladteFodselsdato).
+export const forsoergertabEfterladteFodselsdatoField = dateField('efterladteFodselsdato', 'Efterladte ægtefælle/samlevers fødselsdato', [
+  (value) => {
+    if (value === undefined) return undefined;
+    const minDate = dateRanges_forsoergertab.efterladteFodselsdato.min;
+    const maxDate = dateRanges_forsoergertab.efterladteFodselsdato.max;
+    if (value >= minDate && value <= maxDate) return undefined;
+    return {
+      reason: 'bounds',
+      code: 'forsoergertab.efterladteFodselsdato.bounds',
+      message: resolveDateRangeErrorMessage({ iso: value, minDate, maxDate }),
+      detail: { minDate, maxDate },
+    };
+  },
+]);
+
+// Beregningsdato: min = max(skadedatoMin, virkningsdato); max = forsørgertab-datadækning (dataCoverageMax).
+// Legacy: `minDate={snapshot.inputBounds.beregningsdatoMin}` / `maxDate=beregningsdato.max`.
+export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Beregningsdato', [
+  (value, _field, view) => {
+    if (value === undefined) return undefined;
+    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+    const virkningsdato = view.readCanonical(forsoergertabVirkningsdatoField.bind());
+    const skadedatoMin = resolveSkadedatoMin(skadedato);
+    const minDate = virkningsdato ? maxISO(skadedatoMin, virkningsdato) : skadedatoMin;
+    const maxDate = dateRanges_forsoergertab.beregningsdato.max;
+    if (value >= minDate && value <= maxDate) return undefined;
+    return {
+      reason: 'bounds',
+      code: 'forsoergertab.beregningsdato.bounds',
+      message: resolveDateRangeErrorMessage({
+        iso: value,
+        minDate,
+        maxDate,
+        special: { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' },
+      }),
+      detail: { minDate, maxDate },
+    };
+  },
+]);
+
+// Startdato for ASL-ydelse (virkningsdato): min = skadedatoMin; max = min(dataCoverageMax, beregningsdato).
+// Legacy: `minDate={snapshot.inputBounds.skadedatoMin}` / `maxDate={snapshot.inputBounds.virkningsdatoMax}`.
+export const forsoergertabVirkningsdatoField = dateField('virkningsdato', 'Startdato for ASL-ydelse', [
+  (value, _field, view) => {
+    if (value === undefined) return undefined;
+    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+    const beregningsdato = view.readCanonical(forsoergertabBeregningsdatoField.bind());
+    const minDate = resolveSkadedatoMin(skadedato);
+    const maxCoverage = dateRanges_forsoergertab.virkningsdato.max;
+    const maxDate = beregningsdato ? minISO(maxCoverage, beregningsdato) : maxCoverage;
+    if (value >= minDate && value <= maxDate) return undefined;
+    return {
+      reason: 'bounds',
+      code: 'forsoergertab.virkningsdato.bounds',
+      message: resolveDateRangeErrorMessage({
+        iso: value,
+        minDate,
+        maxDate,
+        special: { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' },
+      }),
+      detail: { minDate, maxDate },
+    };
+  },
+]);
 
 export const forsoergertabKoenField = defineStructuralField<Koen | undefined>({
   id: 'forsoergertab.koen',

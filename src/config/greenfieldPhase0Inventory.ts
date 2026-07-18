@@ -42,8 +42,8 @@ export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
   },
   {
     id: 'forsoergertab',
-    module: 'src/domain/forsoergertab/forsoergertabSnapshot.ts',
-    symbol: 'computeForsoergertabSnapshot',
+    module: 'src/domain/forsoergertab/forsoergertabReaderProjection.ts',
+    symbol: 'buildForsoergertabReaderProjection',
     consumers: ['src/components/pages/Forsoergertab.tsx'],
   },
   {

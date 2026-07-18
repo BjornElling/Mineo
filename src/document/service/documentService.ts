@@ -929,23 +929,35 @@ export const downloadLoebendeYdelserDokument = async (params: Readonly<{
   }
 };
 
+// Greenfield Forsørgertab-download (§2.4 trin 6 / Fase 3-slice): friskheden bindes til det greenfield
+// `EvaluationSourceToken` via `isSourceCurrent` (som Satser/Aarsloen/VarigeMen), ikke den legacy committed-counter.
+// Kalderen bygger `pdfParams` fra en `ready` reader-projektion og re-tjekker EFTER lazy-load og umiddelbart før
+// generatoren starter (§3.4/§3.9). Dokument-entrypunktet (typed definition + prepare-flow) migreres først i Fase 5.
 export const downloadForsoergertabDokument = async (params: Readonly<{
   pdfParams: Omit<GenerateForsoergertabDocumentParams, 'visBrevhoved' | 'stamdata'>;
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
-  const { pdfParams, settings, persistedStamdata } = params;
+  const { pdfParams, settings, persistedStamdata, isSourceCurrent } = params;
   const common = buildCommonPdfContext(settings, 'forsoergertab', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadForsoergertabDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
     const { generateForsoergertabDocument } = await loadForsoergertabDocumentModule();
-    return await runSelectedDocumentFormat(settings, (session) => generateForsoergertabDocument(session, {
+    if (!isSourceCurrent()) {
+      return { success: false, error: buildDocumentFailureMessage(settings, 'Kunne ikke generere forsørgertab-PDF') };
+    }
+    return await runSelectedDocumentFormat(
+      settings,
+      (session) => generateForsoergertabDocument(session, {
         ...pdfParams,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      }));
+      }),
+      { isSourceCurrent, staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere forsørgertab-PDF') }
+    );
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere forsørgertab-PDF'),

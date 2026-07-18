@@ -1,105 +1,137 @@
 import React from 'react';
-import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import StyledDateField from '../inputs/StyledDateField';
-import StyledDropdown from '../inputs/StyledDropdown';
-import StyledIntegerField from '../inputs/StyledIntegerField';
+import GreenfieldDateField from '../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldIntegerField from '../../inputCore/react/fields/GreenfieldIntegerField';
+import GreenfieldAmountField from '../../inputCore/react/fields/GreenfieldAmountField';
 import InsertTodayDateButton from '../inputs/InsertTodayDateButton';
 import ContentBox from '../layout/ContentBox';
-import { dateRanges_forsoergertab } from '../../config/dateRanges';
-import { usePersistedForm } from '../../hooks/usePersistedForm';
-import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
-import { useFormFieldErrorReporter, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
-import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReporter';
-import { faellesAarsloenSchema, forsoergertabSchema, type Koen } from '../../schemas/formSchemas';
-import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
+import { type Koen } from '../../schemas/formSchemas';
 import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../utils/formatUtils';
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
-import AarsloenAmountFieldRow from '../inputs/AarsloenAmountFieldRow';
-import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadForsoergertabDokument } from '../../document/service/documentService';
 import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetAldersreduktionFormel';
 import StandardLooseTable from '../tables/StandardLooseTable';
-import { computeForsoergertabSnapshot } from '../../domain/forsoergertab/forsoergertabSnapshot';
 import { toKroner } from '../../domain/money/money';
+import { buildForsoergertabReaderProjection } from '../../domain/forsoergertab/forsoergertabReaderProjection';
+import { evaluateForsoergertabDownloadGate } from '../../domain/forsoergertab/forsoergertabDownloadGate';
+import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
+import {
+  forsoergertabBeregningsdatoField,
+  forsoergertabEfterladteFodselsdatoField,
+  forsoergertabKoenField,
+  forsoergertabTilkendtForPeriodeAarField,
+  forsoergertabVirkningsdatoField,
+} from '../../inputCore/catalog/forsoergertabDescriptors';
+import {
+  faellesAarsloenAslAarsloenField,
+  faellesAarsloenEalAarsloenField,
+} from '../../inputCore/catalog/faellesAarsloenDescriptors';
+import { stamdataSkadelidteFodselsdatoField } from '../../inputCore/catalog/stamdataDescriptors';
+import { useInputEvaluation, useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
+import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
+import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
+import { sourceTokensEqual } from '../../inputCore/evaluationSource';
+
+// Greenfield-migreret Forsørgertab (§2.4 formularrækkefølge trin 6 / Fase 3 Forsørgertab-slice). Hele siden kører
+// nu på greenfield-inputCore: de fem forsoergertab-felter + de delte ASL/EAL-årsløn skriver/læser gennem den
+// offentlige `InputReader` + den ene write-grænse (ingen `usePersistedForm`/`setFieldValue`); de tværsektionelle
+// stamdata-datoer læses gennem samme reader (ingen rå `usePersistedSectionSelector`/`useFormFieldErrors`). Den ENE
+// reader-afledte projektion (`buildForsoergertabReaderProjection`) driver både beregningsvisning og download-gaten;
+// den kører `computeForsoergertabSnapshot` UÆNDRET (§5.4 — ingen talændring). Format-/bounds-feltfejl vises inline
+// på felterne fra det tokenbundne issue-snapshot; domæne-/manglende-felt-beskeder vises i contentboxen og
+// download-gatens tooltip (brugerbeslutning 2026-07-18 — samme mønster som Varige mén/Renteberegning, §1.7/§1.8).
+
+const efterladteFodselsdatoRef = forsoergertabEfterladteFodselsdatoField.bind();
+const beregningsdatoRef = forsoergertabBeregningsdatoField.bind();
+const virkningsdatoRef = forsoergertabVirkningsdatoField.bind();
+const koenRef = forsoergertabKoenField.bind();
+const tilkendtForPeriodeAarRef = forsoergertabTilkendtForPeriodeAarField.bind();
+const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
+const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
+const skadelidteFodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
+
+const BEREGNINGSDATO_LOCATION = { locationId: 'forsoergertab:beregningsdato' } as const;
+const VIRKNINGSDATO_LOCATION = { locationId: 'forsoergertab:virkningsdato' } as const;
+const EFTERLADTE_FODSELSDATO_LOCATION = { locationId: 'forsoergertab:efterladteFodselsdato' } as const;
+const KOEN_LOCATION = { locationId: 'forsoergertab:koen' } as const;
+const TILKENDT_LOCATION = { locationId: 'forsoergertab:tilkendtForPeriodeAar' } as const;
+const ASL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:aslAarsloen' } as const;
+const EAL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:ealAarsloen' } as const;
+
+const FORSOERGERTAB_DOCUMENT_CONSUMER_ID = 'document.forsoergertab';
 
 const Forsoergertab = React.memo(() => {
   const navigate = useNavigate();
-  const { values, setFieldValue } = usePersistedForm(
-    forsoergertabSchema,
-    'forsoergertab',
-    FORSOERGERTAB_INITIAL_VALUES
-  );
-  const { values: faellesAarsloenValues, setFieldValue: setFaellesAarsloenFieldValue } = usePersistedForm(
-    faellesAarsloenSchema,
-    'faellesAarsloen',
-    FAELLES_AARSLOEN_INITIAL_VALUES
-  );
-  const stamdata = usePersistedSectionSelector('stamdata');
-  const { settings } = useAppSettings();
+  const evaluation = useInputEvaluation();
+  const criticalActions = useCriticalInputActions();
 
-  const forsoergertabFieldErrors = useFormFieldErrors('forsoergertab');
-  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
-  const stamdataFieldErrors = useFormFieldErrors('stamdata');
-
-  const reportBeregningsdatoError = useFormFieldErrorReporter('forsoergertab', 'beregningsdato', {
-    severity: 'error',
-    source: 'input',
-  });
-  const reportEfterladteFodselsdatoError = useFormFieldErrorReporter('forsoergertab', 'efterladteFodselsdato', {
-    severity: 'error',
-    source: 'input',
-  });
-  const reportVirkningsdatoError = useFormFieldErrorReporter('forsoergertab', 'virkningsdato', {
-    severity: 'error',
-    source: 'input',
-  });
-  const reportTilkendtForPeriodeError = useFormFieldErrorReporter('forsoergertab', 'tilkendtForPeriodeAar', {
-    severity: 'error',
-    source: 'input',
-  });
-  const reportAslAarsloenError = useFormFieldErrorReporter('faellesAarsloen', 'aslAarsloen', {
-    severity: 'error',
-    source: 'input',
-  });
-  const reportEalAarsloenError = useFormFieldErrorReporter('faellesAarsloen', 'ealAarsloen', {
-    severity: 'error',
-    source: 'input',
-  });
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
+  const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
-  useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadedato);
+  const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
 
-  const snapshot = React.useMemo(
-    () =>
-      computeForsoergertabSnapshot({
-        values,
-        faellesAarsloen: faellesAarsloenValues,
-        stamdata,
-        fieldErrors: {
-          forsoergertab: forsoergertabFieldErrors,
-          faellesAarsloen: faellesAarsloenFieldErrors,
-          stamdata: stamdataFieldErrors,
-        },
-      }),
-    [faellesAarsloenFieldErrors, faellesAarsloenValues, forsoergertabFieldErrors, stamdata, stamdataFieldErrors, values]
+  // Den ENE reader-afledte projektion (§3.4/§5.4/§1.10): beregningsvisning og download-gate deler præcis samme
+  // sandhed. Snapshottet ejer den dependency-specifikke panel-/gate-logik (§1.10) — det gates derfor ikke bag en
+  // global blocked-tilstand: en fejl på fx virkningsdato blokerer ASL + download, men bevarer EAL-panelet (som legacy).
+  const projection = React.useMemo(
+    () => buildForsoergertabReaderProjection(evaluation.reader),
+    [evaluation]
   );
+  const snapshot = projection.snapshot;
+  const downloadGate = React.useMemo(
+    () => evaluateForsoergertabDownloadGate(projection),
+    [projection]
+  );
+
+  // Skadelidtes fødselsdato læses gennem readeren; en aktiv rød feltfejl skjuler værdien (`error`).
+  const skadelidteFodselsdatoRead = evaluation.reader.read(skadelidteFodselsdatoRef);
+  const skadelidteFodselsdato = skadelidteFodselsdatoRead.status === 'usable' ? skadelidteFodselsdatoRead.value : undefined;
+  const skadelidteFodselsdatoError =
+    skadelidteFodselsdatoRead.status === 'error' ? skadelidteFodselsdatoRead.issue.message : undefined;
 
   const result = snapshot.calculation.result;
   const ealComputation = snapshot.calculation.ealComputation;
   const aslComputation = snapshot.calculation.aslComputation;
   const foersoergertabEalMinSatsOre = snapshot.calculation.foersoergertabEalMinSatsOre;
   const foersoergertabForhoejtetTilMin = snapshot.calculation.foersoergertabForhoejtetTilMin;
+  const visKoenValg = snapshot.visKoenValg;
+  const canShowEal = snapshot.canShowEal;
+  const canShowAsl = snapshot.canShowAsl;
+  const canShowResult = snapshot.canShowResult;
+  const koenFieldHasError = snapshot.fieldUi.koen.hasError;
 
   const handlePdfDownload = React.useCallback(async () => {
-    await downloadForsoergertabDokument({
-      pdfParams: snapshot.pdfProjection,
-      settings,
-      persistedStamdata: stamdata,
+    // §1.4/§3.9: settle en evt. åben editor, læs derefter et frisk kildesnapshot, og genkør projektionen/gaten
+    // mod det. Handlingen afbrydes, hvis input/settings flyttede under settle (stale token).
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
+      return;
+    }
+    const source = captureProductionEvaluationSource();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+
+    const freshProjection = buildForsoergertabReaderProjection(source.evaluation.reader);
+    const freshGate = evaluateForsoergertabDownloadGate(freshProjection);
+    if (!freshGate.canDownload) {
+      setPdfErrorMessage(freshGate.reasons[0]?.message ?? null);
+      return;
+    }
+
+    const freshStamdata = projectStamdataForDocument(source.evaluation.reader, FORSOERGERTAB_DOCUMENT_CONSUMER_ID);
+    if (freshStamdata.status !== 'ready') return;
+
+    const result = await downloadForsoergertabDokument({
+      pdfParams: freshProjection.snapshot.pdfProjection,
+      settings: source.settings,
+      persistedStamdata: freshStamdata.value,
+      isSourceCurrent: source.isSourceCurrent,
     });
-  }, [settings, snapshot.pdfProjection, stamdata]);
+    setPdfErrorMessage(result.success ? null : result.error);
+  }, [criticalActions]);
 
   return (
     <Box>
@@ -111,21 +143,15 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Beregningsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-            <StyledDateField
+            <GreenfieldDateField
+              field={beregningsdatoRef}
+              location={BEREGNINGSDATO_LOCATION}
               name="beregningsdato"
-              value={values.beregningsdato || undefined}
-              onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
-              minDate={snapshot.inputBounds.beregningsdatoMin}
-              maxDate={dateRanges_forsoergertab.beregningsdato.max}
-              specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }}
-              error={snapshot.fieldUi.beregningsdato.hasError}
-              helperText={snapshot.fieldUi.beregningsdato.helperText}
-              onFieldError={reportBeregningsdatoError}
               inputRef={beregningsdatoInputRef}
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                return setFieldValue('beregningsdato', today);
+                beregningsdatoController.commitImmediate(today);
               }}
               focusRef={beregningsdatoInputRef}
             />
@@ -134,10 +160,31 @@ const Forsoergertab = React.memo(() => {
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download specifikation</Typography>
-          <Box className="row--label-right-hover__content">
-            <DocumentDownloadButton onClick={handlePdfDownload} disabled={!snapshot.pdfGate.canDownload} />
+          <Box className="row--label-right-hover__content" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {!downloadGate.canDownload && (
+              <Tooltip title={downloadGate.reasons[0]?.message ?? ''} arrow>
+                <Typography className="row--text" color="text.disabled">
+                  {downloadGate.reasons[0]?.message ?? ''}
+                </Typography>
+              </Tooltip>
+            )}
+            <DocumentDownloadButton
+              onClick={() => void handlePdfDownload()}
+              disabled={!downloadGate.canDownload}
+              disabledReason={downloadGate.reasons[0]?.message ?? undefined}
+              dataTestId="forsoergertab-download"
+            />
           </Box>
         </Box>
+
+        {pdfErrorMessage && (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text" sx={{ color: 'error.main' }}>
+              {pdfErrorMessage}
+            </Typography>
+            <Box />
+          </Box>
+        )}
       </ContentBox>
 
       <ContentBox className="content-box" data-section-id="forsoergertab-beregning">
@@ -146,11 +193,11 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Skadelidtes fødselsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
-            {stamdata?.skadelidteFodselsdato && !snapshot.fieldUi.skadelidteFodselsdato.hasError ? (
-              <Typography className="row--text">{stamdata?.skadelidteFodselsdato ? isoToDanish(stamdata.skadelidteFodselsdato) : ''}</Typography>
+            {skadelidteFodselsdato && !skadelidteFodselsdatoError ? (
+              <Typography className="row--text">{isoToDanish(skadelidteFodselsdato)}</Typography>
             ) : (
               <Typography className="row--text" color="text.secondary">
-                {stamdataFieldErrors.skadelidteFodselsdato?.message ?? (
+                {skadelidteFodselsdatoError ?? (
                   <>
                     Mangler (angiv i&nbsp; {' '}
                     <Typography
@@ -170,54 +217,47 @@ const Forsoergertab = React.memo(() => {
           </Box>
         </Box>
 
-        {(snapshot.visKoenValg || snapshot.fieldUi.koen.hasError) && (
+        {(visKoenValg || koenFieldHasError) && (
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledDropdown<Koen>
+              <GreenfieldChoiceField<Koen>
+                field={koenRef}
+                location={KOEN_LOCATION}
                 name="koen"
-                value={values.koen}
-                // Dropdownen er typet til Koen og udsender kun de kendte MenuItem-værdier
-                // (eller undefined ved rydning), så vi committer direkte uden re-validering.
-                onChange={(event) => setFieldValue('koen', event.target.value)}
                 placeholder="Vælg køn"
                 width={130}
-                error={snapshot.fieldUi.koen.hasError}
-                helperText={snapshot.fieldUi.koen.helperText}
               >
                 <MenuItem value={'Mand' satisfies Koen}>Mand</MenuItem>
                 <MenuItem value={'Kvinde' satisfies Koen}>Kvinde</MenuItem>
-              </StyledDropdown>
+              </GreenfieldChoiceField>
             </Box>
           </Box>
         )}
 
         <Typography className="row--subheading">ASL-ydelse</Typography>
 
-        <AarsloenAmountFieldRow
-          label="Skadelidtes årsløn (efter ASL)"
-          name="aslAarsloen"
-          value={faellesAarsloenValues.aslAarsloen}
-          onCommit={(event) => setFaellesAarsloenFieldValue('aslAarsloen', event.target.value)}
-          errorMessage={
-            snapshot.fieldUi.aslAarsloen.helperText
-          }
-          onFieldError={reportAslAarsloenError}
-        />
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Skadelidtes årsløn (efter ASL)</Typography>
+          <Box className="row--label-right-hover__content">
+            <GreenfieldAmountField
+              field={aslAarsloenRef}
+              location={ASL_AARSLOEN_LOCATION}
+              name="aslAarsloen"
+              allowDecimals={false}
+              width={140}
+              placeholder="0"
+            />
+          </Box>
+        </Box>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Startdato for ASL-ydelse</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDateField
+            <GreenfieldDateField
+              field={virkningsdatoRef}
+              location={VIRKNINGSDATO_LOCATION}
               name="virkningsdato"
-              value={values.virkningsdato || undefined}
-              onCommit={(event) => setFieldValue('virkningsdato', event.target.value)}
-              minDate={snapshot.inputBounds.skadedatoMin}
-              maxDate={snapshot.inputBounds.virkningsdatoMax}
-              specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' }}
-              error={snapshot.fieldUi.virkningsdato.hasError}
-              helperText={snapshot.fieldUi.virkningsdato.helperText}
-              onFieldError={reportVirkningsdatoError}
             />
           </Box>
         </Box>
@@ -225,17 +265,11 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Tilkendt for periode</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-            <StyledIntegerField
+            <GreenfieldIntegerField
+              field={tilkendtForPeriodeAarRef}
+              location={TILKENDT_LOCATION}
               name="tilkendtForPeriodeAar"
-              value={values.tilkendtForPeriodeAar}
-              onCommit={(event) => setFieldValue('tilkendtForPeriodeAar', event.target.value)}
-              minValue={1}
-              maxValue={10}
-              allowNegative={false}
               width={80}
-              error={snapshot.fieldUi.tilkendtForPeriodeAar.hasError}
-              helperText={snapshot.fieldUi.tilkendtForPeriodeAar.helperText}
-              onFieldError={reportTilkendtForPeriodeError}
             />
             <Typography className="row--text">år</Typography>
           </Box>
@@ -244,34 +278,32 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Efterladte ægtefælle/samlevers fødselsdato</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDateField
+            <GreenfieldDateField
+              field={efterladteFodselsdatoRef}
+              location={EFTERLADTE_FODSELSDATO_LOCATION}
               name="efterladteFodselsdato"
-              value={values.efterladteFodselsdato || undefined}
-              onCommit={(event) => setFieldValue('efterladteFodselsdato', event.target.value)}
-              minDate={dateRanges_forsoergertab.efterladteFodselsdato.min}
-              maxDate={dateRanges_forsoergertab.efterladteFodselsdato.max}
-              error={snapshot.fieldUi.efterladteFodselsdato.hasError}
-              helperText={snapshot.fieldUi.efterladteFodselsdato.helperText}
-              onFieldError={reportEfterladteFodselsdatoError}
             />
           </Box>
         </Box>
 
         <Typography className="row--subheading">EAL-ydelse</Typography>
 
-        <AarsloenAmountFieldRow
-          label="Skadelidtes årsløn (efter EAL)"
-          name="ealAarsloen"
-          value={faellesAarsloenValues.ealAarsloen}
-          onCommit={(event) => setFaellesAarsloenFieldValue('ealAarsloen', event.target.value)}
-          errorMessage={
-            snapshot.fieldUi.ealAarsloen.helperText
-          }
-          onFieldError={reportEalAarsloenError}
-        />
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Skadelidtes årsløn (efter EAL)</Typography>
+          <Box className="row--label-right-hover__content">
+            <GreenfieldAmountField
+              field={ealAarsloenRef}
+              location={EAL_AARSLOEN_LOCATION}
+              name="ealAarsloen"
+              allowDecimals={false}
+              width={140}
+              placeholder="0"
+            />
+          </Box>
+        </Box>
       </ContentBox>
 
-      {snapshot.canShowResult && result && (
+      {canShowResult && result && (
         <ContentBox className="content-box">
           <Typography className="section-header">Beregnet forsørgertab</Typography>
 
@@ -305,7 +337,7 @@ const Forsoergertab = React.memo(() => {
         </ContentBox>
       )}
 
-      {snapshot.canShowEal && ealComputation && (
+      {canShowEal && ealComputation && (
         <ContentBox className="content-box" data-section-id="forsoergertab-eal">
           <Typography className="section-header">EAL-krav</Typography>
 
@@ -425,7 +457,7 @@ const Forsoergertab = React.memo(() => {
         </ContentBox>
       )}
 
-      {snapshot.canShowAsl && aslComputation && (
+      {canShowAsl && aslComputation && (
         <ContentBox className="content-box" data-section-id="forsoergertab-asl">
           <Typography className="section-header">ASL-ydelser</Typography>
 

@@ -1,0 +1,149 @@
+import type { InputReader, ReadFieldResult } from '../../inputCore/inputReader';
+import type { FieldRef } from '../../inputCore/fieldDescriptor';
+import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
+import type { ISODateString } from '../../types/branded';
+import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import type { Koen } from '../../schemas/formSchemas';
+import { amountValueToNumber } from '../../utils/expressionAmount';
+import {
+  validateAslAarsloenBySkadesaarMax,
+  validateAslAarsloenDivisibleBy1000,
+} from '../aslEalAarsloen/aarsloenValidators';
+import {
+  forsoergertabBeregningsdatoField,
+  forsoergertabEfterladteFodselsdatoField,
+  forsoergertabKoenField,
+  forsoergertabTilkendtForPeriodeAarField,
+  forsoergertabVirkningsdatoField,
+} from '../../inputCore/catalog/forsoergertabDescriptors';
+import {
+  faellesAarsloenAslAarsloenField,
+  faellesAarsloenEalAarsloenField,
+} from '../../inputCore/catalog/faellesAarsloenDescriptors';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../inputCore/catalog/stamdataDescriptors';
+import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './forsoergertabSnapshot';
+
+// Greenfield Forsørgertab-projektion (§3.4/§5.4/§1.10, Fase 3 Forsørgertab-slice). En ALMINDELIG ren funktion over
+// den offentlige `InputReader`, der erstatter `Forsoergertab.tsx`'s rå `usePersistedForm`/
+// `usePersistedSectionSelector`-læsning + `useFormFieldErrors`-gating. Den er den ENE kanoniske projektion til
+// både sidevisning og download-gaten.
+//
+//  - Alle inputs (forsoergertab-felter, de delte faellesAarsloen-beløb, samt de tværsektionelle stamdata-datoer)
+//    læses gennem readeren. En rød feltfejl (rejected format ELLER canonical bounds — dato-range/-orden,
+//    beløbsgulv/loft, tilkendt-periode 1..10) skjules af readeren: værdien bliver `undefined` i beregningen, og
+//    feltets røde besked føres ind i snapshottets `fieldErrors`.
+//  - `computeForsoergertabSnapshot` køres UÆNDRET (§5.4 hårdt stop) på de reader-læste værdier. Den har allerede
+//    den DEPENDENCY-SPECIFIKKE panel-/gate-logik (§1.10): en fejl på fx virkningsdato/ASL-årsløn blokerer ASL-
+//    delen og download, men bevarer EAL-panelet, præcis som legacy. Derfor gates hele snapshottet IKKE bag en
+//    global `blocked`-projektion — projektionen er altid `ready` og bærer snapshottet; det er snapshottets egen
+//    `pdfGate`/`canShow*`, der afgør konsekvenserne. `hadReaderFieldError` medbringes, så download-gaten kan skelne
+//    en rød feltfejl fra en ren manglende-felt-tilstand (samme prioritet som legacy).
+//  - ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) blev i legacy rapporteret
+//    som en `source: 'rule'`-feltfejl af `useAslAarsloenRuleReporter`. Da `faellesAarsloen.aslAarsloen` er en DELT
+//    descriptor (EET/EO er endnu ikke migreret), holdes reglen slice-lokal her: den udledes af de reader-læste
+//    aslAarsloen + skadedato og føres ind i snapshottets `fieldErrors.faellesAarsloen.aslAarsloen`, hvor
+//    `canShowAsl`/`pdfGate` blokerer identisk med legacy.
+
+const efterladteFodselsdatoRef: FieldRef<ISODateString | undefined> = forsoergertabEfterladteFodselsdatoField.bind();
+const beregningsdatoRef: FieldRef<ISODateString | undefined> = forsoergertabBeregningsdatoField.bind();
+const virkningsdatoRef: FieldRef<ISODateString | undefined> = forsoergertabVirkningsdatoField.bind();
+const koenRef: FieldRef<Koen | undefined> = forsoergertabKoenField.bind();
+const tilkendtForPeriodeAarRef: FieldRef<number | undefined> = forsoergertabTilkendtForPeriodeAarField.bind();
+const aslAarsloenRef: FieldRef<AmountValue | undefined> = faellesAarsloenAslAarsloenField.bind();
+const ealAarsloenRef: FieldRef<AmountValue | undefined> = faellesAarsloenEalAarsloenField.bind();
+const skadedatoRef: FieldRef<ISODateString | undefined> = stamdataSkadedatoField.bind();
+const skadelidteFodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSkadelidteFodselsdatoField.bind();
+
+export type ForsoergertabReaderProjection = Readonly<{
+  /** Det ENE snapshot (uændret beregning). Driver både sidevisning og download-gaten. */
+  snapshot: ForsoergertabSnapshot;
+  /** Sandt, hvis mindst ét læst felt havde en aktiv rød feltfejl (format/bounds). Adskiller `field-error` fra en ren manglende-felt-tilstand i download-gaten (§1.6). */
+  hadReaderFieldError: boolean;
+  /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  sourceToken: EvaluationSourceToken;
+}>;
+
+/** En reader-læsning omsat til {værdi, fejlbesked}: en rød feltfejl skjuler værdien (§1.5/§1.6). */
+type ReadField<T> = Readonly<{ value: T | undefined; errorMessage: string | undefined }>;
+
+const readField = <T>(read: ReadFieldResult<T | undefined>): ReadField<T> =>
+  read.status === 'error'
+    ? { value: undefined, errorMessage: read.issue.message }
+    : { value: read.value, errorMessage: undefined };
+
+const asFieldError = (errorMessage: string | undefined): { message: string } | undefined =>
+  errorMessage === undefined ? undefined : { message: errorMessage };
+
+/**
+ * Bygger den kanoniske reader-afledte projektion for Forsørgertab. Feltværdier og røde feltfejl læses gennem
+ * readeren og føres ind i den (uændrede) snapshot-beregning, som ejer den dependency-specifikke panel-/gate-logik
+ * (§1.10). Download-gaten afledes af `snapshot.pdfGate` (jf. `forsoergertabDownloadGate`).
+ */
+export const buildForsoergertabReaderProjection = (reader: InputReader): ForsoergertabReaderProjection => {
+  const beregningsdato = readField(reader.read(beregningsdatoRef));
+  const virkningsdato = readField(reader.read(virkningsdatoRef));
+  const efterladteFodselsdato = readField(reader.read(efterladteFodselsdatoRef));
+  const koen = readField(reader.read(koenRef));
+  const tilkendtForPeriodeAar = readField(reader.read(tilkendtForPeriodeAarRef));
+  const aslAarsloen = readField(reader.read(aslAarsloenRef));
+  const ealAarsloen = readField(reader.read(ealAarsloenRef));
+  const skadedato = readField(reader.read(skadedatoRef));
+  const skadelidteFodselsdato = readField(reader.read(skadelidteFodselsdatoRef));
+
+  const hadReaderFieldError = [
+    beregningsdato, virkningsdato, efterladteFodselsdato, koen, tilkendtForPeriodeAar,
+    aslAarsloen, ealAarsloen, skadedato, skadelidteFodselsdato,
+  ].some((read) => read.errorMessage !== undefined);
+
+  // ASL-årslønnens felt-placerede domæneregel (slice-lokal, jf. hoved-noten). Kun relevant, når ASL-årslønnen
+  // ikke allerede har en rød feltfejl (readeren har da skjult værdien, og bounds-fejlen blokerer allerede).
+  const aslRuleMessage = aslAarsloen.errorMessage === undefined
+    ? (validateAslAarsloenDivisibleBy1000(amountValueToNumber(aslAarsloen.value))
+      ?? validateAslAarsloenBySkadesaarMax(amountValueToNumber(aslAarsloen.value), skadedato.value))
+    : undefined;
+
+  const snapshot = computeForsoergertabSnapshot({
+    values: {
+      beregningsdato: beregningsdato.value,
+      virkningsdato: virkningsdato.value,
+      efterladteFodselsdato: efterladteFodselsdato.value,
+      koen: koen.value,
+      tilkendtForPeriodeAar: tilkendtForPeriodeAar.value,
+    },
+    faellesAarsloen: { aslAarsloen: aslAarsloen.value, ealAarsloen: ealAarsloen.value },
+    stamdata: {
+      // Snapshottet aftager kun de to datoer; de øvrige stamdata-felter er irrelevante for beregningen.
+      skadedato: skadedato.value,
+      skadelidteFodselsdato: skadelidteFodselsdato.value,
+      journalnr: '',
+      advokat: '',
+      sagsbehandler: '',
+    },
+    // De røde feltfejl ejes nu af readeren og føres ind her, så snapshottets dependency-specifikke `canShow*` og
+    // `pdfGate` blokerer PRÆCIS som legacy (§1.10): fx blokerer en virkningsdato-fejl ASL + download, men bevarer
+    // EAL-panelet. ASL-årsløns-reglen tilføjes på aslAarsloen (kombineret med en evt. reader-feltfejl; en aktiv
+    // reader-fejl har forrang, da den allerede skjuler værdien).
+    fieldErrors: {
+      forsoergertab: {
+        beregningsdato: asFieldError(beregningsdato.errorMessage),
+        virkningsdato: asFieldError(virkningsdato.errorMessage),
+        efterladteFodselsdato: asFieldError(efterladteFodselsdato.errorMessage),
+        koen: asFieldError(koen.errorMessage),
+        tilkendtForPeriodeAar: asFieldError(tilkendtForPeriodeAar.errorMessage),
+      },
+      faellesAarsloen: {
+        aslAarsloen: asFieldError(aslAarsloen.errorMessage ?? aslRuleMessage),
+        ealAarsloen: asFieldError(ealAarsloen.errorMessage),
+      },
+      stamdata: {
+        skadedato: asFieldError(skadedato.errorMessage),
+        skadelidteFodselsdato: asFieldError(skadelidteFodselsdato.errorMessage),
+      },
+    },
+  });
+
+  return { snapshot, hadReaderFieldError, sourceToken: reader.sourceToken };
+};

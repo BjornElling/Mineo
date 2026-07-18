@@ -149,6 +149,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/forsoergertab-snapshot-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts',
+      'src/__tests__/domain/forsoergertab/forsoergertabReaderProjection.test.ts',
+      'src/__tests__/components/pages/Forsoergertab.greenfield.integration.test.tsx',
     ],
   },
   {
