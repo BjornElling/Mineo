@@ -56,7 +56,7 @@ export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
     id: 'erhvervsevnetab',
     module: 'src/domain/erhvervsevnetab/eetSnapshot.ts',
     symbol: 'computeEetSnapshot',
-    consumers: ['src/components/pages/Erhvervsevnetab.tsx'],
+    consumers: ['src/domain/erhvervsevnetab/erhvervsevnetabReaderProjection.ts'],
   },
   {
     // Standalone-appen genbruger bevidst samme beregningsflade som hovedappen.

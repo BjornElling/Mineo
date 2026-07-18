@@ -15,16 +15,11 @@ form-surface og det strukturelle produktkatalog er etableret. Stamdata, Satser, 
 standalone MinProcesrente), Varige mén, Forsørgertab er fuldt migrerede formularsurfaces; Årsløn omfatter den første
 greenfield grid-tabel (StandardLoenTable) via en grid-celle-surface, der bro-forbinder den ene editor-motor til
 grid-navigationens celleeditor-registry, og Renteberegning omfatter den anden (BeregnetRenteTable). Erhvervsevnetab
-(§2.4 trin 7) er påbegyndt foundation-first: den ene kanoniske reader-projektion `buildErhvervsevnetabReaderProjection`
-(ren funktion over `InputReader`, kører `computeEetSnapshot` uændret på reader-læste værdier for alle fem faner, ejer
-`aslAfgoerelser`-rekonstruktionen række-for-række og de tre felt-placerede domæneregler + forlig-blokeringen §1.10)
-er landet med nul produktionscallsites. Oven på den er den rene, per-fane download-gate `erhvervsevnetabDownloadGate`
-(`evaluateErhvervsevnetabDownloadGates`) landet — den oversætter hver af de fire dokumentfaners
-`hasBlockingErrors`/`computation` til ét `DocumentDownloadGateResult` (field-error vs missing-fields vs no-result vs
-tilladt) med §1.10-uafhængighed pr. fane; field/missing-klassifikationen ejes af det ene sande `isEetFieldErrorIssueId`
-i `eetFormatUtils`. Gaten har fortsat nul produktionscallsites (kun forbrugt af sin test, som den fremtidige
-tab-cutover wirer). Selve fem-tab-/tabel-cutoveren af `Erhvervsevnetab.tsx` udestår. Erstatningsopgørelsens
-delte brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
+(§2.4 trin 7) er fuldt migreret: alle fem faner og ASL-afgørelsestabellen bruger greenfield-editorerne, den ene
+kanoniske reader-projektion `buildErhvervsevnetabReaderProjection` ejer snapshot, rækkerekonstruktion og feltplacerede
+domæneregler, og de fire dokumentfaner bruger en fælles fail-closed download-gate med friskhedskontrol helt frem til
+filskrivning. Erstatningsopgørelsens delte brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen
+migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
 ingen runtime-fallback. Reviewet rettede desuden replacement/no-op-matricen, synkron editorregistrering,
 dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede
 tomværdier og rå section-bypass i Stamdata/Satser. Det efterfølgende review af Årsløn-kontrolpunktet rettede faste
@@ -38,7 +33,7 @@ Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og 
 Erhvervsevnetab, dependency-gating i differencekravet, ASL-rækkefejl fra readeren, fail-closed dokumentgates,
 multiline-Enter, rejected-only-rækkesletning, destruktiv reset uden forudgående settle og stale async downloads.
 Hovedshellens atomiske navigation-/undo-cutover, fuld lokationsbaseret fokusrestore og de resterende
-Erhvervsevnetab-/Erstatningsopgørelse-callsites hører fortsat til de udestående cutovers; shellen må ikke skifte
+Erstatningsopgørelse-callsites hører fortsat til de udestående cutovers; shellen må ikke skifte
 koordinator, før både legacy- og greenfield-editorer kan dækkes af den samme slutmodel.
 
 Den tidligere
@@ -47,8 +42,8 @@ forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakte
 bindende migrationsplan er §8 (Fase 0–7). Fase 0 har rebaset kontrakterne og etableret de midlertidige, maskinverificerede
 inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie inputkerne i `src/inputCore/` med
 XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
-`ready | blocked`-projektioner. Næste arbejdspakke er fortsat Fase 2's atomiske runtime- og inputoverflade-cutover fra
-Årsløn/Fælles årsløn og frem; den delvise hovedapp må ikke repareres med legacy-providers.
+`ready | blocked`-projektioner. Næste arbejdspakke er Fase 2's atomiske inputoverflade-cutover af
+Erstatningsopgørelse; den delvise hovedapp må ikke repareres med legacy-providers.
 
 Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
@@ -918,19 +913,20 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 
 ### Fase 2 — Atomisk runtime- og inputoverflade-cutover
 
-**Status:** Delvist gennemført og kritisk reviewet 2026-07-17 (internt kontrolpunkt, ikke faseafslutning). Den slanke
+**Status:** Delvist gennemført og kritisk reviewet 2026-07-18 (internt kontrolpunkt, ikke faseafslutning). Den slanke
 runtime, current-only envelope, verificerede command-runner, replacement-generation, aktiv-editor-registry, kritiske
 handlingsbarriere, fælles persisted editor og form-surface er bygget. Produktkataloget dækker strukturelt alle 239
 felter og 16 collections og verificerer nu også schema-defaultede tomværdier; denne test beviser endnu ikke relevans,
-validators, row factories eller editorlokationer for de endnu ikke migrerede slices. Stamdata, Satser og Årsløn er
-migreret som surfaces; Årsløns top-level StandardLoenTable er første migrerede grid. Satser og Årsløn har tidlige
+validators, row factories eller editorlokationer for de endnu ikke migrerede slices. Stamdata, Satser, Årsløn,
+Renteberegning, Varige mén, Forsørgertab og Erhvervsevnetab er migreret som surfaces; StandardLoenTable,
+BeregnetRenteTable og EetAslAfgoerelserTable er migrerede grids. Satser og Årsløn har tidlige
 typed projektioner og dokumentpreflight, fordi aktive rå-section-/stale-render-bypasses ville være værre end at flytte
 disse consumerdele frem; det markerer ikke fase 3 eller 5 som gennemført.
 
 Reviewet fjernede hovedappens parallelle `FormPersistenceProvider`, den ubrugte greenfield-runtime i standalone,
 legacy-PWA-load fra Mineos midlertidige entry og singleton-bypass fra React-consumers. Mineo bruger derfor kun den nye
-runtime, selv om de resterende legacy-sider/shell ikke fungerer i mellemtilstanden; standalone bruger kun legacy,
-indtil Renteberegning flyttes atomisk. Udestår: alle resterende formular- og tabelcallsites, de faktiske
+runtime, selv om de resterende legacy-sider/shell ikke fungerer i mellemtilstanden; standalone Renteberegning er
+migreret atomisk. Udestår: Erstatningsopgørelsens formular- og tabelcallsites, de faktiske
 relevans-/validatorregler, collectionadaptere, location-completeness samt sletning af de legacy-bindings og
 runtimeflader, hvis ansvar er overført. Startup-notice, global undo/redo-fokusnavigation og case-replacement-porten
 færdiggøres sammen med deres respektive fase-4/shell-cutovers; de må ikke erstattes af parallel legacylogik. Fuld

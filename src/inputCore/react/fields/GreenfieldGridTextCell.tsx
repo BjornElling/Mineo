@@ -21,6 +21,13 @@ export type GreenfieldGridTextCellProps<T, TEntity = unknown> = Readonly<{
   cell: CellSpec<T, TEntity>;
   /** Familiespecifikt tegnfilter i åben editor (fx `filterIntegerKeyDown`). */
   keyFilter?: GridCellKeyFilter;
+  /**
+   * En ekstern rød fejl på cellen, som IKKE stammer fra descriptorens egen feltvalidator — fx en kryds-række-
+   * domæneregel (dublet-datoer, identiske afgørelser), der afhænger af hele collectionen. Descriptorens eget
+   * issue (format/bounds/rule) har forrang (§1.8: den mest direkte fejl vises), så denne bruges kun, når cellen
+   * ikke allerede har et descriptor-issue.
+   */
+  externalErrorMessage?: string;
   placeholder?: string;
   textAlign?: 'center' | 'right' | 'left';
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
@@ -41,6 +48,7 @@ const GreenfieldGridTextCellInner = <T, TEntity>(
     gridCell,
     cell,
     keyFilter,
+    externalErrorMessage,
     placeholder,
     textAlign = 'center',
     inputMode = 'text',
@@ -61,9 +69,11 @@ const GreenfieldGridTextCellInner = <T, TEntity>(
     [inputRef, surface.inputElementRef]
   );
 
-  const hasError = surface.issue !== undefined;
-  const showError = hasError;
-  const errorMessage = surface.issue?.message ?? '';
+  // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun, når cellen ikke selv har et
+  // format-/bounds-/rule-issue (§1.8: højst én aktiv rød fejl + én tooltip; den mest direkte vælges).
+  const resolvedErrorMessage = surface.issue?.message ?? externalErrorMessage;
+  const showError = resolvedErrorMessage !== undefined;
+  const errorMessage = resolvedErrorMessage ?? '';
 
   const isDraftEmpty = surface.displayText.trim() === '';
   const resolvedEndAdornment = typeof endAdornment === 'function'

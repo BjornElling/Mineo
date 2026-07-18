@@ -1,44 +1,57 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { StamdataValues } from '../../../schemas/formSchemas';
-import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { downloadEfterEalDokument } from '../../../document/service/documentService';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import { useShakeFlag } from '../../../hooks/useShakeFlag';
-import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
+import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { evaluateEetFaneDownloadGate } from '../../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
+import type { DocumentDownloadGateResult } from '../../../document/layout/documentGateTypes';
+import { useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
+import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
+import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;
-  stamdata: StamdataValues | null;
-  snapshot: EetSnapshot['efterEal'];
+  projection: ErhvervsevnetabReaderProjection;
+  downloadGate: DocumentDownloadGateResult;
 }>;
 
 
-const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => {
-  const { settings } = useAppSettings();
-  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useShakeFlag();
+
+const EetEfterEalTab = ({ onGoToEetOplysninger, projection, downloadGate }: Props) => {
+  const criticalActions = useCriticalInputActions();
+  const snapshot = projection.snapshot.efterEal;
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
 
   const handlePdfDownload = React.useCallback(async () => {
-    if (!computation) {
-      triggerDownloadShake();
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
+    const source = captureProductionEvaluationSource();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    const freshProjection = buildErhvervsevnetabReaderProjection(source.evaluation.reader);
+    const freshSnapshot = freshProjection.snapshot.efterEal;
+    const freshGate = evaluateEetFaneDownloadGate('efterEal', freshSnapshot);
+    const freshStamdata = freshProjection.documentStamdata;
+    if (!freshGate.canDownload || freshSnapshot.computation === null || freshStamdata.status !== 'ready') return;
     await downloadEfterEalDokument({
-      computation,
-      settings,
-      persistedStamdata: stamdata,
+      computation: freshSnapshot.computation,
+      settings: source.settings,
+      persistedStamdata: freshStamdata.value,
+      isSourceCurrent: source.isSourceCurrent,
     });
-  }, [computation, settings, stamdata, triggerDownloadShake]);
+  }, [criticalActions]);
 
   const aldersreduktionFormula = computation
     ? buildAldersreduktionFormelTekst(computation.alderVedSkade)
@@ -66,7 +79,11 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <DocumentDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+                <DocumentDownloadButton
+                  onClick={handlePdfDownload}
+                  disabled={!downloadGate.canDownload}
+                  disabledReason={downloadGate.reasons[0]?.message}
+                />
               </Box>
             </Box>
           </ContentBox>

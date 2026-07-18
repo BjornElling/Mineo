@@ -43,6 +43,12 @@ export type GreenfieldNumericTextFieldProps<T> = Readonly<{
     | ((info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode);
   /** `inputMode` til det virtuelle tastatur (default `numeric`; beløb/procent bruger `decimal`). */
   inputMode?: 'numeric' | 'decimal';
+  /**
+   * En ekstern rød fejl, som IKKE stammer fra descriptorens egen feltvalidator — fx en tværfelt-domæneregel
+   * (forlig "begge udfyldt"), der afhænger af et andet felt. Descriptorens eget issue har forrang (§1.8), så
+   * denne bruges kun, når feltet ikke selv har et format-/bounds-/rule-issue.
+   */
+  externalError?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -62,6 +68,7 @@ const GreenfieldNumericTextFieldInner = <T,>(
     tabularNums,
     endAdornment,
     inputMode = 'numeric',
+    externalError,
     inputRef,
     sx,
   }: GreenfieldNumericTextFieldProps<T>,
@@ -85,7 +92,9 @@ const GreenfieldNumericTextFieldInner = <T,>(
     [inputRef, surfaceInputRef]
   );
 
-  const hasError = surface.issue !== undefined;
+  // Descriptorens eget issue har forrang; en ekstern tværfelt-fejl vises kun ellers (§1.8).
+  const resolvedError = surface.issue?.message ?? externalError;
+  const hasError = resolvedError !== undefined;
   const resolvedEndAdornment = typeof endAdornment === 'function'
     ? (endAdornment as (info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode)(
         { isDraftEmpty: surface.displayText.trim() === '', value: surface.value }
@@ -109,7 +118,7 @@ const GreenfieldNumericTextFieldInner = <T,>(
       width={width}
       disabled={disabled}
       error={hasError}
-      helperText={surface.issue?.message ?? ''}
+      helperText={resolvedError ?? ''}
       {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
       htmlInputAttributes={{
         inputMode,

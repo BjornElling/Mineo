@@ -33,13 +33,15 @@ describe('useTableSort', () => {
 
     act(() => {
       result.current.handleHeaderClick('value');
+      // Rækkefølgen skal være persisteret i selve klik-eventet; en effect ville efterlade save/download med den
+      // gamle orden indtil næste task.
+      expect(onSortedRowsChange).toHaveBeenCalledWith([
+        { id: 'b', value: 1 },
+        { id: 'a', value: 2 },
+      ]);
     });
 
     expect(result.current.sortedRows.map((row) => row.id)).toEqual(['b', 'a']);
-    expect(onSortedRowsChange).toHaveBeenCalledWith([
-      { id: 'b', value: 1 },
-      { id: 'a', value: 2 },
-    ]);
   });
 
   it('kalder ikke onSortedRowsChange ved initial render (ingen bruger-sort)', () => {

@@ -1,135 +1,59 @@
 import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
-import StyledDateField from '../../inputs/StyledDateField';
-import StyledPercentField from '../../inputs/StyledPercentField';
-import StyledDropdown from '../../inputs/StyledDropdown';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import ContentBox from '../../layout/ContentBox';
 import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
-import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
-import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
-import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
+import GreenfieldAmountField from '../../../inputCore/react/fields/GreenfieldAmountField';
+import GreenfieldChoiceField from '../../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldPercentField from '../../../inputCore/react/fields/GreenfieldPercentField';
+import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import {
-  koenEnum,
-  type ErhvervsevnetabComposedValues,
-  type ErhvervsevnetabValues,
-} from '../../../schemas/formSchemas';
-import { coerceToISODateString } from '../../../types/branded';
+  erhvervsevnetabBeregningsdatoField,
+  erhvervsevnetabEalEetPctField,
+  erhvervsevnetabKoenField,
+} from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
+import {
+  faellesAarsloenAslAarsloenField,
+  faellesAarsloenEalAarsloenField,
+} from '../../../inputCore/catalog/faellesAarsloenDescriptors';
+import type { Koen } from '../../../schemas/formSchemas';
 import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
-import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import type { CommitHandler } from '../../../types/fieldEvents';
-import {
-  validatePercentDivisibleBy5FromValue,
-} from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
-import AarsloenAmountFieldRow from '../../inputs/AarsloenAmountFieldRow';
-import { type CommitOriginOptions, type SetFieldValue, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import { opregulerMedAkkumuleretReguleringssats } from '../../../domain/satser/opreguleringsmotorer';
-import { reguleringssats } from '../../../data/lovbestemteRates';
+import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 
-export type EetOplysningerTabProps = {
-  values: ErhvervsevnetabComposedValues;
-  setValues: SetValuesUpdater<ErhvervsevnetabValues>;
-  setFieldValue: SetFieldValue<ErhvervsevnetabValues>;
-  handleAslAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['aslAarsloen']>;
-  handleEalAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['ealAarsloen']>;
-  skadedato: string | undefined;
-};
+export type EetOplysningerTabProps = Readonly<{
+  projection: ErhvervsevnetabReaderProjection;
+}>;
 
-const EetOplysningerTab = ({
-  values,
-  setValues,
-  setFieldValue,
-  handleAslAarsloenChange,
-  handleEalAarsloenChange,
-  skadedato,
-}: EetOplysningerTabProps) => {
-  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
-  const reportAslAarsloenInputError = useFormFieldErrorReporter('faellesAarsloen', 'aslAarsloen', {
-    severity: 'error',
-    source: 'input',
-  });
-  const reportEalAarsloenInputError = useFormFieldErrorReporter('faellesAarsloen', 'ealAarsloen', {
-    severity: 'error',
-    source: 'input',
-  });
-  // Køn-reglen (køn påkrævet ved beregning/kapitalisering før 1. marts 2015) rapporteres til den
-  // centrale fejl-model, så Gem blokeres på linje med Erstatningsopgørelse og forlig-reglerne. Tidligere
-  // viste fejlen kun en lokal rød ring og blokerede ikke save — samme inkonsistens som forlig-fixet rettede.
-  const reportKoenRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'koen', {
-    severity: 'error',
-    source: 'rule',
-  });
-  // Binder de to felters ugyldige rå draft til invalidDrafts-kanalen (source:'input'), så et ikke-
-  // committbart input overlever F5, blokerer Gem og kan undo/redo'es. Coeksisterer med de eksisterende
-  // domæne-fejl på `error`/`helperText`-props (anden source; ekstern fejl har visuel forrang pr. felt-mønster).
-  const reportBeregningsdatoInputError = useFormFieldErrorReporter('erhvervsevnetab', 'beregningsdato');
-  const reportEalEetPctInputError = useFormFieldErrorReporter('erhvervsevnetab', 'ealEetPct');
+const beregningsdatoRef = erhvervsevnetabBeregningsdatoField.bind();
+const koenRef = erhvervsevnetabKoenField.bind();
+const ealEetPctRef = erhvervsevnetabEalEetPctField.bind();
+const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
+const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
 
+const LOCATIONS = {
+  beregningsdato: { locationId: 'erhvervsevnetab:oplysninger:beregningsdato' },
+  koen: { locationId: 'erhvervsevnetab:oplysninger:koen' },
+  ealEetPct: { locationId: 'erhvervsevnetab:oplysninger:ealEetPct' },
+  aslAarsloen: { locationId: 'erhvervsevnetab:oplysninger:aslAarsloen' },
+  ealAarsloen: { locationId: 'erhvervsevnetab:oplysninger:ealAarsloen' },
+} as const;
+
+const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
+  const { values, skadedato } = projection;
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
+  const beregningsdatoController = useFieldEditor(beregningsdatoRef, LOCATIONS.beregningsdato);
 
-  const skadedatoMin = React.useMemo(() => {
-    const iso = coerceToISODateString(skadedato);
-    return iso ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
-  }, [skadedato]);
-  const visKoenValg = React.useMemo(() => {
-    const iso = coerceToISODateString(skadedato);
-    if (!iso) return false;
-    return iso < SKAERING_2015_03_01;
-  }, [skadedato]);
-  const hasKapDatoFoer2015 = React.useMemo(() => {
-    return values.aslAfgoerelser.some((row) => {
-      const kapDato = coerceToISODateString(row.kapDato);
-      return kapDato !== undefined && kapDato < SKAERING_2015_03_01;
-    });
-  }, [values.aslAfgoerelser]);
-  const hasBeregningsdatoFoer2015 = React.useMemo(() => {
-    const beregningsdato = coerceToISODateString(values.beregningsdato);
-    return beregningsdato !== undefined && beregningsdato < SKAERING_2015_03_01;
-  }, [values.beregningsdato]);
-  const visKoenFelt = visKoenValg || hasKapDatoFoer2015 || hasBeregningsdatoFoer2015;
-
-  const ealEetPctError = React.useMemo(
-    () => validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %'),
-    [values.ealEetPct]
-  );
-  const ealReguleringssatsError = React.useMemo(() => {
-    const skadedatoIso = coerceToISODateString(skadedato);
-    const beregningsdatoIso = coerceToISODateString(values.beregningsdato);
-    if (!skadedatoIso || !beregningsdatoIso) return undefined;
-    const skadesaar = Number.parseInt(skadedatoIso.slice(0, 4), 10);
-    const beregningsaar = Number.parseInt(beregningsdatoIso.slice(0, 4), 10);
-    if (!Number.isInteger(skadesaar) || !Number.isInteger(beregningsaar)) return undefined;
-    const { manglendeAar } = opregulerMedAkkumuleretReguleringssats(
-      { kildeAar: skadesaar, maalAar: beregningsaar },
-      reguleringssats
+  const visKoenFelt = React.useMemo(() => {
+    const hasKapDatoFoer2015 = values.aslAfgoerelser.some(
+      (row) => row.kapDato !== undefined && row.kapDato < SKAERING_2015_03_01
     );
-    if (manglendeAar.length === 0) return undefined;
-    return `EAL-beregningen kan ikke gennemføres, fordi der mangler reguleringssats for ${manglendeAar.join(', ')}.`;
-  }, [skadedato, values.beregningsdato]);
-
-  const koenError = React.useMemo(() => {
-    if (values.koen) return undefined;
-    if (hasKapDatoFoer2015) {
-      return 'Ved kapitalisering før 1. marts 2015 skal køn angives.';
-    }
-    if (hasBeregningsdatoFoer2015) {
-      return 'Ved beregning før 1. marts 2015 skal køn angives.';
-    }
-    return undefined;
-  }, [hasBeregningsdatoFoer2015, hasKapDatoFoer2015, values.koen]);
-
-  // Samme committed-værdier driver både den lokale røde ring (helperText nedenfor) og den centrale
-  // save-gating. Reporteren rydder selv sin fejl, når reglen ikke længere er overtrådt (koenError === undefined).
-  React.useEffect(() => {
-    reportKoenRuleError(koenError);
-  }, [koenError, reportKoenRuleError]);
-
-  const handleAslAfgoerelserChange = React.useCallback(
-    (rows: ErhvervsevnetabValues['aslAfgoerelser'], origin?: CommitOriginOptions) => {
-      return setValues((prev) => ({ ...prev, aslAfgoerelser: rows }), origin);
-    },
-    [setValues]
-  );
+    const hasBeregningsdatoFoer2015 =
+      values.beregningsdato !== undefined && values.beregningsdato < SKAERING_2015_03_01;
+    return (skadedato !== undefined && skadedato < SKAERING_2015_03_01)
+      || hasKapDatoFoer2015
+      || hasBeregningsdatoFoer2015;
+  }, [skadedato, values.aslAfgoerelser, values.beregningsdato]);
 
   return (
     <>
@@ -140,21 +64,16 @@ const EetOplysningerTab = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledDropdown
+              <GreenfieldChoiceField<Koen>
+                field={koenRef}
+                location={LOCATIONS.koen}
                 name="koen"
-                value={values.koen}
-                onChange={(event) => {
-                  const parsed = koenEnum.safeParse(event.target.value);
-                  return setFieldValue('koen', parsed.success ? parsed.data : undefined);
-                }}
                 placeholder="Vælg køn"
                 width={130}
-                error={Boolean(koenError)}
-                helperText={koenError ?? ''}
               >
                 <MenuItem value="Mand">Mand</MenuItem>
                 <MenuItem value="Kvinde">Kvinde</MenuItem>
-              </StyledDropdown>
+              </GreenfieldChoiceField>
             </Box>
           </Box>
         )}
@@ -162,21 +81,15 @@ const EetOplysningerTab = ({
         <Box className="row--label-right-hover">
           <Typography className="row--text">Beregningsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-            <StyledDateField
+            <GreenfieldDateField
+              field={beregningsdatoRef}
+              location={LOCATIONS.beregningsdato}
               name="beregningsdato"
-              value={values.beregningsdato || undefined}
-              onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
-              minDate={skadedatoMin}
-              maxDate={dateRanges_erhvervsevnetab.beregningsdato.max}
-              specialRangeErrors={{ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }}
               inputRef={beregningsdatoInputRef}
-              onFieldError={reportBeregningsdatoInputError}
-              error={Boolean(ealReguleringssatsError)}
-              helperText={ealReguleringssatsError ?? ''}
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                return setFieldValue('beregningsdato', today);
+                beregningsdatoController.commitImmediate(today);
               }}
               focusRef={beregningsdatoInputRef}
             />
@@ -186,65 +99,46 @@ const EetOplysningerTab = ({
 
       <ContentBox className="content-box" data-section-id="eet-oplysninger-asl">
         <Typography className="section-header">Arbejdsskadesikringsloven</Typography>
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Årsløn</Typography>
+          <Box className="row--label-right-hover__content">
+            <GreenfieldAmountField
+              field={aslAarsloenRef}
+              location={LOCATIONS.aslAarsloen}
+              name="aslAarsloen"
+            />
+          </Box>
+        </Box>
 
-        <AarsloenAmountFieldRow
-          label="Årsløn"
-          name="aslAarsloen"
-          value={values.aslAarsloen}
-          onCommit={handleAslAarsloenChange}
-          errorMessage={faellesAarsloenFieldErrors.aslAarsloen?.message}
-          onFieldError={reportAslAarsloenInputError}
+        <Typography className="row--subheading" sx={{ mt: 2 }}>Afgørelser</Typography>
+        <EetAslAfgoerelserTable
+          committedRows={projection.aslAfgoerelserCommittedRows}
+          validationMessageByCell={projection.aslAfgoerelserValidationMessageByCell}
+          saveOrderPath="erhvervsevnetab.aslAfgoerelser"
         />
-
-        <Typography className="row--subheading" sx={{ mt: 2 }}>
-          Afgørelser
-        </Typography>
-
-        <CellInvalidDraftScopeProvider pageKey="erhvervsevnetab" tableId={CELL_TABLE_IDS.eetAslAfgoerelser}>
-          <EetAslAfgoerelserTable
-            tableData={values.aslAfgoerelser}
-            skadedato={coerceToISODateString(skadedato)}
-            skadedatoMin={skadedatoMin}
-            beregningsdato={coerceToISODateString(values.beregningsdato)}
-            skadelidteFodselsdato={coerceToISODateString(values.skadelidteFodselsdato)}
-            onTableDataChange={handleAslAfgoerelserChange}
-            saveOrderPath="erhvervsevnetab.aslAfgoerelser"
-          />
-        </CellInvalidDraftScopeProvider>
       </ContentBox>
 
       <ContentBox className="content-box" data-section-id="eet-oplysninger-eal">
-        <Typography className="section-header">
-          Erstatningsansvarsloven
-        </Typography>
-
-        <AarsloenAmountFieldRow
-          label="Årsløn (hvis forskellig fra ASL)"
-          name="ealAarsloen"
-          value={values.ealAarsloen}
-          onCommit={handleEalAarsloenChange}
-          errorMessage={faellesAarsloenFieldErrors.ealAarsloen?.message}
-          onFieldError={reportEalAarsloenInputError}
-        />
+        <Typography className="section-header">Erstatningsansvarsloven</Typography>
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Årsløn (hvis forskellig fra ASL)</Typography>
+          <Box className="row--label-right-hover__content">
+            <GreenfieldAmountField
+              field={ealAarsloenRef}
+              location={LOCATIONS.ealAarsloen}
+              name="ealAarsloen"
+            />
+          </Box>
+        </Box>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">EET % (hvis afviger fra ASL)</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledPercentField
+            <GreenfieldPercentField
+              field={ealEetPctRef}
+              location={LOCATIONS.ealEetPct}
               name="ealEetPct"
-              value={values.ealEetPct}
-              onCommit={(event) => {
-                const nextValue = event.target.value === 0 ? undefined : event.target.value;
-                return setFieldValue('ealEetPct', nextValue);
-              }}
-              allowDecimals={false}
-              minValue={0}
-              maxValue={100}
-              useDefaultPercentRange={false}
               placeholder="0"
-              onFieldError={reportEalEetPctInputError}
-              error={Boolean(ealEetPctError)}
-              helperText={ealEetPctError ?? ''}
             />
           </Box>
         </Box>
@@ -252,25 +146,16 @@ const EetOplysningerTab = ({
 
       <ContentBox className="content-box" data-section-id="eet-oplysninger-bemaerk">
         <Typography className="section-header">Bemærk</Typography>
-
         <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            For skadelidte i fleksjob skal altid beregnes ny erhvervsevnetabsprocent efter EAL.
-          </Typography>
+          <Typography className="row--text">For skadelidte i fleksjob skal altid beregnes ny erhvervsevnetabsprocent efter EAL.</Typography>
           <Box className="row--label-right-hover__content" />
         </Box>
-
         <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Det er ikke muligt for programmet at tage højde for tilskadekomstpension til tidligere tjenestemænd.
-          </Typography>
+          <Typography className="row--text">Det er ikke muligt for programmet at tage højde for tilskadekomstpension til tidligere tjenestemænd.</Typography>
           <Box className="row--label-right-hover__content" />
         </Box>
-
         <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Programmet kan ikke foretage beregninger efter den grønlandske arbejdsskadesikringslov.
-          </Typography>
+          <Typography className="row--text">Programmet kan ikke foretage beregninger efter den grønlandske arbejdsskadesikringslov.</Typography>
           <Box className="row--label-right-hover__content" />
         </Box>
       </ContentBox>

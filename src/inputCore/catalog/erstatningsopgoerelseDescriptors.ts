@@ -21,7 +21,12 @@ import {
   type SygeferiegodtgoerelseAnsaettelsesforholdRow,
   type TafPeriodeRow,
 } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
-import { CURRENT_YEAR, MIN_SVIESMERTE_YEAR } from '../../config/dateRanges';
+import {
+  computeSkadedatoMinRule,
+  CURRENT_YEAR,
+  dateRanges_erstatningsopgoerelse,
+  MIN_SVIESMERTE_YEAR,
+} from '../../config/dateRanges';
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
 import type { ISODateString } from '../../types/branded';
 import {
@@ -56,6 +61,10 @@ import {
   percentBoundsValidator,
   yearBoundsValidator,
 } from './boundsValidators';
+import { stamdataSkadedatoField, stamdataSkadestypeField } from './stamdataDescriptors';
+import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
+import { evaluateForligsgrad } from '../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
 // Greenfield produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
 // bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter. Lønindkomstens/EO-angivet løns
@@ -176,7 +185,7 @@ export const eoRevideretOpgoerelseField = requiredJaNejField('revideretOpgoerels
 export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', 'Nej');
 export const eoRegulerOffentligeYdelserField = requiredJaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser', 'Ja');
 
-export const eoForligAnsvarsgradProcentField = defineStructuralField<number | undefined>({
+export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined> = defineStructuralField<number | undefined>({
   id: 'eo.forligAnsvarsgradProcent',
   template: { section: S, path: [], field: 'forligAnsvarsgradProcent' },
   codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: true }),
@@ -186,14 +195,21 @@ export const eoForligAnsvarsgradProcentField = defineStructuralField<number | un
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [percentBoundsValidator('eo.forligAnsvarsgradProcent.bounds', {
-    minValue: 0,
+    minValue: 1,
     maxValue: 100,
     allowDecimals: true,
-  })],
+  }), (value, _field, view) => {
+    const message = evaluateForligAnsvarsgradRules({
+      forligAnsvarsgradProcent: value,
+      forligAnsvarsgradBroek: view.readCanonical(eoForligAnsvarsgradBroekField.bind()),
+      forligDato: view.readCanonical(eoForligDatoField.bind()),
+    }).beggeUdfyldtFejl;
+    return message === undefined ? undefined : { reason: 'rule', code: 'eo.forlig.beggeUdfyldt', message };
+  }],
 });
 
 // Brøk-controllen bruges med standard-props; schematypen forbliver optionalString (tom brøk = undefined).
-export const eoForligAnsvarsgradBroekField = defineStructuralField<string | undefined>({
+export const eoForligAnsvarsgradBroekField: FieldDescriptor<string | undefined> = defineStructuralField<string | undefined>({
   id: 'eo.forligAnsvarsgradBroek',
   template: { section: S, path: [], field: 'forligAnsvarsgradBroek' },
   codec: createFractionFieldCodec({
@@ -208,9 +224,66 @@ export const eoForligAnsvarsgradBroekField = defineStructuralField<string | unde
   label: 'Forlig ansvarsgrad (brøk)',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  validators: [(value, _field, view) => {
+    const forligAnsvarsgradProcent = view.readCanonical(eoForligAnsvarsgradProcentField.bind());
+    const rulesMessage = evaluateForligAnsvarsgradRules({
+      forligAnsvarsgradProcent,
+      forligAnsvarsgradBroek: value,
+      forligDato: view.readCanonical(eoForligDatoField.bind()),
+    }).beggeUdfyldtFejl;
+    if (rulesMessage !== undefined) {
+      return { reason: 'rule', code: 'eo.forlig.beggeUdfyldt', message: rulesMessage };
+    }
+    const evaluation = evaluateForligsgrad({ forligAnsvarsgradProcent, forligAnsvarsgradBroek: value });
+    return evaluation.status === 'invalid' && evaluation.reason === 'broek'
+      ? { reason: 'rule', code: 'eo.forlig.broek', message: evaluation.message }
+      : undefined;
+  }],
 });
 
-export const eoForligDatoField = dateField('forligDato', 'Forligsdato');
+export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = defineStructuralField<ISODateString | undefined>({
+  id: 'eo.forligDato',
+  template: { section: S, path: [], field: 'forligDato' },
+  codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
+  emptyValue: undefined,
+  isEmpty: isUndefined,
+  label: 'Forligsdato',
+  controlKind: 'text',
+  createEmptySection: createEmptyErstatningsopgoerelseSection,
+  validators: [(value, _field, view) => {
+    if (value === undefined) return undefined;
+    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+    const skadestype = view.readCanonical(stamdataSkadestypeField.bind());
+    const minRule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
+      erErhvervssygdom: skadestype === 'Erhvervssygdom',
+      fallbackMin: dateRanges_erstatningsopgoerelse.forligDato.fallbackMin,
+    });
+    const maxDate = dateRanges_erstatningsopgoerelse.forligDato.max;
+    if (value < minRule.minDate || value > maxDate) {
+      return {
+        reason: 'bounds',
+        code: 'eo.forligDato.bounds',
+        message: resolveDateRangeErrorMessage({
+          iso: value,
+          minDate: minRule.minDate,
+          maxDate,
+          special: {
+            minBoundKind: minRule.minBoundKind,
+            minBoundReferenceISO: minRule.minBoundReferenceISO,
+          },
+        }),
+        detail: { minDate: minRule.minDate, maxDate },
+      };
+    }
+    const message = evaluateForligAnsvarsgradRules({
+      forligAnsvarsgradProcent: view.readCanonical(eoForligAnsvarsgradProcentField.bind()),
+      forligAnsvarsgradBroek: view.readCanonical(eoForligAnsvarsgradBroekField.bind()),
+      forligDato: value,
+    }).forligDatoFejl;
+    return message === undefined ? undefined : { reason: 'rule', code: 'eo.forligDato.ansvarsgradMangler', message };
+  }],
+});
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
 export const eoOffentligeYdelserKommentarerField = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer');
 export const eoSaerligeKommentarerField = optionalTextField('saerligeKommentarer', 'Særlige kommentarer');

@@ -1,9 +1,15 @@
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { createAmountFieldCodec } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
-import type { FieldDescriptor } from '../fieldDescriptor';
+import type { FieldDescriptor, FieldValidator } from '../fieldDescriptor';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { amountBoundsValidator } from './boundsValidators';
+import { amountValueToNumber } from '../../utils/expressionAmount';
+import {
+  validateAslAarsloenBySkadesaarMax,
+  validateAslAarsloenDivisibleBy1000,
+} from '../../domain/aslEalAarsloen/aarsloenValidators';
+import { stamdataSkadedatoField } from './stamdataDescriptors';
 
 // Greenfield produkt-descriptors for `faellesAarsloen`-sektionen (ASL/EAL-årsløn, §3.2). Sektionen har ingen
 // egen route; den redigeres i flere domænekontekster (EET, Forsørgertab, EO). Beløbene er heltal med et hårdt
@@ -15,7 +21,11 @@ const createEmptyFaellesAarsloenSection = (): unknown => ({});
 const AMOUNT_MIN = 1000;
 const AMOUNT_MAX = 9999999;
 
-const amountField = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
+const amountField = (
+  field: string,
+  label: string,
+  extraValidators: readonly FieldValidator<AmountValue | undefined>[] = []
+): FieldDescriptor<AmountValue | undefined> =>
   defineStructuralField<AmountValue | undefined>({
     id: `faellesAarsloen.${field}`,
     template: { section: 'faellesAarsloen', path: [], field },
@@ -25,10 +35,21 @@ const amountField = (field: string, label: string): FieldDescriptor<AmountValue 
     label,
     controlKind: 'text',
     createEmptySection: createEmptyFaellesAarsloenSection,
-    validators: [amountBoundsValidator(`faellesAarsloen.${field}.bounds`, AMOUNT_MIN, AMOUNT_MAX)],
+    validators: [amountBoundsValidator(`faellesAarsloen.${field}.bounds`, AMOUNT_MIN, AMOUNT_MAX), ...extraValidators],
   });
 
-export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', 'Årsløn');
+export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', 'Årsløn', [
+  (value, _field, view) => {
+    const message = validateAslAarsloenDivisibleBy1000(amountValueToNumber(value))
+      ?? validateAslAarsloenBySkadesaarMax(
+        amountValueToNumber(value),
+        view.readCanonical(stamdataSkadedatoField.bind())
+      );
+    return message === undefined
+      ? undefined
+      : { reason: 'rule', code: 'faellesAarsloen.aslAarsloen.rule', message };
+  },
+]);
 export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', 'Årsløn (hvis forskellig fra ASL)');
 
 export const faellesAarsloenFields = catalogFields(faellesAarsloenAslAarsloenField, faellesAarsloenEalAarsloenField);

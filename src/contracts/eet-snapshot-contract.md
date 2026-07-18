@@ -3,14 +3,16 @@
 **Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-18
 
 ---
 
 ## 1. Autoritativ entry og canonical output
 
-`computeEetSnapshot(...)` er den autoritative entry for Erhvervsevnetab-sidevisning, tabprojektioner og EET-dokumentflow.
-Den modtager kun en `ready`, `EvaluationSourceToken`-bundet EET-inputprojektion; rå canonical sektioner må ikke gives som bypass.
+`computeEetSnapshot(...)` er den autoritative beregningsentry for Erhvervsevnetab-sidevisning, tabprojektioner og
+EET-dokumentflow. Den kaldes kun inde fra `buildErhvervsevnetabReaderProjection(...)`, som læser de nødvendige værdier
+gennem `InputReader` og binder resultatet til den aktuelle `EvaluationSourceToken`. UI og dokumentflow må kun aftage
+denne reader-projektion; rå canonical sektioner må ikke gives som bypass.
 
 UI, PDF og EO-import må ikke lave parallelle EET-beregninger uden om snapshot/projektioner eller de helpers, som denne kontrakt udpeger.
 

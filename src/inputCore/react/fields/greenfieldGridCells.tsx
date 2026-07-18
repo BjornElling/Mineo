@@ -5,6 +5,7 @@ import {
   filterAmountExpressionKeyDown,
   filterDateLikeKeyDown,
   filterIntegerKeyDown,
+  filterPercentKeyDown,
   filterWeekKeyDown,
   filterYearKeyDown,
 } from '../../../components/inputs/inputKeyFilters';
@@ -23,6 +24,8 @@ type BaseCellProps<T> = Readonly<{
   gridCell: GridCellCoord;
   cell: CellSpec<T, unknown>;
   placeholder?: string;
+  /** Ekstern kryds-række-domænefejl (fx dublet-datoer); descriptorens eget issue har forrang. */
+  externalErrorMessage?: string;
   inputRef?: React.Ref<HTMLInputElement>;
 }>;
 
@@ -64,6 +67,36 @@ export const GreenfieldGridAmountCell = (
         <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={isDraftEmpty} />
       )}
       overlay={({ value }) => (value?.kind === 'expression' ? <ExpressionIndicator /> : null)}
+      {...(inputRef === undefined ? {} : { inputRef })}
+    />
+  );
+};
+
+/**
+ * Procentcelle (EET ASL-afgørelser eetPct/kapPct): "%"-adornment + højrestillet tabular-nums. Grid-pendanten til
+ * `GreenfieldPercentField`. `allowDecimals` styrer kun tegnfilteret i den åbne draft; 0..100-bounds og
+ * divisible-by-5/ikke-0-reglerne er afledte feltvalidatorer på descriptoren (§1.6), ikke celle-config.
+ */
+export const GreenfieldGridPercentCell = (
+  { gridCell, cell, placeholder = '0', externalErrorMessage, inputRef, allowDecimals = false }:
+    BaseCellProps<number | undefined> & Readonly<{ allowDecimals?: boolean }>
+): React.ReactElement => {
+  const keyFilter = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => filterPercentKeyDown(e, { allowNegative: false, allowDecimals }),
+    [allowDecimals]
+  );
+  return (
+    <GreenfieldGridTextCell<number | undefined>
+      gridCell={gridCell}
+      cell={cell}
+      keyFilter={keyFilter}
+      placeholder={placeholder}
+      textAlign="right"
+      inputMode={allowDecimals ? 'decimal' : 'numeric'}
+      endAdornment={({ isDraftEmpty }) => (
+        <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
+      )}
+      {...(externalErrorMessage === undefined ? {} : { externalErrorMessage })}
       {...(inputRef === undefined ? {} : { inputRef })}
     />
   );
@@ -123,7 +156,7 @@ export const GreenfieldGridWeekCell = (
 
 /** Dato-celle (col0_dag/col1_dag): `dd-mm-åååå`. */
 export const GreenfieldGridDateCell = (
-  { gridCell, cell, placeholder = 'dd-mm-åååå', inputRef }: BaseCellProps<ISODateString | undefined>
+  { gridCell, cell, placeholder = 'dd-mm-åååå', externalErrorMessage, inputRef }: BaseCellProps<ISODateString | undefined>
 ): React.ReactElement => (
   <GreenfieldGridTextCell<ISODateString | undefined>
     gridCell={gridCell}
@@ -132,6 +165,7 @@ export const GreenfieldGridDateCell = (
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
+    {...(externalErrorMessage === undefined ? {} : { externalErrorMessage })}
     {...(inputRef === undefined ? {} : { inputRef })}
   />
 );

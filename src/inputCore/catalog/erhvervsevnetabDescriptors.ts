@@ -8,7 +8,10 @@ import type {
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas/sections/erhvervsevnetabSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
-import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import {
+  resolveDateRangeErrorMessage,
+  type DateRangeSpecialErrors,
+} from '../../utils/dateRangeErrorMessages';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import {
   validatePercentDivisibleBy5FromValue,
@@ -21,6 +24,7 @@ import {
   createPercentFieldCodec,
   createRequiredChoiceFieldCodec,
 } from '../fieldCodecs';
+import { validResolution } from '../fieldCodec';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import type { FieldAddressTemplate, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
@@ -31,6 +35,8 @@ import {
 } from '../structuralDescriptors';
 import { percentBoundsValidator } from './boundsValidators';
 import { stamdataSkadedatoField } from './stamdataDescriptors';
+import { opregulerMedAkkumuleretReguleringssats } from '../../domain/satser/opreguleringsmotorer';
+import { reguleringssats } from '../../data/lovbestemteRates';
 
 // Greenfield produkt-descriptors for `erhvervsevnetab`-sektionen (§3.2): skalarer (herunder differencekrav-
 // booleans), det nested bilagsvalgsobjekt og samlingen `aslAfgoerelser` med dens rækkefelter.
@@ -76,6 +82,24 @@ export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateS
         detail: { minDate, maxDate },
       };
     },
+    (value, _field, view) => {
+      if (value === undefined) return undefined;
+      const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+      if (skadedato === undefined) return undefined;
+      const skadesaar = Number.parseInt(skadedato.slice(0, 4), 10);
+      const beregningsaar = Number.parseInt(value.slice(0, 4), 10);
+      const { manglendeAar } = opregulerMedAkkumuleretReguleringssats(
+        { kildeAar: skadesaar, maalAar: beregningsaar },
+        reguleringssats
+      );
+      return manglendeAar.length === 0
+        ? undefined
+        : {
+          reason: 'rule',
+          code: 'erhvervsevnetab.beregningsdato.reguleringssats',
+          message: `EAL-beregningen kan ikke gennemføres, fordi der mangler reguleringssats for ${manglendeAar.join(', ')}.`,
+        };
+    },
   ],
 });
 
@@ -91,10 +115,22 @@ export const erhvervsevnetabKoenField = defineStructuralField<Koen | undefined>(
 });
 
 // UI'et forbyder decimaler; 0..100 og divisible-by-5 er afledte issues, ikke codec-config.
+const ealEetPctBaseCodec = createPercentFieldCodec({ allowNegative: false, allowDecimals: false });
+const ealEetPctCodec = Object.freeze({
+  ...ealEetPctBaseCodec,
+  parseForSettle: (raw: string) => {
+    const resolution = ealEetPctBaseCodec.parseForSettle(raw);
+    return resolution.status === 'valid' && resolution.value === 0
+      ? validResolution<number | undefined>(undefined)
+      : resolution;
+  },
+});
+
 export const erhvervsevnetabEalEetPctField = defineStructuralField<number | undefined>({
   id: 'erhvervsevnetab.ealEetPct',
   template: { section: 'erhvervsevnetab', path: [], field: 'ealEetPct' },
-  codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: false }),
+  // EET-feltets etablerede semantik er, at 0 betyder "ingen afvigelse" og derfor canonicaliseres til tomt.
+  codec: ealEetPctCodec,
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'EET % (hvis afviger fra ASL)',
@@ -212,6 +248,29 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         : role === 'kapDato'
           ? dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max
           : getDayBeforeIso(afgoerelsesDato);
+    const special: DateRangeSpecialErrors = role === 'afgoerelsesDato'
+      ? {
+        minBoundKind: 'skadedato',
+        minBoundReferenceISO: skadedato,
+        maxBoundKind: 'eetDataMax',
+        maxBoundFieldLabel: 'Afgørelsesdato',
+      }
+      : role === 'virkningsDato'
+        ? { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Virkningsdato' }
+        : role === 'kapDato'
+          ? {
+            ...(afgoerelsesDato === undefined
+              ? {}
+              : { minBoundKind: 'kapDatoFoerAfgoerelsesdato' as const, minBoundReferenceISO: afgoerelsesDato }),
+            maxBoundKind: 'eetDataMax',
+            maxBoundFieldLabel: 'Kapitaliseringsdato',
+          }
+          : {
+            minBoundKind: 'skadedato',
+            minBoundReferenceISO: skadedato,
+            maxBoundKind: 'foerAfgoerelsesdato',
+            maxBoundReferenceISO: afgoerelsesDato,
+          };
     if (value >= minDate && (maxDate === undefined || value <= maxDate)) return undefined;
     return {
       reason: 'bounds',
@@ -220,6 +279,7 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         iso: value,
         minDate,
         maxDate,
+        special,
         noValidRangeInputs: role === 'kapDato' || role === 'tidlKapDato'
           ? 'Afgørelsesdato og skadedato'
           : undefined,

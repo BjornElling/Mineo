@@ -53,6 +53,9 @@ import {
 } from '../../inputCore/catalog/stamdataDescriptors';
 import { collectEetAslAfgoerelseValidationIssues } from './eetAslAfgoerelser';
 import { computeEetSnapshot, type EetSnapshot } from './eetSnapshot';
+import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
+import type { ProjectionResult } from '../../inputCore/projection';
+import type { StamdataValues } from '../../schemas/formSchemas';
 
 // Greenfield Erhvervsevnetab-projektion (§3.4/§5.4/§1.10, Fase 3 Erhvervsevnetab-slice). En ALMINDELIG ren
 // funktion over den offentlige `InputReader`, der erstatter `Erhvervsevnetab.tsx`'s rå `usePersistedForm`/
@@ -108,6 +111,27 @@ const forligDatoRef: FieldRef<ISODateString | undefined> = eoForligDatoField.bin
 export type ErhvervsevnetabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver sidevisningen for alle fem tabs + download-gates. */
   snapshot: EetSnapshot;
+  /** De committede ASL-afgørelsesrækker i afsluttet rækkefølge (reader-læst) — til tabellens sort. */
+  aslAfgoerelserCommittedRows: readonly AslAfgoerelseRow[];
+  /**
+   * ASL-afgørelsernes KRYDS-RÆKKE-domænefejl pr. celle (`${rowId}|${field}` → besked). Descriptorernes egne
+   * format-/bounds-/rule-issues vises af cellen selv; dette er kun de collection-afhængige regler (dublet-datoer,
+   * identiske afgørelser, virkningsdato efter tidl.kap. m.fl.), som tabellen viser inline via `externalErrorMessage`.
+   * Snapshottets `field-asl-afgoerelser` aftager fortsat KUN den første af disse (uændret afgrænsning).
+   */
+  aslAfgoerelserValidationMessageByCell: ReadonlyMap<string, string>;
+  /** Reader-sikre afsluttede værdier til fanernes rene visning; felter med rødt issue er allerede skjult. */
+  values: ErhvervsevnetabComposedValues;
+  /** Reader-sikker skadedato til synlighedsregler og dokumentvisning. */
+  skadedato: ISODateString | undefined;
+  /** Reader-sikre værdier for de tre delte forligsfelter. */
+  forligValues: Readonly<{
+    forligAnsvarsgradProcent: number | undefined;
+    forligAnsvarsgradBroek: string | undefined;
+    forligDato: ISODateString | undefined;
+  }>;
+  /** Fælles dokumentmetadata-projektion; samme resultat indgår i reaktiv gate og click-preflight. */
+  documentStamdata: ProjectionResult<StamdataValues>;
   /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
@@ -206,12 +230,21 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       ?? validateAslAarsloenBySkadesaarMax(amountValueToNumber(aslAarsloen.value), skadedato.value))
     : undefined;
 
-  // ASL-afgørelsesrækkernes indbyrdes valideringsfejl. Snapshottet aftager KUN den første (uændret afgrænsning).
-  const aslAfgoerelserRuleMessage = collectEetAslAfgoerelseValidationIssues(
+  // ASL-afgørelsesrækkernes indbyrdes (kryds-række) valideringsfejl. Snapshottet aftager KUN den første (uændret
+  // afgrænsning), mens tabellen viser dem alle inline pr. celle via `aslAfgoerelserValidationMessageByCell`.
+  const aslAfgoerelserRuleIssues = collectEetAslAfgoerelseValidationIssues(
     aslAfgoerelser,
     coerceToISODateString(skadedato.value),
     coerceToISODateString(skadelidteFodselsdato.value)
-  )[0]?.message;
+  );
+  const aslAfgoerelserRuleMessage = aslAfgoerelserRuleIssues[0]?.message;
+  const aslAfgoerelserValidationMessageByCell = new Map<string, string>();
+  for (const issue of aslAfgoerelserRuleIssues) {
+    const key = `${issue.rowId}|${issue.field}`;
+    if (!aslAfgoerelserValidationMessageByCell.has(key)) {
+      aslAfgoerelserValidationMessageByCell.set(key, issue.message);
+    }
+  }
 
   const composedValues: ErhvervsevnetabComposedValues = {
     beregningsdato: beregningsdato.value,
@@ -275,5 +308,18 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     },
   });
 
-  return { snapshot, sourceToken: reader.sourceToken };
+  return {
+    snapshot,
+    aslAfgoerelserCommittedRows: aslAfgoerelser,
+    aslAfgoerelserValidationMessageByCell,
+    values: composedValues,
+    skadedato: skadedato.value,
+    forligValues: {
+      forligAnsvarsgradProcent: forligProcent.value,
+      forligAnsvarsgradBroek: forligBroek.value,
+      forligDato: forligDato.value,
+    },
+    documentStamdata: projectStamdataForDocument(reader, 'document.eet'),
+    sourceToken: reader.sourceToken,
+  };
 };

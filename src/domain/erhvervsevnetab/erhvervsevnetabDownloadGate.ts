@@ -88,6 +88,15 @@ export const evaluateErhvervsevnetabDownloadGates = (
   projection: ErhvervsevnetabReaderProjection
 ): ErhvervsevnetabDownloadGates => {
   const { snapshot } = projection;
+  if (projection.documentStamdata.status === 'blocked') {
+    const stamdataGate = blockDocumentDownload({ code: 'eet:stamdata-field-error', message: 'Fejl i indtastning' });
+    return {
+      loebendeYdelser: stamdataGate,
+      kapitalisering: stamdataGate,
+      efterEal: stamdataGate,
+      differencekrav: stamdataGate,
+    };
+  }
   return {
     loebendeYdelser: evaluateEetFaneDownloadGate('loebendeYdelser', snapshot.loebendeYdelser),
     kapitalisering: evaluateEetFaneDownloadGate('kapitalisering', snapshot.kapitalisering),

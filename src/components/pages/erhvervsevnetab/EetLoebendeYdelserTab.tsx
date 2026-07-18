@@ -1,10 +1,8 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
-import type { CommitEvent } from '../../../types/fieldEvents';
+import GreenfieldToggleField from '../../../inputCore/react/fields/GreenfieldToggleField';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { downloadLoebendeYdelserDokument } from '../../../document/service/documentService';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
@@ -25,21 +23,27 @@ import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
-import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
 import { toKroner } from '../../../domain/money/money';
+import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { evaluateEetFaneDownloadGate } from '../../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
+import type { DocumentDownloadGateResult } from '../../../document/layout/documentGateTypes';
+import { erhvervsevnetabBilagVisUdvidetSpecifikationField } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
+import { useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
+import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
+import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
 
 type Props = Readonly<{
-  values: ErhvervsevnetabComposedValues;
-  setValues: SetValuesUpdater<ErhvervsevnetabValues>;
   onGoToEetOplysninger: () => void;
-  stamdata: StamdataValues | null;
-  snapshot: EetSnapshot['loebendeYdelser'];
+  projection: ErhvervsevnetabReaderProjection;
+  downloadGate: DocumentDownloadGateResult;
 }>;
+
+const extendedSpecificationRef = erhvervsevnetabBilagVisUdvidetSpecifikationField.bind();
+const EXTENDED_SPECIFICATION_LOCATION = { locationId: 'erhvervsevnetab:loebendeYdelser:visUdvidetSpecifikation' } as const;
 
 const formatMaaneder = (value: number): string => formatAsAmount(roundByMethod(value, 4, 'halfAwayFromZero'), 4);
 const formatRegulering = (value: number): string => `${value >= 0 ? '+' : '-'} ${formatPct(Math.abs(value))}`;
@@ -64,41 +68,37 @@ const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
 ];
 
 
-const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
+const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, downloadGate }: Props) => {
   const { settings } = useAppSettings();
+  const criticalActions = useCriticalInputActions();
   const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
-  const showExtendedSpecification = values.eetDifferencekravBilagSelection.visUdvidetSpecifikation;
-  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useShakeFlag();
+  const snapshot = projection.snapshot.loebendeYdelser;
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
 
-  const handleExtendedSpecificationCommit = React.useCallback(
-    (event: CommitEvent<boolean>) => {
-      return setValues((prev) => ({
-        ...prev,
-        eetDifferencekravBilagSelection: {
-          ...prev.eetDifferencekravBilagSelection,
-          visUdvidetSpecifikation: event.target.value,
-        },
-      }), { fieldPath: 'visUdvidetSpecifikation' });
-    },
-    [setValues]
-  );
-
   const handlePdfDownload = React.useCallback(async () => {
-    if (!computation) {
-      triggerDownloadShake();
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
+    const source = captureProductionEvaluationSource();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    const freshProjection = buildErhvervsevnetabReaderProjection(source.evaluation.reader);
+    const freshSnapshot = freshProjection.snapshot.loebendeYdelser;
+    const freshGate = evaluateEetFaneDownloadGate('loebendeYdelser', freshSnapshot);
+    const freshStamdata = freshProjection.documentStamdata;
+    if (!freshGate.canDownload || freshSnapshot.computation === null || freshStamdata.status !== 'ready') return;
     await downloadLoebendeYdelserDokument({
-      computation,
-      visUdvidetSpecifikation: showExtendedSpecification,
-      settings,
-      persistedStamdata: stamdata,
+      computation: freshSnapshot.computation,
+      visUdvidetSpecifikation: freshProjection.values.eetDifferencekravBilagSelection.visUdvidetSpecifikation,
+      settings: source.settings,
+      persistedStamdata: freshStamdata.value,
+      isSourceCurrent: source.isSourceCurrent,
     });
-  }, [computation, showExtendedSpecification, settings, stamdata, triggerDownloadShake]);
+  }, [criticalActions]);
 
   return (
     <Box>
@@ -122,10 +122,10 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
             <Box className="row--label-right-hover">
               <Typography className="row--text">Medtag udvidet specifikation i {documentFormatLabel}</Typography>
               <Box className="row--label-right-hover__content">
-                <StyledToggleSwitch
+                <GreenfieldToggleField
+                  field={extendedSpecificationRef}
+                  location={EXTENDED_SPECIFICATION_LOCATION}
                   name="visUdvidetSpecifikation"
-                  checked={showExtendedSpecification}
-                  onCommit={handleExtendedSpecificationCommit}
                 />
               </Box>
             </Box>
@@ -133,7 +133,11 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <DocumentDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+                <DocumentDownloadButton
+                  onClick={handlePdfDownload}
+                  disabled={!downloadGate.canDownload}
+                  disabledReason={downloadGate.reasons[0]?.message}
+                />
               </Box>
             </Box>
           </ContentBox>

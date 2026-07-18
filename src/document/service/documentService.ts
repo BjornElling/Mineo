@@ -820,8 +820,9 @@ export const downloadKapitaliseringDokument = async (params: Readonly<{
   koen?: string;
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
-  const { computation, koen, settings, persistedStamdata } = params;
+  const { computation, koen, settings, persistedStamdata, isSourceCurrent } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKapitaliseringDokument');
   if (preflightFailure) return preflightFailure;
@@ -833,7 +834,10 @@ export const downloadKapitaliseringDokument = async (params: Readonly<{
         koen,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      }));
+      }), {
+        isSourceCurrent,
+        staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere kapitalisering-PDF'),
+      });
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere kapitalisering-PDF'),
@@ -847,8 +851,9 @@ export const downloadEfterEalDokument = async (params: Readonly<{
   computation: EetEalComputation;
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
-  const { computation, settings, persistedStamdata } = params;
+  const { computation, settings, persistedStamdata, isSourceCurrent } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadEfterEalDokument');
   if (preflightFailure) return preflightFailure;
@@ -859,7 +864,10 @@ export const downloadEfterEalDokument = async (params: Readonly<{
         computation,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      }));
+      }), {
+        isSourceCurrent,
+        staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere EET efter EAL-PDF'),
+      });
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere EET efter EAL-PDF'),
@@ -875,8 +883,9 @@ export const downloadDifferencekravDokument = async (params: Readonly<{
   bilagSelection: BilagSelection;
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
-  const { computation, koen, bilagSelection, settings, persistedStamdata } = params;
+  const { computation, koen, bilagSelection, settings, persistedStamdata, isSourceCurrent } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadDifferencekravDokument');
   if (preflightFailure) return preflightFailure;
@@ -889,7 +898,10 @@ export const downloadDifferencekravDokument = async (params: Readonly<{
         bilagSelection,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      }));
+      }), {
+        isSourceCurrent,
+        staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere differencekrav-PDF'),
+      });
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere differencekrav-PDF'),
@@ -904,8 +916,9 @@ export const downloadLoebendeYdelserDokument = async (params: Readonly<{
   visUdvidetSpecifikation: boolean;
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
-  const { computation, visUdvidetSpecifikation, settings, persistedStamdata } = params;
+  const { computation, visUdvidetSpecifikation, settings, persistedStamdata, isSourceCurrent } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadLoebendeYdelserDokument');
   if (preflightFailure) return preflightFailure;
@@ -917,7 +930,10 @@ export const downloadLoebendeYdelserDokument = async (params: Readonly<{
         visUdvidetSpecifikation,
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      }));
+      }), {
+        isSourceCurrent,
+        staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere løbende ydelser-PDF'),
+      });
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere løbende ydelser-PDF'),

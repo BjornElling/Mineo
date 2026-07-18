@@ -65,36 +65,6 @@ export const useTableSort = <TRow>({
     [rows, getRowId, isRowEmpty, sortState, getSortValueByColId]
   );
 
-  const onSortedRowsChangeRef = React.useRef(onSortedRowsChange);
-  React.useLayoutEffect(() => {
-    onSortedRowsChangeRef.current = onSortedRowsChange;
-  }, [onSortedRowsChange]);
-
-  const isMountedRef = React.useRef(false);
-  const previousSortStateRef = React.useRef(sortState);
-
-  // Udløser onSortedRowsChange kun når brugeren ændrer sort-state (ikke ved initial mount,
-  // og ikke når rows-prop'en ændrer sig — det ville give uendelig løkke).
-  //
-  // Implementeret som useEffect frem for et direkte kald i handleHeaderClick, fordi
-  // sortedRows er memoized og ikke opdateres synkront i samme render-cyklus som sortState.
-  // useEffect garanterer at sortedRowsRef.current er opdateret (synkront i render) inden
-  // callbacken udløses. onSortedRowsChangeRef sikrer at vi altid kalder den seneste version
-  // af callbacken uden at skulle have den i effect-dependency-arrayet.
-  React.useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      previousSortStateRef.current = sortState;
-      return;
-    }
-    const hasSortStateChanged = previousSortStateRef.current !== sortState;
-    previousSortStateRef.current = sortState;
-    if (!hasSortStateChanged) {
-      return;
-    }
-    onSortedRowsChangeRef.current?.(sortedRows);
-  }, [sortState, sortedRows]);
-
   const getSortRole = React.useCallback(
     (colId: string): GridSortRole => getGridSortRole(sortState, colId),
     [sortState]
@@ -111,9 +81,14 @@ export const useTableSort = <TRow>({
 
   const handleHeaderClick = React.useCallback(
     (colId: string) => {
-      setSortState((prev) => toggleGridSort(prev, colId));
+      // Persistér rækkefølgen i samme event som headerklikket. En efterfølgende save/download i samme task må
+      // aldrig kunne se den gamle orden, mens tabellen allerede viser den nye sortering.
+      const nextSortState = toggleGridSort(sortState, colId);
+      const nextRows = sortGridRows({ rows, getRowId, isRowEmpty, sortState: nextSortState, getSortValueByColId });
+      onSortedRowsChange?.(nextRows);
+      setSortState(nextSortState);
     },
-    []
+    [getRowId, getSortValueByColId, isRowEmpty, onSortedRowsChange, rows, sortState]
   );
 
   return { sortedRows, getSortRole, getSortDirection, handleHeaderClick };

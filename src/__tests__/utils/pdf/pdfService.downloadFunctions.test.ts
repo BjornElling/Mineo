@@ -505,10 +505,23 @@ describe('downloadKlLoenaftalerDokument', () => {
 // ─── EET-PDF downloads ───────────────────────────────────────────────────────
 
 describe('EET PDF downloads', () => {
+  it('afviser et stale EET-kildesnapshot før fil-output', async () => {
+    const result = await downloadLoebendeYdelserDokument({
+      isSourceCurrent: () => false,
+      computation: { beregningsdato: toISODateString('2026-01-14'), afgoerelser: [] } as never,
+      visUdvidetSpecifikation: false,
+      settings,
+      persistedStamdata: stamdata,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('videresender løbende-yddelser computation uændret til generatoren', async () => {
     const computation = { beregningsdato: toISODateString('2026-01-14'), afgoerelser: [] } as never;
 
     const result = await downloadLoebendeYdelserDokument({
+      isSourceCurrent: () => true,
       computation,
       visUdvidetSpecifikation: true,
       settings,
@@ -529,6 +542,7 @@ describe('EET PDF downloads', () => {
     const computation = { afgoerelser: [] } as never;
 
     const result = await downloadKapitaliseringDokument({
+      isSourceCurrent: () => true,
       computation,
       koen: 'Mand',
       settings,
@@ -549,6 +563,7 @@ describe('EET PDF downloads', () => {
     const computation = { beregningsdato: toISODateString('2026-01-15'), ealKrav: 123 } as never;
 
     const result = await downloadEfterEalDokument({
+      isSourceCurrent: () => true,
       computation,
       settings,
       persistedStamdata: stamdata,
@@ -579,6 +594,7 @@ describe('EET PDF downloads', () => {
     } as const;
 
     const result = await downloadDifferencekravDokument({
+      isSourceCurrent: () => true,
       computation,
       koen: 'Mand',
       bilagSelection,

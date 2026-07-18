@@ -111,6 +111,9 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     });
 
     expect(projection.snapshot).toEqual(expected);
+    expect(projection.sourceToken).toBe(reader.sourceToken);
+    expect(projection.aslAfgoerelserCommittedRows).toEqual(validErhvervsevnetab.aslAfgoerelser);
+    expect(projection.values).toEqual(expectedComposedValues());
     expect(projection.snapshot.efterEal.hasBlockingErrors).toBe(false);
     expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(false);
   });
@@ -193,6 +196,8 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     const projection = buildErhvervsevnetabReaderProjection(reader);
     expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
     expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
+    expect(projection.aslAfgoerelserValidationMessageByCell.size).toBeGreaterThan(0);
+    expect([...projection.aslAfgoerelserValidationMessageByCell.keys()].every((key) => key.startsWith('eet_asl_endelig|'))).toBe(true);
   });
 
   it('fører en canonical beregningsdato-bounds-feltfejl (før skadedato) ind som field-beregningsdato på de afhængige faner (§1.6/§1.10)', () => {
@@ -231,6 +236,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
     const reader = createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
     const projection = buildErhvervsevnetabReaderProjection(reader);
+    expect(reader.fieldIssues.all.filter((issue) => issue.code === 'eo.forlig.beggeUdfyldt')).toHaveLength(2);
     expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
     expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(true);
   });

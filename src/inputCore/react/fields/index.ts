@@ -17,6 +17,8 @@ export { default as GreenfieldIntegerField } from './GreenfieldIntegerField';
 export type { GreenfieldIntegerFieldProps } from './GreenfieldIntegerField';
 export { default as GreenfieldPercentField } from './GreenfieldPercentField';
 export type { GreenfieldPercentFieldProps } from './GreenfieldPercentField';
+export { default as GreenfieldFractionField } from './GreenfieldFractionField';
+export type { GreenfieldFractionFieldProps } from './GreenfieldFractionField';
 export { default as GreenfieldAmountField } from './GreenfieldAmountField';
 export type { GreenfieldAmountFieldProps } from './GreenfieldAmountField';
 export { default as GreenfieldWeekField } from './GreenfieldWeekField';
@@ -25,6 +27,8 @@ export { default as GreenfieldRadioField } from './GreenfieldRadioField';
 export type { GreenfieldRadioFieldProps, GreenfieldRadioOption } from './GreenfieldRadioField';
 export { default as GreenfieldToggleField } from './GreenfieldToggleField';
 export type { GreenfieldToggleFieldProps } from './GreenfieldToggleField';
+export { default as GreenfieldCheckbox } from './GreenfieldCheckbox';
+export type { GreenfieldCheckboxProps } from './GreenfieldCheckbox';
 
 // Grid-celle-skaller (§2.5): den kompakte pendant til form-skallerne, over `useGridCellSurface`.
 export { default as GreenfieldGridTextCell } from './GreenfieldGridTextCell';
@@ -35,4 +39,7 @@ export {
   GreenfieldGridYearCell,
   GreenfieldGridWeekCell,
   GreenfieldGridDateCell,
+  GreenfieldGridPercentCell,
 } from './greenfieldGridCells';
+export { default as GreenfieldGridChoiceCell } from './GreenfieldGridChoiceCell';
+export type { GreenfieldGridChoiceCellProps } from './GreenfieldGridChoiceCell';

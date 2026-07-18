@@ -1,8 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
-import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { coerceToISODateString } from '../../../types/branded';
 import {
@@ -13,15 +11,20 @@ import { downloadKapitaliseringDokument } from '../../../document/service/docume
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import { useShakeFlag } from '../../../hooks/useShakeFlag';
-import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { evaluateEetFaneDownloadGate } from '../../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
+import type { DocumentDownloadGateResult } from '../../../document/layout/documentGateTypes';
+import { useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
+import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
+import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
 
 type Props = Readonly<{
-  values: ErhvervsevnetabComposedValues;
   onGoToEetOplysninger: () => void;
-  stamdata: StamdataValues | null;
-  snapshot: EetSnapshot['kapitalisering'];
+  projection: ErhvervsevnetabReaderProjection;
+  downloadGate: DocumentDownloadGateResult;
 }>;
+
 
 
 /**
@@ -73,26 +76,36 @@ const renderKapitaliseringRows = (rows: readonly KapitaliseringRow[]): React.Rea
   });
 };
 
-const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
-  const { settings } = useAppSettings();
-  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useShakeFlag();
+const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, downloadGate }: Props) => {
+  const criticalActions = useCriticalInputActions();
+  const values = projection.values;
+  const snapshot = projection.snapshot.kapitalisering;
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
 
   const handlePdfDownload = React.useCallback(async () => {
-    if (!computation) {
-      triggerDownloadShake();
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
       return;
     }
+    const source = captureProductionEvaluationSource();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+    const freshProjection = buildErhvervsevnetabReaderProjection(source.evaluation.reader);
+    const freshSnapshot = freshProjection.snapshot.kapitalisering;
+    const freshGate = evaluateEetFaneDownloadGate('kapitalisering', freshSnapshot);
+    const freshStamdata = freshProjection.documentStamdata;
+    if (!freshGate.canDownload || freshSnapshot.computation === null || freshStamdata.status !== 'ready') return;
     await downloadKapitaliseringDokument({
-      computation,
-      koen: values.koen ?? undefined,
-      settings,
-      persistedStamdata: stamdata,
+      computation: freshSnapshot.computation,
+      koen: freshProjection.values.koen ?? undefined,
+      settings: source.settings,
+      persistedStamdata: freshStamdata.value,
+      isSourceCurrent: source.isSourceCurrent,
     });
-  }, [computation, values.koen, settings, stamdata, triggerDownloadShake]);
+  }, [criticalActions]);
 
   return (
     <Box>
@@ -108,7 +121,11 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
           <Box className="row--label-right-hover">
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
-              <DocumentDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+              <DocumentDownloadButton
+                onClick={handlePdfDownload}
+                disabled={!downloadGate.canDownload}
+                disabledReason={downloadGate.reasons[0]?.message}
+              />
             </Box>
           </Box>
         </ContentBox>

@@ -19,9 +19,13 @@ import { useCellEditor, type CellSpec } from '../useCellEditor';
 
 const TABLE_DROPDOWN_TEXT_PADDING_LEFT = '14px';
 
-export type GreenfieldGridChoiceCellProps<TValue extends StyledDropdownValue, TEntity = unknown> = Readonly<{
+export type GreenfieldGridChoiceCellProps<
+  TValue extends StyledDropdownValue,
+  TEntity = unknown,
+  TCanonical extends TValue | undefined = TValue | undefined,
+> = Readonly<{
   gridCell: GridCellCoord;
-  cell: CellSpec<TValue | undefined, TEntity>;
+  cell: CellSpec<TCanonical, TEntity>;
   children?: React.ReactNode;
   /** Tilgængeligt navn på combobox'en (axe: formularelementer skal have etiketter). */
   ariaLabel?: string;
@@ -32,17 +36,26 @@ export type GreenfieldGridChoiceCellProps<TValue extends StyledDropdownValue, TE
    */
   allowEmpty?: boolean;
   placeholder?: string;
+  /** Ekstern kryds-række-domænefejl (fx identiske afgørelser); descriptorens eget issue har forrang. */
+  externalErrorMessage?: string;
   sx?: SxProps<Theme>;
 }>;
 
-const GreenfieldGridChoiceCellInner = <TValue extends StyledDropdownValue, TEntity>(
-  { gridCell, cell, children, ariaLabel, allowEmpty = true, placeholder, sx }: GreenfieldGridChoiceCellProps<TValue, TEntity>
+const GreenfieldGridChoiceCellInner = <
+  TValue extends StyledDropdownValue,
+  TEntity,
+  TCanonical extends TValue | undefined,
+>(
+  { gridCell, cell, children, ariaLabel, allowEmpty = true, placeholder, externalErrorMessage, sx }: GreenfieldGridChoiceCellProps<TValue, TEntity, TCanonical>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
-  const controller = useCellEditor<TValue | undefined, TEntity>(cell);
+  const controller = useCellEditor<TCanonical, TEntity>(cell);
+  const dropdownRootRef = React.useRef<HTMLDivElement>(null);
 
-  const hasError = controller.issue !== undefined;
-  const errorMessage = controller.issue?.message ?? '';
+  // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun ellers (§1.8).
+  const resolvedErrorMessage = controller.issue?.message ?? externalErrorMessage;
+  const hasError = resolvedErrorMessage !== undefined;
+  const errorMessage = resolvedErrorMessage ?? '';
 
   // En ikke-oprettet placeholder-række kan ikke "ryddes" (der er intet felt at rydde); et tom-valg dér er derfor
   // no-op. Et ikke-tomt valg promoverer rækken atomisk via `commitImmediate`'s placeholder-override (§1.11).
@@ -57,12 +70,13 @@ const GreenfieldGridChoiceCellInner = <TValue extends StyledDropdownValue, TEnti
       if (!latest.current.isPlaceholder) latest.current.controller.clearImmediate();
       return;
     }
-    latest.current.controller.commitImmediate(next);
+    // Et ikke-tomt dropdownvalg er altid medlem af TValue og dermed af TCanonical's ikke-tomme gren.
+    latest.current.controller.commitImmediate(next as TCanonical);
   }, []);
 
   // Grid-core editor-handle: et menuvalg er instant-commit, så der er intet uafsluttet commit ved navigation.
   const editorHandle = React.useMemo<GridCellEditorHandle>(() => ({
-    getElement: () => null,
+    getElement: () => dropdownRootRef.current?.querySelector<HTMLInputElement>('input[role="combobox"]') ?? null,
     getIsLocked: () => false,
     commitCurrent: () => true,
     clearAndCommit: () => {
@@ -117,10 +131,11 @@ const GreenfieldGridChoiceCellInner = <TValue extends StyledDropdownValue, TEnti
     }
     return (
       <StyledDropdown<TValue>
+        ref={dropdownRootRef}
         name={resolvedGridCellKey}
         inputProps={{ 'aria-label': ariaLabel }}
         width="100%"
-        value={value}
+        value={value as TValue}
         allowEmpty={false}
         onChange={handleChange}
         error={hasError}
@@ -134,10 +149,11 @@ const GreenfieldGridChoiceCellInner = <TValue extends StyledDropdownValue, TEnti
 
   return (
     <StyledDropdown<TValue>
+      ref={dropdownRootRef}
       name={resolvedGridCellKey}
       inputProps={{ 'aria-label': ariaLabel }}
       width="100%"
-      value={controller.value === undefined ? undefined : controller.value}
+      value={controller.value === undefined ? undefined : controller.value as TValue}
       allowEmpty
       placeholder={placeholder}
       onChange={handleChange}
@@ -151,8 +167,12 @@ const GreenfieldGridChoiceCellInner = <TValue extends StyledDropdownValue, TEnti
 };
 
 // forwardRef-fri generisk komponent (dropdownen eksponerer intet imperativt input-element).
-const GreenfieldGridChoiceCell = GreenfieldGridChoiceCellInner as <TValue extends StyledDropdownValue, TEntity = unknown>(
-  props: GreenfieldGridChoiceCellProps<TValue, TEntity>
+const GreenfieldGridChoiceCell = GreenfieldGridChoiceCellInner as <
+  TValue extends StyledDropdownValue,
+  TEntity = unknown,
+  TCanonical extends TValue | undefined = TValue | undefined,
+>(
+  props: GreenfieldGridChoiceCellProps<TValue, TEntity, TCanonical>
 ) => React.ReactElement;
 
 export default GreenfieldGridChoiceCell;

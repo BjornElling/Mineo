@@ -22,6 +22,8 @@ export type GreenfieldPercentFieldProps = Readonly<{
   placeholder?: string;
   disabled?: boolean;
   singleStageClick?: boolean;
+  /** Ekstern tværfelt-fejl (fx forlig "begge udfyldt"); descriptorens eget issue har forrang. */
+  externalError?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -36,6 +38,7 @@ const GreenfieldPercentField = React.forwardRef<HTMLDivElement, GreenfieldPercen
       placeholder = DEFAULT_PERCENT_PLACEHOLDER,
       disabled,
       singleStageClick = false,
+      externalError,
       inputRef,
       sx,
     },
@@ -68,6 +71,7 @@ const GreenfieldPercentField = React.forwardRef<HTMLDivElement, GreenfieldPercen
         endAdornment={({ isDraftEmpty }) => (
           <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
         )}
+        {...(externalError === undefined ? {} : { externalError })}
         inputRef={inputRef}
         sx={sx}
       />

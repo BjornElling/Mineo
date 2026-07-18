@@ -1,47 +1,65 @@
 import * as React from 'react';
-import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
-import TableDateInput from '../inputs/table/TableDateInput';
-import TablePercentInput from '../inputs/table/TablePercentInput';
-import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
+import { MenuItem, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton } from './RowDeleteButton';
-import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
-import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/formSchemas';
-import type { ISODateString } from '../../types/branded';
-import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import {
-  ASL_AFGOERELSE_ROW_ID_PREFIX,
   EET_ASL_MIN_VISIBLE_ROWS,
-  collectEetAslAfgoerelseValidationIssues,
-  createEmptyAslAfgoerelseRow,
+  createAslAfgoerelseRowId,
   emptyAslAfgoerelseRowFields,
   isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
-import { createEmptyRowId } from '../../utils/rowId';
-import { normalizeGridRows } from './gridCore/gridModel';
-import { useGridRowPersistenceCore, type GridRowCommitOrigin } from './gridCore/useGridRowPersistenceCore';
-import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
+import { useCollectionRows } from '../../inputCore/react';
+import type { CellSpec } from '../../inputCore/react/useCellEditor';
+import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import {
+  GreenfieldGridDateCell,
+  GreenfieldGridPercentCell,
+} from '../../inputCore/react/fields/greenfieldGridCells';
+import GreenfieldGridChoiceCell from '../../inputCore/react/fields/GreenfieldGridChoiceCell';
+import {
+  aslAfgoerelseAfgoerelseTypeField,
+  aslAfgoerelseAfgoerelsesDatoField,
+  aslAfgoerelseEetPctField,
+  aslAfgoerelseFsTilbageholdtEetField,
+  aslAfgoerelseKapDatoField,
+  aslAfgoerelseKapPctField,
+  aslAfgoerelseTidlKapDatoField,
+  aslAfgoerelseVirkningsDatoField,
+  erhvervsevnetabAslAfgoerelserCollectionRef,
+} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
+import type { ISODateString } from '../../types/branded';
 
-export type EetAslAfgoerelserTableProps = Readonly<{
-  tableData: AslAfgoerelseRow[];
-  skadedato: ISODateString | undefined;
-  skadedatoMin: ISODateString;
-  beregningsdato: ISODateString | undefined;
-  skadelidteFodselsdato: ISODateString | undefined;
-  onTableDataChange?: (rows: AslAfgoerelseRow[], origin?: GridRowCommitOrigin) => boolean;
-  saveOrderPath?: TableSaveOrderPath;
-}>;
+// Greenfield-migreret EetAslAfgoerelserTable (§2.5 trin 4, Erhvervsevnetab-slice). Rækkeinfrastruktur, celleværdier
+// og celleredigering går nu udelukkende gennem greenfield-inputCore — som StandardLoenTable/BeregnetRenteTable:
+//  - `useCollectionRows(aslAfgoerelser)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
+//    `useGridRowPersistenceCore`, `internalTableData`, `invalidDrafts`, fingerprint eller persistence-effect.
+//  - hver redigerbar celle er en `GreenfieldGrid*Cell` over `useCellEditor`, bro-forbundet til grid-core-
+//    navigationen. Descriptorernes codecs + bounds-validatorer ejer parse/format/paste + celle-bounds (§1.6);
+//    kryds-række-domænefejlene (dublet-datoer, identiske afgørelser, virkningsdato efter tidl.kap.) kommer fra
+//    forælderens reader-afledte `validationMessageByCell` og vises inline via cellens `externalErrorMessage`.
+//  - de committede rækker (til sort + kryds-validering) er reader-afledte af forælderen, så tabellen og
+//    projektionen deler præcis samme sandhed. Der er ingen konkurrerende celle-værdikopi (§3.8).
+//  - trailing PLACEHOLDER-rækker (§1.11): greenfield persisterer ikke tomme rækker, så den viste tabel = de
+//    committede rækker + `max(1, EET_ASL_MIN_VISIBLE_ROWS − antal committede)` tomme indtastnings-rækker (bevarer
+//    legacy-looket med 2 synlige tomme rækker på en tom sag).
 
-/**
- * Felt → kolonneindeks, så et celle-commit kan tagges med `rowId:colIndex` — samme identitet
- * som Table*Input-cellerne registrerer deres draft-history-controller under (gridCell.colIndex).
- * Bruges til at give undo/redo korrekt fokus-mål; jf. StandardLoenTable-mønstret.
- */
-const FIELD_COL_INDEX: Readonly<Partial<Record<keyof AslAfgoerelseRow, number>>> = {
+const AFGOERELSES_TYPE_OPTIONS: readonly { value: AfgoerelseType; label: string }[] = [
+  { value: 'Midlertidig', label: 'Midlertidig' },
+  { value: 'Delvist endelig', label: 'Delvist endelig' },
+  { value: 'Endelig', label: 'Endelig' },
+];
+
+const JA_NEJ_OPTIONS: readonly { value: JaNej; label: string }[] = [
+  { value: 'Ja', label: 'Ja' },
+  { value: 'Nej', label: 'Nej' },
+];
+
+// Kolonneindeks (matcher grid-core-koordinaten `{ rowId, colIndex }`).
+const COL = {
   afgoerelsesDato: 0,
   virkningsDato: 1,
   eetPct: 2,
@@ -50,133 +68,126 @@ const FIELD_COL_INDEX: Readonly<Partial<Record<keyof AslAfgoerelseRow, number>>>
   kapPct: 5,
   tidlKapDato: 6,
   fsTilbageholdtEet: 7,
-};
+} as const;
 
-const AFGOERELSES_TYPE_OPTIONS: readonly TableDropdownOption[] = [
-  { value: 'Midlertidig', label: 'Midlertidig' },
-  { value: 'Delvist endelig', label: 'Delvist endelig' },
-  { value: 'Endelig', label: 'Endelig' },
-];
+/** Per-celle kryds-række-domænefejl, nøglet `${rowId}|${field}` (afledt af forælderens reader-projektion). */
+export type EetAslValidationMessageByCell = ReadonlyMap<string, string>;
 
-const JA_NEJ_OPTIONS: readonly TableDropdownOption[] = [
-  { value: 'Ja', label: 'Ja' },
-  { value: 'Nej', label: 'Nej' },
-];
+export type EetAslAfgoerelserTableProps = Readonly<{
+  /** De committede rækker (reader-afledt af forælderen), i afsluttet rækkefølge — til sort + kryds-validering. */
+  committedRows: readonly AslAfgoerelseRow[];
+  /** Kryds-række-domænefejl pr. celle (`${rowId}|${field}` → besked), reader-afledt af forælderen. */
+  validationMessageByCell: EetAslValidationMessageByCell;
+  saveOrderPath?: TableSaveOrderPath;
+}>;
 
-const VIRKNINGSDATO_SPECIAL_RANGE_ERRORS: DateRangeSpecialErrors = { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Virkningsdato' };
-const KAPDATO_NO_AFGOERELSESDATO_SPECIAL_RANGE_ERRORS: DateRangeSpecialErrors = { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Kapitaliseringsdato' };
+type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
-const TABLE_FINGERPRINT_KEYS = [
-  'id',
-  'afgoerelsesDato',
-  'virkningsDato',
-  'eetPct',
-  'kapDato',
-  'kapPct',
-  'afgoerelseType',
-  'tidlKapDato',
-  'fsTilbageholdtEet',
-] as const satisfies ReadonlyArray<keyof AslAfgoerelseRow>;
+/** En tom ASL-række-entity til placeholder-promotion (row-factory; id er placeholderens stabile slot-id). */
+const createEmptyAslRow = (rowId: string): AslAfgoerelseRow => ({ ...emptyAslAfgoerelseRowFields, id: rowId });
 
-const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
-  return JSON.stringify(rows.map((row) => TABLE_FINGERPRINT_KEYS.map((key) => row[key] ?? null)));
-};
+type EetAslAfgoerelserRowProps = Readonly<{
+  renderRow: RenderRow;
+  onDeleteRow: (rowId: string) => void;
+  validationMessageByCell: EetAslValidationMessageByCell;
+  buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, AslAfgoerelseRow>;
+}>;
+
+const EetAslAfgoerelserRow = React.memo(
+  ({ renderRow, onDeleteRow, validationMessageByCell, buildCellSpec }: EetAslAfgoerelserRowProps) => {
+    const rowId = renderRow.rowId;
+    const gc = (colIndex: number) => ({ rowId, colIndex });
+    const cellError = (field: keyof AslAfgoerelseRow): string | undefined =>
+      validationMessageByCell.get(`${rowId}|${field}`);
+
+    const externalProp = (field: keyof AslAfgoerelseRow) => {
+      const message = cellError(field);
+      return message === undefined ? {} : { externalErrorMessage: message };
+    };
+
+    return (
+      <TableRow data-mineo-row-id={rowId}>
+        <TableCell>
+          <GreenfieldGridDateCell
+            gridCell={gc(COL.afgoerelsesDato)}
+            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseAfgoerelsesDatoField, COL.afgoerelsesDato)}
+            {...externalProp('afgoerelsesDato')}
+          />
+        </TableCell>
+        <TableCell>
+          <GreenfieldGridDateCell
+            gridCell={gc(COL.virkningsDato)}
+            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseVirkningsDatoField, COL.virkningsDato)}
+            {...externalProp('virkningsDato')}
+          />
+        </TableCell>
+        <TableCell>
+          <GreenfieldGridPercentCell
+            gridCell={gc(COL.eetPct)}
+            cell={buildCellSpec<number | undefined>(renderRow, aslAfgoerelseEetPctField, COL.eetPct)}
+            {...externalProp('eetPct')}
+          />
+        </TableCell>
+        <TableCell>
+          <GreenfieldGridChoiceCell<AfgoerelseType, AslAfgoerelseRow>
+            gridCell={gc(COL.afgoerelseType)}
+            cell={buildCellSpec<AfgoerelseType | undefined>(renderRow, aslAfgoerelseAfgoerelseTypeField, COL.afgoerelseType)}
+            allowEmpty
+            placeholder="Vælg..."
+            ariaLabel="Afgørelsestype"
+            {...externalProp('afgoerelseType')}
+          >
+            {AFGOERELSES_TYPE_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+            ))}
+          </GreenfieldGridChoiceCell>
+        </TableCell>
+        <TableCell>
+          <GreenfieldGridDateCell
+            gridCell={gc(COL.kapDato)}
+            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseKapDatoField, COL.kapDato)}
+            {...externalProp('kapDato')}
+          />
+        </TableCell>
+        <TableCell>
+          <GreenfieldGridPercentCell
+            gridCell={gc(COL.kapPct)}
+            cell={buildCellSpec<number | undefined>(renderRow, aslAfgoerelseKapPctField, COL.kapPct)}
+            {...externalProp('kapPct')}
+          />
+        </TableCell>
+        <TableCell>
+          <GreenfieldGridDateCell
+            gridCell={gc(COL.tidlKapDato)}
+            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseTidlKapDatoField, COL.tidlKapDato)}
+            {...externalProp('tidlKapDato')}
+          />
+        </TableCell>
+        <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
+          <GreenfieldGridChoiceCell<JaNej, AslAfgoerelseRow, JaNej>
+            gridCell={gc(COL.fsTilbageholdtEet)}
+            cell={buildCellSpec<JaNej>(renderRow, aslAfgoerelseFsTilbageholdtEetField, COL.fsTilbageholdtEet)}
+            allowEmpty={false}
+            ariaLabel="FS tilbageholdt EET"
+          >
+            {JA_NEJ_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+            ))}
+          </GreenfieldGridChoiceCell>
+          {renderRow.kind === 'existing' && (
+            <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  }
+);
+
+EetAslAfgoerelserRow.displayName = 'EetAslAfgoerelserRow';
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ tableData, skadedato, skadedatoMin, beregningsdato: _beregningsdato, skadelidteFodselsdato, onTableDataChange, saveOrderPath }: EetAslAfgoerelserTableProps) => {
-    const tabelAfgoerelsesdatoMax = dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max;
-    const tabelVirkningsdatoMax = dateRanges_erhvervsevnetab.tabelVirkningsdato.max;
-    const tabelKapitaliseringsdatoMax = dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max;
-
-    const afgoerelsesDatoSpecialErrors = React.useMemo<DateRangeSpecialErrors>(
-      () => ({ minBoundKind: 'skadedato', minBoundReferenceISO: skadedato, maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Afgørelsesdato' }),
-      [skadedato]
-    );
-
-    const defaultTableData = React.useMemo<AslAfgoerelseRow[]>(
-      () => [createEmptyAslAfgoerelseRow(), createEmptyAslAfgoerelseRow()],
-      []
-    );
-
-    const normalizeRows = React.useCallback(
-      (rows: readonly AslAfgoerelseRow[]): AslAfgoerelseRow[] => {
-        return normalizeGridRows({
-          rows,
-          minRows: EET_ASL_MIN_VISIBLE_ROWS,
-          getRowId: (row) => row.id,
-          isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
-          // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
-          // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
-          createEmptyRow: (seed) => ({
-            ...emptyAslAfgoerelseRowFields,
-            id: createEmptyRowId(ASL_AFGOERELSE_ROW_ID_PREFIX, seed),
-          }),
-        });
-      },
-      []
-    );
-
-    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist, getUndoFieldPathAliases } =
-      useGridRowPersistenceCore<AslAfgoerelseRow>({
-        tableData: tableData.length > 0 ? tableData : defaultTableData,
-        onTableDataChange,
-        normalizeRows,
-        isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
-        getRowId: (row) => row.id,
-        withRowId: (row, id) => ({ ...row, id }),
-        fingerprint: fingerprintTableData,
-      });
-
-    // `invalidDrafts`-reconcile mod renderede rækker: en slettet rækkes rå draft må ikke blokere Gem
-    // som spøgelses-mål (denne grid-tabel bruger domæne-validering frem for celle-fejl-trackeren, så
-    // den har ikke en pruneToValidRowIds-effect at læne sig op ad).
-    const liveRowIds = React.useMemo(() => new Set(internalTableData.map((row) => row.id)), [internalTableData]);
-    useReconcileInvalidDraftsToLiveRows(liveRowIds);
-
-    // Bevidst tabel-lokal commit-model: denne domæne-tabel har faste rækker/celler og ingen
-    // row-draft-isolation, så hvert Table*Input ejer sin draft og committer en partiel række her.
-    // Loose-substrat (MUI Table) uden grid-fokus-plan; kernen håndterer strip/reconcile/flush.
-    const commitRowUpdate = React.useCallback(
-      (rowId: string, updates: Partial<AslAfgoerelseRow>) => {
-        // updates er altid en enkelt-felt-patch (én celle pr. commit). Felt → colIndex
-        // giver undo-framet den redigerede celles identitet (rowId:colIndex).
-        const editedField = Object.keys(updates)[0] as keyof AslAfgoerelseRow | undefined;
-        const colIndex = editedField ? FIELD_COL_INDEX[editedField] : undefined;
-        const fieldPath = colIndex !== undefined ? `${rowId}:${colIndex}` : undefined;
-        setInternalTableData((prev) => {
-          const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
-          const normalized = normalizeRows(updated);
-          if (getStrippedFingerprint(normalized) !== lastPersistedFingerprintRef.current) {
-            queuePersist(normalized, fieldPath);
-          }
-          return normalized;
-        });
-      },
-      [getStrippedFingerprint, lastPersistedFingerprintRef, normalizeRows, queuePersist, setInternalTableData]
-    );
-
-    // Slet hele rækken i én undo-handling: filtrér rækken ud, re-normalisér og persistér én gang.
-    const handleDeleteRow = React.useCallback(
-      (rowId: string) => {
-        setInternalTableData((prev) => {
-          const normalized = normalizeRows(prev.filter((row) => row.id !== rowId));
-          if (fingerprintTableData(normalized) === fingerprintTableData(prev)) return prev;
-          queuePersist(normalized);
-          return normalized;
-        });
-      },
-      [normalizeRows, queuePersist, setInternalTableData]
-    );
-
-    const validationMessageByCell = React.useMemo(() => {
-      const issues = collectEetAslAfgoerelseValidationIssues(internalTableData, skadedato, skadelidteFodselsdato);
-      const map = new Map<string, string>();
-      for (const issue of issues) {
-        const key = `${issue.rowId}|${issue.field}`;
-        if (!map.has(key)) map.set(key, issue.message);
-      }
-      return map;
-    }, [internalTableData, skadelidteFodselsdato, skadedato]);
+  ({ committedRows, validationMessageByCell, saveOrderPath }: EetAslAfgoerelserTableProps) => {
+    const rows = useCollectionRows<AslAfgoerelseRow>(erhvervsevnetabAslAfgoerelserCollectionRef);
 
     const sortColumns = React.useMemo(() => [
       { colId: 'afgoerelsesDato', getSortValue: (row: AslAfgoerelseRow) => row.afgoerelsesDato },
@@ -189,20 +200,77 @@ const EetAslAfgoerelserTable = React.memo(
       { colId: 'fsTilbageholdtEet', getSortValue: (row: AslAfgoerelseRow) => row.fsTilbageholdtEet },
     ], []);
 
-    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-      rows: internalTableData,
+    const handleSortedRowsChange = React.useCallback((sortedRows: AslAfgoerelseRow[]) => {
+      rows.reorder(sortedRows.map((row) => row.id));
+    }, [rows]);
+
+    const { sortedRows: sortedCommittedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows: committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
       columns: sortColumns,
-      onSortedRowsChange: (nextRows) => {
-        if (getStrippedFingerprint(nextRows) !== lastPersistedFingerprintRef.current) {
-          queuePersist(nextRows);
-        }
-        setInternalTableData(nextRows);
-      },
+      onSortedRowsChange: handleSortedRowsChange,
     });
-    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
-    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
+
+    // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
+    // Greenfield persisterer ikke tomme rækker. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
+    // det bevares som `max(1, 2 − antal committede)` placeholder-rækker (altid ≥1 trailing indtastnings-række).
+    // Placeholder-id'erne er stabile pr. slot (useRef), så en åben celleeditor ikke skifter identitet.
+    const placeholderIdsRef = React.useRef<string[]>([]);
+    const committedIdSet = React.useMemo(
+      () => new Set(sortedCommittedRows.map((row) => row.id)),
+      [sortedCommittedRows]
+    );
+    const placeholderCount = Math.max(1, EET_ASL_MIN_VISIBLE_ROWS - sortedCommittedRows.length);
+    const placeholderIds = React.useMemo(() => {
+      const next: string[] = [];
+      let cursor = 0;
+      for (let i = 0; i < placeholderCount; i += 1) {
+        let id = placeholderIdsRef.current[cursor];
+        while (id !== undefined && committedIdSet.has(id)) {
+          cursor += 1;
+          id = placeholderIdsRef.current[cursor];
+        }
+        if (id === undefined) {
+          id = createAslAfgoerelseRowId();
+          placeholderIdsRef.current[cursor] = id;
+        }
+        next.push(id);
+        cursor += 1;
+      }
+      placeholderIdsRef.current = placeholderIdsRef.current.slice(0, cursor);
+      return next;
+    }, [committedIdSet, placeholderCount]);
+
+    const renderRows: readonly RenderRow[] = React.useMemo(() => [
+      ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
+      ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
+    ], [sortedCommittedRows, placeholderIds]);
+
+    const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
+
+    // Celle-spec-bygger: eksisterende-række-celle binder descriptor.bind(rowId); placeholder bærer descriptor +
+    // collection + tom-række-entity + stabilt id, så første ikke-tomme settle promoverer rækken (§1.11).
+    const buildCellSpec = React.useCallback(<T,>(
+      renderRow: RenderRow,
+      descriptor: FieldDescriptor<T>,
+      colIdx: number
+    ): CellSpec<T, AslAfgoerelseRow> => {
+      const location = { locationId: `erhvervsevnetab.aslAfgoerelser:${renderRow.rowId}:${colIdx}` };
+      if (renderRow.kind === 'existing') {
+        const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
+        return { kind: 'existing', field, location };
+      }
+      return {
+        kind: 'placeholder',
+        descriptor,
+        collection: erhvervsevnetabAslAfgoerelserCollectionRef,
+        entity: createEmptyAslRow(renderRow.rowId),
+        entityId: renderRow.rowId,
+        location,
+      };
+    }, []);
 
     return (
       <StandardLooseTable
@@ -249,148 +317,15 @@ const EetAslAfgoerelserTable = React.memo(
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedRows.map((row) => {
-            const duplicateAfgoerelsesDatoError = validationMessageByCell.get(`${row.id}|afgoerelsesDato`);
-            const duplicateVirkningsDatoError = validationMessageByCell.get(`${row.id}|virkningsDato`);
-            const eetPctError = validationMessageByCell.get(`${row.id}|eetPct`);
-            const duplicateAfgoerelseTypeError = validationMessageByCell.get(`${row.id}|afgoerelseType`);
-            const kapDatoError = validationMessageByCell.get(`${row.id}|kapDato`);
-            const kapPctError = validationMessageByCell.get(`${row.id}|kapPct`);
-            const tidlKapDatoError = validationMessageByCell.get(`${row.id}|tidlKapDato`);
-            return (
-              <TableRow key={row.id} data-mineo-row-id={row.id}>
-                <TableCell>
-                  <TableDateInput
-                    gridCell={{ rowId: row.id, colIndex: 0 }}
-                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 0)}
-                    value={row.afgoerelsesDato}
-                    onBlur={(e) => commitRowUpdate(row.id, { afgoerelsesDato: e.target.value })}
-                    minDate={skadedatoMin}
-                    maxDate={tabelAfgoerelsesdatoMax}
-                    specialRangeErrors={afgoerelsesDatoSpecialErrors}
-                    externalErrorMessage={duplicateAfgoerelsesDatoError}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TableDateInput
-                    gridCell={{ rowId: row.id, colIndex: 1 }}
-                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 1)}
-                    value={row.virkningsDato}
-                    onBlur={(e) => commitRowUpdate(row.id, { virkningsDato: e.target.value })}
-                    minDate={skadedatoMin}
-                    maxDate={tabelVirkningsdatoMax}
-                    specialRangeErrors={VIRKNINGSDATO_SPECIAL_RANGE_ERRORS}
-                    externalErrorMessage={duplicateVirkningsDatoError}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TablePercentInput
-                    gridCell={{ rowId: row.id, colIndex: 2 }}
-                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 2)}
-                    value={row.eetPct}
-                    allowDecimals={false}
-                    minValue={0}
-                    maxValue={100}
-                    useDefaultPercentRange={false}
-                    onBlur={(e) => commitRowUpdate(row.id, { eetPct: e.target.value })}
-                    externalErrorMessage={eetPctError}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TableDropdown
-                    gridCell={{ rowId: row.id, colIndex: 3 }}
-                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 3)}
-                    value={row.afgoerelseType}
-                    allowEmpty={true}
-                    onChange={(e) =>
-                      commitRowUpdate(
-                        row.id,
-                        { afgoerelseType: (e.target.value as AfgoerelseType) || undefined }
-                      )
-                    }
-                    placeholder="Vælg..."
-                    options={AFGOERELSES_TYPE_OPTIONS}
-                    externalErrorMessage={duplicateAfgoerelseTypeError}
-                  />
-                </TableCell>
-                <TableCell>
-                  {(() => {
-                    const afgoerelsesDatoIso = row.afgoerelsesDato;
-                    const kapDatoMin = afgoerelsesDatoIso ?? skadedatoMin;
-                    const kapDatoMax = tabelKapitaliseringsdatoMax;
-                    const hasValidRange = !(kapDatoMax !== undefined && kapDatoMin > kapDatoMax);
-                    const kapDatoSpecialErrors: DateRangeSpecialErrors = afgoerelsesDatoIso
-                      ? { minBoundKind: 'kapDatoFoerAfgoerelsesdato', minBoundReferenceISO: afgoerelsesDatoIso, maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Kapitaliseringsdato' }
-                      : KAPDATO_NO_AFGOERELSESDATO_SPECIAL_RANGE_ERRORS;
-                    return (
-                      <TableDateInput
-                        gridCell={{ rowId: row.id, colIndex: 4 }}
-                        undoFieldPathAliases={getUndoFieldPathAliases(row.id, 4)}
-                        value={row.kapDato}
-                        onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value })}
-                        minDate={hasValidRange ? kapDatoMin : undefined}
-                        maxDate={hasValidRange ? kapDatoMax : undefined}
-                        specialRangeErrors={kapDatoSpecialErrors}
-                        externalErrorMessage={kapDatoError}
-                      />
-                    );
-                  })()}
-                </TableCell>
-                <TableCell>
-                  <TablePercentInput
-                    gridCell={{ rowId: row.id, colIndex: 5 }}
-                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 5)}
-                    value={row.kapPct}
-                    allowDecimals={false}
-                    minValue={0}
-                    maxValue={100}
-                    useDefaultPercentRange={false}
-                    onBlur={(e) => commitRowUpdate(row.id, { kapPct: e.target.value })}
-                    externalErrorMessage={kapPctError}
-                  />
-                </TableCell>
-                <TableCell>
-                  {(() => {
-                    const afgoerelsesDatoIso = row.afgoerelsesDato;
-                    const tidlKapMax = getDayBeforeIso(afgoerelsesDatoIso);
-                    const hasValidRange = !(tidlKapMax !== undefined && skadedatoMin > tidlKapMax);
-                    const tidlKapSpecialErrors: DateRangeSpecialErrors = {
-                      minBoundKind: 'skadedato',
-                      maxBoundKind: 'foerAfgoerelsesdato',
-                      maxBoundReferenceISO: afgoerelsesDatoIso,
-                    };
-                    return (
-                      <TableDateInput
-                        gridCell={{ rowId: row.id, colIndex: 6 }}
-                        undoFieldPathAliases={getUndoFieldPathAliases(row.id, 6)}
-                        value={row.tidlKapDato}
-                        onBlur={(e) => commitRowUpdate(row.id, { tidlKapDato: e.target.value })}
-                        minDate={hasValidRange ? skadedatoMin : undefined}
-                        maxDate={hasValidRange ? tidlKapMax : undefined}
-                        specialRangeErrors={tidlKapSpecialErrors}
-                        externalErrorMessage={tidlKapDatoError}
-                      />
-                    );
-                  })()}
-                </TableCell>
-                <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
-                  <TableDropdown
-                    gridCell={{ rowId: row.id, colIndex: 7 }}
-                    undoFieldPathAliases={getUndoFieldPathAliases(row.id, 7)}
-                    value={row.fsTilbageholdtEet ?? 'Nej'}
-                    allowEmpty={false}
-                    onChange={(e) =>
-                      commitRowUpdate(row.id, { fsTilbageholdtEet: e.target.value as JaNej })
-                    }
-                    options={JA_NEJ_OPTIONS}
-                  />
-                  {!isAslAfgoerelseRowPersistenceEmpty(row) && (
-                    <RowDeleteButton onDelete={() => handleDeleteRow(row.id)} />
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {renderRows.map((renderRow) => (
+            <EetAslAfgoerelserRow
+              key={renderRow.rowId}
+              renderRow={renderRow}
+              onDeleteRow={rows.remove}
+              validationMessageByCell={validationMessageByCell}
+              buildCellSpec={buildCellSpec}
+            />
+          ))}
         </TableBody>
       </StandardLooseTable>
     );
