@@ -19,7 +19,12 @@ grid-navigationens celleeditor-registry, og Renteberegning omfatter den anden (B
 (§2.4 trin 7) er påbegyndt foundation-first: den ene kanoniske reader-projektion `buildErhvervsevnetabReaderProjection`
 (ren funktion over `InputReader`, kører `computeEetSnapshot` uændret på reader-læste værdier for alle fem faner, ejer
 `aslAfgoerelser`-rekonstruktionen række-for-række og de tre felt-placerede domæneregler + forlig-blokeringen §1.10)
-er landet med nul produktionscallsites; selve fem-tab-/tabel-cutoveren af `Erhvervsevnetab.tsx` udestår. Erstatningsopgørelsens
+er landet med nul produktionscallsites. Oven på den er den rene, per-fane download-gate `erhvervsevnetabDownloadGate`
+(`evaluateErhvervsevnetabDownloadGates`) landet — den oversætter hver af de fire dokumentfaners
+`hasBlockingErrors`/`computation` til ét `DocumentDownloadGateResult` (field-error vs missing-fields vs no-result vs
+tilladt) med §1.10-uafhængighed pr. fane; field/missing-klassifikationen ejes af det ene sande `isEetFieldErrorIssueId`
+i `eetFormatUtils`. Gaten har fortsat nul produktionscallsites (kun forbrugt af sin test, som den fremtidige
+tab-cutover wirer). Selve fem-tab-/tabel-cutoveren af `Erhvervsevnetab.tsx` udestår. Erstatningsopgørelsens
 delte brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
 ingen runtime-fallback. Reviewet rettede desuden replacement/no-op-matricen, synkron editorregistrering,
 dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede

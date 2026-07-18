@@ -27,6 +27,27 @@ export const toFieldIssue = (
   return { id, severity: 'error', message: message.trim() };
 };
 
+/**
+ * Ét sandt sted for hvilke EET-issue-ids der repræsenterer en RØD FELTFEJL (format/bounds/rule),
+ * modsat en manglende-/afledt-consumer-fejl.
+ *
+ * En rød feltfejl (greenfield §1.6) er dem, hvor et konkret inputfelt enten (a) er skjult bag en
+ * reader-feltfejl (format/bounds) og ført ind i snapshottet som et `field-*`-issue, eller (b) er en
+ * felt-placeret domæneregel med samme røde markering (forlig-brøk/procent, dato-orden på stamdata,
+ * eller en `*-invalid` værdi som en out-of-bounds procent readeren ikke selv kan fange). En intern
+ * beregnings-runtimefejl (`runtime-exception`) behandles også som en hård felt-/beregningsblokering,
+ * ikke som en manglende-felt-tilstand.
+ *
+ * Bruges af download-gaten til at vælge ÉN reason-kode ("field-error" vs "missing-fields") pr. fane
+ * (§1.10), og deles med den fremtidige UI, så klassifikationen ikke driftes til et andet sted.
+ */
+export const isEetFieldErrorIssueId = (issueId: string): boolean =>
+  issueId.startsWith('field-') ||
+  issueId.startsWith('stamdata-date-order:') ||
+  issueId === 'forlig-ansvarsgrad-invalid' ||
+  issueId === 'runtime-exception' ||
+  issueId.endsWith('-invalid');
+
 export const NAVIGATION_SORT_ORDER: Record<string, number> = {
   'stamdata-skadelidte': 0,
   'eet-oplysninger-grundlaeggende': 1,
