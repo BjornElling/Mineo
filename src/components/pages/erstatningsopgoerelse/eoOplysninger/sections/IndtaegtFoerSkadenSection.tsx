@@ -3,23 +3,44 @@ import SearchIcon from '@mui/icons-material/Search';
 import DocumentDownloadButton from '../../../../inputs/DocumentDownloadButton';
 import ContentBox from '../../../../layout/ContentBox';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
-import StyledToggleSwitch from '../../../../inputs/StyledToggleSwitch';
-import StyledDropdown, { type StyledDropdownChangeEvent } from '../../../../inputs/StyledDropdown';
-import StyledDateField from '../../../../inputs/StyledDateField';
-import StyledAmountField from '../../../../inputs/StyledAmountField';
-import StyledTextField from '../../../../inputs/StyledTextField';
-import StyledIntegerField from '../../../../inputs/StyledIntegerField';
-import BeregningsperiodeFerieTable from '../../../../tables/BeregningsperiodeFerieTable';
-import LoenudviklingManuelTable from '../../../../tables/LoenudviklingManuelTable';
-import LoenudviklingManuelProcentsatsTable from '../../../../tables/LoenudviklingManuelProcentsatsTable';
-import { CellInvalidDraftScopeProvider } from '../../../../../contexts/CellInvalidDraftScopeContext';
-import { CELL_TABLE_IDS } from '../../../../../config/cellInvalidDraftScopes';
+import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
+import GreenfieldChoiceField from '../../../../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldDateField from '../../../../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldIntegerField from '../../../../../inputCore/react/fields/GreenfieldIntegerField';
+import GreenfieldTextField from '../../../../../inputCore/react/fields/GreenfieldTextField';
+import GreenfieldAmountField from '../../../../../inputCore/react/fields/GreenfieldAmountField';
+import {
+  eoAngivetDagsloenBaseretPaaField,
+  eoAngivetDagsloenOpreguleresFraDatoField,
+  eoAngivetMaanedsloenBaseretPaaField,
+  eoAngivetMaanedsloenOpreguleresFraDatoField,
+  eoBeregnesUdFraField,
+  eoDagsloenenUdgoerField,
+  eoKomprimerBeregningField,
+  eoMaanedsloenenUdgoerField,
+  eoOevrigeFravaersdageBeskrivelseField,
+  eoOevrigeFravaersdageField,
+  eoOevrigtFravaerUdenLoenField,
+  eoRegulerOffentligeYdelserField,
+  eoTafBeregningsperiodeFraField,
+  eoTafBeregningsperiodeTilField,
+  eoUspecificeredeFerieFridageField,
+} from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import {
+  eoAngivetLoenFields,
+  eoAngivetLoenFilterFields,
+  eoAngivetLoenManual,
+} from '../../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import type { CollectionRef } from '../../../../../inputCore/fieldAddress';
+import { GreenfieldChoiceDivider } from '../../../../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldFerieperiodeTable from '../../../../tables/GreenfieldFerieperiodeTable';
+import GreenfieldLoenudviklingManuelTable from '../../../../tables/GreenfieldLoenudviklingManuelTable';
+import GreenfieldLoenudviklingManuelProcentsatsTable from '../../../../tables/GreenfieldLoenudviklingManuelProcentsatsTable';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { getOverenskomstMetaById } from '../../../../../data/overenskomstRates';
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../../data/statistiskeRates';
 import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
-import { getDayAfterIso } from '../../../../../utils/isoDateHelpers';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 
 /**
@@ -31,40 +52,17 @@ export default function IndtaegtFoerSkadenSection() {
   const {
     values,
     eoLoenudvikling,
-    getChecked,
-    handleToggleChange,
-    handleBeregnesUdFraChange,
-    handleIsoDateBlur,
-    handleIntegerBlur,
-    handleAmountBlur,
-    commitField,
     skalKomprimereIndtaegtFoerSkaden,
     indtaegtFoerSkadenSectionTitle,
-    beregningsperiodeTafOverlap,
-    fravaer,
     fravaerFeriedageById,
     angivetLoenOpreguleringLabel,
-    aktivAngivetLoenOpreguleresFraDato,
     visLoenudviklingFraEO,
     loenudviklingBasis,
-    handleLoenudviklingBeregningsgrundlagChange,
-    handleEoOverenskomstFilterChange,
-    handleEoOverenskomstChange,
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,
     filteredOverenskomster,
     erOffentligOverenskomst,
-    handleOffentligLoenTypeChange,
-    handleOffentligLoenTrinCommit,
-    handleOffentligLoenGruppeCommit,
-    handleOffentligLoenEkstraGrundloenCommit,
     offentligLoenEkstraGrundloenSuffix,
-    handleLoenudviklingStatistikModelChange,
-    handleLoenudviklingKRLSatstabelChange,
-    handleLoenudviklingManuelNavnCommit,
-    handleLoenudviklingManuelTableChange,
-    handleLoenudviklingManuelProcentsatsTableChange,
-    handleLoenudviklingManuelInputErrorChange,
     loenudviklingBaseDateDisplay,
     loenudviklingBaseDateISO,
     loenudviklingBaseDateErrorMessage,
@@ -76,26 +74,9 @@ export default function IndtaegtFoerSkadenSection() {
     handleDownloadKlLoenaftalerPdf,
     handleDownloadReguleringPdf,
     showEoAnciennitetstillaegSection,
-    handleEoAnciennitetstillaegToggleCommit,
-    handleEoAnciennitetstillaegDatoCommit,
-    handleEoAnciennitetstillaegSatsCommit,
     eoAnciennitetSatsPerTekst,
     loentrinFinder,
-    reportTafBeregningsperiodeFraInputError,
-    reportTafBeregningsperiodeTilInputError,
-    reportUspecificeredeFerieFridageInputError,
-    reportOevrigeFravaersdageInputError,
-    reportMaanedsloenenUdgoerInputError,
-    reportDagsloenenUdgoerInputError,
-    reportAngivetMaanedsloenOpreguleresFraDatoInputError,
-    reportAngivetDagsloenOpreguleresFraDatoInputError,
-    reportOffentligLoenTrinInputError,
-    reportOffentligLoenGruppeInputError,
-    reportOffentligLoenEkstraGrundloenInputError,
-    reportAnciennitetstillaegDatoInputError,
-    reportAnciennitetstillaegSatsInputError,
   } = useEoOplysningerVm();
-  const eoAnciennitetstillaegMinDato = getDayAfterIso(loenudviklingBaseDateISO);
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
 
@@ -106,10 +87,12 @@ export default function IndtaegtFoerSkadenSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Skjul beregning efter første opgørelse</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
+            <GreenfieldMappedToggleField
+              field={eoKomprimerBeregningField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.komprimerBeregningEfterFoersteOpgoerelse' }}
+              checkedValue="Ja"
+              uncheckedValue="Nej"
               name="komprimerBeregningEfterFoersteOpgoerelse"
-              checked={getChecked(values.komprimerBeregningEfterFoersteOpgoerelse)}
-              onCommit={handleToggleChange('komprimerBeregningEfterFoersteOpgoerelse')}
             />
           </Box>
         </Box>
@@ -119,17 +102,17 @@ export default function IndtaegtFoerSkadenSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Beregnes ud fra</Typography>
               <Box className="row--label-right-hover__content">
-                <StyledDropdown
+                <GreenfieldChoiceField
+                  field={eoBeregnesUdFraField.bind()}
+                  location={{ locationId: 'erstatningsopgoerelse.beregnesUdFra' }}
                   name="beregnesUdFra"
                   width={200}
-                  value={values.beregnesUdFra}
-                  onChange={handleBeregnesUdFraChange}
                   allowEmpty={false}
                 >
                   <MenuItem value="Beregningsperiode">Beregningsperiode</MenuItem>
                   <MenuItem value="Angivet månedsløn">Angivet månedsløn</MenuItem>
                   <MenuItem value="Angivet dagsløn">Angivet dagsløn</MenuItem>
-                </StyledDropdown>
+                </GreenfieldChoiceField>
               </Box>
             </Box>
 
@@ -139,22 +122,16 @@ export default function IndtaegtFoerSkadenSection() {
                   <Typography className="row--text">Periode til beregning af før-løn:</Typography>
                   <Box className="row--label-right-hover__content">
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                      <StyledDateField
+                      <GreenfieldDateField
+                        field={eoTafBeregningsperiodeFraField.bind()}
+                        location={{ locationId: 'erstatningsopgoerelse.tafBeregningsperiodeFra' }}
                         name="tafBeregningsperiodeFra"
-                        value={values.tafBeregningsperiodeFra}
-                        onCommit={handleIsoDateBlur('tafBeregningsperiodeFra')}
-                        onFieldError={reportTafBeregningsperiodeFraInputError}
-                        error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
-                        helperText={beregningsperiodeTafOverlap.firstOverlapMessage ?? ''}
                       />
                       <Typography sx={{ minWidth: 'auto' }}>til:</Typography>
-                      <StyledDateField
+                      <GreenfieldDateField
+                        field={eoTafBeregningsperiodeTilField.bind()}
+                        location={{ locationId: 'erstatningsopgoerelse.tafBeregningsperiodeTil' }}
                         name="tafBeregningsperiodeTil"
-                        value={values.tafBeregningsperiodeTil}
-                        onCommit={handleIsoDateBlur('tafBeregningsperiodeTil')}
-                        onFieldError={reportTafBeregningsperiodeTilInputError}
-                        error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
-                        helperText={beregningsperiodeTafOverlap.firstOverlapMessage ?? ''}
                       />
                     </Box>
                   </Box>
@@ -166,41 +143,32 @@ export default function IndtaegtFoerSkadenSection() {
                     <InfoTooltipIcon title="Offentlige ydelser fremskrives efter statslig praksis med tilpasningsprocenten + 2 % per 1. januar" />
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledToggleSwitch
+                    <GreenfieldMappedToggleField
+                      field={eoRegulerOffentligeYdelserField.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.regulerOffentligeYdelser' }}
+                      checkedValue="Ja"
+                      uncheckedValue="Nej"
                       name="regulerOffentligeYdelser"
-                      checked={getChecked(values.regulerOffentligeYdelser)}
-                      onCommit={handleToggleChange('regulerOffentligeYdelser')}
                     />
                   </Box>
                 </Box>
 
                 <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
-                <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoBeregningsperiodeFerie}>
-                <BeregningsperiodeFerieTable
-                  rows={fravaer.draftRows}
-                  committedById={fravaer.committedById}
+                <GreenfieldFerieperiodeTable
+                  kind="beregningsperiode"
+                  committedRows={values.fravaerPerioder}
                   feriedageById={fravaerFeriedageById}
-                  onFieldChange={fravaer.onFieldChange}
-                  onRowBlur={fravaer.onRowBlur}
-                  onDeleteRow={fravaer.removeRow}
-                  onRowsReorder={fravaer.reorderRows}
-                  beregningsperiodeFra={values.tafBeregningsperiodeFra}
-                  beregningsperiodeTil={values.tafBeregningsperiodeTil}
                   saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
                 />
-                </CellInvalidDraftScopeProvider>
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Uspecificerede ferie-/feriefridage</Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledIntegerField
+                    <GreenfieldIntegerField
+                      field={eoUspecificeredeFerieFridageField.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.uspecificeredeFerieFridage' }}
                       name="uspecificeredeFerieFridage"
                       width={80}
-                      value={values.uspecificeredeFerieFridage}
-                      onCommit={handleIntegerBlur('uspecificeredeFerieFridage')}
-                      onFieldError={reportUspecificeredeFerieFridageInputError}
-                      minValue={0}
-                      maxValue={365}
                     />
                   </Box>
                 </Box>
@@ -210,27 +178,26 @@ export default function IndtaegtFoerSkadenSection() {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Øvrigt fravær uden løn</Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledToggleSwitch
+                    <GreenfieldMappedToggleField
+                      field={eoOevrigtFravaerUdenLoenField.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.oevrigtFravaerUdenLoen' }}
+                      checkedValue="Ja"
+                      uncheckedValue="Nej"
                       name="oevrigtFravaerUdenLoen"
-                      checked={getChecked(values.oevrigtFravaerUdenLoen)}
-                      onCommit={handleToggleChange('oevrigtFravaerUdenLoen')}
                     />
                   </Box>
                 </Box>
 
-                {getChecked(values.oevrigtFravaerUdenLoen) && (
+                {values.oevrigtFravaerUdenLoen === 'Ja' && (
                   <>
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Antal fraværsdage (mandag-fredag)</Typography>
                       <Box className="row--label-right-hover__content">
-                        <StyledIntegerField
+                        <GreenfieldIntegerField
+                          field={eoOevrigeFravaersdageField.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.oevrigeFravaersdage' }}
                           name="oevrigeFravaersdage"
                           width={80}
-                          value={values.oevrigeFravaersdage}
-                          onCommit={handleIntegerBlur('oevrigeFravaersdage')}
-                          onFieldError={reportOevrigeFravaersdageInputError}
-                          minValue={0}
-                          maxValue={365}
                         />
                       </Box>
                     </Box>
@@ -238,11 +205,11 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Årsag til fravær</Typography>
                       <Box className="row--label-right-hover__content">
-                        <StyledTextField
+                        <GreenfieldTextField
+                          field={eoOevrigeFravaersdageBeskrivelseField.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.oevrigeFravaersdageBeskrivelse' }}
                           name="oevrigeFravaersdageBeskrivelse"
                           width={300}
-                          value={values.oevrigeFravaersdageBeskrivelse || ''}
-                          onCommit={commitField('oevrigeFravaersdageBeskrivelse')}
                           sx={{
                             '& .MuiInputBase-input': {
                               textAlign: 'right',
@@ -260,12 +227,11 @@ export default function IndtaegtFoerSkadenSection() {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Månedslønnen udgør</Typography>
                 <Box className="row--label-right-hover__content">
-                <StyledAmountField
+                <GreenfieldAmountField
+                  field={eoMaanedsloenenUdgoerField.bind()}
+                  location={{ locationId: 'erstatningsopgoerelse.maanedsloenenUdgoer' }}
                   name="maanedsloenenUdgoer"
                   width={150}
-                  value={values.maanedsloenenUdgoer}
-                  onCommit={handleAmountBlur('maanedsloenenUdgoer')}
-                  onFieldError={reportMaanedsloenenUdgoerInputError}
                 />
                 </Box>
               </Box>
@@ -275,12 +241,11 @@ export default function IndtaegtFoerSkadenSection() {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Dagslønnen udgør</Typography>
                 <Box className="row--label-right-hover__content">
-                <StyledAmountField
+                <GreenfieldAmountField
+                  field={eoDagsloenenUdgoerField.bind()}
+                  location={{ locationId: 'erstatningsopgoerelse.dagsloenenUdgoer' }}
                   name="dagsloenenUdgoer"
                   width={150}
-                  value={values.dagsloenenUdgoer}
-                  onCommit={handleAmountBlur('dagsloenenUdgoer')}
-                  onFieldError={reportDagsloenenUdgoerInputError}
                 />
                 </Box>
               </Box>
@@ -290,23 +255,19 @@ export default function IndtaegtFoerSkadenSection() {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">- baseret på</Typography>
                 <Box className="row--label-right-hover__content">
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={values.beregnesUdFra === 'Angivet månedsløn'
+                      ? eoAngivetMaanedsloenBaseretPaaField.bind()
+                      : eoAngivetDagsloenBaseretPaaField.bind()}
+                    location={{ locationId: values.beregnesUdFra === 'Angivet månedsløn'
+                      ? 'erstatningsopgoerelse.angivetMaanedsloenBaseretPaa'
+                      : 'erstatningsopgoerelse.angivetDagsloenBaseretPaa' }}
                     name={
                       values.beregnesUdFra === 'Angivet månedsløn'
                         ? 'angivetMaanedsloenBaseretPaa'
                         : 'angivetDagsloenBaseretPaa'
                     }
                     width={300}
-                    value={
-                      values.beregnesUdFra === 'Angivet månedsløn'
-                        ? (values.angivetMaanedsloenBaseretPaa || '')
-                        : (values.angivetDagsloenBaseretPaa || '')
-                    }
-                    onCommit={
-                      values.beregnesUdFra === 'Angivet månedsløn'
-                        ? commitField('angivetMaanedsloenBaseretPaa')
-                        : commitField('angivetDagsloenBaseretPaa')
-                    }
                   />
                 </Box>
               </Box>
@@ -316,22 +277,17 @@ export default function IndtaegtFoerSkadenSection() {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">{angivetLoenOpreguleringLabel}</Typography>
                 <Box className="row--label-right-hover__content">
-                  <StyledDateField
+                  <GreenfieldDateField
+                    field={values.beregnesUdFra === 'Angivet månedsløn'
+                      ? eoAngivetMaanedsloenOpreguleresFraDatoField.bind()
+                      : eoAngivetDagsloenOpreguleresFraDatoField.bind()}
+                    location={{ locationId: values.beregnesUdFra === 'Angivet månedsløn'
+                      ? 'erstatningsopgoerelse.angivetMaanedsloenOpreguleresFraDato'
+                      : 'erstatningsopgoerelse.angivetDagsloenOpreguleresFraDato' }}
                     name={
                       values.beregnesUdFra === 'Angivet månedsløn'
                         ? 'angivetMaanedsloenOpreguleresFraDato'
                         : 'angivetDagsloenOpreguleresFraDato'
-                    }
-                    value={aktivAngivetLoenOpreguleresFraDato}
-                    onCommit={
-                      values.beregnesUdFra === 'Angivet månedsløn'
-                        ? handleIsoDateBlur('angivetMaanedsloenOpreguleresFraDato')
-                        : handleIsoDateBlur('angivetDagsloenOpreguleresFraDato')
-                    }
-                    onFieldError={
-                      values.beregnesUdFra === 'Angivet månedsløn'
-                        ? reportAngivetMaanedsloenOpreguleresFraDatoInputError
-                        : reportAngivetDagsloenOpreguleresFraDatoInputError
                     }
                   />
                 </Box>
@@ -345,11 +301,11 @@ export default function IndtaegtFoerSkadenSection() {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledDropdown
+                    <GreenfieldChoiceField
+                      field={eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag' }}
                       name="loenudviklingBeregningsgrundlag"
                       width={220}
-                      value={loenudviklingBasis}
-                      onChange={handleLoenudviklingBeregningsgrundlagChange}
                       allowEmpty={true}
                       placeholder="Vælg..."
                     >
@@ -357,12 +313,12 @@ export default function IndtaegtFoerSkadenSection() {
                       <MenuItem value="Statistik">Statistik</MenuItem>
                       <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
                       <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
-                      <StyledDropdown.Divider />
+                      <GreenfieldChoiceDivider />
                       <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
                       <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
-                      <StyledDropdown.Divider />
+                      <GreenfieldChoiceDivider />
                       <MenuItem value="Ingen">Ingen</MenuItem>
-                    </StyledDropdown>
+                    </GreenfieldChoiceField>
                   </Box>
                 </Box>
 
@@ -373,13 +329,11 @@ export default function IndtaegtFoerSkadenSection() {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
                         <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
-                        <StyledDropdown
+                        <GreenfieldChoiceField
+                          field={eoAngivetLoenFilterFields.loenmodtager.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager' }}
                           name="overenskomstFilter.loenmodtager"
-                          value={eoLoenudvikling.overenskomstFilter?.loenmodtager ?? 'ALLE'}
-                          onChange={(e: StyledDropdownChangeEvent<string>) => {
-                            const uiValue = e.target.value;
-                            handleEoOverenskomstFilterChange('loenmodtager', uiValue === 'ALLE' ? undefined : uiValue);
-                          }}
+                          emptyUiValue="ALLE"
                           width={120}
                           allowEmpty={false}
                           sx={{
@@ -413,17 +367,15 @@ export default function IndtaegtFoerSkadenSection() {
                               {org}
                             </MenuItem>
                           ))}
-                        </StyledDropdown>
+                        </GreenfieldChoiceField>
 
                         {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
                         <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
-                        <StyledDropdown
+                        <GreenfieldChoiceField
+                          field={eoAngivetLoenFilterFields.arbejdsgiver.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver' }}
                           name="overenskomstFilter.arbejdsgiver"
-                          value={eoLoenudvikling.overenskomstFilter?.arbejdsgiver ?? 'ALLE'}
-                          onChange={(e: StyledDropdownChangeEvent<string>) => {
-                            const uiValue = e.target.value;
-                            handleEoOverenskomstFilterChange('arbejdsgiver', uiValue === 'ALLE' ? undefined : uiValue);
-                          }}
+                          emptyUiValue="ALLE"
                           width={120}
                           allowEmpty={false}
                           sx={{
@@ -457,12 +409,12 @@ export default function IndtaegtFoerSkadenSection() {
                               {org}
                             </MenuItem>
                           ))}
-                        </StyledDropdown>
+                        </GreenfieldChoiceField>
 
-                        <StyledDropdown
+                        <GreenfieldChoiceField
+                          field={eoAngivetLoenFields.overenskomstId.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstId' }}
                           name="overenskomstId"
-                          value={eoLoenudvikling.overenskomstId || undefined}
-                          onChange={handleEoOverenskomstChange}
                           width={460}
                           placeholder="Vælg overenskomst..."
                           allowEmpty={true}
@@ -484,7 +436,7 @@ export default function IndtaegtFoerSkadenSection() {
                               </MenuItem>
                             );
                           })}
-                        </StyledDropdown>
+                        </GreenfieldChoiceField>
                       </Box>
                     </Box>
                   </Box>
@@ -497,11 +449,11 @@ export default function IndtaegtFoerSkadenSection() {
                       <Box className="row--label-right-hover__content">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                           <Typography className="row--text">Ansættelse</Typography>
-                          <StyledDropdown
+                          <GreenfieldChoiceField
+                            field={eoAngivetLoenFields.offentligLoenType.bind()}
+                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenType' }}
                             name="offentligLoenType"
                             width={160}
-                            value={eoLoenudvikling.offentligLoenType ?? 'Månedsløn'}
-                            onChange={handleOffentligLoenTypeChange}
                             allowEmpty={false}
                           >
                             {offentligLoenTypeEnum.options.map((option) => (
@@ -509,27 +461,19 @@ export default function IndtaegtFoerSkadenSection() {
                                 {option}
                               </MenuItem>
                             ))}
-                          </StyledDropdown>
+                          </GreenfieldChoiceField>
                           <Typography className="row--text">Løntrin</Typography>
-                          <StyledIntegerField
+                          <GreenfieldIntegerField
+                            field={eoAngivetLoenFields.offentligLoenTrin.bind()}
+                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenTrin' }}
                             name="offentligLoenTrin"
-                            value={eoLoenudvikling.offentligLoenTrin}
-                            onCommit={handleOffentligLoenTrinCommit}
-                            onFieldError={reportOffentligLoenTrinInputError}
-                            minValue={1}
-                            maxValue={55}
-                            maxDigits={2}
                             width={80}
                           />
                           <Typography className="row--text">Gruppe</Typography>
-                          <StyledIntegerField
+                          <GreenfieldIntegerField
+                            field={eoAngivetLoenFields.offentligLoenGruppe.bind()}
+                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenGruppe' }}
                             name="offentligLoenGruppe"
-                            value={eoLoenudvikling.offentligLoenGruppe}
-                            onCommit={handleOffentligLoenGruppeCommit}
-                            onFieldError={reportOffentligLoenGruppeInputError}
-                            minValue={0}
-                            maxValue={4}
-                            maxDigits={1}
                             width={70}
                           />
                           <Tooltip title="Find løntrin" arrow>
@@ -565,13 +509,11 @@ export default function IndtaegtFoerSkadenSection() {
                       <Typography className="row--text">Evt. forhøjet grundløn udover løntrin</Typography>
                       <Box className="row--label-right-hover__content">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <StyledAmountField
+                          <GreenfieldAmountField
+                            field={eoAngivetLoenFields.offentligLoenEkstraGrundloen.bind()}
+                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen' }}
                             name="offentligLoenEkstraGrundloen"
                             width={160}
-                            value={eoLoenudvikling.offentligLoenEkstraGrundloen}
-                            allowNegative={false}
-                            onCommit={handleOffentligLoenEkstraGrundloenCommit}
-                            onFieldError={reportOffentligLoenEkstraGrundloenInputError}
                           />
                           <Typography className="row--text">{offentligLoenEkstraGrundloenSuffix}</Typography>
                         </Box>
@@ -584,18 +526,18 @@ export default function IndtaegtFoerSkadenSection() {
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Statistisk beregningsmodel</Typography>
                     <Box className="row--label-right-hover__content">
-                      <StyledDropdown
+                      <GreenfieldChoiceField
+                        field={eoAngivetLoenFields.loenudviklingStatistikModel.bind()}
+                        location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel' }}
                         name="loenudviklingStatistikModel"
                         width={270}
-                        value={eoLoenudvikling.loenudviklingStatistikModel}
-                        onChange={handleLoenudviklingStatistikModelChange}
                         allowEmpty={true}
                         placeholder="Vælg..."
                       >
                         <MenuItem value={ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}>{ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}</MenuItem>
                         <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
                         <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
-                      </StyledDropdown>
+                      </GreenfieldChoiceField>
                     </Box>
                   </Box>
                 ) : null}
@@ -604,11 +546,11 @@ export default function IndtaegtFoerSkadenSection() {
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Satstabel</Typography>
                     <Box className="row--label-right-hover__content">
-                      <StyledDropdown
+                      <GreenfieldChoiceField
+                        field={eoAngivetLoenFields.loenudviklingKRLSatstabel.bind()}
+                        location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel' }}
                         name="loenudviklingKRLSatstabel"
                         width={270}
-                        value={eoLoenudvikling.loenudviklingKRLSatstabel}
-                        onChange={handleLoenudviklingKRLSatstabelChange}
                         allowEmpty={true}
                         placeholder="Vælg..."
                       >
@@ -617,7 +559,7 @@ export default function IndtaegtFoerSkadenSection() {
                             {satstabel}
                           </MenuItem>
                         ))}
-                      </StyledDropdown>
+                      </GreenfieldChoiceField>
                     </Box>
                   </Box>
                 ) : null}
@@ -627,41 +569,39 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Navn på reguleringsform</Typography>
                       <Box className="row--label-right-hover__content">
-                        <StyledTextField
+                        <GreenfieldTextField
+                          field={eoAngivetLoenFields.loenudviklingManuelNavn.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelNavn' }}
                           name="loenudviklingManuelNavn"
                           width={300}
-                          value={eoLoenudvikling.loenudviklingManuelNavn || ''}
-                          onCommit={handleLoenudviklingManuelNavnCommit}
                         />
                       </Box>
                     </Box>
-                    <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoAngivetLoenudvikling}>
-                    <LoenudviklingManuelTable
-                      tableData={eoLoenudvikling.loenudviklingManuelTableData}
-                      onTableDataChange={handleLoenudviklingManuelTableChange}
-                      onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
+                    <GreenfieldLoenudviklingManuelTable
+                      bindings={eoAngivetLoenManual}
+                      collection={eoAngivetLoenManual.manualCollection.template as CollectionRef}
+                      committedRows={eoLoenudvikling.loenudviklingManuelTableData}
+                      locationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData"
                       baseDateDisplay={loenudviklingBaseDateDisplay}
                       baseDateISO={loenudviklingBaseDateISO}
                       baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
                       useSmallFont={true}
                     />
-                    </CellInvalidDraftScopeProvider>
                   </Box>
                 ) : null}
 
                 {loenudviklingBasis === 'Manuel procentsats' ? (
                   <Box sx={{ mt: 1 }}>
-                    <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoAngivetLoenudviklingManuelProcentsats}>
-                      <LoenudviklingManuelProcentsatsTable
-                        tableData={eoLoenudvikling.loenudviklingManuelProcentsatsTableData}
-                        onTableDataChange={handleLoenudviklingManuelProcentsatsTableChange}
-                        onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
+                      <GreenfieldLoenudviklingManuelProcentsatsTable
+                        bindings={eoAngivetLoenManual}
+                        collection={eoAngivetLoenManual.manualPercentCollection.template as CollectionRef}
+                        committedRows={eoLoenudvikling.loenudviklingManuelProcentsatsTableData}
+                        locationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData"
                         baseDateDisplay={loenudviklingBaseDateDisplay}
                         baseDateISO={loenudviklingBaseDateISO}
                         baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
                         useSmallFont={true}
                       />
-                    </CellInvalidDraftScopeProvider>
                   </Box>
                 ) : null}
 
@@ -742,10 +682,12 @@ export default function IndtaegtFoerSkadenSection() {
                     {`Ville skadelidte have opnået anciennitetstillæg efter ${loenudviklingBaseDateReferenceText}`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledToggleSwitch
+                    <GreenfieldMappedToggleField
+                      field={eoAngivetLoenFields.harAnciennitetstillaegEfterSkadedatoen.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen' }}
+                      checkedValue={true}
+                      uncheckedValue={false}
                       name="harAnciennitetstillaegEfterSkadedatoen"
-                      checked={eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen}
-                      onCommit={handleEoAnciennitetstillaegToggleCommit}
                     />
                   </Box>
                 </Box>
@@ -755,17 +697,10 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
                       <Box className="row--label-right-hover__content">
-                        <StyledDateField
+                        <GreenfieldDateField
+                          field={eoAngivetLoenFields.anciennitetstillaegDato.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegDato' }}
                           name="anciennitetstillaegDato"
-                          value={eoLoenudvikling.anciennitetstillaegDato}
-                          minDate={eoAnciennitetstillaegMinDato}
-                          specialRangeErrors={{
-                            minBoundKind: loenudviklingBaseDateISO ? 'efterAnvendtReguleringsdato' : undefined,
-                            minBoundReferenceISO: loenudviklingBaseDateISO,
-                            minBoundLabel: loenudviklingBaseDateReferenceText,
-                          }}
-                          onCommit={handleEoAnciennitetstillaegDatoCommit}
-                          onFieldError={reportAnciennitetstillaegDatoInputError}
                         />
                       </Box>
                     </Box>
@@ -773,13 +708,11 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">{`Sats per ${eoAnciennitetSatsPerTekst}`}</Typography>
                       <Box className="row--label-right-hover__content">
-                        <StyledAmountField
+                        <GreenfieldAmountField
+                          field={eoAngivetLoenFields.anciennitetstillaegSats.bind()}
+                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSats' }}
                           name="anciennitetstillaegSats"
                           width={160}
-                          value={eoLoenudvikling.anciennitetstillaegSats}
-                          allowNegative={false}
-                          onCommit={handleEoAnciennitetstillaegSatsCommit}
-                          onFieldError={reportAnciennitetstillaegSatsInputError}
                         />
                       </Box>
                     </Box>

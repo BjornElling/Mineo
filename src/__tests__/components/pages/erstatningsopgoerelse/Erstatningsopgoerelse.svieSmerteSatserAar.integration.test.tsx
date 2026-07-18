@@ -3,18 +3,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoerelse';
-import { STORAGE_KEYS, createActiveTabStorageKey } from '../../../../config/storageManifest';
-import { PERSISTED_DATA_VERSION } from '../../../../config/persistenceVersion';
+import { createActiveTabStorageKey } from '../../../../config/storageManifest';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
+import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvider';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../../types/branded';
 
-const persistedWrapper = (data: unknown) => ({
-  version: PERSISTED_DATA_VERSION,
-  timestamp: Date.now(),
-  data,
-});
+import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
+import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
+import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 
 describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
   const ASYNC_TEST_TIMEOUT_MS = 30_000;
@@ -24,25 +21,30 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
   });
 
   it('viser sats-aar advarslen i Beregning-fanen på den rigtige side', async () => {
-    sessionStorage.setItem(
-      STORAGE_KEYS.erstatningsopgoerelse,
-      JSON.stringify(
-        persistedWrapper({
+    const catalog = getProductionInputCatalog();
+    slimInputStore.getState().hydrate(catalog.validateSettledInput({
+      sections: {
+        stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
+        varigemen: null, forsoergertab: null, erhvervsevnetab: null,
+        erstatningsopgoerelse: {
           ...createErstatningsopgoerelseInitialValues(),
           opgørelseLavetDen: toISODateString('2025-12-15'),
           svieSmerteSatserAar: 2025,
           revideretOpgoerelse: 'Nej',
-        })
-      )
-    );
+        },
+      },
+      rejectedInputs: {},
+    }));
     sessionStorage.setItem(createActiveTabStorageKey('erstatningsopgoerelse'), 'beregning');
 
     render(
       <MemoryRouter>
         <AppSettingsProvider>
-          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-            <Erstatningsopgoerelse />
-          </FormPersistenceProvider>
+          <RoutePathnameProvider>
+            <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
+              <Erstatningsopgoerelse />
+            </ProductionInputRuntimeProvider>
+          </RoutePathnameProvider>
         </AppSettingsProvider>
       </MemoryRouter>
     );

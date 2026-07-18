@@ -1,14 +1,19 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
-import StyledRadioButton from '../../../../inputs/StyledRadioButton';
-import StyledToggleSwitch from '../../../../inputs/StyledToggleSwitch';
-import StyledYearField from '../../../../inputs/StyledYearField';
-import StyledAmountField from '../../../../inputs/StyledAmountField';
-import SvieSmerteTable from '../../../../tables/SvieSmerteTable';
-import { CellInvalidDraftScopeProvider } from '../../../../../contexts/CellInvalidDraftScopeContext';
-import { CELL_TABLE_IDS } from '../../../../../config/cellInvalidDraftScopes';
-import { CURRENT_YEAR, MIN_SVIESMERTE_YEAR } from '../../../../../config/dateRanges';
+import GreenfieldRadioField from '../../../../../inputCore/react/fields/GreenfieldRadioField';
+import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
+import GreenfieldYearField from '../../../../../inputCore/react/fields/GreenfieldYearField';
+import GreenfieldAmountField from '../../../../../inputCore/react/fields/GreenfieldAmountField';
+import GreenfieldSvieSmerteTable from '../../../../tables/GreenfieldSvieSmerteTable';
+import {
+  eoKravPaaSvieSmerteGodtgoerelseField,
+  eoSvieSmerteAktuelPeriodeField,
+  eoSvieSmerteDelvisSygemeldingSatsField,
+  eoSvieSmerteSatserAarField,
+  eoSvieSmerteTidligereTotalField,
+  eoTidligereSsMaxField,
+} from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import {
   erSvieSmerteSektionAktiv,
   erSvieSmertePeriodeInputRelevant,
@@ -25,20 +30,7 @@ import {
 export default function SvieSmerteSection() {
   const {
     values,
-    getChecked,
-    handleJaNejSkjulChange,
-    handleToggleChange,
-    handleNumberBlur,
-    handleAmountBlur,
-    setFieldValue,
     svie,
-    skadedatoISO,
-    erErhvervssygdom,
-    menAfgoerelseDatoForTabel,
-    verserendeKlageMen,
-    reportSvieSmerteSatserAarInputError,
-    reportSvieSmerteTidligereTotalInputError,
-    reportSvieSmerteAktuelPeriodeInputError,
   } = useEoOplysningerVm();
 
   return (
@@ -48,10 +40,10 @@ export default function SvieSmerteSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Er der krav på svie- og smertegodtgørelse i erstatningsperioden</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledRadioButton
+            <GreenfieldRadioField
+              field={eoKravPaaSvieSmerteGodtgoerelseField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.kravPaaSvieSmerteGodtgoerelse' }}
               name="kravPaaSvieSmerteGodtgoerelse"
-              value={values.kravPaaSvieSmerteGodtgoerelse}
-              onCommit={handleJaNejSkjulChange('kravPaaSvieSmerteGodtgoerelse')}
               row={true}
               options={[...KRAV_JA_NEJ_SKJUL_OPTIONS]}
             />
@@ -63,10 +55,12 @@ export default function SvieSmerteSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
               <Box className="row--label-right-hover__content">
-                <StyledToggleSwitch
+                <GreenfieldMappedToggleField
+                  field={eoTidligereSsMaxField.bind()}
+                  location={{ locationId: 'erstatningsopgoerelse.tidligereSsMax' }}
+                  checkedValue="Ja"
+                  uncheckedValue="Nej"
                   name="tidligereSsMax"
-                  checked={getChecked(values.tidligereSsMax)}
-                  onCommit={handleToggleChange('tidligereSsMax')}
                 />
               </Box>
             </Box>
@@ -79,35 +73,20 @@ export default function SvieSmerteSection() {
                   Periode:
                   <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
                 </Typography>
-                <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoSvieSmerte}>
-                <SvieSmerteTable
-                  rows={svie.draftRows}
-                  committedById={svie.committedById}
+                <GreenfieldSvieSmerteTable
+                  committedRows={values.svieSmertePerioder}
                   derivedById={svie.derivedById}
-                  overlappingIds={svie.overlappingIds}
-                  skadedatoISO={skadedatoISO}
-                  menAfgoerelseDato={menAfgoerelseDatoForTabel}
-                  erErhvervssygdom={erErhvervssygdom}
-                  verserendeKlageMen={verserendeKlageMen}
-                  onFieldChange={svie.onFieldChange}
-                  onRowBlur={svie.onRowBlur}
-                  onDeleteRow={svie.removeRow}
-                  onRowsReorder={svie.reorderRows}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
                 />
-                </CellInvalidDraftScopeProvider>
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Hvilket års svie/smerte-satser lægges til grund?</Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledYearField
+                    <GreenfieldYearField
+                      field={eoSvieSmerteSatserAarField.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteSatserAar' }}
                       name="svieSmerteSatserAar"
                       width={100}
-                      value={values.svieSmerteSatserAar}
-                      onCommit={handleNumberBlur('svieSmerteSatserAar')}
-                      onFieldError={reportSvieSmerteSatserAarInputError}
-                      minYear={MIN_SVIESMERTE_YEAR}
-                      maxYear={CURRENT_YEAR}
                     />
                   </Box>
                 </Box>
@@ -118,16 +97,10 @@ export default function SvieSmerteSection() {
                     <InfoTooltipIcon title={DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP} />
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledRadioButton
+                    <GreenfieldRadioField
+                      field={eoSvieSmerteDelvisSygemeldingSatsField.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteDelvisSygemeldingSats' }}
                       name="svieSmerteDelvisSygemeldingSats"
-                      value={values.svieSmerteDelvisSygemeldingSats}
-                      onCommit={(event) => {
-                        const next = event.target.value;
-                        if (next === 'fuld' || next === 'halv') {
-                          return setFieldValue('svieSmerteDelvisSygemeldingSats', next);
-                        }
-                        return false;
-                      }}
                       row={true}
                       options={[
                         { value: 'fuld', label: 'Fuld sats' },
@@ -145,12 +118,11 @@ export default function SvieSmerteSection() {
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Svie/smerte-krav i tidligere erstatningsopgørelser:</Typography>
                     <Box className="row--label-right-hover__content">
-                      <StyledAmountField
+                      <GreenfieldAmountField
+                        field={eoSvieSmerteTidligereTotalField.bind()}
+                        location={{ locationId: 'erstatningsopgoerelse.svieSmerteTidligereTotal' }}
                         name="svieSmerteTidligereTotal"
                         width={150}
-                        value={values.svieSmerteTidligereTotal}
-                        onCommit={handleAmountBlur('svieSmerteTidligereTotal')}
-                        onFieldError={reportSvieSmerteTidligereTotalInputError}
                       />
                     </Box>
                   </Box>
@@ -159,12 +131,11 @@ export default function SvieSmerteSection() {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode:</Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledAmountField
+                    <GreenfieldAmountField
+                      field={eoSvieSmerteAktuelPeriodeField.bind()}
+                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteAktuelPeriode' }}
                       name="svieSmerteAktuelPeriode"
                       width={150}
-                      value={values.svieSmerteAktuelPeriode}
-                      onCommit={handleAmountBlur('svieSmerteAktuelPeriode')}
-                      onFieldError={reportSvieSmerteAktuelPeriodeInputError}
                     />
                   </Box>
                 </Box>

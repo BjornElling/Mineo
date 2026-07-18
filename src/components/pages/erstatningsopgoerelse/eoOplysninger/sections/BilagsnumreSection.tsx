@@ -1,13 +1,23 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import StyledToggleSwitch from '../../../../inputs/StyledToggleSwitch';
-import StyledTextField from '../../../../inputs/StyledTextField';
+import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
+import GreenfieldTextField from '../../../../../inputCore/react/fields/GreenfieldTextField';
+import {
+  eoBilagsnumreBeregningsgrundlagTafField,
+  eoBilagsnumreEetAfgoerelserField,
+  eoBilagsnumreLoenISygeperiodenField,
+  eoBilagsnumreMenAfgoerelseField,
+  eoBilagsnumreOffentligeYdelserField,
+  eoBilagsnumreOevrigeErstatningskravField,
+  eoBilagsnumreSvieSmerteDokumentationField,
+  eoVisBilagsnumreField,
+} from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { erBilagsnumreRelevant } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 
 /** Sektion 9: Bilagsnumre. */
 export default function BilagsnumreSection() {
-  const { values, getChecked, handleToggleChange, handleStringBlur } = useEoOplysningerVm();
+  const { values } = useEoOplysningerVm();
 
   return (
       <ContentBox className="content-box" data-section-id="bilagsnumre">
@@ -16,10 +26,12 @@ export default function BilagsnumreSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Indsæt bilagsnumre i erstatningsopgørelsen</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
+            <GreenfieldMappedToggleField
+              field={eoVisBilagsnumreField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.visBilagsnumre' }}
+              checkedValue="Ja"
+              uncheckedValue="Nej"
               name="visBilagsnumre"
-              checked={getChecked(values.visBilagsnumre)}
-              onCommit={handleToggleChange('visBilagsnumre')}
             />
           </Box>
         </Box>
@@ -31,11 +43,11 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={eoBilagsnumreMenAfgoerelseField.bind()}
+                    location={{ locationId: 'erstatningsopgoerelse.bilagsnumreMenAfgoerelse' }}
                     width={130}
-                    value={values.bilagsnumreMenAfgoerelse || ''}
                     name="bilagsnumreMenAfgoerelse"
-                    onCommit={handleStringBlur('bilagsnumreMenAfgoerelse')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
                 </Box>
@@ -47,11 +59,11 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={eoBilagsnumreEetAfgoerelserField.bind()}
+                    location={{ locationId: 'erstatningsopgoerelse.bilagsnumreEetAfgoerelser' }}
                     width={130}
-                    value={values.bilagsnumreEetAfgoerelser || ''}
                     name="bilagsnumreEetAfgoerelser"
-                    onCommit={handleStringBlur('bilagsnumreEetAfgoerelser')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
                 </Box>
@@ -63,11 +75,11 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={eoBilagsnumreSvieSmerteDokumentationField.bind()}
+                    location={{ locationId: 'erstatningsopgoerelse.bilagsnumreSvieSmerteDokumentation' }}
                     width={130}
-                    value={values.bilagsnumreSvieSmerteDokumentation || ''}
                     name="bilagsnumreSvieSmerteDokumentation"
-                    onCommit={handleStringBlur('bilagsnumreSvieSmerteDokumentation')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
                 </Box>
@@ -79,11 +91,11 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={eoBilagsnumreBeregningsgrundlagTafField.bind()}
+                    location={{ locationId: 'erstatningsopgoerelse.bilagsnumreBeregningsgrundlagTaf' }}
                     width={130}
-                    value={values.bilagsnumreBeregningsgrundlagTaf || ''}
                     name="bilagsnumreBeregningsgrundlagTaf"
-                    onCommit={handleStringBlur('bilagsnumreBeregningsgrundlagTaf')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
                 </Box>
@@ -95,11 +107,11 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={eoBilagsnumreLoenISygeperiodenField.bind()}
+                    location={{ locationId: 'erstatningsopgoerelse.bilagsnumreLoenISygeperioden' }}
                     width={130}
-                    value={values.bilagsnumreLoenISygeperioden || ''}
                     name="bilagsnumreLoenISygeperioden"
-                    onCommit={handleStringBlur('bilagsnumreLoenISygeperioden')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
                 </Box>
@@ -111,11 +123,11 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={eoBilagsnumreOffentligeYdelserField.bind()}
+                    location={{ locationId: 'erstatningsopgoerelse.bilagsnumreOffentligeYdelser' }}
                     width={130}
-                    value={values.bilagsnumreOffentligeYdelser || ''}
                     name="bilagsnumreOffentligeYdelser"
-                    onCommit={handleStringBlur('bilagsnumreOffentligeYdelser')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
                 </Box>
@@ -127,11 +139,11 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <StyledTextField
+                  <GreenfieldTextField
+                    field={eoBilagsnumreOevrigeErstatningskravField.bind()}
+                    location={{ locationId: 'erstatningsopgoerelse.bilagsnumreOevrigeErstatningskrav' }}
                     width={130}
-                    value={values.bilagsnumreOevrigeErstatningskrav || ''}
                     name="bilagsnumreOevrigeErstatningskrav"
-                    onCommit={handleStringBlur('bilagsnumreOevrigeErstatningskrav')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
                 </Box>

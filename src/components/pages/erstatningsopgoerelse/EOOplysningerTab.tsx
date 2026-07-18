@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { useEoOplysningerViewModel, type ErstatningsopgoerelseFormApi } from './eoOplysninger/useEoOplysningerViewModel';
+import { useGreenfieldEoOplysningerViewModel } from './eoOplysninger/useGreenfieldEoOplysningerViewModel';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { EoOplysningerVmProvider } from './eoOplysninger/eoOplysningerContext';
 import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
 import EoSagsinfoSection from './eoOplysninger/sections/EoSagsinfoSection';
@@ -13,11 +14,11 @@ import OevrigeKravSection from './eoOplysninger/sections/OevrigeKravSection';
 import SaerligeKommentarerSection from './eoOplysninger/sections/SaerligeKommentarerSection';
 import BilagsnumreSection from './eoOplysninger/sections/BilagsnumreSection';
 
-const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseFormApi }) => {
+const EOOplysningerTab = React.memo(({ values, stamdataValues }: { values: ErstatningsopgoerelseValues; stamdataValues: StamdataValues }) => {
   // View-model-laget bygges her og deles med sektion-komponenterne via konteksten (jf. A1):
   // hver sektion forbruger `useEoOplysningerVm()` i stedet for at modtage props. Fanen er nu en
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
-  const vm = useEoOplysningerViewModel(form);
+  const vm = useGreenfieldEoOplysningerViewModel(values, stamdataValues);
   const { loentrinFinder } = vm;
 
   return (

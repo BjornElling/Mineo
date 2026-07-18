@@ -7,7 +7,7 @@ export { default as GreenfieldMultilineTextField } from './GreenfieldMultilineTe
 export type { GreenfieldMultilineTextFieldProps } from './GreenfieldMultilineTextField';
 export { default as GreenfieldDateField } from './GreenfieldDateField';
 export type { GreenfieldDateFieldProps } from './GreenfieldDateField';
-export { default as GreenfieldChoiceField } from './GreenfieldChoiceField';
+export { default as GreenfieldChoiceField, GreenfieldChoiceDivider } from './GreenfieldChoiceField';
 export type { GreenfieldChoiceFieldProps } from './GreenfieldChoiceField';
 export { default as GreenfieldNumericTextField } from './GreenfieldNumericTextField';
 export type { GreenfieldNumericTextFieldProps } from './GreenfieldNumericTextField';
@@ -27,6 +27,9 @@ export { default as GreenfieldRadioField } from './GreenfieldRadioField';
 export type { GreenfieldRadioFieldProps, GreenfieldRadioOption } from './GreenfieldRadioField';
 export { default as GreenfieldToggleField } from './GreenfieldToggleField';
 export type { GreenfieldToggleFieldProps } from './GreenfieldToggleField';
+export { default as GreenfieldMappedToggleField } from './GreenfieldMappedToggleField';
+export { default as GreenfieldEntityChoiceField } from './GreenfieldEntityChoiceField';
+export type { GreenfieldMappedToggleFieldProps } from './GreenfieldMappedToggleField';
 export { default as GreenfieldCheckbox } from './GreenfieldCheckbox';
 export type { GreenfieldCheckboxProps } from './GreenfieldCheckbox';
 

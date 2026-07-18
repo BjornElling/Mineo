@@ -1,6 +1,6 @@
 import type { AppSettings } from '../../settings/appSettingsSchema';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import { selectBlockingFieldIdsBySuffix } from '../../hooks/useFormFieldErrors';
+import { selectBlockingFieldIdsBySuffix } from '../../utils/fieldErrorSelectors';
 import { collectAllEoRows } from '../eoRowEvaluation/eoRowAggregator';
 import { resolveEoIssueSummaryText } from '../eoRowEvaluation/eoRowIssueCatalog';
 import { safeCompute } from '../../utils/safeComputation';

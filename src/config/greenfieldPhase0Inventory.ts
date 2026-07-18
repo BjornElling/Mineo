@@ -48,8 +48,8 @@ export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
   },
   {
     id: 'erstatningsopgoerelse',
-    module: 'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
-    symbol: 'computeEoSnapshot',
+    module: 'src/domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection.ts',
+    symbol: 'buildErstatningsopgoerelseReaderProjection',
     consumers: ['src/components/pages/Erstatningsopgoerelse.tsx'],
   },
   {

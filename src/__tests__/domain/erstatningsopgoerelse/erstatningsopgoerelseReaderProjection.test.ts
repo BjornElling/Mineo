@@ -116,7 +116,8 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     // Round-trip: readeren gav præcis de committede canonical værdier tilbage. Fixturet normaliseres gennem samme
     // Zod-schema som commit-grænsen (fx `loenudviklingManuelNavn: ''` → `undefined`), så vi sammenligner mod den
     // canonical committede form, ikke den rå pre-commit-litteral.
-    expect(rebuilt).toEqual(erstatningsopgoerelseSchema.parse(eo));
+    // JSON er den faktiske persistence-/dokumentgrænse; eksplicitte `undefined`-nøgler er semantisk fraværende.
+    expect(JSON.parse(JSON.stringify(rebuilt))).toEqual(JSON.parse(JSON.stringify(erstatningsopgoerelseSchema.parse(eo))));
     expect(readStamdataValues(reader)).toEqual(stamdataSchema.parse(validStamdata));
   });
 

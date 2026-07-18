@@ -28,8 +28,6 @@ const WRITE_ACCESS_PATTERN = new RegExp(
   String.raw`\b(?:usePersistedForm|commitSection)\s*\([^)]*?['"\`](${SECTION_NAME_ALTERNATION})['"\`]`,
   'g'
 );
-// Bevidst smal: dækker kun `sections.x`-notation (EO-specialhookets faktiske form).
-const SPECIAL_EO_READ_SECTION_PATTERN = new RegExp(String.raw`sections\.(${SECTION_NAME_ALTERNATION})\b`, 'g');
 
 describe('domainBoundaryIsolation', () => {
   it('PAGE_BOUNDARY_RULES dækker alle kendte StorageKeys', () => {
@@ -37,16 +35,15 @@ describe('domainBoundaryIsolation', () => {
     expect(Array.from(coveredSections).sort()).toEqual([...STORAGE_KEYS].sort());
   });
 
-  it('holder EO-specialimporten snæver: read-only stamdata + erhvervsevnetab + faellesAarsloen', () => {
+  it('holder EO-specialimporten på den offentlige reader uden raw store- eller write-adgang', () => {
     assertPathExists(SPECIAL_EO_IMPORT_HOOK_PATH, 'EO specialimport-hook');
     const source = fs.readFileSync(SPECIAL_EO_IMPORT_HOOK_PATH, 'utf8');
-    const readSections = Array.from(
-      source.matchAll(SPECIAL_EO_READ_SECTION_PATTERN),
-      (match) => match[1] as StorageKey
-    );
     const writeSections = Array.from(source.matchAll(WRITE_ACCESS_PATTERN), (match) => match[1] as StorageKey);
 
-    expect(Array.from(new Set(readSections)).sort()).toEqual(['erhvervsevnetab', 'faellesAarsloen', 'stamdata']);
+    expect(source).toContain('useInputEvaluation');
+    expect(source).toContain('buildErhvervsevnetabReaderProjection');
+    expect(source).not.toContain('formPersistenceStore');
+    expect(source).not.toMatch(/\.sections\b/);
     expect(writeSections).toEqual([]);
   });
 });

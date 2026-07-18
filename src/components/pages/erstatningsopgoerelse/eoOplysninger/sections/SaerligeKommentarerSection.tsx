@@ -1,22 +1,19 @@
 import { Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import StyledTextField from '../../../../inputs/StyledTextField';
-import { useEoOplysningerVm } from '../eoOplysningerContext';
+import GreenfieldMultilineTextField from '../../../../../inputCore/react/fields/GreenfieldMultilineTextField';
+import { eoSaerligeKommentarerField } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 /** Sektion 8: Eventuelle særlige kommentarer. */
 export default function SaerligeKommentarerSection() {
-  const { values, commitField } = useEoOplysningerVm();
-
   return (
       <ContentBox className="content-box" data-section-id="saerlige-kommentarer">
         <Typography className="section-header">Eventuelle særlige kommentarer</Typography>
 
-        <StyledTextField
+        <GreenfieldMultilineTextField
+          field={eoSaerligeKommentarerField.bind()}
+          location={{ locationId: 'erstatningsopgoerelse.saerligeKommentarer' }}
           name="saerligeKommentarer"
           width={800}
-          value={values.saerligeKommentarer || ''}
-          onCommit={commitField('saerligeKommentarer')}
-          multiline
           rows={4}
           placeholder="Indtast eventuelle kommentarer her..."
         />

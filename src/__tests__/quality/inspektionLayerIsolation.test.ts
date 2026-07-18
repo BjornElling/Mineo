@@ -62,7 +62,8 @@ describe('inspektionLayerIsolation — wiring', () => {
     );
     expect(findInspektionImports(source, path.dirname(BEREGNING_VM_PATH))).toEqual([]);
     expect(source).toContain('hasBlockingEoRowErrors');
-    expect(source).toContain('evaluateEoDocumentDownloadGate');
-    expect(source).toContain('hasBlockingRows: hasBlockingEoRowErrors');
+    expect(source).toContain('evaluateErstatningsopgoerelseDownloadGates');
+    expect(source).toContain('fresh.gates.erstatningsopgoerelse.canDownload');
+    expect(source).toContain('buildMidlertidigtEetInsertSource(source.evaluation)');
   });
 });

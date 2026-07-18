@@ -49,6 +49,14 @@ export type SettleFieldInNewRowCommand<TEntity, TField> = Readonly<{
   raw: string;
 }>;
 
+export type InputTransactionStep = Readonly<{
+  reduce: (input: SettledInput, catalog: InputCatalog) => SettledInput;
+}>;
+export type InputTransactionCommand = Readonly<{
+  kind: 'transaction';
+  steps: readonly InputTransactionStep[];
+}>;
+
 export type ResetSectionCommand = {
   [K in SectionKey]: Readonly<{ kind: 'resetSection'; section: K; value: PersistedInputSections[K] }>;
 }[SectionKey];
@@ -63,6 +71,7 @@ export type InputMutationCommand<TField = unknown, TEntity = unknown> =
   | DeleteRowCommand
   | ReorderRowsCommand
   | SettleFieldInNewRowCommand<TEntity, TField>
+  | InputTransactionCommand
   | ResetSectionCommand
   | ReplaceCaseCommand
   | ClearCaseCommand;
@@ -94,6 +103,17 @@ export const settleFieldInNewRow = <TEntity, TField>(
   index?: number
 ): SettleFieldInNewRowCommand<TEntity, TField> =>
   Object.freeze({ kind: 'settleFieldInNewRow', collection, entity, field, raw, ...(index === undefined ? {} : { index }) });
+export const inputTransactionStep = <TField, TEntity>(
+  command: InputSurfaceCommand<TField, TEntity>
+): InputTransactionStep => Object.freeze({
+  reduce: (input, catalog) => reduceInputCommand(input, command, catalog).input,
+});
+export const inputTransaction = (
+  steps: readonly InputTransactionStep[]
+): InputTransactionCommand => {
+  if (steps.length === 0) throw new Error('InputReducer: en inputtransaktion skal indeholde mindst ét trin');
+  return Object.freeze({ kind: 'transaction', steps: Object.freeze([...steps]) });
+};
 export const resetSection = <K extends SectionKey>(
   section: K,
   value: PersistedInputSections[K]
@@ -253,6 +273,15 @@ const buildCandidate = <TField, TEntity>(
         rejectedInputs: input.rejectedInputs,
       };
       return reduceSettle(inserted, command.field, command.raw, catalog);
+    }
+    case 'transaction': {
+      // Flere felt-/rækkeændringer fra én eksplicit brugerhandling skal være ét observerbart revision-/undo-trin.
+      // Hvert mellemtrin valideres, men ingen mellemtilstand forlader den rene reducer.
+      let candidate = input;
+      for (const step of command.steps) {
+        candidate = step.reduce(candidate, catalog);
+      }
+      return candidate;
     }
     case 'resetSection': {
       const rejectedInputs = Object.fromEntries(Object.entries(input.rejectedInputs).filter(([serialized]) => {

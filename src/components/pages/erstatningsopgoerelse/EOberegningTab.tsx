@@ -4,7 +4,18 @@ import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material
 import ContentBox from '../../layout/ContentBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
-import StyledDropdown from '../../inputs/StyledDropdown';
+import GreenfieldChoiceField from '../../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldCheckbox from '../../../inputCore/react/fields/GreenfieldCheckbox';
+import {
+  eoBilagIndgaarField,
+  eoBilagSelectionLoenindkomstField,
+  eoBilagSelectionMidlertidigEetField,
+  eoBilagSelectionOffentligeYdelserField,
+  eoBilagSelectionReguleringField,
+  eoBilagSelectionShDageField,
+  eoBilagSelectionSygeferiegodtgoerelseField,
+} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import type { FieldDescriptor } from '../../../inputCore/fieldDescriptor';
 import { type EoBilagDynamicSelectionKey } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import {
   useEoBeregningViewModel,
@@ -59,11 +70,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     handleDownloadTafOpreguleretPdf,
     handleDownloadTafKravGrafPdf,
     handleNavigate,
-    selectedElements,
     bilagAvailability,
-    updateSelectedElement,
-    loenindkomstOgOffentligeYdelserIndgaar,
-    updateLoenindkomstOgOffentligeYdelserIndgaar,
     svieSmerteSummaryLabel,
     svieSmerteSummaryLines,
     tafSummaryLabel,
@@ -250,23 +257,21 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     label: string
   ) => {
     const availability = bilagAvailability[key];
+    const descriptors: Readonly<Record<EoBilagDynamicSelectionKey, FieldDescriptor<boolean>>> = {
+      loenindkomst: eoBilagSelectionLoenindkomstField,
+      offentligeYdelser: eoBilagSelectionOffentligeYdelserField,
+      midlertidigEet: eoBilagSelectionMidlertidigEetField,
+      regulering: eoBilagSelectionReguleringField,
+      shDage: eoBilagSelectionShDageField,
+      sygeferiegodtgoerelse: eoBilagSelectionSygeferiegodtgoerelseField,
+    };
     const checkbox = (
-      <FormControlLabel
-        className="mineo-disabled-hover-target"
-        control={(
-          <Checkbox
-            id={`eo-bilag-${key}`}
-            name={`eo-bilag-${key}`}
-            slotProps={{ input: { id: `eo-bilag-${key}`, name: `eo-bilag-${key}` } }}
-            checked={selectedElements[key]}
-            disabled={!availability.enabled}
-            onChange={(event) => {
-              updateSelectedElement(key, event.target.checked);
-            }}
-          />
-        )}
+      <GreenfieldCheckbox
+        field={descriptors[key].bind()}
+        location={{ locationId: `erstatningsopgoerelse.eoBilagSelection.${key}` }}
+        name={`eo-bilag-${key}`}
+        disabled={!availability.enabled}
         label={label}
-        sx={{ mr: 0 }}
       />
     );
 
@@ -279,7 +284,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
         <Box component="span" className="mineo-disabled-hover-target">{checkbox}</Box>
       </Tooltip>
     );
-  }, [bilagAvailability, selectedElements, updateSelectedElement]);
+  }, [bilagAvailability]);
 
   // ============================================================================
   // RENDER
@@ -409,7 +414,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                       id="eo-bilag-opgoerelse"
                       name="eo-bilag-opgoerelse"
                       slotProps={{ input: { id: 'eo-bilag-opgoerelse', name: 'eo-bilag-opgoerelse' } }}
-                      checked={selectedElements.opgoerelse}
+                      checked
                       disabled
                     />
                   )}
@@ -431,16 +436,16 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Lønindkomst og offentlige ydelser, der indsættes som bilag</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField
+              field={eoBilagIndgaarField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.eoBilagLoenindkomstOgOffentligeYdelserIndgaar' }}
               name="eoBilagLoenindkomstOgOffentligeYdelserIndgaar"
               allowEmpty={false}
-              value={loenindkomstOgOffentligeYdelserIndgaar}
-              onChange={updateLoenindkomstOgOffentligeYdelserIndgaar}
               width={150}
             >
               <MenuItem value="Alle">Alle</MenuItem>
               <MenuItem value="Perioden">Perioden</MenuItem>
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
       </ContentBox>

@@ -1,34 +1,37 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import StyledTextField from '../../../../inputs/StyledTextField';
-import StyledToggleSwitch from '../../../../inputs/StyledToggleSwitch';
-import StyledDateField from '../../../../inputs/StyledDateField';
-import StyledDropdown from '../../../../inputs/StyledDropdown';
+import GreenfieldTextField from '../../../../../inputCore/react/fields/GreenfieldTextField';
+import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
+import GreenfieldDateField from '../../../../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldChoiceField from '../../../../../inputCore/react/fields/GreenfieldChoiceField';
+import { GreenfieldChoiceDivider } from '../../../../../inputCore/react/fields/GreenfieldChoiceField';
 import InsertTodayDateButton from '../../../../inputs/InsertTodayDateButton';
-import { dateRanges_erstatningsopgoerelse } from '../../../../../config/dateRanges';
 import { afsluttesMedEnum } from '../../../../../schemas/formSchemas';
+import {
+  eoAfsluttesMedField,
+  eoIndsaetUdkastStempelField,
+  eoLedsagetekstField,
+  eoNummerField,
+  eoOpgørelseLavetDenField,
+  eoRevideretOpgoerelseField,
+  eoSvieSmerteHelbredsstatusField,
+  eoTafArbejdsstatusField,
+  eoVedroererPeriodeFraField,
+  eoVedroererPeriodeTilField,
+} from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { useFieldEditor } from '../../../../../inputCore/react/useFieldEditor';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 
 /** Sektion 1: Erstatningsopgørelse-info (nummer, periode, status, bekræftelse). */
 export default function EoSagsinfoSection() {
   const {
-    values,
-    getChecked,
-    handleStringBlur,
-    handleToggleChange,
-    handleIsoDateBlur,
-    handleHelbredsfoholdChange,
-    handleArbejdssituationChange,
-    handleAfsluttesMedChange,
-    reportVedroererPeriodeFraInputError,
-    reportVedroererPeriodeTilInputError,
-    reportOpgoerelseLavetDenInputError,
-    skadedatoMinRule,
-    opgoerelseLavetDenMinRule,
     opgoerelseLavetDenInputRef,
     statusSubheaderLabel,
-    setValues,
   } = useEoOplysningerVm();
+  const opgoerelseLavetDenEditor = useFieldEditor(
+    eoOpgørelseLavetDenField.bind(),
+    { locationId: 'erstatningsopgoerelse.opgørelseLavetDen' }
+  );
 
   return (
       <ContentBox className="content-box">
@@ -39,19 +42,19 @@ export default function EoSagsinfoSection() {
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">Nummer</Typography>
-              <StyledTextField
+              <GreenfieldTextField
+                field={eoNummerField.bind()}
+                location={{ locationId: 'erstatningsopgoerelse.eoNummer' }}
                 name="eoNummer"
                 width={80}
-                value={values.eoNummer || ''}
-                onCommit={handleStringBlur('eoNummer')}
                 sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
               />
               <Typography className="row--text">+ evt. ledsagetekst</Typography>
-              <StyledTextField
+              <GreenfieldTextField
+                field={eoLedsagetekstField.bind()}
+                location={{ locationId: 'erstatningsopgoerelse.eoLedsagetekst' }}
                 name="eoLedsagetekst"
                 width={200}
-                value={values.eoLedsagetekst || ''}
-                onCommit={handleStringBlur('eoLedsagetekst')}
               />
             </Box>
           </Box>
@@ -60,10 +63,12 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Revideret opgørelse</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
+            <GreenfieldMappedToggleField
+              field={eoRevideretOpgoerelseField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.revideretOpgoerelse' }}
+              checkedValue="Ja"
+              uncheckedValue="Nej"
               name="revideretOpgoerelse"
-              checked={getChecked(values.revideretOpgoerelse)}
-              onCommit={handleToggleChange('revideretOpgoerelse')}
             />
           </Box>
         </Box>
@@ -72,28 +77,16 @@ export default function EoSagsinfoSection() {
           <Typography className="row--text">Vedrører perioden</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <StyledDateField
+              <GreenfieldDateField
+                field={eoVedroererPeriodeFraField.bind()}
+                location={{ locationId: 'erstatningsopgoerelse.vedroererPeriodeFra' }}
                 name="vedroererPeriodeFra"
-                value={values.vedroererPeriodeFra}
-                onCommit={handleIsoDateBlur('vedroererPeriodeFra')}
-                onFieldError={reportVedroererPeriodeFraInputError}
-                minDate={skadedatoMinRule.minDate}
-                maxDate={values.vedroererPeriodeTil || dateRanges_erstatningsopgoerelse.periodeFra.fallbackMax}
-                specialRangeErrors={{
-                  fraTilRole: 'fra',
-                  minBoundKind: skadedatoMinRule.minBoundKind,
-                  minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
-                }}
               />
               <Typography className="row--text">til og med</Typography>
-              <StyledDateField
+              <GreenfieldDateField
+                field={eoVedroererPeriodeTilField.bind()}
+                location={{ locationId: 'erstatningsopgoerelse.vedroererPeriodeTil' }}
                 name="vedroererPeriodeTil"
-                value={values.vedroererPeriodeTil}
-                onCommit={handleIsoDateBlur('vedroererPeriodeTil')}
-                onFieldError={reportVedroererPeriodeTilInputError}
-                minDate={values.vedroererPeriodeFra || dateRanges_erstatningsopgoerelse.periodeTil.fallbackMin}
-                maxDate={dateRanges_erstatningsopgoerelse.periodeTil.max}
-                specialRangeErrors={{ fraTilRole: 'til' }}
               />
             </Box>
           </Box>
@@ -103,31 +96,16 @@ export default function EoSagsinfoSection() {
           <Typography className="row--text">Opgørelse lavet den</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <StyledDateField
+              <GreenfieldDateField
+                field={eoOpgørelseLavetDenField.bind()}
+                location={{ locationId: 'erstatningsopgoerelse.opgørelseLavetDen' }}
                 name="opgørelseLavetDen"
-                value={values.opgørelseLavetDen}
-                onCommit={handleIsoDateBlur('opgørelseLavetDen')}
-                onFieldError={reportOpgoerelseLavetDenInputError}
                 inputRef={opgoerelseLavetDenInputRef}
-                minDate={opgoerelseLavetDenMinRule.minDate}
-                maxDate={dateRanges_erstatningsopgoerelse.opgoerelse.max}
-                specialRangeErrors={{
-                  minBoundKind: opgoerelseLavetDenMinRule.minBoundKind,
-                  minBoundReferenceISO: opgoerelseLavetDenMinRule.minBoundReferenceISO,
-                }}
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
-                  return setValues(
-                    (prev) => ({ ...prev, opgørelseLavetDen: today }),
-                    {
-                      fieldPath: 'opgørelseLavetDen',
-                      clearInvalidDraft: {
-                        pageKey: 'erstatningsopgoerelse',
-                        fieldPath: 'opgørelseLavetDen',
-                      },
-                    }
-                  );
+                  opgoerelseLavetDenEditor.commitImmediate(today);
+                  return true;
                 }}
                 focusRef={opgoerelseLavetDenInputRef}
               />
@@ -138,10 +116,12 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Indsæt udkast-stempel</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
+            <GreenfieldMappedToggleField
+              field={eoIndsaetUdkastStempelField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.indsaetUdkastStempel' }}
+              checkedValue="Ja"
+              uncheckedValue="Nej"
               name="indsaetUdkastStempel"
-              checked={getChecked(values.indsaetUdkastStempel)}
-              onCommit={handleToggleChange('indsaetUdkastStempel')}
             />
           </Box>
         </Box>
@@ -151,32 +131,32 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Helbredsforhold</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField
+              field={eoSvieSmerteHelbredsstatusField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.svieSmerteHelbredsstatus' }}
               name="svieSmerteHelbredsstatus"
               width={200}
-              value={values.svieSmerteHelbredsstatus}
-              onChange={handleHelbredsfoholdChange}
             >
               <MenuItem value="Sygemeldt">Sygemeldt</MenuItem>
               <MenuItem value="Delvist Sygemeldt">Delvist Sygemeldt</MenuItem>
               <MenuItem value="Raskmeldt">Raskmeldt</MenuItem>
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Arbejdssituation</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField
+              field={eoTafArbejdsstatusField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.tafArbejdsstatus' }}
               name="tafArbejdsstatus"
               width={200}
-              value={values.tafArbejdsstatus}
-              onChange={handleArbejdssituationChange}
             >
               <MenuItem value="Uarbejdsdygtig">Uarbejdsdygtig</MenuItem>
               <MenuItem value="Delvist raskmeldt">Delvist raskmeldt</MenuItem>
               <MenuItem value="Fuldt arbejdsdygtig">Fuldt arbejdsdygtig</MenuItem>
-              <StyledDropdown.Divider />
+              <GreenfieldChoiceDivider />
               <MenuItem value="Efterløn">Efterløn</MenuItem>
               <MenuItem value="Fleksjob">Fleksjob</MenuItem>
               <MenuItem value="Folkepension">Folkepension</MenuItem>
@@ -185,7 +165,7 @@ export default function EoSagsinfoSection() {
               <MenuItem value="Revalidering">Revalidering</MenuItem>
               <MenuItem value="Seniorpension">Seniorpension</MenuItem>
               <MenuItem value="Uddannelse">Uddannelse</MenuItem>
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
 
@@ -194,19 +174,19 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Erstatningsopgørelse afsluttes med</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField
+              field={eoAfsluttesMedField.bind()}
+              location={{ locationId: 'erstatningsopgoerelse.erstatningsopgoerelseAfsluttesMed' }}
               name="erstatningsopgoerelseAfsluttesMed"
               allowEmpty={false}
               width={220}
-              value={values.erstatningsopgoerelseAfsluttesMed}
-              onChange={handleAfsluttesMedChange}
             >
               {afsluttesMedEnum.options.map((option) => (
                 <MenuItem key={option} value={option}>
                   {option}
                 </MenuItem>
               ))}
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
       </ContentBox>

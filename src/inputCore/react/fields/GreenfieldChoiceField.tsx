@@ -1,6 +1,9 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import StyledDropdown, { type StyledDropdownValue } from '../../../components/inputs/StyledDropdown';
+import StyledDropdown, {
+  StyledDropdownDivider,
+  type StyledDropdownValue,
+} from '../../../components/inputs/StyledDropdown';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
@@ -10,8 +13,11 @@ import { useFieldEditor } from '../useFieldEditor';
 // revision gennem editor-controlleren; valget dispatcher `setImmediateField` (som kører den styrende-valg-
 // oprydning atomisk, §3.6). `StyledDropdown` ejer selv sin popover-interaktion og keyboard-navigation.
 
-export type GreenfieldChoiceFieldProps<TValue extends StyledDropdownValue> = Readonly<{
-  field: FieldRef<TValue | undefined>;
+export type GreenfieldChoiceFieldProps<
+  TValue extends StyledDropdownValue,
+  TCanonical extends TValue | undefined = TValue | undefined,
+> = Readonly<{
+  field: FieldRef<TCanonical>;
   location: EditorLocation;
 
   children?: React.ReactNode;
@@ -20,6 +26,8 @@ export type GreenfieldChoiceFieldProps<TValue extends StyledDropdownValue> = Rea
   name?: string;
   disabled?: boolean;
   getOptionLabel?: (value: TValue) => string;
+  /** UI-sentinel som vises for canonical tomhed; valg af værdien rydder feltet (fx EO-filterets "ALLE"). */
+  emptyUiValue?: NoInfer<TValue>;
   /**
    * Om det tomme placeholder-valg tilbydes (default sandt). Sæt `false` for et påkrævet valg uden tomværdi
    * (fx en enhed-/type-dropdown med en gyldig default): så vises ingen tom-række, og feltet kan ikke ryddes
@@ -27,9 +35,16 @@ export type GreenfieldChoiceFieldProps<TValue extends StyledDropdownValue> = Rea
    */
   allowEmpty?: boolean;
   sx?: SxProps<Theme>;
+  listboxSx?: SxProps<Theme>;
+  optionSx?: SxProps<Theme>;
+  iconSx?: SxProps<Theme>;
+  containerSx?: SxProps<Theme>;
 }>;
 
-const GreenfieldChoiceField = <TValue extends StyledDropdownValue>({
+const GreenfieldChoiceField = <
+  TValue extends StyledDropdownValue,
+  TCanonical extends TValue | undefined = TValue | undefined,
+>({
   field,
   location,
   children,
@@ -38,9 +53,14 @@ const GreenfieldChoiceField = <TValue extends StyledDropdownValue>({
   name,
   disabled,
   getOptionLabel,
+  emptyUiValue,
   allowEmpty = true,
   sx,
-}: GreenfieldChoiceFieldProps<TValue>): React.ReactElement => {
+  listboxSx,
+  optionSx,
+  iconSx,
+  containerSx,
+}: GreenfieldChoiceFieldProps<TValue, TCanonical>): React.ReactElement => {
   const controller = useFieldEditor(field, location);
 
   const handleChange = React.useCallback(
@@ -48,28 +68,28 @@ const GreenfieldChoiceField = <TValue extends StyledDropdownValue>({
       const next = e.target.value;
       // Tom-valg (placeholder) rydder feltet; ellers immediate-commit af den valgte værdi. Med `allowEmpty=false`
       // udsteder dropdownen aldrig `undefined`, så clear-grenen nås ikke for et påkrævet felt.
-      if (next === undefined) {
+      if (next === undefined || (emptyUiValue !== undefined && Object.is(next, emptyUiValue))) {
         controller.clearImmediate();
         return;
       }
-      controller.commitImmediate(next);
+      controller.commitImmediate(next as TCanonical);
     },
-    [controller]
+    [controller, emptyUiValue]
   );
 
   const hasError = controller.issue !== undefined;
 
   // `allowEmpty=false` kræver en defineret værdi; descriptorens tomværdi (fx 'dage') er den gyldige default.
-  if (!allowEmpty) {
+  if (!allowEmpty || emptyUiValue !== undefined) {
     const value = controller.value;
-    if (value === undefined) {
+    if (value === undefined && emptyUiValue === undefined) {
       throw new Error(`GreenfieldChoiceField(${field.descriptor.id}): allowEmpty=false kræver en defineret værdi`);
     }
     return (
       <StyledDropdown<TValue>
         name={name}
         allowEmpty={false}
-        value={value}
+        value={value ?? emptyUiValue as TValue}
         onChange={handleChange}
         width={width}
         disabled={disabled}
@@ -77,6 +97,10 @@ const GreenfieldChoiceField = <TValue extends StyledDropdownValue>({
         error={hasError}
         helperText={controller.issue?.message ?? ''}
         sx={sx}
+        listboxSx={listboxSx}
+        optionSx={optionSx}
+        iconSx={iconSx}
+        containerSx={containerSx}
       >
         {children}
       </StyledDropdown>
@@ -95,6 +119,10 @@ const GreenfieldChoiceField = <TValue extends StyledDropdownValue>({
       error={hasError}
       helperText={controller.issue?.message ?? ''}
       sx={sx}
+      listboxSx={listboxSx}
+      optionSx={optionSx}
+      iconSx={iconSx}
+      containerSx={containerSx}
     >
       {children}
     </StyledDropdown>
@@ -102,5 +130,8 @@ const GreenfieldChoiceField = <TValue extends StyledDropdownValue>({
 };
 
 GreenfieldChoiceField.displayName = 'GreenfieldChoiceField';
+
+/** Visuel gruppeseparator til options; den bærer ingen persisted state. */
+export const GreenfieldChoiceDivider = StyledDropdownDivider;
 
 export default GreenfieldChoiceField;

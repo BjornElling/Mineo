@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useBlockingFieldIdsBySuffixForSection, useFieldErrorsBySourceForSection } from '../../../../hooks/useFormFieldErrors';
 import { setActiveTabForPage } from '../../../../hooks/usePersistedActiveTab';
 import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import type { EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
@@ -10,9 +9,7 @@ import { scrollToSection } from '../../../../utils/scrollToSection';
 import { scrollToEoRow } from '../../../../utils/scrollToEoRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import { isoToDanish } from '../../../../types/branded';
-import { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
 import { toReadableSummaryMessage } from '../../../../domain/erstatningsopgoerelse/helpers/readableSummaryMessage';
 import {
   downloadErstatningsopgoerelseDokument,
@@ -30,18 +27,25 @@ import type { EoInvariant } from '../../../../domain/erstatningsopgoerelse/snaps
 import { reportSystemIssue } from '../../../../utils/systemIssueReporter';
 import { safeCompute } from '../../../../utils/safeComputation';
 import { isErr } from '../../../../types/result';
-import { type SetValuesUpdater } from '../../../../hooks/usePersistedForm';
 import {
   EO_BILAG_DYNAMIC_SELECTION_KEYS,
   getEoBilagAvailability,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import { type DocumentDownloadGateResult } from '../../../../document/layout/documentGateTypes';
-import { evaluateEoDocumentDownloadGate } from '../../../../domain/erstatningsopgoerelse/snapshot/eoDocumentDownloadGate';
 import type { EoIssueFocusTarget } from '../../../../domain/eoRowEvaluation/eoRowTypes';
 import {
   resolveMidlertidigtEetIssueNavigation,
   type EetIssueNavigationTarget,
 } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
+import type { ErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
+import type { ErstatningsopgoerelseDownloadGates } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
+import { evaluateErstatningsopgoerelseDownloadGates } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
+import { buildErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
+import { useInputRuntime } from '../../../../inputCore/react/inputRuntimeContext';
+import { captureProductionEvaluationSource } from '../../../../inputCore/react/productionInputRuntime';
+import { sourceTokensEqual } from '../../../../inputCore/evaluationSource';
+import { buildMidlertidigtEetInsertSource } from '../../../../hooks/useMidlertidigtEetInsertSource';
+import { selectBlockingFieldIdsBySuffix } from '../../../../utils/fieldErrorSelectors';
 
 export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'inspektion' | 'kontroltabel';
 
@@ -49,10 +53,8 @@ export interface EOberegningTabProps {
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
   isActive: boolean;
-  eoSnapshot?: EoSnapshot | null;
-  stamdataValues: StamdataValues;
-  eoValues: ErstatningsopgoerelseValues;
-  setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
+  projection: ErstatningsopgoerelseReaderProjection;
+  downloadGates: ErstatningsopgoerelseDownloadGates;
 }
 
 export type SystemIssueRow = Readonly<{
@@ -192,13 +194,16 @@ const buildInvariantDiagnostics = (
  * uændret ud af `EOberegningTab`.
  */
 export function useEoBeregningViewModel(props: EOberegningTabProps) {
-  const { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues } = props;
+  const { activeTab, setActiveTab, isActive, projection, downloadGates } = props;
+  const { snapshot: eoSnapshot, stamdataValues, eoValues, stamdataErrors, eoErrors } = projection;
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
-  const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
-  const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
-  const manuelReguleringInputErrors = useBlockingFieldIdsBySuffixForSection('erstatningsopgoerelse', EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
+  const runtime = useInputRuntime();
+  const manuelReguleringInputErrors = React.useMemo(
+    () => selectBlockingFieldIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX),
+    [eoErrors]
+  );
 
   const beregningView = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToBeregningView(eoSnapshot) : null),
@@ -270,10 +275,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   }, []);
 
   const midlertidigtEetFraEetSiden = eoValues.midlertidigtEetFraEetSiden === 'Ja';
-  const midlertidigtEetGroups = React.useMemo(
-    () => (midlertidigtEetFraEetSiden ? (eoSnapshot?.data?.midlertidigtEetGroups ?? []) : []),
-    [eoSnapshot?.data?.midlertidigtEetGroups, midlertidigtEetFraEetSiden]
-  );
 
   /**
    * EET-issues læses fra snapshot-invarianterne. Snapshottet er den autoritative kilde
@@ -326,76 +327,13 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     [eetLoebendeIssueRows]
   );
 
-  const firstBlockingEoRowErrorMessage = React.useMemo(() => {
-    if (eoRowAggregationErrorMessage) {
-      return eoRowAggregationErrorMessage;
-    }
-    const firstError = errors[0];
-    if (firstError) {
-      const normalizedMessage = firstError.message?.trim() || '';
-      return firstError.summaryText ?? resolveEoIssueSummaryText(firstError) ?? (normalizedMessage || firstError.label);
-    }
-    const firstEetError = eetLoebendeErrorRows[0];
-    if (firstEetError) {
-      return firstEetError.message;
-    }
-    return null;
-  }, [eoRowAggregationErrorMessage, errors, eetLoebendeErrorRows]);
-
   const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || eoRowAggregationErrorMessage !== null;
 
-  // Ét autoritativt output-gate-resultat pr. dokument (arkitektur-kandidat A5). Den fælles, rene
-  // domæne-funktion ejer beslutnings-præcedensen; her leveres de live-inputs (række-/EET-blokering,
-  // snapshot, projektion). Samme gate videregives til service-grænsen, så dokument-genereringen
-  // fail-closer på præcis samme beslutning som download-knappen.
-  const eoPdfGate = React.useMemo(
-    () => evaluateEoDocumentDownloadGate({
-      snapshot: eoSnapshot,
-      projection: eoPdfProjection,
-      authoritativeBlockingInvariants,
-      blockingRowMessage: firstBlockingEoRowErrorMessage,
-      hasBlockingRows: hasBlockingEoRowErrors,
-      failClosedFallback: 'Opgørelsen kan ikke hentes for den aktuelle sag',
-      gateFallback: 'Opgørelsen kan ikke hentes for den aktuelle sag',
-    }),
-    [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors]
-  );
-  const tafPdfGate = React.useMemo(
-    () => evaluateEoDocumentDownloadGate({
-      snapshot: eoSnapshot,
-      projection: tafPdfProjection,
-      authoritativeBlockingInvariants,
-      blockingRowMessage: firstBlockingEoRowErrorMessage,
-      hasBlockingRows: hasBlockingEoRowErrors,
-      failClosedFallback: 'TAF fordelt på år kan ikke genereres for den aktuelle sag',
-      gateFallback: 'TAF fordelt på år kan ikke genereres for den aktuelle sag',
-    }),
-    [authoritativeBlockingInvariants, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors, tafPdfProjection]
-  );
-  const tafOpreguleretPdfGate = React.useMemo(
-    () => evaluateEoDocumentDownloadGate({
-      snapshot: eoSnapshot,
-      projection: tafOpreguleretPdfProjection,
-      authoritativeBlockingInvariants,
-      blockingRowMessage: firstBlockingEoRowErrorMessage,
-      hasBlockingRows: hasBlockingEoRowErrors,
-      failClosedFallback: 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag',
-      gateFallback: 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag',
-    }),
-    [authoritativeBlockingInvariants, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors, tafOpreguleretPdfProjection]
-  );
-  const tafKravGrafPdfGate = React.useMemo(
-    () => evaluateEoDocumentDownloadGate({
-      snapshot: eoSnapshot,
-      projection: tafKravGrafPdfProjection,
-      authoritativeBlockingInvariants,
-      blockingRowMessage: firstBlockingEoRowErrorMessage,
-      hasBlockingRows: hasBlockingEoRowErrors,
-      failClosedFallback: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag',
-      gateFallback: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag',
-    }),
-    [authoritativeBlockingInvariants, eoSnapshot, firstBlockingEoRowErrorMessage, hasBlockingEoRowErrors, tafKravGrafPdfProjection]
-  );
+  // Render og knaptilstand bruger samme reader-afledte gate som resten af EO-siden.
+  const eoPdfGate = downloadGates.erstatningsopgoerelse;
+  const tafPdfGate = downloadGates.tafFordeltPaaAar;
+  const tafOpreguleretPdfGate = downloadGates.tafOpreguleret;
+  const tafKravGrafPdfGate = downloadGates.tafKravGraf;
 
   // disabledReason til tooltips udledes nu af gaten (ikke-null præcis når gaten blokerer) — samme
   // værdi som tidligere, men én kilde.
@@ -655,45 +593,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }),
     [eoValues, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling, stamdataValues.skadedato]
   );
-  const selectedElements = React.useMemo(() => {
-    const next = { ...baseSelectedElements };
-    for (const key of EO_BILAG_DYNAMIC_SELECTION_KEYS) {
-      if (!bilagAvailability[key].enabled) {
-        next[key] = false;
-      }
-    }
-    return next;
-  }, [baseSelectedElements, bilagAvailability]);
-  const loenindkomstOgOffentligeYdelserIndgaar =
-    eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
-  const updateSelectedElement = React.useCallback(
-    (
-      key: Exclude<keyof ErstatningsopgoerelseValues['eoBilagSelection'], 'opgoerelse'>,
-      checked: boolean
-    ) => {
-      setEOValues((prev) => ({
-        ...prev,
-        eoBilagSelection: {
-          ...prev.eoBilagSelection,
-          [key]: checked,
-        },
-      }));
-    },
-    [setEOValues]
-  );
-
-  const updateLoenindkomstOgOffentligeYdelserIndgaar = React.useCallback(
-    (event: StyledDropdownChangeEvent<'Alle' | 'Perioden'>) => {
-      const value = event.target.value;
-      if (value !== 'Alle' && value !== 'Perioden') return;
-      setEOValues((prev) => ({
-        ...prev,
-        eoBilagLoenindkomstOgOffentligeYdelserIndgaar: value,
-      }), { fieldPath: 'eoBilagLoenindkomstOgOffentligeYdelserIndgaar' });
-    },
-    [setEOValues]
-  );
-
   const beregnesSvieSmerte = eoValues.kravPaaSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = eoValues.kravPaaTabtArbejdsfortjeneste === 'Ja';
 
@@ -759,76 +658,120 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const eoLedsagetekstPart = eoLedsagetekst ? ` (${eoLedsagetekst})` : '';
   const erstatningsopgoerelseTitel = `${revideretPrefix}${erstatningsord}${eoNummerPart}${eoLedsagetekstPart}`.trim();
 
+  const prepareFreshDownload = React.useCallback(async () => {
+    const preparation = await runtime.criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
+      return null;
+    }
+    const source = captureProductionEvaluationSource();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return null;
+    const freshProjection = buildErstatningsopgoerelseReaderProjection(source.evaluation.reader, {
+      midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(source.evaluation),
+    });
+    return {
+      projection: freshProjection,
+      gates: evaluateErstatningsopgoerelseDownloadGates(freshProjection, source.settings),
+      settings: source.settings,
+    };
+  }, [runtime.criticalActions]);
+
+  const resolveFreshBilag = React.useCallback((freshProjection: ErstatningsopgoerelseReaderProjection) => {
+    const freshValues = freshProjection.eoValues;
+    const freshSnapshot = freshProjection.snapshot;
+    const availability = getEoBilagAvailability({
+      eoValues: freshValues,
+      skadedatoISO: freshProjection.stamdataValues.skadedato,
+      loenudvikling: freshSnapshot.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling,
+      offentligeYdelserUdvikling: freshSnapshot.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling,
+    });
+    const selection = {
+      ...(freshValues.eoBilagSelection ?? baseSelectedElements),
+    };
+    for (const key of EO_BILAG_DYNAMIC_SELECTION_KEYS) {
+      if (!availability[key].enabled) selection[key] = false;
+    }
+    return selection;
+  }, [baseSelectedElements]);
+
   const handleDownloadPdf = React.useCallback(async () => {
-    if (!canDownloadSnapshotEoPdf) {
+    const fresh = await prepareFreshDownload();
+    if (fresh === null || !fresh.gates.erstatningsopgoerelse.canDownload) {
       setPdfDownloadErrorMessage(null);
       return;
     }
-    if (!eoSnapshot) return;
+    const freshProjection = fresh.projection;
+    const freshSnapshot = freshProjection.snapshot;
 
     const result = await downloadErstatningsopgoerelseDokument({
-      stamdataValues,
-      eoValues,
-      selectedElements,
-      settings,
-      snapshot: eoSnapshot,
-      midlertidigtEetGroups,
-      gate: eoPdfGate,
+      stamdataValues: freshProjection.stamdataValues,
+      eoValues: freshProjection.eoValues,
+      selectedElements: resolveFreshBilag(freshProjection),
+      settings: fresh.settings,
+      snapshot: freshSnapshot,
+      midlertidigtEetGroups: freshProjection.eoValues.midlertidigtEetFraEetSiden === 'Ja'
+        ? (freshSnapshot.data?.midlertidigtEetGroups ?? [])
+        : [],
+      gate: fresh.gates.erstatningsopgoerelse,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups, eoPdfGate]);
+  }, [prepareFreshDownload, resolveFreshBilag]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
-    if (!canDownloadSnapshotTafPdf) {
+    const fresh = await prepareFreshDownload();
+    if (fresh === null || !fresh.gates.tafFordeltPaaAar.canDownload) {
       setPdfDownloadErrorMessage(null);
       return;
     }
-    if (!eoSnapshot) return;
 
     const result = await downloadTafFordeltPaaAarDokument({
-      stamdataValues,
-      eoValues,
-      settings,
-      snapshot: eoSnapshot,
-      gate: tafPdfGate,
+      stamdataValues: fresh.projection.stamdataValues,
+      eoValues: fresh.projection.eoValues,
+      settings: fresh.settings,
+      snapshot: fresh.projection.snapshot,
+      gate: fresh.gates.tafFordeltPaaAar,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotTafPdf, eoSnapshot, stamdataValues, eoValues, settings, tafPdfGate]);
+  }, [prepareFreshDownload]);
 
   const handleDownloadTafOpreguleretPdf = React.useCallback(async () => {
-    if (!canDownloadSnapshotTafOpreguleretPdf) {
+    const fresh = await prepareFreshDownload();
+    if (fresh === null || !fresh.gates.tafOpreguleret.canDownload) {
       setPdfDownloadErrorMessage(null);
       return;
     }
-    if (!eoSnapshot) return;
+    const freshProjection = fresh.projection;
+    const freshSnapshot = freshProjection.snapshot;
 
     const result = await downloadTafOpreguleretPaaAarDokument({
-      stamdataValues,
-      eoValues,
-      selectedElements,
-      settings,
-      snapshot: eoSnapshot,
-      midlertidigtEetGroups,
-      gate: tafOpreguleretPdfGate,
+      stamdataValues: freshProjection.stamdataValues,
+      eoValues: freshProjection.eoValues,
+      selectedElements: resolveFreshBilag(freshProjection),
+      settings: fresh.settings,
+      snapshot: freshSnapshot,
+      midlertidigtEetGroups: freshProjection.eoValues.midlertidigtEetFraEetSiden === 'Ja'
+        ? (freshSnapshot.data?.midlertidigtEetGroups ?? [])
+        : [],
+      gate: fresh.gates.tafOpreguleret,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotTafOpreguleretPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups, tafOpreguleretPdfGate]);
+  }, [prepareFreshDownload, resolveFreshBilag]);
 
   const handleDownloadTafKravGrafPdf = React.useCallback(async () => {
-    if (!canDownloadSnapshotTafKravGrafPdf) {
+    const fresh = await prepareFreshDownload();
+    if (fresh === null || !fresh.gates.tafKravGraf.canDownload) {
       setPdfDownloadErrorMessage(null);
       return;
     }
-    if (!eoSnapshot) return;
 
     const result = await downloadTafKravGrafDokument({
-      eoValues,
-      settings,
-      snapshot: eoSnapshot,
-      gate: tafKravGrafPdfGate,
+      eoValues: fresh.projection.eoValues,
+      settings: fresh.settings,
+      snapshot: fresh.projection.snapshot,
+      gate: fresh.gates.tafKravGraf,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotTafKravGrafPdf, eoSnapshot, eoValues, settings, tafKravGrafPdfGate]);
+  }, [prepareFreshDownload]);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
     const issueSummaryText = row.summaryText ?? resolveEoIssueSummaryText(row);
@@ -870,11 +813,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
     // Navigation + bilag
     handleNavigate,
-    selectedElements,
     bilagAvailability,
-    updateSelectedElement,
-    loenindkomstOgOffentligeYdelserIndgaar,
-    updateLoenindkomstOgOffentligeYdelserIndgaar,
 
     // Opsummeringslinjer
     svieSmerteSummaryLabel,

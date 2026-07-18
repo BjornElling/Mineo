@@ -7,6 +7,8 @@ import {
   deleteRow,
   reorderRows,
   settleFieldInNewRow,
+  inputTransaction,
+  inputTransactionStep,
   resetSection,
   replaceCase,
   clearCase,
@@ -127,6 +129,31 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
     state = apply(state, settleField(aargangField.bind(), ''));
     expect(rejectedAt(state.input, aargangField.bind())).toBeUndefined();
     expect(createValidationReader(state.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
+  });
+});
+
+describe('Inputtransaktioner', () => {
+  it('samler flere commands i én atomisk reducerændring og ét history-trin', () => {
+    const initial = start();
+    const state = apply(initial, inputTransaction([
+      inputTransactionStep(settleField(aargangField.bind(), '2020')),
+      inputTransactionStep(settleField(beregningsdatoField.bind(), '01-02-2024')),
+    ]));
+
+    expect(createValidationReader(state.input, catalog).readCanonical(aargangField.bind())).toBe(2020);
+    expect(createValidationReader(state.input, catalog).readCanonical(beregningsdatoField.bind())).toBe('2024-02-01');
+    expect(state.history.past).toHaveLength(1);
+  });
+
+  it('afviser hele transaktionen, når et senere trin er ugyldigt', () => {
+    const initial = start();
+    const command = inputTransaction([
+      inputTransactionStep(settleField(aargangField.bind(), '2020')),
+      inputTransactionStep(settleField(tillaegstidField.bind('mangler'), '1')),
+    ]);
+
+    expect(() => reduceInputCommand(initial.input, command, catalog)).toThrow(/ukendt, slettet eller forkert bundet/);
+    expect(createValidationReader(initial.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
   });
 });
 

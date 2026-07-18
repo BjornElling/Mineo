@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
-import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoerelse';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
-import { useFormPersistence } from '../../../../contexts/useFormPersistence';
+import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvider';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../settings/appSettingsStorage';
+import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
+import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
+import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
+import { settleField } from '../../../../inputCore/inputReducer';
+import { stamdataSkadelidteField } from '../../../../inputCore/catalog/stamdataDescriptors';
 
 const { computeEoSnapshotMock } = vi.hoisted(() => ({
   computeEoSnapshotMock: vi.fn((args: { revision: string }) => ({
@@ -43,7 +46,8 @@ vi.mock('../../../../components/pages/erstatningsopgoerelse/EOKontrolTabel', () 
   default: () => <div>Kontroltabel indhold</div>,
 }));
 
-vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot', () => ({
+vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot')>()),
   computeEoSnapshot: computeEoSnapshotMock,
 }));
 
@@ -57,80 +61,54 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
     );
   });
 
-  it('rebuilds on first snapshot-tab entry and whenever committed revision changes while snapshot faner er aktive', async () => {
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
-
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
+  it('genbygger snapshot ved hver afsluttet revision uafhængigt af den aktive fane', async () => {
+    const catalog = getProductionInputCatalog();
+    slimInputStore.getState().hydrate(catalog.validateSettledInput({
+      sections: {
+        stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
+        varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
+      },
+      rejectedInputs: {},
+    }));
+    const binding = createProductionInputRuntimeBinding();
 
     render(
       <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
         <AppSettingsProvider>
-          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-            <Probe />
-            <Erstatningsopgoerelse />
-          </FormPersistenceProvider>
+          <RoutePathnameProvider>
+            <ProductionInputRuntimeProvider binding={binding}>
+              <Erstatningsopgoerelse />
+            </ProductionInputRuntimeProvider>
+          </RoutePathnameProvider>
         </AppSettingsProvider>
       </MemoryRouter>
     );
 
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(0);
+    await waitFor(() => expect(computeEoSnapshotMock).toHaveBeenCalledTimes(1));
 
     act(() => {
-      ctx!.persistData('stamdata', {
-        journalnr: '',
-        advokat: '',
-        sagsbehandler: '',
-        skadelidte: 'Før tab-entry',
-        skadestype: undefined,
-        skadedato: undefined,
-      });
+      binding.dispatch(settleField(stamdataSkadelidteField.bind(), 'Før tab-entry'));
     });
-    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(0);
+    await waitFor(() => expect(computeEoSnapshotMock).toHaveBeenCalledTimes(2));
 
     fireEvent.click(screen.getByRole('tab', { name: 'Beregning' }));
-    await waitFor(() => {
-      expect(computeEoSnapshotMock).toHaveBeenCalledTimes(1);
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', {
-        journalnr: '',
-        advokat: '',
-        sagsbehandler: '',
-        skadelidte: 'Mens Beregning er aktiv',
-        skadestype: undefined,
-        skadedato: undefined,
-      });
-    });
-    await waitFor(() => {
-      expect(computeEoSnapshotMock).toHaveBeenCalledTimes(2);
-    });
-
-    fireEvent.click(screen.getByText('Kontroltabel'));
     expect(computeEoSnapshotMock).toHaveBeenCalledTimes(2);
 
     act(() => {
-      ctx!.persistData('stamdata', {
-        journalnr: '',
-        advokat: '',
-        sagsbehandler: '',
-        skadelidte: 'Mens Kontroltabel er aktiv',
-        skadestype: undefined,
-        skadedato: undefined,
-      });
+      binding.dispatch(settleField(stamdataSkadelidteField.bind(), 'Mens Beregning er aktiv'));
     });
     await waitFor(() => {
       expect(computeEoSnapshotMock).toHaveBeenCalledTimes(3);
+    });
+
+    fireEvent.click(screen.getByText('Kontroltabel'));
+    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(3);
+
+    act(() => {
+      binding.dispatch(settleField(stamdataSkadelidteField.bind(), 'Mens Kontroltabel er aktiv'));
+    });
+    await waitFor(() => {
+      expect(computeEoSnapshotMock).toHaveBeenCalledTimes(4);
     });
   });
 });

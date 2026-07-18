@@ -2,24 +2,9 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import PageTabs from '../layout/PageTabs';
 import SideTab from '../layout/SideTab';
-import { usePersistedForm, type CommitOriginOptions } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { useMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
 import { useScrollToSectionWithRetry } from '../../hooks/useScrollToSectionWithRetry';
-import {
-  getFieldErrorRevisionSnapshot,
-  getFieldErrorsBySourceSnapshot,
-  getPersistedSectionSnapshot,
-  getSectionRevisionSnapshot,
-  useFieldErrorRevisionSelector,
-  usePersistedSectionSelector,
-  useSectionRevisionSelector,
-} from '../../hooks/useFormPersistenceSelectors';
-import {
-  erstatningsopgoerelseSchema,
-  type ErstatningsopgoerelseValues,
-} from '../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
@@ -27,11 +12,10 @@ import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
 import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EOInspektion from './erstatningsopgoerelse/EOInspektion';
 import EOKontrolTabel from './erstatningsopgoerelse/EOKontrolTabel';
-import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import type { StamdataValues } from '../../schemas/formSchemas';
-import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildTafRanges } from '../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { buildMidlertidigtEetImportContext } from '../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
+import { useInputEvaluation } from '../../inputCore/react';
+import { buildErstatningsopgoerelseReaderProjection } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
+import { evaluateErstatningsopgoerelseDownloadGates } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
+import { selectBlockingFieldIdsBySuffix } from '../../utils/fieldErrorSelectors';
 
 const TAB_KEYS = {
   EO_OPLYSNINGER: 'eo_oplysninger',
@@ -43,8 +27,6 @@ const TAB_KEYS = {
 } as const;
 
 type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
-
-const EO_SNAPSHOT_VERSION = 'eo-snapshot-v1';
 
 /**
  * Erstatningsopgørelse-komponent til samlet opgørelse af erstatningskrav
@@ -83,130 +65,20 @@ const Erstatningsopgoerelse = React.memo(() => {
       ? activeTab
       : false;
 
-  // Initial values baseret på settings (bruges kun ved oprettelse af NY sag)
-  const initialValues = React.useMemo(
-    () => createErstatningsopgoerelseInitialValues(settings),
-    [settings]
-  );
-
-  const form = usePersistedForm(
-    erstatningsopgoerelseSchema,
-    'erstatningsopgoerelse',
-    initialValues
-  );
-  const setFormValues = form.setValues;
-
   const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
-
-  // Bevidst opdeling: useSectionRevisionSelector/useFieldErrorRevisionSelector (hooks) abonnerer på
-  // store-ændringer og udløser re-renders når revisioner ændrer sig. buildInspektionRevision og buildInspektionSnapshot
-  // bruger snapshot-funktioner (getState()-læsninger) i stedet for hooks — det giver konsistent state på
-  // call-tidspunktet uden at skabe hook-afhængigheder. Slå dem ikke sammen til hook-læsninger: hooks inde i
-  // en useCallback ville være ulovligt, og at læse hook-værdier via closure ville give forældede snapshots.
-  //
-  // EET- og faellesAarsloen-sektionerne inkluderes altid (uafhængigt af togglen
-  // `midlertidigtEetFraEetSiden`), så snapshot-cachen invalideres deterministisk når
-  // brugeren ændrer noget på EET-siden, uanset hvilken tilstand togglen er i. Den lille
-  // ekstra rebuild ved EET-ændringer mens togglen er 'Nej' er bevidst valgt fremfor en
-  // toggle-betinget revisions-sammensætning, som ville være vanskeligere at ræsonnere om.
-  const buildInspektionRevision = React.useCallback((): string => {
-    return [
-      EO_SNAPSHOT_VERSION,
-      getSectionRevisionSnapshot('stamdata'),
-      getSectionRevisionSnapshot('erstatningsopgoerelse'),
-      getSectionRevisionSnapshot('erhvervsevnetab'),
-      getSectionRevisionSnapshot('faellesAarsloen'),
-      getFieldErrorRevisionSnapshot('stamdata'),
-      getFieldErrorRevisionSnapshot('erstatningsopgoerelse'),
-    ].join('-');
-  }, []);
-
-  const buildInspektionSnapshot = React.useCallback((): EoSnapshot => {
-    const persistedStamdata = getPersistedSectionSnapshot('stamdata');
-    const persistedEO = getPersistedSectionSnapshot('erstatningsopgoerelse');
-    const stamdata = persistedStamdata ?? STAMDATA_INITIAL_VALUES;
-    const eoValues = persistedEO ?? initialValues;
-
-    const revision = buildInspektionRevision();
-    const midlertidigtEetImportContext = eoValues.midlertidigtEetFraEetSiden === 'Ja'
-      ? buildMidlertidigtEetImportContext(
-        midlertidigtEetInsertSource,
-        buildTafRanges(eoValues, {
-          skadedatoISO: stamdata.skadedato,
-        })
-      )
-      : undefined;
-
-    return computeEoSnapshot({
-      revision,
-      stamdataValues: stamdata,
-      eoValues,
-      stamdataErrors: getFieldErrorsBySourceSnapshot('stamdata'),
-      eoErrors: getFieldErrorsBySourceSnapshot('erstatningsopgoerelse'),
-      midlertidigtEetImportContext,
-    });
-  }, [buildInspektionRevision, initialValues, midlertidigtEetInsertSource]);
-
-  const buildInspektionSnapshotRef = React.useRef(buildInspektionSnapshot);
-  React.useEffect(() => {
-    buildInspektionSnapshotRef.current = buildInspektionSnapshot;
-  }, [buildInspektionSnapshot]);
-
-  const persistedStamdata = usePersistedSectionSelector('stamdata');
-  const stamdataValuesForBeregningTab = React.useMemo<StamdataValues>(() => {
-    const nextPersistedStamdata = persistedStamdata;
-    if (!nextPersistedStamdata) return STAMDATA_INITIAL_VALUES;
-    return { ...STAMDATA_INITIAL_VALUES, ...nextPersistedStamdata };
-  }, [persistedStamdata]);
-  const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
-  const stamdataRevision = useSectionRevisionSelector('stamdata');
-  const eoRevision = useSectionRevisionSelector('erstatningsopgoerelse');
-  const erhvervsevnetabRevision = useSectionRevisionSelector('erhvervsevnetab');
-  const faellesAarsloenRevision = useSectionRevisionSelector('faellesAarsloen');
-  const stamdataErrorRevision = useFieldErrorRevisionSelector('stamdata');
-  const eoErrorRevision = useFieldErrorRevisionSelector('erstatningsopgoerelse');
-  const currentInspektionRevision = React.useMemo(
-    () => [
-      EO_SNAPSHOT_VERSION,
-      stamdataRevision,
-      eoRevision,
-      erhvervsevnetabRevision,
-      faellesAarsloenRevision,
-      stamdataErrorRevision,
-      eoErrorRevision,
-    ].join('-'),
-    [eoErrorRevision, eoRevision, erhvervsevnetabRevision, faellesAarsloenRevision, stamdataErrorRevision, stamdataRevision]
+  const evaluation = useInputEvaluation();
+  const projection = React.useMemo(
+    () => buildErstatningsopgoerelseReaderProjection(evaluation.reader, { midlertidigtEetInsertSource }),
+    [evaluation, midlertidigtEetInsertSource]
   );
-  const isSnapshotTabActive =
-    activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.INSPEKTION || activeTab === TAB_KEYS.KONTROLTABEL;
-
-  React.useEffect(() => {
-    if (!isSnapshotTabActive) return;
-    if (eoSnapshot?.revision === currentInspektionRevision) return;
-    setEoSnapshot(buildInspektionSnapshotRef.current());
-  }, [currentInspektionRevision, eoSnapshot?.revision, isSnapshotTabActive]);
-
-  const handleOffentligeYdelserRowsChange = React.useCallback(
-    (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>, origin?: CommitOriginOptions) => {
-      return setFormValues((prev) => ({
-        ...prev,
-        offentligeYdelserRows: newData,
-      }), origin);
-    },
-    [setFormValues]
+  const downloadGates = React.useMemo(
+    () => evaluateErstatningsopgoerelseDownloadGates(projection, settings),
+    [projection, settings]
   );
-
-  const handleLoenindkomstAnsaettelsesforholdChange = React.useCallback(
-    (
-      updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'],
-      origin?: CommitOriginOptions
-    ) => {
-      return setFormValues((prev) => ({
-        ...prev,
-        loenindkomstAnsaettelsesforhold: updater(prev.loenindkomstAnsaettelsesforhold),
-      }), origin);
-    },
-    [setFormValues]
+  const { eoValues, stamdataValues, snapshot: eoSnapshot } = projection;
+  const manuelReguleringInputErrors = React.useMemo(
+    () => selectBlockingFieldIdsBySuffix(projection.eoErrors, ':loenindkomst'),
+    [projection.eoErrors]
   );
 
   const handleNavigateToTabtArbejdsfortjeneste = React.useCallback(() => {
@@ -276,7 +148,7 @@ const Erstatningsopgoerelse = React.memo(() => {
           hidden={activeTab !== TAB_KEYS.EO_OPLYSNINGER}
           sx={{ display: activeTab === TAB_KEYS.EO_OPLYSNINGER ? 'block' : 'none' }}
         >
-          <EOOplysningerTab form={form} />
+          <EOOplysningerTab values={eoValues} stamdataValues={stamdataValues} />
         </Box>
         {(visitedTabs[TAB_KEYS.LOENINDKOMST] || activeTab === TAB_KEYS.LOENINDKOMST) && (
           <Box
@@ -285,17 +157,10 @@ const Erstatningsopgoerelse = React.memo(() => {
             sx={{ display: activeTab === TAB_KEYS.LOENINDKOMST ? 'block' : 'none' }}
           >
             <LoenindkomstTab
-              loenindkomstAnsaettelsesforhold={form.values.loenindkomstAnsaettelsesforhold}
-              beregnesUdFra={form.values.beregnesUdFra}
-              tafBeregningsperiodeFra={form.values.tafBeregningsperiodeFra}
-              tafBeregningsperiodeTil={form.values.tafBeregningsperiodeTil}
-              ferieperioder={form.values.ferieperioder}
-              fravaerPerioder={form.values.fravaerPerioder}
-              eoValues={form.values}
-              setEOValues={setFormValues}
-              onAnsaettelsesforholdChange={handleLoenindkomstAnsaettelsesforholdChange}
+              eoValues={eoValues}
+              stamdataValues={stamdataValues}
               onNavigateToTabtArbejdsfortjeneste={handleNavigateToTabtArbejdsfortjeneste}
-              sfggSixMonthWarningEmploymentIds={eoSnapshot?.data?.sfggSixMonthWarningEmploymentIds ?? []}
+              sfggSixMonthWarningEmploymentIds={eoSnapshot.data?.sfggSixMonthWarningEmploymentIds ?? []}
             />
           </Box>
         )}
@@ -306,11 +171,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             sx={{ display: activeTab === TAB_KEYS.OFFENTLIGE_YDELSER ? 'block' : 'none' }}
           >
             <OffentligeYdelserTab
-              rows={form.values.offentligeYdelserRows ?? []}
-              onRowsChange={handleOffentligeYdelserRowsChange}
-              kommentarer={form.values.offentligeYdelserKommentarer}
-              midlertidigtEetFraEetSiden={form.values.midlertidigtEetFraEetSiden}
-              setEOValues={setFormValues}
+              values={eoValues}
             />
           </Box>
         )}
@@ -324,10 +185,8 @@ const Erstatningsopgoerelse = React.memo(() => {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               isActive={activeTab === TAB_KEYS.BEREGNING}
-              eoSnapshot={eoSnapshot}
-              stamdataValues={stamdataValuesForBeregningTab}
-              eoValues={form.values}
-              setEOValues={setFormValues}
+              projection={projection}
+              downloadGates={downloadGates}
             />
           </Box>
         )}
@@ -337,7 +196,10 @@ const Erstatningsopgoerelse = React.memo(() => {
             hidden={activeTab !== TAB_KEYS.INSPEKTION}
             sx={{ display: activeTab === TAB_KEYS.INSPEKTION ? 'block' : 'none' }}
           >
-            <EOInspektion eoSnapshot={activeTab === TAB_KEYS.INSPEKTION ? eoSnapshot : null} />
+            <EOInspektion
+              eoSnapshot={activeTab === TAB_KEYS.INSPEKTION ? eoSnapshot : null}
+              manuelReguleringInputErrors={manuelReguleringInputErrors}
+            />
           </Box>
         ) : null}
         {showInspektionTab && (visitedTabs[TAB_KEYS.KONTROLTABEL] || activeTab === TAB_KEYS.KONTROLTABEL) ? (
@@ -348,7 +210,7 @@ const Erstatningsopgoerelse = React.memo(() => {
           >
             <EOKontrolTabel
               isActive={activeTab === TAB_KEYS.KONTROLTABEL}
-              inspektionSnapshot={activeTab === TAB_KEYS.KONTROLTABEL ? eoSnapshot?.inspektionSnapshot ?? null : null}
+              inspektionSnapshot={activeTab === TAB_KEYS.KONTROLTABEL ? eoSnapshot.inspektionSnapshot ?? null : null}
             />
           </Box>
         ) : null}

@@ -1,22 +1,19 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
-import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
-import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
-import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
+import GreenfieldOffentligeYdelserTable from '../../tables/GreenfieldOffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
-import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 import StyledDateField from '../../inputs/StyledDateField';
-import StyledTextField from '../../inputs/StyledTextField';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
+import GreenfieldMultilineTextField from '../../../inputCore/react/fields/GreenfieldMultilineTextField';
 import InlineActionButton from '../../inputs/InlineActionButton';
 import {
   buildSygedagpengeRowsForRange,
   SygedagpengeCoverageError,
 } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
-import { insertOffentligeYdelserRowsBeforeTrailingEmpty } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserRowInsertion';
 import { dateRanges_offentligeYdelser } from '../../../config/dateRanges';
 import { isISODateString, type ISODateString } from '../../../types/branded';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
@@ -28,9 +25,18 @@ import {
   writeOptionalSessionStorageValue,
 } from '../../../utils/safeSessionStorage';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
-import { type CommitOriginOptions, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import type { CommitEvent } from '../../../types/fieldEvents';
 import { asError } from '../../../utils/typeGuards';
+import { useInputRuntime } from '../../../inputCore/react/inputRuntimeContext';
+import {
+  eoBilagSelectionMidlertidigEetField,
+  eoMidlertidigtEetFraEetSidenField,
+  eoOffentligeYdelserKommentarerField,
+  eoOffentligeYdelserRowsCollection,
+} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import type { CollectionRef } from '../../../inputCore/fieldAddress';
+import { deleteRow, inputTransaction, inputTransactionStep, insertRow, setImmediateField } from '../../../inputCore/inputReducer';
+import type { CommitEvent } from '../../../types/fieldEvents';
+import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 
 const offentligeYdelserHelpersSessionSchema = z.object({
   sygedagpengeFraDato: z.preprocess(
@@ -46,17 +52,19 @@ const offentligeYdelserHelpersSessionSchema = z.object({
 type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelpersSessionSchema>;
 
 type Props = Readonly<{
-  rows: OffentligeYdelserRow[];
-  onRowsChange: (rows: OffentligeYdelserRow[], origin?: CommitOriginOptions) => boolean;
-  kommentarer: ErstatningsopgoerelseValues['offentligeYdelserKommentarer'];
-  midlertidigtEetFraEetSiden: ErstatningsopgoerelseValues['midlertidigtEetFraEetSiden'];
-  setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
+  values: ErstatningsopgoerelseValues;
 }>;
 
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midlertidigtEetFraEetSiden, setEOValues }: Props) => {
+const OffentligeYdelserTab = React.memo(({ values }: Props) => {
+  const runtime = useInputRuntime();
+  const rows = values.offentligeYdelserRows;
+  const midlertidigtEetEditor = useFieldEditor(
+    eoMidlertidigtEetFraEetSidenField.bind(),
+    { locationId: 'erstatningsopgoerelse.midlertidigtEetFraEetSiden' }
+  );
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
@@ -173,18 +181,28 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
 
     setSygedagpengeInsertError(null);
     suppressSygedagpengeFieldCommitRef.current = true;
-    onRowsChange(insertOffentligeYdelserRowsBeforeTrailingEmpty(rows, generatedRows));
+    const insertIndex = rows.findIndex((row) => row.fraDato === undefined
+      && row.tilDato === undefined
+      && row.ydelse === undefined
+      && row.tillaeg === undefined
+      && row.ydelsestype === undefined);
+    const baseIndex = insertIndex < 0 ? rows.length : insertIndex;
+    runtime.dispatch(inputTransaction(generatedRows.map((row, index) => inputTransactionStep(insertRow(
+      eoOffentligeYdelserRowsCollection.template as CollectionRef,
+      row,
+      baseIndex + index
+    )))));
     shouldFocusSygedagpengeFraRef.current = true;
     setSygedagpengeFraDato(undefined);
     setSygedagpengeTilDato(undefined);
     setSygedagpengeFraError(undefined);
     setSygedagpengeTilError(undefined);
-    // Tæt koblet til StyledDateField/TableDateField commit-timing: suppression skal overleve
+    // Tæt koblet til det transiente datofelts commit-timing: suppression skal overleve
     // det blur/commit, som klik på "Indsæt" udløser i samme frame, men må ikke blive hængende længere.
     requestAnimationFrame(() => {
       suppressSygedagpengeFieldCommitRef.current = false;
     });
-  }, [onRowsChange, rows, sygedagpengeFraDato, sygedagpengeTilDato]);
+  }, [rows, runtime, sygedagpengeFraDato, sygedagpengeTilDato]);
 
   const handleSygedagpengeFraError = React.useCallback((error: ReportableFieldError | undefined) => {
     if (suppressSygedagpengeFieldCommitRef.current) return;
@@ -204,41 +222,27 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
     && !sygedagpengeFraError
     && !sygedagpengeTilError;
 
-  const isMidlertidigtEetFraEetSiden = midlertidigtEetFraEetSiden === 'Ja';
+  const isMidlertidigtEetFraEetSiden = values.midlertidigtEetFraEetSiden === 'Ja';
 
   /**
    * Atomisk commit af togglen + sideopgaver.
    * Når togglen aktiveres, ryddes manuelle midlertidigt_eet-rækker væk fra tabellen og
    * bilag-checkboxen `midlertidigEet` tændes. Når togglen deaktiveres, slukkes
-   * bilag-checkboxen igen. Alle ændringer sker i én setEOValues-opdatering for at undgå
+   * bilag-checkboxen igen. Alle ændringer sker i én inputtransaktion for at undgå
    * inkonsistente mellemtilstande i snapshot-revisionen.
    */
   const commitMidlertidigtEetToggle = React.useCallback((nextChecked: boolean): boolean => {
     try {
-      setEOValues((prev) => {
-        if (nextChecked) {
-          const filteredRows = (prev.offentligeYdelserRows ?? []).filter(
-            (row) => row.ydelsestype?.trim() !== 'midlertidigt_eet'
-          );
-          return {
-            ...prev,
-            midlertidigtEetFraEetSiden: 'Ja',
-            offentligeYdelserRows: filteredRows,
-            eoBilagSelection: {
-              ...prev.eoBilagSelection,
-              midlertidigEet: true,
-            },
-          };
-        }
-        return {
-          ...prev,
-          midlertidigtEetFraEetSiden: 'Nej',
-          eoBilagSelection: {
-            ...prev.eoBilagSelection,
-            midlertidigEet: false,
-          },
-        };
-      }, { fieldPath: 'midlertidigtEetFraEetSiden' });
+      const collection = eoOffentligeYdelserRowsCollection.template as CollectionRef;
+      const rowDeletes = nextChecked
+        ? rows.filter((row) => row.ydelsestype?.trim() === 'midlertidigt_eet')
+          .map((row) => inputTransactionStep(deleteRow(collection, row.id)))
+        : [];
+      runtime.dispatch(inputTransaction([
+        ...rowDeletes,
+        inputTransactionStep(setImmediateField(eoMidlertidigtEetFraEetSidenField.bind(), nextChecked ? 'Ja' : 'Nej')),
+        inputTransactionStep(setImmediateField(eoBilagSelectionMidlertidigEetField.bind(), nextChecked)),
+      ]));
       setMidlertidigtEetToggleError(null);
       return true;
     } catch (error) {
@@ -254,7 +258,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
       setMidlertidigtEetToggleError('Midlertidigt EET-valget kunne ikke gemmes på grund af en intern fejl.');
       return false;
     }
-  }, [setEOValues]);
+  }, [rows, runtime]);
 
   const handleMidlertidigtEetToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
     const nextChecked = event.target.value;
@@ -269,17 +273,6 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
     setMidlertidigtEetConfirmDialogOpen(true);
     return true;
   }, [commitMidlertidigtEetToggle, isMidlertidigtEetFraEetSiden, rows]);
-
-  const handleKommentarerCommit = React.useCallback((event: CommitEvent<string>) => {
-    const normalized = event.target.value.trim();
-    return setEOValues(
-      (prev) => ({
-        ...prev,
-        offentligeYdelserKommentarer: normalized === '' ? undefined : normalized,
-      }),
-      { fieldPath: 'offentligeYdelserKommentarer' }
-    );
-  }, [setEOValues]);
 
   const handleMidlertidigtEetConfirm = React.useCallback(() => {
     const didCommit = commitMidlertidigtEetToggle(true);
@@ -296,15 +289,12 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
           Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.
         </Typography>
 
-        <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoOffentligeYdelser}>
-          <OffentligeYdelserTable
-            tableData={rows}
+          <GreenfieldOffentligeYdelserTable
+            committedRows={rows}
             derivedByRowId={derivedByRowId}
-            onTableDataChange={onRowsChange}
             saveOrderPath="erstatningsopgoerelse.offentligeYdelserRows"
             disableMidlertidigtEetOption={isMidlertidigtEetFraEetSiden}
           />
-        </CellInvalidDraftScopeProvider>
       </ContentBox>
 
       <ContentBox className="content-box">
@@ -360,7 +350,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
               name="midlertidigtEetFraEetSiden"
-              checked={isMidlertidigtEetFraEetSiden}
+              checked={midlertidigtEetEditor.value === 'Ja'}
               onCommit={handleMidlertidigtEetToggleCommit}
               ariaLabel="Midlertidigt EET indsættes fra Erhvervsevnetab-siden"
             />
@@ -378,12 +368,11 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
 
       <ContentBox className="content-box">
         <Typography className="section-header">Kommentarer</Typography>
-        <StyledTextField
+        <GreenfieldMultilineTextField
+          field={eoOffentligeYdelserKommentarerField.bind()}
+          location={{ locationId: 'erstatningsopgoerelse.offentligeYdelserKommentarer' }}
           name="offentligeYdelserKommentarer"
           width={800}
-          value={kommentarer ?? ''}
-          onCommit={handleKommentarerCommit}
-          multiline
           rows={4}
           placeholder="Indtast eventuelle kommentarer her..."
         />

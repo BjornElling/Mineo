@@ -3,17 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoerelse';
-import { STORAGE_KEYS, createActiveTabStorageKey } from '../../../../config/storageManifest';
-import { PERSISTED_DATA_VERSION } from '../../../../config/persistenceVersion';
+import { createActiveTabStorageKey } from '../../../../config/storageManifest';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../../contexts/FormPersistenceContext';
+import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvider';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-
-const persistedWrapper = (data: unknown) => ({
-  version: PERSISTED_DATA_VERSION,
-  timestamp: Date.now(),
-  data,
-});
+import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
+import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
+import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 
 /**
  * Regressions-net for A1's sektion-dekomponering af EO-oplysninger-fanen: når den store inline-JSX
@@ -28,18 +24,25 @@ describe('EOOplysningerTab sektioner', () => {
   });
 
   it('renderer alle uafhængigt synlige sektioner på oplysninger-fanen', async () => {
-    sessionStorage.setItem(
-      STORAGE_KEYS.erstatningsopgoerelse,
-      JSON.stringify(persistedWrapper(createErstatningsopgoerelseInitialValues()))
-    );
+    const catalog = getProductionInputCatalog();
+    slimInputStore.getState().hydrate(catalog.validateSettledInput({
+      sections: {
+        stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
+        varigemen: null, forsoergertab: null,
+        erstatningsopgoerelse: createErstatningsopgoerelseInitialValues(), erhvervsevnetab: null,
+      },
+      rejectedInputs: {},
+    }));
     sessionStorage.setItem(createActiveTabStorageKey('erstatningsopgoerelse'), 'eo_oplysninger');
 
     render(
       <MemoryRouter>
         <AppSettingsProvider>
-          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-            <Erstatningsopgoerelse />
-          </FormPersistenceProvider>
+          <RoutePathnameProvider>
+            <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
+              <Erstatningsopgoerelse />
+            </ProductionInputRuntimeProvider>
+          </RoutePathnameProvider>
         </AppSettingsProvider>
       </MemoryRouter>
     );

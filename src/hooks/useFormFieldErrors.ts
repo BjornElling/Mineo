@@ -21,6 +21,8 @@ import type { HistoryFrameOrigin } from '../stores/inputRuntimeStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
 import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.shared';
+import { selectBlockingFieldIdsBySuffix } from '../utils/fieldErrorSelectors';
+export { selectBlockingFieldIdsBySuffix } from '../utils/fieldErrorSelectors';
 
 const debugFieldErrorReporter = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -44,25 +46,6 @@ export const useFormFieldErrors = <K extends StorageKey>(pageKey: K): Partial<Re
  */
 export const useFieldErrorsBySourceForSection = <K extends StorageKey>(pageKey: K): FieldErrorsForSection<K> => {
   return useFieldErrorsBySourceSelector(pageKey);
-};
-
-export const selectBlockingFieldIdsBySuffix = (
-  fieldErrors: Readonly<Record<string, Record<string, FormFieldError | undefined> | undefined>>,
-  suffix: string
-): Readonly<Record<string, true>> => {
-  const result: Record<string, true> = {};
-
-  for (const [fieldKey, bySource] of Object.entries(fieldErrors)) {
-    if (!fieldKey.endsWith(suffix) || !bySource) continue;
-    const hasBlockingError = Object.values(bySource).some((entry) => entry?.severity === 'error' && entry.blocksSave !== false);
-    if (!hasBlockingError) continue;
-    const entityId = fieldKey.slice(0, -suffix.length);
-    if (entityId !== '') {
-      result[entityId] = true;
-    }
-  }
-
-  return result;
 };
 
 export const useBlockingFieldIdsBySuffixForSection = <K extends StorageKey>(

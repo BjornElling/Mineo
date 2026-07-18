@@ -4,25 +4,15 @@ import AddIcon from '@mui/icons-material/Add';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import ContentBox from '../../layout/ContentBox';
-import { type ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { type CommitOriginOptions, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import { useLoenindkomstViewModel } from './loenindkomst/useLoenindkomstViewModel';
+import { type ErstatningsopgoerelseValues, type StamdataValues } from '../../../schemas/formSchemas';
+import { useGreenfieldLoenindkomstViewModel } from './loenindkomst/useGreenfieldLoenindkomstViewModel';
 import { LoenindkomstVmProvider, type LoenindkomstVm } from './loenindkomst/loenindkomstContext';
 import AnsaettelsesforholdCard from './loenindkomst/AnsaettelsesforholdCard';
 import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
 
-type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
-
 type Props = {
-  loenindkomstAnsaettelsesforhold: AnsaettelsesforholdList;
-  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
-  tafBeregningsperiodeFra: ErstatningsopgoerelseValues['tafBeregningsperiodeFra'];
-  tafBeregningsperiodeTil: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];
-  ferieperioder: ErstatningsopgoerelseValues['ferieperioder'];
-  fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
-  setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: CommitOriginOptions) => boolean;
+  stamdataValues: StamdataValues;
   onNavigateToTabtArbejdsfortjeneste: () => void;
   /** Id'er på ansættelsesforhold hvor SFGG løber >6 mdr. efter sidste indkomst.
    *  Beregnet i EO-snapshot (committed-state); tom liste når snapshot.data er null. */
@@ -30,30 +20,16 @@ type Props = {
 };
 
 const LoenindkomstTab = React.memo(({
-  loenindkomstAnsaettelsesforhold,
-  beregnesUdFra,
-  tafBeregningsperiodeFra,
-  tafBeregningsperiodeTil,
-  ferieperioder,
-  fravaerPerioder,
   eoValues,
-  setEOValues,
-  onAnsaettelsesforholdChange,
+  stamdataValues,
   onNavigateToTabtArbejdsfortjeneste,
   sfggSixMonthWarningEmploymentIds,
 }: Props) => {
   // View-model-laget ejer al afledt visningstilstand, lokal UI-state og handlers (jf. A1).
   // Siden er nu en tynd forbruger: den læser kun den flade model og beskriver layout.
-  const vm = useLoenindkomstViewModel({
-    loenindkomstAnsaettelsesforhold,
-    beregnesUdFra,
-    tafBeregningsperiodeFra,
-    tafBeregningsperiodeTil,
-    ferieperioder,
-    fravaerPerioder,
+  const vm = useGreenfieldLoenindkomstViewModel({
     eoValues,
-    setEOValues,
-    onAnsaettelsesforholdChange,
+    stamdataValues,
   });
   // Fanen er nu en komposition: den deler view-modellen med ansættelsesforhold-kortene via
   // konteksten (jf. A1) og beholder kun det fane-niveau-layout (intro, overlay, dialoger).
@@ -74,8 +50,8 @@ const LoenindkomstTab = React.memo(({
   // Kontekst-værdi til kortene: den fulde view-model + de få side-niveau-værdier kortene læser.
   const ctxValue: LoenindkomstVm = {
     ...vm,
-    beregnesUdFra,
-    tafBeregningsperiodeTil,
+    beregnesUdFra: eoValues.beregnesUdFra,
+    tafBeregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
     sfggSixMonthWarningEmploymentIds,
     onNavigateToTabtArbejdsfortjeneste,
   };
@@ -123,7 +99,7 @@ const LoenindkomstTab = React.memo(({
 
       </ContentBox>
 
-      {loenindkomstAnsaettelsesforhold.map((af, index) => (
+      {eoValues.loenindkomstAnsaettelsesforhold.map((af, index) => (
         <AnsaettelsesforholdCard key={af.id} af={af} index={index} />
       ))}
 

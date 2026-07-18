@@ -103,8 +103,8 @@ export const GreenfieldGridPercentCell = (
 };
 
 /** Heltalscelle (col0_maaned: måned 1–12). */
-export const GreenfieldGridIntegerCell = (
-  { gridCell, cell, placeholder, inputRef }: BaseCellProps<string | undefined>
+export const GreenfieldGridIntegerCell = <T extends string | number | undefined>(
+  { gridCell, cell, placeholder, inputRef }: BaseCellProps<T>
 ): React.ReactElement => {
   const keyFilter = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) =>
@@ -112,7 +112,7 @@ export const GreenfieldGridIntegerCell = (
     []
   );
   return (
-    <GreenfieldGridTextCell<string | undefined>
+    <GreenfieldGridTextCell<T>
       gridCell={gridCell}
       cell={cell}
       keyFilter={keyFilter}

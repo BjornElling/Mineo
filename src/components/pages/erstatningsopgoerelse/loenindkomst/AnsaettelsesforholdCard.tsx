@@ -5,18 +5,25 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import DocumentDownloadButton from '../../../inputs/DocumentDownloadButton';
-import StyledTextField from '../../../inputs/StyledTextField';
-import StyledDateField from '../../../inputs/StyledDateField';
-import StyledDropdown, { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
-import StyledAmountField from '../../../inputs/StyledAmountField';
-import StyledPercentField from '../../../inputs/StyledPercentField';
-import StyledRadioButton from '../../../inputs/StyledRadioButton';
-import StyledToggleSwitch from '../../../inputs/StyledToggleSwitch';
-import StyledIntegerField from '../../../inputs/StyledIntegerField';
-import LoenudviklingManuelTable from '../../../tables/LoenudviklingManuelTable';
-import LoenudviklingManuelProcentsatsTable from '../../../tables/LoenudviklingManuelProcentsatsTable';
-import { CellInvalidDraftScopeProvider } from '../../../../contexts/CellInvalidDraftScopeContext';
-import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
+import GreenfieldTextField from '../../../../inputCore/react/fields/GreenfieldTextField';
+import GreenfieldDateField from '../../../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldChoiceField, { GreenfieldChoiceDivider } from '../../../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldAmountField from '../../../../inputCore/react/fields/GreenfieldAmountField';
+import GreenfieldPercentField from '../../../../inputCore/react/fields/GreenfieldPercentField';
+import GreenfieldRadioField from '../../../../inputCore/react/fields/GreenfieldRadioField';
+import GreenfieldToggleField from '../../../../inputCore/react/fields/GreenfieldToggleField';
+import GreenfieldMappedToggleField from '../../../../inputCore/react/fields/GreenfieldMappedToggleField';
+import GreenfieldIntegerField from '../../../../inputCore/react/fields/GreenfieldIntegerField';
+import GreenfieldLoenudviklingManuelTable from '../../../tables/GreenfieldLoenudviklingManuelTable';
+import GreenfieldLoenudviklingManuelProcentsatsTable from '../../../tables/GreenfieldLoenudviklingManuelProcentsatsTable';
+import StandardLoenTable from '../../../tables/StandardLoenTable';
+import {
+  eoEmploymentFields,
+  eoEmploymentFilterFields,
+  eoEmploymentManual,
+} from '../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import type { CollectionRef } from '../../../../inputCore/fieldAddress';
+import { createEoStandardLoenFieldSet } from '../../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
 import FloatingActionButton from '../../../ui/FloatingActionButton';
 import ContentBox from '../../../layout/ContentBox';
 import {
@@ -45,17 +52,12 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sfggKilde';
-import { SFGG_REFERENCEPERIODE_MAX_DAYS } from '../../../../domain/erstatningsopgoerelse/engines/sfggConstants';
-import { getDayAfterIso } from '../../../../utils/isoDateHelpers';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
-import { useKeyedFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
-
-const getCheckedJaNej = (value: 'Ja' | 'Nej'): boolean => value === 'Ja';
 
 const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: string }): string => {
   if (!interval) return '';
@@ -93,10 +95,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,
     // Løntabel-forbrugere: midlertidigt ubrugte, mens EO-loenindkomst-slicen ikke er greenfield-migreret (§5.4).
-    satserByAfId: _satserByAfId,
-    derivedCalculatorByAfId: _derivedCalculatorByAfId,
-    tableDataChangeByAfId: _tableDataChangeByAfId,
-    validationChangeByAfId: _validationChangeByAfId,
+    satserByAfId,
+    derivedCalculatorByAfId,
     totalAnsaettelsesforhold,
     cannotAddMore,
     showDeleteButton,
@@ -104,41 +104,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     setDeleteDialogOpen,
     setDeleteTargetId,
     getAnvendtReguleringsdatoForAnsaettelsesforhold,
-    getSfggReferenceperiodeAvailability,
     getLoenudviklingBaseDate,
     isOffentligLoenSelectionReady,
     resolveOverenskomstLabel,
     getFilteredOverenskomsterForAnsaettelsesforhold,
     showSygeferiegodtgoerelseSection: showSygeferiegodtgoerelseSectionFor,
     getSfggRowForAf,
-    firstTafFraDato,
-    sfggReferenceperiodeMaxDate,
-    updateSfggAnsaettelsesforhold,
-    handleTextCommit,
-    handleToggleChange,
-    handleOverenskomstChange,
-    handleOffentligLoenTypeChange,
-    handleOffentligLoenTrinCommit,
-    handleOffentligLoenGruppeCommit,
-    handleOffentligLoenEkstraGrundloenCommit,
-    handleSidsteArbejdsdagCommit,
-    handleSaerligFraDatoReguleringCommit,
-    handleAnciennitetstillaegDatoCommit,
-    handleAnciennitetstillaegSatsAngivesPerChange,
-    handleAnciennitetstillaegSatsCommit,
-    handleFeriePctCommit,
-    handleValidatedSatsCommit,
-    handleLoenperiodeChange,
-    handleTillaegAngivesSomChange,
-    handleFuldLoenUnderFerieChange,
-    handleLoenPaaHelligdageChange,
-    handleLoenudviklingBeregningsgrundlagChange,
-    handleLoenudviklingStatistikModelChange,
-    handleLoenudviklingKRLSatstabelChange,
-    handleLoenudviklingManuelTableChange,
-    handleLoenudviklingManuelProcentsatsTableChange,
-    handleManuelReguleringInputErrorChange,
-    handleFilterChange,
     handleMoveUp,
     handleMoveDown,
     handleDownloadReguleringPdf,
@@ -147,29 +118,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   } = useLoenindkomstVm();
   const { openLoentrinFinder } = loentrinFinder;
 
-  // Per-ansættelsesforhold felt-fejl-reportere: binder hvert nested felts (`${af.id}:<felt>`) ugyldige rå
-  // draft til invalidDrafts-kanalen (greenfield draft/commit §4.3). Kortet renderes pr. AF, så hooks pr.
-  // instans er lovlige. Nøglen matcher commit-`fieldPath` fra useLoenindkomstViewModel (`${id}:<felt>`).
-  const reportSidsteArbejdsdagError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sidsteArbejdsdag`);
-  const reportSaerligFraDatoReguleringError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:saerligFraDatoRegulering`);
-  const reportFeriePctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:feriePct`);
-  const reportFritvalgPctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:fritvalgPct`);
-  const reportShSoPctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:shSoPct`);
-  // storeBededagPct er BEVIDST udeladt: feltet er disabled (onCommit=undefined) og kan aldrig producere
-  // en ugyldig draft, så det har ingen binding-behov (jf. §4.3 gælder felter der KAN committe).
-  const reportPensionPctError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:pensionPct`);
-  const reportOffentligLoenTrinError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:offentligLoenTrin`);
-  const reportOffentligLoenGruppeError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:offentligLoenGruppe`);
-  const reportOffentligLoenEkstraGrundloenError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:offentligLoenEkstraGrundloen`);
-  const reportAnciennitetstillaegDatoError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:anciennitetstillaegDato`);
-  const reportAnciennitetstillaegSatsError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:anciennitetstillaegSats`);
-  // SFGG-sektionens felter (præsentationskomponent uden hooks pga. tidlig return): reportere oprettes her
-  // og gives ned som props. Nøgle = `${af.id}:sfgg<felt>` (matcher den fieldPath SFGG-committen nu sender).
-  const reportSfggReferenceperiodeFraError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggReferenceperiodeFra`);
-  const reportSfggReferenceperiodeTilError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggReferenceperiodeTil`);
-  const reportSfggReferenceperiodeFravaersdageError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`);
-  const reportSfggManuelDagssatsError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggManuelDagssats`);
-  const reportSfggAlleredeBetaltBeloebError = useKeyedFieldErrorReporter('erstatningsopgoerelse', `${af.id}:sfggAlleredeBetaltBeloeb`);
+  const field = <T,>(descriptor: { bind: (...ids: readonly string[]) => T }): T => descriptor.bind(af.id);
+  const location = (name: string) => ({ locationId: `erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:${name}` });
+  const standardLoenFieldSet = React.useMemo(() => createEoStandardLoenFieldSet(af.id), [af.id]);
 
   const showOverenskomst = af.harOverenskomst;
   const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
@@ -177,7 +128,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const isLastAnsaettelsesforhold = index === totalAnsaettelsesforhold - 1;
   const displayNumber = index + 1;
   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
-  const anciennitetstillaegMinDato = getDayAfterIso(anvendtReguleringsdato);
   const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
   const anvendtReguleringsdatoReferenceText = resolveAnvendtReguleringsdatoReferenceText({
     anvendtReguleringsdato,
@@ -264,16 +214,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     && hasSfggOverenskomst
     && sfggPolicy?.model === 'direkte_sats'
     && sfggPolicy.direkteSatsErDifferentieret;
-  const referenceperiodeAvailability = getSfggReferenceperiodeAvailability(af, sfggRow);
-  const referenceperiodeErrorText = referenceperiodeAvailability.hasNoRelevantDaysError
-    ? referenceperiodeAvailability.dayLabel === 'kalenderdage'
-      ? 'Referenceperioden indeholder ingen kalenderdage.'
-      : 'Referenceperioden indeholder ingen arbejdsdage.'
-    : '';
-  const sfggReferenceperiodeFravaersdageMax = Math.min(
-    referenceperiodeAvailability.maxFravaersdage ?? SFGG_REFERENCEPERIODE_MAX_DAYS,
-    SFGG_REFERENCEPERIODE_MAX_DAYS
-  );
   const showSharedSfggBefore2015 = Boolean(
     skadedato && skadedato < '2015-01-01'
   );
@@ -290,11 +230,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Navn på arbejdssted</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledTextField
+          <GreenfieldTextField
+            field={field(eoEmploymentFields.navnPaaArbejdssted)}
+            location={location('navnPaaArbejdssted')}
             name={`${af.id}:navnPaaArbejdssted`}
             width={300}
-            value={af.navnPaaArbejdssted || ''}
-            onCommit={handleTextCommit(af.id, 'navnPaaArbejdssted')}
           />
         </Box>
       </Box>
@@ -302,10 +242,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">{`Ansat på ${skadeEllerAnmeldelsesdato.labelLower}`}</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledToggleSwitch
+          <GreenfieldToggleField
+            field={field(eoEmploymentFields.ansatPaaSkadestidspunktet)}
+            location={location('ansatPaaSkadestidspunktet')}
             name={`${af.id}:ansatPaaSkadestidspunktet`}
-            checked={af.ansatPaaSkadestidspunktet}
-            onCommit={handleToggleChange(af.id, 'ansatPaaSkadestidspunktet')}
           />
         </Box>
       </Box>
@@ -314,10 +254,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Opsagt fra stillingen</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
+            <GreenfieldToggleField
+              field={field(eoEmploymentFields.ansaettelsesforholdOphoert)}
+              location={location('ansaettelsesforholdOphoert')}
               name={`${af.id}:ansaettelsesforholdOphoert`}
-              checked={af.ansaettelsesforholdOphoert}
-              onCommit={handleToggleChange(af.id, 'ansaettelsesforholdOphoert')}
             />
           </Box>
         </Box>
@@ -327,7 +267,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Sidste dag i ansættelsesforholdet</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDateField name={`${af.id}:sidsteArbejdsdag`} value={af.sidsteArbejdsdag} onCommit={handleSidsteArbejdsdagCommit(af.id)} onFieldError={reportSidsteArbejdsdagError} />
+            <GreenfieldDateField field={field(eoEmploymentFields.sidsteArbejdsdag)} location={location('sidsteArbejdsdag')} name={`${af.id}:sidsteArbejdsdag`} />
           </Box>
         </Box>
       </Box>
@@ -337,7 +277,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Overenskomst</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledToggleSwitch name={`${af.id}:harOverenskomst`} checked={af.harOverenskomst} onCommit={handleToggleChange(af.id, 'harOverenskomst')} />
+          <GreenfieldToggleField field={field(eoEmploymentFields.harOverenskomst)} location={location('harOverenskomst')} name={`${af.id}:harOverenskomst`} />
         </Box>
       </Box>
 
@@ -348,14 +288,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
               <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
-              <StyledDropdown
+              <GreenfieldChoiceField
+                field={field(eoEmploymentFilterFields.loenmodtager)}
+                location={location('overenskomstFilter.loenmodtager')}
                 name={`${af.id}:overenskomstFilter.loenmodtager`}
-                value={af.overenskomstFilter.loenmodtager ?? 'ALLE'}
-                onChange={(e: StyledDropdownChangeEvent<string>) => {
-                  const uiValue = e.target.value;
-                  // Normalisér UI-værdi → domæne-værdi i dropdown-laget
-                  handleFilterChange(af.id, 'loenmodtager', uiValue === 'ALLE' ? undefined : uiValue);
-                }}
+                emptyUiValue="ALLE"
                 width={120}
                 allowEmpty={false}
                 sx={{
@@ -389,18 +326,15 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     {org}
                   </MenuItem>
                 ))}
-              </StyledDropdown>
+              </GreenfieldChoiceField>
 
               {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
               <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
-              <StyledDropdown
+              <GreenfieldChoiceField
+                field={field(eoEmploymentFilterFields.arbejdsgiver)}
+                location={location('overenskomstFilter.arbejdsgiver')}
                 name={`${af.id}:overenskomstFilter.arbejdsgiver`}
-                value={af.overenskomstFilter.arbejdsgiver ?? 'ALLE'}
-                onChange={(e: StyledDropdownChangeEvent<string>) => {
-                  const uiValue = e.target.value;
-                  // Normalisér UI-værdi → domæne-værdi i dropdown-laget
-                  handleFilterChange(af.id, 'arbejdsgiver', uiValue === 'ALLE' ? undefined : uiValue);
-                }}
+                emptyUiValue="ALLE"
                 width={120}
                 allowEmpty={false}
                 sx={{
@@ -434,12 +368,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     {org}
                   </MenuItem>
                 ))}
-              </StyledDropdown>
+              </GreenfieldChoiceField>
 
-              <StyledDropdown
+              <GreenfieldChoiceField
+                field={field(eoEmploymentFields.overenskomstId)}
+                location={location('overenskomstId')}
                 name={`${af.id}:overenskomstId`}
-                value={af.overenskomstId || undefined}
-                onChange={handleOverenskomstChange(af.id)}
                 width={460}
                 placeholder="Vælg overenskomst..."
                 allowEmpty={true}
@@ -461,7 +395,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     </MenuItem>
                   );
                 })}
-              </StyledDropdown>
+              </GreenfieldChoiceField>
             </Box>
           </Box>
         </Box>
@@ -470,10 +404,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Fuld løn under ferie:</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledToggleSwitch
+          <GreenfieldMappedToggleField
+            field={field(eoEmploymentFields.fuldLoenUnderFerie)}
+            location={location('fuldLoenUnderFerie')}
+            checkedValue="Ja"
+            uncheckedValue="Nej"
             name={`${af.id}:fuldLoenUnderFerie`}
-            checked={getCheckedJaNej(af.fuldLoenUnderFerie)}
-            onCommit={handleFuldLoenUnderFerieChange(af.id)}
           />
         </Box>
       </Box>
@@ -481,17 +417,17 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn på helligdage:</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledDropdown
+          <GreenfieldChoiceField
+            field={field(eoEmploymentFields.loenPaaHelligdage)}
+            location={location('loenPaaHelligdage')}
             name={`${af.id}:loenPaaHelligdage`}
             width={185}
-            value={af.loenPaaHelligdage}
-            onChange={handleLoenPaaHelligdageChange(af.id)}
             allowEmpty={false}
           >
             <MenuItem value="Almindelig løn">Almindelig løn</MenuItem>
             <MenuItem value="SH-udbetaling">SH-udbetaling</MenuItem>
             <MenuItem value="Ingen">Ingen</MenuItem>
-          </StyledDropdown>
+          </GreenfieldChoiceField>
         </Box>
       </Box>
 
@@ -499,11 +435,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. særlig fra-dato for regulering</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDateField
+            <GreenfieldDateField
+              field={field(eoEmploymentFields.saerligFraDatoRegulering)}
+              location={location('saerligFraDatoRegulering')}
               name={`${af.id}:saerligFraDatoRegulering`}
-              value={af.saerligFraDatoRegulering}
-              onCommit={handleSaerligFraDatoReguleringCommit(af.id)}
-              onFieldError={reportSaerligFraDatoReguleringError}
             />
           </Box>
         </Box>
@@ -512,10 +447,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn indtastes som:</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledRadioButton
+          <GreenfieldRadioField
+            field={field(eoEmploymentFields.loenperiode)}
+            location={location('loenperiode')}
             name={`${af.id}:loenperiode`}
-            value={af.loenperiode}
-            onChange={handleLoenperiodeChange(af.id)}
             row={true}
             options={[
               { value: LOENPERIODE.MAANED, label: 'Måned' },
@@ -529,16 +464,16 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Tillæg angives som</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledDropdown
+          <GreenfieldChoiceField
+            field={field(eoEmploymentFields.tillaegAngivesSom)}
+            location={location('tillaegAngivesSom')}
             name={`${af.id}:tillaegAngivesSom`}
             width={185}
-            value={af.tillaegAngivesSom}
-            onChange={handleTillaegAngivesSomChange(af.id)}
             allowEmpty={false}
           >
             <MenuItem value={TILLAEG_ANGIVES_SOM.PROCENT}>Procent</MenuItem>
             <MenuItem value={TILLAEG_ANGIVES_SOM.BELOEB}>Beløb</MenuItem>
-          </StyledDropdown>
+          </GreenfieldChoiceField>
         </Box>
       </Box>
 
@@ -559,31 +494,24 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '160px' }}>
                   Feriegodtgørelse/-tillæg:
                 </Typography>
-                <StyledPercentField
+                <GreenfieldPercentField
+                  field={field(eoEmploymentFields.feriePct)}
+                  location={location('feriePct')}
                   name={`${af.id}:feriePct`}
-                  value={af.feriePct}
-                  onCommit={handleFeriePctCommit(af.id)}
-                  onFieldError={reportFeriePctError}
                   placeholder="0"
-                  useDefaultPercentRange
-                  error={Boolean(satsErrors[af.id]?.feriePct)}
-                  helperText={satsErrors[af.id]?.feriePct}
+                  externalError={satsErrors[af.id]?.feriePct}
                   sx={{ width: '100px' }}
                 />
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
-                <StyledPercentField
+                <GreenfieldPercentField
+                  field={field(eoEmploymentFields.fritvalgPct)}
+                  location={location('fritvalgPct')}
                   name={`${af.id}:fritvalgPct`}
-                  value={af.fritvalgPct}
-                  onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
-                  onFieldError={reportFritvalgPctError}
                   placeholder="0"
-                  useDefaultPercentRange
                   disabled={fritvalgLocked}
-                  disabledAppearance={fritvalgLocked ? 'locked' : 'default'}
-                  error={Boolean(satsErrors[af.id]?.fritvalgPct)}
-                  helperText={satsErrors[af.id]?.fritvalgPct}
+                  externalError={satsErrors[af.id]?.fritvalgPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -591,17 +519,13 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '140px' }}>
                   SH/SO-sats:
                 </Typography>
-                <StyledPercentField
+                <GreenfieldPercentField
+                  field={field(eoEmploymentFields.shSoPct)}
+                  location={location('shSoPct')}
                   name={`${af.id}:shSoPct`}
-                  value={af.shSoPct}
-                  onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
-                  onFieldError={reportShSoPctError}
                   placeholder="0"
-                  useDefaultPercentRange
                   disabled={shSoLocked}
-                  disabledAppearance={shSoLocked ? 'locked' : 'default'}
-                  error={Boolean(satsErrors[af.id]?.shSoPct)}
-                  helperText={satsErrors[af.id]?.shSoPct}
+                  externalError={satsErrors[af.id]?.shSoPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -621,16 +545,13 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '160px' }}>
                   Store Bededagstillæg:
                 </Typography>
-                <StyledPercentField
+                <GreenfieldPercentField
+                  field={field(eoEmploymentFields.storeBededagPct)}
+                  location={location('storeBededagPct')}
                   name={`${af.id}:storeBededagPct`}
-                  value={af.storeBededagPct}
-                  onCommit={undefined}
                   placeholder="0"
-                  useDefaultPercentRange
                   disabled
-                  disabledAppearance="locked"
-                  error={Boolean(satsErrors[af.id]?.storeBededagPct)}
-                  helperText={satsErrors[af.id]?.storeBededagPct}
+                  externalError={satsErrors[af.id]?.storeBededagPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -638,17 +559,13 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '190px' }}>
                   Arbejdsgivers pensionsbidrag:
                 </Typography>
-                <StyledPercentField
+                <GreenfieldPercentField
+                  field={field(eoEmploymentFields.pensionPct)}
+                  location={location('pensionPct')}
                   name={`${af.id}:pensionPct`}
-                  value={af.pensionPct}
-                  onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
-                  onFieldError={reportPensionPctError}
                   placeholder="0"
-                  useDefaultPercentRange
                   disabled={pensionLocked}
-                  disabledAppearance={pensionLocked ? 'locked' : 'default'}
-                  error={Boolean(satsErrors[af.id]?.pensionPct)}
-                  helperText={satsErrors[af.id]?.pensionPct}
+                  externalError={satsErrors[af.id]?.pensionPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -658,19 +575,15 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       ) : null}
 
       <Typography className="row--subheading">Indtægtsoplysninger</Typography>
-
-      {/* BEVIDST BRUDT MELLEMTILSTAND (§5.4, greenfield draft/commit-cutover, Pass 2 2026-07-17).
-          `StandardLoenTable` er cuttet over til greenfield-inputCore og drives nu af et collection-parametriseret
-          `fieldSet` (jf. Årsløn-siden). EO's loenindkomst-slice (§2.4 trin 8) er endnu IKKE migreret: det nested
-          `ansaettelsesforhold[i].indtaegtsoplysningerTableData`-feltsæt findes ikke i greenfield-kataloget endnu,
-          og den gamle `tableData`/`onTableDataChange`-legacy-vej er fjernet fra komponenten. Løntabellen er derfor
-          bevidst ude af drift her, indtil EO-slicen migreres. En færdig, brugbar version findes på `main`. */}
-      <ContentBox className="content-box">
-        <Typography className="row--text" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-          Løntabellen migreres i erstatningsopgørelse-slicen (greenfield draft/commit) og er midlertidigt ude af
-          drift på denne udviklingsgren.
-        </Typography>
-      </ContentBox>
+      <StandardLoenTable
+        fieldSet={standardLoenFieldSet}
+        loenperiode={af.loenperiode}
+        tillaegAngivesSom={af.tillaegAngivesSom}
+        satser={satserByAfId.get(af.id) ?? {}}
+        calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
+        useSmallFont={true}
+        saveOrderPath={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold.${af.id}.indtaegtsoplysningerTableData`}
+      />
 
       {beregnesUdFra === 'Beregningsperiode' ? (
         <>
@@ -679,11 +592,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledDropdown
+          <GreenfieldChoiceField
+            field={field(eoEmploymentFields.loenudviklingBeregningsgrundlag)}
+            location={location('loenudviklingBeregningsgrundlag')}
             name={`${af.id}:loenudviklingBeregningsgrundlag`}
             width={220}
-            value={loenudviklingBasis}
-            onChange={handleLoenudviklingBeregningsgrundlagChange(af.id)}
             allowEmpty={true}
             placeholder="Vælg..."
           >
@@ -691,12 +604,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <MenuItem value="Statistik">Statistik</MenuItem>
             <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
             <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
-            <StyledDropdown.Divider />
+            <GreenfieldChoiceDivider />
             <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
             <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
-            <StyledDropdown.Divider />
+            <GreenfieldChoiceDivider />
             <MenuItem value="Ingen">Ingen</MenuItem>
-          </StyledDropdown>
+          </GreenfieldChoiceField>
         </Box>
       </Box>
 
@@ -716,11 +629,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <Typography className="row--text">Ansættelse</Typography>
-                <StyledDropdown
+                <GreenfieldChoiceField
+                  field={field(eoEmploymentFields.offentligLoenType)}
+                  location={location('offentligLoenType')}
                   name={`${af.id}:offentligLoenType`}
                   width={160}
-                  value={af.offentligLoenType ?? 'Månedsløn'}
-                  onChange={handleOffentligLoenTypeChange(af.id)}
                   allowEmpty={false}
                 >
                   {offentligLoenTypeEnum.options.map((option) => (
@@ -728,27 +641,19 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                       {option}
                     </MenuItem>
                   ))}
-                </StyledDropdown>
+                </GreenfieldChoiceField>
                 <Typography className="row--text">Løntrin</Typography>
-                <StyledIntegerField
+                <GreenfieldIntegerField
+                  field={field(eoEmploymentFields.offentligLoenTrin)}
+                  location={location('offentligLoenTrin')}
                   name={`${af.id}:offentligLoenTrin`}
-                  value={af.offentligLoenTrin}
-                  onCommit={handleOffentligLoenTrinCommit(af.id)}
-                  onFieldError={reportOffentligLoenTrinError}
-                  minValue={1}
-                  maxValue={55}
-                  maxDigits={2}
                   width={80}
                 />
                 <Typography className="row--text">Gruppe</Typography>
-                <StyledIntegerField
+                <GreenfieldIntegerField
+                  field={field(eoEmploymentFields.offentligLoenGruppe)}
+                  location={location('offentligLoenGruppe')}
                   name={`${af.id}:offentligLoenGruppe`}
-                  value={af.offentligLoenGruppe}
-                  onCommit={handleOffentligLoenGruppeCommit(af.id)}
-                  onFieldError={reportOffentligLoenGruppeError}
-                  minValue={0}
-                  maxValue={4}
-                  maxDigits={1}
                   width={70}
                 />
                 <Tooltip title="Find løntrin" arrow>
@@ -784,13 +689,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <Typography className="row--text">Evt. forhøjet grundløn udover løntrin</Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <StyledAmountField
+                <GreenfieldAmountField
+                  field={field(eoEmploymentFields.offentligLoenEkstraGrundloen)}
+                  location={location('offentligLoenEkstraGrundloen')}
                   name={`${af.id}:offentligLoenEkstraGrundloen`}
                   width={160}
-                  value={af.offentligLoenEkstraGrundloen}
-                  allowNegative={false}
-                  onCommit={handleOffentligLoenEkstraGrundloenCommit(af.id)}
-                  onFieldError={reportOffentligLoenEkstraGrundloenError}
                 />
                 <Typography className="row--text">{getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}</Typography>
               </Box>
@@ -803,18 +706,18 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Statistisk beregningsmodel</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField
+              field={field(eoEmploymentFields.loenudviklingStatistikModel)}
+              location={location('loenudviklingStatistikModel')}
               name={`${af.id}:loenudviklingStatistikModel`}
               width={270}
-              value={af.loenudviklingStatistikModel}
-              onChange={handleLoenudviklingStatistikModelChange(af.id)}
               allowEmpty={true}
               placeholder="Vælg..."
             >
               <MenuItem value={ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}>{ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}</MenuItem>
               <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
               <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
       ) : null}
@@ -823,11 +726,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Satstabel</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField
+              field={field(eoEmploymentFields.loenudviklingKRLSatstabel)}
+              location={location('loenudviklingKRLSatstabel')}
               name={`${af.id}:loenudviklingKRLSatstabel`}
               width={270}
-              value={af.loenudviklingKRLSatstabel}
-              onChange={handleLoenudviklingKRLSatstabelChange(af.id)}
               allowEmpty={true}
               placeholder="Vælg..."
             >
@@ -836,7 +739,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   {satstabel}
                 </MenuItem>
               ))}
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
       ) : null}
@@ -861,19 +764,23 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Navn på reguleringsform</Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledTextField
+                    <GreenfieldTextField
+                      field={field(eoEmploymentFields.loenudviklingManuelNavn)}
+                      location={location('loenudviklingManuelNavn')}
                       name={`${af.id}:loenudviklingManuelNavn`}
                       width={350}
-                      value={af.loenudviklingManuelNavn || ''}
-                      onCommit={handleTextCommit(af.id, 'loenudviklingManuelNavn')}
                     />
                   </Box>
                 </Box>
-                <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoLoenudvikling} rowScope={af.id}>
-                <LoenudviklingManuelTable
-                  tableData={af.loenudviklingManuelTableData}
-                  onTableDataChange={handleLoenudviklingManuelTableChange(af.id)}
-                  onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
+                <GreenfieldLoenudviklingManuelTable
+                  bindings={eoEmploymentManual}
+                  collection={{
+                    ...eoEmploymentManual.manualCollection.template,
+                    path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
+                  } as CollectionRef}
+                  fieldOwnerIds={[af.id]}
+                  committedRows={af.loenudviklingManuelTableData}
+                  locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelTableData`}
                   baseDateDisplay={loenudviklingBaseDate.display}
                   baseDateISO={loenudviklingBaseDate.iso}
                   baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
@@ -884,7 +791,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   readOnlyBaseRowPercentFields={af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB}
                   useSmallFont={true}
                 />
-                </CellInvalidDraftScopeProvider>
               </>
             );
           })()}
@@ -907,18 +813,21 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
                   });
             return (
-              <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoLoenudviklingManuelProcentsats} rowScope={af.id}>
-                <LoenudviklingManuelProcentsatsTable
-                  tableData={af.loenudviklingManuelProcentsatsTableData}
-                  onTableDataChange={handleLoenudviklingManuelProcentsatsTableChange(af.id)}
-                  onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
+                <GreenfieldLoenudviklingManuelProcentsatsTable
+                  bindings={eoEmploymentManual}
+                  collection={{
+                    ...eoEmploymentManual.manualPercentCollection.template,
+                    path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
+                  } as CollectionRef}
+                  fieldOwnerIds={[af.id]}
+                  committedRows={af.loenudviklingManuelProcentsatsTableData}
+                  locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
                   baseDateDisplay={loenudviklingBaseDate.display}
                   baseDateISO={loenudviklingBaseDate.iso}
                   baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
                   baseDateInfoTooltipText={baseDateTooltipText}
                   useSmallFont={true}
                 />
-              </CellInvalidDraftScopeProvider>
             );
           })()}
         </Box>
@@ -992,10 +901,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               {`Ville skadelidte have opnået anciennitetstillæg efter ${anvendtReguleringsdatoReferenceText}`}
             </Typography>
             <Box className="row--label-right-hover__content">
-              <StyledToggleSwitch
+              <GreenfieldToggleField
+                field={field(eoEmploymentFields.harAnciennitetstillaegEfterSkadedatoen)}
+                location={location('harAnciennitetstillaegEfterSkadedatoen')}
                 name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
-                checked={af.harAnciennitetstillaegEfterSkadedatoen}
-                onCommit={handleToggleChange(af.id, 'harAnciennitetstillaegEfterSkadedatoen')}
               />
             </Box>
           </Box>
@@ -1005,17 +914,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
                 <Box className="row--label-right-hover__content">
-                  <StyledDateField
+                  <GreenfieldDateField
+                    field={field(eoEmploymentFields.anciennitetstillaegDato)}
+                    location={location('anciennitetstillaegDato')}
                     name={`${af.id}:anciennitetstillaegDato`}
-                    value={af.anciennitetstillaegDato}
-                    minDate={anciennitetstillaegMinDato}
-                    specialRangeErrors={{
-                      minBoundKind: anvendtReguleringsdato ? 'efterAnvendtReguleringsdato' : undefined,
-                      minBoundReferenceISO: anvendtReguleringsdato,
-                      minBoundLabel: anvendtReguleringsdatoReferenceText,
-                    }}
-                    onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
-                    onFieldError={reportAnciennitetstillaegDatoError}
                   />
                 </Box>
               </Box>
@@ -1023,29 +925,27 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Satsen angives per</Typography>
                 <Box className="row--label-right-hover__content">
-                  <StyledDropdown
+                  <GreenfieldChoiceField
+                    field={field(eoEmploymentFields.anciennitetstillaegSatsAngivesPer)}
+                    location={location('anciennitetstillaegSatsAngivesPer')}
                     name={`${af.id}:anciennitetstillaegSatsAngivesPer`}
                     width={160}
-                    value={af.anciennitetstillaegSatsAngivesPer}
-                    onChange={handleAnciennitetstillaegSatsAngivesPerChange(af.id)}
                     allowEmpty={false}
                   >
                     <MenuItem value="Time">Time</MenuItem>
                     <MenuItem value="Måned">Måned</MenuItem>
-                  </StyledDropdown>
+                  </GreenfieldChoiceField>
                 </Box>
               </Box>
 
               <Box className="row--label-right-hover">
                 <Typography className="row--text">{`Sats per ${anciennitetSatsPerTekst}`}</Typography>
                 <Box className="row--label-right-hover__content">
-                  <StyledAmountField
+                  <GreenfieldAmountField
+                    field={field(eoEmploymentFields.anciennitetstillaegSats)}
+                    location={location('anciennitetstillaegSats')}
                     name={`${af.id}:anciennitetstillaegSats`}
                     width={160}
-                    value={af.anciennitetstillaegSats}
-                    allowNegative={false}
-                    onCommit={handleAnciennitetstillaegSatsCommit(af.id)}
-                    onFieldError={reportAnciennitetstillaegSatsError}
                   />
                 </Box>
               </Box>
@@ -1065,17 +965,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         canShowSfggOverenskomstDetails={canShowSfggOverenskomstDetails}
         requiresReferenceperiode={requiresReferenceperiode}
         showSatsvalg={showSatsvalg}
-        referenceperiodeErrorText={referenceperiodeErrorText}
-        firstTafFraDato={firstTafFraDato}
-        sfggReferenceperiodeMaxDate={sfggReferenceperiodeMaxDate}
-        sfggReferenceperiodeFravaersdageMax={sfggReferenceperiodeFravaersdageMax}
         onNavigateToTabtArbejdsfortjeneste={onNavigateToTabtArbejdsfortjeneste}
-        updateSfggAnsaettelsesforhold={updateSfggAnsaettelsesforhold}
-        reportSfggReferenceperiodeFraError={reportSfggReferenceperiodeFraError}
-        reportSfggReferenceperiodeTilError={reportSfggReferenceperiodeTilError}
-        reportSfggReferenceperiodeFravaersdageError={reportSfggReferenceperiodeFravaersdageError}
-        reportSfggManuelDagssatsError={reportSfggManuelDagssatsError}
-        reportSfggAlleredeBetaltBeloebError={reportSfggAlleredeBetaltBeloebError}
       />
 
       {/* Handlingsknapper – flex-container der fylder ud fra højre */}
@@ -1130,3 +1020,4 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     </ContentBox>
   );
 }
+import * as React from 'react';

@@ -1,24 +1,42 @@
-import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
-import StyledTextField from '../../../inputs/StyledTextField';
-import StyledDateField from '../../../inputs/StyledDateField';
-import StyledDropdown, { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
-import StyledAmountField from '../../../inputs/StyledAmountField';
-import StyledToggleSwitch from '../../../inputs/StyledToggleSwitch';
-import StyledIntegerField from '../../../inputs/StyledIntegerField';
+import GreenfieldTextField from '../../../../inputCore/react/fields/GreenfieldTextField';
+import GreenfieldDateField from '../../../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldChoiceField, { GreenfieldChoiceDivider } from '../../../../inputCore/react/fields/GreenfieldChoiceField';
+import GreenfieldEntityChoiceField from '../../../../inputCore/react/fields/GreenfieldEntityChoiceField';
+import GreenfieldAmountField from '../../../../inputCore/react/fields/GreenfieldAmountField';
+import GreenfieldMappedToggleField from '../../../../inputCore/react/fields/GreenfieldMappedToggleField';
+import GreenfieldIntegerField from '../../../../inputCore/react/fields/GreenfieldIntegerField';
+import {
+  eoSfggAlleredeBetaltBeloebField,
+  eoSfggBeregningskildeField,
+  eoSfggManuelBeloebIHenholdTilField,
+  eoSfggManuelDagssatsField,
+  eoSfggManuelFoerstEfterSygeloenField,
+  eoSfggReferenceperiodeFraField,
+  eoSfggReferenceperiodeFravaersdageUdenLoenField,
+  eoSfggReferenceperiodeTilField,
+  eoSfggSatsvalgField,
+  eoSfggAnsaettelsesforholdCollection,
+} from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import type { CollectionRef } from '../../../../inputCore/fieldAddress';
 import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
-import { SFGG_REFERENCEPERIODE_MAX_DAYS } from '../../../../domain/erstatningsopgoerelse/engines/sfggConstants';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
-import type { ISODateString } from '../../../../types/branded';
 import type { OverenskomstSfggPolicy } from '../../../../data/overenskomstRates';
-import { applySfggBeregningskildeChange } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
-import { normalizeOptionalFreeText } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import type { FieldErrorReporter } from '../../../../types/fieldErrors';
-import type { CommitOriginOptions } from '../../../../hooks/usePersistedForm';
-import { createEoAfInvalidDraftClears } from '../../../../config/entityInvalidDraftScopes';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
+const createEmptySfggRow = (ansaettelsesforholdId: string): SfggRow => ({
+  ansaettelsesforholdId,
+  sfggBeregningskilde: undefined,
+  sfggReferenceperiodeFra: undefined,
+  sfggReferenceperiodeTil: undefined,
+  sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+  sfggManuelDagssats: undefined,
+  sfggManuelBeloebIHenholdTil: undefined,
+  sfggManuelFoerstEfterSygeloen: 'Nej',
+  sfggSatsvalg: undefined,
+  sfggAlleredeBetaltBeloeb: undefined,
+});
 
 type Props = Readonly<{
   show: boolean;
@@ -31,23 +49,7 @@ type Props = Readonly<{
   canShowSfggOverenskomstDetails: boolean;
   requiresReferenceperiode: boolean;
   showSatsvalg: boolean;
-  referenceperiodeErrorText: string;
-  firstTafFraDato: ISODateString | undefined;
-  sfggReferenceperiodeMaxDate: ISODateString | undefined;
-  sfggReferenceperiodeFravaersdageMax: number | undefined;
   onNavigateToTabtArbejdsfortjeneste: () => void;
-  updateSfggAnsaettelsesforhold: (
-    ansaettelsesforholdId: string,
-    updater: (current: SfggRow) => SfggRow,
-    origin?: CommitOriginOptions
-  ) => boolean;
-  // Felt-fejl-reportere (oprettet i AnsaettelsesforholdCard hvor af.id + hooks er tilgængelige; denne
-  // sektion har en tidlig return og kan ikke selv kalde hooks). Binder SFGG-felternes ugyldige rå draft.
-  reportSfggReferenceperiodeFraError: FieldErrorReporter;
-  reportSfggReferenceperiodeTilError: FieldErrorReporter;
-  reportSfggReferenceperiodeFravaersdageError: FieldErrorReporter;
-  reportSfggManuelDagssatsError: FieldErrorReporter;
-  reportSfggAlleredeBetaltBeloebError: FieldErrorReporter;
 }>;
 
 /**
@@ -67,17 +69,7 @@ const SygeferiegodtgoerelseSection = ({
   canShowSfggOverenskomstDetails,
   requiresReferenceperiode,
   showSatsvalg,
-  referenceperiodeErrorText,
-  firstTafFraDato,
-  sfggReferenceperiodeMaxDate,
-  sfggReferenceperiodeFravaersdageMax,
   onNavigateToTabtArbejdsfortjeneste,
-  updateSfggAnsaettelsesforhold,
-  reportSfggReferenceperiodeFraError,
-  reportSfggReferenceperiodeTilError,
-  reportSfggReferenceperiodeFravaersdageError,
-  reportSfggManuelDagssatsError,
-  reportSfggAlleredeBetaltBeloebError,
 }: Props) => {
   if (!show) return null;
 
@@ -130,55 +122,23 @@ const SygeferiegodtgoerelseSection = ({
       <Box className="row--label-right-hover">
         <Typography className="row--text">Sygeferiegodtgørelse beregnes ud fra</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledDropdown
+          <GreenfieldEntityChoiceField
+            descriptor={eoSfggBeregningskildeField}
+            collection={eoSfggAnsaettelsesforholdCollection.template as CollectionRef}
+            entity={createEmptySfggRow(af.id)}
+            entityId={af.id}
+            entityExists={sfggRow !== undefined}
+            location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggBeregningskilde` }}
             name={`${af.id}:sfggBeregningskilde`}
             width={200}
-            value={sfggRow?.sfggBeregningskilde}
             placeholder="Vælg..."
-            allowEmpty={true}
-            onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
-              const nextValue = event.target.value;
-              const nextBeregningskilde =
-                nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
-                  ? nextValue
-                  : undefined;
-              const canShowNextSourceDetails = nextBeregningskilde !== 'Overenskomst'
-                || Boolean(af.overenskomstId?.trim());
-              const showsReferenceperiode = nextBeregningskilde === 'Ferieloven'
-                || (nextBeregningskilde === 'Overenskomst'
-                  && canShowNextSourceDetails
-                  && sfggPolicy?.model !== 'direkte_sats');
-              const hiddenFieldNames = [
-                ...(showsReferenceperiode
-                  ? []
-                  : [
-                      'sfggReferenceperiodeFra',
-                      'sfggReferenceperiodeTil',
-                      'sfggReferenceperiodeFravaersdageUdenLoen',
-                    ] as const),
-                ...(nextBeregningskilde === 'Manuelt angivet' ? [] : ['sfggManuelDagssats'] as const),
-                ...(nextBeregningskilde !== undefined
-                  && nextBeregningskilde !== 'Ingen'
-                  && canShowNextSourceDetails
-                  ? []
-                  : ['sfggAlleredeBetaltBeloeb'] as const),
-              ];
-              return updateSfggAnsaettelsesforhold(
-                af.id,
-                (current) => applySfggBeregningskildeChange(current, nextBeregningskilde),
-                {
-                  fieldPath: `${af.id}:sfggBeregningskilde`,
-                  clearInvalidDrafts: createEoAfInvalidDraftClears(af.id, hiddenFieldNames),
-                }
-              );
-            }}
           >
             <MenuItem value="Overenskomst">Overenskomst</MenuItem>
             <MenuItem value="Ferieloven">Ferieloven</MenuItem>
             <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
-            <StyledDropdown.Divider />
+            <GreenfieldChoiceDivider />
             <MenuItem value="Ingen">Ingen</MenuItem>
-          </StyledDropdown>
+          </GreenfieldEntityChoiceField>
         </Box>
       </Box>
 
@@ -208,31 +168,19 @@ const SygeferiegodtgoerelseSection = ({
         <Box className="row--label-right-hover">
           <Typography className="row--text">Angiv skadelidtes uddannelse og arbejdssted</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledDropdown
+            <GreenfieldChoiceField
+              field={eoSfggSatsvalgField.bind(af.id)}
+              location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggSatsvalg` }}
               name={`${af.id}:sfggSatsvalg`}
               width={220}
-              value={sfggRow?.sfggSatsvalg}
               placeholder="Vælg..."
               allowEmpty={true}
-              onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
-                const nextValue = event.target.value;
-                return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                  ...current,
-                  sfggSatsvalg:
-                    nextValue === 'Faglaert-Koebenhavn' ||
-                    nextValue === 'Faglaert-Provinsen' ||
-                    nextValue === 'Ufaglaert-Koebenhavn' ||
-                    nextValue === 'Ufaglaert-Provinsen'
-                      ? nextValue
-                      : undefined,
-                }), { fieldPath: `${af.id}:sfggSatsvalg` });
-              }}
             >
               <MenuItem value="Faglaert-Koebenhavn">Faglært-København</MenuItem>
               <MenuItem value="Faglaert-Provinsen">Faglært-Provinsen</MenuItem>
               <MenuItem value="Ufaglaert-Koebenhavn">Ufaglært-København</MenuItem>
               <MenuItem value="Ufaglaert-Provinsen">Ufaglært-Provinsen</MenuItem>
-            </StyledDropdown>
+            </GreenfieldChoiceField>
           </Box>
         </Box>
       ) : null}
@@ -243,49 +191,16 @@ const SygeferiegodtgoerelseSection = ({
             <Typography className="row--text">Referenceperiode</Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <StyledDateField
+                <GreenfieldDateField
+                  field={eoSfggReferenceperiodeFraField.bind(af.id)}
+                  location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggReferenceperiodeFra` }}
                   name={`${af.id}:sfggReferenceperiodeFra`}
-                  value={sfggRow?.sfggReferenceperiodeFra}
-                  maxDate={
-                    sfggRow?.sfggReferenceperiodeTil && sfggReferenceperiodeMaxDate
-                      ? (sfggRow.sfggReferenceperiodeTil < sfggReferenceperiodeMaxDate ? sfggRow.sfggReferenceperiodeTil : sfggReferenceperiodeMaxDate)
-                      : (sfggRow?.sfggReferenceperiodeTil ?? sfggReferenceperiodeMaxDate)
-                  }
-                  specialRangeErrors={{
-                    fraTilRole: 'fra',
-                    maxBoundKind: sfggReferenceperiodeMaxDate ? 'foerFoersteTafFraDato' : undefined,
-                    maxBoundReferenceISO: firstTafFraDato,
-                  }}
-                  error={referenceperiodeErrorText !== ''}
-                  helperText={referenceperiodeErrorText}
-                  onFieldError={reportSfggReferenceperiodeFraError}
-                  onCommit={(event) => {
-                    return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                      ...current,
-                      sfggReferenceperiodeFra: event.target.value,
-                    }), { fieldPath: `${af.id}:sfggReferenceperiodeFra` });
-                  }}
                 />
                 <Typography className="row--text">til og med</Typography>
-                <StyledDateField
+                <GreenfieldDateField
+                  field={eoSfggReferenceperiodeTilField.bind(af.id)}
+                  location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggReferenceperiodeTil` }}
                   name={`${af.id}:sfggReferenceperiodeTil`}
-                  value={sfggRow?.sfggReferenceperiodeTil}
-                  minDate={sfggRow?.sfggReferenceperiodeFra}
-                  maxDate={sfggReferenceperiodeMaxDate}
-                  specialRangeErrors={{
-                    fraTilRole: 'til',
-                    maxBoundKind: sfggReferenceperiodeMaxDate ? 'foerFoersteTafFraDato' : undefined,
-                    maxBoundReferenceISO: firstTafFraDato,
-                  }}
-                  error={referenceperiodeErrorText !== ''}
-                  helperText={referenceperiodeErrorText}
-                  onFieldError={reportSfggReferenceperiodeTilError}
-                  onCommit={(event) => {
-                    return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                      ...current,
-                      sfggReferenceperiodeTil: event.target.value,
-                    }), { fieldPath: `${af.id}:sfggReferenceperiodeTil` });
-                  }}
                 />
               </Box>
             </Box>
@@ -294,20 +209,12 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Evt. ferie- og fraværsdage i referenceperioden uden løn</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledIntegerField
+              <GreenfieldIntegerField
+                field={eoSfggReferenceperiodeFravaersdageUdenLoenField.bind(af.id)}
+                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggReferenceperiodeFravaersdageUdenLoen` }}
                 name={`${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`}
                 width={100}
-                minValue={0}
-                maxValue={sfggReferenceperiodeFravaersdageMax ?? SFGG_REFERENCEPERIODE_MAX_DAYS}
-                value={sfggRow?.sfggReferenceperiodeFravaersdageUdenLoen}
                 placeholder="0"
-                onFieldError={reportSfggReferenceperiodeFravaersdageError}
-                onCommit={(event) => {
-                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                    ...current,
-                    sfggReferenceperiodeFravaersdageUdenLoen: event.target.value,
-                  }), { fieldPath: `${af.id}:sfggReferenceperiodeFravaersdageUdenLoen` });
-                }}
               />
             </Box>
           </Box>
@@ -329,18 +236,11 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Dagssats for sygeferiegodtgørelse (mandag-fredag)</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledAmountField
+              <GreenfieldAmountField
+                field={eoSfggManuelDagssatsField.bind(af.id)}
+                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggManuelDagssats` }}
                 name={`${af.id}:sfggManuelDagssats`}
                 width={150}
-                value={sfggRow?.sfggManuelDagssats}
-                allowNegative={false}
-                onFieldError={reportSfggManuelDagssatsError}
-                onCommit={(event) => {
-                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                    ...current,
-                    sfggManuelDagssats: event.target.value,
-                  }), { fieldPath: `${af.id}:sfggManuelDagssats` });
-                }}
               />
             </Box>
           </Box>
@@ -348,16 +248,11 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Beløbet er i henhold til</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledTextField
+              <GreenfieldTextField
+                field={eoSfggManuelBeloebIHenholdTilField.bind(af.id)}
+                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggManuelBeloebIHenholdTil` }}
                 name={`${af.id}:sfggManuelBeloebIHenholdTil`}
                 width={260}
-                value={sfggRow?.sfggManuelBeloebIHenholdTil ?? ''}
-                onCommit={(event) => {
-                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                    ...current,
-                    sfggManuelBeloebIHenholdTil: normalizeOptionalFreeText(event.target.value),
-                  }));
-                }}
               />
             </Box>
           </Box>
@@ -365,15 +260,12 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Først sygeferiegodtgørelse efter ophør af sygeløn</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledToggleSwitch
+              <GreenfieldMappedToggleField
+                field={eoSfggManuelFoerstEfterSygeloenField.bind(af.id)}
+                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggManuelFoerstEfterSygeloen` }}
+                checkedValue="Ja"
+                uncheckedValue="Nej"
                 name={`${af.id}:sfggManuelFoerstEfterSygeloen`}
-                checked={sfggRow?.sfggManuelFoerstEfterSygeloen === 'Ja'}
-                onCommit={(event) => {
-                  return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                    ...current,
-                    sfggManuelFoerstEfterSygeloen: event.target.value ? 'Ja' : 'Nej',
-                  }), { fieldPath: `${af.id}:sfggManuelFoerstEfterSygeloen` });
-                }}
               />
             </Box>
           </Box>
@@ -384,18 +276,11 @@ const SygeferiegodtgoerelseSection = ({
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk SFGG. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
           <Box className="row--label-right-hover__content">
-            <StyledAmountField
+            <GreenfieldAmountField
+              field={eoSfggAlleredeBetaltBeloebField.bind(af.id)}
+              location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggAlleredeBetaltBeloeb` }}
               name={`${af.id}:sfggAlleredeBetaltBeloeb`}
               width={150}
-              value={sfggRow?.sfggAlleredeBetaltBeloeb}
-              allowNegative={false}
-              onFieldError={reportSfggAlleredeBetaltBeloebError}
-              onCommit={(event) => {
-                return updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                  ...current,
-                  sfggAlleredeBetaltBeloeb: event.target.value,
-                }), { fieldPath: `${af.id}:sfggAlleredeBetaltBeloeb` });
-              }}
             />
           </Box>
         </Box>

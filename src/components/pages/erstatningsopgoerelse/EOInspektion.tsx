@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Alert, AlertTitle, Box } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import { useBlockingFieldIdsBySuffixForSection } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { buildEOInspektionPageViewModel } from '../../../domain/eoInspektion/eoInspektionPageViewModel';
 import { eoSnapshotToInspektionView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
@@ -13,12 +12,10 @@ import EOInspektionGroupedRowsSection from './EOInspektionGroupedRowsSection';
 
 type EOInspektionProps = Readonly<{
   eoSnapshot?: EoSnapshot | null;
+  manuelReguleringInputErrors: Readonly<Record<string, true>>;
 }>;
 
-const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
-
-const EOInspektion = ({ eoSnapshot = null }: EOInspektionProps) => {
-  const manuelReguleringInputErrors = useBlockingFieldIdsBySuffixForSection('erstatningsopgoerelse', EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
+const EOInspektion = ({ eoSnapshot = null, manuelReguleringInputErrors }: EOInspektionProps) => {
   const { settings } = useAppSettings();
 
   const view = React.useMemo(() => eoSnapshotToInspektionView({

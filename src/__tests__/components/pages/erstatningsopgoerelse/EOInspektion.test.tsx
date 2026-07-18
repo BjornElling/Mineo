@@ -35,7 +35,7 @@ describe('EOInspektion', () => {
   const renderComponent = (snapshot: React.ComponentProps<typeof EOInspektion>['eoSnapshot']) => {
     return render(
       <MemoryRouter>
-        <EOInspektion eoSnapshot={snapshot} />
+        <EOInspektion eoSnapshot={snapshot} manuelReguleringInputErrors={{}} />
       </MemoryRouter>
     );
   };

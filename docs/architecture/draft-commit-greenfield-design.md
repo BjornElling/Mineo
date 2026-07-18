@@ -8,33 +8,30 @@ ingen af faserne betragtes længere som en færdig del af målarkitekturen. Impl
 kravændring 2026-07-18 er indarbejdet: parsebare out-of-bounds-værdier committes canonical med afledte bounds-issues,
 mens `.eo`-save kun blokeres af aktivt rejected råinput. String-backed felter validerer desuden tolerant indlæste
 canonical strenge gennem deres codec, så schema-tolerance ikke kan føre ufortolkelige værdier til consumers.
-Fase 2 er påbegyndt og blev senest kritisk reviewet 2026-07-18; den er ikke færdig. Det første review fjernede den utilsigtede parallelle
-produktionsruntime, så Mineo nu kun monterer greenfield-runtime, mens standalone alene beholder legacy-runtime frem
-til den atomiske Renteberegning-cutover. Runtime, current-envelope, command-runner, aktiv-editor-registry, fælles
-form-surface og det strukturelle produktkatalog er etableret. Stamdata, Satser, Årsløn, Renteberegning (hovedapp +
-standalone MinProcesrente), Varige mén, Forsørgertab er fuldt migrerede formularsurfaces; Årsløn omfatter den første
-greenfield grid-tabel (StandardLoenTable) via en grid-celle-surface, der bro-forbinder den ene editor-motor til
-grid-navigationens celleeditor-registry, og Renteberegning omfatter den anden (BeregnetRenteTable). Erhvervsevnetab
-(§2.4 trin 7) er fuldt migreret: alle fem faner og ASL-afgørelsestabellen bruger greenfield-editorerne, den ene
-kanoniske reader-projektion `buildErhvervsevnetabReaderProjection` ejer snapshot, rækkerekonstruktion og feltplacerede
-domæneregler, og de fire dokumentfaner bruger en fælles fail-closed download-gate med friskhedskontrol helt frem til
-filskrivning. Erstatningsopgørelsens delte brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen
-migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
-ingen runtime-fallback. Reviewet rettede desuden replacement/no-op-matricen, synkron editorregistrering,
+Fase 2 blev gennemført, verificeret og kritisk reviewet 2026-07-18. Mineo monterer kun greenfield-runtime, og alle
+persisted formular- og tabelsurfaces — inklusive hele Erstatningsopgørelse med nested ansættelsesforhold — bruger nu
+feltrefs, editorlokationer og den fælles collection-/grid-adapter. EO læses gennem
+`buildErstatningsopgoerelseReaderProjection`; den tværgående EET-import bygges fra samme tokenbundne `InputReader`, og
+dokumentklik genopbygger både EO- og EET-projektionen fra én frisk afsluttet revision. Det afsluttende review fjernede
+rå store-læsning i EET-importen, en stale EET-kilde ved dokumentpreflight, konkurrerende EO-rækkekopier og de afløste
+EO-viewmodels, tabeller, row-hooks og implementeringstests. En arkitekturvagt håndhæver nul legacy-editor-/tabelcallsites
+på EO-overfladen. Fase 2 er fortsat et internt kontrolpunkt: domæneprojektioner/validatorer færdiggøres i fase 3, og
+case-, shell- og persistence-ansvar flyttes i fase 4–5 før deployhandoff.
+
+De tidligere reviews rettede desuden replacement/no-op-matricen, synkron editorregistrering,
 dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede
 tomværdier og rå section-bypass i Stamdata/Satser. Det efterfølgende review af Årsløn-kontrolpunktet rettede faste
 og dynamiske datogrænser, periodeorden som feltissues, inputdrevet relevans, grid-editorens synkrone lifecycle,
 rejected-only-rækkesletning, byte-verificeret rollback, settingssnapshot og frisk dokumentpreflight. Katalogets
-paths/counts er komplette, men editorlokationer, relevans, validators, row factories og collection-adaptere er kun
-adfærdskomplette for de migrerede slices; de resterende callsite-cutovers udestår fortsat.
+paths/counts, row factories, collection-adaptere og aktive editorlokationer er komplette efter sidste callsite-cutover.
+Den systematiske domænedækning af relevans og validators hører til fase 3.
 
 Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og fjernede den parallelle
 `domain/inputIntegrity`-blockermodel. Det rettede desuden manglende feltgrænser i Renteberegning, Varige mén og
 Erhvervsevnetab, dependency-gating i differencekravet, ASL-rækkefejl fra readeren, fail-closed dokumentgates,
 multiline-Enter, rejected-only-rækkesletning, destruktiv reset uden forudgående settle og stale async downloads.
-Hovedshellens atomiske navigation-/undo-cutover, fuld lokationsbaseret fokusrestore og de resterende
-Erstatningsopgørelse-callsites hører fortsat til de udestående cutovers; shellen må ikke skifte
-koordinator, før både legacy- og greenfield-editorer kan dækkes af den samme slutmodel.
+Hovedshellens atomiske navigation-/undo-cutover og fuld lokationsbaseret fokusrestore hører fortsat til fase 4;
+shellen må ikke skifte koordinator, før den kan dækkes af slutmodellen uden parallel inputruntime.
 
 Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
@@ -42,8 +39,8 @@ forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakte
 bindende migrationsplan er §8 (Fase 0–7). Fase 0 har rebaset kontrakterne og etableret de midlertidige, maskinverificerede
 inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie inputkerne i `src/inputCore/` med
 XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
-`ready | blocked`-projektioner. Næste arbejdspakke er Fase 2's atomiske inputoverflade-cutover af
-Erstatningsopgørelse; den delvise hovedapp må ikke repareres med legacy-providers.
+`ready | blocked`-projektioner. Næste arbejdspakke er fase 3's systematiske domæneprojektioner og rene fejlmodel; den
+delvise hovedapp må ikke repareres med legacy-providers.
 
 Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
@@ -913,24 +910,25 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 
 ### Fase 2 — Atomisk runtime- og inputoverflade-cutover
 
-**Status:** Delvist gennemført og kritisk reviewet 2026-07-18 (internt kontrolpunkt, ikke faseafslutning). Den slanke
+**Status:** Gennemført, verificeret og kritisk reviewet 2026-07-18 (internt kontrolpunkt, ikke deployhandoff). Den slanke
 runtime, current-only envelope, verificerede command-runner, replacement-generation, aktiv-editor-registry, kritiske
 handlingsbarriere, fælles persisted editor og form-surface er bygget. Produktkataloget dækker strukturelt alle 239
-felter og 16 collections og verificerer nu også schema-defaultede tomværdier; denne test beviser endnu ikke relevans,
-validators, row factories eller editorlokationer for de endnu ikke migrerede slices. Stamdata, Satser, Årsløn,
-Renteberegning, Varige mén, Forsørgertab og Erhvervsevnetab er migreret som surfaces; StandardLoenTable,
-BeregnetRenteTable og EetAslAfgoerelserTable er migrerede grids. Satser og Årsløn har tidlige
+felter og 16 collections og verificerer også schema-defaultede tomværdier. Alle slices er migreret som surfaces:
+Stamdata, Satser, Årsløn, Renteberegning, Varige mén, Forsørgertab, Erhvervsevnetab og Erstatningsopgørelse inklusive
+nested ansættelsesforhold. Samtlige persisted tabeller bruger den fælles greenfield-celle-/collectionvej, herunder
+ferie, svie/smerte, TAF, offentlige ydelser, manuel lønudvikling og manuelle procentsatser. Direkte formularfelter
+kræver editorlokation via deres typed props; tabeller konstruerer stabile lokationer fra collection, row-id og kolonne.
+Satser, Årsløn, EET og EO har tidlige
 typed projektioner og dokumentpreflight, fordi aktive rå-section-/stale-render-bypasses ville være værre end at flytte
 disse consumerdele frem; det markerer ikke fase 3 eller 5 som gennemført.
 
 Reviewet fjernede hovedappens parallelle `FormPersistenceProvider`, den ubrugte greenfield-runtime i standalone,
 legacy-PWA-load fra Mineos midlertidige entry og singleton-bypass fra React-consumers. Mineo bruger derfor kun den nye
-runtime, selv om de resterende legacy-sider/shell ikke fungerer i mellemtilstanden; standalone Renteberegning er
-migreret atomisk. Udestår: Erstatningsopgørelsens formular- og tabelcallsites, de faktiske
-relevans-/validatorregler, collectionadaptere, location-completeness samt sletning af de legacy-bindings og
-runtimeflader, hvis ansvar er overført. Startup-notice, global undo/redo-fokusnavigation og case-replacement-porten
-færdiggøres sammen med deres respektive fase-4/shell-cutovers; de må ikke erstattes af parallel legacylogik. Fuld
-produktsuite er fortsat først gate efter fase 5.
+runtime, selv om den resterende legacy-shell ikke fungerer i mellemtilstanden; standalone Renteberegning er migreret
+atomisk. Startup-notice, global undo/redo-fokusnavigation og case-replacement-porten færdiggøres med fase 4's
+shell-cutover; de må ikke erstattes af parallel legacylogik. Feltrelevans, domænevalidatorer og consumerissues
+færdiggøres systematisk i fase 3 og er ikke et fase-2-exitkriterium. Som ekstra kontrol blev den fulde produktsuite
+kørt grønt ved faseafslutningen, selv om den bindende deploygate fortsat ligger efter fase 5.
 
 **§2.5 trin 1 (fælles grid-adapter) LANDET som isoleret kontrolpunkt (2026-07-17).** Rækkeinfrastruktur og
 celleeditor er bygget i `src/inputCore/react/` oven på den ENE editor-motor — ikke en anden editor: `useCollectionRows`
@@ -953,8 +951,9 @@ imperative tabel-handle bærer kun visuel feedback (flash/scroll/missing-hint), 
 #### 2.1 Slim runtime
 
 1. Byg produktets ene descriptor-/collectionkatalog direkte fra schemas, verificeret eksisterende adfærd og faktiske
-   editorcallsites; hver datadescriptor ejer typed read/write, codec, semantisk tomhed, relevans og validators.
-   Editorlokationer/renderere registreres separat i surface-laget jf. §6.1–6.2.
+   editorcallsites; hver datadescriptor ejer typed read/write, codec og semantisk tomhed. Relevans og validators
+   færdiggøres på samme descriptor i fase 3. Editorlokationer/renderere registreres separat i surface-laget jf.
+   §6.1–6.2.
 2. Bevis data-descriptor-, collection- og editorlocation-completeness separat mod fase-0-inventaret/callsites, og slet
    derefter de gamle bindings som del af cutoveren. Path/count-completeness alene er ikke en exitgate.
 3. Erstat runtime-storen med `input`, `revision`, `history` og nødvendig hydration-/systemfejlstatus.
@@ -1025,9 +1024,10 @@ Før beløbsfelter og grid-paste migreres, sammenholdes den faktiske nuværende 
 legacy-familierne er ikke ens om lukket paste åbner editoren eller committer straks. Da en ensretning er synlig
 UI-adfærd, er uklarheden et stopkriterium og forelægges brugeren; den må ikke afgøres ved at kopiere den første adapter.
 
-#### 2.6 Sletteliste
+#### 2.6 Sletteliste og ansvarsoverdragelse
 
-Slet mindst:
+Fase 2 sletter editor-, write- og rækkekopirollerne ved den sidste aktive persisted surface. Følgende legacyfamilier
+må derefter have nul produktionscallsites fra persisted surfaces:
 
 - `src/input/legacyInputCompatibility.ts`,
 - `src/input/legacyGridTransactionBridge.ts`,
@@ -1047,8 +1047,11 @@ Slet mindst:
 - compatibility-rollerne i `formPersistenceStore`, `undoRedoStore` og `formPersistenceReadModel`,
 - legacy test-only store mutations.
 
-`FormPersistenceContext*`, `useFormPersistence`, `usePersistedForm` og gamle persistence-selectors slettes først i
-fase 4, når deres ikke-inputansvar er flyttet til de små porte i §3.10.
+Fysisk filsletning sker ikke før filens sidste aktive ansvar er flyttet. Flere af familierne ovenfor er fortsat
+transitive dependencies til den gamle case-/session-/shell-infrastruktur eller til transiente `Styled*`-controls;
+de beholdes isoleret frem til fase 4 og slettes dér sammen med `FormPersistenceContext*`, `useFormPersistence`,
+`usePersistedForm` og gamle persistence-selectors. Dette er ikke tilladelse til nye imports: fase-2-vagterne kræver
+fortsat nul brug fra migrerede persisted surfaces. Fase 6 verificerer, at ingen sådan midlertidig fysisk rest består.
 
 #### Exitkriterier
 
@@ -1065,12 +1068,13 @@ fase 4, når deres ikke-inputansvar er flyttet til de små porte i §3.10.
 - Målrettede editor-/adaptertests mod syntetiske immutable issue-snapshots.
 - Alle codecfamilier, placeholder-first-invalid, row-delete og undo/redo.
 - Fuld field-contract-, actionmatrix- og komponentgate afventer fase 3–4, hvor validatorer og caseporte findes.
-- Dette er et internt kontrolpunkt; appen forventes ikke at kompilere eller være deploybar endnu.
+- Dette er et internt kontrolpunkt; grøn compile/build gør ikke appen deploybar før fase 3–5 er afsluttet.
 
 ### Fase 3 — Domæneprojektioner og ren fejlmodel
 
-**Status:** Ikke systematisk påbegyndt. Satser-projektionen og den typed dokument-stamdataprojektion er flyttet frem
-som en snæver integritetsrettelse efter reglen ovenfor; ingen øvrige fase-3-exitkriterier er dermed opfyldt.
+**Status:** Ikke systematisk påbegyndt. Satser-, Årsløn-, EET- og EO-projektionerne samt den typed
+dokument-stamdataprojektion er flyttet frem som snævre integritetsrettelser efter reglen ovenfor; ingen øvrige
+fase-3-exitkriterier er dermed opfyldt.
 
 **Afhængighed:** Fase 2. Ingen handoff før fasen er gennemført.
 

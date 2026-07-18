@@ -39,11 +39,11 @@ describe('eetDomainIsolation — wiring', () => {
   it('bevarer aktive EO-EET felter i EO-oplysninger-sektionerne', () => {
     const source = readEoOplysningerSectionSources();
 
-    expect(source).toContain("handleToggleChange('midlertidigtEETAfgorelse')");
-    expect(source).toContain("handleToggleChange('endeligtEETAfgorelse')");
-    expect(source).toContain('value={values.midlertidigEETAfgoerelseDato}');
-    expect(source).toContain('value={values.endeligEETAfgoerelseDato}');
-    expect(source).toContain('checked={getChecked(values.verserendeKlageEet)}');
+    expect(source).toContain('field={eoMidlertidigtEETAfgorelseField.bind()}');
+    expect(source).toContain('field={eoEndeligtEETAfgorelseField.bind()}');
+    expect(source).toContain('field={eoMidlertidigEETAfgoerelseDatoField.bind()}');
+    expect(source).toContain('field={eoEndeligEETAfgoerelseDatoField.bind()}');
+    expect(source).toContain('field={eoVerserendeKlageEetField.bind()}');
   });
 
   it('læser EET-oplysninger i kontrol/PDF fra EO-values (ikke fra erhvervsevnetab-side)', () => {
