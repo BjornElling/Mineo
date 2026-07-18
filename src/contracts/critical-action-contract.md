@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-18
 
 ## 1. Scope
 

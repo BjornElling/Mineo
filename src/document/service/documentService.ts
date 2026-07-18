@@ -552,17 +552,15 @@ export const downloadKlLoenaftalerDokument = async (params: Readonly<{
 //  2. Det autoritative output-gate-resultat (`gate`) videregives fra view-modellen. Det er ÉT gate
 //     pr. dokument, beregnet af den fælles `evaluateEoDocumentDownloadGate`, og dækker de række-niveau
 //     EO-fejl (collectAllEoRows, fx resultat-afhængige SFGG-fejlrækker) der IKKE er snapshot-invarianter
-//     og derfor ikke fanges af projektionen alene. Tidligere blev de kun gatet upstream på knappen, så
-//     service-grænsen var fail-OPEN for dem; nu fail-closer grænsen også på dem.
+//     og derfor ikke fanges af projektionen alene. Service-grænsen kræver derfor altid gaten eksplicit.
 //
 // Række-evalueringen kan ikke gentages her uden fuld AppSettings + runtime-felt-fejl (som C15-grænsen
-// bevidst holder ude af dokument-laget); derfor leveres dens resultat som det færdige `gate`. `gate` er
-// valgfri, så service-isolerede enhedstests kan teste projektions-laget alene.
+// bevidst holder ude af dokument-laget); derfor leveres dens resultat som det færdige `gate`.
 const blockedByGate = (
   settings: DocumentSettings,
-  gate: DocumentDownloadGateResult | undefined
+  gate: DocumentDownloadGateResult
 ): DocumentDownloadResult | null => {
-  if (!gate || gate.canDownload) return null;
+  if (gate.canDownload) return null;
   const reason = gate.reasons[0]?.message ?? 'Dokumentet kan ikke hentes for den aktuelle sag';
   return { success: false, error: buildDocumentFailureMessage(settings, reason) };
 };
@@ -573,7 +571,7 @@ export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
   settings: DocumentSettings;
   snapshot: EoSnapshot;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
-  gate?: DocumentDownloadGateResult;
+  gate: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { selectedElements, settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
@@ -609,7 +607,7 @@ export const downloadTafFordeltPaaAarDokument = async (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   settings: DocumentSettings;
   snapshot: EoSnapshot;
-  gate?: DocumentDownloadGateResult;
+  gate: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
@@ -645,7 +643,7 @@ export const downloadTafOpreguleretPaaAarDokument = async (params: Readonly<{
   settings: DocumentSettings;
   snapshot: EoSnapshot;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
-  gate?: DocumentDownloadGateResult;
+  gate: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot, selectedElements } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
@@ -682,7 +680,7 @@ export const downloadTafKravGrafDokument = async (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   settings: DocumentSettings;
   snapshot: EoSnapshot;
-  gate?: DocumentDownloadGateResult;
+  gate: DocumentDownloadGateResult;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');

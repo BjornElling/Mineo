@@ -3,6 +3,8 @@
 
 export { default as GreenfieldTextField } from './GreenfieldTextField';
 export type { GreenfieldTextFieldProps } from './GreenfieldTextField';
+export { default as GreenfieldMultilineTextField } from './GreenfieldMultilineTextField';
+export type { GreenfieldMultilineTextFieldProps } from './GreenfieldMultilineTextField';
 export { default as GreenfieldDateField } from './GreenfieldDateField';
 export type { GreenfieldDateFieldProps } from './GreenfieldDateField';
 export { default as GreenfieldChoiceField } from './GreenfieldChoiceField';

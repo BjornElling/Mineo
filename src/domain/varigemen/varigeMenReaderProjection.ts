@@ -55,7 +55,7 @@ const VARIGE_MEN_DOCUMENT_CONSUMER_ID = 'document.varigemen';
  * kun `ready` fører méngrad + datoer til den autoritative engine.
  */
 export const buildVarigeMenReaderProjection = (reader: InputReader): VarigeMenReaderProjection =>
-  runProjection(reader, VARIGE_MEN_DOCUMENT_CONSUMER_ID, (collector): VarigeMenProjectionData => {
+  runProjection(reader, VARIGE_MEN_DOCUMENT_CONSUMER_ID, (collector): VarigeMenProjectionData | undefined => {
     // require registrerer en rød feltfejl som blocker OG et tomt felt som `missing`. En `unavailable`-læsning
     // efterlader projektionen blokeret uanset hvad kroppen returnerer (den returnerede værdi bruges så aldrig).
     const mengradRead = collector.require(mengradRef);
@@ -74,9 +74,9 @@ export const buildVarigeMenReaderProjection = (reader: InputReader): VarigeMenRe
       || fodselsdato === undefined
       || skadedato === undefined
     ) {
-      // Blokeret (rød fejl eller missing er registreret af `require`): placeholderen bruges aldrig. `require`
-      // garanterer allerede ikke-tomhed ved `usable`; denne guard narrower blot typen for de fire krævede felter.
-      return BLOCKED_PLACEHOLDER;
+      // Blokeret (rød fejl eller missing er registreret af `require`). `require` garanterer allerede ikke-tomhed
+      // ved `usable`; denne guard narrower blot typen for de fire krævede felter.
+      return undefined;
     }
 
     // Engine kører UÆNDRET (§5.4). Den returnerer null for domæneugyldigt input (fx méngrad uden for 1..120 —
@@ -90,7 +90,3 @@ export const buildVarigeMenReaderProjection = (reader: InputReader): VarigeMenRe
 
     return { mengrad, beregningsdato, fodselsdato, skadedato, beregningsResultat: result };
   });
-
-// Kroppen af en blokeret projektion returnerer aldrig en brugt værdi; `runProjection` kaster den bort, fordi
-// mindst én issue er registreret. Placeholderen opfylder blot returtypen på de blokerede stier.
-const BLOCKED_PLACEHOLDER = undefined as unknown as VarigeMenProjectionData;

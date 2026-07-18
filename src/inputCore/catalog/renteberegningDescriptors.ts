@@ -2,6 +2,9 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { RentekravRow } from '../../schemas/formSchemas/sections/renteberegningSchemas';
 import type { ISODateString } from '../../types/branded';
+import { dateRanges_renteberegning } from '../../config/dateRanges';
+import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { minISO } from '../../utils/isoDateHelpers';
 import {
   createAmountFieldCodec,
   createDateFieldCodec,
@@ -12,6 +15,7 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
+import type { FieldValidator } from '../fieldDescriptor';
 import { amountBoundsValidator, integerBoundsValidator } from './boundsValidators';
 
 // Greenfield produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
@@ -19,6 +23,33 @@ import { amountBoundsValidator, integerBoundsValidator } from './boundsValidator
 // men tillader 0 rækker).
 
 const createEmptyRenteberegningSection = (): unknown => ({ rentekravRows: [] });
+
+const beregningsdatoBoundsValidator: FieldValidator<ISODateString | undefined> = (value) => {
+  if (value === undefined) return undefined;
+  const { min, max } = dateRanges_renteberegning.renteTil;
+  if (value >= min && value <= max) return undefined;
+  return {
+    reason: 'bounds',
+    code: 'renteberegning.beregningsdato.bounds',
+    message: resolveDateRangeErrorMessage({ iso: value, minDate: min, maxDate: max }),
+    detail: { minDate: min, maxDate: max },
+  };
+};
+
+const renterFraBoundsValidator: FieldValidator<ISODateString | undefined> = (value, _field, view) => {
+  if (value === undefined) return undefined;
+  const minDate = dateRanges_renteberegning.renteTil.min;
+  const standardMax = dateRanges_renteberegning.renteTil.max;
+  const beregningsdato = view.readCanonical(renteberegningBeregningsdatoField.bind());
+  const maxDate = beregningsdato === undefined ? standardMax : minISO(beregningsdato, standardMax);
+  if (value >= minDate && value <= maxDate) return undefined;
+  return {
+    reason: 'bounds',
+    code: 'renteberegning.rentekravRows.renterFra.bounds',
+    message: resolveDateRangeErrorMessage({ iso: value, minDate, maxDate }),
+    detail: { minDate, maxDate },
+  };
+};
 
 export const renteberegningBeregningsdatoField = defineStructuralField<ISODateString | undefined>({
   id: 'renteberegning.beregningsdato',
@@ -29,6 +60,7 @@ export const renteberegningBeregningsdatoField = defineStructuralField<ISODateSt
   label: 'Beregningsdato',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
+  validators: [beregningsdatoBoundsValidator],
 });
 
 export const renteberegningKommentarerField = defineStructuralField<string | undefined>({
@@ -82,6 +114,7 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
   label: 'Renter fra',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
+  validators: [renterFraBoundsValidator],
 });
 
 export const rentekravTillaegstidField = defineStructuralField<number | undefined>({
@@ -93,7 +126,7 @@ export const rentekravTillaegstidField = defineStructuralField<number | undefine
   label: 'Tillægstid',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
-  validators: [integerBoundsValidator('renteberegning.rentekravRows.tillaegstid.bounds', 0, undefined)],
+  validators: [integerBoundsValidator('renteberegning.rentekravRows.tillaegstid.bounds', 0, 99)],
 });
 
 // `enhed` er en required enum med canonical default `'dage'` (rowEmpty.ts) — aldrig tom, aldrig rød.

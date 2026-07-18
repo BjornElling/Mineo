@@ -9,6 +9,11 @@ import type { AslAfgoerelseRow } from '../../schemas/formSchemas/sections/erhver
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
 import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import {
+  validatePercentDivisibleBy5FromValue,
+  validatePercentNotZero,
+} from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import {
   createBooleanFieldCodec,
   createChoiceFieldCodec,
@@ -18,7 +23,7 @@ import {
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
-import type { FieldAddressTemplate, FieldDescriptor } from '../fieldDescriptor';
+import type { FieldAddressTemplate, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
 import {
   defineStructuralCollection,
   defineStructuralField,
@@ -95,11 +100,19 @@ export const erhvervsevnetabEalEetPctField = defineStructuralField<number | unde
   label: 'EET % (hvis afviger fra ASL)',
   controlKind: 'text',
   createEmptySection: createEmptyErhvervsevnetabSection,
-  validators: [percentBoundsValidator('erhvervsevnetab.ealEetPct.bounds', {
-    minValue: 0,
-    maxValue: 100,
-    allowDecimals: false,
-  })],
+  validators: [
+    percentBoundsValidator('erhvervsevnetab.ealEetPct.bounds', {
+      minValue: 0,
+      maxValue: 100,
+      allowDecimals: false,
+    }),
+    (value) => {
+      const message = validatePercentDivisibleBy5FromValue(value, 'EET %');
+      return message === undefined ? undefined : {
+        reason: 'rule', code: 'erhvervsevnetab.ealEetPct.divisibleBy5', message,
+      };
+    },
+  ],
 });
 
 const eetToggle = (field: string, label: string): FieldDescriptor<boolean> =>
@@ -170,7 +183,55 @@ const aslRowTemplate = (field: string): FieldAddressTemplate => ({
   field,
 });
 
-const aslDate = (field: string, label: string): FieldDescriptor<ISODateString | undefined> =>
+const aslRowIdOf = <T>(field: FieldRef<T>): string => {
+  const entity = field.address.path.find(
+    (segment) => segment.kind === 'entity' && segment.collection === 'aslAfgoerelser'
+  );
+  if (entity?.kind !== 'entity') throw new Error(`EET-rækkefeltet ${field.descriptor.id} mangler rækkeidentitet`);
+  return entity.entityId;
+};
+
+type AslDateRole = 'afgoerelsesDato' | 'virkningsDato' | 'kapDato' | 'tidlKapDato';
+
+const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString | undefined> =>
+  (value, field, view) => {
+    if (value === undefined) return undefined;
+    const rowId = aslRowIdOf(field);
+    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+    const fallbackMin = dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.fallbackMin;
+    const skadedatoMin = skadedato ?? fallbackMin;
+    const afgoerelsesDato = role === 'afgoerelsesDato'
+      ? value
+      : view.readCanonical(aslAfgoerelseAfgoerelsesDatoField.bind(rowId));
+
+    const minDate = role === 'kapDato' ? (afgoerelsesDato ?? skadedatoMin) : skadedatoMin;
+    const maxDate = role === 'afgoerelsesDato'
+      ? dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max
+      : role === 'virkningsDato'
+        ? dateRanges_erhvervsevnetab.tabelVirkningsdato.max
+        : role === 'kapDato'
+          ? dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max
+          : getDayBeforeIso(afgoerelsesDato);
+    if (value >= minDate && (maxDate === undefined || value <= maxDate)) return undefined;
+    return {
+      reason: 'bounds',
+      code: `erhvervsevnetab.aslAfgoerelser.${role}.bounds`,
+      message: resolveDateRangeErrorMessage({
+        iso: value,
+        minDate,
+        maxDate,
+        noValidRangeInputs: role === 'kapDato' || role === 'tidlKapDato'
+          ? 'Afgørelsesdato og skadedato'
+          : undefined,
+      }),
+      detail: { minDate, ...(maxDate === undefined ? {} : { maxDate }) },
+    };
+  };
+
+const aslDate = (
+  field: AslDateRole,
+  label: string
+): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `erhvervsevnetab.aslAfgoerelser.${field}`,
     template: aslRowTemplate(field),
@@ -180,6 +241,7 @@ const aslDate = (field: string, label: string): FieldDescriptor<ISODateString | 
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErhvervsevnetabSection,
+    validators: [aslDateBoundsValidator(field)],
   });
 
 const aslPct = (field: string, label: string): FieldDescriptor<number | undefined> =>
@@ -192,11 +254,20 @@ const aslPct = (field: string, label: string): FieldDescriptor<number | undefine
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErhvervsevnetabSection,
-    validators: [percentBoundsValidator(`erhvervsevnetab.aslAfgoerelser.${field}.bounds`, {
-      minValue: 0,
-      maxValue: 100,
-      allowDecimals: false,
-    })],
+    validators: [
+      percentBoundsValidator(`erhvervsevnetab.aslAfgoerelser.${field}.bounds`, {
+        minValue: 0,
+        maxValue: 100,
+        allowDecimals: false,
+      }),
+      (value) => {
+        const message = validatePercentNotZero(value, label)
+          ?? validatePercentDivisibleBy5FromValue(value, label);
+        return message === undefined ? undefined : {
+          reason: 'rule', code: `erhvervsevnetab.aslAfgoerelser.${field}.rule`, message,
+        };
+      },
+    ],
   });
 
 export const aslAfgoerelseAfgoerelsesDatoField = aslDate('afgoerelsesDato', 'Afgørelsesdato');

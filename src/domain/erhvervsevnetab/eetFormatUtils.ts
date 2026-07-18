@@ -35,8 +35,8 @@ export const toFieldIssue = (
  * reader-feltfejl (format/bounds) og ført ind i snapshottet som et `field-*`-issue, eller (b) er en
  * felt-placeret domæneregel med samme røde markering (forlig-brøk/procent, dato-orden på stamdata,
  * eller en `*-invalid` værdi som en out-of-bounds procent readeren ikke selv kan fange). En intern
- * beregnings-runtimefejl (`runtime-exception`) behandles også som en hård felt-/beregningsblokering,
- * ikke som en manglende-felt-tilstand.
+ * beregnings-runtimefejl (`runtime-exception`) er en separat intern blokering og må ikke klassificeres som en
+ * brugerfejl.
  *
  * Bruges af download-gaten til at vælge ÉN reason-kode ("field-error" vs "missing-fields") pr. fane
  * (§1.10), og deles med den fremtidige UI, så klassifikationen ikke driftes til et andet sted.
@@ -45,7 +45,6 @@ export const isEetFieldErrorIssueId = (issueId: string): boolean =>
   issueId.startsWith('field-') ||
   issueId.startsWith('stamdata-date-order:') ||
   issueId === 'forlig-ansvarsgrad-invalid' ||
-  issueId === 'runtime-exception' ||
   issueId.endsWith('-invalid');
 
 export const NAVIGATION_SORT_ORDER: Record<string, number> = {

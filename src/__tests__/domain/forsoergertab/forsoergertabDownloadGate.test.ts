@@ -14,11 +14,9 @@ const TOKEN: EvaluationSourceToken = {
 };
 
 const projectionWithGate = (
-  pdfGate: ForsoergertabSnapshot['pdfGate'],
-  hadReaderFieldError = false
+  pdfGate: ForsoergertabSnapshot['pdfGate']
 ): ForsoergertabReaderProjection => ({
   snapshot: { pdfGate } as ForsoergertabSnapshot,
-  hadReaderFieldError,
   sourceToken: TOKEN,
 });
 
@@ -34,7 +32,7 @@ describe('forsoergertabDownloadGate', () => {
       code: 'forsoergertab:blocking-input-error',
       message: 'Et eller flere nødvendige felter har blokerende fejl.',
     });
-    const gate = evaluateForsoergertabDownloadGate(projectionWithGate(snapshotGate, true));
+    const gate = evaluateForsoergertabDownloadGate(projectionWithGate(snapshotGate));
     expect(gate.canDownload).toBe(false);
     expect(gate.reasons[0]?.code).toBe('forsoergertab:blocking-input-error');
   });

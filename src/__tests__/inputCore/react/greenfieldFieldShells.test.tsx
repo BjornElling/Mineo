@@ -18,6 +18,7 @@ import {
   GreenfieldAmountField,
   GreenfieldRadioField,
   GreenfieldGridAmountCell,
+  GreenfieldMultilineTextField,
 } from '../../../inputCore/react/fields';
 import { createInputEvaluation, createValidationReader } from '../../../inputCore/inputReader';
 import {
@@ -28,7 +29,7 @@ import {
   type FieldRef,
 } from '../../../inputCore';
 import { insertRow } from '../../../inputCore/inputReducer';
-import { createTestCatalog, aargangField, enhedField, belobField, makeRow } from '../testCatalog';
+import { createTestCatalog, aargangField, kommentarerField, enhedField, belobField, makeRow } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
@@ -93,6 +94,30 @@ describe('Greenfield numeriske presets', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')));
     renderField(<GreenfieldAmountField field={belobField.bind('r1')} location={{ locationId: 'amt-1' }} name="belob" />);
     expect(screen.getByText('kr.')).toBeInTheDocument();
+  });
+});
+
+describe('Greenfield flerlinjet tekstfelt', () => {
+  it('behandler Enter som tekst og settler først ved blur', () => {
+    renderField(
+      <GreenfieldMultilineTextField
+        field={kommentarerField.bind()}
+        location={{ locationId: 'kommentarer-1' }}
+        name="kommentarer"
+        singleStageClick
+      />
+    );
+    const textarea = screen.getByRole('textbox');
+
+    fireEvent.mouseDown(textarea);
+    fireEvent.click(textarea);
+    fireEvent.change(textarea, { target: { value: 'Første linje' } });
+    fireEvent.keyDown(textarea, { key: 'Enter' });
+    expect(canonical(kommentarerField.bind())).toBeUndefined();
+
+    fireEvent.change(textarea, { target: { value: 'Første linje\nAnden linje' } });
+    fireEvent.blur(textarea);
+    expect(canonical(kommentarerField.bind())).toBe('Første linje\nAnden linje');
   });
 });
 

@@ -11,6 +11,8 @@ type ConfirmationDialogProps = {
   cancelText?: string;
   confirmColor?: 'primary' | 'error';
   hideCancelButton?: boolean;
+  /** Bevar fokus i en åben felteditor, indtil en destruktiv handling faktisk bekræftes. */
+  preserveExternalFocus?: boolean;
   /**
    * Ekstra actions (fx "Send fejloplysninger").
    *
@@ -41,6 +43,7 @@ const ConfirmationDialog = React.memo(({
   cancelText = 'Annuller',
   confirmColor = 'primary',
   hideCancelButton = false,
+  preserveExternalFocus = false,
   extraActions,
 }: ConfirmationDialogProps) => {
   return (
@@ -49,6 +52,9 @@ const ConfirmationDialog = React.memo(({
       onClose={onCancel}
       maxWidth="sm"
       fullWidth
+      disableAutoFocus={preserveExternalFocus}
+      disableEnforceFocus={preserveExternalFocus}
+      disableRestoreFocus={preserveExternalFocus}
       sx={{
         '& .MuiDialog-paper': {
           borderRadius: '10px',
@@ -63,6 +69,7 @@ const ConfirmationDialog = React.memo(({
         {!hideCancelButton && (
           <Button
             onClick={onCancel}
+            onMouseDown={preserveExternalFocus ? (event) => event.preventDefault() : undefined}
             variant="outlined"
             sx={{
               borderRadius: '10px',
@@ -77,6 +84,7 @@ const ConfirmationDialog = React.memo(({
         {extraActions}
         <Button
           onClick={onConfirm}
+          onMouseDown={preserveExternalFocus ? (event) => event.preventDefault() : undefined}
           variant="contained"
           color={confirmColor}
           sx={{

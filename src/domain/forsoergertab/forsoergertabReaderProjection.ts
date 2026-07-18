@@ -39,8 +39,7 @@ import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './fors
 //    den DEPENDENCY-SPECIFIKKE panel-/gate-logik (§1.10): en fejl på fx virkningsdato/ASL-årsløn blokerer ASL-
 //    delen og download, men bevarer EAL-panelet, præcis som legacy. Derfor gates hele snapshottet IKKE bag en
 //    global `blocked`-projektion — projektionen er altid `ready` og bærer snapshottet; det er snapshottets egen
-//    `pdfGate`/`canShow*`, der afgør konsekvenserne. `hadReaderFieldError` medbringes, så download-gaten kan skelne
-//    en rød feltfejl fra en ren manglende-felt-tilstand (samme prioritet som legacy).
+//    `pdfGate`/`canShow*`, der afgør konsekvenserne uden en parallel klassifikations-sidekanal.
 //  - ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) blev i legacy rapporteret
 //    som en `source: 'rule'`-feltfejl af `useAslAarsloenRuleReporter`. Da `faellesAarsloen.aslAarsloen` er en DELT
 //    descriptor (EET/EO er endnu ikke migreret), holdes reglen slice-lokal her: den udledes af de reader-læste
@@ -60,8 +59,6 @@ const skadelidteFodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSk
 export type ForsoergertabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver både sidevisning og download-gaten. */
   snapshot: ForsoergertabSnapshot;
-  /** Sandt, hvis mindst ét læst felt havde en aktiv rød feltfejl (format/bounds). Adskiller `field-error` fra en ren manglende-felt-tilstand i download-gaten (§1.6). */
-  hadReaderFieldError: boolean;
   /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
@@ -92,11 +89,6 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
   const ealAarsloen = readField(reader.read(ealAarsloenRef));
   const skadedato = readField(reader.read(skadedatoRef));
   const skadelidteFodselsdato = readField(reader.read(skadelidteFodselsdatoRef));
-
-  const hadReaderFieldError = [
-    beregningsdato, virkningsdato, efterladteFodselsdato, koen, tilkendtForPeriodeAar,
-    aslAarsloen, ealAarsloen, skadedato, skadelidteFodselsdato,
-  ].some((read) => read.errorMessage !== undefined);
 
   // ASL-årslønnens felt-placerede domæneregel (slice-lokal, jf. hoved-noten). Kun relevant, når ASL-årslønnen
   // ikke allerede har en rød feltfejl (readeren har da skjult værdien, og bounds-fejlen blokerer allerede).
@@ -145,5 +137,5 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
     },
   });
 
-  return { snapshot, hadReaderFieldError, sourceToken: reader.sourceToken };
+  return { snapshot, sourceToken: reader.sourceToken };
 };

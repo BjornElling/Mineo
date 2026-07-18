@@ -40,6 +40,7 @@ import {
   isUndefined,
 } from '../structuralDescriptors';
 import {
+  canonicalStringCodecValidator,
   integerStringBoundsValidator,
   percentBoundsValidator,
   weekYearBoundsValidator,
@@ -272,7 +273,10 @@ const rowString = (
     controlKind: 'text',
     createEmptySection: createEmptyAarsloenSection,
     relevance,
-    ...(validators === undefined ? {} : { validators }),
+    validators: [
+      canonicalStringCodecValidator(`aarsloen.${field}.schema`, codec),
+      ...(validators ?? []),
+    ],
   });
 
 // Tabellens beløbskolonner tillader negative (canBeNegative-default i TableAmountInput).

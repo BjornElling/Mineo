@@ -8,7 +8,6 @@ import type {
   AfgoerelseType,
   AslAfgoerelseRow,
   ErhvervsevnetabComposedValues,
-  JaNej,
   Koen,
 } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -70,8 +69,7 @@ import { computeEetSnapshot, type EetSnapshot } from './eetSnapshot';
 //    ejer allerede den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10): fx blokerer en ealEetPct-fejl kun EET-efter-
 //    EAL-fanen, mens de øvrige faner bevares. Derfor gates hele projektionen IKKE bag en global `blocked`-projektion —
 //    den er altid `ready` og bærer snapshottet; det er snapshottets egne per-fane-`issues`/`pdfGate`, der afgør
-//    konsekvenserne. `hadReaderFieldError` medbringes, så en download-gate kan skelne en rød feltfejl fra en ren
-//    manglende-felt-tilstand.
+//    konsekvenserne; fanernes egne issue-id'er er den eneste klassifikationskilde.
 //  - Tre felt-placerede DOMÆNEREGLER føres slice-lokalt ind i snapshottets `fieldErrors` (som legacy gjorde via
 //    error-bus-effekter), fordi de deler descriptor med endnu ikke migrerede sektioner:
 //      * ASL-årsløns-reglen (delelig 1.000 / maks i skadesår) → `fieldErrors.faellesAarsloen.aslAarsloen` (samme regel
@@ -110,8 +108,6 @@ const forligDatoRef: FieldRef<ISODateString | undefined> = eoForligDatoField.bin
 export type ErhvervsevnetabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver sidevisningen for alle fem tabs + download-gates. */
   snapshot: EetSnapshot;
-  /** Sandt, hvis mindst ét læst felt havde en aktiv rød feltfejl (format/bounds). Adskiller `field-error` fra en ren manglende-felt-tilstand. */
-  hadReaderFieldError: boolean;
   /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
@@ -136,7 +132,10 @@ const readBoolean = (read: ReadFieldResult<boolean>, fallback: boolean): boolean
  * skjules til `undefined`, præcis som readeren gør — rækkevaliderings-collectoren (der udleder de indbyrdes
  * regler) ser derfor samme værdier som beregningen. `fsTilbageholdtEet` er required-choice (tomværdi 'Nej').
  */
-const readCommittedAslRow = (reader: InputReader, rowId: string): AslAfgoerelseRow => {
+const readCommittedAslRow = (
+  reader: InputReader,
+  rowId: string
+): Readonly<{ row: AslAfgoerelseRow; errorMessage: string | undefined }> => {
   const afgoerelsesDato = readField<ISODateString>(reader.read(aslAfgoerelseAfgoerelsesDatoField.bind(rowId)));
   const virkningsDato = readField<ISODateString>(reader.read(aslAfgoerelseVirkningsDatoField.bind(rowId)));
   const eetPct = readField<number>(reader.read(aslAfgoerelseEetPctField.bind(rowId)));
@@ -146,15 +145,27 @@ const readCommittedAslRow = (reader: InputReader, rowId: string): AslAfgoerelseR
   const afgoerelseType = readField<AfgoerelseType>(reader.read(aslAfgoerelseAfgoerelseTypeField.bind(rowId)));
   const fsTilbageholdtEet = reader.read(aslAfgoerelseFsTilbageholdtEetField.bind(rowId));
   return {
-    id: rowId,
-    afgoerelsesDato: afgoerelsesDato.value,
-    virkningsDato: virkningsDato.value,
-    eetPct: eetPct.value,
-    kapDato: kapDato.value,
-    kapPct: kapPct.value,
-    tidlKapDato: tidlKapDato.value,
-    afgoerelseType: afgoerelseType.value,
-    fsTilbageholdtEet: (fsTilbageholdtEet.status === 'usable' ? fsTilbageholdtEet.value : 'Nej') as JaNej,
+    row: {
+      id: rowId,
+      afgoerelsesDato: afgoerelsesDato.value,
+      virkningsDato: virkningsDato.value,
+      eetPct: eetPct.value,
+      kapDato: kapDato.value,
+      kapPct: kapPct.value,
+      tidlKapDato: tidlKapDato.value,
+      afgoerelseType: afgoerelseType.value,
+      fsTilbageholdtEet: fsTilbageholdtEet.status === 'usable' ? fsTilbageholdtEet.value : 'Nej',
+    },
+    errorMessage: [
+      afgoerelsesDato.errorMessage,
+      virkningsDato.errorMessage,
+      eetPct.errorMessage,
+      kapDato.errorMessage,
+      kapPct.errorMessage,
+      tidlKapDato.errorMessage,
+      afgoerelseType.errorMessage,
+      fsTilbageholdtEet.status === 'error' ? fsTilbageholdtEet.issue.message : undefined,
+    ].find((message) => message !== undefined),
   };
 };
 
@@ -162,17 +173,7 @@ const readCommittedAslRow = (reader: InputReader, rowId: string): AslAfgoerelseR
 export const readAslAfgoerelserCommittedRows = (reader: InputReader): AslAfgoerelseRow[] =>
   reader
     .listEntities(erhvervsevnetabAslAfgoerelserCollectionRef)
-    .map((entity) => readCommittedAslRow(reader, entity.entityId));
-
-/** Sandt, hvis mindst én ASL-rækkecelle har en aktiv rød feltfejl (bounds på eetPct/kapPct). */
-const anyAslRowHasReaderFieldError = (reader: InputReader): boolean =>
-  reader.listEntities(erhvervsevnetabAslAfgoerelserCollectionRef).some((entity) => {
-    const rowId = entity.entityId;
-    return (
-      reader.read(aslAfgoerelseEetPctField.bind(rowId)).status === 'error' ||
-      reader.read(aslAfgoerelseKapPctField.bind(rowId)).status === 'error'
-    );
-  });
+    .map((entity) => readCommittedAslRow(reader, entity.entityId).row);
 
 /**
  * Bygger den kanoniske reader-afledte projektion for Erhvervsevnetab. Feltværdier og røde feltfejl læses gennem
@@ -192,13 +193,11 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
   const forligBroek = readField(reader.read(forligBroekRef));
   const forligDato = readField(reader.read(forligDatoRef));
 
-  const aslAfgoerelser = readAslAfgoerelserCommittedRows(reader);
-
-  const hadReaderFieldError =
-    [
-      beregningsdato, koen, ealEetPct, aslAarsloen, ealAarsloen, skadedato, skadelidteFodselsdato,
-      forligProcent, forligBroek,
-    ].some((read) => read.errorMessage !== undefined) || anyAslRowHasReaderFieldError(reader);
+  const aslRowReads = reader
+    .listEntities(erhvervsevnetabAslAfgoerelserCollectionRef)
+    .map((entity) => readCommittedAslRow(reader, entity.entityId));
+  const aslAfgoerelser = aslRowReads.map(({ row }) => row);
+  const aslAfgoerelserFieldError = aslRowReads.find(({ errorMessage }) => errorMessage !== undefined)?.errorMessage;
 
   // ASL-årslønnens felt-placerede domæneregel (slice-lokal, som Forsørgertab): kun relevant, når ASL-årslønnen
   // ikke allerede har en rød feltfejl (readeren har da skjult værdien, og bounds-fejlen blokerer allerede).
@@ -257,7 +256,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       erhvervsevnetab: {
         beregningsdato: asFieldError(beregningsdato.errorMessage),
         ealEetPct: asFieldError(ealEetPct.errorMessage),
-        aslAfgoerelser: asFieldError(aslAfgoerelserRuleMessage),
+        aslAfgoerelser: asFieldError(aslAfgoerelserFieldError ?? aslAfgoerelserRuleMessage),
       },
       faellesAarsloen: {
         aslAarsloen: asFieldError(aslAarsloen.errorMessage ?? aslRuleMessage),
@@ -270,10 +269,11 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
         forligAnsvarsgradBroek: forligBroek.value,
       },
       dato: forligDato.value,
+      datoErrorMessage: forligDato.errorMessage,
       // Et ikke-committbart rå forligsdraft er i greenfield-modellen en rød reader-feltfejl (format-issue).
       hasInvalidDraft: forligProcent.errorMessage !== undefined || forligBroek.errorMessage !== undefined,
     },
   });
 
-  return { snapshot, hadReaderFieldError, sourceToken: reader.sourceToken };
+  return { snapshot, sourceToken: reader.sourceToken };
 };

@@ -9,28 +9,10 @@ import RenteberegningTab, { type RenteDocumentSharedSnapshot } from '../renteber
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 import { useGreenfieldUndoRedoShortcuts } from '../../../inputCore/react/useGreenfieldUndoRedoShortcuts';
-import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
-import { renteberegningKommentarerField } from '../../../inputCore/catalog/renteberegningDescriptors';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
 
 const MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX = 599;
-
-const kommentarerRef = renteberegningKommentarerField.bind();
-
-/**
- * Optager ét frisk kildesnapshot fra den ene runtime (§3.9): den afsluttede kommentar OG friskheds-closuren
- * (`isSourceCurrent`), så et netop indtastet felt kommer med, og downloaden fail-closer, hvis input ændres under
- * den asynkrone PDF-generering.
- */
-const captureFreshStandaloneSource = (): Readonly<{ kommentarer: string | undefined; isSourceCurrent: () => boolean }> => {
-  const source = captureProductionEvaluationSource();
-  const read = source.evaluation.reader.read(kommentarerRef);
-  return {
-    kommentarer: read.status === 'usable' ? read.value : undefined,
-    isSourceCurrent: source.isSourceCurrent,
-  };
-};
 
 // PDF-tjenesten trækker jsPDF + dokument-generatorerne ind (~110 KiB). Den er kun
 // nødvendig når brugeren downloader, så den lazy-loades her frem for at ligge i sidens
@@ -94,7 +76,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
 
   const handleDownloadAllSpecifikationer = React.useCallback(async (
     contexts: RentekravPdfContextMap,
-    _isSourceCurrent: () => boolean
+    shared: RenteDocumentSharedSnapshot
   ) => {
     setDownloadAllErrorMessage(null);
     const rows = Array.from(contexts.values()).flatMap((ctx) => {
@@ -110,12 +92,11 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
       }];
     });
 
-    const { kommentarer, isSourceCurrent } = captureFreshStandaloneSource();
     const { downloadAllStandaloneRentePdf } = await loadStandaloneRentePdfService();
     const result = await downloadAllStandaloneRentePdf({
       rows,
-      isSourceCurrent,
-      kommentarer,
+      isSourceCurrent: shared.isSourceCurrent,
+      kommentarer: shared.kommentarer,
     });
     setDownloadAllErrorMessage(result.success ? null : result.error);
   }, []);

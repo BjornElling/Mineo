@@ -38,13 +38,13 @@ type EetFieldErrors = Readonly<{
 }>;
 
 // Forlig om ansvarsgrad er delt kilde med EO-fanen (felterne bor i erstatningsopgoerelse-sektionen).
-// `hasInvalidDraft` afspejler en ikke-committbar rå draft i et af forligs-felterne (læst fra
-// invalidDrafts-storen på siden) — committede værdier er altid schema-gyldige, så et "ugyldigt
-// input" kan kun observeres via denne kanal og via evaluateForligsgrad ("begge udfyldt"/brøk > 1).
+// `hasInvalidDraft` afspejler rejected råinput i et af ansvarsgradsfelterne. Forligsdatoens eventuelle
+// reader-feltfejl bæres separat, fordi den er en selvstændig dokumentdependency.
 export type EetForligInput = Readonly<{
   values: ForligAnsvarsgradInput;
   // Forligsdato (delt kilde med EO) — kun til prosa-sætningen i specifikationen. Udeladt = ingen dato.
   dato?: ISODateString;
+  datoErrorMessage?: string;
   hasInvalidDraft: boolean;
 }>;
 
@@ -135,7 +135,6 @@ const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['l
     { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
     { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
   ]);
-
   const issues = sortAndDedupeIssues([
     ...calculationResult.issues,
     ...fieldIssues,
@@ -229,6 +228,7 @@ const resolveForligBlocking = (forlig: EetForligInput | undefined): Readonly<{
 
 const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['differencekrav'] => {
   const forligBlocking = resolveForligBlocking(input.forlig);
+  const forligDatoIssue = toFieldIssue('field-forlig-dato', input.forlig?.datoErrorMessage);
 
   const calculationResult = computeEetDifferencekravCalculation({
     erhvervsevnetab: input.values,
@@ -246,6 +246,8 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
     { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
     { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
+    { id: 'field-eal-eet-pct', message: input.fieldErrors.erhvervsevnetab.ealEetPct?.message },
+    { id: 'field-aarsloen-eal', message: input.fieldErrors.faellesAarsloen.ealAarsloen?.message },
     { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
     { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
   ]);
@@ -255,6 +257,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     ...fieldIssues,
     ...createStamdataDateOrderIssues(input.stamdata),
     ...(forligBlocking.issue ? [forligBlocking.issue] : []),
+    ...(forligDatoIssue === null ? [] : [forligDatoIssue]),
   ]);
   return {
     issues,
@@ -263,11 +266,9 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
   };
 };
 
-// Bemærk: Row-level valideringsfejl på individuelle ASL-afgørelsesrækker indgår IKKE i
-// snapshot-issuerne. De beregnes i Erhvervsevnetab.tsx og rapporteres til error-bus via
-// useEffect. Kun den første tabelblokerende fejl vises i EetIssuesBox; øvrige row-fejl
-// vises inline i tabellen. Dette er en bevidst afgrænsning: snapshot håndterer
-// feltvalidering, ikke tabelrækkernes indbyrdes konsistens.
+// Den reader-baserede projektion fører den første tabelblokerende ASL-rækkefejl ind som `field-asl-afgoerelser`.
+// De øvrige rækkeissues forbliver tilgængelige for den senere tabel-cutover, men beregning og dokumentgate er
+// allerede uafhængige af mounted reporters.
 export const computeEetSnapshot = (input: EetSnapshotInput): EetSnapshot => {
   const output = {
     loebendeYdelser: safeBuildProjection(() => buildLoebendeYdelserProjection(input), 'loebende_ydelser'),

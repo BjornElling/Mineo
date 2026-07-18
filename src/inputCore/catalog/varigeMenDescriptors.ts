@@ -1,12 +1,27 @@
 import type { ISODateString } from '../../types/branded';
+import { dateRanges_varigemen } from '../../config/dateRanges';
+import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
 import { createDateFieldCodec, createIntegerFieldCodec } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
+import type { FieldValidator } from '../fieldDescriptor';
 import { integerBoundsValidator } from './boundsValidators';
 
 // Greenfield produkt-descriptors for `varigemen`-sektionen (§3.2). To top-level skalarer, ingen samlinger.
 
 const createEmptyVarigeMenSection = (): unknown => ({});
+
+const beregningsdatoBoundsValidator: FieldValidator<ISODateString | undefined> = (value) => {
+  if (value === undefined) return undefined;
+  const { min, max } = dateRanges_varigemen.beregningsdato;
+  if (value >= min && value <= max) return undefined;
+  return {
+    reason: 'bounds',
+    code: 'varigemen.beregningsdato.bounds',
+    message: resolveDateRangeErrorMessage({ iso: value, minDate: min, maxDate: max }),
+    detail: { minDate: min, maxDate: max },
+  };
+};
 
 // mengrad persisteres som heltal. 1..120 er en domænegrænse, der afledes som bounds-issue efter settle —
 // ikke en codec-parseregel (jf. renteberegning `tillaegstid`).
@@ -31,6 +46,7 @@ export const varigeMenBeregningsdatoField = defineStructuralField<ISODateString 
   label: 'Beregningsdato',
   controlKind: 'text',
   createEmptySection: createEmptyVarigeMenSection,
+  validators: [beregningsdatoBoundsValidator],
 });
 
 export const varigeMenFields = catalogFields(varigeMenMengradField, varigeMenBeregningsdatoField);

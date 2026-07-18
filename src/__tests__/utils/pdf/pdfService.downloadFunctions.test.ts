@@ -172,6 +172,7 @@ const settings = DEFAULT_APP_SETTINGS;
 const stamdata = STAMDATA_INITIAL_VALUES;
 const eoValues = createErstatningsopgoerelseInitialValues();
 const eoSnapshot = { revision: 'rev-1' } as never;
+const allowedDocumentGate = { canDownload: true, reasons: [] } as const;
 const generatedArtifact = { blob: new Blob(), filename: 'test.pdf' };
 
 beforeEach(() => {
@@ -606,6 +607,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateErstatningsopgoerelsePdf).toHaveBeenCalled();
@@ -619,6 +621,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
     expect(result).toMatchObject({ success: false, error: 'Kunne ikke generere erstatningsopgørelse-PDF' });
   });
@@ -636,6 +639,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result).toEqual({ success: false, error: 'EO-PDF er blokeret af snapshot-kontroller.' });
@@ -688,6 +692,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
       selectedElements: {} as never,
       settings: { ...DEFAULT_APP_SETTINGS, documentDownloadFormat: 'word' },
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result).toEqual({ success: false, error: 'EO-Word kan ikke genereres for den aktuelle sag.' });
@@ -707,6 +712,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result.success).toBe(true);
@@ -738,6 +744,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
       midlertidigtEetGroups,
     });
 
@@ -760,6 +767,7 @@ describe('downloadTafFordeltPaaAarDokument', () => {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateTafFordeltPaaAarPdf).toHaveBeenCalled();
@@ -777,6 +785,7 @@ describe('downloadTafFordeltPaaAarDokument', () => {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result).toEqual({ success: false, error: 'TAF fordelt på år er blokeret af snapshot-kontroller.' });
@@ -795,6 +804,7 @@ describe('downloadTafFordeltPaaAarDokument', () => {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result.success).toBe(true);
@@ -813,6 +823,7 @@ describe('downloadTafKravGrafDokument', () => {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateTafKravGrafPdf).toHaveBeenCalled();
@@ -829,6 +840,7 @@ describe('downloadTafKravGrafDokument', () => {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result).toEqual({ success: false, error: 'Visuel graf over indtægtsniveau er blokeret af snapshot-kontroller.' });
@@ -846,6 +858,7 @@ describe('downloadTafKravGrafDokument', () => {
       eoValues,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result.success).toBe(true);
@@ -866,6 +879,7 @@ describe('downloadTafOpreguleretPaaAarDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateTafOpreguleretPaaAarPdf).toHaveBeenCalled();
@@ -884,6 +898,7 @@ describe('downloadTafOpreguleretPaaAarDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result).toEqual({ success: false, error: 'TAF opreguleret til beregningsåret er blokeret af snapshot-kontroller.' });
@@ -903,6 +918,7 @@ describe('downloadTafOpreguleretPaaAarDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
 
     expect(result.success).toBe(true);
@@ -920,6 +936,7 @@ describe('downloadTafOpreguleretPaaAarDokument', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
+      gate: allowedDocumentGate,
     });
     expect(result.success).toBe(false);
     expect(mockReportSystemIssue).toHaveBeenCalledWith(

@@ -230,6 +230,25 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
   });
 
+  it('blokerer kun differencekravet, når den delte forligsdato har en feltfejl', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: undefined },
+        datoErrorMessage: 'Forligsdatoen er ugyldig',
+        hasInvalidDraft: false,
+      },
+    });
+
+    expect(snapshot.differencekrav.issues).toContainEqual(expect.objectContaining({ id: 'field-forlig-dato' }));
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    expect(snapshot.loebendeYdelser.issues.some((issue) => issue.id === 'field-forlig-dato')).toBe(false);
+    expect(snapshot.kapitalisering.issues.some((issue) => issue.id === 'field-forlig-dato')).toBe(false);
+    expect(snapshot.efterEal.issues.some((issue) => issue.id === 'field-forlig-dato')).toBe(false);
+  });
+
   it('failer lukket med snapshot-issue hvis en EET-beregner kaster runtimefejl', () => {
     const spy = vi.spyOn(eetLoebendeYdelserCalculation, 'computeEetLoebendeYdelser').mockImplementation(() => {
       throw new Error('Injected EET failure');

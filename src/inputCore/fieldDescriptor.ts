@@ -50,15 +50,15 @@ export type CanonicalView = Readonly<{
  * afhænge af mounted componentstate eller AppSettings for et persisteret felt (§3.1).
  */
 export type FieldIssueSpec = Readonly<{
-  reason: 'bounds' | 'rule';
+  reason: 'bounds' | 'rule' | 'schema';
   code: string;
   message: string;
   detail?: Readonly<Record<string, string | number | boolean>>;
 }>;
 
 /**
- * Feltvalidator på en canonical værdi (§1.6): kronologiske/tværgående bounds og feltplacerede domæneregler,
- * som forbliver canonical med et afledt rødt issue (i modsætning til format/range, der er rejected råtekst).
+ * Feltvalidator på en canonical værdi (§1.6): kronologiske/tværgående bounds, feltplacerede domæneregler og
+ * defense-in-depth mod schema-tolerante legacy-strenge, som feltets codec ikke kan fortolke.
  */
 export type RelevanceRule<T> = (field: FieldRef<T>, view: CanonicalView) => boolean;
 

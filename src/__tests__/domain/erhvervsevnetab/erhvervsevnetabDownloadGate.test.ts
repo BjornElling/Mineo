@@ -28,7 +28,7 @@ import type {
 // Greenfield Erhvervsevnetab download-gate (§3.4/§5.4/§1.10, Fase 3-slice). Beviser at gaten:
 //   (a) pr. fane oversætter snapshottets `hasBlockingErrors`/`computation` til den korrekte reason-kode
 //       (field-error vs missing-fields vs no-result vs tilladt), som den tidligere `!hasBlockingErrors && computation`,
-//   (b) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10): et EAL-felt-fejl blokerer KUN EAL-downloaden,
+//   (b) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10), herunder differencekravets EAL-afhængighed,
 //   (c) prioriterer en rød feltfejl over en manglende-felt-fejl,
 //   (d) bygger på den ENE reader-projektion, så gaten og sidevisningen ikke kan drifte fra hinanden.
 
@@ -151,6 +151,17 @@ describe('evaluateEetFaneDownloadGate (ren sandhedstabel)', () => {
       message: 'Beregning kan ikke dannes',
     });
   });
+
+  it('klassificerer en runtime-exception som intern fejl og ikke som brugerens feltfejl', () => {
+    const gate = evaluateEetFaneDownloadGate(
+      'differencekrav',
+      faneProjection([fieldIssue('runtime-exception')], null)
+    );
+    expect(gate.reasons[0]).toEqual({
+      code: 'eet-differencekrav:internal-error',
+      message: 'Beregning kan ikke dannes',
+    });
+  });
 });
 
 // ─── Klassifikationens ét-sande-sted (isEetFieldErrorIssueId) ─────────────────────────────────────
@@ -164,13 +175,16 @@ describe('isEetFieldErrorIssueId', () => {
       'field-asl-afgoerelser',
       'stamdata-date-order:skadedato',
       'forlig-ansvarsgrad-invalid',
-      'runtime-exception',
       'beregningsdato-invalid',
       'eal-eet-pct-invalid',
       'asl-selected-eet-pct-invalid',
     ]) {
       expect(isEetFieldErrorIssueId(id)).toBe(true);
     }
+  });
+
+  it('klassificerer runtime-exception uden for brugerens feltfejl', () => {
+    expect(isEetFieldErrorIssueId('runtime-exception')).toBe(false);
   });
 
   it('klassificerer manglende-/afledte consumer-issues som IKKE-feltfejl', () => {
@@ -199,16 +213,16 @@ describe('evaluateErhvervsevnetabDownloadGates (fra reader-projektionen)', () =>
     expect(gates.differencekrav.canDownload).toBe(true);
   });
 
-  it('§1.10: en ealEetPct-bounds-feltfejl blokerer KUN EET efter EAL-downloaden med field-error', () => {
-    // ealEetPct=150 er uden for 0..100 → rød reader-feltfejl. Kun EAL-fanen aftager ealEetPct, så KUN dens
-    // download må blokeres — løbende ydelser/kapitalisering/differencekrav er upåvirkede (dependency-specifikt).
+  it('§1.10: en ealEetPct-bounds-feltfejl blokerer EET efter EAL og differencekravet', () => {
+    // Differencekravet genbruger EAL-resultatet; de to ASL-faner er uafhængige.
     const projection = buildErhvervsevnetabReaderProjection(
       buildReader({ ...validErhvervsevnetab, ealEetPct: 150 }, validFaellesAarsloen, validStamdata)
     );
     const gates = evaluateErhvervsevnetabDownloadGates(projection);
     expect(gates.efterEal.canDownload).toBe(false);
     expect(gates.efterEal.reasons[0]?.code).toBe('eet-efter-eal:field-error');
-    // Ikke-EAL-faner må ikke overblokeres af et EAL-felt.
+    expect(gates.differencekrav.canDownload).toBe(false);
+    expect(gates.differencekrav.reasons[0]?.code).toBe('eet-differencekrav:field-error');
     expect(gates.loebendeYdelser.reasons.some((r) => r.code === 'eet-efter-eal:field-error')).toBe(false);
     expect(gates.kapitalisering.reasons.some((r) => r.code === 'eet-efter-eal:field-error')).toBe(false);
   });

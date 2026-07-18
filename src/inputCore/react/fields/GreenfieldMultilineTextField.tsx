@@ -27,7 +27,12 @@ export type GreenfieldMultilineTextFieldProps = Readonly<{
 
 const GreenfieldMultilineTextField = React.forwardRef<HTMLDivElement, GreenfieldMultilineTextFieldProps>(
   ({ field, location, width, name, placeholder, disabled, rows, singleStageClick = false, sx, inputRef }, ref) => {
-    const surface = useFormFieldSurface(field, location, { disabled, singleStageClick });
+    const surface = useFormFieldSurface(field, location, {
+      disabled,
+      singleStageClick,
+      // Enter er indhold i et textarea; blur er fortsat den autoritative settle-grænse.
+      settleOnEnter: false,
+    });
 
     const assignInputRef = React.useCallback(
       (node: HTMLTextAreaElement | null) => {

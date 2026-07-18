@@ -3,6 +3,7 @@ import { getYearRangeErrorMessage } from '../../utils/yearDraftCore';
 import { buildPercentRangeErrorMessage } from '../../utils/percentDraftCore';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { FieldValidator } from '../fieldDescriptor';
+import type { FieldCodec } from '../fieldCodec';
 
 // Kravændringen 2026-07-18 (§1.6): en schema-repræsenterbar værdi uden for feltets aktive min/max er IKKE
 // længere rejected råtekst — den committes canonical og bærer et afledt `bounds`-issue fra en feltvalidator.
@@ -17,6 +18,24 @@ const boundsDetail = (
   if (min !== undefined) detail.minValue = min;
   if (max !== undefined) detail.maxValue = max;
   return detail;
+};
+
+/**
+ * Defense-in-depth for string-backed legacy-schemafelter. Tolerant `.eo`-load kan levere en schema-gyldig streng,
+ * som feltets codec ikke kan fortolke (fx "abc" som måned). Parsebare historiske former accepteres; kun en reel
+ * codec-afvisning bliver et canonical schema-issue.
+ */
+export const canonicalStringCodecValidator = (
+  code: string,
+  codec: FieldCodec<string | undefined>
+): FieldValidator<string | undefined> => (value, field) => {
+  if (value === undefined || value.trim() === '') return undefined;
+  if (codec.parseForSettle(value).status === 'valid') return undefined;
+  return {
+    reason: 'schema',
+    code,
+    message: `Der er gemt en ugyldig værdi i feltet ${field.descriptor.label}`,
+  };
 };
 
 /** Canonical bounds-validator for et heltalsfelt (tidligere codec-`range` via `getIntegerRangeErrorMessage`). */

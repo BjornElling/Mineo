@@ -108,6 +108,31 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     expect(discard).not.toHaveBeenCalled();
   });
 
+  it('kasserer først draften efter en vellykket destruktiv inputtransaktion', async () => {
+    const discard = vi.fn();
+    const { editor, settleCount } = makeEditor({ discard });
+    registry.register(editor);
+
+    await expect(coordinator.applyDestructive(() => {
+      store.getState().hydrate(store.getState().input);
+      return 'slettet';
+    })).resolves.toBe('slettet');
+    expect(settleCount()).toBe(0);
+    expect(discard).toHaveBeenCalledOnce();
+  });
+
+  it('bevarer draften, når destruktiv apply fejler eller ikke muterer input', async () => {
+    const discard = vi.fn();
+    const { editor } = makeEditor({ discard });
+    registry.register(editor);
+
+    await expect(coordinator.applyDestructive(() => undefined)).rejects.toThrow(/uden en autoritativ/);
+    await expect(coordinator.applyDestructive(() => { throw new Error('sletning fejlede'); })).rejects.toThrow(
+      'sletning fejlede'
+    );
+    expect(discard).not.toHaveBeenCalled();
+  });
+
   it('gør ingenting med editoren, når den ikke redigerer', async () => {
     const { editor, settleCount } = makeEditor({ isEditing: () => false });
     registry.register(editor);

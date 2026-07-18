@@ -14,7 +14,7 @@ import {
   createRentekravRowId,
 } from '../../domain/renteberegning/rentekravTableModel';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
-import type { InputProjection } from '../../domain/inputIntegrity/inputBlocker';
+import type { ProjectionResult } from '../../inputCore/projection';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -69,7 +69,7 @@ export type BeregnetRenteTableProps = Readonly<{
   /** De committede rækker (læst reader-afledt af forælderen), i den afsluttede rækkefølge. */
   committedRows: readonly RentekravRow[];
   /** Per-række rente-projektion (reader-afledt af forælderen). */
-  rowProjections: ReadonlyMap<string, InputProjection<RentekravRowResult>>;
+  rowProjections: ReadonlyMap<string, ProjectionResult<RentekravRowResult>>;
   onDownloadSpecifikation: (rowId: string) => Promise<void>;
   saveOrderPath?: TableSaveOrderPath;
   isMobile?: boolean;
@@ -81,11 +81,10 @@ type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
 type BeregnetRenteRowProps = Readonly<{
   renderRow: RenderRow;
-  committedRow: RentekravRow;
   rowIndex: number;
   onDownloadSpecifikation: (rowId: string) => Promise<void>;
   onDeleteRow: (rowId: string) => void;
-  projection: InputProjection<RentekravRowResult> | undefined;
+  projection: ProjectionResult<RentekravRowResult> | undefined;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
   documentBlocked: boolean;
@@ -95,7 +94,6 @@ type BeregnetRenteRowProps = Readonly<{
 const BeregnetRenteRow = React.memo(
   ({
     renderRow,
-    committedRow,
     rowIndex,
     onDownloadSpecifikation,
     onDeleteRow,
@@ -109,7 +107,7 @@ const BeregnetRenteRow = React.memo(
     const formatLabel = getDocumentFormatLabel(documentDownloadFormat);
 
     const { actualInterestDate, calculatedInterest, pdfContext } = projection?.status === 'ready'
-      ? projection.data
+      ? projection.value
       : { actualInterestDate: null, calculatedInterest: null, pdfContext: null };
 
     const actualInterestDateDanish = isoToDanish(actualInterestDate ?? undefined) ?? null;
@@ -206,7 +204,7 @@ const BeregnetRenteRow = React.memo(
                 </Typography>
               )}
             </Box>
-            {renderRow.kind === 'existing' && !isRentekravRowEmpty(committedRow) && (
+            {renderRow.kind === 'existing' && (
               <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />
             )}
           </TableCell>
@@ -230,10 +228,6 @@ const BeregnetRenteTable = React.memo(
   }: BeregnetRenteTableProps) => {
     const rows = useCollectionRows<RentekravRow>(rentekravRowsCollectionRef);
 
-    const committedById = React.useMemo(
-      () => new Map(committedRows.map((row) => [row.id, row])),
-      [committedRows]
-    );
 
     const sortColumns = React.useMemo(() => [
       { colId: 'belob', getSortValue: (row: RentekravRow) => amountValueToNumber(row.belob) },
@@ -388,12 +382,10 @@ const BeregnetRenteTable = React.memo(
         </TableHead>
         <TableBody>
           {renderRows.map((renderRow, rowIndex) => {
-            const committedRow = committedById.get(renderRow.rowId) ?? createEmptyRentekravCommittedRow(renderRow.rowId);
             return (
               <BeregnetRenteRow
                 key={renderRow.rowId}
                 renderRow={renderRow}
-                committedRow={committedRow}
                 rowIndex={rowIndex}
                 onDownloadSpecifikation={onDownloadSpecifikation}
                 onDeleteRow={rows.remove}

@@ -69,6 +69,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
         latestReferenceRateDate,
         metadata: MINPROCESRENTE_PDF_METADATA,
       });
+    if (!isSourceCurrent()) return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
     triggerDocumentDownload(artifact);
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
@@ -102,6 +103,7 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
         latestReferenceRateDate,
         metadata: MINPROCESRENTE_PDF_METADATA,
       });
+    if (!isSourceCurrent()) return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
     triggerDocumentDownload(artifact);
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
@@ -180,6 +182,7 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       : 'Procesrente-specifikationer';
     const suffix = rows.length > 1 ? ` +${rows.length - 1}` : '';
     const filename = resolveDocumentArtifactFileName(`${baseTitle}${suffix}`, false);
+    if (!isSourceCurrent()) return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
     triggerDocumentDownload({ blob, filename });
 
     return PDF_DOWNLOAD_SUCCESS;

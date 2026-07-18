@@ -23,7 +23,7 @@ import type {
 // EKSISTERENDE `computeEetSnapshot` byte-identisk på reader-læste værdier (§5.4 hårdt stop mod talændring, inkl. den
 // rekonstruerede aslAfgoerelser-collection), (b) fører canonical bounds-feltfejl (§1.6) på ealEetPct + rækkeceller ind
 // i snapshottets per-fane-gate, og (c) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10): en ealEetPct-fejl
-// blokerer KUN EET-efter-EAL-fanen, mens de øvrige faner bevares — som legacy.
+// blokerer EET-efter-EAL og differencekravet, som genbruger EAL-resultatet, mens de ASL-uafhængige faner bevares.
 
 const catalog = getProductionInputCatalog();
 
@@ -111,12 +111,11 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     });
 
     expect(projection.snapshot).toEqual(expected);
-    expect(projection.hadReaderFieldError).toBe(false);
     expect(projection.snapshot.efterEal.hasBlockingErrors).toBe(false);
     expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(false);
   });
 
-  it('fører en canonical bounds-feltfejl på ealEetPct (uden for 0..100) ind som field-eal-eet-pct KUN på EET efter EAL (§1.6/§1.10)', () => {
+  it('fører en canonical bounds-feltfejl på ealEetPct ind på EET efter EAL og differencekrav', () => {
     // ealEetPct=150 er over bounds → readeren skjuler værdien og rejser en rød feltfejl. Kun EAL-fanen aftager
     // ealEetPct, så field-eal-eet-pct-issuet må KUN optræde dér — de øvrige faner er upåvirkede af feltet (§1.10).
     // (Løbende ydelser bærer for dette midlertidige-afgørelses-fixture kun en warning; det påvises separat.)
@@ -127,12 +126,12 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     );
     const projection = buildErhvervsevnetabReaderProjection(reader);
 
-    expect(projection.hadReaderFieldError).toBe(true);
     expect(projection.snapshot.efterEal.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(true);
-    // §1.10: field-eal-eet-pct må ALDRIG lække til de EAL-uafhængige faner.
+    // Løbende ydelser og kapitalisering er EAL-uafhængige; differencekrav genbruger EAL-resultatet.
     expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(false);
     expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(false);
-    expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(false);
+    expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(true);
+    expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(true);
     // Løbende ydelser er ikke blokeret af ealEetPct — kun en (uændret) EET-warning fra 2024-fixturet.
     expect(projection.snapshot.loebendeYdelser.hasBlockingErrors).toBe(false);
   });
@@ -149,7 +148,10 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       validStamdata
     );
     const projection = buildErhvervsevnetabReaderProjection(reader);
-    expect(projection.hadReaderFieldError).toBe(true);
+    expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
+    expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
+    expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
+    expect(projection.snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
   });
 
   it('fører ASL-årsløns-domænereglen (ikke delelig med 1.000) ind på faellesAarsloen.aslAarsloen (§1.10)', () => {
@@ -204,7 +206,6 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       validStamdata
     );
     const projection = buildErhvervsevnetabReaderProjection(reader);
-    expect(projection.hadReaderFieldError).toBe(true);
     expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-beregningsdato')).toBe(true);
     expect(projection.snapshot.efterEal.issues.some((i) => i.id === 'field-beregningsdato')).toBe(true);
     expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'field-beregningsdato')).toBe(true);

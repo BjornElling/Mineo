@@ -1,8 +1,7 @@
 /**
  * Bro mellem den greenfield Fase-2 input-kerne (`src/input/inputProjection.ts`) og det tværgående
- * dokument-gate-primitiv (`documentGateTypes.ts`). Søster til `domain/inputIntegrity/inputBlockerGate.ts`,
- * men bygget på den fælles `InputProjection`/`InputIssue`-model i stedet for den hånd-rullede
- * inputIntegrity-kontrakt. Domæner, der er migreret til input-kernen, bygger deres
+ * dokument-gate-primitiv (`documentGateTypes.ts`). Den bygger på den fælles `InputProjection`/`InputIssue`-model;
+ * domæner, der endnu bruger denne tidligere projektionsgeneration, bygger deres
  * `DocumentDownloadGateResult` herfra.
  *
  * Ethvert dokument-blokerende issue (severity `error`) på projektionen blokerer download — både

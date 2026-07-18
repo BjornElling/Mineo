@@ -99,6 +99,32 @@ export class CriticalActionCoordinator {
     return replacement;
   }
 
+  /**
+   * Udfører en bekræftet destruktiv deltransaktion uden først at settle editoren. Draften kasseres først efter
+   * et succesfuldt apply; en exception bevarer både afsluttet input og editor. Bruges kun til sektionsafgrænset
+   * "Slet alle indtastninger", hvor hel-sags-replacement-generationen ikke skal flyttes.
+   */
+  applyDestructive<T>(apply: () => T | Promise<T>): Promise<T> {
+    const operation = this.preparationTail
+      .catch(() => undefined)
+      .then(async () => {
+        const generationBefore = this.store.getState().replacementGeneration;
+        const revisionBefore = this.store.getState().revision;
+        const result = await apply();
+        const stateAfter = this.store.getState();
+        if (
+          stateAfter.revision === revisionBefore
+          && stateAfter.replacementGeneration === generationBefore
+        ) {
+          throw new Error('Destruktiv apply afsluttede uden en autoritativ inputtransaktion');
+        }
+        this.registry.getEditing()?.discard();
+        return result;
+      });
+    this.preparationTail = operation.catch(() => undefined);
+    return operation;
+  }
+
   private async prepareSerial(action: CriticalAction): Promise<CriticalActionPreparationResult> {
     const editor = this.registry.getEditing();
 

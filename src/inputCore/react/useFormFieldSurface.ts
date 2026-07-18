@@ -41,6 +41,8 @@ export type FormFieldSurfaceConfig = Readonly<{
   gateKeyFilterOnIssue?: boolean;
   /** Sæt caret efter en åben-editor-splice-paste (dato/beløb/brøk). */
   setPasteCaret?: boolean;
+  /** Flerlinjede tekstfelter indsætter linjeskift; enkeltlinjefelter settler på Enter. */
+  settleOnEnter?: boolean;
 
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -79,7 +81,14 @@ export const useFormFieldSurface = <T>(
   location: EditorLocation,
   config: FormFieldSurfaceConfig = {}
 ): FormFieldSurface<T> => {
-  const { disabled = false, singleStageClick = false, keyFilter, gateKeyFilterOnIssue = false, setPasteCaret = false } = config;
+  const {
+    disabled = false,
+    singleStageClick = false,
+    keyFilter,
+    gateKeyFilterOnIssue = false,
+    setPasteCaret = false,
+    settleOnEnter = true,
+  } = config;
 
   const inputElementRef = React.useRef<HTMLInputElement>(null);
   const focusTarget = React.useMemo(
@@ -98,8 +107,26 @@ export const useFormFieldSurface = <T>(
 
   // En stabil ref til det aktuelle {controller, config-callbacks}, så event-handlerne kan være stabile uden at
   // churne på hver render (controlleren giver friske callbacks pr. render).
-  const latest = React.useRef({ controller, config, keyFilter, gateKeyFilterOnIssue, setPasteCaret, disabled, singleStageClick });
-  latest.current = { controller, config, keyFilter, gateKeyFilterOnIssue, setPasteCaret, disabled, singleStageClick };
+  const latest = React.useRef({
+    controller,
+    config,
+    keyFilter,
+    gateKeyFilterOnIssue,
+    setPasteCaret,
+    disabled,
+    singleStageClick,
+    settleOnEnter,
+  });
+  latest.current = {
+    controller,
+    config,
+    keyFilter,
+    gateKeyFilterOnIssue,
+    setPasteCaret,
+    disabled,
+    singleStageClick,
+    settleOnEnter,
+  };
 
   // Draft-ændring er ren draft-mutation (§1.2): ingen normalisering under redigering, så browserens egen caret
   // holder. Feltfamilier, der normaliserer draften løbende (fx beløbs-tusindpunktummer), tilføjer den mapping
@@ -188,7 +215,7 @@ export const useFormFieldSurface = <T>(
       return;
     }
 
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && latest.current.settleOnEnter) {
       e.preventDefault();
       ctl.settle();
       cfg.onKeyDown?.(e);

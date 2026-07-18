@@ -4,12 +4,11 @@
 migrationsgrundlag. Fase 0–4 har leveret nyttige karakteriseringstests, codecs, inventarer og tekniske erfaringer, men
 ingen af faserne betragtes længere som en færdig del af målarkitekturen. Implementeringen skal rebaseres efter §8.
 
-**Implementeringsstatus (rebase):** Fase 0 og 1 blev gennemført, reviewet og kvalitetssikret 2026-07-16. Kravændringen
-2026-07-18 genåbner en afgrænset del af fase 1: greenfield-codecs afviser fortsat visse parsebare out-of-bounds-værdier,
-og `blocksEoSave` blokerer fortsat alle feltissues. Begge dele skal rettes til den strukturelle rejected/canonical-
-sondring i §1.6, før de berørte slices er afsluttet. Legacy-save-gaten har allerede den ønskede adfærd via sondringen
-mellem ikke-committbart råinput og canonical feltfejl. Fase 2 er påbegyndt og blev kritisk reviewet 2026-07-17; den er
-ikke færdig. Reviewet fjernede den utilsigtede parallelle
+**Implementeringsstatus (rebase):** Fase 0 og 1 blev gennemført, reviewet og kvalitetssikret 2026-07-16. Den afgrænsede
+kravændring 2026-07-18 er indarbejdet: parsebare out-of-bounds-værdier committes canonical med afledte bounds-issues,
+mens `.eo`-save kun blokeres af aktivt rejected råinput. String-backed felter validerer desuden tolerant indlæste
+canonical strenge gennem deres codec, så schema-tolerance ikke kan føre ufortolkelige værdier til consumers.
+Fase 2 er påbegyndt og blev senest kritisk reviewet 2026-07-18; den er ikke færdig. Det første review fjernede den utilsigtede parallelle
 produktionsruntime, så Mineo nu kun monterer greenfield-runtime, mens standalone alene beholder legacy-runtime frem
 til den atomiske Renteberegning-cutover. Runtime, current-envelope, command-runner, aktiv-editor-registry, fælles
 form-surface og det strukturelle produktkatalog er etableret. Stamdata, Satser, Årsløn, Renteberegning (hovedapp +
@@ -33,6 +32,14 @@ og dynamiske datogrænser, periodeorden som feltissues, inputdrevet relevans, gr
 rejected-only-rækkesletning, byte-verificeret rollback, settingssnapshot og frisk dokumentpreflight. Katalogets
 paths/counts er komplette, men editorlokationer, relevans, validators, row factories og collection-adaptere er kun
 adfærdskomplette for de migrerede slices; de resterende callsite-cutovers udestår fortsat.
+
+Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og fjernede den parallelle
+`domain/inputIntegrity`-blockermodel. Det rettede desuden manglende feltgrænser i Renteberegning, Varige mén og
+Erhvervsevnetab, dependency-gating i differencekravet, ASL-rækkefejl fra readeren, fail-closed dokumentgates,
+multiline-Enter, rejected-only-rækkesletning, destruktiv reset uden forudgående settle og stale async downloads.
+Hovedshellens atomiske navigation-/undo-cutover, fuld lokationsbaseret fokusrestore og de resterende
+Erhvervsevnetab-/Erstatningsopgørelse-callsites hører fortsat til de udestående cutovers; shellen må ikke skifte
+koordinator, før både legacy- og greenfield-editorer kan dækkes af den samme slutmodel.
 
 Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er

@@ -47,7 +47,7 @@ describe('buildRenteberegningReaderProjection', () => {
     const row = createRow('r1');
     const reader = buildReaderForRows([row], '2024-12-31');
     const projection = buildRenteberegningReaderProjection({
-      reader, referenceRates, surchargeRates, revision: 1,
+      reader, referenceRates, surchargeRates,
     });
 
     const rowProjection = projection.rowProjections.get('r1');
@@ -56,30 +56,30 @@ describe('buildRenteberegningReaderProjection', () => {
     // Golden: præcis samme motor-resultat som en direkte kald med den committede række.
     const expected = computeRentekravRow(row, toISODateString('2024-12-31'), referenceRates, surchargeRates);
     if (rowProjection?.status !== 'ready') throw new Error('forventede ready');
-    expect(rowProjection.data).toEqual(expected);
+    expect(rowProjection.value).toEqual(expected);
     expect(projection.aggregateProjection.status).toBe('ready');
   });
 
   it('isolerer per-række: to gyldige rækker er begge ready, og aggregatet er ready', () => {
     const reader = buildReaderForRows([createRow('r1'), createRow('r2')], '2024-12-31');
     const projection = buildRenteberegningReaderProjection({
-      reader, referenceRates, surchargeRates, revision: 1,
+      reader, referenceRates, surchargeRates,
     });
     expect(projection.rowProjections.get('r1')?.status).toBe('ready');
     expect(projection.rowProjections.get('r2')?.status).toBe('ready');
     expect(projection.aggregateProjection.status).toBe('ready');
     if (projection.aggregateProjection.status !== 'ready') throw new Error('forventede ready');
-    expect(projection.aggregateProjection.data.pdfContexts.size).toBe(2);
+    expect(projection.aggregateProjection.value.pdfContexts.size).toBe(2);
   });
 
   it('en tom række indgår ikke i aggregatets pdfContexts eller anyRowHasError', () => {
     const emptyRow: RentekravRow = { id: 'r-empty', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage' };
     const reader = buildReaderForRows([createRow('r1'), emptyRow], '2024-12-31');
     const projection = buildRenteberegningReaderProjection({
-      reader, referenceRates, surchargeRates, revision: 1,
+      reader, referenceRates, surchargeRates,
     });
     if (projection.aggregateProjection.status !== 'ready') throw new Error('forventede ready');
-    expect(projection.aggregateProjection.data.pdfContexts.size).toBe(1);
-    expect(projection.aggregateProjection.data.anyRowHasError).toBe(false);
+    expect(projection.aggregateProjection.value.pdfContexts.size).toBe(1);
+    expect(projection.aggregateProjection.value.anyRowHasError).toBe(false);
   });
 });

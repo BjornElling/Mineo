@@ -81,6 +81,7 @@ describe('downloadStandaloneRentePdf', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockGenerateRentePdf.mockReset();
     mockGenerateRentePdf.mockResolvedValue({ blob: new Blob(), filename: 'rente.pdf' });
+    mockTriggerDocumentDownload.mockClear();
   });
 
   afterEach(() => {
@@ -135,6 +136,26 @@ describe('downloadStandaloneRentePdf', () => {
     // fejl logges lokalt med console.error (jf. minprocesrenteStandaloneIsolation-guard).
     expect(consoleErrorSpy).toHaveBeenCalledWith('Kunne ikke generere rente-PDF', expect.any(Error));
   });
+
+  it('starter ikke download, hvis input ændres under genereringen', async () => {
+    let current = true;
+    mockGenerateRentePdf.mockImplementationOnce(async () => {
+      current = false;
+      return { blob: new Blob(), filename: 'rente.pdf' };
+    });
+
+    const result = await downloadStandaloneRentePdf({
+      beloeb: 1000,
+      actualInterestDate: '01-01-2024',
+      beregningsdato: toISODateString('2024-06-30'),
+      periods: [makePeriod()],
+      latestReferenceRateDate: null,
+      isSourceCurrent: () => current,
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+  });
 });
 
 describe('downloadStandaloneRenteOversigtPdf', () => {
@@ -144,6 +165,7 @@ describe('downloadStandaloneRenteOversigtPdf', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockGenerateRenteOversigtPdf.mockReset();
     mockGenerateRenteOversigtPdf.mockResolvedValue({ blob: new Blob(), filename: 'oversigt.pdf' });
+    mockTriggerDocumentDownload.mockClear();
   });
 
   afterEach(() => {
@@ -175,6 +197,23 @@ describe('downloadStandaloneRenteOversigtPdf', () => {
         },
       }
     );
+  });
+
+  it('starter ikke download, hvis input ændres under genereringen', async () => {
+    let current = true;
+    mockGenerateRenteOversigtPdf.mockImplementationOnce(async () => {
+      current = false;
+      return { blob: new Blob(), filename: 'oversigt.pdf' };
+    });
+
+    const result = await downloadStandaloneRenteOversigtPdf({
+      beregningsdato: toISODateString('2024-07-01'),
+      rows: [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 60.87 }],
+      isSourceCurrent: () => current,
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 });
 
@@ -255,5 +294,21 @@ describe('downloadAllStandaloneRentePdf', () => {
     expect(mockWriter.build).not.toHaveBeenCalled();
     // Lokal console.error (ikke central systemIssueReporter) pga. standalone-isolation.
     expect(consoleErrorSpy).toHaveBeenCalledWith('Kunne ikke generere rente-PDF', expect.any(Error));
+  });
+
+  it('starter ikke download, hvis input ændres under renderingen', async () => {
+    let current = true;
+    mockWriter.build.mockImplementationOnce(async () => {
+      current = false;
+      return new Blob();
+    });
+
+    const result = await downloadAllStandaloneRentePdf({
+      rows: [ROW],
+      isSourceCurrent: () => current,
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 });

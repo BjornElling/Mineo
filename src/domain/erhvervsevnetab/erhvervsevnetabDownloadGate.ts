@@ -59,6 +59,9 @@ export const evaluateEetFaneDownloadGate = (
 ): DocumentDownloadGateResult => {
   const codePrefix = GATE_CODE_PREFIX[fane];
   if (projection.hasBlockingErrors) {
+    if (projection.issues.some((issue) => issue.id === 'runtime-exception')) {
+      return blockDocumentDownload({ code: `${codePrefix}:internal-error`, message: 'Beregning kan ikke dannes' });
+    }
     const hasFieldError = projection.issues.some(
       (issue) => issue.severity === 'error' && isEetFieldErrorIssueId(issue.id)
     );

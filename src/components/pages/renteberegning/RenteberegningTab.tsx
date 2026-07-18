@@ -20,7 +20,6 @@ import SpecifikationDownloadBox from './SpecifikationDownloadBox';
 import DownloadIconButton from '../../inputs/DownloadIconButton';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
-import { documentGateFromBlockers } from '../../../domain/inputIntegrity/inputBlockerGate';
 import { blockDocumentDownload } from '../../../document/layout/documentGateTypes';
 import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
@@ -66,7 +65,7 @@ export interface RenteberegningTabProps {
   pdfErrorMessage: string | null;
   onDownloadAllSpecifikationer?: (
     contexts: RentekravPdfContextMap,
-    isSourceCurrent: () => boolean
+    shared: RenteDocumentSharedSnapshot
   ) => Promise<void>;
   downloadAllErrorMessage?: string | null;
   onDownloadOversigt?: (
@@ -118,7 +117,6 @@ const RenteberegningTab = React.memo(({
       reader: evaluation.reader,
       referenceRates,
       surchargeRates,
-      revision: evaluation.issues.sourceToken.inputRevision,
     }),
     [evaluation, referenceRates, surchargeRates]
   );
@@ -130,7 +128,7 @@ const RenteberegningTab = React.memo(({
   const kommentarer = kommentarerRead.status === 'usable' ? kommentarerRead.value : undefined;
 
   const aggregateData = projection.aggregateProjection.status === 'ready'
-    ? projection.aggregateProjection.data
+    ? projection.aggregateProjection.value
     : null;
   const hasValidPdfContexts = (aggregateData?.pdfContexts.size ?? 0) > 0;
   const anyRowHasError = aggregateData?.anyRowHasError ?? false;
@@ -143,7 +141,6 @@ const RenteberegningTab = React.memo(({
       reader: source.evaluation.reader,
       referenceRates,
       surchargeRates,
-      revision: source.evaluation.issues.sourceToken.inputRevision,
     });
     const freshBeregningsdatoRead = source.evaluation.reader.read(beregningsdatoRef);
     const freshBeregningsdato = freshBeregningsdatoRead.status === 'usable' ? freshBeregningsdatoRead.value : undefined;
@@ -169,8 +166,8 @@ const RenteberegningTab = React.memo(({
     if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
     if (shared.stamdataProjection?.status === 'blocked') return;
     const rowProjection = fresh.rowProjections.get(rowId);
-    if (rowProjection?.status !== 'ready' || rowProjection.data.pdfContext === null) return;
-    await onDownloadSpecifikation(rowProjection.data.pdfContext, shared);
+    if (rowProjection?.status !== 'ready' || rowProjection.value.pdfContext === null) return;
+    await onDownloadSpecifikation(rowProjection.value.pdfContext, shared);
   }, [captureFreshProjection, criticalActions, onDownloadSpecifikation]);
 
   const handleDownloadAll = React.useCallback(async () => {
@@ -185,15 +182,15 @@ const RenteberegningTab = React.memo(({
     if (fresh.aggregateProjection.status !== 'ready') return;
     const latest = fresh.aggregateProjection;
     const gate = evaluateDownloadAllGate({
-      hasValidPdfContexts: latest.data.pdfContexts.size > 0,
-      anyRowHasError: latest.data.anyRowHasError,
+      hasValidPdfContexts: latest.value.pdfContexts.size > 0,
+      anyRowHasError: latest.value.anyRowHasError,
       beregningsdatoHasError: false,
     });
     if (!gate.canDownload) return;
 
     setDownloadAllIsLoading(true);
     try {
-      await onDownloadAllSpecifikationer(latest.data.pdfContexts, shared.isSourceCurrent);
+      await onDownloadAllSpecifikationer(latest.value.pdfContexts, shared);
     } finally {
       setDownloadAllIsLoading(false);
     }
@@ -214,19 +211,19 @@ const RenteberegningTab = React.memo(({
     const latest = fresh.aggregateProjection;
     const gate = evaluateOversigtDownloadGate({
       beregningsdato: freshBeregningsdato,
-      hasValidPdfContexts: latest.data.pdfContexts.size > 0,
-      anyRowHasError: latest.data.anyRowHasError,
+      hasValidPdfContexts: latest.value.pdfContexts.size > 0,
+      anyRowHasError: latest.value.anyRowHasError,
       beregningsdatoHasError: false,
     });
     if (!gate.canDownload) return;
 
     let latestReferenceRateDate: ISODateString | null = null;
-    const rows: RenteOversigtRow[] = Array.from(latest.data.pdfContexts.values()).map((ctx) => ({
+    const rows: RenteOversigtRow[] = Array.from(latest.value.pdfContexts.values()).map((ctx) => ({
       beloeb: ctx.beloeb,
       renterFra: ctx.actualInterestDate,
       beregnetRente: ctx.calculatedInterest,
     }));
-    for (const ctx of latest.data.pdfContexts.values()) {
+    for (const ctx of latest.value.pdfContexts.values()) {
       if (ctx.latestReferenceRateDate === null) continue;
       if (latestReferenceRateDate === null || ctx.latestReferenceRateDate > latestReferenceRateDate) {
         latestReferenceRateDate = ctx.latestReferenceRateDate;
@@ -245,7 +242,10 @@ const RenteberegningTab = React.memo(({
       });
     }
     if (projection.aggregateProjection.status === 'blocked') {
-      return documentGateFromBlockers(projection.aggregateProjection.blockers, 'renteberegning');
+      return blockDocumentDownload({
+        code: 'renteberegning:field-error',
+        message: projection.aggregateProjection.issues[0]?.message ?? 'Fejl i indtastning',
+      });
     }
     return evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
   }, [anyRowHasError, hasValidPdfContexts, projection.aggregateProjection, stamdataProjection]);
@@ -259,7 +259,10 @@ const RenteberegningTab = React.memo(({
       });
     }
     if (projection.aggregateProjection.status === 'blocked') {
-      return documentGateFromBlockers(projection.aggregateProjection.blockers, 'renteberegning');
+      return blockDocumentDownload({
+        code: 'renteberegning:field-error',
+        message: projection.aggregateProjection.issues[0]?.message ?? 'Fejl i indtastning',
+      });
     }
     return evaluateOversigtDownloadGate({ beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
   }, [anyRowHasError, beregningsdato, hasValidPdfContexts, projection.aggregateProjection, stamdataProjection]);
@@ -277,11 +280,12 @@ const RenteberegningTab = React.memo(({
   }, [beregningsdato, committedRows, kommentarer]);
   const clearAllDisabled = !hasAnyCommittedInput;
 
-  const handleClearAll = React.useCallback(() => {
-    // §1.4: reset gennemføres uden settle. ConfirmationDialog betyder ingen åben editor, så en direkte
-    // resetSection gennem system-porten er tilstrækkelig (undoable, som legacy resetForm).
-    runtime.resetSection(resetSection('renteberegning', { rentekravRows: [] }));
-  }, [runtime]);
+  const handleClearAll = React.useCallback(async () => {
+    // Draften forbliver urørt, mens dialogen er åben. Først efter bekræftelse gennemføres reset atomisk; ved
+    // storagefejl forbliver både den afsluttede tilstand og editoren uændret.
+    await criticalActions.applyDestructive(() =>
+      runtime.resetSection(resetSection('renteberegning', { rentekravRows: [] })));
+  }, [criticalActions, runtime]);
 
   return (
     <Box>
@@ -378,6 +382,7 @@ const RenteberegningTab = React.memo(({
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                 <IconButton
                   onClick={() => setClearAllDialogOpen(true)}
+                  onMouseDown={(event) => event.preventDefault()}
                   disabled={clearAllDisabled}
                   aria-label="Slet alle indtastninger"
                   size="small"
@@ -444,9 +449,9 @@ const RenteberegningTab = React.memo(({
           confirmText="Ja, slet"
           cancelText="Annuller"
           confirmColor="error"
+          preserveExternalFocus
           onConfirm={() => {
-            handleClearAll();
-            setClearAllDialogOpen(false);
+            void handleClearAll().then(() => setClearAllDialogOpen(false));
           }}
           onCancel={() => setClearAllDialogOpen(false)}
         />

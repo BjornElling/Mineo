@@ -71,8 +71,8 @@ describe('MinProcesrente standalone isolation', () => {
     expect(source).not.toContain('usePersistedSectionSelector("stamdata")');
     expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]stamdata['"]/);
     expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]indstillinger['"]/);
-    // Standalone bruger fortsat KUN renteberegning-sektionen — nu via greenfield-inputCore's
-    // renteberegning-descriptors (§2.4 trin 4), ikke en legacy `usePersistedForm('renteberegning')`-streng.
-    expect(source).toMatch(/renteberegning(Descriptors|Kommentarer)/);
+    // Standalone bruger fortsat KUN renteberegning-sektionen. Den konkrete descriptor læses nu i den delte
+    // Renteberegning-surface, mens den isolerede PDF-adapter kun modtager allerede projekterede data.
+    expect(source).toMatch(/RenteberegningTab/);
   });
 });

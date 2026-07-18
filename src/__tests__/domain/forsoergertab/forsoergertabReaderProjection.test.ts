@@ -74,7 +74,6 @@ describe('buildForsoergertabReaderProjection', () => {
     });
     expect(projection.snapshot.calculation.result).toEqual(expected.calculation.result);
     expect(projection.snapshot.pdfGate.canDownload).toBe(true);
-    expect(projection.hadReaderFieldError).toBe(false);
   });
 
   it('fører en canonical bounds-feltfejl (tilkendt periode uden for 1..10) ind i gaten og blokerer (§1.6)', () => {
@@ -84,7 +83,6 @@ describe('buildForsoergertabReaderProjection', () => {
       validStamdata
     );
     const projection = buildForsoergertabReaderProjection(reader);
-    expect(projection.hadReaderFieldError).toBe(true);
     expect(projection.snapshot.fieldUi.tilkendtForPeriodeAar.hasError).toBe(true);
     expect(projection.snapshot.pdfGate.canDownload).toBe(false);
   });
@@ -115,7 +113,6 @@ describe('buildForsoergertabReaderProjection', () => {
       }
     );
     const projection = buildForsoergertabReaderProjection(reader);
-    expect(projection.hadReaderFieldError).toBe(true);
     expect(projection.snapshot.pdfGate.canDownload).toBe(false);
   });
 
@@ -126,7 +123,6 @@ describe('buildForsoergertabReaderProjection', () => {
       validStamdata
     );
     const projection = buildForsoergertabReaderProjection(reader);
-    expect(projection.hadReaderFieldError).toBe(false);
     expect(projection.snapshot.canShowEal).toBe(false);
     expect(projection.snapshot.canShowAsl).toBe(false);
     expect(projection.snapshot.pdfGate.canDownload).toBe(false);

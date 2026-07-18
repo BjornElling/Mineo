@@ -16,16 +16,31 @@ import {
 import {
   aarsloenLoenperiodeField,
   aarsloenTableCol0DagField,
+  aarsloenTableCol0MaanedField,
   aarsloenTableCol0UgeField,
   aarsloenTableCol1DagField,
   aarsloenTableCol1UgeField,
 } from '../../../inputCore/catalog/aarsloenDescriptors';
+import {
+  renteberegningBeregningsdatoField,
+  rentekravRenterFraField,
+  rentekravRowsCollectionRef,
+  rentekravTillaegstidField,
+} from '../../../inputCore/catalog/renteberegningDescriptors';
+import {
+  aslAfgoerelseAfgoerelsesDatoField,
+  aslAfgoerelseEetPctField,
+  erhvervsevnetabAslAfgoerelserCollectionRef,
+  erhvervsevnetabEalEetPctField,
+} from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
 } from '../../../inputCore/catalog/stamdataDescriptors';
 import { createEmptyStandardLoenRow } from '../../../domain/aarsloen/standardLoenRowInitialValues';
+import { createEmptyAslAfgoerelseRow } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { createEmptyRentekravCommittedRow } from '../../../domain/renteberegning/rentekravTableModel';
 import { createCollectionRef } from '../../../inputCore/fieldAddress';
 import { toISODateString } from '../../../types/branded';
 
@@ -95,5 +110,43 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'maaned'));
     expect(input.rejectedInputs[address]).toBeUndefined();
     expect(evaluate(input).reader.read(aarsloenTableCol0DagField.bind('r1'))).toMatchObject({ status: 'usable' });
+  });
+
+  it('afviser schema-gyldige, men codec-ugyldige strengværdier fra tolerant load', () => {
+    const row = { ...createEmptyStandardLoenRow('r1'), col0_maaned: 'ugyldig' };
+    let input = dispatch(empty(), insertRow(tableRef, row));
+    input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'maaned'));
+
+    expect(evaluate(input).reader.read(aarsloenTableCol0MaanedField.bind('r1'))).toMatchObject({
+      status: 'error',
+      issue: { reason: 'schema' },
+    });
+  });
+
+  it('håndhæver Renteberegnings globale og rækkeafhængige grænser', () => {
+    let input = dispatch(empty(), settleField(renteberegningBeregningsdatoField.bind(), '01-01-2004'));
+    expect(evaluate(input).reader.read(renteberegningBeregningsdatoField.bind()).status).toBe('error');
+
+    input = dispatch(empty(), settleField(renteberegningBeregningsdatoField.bind(), '01-01-2024'));
+    input = dispatch(input, insertRow(rentekravRowsCollectionRef, createEmptyRentekravCommittedRow('r1')));
+    input = dispatch(input, settleField(rentekravRenterFraField.bind('r1'), '02-01-2024'));
+    input = dispatch(input, settleField(rentekravTillaegstidField.bind('r1'), '100'));
+    expect(evaluate(input).reader.read(rentekravRenterFraField.bind('r1')).status).toBe('error');
+    expect(evaluate(input).reader.read(rentekravTillaegstidField.bind('r1')).status).toBe('error');
+  });
+
+  it('håndhæver EET-tabellens dato- og femprocentsregler i descriptorlaget', () => {
+    let input = dispatch(empty(), insertRow(
+      erhvervsevnetabAslAfgoerelserCollectionRef,
+      { ...createEmptyAslAfgoerelseRow(), id: 'r1' }
+    ));
+    input = dispatch(input, settleField(aslAfgoerelseAfgoerelsesDatoField.bind('r1'), '31-12-2004'));
+    input = dispatch(input, settleField(aslAfgoerelseEetPctField.bind('r1'), '12'));
+    input = dispatch(input, settleField(erhvervsevnetabEalEetPctField.bind(), '12'));
+    const evaluation = evaluate(input);
+
+    expect(evaluation.reader.read(aslAfgoerelseAfgoerelsesDatoField.bind('r1')).status).toBe('error');
+    expect(evaluation.reader.read(aslAfgoerelseEetPctField.bind('r1')).status).toBe('error');
+    expect(evaluation.reader.read(erhvervsevnetabEalEetPctField.bind()).status).toBe('error');
   });
 });

@@ -62,7 +62,7 @@ const missingIssue = <V>(consumerId: string, field: FieldRef<V>): ConsumerIssue 
 export const runProjection = <T>(
   reader: InputReader,
   consumerId: string,
-  body: (collector: ProjectionCollector) => T
+  body: (collector: ProjectionCollector) => T | undefined
 ): ProjectionResult<T> => {
   const issues: (FieldIssue | ConsumerIssue)[] = [];
   const warnings: Warning[] = [];
@@ -121,6 +121,9 @@ export const runProjection = <T>(
       warnings: Object.freeze([...warnings]),
       sourceToken: reader.sourceToken,
     });
+  }
+  if (value === undefined) {
+    throw new Error(`Projektionen ${consumerId} returnerede ingen værdi uden at registrere en blokering`);
   }
   return Object.freeze({
     status: 'ready',
