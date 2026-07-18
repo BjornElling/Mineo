@@ -115,14 +115,15 @@ property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter
 2. Rejected inputs, åbne drafts, UI-state, device-lokale defaults, issues, history og afledte værdier inkluderes ikke.
 3. Skjult canonical input gemmes, medmindre brugeren eksplicit har slettet det.
 4. Save må først læse input efter `prepare('save')=committed` fra den kritiske handlingsbarriere.
-5. Save-projektionen skal være `ready`; rejected input eller øvrige save-blokeringer stopper før fil-I/O.
+5. Save-projektionen skal være `ready`: den kræver fravær af rejected input og et schema-gyldigt canonical snapshot,
+   men blokeres ikke af afledte issues på canonical værdier.
 6. Canonical snapshot valideres med de samme Zod-schemas som load.
 7. Artefaktet bygges og verificeres før sink. In-memory download verificeres før browserdownload; en read-back-sink
    verificeres mod de faktisk skrevne bytes.
 
-`.eo`-save-gaten er uniform: enhver aktiv rød feltfejl blokerer save globalt, herunder et afledt rødt range-/bounds-
-issue på en ellers schema-gyldig canonical værdi. En sådan værdi må ikke gemmes, før fejlen er rettet (se
-`form-contract.md` §8). `missing` og warnings blokerer aldrig save.
+`.eo`-save-gaten er strukturel: ethvert aktivt relevant rejected input blokerer save globalt og skrives aldrig til
+filen. Et afledt rødt range-/bounds-/rule-issue på en ellers schema-gyldig canonical værdi blokerer ikke save; værdien
+gemmes uændret. `missing` og warnings blokerer heller aldrig save (se `form-contract.md` §8).
 
 Sektionsschemas validerer canonical syntaks, shape og sikker numerisk repræsentation — ikke feltets fortegn, min/max,
 tværfeltsrelationer eller øvrige domæneregler. Sådanne regler afledes som issues fra samme canonical snapshot og må

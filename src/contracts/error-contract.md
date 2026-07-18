@@ -18,20 +18,20 @@ Et issue skal mindst kunne bære:
 - deterministisk dansk besked,
 - eventuel domænedetalje.
 
-Et issue bærer **ingen** `blocksSave`- eller `blocksProjection`-boolean. Konsekvensen udledes strukturelt af issuets
-klasse, dets placering og consumerens faktiske reads (§ konsekvensmodellen nedenfor og `form-contract.md` §8) — den er
-aldrig et konfigurerbart flag per issue.
+Et issue bærer **ingen** `blocksSave`- eller `blocksProjection`-boolean. Consumerkonsekvensen udledes strukturelt af
+issuets klasse, dets placering og consumerens faktiske reads. Save-konsekvensen udledes af inputrepræsentationen:
+rejected input blokerer, canonical input gør ikke (§ konsekvensmodellen nedenfor og `form-contract.md` §8).
 
 Der findes tre issue-klasser:
 
-- **feltfejl** (rød): vises med rød kant + tooltip på feltet, blokerer `.eo` globalt og enhver afhængig consumer,
+- **feltfejl** (rød): vises med rød kant + tooltip på feltet og blokerer enhver afhængig consumer,
 - **consumerfejl** (fx `missing`): ingen rød markering; vises i contentboxen og blokerer kun den konkrete consumer,
 - **warning**: vises, men blokerer aldrig beregning, dokument eller `.eo`.
 
 Normative årsager:
 
-- `invalid` — feltets afsluttede input er rejected på grund af syntaks (`format`) eller et aktivt commit-interval
-  (`range`); altid en **feltfejl**,
+- `invalid` — feltets afsluttede input er rejected, fordi råteksten ikke opfylder feltformatet eller ikke kan omsættes
+  til en værdi i det persisterede Zod-schema; altid en **feltfejl**,
 - `range`/`bounds` — canonical værdi ligger uden for konkrete grænser; en **feltfejl**,
 - `schema` — runtime-schema kan ikke opfyldes; en **feltfejl**,
 - `rule` — en feltplaceret domæneregel er brudt; en **feltfejl** (en output-/tværgående regel kan i stedet være en
@@ -48,13 +48,13 @@ Konsekvensen er deterministisk og følger af klassen — ikke af et flag:
 | Tilstand | Rød feltmarkering | Blokerer `.eo` globalt | Blokerer afhængig beregning/dokument | Blokerer uafhængig consumer |
 |---|---:|---:|---:|---:|
 | Ugyldigt format | Ja | Ja | Ja | Nej |
-| Range/bounds-fejl | Ja | Ja | Ja | Nej |
-| Anden feltplaceret error (schema/rule) | Ja | Ja | Ja | Nej |
+| Range/bounds-fejl på canonical værdi | Ja | Nej | Ja | Nej |
+| Feltplaceret domæneregel på canonical værdi | Ja | Nej | Ja | Nej |
 | Tomt felt / `missing` | Nej | Nej | Ja, hvis consumeren kræver feltet | Nej |
 | Warning | Nej | Nej | Nej | Nej |
 
-Kun tooltip-/contentboxteksten varierer mellem de røde feltfejl. Matrixen må ikke omgås af et `blocksSave`- eller
-`blocksProjection`-flag.
+UI- og consumerkonsekvensen er ens for de røde feltfejl; save-sondringen følger rejected/canonical-repræsentationen.
+Matrixen må ikke omgås af et `blocksSave`- eller `blocksProjection`-flag.
 
 ## 2. Ren afledning og ejerskab
 
@@ -74,10 +74,10 @@ En projektion bærer sine relevante issues i både `ready`- og `blocked`-grenen.
 delmængde: samme feltfejl kan gøre én consumer uanvendelig, mens en uafhængig consumer forbliver `ready`.
 Beregningsblokering lagres derfor ikke som et flag på issueet, men følger af hvilke refs consumeren faktisk læser.
 
-`.eo`-save-gaten er uniform: **enhver aktiv rød feltfejl blokerer `.eo` globalt**, uanset reason (format, range, bounds,
-schema, feltplaceret rule). `missing` og warnings blokerer aldrig `.eo`. Dokument-/beregningspolicy er dependency-
-specifik: et relevant `error` (feltfejl eller consumerfejl på et læst felt) blokerer den konkrete consumer; en warning
-blokerer aldrig.
+`.eo`-save-gaten er strukturel: **ethvert aktivt relevant rejected input blokerer `.eo` globalt**, mens et rødt issue på
+schema-gyldigt canonical input ikke blokerer save. `missing` og warnings blokerer heller aldrig `.eo`. Dokument-/
+beregningspolicy er dependency-specifik: et relevant `error` (feltfejl eller consumerfejl på et læst felt) blokerer den
+konkrete consumer; en warning blokerer aldrig.
 
 Eksisterende `fieldErrors`, `useFormFieldErrorReporter`, `onFieldError` og tabeltrackere er migrationskode. De må ikke
 bruges som ny sandhedskilde eller kopieres til nye områder.
@@ -92,9 +92,9 @@ Sondringen mellem `missing` og `invalid` afgøres af consumeren:
 - tom canonical værdi kan være `missing`, hvis consumeren kræver den,
 - ikke-tom rejected tekst er `invalid`.
 
-En syntaktisk parsebar tal-, år- eller ugeværdi uden for feltets aktive commit-interval er `invalid`, ikke et canonical
-`range`-/`bounds`-issue. Kronologiske datobounds og tværgående domæneregler kan fortsat være canonical issues, når den
-relevante specifikke kontrakt foreskriver det.
+En korrekt formateret tal-, år- eller ugeværdi, som kan valideres af det persisterede Zod-schema, er canonical. Ligger
+den uden for feltets aktive min/max, giver den et afledt `range`-/`bounds`-issue. Et trecifret årstal er derimod
+`invalid`, fordi det ikke opfylder årsfeltets format.
 
 De godkendte beskedskabeloner er:
 
@@ -124,9 +124,8 @@ strukturelle fokusmål. Henvises til en anden side, er kun sidens navn klikbart.
 ## 5. Konsekvens for save, beregning og dokumenter
 
 - En projektion kalder ikke beregningsmotoren, hvis et afhængigt issue gør input uanvendeligt.
-- `.eo`-save blokeres uniformt af **enhver aktiv rød feltfejl** i sagen, uanset reason (format, range, bounds, schema,
-  feltplaceret rule) og uanset repræsentation (rejected råtekst eller canonical værdi med afledt rødt issue). `missing`
-  og warnings blokerer aldrig save.
+- `.eo`-save blokeres af **ethvert aktivt relevant rejected input** i sagen. Canonical værdier med afledte røde
+  range-/bounds-/rule-issues kan gemmes; `missing` og warnings blokerer heller aldrig save.
 - Ethvert dokumentrelevant issue med `severity: 'error'` blokerer dokument-output, også `range`/`bounds`.
 - Dokumentknappen er både visuelt og funktionelt disabled på den senest afsluttede blokerede revision.
 - En åben draft ændrer ikke issues eller gate; settle skifter input og afledte issues atomisk til en ny revision.

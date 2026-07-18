@@ -4,8 +4,12 @@
 migrationsgrundlag. Fase 0–4 har leveret nyttige karakteriseringstests, codecs, inventarer og tekniske erfaringer, men
 ingen af faserne betragtes længere som en færdig del af målarkitekturen. Implementeringen skal rebaseres efter §8.
 
-**Implementeringsstatus (rebase):** Fase 0 og 1 er gennemført, reviewet og kvalitetssikret 2026-07-16. Fase 2 er
-påbegyndt og blev kritisk reviewet 2026-07-17; den er ikke færdig. Reviewet fjernede den utilsigtede parallelle
+**Implementeringsstatus (rebase):** Fase 0 og 1 blev gennemført, reviewet og kvalitetssikret 2026-07-16. Kravændringen
+2026-07-18 genåbner en afgrænset del af fase 1: greenfield-codecs afviser fortsat visse parsebare out-of-bounds-værdier,
+og `blocksEoSave` blokerer fortsat alle feltissues. Begge dele skal rettes til den strukturelle rejected/canonical-
+sondring i §1.6, før de berørte slices er afsluttet. Legacy-save-gaten har allerede den ønskede adfærd via sondringen
+mellem ikke-committbart råinput og canonical feltfejl. Fase 2 er påbegyndt og blev kritisk reviewet 2026-07-17; den er
+ikke færdig. Reviewet fjernede den utilsigtede parallelle
 produktionsruntime, så Mineo nu kun monterer greenfield-runtime, mens standalone alene beholder legacy-runtime frem
 til den atomiske Renteberegning-cutover. Runtime, current-envelope, command-runner, aktiv-editor-registry, fælles
 form-surface og det strukturelle produktkatalog er etableret. Stamdata, Satser og Årsløn er de migrerede
@@ -33,7 +37,7 @@ Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den op
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
 dokumentlayout og numeriske primitiver, bevares som selvstændige resultater.
 
-**Dato:** 2026-07-16
+**Dato:** 2026-07-18
 
 **Type:** Informativ målarkitektur og bindende migrationsplan. Normative kontrakter opdateres som første
 implementeringsfase, før produktionskode ændres.
@@ -61,7 +65,8 @@ Slutproduktet skal i stedet have følgende fem egenskaber:
 1. Ét aktuelt inputaggregate og én write-grænse.
 2. Én felteditor og ét codec pr. inputfamilie på tværs af formular og grid.
 3. Ingen tidligere gyldig værdi i den aktuelle tilstand efter et ugyldigt settle. Den må kun findes i undo-historikken.
-4. Én ren feltfejl-/læsegrænse, som gør formatfejl, bounds-fejl og øvrige røde feltfejl ens for alle gates.
+4. Én ren feltfejl-/læsegrænse, som giver alle røde feltfejl samme UI- og consumerkonsekvens, men bevarer den
+   strukturelle save-sondring mellem rejected råinput og schema-gyldigt canonical input.
 5. Almindelige, rene domæneprojektioner uden en generisk projektions-DSL eller parallel blocker-model.
 
 Der bygges ingen kompatibilitet for gamle interne browser-sessioner. Bagud-/fremadtolerant `.eo`-load bevares.
@@ -155,29 +160,36 @@ Den tekniske invariant er derfor:
 
 Efter F5 findes en afløst gyldig værdi ikke længere, fordi undo-history er runtime-only.
 
-### 1.6 Ens konsekvens for alle røde feltfejl
+### 1.6 Røde feltfejl og den strukturelle save-sondring
 
-En rød feltfejl er en rød feltfejl, uanset årsag. Ugyldigt format, commit-interval, range, bounds, schema og
-feltplaceret domæneregel har samme UI-, gate- og consumerkonsekvenser. Kun tooltip- og contentboxteksten varierer.
+En rød feltfejl er en rød feltfejl i UI og for beregninger/dokumenter, uanset årsag. Ugyldigt format, range, bounds
+og en feltplaceret domæneregel har derfor samme røde markering og blokerer de consumers, som afhænger af feltet. Kun
+tooltip- og contentboxteksten varierer.
 
-Ens konsekvens betyder ikke ens current-state-repræsentation:
+`.eo`-save følger derimod current-state-repræsentationen, ikke den røde farve:
 
-- Syntaktisk parsebare tal-, års- og ugeværdier uden for feltets aktive commit-interval er rejected råtekst, mens det
-  canonical slot ryddes til feltets tomværdi.
-- Kronologiske dato-/tværgående bounds samt canonical værdier fra tolerant `.eo`-load kan fortsat være canonical
-  input med et rent afledt feltissue.
+- Rå tekst, som ikke opfylder feltformatet eller ikke kan omsættes til en værdi i det persisterede Zod-schema, er
+  rejected input. Det canonical slot ryddes til feltets tomværdi, og `.eo`-save blokeres, fordi råteksten ikke må
+  skrives til filen. Et trecifret årstal er eksempelvis rejected på grund af formatet.
+- En korrekt formateret værdi, som kan valideres af det persisterede Zod-schema, committes canonical, også når den
+  ligger uden for feltets aktive min/max eller bryder en tværgående domæneregel. Fejlen afledes som et rødt issue,
+  men værdien må gemmes i `.eo`.
+- De persisterede Zod-schemas definerer repræsenterbar type, shape og sikker numerik; feltets aktive min/max og
+  tværgående domæneregler hører til issue-afledningen og må ikke gøre en ellers repræsenterbar værdi rejected.
 
-Readeren blokerer begge former ens, og ingen consumer må skelne mellem dem for at omgå gaten.
+Readeren blokerer begge former ens for afhængige beregninger og dokumenter. Save-gaten er den eneste tilsigtede
+undtagelse og udledes direkte af, om der findes rejected input; den må ikke udledes af issuefarve eller reason.
 
 | Tilstand | Rød feltmarkering | Blokerer `.eo` globalt | Blokerer afhængig beregning/dokument | Blokerer uafhængig consumer |
 |---|---:|---:|---:|---:|
 | Ugyldigt format | Ja | Ja | Ja | Nej |
-| Range/bounds-fejl | Ja | Ja | Ja | Nej |
-| Anden feltplaceret error | Ja | Ja | Ja | Nej |
+| Range/bounds-fejl på canonical værdi | Ja | Nej | Ja | Nej |
+| Feltplaceret domæneregel på canonical værdi | Ja | Nej | Ja | Nej |
 | Tomt felt / `missing` | Nej | Nej | Ja, hvis consumeren kræver feltet | Nej |
 | Warning | Nej | Nej | Nej | Nej |
 
-Konsekvenserne må ikke styres af et frit `blocksSave`- eller `blocksProjection`-flag.
+Konsekvenserne må ikke styres af et frit `blocksSave`- eller `blocksProjection`-flag. Save-sondringen er strukturel:
+rejected input blokerer, mens Zod-valideret canonical input kan gemmes.
 
 ### 1.7 Tomhed og warnings
 
@@ -217,7 +229,8 @@ anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Sl
 - En fejl i række 2 blokerer ikke beregningen af række 1 og 3.
 - En total, der inkluderer række 2, blokeres.
 - Et dokument blokeres kun af egne dependencies og egne output-invariants.
-- `.eo`-save er undtagelsen: enhver aktiv rød feltfejl i sagen blokerer globalt.
+- `.eo`-save er undtagelsen: ethvert aktivt relevant rejected input blokerer globalt; canonical feltissues blokerer
+  ikke save.
 - Når en afsluttet fejl blokerer en tidligere beregning, må det tidligere resultat ikke blive stående som gyldigt.
   Området skifter til sin eksisterende ikke-beregnet-/fejlvisning på den nye revision.
 
@@ -237,11 +250,11 @@ anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Sl
 - Åben draft persisteres ikke og tabes ved F5.
 - Alt afsluttet input—også fejlende rå tekst—overlever F5 i den aktuelle programversion.
 - `.eo` indeholder kun schema-gyldigt canonical brugerinput og aldrig fejlende rå tekst.
-- `.eo`-save blokeres, før fil-I/O, hvis der findes en rød feltfejl.
+- `.eo`-save blokeres, før fil-I/O, hvis der findes aktivt relevant rejected input.
 - Manglende felter og warnings blokerer ikke `.eo`.
 - Gamle `.eo`-filer indlæses fortsat tolerant efter persistence-kontrakten.
-- En gammel `.eo`-fil kan indlæses med en canonical værdi, som nu giver rød bounds-fejl; værdien vises, men sagen kan
-  ikke gemmes igen, før fejlen er rettet.
+- En gammel `.eo`-fil kan indlæses med en canonical værdi, som nu giver rød bounds-fejl; værdien vises og kan gemmes
+  igen, mens den fortsat blokerer afhængige beregninger og dokumenter.
 - Gamle interne browser-sessioner skal ikke migreres. Programmet opdateres kun, når ingen brugere er aktive, og der
   bygges derfor ingen legacy-sessionreader, adresseoversættelse, dual-read eller kompatibilitetsdialog.
 - Korruption i den aktuelle sessionversion skal fortsat håndteres fail-closed. Den rå envelope bevares uændret,
@@ -297,8 +310,8 @@ map/flatMap/collect-lag. Samtidig findes den gamle `domain/inputIntegrity`-block
 Mineos låste consumers har behov for almindelige rene funktioner, præcise reads og et lille `ready | blocked`-resultat,
 ikke et generisk projectionsframework.
 
-Den nuværende issue-model gør save- og beregningsblokering konfigurerbar per issue. §1.6–1.7 gør disse regler
-deterministiske og fjerner behovet.
+Den nuværende issue-model gør save- og beregningsblokering konfigurerbar per issue. §1.6–1.7 gør reglerne
+deterministiske: consumerblokering følger dependencies, mens save-blokering følger rejected-repræsentationen.
 
 ### 2.6 Sessionmigrationen er et ikke-mål
 
@@ -381,7 +394,7 @@ en global standardlokation på `FieldRef`.
 
 ### 3.3 Fælles codecs
 
-Codec-semantikken fra den nuværende kerne bevares og konsolideres:
+Codec-semantikken konsolideres med en skarp grænse mellem format/repræsenterbarhed og feltbounds:
 
 ```ts
 type FieldCodec<T> = Readonly<{
@@ -397,7 +410,9 @@ type FieldCodec<T> = Readonly<{
 finde tooltipteksten.
 
 Dato, beløb, procent, heltal, brøk, uge, år og tekst har hver ét codec på tværs af form og grid. Eksisterende godkendte
-normaliserings-, infer-, præcisions- og paste-regler ændres ikke af denne arkitektur.
+normaliserings-, infer-, præcisions- og paste-regler ændres ikke af denne arkitektur. Et codec afviser ugyldigt format
+og værdier, som ikke kan repræsenteres sikkert i feltets persisted schema. Det afviser ikke en ellers repræsenterbar
+værdi alene på grund af feltets aktive min/max; disse grænser vurderes på den committed canonical værdi.
 
 ### 3.4 Ren feltvurdering og lille `InputReader`
 
@@ -419,12 +434,12 @@ Dermed opstår ingen cirkel, hvor readeren behøver et issue, som validatoren f�
 
 Issue-modellen skelner mellem:
 
-- **feltfejl:** vises rødt og blokerer `.eo` samt afhængige consumers,
+- **feltfejl:** vises rødt og blokerer afhængige consumers,
 - **consumerfejl:** fx `missing`; vises i contentbox og blokerer kun den konkrete consumer,
 - **warning:** vises, men blokerer intet.
 
 Der lagres ingen `blocksSave`- eller `blocksProjection`-booleans. Placering, severity og consumerens faktiske reads
-afgør konsekvensen.
+afgør consumerkonsekvensen; `.eo`-save blokeres strukturelt af `rejectedInputs`, ikke af issueobjekter.
 
 Den offentlige reader eksponerer ikke en værdi fra et felt med aktiv feltfejl:
 
@@ -537,7 +552,7 @@ Placeholder-promotion og første settle er én command. Row-delete fjerner rejec
 1. settler eventuel åben editor,
 2. læser frisk `EvaluationSourceToken`,
 3. udleder alle aktive feltfejl uden mount-afhængighed,
-4. stopper ved mindst én rød feltfejl,
+4. stopper ved mindst ét aktivt relevant rejected input,
 5. bygger canonical snapshot,
 6. Zod-validerer og skriver filen.
 
@@ -738,8 +753,8 @@ dokumentgate, revision og history.
 
 Alle relevante field- og domænetests dækker mindst:
 
-- formatfejl og bounds-fejl giver identiske gates,
-- kun besked/reason varierer,
+- formatfejl og bounds-fejl giver identisk UI-, beregnings- og dokumentgate,
+- kun rejected formatfejl blokerer `.eo`; canonical bounds-fejl kan gemmes,
 - missing giver ingen rød markering og ingen `.eo`-blokering,
 - warning blokerer intet,
 - irrelevant felt overblokerer ikke,
@@ -777,7 +792,7 @@ Integrationstests dækker form og grid ens for:
 ### Fase 0 — Rebasér kontrakter og inventarer
 
 **Status:** Gennemført og reviewet 2026-07-16. Kontrakterne er rebaset (AGENTS.md + de normative
-kontrakter, guidet af en linjepræcis contract-audit): masking→XOR, uniform `.eo`-gate uden per-issue save-policy
+kontrakter, guidet af en linjepræcis contract-audit): masking→XOR, strukturel `.eo`-gate uden per-issue save-policy
 (§1.6-matrixen er nu normativ i `error-contract.md`), `missing` som consumerfejl, legacy-session-/feltadressemigration
 fjernet, critical-action-matricen rettet og friskhed = `EvaluationSourceToken` (input + settings). De tre midlertidige
 inventarer er bygget i `src/inputCore/ledger/` (239 datafelter, 16 collections, 30 makro-consumers) med maskinlåste
@@ -810,7 +825,8 @@ descriptors, editorlokationer og consumerdependencies bygges kun én gang i fase
 #### Exitkriterier
 
 - Ingen kontrakt omtaler en skjult recovery-værdi under rejected input.
-- Ingen kontrakt tillader `.eo`-save med en aktiv rød feltfejl.
+- Ingen kontrakt tillader `.eo`-save med aktivt relevant rejected input.
+- Ingen kontrakt lader et canonical feltissue blokere `.eo`-save.
 - Ingen kontrakt kan gøre `missing` rødt eller save-blokerende.
 - Ingen kontrakt kræver browser-sessionkompatibilitet.
 - Hvert schemafelt og hver collection findes i præcis ét inventory-entry og ét eksisterende produktionsbinding.
@@ -825,7 +841,8 @@ ved topologiændring følges `docs/architecture/contract-topology-procedure.md`.
 
 ### Fase 1 — Omskriv den rene inputkerne
 
-**Status:** Gennemført og reviewet 2026-07-16. Den rene, framework-frie inputkerne er genopbygget fra
+**Status:** Gennemført og reviewet 2026-07-16; save-/bounds-sondringen er genåbnet 2026-07-18 og udestår som
+afgrænset korrektion. Den rene, framework-frie inputkerne er genopbygget fra
 bunden i `src/inputCore/` (ingen React, Zustand, DOM eller storage): XOR-invariant (`SettledInput` + reducer der rydder
 canonical til tomværdien ved ugyldigt settle), reason-bærende codecs over de uændrede parse-kerner, statisk katalog uden
 seal/brand/WeakSet, issue-model (felt/consumer/warning) uden `blocksSave`, `ValidationReader`→issue-snapshot→
@@ -848,12 +865,16 @@ Fasen må ikke indføre React, Zustand, DOM eller storage.
 6. Omskriv reduceren for alle commands i §3.6.
 7. Implementér før/efter-proceduren i §3.6 for atomisk oprydning af feltfejl, der bliver irrelevant; bevar gyldigt
    input.
-8. Omskriv issue-modellen til field/consumer/warning uden `blocksSave` og `blocksProjection`.
+8. Omskriv issue-modellen til field/consumer/warning uden `blocksSave` og `blocksProjection`; save-gaten læser
+   strukturelt, om inputaggregaten indeholder rejected input.
 9. Omskriv `ValidationReader` og den efterfølgende offentlige `InputReader`, så feltvalidering ikke er cirkulær, og et
    felt med aktiv feltfejl aldrig eksponerer sin canonical værdi til consumers.
 10. Erstat projektions-DSL'en med en lille collector og almindelige rene funktioner.
 11. Indfør `EvaluationSourceToken` med input- og settingsrevision.
 12. Port adfærdstests og slet tests, som hævder masking, policy-flags, brands eller factory-autorisering.
+13. Lad codecs afvise format/schema-urepræsenterbarhed, men committe schema-gyldige out-of-bounds-værdier; flyt
+    min/max-vurderingen til canonical feltvalidators.
+14. Erstat den issuebaserede `blocksEoSave`-regel med en strukturel gate over `rejectedInputs`.
 
 #### Exitkriterier
 
@@ -1061,7 +1082,7 @@ For hver slice:
 1. Definér field validators og contentbox-issues som rene funktioner.
 2. Byg beregningsinput gennem readeren.
 3. Kald kun beregningsmotoren ved `ready`.
-4. Bevis at format- og bounds-feltfejl giver samme gate/resultatstatus.
+4. Bevis at format- og bounds-feltfejl giver samme UI-, beregnings- og dokumentgate/resultatstatus.
 5. Bevis at missing ikke giver rød markering eller `.eo`-blokering.
 6. Bevis at warnings ikke blokerer.
 7. Bevis row-isolation og korrekt aggregatblokering.
@@ -1102,8 +1123,9 @@ For hver slice:
 
 #### Arbejdstrin
 
-1. Byg global `.eo`-save-evaluering fra det komplette feltissue-snapshot.
-2. Blokér præcis ved mindst én aktiv rød feltfejl; missing og warnings tillader save.
+1. Byg global `.eo`-save-evaluering fra det friske inputaggregate og det komplette feltissue-snapshot.
+2. Blokér præcis ved mindst ét aktivt relevant rejected input; canonical feltissues, missing og warnings tillader
+   save.
 3. Finalisér åben editor før save og genlæs revisionen.
 4. Byg save-snapshot fra canonical input gennem reader-/savegrænsen.
 5. Fail-close direkte på ethvert aktivt/relevant rejected input som defense-in-depth. Et irrelevant rejected input er
@@ -1111,7 +1133,8 @@ For hver slice:
    må hverken behandles som en skjult brugerfejl eller gemmes.
 6. Bevar streng save→load round-trip for schema-gyldigt brugerinput.
 7. Bevar tolerant `.eo`-preflight og de tre godkendte valg.
-8. Load en gammel out-of-bounds canonical værdi, vis feltfejlen og blokér nyt save indtil rettelse.
+8. Load en gammel out-of-bounds canonical værdi, vis feltfejlen og tillad nyt save, mens afhængige consumers fortsat
+   er blokeret.
 9. Route load, reset og `Slet alt` gennem critical-action-koordinatoren og én replacement-command. Åben draft
    ignoreres under apply, blokerer aldrig og kasseres først efter succes.
 10. Ryd history atomisk efter succesfuld hel-sags-replacement.
@@ -1138,7 +1161,8 @@ For hver slice:
 #### Exitkriterier
 
 - Saveknappen og click-preflight bruger samme feltissue-snapshot.
-- Ingen fil-I/O starter ved en rød feltfejl.
+- Ingen fil-I/O starter ved aktivt relevant rejected input.
+- Canonical input med et rødt feltissue kan gemmes.
 - Missing og warning kan ikke blokere `.eo`.
 - Rejected raw kan ikke serialiseres til `.eo`.
 - Der findes ingen legacy browser-sessionreader.
@@ -1326,8 +1350,8 @@ Der bygges ikke runtime-rollback til legacy.
 6. Form og grid bruger samme editor og codec; deres adaptere ejer kun interaktion/rendering/navigation.
 7. Et lukket felt har ingen værdibærende lokal kopi, pending guard, fingerprint eller resync-effect.
 8. Alle persisted feltadresser er strukturelle og uafhængige af DOM/kolonneindeks.
-9. Format- og bounds-feltfejl har identiske gates; kun beskeder varierer.
-10. Enhver aktiv rød feltfejl blokerer `.eo` globalt.
+9. Format- og bounds-feltfejl har identisk UI-, beregnings- og dokumentgate; kun beskeder varierer.
+10. Aktivt relevant rejected input blokerer `.eo` globalt; canonical feltissues blokerer ikke `.eo`.
 11. Tomhed giver aldrig rød feltfejl og blokerer aldrig `.eo`.
 12. Missing kan blokere en afhængig beregning eller et dokument gennem contentboxen.
 13. Warning blokerer aldrig beregning, dokument eller `.eo`.

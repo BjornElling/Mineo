@@ -49,9 +49,9 @@ Reglerne i dette afsnit er uafhængige af outputkanal. De gælder uændret for b
 Download er blokeret, hvis mindst én af følgende er sand:
 
 1. Et issue med `severity: 'error'` rammer et input, som dokumentdefinitionen afhænger af. Det omfatter `invalid`,
-   `missing`, `range`/`bounds`, `schema` og `rule`. En rød range/bounds-feltfejl blokerer uanset repræsentation — både
-   når den er rejected råtekst, og når den er en canonical værdi med et afledt rødt issue (sidstnævnte kan i øvrigt
-   heller ikke gemmes i `.eo`, jf. den uniforme save-gate).
+   `missing`, `range`/`bounds`, `schema` og `rule`. En rød range/bounds-feltfejl blokerer dokumentet uanset
+   repræsentation. En canonical værdi med et afledt rødt issue kan fortsat gemmes i `.eo`; save-gaten er uafhængig af
+   dokumentgaten.
 2. Den autoritative beregning/projektion kan ikke dannes. Snapshot-first-domæner bruger deres typed snapshotprojektion;
    øvrige domæner leverer et typed gate-/preflight-resultat med samme semantik.
 3. Output-specifikke invariants eller guards er brudt.

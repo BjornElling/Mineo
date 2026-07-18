@@ -70,12 +70,11 @@ Krav:
    beløbsudtryk bevares udtrykket her, selv om `format` viser det beregnede og dansk formaterede beløb.
 5. Canonicalisering må kun ske ved settle og kun efter den eksisterende felt-/numerikregel.
 6. Dato, beløb, procent, heltal, brøk, uge, år og tekst må ikke have separate form- og tabelcodecs.
-7. En syntaktisk parsebar tal-, år- eller ugeværdi uden for feltets aktive commit-interval er rejected rå tekst og må
-   ikke blive canonical input. Kronologiske datobounds og tværgående domæneregler, som en mere specifik kontrakt
-   klassificerer som canonical issues, hører til rene validatorer/projektioner og må ikke samtidig implementeres i
-   settle-policyen.
+7. En korrekt formateret tal-, år- eller ugeværdi, som kan valideres af det persisterede Zod-schema, bliver canonical
+   input. Feltets aktive min/max samt kronologiske og tværgående domænegrænser hører til rene validatorer/projektioner
+   og må ikke samtidig implementeres som rejection i settle-policyen.
 8. Paste bevarer mest muligt input efter én regel: normalisér feltets tilladte format, og afskær derefter fra højre
-   til det længste præfiks, som feltets format, præcision, cifferloft og aktive commit-interval kan rumme. Heltalsfelter
+   til det længste præfiks, som feltets format, præcision og cifferloft kan rumme. Heltalsfelter
    fjerner separatoren og hele decimaldelen uden afrunding; decimalaktiverede felter bevarer decimaler op til deres
    præcision. Tilladte beløbsoperatorer bevares som udtryk. Samme normalisering bruges på formular- og tabeloverfladen.
 9. Dato-paste håndhæver formatets komponentgrænser (dag 1–31 og måned 1–12) med samme præfiksregel. Kronologiske

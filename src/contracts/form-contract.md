@@ -40,8 +40,8 @@ Afsluttet input er feltets autoritative tilstand efter blur, Enter eller en till
 er enten:
 
 - **gyldig:** en typet canonical værdi, eller
-- **ugyldig:** den ikke-tomme rå tekst, som ikke kunne parses eller ligger uden for tal-, år- eller ugefeltets aktive
-  commit-interval.
+- **ugyldig:** den ikke-tomme rå tekst, som ikke opfylder feltformatet eller ikke kan omsættes til en værdi i det
+  persisterede Zod-schema.
 
 Et ugyldigt afsluttet input rydder feltets canonical slot til dets tomværdi og gemmer den rå fejlende tekst atomisk.
 Samme aktuelle felt kan aldrig samtidig have en ikke-tom canonical værdi og rejected råtekst (XOR-invarianten). Der
@@ -51,12 +51,17 @@ undo-historikken og kan derfor aldrig nå en consumer i den aktuelle tilstand.
 Tom tekst parser til feltets definerede tomme canonical værdi, normalt `undefined`. Om tomhed er en fejl, afgøres af den
 consumer, som kræver feltet.
 
+En korrekt formateret værdi, som kan valideres af det persisterede Zod-schema, committes canonical, selv om den ligger
+uden for feltets aktive min/max eller bryder en tværgående domæneregel. Disse grænser afledes som feltissues og må
+ikke gøre en ellers repræsenterbar værdi rejected.
+
 ### 2.3 Domæneprojektion
 
 En domæneprojektion bygges fra ét `EvaluationSourceToken`-bundet input-/settingssnapshot gennem den fælles
 `InputReader`.
 
-- Kun en `ready` projektion må fodre beregningsmotorer, save eller dokumentgeneratorer.
+- Kun en `ready` projektion må fodre beregningsmotorer og dokumentgeneratorer. Save har sin egen strukturelle projektion,
+  som kræver schema-gyldigt canonical input og fravær af rejected input, men ikke fravær af canonical feltissues.
 - En `blocked` projektion bærer strukturelle blockers med feltreference og årsag.
 - Både `ready` og `blocked` bærer alle relevante issues. Et canonical range-/bounds-issue eller en warning må ikke
   forsvinde, blot fordi det ikke gør den konkrete beregningsprojektion uanvendelig.
@@ -202,21 +207,22 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
 5. Når et styrende valg efter den gældende produktregel gør rejected input irrelevant, skal rydningen udtrykkes som én
    typed domænecommand i samme transaktion som valget. Canonical skjulte værdier må ikke ryddes implicit.
 
-## 8. Datoer, bounds og save-gate
+## 8. Format, bounds og save-gate
 
 - Dato-draft er rå tekst; canonical dato er `ISODateString | undefined`.
 - Datoformat parses kun ved settle gennem det kanoniske datocodec.
 - Min/max og tværfeltgrænser læser kun senest afsluttet input.
 - En parsebar dato uden for interval committes canonical og giver et afledt rødt range-/bounds-issue.
 - Ugyldigt format giver rejected input og ingen ny canonical værdi.
+- Samme repræsentationsregel gælder tal, år, uger, beløb og procenter: feltets aktive min/max vurderes efter
+  canonical commit og er ikke en del af codecets format-/schemaafvisning.
 
-`.eo`-save-gaten er uniform og styres ikke af en per-issue save-policy: **enhver aktiv rød feltfejl blokerer `.eo`-save
-globalt** — uanset om årsagen er ugyldigt format, commit-interval, range, bounds, schema eller en feltplaceret
-domæneregel. Kun tooltip-/beskedteksten varierer.
+`.eo`-save-gaten styres ikke af en per-issue save-policy. Den udledes strukturelt af den afsluttede inputtilstand:
+**ethvert aktivt relevant rejected input blokerer `.eo`-save globalt**, mens schema-gyldigt canonical input kan gemmes,
+selv om det har et rødt range-/bounds-/rule-issue.
 
-- Rejected råtekst (format/range) blokerer save.
-- Et afledt rødt range-/bounds-/regel-issue på en ellers schema-gyldig canonical værdi blokerer også save globalt; en
-  sådan værdi må ikke gemmes, før fejlen er rettet.
+- Rejected råtekst blokerer save og skrives aldrig til `.eo`.
+- Canonical range-/bounds-/rule-issues blokerer ikke save.
 - Tomhed/`missing` og warnings blokerer aldrig save.
 
 Dokument-output følger samme uniforme regel for egne dependencies: ethvert dokumentrelevant issue med fejlseverity
