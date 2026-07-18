@@ -45,6 +45,7 @@ import {
   defineStructuralField,
   isUndefined,
 } from '../structuralDescriptors';
+import { yearBoundsValidator } from './boundsValidators';
 
 // Greenfield produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
 // bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter. Lønindkomstens/EO-angivet løns
@@ -262,6 +263,7 @@ export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefin
   label: 'Svie/smerte satsår',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  validators: [yearBoundsValidator('eo.svieSmerteSatserAar.bounds', MIN_SVIESMERTE_YEAR, CURRENT_YEAR)],
 });
 export const eoSvieSmerteDelvisSygemeldingSatsField = requiredChoiceField<SvieSmerteDelvisSygemeldingSats>(
   'svieSmerteDelvisSygemeldingSats', 'Sats ved delvis sygemelding', ['fuld', 'halv'], 'halv',

@@ -242,11 +242,11 @@ describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
 
   it('række-fejl → slet række → undo → redo bevarer hele snapshotkæden', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1 });
-    dispatchInput(store, catalog, settleField(tillaegstidField.bind('r1'), '999'), { now: 2 });
+    dispatchInput(store, catalog, settleField(tillaegstidField.bind('r1'), 'abc'), { now: 2 }); // format-rejected råtekst
     dispatchInput(store, catalog, deleteRow(rentekravRowsRef(), 'r1'), { now: 3 });
 
     dispatchInput(store, catalog, { kind: 'undo' }, { now: 4 });
-    expect(rejectedAt(store.getState().input, tillaegstidField.bind('r1'))?.raw).toBe('999');
+    expect(rejectedAt(store.getState().input, tillaegstidField.bind('r1'))?.raw).toBe('abc');
 
     dispatchInput(store, catalog, { kind: 'redo' }, { now: 5 });
     expect(store.getState().input.sections.renteberegning?.rentekravRows ?? []).toHaveLength(0);
@@ -265,16 +265,20 @@ describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
 });
 
 describe('dispatchInput — styrende valg rydder nu-irrelevant fejl (§1.9/§3.6)', () => {
-  it('setImmediateField der gør et fejlende felt irrelevant rydder fejlen som ét trin; bevarer gyldigt nabofelt', () => {
+  it('setImmediateField der gør et felt med aktiv bounds-fejl irrelevant rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1 });
     dispatchInput(store, catalog, settleField(belobField.bind('r1'), '500'), { now: 2 });
-    dispatchInput(store, catalog, settleField(tillaegstidField.bind('r1'), '999'), { now: 3 }); // range-fejl
-    expect(rejectedAt(store.getState().input, tillaegstidField.bind('r1'))).toBeDefined();
+    // '999' > max 100 committes canonical (999) med en rød bounds-feltfejl (§1.6).
+    dispatchInput(store, catalog, settleField(tillaegstidField.bind('r1'), '999'), { now: 3 });
+    expect(canonical(store.getState().input, tillaegstidField.bind('r1'))).toBe(999);
+    expect(rejectedAt(store.getState().input, tillaegstidField.bind('r1'))).toBeUndefined();
 
     dispatchInput(store, catalog, setImmediateField(enhedField.bind('r1'), 'uger'), { now: 4 });
 
     const input = store.getState().input;
-    expect(rejectedAt(input, tillaegstidField.bind('r1'))).toBeUndefined(); // ryddet
+    // §3.6 trin 5: en canonical bounds-værdi, der bliver irrelevant, ryddes til tomværdien.
+    expect(canonical(input, tillaegstidField.bind('r1'))).toBeUndefined();
+    expect(rejectedAt(input, tillaegstidField.bind('r1'))).toBeUndefined();
     expect(canonical(input, belobField.bind('r1'))).toBeDefined(); // bevaret
     expect(store.getState().history.past.length).toBe(4); // netop ét history-trin for valget
   });

@@ -6,9 +6,10 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import GreenfieldNumericTextField from './GreenfieldNumericTextField';
 
 // Greenfield år-felt (§2.4/§3.5): den tynde familie-skal over `GreenfieldNumericTextField` med årsfamiliens
-// tegnfilter. Parse/format/paste og satsårets commit-interval (min/maxYear → rejected `range`) ejes af
-// descriptorens år-codec; komponenten modtager derfor KUN sin `field`/`location` + rendering-props — ingen
-// `minYear`/`maxYear`/`onCommit`/`onFieldError` (§2.4). Røde bounds-fejl kommer fra codec-`range` via issue-snapshottet.
+// tegnfilter. Parse/format/paste ejes af descriptorens år-codec; komponenten modtager derfor KUN sin
+// `field`/`location` + rendering-props — ingen `minYear`/`maxYear`/`onCommit`/`onFieldError` (§2.4). Satsårets
+// min/maxYear er efter kravændringen 2026-07-18 en canonical bounds-feltvalidator; røde bounds-fejl kommer fra
+// issue-snapshottet, og et velformet år uden for intervallet kan stadig gemmes i `.eo` (§1.6).
 
 // Et år har højst 4 cifre; tillad et par ekstra draft-tegn til eftergivende typing (fx førende/efterfølgende ws).
 const MAX_YEAR_DRAFT_LENGTH = 6;

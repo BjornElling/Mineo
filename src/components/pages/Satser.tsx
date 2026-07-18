@@ -16,7 +16,7 @@ import type { RetsinfoLink } from '../../data/retsinfoLinks';
 // Greenfield-migreret (§2.4 formularrækkefølge trin 2 + Fase 3 Satser-slice). Erstatter den legacy
 // Den gamle persistence-/feltfejl-/projektionvej er erstattet med:
 //  - `GreenfieldYearField` (field = descriptor.bind(), location = stabilt locationId) — ingen value/onCommit/
-//    minYear/maxYear/onFieldError; satsårets commit-interval er codec-`range` → rødt issue.
+//    minYear/maxYear/onFieldError; satsårets min/maxYear-bounds er en canonical bounds-feltvalidator → rødt issue.
 //  - `projectSatser(reader)` over den offentlige `InputReader` (`useInputEvaluation`) til visning OG gate.
 //  - samme runtimebindings coordinator + frisk typed evaluation til download-preflight (§1.4/§3.9).
 // Brevhovedet går gennem en typed Stamdata-projektion; rå sektioner forlader aldrig runtimebindingen.

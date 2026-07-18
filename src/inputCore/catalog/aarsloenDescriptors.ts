@@ -39,6 +39,12 @@ import {
   isEmptyString,
   isUndefined,
 } from '../structuralDescriptors';
+import {
+  percentBoundsValidator,
+  weekYearBoundsValidator,
+  yearStringBoundsValidator,
+} from './boundsValidators';
+import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
 
 // Greenfield produkt-descriptors for `aarsloen`-sektionen (§3.2). Måned/år bevarer schemaets historiske
 // canonical strengrepræsentation via string-backed codec; ugefelterne er allerede canonical strenge.
@@ -60,6 +66,17 @@ const rowIdOf = <T>(field: FieldRef<T>): string => {
   return entity.entityId;
 };
 
+// String-backed månedskolonne (canonical værdi er årets-uafhængig månedsstreng "1".."12"). Codecet holder op
+// med at afvise out-of-bounds; 1..12-grænsen er nu en canonical bounds-feltvalidator (§1.6).
+const maanedBoundsValidator = (code: string): FieldValidator<string | undefined> => (value) => {
+  if (value === undefined || value.trim() === '') return undefined;
+  const numeric = Number.parseInt(value, 10);
+  if (!Number.isFinite(numeric)) return undefined;
+  const message = getIntegerRangeErrorMessage(numeric, 1, 12);
+  if (message === '') return undefined;
+  return { reason: 'bounds', code, message, detail: { minValue: 1, maxValue: 12 } };
+};
+
 const percentField = (field: string, label: string): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({
     id: `aarsloen.${field}`,
@@ -71,6 +88,7 @@ const percentField = (field: string, label: string): FieldDescriptor<number | un
     controlKind: 'text',
     createEmptySection: createEmptyAarsloenSection,
     relevance: isPercentMode,
+    validators: [percentBoundsValidator(`aarsloen.${field}.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })],
   });
 
 export const aarsloenFeriePctField = percentField('feriePct', 'Feriegodtgørelse/-tillæg');
@@ -292,23 +310,25 @@ export const aarsloenTableCol0MaanedField = rowString(
   'col0_maaned', 'Måned',
   createStringBackedFieldCodec(createIntegerFieldCodec({ allowNegative: false, maxDigits: 2, minValue: 1, maxValue: 12 })),
   periodIs('maaned'),
+  [maanedBoundsValidator('aarsloen.tableData.col0_maaned.bounds')],
 );
 export const aarsloenTableCol1MaanedField = rowString(
   'col1_maaned', 'År',
   createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR })),
   periodIs('maaned'),
+  [yearStringBoundsValidator('aarsloen.tableData.col1_maaned.bounds', MIN_YEAR, CURRENT_YEAR)],
 );
 export const aarsloenTableCol0UgeField = rowString(
   'col0_uge', 'Uge fra',
   createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })),
   periodIs('uge'),
-  [weekOrderValidator('fra')],
+  [weekYearBoundsValidator('aarsloen.tableData.col0_uge.bounds', MIN_YEAR, CURRENT_YEAR), weekOrderValidator('fra')],
 );
 export const aarsloenTableCol1UgeField = rowString(
   'col1_uge', 'Uge til',
   createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })),
   periodIs('uge'),
-  [weekOrderValidator('til')],
+  [weekYearBoundsValidator('aarsloen.tableData.col1_uge.bounds', MIN_YEAR, CURRENT_YEAR), weekOrderValidator('til')],
 );
 export const aarsloenTableCol2Field = rowAmount('col2', 'Løn');
 export const aarsloenTableCol3Field = rowAmount('col3', 'Løn (2)');

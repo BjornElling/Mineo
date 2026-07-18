@@ -98,11 +98,12 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     editor = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision);
     expect(editor.open?.draft).toBe('2010');
 
-    // Ugyldigt settle → rejected; genåbning viser den rå tekst ordret.
-    editor = changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '1234x');
+    // Ugyldigt settle → rejected; genåbning viser den rå tekst ordret. '12x34' er ikke-parsebart format (ikke
+    // blot et tal uden for interval, som nu ville committe canonical).
+    editor = changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '12x34');
     dispatchSettle(settleEditor(editor));
     editor = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision);
-    expect(editor.open?.draft).toBe('1234x');
+    expect(editor.open?.draft).toBe('12x34');
   });
 
   it('tast-initieret åbning seeder med tasten; genåbning på lukket felt beholder ikke tidligere draft', () => {
@@ -111,8 +112,8 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
   });
 
   it('gyldigt settle skriver canonical og fjerner rejected; ugyldigt settle er XOR (§1.5)', () => {
-    // ugyldigt settle
-    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '99xx')));
+    // ugyldigt settle — '9x9' er ikke-parsebart format (interiør bogstav), ikke blot out-of-bounds.
+    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '9x9')));
     let view = viewOf(aargangRef);
     expect(view.kind).toBe('rejected');
     expect(aargangRef.descriptor.readCanonical(store.getState().input.sections, aargangRef.address)).toBeUndefined();
@@ -180,8 +181,8 @@ describe('felt-editor-engine — visning, issues og immediate commit', () => {
     dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '2010')));
     expect(formatSettledFieldText(aargangRef, viewOf(aargangRef))).toBe('2010');
 
-    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '77zz')));
-    expect(formatSettledFieldText(aargangRef, viewOf(aargangRef))).toBe('77zz');
+    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '7z7')));
+    expect(formatSettledFieldText(aargangRef, viewOf(aargangRef))).toBe('7z7');
   });
 
   it('canonical bounds-fejl skjuler værdien for readeren men bevarer den canonical (§1.6)', () => {

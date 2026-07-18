@@ -130,11 +130,11 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderEditor(field);
     act(() => result.current.open());
-    act(() => result.current.changeDraft('99')); // uden for 1900-2100 → range-fejl
+    act(() => result.current.changeDraft('9x9')); // ikke-parsebart format → rejected råtekst
     act(() => result.current.settle());
 
     expect(canonical(field)).toBeUndefined(); // gammel 2020 er væk
-    expect(rejectedRaw(field)).toBe('99');
+    expect(rejectedRaw(field)).toBe('9x9');
   });
 
   it('tomt settle går gennem clear', () => {

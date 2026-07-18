@@ -37,7 +37,9 @@ const findRowId = (address: FieldAddress): string => {
 
 const isUndefined = (value: unknown): boolean => value === undefined;
 
-// ── Statisk felt: satser.aargang (heltal med range 1900–2100) ────────────────────────────────────────
+// ── Statisk felt: satser.aargang (heltal med bounds 1900–2100) ────────────────────────────────────────
+// Efter kravændringen 2026-07-18 er 1900..2100 IKKE en codec-afvisning: et velformet årstal uden for
+// intervallet committes canonical og bærer et afledt bounds-issue (§1.6). Codecet holder kun paste-clamp.
 export const aargangField: FieldDescriptor<number | undefined> = defineField({
   id: 'satser.aargang',
   template: { section: 'satser', path: [], field: 'aargang' },
@@ -46,6 +48,9 @@ export const aargangField: FieldDescriptor<number | undefined> = defineField({
   isEmpty: isUndefined,
   label: 'Satsår',
   controlKind: 'text',
+  validators: [(value) => value !== undefined && (value < 1900 || value > 2100)
+    ? { reason: 'bounds', code: 'satser.aargang.bounds', message: 'Værdi skal være mellem 1900 og 2100', detail: { minValue: 1900, maxValue: 2100 } }
+    : undefined],
   readCanonical: (sections) => readSatser(sections)?.aargang,
   writeCanonical: (sections, _address, value) => ({ ...sections, satser: { aargang: value } }),
 });
@@ -125,6 +130,9 @@ export const belobField: FieldDescriptor<AmountValue | undefined> = defineField(
   isEmpty: isUndefined,
   label: 'Beløb',
   controlKind: 'text',
+  validators: [(value) => value !== undefined && value.value !== undefined && (value.value < 0 || value.value > 1_000_000)
+    ? { reason: 'bounds', code: 'belob.bounds', message: 'Værdi skal være mellem 0 og 1000000', detail: { minValue: 0, maxValue: 1_000_000 } }
+    : undefined],
   readCanonical: (sections, address) => readRow(sections, findRowId(address))?.belob,
   writeCanonical: (sections, address, value) => updateRow(sections, findRowId(address), (row) => ({ ...row, belob: value })),
 });
@@ -141,6 +149,9 @@ export const tillaegstidField: FieldDescriptor<number | undefined> = defineField
   isEmpty: isUndefined,
   label: 'Tillægstid',
   controlKind: 'text',
+  validators: [(value) => value !== undefined && (value < 0 || value > 100)
+    ? { reason: 'bounds', code: 'tillaegstid.bounds', message: 'Værdi skal være mellem 0 og 100', detail: { minValue: 0, maxValue: 100 } }
+    : undefined],
   relevance: (field, view) => {
     const rowId = findRowId(field.address);
     return view.readCanonical(enhedField.bind(rowId)) !== 'uger';

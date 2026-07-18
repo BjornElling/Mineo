@@ -69,9 +69,9 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
 // ── §3.4 pkt. 2: feltvalidatorerne udleder det immutable issue-snapshot ──────────────────────────────
 
 /**
- * Bygger det immutable feltissue-snapshot fra afsluttet input. Rejected råtekst giver et format-/range-
- * issue; canonical validatorer giver bounds/rule-issues. Irrelevante felter giver aldrig et aktivt issue
- * (§1.9). Mounted komponenter indgår aldrig.
+ * Bygger det immutable feltissue-snapshot fra afsluttet input. Rejected råtekst giver et `format`-issue;
+ * canonical validatorer giver bounds/rule-issues (fx en out-of-bounds-værdi, der forbliver gembar i `.eo`).
+ * Irrelevante felter giver aldrig et aktivt issue (§1.9). Mounted komponenter indgår aldrig.
  */
 export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCatalog): FieldIssueSet => {
   const issues: FieldIssue[] = [];
@@ -83,14 +83,15 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
 
     const rejected = reader.readRejected(field);
     if (rejected !== undefined) {
+      // Rejected råtekst er efter kravændringen 2026-07-18 altid `format` (§1.6): en schema-repræsenterbar
+      // out-of-bounds-værdi er canonical og fanges i stedet af validatorerne nedenfor.
       issues.push(Object.freeze({
         kind: 'field',
         code: `${field.descriptor.id}.${rejected.reason}`,
         severity: 'error',
         field: anyRef,
         reason: rejected.reason,
-        message: buildFieldIssueMessage(anyRef, rejected.reason, rejected.detail),
-        ...(rejected.detail === undefined ? {} : { detail: rejected.detail }),
+        message: buildFieldIssueMessage(anyRef),
       }));
       continue;
     }

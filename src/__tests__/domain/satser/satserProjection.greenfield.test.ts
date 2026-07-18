@@ -62,17 +62,22 @@ describe('projectSatser (greenfield reader-projektion)', () => {
   it.each([
     ['under interval', minYear - 1],
     ['over interval', maxYear + 1],
-  ])('år %s → blocked med rødt feltissue (range), samme gate som formatfejl (§1.6)', (_name, year) => {
-    const result = project(settle(empty(), String(year)));
+  ])('år %s → canonical men blocked med rødt bounds-feltissue, samme consumer-gate som formatfejl (§1.6)', (_name, year) => {
+    const state = settle(empty(), String(year));
+    // Efter kravændringen 2026-07-18 er et out-of-bounds satsår canonical (kan gemmes i .eo), men en
+    // bounds-feltvalidator giver et rødt issue, som readeren skjuler → projektionen blokerer ligesom format.
+    expect(state.sections.satser?.aargang).toBe(year);
+    expect(Object.keys(state.rejectedInputs)).toHaveLength(0);
+    const result = project(state);
     expect(result.status).toBe('blocked');
     if (result.status === 'blocked') {
       const fieldIssue = result.issues.find((i) => i.kind === 'field');
       expect(fieldIssue?.kind).toBe('field');
-      expect(fieldIssue && 'reason' in fieldIssue ? fieldIssue.reason : undefined).toBe('range');
+      expect(fieldIssue && 'reason' in fieldIssue ? fieldIssue.reason : undefined).toBe('bounds');
     }
   });
 
-  it('ugyldigt format → blocked med rødt feltissue (format), identisk gate som range', () => {
+  it('ugyldigt format → blocked med rødt feltissue (format), identisk consumer-gate som bounds', () => {
     const result = project(settle(empty(), 'abc'));
     expect(result.status).toBe('blocked');
     if (result.status === 'blocked') {

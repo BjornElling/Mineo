@@ -8,8 +8,8 @@ import { runProjection, type ProjectionResult } from '../../inputCore/projection
 // `documentGateFromBlockers`-lag — dependency og blokering følger af det ene felt, funktionen faktisk læser.
 //
 // De tre legacy-tilstande kollapser her:
-//  - out-of-bounds år: codecet gør værdien til rejected råtekst (`range`) → et rødt feltissue → `require`
-//    returnerer `unavailable` → blocked (§1.6). Ingen separat range-gren.
+//  - out-of-bounds år: værdien committes canonical, men en bounds-feltvalidator giver et rødt feltissue, som
+//    readeren skjuler → `require` returnerer `unavailable` → blocked (§1.6). Værdien kan stadig gemmes i `.eo`.
 //  - tomt år: `require` udleder en `missing`-consumerfejl → blocked (§1.7).
 //  - gyldigt år: `ready` med { year, satser }.
 

@@ -192,10 +192,10 @@ describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderSurface(field);
     act(() => result.current.onKeyDown(keyEvent('9')));
-    act(() => result.current.onDraftChange('99')); // uden for interval
+    act(() => result.current.onDraftChange('9x9')); // ikke-parsebart format → rejected råtekst
     act(() => result.current.onBlur(focusEvent()));
     expect(canonical(field)).toBeUndefined();
-    expect(rejectedRaw(field)).toBe('99');
+    expect(rejectedRaw(field)).toBe('9x9');
   });
 
   it('Backspace/Delete på et lukket felt rydder og committer straks (§1.3)', () => {

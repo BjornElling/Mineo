@@ -20,7 +20,7 @@ import {
   pushInputHistory,
   undoInputHistory,
   redoInputHistory,
-  blocksEoSave,
+  eoSaveBlocked,
   serializeFieldAddress,
   createInputCatalog,
   catalogFields,
@@ -111,7 +111,7 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
         ...sections,
         renteberegning: { ...sections.renteberegning, rentekravRows: [makeRow('r1', { enhed: 'uger' })] },
       },
-      rejectedInputs: { [address]: { raw: '999', reason: 'range', detail: { minValue: 0, maxValue: 100 } } },
+      rejectedInputs: { [address]: { raw: 'abc', reason: 'format' } },
     })).toThrow(/ikke relevant/);
   });
 
@@ -130,29 +130,41 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
   });
 });
 
-describe('Ens konsekvens for format og range (§1.6)', () => {
-  it('format og range giver begge en rød feltfejl, der skjuler værdien og blokerer .eo', () => {
+describe('Ens rød konsekvens, men strukturel save-sondring for format og bounds (§1.6)', () => {
+  it('format og bounds giver begge en rød feltfejl, der skjuler værdien for consumers', () => {
     const formatState = apply(start(), settleField(aargangField.bind(), 'abc'));
-    const rangeState = apply(start(), settleField(aargangField.bind(), '1800')); // under min 1900
+    const boundsState = apply(start(), settleField(aargangField.bind(), '1800')); // under bounds-min 1900
 
-    for (const [state, reason] of [[formatState, 'format'], [rangeState, 'range']] as const) {
-      expect(rejectedAt(state.input, aargangField.bind())?.reason).toBe(reason);
+    for (const [state, reason] of [[formatState, 'format'], [boundsState, 'bounds']] as const) {
       const read = reader(state.input).read(aargangField.bind());
       expect(read.status).toBe('error');
-      const snapshot = deriveFieldIssueSet(createValidationReader(state.input, catalog), catalog);
-      expect(snapshot.all.every(blocksEoSave)).toBe(true);
+      expect(read.status === 'error' && read.issue.reason).toBe(reason);
     }
   });
 
-  it('bounds på en canonical værdi bevarer værdien men skjuler den bag et afledt issue (§1.6 anden repr.)', () => {
-    const state = apply(start(), settleField(beregningsdatoField.bind(), '01-01-1990'));
-    // Canonical værdi ER bevaret (i modsætning til format/range).
-    expect(createValidationReader(state.input, catalog).readCanonical(beregningsdatoField.bind())).toBeDefined();
-    expect(rejectedAt(state.input, beregningsdatoField.bind())).toBeUndefined();
-    // Men den offentlige reader skjuler den bag et bounds-issue.
-    const read = reader(state.input).read(beregningsdatoField.bind());
-    expect(read.status).toBe('error');
+  it('format er rejected råtekst (canonical ryddet) og blokerer .eo strukturelt', () => {
+    const formatState = apply(start(), settleField(aargangField.bind(), 'abc'));
+    expect(rejectedAt(formatState.input, aargangField.bind())?.reason).toBe('format');
+    expect(createValidationReader(formatState.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
+    expect(eoSaveBlocked(formatState.input)).toBe(true);
+  });
+
+  it('bounds bevarer den canonical værdi, blokerer IKKE .eo, men skjuler værdien bag et rødt issue (§1.6 anden repr.)', () => {
+    // Et schema-repræsenterbart årstal uden for [1900,2100] committes canonical (§1.6).
+    const boundsState = apply(start(), settleField(aargangField.bind(), '1800'));
+    expect(rejectedAt(boundsState.input, aargangField.bind())).toBeUndefined();
+    expect(createValidationReader(boundsState.input, catalog).readCanonical(aargangField.bind())).toBe(1800);
+    // Rød feltfejl blokerer afhængige consumers, men save-gaten er strukturel over rejectedInputs → ikke blokeret.
+    expect(eoSaveBlocked(boundsState.input)).toBe(false);
+    const read = reader(boundsState.input).read(aargangField.bind());
     expect(read.status === 'error' && read.issue.reason).toBe('bounds');
+
+    // Samme mønster for en tværgående/kronologisk bounds-regel på et datofelt.
+    const dateState = apply(start(), settleField(beregningsdatoField.bind(), '01-01-1990'));
+    expect(createValidationReader(dateState.input, catalog).readCanonical(beregningsdatoField.bind())).toBeDefined();
+    expect(rejectedAt(dateState.input, beregningsdatoField.bind())).toBeUndefined();
+    expect(eoSaveBlocked(dateState.input)).toBe(false);
+    expect(reader(dateState.input).read(beregningsdatoField.bind()).status).toBe('error');
   });
 });
 
@@ -167,7 +179,8 @@ describe('Tomhed og missing (§1.7)', () => {
     const projection = runProjection(reader(empty()), 'test-consumer', (c) => c.require(aargangField.bind()));
     expect(projection.status).toBe('blocked');
     expect(projection.status === 'blocked' && projection.issues[0]?.kind).toBe('consumer');
-    expect(projection.status === 'blocked' && projection.issues.some(blocksEoSave)).toBe(false);
+    // Missing blokerer kun sin egen consumer, aldrig .eo: der er intet rejected input i aggregaten.
+    expect(eoSaveBlocked(empty())).toBe(false);
   });
 
   it('en gyldig default er ikke missing, selv om den også er feltets clear-værdi', () => {
@@ -198,22 +211,34 @@ describe('Immediate commit og clear (§1.3)', () => {
 });
 
 describe('Styrende valg rydder nu-irrelevante feltfejl, bevarer gyldigt (§1.9, §3.6)', () => {
-  const seedRowWithRejectedTillaegstid = (): State => {
+  // '999' > max 100 er efter kravændringen 2026-07-18 IKKE rejected: værdien committes canonical (999) og bærer
+  // en rød bounds-feltfejl (§1.6). Et styrende valg, der gør feltet irrelevant, skal rydde BÅDE rejected råtekst
+  // OG en canonical bounds-værdi (§3.6 trin 5).
+  const seedRowWithBoundsTillaegstid = (): State => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
     state = apply(state, settleField(belobField.bind('r1'), '500')); // gyldig, skal bevares
-    state = apply(state, settleField(tillaegstidField.bind('r1'), '999')); // range-fejl (max 100)
+    state = apply(state, settleField(tillaegstidField.bind('r1'), '999')); // canonical 999 + bounds-fejl (max 100)
     return state;
   };
 
-  it('rydder et felt, der bliver irrelevant OG havde en aktiv rød fejl; bevarer det gyldige nabofelt', () => {
-    const seeded = seedRowWithRejectedTillaegstid();
-    expect(rejectedAt(seeded.input, tillaegstidField.bind('r1'))).toBeDefined();
+  const boundsIssueAt = (state: State, rowId: string): boolean => {
+    const read = reader(state.input).read(tillaegstidField.bind(rowId));
+    return read.status === 'error' && read.issue.reason === 'bounds';
+  };
+
+  it('rydder et felt, der bliver irrelevant OG havde en aktiv rød bounds-fejl; bevarer det gyldige nabofelt', () => {
+    const seeded = seedRowWithBoundsTillaegstid();
+    // Værdien er canonical, men bag en rød bounds-feltfejl (ikke rejected råtekst).
+    expect(rejectedAt(seeded.input, tillaegstidField.bind('r1'))).toBeUndefined();
+    expect(createValidationReader(seeded.input, catalog).readCanonical(tillaegstidField.bind('r1'))).toBe(999);
+    expect(boundsIssueAt(seeded, 'r1')).toBe(true);
 
     // Enhed=uger gør tillægstid irrelevant efter testkatalogets inputdrevne relevansregel.
     const chosen = apply(seeded, setImmediateField(enhedField.bind('r1'), 'uger'));
 
-    expect(rejectedAt(chosen.input, tillaegstidField.bind('r1'))).toBeUndefined(); // ryddet
     const validation = createValidationReader(chosen.input, catalog);
+    expect(validation.readCanonical(tillaegstidField.bind('r1'))).toBeUndefined(); // canonical bounds-værdi ryddet
+    expect(rejectedAt(chosen.input, tillaegstidField.bind('r1'))).toBeUndefined();
     expect(validation.readCanonical(belobField.bind('r1'))).toBeDefined(); // bevaret
     expect(validation.readCanonical(enhedField.bind('r1'))).toBe('uger');
   });
@@ -225,30 +250,32 @@ describe('Styrende valg rydder nu-irrelevante feltfejl, bevarer gyldigt (§1.9, 
     expect(createValidationReader(chosen.input, catalog).readCanonical(tillaegstidField.bind('r1'))).toBe(50);
   });
 
-  it('undo/redo omkring skjul af fejl gendanner begge hele tilstande', () => {
-    const seeded = seedRowWithRejectedTillaegstid();
+  it('undo/redo omkring skjul af bounds-fejl gendanner begge hele tilstande', () => {
+    const seeded = seedRowWithBoundsTillaegstid();
     const hidden = apply(seeded, setImmediateField(enhedField.bind('r1'), 'uger'));
     const undone = undoInputHistory(hidden.history, hidden.input);
     if (!undone.changed) throw new Error('Testinvariant: undo-target mangler');
-    expect(rejectedAt(undone.target.input, tillaegstidField.bind('r1'))?.raw).toBe('999');
+    // Undo gendanner den canonical bounds-værdi (999), ikke rejected råtekst.
+    expect(createValidationReader(undone.target.input, catalog).readCanonical(tillaegstidField.bind('r1'))).toBe(999);
     expect(createValidationReader(undone.target.input, catalog).readCanonical(enhedField.bind('r1'))).toBe('dage');
     const redone = redoInputHistory(undone.history, undone.target.input);
     if (!redone.changed) throw new Error('Testinvariant: redo-target mangler');
-    expect(rejectedAt(redone.target.input, tillaegstidField.bind('r1'))).toBeUndefined();
+    expect(createValidationReader(redone.target.input, catalog).readCanonical(tillaegstidField.bind('r1'))).toBeUndefined();
     expect(createValidationReader(redone.target.input, catalog).readCanonical(enhedField.bind('r1'))).toBe('uger');
   });
 });
 
 describe('Dynamiske tabeller (§1.11, §3.8, §7.4)', () => {
   it('settleFieldInNewRow opretter række og fejlende felt atomisk; overlever som ét snapshot', () => {
-    const created = apply(start(), settleFieldInNewRow(rentekravRowsRef(), makeRow('r1'), tillaegstidField.bind('r1'), '999'));
+    // 'abc' er format-rejected råtekst (kan ikke parses); det er dén repræsentation, rejectedInputs bærer (§1.6).
+    const created = apply(start(), settleFieldInNewRow(rentekravRowsRef(), makeRow('r1'), tillaegstidField.bind('r1'), 'abc'));
     expect(reader(created.input).listEntities(rentekravRowsRef()).map((e) => e.entityId)).toEqual(['r1']);
-    expect(rejectedAt(created.input, tillaegstidField.bind('r1'))?.reason).toBe('range');
+    expect(rejectedAt(created.input, tillaegstidField.bind('r1'))?.reason).toBe('format');
   });
 
   it('deleteRow fjerner rækken og dens rejected descendants i samme trin', () => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
-    state = apply(state, settleField(tillaegstidField.bind('r1'), '999'));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), 'abc'));
     expect(rejectedAt(state.input, tillaegstidField.bind('r1'))).toBeDefined();
 
     const deleted = apply(state, deleteRow(rentekravRowsRef(), 'r1'));
@@ -259,10 +286,10 @@ describe('Dynamiske tabeller (§1.11, §3.8, §7.4)', () => {
   it('reorder ændrer kun rækkefølgen og bevarer feltidentitet/rejected input', () => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
     state = apply(state, insertRow(rentekravRowsRef(), makeRow('r2')));
-    state = apply(state, settleField(tillaegstidField.bind('r1'), '999'));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), 'abc'));
     state = apply(state, reorderRows(rentekravRowsRef(), ['r2', 'r1']));
     expect(state.input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
-    expect(rejectedAt(state.input, tillaegstidField.bind('r1'))?.raw).toBe('999');
+    expect(rejectedAt(state.input, tillaegstidField.bind('r1'))?.raw).toBe('abc');
   });
 });
 
@@ -282,7 +309,7 @@ describe('Transaktionsinvarianter (§7.4)', () => {
   it('resetSection rydder kun sektionens rejected input; replace og clear validerer hele casen', () => {
     let state = apply(start(), settleField(aargangField.bind(), 'abc'));
     state = apply(state, insertRow(rentekravRowsRef(), makeRow('r1')));
-    state = apply(state, settleField(tillaegstidField.bind('r1'), '999'));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), 'abc'));
 
     state = apply(state, resetSection('satser', { aargang: 2020 }));
     expect(rejectedAt(state.input, aargangField.bind())).toBeUndefined();
@@ -364,7 +391,7 @@ describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§7
 
   it('række-fejl → slet → undo → redo bevarer hele snapshotkæden', () => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
-    state = apply(state, settleField(tillaegstidField.bind('r1'), '999'));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), 'abc'));
     state = apply(state, deleteRow(rentekravRowsRef(), 'r1'));
     const undone = undoInputHistory(state.history, state.input);
     if (!undone.changed) throw new Error('Testinvariant: undo-target mangler');

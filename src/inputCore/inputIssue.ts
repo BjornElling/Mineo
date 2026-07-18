@@ -1,18 +1,26 @@
 import { serializeFieldAddress, type SerializedFieldAddress } from './fieldAddress';
 import type { AnyFieldRef } from './fieldDescriptor';
 import type { EvaluationSourceToken } from './evaluationSource';
-import { formatDanishNumber } from '../utils/numberFormatting';
+import type { SettledInput } from './settledInput';
 
 // Greenfield-kerne (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
 // INGEN `blocksSave`/`blocksProjection`-booleans. Konsekvensen udledes STRUKTURELT af kind + placering +
-// consumerens faktiske reads — ikke af et konfigurerbart flag.
+// consumerens faktiske reads — ikke af et konfigurerbart flag. Save-blokering følger `rejectedInputs`, ikke
+// issuefarve (§1.6): kun rejected råtekst blokerer `.eo`; en canonical bounds/rule-feltfejl kan gemmes.
 
-/** Rød feltfejl: format/range (rejected råtekst) eller bounds/rule/schema (afledt af canonical værdi). */
-export type FieldIssueReason = 'format' | 'range' | 'bounds' | 'rule' | 'schema';
+/**
+ * Rød feltfejl-årsag. `format` er den eneste rejected-råtekst-årsag (§1.6); bounds/rule/schema udledes af en
+ * canonical værdi via en feltvalidator og forbliver derfor gembar i `.eo`.
+ */
+export type FieldIssueReason = 'format' | 'bounds' | 'rule' | 'schema';
 
 export type IssueDetail = Readonly<Record<string, string | number | boolean>>;
 
-/** En rød feltfejl. Blokerer ALTID `.eo` globalt og enhver afhængig consumer (§1.6, §1.10). */
+/**
+ * En rød feltfejl. Blokerer enhver afhængig consumer (§1.6, §1.10). Den blokerer KUN `.eo`, hvis feltets
+ * aktuelle tilstand er rejected råtekst (`format`); en canonical bounds/rule-feltfejl kan gemmes. Save-gaten
+ * læses strukturelt af {@link eoSaveBlocked} over `rejectedInputs`, ikke af issuefarve eller reason.
+ */
 export type FieldIssue = Readonly<{
   kind: 'field';
   code: string;
@@ -49,16 +57,23 @@ export type Warning = Readonly<{
 
 export type InputIssue = FieldIssue | ConsumerIssue | Warning;
 
-/** Enhver aktiv rød feltfejl blokerer `.eo` globalt (§1.10). Missing/warning gør aldrig. */
-export const blocksEoSave = (issue: InputIssue): boolean => issue.kind === 'field';
+/**
+ * Strukturel `.eo`-save-gate (§1.6/§1.10): save blokeres, hvis og kun hvis inputaggregaten indeholder mindst ét
+ * aktivt rejected input. En canonical bounds/rule-feltfejl blokerer IKKE save, selv om den er rød og blokerer
+ * afhængige beregninger/dokumenter. Gaten udledes af `rejectedInputs`, aldrig af issuefarve eller reason.
+ *
+ * Relevans-/synligheds-afgrænsningen af hvilke rejected inputs der er aktive, håndhæves allerede af
+ * XOR-/eksistens-invarianten på inputaggregaten (§3.1): et irrelevant felt kan ikke bære rejected råtekst.
+ */
+export const eoSaveBlocked = (input: SettledInput): boolean =>
+  Object.keys(input.rejectedInputs).length > 0;
 
 // Deterministisk prioritet (§1.8): den mest direkte feltfejl vinder, uafhængigt af validator-rækkefølge.
 const FIELD_REASON_PRIORITY: Readonly<Record<FieldIssueReason, number>> = {
   format: 0,
-  range: 1,
-  bounds: 2,
-  rule: 3,
-  schema: 4,
+  bounds: 1,
+  rule: 2,
+  schema: 3,
 };
 
 const compareText = (left: string, right: string): number => left < right ? -1 : left > right ? 1 : 0;
@@ -68,35 +83,13 @@ export const compareFieldIssues = (left: FieldIssue, right: FieldIssue): number 
   || compareText(left.code, right.code)
   || compareText(left.message, right.message);
 
-const formatBound = (value: string | number | boolean | undefined): string =>
-  typeof value === 'number' ? formatDanishNumber(value) : String(value);
-
 /**
- * Bygger den konkrete danske besked for en format-/range-feltfejl uden at reparse råteksten (§1.8).
- * Range-beskeden viser de faktiske grænser; hvis `min > max`, forklares det, at ingen værdier findes.
+ * Bygger den konkrete danske besked for et rejected (format) feltinput uden at reparse råteksten (§1.8).
+ * Bounds-/range-beskeder hører til canonical feltvalidatorer (`FieldIssueSpec.message`), ikke hertil, fordi en
+ * out-of-bounds-værdi efter kravændringen 2026-07-18 er canonical og ikke rejected råtekst (§1.6).
  */
-export const buildFieldIssueMessage = (
-  field: AnyFieldRef,
-  reason: 'format' | 'range',
-  detail: IssueDetail | undefined
-): string => {
-  const label = field.descriptor.label;
-  if (reason === 'format') {
-    return `Der er udfyldt en ugyldig værdi i feltet ${label}`;
-  }
-  const min = detail?.minValue;
-  const max = detail?.maxValue;
-  if (typeof min === 'number' && typeof max === 'number') {
-    if (min > max) {
-      return `${label} har ingen gyldige værdier: den nedre grænse ${formatBound(min)} er større end den øvre grænse ${formatBound(max)}`;
-    }
-    if (min === max) return `${label} skal være ${formatBound(min)}`;
-    return `${label} skal være mellem ${formatBound(min)} og ${formatBound(max)}`;
-  }
-  if (min !== undefined) return `${label} skal være ${formatBound(min)} eller højere`;
-  if (max !== undefined) return `${label} skal være ${formatBound(max)} eller lavere`;
-  return `${label} er uden for det tilladte interval`;
-};
+export const buildFieldIssueMessage = (field: AnyFieldRef): string =>
+  `Der er udfyldt en ugyldig værdi i feltet ${field.descriptor.label}`;
 
 /**
  * Immutabelt feltissue-snapshot: højst ét aktivt rødt issue pr. felt (§1.8). Bygges af feltvalidatorerne

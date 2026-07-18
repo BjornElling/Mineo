@@ -20,26 +20,29 @@ describe('greenfield fieldCodecs', () => {
       .toEqual({ status: 'valid', value: 'a' });
   });
 
-  it('adskiller format og range for år og uge', () => {
+  it('afviser kun format; et velformet år uden for min/max committes canonical (§1.6)', () => {
     const year = createYearFieldCodec({ minYear: 2000, maxYear: 2030, twoDigitYearPolicy: 'infer' });
     expect(year.parseForSettle('x')).toMatchObject({ status: 'rejected', reason: 'format' });
-    expect(year.parseForSettle('1990')).toMatchObject({
-      status: 'rejected', reason: 'range', detail: { minValue: 2000, maxValue: 2030 },
-    });
+    // Out-of-bounds er efter kravændringen 2026-07-18 canonical (bounds-vurderes af en feltvalidator, ikke codecet).
+    expect(year.parseForSettle('1990')).toEqual({ status: 'valid', value: 1990 });
 
     const week = createWeekFieldCodec({
       minYear: 2000, maxYear: 2030, twoDigitYearPolicy: 'infer', maxDraftLength: 8,
     });
     expect(week.parseForSettle('5/2020')).toEqual({ status: 'valid', value: '05/2020' });
-    expect(week.parseForSettle('53/2021')).toMatchObject({ status: 'rejected', reason: 'range' });
+    // Årsdelen uden for [minYear, maxYear] er bounds → canonical.
+    expect(week.parseForSettle('5/1990')).toEqual({ status: 'valid', value: '05/1990' });
+    // Uge-nummeret uden for 1..52/53 er en repræsenterbarhedsgrænse → forbliver format-rejected.
+    expect(week.parseForSettle('53/2021')).toMatchObject({ status: 'rejected', reason: 'format' });
   });
 
-  it('bevarer string-backed tomhed og videresender afvisningsårsagen', () => {
+  it('bevarer string-backed tomhed; et out-of-bounds år committes canonical som streng (§1.6)', () => {
     const source = createYearFieldCodec({ minYear: 2000, maxYear: 2030, twoDigitYearPolicy: 'infer' });
     const codec = createStringBackedFieldCodec(source);
     expect(codec.parseForSettle('')).toEqual({ status: 'valid', value: '' });
     expect(codec.parseForSettle('2020')).toEqual({ status: 'valid', value: '2020' });
-    expect(codec.parseForSettle('1990')).toMatchObject({ status: 'rejected', reason: 'range' });
+    expect(codec.parseForSettle('1990')).toEqual({ status: 'valid', value: '1990' });
+    expect(codec.parseForSettle('x')).toMatchObject({ status: 'rejected', reason: 'format' });
   });
 
   it('canonicaliserer brøker og afviser ugyldig syntaks som format', () => {

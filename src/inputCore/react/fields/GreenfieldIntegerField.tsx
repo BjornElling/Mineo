@@ -6,9 +6,9 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import GreenfieldNumericTextField from './GreenfieldNumericTextField';
 
 // Greenfield heltals-felt (§2.4/§3.5): den tynde familie-skal over `GreenfieldNumericTextField` med heltals-
-// tegnfilteret. Parse/format og commit-intervallet (min/max → rejected `range`) ejes af descriptorens
-// heltals-codec; komponenten modtager KUN sin `field`/`location` + rendering-props — ingen `minValue`/`maxValue`/
-// `onCommit`/`onFieldError` (§2.4). Røde range-fejl kommer fra codec-`range` via issue-snapshottet.
+// tegnfilteret. Parse/format ejes af descriptorens heltals-codec; komponenten modtager KUN sin `field`/`location`
+// + rendering-props — ingen `minValue`/`maxValue`/`onCommit`/`onFieldError` (§2.4). Feltets min/max er efter
+// kravændringen 2026-07-18 en canonical bounds-feltvalidator; røde bounds-fejl kommer fra issue-snapshottet (§1.6).
 
 export type GreenfieldIntegerFieldProps = Readonly<{
   field: FieldRef<number | undefined>;

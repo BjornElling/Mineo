@@ -24,10 +24,11 @@ import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettin
 // en remount genbruger den samme runtime uden at overskrive input.
 //
 // **Feltvalidering (Fase 3, slicevis):** `getIssues` optager nu et STABILT kildesnapshot (§3.4) og udleder det
-// faktiske tokenbundne feltissue-snapshot via `captureStableInputEvaluation`. Rejected råtekst (format/range) og
+// faktiske tokenbundne feltissue-snapshot via `captureStableInputEvaluation`. Rejected råtekst (format) og
 // canonical-validatorer på de migrerede sektioner giver derfor ægte røde feltfejl. Sektioner uden migrerede
-// validatorer bidrager ikke med issues endnu — men Satser-årets commit-interval er et codec-`range` (rejected
-// råtekst), så Satser-slicens bounds-fejl er dækket uden en separat validator. Snapshottet caches pr.
+// validatorer bidrager ikke med issues endnu — Satser-årets min/maxYear-bounds er efter kravændringen 2026-07-18
+// en canonical bounds-feltvalidator på descriptoren (ikke længere codec-`range`), så et out-of-bounds-satsår
+// committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Snapshottet caches pr.
 // `EvaluationSourceToken`, så `getIssues` er billig at kalde under render (én gang pr. revision/settingsrevision).
 
 let publishedSettings: AppSettings = DEFAULT_APP_SETTINGS;

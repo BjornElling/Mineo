@@ -6,7 +6,6 @@ import {
   trimToNumericEdgesPreserveLeadingMinus,
   trimWhitespaceEdges,
 } from '../utils/draftNormalization';
-import { getIntegerRangeErrorMessage } from '../utils/integerRange';
 import {
   parseAmountInput,
   amountValueToDisplayString,
@@ -34,7 +33,6 @@ import {
 import {
   formatPercentDisplay,
   parsePercentDraftForCommit,
-  buildPercentRangeErrorMessage,
   type PercentParseConfig,
 } from '../utils/percentDraftCore';
 import { parseWeekDraftForCommit, type WeekDraftParseConfig } from '../utils/weekDraftCore';
@@ -47,8 +45,10 @@ import {
 } from './fieldCodec';
 
 // Greenfield-kerne (§3.3): ét codec pr. inputfamilie, bygget over de EKSISTERENDE godkendte parse-kerner i
-// `../utils/*`. Normaliserings-, infer-, præcisions- og paste-regler er UÆNDREDE (§11); den eneste ændring er,
-// at en afvist resolution nu bærer en maskinlæsbar `format`/`range`-årsag i stedet for et nøgent `invalid`.
+// `../utils/*`. Normaliserings-, infer-, præcisions- og paste-regler er UÆNDREDE (§11). Efter kravændringen
+// 2026-07-18 afviser et codec KUN ugyldigt format/schema-urepræsenterbarhed; en schema-gyldig værdi uden for
+// feltets aktive min/max committes canonical og bærer et afledt bounds-issue fra en feltvalidator (§1.6).
+// Paste-normaliseringen beholder sin min/max-clamp — kun commit-tidens range-afvisning er fjernet.
 
 const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pattern.test(key);
 
@@ -207,11 +207,9 @@ export const createIntegerFieldCodec = (
       const edge = trimToNumericEdgesPreserveLeadingMinus(raw);
       const normalized = edge === '' && raw.trim() !== '' ? raw.trim() : edge;
       const parsed = parseIntegerDraftForCommit(normalized, config);
+      // Kun format/schema-repræsenterbarhed afvises (§1.6). En schema-gyldig out-of-bounds-værdi committes
+      // canonical; min/max vurderes af en canonical feltvalidator, ikke her.
       if (!parsed.ok) return rejectedResolution('format');
-      if (parsed.value !== undefined) {
-        const rangeMessage = getIntegerRangeErrorMessage(parsed.value, config.minValue, config.maxValue);
-        if (rangeMessage !== '') return rejectedResolution('range', boundsDetail(config));
-      }
       return validResolution(parsed.value);
     },
     format: (value) => value === undefined ? '' : String(value),
@@ -246,12 +244,9 @@ export const createAmountFieldCodec = (options: Readonly<{
         maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
         maxRawLength: MAX_AMOUNT_RAW_LENGTH,
       });
+      // Kun format/schema-repræsenterbarhed afvises (§1.6). Aktive min/max vurderes af en canonical
+      // feltvalidator på den committede værdi, ikke som en rejection her.
       if (!parsed.ok || (parsed.value === undefined && raw.trim() !== '')) return rejectedResolution('format');
-      const numericValue = parsed.value?.value;
-      if (numericValue !== undefined && (
-        (options.minValue !== undefined && numericValue < options.minValue)
-        || (options.maxValue !== undefined && numericValue > options.maxValue)
-      )) return rejectedResolution('range', boundsDetail(options));
       return validResolution(parsed.value);
     },
     format: (value) => amountValueToDisplayString(value, DEFAULT_AMOUNT_PRECISION),
@@ -278,12 +273,10 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
   const formatOnlyConfig: PercentParseConfig = { ...config, minValue: undefined, maxValue: undefined };
   return Object.freeze({
     parseForSettle: (raw): FieldResolution<number | undefined> => {
-      // Format og range adskilles eksplicit: parse uden grænser, derefter range-check (§1.6/§3.3).
+      // Kun format afvises (§1.6/§3.3): parse uden grænser. En schema-gyldig out-of-bounds-procent committes
+      // canonical; min/max vurderes af en canonical feltvalidator, ikke som en rejection her.
       const parsed = parsePercentDraftForCommit(raw, formatOnlyConfig);
       if (!parsed.ok) return rejectedResolution('format');
-      if (parsed.value !== undefined && buildPercentRangeErrorMessage(parsed.value, config) !== null) {
-        return rejectedResolution('range', boundsDetail(config));
-      }
       return validResolution(parsed.value);
     },
     format: (value) => formatPercentDisplay(value, config.allowDecimals),
@@ -323,13 +316,13 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
     maxValue: config.maxYear,
     allowNegative: false,
   }, isSafeCanonicalInteger);
+  // Format afgøres uden årsgrænser: et velformet årstal uden for [minYear, maxYear] committes canonical og
+  // bærer et afledt bounds-issue fra en feltvalidator (§1.6). Kun ikke-parsebart format afvises her.
+  const formatOnlyConfig: YearDraftParseConfig = { ...config, minYear: undefined, maxYear: undefined };
   return Object.freeze({
     parseForSettle: (raw) => {
-      const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), config);
-      if (parsed.ok) return validResolution(parsed.value);
-      return parsed.errorMessage.startsWith('Årstallet skal være')
-        ? rejectedResolution('range', boundsDetail({ minValue: config.minYear, maxValue: config.maxYear }))
-        : rejectedResolution('format');
+      const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
+      return parsed.ok ? validResolution(parsed.value) : rejectedResolution('format');
     },
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
@@ -345,15 +338,14 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
     maxValue: config.maxYear,
     allowNegative: false,
   }, isSafeCanonicalInteger);
+  // Uge-nummeret (1..52/53) er en repræsenterbarhedsgrænse: en uge uden for det kan ikke være en canonical
+  // "UU/ÅÅÅÅ"-værdi og forbliver derfor format-rejected. Årsgrænserne [minYear, maxYear] er derimod bounds:
+  // et velformet uge/år-par uden for årsintervallet committes canonical og bærer et afledt bounds-issue (§1.6).
+  const formatOnlyConfig: WeekDraftParseConfig = { ...config, minYear: undefined, maxYear: undefined };
   return Object.freeze({
     parseForSettle: (raw) => {
-      const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), config);
-      if (parsed.ok) return validResolution(parsed.value);
-      const isRange = parsed.errorMessage.startsWith('Årstallet skal være')
-        || parsed.errorMessage.startsWith('Uge skal være mellem');
-      return isRange
-        ? rejectedResolution('range', boundsDetail({ minValue: config.minYear, maxValue: config.maxYear }))
-        : rejectedResolution('format');
+      const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
+      return parsed.ok ? validResolution(parsed.value) : rejectedResolution('format');
     },
     format: (value) => value ?? '',
     formatForEdit: (value) => value ?? '',
@@ -380,11 +372,4 @@ export const createFractionFieldCodec = (config: FractionParseOptions): FieldCod
     acceptsInitialKey: (key) => /^[0-9/,]$/.test(key) || (key === '-' && config.allowNegative === true),
     normalizePaste: (raw) => normalizeFractionPaste(raw, config),
   });
-};
-
-const boundsDetail = (options: Readonly<{ minValue?: number; maxValue?: number }>): Readonly<Record<string, number>> => {
-  const detail: Record<string, number> = {};
-  if (options.minValue !== undefined) detail.minValue = options.minValue;
-  if (options.maxValue !== undefined) detail.maxValue = options.maxValue;
-  return detail;
 };

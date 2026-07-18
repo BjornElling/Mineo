@@ -3,16 +3,17 @@
 // MASKINLÆSBAR årsag + detaljer, så UI aldrig reparser råteksten for at finde tooltipteksten (§1.8).
 
 /**
- * Årsag til at et syntaktisk håndteret settle blev afvist. Alle årsager ender som en rød feltfejl med
- * SAMME gate-konsekvens (§1.6); kun beskeden varierer.
+ * Årsag til at et settle blev AFVIST (rejected råtekst, canonical slot ryddet til tomværdien). Efter
+ * kravændringen 2026-07-18 er `format` den eneste afvisningsårsag: kun rå tekst, som ikke kan omsættes til en
+ * værdi i feltets persisterede schema, er rejected (§1.6). Afvisning giver en rød feltfejl og blokerer `.eo`.
  *
- * - `format`  — teksten kan ikke parses til feltets type.
- * - `range`   — teksten parser til en værdi uden for feltets aktive commit-interval (min/max).
+ * - `format` — teksten kan ikke parses til feltets type eller kan ikke repræsenteres sikkert i schemaet.
  *
- * Kronologiske/tværgående bounds og tolerant-load-canonical håndteres IKKE her, men af feltvalidatorer
- * på en canonical værdi (§1.6): de forbliver canonical med et afledt issue.
+ * Feltets aktive min/max, kronologiske/tværgående bounds og feltplacerede domæneregler afvises IKKE her.
+ * En schema-repræsenterbar out-of-bounds-værdi committes canonical og bærer et afledt `bounds`/`rule`-issue
+ * fra en feltvalidator (§1.6). Den forbliver dermed gembar i `.eo`, selv om den blokerer afhængige consumers.
  */
-export type FieldRejectReason = 'format' | 'range';
+export type FieldRejectReason = 'format';
 
 export type FieldRejectDetail = Readonly<Record<string, string | number | boolean>>;
 
