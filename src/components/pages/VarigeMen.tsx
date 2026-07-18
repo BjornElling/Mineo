@@ -1,13 +1,13 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import PageTabs from '../layout/PageTabs';
-import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
-import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
-import { varigeMenSchema } from '../../schemas/formSchemas';
 import MenberegningTab from './varigemen/MenberegningTab';
 import SatserTab from './varigemen/SatserTab';
-import { VARIGE_MEN_INITIAL_VALUES } from '../../domain/varigemen/varigeMenInitialValues';
+
+// Greenfield-migreret (§2.4 formularrækkefølge trin 5 / Fase 3 Varige mén-slice). Siden ejer ingen input-state
+// længere: `MenberegningTab` læser/skriver selv gennem greenfield-inputCore. Ingen `usePersistedForm`- eller
+// `usePersistedSectionSelector`-legacy-sink.
 
 const TAB_KEYS = {
   MENBEREGNING: 'menberegning',
@@ -22,27 +22,6 @@ const VarigeMen = React.memo(() => {
     allowedTabs: [TAB_KEYS.MENBEREGNING, TAB_KEYS.SATSER],
     defaultTab: TAB_KEYS.MENBEREGNING,
   });
-
-  const { values, setFieldValue } = usePersistedForm(varigeMenSchema, 'varigemen', VARIGE_MEN_INITIAL_VALUES);
-  const stamdata = usePersistedSectionSelector('stamdata');
-  const menberegningStamdata = React.useMemo(
-    () => ({
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      skadelidteFodselsdato: stamdata?.skadelidteFodselsdato,
-      skadedato: stamdata?.skadedato,
-      skadestype: stamdata?.skadestype,
-    }),
-    [
-      stamdata?.journalnr,
-      stamdata?.advokat,
-      stamdata?.sagsbehandler,
-      stamdata?.skadelidteFodselsdato,
-      stamdata?.skadedato,
-      stamdata?.skadestype,
-    ]
-  );
 
   return (
     <Box>
@@ -60,11 +39,7 @@ const VarigeMen = React.memo(() => {
       {activeTab === TAB_KEYS.SATSER ? (
         <SatserTab />
       ) : (
-        <MenberegningTab
-          values={values}
-          setFieldValue={setFieldValue}
-          stamdata={menberegningStamdata}
-        />
+        <MenberegningTab />
       )}
     </Box>
   );

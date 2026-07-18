@@ -719,6 +719,7 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
   beregningsResultat: VarigeMenBeregningResult;
   settings: DocumentSettings;
   persistedStamdata: unknown;
+  isSourceCurrent: () => boolean;
 }>): Promise<DocumentDownloadResult> => {
   const {
     fodselsdato,
@@ -728,6 +729,7 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
     beregningsResultat,
     settings,
     persistedStamdata,
+    isSourceCurrent,
   } = params;
   const common = buildCommonPdfContext(settings, 'varigeMen', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadVarigeMenDokument');
@@ -735,7 +737,9 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
 
   try {
     const { generateVarigeMenDocument } = await loadVarigeMenDocumentModule();
-    return await runSelectedDocumentFormat(settings, (session) => generateVarigeMenDocument(session, {
+    return await runSelectedDocumentFormat(
+      settings,
+      (session) => generateVarigeMenDocument(session, {
         fodselsdato,
         skadedato,
         mengrad,
@@ -744,7 +748,9 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
         skadedatoLabel: resolveStamdataDatoLabel(common.stamdata),
         visBrevhoved: common.visBrevhoved,
         stamdata: common.stamdata,
-      }));
+      }),
+      { isSourceCurrent, staleError: buildDocumentFailureMessage(settings, 'Kunne ikke generere ménberegning-PDF') }
+    );
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere ménberegning-PDF'),

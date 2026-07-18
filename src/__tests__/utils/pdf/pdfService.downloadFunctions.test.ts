@@ -943,6 +943,7 @@ describe('downloadVarigeMenDokument', () => {
       beregningsResultat: {} as never,
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(true);
     expect(mockGenerateVarigeMenPdf).toHaveBeenCalled();
@@ -958,6 +959,7 @@ describe('downloadVarigeMenDokument', () => {
       beregningsResultat: {} as never,
       settings,
       persistedStamdata: null,
+      isSourceCurrent: () => true,
     });
     expect(result.success).toBe(false);
   });

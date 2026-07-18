@@ -172,7 +172,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/varigemen-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/varigemen/varigeMenEngine.test.ts',
-      'src/__tests__/components/pages/varigemen/MenberegningTab.pdfStamdataConsistency.test.tsx',
+      'src/__tests__/components/pages/varigemen/MenberegningTab.greenfield.integration.test.tsx',
     ],
   },
   {

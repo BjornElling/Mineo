@@ -1,219 +1,189 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Tooltip,
-} from '@mui/material';
+import { Box, Typography, Tooltip } from '@mui/material';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import StyledDateField from '../../inputs/StyledDateField';
+import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
+import GreenfieldNumericTextField from '../../../inputCore/react/fields/GreenfieldNumericTextField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
-import StyledPercentField from '../../inputs/StyledPercentField';
+import InputUnitAdornment from '../../inputs/InputUnitAdornment';
 import ContentBox from '../../layout/ContentBox';
-import {
-  type VarigeMenValues,
-  type StamdataValues,
-} from '../../../schemas/formSchemas';
-import { VARIGE_MEN_MAX_MENGRAD } from '../../../domain/varigemen/varigeMenPolicy';
+import { filterIntegerKeyDown } from '../../inputs/inputKeyFilters';
+import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
-import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
-import { computeVarigeMenEngine } from '../../../domain/varigemen/varigeMenEngine';
-import type { SetFieldValue } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
-import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
-import { dateRanges_varigemen } from '../../../config/dateRanges';
-import { useAppSettings } from '../../../contexts/useAppSettings';
-import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
+import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
+import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
+import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { downloadVarigeMenDokument } from '../../../document/service/documentService';
 import { evaluateVarigeMenDownloadGate } from '../../../domain/varigemen/varigeMenDownloadGate';
-import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import { resolveStamdataDatoLabel } from '../../../domain/policies/stamdataCalculations';
-import { resolveStamdataDateOrder } from '../../../domain/stamdata/stamdataDateOrder';
+import { buildVarigeMenReaderProjection } from '../../../domain/varigemen/varigeMenReaderProjection';
+import { projectStamdataForDocument } from '../../../domain/stamdata/stamdataDocumentProjection';
+import {
+  varigeMenBeregningsdatoField,
+  varigeMenMengradField,
+} from '../../../inputCore/catalog/varigeMenDescriptors';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+  stamdataSkadestypeField,
+} from '../../../inputCore/catalog/stamdataDescriptors';
+import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
+import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
+import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
+import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
 
-type MenberegningStamdataView = Pick<
-  StamdataValues,
-  'journalnr' | 'advokat' | 'sagsbehandler' | 'skadelidteFodselsdato' | 'skadedato' | 'skadestype'
->;
+// Greenfield-migreret MenberegningTab (§2.4 formularrækkefølge trin 5 / Fase 3 Varige mén-slice). Hele fanen kører
+// nu på greenfield-inputCore: méngrad + beregningsdato skriver/læser gennem den offentlige `InputReader` + den ene
+// write-grænse (ingen `usePersistedForm`/`setFieldValue`-prop); de tværsektionelle stamdata-datoer læses gennem
+// samme reader (ingen rå `usePersistedSectionSelector`). Den ENE reader-afledte projektion
+// (`buildVarigeMenReaderProjection`) driver både beregningsvisning og download-gaten. Beregningstal og synlig
+// adfærd er uændrede (§5.4).
 
-const MenberegningTab = ({ values, setFieldValue, stamdata }: {
-  values: VarigeMenValues;
-  setFieldValue: SetFieldValue<VarigeMenValues>;
-  stamdata: MenberegningStamdataView;
-}) => {
-  const stamValues = stamdata;
+const mengradRef = varigeMenMengradField.bind();
+const beregningsdatoRef = varigeMenBeregningsdatoField.bind();
+const fodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
+const skadedatoRef = stamdataSkadedatoField.bind();
+const skadestypeRef = stamdataSkadestypeField.bind();
 
-  const { settings } = useAppSettings();
+const MENGRAD_LOCATION = { locationId: 'varigemen:mengrad' } as const;
+const BEREGNINGSDATO_LOCATION = { locationId: 'varigemen:beregningsdato' } as const;
+
+const MenberegningTab = React.memo(() => {
   const navigate = useNavigate();
-  const stamdataFieldErrors = useFormFieldErrors('stamdata');
+  const evaluation = useInputEvaluation();
+  const criticalActions = useCriticalInputActions();
 
-  // State til rystebevægelse animation
   const [downloadShake, setDownloadShake] = React.useState(false);
   const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
+  const downloadShakeTimeoutRef = React.useRef<number | null>(null);
+  React.useEffect(() => () => {
+    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
+  }, []);
+  const triggerDownloadShake = React.useCallback(() => {
+    setDownloadShake(true);
+    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
+    downloadShakeTimeoutRef.current = window.setTimeout(() => {
+      setDownloadShake(false);
+      downloadShakeTimeoutRef.current = null;
+    }, 500);
+  }, []);
 
-// --- Feltvalidering ---
-// Persisterede felters fejl føres gennem den centrale fejl-infrastruktur (jf.
-// page-component-contract §8.1), ikke parallel lokal useState. Producenten (input-feltet)
-// ejer fejlen via reporteren; sidens gating læser den opløste fejl via useFormFieldErrors.
-const varigeMenFieldErrors = useFormFieldErrors('varigemen');
-const reportMengradError = useFormFieldErrorReporter('varigemen', 'mengrad', {
-  severity: 'error',
-  source: 'input',
-});
-const reportBeregningsdatoError = useFormFieldErrorReporter('varigemen', 'beregningsdato', {
-  severity: 'error',
-  source: 'input',
-});
-const mengradInputRef = React.useRef<HTMLInputElement>(null);
-const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
+  const mengradInputRef = React.useRef<HTMLInputElement>(null);
+  const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
+  const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
-const mengradError = varigeMenFieldErrors.mengrad?.message;
-const beregningsdatoError = varigeMenFieldErrors.beregningsdato?.message;
-const stamdataDateOrderError = React.useMemo(
-  () => resolveStamdataDateOrder(stamValues).issues[0]?.message,
-  [stamValues]
-);
-const fodselsdatoError = stamdataFieldErrors.skadelidteFodselsdato?.message ?? stamdataDateOrderError;
-const skadedatoError = stamdataFieldErrors.skadedato?.message ?? stamdataDateOrderError;
-
-// Tjek om der er fejl på senest afsluttede input eller i den rene stamdatarelation.
-const beregningsFejl = React.useMemo(() => {
-  if (fodselsdatoError || skadedatoError || beregningsdatoError || mengradError) {
-    return 'Fejl i indtastning';
-  }
-  return null;
-}, [mengradError, fodselsdatoError, skadedatoError, beregningsdatoError]);
-
-// Missing er adskilt fra range: en canonical méngrad uden for 1..120 findes fortsat,
-// men range-issueet ovenfor blokerer den før engine og dokumentgate.
-const manglendeFelter = React.useMemo(() => {
-  if (!stamValues.skadelidteFodselsdato || !stamValues.skadedato || !values.beregningsdato || values.mengrad === undefined) {
-    return 'Indtastning mangler';
-  }
-  return null;
-}, [stamValues.skadelidteFodselsdato, stamValues.skadedato, values.beregningsdato, values.mengrad]);
-
-// Beregn alder på skadestidspunkt (bruges flere steder)
-const alderVedSkade = React.useMemo(() => {
-  const fodselsdatoISO = coerceToISODateString(stamValues.skadelidteFodselsdato);
-  const skadedatoISO = coerceToISODateString(stamValues.skadedato);
-
-  if (!fodselsdatoISO || !skadedatoISO) return undefined;
-
-  const fodselsdato = parseISODate(fodselsdatoISO);
-  const skadedato = parseISODate(skadedatoISO);
-
-  if (!fodselsdato || !skadedato) return undefined;
-
-  return calculateUtcAgeInWholeYears(fodselsdato, skadedato);
-}, [stamValues.skadelidteFodselsdato, stamValues.skadedato]);
-
-const menSats = React.useMemo(() => {
-  const iso = coerceToISODateString(values.beregningsdato);
-  return resolveMenSatsForBeregningsdato(iso ?? undefined, varigeMenPrGrad);
-}, [values.beregningsdato]);
-
-const beregningsResultat = React.useMemo(() => {
-  // Afledte issues og missing blokerer før engine, så den aldrig ser domæneugyldigt input.
-  if (beregningsFejl || manglendeFelter) return undefined;
-
-  const skadedatoISO = coerceToISODateString(stamValues.skadedato);
-  if (!skadedatoISO) return undefined;
-
-  // Beregning sker udelukkende via den autoritative engine (varigemen-contract §1/§2),
-  // så UI og PDF deler præcis samme beregningsvej. Engine-laget er et rent gennemløb
-  // til beregningsfunktionen — outputtet er identisk med et direkte kald.
-  const { result: resultat } = computeVarigeMenEngine({
-    varigemen: values,
-    skadestidspunkt: skadedatoISO,
-    rates: varigeMenPrGrad,
-    fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato) ?? undefined,
-  });
-  if (!resultat) return undefined;
-
-  return resultat;
-}, [values, stamValues.skadelidteFodselsdato, stamValues.skadedato, beregningsFejl, manglendeFelter]);
-
-  // Download-gaten bygges på det fælles documentGateTypes-primitiv (dokument-output-
-  // kontrakt §A2): et samlet gate-resultat med auditerbare årsagskoder i stedet for et
-  // inline-boolean-udtryk. Alle indgange er afledt fra afsluttet canonical input,
-  // rene domæneissues og den autoritative engine, så committed-only-reglen er
-  // konstruktion frem for kommentar.
-  const downloadGate = React.useMemo(
-    () => evaluateVarigeMenDownloadGate({
-      stamdata: stamValues,
-      hasBlockingFieldErrors: beregningsFejl !== null,
-      hasMissingFields: manglendeFelter !== null,
-      hasBeregningsResultat: beregningsResultat !== undefined,
-    }),
-    [stamValues, beregningsFejl, manglendeFelter, beregningsResultat],
+  const mengradKeyFilter = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => filterIntegerKeyDown(e, { allowNegative: false }),
+    []
   );
 
-  // PDF download handler
+  // Den ENE reader-afledte projektion (§3.4/§5.4) — beregningsvisning og download-gate deler præcis samme sandhed.
+  const projection = React.useMemo(
+    () => buildVarigeMenReaderProjection(evaluation.reader),
+    [evaluation]
+  );
+  const projectionData = projection.status === 'ready' ? projection.value : null;
+  const beregningsResultat = projectionData?.beregningsResultat ?? null;
+
+  const downloadGate = React.useMemo(
+    () => evaluateVarigeMenDownloadGate(projection),
+    [projection]
+  );
+
+  // Display-tilstande læses direkte gennem readeren: en rød feltfejl skjuler værdien (`error`), et tomt felt
+  // giver en tom `usable`-værdi. Datoordenen (skadedato ≥ fødselsdato) er allerede en greenfield feltvalidator,
+  // så en byttet orden viser sig her som en rød fejl på begge datoer.
+  const fodselsdatoRead = evaluation.reader.read(fodselsdatoRef);
+  const skadedatoRead = evaluation.reader.read(skadedatoRef);
+  const skadestypeRead = evaluation.reader.read(skadestypeRef);
+  const beregningsdatoRead = evaluation.reader.read(beregningsdatoRef);
+
+  const fodselsdato = fodselsdatoRead.status === 'usable' ? fodselsdatoRead.value : undefined;
+  const skadedato = skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined;
+  const skadestype = skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined;
+  const fodselsdatoError = fodselsdatoRead.status === 'error' ? fodselsdatoRead.issue.message : undefined;
+  const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
+  const beregningsdatoError = beregningsdatoRead.status === 'error' ? beregningsdatoRead.issue.message : undefined;
+
+  // Alder og sats vises uafhængigt af méngrad (som legacy): alderen så snart begge datoer er gyldige, satsen så
+  // snart beregningsdatoen har en lovsats for sit år — også når méngrad mangler og projektionen derfor er blokeret.
+  const alderVedSkade = React.useMemo(() => {
+    if (fodselsdato === undefined || skadedato === undefined) return undefined;
+    const f = parseISODate(coerceToISODateString(fodselsdato) ?? undefined);
+    const s = parseISODate(coerceToISODateString(skadedato) ?? undefined);
+    if (!f || !s) return undefined;
+    return calculateUtcAgeInWholeYears(f, s);
+  }, [fodselsdato, skadedato]);
+  const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
+  const menSats = React.useMemo(
+    () => resolveMenSatsForBeregningsdato(coerceToISODateString(beregningsdato) ?? undefined, varigeMenPrGrad),
+    [beregningsdato]
+  );
+
+  // Kun skadestypen påvirker labelen ('Anmeldelsesdato' ved erhvervssygdom, ellers 'Skadedato').
+  const skadedatoLabel = skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';
+
+  // Fokusér det første blokerende felt efter en blokeret download (best-effort UI-hint fra render-tilstanden).
+  // Prioritet: Fødselsdato → Skadedato → Méngrad → Beregningsdato. Kun felter på denne side kan fokuseres direkte;
+  // stamdata-fejl fokuseres via navigation til Stamdata-siden.
+  const focusFirstBlockingField = React.useCallback(() => {
+    if (fodselsdatoError !== undefined || fodselsdato === undefined) {
+      navigate('/stamdata');
+      return;
+    }
+    if (skadedatoError !== undefined || skadedato === undefined) {
+      // Skadedato bor i Stamdata; den vises som fejl her, men fokuseres ikke direkte.
+      return;
+    }
+    if (beregningsResultat === null && mengradInputRef.current) {
+      mengradInputRef.current.focus();
+      mengradInputRef.current.blur();
+      return;
+    }
+    if (beregningsdatoError !== undefined && beregningsdatoInputRef.current) {
+      beregningsdatoInputRef.current.focus();
+      beregningsdatoInputRef.current.blur();
+    }
+  }, [beregningsResultat, beregningsdatoError, fodselsdato, fodselsdatoError, navigate, skadedato, skadedatoError]);
+
   const handlePdfDownload = React.useCallback(async () => {
-    // Tjek om der er fejl eller manglende felter
-    if (!downloadGate.canDownload) {
+    // §1.4/§3.9: settle en evt. åben editor, læs derefter et frisk kildesnapshot, og genkør projektionen/gaten
+    // mod det. Handlingen afbrydes, hvis input/settings flyttede under settle (stale token).
+    const preparation = await criticalActions.prepare('download');
+    if (preparation.status !== 'committed') {
+      if (preparation.status === 'blocked') preparation.target?.focus();
+      return;
+    }
+    const source = captureProductionEvaluationSource();
+    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
+
+    const freshProjection = buildVarigeMenReaderProjection(source.evaluation.reader);
+    const freshGate = evaluateVarigeMenDownloadGate(freshProjection);
+    const beregningsResultat = freshProjection.status === 'ready' ? freshProjection.value.beregningsResultat : null;
+    if (!freshGate.canDownload || freshProjection.status !== 'ready' || beregningsResultat === null) {
       setPdfErrorMessage(null);
-      // Trigger rystebevægelse
-      setDownloadShake(true);
-      setTimeout(() => setDownloadShake(false), 500);
-
-      // Find første fejlcelle og markér den
-      // Prioritering: Fødselsdato -> Skadedato -> Méngrad -> Beregningsdato
-      if (!stamValues.skadelidteFodselsdato || fodselsdatoError) {
-        navigate('/stamdata');
-      } else if (!stamValues.skadedato || skadedatoError) {
-        // Skadedato kan ikke markeres direkte, men brugeren vil se fejlen
-      } else if (values.mengrad === undefined || mengradError) {
-        // Markér méngrad-feltet via ref (ikke skrøbelig DOM-query på value-attributten).
-        const mengradInput = mengradInputRef.current;
-        if (mengradInput) {
-          mengradInput.focus();
-          mengradInput.blur();
-        }
-      } else if (!values.beregningsdato || beregningsdatoError) {
-        // Markér beregningsdato-feltet via ref (ikke skrøbelig DOM-query på value-attributten).
-        const beregningsdatoInput = beregningsdatoInputRef.current;
-        if (beregningsdatoInput) {
-          beregningsdatoInput.focus();
-          beregningsdatoInput.blur();
-        }
-      }
-
+      triggerDownloadShake();
+      focusFirstBlockingField();
       return;
     }
+    const data = freshProjection.value;
 
-    const mengrad = values.mengrad;
-    if (typeof mengrad !== 'number' || !Number.isFinite(mengrad)) {
-      setPdfErrorMessage(null);
-      setDownloadShake(true);
-      setTimeout(() => setDownloadShake(false), 500);
-      return;
-    }
-
-    // gate.canDownload garanterer hasBeregningsResultat=true; denne guard narrower
-    // typen (VarigeMenBeregningResult | undefined → VarigeMenBeregningResult) og er
-    // ellers et no-op, da gaten allerede har blokeret det udefinerede tilfælde.
-    if (beregningsResultat === undefined) {
-      return;
-    }
+    const freshStamdata = projectStamdataForDocument(source.evaluation.reader, 'document.varigemen');
+    if (freshStamdata.status !== 'ready') return;
 
     const result = await downloadVarigeMenDokument({
-      fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato),
-      skadedato: coerceToISODateString(stamValues.skadedato),
-      mengrad,
-      beregningsdato: coerceToISODateString(values.beregningsdato),
-      beregningsResultat: beregningsResultat,
-      settings,
-      persistedStamdata: stamValues,
+      fodselsdato: coerceToISODateString(data.fodselsdato),
+      skadedato: coerceToISODateString(data.skadedato),
+      mengrad: data.mengrad,
+      beregningsdato: coerceToISODateString(data.beregningsdato),
+      beregningsResultat,
+      settings: source.settings,
+      persistedStamdata: freshStamdata.value,
+      isSourceCurrent: source.isSourceCurrent,
     });
     setPdfErrorMessage(result.success ? null : result.error);
-  }, [downloadGate, beregningsResultat, values, stamValues, fodselsdatoError, skadedatoError, mengradError, beregningsdatoError, settings, navigate]);
-
-  const skadedatoLabel = React.useMemo(
-    () => resolveStamdataDatoLabel(stamValues),
-    [stamValues]
-  );
+  }, [criticalActions, focusFirstBlockingField, triggerDownloadShake]);
 
   const formatSkadedato = (iso: string | undefined): string => {
     if (!iso) return 'Mangler (angiv i Stamdata)';
@@ -230,9 +200,9 @@ const beregningsResultat = React.useMemo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Fødselsdato</Typography>
         <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
-          {stamValues.skadelidteFodselsdato ? (
+          {fodselsdato ? (
             <Typography className="row--text">
-              {formatIsoDateLong(coerceToISODateString(stamValues.skadelidteFodselsdato) ?? undefined)}
+              {formatIsoDateLong(coerceToISODateString(fodselsdato) ?? undefined)}
             </Typography>
           ) : (
             <Typography className="row--text" color="text.secondary">
@@ -254,16 +224,10 @@ const beregningsResultat = React.useMemo(() => {
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">{skadedatoLabel}</Typography>
-        <Box
-          className="row--label-right-hover__content"
-          style={{ justifyContent: 'flex-end' }}
-        >
-          <Typography
-            className="row--text"
-            color={stamValues.skadedato ? 'text.primary' : 'text.disabled'}
-          >
-            {stamValues.skadedato ? (
-              formatSkadedato(stamValues.skadedato)
+        <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
+          <Typography className="row--text" color={skadedato ? 'text.primary' : 'text.disabled'}>
+            {skadedato ? (
+              formatSkadedato(skadedato)
             ) : (
               <>
                 Mangler (angiv i&nbsp; {' '}
@@ -285,16 +249,10 @@ const beregningsResultat = React.useMemo(() => {
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">Alder på skadestidspunkt</Typography>
-        <Box
-          className="row--label-right-hover__content"
-          style={{ justifyContent: 'flex-end' }}
-        >
-          {fodselsdatoError || !stamValues.skadelidteFodselsdato || !stamValues.skadedato ? (
+        <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
+          {fodselsdatoError || fodselsdato === undefined || skadedato === undefined ? (
             <Tooltip
-              title={
-                fodselsdatoError ||
-                (!stamValues.skadelidteFodselsdato || !stamValues.skadedato ? 'Indtastning mangler' : '')
-              }
+              title={fodselsdatoError || (fodselsdato === undefined || skadedato === undefined ? 'Indtastning mangler' : '')}
               arrow
             >
               <Typography className="row--text" color="text.disabled">
@@ -314,20 +272,18 @@ const beregningsResultat = React.useMemo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Méngrad</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledPercentField
+          <GreenfieldNumericTextField
+            field={mengradRef}
+            location={MENGRAD_LOCATION}
+            keyFilter={mengradKeyFilter}
             name="mengrad"
-            value={values.mengrad}
-            onCommit={(event) => setFieldValue('mengrad', event.target.value)}
-            allowDecimals={false}
-            // Méngraden committes canonical som heltal; 1..120 håndhæves som et afledt range-issue,
-            // så værdien kan gemmes uden at nå engine eller PDF-gate.
-            minValue={1}
-            maxValue={VARIGE_MEN_MAX_MENGRAD}
-            enforceRange={false}
-            useDefaultPercentRange={false}
             placeholder="0"
-            // Fanger valideringsfejl fra feltet og rapporterer til den centrale fejlmodel
-            onFieldError={reportMengradError}
+            width={100}
+            textAlign="right"
+            inputMode="numeric"
+            endAdornment={({ isDraftEmpty }) => (
+              <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
+            )}
             inputRef={mengradInputRef}
           />
         </Box>
@@ -336,18 +292,15 @@ const beregningsResultat = React.useMemo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Beregningsdato</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-          <StyledDateField
+          <GreenfieldDateField
+            field={beregningsdatoRef}
+            location={BEREGNINGSDATO_LOCATION}
             name="beregningsdato"
-            value={values.beregningsdato || undefined}
-            onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
-            minDate={dateRanges_varigemen.beregningsdato.min}
-            maxDate={dateRanges_varigemen.beregningsdato.max}
-            onFieldError={reportBeregningsdatoError}
             inputRef={beregningsdatoInputRef}
           />
           <InsertTodayDateButton
             onCommit={(today) => {
-              return setFieldValue('beregningsdato', today);
+              beregningsdatoController.commitImmediate(today);
             }}
             focusRef={beregningsdatoInputRef}
           />
@@ -386,16 +339,12 @@ const beregningsResultat = React.useMemo(() => {
         </Box>
       )}
 
-      {/* Grundbeløb */}
-      {beregningsResultat && (
+      {beregningsResultat && projectionData && (
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            {`Grundbeløb: ${values.mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`}
+            {`Grundbeløb: ${projectionData.mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`}
           </Typography>
-          <Box
-            className="row--label-right-hover__content"
-            style={{ justifyContent: 'flex-end' }}
-          >
+          <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
             <Typography className="row--text">
               {formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.
             </Typography>
@@ -403,16 +352,12 @@ const beregningsResultat = React.useMemo(() => {
         </Box>
       )}
 
-      {/* Aldersreduktion */}
       {beregningsResultat && (
         <Box className="row--label-right-hover">
           <Typography className="row--text">
             {`Aldersreduktion, ${alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`}
           </Typography>
-          <Box
-            className="row--label-right-hover__content"
-            style={{ justifyContent: 'flex-end' }}
-          >
+          <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
             <Typography className="row--text">
               {`- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`}
             </Typography>
@@ -421,27 +366,21 @@ const beregningsResultat = React.useMemo(() => {
       )}
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">
-          Beregnet méngodtgørelse
-        </Typography>
-        <Box
-          className="row--label-right-hover__content"
-          style={{ justifyContent: 'flex-end' }}
-        >
-          {beregningsFejl || manglendeFelter ? (
-            // Download-ikonet vises altid sammen med sin tekstlinje — her nedtonet/inaktivt,
-            // fordi beregningen (og dermed download) er blokeret. Fejl-/mangel-teksten står
-            // fortsat i værdikolonnen, og ikonet placeres til højre for den.
+        <Typography className="row--text">Beregnet méngodtgørelse</Typography>
+        <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
+          {!downloadGate.canDownload ? (
+            // Download-ikonet vises altid sammen med sin tekstlinje — her nedtonet/inaktivt, fordi beregningen
+            // (og dermed download) er blokeret. Fejl-/mangel-teksten står i værdikolonnen, ikonet til højre.
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Tooltip title={beregningsFejl || manglendeFelter} arrow>
+              <Tooltip title={downloadGate.reasons[0]?.message ?? ''} arrow>
                 <Typography className="row--text" color="text.disabled">
-                  {beregningsFejl || manglendeFelter}
+                  {downloadGate.reasons[0]?.message ?? ''}
                 </Typography>
               </Tooltip>
               <DocumentDownloadButton
                 onClick={() => void handlePdfDownload()}
                 disabled
-                disabledReason={(beregningsFejl || manglendeFelter) ?? undefined}
+                disabledReason={downloadGate.reasons[0]?.message ?? undefined}
                 dataTestId="varigemen-download"
               />
             </Box>
@@ -461,7 +400,7 @@ const beregningsResultat = React.useMemo(() => {
       </Box>
     </ContentBox>
   );
-};
+});
 
 MenberegningTab.displayName = 'MenberegningTab';
 

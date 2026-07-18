@@ -1,46 +1,34 @@
 /**
  * Ren download-gate-beslutning for méngodtgørelse-siden (varige mén).
  *
- * Erstatter det tidligere inline-boolean-udtryk
- *   `beregningsFejl || manglendeFelter || !beregningsResultat`
- * i MenberegningTab med det fælles documentGateTypes-primitiv (jf.
- * dokument-output-kontrakt §A2: et samlet gate-resultat med `canDownload` og
- * auditerbare årsager; committed-only-reglen håndhæves strukturelt).
+ * Greenfield (§A2/§3.4/§5.4, Fase 3 Varige mén-slice): gaten afledes nu udelukkende af den ENE reader-projektion
+ * (`buildVarigeMenReaderProjection`), som cellerne/visningen allerede afspejler. Den erstatter det tidligere
+ * boolean-baserede input (`hasBlockingFieldErrors`/`hasMissingFields`/`hasBeregningsResultat`), der byggede på
+ * `useFormFieldErrors` + rå sektioner. Sandhedstabellen er uændret:
  *
- * Alle indgange er afledt fra afsluttet canonical input: feltissues, manglende felter,
- * den rene stamdatarelation og den autoritative engine. Funktionen er uden React, så
- * sandhedstabellen kan unit-testes direkte og ikke afhænger af monterede inputfelter.
+ *  - projektion blokeret af en rød feltfejl (format/bounds/rule) → `field-error` ("Fejl i indtastning"),
+ *  - projektion blokeret KUN af manglende påkrævede felter → `missing-fields` ("Indtastning mangler"),
+ *  - projektion `ready`, men uden beregningsresultat (fx intet lovsats-år) → `no-result`.
+ *
+ * Funktionen er uden React, så sandhedstabellen kan unit-testes direkte og ikke afhænger af monterede inputfelter.
  */
 
 import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
-import type { StamdataValues } from '../../schemas/formSchemas';
-import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
+import type { VarigeMenReaderProjection } from './varigeMenReaderProjection';
 
-export type VarigeMenDownloadGateInput = Readonly<{
-  /** Canonical stamdata; datoordenen valideres rent og uafhængigt af monterede inputfelter. */
-  stamdata: Pick<StamdataValues, 'skadedato' | 'skadelidteFodselsdato'>;
-  /** Blokerende feltfejl på relevante committed inputfelter (fødselsdato/skadedato/méngrad/beregningsdato). */
-  hasBlockingFieldErrors: boolean;
-  /** Påkrævet committed input mangler (eller méngrad = 0). */
-  hasMissingFields: boolean;
-  /** Den autoritative beregning kunne dannes på committed input. */
-  hasBeregningsResultat: boolean;
-}>;
-
-export const evaluateVarigeMenDownloadGate = (input: VarigeMenDownloadGateInput): DocumentDownloadGateResult => {
-  if (resolveStamdataDateOrder(input.stamdata).issues.length > 0) {
-    return blockDocumentDownload({
-      code: 'varigemen:stamdata-date-order',
-      message: 'Skadedato er før fødselsdato.',
-    });
-  }
-  if (input.hasBlockingFieldErrors) {
-    return blockDocumentDownload({ code: 'varigemen:field-error', message: 'Fejl i indtastning' });
-  }
-  if (input.hasMissingFields) {
+export const evaluateVarigeMenDownloadGate = (
+  projection: VarigeMenReaderProjection
+): DocumentDownloadGateResult => {
+  if (projection.status === 'blocked') {
+    // En rød feltfejl (kind 'field') har forrang over en manglende-felt-consumerfejl, præcis som den tidligere
+    // rækkefølge `beregningsFejl` → `manglendeFelter`.
+    const hasFieldError = projection.issues.some((issue) => issue.kind === 'field');
+    if (hasFieldError) {
+      return blockDocumentDownload({ code: 'varigemen:field-error', message: 'Fejl i indtastning' });
+    }
     return blockDocumentDownload({ code: 'varigemen:missing-fields', message: 'Indtastning mangler' });
   }
-  if (!input.hasBeregningsResultat) {
+  if (projection.value.beregningsResultat === null) {
     return blockDocumentDownload({ code: 'varigemen:no-result', message: 'Beregning kan ikke dannes' });
   }
   return allowDocumentDownload();

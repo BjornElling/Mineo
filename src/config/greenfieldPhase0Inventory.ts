@@ -36,8 +36,8 @@ export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
   },
   {
     id: 'varigemen',
-    module: 'src/domain/varigemen/varigeMenEngine.ts',
-    symbol: 'computeVarigeMenEngine',
+    module: 'src/domain/varigemen/varigeMenReaderProjection.ts',
+    symbol: 'buildVarigeMenReaderProjection',
     consumers: ['src/components/pages/varigemen/MenberegningTab.tsx'],
   },
   {
