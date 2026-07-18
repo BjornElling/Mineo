@@ -141,36 +141,40 @@ const empPercentBounds = (field: string): readonly FieldValidator<number | undef
 const empAmountBounds = (field: string): readonly FieldValidator<AmountValue | undefined>[] =>
   [amountBoundsValidator(`${EMP_ID}.${field}.bounds`, 0, undefined)];
 
-const employmentFields = [
-  emp('navnPaaArbejdssted', 'Navn på arbejdssted', 'text', optionalTextCodec),
-  createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harOverenskomst', label: 'Overenskomst', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  emp('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
-  createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  emp('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', 'text', dateCodec),
-  emp('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct')),
-  emp('shSoPct', 'SH/SO-sats', 'text', percentCodec, empPercentBounds('shSoPct')),
-  emp('storeBededagPct', 'Store Bededagstillæg', 'text', percentCodec, empPercentBounds('storeBededagPct')),
-  emp('pensionPct', 'Arbejdsgivers pensionsbidrag', 'text', percentCodec, empPercentBounds('pensionPct')),
-  reqChoiceField(EMP_ID, employmentPath, 'tillaegAngivesSom', 'Tillæg angives som', tillaegAngivesSomEnum.options, 'procent'),
-  reqChoiceField(EMP_ID, employmentPath, 'loenperiode', 'Løn indtastes som', loenperiodeEnum.options, 'maaned'),
-  reqChoiceField(EMP_ID, employmentPath, 'fuldLoenUnderFerie', 'Fuld løn under ferie', ['Ja', 'Nej'] as const, 'Nej', 'toggle'),
-  createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  emp('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', 'text', dateCodec),
-  reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
-  emp('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats')),
-  emp('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct')),
-  reqChoiceField(EMP_ID, employmentPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
-  emp('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', 'text', dateCodec),
-  optField(EMP_ID, employmentPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
-  optField(EMP_ID, employmentPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
-  optField(EMP_ID, employmentPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),
-  emp('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec),
-  optField(EMP_ID, employmentPath, 'offentligLoenType', 'Ansættelse', 'choice', createChoiceFieldCodec(offentligLoenTypeEnum.options)),
-  emp('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EMP_ID}.offentligLoenTrin.bounds`, 1, 55)]),
-  emp('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EMP_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
-  emp('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, empAmountBounds('offentligLoenEkstraGrundloen')),
-] as const;
+// Navngivne employment-descriptors (§2.4 trin 8: reader-projektion + grid-cutover binder dem direkte). Aggregat-
+// arrayet nedenfor er DERIVED fra dette record, så kataloget ikke kan drive fra de eksporterede refs.
+export const eoEmploymentFields = {
+  navnPaaArbejdssted: emp<string>('navnPaaArbejdssted', 'Navn på arbejdssted', 'text', optionalTextCodec),
+  harOverenskomst: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harOverenskomst', label: 'Overenskomst', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  overenskomstId: emp<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
+  ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  sidsteArbejdsdag: emp<ISODateString>('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', 'text', dateCodec),
+  fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct')),
+  shSoPct: emp<number>('shSoPct', 'SH/SO-sats', 'text', percentCodec, empPercentBounds('shSoPct')),
+  storeBededagPct: emp<number>('storeBededagPct', 'Store Bededagstillæg', 'text', percentCodec, empPercentBounds('storeBededagPct')),
+  pensionPct: emp<number>('pensionPct', 'Arbejdsgivers pensionsbidrag', 'text', percentCodec, empPercentBounds('pensionPct')),
+  tillaegAngivesSom: reqChoiceField(EMP_ID, employmentPath, 'tillaegAngivesSom', 'Tillæg angives som', tillaegAngivesSomEnum.options, 'procent'),
+  loenperiode: reqChoiceField(EMP_ID, employmentPath, 'loenperiode', 'Løn indtastes som', loenperiodeEnum.options, 'maaned'),
+  fuldLoenUnderFerie: reqChoiceField(EMP_ID, employmentPath, 'fuldLoenUnderFerie', 'Fuld løn under ferie', ['Ja', 'Nej'] as const, 'Nej', 'toggle'),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  anciennitetstillaegDato: emp<ISODateString>('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', 'text', dateCodec),
+  anciennitetstillaegSatsAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
+  anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats')),
+  feriePct: emp<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct')),
+  loenPaaHelligdage: reqChoiceField(EMP_ID, employmentPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
+  saerligFraDatoRegulering: emp<ISODateString>('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', 'text', dateCodec),
+  loenudviklingBeregningsgrundlag: optField(EMP_ID, employmentPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
+  loenudviklingStatistikModel: optField(EMP_ID, employmentPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
+  loenudviklingKRLSatstabel: optField(EMP_ID, employmentPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),
+  loenudviklingManuelNavn: emp<string>('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec),
+  offentligLoenType: optField(EMP_ID, employmentPath, 'offentligLoenType', 'Ansættelse', 'choice', createChoiceFieldCodec(offentligLoenTypeEnum.options)),
+  offentligLoenTrin: emp<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EMP_ID}.offentligLoenTrin.bounds`, 1, 55)]),
+  offentligLoenGruppe: emp<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EMP_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
+  offentligLoenEkstraGrundloen: emp<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, empAmountBounds('offentligLoenEkstraGrundloen')),
+} as const;
+
+const employmentFields = Object.values(eoEmploymentFields);
 
 // overenskomstFilter (property-objekt under ejeren).
 const filterField = (ownerId: string, ownerPath: PathSegments, field: 'loenmodtager' | 'arbejdsgiver'): FieldDescriptor<string | undefined> =>
@@ -183,10 +187,12 @@ const filterField = (ownerId: string, ownerPath: PathSegments, field: 'loenmodta
     optionalTextCodec,
   );
 
-const employmentFilterFields = [
-  filterField(EMP_ID, employmentPath, 'loenmodtager'),
-  filterField(EMP_ID, employmentPath, 'arbejdsgiver'),
-] as const;
+export const eoEmploymentFilterFields = {
+  loenmodtager: filterField(EMP_ID, employmentPath, 'loenmodtager'),
+  arbejdsgiver: filterField(EMP_ID, employmentPath, 'arbejdsgiver'),
+} as const;
+
+const employmentFilterFields = Object.values(eoEmploymentFilterFields);
 
 // ── Nested standard-løntabel under en ansættelsesforhold-række ──────────────────────
 export const eoLoenindkomstStandardRowsCollection = defineStructuralCollection<StandardLoenTableRow>({
@@ -213,25 +219,41 @@ const stdString = (
 const stdAmount = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
   optField<AmountValue>(STD_ID, stdRowPath, field, label, 'text', tableAmountCodec);
 
-const standardRowFields = [
-  stdString('col0_maaned', 'Måned', createStringBackedFieldCodec(integerCodec(1, 12, 2)), [
+export const eoStandardRowFields = {
+  col0_maaned: stdString('col0_maaned', 'Måned', createStringBackedFieldCodec(integerCodec(1, 12, 2)), [
     integerStringBoundsValidator(`${STD_ID}.col0_maaned.bounds`, 1, 12),
   ]),
-  stdString('col1_maaned', 'År', createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, CURRENT_YEAR)]),
-  stdString('col0_uge', 'Uge fra', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, CURRENT_YEAR)]),
-  stdString('col1_uge', 'Uge til', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, CURRENT_YEAR)]),
-  stdDate('col0_dag', 'Dato fra'),
-  stdDate('col1_dag', 'Dato til'),
-  stdAmount('col2', 'Løn'),
-  stdAmount('col3', 'Løn (2)'),
-  stdAmount('col4', 'Løn (3)'),
-  stdAmount('col5', 'Løn (4)'),
-  stdAmount('fpFvShSoBeloeb', 'FP/FV/SH/SO/St.B.'),
-  stdAmount('pensionBeloeb', 'Arb.g. Pension'),
-] as const;
+  col1_maaned: stdString('col1_maaned', 'År', createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, CURRENT_YEAR)]),
+  col0_uge: stdString('col0_uge', 'Uge fra', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, CURRENT_YEAR)]),
+  col1_uge: stdString('col1_uge', 'Uge til', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, CURRENT_YEAR)]),
+  col0_dag: stdDate('col0_dag', 'Dato fra'),
+  col1_dag: stdDate('col1_dag', 'Dato til'),
+  col2: stdAmount('col2', 'Løn'),
+  col3: stdAmount('col3', 'Løn (2)'),
+  col4: stdAmount('col4', 'Løn (3)'),
+  col5: stdAmount('col5', 'Løn (4)'),
+  fpFvShSoBeloeb: stdAmount('fpFvShSoBeloeb', 'FP/FV/SH/SO/St.B.'),
+  pensionBeloeb: stdAmount('pensionBeloeb', 'Arb.g. Pension'),
+} as const;
+
+const standardRowFields = Object.values(eoStandardRowFields);
 
 // ── Nested manuel-lønudviklings-tabeller (delt mellem de to ejere) ──────────────────
-type ManualBindings = Readonly<{
+export type ManualBindings = Readonly<{
+  manualCollection: ReturnType<typeof defineStructuralCollection<LoenudviklingManuelRow>>;
+  manualPercentCollection: ReturnType<typeof defineStructuralCollection<LoenudviklingManuelProcentsatsRow>>;
+  manualFields: Readonly<{
+    dato: FieldDescriptor<ISODateString | undefined>;
+    grundloen: FieldDescriptor<AmountValue | undefined>;
+    feriepenge: FieldDescriptor<number | undefined>;
+    shSoSats: FieldDescriptor<number | undefined>;
+    fritvalg: FieldDescriptor<number | undefined>;
+    agPension: FieldDescriptor<number | undefined>;
+  }>;
+  manualPercentFields: Readonly<{
+    dato: FieldDescriptor<ISODateString | undefined>;
+    procent: FieldDescriptor<number | undefined>;
+  }>;
   collections: ReturnType<typeof catalogCollections>;
   fields: ReturnType<typeof catalogFields>;
 }>;
@@ -252,22 +274,40 @@ const createManualBindings = (ownerId: string, ownerPath: PathSegments): ManualB
   const manualId = `${ownerId}.loenudviklingManuelTableData`;
   const manualPercentId = `${ownerId}.loenudviklingManuelProcentsatsTableData`;
 
+  const manualFields = {
+    dato: optField<ISODateString>(manualId, manualRowPath, 'dato', 'Dato', 'text', dateCodec),
+    grundloen: optField<AmountValue>(manualId, manualRowPath, 'grundloen', 'Grundløn', 'text', tableAmountCodec),
+    feriepenge: optField<number>(manualId, manualRowPath, 'feriepenge', 'Feriepenge', 'text', percentCodec, [percentBoundsValidator(`${manualId}.feriepenge.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+    shSoSats: optField<number>(manualId, manualRowPath, 'shSoSats', 'SH/SO-sats', 'text', percentCodec, [percentBoundsValidator(`${manualId}.shSoSats.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+    fritvalg: optField<number>(manualId, manualRowPath, 'fritvalg', 'Fritvalg', 'text', percentCodec, [percentBoundsValidator(`${manualId}.fritvalg.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+    agPension: optField<number>(manualId, manualRowPath, 'agPension', 'Arbejdsgivers pension', 'text', percentCodec, [percentBoundsValidator(`${manualId}.agPension.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+  } as const;
+  const manualPercentFields = {
+    dato: optField<ISODateString>(manualPercentId, manualPercentRowPath, 'dato', 'Dato', 'text', dateCodec),
+    procent: optField<number>(manualPercentId, manualPercentRowPath, 'procent', 'Procent', 'text', percentCodec, [percentBoundsValidator(`${manualPercentId}.procent.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+  } as const;
+
   return {
+    manualCollection,
+    manualPercentCollection,
+    manualFields,
+    manualPercentFields,
     collections: catalogCollections(manualCollection, manualPercentCollection),
     fields: catalogFields(
-      optField<ISODateString>(manualId, manualRowPath, 'dato', 'Dato', 'text', dateCodec),
-      optField<AmountValue>(manualId, manualRowPath, 'grundloen', 'Grundløn', 'text', tableAmountCodec),
-      optField<number>(manualId, manualRowPath, 'feriepenge', 'Feriepenge', 'text', percentCodec, [percentBoundsValidator(`${manualId}.feriepenge.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-      optField<number>(manualId, manualRowPath, 'shSoSats', 'SH/SO-sats', 'text', percentCodec, [percentBoundsValidator(`${manualId}.shSoSats.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-      optField<number>(manualId, manualRowPath, 'fritvalg', 'Fritvalg', 'text', percentCodec, [percentBoundsValidator(`${manualId}.fritvalg.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-      optField<number>(manualId, manualRowPath, 'agPension', 'Arbejdsgivers pension', 'text', percentCodec, [percentBoundsValidator(`${manualId}.agPension.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-      optField<ISODateString>(manualPercentId, manualPercentRowPath, 'dato', 'Dato', 'text', dateCodec),
-      optField<number>(manualPercentId, manualPercentRowPath, 'procent', 'Procent', 'text', percentCodec, [percentBoundsValidator(`${manualPercentId}.procent.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+      manualFields.dato,
+      manualFields.grundloen,
+      manualFields.feriepenge,
+      manualFields.shSoSats,
+      manualFields.fritvalg,
+      manualFields.agPension,
+      manualPercentFields.dato,
+      manualPercentFields.procent,
     ),
   };
 };
 
-const employmentManual = createManualBindings(EMP_ID, employmentPath);
+export const eoEmploymentManual = createManualBindings(EMP_ID, employmentPath);
+const employmentManual = eoEmploymentManual;
 
 // ── eoAngivetLoenLoenudvikling (singulært property-objekt) ──────────────────────────
 const EO_LOEN_ID = 'eo.eoAngivetLoenLoenudvikling';
@@ -278,41 +318,50 @@ const eoLoen = <T>(
 const eoLoenAmountBounds = (field: string): readonly FieldValidator<AmountValue | undefined>[] =>
   [amountBoundsValidator(`${EO_LOEN_ID}.${field}.bounds`, 0, undefined)];
 
-const eoLoenFields = [
-  eoLoen('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
-  createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  eoLoen('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', 'text', dateCodec),
-  reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
-  eoLoen('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats')),
-  eoLoen('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${EO_LOEN_ID}.feriePct.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-  optField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', 'choice', createChoiceFieldCodec(loenPaaHelligdageEnum.options)),
-  eoLoen('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', 'text', dateCodec),
-  optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
-  optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
-  optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),
-  eoLoen('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec),
-  optField(EO_LOEN_ID, eoLoenPath, 'offentligLoenType', 'Ansættelse', 'choice', createChoiceFieldCodec(offentligLoenTypeEnum.options)),
-  eoLoen('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenTrin.bounds`, 1, 55)]),
-  eoLoen('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
-  eoLoen('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, eoLoenAmountBounds('offentligLoenEkstraGrundloen')),
-] as const;
+export const eoAngivetLoenFields = {
+  overenskomstId: eoLoen<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  anciennitetstillaegDato: eoLoen<ISODateString>('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', 'text', dateCodec),
+  anciennitetstillaegSatsAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
+  anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats')),
+  feriePct: eoLoen<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${EO_LOEN_ID}.feriePct.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+  loenPaaHelligdage: optField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', 'choice', createChoiceFieldCodec(loenPaaHelligdageEnum.options)),
+  saerligFraDatoRegulering: eoLoen<ISODateString>('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', 'text', dateCodec),
+  loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
+  loenudviklingStatistikModel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
+  loenudviklingKRLSatstabel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),
+  loenudviklingManuelNavn: eoLoen<string>('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec),
+  offentligLoenType: optField(EO_LOEN_ID, eoLoenPath, 'offentligLoenType', 'Ansættelse', 'choice', createChoiceFieldCodec(offentligLoenTypeEnum.options)),
+  offentligLoenTrin: eoLoen<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenTrin.bounds`, 1, 55)]),
+  offentligLoenGruppe: eoLoen<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
+  offentligLoenEkstraGrundloen: eoLoen<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, eoLoenAmountBounds('offentligLoenEkstraGrundloen')),
+} as const;
 
-const eoLoenFilterFields = [
-  filterField(EO_LOEN_ID, eoLoenPath, 'loenmodtager'),
-  filterField(EO_LOEN_ID, eoLoenPath, 'arbejdsgiver'),
-] as const;
+const eoLoenFields = Object.values(eoAngivetLoenFields);
 
-const eoLoenManual = createManualBindings(EO_LOEN_ID, eoLoenPath);
+export const eoAngivetLoenFilterFields = {
+  loenmodtager: filterField(EO_LOEN_ID, eoLoenPath, 'loenmodtager'),
+  arbejdsgiver: filterField(EO_LOEN_ID, eoLoenPath, 'arbejdsgiver'),
+} as const;
 
-// De koncrete grupper type-erases hver for sig via `catalogFields`; derefter konkateneres alle allerede-
-// erasede arrays med almindelig spread (så generisk invarians ikke rammer den blandede sammensætning).
+const eoLoenFilterFields = Object.values(eoAngivetLoenFilterFields);
+
+export const eoAngivetLoenManual = createManualBindings(EO_LOEN_ID, eoLoenPath);
+const eoLoenManual = eoAngivetLoenManual;
+
+// De navngivne descriptor-grupper eksporteres nu som records (§2.4 trin 8: reader-projektion + grid-cutover binder
+// dem direkte). Aggregat-arrayet er DERIVED fra `Object.values(...)` af de samme records, så kataloget ikke kan
+// drive fra de eksporterede refs. `Object.values` giver et union-typet array; `eraseFieldGroup` type-eraser det til
+// katalogets eksistentielle visning (samme erasure som `catalogFields`, men uden tuple-invarians på et union-array).
+const eraseFieldGroup = (fields: readonly FieldDescriptor<unknown>[]): readonly FieldDescriptor<unknown>[] => fields;
+
 export const erstatningsopgoerelseLoenFields = Object.freeze([
-  ...catalogFields(...employmentFields),
-  ...catalogFields(...employmentFilterFields),
-  ...catalogFields(...standardRowFields),
+  ...eraseFieldGroup(employmentFields as readonly FieldDescriptor<unknown>[]),
+  ...eraseFieldGroup(employmentFilterFields as readonly FieldDescriptor<unknown>[]),
+  ...eraseFieldGroup(standardRowFields as readonly FieldDescriptor<unknown>[]),
   ...employmentManual.fields,
-  ...catalogFields(...eoLoenFields),
-  ...catalogFields(...eoLoenFilterFields),
+  ...eraseFieldGroup(eoLoenFields as readonly FieldDescriptor<unknown>[]),
+  ...eraseFieldGroup(eoLoenFilterFields as readonly FieldDescriptor<unknown>[]),
   ...eoLoenManual.fields,
 ]);
 
