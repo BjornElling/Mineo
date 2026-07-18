@@ -7,6 +7,8 @@ import type {
 } from '../../schemas/formSchemas/enumSchemas';
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas/sections/erhvervsevnetabSchemas';
 import type { ISODateString } from '../../types/branded';
+import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
+import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
 import {
   createBooleanFieldCodec,
   createChoiceFieldCodec,
@@ -15,6 +17,7 @@ import {
   createRequiredChoiceFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import type { FieldAddressTemplate, FieldDescriptor } from '../fieldDescriptor';
 import {
   defineStructuralCollection,
@@ -22,6 +25,7 @@ import {
   isUndefined,
 } from '../structuralDescriptors';
 import { percentBoundsValidator } from './boundsValidators';
+import { stamdataSkadedatoField } from './stamdataDescriptors';
 
 // Greenfield produkt-descriptors for `erhvervsevnetab`-sektionen (§3.2): skalarer (herunder differencekrav-
 // booleans), det nested bilagsvalgsobjekt og samlingen `aslAfgoerelser` med dens rækkefelter.
@@ -31,6 +35,12 @@ import { percentBoundsValidator } from './boundsValidators';
 const createEmptyErhvervsevnetabSection = (): unknown =>
   structuredClone(ERHVERVSEVNETAB_INITIAL_VALUES as PersistedSectionMap['erhvervsevnetab']);
 
+// Beregningsdato-bounds (§1.6, Fase 3 Erhvervsevnetab-slice) — som Forsørgertab: den dynamiske min/faste max, som
+// legacy-siden håndhævede via `StyledDateField`s `minDate`/`maxDate` + `onFieldError`, er nu en canonical bounds-
+// FELTVALIDATOR. Legacy `skadedatoMin = coerceToISODateString(skadedato) ?? fallbackMin`; `maxDate = DATE_EET_MAX`;
+// special `eetDataMax`. Grænserne er byte-identiske med legacy (`dateRanges_erhvervsevnetab` + `resolveDateRange
+// ErrorMessage`), så beskedteksten er uændret. Skadedato krydslæses via `view.readCanonical` (den rå dependency,
+// uafhængigt af dens eget issue — som legacy brugte den rå `stamdata.skadedato`).
 export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateString | undefined>({
   id: 'erhvervsevnetab.beregningsdato',
   template: { section: 'erhvervsevnetab', path: [], field: 'beregningsdato' },
@@ -40,6 +50,28 @@ export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateS
   label: 'Beregningsdato',
   controlKind: 'text',
   createEmptySection: createEmptyErhvervsevnetabSection,
+  validators: [
+    (value, _field, view) => {
+      if (value === undefined) return undefined;
+      const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+      // Legacy `skadedatoMin = coerceToISODateString(skadedato) ?? fallbackMin` (INGEN max med fallbackMin — en
+      // skadedato før 2005 sænker min tilsvarende, som legacy).
+      const minDate = skadedato ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
+      const maxDate = dateRanges_erhvervsevnetab.beregningsdato.max;
+      if (value >= minDate && value <= maxDate) return undefined;
+      return {
+        reason: 'bounds',
+        code: 'erhvervsevnetab.beregningsdato.bounds',
+        message: resolveDateRangeErrorMessage({
+          iso: value,
+          minDate,
+          maxDate,
+          special: { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' },
+        }),
+        detail: { minDate, maxDate },
+      };
+    },
+  ],
 });
 
 export const erhvervsevnetabKoenField = defineStructuralField<Koen | undefined>({
@@ -123,6 +155,13 @@ export const erhvervsevnetabAslAfgoerelserCollection = defineStructuralCollectio
   id: 'erhvervsevnetab.aslAfgoerelser',
   template: { section: 'erhvervsevnetab', path: [], collection: 'aslAfgoerelser' },
   createEmptySection: createEmptyErhvervsevnetabSection,
+});
+
+/** Den kanoniske CollectionRef for ASL-afgørelsesrækkerne (top-level collection, ingen entity-parent). */
+export const erhvervsevnetabAslAfgoerelserCollectionRef: CollectionRef = createCollectionRef({
+  section: 'erhvervsevnetab',
+  path: [],
+  collection: 'aslAfgoerelser',
 });
 
 const aslRowTemplate = (field: string): FieldAddressTemplate => ({

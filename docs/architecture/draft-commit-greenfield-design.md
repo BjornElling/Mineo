@@ -12,10 +12,15 @@ mellem ikke-committbart råinput og canonical feltfejl. Fase 2 er påbegyndt og 
 ikke færdig. Reviewet fjernede den utilsigtede parallelle
 produktionsruntime, så Mineo nu kun monterer greenfield-runtime, mens standalone alene beholder legacy-runtime frem
 til den atomiske Renteberegning-cutover. Runtime, current-envelope, command-runner, aktiv-editor-registry, fælles
-form-surface og det strukturelle produktkatalog er etableret. Stamdata, Satser og Årsløn er de migrerede
-formularsurfaces; Årsløn omfatter den første greenfield grid-tabel (StandardLoenTable) via en grid-celle-surface,
-der bro-forbinder den ene editor-motor til grid-navigationens celleeditor-registry. Erstatningsopgørelsens delte
-brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
+form-surface og det strukturelle produktkatalog er etableret. Stamdata, Satser, Årsløn, Renteberegning (hovedapp +
+standalone MinProcesrente), Varige mén, Forsørgertab er fuldt migrerede formularsurfaces; Årsløn omfatter den første
+greenfield grid-tabel (StandardLoenTable) via en grid-celle-surface, der bro-forbinder den ene editor-motor til
+grid-navigationens celleeditor-registry, og Renteberegning omfatter den anden (BeregnetRenteTable). Erhvervsevnetab
+(§2.4 trin 7) er påbegyndt foundation-first: den ene kanoniske reader-projektion `buildErhvervsevnetabReaderProjection`
+(ren funktion over `InputReader`, kører `computeEetSnapshot` uændret på reader-læste værdier for alle fem faner, ejer
+`aslAfgoerelser`-rekonstruktionen række-for-række og de tre felt-placerede domæneregler + forlig-blokeringen §1.10)
+er landet med nul produktionscallsites; selve fem-tab-/tabel-cutoveren af `Erhvervsevnetab.tsx` udestår. Erstatningsopgørelsens
+delte brug af løntabellen er en bevidst brudt mellemtilstand, indtil EO-slicen migreres. Hovedappen er bevidst ikke en funktionsdygtig mellemversion: resterende legacy-shell/callsites får
 ingen runtime-fallback. Reviewet rettede desuden replacement/no-op-matricen, synkron editorregistrering,
 dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede
 tomværdier og rå section-bypass i Stamdata/Satser. Det efterfølgende review af Årsløn-kontrolpunktet rettede faste

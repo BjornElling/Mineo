@@ -1,0 +1,236 @@
+// @vitest-environment jsdom
+import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
+import { createInputEvaluation } from '../../../inputCore/inputReader';
+import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import {
+  createEvaluationSourceToken,
+  createInputRevision,
+  createSettingsRevision,
+} from '../../../inputCore/evaluationSource';
+import { toISODateString } from '../../../types/branded';
+import type {
+  ErhvervsevnetabComposedValues,
+  ErhvervsevnetabValues,
+  FaellesAarsloenValues,
+  StamdataValues,
+} from '../../../schemas/formSchemas';
+
+// Greenfield Erhvervsevnetab reader-projektion (§3.4/§5.4/§1.10, Fase 3-slice): beviser at projektionen (a) kører den
+// EKSISTERENDE `computeEetSnapshot` byte-identisk på reader-læste værdier (§5.4 hårdt stop mod talændring, inkl. den
+// rekonstruerede aslAfgoerelser-collection), (b) fører canonical bounds-feltfejl (§1.6) på ealEetPct + rækkeceller ind
+// i snapshottets per-fane-gate, og (c) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10): en ealEetPct-fejl
+// blokerer KUN EET-efter-EAL-fanen, mens de øvrige faner bevares — som legacy.
+
+const catalog = getProductionInputCatalog();
+
+const asAmount = (value: number) => ({ kind: 'number' as const, value });
+
+const validErhvervsevnetab: ErhvervsevnetabValues = {
+  ...ERHVERVSEVNETAB_INITIAL_VALUES,
+  beregningsdato: toISODateString('2026-03-19'),
+  koen: 'Kvinde',
+  ealEetPct: 25,
+  // Ren midlertidig afgørelse: ingen kapitalisering → ingen af de indbyrdes kapPct-/EET-regler udløses,
+  // så det gyldige fixture har præcis tomme fieldErrors (nødvendigt for byte-identitets-goldenen).
+  aslAfgoerelser: [
+    {
+      id: 'eet_asl_row1',
+      afgoerelsesDato: toISODateString('2026-02-01'),
+      virkningsDato: toISODateString('2026-02-01'),
+      eetPct: 25,
+      kapDato: undefined,
+      kapPct: undefined,
+      afgoerelseType: 'Midlertidig',
+      tidlKapDato: undefined,
+      fsTilbageholdtEet: 'Nej',
+    },
+  ],
+};
+const validFaellesAarsloen: FaellesAarsloenValues = {
+  aslAarsloen: asAmount(600000),
+  ealAarsloen: asAmount(600000),
+};
+const validStamdata: StamdataValues = {
+  journalnr: 'J',
+  advokat: 'A',
+  sagsbehandler: 'S',
+  skadelidte: 'Test',
+  skadestype: 'Arbejdsulykke',
+  skadedato: toISODateString('2024-07-01'),
+  skadelidteFodselsdato: toISODateString('1980-01-01'),
+};
+
+const buildReader = (
+  erhvervsevnetab: ErhvervsevnetabValues,
+  faellesAarsloen: FaellesAarsloenValues,
+  stamdata: StamdataValues | null
+) => {
+  const input = catalog.validateSettledInput({
+    sections: {
+      stamdata, satser: null, aarsloen: null, faellesAarsloen,
+      renteberegning: null,
+      varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab,
+    },
+    rejectedInputs: {},
+  });
+  const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
+  return createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+};
+
+/** Det composed values-objekt som projektionen fodrer snapshottet med for det gyldige fixture. */
+const expectedComposedValues = (): ErhvervsevnetabComposedValues => ({
+  ...validErhvervsevnetab,
+  ...validFaellesAarsloen,
+  skadelidteFodselsdato: validStamdata.skadelidteFodselsdato,
+});
+
+describe('buildErhvervsevnetabReaderProjection', () => {
+  it('kører computeEetSnapshot byte-identisk på de reader-læste værdier, inkl. aslAfgoerelser-collection (§5.4)', () => {
+    const reader = buildReader(validErhvervsevnetab, validFaellesAarsloen, validStamdata);
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+
+    // Golden: præcis samme snapshot som et direkte kald med de committede værdier (tomme fieldErrors, intet forlig-
+    // problem). Bemærk: forlig er tomt (ingen procent/brøk), så evaluateForligsgrad giver 'empty' → ingen blokering.
+    const expected = computeEetSnapshot({
+      values: expectedComposedValues(),
+      stamdata: {
+        skadedato: validStamdata.skadedato,
+        skadelidteFodselsdato: validStamdata.skadelidteFodselsdato,
+        journalnr: '', advokat: '', sagsbehandler: '',
+      } as StamdataValues,
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: undefined },
+        dato: undefined,
+        hasInvalidDraft: false,
+      },
+    });
+
+    expect(projection.snapshot).toEqual(expected);
+    expect(projection.hadReaderFieldError).toBe(false);
+    expect(projection.snapshot.efterEal.hasBlockingErrors).toBe(false);
+    expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(false);
+  });
+
+  it('fører en canonical bounds-feltfejl på ealEetPct (uden for 0..100) ind som field-eal-eet-pct KUN på EET efter EAL (§1.6/§1.10)', () => {
+    // ealEetPct=150 er over bounds → readeren skjuler værdien og rejser en rød feltfejl. Kun EAL-fanen aftager
+    // ealEetPct, så field-eal-eet-pct-issuet må KUN optræde dér — de øvrige faner er upåvirkede af feltet (§1.10).
+    // (Løbende ydelser bærer for dette midlertidige-afgørelses-fixture kun en warning; det påvises separat.)
+    const reader = buildReader(
+      { ...validErhvervsevnetab, ealEetPct: 150 },
+      validFaellesAarsloen,
+      validStamdata
+    );
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+
+    expect(projection.hadReaderFieldError).toBe(true);
+    expect(projection.snapshot.efterEal.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(true);
+    // §1.10: field-eal-eet-pct må ALDRIG lække til de EAL-uafhængige faner.
+    expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(false);
+    expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(false);
+    expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(false);
+    // Løbende ydelser er ikke blokeret af ealEetPct — kun en (uændret) EET-warning fra 2024-fixturet.
+    expect(projection.snapshot.loebendeYdelser.hasBlockingErrors).toBe(false);
+  });
+
+  it('fører en rød rækkecelle-feltfejl (eetPct uden for bounds) ind som reader-feltfejl (§1.6)', () => {
+    const reader = buildReader(
+      {
+        ...validErhvervsevnetab,
+        aslAfgoerelser: [
+          { ...validErhvervsevnetab.aslAfgoerelser[0], eetPct: 150 },
+        ],
+      },
+      validFaellesAarsloen,
+      validStamdata
+    );
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+    expect(projection.hadReaderFieldError).toBe(true);
+  });
+
+  it('fører ASL-årsløns-domænereglen (ikke delelig med 1.000) ind på faellesAarsloen.aslAarsloen (§1.10)', () => {
+    const reader = buildReader(
+      validErhvervsevnetab,
+      { ...validFaellesAarsloen, aslAarsloen: asAmount(600500) },
+      validStamdata
+    );
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+    // ASL-afhængige faner (løbende/kapitalisering/differencekrav) blokerer på field-aarsloen-asl.
+    expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-aarsloen-asl')).toBe(true);
+    expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-aarsloen-asl')).toBe(true);
+  });
+
+  it('fører ASL-afgørelsesrækkernes indbyrdes valideringsfejl (collectEetAslAfgoerelseValidationIssues) ind som field-asl-afgoerelser (§1.10)', () => {
+    // En endelig afgørelse under 50 %, hvor samlet kap. % ikke svarer til EET %, udløser en row-valideringsfejl,
+    // som KUN `collectEetAslAfgoerelseValidationIssues` producerer (ikke beregnermotoren). Beviser at projektionen
+    // rekonstruerer rækkerne fra readeren og fører den første row-fejl ind i snapshottets field-asl-afgoerelser-kanal.
+    const reader = buildReader(
+      {
+        ...validErhvervsevnetab,
+        aslAfgoerelser: [
+          {
+            id: 'eet_asl_endelig',
+            afgoerelsesDato: toISODateString('2026-02-01'),
+            virkningsDato: toISODateString('2026-02-01'),
+            eetPct: 25,
+            kapDato: toISODateString('2026-03-01'),
+            kapPct: 10,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+            fsTilbageholdtEet: 'Nej',
+          },
+        ],
+      },
+      validFaellesAarsloen,
+      validStamdata
+    );
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+    expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
+    expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
+  });
+
+  it('fører en canonical beregningsdato-bounds-feltfejl (før skadedato) ind som field-beregningsdato på de afhængige faner (§1.6/§1.10)', () => {
+    // En beregningsdato FØR skadedato er uden for dynamisk min → readeren skjuler værdien og rejser en rød bounds-
+    // feltfejl. computeEetSnapshot aftager field-beregningsdato på løbende ydelser, EET efter EAL og differencekrav.
+    // (Regressionsvagt for et selv-review-fund: descriptoren manglede oprindeligt denne bounds-validator, så en
+    // out-of-range beregningsdato ville passere lydløst modsat legacy.)
+    const reader = buildReader(
+      { ...validErhvervsevnetab, beregningsdato: toISODateString('2020-01-01') },
+      validFaellesAarsloen,
+      validStamdata
+    );
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+    expect(projection.hadReaderFieldError).toBe(true);
+    expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-beregningsdato')).toBe(true);
+    expect(projection.snapshot.efterEal.issues.some((i) => i.id === 'field-beregningsdato')).toBe(true);
+    expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'field-beregningsdato')).toBe(true);
+    expect(projection.snapshot.efterEal.hasBlockingErrors).toBe(true);
+  });
+
+  it('blokerer differencekrav ved et ugyldigt forlig (begge felter udfyldt)', () => {
+    // Forlig med både procent og brøk udfyldt er 'invalid' → hele differencekrav-outputtet blokeres. Forlig deler
+    // descriptor med EO-sektionen; her committes de i erstatningsopgoerelse-sektionen.
+    const input = catalog.validateSettledInput({
+      sections: {
+        stamdata: validStamdata, satser: null, aarsloen: null, faellesAarsloen: validFaellesAarsloen,
+        renteberegning: null, varigemen: null, forsoergertab: null,
+        erstatningsopgoerelse: {
+          ...createErstatningsopgoerelseInitialValues(),
+          forligAnsvarsgradProcent: 50,
+          forligAnsvarsgradBroek: '1/2',
+        },
+        erhvervsevnetab: validErhvervsevnetab,
+      },
+      rejectedInputs: {},
+    });
+    const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
+    const reader = createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+    expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
+    expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(true);
+  });
+});
