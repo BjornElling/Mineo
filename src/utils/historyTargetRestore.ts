@@ -4,7 +4,7 @@ import { scrollTargetIntoView } from './scrollTargetIntoView';
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 const attrTokenSelector = (attr: string, value: string): string => `[${attr}~=${JSON.stringify(value)}]`;
 
-const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 15;
+export const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 15;
 
 // Sat mens undo/redo flytter fokus programmatisk (focusRestoredField). Mens det er sat, må felt-/celle-
 // blur IKKE committe: blur'et skyldes fokus-flytningen, ikke en brugerredigering, og draften kan endnu
@@ -113,20 +113,18 @@ const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Ele
 };
 
 /**
- * Efter en undo/redo-restore: re-targetér fokus til det felt/celle, hvis ændring framet kom fra.
- *
- * Selve værdi-/draft-gendannelsen sker via det restored store-snapshot (sektioner + `invalidDrafts`)
- * plus den autoritative epoch-resync i `useDraftField`/`useTableInputCore` — IKKE her. Denne funktion
- * flytter kun fokus (og scroller) hen til det rette element, når det er mountet på den restored fane.
+ * Den delte rAF-retry-restore-løkke (§3.7). Runtime-agnostisk: kalderen leverer KUN `findTarget`, der lokaliserer
+ * det synlige fokusmål (legacy via `data-mineo-undo-field-path`; greenfield via feltadresse + editorlokation).
+ * Den fælles adfærd — vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør, blur-commit-
+ * undertrykkelse under den programmatiske fokus, og AFBRYDELSE hvis brugeren imens flytter fokus til et andet
+ * brugbart felt — bor ÉT sted, så legacy- og greenfield-restore ikke kan drifte fra hinanden.
  */
-export const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
-  if (!frame.origin.fieldPath && !frame.origin.focusToken) return;
-
+export const runHistoryTargetRestoreLoop = (findTarget: () => HTMLElement | null): void => {
   const originalActiveElement = document.activeElement;
 
   let attempts = 0;
   const tick = () => {
-    const target = findRestoredField(frame);
+    const target = findTarget();
     const activeElement = document.activeElement;
     if (
       attempts > 0 &&
@@ -148,4 +146,16 @@ export const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
     }
   };
   requestAnimationFrame(tick);
+};
+
+/**
+ * Efter en undo/redo-restore: re-targetér fokus til det felt/celle, hvis ændring framet kom fra.
+ *
+ * Selve værdi-/draft-gendannelsen sker via det restored store-snapshot (sektioner + `invalidDrafts`)
+ * plus den autoritative epoch-resync i `useDraftField`/`useTableInputCore` — IKKE her. Denne funktion
+ * flytter kun fokus (og scroller) hen til det rette element, når det er mountet på den restored fane.
+ */
+export const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
+  if (!frame.origin.fieldPath && !frame.origin.focusToken) return;
+  runHistoryTargetRestoreLoop(() => findRestoredField(frame));
 };

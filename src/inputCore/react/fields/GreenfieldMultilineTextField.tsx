@@ -92,7 +92,7 @@ const GreenfieldMultilineTextField = React.forwardRef<HTMLDivElement, Greenfield
         rows={rows}
         error={hasError}
         helperText={surface.issue?.message ?? ''}
-        htmlTextAreaAttributes={{ readOnly: surface.readOnly }}
+        htmlTextAreaAttributes={{ readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {
             caretColor: surface.isOpen ? 'auto' : 'transparent',

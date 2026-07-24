@@ -7,6 +7,8 @@ import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../comp
 import type { GridCellCoord, GridCellEditorHandle } from '../../components/tables/gridCore/gridCoreTypes';
 import { gridCellKey } from '../../components/tables/gridCore/gridCoreUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
+import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './greenfieldHistoryRestore';
+import { serializeFieldAddress } from '../fieldAddress';
 
 // Greenfield-React grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
 // bro-forbinder de TO redigerings-autoriteter, som en løntabel har:
@@ -46,6 +48,11 @@ export type GridCellSurface<T> = Readonly<{
   inputElementRef: React.RefObject<HTMLInputElement | null>;
   /** `readOnly`-flag: sandt når grid-core ikke redigerer cellen. */
   readOnly: boolean;
+  /**
+   * DOM-attributter, celle-`<input>`'et SKAL bære, så undo/redo-fokusrestoren kan lokalisere præcis denne celle
+   * (§3.7): serialiseret feltadresse + editorlokation. Celle-komponenten spreder dem på inputtet.
+   */
+  restoreTargetAttributes: RestoreTargetAttributes;
 
   onDraftChange: (nextDraft: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -85,6 +92,13 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   // stabile handlere altid ser den aktuelle celles felt uden at churne.
   const cellFieldRef = React.useRef<FieldRef<T>>(cellFieldOf(cell));
   cellFieldRef.current = cellFieldOf(cell);
+
+  // Undo/redo-fokusrestore-mål (§3.7): serialiseret celle-feltadresse + editorlokation. Genberegnes kun når
+  // celle-spec'et skifter identitet (ny række/kolonne), så attribut-objektet er stabilt mellem renders.
+  const restoreTargetAttributes = React.useMemo(
+    () => buildRestoreTargetAttributes(serializeFieldAddress(cellFieldOf(cell).address), cell.location.locationId),
+    [cell]
+  );
 
   const onDraftChange = React.useCallback((nextDraft: string) => {
     latest.current.controller.changeDraft(nextDraft);
@@ -224,6 +238,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     value: controller.value,
     inputElementRef,
     readOnly: !isEditing,
+    restoreTargetAttributes,
     onDraftChange,
     onKeyDown,
     onPaste,

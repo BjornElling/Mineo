@@ -5,6 +5,7 @@ import type { StyledToggleSwitchHandle } from '../../../types/handles';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
+import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 
 // Greenfield toggle-felt (§1.3/§3.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
 // `commitImmediate` — ingen draft/settle-fase. Modtager kun sin `field`/`location`; den viste checked-tilstand
@@ -26,6 +27,7 @@ export type GreenfieldToggleFieldProps = Readonly<{
 const GreenfieldToggleField = React.forwardRef<StyledToggleSwitchHandle, GreenfieldToggleFieldProps>(
   ({ field, location, label, labelPlacement, disabled, name, id, ariaLabel }, ref) => {
     const controller = useFieldEditor(field, location);
+    const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
     // En boolsk descriptor har altid en defineret canonical værdi (emptyValue false/true); controller.value er
     // derfor defineret for et toggle-felt. Fald tilbage til false for at opfylde den controlled kontrakt.
     const checked = controller.value ?? false;
@@ -49,6 +51,7 @@ const GreenfieldToggleField = React.forwardRef<StyledToggleSwitchHandle, Greenfi
         {...(name === undefined ? {} : { name })}
         {...(id === undefined ? {} : { id })}
         {...(ariaLabel === undefined ? {} : { ariaLabel })}
+        restoreTargetAttributes={restoreTargetAttributes}
       />
     );
   }

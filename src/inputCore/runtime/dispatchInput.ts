@@ -37,7 +37,16 @@ export type DispatchInputOptions = Readonly<{
   now?: number;
 }>;
 
-export type DispatchInputResult = Readonly<{ changed: boolean; revision: InputRevision }>;
+export type DispatchInputResult = Readonly<{
+  changed: boolean;
+  revision: InputRevision;
+  /**
+   * Kun sat efter en SUCCESFULD undo/redo (§3.7): origin for det gendannede history-frame, så shellen kan navigere
+   * til den rette route/fane og fokusere det felt, ændringen kom fra. Fraværende for alle andre commands, for en
+   * no-op undo/redo og hvis det gendannede frame ingen origin havde — så en mislykket/tom restore aldrig navigerer.
+   */
+  restoredOrigin?: HistoryOrigin;
+}>;
 
 // Tjekker kun diskriminatoren; en løs parametertype undgår den contravariant generiske variansfælde.
 const isAuthoritativeReplacement = (command: Readonly<{ kind: string }>): boolean =>
@@ -150,7 +159,16 @@ export const dispatchInput = <TField, TEntity>(
       ? undoInputHistory(before.history, before.input)
       : redoInputHistory(before.history, before.input);
     if (!transition.changed) return Object.freeze({ changed: false, revision: before.revision });
-    return commitCandidate(store, catalog, before, transition.target.input, transition.history, committedAt, false);
+    const result = commitCandidate(
+      store, catalog, before, transition.target.input, transition.history, committedAt, false
+    );
+    // Surface KUN origin efter en gennemført commit (§3.7): en fejlende commit rammer aldrig hertil (den kaster/
+    // ruller tilbage i commitCandidate), og et frame uden origin giver ingen restore. Shellen navigerer derfor
+    // aldrig efter en mislykket eller tom restore.
+    if (result.changed && transition.target.origin !== undefined) {
+      return Object.freeze({ ...result, restoredOrigin: transition.target.origin });
+    }
+    return result;
   }
 
   // Ren, validerende reducer: bygger kandidaten og afviser ukendte refs/XOR-brud før mutation.

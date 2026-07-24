@@ -67,7 +67,14 @@ export const activeFieldIssueFor = <T>(
 ): FieldIssue | undefined => activeFieldIssue(issues, serializeFieldAddress(field.address));
 
 const originFor = <T>(location: EditorLocation, field: FieldRef<T>): HistoryOrigin =>
-  Object.freeze({ field: field.address, editorLocationId: location.locationId });
+  Object.freeze({
+    field: field.address,
+    editorLocationId: location.locationId,
+    // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage til
+    // den rette side/fane. Udeladte felter (route === undefined) er ikke-navigerbare lokationer.
+    ...(location.route === undefined ? {} : { route: location.route }),
+    ...(location.tabKey === undefined ? {} : { tabKey: location.tabKey }),
+  });
 
 /**
  * Oversætter et settle-intent til den command + origin, runtime-bindingen dispatcher. `none` (cancel/no-op)

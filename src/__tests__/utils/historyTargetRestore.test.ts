@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { HistoryFrame, HistoryFrameOrigin } from '../../stores/undoRedoStore';
+import type { HistoryFrame, HistoryFrameOrigin } from '../../stores/inputRuntimeStore';
 import { scheduleHistoryTargetRestore } from '../../utils/historyTargetRestore';
 
 /**

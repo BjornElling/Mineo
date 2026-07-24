@@ -70,7 +70,7 @@ const GreenfieldDateField = React.forwardRef<HTMLDivElement, GreenfieldDateField
         disabled={disabled}
         error={hasError}
         helperText={surface.issue?.message ?? ''}
-        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DRAFT_LENGTH, readOnly: surface.readOnly }}
+        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DRAFT_LENGTH, readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'center',

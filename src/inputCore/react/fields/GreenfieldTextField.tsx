@@ -62,7 +62,7 @@ const GreenfieldTextField = React.forwardRef<HTMLDivElement, GreenfieldTextField
         disabled={disabled}
         error={hasError}
         helperText={surface.issue?.message ?? ''}
-        htmlInputAttributes={{ readOnly: surface.readOnly }}
+        htmlInputAttributes={{ readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {
             caretColor: surface.isOpen ? 'auto' : 'transparent',

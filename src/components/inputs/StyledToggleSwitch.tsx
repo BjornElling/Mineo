@@ -6,6 +6,8 @@ import { useShakeFlag } from '../../hooks/useShakeFlag';
 
 type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
   'data-mineo-undo-field-path'?: string;
+  'data-mineo-field-address'?: string;
+  'data-mineo-editor-location-id'?: string;
 };
 
 /**
@@ -55,6 +57,11 @@ interface StyledToggleSwitchProps {
   /** Sættes når togglen bruges uden synligt label (label er placeret som søsker-element).
    *  Giver assistive technologies — og tests — en stabil accessible name. */
   ariaLabel?: string;
+  /**
+   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på input-slottet, så fokus efter undo/redo lander
+   * PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-wrappere leverer den.
+   */
+  restoreTargetAttributes?: Readonly<Record<string, string>>;
 }
 
 const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledToggleSwitchProps>(({
@@ -67,6 +74,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   name,
   value,
   ariaLabel,
+  restoreTargetAttributes,
 }, ref) => {
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
@@ -147,6 +155,8 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
     'aria-checked': checked,
     'data-mineo-undo-field-path': resolvedName,
     ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
+    // Greenfield-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
+    ...(restoreTargetAttributes ?? {}),
   };
 
   const switchComponent = (

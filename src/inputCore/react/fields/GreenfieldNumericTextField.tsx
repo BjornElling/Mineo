@@ -124,6 +124,7 @@ const GreenfieldNumericTextFieldInner = <T,>(
         inputMode,
         ...(maxDraftLength === undefined ? {} : { maxLength: maxDraftLength }),
         readOnly: surface.readOnly,
+        ...surface.restoreTargetAttributes,
       }}
       sx={mergeSx({
         '& .MuiInputBase-input': {

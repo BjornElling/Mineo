@@ -13,6 +13,18 @@ import type { RejectedInput } from '../settledInput';
 export type EditorLocation = Readonly<{
   /** Stabilt id for den konkrete editorlokation; bliver til `HistoryOrigin.editorLocationId` ved settle. */
   locationId: string;
+  /**
+   * Den route, editorlokationen hører til (fx `/forsoergertab`). Bruges af undo/redo-restoren til at navigere
+   * tilbage til den side, ændringen kom fra (§3.7). EKSPLICIT typed metadata — undo/redo må ALDRIG string-parse
+   * `locationId` eller udlede route af `field.section` (delte felter som `faellesAarsloen` har ingen egen route og
+   * bor på flere sider). Udelades kun af rene ikke-navigerbare lokationer (fx standalone/devtools).
+   */
+  route?: string;
+  /**
+   * Den fane inden for `route`, editorlokationen hører til (fx `'loenindkomst'`), eller `null` for en side uden
+   * faner. Bruges af undo/redo-restoren til at genskabe den aktive fane, før feltet fokuseres.
+   */
+  tabKey?: string | null;
 }>;
 
 /**

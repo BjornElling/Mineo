@@ -9,6 +9,13 @@ export const MAX_INPUT_HISTORY_STEPS = 50;
 export type HistoryOrigin = Readonly<{
   field: FieldAddress;
   editorLocationId: string;
+  /**
+   * Route + fane for editorlokationen, ændringen kom fra (§3.7). Eksplicit typed navigation-metadata, så undo/redo-
+   * restoren kan navigere til den rette side/fane UDEN at string-parse `editorLocationId` eller udlede route af
+   * `field.section`. `undefined` route = en ikke-navigerbar lokation (fx standalone); `tabKey: null` = ingen faner.
+   */
+  route?: string;
+  tabKey?: string | null;
 }>;
 
 export type InputHistoryFrame = Readonly<{

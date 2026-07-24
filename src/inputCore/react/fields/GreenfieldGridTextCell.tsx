@@ -114,6 +114,7 @@ const GreenfieldGridTextCellInner = <T, TEntity>(
               inputMode,
               readOnly: surface.readOnly,
               'aria-invalid': showError,
+              ...surface.restoreTargetAttributes,
             }}
             sx={{
               ...getTableInputRootStyles({ showError, tableKind: gridApi.tableKind, locked: false }),

@@ -5,6 +5,8 @@ import type { EditorLocation } from '../editor/fieldEditorState';
 import { useFieldEditor, type FieldEditorController } from './useFieldEditor';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
+import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './greenfieldHistoryRestore';
+import { serializeFieldAddress } from '../fieldAddress';
 
 // Greenfield-React (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
 // Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
@@ -59,6 +61,12 @@ export type FormFieldSurface<T> = Readonly<{
   inputElementRef: React.RefObject<HTMLInputElement | null>;
   /** `readOnly`-flag til det redigerbare element: sandt når editoren er lukket. */
   readOnly: boolean;
+  /**
+   * DOM-attributter, det redigerbare `<input>` SKAL bære, så undo/redo-fokusrestoren kan lokalisere præcis denne
+   * editorlokation (§3.7). Feltkomponenten spreder dem på inputtet (via `htmlInputAttributes`). Alle greenfield-
+   * kommitterende feltfamilier skal videreføre dem — en arkitekturtest håndhæver det.
+   */
+  restoreTargetAttributes: RestoreTargetAttributes;
 
   onDraftChange: (nextDraft: string, selection?: InputSelectionSnapshot) => void;
   onFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -97,6 +105,13 @@ export const useFormFieldSurface = <T>(
   );
   const controller = useFieldEditor(field, location, focusTarget);
   const { isOpen } = controller;
+
+  // Undo/redo-fokusrestore-mål (§3.7): serialiseret feltadresse + editorlokation. Memoiseret pr. felt/lokation,
+  // så attribut-objektet er referentielt stabilt mellem renders.
+  const restoreTargetAttributes = React.useMemo(
+    () => buildRestoreTargetAttributes(serializeFieldAddress(field.address), location.locationId),
+    [field, location.locationId]
+  );
 
   // To-trins-aktivering: mousedown noterer om elementet allerede var fokuseret; klik på et allerede-fokuseret
   // felt åbner editoren (klik 1 fokuserer, klik 2 åbner). `singleStageClick` åbner ved første mousedown.
@@ -278,6 +293,7 @@ export const useFormFieldSurface = <T>(
     value: controller.value,
     inputElementRef,
     readOnly: !isOpen,
+    restoreTargetAttributes,
     onDraftChange,
     onFocus,
     onBlur,
