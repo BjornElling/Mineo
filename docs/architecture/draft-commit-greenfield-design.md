@@ -1165,10 +1165,31 @@ For hver slice:
 
 ### Fase 4 — `.eo`, session og kritiske sagsoperationer
 
-**Status:** Påbegyndt. Den rene, strukturelle save-projektion er implementeret i
-`src/persistence/eoSaveProjection.ts`: rejected input blokerer, mens schema-gyldigt canonical input — også med
-afledte bounds-issues — projekteres til et komplet sektionssnapshot. Koblingen til sagsfiloperationerne samt
-load-, reset-, clear- og session-cutoveren nedenfor er endnu ikke gennemført.
+**Status:** Under implementering (WI-002, 2026-07-24). Byggesten og porte foreligger; shell-cutoveren udestår.
+
+Foreligger:
+- `src/persistence/eoSaveProjection.ts` (`projectEoSave`): rejected input blokerer, mens schema-gyldigt canonical
+  input — også med afledte bounds-issues — projekteres til et komplet sektionssnapshot.
+- **`CaseFileOperations`-porten** (`src/persistence/caseFileOperations.ts`): `evaluateSave` (settle-fri
+  projektion mod frisk kildetoken), `applyLoadedSnapshot` (indlæst snapshot → `buildLoadReplaceCaseCandidate` →
+  autoritativ `replaceCase`), og `hasAnyData` = `settledInputHasAnyData` (canonical-meningsfuld ELLER `rejectedInputs`
+  ikke-tom, så et rejected-only felt tæller som data og en load ikke kan overskrive det uden overwrite-bekræftelse).
+  `SaveSnapshot === PersistedSectionsSnapshot`, så snapshot sendes uændret til den bevarede `saveToFile` (row-order-
+  registry, payload-schema, metadata, integritetsverifikation bevares, §4.1).
+- **`CaseResetOperations`-porten** (`src/persistence/caseResetOperations.ts`): `clearAll` gennem
+  `CriticalActionCoordinator.applyReplacement` + `clearCase` (no-settle, draft kasseres kun ved succes,
+  `writesBlocked`-recovery §1.12).
+- Bindingens system-command-port udvidet med `replaceCase` (`ReplaceCaseCommand | ClearCaseCommand`), adskilt fra
+  surface-`dispatch`; `src/inputCore/react/useCaseOperations.ts` broen binder portene til produktions-runtime.
+- Port-tests grønne (`caseFileOperations.test.ts`, `caseResetOperations.test.ts`, 10 cases).
+
+Udestår (shell-cutover, WI-002): omskrivning af `useFileSaveLoad` mod greenfield-coordinatoren (rebased §1.4-matrix
+uden `block`-policy; blokerende input udledes af `FieldIssueSnapshot`/rejected-adresser i stedet for legacy
+field-error-store); MainLayout-rewire (greenfield undo/redo med lokationsbaseret fokusrestore, startup-notice,
+revision-remap `combinedSectionRevision→revision`, `authoritativeSnapshotEpoch→replacementGeneration`,
+`markSaved→saveToken.inputRevision`, `settingsRevision` UDEN for unsaved-baselinen); og sletning af den dead-by-cutover
+legacy (se WI-002 sletteliste). Reachability-audit har fastslået at store-/read-model-laget, `criticalActions/*` og
+Styled*Field-vejen fortsat er reachable via standalone-grid + de 4 ikke-migrerede flader og derfor BEVARES til Fase 5.
 
 **Afhængighed:** Alle field validators og projectionslices i fase 3.
 

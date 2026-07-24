@@ -1,7 +1,7 @@
 ---
 name: greenfield
 description: Gennemfør en Mineo-greenfield-work item med Codex som uafhængig kortlægger og reviewer.
-argument-hint: [scope eller WI-fil]
+argument-hint: "[scope eller WI-fil]"
 disable-model-invocation: true
 model: opus
 effort: medium

@@ -6,7 +6,12 @@ import { sourceTokensEqual, type InputRevision } from '../evaluationSource';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import type { InputEvaluation } from '../inputReader';
 import { dispatchInput, type DispatchInputResult } from '../runtime/dispatchInput';
-import type { InputSurfaceCommand, ResetSectionCommand } from '../inputReducer';
+import type {
+  ClearCaseCommand,
+  InputSurfaceCommand,
+  ReplaceCaseCommand,
+  ResetSectionCommand,
+} from '../inputReducer';
 import type { HistoryOrigin } from '../inputHistory';
 import type { SlimInputStore } from '../runtime/slimInputStore';
 import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
@@ -47,6 +52,13 @@ export type InputRuntimeBinding = Readonly<{
    * `Slet alt` og load gennem denne/`CaseResetOperations`-porten, aldrig gennem celle-dispatch.
    */
   resetSection: (command: ResetSectionCommand) => DispatchInputResult;
+  /**
+   * System-ejet hel-sags-replacement (§3.6/§3.10). Adskilt fra `dispatch`, så en form-/grid-CELLE aldrig kan
+   * udstede en hel-sagsmutation. `CaseFileOperations` (load-apply) og `CaseResetOperations` routes HERIGENNEM;
+   * `dispatchInput` klassificerer den som autoritativ (rydder history, tvinger commit, hæver
+   * `replacementGeneration`) og tillader den som eneste command, når runtime er `writesBlocked` (clearCase, §1.12).
+   */
+  replaceCase: (command: ReplaceCaseCommand | ClearCaseCommand) => DispatchInputResult;
   /** History er en separat port; editor-surfaces kan ikke forveksle restore med en feltkommando. */
   history: Readonly<{
     undo: () => DispatchInputResult;
@@ -114,6 +126,7 @@ export const createInputRuntimeBinding = (
     getEvaluation,
     dispatch: (command, origin) => dispatchInput(store, catalog, command, origin === undefined ? {} : { origin }),
     resetSection: (command) => dispatchInput(store, catalog, command),
+    replaceCase: (command) => dispatchInput(store, catalog, command),
     history: Object.freeze({
       undo: () => dispatchInput(store, catalog, { kind: 'undo' }),
       redo: () => dispatchInput(store, catalog, { kind: 'redo' }),

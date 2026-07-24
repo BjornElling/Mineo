@@ -15,3 +15,4 @@ export * from './useCollectionRows';
 export * from './useCellEditor';
 export * from './useGridCellSurface';
 export * from './useInputEvaluation';
+export * from './useCaseOperations';
