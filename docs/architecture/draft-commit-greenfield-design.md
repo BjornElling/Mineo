@@ -24,7 +24,7 @@ tomværdier og rå section-bypass i Stamdata/Satser. Det efterfølgende review a
 og dynamiske datogrænser, periodeorden som feltissues, inputdrevet relevans, grid-editorens synkrone lifecycle,
 rejected-only-rækkesletning, byte-verificeret rollback, settingssnapshot og frisk dokumentpreflight. Katalogets
 paths/counts, row factories, collection-adaptere og aktive editorlokationer er komplette efter sidste callsite-cutover.
-Den systematiske domænedækning af relevans og validators fortsætter i fase 3.
+Den systematiske domænedækning af relevans og validators blev gennemført i fase 3 (se Fase 3-status nedenfor).
 
 Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og fjernede den parallelle
 `domain/inputIntegrity`-blockermodel. Det rettede desuden manglende feltgrænser i Renteberegning, Varige mén og
@@ -39,8 +39,10 @@ forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakte
 bindende migrationsplan er §8 (Fase 0–7). Fase 0 har rebaset kontrakterne og etableret de midlertidige, maskinverificerede
 inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie inputkerne i `src/inputCore/` med
 XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
-`ready | blocked`-projektioner. Fase 3 er påbegyndt med Satser, Årsløn, EET og EO; de resterende slices færdiggøres
-efter samme model, og den delvise hovedapp må ikke repareres med legacy-providers.
+`ready | blocked`-projektioner. Fase 3 er gennemført: alle otte consumerslices (Satser, Renteberegning, Stamdata,
+Årsløn, Varige mén, Forsørgertab, EET og EO) forbruger nu rene reader-projektioner, og de afløste
+component-reporter-hooks er slettet. Fase 4–5 (`.eo`/session/caseporte og dokumentoutputs) udestår, og den delvise
+hovedapp må ikke repareres med legacy-providers.
 
 Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
@@ -1072,7 +1074,8 @@ fortsat nul brug fra migrerede persisted surfaces. Fase 6 verificerer, at ingen 
 
 ### Fase 3 — Domæneprojektioner og ren fejlmodel
 
-**Status:** Delvist gennemført og verificeret 2026-07-24. Følgende fire slices er færdige i fase 3's scope:
+**Status:** Gennemført og verificeret 2026-07-24 (internt kontrolpunkt, ikke deployhandoff). Alle otte
+consumerslices er migreret til rene reader-projektioner:
 
 - **Satser:** `projectSatser` er eneste side-/dokumentprojektion; den døde rå-sektionsgate og dens selectors er
   fjernet.
@@ -1082,10 +1085,27 @@ fortsat nul brug fra migrerede persisted surfaces. Fase 6 verificerer, at ingen 
   modtager kun reader-afledte issue-beskeder og ikke legacy reporter-typer.
 - **EO:** `buildErstatningsopgoerelseReaderProjection`, snapshot, kontrol og dokumentgate bruger alene
   reader-afledte EO-issues; den domænelokale issue-form har erstattet legacy-fejltyper på hele EO-vejen.
+- **Renteberegning:** `buildRenteberegningReaderProjection` bygger række- og aggregatprojektioner over readeren;
+  `RenteberegningTab` og download-gaten forbruger den, og rækkeafhængighed følger af de læste refs (§1.10).
+- **Stamdata/fælles input:** `Stamdata.tsx` er fuldt greenfield-migreret og læser gennem readeren; den delte
+  brevhoved-dokumentprojektion `projectStamdataForDocument` forsyner alle øvrige slices' dokumentgates. Stamdata
+  har ingen egen beregning, så en separat reader-beregningsprojektion er hverken nødvendig eller planlagt.
+- **Varige mén:** `buildVarigeMenReaderProjection` er den ene kanoniske projektion til både sidevisning og
+  download-gate; `computeVarigeMenEngine` køres uændret på reader-læste værdier, og en dedikeret
+  projektionsunit-test (`varigeMenReaderProjection.test.ts`) beviser byte-identisk output, bounds-/datoorden-
+  blokering og `missing`.
+- **Forsørgertab:** `buildForsoergertabReaderProjection` fører reader-afledte røde feltfejl ind i det uændrede
+  `computeForsoergertabSnapshot`, som ejer den dependency-specifikke panel-/gate-logik (§1.10).
 
-Satser-, Årsløn-, EET- og EO-slicenes beregningstal er bevaret af de eksisterende golden-/paritetstests. De
-resterende fase-3-slices (Renteberegning, Stamdata/fælles input, Varige mén og Forsørgertab) samt den globale
-sletteliste er fortsat udestående.
+Alle otte slicenes beregningstal er bevaret af de eksisterende golden-/paritetstests (§5.4). De afløste
+component-reporter-hooks `useAslAarsloenRuleReporter`, `useForligAnsvarsgradValidation` og `useTableCellErrorTracker`
+er slettet, da deres regler nu er slice-lokale rene funktioner i projektionerne uden produktionscallsites.
+
+**Bevidst udskudt til fase 4:** `src/types/fieldErrors.ts` og `src/hooks/useFormFieldErrors.ts` fjernes ikke her,
+fordi de fortsat er transitive dependencies for den levende legacy `Styled*Field`-inputvej og
+`FormPersistenceContext`/`inputRuntimeStore`-infrastrukturen (§2.6/§4.3: fysisk sletning følger med det sidste
+aktive ansvar i fase 4). `invalidDrafts`-celle-kanalen (`cellInvalidDraftScopes.ts`,
+`useReconcileInvalidDraftsToLiveRows.ts`) er stadig i aktiv brug og hører ligeledes til fase 4.
 
 **Afhængighed:** Fase 2. Ingen handoff før fasen er gennemført.
 
