@@ -24,7 +24,7 @@ tomværdier og rå section-bypass i Stamdata/Satser. Det efterfølgende review a
 og dynamiske datogrænser, periodeorden som feltissues, inputdrevet relevans, grid-editorens synkrone lifecycle,
 rejected-only-rækkesletning, byte-verificeret rollback, settingssnapshot og frisk dokumentpreflight. Katalogets
 paths/counts, row factories, collection-adaptere og aktive editorlokationer er komplette efter sidste callsite-cutover.
-Den systematiske domænedækning af relevans og validators hører til fase 3.
+Den systematiske domænedækning af relevans og validators fortsætter i fase 3.
 
 Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og fjernede den parallelle
 `domain/inputIntegrity`-blockermodel. Det rettede desuden manglende feltgrænser i Renteberegning, Varige mén og
@@ -39,14 +39,14 @@ forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakte
 bindende migrationsplan er §8 (Fase 0–7). Fase 0 har rebaset kontrakterne og etableret de midlertidige, maskinverificerede
 inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie inputkerne i `src/inputCore/` med
 XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
-`ready | blocked`-projektioner. Næste arbejdspakke er fase 3's systematiske domæneprojektioner og rene fejlmodel; den
-delvise hovedapp må ikke repareres med legacy-providers.
+`ready | blocked`-projektioner. Fase 3 er påbegyndt med Satser, Årsløn, EET og EO; de resterende slices færdiggøres
+efter samme model, og den delvise hovedapp må ikke repareres med legacy-providers.
 
 Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
 dokumentlayout og numeriske primitiver, bevares som selvstændige resultater.
 
-**Dato:** 2026-07-18
+**Dato:** 2026-07-24
 
 **Type:** Informativ målarkitektur og bindende migrationsplan. Normative kontrakter opdateres som første
 implementeringsfase, før produktionskode ændres.
@@ -1072,9 +1072,20 @@ fortsat nul brug fra migrerede persisted surfaces. Fase 6 verificerer, at ingen 
 
 ### Fase 3 — Domæneprojektioner og ren fejlmodel
 
-**Status:** Ikke systematisk påbegyndt. Satser-, Årsløn-, EET- og EO-projektionerne samt den typed
-dokument-stamdataprojektion er flyttet frem som snævre integritetsrettelser efter reglen ovenfor; ingen øvrige
-fase-3-exitkriterier er dermed opfyldt.
+**Status:** Delvist gennemført og verificeret 2026-07-24. Følgende fire slices er færdige i fase 3's scope:
+
+- **Satser:** `projectSatser` er eneste side-/dokumentprojektion; den døde rå-sektionsgate og dens selectors er
+  fjernet.
+- **Årsløn:** `buildAarsloenReaderProjection` samler reader-læste værdier, tabelissues, omregningsgate, beregning
+  og dokumentstamdata fra én revision. Side og frisk dokumentpreflight bruger samme projektion.
+- **EET:** `buildErhvervsevnetabReaderProjection` er eneste inputvej til det Zod-validerede snapshot; snapshotgrænsen
+  modtager kun reader-afledte issue-beskeder og ikke legacy reporter-typer.
+- **EO:** `buildErstatningsopgoerelseReaderProjection`, snapshot, kontrol og dokumentgate bruger alene
+  reader-afledte EO-issues; den domænelokale issue-form har erstattet legacy-fejltyper på hele EO-vejen.
+
+Satser-, Årsløn-, EET- og EO-slicenes beregningstal er bevaret af de eksisterende golden-/paritetstests. De
+resterende fase-3-slices (Renteberegning, Stamdata/fælles input, Varige mén og Forsørgertab) samt den globale
+sletteliste er fortsat udestående.
 
 **Afhængighed:** Fase 2. Ingen handoff før fasen er gennemført.
 

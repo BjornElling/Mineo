@@ -1,8 +1,8 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import type { FieldErrorBySource } from '../../types/fieldErrors';
 import { isoToDanish } from '../../types/branded';
 import { collectPresentFieldErrors, isNonEmptyString, resolveEoRowDisplay } from './eoRowCommon';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
+import type { EoFieldIssuesBySource } from '../erstatningsopgoerelse/eoInputIssues';
 
 /**
  * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
@@ -18,7 +18,7 @@ export type EoRowId =
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type StamdataFieldName = Extract<keyof StamdataValues, string>;
-type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, FieldErrorBySource>>;
+type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, EoFieldIssuesBySource>>;
 
 export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFieldErrorsBySource): EoRowModel[] => {
   const advokat = isNonEmptyString(values.advokat) ? values.advokat.trim() : undefined;

@@ -114,6 +114,12 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
     css: false,
+    // Enkelte første dynamiske imports af den tunge EO-/PDF-graf overstiger Vitests standard på 10 sekunder i en
+    // parallel suite. Uden en eksplicit hook-timeout markeres efterfølgende tests fejlagtigt som skipped.
+    hookTimeout: 30_000,
+    // Interaktionstests deler CPU med de tunge domæne-golden-tests. 5 sekunder giver derfor falske timeouts i en
+    // ellers færdig parallel suite; 15 sekunder bevarer fejl på hængende flows uden denne flakiness.
+    testTimeout: 15_000,
     coverage: {
       provider: 'v8',
       include: ['src/domain/**', 'src/utils/**', 'src/hooks/**', 'src/rowDrafts/**', 'src/contexts/**'],

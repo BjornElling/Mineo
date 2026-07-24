@@ -24,8 +24,8 @@ export const GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS = [
   },
   {
     id: 'aarsloen',
-    module: 'src/hooks/useAarsloenBeregning.ts',
-    symbol: 'useAarsloenBeregning',
+    module: 'src/domain/aarsloen/aarsloenProjection.ts',
+    symbol: 'buildAarsloenReaderProjection',
     consumers: ['src/components/pages/Aarsloen.tsx'],
   },
   {

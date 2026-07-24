@@ -135,6 +135,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/eo-snapshot-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/erstatningsopgoerelse/eoSnapshot.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/eoSnapshotPdfProjection.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/eoSnapshotToInspektionView.test.ts',
     ],
@@ -143,6 +144,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/eet-snapshot-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/erhvervsevnetab/eetSnapshot.test.ts',
+      'src/__tests__/domain/erhvervsevnetab/erhvervsevnetabReaderProjection.test.ts',
     ],
   },
   {
@@ -157,6 +159,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/aarsloen-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/aarsloen/aarsloenCalculations.test.ts',
+      'src/__tests__/domain/aarsloen/aarsloenProjection.greenfield.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
       'src/__tests__/hooks/useAarsloenDocumentGates.test.tsx',
     ],
@@ -181,6 +184,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/satser-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/calculations/satserCalculations.test.ts',
+      'src/__tests__/domain/satser/satserProjection.greenfield.test.ts',
       'src/__tests__/input/inputTransactionRunner.test.ts',
     ],
   },

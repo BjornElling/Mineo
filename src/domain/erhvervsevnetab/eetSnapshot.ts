@@ -7,7 +7,6 @@ import {
   evaluateForligsgrad,
   type ForligAnsvarsgradInput,
 } from '../erstatningsopgoerelse/engines/forligsgrad';
-import type { FormFieldError } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import {
@@ -29,12 +28,16 @@ import {
 } from './eetCanonicalOutput';
 import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
 
-type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
+/**
+ * Readeren leverer allerede den aktive røde feltissue. Snapshottet behøver kun dens besked for at placere den i
+ * den relevante faneprojektion; den gamle reporter-model må derfor ikke krydse denne domænegrænse.
+ */
+type FieldIssueMessage = Readonly<{ message: string }> | undefined;
 
-type EetFieldErrors = Readonly<{
-  stamdata: Partial<Record<keyof StamdataValues, FieldErrorMessage>>;
-  erhvervsevnetab: Partial<Record<string, FieldErrorMessage>>;
-  faellesAarsloen: Partial<Record<keyof FaellesAarsloenValues, FieldErrorMessage>>;
+type EetInputIssues = Readonly<{
+  stamdata: Partial<Record<keyof StamdataValues, FieldIssueMessage>>;
+  erhvervsevnetab: Partial<Record<string, FieldIssueMessage>>;
+  faellesAarsloen: Partial<Record<keyof FaellesAarsloenValues, FieldIssueMessage>>;
 }>;
 
 // Forlig om ansvarsgrad er delt kilde med EO-fanen (felterne bor i erstatningsopgoerelse-sektionen).
@@ -51,7 +54,7 @@ export type EetForligInput = Readonly<{
 export type EetSnapshotInput = Readonly<{
   values: ErhvervsevnetabComposedValues;
   stamdata: StamdataValues | null;
-  fieldErrors: EetFieldErrors;
+  fieldErrors: EetInputIssues;
   // Udeladt = intet forlig (bagudkompatibelt for eksisterende kald/tests).
   forlig?: EetForligInput;
 }>;
@@ -104,7 +107,7 @@ const safeBuildProjection = <TComputation>(
 };
 
 const createFieldIssues = (
-  fieldErrors: EetFieldErrors,
+  fieldErrors: EetInputIssues,
   ids: ReadonlyArray<Readonly<{ id: string; message: string | undefined }>>
 ): readonly EetIssue[] => {
   return ids

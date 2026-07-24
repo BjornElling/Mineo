@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-14
+**Senest verificeret mod kode:** 2026-07-24
 
 ---
 
@@ -11,7 +11,7 @@
 
 Årsløn er et persisted domæne med sektionen `aarsloen`.
 
-**Autoritativ beregningskilde:** `src/domain/aarsloen/aarsloenCalculations.ts` (`beregnMetode`, `beregnOmregnetAarsloen`) er den kanoniske beregningskilde for årsløn; periodevisning ejes af `aarsloenPeriodDisplay.ts` og validering af `aarsloenValidationPolicies.ts` + `src/domain/policies/aarsloenPolicy.ts`. Domænet bruger en ready inputprojektion foran disse moduler og genbruger samme engine-resultat i UI og dokument. Ingen parallel beregningssti må indføres.
+**Autoritativ beregningskilde:** `buildAarsloenReaderProjection` i `src/domain/aarsloen/aarsloenProjection.ts` samler reader-læste værdier, tabelvalidation, omregningsgate, beregning og dokumentstamdata fra én `InputReader`-revision. `src/domain/aarsloen/aarsloenCalculations.ts` (`beregnMetode`, `beregnOmregnetAarsloen`) er den kanoniske beregningskilde for årsløn; periodevisning ejes af `aarsloenPeriodDisplay.ts` og validering af `aarsloenValidationPolicies.ts` + `src/domain/policies/aarsloenPolicy.ts`. Ingen parallel beregningssti må indføres.
 
 ---
 
@@ -22,7 +22,7 @@
 3. Beløb og afrunding følger `amount-contract.md`.
 4. Dokumentgaten skal være en typed dokumentdefinition med strukturelle dependencies og må ikke afhænge af rendererens
    interne fejl, lokale feltbooleans eller rå sektionslæsning.
-5. Et felts synlighed og dets neutralisering i beregningen udledes af **samme** relevans-prædikat (ét sandt sted) i `src/domain/policies/aarsloenPolicy.ts` — fx `erAarsloenFerieFelterRelevant`, der fodrer både `shouldShowAarsloenFerieFields` (UI) og beregnings-gatingen i `useAarsloenBeregning`. Sidekomponenter må ikke gen-introducere inline synligheds-betingelser på felter, hvis relevans ejes af et prædikat. Jf. `form-contract.md` §7.
+5. Et felts synlighed og dets neutralisering i beregningen udledes af **samme** relevans-prædikat (ét sandt sted) i `src/domain/policies/aarsloenPolicy.ts` — fx `erAarsloenFerieFelterRelevant`, der fodrer både `shouldShowAarsloenFerieFields` (UI) og den kanoniske beregning. Sidekomponenter må ikke gen-introducere inline synligheds-betingelser på felter, hvis relevans ejes af et prædikat. Jf. `form-contract.md` §7.
 
 ---
 
@@ -43,7 +43,7 @@
 Årsløn er **bevidst ikke** snapshot-first. Den ready inputprojektion og section-lokale engine-/calculations-model i §1
 er slutarkitekturen, ikke et mellemtrin mod et snapshot.
 
-Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Årsløns engine-resultat beregnes ét sted (`useAarsloenBeregning`-hook), og PDF-stien **genbruger** det allerede beregnede `beregningsData` — den genberegner ikke domæneafledninger. Der er derfor hverken duplikering eller grænse-smerte at retfærdiggøre et snapshot-lag for, jf. konvergensreglen i `AGENTS.md` (ingen abstraktioner til hypotetisk fremtidig genbrug). Et snapshot-lag her ville tilføje vægt uden at fjerne en risiko.
+Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Årsløns engine-resultat bygges ét sted i `buildAarsloenReaderProjection`, og PDF-stien **genbruger** det allerede beregnede `beregningsData` — den genberegner ikke domæneafledninger. Der er derfor hverken duplikering eller grænse-smerte at retfærdiggøre et snapshot-lag for, jf. konvergensreglen i `AGENTS.md` (ingen abstraktioner til hypotetisk fremtidig genbrug). Et snapshot-lag her ville tilføje vægt uden at fjerne en risiko.
 
 Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §6`.
 

@@ -19,7 +19,11 @@ import {
   aarsloenTillaegAngivesSomField,
 } from '../../../inputCore/catalog/aarsloenDescriptors';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { readAarsloenValues, resolveAarsloenFieldErrorGate } from '../../../domain/aarsloen/aarsloenProjection';
+import {
+  buildAarsloenReaderProjection,
+  readAarsloenValues,
+  resolveAarsloenFieldErrorGate,
+} from '../../../domain/aarsloen/aarsloenProjection';
 
 // Greenfield Årsløn-projektion (§3.4/§5.4, Fase 3 Årsløn-slice, Pass 1). Beviser at `readAarsloenValues`
 // rekonstruerer et komplet `AarsloenValues` fra readeren, og at `resolveAarsloenFieldErrorGate` spejler
@@ -126,5 +130,21 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
     const input = dispatch(empty(), settle(feriePctRef, '12'));
     const values = readAarsloenValues(reader(input));
     expect(resolveAarsloenFieldErrorGate(reader(input), values, { omregningAktiveret: true })).toHaveLength(0);
+  });
+});
+
+describe('buildAarsloenReaderProjection', () => {
+  it('samler beregning, tabelvalidation og dokumentdependency fra samme reader-revision', () => {
+    const input = dispatch(empty(), settle(feriePctRef, '150'));
+    const inputReader = reader(input);
+
+    const projection = buildAarsloenReaderProjection(inputReader);
+
+    expect(projection.sourceToken).toBe(inputReader.sourceToken);
+    expect(projection.values.feriePct).toBeUndefined();
+    expect(projection.fieldIssues).toHaveLength(1);
+    expect(projection.calculation.harFatalBeregningsFejl).toBe(false);
+    expect(projection.tableValidation.errors).toEqual([]);
+    expect(projection.documentStamdata.sourceToken).toBe(inputReader.sourceToken);
   });
 });

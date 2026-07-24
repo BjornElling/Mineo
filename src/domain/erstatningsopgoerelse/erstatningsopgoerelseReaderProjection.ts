@@ -5,7 +5,12 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../types/branded';
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
 import type { ProjectionResult } from '../../inputCore/projection';
-import type { FieldErrorsForSection, FormFieldError, FieldErrorSource } from '../../types/fieldErrors';
+import type {
+  EoInputIssue,
+  EoInputIssueSource,
+  EoInputIssues,
+  EoStamdataInputIssues,
+} from './eoInputIssues';
 import type {
   ErstatningsopgoerelseValues,
   EOAngivetLoenLoenudvikling,
@@ -515,11 +520,11 @@ export const readStamdataValues = (reader: InputReader): StamdataValues => ({
 
 // ── Fejl-map-rekonstruktion ─────────────────────────────────────────────────────────
 /** Reader-reason → legacy field-error source (jf. field-error-channel-analysen). */
-const reasonToSource = (reason: string): FieldErrorSource =>
+const reasonToSource = (reason: string): EoInputIssueSource =>
   reason === 'format' ? 'invalid-draft' : reason === 'rule' ? 'rule' : reason === 'schema' ? 'schema' : 'input';
 
-/** En rød reader-feltfejl omsat til én `FormFieldError` (bounds→'input'+blocksSave:false, ellers blocksSave:true). */
-const toFormFieldError = (message: string, reason: string): FormFieldError => {
+/** En rød reader-feltfejl omsat til én EO-inputissue (bounds→`input`+blocksSave:false, ellers blocksSave:true). */
+const toInputIssue = (message: string, reason: string): EoInputIssue => {
   const source = reasonToSource(reason);
   return {
     message,
@@ -549,12 +554,12 @@ const errEntry = <T>(key: string, field: FieldRef<T>): ErrorFieldEntry => ({
 const collectSectionFieldErrors = (
   reader: InputReader,
   entries: readonly ErrorFieldEntry[]
-): Record<string, Partial<Record<FieldErrorSource, FormFieldError>>> => {
-  const map: Record<string, Partial<Record<FieldErrorSource, FormFieldError>>> = {};
+): EoInputIssues => {
+  const map: EoInputIssues = {};
   for (const { key, readIssue } of entries) {
     const issue = readIssue(reader);
     if (issue === undefined) continue;
-    const error = toFormFieldError(issue.message, issue.reason);
+    const error = toInputIssue(issue.message, issue.reason);
     map[key] = { ...(map[key] ?? {}), [error.source]: error };
   }
   return map;
@@ -620,8 +625,8 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /** De reader-rekonstruerede stamdata-værdier. */
   stamdataValues: StamdataValues;
   /** Section-field-error-maps (top-level feltnavn + `${afId}:loenindkomst`-aggregat) til inspektion-echo + gate. */
-  eoErrors: FieldErrorsForSection<'erstatningsopgoerelse'>;
-  stamdataErrors: FieldErrorsForSection<'stamdata'>;
+  eoErrors: EoInputIssues;
+  stamdataErrors: EoStamdataInputIssues;
   /** Fælles dokumentmetadata-projektion; samme resultat indgår i reaktiv gate og click-preflight. */
   documentStamdata: ProjectionResult<StamdataValues>;
   /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
@@ -640,7 +645,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
   const eoValues = readErstatningsopgoerelseValues(reader);
   const stamdataValues = readStamdataValues(reader);
 
-  const eoErrors: Record<string, Partial<Record<FieldErrorSource, FormFieldError>>> = {
+  const eoErrors: EoInputIssues = {
     ...collectSectionFieldErrors(reader, EO_TOP_LEVEL_ERROR_FIELDS),
   };
   // Det syntetiske `${afId}:loenindkomst`-aggregat: legacy's loenindkomst-view-model rapporterede det, når en

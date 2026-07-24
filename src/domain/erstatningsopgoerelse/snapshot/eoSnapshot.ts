@@ -1,7 +1,6 @@
 import { TODAY } from '../../../config/dateRanges';
 import { erstatningsopgoerelseSchema, stamdataSchema, type ErstatningsopgoerelseValues, type StamdataValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import type { FieldErrorsForSection } from '../../../types/fieldErrors';
 import { erstatningsopgoerelseValidator } from '../../../validators/erstatningsopgoerelseValidator';
 import { buildEOInspektionSnapshot, type EOInspektionSnapshot } from '../../eoInspektion/eoInspektionSnapshot';
 import { parseForligsgrad } from '../engines/forligsgrad';
@@ -44,6 +43,7 @@ import {
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
+import type { EoInputIssues, EoStamdataInputIssues } from '../eoInputIssues';
 
 export type EoSnapshotComputedData = Readonly<{
   engines: Readonly<{
@@ -89,8 +89,8 @@ export type EoSnapshot = Readonly<{
   failClosedReason?: 'schema_guard' | 'invariant_guard' | 'runtime_exception';
 }>;
 
-const EMPTY_STAMDATA_ERRORS: FieldErrorsForSection<'stamdata'> = {};
-const EMPTY_EO_ERRORS: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+const EMPTY_STAMDATA_ERRORS: EoStamdataInputIssues = {};
+const EMPTY_EO_ERRORS: EoInputIssues = {};
 
 export type EoSnapshotWithData = Readonly<Omit<EoSnapshot, 'data' | 'input'>> & Readonly<{
   data: EoSnapshotComputedData;
@@ -129,8 +129,8 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
   revision: string;
   stamdata: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
-  stamdataErrors: FieldErrorsForSection<'stamdata'>;
-  eoErrors: FieldErrorsForSection<'erstatningsopgoerelse'>;
+  stamdataErrors: EoStamdataInputIssues;
+  eoErrors: EoInputIssues;
   tafRanges?: readonly IsoRange[];
   svieSmerteEngine?: SvieSmerteEngineOutput;
   canonicalOutput?: EoCanonicalOutput;
@@ -163,8 +163,8 @@ export const computeEoSnapshot = (args: Readonly<{
   stamdataValues: unknown;
   eoValues: unknown;
   dagsDatoISO?: ISODateString;
-  stamdataErrors?: FieldErrorsForSection<'stamdata'>;
-  eoErrors?: FieldErrorsForSection<'erstatningsopgoerelse'>;
+  stamdataErrors?: EoStamdataInputIssues;
+  eoErrors?: EoInputIssues;
   /**
    * Optional EET-import-source. Bruges udelukkende, når toggle
    * `midlertidigtEetFraEetSiden === 'Ja'`, til at injicere virtuelle midlertidigt

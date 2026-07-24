@@ -1,10 +1,10 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { getInclusivePeriodEndByMonths } from '../../utils/dateUtils';
 import type { EoRowStatus } from './eoRowTypes';
+import type { EoFieldIssuesBySource } from '../erstatningsopgoerelse/eoInputIssues';
 
 /**
  * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
@@ -123,7 +123,7 @@ export const isSfggComputedTotalRowId = (id: string): boolean => id.startsWith(S
 
 export type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 export type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
-export type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
+export type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, EoFieldIssuesBySource>>;
 export type StamdataValues = PersistedSectionMap['stamdata'];
 
 export const formatRowCount = (value: number): string => formatAsAmountTrimmed(value, 0);

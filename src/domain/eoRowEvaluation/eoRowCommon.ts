@@ -1,5 +1,5 @@
-import type { FieldErrorBySource, FieldErrorSource } from '../../types/fieldErrors';
-import { DEFAULT_FIELD_ERROR_SOURCE_PRIORITY } from '../../types/fieldErrors';
+import type { EoFieldIssuesBySource, EoInputIssueSource } from '../erstatningsopgoerelse/eoInputIssues';
+import { EO_INPUT_ISSUE_SOURCE_PRIORITY } from '../erstatningsopgoerelse/eoInputIssues';
 import type { EoRowStatus } from './eoRowTypes';
 
 // Neutrale validerings-tekst-/streng-helpers bor nu i domænets validerings-lag, så de kan
@@ -13,9 +13,9 @@ export {
 import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 
 export const collectPresentFieldErrors = (
-  bySource: FieldErrorBySource | undefined,
-  sourcePriority: readonly FieldErrorSource[] = DEFAULT_FIELD_ERROR_SOURCE_PRIORITY
-): ReadonlyArray<NonNullable<FieldErrorBySource[FieldErrorSource]>> => {
+  bySource: EoFieldIssuesBySource | undefined,
+  sourcePriority: readonly EoInputIssueSource[] = EO_INPUT_ISSUE_SOURCE_PRIORITY
+): ReadonlyArray<NonNullable<EoFieldIssuesBySource[EoInputIssueSource]>> => {
   const resolvedErrors = bySource ?? {};
   return sourcePriority
     .map((source) => resolvedErrors[source])
@@ -23,7 +23,7 @@ export const collectPresentFieldErrors = (
 };
 
 export const summarizeFieldErrorsForEoRow = (
-  errors: FieldErrorBySource | undefined
+  errors: EoFieldIssuesBySource | undefined
 ): { displayValue: string; status: EoRowStatus } | null => {
   const present = collectPresentFieldErrors(errors);
   if (present.length === 0) return null;
@@ -37,7 +37,7 @@ export const summarizeFieldErrorsForEoRow = (
 
 export const resolveEoRowDisplay = (args: {
   value: string | undefined;
-  errors: FieldErrorBySource | undefined;
+  errors: EoFieldIssuesBySource | undefined;
   emptyState: EoRowStatus;
 }): { displayValue: string; status: EoRowStatus } => {
   const errorSummary = summarizeFieldErrorsForEoRow(args.errors);

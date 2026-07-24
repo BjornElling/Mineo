@@ -1,5 +1,4 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
@@ -21,6 +20,7 @@ import type {
   SammentaellingControl,
   SammentaellingDisplayRow,
 } from '../erstatningsopgoerelse/control/eoControlMismatch';
+import type { EoInputIssues } from '../erstatningsopgoerelse/eoInputIssues';
 
 export type SvieSmerteContext = Readonly<{
   skadedatoISO: ISODateString | undefined;
@@ -62,7 +62,7 @@ export type SammentaellingModel = Readonly<{
   tafIndtaegter: readonly SammentaellingDisplayRow[];
 }>;
 
-type ErstatningsopgoerelseFieldErrors = FieldErrorsForSection<'erstatningsopgoerelse'>;
+type ErstatningsopgoerelseFieldErrors = EoInputIssues;
 
 export const buildSvieSmerteContext = (
   stamdataValues: StamdataValues,

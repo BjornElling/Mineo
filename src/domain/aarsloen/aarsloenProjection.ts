@@ -29,6 +29,12 @@ import {
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
+import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
+import type { ProjectionResult } from '../../inputCore/projection';
+import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
+import type { StamdataValues } from '../../schemas/formSchemas';
+import { computeAarsloenBeregning, type AarsloenBeregningState } from '../../hooks/useAarsloenBeregning';
+import { resolveAarsloenOmregningGate, type AarsloenOmregningGate } from './aarsloenValidationPolicies';
 import { getStandardLoenTableValidation, type StandardLoenTableValidationResult } from './standardLoenTableValidation';
 
 // Greenfield Årsløn-projektion (§3.4/§5.4, Fase 3 Årsløn-slice, Pass 1). En ALMINDELIG ren funktion over den
@@ -250,4 +256,47 @@ export const resolveStandardLoenTableValidation = (
 
   const cellErrorsByCellKey = collectReaderCellErrorsByCellKey(reader, rowIds, loenperiode, tillaegAngivesSom);
   return getStandardLoenTableValidation({ rows, loenperiode, cellErrorsByCellKey, tillaegAngivesSom });
+};
+
+/**
+ * Årslønnens komplette, tokenbundne consumer-projektion. Den samler præcis de reader-afledninger, som side,
+ * beregning og dokumentpreflight deler, så de ikke hver især kan rekonstruere eller gate input forskelligt.
+ */
+export type AarsloenReaderProjection = Readonly<{
+  values: AarsloenValues;
+  tableValidation: StandardLoenTableValidationResult;
+  omregningGate: AarsloenOmregningGate;
+  calculation: AarsloenBeregningState;
+  fieldIssues: readonly FieldIssue[];
+  documentStamdata: ProjectionResult<StamdataValues>;
+  sourceToken: EvaluationSourceToken;
+}>;
+
+/** Bygger den kanoniske reader-projektion for Årsløn fra én afsluttet inputrevision. */
+export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenReaderProjection => {
+  const values = readAarsloenValues(reader);
+  const tableValidation = resolveStandardLoenTableValidation(reader, values.loenperiode, values.tillaegAngivesSom);
+  const omregningGate = resolveAarsloenOmregningGate({
+    requestedEnabled: values.omregningTilFuldtAar,
+    tableData: values.tableData,
+    loenperiode: values.loenperiode,
+    validationSummary: tableValidation.summary,
+  });
+  const calculation = computeAarsloenBeregning({
+    values,
+    omregningAktiveret: omregningGate.effectiveEnabled,
+  });
+  const fieldIssues = resolveAarsloenFieldErrorGate(reader, values, {
+    omregningAktiveret: omregningGate.effectiveEnabled,
+  });
+
+  return Object.freeze({
+    values,
+    tableValidation,
+    omregningGate,
+    calculation,
+    fieldIssues,
+    documentStamdata: projectStamdataForDocument(reader, 'document.aarsloen'),
+    sourceToken: reader.sourceToken,
+  });
 };

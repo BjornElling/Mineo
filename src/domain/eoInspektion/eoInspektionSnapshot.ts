@@ -1,5 +1,4 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sfggResult';
@@ -17,6 +16,7 @@ import {
   type SammentaellingModel,
 } from './eoInspektionSammentaelling';
 import type { EOInspektionModel } from './eoInspektionKontrolModel';
+import type { EoInputIssues, EoStamdataInputIssues } from '../erstatningsopgoerelse/eoInputIssues';
 
 /**
  * EOInspektionSnapshot er et konsistens-kritisk, entry-bundet snapshot.
@@ -35,8 +35,8 @@ export type EOInspektionSnapshot = Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   fieldErrors: Readonly<{
-    stamdata: FieldErrorsForSection<'stamdata'>;
-    erstatningsopgoerelse: FieldErrorsForSection<'erstatningsopgoerelse'>;
+    stamdata: EoStamdataInputIssues;
+    erstatningsopgoerelse: EoInputIssues;
   }>;
 }>;
 
@@ -57,8 +57,8 @@ export const buildEOInspektionSnapshot = (args: {
   revision: string;
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
-  stamdataErrors: FieldErrorsForSection<'stamdata'>;
-  eoErrors: FieldErrorsForSection<'erstatningsopgoerelse'>;
+  stamdataErrors: EoStamdataInputIssues;
+  eoErrors: EoInputIssues;
   /** Clampede TAF-ranges fra engines. Når disse er leveret afspejler kontroltabellen
    *  præcis de perioder der indgik i beregningen — ikke de rå committede datoer. */
   tafRanges?: readonly IsoRange[];

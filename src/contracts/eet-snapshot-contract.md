@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-18
+**Senest verificeret mod kode:** 2026-07-24
 
 ---
 

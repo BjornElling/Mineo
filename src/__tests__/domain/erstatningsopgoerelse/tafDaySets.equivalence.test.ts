@@ -155,6 +155,8 @@ describe('buildFerieDageSetForPeriode — ækvivalens med tidligere kontrol-lag-
     }
   });
 
+  // Batteriet er bevidst bredt og kan ved parallel fuld-suite bruge mere end Vitests standard på 5 sekunder.
+  // Timeoutten bevarer testens dækningsbredde i stedet for at gøre den flakende ved vilkårligt at reducere cases.
   it('matcher referencen på et bredt, tilfældigt (men deterministisk) batteri', () => {
     const rnd = makePrng(0x9e3779b9);
     const baseFra = iso('2019-01-01');
@@ -207,5 +209,5 @@ describe('buildFerieDageSetForPeriode — ækvivalens med tidligere kontrol-lag-
     // Værn mod et vacuøst batteri (alt tomt): der SKAL være reelle ikke-tomme resultater.
     expect(casesWithFerie).toBeGreaterThan(TOTAL / 4);
     expect(casesWithPlacedLose).toBeGreaterThan(0);
-  });
+  }, 10_000);
 });

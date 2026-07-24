@@ -13,10 +13,8 @@ import ContentBox from '../layout/ContentBox';
 import { useInputEvaluation, useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
 import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
-import { computeAarsloenBeregning, useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import { useAarsloenDocumentGates, type AarsloenDocumentSnapshot } from '../../hooks/useAarsloenDocumentGates';
-import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../utils/periodeBeregning';
@@ -34,15 +32,8 @@ import {
   aarsloenStoreBededagPctField,
   aarsloenTillaegAngivesSomField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
-import {
-  readAarsloenValues,
-  resolveAarsloenFieldErrorGate,
-  resolveStandardLoenTableValidation,
-} from '../../domain/aarsloen/aarsloenProjection';
+import { buildAarsloenReaderProjection } from '../../domain/aarsloen/aarsloenProjection';
 import type { FieldRef } from '../../inputCore/fieldDescriptor';
-import {
-  resolveAarsloenOmregningGate,
-} from '../../domain/aarsloen/aarsloenValidationPolicies';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../domain/aarsloen/aarsloenPeriodDisplay';
 import {
   shouldShowAarsloenFerieFields,
@@ -90,37 +81,18 @@ const captureFreshAarsloenDocumentSnapshot = (
   const source = captureProductionEvaluationSource();
   if (!sourceTokensEqual(expectedToken, source.evaluation.issues.sourceToken)) return null;
 
-  const latestValues = readAarsloenValues(source.evaluation.reader);
-  const latestTableValidation = resolveStandardLoenTableValidation(
-    source.evaluation.reader,
-    latestValues.loenperiode,
-    latestValues.tillaegAngivesSom
-  );
-  const latestOmregningGate = resolveAarsloenOmregningGate({
-    requestedEnabled: latestValues.omregningTilFuldtAar,
-    tableData: latestValues.tableData,
-    loenperiode: latestValues.loenperiode,
-    validationSummary: latestTableValidation.summary,
-  });
-  const latestCalculation = computeAarsloenBeregning({
-    values: latestValues,
-    omregningAktiveret: latestOmregningGate.effectiveEnabled,
-  });
-  const latestFieldErrors = resolveAarsloenFieldErrorGate(source.evaluation.reader, latestValues, {
-    omregningAktiveret: latestOmregningGate.effectiveEnabled,
-  });
-  const latestStamdata = projectStamdataForDocument(source.evaluation.reader, 'document.aarsloen');
+  const projection = buildAarsloenReaderProjection(source.evaluation.reader);
 
   return {
-    values: latestValues,
-    omregningAktiveret: latestOmregningGate.effectiveEnabled,
-    periodeData: latestCalculation.periodeData,
-    shDageAntal: latestCalculation.shDageAntal,
-    beregnetAarsloen: latestCalculation.beregnetAarsloen,
-    beregningsData: latestCalculation.beregningsData,
-    harFatalBeregningsFejl: latestCalculation.harFatalBeregningsFejl || latestFieldErrors.length > 0,
-    tableErrors: latestTableValidation.errors,
-    stamdataProjection: latestStamdata,
+    values: projection.values,
+    omregningAktiveret: projection.omregningGate.effectiveEnabled,
+    periodeData: projection.calculation.periodeData,
+    shDageAntal: projection.calculation.shDageAntal,
+    beregnetAarsloen: projection.calculation.beregnetAarsloen,
+    beregningsData: projection.calculation.beregningsData,
+    harFatalBeregningsFejl: projection.calculation.harFatalBeregningsFejl || projection.fieldIssues.length > 0,
+    tableErrors: projection.tableValidation.errors,
+    stamdataProjection: projection.documentStamdata,
     settings: source.settings,
     isSourceCurrent: source.isSourceCurrent,
   };
@@ -136,9 +108,11 @@ const Aarsloen = React.memo(() => {
   const evaluation = useInputEvaluation();
   const criticalActions = useCriticalInputActions();
 
-  // Sidens komplette `values` til calc/render læses gennem den offentlige reader (§3.4/§5.4) — aldrig fra rå
-  // sektioner. Rekonstruktionen er ren; skjulte (rød-fejl) felter falder tilbage til deres tomværdi.
-  const values = React.useMemo(() => readAarsloenValues(evaluation.reader), [evaluation]);
+  const readerProjection = React.useMemo(
+    () => buildAarsloenReaderProjection(evaluation.reader),
+    [evaluation]
+  );
+  const { values } = readerProjection;
 
   const {
     feriePct, tillaegAngivesSom, tableData, loenperiode,
@@ -147,11 +121,7 @@ const Aarsloen = React.memo(() => {
 
   // Løntabellens valideringssummary er REN og reader-afledt (§2.5) — ét sted for både omregning-gaten og
   // dokumentgaten, i sync med cellernes røde issues.
-  const tableValidation = React.useMemo(
-    () => resolveStandardLoenTableValidation(evaluation.reader, loenperiode, tillaegAngivesSom),
-    [evaluation, loenperiode, tillaegAngivesSom]
-  );
-  const tableValidationSummary = tableValidation.summary;
+  const { tableValidation } = readerProjection;
 
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
 
@@ -161,15 +131,7 @@ const Aarsloen = React.memo(() => {
   const omregningController = useFieldEditor(omregningTilFuldtAarRef, loc('omregningTilFuldtAar'));
   const toggleRef = React.useRef<{ shake: () => void } | null>(null);
 
-  const omregningGate = React.useMemo(
-    () => resolveAarsloenOmregningGate({
-      requestedEnabled: values.omregningTilFuldtAar,
-      tableData,
-      loenperiode,
-      validationSummary: tableValidationSummary,
-    }),
-    [loenperiode, tableData, tableValidationSummary, values.omregningTilFuldtAar]
-  );
+  const { omregningGate } = readerProjection;
 
   const { checked: omregningChecked, effectiveEnabled: omregningAktiveret, handleToggle: handleOmregningToggle } = useOmregningToggle({
     gate: omregningGate,
@@ -190,25 +152,16 @@ const Aarsloen = React.memo(() => {
     fejlmeddelelser,
     beregningsFejl,
     harFatalBeregningsFejl: harFatalBeregningsFejlFraCalc,
-  } = useAarsloenBeregning({
-    values,
-    omregningAktiveret,
-  });
+  } = readerProjection.calculation;
 
   // Greenfield fatal-gate (§1.6/§5.4): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er nu en
   // RØD feltfejl. Readeren skjuler den værdi, så et misvisende beregnet resultat undertrykkes her — samme gating
   // som legacy's `harFatalBeregningsFejl`, kun anden præsentation.
-  const fieldErrorGate = React.useMemo(
-    () => resolveAarsloenFieldErrorGate(evaluation.reader, values, { omregningAktiveret }),
-    [evaluation, values, omregningAktiveret]
-  );
+  const fieldErrorGate = readerProjection.fieldIssues;
   const harFatalBeregningsFejl = harFatalBeregningsFejlFraCalc || fieldErrorGate.length > 0;
 
   // Stamdata til dokument-download hentes gennem readeren (§3.4/§5.4), ikke via en rå sektionsselector.
-  const stamdataProjection = React.useMemo(
-    () => projectStamdataForDocument(evaluation.reader, 'document.aarsloen'),
-    [evaluation]
-  );
+  const stamdataProjection = readerProjection.documentStamdata;
 
   // PDF gates og download handlers
   const {

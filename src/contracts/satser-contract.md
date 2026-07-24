@@ -3,7 +3,7 @@
 **Status:** Normativ målarkitektur
 **Type:** Domæne-/sagsglobal kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-24
 
 ---
 
@@ -14,7 +14,13 @@
 Satser-domænet kan samtidig læse lovbestemte reference-data fra `src/data/lovbestemteRates`. Denne kontrakt adskiller derfor brugerens sagsspecifikke satsgrundlag (det valgte satsår) fra reference-data.
 Reference-dataenes katalogmetadata og integritetskrav følger desuden `calculation-data-contract.md`.
 
-**Autoritativ beregningskilde:** Satsårs-opslag, gate og PDF-gate ejes af `src/domain/policies/satserCalculations.ts` (`resolveSatserEffectiveAargang`, `resolveSatserAargangErrorMessage`, `canDownloadSatser`, `resolveSatserPdfGate`). Opregulering fra ét år til et andet — den to-metoders sats-anvendelse, der er fundamentet for de øvrige domæners reguleringer — ejes af de **to kanoniske opregulerings-motorer** i `src/domain/satser/opreguleringsmotorer.ts` (`opregulerMedAslAarsloensmaksimum` og `opregulerMedAkkumuleretReguleringssats`). Ingen anden opreguleringssti må indføres; alle domæner der opregulerer beløb skal kalde disse motorer.
+**Autoritativ beregningskilde:** `projectSatser` i `src/domain/satser/satserProjection.ts` er den eneste
+autoritative satsårs-projektion for sidevisning og dokumentgate. `resolveSatserDefaultAargang` i
+`src/domain/policies/satserCalculations.ts` fastlægger alene defaulten til en ny sag. Opregulering fra ét år til et
+andet — den to-metoders sats-anvendelse, der er fundamentet for de øvrige domæners reguleringer — ejes af de **to
+kanoniske opregulerings-motorer** i `src/domain/satser/opreguleringsmotorer.ts`
+(`opregulerMedAslAarsloensmaksimum` og `opregulerMedAkkumuleretReguleringssats`). Ingen anden opreguleringssti må
+indføres; alle domæner der opregulerer beløb skal kalde disse motorer.
 
 **Fail-closed for manglende satsdækning:** Begge motorer returnerer `manglendeAar` (de år hvor nødvendigt indeks/sats mangler). Er listen ikke-tom, er `faktor`/`deltaPct` **ikke** pålidelige, og kalderen skal fail-close (synligt issue frem for et tavst "ingen regulering"-resultat). Den akkumulerede reguleringssats kræver satsdækning for start-, slut- **og** alle mellemår, også når start-årets sats ikke multipliceres ind i selve faktoren — datadækningen er en selvstændig invariant.
 
