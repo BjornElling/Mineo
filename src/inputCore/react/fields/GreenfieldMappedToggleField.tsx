@@ -5,6 +5,7 @@ import type { StyledToggleSwitchHandle } from '../../../types/handles';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
+import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 
 /**
  * Greenfield-toggle for persisted enumfelter, hvor den synlige switch mapper mellem to canonical værdier
@@ -39,6 +40,7 @@ const GreenfieldMappedToggleFieldInner = <TValue,>(
   ref: React.ForwardedRef<StyledToggleSwitchHandle>
 ): React.ReactElement => {
   const controller = useFieldEditor(field, location);
+  const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const checked = Object.is(controller.value, checkedValue);
 
   const handleCommit = React.useCallback(
@@ -60,6 +62,7 @@ const GreenfieldMappedToggleFieldInner = <TValue,>(
       {...(name === undefined ? {} : { name })}
       {...(id === undefined ? {} : { id })}
       {...(ariaLabel === undefined ? {} : { ariaLabel })}
+      restoreTargetAttributes={restoreTargetAttributes}
     />
   );
 };

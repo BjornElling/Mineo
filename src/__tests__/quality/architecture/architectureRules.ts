@@ -1295,6 +1295,60 @@ const documentGeneratorCursorElementAccess = forbidElementAccess({
   cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'const value = data["value"];' }],
 });
 
+// --- WI-003: greenfield-kommitterende felt-familier skal bære undo/redo-restore-target-attributterne ----------
+//
+// En greenfield-feltfamilie, der renderer sit EGET fokuserbare element — enten via en surface-hook
+// (`useFormFieldSurface`/`useGridCellSurface`) eller ved at rendere en fokuserbar `Styled*`-kontrol
+// (toggle/checkbox/radio/dropdown) — SKAL føre restore-target-attributterne igennem, så undo/redo kan re-fokusere
+// PRÆCIS den editorlokation, ændringen kom fra (§3.7). De tynde preset-skaller (Integer/Percent/Amount/…), der blot
+// videresender `field`/`location` til en anden `Greenfield*`-komponent, har intet eget fokuserbart element og er
+// derfor rene UDEN attributterne — reglen flager dem ikke, fordi de hverken bruger en surface-hook eller en Styled*-kontrol.
+const GREENFIELD_FIELDS_DIR = 'src/inputCore/react/fields';
+const RESTORE_ATTR_TOKEN = /\b(?:useRestoreTargetAttributes|restoreTargetAttributes)\b/;
+// De fokuserbare primitiver, en feltfamilie renderer direkte, når den ejer sit eget input-element.
+const FOCUSABLE_SURFACE_SIGNAL = /\b(?:useFormFieldSurface|useGridCellSurface|StyledToggleSwitch|StyledCheckbox|StyledRadioButton|StyledDropdown)\b/;
+
+const greenfieldRestoreTargetAttributes = defineRule({
+  id: 'form/greenfield-restore-target-attributes',
+  description:
+    'Greenfield-feltfamilier, der ejer et fokuserbart element (surface-hook eller Styled*-kontrol), skal føre restore-target-attributterne igennem, så undo/redo kan re-fokusere den rette editorlokation (§3.7).',
+  appliesTo: (relativePath) =>
+    relativePath.startsWith(`${GREENFIELD_FIELDS_DIR}/Greenfield`) && relativePath.endsWith('.tsx'),
+  find: (entry) => {
+    // Rent tekst-værn: selve tilstedeværelsen af attributterne er kontrakten (jf. guard-selvtest-princippet).
+    if (!FOCUSABLE_SURFACE_SIGNAL.test(entry.text)) return [];
+    if (RESTORE_ATTR_TOKEN.test(entry.text)) return [];
+    return [{
+      position: { line: 1, column: 1 },
+      message:
+        'Feltfamilien renderer et fokuserbart element, men fører ikke restore-target-attributterne igennem '
+        + '(useRestoreTargetAttributes/restoreTargetAttributes) — undo/redo kan da ikke re-fokusere feltet (§3.7).',
+    }];
+  },
+  violatingFixtures: [
+    {
+      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldX.tsx`,
+      code: 'const C = () => { const s = useFormFieldSurface(field, location); return <input {...s.htmlInputAttributes} />; };',
+    },
+    {
+      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldY.tsx`,
+      code: 'const C = () => <StyledToggleSwitch checked={false} onCommit={c} />;',
+    },
+  ],
+  cleanFixtures: [
+    // Ejer et fokuserbart element OG fører attributterne igennem.
+    {
+      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldX.tsx`,
+      code: 'const C = () => { const rta = useRestoreTargetAttributes(field.address, location); return <StyledCheckbox restoreTargetAttributes={rta} />; };',
+    },
+    // Tynd preset-skal: videresender kun til en anden Greenfield-komponent → intet eget fokuserbart element.
+    {
+      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldZ.tsx`,
+      code: 'const C = () => <GreenfieldNumericTextField field={field} location={location} />;',
+    },
+  ],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -1325,4 +1379,5 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   documentGeneratorWriterImport,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,
+  greenfieldRestoreTargetAttributes,
 ];

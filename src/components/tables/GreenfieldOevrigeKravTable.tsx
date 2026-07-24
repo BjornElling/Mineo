@@ -10,6 +10,8 @@ import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { isOevrigeKravRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import { APP_ROUTES } from '../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 import {
   createEmptyOevrigeKravCommittedRow,
   createOevrigeKravRowId,
@@ -143,7 +145,8 @@ const GreenfieldOevrigeKravTable = React.memo(({ committedRows, saveOrderPath }:
     descriptor: FieldDescriptor<T>,
     colIdx: number
   ): CellSpec<T, OevrigeKravRow> => {
-    const location = { locationId: `erstatningsopgoerelse.oevrigeKravPerioder:${renderRow.rowId}:${colIdx}` };
+    // route + tabKey er eksplicit navigation-metadata (§3.7); øvrige krav bor på EO-oplysninger-fanen.
+    const location = { locationId: `erstatningsopgoerelse.oevrigeKravPerioder:${renderRow.rowId}:${colIdx}`, route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER };
     if (renderRow.kind === 'existing') {
       const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
       return { kind: 'existing', field, location };

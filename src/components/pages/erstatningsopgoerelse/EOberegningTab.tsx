@@ -23,6 +23,8 @@ import {
   type SystemIssueRow,
   type EetIssueRow,
 } from './eoBeregning/useEoBeregningViewModel';
+import { APP_ROUTES } from '../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../config/eoTabKeys';
 
 const EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP = 'Opgørelse kan ikke hentes, når der er fejl ovenfor';
 
@@ -268,7 +270,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     const checkbox = (
       <GreenfieldCheckbox
         field={descriptors[key].bind()}
-        location={{ locationId: `erstatningsopgoerelse.eoBilagSelection.${key}` }}
+        // route + tabKey er eksplicit navigation-metadata (§3.7); bilagsvalgene bor på Beregningsfanen.
+        location={{ locationId: `erstatningsopgoerelse.eoBilagSelection.${key}`, route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
         name={`eo-bilag-${key}`}
         disabled={!availability.enabled}
         label={label}
@@ -438,7 +441,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
           <Box className="row--label-right-hover__content">
             <GreenfieldChoiceField
               field={eoBilagIndgaarField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.eoBilagLoenindkomstOgOffentligeYdelserIndgaar' }}
+              // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Beregningsfanen.
+              location={{ locationId: 'erstatningsopgoerelse.eoBilagLoenindkomstOgOffentligeYdelserIndgaar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
               name="eoBilagLoenindkomstOgOffentligeYdelserIndgaar"
               allowEmpty={false}
               width={150}

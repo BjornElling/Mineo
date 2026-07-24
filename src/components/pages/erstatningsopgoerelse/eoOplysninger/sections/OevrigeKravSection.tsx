@@ -8,6 +8,9 @@ import {
 import { erOevrigeKravSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { KRAV_JA_NEJ_SKJUL_OPTIONS } from '../eoOplysningerConstants';
+import { APP_ROUTES } from '../../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 7: Øvrige erstatningskrav. */
 export default function OevrigeKravSection() {
@@ -24,7 +27,7 @@ export default function OevrigeKravSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldRadioField
               field={eoKravPaaOevrigeErstatningskravField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.kravPaaOevrigeErstatningskrav' }}
+              location={{ locationId: 'erstatningsopgoerelse.kravPaaOevrigeErstatningskrav', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="kravPaaOevrigeErstatningskrav"
               row={true}
               options={[...KRAV_JA_NEJ_SKJUL_OPTIONS]}

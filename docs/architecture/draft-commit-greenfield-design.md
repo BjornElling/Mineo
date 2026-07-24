@@ -30,8 +30,9 @@ Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og 
 `domain/inputIntegrity`-blockermodel. Det rettede desuden manglende feltgrænser i Renteberegning, Varige mén og
 Erhvervsevnetab, dependency-gating i differencekravet, ASL-rækkefejl fra readeren, fail-closed dokumentgates,
 multiline-Enter, rejected-only-rækkesletning, destruktiv reset uden forudgående settle og stale async downloads.
-Hovedshellens atomiske navigation-/undo-cutover og fuld lokationsbaseret fokusrestore hører fortsat til fase 4;
-shellen må ikke skifte koordinator, før den kan dækkes af slutmodellen uden parallel inputruntime.
+Hovedshellens atomiske navigation-/undo-cutover blev gennemført i fase 4 (WI-002), og fuld lokationsbaseret
+fokusrestore fulgte i fase 4 (WI-003): route/fane bæres nu som eksplicit typed metadata på history-origin, og en
+gennemført undo/redo navigerer til origin-lokationens route+fane og re-fokuserer feltet, ændringen kom fra.
 
 Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
@@ -1168,7 +1169,13 @@ For hver slice:
 **Status:** Shell-cutover gennemført (WI-002, 2026-07-24), klar til slutreview. Byggesten, porte OG shell-cutover
 foreligger: `useFileSaveLoad` og `MainLayout` kører nu på greenfield-runtime (caseporte + greenfield-coordinator +
 `useGreenfieldUndoRedoShortcuts` + startup-notice + revision-remap), den dead-by-cutover legacy er slettet, og hele
-App'en mounter uden `FormPersistenceContext`. `typecheck`/`lint`/`verify:ledgers` grønne og hele produktsuiten
+App'en mounter uden `FormPersistenceContext`. **Fuld lokationsbaseret undo/redo-fokusrestore fulgte (WI-003,
+2026-07-24):** `HistoryOrigin`/`EditorLocation` bærer nu eksplicit `route`+`tabKey`, `dispatchInput` surfacer
+`restoredOrigin` KUN efter en gennemført undo/redo, og `MainLayout`s `onRestore` sætter aktiv fane → navigerer →
+`scheduleGreenfieldHistoryTargetRestore` (samme rækkefølge som legacy). Greenfield-restoren lokaliserer målet via
+feltadresse + editorlokation (ikke `name`), så samme datafelt redigeret to steder (fx `faellesAarsloen` på EET vs.
+Forsørgertab) fokuserer den editor, ændringen kom fra. En arkitekturtest håndhæver, at hver greenfield-kommitterende
+feltfamilie bærer restore-target-attributterne. `typecheck`/`lint`/`verify:ledgers` grønne og hele produktsuiten
 (529 filer / 6416 tests) er grøn. Kun `typecheck:test` har ét pre-eksisterende rødt (`caseFileOperations.test.ts`
 nominal `FieldDescriptor`-klash), som overlades til Fase 5/6.
 

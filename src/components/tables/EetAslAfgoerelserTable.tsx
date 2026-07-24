@@ -10,6 +10,7 @@ import {
   isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { useTableSort } from './useTableSort';
+import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { useCollectionRows } from '../../inputCore/react';
@@ -257,7 +258,8 @@ const EetAslAfgoerelserTable = React.memo(
       descriptor: FieldDescriptor<T>,
       colIdx: number
     ): CellSpec<T, AslAfgoerelseRow> => {
-      const location = { locationId: `erhvervsevnetab.aslAfgoerelser:${renderRow.rowId}:${colIdx}` };
+      // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor kun på Erhvervsevnetabs oplysninger-fane.
+      const location = { locationId: `erhvervsevnetab.aslAfgoerelser:${renderRow.rowId}:${colIdx}`, route: APP_ROUTES.erhvervsevnetab, tabKey: PAGE_DEFAULT_TAB.erhvervsevnetab };
       if (renderRow.kind === 'existing') {
         const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
         return { kind: 'existing', field, location };

@@ -20,6 +20,8 @@ import {
 import type { Koen } from '../../../schemas/formSchemas';
 import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
+import { APP_ROUTES } from '../../../config/pageNavigation';
 
 export type EetOplysningerTabProps = Readonly<{
   projection: ErhvervsevnetabReaderProjection;
@@ -31,12 +33,16 @@ const ealEetPctRef = erhvervsevnetabEalEetPctField.bind();
 const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
 const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
 
+// route + tabKey er eksplicit navigation-metadata (§3.7). aslAarsloen/ealAarsloen deler feltadresse med
+// Forsørgertab, men bærer HER route `/erhvervsevnetab` + oplysninger-fanen — det er route (ikke feltadresse) der
+// bestemmer, hvilken side undo/redo lander på. Dette er den kritiske EET-vs-Forsørgertab-split.
+const EET_OPLYSNINGER_NAV = { route: APP_ROUTES.erhvervsevnetab, tabKey: ERHVERVSEVNETAB_TAB_KEYS.EET_OPLYSNINGER } as const;
 const LOCATIONS = {
-  beregningsdato: { locationId: 'erhvervsevnetab:oplysninger:beregningsdato' },
-  koen: { locationId: 'erhvervsevnetab:oplysninger:koen' },
-  ealEetPct: { locationId: 'erhvervsevnetab:oplysninger:ealEetPct' },
-  aslAarsloen: { locationId: 'erhvervsevnetab:oplysninger:aslAarsloen' },
-  ealAarsloen: { locationId: 'erhvervsevnetab:oplysninger:ealAarsloen' },
+  beregningsdato: { locationId: 'erhvervsevnetab:oplysninger:beregningsdato', ...EET_OPLYSNINGER_NAV },
+  koen: { locationId: 'erhvervsevnetab:oplysninger:koen', ...EET_OPLYSNINGER_NAV },
+  ealEetPct: { locationId: 'erhvervsevnetab:oplysninger:ealEetPct', ...EET_OPLYSNINGER_NAV },
+  aslAarsloen: { locationId: 'erhvervsevnetab:oplysninger:aslAarsloen', ...EET_OPLYSNINGER_NAV },
+  ealAarsloen: { locationId: 'erhvervsevnetab:oplysninger:ealAarsloen', ...EET_OPLYSNINGER_NAV },
 } as const;
 
 const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {

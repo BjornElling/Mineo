@@ -264,6 +264,70 @@ describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
   });
 });
 
+describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/redo (§3.7, WI-003)', () => {
+  const originFor = <T>(field: FieldRef<T>) => ({
+    field: field.address,
+    editorLocationId: 'test:aargang',
+    route: '/satser',
+    tabKey: null,
+  });
+
+  it('undo/redo returnerer det gendannede frames origin efter en gennemført commit', () => {
+    // Push et frame MED origin: originen fanges på det FØR-snapshot, pushInputHistory gemmer ved den næste ændring.
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'),
+      { now: 1, origin: originFor(aargangField.bind()) });
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2021'),
+      { now: 2, origin: originFor(aargangField.bind()) });
+
+    const undo = dispatchInput(store, catalog, { kind: 'undo' }, { now: 3 });
+    expect(undo.changed).toBe(true);
+    expect(undo.restoredOrigin).toEqual(originFor(aargangField.bind()));
+
+    const redo = dispatchInput(store, catalog, { kind: 'redo' }, { now: 4 });
+    expect(redo.changed).toBe(true);
+    expect(redo.restoredOrigin).toEqual(originFor(aargangField.bind()));
+  });
+
+  it('en no-op undo (ingen history) surfacer ingen origin', () => {
+    const result = dispatchInput(store, catalog, { kind: 'undo' });
+    expect(result.changed).toBe(false);
+    expect(result.restoredOrigin).toBeUndefined();
+  });
+
+  it('et frame uden origin surfacer ingen origin ved undo', () => {
+    // Ingen origin sendt med → frame'et bærer ingen origin → restoren navigerer ikke.
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2021'), { now: 2 });
+    const undo = dispatchInput(store, catalog, { kind: 'undo' }, { now: 3 });
+    expect(undo.changed).toBe(true);
+    expect(undo.restoredOrigin).toBeUndefined();
+  });
+
+  it('en fejlende restore-commit surfacer ingen origin (kaster i stedet, ruller tilbage)', () => {
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'),
+      { now: 1, origin: originFor(aargangField.bind()) });
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2021'),
+      { now: 2, origin: originFor(aargangField.bind()) });
+
+    const realStorage = window.sessionStorage;
+    const throwingStorage: Storage = {
+      getItem: () => null,
+      setItem: () => { throw new DOMException('lager fyldt', 'QuotaExceededError'); },
+      removeItem: () => undefined,
+      clear: () => undefined,
+      key: () => null,
+      length: 0,
+    };
+    Object.defineProperty(window, 'sessionStorage', { value: throwingStorage, configurable: true });
+    try {
+      // commitCandidate kaster ved storage-fejl FØR restoredOrigin nogensinde sættes.
+      expect(() => dispatchInput(store, catalog, { kind: 'undo' }, { now: 3 })).toThrow();
+    } finally {
+      Object.defineProperty(window, 'sessionStorage', { value: realStorage, configurable: true });
+    }
+  });
+});
+
 describe('dispatchInput — styrende valg rydder nu-irrelevant fejl (§1.9/§3.6)', () => {
   it('setImmediateField der gør et felt med aktiv bounds-fejl irrelevant rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1 });

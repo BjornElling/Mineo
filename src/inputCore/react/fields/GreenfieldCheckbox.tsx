@@ -4,6 +4,7 @@ import type { CommitEvent } from '../../../types/fieldEvents';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
+import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 
 // Greenfield checkbox-felt (§1.3/§3.6): en boolsk immediate-commit control (grid-pendanten er ikke relevant, da
 // checkbokse kun bruges i formularer). Klik/Space committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
@@ -20,6 +21,7 @@ export type GreenfieldCheckboxProps = Readonly<{
 
 const GreenfieldCheckbox = ({ field, location, label, disabled, name }: GreenfieldCheckboxProps): React.ReactElement => {
   const controller = useFieldEditor(field, location);
+  const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const checked = controller.value ?? false;
 
   const handleCommit = React.useCallback(
@@ -37,6 +39,7 @@ const GreenfieldCheckbox = ({ field, location, label, disabled, name }: Greenfie
       label={label}
       {...(disabled === undefined ? {} : { disabled })}
       {...(name === undefined ? {} : { name })}
+      restoreTargetAttributes={restoreTargetAttributes}
     />
   );
 };

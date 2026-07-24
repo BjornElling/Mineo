@@ -8,6 +8,7 @@ import GreenfieldToggleField from '../../inputCore/react/fields/GreenfieldToggle
 import GreenfieldIntegerField from '../../inputCore/react/fields/GreenfieldIntegerField';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StandardLoenTable from '../tables/StandardLoenTable';
+import { APP_ROUTES } from '../../config/pageNavigation';
 import { aarsloenStandardLoenFieldSet } from '../tables/standardLoenTableFieldSet';
 import ContentBox from '../layout/ContentBox';
 import { useInputEvaluation, useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
@@ -67,7 +68,9 @@ const fuldLoenUnderFerieRef = aarsloenFuldLoenUnderFerieField.bind();
 const retTilSjetteFerieugeRef = aarsloenRetTilSjetteFerieugeField.bind();
 const antalFeriedageRef = aarsloenAntalFeriedageField.bind();
 const omregningTilFuldtAarRef = aarsloenOmregningTilFuldtAarField.bind();
-const loc = (field: string): { locationId: string } => ({ locationId: `aarsloen:${field}` });
+// route er eksplicit navigation-metadata (§3.7); Årsløn er en side uden faner (tabKey: null).
+const loc = (field: string): { locationId: string; route: string; tabKey: null } =>
+  ({ locationId: `aarsloen:${field}`, route: APP_ROUTES.aarsloen, tabKey: null });
 
 const LOENPERIODE_OPTIONS: readonly { value: Loenperiode; label: string }[] = [
   { value: LOENPERIODE.MAANED, label: 'Måned' },
@@ -323,6 +326,7 @@ const Aarsloen = React.memo(() => {
           ref={tabelRef}
           fieldSet={aarsloenStandardLoenFieldSet}
           loenperiode={loenperiode}
+          locationNav={{ route: APP_ROUTES.aarsloen, tabKey: null }}
           tillaegAngivesSom={tillaegAngivesSom}
           satser={{
             ferie: values.feriePct,

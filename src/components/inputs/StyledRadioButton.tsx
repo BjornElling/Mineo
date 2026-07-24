@@ -44,6 +44,12 @@ interface StyledRadioButtonProps {
   name?: string;
   error?: boolean;
   helperText?: string;
+  /**
+   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på den VALGTE radios input-slot, så fokus efter
+   * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-
+   * wrapperen leverer den.
+   */
+  restoreTargetAttributes?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -79,12 +85,26 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
   name,
   error = false,
   helperText = '',
+  restoreTargetAttributes,
 }, ref) => {
   const autoId = React.useId();
   const emptyValue = `__mineo_radio_empty__${autoId}`;
   const groupName = name ?? `mineo-radio-${autoId}`;
 
   const resolvedValue = value ?? emptyValue;
+
+  // Feltidentitets-attributter for den VALGTE radio: legacy `data-mineo-undo-field-path` (kun når `name`) plus
+  // greenfield feltadresse + editorlokation (§3.7). Kun den valgte radio bærer dem, så restoren fokuserer den
+  // faktiske valgte knap. Returnerer `undefined`, når der intet er at bære (så MUI-slotProps forbliver uberørt).
+  const selectedInputSlotProps = React.useMemo(() => {
+    const attrs: Record<string, string> = {
+      ...(name === undefined ? {} : { 'data-mineo-undo-field-path': name }),
+      ...(restoreTargetAttributes ?? {}),
+    };
+    return Object.keys(attrs).length === 0
+      ? undefined
+      : { input: attrs as React.InputHTMLAttributes<HTMLInputElement> };
+  }, [name, restoreTargetAttributes]);
   const showError = error && helperText.trim() !== '';
   const a11yErrorId = `${emptyValue}-error`;
 
@@ -176,11 +196,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
                     // Undo/redo-fokus: bær feltidentiteten på den tomme radio når den er valgt
                     // (committed = undefined), så historyTargetRestore kan finde gruppen efter
                     // undo/redo — symmetrisk med de øvrige options nedenfor.
-                    slotProps={
-                      name && resolvedValue === emptyValue
-                        ? { input: { 'data-mineo-undo-field-path': name } as React.InputHTMLAttributes<HTMLInputElement> }
-                        : undefined
-                    }
+                    slotProps={resolvedValue === emptyValue ? selectedInputSlotProps : undefined}
                     sx={RADIO_FOCUS_HALO_SX}
                   />
                 }
@@ -196,11 +212,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
                     size="small"
                     // Undo/redo-fokus: bær feltidentiteten på den valgte radio, så
                     // historyTargetRestore kan finde og fokusere gruppen efter undo/redo.
-                    slotProps={
-                      name && option.value === resolvedValue
-                        ? { input: { 'data-mineo-undo-field-path': name } as React.InputHTMLAttributes<HTMLInputElement> }
-                        : undefined
-                    }
+                    slotProps={option.value === resolvedValue ? selectedInputSlotProps : undefined}
                     sx={RADIO_FOCUS_HALO_SX}
                   />
                 }

@@ -52,6 +52,12 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
    * Hvis udeladt, forventer komponenten at option-children er `string | number`.
    */
   getOptionLabel?: (value: TValue) => string;
+  /**
+   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på det fokuserbare combobox-input, så fokus efter
+   * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-
+   * wrapperen leverer den.
+   */
+  restoreTargetAttributes?: Readonly<Record<string, string>>;
   returnFocusOnClose?: boolean;
   /**
    * Udløses når dropdown-popover'en lukker (interaktionen er slut).
@@ -136,6 +142,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     helperText = '',
     getOptionLabel,
     allowEmpty = true,
+    restoreTargetAttributes,
     returnFocusOnClose = true,
     containerSx,
     sx,
@@ -590,6 +597,8 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
           'aria-expanded': open,
           'aria-controls': open ? listboxId : undefined,
           'data-mineo-undo-field-path': name,
+          // Greenfield-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
+          ...(restoreTargetAttributes ?? {}),
           'aria-activedescendant':
             open && highlightedIndex >= 0 && isSelectableVisualIndex(highlightedIndex)
               ? `${listboxId}-option-${highlightedIndex}`

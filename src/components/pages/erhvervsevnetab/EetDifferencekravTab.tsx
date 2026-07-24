@@ -8,6 +8,8 @@ import GreenfieldFractionField from '../../../inputCore/react/fields/GreenfieldF
 import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
+import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
+import { APP_ROUTES } from '../../../config/pageNavigation';
 import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
@@ -76,7 +78,12 @@ const refs = {
   forligDato: eoForligDatoField.bind(),
 } as const;
 
-const location = (field: string) => ({ locationId: `erhvervsevnetab:differencekrav:${field}` });
+// route + tabKey er eksplicit navigation-metadata (§3.7); alle felter bor på differencekrav-fanen.
+const location = (field: string) => ({
+  locationId: `erhvervsevnetab:differencekrav:${field}`,
+  route: APP_ROUTES.erhvervsevnetab,
+  tabKey: ERHVERVSEVNETAB_TAB_KEYS.DIFFERENCEKRAV,
+});
 
 type ProformaBoxProps = Readonly<{
   pk: EetDifferencekravProformaKapitalisering;

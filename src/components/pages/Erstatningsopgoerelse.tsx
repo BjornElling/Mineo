@@ -13,18 +13,12 @@ import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EOInspektion from './erstatningsopgoerelse/EOInspektion';
 import EOKontrolTabel from './erstatningsopgoerelse/EOKontrolTabel';
 import { useInputEvaluation } from '../../inputCore/react';
+import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 import { buildErstatningsopgoerelseReaderProjection } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { evaluateErstatningsopgoerelseDownloadGates } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
 import { selectBlockingFieldIdsBySuffix } from '../../utils/fieldErrorSelectors';
 
-const TAB_KEYS = {
-  EO_OPLYSNINGER: 'eo_oplysninger',
-  LOENINDKOMST: 'loenindkomst',
-  OFFENTLIGE_YDELSER: 'offentlige_ydelser',
-  BEREGNING: 'beregning',
-  INSPEKTION: 'inspektion',
-  KONTROLTABEL: 'kontroltabel',
-} as const;
+const TAB_KEYS = EO_TAB_KEYS;
 
 type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
 

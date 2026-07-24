@@ -18,6 +18,8 @@ import { useGreenfieldCollectionTable } from './useGreenfieldCollectionTable';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
+import { APP_ROUTES } from '../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 
 export type GreenfieldTafPeriodeTableProps = Readonly<{
   committedRows: readonly TafPeriodeRow[];
@@ -47,6 +49,8 @@ const GreenfieldTafPeriodeTable = React.memo(({
     createRowId: createTafRowId,
     createEmptyRow,
     locationPrefix: 'erstatningsopgoerelse.tafPerioder',
+    // route + tabKey er eksplicit navigation-metadata (§3.7); TAF-perioderne bor på EO-oplysningerfanen.
+    locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
   const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
     rows: committedRows,

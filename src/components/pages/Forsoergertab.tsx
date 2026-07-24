@@ -7,6 +7,7 @@ import GreenfieldIntegerField from '../../inputCore/react/fields/GreenfieldInteg
 import GreenfieldAmountField from '../../inputCore/react/fields/GreenfieldAmountField';
 import InsertTodayDateButton from '../inputs/InsertTodayDateButton';
 import ContentBox from '../layout/ContentBox';
+import { APP_ROUTES } from '../../config/pageNavigation';
 import { type Koen } from '../../schemas/formSchemas';
 import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../utils/formatUtils';
@@ -53,13 +54,16 @@ const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
 const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
 const skadelidteFodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
 
-const BEREGNINGSDATO_LOCATION = { locationId: 'forsoergertab:beregningsdato' } as const;
-const VIRKNINGSDATO_LOCATION = { locationId: 'forsoergertab:virkningsdato' } as const;
-const EFTERLADTE_FODSELSDATO_LOCATION = { locationId: 'forsoergertab:efterladteFodselsdato' } as const;
-const KOEN_LOCATION = { locationId: 'forsoergertab:koen' } as const;
-const TILKENDT_LOCATION = { locationId: 'forsoergertab:tilkendtForPeriodeAar' } as const;
-const ASL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:aslAarsloen' } as const;
-const EAL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:ealAarsloen' } as const;
+// route er eksplicit navigation-metadata (§3.7); Forsørgertab er en side uden faner (tabKey: null). De to
+// faellesAarsloen-lokationer (aslAarsloen/ealAarsloen) deler feltadresse med Erhvervsevnetab, men MED route
+// `/forsoergertab` — det er route (ikke feltadresse/section) der disambiguerer, hvilken side undo/redo lander på.
+const BEREGNINGSDATO_LOCATION = { locationId: 'forsoergertab:beregningsdato', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
+const VIRKNINGSDATO_LOCATION = { locationId: 'forsoergertab:virkningsdato', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
+const EFTERLADTE_FODSELSDATO_LOCATION = { locationId: 'forsoergertab:efterladteFodselsdato', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
+const KOEN_LOCATION = { locationId: 'forsoergertab:koen', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
+const TILKENDT_LOCATION = { locationId: 'forsoergertab:tilkendtForPeriodeAar', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
+const ASL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:aslAarsloen', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
+const EAL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:ealAarsloen', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
 
 const FORSOERGERTAB_DOCUMENT_CONSUMER_ID = 'document.forsoergertab';
 

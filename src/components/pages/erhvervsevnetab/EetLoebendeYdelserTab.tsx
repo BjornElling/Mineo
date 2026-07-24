@@ -28,6 +28,8 @@ import { formatKr } from '../../../utils/formatUtils';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
 import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
+import { APP_ROUTES } from '../../../config/pageNavigation';
 import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { evaluateEetFaneDownloadGate } from '../../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
 import type { DocumentDownloadGateResult } from '../../../document/layout/documentGateTypes';
@@ -43,7 +45,8 @@ type Props = Readonly<{
 }>;
 
 const extendedSpecificationRef = erhvervsevnetabBilagVisUdvidetSpecifikationField.bind();
-const EXTENDED_SPECIFICATION_LOCATION = { locationId: 'erhvervsevnetab:loebendeYdelser:visUdvidetSpecifikation' } as const;
+// route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på løbende-ydelser-fanen.
+const EXTENDED_SPECIFICATION_LOCATION = { locationId: 'erhvervsevnetab:loebendeYdelser:visUdvidetSpecifikation', route: APP_ROUTES.erhvervsevnetab, tabKey: ERHVERVSEVNETAB_TAB_KEYS.LOEBENDE_YDELSER } as const;
 
 const formatMaaneder = (value: number): string => formatAsAmount(roundByMethod(value, 4, 'halfAwayFromZero'), 4);
 const formatRegulering = (value: number): string => `${value >= 0 ? '+' : '-'} ${formatPct(Math.abs(value))}`;

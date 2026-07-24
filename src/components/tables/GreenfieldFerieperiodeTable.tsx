@@ -19,6 +19,8 @@ import { useGreenfieldCollectionTable } from './useGreenfieldCollectionTable';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { useTableSort } from './useTableSort';
+import { APP_ROUTES } from '../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 
 export type GreenfieldFerieperiodeTableProps = Readonly<{
   kind: 'taf' | 'beregningsperiode';
@@ -46,6 +48,9 @@ const GreenfieldFerieperiodeTable = React.memo(({
     locationPrefix: kind === 'taf'
       ? 'erstatningsopgoerelse.ferieperioder'
       : 'erstatningsopgoerelse.fravaerPerioder',
+    // route + tabKey er eksplicit navigation-metadata (§3.7); begge render-steder (TAF- og
+    // beregningsperiode-varianten) bor på EO-oplysningerfanen.
+    locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
   const columns = React.useMemo(() => [
     { colId: 'fra', getSortValue: (row: FerieperiodeRow) => row.fra },

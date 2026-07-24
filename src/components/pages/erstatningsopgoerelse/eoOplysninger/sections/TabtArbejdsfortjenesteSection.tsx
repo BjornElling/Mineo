@@ -12,6 +12,9 @@ import GreenfieldFerieperiodeTable from '../../../../tables/GreenfieldFerieperio
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { KRAV_JA_NEJ_SKJUL_OPTIONS, PERIODE_INFO_TOOLTIP } from '../eoOplysningerConstants';
+import { APP_ROUTES } from '../../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 6: Tabt arbejdsfortjeneste (krav, TAF-perioder, ferie i perioden, øvrigt). */
 export default function TabtArbejdsfortjenesteSection() {
@@ -30,7 +33,7 @@ export default function TabtArbejdsfortjenesteSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldRadioField
               field={eoKravPaaTabtArbejdsfortjenesteField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.kravPaaTabtArbejdsfortjeneste' }}
+              location={{ locationId: 'erstatningsopgoerelse.kravPaaTabtArbejdsfortjeneste', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="kravPaaTabtArbejdsfortjeneste"
               row={true}
               options={[...KRAV_JA_NEJ_SKJUL_OPTIONS]}
@@ -66,7 +69,7 @@ export default function TabtArbejdsfortjenesteSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldAmountField
                   field={eoTidligereModtagetTafField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.tidligereModtagetTaf' }}
+                  location={{ locationId: 'erstatningsopgoerelse.tidligereModtagetTaf', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="tidligereModtagetTaf"
                   width={150}
                 />

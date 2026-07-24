@@ -7,6 +7,7 @@ import StyledDropdown, {
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
+import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 
 // Greenfield choice-felt (§1.3/§3.6): dropdown committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options som children. Den viste værdi læses fra den afsluttede
@@ -62,6 +63,7 @@ const GreenfieldChoiceField = <
   containerSx,
 }: GreenfieldChoiceFieldProps<TValue, TCanonical>): React.ReactElement => {
   const controller = useFieldEditor(field, location);
+  const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
 
   const handleChange = React.useCallback(
     (e: { target: { value: TValue | undefined } }) => {
@@ -96,6 +98,7 @@ const GreenfieldChoiceField = <
         getOptionLabel={getOptionLabel}
         error={hasError}
         helperText={controller.issue?.message ?? ''}
+        restoreTargetAttributes={restoreTargetAttributes}
         sx={sx}
         listboxSx={listboxSx}
         optionSx={optionSx}
@@ -118,6 +121,7 @@ const GreenfieldChoiceField = <
       getOptionLabel={getOptionLabel}
       error={hasError}
       helperText={controller.issue?.message ?? ''}
+      restoreTargetAttributes={restoreTargetAttributes}
       sx={sx}
       listboxSx={listboxSx}
       optionSx={optionSx}

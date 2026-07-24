@@ -46,6 +46,12 @@ export type GreenfieldLoenudviklingManuelTableProps = Readonly<{
   readOnlyBaseRowPercentFields?: boolean;
   useSmallFont?: boolean;
   locationPrefix: string;
+  /**
+   * route + tabKey er eksplicit navigation-metadata (§3.7). Tabellen renderes i to fane-kontekster
+   * (Lønindkomst under et ansættelsesforhold og EO-oplysninger under "Indtægt før skaden"), så
+   * kalderen leverer den korrekte fane — den kan ikke udledes af `locationPrefix`.
+   */
+  locationNav?: Readonly<{ route?: string; tabKey?: string | null }>;
 }>;
 
 export default function GreenfieldLoenudviklingManuelTable({
@@ -61,6 +67,7 @@ export default function GreenfieldLoenudviklingManuelTable({
   readOnlyBaseRowPercentFields = false,
   useSmallFont = false,
   locationPrefix,
+  locationNav,
 }: GreenfieldLoenudviklingManuelTableProps) {
   const baseRowId = committedRows[0]?.id;
   const table = useGreenfieldCollectionTable({
@@ -69,6 +76,7 @@ export default function GreenfieldLoenudviklingManuelTable({
     createRowId: generateLoenudviklingRowId,
     createEmptyRow,
     locationPrefix,
+    locationNav,
     fieldOwnerIds,
   });
   const columns = React.useMemo(() => [

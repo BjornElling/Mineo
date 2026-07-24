@@ -32,6 +32,7 @@ import {
   renteberegningKommentarerField,
 } from '../../../inputCore/catalog/renteberegningDescriptors';
 import { projectStamdataForDocument } from '../../../domain/stamdata/stamdataDocumentProjection';
+import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 import type { ProjectionResult } from '../../../inputCore/projection';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 
@@ -55,6 +56,10 @@ const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
 
 const beregningsdatoRef = renteberegningBeregningsdatoField.bind();
 const kommentarerRef = renteberegningKommentarerField.bind();
+
+// route + tabKey er eksplicit navigation-metadata (§3.7). Denne tab-komponent renderes kun under calculation-fanen.
+const BEREGNINGSDATO_LOCATION = { locationId: 'renteberegning:beregningsdato', route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning } as const;
+const KOMMENTARER_LOCATION = { locationId: 'renteberegning:kommentarer', route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning } as const;
 
 export interface RenteberegningTabProps {
   onDownloadSpecifikation: (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => Promise<void>;
@@ -109,7 +114,7 @@ const RenteberegningTab = React.memo(({
   const [clearAllDialogOpen, setClearAllDialogOpen] = React.useState(false);
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
-  const beregningsdatoController = useFieldEditor(beregningsdatoRef, { locationId: 'renteberegning:beregningsdato' });
+  const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
   // Den ENE reader-afledte projektion (§3.4/§5.4) — tabeloutput og download-gates deler præcis samme sandhed.
   const projection = React.useMemo(
@@ -297,7 +302,7 @@ const RenteberegningTab = React.memo(({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <GreenfieldDateField
                 field={beregningsdatoRef}
-                location={{ locationId: 'renteberegning:beregningsdato' }}
+                location={BEREGNINGSDATO_LOCATION}
                 name="beregningsdato"
                 inputRef={beregningsdatoInputRef}
                 width={isMobile ? 110 : 130}
@@ -419,7 +424,7 @@ const RenteberegningTab = React.memo(({
         <Typography className="section-header">Kommentarer</Typography>
         <GreenfieldMultilineTextField
           field={kommentarerRef}
-          location={{ locationId: 'renteberegning:kommentarer' }}
+          location={KOMMENTARER_LOCATION}
           name="kommentarer"
           width="min(800px, 100%)"
           rows={isMobile ? 3 : 4}

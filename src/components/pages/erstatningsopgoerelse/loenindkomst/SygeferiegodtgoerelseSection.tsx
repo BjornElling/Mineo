@@ -22,6 +22,8 @@ import type { CollectionRef } from '../../../../inputCore/fieldAddress';
 import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import type { OverenskomstSfggPolicy } from '../../../../data/overenskomstRates';
+import { APP_ROUTES } from '../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
@@ -72,6 +74,13 @@ const SygeferiegodtgoerelseSection = ({
   onNavigateToTabtArbejdsfortjeneste,
 }: Props) => {
   if (!show) return null;
+
+  // route + tabKey er eksplicit navigation-metadata (§3.7); SFGG-felterne bor på Lønindkomstfanen.
+  const location = (name: string) => ({
+    locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:${name}`,
+    route: APP_ROUTES.erstatningsopgoerelse,
+    tabKey: EO_TAB_KEYS.LOENINDKOMST,
+  });
 
   return (
     <>
@@ -128,7 +137,7 @@ const SygeferiegodtgoerelseSection = ({
             entity={createEmptySfggRow(af.id)}
             entityId={af.id}
             entityExists={sfggRow !== undefined}
-            location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggBeregningskilde` }}
+            location={location('sfggBeregningskilde')}
             name={`${af.id}:sfggBeregningskilde`}
             width={200}
             placeholder="Vælg..."
@@ -170,7 +179,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover__content">
             <GreenfieldChoiceField
               field={eoSfggSatsvalgField.bind(af.id)}
-              location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggSatsvalg` }}
+              location={location('sfggSatsvalg')}
               name={`${af.id}:sfggSatsvalg`}
               width={220}
               placeholder="Vælg..."
@@ -193,13 +202,13 @@ const SygeferiegodtgoerelseSection = ({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <GreenfieldDateField
                   field={eoSfggReferenceperiodeFraField.bind(af.id)}
-                  location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggReferenceperiodeFra` }}
+                  location={location('sfggReferenceperiodeFra')}
                   name={`${af.id}:sfggReferenceperiodeFra`}
                 />
                 <Typography className="row--text">til og med</Typography>
                 <GreenfieldDateField
                   field={eoSfggReferenceperiodeTilField.bind(af.id)}
-                  location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggReferenceperiodeTil` }}
+                  location={location('sfggReferenceperiodeTil')}
                   name={`${af.id}:sfggReferenceperiodeTil`}
                 />
               </Box>
@@ -211,7 +220,7 @@ const SygeferiegodtgoerelseSection = ({
             <Box className="row--label-right-hover__content">
               <GreenfieldIntegerField
                 field={eoSfggReferenceperiodeFravaersdageUdenLoenField.bind(af.id)}
-                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggReferenceperiodeFravaersdageUdenLoen` }}
+                location={location('sfggReferenceperiodeFravaersdageUdenLoen')}
                 name={`${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`}
                 width={100}
                 placeholder="0"
@@ -238,7 +247,7 @@ const SygeferiegodtgoerelseSection = ({
             <Box className="row--label-right-hover__content">
               <GreenfieldAmountField
                 field={eoSfggManuelDagssatsField.bind(af.id)}
-                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggManuelDagssats` }}
+                location={location('sfggManuelDagssats')}
                 name={`${af.id}:sfggManuelDagssats`}
                 width={150}
               />
@@ -250,7 +259,7 @@ const SygeferiegodtgoerelseSection = ({
             <Box className="row--label-right-hover__content">
               <GreenfieldTextField
                 field={eoSfggManuelBeloebIHenholdTilField.bind(af.id)}
-                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggManuelBeloebIHenholdTil` }}
+                location={location('sfggManuelBeloebIHenholdTil')}
                 name={`${af.id}:sfggManuelBeloebIHenholdTil`}
                 width={260}
               />
@@ -262,7 +271,7 @@ const SygeferiegodtgoerelseSection = ({
             <Box className="row--label-right-hover__content">
               <GreenfieldMappedToggleField
                 field={eoSfggManuelFoerstEfterSygeloenField.bind(af.id)}
-                location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggManuelFoerstEfterSygeloen` }}
+                location={location('sfggManuelFoerstEfterSygeloen')}
                 checkedValue="Ja"
                 uncheckedValue="Nej"
                 name={`${af.id}:sfggManuelFoerstEfterSygeloen`}
@@ -278,7 +287,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover__content">
             <GreenfieldAmountField
               field={eoSfggAlleredeBetaltBeloebField.bind(af.id)}
-              location={{ locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:sfggAlleredeBetaltBeloeb` }}
+              location={location('sfggAlleredeBetaltBeloeb')}
               name={`${af.id}:sfggAlleredeBetaltBeloeb`}
               width={150}
             />

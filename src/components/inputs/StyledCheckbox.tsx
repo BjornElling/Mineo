@@ -10,6 +10,11 @@ type StyledCheckboxProps = Readonly<{
   name?: string;
   disabled?: boolean;
   size?: 'small' | 'medium';
+  /**
+   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på checkbox-input-slottet, så fokus efter undo/redo
+   * lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-wrapperen leverer den.
+   */
+  restoreTargetAttributes?: Readonly<Record<string, string>>;
 }>;
 
 const StyledCheckbox = ({
@@ -20,6 +25,7 @@ const StyledCheckbox = ({
   name,
   disabled = false,
   size = 'small',
+  restoreTargetAttributes,
 }: StyledCheckboxProps) => {
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
@@ -78,6 +84,8 @@ const StyledCheckbox = ({
               onKeyDown: handleKeyDown,
               'aria-checked': checked,
               'data-mineo-undo-field-path': resolvedName,
+              // Greenfield-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
+              ...(restoreTargetAttributes ?? {}),
             } as React.InputHTMLAttributes<HTMLInputElement>,
           }}
         />

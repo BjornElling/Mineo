@@ -18,6 +18,8 @@ import { useGreenfieldCollectionTable } from './useGreenfieldCollectionTable';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
+import { APP_ROUTES } from '../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 
 type SvieSmerteDerived = Readonly<{ hasRangeError: boolean; antalDage: number | null }>;
 
@@ -37,6 +39,8 @@ const GreenfieldSvieSmerteTable = React.memo(({ committedRows, derivedById, save
     createRowId: createSvieRowId,
     createEmptyRow,
     locationPrefix: 'erstatningsopgoerelse.svieSmertePerioder',
+    // route + tabKey er eksplicit navigation-metadata (§3.7); svie/smerte-perioderne bor på EO-oplysningerfanen.
+    locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
   const columns = React.useMemo(() => [
     { colId: 'fra', getSortValue: (row: SvieSmertePeriodeRow) => row.fra },

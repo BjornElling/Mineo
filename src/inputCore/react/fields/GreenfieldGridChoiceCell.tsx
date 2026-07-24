@@ -7,6 +7,7 @@ import type { GridCellCoord, GridCellEditorHandle } from '../../../components/ta
 import { gridCellKey } from '../../../components/tables/gridCore/gridCoreUtils';
 import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from '../../../components/inputs/table/tableInputStyles';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
+import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 
 // Greenfield grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
 // `GreenfieldChoiceField` (form-dropdown) og erstatter legacy `TableDropdown` for celle-valg (fx rentekrav-enhed).
@@ -51,6 +52,17 @@ const GreenfieldGridChoiceCellInner = <
   const gridApi = useGridCoreApi();
   const controller = useCellEditor<TCanonical, TEntity>(cell);
   const dropdownRootRef = React.useRef<HTMLDivElement>(null);
+
+  // Restore-mål via feltadresse + editorlokation (§3.7): den bundne cellefeltadresse afledes præcis som
+  // `useCellEditor` binder den (eksisterende → `cell.field`; placeholder → `descriptor.bind(entityId)`), så
+  // fokus efter undo/redo lander på DENNE grid-celles editorlokation, ikke via `name`.
+  const restoreTargetAttributes = useRestoreTargetAttributes(
+    React.useMemo(
+      () => (cell.kind === 'existing' ? cell.field.address : cell.descriptor.bind(cell.entityId).address),
+      [cell]
+    ),
+    cell.location
+  );
 
   // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun ellers (§1.8).
   const resolvedErrorMessage = controller.issue?.message ?? externalErrorMessage;
@@ -134,6 +146,7 @@ const GreenfieldGridChoiceCellInner = <
         ref={dropdownRootRef}
         name={resolvedGridCellKey}
         inputProps={{ 'aria-label': ariaLabel }}
+        restoreTargetAttributes={restoreTargetAttributes}
         width="100%"
         value={value as TValue}
         allowEmpty={false}
@@ -152,6 +165,7 @@ const GreenfieldGridChoiceCellInner = <
       ref={dropdownRootRef}
       name={resolvedGridCellKey}
       inputProps={{ 'aria-label': ariaLabel }}
+      restoreTargetAttributes={restoreTargetAttributes}
       width="100%"
       value={controller.value === undefined ? undefined : controller.value as TValue}
       allowEmpty

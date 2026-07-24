@@ -32,11 +32,17 @@ export type GreenfieldLoenudviklingManuelProcentsatsTableProps = Readonly<{
   baseDateInfoTooltipText?: string;
   useSmallFont?: boolean;
   locationPrefix: string;
+  /**
+   * route + tabKey er eksplicit navigation-metadata (§3.7). Tabellen renderes i to fane-kontekster
+   * (Lønindkomst under et ansættelsesforhold og EO-oplysninger under "Indtægt før skaden"), så
+   * kalderen leverer den korrekte fane — den kan ikke udledes af `locationPrefix`.
+   */
+  locationNav?: Readonly<{ route?: string; tabKey?: string | null }>;
 }>;
 
-export default function GreenfieldLoenudviklingManuelProcentsatsTable({ bindings, collection, fieldOwnerIds, committedRows, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix }: GreenfieldLoenudviklingManuelProcentsatsTableProps) {
+export default function GreenfieldLoenudviklingManuelProcentsatsTable({ bindings, collection, fieldOwnerIds, committedRows, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: GreenfieldLoenudviklingManuelProcentsatsTableProps) {
   const baseRowId = committedRows[0]?.id;
-  const table = useGreenfieldCollectionTable({ collection, committedRows, createRowId: generateLoenudviklingRowId, createEmptyRow, locationPrefix, fieldOwnerIds });
+  const table = useGreenfieldCollectionTable({ collection, committedRows, createRowId: generateLoenudviklingRowId, createEmptyRow, locationPrefix, locationNav, fieldOwnerIds });
   const entries = React.useMemo(() => buildManuelProcentsatsEntries({ anvendtReguleringsdato: isISODateString(baseDateISO) ? baseDateISO : undefined, rows: committedRows }), [baseDateISO, committedRows]);
   const entryById = React.useMemo(() => new Map(entries.map((entry) => [entry.rowId, entry])), [entries]);
   const columns = React.useMemo(() => [

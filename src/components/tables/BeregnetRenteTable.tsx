@@ -5,6 +5,7 @@ import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTabl
 import { RowDeleteButton } from './RowDeleteButton';
 import { useTableSort } from './useTableSort';
 import { formatKr } from '../../utils/formatUtils';
+import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import type { RentekravRow } from '../../schemas/formSchemas';
@@ -289,7 +290,8 @@ const BeregnetRenteTable = React.memo(
       descriptor: FieldDescriptor<T>,
       colIdx: number
     ): CellSpec<T, RentekravRow> => {
-      const location = { locationId: `renteberegning.rentekravRows:${renderRow.rowId}:${colIdx}` };
+      // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor kun på renteberegningens calculation-fane.
+      const location = { locationId: `renteberegning.rentekravRows:${renderRow.rowId}:${colIdx}`, route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning };
       if (renderRow.kind === 'existing') {
         const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
         return { kind: 'existing', field, location };

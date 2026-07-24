@@ -54,6 +54,8 @@ import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopg
 import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sfggKilde';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
+import { APP_ROUTES } from '../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -119,7 +121,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const { openLoentrinFinder } = loentrinFinder;
 
   const field = <T,>(descriptor: { bind: (...ids: readonly string[]) => T }): T => descriptor.bind(af.id);
-  const location = (name: string) => ({ locationId: `erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:${name}` });
+  // route + tabKey er eksplicit navigation-metadata (§3.7); ansættelsesforholdets felter bor på Lønindkomstfanen.
+  const location = (name: string) => ({
+    locationId: `erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:${name}`,
+    route: APP_ROUTES.erstatningsopgoerelse,
+    tabKey: EO_TAB_KEYS.LOENINDKOMST,
+  });
   const standardLoenFieldSet = React.useMemo(() => createEoStandardLoenFieldSet(af.id), [af.id]);
 
   const showOverenskomst = af.harOverenskomst;
@@ -583,6 +590,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
         useSmallFont={true}
         saveOrderPath={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold.${af.id}.indtaegtsoplysningerTableData`}
+        // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Lønindkomstfanen.
+        locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
       />
 
       {beregnesUdFra === 'Beregningsperiode' ? (
@@ -790,6 +799,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   // og brugeren indtaster basisrækkens tillægsprocenter direkte i tabellen.
                   readOnlyBaseRowPercentFields={af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB}
                   useSmallFont={true}
+                  // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Lønindkomstfanen.
+                  locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
                 />
               </>
             );
@@ -827,6 +838,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
                   baseDateInfoTooltipText={baseDateTooltipText}
                   useSmallFont={true}
+                  // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Lønindkomstfanen.
+                  locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
                 />
             );
           })()}

@@ -6,6 +6,7 @@ import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import GreenfieldYearField from '../../inputCore/react/fields/GreenfieldYearField';
 import { useCriticalInputActions, useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
+import { APP_ROUTES } from '../../config/pageNavigation';
 import { projectSatser } from '../../domain/satser/satserProjection';
 import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
 import ContentBox from '../layout/ContentBox';
@@ -114,7 +115,8 @@ const MultiLineDataRow = ({ rows }: MultiLineDataRowProps) => {
 
 // Stabil felt-ref + editorlokation (§3.2): locationId er editor-metadata, ikke datafeltets identitet.
 const aargangRef = satserAargangField.bind();
-const aargangLocation = { locationId: 'satser:aargang' } as const;
+// route er eksplicit navigation-metadata (§3.7); Satser er en side uden faner (tabKey: null).
+const aargangLocation = { locationId: 'satser:aargang', route: APP_ROUTES.satser, tabKey: null } as const;
 
 /**
  * Satser-komponent til visning af lovbestemte satser

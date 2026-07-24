@@ -22,6 +22,9 @@ import {
   erEETKlageRelevant,
 } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
+import { APP_ROUTES } from '../../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 3: AES-afgørelser (varige mén, midlertidigt + endeligt EET, øvrigt). */
 export default function AesAfgoerelserSection() {
@@ -43,7 +46,7 @@ export default function AesAfgoerelserSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldMappedToggleField
               field={eoVarigeMenAfgorelseField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.varigeMenAfgorelse' }}
+              location={{ locationId: 'erstatningsopgoerelse.varigeMenAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="varigeMenAfgorelse"
@@ -58,7 +61,7 @@ export default function AesAfgoerelserSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldDateField
                   field={eoMenAfgoerelseDatoField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.menAfgoerelseDato' }}
+                  location={{ locationId: 'erstatningsopgoerelse.menAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="menAfgoerelseDato"
                 />
               </Box>
@@ -69,7 +72,7 @@ export default function AesAfgoerelserSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldMappedToggleField
                   field={eoVerserendeKlageMenField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.verserendeKlageMen' }}
+                  location={{ locationId: 'erstatningsopgoerelse.verserendeKlageMen', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   checkedValue="Ja"
                   uncheckedValue="Nej"
                   name="verserendeKlageMen"
@@ -89,7 +92,7 @@ export default function AesAfgoerelserSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldMappedToggleField
               field={eoMidlertidigtEETAfgorelseField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.midlertidigtEETAfgorelse' }}
+              location={{ locationId: 'erstatningsopgoerelse.midlertidigtEETAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="midlertidigtEETAfgorelse"
@@ -104,7 +107,7 @@ export default function AesAfgoerelserSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldDateField
                   field={eoMidlertidigEETAfgoerelseDatoField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.midlertidigEETAfgoerelseDato' }}
+                  location={{ locationId: 'erstatningsopgoerelse.midlertidigEETAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="midlertidigEETAfgoerelseDato"
                 />
               </Box>
@@ -115,7 +118,7 @@ export default function AesAfgoerelserSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldDateField
                   field={eoMidlertidigEETVirkningsdatoField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.midlertidigEETVirkningsdato' }}
+                  location={{ locationId: 'erstatningsopgoerelse.midlertidigEETVirkningsdato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="midlertidigEETVirkningsdato"
                 />
               </Box>
@@ -132,7 +135,7 @@ export default function AesAfgoerelserSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldMappedToggleField
               field={eoEndeligtEETAfgorelseField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.endeligtEETAfgorelse' }}
+              location={{ locationId: 'erstatningsopgoerelse.endeligtEETAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="endeligtEETAfgorelse"
@@ -147,7 +150,7 @@ export default function AesAfgoerelserSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldDateField
                   field={eoEndeligEETAfgoerelseDatoField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.endeligEETAfgoerelseDato' }}
+                  location={{ locationId: 'erstatningsopgoerelse.endeligEETAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="endeligEETAfgoerelseDato"
                 />
               </Box>
@@ -158,7 +161,7 @@ export default function AesAfgoerelserSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldDateField
                   field={eoEndeligEETVirkningsdatoField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.endeligEETVirkningsdato' }}
+                  location={{ locationId: 'erstatningsopgoerelse.endeligEETVirkningsdato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="endeligEETVirkningsdato"
                 />
               </Box>
@@ -176,7 +179,7 @@ export default function AesAfgoerelserSection() {
             <Box className="row--label-right-hover__content">
               <GreenfieldMappedToggleField
                 field={eoVerserendeKlageEetField.bind()}
-                location={{ locationId: 'erstatningsopgoerelse.verserendeKlageEet' }}
+                location={{ locationId: 'erstatningsopgoerelse.verserendeKlageEet', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 checkedValue="Ja"
                 uncheckedValue="Nej"
                 name="verserendeKlageEet"
@@ -190,7 +193,7 @@ export default function AesAfgoerelserSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldDateField
               field={eoDifferencekravDatoField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.differencekravDato' }}
+              location={{ locationId: 'erstatningsopgoerelse.differencekravDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="differencekravDato"
             />
           </Box>

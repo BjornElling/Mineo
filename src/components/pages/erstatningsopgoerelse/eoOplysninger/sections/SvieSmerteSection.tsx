@@ -25,6 +25,9 @@ import {
   PERIODE_INFO_TOOLTIP,
   DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP,
 } from '../eoOplysningerConstants';
+import { APP_ROUTES } from '../../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 4: Svie- og smertegodtgørelse (krav, periode-tabel, satser, tidligere godtgørelse). */
 export default function SvieSmerteSection() {
@@ -42,7 +45,7 @@ export default function SvieSmerteSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldRadioField
               field={eoKravPaaSvieSmerteGodtgoerelseField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.kravPaaSvieSmerteGodtgoerelse' }}
+              location={{ locationId: 'erstatningsopgoerelse.kravPaaSvieSmerteGodtgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="kravPaaSvieSmerteGodtgoerelse"
               row={true}
               options={[...KRAV_JA_NEJ_SKJUL_OPTIONS]}
@@ -57,7 +60,7 @@ export default function SvieSmerteSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldMappedToggleField
                   field={eoTidligereSsMaxField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.tidligereSsMax' }}
+                  location={{ locationId: 'erstatningsopgoerelse.tidligereSsMax', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   checkedValue="Ja"
                   uncheckedValue="Nej"
                   name="tidligereSsMax"
@@ -84,7 +87,7 @@ export default function SvieSmerteSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldYearField
                       field={eoSvieSmerteSatserAarField.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteSatserAar' }}
+                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteSatserAar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       name="svieSmerteSatserAar"
                       width={100}
                     />
@@ -99,7 +102,7 @@ export default function SvieSmerteSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldRadioField
                       field={eoSvieSmerteDelvisSygemeldingSatsField.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteDelvisSygemeldingSats' }}
+                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteDelvisSygemeldingSats', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       name="svieSmerteDelvisSygemeldingSats"
                       row={true}
                       options={[
@@ -120,7 +123,7 @@ export default function SvieSmerteSection() {
                     <Box className="row--label-right-hover__content">
                       <GreenfieldAmountField
                         field={eoSvieSmerteTidligereTotalField.bind()}
-                        location={{ locationId: 'erstatningsopgoerelse.svieSmerteTidligereTotal' }}
+                        location={{ locationId: 'erstatningsopgoerelse.svieSmerteTidligereTotal', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                         name="svieSmerteTidligereTotal"
                         width={150}
                       />
@@ -133,7 +136,7 @@ export default function SvieSmerteSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldAmountField
                       field={eoSvieSmerteAktuelPeriodeField.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteAktuelPeriode' }}
+                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteAktuelPeriode', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       name="svieSmerteAktuelPeriode"
                       width={150}
                     />

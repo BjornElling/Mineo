@@ -42,6 +42,15 @@ import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../../data/statistis
 import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
+import { APP_ROUTES } from '../../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+
+// route + tabKey er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
+const eoOplyLocation = (locationId: string) => ({
+  locationId,
+  route: APP_ROUTES.erstatningsopgoerelse,
+  tabKey: EO_TAB_KEYS.EO_OPLYSNINGER,
+});
 
 /**
  * Sektion 5: indtægt før stamdatadatoen (beregningsmetode, beregningsperiode/ferie/fravær eller
@@ -89,7 +98,7 @@ export default function IndtaegtFoerSkadenSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldMappedToggleField
               field={eoKomprimerBeregningField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.komprimerBeregningEfterFoersteOpgoerelse' }}
+              location={eoOplyLocation('erstatningsopgoerelse.komprimerBeregningEfterFoersteOpgoerelse')}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="komprimerBeregningEfterFoersteOpgoerelse"
@@ -104,7 +113,7 @@ export default function IndtaegtFoerSkadenSection() {
               <Box className="row--label-right-hover__content">
                 <GreenfieldChoiceField
                   field={eoBeregnesUdFraField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.beregnesUdFra' }}
+                  location={eoOplyLocation('erstatningsopgoerelse.beregnesUdFra')}
                   name="beregnesUdFra"
                   width={200}
                   allowEmpty={false}
@@ -124,13 +133,13 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                       <GreenfieldDateField
                         field={eoTafBeregningsperiodeFraField.bind()}
-                        location={{ locationId: 'erstatningsopgoerelse.tafBeregningsperiodeFra' }}
+                        location={eoOplyLocation('erstatningsopgoerelse.tafBeregningsperiodeFra')}
                         name="tafBeregningsperiodeFra"
                       />
                       <Typography sx={{ minWidth: 'auto' }}>til:</Typography>
                       <GreenfieldDateField
                         field={eoTafBeregningsperiodeTilField.bind()}
-                        location={{ locationId: 'erstatningsopgoerelse.tafBeregningsperiodeTil' }}
+                        location={eoOplyLocation('erstatningsopgoerelse.tafBeregningsperiodeTil')}
                         name="tafBeregningsperiodeTil"
                       />
                     </Box>
@@ -145,7 +154,7 @@ export default function IndtaegtFoerSkadenSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldMappedToggleField
                       field={eoRegulerOffentligeYdelserField.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.regulerOffentligeYdelser' }}
+                      location={eoOplyLocation('erstatningsopgoerelse.regulerOffentligeYdelser')}
                       checkedValue="Ja"
                       uncheckedValue="Nej"
                       name="regulerOffentligeYdelser"
@@ -166,7 +175,7 @@ export default function IndtaegtFoerSkadenSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldIntegerField
                       field={eoUspecificeredeFerieFridageField.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.uspecificeredeFerieFridage' }}
+                      location={eoOplyLocation('erstatningsopgoerelse.uspecificeredeFerieFridage')}
                       name="uspecificeredeFerieFridage"
                       width={80}
                     />
@@ -180,7 +189,7 @@ export default function IndtaegtFoerSkadenSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldMappedToggleField
                       field={eoOevrigtFravaerUdenLoenField.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.oevrigtFravaerUdenLoen' }}
+                      location={eoOplyLocation('erstatningsopgoerelse.oevrigtFravaerUdenLoen')}
                       checkedValue="Ja"
                       uncheckedValue="Nej"
                       name="oevrigtFravaerUdenLoen"
@@ -195,7 +204,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <Box className="row--label-right-hover__content">
                         <GreenfieldIntegerField
                           field={eoOevrigeFravaersdageField.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.oevrigeFravaersdage' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.oevrigeFravaersdage')}
                           name="oevrigeFravaersdage"
                           width={80}
                         />
@@ -207,7 +216,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <Box className="row--label-right-hover__content">
                         <GreenfieldTextField
                           field={eoOevrigeFravaersdageBeskrivelseField.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.oevrigeFravaersdageBeskrivelse' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.oevrigeFravaersdageBeskrivelse')}
                           name="oevrigeFravaersdageBeskrivelse"
                           width={300}
                           sx={{
@@ -229,7 +238,7 @@ export default function IndtaegtFoerSkadenSection() {
                 <Box className="row--label-right-hover__content">
                 <GreenfieldAmountField
                   field={eoMaanedsloenenUdgoerField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.maanedsloenenUdgoer' }}
+                  location={eoOplyLocation('erstatningsopgoerelse.maanedsloenenUdgoer')}
                   name="maanedsloenenUdgoer"
                   width={150}
                 />
@@ -243,7 +252,7 @@ export default function IndtaegtFoerSkadenSection() {
                 <Box className="row--label-right-hover__content">
                 <GreenfieldAmountField
                   field={eoDagsloenenUdgoerField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.dagsloenenUdgoer' }}
+                  location={eoOplyLocation('erstatningsopgoerelse.dagsloenenUdgoer')}
                   name="dagsloenenUdgoer"
                   width={150}
                 />
@@ -259,9 +268,9 @@ export default function IndtaegtFoerSkadenSection() {
                     field={values.beregnesUdFra === 'Angivet månedsløn'
                       ? eoAngivetMaanedsloenBaseretPaaField.bind()
                       : eoAngivetDagsloenBaseretPaaField.bind()}
-                    location={{ locationId: values.beregnesUdFra === 'Angivet månedsløn'
+                    location={eoOplyLocation(values.beregnesUdFra === 'Angivet månedsløn'
                       ? 'erstatningsopgoerelse.angivetMaanedsloenBaseretPaa'
-                      : 'erstatningsopgoerelse.angivetDagsloenBaseretPaa' }}
+                      : 'erstatningsopgoerelse.angivetDagsloenBaseretPaa')}
                     name={
                       values.beregnesUdFra === 'Angivet månedsløn'
                         ? 'angivetMaanedsloenBaseretPaa'
@@ -281,9 +290,9 @@ export default function IndtaegtFoerSkadenSection() {
                     field={values.beregnesUdFra === 'Angivet månedsløn'
                       ? eoAngivetMaanedsloenOpreguleresFraDatoField.bind()
                       : eoAngivetDagsloenOpreguleresFraDatoField.bind()}
-                    location={{ locationId: values.beregnesUdFra === 'Angivet månedsløn'
+                    location={eoOplyLocation(values.beregnesUdFra === 'Angivet månedsløn'
                       ? 'erstatningsopgoerelse.angivetMaanedsloenOpreguleresFraDato'
-                      : 'erstatningsopgoerelse.angivetDagsloenOpreguleresFraDato' }}
+                      : 'erstatningsopgoerelse.angivetDagsloenOpreguleresFraDato')}
                     name={
                       values.beregnesUdFra === 'Angivet månedsløn'
                         ? 'angivetMaanedsloenOpreguleresFraDato'
@@ -303,7 +312,7 @@ export default function IndtaegtFoerSkadenSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldChoiceField
                       field={eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag' }}
+                      location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag')}
                       name="loenudviklingBeregningsgrundlag"
                       width={220}
                       allowEmpty={true}
@@ -331,7 +340,7 @@ export default function IndtaegtFoerSkadenSection() {
                         <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
                         <GreenfieldChoiceField
                           field={eoAngivetLoenFilterFields.loenmodtager.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager')}
                           name="overenskomstFilter.loenmodtager"
                           emptyUiValue="ALLE"
                           width={120}
@@ -373,7 +382,7 @@ export default function IndtaegtFoerSkadenSection() {
                         <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
                         <GreenfieldChoiceField
                           field={eoAngivetLoenFilterFields.arbejdsgiver.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver')}
                           name="overenskomstFilter.arbejdsgiver"
                           emptyUiValue="ALLE"
                           width={120}
@@ -413,7 +422,7 @@ export default function IndtaegtFoerSkadenSection() {
 
                         <GreenfieldChoiceField
                           field={eoAngivetLoenFields.overenskomstId.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstId' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstId')}
                           name="overenskomstId"
                           width={460}
                           placeholder="Vælg overenskomst..."
@@ -451,7 +460,7 @@ export default function IndtaegtFoerSkadenSection() {
                           <Typography className="row--text">Ansættelse</Typography>
                           <GreenfieldChoiceField
                             field={eoAngivetLoenFields.offentligLoenType.bind()}
-                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenType' }}
+                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenType')}
                             name="offentligLoenType"
                             width={160}
                             allowEmpty={false}
@@ -465,14 +474,14 @@ export default function IndtaegtFoerSkadenSection() {
                           <Typography className="row--text">Løntrin</Typography>
                           <GreenfieldIntegerField
                             field={eoAngivetLoenFields.offentligLoenTrin.bind()}
-                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenTrin' }}
+                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenTrin')}
                             name="offentligLoenTrin"
                             width={80}
                           />
                           <Typography className="row--text">Gruppe</Typography>
                           <GreenfieldIntegerField
                             field={eoAngivetLoenFields.offentligLoenGruppe.bind()}
-                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenGruppe' }}
+                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenGruppe')}
                             name="offentligLoenGruppe"
                             width={70}
                           />
@@ -511,7 +520,7 @@ export default function IndtaegtFoerSkadenSection() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <GreenfieldAmountField
                             field={eoAngivetLoenFields.offentligLoenEkstraGrundloen.bind()}
-                            location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen' }}
+                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen')}
                             name="offentligLoenEkstraGrundloen"
                             width={160}
                           />
@@ -528,7 +537,7 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover__content">
                       <GreenfieldChoiceField
                         field={eoAngivetLoenFields.loenudviklingStatistikModel.bind()}
-                        location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel' }}
+                        location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel')}
                         name="loenudviklingStatistikModel"
                         width={270}
                         allowEmpty={true}
@@ -548,7 +557,7 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover__content">
                       <GreenfieldChoiceField
                         field={eoAngivetLoenFields.loenudviklingKRLSatstabel.bind()}
-                        location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel' }}
+                        location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel')}
                         name="loenudviklingKRLSatstabel"
                         width={270}
                         allowEmpty={true}
@@ -571,7 +580,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <Box className="row--label-right-hover__content">
                         <GreenfieldTextField
                           field={eoAngivetLoenFields.loenudviklingManuelNavn.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelNavn' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelNavn')}
                           name="loenudviklingManuelNavn"
                           width={300}
                         />
@@ -586,6 +595,8 @@ export default function IndtaegtFoerSkadenSection() {
                       baseDateISO={loenudviklingBaseDateISO}
                       baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
                       useSmallFont={true}
+                      // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellen på EO-oplysningerfanen.
+                      locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     />
                   </Box>
                 ) : null}
@@ -601,6 +612,8 @@ export default function IndtaegtFoerSkadenSection() {
                         baseDateISO={loenudviklingBaseDateISO}
                         baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
                         useSmallFont={true}
+                        // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellen på EO-oplysningerfanen.
+                        locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       />
                   </Box>
                 ) : null}
@@ -684,7 +697,7 @@ export default function IndtaegtFoerSkadenSection() {
                   <Box className="row--label-right-hover__content">
                     <GreenfieldMappedToggleField
                       field={eoAngivetLoenFields.harAnciennitetstillaegEfterSkadedatoen.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen' }}
+                      location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen')}
                       checkedValue={true}
                       uncheckedValue={false}
                       name="harAnciennitetstillaegEfterSkadedatoen"
@@ -699,7 +712,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <Box className="row--label-right-hover__content">
                         <GreenfieldDateField
                           field={eoAngivetLoenFields.anciennitetstillaegDato.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegDato' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegDato')}
                           name="anciennitetstillaegDato"
                         />
                       </Box>
@@ -710,7 +723,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <Box className="row--label-right-hover__content">
                         <GreenfieldAmountField
                           field={eoAngivetLoenFields.anciennitetstillaegSats.bind()}
-                          location={{ locationId: 'erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSats' }}
+                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSats')}
                           name="anciennitetstillaegSats"
                           width={160}
                         />

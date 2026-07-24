@@ -14,6 +14,7 @@ import {
   stamdataSkadedatoField,
 } from '../../inputCore/catalog/stamdataDescriptors';
 import { useInputEvaluation } from '../../inputCore/react';
+import { APP_ROUTES } from '../../config/pageNavigation';
 import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
 import GreenfieldDateField from '../../inputCore/react/fields/GreenfieldDateField';
 import GreenfieldTextField from '../../inputCore/react/fields/GreenfieldTextField';
@@ -39,8 +40,12 @@ const skadelidteFodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
 const skadestypeRef = stamdataSkadestypeField.bind();
 const skadedatoRef = stamdataSkadedatoField.bind();
 
-// Stabil editorlokation pr. felt (§3.2): locationId er editor-metadata, ikke datafeltets identitet.
-const loc = (field: string) => ({ locationId: `stamdata:${field}` });
+// Stabil editorlokation pr. felt (§3.2): locationId er editor-metadata, ikke datafeltets identitet. route er
+// eksplicit navigation-metadata (§3.7), så undo/redo kan navigere hertil uden at parse locationId. tabKey er `null`:
+// Stamdata deltager IKKE i den persisterede aktiv-fane-mekanisme (`usePersistedActiveTab`) — dens fanevalg er lokal
+// `useState`, og `setActiveTabForPage` ville derfor ikke kunne skifte den. Alle editorfelter bor på hovedfanen, som
+// vises ved navigation; test-fanen er DEV-only og har ingen editorlokationer at restore til.
+const loc = (field: string) => ({ locationId: `stamdata:${field}`, route: APP_ROUTES.stamdata, tabKey: null });
 
 const Stamdata = React.memo(() => {
   const { settings } = useAppSettings();

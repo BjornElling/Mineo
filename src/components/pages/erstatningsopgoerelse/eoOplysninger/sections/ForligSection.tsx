@@ -8,6 +8,9 @@ import {
   eoForligAnsvarsgradProcentField,
   eoForligDatoField,
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { APP_ROUTES } from '../../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 2: Forlig om ansvarsgrad + evt. forligsdato. */
 export default function ForligSection() {
@@ -22,14 +25,14 @@ export default function ForligSection() {
               <Typography className="row--text">Procent</Typography>
               <GreenfieldPercentField
                 field={eoForligAnsvarsgradProcentField.bind()}
-                location={{ locationId: 'erstatningsopgoerelse.forligAnsvarsgradProcent' }}
+                location={{ locationId: 'erstatningsopgoerelse.forligAnsvarsgradProcent', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="forligAnsvarsgradProcent"
                 width={100}
               />
               <Typography className="row--text">eller brøk</Typography>
               <GreenfieldFractionField
                 field={eoForligAnsvarsgradBroekField.bind()}
-                location={{ locationId: 'erstatningsopgoerelse.forligAnsvarsgradBroek' }}
+                location={{ locationId: 'erstatningsopgoerelse.forligAnsvarsgradBroek', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="forligAnsvarsgradBroek"
                 width={120}
               />
@@ -42,7 +45,7 @@ export default function ForligSection() {
           <Box className="row--label-right-hover__content">
             <GreenfieldDateField
               field={eoForligDatoField.bind()}
-              location={{ locationId: 'erstatningsopgoerelse.forligDato' }}
+              location={{ locationId: 'erstatningsopgoerelse.forligDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="forligDato"
             />
           </Box>

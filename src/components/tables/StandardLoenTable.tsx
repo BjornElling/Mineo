@@ -68,6 +68,12 @@ export type StandardLoenTableProps = {
   useSmallFont?: boolean;
   saveOrderPath?: TableSaveOrderPath;
   calculateDerivedRow?: (row: StandardLoenTableRow) => StandardLoenRowDerived;
+  /**
+   * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
+   * bor på. Tabellen renderes i flere kontekster (Årsløn vs. EO-lønindkomst), så route/fane kan ikke udledes af
+   * `collection` — kalderen leverer den. Udeladt route = ikke-navigerbar lokation (restoren navigerer da ikke).
+   */
+  locationNav?: Readonly<{ route?: string; tabKey?: string | null }>;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -85,7 +91,7 @@ const COL = {
 } as const;
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
+  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav }, ref) => {
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
@@ -338,7 +344,12 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       descriptor: FieldDescriptor<T>,
       colIdx: number
     ): CellSpec<T, StandardLoenTableRow> => {
-      const location = { locationId: `${collection.section}.${collection.collection}:${renderRow.rowId}:${colIdx}` };
+      // route/tabKey er eksplicit navigation-metadata (§3.7) leveret af kalderen (Årsløn vs. EO-lønindkomst).
+      const location = {
+        locationId: `${collection.section}.${collection.collection}:${renderRow.rowId}:${colIdx}`,
+        ...(locationNav?.route === undefined ? {} : { route: locationNav.route }),
+        ...(locationNav?.tabKey === undefined ? {} : { tabKey: locationNav.tabKey }),
+      };
       if (renderRow.kind === 'existing') {
         const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
         return { kind: 'existing', field, location };
@@ -351,7 +362,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         entityId: renderRow.rowId,
         location,
       };
-    }, [collection, fieldSet]);
+    }, [collection, fieldSet, locationNav]);
 
     return (
       <StandardGridTable

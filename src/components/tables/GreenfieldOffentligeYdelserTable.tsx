@@ -22,6 +22,8 @@ import { useGreenfieldCollectionTable } from './useGreenfieldCollectionTable';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
+import { APP_ROUTES } from '../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 
 type DerivedRow = Readonly<{ periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>;
 export type GreenfieldOffentligeYdelserTableProps = Readonly<{
@@ -49,6 +51,8 @@ const GreenfieldOffentligeYdelserTable = React.memo(({
     createRowId: generateOffentligYdelseRowId,
     createEmptyRow,
     locationPrefix: 'erstatningsopgoerelse.offentligeYdelserRows',
+    // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Offentlige ydelser-fanen.
+    locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER },
   });
   const columns = React.useMemo(() => [
     { colId: 'fraDato', getSortValue: (row: OffentligeYdelserRow) => row.fraDato ?? '' },

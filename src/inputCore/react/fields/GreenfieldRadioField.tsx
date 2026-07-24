@@ -4,6 +4,7 @@ import type { CommitEvent } from '../../../types/fieldEvents';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
+import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 
 // Greenfield radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options. Den viste værdi læses fra den afsluttede revision gennem
@@ -39,6 +40,7 @@ const GreenfieldRadioField = <TValue extends string>({
 }: GreenfieldRadioFieldProps<TValue>): React.ReactElement => {
   // Radio-værdien er altid en defineret enum for et påkrævet felt; controlleren er typet på feltets værditype.
   const controller = useFieldEditor(field as FieldRef<TValue | undefined>, location);
+  const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
 
   const handleCommit = React.useCallback(
     (e: CommitEvent<string | undefined>): boolean => {
@@ -68,6 +70,7 @@ const GreenfieldRadioField = <TValue extends string>({
       {...(emptyLabel === undefined ? {} : { emptyLabel })}
       error={hasError}
       helperText={controller.issue?.message ?? ''}
+      restoreTargetAttributes={restoreTargetAttributes}
     />
   );
 };

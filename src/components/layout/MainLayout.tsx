@@ -18,6 +18,10 @@ import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 import { clearLastUndoFocus } from '../../utils/undoFocusTracker';
+import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
+import { routeToPageId } from '../../config/pageNavigation';
+import { scheduleGreenfieldHistoryTargetRestore } from '../../inputCore/react/greenfieldHistoryRestore';
+import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
   bootstrapProductionInputRuntime,
   getProductionInputEvaluation,
@@ -58,8 +62,23 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   // `authoritativeSnapshotEpoch` (bumpes af load/reset/`Slet alt` gennem replacement-grænsen).
   const { revision, replacementGeneration } = useSettledSnapshot();
 
-  // Global undo/redo-tastatur (greenfield-history via coordinatoren; åben editor = stille no-op, §1.4).
-  useGreenfieldUndoRedoShortcuts();
+  // Global undo/redo-tastatur (greenfield-history via coordinatoren; åben editor = stille no-op, §1.4). Efter en
+  // gennemført restore navigerer vi til origin-lokationens route/fane og re-fokuserer feltet, ændringen kom fra
+  // (§3.7) — SAMME rækkefølge som legacy: (1) sæt aktiv fane, (2) navigér til route, (3) planlæg fokusrestore.
+  // route/fane er eksplicit typed metadata på originen (aldrig udledt af locationId/field.section).
+  const handleUndoRedoRestore = React.useCallback((origin: HistoryOrigin) => {
+    if (origin.route !== undefined) {
+      if (origin.tabKey !== undefined && origin.tabKey !== null) {
+        setActiveTabForPage(routeToPageId(origin.route), origin.tabKey);
+      }
+      if (location.pathname !== origin.route) {
+        navigate(origin.route);
+      }
+    }
+    // Fokusrestoren venter selv (rAF-retry) på, at målet mounter efter et evt. fane-/sideskift.
+    scheduleGreenfieldHistoryTargetRestore(origin);
+  }, [location.pathname, navigate]);
+  useGreenfieldUndoRedoShortcuts({ onRestore: handleUndoRedoRestore });
 
   React.useEffect(() => {
     clearLastUndoFocus();

@@ -27,6 +27,8 @@ import {
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { asError } from '../../../utils/typeGuards';
 import { useInputRuntime } from '../../../inputCore/react/inputRuntimeContext';
+import { APP_ROUTES } from '../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../config/eoTabKeys';
 import {
   eoBilagSelectionMidlertidigEetField,
   eoMidlertidigtEetFraEetSidenField,
@@ -63,7 +65,8 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   const rows = values.offentligeYdelserRows;
   const midlertidigtEetEditor = useFieldEditor(
     eoMidlertidigtEetFraEetSidenField.bind(),
-    { locationId: 'erstatningsopgoerelse.midlertidigtEetFraEetSiden' }
+    // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Offentlige ydelser-fanen.
+    { locationId: 'erstatningsopgoerelse.midlertidigtEetFraEetSiden', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER }
   );
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
@@ -370,7 +373,8 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
         <Typography className="section-header">Kommentarer</Typography>
         <GreenfieldMultilineTextField
           field={eoOffentligeYdelserKommentarerField.bind()}
-          location={{ locationId: 'erstatningsopgoerelse.offentligeYdelserKommentarer' }}
+          // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Offentlige ydelser-fanen.
+          location={{ locationId: 'erstatningsopgoerelse.offentligeYdelserKommentarer', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER }}
           name="offentligeYdelserKommentarer"
           width={800}
           rows={4}

@@ -1,7 +1,12 @@
 # WI-003: Greenfield undo/redo lokationsbaseret fokusrestore (fuld parity)
 
-- **Status:** `under-implementering` (delvist — fundament bygget og inert/grønt; long tail udestår). Genoptag med
-  `/greenfield work-items/WI-003-undo-redo-lokationsrestore.md`.
+- **Status:** `GENNEMFØRT` (2026-07-24). Hele long tail (A–E) er landet i commit "Fuldfør greenfield undo/redo
+  lokationsbaseret fokusrestore (WI-003)" på branch `greenfield`. Alle gates grønne: `typecheck`, `typecheck:test`,
+  `lint`, `verify:ledgers` og HELE `vitest run` (6440/6440 — tranchen er nu fuldt grøn; de tidligere "bevidst røde"
+  fejl skyldtes udelukkende en forældet `.env.build-info.local`, ikke koden). Codex sol/medium-review kørt på
+  committen: ét [P2]-fund (Stamdatas lokale fane-state kan ikke skiftes via `setActiveTabForPage`) adresseret ved at
+  sætte Stamdatas `tabKey: null` (Stamdata deltager ikke i den persisterede aktiv-fane-mekanisme; test-fanen er
+  DEV-only uden editorlokationer).
 - **Oprettet:** 2026-07-24
 - **Branch:** `greenfield`. **Baseline for dette WI:** commit hvor WI-002 Fase-4 shell-cutover blev landet (se
   git-loggen: "Fase 4 …"-committen umiddelbart før "WI-003 …"-committen).

@@ -16,6 +16,7 @@ import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { downloadVarigeMenDokument } from '../../../document/service/documentService';
+import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 import { evaluateVarigeMenDownloadGate } from '../../../domain/varigemen/varigeMenDownloadGate';
 import { buildVarigeMenReaderProjection } from '../../../domain/varigemen/varigeMenReaderProjection';
 import { projectStamdataForDocument } from '../../../domain/stamdata/stamdataDocumentProjection';
@@ -46,8 +47,9 @@ const fodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
 const skadedatoRef = stamdataSkadedatoField.bind();
 const skadestypeRef = stamdataSkadestypeField.bind();
 
-const MENGRAD_LOCATION = { locationId: 'varigemen:mengrad' } as const;
-const BEREGNINGSDATO_LOCATION = { locationId: 'varigemen:beregningsdato' } as const;
+// route + tabKey er eksplicit navigation-metadata (§3.7); begge felter bor på menberegning-fanen.
+const MENGRAD_LOCATION = { locationId: 'varigemen:mengrad', route: APP_ROUTES.varigemen, tabKey: PAGE_DEFAULT_TAB.varigemen } as const;
+const BEREGNINGSDATO_LOCATION = { locationId: 'varigemen:beregningsdato', route: APP_ROUTES.varigemen, tabKey: PAGE_DEFAULT_TAB.varigemen } as const;
 
 const MenberegningTab = React.memo(() => {
   const navigate = useNavigate();

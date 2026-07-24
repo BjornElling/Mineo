@@ -5,6 +5,7 @@ import type { CollectionRef } from '../../fieldAddress';
 import type { FieldDescriptor } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
+import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 
 /**
  * Form-dropdown for et felt i en valgfri entity-række. Hvis rækken endnu ikke findes, opretter det første
@@ -32,6 +33,12 @@ export default function GreenfieldEntityChoiceField<TValue extends StyledDropdow
     [collection, descriptor, entity, entityExists, entityId, location]
   );
   const controller = useCellEditor(cell);
+  // Restore-mål via feltadresse + editorlokation (§3.7): den bundne cellefeltadresse er den samme, useCellEditor
+  // binder internt (`descriptor.bind(entityId)`), så fokus efter undo/redo lander på DENNE editorlokation.
+  const restoreTargetAttributes = useRestoreTargetAttributes(
+    React.useMemo(() => descriptor.bind(entityId).address, [descriptor, entityId]),
+    location
+  );
   return <StyledDropdown<TValue>
     name={name}
     value={controller.value}
@@ -47,6 +54,7 @@ export default function GreenfieldEntityChoiceField<TValue extends StyledDropdow
     width={width}
     error={controller.issue !== undefined}
     helperText={controller.issue?.message ?? ''}
+    restoreTargetAttributes={restoreTargetAttributes}
     sx={sx}
   >{children}</StyledDropdown>;
 }
