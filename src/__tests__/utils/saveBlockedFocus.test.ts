@@ -2,7 +2,6 @@
 import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
 import {
   focusFirstVisibleBlockingInputError,
-  getFirstBlockingInputErrorTarget,
   navigateToBlockingInputError,
 } from '../../utils/saveBlockedFocus';
 import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../config/cellInvalidDraftScopes';
@@ -15,63 +14,6 @@ const flushRaf = () =>
   new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });
-
-describe('getFirstBlockingInputErrorTarget — aktiv fejl-resolution', () => {
-  it('returnerer IKKE en overskygget/inaktiv kilde som blokerende', () => {
-    // Begge kilder er severity 'error', så source-prioritet (input før schema) afgør: input vinder.
-    // Den AKTIVE fejl (input) er UI-only (blocksSave:false). Den inaktive schema-kilde ser blokerende
-    // ud, men er overskygget. Feltet må derfor IKKE rapporteres som blokerende (gammel kode gjorde det).
-    const snapshot = (pageKey: string) =>
-      pageKey === 'stamdata'
-        ? {
-            skadedato: {
-              input: { message: 'Uden for interval', severity: 'error', source: 'input', blocksSave: false },
-              schema: { message: 'Schema-fejl', severity: 'error', source: 'schema', blocksSave: true },
-            },
-          }
-        : {};
-
-    const target = getFirstBlockingInputErrorTarget(snapshot as never);
-    expect(target).toBeNull();
-  });
-
-  it('returnerer den aktive blokerende fejl når den faktisk er aktiv', () => {
-    const snapshot = (pageKey: string) =>
-      pageKey === 'stamdata'
-        ? {
-            skadedato: {
-              input: { message: 'Ugyldig dato', severity: 'error', source: 'input', blocksSave: true },
-            },
-          }
-        : {};
-
-    const target = getFirstBlockingInputErrorTarget(snapshot as never);
-    expect(target).toEqual({ kind: 'field', pageKey: 'stamdata', fieldName: 'skadedato', message: 'Ugyldig dato' });
-  });
-
-  it('ignorerer UI-only fejl (blocksSave:false)', () => {
-    const snapshot = (pageKey: string) =>
-      pageKey === 'stamdata'
-        ? {
-            skadedato: {
-              input: { message: 'Uden for interval', severity: 'error', source: 'input', blocksSave: false },
-            },
-          }
-        : {};
-
-    expect(getFirstBlockingInputErrorTarget(snapshot as never)).toBeNull();
-  });
-
-  it('returnerer en invalidDrafts-entry (ikke-committbart input) før fieldErrors og bruger fieldPath direkte', () => {
-    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOffentligeYdelser, '', 'row1:0');
-    const errorsSnapshot = () => ({});
-    const invalidDraftsSnapshot = (pageKey: string) =>
-      pageKey === 'erstatningsopgoerelse' ? { [cellFieldPath]: '12.x.2020' } : {};
-
-    const target = getFirstBlockingInputErrorTarget(errorsSnapshot as never, invalidDraftsSnapshot);
-    expect(target).toEqual({ kind: 'field', pageKey: 'erstatningsopgoerelse', fieldName: cellFieldPath, message: '' });
-  });
-});
 
 describe('navigateToBlockingInputError — synlig fejl på nuværende fane har forrang', () => {
   let scrollIntoViewMock: ReturnType<typeof vi.fn>;

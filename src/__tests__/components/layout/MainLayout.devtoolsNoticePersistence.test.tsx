@@ -4,8 +4,28 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
+import {
+  ProductionInputRuntimeProvider,
+  bootstrapProductionInputRuntime,
+  createProductionInputRuntimeBinding,
+} from '../../../inputCore/react/productionInputRuntime';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import type { DevtoolsIssue, DevtoolsIssueSnapshot } from '../../../utils/devtoolsMonitor';
+
+// Greenfield-shell (WI-002 Fase 4): devtools-notice-diagnostikken læses uændret; kun mount-wrapperen skifter
+// fra legacy FormPersistence til den ene produktions-runtime.
+const catalog = getProductionInputCatalog();
+bootstrapProductionInputRuntime();
+
+const emptyInput = () => catalog.validateSettledInput({
+  sections: {
+    stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+    renteberegning: null, varigemen: null, forsoergertab: null,
+    erstatningsopgoerelse: null, erhvervsevnetab: null,
+  },
+  rejectedInputs: {},
+});
 
 type DevtoolsIssueListener = (snapshot: DevtoolsIssueSnapshot, issue: DevtoolsIssue) => void;
 
@@ -59,13 +79,13 @@ const buildSnapshot = (issues: DevtoolsIssue[]): DevtoolsIssueSnapshot => ({
 const renderLayout = () =>
   render(
     <AppSettingsProvider>
-      <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+      <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
         <MemoryRouter initialEntries={['/stamdata']}>
           <MainLayout>
             <div />
           </MainLayout>
         </MemoryRouter>
-      </FormPersistenceProvider>
+      </ProductionInputRuntimeProvider>
     </AppSettingsProvider>,
   );
 
@@ -74,6 +94,7 @@ describe('MainLayout (devtools notice persistence)', () => {
     sessionStorage.clear();
     vi.clearAllMocks();
     devtoolsMocks.getDevtoolsIssueSnapshot.mockReturnValue(buildSnapshot([]));
+    slimInputStore.getState().hydrate(emptyInput());
   });
 
   afterEach(() => {

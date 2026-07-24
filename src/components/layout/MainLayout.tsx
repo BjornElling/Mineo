@@ -7,16 +7,9 @@ import Overlay from '../ui/Overlay';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
 import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
-import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
-import { UI_STORAGE_KEYS } from '../../config/storageManifest';
-import {
-  getFieldErrorsBySourceSnapshot,
-  getInvalidDraftsForSectionSnapshot,
-  useAuthoritativeSnapshotEpochSelector,
-  useCombinedSectionRevisionSelector,
-} from '../../hooks/useFormPersistenceSelectors';
+import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
 import {
   readOptionalSessionStorageValue,
   removeOptionalSessionStorageValue,
@@ -24,13 +17,24 @@ import {
 import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
-import { useUndoRedoShortcuts } from '../../hooks/useUndoRedoShortcuts';
-import { getFirstBlockingInputErrorTarget } from '../../utils/saveBlockedFocus';
 import { clearLastUndoFocus } from '../../utils/undoFocusTracker';
-import { CriticalActionProvider, useCriticalActionCoordinator } from '../../criticalActions/CriticalActionContext';
+import {
+  bootstrapProductionInputRuntime,
+  getProductionInputEvaluation,
+  useCaseOperations,
+  useCriticalInputActions,
+  useGreenfieldUndoRedoShortcuts,
+  useInputRuntime,
+  useSettledSnapshot,
+} from '../../inputCore/react';
 
 /**
- * Hovedlayout for applikationen
+ * Hovedlayout for applikationen.
+ *
+ * Greenfield-shell (WI-002 trin 3, §3.10): shellen læser og skriver KUN gennem greenfield-runtime.
+ * `FormPersistenceContext`/`useFormPersistence`, legacy read-model-selectors og den legacy
+ * `CriticalActionProvider` er fjernet. Case-operationer går gennem `useCaseOperations`-portene, den kritiske
+ * handlingsbarriere gennem `useCriticalInputActions`, og undo/redo gennem `useGreenfieldUndoRedoShortcuts`.
  */
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -41,26 +45,21 @@ const isOverlayType = (value: unknown): value is OverlayData['type'] => {
 };
 
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
-  const criticalActions = useCriticalActionCoordinator();
+  const runtime = useInputRuntime();
+  const criticalActions = useCriticalInputActions();
+  const ops = useCaseOperations();
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useAppSettings();
   const [overlay, setOverlay] = React.useState<OverlayData | null>(null);
-  const {
-    getPersistedData,
-    getFieldErrorsBySource,
-    replaceAllPersistedData,
-    clearAllData,
-    lastNotice,
-    lastNoticeEpoch,
-    hasAnyData,
-  } = useFormPersistence();
-  const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
-  const combinedSectionRevision = useCombinedSectionRevisionSelector();
 
-  // Global undo/redo-tastatur + focus-tracker (delt med standalone MinProcesrente).
-  // Mineo er multi-side, så vi injicerer React Routers navigate til restore.
-  useUndoRedoShortcuts(navigate);
+  // Den aktuelle afsluttede revision + autoritativ replacement-generation driver unsaved-guardens baseline
+  // (§3.7): `revision` erstatter legacy `combinedSectionRevision`, `replacementGeneration` erstatter
+  // `authoritativeSnapshotEpoch` (bumpes af load/reset/`Slet alt` gennem replacement-grænsen).
+  const { revision, replacementGeneration } = useSettledSnapshot();
+
+  // Global undo/redo-tastatur (greenfield-history via coordinatoren; åben editor = stille no-op, §1.4).
+  useGreenfieldUndoRedoShortcuts();
 
   React.useEffect(() => {
     clearLastUndoFocus();
@@ -70,28 +69,49 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     setOverlay(overlayData);
   }, []);
 
+  // Devtools-/bugrapport-diagnostik læser greenfield-runtime i stedet for legacy-persistence: persisterede
+  // sektioner fra det afsluttede snapshot og feltissues fra det tokenbundne issue-snapshot (§3.4). Ren
+  // read-only diagnostik — aldrig en skrivevej.
+  const getPersistedSectionForDevtools = React.useCallback(
+    (pageKey: StorageKey): unknown => runtime.getSettled().input.sections[pageKey] ?? null,
+    [runtime],
+  );
+  const getFieldIssuesForDevtools = React.useCallback(
+    (pageKey: StorageKey): unknown =>
+      getProductionInputEvaluation().issues.all.filter(
+        (issue) => issue.field.address.section === pageKey,
+      ),
+    [],
+  );
+
   const {
     devtoolsSnapshot,
     devtoolsNoticeVisible,
     dismissDevtools,
     getExtraSections: buildDevtoolsReportExtras,
-  } = useDevtoolsMonitoring({ getPersistedData, getFieldErrorsBySource, location });
+  } = useDevtoolsMonitoring({
+    getPersistedData: getPersistedSectionForDevtools,
+    getFieldErrorsBySource: getFieldIssuesForDevtools,
+    location,
+  });
 
   const activePage = location.pathname.substring(1) || 'stamdata';
   const {
-    combinedSectionRevisionRef,
     markSaved,
     allowExitWithoutWarning,
-  } = useUnsavedChangesGuard({ combinedSectionRevision, authoritativeSnapshotEpoch });
+  } = useUnsavedChangesGuard({
+    combinedSectionRevision: Number(revision),
+    authoritativeSnapshotEpoch: replacementGeneration,
+  });
 
   const handlePageChange = React.useCallback(async (pageId: string) => {
     if (location.pathname === `/${pageId}`) {
       return;
     }
 
-    // Sideskift er en kritisk handling på linje med save/load. Coordinatoren blokerer en åben
-    // form-editor, committer en åben grid-editor og afventer eksplicit pending tabelpersistens,
-    // før navigation kan unmounte siden (jf. runtime data-integritet).
+    // Sideskift er en kritisk handling på linje med save/load (§1.4): coordinatoren settler begge surfaces og
+    // fortsætter navigationen — også ved et fejlende settle. Kun et fail-closed `blocked` (uventet settle-fejl)
+    // fokuserer det aktive felt og stopper navigationen.
     try {
       const preparation = await criticalActions.prepare('navigate');
       if (preparation.status === 'blocked') {
@@ -113,13 +133,6 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     }
   }, [criticalActions, location.pathname, navigate]);
 
-  const getFirstBlockingInputError = React.useCallback(() => {
-    // Bevidst designvalg:
-    // Gem blokeres kun af ikke-committable fejl. UI-fejl på allerede committede værdier
-    // (fx dato/tal uden for bounds) skal fortsat vises med rød markering, men må gemmes.
-    return getFirstBlockingInputErrorTarget(getFieldErrorsBySourceSnapshot, getInvalidDraftsForSectionSnapshot);
-  }, []);
-
   const {
     pendingLoadResult,
     pendingOverwriteApply,
@@ -137,14 +150,10 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   } = useFileSaveLoad({
     settings,
     navigate,
-    combinedSectionRevisionRef,
-    markSaved,
-    getFirstBlockingInputError,
     currentPathname: location.pathname,
-    getPersistedData,
-    replaceAllPersistedData,
-    clearAllData,
-    hasAnyData,
+    ops,
+    criticalActions,
+    markSaved,
     allowExitWithoutWarning,
     showOverlay,
   });
@@ -162,14 +171,14 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     handleHentFromPwaRequest,
   });
 
-  // Persistence-notices (fx versionsmismatch og korrupt storage).
-  // `lastNoticeEpoch` er den monotone trigger; provideren bumper epoch og notice-objektet
-  // i samme setState (se FormPersistenceContext.emitUserNotice), så notice-identitet er stabil
-  // pr. epoch og kan ikke ændre sig uafhængigt af epoch. Begge i deps er derfor sikkert.
+  // Startup-notice (§1.12): korruption/utilgængeligt lager fra den ene runtime-bootstrap vises i shellens
+  // notice-overflade. `bootstrapProductionInputRuntime` er idempotent (module-singleton), så dette er præcis
+  // den startup, som blev afgjort før render i `main.tsx`.
   React.useEffect(() => {
-    if (!lastNotice) return;
-    setOverlay({ message: lastNotice.message, type: lastNotice.type });
-  }, [lastNoticeEpoch, lastNotice]);
+    const { startup } = bootstrapProductionInputRuntime();
+    if (startup.notice === null) return;
+    setOverlay({ message: startup.notice.message, type: startup.notice.type });
+  }, []);
 
   // Tjek for pending overlay efter reload
   React.useEffect(() => {
@@ -200,7 +209,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     }
   }, []);
 
-  // Global keyboard shortcut for gem. Undo/redo håndteres af useUndoRedoShortcuts.
+  // Global keyboard shortcut for gem. Undo/redo håndteres af useGreenfieldUndoRedoShortcuts.
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -335,11 +344,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
 
 MainLayoutContent.displayName = 'MainLayoutContent';
 
-const MainLayout = React.memo((props: MainLayoutProps) => (
-  <CriticalActionProvider>
-    <MainLayoutContent {...props} />
-  </CriticalActionProvider>
-));
+const MainLayout = React.memo((props: MainLayoutProps) => <MainLayoutContent {...props} />);
 
 MainLayout.displayName = 'MainLayout';
 

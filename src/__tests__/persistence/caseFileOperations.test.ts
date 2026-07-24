@@ -7,6 +7,7 @@ import {
 import {
   __createSlimInputTestStore,
   dispatchInput,
+  type RuntimeInputCommand,
   type SlimInputStore,
 } from '../../inputCore/runtime';
 import { captureStableInput, readSourceToken } from '../../inputCore/runtime/evaluationSourceBinding';
@@ -38,7 +39,10 @@ const buildRuntime = (store: SlimInputStore): CaseRuntimeAccess => Object.freeze
   },
 });
 
-const settle = (store: SlimInputStore, command: Parameters<typeof dispatchInput>[2]): void => {
+const settle = <TField, TEntity>(
+  store: SlimInputStore,
+  command: RuntimeInputCommand<TField, TEntity>
+): void => {
   dispatchInput(store, catalog, command);
 };
 

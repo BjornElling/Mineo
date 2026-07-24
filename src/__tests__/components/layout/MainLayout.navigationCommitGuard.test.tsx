@@ -1,19 +1,46 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
+import {
+  ProductionInputRuntimeProvider,
+  createProductionInputRuntimeBinding,
+} from '../../../inputCore/react/productionInputRuntime';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import MainLayout from '../../../components/layout/MainLayout';
-import StyledTextField from '../../../components/inputs/StyledTextField';
+import { OpenGreenfieldEditor } from './greenfieldEditorTestUtils';
+
+// Greenfield-navigation (§1.4): sideskift er en settle-handling. Coordinatorens `prepare("navigate")` settler
+// den åbne editor; et fail-closed `blocked` (uventet settle-fejl) stopper navigationen og fokuserer feltet.
+
+const catalog = getProductionInputCatalog();
+const emptyInput = () => catalog.validateSettledInput({
+  sections: {
+    stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+    renteberegning: null, varigemen: null, forsoergertab: null,
+    erstatningsopgoerelse: null, erhvervsevnetab: null,
+  },
+  rejectedInputs: {},
+});
 
 describe('MainLayout navigation commit guard', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    slimInputStore.getState().hydrate(emptyInput());
+  });
+
+  afterEach(() => {
+    slimInputStore.getState().hydrate(emptyInput());
+  });
+
   it('keeps navigation fail-closed when an editable field is still active during page change', async () => {
     const ActiveEditorPage = () => (
       <div>
         <div>Stamdata testside</div>
-        <StyledTextField value="" label="Aktivt felt" autoFocus onCommit={() => true} />
+        <OpenGreenfieldEditor label="Aktivt felt" />
       </div>
     );
 
@@ -21,7 +48,7 @@ describe('MainLayout navigation commit guard', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+        <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
           <MemoryRouter initialEntries={['/stamdata']}>
             <Routes>
               <Route
@@ -42,21 +69,25 @@ describe('MainLayout navigation commit guard', () => {
               />
             </Routes>
           </MemoryRouter>
-        </FormPersistenceProvider>
+        </ProductionInputRuntimeProvider>
       </AppSettingsProvider>
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Aktivt felt')).toHaveFocus();
+      expect(screen.getByLabelText('Aktivt felt')).toBeInTheDocument();
     });
-    fireEvent.keyDown(screen.getByLabelText('Aktivt felt'), { key: 'a', code: 'KeyA' });
-    await waitFor(() => expect(screen.getByLabelText('Aktivt felt')).not.toHaveAttribute('readonly'));
 
-    fireEvent.click(screen.getByText('Satser'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Satser'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
 
     expect(screen.getByText('Stamdata testside')).toBeInTheDocument();
     expect(screen.queryByText('Satser testside')).toBeNull();
     expect(await screen.findByText('Kan ikke skifte side: afslut eller ret det aktive felt først.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Aktivt felt')).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Aktivt felt')).toHaveFocus();
+    });
   });
 });

@@ -108,10 +108,10 @@ const useFormPersistenceImport = forbidImports({
   id: 'persistence/use-form-persistence-import',
   description:
     'useFormPersistence må kun importeres af infrastruktur og de kanoniske imperative hooks.',
+  // MainLayout og usePersistedForm er væk efter greenfield-cutoveren (WI-002); kun det bevarede
+  // useFormFieldErrors (Styled*Field-vejen, Fase 5) importerer stadig useFormPersistence.
   allow: [
-    'src/components/layout/MainLayout.tsx',
     'src/hooks/useFormFieldErrors.ts',
-    'src/hooks/usePersistedForm.ts',
   ],
   forbidden: (ref) => ref.moduleSpecifier.endsWith('contexts/useFormPersistence'),
   message: (ref) => `Import af useFormPersistence (${ref.moduleSpecifier}) uden for allowlisten.`,
@@ -128,15 +128,13 @@ const formPersistenceContextImport = forbidImports({
   id: 'persistence/form-persistence-context-import',
   description:
     'Direkte import af FormPersistenceContext(.shared/.internal) er kun tilladt i contexts-infrastrukturen.',
+  // Efter greenfield-cutoveren (WI-002) er Provideren (`FormPersistenceContext.tsx`) slettet; kun
+  // `.internal`/`.shared` og de bevarede context-frit-degraderende infrastrukturhooks (Styled*Field- +
+  // celle-invalidDraft-vejen, Fase 5) importerer stadig context-objektet/typerne direkte.
   allow: [
-    'src/App.tsx',
-    'src/apps/minprocesrente/MinProcesrenteApp.tsx',
-    'src/contexts/FormPersistenceContext.tsx',
     'src/contexts/FormPersistenceContext.internal.ts',
     'src/contexts/FormPersistenceContext.shared.ts',
     'src/contexts/useFormPersistence.ts',
-    'src/hooks/useFileSaveLoad.ts',
-    'src/utils/persistenceLoadApply.ts',
     // Celle-invalidDrafts-kanalen er persistence-infrastruktur: den læser context direkte for at
     // kunne degradere context-frit uden at kaste, når en tabel rendres uden provider (tests).
     'src/hooks/tableInput/useCellInvalidDraftChannel.ts',
@@ -164,7 +162,6 @@ const formPersistenceStoreImport = forbidImports({
     'src/hooks/useFormPersistenceSelectors.ts',
     // Domæne-specifik read model: abonnerer direkte på storen for ét cachet tværsektion-snapshot.
     'src/hooks/useMidlertidigtEetInsertSource.ts',
-    'src/utils/persistenceSessionHydration.ts',
   ],
   forbidden: (ref) => ref.moduleSpecifier.endsWith('stores/formPersistenceStore'),
   message: (ref) =>

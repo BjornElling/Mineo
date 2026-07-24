@@ -64,8 +64,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       // Import-/adgangs-grænserne + committed-section-mirror håndhæves nu af harnesset.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/input/inputTransactionRunner.test.ts',
-      'src/__tests__/input/legacyGridTransactionBridge.test.tsx',
-      'src/__tests__/persistence/inputSessionMigration.test.ts',
+      // Greenfield-cutover (WI-002): den legacy `legacyGridTransactionBridge`/`inputSessionMigration` er slettet
+      // (browser-sessionmigration er et ikke-mål, §2.6). `.eo`-save/load/apply-grænsen dækkes nu af caseportene.
+      'src/__tests__/persistence/caseFileOperations.test.ts',
+      'src/__tests__/persistence/caseResetOperations.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
       'src/__tests__/utils/fileSave.test.ts',
@@ -202,8 +204,12 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/undo-redo-contract.md',
     requiredTestPaths: [
       'src/__tests__/input/inputTransactionRunner.test.ts',
-      'src/__tests__/input/legacyGridTransactionBridge.test.tsx',
-      'src/__tests__/hooks/useUndoRedo.test.tsx',
+      // Greenfield-cutover (WI-002): legacy `legacyGridTransactionBridge`/`useUndoRedo` er slettet. Undo/redo-
+      // commanden dækkes af `dispatchInput` + kernen; det stille no-op ved åben editor af coordinatoren; shellens
+      // genvej + fokus af `MainLayout.undoRedoEditorGuard` og `historyTargetRestore`.
+      'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
+      'src/__tests__/inputCore/runtime/criticalActionCoordinator.test.ts',
+      'src/__tests__/utils/historyTargetRestore.test.ts',
       'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
     ],
   },
@@ -218,7 +224,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/error-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/errorContractIsolation.test.ts',
-      'src/__tests__/hooks/useFormFieldErrors.test.tsx',
+      // Greenfield-cutover (WI-002): den legacy `useFormFieldErrors`-implementeringstest er slettet. §1.6-issue-
+      // modellen (feltfejl/consumerfejl/warning, rød-felt-maskering, strukturel save-sondring) dækkes af kernen.
+      'src/__tests__/inputCore/inputCore.test.ts',
     ],
   },
   {

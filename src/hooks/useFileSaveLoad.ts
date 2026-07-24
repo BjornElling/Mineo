@@ -1,13 +1,11 @@
 import React from 'react';
-import type { MutableRefObject } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { SaveValidationError, saveToFile } from '../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
 import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
 import { restoreFocusIfPossible } from '../utils/focusUtils';
-import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
-import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
+import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import type {
   ApplicableLoadFileResult,
   LoadFileResult,
@@ -23,20 +21,27 @@ import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { asError } from '../utils/typeGuards';
 import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
-import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
 import { executePersistenceLoadApply, type PersistenceLoadApplyResult } from '../utils/persistenceLoadApply';
 import type { SaveSnapshot } from '../utils/fileSaveTypes';
 import {
   removeOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../utils/safeSessionStorage';
-import {
-  navigateToBlockingInputError,
-  type BlockingInputErrorTarget,
-} from '../utils/saveBlockedFocus';
-import { useCriticalActionCoordinator } from '../criticalActions/CriticalActionContext';
-import type { CriticalActionFocusTarget } from '../criticalActions/criticalActionCoordinator';
+import { focusFirstBlockingRejectedField } from '../inputCore/react/greenfieldSaveBlockedFocus';
+import type { CaseOperations } from '../inputCore/react/useCaseOperations';
+import type { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';
 import { logWarning } from '../utils/logger';
+
+// Greenfield-shell-use-case (WI-002 trin 2, §1.4/§3.9/§3.10): save/load/`Slet alt` mod greenfield-runtime.
+// Det PUBLIC interface (`UseFileSaveLoadResult`) er bevaret uændret, så `MainLayout`/`usePwaLaunchQueue` og
+// dialogerne er urørte. Til forskel fra legacy:
+//  - `.eo`-save går gennem `ops.file.evaluateSave()` (rejected råinput blokerer; canonical bounds-fejl kan gemmes,
+//    §1.6), ikke gennem en field-error-store-scanning.
+//  - Load/`Slet alt` routes gennem greenfield-`CriticalActionCoordinator` + den ene replacement-command
+//    (`ops.file.applyLoadedSnapshot` / `ops.reset.clearAll`), aldrig gennem legacy `replaceAllPersistedData`.
+//  - Den rebasede §1.4-matrix har INGEN `block`-policy for load: `prepare('load')` settler ikke og blokerer
+//    aldrig. Fokus-før-handling fanges her i use-casen via `document.activeElement`, fordi greenfield `prepare`
+//    ikke længere returnerer et `focusTargetBeforeAction`.
 
 export type OverlayData = {
   message: string;
@@ -72,14 +77,13 @@ type FileOperationKind = 'save' | 'manual-load' | 'pwa-load';
 type UseFileSaveLoadArgs = {
   settings: AppSettings;
   navigate: NavigateFunction;
-  combinedSectionRevisionRef: MutableRefObject<number>;
-  markSaved: (revision: number) => void;
-  getFirstBlockingInputError: () => BlockingInputErrorTarget | null;
   currentPathname: string;
-  getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
-  replaceAllPersistedData: ReplaceAllPersistedData;
-  clearAllData: () => void;
-  hasAnyData: () => boolean;
+  /** Greenfield case-porte (`.eo`-save-evaluering, load-apply, `hasAnyData`, `Slet alt`). */
+  ops: CaseOperations;
+  /** Greenfield kritisk-handlings-barriere fra samme binding som portene (settle/replace/no-op, §1.4). */
+  criticalActions: CriticalActionCoordinator;
+  /** Markér den gemte revision som ny "unsaved changes"-baseline (§ unsaved-guard). Modtager save-tokenets inputrevision. */
+  markSaved: (revision: number) => void;
   allowExitWithoutWarning: () => void;
   showOverlay: (overlay: OverlayData) => void;
 };
@@ -151,21 +155,20 @@ const buildPreflightBugReportError = (result: PreflightFileResult): Error => {
   );
 };
 
+/** Fanger det aktuelt fokuserede element FØR en kritisk handling (greenfield `prepare` bærer det ikke længere). */
+const captureActiveElement = (): HTMLElement | null =>
+  document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
 export const useFileSaveLoad = ({
   settings,
   navigate,
-  combinedSectionRevisionRef,
-  markSaved,
-  getFirstBlockingInputError,
   currentPathname,
-  getPersistedData,
-  replaceAllPersistedData,
-  clearAllData,
-  hasAnyData,
+  ops,
+  criticalActions,
+  markSaved,
   allowExitWithoutWarning,
   showOverlay,
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
-  const criticalActions = useCriticalActionCoordinator();
   const [loadFlow, setLoadFlow] = React.useState<LoadFlowState>({ phase: 'idle' });
   const activeFileOperationRef = React.useRef<FileOperationKind | null>(null);
   const [activeFileOperation, setActiveFileOperation] = React.useState<FileOperationKind | null>(null);
@@ -192,19 +195,23 @@ export const useFileSaveLoad = ({
     [],
   );
 
+  // Load-apply routes gennem greenfield-replacement-grænsen: `ops.file.applyLoadedSnapshot` udsteder den ene
+  // autoritative `replaceCase`-command, indpakket i coordinatorens `applyReplacement` (no-settle, draften
+  // kasseres først efter et succesfuldt apply, §1.4/§7). `executePersistenceLoadApply` ejer fortsat metadata-,
+  // filhåndtags- og PWA-synkroniseringen (§4.1).
   const applyLoadedSnapshot = React.useCallback(async (result: ApplicableLoadFileResult): Promise<PersistenceLoadApplyResult> => {
-    return executePersistenceLoadApply({
+    return criticalActions.applyReplacement(() => executePersistenceLoadApply({
       result,
-      replaceAllPersistedData,
-    });
-  }, [replaceAllPersistedData]);
+      applySnapshot: ops.file.applyLoadedSnapshot,
+    }));
+  }, [criticalActions, ops.file]);
 
   const requestApplyLoadedSnapshot = React.useCallback(async (
     result: ApplicableLoadFileResult,
     overlayData: OverlayData,
     navigateToStamdataAfterApply: boolean,
   ): Promise<'applied' | 'awaitingUser'> => {
-    if (hasAnyData()) {
+    if (ops.file.hasAnyData()) {
       setLoadFlow({ phase: 'overwrite', result, overlay: overlayData, navigateToStamdataAfterApply });
       return 'awaitingUser';
     }
@@ -217,21 +224,17 @@ export const useFileSaveLoad = ({
       navigate('/stamdata', { replace: true });
     }
     return 'applied';
-  }, [applyLoadedSnapshot, hasAnyData, navigate, showOverlay]);
+  }, [applyLoadedSnapshot, navigate, ops.file, showOverlay]);
 
   const handleGem = React.useCallback(async () => {
     if (!beginFileOperation('save', true)) return;
-    let focusTargetBeforeAction: CriticalActionFocusTarget | null = null;
+    const focusBeforeAction = captureActiveElement();
     try {
+      // §1.4: save settler først den åbne editor. Et fail-closed `blocked` (uventet settle-fejl) fokuserer
+      // settle-målet og stopper; et fejlende settle er derimod ikke en blokering (fejlen fanges af evaluateSave).
       const preparation = await criticalActions.prepare('save');
-      focusTargetBeforeAction = preparation.focusTargetBeforeAction;
-      const blockingInputError = getFirstBlockingInputError();
-      if (preparation.status === 'blocked' || blockingInputError !== null) {
-        if (preparation.status === 'blocked') {
-          preparation.target?.focus();
-        } else {
-          void navigateToBlockingInputError(blockingInputError, currentPathname, navigate);
-        }
+      if (preparation.status === 'blocked') {
+        preparation.target?.focus();
         showOverlay({
           message: 'Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.',
           type: 'warning',
@@ -239,28 +242,37 @@ export const useFileSaveLoad = ({
         return;
       }
 
-      const snapshot = PERSISTED_SECTION_KEYS.reduce((acc, pageKey) => {
-        const value = getPersistedData(pageKey);
-        (acc as Record<StorageKey, unknown | undefined>)[pageKey] = value ?? undefined;
-        return acc;
-      }, {} as SaveSnapshot);
-      const snapshotRevision = combinedSectionRevisionRef.current;
+      // §3.9: evaluér `.eo`-save mod et frisk kildesnapshot. Blokeres KUN af aktivt relevant rejected råinput;
+      // canonical bounds/rule-fejl og manglende felter tillader save (§1.6).
+      const saveOutcome = ops.file.evaluateSave();
+      if (saveOutcome.status === 'blocked') {
+        void focusFirstBlockingRejectedField(saveOutcome.rejectedAddresses, currentPathname, navigate);
+        showOverlay({
+          message: 'Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      // `SaveSnapshot === PersistedSectionsSnapshot`, så save-projektionens snapshot går uændret til `saveToFile`.
+      const snapshot: SaveSnapshot = saveOutcome.snapshot;
+      const savedInputRevision = Number(saveOutcome.token.inputRevision);
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
       const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);
 
       if (result.status === 'cancelled') {
-        preparation.focusTargetBeforeAction?.focus();
+        focusBeforeAction?.focus();
         return;
       }
 
-      preparation.focusTargetBeforeAction?.focus();
-      markSaved(snapshotRevision);
+      focusBeforeAction?.focus();
+      markSaved(savedInputRevision);
       showOverlay({
         message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
         type: result.warning ? 'warning' : 'success',
       });
     } catch (error) {
-      focusTargetBeforeAction?.focus();
+      focusBeforeAction?.focus();
       const overlay = resolveSaveError(error);
       if (!(error instanceof SaveValidationError)) {
         console.error('Gem fejlede:', error);
@@ -271,11 +283,9 @@ export const useFileSaveLoad = ({
     }
   }, [
     beginFileOperation,
-    combinedSectionRevisionRef,
     criticalActions,
     currentPathname,
-    getFirstBlockingInputError,
-    getPersistedData,
+    ops.file,
     finishFileOperation,
     markSaved,
     navigate,
@@ -286,11 +296,12 @@ export const useFileSaveLoad = ({
   const handleHent = React.useCallback(async () => {
     if (!beginFileOperation('manual-load', true)) return;
     let awaitsUserDecision = false;
-    let focusTargetBeforeAction: CriticalActionFocusTarget | null = null;
+    const focusBeforeAction = captureActiveElement();
 
     try {
+      // §1.4: load settler ALDRIG og blokerer aldrig — den åbne draft kasseres først, hvis apply lykkes.
+      // Coordinatorens `prepare('load')` er `replace`-policy; et uventet fail-closed `blocked` fokuserer målet.
       const preparation = await criticalActions.prepare('load');
-      focusTargetBeforeAction = preparation.focusTargetBeforeAction;
       if (preparation.status === 'blocked') {
         preparation.target?.focus();
         showOverlay({
@@ -305,7 +316,7 @@ export const useFileSaveLoad = ({
       const result: LoadFileResult = await loadFromFile(resolvedDirectory);
 
       if (result.status === 'cancelled') {
-        focusTargetBeforeAction?.focus();
+        focusBeforeAction?.focus();
         return;
       }
 
@@ -321,7 +332,7 @@ export const useFileSaveLoad = ({
         true,
       )) === 'awaitingUser';
     } catch (error) {
-      focusTargetBeforeAction?.focus();
+      focusBeforeAction?.focus();
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent fejlede:', error);
@@ -338,11 +349,10 @@ export const useFileSaveLoad = ({
   const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
     if (!beginFileOperation('pwa-load', false)) return 'busy';
     let awaitsUserDecision = false;
-    let focusTargetBeforeAction: CriticalActionFocusTarget | null = null;
+    const focusBeforeAction = captureActiveElement();
 
     try {
       const preparation = await criticalActions.prepare('load');
-      focusTargetBeforeAction = preparation.focusTargetBeforeAction;
       if (preparation.status === 'blocked') {
         preparation.target?.focus();
         showOverlay({
@@ -356,7 +366,7 @@ export const useFileSaveLoad = ({
       const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
 
       if (result.status === 'cancelled') {
-        focusTargetBeforeAction?.focus();
+        focusBeforeAction?.focus();
         return 'cancelled';
       }
 
@@ -377,7 +387,7 @@ export const useFileSaveLoad = ({
       awaitsUserDecision = outcome === 'awaitingUser';
       return outcome === 'awaitingUser' ? 'awaitingUser' : 'applied';
     } catch (error) {
-      focusTargetBeforeAction?.focus();
+      focusBeforeAction?.focus();
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent (PWA) fejlede:', error);
@@ -442,7 +452,7 @@ export const useFileSaveLoad = ({
   }, [applyLoadedSnapshot, finishFileOperation, navigate, loadFlow, showOverlay]);
 
   const handleSletAlt = React.useCallback(async () => {
-    const focusTargetBeforeDeleteAll = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusTargetBeforeDeleteAll = captureActiveElement();
     const confirmed = window.confirm(
       'ADVARSEL: Dette vil slette alle indtastede oplysninger!\n\nEr du sikker på at du vil fortsætte?',
     );
@@ -453,7 +463,9 @@ export const useFileSaveLoad = ({
     }
 
     try {
-      clearAllData();
+      // §7/§1.12: `Slet alt` gennem greenfield-replacement-grænsen (no-settle; draften kasseres først ved
+      // succes) — dette er også recovery-vejen ud af en `writesBlocked` current-session.
+      await ops.reset.clearAll();
       removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
       removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis);
       await deleteFileHandleFromIndexedDB();
@@ -471,7 +483,7 @@ export const useFileSaveLoad = ({
         type: 'error',
       });
     }
-  }, [allowExitWithoutWarning, clearAllData, showOverlay]);
+  }, [allowExitWithoutWarning, ops.reset, showOverlay]);
 
   // De to dialog-states afledes read-only fra den ene tilstandsmaskine, så de aldrig kan være
   // sat samtidigt (den ugyldige kombination er urepræsenterbar).

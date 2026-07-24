@@ -7,12 +7,24 @@ import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../..
 // useFileSaveLoad ejer orkestreringen (preflight-gating, atomisk apply, fokus-restore,
 // markSaved-bogføring). Selve fil-I/O og persistence-apply mockes på modulgrænsen, så
 // testene hævder hookens invarianter — ikke de underliggende utils' implementering.
+//
+// Greenfield (WI-002 Fase 4): hooken forbruger nu de rene case-porte (`ops`) + den greenfield
+// `CriticalActionCoordinator` (`criticalActions`) i stedet for det legacy args-interface
+// (`combinedSectionRevisionRef`/`replaceAllPersistedData`/`getFirstBlockingInputError` osv.).
+// Save/hent-tilstand drives derfor gennem den ægte produktions-runtime:
+//  - "ugyldige felter blokerer save" → et REJECTED format-råinput settles på et rigtigt felt.
+//  - "åbent felt kan ikke committes" → en åben editor i `activeEditorRegistry`, hvis settle KASTER
+//    (fail-closed `blocked`, §1.4). Bemærk: åben editor blokerer KUN save/navigate — load er
+//    `replace`-policy og settler/blokeres ALDRIG (§1.4), så "hent"-testen hævder nu det modsatte.
+//  - `executePersistenceLoadApply` mockes, men KALDER den injicerede `applySnapshot`, så den ægte
+//    `replaceCase` kører og hæver `replacementGeneration` (coordinatorens apply-guard, §7).
 
 const saveToFileMock = vi.fn<(...args: unknown[]) => Promise<SaveFileResult>>();
 const loadFromFileMock = vi.fn<(...args: unknown[]) => Promise<LoadFileResult>>();
 const loadFromFileHandleMock = vi.fn<(...args: unknown[]) => Promise<LoadFileResult>>();
 const executePersistenceLoadApplyMock =
-  vi.fn<(...args: unknown[]) => Promise<{ status: 'applied' } | { status: 'applied-with-metadata-error'; message: string }>>();
+  vi.fn<(...args: [{ result: { snapshot?: unknown }; applySnapshot: (snapshot: unknown) => void }]) =>
+    Promise<{ status: 'applied' } | { status: 'applied-with-metadata-error'; message: string }>>();
 
 vi.mock('../../utils/fileSave', () => ({
   saveToFile: (...args: unknown[]) => saveToFileMock(...args),
@@ -25,7 +37,9 @@ vi.mock('../../utils/fileLoad', () => ({
 }));
 
 vi.mock('../../utils/persistenceLoadApply', () => ({
-  executePersistenceLoadApply: (...args: unknown[]) => executePersistenceLoadApplyMock(...args),
+  executePersistenceLoadApply: (
+    args: { result: { snapshot?: unknown }; applySnapshot: (snapshot: unknown) => void }
+  ) => executePersistenceLoadApplyMock(args),
 }));
 
 vi.mock('../../utils/fileHelpers', () => ({
@@ -36,14 +50,19 @@ vi.mock('../../utils/fileHandleStorage', () => ({
   deleteFileHandleFromIndexedDB: vi.fn(async () => undefined),
 }));
 
-vi.mock('../../utils/saveBlockedFocus', () => ({
-  navigateToBlockingInputError: vi.fn(async () => undefined),
-}));
-
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import type { BlockingInputErrorTarget } from '../../utils/saveBlockedFocus';
-import { CriticalActionProvider, useCriticalActionParticipant } from '../../criticalActions/CriticalActionContext';
+import {
+  ProductionInputRuntimeProvider,
+  createProductionInputRuntimeBinding,
+} from '../../inputCore/react/productionInputRuntime';
+import { useCaseOperations, useCriticalInputActions } from '../../inputCore/react';
+import { slimInputStore } from '../../inputCore/runtime/slimInputStore';
+import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
+import { activeEditorRegistry, type ActiveEditor } from '../../inputCore/runtime/activeEditorRegistry';
+import { reduceInputCommand, settleField } from '../../inputCore/inputReducer';
+import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
+import type { SettledInput } from '../../inputCore/settledInput';
 
 type HookApi = ReturnType<typeof useFileSaveLoad>;
 
@@ -51,66 +70,90 @@ type HarnessHandles = {
   api: HookApi | null;
   markSaved: ReturnType<typeof vi.fn<(revision: number) => void>>;
   showOverlay: ReturnType<typeof vi.fn<(overlay: OverlayData) => void>>;
-  replaceAllPersistedData: ReturnType<typeof vi.fn<(snapshot: unknown) => void>>;
-  clearAllData: ReturnType<typeof vi.fn<() => void>>;
+  allowExitWithoutWarning: ReturnType<typeof vi.fn<() => void>>;
   navigate: ReturnType<typeof vi.fn<(to: string, opts?: unknown) => void>>;
-  commit: ReturnType<typeof vi.fn<() => boolean>>;
 };
 
-const blockingError: BlockingInputErrorTarget = {
-  kind: 'field',
-  pageKey: 'stamdata',
-  fieldName: 'skadedato',
-  message: 'Ugyldig dato',
+const catalog = getProductionInputCatalog();
+
+const emptyInput = (): SettledInput => catalog.validateSettledInput({
+  sections: {
+    stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+    renteberegning: null, varigemen: null, forsoergertab: null,
+    erstatningsopgoerelse: null, erhvervsevnetab: null,
+  },
+  rejectedInputs: {},
+});
+
+/** Data-present canonical input (et velformet satsår → hasAnyData=true). */
+const inputWithData = (): SettledInput =>
+  reduceInputCommand(emptyInput(), settleField(satserAargangField.bind(), '2020'), catalog).input;
+
+/** Et REJECTED format-råinput (ikke-parsebart satsår) → blokerer save (§1.6). */
+const inputWithRejected = (): SettledInput =>
+  reduceInputCommand(emptyInput(), settleField(satserAargangField.bind(), 'ikke-et-tal'), catalog).input;
+
+/** Registrerer en åben editor, hvis settle KASTER → fail-closed `blocked` (§1.4 settle-policy). */
+let unregisterEditor: (() => void) | null = null;
+const registerEditorThatFailsSettle = (): void => {
+  const editor: ActiveEditor = {
+    id: 'test-open-editor',
+    isEditing: () => true,
+    settle: () => {
+      throw new Error('Simuleret uventet settle-fejl');
+    },
+    discard: () => {},
+  };
+  unregisterEditor = activeEditorRegistry.register(editor);
 };
 
 const renderHook = (
   overrides: {
-    hasAnyData?: () => boolean;
-    getFirstBlockingInputError?: () => BlockingInputErrorTarget | null;
-    activeFormEditor?: boolean;
-    formCommitResult?: boolean;
+    hasData?: boolean;
+    rejected?: boolean;
+    openEditorFailsSettle?: boolean;
   } = {}
 ): HarnessHandles => {
+  // Hydrér den ægte runtime FØR mount, så porten ser præcis den tilsigtede tilstand.
+  const initialInput = overrides.rejected
+    ? inputWithRejected()
+    : overrides.hasData
+      ? inputWithData()
+      : emptyInput();
+  slimInputStore.getState().hydrate(initialInput);
+
+  if (overrides.openEditorFailsSettle) {
+    registerEditorThatFailsSettle();
+  }
+
   const handles: HarnessHandles = {
     api: null,
     markSaved: vi.fn<(revision: number) => void>(),
     showOverlay: vi.fn<(overlay: OverlayData) => void>(),
-    replaceAllPersistedData: vi.fn<(snapshot: unknown) => void>(),
-    clearAllData: vi.fn<() => void>(),
+    allowExitWithoutWarning: vi.fn<() => void>(),
     navigate: vi.fn<(to: string, opts?: unknown) => void>(),
-    commit: vi.fn(() => overrides.formCommitResult ?? true),
   };
 
   const Harness = () => {
-    useCriticalActionParticipant({
-      id: 'test-form-field',
-      kind: 'form-field',
-      isEditing: () => overrides.activeFormEditor === true,
-      commit: handles.commit,
-    });
-    const revisionRef = React.useRef(7);
+    const ops = useCaseOperations();
+    const criticalActions = useCriticalInputActions();
     handles.api = useFileSaveLoad({
       settings: DEFAULT_APP_SETTINGS,
       navigate: handles.navigate as unknown as Parameters<typeof useFileSaveLoad>[0]['navigate'],
-      combinedSectionRevisionRef: revisionRef,
-      markSaved: handles.markSaved,
-      getFirstBlockingInputError: overrides.getFirstBlockingInputError ?? (() => null),
       currentPathname: '/stamdata',
-      getPersistedData: () => null,
-      replaceAllPersistedData: handles.replaceAllPersistedData as unknown as Parameters<typeof useFileSaveLoad>[0]['replaceAllPersistedData'],
-      clearAllData: handles.clearAllData,
-      hasAnyData: overrides.hasAnyData ?? (() => false),
-      allowExitWithoutWarning: vi.fn(),
+      ops,
+      criticalActions,
+      markSaved: handles.markSaved,
+      allowExitWithoutWarning: handles.allowExitWithoutWarning,
       showOverlay: handles.showOverlay,
     });
     return null;
   };
 
   render(
-    <CriticalActionProvider>
+    <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
       <Harness />
-    </CriticalActionProvider>,
+    </ProductionInputRuntimeProvider>,
   );
   return handles;
 };
@@ -133,18 +176,24 @@ const successfulLoad = (extra: { preflightWarning?: LoadPreflightWarning } = {})
 
 describe('useFileSaveLoad', () => {
   beforeEach(() => {
-    executePersistenceLoadApplyMock.mockResolvedValue({ status: 'applied' });
+    // Kald den ægte applySnapshot, så replaceCase kører og replacementGeneration hæves
+    // (coordinatorens applyReplacement-guard, §7). Ellers ville et mocket no-op apply kaste.
+    executePersistenceLoadApplyMock.mockImplementation(async (args) => {
+      args.applySnapshot(args.result.snapshot ?? {});
+      return { status: 'applied' };
+    });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    unregisterEditor?.();
+    unregisterEditor = null;
+    slimInputStore.getState().hydrate(emptyInput());
   });
 
   describe('handleGem', () => {
     it('blokerer gem ved ugyldige felter og rører aldrig saveToFile', async () => {
-      const handles = renderHook({
-        getFirstBlockingInputError: () => blockingError,
-      });
+      const handles = renderHook({ rejected: true });
 
       await act(async () => {
         await handles.api?.handleGem();
@@ -158,16 +207,12 @@ describe('useFileSaveLoad', () => {
     });
 
     it('blokerer Gem når et åbent felt ikke kan committes og starter aldrig fil-I/O', async () => {
-      const handles = renderHook({
-        activeFormEditor: true,
-        formCommitResult: false,
-      });
+      const handles = renderHook({ openEditorFailsSettle: true });
 
       await act(async () => {
         await handles.api?.handleGem();
       });
 
-      expect(handles.commit).toHaveBeenCalledTimes(1);
       expect(saveToFileMock).not.toHaveBeenCalled();
       expect(handles.markSaved).not.toHaveBeenCalled();
       expect(handles.showOverlay).toHaveBeenCalledWith(
@@ -187,14 +232,15 @@ describe('useFileSaveLoad', () => {
     });
 
     it('markerer gemt med den committede revision ved succesfuldt gem', async () => {
-      const handles = renderHook();
+      const handles = renderHook({ hasData: true });
+      const expectedRevision = Number(slimInputStore.getState().revision);
       saveToFileMock.mockResolvedValue({ status: 'saved', filename: 'sag.eo', fieldCount: 1, sections: 1, verified: false });
 
       await act(async () => {
         await handles.api?.handleGem();
       });
 
-      expect(handles.markSaved).toHaveBeenCalledWith(7);
+      expect(handles.markSaved).toHaveBeenCalledWith(expectedRevision);
       expect(handles.showOverlay).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'success' })
       );
@@ -207,7 +253,7 @@ describe('useFileSaveLoad', () => {
       saveToFileMock.mockImplementation(() => new Promise((resolve) => {
         resolveSave = resolve;
       }));
-      const handles = renderHook();
+      const handles = renderHook({ hasData: true });
       let firstSave: Promise<void> | undefined;
 
       await act(async () => {
@@ -235,15 +281,18 @@ describe('useFileSaveLoad', () => {
   });
 
   describe('handleHent — atomisk preflight-gating', () => {
-    it('blokerer hent når et aktivt felt ikke kan committes', async () => {
-      const handles = renderHook({ activeFormEditor: true });
+    it('gennemfører hent uden settle selv med en åben editor (load er replace-policy, §1.4)', async () => {
+      // Rebaset §1.4: en åben editor blokerer ALDRIG load — coordinatorens `prepare("load")` er
+      // replace-policy (settler ikke). Load gennemføres, og draften kasseres først ved succes.
+      const handles = renderHook({ openEditorFailsSettle: true });
+      loadFromFileMock.mockResolvedValue(successfulLoad());
 
       await act(async () => {
         await handles.api?.handleHent();
       });
 
-      expect(loadFromFileMock).not.toHaveBeenCalled();
-      expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
+      expect(loadFromFileMock).toHaveBeenCalledTimes(1);
+      expect(executePersistenceLoadApplyMock).toHaveBeenCalledTimes(1);
     });
 
     it('sætter pendingLoadResult og anvender IKKE data ved preflight-advarsel', async () => {
@@ -258,11 +307,10 @@ describe('useFileSaveLoad', () => {
 
       expect(handles.api?.pendingLoadResult).not.toBeNull();
       expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
-      expect(handles.replaceAllPersistedData).not.toHaveBeenCalled();
     });
 
     it('går til overskriv-bekræftelse (ingen apply) når der allerede findes data', async () => {
-      const handles = renderHook({ hasAnyData: () => true });
+      const handles = renderHook({ hasData: true });
       loadFromFileMock.mockResolvedValue(successfulLoad());
 
       await act(async () => {
@@ -274,7 +322,7 @@ describe('useFileSaveLoad', () => {
     });
 
     it('anvender data straks ved tom state uden preflight-advarsel', async () => {
-      const handles = renderHook({ hasAnyData: () => false });
+      const handles = renderHook({ hasData: false });
       loadFromFileMock.mockResolvedValue(successfulLoad());
 
       await act(async () => {
@@ -290,7 +338,7 @@ describe('useFileSaveLoad', () => {
 
   describe('handleConfirmOverwriteApply', () => {
     it('anvender det ventende snapshot og navigerer til stamdata', async () => {
-      const handles = renderHook({ hasAnyData: () => true });
+      const handles = renderHook({ hasData: true });
       loadFromFileMock.mockResolvedValue(successfulLoad());
 
       await act(async () => {
@@ -310,7 +358,7 @@ describe('useFileSaveLoad', () => {
 
   describe('handleLoadDespiteIssues', () => {
     it('anvender det ventende preflight-snapshot med advarsels-overlay', async () => {
-      const handles = renderHook({ hasAnyData: () => false });
+      const handles = renderHook({ hasData: false });
       loadFromFileMock.mockResolvedValue(
         successfulLoad({ preflightWarning: { loadedCount: 1, issues: [] } })
       );
@@ -334,7 +382,7 @@ describe('useFileSaveLoad', () => {
 
   describe('load-flow tilstandsmaskine', () => {
     it('preflight → "Indlæs trods fejl" fører til overskriv-bekræftelse når der findes data (aldrig begge dialoger samtidig)', async () => {
-      const handles = renderHook({ hasAnyData: () => true });
+      const handles = renderHook({ hasData: true });
       loadFromFileMock.mockResolvedValue(
         successfulLoad({ preflightWarning: { loadedCount: 1, issues: [] } })
       );
@@ -363,7 +411,7 @@ describe('useFileSaveLoad', () => {
     });
 
     it('dismissPendingLoad fører flowet tilbage til idle uden at anvende data', async () => {
-      const handles = renderHook({ hasAnyData: () => true });
+      const handles = renderHook({ hasData: true });
       loadFromFileMock.mockResolvedValue(successfulLoad());
 
       await act(async () => {

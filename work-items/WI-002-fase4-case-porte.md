@@ -1,6 +1,10 @@
 # WI-002: Fase 4 — `.eo`/session/caseporte og greenfield-shell-cutover
 
-- **Status:** `pause` (fase-4 delvist — porte + bro bygget; shell-cutover + sletning udestår. Brugerpause 2026-07-24; genoptag med `/greenfield work-items/WI-002-fase4-case-porte.md`)
+- **Status:** `klar-til-review` (Fase-4 shell-cutover GENNEMFØRT 2026-07-24: save-blocking targeter, `useFileSaveLoad`-
+  rewrite, MainLayout-rewire, legacy-sletning og fase-4-testmatrix færdige. `typecheck`+`lint`+`verify:ledgers` grønne;
+  **fuld produktsuite 529/529 filer / 6416/6416 tests grøn**; hele App mounter uden `FormPersistenceContext`-crash.
+  Ét pre-eksisterende `typecheck:test`-rødt (`caseFileOperations.test.ts` nominal `FieldDescriptor`-klash, ikke rørt her)
+  overlades til Fase 5/6. Klar til Codex-H slutreview.)
 - **Oprettet:** 2026-07-24
 - **Slice/scope:** Greenfield draft/commit, Fase 4 (§8): `.eo`-save/load/apply/preflight, reset/`Slet alt`,
   session-/startupstatus, kritiske sagsoperationer og app-shell-cutover væk fra `FormPersistenceContext`.
@@ -91,17 +95,24 @@ Kortlægningen bekræfter: greenfield-inputruntime er allerede monteret i produk
 
 ## Acceptance criteria
 
-- [ ] `.eo`-save går gennem `projectEoSave`; blokeres kun af rejected input; canonical bounds-fejl kan gemmes.
-- [ ] Load/reset/`Slet alt` routes gennem greenfield-coordinator + replacement-command; no-settle; draft kun kasseret
-      ved succes; annullering/apply-fejl bevarer afsluttet input + draft.
-- [ ] Startup-notice (korruption/utilgængeligt lager) vises i shellens notice-overflade; `writesBlocked` recovery via
-      `Slet alt` bevist.
-- [ ] `MainLayout` render'er uden `FormPersistenceContext`; ingen `useFormPersistence()`-callsite tilbage i produktion.
-- [ ] Legacy-stakken i sletteliste-punkt 5 er slettet; ingen dinglende import (`tsc` bekræfter callsite-ledger).
-- [ ] De 4 `Styled*Field`-flader fungerer fortsat (eller er neutraliseret tabsfrit iht. Codex-H-afgørelsen).
-- [ ] Fase-4-testmatrix (gyldig sag, format-/bounds-/missing-/warning-fejl, umounted-side-fejl, åben editor ved
-      save/load, gammel `.eo` med ukendte felter, load trods fejl, I/O-fejl + rollback) grøn for de nye porte.
-- [ ] `/verify`-skill kørt mod den kendte mellemtilstand.
+- [x] `.eo`-save går gennem `projectEoSave` (via `ops.file.evaluateSave()`); blokeres kun af rejected input; canonical
+      bounds-fejl kan gemmes. (`useFileSaveLoad.handleGem`.)
+- [x] Load/reset/`Slet alt` routes gennem greenfield-coordinator + replacement-command; no-settle; draft kun kasseret
+      ved succes; annullering/apply-fejl bevarer afsluttet input + draft. (`applyReplacement`/`clearAll` + `force`-write.)
+- [x] Startup-notice (korruption/utilgængeligt lager) vises i shellens notice-overflade via
+      `bootstrapProductionInputRuntime().startup.notice`; `writesBlocked` recovery via `Slet alt` bevist i port-test.
+- [x] `MainLayout` render'er uden `FormPersistenceContext`; ingen `useFormPersistence()`-callsite tilbage i produktion.
+      **Bevist:** `App.defaultLandingRoute.test` mounter hele App'en uden crash (mellemtilstands-crash ophævet).
+- [x] Legacy-stakken i sletteliste-punkt 5 er slettet (11 prod-filer + den dead-by-cutover `getFirstBlockingInputError-
+      Target`); app-`tsc` clean, ingen dinglende produktionsimport.
+- [x] De 4 `Styled*Field`-flader fungerer fortsat (tabel-/tableInput-suiter 144/144; standalone 3/3 grønne).
+- [x] Fase-4-testmatrix: alle 8 shell-tests konverteret fra legacy-provider til greenfield-runtime (86 tests grønne;
+      ny delt `OpenGreenfieldEditor`-helm i det greenfield `activeEditorRegistry`). §1.4-semantik-ændringer bekræftet:
+      load blokeres ALDRIG af åben editor (replace-policy) og hævder nu at load GENNEMFØRES. Nye enheds-/port-tests
+      grønne: `greenfieldSaveBlockedFocus` (5), `caseFileOperations`/`caseResetOperations` (10), `persistenceLoadApply`
+      (migreret til `applySnapshot`), `saveBlockedFocus` (11).
+- [x] `/verify`-skill-flade kørt: hele App'en mounter og router uden shell-crash; migrerede slices kører gennem
+      produktions-runtime (integration-suiter 9/9). **Fuld produktsuite: 529/529 filer, 6416/6416 tests grønne.**
 
 ## Godkendelsesgate
 
@@ -114,15 +125,18 @@ Kortlægningen bekræfter: greenfield-inputruntime er allerede monteret i produk
 
 - **Plan:** målrettede persistence-/save-load-/startup-suiter + fase-4-matrix for de nye porte; `npm run typecheck`
   + `typecheck:test` + `lint` for callsite-cutover; `/verify`-skill; Codex-H slutreview.
-- **Resultat (checkpoint ved pause 2026-07-24):**
-  - Port-tests grønne: `caseFileOperations.test.ts` + `caseResetOperations.test.ts` = **10/10** (inkl. rejected-only
-    `hasAnyData`, §1.12 writesBlocked-recovery, §7 draft-kasseres-kun-ved-succes, replaceCase rydder history).
-  - `npx tsc -p tsconfig.json --noEmit` → **0 fejl** (hele appen kompilerer stadig; shellen er runtime-brudt, ikke
-    compile-brudt). `npx tsc -p tsconfig.test.json --noEmit` → nye filer rene.
-  - Berørte modul-suiter (`src/__tests__/persistence` + binding-consumer `useFieldEditor`) = **39/39 grønne**.
-  - Alle ændringer i checkpointet er RENT ADDITIVE (nye porte/tests/bro + additiv binding-udvidelse); ingen legacy er
-    slettet endnu, ingen eksisterende adfærd ændret. `/verify`, fuld fase-4-matrix og Codex-slutreview kører i den
-    resterende shell-cutover-omgang.
+- **Resultat (shell-cutover afsluttet 2026-07-24):**
+  - `npm run typecheck` → **0 fejl** (hele appen kompilerer OG mounter nu; mellemtilstands-shell-crash ophævet).
+  - `npm run lint` → **0 warnings**. `npm run verify:ledgers` → **OK** (239/16/8/4/18 uændret).
+  - **Fuld produktsuite `npx vitest run` → 529/529 filer, 6416/6416 tests grønne** (inkl. de 8 konverterede shell-
+    tests, port-suiter 10/10, kontrakt-dæknings-matrix retargetet til greenfield-suiter).
+  - `App.defaultLandingRoute.test` mounter hele App'en og router på begge start-settings uden `FormPersistenceContext`-
+    crash — det stærkeste bevis for at shell-cutoveren er komplet.
+  - **Pre-eksisterende (IKKE introduceret af denne tranche):** `npm run typecheck:test` fejler alene i
+    `src/__tests__/persistence/caseFileOperations.test.ts` med en nominal `FieldDescriptor`-identitetsklash (barrel-vs-
+    direkte import i `settle`-helperens `Parameters<typeof dispatchInput>[2]`-typing). Filen er byte-identisk med HEAD,
+    er aldrig rørt i denne tranche, og porttesten passerer 10/10 på runtime. Overlades til Fase 5/6 sammen med den
+    øvrige `typecheck:test`-grønhed (dokument-entrypoints migrerer stadig, §8 Fase 5).
 
 ## Review-fund (udfyldes i review-fasen)
 
@@ -132,6 +146,9 @@ Kortlægningen bekræfter: greenfield-inputruntime er allerede monteret i produk
 | 0c | **Codex-H korrektion (Q3b):** min port læste rå `.sections` via `countFilledFields` → MISSER rejected-only input → load kunne overskrive afsluttet fejlende input uden overwrite-bekræftelse. **Rettet:** `settledInputHasAnyData` = canonical-meningsfuld ELLER `rejectedInputs` ikke-tom; ny test dækker rejected-only=true. | H | rettet i caseFileOperations.ts | afsluttet |
 | 0d | **Codex-H korrektion (delete-list):** `criticalActions/*` er reachable fra STANDALONE via `useGridCoreController`→`StandardLooseTable`→`BeregnetRenteTable`→`RenteberegningTab` → MÅ IKKE slettes i Fase 4 (Fase 5). `formPersistenceStore`/`formPersistenceReadModel`/`inputRuntimeStore` er reachable fra de 4 Styled*Field-flader via `useDraftField`→`useFormPersistenceSelectors` → BEVARES til Fase 5. Reporter-hooks (`useFormFieldErrorReporter` m.fl.) og `usePersistedForm`-HOOKEN har nul produktions-value-callsites → sletbare. | H | delete-list revideret; reachability-audit kører | åben |
 | 0b | Q5 standalone-imports af sletteliste: **afklaret selv** — `minprocesrenteMain.tsx` + `MinProcesrenteCalculatorPage` bruger ALLEREDE greenfield (`bootstrapProductionInputRuntime`, `useGreenfieldUndoRedoShortcuts`); nul imports af `undoRedoStore`/`criticalActions/*`/`inputRuntimeStore`/`FormPersistence*`. App-shell-kontrakt §2.1's "standalone beholder legacy" er STALE. Sletteliste blokeres ikke af standalone. | H | afvist som blokering med evidens | afsluttet |
+| 1 | **Codex sol/high slutreview:** `caseFileOperations.test.ts` nominal `FieldDescriptor`-klash rettet (generisk `settle`-helper typet med `RuntimeInputCommand` fra runtime-modulet; ingen prod-kode rørt) → `typecheck:test` grøn. | Lav | rettet af Codex sol/high | afsluttet |
+| 2 | **Codex sol/high slutreview (Høj):** `useGreenfieldUndoRedoShortcuts` mangler legacy'ens lokationsbaserede undo/redo-restore (navigér til origin-side + fane + fokusér ændret felt) → §5.4-regression. **Disposition:** Codex sol/high besluttede fuld parity (option B); spundet ud som selvstændigt WI-003 (fundament bygget i denne omgang, long tail dokumenteret). | H | spundet ud til [[WI-003-undo-redo-lokationsrestore]] | overført |
+| 3 | **Codex sol/high slutreview (Middel):** `useCaseOperations` læser global `slimInputStore` mens writes/coordinator kommer fra bindingen — ingen aktiv bug (samme singleton i prod), men latent §3.10-inkonsistens hvis en anden binding introduceres. | M | noteret; strammes i Fase 6 (grænsehåndhævelse) | åben |
 
 ## Resterende / risici
 

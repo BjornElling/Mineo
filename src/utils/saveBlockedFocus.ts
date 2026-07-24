@@ -1,11 +1,8 @@
 import type { NavigateFunction } from 'react-router-dom';
-import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 import { setActiveTabForPage } from '../hooks/usePersistedActiveTab';
 import { focusElementWithoutScroll, waitForAnimationFrame } from './focusUtils';
-import { isRecord } from './typeGuards';
 import { scrollTargetIntoView } from './scrollTargetIntoView';
-import { resolveActiveFieldError, type FieldErrorBySource } from '../types/fieldErrors';
 import { EO_ANGIVET_LOEN_ID } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { APP_ROUTES, getRouteForPageKey, routeToPageId, PAGE_DEFAULT_TAB } from '../config/pageNavigation';
 import { resolveTabForCellFieldPath } from '../config/cellInvalidDraftScopes';
@@ -23,9 +20,6 @@ export type BlockingInputErrorTarget = Readonly<{
   fieldName: string;
   message: string;
 }>;
-
-type FieldErrorsSnapshotGetter = (pageKey: StorageKey) => unknown;
-type InvalidDraftsSnapshotGetter = (pageKey: StorageKey) => Record<string, string>;
 
 const FOCUSABLE_ERROR_SELECTOR = [
   '.Mui-error input:not([disabled]):not([type="hidden"]):not([type="button"])',
@@ -149,42 +143,11 @@ const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
   }
 };
 
-export const getFirstBlockingInputErrorTarget = (
-  getErrorsBySourceSnapshot: FieldErrorsSnapshotGetter,
-  getInvalidDraftsSnapshot?: InvalidDraftsSnapshotGetter
-): BlockingInputErrorTarget | null => {
-  for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
-    // 1) Ikke-committbart input (`invalidDrafts`) blokerer altid Gem. fieldPath bruges direkte til
-    //    både fane-routing og DOM-lokalisering (data-mineo-field-path). Almindelige felter OG grid-celler.
-    if (getInvalidDraftsSnapshot) {
-      const drafts = getInvalidDraftsSnapshot(pageKey);
-      const firstFieldPath = Object.keys(drafts)[0];
-      if (firstFieldPath !== undefined) {
-        return { kind: 'field', pageKey, fieldName: firstFieldPath, message: '' };
-      }
-    }
-
-    // 2) Blokerende fieldErrors (typisk `rule`/`schema`, samt `blocksSave`-true input der ikke er
-    //    parse-fejl, fx den syntetiske EO `:loenindkomst`-aggregat). Range/bounds-fejl
-    //    (`blocksSave:false`) blokerer ikke.
-    const errorsBySource = getErrorsBySourceSnapshot(pageKey);
-    if (!isRecord(errorsBySource)) continue;
-
-    for (const fieldName of Object.keys(errorsBySource)) {
-      const fieldSources = errorsBySource[fieldName];
-      if (!isRecord(fieldSources)) continue;
-
-      // Et felt kan have flere samtidige fejl-kilder (input/rule/schema). Kun den AKTIVE fejl
-      // (per resolveActiveFieldError) afspejler hvad UI'et faktisk viser.
-      const active = resolveActiveFieldError(fieldSources as FieldErrorBySource);
-      if (active && active.severity === 'error' && active.blocksSave !== false) {
-        return { kind: 'field', pageKey, fieldName, message: active.message };
-      }
-    }
-  }
-
-  return null;
-};
+// Bemærk (WI-002 greenfield-cutover): den tidligere `getFirstBlockingInputErrorTarget` — der udledte det
+// blokerende felt fra den legacy field-error-store med per-issue `blocksSave` — er fjernet. Save-blokering
+// afgøres nu strukturelt af rejected råinput (§1.6/§3.9): `CaseFileOperations.evaluateSave` leverer de
+// blokerende adresser, og `greenfieldSaveBlockedFocus.blockingTargetFromRejectedAddress` bygger målet. Den
+// bevarede DOM-/fane-routing nedenfor (`navigateToBlockingInputError` m.fl.) er fælles for begge veje.
 
 export const focusFirstVisibleBlockingInputError = async (
   target?: BlockingInputErrorTarget | null

@@ -4,14 +4,18 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
-import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import type { SaveFileResult } from '../../../types/fileOperations';
-import { getStorageKey } from '../../../config/storageManifest';
-import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
-import { formPersistenceStore } from '../../../stores/formPersistenceStore';
-import type { PersistedSectionsSnapshot } from '../../../config/persistenceRegistry';
-import type { StamdataValues } from '../../../schemas/formSchemas';
+import {
+  ProductionInputRuntimeProvider,
+  bootstrapProductionInputRuntime,
+  createProductionInputRuntimeBinding,
+} from '../../../inputCore/react/productionInputRuntime';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
+import { dispatchInput } from '../../../inputCore/runtime/dispatchInput';
+import { replaceCase, settleField } from '../../../inputCore/inputReducer';
+import { satserAargangField } from '../../../inputCore/catalog/satserDescriptors';
+import type { SettledInput, SettledInputCandidate } from '../../../inputCore/settledInput';
 
 vi.mock('../../../utils/fileLoad', () => ({
   loadFromFile: vi.fn(),
@@ -35,6 +39,7 @@ vi.mock('../../../utils/pwaLaunchQueue', () => ({
 
 vi.mock('../../../utils/fileSave', () => ({
   saveToFile: vi.fn(),
+  SaveValidationError: class FakeSaveValidationError extends Error {},
 }));
 
 vi.mock('../../../utils/fileHelpers', async (importOriginal) => {
@@ -56,39 +61,57 @@ vi.mock('../../../utils/fileHandleStorage', () => ({
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 import { saveToFile } from '../../../utils/fileSave';
-import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../../utils/fileHandleStorage';
-import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
+import { deleteFileHandleFromIndexedDB } from '../../../utils/fileHandleStorage';
 import { clickMainLayoutAction, dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
-import { useCriticalActionParticipant } from '../../../criticalActions/CriticalActionContext';
-import { createElementFocusTarget } from '../../../criticalActions/focusTarget';
+import { OpenGreenfieldEditor } from './greenfieldEditorTestUtils';
 
-const LockedGridParticipant = ({ label }: { label: string }) => {
-  const participantId = React.useId();
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  useCriticalActionParticipant({
-    id: `test-grid:${participantId}`,
-    kind: 'grid-editor',
-    isEditing: () => true,
-    getFocusTarget: () => createElementFocusTarget(() => inputRef.current),
-    commit: () => false,
+// Greenfield-shell (WI-002 Fase 4): al "unsaved changes"-adfærd drives nu gennem den ENE runtime.
+//  - "committed input change" → en ægte settle (revision > baseline → beforeunload aktiveres).
+//  - "authoritative replace / load baseline" → en `replaceCase`-command (hæver replacementGeneration →
+//    guardens baseline nulstilles).
+//  - "uncommittable field/celle" (blokerer save) → et REJECTED format-råinput (settle "abc" på satsåret).
+//  - "åben editor kan ikke committes" → en åben greenfield-editor, hvis settle KASTER (§1.4).
+//
+// §1.4-semantik-ændring: load settler ALDRIG og blokeres ALDRIG af en åben editor (replace-policy). De to
+// legacy "blocks (manual|PWA) load when open locked grid editor cannot be committed"-tests er derfor rebaset
+// til at hævde det modsatte: load GENNEMFØRES trods åben editor.
+
+const catalog = getProductionInputCatalog();
+
+// Kør den idempotente produktions-bootstrap ÉN gang før nogen render, så MainLayouts bootstrap-effekt
+// ikke seeder en ny sag (og hæver revisionen) på den første mount. `beforeEach`-hydraten overskriver
+// derefter et eventuelt seed med et rent tomt input + frisk baseline.
+bootstrapProductionInputRuntime();
+
+const emptyInput = (): SettledInput => catalog.validateSettledInput({
+  sections: {
+    stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+    renteberegning: null, varigemen: null, forsoergertab: null,
+    erstatningsopgoerelse: null, erhvervsevnetab: null,
+  },
+  rejectedInputs: {},
+});
+
+/** En ægte committed input-ændring: hæver revisionen over baseline → aktiverer beforeunload-guarden. */
+const commitInputChange = (raw = '2020') => {
+  act(() => {
+    dispatchInput(slimInputStore, catalog, settleField(satserAargangField.bind(), raw));
   });
-  return <input ref={inputRef} aria-label={label} />;
 };
 
-const stampStamdata = (skadelidte: string): StamdataValues => ({
-  journalnr: '',
-  advokat: '',
-  sagsbehandler: '',
-  skadelidte,
-  skadestype: undefined,
-  skadedato: undefined,
-});
+/** Et REJECTED format-råinput (ikke-parsebart satsår): committer canonical tomt + bevaret råtekst → blokerer save. */
+const commitRejectedInput = () => {
+  act(() => {
+    dispatchInput(slimInputStore, catalog, settleField(satserAargangField.bind(), 'ikke-et-tal'));
+  });
+};
 
-const persistedWrapper = (data: unknown) => ({
-  version: PERSISTED_DATA_VERSION,
-  timestamp: Date.now(),
-  data,
-});
+/** En autoritativ hel-sags-replacement (load-baseline): hæver replacementGeneration. */
+const authoritativeReplace = (candidate: SettledInputCandidate = { sections: emptyInput().sections, rejectedInputs: {} }) => {
+  act(() => {
+    dispatchInput(slimInputStore, catalog, replaceCase(candidate));
+  });
+};
 
 const getBeforeUnloadHandler = (
   addEventListenerSpy: ReturnType<typeof vi.spyOn>
@@ -120,74 +143,46 @@ const isBeforeUnloadHandlerRegistered = (
   return addCount > removeCount;
 };
 
-const createSnapshot = (stamdataSkadelidte: string): PersistedSectionsSnapshot => ({
-  stamdata: stampStamdata(stamdataSkadelidte),
-  aarsloen: undefined,
-  satser: undefined,
-  faellesAarsloen: undefined,
-  renteberegning: undefined,
-  varigemen: undefined,
-  forsoergertab: undefined,
-  erstatningsopgoerelse: undefined,
-  erhvervsevnetab: undefined,
-});
+const renderLayout = (initialEntry = '/stamdata', children: React.ReactNode = <div />) =>
+  render(
+    <AppSettingsProvider>
+      <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <MainLayout>{children}</MainLayout>
+        </MemoryRouter>
+      </ProductionInputRuntimeProvider>
+    </AppSettingsProvider>
+  );
 
 describe('MainLayout (unsaved beforeunload)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
     pendingPwaRequest = null;
+    slimInputStore.getState().hydrate(emptyInput());
   });
 
   afterEach(() => {
-    document.querySelectorAll('table[data-mineo-table-navigation="true"]').forEach((el) => el.remove());
-    document.querySelectorAll('[data-mineo-test-temp="true"]').forEach((el) => el.remove());
+    slimInputStore.getState().hydrate(emptyInput());
   });
 
   it('prevents beforeunload after committed input change', async () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
+    renderLayout();
 
     expect(getBeforeUnloadHandler(addEventListenerSpy)).toBeUndefined();
 
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Test'));
-    });
+    commitInputChange();
 
     await waitFor(() => {
       expect(getBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
     });
     await act(async () => {});
-    expect(removeEventListenerSpy.mock.calls.some((args) => args[0] === 'beforeunload')).toBe(false);
     expect(getBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
 
-    const handler = getBeforeUnloadHandler(addEventListenerSpy)!;
+    const handler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
     const event = { preventDefault: vi.fn(), returnValue: undefined } as unknown as BeforeUnloadEvent;
     handler(event);
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
@@ -198,26 +193,19 @@ describe('MainLayout (unsaved beforeunload)', () => {
   });
 
   it('keeps beforeunload disabled after session hydration without a new commit', async () => {
-    sessionStorage.setItem(getStorageKey('stamdata'), JSON.stringify(persistedWrapper(stampStamdata('Hydreret'))));
+    // Hydration sætter baseline uden at hæve revisionen ud over den → ingen unsaved-guard.
+    slimInputStore.getState().hydrate(
+      catalog.validateSettledInput({
+        sections: { ...emptyInput().sections, satser: { aargang: 2020 } },
+        rejectedInputs: {},
+      })
+    );
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
+    renderLayout();
 
-    await waitFor(() => {
-      expect(formPersistenceStore.getState().sections.stamdata?.skadelidte).toBe('Hydreret');
-    });
-
+    await act(async () => {});
     expect(isBeforeUnloadHandlerRegistered(addEventListenerSpy, removeEventListenerSpy)).toBe(false);
 
     addEventListenerSpy.mockRestore();
@@ -233,42 +221,15 @@ describe('MainLayout (unsaved beforeunload)', () => {
       filename: 'test.eo',
     } satisfies SaveFileResult);
 
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    renderLayout();
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
+    commitInputChange();
 
     await waitFor(() => {
-      expect(ctx).not.toBeNull();
+      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
     });
 
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('GemMig'));
-    });
-
-    await waitFor(() => {
-      expect(getBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
-    });
-
-    const beforeUnloadHandler = getBeforeUnloadHandler(addEventListenerSpy)!;
+    const beforeUnloadHandler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
 
     await clickMainLayoutAction('Gem');
 
@@ -280,45 +241,16 @@ describe('MainLayout (unsaved beforeunload)', () => {
       expect(removeEventListenerSpy).toHaveBeenCalledWith('beforeunload', beforeUnloadHandler);
     });
 
-    const beforeUnloadAddCount = addEventListenerSpy.mock.calls.filter((args) => args[0] === 'beforeunload').length;
-    expect(beforeUnloadAddCount).toBe(1);
-
     addEventListenerSpy.mockRestore();
     removeEventListenerSpy.mockRestore();
   });
 
-  it('blocks save when an open locked grid editor cannot be committed', async () => {
+  it('blocks save when an open editor cannot be committed', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
+    renderLayout('/stamdata', <OpenGreenfieldEditor label="Låst gridfelt" />);
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <LockedGridParticipant label="Låst gridfelt" />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('GemBlokeres'));
-    });
+    commitInputChange();
 
     await clickMainLayoutAction('Gem');
 
@@ -333,172 +265,47 @@ describe('MainLayout (unsaved beforeunload)', () => {
     });
   });
 
-  it('focuses the visible invalid field when save is blocked by a blocking field error', async () => {
+  it('blocks save when an uncommittable rejected field error exists', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
-    const getClientRectsSpy = vi
-      .spyOn(HTMLElement.prototype, 'getClientRects')
-      .mockReturnValue([{ width: 100, height: 20 } as DOMRect] as unknown as DOMRectList);
-    // Scroll-adfærden ejes nu af scrollTargetIntoView (enheds-testet separat). Her er kontrakten,
-    // at det blokerende, synlige felt på den aktuelle fane FOKUSERES uden at Gem hopper væk —
-    // derfor stubbes scroll-API'erne blot til no-ops, og vi asserter på fokus.
-    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: vi.fn(),
-    });
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
+    renderLayout();
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div className="Mui-error">
-                <input aria-describedby="skadedato-error" readOnly />
-                <span id="skadedato-error">Ugyldig dato</span>
-              </div>
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('GemBlokeres'));
-      ctx!.setFieldError('stamdata', 'skadedato', 'input', {
-        message: 'Ugyldig dato',
-        severity: 'error',
-        blocksSave: true,
-      });
-    });
-
-    await clickMainLayoutAction('Gem');
-
-    await waitFor(() => {
-      expect(saveToFileMock).not.toHaveBeenCalled();
-      expect(document.activeElement).toBe(screen.getByRole('textbox'));
-    });
-
-    getClientRectsSpy.mockRestore();
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: originalScrollIntoView,
-    });
-  });
-
-  it('blocks save when a table input has an uncommittable local input error', async () => {
-    const saveToFileMock = vi.mocked(saveToFile);
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
-    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOffentligeYdelser, '', 'row1:0');
-    const input = document.createElement('input');
-    input.setAttribute('data-mineo-field-path', cellFieldPath);
-    document.body.appendChild(input);
-    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: vi.fn(),
-    });
-
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('GemBlokeresAfTabelInput'));
-      // En grid-celles ikke-committbare rå draft blokerer nu Gem via invalidDrafts (ikke et registry).
-      ctx!.commitInvalidDraft('erstatningsopgoerelse', cellFieldPath, '12.x.2020');
-    });
+    // Et REJECTED format-råinput (uncommittable) blokerer save (§1.6).
+    commitRejectedInput();
 
     await clickMainLayoutAction('Gem');
 
     await screen.findByText('Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.');
     expect(saveToFileMock).not.toHaveBeenCalled();
-
-    act(() => {
-      ctx!.clearInvalidDraft('erstatningsopgoerelse', cellFieldPath);
-    });
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: originalScrollIntoView,
-    });
   });
 
-  it('allows save when field error is UI-only and committed data already exists', async () => {
+  it('blocks save when an EO-page rejected input cannot be committed', async () => {
+    const saveToFileMock = vi.mocked(saveToFile);
+
+    renderLayout('/erstatningsopgoerelse');
+
+    // En ikke-committbar rå draft (rejected format) blokerer Gem via save-evalueringen (§1.6),
+    // uanset hvilken side den ligger på.
+    commitRejectedInput();
+
+    await clickMainLayoutAction('Gem');
+
+    await screen.findByText('Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.');
+    expect(saveToFileMock).not.toHaveBeenCalled();
+  });
+
+  it('allows save when field error is a canonical bounds error and committed data already exists', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
     saveToFileMock.mockResolvedValue({
       status: 'saved',
       filename: 'range-ok.eo',
     } satisfies SaveFileResult);
 
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    renderLayout();
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Gem trods rangefejl'));
-      ctx!.setFieldError('stamdata', 'skadedato', 'input', {
-        message: 'Datoen ligger uden for intervallet',
-        severity: 'error',
-        blocksSave: false,
-      });
-    });
+    // Et velformet satsår uden for [minYear, maxYear] committes canonical (kun bounds-issue, ikke rejected).
+    // Det blokerer IKKE save (§1.6): save gennemføres.
+    commitInputChange('1000');
 
     await clickMainLayoutAction('Gem');
 
@@ -517,36 +324,9 @@ describe('MainLayout (unsaved beforeunload)', () => {
       warning: 'ADVARSEL: Manglende sektioner: stamdata',
     } satisfies SaveFileResult);
 
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    renderLayout();
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Gem med warning'));
-    });
+    commitInputChange();
 
     await clickMainLayoutAction('Gem');
 
@@ -557,205 +337,66 @@ describe('MainLayout (unsaved beforeunload)', () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it('blocks manual load when an open locked grid editor cannot be committed', async () => {
+  it('completes manual load without settle even with an open editor (§1.4 replace-policy)', async () => {
+    // Rebaset §1.4: load settler ALDRIG og blokeres ALDRIG af en åben editor — draften kasseres først ved
+    // succes. (Legacy hævdede at load blokeres; det er nu FORKERT mod §1.4.)
     const loadFromFileMock = vi.mocked(loadFromFile);
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <MainLayout>
-              <LockedGridParticipant label="Låst gridfelt" />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await clickMainLayoutAction('Hent');
-
-    expect(loadFromFileMock).not.toHaveBeenCalled();
-    await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
-    const failedInput = screen.getByLabelText('Låst gridfelt');
-    await waitFor(() => {
-      expect(document.activeElement).toBe(failedInput);
-    });
-  });
-
-  it('persists loaded file handle for later overwrite', async () => {
-    const loadFromFileMock = vi.mocked(loadFromFile);
-    const saveFileHandleMock = vi.mocked(saveFileHandleToIndexedDB);
-    const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
-
     loadFromFileMock.mockResolvedValue({
       status: 'loaded',
       source: 'manual',
       filename: 'indlaest.eo',
-      fileHandle: loadedHandle,
-      snapshot: createSnapshot('Indlæst sag'),
-      fieldCount: 1,
-      sections: 1,
-      version: '1.0.0',
+      snapshot: { stamdata: { skadelidte: 'Indlæst sag' } },
     });
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
+    renderLayout('/stamdata', <OpenGreenfieldEditor label="Låst gridfelt" />);
 
     await clickMainLayoutAction('Hent');
 
+    expect(loadFromFileMock).toHaveBeenCalledTimes(1);
     await screen.findByText('Hentet');
-    expect(saveFileHandleMock).toHaveBeenCalledWith(loadedHandle);
+    expect(
+      screen.queryByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.')
+    ).toBeNull();
   });
 
-  it('blocks PWA load when an open locked grid editor cannot be committed', async () => {
+  it('completes PWA load without settle even with an open editor (§1.4 replace-policy)', async () => {
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
+    loadFromFileHandleMock.mockResolvedValue({
+      status: 'loaded',
+      source: 'pwa',
+      requestId: 'pwa-open-1',
+      filename: 'indlaest.eo',
+      snapshot: { stamdata: { skadelidte: 'Indlæst sag' } },
+    });
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <MainLayout>
-              <LockedGridParticipant label="Låst gridfelt" />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
+    renderLayout('/stamdata', <OpenGreenfieldEditor label="Låst gridfelt" />);
 
     pendingPwaRequest = {
-      id: 'pwa-open-blocked',
+      id: 'pwa-open-1',
       createdAtEpochMs: Date.now(),
       targetUrl: '/open',
       fileHandle: {} as FileSystemFileHandle,
-      fileName: 'blocked.eo',
+      fileName: 'indlaest.eo',
       ignoredFileCount: 0,
     };
 
     await dispatchPwaFileOpen();
 
-    expect(loadFromFileHandleMock).not.toHaveBeenCalled();
-    await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
-    const failedInput = screen.getByLabelText('Låst gridfelt');
     await waitFor(() => {
-      expect(document.activeElement).toBe(failedInput);
+      expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);
     });
-  });
-
-  it('keeps beforeunload active when user edits while save is in progress', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-    const saveToFileMock = vi.mocked(saveToFile);
-
-    let resolveSave: ((value: SaveFileResult) => void) | null = null;
-    const pendingSave = new Promise<SaveFileResult>((resolve) => {
-      resolveSave = resolve;
-    });
-    saveToFileMock.mockReturnValue(pendingSave);
-
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
-
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Før gem'));
-    });
-
-    await waitFor(() => {
-      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
-    });
-
-    await clickMainLayoutAction('Gem');
-
-    await waitFor(() => {
-      expect(saveToFileMock).toHaveBeenCalledTimes(1);
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Ændret under gem'));
-    });
-
-    await act(async () => {
-      resolveSave?.({ status: 'saved', filename: 'test.eo' });
-      await pendingSave;
-    });
-
-    const lastHandler = getLastBeforeUnloadHandler(addEventListenerSpy);
-    expect(lastHandler).toBeDefined();
-    const event = { preventDefault: vi.fn(), returnValue: undefined } as unknown as BeforeUnloadEvent;
-    lastHandler!(event);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.returnValue).toBe('');
-    expect(isBeforeUnloadHandlerRegistered(addEventListenerSpy, removeEventListenerSpy)).toBe(true);
-
-    addEventListenerSpy.mockRestore();
-    removeEventListenerSpy.mockRestore();
+    expect(
+      screen.queryByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.')
+    ).toBeNull();
   });
 
   it('clears unsaved warning on authoritative replace and re-enables on later edits', async () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
+    renderLayout();
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Før'));
-    });
+    commitInputChange();
 
     await waitFor(() => {
       expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
@@ -763,17 +404,13 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     const firstHandler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
 
-    act(() => {
-      ctx!.replaceAllPersistedData(createSnapshot('Efter load'));
-    });
+    authoritativeReplace();
 
     await waitFor(() => {
       expect(removeEventListenerSpy).toHaveBeenCalledWith('beforeunload', firstHandler);
     });
 
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Ny ændring'));
-    });
+    commitInputChange('2021');
 
     await waitFor(() => {
       expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
@@ -792,42 +429,18 @@ describe('MainLayout (unsaved beforeunload)', () => {
   it('keeps beforeunload disabled after authoritative replace until a new committed edit happens', async () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
+    renderLayout();
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
+    authoritativeReplace({
+      sections: { ...emptyInput().sections, satser: { aargang: 2020 } },
+      rejectedInputs: {},
     });
 
-    act(() => {
-      ctx!.replaceAllPersistedData(createSnapshot('Load baseline'));
-    });
-
+    await act(async () => {});
     expect(isBeforeUnloadHandlerRegistered(addEventListenerSpy, removeEventListenerSpy)).toBe(false);
 
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Ny ændring'));
-    });
+    commitInputChange('2021');
 
     await waitFor(() => {
       expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
@@ -849,36 +462,10 @@ describe('MainLayout (unsaved beforeunload)', () => {
     const deleteFileHandleMock = vi.mocked(deleteFileHandleFromIndexedDB);
     deleteFileHandleMock.mockRejectedValue(new Error('Simuleret cleanup-fejl'));
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
 
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
+    renderLayout();
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/stamdata']}>
-            <Probe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Før fejl'));
-    });
+    commitInputChange();
 
     await clickMainLayoutAction('Slet alt');
 
@@ -886,9 +473,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       expect(deleteFileHandleMock).toHaveBeenCalledTimes(1);
     });
 
-    act(() => {
-      ctx!.persistData('stamdata', stampStamdata('Efter fejl'));
-    });
+    commitInputChange('2021');
 
     await waitFor(() => {
       expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();

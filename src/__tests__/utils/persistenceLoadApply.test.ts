@@ -3,9 +3,12 @@ import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import type { StorageKey } from '../../config/storageManifest';
 import { executePersistenceLoadApply } from '../../utils/persistenceLoadApply';
-import { formPersistenceStore } from '../../stores/formPersistenceStore';
-import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
 import { toISODateString } from '../../types/branded';
+
+// `executePersistenceLoadApply` ejer den atomiske apply af ét autoritativt snapshot + metadata-/handle-/PWA-
+// synkronisering (§4.1). Efter greenfield-cutoveren (WI-002) er `replaceAllPersistedData`-parameteren
+// generaliseret til en `applySnapshot`-callback, som produktion binder til `CaseFileOperations.applyLoadedSnapshot`
+// (→ `replaceCase` gennem coordinatoren). History-rydningen ejes nu af replacement-commanden, ikke denne util.
 
 const saveFileHandleToIndexedDBMock = vi.fn();
 const deleteFileHandleFromIndexedDBMock = vi.fn();
@@ -28,7 +31,6 @@ describe('executePersistenceLoadApply', () => {
     vi.clearAllMocks();
     saveFileHandleToIndexedDBMock.mockResolvedValue(true);
     deleteFileHandleFromIndexedDBMock.mockResolvedValue(true);
-    undoRedoStore.getState().clear();
   });
 
   it.each([
@@ -38,13 +40,13 @@ describe('executePersistenceLoadApply', () => {
     mock.mockResolvedValueOnce(false);
     const result = await executePersistenceLoadApply({
       result: { status: 'loaded', source: 'manual', filename: 'sag.eo', snapshot: {}, ...extra },
-      replaceAllPersistedData: vi.fn(),
+      applySnapshot: vi.fn(),
     });
     expect(result.status).toBe('applied-with-metadata-error');
   });
 
   it('bygger et fuldt replace-snapshot og synkroniserer load-metadata', async () => {
-    const replaceAllPersistedData = vi.fn();
+    const applySnapshot = vi.fn();
 
     await executePersistenceLoadApply({
       result: {
@@ -62,11 +64,11 @@ describe('executePersistenceLoadApply', () => {
           },
         },
       },
-      replaceAllPersistedData,
+      applySnapshot,
     });
 
-    expect(replaceAllPersistedData).toHaveBeenCalledTimes(1);
-    const calledSnapshot = replaceAllPersistedData.mock.calls[0][0] as Record<StorageKey, unknown | undefined>;
+    expect(applySnapshot).toHaveBeenCalledTimes(1);
+    const calledSnapshot = applySnapshot.mock.calls[0][0] as Record<StorageKey, unknown | undefined>;
     const allKeys = Object.keys(persistenceSchemas) as StorageKey[];
     expect(Object.keys(calledSnapshot).sort()).toEqual(allKeys.slice().sort());
     expect(calledSnapshot.stamdata).toEqual(expect.any(Object));
@@ -83,7 +85,7 @@ describe('executePersistenceLoadApply', () => {
 
   it('bevarer PWA/file-handle sideeffekter samlet i samme apply-entrypoint', async () => {
     sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"forrige"}');
-    const replaceAllPersistedData = vi.fn();
+    const applySnapshot = vi.fn();
     const fileHandle = { name: 'pwa.eo' } as FileSystemFileHandle;
 
     await executePersistenceLoadApply({
@@ -95,7 +97,7 @@ describe('executePersistenceLoadApply', () => {
         fileHandle,
         snapshot: {},
       },
-      replaceAllPersistedData,
+      applySnapshot,
     });
 
     expect(saveFileHandleToIndexedDBMock).toHaveBeenCalledWith(fileHandle);
@@ -106,7 +108,7 @@ describe('executePersistenceLoadApply', () => {
   });
 
   it('fejler fail-closed hvis load-resultatet mangler snapshot', async () => {
-    const replaceAllPersistedData = vi.fn();
+    const applySnapshot = vi.fn();
 
     // Typen kræver nu et snapshot på et anvendeligt load-resultat, men runtime-guarden er bevidst
     // bevaret som forsvar i dybden: skulle et malformet resultat alligevel nå apply, skal det fail-close.
@@ -116,19 +118,19 @@ describe('executePersistenceLoadApply', () => {
 
     await expect(executePersistenceLoadApply({
       result: malformedResult,
-      replaceAllPersistedData,
+      applySnapshot,
     })).rejects.toThrow('mangler snapshot');
 
-    expect(replaceAllPersistedData).not.toHaveBeenCalled();
+    expect(applySnapshot).not.toHaveBeenCalled();
     expect(saveFileHandleToIndexedDBMock).not.toHaveBeenCalled();
     expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
   });
 
   it('fejler fail-closed uden metadata-sideeffekter hvis apply af data kaster', async () => {
-    // Fase 1 (atomisk data-apply) fejler: replaceAllPersistedData kaster. Så må fase 2
+    // Fase 1 (atomisk data-apply) fejler: applySnapshot kaster. Så må fase 2
     // (filnavn/handle/PWA-metadata) aldrig køre — ellers ville vi synkronisere metadata
     // for en sag der ikke blev indlæst (persistence-contract §10: fase 1 fejler → uændret state).
-    const replaceAllPersistedData = vi.fn(() => {
+    const applySnapshot = vi.fn(() => {
       throw new Error('Zod-validering fejlede under apply');
     });
     const fileHandle = { name: 'sag.eo' } as FileSystemFileHandle;
@@ -142,10 +144,10 @@ describe('executePersistenceLoadApply', () => {
         fileHandle,
         snapshot: {},
       },
-      replaceAllPersistedData,
+      applySnapshot,
     })).rejects.toThrow('Ingen data blev anvendt');
 
-    expect(replaceAllPersistedData).toHaveBeenCalledTimes(1);
+    expect(applySnapshot).toHaveBeenCalledTimes(1);
     // Ingen metadata-sideeffekter og intet skrevet til sessionStorage.
     expect(saveFileHandleToIndexedDBMock).not.toHaveBeenCalled();
     expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
@@ -155,7 +157,7 @@ describe('executePersistenceLoadApply', () => {
   });
 
   it('returnerer metadata-advarsel efter succesfuld data-apply', async () => {
-    const replaceAllPersistedData = vi.fn();
+    const applySnapshot = vi.fn();
     deleteFileHandleFromIndexedDBMock.mockRejectedValueOnce(new Error('IndexedDB fejl'));
 
     const result = await executePersistenceLoadApply({
@@ -165,39 +167,12 @@ describe('executePersistenceLoadApply', () => {
         filename: 'sag.eo',
         snapshot: {},
       },
-      replaceAllPersistedData,
+      applySnapshot,
     });
 
     expect(result.status).toBe('applied-with-metadata-error');
     if (result.status !== 'applied-with-metadata-error') return;
     expect(result.message).toContain('Sagen blev indlæst');
-    expect(replaceAllPersistedData).toHaveBeenCalledTimes(1);
-  });
-
-  it('rydder undo/redo-stakken efter succesfuld dataindlæsning', async () => {
-    const origin: HistoryFrameOrigin = {
-      route: '/satser',
-      tabKey: null,
-      sectionKey: 'satser',
-      fieldPath: 'aargang',
-      focusToken: null,
-    };
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
-    undoRedoStore.getState().capture(origin);
-
-    await executePersistenceLoadApply({
-      result: {
-        status: 'loaded',
-        source: 'manual',
-        filename: 'sag.eo',
-        snapshot: {},
-      },
-      replaceAllPersistedData: vi.fn(() => {
-        undoRedoStore.getState().clear();
-      }),
-    });
-
-    expect(undoRedoStore.getState().canUndo()).toBe(false);
-    expect(undoRedoStore.getState().canRedo()).toBe(false);
+    expect(applySnapshot).toHaveBeenCalledTimes(1);
   });
 });

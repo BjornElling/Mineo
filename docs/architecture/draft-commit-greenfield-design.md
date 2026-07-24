@@ -1165,7 +1165,12 @@ For hver slice:
 
 ### Fase 4 — `.eo`, session og kritiske sagsoperationer
 
-**Status:** Under implementering (WI-002, 2026-07-24). Byggesten og porte foreligger; shell-cutoveren udestår.
+**Status:** Shell-cutover gennemført (WI-002, 2026-07-24), klar til slutreview. Byggesten, porte OG shell-cutover
+foreligger: `useFileSaveLoad` og `MainLayout` kører nu på greenfield-runtime (caseporte + greenfield-coordinator +
+`useGreenfieldUndoRedoShortcuts` + startup-notice + revision-remap), den dead-by-cutover legacy er slettet, og hele
+App'en mounter uden `FormPersistenceContext`. `typecheck`/`lint`/`verify:ledgers` grønne og hele produktsuiten
+(529 filer / 6416 tests) er grøn. Kun `typecheck:test` har ét pre-eksisterende rødt (`caseFileOperations.test.ts`
+nominal `FieldDescriptor`-klash), som overlades til Fase 5/6.
 
 Foreligger:
 - `src/persistence/eoSaveProjection.ts` (`projectEoSave`): rejected input blokerer, mens schema-gyldigt canonical
@@ -1183,13 +1188,16 @@ Foreligger:
   surface-`dispatch`; `src/inputCore/react/useCaseOperations.ts` broen binder portene til produktions-runtime.
 - Port-tests grønne (`caseFileOperations.test.ts`, `caseResetOperations.test.ts`, 10 cases).
 
-Udestår (shell-cutover, WI-002): omskrivning af `useFileSaveLoad` mod greenfield-coordinatoren (rebased §1.4-matrix
-uden `block`-policy; blokerende input udledes af `FieldIssueSnapshot`/rejected-adresser i stedet for legacy
-field-error-store); MainLayout-rewire (greenfield undo/redo med lokationsbaseret fokusrestore, startup-notice,
-revision-remap `combinedSectionRevision→revision`, `authoritativeSnapshotEpoch→replacementGeneration`,
-`markSaved→saveToken.inputRevision`, `settingsRevision` UDEN for unsaved-baselinen); og sletning af den dead-by-cutover
-legacy (se WI-002 sletteliste). Reachability-audit har fastslået at store-/read-model-laget, `criticalActions/*` og
-Styled*Field-vejen fortsat er reachable via standalone-grid + de 4 ikke-migrerede flader og derfor BEVARES til Fase 5.
+Gennemført (shell-cutover, WI-002): `useFileSaveLoad` er omskrevet mod greenfield-coordinatoren (rebased §1.4-matrix
+uden `block`-policy; blokerende input udledes af `evaluateSave`s rejected-adresser via `greenfieldSaveBlockedFocus`
+i stedet for legacy field-error-store). MainLayout er rewiret (greenfield undo/redo, startup-notice fra
+`bootstrapProductionInputRuntime().startup`, revision-remap `combinedSectionRevision→revision`,
+`authoritativeSnapshotEpoch→replacementGeneration`, `markSaved→saveToken.inputRevision`, `settingsRevision` UDEN for
+unsaved-baselinen). Den dead-by-cutover legacy er slettet (useUndoRedo*/undoRedoStore/`FormPersistenceContext.tsx`-
+Provideren/persistenceRuntime+inputSessionMigration+persistenceSessionHydration/den døde grid-row-klynge +
+`getFirstBlockingInputErrorTarget`). Reachability-audit har fastslået at store-/read-model-laget, `criticalActions/*`,
+`FormPersistenceContext.internal/.shared` og Styled*Field-vejen fortsat er reachable via standalone-grid + de 4 ikke-
+migrerede flader og derfor BEVARES til Fase 5.
 
 **Afhængighed:** Alle field validators og projectionslices i fase 3.
 

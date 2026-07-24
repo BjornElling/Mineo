@@ -3,18 +3,35 @@ import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
-import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
-import { getInputEnvelopeStorageKey } from '../../../config/storageManifest';
+import { getCurrentInputEnvelopeStorageKey } from '../../../config/storageManifest';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
-import { clearResolvedFieldErrorsCache } from '../../../hooks/useFormPersistenceSelectors';
-import { formPersistenceStore } from '../../../stores/formPersistenceStore';
-import { parseInputEnvelope } from '../../../input/inputEnvelope';
+import {
+  ProductionInputRuntimeProvider,
+  bootstrapProductionInputRuntime,
+  createProductionInputRuntimeBinding,
+} from '../../../inputCore/react/productionInputRuntime';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
+import { parseCurrentEnvelope } from '../../../inputCore/runtime/currentSessionEnvelope';
+import type { SettledInput } from '../../../inputCore/settledInput';
 import type { LoadFileResult } from '../../../types/fileOperations';
 
 vi.mock('../../../utils/fileLoad', () => ({
   loadFromFile: vi.fn(),
   loadFromFileHandle: vi.fn(),
+}));
+
+vi.mock('../../../utils/fileHelpers', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../utils/fileHelpers')>();
+  return {
+    ...original,
+    resolveDefaultDirectoryHandle: vi.fn(async () => null),
+  };
+});
+
+vi.mock('../../../utils/fileHandleStorage', () => ({
+  deleteFileHandleFromIndexedDB: vi.fn(async () => true),
+  saveFileHandleToIndexedDB: vi.fn(async () => true),
 }));
 
 let pendingPwaRequest: unknown = null;
@@ -40,10 +57,20 @@ import {
   flushMainLayoutAsyncAction,
 } from './mainLayoutActionTestUtils';
 
-const persistedWrapper = (data: unknown) => ({
-  version: PERSISTED_DATA_VERSION,
-  timestamp: Date.now(),
-  data,
+// Greenfield-shell (WI-002 Fase 4): "der findes allerede data" læses fra runtime (`ops.file.hasAnyData()`),
+// ikke fra legacy per-sektions-sessionStorage. Vi hydrerer derfor den ægte runtime med data i stedet for at
+// seede `mineo_*`-nøgler, og læser den anvendte tilstand fra den ene greenfield current-envelope.
+
+const catalog = getProductionInputCatalog();
+bootstrapProductionInputRuntime();
+
+const emptyInput = (): SettledInput => catalog.validateSettledInput({
+  sections: {
+    stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+    renteberegning: null, varigemen: null, forsoergertab: null,
+    erstatningsopgoerelse: null, erhvervsevnetab: null,
+  },
+  rejectedInputs: {},
 });
 
 const stampStamdata = (skadelidte: string) => ({
@@ -55,13 +82,25 @@ const stampStamdata = (skadelidte: string) => ({
   skadedato: undefined,
 });
 
-const stampSatser = (aargang: number) => ({
-  aargang,
-});
+const stampSatser = (aargang: number) => ({ aargang });
 
-const storedInput = () => parseInputEnvelope(
-  sessionStorage.getItem(getInputEnvelopeStorageKey())!
-).input;
+const hydrateWithData = (skadelidte: string, aargang: number): void => {
+  slimInputStore.getState().hydrate(
+    catalog.validateSettledInput({
+      sections: { ...emptyInput().sections, stamdata: stampStamdata(skadelidte), satser: stampSatser(aargang) },
+      rejectedInputs: {},
+    })
+  );
+};
+
+// Runtime-sandheden er den ene afsluttede store-tilstand. `hydrate` sætter kun store-state (skriver ikke
+// envelopen), mens et apply (`replaceCase` gennem load) BÅDE opdaterer store og skriver envelopen; vi læser
+// derfor den autoritative store, og verificerer separat at et gennemført apply skrev den ene envelope.
+const storedInput = (): SettledInput => slimInputStore.getState().input;
+
+const persistedEnvelopeInput = (): SettledInput => parseCurrentEnvelope(
+  sessionStorage.getItem(getCurrentInputEnvelopeStorageKey())!
+);
 
 describe('MainLayout (overwrite gating)', () => {
   const RouteProbe = () => {
@@ -69,23 +108,31 @@ describe('MainLayout (overwrite gating)', () => {
     return <div data-testid="pathname">{location.pathname}</div>;
   };
 
+  const renderLayout = (initialEntry: string) => render(
+    <AppSettingsProvider>
+      <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <RouteProbe />
+          <MainLayout>
+            <div />
+          </MainLayout>
+        </MemoryRouter>
+      </ProductionInputRuntimeProvider>
+    </AppSettingsProvider>
+  );
+
   beforeEach(() => {
     pendingPwaRequest = null;
     vi.clearAllMocks();
     sessionStorage.clear();
-    clearResolvedFieldErrorsCache();
-    formPersistenceStore.getState().clearAll({
-      hydrated: true,
-      persistedDataVersion: PERSISTED_DATA_VERSION,
-      lastCommittedAt: Date.now(),
-    });
-    formPersistenceStore.getState().clearAllFieldErrors();
-    formPersistenceStore.getState().__setMetaUnsafe({ hydrated: false, lastCommittedAt: undefined });
+    slimInputStore.getState().hydrate(emptyInput());
+  });
+
+  afterEach(() => {
+    slimInputStore.getState().hydrate(emptyInput());
   });
 
   it('navigates to Stamdata after a successful manual load without overwrite dialog', async () => {
-    sessionStorage.clear();
-
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({
       status: 'loaded',
@@ -94,18 +141,7 @@ describe('MainLayout (overwrite gating)', () => {
       snapshot: { stamdata: stampStamdata('Y') },
     } satisfies LoadFileResult);
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/open']}>
-            <RouteProbe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
+    renderLayout('/open');
 
     await clickMainLayoutAction('Hent');
 
@@ -116,9 +152,7 @@ describe('MainLayout (overwrite gating)', () => {
   });
 
   it('shows overwrite dialog when data exists; does not mutate until confirm', async () => {
-    sessionStorage.clear();
-    sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
-    sessionStorage.setItem('mineo_satser', JSON.stringify(persistedWrapper(stampSatser(2020))));
+    hydrateWithData('X', 2020);
 
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({
@@ -128,18 +162,7 @@ describe('MainLayout (overwrite gating)', () => {
       snapshot: { stamdata: stampStamdata('Y'), satser: stampSatser(2021) },
     } satisfies LoadFileResult);
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/open']}>
-            <RouteProbe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
+    renderLayout('/open');
 
     await clickMainLayoutAction('Hent');
 
@@ -165,13 +188,13 @@ describe('MainLayout (overwrite gating)', () => {
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(storedInput().sections.satser?.aargang).toBe(2021);
+    // Applyet skrev den ene greenfield current-envelope (§3.6).
+    expect(persistedEnvelopeInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
   });
 
   it('shows the same overwrite dialog for PWA-opened files and does not mutate until confirm', async () => {
-    sessionStorage.clear();
-    sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
-    sessionStorage.setItem('mineo_satser', JSON.stringify(persistedWrapper(stampSatser(2020))));
+    hydrateWithData('X', 2020);
 
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
     let resolvePwaLoad: ((result: LoadFileResult) => void) | null = null;
@@ -196,18 +219,7 @@ describe('MainLayout (overwrite gating)', () => {
       ignoredFileCount: 0,
     };
 
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
-          <MemoryRouter initialEntries={['/mineo']}>
-            <RouteProbe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
+    renderLayout('/mineo');
 
     await waitFor(() => {
       expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);

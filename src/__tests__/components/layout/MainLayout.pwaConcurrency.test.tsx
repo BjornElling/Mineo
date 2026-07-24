@@ -4,7 +4,13 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, initializePersistenceRuntime } from '../../../contexts/FormPersistenceContext';
+import {
+  ProductionInputRuntimeProvider,
+  bootstrapProductionInputRuntime,
+  createProductionInputRuntimeBinding,
+} from '../../../inputCore/react/productionInputRuntime';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import type { LoadFileResult } from '../../../types/fileOperations';
 
 let pendingPwaRequest: unknown = null;
@@ -27,9 +33,39 @@ vi.mock('../../../utils/fileLoad', () => ({
   loadFromFileHandle: vi.fn(),
 }));
 
+vi.mock('../../../utils/fileHelpers', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../utils/fileHelpers')>();
+  return {
+    ...original,
+    resolveDefaultDirectoryHandle: vi.fn(async () => null),
+  };
+});
+
+vi.mock('../../../utils/fileHandleStorage', () => ({
+  deleteFileHandleFromIndexedDB: vi.fn(async () => true),
+  saveFileHandleToIndexedDB: vi.fn(async () => true),
+  deletePendingPwaOpenRequestFromIndexedDB: vi.fn(async () => true),
+  loadPendingPwaOpenRequestFromIndexedDB: vi.fn(async () => null),
+  savePendingPwaOpenRequestToIndexedDB: vi.fn(async () => true),
+}));
+
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFileHandle } from '../../../utils/fileLoad';
 import { dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
+
+// Greenfield-shell (WI-002 Fase 4): PWA-samtidighed drives uændret via DOM-events; kun mount-wrapperen skifter
+// fra legacy FormPersistence til den ene produktions-runtime. Ingen af disse tests hævder mod field-error-lageret.
+const catalog = getProductionInputCatalog();
+bootstrapProductionInputRuntime();
+
+const emptyInput = () => catalog.validateSettledInput({
+  sections: {
+    stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+    renteberegning: null, varigemen: null, forsoergertab: null,
+    erstatningsopgoerelse: null, erhvervsevnetab: null,
+  },
+  rejectedInputs: {},
+});
 
 describe('MainLayout (PWA concurrency)', () => {
   const RouteProbe = () => {
@@ -42,6 +78,11 @@ describe('MainLayout (PWA concurrency)', () => {
     window.sessionStorage.clear();
     vi.clearAllMocks();
     vi.useRealTimers();
+    slimInputStore.getState().hydrate(emptyInput());
+  });
+
+  afterEach(() => {
+    slimInputStore.getState().hydrate(emptyInput());
   });
 
   it('køer seneste PWA-fil under preflight og kræver bekræftelse før indlæsning', async () => {
@@ -71,14 +112,14 @@ describe('MainLayout (PWA concurrency)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+        <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
           <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
               <div />
             </MainLayout>
           </MemoryRouter>
-        </FormPersistenceProvider>
+        </ProductionInputRuntimeProvider>
       </AppSettingsProvider>
     );
 
@@ -131,12 +172,12 @@ describe('MainLayout (PWA concurrency)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+        <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
           <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout><div /></MainLayout>
           </MemoryRouter>
-        </FormPersistenceProvider>
+        </ProductionInputRuntimeProvider>
       </AppSettingsProvider>
     );
 
@@ -196,14 +237,14 @@ describe('MainLayout (PWA concurrency)', () => {
 
     render(
       <AppSettingsProvider>
-        <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+        <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
           <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
               <div />
             </MainLayout>
           </MemoryRouter>
-        </FormPersistenceProvider>
+        </ProductionInputRuntimeProvider>
       </AppSettingsProvider>
     );
 
@@ -250,14 +291,14 @@ describe('MainLayout (PWA concurrency)', () => {
 
       render(
         <AppSettingsProvider>
-          <FormPersistenceProvider runtime={initializePersistenceRuntime()}>
+          <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
             <MemoryRouter initialEntries={['/open']}>
               <RouteProbe />
               <MainLayout>
                 <div />
               </MainLayout>
             </MemoryRouter>
-          </FormPersistenceProvider>
+          </ProductionInputRuntimeProvider>
         </AppSettingsProvider>
       );
 
