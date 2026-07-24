@@ -1,10 +1,12 @@
 # WI-002: Fase 4 — `.eo`/session/caseporte og greenfield-shell-cutover
 
-- **Status:** `klar-til-review` (Fase-4 shell-cutover GENNEMFØRT 2026-07-24: save-blocking targeter, `useFileSaveLoad`-
-  rewrite, MainLayout-rewire, legacy-sletning og fase-4-testmatrix færdige. `typecheck`+`lint`+`verify:ledgers` grønne;
-  **fuld produktsuite 529/529 filer / 6416/6416 tests grøn**; hele App mounter uden `FormPersistenceContext`-crash.
-  Ét pre-eksisterende `typecheck:test`-rødt (`caseFileOperations.test.ts` nominal `FieldDescriptor`-klash, ikke rørt her)
-  overlades til Fase 5/6. Klar til Codex-H slutreview.)
+- **Status:** `gennemført` (Fase 4 afsluttet og verificeret 2026-07-24: save-blocking targeter, `useFileSaveLoad`-
+  rewrite, MainLayout-rewire, dead-by-cutover-legacy-sletning, fase-4-testmatrix, undo/redo-lokationsrestore (WI-003)
+  og current-session-korruptionsflowet (§1.12) færdige. Codex sol/high slutreview afsluttet: `FieldDescriptor`-klashen
+  rettet (fund #1). **Alle fire gates grønne** — `typecheck` + `typecheck:test` + `lint` + `verify:ledgers` — og
+  **fuld produktsuite 533/533 filer / 6440/6440 tests grøn**; hele App mounter uden `FormPersistenceContext`-crash.
+  Resterende trin-13-sletninger (`FormPersistenceContext*`/Styled*Field-vejen) er bevidst udskudt til Fase 5, fordi de
+  fortsat er reachable; fund #3 (latent §3.10-inkonsistens) strammes i Fase 6.)
 - **Oprettet:** 2026-07-24
 - **Slice/scope:** Greenfield draft/commit, Fase 4 (§8): `.eo`-save/load/apply/preflight, reset/`Slet alt`,
   session-/startupstatus, kritiske sagsoperationer og app-shell-cutover væk fra `FormPersistenceContext`.
@@ -125,18 +127,17 @@ Kortlægningen bekræfter: greenfield-inputruntime er allerede monteret i produk
 
 - **Plan:** målrettede persistence-/save-load-/startup-suiter + fase-4-matrix for de nye porte; `npm run typecheck`
   + `typecheck:test` + `lint` for callsite-cutover; `/verify`-skill; Codex-H slutreview.
-- **Resultat (shell-cutover afsluttet 2026-07-24):**
+- **Resultat (Fase 4 afsluttet og slutverificeret 2026-07-24):**
   - `npm run typecheck` → **0 fejl** (hele appen kompilerer OG mounter nu; mellemtilstands-shell-crash ophævet).
+  - `npm run typecheck:test` → **0 fejl** (den tidligere `caseFileOperations.test.ts` `FieldDescriptor`-klash er rettet
+    ved at type `settle`-helperen med `RuntimeInputCommand` fra runtime-modulet — se fund #1; ingen prod-kode rørt).
   - `npm run lint` → **0 warnings**. `npm run verify:ledgers` → **OK** (239/16/8/4/18 uændret).
-  - **Fuld produktsuite `npx vitest run` → 529/529 filer, 6416/6416 tests grønne** (inkl. de 8 konverterede shell-
-    tests, port-suiter 10/10, kontrakt-dæknings-matrix retargetet til greenfield-suiter).
+  - **Fuld produktsuite `npx vitest run` → 533/533 filer, 6440/6440 tests grønne** (inkl. de 8 konverterede shell-
+    tests, port-suiter 10/10, kontrakt-dæknings-matrix retargetet til greenfield-suiter, korruptionsflow-suiter).
   - `App.defaultLandingRoute.test` mounter hele App'en og router på begge start-settings uden `FormPersistenceContext`-
     crash — det stærkeste bevis for at shell-cutoveren er komplet.
-  - **Pre-eksisterende (IKKE introduceret af denne tranche):** `npm run typecheck:test` fejler alene i
-    `src/__tests__/persistence/caseFileOperations.test.ts` med en nominal `FieldDescriptor`-identitetsklash (barrel-vs-
-    direkte import i `settle`-helperens `Parameters<typeof dispatchInput>[2]`-typing). Filen er byte-identisk med HEAD,
-    er aldrig rørt i denne tranche, og porttesten passerer 10/10 på runtime. Overlades til Fase 5/6 sammen med den
-    øvrige `typecheck:test`-grønhed (dokument-entrypoints migrerer stadig, §8 Fase 5).
+  - Current-session-korruptionsflowet (trin 12 / §1.12) er bevist end-to-end i `dispatchInput.test.ts` (fail-closed
+    hydration + `writesBlocked` + `Slet alt`-recovery) og `caseResetOperations.test.ts` (writesBlocked-recovery).
 
 ## Review-fund (udfyldes i review-fasen)
 
@@ -144,7 +145,7 @@ Kortlægningen bekræfter: greenfield-inputruntime er allerede monteret i produk
 |---|---|---|---|---|
 | 0 | Er fjernelse af `FormPersistenceProvider` tabsfrit for de 4 `Styled*Field`-flader? **Codex-H bekræftede:** INGEN crash, INTET nyt sagsdatatab. Alle 4 flader er allerede ubundne (lokal `useState` + context-fri `useFieldInvalidDraftChannel`/`useInvalidDraftSlot`-fallback). Manglende legacy `CriticalActionProvider` er også no-op. Fejlende råtekst bevares lokalt indtil unmount/F5 = eksisterende adfærd. | H | bekræftet: tabsfrit | afsluttet |
 | 0c | **Codex-H korrektion (Q3b):** min port læste rå `.sections` via `countFilledFields` → MISSER rejected-only input → load kunne overskrive afsluttet fejlende input uden overwrite-bekræftelse. **Rettet:** `settledInputHasAnyData` = canonical-meningsfuld ELLER `rejectedInputs` ikke-tom; ny test dækker rejected-only=true. | H | rettet i caseFileOperations.ts | afsluttet |
-| 0d | **Codex-H korrektion (delete-list):** `criticalActions/*` er reachable fra STANDALONE via `useGridCoreController`→`StandardLooseTable`→`BeregnetRenteTable`→`RenteberegningTab` → MÅ IKKE slettes i Fase 4 (Fase 5). `formPersistenceStore`/`formPersistenceReadModel`/`inputRuntimeStore` er reachable fra de 4 Styled*Field-flader via `useDraftField`→`useFormPersistenceSelectors` → BEVARES til Fase 5. Reporter-hooks (`useFormFieldErrorReporter` m.fl.) og `usePersistedForm`-HOOKEN har nul produktions-value-callsites → sletbare. | H | delete-list revideret; reachability-audit kører | åben |
+| 0d | **Codex-H korrektion (delete-list):** `criticalActions/*` er reachable fra STANDALONE via `useGridCoreController`→`StandardLooseTable`→`BeregnetRenteTable`→`RenteberegningTab` → MÅ IKKE slettes i Fase 4 (Fase 5). `formPersistenceStore`/`formPersistenceReadModel`/`inputRuntimeStore` er reachable fra de 4 Styled*Field-flader via `useDraftField`→`useFormPersistenceSelectors` → BEVARES til Fase 5. Reporter-hooks (`useFormFieldErrorReporter` m.fl.) og `usePersistedForm`-HOOKEN har nul produktions-value-callsites → sletbare. | H | delete-list revideret; reachability-audit gennemført; dead-by-cutover slettet, reachable rest udskudt til Fase 5 | afsluttet |
 | 0b | Q5 standalone-imports af sletteliste: **afklaret selv** — `minprocesrenteMain.tsx` + `MinProcesrenteCalculatorPage` bruger ALLEREDE greenfield (`bootstrapProductionInputRuntime`, `useGreenfieldUndoRedoShortcuts`); nul imports af `undoRedoStore`/`criticalActions/*`/`inputRuntimeStore`/`FormPersistence*`. App-shell-kontrakt §2.1's "standalone beholder legacy" er STALE. Sletteliste blokeres ikke af standalone. | H | afvist som blokering med evidens | afsluttet |
 | 1 | **Codex sol/high slutreview:** `caseFileOperations.test.ts` nominal `FieldDescriptor`-klash rettet (generisk `settle`-helper typet med `RuntimeInputCommand` fra runtime-modulet; ingen prod-kode rørt) → `typecheck:test` grøn. | Lav | rettet af Codex sol/high | afsluttet |
 | 2 | **Codex sol/high slutreview (Høj):** `useGreenfieldUndoRedoShortcuts` mangler legacy'ens lokationsbaserede undo/redo-restore (navigér til origin-side + fane + fokusér ændret felt) → §5.4-regression. **Disposition:** Codex sol/high besluttede fuld parity (option B); spundet ud som selvstændigt WI-003 (fundament bygget i denne omgang, long tail dokumenteret). | H | spundet ud til [[WI-003-undo-redo-lokationsrestore]] | overført |

@@ -30,9 +30,14 @@ Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og 
 `domain/inputIntegrity`-blockermodel. Det rettede desuden manglende feltgrænser i Renteberegning, Varige mén og
 Erhvervsevnetab, dependency-gating i differencekravet, ASL-rækkefejl fra readeren, fail-closed dokumentgates,
 multiline-Enter, rejected-only-rækkesletning, destruktiv reset uden forudgående settle og stale async downloads.
+Fase 4 er gennemført og verificeret 2026-07-24: `.eo`-save/load, session-/startupstatus og de kritiske
+sagsoperationer kører nu gennem de rene caseporte (`CaseFileOperations`/`CaseResetOperations`) på greenfield-runtime.
 Hovedshellens atomiske navigation-/undo-cutover blev gennemført i fase 4 (WI-002), og fuld lokationsbaseret
 fokusrestore fulgte i fase 4 (WI-003): route/fane bæres nu som eksplicit typed metadata på history-origin, og en
 gennemført undo/redo navigerer til origin-lokationens route+fane og re-fokuserer feltet, ændringen kom fra.
+Current-session-korruption håndteres fail-closed hele vejen (§1.12), og kun brugerens eksplicitte `Slet alt` kan
+rydde en bevaret korrupt kilde. Trin 13's resterende `FormPersistenceContext*`/Styled*Field-sletninger er bevidst
+udskudt til fase 5, fordi de fortsat er reachable via standalone-grid og de fire ikke-migrerede flader.
 
 Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
@@ -42,8 +47,9 @@ inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie 
 XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
 `ready | blocked`-projektioner. Fase 3 er gennemført: alle otte consumerslices (Satser, Renteberegning, Stamdata,
 Årsløn, Varige mén, Forsørgertab, EET og EO) forbruger nu rene reader-projektioner, og de afløste
-component-reporter-hooks er slettet. Fase 4–5 (`.eo`/session/caseporte og dokumentoutputs) udestår, og den delvise
-hovedapp må ikke repareres med legacy-providers.
+component-reporter-hooks er slettet. Fase 4 (`.eo`/session/caseporte og shell-cutover) er gennemført; kun Fase 5
+(de 18 dokumentoutputs, som også bærer den resterende legacy-sletning) udestår, og den delvise hovedapp må ikke
+repareres med legacy-providers.
 
 Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
@@ -1166,18 +1172,27 @@ For hver slice:
 
 ### Fase 4 — `.eo`, session og kritiske sagsoperationer
 
-**Status:** Shell-cutover gennemført (WI-002, 2026-07-24), klar til slutreview. Byggesten, porte OG shell-cutover
-foreligger: `useFileSaveLoad` og `MainLayout` kører nu på greenfield-runtime (caseporte + greenfield-coordinator +
-`useGreenfieldUndoRedoShortcuts` + startup-notice + revision-remap), den dead-by-cutover legacy er slettet, og hele
-App'en mounter uden `FormPersistenceContext`. **Fuld lokationsbaseret undo/redo-fokusrestore fulgte (WI-003,
-2026-07-24):** `HistoryOrigin`/`EditorLocation` bærer nu eksplicit `route`+`tabKey`, `dispatchInput` surfacer
-`restoredOrigin` KUN efter en gennemført undo/redo, og `MainLayout`s `onRestore` sætter aktiv fane → navigerer →
-`scheduleGreenfieldHistoryTargetRestore` (samme rækkefølge som legacy). Greenfield-restoren lokaliserer målet via
-feltadresse + editorlokation (ikke `name`), så samme datafelt redigeret to steder (fx `faellesAarsloen` på EET vs.
-Forsørgertab) fokuserer den editor, ændringen kom fra. En arkitekturtest håndhæver, at hver greenfield-kommitterende
-feltfamilie bærer restore-target-attributterne. `typecheck`/`lint`/`verify:ledgers` grønne og hele produktsuiten
-(529 filer / 6416 tests) er grøn. Kun `typecheck:test` har ét pre-eksisterende rødt (`caseFileOperations.test.ts`
-nominal `FieldDescriptor`-klash), som overlades til Fase 5/6.
+**Status:** Gennemført og verificeret 2026-07-24 (internt kontrolpunkt, ikke deployhandoff). Arbejdstrin 1–12 er
+implementeret i greenfield-runtime og dækket af tests; trin 13's sletninger er DELVIST gennemført: den
+dead-by-cutover legacy er slettet, mens den fortsat reachable `FormPersistenceContext*`/`criticalActions/*`/
+Styled*Field-vej bevidst BEVARES til Fase 5 (§2.6/§4.3 — reachable via standalone-grid + de 4 ikke-migrerede
+flader). Byggesten, porte OG shell-cutover foreligger: `useFileSaveLoad` og `MainLayout` kører nu på
+greenfield-runtime (caseporte + greenfield-coordinator + `useGreenfieldUndoRedoShortcuts` + startup-notice +
+revision-remap), og hele App'en mounter uden `FormPersistenceContext`. **Fuld lokationsbaseret
+undo/redo-fokusrestore fulgte (WI-003, 2026-07-24):** `HistoryOrigin`/`EditorLocation` bærer nu eksplicit
+`route`+`tabKey`, `dispatchInput` surfacer `restoredOrigin` KUN efter en gennemført undo/redo, og `MainLayout`s
+`onRestore` sætter aktiv fane → navigerer → `scheduleGreenfieldHistoryTargetRestore` (samme rækkefølge som legacy).
+Greenfield-restoren lokaliserer målet via feltadresse + editorlokation (ikke `name`), så samme datafelt redigeret to
+steder (fx `faellesAarsloen` på EET vs. Forsørgertab) fokuserer den editor, ændringen kom fra. En arkitekturtest
+håndhæver, at hver greenfield-kommitterende feltfamilie bærer restore-target-attributterne.
+**Current-session-korruptionsflowet (trin 12 / §1.12) er greenfield-implementeret hele vejen** (hydration →
+`writesBlocked` → `dispatchInput`-gate → `clearCase`-recovery gennem `CaseResetOperations`) og bevist i
+`dispatchInput.test.ts` + `caseResetOperations.test.ts`. Ved slutreviewet (2026-07-24) var `typecheck`,
+`typecheck:test`, `lint` og `verify:ledgers` alle grønne, og hele produktsuiten (533 filer / 6440 tests) grøn — den
+tidligere noterede pre-eksisterende `typecheck:test`-røde (`caseFileOperations.test.ts` nominal
+`FieldDescriptor`-klash) er rettet (generisk `settle`-helper typet med `RuntimeInputCommand` fra runtime-modulet).
+Én latent §3.10-inkonsistens (`useCaseOperations` læser global `slimInputStore`, mens coordinator/writes kommer fra
+bindingen — ingen aktiv bug, samme singleton i prod) strammes i Fase 6.
 
 Foreligger:
 - `src/persistence/eoSaveProjection.ts` (`projectEoSave`): rejected input blokerer, mens schema-gyldigt canonical
