@@ -58,8 +58,9 @@ interface StyledToggleSwitchProps {
    *  Giver assistive technologies — og tests — en stabil accessible name. */
   ariaLabel?: string;
   /**
-   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på input-slottet, så fokus efter undo/redo lander
-   * PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-wrappere leverer den.
+   * Undo/redo-fokusrestore-attributter (§3.7): sættes på input-slottet, så fokus efter undo/redo lander
+   * PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
+   * `inputCore/react/fields/ToggleField` og `MappedToggleField` leverer dem.
    */
   restoreTargetAttributes?: Readonly<Record<string, string>>;
 }

@@ -9,7 +9,8 @@ import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
-import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
+import { UI_STORAGE_KEYS } from '../../config/storageManifest';
+import type { PersistedSectionKey } from '../../config/persistenceRegistry';
 import {
   readOptionalSessionStorageValue,
   removeOptionalSessionStorageValue,
@@ -87,11 +88,11 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   // sektioner fra det afsluttede snapshot og feltissues fra det tokenbundne issue-snapshot (§3.4). Ren
   // read-only diagnostik — aldrig en skrivevej.
   const getPersistedSectionForDevtools = React.useCallback(
-    (pageKey: StorageKey): unknown => runtime.getSettled().input.sections[pageKey] ?? null,
+    (pageKey: PersistedSectionKey): unknown => runtime.getSettled().input.sections[pageKey] ?? null,
     [runtime],
   );
   const getFieldIssuesForDevtools = React.useCallback(
-    (pageKey: StorageKey): unknown =>
+    (pageKey: PersistedSectionKey): unknown =>
       getProductionInputEvaluation().issues.all.filter(
         (issue) => issue.field.address.section === pageKey,
       ),

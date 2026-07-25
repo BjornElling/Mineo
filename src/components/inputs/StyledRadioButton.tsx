@@ -45,9 +45,9 @@ interface StyledRadioButtonProps {
   error?: boolean;
   helperText?: string;
   /**
-   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på den VALGTE radios input-slot, så fokus efter
-   * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-
-   * wrapperen leverer den.
+   * Undo/redo-fokusrestore-attributter (§3.7): sættes på den VALGTE radios input-slot, så fokus efter
+   * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
+   * `inputCore/react/fields/RadioField` leverer dem.
    */
   restoreTargetAttributes?: Readonly<Record<string, string>>;
 }

@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
-import type { StorageKey } from '../config/storageManifest';
+import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { migratePersistedSectionValue } from './persistenceMigrations';
 import { sanitizePersistedValueForSchema } from './persistenceLoadSanitization';
 
@@ -12,7 +12,7 @@ type UnknownPath = SanitizeResult['unknownPaths'][number];
  * Caller'en ejer rapporteringen (preflight-tabsoptælling vs. session-hydrerings-kategorisering),
  * men selve transformen er den samme for alle inbound-kilder.
  */
-export type InboundPersistedSectionResult<K extends StorageKey> = Readonly<{
+export type InboundPersistedSectionResult<K extends PersistedSectionKey> = Readonly<{
   /** Migrator-output (kontrakt-rækkefølge §3.1a: nullToUndefinedDeep → migrator). Bruges til tabsoptælling. */
   migratedValue: unknown;
   /** Strippede stier til ukendte felter (gemt data denne version ikke kender). */
@@ -39,7 +39,7 @@ export type InboundPersistedSectionResult<K extends StorageKey> = Readonly<{
  * `sourceVersion` skal komme fra den konkrete envelope/container og må aldrig
  * udledes af sektionsværdien.
  */
-export const parseInboundPersistedSection = <K extends StorageKey>(
+export const parseInboundPersistedSection = <K extends PersistedSectionKey>(
   pageKey: K,
   rawValue: unknown,
   sourceVersion: string

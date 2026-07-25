@@ -1,6 +1,6 @@
 import { eoFileContainerSchema } from '../schemas/eoFileSchema';
 import { persistenceSchemas } from '../config/persistenceRegistry';
-import type { StorageKey } from '../config/storageManifest';
+import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { decryptFromString } from './encryption';
 import { isFileSystemFileHandle, readFromFileHandle } from './fileSystemAccess';
 import { logError, logWarning } from './logger';
@@ -20,21 +20,21 @@ const getValueType = (value: unknown): string => {
 
 
 export const buildAllDataRawFromSnapshot = (snapshot: SaveSnapshot): Record<string, unknown> => {
-  const allowedKeys = new Set(Object.keys(persistenceSchemas) as StorageKey[]);
+  const allowedKeys = new Set(Object.keys(persistenceSchemas) as PersistedSectionKey[]);
   for (const key of Object.keys(snapshot)) {
-    if (!allowedKeys.has(key as StorageKey)) {
+    if (!allowedKeys.has(key as PersistedSectionKey)) {
       throw new Error(`Snapshot indeholder ukendt key '${key}'.`);
     }
   }
 
-  for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
+  for (const key of Object.keys(persistenceSchemas) as PersistedSectionKey[]) {
     if (!Object.prototype.hasOwnProperty.call(snapshot, key)) {
       throw new Error(`Snapshot mangler key '${key}'. Gem kræver alle keys (brug undefined for at udelade en sektion).`);
     }
   }
 
   const out: Record<string, unknown> = {};
-  for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
+  for (const key of Object.keys(persistenceSchemas) as PersistedSectionKey[]) {
     const raw = snapshot[key];
     if (raw === null) {
       throw new Error(`Snapshot indeholder null for '${key}'. Brug undefined for at udelade en sektion.`);

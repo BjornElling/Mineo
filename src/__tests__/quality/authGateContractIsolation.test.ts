@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { STORAGE_KEYS, UI_STORAGE_KEYS } from '../../config/storageManifest';
+import { UI_STORAGE_KEYS, getCurrentInputEnvelopeStorageKey } from '../../config/storageManifest';
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { AUTH_STORAGE_KEY, AUTH_STORAGE_VALUE, SHARED_PASSWORD_HASHES } from '../../auth/authConfig';
 
@@ -11,7 +11,7 @@ import { AUTH_STORAGE_KEY, AUTH_STORAGE_VALUE, SHARED_PASSWORD_HASHES } from '..
  */
 describe('auth-gate contract isolation', () => {
   it('holder auth-flaget ude af sessionStorage-manifestet (sagsdata)', () => {
-    const allManifestKeys = [...Object.values(STORAGE_KEYS), ...Object.values(UI_STORAGE_KEYS)];
+    const allManifestKeys = [getCurrentInputEnvelopeStorageKey(), ...Object.values(UI_STORAGE_KEYS)];
     expect(allManifestKeys).not.toContain(AUTH_STORAGE_KEY);
     expect(allManifestKeys).not.toContain(AUTH_STORAGE_VALUE);
   });

@@ -1,5 +1,5 @@
-import { PERSISTED_SECTION_KEYS } from '../../../config/persistenceRegistry';
-import { isValidStorageKey, type StorageKey } from '../../../config/storageManifest';
+import { PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../../../config/persistenceRegistry';
+import { isValidStorageKey } from '../../../config/storageManifest';
 import ts from 'typescript';
 import { collectCalls, resolveRelativeImport } from './astQueries';
 import type { SourceEntry } from './sourceGraph';
@@ -76,26 +76,56 @@ const sessionStorageBoundary = forbidMemberAccess({
   ],
 });
 
+/**
+ * Skrivning må kun ske til en manifest-registreret nøgle.
+ *
+ * PRIMÆRVÆRNET er typen, ikke denne regel: `writeSessionStorageValue`/
+ * `writeOptionalSessionStorageValue` tager en `ManifestStorageKey`, som kun `storageManifest` kan
+ * producere. Det fanger også ikke-literale nøgler (`const k = 'mineo_invalidDrafts'`), som en
+ * AST-regel principielt ikke kan se.
+ *
+ * Reglen bevares som SEKUNDÆR diagnostik med en præcis fejlbesked, og dækker begge skriveveje —
+ * ikke kun den rå. En regel, der udelukkende matchede `sessionStorage.setItem`, ville være inert,
+ * fordi `storage/session-storage-boundary` allerede forbyder den vej uden for helperen.
+ */
+const SESSION_STORAGE_WRITE_HELPERS = new Set([
+  'writeSessionStorageValue',
+  'writeOptionalSessionStorageValue',
+]);
+
 const sessionStorageManifestKey = forbidCalls({
   id: 'storage/session-storage-manifest-key',
   description:
-    'sessionStorage.setItem må kun kaldes med en manifest-registreret literal storage-key.',
+    'sessionStorage-skrivning må kun ske til en manifest-registreret literal storage-key — både rå og via safeSessionStorage-helperne.',
   forbidden: (ref) =>
-    ref.calleeName === 'setItem' &&
-    (ref.calleeText === 'sessionStorage.setItem' ||
-      ref.calleeText === 'window.sessionStorage.setItem' ||
-      ref.calleeText === 'globalThis.sessionStorage.setItem') &&
+    ((ref.calleeName === 'setItem' &&
+      (ref.calleeText === 'sessionStorage.setItem' ||
+        ref.calleeText === 'window.sessionStorage.setItem' ||
+        ref.calleeText === 'globalThis.sessionStorage.setItem')) ||
+      SESSION_STORAGE_WRITE_HELPERS.has(ref.calleeName)) &&
     ref.firstArgStringLiteral !== null &&
     !isValidStorageKey(ref.firstArgStringLiteral),
   message: (ref) =>
-    `sessionStorage.setItem med ikke-registreret literal key: ${ref.firstArgStringLiteral}`,
+    `sessionStorage-skrivning med ikke-registreret literal key: ${ref.firstArgStringLiteral}`,
   violatingFixtures: [
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("ikke-en-key", v);' },
     { relativePath: 'src/x.ts', code: 'window.sessionStorage.setItem("random", v);' },
+    // De slettede legacy-nøgler må ikke kunne skrives igen (greenfield trin 13): sagsinput ligger i
+    // ÉN envelope, og per-sektion-persistering/`invalidDrafts` er ikke længere en skrivegrænse.
+    { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_stamdata", v);' },
+    { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_invalidDrafts", v);' },
+    { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_input", v);' },
+    // Helper-vejen — den ENESTE vej produktionskoden faktisk må bruge, og derfor den, en genindført
+    // legacy-nøgle ville komme ind ad.
+    { relativePath: 'src/x.ts', code: 'writeSessionStorageValue("mineo_invalidDrafts", v);' },
+    { relativePath: 'src/x.ts', code: 'writeOptionalSessionStorageValue("mineo_stamdata", v);' },
   ],
   cleanFixtures: [
-    { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_stamdata", v);' },
+    { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_input_v2", v);' },
+    { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_sideMenuExpanded", v);' },
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem(dynamicKey, v);' },
+    { relativePath: 'src/x.ts', code: 'writeSessionStorageValue("mineo_input_v2", v);' },
+    { relativePath: 'src/x.ts', code: 'writeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay, v);' },
     { relativePath: 'src/x.ts', code: 'sessionStorage.getItem("hvad-som-helst");' },
     { relativePath: 'src/x.ts', code: 'other.setItem("ikke-en-key", v);' },
   ],
@@ -325,7 +355,7 @@ export type PageBoundaryRule = Readonly<{
   label: string;
   /** Repo-relativ rod (fil eller mappe) med `src/`-præfiks, matcher `SourceEntry.relativePath`. */
   root: string;
-  allowedSections: readonly StorageKey[];
+  allowedSections: readonly PersistedSectionKey[];
 }>;
 
 /**
@@ -381,14 +411,14 @@ const boundaryRuleForPath = (relativePath: string): PageBoundaryRule | undefined
     (rule) => relativePath === rule.root || relativePath.startsWith(`${rule.root}/`)
   );
 
-type SectionAccess = Readonly<{ section: StorageKey; position: Finding['position'] }>;
+type SectionAccess = Readonly<{ section: PersistedSectionKey; position: Finding['position'] }>;
 
 const collectSectionAccesses = (entry: SourceEntry): SectionAccess[] =>
   collectCalls(entry)
     .filter((ref) => SECTION_ACCESS_HOOKS.has(ref.calleeName))
     .flatMap((ref) =>
       ref.stringArgs
-        .filter((arg): arg is StorageKey => SECTION_KEY_SET.has(arg))
+        .filter((arg): arg is PersistedSectionKey => SECTION_KEY_SET.has(arg))
         .map((section) => ({ section, position: ref.position }))
     );
 

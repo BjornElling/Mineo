@@ -106,7 +106,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       forlig: {
         values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: undefined },
         dato: undefined,
-        hasInvalidDraft: false,
+        hasRejectedInput: false,
       },
     });
 

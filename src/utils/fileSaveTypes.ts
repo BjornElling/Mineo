@@ -5,7 +5,7 @@ import type { PersistedSectionsSnapshot } from '../config/persistenceRegistry';
  * Autoritativt snapshot fra persistence-laget.
  *
  * Semantik:
- * - Skal indeholde alle `StorageKey`s (brug `undefined` for at udelade en sektion).
+ * - Skal indeholde alle `PersistedSectionKey`s (brug `undefined` for at udelade en sektion).
  * - Må ikke indeholde `null` (fail-fast; ellers risikerer vi silent data loss).
  */
 export type SaveSnapshot = PersistedSectionsSnapshot;

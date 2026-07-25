@@ -5,8 +5,7 @@ import {
   logError,
 } from './logger';
 import { LEGACY_PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
-import { persistenceSchemas } from '../config/persistenceRegistry';
+import { persistenceSchemas, PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../config/persistenceRegistry';
 import { FileHandleAccessError } from './fileSystemAccess';
 import type { LoadFileResult, LoadIssue } from '../types/fileOperations';
 import { type EoFileContainerLoad } from '../schemas/eoFileSchema';
@@ -35,7 +34,7 @@ const formatPathSegments = (segments: Array<string | number>): string => {
   return out === '' ? '(root)' : out;
 };
 
-const toLoadIssuePath = (sectionKey: StorageKey, path: UnknownPath): string => {
+const toLoadIssuePath = (sectionKey: PersistedSectionKey, path: UnknownPath): string => {
   const detailPath = path.length > 0 ? formatPathSegments(path) : '(root)';
   return detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
 };
@@ -84,7 +83,7 @@ const processDecryptedContainer = (args: {
     throw new Error('Filen indeholder ingen udfyldte felter');
   }
 
-  const sectionsPresent = (Object.keys(STORAGE_KEYS) as StorageKey[]).filter(
+  const sectionsPresent = PERSISTED_SECTION_KEYS.filter(
     (k) => Object.prototype.hasOwnProperty.call(fileData, k) && (fileData as Record<string, unknown>)[k] !== undefined
   );
 
@@ -96,8 +95,8 @@ const processDecryptedContainer = (args: {
   // Migreringer bevarer data og tæller derfor IKKE som tab.
   let lostFromFileCount = 0;
 
-  const snapshot: Partial<Record<StorageKey, unknown>> = {};
-  for (const sectionKey of Object.keys(persistenceSchemas) as StorageKey[]) {
+  const snapshot: Partial<Record<PersistedSectionKey, unknown>> = {};
+  for (const sectionKey of PERSISTED_SECTION_KEYS) {
     const rawValue = (fileData as Record<string, unknown>)[sectionKey];
     if (rawValue === undefined) {
       continue;

@@ -14,6 +14,20 @@
  * sættes på entrypoint-niveau efter dette modul er importeret.
  */
 
+/**
+ * En sessionStorage-nøgle, der BEVISLIGT stammer fra dette manifest.
+ *
+ * Branden er strukturel, ikke kosmetisk: `safeSessionStorage`-skrivefunktionerne tager kun denne
+ * type, og den kan udelukkende produceres her. En vilkårlig streng — fx en genindført
+ * `'mineo_invalidDrafts'` — kan derfor ikke skrives, og compileren fanger det ved DEFINITIONEN
+ * frem for ved en AST-regel, der kun ser literaler (og dermed kunne omgås med en variabel).
+ * Læsning/sletning tager fortsat `string`: at rydde op efter en ukendt nøgle er lovligt,
+ * at skabe ny persisteret tilstand under den er ikke.
+ */
+export type ManifestStorageKey = string & { readonly __manifestStorageKey: unique symbol };
+
+const asManifestKey = (key: string): ManifestStorageKey => key as ManifestStorageKey;
+
 let storageNamespace = 'mineo';
 
 /**
@@ -28,22 +42,6 @@ export const getStorageNamespace = (): string => storageNamespace;
 
 const ns = (suffix: string): string => `${storageNamespace}_${suffix}`;
 
-/**
- * Suffix-mapping pr. domæne-sektion. De faktiske storage-keys bygges med namespace
- * via `getStorageKey` / `STORAGE_KEYS`-getterne nedenfor.
- */
-const STORAGE_KEY_SUFFIXES = {
-  stamdata: 'stamdata',
-  satser: 'satser',
-  aarsloen: 'aarsloen',
-  faellesAarsloen: 'faellesAarsloen',
-  renteberegning: 'renteberegning',
-  varigemen: 'varigemen',
-  forsoergertab: 'forsoergertab',
-  erstatningsopgoerelse: 'erstatningsopgoerelse',
-  erhvervsevnetab: 'erhvervsevnetab',
-} as const;
-
 const UI_STORAGE_KEY_SUFFIXES = {
   lastSavedFilename: 'ui_lastSavedFilename',
   lastSavedFilenameBasis: 'ui_lastSavedFilenameBasis',
@@ -57,108 +55,49 @@ const UI_STORAGE_KEY_SUFFIXES = {
 const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 
 /**
- * Dedikeret nøgle til `invalidDrafts`-recovery-kanalen (afsluttet ugyldigt input).
- * Ikke en sektions-nøgle: hele cachen lagres under denne ene nøgle, så ikke-committbart
- * input overlever F5 (jf. persistence-contract.md §11).
- */
-const INVALID_DRAFTS_SUFFIX = 'invalidDrafts';
-const INPUT_ENVELOPE_SUFFIX = 'input';
-
-/**
- * Current-only envelope-nøgle for greenfield-inputkernen (draft/commit-designet §2.1.6/§3.7). Bevidst
- * disjunkt fra den legacy `input`-nøgle, så de to envelopes aldrig kolliderer under cutover-tranchen.
- * Ingen `fieldAddressVersion`/sentinel/legacy-migrator er knyttet til denne nøgle.
+ * Den ENESTE sessionStorage-nøgle for sagsinput (draft/commit-designet §2.1.6/§3.7): hele det
+ * afsluttede inputaggregat ligger i én envelope under denne nøgle.
+ *
+ * De tidligere per-sektion-nøgler (`mineo_stamdata`, `mineo_satser`, …) og `invalidDrafts`-
+ * recovery-kanalen er SLETTET sammen med den parallelle legacy-inputklynge (greenfield trin 13,
+ * 2026-07-25) og må ikke genindføres — sektionsopdelt persistering er ikke længere en
+ * skrivegrænse, jf. `persistence-contract.md`. Sektions-BEGREBET lever videre som
+ * `PERSISTED_SECTION_KEYS` i `persistenceRegistry.ts`, som er den ene kilde til hvilke sektioner
+ * en `.eo`-fil indeholder.
  */
 const CURRENT_INPUT_ENVELOPE_SUFFIX = 'input_v2';
 
-const buildKeyMap = <T extends Record<string, string>>(suffixes: T): { readonly [K in keyof T]: string } => {
+const buildKeyMap = <T extends Record<string, string>>(
+  suffixes: T
+): { readonly [K in keyof T]: ManifestStorageKey } => {
   const descriptors = {} as { [K in keyof T]: PropertyDescriptor };
   for (const name of Object.keys(suffixes) as (keyof T)[]) {
     descriptors[name] = {
       enumerable: true,
-      get: () => ns(suffixes[name]),
+      get: () => asManifestKey(ns(suffixes[name])),
     };
   }
-  return Object.defineProperties({} as { [K in keyof T]: string }, descriptors);
+  return Object.defineProperties({} as { [K in keyof T]: ManifestStorageKey }, descriptors);
 };
-
-/**
- * Alle gyldige domæne-storage keys. Hver property resolveres dovent med aktuelt namespace.
- * Mapping: pageKey → sessionStorage key (fx `mineo_renteberegning`).
- */
-export const STORAGE_KEYS = buildKeyMap(STORAGE_KEY_SUFFIXES);
 
 export const UI_STORAGE_KEYS = buildKeyMap(UI_STORAGE_KEY_SUFFIXES);
 
-export const createActiveTabStorageKey = (pageId: string): string => ns(`${ACTIVE_TAB_SUFFIX_PREFIX}${pageId}`);
-
-/**
- * SessionStorage-nøgle til `invalidDrafts`-recovery-kanalen. Namespace-aware og dovent resolveret.
- */
-export const getInvalidDraftsStorageKey = (): string => ns(INVALID_DRAFTS_SUFFIX);
-
-/** Eneste current-format-nøgle for den aktive sags samlede inputaggregate. */
-export const getInputEnvelopeStorageKey = (): string => ns(INPUT_ENVELOPE_SUFFIX);
+export const createActiveTabStorageKey = (pageId: string): ManifestStorageKey =>
+  asManifestKey(ns(`${ACTIVE_TAB_SUFFIX_PREFIX}${pageId}`));
 
 /** Current-only envelope-nøgle for greenfield-inputkernen (§2.1.6). Namespace-aware og dovent resolveret. */
-export const getCurrentInputEnvelopeStorageKey = (): string => ns(CURRENT_INPUT_ENVELOPE_SUFFIX);
-
-const isValidStorageKeyForCurrentNamespace = (key: string): boolean => {
-  const domainKeys = Object.values(STORAGE_KEYS) as string[];
-  const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
-  return domainKeys.includes(key)
-    || uiKeys.includes(key)
-    || key === ns(INVALID_DRAFTS_SUFFIX)
-    || key === ns(INPUT_ENVELOPE_SUFFIX)
-    || key === ns(CURRENT_INPUT_ENVELOPE_SUFFIX)
-    || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
-};
-
-export const getKnownStaticStorageKeys = (): string[] => [
-  ...Object.values(STORAGE_KEYS),
-  ...Object.values(UI_STORAGE_KEYS),
-  getInvalidDraftsStorageKey(),
-  getInputEnvelopeStorageKey(),
-  getCurrentInputEnvelopeStorageKey(),
-];
-
-export const getKnownStorageKeys = (existingStorageKeys: readonly string[] = []): string[] => {
-  // Active-tab keys er dynamiske pr. side og kan derfor kun findes ved at filtrere de keys,
-  // der faktisk findes i sessionStorage. Static keys medtages altid, så clear/backup også
-  // dækker fraværende keys og dermed kan rulle sikkert tilbage.
-  return Array.from(new Set([
-    ...getKnownStaticStorageKeys(),
-    ...existingStorageKeys.filter(isValidStorageKeyForCurrentNamespace),
-  ]));
-};
-
-/**
- * Type-safe storage key type
- *
- * Bruges til at sikre at kun gyldige pageKeys kan bruges
- * i persistence-funktioner.
- */
-export type StorageKey = keyof typeof STORAGE_KEY_SUFFIXES;
-
-/**
- * Helper til at få sessionStorage key fra pageKey
- *
- * @param pageKey - Logisk side-nøgle (fx 'stamdata')
- * @returns SessionStorage key (fx 'mineo_stamdata')
- */
-export const getStorageKey = (pageKey: StorageKey): string => {
-  return STORAGE_KEYS[pageKey];
-};
+export const getCurrentInputEnvelopeStorageKey = (): ManifestStorageKey =>
+  asManifestKey(ns(CURRENT_INPUT_ENVELOPE_SUFFIX));
 
 /**
  * Tjek om en sessionStorage key er en gyldig key for den aktive variant.
  *
  * Sættene bygges dynamisk fra aktuelt namespace, så `setStorageNamespace` virker
  * uanset import-rækkefølge.
- *
- * @param key - SessionStorage key at tjekke
- * @returns true hvis key er en kendt key for den aktive variant
  */
 export const isValidStorageKey = (key: string): boolean => {
-  return isValidStorageKeyForCurrentNamespace(key);
+  const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
+  return uiKeys.includes(key)
+    || key === ns(CURRENT_INPUT_ENVELOPE_SUFFIX)
+    || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
 };

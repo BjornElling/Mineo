@@ -8,8 +8,8 @@ import {
   type DevtoolsIssueSnapshot,
 } from '../utils/devtoolsMonitor';
 import type { BugReportExtraSection } from '../utils/bugReport';
-import { persistenceSchemas } from '../config/persistenceRegistry';
-import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
+import { persistenceSchemas, type PersistedSectionKey } from '../config/persistenceRegistry';
+import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import {
   readOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
@@ -32,8 +32,8 @@ const parseNonNegativeInteger = (value: string | null): number | null => {
 };
 
 type UseDevtoolsMonitoringArgs = {
-  getPersistedData: <K extends StorageKey>(pageKey: K) => unknown;
-  getFieldErrorsBySource: <K extends StorageKey>(pageKey: K) => unknown;
+  getPersistedData: <K extends PersistedSectionKey>(pageKey: K) => unknown;
+  getFieldErrorsBySource: <K extends PersistedSectionKey>(pageKey: K) => unknown;
   location: Location;
 };
 
@@ -149,16 +149,16 @@ export const useDevtoolsMonitoring = ({
 
   const getExtraSections = React.useCallback((): BugReportExtraSection[] => {
     const persistedSnapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-      const pageKey = key as StorageKey;
+      const pageKey = key as PersistedSectionKey;
       acc[pageKey] = getPersistedData(pageKey) ?? null;
       return acc;
-    }, {} as Record<StorageKey, unknown>);
+    }, {} as Record<PersistedSectionKey, unknown>);
 
     const fieldErrorsSnapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-      const pageKey = key as StorageKey;
+      const pageKey = key as PersistedSectionKey;
       acc[pageKey] = getFieldErrorsBySource(pageKey);
       return acc;
-    }, {} as Record<StorageKey, unknown>);
+    }, {} as Record<PersistedSectionKey, unknown>);
 
     const uiMeta = {
       lastSavedFilename: readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename),

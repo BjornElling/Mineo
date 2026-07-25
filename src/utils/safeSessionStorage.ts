@@ -1,4 +1,17 @@
+import type { ManifestStorageKey } from '../config/storageManifest';
+
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>;
+
+/**
+ * SKRIVNING kræver en `ManifestStorageKey` — en nøgle, der bevisligt er produceret af
+ * `storageManifest`. Det gør "kun registrerede nøgler må skrives" til en COMPILER-invariant i
+ * stedet for en AST-regel, der kun kan se strengliteraler og derfor kunne omgås med en variabel.
+ * De slettede legacy-nøgler (`mineo_invalidDrafts`, per-sektion-nøglerne) kan dermed ikke
+ * genindføres ad nogen vej.
+ *
+ * LÆSNING og SLETNING tager bevidst `string`: at rydde op efter en ukendt/forældet nøgle er
+ * lovligt og nødvendigt — det er kun at skabe ny persisteret tilstand, der er begrænset.
+ */
 
 const getSessionStorageInstance = (): StorageLike => {
   if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -32,7 +45,7 @@ export const readSessionStorageValue = (key: string): string | null => {
   return getSessionStorageInstance().getItem(key);
 };
 
-export const writeSessionStorageValue = (key: string, value: string): void => {
+export const writeSessionStorageValue = (key: ManifestStorageKey, value: string): void => {
   try {
     getSessionStorageInstance().setItem(key, value);
   } catch (error) {
@@ -48,23 +61,11 @@ export const removeSessionStorageValue = (key: string): void => {
   }
 };
 
-export const listSessionStorageKeys = (): string[] => {
-  const storage = getSessionStorageInstance();
-  const keys: string[] = [];
-  for (let index = 0; index < storage.length; index += 1) {
-    const key = storage.key(index);
-    if (key !== null) {
-      keys.push(key);
-    }
-  }
-  return keys;
-};
-
 export const readOptionalSessionStorageValue = (key: string): string | null => {
   return withOptionalSessionStorage(null, (storage) => storage.getItem(key));
 };
 
-export const writeOptionalSessionStorageValue = (key: string, value: string): boolean => {
+export const writeOptionalSessionStorageValue = (key: ManifestStorageKey, value: string): boolean => {
   return withOptionalSessionStorage(false, (storage) => {
     storage.setItem(key, value);
     return true;

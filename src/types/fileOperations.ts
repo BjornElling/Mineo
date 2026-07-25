@@ -3,7 +3,7 @@
  * Bruges til at undgå 'any' types i MainLayout og andre steder
  */
 
-import type { StorageKey } from '../config/storageManifest';
+import type { PersistedSectionKey } from '../config/persistenceRegistry';
 
 export type LoadIssueKind =
   | 'migratedField'
@@ -72,7 +72,7 @@ type LoadedFileData = {
   /** Filnavn der blev indlæst fra. */
   filename: string;
   /** Schema-valideret snapshot af indlæst data pr. side (anvendes atomisk via persistence-laget). */
-  snapshot: Partial<Record<StorageKey, unknown>>;
+  snapshot: Partial<Record<PersistedSectionKey, unknown>>;
   /** PWA request-id (hvis kilden er PWA). */
   requestId?: string;
   /** File System Access handle (hvis tilgængeligt). */

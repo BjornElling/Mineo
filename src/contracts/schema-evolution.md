@@ -241,7 +241,7 @@ Følgende er breaking schema-ændringer:
 
 Breaking ændringer må ikke håndteres med strip/default alene, medmindre den bevidste beslutning er at tabe den gamle værdi og rapportere det tydeligt.
 
-Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `StorageKey`. Migrator kører i denne rækkefølge:
+Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `PersistedSectionKey`. Migrator kører i denne rækkefølge:
 
 1. `nullToUndefinedDeep`
 2. migrator for kendt gammel struktur
@@ -308,7 +308,7 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
   → decrypt
   → resolvér sourceVersion fra metadata eller legacy-sentinel
   → nullToUndefinedDeep(data)
-  → eventuel eksakt migrator pr. StorageKey + sourceVersion
+  → eventuel eksakt migrator pr. PersistedSectionKey + sourceVersion
   → stripUnknownFieldsBySchema(schema, data)
       → felter i data men ikke i schema: strippes, rapporteres som "ikke indlæst"
   → schema.safeParse(stripped)

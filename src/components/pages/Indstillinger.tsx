@@ -119,7 +119,7 @@ BrevhovedCheckboxRow.displayName = 'BrevhovedCheckboxRow';
  *
  * VIGTIGT (trust-kritisk + persistence-adskillelse):
  * - Disse indstillinger er ikke en del af sagsdata.
- * - `.eo` filer må kun indeholde schema-valideret brugerinput fra FormPersistenceContext (sessionStorage).
+ * - `.eo` filer må kun indeholde schema-valideret brugerinput fra de registrerede sagssektioner.
  *
  * Refs:
  * - `src/contracts/app-settings.md`

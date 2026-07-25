@@ -1,18 +1,18 @@
 import { PERSISTED_SECTION_KEYS, type PersistedSectionsSnapshot } from '../config/persistenceRegistry';
-import { type StorageKey } from '../config/storageManifest';
+import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import type { ApplicableLoadFileResult } from '../types/fileOperations';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import { persistLoadedFilenameMetadata } from './filePersistenceMetadata';
 import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
 
 const buildAuthoritativeLoadSnapshot = (
-  partialSnapshot: Partial<Record<StorageKey, unknown>> | undefined
+  partialSnapshot: Partial<Record<PersistedSectionKey, unknown>> | undefined
 ): PersistedSectionsSnapshot => {
   if (!partialSnapshot) {
     throw new Error('Kunne ikke anvende indlæst data: mangler snapshot');
   }
 
-  const assignSnapshotValue = <K extends StorageKey>(
+  const assignSnapshotValue = <K extends PersistedSectionKey>(
     target: PersistedSectionsSnapshot,
     key: K,
     value: PersistedSectionsSnapshot[K]

@@ -183,7 +183,7 @@ describe('computeEetSnapshot', () => {
       forlig: {
         values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2/3' },
         dato: toISODateString('2024-05-17'),
-        hasInvalidDraft: false,
+        hasRejectedInput: false,
       },
     });
 
@@ -206,7 +206,7 @@ describe('computeEetSnapshot', () => {
       fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
       forlig: {
         values: { forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '1/3' },
-        hasInvalidDraft: false,
+        hasRejectedInput: false,
       },
     });
 
@@ -223,7 +223,7 @@ describe('computeEetSnapshot', () => {
       fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
       forlig: {
         values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: undefined },
-        hasInvalidDraft: true,
+        hasRejectedInput: true,
       },
     });
 
@@ -239,7 +239,7 @@ describe('computeEetSnapshot', () => {
       forlig: {
         values: { forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: undefined },
         datoErrorMessage: 'Forligsdatoen er ugyldig',
-        hasInvalidDraft: false,
+        hasRejectedInput: false,
       },
     });
 

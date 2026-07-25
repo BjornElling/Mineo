@@ -53,9 +53,9 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
    */
   getOptionLabel?: (value: TValue) => string;
   /**
-   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på det fokuserbare combobox-input, så fokus efter
-   * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-
-   * wrapperen leverer den.
+   * Undo/redo-fokusrestore-attributter (§3.7): sættes på det fokuserbare combobox-input, så fokus efter
+   * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
+   * `inputCore/react/fields/ChoiceField` og `GridChoiceCell` leverer dem.
    */
   restoreTargetAttributes?: Readonly<Record<string, string>>;
   returnFocusOnClose?: boolean;

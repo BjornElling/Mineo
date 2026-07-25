@@ -132,8 +132,8 @@ export type GridRowIdentityReconciliation<TRow> = Readonly<{
  * - Tomme syntetiske rækker må arve et tidligere id, fordi de ikke persisteres som brugerdata.
  * - Hvor et ikke-tomt id ikke kan graftes, oprettes i stedet et undo-fokus-alias (`oldId -> row.id`).
  *
- * Aliaset er kun til `data-mineo-undo-field-path`-restore. Validering, beregning, sortering,
- * persistence og `invalidDrafts` bruger fortsat den faktiske række-id.
+ * Aliaset er kun til `data-mineo-undo-field-path`-restore. Validering, beregning, sortering og
+ * persistering bruger fortsat den faktiske række-id.
  */
 export const reconcileGridRowIdentityForRestore = <TRow>(params: Readonly<{
   incoming: readonly TRow[];

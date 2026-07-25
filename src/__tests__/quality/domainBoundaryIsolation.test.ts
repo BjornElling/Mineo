@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { StorageKey } from '../../config/storageManifest';
+import type { PersistedSectionKey } from '../../config/persistenceRegistry';
 import { PERSISTED_SECTION_KEYS } from '../../config/persistenceRegistry';
 import { PAGE_BOUNDARY_RULES } from './architecture/architectureRules';
 import { assertPathExists } from './testUtils';
@@ -38,7 +38,7 @@ describe('domainBoundaryIsolation', () => {
   it('holder EO-specialimporten på den offentlige reader uden raw store- eller write-adgang', () => {
     assertPathExists(SPECIAL_EO_IMPORT_HOOK_PATH, 'EO specialimport-hook');
     const source = fs.readFileSync(SPECIAL_EO_IMPORT_HOOK_PATH, 'utf8');
-    const writeSections = Array.from(source.matchAll(WRITE_ACCESS_PATTERN), (match) => match[1] as StorageKey);
+    const writeSections = Array.from(source.matchAll(WRITE_ACCESS_PATTERN), (match) => match[1] as PersistedSectionKey);
 
     expect(source).toContain('useInputEvaluation');
     expect(source).toContain('buildErhvervsevnetabReaderProjection');

@@ -7,6 +7,31 @@ import {
   writeOptionalSessionStorageValue,
   writeSessionStorageValue,
 } from '../../utils/safeSessionStorage';
+import type { ManifestStorageKey } from '../../config/storageManifest';
+
+/**
+ * Denne suite tester storage-MEKANIKKEN (fejlhåndtering, fallbacks), ikke nøglens proveniens.
+ * Syntetiske testnøgler brandes derfor eksplicit her. Produktionskode må ALDRIG gøre dette —
+ * dér er hele pointen, at kun `storageManifest` kan producere en skrivbar nøgle.
+ */
+const testKey = (key: string): ManifestStorageKey => key as ManifestStorageKey;
+
+/**
+ * Skrivegrænsen håndhæves af TYPESYSTEMET, ikke ved runtime. Assertionen er derfor
+ * `@ts-expect-error`-markørerne selv: `typecheck:test` fejler, hvis en af dem holder op med at være
+ * en fejl — dvs. hvis brandingen bliver blødt op, så en vilkårlig streng igen kan skrives.
+ * Funktionerne kaldes bevidst IKKE her; der er intet runtime-kast at fange.
+ */
+const _writeBoundaryIsCompilerEnforced = (): void => {
+  // @ts-expect-error en genindført legacy-nøgle kan ikke skrives: den er ikke manifest-produceret
+  writeSessionStorageValue('mineo_invalidDrafts', 'x');
+  // @ts-expect-error gælder også den optional-variant, produktionskoden faktisk bruger
+  writeOptionalSessionStorageValue('mineo_stamdata', 'x');
+  // @ts-expect-error og enhver anden vilkårlig streng — også når den kommer via en variabel,
+  // hvor en AST-regel principielt er blind
+  writeOptionalSessionStorageValue(String('mineo_input'), 'x');
+};
+void _writeBoundaryIsCompilerEnforced;
 
 describe('safeSessionStorage', () => {
   beforeEach(() => {
@@ -14,7 +39,7 @@ describe('safeSessionStorage', () => {
   });
 
   it('reads and writes via strict helpers when storage is available', () => {
-    writeSessionStorageValue('mineo_ui_test', 'vaerdi');
+    writeSessionStorageValue(testKey('mineo_ui_test'), 'vaerdi');
 
     expect(readSessionStorageValue('mineo_ui_test')).toBe('vaerdi');
 
@@ -32,7 +57,7 @@ describe('safeSessionStorage', () => {
       throw new Error('blocked');
     });
 
-    expect(writeOptionalSessionStorageValue('mineo_ui_test', 'vaerdi')).toBe(false);
+    expect(writeOptionalSessionStorageValue(testKey('mineo_ui_test'), 'vaerdi')).toBe(false);
     expect(readOptionalSessionStorageValue('mineo_ui_test')).toBeNull();
     expect(removeOptionalSessionStorageValue('mineo_ui_test')).toBe(false);
 
@@ -68,7 +93,7 @@ describe('safeSessionStorage', () => {
       throw new Error('blocked');
     });
 
-    expect(() => writeSessionStorageValue('mineo_ui_test', 'vaerdi')).toThrow('blocked');
+    expect(() => writeSessionStorageValue(testKey('mineo_ui_test'), 'vaerdi')).toThrow('blocked');
 
     setItemSpy.mockRestore();
   });
@@ -79,7 +104,7 @@ describe('safeSessionStorage', () => {
       throw new DOMException('quota', 'QuotaExceededError');
     });
 
-    expect(() => writeSessionStorageValue('mineo_ui_test', 'vaerdi')).toThrow(
+    expect(() => writeSessionStorageValue(testKey('mineo_ui_test'), 'vaerdi')).toThrow(
       'Browserens midlertidige lager er fyldt'
     );
 

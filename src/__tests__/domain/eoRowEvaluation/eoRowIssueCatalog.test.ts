@@ -1,4 +1,4 @@
-import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
+import { CELL_TABLE_IDS, buildCellFocusFieldPath } from '../../../config/cellFocusPaths';
 import {
   resolveEoIssueFocusTarget,
   resolveEoIssueSummaryText,
@@ -74,7 +74,7 @@ describe('eoRowIssueCatalog', () => {
 
     expect(resolveEoIssueFocusTarget(row)).toEqual({
       kind: 'fieldPath',
-      fieldPath: buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoTafPeriode, '', 'taf-1:0'),
+      fieldPath: buildCellFocusFieldPath(CELL_TABLE_IDS.eoTafPeriode, '', 'taf-1:0'),
     });
   });
 
@@ -86,7 +86,7 @@ describe('eoRowIssueCatalog', () => {
 
     expect(resolveEoIssueFocusTarget(row)).toEqual({
       kind: 'fieldPath',
-      fieldPath: buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoSvieSmerte, '', 'ss-1:3'),
+      fieldPath: buildCellFocusFieldPath(CELL_TABLE_IDS.eoSvieSmerte, '', 'ss-1:3'),
     });
   });
 });

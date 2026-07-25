@@ -12,7 +12,7 @@
  * kontekst-afhængige rutning bevares hos kalderen; dette modul dækker kun det 1:1-mappbare.
  */
 
-import type { StorageKey } from './storageManifest';
+import type { PersistedSectionKey } from './persistenceRegistry';
 
 /** Alle faste app-routes (uden for de persisterede domæne-sektioner). */
 export const APP_ROUTES = {
@@ -32,7 +32,7 @@ export type AppRoute = (typeof APP_ROUTES)[keyof typeof APP_ROUTES];
  * Route for en pageKey, hvis den har en egen route. `faellesAarsloen` returnerer
  * `null`, fordi den ikke har en selvstændig route (kalderen vælger kontekst-route).
  */
-export const getRouteForPageKey = (pageKey: StorageKey): AppRoute | null => {
+export const getRouteForPageKey = (pageKey: PersistedSectionKey): AppRoute | null => {
   if (pageKey === 'faellesAarsloen') return null;
   return APP_ROUTES[pageKey];
 };
@@ -55,4 +55,4 @@ export const PAGE_DEFAULT_TAB = {
   erhvervsevnetab: 'eet-oplysninger',
   renteberegning: 'calculation',
   varigemen: 'menberegning',
-} as const satisfies Partial<Record<StorageKey, string>>;
+} as const satisfies Partial<Record<PersistedSectionKey, string>>;

@@ -20,7 +20,8 @@ import TextField from '../../inputCore/react/fields/TextField';
 import ContentBox from '../layout/ContentBox';
 
 // Greenfield-migreret (§2.4, formularrækkefølge trin 1 — FØRSTE callsite-cutover). Erstatter den legacy
-// `usePersistedForm`+`Styled*Field`+`useFormFieldErrorReporter`-vej med de tynde `Greenfield*Field`-skaller.
+// `usePersistedForm`+`Styled*Field`+`useFormFieldErrorReporter`-vej med de tynde feltskaller i
+// `inputCore/react/fields/` (`TextField`, `DateField`, …).
 // Hvert felt modtager KUN sin konkrete `field` (descriptor.bind()) og `location` (stabilt locationId) — ingen
 // `value`/`onCommit`/`parse`/`format`/`onFieldError`/`min`/`max`. Datomodellens kronologiske bounds er
 // feltvalidatorer, ikke props; de er koblet til runtime-issuet og giver samme røde feltfejl på tværs af consumers.

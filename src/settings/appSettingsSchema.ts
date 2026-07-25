@@ -17,11 +17,11 @@ import type { DocumentBrevhovedType } from '../document/layout/documentBrevhoved
  *
  * VIGTIGT (trust-kritisk + adskillelse af persistence):
  * - Disse indstillinger gemmes i `localStorage` og er ment som "enhedslokale".
- * - De MÅ IKKE gemmes i FormPersistenceContext / sessionStorage `STORAGE_KEYS`,
+ * - De MÅ IKKE gemmes i sagsinput-envelopen eller i nogen persisteret sektion,
  *   og MÅ derfor IKKE indgå i `.eo` save/load-operationer.
  *
  * Referencer:
- * - `src/config/storageManifest.ts` (kun sessionStorage-keys i manifestet gemmes til `.eo`)
+ * - `src/config/persistenceRegistry.ts` (kun de registrerede sektioner gemmes til `.eo`)
  * - `src/utils/fileSave.ts` / `src/utils/fileLoad.ts` (opererer på manifest-bundne data)
  * - `src/contracts/app-settings.md` (normativ dokumentation for denne adskillelse)
  */

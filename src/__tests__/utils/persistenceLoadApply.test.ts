@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
-import type { StorageKey } from '../../config/storageManifest';
+import type { PersistedSectionKey } from '../../config/persistenceRegistry';
 import { executePersistenceLoadApply } from '../../utils/persistenceLoadApply';
 import { toISODateString } from '../../types/branded';
 
@@ -68,8 +68,8 @@ describe('executePersistenceLoadApply', () => {
     });
 
     expect(applySnapshot).toHaveBeenCalledTimes(1);
-    const calledSnapshot = applySnapshot.mock.calls[0][0] as Record<StorageKey, unknown | undefined>;
-    const allKeys = Object.keys(persistenceSchemas) as StorageKey[];
+    const calledSnapshot = applySnapshot.mock.calls[0][0] as Record<PersistedSectionKey, unknown | undefined>;
+    const allKeys = Object.keys(persistenceSchemas) as PersistedSectionKey[];
     expect(Object.keys(calledSnapshot).sort()).toEqual(allKeys.slice().sort());
     expect(calledSnapshot.stamdata).toEqual(expect.any(Object));
     for (const key of allKeys.filter((key) => key !== 'stamdata')) {

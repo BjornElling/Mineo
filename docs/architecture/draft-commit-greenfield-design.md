@@ -56,12 +56,28 @@ før-forlig-grundlaget bestå; (4) de gyldige, uafhængige grene bæres nu frem 
 runtime-værn før nogen mutation. Se `work-items/WI-004-fase34-restfund.md` og
 `docs/reviews/codex-fase34-restfund.md`.
 
+**Fase 0–4 er endeligt lukket 2026-07-25 (WI-007).** Den sidste rest var ikke funktionel, men strukturel:
+trin 13 slettede den parallelle legacy-inputklynges KONSUMENTER, men efterlod den infrastruktur, der alene
+eksisterede for at betjene dem — kaldeløse eksporter, en persisteret nøgle uden læser/skriver, og kommentarer,
+der beskrev den slettede model i nutid. Modulerne typecheckede, så intet værn fangede dem. Lukket ved at
+SLETTE frem for at omdøbe: hele den per-sektion-baserede sessionStorage-nøglefamilie (`getStorageKey`,
+`getKnownStorageKeys`, `isValidStorageKey`s legacy-grene, `mineo_invalidDrafts`, `mineo_input`) er væk —
+sagsinput ligger i ÉN envelope (`input_v2`). `persistenceRegistry` er nu den ENE KILDE til sektionsmængden:
+`PersistedSectionKey` udledes af den (og hedder ikke længere `StorageKey`, som sammenblandede sagssektion med
+browserlager-nøgle), listen er frosset, og `fileLoad`s to gennemløb læser nu samme kilde i stedet for hver sin.
+`cellInvalidDraftScopes` er
+reduceret til sit levende ansvar og hedder nu `cellFocusPaths` med den ene funktion, der har en kalder.
+Skrivegrænsen er gjort STRUKTUREL: `safeSessionStorage`s skrivefunktioner tager en `ManifestStorageKey`,
+som kun `storageManifest` kan producere, så en genindført legacy-nøgle afvises af COMPILEREN — også når
+den kommer ind som en variabel, hvor en AST-regel principielt er blind.
+`storage/session-storage-manifest-key` bevares som sekundær diagnostik og dækker nu begge skriveveje.
+Se `work-items/WI-007-fase04-exit.md`.
+
 **Fase 3+4-restarbejdet er implementeret 2026-07-25 (WI-004).** De fund, der stod åbne efter
 `codex-fase34-followup.md`, er nu implementeret — inklusive de seks fund fra en yderligere ekstern review-runde
-(R1–R6, hvoraf to var kritiske). **Et afsluttende uafhængigt review mangler:** runde 2 blev afbrudt uden
-konklusion, så der findes ingen ekstern bekræftelse af, at R1–R6 er lukket. Verifikationen hviler indtil videre
-på de fire grønne gates, den grønne fuldsuite og de nye invarianttests (se `docs/reviews/codex-fase34-restfund.md`
-§"Runde 2"). Det implementerede omfatter: den strukturelle dependency-gate før motorkald i
+(R1–R6, hvoraf to var kritiske). R1–R6's lukning blev efterfølgende bekræftet eksternt i WI-004's runde 3 og 4,
+hvor R1 og R4 viste sig IKKE lukket og blev rettet, og de afsluttende re-reviews (T1–T3, U1–U3) blev grønne.
+Det implementerede omfatter: den strukturelle dependency-gate før motorkald i
 Forsørgertab, EET og EO (F2), den komplette kanoniske feltadresse→destination-afbildning inkl. kontekst-delte
 felter (F4), og de dokumenterede dækningshuller (transient input, grid dropdown/to-trins-genindtræden,
 Renteberegnings projektionsmatrix, origin-fuldstændighed). To ægte fejl blev fundet undervejs af den nye dækning:
@@ -854,8 +870,9 @@ kontrakter, guidet af en linjepræcis contract-audit): masking→XOR, strukturel
 fjernet, critical-action-matricen rettet og friskhed = `EvaluationSourceToken` (input + settings). De tre midlertidige
 inventarer er bygget i `src/inputCore/ledger/` (239 datafelter, 16 collections, 30 makro-consumers) med maskinlåste
 baseline-counts, completeness-test mod de levende Zod-schemas/produktionsbindings og validator
-(`npm run verify:ledgers`). Reviewet fjernede to schema-only legacyfelter og én ubrugt collection; de endelige
-descriptors, editorlokationer og consumerdependencies bygges kun én gang i fase 2–5 efter den korrigerede §6.
+(`npm run verify:ledgers`). Reviewet fjernede to schema-only legacyfelter og én ubrugt collection. Descriptors og
+editorlokationer blev bygget én gang i fase 2 efter den korrigerede §6; dokumenternes consumerdependencies bygges
+i fase 5. Inventarerne selv slettes i fase 6, når slutkatalogerne giver udtømmende coverage.
 
 **Afhængighed:** Ingen.
 
@@ -977,9 +994,9 @@ disse consumerdele frem; det markerer ikke fase 3 eller 5 som gennemført.
 Reviewet fjernede hovedappens parallelle `FormPersistenceProvider`, den ubrugte greenfield-runtime i standalone,
 legacy-PWA-load fra Mineos midlertidige entry og singleton-bypass fra React-consumers. Mineo bruger derfor kun den nye
 runtime, selv om den resterende legacy-shell ikke fungerer i mellemtilstanden; standalone Renteberegning er migreret
-atomisk. Startup-notice, global undo/redo-fokusnavigation og case-replacement-porten færdiggøres med fase 4's
-shell-cutover; de må ikke erstattes af parallel legacylogik. Feltrelevans, domænevalidatorer og consumerissues
-færdiggøres systematisk i fase 3 og er ikke et fase-2-exitkriterium. Som ekstra kontrol blev den fulde produktsuite
+atomisk. Startup-notice, global undo/redo-fokusnavigation og case-replacement-porten blev færdiggjort med fase 4's
+shell-cutover (WI-002/WI-003) uden parallel legacylogik. Feltrelevans, domænevalidatorer og consumerissues blev
+færdiggjort systematisk i fase 3 og var ikke et fase-2-exitkriterium. Som ekstra kontrol blev den fulde produktsuite
 kørt grønt ved faseafslutningen, selv om den bindende deploygate fortsat ligger efter fase 5.
 
 **§2.5 trin 1 (fælles grid-adapter) LANDET som isoleret kontrolpunkt (2026-07-17).** Rækkeinfrastruktur og
@@ -1099,11 +1116,13 @@ må derefter have nul produktionscallsites fra persisted surfaces:
 - compatibility-rollerne i `formPersistenceStore`, `undoRedoStore` og `formPersistenceReadModel`,
 - legacy test-only store mutations.
 
-Fysisk filsletning sker ikke før filens sidste aktive ansvar er flyttet. Flere af familierne ovenfor er fortsat
-transitive dependencies til den gamle case-/session-/shell-infrastruktur eller til transiente `Styled*`-controls;
-de beholdes isoleret frem til fase 4 og slettes dér sammen med `FormPersistenceContext*`, `useFormPersistence`,
-`usePersistedForm` og gamle persistence-selectors. Dette er ikke tilladelse til nye imports: fase-2-vagterne kræver
-fortsat nul brug fra migrerede persisted surfaces. Fase 6 verificerer, at ingen sådan midlertidig fysisk rest består.
+Fysisk filsletning skete ikke, før filens sidste aktive ansvar var flyttet. **Slettelisten er gennemført:**
+familierne ovenfor blev slettet i Fase 4 trin 13 sammen med `FormPersistenceContext*`, `useFormPersistence`,
+`usePersistedForm` og de gamle persistence-selectors. Den tilhørende infrastruktur, der alene betjente dem, blev
+lukket i WI-007: per-sektion-sessionStorage-nøglerne (`mineo_stamdata`, …), `invalidDrafts`-nøglen og den legacy
+`input`-envelope er fjernet fra manifestet, og `cellInvalidDraftScopes` er reduceret til sit levende ansvar
+(fokusadressering) under navnet `cellFocusPaths`. En AST-regel afviser skrivning til de slettede nøgler ad
+begge skriveveje. Fase 6 verificerer, at ingen midlertidig fysisk rest består.
 
 #### Exitkriterier
 
@@ -1113,14 +1132,15 @@ fortsat nul brug fra migrerede persisted surfaces. Fase 6 verificerer, at ingen 
 - Ingen tabel har en konkurrerende værdikopi.
 - Lukket felt har ingen værdibærende lokal state eller resync-effect.
 - Runtime/envelope kan ikke repræsentere legacy-adresser.
-- Alle legacy input-write-/editor-symboler har nul produktionscallsites; case-/dokumentansvar fjernes i fase 4–5.
+- Alle legacy input-write-/editor-symboler har nul produktionscallsites; caseansvaret er flyttet i fase 4,
+  mens dokumentansvaret flyttes i fase 5.
 
 #### Verifikation
 
 - Målrettede editor-/adaptertests mod syntetiske immutable issue-snapshots.
 - Alle codecfamilier, placeholder-first-invalid, row-delete og undo/redo.
-- Fuld field-contract-, actionmatrix- og komponentgate afventer fase 3–4, hvor validatorer og caseporte findes.
-- Dette er et internt kontrolpunkt; grøn compile/build gør ikke appen deploybar før fase 3–5 er afsluttet.
+- Fuld field-contract-, actionmatrix- og komponentgate er kørt efter fase 3–4, hvor validatorer og caseporte kom på plads.
+- Dette er et internt kontrolpunkt; grøn compile/build gør ikke appen deploybar før fase 5 er afsluttet.
 
 ### Fase 3 — Domæneprojektioner og ren fejlmodel
 
@@ -1240,14 +1260,20 @@ For hver slice:
 - Kun en `ready` projektion fodrer en motor, og konsekvensen af `blocked` er `null` — aldrig en tomværdi.
   En canonical `range`/`bounds`-fejl blokerer den afhængige beregning/det afhængige dokument (men ikke
   `.eo`-save), jf. `error-contract.md` §1.1's normative matrix.
-- **KENDT AFGRÆNSNING (EO, udestående):** EO's autoritative payload er fortsat ét atomisk `data`-objekt, så en
-  blokerende invariant nulstiller det samlet. Det er PRE-EKSISTERENDE adfærd —
-  `erstatningsopgoerelseValidator` blokerede allerede globalt på forlig/svie-smerte/`tidligereModtagetTaf` via
-  `VALIDATION_BLOCKED_OUTPUTS` — og WI-004 tilføjede reader-fejl til den samme eksisterende mekanisme uden at
-  udvide blokeringens rækkevidde. S/S-motoren er nu dependency-gatet særskilt, så en TAF-fejl ikke stopper S/S
-  og omvendt. Men den fulde ambition i brugerbeslutningen 2026-07-25 (et ugyldigt S/S-satsår skal bevare den
-  gyldige TAF-tabel i det AUTORITATIVE output, ikke kun i inspektionen) kræver en leaf-niveau dependency-DAG
-  gennem `eoSnapshot`/`eoCanonicalOutput`/`pdfModel`. Det er en selvstændig work item.
+- **EO's afhængighedsopdeling (implementeret, WI-004 runde 4 — model A):** EO har selvstændige grene for
+  `svieSmerte`, `taf` og `forlig` plus en `aggregate`-node (`snapshot/eoDependencyGroups.ts`). Gatingens
+  autoritet er det STRUKTURELLE `FieldIssueSnapshot` — ikke det afledte `eoErrors`-map, som kun kendte 11
+  top-level feltnavne og derfor var blind for røde rækkeceller. Grenlisterne er udledt af, hvad motorerne
+  FAKTISK læser, inklusive klipningsgrænserne (EO-perioden, mén-/EET-/differencekravsdatoerne og
+  `stamdata.skadedato` på tværs af sektionsgrænsen) — en maskeret grænse ville ellers fjerne klipningen
+  lydløst. De gyldige grene bæres frem til Beregning-fanen gennem `readyBranches`
+  (`eoSnapshot.ts` → `eoSnapshotToBeregningView.ts`), så et rødt S/S-felt ikke længere fjerner den gyldige
+  TAF-periodisering. Forliget er en egen gren, så en rød ansvarsgrad kun neutraliserer efter-forlig-resultatet.
+- **BEVIDST AFGRÆNSNING (EO's krydsgående aggregat):** `totals.samletTotalOre`, `canonicalOutput` og `pdfModel`
+  blokeres fortsat SAMLET, hvis bare ét led er blokeret, og `readyBranches` indgår aldrig i dem. Det er ikke en
+  rest, men det valgte design (model A): en samlet sum eller et fuldt dokument kan ikke være autoritativt uden
+  alle led. Alternativerne — delvise totals (B) og node pr. `canonicalOutput`-felt (C) — er afvist som
+  henholdsvis fejlbarlige og over-engineered. Normativ beskrivelse i `eo-snapshot-contract.md` §3.3.
 - Ingen mounted komponent kan tilføje/fjerne en autoritativ fejl.
 - Ikke-dependencies overblokerer ikke.
 - Alle synlige resultater følger den seneste afsluttede revision.

@@ -1,12 +1,12 @@
 // Samlet værn for FELT-IDENTITET på tværs af ALLE persisterende input-widgets (A2).
 //
-// Undo/redo og invalidDraft-recovery finder et felt igen i DOM via dets felt-identitet. Mangler den,
-// lander fokus forkert efter en undo, eller en ugyldig draft kan ikke genfindes/ryddes. Identiteten
-// bæres af disse attributter på det faktiske <input>:
+// Undo/redo og issue-navigation finder et felt igen i DOM via dets felt-identitet. Mangler den,
+// lander fokus forkert efter en undo, eller et navigerbart issue kan ikke pege på sin celle.
+// Identiteten bæres af disse attributter på det faktiske <input>:
 //   - `name`                          (durable felt-id; kilde til undo-field-path-fallback)
 //   - `data-mineo-undo-field-path`    (undo/redo-fokus-restore)
 //   - `data-mineo-undo-focus-token`   (focus-token-fallback når name endnu ikke er kendt)
-//   - `data-mineo-field-path`         (invalidDraft-recovery; KUN felter med en draft-tilstand)
+//   - `data-mineo-field-path`         (fokusmål for navigerbare issues, jf. `config/cellFocusPaths.ts`)
 //
 // Tidligere var dette spredt: `immediateCommitWidgetUndoName` dækkede KUN formular-widgets i sags-sider,
 // og INTET værn dækkede grid-tabellernes celle-inputs. Denne fil samler felt-identitets-værnet ét sted

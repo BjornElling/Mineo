@@ -1,15 +1,28 @@
 import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persistenceRegistry';
-import { STORAGE_KEYS, getStorageKey } from '../../config/storageManifest';
-import type { StorageKey } from '../../config/storageManifest';
 import { z } from 'zod';
 import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 
+/**
+ * Den forventede sektionsmængde er skrevet UD i fuld længde med vilje. Registry'et er nu den ENE
+ * kilde til hvilke persisterede sektioner der findes (`.eo`-load itererer den, og `PersistedSectionKey`
+ * udledes af den), så en test der blot sammenlignede registry'et med sig selv ville være vakuøs.
+ * En sektion, der forsvinder herfra, ville ellers tavst blive sprunget over ved load — dvs. datatab.
+ */
+const EXPECTED_SECTION_KEYS = [
+  'aarsloen',
+  'erhvervsevnetab',
+  'erstatningsopgoerelse',
+  'faellesAarsloen',
+  'forsoergertab',
+  'renteberegning',
+  'satser',
+  'stamdata',
+  'varigemen',
+] as const;
+
 describe('persistenceSchemas', () => {
-  it('indeholder alle StorageKeys', () => {
-    const allStorageKeys = Object.keys(STORAGE_KEYS) as StorageKey[];
-    for (const key of allStorageKeys) {
-      expect(persistenceSchemas).toHaveProperty(key);
-    }
+  it('dækker præcis den forventede sektionsmængde (ændring = datatab ved load)', () => {
+    expect([...PERSISTED_SECTION_KEYS].sort()).toEqual([...EXPECTED_SECTION_KEYS]);
   });
 
   it('alle schemas er Zod-schemas (har en .parse-metode)', () => {
@@ -19,21 +32,6 @@ describe('persistenceSchemas', () => {
     }
   });
 
-  it('har præcis ét schema per StorageKey', () => {
-    const storageKeyCount = Object.keys(STORAGE_KEYS).length;
-    const schemaCount = Object.keys(persistenceSchemas).length;
-    expect(schemaCount).toBe(storageKeyCount);
-  });
-
-  it('matcher domain storage manifestet præcist', () => {
-    const schemaKeys = [...PERSISTED_SECTION_KEYS].sort();
-    const manifestKeys = (Object.keys(STORAGE_KEYS) as StorageKey[]).sort();
-    const schemaStorageKeys = PERSISTED_SECTION_KEYS.map(getStorageKey).sort();
-    const manifestStorageKeys = Object.values(STORAGE_KEYS).sort();
-
-    expect(schemaKeys).toEqual(manifestKeys);
-    expect(schemaStorageKeys).toEqual(manifestStorageKeys);
-  });
 
   it('stamdata-schema afviser null', () => {
     const schema = persistenceSchemas.stamdata;

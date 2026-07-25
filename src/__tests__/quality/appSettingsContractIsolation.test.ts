@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { STORAGE_KEYS, UI_STORAGE_KEYS } from '../../config/storageManifest';
+import { UI_STORAGE_KEYS, getCurrentInputEnvelopeStorageKey } from '../../config/storageManifest';
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { LOCAL_STORAGE_KEY } from '../../settings/appSettingsStorage';
 
 describe('appSettings contract isolation', () => {
   it('keeps app settings localStorage key out of session-storage manifests', () => {
-    const allManifestKeys = [...Object.values(STORAGE_KEYS), ...Object.values(UI_STORAGE_KEYS)];
+    const allManifestKeys = [getCurrentInputEnvelopeStorageKey(), ...Object.values(UI_STORAGE_KEYS)];
     expect(allManifestKeys).not.toContain(LOCAL_STORAGE_KEY);
   });
 

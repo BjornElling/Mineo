@@ -1,4 +1,4 @@
-import { buildCellInvalidDraftFieldPath, CELL_TABLE_IDS } from '../../config/cellInvalidDraftScopes';
+import { buildCellFocusFieldPath, CELL_TABLE_IDS } from '../../config/cellFocusPaths';
 import type { DependencySpec, EoIssueFocusTarget, EoRowModel } from './eoRowTypes';
 
 type RowMatch =
@@ -82,7 +82,7 @@ const tableFieldPath = (
   rowScope = ''
 ): EoIssueFocusTarget => ({
   kind: 'fieldPath',
-  fieldPath: buildCellInvalidDraftFieldPath(tableId, rowScope, `${rowId}:${colIndex}`),
+  fieldPath: buildCellFocusFieldPath(tableId, rowScope, `${rowId}:${colIndex}`),
 });
 
 const inferDateColumn = (message: string): 0 | 1 => {

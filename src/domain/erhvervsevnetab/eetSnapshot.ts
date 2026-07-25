@@ -41,14 +41,14 @@ type EetInputIssues = Readonly<{
 }>;
 
 // Forlig om ansvarsgrad er delt kilde med EO-fanen (felterne bor i erstatningsopgoerelse-sektionen).
-// `hasInvalidDraft` afspejler rejected råinput i et af ansvarsgradsfelterne. Forligsdatoens eventuelle
+// `hasRejectedInput` afspejler rejected råinput i et af ansvarsgradsfelterne. Forligsdatoens eventuelle
 // reader-feltfejl bæres separat, fordi den er en selvstændig dokumentdependency.
 export type EetForligInput = Readonly<{
   values: ForligAnsvarsgradInput;
   // Forligsdato (delt kilde med EO) — kun til prosa-sætningen i specifikationen. Udeladt = ingen dato.
   dato?: ISODateString;
   datoErrorMessage?: string;
-  hasInvalidDraft: boolean;
+  hasRejectedInput: boolean;
 }>;
 
 export type EetSnapshotInput = Readonly<{
@@ -256,7 +256,7 @@ const resolveForligBlocking = (forlig: EetForligInput | undefined): Readonly<{
 }> => {
   if (!forlig) return { forligFactor: null, issue: null };
   const evaluation = evaluateForligsgrad(forlig.values);
-  if (forlig.hasInvalidDraft) {
+  if (forlig.hasRejectedInput) {
     return {
       forligFactor: null,
       issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: 'Forlig om ansvarsgrad indeholder en ugyldig værdi' },

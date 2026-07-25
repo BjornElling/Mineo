@@ -296,7 +296,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       dato: forligDato.value,
       datoErrorMessage: forligDato.errorMessage,
       // Et ikke-committbart rå forligsdraft er i greenfield-modellen en rød reader-feltfejl (format-issue).
-      hasInvalidDraft: forligProcent.errorMessage !== undefined || forligBroek.errorMessage !== undefined,
+      hasRejectedInput: forligProcent.errorMessage !== undefined || forligBroek.errorMessage !== undefined,
     },
   });
 

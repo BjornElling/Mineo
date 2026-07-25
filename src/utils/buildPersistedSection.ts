@@ -1,12 +1,12 @@
 import type { z } from 'zod';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
-import type { StorageKey } from '../config/storageManifest';
+import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import type { PersistedData } from '../types/persistence';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 import { serializeFormValues } from './serialization';
 
-export type PersistedSectionBuildResult<K extends StorageKey> =
+export type PersistedSectionBuildResult<K extends PersistedSectionKey> =
   | {
       ok: true;
       /** Serialiseret + re-valideret sektionsdata (reload-ækvivalent), klar til store-commit. */
@@ -37,12 +37,12 @@ export type PersistedSectionBuildResult<K extends StorageKey> =
  *
  * `timestamp` gives af caller, så loop-stier kan stemple alle sektioner med ét fælles Date.now().
  */
-export const buildPersistedSection = <K extends StorageKey>(
+export const buildPersistedSection = <K extends PersistedSectionKey>(
   pageKey: K,
   data: PersistedSectionMap[K],
   timestamp: number
 ): PersistedSectionBuildResult<K> => {
-  // Defensivt: persistenceSchemas er nøglet på StorageKey, men hot-reload/delvis modul-state under
+  // Defensivt: persistenceSchemas er nøglet på PersistedSectionKey, men hot-reload/delvis modul-state under
   // udvikling kan teoretisk efterlade nøglen manglende.
   if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, pageKey)) {
     return { ok: false, stage: 'config' };

@@ -5,7 +5,7 @@ import {
   PAGE_DEFAULT_TAB,
   type AppRoute,
 } from '../../config/pageNavigation';
-import { STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
+import { PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../../config/persistenceRegistry';
 
 describe('pageNavigation — kanonisk route/fane-kilde', () => {
   describe('APP_ROUTES', () => {
@@ -16,9 +16,9 @@ describe('pageNavigation — kanonisk route/fane-kilde', () => {
     });
 
     it('dækker præcis de routebærende pageKeys (alle StorageKeys undtagen faellesAarsloen)', () => {
-      // Completeness-guard: tilføjes en ny side (StorageKey) uden en APP_ROUTES-entry, fanger
+      // Completeness-guard: tilføjes en ny side (PersistedSectionKey) uden en APP_ROUTES-entry, fanger
       // denne test det. faellesAarsloen er bevidst undtaget (delt sektion uden egen route).
-      const allPageKeys = Object.keys(STORAGE_KEYS) as StorageKey[];
+      const allPageKeys = PERSISTED_SECTION_KEYS;
       const expectedRouted = allPageKeys.filter((key) => key !== 'faellesAarsloen').sort();
       const actualRouted = Object.keys(APP_ROUTES).sort();
       expect(actualRouted).toEqual(expectedRouted);
@@ -55,7 +55,7 @@ describe('pageNavigation — kanonisk route/fane-kilde', () => {
     });
 
     it('er invers af getRouteForPageKey for alle routebærende sider (round-trip)', () => {
-      const routedPageKeys: StorageKey[] = [
+      const routedPageKeys: PersistedSectionKey[] = [
         'stamdata',
         'erstatningsopgoerelse',
         'erhvervsevnetab',

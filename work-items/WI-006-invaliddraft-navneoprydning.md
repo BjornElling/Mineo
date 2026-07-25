@@ -1,7 +1,13 @@
 # WI-006: Ét kanonisk begreb i stedet for `invalidDraft`-navnene
 
-- **Status:** `kladde` — **OBLIGATORISK: skal afsluttes, før Fase 0–4 + undo/redo erklæres endeligt lukket**
-  (Codex sol/high, WI-004 runde 4).
+- **Status:** `afsluttet` (2026-07-25) — **gennemført som del af [[WI-007]]**, ikke som selvstændig WI.
+  Begrundelse: kortlægningen viste, at navnene delte rodårsag med den øvrige Fase-0–4-rest (trin 13
+  efterlod infrastruktur uden konsumenter), og at 4 af 6 eksporter i `cellInvalidDraftScopes.ts` samt
+  HELE `invalidDrafts`-storagenøglen var DØD kode. At omdøbe død kode ville have været forkert arbejde
+  — den blev slettet i stedet (WI-007 D1/D2). De levende navne er omdøbt: `buildCellInvalidDraftFieldPath`
+  → `buildCellFocusFieldPath` (modulet hedder nu `cellFocusPaths.ts`), og `hasInvalidDraft` →
+  `hasRejectedInput`. `allowLeavingInvalidDraft` er BEVARET, fordi navnet er semantisk korrekt.
+  Se `work-items/WI-007-fase04-exit.md`.
 - **Oprettet:** 2026-07-25
 - **Slice/scope:** de tilbageværende `invalidDraft`-navne i produktionskoden — navngivning, ikke adfærd.
 - **Kilde:** Codex sol/high's tilfældighedsfund under WI-004's fund S6 (kontraktdriften om slettet

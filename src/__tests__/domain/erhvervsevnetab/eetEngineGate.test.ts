@@ -209,7 +209,7 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
     const snapshot = compute(NO_FIELD_ERRORS, {
       forlig: {
         values: { forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '1/2' },
-        hasInvalidDraft: false,
+        hasRejectedInput: false,
         dato: undefined,
         datoErrorMessage: undefined,
       },

@@ -1,4 +1,4 @@
-import type { StorageKey } from '../config/storageManifest';
+import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 
@@ -12,12 +12,12 @@ type PersistenceMigrationStep = Readonly<{
 }>;
 
 export type PersistenceMigrationRegistry = Readonly<Partial<Record<
-  StorageKey,
+  PersistedSectionKey,
   Readonly<Record<string, PersistenceMigrationStep>>
 >>>;
 
 type PersistedSectionMigrator = (
-  pageKey: StorageKey,
+  pageKey: PersistedSectionKey,
   value: unknown,
   sourceVersion: string
 ) => PersistenceMigrationResult;

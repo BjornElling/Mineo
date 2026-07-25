@@ -16,7 +16,7 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
  * Rod-datastruktur inde i den dekrypterede `.eo`-fil.
  *
  * Nøglesæt OG per-sektion-schema udledes fra `persistenceSchemas` (ÉN sandhedskilde,
- * jf. `StorageKey`), så `.eo`-payloaden aldrig kan drive fra de persisterede sektioner —
+ * jf. `PersistedSectionKey`), så `.eo`-payloaden aldrig kan drive fra de persisterede sektioner —
  * en ny/fjernet sektion forplanter sig automatisk hertil. Hver sektion er `.optional()`
  * (delvis import understøttes), og objektet er `.strict()`.
  */

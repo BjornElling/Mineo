@@ -1,10 +1,10 @@
 import type { SaveSnapshot } from './fileSaveTypes';
-import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
+import { PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../config/persistenceRegistry';
 
-export type TableSaveOrderPath = `${StorageKey}.${string}`;
+export type TableSaveOrderPath = `${PersistedSectionKey}.${string}`;
 
 const tableSaveOrderRegistry = new Map<string, readonly string[]>();
-const storageKeySet: ReadonlySet<string> = new Set(Object.keys(STORAGE_KEYS));
+const storageKeySet: ReadonlySet<string> = new Set<string>(PERSISTED_SECTION_KEYS);
 
 const hasStringId = (value: unknown): value is { id: string } => {
   if (!value || typeof value !== 'object') return false;
@@ -113,7 +113,7 @@ export const applyRegisteredTableSaveOrder = (snapshot: SaveSnapshot): SaveSnaps
       continue;
     }
 
-    const storageKey = rootKey as StorageKey;
+    const storageKey = rootKey as PersistedSectionKey;
     const currentSection = nextSnapshot[storageKey];
     if (currentSection === undefined) continue;
 

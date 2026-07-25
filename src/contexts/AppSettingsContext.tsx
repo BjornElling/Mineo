@@ -16,7 +16,7 @@ const THEME_COLOR_BY_MODE = {
  *
  * Persistence:
  * - Local: `localStorage` (best-effort; fail-safe fallback til in-memory).
- * - `.eo`: NEVER. `.eo` payload bygges ud fra sessionStorage keys i storage-manifestet.
+ * - `.eo`: NEVER. `.eo`-payloaden bygges ud fra de registrerede sektioner i `persistenceRegistry`.
  *
  * Se `src/contracts/app-settings.md` for normativt rationale og constraints.
  */

@@ -146,6 +146,12 @@ describe('save→load fuld-tilstands-round-trip', () => {
 
     // 4. Pr. sektion: loadet snapshot skal deep-equal den kanoniske save.
     // (Sektioner uden indhold udelades af canonical; de skal også være fraværende/undefined efter load.)
+    //
+    // Løkken itererer PERSISTED_SECTION_KEYS, så den ville skrumpe LYDLØST sammen med kilden, hvis en
+    // sektion forsvandt fra registry'et. Antallet hævdes derfor mod en uafhængig literal først:
+    // en tabt sektion skal fejle her, ikke bare give færre iterationer.
+    expect(PERSISTED_SECTION_KEYS.length, 'alle ni sagssektioner skal round-trippes').toBe(9);
+
     for (const key of PERSISTED_SECTION_KEYS) {
       const saved = (canonical as Record<string, unknown>)[key];
       const loaded = (result.snapshot as Record<string, unknown>)[key];

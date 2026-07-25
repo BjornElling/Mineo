@@ -101,7 +101,7 @@ describe('EET MoneyOre-migration karakterisering', () => {
     forlig: {
       values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2/3' },
       dato: iso('2026-03-01'),
-      hasInvalidDraft: false,
+      hasRejectedInput: false,
     },
   });
 

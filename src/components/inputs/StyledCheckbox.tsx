@@ -11,8 +11,9 @@ type StyledCheckboxProps = Readonly<{
   disabled?: boolean;
   size?: 'small' | 'medium';
   /**
-   * Greenfield undo/redo-fokusrestore-attributter (§3.7): sættes på checkbox-input-slottet, så fokus efter undo/redo
-   * lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`. Greenfield-wrapperen leverer den.
+   * Undo/redo-fokusrestore-attributter (§3.7): sættes på checkbox-input-slottet, så fokus efter undo/redo
+   * lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
+   * `inputCore/react/fields/CheckboxField` leverer dem.
    */
   restoreTargetAttributes?: Readonly<Record<string, string>>;
 }>;

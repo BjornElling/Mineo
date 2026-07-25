@@ -1,4 +1,4 @@
-import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
+import { CELL_TABLE_IDS, buildCellFocusFieldPath } from '../../../config/cellFocusPaths';
 import {
   resolveEoIssueFocusTarget,
   resolveEoIssueSummaryText,
@@ -175,7 +175,7 @@ describe('eoRowIssueCatalog – systematisk dækning', () => {
     if (expectedFocus) {
       expect(resolveEoIssueFocusTarget(model)).toEqual({
         kind: 'fieldPath',
-        fieldPath: buildCellInvalidDraftFieldPath(expectedFocus.tableId, '', expectedFocus.gridCellKey),
+        fieldPath: buildCellFocusFieldPath(expectedFocus.tableId, '', expectedFocus.gridCellKey),
       });
     }
   });
