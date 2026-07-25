@@ -112,10 +112,13 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'field-beregningsdato')).toBe(true);
   });
 
-  it('hasBlockingErrors er true men computation er ikke null — tab-laget er ansvarlig for begge guards', () => {
-    // Beregnermotorerne kører altid med de committed values — en feltfejl i UI blokerer ikke
-    // motorernes udregning, den sætter kun hasBlockingErrors via issues.some(). Computation
-    // returneres selv ved hasBlockingErrors: true. Tab-laget renderer med !hasBlockingErrors && computation.
+  it('et blokeret panel har ALTID computation null — motoren må ikke have kørt på et maskeret input', () => {
+    // INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5): kun en ready projektion må fodre motoren.
+    //
+    // Denne test hed tidligere "hasBlockingErrors er true men computation er ikke null" og dokumenterede
+    // dermed netop det brud, den nu udelukker: motorerne kørte med readerens MASKEREDE værdier (en rød værdi
+    // er `undefined` for motoren), hvorefter resultatet kun blev skjult af UI-laget. Et resultat udregnet på
+    // et falsk input må ikke eksistere i snapshottet — heller ikke bag en UI-guard.
     const snapshot = computeEetSnapshot({
       values: createValues(),
       stamdata: createStamdata(),
@@ -128,12 +131,10 @@ describe('computeEetSnapshot', () => {
       },
     });
 
-    expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
-    // computation er ikke null: motoren kørte med de committed values, som er gyldige
-    expect(snapshot.loebendeYdelser.computation).not.toBeNull();
-    // Tab-laget beskytter visning med !hasBlockingErrors && computation — begge guards er nødvendige
-    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
-    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    for (const panel of [snapshot.loebendeYdelser, snapshot.efterEal, snapshot.differencekrav]) {
+      expect(panel.hasBlockingErrors).toBe(true);
+      expect(panel.computation).toBeNull();
+    }
   });
 
   it('kapitalisering påvirkes ikke af beregningsdato-feltfejl — feltet er ikke i kapitaliseringens projektion', () => {

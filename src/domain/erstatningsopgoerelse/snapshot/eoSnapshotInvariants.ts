@@ -4,6 +4,7 @@ import type { MoneyOre } from '../../money/money';
 import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
+import { eoIssueBlocksDependents, type EoInputIssues } from '../eoInputIssues';
 
 export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
 
@@ -50,6 +51,44 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
     blocksAuthoritativeComputation: error.severity !== 'warning',
     blocksOutputs: error.severity === 'warning' ? [] : VALIDATION_BLOCKED_OUTPUTS,
   }));
+};
+
+/**
+ * Røde reader-feltfejl som blokerende invarianter (F2, `form-contract.md` §2.3 / `error-contract.md` §5).
+ *
+ * Tidligere gik `eoErrors` KUN til inspektionsvisningen, mens motorerne blev kaldt bagefter på readerens
+ * MASKEREDE værdier (en rød værdi er `undefined` for motoren). Resultatet var falske tal bag en rød
+ * feltmarkering — fx en forligsprocent på 150, der blev regnet som "intet forlig", dvs. 100 %.
+ *
+ * Invarianterne er den eksisterende, strukturelle blokerings-mekanisme i EO-snapshottet, og de bærer
+ * `blocksOutputs` pr. output. Reader-fejl føres derfor ind ad samme vej som validator-invarianterne i
+ * stedet for gennem en ny parallel sidekanal.
+ *
+ * `eoIssueBlocksDependents` afgør, hvad der blokerer — inklusive `bounds`, jf. `error-contract.md` §1.1's
+ * normative matrix: en bounds-værdi må GEMMES, men må ikke fodre en motor.
+ */
+export const buildReaderFieldIssueInvariants = (
+  issues: EoInputIssues,
+  source: 'eo' | 'stamdata'
+): readonly EoInvariant[] => {
+  const invariants: EoInvariant[] = [];
+  for (const [fieldKey, bySource] of Object.entries(issues)) {
+    if (bySource === undefined) continue;
+    for (const issue of Object.values(bySource)) {
+      if (!eoIssueBlocksDependents(issue)) continue;
+      invariants.push({
+        id: `reader_field:${source}.${fieldKey}`,
+        passed: false,
+        severity: 'error',
+        source: 'validation',
+        message: issue.message,
+        evidence: [`${source}.${fieldKey}`],
+        blocksAuthoritativeComputation: true,
+        blocksOutputs: VALIDATION_BLOCKED_OUTPUTS,
+      });
+    }
+  }
+  return invariants;
 };
 
 export const buildMidlertidigtEetSourceInvariants = (

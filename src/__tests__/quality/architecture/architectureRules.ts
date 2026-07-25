@@ -1324,6 +1324,90 @@ const restoreTargetAttributesRule = defineRule({
   ],
 });
 
+// --- Rækkehandlinger skal bære en navigerbar destination (§3.7) ---------------
+
+const ROW_COMMAND_HOOKS = new Set(['useCollectionRows', 'useCollectionRowCommands']);
+
+/**
+ * En rækkehandling (insert/delete/reorder) skal kunne navigeres tilbage til efter undo/redo.
+ *
+ * PRIMÆRT VÆRN er typen: `CollectionRowOrigin.route`/`tabKey` er PÅKRÆVEDE, så compileren afviser et origin
+ * uden destination — også når det videreføres som en variabel. Denne AST-regel er et SEKUNDÆRT værn, der
+ * fanger den ene ting typen ikke udtrykker: et literal-origin, hvor `route` er udeladt helt, giver en
+ * type-fejl, men reglen giver en præcis, domænesproget besked ved det rette callsite i stedet for en generisk
+ * "property missing". Den læser bevidst kun literal-argumenter; variable origins er typedækkede.
+ */
+const rowCommandDestinationRule = defineRule({
+  id: 'input/row-command-destination',
+  description:
+    'useCollectionRows/useCollectionRowCommands skal kaldes med et origin, der bærer en route, så undo/redo af '
+    + 'en rækkehandling kan navigere til den tabel, ændringen kom fra (§3.7).',
+  appliesTo: (relativePath) =>
+    relativePath.startsWith('src/components/') || relativePath.startsWith('src/inputCore/react/'),
+  find: (entry) => {
+    const findings: Finding[] = [];
+    for (const call of collectCalls(entry)) {
+      if (!ROW_COMMAND_HOOKS.has(call.calleeName)) continue;
+      // Hookens egen definition/re-eksport er ikke et callsite.
+      if (entry.relativePath.endsWith('useCollectionRows.ts')) continue;
+
+      const originArgument = call.node.arguments[1];
+      if (originArgument === undefined) {
+        findings.push({
+          position: call.position,
+          message: `${call.calleeName} kaldt uden origin — rækkehandlingen får ingen destination (§3.7).`,
+        });
+        continue;
+      }
+      if (!ts.isObjectLiteralExpression(originArgument)) {
+        // Et videreført origin-objekt (variabel) kan ikke inspiceres her; typen dækker tilstedeværelsen.
+        continue;
+      }
+      const carriesRoute = originArgument.properties.some((property) => {
+        if (ts.isShorthandPropertyAssignment(property)) return property.name.text === 'route';
+        if (ts.isSpreadAssignment(property)) return /\broute\b/.test(property.getText());
+        if (!ts.isPropertyAssignment(property)) return false;
+        return ts.isIdentifier(property.name) && property.name.text === 'route';
+      });
+      if (carriesRoute) continue;
+      findings.push({
+        position: call.position,
+        message:
+          `${call.calleeName} kaldt med et origin uden 'route' — undo/redo af insert/delete/reorder ville `
+          + 'gendanne data, men efterlade brugeren på en vilkårlig side (§3.7).',
+      });
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/tables/NyTabel.tsx',
+      code: "const rows = useCollectionRows(collectionRef, { locationId: 'x.rows' });",
+    },
+    {
+      relativePath: 'src/components/tables/NyTabel2.tsx',
+      code: "const rows = useCollectionRowCommands(collectionRef, { locationId: 'x.rows', tabKey: null });",
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/tables/NyTabel.tsx',
+      code: "const rows = useCollectionRows(collectionRef, { locationId: 'x.rows', route: APP_ROUTES.satser, tabKey: null });",
+    },
+    // Videreført kalder-navigation: route kommer fra en spread/variabel.
+    {
+      relativePath: 'src/components/tables/NyTabel2.tsx',
+      code: "const rows = useCollectionRowCommands(collection, { locationId: p, route: locationNav.route, tabKey: locationNav.tabKey });",
+    },
+    // Videreført origin som variabel: typen (`CollectionRowOrigin` med påkrævet route/tabKey) er værnet her,
+    // så AST-reglen springer den bevidst over frem for at gætte på variablens indhold.
+    {
+      relativePath: 'src/components/tables/NyTabel3.tsx',
+      code: 'const rows = useCollectionRows(collection, rowOrigin);',
+    },
+  ],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -1353,4 +1437,5 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,
   restoreTargetAttributesRule,
+  rowCommandDestinationRule,
 ];

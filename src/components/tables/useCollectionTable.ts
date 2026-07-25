@@ -27,10 +27,13 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   locationPrefix: string;
   /**
    * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
-   * bor på. Kalderen leverer den (tabellen kan ikke udlede route af `locationPrefix`). Udeladt route = ikke-
-   * navigerbar lokation (restoren navigerer da ikke).
+   * bor på. Kalderen leverer den, fordi tabellen ikke kan udlede route af `locationPrefix`.
+   *
+   * PÅKRÆVET — både feltet og `route`. Var de valgfrie, kunne en ny tabel lydløst få rækkehandlinger uden
+   * destination: dataene ville blive gendannet ved undo, men brugeren ville blive efterladt på en vilkårlig side
+   * (§3.7). `tabKey: null` udtrykker eksplicit "siden har ingen faner"; udeladelse er ikke længere lovlig.
    */
-  locationNav?: Readonly<{ route?: string; tabKey?: string | null }>;
+  locationNav: Readonly<{ route: string; tabKey: string | null }>;
   /** Eventuelle ejer-id'er før række-id'et, fx ansættelsesforholdets id i nested EO-tabeller. */
   fieldOwnerIds?: readonly string[];
 }>) => {
@@ -40,8 +43,8 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   // navigerer til den rette side/fane (§3.7).
   const rows = useCollectionRowCommands<TRow>(collection, {
     locationId: locationPrefix,
-    ...(locationNav?.route === undefined ? {} : { route: locationNav.route }),
-    ...(locationNav?.tabKey === undefined ? {} : { tabKey: locationNav.tabKey }),
+    route: locationNav.route,
+    tabKey: locationNav.tabKey,
   });
   const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
   const placeholderIdRef = React.useRef<string | undefined>(undefined);
@@ -71,8 +74,8 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
     // route/tabKey er eksplicit navigation-metadata (§3.7) leveret af kalderen.
     const location = {
       locationId: `${locationPrefix}:${renderRow.rowId}:${String(colIndex)}`,
-      ...(locationNav?.route === undefined ? {} : { route: locationNav.route }),
-      ...(locationNav?.tabKey === undefined ? {} : { tabKey: locationNav.tabKey }),
+      route: locationNav.route,
+      tabKey: locationNav.tabKey,
     };
     if (renderRow.kind === 'existing') {
       const field: FieldRef<T> = descriptor.bind(...fieldOwnerIds, renderRow.rowId);

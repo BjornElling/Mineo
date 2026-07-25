@@ -8,7 +8,13 @@ import {
   rentekravTillaegstidField,
 } from '../../inputCore/catalog/renteberegningDescriptors';
 import type { InputReader } from '../../inputCore/inputReader';
-import { runProjection, type ProjectionCollector, type ProjectionResult } from '../../inputCore/projection';
+import {
+  mapReadyProjection,
+  runProjection,
+  type ProjectionCollector,
+  type ProjectionResult,
+} from '../../inputCore/projection';
+import type { ISODateString } from '../../types/branded';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import { computeRentekravRow, type RentekravRowResult } from './renteberegningEngine';
 import { isRentekravRowEmpty } from './rowEmpty';
@@ -46,16 +52,27 @@ const readRow = (collector: ProjectionCollector, rowId: string): RentekravRow | 
   };
 };
 
-const computeRow = (
+/**
+ * Motorinputtet for én række — INGEN motorkald. `runProjection`-kroppen udføres, FØR collectorens status er
+ * afgjort (`inputCore/projection.ts`), så et motorkald her ville køre, selv når projektionen ender `blocked`.
+ * Beregningen sker derfor bagefter gennem `calculateWhenReady`.
+ */
+type RowEngineInput = Readonly<{ row: RentekravRow; beregningsdato: ISODateString | undefined }>;
+
+/** Aggregatets motorinput: alle læsbare rækker + den tværgående beregningsdato. Intet motorkald. */
+type AggregateEngineInput = Readonly<{
+  rows: readonly RentekravRow[];
+  beregningsdato: ISODateString | undefined;
+}>;
+
+const readRowEngineInput = (
   collector: ProjectionCollector,
-  rowId: string,
-  referenceRates: ReadonlyArray<RateEntry>,
-  surchargeRates: ReadonlyArray<RateEntry>
-): RentekravRowResult | undefined => {
+  rowId: string
+): RowEngineInput | undefined => {
   const beregningsdato = collector.optional(renteberegningBeregningsdatoField.bind());
   const row = readRow(collector, rowId);
   if (beregningsdato.status === 'unavailable' || row === undefined) return undefined;
-  return computeRentekravRow(row, beregningsdato.value, referenceRates, surchargeRates);
+  return { row, beregningsdato: beregningsdato.value };
 };
 
 /** Læser de afsluttede rækker til tabelvisning og sortering gennem samme readergrænse. */
@@ -83,27 +100,33 @@ export const buildRenteberegningReaderProjection = (args: Readonly<{
   const rowIds = reader.listEntities(rentekravRowsCollectionRef).map(({ entityId }) => entityId);
   const rowProjections = new Map<string, ProjectionResult<RentekravRowResult>>();
   for (const rowId of rowIds) {
-    rowProjections.set(
-      rowId,
-      runProjection(reader, `renteberegning.row.${rowId}`, (collector) =>
-        computeRow(collector, rowId, referenceRates, surchargeRates))
-    );
+    // Trin 1: læs motorinput og afgør ready|blocked. Trin 2: kald motoren KUN i ready-grenen (§3.9).
+    // Motoren ligger BEVIDST uden for `runProjection`-kroppen: kroppen udføres, før statussen er afgjort.
+    rowProjections.set(rowId, mapReadyProjection(
+      runProjection(reader, `renteberegning.row.${rowId}`, (collector) => readRowEngineInput(collector, rowId)),
+      ({ row, beregningsdato }) => computeRentekravRow(row, beregningsdato, referenceRates, surchargeRates)
+    ));
   }
 
-  const aggregateProjection = runProjection(
-    reader,
-    'renteberegning.aggregate',
-    (collector): RenteAggregateProjectionData | undefined => {
-      // Aggregatet afhænger også af beregningsdatoen, når tabellen er tom.
-      const beregningsdato = collector.optional(renteberegningBeregningsdatoField.bind());
-      const rows = rowIds.map((rowId) => readRow(collector, rowId));
-      if (beregningsdato.status === 'unavailable' || rows.some((row) => row === undefined)) return undefined;
-
+  const aggregateProjection = mapReadyProjection(
+    runProjection(
+      reader,
+      'renteberegning.aggregate',
+      (collector): AggregateEngineInput | undefined => {
+        // Aggregatet afhænger også af beregningsdatoen, når tabellen er tom.
+        const beregningsdato = collector.optional(renteberegningBeregningsdatoField.bind());
+        const rows = rowIds.map((rowId) => readRow(collector, rowId));
+        if (beregningsdato.status === 'unavailable') return undefined;
+        const usableRows = rows.filter((row): row is RentekravRow => row !== undefined);
+        if (usableRows.length !== rows.length) return undefined;
+        return { rows: usableRows, beregningsdato: beregningsdato.value };
+      }
+    ),
+    ({ rows, beregningsdato }): RenteAggregateProjectionData => {
       const pdfContexts = new Map<string, NonNullable<RentekravRowResult['pdfContext']>>();
       let anyRowHasError = false;
       for (const row of rows) {
-        if (row === undefined) continue;
-        const result = computeRentekravRow(row, beregningsdato.value, referenceRates, surchargeRates);
+        const result = computeRentekravRow(row, beregningsdato, referenceRates, surchargeRates);
         if (isRentekravRowEmpty(row)) continue;
         if (result.pdfContext === null) anyRowHasError = true;
         else pdfContexts.set(row.id, result.pdfContext);

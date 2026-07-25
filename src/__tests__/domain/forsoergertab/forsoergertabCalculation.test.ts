@@ -9,9 +9,15 @@ import { toKroner } from '../../../domain/money/money';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
+/**
+ * Disse tests måler motorens egen beregning på GYLDIGT input, så ingen dependency-gruppe er blokeret.
+ * Gate-flagene er påkrævede (§3.9), netop for at et udeladt flag ikke lydløst kan åbne motoren igen.
+ */
+const NOT_BLOCKED = { ealBlocked: false, aslBlocked: false } as const;
+
 describe('computeForsoergertabCalculation', () => {
   it('beregner den løbende ASL-ydelse som 30 pct. af den opregulerede ASL-årsløn', () => {
-    const result = computeForsoergertabCalculation({
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2020-05-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1973-01-01'),
@@ -54,18 +60,18 @@ describe('computeForsoergertabCalculation', () => {
       ealAarsloen: asAmount(400000),
     };
 
-    const missingKoen = computeForsoergertabCalculation({
+    const missingKoen = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       ...commonInput,
       koen: undefined,
     });
     expect(missingKoen.result).toBeNull();
     expect(missingKoen.issues.some((issue) => issue.id === 'missing-koen')).toBe(true);
 
-    const mand = computeForsoergertabCalculation({
+    const mand = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       ...commonInput,
       koen: 'Mand',
     });
-    const kvinde = computeForsoergertabCalculation({
+    const kvinde = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       ...commonInput,
       koen: 'Kvinde',
     });
@@ -77,7 +83,7 @@ describe('computeForsoergertabCalculation', () => {
   });
 
   it('giver blokerende fejl når beregningsdato er før virkningsdato', () => {
-    const result = computeForsoergertabCalculation({
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2020-01-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1980-01-01'),
@@ -98,7 +104,7 @@ describe('computeForsoergertabCalculation', () => {
   });
 
   it('sætter ASL-kapitalbeløbet til 0 når folkepensionsalderen er nået på beregningsdatoen', () => {
-    const result = computeForsoergertabCalculation({
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2025-01-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1950-01-01'),
@@ -116,7 +122,7 @@ describe('computeForsoergertabCalculation', () => {
   });
 
   it('kræver eksakt aldersmatch i forsørgertabstabellen', () => {
-    const result = computeForsoergertabCalculation({
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2008-01-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1997-06-01'),
@@ -133,7 +139,7 @@ describe('computeForsoergertabCalculation', () => {
   });
 
   it('bruger kønsneutral forsørgertabstabel fra og med 1. marts 2015 uden køn', () => {
-    const result = computeForsoergertabCalculation({
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2014-01-10'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1970-01-01'),
@@ -151,7 +157,7 @@ describe('computeForsoergertabCalculation', () => {
   });
 
   it('clamp er nettokrav til 0 når ASL-kapitalbeløbet overstiger EAL-kravet', () => {
-    const result = computeForsoergertabCalculation({
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2020-05-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1976-01-01'),
@@ -436,7 +442,7 @@ describe('computeForsoergertabCalculation — minimumssats', () => {
   it('forhøjer EAL-krav til minimumssats når beregnet forsørgertab er under minimumsbeløbet', () => {
     // Med ealAarsloen=100000 og kapitaliseringsfaktor ~3 bliver eetBeregnet langt under
     // foersoergertabEalMin[2026]=1239000, så forhøjelse skal ske.
-    const result = computeForsoergertabCalculation({
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2020-05-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1976-01-01'),
@@ -601,3 +607,5 @@ describe('computeForsoergertabAslYdelser — fail-closed på manglende mellemår
     }
   });
 });
+
+

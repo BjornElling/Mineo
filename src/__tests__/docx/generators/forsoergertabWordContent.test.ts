@@ -47,7 +47,7 @@ describe('forsoergertab → Word-indhold', () => {
     // Fixturen bygges fra den RIGTIGE domæneberegning (ikke et hånd-cast objekt), så
     // feltdrift fanges og de assertede beløb er ægte beregnede værdier. Samme input som
     // forsoergertabCalculation.test.ts' hovedcase (giver ikke-null asl/eal-computation).
-    const calc = computeForsoergertabCalculation({
+    const calc = computeForsoergertabCalculation({ ealBlocked: false, aslBlocked: false,
       skadedato: toISODateString('2020-05-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       efterladteFodselsdato: toISODateString('1973-01-01'),
@@ -95,3 +95,4 @@ describe('forsoergertab → Word-indhold', () => {
     expect(text).toContain(`x ${calc.ealComputation!.kapitaliseringsfaktor} x 30 %`);
   });
 });
+

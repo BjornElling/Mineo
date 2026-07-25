@@ -70,7 +70,10 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
             maxDate,
             special: specialRangeErrors,
           });
-          if (boundsMessage !== undefined) return { ok: false, message: boundsMessage };
+          // ⚠️ `resolveDateRangeErrorMessage` signalerer "ingen fejl" med en TOM STRENG, ikke med `undefined`.
+          // En `!== undefined`-test her afviste derfor ENHVER gyldig dato — med en tom fejlbesked, så feltet
+          // bare aldrig committede. Test dermed på indhold, ikke på tilstedeværelse.
+          if (boundsMessage !== '') return { ok: false, message: boundsMessage };
         }
         return { ok: true, value: parsed.iso };
       },

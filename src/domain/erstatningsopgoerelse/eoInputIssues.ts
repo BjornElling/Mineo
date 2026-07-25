@@ -21,14 +21,23 @@ export type EoInputIssue = Readonly<{
 export type EoInputIssueReason = 'format' | 'bounds' | 'rule' | 'schema' | 'aggregate';
 
 /**
- * Blokerer denne issue de afhængige EO-consumers (dokumentgate/rækkeevaluering)?
+ * Blokerer denne issue de afhængige EO-consumers (beregning/dokumentgate/rækkeevaluering)?
  *
- * En canonical `bounds`-feltfejl er BEVIDST ikke-blokerende: værdien er gembar (§1.6), og fejlen skal være
- * synlig uden at spærre dokumentet. Alle øvrige røde årsager blokerer. Dette er det ENE sted, konsekvensen
- * udledes — tidligere var den kodet som et `blocksSave`-flag på hver enkelt issue.
+ * Enhver rød årsag blokerer de AFHÆNGIGE consumers — inklusive `bounds`. Det følger direkte af
+ * `error-contract.md` §1.1's normative konsekvensmatrix: en `range`/`bounds`-fejl på en canonical værdi
+ * blokerer IKKE `.eo` globalt, men blokerer JA den beregning og det dokument, der læser feltet.
+ *
+ * ⚠️ SAMMENBLAND IKKE "gembar" med "beregnbar". Denne funktion havde tidligere `reason !== 'bounds'` med
+ * begrundelsen "værdien er gembar (§1.6)". Det var en konflatering: gembarheden afgøres af save-gaten
+ * (som kun standser aktivt rejected råinput, §3.9), ikke her. Konsekvensen var, at fx en forligsprocent på
+ * 150 blev maskeret til tomværdi og derefter regnet som 100 % — et falsk tal bag en rød feltmarkering.
+ * En bounds-værdi må gemmes; den må ikke fodre en motor.
+ *
+ * Dette er det ENE sted, blokerings-konsekvensen udledes — tidligere var den kodet som et `blocksSave`-flag
+ * på hver enkelt issue, hvor den kunne drifte fra årsagen.
  */
 export const eoIssueBlocksDependents = (issue: EoInputIssue | undefined): boolean =>
-  issue !== undefined && issue.severity === 'error' && issue.reason !== 'bounds';
+  issue !== undefined && issue.severity === 'error';
 
 export type EoFieldIssuesBySource = Partial<Record<EoInputIssueSource, EoInputIssue>>;
 export type EoInputIssues = Partial<Record<string, EoFieldIssuesBySource>>;

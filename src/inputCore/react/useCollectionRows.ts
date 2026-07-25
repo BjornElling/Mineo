@@ -15,12 +15,18 @@ import type { CollectionHistoryOrigin } from '../inputHistory';
 /**
  * Tabellens editorlokation, som en rækkehandlings history-origin skal pege på (§3.7). Kalderen leverer den,
  * fordi kun siden/fanen ved, hvor tabellen bor.
+ *
+ * ALLE tre felter er PÅKRÆVEDE. Var `route`/`tabKey` valgfrie, kunne en rækkehandling lydløst få en origin uden
+ * destination: undo/redo ville gendanne dataene, men efterlade brugeren på en vilkårlig side. `tabKey: null`
+ * udtrykker eksplicit "siden har ingen faner" — udeladelse er ikke en lovlig måde at sige det på.
  */
 export type CollectionRowOrigin = Readonly<{
   /** Stabilt id for tabellens lokation, fx `eo.oevrigeKrav`. */
   locationId: string;
-  route?: string;
-  tabKey?: string | null;
+  /** Route tabellen bor på. Påkrævet, så destinationen altid er navigerbar. */
+  route: string;
+  /** Fanen inden for `route`, eller `null` for en side uden faner. */
+  tabKey: string | null;
 }>;
 
 /**
@@ -35,8 +41,8 @@ const buildRowHistoryOrigin = (
   kind: 'collection' as const,
   collection: collection.collection,
   editorLocationId: `${origin.locationId}:rows:${collection.collection}`,
-  ...(origin.route === undefined ? {} : { route: origin.route }),
-  ...(origin.tabKey === undefined ? {} : { tabKey: origin.tabKey }),
+  route: origin.route,
+  tabKey: origin.tabKey,
 });
 
 /** Ren, stabil UI-cache-nøgle for en collection-ref (ikke en core-identitet — kun til hookens memoisering). */
@@ -120,7 +126,7 @@ export const useCollectionRowCommands = <TEntity>(
 ): CollectionRowCommands<TEntity> => {
   const { dispatch } = useInputRuntime();
   const collectionKey = collectionCacheKey(collection);
-  const originKey = `${origin.locationId}|${origin.route ?? ''}|${origin.tabKey ?? ''}`;
+  const originKey = `${origin.locationId}|${origin.route}|${origin.tabKey ?? ''}`;
 
   // En rækkehandling har ingen enkelt feltadresse; origin bærer i stedet tabellens editorlokation, så
   // restoren kan navigere til den rette side/fane efter en undo/redo af insert/delete/reorder.

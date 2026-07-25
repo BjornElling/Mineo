@@ -230,7 +230,7 @@ const loebendeComputation = {
 
 const buildForsoergertabParams = () => {
   const asAmount = (v: number) => ({ kind: 'number', value: v } as const);
-  const calc = computeForsoergertabCalculation({
+  const calc = computeForsoergertabCalculation({ ealBlocked: false, aslBlocked: false,
     skadedato: toISODateString('2020-05-01'),
     skadelidteFodselsdato: toISODateString('1980-01-01'),
     efterladteFodselsdato: toISODateString('1973-01-01'),
@@ -338,3 +338,4 @@ describe('tabel-kanal-paritet: Word document.xml (golden)', () => {
     }, 15000);
   }
 });
+

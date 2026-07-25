@@ -43,6 +43,20 @@ udskudt. Den tidligere reachability-begrundelse holdt ikke: de resterende callsi
 og tre transiente flader, som nu kører på en lille, eksplicit `transient`-inputfamilie uden for den autoritative
 inputtilstand. En AST-regel forbyder at genindføre nogen del af klyngen.
 
+**Fase 3+4-restarbejdet er implementeret 2026-07-25 (WI-004).** De fund, der stod åbne efter
+`codex-fase34-followup.md`, er nu implementeret — inklusive de seks fund fra en yderligere ekstern review-runde
+(R1–R6, hvoraf to var kritiske). **Et afsluttende uafhængigt review mangler:** runde 2 blev afbrudt uden
+konklusion, så der findes ingen ekstern bekræftelse af, at R1–R6 er lukket. Verifikationen hviler indtil videre
+på de fire grønne gates, den grønne fuldsuite og de nye invarianttests (se `docs/reviews/codex-fase34-restfund.md`
+§"Runde 2"). Det implementerede omfatter: den strukturelle dependency-gate før motorkald i
+Forsørgertab, EET og EO (F2), den komplette kanoniske feltadresse→destination-afbildning inkl. kontekst-delte
+felter (F4), og de dokumenterede dækningshuller (transient input, grid dropdown/to-trins-genindtræden,
+Renteberegnings projektionsmatrix, origin-fuldstændighed). To ægte fejl blev fundet undervejs af den nye dækning:
+`TransientDateInput` afviste ENHVER gyldig dato (bounds-helperen melder "ingen fejl" med en tom streng, ikke
+`undefined`), og destinationsafbildningen slog collection op før property, så `eoAngivetLoenLoenudvikling`s nestede
+tabeller routede til den forkerte fane. Konsekvensmatricen i `error-contract.md` §1.1 håndhæves nu også for
+`bounds`: en gembar værdi er ikke dermed beregnbar.
+
 Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
 forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakteriseringstests/erfaringer. Den
@@ -1183,9 +1197,31 @@ For hver slice:
 
 #### Exitkriterier
 
-- Ingen beregningsmotor kan kaldes med et felt, som readeren vurderer fejlende. **Håndhævet:** Årsløn kalder
-  motoren kun i `ready`-grenen; Forsørgertab/EET/EO's motorer er issue-producerende og gater per dependency
-  (§1.10) i stedet for at beregne videre på en maskeret værdi.
+- Ingen beregningsmotor kan kaldes med et felt, som readeren vurderer fejlende. **Håndhævet (rettet 2026-07-25,
+  WI-004):** Den tidligere formulering her hævdede, at Forsørgertab/EET/EO var dækket, fordi deres motorer var
+  "issue-producerende". Det var ikke rigtigt: motorerne blev kaldt FØR eller UDEN en dependency-gate, med
+  readerens maskerede tomværdier som input — så fx en rød EAL-årsløn kunne falde tilbage til ASL-årslønnen, og
+  en forligsprocent på 150 blev regnet som 100 %. Den faktiske håndhævelse er nu:
+  - **Årsløn:** motoren kaldes kun i `ready`-grenen (`calculation: null` ved rød gate).
+  - **Renteberegning:** `runProjection` bygger kun motorinput; motoren kaldes gennem `mapReadyProjection`
+    UDEN FOR projektionskroppen (kroppen udføres, før statussen er afgjort).
+  - **Forsørgertab:** EAL- og ASL-grenen har hver sin dependency-gruppe med PÅKRÆVEDE gate-flag. `aslAarsloen`
+    er kun en EAL-afhængighed, når EAL-årslønnen er tom, dvs. når motorens fallback faktisk nås.
+  - **EET:** `buildGatedProjection` afgør panelets egne issues før motorkaldet, pr. panel. Efter-EAL har
+    BETINGEDE ASL-afhængigheder, som spejler motorens to fallbacks.
+  - **EO:** røde reader-feltfejl er blokerende invarianter, og svie/smerte-motoren gates særskilt på sine egne
+    felter, så en TAF-fejl ikke stopper S/S og omvendt.
+- Kun en `ready` projektion fodrer en motor, og konsekvensen af `blocked` er `null` — aldrig en tomværdi.
+  En canonical `range`/`bounds`-fejl blokerer den afhængige beregning/det afhængige dokument (men ikke
+  `.eo`-save), jf. `error-contract.md` §1.1's normative matrix.
+- **KENDT AFGRÆNSNING (EO, udestående):** EO's autoritative payload er fortsat ét atomisk `data`-objekt, så en
+  blokerende invariant nulstiller det samlet. Det er PRE-EKSISTERENDE adfærd —
+  `erstatningsopgoerelseValidator` blokerede allerede globalt på forlig/svie-smerte/`tidligereModtagetTaf` via
+  `VALIDATION_BLOCKED_OUTPUTS` — og WI-004 tilføjede reader-fejl til den samme eksisterende mekanisme uden at
+  udvide blokeringens rækkevidde. S/S-motoren er nu dependency-gatet særskilt, så en TAF-fejl ikke stopper S/S
+  og omvendt. Men den fulde ambition i brugerbeslutningen 2026-07-25 (et ugyldigt S/S-satsår skal bevare den
+  gyldige TAF-tabel i det AUTORITATIVE output, ikke kun i inspektionen) kræver en leaf-niveau dependency-DAG
+  gennem `eoSnapshot`/`eoCanonicalOutput`/`pdfModel`. Det er en selvstændig work item.
 - Ingen mounted komponent kan tilføje/fjerne en autoritativ fejl.
 - Ikke-dependencies overblokerer ikke.
 - Alle synlige resultater følger den seneste afsluttede revision.

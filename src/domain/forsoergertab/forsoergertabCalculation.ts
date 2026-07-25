@@ -17,25 +17,46 @@ type Input = Readonly<{
   tilkendtForPeriodeAar: number | undefined;
   aslAarsloen: AmountValue | undefined;
   ealAarsloen: AmountValue | undefined;
+  /**
+   * Dependency-gate pr. gruppe (§1.10 + `error-contract.md` §5). `true` = mindst én af DENNE gruppes
+   * afhængigheder har en rød feltfejl, og gruppens motor må derfor IKKE kaldes.
+   *
+   * Uden gaten ville readerens maskering af en rød værdi til `undefined` få motoren til at regne på et
+   * FALSK input — konkret kan en rød `ealAarsloen` ellers falde tilbage til `aslAarsloen`
+   * (`eetEalCalculation.ts:184-193`) og rapportere `source: 'asl'`, som om brugeren havde ladet feltet tomt.
+   * Grupperne gates hver for sig, så en rød ASL-afhængighed bevarer EAL-delen og omvendt.
+   *
+   * Begge flag er PÅKRÆVEDE: var de valgfrie, ville et udeladt flag lydløst åbne motoren igen, og gaten
+   * ville kunne forsvinde ved en fremtidig ændring uden at compileren protesterede.
+   */
+  ealBlocked: boolean;
+  aslBlocked: boolean;
 }>;
 
+const BLOCKED_EAL: ForsoergertabCalculationResult['ealComputation'] = null;
+
 export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalculationResult => {
-  const ealResult = computeForsoergertabEalKrav({
-    beregningsdato: input.beregningsdato,
-    skadedato: input.skadedato,
-    skadelidteFodselsdato: input.skadelidteFodselsdato,
-    aslAarsloen: input.aslAarsloen,
-    ealAarsloen: input.ealAarsloen,
-  });
-  const aslResult = computeForsoergertabAslYdelser({
-    skadedato: input.skadedato,
-    beregningsdato: input.beregningsdato,
-    virkningsdato: input.virkningsdato,
-    efterladteFodselsdato: input.efterladteFodselsdato,
-    koen: input.koen,
-    tilkendtForPeriodeAar: input.tilkendtForPeriodeAar,
-    aslAarsloen: input.aslAarsloen,
-  });
+  // Motoren kaldes KUN, når dens egen dependency-gruppe er ready — aldrig med et maskeret input.
+  const ealResult = input.ealBlocked
+    ? { issues: [], computation: BLOCKED_EAL, foersoergertabEalMinSatsOre: null, foersoergertabForhoejtetTilMin: false }
+    : computeForsoergertabEalKrav({
+      beregningsdato: input.beregningsdato,
+      skadedato: input.skadedato,
+      skadelidteFodselsdato: input.skadelidteFodselsdato,
+      aslAarsloen: input.aslAarsloen,
+      ealAarsloen: input.ealAarsloen,
+    });
+  const aslResult = input.aslBlocked
+    ? { issues: [], computation: null }
+    : computeForsoergertabAslYdelser({
+      skadedato: input.skadedato,
+      beregningsdato: input.beregningsdato,
+      virkningsdato: input.virkningsdato,
+      efterladteFodselsdato: input.efterladteFodselsdato,
+      koen: input.koen,
+      tilkendtForPeriodeAar: input.tilkendtForPeriodeAar,
+      aslAarsloen: input.aslAarsloen,
+    });
 
   const issues = dedupeIssuesBySeverityAndMessage([...ealResult.issues, ...aslResult.issues]);
   if (!ealResult.computation || !aslResult.computation) {

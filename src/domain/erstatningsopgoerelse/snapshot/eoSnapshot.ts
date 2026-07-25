@@ -34,6 +34,7 @@ import {
   buildTafPerYearAfrundingInvariant,
   buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
   buildTafPerYearUnavailableInvariant,
+  buildReaderFieldIssueInvariants,
   buildValidationInvariants,
   hasAnyErrorInvariant,
   hasAnyWarningInvariant,
@@ -43,7 +44,7 @@ import {
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
-import type { EoInputIssues, EoStamdataInputIssues } from '../eoInputIssues';
+import { eoIssueBlocksDependents, type EoInputIssues, type EoStamdataInputIssues } from '../eoInputIssues';
 
 export type EoSnapshotComputedData = Readonly<{
   engines: Readonly<{
@@ -148,6 +149,36 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
     sfggResult: args.sfggResult,
   });
 };
+
+/**
+ * Svie/smerte-motorens EGNE feltafhængigheder — udledt af de felter, `computeSvieSmerteEngine` faktisk læser
+ * (`engines/svieSmerteEngine.ts`). Listen er bevidst eksplicit: den er kontrakten for, hvad der gater S/S, og
+ * må ikke udvides til "alle EO-felter" (det ville overblokere, §1.10).
+ *
+ * `svieSmertePerioder` er en collection; dens celle-issues nøgles pr. række, så prefix-match er nødvendigt.
+ */
+const SVIE_SMERTE_DEPENDENCY_FIELDS: readonly string[] = [
+  'kravPaaSvieSmerteGodtgoerelse',
+  'svieSmerteAktuelPeriode',
+  'svieSmerteDelvisSygemeldingSats',
+  'svieSmerteSatserAar',
+  'svieSmerteTidligereTotal',
+  'tidligereSsMax',
+  'vedroererPeriodeFra',
+  'vedroererPeriodeTil',
+];
+
+const isSvieSmerteDependencyKey = (fieldKey: string): boolean =>
+  SVIE_SMERTE_DEPENDENCY_FIELDS.includes(fieldKey)
+  // Rækkeceller i svieSmertePerioder nøgles med rækkens id som prefix.
+  || fieldKey.includes('svieSmertePerioder');
+
+/** Har en af svie/smerte-motorens egne afhængigheder en blokerende rød reader-fejl? */
+const hasBlockingSvieSmerteDependency = (eoErrors: EoInputIssues): boolean =>
+  Object.entries(eoErrors).some(([fieldKey, bySource]) =>
+    bySource !== undefined
+    && isSvieSmerteDependencyKey(fieldKey)
+    && Object.values(bySource).some(eoIssueBlocksDependents));
 
 const isAngivetLoenHiddenStateInvalid = (
   values: ErstatningsopgoerelseValues
@@ -272,6 +303,11 @@ export const computeEoSnapshot = (args: Readonly<{
     ...buildValidationInvariants(validationResult.errors),
     ...buildValidationInvariants(stamdataDateOrderErrors),
     ...midlertidigtEetSourceInvariants,
+    // F2: readerens røde feltfejl er BLOKERENDE afhængigheder, ikke kun inspektionsdata. Uden dem ville
+    // motorerne nedenfor køre på readerens maskerede tomværdier og producere falske tal (fx en forligsprocent
+    // på 150 regnet som 100 %). Se `buildReaderFieldIssueInvariants`.
+    ...buildReaderFieldIssueInvariants(eoErrors, 'eo'),
+    ...buildReaderFieldIssueInvariants(stamdataErrors, 'stamdata'),
   ];
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
     // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
@@ -287,13 +323,21 @@ export const computeEoSnapshot = (args: Readonly<{
     // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
     // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
     // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
-    const svieSmerteForInspektion = computeSvieSmerteEngine({
-      erstatningsopgoerelse: effectiveEoValues,
-      stamdata: {
-        skadedato: parsedStamdata.data.skadedato,
-        skadestype: parsedStamdata.data.skadestype,
-      },
-    });
+    // ⚠️ F2 (R1): S/S-motoren må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
+    // værdi til `undefined`, så et ugatet kald her viste et "Beregnet svie/smerte"-beløb regnet som om fx
+    // "tidligere udbetalt" var 0 — præcis det falske tal, brugerbeslutningen 2026-07-25 kræver erstattet af `-`.
+    //
+    // Gaten er DEPENDENCY-SPECIFIK (§1.10): en rød TAF- eller løn-afhængighed rører ikke S/S-visningen, og en rød
+    // S/S-afhængighed rører ikke TAF-ranges nedenfor. Kun S/S' egne felter gater S/S.
+    const svieSmerteForInspektion = hasBlockingSvieSmerteDependency(eoErrors)
+      ? undefined
+      : computeSvieSmerteEngine({
+        erstatningsopgoerelse: effectiveEoValues,
+        stamdata: {
+          skadedato: parsedStamdata.data.skadedato,
+          skadestype: parsedStamdata.data.skadestype,
+        },
+      });
     const tafRangesForInspektion = buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
     const inspektionSnapshotForValidationError = buildInspektionSnapshotForComputed({
       revision: args.revision,

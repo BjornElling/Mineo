@@ -37,7 +37,7 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
    * (Lønindkomst under et ansættelsesforhold og EO-oplysninger under "Indtægt før skaden"), så
    * kalderen leverer den korrekte fane — den kan ikke udledes af `locationPrefix`.
    */
-  locationNav?: Readonly<{ route?: string; tabKey?: string | null }>;
+  locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>;
 
 export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, fieldOwnerIds, committedRows, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
@@ -74,3 +74,4 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
     })}</tbody>
   </StandardGridTable>;
 }
+

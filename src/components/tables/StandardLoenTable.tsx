@@ -73,7 +73,7 @@ export type StandardLoenTableProps = {
    * bor på. Tabellen renderes i flere kontekster (Årsløn vs. EO-lønindkomst), så route/fane kan ikke udledes af
    * `collection` — kalderen leverer den. Udeladt route = ikke-navigerbar lokation (restoren navigerer da ikke).
    */
-  locationNav?: Readonly<{ route?: string; tabKey?: string | null }>;
+  locationNav: Readonly<{ route: string; tabKey: string | null }>;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -99,8 +99,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     // kalderens `locationNav`; feltsættets id navngiver lokationen entydigt.
     const rows = useCollectionRows<StandardLoenTableRow>(collection, {
       locationId: `standardLoen:${collection.section}.${collection.collection}`,
-      ...(locationNav?.route === undefined ? {} : { route: locationNav.route }),
-      ...(locationNav?.tabKey === undefined ? {} : { tabKey: locationNav.tabKey }),
+      route: locationNav.route,
+      tabKey: locationNav.tabKey,
     });
 
     const tableRef = React.useRef<HTMLTableElement | null>(null);
@@ -353,8 +353,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       // route/tabKey er eksplicit navigation-metadata (§3.7) leveret af kalderen (Årsløn vs. EO-lønindkomst).
       const location = {
         locationId: `${collection.section}.${collection.collection}:${renderRow.rowId}:${colIdx}`,
-        ...(locationNav?.route === undefined ? {} : { route: locationNav.route }),
-        ...(locationNav?.tabKey === undefined ? {} : { tabKey: locationNav.tabKey }),
+        route: locationNav.route,
+        tabKey: locationNav.tabKey,
       };
       if (renderRow.kind === 'existing') {
         const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
@@ -550,3 +550,5 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 StandardLoenTable.displayName = 'StandardLoenTable';
 
 export default StandardLoenTable;
+
+

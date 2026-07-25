@@ -115,6 +115,40 @@ const createFieldIssues = (
     .filter((issue): issue is EetIssue => issue !== null);
 };
 
+/**
+ * Bygger ét EET-panel med en STRUKTUREL dependency-gate foran motoren (§1.10/§3.9).
+ *
+ * Kontraktkravet er, at kun en `ready` projektion må fodre en beregningsmotor (`form-contract.md` §2.3), og
+ * at en projektion ikke kalder motoren, hvis et afhængigt issue gør input uanvendeligt
+ * (`error-contract.md` §5). Panelets egne field-/forlig-/datoordensissues afgøres derfor FØR `calculate`
+ * kaldes — ikke bagefter, som tidligere.
+ *
+ * Hvorfor det er mere end en formalitet: readeren maskerer en rød værdi til `undefined`, så motoren ville
+ * ellers regne på et FALSK input. Konkret kan en maskeret EAL-% eller EAL-årsløn falde tilbage til
+ * ASL-værdien (`eetEalCalculation.ts:158-193`) og præsentere resultatet som `source: 'asl'`, som om
+ * brugeren havde ladet feltet stå tomt.
+ *
+ * Gaten er PANEL-lokal, ikke global: hvert panel navngiver præcis de felter, dens egen motor læser, så en rød
+ * beregningsdato blokerer Løbende/Efter-EAL/Difference, mens Kapitalisering fortsætter uændret.
+ */
+const buildGatedProjection = <TComputation>(
+  blockingIssues: readonly EetIssue[],
+  calculate: () => Readonly<{ issues: readonly EetIssue[]; computation: TComputation | null }>
+): EetTabProjection<TComputation> => {
+  const hasBlockingDependency = blockingIssues.some((issue) => issue.severity === 'error');
+  if (hasBlockingDependency) {
+    const issues = sortAndDedupeIssues(blockingIssues);
+    return { issues, hasBlockingErrors: true, computation: null };
+  }
+  const calculationResult = calculate();
+  const issues = sortAndDedupeIssues([...calculationResult.issues, ...blockingIssues]);
+  return {
+    issues,
+    hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
+    computation: calculationResult.computation,
+  };
+};
+
 const createStamdataDateOrderIssues = (stamdata: StamdataValues | null): readonly EetIssue[] => {
   if (stamdata === null) return [];
   return resolveStamdataDateOrder(stamdata).issues.map((issue) => ({
@@ -125,85 +159,93 @@ const createStamdataDateOrderIssues = (stamdata: StamdataValues | null): readonl
 };
 
 const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['loebendeYdelser'] => {
-  const calculationResult = computeEetLoebendeYdelser({
+  const blockingIssues = [
+    ...createFieldIssues(input.fieldErrors, [
+      { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
+      { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
+      { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
+      { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
+      { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
+    ]),
+    ...createStamdataDateOrderIssues(input.stamdata),
+  ];
+
+  return buildGatedProjection(blockingIssues, () => computeEetLoebendeYdelser({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
-  });
-
-  const fieldIssues = createFieldIssues(input.fieldErrors, [
-    { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
-    { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
-    { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
-    { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
-    { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
-  ]);
-  const issues = sortAndDedupeIssues([
-    ...calculationResult.issues,
-    ...fieldIssues,
-    ...createStamdataDateOrderIssues(input.stamdata),
-  ]);
-  return {
-    issues,
-    hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
-    computation: calculationResult.computation,
-  };
+  }));
 };
 
 const buildKapitaliseringProjection = (input: EetSnapshotInput): EetSnapshot['kapitalisering'] => {
-  const calculationResult = computeEetKapitaliseringCalculation({
+  // Bemærk: beregningsdato er BEVIDST ikke en kapitaliserings-afhængighed. Derfor bevares dette panel, når
+  // beregningsdatoen er rød — den dependency-specifikke opdeling i §1.10 i praksis.
+  const blockingIssues = [
+    ...createFieldIssues(input.fieldErrors, [
+      { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
+      { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
+      { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
+      { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
+    ]),
+    ...createStamdataDateOrderIssues(input.stamdata),
+  ];
+
+  return buildGatedProjection(blockingIssues, () => computeEetKapitaliseringCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
-  });
-
-  const fieldIssues = createFieldIssues(input.fieldErrors, [
-    { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
-    { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
-    { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
-    { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
-  ]);
-
-  const issues = sortAndDedupeIssues([
-    ...calculationResult.issues,
-    ...fieldIssues,
-    ...createStamdataDateOrderIssues(input.stamdata),
-  ]);
-  return {
-    issues,
-    hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
-    computation: calculationResult.computation,
-  };
+  }));
 };
 
+/**
+ * Spejler EAL-motorens egne fallback-betingelser, så gaten ikke kan drifte fra den motor, den gater:
+ *  - `resolveAarsloen` (`eetEalCalculation.ts:184-193`): EAL-årslønnen bruges, når den er et finit tal > 0.
+ *  - `resolveEetPct` (`eetEalCalculation.ts:169`): EAL-% bruges, når den er defineret og ikke 0.
+ * Er primærværdien ikke brugbar, læser motoren ASL-siden — og først dér er ASL en afhængighed.
+ */
+const isUsableAmount = (amount: EetSnapshotInput['values']['ealAarsloen']): boolean => {
+  const value = amount?.value;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+};
+
+const isUsableEetPct = (pct: number | undefined): boolean => pct !== undefined && pct !== 0;
+
 const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal'] => {
-  const calculationResult = computeEetEalCalculation({
+  // EAL-motoren har TO fallbacks: EAL-% → ASL-rækkernes eetPct, og EAL-årsløn → ASL-årsløn
+  // (`eetEalCalculation.ts:158-193`). Begge primærfelter er derfor altid afhængigheder.
+  //
+  // ASL-siden er en BETINGET afhængighed: den indgår KUN, når fallbacken faktisk nås — altså når primærværdien
+  // er reelt tom. Uden det ville en rød ASL-værdi overblokere et panel, der har en gyldig EAL-primærværdi og
+  // dermed slet ikke læser ASL. Med den bevares fallback-invarianten i den anden retning: en rød ASL-værdi må
+  // ikke maskeres til tomhed og fodre motoren, når EAL-primærværdien er tom og fallbacken derfor bruges.
+  const usesAslAarsloenFallback = !isUsableAmount(input.values.ealAarsloen);
+  const usesAslEetPctFallback = !isUsableEetPct(input.values.ealEetPct);
+
+  const blockingIssues = [
+    ...createFieldIssues(input.fieldErrors, [
+      { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
+      { id: 'field-eal-eet-pct', message: input.fieldErrors.erhvervsevnetab.ealEetPct?.message },
+      { id: 'field-aarsloen-eal', message: input.fieldErrors.faellesAarsloen.ealAarsloen?.message },
+      ...(usesAslAarsloenFallback
+        ? [{ id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message }]
+        : []),
+      ...(usesAslEetPctFallback
+        ? [{ id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message }]
+        : []),
+      { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
+      { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
+    ]),
+    ...createStamdataDateOrderIssues(input.stamdata),
+  ];
+
+  return buildGatedProjection(blockingIssues, () => computeEetEalCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
     reguleringssats,
     erhvervsevnetabEalMax,
     aarsloenAslMax,
-  });
-
-  const fieldIssues = createFieldIssues(input.fieldErrors, [
-    { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
-    { id: 'field-eal-eet-pct', message: input.fieldErrors.erhvervsevnetab.ealEetPct?.message },
-    { id: 'field-aarsloen-eal', message: input.fieldErrors.faellesAarsloen.ealAarsloen?.message },
-    { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
-    { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
-  ]);
-
-  const issues = sortAndDedupeIssues([
-    ...calculationResult.issues,
-    ...fieldIssues,
-    ...createStamdataDateOrderIssues(input.stamdata),
-  ]);
-  return {
-    issues,
-    hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
-    computation: calculationResult.computation,
-  };
+  }));
 };
 
 // Forlig om ansvarsgrad-fejl (delt kilde med EO-fanen). Et ugyldigt forlig — "begge udfyldt",
@@ -233,7 +275,26 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
   const forligBlocking = resolveForligBlocking(input.forlig);
   const forligDatoIssue = toFieldIssue('field-forlig-dato', input.forlig?.datoErrorMessage);
 
-  const calculationResult = computeEetDifferencekravCalculation({
+  // Differencekravet er en JOIN: det læser hele EAL- og ASL-siden PLUS forliget. Derfor er dens
+  // afhængighedsliste unionen af søsterpanelernes — et rødt felt i enten EAL- eller ASL-grenen blokerer den.
+  // Et ugyldigt forlig (eller en ugyldig forligsdato) er ligeledes en afhængighed, ikke et efterfølgende filter:
+  // uden gaten ville motoren regne videre med `forligFactor: null`, dvs. som om der slet ikke var et forlig.
+  const blockingIssues = [
+    ...createFieldIssues(input.fieldErrors, [
+      { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
+      { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
+      { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
+      { id: 'field-eal-eet-pct', message: input.fieldErrors.erhvervsevnetab.ealEetPct?.message },
+      { id: 'field-aarsloen-eal', message: input.fieldErrors.faellesAarsloen.ealAarsloen?.message },
+      { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
+      { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
+    ]),
+    ...createStamdataDateOrderIssues(input.stamdata),
+    ...(forligBlocking.issue ? [forligBlocking.issue] : []),
+    ...(forligDatoIssue === null ? [] : [forligDatoIssue]),
+  ];
+
+  return buildGatedProjection(blockingIssues, () => computeEetDifferencekravCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
@@ -243,30 +304,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
       input.values.indregnMerErstatningVedForhoejetPensionsalder,
     forlig: forligBlocking.forligFactor,
     forligDato: input.forlig?.dato,
-  });
-
-  const fieldIssues = createFieldIssues(input.fieldErrors, [
-    { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
-    { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
-    { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
-    { id: 'field-eal-eet-pct', message: input.fieldErrors.erhvervsevnetab.ealEetPct?.message },
-    { id: 'field-aarsloen-eal', message: input.fieldErrors.faellesAarsloen.ealAarsloen?.message },
-    { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
-    { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
-  ]);
-
-  const issues = sortAndDedupeIssues([
-    ...calculationResult.issues,
-    ...fieldIssues,
-    ...createStamdataDateOrderIssues(input.stamdata),
-    ...(forligBlocking.issue ? [forligBlocking.issue] : []),
-    ...(forligDatoIssue === null ? [] : [forligDatoIssue]),
-  ]);
-  return {
-    issues,
-    hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
-    computation: calculationResult.computation,
-  };
+  }));
 };
 
 // Den reader-baserede projektion fører den første tabelblokerende ASL-rækkefejl ind som `field-asl-afgoerelser`.

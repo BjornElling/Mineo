@@ -35,6 +35,55 @@ export type ForsoergertabSnapshotInput = Readonly<{
   fieldErrors: ForsoergertabFieldErrors;
 }>;
 
+/**
+ * De to dependency-grupper, forsørgertabsberegningen består af (§1.10). Hver gruppe navngiver PRÆCIS de
+ * felter, dens motor faktisk læser — så en rød feltfejl kun blokerer den motor, der er afhængig af feltet.
+ *
+ * Dette er BEREGNINGS-dependencies, ikke visningsgates. `canShowAsl` kræver fx også skadelidtes
+ * fødselsdato, selv om ASL-motoren ikke bruger den; den slags præsentationskrav hører ikke til her.
+ */
+/**
+ * EAL-motorens afhængigheder. `aslAarsloen` indgår BETINGET: EAL bruger den kun som fallback, når
+ * `ealAarsloen` er tom (`eetEalCalculation.ts:184-193`).
+ *
+ * Fallback-invarianten (§1.10): en rød PRIMÆRværdi må aldrig omfortolkes som tomhed, men en rød
+ * FALLBACK-værdi er kun en afhængighed, hvis fallbacken faktisk nås. Har brugeren udfyldt en gyldig
+ * EAL-årsløn, rører en rød ASL-årsløn derfor ikke EAL-delen — den blokerer kun ASL-delen.
+ */
+const EAL_ENGINE_DEPENDENCIES = (
+  fieldErrors: ForsoergertabFieldErrors,
+  usesAslAarsloenFallback: boolean
+): readonly FieldErrorMessage[] => [
+  fieldErrors.forsoergertab.beregningsdato,
+  ...(usesAslAarsloenFallback ? [fieldErrors.faellesAarsloen.aslAarsloen] : []),
+  fieldErrors.faellesAarsloen.ealAarsloen,
+  fieldErrors.stamdata.skadedato,
+  fieldErrors.stamdata.skadelidteFodselsdato,
+];
+
+const ASL_ENGINE_DEPENDENCIES = (fieldErrors: ForsoergertabFieldErrors): readonly FieldErrorMessage[] => [
+  fieldErrors.forsoergertab.beregningsdato,
+  fieldErrors.forsoergertab.virkningsdato,
+  fieldErrors.forsoergertab.efterladteFodselsdato,
+  fieldErrors.forsoergertab.koen,
+  fieldErrors.forsoergertab.tilkendtForPeriodeAar,
+  fieldErrors.faellesAarsloen.aslAarsloen,
+  fieldErrors.stamdata.skadedato,
+];
+
+const hasAnyDependencyError = (dependencies: readonly FieldErrorMessage[]): boolean =>
+  dependencies.some((fieldError) => fieldError !== undefined);
+
+/**
+ * Når nås EAL-motorens ASL-årsløns-fallback? Spejler `resolveAarsloen` i `eetEalCalculation.ts:184-193`:
+ * fallbacken nås, netop når EAL-årslønnen ikke er et finit tal > 0. Holdes her som ét udtryk, så gaten
+ * ikke kan drifte fra den motor, den gater.
+ */
+const usesAslAarsloenFallback = (ealAarsloen: FaellesAarsloenValues['ealAarsloen']): boolean => {
+  const value = ealAarsloen?.value;
+  return !(typeof value === 'number' && Number.isFinite(value) && value > 0);
+};
+
 type FieldUiState = Readonly<{
   hasError: boolean;
   helperText: string;
@@ -162,6 +211,14 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     return beregningsdato ? minISO(maxDato, beregningsdato) : maxDato;
   })();
 
+  // Dependency-gaten afgøres FØR motoren, pr. gruppe (§1.10/§3.9): en rød afhængighed blokerer sin egen
+  // motor og BEVARER den anden. En stamdata-datoordensfejl er en fælles afhængighed for begge grupper.
+  const hasSharedDateOrderError = stamdataDateOrderMessage !== undefined;
+  const ealBlocked = hasSharedDateOrderError || hasAnyDependencyError(
+    EAL_ENGINE_DEPENDENCIES(fieldErrors, usesAslAarsloenFallback(faellesAarsloen.ealAarsloen))
+  );
+  const aslBlocked = hasSharedDateOrderError || hasAnyDependencyError(ASL_ENGINE_DEPENDENCIES(fieldErrors));
+
   const calculation = (() => {
     try {
       return computeForsoergertabCalculation({
@@ -174,6 +231,8 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
         tilkendtForPeriodeAar: values.tilkendtForPeriodeAar,
         aslAarsloen: faellesAarsloen.aslAarsloen,
         ealAarsloen: faellesAarsloen.ealAarsloen,
+        ealBlocked,
+        aslBlocked,
       });
     } catch (error) {
       return createRuntimeExceptionCalculation(error);

@@ -154,11 +154,12 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
 
     // Satser-doktrin: readeren skjuler den out-of-bounds værdi → rekonstruktionen falder tilbage til tomværdien.
     expect(projection.eoValues.forligAnsvarsgradProcent).toBeUndefined();
-    // Bounds → source 'input' med reason 'bounds': synlig, men blokerer IKKE de afhængige consumers.
-    // Konsekvensen udledes strukturelt af årsagen (`eoIssueBlocksDependents`), ikke af et lagret flag.
     expect(projection.eoErrors.forligAnsvarsgradProcent?.input?.severity).toBe('error');
     expect(projection.eoErrors.forligAnsvarsgradProcent?.input?.reason).toBe('bounds');
-    expect(eoIssueBlocksDependents(projection.eoErrors.forligAnsvarsgradProcent?.input)).toBe(false);
+    // `error-contract.md` §1.1: bounds blokerer IKKE `.eo`-save, men blokerer JA de AFHÆNGIGE consumers.
+    // Netop dette felt er beviset for, hvorfor: en maskeret forligsprocent på 150 ville ellers blive regnet
+    // som "intet forlig" (= 100 %) og vise et falsk beløb bag den røde markering.
+    expect(eoIssueBlocksDependents(projection.eoErrors.forligAnsvarsgradProcent?.input)).toBe(true);
   });
 
   it('fører et ugyldigt (out-of-bounds) løntabel-cellefelt ind som `${afId}:loenindkomst`-aggregat', () => {
