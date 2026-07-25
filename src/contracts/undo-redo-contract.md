@@ -21,9 +21,16 @@ Et frame bærer INTET fejlsnapshot. Det midlertidige `fieldErrors`-kompatibilite
 komponentrapporterede fejlmodel: issues er nu rene afledninger af den gendannede revision, så de kan ikke drifte
 fra inputtet. `InputHistoryFrame` er derfor præcis `{ input, origin? }`.
 
-Fokus-origin bærer feltadresse + editorlokation samt eksplicit `route`/`tabKey`. For en STRUKTUREL rækkehandling
-(insert/delete/reorder) er feltadressen udeladt — handlingen rører ikke ét felt — men route og fane følger med, så
-en restore navigerer til den tabel, ændringen kom fra, uden at fokusere et vilkårligt felt.
+Fokus-origin er en DISKRIMINERET union, så de to slags commits ikke kan forveksles:
+
+- `kind: 'field'` — et felt-/celle-commit. Feltadressen er OBLIGATORISK; restoren fokuserer præcis den
+  editorlokation, ændringen kom fra.
+- `kind: 'collection'` — en strukturel rækkehandling (insert/delete/reorder). Den har intet enkelt felt at
+  fokusere, men bærer collectionen og en obligatorisk destination (`route`/`tabKey`), så en restore navigerer til
+  den tabel, ændringen kom fra.
+
+Unionen gør to fejl urepræsenterbare: et feltcommit uden adresse, og en rækkehandling uden destination. Begge var
+tidligere blot valgfrie felter på én fælles type.
 
 ## 2. Keyboard-adfærd
 

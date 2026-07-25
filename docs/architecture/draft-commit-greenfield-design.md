@@ -598,9 +598,11 @@ bruges af reaktiv gate og click-preflight. Generatoren modtager kun et kilde-tok
   en sidelokal handling uden hel-sags-semantik.
 - den eksisterende centrale systemfejl-/noticeoverflade viser startupfejl og brugerrettede operationsfejl.
 
-Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. En port læser ALTID gennem den
-binding, den fik injiceret (`runtime.store`) — aldrig produktions-singletonen direkte; ellers kunne en alternativ
-binding vise én sag, mens porten læste og gemte en anden.
+Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. En port læser ALTID gennem
+bindingens READ-ONLY kildeport `captureStableSource(): { input, token }` — aldrig produktions-singletonen direkte
+(ellers kunne en alternativ binding vise én sag, mens porten læste og gemte en anden), og aldrig gennem den rå
+store: en `StoreApi` på bindingen ville give enhver adapter `setState` og dermed en generel bypass af typed
+commands, history og storage-grænsen.
 
 Hver app-variant initialiserer sin ene aktive runtime før render; provider-remount må aldrig rehydrere eller
 overskrive input. Der findes efter Fase 4 kun ÉN runtime at initialisere: legacy-provideren er slettet.
@@ -1230,6 +1232,13 @@ showcase-fane (`StamdataTestTab`) plus tre transiente flader. Slettet: `inputRun
 `utils/saveBlockedFocus`, de otte `Styled*Field`-komponenter og `StamdataTestTab`. En AST-regel
 (`input/deleted-legacy-architecture-import`) forbyder uden allowlist at genindføre nogen af dem.
 
+**Den ANDEN parallelle inputmodel er også slettet (opfølgende review).** Ud over den aktive legacy-klynge lå
+hele den forkastede pre-rebase Fase 0–4-implementering stadig i `src/input/` (24 filer: egen `fieldAddress`,
+katalog, codecs, reader, projektion, envelope, ti sektionsbindinger) med én produktionsbro, der selv var uden
+callsites. §0 havde erklæret den forkastet som migrationsgrundlag, men den var aldrig fjernet — og en runtime-død
+parallel arkitektur er stadig en parallel arkitektur. Træet, broen og de tolv tilhørende testfiler er slettet.
+`ledgerCompleteness` reconcilerer nu mod det LEVENDE `inputCore`-produktionskatalog.
+
 **Transient input er den ene dokumenterede undtagelse:** tre flader er ikke sagsdata (løntrin-finder-overlay,
 sygedagpenge-hjælperrække, rapport-dialog). De kører på `components/inputs/transient/` — én delt
 `useTransientDraft`-kerne + Amount/Date/Text — som genbruger de samme parse-kerner, tegnfiltre og
@@ -1255,10 +1264,11 @@ Foreligger:
   ikke kan overskrive det uden overwrite-bekræftelse). `SaveSnapshot === PersistedSectionsSnapshot`, så snapshot
   sendes uændret til den bevarede `saveToFile` (row-order-registry, payload-schema, metadata,
   integritetsverifikation bevares, §4.1).
-- **Token-friskhed over async-grænsen (critical-action-kontrakten §5, Codex-fund F3):** directory-/fil-pickeren
-  ligger MELLEM save-evalueringen og skrivningen. `handleGem` genlæser derfor hele kildetokenet gennem
-  `isSaveSourceStillCurrent` umiddelbart før `saveToFile` og stopper fail-closed, hvis input- eller
-  settingsrevisionen er ændret imens — ellers ville en ældre sag kunne skrives til fil.
+- **Token-friskhed over async-grænsen (critical-action-kontrakten §5, Codex-fund F3):** fil-pickeren ligger
+  INDE i `saveToFile` (efter kryptering, i `resolveSaveTarget`), ikke før kaldet. Friskhedskontrollen injiceres
+  derfor som callback og evalueres efter AL target-/picker-resolution og umiddelbart før den første skrivning;
+  `SaveFileResult` har `status: 'stale'`, og `handleGem` stopper fail-closed. En kontrol placeret FØR kaldet
+  ville kunne omgås af netop pickeren — det var den første rettelses fejl.
 - **Save-blokeret fokus på fuld feltadresse (Codex-fund F4):** `inputCore/react/saveBlockedFocus` lokaliserer
   det blokerende felt på den FULDE serialiserede feltadresse (samme identitet som undo/redo-restoren), og
   `resolveFieldAddressDestination` udleder side + fane af adressens STRUKTUR (sektion + første path-led).
