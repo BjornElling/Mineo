@@ -5,7 +5,7 @@ import StyledDropdown, { type StyledDropdownChangeEvent, type StyledDropdownValu
 import { useGridCoreApi } from '../../../components/tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import { gridCellKey } from '../../../components/tables/gridCore/gridCoreUtils';
-import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from '../../../components/inputs/table/tableInputStyles';
+import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './gridCellStyles';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
 import { useRestoreTargetAttributes } from '../greenfieldHistoryRestore';
 

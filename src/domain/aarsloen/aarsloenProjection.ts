@@ -266,7 +266,14 @@ export type AarsloenReaderProjection = Readonly<{
   values: AarsloenValues;
   tableValidation: StandardLoenTableValidationResult;
   omregningGate: AarsloenOmregningGate;
-  calculation: AarsloenBeregningState;
+  /**
+   * Beregningen — `null` når projektionen er blokeret (§3.9: motoren kaldes KUN i `ready`-grenen).
+   *
+   * En rød feltfejl på et beregningskritisk input (satsprocent/antalFeriedage) skjuler værdien i readeren;
+   * et resultat beregnet på den skjulte tomværdi ville være misvisende. Derfor findes der intet resultat,
+   * mens gaten er rød — hverken på siden eller i dokumentpreflighten.
+   */
+  calculation: AarsloenBeregningState | null;
   fieldIssues: readonly FieldIssue[];
   documentStamdata: ProjectionResult<StamdataValues>;
   sourceToken: EvaluationSourceToken;
@@ -282,13 +289,13 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     loenperiode: values.loenperiode,
     validationSummary: tableValidation.summary,
   });
-  const calculation = computeAarsloenBeregning({
-    values,
-    omregningAktiveret: omregningGate.effectiveEnabled,
-  });
+  // Feltgaten afgøres FØR motoren, så beregningen kun kaldes med input readeren vurderer brugbart (§3.9).
   const fieldIssues = resolveAarsloenFieldErrorGate(reader, values, {
     omregningAktiveret: omregningGate.effectiveEnabled,
   });
+  const calculation = fieldIssues.length > 0
+    ? null
+    : computeAarsloenBeregning({ values, omregningAktiveret: omregningGate.effectiveEnabled });
 
   return Object.freeze({
     values,

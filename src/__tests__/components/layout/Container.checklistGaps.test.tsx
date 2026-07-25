@@ -4,8 +4,8 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
 import StyledDropdown from '../../../components/inputs/StyledDropdown';
-import StyledDateField from '../../../components/inputs/StyledDateField';
-import StyledTextField from '../../../components/inputs/StyledTextField';
+import TransientDateInput from '../../../components/inputs/transient/TransientDateInput';
+import TransientTextInput from '../../../components/inputs/transient/TransientTextInput';
 import { toISODateString } from '../../../types/branded';
 
 /**
@@ -17,7 +17,7 @@ import { toISODateString } from '../../../types/branded';
  *  - Afsnit 5: Disabled-felter springes over i Tab-rækkefølgen
  *  - Afsnit 1/3/4: Den rigtige StyledDropdown (readOnly combobox) indgår i Tab-rækkefølgen,
  *    åbner på Enter og første klik, og Container intercepter ikke
- *  - Afsnit 7: StyledDateField får fokus ved Tab uden selection
+ *  - Afsnit 7: datofelt får fokus ved Tab uden selection
  *
  * Rent visuelle punkter (blå markerings-rendering, fokus-ring-CSS) kan ikke verificeres
  * i JSDOM og forbliver i den manuelle tjekliste / live-verifikation.
@@ -241,9 +241,9 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
     await flushPopoverTransition();
   });
 
-  // --- Afsnit 7: StyledDateField fr fokus uden selection --------------------
+  // --- Afsnit 7: datofelt får fokus uden selection --------------------
 
-  it('Tab til StyledDateField med værdi giver fokus uden selection', async () => {
+  it('Tab til et datofelt med værdi giver fokus uden selection', async () => {
     const user = userEvent.setup();
 
     const Harness = () => {
@@ -253,14 +253,7 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
       return (
         <Container>
           <input data-testid="before" type="text" style={{ position: 'fixed' }} />
-          <StyledDateField
-            value={value}
-            onCommit={(e) => {
-              setValue(e.target.value);
-              return true;
-            }}
-            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
-          />
+          <TransientDateInput value={value} onCommit={setValue} sx={{ '& .MuiInputBase-input': { position: 'fixed' } }} />
         </Container>
       );
     };
@@ -276,11 +269,9 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
 
     expect(document.activeElement).toBe(dateInput);
     expect(dateInput.selectionStart).toBe(dateInput.selectionEnd);
-    // Lukket editor => readOnly => indgår i pil-/Tab-navigation uden at åbne caret.
-    expect(dateInput.readOnly).toBe(true);
   });
 
-  it('StyledTextField indgår i Tab-rækkefølgen og får fokus uden selection', async () => {
+  it('Tekstfelt indgår i Tab-rækkefølgen og får fokus uden selection', async () => {
     const user = userEvent.setup();
 
     const Harness = () => {
@@ -288,14 +279,7 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
       return (
         <Container>
           <input data-testid="before" type="text" style={{ position: 'fixed' }} />
-          <StyledTextField
-            value={value}
-            onCommit={(e) => {
-              setValue(e.target.value);
-              return true;
-            }}
-            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
-          />
+          <TransientTextInput value={value} onChange={setValue} sx={{ '& .MuiInputBase-input': { position: 'fixed' } }} />
         </Container>
       );
     };

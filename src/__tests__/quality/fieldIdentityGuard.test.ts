@@ -19,8 +19,6 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PAGES_DIR = join(process.cwd(), 'src', 'components', 'pages');
-const TABLE_INPUTS_DIR = join(process.cwd(), 'src', 'components', 'inputs', 'table');
-const TABLE_INPUT_CORE = join(process.cwd(), 'src', 'hooks', 'tableInput', 'useTableInputCore.ts');
 
 // ───────────────────────── Formular-familien (sags-sider) ─────────────────────────
 
@@ -147,65 +145,8 @@ describe('felt-identitet: formular-widgets i sags-sider bærer name', () => {
 });
 
 // ───────────────────────── Tabel-familien (grid-celler) ─────────────────────────
-
-type TableWidget = Readonly<{ name: string; file: string; source: string }>;
-
-const tableWidgets: TableWidget[] = readdirSync(TABLE_INPUTS_DIR)
-  .filter((entry) => entry.startsWith('Table') && entry.endsWith('.tsx'))
-  .map((entry) => {
-    const file = join(TABLE_INPUTS_DIR, entry);
-    return { name: entry.replace(/\.tsx$/, ''), file, source: readFileSync(file, 'utf8') };
-  });
-
-// En tabel-celle med en draft-tilstand (blur/onPersist-commit) bygger på useTableInputCore og kan have
-// en ikke-committbar draft → skal også bære `data-mineo-field-path` (invalidDraft-recovery).
-// En immediate-commit tabel-widget (TableDropdown) har ingen draft-tilstand.
-const isDraftCell = (w: TableWidget): boolean => w.source.includes('useTableInputCore');
-
-describe('felt-identitet: tabel-celle-inputs videregiver identitet', () => {
-  it('finder faktisk tabel-widgets (ikke vacuous)', () => {
-    expect(tableWidgets.length).toBeGreaterThanOrEqual(7);
-    // Mindst én draft-celle og mindst én immediate-commit (dropdown) — begge klasser dækkes.
-    expect(tableWidgets.some(isDraftCell)).toBe(true);
-    expect(tableWidgets.some((w) => !isDraftCell(w))).toBe(true);
-  });
-
-  it.each(tableWidgets.map((w) => [w.name, w] as const))(
-    '%s bærer name + undo-field-path + undo-focus-token',
-    (_name, w) => {
-      // Fælles undo/redo-identitet for ALLE persisterende tabel-celler.
-      expect(w.source, `${w.name}: mangler name-binding`).toMatch(/\bname[:=]/);
-      expect(w.source, `${w.name}: mangler data-mineo-undo-field-path`).toContain('data-mineo-undo-field-path');
-      expect(w.source, `${w.name}: mangler data-mineo-undo-focus-token`).toContain('data-mineo-undo-focus-token');
-    }
-  );
-
-  it.each(tableWidgets.filter(isDraftCell).map((w) => [w.name, w] as const))(
-    '%s (draft-celle) videregiver identitet fra useTableInputCore og bærer data-mineo-field-path',
-    (_name, w) => {
-      // Draft-celler skal kunne genfinde en ikke-committbar draft via invalidDraft-kanalen.
-      expect(w.source, `${w.name}: mangler data-mineo-field-path`).toContain('data-mineo-field-path');
-      // Ét sandt sted for identiteten: den kommer fra core, ikke lokalt udledte strenge.
-      expect(w.source, `${w.name}: name kommer ikke fra core.htmlInputName`).toContain('core.htmlInputName');
-      expect(w.source, `${w.name}: undo-field-path kommer ikke fra core.gridCellKey`).toContain('core.gridCellKey');
-      expect(w.source, `${w.name}: field-path kommer ikke fra core.invalidDraftFieldPath`).toContain(
-        'core.invalidDraftFieldPath'
-      );
-      expect(w.source, `${w.name}: undo-focus-token kommer ikke fra core.undoFocusToken`).toContain('core.undoFocusToken');
-    }
-  );
-
-  it('useTableInputCore er den ene kilde til tabel-celle-identitet', () => {
-    const core = readFileSync(TABLE_INPUT_CORE, 'utf8');
-    for (const token of ['htmlInputName', 'gridCellKey', 'invalidDraftFieldPath', 'undoFocusToken']) {
-      expect(core, `useTableInputCore eksponerer ikke ${token}`).toContain(token);
-    }
-  });
-
-  it('selv-test: scanneren fanger en draft-celle uden data-mineo-field-path', () => {
-    const violating = "inputProps={{ name: core.htmlInputName, 'data-mineo-undo-field-path': core.gridCellKey }}";
-    expect(violating).not.toContain('data-mineo-field-path');
-    const compliant = `${violating} /* + */ 'data-mineo-field-path': core.invalidDraftFieldPath`;
-    expect(compliant).toContain('data-mineo-field-path');
-  });
-});
+//
+// Den legacy `Table*Input`-familie (`useTableInputCore` + `data-mineo-undo-field-path`/`-focus-token` +
+// invalidDraft-kanalen) er slettet med greenfield-cutoveren. Greenfield-grid-celler bærer i stedet
+// restore-target-attributterne (feltadresse + editorlokation), og det håndhæves af arkitekturreglen
+// `form/greenfield-restore-target-attributes` i `quality/architecture/architectureRules.ts` — ikke her.

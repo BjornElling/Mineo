@@ -48,6 +48,10 @@ export const parseStoredSettings = (raw: unknown): AppSettings => {
     migrated.showEOInspektionMenu = migrated.showEODebugMenu;
   }
   delete migrated.showEODebugMenu;
+  // `showStamdataTestTab` er fjernet med greenfield-cutoveren: DEV-showcase-fanen for de legacy
+  // `Styled*Field`-komponenter er slettet sammen med komponenterne. Nøglen droppes, så en gammel
+  // gemt værdi ikke fejler `.strict()`-parsingen (ingen adfærd at bevare).
+  delete migrated.showStamdataTestTab;
 
   // Tolerant mod manglende keys (fremtidig schema-evolution).
   // Vi håndhæver stadig korrekte typer via Zod.

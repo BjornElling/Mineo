@@ -523,17 +523,20 @@ export const readStamdataValues = (reader: InputReader): StamdataValues => ({
 const reasonToSource = (reason: string): EoInputIssueSource =>
   reason === 'format' ? 'invalid-draft' : reason === 'rule' ? 'rule' : reason === 'schema' ? 'schema' : 'input';
 
-/** En rød reader-feltfejl omsat til én EO-inputissue (bounds→`input`+blocksSave:false, ellers blocksSave:true). */
-const toInputIssue = (message: string, reason: string): EoInputIssue => {
-  const source = reasonToSource(reason);
-  return {
-    message,
-    severity: 'error',
-    source,
-    // Legacy: en committet bounds/range-værdi rapporteres som blocksSave:false (synlig, men ikke .eo-blokerende).
-    blocksSave: reason !== 'bounds',
-  };
-};
+/**
+ * En rød reader-feltfejl omsat til én EO-inputissue. Readerens `reason` bæres UÆNDRET videre, så
+ * blokerings-konsekvensen kan udledes strukturelt af `eoIssueBlocksDependents` — ikke af et flag her.
+ */
+const toInputIssue = (message: string, reason: string): EoInputIssue => ({
+  message,
+  severity: 'error',
+  source: reasonToSource(reason),
+  reason: toIssueReason(reason),
+});
+
+/** Readerens årsagsstreng normaliseret til EO's årsagsunion. Ukendt årsag behandles konservativt som `rule`. */
+const toIssueReason = (reason: string): EoInputIssue['reason'] =>
+  reason === 'format' || reason === 'bounds' || reason === 'rule' || reason === 'schema' ? reason : 'rule';
 
 /**
  * Bygger et section-field-error-map (keyed by top-level feltnavn) fra de RØDE reader-feltfejl på de opgivne felter.
@@ -648,12 +651,13 @@ export const buildErstatningsopgoerelseReaderProjection = (
   const eoErrors: EoInputIssues = {
     ...collectSectionFieldErrors(reader, EO_TOP_LEVEL_ERROR_FIELDS),
   };
-  // Det syntetiske `${afId}:loenindkomst`-aggregat: legacy's loenindkomst-view-model rapporterede det, når en
-  // ansættelsesforholds StandardLoen-/manuel-regulerings-celle var ugyldig. Suffix-gaten kræver blocksSave:true.
+  // Det syntetiske `${afId}:loenindkomst`-aggregat: rapporteres når en ansættelsesforholds StandardLoen-/
+  // manuel-regulerings-celle er ugyldig. Årsagen er `aggregate` (ikke `bounds`), så den blokerer de afhængige
+  // consumers gennem `eoIssueBlocksDependents` — uanset hvilken celle-årsag der udløste den.
   for (const employment of eoValues.loenindkomstAnsaettelsesforhold) {
     if (employmentHasLoenindkomstCellError(reader, employment)) {
       eoErrors[`${employment.id}:loenindkomst`] = {
-        input: { message: 'Ugyldig manuel regulering', severity: 'error', source: 'input', blocksSave: true },
+        input: { message: 'Ugyldig manuel regulering', severity: 'error', source: 'input', reason: 'aggregate' },
       };
     }
   }

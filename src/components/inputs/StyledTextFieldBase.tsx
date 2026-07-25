@@ -24,8 +24,9 @@ type AllowedInputAttributes = Pick<
   | 'tabIndex'
 > & {
   'data-testid'?: string;
-  'data-mineo-undo-focus-token'?: string;
-  'data-mineo-undo-field-path'?: string;
+  /** Greenfield undo/redo-restore-mål (§3.7): serialiseret feltadresse + editorlokations-id. */
+  'data-mineo-field-address'?: string;
+  'data-mineo-editor-location-id'?: string;
   'data-mineo-field-path'?: string;
 };
 
@@ -123,7 +124,6 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     ref
   ) => {
     const autoId = React.useId();
-    const undoFocusToken = React.useId();
     const resolvedId = id ?? autoId;
     const resolvedName = name ?? resolvedId;
 
@@ -214,9 +214,8 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     const mergedHtmlInputProps = {
       ...htmlInputAttributes,
       'aria-describedby': describedBy,
-      'data-mineo-undo-focus-token': undoFocusToken,
-      'data-mineo-undo-field-path': htmlInputAttributes?.['data-mineo-undo-field-path'] ?? name,
-      // Stabil felt-sti til save-gate-lokalisering af det blokerende felt (invalidDrafts/fieldErrors).
+      // Stabil felt-sti til save-gate-lokalisering af det blokerende felt. Greenfield-felter sætter
+      // desuden restore-target-attributterne (feltadresse + editorlokation) via `htmlInputAttributes`.
       'data-mineo-field-path': htmlInputAttributes?.['data-mineo-field-path'] ?? name,
       onFocus: handleFocus,
       onBlur: handleBlur,

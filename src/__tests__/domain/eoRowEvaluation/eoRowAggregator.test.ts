@@ -2,7 +2,7 @@ import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import type { EoRowEvaluationContext } from '../../../domain/eoRowEvaluation/eoRowExecutionContext';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
 import * as Registry from '../../../domain/eoRowEvaluation/eoRowBuilderRegistry';
-import type { FieldErrorBySource } from '../../../types/fieldErrors';
+import type { EoFieldIssuesBySource } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
 import type { PersistedSectionMap } from '../../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -49,11 +49,11 @@ vi.mock('../../../domain/eoRowEvaluation/eoRowBuilderRegistry', () => {
 const registry = Registry as unknown as MockRegistry;
 
 const stamdataErrors: Partial<
-  Record<Extract<keyof PersistedSectionMap['stamdata'], string>, FieldErrorBySource>
+  Record<Extract<keyof PersistedSectionMap['stamdata'], string>, EoFieldIssuesBySource>
 > = {};
 
 const eoErrors: Partial<
-  Record<Extract<keyof PersistedSectionMap['erstatningsopgoerelse'], string>, FieldErrorBySource>
+  Record<Extract<keyof PersistedSectionMap['erstatningsopgoerelse'], string>, EoFieldIssuesBySource>
 > = {};
 
 const makeRow = (

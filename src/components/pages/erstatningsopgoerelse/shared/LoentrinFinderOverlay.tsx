@@ -2,12 +2,11 @@ import React from 'react';
 import { Box, Button, IconButton, MenuItem, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
-import StyledAmountField from '../../../inputs/StyledAmountField';
-import StyledDateField from '../../../inputs/StyledDateField';
+import TransientAmountInput from '../../../inputs/transient/TransientAmountInput';
+import TransientDateInput from '../../../inputs/transient/TransientDateInput';
 import { offentligLoenTypeEnum, type OffentligLoenTypeLabel } from '../../../../schemas/formSchemas';
 import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
-import type { ReportableFieldError } from '../../../../types/fieldErrors';
 import { formatCurrency } from '../../../../utils/formatUtils';
 import { hasExactDisplayedAmountMatch } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinderCore';
@@ -18,8 +17,9 @@ import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinde
  * uden sessionStorage) kan dele præcis samme præsentation.
  *
  * Bemærk: `onAmountFieldError`/`onDateFieldError` modtages som allerede-indpakkede callbacks, så de
- * to kaldssteder opfører sig byte-identisk (loenindkomst brugte en navngivet handler, EO en inline
- * wrapper rundt om getReportableFieldErrorMessage — begge ender her med samme signatur).
+ * to kaldssteder opfører sig byte-identisk. Felterne er transiente (`Transient*Input`), så en afvist
+ * draft rapporteres som en almindelig besked-streng — der findes ingen feltissue-kanal for et felt,
+ * der ikke er sagsdata.
  */
 export type LoentrinFinderOverlayProps = Readonly<{
   open: boolean;
@@ -31,8 +31,8 @@ export type LoentrinFinderOverlayProps = Readonly<{
   setDato: React.Dispatch<React.SetStateAction<ISODateString | undefined>>;
   errors: LoentrinFinderErrors;
   setErrors: React.Dispatch<React.SetStateAction<LoentrinFinderErrors>>;
-  onAmountFieldError: (errorMsg: ReportableFieldError | undefined) => void;
-  onDateFieldError: (errorMsg: ReportableFieldError | undefined) => void;
+  onAmountFieldError: (errorMsg: string | undefined) => void;
+  onDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
   buttonShake: boolean;
   dialogRef: React.RefObject<HTMLDivElement | null>;
@@ -185,19 +185,17 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
           <Box className="row--label-right-hover">
             <Typography className="row--text">{ansaettelse}</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledAmountField
+              <TransientAmountInput
                 ref={loentrinFinderBeloebRef}
                 width={180}
                 value={beloeb}
                 allowNegative={false}
-                onCommit={(event) => {
-                  setBeloeb(event.target.value);
+                onCommit={(next) => {
+                  setBeloeb(next);
                   setErrors((prev) => ({ ...prev, beloeb: undefined }));
-                  return true;
                 }}
-                onFieldError={onAmountFieldError}
-                error={Boolean(errors.beloeb)}
-                helperText={errors.beloeb ?? ''}
+                onReject={onAmountFieldError}
+                errorMessage={errors.beloeb}
               />
             </Box>
           </Box>
@@ -205,17 +203,15 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
           <Box className="row--label-right-hover">
             <Typography className="row--text">Dato</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledDateField
+              <TransientDateInput
                 ref={loentrinFinderDatoRef}
                 value={dato}
-                onCommit={(event) => {
-                  setDato(event.target.value);
+                onCommit={(next) => {
+                  setDato(next);
                   setErrors((prev) => ({ ...prev, dato: undefined }));
-                  return true;
                 }}
-                onFieldError={onDateFieldError}
-                error={Boolean(errors.dato)}
-                helperText={errors.dato ?? ''}
+                onReject={onDateFieldError}
+                errorMessage={errors.dato}
               />
             </Box>
           </Box>

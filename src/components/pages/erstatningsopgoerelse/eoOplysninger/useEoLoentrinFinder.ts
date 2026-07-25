@@ -1,7 +1,6 @@
 import React from 'react';
 import type { EOAngivetLoenLoenudvikling } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
-import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../../types/fieldErrors';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { useShakeFlag } from '../../../../hooks/useShakeFlag';
 import {
@@ -25,8 +24,8 @@ export type UseEoLoentrinFinderResult = Readonly<{
   setLoentrinFinderDato: React.Dispatch<React.SetStateAction<ISODateString | undefined>>;
   loentrinFinderErrors: LoentrinFinderErrors;
   setLoentrinFinderErrors: React.Dispatch<React.SetStateAction<LoentrinFinderErrors>>;
-  handleLoentrinFinderAmountFieldError: (errorMsg: ReportableFieldError | undefined) => void;
-  handleLoentrinFinderDateFieldError: (errorMsg: ReportableFieldError | undefined) => void;
+  handleLoentrinFinderAmountFieldError: (errorMsg: string | undefined) => void;
+  handleLoentrinFinderDateFieldError: (errorMsg: string | undefined) => void;
   loentrinFinderResults: ReadonlyArray<LoentrinFinderResult>;
   loentrinFinderButtonShake: boolean;
   loentrinFinderDialogRef: React.RefObject<HTMLDivElement | null>;
@@ -94,12 +93,12 @@ export const useEoLoentrinFinder = (
     resetLoentrinFinderState();
   }, [resetLoentrinFinderState]);
 
-  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
-    setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg));
+  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: string | undefined) => {
+    setLoentrinFinderAmountFieldError(errorMsg);
   }, []);
 
-  const handleLoentrinFinderDateFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
-    setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg));
+  const handleLoentrinFinderDateFieldError = React.useCallback((errorMsg: string | undefined) => {
+    setLoentrinFinderDateFieldError(errorMsg);
   }, []);
 
   const handleLoentrinFinderCalculate = React.useCallback(() => {

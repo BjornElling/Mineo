@@ -95,7 +95,6 @@ export const appSettingsSchema = z
     showContentBoxReportButton: z.boolean(),
     showEOInspektionMenu: z.boolean(),
     fontStyleColorDebug: z.boolean(),
-    showStamdataTestTab: z.boolean(),
     erstatningsopgoerelseAfsluttesMed: z.enum(APP_SETTINGS_AFSLUTTES_MED_OPTIONS),
     // Standardværdier for nye ansættelsesforhold
     defaultLoenIndtastesSom: z.enum(APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS),
@@ -129,7 +128,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   showContentBoxReportButton: false,
   showEOInspektionMenu: false,
   fontStyleColorDebug: false,
-  showStamdataTestTab: false,
   erstatningsopgoerelseAfsluttesMed: 'Bekræftet godkendt',
   // Standardværdier for nye ansættelsesforhold
   defaultLoenIndtastesSom: 'maaned',

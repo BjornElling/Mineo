@@ -4,8 +4,6 @@ import { areSameGridCellOrBothNull, gridCellKey } from './gridCore/gridCoreUtils
 import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridCoreStateStore, GridOpenEditSource } from './gridCore/gridCoreTypes';
 import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCore/gridCoreRegistry';
 import type { GridCoreProviderValue, GridCoreTableKind } from './gridCore/gridCoreContext.shared';
-import { useCriticalActionParticipant } from '../../criticalActions/CriticalActionContext';
-import { createElementFocusTarget } from '../../criticalActions/focusTarget';
 
 type UseGridCoreControllerResult = Readonly<{
   internalTableRef: React.RefObject<HTMLTableElement | null>;
@@ -18,7 +16,6 @@ type UseGridCoreControllerOptions = Readonly<{
 }>;
 
 export const useGridCoreController = (options: UseGridCoreControllerOptions = {}): UseGridCoreControllerResult => {
-  const criticalActionParticipantId = React.useId();
   const tableKind = options.tableKind ?? 'grid';
   const internalTableRef = React.useRef<HTMLTableElement | null>(null);
   const editorRegistryRef = React.useRef<Map<string, GridCellEditorHandle>>(new Map());
@@ -201,32 +198,10 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
     };
   }, [controller, gridStateStore, tableKind]);
 
-  useCriticalActionParticipant({
-    id: `grid-editor:${criticalActionParticipantId}`,
-    kind: 'grid-editor',
-    isEditing: () => controller.getEditingCell() !== null,
-    getFocusTarget: () => {
-      const editingCell = controller.getEditingCell();
-      const editor = editingCell ? controller.getEditor(editingCell) : null;
-      return createElementFocusTarget(() => editor?.getElement() ?? null);
-    },
-    commit: () => {
-      const editingCell = controller.getEditingCell();
-      if (!editingCell) return true;
-      const editor = controller.getEditor(editingCell);
-      if (!editor || editor.getIsLocked()) return false;
-
-      controller.clearFocusPlan();
-      let committed = false;
-      // Grid-rækkens state-updater skal være udført, før commit-pipeline-deltageren
-      // nedenunder kan afvente den eksplicit køede persistenskvittering.
-      flushSync(() => {
-        committed = editor.commitCurrent();
-      });
-      if (committed) editor.getElement()?.blur();
-      return committed;
-    },
-  });
+  // Bemærk (greenfield-cutover): grid-core registrerer IKKE længere en legacy critical-action-deltager.
+  // Den åbne celleeditor barriereres nu gennem greenfield-runtimens `ActiveEditorRegistry` +
+  // `CriticalActionCoordinator` (§3.5/§3.6), som `useGridCellSurface` melder cellen ind i. Den tidligere
+  // registrering her var en no-op efter shell-cutoveren (ingen `CriticalActionProvider` i produktion).
 
   React.useEffect(() => {
     const table = internalTableRef.current;

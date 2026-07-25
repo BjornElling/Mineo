@@ -10,11 +10,6 @@ import type {
   ErhvervsevnetabComposedValues,
   Koen,
 } from '../../schemas/formSchemas';
-import { amountValueToNumber } from '../../utils/expressionAmount';
-import {
-  validateAslAarsloenBySkadesaarMax,
-  validateAslAarsloenDivisibleBy1000,
-} from '../aslEalAarsloen/aarsloenValidators';
 import {
   aslAfgoerelseAfgoerelseTypeField,
   aslAfgoerelseAfgoerelsesDatoField,
@@ -223,12 +218,9 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
   const aslAfgoerelser = aslRowReads.map(({ row }) => row);
   const aslAfgoerelserFieldError = aslRowReads.find(({ errorMessage }) => errorMessage !== undefined)?.errorMessage;
 
-  // ASL-årslønnens felt-placerede domæneregel (slice-lokal, som Forsørgertab): kun relevant, når ASL-årslønnen
-  // ikke allerede har en rød feltfejl (readeren har da skjult værdien, og bounds-fejlen blokerer allerede).
-  const aslRuleMessage = aslAarsloen.errorMessage === undefined
-    ? (validateAslAarsloenDivisibleBy1000(amountValueToNumber(aslAarsloen.value))
-      ?? validateAslAarsloenBySkadesaarMax(amountValueToNumber(aslAarsloen.value), skadedato.value))
-    : undefined;
+  // ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) er KANONISK i
+  // descriptoren (`faellesAarsloenAslAarsloenField`) og kommer derfor ind som en almindelig rød reader-feltfejl
+  // i `aslAarsloen.errorMessage`. Den genberegnes IKKE her — ét sandt sted for reglen (§1.6).
 
   // ASL-afgørelsesrækkernes indbyrdes (kryds-række) valideringsfejl. Snapshottet aftager KUN den første (uændret
   // afgrænsning), mens tabellen viser dem alle inline pr. celle via `aslAfgoerelserValidationMessageByCell`.
@@ -292,7 +284,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
         aslAfgoerelser: asFieldError(aslAfgoerelserFieldError ?? aslAfgoerelserRuleMessage),
       },
       faellesAarsloen: {
-        aslAarsloen: asFieldError(aslAarsloen.errorMessage ?? aslRuleMessage),
+        aslAarsloen: asFieldError(aslAarsloen.errorMessage),
         ealAarsloen: asFieldError(ealAarsloen.errorMessage),
       },
     },

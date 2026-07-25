@@ -24,16 +24,17 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/form-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/formContractIsolation.test.ts',
-      'src/__tests__/hooks/useDraftField.test.tsx',
-      'src/__tests__/components/inputs/tableCommitContract.test.tsx',
-      'src/__tests__/rowDrafts/useRowDrafts.test.tsx',
+      // Greenfield-cutover: `useDraftField`/`Table*Input`/`useRowDrafts`-implementeringstestene er slettet
+      // sammen med den legacy feltvej. Feltkontrakten dækkes nu af editor-/surface-kontrakttestene.
+      'src/__tests__/inputCore/editor/fieldEditor.test.ts',
+      'src/__tests__/inputCore/react/useFormFieldSurface.test.tsx',
     ],
   },
   {
     contractPath: 'src/contracts/critical-action-contract.md',
     requiredTestPaths: [
-      'src/__tests__/criticalActions/criticalActionCoordinator.test.ts',
-      'src/__tests__/criticalActions/CriticalActionContext.test.tsx',
+      // Greenfield-runtime ejer den kritiske handlingsbarriere (`CriticalActionCoordinator` i inputCore).
+      'src/__tests__/inputCore/runtime/criticalActionCoordinator.test.ts',
       'src/__tests__/components/layout/MainLayout.navigationCommitGuard.test.tsx',
       'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
       'src/__tests__/hooks/useFileSaveLoad.test.tsx',
@@ -63,7 +64,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       // håndhæves nu af det AST-baserede arkitektur-harness.
       // Import-/adgangs-grænserne + committed-section-mirror håndhæves nu af harnesset.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
-      'src/__tests__/input/inputTransactionRunner.test.ts',
+      'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
       // Greenfield-cutover (WI-002): den legacy `legacyGridTransactionBridge`/`inputSessionMigration` er slettet
       // (browser-sessionmigration er et ikke-mål, §2.6). `.eo`-save/load/apply-grænsen dækkes nu af caseportene.
       'src/__tests__/persistence/caseFileOperations.test.ts',
@@ -98,7 +99,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/components/layout/Container.test.tsx',
       'src/__tests__/components/layout/Container.checklistGaps.test.tsx',
-      'src/__tests__/components/tables/tableKeyboardNavigation.looseNavigation.test.tsx',
+      'src/__tests__/components/tables/tableKeyboardNavigation.arrowWrap.test.tsx',
+      'src/__tests__/components/tables/tableKeyboardNavigation.lockedSkip.test.tsx',
     ],
   },
   {
@@ -187,7 +189,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/domain/calculations/satserCalculations.test.ts',
       'src/__tests__/domain/satser/satserProjection.greenfield.test.ts',
-      'src/__tests__/input/inputTransactionRunner.test.ts',
+      'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
     ],
   },
   {
@@ -203,13 +205,13 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/undo-redo-contract.md',
     requiredTestPaths: [
-      'src/__tests__/input/inputTransactionRunner.test.ts',
-      // Greenfield-cutover (WI-002): legacy `legacyGridTransactionBridge`/`useUndoRedo` er slettet. Undo/redo-
-      // commanden dækkes af `dispatchInput` + kernen; det stille no-op ved åben editor af coordinatoren; shellens
-      // genvej + fokus af `MainLayout.undoRedoEditorGuard` og `historyTargetRestore`.
+      // Greenfield-cutover: den legacy runner/`useUndoRedo` er slettet. Undo/redo-commanden dækkes af
+      // `dispatchInput` + history-kernen; det stille no-op ved åben editor af coordinatoren; shellens genvej
+      // + lokationsbaseret fokusrestore af `MainLayout.undoRedoEditorGuard` og `greenfieldHistoryRestore`.
       'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
+      'src/__tests__/inputCore/inputHistory.test.ts',
       'src/__tests__/inputCore/runtime/criticalActionCoordinator.test.ts',
-      'src/__tests__/utils/historyTargetRestore.test.ts',
+      'src/__tests__/inputCore/react/greenfieldHistoryRestore.test.tsx',
       'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
     ],
   },
@@ -239,8 +241,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/mineo-field-pattern.md',
     requiredTestPaths: [
-      'src/__tests__/hooks/useDraftField.test.tsx',
-      'src/__tests__/components/inputs/StyledAmountField.expression.test.tsx',
+      'src/__tests__/inputCore/react/greenfieldFieldShells.test.tsx',
+      'src/__tests__/inputCore/react/useFormFieldSurface.test.tsx',
     ],
   },
   {

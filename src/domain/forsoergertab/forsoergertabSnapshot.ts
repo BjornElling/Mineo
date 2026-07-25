@@ -6,7 +6,6 @@ import type {
   StamdataValues,
 } from '../../schemas/formSchemas';
 import { dateRanges_forsoergertab } from '../../config/dateRanges';
-import type { FormFieldError } from '../../types/fieldErrors';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { computeForsoergertabCalculation } from './forsoergertabCalculation';
 import { SKAERING_2015_03_01 } from '../erhvervsevnetab/eetSkaeringsdatoer';
@@ -16,7 +15,12 @@ import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
 import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
 import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
 
-type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
+/**
+ * En rød feltfejls BESKED, som snapshottet skal vise ved feltet. Snapshottet bruger kun beskeden — aldrig
+ * severity/source/gate-flag — så formen er bevidst minimal og domænelokal (ingen afhængighed til en global
+ * fejlmodel). Kalderen leverer den fra reader-projektionens issues (§1.8).
+ */
+type FieldErrorMessage = Readonly<{ message: string }> | undefined;
 
 type ForsoergertabFieldErrors = Readonly<{
   forsoergertab: Partial<Record<keyof ForsoergertabValues, FieldErrorMessage>>;

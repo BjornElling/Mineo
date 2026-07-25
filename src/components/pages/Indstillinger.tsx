@@ -593,22 +593,12 @@ const Indstillinger = React.memo(() => {
           </Box>
         </Box>
 
-        {/* DEV-only: disse to indstillinger vises kun i udviklingsmiljøet (import.meta.env.DEV).
-            Den forbrugende adfærd er ligeledes DEV-gated (Stamdata test-fane, font-style-farver i
-            AppSettingsContext), så en værdi der er gemt i localStorage under en dev-session aldrig
-            kan aktivere adfærden i en produktions-build. */}
+        {/* DEV-only: denne indstilling vises kun i udviklingsmiljøet (import.meta.env.DEV).
+            Den forbrugende adfærd er ligeledes DEV-gated (font-style-farver i AppSettingsContext),
+            så en værdi der er gemt i localStorage under en dev-session aldrig kan aktivere
+            adfærden i en produktions-build. */}
         {import.meta.env.DEV && (
           <>
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Vis test-fane på Stamdata-tab</Typography>
-              <Box className="row--label-right-hover__content">
-                <StyledToggleSwitch
-                  checked={settings.showStamdataTestTab}
-                  onCommit={(e: CommitEvent<boolean>) => updateSettings({ showStamdataTestTab: e.target.value })}
-                />
-              </Box>
-            </Box>
-
             <Box className="row--label-right-hover">
               <Typography className="row--text">Farvemarkering af font-styles</Typography>
               <Box className="row--label-right-hover__content">

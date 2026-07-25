@@ -127,4 +127,20 @@ describe('buildForsoergertabReaderProjection', () => {
     expect(projection.snapshot.canShowAsl).toBe(false);
     expect(projection.snapshot.pdfGate.canDownload).toBe(false);
   });
+
+  // ASL-årslønsreglen (delelig med 1.000) er KANONISK i descriptoren (`faellesAarsloenAslAarsloenField`), så den
+  // kommer ind som en almindelig rød reader-feltfejl. Projektionen må derfor IKKE genberegne reglen slice-lokalt
+  // — ét sandt sted for regelen (§1.6). Denne test beviser at reglen stadig gater, uden den lokale genberegning.
+  it('en ASL-årsløn der ikke er delelig med 1.000 gater gennem descriptor-validatoren', () => {
+    const reader = buildReader(
+      validForsoergertab,
+      { aslAarsloen: asAmount(450500), ealAarsloen: asAmount(450000) },
+      validStamdata
+    );
+    const projection = buildForsoergertabReaderProjection(reader);
+
+    expect(projection.snapshot.fieldUi.aslAarsloen.hasError).toBe(true);
+    expect(projection.snapshot.fieldUi.aslAarsloen.helperText).toContain('1.000');
+    expect(projection.snapshot.canShowAsl).toBe(false);
+  });
 });

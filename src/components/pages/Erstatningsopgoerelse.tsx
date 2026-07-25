@@ -16,7 +16,7 @@ import { useInputEvaluation } from '../../inputCore/react';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 import { buildErstatningsopgoerelseReaderProjection } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { evaluateErstatningsopgoerelseDownloadGates } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
-import { selectBlockingFieldIdsBySuffix } from '../../utils/fieldErrorSelectors';
+import { selectBlockingEoEntityIdsBySuffix } from '../../domain/erstatningsopgoerelse/eoInputIssues';
 
 const TAB_KEYS = EO_TAB_KEYS;
 
@@ -71,7 +71,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   );
   const { eoValues, stamdataValues, snapshot: eoSnapshot } = projection;
   const manuelReguleringInputErrors = React.useMemo(
-    () => selectBlockingFieldIdsBySuffix(projection.eoErrors, ':loenindkomst'),
+    () => selectBlockingEoEntityIdsBySuffix(projection.eoErrors, ':loenindkomst'),
     [projection.eoErrors]
   );
 

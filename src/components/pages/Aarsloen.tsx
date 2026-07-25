@@ -34,6 +34,7 @@ import {
   aarsloenTillaegAngivesSomField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
 import { buildAarsloenReaderProjection } from '../../domain/aarsloen/aarsloenProjection';
+import { AARSLOEN_BEREGNING_INGEN } from '../../types/calculation';
 import type { FieldRef } from '../../inputCore/fieldDescriptor';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../domain/aarsloen/aarsloenPeriodDisplay';
 import {
@@ -85,15 +86,18 @@ const captureFreshAarsloenDocumentSnapshot = (
   if (!sourceTokensEqual(expectedToken, source.evaluation.issues.sourceToken)) return null;
 
   const projection = buildAarsloenReaderProjection(source.evaluation.reader);
+  // Blokeret projektion har INTET resultat (§3.9). Dokumentet kan da ikke bygges; gaten viser fejlen.
+  const calculation = projection.calculation;
+  if (calculation === null) return null;
 
   return {
     values: projection.values,
     omregningAktiveret: projection.omregningGate.effectiveEnabled,
-    periodeData: projection.calculation.periodeData,
-    shDageAntal: projection.calculation.shDageAntal,
-    beregnetAarsloen: projection.calculation.beregnetAarsloen,
-    beregningsData: projection.calculation.beregningsData,
-    harFatalBeregningsFejl: projection.calculation.harFatalBeregningsFejl || projection.fieldIssues.length > 0,
+    periodeData: calculation.periodeData,
+    shDageAntal: calculation.shDageAntal,
+    beregnetAarsloen: calculation.beregnetAarsloen,
+    beregningsData: calculation.beregningsData,
+    harFatalBeregningsFejl: calculation.harFatalBeregningsFejl,
     tableErrors: projection.tableValidation.errors,
     stamdataProjection: projection.documentStamdata,
     settings: source.settings,
@@ -146,22 +150,21 @@ const Aarsloen = React.memo(() => {
     },
   });
 
-  // Alle beregninger (periode, SH-dage, årsløn, omregning) — kører UÆNDRET på de reader-rekonstruerede `values`.
-  const {
-    periodeData,
-    shDageAntal,
-    beregnetAarsloen,
-    beregningsData,
-    fejlmeddelelser,
-    beregningsFejl,
-    harFatalBeregningsFejl: harFatalBeregningsFejlFraCalc,
-  } = readerProjection.calculation;
+  // Greenfield fatal-gate (§1.6/§3.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
+  // feltfejl. Projektionen kalder da IKKE motoren (`calculation === null`), så der findes intet resultat at vise —
+  // en beregning på den skjulte tomværdi ville være misvisende.
+  const calculation = readerProjection.calculation;
+  const harFatalBeregningsFejl = calculation === null || calculation.harFatalBeregningsFejl;
 
-  // Greenfield fatal-gate (§1.6/§5.4): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er nu en
-  // RØD feltfejl. Readeren skjuler den værdi, så et misvisende beregnet resultat undertrykkes her — samme gating
-  // som legacy's `harFatalBeregningsFejl`, kun anden præsentation.
-  const fieldErrorGate = readerProjection.fieldIssues;
-  const harFatalBeregningsFejl = harFatalBeregningsFejlFraCalc || fieldErrorGate.length > 0;
+  // Beregningsfelterne læses kun når der ER et resultat; ellers viser siden '—' (harFatalBeregningsFejl).
+  const periodeData = calculation?.periodeData ?? null;
+  const shDageAntal = calculation?.shDageAntal ?? null;
+  const beregnetAarsloen = calculation?.beregnetAarsloen ?? 0;
+  // `metode: 'ingen'` er modellens kanoniske "ingen beregning" — samme variant motoren selv returnerer, når
+  // input ikke rækker til en metode. Ingen opdigtede tal.
+  const beregningsData = calculation?.beregningsData ?? AARSLOEN_BEREGNING_INGEN;
+  const fejlmeddelelser = calculation?.fejlmeddelelser ?? [];
+  const beregningsFejl = calculation?.beregningsFejl ?? [];
 
   // Stamdata til dokument-download hentes gennem readeren (§3.4/§5.4), ikke via en rå sektionsselector.
   const stamdataProjection = readerProjection.documentStamdata;

@@ -45,7 +45,7 @@ import { useInputRuntime } from '../../../../inputCore/react/inputRuntimeContext
 import { captureProductionEvaluationSource } from '../../../../inputCore/react/productionInputRuntime';
 import { sourceTokensEqual } from '../../../../inputCore/evaluationSource';
 import { buildMidlertidigtEetInsertSource } from '../../../../hooks/useMidlertidigtEetInsertSource';
-import { selectBlockingFieldIdsBySuffix } from '../../../../utils/fieldErrorSelectors';
+import { selectBlockingEoEntityIdsBySuffix } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
 
 export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'inspektion' | 'kontroltabel';
 
@@ -201,7 +201,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const { settings } = useAppSettings();
   const runtime = useInputRuntime();
   const manuelReguleringInputErrors = React.useMemo(
-    () => selectBlockingFieldIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX),
+    () => selectBlockingEoEntityIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX),
     [eoErrors]
   );
 

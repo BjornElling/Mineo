@@ -1,4 +1,4 @@
-import type { RowId } from '../../../rowDrafts/types';
+import type { RowId } from '../../../utils/rowId';
 import type { SvieSmertePeriodeRow } from '../../../schemas/formSchemas';
 import { tilstandEnum } from '../../../schemas/formSchemas';
 import { ensureRowsWithTrailingEmpty } from '../../../utils/tableRows';

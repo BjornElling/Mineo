@@ -74,7 +74,7 @@ describe('buildEoSvieSmerteRows — tidligere svie-/smertebeløb', () => {
       { svieSmerteTidligereTotal: undefined },
       {
         svieSmerteTidligereTotal: {
-          input: { message: 'Beløbet er ugyldigt', severity: 'error', source: 'input' },
+          input: { message: 'Beløbet er ugyldigt', severity: 'error', source: 'input', reason: 'format' },
         },
       }
     );

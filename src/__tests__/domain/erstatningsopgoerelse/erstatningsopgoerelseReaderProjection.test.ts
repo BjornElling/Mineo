@@ -5,6 +5,7 @@ import {
   readStamdataValues,
 } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoIssueBlocksDependents } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -153,9 +154,11 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
 
     // Satser-doktrin: readeren skjuler den out-of-bounds værdi → rekonstruktionen falder tilbage til tomværdien.
     expect(projection.eoValues.forligAnsvarsgradProcent).toBeUndefined();
-    // Bounds → source 'input', blocksSave:false (synlig, men ikke .eo-blokerende).
+    // Bounds → source 'input' med reason 'bounds': synlig, men blokerer IKKE de afhængige consumers.
+    // Konsekvensen udledes strukturelt af årsagen (`eoIssueBlocksDependents`), ikke af et lagret flag.
     expect(projection.eoErrors.forligAnsvarsgradProcent?.input?.severity).toBe('error');
-    expect(projection.eoErrors.forligAnsvarsgradProcent?.input?.blocksSave).toBe(false);
+    expect(projection.eoErrors.forligAnsvarsgradProcent?.input?.reason).toBe('bounds');
+    expect(eoIssueBlocksDependents(projection.eoErrors.forligAnsvarsgradProcent?.input)).toBe(false);
   });
 
   it('fører et ugyldigt (out-of-bounds) løntabel-cellefelt ind som `${afId}:loenindkomst`-aggregat', () => {
@@ -193,7 +196,8 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     };
     const reader = buildReader(withCellError, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
-    expect(projection.eoErrors['af-1:loenindkomst']?.input?.blocksSave).toBe(true);
+    expect(eoIssueBlocksDependents(projection.eoErrors['af-1:loenindkomst']?.input)).toBe(true);
+    expect(projection.eoErrors['af-1:loenindkomst']?.input?.reason).toBe('aggregate');
     expect(projection.eoErrors['af-1:loenindkomst']?.input?.message).toBe('Ugyldig manuel regulering');
   });
 

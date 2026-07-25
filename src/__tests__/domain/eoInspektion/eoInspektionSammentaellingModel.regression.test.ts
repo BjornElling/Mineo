@@ -14,7 +14,7 @@ import {
   buildSvieSmerteContext,
   buildTaftContext,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
-import type { FieldErrorsForSection } from '../../../types/fieldErrors';
+import type { EoInputIssues } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
 import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -43,7 +43,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       fravaerPerioder: [],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEOInspektionModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
@@ -96,7 +96,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       fravaerPerioder: [],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEOInspektionModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
@@ -148,7 +148,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       ],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEOInspektionModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
@@ -190,7 +190,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       loenindkomstAnsaettelsesforhold: [],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEOInspektionModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
@@ -240,7 +240,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       fravaerPerioder: [],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const model = buildEOInspektionModel(values);
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -278,7 +278,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       fravaerPerioder: [],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const model = buildEOInspektionModel(values);
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -342,7 +342,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       },
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEOInspektionModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
@@ -416,7 +416,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       ],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const model = buildEOInspektionModel(values);
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -475,7 +475,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       offentligeYdelserRows: [],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const svieSmerteEngine = computeSvieSmerteEngine({
       erstatningsopgoerelse: values,
       stamdata: {
@@ -527,7 +527,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       svieSmerteDelvisSygemeldingSats: 'fuld' as const,
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const model = buildEOInspektionModel(values);
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -572,7 +572,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       ],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const model = buildEOInspektionModel(values);
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -640,7 +640,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
       ],
     };
 
-    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const errors: EoInputIssues = {};
     const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEOInspektionModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);

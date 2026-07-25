@@ -3,7 +3,7 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { mergeSx } from '../../../utils/mergeSx';
 import { visuallyHiddenStyle } from '../../../components/shared/visuallyHiddenStyle';
-import { getTableInputElementStyles, getTableInputRootStyles } from '../../../components/inputs/table/tableInputStyles';
+import { getTableInputElementStyles, getTableInputRootStyles } from './gridCellStyles';
 import { useGridCoreApi } from '../../../components/tables/useGridCore';
 import { assignRef } from '../../../utils/refUtils';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';

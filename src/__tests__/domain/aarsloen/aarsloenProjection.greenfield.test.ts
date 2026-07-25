@@ -134,17 +134,45 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
 });
 
 describe('buildAarsloenReaderProjection', () => {
-  it('samler beregning, tabelvalidation og dokumentdependency fra samme reader-revision', () => {
-    const input = dispatch(empty(), settle(feriePctRef, '150'));
+  it('samler tabelvalidation og dokumentdependency fra samme reader-revision', () => {
+    const input = dispatch(empty(), settle(feriePctRef, '12'));
     const inputReader = reader(input);
 
     const projection = buildAarsloenReaderProjection(inputReader);
 
     expect(projection.sourceToken).toBe(inputReader.sourceToken);
-    expect(projection.values.feriePct).toBeUndefined();
-    expect(projection.fieldIssues).toHaveLength(1);
-    expect(projection.calculation.harFatalBeregningsFejl).toBe(false);
     expect(projection.tableValidation.errors).toEqual([]);
     expect(projection.documentStamdata.sourceToken).toBe(inputReader.sourceToken);
+  });
+
+  // §3.9: motoren kaldes KUN i ready-grenen. En rød feltfejl på et beregningskritisk input skjuler værdien i
+  // readeren; et resultat beregnet på den skjulte tomværdi ville være misvisende — derfor findes der INTET.
+  it('blokeret gate → ingen beregning (motoren kaldes ikke)', () => {
+    const input = dispatch(empty(), settle(feriePctRef, '150'));
+    const projection = buildAarsloenReaderProjection(reader(input));
+
+    expect(projection.values.feriePct).toBeUndefined();
+    expect(projection.fieldIssues).toHaveLength(1);
+    expect(projection.calculation).toBeNull();
+  });
+
+  it('ready gate → beregning foreligger', () => {
+    const input = dispatch(empty(), settle(feriePctRef, '12'));
+    const projection = buildAarsloenReaderProjection(reader(input));
+
+    expect(projection.fieldIssues).toHaveLength(0);
+    expect(projection.calculation).not.toBeNull();
+    expect(projection.calculation?.harFatalBeregningsFejl).toBe(false);
+  });
+
+  // §1.9: et SKJULT felt må ikke overblokere. Samme røde procentværdi i beløb-tilstand er irrelevant, så
+  // projektionen er ready og motoren kører.
+  it('rød værdi på skjult felt blokerer ikke beregningen', () => {
+    let input = dispatch(empty(), settle(feriePctRef, '150'));
+    input = dispatch(input, setImmediateField(tillaegAngivesSomRef, 'beloeb') as AnyInputCommand);
+    const projection = buildAarsloenReaderProjection(reader(input));
+
+    expect(projection.fieldIssues).toHaveLength(0);
+    expect(projection.calculation).not.toBeNull();
   });
 });

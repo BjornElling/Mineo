@@ -3,7 +3,7 @@ import * as React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
-import StyledIntegerField from '../../../components/inputs/StyledIntegerField';
+import TransientTextInput from '../../../components/inputs/transient/TransientTextInput';
 import InlineActionButton from '../../../components/inputs/InlineActionButton';
 import { StandardGridTable } from '../../../components/tables/StandardGridTable';
 
@@ -526,30 +526,18 @@ describe('Container keyboard navigation', () => {
     expect(field2.selectionStart).toBe(field2.selectionEnd);
   });
 
-  it('Enter i open StyledIntegerField committer og flytter fokus som Tab', async () => {
+  // Container'ens Enter-som-Tab-navigation. Testen handler om CONTAINEREN, ikke om et bestemt felts
+  // commit-mekanik, så den bruger et simpelt transient tekstfelt som navigationsmål.
+  it('Enter i et fokuseret felt flytter fokus som Tab', async () => {
     const user = userEvent.setup();
 
     const Harness = () => {
-      const [value1, setValue1] = React.useState<number | undefined>(1);
-      const [value2, setValue2] = React.useState<number | undefined>(5);
+      const [value1, setValue1] = React.useState('1');
+      const [value2, setValue2] = React.useState('5');
       return (
         <Container>
-          <StyledIntegerField
-            value={value1}
-            onCommit={(e) => {
-              setValue1(e.target.value);
-              return true;
-            }}
-            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
-          />
-          <StyledIntegerField
-            value={value2}
-            onCommit={(e) => {
-              setValue2(e.target.value);
-              return true;
-            }}
-            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
-          />
+          <TransientTextInput value={value1} onChange={setValue1} sx={{ '& .MuiInputBase-input': { position: 'fixed' } }} />
+          <TransientTextInput value={value2} onChange={setValue2} sx={{ '& .MuiInputBase-input': { position: 'fixed' } }} />
         </Container>
       );
     };
@@ -559,7 +547,6 @@ describe('Container keyboard navigation', () => {
     const first = screen.getByDisplayValue('1') as HTMLInputElement;
     const second = screen.getByDisplayValue('5') as HTMLInputElement;
 
-    await user.click(first);
     await user.click(first);
     await user.clear(first);
     await user.type(first, '2');
@@ -570,30 +557,16 @@ describe('Container keyboard navigation', () => {
     expect(document.activeElement).toBe(second);
   });
 
-  it('Shift+Enter i open StyledIntegerField committer og flytter fokus som Shift+Tab', async () => {
+  it('Shift+Enter i et fokuseret felt flytter fokus som Shift+Tab', async () => {
     const user = userEvent.setup();
 
     const Harness = () => {
-      const [value1, setValue1] = React.useState<number | undefined>(1);
-      const [value2, setValue2] = React.useState<number | undefined>(5);
+      const [value1, setValue1] = React.useState('1');
+      const [value2, setValue2] = React.useState('5');
       return (
         <Container>
-          <StyledIntegerField
-            value={value1}
-            onCommit={(e) => {
-              setValue1(e.target.value);
-              return true;
-            }}
-            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
-          />
-          <StyledIntegerField
-            value={value2}
-            onCommit={(e) => {
-              setValue2(e.target.value);
-              return true;
-            }}
-            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
-          />
+          <TransientTextInput value={value1} onChange={setValue1} sx={{ '& .MuiInputBase-input': { position: 'fixed' } }} />
+          <TransientTextInput value={value2} onChange={setValue2} sx={{ '& .MuiInputBase-input': { position: 'fixed' } }} />
         </Container>
       );
     };
@@ -603,7 +576,6 @@ describe('Container keyboard navigation', () => {
     const first = screen.getByDisplayValue('1') as HTMLInputElement;
     const second = screen.getByDisplayValue('5') as HTMLInputElement;
 
-    await user.click(second);
     await user.click(second);
     await user.clear(second);
     await user.type(second, '7');

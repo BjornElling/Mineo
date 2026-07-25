@@ -20,7 +20,6 @@ const baseSettings: AppSettings = {
   showContentBoxReportButton: false,
   showEOInspektionMenu: false,
   fontStyleColorDebug: false,
-  showStamdataTestTab: false,
   erstatningsopgoerelseAfsluttesMed: 'Bekræftet godkendt',
   defaultFuldLoenUnderFerie: true,
   defaultLoenPaaHelligdage: 'Almindelig løn',

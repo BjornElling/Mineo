@@ -11,10 +11,7 @@ import {
   Snackbar,
   Typography,
 } from '@mui/material';
-import StyledTextField, {
-  type StyledTextFieldDraftChangeEvent,
-  type StyledTextFieldValueCommitEvent,
-} from '../inputs/StyledTextField';
+import TransientTextInput from '../inputs/transient/TransientTextInput';
 import { getTodayCopenhagenISO } from '../../utils/dateUtils';
 import {
   type ContentBoxIdentity,
@@ -58,8 +55,6 @@ const ContentBoxReportDialog = React.memo(({
   contentBoxRef,
 }: ContentBoxReportDialogProps) => {
   const [message, setMessage] = React.useState('');
-  const draftMessageRef = React.useRef('');
-  const hasDraftRef = React.useRef(false);
   const [isSending, setIsSending] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{
@@ -71,46 +66,23 @@ const ContentBoxReportDialog = React.memo(({
   React.useEffect(() => {
     if (!open) {
       setMessage('');
-      draftMessageRef.current = '';
-      hasDraftRef.current = false;
       setIsSending(false);
       setIsDownloading(false);
     }
   }, [open]);
 
-  const handleDraftChange = React.useCallback((event: StyledTextFieldDraftChangeEvent) => {
-    draftMessageRef.current = event.target.value;
-    hasDraftRef.current = true;
-  }, []);
-
-  const handleCommit = React.useCallback((event: StyledTextFieldValueCommitEvent) => {
-    setMessage(event.target.value);
-    draftMessageRef.current = event.target.value;
-    hasDraftRef.current = false;
-    return true;
-  }, []);
-
   const handleSnackbarClose = React.useCallback(() => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
-
-  const resolveEffectiveMessage = React.useCallback(() => {
-    return hasDraftRef.current ? draftMessageRef.current : message;
-  }, [message]);
 
   const handleSend = React.useCallback(async () => {
     if (isSending) return;
     setIsSending(true);
 
-    const effectiveMessage = resolveEffectiveMessage();
-    setMessage(effectiveMessage);
-    draftMessageRef.current = effectiveMessage;
-    hasDraftRef.current = false;
-
     try {
       const prepared = await prepareContentBoxReport({
         identity,
-        message: effectiveMessage,
+        message,
       });
       openBugReportEmail(prepared);
       setSnackbar({
@@ -129,7 +101,7 @@ const ContentBoxReportDialog = React.memo(({
     } finally {
       setIsSending(false);
     }
-  }, [identity, isSending, onClose, resolveEffectiveMessage]);
+  }, [identity, isSending, message, onClose]);
 
   const handleDownloadScreenshot = React.useCallback(async () => {
     if (isDownloading) return;
@@ -218,10 +190,9 @@ const ContentBoxReportDialog = React.memo(({
               Fejl eller forbedringsønske
             </Typography>
             <Box sx={{ width: '100%' }}>
-              <StyledTextField
+              <TransientTextInput
                 value={message}
-                onDraftChange={handleDraftChange}
-                onCommit={handleCommit}
+                onChange={setMessage}
                 multiline
                 rows={4}
                 fullWidth

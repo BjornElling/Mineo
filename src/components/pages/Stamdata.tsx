@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, CircularProgress, MenuItem, Typography } from '@mui/material';
+import { Box, MenuItem, Typography } from '@mui/material';
 
-import { useAppSettings } from '../../contexts/useAppSettings';
 import { skadestypeEnum } from '../../schemas/formSchemas';
 import { resolveStamdataDatoLabel } from '../../domain/policies';
 import {
@@ -19,8 +18,6 @@ import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoice
 import GreenfieldDateField from '../../inputCore/react/fields/GreenfieldDateField';
 import GreenfieldTextField from '../../inputCore/react/fields/GreenfieldTextField';
 import ContentBox from '../layout/ContentBox';
-import SideTab from '../layout/SideTab';
-const StamdataTestTab = React.lazy(async () => import('./StamdataTestTab'));
 
 // Greenfield-migreret (§2.4, formularrækkefølge trin 1 — FØRSTE callsite-cutover). Erstatter den legacy
 // `usePersistedForm`+`Styled*Field`+`useFormFieldErrorReporter`-vej med de tynde `Greenfield*Field`-skaller.
@@ -48,20 +45,6 @@ const skadedatoRef = stamdataSkadedatoField.bind();
 const loc = (field: string) => ({ locationId: `stamdata:${field}`, route: APP_ROUTES.stamdata, tabKey: null });
 
 const Stamdata = React.memo(() => {
-  const { settings } = useAppSettings();
-  // Test-fanen er DEV-only: indstillingen kan kun slås til i udviklingsmiljøet, og
-  // selve visningen er gated på import.meta.env.DEV, så en localStorage-værdi gemt
-  // under en dev-session aldrig aktiverer fanen i en produktions-build.
-  const showTestTab = import.meta.env.DEV && settings.showStamdataTestTab;
-  const [activeTab, setActiveTab] = React.useState<'stamdata' | 'test'>('stamdata');
-
-  // Hvis test-tab slås fra mens den er aktiv, skift tilbage til stamdata
-  React.useEffect(() => {
-    if (!showTestTab && activeTab === 'test') {
-      setActiveTab('stamdata');
-    }
-  }, [showTestTab, activeTab]);
-
   // Den dynamiske datolabel afhænger af den afsluttede skadestype-værdi (§1.2) og læses gennem samme offentlige
   // reader som øvrige consumers. Et fejlende felt kan derfor aldrig omgå issue-grænsen via rå canonical read.
   const evaluation = useInputEvaluation();
@@ -76,24 +59,8 @@ const Stamdata = React.memo(() => {
     <Box>
       <Typography className="page-title">Stamdata</Typography>
 
-      {/* Indhold med test-tab i højre side */}
       <Box sx={{ position: 'relative' }}>
-        {/* Test-tab (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
-        {showTestTab && (
-          <SideTab
-            label="Test"
-            active={activeTab === 'test'}
-            onClick={() => setActiveTab('test')}
-            top="-25px"
-          />
-        )}
-
-        {/* Stamdata-indhold */}
-        <Box
-          role="tabpanel"
-          hidden={activeTab !== 'stamdata'}
-          sx={{ display: activeTab === 'stamdata' ? 'block' : 'none' }}
-        >
+        <Box>
           <ContentBox className="content-box" data-section-id="stamdata-sagsinfo">
             <Typography className="section-header">Sagsinfo</Typography>
 
@@ -190,19 +157,6 @@ const Stamdata = React.memo(() => {
             </Box>
           </ContentBox>
         </Box>
-
-        {/* Test-indhold */}
-        {showTestTab && (
-          <Box
-            role="tabpanel"
-            hidden={activeTab !== 'test'}
-            sx={{ display: activeTab === 'test' ? 'block' : 'none' }}
-          >
-            <React.Suspense fallback={<CircularProgress />}>
-              <StamdataTestTab />
-            </React.Suspense>
-          </Box>
-        )}
       </Box>
     </Box>
   );

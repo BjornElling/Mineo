@@ -1,3 +1,9 @@
+/** En rækkes id. Kanonisk her sammen med rækkens id-konstruktører (tidligere `rowDrafts/types`). */
+export type RowId = string;
+
+/** En række identificeret ved sit id. Tabelmodellerne bygger deres rækketyper oven på denne. */
+export type WithId = { id: RowId };
+
 /**
  * Deterministisk id til en TOM grid-række på en given position.
  *

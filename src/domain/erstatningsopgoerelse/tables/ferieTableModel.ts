@@ -1,4 +1,4 @@
-import type { RowId } from '../../../rowDrafts/types';
+import type { RowId } from '../../../utils/rowId';
 import type { FerieperiodeRow } from '../../../schemas/formSchemas';
 import { createRowId } from '../../../utils/rowId';
 import { commitIsoDateFromDraftString } from '../../dates/dateCommit';

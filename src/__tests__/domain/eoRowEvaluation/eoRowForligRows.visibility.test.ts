@@ -70,6 +70,7 @@ describe('buildEoForligRows visibility', () => {
       forligAnsvarsgradProcent: {
         rule: {
           source: 'rule',
+          reason: 'rule',
           severity: 'error',
           message: 'Angiv enten procent eller brøk – ikke begge',
         },
@@ -77,6 +78,7 @@ describe('buildEoForligRows visibility', () => {
       forligAnsvarsgradBroek: {
         rule: {
           source: 'rule',
+          reason: 'rule',
           severity: 'error',
           message: 'Angiv enten procent eller brøk – ikke begge',
         },
@@ -109,6 +111,7 @@ describe('buildEoForligRows visibility', () => {
       forligAnsvarsgradProcent: {
         'invalid-draft': {
           source: 'invalid-draft',
+          reason: 'rule',
           severity: 'error',
           message: 'Ugyldig værdi: "0"',
         },
@@ -131,6 +134,7 @@ describe('buildEoForligRows visibility', () => {
       forligDato: {
         rule: {
           source: 'rule',
+          reason: 'rule',
           severity: 'error',
           message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
         },

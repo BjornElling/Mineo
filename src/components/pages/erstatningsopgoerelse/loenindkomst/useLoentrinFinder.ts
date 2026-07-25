@@ -4,7 +4,6 @@ import { offentligLoenTypeEnum, type OffentligLoenTypeLabel, type Erstatningsopg
 import { optionalAmountValueSchema } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
 import { isISODateString } from '../../../../types/branded';
-import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../../types/fieldErrors';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { useShakeFlag } from '../../../../hooks/useShakeFlag';
 import { UI_STORAGE_KEYS } from '../../../../config/storageManifest';
@@ -61,8 +60,8 @@ export type UseLoentrinFinderResult = Readonly<{
   loentrinFinderInputAmountNumber: number | undefined;
   openLoentrinFinder: (af: Ansaettelsesforhold) => void;
   closeLoentrinFinder: () => void;
-  handleLoentrinFinderAmountFieldError: (errorMsg: ReportableFieldError | undefined) => void;
-  handleLoentrinFinderDateFieldError: (errorMsg: ReportableFieldError | undefined) => void;
+  handleLoentrinFinderAmountFieldError: (errorMsg: string | undefined) => void;
+  handleLoentrinFinderDateFieldError: (errorMsg: string | undefined) => void;
   handleLoentrinFinderCalculate: () => void;
 }>;
 
@@ -146,12 +145,12 @@ export const useLoentrinFinder = (
     [loentrinFinderCurrentAf?.overenskomstId]
   );
 
-  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
-    setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg));
+  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: string | undefined) => {
+    setLoentrinFinderAmountFieldError(errorMsg);
   }, []);
 
-  const handleLoentrinFinderDateFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
-    setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg));
+  const handleLoentrinFinderDateFieldError = React.useCallback((errorMsg: string | undefined) => {
+    setLoentrinFinderDateFieldError(errorMsg);
   }, []);
 
   const handleLoentrinFinderCalculate = React.useCallback(() => {

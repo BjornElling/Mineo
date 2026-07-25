@@ -5,11 +5,13 @@ import { assertPathExists, collectSourceFiles, toRepoRelativePath } from './test
 
 const PAGES_ROOT = path.resolve(process.cwd(), 'src/components/pages');
 const HOOKS_ROOT = path.resolve(process.cwd(), 'src/hooks');
+// `src/rowDrafts` er slettet med greenfield-cutoveren (rækkedrafts findes ikke længere; rækker ejes af
+// collection-commands gennem den ene write-grænse).
 const COMMIT_SENSITIVE_ROOTS = [
   path.resolve(process.cwd(), 'src/components'),
   path.resolve(process.cwd(), 'src/hooks'),
   path.resolve(process.cwd(), 'src/utils'),
-  path.resolve(process.cwd(), 'src/rowDrafts'),
+  path.resolve(process.cwd(), 'src/inputCore'),
 ] as const;
 
 const EFFECT_WRITE_PATTERNS = [

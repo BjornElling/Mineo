@@ -4,11 +4,6 @@ import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { Koen } from '../../schemas/formSchemas';
-import { amountValueToNumber } from '../../utils/expressionAmount';
-import {
-  validateAslAarsloenBySkadesaarMax,
-  validateAslAarsloenDivisibleBy1000,
-} from '../aslEalAarsloen/aarsloenValidators';
 import {
   forsoergertabBeregningsdatoField,
   forsoergertabEfterladteFodselsdatoField,
@@ -90,13 +85,6 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
   const skadedato = readField(reader.read(skadedatoRef));
   const skadelidteFodselsdato = readField(reader.read(skadelidteFodselsdatoRef));
 
-  // ASL-årslønnens felt-placerede domæneregel (slice-lokal, jf. hoved-noten). Kun relevant, når ASL-årslønnen
-  // ikke allerede har en rød feltfejl (readeren har da skjult værdien, og bounds-fejlen blokerer allerede).
-  const aslRuleMessage = aslAarsloen.errorMessage === undefined
-    ? (validateAslAarsloenDivisibleBy1000(amountValueToNumber(aslAarsloen.value))
-      ?? validateAslAarsloenBySkadesaarMax(amountValueToNumber(aslAarsloen.value), skadedato.value))
-    : undefined;
-
   const snapshot = computeForsoergertabSnapshot({
     values: {
       beregningsdato: beregningsdato.value,
@@ -114,10 +102,10 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
       advokat: '',
       sagsbehandler: '',
     },
-    // De røde feltfejl ejes nu af readeren og føres ind her, så snapshottets dependency-specifikke `canShow*` og
-    // `pdfGate` blokerer PRÆCIS som legacy (§1.10): fx blokerer en virkningsdato-fejl ASL + download, men bevarer
-    // EAL-panelet. ASL-årsløns-reglen tilføjes på aslAarsloen (kombineret med en evt. reader-feltfejl; en aktiv
-    // reader-fejl har forrang, da den allerede skjuler værdien).
+    // De røde feltfejl ejes af readeren og føres ind her, så snapshottets dependency-specifikke `canShow*` og
+    // `pdfGate` blokerer præcist (§1.10): fx blokerer en virkningsdato-fejl ASL + download, men bevarer
+    // EAL-panelet. ASL-årsløns-reglen (delelig med 1.000 / maks i skadesåret) er KANONISK i descriptoren, så den
+    // kommer ind ad samme vej som enhver anden rød feltfejl — den genberegnes IKKE her (ét sandt sted, §1.6).
     fieldErrors: {
       forsoergertab: {
         beregningsdato: asFieldError(beregningsdato.errorMessage),
@@ -127,7 +115,7 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
         tilkendtForPeriodeAar: asFieldError(tilkendtForPeriodeAar.errorMessage),
       },
       faellesAarsloen: {
-        aslAarsloen: asFieldError(aslAarsloen.errorMessage ?? aslRuleMessage),
+        aslAarsloen: asFieldError(aslAarsloen.errorMessage),
         ealAarsloen: asFieldError(ealAarsloen.errorMessage),
       },
       stamdata: {

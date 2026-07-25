@@ -16,7 +16,7 @@ import {
   type EoDownloadProjectionStatus,
 } from './snapshot/eoDocumentDownloadGate';
 import type { ErstatningsopgoerelseReaderProjection } from './erstatningsopgoerelseReaderProjection';
-import type { EoInputIssues } from './eoInputIssues';
+import { selectBlockingEoEntityIdsBySuffix } from './eoInputIssues';
 
 // Greenfield EO download-gate (§3.4/§3.9/§5.4, Fase 2.4 trin 8). En ren, React-fri gate der afledes af den ENE
 // reader-projektion (`buildErstatningsopgoerelseReaderProjection`) i stedet for `useEoBeregningViewModel`'s live
@@ -47,27 +47,6 @@ const FALLBACK_MESSAGE: Record<EoDocumentKey, string> = {
 
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
-/**
- * Løntabellens syntetiske ansættelsesforholds-issue er en ren reader-afledning. Hold selectionen ved EO-gaten,
- * så dette domæne ikke igen afhænger af den afløste globale reporter-fejlmodel.
- */
-const selectBlockingEoFieldIdsBySuffix = (
-  issues: EoInputIssues,
-  suffix: string
-): Readonly<Record<string, true>> => {
-  const ids: Record<string, true> = {};
-  for (const [fieldKey, bySource] of Object.entries(issues)) {
-    if (!fieldKey.endsWith(suffix) || bySource === undefined) continue;
-    const blocks = Object.values(bySource).some(
-      (issue) => issue?.severity === 'error' && issue.blocksSave !== false
-    );
-    if (!blocks) continue;
-    const entityId = fieldKey.slice(0, -suffix.length);
-    if (entityId !== '') ids[entityId] = true;
-  }
-  return ids;
-};
-
 /** Én dokument-projektions gate-relevante status (kun `kind` + `message` aflæses af gaten). */
 const toProjectionStatus = (
   projection: Readonly<{ kind: 'ok' }> | Readonly<{ kind: 'blocked'; message: string }> | null
@@ -95,7 +74,7 @@ const resolveEoRowBlockingState = (
       .map((invariant) => invariant.message)
     : [];
 
-  const manuelReguleringInputErrors = selectBlockingEoFieldIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
+  const manuelReguleringInputErrors = selectBlockingEoEntityIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
 
   const rowsResult = safeCompute(
     () => collectAllEoRows(

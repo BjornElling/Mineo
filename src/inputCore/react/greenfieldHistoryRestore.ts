@@ -3,7 +3,7 @@ import { serializeFieldAddress } from '../fieldAddress';
 import type { FieldAddress } from '../fieldAddress';
 import type { EditorLocation } from '../editor/fieldEditorState';
 import type { HistoryOrigin } from '../inputHistory';
-import { runHistoryTargetRestoreLoop } from '../../utils/historyTargetRestore';
+import { isRestoreTargetVisible, runHistoryTargetRestoreLoop } from './historyTargetRestoreLoop';
 
 // Greenfield undo/redo felt-fokus-restore (§3.7, WI-002 trin 3): efter en gennemført undo/redo re-targeteres fokus
 // til det felt/celle, ændringen kom fra. Selve værdi-/draft-gendannelsen sker gennem den restored revision (§3.5) —
@@ -53,19 +53,6 @@ export const useRestoreTargetAttributes = (
 
 const attrEquals = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 
-const isVisible = (element: HTMLElement): boolean => {
-  if (!element.isConnected) return false;
-  if (element.hasAttribute('hidden')) return false;
-  if (element.getAttribute('aria-hidden') === 'true') return false;
-  for (let current: HTMLElement | null = element; current; current = current.parentElement) {
-    if (current.hasAttribute('hidden')) return false;
-    if (current.getAttribute('aria-hidden') === 'true') return false;
-    const style = window.getComputedStyle(current);
-    if (style.display === 'none' || style.visibility === 'hidden') return false;
-  }
-  return true;
-};
-
 /**
  * Finder det synlige greenfield-fokusmål for en history-origin: elementet, der bærer BÅDE den serialiserede
  * feltadresse OG editorlokations-id'et. Returnerer `null`, hvis intet synligt match findes (fx endnu ikke mountet
@@ -75,7 +62,7 @@ export const findGreenfieldRestoreTarget = (origin: HistoryOrigin): HTMLElement 
   const selector = attrEquals(GREENFIELD_FIELD_ADDRESS_ATTR, serializeFieldAddress(origin.field))
     + attrEquals(GREENFIELD_EDITOR_LOCATION_ATTR, origin.editorLocationId);
   for (const element of document.querySelectorAll(selector)) {
-    if (element instanceof HTMLElement && isVisible(element)) return element;
+    if (element instanceof HTMLElement && isRestoreTargetVisible(element)) return element;
   }
   return null;
 };

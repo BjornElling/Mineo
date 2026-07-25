@@ -1,4 +1,4 @@
-import type { RowId } from '../../rowDrafts/types';
+import type { RowId } from '../../utils/rowId';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import { tillaegstidEnhedEnum } from '../../schemas/formSchemas';
 import { commitIsoDateFromDraftString } from '../dates/dateCommit';

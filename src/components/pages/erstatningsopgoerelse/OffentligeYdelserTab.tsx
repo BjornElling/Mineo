@@ -6,7 +6,7 @@ import ContentBox from '../../layout/ContentBox';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
-import StyledDateField from '../../inputs/StyledDateField';
+import TransientDateInput from '../../inputs/transient/TransientDateInput';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import GreenfieldMultilineTextField from '../../../inputCore/react/fields/GreenfieldMultilineTextField';
 import InlineActionButton from '../../inputs/InlineActionButton';
@@ -16,7 +16,6 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
 import { dateRanges_offentligeYdelser } from '../../../config/dateRanges';
 import { isISODateString, type ISODateString } from '../../../types/branded';
-import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
 import {
@@ -207,15 +206,15 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     });
   }, [rows, runtime, sygedagpengeFraDato, sygedagpengeTilDato]);
 
-  const handleSygedagpengeFraError = React.useCallback((error: ReportableFieldError | undefined) => {
+  const handleSygedagpengeFraError = React.useCallback((error: string | undefined) => {
     if (suppressSygedagpengeFieldCommitRef.current) return;
-    const nextMessage = getReportableFieldErrorMessage(error);
+    const nextMessage = error;
     setSygedagpengeFraError((prev) => (prev === nextMessage ? prev : nextMessage));
   }, []);
 
-  const handleSygedagpengeTilError = React.useCallback((error: ReportableFieldError | undefined) => {
+  const handleSygedagpengeTilError = React.useCallback((error: string | undefined) => {
     if (suppressSygedagpengeFieldCommitRef.current) return;
-    const nextMessage = getReportableFieldErrorMessage(error);
+    const nextMessage = error;
     setSygedagpengeTilError((prev) => (prev === nextMessage ? prev : nextMessage));
   }, []);
 
@@ -306,29 +305,29 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Indsæt maksimal sygedagpengesats for perioden</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1.5, flexWrap: 'wrap' }}>
-            <StyledDateField
+            <TransientDateInput
               inputRef={sygedagpengeFraInputRef}
               value={sygedagpengeFraDato}
-              onCommit={(e) => {
-                if (suppressSygedagpengeFieldCommitRef.current) return true;
-                setSygedagpengeFraDato(e.target.value);
-                return true;
+              onCommit={(next) => {
+                if (suppressSygedagpengeFieldCommitRef.current) return;
+                setSygedagpengeFraDato(next);
               }}
-              onFieldError={handleSygedagpengeFraError}
+              onReject={handleSygedagpengeFraError}
+              errorMessage={sygedagpengeFraError}
               width={130}
               minDate={dateRanges_offentligeYdelser.fraDato.min}
               maxDate={sygedagpengeTilDato ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
               specialRangeErrors={{ fraTilRole: 'fra' }}
             />
             <Typography className="row--text">-</Typography>
-            <StyledDateField
+            <TransientDateInput
               value={sygedagpengeTilDato}
-              onCommit={(e) => {
-                if (suppressSygedagpengeFieldCommitRef.current) return true;
-                setSygedagpengeTilDato(e.target.value);
-                return true;
+              onCommit={(next) => {
+                if (suppressSygedagpengeFieldCommitRef.current) return;
+                setSygedagpengeTilDato(next);
               }}
-              onFieldError={handleSygedagpengeTilError}
+              onReject={handleSygedagpengeTilError}
+              errorMessage={sygedagpengeTilError}
               width={130}
               minDate={sygedagpengeFraDato ?? dateRanges_offentligeYdelser.tilDato.fallbackMin}
               maxDate={dateRanges_offentligeYdelser.tilDato.max}
