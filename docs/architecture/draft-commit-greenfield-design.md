@@ -36,8 +36,12 @@ Hovedshellens atomiske navigation-/undo-cutover blev gennemført i fase 4 (WI-00
 fokusrestore fulgte i fase 4 (WI-003): route/fane bæres nu som eksplicit typed metadata på history-origin, og en
 gennemført undo/redo navigerer til origin-lokationens route+fane og re-fokuserer feltet, ændringen kom fra.
 Current-session-korruption håndteres fail-closed hele vejen (§1.12), og kun brugerens eksplicitte `Slet alt` kan
-rydde en bevaret korrupt kilde. Trin 13's resterende `FormPersistenceContext*`/Styled*Field-sletninger er bevidst
-udskudt til fase 5, fordi de fortsat er reachable via standalone-grid og de fire ikke-migrerede flader.
+rydde en bevaret korrupt kilde. **Trin 13 er gennemført 2026-07-25 efter et eksternt strukturelt review:** hele
+den parallelle legacy-inputarkitektur (`FormPersistenceContext*`, `inputRuntimeStore`/`formPersistenceStore`,
+den gamle runner, `criticalActions/`, `rowDrafts/`, `tableInput/`, `Styled*Field`-vejen m.fl.) er SLETTET, ikke
+udskudt. Den tidligere reachability-begrundelse holdt ikke: de resterende callsites var en DEV-only showcase-fane
+og tre transiente flader, som nu kører på en lille, eksplicit `transient`-inputfamilie uden for den autoritative
+inputtilstand. En AST-regel forbyder at genindføre nogen del af klyngen.
 
 Den tidligere
 Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
@@ -47,15 +51,14 @@ inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie 
 XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
 `ready | blocked`-projektioner. Fase 3 er gennemført: alle otte consumerslices (Satser, Renteberegning, Stamdata,
 Årsløn, Varige mén, Forsørgertab, EET og EO) forbruger nu rene reader-projektioner, og de afløste
-component-reporter-hooks er slettet. Fase 4 (`.eo`/session/caseporte og shell-cutover) er gennemført; kun Fase 5
-(de 18 dokumentoutputs, som også bærer den resterende legacy-sletning) udestår, og den delvise hovedapp må ikke
-repareres med legacy-providers.
+component-reporter-hooks er slettet. Fase 4 (`.eo`/session/caseporte, shell-cutover OG trin 13's sletninger) er
+gennemført; kun Fase 5 (de 18 dokumentoutputs) udestår. Legacy-inputvejen findes ikke længere at reparere med.
 
 Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
 migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
 dokumentlayout og numeriske primitiver, bevares som selvstændige resultater.
 
-**Dato:** 2026-07-24
+**Dato:** 2026-07-25
 
 **Type:** Informativ målarkitektur og bindende migrationsplan. Normative kontrakter opdateres som første
 implementeringsfase, før produktionskode ændres.
@@ -585,15 +588,22 @@ bruges af reaktiv gate og click-preflight. Generatoren modtager kun et kilde-tok
 
 - `initializeInputRuntime` hydraterer før React-render og returnerer current-session-/startupstatus.
 - `InputCommandPort` eksponerer kun typed commands; ingen raw sections eller rejected maps.
-- `CaseFileOperations` ejer `.eo`-save, preflight/load/apply og `hasAnyData` over reader-/replacement-grænserne.
-- `CaseResetOperations` ejer reset og `Slet alt`, inklusive sikker kassation af åben draft ved succes og recovery fra
-  blokeret current-session.
+- `CaseFileOperations` ejer `.eo`-savens INPUT-side over reader-/replacement-grænserne: `evaluateSave`,
+  token-friskhed (`isSaveSourceStillCurrent`), `applyLoadedSnapshot` og `hasAnyData`. Den ejer bevidst IKKE
+  fil-I/O, codec, preflight-dialog, overwrite-gate eller PWA-samtidighed: de er UI-flow og bevarede
+  fil-primitiver (§4.1), som shell-use-casen (`useFileSaveLoad`) orkestrerer. Porten er en runtime-adapter, ikke
+  en ny altomfattende facade.
+- `CaseResetOperations` ejer `Slet alt` (hel-sags-clear) inklusive sikker kassation af åben draft ved succes og
+  recovery fra blokeret current-session. Sektionsreset går gennem bindingens `resetSection`-command, fordi den er
+  en sidelokal handling uden hel-sags-semantik.
 - den eksisterende centrale systemfejl-/noticeoverflade viser startupfejl og brugerrettede operationsfejl.
 
-Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. Hver app-variant initialiserer sin ene
-aktive runtime før render; provider-remount må aldrig rehydrere eller overskrive input. Under cutoveren skifter en
-variant kun runtime ved en atomisk slice: Mineo må ikke genmontere legacy-provider for at holde ikke-migrerede sider
-funktionelle, og standalone må ikke montere en ubrugt greenfield-runtime ved siden af sin aktive legacy-runtime.
+Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. En port læser ALTID gennem den
+binding, den fik injiceret (`runtime.store`) — aldrig produktions-singletonen direkte; ellers kunne en alternativ
+binding vise én sag, mens porten læste og gemte en anden.
+
+Hver app-variant initialiserer sin ene aktive runtime før render; provider-remount må aldrig rehydrere eller
+overskrive input. Der findes efter Fase 4 kun ÉN runtime at initialisere: legacy-provideren er slettet.
 
 ## 4. Det der bevares, omskrives og slettes
 
@@ -1087,7 +1097,10 @@ consumerslices er migreret til rene reader-projektioner:
 - **Satser:** `projectSatser` er eneste side-/dokumentprojektion; den døde rå-sektionsgate og dens selectors er
   fjernet.
 - **Årsløn:** `buildAarsloenReaderProjection` samler reader-læste værdier, tabelissues, omregningsgate, beregning
-  og dokumentstamdata fra én revision. Side og frisk dokumentpreflight bruger samme projektion.
+  og dokumentstamdata fra én revision. Side og frisk dokumentpreflight bruger samme projektion. **Feltgaten
+  afgøres FØR motoren (§3.9):** ved en rød gate er `calculation === null`, og der findes intet resultat —
+  hverken på siden eller i dokumentpreflighten. Tidligere blev motoren kaldt på den maskerede tomværdi og
+  resultatet derefter kasseret i visningen; det er rettet efter Codex-reviewet (fund F2).
 - **EET:** `buildErhvervsevnetabReaderProjection` er eneste inputvej til det Zod-validerede snapshot; snapshotgrænsen
   modtager kun reader-afledte issue-beskeder og ikke legacy reporter-typer.
 - **EO:** `buildErstatningsopgoerelseReaderProjection`, snapshot, kontrol og dokumentgate bruger alene
@@ -1102,17 +1115,27 @@ consumerslices er migreret til rene reader-projektioner:
   projektionsunit-test (`varigeMenReaderProjection.test.ts`) beviser byte-identisk output, bounds-/datoorden-
   blokering og `missing`.
 - **Forsørgertab:** `buildForsoergertabReaderProjection` fører reader-afledte røde feltfejl ind i det uændrede
-  `computeForsoergertabSnapshot`, som ejer den dependency-specifikke panel-/gate-logik (§1.10).
+  `computeForsoergertabSnapshot`, som ejer den dependency-specifikke panel-/gate-logik (§1.10). Snapshottets
+  motor er ISSUE-PRODUCERENDE: den rapporterer manglende/ugyldige input som `issues` og blokerer det berørte
+  panel — den beregner ikke stiltiende videre på en maskeret værdi. Derfor er en global `blocked`-projektion
+  bevidst IKKE indført her: den ville overblokere det panel, §1.10 kræver bevaret. Samme gælder EET.
+
+**Én kilde til ASL-årslønsreglen:** reglen (delelig med 1.000 / maks i skadesåret) er kanonisk i
+`faellesAarsloenAslAarsloenField`s descriptor-validator og kommer ind ad samme vej som enhver anden rød
+feltfejl. Den tidligere slice-lokale genberegning i Forsørgertab og EET er fjernet (Codex-fund F2).
+
+**EO's issue-form bærer `reason`, ikke et gate-flag:** `EoInputIssue` bar tidligere en `blocksSave`-boolean,
+der duplikerede readerens årsag og kunne komme i modstrid med den. Konsekvensen udledes nu strukturelt af
+`reason` via `eoIssueBlocksDependents` (en canonical `bounds`-fejl er synlig men ikke-blokerende, §1.6).
+Suffix-selectoren for det syntetiske `${afId}:loenindkomst`-aggregat findes ét sted
+(`selectBlockingEoEntityIdsBySuffix`); den tidligere kopi i `utils/fieldErrorSelectors` er slettet.
 
 Alle otte slicenes beregningstal er bevaret af de eksisterende golden-/paritetstests (§5.4). De afløste
 component-reporter-hooks `useAslAarsloenRuleReporter`, `useForligAnsvarsgradValidation` og `useTableCellErrorTracker`
 er slettet, da deres regler nu er slice-lokale rene funktioner i projektionerne uden produktionscallsites.
 
-**Bevidst udskudt til fase 4:** `src/types/fieldErrors.ts` og `src/hooks/useFormFieldErrors.ts` fjernes ikke her,
-fordi de fortsat er transitive dependencies for den levende legacy `Styled*Field`-inputvej og
-`FormPersistenceContext`/`inputRuntimeStore`-infrastrukturen (§2.6/§4.3: fysisk sletning følger med det sidste
-aktive ansvar i fase 4). `invalidDrafts`-celle-kanalen (`cellInvalidDraftScopes.ts`,
-`useReconcileInvalidDraftsToLiveRows.ts`) er stadig i aktiv brug og hører ligeledes til fase 4.
+**Slettelisten er gennemført** (ikke længere udskudt): `src/types/fieldErrors.ts`, `src/hooks/useFormFieldErrors.ts`
+og hele `invalidDrafts`-celle-kanalen er slettet sammen med resten af legacy-klyngen — se Fase 4.
 
 **Afhængighed:** Fase 2. Ingen handoff før fasen er gennemført.
 
@@ -1146,18 +1169,21 @@ For hver slice:
    fase 5, når deres fælles prepare-flow findes.
 10. Bevar alle eksisterende tal-/golden-tests uændret.
 
-#### Sletteliste
+#### Sletteliste (gennemført)
 
-- `src/types/fieldErrors.ts`,
-- `src/hooks/useFormFieldErrors.ts`,
-- form-/tabel-error-reporters og `useTableCellErrorTracker`,
-- `src/domain/inputIntegrity/` i den gamle blocker-/scope-rolle,
-- rå canonical selectors i domæne- og beregningskode,
-- lokale Renteberegning-/Satser-key- og scope-builders.
+- `src/types/fieldErrors.ts` ✔,
+- `src/hooks/useFormFieldErrors.ts` ✔,
+- form-/tabel-error-reporters og `useTableCellErrorTracker` ✔,
+- `src/domain/inputIntegrity/` i den gamle blocker-/scope-rolle ✔,
+- rå canonical selectors i domæne- og beregningskode ✔,
+- lokale Renteberegning-/Satser-key- og scope-builders ✔,
+- `src/utils/fieldErrorSelectors.ts` (duplikeret suffix-selector) ✔.
 
 #### Exitkriterier
 
-- Ingen beregningsmotor kan kaldes med et felt, som readeren vurderer fejlende.
+- Ingen beregningsmotor kan kaldes med et felt, som readeren vurderer fejlende. **Håndhævet:** Årsløn kalder
+  motoren kun i `ready`-grenen; Forsørgertab/EET/EO's motorer er issue-producerende og gater per dependency
+  (§1.10) i stedet for at beregne videre på en maskeret værdi.
 - Ingen mounted komponent kan tilføje/fjerne en autoritativ fejl.
 - Ikke-dependencies overblokerer ikke.
 - Alle synlige resultater følger den seneste afsluttede revision.
@@ -1172,37 +1198,72 @@ For hver slice:
 
 ### Fase 4 — `.eo`, session og kritiske sagsoperationer
 
-**Status:** Gennemført og verificeret 2026-07-24 (internt kontrolpunkt, ikke deployhandoff). Arbejdstrin 1–12 er
-implementeret i greenfield-runtime og dækket af tests; trin 13's sletninger er DELVIST gennemført: den
-dead-by-cutover legacy er slettet, mens den fortsat reachable `FormPersistenceContext*`/`criticalActions/*`/
-Styled*Field-vej bevidst BEVARES til Fase 5 (§2.6/§4.3 — reachable via standalone-grid + de 4 ikke-migrerede
-flader). Byggesten, porte OG shell-cutover foreligger: `useFileSaveLoad` og `MainLayout` kører nu på
-greenfield-runtime (caseporte + greenfield-coordinator + `useGreenfieldUndoRedoShortcuts` + startup-notice +
-revision-remap), og hele App'en mounter uden `FormPersistenceContext`. **Fuld lokationsbaseret
-undo/redo-fokusrestore fulgte (WI-003, 2026-07-24):** `HistoryOrigin`/`EditorLocation` bærer nu eksplicit
+**Status:** Gennemført og verificeret 2026-07-25 (internt kontrolpunkt, ikke deployhandoff). **Alle arbejdstrin
+1–13 er gennemført, inklusive trin 13's sletninger.**
+
+Byggesten, porte og shell-cutover: `useFileSaveLoad` og `MainLayout` kører på greenfield-runtime (caseporte +
+coordinator + `useUndoRedoShortcuts` + startup-notice + revision-remap), og hele App'en mounter uden
+`FormPersistenceContext`.
+
+**Lokationsbaseret undo/redo-fokusrestore (WI-003):** `HistoryOrigin`/`EditorLocation` bærer eksplicit
 `route`+`tabKey`, `dispatchInput` surfacer `restoredOrigin` KUN efter en gennemført undo/redo, og `MainLayout`s
-`onRestore` sætter aktiv fane → navigerer → `scheduleGreenfieldHistoryTargetRestore` (samme rækkefølge som legacy).
-Greenfield-restoren lokaliserer målet via feltadresse + editorlokation (ikke `name`), så samme datafelt redigeret to
-steder (fx `faellesAarsloen` på EET vs. Forsørgertab) fokuserer den editor, ændringen kom fra. En arkitekturtest
-håndhæver, at hver greenfield-kommitterende feltfamilie bærer restore-target-attributterne.
-**Current-session-korruptionsflowet (trin 12 / §1.12) er greenfield-implementeret hele vejen** (hydration →
+`onRestore` sætter aktiv fane → navigerer → `scheduleHistoryTargetRestore`. Restoren lokaliserer målet via
+feltadresse + editorlokation (ikke `name`), så samme datafelt redigeret to steder (fx `faellesAarsloen` på EET
+vs. Forsørgertab) fokuserer den editor, ændringen kom fra. En arkitekturtest håndhæver, at hver kommitterende
+feltfamilie bærer restore-target-attributterne. **Strukturelle rækkehandlinger** (insert/delete/reorder) bærer
+også en origin: `HistoryOrigin.field` er valgfri, fordi en rækkehandling ikke har ét felt, men route + fane
+følger med, så undo navigerer til den tabel, ændringen kom fra.
+
+**Current-session-korruptionsflowet (trin 12 / §1.12)** er greenfield-implementeret hele vejen (hydration →
 `writesBlocked` → `dispatchInput`-gate → `clearCase`-recovery gennem `CaseResetOperations`) og bevist i
-`dispatchInput.test.ts` + `caseResetOperations.test.ts`. Ved slutreviewet (2026-07-24) var `typecheck`,
-`typecheck:test`, `lint` og `verify:ledgers` alle grønne, og hele produktsuiten (533 filer / 6440 tests) grøn — den
-tidligere noterede pre-eksisterende `typecheck:test`-røde (`caseFileOperations.test.ts` nominal
-`FieldDescriptor`-klash) er rettet (generisk `settle`-helper typet med `RuntimeInputCommand` fra runtime-modulet).
-Én latent §3.10-inkonsistens (`useCaseOperations` læser global `slimInputStore`, mens coordinator/writes kommer fra
-bindingen — ingen aktiv bug, samme singleton i prod) strammes i Fase 6.
+`dispatchInput.test.ts` + `caseResetOperations.test.ts`.
+
+**Trin 13 — legacy-klyngen er slettet (efter Codex sol/high-review, fund F1).** Reachability-auditen, der
+begrundede Fase 5-udskydelsen, viste sig ikke længere at holde: `CriticalActionProvider` mountes ikke i
+produktion (hver `useCriticalActionParticipant` var et no-op), `Table*Input`/`useTableInputCore`/`useRowDrafts`/
+den gamle runner havde nul produktionscallsites, og hele `Styled*Field`-familien var kun nåelig fra en DEV-only
+showcase-fane (`StamdataTestTab`) plus tre transiente flader. Slettet: `inputRuntimeStore`,
+`formPersistenceStore`, `formPersistenceReadModel`, `inputTransactionRunner`, `legacyInputCompatibility`,
+`legacyGridTransactionBridge`, `criticalActions/`, `rowDrafts/`, `hooks/tableInput/`, `components/inputs/table/`,
+`hooks/fieldState/`, `useDraftField`, `useStyledFieldAdapter`, `useTwoStageInputActivation`,
+`useFormFieldErrors`, `useFormPersistenceSelectors`, `invalidDraftsStorage`, `types/fieldErrors`,
+`utils/saveBlockedFocus`, de otte `Styled*Field`-komponenter og `StamdataTestTab`. En AST-regel
+(`input/deleted-legacy-architecture-import`) forbyder uden allowlist at genindføre nogen af dem.
+
+**Transient input er den ene dokumenterede undtagelse:** tre flader er ikke sagsdata (løntrin-finder-overlay,
+sygedagpenge-hjælperrække, rapport-dialog). De kører på `components/inputs/transient/` — én delt
+`useTransientDraft`-kerne + Amount/Date/Text — som genbruger de samme parse-kerner, tegnfiltre og
+bounds-beskeder som de persisterede felter, men hverken har feltadresse, issue-snapshot, history eller
+persistens. De er bevidst UDEN for den autoritative inputtilstand (§3.1).
+
+**§3.10-inkonsistensen er lukket** (ikke udskudt til Fase 6): bindingen eksponerer sin `store`, og
+`useCaseOperations` læser gennem den i stedet for produktions-singletonen, så en alternativ/testbinding ikke
+kan vise én sag mens save læser en anden.
+
+Ved slutverifikationen (2026-07-25) var `typecheck`, `typecheck:test`, `lint` og `verify:ledgers` alle grønne,
+og hele produktsuiten grøn (488 filer / 5991 tests — lavere end tidligere 533/6440, fordi ~40
+implementeringstestfiler for den slettede legacy er fjernet sammen med koden, de testede).
 
 Foreligger:
 - `src/persistence/eoSaveProjection.ts` (`projectEoSave`): rejected input blokerer, mens schema-gyldigt canonical
   input — også med afledte bounds-issues — projekteres til et komplet sektionssnapshot.
 - **`CaseFileOperations`-porten** (`src/persistence/caseFileOperations.ts`): `evaluateSave` (settle-fri
-  projektion mod frisk kildetoken), `applyLoadedSnapshot` (indlæst snapshot → `buildLoadReplaceCaseCandidate` →
-  autoritativ `replaceCase`), og `hasAnyData` = `settledInputHasAnyData` (canonical-meningsfuld ELLER `rejectedInputs`
-  ikke-tom, så et rejected-only felt tæller som data og en load ikke kan overskrive det uden overwrite-bekræftelse).
-  `SaveSnapshot === PersistedSectionsSnapshot`, så snapshot sendes uændret til den bevarede `saveToFile` (row-order-
-  registry, payload-schema, metadata, integritetsverifikation bevares, §4.1).
+  projektion mod frisk kildetoken), `isSaveSourceStillCurrent` (token-friskhed umiddelbart før den
+  irreversible skrivning, se nedenfor), `applyLoadedSnapshot` (indlæst snapshot →
+  `buildLoadReplaceCaseCandidate` → autoritativ `replaceCase`), og `hasAnyData` = `settledInputHasAnyData`
+  (canonical-meningsfuld ELLER `rejectedInputs` ikke-tom, så et rejected-only felt tæller som data og en load
+  ikke kan overskrive det uden overwrite-bekræftelse). `SaveSnapshot === PersistedSectionsSnapshot`, så snapshot
+  sendes uændret til den bevarede `saveToFile` (row-order-registry, payload-schema, metadata,
+  integritetsverifikation bevares, §4.1).
+- **Token-friskhed over async-grænsen (critical-action-kontrakten §5, Codex-fund F3):** directory-/fil-pickeren
+  ligger MELLEM save-evalueringen og skrivningen. `handleGem` genlæser derfor hele kildetokenet gennem
+  `isSaveSourceStillCurrent` umiddelbart før `saveToFile` og stopper fail-closed, hvis input- eller
+  settingsrevisionen er ændret imens — ellers ville en ældre sag kunne skrives til fil.
+- **Save-blokeret fokus på fuld feltadresse (Codex-fund F4):** `inputCore/react/saveBlockedFocus` lokaliserer
+  det blokerende felt på den FULDE serialiserede feltadresse (samme identitet som undo/redo-restoren), og
+  `resolveFieldAddressDestination` udleder side + fane af adressens STRUKTUR (sektion + første path-led).
+  Adressen reduceres ikke til et feltnavn, så en nested rækkecelle ikke kan fokusere en vilkårlig anden celle
+  med samme feltnavn.
 - **`CaseResetOperations`-porten** (`src/persistence/caseResetOperations.ts`): `clearAll` gennem
   `CriticalActionCoordinator.applyReplacement` + `clearCase` (no-settle, draft kasseres kun ved succes,
   `writesBlocked`-recovery §1.12).
@@ -1211,15 +1272,17 @@ Foreligger:
 - Port-tests grønne (`caseFileOperations.test.ts`, `caseResetOperations.test.ts`, 10 cases).
 
 Gennemført (shell-cutover, WI-002): `useFileSaveLoad` er omskrevet mod greenfield-coordinatoren (rebased §1.4-matrix
-uden `block`-policy; blokerende input udledes af `evaluateSave`s rejected-adresser via `greenfieldSaveBlockedFocus`
-i stedet for legacy field-error-store). MainLayout er rewiret (greenfield undo/redo, startup-notice fra
+uden `block`-policy; blokerende input udledes af `evaluateSave`s rejected-adresser via `saveBlockedFocus`
+i stedet for legacy field-error-store). MainLayout er rewiret (undo/redo, startup-notice fra
 `bootstrapProductionInputRuntime().startup`, revision-remap `combinedSectionRevision→revision`,
 `authoritativeSnapshotEpoch→replacementGeneration`, `markSaved→saveToken.inputRevision`, `settingsRevision` UDEN for
-unsaved-baselinen). Den dead-by-cutover legacy er slettet (useUndoRedo*/undoRedoStore/`FormPersistenceContext.tsx`-
-Provideren/persistenceRuntime+inputSessionMigration+persistenceSessionHydration/den døde grid-row-klynge +
-`getFirstBlockingInputErrorTarget`). Reachability-audit har fastslået at store-/read-model-laget, `criticalActions/*`,
-`FormPersistenceContext.internal/.shared` og Styled*Field-vejen fortsat er reachable via standalone-grid + de 4 ikke-
-migrerede flader og derfor BEVARES til Fase 5.
+unsaved-baselinen).
+
+**Navngivning (Codex-fund F8):** `Greenfield*`/`Phase0`-præfikserne er fjernet fra produktionskoden. De beskrev
+en overgangstilstand, ikke en arkitekturgrænse — og efter trin 13 findes der ingen gammel vej at skelne fra.
+Feltskallerne hedder nu det de er (`inputCore/react/fields/TextField.tsx` m.fl.; mappen bærer betydningen),
+`greenfieldPhase0Inventory` er `consumerInventory`, og restore-/save-fokus-/undo-redo-modulerne har kanoniske
+navne. "Greenfield" står nu kun i prosa, hvor det er den korrekte historiske reference til denne migration.
 
 **Afhængighed:** Alle field validators og projectionslices i fase 3.
 
@@ -1244,7 +1307,10 @@ migrerede flader og derfor BEVARES til Fase 5.
 12. Bevis current-session-korruptionsflowet: rå envelope bevares, normale writes blokeres, systemfejl vises, og kun
     eksplicit `Slet alt` kan rydde kilden.
 13. Slet `FormPersistenceContext*`, `useFormPersistence`, `usePersistedForm`, gamle persistence-selectors,
-    per-sektion/session-hydrators og compatibility-cleanup.
+    per-sektion/session-hydrators og compatibility-cleanup. **Gennemført 2026-07-25** — sammen med hele den
+    øvrige legacy-inputklynge (store/read-model, gamle runner, `criticalActions/`, `rowDrafts/`, `tableInput/`,
+    `Styled*Field`-vejen, `types/fieldErrors`, `utils/saveBlockedFocus`). Håndhævet af AST-reglen
+    `input/deleted-legacy-architecture-import`, som ikke har nogen allowlist.
 
 #### Testmatrix
 
@@ -1268,6 +1334,10 @@ migrerede flader og derfor BEVARES til Fase 5.
 - Missing og warning kan ikke blokere `.eo`.
 - Rejected raw kan ikke serialiseres til `.eo`.
 - Der findes ingen legacy browser-sessionreader.
+- Ingen fil-skrivning sker mod et forældet kildetoken: hele tokenet (input- OG settingsrevision) genlæses
+  umiddelbart før `saveToFile`, og save stoppes fail-closed ved drift (critical-action-kontrakten §5).
+- Det blokerende felt lokaliseres på sin fulde strukturelle adresse — ikke på et feltnavn, der kan optræde i
+  flere rækker.
 
 #### Verifikation
 

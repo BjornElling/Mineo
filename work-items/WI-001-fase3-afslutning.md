@@ -1,6 +1,14 @@
 # WI-001: Afslut Fase 3 — resterende testdækning + fjern død fejlmodel-kode
 
-- **Status:** `afsluttet` (2026-07-24)
+- **Status:** `afsluttet` (2026-07-24), suppleret 2026-07-25.
+
+  **Efterskrift (Codex sol/high-review, fund F2).** Dette WI reducerede Fase 3-restarbejdet til én manglende
+  Varige mén-test. Reviewet påpegede, at trin 4–8's matrix ikke var dækket pr. slice, og at fire projektioner
+  (Årsløn, Forsørgertab, EET, EO) adapterede tilbage til ældre snapshot-/fejlformer. Det er nu adresseret:
+  Årsløn kalder motoren KUN i `ready`-grenen (`calculation: null` ved rød gate), ASL-årslønsreglen genberegnes
+  ikke længere slice-lokalt, EO's `blocksSave`-flag er erstattet af `reason` + `eoIssueBlocksDependents`, og de
+  karakteriseringstests, der låste den gamle adfærd, er erstattet af invariant-tests. Se
+  `docs/reviews/codex-fase34-review.md`.
 - **Oprettet:** 2026-07-24
 - **Slice/scope:** Greenfield draft/commit, Fase 3 (domæneprojektioner og ren fejlmodel), de fire
   sidste slices: Renteberegning, Stamdata/fælles input, Varige mén, Forsørgertab.

@@ -1,12 +1,23 @@
 # WI-003: Greenfield undo/redo lokationsbaseret fokusrestore (fuld parity)
 
-- **Status:** `GENNEMFØRT` (2026-07-24). Hele long tail (A–E) er landet i commit "Fuldfør greenfield undo/redo
-  lokationsbaseret fokusrestore (WI-003)" på branch `greenfield`. Alle gates grønne: `typecheck`, `typecheck:test`,
-  `lint`, `verify:ledgers` og HELE `vitest run` (6440/6440 — tranchen er nu fuldt grøn; de tidligere "bevidst røde"
-  fejl skyldtes udelukkende en forældet `.env.build-info.local`, ikke koden). Codex sol/medium-review kørt på
-  committen: ét [P2]-fund (Stamdatas lokale fane-state kan ikke skiftes via `setActiveTabForPage`) adresseret ved at
-  sætte Stamdatas `tabKey: null` (Stamdata deltager ikke i den persisterede aktiv-fane-mekanisme; test-fanen er
-  DEV-only uden editorlokationer).
+- **Status:** `lukket` (2026-07-25).
+
+  **LÆS DETTE FØRST.** Brødteksten nedenfor er historik fra udførelsesforløbet og indeholder passager, der siger
+  at shell-wiren "endnu IKKE er aktiveret", og at long tail er udestående. Det er ikke længere sandt. Autoritativ
+  slutstatus:
+
+  - Fuld lokationsbaseret fokusrestore er aktiv i shellen: `MainLayout`s `onRestore` sætter fane → navigerer →
+    `scheduleHistoryTargetRestore`.
+  - Målet lokaliseres på feltadresse + editorlokation (ikke `name`), så samme datafelt redigeret på to flader
+    fokuserer den editor, ændringen kom fra.
+  - **Rækkehandlinger er nu også dækket** (Codex-opfølgningsfund F6): `insertRow`/`deleteRow`/`reorderRows` bærer
+    en origin. `HistoryOrigin.field` er derfor VALGFRI — en strukturel rækkehandling har ikke ét felt — men
+    route + fane følger med, så undo navigerer til den tabel, ændringen kom fra.
+  - Restore-løkken er runtime-neutral (`inputCore/react/historyTargetRestoreLoop`) med flaget udskilt i
+    `restoreFocusFlag`; den legacy `data-mineo-undo-field-path`-adapter og dens DOM-attributter er slettet.
+  - Navnene er kanoniske efter Fase 4's oprydning: `useUndoRedoShortcuts`, `historyRestoreTarget`,
+    `scheduleHistoryTargetRestore` (uden `Greenfield`-præfiks).
+  - Alle fire gates grønne; fuld suite grøn (488 filer / 5991 tests).
 - **Oprettet:** 2026-07-24
 - **Branch:** `greenfield`. **Baseline for dette WI:** commit hvor WI-002 Fase-4 shell-cutover blev landet (se
   git-loggen: "Fase 4 …"-committen umiddelbart før "WI-003 …"-committen).

@@ -17,10 +17,13 @@ Undo/redo omfatter kun autoritativ inputdata:
 Det omfatter ikke åbne drafts, afledte issues, gates, beregninger, browserens native tekst-history, AppSettings,
 `.eo`-filer eller selve `sessionStorage`-envelopen. History er runtime-only og persisteres aldrig.
 
-Indtil fase 5 har erstattet komponentrapporterede `fieldErrors` med rene validatorer, bærer hvert frame desuden et
-midlertidigt kompatibilitetssnapshot af disse fejl. Det gendannes i samme Zustand-write som inputtet, så en restore
-aldrig åbner save-/dokumentgates mellem inputskiftet og en senere React-effekt. Snapshotfeltet slettes i fase 5 og er
-ikke sagsinput.
+Et frame bærer INTET fejlsnapshot. Det midlertidige `fieldErrors`-kompatibilitetsfelt er fjernet sammen med den
+komponentrapporterede fejlmodel: issues er nu rene afledninger af den gendannede revision, så de kan ikke drifte
+fra inputtet. `InputHistoryFrame` er derfor præcis `{ input, origin? }`.
+
+Fokus-origin bærer feltadresse + editorlokation samt eksplicit `route`/`tabKey`. For en STRUKTUREL rækkehandling
+(insert/delete/reorder) er feltadressen udeladt — handlingen rører ikke ét felt — men route og fane følger med, så
+en restore navigerer til den tabel, ændringen kom fra, uden at fokusere et vilkårligt felt.
 
 ## 2. Keyboard-adfærd
 

@@ -1,12 +1,25 @@
 # WI-002: Fase 4 — `.eo`/session/caseporte og greenfield-shell-cutover
 
-- **Status:** `gennemført` (Fase 4 afsluttet og verificeret 2026-07-24: save-blocking targeter, `useFileSaveLoad`-
-  rewrite, MainLayout-rewire, dead-by-cutover-legacy-sletning, fase-4-testmatrix, undo/redo-lokationsrestore (WI-003)
-  og current-session-korruptionsflowet (§1.12) færdige. Codex sol/high slutreview afsluttet: `FieldDescriptor`-klashen
-  rettet (fund #1). **Alle fire gates grønne** — `typecheck` + `typecheck:test` + `lint` + `verify:ledgers` — og
-  **fuld produktsuite 533/533 filer / 6440/6440 tests grøn**; hele App mounter uden `FormPersistenceContext`-crash.
-  Resterende trin-13-sletninger (`FormPersistenceContext*`/Styled*Field-vejen) er bevidst udskudt til Fase 5, fordi de
-  fortsat er reachable; fund #3 (latent §3.10-inkonsistens) strammes i Fase 6.)
+- **Status:** `lukket` — Fase 4 er fuldt gennemført, inklusive trin 13.
+
+  **LÆS DETTE FØRST (2026-07-25).** Dokumentets brødtekst nedenfor er historik fra planlægnings- og
+  udførelsesforløbet og indeholder derfor udsagn, der IKKE længere er sande — især påstande om, at
+  trin-13-sletningerne er udskudt til Fase 5, og om "resterende Fase-4-arbejde". Den autoritative slutstatus er:
+
+  - Arbejdstrin 1–13 er gennemført. Hele den parallelle legacy-inputklynge er SLETTET (ikke udskudt):
+    `FormPersistenceContext*`, `inputRuntimeStore`/`formPersistenceStore`/read-model, den gamle
+    `inputTransactionRunner`, `criticalActions/`, `rowDrafts/`, `hooks/tableInput/`, `components/inputs/table/`,
+    `hooks/fieldState/`, `useDraftField`/`useStyledFieldAdapter`/`useTwoStageInputActivation`,
+    `useFormFieldErrors`, `types/fieldErrors`, `utils/saveBlockedFocus` og de otte `Styled*Field`-komponenter.
+  - Den reachability-begrundelse, der tidligere udskød sletningen, holdt ikke: de resterende callsites var en
+    DEV-only showcase-fane (`StamdataTestTab`, nu slettet) plus tre transiente flader, som nu kører på
+    `components/inputs/transient/` uden for den autoritative inputtilstand.
+  - Fund #3 (§3.10 global-store vs. binding) er LUKKET her, ikke udskudt til Fase 6: bindingen eksponerer sin
+    `store`, og `useCaseOperations` læser gennem den.
+  - Et opfølgende Codex sol/high-review (2026-07-25) fandt yderligere 9 strukturelle fund (F1–F9); alle er
+    implementeret. Se `docs/reviews/codex-fase34-review.md` og `docs/reviews/codex-fase34-followup.md`.
+  - **Alle fire gates grønne**; fuld produktsuite grøn (488 filer / 5991 tests — færre end de tidligere
+    533/6440, fordi ~40 implementeringstestfiler er slettet sammen med den legacy, de testede).
 - **Oprettet:** 2026-07-24
 - **Slice/scope:** Greenfield draft/commit, Fase 4 (§8): `.eo`-save/load/apply/preflight, reset/`Slet alt`,
   session-/startupstatus, kritiske sagsoperationer og app-shell-cutover væk fra `FormPersistenceContext`.
