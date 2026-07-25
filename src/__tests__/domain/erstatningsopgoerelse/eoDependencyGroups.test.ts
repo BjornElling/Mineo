@@ -1,123 +1,289 @@
 import {
   resolveEoBlockedDependencies,
-  hasAnyBlockingEoIssue,
+  EO_CLASSIFIED_COLLECTIONS,
+  EO_CLASSIFIED_FIELD_IDS,
 } from '../../../domain/erstatningsopgoerelse/snapshot/eoDependencyGroups';
-import type { EoInputIssues } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
-import { EO_TOP_LEVEL_ERROR_KEYS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
+import type { FieldIssue } from '../../../inputCore/inputIssue';
+import type { FieldAddress } from '../../../inputCore/fieldAddress';
+import {
+  productionInputCollections,
+  productionInputFields,
+} from '../../../inputCore/catalog/productionCatalog';
 
 // WI-004: enhedstests for selve afhængighedsopdelingen (§1.10). `eoEngineGate.test.ts` beviser opdelingens
 // VIRKNING gennem snapshottet; her testes reglen isoleret, så en fejl i grupperne kan lokaliseres direkte.
 //
 // De to fejlretninger er lige alvorlige: en for smal gruppe giver falske tal bag en rød markering, og en for
 // bred gruppe overblokerer og fjerner gyldige, uafhængige visninger (brugerbeslutning 2, 2026-07-25).
+//
+// ⚠️ AUTORITETEN er de STRUKTURELLE feltissues, ikke `eoErrors`-mappet (runde 4, fund S3). Den tidligere
+// udgave matchede `eoErrors`-nøgler — et map med KUN 11 top-level feltnavne. Rækkecelle-fragmenterne
+// (`svieSmertePerioder`, `tafPerioder`) kunne derfor aldrig matche en produktionsnøgle: de var død kode,
+// og motorerne blev kaldt på readerens maskerede rækkedata.
 
-const redIssue = (reason: 'format' | 'bounds' | 'rule' | 'schema' | 'aggregate' = 'format'):
-NonNullable<EoInputIssues[string]> => ({
-  input: { message: 'Ugyldig værdi', severity: 'error', source: 'input', reason },
+const issueAt = (
+  address: FieldAddress,
+  descriptorId: string,
+  reason: FieldIssue['reason'] = 'format'
+): FieldIssue => ({
+  kind: 'field',
+  code: 'test_issue',
+  severity: 'error',
+  reason,
+  message: 'Ugyldig værdi',
+  // Kun `address` og `descriptor.id` læses af resolveren; resten af descriptoren er irrelevant her.
+  field: { address, descriptor: { id: descriptorId } } as unknown as FieldIssue['field'],
 });
 
-const warningIssue = (): NonNullable<EoInputIssues[string]> => ({
-  input: { message: 'En advarsel', severity: 'warning', source: 'input', reason: 'rule' },
-});
+/** Et top-level EO-felt: ingen entity-segmenter på stien. */
+const topLevelIssue = (descriptorId: string, reason: FieldIssue['reason'] = 'format'): FieldIssue =>
+  issueAt(
+    { section: 'erstatningsopgoerelse', path: [], field: descriptorId.split('.').at(-1) ?? descriptorId },
+    descriptorId,
+    reason
+  );
+
+/** En rækkecelle i en collection — det tilfælde den gamle nøglebaserede gate var blind for. */
+const rowCellIssue = (collection: string, field: string, entityId = 'row-1'): FieldIssue =>
+  issueAt(
+    {
+      section: 'erstatningsopgoerelse',
+      path: [{ kind: 'entity', collection, entityId }],
+      field,
+    },
+    `eo.${collection}.${field}`
+  );
 
 const NOTHING_BLOCKED = {
   svieSmerte: false,
-  taf: false,
   forlig: false,
+  taf: false,
+  oevrigeKrav: false,
+  aggregate: false,
 } as const;
+
+/** Grenene minus aggregatet: aggregatet er bevidst rødt ved ENHVER fejl og er derfor ikke "uafhængigt". */
+type Branch = Exclude<keyof typeof NOTHING_BLOCKED, 'aggregate'>;
+const BRANCHES: readonly Branch[] = ['svieSmerte', 'forlig', 'taf', 'oevrigeKrav'];
 
 describe('resolveEoBlockedDependencies', () => {
   it('blokerer ingen gren for et tomt issue-sæt', () => {
-    expect(resolveEoBlockedDependencies({})).toEqual(NOTHING_BLOCKED);
-  });
-
-  it('blokerer ingen gren for en warning — kun `error` blokerer dependents', () => {
-    // `error-contract.md` §1.1: en warning blokerer aldrig, hverken save, beregning eller dokument.
-    expect(resolveEoBlockedDependencies({ svieSmerteSatserAar: warningIssue() })).toEqual(NOTHING_BLOCKED);
+    expect(resolveEoBlockedDependencies([])).toEqual(NOTHING_BLOCKED);
   });
 
   it('blokerer også på bounds — en gembar værdi er ikke dermed beregnbar', () => {
-    const blocked = resolveEoBlockedDependencies({ svieSmerteSatserAar: redIssue('bounds') });
+    // `error-contract.md` §1.1: en bounds-fejl blokerer ikke `.eo`-save, men JA den afhængige beregning.
+    const blocked = resolveEoBlockedDependencies([topLevelIssue('eo.svieSmerteSatserAar', 'bounds')]);
+
     expect(blocked.svieSmerte).toBe(true);
   });
 
   describe('grenene er indbyrdes uafhængige', () => {
-    // Hver case hævder BEGGE retninger: den ramte gren blokeres, og mindst én uafhængig gren gør ikke.
-    const cases: ReadonlyArray<Readonly<{
-      navn: string;
-      feltnoegle: string;
-      forventetGren: keyof typeof NOTHING_BLOCKED;
-    }>> = [
-      { navn: 'svie/smerte-satsår', feltnoegle: 'svieSmerteSatserAar', forventetGren: 'svieSmerte' },
-      { navn: 'svie/smerte tidligere total', feltnoegle: 'svieSmerteTidligereTotal', forventetGren: 'svieSmerte' },
-      { navn: 'svie/smerte-rækkecelle', feltnoegle: 'row-9:svieSmertePerioder', forventetGren: 'svieSmerte' },
-      { navn: 'tidligere modtaget TAF', feltnoegle: 'tidligereModtagetTaf', forventetGren: 'taf' },
-      { navn: 'uspecificerede ferie-/fridage', feltnoegle: 'uspecificeredeFerieFridage', forventetGren: 'taf' },
-      { navn: 'angivet månedsløn', feltnoegle: 'maanedsloenenUdgoer', forventetGren: 'taf' },
-      { navn: 'lønindkomst-aggregat', feltnoegle: 'af-1:loenindkomst', forventetGren: 'taf' },
-      { navn: 'forligs-ansvarsgrad i procent', feltnoegle: 'forligAnsvarsgradProcent', forventetGren: 'forlig' },
-      { navn: 'forligs-ansvarsgrad som brøk', feltnoegle: 'forligAnsvarsgradBroek', forventetGren: 'forlig' },
+    // Hver case hævder BEGGE retninger: den ramte gren blokeres, og ALLE andre grene gør ikke. En test der
+    // kun hævdede den første retning, ville også bestå med en global gate og bevise intet om §1.10.
+    const cases: ReadonlyArray<Readonly<{ navn: string; issue: FieldIssue; gren: Branch }>> = [
+      { navn: 'svie/smerte-satsår', issue: topLevelIssue('eo.svieSmerteSatserAar'), gren: 'svieSmerte' },
+      { navn: 'svie/smerte tidligere total', issue: topLevelIssue('eo.svieSmerteTidligereTotal'), gren: 'svieSmerte' },
+      { navn: 'svie/smerte-periodens fra-dato', issue: rowCellIssue('svieSmertePerioder', 'fra'), gren: 'svieSmerte' },
+      { navn: 'svie/smerte-periodens tilstand', issue: rowCellIssue('svieSmertePerioder', 'tilstand'), gren: 'svieSmerte' },
+      { navn: 'tidligere modtaget TAF', issue: topLevelIssue('eo.tidligereModtagetTaf'), gren: 'taf' },
+      { navn: 'uspecificerede ferie-/fridage', issue: topLevelIssue('eo.uspecificeredeFerieFridage'), gren: 'taf' },
+      { navn: 'angivet månedsløn', issue: topLevelIssue('eo.maanedsloenenUdgoer'), gren: 'taf' },
+      { navn: 'TAF-periodens til-dato', issue: rowCellIssue('tafPerioder', 'til'), gren: 'taf' },
+      { navn: 'TAF-periodens løse feriedage', issue: rowCellIssue('tafPerioder', 'loseFeriedage'), gren: 'taf' },
+      { navn: 'ferieperiodens fra-dato', issue: rowCellIssue('ferieperioder', 'fra'), gren: 'taf' },
+      { navn: 'fraværsperiodens til-dato', issue: rowCellIssue('fravaerPerioder', 'til'), gren: 'taf' },
+      { navn: 'offentlig ydelses beløb', issue: rowCellIssue('offentligeYdelserRows', 'fraDato'), gren: 'taf' },
+      { navn: 'en manuel reguleringscelle', issue: rowCellIssue('loenudviklingManuelTableData', 'dato'), gren: 'taf' },
+      { navn: 'forligs-ansvarsgrad i procent', issue: topLevelIssue('eo.forligAnsvarsgradProcent'), gren: 'forlig' },
+      { navn: 'forligs-ansvarsgrad som brøk', issue: topLevelIssue('eo.forligAnsvarsgradBroek'), gren: 'forlig' },
+      { navn: 'en øvrige krav-celle', issue: rowCellIssue('oevrigeKravPerioder', 'beloeb'), gren: 'oevrigeKrav' },
     ];
 
-    for (const { navn, feltnoegle, forventetGren } of cases) {
-      it(`en rød ${navn} blokerer kun ${forventetGren}`, () => {
-        const blocked = resolveEoBlockedDependencies({ [feltnoegle]: redIssue() });
+    for (const { navn, issue, gren } of cases) {
+      it(`en rød ${navn} blokerer kun ${gren}`, () => {
+        const blocked = resolveEoBlockedDependencies([issue]);
 
-        expect(blocked[forventetGren]).toBe(true);
-        // Alle ANDRE grene skal være urørte — ellers er gruppen for bred (overblokering).
-        for (const gren of Object.keys(NOTHING_BLOCKED) as Array<keyof typeof NOTHING_BLOCKED>) {
-          if (gren === forventetGren) continue;
-          expect(blocked[gren]).toBe(false);
+        expect(blocked[gren]).toBe(true);
+        for (const anden of BRANCHES) {
+          if (anden === gren) continue;
+          expect(blocked[anden]).toBe(false);
         }
+        // Aggregatet er ALTID rødt, når bare én gren er: en sum kan ikke være autoritativ uden alle led.
+        expect(blocked.aggregate).toBe(true);
       });
     }
   });
 
-  it('blokerer flere grene samtidigt, når flere felter er røde', () => {
-    const blocked = resolveEoBlockedDependencies({
-      svieSmerteSatserAar: redIssue(),
-      tidligereModtagetTaf: redIssue(),
+  // Re-review-fund (P1): CLAMPING-grænserne manglede i begge grupper. En rød `vedroererPeriodeTil` maskeres til
+  // `undefined`, hvorved klipningen forsvinder — og periodiseringen/dagantallet bliver vist som gyldigt, mens
+  // det i virkeligheden er uklampet. En scalar-grænse er lige så meget en afhængighed som et beløbsfelt.
+  describe('clamping-grænserne er afhængigheder, ikke kun beløbsfelterne', () => {
+    // `buildTafRanges` → `resolveTafFejlgivendeBounds` + `resolveTafEoPeriodeBounds`.
+    const tafClampFields: readonly string[] = [
+      'eo.vedroererPeriodeFra',
+      'eo.vedroererPeriodeTil',
+      'eo.differencekravDato',
+      'eo.midlertidigtEETAfgorelse',
+      'eo.midlertidigEETAfgoerelseDato',
+      'eo.midlertidigEETVirkningsdato',
+      'eo.endeligtEETAfgorelse',
+      'eo.endeligEETAfgoerelseDato',
+      'eo.endeligEETVirkningsdato',
+      'eo.verserendeKlageEet',
+      'eo.tafBeregningsperiodeFra',
+      'eo.tafBeregningsperiodeTil',
+    ];
+
+    it.each(tafClampFields)('%s blokerer TAF-grenen', (fieldId) => {
+      expect(resolveEoBlockedDependencies([topLevelIssue(fieldId)]).taf).toBe(true);
     });
+
+    // `computeSvieSmerteEngine` klipper perioderne mod EO-perioden og læser sine to toggles.
+    const svieSmerteScalarFields: readonly string[] = [
+      'eo.vedroererPeriodeFra',
+      'eo.vedroererPeriodeTil',
+      'eo.kravPaaSvieSmerteGodtgoerelse',
+      'eo.tidligereSsMax',
+    ];
+
+    it.each(svieSmerteScalarFields)('%s blokerer S/S-grenen', (fieldId) => {
+      expect(resolveEoBlockedDependencies([topLevelIssue(fieldId)]).svieSmerte).toBe(true);
+    });
+
+    // Re-review T1: `resolveSvieSmerteFejlgivendeBounds` klipper også mod mén-afgørelsesdatoen.
+    const menCutoffFields: readonly string[] = [
+      'eo.menAfgoerelseDato',
+      'eo.varigeMenAfgorelse',
+      'eo.verserendeKlageMen',
+    ];
+
+    it.each(menCutoffFields)('%s blokerer S/S-grenen (mén-klipningen)', (fieldId) => {
+      const blocked = resolveEoBlockedDependencies([topLevelIssue(fieldId)]);
+
+      expect(blocked.svieSmerte).toBe(true);
+      // Mén-datoen klipper IKKE TAF — gruppen forbliver specifik.
+      expect(blocked.taf).toBe(false);
+    });
+
+    // Re-review T2: skadedatoen bor i STAMDATA, men klipper begge EO-grene. En gate udledt af EO-issues alene
+    // kunne ikke se den, og en rød skadedato gav derfor en uklampet gren i `readyBranches`.
+    it('en rød STAMDATA-skadedato blokerer både TAF og S/S på tværs af sektionsgrænsen', () => {
+      const skadedatoIssue = issueAt(
+        { section: 'stamdata', path: [], field: 'skadedato' },
+        'stamdata.skadedato'
+      );
+
+      const blocked = resolveEoBlockedDependencies([], [skadedatoIssue]);
+
+      expect(blocked.taf).toBe(true);
+      expect(blocked.svieSmerte).toBe(true);
+      expect(blocked.aggregate).toBe(true);
+      // Forliget læser ikke skadedatoen.
+      expect(blocked.forlig).toBe(false);
+    });
+
+    it('et andet stamdata-felt blokerer ingen gren, men fail-closer aggregatet', () => {
+      // Modstykket: gaten må ikke blive "enhver stamdata-fejl blokerer alt" — det ville være overblokering.
+      const journalnrIssue = issueAt(
+        { section: 'stamdata', path: [], field: 'journalnr' },
+        'stamdata.journalnr'
+      );
+
+      const blocked = resolveEoBlockedDependencies([], [journalnrIssue]);
+
+      expect(blocked.taf).toBe(false);
+      expect(blocked.svieSmerte).toBe(false);
+      expect(blocked.aggregate).toBe(true);
+    });
+
+    it('EO-perioden er en DELT afhængighed — den blokerer begge grene, ikke kun én', () => {
+      // Begge motorer klipper mod den. At lade den blokere kun én gren ville efterlade den anden med et
+      // maskeret input; det er ikke overblokering, men en reelt delt afhængighed.
+      const blocked = resolveEoBlockedDependencies([topLevelIssue('eo.vedroererPeriodeTil')]);
+
+      expect(blocked.svieSmerte).toBe(true);
+      expect(blocked.taf).toBe(true);
+      // Forliget klipper ikke mod perioden og forbliver urørt — gruppen er stadig ikke global.
+      expect(blocked.forlig).toBe(false);
+    });
+  });
+
+  it('holder forlig og svie/smerte adskilt, så før-forlig-grundlaget består', () => {
+    // Fund S2: motoren læser SELV forligsgraden og skalerer satser + total med faktoren. Forlig er derfor en
+    // reel S/S-afhængighed — men KUN for efter-forlig-resultatet. Brugerbeslutning 1 kræver, at
+    // før-forlig-resultater består, så forligsfelterne må IKKE ligge i S/S-gruppen.
+    const blocked = resolveEoBlockedDependencies([topLevelIssue('eo.forligAnsvarsgradProcent')]);
+
+    expect(blocked.forlig).toBe(true);
+    expect(blocked.svieSmerte).toBe(false);
+  });
+
+  it('blokerer flere grene samtidigt, når flere felter er røde', () => {
+    const blocked = resolveEoBlockedDependencies([
+      topLevelIssue('eo.svieSmerteSatserAar'),
+      rowCellIssue('tafPerioder', 'fra'),
+    ]);
 
     expect(blocked.svieSmerte).toBe(true);
     expect(blocked.taf).toBe(true);
     expect(blocked.forlig).toBe(false);
   });
 
-  it('lader en ukendt feltnøgle stå uden for grenene', () => {
-    // Bevidst: en ukendt nøgle må ikke gætte sig til en gren. Aggregatet fanges i stedet fail-closed af
-    // `hasAnyBlockingEoIssue` nedenfor, så fejlen aldrig forsvinder lydløst ud af gatingen.
-    expect(resolveEoBlockedDependencies({ etHeltUkendtFelt: redIssue() })).toEqual(NOTHING_BLOCKED);
+  it('lader en ukendt feltnøgle stå uden for grenene, men blokerer aggregatet fail-closed', () => {
+    // En ukendt nøgle må ikke gætte sig til en gren — men den må heller ikke lydløst forsvinde ud af
+    // gatingen. Aggregatet (samlet total, canonicalOutput, pdfModel) er derfor rødt.
+    const blocked = resolveEoBlockedDependencies([topLevelIssue('eo.etHeltUkendtFelt')]);
+
+    for (const gren of BRANCHES) expect(blocked[gren]).toBe(false);
+    expect(blocked.aggregate).toBe(true);
   });
 });
 
-// COMPLETENESS: hver eneste nøgle, produktionen faktisk kan rapportere, skal høre til mindst én gren.
+// COMPLETENESS mod det FAKTISKE produktionskatalog.
 //
-// Denne test findes, fordi den første udgave af grupperne var skrevet efter SCHEMA-feltnavne, mens `eoErrors`
-// bruger et andet, mindre nøglesæt (`EO_TOP_LEVEL_ERROR_FIELDS`). Fire TAF-nøgler og begge forligs-nøgler
-// ramte derfor ingen gruppe: en rød ansvarsgrad blokerede INGEN gren. En håndskrevet liste i testen ville
-// have gentaget samme fejl, så testen itererer det FAKTISKE produktionskatalog.
-describe('afhængighedsopdelingen dækker hele produktionens nøglesæt', () => {
-  it.each(EO_TOP_LEVEL_ERROR_KEYS)('nøglen %s hører til mindst én gren', (key) => {
-    const blocked = resolveEoBlockedDependencies({ [key]: redIssue() });
+// Denne test findes, fordi begge tidligere udgaver af grupperne var skrevet mod et nøglesæt, der ikke
+// matchede produktionen: først SCHEMA-feltnavne, dernæst `eoErrors`-nøgler uden rækkeceller. En håndskrevet
+// liste i testen ville have gentaget samme fejl. Vi itererer derfor descriptor-kataloget selv, så en
+// omdøbt collection eller et omdøbt felt gør testen rød i stedet for lydløst at gøre en gren til død kode.
+describe('afhængighedsopdelingen er skrevet mod det faktiske produktionskatalog', () => {
+  const productionCollectionNames = new Set(
+    productionInputCollections.map((collection) => collection.template.collection)
+  );
+  const productionFieldIds = new Set(productionInputFields.map((field) => field.id));
 
-    expect(Object.values(blocked).some(Boolean)).toBe(true);
+  it('katalogerne er faktisk indlæst (værn mod en tom it.each)', () => {
+    expect(productionCollectionNames.size).toBeGreaterThan(10);
+    expect(productionFieldIds.size).toBeGreaterThan(100);
+    expect(EO_CLASSIFIED_COLLECTIONS.length).toBeGreaterThan(5);
+    expect(EO_CLASSIFIED_FIELD_IDS.length).toBeGreaterThan(5);
   });
 
-  it('katalogets nøgler er faktisk indlæst (værn mod en tom it.each)', () => {
-    // Uden dette ville en tom eksport gøre completeness-testen ovenfor til en no-op, der altid "består".
-    expect(EO_TOP_LEVEL_ERROR_KEYS.length).toBeGreaterThan(5);
-  });
-});
-
-describe('hasAnyBlockingEoIssue', () => {
-  it('er falsk for tomt sæt og for warnings', () => {
-    expect(hasAnyBlockingEoIssue({})).toBe(false);
-    expect(hasAnyBlockingEoIssue({ svieSmerteSatserAar: warningIssue() })).toBe(false);
+  it.each(EO_CLASSIFIED_COLLECTIONS)('den klassificerede collection %s findes i produktionen', (collection) => {
+    expect(productionCollectionNames.has(collection)).toBe(true);
   });
 
-  it('fanger ENHVER rød fejl — også en feltnøgle ingen gruppe genkender', () => {
-    // Fail-closed-reglen for det krydsgående aggregat: en ukendt rød nøgle skal stadig blokere summen.
-    expect(hasAnyBlockingEoIssue({ etHeltUkendtFelt: redIssue() })).toBe(true);
+  it.each(EO_CLASSIFIED_FIELD_IDS)('det klassificerede felt-id %s findes i produktionen', (fieldId) => {
+    expect(productionFieldIds.has(fieldId)).toBe(true);
+  });
+
+  // Hver klassificeret collection: ALLE dens faktiske child-felter skal ramme en gren. Det er dette led,
+  // der gør en senere tilføjet celle automatisk dækket — der findes ingen cellenavns-liste i testen.
+  const eoCollections = EO_CLASSIFIED_COLLECTIONS.filter((collection) =>
+    productionCollectionNames.has(collection));
+
+  it.each(eoCollections)('alle produktionsfelter i %s blokerer en gren', (collection) => {
+    const childFields = productionInputFields.filter((field) =>
+      // Descriptor-templaten bærer collection-navnet uden entity-id (id'et bindes pr. række).
+      field.template.path.some((segment) => segment.kind === 'entity' && segment.collection === collection));
+
+    expect(childFields.length).toBeGreaterThan(0);
+    for (const field of childFields) {
+      const blocked = resolveEoBlockedDependencies([rowCellIssue(collection, field.template.field)]);
+      expect(
+        BRANCHES.some((gren) => blocked[gren]),
+        `${field.id} rammer ingen gren`
+      ).toBe(true);
+    }
   });
 });

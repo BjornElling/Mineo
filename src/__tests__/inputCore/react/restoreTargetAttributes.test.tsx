@@ -27,7 +27,7 @@ import {
   type InputCatalog,
 } from '../../../inputCore';
 import { insertRow } from '../../../inputCore/inputReducer';
-import { createTestCatalog, aargangField, enhedField, belobField, makeRow } from '../testCatalog';
+import { createTestCatalog, aargangField, enhedField, belobField, makeRow, testRowOrigin } from '../testCatalog';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import StyledCheckbox from '../../../components/inputs/StyledCheckbox';
 import { buildRestoreTargetAttributes } from '../../../inputCore/react/historyRestoreTarget';
@@ -84,7 +84,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
   });
 
   it('form-dropdown (ChoiceField)', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })));
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });
     renderField(
       <ChoiceField
         field={enhedField.bind('r1')}
@@ -102,7 +102,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
   });
 
   it('radio (RadioField) — den valgte radio bærer attributterne', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'uger' })));
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'uger' })), { origin: testRowOrigin() });
     renderField(
       <RadioField<TillaegstidEnhed>
         field={enhedField.bind('r1')}
@@ -116,7 +116,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
   });
 
   it('grid tekstcelle (GridAmountCell)', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')));
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     const gridCell: GridCellCoord = { rowId: 'r1', colIndex: 0 };
     const gridStateStore: GridCoreStateStore = {
       subscribe: () => () => undefined,
@@ -145,7 +145,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
   });
 
   it('grid dropdown-celle (GridChoiceCell)', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })));
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });
     const gridCell: GridCellCoord = { rowId: 'r1', colIndex: 1 };
     const gridStateStore: GridCoreStateStore = {
       subscribe: () => () => undefined,

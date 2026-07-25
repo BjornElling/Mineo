@@ -39,6 +39,7 @@ import {
   enhedField,
   makeRow,
   rentekravRowsRef,
+  testRowOrigin,
 } from '../testCatalog';
 
 const key = getCurrentInputEnvelopeStorageKey();
@@ -199,7 +200,7 @@ describe('felt-editor-engine — visning, issues og immediate commit', () => {
 
   it('immediate commit for choice committer straks (§1.3)', () => {
     // opret en række så enhed-feltet findes
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), {});
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     const enhed = enhedField.bind('r1');
     const { command, origin } = immediateCommitCommand(enhed, 'uger', LOC);
     dispatchInput(store, catalog, command, { origin });
@@ -274,7 +275,7 @@ describe('felt-editor-engine — visning, issues og immediate commit', () => {
 
 describe('felt-editor i dynamisk række — placeholder-first-invalid overlever (§1.11)', () => {
   it('første fejlende settle i en ny række promoverer rækken og bevarer den rå tekst', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('row-a')), {});
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('row-a')), { origin: testRowOrigin() });
     const belob = belobField.bind('row-a');
     dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(belob, { locationId: 'grid:belob:row-a' }), deriveSettledFieldView(store.getState().input, belob), store.getState().replacementGeneration), 'ikke-et-beløb')));
 

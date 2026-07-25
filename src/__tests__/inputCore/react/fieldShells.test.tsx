@@ -29,7 +29,7 @@ import {
   type FieldRef,
 } from '../../../inputCore';
 import { insertRow } from '../../../inputCore/inputReducer';
-import { createTestCatalog, aargangField, kommentarerField, enhedField, belobField, makeRow } from '../testCatalog';
+import { createTestCatalog, aargangField, kommentarerField, enhedField, belobField, makeRow, testRowOrigin } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
@@ -91,7 +91,7 @@ describe('Greenfield numeriske presets', () => {
   });
 
   it('AmountField viser "kr."-adornment', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')));
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     renderField(<AmountField field={belobField.bind('r1')} location={{ locationId: 'amt-1' }} name="belob" />);
     expect(screen.getByText('kr.')).toBeInTheDocument();
   });
@@ -123,7 +123,7 @@ describe('Greenfield flerlinjet tekstfelt', () => {
 
 describe('Greenfield immediate-commit control (radio)', () => {
   it('RadioField committer det valgte som setImmediateField', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })));
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });
     renderField(
       <RadioField<TillaegstidEnhed>
         field={enhedField.bind('r1')}
@@ -147,7 +147,7 @@ describe('Greenfield immediate-commit control (radio)', () => {
 
 describe('Greenfield grid-felt', () => {
   it('bevarer den røde feltmarkering, mens grid-cellen er åben', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')));
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobField.bind('r1'), 'ugyldig'));
     const binding = makeBinding();
     const gridCell: GridCellCoord = { rowId: 'r1', colIndex: 0 };

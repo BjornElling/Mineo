@@ -13,7 +13,7 @@ import {
 import { neutralizeIrrelevantEoInputs } from '../helpers/eoInputRelevance';
 import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPresentationSectionBuilders';
 import { buildEoPdfPresentation, buildErstatningsopgoerelsePdfModelFromComputed, type EoPdfPresentation } from './eoPresentationModel';
-import type { MoneyOre } from '../../money/money';
+import { zeroMoneyOre, type MoneyOre } from '../../money/money';
 import type { EoModel } from '../shared/eoTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from '../engines/tafNettoBeregning';
@@ -35,6 +35,7 @@ import {
   buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
   buildTafPerYearUnavailableInvariant,
   buildReaderFieldIssueInvariants,
+  buildStructuralFieldIssueInvariants,
   buildValidationInvariants,
   hasAnyErrorInvariant,
   hasAnyWarningInvariant,
@@ -46,6 +47,7 @@ import { collectSammentaellingControlMismatchMessages } from '../control/eoContr
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
 import { type EoInputIssues, type EoStamdataInputIssues } from '../eoInputIssues';
 import { resolveEoBlockedDependencies, type EoBlockedDependencies } from './eoDependencyGroups';
+import type { FieldIssue } from '../../../inputCore/inputIssue';
 
 export type EoSnapshotComputedData = Readonly<{
   engines: Readonly<{
@@ -78,6 +80,26 @@ export type EoSnapshotComputedData = Readonly<{
   pdfModel: EoModel;
 }>;
 
+/**
+ * En uafhængig grens resultat på den blokerede sti: `undefined` betyder "grenen er blokeret af sin EGEN
+ * røde afhængighed" — ikke "ingen data". Bevidst ikke en diskrimineret union: `undefined` er allerede den
+ * entydige "ikke beregnet"-repræsentation gennem hele EO-snapshottet (jf. `svieSmerteEngine` i
+ * `inspektionSnapshot`), og en parallel wrapper-form ville give to måder at udtrykke det samme.
+ */
+export type EoReadyBranches = Readonly<{
+  /**
+   * S/S-motorens output, når S/S-grenens egne felter er grønne.
+   *
+   * Samme værdi føres OGSÅ ind i `inspektionSnapshot`, som Kontrol-fanen bygger sin visning af — men den
+   * eksponerer den kun gennem sin færdigbyggede model, ikke som et læsbart engine-output. Feltet her er
+   * derfor den ENE typede adgang til "kunne S/S beregnes trods den blokerede sti?", og det er den, gate-
+   * invarianttestene måler S2's før/efter-forlig-adskillelse på.
+   */
+  svieSmerte: SvieSmerteEngineOutput | undefined;
+  /** TAF-periodiseringen, når TAF-grenens egne felter er grønne. Læses af `eoSnapshotToBeregningView`. */
+  tafPerioder: readonly IsoRange[] | undefined;
+}>;
+
 export type EoSnapshot = Readonly<{
   revision: string;
   status: 'ok' | 'warning' | 'error' | 'fail_closed';
@@ -91,6 +113,20 @@ export type EoSnapshot = Readonly<{
    * hvor input ikke engang kunne parses, og der derfor ikke findes grene at udtale sig om.
    */
   blockedDependencies?: EoBlockedDependencies;
+  /**
+   * De UAFHÆNGIGE grenes resultater, som stadig kunne beregnes sikkert, selv om aggregatet er blokeret
+   * (§1.10, WI-004 runde 4, model A).
+   *
+   * Findes KUN på den blokerede sti; på den grønne sti er `data` autoritativ og bærer alt. Formålet er
+   * brugerbeslutning 2: et rødt svie/smerte-felt må ikke fjerne den GYLDIGE TAF-periodisering fra
+   * Beregning-fanen. Fanen læste tidligere udelukkende `data`, som er `null` her, så de gyldige grene
+   * kunne slet ikke nå frem — de levede alene i `inspektionSnapshot`, som Beregning-fanen ikke ser.
+   *
+   * ⚠️ Grenene er IKKE autoritative: de indgår ikke i nogen sum, intet `canonicalOutput` og ingen PDF.
+   * Det krydsgående aggregat forbliver alt-eller-intet (`data: null`), fordi en samlet total eller et
+   * fuldt dokument ikke kan være autoritativt uden alle led.
+   */
+  readyBranches?: EoReadyBranches;
   inspektionSnapshot: EOInspektionSnapshot | null;
   input: Readonly<{
     stamdata: StamdataValues | null;
@@ -101,6 +137,7 @@ export type EoSnapshot = Readonly<{
 
 const EMPTY_STAMDATA_ERRORS: EoStamdataInputIssues = {};
 const EMPTY_EO_ERRORS: EoInputIssues = {};
+const EMPTY_FIELD_ISSUES: readonly FieldIssue[] = Object.freeze([]);
 
 export type EoSnapshotWithData = Readonly<Omit<EoSnapshot, 'data' | 'input'>> & Readonly<{
   data: EoSnapshotComputedData;
@@ -168,6 +205,37 @@ const isAngivetLoenHiddenStateInvalid = (
   );
 };
 
+/**
+ * Neutraliserer S/S-outputtets EFTER-FORLIG-felter, når forligsgrenen er blokeret (WI-004 runde 4, S2).
+ *
+ * `computeSvieSmerteEngine` læser selv forligsgraden (`svieSmerteEngine.ts:234`) og skalerer dagssats,
+ * maksimum og total med faktoren (`:251-254`). En rød forligsprocent maskeres af readeren til `undefined`
+ * og ville derfor blive regnet som "intet forlig", dvs. 100 % — et falsk tal bag en rød feltmarkering.
+ *
+ * Grundlaget består: brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at "før-forlig-resultater består".
+ * Vi nulstiller derfor KUN de skalerede felter og lader `satserPerDagFoerForligOre`/`satserMaxFoerForligOre`,
+ * dagene og de indtastede beløb stå. `totalOre` er skaleret og bliver `null`-ækvivalenten nul, fordi typen
+ * ikke er nullable — consumeren læser `forligFactor === null` sammen med `blockedDependencies.forlig`.
+ *
+ * ⚠️ Motorens egen operationsrækkefølge er UÆNDRET (§5.4): vi rører ikke beregningen, kun hvilke af dens
+ * allerede beregnede felter der surfaces. Der beregnes intet nyt her.
+ */
+const withForligGate = (
+  output: SvieSmerteEngineOutput,
+  forligBlocked: boolean
+): SvieSmerteEngineOutput => forligBlocked
+  ? Object.freeze({
+    ...output,
+    satserPerDagOre: null,
+    satserMaxOre: null,
+    forligLabel: null,
+    forligSatserSuffix: null,
+    forligFactor: null,
+    totalOre: zeroMoneyOre(),
+    maxApplied: false,
+  })
+  : output;
+
 export const computeEoSnapshot = (args: Readonly<{
   revision: string;
   stamdataValues: unknown;
@@ -175,6 +243,23 @@ export const computeEoSnapshot = (args: Readonly<{
   dagsDatoISO?: ISODateString;
   stamdataErrors?: EoStamdataInputIssues;
   eoErrors?: EoInputIssues;
+  /**
+   * De STRUKTURELLE røde feltissues fra readerens issue-snapshot — autoriteten for dependency-gatingen
+   * (§1.10, WI-004 runde 4). Bevidst IKKE udledt af `eoErrors`: det map indeholder kun 11 top-level
+   * feltnavne plus `${afId}:loenindkomst`-aggregatet, så en rød RÆKKE-celle (svie/smerte-periode,
+   * TAF-periode, ferie-/fraværsdato) ville være usynlig for gaten og motoren ville regne på readerens
+   * maskerede tomværdi. `resolveEoBlockedDependencies` matcher på adressens struktur.
+   *
+   * Kun EO-sektionens issues hører hertil; stamdata-issues gør snapshottet globalt blokerende gennem
+   * `buildReaderFieldIssueInvariants` og har ingen egen beregningsgren.
+   */
+  eoFieldIssues?: readonly FieldIssue[];
+  /**
+   * De strukturelle røde feltissues i STAMDATA-sektionen. Nødvendige for dependency-gatingen, fordi
+   * `stamdata.skadedato` er en KLIPNINGSGRÆNSE for både TAF-periodiseringen og svie/smerte-perioderne
+   * (WI-004 runde 4, re-review T2). En rød skadedato må ikke give en uklampet gren i `readyBranches`.
+   */
+  stamdataFieldIssues?: readonly FieldIssue[];
   /**
    * Optional EET-import-source. Bruges udelukkende, når toggle
    * `midlertidigtEetFraEetSiden === 'Ja'`, til at injicere virtuelle midlertidigt
@@ -187,6 +272,8 @@ export const computeEoSnapshot = (args: Readonly<{
   const dagsDatoISO = args.dagsDatoISO ?? TODAY;
   const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
   const eoErrors = args.eoErrors ?? EMPTY_EO_ERRORS;
+  const eoFieldIssues = args.eoFieldIssues ?? EMPTY_FIELD_ISSUES;
+  const stamdataFieldIssues = args.stamdataFieldIssues ?? EMPTY_FIELD_ISSUES;
   const parsedStamdata = stamdataSchema.safeParse(args.stamdataValues);
   const parsedEo = erstatningsopgoerelseSchema.safeParse(args.eoValues);
 
@@ -284,8 +371,12 @@ export const computeEoSnapshot = (args: Readonly<{
     ...midlertidigtEetSourceInvariants,
     // F2: readerens røde feltfejl er BLOKERENDE afhængigheder, ikke kun inspektionsdata. Uden dem ville
     // motorerne nedenfor køre på readerens maskerede tomværdier og producere falske tal (fx en forligsprocent
-    // på 150 regnet som 100 %). Se `buildReaderFieldIssueInvariants`.
-    ...buildReaderFieldIssueInvariants(eoErrors, 'eo'),
+    // på 150 regnet som 100 %).
+    //
+    // EO-sektionen går gennem de STRUKTURELLE issues (fund S3): `eoErrors` er en præsentations-projektion med
+    // kun 11 top-level feltnavne, så en rød RÆKKECELLE ville hverken blokere beregningen eller sin egen gren.
+    ...buildStructuralFieldIssueInvariants(eoFieldIssues),
+    // Stamdatas fejl-map ÉR det fulde sæt for sin sektion og har ingen egen beregningsgren.
     ...buildReaderFieldIssueInvariants(stamdataErrors, 'stamdata'),
   ];
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
@@ -308,16 +399,24 @@ export const computeEoSnapshot = (args: Readonly<{
     //
     // Gaten er DEPENDENCY-SPECIFIK (§1.10, `eoDependencyGroups.ts`): en rød TAF-afhængighed rører ikke
     // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
-    const blockedDependencies = resolveEoBlockedDependencies(eoErrors);
+    // Autoriteten er de STRUKTURELLE feltissues, ikke `eoErrors`-mappet: sidstnævnte kender kun 11
+    // top-level feltnavne, så en rød rækkecelle ville være usynlig her (WI-004 runde 4, fund S3).
+    const blockedDependencies = resolveEoBlockedDependencies(eoFieldIssues, stamdataFieldIssues);
+    // Forligsgraden skalerer S/S-satserne (`svieSmerteEngine.ts:234-254`), så en rød forligsprocent er en
+    // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: brugerbeslutning 1 kræver, at
+    // før-forlig-resultater består (WI-004 runde 4, fund S2).
     const svieSmerteForInspektion = blockedDependencies.svieSmerte
       ? undefined
-      : computeSvieSmerteEngine({
-        erstatningsopgoerelse: effectiveEoValues,
-        stamdata: {
-          skadedato: parsedStamdata.data.skadedato,
-          skadestype: parsedStamdata.data.skadestype,
-        },
-      });
+      : withForligGate(
+        computeSvieSmerteEngine({
+          erstatningsopgoerelse: effectiveEoValues,
+          stamdata: {
+            skadedato: parsedStamdata.data.skadedato,
+            skadestype: parsedStamdata.data.skadestype,
+          },
+        }),
+        blockedDependencies.forlig
+      );
     // TAF-ranges er periodiseringen, ikke en beløbsberegning, men den læser TAF-grenens datofelter: en rød
     // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (brugerbeslutning 2 kræver
     // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl — ikke at en ugyldig vises).
@@ -343,6 +442,13 @@ export const computeEoSnapshot = (args: Readonly<{
       // dér brugerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
       data: null,
       blockedDependencies,
+      // Brugerbeslutning 2 realiseres HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
+      // udelukkende snapshottet og skal fortsat kunne vise den gyldige TAF-periodisering, når et
+      // svie/smerte-felt er rødt (WI-004 runde 4, fund S1).
+      readyBranches: Object.freeze({
+        svieSmerte: svieSmerteForInspektion,
+        tafPerioder: tafRangesForInspektion,
+      }),
       inspektionSnapshot: inspektionSnapshotForValidationError,
       input: {
         stamdata: parsedStamdata.data,
@@ -486,7 +592,7 @@ export const computeEoSnapshot = (args: Readonly<{
       data,
       // Ingen gren er blokeret her: vi nåede kun hertil, fordi ingen invariant blokerede den autoritative
       // beregning. Feltet sættes eksplicit, så consumers ser samme form på begge veje.
-      blockedDependencies: resolveEoBlockedDependencies(eoErrors),
+      blockedDependencies: resolveEoBlockedDependencies(eoFieldIssues, stamdataFieldIssues),
       inspektionSnapshot,
       input: {
         stamdata: parsedStamdata.data,

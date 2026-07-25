@@ -51,11 +51,68 @@ export type SettleFieldInNewRowCommand<TEntity, TField> = Readonly<{
 
 export type InputTransactionStep = Readonly<{
   reduce: (input: SettledInput, catalog: InputCatalog) => SettledInput;
+  /**
+   * Er trinnet en STRUKTUREL rækkeændring (§3.7, WI-004 runde 4, fund S4)?
+   *
+   * Trinnet pakker sin command ind i en closure, så dispatch-porten ellers ikke kan se, at transaktionen
+   * indeholder fx en `deleteRow`. Uden klassifikationen kunne en strukturel transaktion sendes helt uden
+   * origin, og undo/redo kunne dermed gendanne en række, brugeren ikke kan navigere til.
+   */
+  structural: boolean;
 }>;
-export type InputTransactionCommand = Readonly<{
+/**
+ * En transaktion, hvis trin ALLE er feltændringer. Type-synligt adskilt fra den strukturelle variant, så
+ * dispatch-porten kan kræve en destination for den ene og ikke for den anden — uden at skulle se ind i
+ * trinnenes closures.
+ */
+export type FieldTransactionCommand = Readonly<{
   kind: 'transaction';
+  structural: false;
   steps: readonly InputTransactionStep[];
 }>;
+
+/** En transaktion med mindst ét strukturelt rækketrin. Kræver `CollectionHistoryOrigin` ved dispatch. */
+export type StructuralTransactionCommand = Readonly<{
+  kind: 'structuralTransaction';
+  structural: true;
+  steps: readonly InputTransactionStep[];
+}>;
+
+export type InputTransactionCommand = FieldTransactionCommand | StructuralTransactionCommand;
+
+/**
+ * De commandarter, der ændrer en collections RÆKKESTRUKTUR og derfor kræver en navigerbar destination.
+ *
+ * Sættet er udledt af de faktiske commandtyper, så en ny strukturel commandart ikke kan tilføjes uden at
+ * blive optaget her: `satisfies` kræver, at hver eneste struktur-command-`kind` er repræsenteret, og
+ * `StructuralCommandKind` i `dispatchInput.ts` afledes af denne konstant.
+ */
+const STRUCTURAL_KIND_SET = {
+  insertRow: true,
+  deleteRow: true,
+  reorderRows: true,
+  settleFieldInNewRow: true,
+  structuralTransaction: true,
+} as const satisfies Record<
+  InsertRowCommand<unknown>['kind']
+  | DeleteRowCommand['kind']
+  | ReorderRowsCommand['kind']
+  | SettleFieldInNewRowCommand<unknown, unknown>['kind']
+  | StructuralTransactionCommand['kind'],
+  true
+>;
+
+/** Diskriminatoren for en strukturel rækkecommand. Den ENE sandhed; dispatch-porten typer sig efter den. */
+export type StructuralCommandKind = keyof typeof STRUCTURAL_KIND_SET;
+
+export const STRUCTURAL_COMMAND_KINDS: readonly string[] = Object.freeze(Object.keys(STRUCTURAL_KIND_SET));
+
+/**
+ * Er denne command en strukturel rækkeændring? Læser KUN diskriminatoren, så en løs parametertype undgår
+ * den contravariante generiske variansfælde (samme mønster som `isAuthoritativeReplacement`).
+ */
+export const isStructuralInputCommand = (command: Readonly<{ kind: string }>): boolean =>
+  STRUCTURAL_COMMAND_KINDS.includes(command.kind);
 
 export type ResetSectionCommand = {
   [K in SectionKey]: Readonly<{ kind: 'resetSection'; section: K; value: PersistedInputSections[K] }>;
@@ -107,12 +164,47 @@ export const inputTransactionStep = <TField, TEntity>(
   command: InputSurfaceCommand<TField, TEntity>
 ): InputTransactionStep => Object.freeze({
   reduce: (input, catalog) => reduceInputCommand(input, command, catalog).input,
+  // Klassifikationen udledes HER, hvor commanden endnu er synlig — derefter er den lukket inde i `reduce`.
+  structural: isStructuralInputCommand(command),
 });
+/**
+ * Bygger en transaktion af RENE FELTTRIN. Kaster, hvis et trin er strukturelt (§3.7, WI-004 runde 4, S4).
+ *
+ * Adskillelsen i to konstruktører er bevidst: dispatch-porten skal kunne kræve en navigerbar destination for
+ * en transaktion med rækkeændringer, og TYPEN skal kunne se forskellen. Ville `inputTransaction` derimod
+ * returnere unionen af de to arter, ville en betinget origin-tuple opløses til unionen af begge arme, og
+ * kravet ville forsvinde — præcis det hul fund S4 beskrev i overload-varianten.
+ */
 export const inputTransaction = (
   steps: readonly InputTransactionStep[]
-): InputTransactionCommand => {
+): FieldTransactionCommand => {
   if (steps.length === 0) throw new Error('InputReducer: en inputtransaktion skal indeholde mindst ét trin');
-  return Object.freeze({ kind: 'transaction', steps: Object.freeze([...steps]) });
+  if (steps.some((step) => step.structural)) {
+    throw new Error(
+      'InputReducer: en transaktion med rækkeændringer skal bygges med `structuralInputTransaction`, '
+      + 'så dispatch-porten kan kræve en navigerbar destination til undo/redo (§3.7).'
+    );
+  }
+  return Object.freeze({ kind: 'transaction', structural: false, steps: Object.freeze([...steps]) });
+};
+
+/**
+ * Bygger en transaktion, der indeholder mindst én RÆKKEÆNDRING. Dispatch kræver `CollectionHistoryOrigin`.
+ *
+ * Kaster, hvis intet trin er strukturelt: så skulle `inputTransaction` have været brugt, og en overflødig
+ * origin ville foregøgle en navigation, der ikke svarer til nogen rækkehandling.
+ */
+export const structuralInputTransaction = (
+  steps: readonly InputTransactionStep[]
+): StructuralTransactionCommand => {
+  if (steps.length === 0) throw new Error('InputReducer: en inputtransaktion skal indeholde mindst ét trin');
+  if (!steps.some((step) => step.structural)) {
+    throw new Error(
+      'InputReducer: `structuralInputTransaction` kræver mindst ét rækketrin; brug `inputTransaction` til '
+      + 'en ren felttransaktion.'
+    );
+  }
+  return Object.freeze({ kind: 'structuralTransaction', structural: true, steps: Object.freeze([...steps]) });
 };
 export const resetSection = <K extends SectionKey>(
   section: K,
@@ -274,9 +366,12 @@ const buildCandidate = <TField, TEntity>(
       };
       return reduceSettle(inserted, command.field, command.raw, catalog);
     }
-    case 'transaction': {
+    case 'transaction':
+    case 'structuralTransaction': {
       // Flere felt-/rækkeændringer fra én eksplicit brugerhandling skal være ét observerbart revision-/undo-trin.
       // Hvert mellemtrin valideres, men ingen mellemtilstand forlader den rene reducer.
+      // De to arter reduceres IDENTISK; adskillelsen findes kun, så dispatch-porten kan kræve en navigerbar
+      // destination for den strukturelle variant (§3.7).
       let candidate = input;
       for (const step of command.steps) {
         candidate = step.reduce(candidate, catalog);

@@ -16,7 +16,14 @@ import { GridAmountCell, GridChoiceCell } from '../../../inputCore/react/fields'
 import { createInputEvaluation, createValidationReader } from '../../../inputCore/inputReader';
 import { insertRow } from '../../../inputCore/inputReducer';
 import { createEvaluationSourceToken, type FieldRef, type InputCatalog } from '../../../inputCore';
-import { createTestCatalog, belobField, enhedField, rentekravRowsRef, makeRow } from '../../inputCore/testCatalog';
+import {
+  createTestCatalog,
+  belobField,
+  enhedField,
+  rentekravRowsRef,
+  makeRow,
+  testRowOrigin,
+} from '../../inputCore/testCatalog';
 import { useGridCoreController } from '../../../components/tables/useGridCoreController';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import {
@@ -116,7 +123,12 @@ const GridHarness: React.FC = () => {
 };
 
 const renderGrid = () => {
-  dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { belob: undefined, enhed: 'dage' })));
+  dispatchInput(
+    store,
+    catalog,
+    insertRow(rentekravRowsRef(), makeRow('r1', { belob: undefined, enhed: 'dage' })),
+    { origin: testRowOrigin() }
+  );
   return render(
     <InputRuntimeProvider binding={makeBinding()}>
       <GridHarness />

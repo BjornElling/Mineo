@@ -5,6 +5,7 @@ import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
 import { eoIssueBlocksDependents, type EoInputIssues } from '../eoInputIssues';
+import type { FieldIssue } from '../../../inputCore/inputIssue';
 
 export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
 
@@ -66,6 +67,10 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
  *
  * `eoIssueBlocksDependents` afgør, hvad der blokerer — inklusive `bounds`, jf. `error-contract.md` §1.1's
  * normative matrix: en bounds-værdi må GEMMES, men må ikke fodre en motor.
+ *
+ * ⚠️ For EO-sektionen er `buildStructuralFieldIssueInvariants` den fuldstændige vej: `eoErrors` er en
+ * PRÆSENTATIONS-projektion med kun 11 top-level feltnavne og kan derfor ikke se en rød rækkecelle
+ * (WI-004 runde 4, fund S3). Denne funktion bruges fortsat til STAMDATA, hvis fejl-map ér det fulde sæt.
  */
 export const buildReaderFieldIssueInvariants = (
   issues: EoInputIssues,
@@ -90,6 +95,36 @@ export const buildReaderFieldIssueInvariants = (
   }
   return invariants;
 };
+
+/**
+ * De STRUKTURELLE røde feltissues som blokerende invarianter (WI-004 runde 4, fund S3).
+ *
+ * Dette er EO-sektionens fuldstændige reader-fejl-vej. `buildReaderFieldIssueInvariants` over `eoErrors`
+ * dækkede kun 11 top-level feltnavne, så en rød RÆKKECELLE (svie/smerte-periode, TAF-periode,
+ * ferie-/fraværsdato, lønudviklingscelle) hverken blokerede den autoritative beregning eller sin egen gren:
+ * motoren regnede videre på readerens maskerede tomværdi.
+ *
+ * Invariant-id'et bærer descriptor-id + de entity-id'er, adressen indeholder, så to røde celler i SAMME
+ * collection giver to forskellige invarianter (issue-snapshottet har højst ét aktivt issue pr. adresse,
+ * §1.8, så id'et er entydigt).
+ */
+export const buildStructuralFieldIssueInvariants = (
+  issues: readonly FieldIssue[]
+): readonly EoInvariant[] => issues.map((issue) => {
+  const entityIds = issue.field.address.path.flatMap((segment) =>
+    segment.kind === 'entity' ? [segment.entityId] : []);
+  const suffix = entityIds.length > 0 ? `#${entityIds.join('.')}` : '';
+  return {
+    id: `reader_field:${issue.field.descriptor.id}${suffix}`,
+    passed: false,
+    severity: 'error' as const,
+    source: 'validation' as const,
+    message: issue.message,
+    evidence: [issue.field.descriptor.id],
+    blocksAuthoritativeComputation: true,
+    blocksOutputs: VALIDATION_BLOCKED_OUTPUTS,
+  };
+});
 
 export const buildMidlertidigtEetSourceInvariants = (
   issues: readonly EetIssue[]

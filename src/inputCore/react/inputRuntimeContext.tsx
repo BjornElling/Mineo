@@ -6,7 +6,11 @@ import { sourceTokensEqual, type EvaluationSourceToken, type InputRevision } fro
 import { captureStableInput } from '../runtime/evaluationSourceBinding';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import type { InputEvaluation } from '../inputReader';
-import { dispatchInput, type DispatchInputResult } from '../runtime/dispatchInput';
+import {
+  dispatchInput,
+  type DispatchInputResult,
+  type StructuralCommandKind,
+} from '../runtime/dispatchInput';
 import type {
   ClearCaseCommand,
   InputSurfaceCommand,
@@ -17,6 +21,24 @@ import type { HistoryOrigin } from '../inputHistory';
 import type { SlimInputStore } from '../runtime/slimInputStore';
 import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
 import { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator';
+
+/**
+ * Origin-argumentet som en BETINGET tuple (§3.7, WI-004 runde 4, fund S4).
+ *
+ * En strukturel rækkecommand kræver en origin — argumentet er obligatorisk. Alt andet beholder det valgfrie.
+ * ARTEN er fri: en brugerudløst rækkehandling giver `CollectionHistoryOrigin`, mens en række-promovering via
+ * celle-commit giver `FieldHistoryOrigin`, så undo fokuserer den celle, brugeren skrev i (§3.8).
+ *
+ * To fælder er bevidst undgået:
+ * - En OVERLOAD duer ikke: `InputSurfaceCommand` er en union, så TypeScript matcher `inputTransaction(...)`
+ *   mod den permissive overload og lader origin falde bort — præcis hullet fund S4 beskrev.
+ * - At generificere over hele COMMANDEN duer heller ikke: `FieldRef<T>` er invariant, så en `TCommand extends
+ *   InputSurfaceCommand<TField, TEntity>`-constraint bryder inferensen for felt-commands. Vi generificerer
+ *   derfor kun over DISKRIMINATOREN, som er en ren strengunion.
+ */
+type OriginArgs<TKind extends string> = TKind extends StructuralCommandKind
+  ? [origin: HistoryOrigin]
+  : [origin?: HistoryOrigin];
 
 // Greenfield-React (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Til forskel fra den legacy
 // `FormPersistenceContext` eksponerer den hverken rå sektioner, `invalidDrafts`, `fieldErrors` eller skrivbare
@@ -52,10 +74,16 @@ export type InputRuntimeBinding = Readonly<{
   getIssues: () => FieldIssueSnapshot;
   /** Offentlig, tokenbundet reader til projektioner; rå sections forlader aldrig runtimebindingen. */
   getEvaluation: () => InputEvaluation;
-  /** Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands. */
-  dispatch: <TField, TEntity>(
-    command: InputSurfaceCommand<TField, TEntity>,
-    origin?: HistoryOrigin
+  /**
+   * Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands.
+   *
+   * En STRUKTUREL rækkecommand (insert/delete/reorder/settle-i-ny-række samt en strukturel transaktion)
+   * kræver en origin — ellers kunne undo/redo gendanne en række uden noget restore-anker (§3.7, WI-004 runde
+   * 4, fund S4). ARTEN er fri; se `OriginArgs`. `dispatchInput` håndhæver kravet også på runtime.
+   */
+  dispatch: <TField, TEntity, TKind extends InputSurfaceCommand<TField, TEntity>['kind']>(
+    command: InputSurfaceCommand<TField, TEntity> & { kind: TKind },
+    ...origin: OriginArgs<TKind>
   ) => DispatchInputResult;
   /**
    * System-reset af én sektion (§3.6). Adskilt fra `dispatch`, så en form-/grid-CELLE ikke kan udstede en
@@ -136,7 +164,11 @@ export const createInputRuntimeBinding = (
     // rene issueprojektion, så en leverandør, der bygger et nyt wrapperobjekt pr. kald, normaliseres her.
     getIssues: getStableIssues,
     getEvaluation,
-    dispatch: (command, origin) => dispatchInput(store, catalog, command, origin === undefined ? {} : { origin }),
+    // Implementeringen tager den brede form; det er SIGNATUREN i `InputRuntimeBinding` der håndhæver den
+    // betingede origin-tuple over for kalderne, og `dispatchInput`s eget runtime-værn der fanger et cast.
+    dispatch: ((command: InputSurfaceCommand, origin?: HistoryOrigin) =>
+      dispatchInput(store, catalog, command, origin === undefined ? {} : { origin })
+    ) as InputRuntimeBinding['dispatch'],
     resetSection: (command) => dispatchInput(store, catalog, command),
     replaceCase: (command) => dispatchInput(store, catalog, command),
     history: Object.freeze({

@@ -16,11 +16,12 @@ export const MAX_INPUT_HISTORY_STEPS = 50;
  * intet felt at fokusere — uden destination ville dens undo gendanne data og efterlade brugeren på en
  * vilkårlig side. Derfor kræver `CollectionHistoryOrigin` nedenfor destinationen (§3.7).
  */
-type OriginDestination = Readonly<{
-  editorLocationId: string;
-  route?: string;
-  tabKey?: string | null;
-}>;
+type OriginDestination =
+  // ALT-eller-INTET: en `tabKey` uden `route` er lydløst inert, fordi restoren kun aktiverer fanen inde i
+  // `route !== undefined`-grenen (`MainLayout`). Unionen gør den inkohærens urepræsenterbar i stedet for at
+  // lade et runtime-værn fange den bagefter.
+  | Readonly<{ editorLocationId: string; route: string; tabKey: string | null }>
+  | Readonly<{ editorLocationId: string; route?: undefined; tabKey?: undefined }>;
 
 /** Destination der ER påkrævet: `tabKey: null` udtrykker eksplicit "siden har ingen faner". */
 type RequiredOriginDestination = Readonly<{

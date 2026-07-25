@@ -684,12 +684,22 @@ export const buildErstatningsopgoerelseReaderProjection = (
       )
       : undefined;
 
+  // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen (§1.10, WI-004 runde 4).
+  // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
+  // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
+  const eoFieldIssues = reader.fieldIssues.all.filter((issue) => issue.field.address.section === 'erstatningsopgoerelse');
+  // Stamdata-issues indgår også: `skadedato` er en klipningsgrænse for BÅDE TAF-periodiseringen og
+  // svie/smerte-perioderne, så en rød skadedato må ikke give en uklampet gren (runde 4, re-review T2).
+  const stamdataFieldIssues = reader.fieldIssues.all.filter((issue) => issue.field.address.section === 'stamdata');
+
   const snapshot = computeEoSnapshot({
     revision: options?.revision ?? `input-${String(reader.sourceToken.inputRevision)}-settings-${String(reader.sourceToken.settingsRevision)}`,
     stamdataValues,
     eoValues,
     stamdataErrors,
     eoErrors,
+    eoFieldIssues,
+    stamdataFieldIssues,
     ...(midlertidigtEetImportContext === undefined ? {} : { midlertidigtEetImportContext }),
   });
 

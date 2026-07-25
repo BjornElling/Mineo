@@ -36,6 +36,7 @@ import {
   enhedField,
   rentekravRowsRef,
   makeRow,
+  testRowOrigin,
 } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
@@ -103,8 +104,8 @@ const TEST_ROW_ORIGIN = { locationId: 'test.rentekrav', route: '/renteberegning'
 
 describe('useCollectionRows — §3.8 rækkeinfrastruktur', () => {
   it('lister aktuelle entity-id\'er fra den afsluttede revision', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')));
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')));
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { origin: testRowOrigin() });
     const binding = makeBinding();
     const { result } = renderHook(() => useCollectionRows(rentekravRowsRef(), TEST_ROW_ORIGIN), { wrapper: wrapper(binding) });
     expect(result.current.rowIds).toEqual(['r1', 'r2']);
@@ -126,7 +127,7 @@ describe('useCollectionRows — §3.8 rækkeinfrastruktur', () => {
   });
 
   it('row-delete fjerner rækkens rejected descendants atomisk (§3.8)', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')));
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobRef('r1'), 'abc')); // rejected råtekst i cellen
     expect(rejectedRaw(belobRef('r1'))).toBe('abc');
 
@@ -145,7 +146,7 @@ const renderCell = <T,>(cell: CellSpec<T, unknown>, binding: InputRuntimeBinding
 
 describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formularfelt)', () => {
   it('gyldigt settle skriver cellens canonical værdi', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')));
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     const binding = makeBinding();
     const { result } = renderCell<import('../../../schemas/amountExpressionSchema').AmountValue | undefined>(
       { kind: 'existing', field: belobRef('r1'), location: { locationId: 'r1:belob' } },
@@ -160,7 +161,7 @@ describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formul
   });
 
   it('ugyldigt settle rydder canonical og skriver rejected råtekst (§1.5)', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { belob: undefined })));
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { belob: undefined })), { origin: testRowOrigin() });
     const binding = makeBinding();
     const { result } = renderCell(
       { kind: 'existing', field: belobRef('r1'), location: { locationId: 'r1:belob' } },
@@ -175,7 +176,7 @@ describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formul
   });
 
   it('viser cellens røde issue fra revisionen uændret under redigering (§1.8)', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')));
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     issues = [Object.freeze({
       kind: 'field', code: 'r1.belob.bounds', severity: 'error', field: toAnyFieldRef(belobRef('r1')),
       reason: 'bounds', message: 'beløb uden for interval',
@@ -320,7 +321,7 @@ describe('grid-adapter — §7.2 statekæde: række med fejl → slet række →
 describe('grid-adapter — irrelevant-felt-oprydning ved styrende valg (§1.9/§3.6)', () => {
   it('promoverer en række og bevarer at tillaegstid er relevant, når enhed ≠ uger', () => {
     // Sanity: enhedField default 'dage' → tillaegstid relevant. Vi verificerer at cellen kan skrives.
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { enhed: 'dage' })));
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });
     const binding = makeBinding();
     const { result } = renderCell(
       { kind: 'existing', field: tillaegstidField.bind('r1'), location: { locationId: 'r1:tillaegstid' } },

@@ -33,6 +33,11 @@ blivende håndhævelseslag".
 3. Behold det navnebaserede deleted-symbol-værn ved siden af — det er billigt og fanger den konkrete
    genindførelse hurtigt og med en præcis fejlbesked.
 
+## Relaterede
+
+- `WI-006` (`invalidDraft`-navneoprydning) er den ANDEN rest udskilt fra WI-004. Den er obligatorisk før
+  Fase 0–4 erklæres endeligt lukket; denne WI hører derimod til Fase 6 og har ingen indbyrdes afhængighed.
+
 ## Invarianter
 
 - Et ansvarsbaseret værn må ikke blokere de dokumenterede undtagelser: `components/inputs/transient/` (tre

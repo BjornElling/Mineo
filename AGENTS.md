@@ -17,6 +17,11 @@ udtrykkelig brugerbeslutning:
 - Claude Code bruger **kun Opus** i Mineo. Sonnet må aldrig bruges.
 - Codex bruger **kun Sol eller Terra**. Luna må aldrig bruges.
 - Når Terra bruges, er reasoning-effort **altid `high`**. Terra må aldrig køres med `low` eller `medium`.
+- **Arbejdsdelingen:** Claude Code står for al planlægning, kortlægning og alle design- og
+  procesbeslutninger (Opus/high) samt implementeringen (Opus/medium). Codex bruges read-only som
+  uafhængig reviewer — sol/medium som standard, sol/high ved trust-kritisk arbejde eller scope der
+  har været forsøgt løst forgæves før. Greenfield-arbejdsgangen bruger derfor ikke Terra;
+  Terra-reglen ovenfor gælder fortsat, hvis Terra bruges uden for den.
 
 ## Roller
 To udviklere: dig (agenten) og brugeren. Ingen andre.
@@ -120,7 +125,7 @@ Brug det mest restriktive niveau, der dækker behovet:
 | **Rediger** | Felt-editorfacade med `FieldRef` og typed commands | Formular- og tabeloverflader; ingen rå sektionswrites |
 | **System** | Autoritativ transaction/replace-port | Kun input-, persistence-, load/reset- og history-infrastruktur |
 
-Kun inputinfrastrukturen må se aggregatets rå `sections` og rejected-input-map. `FormPersistenceContext`, sektionsselectors, `usePersistedForm`, `invalidDrafts`-/`fieldErrors`-API'er og de tre nuværende draft-hooks er migrationskode; de må ikke bruges som ny arkitektur eller udvides under migrationen.
+Kun inputinfrastrukturen må se aggregatets rå `sections` og rejected-input-map. `FormPersistenceContext`, sektionsselectors, `usePersistedForm`, `invalidDrafts`-/`fieldErrors`-API'erne og draft-hookene er SLETTET (2026-07-25) og må ikke genindføres — hverken under de gamle navne eller som en ny parallel inputmodel. Et AST-værn håndhæver det.
 
 ## Validering og fejl-UI
 - Ugyldigt input: rød kant + tooltip ved hover. Ingen inline-valideringstekst under felter.

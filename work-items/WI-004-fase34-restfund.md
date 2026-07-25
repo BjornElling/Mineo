@@ -1,8 +1,10 @@
 # WI-004: Luk de resterende Fase 3+4/undo-redo-fund endegyldigt
 
-- **Status:** `review` — alt implementeret inkl. runde 1's seks fund (R1–R6); alle fire gates + fuld suite
-  grønne. **Afventer et AFSLUTTENDE uafhængigt review:** runde 2 blev afbrudt uden konklusion, så R1–R6's
-  lukning er ikke eksternt bekræftet. WI'en lukkes først derefter.
+- **Status:** `afsluttet` (2026-07-25) — alle fund fra **fire** eksterne reviewrunder er implementeret og
+  dokumenteret: runde 1's R1–R6, slutreviewets S1–S6 (hvoraf R1 og R4 viste sig IKKE lukket), samt
+  re-reviewenes T1–T3 og U1–U3. Fire gates + fuld suite grønne (484 filer / 6094 tests).
+  **Udskilt som selvstændige WI'er:** `WI-005` (ansvarsbaserede arkitekturværn, Fase 6) og `WI-006`
+  (`invalidDraft`-navneoprydning — **obligatorisk før Fase 0–4 erklæres endeligt lukket**).
 - **Oprettet:** 2026-07-25
 - **Slice/scope:** Greenfield draft/commit — restfundene fra det opfølgende Codex sol/high-review
   (`docs/reviews/codex-fase34-followup.md`): F2 (Forsørgertab/EET/EO kalder motorer uden strukturel
@@ -102,14 +104,16 @@ aktivere en fallback (EAL→ASL i både forsørgertab og EET).
 
 ## Acceptance criteria
 
-- [ ] Forsørgertab, EET og EO kalder aldrig deres beregningsmotor, når en afhængighed er rød —
+- [x] Forsørgertab, EET og EO kalder aldrig deres beregningsmotor, når en afhængighed er rød —
       bevist med test pr. slice, ikke kun ved kodelæsning.
-- [ ] Dependency-specifik opdeling bevaret: test viser at ét rødt felt blokerer sin egen del og
-      bevarer de uafhængige dele.
-- [ ] `resolveFieldAddressDestination` returnerer korrekt fane for `eoBilagSelection` og for EET's
+- [x] Dependency-specifik opdeling bevaret: test viser at ét rødt felt blokerer sin egen del og
+      bevarer de uafhængige dele. **Skærpet i runde 4:** testen asserterer det FAKTISKE output (byte-identisk
+      periodisering, der faktisk når view-modellen), ikke kun en boolean — en boolean-assertion bestod med
+      den globale gate. Mutationstestet.
+- [x] `resolveFieldAddressDestination` returnerer korrekt fane for `eoBilagSelection` og for EET's
       Differencekrav-felter; en completeness-test dækker alle aktive editorlokationer.
-- [ ] Dækningshullerne fra followup §"Mistet testdækning" er lukket eller eksplicit afvist med evidens.
-- [ ] Alle fire gates grønne + fuld suite grøn.
+- [x] Dækningshullerne fra followup §"Mistet testdækning" er lukket eller eksplicit afvist med evidens.
+- [x] Alle fire gates grønne + fuld suite grøn (484 filer / 6109 tests).
 
 ## Godkendelsesgate
 
@@ -334,6 +338,122 @@ grøn: **485 filer / 6008 tests** (fra 484/5973 ved rundens start; +35 nye tests
 gennemført. Første forsøg fejlede på en OpenAI-udfald (503 `biscuit_baker_service_me_circuit_open`), og
 `codex review --uncommitted` afviser desuden at modtage en prompt (brug `codex exec -s read-only` med
 diffens filer i stedet). Status forbliver derfor `review`.
+
+## Runde 4 (2026-07-25) — det afsluttende slutreview blev endelig gennemført
+
+Codex sol/high reviewede commit `8d3946ed` (read-only `codex exec` mod commitdiffen, fordi
+`codex review --uncommitted` ikke kan se committet arbejde). **Seks fund, tre kritiske — alle verificeret
+mod koden af mig og bekræftet.** R1 og R4 var IKKE lukket, og C2 kun delvist.
+
+| # | Fund og evidens (egen verifikation i parentes) | Alvor | Disposition |
+|---|---|---|---|
+| S1 | **R1 ikke lukket — EO er fortsat globalt atomisk.** `data` kræver alle motorresultater samlet (`eoSnapshot.ts:50-79`), og fejl-grenen returnerer `data: null` (`:344`). Beregning-visningen læser KUN `snapshot.data` (`eoSnapshotToBeregningView.ts:16-17`) — den ser ALDRIG `inspektionSnapshot`. Brugerbeslutning 2 er derfor **ikke** opfyldt: et rødt S/S-felt fjerner stadig den gyldige TAF-visning på Beregning-fanen. Den nye test tjekker kun booleanen `blockedDependencies.taf === false`, ikke at TAF-outputtet bevares — den består med den globale gate. *(Verificeret: begge filreferencer er korrekte.)* | **Kritisk** | bekræftet |
+| S2 | **Forlig er fejlklassificeret som uafhængig af S/S.** `svieSmerteEngine` kalder SELV `parseForligsgrad` (`svieSmerteEngine.ts:234`) og skalerer både dagssats, maksimum og total med faktoren (`:251-254`). `FORLIG_GROUP` antager uafhængighed, så fejl-grenen kalder S/S-motoren med en maskeret ugyldig forligsprocent — regnet som "intet forlig", dvs. 100 %. *(Verificeret: import på `:18`, brug på `:234-254`.)* | **Kritisk** | bekræftet |
+| S3 | **Dependency-grupperne kan ikke se de røde input, motorerne læser.** `eoErrors` indeholder KUN 11 top-level-nøgler (`erstatningsopgoerelseReaderProjection.ts:599-611`) + `${afId}:loenindkomst` (`:663-675`). Røde RÆKKE-celler (`rebuildSvieSmerteRow`, `rebuildTafPeriodeRow`, ferie-/fraværsceller) maskeres af `readOrEmpty` og når ALDRIG `eoErrors`. Derfor er `keyFragments: ['svieSmertePerioder']` og `['tafPerioder']` **død kode** — de kan aldrig matche en produktionsnøgle. `stamdataErrors` har samme hul: de gør invarianten globalt rød, men indgår slet ikke i `resolveEoBlockedDependencies` (`eoSnapshot.ts:311`). *(Verificeret selvstændigt: kataloget har præcis 11 nøgler; ingen rækkecelle føjes til.)* | **Kritisk** | bekræftet |
+| S4 | **R4 ikke strukturelt lukket.** `CollectionHistoryOrigin` kræver destination, men dispatch-PORTEN tillader at udelade origin helt (`inputRuntimeContext.tsx:56`, `dispatchInput.ts:33`), og history gemmer da `undefined` (`:177`). Tre konkrete strukturelle callsites uden origin: `OffentligeYdelserTab.tsx:192,243`, `useLoenindkomstViewModel.ts:121`. AST-værnet ser kun `useCollectionRows`/`useCollectionRowCommands`. | Væsentlig | bekræftet |
+| S5 | **`hasAnyBlockingEoIssue` er død kode.** Nul produktionscallsites (`grep` bekræfter: kun definition + tests + kontrakten). Den faktiske backstop er den globale reader-invariant (`eoSnapshotInvariants.ts:70`) — som netop ER S1's overblokering. | Væsentlig | bekræftet |
+| S6 | **C2 kun delvist lukket.** `mineo-field-pattern.md:8` siger stadig "eksisterende hooks/adaptere er migrationskode", mens §10 (`:194`) siger de er slettet. `AGENTS.md:123` beskriver ligeledes de slettede API'er som nuværende. | Mindre | bekræftet |
+
+### Codex sol/high's designbeslutninger (runde 4, forelagt med alternativer + evidens)
+
+| Spørgsmål | Beslutning |
+|---|---|
+| **S3 — hvordan kommer rækkecelle-fejl ind i gatingen?** | **B: dependency-resolveren læser det STRUKTURELLE `FieldIssueSnapshot` direkte**, ikke det afledte `eoErrors`-map. Matchning sker på descriptor-id + `issue.field.address.path`'s collection-segment — **aldrig** `includes`/suffix eller nye syntetiske `${rowId}:collection`-nøgler. Ingen ny reason-kode; `aggregate` må ikke bruges til disse collections. Afvist A (syntetiske aggregatnøgler): det ville tilføje en tredje nøglerepræsentation ved siden af adresse og feltnavn og kunne ændre inspektion-echoet. |
+| **S2 — forlig vs. S/S** | **(ii) Adskil S/S-grundberegningen fra forligsskaleringen.** At føje forligsfelterne til hele `SVIE_SMERTE_GROUP` (i) ville fjerne også FØR-forlig-resultaterne og dermed bryde brugerbeslutning 1, der udtrykkeligt kræver at før-forlig-resultater består. Operationsrækkefølgen skal bevares NØJAGTIGT (skalér rå sats → afrund → delvis dagssats → maksimum → fratræk tidligere/aktuel → slutafrund); grundtotalen må ikke beregnes først og ganges bagefter. §5.4-bevis: deep-equality-golden-matrix på hele `SvieSmerteEngineOutput` + totals + canonicalOutput + pdfModel for grønne input. |
+| **S1 — overblokeringen** | **(i) med diskriminerede `ready \| blocked`-grennoder** frem for løse nullable felter. `data: null` reserveres til reelle fail-closed-tilstande. `eoSnapshotToBeregningView` eksponerer de enkelte ready-grene og må IKKE gå gennem `inspektionSnapshot`. Kontraktens påstand om at den delvise visning "lever i inspektionSnapshot" er kontraktdrift og skal rettes. |
+| **S4 — origin-hullet** | **Origin gøres påkrævet på selve dispatch-porten for STRUKTURELLE commands** (`insertRow`, `deleteRow`, `reorderRows`, `settleFieldInNewRow`), inkl. transaktioner der indeholder et strukturelt step. Callsite- + AST-rettelser alene er utilstrækkelige. AST-reglen beholdes som sekundær diagnostik, ikke som korrekthedsværn. |
+| **S6 — kontraktdrift** | **Ren faktuel tekstoprydning**; intet normativt valg. `form-contract.md:271` har allerede truffet det normative valg. Retter selv. |
+
+### Implementeret i runde 4 (2026-07-25)
+
+| Fund | Ændring | Filer |
+|---|---|---|
+| **S3 (rodårsagen)** | **Dependency-gatingens autoritet er nu det STRUKTURELLE `FieldIssueSnapshot`.** `computeEoSnapshot` tager `eoFieldIssues` (readerens røde feltissues filtreret til EO-sektionen), og `resolveEoBlockedDependencies` matcher på descriptor-id + `address.path`'s collection-segment — ikke på `eoErrors`-nøgler. Dermed ser gaten de røde RÆKKECELLER, den før var blind for. Ny `buildStructuralFieldIssueInvariants` erstatter `eoErrors`-vejen for EO (stamdata beholder sin, fordi dens map ÉR det fulde sæt) og giver én invariant pr. adresse, så to røde celler i samme collection ikke kollapser. | `snapshot/eoDependencyGroups.ts`, `snapshot/eoSnapshot.ts`, `snapshot/eoSnapshotInvariants.ts`, `erstatningsopgoerelseReaderProjection.ts` |
+| **S2** | **Forliget er udskilt som egen gren.** Motoren læser selv forligsgraden og skalerer satser + total; `withForligGate` neutraliserer derfor KUN efter-forlig-felterne (`satserPerDagOre`, `satserMaxOre`, `forligFactor`, `forligLabel`, `totalOre`), mens før-forlig-grundlaget består (brugerbeslutning 1). Motorens operationsrækkefølge er urørt — kun hvilke beregnede felter der surfaces. | `snapshot/eoSnapshot.ts`, `snapshot/eoDependencyGroups.ts` |
+| **S1** | **`readyBranches` bringer de gyldige grene til Beregning-fanen.** Fanen læser kun snapshottet og ser ikke `inspektionSnapshot`, så brugerbeslutning 2 var i praksis ikke opfyldt: et rødt S/S-felt fjernede den gyldige TAF-periodisering. `eoSnapshotToBeregningView` falder nu tilbage til grenen. `canonicalOutput` har bevidst INTET fald-tilbage — det ER aggregatet. | `snapshot/eoSnapshot.ts`, `snapshot/eoSnapshotToBeregningView.ts` |
+| **S5** | **Det døde `hasAnyBlockingEoIssue` er slettet** og erstattet af den LEVENDE aggregatnode `blockedDependencies.aggregate`, som fail-closer på enhver rød feltfejl — også en ingen gren genkender. | `snapshot/eoDependencyGroups.ts` |
+| **S4** | **Origin er nu påkrævet på selve dispatch-porten** for strukturelle commands, både som betinget type-tuple (`OriginArgs`) og som runtime-guard før reducer/storage/store/history. `InputTransactionStep` bærer sin `structural`-klassifikation, og transaktionerne er delt i `inputTransaction` (rene felttrin) og `structuralInputTransaction` — begge kaster ved forkert brug. `buildRowHistoryOrigin` er eksporteret, så de tre direkte callsites bygger origin PÅ SAMME MÅDE. | `inputCore/inputReducer.ts`, `runtime/dispatchInput.ts`, `react/inputRuntimeContext.tsx`, `react/useCollectionRows.ts`, `editor/fieldEditorEngine.ts`, `OffentligeYdelserTab.tsx`, `useLoenindkomstViewModel.ts` |
+| **S6** | **Kontraktdriften lukket:** `mineo-field-pattern.md`s intro og `AGENTS.md`s inputgrænse-afsnit sagde stadig, at det slettede migrationslag var "migrationskode". De siger nu, at det ER slettet og ikke må genindføres. `eo-snapshot-contract.md` §3.3 er omskrevet til den faktiske autoritet + `readyBranches`. | `mineo-field-pattern.md`, `AGENTS.md`, `eo-snapshot-contract.md` |
+| **S6-følge** | **Fem DØDE `invalidDraft`-moduler slettet** (nul produktionsimportører): `CellInvalidDraftScopeContext.tsx`, `invalidDraftsSchema.ts`, `types/invalidDrafts.ts`, `invalidDraftsVersion.ts`, `entityInvalidDraftScopes.ts` + den test, der alene vedligeholdt én af dem. | 6 filer slettet |
+
+**Codex sol/high's korrektion af MIN implementering (S4).** Mit første forsøg krævede en `CollectionHistoryOrigin`
+for alle strukturelle commands. Det var **for bredt** og brød 19 grønne tests: en række-PROMOVERING (første
+settle i en placeholder-celle) er teknisk en `insertRow`, men kontraktligt et FELT-settle (§3.8), og et
+feltorigin er dér den BEDSTE destination — undo skal fokusere den celle, brugeren skrev i, ikke blot navigere
+til tabellen. Codex' beslutning (alternativ C): kravet er *"origin skal være PRÆSENT"*, ikke *"origin skal
+være af arten collection"*. `EditorDispatch.origin` er samtidig strammet til `FieldHistoryOrigin`, så
+felteditorens vej er type-synligt feltbaseret. De 19 tests blev grønne uden opdigtede collection-origins.
+
+**Egne fund undervejs.** Completeness-testen fangede `eo.forligIndgaaet` — et felt-id jeg havde skrevet efter
+WI-prosaen, men som IKKE findes i produktionen. Præcis den fejlklasse testen er bygget til.
+
+### Re-review (Codex sol/high, `--uncommitted`) — 3 fund, alle bekræftet og rettet
+
+| # | Fund og evidens | Alvor | Rettelse |
+|---|---|---|---|
+| T1 | **TAF-grenen manglede alle sine CLAMPING-grænser.** `buildTafRanges` læser `vedroererPeriodeFra/Til`, `differencekravDato` og de fire EET-datoer + tre toggles (verificeret: 11 `values.*`-læsninger i `tafPeriodConstraints.ts`), men INGEN af dem stod i `TAF_GROUP`. En rød EO-slutdato blev maskeret til `undefined`, hvorved klipningen forsvandt og en UKLAMPET periodisering blev vist som gyldig gennem `readyBranches`. | **P1** | Alle 12 scalar-grænser tilføjet (inkl. `tafBeregningsperiodeFra/Til`) |
+| T2 | **S/S-grenen manglede sine cutoff-felter.** `computeSvieSmerteEngine` klipper perioderne mod EO-perioden og læser `kravPaaSvieSmerteGodtgoerelse`/`tidligereSsMax` (verificeret: 9 `values.*`-læsninger). En rød `vedroererPeriodeTil` fjernede klipningen og gav et falsk dagantal. | **P1** | Fire felter tilføjet; EO-perioden er nu en eksplicit DELT afhængighed (`EO_PERIODE_FIELD_IDS`) i begge grupper — ikke overblokering, men en reelt fælles læsning |
+| T3 | **Runtime-origin-guarden accepterede et DELVIST origin.** `{ kind: 'collection' }` passerede, fordi `undefined !== ''` er sandt — netop i det scenarie guarden findes for (omgåede typer). | **P2** | Guarden tjekker nu TYPEN (`isNonEmptyString`) og hver arts påkrævede felter: feltanker kræver `field.section`; rækkeanker kræver `collection` + `route` + eksplicit `tabKey` (`null` tælles, `undefined` ikke). 8 nye afvisningscases |
+
+**Mutationstestet.** Jeg fjernede EO-perioden fra `TAF_GROUP` igen og bekræftede, at **3 tests fejler** —
+listen er dermed load-bearing, ikke dekorativ. Tilsvarende fjernede jeg `readyBranches`-fald-tilbaget fra
+Beregning-visningen og bekræftede, at brugerbeslutning-2-testen fejler.
+
+### Andet re-review (Codex sol/high) — 3 fund, alle bekræftet og rettet
+
+Samme fejlklasser som T1–T3, men mit første forsøg havde kun dækket dem **delvist**. Det bekræfter, at
+"udled listen af hvad motoren FAKTISK læser" ikke kan gøres ved øjemål.
+
+| # | Fund og evidens | Alvor | Rettelse |
+|---|---|---|---|
+| U1 | **S/S manglede mén-klipningen.** `resolveSvieSmerteFejlgivendeBounds` læser `menAfgoerelseDato`, `varigeMenAfgorelse` og `verserendeKlageMen` (verificeret: 5 `values.*`-læsninger; jeg havde kun taget de to periodefelter). En rød mén-dato fjernede klipningen, så dagantallet inkluderede dage EFTER afgørelsen. | **P1** | De tre felter tilføjet `SVIE_SMERTE_GROUP`; test hævder også at de IKKE blokerer TAF |
+| U2 | **`stamdata.skadedato` er en KLIPNINGSGRÆNSE for begge grene — men gaten så kun EO-sektionen.** `tafPeriodConstraints.ts:57`: den midlertidige EET-grænse gælder kun skader FØR 2011-06-16, så en maskeret skadedato fjerner grænsen lydløst. `stamdataErrors` gjorde snapshottet globalt blokeret, men `blockedDependencies.taf` blev fortsat `false`, hvorefter `readyBranches` viste den uklampede periodisering. | **P1** | `resolveEoBlockedDependencies` tager nu et andet, valgfrit `stamdataIssues`-argument; `computeEoSnapshot` og reader-projektionen fører stamdata-issues igennem. Afhængigheden er BEVIDST smal: kun `skadedato` blokerer en gren — en test hævder, at fx `journalnr` kun fail-closer aggregatet |
+| U3 | **Origin-guarden var stadig omgåelig.** En ukendt `kind: 'bogus'` med collection-lignende felter faldt ned i else-grenen og passerede, og et feltanker med halv adresse (`{ section: 'x' }`) passerede for at fejle senere ved serialisering i restoren. | **P2** | Begge diskriminatorer tjekkes nu EKSPLICIT, og `isUsableFieldAddress` kræver `section` + `path`-array + `field`. 11 afvisningscases i alt |
+
+### Afsluttende verifikationsrunder (Codex sol/high, afgrænset punkt-for-punkt)
+
+Fordi to re-reviews havde fundet, at mine rettelser var *ufuldstændige* i samme fejlklasse, kørte jeg til
+sidst afgrænsede verifikationskald i stedet for endnu et bredt review — ét spørgsmål pr. runde, med krav om
+et konkret modeksempel. Det konvergerede fundene:
+
+**Dependency-listerne: LUKKET** efter udtømmende gennemgang af hver bounds-resolver. Codex bekræftede, at
+`TAF_GROUP` og `SVIE_SMERTE_GROUP` nu dækker samtlige felter, motorerne faktisk læser, og at `skadedato` er
+det ENESTE stamdatafelt, der er en reel beregnings-/klipningsafhængighed (`skadestype` sendes til
+S/S-inputtet, men motoren læser kun `input.erstatningsopgoerelse`).
+
+**Origin-værnet: fire iterationer, hver med et nyt konkret modeksempel.** Det er det mest lærerige forløb i
+hele WI'en — hver runde afdækkede et hul, mit forrige forsøg havde efterladt:
+
+| # | Modeksempel der passerede | Rettelse |
+|---|---|---|
+| 1 | `field: { section: 'x', path: [{}], field: 'x' }` — værnet tjekkede kun, at `path` var et ARRAY | Validerer nu mod det KANONISKE `fieldAddressSchema` (samme skema `serializeFieldAddress` bruger), ikke en håndrullet tjek-liste, der kan drifte |
+| 2 | `{ kind: 'collection', editorLocationId: ' ', collection: ' ', route: ' ', tabKey: null }` — `' ' !== ''` er sandt | `isUsableAnchorString`: ikke-tom OG trimmet, samme standard som `addressPartSchema` |
+| 3 | Feltanker med `route: ' '` — feltgrenen validerede slet ikke sin (valgfrie) destination | Destinationen valideres for BEGGE arter; en UDELADT destination er fortsat lovlig (standalone er dokumenteret ikke-navigerbar) |
+| 4 | `{ kind: 'field', tabKey: 'calculation' }` UDEN `route` — lydløst inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen (`MainLayout`) | **Løst i KERNETYPEN:** `OriginDestination` er nu en ALT-eller-INTET-union, så inkohærensen er urepræsenterbar. Compileren fandt selv `originFor`, som spredte `route`/`tabKey` uafhængigt. Runtime-værnet spejler unionen; fire nye `@ts-expect-error`-cases låser den |
+
+**Femte modeksempel AFVIST med evidens** — og afvisningen bekræftet af Codex (*"AFVISNING KORREKT"*):
+Codex foreslog et krydstjek mellem `route` og feltets `section` (fx `section: 'renteberegning'` +
+`route: '/stamdata'`). Det ville være **forkert**, fordi section→route BEVIDST ikke er en funktion:
+`getRouteForPageKey` returnerer eksplicit `null` for `faellesAarsloen` (*"delt sektion … kalderen vælger
+kontekst-route"*), og den SAMME feltadresse `faellesAarsloen.aslAarsloen` bærer legitimt både
+`/forsoergertab` (`Forsoergertab.tsx:64-65`) og `/erhvervsevnetab` (`EetOplysningerTab.tsx:44-45`). Et
+krydstjek ville afvise præcis de kontekst-delte origins — altså brække Codex' eget tidligere fund R3's
+løsning (`CONTEXT_SHARED_EO_FIELDS`). Skrivegrænsens ansvar er, at ankeret er STRUKTURELT brugbart, ikke at
+gætte hvilken side et delt felt "hører til" — det er netop routens opgave at afgøre.
+
+### Verifikation (2026-07-25, runde 4)
+
+Alle fire gates grønne + fuld suite grøn:
+- `npm run typecheck` / `typecheck:test` — rene
+- `npm run lint` — ren (`--max-warnings 0`)
+- `npm run verify:ledgers` — 239 felter / 16 collections / 18 dokumentoutputs
+- `npx vitest run` — **484 filer / 6109 tests** (fra 485/6008 ved rundens start; netto +101 tests, seks filer slettet)
+
+**Note om en falsk rød kørsel.** En suite-kørsel med tre samtidige Codex-processer gav 2 fejl + flere
+`[vitest-pool]: Failed to start threads worker` og en varighed på **8276 s** mod normalt ~60 s. De to fejl var
+timingfølsomme (`OpenEo` "efter 1 sekund", PDF-wiring); begge bestod på 2 s isoleret, og hele suiten var grøn
+igen efter processerne blev afsluttet. Det var ressourceudsultning, ikke en regression — men den lignede en
+rød suite. Kør ikke den fulde suite samtidig med tunge Codex-kald.
 
 ## Resterende / risici
 

@@ -2,12 +2,17 @@ import * as React from 'react';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { useInputRuntime } from '../../../../inputCore/react/inputRuntimeContext';
-import { useCollectionRows } from '../../../../inputCore/react/useCollectionRows';
+import {
+  buildRowHistoryOrigin,
+  useCollectionRows,
+  type CollectionRowOrigin,
+} from '../../../../inputCore/react/useCollectionRows';
 import {
   deleteRow,
   inputTransaction,
   inputTransactionStep,
   settleField,
+  structuralInputTransaction,
 } from '../../../../inputCore/inputReducer';
 import type { CollectionRef } from '../../../../inputCore/fieldAddress';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
@@ -32,6 +37,17 @@ const MAX_ANSAETTELSESFORHOLD = 10;
 const employmentCollection = eoLoenindkomstAnsaettelsesforholdCollection.template as CollectionRef;
 const sfggCollection = eoSfggAnsaettelsesforholdCollection.template as CollectionRef;
 
+/**
+ * Ansættelsesforholdenes lokation. ÉT sted, fordi både hookens rækkehandlinger og den direkte
+ * slette-transaktion nedenfor skal give SAMME destination — ellers ville en undo af "tilføj" og en undo af
+ * "slet" navigere forskelligt (§3.7).
+ */
+const EMPLOYMENT_ROW_ORIGIN: CollectionRowOrigin = {
+  locationId: 'erstatningsopgoerelse.loenindkomstAnsaettelsesforhold',
+  route: APP_ROUTES.erstatningsopgoerelse,
+  tabKey: EO_TAB_KEYS.LOENINDKOMST,
+};
+
 export type LoenindkomstViewModelParams = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
@@ -43,11 +59,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   const runtime = useInputRuntime();
   // Ansættelsesforholdene bor på lønindkomst-fanen; destinationen følger rækkehandlingen, så en undo af
   // tilføj/slet ansættelsesforhold navigerer tilbage hertil (§3.7).
-  const rows = useCollectionRows<Employment>(employmentCollection, {
-    locationId: 'erstatningsopgoerelse.loenindkomstAnsaettelsesforhold',
-    route: APP_ROUTES.erstatningsopgoerelse,
-    tabKey: EO_TAB_KEYS.LOENINDKOMST,
-  });
+  const rows = useCollectionRows<Employment>(employmentCollection, EMPLOYMENT_ROW_ORIGIN);
   const employments = eoValues.loenindkomstAnsaettelsesforhold;
   const derived = React.useMemo(() => deriveLoenindkomstVm({
     loenindkomstAnsaettelsesforhold: employments,
@@ -122,7 +134,12 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     if (eoValues.sfggAnsaettelsesforhold.some((row) => row.ansaettelsesforholdId === deleteTargetId)) {
       steps.push(inputTransactionStep(deleteRow(sfggCollection, deleteTargetId)));
     }
-    runtime.dispatch(inputTransaction(steps));
+    // Transaktionen sletter i TO collections, men destinationen er den brugerudløste primære: tabellen over
+    // ansættelsesforhold. SFGG-rækken er en afledt konsekvens, ikke stedet brugeren handlede (§3.7).
+    runtime.dispatch(
+      structuralInputTransaction(steps),
+      buildRowHistoryOrigin(employmentCollection, EMPLOYMENT_ROW_ORIGIN)
+    );
     setDeleteDialogOpen(false);
     setDeleteTargetId(null);
   }, [deleteTargetId, eoValues.sfggAnsaettelsesforhold, runtime]);

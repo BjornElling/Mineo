@@ -23,7 +23,10 @@ import {
   createTestCatalog,
   makeRow,
   rentekravRowsRef,
+  testRowOrigin,
 } from '../inputCore/testCatalog';
+import type { CollectionHistoryOrigin } from '../../inputCore/inputHistory';
+import type { InputCatalog } from '../../inputCore/fieldCatalog';
 
 const catalog = createTestCatalog();
 
@@ -43,7 +46,16 @@ const settle = <TField, TEntity>(
   store: SlimInputStore,
   command: RuntimeInputCommand<TField, TEntity>
 ): void => {
-  dispatchInput(store, catalog, command);
+  // Strukturelle rækkecommands kræver en origin (§3.7): fixturen seeder rækker og har ingen brugerhandling at
+  // pege på, men skal levere en gyldig origin ligesom produktionen. Helperen tager den brede commandunion, så
+  // origin sendes altid med — den ignoreres for de ikke-strukturelle arter.
+  const dispatchAny = dispatchInput as (
+    store: SlimInputStore,
+    testCatalog: InputCatalog,
+    command: RuntimeInputCommand<TField, TEntity>,
+    options: { origin: CollectionHistoryOrigin }
+  ) => unknown;
+  dispatchAny(store, catalog, command, { origin: testRowOrigin() });
 };
 
 describe('caseFileOperations', () => {

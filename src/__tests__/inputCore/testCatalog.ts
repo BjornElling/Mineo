@@ -3,6 +3,7 @@ import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { RenteberegningValues, RentekravRow } from '../../schemas/formSchemas/sections/renteberegningSchemas';
 import type { SatserValues } from '../../schemas/formSchemas/sections/satserSchemas';
 import type { ISODateString } from '../../types/branded';
+import type { CollectionHistoryOrigin } from '../../inputCore/inputHistory';
 import {
   createInputCatalog,
   defineField,
@@ -187,3 +188,19 @@ export const makeRow = (id: string, overrides: Partial<RentekravRow> = {}): Rent
 });
 
 export const rentekravRowsRef = () => createCollectionRef({ section: 'renteberegning', path: [], collection: 'rentekravRows' });
+
+/**
+ * Rækkeorigin til test-fixtures, der SEEDER rækker via `dispatchInput` (§3.7, WI-004 runde 4, fund S4).
+ *
+ * Strukturelle rækkecommands kræver en origin, så en undo altid har et restore-anker. En test, der blot
+ * opsætter en baseline-række, har ingen brugerhandling at pege på — men den skal levere en gyldig origin
+ * ligesom produktionen. ÉT delt fixture-origin, så en opblødning af kravet ikke kan gemme sig i en test, der
+ * opfandt sin egen halve origin.
+ */
+export const testRowOrigin = (collection = 'rentekravRows'): CollectionHistoryOrigin => Object.freeze({
+  kind: 'collection' as const,
+  collection,
+  editorLocationId: `test:rows:${collection}`,
+  route: '/renteberegning',
+  tabKey: null,
+});

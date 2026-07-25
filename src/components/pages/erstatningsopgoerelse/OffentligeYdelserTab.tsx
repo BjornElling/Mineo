@@ -35,7 +35,28 @@ import {
   eoOffentligeYdelserRowsCollection,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import type { CollectionRef } from '../../../inputCore/fieldAddress';
-import { deleteRow, inputTransaction, inputTransactionStep, insertRow, setImmediateField } from '../../../inputCore/inputReducer';
+import {
+  deleteRow,
+  inputTransaction,
+  inputTransactionStep,
+  insertRow,
+  setImmediateField,
+  structuralInputTransaction,
+} from '../../../inputCore/inputReducer';
+import { buildRowHistoryOrigin, type CollectionRowOrigin } from '../../../inputCore/react/useCollectionRows';
+
+const OFFENTLIGE_YDELSER_COLLECTION = eoOffentligeYdelserRowsCollection.template as CollectionRef;
+
+/**
+ * Rækkelokationen for offentlige ydelser. Sygedagpenge-indsættelsen og midlertidigt-EET-togglen udsteder
+ * strukturelle rækketransaktioner direkte gennem `runtime.dispatch`, så de skal bygge origin på SAMME måde
+ * som `useCollectionRows` gør for tabellens egne rækkehandlinger (§3.7, WI-004 runde 4, fund S4).
+ */
+const OFFENTLIGE_YDELSER_ROW_ORIGIN: CollectionRowOrigin = {
+  locationId: 'erstatningsopgoerelse.offentligeYdelserRows',
+  route: APP_ROUTES.erstatningsopgoerelse,
+  tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER,
+};
 import type { CommitEvent } from '../../../types/fieldEvents';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 
@@ -189,11 +210,14 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
       && row.tillaeg === undefined
       && row.ydelsestype === undefined);
     const baseIndex = insertIndex < 0 ? rows.length : insertIndex;
-    runtime.dispatch(inputTransaction(generatedRows.map((row, index) => inputTransactionStep(insertRow(
-      eoOffentligeYdelserRowsCollection.template as CollectionRef,
-      row,
-      baseIndex + index
-    )))));
+    runtime.dispatch(
+      structuralInputTransaction(generatedRows.map((row, index) => inputTransactionStep(insertRow(
+        OFFENTLIGE_YDELSER_COLLECTION,
+        row,
+        baseIndex + index
+      )))),
+      buildRowHistoryOrigin(OFFENTLIGE_YDELSER_COLLECTION, OFFENTLIGE_YDELSER_ROW_ORIGIN)
+    );
     shouldFocusSygedagpengeFraRef.current = true;
     setSygedagpengeFraDato(undefined);
     setSygedagpengeTilDato(undefined);
@@ -235,16 +259,24 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
    */
   const commitMidlertidigtEetToggle = React.useCallback((nextChecked: boolean): boolean => {
     try {
-      const collection = eoOffentligeYdelserRowsCollection.template as CollectionRef;
       const rowDeletes = nextChecked
         ? rows.filter((row) => row.ydelsestype?.trim() === 'midlertidigt_eet')
-          .map((row) => inputTransactionStep(deleteRow(collection, row.id)))
+          .map((row) => inputTransactionStep(deleteRow(OFFENTLIGE_YDELSER_COLLECTION, row.id)))
         : [];
-      runtime.dispatch(inputTransaction([
-        ...rowDeletes,
+      const fieldSteps = [
         inputTransactionStep(setImmediateField(eoMidlertidigtEetFraEetSidenField.bind(), nextChecked ? 'Ja' : 'Nej')),
         inputTransactionStep(setImmediateField(eoBilagSelectionMidlertidigEetField.bind(), nextChecked)),
-      ]));
+      ];
+      // Togglen er kun STRUKTUREL, når den faktisk sletter rækker (dvs. ved tilslå). Slår den fra, er det en
+      // ren felttransaktion, og en rækkeorigin ville foregøgle en rækkehandling, der ikke fandt sted (§3.7).
+      if (rowDeletes.length > 0) {
+        runtime.dispatch(
+          structuralInputTransaction([...rowDeletes, ...fieldSteps]),
+          buildRowHistoryOrigin(OFFENTLIGE_YDELSER_COLLECTION, OFFENTLIGE_YDELSER_ROW_ORIGIN)
+        );
+      } else {
+        runtime.dispatch(inputTransaction(fieldSteps));
+      }
       setMidlertidigtEetToggleError(null);
       return true;
     } catch (error) {

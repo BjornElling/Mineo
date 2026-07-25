@@ -68,6 +68,94 @@ Codex bekræftede samtidig tre af mine egne vurderinger:
 
 ---
 
+## Runde 4 — det afsluttende slutreview (2026-07-25)
+
+Runde 2 blev afbrudt uden konklusion (se nedenfor), og runde 3's diff blev committet uden eksternt review.
+Runde 4 lukkede begge huller: Codex sol/high reviewede commit `8d3946ed` og fandt **seks fund, tre kritiske**.
+R1 og R4 var IKKE lukket, og C2 kun delvist. Derefter fulgte tre re-reviewrunder, som hver fandt nye fund i de
+samme fejlklasser — mine rettelser var korrekte i retning, men gentagne gange **ufuldstændige**.
+
+### Rodårsagen bag de tre kritiske fund var ÉN struktur
+
+Gaten var bygget på `eoErrors` — et afledt map med kun 11 top-level feltnavne plus `${afId}:loenindkomst`.
+Røde RÆKKECELLER (svie/smerte-perioder, TAF-perioder, ferie-/fraværsdatoer, lønudviklingsceller) maskeres af
+readerens `readOrEmpty` til tomværdi og når **aldrig** `eoErrors`. Gruppernes rækkefragmenter kunne derfor
+aldrig matche noget: de var død kode, og motorerne blev kaldt på maskerede rækkedata.
+
+**Beslutning (Codex sol/high):** autoriteten flyttes til det STRUKTURELLE `FieldIssueSnapshot`, og matchningen
+sker på descriptor-id + adressens collection-segment — ikke på nye syntetiske nøgler, som ville have tilføjet en
+tredje nøglerepræsentation ved siden af adresse og feltnavn.
+
+| # | Fund | Alvor | Rettelse |
+|---|---|---|---|
+| S1 | **EO fortsat globalt atomisk.** Beregning-fanen læser KUN `snapshot.data`, som er `null` på fejlstien — den ser aldrig `inspektionSnapshot`. Brugerbeslutning 2 var derfor ikke opfyldt: et rødt S/S-felt fjernede stadig den gyldige TAF-visning. Testen tjekkede kun en boolean og bestod med den globale gate. | Kritisk | `readyBranches` bærer de gyldige grene; `eoSnapshotToBeregningView` falder tilbage til dem. `canonicalOutput` har bevidst intet fald-tilbage. |
+| S2 | **Forlig fejlklassificeret som uafhængig af S/S.** Motoren kalder selv `parseForligsgrad` og skalerer satser + total med faktoren, så en maskeret ugyldig forligsprocent blev regnet som 100 %. | Kritisk | Egen gren; `withForligGate` neutraliserer kun EFTER-forlig-felterne, så før-forlig-grundlaget består (brugerbeslutning 1). |
+| S3 | **Gaten kunne ikke se de røde input, motorerne læser** (rodårsagen ovenfor). `stamdataErrors` havde samme hul. | Kritisk | Strukturel autoritet + `buildStructuralFieldIssueInvariants` (én invariant pr. adresse). |
+| S4 | **Origin kunne udelades HELT på dispatch-porten**, så history gemte `undefined` og en undo kunne gendanne en række uden noget sted at navigere til. Tre konkrete callsites. | Væsentlig | Betinget type-tuple + runtime-værn før al mutation; `structuralInputTransaction` skiller de to transaktionsarter. |
+| S5 | **`hasAnyBlockingEoIssue` var død kode**; den faktiske backstop var den globale reader-invariant — altså S1's overblokering. | Væsentlig | Slettet; erstattet af den levende aggregatnode `blockedDependencies.aggregate`. |
+| S6 | **Kontraktdrift:** `mineo-field-pattern.md` og `AGENTS.md` beskrev stadig det slettede migrationslag som nuværende migrationskode. | Mindre | Teksten retter sig efter koden. Fem DØDE `invalidDraft`-moduler slettet; den levende omdøbning udskilt til WI-006. |
+
+### Codex omgjorde min egen implementering af S4
+
+Mit første forsøg krævede en `CollectionHistoryOrigin` for **alle** strukturelle commands. Det var for bredt og
+brød 19 grønne tests: en række-PROMOVERING (første settle i en placeholder-celle) er teknisk en `insertRow`, men
+kontraktligt et **felt-settle** (§3.8) — og et feltorigin er dér den *bedste* destination, fordi undo skal
+fokusere den celle, brugeren skrev i, ikke blot navigere til tabellen.
+
+**Beslutning:** kravet er *"origin skal være PRÆSENT"*, ikke *"origin skal være af arten collection"*. Skaden i
+S4 var det fraværende anker, ikke ankerets art. De 19 tests blev grønne uden opdigtede collection-origins.
+
+### Tre re-reviewrunder — samme fejlklasser, ufuldstændigt dækket
+
+| Runde | Fund | Hvad jeg havde overset |
+|---|---|---|
+| Re-review 1 | **T1/T2 (P1):** TAF- og S/S-grenen manglede ALLE deres klipningsgrænser. `buildTafRanges` læser 11 felter; ingen stod i gruppen. En rød EO-slutdato fjernede klipningen og viste en UKLAMPET periodisering som gyldig. **T3 (P2):** origin-guarden accepterede `{ kind: 'collection' }`, fordi `undefined !== ''` er sandt. | Jeg havde kun taget beløbs-/dagfelterne, ikke grænserne |
+| Re-review 2 | **U1 (P1):** S/S manglede mén-klipningen (`menAfgoerelseDato` + to toggles). **U2 (P1):** `stamdata.skadedato` er en klipningsgrænse for BEGGE grene, men gaten så kun EO-sektionen — den midlertidige EET-grænse gælder kun skader før 2011-06-16, så en maskeret skadedato fjerner den lydløst. **U3 (P2):** en ukendt `kind` faldt ned i else-grenen og passerede. | Jeg havde rettet T1/T2 ved øjemål i stedet for at læse hver bounds-resolver til bunds |
+
+**Lærdommen, som nu står i koden:** en dependency-liste skal udledes af hvad motoren FAKTISK læser — inklusive
+scalar-grænser og felter i andre sektioner. En maskeret grænse er lige så farlig som et maskeret beløb, fordi
+resultatet ser gyldigt ud. Grupperne bærer derfor eksplicitte referencer til den bounds-resolver, de er udledt af.
+
+### Afsluttende afgrænsede verifikationsrunder
+
+Fordi to brede re-reviews havde fundet samme fejlklasse *ufuldstændigt* dækket, skiftede jeg til afgrænsede
+verifikationskald: ét spørgsmål ad gangen, med krav om et konkret modeksempel. Det konvergerede.
+
+Dependency-listerne blev bekræftet **LUKKET** efter udtømmende gennemgang af hver bounds-resolver, og
+`skadedato` blev bekræftet som det ENESTE stamdatafelt, der er en reel klipningsafhængighed.
+
+Origin-værnet krævede **fire** iterationer — hver med et nyt konkret modeksempel, som mit forrige forsøg
+havde efterladt:
+
+1. `path: [{}]` passerede, fordi værnet kun tjekkede at `path` var et *array*. → Validerer nu mod det
+   **kanoniske** `fieldAddressSchema`. En håndrullet tjek-liste kan drifte fra den form, restoren serialiserer.
+2. `' '` passerede, fordi `' ' !== ''` er sandt. → `isUsableAnchorString` kræver ikke-tom **og trimmet**,
+   samme standard som `addressPartSchema`.
+3. Feltgrenen validerede slet ikke sin (valgfrie) destination. → Valideres nu for begge arter, mens en
+   UDELADT destination fortsat er lovlig (standalone er dokumenteret ikke-navigerbar).
+4. `tabKey` uden `route` var lydløst inert, fordi restoren kun aktiverer fanen inde i
+   `route !== undefined`-grenen. → **Løst i kernetypen**: `OriginDestination` er en alt-eller-intet-union, så
+   inkohærensen er urepræsenterbar. Compileren fandt selv `originFor`, som spredte felterne uafhængigt.
+
+**Det femte modeksempel blev AFVIST med evidens — og afvisningen bekræftet af Codex.** Forslaget var et
+krydstjek mellem `route` og feltets `section`. Det ville være forkert: section→route er BEVIDST ikke en
+funktion. `getRouteForPageKey` returnerer eksplicit `null` for `faellesAarsloen` (*"delt sektion … kalderen
+vælger kontekst-route"*), og den samme feltadresse `faellesAarsloen.aslAarsloen` bærer legitimt både
+`/forsoergertab` og `/erhvervsevnetab`. Krydstjekket ville afvise præcis de kontekst-delte origins — altså
+brække løsningen på Codex' eget tidligere fund R3.
+
+**Det generelle princip:** skrivegrænsens ansvar er, at ankeret er STRUKTURELT brugbart (fuldstændigt,
+trimmet, internt kohærent) — ikke at gætte hvilken side et delt felt "hører til". Det er routens opgave.
+
+### Mutationstestet, ikke kun grønt
+
+- Fjernede EO-perioden fra `TAF_GROUP` → **3 tests fejler**.
+- Fjernede `readyBranches`-fald-tilbaget fra Beregning-visningen → brugerbeslutning-2-testen fejler.
+- Completeness-testen fangede `eo.forligIndgaaet` — et felt-id jeg havde skrevet efter WI-prosaen, men som
+  ikke findes i produktionen. Præcis den fejlklasse testen er bygget til.
+
+---
+
 ## Runde 2 — ikke gennemført
 
 Et andet re-review blev startet (samme model/effort, med en fund-for-fund-instruks om R1–R6 plus spørgsmålet

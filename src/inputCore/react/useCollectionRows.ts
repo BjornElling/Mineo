@@ -33,8 +33,13 @@ export type CollectionRowOrigin = Readonly<{
  * Origin for en STRUKTUREL rækkehandling. `kind: 'collection'` gør det type-synligt, at der ikke findes én
  * feltadresse at fokusere; til gengæld er destinationen (route + fane) obligatorisk, så en undo/redo af
  * insert/delete/reorder altid kan navigere til den tabel, ændringen kom fra.
+ *
+ * EKSPORTERET, fordi et par flader udsteder strukturelle rækketransaktioner direkte gennem
+ * `runtime.dispatch` i stedet for gennem denne hook (sygedagpenge-indsættelsen, midlertidigt-EET-togglen og
+ * sletningen af et ansættelsesforhold). De skal bygge origin PÅ SAMME MÅDE — ellers ville
+ * `editorLocationId`-formen drifte mellem to steder (WI-004 runde 4, fund S4).
  */
-const buildRowHistoryOrigin = (
+export const buildRowHistoryOrigin = (
   collection: CollectionRef,
   origin: CollectionRowOrigin
 ): CollectionHistoryOrigin => Object.freeze({

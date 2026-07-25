@@ -12,7 +12,7 @@ import type {
   SettleFieldInNewRowCommand,
 } from '../inputReducer';
 import type { CollectionRef } from '../fieldAddress';
-import type { HistoryOrigin } from '../inputHistory';
+import type { FieldHistoryOrigin } from '../inputHistory';
 
 // Kun de tre felt-scopede commands udstedes herfra; entity-/system-commands ejes af række- og case-portene.
 // En præcis command-type (ikke den brede union) undgår den contravariante generiske variansfælde, som
@@ -25,7 +25,7 @@ type EditorFieldCommand<T> =
   | ClearFieldCommand<T>
   | SettleFieldInNewRowCommand<unknown, T>;
 
-export type EditorDispatch<T> = Readonly<{ command: EditorFieldCommand<T>; origin: HistoryOrigin }>;
+export type EditorDispatch<T> = Readonly<{ command: EditorFieldCommand<T>; origin: FieldHistoryOrigin }>;
 
 // Greenfield-editor-binding (§3.5/§3.6): rene, framework-frie hjælpere, der oversætter mellem den afsluttede
 // revision og editor-state-machinen. De rører ikke React, DOM eller storage — de læser et immutabelt
@@ -66,16 +66,18 @@ export const activeFieldIssueFor = <T>(
   field: FieldRef<T>
 ): FieldIssue | undefined => activeFieldIssue(issues, serializeFieldAddress(field.address));
 
-const originFor = <T>(location: EditorLocation, field: FieldRef<T>): HistoryOrigin =>
-  Object.freeze({
-    kind: 'field' as const,
-    field: field.address,
-    editorLocationId: location.locationId,
-    // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage til
-    // den rette side/fane. Udeladte felter (route === undefined) er ikke-navigerbare lokationer.
-    ...(location.route === undefined ? {} : { route: location.route }),
-    ...(location.tabKey === undefined ? {} : { tabKey: location.tabKey }),
-  });
+// Felteditorens origin er ALTID en feltorigin — også for de to promoveringsveje (`settleFieldInNewRow` og
+// `insertRow` fra et immediate-commit-valg). En promovering er kontraktligt et FELT-settle (§3.8), og undo
+// skal derfor fokusere den celle, brugeren skrev i — ikke blot navigere til tabellen (WI-004 runde 4, S4).
+const originFor = <T>(location: EditorLocation, field: FieldRef<T>): FieldHistoryOrigin => {
+  const anchor = { kind: 'field' as const, field: field.address, editorLocationId: location.locationId };
+  // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage
+  // til den rette side/fane. Destinationen er ALT-eller-INTET: en `tabKey` uden `route` ville være lydløst
+  // inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen. `route === undefined` er
+  // en reelt ikke-navigerbar lokation (standalone), og da bæres fanen heller ikke med.
+  if (location.route === undefined) return Object.freeze(anchor);
+  return Object.freeze({ ...anchor, route: location.route, tabKey: location.tabKey ?? null });
+};
 
 /**
  * Oversætter et settle-intent til den command + origin, runtime-bindingen dispatcher. `none` (cancel/no-op)

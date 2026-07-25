@@ -43,6 +43,19 @@ udskudt. Den tidligere reachability-begrundelse holdt ikke: de resterende callsi
 og tre transiente flader, som nu kører på en lille, eksplicit `transient`-inputfamilie uden for den autoritative
 inputtilstand. En AST-regel forbyder at genindføre nogen del af klyngen.
 
+**Fase 0–4's restfund er lukket 2026-07-25 (WI-004) efter fire eksterne reviewrunder.** De trust-kritiske
+rettelser: (1) EO's dependency-gating læser nu det STRUKTURELLE `FieldIssueSnapshot` — ikke det afledte
+`eoErrors`-map, som kun kendte 11 top-level feltnavne og derfor var blind for røde RÆKKECELLER, så motorerne
+regnede på readerens maskerede tomværdier; (2) grenlisterne er udledt af hvad motorerne FAKTISK læser, inkl.
+klipningsgrænserne (EO-perioden, mén-/EET-/differencekravsdatoerne og `stamdata.skadedato` på tværs af
+sektionsgrænsen) — en maskeret grænse fjerner ellers klipningen lydløst og viser et uklampet forløb som gyldigt;
+(3) forliget er en egen gren, så en rød ansvarsgrad kun neutraliserer efter-forlig-resultatet og lader
+før-forlig-grundlaget bestå; (4) de gyldige, uafhængige grene bæres nu frem til Beregning-fanen gennem
+`readyBranches` — fanen ser ikke `inspektionSnapshot`, så brugerbeslutning 2 var ellers ikke opfyldt i praksis;
+(5) en strukturel rækkecommand kan ikke længere dispatches uden history-origin, håndhævet både i typen og af et
+runtime-værn før nogen mutation. Se `work-items/WI-004-fase34-restfund.md` og
+`docs/reviews/codex-fase34-restfund.md`.
+
 **Fase 3+4-restarbejdet er implementeret 2026-07-25 (WI-004).** De fund, der stod åbne efter
 `codex-fase34-followup.md`, er nu implementeret — inklusive de seks fund fra en yderligere ekstern review-runde
 (R1–R6, hvoraf to var kritiske). **Et afsluttende uafhængigt review mangler:** runde 2 blev afbrudt uden

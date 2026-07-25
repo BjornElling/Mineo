@@ -17,6 +17,11 @@ import {
   setImmediateField,
   insertRow,
   deleteRow,
+  reorderRows,
+  settleFieldInNewRow,
+  inputTransaction,
+  inputTransactionStep,
+  structuralInputTransaction,
   replaceCase,
   clearCase,
   createEmptySettledInput,
@@ -36,6 +41,7 @@ import {
   enhedField,
   makeRow,
   rentekravRowsRef,
+  testRowOrigin,
 } from '../testCatalog';
 
 const key = getCurrentInputEnvelopeStorageKey();
@@ -196,7 +202,7 @@ describe('dispatchInput — transaktionsinvarianter (§7.4)', () => {
 
   it('autoritativ replacement (replaceCase) skriver altid, rydder history og skaber ny revision', () => {
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 2 });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 2, origin: testRowOrigin() });
     expect(store.getState().history.past.length).toBe(2);
 
     const revisionBefore = store.getState().revision;
@@ -241,9 +247,9 @@ describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
   });
 
   it('række-fejl → slet række → undo → redo bevarer hele snapshotkæden', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1 });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(tillaegstidField.bind('r1'), 'abc'), { now: 2 }); // format-rejected råtekst
-    dispatchInput(store, catalog, deleteRow(rentekravRowsRef(), 'r1'), { now: 3 });
+    dispatchInput(store, catalog, deleteRow(rentekravRowsRef(), 'r1'), { now: 3, origin: testRowOrigin() });
 
     dispatchInput(store, catalog, { kind: 'undo' }, { now: 4 });
     expect(rejectedAt(store.getState().input, tillaegstidField.bind('r1'))?.raw).toBe('abc');
@@ -316,6 +322,186 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
     expect(undo.restoredOrigin?.kind).toBe('collection');
   });
 
+  // WI-004 runde 4 (fund S4): en STRUKTUREL rækkecommand skal have en origin, så undo/redo altid har et
+  // restore-anker. Kernetypen krævede route+fane, men PORTEN tillod at udelade origin HELT — history gemte da
+  // `undefined`, og en undo kunne gendanne en række uden noget sted at navigere til.
+  //
+  // Kravet er "origin SKAL være der", ikke "origin skal være af arten collection": en række-PROMOVERING er
+  // kontraktligt et felt-settle (§3.8) og bærer med rette et feltorigin, så undo fokuserer den skrevne celle.
+  describe('strukturelle rækkecommands kræver en origin (§3.7)', () => {
+    const structuralCommands = [
+      { navn: 'insertRow', command: () => insertRow(rentekravRowsRef(), makeRow('r9')) },
+      { navn: 'deleteRow', command: () => deleteRow(rentekravRowsRef(), 'r1') },
+      { navn: 'reorderRows', command: () => reorderRows(rentekravRowsRef(), ['r1']) },
+      {
+        navn: 'settleFieldInNewRow',
+        command: () => settleFieldInNewRow(rentekravRowsRef(), makeRow('r9'), belobField.bind('r9'), '100'),
+      },
+      {
+        navn: 'structuralInputTransaction',
+        command: () => structuralInputTransaction([inputTransactionStep(deleteRow(rentekravRowsRef(), 'r1'))]),
+      },
+    ] as const;
+
+    for (const { navn, command } of structuralCommands) {
+      it(`${navn} uden origin kaster UDEN at mutere input, revision, history eller storage`, () => {
+        dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
+        const before = store.getState();
+        const storedBefore = sessionStorage.getItem(key);
+
+        // @ts-expect-error — origin er PÅKRÆVET for en strukturel command; castet efterligner utypet kode.
+        expect(() => dispatchInput(store, catalog, command(), {})).toThrow(/kræver en history-origin/);
+
+        const after = store.getState();
+        expect(after.input).toEqual(before.input);
+        expect(after.revision).toBe(before.revision);
+        expect(after.history).toEqual(before.history);
+        expect(sessionStorage.getItem(key)).toBe(storedBefore);
+      });
+    }
+
+    // Runtime-værnet findes præcis for de kald, der omgår typerne — så det skal afvise et DELVIST origin, ikke
+    // kun et helt tomt. `{ kind: 'collection' }` har `undefined` i sine felter, og `undefined !== ''` er sandt:
+    // en ren tomstrengs-sammenligning ville lade et ubrugeligt anker passere.
+    const invalidOrigins: ReadonlyArray<readonly [string, unknown]> = [
+      ['helt tomt objekt', {}],
+      ['kun kind: collection', { kind: 'collection' }],
+      ['kun kind: field', { kind: 'field' }],
+      ['collection uden route', { kind: 'collection', collection: 'rentekravRows', editorLocationId: 'x', tabKey: null }],
+      ['collection uden tabKey', { kind: 'collection', collection: 'rentekravRows', editorLocationId: 'x', route: '/r' }],
+      ['collection med tom route', { kind: 'collection', collection: 'rentekravRows', editorLocationId: 'x', route: '', tabKey: null }],
+      ['field uden feltadresse', { kind: 'field', editorLocationId: 'x', route: '/r', tabKey: null }],
+      ['tom editorLocationId', { kind: 'collection', collection: 'rentekravRows', editorLocationId: '', route: '/r', tabKey: null }],
+      // Re-review T3: en UKENDT `kind` faldt før ned i rækkehandlings-grenen og passerede som noget, den ikke er.
+      ['ukendt kind med collection-felter', {
+        kind: 'bogus', collection: 'rentekravRows', editorLocationId: 'x', route: '/r', tabKey: null,
+      }],
+      // ...og et feltanker med en HALV adresse fejlede først ved serialisering i restoren — langt fra fejlkilden.
+      ['field med halv adresse', { kind: 'field', editorLocationId: 'x', field: { section: 'renteberegning' } }],
+      ['field med adresse uden path', {
+        kind: 'field', editorLocationId: 'x', field: { section: 'renteberegning', field: 'belob' },
+      }],
+      // Verifikationsrunde: et array er ikke nok — SEGMENTERNES form skal også være gyldig, ellers fejler
+      // først `serializeFieldAddress` inde i restoren. Valideres nu mod det kanoniske `fieldAddressSchema`.
+      ['field med tomt path-segment', {
+        kind: 'field',
+        editorLocationId: 'x',
+        field: { section: 'renteberegning', path: [{}], field: 'belob' },
+      }],
+      ['field med ukendt sektion', {
+        kind: 'field',
+        editorLocationId: 'x',
+        field: { section: 'findes-ikke', path: [], field: 'belob' },
+      }],
+      ['field med entity-segment uden entityId', {
+        kind: 'field',
+        editorLocationId: 'x',
+        field: {
+          section: 'renteberegning',
+          path: [{ kind: 'entity', collection: 'rentekravRows' }],
+          field: 'belob',
+        },
+      }],
+      // ...og et whitespace-anker er heller ikke brugbart: `' ' !== ''` er sandt, men restoren ville lede
+      // efter en lokation/route, der ikke findes. Samme standard som `addressPartSchema`.
+      ['collection med whitespace-felter', {
+        kind: 'collection', collection: ' ', editorLocationId: ' ', route: ' ', tabKey: null,
+      }],
+      ['collection med whitespace-route', {
+        kind: 'collection', collection: 'rentekravRows', editorLocationId: 'x', route: '  ', tabKey: null,
+      }],
+      ['collection med utrimmet locationId', {
+        kind: 'collection', collection: 'rentekravRows', editorLocationId: 'x ', route: '/r', tabKey: null,
+      }],
+      // Et FELT-anker må udelade destinationen (standalone er ikke-navigerbar), men er den ANGIVET, skal den
+      // være brugbar — ellers sendes restoren efter en route/fane, der ikke findes.
+      ['field med whitespace-route', {
+        kind: 'field',
+        editorLocationId: 'x',
+        field: { section: 'renteberegning', path: [], field: 'beregningsdato' },
+        route: ' ',
+        tabKey: null,
+      }],
+      ['field med whitespace-tabKey', {
+        kind: 'field',
+        editorLocationId: 'x',
+        field: { section: 'renteberegning', path: [], field: 'beregningsdato' },
+        route: '/renteberegning',
+        tabKey: '  ',
+      }],
+    ];
+
+    for (const [navn, origin] of invalidOrigins) {
+      it(`afviser et castet, ubrugeligt origin (${navn})`, () => {
+        expect(() => dispatchInput(
+          store,
+          catalog,
+          insertRow(rentekravRowsRef(), makeRow('r1')),
+          { origin: origin as never }
+        )).toThrow(/kræver en history-origin/);
+        expect(store.getState().revision).toBe(0);
+      });
+    }
+
+    it('ACCEPTERER et feltanker UDEN destination (standalone er ikke-navigerbar)', () => {
+      // Grænsen for stramningen ovenfor: en UDELADT route/fane er lovlig og dokumenteret (standalone
+      // MinProcesrente); kun en ANGIVET, ubrugelig værdi afvises. Ellers ville værnet brække standalone.
+      const result = dispatchInput(
+        store,
+        catalog,
+        settleFieldInNewRow(rentekravRowsRef(), makeRow('r1'), belobField.bind('r1'), '100'),
+        {
+          now: 1,
+          origin: {
+            kind: 'field',
+            field: belobField.bind('r1').address,
+            editorLocationId: 'standalone.rentekrav:cell:belob',
+          },
+        }
+      );
+
+      expect(result.changed).toBe(true);
+    });
+
+    it('ACCEPTERER en promovering med FELTORIGIN — undo fokuserer den skrevne celle', () => {
+      // Promoveringen er et felt-settle (§3.8). Et krav om collection-origin dér ville give en DÅRLIGERE
+      // restore: brugeren ville blot landes på tabellen i stedet for i cellen.
+      const fieldOrigin = {
+        kind: 'field' as const,
+        field: belobField.bind('r1').address,
+        editorLocationId: 'test.rentekrav:cell:belob',
+        route: '/renteberegning',
+        tabKey: null,
+      };
+
+      const result = dispatchInput(
+        store,
+        catalog,
+        settleFieldInNewRow(rentekravRowsRef(), makeRow('r1'), belobField.bind('r1'), '100'),
+        { now: 1, origin: fieldOrigin }
+      );
+      expect(result.changed).toBe(true);
+
+      const undo = dispatchInput(store, catalog, { kind: 'undo' }, { now: 2 });
+      expect(undo.restoredOrigin).toEqual(fieldOrigin);
+      expect(undo.restoredOrigin?.kind).toBe('field');
+    });
+
+    it('en ren felttransaktion kræver INGEN origin — den er ikke strukturel', () => {
+      // Modstykket: kravet må ikke blive så bredt, at en feltransaktion skal opfinde en rækkeorigin.
+      expect(() => dispatchInput(
+        store,
+        catalog,
+        inputTransaction([inputTransactionStep(settleField(aargangField.bind(), '2024'))])
+      )).not.toThrow();
+    });
+
+    it('`inputTransaction` afviser et strukturelt trin, så klassifikationen ikke kan omgås', () => {
+      expect(() => inputTransaction([inputTransactionStep(deleteRow(rentekravRowsRef(), 'r1'))]))
+        .toThrow(/structuralInputTransaction/);
+    });
+  });
+
   it('et frame uden origin surfacer ingen origin ved undo', () => {
     // Ingen origin sendt med → frame'et bærer ingen origin → restoren navigerer ikke.
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
@@ -352,7 +538,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
 
 describe('dispatchInput — styrende valg rydder nu-irrelevant fejl (§1.9/§3.6)', () => {
   it('setImmediateField der gør et felt med aktiv bounds-fejl irrelevant rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
-    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1 });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobField.bind('r1'), '500'), { now: 2 });
     // '999' > max 100 committes canonical (999) med en rød bounds-feltfejl (§1.6).
     dispatchInput(store, catalog, settleField(tillaegstidField.bind('r1'), '999'), { now: 3 });

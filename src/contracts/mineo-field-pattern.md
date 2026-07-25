@@ -3,10 +3,12 @@
 **Status:** Normativ målarkitektur
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdefinitioner, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-25
 
-Denne kontrakt fastlægger ét fælles feltmønster for Styled-felter og tabelceller. Eksisterende hooks og adaptere er
-migrationskode, indtil de er erstattet efter `docs/architecture/draft-commit-greenfield-design.md`.
+Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
+implementerede arkitektur: migrationslaget (`useDraftField`, `useTableInputCore`, `useRowDrafts`,
+`FormPersistenceContext`, `invalidDrafts`/`fieldErrors` og hele `Styled*Field`-familien) blev SLETTET
+2026-07-25 og må ikke genindføres — se §10 og `form-contract.md` §12.
 
 ## 1. Begreber
 

@@ -5,9 +5,10 @@ import {
   redoInputHistory,
   type HistoryOrigin,
   type CollectionHistoryOrigin,
+  type FieldHistoryOrigin,
 } from '../../inputCore/inputHistory';
 import { createEmptySettledInput, type SettledInput } from '../../inputCore';
-import type { FieldAddress } from '../../inputCore/fieldAddress';
+import { createFieldAddress, type FieldAddress } from '../../inputCore/fieldAddress';
 
 // WI-003: history bevarer struktur-origin (§3.7) symmetrisk gennem undo → redo, så undo/redo-restoren kan
 // navigere til den rette route/fane og fokusere feltet, ændringen kom fra. Ren datastruktur-test uden runtime.
@@ -94,5 +95,53 @@ describe('CollectionHistoryOrigin — destinationen er påkrævet i kernetypen (
 
     expect(utenRoute.collection).toBe('oevrigeKravPerioder');
     expect(utenTabKey.collection).toBe('oevrigeKravPerioder');
+  });
+});
+
+// Verifikationsrunde (WI-004 runde 4): destinationen er ALT-eller-INTET. En `tabKey` uden `route` er lydløst
+// inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen (`MainLayout`). Typen gør den
+// inkohærens urepræsenterbar, i stedet for at lade et runtime-værn fange den bagefter.
+describe('FieldHistoryOrigin — destinationen er alt-eller-intet (§3.7)', () => {
+  const renteAddress = createFieldAddress({ section: 'renteberegning', path: [], field: 'beregningsdato' });
+
+  it('accepterer et anker HELT UDEN destination (standalone er ikke-navigerbar)', () => {
+    const origin: FieldHistoryOrigin = {
+      kind: 'field',
+      field: renteAddress,
+      editorLocationId: 'standalone:beregningsdato',
+    };
+    expect(origin.route).toBeUndefined();
+  });
+
+  it('accepterer et anker med FULD destination', () => {
+    const origin: FieldHistoryOrigin = {
+      kind: 'field',
+      field: renteAddress,
+      editorLocationId: 'renteberegning:beregningsdato',
+      route: '/renteberegning',
+      tabKey: null,
+    };
+    expect(origin.tabKey).toBeNull();
+  });
+
+  it('afviser en tabKey UDEN route (compile-time)', () => {
+    // @ts-expect-error — `tabKey` uden `route`: fanen ville aldrig blive aktiveret af restoren.
+    const kunTabKey: FieldHistoryOrigin = {
+      kind: 'field',
+      field: renteAddress,
+      editorLocationId: 'renteberegning:beregningsdato',
+      tabKey: 'calculation',
+    };
+
+    // @ts-expect-error — `route` uden `tabKey`: udeladelse er ikke en lovlig måde at sige "ingen faner" på.
+    const kunRoute: FieldHistoryOrigin = {
+      kind: 'field',
+      field: renteAddress,
+      editorLocationId: 'renteberegning:beregningsdato',
+      route: '/renteberegning',
+    };
+
+    expect(kunTabKey.editorLocationId).toBe('renteberegning:beregningsdato');
+    expect(kunRoute.editorLocationId).toBe('renteberegning:beregningsdato');
   });
 });

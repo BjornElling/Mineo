@@ -232,14 +232,29 @@ med `taf_per_year_pdf`: kan TAF ikke fordeles på år, kan grafen heller ikke ge
 En rød reader-feltfejl blokerer **kun den beregningsgren, der faktisk læser feltet** (§1.10 i
 `docs/architecture/draft-commit-greenfield-design.md`). Grupperne ejes ét sted:
 `snapshot/eoDependencyGroups.ts` (`resolveEoBlockedDependencies`), og snapshottet bærer resultatet som
-`blockedDependencies` med grenene `svieSmerte`, `taf` og `forlig`.
+`blockedDependencies` med grenene `svieSmerte`, `forlig`, `taf`, `oevrigeKrav` og aggregatnoden `aggregate`.
 
-Grenene svarer præcist til de nøgler, `eoErrors` faktisk kan indeholde (`EO_TOP_LEVEL_ERROR_KEYS` plus det
-syntetiske `${afId}:loenindkomst`-aggregat) — hverken flere eller færre. Der er derfor bevidst ingen
-`regulering`- eller `oevrigeKrav`-gren: reguleringsfejl rapporteres gennem lønindkomst-aggregatet (altså
-TAF), og øvrige krav-celler evalueres i `EO_ROW_BUILDERS` med deres egen download-gate. En gren, der aldrig
-kan udløses, ville foregøgle en præcision, der ikke findes. En completeness-test itererer det faktiske
-produktionskatalog og fejler, hvis en nøgle ikke hører til nogen gren.
+**Autoriteten er det STRUKTURELLE `FieldIssueSnapshot`** — `computeEoSnapshot`s `eoFieldIssues`, filtreret til
+EO-sektionen. Den må **ikke** være `eoErrors`-mappet: det er en præsentations-projektion med kun de 11
+top-level feltnavne plus `${afId}:loenindkomst`, så en rød RÆKKECELLE (svie/smerte-periode, TAF-periode,
+ferie-/fraværsdato, lønudviklingscelle) ville være usynlig for gaten, og motoren ville regne på readerens
+maskerede tomværdi. Matchningen sker på descriptor-id og på `address.path`'s collection-segment — aldrig på
+substring-fragmenter eller syntetiske `${rowId}:collection`-nøgler.
+
+Der er bevidst ingen `regulering`-gren: reguleringsforløbet har ingen egne felter, og en ugyldig manuel
+reguleringscelle bor i lønudviklingens rækkesamlinger og blokerer derfor TAF-grenen, som er den, der læser
+den. `oevrigeKrav` blokerer aggregatet, men ingen motorgren — cellerne evalueres i `EO_ROW_BUILDERS` med deres
+egen download-gate. En completeness-test itererer det faktiske produktionskatalog: hver klassificeret
+collection og hvert klassificeret felt-id skal findes i `productionInputFields`/`productionInputCollections`,
+og ALLE en klassificeret collections faktiske child-felter skal ramme en gren. Derfor er en senere tilføjet
+celle automatisk dækket, og en omdøbning gør testen rød i stedet for lydløst at gøre en gren til død kode.
+
+**Forliget er en delvis S/S-afhængighed.** `computeSvieSmerteEngine` læser selv forligsgraden og skalerer
+dagssats, maksimum og total med faktoren. Forligsfelterne ligger derfor **ikke** i S/S-gruppen: en rød
+forligsprocent neutraliserer kun EFTER-forlig-felterne (`satserPerDagOre`, `satserMaxOre`, `forligFactor`,
+`totalOre`), mens før-forlig-grundlaget består — brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at
+før-forlig-resultater bevares. Motorens egen operationsrækkefølge er uændret; kun hvilke af dens beregnede
+felter der surfaces, ændres.
 
 Reglen har to lige alvorlige fejlretninger:
 
@@ -252,12 +267,19 @@ Reglen har to lige alvorlige fejlretninger:
 **Aggregatet er alt-eller-intet.** `totals.samletTotalOre`, `canonicalOutput` og `pdfModel` er krydsgående:
 de summerer eller sammenstiller flere grene. De bygges derfor kun, når INGEN gren er blokeret — en sum af et
 ukendt led er ukendt, og et dokument med et manglende afsnit er ikke autoritativt. `data` er `null` i den
-situation, mens `inspektionSnapshot` fortsat viser de grene, der kunne beregnes. Det er dér, den delvise
-visning lever; det autoritative output har ingen halv-tilstand.
+situation, og det autoritative output har ingen halv-tilstand.
 
-Fail-closed-backstoppet er `hasAnyBlockingEoIssue`: en rød feltnøgle, som ingen gruppe genkender, blokerer
-aggregatet, selv om den ikke kan henføres til en gren. En ukendt fejl må aldrig forsvinde lydløst ud af
-gatingen.
+**De gyldige grene surfaces gennem `readyBranches`, ikke kun `inspektionSnapshot`.** Snapshottet bærer på den
+blokerede sti de grene, der stadig kunne beregnes sikkert (`svieSmerte`, `tafPerioder`; `undefined` =
+"blokeret af sin egen røde afhængighed"). `eoSnapshotToBeregningView` falder tilbage til dem, så
+Beregning-fanen fortsat viser den GYLDIGE TAF-periodisering, når et svie/smerte-felt er rødt — netop
+brugerbeslutning 2 (2026-07-25). Fanen læser kun snapshottet og ser ikke `inspektionSnapshot`, så et krav om,
+at den delvise visning "lever i inspektionSnapshot", ville i praksis fjerne gyldige data fra brugeren.
+`canonicalOutput` har bevidst **intet** fald-tilbage: det ER det krydsgående aggregat.
+
+Fail-closed-backstoppet er aggregatnoden `blockedDependencies.aggregate`: ENHVER rød feltfejl gør aggregatet
+ikke-autoritativt — også en, ingen gren genkender. En ukendt fejl må hverken forsvinde lydløst ud af gatingen
+eller gættes ind i en vilkårlig gren.
 
 ### 3.4 Engine-throws er forbudt som primær fejlmåde
 
