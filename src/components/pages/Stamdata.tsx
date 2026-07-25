@@ -14,9 +14,9 @@ import {
 } from '../../inputCore/catalog/stamdataDescriptors';
 import { useInputEvaluation } from '../../inputCore/react';
 import { APP_ROUTES } from '../../config/pageNavigation';
-import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
-import GreenfieldDateField from '../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldTextField from '../../inputCore/react/fields/GreenfieldTextField';
+import ChoiceField from '../../inputCore/react/fields/ChoiceField';
+import DateField from '../../inputCore/react/fields/DateField';
+import TextField from '../../inputCore/react/fields/TextField';
 import ContentBox from '../layout/ContentBox';
 
 // Greenfield-migreret (§2.4, formularrækkefølge trin 1 — FØRSTE callsite-cutover). Erstatter den legacy
@@ -69,7 +69,7 @@ const Stamdata = React.memo(() => {
                 Journalnr.
               </Typography>
               <Box className="row--label-offset__content">
-                <GreenfieldTextField field={journalnrRef} location={loc('journalnr')} name="journalnr" width={220} />
+                <TextField field={journalnrRef} location={loc('journalnr')} name="journalnr" width={220} />
               </Box>
             </Box>
 
@@ -79,7 +79,7 @@ const Stamdata = React.memo(() => {
               </Typography>
               <Box className="row--label-offset__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <GreenfieldTextField
+                  <TextField
                     field={advokatRef}
                     location={loc('advokat')}
                     name="advokat"
@@ -88,7 +88,7 @@ const Stamdata = React.memo(() => {
                     sx={{ '& input': { textAlign: 'center' } }}
                   />
                   <Typography className="row--text">/</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={sagsbehandlerRef}
                     location={loc('sagsbehandler')}
                     name="sagsbehandler"
@@ -109,7 +109,7 @@ const Stamdata = React.memo(() => {
                 Skadelidtes navn
               </Typography>
               <Box className="row--label-offset__content">
-                <GreenfieldTextField field={skadelidteRef} location={loc('skadelidte')} name="skadelidte" width={350} />
+                <TextField field={skadelidteRef} location={loc('skadelidte')} name="skadelidte" width={350} />
               </Box>
             </Box>
 
@@ -118,7 +118,7 @@ const Stamdata = React.memo(() => {
                 Fødselsdato
               </Typography>
               <Box className="row--label-offset__content">
-                <GreenfieldDateField
+                <DateField
                   field={skadelidteFodselsdatoRef}
                   location={loc('skadelidteFodselsdato')}
                   name="skadelidteFodselsdato"
@@ -131,7 +131,7 @@ const Stamdata = React.memo(() => {
                 Skadestype
               </Typography>
               <Box className="row--label-offset__content">
-                <GreenfieldChoiceField
+                <ChoiceField
                   field={skadestypeRef}
                   location={loc('skadestype')}
                   name="skadestype"
@@ -143,7 +143,7 @@ const Stamdata = React.memo(() => {
                       {type}
                     </MenuItem>
                   ))}
-                </GreenfieldChoiceField>
+                </ChoiceField>
               </Box>
             </Box>
 
@@ -152,7 +152,7 @@ const Stamdata = React.memo(() => {
                 {datoLabel}
               </Typography>
               <Box className="row--label-offset__content">
-                <GreenfieldDateField field={skadedatoRef} location={loc('skadedato')} name="skadedato" />
+                <DateField field={skadedatoRef} location={loc('skadedato')} name="skadedato" />
               </Box>
             </Box>
           </ContentBox>

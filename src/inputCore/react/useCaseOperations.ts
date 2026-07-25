@@ -8,7 +8,6 @@ import {
   type CaseResetOperations,
 } from '../../persistence/caseResetOperations';
 import { clearCase, replaceCase } from '../inputReducer';
-import { slimInputStore } from '../runtime/slimInputStore';
 import { captureStableInput } from '../runtime/evaluationSourceBinding';
 import { useInputRuntime } from './inputRuntimeContext';
 
@@ -33,10 +32,12 @@ export const useCaseOperations = (): CaseOperations => {
   return React.useMemo(() => {
     const file = createCaseFileOperations({
       catalog: runtime.catalog,
-      getSettledInput: () => slimInputStore.getState().input,
+      // Læs gennem BINDINGENS store, ikke produktions-singletonen: porten skal se præcis den runtime,
+      // React-træet viser. Ellers kunne en alternativ/test-binding vise én sag, mens save læste en anden.
+      getSettledInput: () => runtime.store.getState().input,
       captureSaveSource: () => {
         // Frisk, stabilt {input, token}-snapshot til save-projektionen (§3.9 pkt. 2).
-        const { input, token } = captureStableInput(slimInputStore);
+        const { input, token } = captureStableInput(runtime.store);
         return { input, token };
       },
       applyReplaceCase: (candidate) => {

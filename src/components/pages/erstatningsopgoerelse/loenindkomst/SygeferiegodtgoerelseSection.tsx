@@ -1,11 +1,11 @@
 import { Box, MenuItem, Typography } from '@mui/material';
-import GreenfieldTextField from '../../../../inputCore/react/fields/GreenfieldTextField';
-import GreenfieldDateField from '../../../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldChoiceField, { GreenfieldChoiceDivider } from '../../../../inputCore/react/fields/GreenfieldChoiceField';
-import GreenfieldEntityChoiceField from '../../../../inputCore/react/fields/GreenfieldEntityChoiceField';
-import GreenfieldAmountField from '../../../../inputCore/react/fields/GreenfieldAmountField';
-import GreenfieldMappedToggleField from '../../../../inputCore/react/fields/GreenfieldMappedToggleField';
-import GreenfieldIntegerField from '../../../../inputCore/react/fields/GreenfieldIntegerField';
+import TextField from '../../../../inputCore/react/fields/TextField';
+import DateField from '../../../../inputCore/react/fields/DateField';
+import ChoiceField, { ChoiceDivider } from '../../../../inputCore/react/fields/ChoiceField';
+import EntityChoiceField from '../../../../inputCore/react/fields/EntityChoiceField';
+import AmountField from '../../../../inputCore/react/fields/AmountField';
+import MappedToggleField from '../../../../inputCore/react/fields/MappedToggleField';
+import IntegerField from '../../../../inputCore/react/fields/IntegerField';
 import {
   eoSfggAlleredeBetaltBeloebField,
   eoSfggBeregningskildeField,
@@ -131,7 +131,7 @@ const SygeferiegodtgoerelseSection = ({
       <Box className="row--label-right-hover">
         <Typography className="row--text">Sygeferiegodtgørelse beregnes ud fra</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldEntityChoiceField
+          <EntityChoiceField
             descriptor={eoSfggBeregningskildeField}
             collection={eoSfggAnsaettelsesforholdCollection.template as CollectionRef}
             entity={createEmptySfggRow(af.id)}
@@ -145,9 +145,9 @@ const SygeferiegodtgoerelseSection = ({
             <MenuItem value="Overenskomst">Overenskomst</MenuItem>
             <MenuItem value="Ferieloven">Ferieloven</MenuItem>
             <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
-            <GreenfieldChoiceDivider />
+            <ChoiceDivider />
             <MenuItem value="Ingen">Ingen</MenuItem>
-          </GreenfieldEntityChoiceField>
+          </EntityChoiceField>
         </Box>
       </Box>
 
@@ -177,7 +177,7 @@ const SygeferiegodtgoerelseSection = ({
         <Box className="row--label-right-hover">
           <Typography className="row--text">Angiv skadelidtes uddannelse og arbejdssted</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField
+            <ChoiceField
               field={eoSfggSatsvalgField.bind(af.id)}
               location={location('sfggSatsvalg')}
               name={`${af.id}:sfggSatsvalg`}
@@ -189,7 +189,7 @@ const SygeferiegodtgoerelseSection = ({
               <MenuItem value="Faglaert-Provinsen">Faglært-Provinsen</MenuItem>
               <MenuItem value="Ufaglaert-Koebenhavn">Ufaglært-København</MenuItem>
               <MenuItem value="Ufaglaert-Provinsen">Ufaglært-Provinsen</MenuItem>
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
       ) : null}
@@ -200,13 +200,13 @@ const SygeferiegodtgoerelseSection = ({
             <Typography className="row--text">Referenceperiode</Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <GreenfieldDateField
+                <DateField
                   field={eoSfggReferenceperiodeFraField.bind(af.id)}
                   location={location('sfggReferenceperiodeFra')}
                   name={`${af.id}:sfggReferenceperiodeFra`}
                 />
                 <Typography className="row--text">til og med</Typography>
-                <GreenfieldDateField
+                <DateField
                   field={eoSfggReferenceperiodeTilField.bind(af.id)}
                   location={location('sfggReferenceperiodeTil')}
                   name={`${af.id}:sfggReferenceperiodeTil`}
@@ -218,7 +218,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Evt. ferie- og fraværsdage i referenceperioden uden løn</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldIntegerField
+              <IntegerField
                 field={eoSfggReferenceperiodeFravaersdageUdenLoenField.bind(af.id)}
                 location={location('sfggReferenceperiodeFravaersdageUdenLoen')}
                 name={`${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`}
@@ -245,7 +245,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Dagssats for sygeferiegodtgørelse (mandag-fredag)</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldAmountField
+              <AmountField
                 field={eoSfggManuelDagssatsField.bind(af.id)}
                 location={location('sfggManuelDagssats')}
                 name={`${af.id}:sfggManuelDagssats`}
@@ -257,7 +257,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Beløbet er i henhold til</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldTextField
+              <TextField
                 field={eoSfggManuelBeloebIHenholdTilField.bind(af.id)}
                 location={location('sfggManuelBeloebIHenholdTil')}
                 name={`${af.id}:sfggManuelBeloebIHenholdTil`}
@@ -269,7 +269,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover">
             <Typography className="row--text">Først sygeferiegodtgørelse efter ophør af sygeløn</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldMappedToggleField
+              <MappedToggleField
                 field={eoSfggManuelFoerstEfterSygeloenField.bind(af.id)}
                 location={location('sfggManuelFoerstEfterSygeloen')}
                 checkedValue="Ja"
@@ -285,7 +285,7 @@ const SygeferiegodtgoerelseSection = ({
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk SFGG. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldAmountField
+            <AmountField
               field={eoSfggAlleredeBetaltBeloebField.bind(af.id)}
               location={location('sfggAlleredeBetaltBeloeb')}
               name={`${af.id}:sfggAlleredeBetaltBeloeb`}

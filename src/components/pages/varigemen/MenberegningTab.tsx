@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Typography, Tooltip } from '@mui/material';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldNumericTextField from '../../../inputCore/react/fields/GreenfieldNumericTextField';
+import DateField from '../../../inputCore/react/fields/DateField';
+import NumericTextField from '../../../inputCore/react/fields/NumericTextField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import InputUnitAdornment from '../../inputs/InputUnitAdornment';
 import ContentBox from '../../layout/ContentBox';
@@ -274,7 +274,7 @@ const MenberegningTab = React.memo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Méngrad</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldNumericTextField
+          <NumericTextField
             field={mengradRef}
             location={MENGRAD_LOCATION}
             keyFilter={mengradKeyFilter}
@@ -294,7 +294,7 @@ const MenberegningTab = React.memo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Beregningsdato</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-          <GreenfieldDateField
+          <DateField
             field={beregningsdatoRef}
             location={BEREGNINGSDATO_LOCATION}
             name="beregningsdato"

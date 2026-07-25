@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import GreenfieldRadioField from '../../../../../inputCore/react/fields/GreenfieldRadioField';
-import GreenfieldOevrigeKravTable from '../../../../tables/GreenfieldOevrigeKravTable';
+import RadioField from '../../../../../inputCore/react/fields/RadioField';
+import OevrigeKravTable from '../../../../tables/OevrigeKravTable';
 import {
   eoKravPaaOevrigeErstatningskravField,
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
@@ -25,7 +25,7 @@ export default function OevrigeKravSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Er der øvrige krav i erstatningsperioden</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldRadioField
+            <RadioField
               field={eoKravPaaOevrigeErstatningskravField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.kravPaaOevrigeErstatningskrav', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="kravPaaOevrigeErstatningskrav"
@@ -36,7 +36,7 @@ export default function OevrigeKravSection() {
         </Box>
 
         {erOevrigeKravSektionAktiv(values) && (
-          <GreenfieldOevrigeKravTable
+          <OevrigeKravTable
             committedRows={values.oevrigeKravPerioder}
             saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
           />

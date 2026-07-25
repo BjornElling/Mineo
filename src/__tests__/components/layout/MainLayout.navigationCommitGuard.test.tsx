@@ -11,7 +11,7 @@ import {
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import MainLayout from '../../../components/layout/MainLayout';
-import { OpenGreenfieldEditor } from './greenfieldEditorTestUtils';
+import { OpenEditor } from './editorTestUtils';
 
 // Greenfield-navigation (§1.4): sideskift er en settle-handling. Coordinatorens `prepare("navigate")` settler
 // den åbne editor; et fail-closed `blocked` (uventet settle-fejl) stopper navigationen og fokuserer feltet.
@@ -40,7 +40,7 @@ describe('MainLayout navigation commit guard', () => {
     const ActiveEditorPage = () => (
       <div>
         <div>Stamdata testside</div>
-        <OpenGreenfieldEditor label="Aktivt felt" />
+        <OpenEditor label="Aktivt felt" />
       </div>
     );
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGreenfieldEoOplysningerViewModel } from './useGreenfieldEoOplysningerViewModel';
+import { useEoOplysningerViewModel } from './useEoOplysningerViewModel';
 
 /**
  * Den flade view-model som Erstatningsopgørelse-oplysninger-fanen og dens sektion-komponenter
@@ -7,7 +7,7 @@ import { useGreenfieldEoOplysningerViewModel } from './useGreenfieldEoOplysninge
  * rå `values` og form-settere via modellen. Det er en bevidst A1-rest, ikke samme lukkede form som
  * Lønindkomsts React-fri afledningsmodel.
  */
-export type EoOplysningerVm = ReturnType<typeof useGreenfieldEoOplysningerViewModel>;
+export type EoOplysningerVm = ReturnType<typeof useEoOplysningerViewModel>;
 
 const EoOplysningerVmContext = React.createContext<EoOplysningerVm | null>(null);
 

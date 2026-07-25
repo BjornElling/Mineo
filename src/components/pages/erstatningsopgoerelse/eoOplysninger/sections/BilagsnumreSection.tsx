@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
-import GreenfieldTextField from '../../../../../inputCore/react/fields/GreenfieldTextField';
+import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
+import TextField from '../../../../../inputCore/react/fields/TextField';
 import {
   eoBilagsnumreBeregningsgrundlagTafField,
   eoBilagsnumreEetAfgoerelserField,
@@ -29,7 +29,7 @@ export default function BilagsnumreSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Indsæt bilagsnumre i erstatningsopgørelsen</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldMappedToggleField
+            <MappedToggleField
               field={eoVisBilagsnumreField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.visBilagsnumre', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
@@ -46,7 +46,7 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={eoBilagsnumreMenAfgoerelseField.bind()}
                     location={{ locationId: 'erstatningsopgoerelse.bilagsnumreMenAfgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     width={130}
@@ -62,7 +62,7 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={eoBilagsnumreEetAfgoerelserField.bind()}
                     location={{ locationId: 'erstatningsopgoerelse.bilagsnumreEetAfgoerelser', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     width={130}
@@ -78,7 +78,7 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={eoBilagsnumreSvieSmerteDokumentationField.bind()}
                     location={{ locationId: 'erstatningsopgoerelse.bilagsnumreSvieSmerteDokumentation', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     width={130}
@@ -94,7 +94,7 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={eoBilagsnumreBeregningsgrundlagTafField.bind()}
                     location={{ locationId: 'erstatningsopgoerelse.bilagsnumreBeregningsgrundlagTaf', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     width={130}
@@ -110,7 +110,7 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={eoBilagsnumreLoenISygeperiodenField.bind()}
                     location={{ locationId: 'erstatningsopgoerelse.bilagsnumreLoenISygeperioden', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     width={130}
@@ -126,7 +126,7 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={eoBilagsnumreOffentligeYdelserField.bind()}
                     location={{ locationId: 'erstatningsopgoerelse.bilagsnumreOffentligeYdelser', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     width={130}
@@ -142,7 +142,7 @@ export default function BilagsnumreSection() {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>
-                  <GreenfieldTextField
+                  <TextField
                     field={eoBilagsnumreOevrigeErstatningskravField.bind()}
                     location={{ locationId: 'erstatningsopgoerelse.bilagsnumreOevrigeErstatningskrav', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                     width={130}

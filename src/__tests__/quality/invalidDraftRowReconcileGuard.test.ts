@@ -13,7 +13,7 @@ describe('greenfield rækkeejerskab', () => {
     expect(deletableCollectionTables.length).toBeGreaterThanOrEqual(10);
     for (const { name, source } of deletableCollectionTables) {
       expect(
-        source.includes('useGreenfieldCollectionTable') || source.includes('useCollectionRows'),
+        source.includes('useCollectionTable') || source.includes('useCollectionRows'),
         `${name} mangler greenfield collectionadapter`,
       ).toBe(true);
       expect(source, `${name} må ikke genindføre legacy række-/invalidDraft-state`).not.toMatch(
@@ -25,6 +25,6 @@ describe('greenfield rækkeejerskab', () => {
   it('detektoren afviser en sletbar tabel med en konkurrerende række-draftkopi', () => {
     const violating = 'const rows = useRowDrafts(config); return <RowDeleteButton />;';
     expect(violating).toMatch(/useRowDrafts/);
-    expect(violating).not.toMatch(/useGreenfieldCollectionTable|useCollectionRows/);
+    expect(violating).not.toMatch(/useCollectionTable|useCollectionRows/);
   });
 });

@@ -4,8 +4,8 @@ import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material
 import ContentBox from '../../layout/ContentBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
-import GreenfieldChoiceField from '../../../inputCore/react/fields/GreenfieldChoiceField';
-import GreenfieldCheckbox from '../../../inputCore/react/fields/GreenfieldCheckbox';
+import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
+import CheckboxField from '../../../inputCore/react/fields/CheckboxField';
 import {
   eoBilagIndgaarField,
   eoBilagSelectionLoenindkomstField,
@@ -268,7 +268,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
       sygeferiegodtgoerelse: eoBilagSelectionSygeferiegodtgoerelseField,
     };
     const checkbox = (
-      <GreenfieldCheckbox
+      <CheckboxField
         field={descriptors[key].bind()}
         // route + tabKey er eksplicit navigation-metadata (§3.7); bilagsvalgene bor på Beregningsfanen.
         location={{ locationId: `erstatningsopgoerelse.eoBilagSelection.${key}`, route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
@@ -439,7 +439,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Lønindkomst og offentlige ydelser, der indsættes som bilag</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField
+            <ChoiceField
               field={eoBilagIndgaarField.bind()}
               // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Beregningsfanen.
               location={{ locationId: 'erstatningsopgoerelse.eoBilagLoenindkomstOgOffentligeYdelserIndgaar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
@@ -449,7 +449,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             >
               <MenuItem value="Alle">Alle</MenuItem>
               <MenuItem value="Perioden">Perioden</MenuItem>
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
       </ContentBox>

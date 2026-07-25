@@ -7,10 +7,10 @@ import {
   type CollectionRefTemplate,
 } from '../../../input/fieldCatalog';
 import {
-  GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS,
-  GREENFIELD_PHASE_0_CASE_FILE_PATHS,
-  GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS,
-} from '../../../config/greenfieldPhase0Inventory';
+  CONSUMER_CALCULATION_ENTRYPOINTS,
+  CONSUMER_CASE_FILE_PATHS,
+  CONSUMER_DOCUMENT_OUTPUTS,
+} from '../../../config/consumerInventory';
 import type { SectionKey } from '../../../inputCore/fieldAddress';
 import type { FieldControlKind } from '../../../input/fieldDefinition';
 import {
@@ -224,13 +224,13 @@ describe('greenfield consumerledger (§6.3)', () => {
     expect(INPUT_CONSUMER_LEDGER).toHaveLength(EXPECTED_CONSUMER_COUNT);
 
     expect(byType('beregning').map((e) => e.id).sort()).toEqual(
-      GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS.map((e) => `beregning:${e.id}`).sort()
+      CONSUMER_CALCULATION_ENTRYPOINTS.map((e) => `beregning:${e.id}`).sort()
     );
     expect(byType('casefile').map((e) => e.id).sort()).toEqual(
-      GREENFIELD_PHASE_0_CASE_FILE_PATHS.map((e) => `casefile:${e.id}`).sort()
+      CONSUMER_CASE_FILE_PATHS.map((e) => `casefile:${e.id}`).sort()
     );
     expect(byType('document').map((e) => e.id).sort()).toEqual(
-      GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS.map((e) => `document:${e.id}`).sort()
+      CONSUMER_DOCUMENT_OUTPUTS.map((e) => `document:${e.id}`).sort()
     );
   });
 

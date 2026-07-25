@@ -5,7 +5,7 @@ import { leafToDataFieldPath } from './fieldLedger';
 
 // Maskinel udledning af de persisterede felt- og collection-stier direkte fra de LEVENDE Zod-schemas. Dette
 // er ledgerens ene sandhedskilde for coverage (§6): feltledgeren annoterer, den udleder ikke. Samme traversal
-// som `greenfieldPhase0Inventory.test.ts`, nu delt så ledger, completeness-test og validator ser samme paths.
+// som `consumerInventory.test.ts`, nu delt så ledger, completeness-test og validator ser samme paths.
 
 type JsonObject = Readonly<Record<string, unknown>>;
 

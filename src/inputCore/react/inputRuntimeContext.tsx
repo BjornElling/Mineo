@@ -33,6 +33,13 @@ export type SettledSnapshot = Readonly<{
 
 export type InputRuntimeBinding = Readonly<{
   catalog: InputCatalog;
+  /**
+   * Den store, bindingen er bygget over. Eksponeret så system-porte (§3.10) kan optage et stabilt
+   * {input, token}-snapshot fra PRÆCIS den runtime, React-træet læser — i stedet for at importere
+   * produktions-singletonen direkte. Uden dette kunne en alternativ/test-binding vise én sag, mens en port
+   * læste og gemte en anden. Felt-/celle-adaptere bruger den ALDRIG; de går gennem `dispatch`/`getSettled`.
+   */
+  store: SlimInputStore;
   /** Læser det aktuelle afsluttede snapshot. Bruges af `useSyncExternalStore`-getSnapshot. */
   getSettled: () => SettledSnapshot;
   /** Abonnér på revisionsændringer (nyt afsluttet input). Returnerer unsubscribe. */
@@ -118,6 +125,7 @@ export const createInputRuntimeBinding = (
   };
   return Object.freeze({
     catalog,
+    store,
     getSettled,
     subscribe: (listener) => store.subscribe(listener),
     // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme

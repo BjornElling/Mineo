@@ -7,7 +7,7 @@ import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../comp
 import type { GridCellCoord, GridCellEditorHandle } from '../../components/tables/gridCore/gridCoreTypes';
 import { gridCellKey } from '../../components/tables/gridCore/gridCoreUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
-import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './greenfieldHistoryRestore';
+import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
 
 // Greenfield-React grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den

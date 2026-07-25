@@ -1,11 +1,11 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import GreenfieldCheckbox from '../../../inputCore/react/fields/GreenfieldCheckbox';
-import GreenfieldToggleField from '../../../inputCore/react/fields/GreenfieldToggleField';
-import GreenfieldPercentField from '../../../inputCore/react/fields/GreenfieldPercentField';
-import GreenfieldFractionField from '../../../inputCore/react/fields/GreenfieldFractionField';
-import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
+import CheckboxField from '../../../inputCore/react/fields/CheckboxField';
+import ToggleField from '../../../inputCore/react/fields/ToggleField';
+import PercentField from '../../../inputCore/react/fields/PercentField';
+import FractionField from '../../../inputCore/react/fields/FractionField';
+import DateField from '../../../inputCore/react/fields/DateField';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
@@ -463,26 +463,26 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, downloadGate }
             <Typography className="row--text">Bilag, der indsættes</Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <GreenfieldCheckbox
+                <CheckboxField
                   field={refs.loebendeYdelser}
                   location={location('bilag-loebendeYdelser')}
                   name="loebendeYdelser"
                   label="Løbende ydelser"
                 />
-                <GreenfieldCheckbox
+                <CheckboxField
                   field={refs.kapitalisering}
                   location={location('bilag-kapitalisering')}
                   name="kapitalisering"
                   label="Kapitalisering"
                 />
-                <GreenfieldCheckbox
+                <CheckboxField
                   field={refs.eetEfterEal}
                   location={location('bilag-eetEfterEal')}
                   name="eetEfterEal"
                   label="EET efter EAL"
                 />
                 {computation.proformaKapitalisering && (
-                  <GreenfieldCheckbox
+                  <CheckboxField
                     field={refs.proformaKapitalisering}
                     location={location('bilag-proformaKapitalisering')}
                     name="proformaKapitalisering"
@@ -490,7 +490,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, downloadGate }
                   />
                 )}
                 {computation.merErstatningPensionsalder && (
-                  <GreenfieldCheckbox
+                  <CheckboxField
                     field={refs.merErstatningPensionsalder}
                     location={location('bilag-merErstatningPensionsalder')}
                     name="merErstatningPensionsalder"
@@ -504,7 +504,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, downloadGate }
           <Box className="row--label-right-hover">
             <Typography className="row--text">Medtag udvidet specifikation på løbende ydelser</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldToggleField
+              <ToggleField
                 field={refs.visUdvidetSpecifikationLoebendeYdelserBilag}
                 location={location('visUdvidetSpecifikationLoebendeYdelserBilag')}
                 name="visUdvidetSpecifikationLoebendeYdelserBilag"
@@ -524,7 +524,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, downloadGate }
             <InfoTooltipIcon title="Opstår ved endelig afgørelse, der får virkning for en periode, der tidligere er udbetalt midlertidig EET for" />
           </Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldToggleField
+            <ToggleField
               field={refs.tilbagevirkende}
               location={location('tilbagevirkende')}
               name="endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft"
@@ -537,7 +537,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, downloadGate }
             Indregn mer-erstatning ved forhøjet pensionsalder
           </Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldToggleField
+            <ToggleField
               field={refs.merErstatning}
               location={location('merErstatning')}
               name="indregnMerErstatningVedForhoejetPensionsalder"
@@ -550,14 +550,14 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, downloadGate }
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">Procent</Typography>
-              <GreenfieldPercentField
+              <PercentField
                 field={refs.forligProcent}
                 location={location('forligProcent')}
                 name="forligAnsvarsgradProcent"
                 width={100}
               />
               <Typography className="row--text">eller brøk</Typography>
-              <GreenfieldFractionField
+              <FractionField
                 field={refs.forligBroek}
                 location={location('forligBroek')}
                 name="forligAnsvarsgradBroek"
@@ -570,7 +570,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, downloadGate }
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. dato for forlig</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldDateField
+            <DateField
               field={refs.forligDato}
               location={location('forligDato')}
               name="forligDato"

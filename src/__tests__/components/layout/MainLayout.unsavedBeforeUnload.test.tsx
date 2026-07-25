@@ -63,7 +63,7 @@ import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 import { saveToFile } from '../../../utils/fileSave';
 import { deleteFileHandleFromIndexedDB } from '../../../utils/fileHandleStorage';
 import { clickMainLayoutAction, dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
-import { OpenGreenfieldEditor } from './greenfieldEditorTestUtils';
+import { OpenEditor } from './editorTestUtils';
 
 // Greenfield-shell (WI-002 Fase 4): al "unsaved changes"-adfærd drives nu gennem den ENE runtime.
 //  - "committed input change" → en ægte settle (revision > baseline → beforeunload aktiveres).
@@ -248,7 +248,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
   it('blocks save when an open editor cannot be committed', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
 
-    renderLayout('/stamdata', <OpenGreenfieldEditor label="Låst gridfelt" />);
+    renderLayout('/stamdata', <OpenEditor label="Låst gridfelt" />);
 
     commitInputChange();
 
@@ -348,7 +348,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       snapshot: { stamdata: { skadelidte: 'Indlæst sag' } },
     });
 
-    renderLayout('/stamdata', <OpenGreenfieldEditor label="Låst gridfelt" />);
+    renderLayout('/stamdata', <OpenEditor label="Låst gridfelt" />);
 
     await clickMainLayoutAction('Hent');
 
@@ -369,7 +369,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       snapshot: { stamdata: { skadelidte: 'Indlæst sag' } },
     });
 
-    renderLayout('/stamdata', <OpenGreenfieldEditor label="Låst gridfelt" />);
+    renderLayout('/stamdata', <OpenEditor label="Låst gridfelt" />);
 
     pendingPwaRequest = {
       id: 'pwa-open-1',

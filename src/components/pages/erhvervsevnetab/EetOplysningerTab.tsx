@@ -3,10 +3,10 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import ContentBox from '../../layout/ContentBox';
 import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
-import GreenfieldAmountField from '../../../inputCore/react/fields/GreenfieldAmountField';
-import GreenfieldChoiceField from '../../../inputCore/react/fields/GreenfieldChoiceField';
-import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldPercentField from '../../../inputCore/react/fields/GreenfieldPercentField';
+import AmountField from '../../../inputCore/react/fields/AmountField';
+import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
+import DateField from '../../../inputCore/react/fields/DateField';
+import PercentField from '../../../inputCore/react/fields/PercentField';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import {
   erhvervsevnetabBeregningsdatoField,
@@ -70,7 +70,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldChoiceField<Koen>
+              <ChoiceField<Koen>
                 field={koenRef}
                 location={LOCATIONS.koen}
                 name="koen"
@@ -79,7 +79,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               >
                 <MenuItem value="Mand">Mand</MenuItem>
                 <MenuItem value="Kvinde">Kvinde</MenuItem>
-              </GreenfieldChoiceField>
+              </ChoiceField>
             </Box>
           </Box>
         )}
@@ -87,7 +87,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Beregningsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-            <GreenfieldDateField
+            <DateField
               field={beregningsdatoRef}
               location={LOCATIONS.beregningsdato}
               name="beregningsdato"
@@ -108,7 +108,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Årsløn</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldAmountField
+            <AmountField
               field={aslAarsloenRef}
               location={LOCATIONS.aslAarsloen}
               name="aslAarsloen"
@@ -129,7 +129,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Årsløn (hvis forskellig fra ASL)</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldAmountField
+            <AmountField
               field={ealAarsloenRef}
               location={LOCATIONS.ealAarsloen}
               name="ealAarsloen"
@@ -140,7 +140,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">EET % (hvis afviger fra ASL)</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldPercentField
+            <PercentField
               field={ealEetPctRef}
               location={LOCATIONS.ealEetPct}
               name="ealEetPct"

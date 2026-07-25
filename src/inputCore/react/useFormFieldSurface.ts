@@ -5,7 +5,7 @@ import type { EditorLocation } from '../editor/fieldEditorState';
 import { useFieldEditor, type FieldEditorController } from './useFieldEditor';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
-import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './greenfieldHistoryRestore';
+import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
 
 // Greenfield-React (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.

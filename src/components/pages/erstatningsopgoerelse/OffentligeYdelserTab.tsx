@@ -1,14 +1,14 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
-import GreenfieldOffentligeYdelserTable from '../../tables/GreenfieldOffentligeYdelserTable';
+import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 import TransientDateInput from '../../inputs/transient/TransientDateInput';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
-import GreenfieldMultilineTextField from '../../../inputCore/react/fields/GreenfieldMultilineTextField';
+import MultilineTextField from '../../../inputCore/react/fields/MultilineTextField';
 import InlineActionButton from '../../inputs/InlineActionButton';
 import {
   buildSygedagpengeRowsForRange,
@@ -291,7 +291,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
           Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.
         </Typography>
 
-          <GreenfieldOffentligeYdelserTable
+          <OffentligeYdelserTable
             committedRows={rows}
             derivedByRowId={derivedByRowId}
             saveOrderPath="erstatningsopgoerelse.offentligeYdelserRows"
@@ -370,7 +370,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
 
       <ContentBox className="content-box">
         <Typography className="section-header">Kommentarer</Typography>
-        <GreenfieldMultilineTextField
+        <MultilineTextField
           field={eoOffentligeYdelserKommentarerField.bind()}
           // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Offentlige ydelser-fanen.
           location={{ locationId: 'erstatningsopgoerelse.offentligeYdelserKommentarer', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER }}

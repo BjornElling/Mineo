@@ -1,11 +1,11 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
-import GreenfieldRadioField from '../../../../../inputCore/react/fields/GreenfieldRadioField';
-import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
-import GreenfieldYearField from '../../../../../inputCore/react/fields/GreenfieldYearField';
-import GreenfieldAmountField from '../../../../../inputCore/react/fields/GreenfieldAmountField';
-import GreenfieldSvieSmerteTable from '../../../../tables/GreenfieldSvieSmerteTable';
+import RadioField from '../../../../../inputCore/react/fields/RadioField';
+import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
+import YearField from '../../../../../inputCore/react/fields/YearField';
+import AmountField from '../../../../../inputCore/react/fields/AmountField';
+import SvieSmerteTable from '../../../../tables/SvieSmerteTable';
 import {
   eoKravPaaSvieSmerteGodtgoerelseField,
   eoSvieSmerteAktuelPeriodeField,
@@ -43,7 +43,7 @@ export default function SvieSmerteSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Er der krav på svie- og smertegodtgørelse i erstatningsperioden</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldRadioField
+            <RadioField
               field={eoKravPaaSvieSmerteGodtgoerelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.kravPaaSvieSmerteGodtgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="kravPaaSvieSmerteGodtgoerelse"
@@ -58,7 +58,7 @@ export default function SvieSmerteSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldMappedToggleField
+                <MappedToggleField
                   field={eoTidligereSsMaxField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.tidligereSsMax', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   checkedValue="Ja"
@@ -76,7 +76,7 @@ export default function SvieSmerteSection() {
                   Periode:
                   <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
                 </Typography>
-                <GreenfieldSvieSmerteTable
+                <SvieSmerteTable
                   committedRows={values.svieSmertePerioder}
                   derivedById={svie.derivedById}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
@@ -85,7 +85,7 @@ export default function SvieSmerteSection() {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Hvilket års svie/smerte-satser lægges til grund?</Typography>
                   <Box className="row--label-right-hover__content">
-                    <GreenfieldYearField
+                    <YearField
                       field={eoSvieSmerteSatserAarField.bind()}
                       location={{ locationId: 'erstatningsopgoerelse.svieSmerteSatserAar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       name="svieSmerteSatserAar"
@@ -100,7 +100,7 @@ export default function SvieSmerteSection() {
                     <InfoTooltipIcon title={DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP} />
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <GreenfieldRadioField
+                    <RadioField
                       field={eoSvieSmerteDelvisSygemeldingSatsField.bind()}
                       location={{ locationId: 'erstatningsopgoerelse.svieSmerteDelvisSygemeldingSats', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       name="svieSmerteDelvisSygemeldingSats"
@@ -121,7 +121,7 @@ export default function SvieSmerteSection() {
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Svie/smerte-krav i tidligere erstatningsopgørelser:</Typography>
                     <Box className="row--label-right-hover__content">
-                      <GreenfieldAmountField
+                      <AmountField
                         field={eoSvieSmerteTidligereTotalField.bind()}
                         location={{ locationId: 'erstatningsopgoerelse.svieSmerteTidligereTotal', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                         name="svieSmerteTidligereTotal"
@@ -134,7 +134,7 @@ export default function SvieSmerteSection() {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode:</Typography>
                   <Box className="row--label-right-hover__content">
-                    <GreenfieldAmountField
+                    <AmountField
                       field={eoSvieSmerteAktuelPeriodeField.bind()}
                       location={{ locationId: 'erstatningsopgoerelse.svieSmerteAktuelPeriode', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       name="svieSmerteAktuelPeriode"

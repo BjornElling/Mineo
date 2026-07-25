@@ -27,7 +27,7 @@ import {
   removeOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../utils/safeSessionStorage';
-import { focusFirstBlockingRejectedField } from '../inputCore/react/greenfieldSaveBlockedFocus';
+import { focusFirstBlockingRejectedField } from '../inputCore/react/saveBlockedFocus';
 import type { CaseOperations } from '../inputCore/react/useCaseOperations';
 import type { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';
 import { logWarning } from '../utils/logger';
@@ -258,6 +258,20 @@ export const useFileSaveLoad = ({
       const snapshot: SaveSnapshot = saveOutcome.snapshot;
       const savedInputRevision = Number(saveOutcome.token.inputRevision);
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
+
+      // Critical-action-kontrakten §5: directory-/fil-pickeren er en async-grænse, så hele kildetokenet
+      // genlæses og sammenlignes UMIDDELBART før den irreversible skrivning. Har brugeren ændret input eller
+      // en dokumentrelevant indstilling imens, ville vi ellers skrive en ældre sag til fil. Fail-closed:
+      // handlingen stoppes, og brugeren bliver bedt om at gemme igen mod den aktuelle tilstand.
+      if (!ops.file.isSaveSourceStillCurrent(saveOutcome.token)) {
+        focusBeforeAction?.focus();
+        showOverlay({
+          message: 'Gem blev afbrudt, fordi sagen blev ændret undervejs. Prøv at gemme igen.',
+          type: 'warning',
+        });
+        return;
+      }
+
       const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);
 
       if (result.status === 'cancelled') {

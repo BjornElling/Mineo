@@ -294,6 +294,25 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
     expect(result.restoredOrigin).toBeUndefined();
   });
 
+  // En STRUKTUREL rækkehandling bærer en origin UDEN feltadresse (§3.7): der er intet enkelt felt, men route +
+  // fane skal med, så undo af en slet/indsæt/sortér navigerer til den tabel, ændringen kom fra.
+  it('en rækkehandlings origin (uden feltadresse) surfacer route + fane ved undo', () => {
+    const rowOrigin = {
+      editorLocationId: 'test.rentekrav:rows:rentekravRows',
+      route: '/renteberegning',
+      tabKey: null,
+    };
+
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: rowOrigin });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin: rowOrigin });
+
+    const undo = dispatchInput(store, catalog, { kind: 'undo' }, { now: 3 });
+
+    expect(undo.changed).toBe(true);
+    expect(undo.restoredOrigin).toEqual(rowOrigin);
+    expect(undo.restoredOrigin?.field).toBeUndefined();
+  });
+
   it('et frame uden origin surfacer ingen origin ved undo', () => {
     // Ingen origin sendt med → frame'et bærer ingen origin → restoren navigerer ikke.
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });

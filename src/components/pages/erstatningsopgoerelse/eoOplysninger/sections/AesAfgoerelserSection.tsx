@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
-import GreenfieldDateField from '../../../../../inputCore/react/fields/GreenfieldDateField';
+import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
+import DateField from '../../../../../inputCore/react/fields/DateField';
 import {
   eoDifferencekravDatoField,
   eoEndeligEETAfgoerelseDatoField,
@@ -44,7 +44,7 @@ export default function AesAfgoerelserSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Truffet afgørelse om varige mén på 5 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldMappedToggleField
+            <MappedToggleField
               field={eoVarigeMenAfgorelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.varigeMenAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
@@ -59,7 +59,7 @@ export default function AesAfgoerelserSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for første ménafgørelse</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldDateField
+                <DateField
                   field={eoMenAfgoerelseDatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.menAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="menAfgoerelseDato"
@@ -70,7 +70,7 @@ export default function AesAfgoerelserSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Verserende klagesag over ménafgørelse?</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldMappedToggleField
+                <MappedToggleField
                   field={eoVerserendeKlageMenField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.verserendeKlageMen', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   checkedValue="Ja"
@@ -90,7 +90,7 @@ export default function AesAfgoerelserSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Truffet afgørelse om midlertidigt erhvervsevnetab på 15 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldMappedToggleField
+            <MappedToggleField
               field={eoMidlertidigtEETAfgorelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.midlertidigtEETAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
@@ -105,7 +105,7 @@ export default function AesAfgoerelserSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for første midlertidige erhvervsevnetabsafgørelse</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldDateField
+                <DateField
                   field={eoMidlertidigEETAfgoerelseDatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.midlertidigEETAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="midlertidigEETAfgoerelseDato"
@@ -116,7 +116,7 @@ export default function AesAfgoerelserSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Virkningsdato (hvis forskellig fra afgørelsesdatoen)</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldDateField
+                <DateField
                   field={eoMidlertidigEETVirkningsdatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.midlertidigEETVirkningsdato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="midlertidigEETVirkningsdato"
@@ -133,7 +133,7 @@ export default function AesAfgoerelserSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Truffet afgørelse om endeligt erhvervsevnetab på 15 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldMappedToggleField
+            <MappedToggleField
               field={eoEndeligtEETAfgorelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.endeligtEETAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
@@ -148,7 +148,7 @@ export default function AesAfgoerelserSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for endelig erhvervsevnetabsafgørelse</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldDateField
+                <DateField
                   field={eoEndeligEETAfgoerelseDatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.endeligEETAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="endeligEETAfgoerelseDato"
@@ -159,7 +159,7 @@ export default function AesAfgoerelserSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Virkningsdato (hvis forskellig fra afgørelsesdatoen)</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldDateField
+                <DateField
                   field={eoEndeligEETVirkningsdatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.endeligEETVirkningsdato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="endeligEETVirkningsdato"
@@ -177,7 +177,7 @@ export default function AesAfgoerelserSection() {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Verserende klagesag over EET-afgørelse?</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldMappedToggleField
+              <MappedToggleField
                 field={eoVerserendeKlageEetField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.verserendeKlageEet', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 checkedValue="Ja"
@@ -191,7 +191,7 @@ export default function AesAfgoerelserSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. differencekrav opgjort per</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldDateField
+            <DateField
               field={eoDifferencekravDatoField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.differencekravDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="differencekravDato"

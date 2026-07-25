@@ -1,11 +1,11 @@
 import React from 'react';
 import { Box, Typography, MenuItem } from '@mui/material';
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
-import GreenfieldPercentField from '../../inputCore/react/fields/GreenfieldPercentField';
-import GreenfieldRadioField from '../../inputCore/react/fields/GreenfieldRadioField';
-import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
-import GreenfieldToggleField from '../../inputCore/react/fields/GreenfieldToggleField';
-import GreenfieldIntegerField from '../../inputCore/react/fields/GreenfieldIntegerField';
+import PercentField from '../../inputCore/react/fields/PercentField';
+import RadioField from '../../inputCore/react/fields/RadioField';
+import ChoiceField from '../../inputCore/react/fields/ChoiceField';
+import ToggleField from '../../inputCore/react/fields/ToggleField';
+import IntegerField from '../../inputCore/react/fields/IntegerField';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StandardLoenTable from '../tables/StandardLoenTable';
 import { APP_ROUTES } from '../../config/pageNavigation';
@@ -260,7 +260,7 @@ const Aarsloen = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Løn indtastes som:</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldRadioField<Loenperiode>
+            <RadioField<Loenperiode>
               field={loenperiodeRef}
               location={loc('loenperiode')}
               name="loenperiode"
@@ -273,7 +273,7 @@ const Aarsloen = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Tillæg angives som</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField<TillaegAngivesSom>
+            <ChoiceField<TillaegAngivesSom>
               field={tillaegAngivesSomRef}
               location={loc('tillaegAngivesSom')}
               name="tillaegAngivesSom"
@@ -282,7 +282,7 @@ const Aarsloen = React.memo(() => {
             >
               <MenuItem value={TILLAEG_ANGIVES_SOM.PROCENT}>Procent</MenuItem>
               <MenuItem value={TILLAEG_ANGIVES_SOM.BELOEB}>Beløb</MenuItem>
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
 
@@ -292,15 +292,15 @@ const Aarsloen = React.memo(() => {
               <Box sx={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text" sx={{ minWidth: '160px' }}>Feriegodtgørelse/-tillæg:</Typography>
-                  <GreenfieldPercentField field={feriePctRef} location={loc('feriePct')} name="feriePct" placeholder="0" sx={{ width: '100px' }} />
+                  <PercentField field={feriePctRef} location={loc('feriePct')} name="feriePct" placeholder="0" sx={{ width: '100px' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
-                  <GreenfieldPercentField field={fritvalgPctRef} location={loc('fritvalgPct')} name="fritvalgPct" placeholder="0" sx={{ width: '100px' }} />
+                  <PercentField field={fritvalgPctRef} location={loc('fritvalgPct')} name="fritvalgPct" placeholder="0" sx={{ width: '100px' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text" sx={{ minWidth: '140px' }}>SH/SO-sats:</Typography>
-                  <GreenfieldPercentField field={shSoPctRef} location={loc('shSoPct')} name="shSoPct" placeholder="0" sx={{ width: '100px' }} />
+                  <PercentField field={shSoPctRef} location={loc('shSoPct')} name="shSoPct" placeholder="0" sx={{ width: '100px' }} />
                 </Box>
               </Box>
             </Box>
@@ -309,11 +309,11 @@ const Aarsloen = React.memo(() => {
               <Box sx={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text" sx={{ minWidth: '160px' }}>Store Bededagstillæg:</Typography>
-                  <GreenfieldPercentField field={storeBededagPctRef} location={loc('storeBededagPct')} name="storeBededagPct" placeholder="0" sx={{ width: '100px' }} />
+                  <PercentField field={storeBededagPctRef} location={loc('storeBededagPct')} name="storeBededagPct" placeholder="0" sx={{ width: '100px' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text" sx={{ minWidth: '190px' }}>Arbejdsgivers pensionsbidrag:</Typography>
-                  <GreenfieldPercentField field={pensionPctRef} location={loc('pensionPct')} name="pensionPct" placeholder="0" sx={{ width: '100px' }} />
+                  <PercentField field={pensionPctRef} location={loc('pensionPct')} name="pensionPct" placeholder="0" sx={{ width: '100px' }} />
                 </Box>
               </Box>
             </Box>
@@ -370,7 +370,7 @@ const Aarsloen = React.memo(() => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Fuld løn under ferie:</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldToggleField
+              <ToggleField
                 name="fuldLoenUnderFerie"
                 field={fuldLoenUnderFerieRef}
                 location={loc('fuldLoenUnderFerie')}
@@ -384,7 +384,7 @@ const Aarsloen = React.memo(() => {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Ret til 6. ferieuge:</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldToggleField
+                <ToggleField
                   name="retTilSjetteFerieuge"
                   field={retTilSjetteFerieugeRef}
                   location={loc('retTilSjetteFerieuge')}
@@ -399,7 +399,7 @@ const Aarsloen = React.memo(() => {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Antal feriedage (mandag-fredag) i de indtastede perioder:</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldIntegerField
+                <IntegerField
                   name="antalFeriedage"
                   field={antalFeriedageRef}
                   location={loc('antalFeriedage')}
@@ -415,7 +415,7 @@ const Aarsloen = React.memo(() => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Løn på helligdage:</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldChoiceField<LoenPaaHelligdage>
+              <ChoiceField<LoenPaaHelligdage>
                 name="loenPaaHelligdage"
                 field={loenPaaHelligdageRef}
                 location={loc('loenPaaHelligdage')}
@@ -426,7 +426,7 @@ const Aarsloen = React.memo(() => {
                 <MenuItem value={LOEN_PAA_HELLIGDAGE.ALMINDELIG}>Almindelig løn</MenuItem>
                 <MenuItem value={LOEN_PAA_HELLIGDAGE.SH_UDBETALING}>SH-udbetaling</MenuItem>
                 <MenuItem value={LOEN_PAA_HELLIGDAGE.INGEN}>Ingen</MenuItem>
-              </GreenfieldChoiceField>
+              </ChoiceField>
             </Box>
           </Box>
 

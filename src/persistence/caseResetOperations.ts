@@ -1,4 +1,3 @@
-import { clearCase } from '../inputCore/inputReducer';
 import type { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';
 import type { DispatchInputResult } from '../inputCore/runtime/dispatchInput';
 
@@ -37,5 +36,3 @@ export const createCaseResetOperations = (runtime: CaseResetRuntimeAccess): Case
   },
 });
 
-/** Command-konstruktør genudstillet til use-casen, så den ikke selv importerer reducer-interne detaljer. */
-export const clearCaseCommand = clearCase;

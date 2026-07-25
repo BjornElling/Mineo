@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import GreenfieldDateField from '../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldChoiceField from '../../inputCore/react/fields/GreenfieldChoiceField';
-import GreenfieldIntegerField from '../../inputCore/react/fields/GreenfieldIntegerField';
-import GreenfieldAmountField from '../../inputCore/react/fields/GreenfieldAmountField';
+import DateField from '../../inputCore/react/fields/DateField';
+import ChoiceField from '../../inputCore/react/fields/ChoiceField';
+import IntegerField from '../../inputCore/react/fields/IntegerField';
+import AmountField from '../../inputCore/react/fields/AmountField';
 import InsertTodayDateButton from '../inputs/InsertTodayDateButton';
 import ContentBox from '../layout/ContentBox';
 import { APP_ROUTES } from '../../config/pageNavigation';
@@ -147,7 +147,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Beregningsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-            <GreenfieldDateField
+            <DateField
               field={beregningsdatoRef}
               location={BEREGNINGSDATO_LOCATION}
               name="beregningsdato"
@@ -225,7 +225,7 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldChoiceField<Koen>
+              <ChoiceField<Koen>
                 field={koenRef}
                 location={KOEN_LOCATION}
                 name="koen"
@@ -234,7 +234,7 @@ const Forsoergertab = React.memo(() => {
               >
                 <MenuItem value={'Mand' satisfies Koen}>Mand</MenuItem>
                 <MenuItem value={'Kvinde' satisfies Koen}>Kvinde</MenuItem>
-              </GreenfieldChoiceField>
+              </ChoiceField>
             </Box>
           </Box>
         )}
@@ -244,7 +244,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Skadelidtes årsløn (efter ASL)</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldAmountField
+            <AmountField
               field={aslAarsloenRef}
               location={ASL_AARSLOEN_LOCATION}
               name="aslAarsloen"
@@ -258,7 +258,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Startdato for ASL-ydelse</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldDateField
+            <DateField
               field={virkningsdatoRef}
               location={VIRKNINGSDATO_LOCATION}
               name="virkningsdato"
@@ -269,7 +269,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Tilkendt for periode</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-            <GreenfieldIntegerField
+            <IntegerField
               field={tilkendtForPeriodeAarRef}
               location={TILKENDT_LOCATION}
               name="tilkendtForPeriodeAar"
@@ -282,7 +282,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Efterladte ægtefælle/samlevers fødselsdato</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldDateField
+            <DateField
               field={efterladteFodselsdatoRef}
               location={EFTERLADTE_FODSELSDATO_LOCATION}
               name="efterladteFodselsdato"
@@ -295,7 +295,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Skadelidtes årsløn (efter EAL)</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldAmountField
+            <AmountField
               field={ealAarsloenRef}
               location={EAL_AARSLOEN_LOCATION}
               name="ealAarsloen"

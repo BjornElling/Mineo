@@ -5,17 +5,17 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import DocumentDownloadButton from '../../../inputs/DocumentDownloadButton';
-import GreenfieldTextField from '../../../../inputCore/react/fields/GreenfieldTextField';
-import GreenfieldDateField from '../../../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldChoiceField, { GreenfieldChoiceDivider } from '../../../../inputCore/react/fields/GreenfieldChoiceField';
-import GreenfieldAmountField from '../../../../inputCore/react/fields/GreenfieldAmountField';
-import GreenfieldPercentField from '../../../../inputCore/react/fields/GreenfieldPercentField';
-import GreenfieldRadioField from '../../../../inputCore/react/fields/GreenfieldRadioField';
-import GreenfieldToggleField from '../../../../inputCore/react/fields/GreenfieldToggleField';
-import GreenfieldMappedToggleField from '../../../../inputCore/react/fields/GreenfieldMappedToggleField';
-import GreenfieldIntegerField from '../../../../inputCore/react/fields/GreenfieldIntegerField';
-import GreenfieldLoenudviklingManuelTable from '../../../tables/GreenfieldLoenudviklingManuelTable';
-import GreenfieldLoenudviklingManuelProcentsatsTable from '../../../tables/GreenfieldLoenudviklingManuelProcentsatsTable';
+import TextField from '../../../../inputCore/react/fields/TextField';
+import DateField from '../../../../inputCore/react/fields/DateField';
+import ChoiceField, { ChoiceDivider } from '../../../../inputCore/react/fields/ChoiceField';
+import AmountField from '../../../../inputCore/react/fields/AmountField';
+import PercentField from '../../../../inputCore/react/fields/PercentField';
+import RadioField from '../../../../inputCore/react/fields/RadioField';
+import ToggleField from '../../../../inputCore/react/fields/ToggleField';
+import MappedToggleField from '../../../../inputCore/react/fields/MappedToggleField';
+import IntegerField from '../../../../inputCore/react/fields/IntegerField';
+import LoenudviklingManuelTable from '../../../tables/LoenudviklingManuelTable';
+import LoenudviklingManuelProcentsatsTable from '../../../tables/LoenudviklingManuelProcentsatsTable';
 import StandardLoenTable from '../../../tables/StandardLoenTable';
 import {
   eoEmploymentFields,
@@ -237,7 +237,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Navn på arbejdssted</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldTextField
+          <TextField
             field={field(eoEmploymentFields.navnPaaArbejdssted)}
             location={location('navnPaaArbejdssted')}
             name={`${af.id}:navnPaaArbejdssted`}
@@ -249,7 +249,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">{`Ansat på ${skadeEllerAnmeldelsesdato.labelLower}`}</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldToggleField
+          <ToggleField
             field={field(eoEmploymentFields.ansatPaaSkadestidspunktet)}
             location={location('ansatPaaSkadestidspunktet')}
             name={`${af.id}:ansatPaaSkadestidspunktet`}
@@ -261,7 +261,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Opsagt fra stillingen</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldToggleField
+            <ToggleField
               field={field(eoEmploymentFields.ansaettelsesforholdOphoert)}
               location={location('ansaettelsesforholdOphoert')}
               name={`${af.id}:ansaettelsesforholdOphoert`}
@@ -274,7 +274,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Sidste dag i ansættelsesforholdet</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldDateField field={field(eoEmploymentFields.sidsteArbejdsdag)} location={location('sidsteArbejdsdag')} name={`${af.id}:sidsteArbejdsdag`} />
+            <DateField field={field(eoEmploymentFields.sidsteArbejdsdag)} location={location('sidsteArbejdsdag')} name={`${af.id}:sidsteArbejdsdag`} />
           </Box>
         </Box>
       </Box>
@@ -284,7 +284,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Overenskomst</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldToggleField field={field(eoEmploymentFields.harOverenskomst)} location={location('harOverenskomst')} name={`${af.id}:harOverenskomst`} />
+          <ToggleField field={field(eoEmploymentFields.harOverenskomst)} location={location('harOverenskomst')} name={`${af.id}:harOverenskomst`} />
         </Box>
       </Box>
 
@@ -295,7 +295,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
               <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
-              <GreenfieldChoiceField
+              <ChoiceField
                 field={field(eoEmploymentFilterFields.loenmodtager)}
                 location={location('overenskomstFilter.loenmodtager')}
                 name={`${af.id}:overenskomstFilter.loenmodtager`}
@@ -333,11 +333,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     {org}
                   </MenuItem>
                 ))}
-              </GreenfieldChoiceField>
+              </ChoiceField>
 
               {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
               <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
-              <GreenfieldChoiceField
+              <ChoiceField
                 field={field(eoEmploymentFilterFields.arbejdsgiver)}
                 location={location('overenskomstFilter.arbejdsgiver')}
                 name={`${af.id}:overenskomstFilter.arbejdsgiver`}
@@ -375,9 +375,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     {org}
                   </MenuItem>
                 ))}
-              </GreenfieldChoiceField>
+              </ChoiceField>
 
-              <GreenfieldChoiceField
+              <ChoiceField
                 field={field(eoEmploymentFields.overenskomstId)}
                 location={location('overenskomstId')}
                 name={`${af.id}:overenskomstId`}
@@ -402,7 +402,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     </MenuItem>
                   );
                 })}
-              </GreenfieldChoiceField>
+              </ChoiceField>
             </Box>
           </Box>
         </Box>
@@ -411,7 +411,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Fuld løn under ferie:</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldMappedToggleField
+          <MappedToggleField
             field={field(eoEmploymentFields.fuldLoenUnderFerie)}
             location={location('fuldLoenUnderFerie')}
             checkedValue="Ja"
@@ -424,7 +424,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn på helligdage:</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldChoiceField
+          <ChoiceField
             field={field(eoEmploymentFields.loenPaaHelligdage)}
             location={location('loenPaaHelligdage')}
             name={`${af.id}:loenPaaHelligdage`}
@@ -434,7 +434,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <MenuItem value="Almindelig løn">Almindelig løn</MenuItem>
             <MenuItem value="SH-udbetaling">SH-udbetaling</MenuItem>
             <MenuItem value="Ingen">Ingen</MenuItem>
-          </GreenfieldChoiceField>
+          </ChoiceField>
         </Box>
       </Box>
 
@@ -442,7 +442,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. særlig fra-dato for regulering</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldDateField
+            <DateField
               field={field(eoEmploymentFields.saerligFraDatoRegulering)}
               location={location('saerligFraDatoRegulering')}
               name={`${af.id}:saerligFraDatoRegulering`}
@@ -454,7 +454,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn indtastes som:</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldRadioField
+          <RadioField
             field={field(eoEmploymentFields.loenperiode)}
             location={location('loenperiode')}
             name={`${af.id}:loenperiode`}
@@ -471,7 +471,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Tillæg angives som</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldChoiceField
+          <ChoiceField
             field={field(eoEmploymentFields.tillaegAngivesSom)}
             location={location('tillaegAngivesSom')}
             name={`${af.id}:tillaegAngivesSom`}
@@ -480,7 +480,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           >
             <MenuItem value={TILLAEG_ANGIVES_SOM.PROCENT}>Procent</MenuItem>
             <MenuItem value={TILLAEG_ANGIVES_SOM.BELOEB}>Beløb</MenuItem>
-          </GreenfieldChoiceField>
+          </ChoiceField>
         </Box>
       </Box>
 
@@ -501,7 +501,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '160px' }}>
                   Feriegodtgørelse/-tillæg:
                 </Typography>
-                <GreenfieldPercentField
+                <PercentField
                   field={field(eoEmploymentFields.feriePct)}
                   location={location('feriePct')}
                   name={`${af.id}:feriePct`}
@@ -512,7 +512,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
-                <GreenfieldPercentField
+                <PercentField
                   field={field(eoEmploymentFields.fritvalgPct)}
                   location={location('fritvalgPct')}
                   name={`${af.id}:fritvalgPct`}
@@ -526,7 +526,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '140px' }}>
                   SH/SO-sats:
                 </Typography>
-                <GreenfieldPercentField
+                <PercentField
                   field={field(eoEmploymentFields.shSoPct)}
                   location={location('shSoPct')}
                   name={`${af.id}:shSoPct`}
@@ -552,7 +552,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '160px' }}>
                   Store Bededagstillæg:
                 </Typography>
-                <GreenfieldPercentField
+                <PercentField
                   field={field(eoEmploymentFields.storeBededagPct)}
                   location={location('storeBededagPct')}
                   name={`${af.id}:storeBededagPct`}
@@ -566,7 +566,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '190px' }}>
                   Arbejdsgivers pensionsbidrag:
                 </Typography>
-                <GreenfieldPercentField
+                <PercentField
                   field={field(eoEmploymentFields.pensionPct)}
                   location={location('pensionPct')}
                   name={`${af.id}:pensionPct`}
@@ -601,7 +601,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
         <Box className="row--label-right-hover__content">
-          <GreenfieldChoiceField
+          <ChoiceField
             field={field(eoEmploymentFields.loenudviklingBeregningsgrundlag)}
             location={location('loenudviklingBeregningsgrundlag')}
             name={`${af.id}:loenudviklingBeregningsgrundlag`}
@@ -613,12 +613,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <MenuItem value="Statistik">Statistik</MenuItem>
             <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
             <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
-            <GreenfieldChoiceDivider />
+            <ChoiceDivider />
             <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
             <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
-            <GreenfieldChoiceDivider />
+            <ChoiceDivider />
             <MenuItem value="Ingen">Ingen</MenuItem>
-          </GreenfieldChoiceField>
+          </ChoiceField>
         </Box>
       </Box>
 
@@ -638,7 +638,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <Typography className="row--text">Ansættelse</Typography>
-                <GreenfieldChoiceField
+                <ChoiceField
                   field={field(eoEmploymentFields.offentligLoenType)}
                   location={location('offentligLoenType')}
                   name={`${af.id}:offentligLoenType`}
@@ -650,16 +650,16 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                       {option}
                     </MenuItem>
                   ))}
-                </GreenfieldChoiceField>
+                </ChoiceField>
                 <Typography className="row--text">Løntrin</Typography>
-                <GreenfieldIntegerField
+                <IntegerField
                   field={field(eoEmploymentFields.offentligLoenTrin)}
                   location={location('offentligLoenTrin')}
                   name={`${af.id}:offentligLoenTrin`}
                   width={80}
                 />
                 <Typography className="row--text">Gruppe</Typography>
-                <GreenfieldIntegerField
+                <IntegerField
                   field={field(eoEmploymentFields.offentligLoenGruppe)}
                   location={location('offentligLoenGruppe')}
                   name={`${af.id}:offentligLoenGruppe`}
@@ -698,7 +698,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <Typography className="row--text">Evt. forhøjet grundløn udover løntrin</Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <GreenfieldAmountField
+                <AmountField
                   field={field(eoEmploymentFields.offentligLoenEkstraGrundloen)}
                   location={location('offentligLoenEkstraGrundloen')}
                   name={`${af.id}:offentligLoenEkstraGrundloen`}
@@ -715,7 +715,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Statistisk beregningsmodel</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField
+            <ChoiceField
               field={field(eoEmploymentFields.loenudviklingStatistikModel)}
               location={location('loenudviklingStatistikModel')}
               name={`${af.id}:loenudviklingStatistikModel`}
@@ -726,7 +726,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               <MenuItem value={ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}>{ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}</MenuItem>
               <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
               <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
       ) : null}
@@ -735,7 +735,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Satstabel</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField
+            <ChoiceField
               field={field(eoEmploymentFields.loenudviklingKRLSatstabel)}
               location={location('loenudviklingKRLSatstabel')}
               name={`${af.id}:loenudviklingKRLSatstabel`}
@@ -748,7 +748,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   {satstabel}
                 </MenuItem>
               ))}
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
       ) : null}
@@ -773,7 +773,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Navn på reguleringsform</Typography>
                   <Box className="row--label-right-hover__content">
-                    <GreenfieldTextField
+                    <TextField
                       field={field(eoEmploymentFields.loenudviklingManuelNavn)}
                       location={location('loenudviklingManuelNavn')}
                       name={`${af.id}:loenudviklingManuelNavn`}
@@ -781,7 +781,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     />
                   </Box>
                 </Box>
-                <GreenfieldLoenudviklingManuelTable
+                <LoenudviklingManuelTable
                   bindings={eoEmploymentManual}
                   collection={{
                     ...eoEmploymentManual.manualCollection.template,
@@ -824,7 +824,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
                   });
             return (
-                <GreenfieldLoenudviklingManuelProcentsatsTable
+                <LoenudviklingManuelProcentsatsTable
                   bindings={eoEmploymentManual}
                   collection={{
                     ...eoEmploymentManual.manualPercentCollection.template,
@@ -914,7 +914,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               {`Ville skadelidte have opnået anciennitetstillæg efter ${anvendtReguleringsdatoReferenceText}`}
             </Typography>
             <Box className="row--label-right-hover__content">
-              <GreenfieldToggleField
+              <ToggleField
                 field={field(eoEmploymentFields.harAnciennitetstillaegEfterSkadedatoen)}
                 location={location('harAnciennitetstillaegEfterSkadedatoen')}
                 name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
@@ -927,7 +927,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
                 <Box className="row--label-right-hover__content">
-                  <GreenfieldDateField
+                  <DateField
                     field={field(eoEmploymentFields.anciennitetstillaegDato)}
                     location={location('anciennitetstillaegDato')}
                     name={`${af.id}:anciennitetstillaegDato`}
@@ -938,7 +938,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Satsen angives per</Typography>
                 <Box className="row--label-right-hover__content">
-                  <GreenfieldChoiceField
+                  <ChoiceField
                     field={field(eoEmploymentFields.anciennitetstillaegSatsAngivesPer)}
                     location={location('anciennitetstillaegSatsAngivesPer')}
                     name={`${af.id}:anciennitetstillaegSatsAngivesPer`}
@@ -947,14 +947,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   >
                     <MenuItem value="Time">Time</MenuItem>
                     <MenuItem value="Måned">Måned</MenuItem>
-                  </GreenfieldChoiceField>
+                  </ChoiceField>
                 </Box>
               </Box>
 
               <Box className="row--label-right-hover">
                 <Typography className="row--text">{`Sats per ${anciennitetSatsPerTekst}`}</Typography>
                 <Box className="row--label-right-hover__content">
-                  <GreenfieldAmountField
+                  <AmountField
                     field={field(eoEmploymentFields.anciennitetstillaegSats)}
                     location={location('anciennitetstillaegSats')}
                     name={`${af.id}:anciennitetstillaegSats`}

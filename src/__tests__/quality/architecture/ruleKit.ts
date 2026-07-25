@@ -54,7 +54,6 @@ export type ArchitectureRule = Readonly<{
    * skal fjernes, ikke efterlades som stiltiende undtagelse). Håndhæves generisk af
    * runneren, så anti-rot ikke længere håndrulles pr. guard.
    */
-  antiRot: boolean;
   /** Kildeeksempler reglen SKAL flage (mindst én). */
   violatingFixtures: readonly RuleFixture[];
   /** Kildeeksempler reglen IKKE må flage (mindst én). */
@@ -75,7 +74,6 @@ type RuleConfig = Readonly<{
   /** Repo-relative stier der er eksplicit undtaget (auditerede undtagelser). */
   allow?: readonly string[];
   /** Håndhæv at hver allow-post stadig udløser reglen (default: false). */
-  antiRot?: boolean;
   /** Finder overtrædelser i én fil. */
   find: (entry: SourceEntry) => readonly Finding[];
   violatingFixtures: readonly RuleFixture[];
@@ -90,7 +88,6 @@ export const defineRule = (config: RuleConfig): ArchitectureRule => {
     id: config.id,
     description: config.description,
     allow: allowList,
-    antiRot: config.antiRot ?? false,
     findInFile: config.find,
     violatingFixtures: config.violatingFixtures,
     cleanFixtures: config.cleanFixtures,
@@ -122,7 +119,6 @@ type ImportRuleConfig = Readonly<{
   description: string;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
-  antiRot?: boolean;
   /**
    * Sand for imports der er forbudt (uden for `allow`). `fromRelativePath` er den
    * importerende fils repo-relative sti — nødvendig for at opløse relative specifiers
@@ -141,7 +137,6 @@ export const forbidImports = (config: ImportRuleConfig): ArchitectureRule =>
     description: config.description,
     appliesTo: config.appliesTo,
     allow: config.allow,
-    antiRot: config.antiRot,
     find: (entry) =>
       collectImports(entry)
         .filter((ref) => config.forbidden(ref, entry.relativePath))
@@ -155,7 +150,6 @@ type MemberAccessRuleConfig = Readonly<{
   description: string;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
-  antiRot?: boolean;
   forbidden: (ref: MemberAccessRef) => boolean;
   message: (ref: MemberAccessRef) => string;
   violatingFixtures: readonly RuleFixture[];
@@ -169,7 +163,6 @@ export const forbidMemberAccess = (config: MemberAccessRuleConfig): Architecture
     description: config.description,
     appliesTo: config.appliesTo,
     allow: config.allow,
-    antiRot: config.antiRot,
     find: (entry) =>
       collectMemberAccess(entry)
         .filter(config.forbidden)
@@ -183,7 +176,6 @@ type CallRuleConfig = Readonly<{
   description: string;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
-  antiRot?: boolean;
   forbidden: (ref: CallRef) => boolean;
   message: (ref: CallRef) => string;
   violatingFixtures: readonly RuleFixture[];
@@ -197,7 +189,6 @@ export const forbidCalls = (config: CallRuleConfig): ArchitectureRule =>
     description: config.description,
     appliesTo: config.appliesTo,
     allow: config.allow,
-    antiRot: config.antiRot,
     find: (entry) =>
       collectCalls(entry)
         .filter(config.forbidden)
@@ -211,7 +202,6 @@ type ElementAccessRuleConfig = Readonly<{
   description: string;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
-  antiRot?: boolean;
   forbidden: (ref: ElementAccessRef) => boolean;
   message: (ref: ElementAccessRef) => string;
   violatingFixtures: readonly RuleFixture[];
@@ -225,7 +215,6 @@ export const forbidElementAccess = (config: ElementAccessRuleConfig): Architectu
     description: config.description,
     appliesTo: config.appliesTo,
     allow: config.allow,
-    antiRot: config.antiRot,
     find: (entry) =>
       collectElementAccess(entry)
         .filter(config.forbidden)
@@ -239,7 +228,6 @@ type TypeAssertionRuleConfig = Readonly<{
   description: string;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
-  antiRot?: boolean;
   forbidden: (ref: TypeAssertionRef) => boolean;
   message: (ref: TypeAssertionRef) => string;
   violatingFixtures: readonly RuleFixture[];
@@ -253,7 +241,6 @@ export const forbidTypeAssertions = (config: TypeAssertionRuleConfig): Architect
     description: config.description,
     appliesTo: config.appliesTo,
     allow: config.allow,
-    antiRot: config.antiRot,
     find: (entry) =>
       collectTypeAssertions(entry)
         .filter(config.forbidden)

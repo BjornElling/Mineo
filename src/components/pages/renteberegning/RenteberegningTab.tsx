@@ -3,8 +3,8 @@ import { Box, IconButton, Typography } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import type { RateEntry } from '../../../data/interestRates';
-import GreenfieldDateField from '../../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldMultilineTextField from '../../../inputCore/react/fields/GreenfieldMultilineTextField';
+import DateField from '../../../inputCore/react/fields/DateField';
+import MultilineTextField from '../../../inputCore/react/fields/MultilineTextField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import BeregnetRenteTable, { type RentekravPdfContextMap, type RentePdfContext } from '../../tables/BeregnetRenteTable';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
@@ -300,7 +300,7 @@ const RenteberegningTab = React.memo(({
           <Typography className="row--text">Rente beregnes til og med</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <GreenfieldDateField
+              <DateField
                 field={beregningsdatoRef}
                 location={BEREGNINGSDATO_LOCATION}
                 name="beregningsdato"
@@ -422,7 +422,7 @@ const RenteberegningTab = React.memo(({
 
       <ContentBoxComponent className="content-box">
         <Typography className="section-header">Kommentarer</Typography>
-        <GreenfieldMultilineTextField
+        <MultilineTextField
           field={kommentarerRef}
           location={KOMMENTARER_LOCATION}
           name="kommentarer"

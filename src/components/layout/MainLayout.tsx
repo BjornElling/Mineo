@@ -20,14 +20,14 @@ import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 import { clearLastUndoFocus } from '../../utils/undoFocusTracker';
 import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
 import { routeToPageId } from '../../config/pageNavigation';
-import { scheduleGreenfieldHistoryTargetRestore } from '../../inputCore/react/greenfieldHistoryRestore';
+import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
   bootstrapProductionInputRuntime,
   getProductionInputEvaluation,
   useCaseOperations,
   useCriticalInputActions,
-  useGreenfieldUndoRedoShortcuts,
+  useUndoRedoShortcuts,
   useInputRuntime,
   useSettledSnapshot,
 } from '../../inputCore/react';
@@ -38,7 +38,7 @@ import {
  * Greenfield-shell (WI-002 trin 3, §3.10): shellen læser og skriver KUN gennem greenfield-runtime.
  * `FormPersistenceContext`/`useFormPersistence`, legacy read-model-selectors og den legacy
  * `CriticalActionProvider` er fjernet. Case-operationer går gennem `useCaseOperations`-portene, den kritiske
- * handlingsbarriere gennem `useCriticalInputActions`, og undo/redo gennem `useGreenfieldUndoRedoShortcuts`.
+ * handlingsbarriere gennem `useCriticalInputActions`, og undo/redo gennem `useUndoRedoShortcuts`.
  */
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -76,9 +76,9 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
       }
     }
     // Fokusrestoren venter selv (rAF-retry) på, at målet mounter efter et evt. fane-/sideskift.
-    scheduleGreenfieldHistoryTargetRestore(origin);
+    scheduleHistoryTargetRestore(origin);
   }, [location.pathname, navigate]);
-  useGreenfieldUndoRedoShortcuts({ onRestore: handleUndoRedoRestore });
+  useUndoRedoShortcuts({ onRestore: handleUndoRedoRestore });
 
   React.useEffect(() => {
     clearLastUndoFocus();
@@ -228,7 +228,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     }
   }, []);
 
-  // Global keyboard shortcut for gem. Undo/redo håndteres af useGreenfieldUndoRedoShortcuts.
+  // Global keyboard shortcut for gem. Undo/redo håndteres af useUndoRedoShortcuts.
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {

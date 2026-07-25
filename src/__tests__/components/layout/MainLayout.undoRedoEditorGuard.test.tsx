@@ -16,9 +16,9 @@ import { satserAargangField } from '../../../inputCore/catalog/satserDescriptors
 import { __resetUndoFocusTrackerForTests } from '../../../utils/undoFocusTracker';
 
 import MainLayout from '../../../components/layout/MainLayout';
-import { OpenGreenfieldEditor } from './greenfieldEditorTestUtils';
+import { OpenEditor } from './editorTestUtils';
 
-// Greenfield undo/redo-genvej (§1.4/§3.6): shellen driver `useGreenfieldUndoRedoShortcuts`, som kalder den ene
+// Greenfield undo/redo-genvej (§1.4/§3.6): shellen driver `useUndoRedoShortcuts`, som kalder den ene
 // write-grænses history via coordinatoren. Mens en editor er åben er genvejen et STILLE no-op (coordinatorens
 // `prepare("undo"|"redo")` returnerer `noop`); uden åben editor kører undo/redo mod history. Vi hævder derfor
 // mod den ægte runtime-history i stedet for det legacy `useUndoRedo`-mock.
@@ -78,7 +78,7 @@ describe('MainLayout undo/redo editor guard', () => {
     seedUndoableHistory();
     expect(slimInputStore.getState().input.sections.satser?.aargang).toBe(2020);
 
-    renderLayout(<OpenGreenfieldEditor label="Aktivt felt" />);
+    renderLayout(<OpenEditor label="Aktivt felt" />);
     await waitFor(() => {
       expect(screen.getByLabelText('Aktivt felt')).toBeInTheDocument();
     });

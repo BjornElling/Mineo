@@ -64,13 +64,15 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
     }
   );
 
+  // Anti-rot gælder ALLE regler med en allowlist — uden `antiRot`-opt-in. En allowlist-post, hvis fil er
+  // slettet eller ikke længere udløser reglen, er død konfiguration, der stille udvider grænsen næste gang
+  // en fil med samme sti opstår. `antiRot: false` findes bevidst ikke: en undtagelse skal kunne bevises.
   it('anti-rot: hver allowlist-post udløser stadig sin regel', () => {
     const entries = getSourceGraph();
     const byPath = new Map(entries.map((entry) => [entry.relativePath, entry]));
     const stale: string[] = [];
 
     for (const rule of ARCHITECTURE_RULES) {
-      if (!rule.antiRot) continue;
       for (const allowedPath of rule.allow) {
         const entry = byPath.get(allowedPath);
         if (!entry) {

@@ -1,14 +1,14 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
-import GreenfieldRadioField from '../../../../../inputCore/react/fields/GreenfieldRadioField';
-import GreenfieldAmountField from '../../../../../inputCore/react/fields/GreenfieldAmountField';
+import RadioField from '../../../../../inputCore/react/fields/RadioField';
+import AmountField from '../../../../../inputCore/react/fields/AmountField';
 import {
   eoKravPaaTabtArbejdsfortjenesteField,
   eoTidligereModtagetTafField,
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import GreenfieldTafPeriodeTable from '../../../../tables/GreenfieldTafPeriodeTable';
-import GreenfieldFerieperiodeTable from '../../../../tables/GreenfieldFerieperiodeTable';
+import TafPeriodeTable from '../../../../tables/TafPeriodeTable';
+import FerieperiodeTable from '../../../../tables/FerieperiodeTable';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { KRAV_JA_NEJ_SKJUL_OPTIONS, PERIODE_INFO_TOOLTIP } from '../eoOplysningerConstants';
@@ -31,7 +31,7 @@ export default function TabtArbejdsfortjenesteSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Er der krav på tabt arbejdsfortjeneste i erstatningsperioden</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldRadioField
+            <RadioField
               field={eoKravPaaTabtArbejdsfortjenesteField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.kravPaaTabtArbejdsfortjeneste', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="kravPaaTabtArbejdsfortjeneste"
@@ -47,7 +47,7 @@ export default function TabtArbejdsfortjenesteSection() {
               Periode:
               <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
             </Typography>
-            <GreenfieldTafPeriodeTable
+            <TafPeriodeTable
               committedRows={values.tafPerioder}
               derivedById={tafDerived.derivedById}
               derivedColumnHeader={tafDerived.kolonneOverskrift}
@@ -55,7 +55,7 @@ export default function TabtArbejdsfortjenesteSection() {
             />
 
             <Typography className="row--subheading">Evt. ferie i perioden:</Typography>
-            <GreenfieldFerieperiodeTable
+            <FerieperiodeTable
               kind="taf"
               committedRows={values.ferieperioder}
               feriedageById={ferieFeriedageById}
@@ -67,7 +67,7 @@ export default function TabtArbejdsfortjenesteSection() {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode:</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldAmountField
+                <AmountField
                   field={eoTidligereModtagetTafField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.tidligereModtagetTaf', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="tidligereModtagetTaf"

@@ -1,8 +1,8 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import GreenfieldPercentField from '../../../../../inputCore/react/fields/GreenfieldPercentField';
-import GreenfieldFractionField from '../../../../../inputCore/react/fields/GreenfieldFractionField';
-import GreenfieldDateField from '../../../../../inputCore/react/fields/GreenfieldDateField';
+import PercentField from '../../../../../inputCore/react/fields/PercentField';
+import FractionField from '../../../../../inputCore/react/fields/FractionField';
+import DateField from '../../../../../inputCore/react/fields/DateField';
 import {
   eoForligAnsvarsgradBroekField,
   eoForligAnsvarsgradProcentField,
@@ -23,14 +23,14 @@ export default function ForligSection() {
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">Procent</Typography>
-              <GreenfieldPercentField
+              <PercentField
                 field={eoForligAnsvarsgradProcentField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.forligAnsvarsgradProcent', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="forligAnsvarsgradProcent"
                 width={100}
               />
               <Typography className="row--text">eller brøk</Typography>
-              <GreenfieldFractionField
+              <FractionField
                 field={eoForligAnsvarsgradBroekField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.forligAnsvarsgradBroek', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="forligAnsvarsgradBroek"
@@ -43,7 +43,7 @@ export default function ForligSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. dato for forlig</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldDateField
+            <DateField
               field={eoForligDatoField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.forligDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="forligDato"

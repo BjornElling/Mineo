@@ -6,7 +6,7 @@ import { withRestoreFocusSuppressed } from './restoreFocusFlag';
 // fokus-ring-markør, blur-commit-undertrykkelse under den programmatiske fokus, og AFBRYDELSE hvis brugeren
 // imens flytter fokus til et andet brugbart felt — bor ÉT sted.
 //
-// Målopslaget selv ejes af `greenfieldHistoryRestore` (feltadresse + editorlokation). Der findes ingen anden
+// Målopslaget selv ejes af `historyRestoreTarget` (feltadresse + editorlokation). Der findes ingen anden
 // restore-vej: den tidligere stringbaserede `data-mineo-undo-field-path`-adapter er slettet med legacy-runtime.
 
 export const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 15;
@@ -90,10 +90,9 @@ const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Ele
 
 /**
  * Den delte rAF-retry-restore-løkke (§3.7). Runtime-agnostisk: kalderen leverer KUN `findTarget`, der lokaliserer
- * det synlige fokusmål (legacy via `data-mineo-undo-field-path`; greenfield via feltadresse + editorlokation).
- * Den fælles adfærd — vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør, blur-commit-
- * undertrykkelse under den programmatiske fokus, og AFBRYDELSE hvis brugeren imens flytter fokus til et andet
- * brugbart felt — bor ÉT sted, så legacy- og greenfield-restore ikke kan drifte fra hinanden.
+ * det synlige fokusmål (feltadresse + editorlokation, jf. `historyRestoreTarget`). Den fælles adfærd —
+ * vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør, blur-commit-undertrykkelse under den
+ * programmatiske fokus, og AFBRYDELSE hvis brugeren imens flytter fokus til et andet brugbart felt — bor ÉT sted.
  */
 export const runHistoryTargetRestoreLoop = (findTarget: () => HTMLElement | null): void => {
   const originalActiveElement = document.activeElement;

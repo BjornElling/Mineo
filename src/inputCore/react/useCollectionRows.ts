@@ -4,12 +4,37 @@ import type { CollectionRef } from '../fieldAddress';
 import { insertRow, deleteRow, reorderRows } from '../inputReducer';
 import { useInputRuntime } from './inputRuntimeContext';
 import type { DispatchInputResult } from '../runtime/dispatchInput';
+import type { HistoryOrigin } from '../inputHistory';
 
 // Greenfield-React (§2.5 trin 1 / §3.8): rækkeinfrastrukturen for en dynamisk collection. Den ejer KUN de
 // stabile entity-id'er, rækkefølgen og add/delete/reorder — læst DIREKTE fra den afsluttede revision gennem
 // katalogets `listEntityIds`. Der findes ingen `draftRows`, `internalTableData`, fingerprint-kopi eller
 // effect-flush til persistence (§3.8): en celles værdi bor kun i inputaggregaten, aldrig i en konkurrerende
 // række-værdikopi. Selve celleredigeringen ejes af `useCellEditor`; denne hook rører aldrig en celleværdi.
+
+/**
+ * Tabellens editorlokation, som en rækkehandlings history-origin skal pege på (§3.7). Kalderen leverer den,
+ * fordi kun siden/fanen ved, hvor tabellen bor.
+ */
+export type CollectionRowOrigin = Readonly<{
+  /** Stabilt id for tabellens lokation, fx `eo.oevrigeKrav`. */
+  locationId: string;
+  route?: string;
+  tabKey?: string | null;
+}>;
+
+/**
+ * Origin for en STRUKTUREL rækkehandling. Den bærer ingen feltadresse (handlingen rører ikke ét felt), men
+ * bærer route + fane, så en undo/redo af insert/delete/reorder navigerer til den tabel, ændringen kom fra.
+ */
+const buildRowHistoryOrigin = (
+  collection: CollectionRef,
+  origin: CollectionRowOrigin
+): HistoryOrigin => Object.freeze({
+  editorLocationId: `${origin.locationId}:rows:${collection.collection}`,
+  ...(origin.route === undefined ? {} : { route: origin.route }),
+  ...(origin.tabKey === undefined ? {} : { tabKey: origin.tabKey }),
+});
 
 /** Ren, stabil UI-cache-nøgle for en collection-ref (ikke en core-identitet — kun til hookens memoisering). */
 const collectionCacheKey = (collection: CollectionRef): string => JSON.stringify({
@@ -25,9 +50,7 @@ const collectionCacheKey = (collection: CollectionRef): string => JSON.stringify
  * commands gennem den ene write-grænse (§3.6), så én brugerhandling giver højst ét history-trin. Row-delete
  * fjerner rækkens rejected descendants i samme reducertrin (§3.8) — kalderen skal ikke rydde celler først.
  */
-export type CollectionRowsController<TEntity> = Readonly<{
-  /** De aktuelle rækkers stabile entity-id'er i rækkefølge, læst fra den afsluttede revision. */
-  rowIds: readonly string[];
+export type CollectionRowCommands<TEntity> = Readonly<{
   /** Indsæt en fuldt formet entity (typisk en tom række via row-factory) på `index` (default: sidst). */
   insert: (entity: TEntity, index?: number) => DispatchInputResult;
   /** Slet rækken med `entityId`; rejected descendants ryddes atomisk i samme command (§3.8). */
@@ -36,14 +59,19 @@ export type CollectionRowsController<TEntity> = Readonly<{
   reorder: (orderedEntityIds: readonly string[]) => DispatchInputResult;
 }>;
 
+export type CollectionRowsController<TEntity> = CollectionRowCommands<TEntity> & Readonly<{
+  /** De aktuelle rækkers stabile entity-id'er i rækkefølge, læst fra den afsluttede revision. */
+  rowIds: readonly string[];
+}>;
+
 /**
  * Abonnerer på den afsluttede revision og udleder collectionens entity-id'er via katalogets `listEntityIds`.
  * Re-renderer kun ved en revisionsændring (det afsluttede snapshots identitet er stabil pr. revision), og id-
  * listen er cachet pr. sektionsidentitet, så `useSyncExternalStore`-identitetstjekket ikke looper.
  */
 export const useCollectionRows = <TEntity>(collection: CollectionRef): CollectionRowsController<TEntity> => {
-  const runtime = useInputRuntime();
-  const { catalog, subscribe, getSettled, dispatch } = runtime;
+  const { catalog, subscribe, getSettled } = useInputRuntime();
+  const commands = useCollectionRowCommands<TEntity>(collection);
 
   // Stabil nøgle for collectionen, så caches ikke krydser to forskellige collections i samme komponenttræ.
   const collectionKey = collectionCacheKey(collection);
@@ -65,24 +93,53 @@ export const useCollectionRows = <TEntity>(collection: CollectionRef): Collectio
 
   const rowIds = useSyncExternalStore(subscribe, getRowIds, getRowIds);
 
-  const insert = React.useCallback(
-    (entity: TEntity, index?: number) => dispatch(insertRow(collection, entity, index)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dispatch, collectionKey]
+  return React.useMemo(
+    () => Object.freeze({ rowIds, ...commands }),
+    [rowIds, commands]
   );
-  const remove = React.useCallback(
-    (entityId: string) => dispatch(deleteRow(collection, entityId)),
+};
+
+/**
+ * KUN rækkekommandoerne — uden abonnement på collectionens id-liste.
+ *
+ * Til consumers, der allerede får rækkerne fra en slice-projektion (den kanoniske read-grænse, §3.4) og derfor
+ * ikke skal have et konkurrerende aggregat-read for samme collection. Det giver ÉN reaktiv rækkekilde pr. tabel.
+ *
+ * Hver kommando bærer en struktur-origin (§3.7), så en undo/redo af en rækkehandling kan navigere til den rette
+ * route/fane. `locationNav` leveres af kalderen, fordi kun den ved, hvor tabellen bor.
+ */
+export const useCollectionRowCommands = <TEntity>(
+  collection: CollectionRef,
+  origin?: CollectionRowOrigin
+): CollectionRowCommands<TEntity> => {
+  const { dispatch } = useInputRuntime();
+  const collectionKey = collectionCacheKey(collection);
+  const originKey = origin === undefined ? '' : `${origin.locationId}|${origin.route ?? ''}|${origin.tabKey ?? ''}`;
+
+  // En rækkehandling har ingen enkelt feltadresse; origin bærer i stedet tabellens editorlokation, så
+  // restoren kan navigere til den rette side/fane efter en undo/redo af insert/delete/reorder.
+  const rowOrigin = React.useMemo(
+    () => (origin === undefined ? undefined : buildRowHistoryOrigin(collection, origin)),
+    // `collection`/`origin` er værdimæssigt stabile pr. nøgle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dispatch, collectionKey]
-  );
-  const reorder = React.useCallback(
-    (orderedEntityIds: readonly string[]) => dispatch(reorderRows(collection, orderedEntityIds)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dispatch, collectionKey]
+    [collectionKey, originKey]
   );
 
-  return React.useMemo(
-    () => Object.freeze({ rowIds, insert, remove, reorder }),
-    [rowIds, insert, remove, reorder]
+  const insert = React.useCallback(
+    (entity: TEntity, index?: number) => dispatch(insertRow(collection, entity, index), rowOrigin),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dispatch, collectionKey, rowOrigin]
   );
+  const remove = React.useCallback(
+    (entityId: string) => dispatch(deleteRow(collection, entityId), rowOrigin),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dispatch, collectionKey, rowOrigin]
+  );
+  const reorder = React.useCallback(
+    (orderedEntityIds: readonly string[]) => dispatch(reorderRows(collection, orderedEntityIds), rowOrigin),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dispatch, collectionKey, rowOrigin]
+  );
+
+  return React.useMemo(() => Object.freeze({ insert, remove, reorder }), [insert, remove, reorder]);
 };

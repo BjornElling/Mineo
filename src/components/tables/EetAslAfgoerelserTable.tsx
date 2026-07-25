@@ -17,10 +17,10 @@ import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 import {
-  GreenfieldGridDateCell,
-  GreenfieldGridPercentCell,
-} from '../../inputCore/react/fields/greenfieldGridCells';
-import GreenfieldGridChoiceCell from '../../inputCore/react/fields/GreenfieldGridChoiceCell';
+  GridDateCell,
+  GridPercentCell,
+} from '../../inputCore/react/fields/gridCells';
+import GridChoiceCell from '../../inputCore/react/fields/GridChoiceCell';
 import {
   aslAfgoerelseAfgoerelseTypeField,
   aslAfgoerelseAfgoerelsesDatoField,
@@ -38,7 +38,7 @@ import type { ISODateString } from '../../types/branded';
 // og celleredigering går nu udelukkende gennem greenfield-inputCore — som StandardLoenTable/BeregnetRenteTable:
 //  - `useCollectionRows(aslAfgoerelser)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
 //    `useGridRowPersistenceCore`, `internalTableData`, `invalidDrafts`, fingerprint eller persistence-effect.
-//  - hver redigerbar celle er en `GreenfieldGrid*Cell` over `useCellEditor`, bro-forbundet til grid-core-
+//  - hver redigerbar celle er en `Grid*Cell` over `useCellEditor`, bro-forbundet til grid-core-
 //    navigationen. Descriptorernes codecs + bounds-validatorer ejer parse/format/paste + celle-bounds (§1.6);
 //    kryds-række-domænefejlene (dublet-datoer, identiske afgørelser, virkningsdato efter tidl.kap.) kommer fra
 //    forælderens reader-afledte `validationMessageByCell` og vises inline via cellens `externalErrorMessage`.
@@ -109,28 +109,28 @@ const EetAslAfgoerelserRow = React.memo(
     return (
       <TableRow data-mineo-row-id={rowId}>
         <TableCell>
-          <GreenfieldGridDateCell
+          <GridDateCell
             gridCell={gc(COL.afgoerelsesDato)}
             cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseAfgoerelsesDatoField, COL.afgoerelsesDato)}
             {...externalProp('afgoerelsesDato')}
           />
         </TableCell>
         <TableCell>
-          <GreenfieldGridDateCell
+          <GridDateCell
             gridCell={gc(COL.virkningsDato)}
             cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseVirkningsDatoField, COL.virkningsDato)}
             {...externalProp('virkningsDato')}
           />
         </TableCell>
         <TableCell>
-          <GreenfieldGridPercentCell
+          <GridPercentCell
             gridCell={gc(COL.eetPct)}
             cell={buildCellSpec<number | undefined>(renderRow, aslAfgoerelseEetPctField, COL.eetPct)}
             {...externalProp('eetPct')}
           />
         </TableCell>
         <TableCell>
-          <GreenfieldGridChoiceCell<AfgoerelseType, AslAfgoerelseRow>
+          <GridChoiceCell<AfgoerelseType, AslAfgoerelseRow>
             gridCell={gc(COL.afgoerelseType)}
             cell={buildCellSpec<AfgoerelseType | undefined>(renderRow, aslAfgoerelseAfgoerelseTypeField, COL.afgoerelseType)}
             allowEmpty
@@ -141,31 +141,31 @@ const EetAslAfgoerelserRow = React.memo(
             {AFGOERELSES_TYPE_OPTIONS.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
             ))}
-          </GreenfieldGridChoiceCell>
+          </GridChoiceCell>
         </TableCell>
         <TableCell>
-          <GreenfieldGridDateCell
+          <GridDateCell
             gridCell={gc(COL.kapDato)}
             cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseKapDatoField, COL.kapDato)}
             {...externalProp('kapDato')}
           />
         </TableCell>
         <TableCell>
-          <GreenfieldGridPercentCell
+          <GridPercentCell
             gridCell={gc(COL.kapPct)}
             cell={buildCellSpec<number | undefined>(renderRow, aslAfgoerelseKapPctField, COL.kapPct)}
             {...externalProp('kapPct')}
           />
         </TableCell>
         <TableCell>
-          <GreenfieldGridDateCell
+          <GridDateCell
             gridCell={gc(COL.tidlKapDato)}
             cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseTidlKapDatoField, COL.tidlKapDato)}
             {...externalProp('tidlKapDato')}
           />
         </TableCell>
         <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
-          <GreenfieldGridChoiceCell<JaNej, AslAfgoerelseRow, JaNej>
+          <GridChoiceCell<JaNej, AslAfgoerelseRow, JaNej>
             gridCell={gc(COL.fsTilbageholdtEet)}
             cell={buildCellSpec<JaNej>(renderRow, aslAfgoerelseFsTilbageholdtEetField, COL.fsTilbageholdtEet)}
             allowEmpty={false}
@@ -174,7 +174,7 @@ const EetAslAfgoerelserRow = React.memo(
             {JA_NEJ_OPTIONS.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
             ))}
-          </GreenfieldGridChoiceCell>
+          </GridChoiceCell>
           {renderRow.kind === 'existing' && (
             <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />
           )}

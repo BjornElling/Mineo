@@ -1,6 +1,6 @@
 import { Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import GreenfieldMultilineTextField from '../../../../../inputCore/react/fields/GreenfieldMultilineTextField';
+import MultilineTextField from '../../../../../inputCore/react/fields/MultilineTextField';
 import { eoSaerligeKommentarerField } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
@@ -12,7 +12,7 @@ export default function SaerligeKommentarerSection() {
       <ContentBox className="content-box" data-section-id="saerlige-kommentarer">
         <Typography className="section-header">Eventuelle særlige kommentarer</Typography>
 
-        <GreenfieldMultilineTextField
+        <MultilineTextField
           field={eoSaerligeKommentarerField.bind()}
           location={{ locationId: 'erstatningsopgoerelse.saerligeKommentarer', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
           name="saerligeKommentarer"

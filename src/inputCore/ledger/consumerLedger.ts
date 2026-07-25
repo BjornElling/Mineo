@@ -1,11 +1,11 @@
 import {
-  GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS,
-  GREENFIELD_PHASE_0_CASE_FILE_PATHS,
-  GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS,
-} from '../../config/greenfieldPhase0Inventory';
+  CONSUMER_CALCULATION_ENTRYPOINTS,
+  CONSUMER_CASE_FILE_PATHS,
+  CONSUMER_DOCUMENT_OUTPUTS,
+} from '../../config/consumerInventory';
 
 // Midlertidigt fase-0-inventar (§6.3): én entry pr. makro-consumer — beregning, sagsfil eller dokumentoutput. Bygger PÅ det
-// eksisterende maskinlåste `greenfieldPhase0Inventory.ts` (som allerede peger på faktiske exports/callsites og
+// eksisterende maskinlåste `consumerInventory.ts` (som allerede peger på faktiske exports/callsites og
 // er dækket af sin coverage-test) frem for at oprette en parallel autoritet. Her tilføjes consumer-klassen og
 // — for dokumenter — hvilken beregning outputtet projekterer fra. De rene projektioner, missing-regler,
 // output-invariants og prioriterede editorlokationer pr. navigerbart issue fuses ind i Fase 3–5.
@@ -22,7 +22,7 @@ export type ConsumerLedgerEntry = Readonly<{
 }>;
 
 /** Dokument → kilde-beregning (eller statisk programdata). Bruges til at binde outputs til deres dependency. */
-type DocumentId = (typeof GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS)[number]['id'];
+type DocumentId = (typeof CONSUMER_DOCUMENT_OUTPUTS)[number]['id'];
 
 const DOCUMENT_SOURCE: Readonly<Record<DocumentId, string>> = {
   satser: 'satser',
@@ -46,13 +46,13 @@ const DOCUMENT_SOURCE: Readonly<Record<DocumentId, string>> = {
 };
 
 export const INPUT_CONSUMER_LEDGER: readonly ConsumerLedgerEntry[] = [
-  ...GREENFIELD_PHASE_0_CALCULATION_ENTRYPOINTS.map((entry): ConsumerLedgerEntry => ({
+  ...CONSUMER_CALCULATION_ENTRYPOINTS.map((entry): ConsumerLedgerEntry => ({
     id: `beregning:${entry.id}`, type: 'beregning', module: entry.module, symbol: entry.symbol,
   })),
-  ...GREENFIELD_PHASE_0_CASE_FILE_PATHS.map((entry): ConsumerLedgerEntry => ({
+  ...CONSUMER_CASE_FILE_PATHS.map((entry): ConsumerLedgerEntry => ({
     id: `casefile:${entry.id}`, type: 'casefile', module: entry.module, symbol: entry.symbol,
   })),
-  ...GREENFIELD_PHASE_0_DOCUMENT_OUTPUTS.map((entry): ConsumerLedgerEntry => ({
+  ...CONSUMER_DOCUMENT_OUTPUTS.map((entry): ConsumerLedgerEntry => ({
     id: `document:${entry.id}`, type: 'document', module: entry.module, symbol: entry.symbol,
     projectsFrom: DOCUMENT_SOURCE[entry.id],
   })),

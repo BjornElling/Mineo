@@ -29,12 +29,12 @@ import { useInputEvaluation, useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 import {
-  GreenfieldGridAmountCell,
-  GreenfieldGridDateCell,
-  GreenfieldGridIntegerCell,
-  GreenfieldGridWeekCell,
-  GreenfieldGridYearCell,
-} from '../../inputCore/react/fields/greenfieldGridCells';
+  GridAmountCell,
+  GridDateCell,
+  GridIntegerCell,
+  GridWeekCell,
+  GridYearCell,
+} from '../../inputCore/react/fields/gridCells';
 import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
@@ -49,7 +49,7 @@ import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 // celleredigering går nu udelukkende gennem greenfield-inputCore:
 //  - `useCollectionRows(aarsloenTableDataCollectionRef)` ejer rækkernes id'er + insert/delete/reorder (§3.8) —
 //    ingen `useGridRowPersistenceCore`, `internalTableData`, fingerprint eller persistence-effect.
-//  - hver celle er en `GreenfieldGrid*Cell` over `useCellEditor` (draft/commit) bro-forbundet til grid-core-
+//  - hver celle er en `Grid*Cell` over `useCellEditor` (draft/commit) bro-forbundet til grid-core-
 //    navigationen (§2.5). En EKSISTERENDE-række-celle binder `descriptor.bind(rowId)`; en trailing PLACEHOLDER-
 //    række promoverer atomisk ved første ikke-tomme settle (§1.11).
 //  - de committede rækker læses read-only via `readAarsloenTableRows(reader)` — KUN til sortering, afledte
@@ -422,21 +422,21 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                 {/* Periode fra */}
                 <td style={getCellStyle(rowId, COL.period0, { ...getStandardGridCellStyle({ align: 'center' }) })}>
                   {loenperiode === 'maaned' ? (
-                    <GreenfieldGridIntegerCell
+                    <GridIntegerCell
                       gridCell={gc(COL.period0)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_maaned, COL.period0)}
                       placeholder={getMissingHint(rowId, 'col0_maaned') ?? 'mm'}
                       inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   ) : loenperiode === 'uge' ? (
-                    <GreenfieldGridWeekCell
+                    <GridWeekCell
                       gridCell={gc(COL.period0)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_uge, COL.period0)}
                       {...(getMissingHint(rowId, 'col0_uge') ? { placeholder: getMissingHint(rowId, 'col0_uge') } : {})}
                       inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   ) : (
-                    <GreenfieldGridDateCell
+                    <GridDateCell
                       gridCell={gc(COL.period0)}
                       cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col0_dag, COL.period0)}
                       {...(getMissingHint(rowId, 'col0_dag') ? { placeholder: getMissingHint(rowId, 'col0_dag') } : {})}
@@ -448,21 +448,21 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                 {/* Periode til */}
                 <td style={getCellStyle(rowId, COL.period1, { ...getStandardGridCellStyle({ align: 'center' }) })}>
                   {loenperiode === 'maaned' ? (
-                    <GreenfieldGridYearCell
+                    <GridYearCell
                       gridCell={gc(COL.period1)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_maaned, COL.period1)}
                       {...(getMissingHint(rowId, 'col1_maaned') ? { placeholder: getMissingHint(rowId, 'col1_maaned') } : { placeholder: `åååå (≤${CURRENT_YEAR})` })}
                       inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   ) : loenperiode === 'uge' ? (
-                    <GreenfieldGridWeekCell
+                    <GridWeekCell
                       gridCell={gc(COL.period1)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_uge, COL.period1)}
                       {...(getMissingHint(rowId, 'col1_uge') ? { placeholder: getMissingHint(rowId, 'col1_uge') } : {})}
                       inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   ) : (
-                    <GreenfieldGridDateCell
+                    <GridDateCell
                       gridCell={gc(COL.period1)}
                       cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col1_dag, COL.period1)}
                       {...(getMissingHint(rowId, 'col1_dag') ? { placeholder: getMissingHint(rowId, 'col1_dag') } : {})}
@@ -479,7 +479,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   [COL.col5, fieldSet.col5] as const,
                 ]).map(([colIdx, descriptor]) => (
                   <td key={colIdx} style={getCellStyle(rowId, colIdx, { ...getStandardGridCellStyle({ align: 'right' }) })}>
-                    <GreenfieldGridAmountCell
+                    <GridAmountCell
                       gridCell={gc(colIdx)}
                       cell={buildCellSpec<AmountValue | undefined>(renderRow, descriptor, colIdx)}
                       inputRef={registerCellRef(rowId, colIdx)}
@@ -490,7 +490,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                 {/* FP/FV/SH/SO/St.B. — redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
                   <td style={getCellStyle(rowId, COL.beloeb0, { ...getStandardGridCellStyle({ align: 'right' }) })}>
-                    <GreenfieldGridAmountCell
+                    <GridAmountCell
                       gridCell={gc(COL.beloeb0)}
                       cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.fpFvShSoBeloeb, COL.beloeb0)}
                       inputRef={registerCellRef(rowId, COL.beloeb0)}
@@ -505,7 +505,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                 {/* Arb.g. Pension — redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
                   <td style={getCellStyle(rowId, COL.beloeb1, { ...getStandardGridCellStyle({ align: 'right' }) })}>
-                    <GreenfieldGridAmountCell
+                    <GridAmountCell
                       gridCell={gc(COL.beloeb1)}
                       cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.pensionBeloeb, COL.beloeb1)}
                       inputRef={registerCellRef(rowId, COL.beloeb1)}

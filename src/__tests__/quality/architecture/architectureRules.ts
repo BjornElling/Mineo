@@ -57,11 +57,10 @@ const sessionStorageBoundary = forbidMemberAccess({
   id: 'storage/session-storage-boundary',
   description:
     'Direkte sessionStorage-adgang er kun tilladt i persistence-infrastrukturen og den kanoniske helper.',
+  // Kun den kanoniske helper tilbage: de øvrige poster var stale efter greenfield-cutoveren (filerne er
+  // slettet, eller de rører ikke længere sessionStorage direkte). Anti-rot-testen håndhæver, at hver post
+  // stadig udløser reglen, så listen ikke stille kan vokse til død konfiguration.
   allow: [
-    'src/config/storageManifest.ts',
-    'src/contexts/FormPersistenceContext.tsx',
-    'src/utils/dataCollection.ts',
-    'src/utils/persistenceSessionHydration.ts',
     'src/utils/safeSessionStorage.ts',
   ],
   forbidden: (ref) => isDirectSessionStorageAccess(ref.chainText, ref.rootName),
@@ -104,75 +103,55 @@ const sessionStorageManifestKey = forbidCalls({
 
 // --- Persistence-import-grænser ----------------------------------------------
 
-const useFormPersistenceImport = forbidImports({
-  id: 'persistence/use-form-persistence-import',
-  description:
-    'useFormPersistence må kun importeres af infrastruktur og de kanoniske imperative hooks.',
-  // MainLayout og usePersistedForm er væk efter greenfield-cutoveren (WI-002); kun det bevarede
-  // useFormFieldErrors (Styled*Field-vejen, Fase 5) importerer stadig useFormPersistence.
-  allow: [
-    'src/hooks/useFormFieldErrors.ts',
-  ],
-  forbidden: (ref) => ref.moduleSpecifier.endsWith('contexts/useFormPersistence'),
-  message: (ref) => `Import af useFormPersistence (${ref.moduleSpecifier}) uden for allowlisten.`,
-  violatingFixtures: [
-    { relativePath: 'src/foo.ts', code: "import { useFormPersistence } from '../../contexts/useFormPersistence';" },
-  ],
-  cleanFixtures: [
-    { relativePath: 'src/foo.ts', code: "import { x } from '../../contexts/useFormPersistenceSelectors';" },
-    { relativePath: 'src/foo.ts', code: "import { x } from './somethingElse';" },
-  ],
-});
+/**
+ * Modulstierne for den slettede legacy-inputarkitektur.
+ *
+ * Præcisionskrav: `Styled*Field` rammer den gamle feltvej, men IKKE de bevarede UI-primitiver
+ * (`StyledTextFieldBase`/`StyledTextAreaBase`) eller de øvrige bevarede kontroller (dropdown/toggle/radio/
+ * checkbox). `criticalActions/` rammer den gamle mappe, men ikke greenfields egen
+ * `inputCore/runtime/criticalActionCoordinator`.
+ */
+const DELETED_LEGACY_INPUT_MODULES =
+  /(?:stores\/(?:formPersistenceStore|formPersistenceReadModel|inputRuntimeStore|undoRedoStore)|contexts\/(?:FormPersistenceContext(?:\.shared|\.internal)?|useFormPersistence)|hooks\/(?:useFormPersistence|useFormPersistenceSelectors|useFormFieldErrors|usePersistedForm|useDraftField|useStyledFieldAdapter|useTwoStageInputActivation|useUndoRedo(?:Shortcuts)?)|hooks\/fieldState\/|hooks\/tableInput|input\/(?:inputTransactionRunner|legacyInputCompatibility|legacyGridTransactionBridge)|criticalActions\/|rowDrafts\/|types\/fieldErrors|utils\/(?:invalidDraftsStorage|saveBlockedFocus|historyTargetRestore)|components\/inputs\/table\/Table|components\/inputs\/Styled(?:Text|Amount|Date|Integer|Percent|Fraction|Week|Year)Field$)/;
 
-const formPersistenceContextImport = forbidImports({
-  id: 'persistence/form-persistence-context-import',
+/**
+ * Den slettede legacy-inputarkitektur må ikke genopstå.
+ *
+ * Efter greenfield-cutoveren findes der ÉN autoritativ inputtilstand (§3.1), ÉN editor (§3.5) og ÉN
+ * write-grænse (§3.6). Den gamle store-/editor-/fejl-/command-klynge er slettet — ikke deaktiveret. Denne regel
+ * forbyder ethvert import af dens moduler, så en ny feature ikke kan genindføre en parallel inputvej (heller
+ * ikke ved at genskabe en fil med samme navn). Der er BEVIDST ingen allowlist: en undtagelse ville være en
+ * anden samtidig sandhed.
+ */
+const deletedLegacyInputArchitectureImport = forbidImports({
+  id: 'input/deleted-legacy-architecture-import',
   description:
-    'Direkte import af FormPersistenceContext(.shared/.internal) er kun tilladt i contexts-infrastrukturen.',
-  // Efter greenfield-cutoveren (WI-002) er Provideren (`FormPersistenceContext.tsx`) slettet; kun
-  // `.internal`/`.shared` og de bevarede context-frit-degraderende infrastrukturhooks (Styled*Field- +
-  // celle-invalidDraft-vejen, Fase 5) importerer stadig context-objektet/typerne direkte.
-  allow: [
-    'src/contexts/FormPersistenceContext.internal.ts',
-    'src/contexts/FormPersistenceContext.shared.ts',
-    'src/contexts/useFormPersistence.ts',
-    // Celle-invalidDrafts-kanalen er persistence-infrastruktur: den læser context direkte for at
-    // kunne degradere context-frit uden at kaste, når en tabel rendres uden provider (tests).
-    'src/hooks/tableInput/useCellInvalidDraftChannel.ts',
-    // Samme infrastruktur-rolle: reconcile af forældreløse celle-invalidDrafts mod levende rækker.
-    'src/hooks/tableInput/useReconcileInvalidDraftsToLiveRows.ts',
-  ],
-  forbidden: (ref) => /FormPersistenceContext(?:\.shared|\.internal)?$/.test(ref.moduleSpecifier),
+    'Den slettede legacy-inputarkitektur (formPersistence*, inputRuntimeStore, FormPersistenceContext, '
+    + 'inputTransactionRunner, criticalActions/, rowDrafts/, tableInput/, useDraftField, Styled*Field-vejen) '
+    + 'må ikke importeres eller genindføres.',
+  allow: [],
+  forbidden: (ref) => DELETED_LEGACY_INPUT_MODULES.test(ref.moduleSpecifier),
   message: (ref) =>
-    `Direkte import af FormPersistenceContext (${ref.moduleSpecifier}) uden for infrastrukturen.`,
+    `Import af slettet legacy-inputarkitektur (${ref.moduleSpecifier}). Brug greenfield-inputCore: `
+    + 'reader/projektion til læsning, `dispatch`/`useFieldEditor` til skrivning.',
   violatingFixtures: [
+    { relativePath: 'src/foo.ts', code: "import { x } from '../stores/formPersistenceStore';" },
+    { relativePath: 'src/foo.ts', code: "import type { T } from '../stores/inputRuntimeStore';" },
     { relativePath: 'src/foo.ts', code: "import { FormPersistenceContext } from '../contexts/FormPersistenceContext';" },
-    { relativePath: 'src/foo.ts', code: "import { x } from '../contexts/FormPersistenceContext.internal';" },
+    { relativePath: 'src/foo.ts', code: "import { x } from '../input/inputTransactionRunner';" },
+    { relativePath: 'src/foo.ts', code: "import { useDraftField } from '../hooks/useDraftField';" },
+    { relativePath: 'src/foo.ts', code: "import { useRowDrafts } from '../rowDrafts/useRowDrafts';" },
+    { relativePath: 'src/foo.ts', code: "import { useTableInputCore } from '../hooks/tableInput';" },
+    { relativePath: 'src/foo.ts', code: "import { useCriticalActionParticipant } from '../criticalActions/CriticalActionContext';" },
+    { relativePath: 'src/foo.ts', code: "import StyledAmountField from '../components/inputs/StyledAmountField';" },
   ],
   cleanFixtures: [
-    { relativePath: 'src/foo.ts', code: "import { useFormPersistence } from '../contexts/useFormPersistence';" },
-    { relativePath: 'src/foo.ts', code: "import { x } from './FormPersistenceHelpers';" },
-  ],
-});
-
-const formPersistenceStoreImport = forbidImports({
-  id: 'persistence/form-persistence-store-import',
-  description:
-    'Direkte import af stores/formPersistenceStore er kun tilladt i de kanoniske adgangspunkter.',
-  allow: [
-    'src/hooks/useFormPersistenceSelectors.ts',
-    // Domæne-specifik read model: abonnerer direkte på storen for ét cachet tværsektion-snapshot.
-    'src/hooks/useMidlertidigtEetInsertSource.ts',
-  ],
-  forbidden: (ref) => ref.moduleSpecifier.endsWith('stores/formPersistenceStore'),
-  message: (ref) =>
-    `Direkte import af formPersistenceStore (${ref.moduleSpecifier}) uden for kanoniske adgangspunkter.`,
-  violatingFixtures: [
-    { relativePath: 'src/foo.ts', code: "import { useStore } from '../../stores/formPersistenceStore';" },
-    { relativePath: 'src/foo.ts', code: "import type { T } from '../../stores/formPersistenceStore';" },
-  ],
-  cleanFixtures: [
-    { relativePath: 'src/foo.ts', code: "import { x } from '../../stores/undoRedoStore';" },
-    { relativePath: 'src/foo.ts', code: "import { x } from './formPersistenceStoreHelpers';" },
+    { relativePath: 'src/foo.ts', code: "import { slimInputStore } from '../inputCore/runtime/slimInputStore';" },
+    { relativePath: 'src/foo.ts', code: "import { useFieldEditor } from '../inputCore/react/useFieldEditor';" },
+    // De bevarede UI-primitiver (`*Base`) og de transiente felter er IKKE den gamle feltvej.
+    { relativePath: 'src/foo.ts', code: "import StyledTextFieldBase from '../components/inputs/StyledTextFieldBase';" },
+    { relativePath: 'src/foo.ts', code: "import TransientDateInput from '../components/inputs/transient/TransientDateInput';" },
+    { relativePath: 'src/foo.ts', code: "import { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';" },
   ],
 });
 
@@ -188,7 +167,6 @@ const failOpenDisplayLookupImport = forbidImports({
     'src/document/generators/satser/satserDocument.ts',
     'src/document/service/documentService.ts',
   ],
-  antiRot: true,
   forbidden: (ref) =>
     ref.moduleSpecifier.includes('lovbestemteRates') && ref.namedBindings.includes('getSatserForYear'),
   message: (ref) => `Import af fail-open getSatserForYear (${ref.moduleSpecifier}) uden for display/dokument.`,
@@ -209,7 +187,9 @@ const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
   id: 'satser/asl-aarsloensmaksimum-raw-subscript',
   description:
     'Rå aarsloenAslMax[år]-opslag skal gå gennem resolveAslAarsloensmaksimumForAar (gateway); kun datakilde + gateway må subscripte.',
-  allow: ['src/data/lovbestemteRates.ts', 'src/domain/satser/aslAarsloensmaksimum.ts'],
+  // Kun datakilden tilbage: gateway'en (`aslAarsloensmaksimum.ts`) subscripter ikke længere selv — den går
+  // gennem `YearlyRate`-helperne — så dens allowlist-post var død konfiguration.
+  allow: ['src/data/lovbestemteRates.ts'],
   forbidden: (ref) => ref.objectName === 'aarsloenAslMax',
   message: (ref) => `Rå ASL-maks-opslag (${ref.chainText}) — brug resolveAslAarsloensmaksimumForAar().`,
   violatingFixtures: [
@@ -247,7 +227,6 @@ const inspektionLayerImport = forbidImports({
     'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
     'src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts',
   ],
-  antiRot: true,
   forbidden: (ref, fromRelativePath) => importPointsIntoInspektion(ref.moduleSpecifier, fromRelativePath),
   message: (ref) => `Import af inspektions-/kontrollaget (${ref.moduleSpecifier}) uden for de sanktionerede broer.`,
   violatingFixtures: [
@@ -859,7 +838,6 @@ const queueMicrotaskBoundary = forbidCalls({
     'queueMicrotask er forbudt i commit-sensitiv kode (kan splitte en atomisk commit over to microtasks); kun auditerede infrastruktur-undtagelser.',
   appliesTo: isCommitSensitive,
   allow: ['src/components/tables/gridCore/tableKeyboardNavigation.ts'],
-  antiRot: true,
   forbidden: (ref) => ref.calleeName === 'queueMicrotask' && ref.calleeText === 'queueMicrotask',
   message: () => 'queueMicrotask i commit-sensitiv kode uden auditeret undtagelse.',
   violatingFixtures: [
@@ -886,7 +864,6 @@ const promiseTickBoundary = forbidCalls({
     'Promise-tick (await Promise.resolve() / Promise.resolve().then()) er forbudt i commit-sensitiv kode.',
   appliesTo: isCommitSensitive,
   allow: [],
-  antiRot: true,
   forbidden: (ref) => ref.calleeText === 'Promise.resolve' && isMicrotaskTick(ref.node),
   message: () => 'Promise-tick i commit-sensitiv kode.',
   violatingFixtures: [
@@ -920,7 +897,6 @@ const criticalActionNoDomScanOrFrameWait = forbidCalls({
   description:
     'critical-action-barrieren må ikke DOM-scanne (querySelector*/getElementsBy*) eller vente på frames/timeouts (requestAnimationFrame/setTimeout/setInterval) — den afventer kun eksplicitte deltager-promises (kontrakt §2).',
   appliesTo: isCriticalActionModule,
-  antiRot: true,
   forbidden: (ref) =>
     ref.calleeName === 'requestAnimationFrame' ||
     ref.calleeName === 'setTimeout' ||
@@ -1163,7 +1139,6 @@ const sfggEngineImportBoundary = forbidImports({
   description:
     'Den samlede SFGG-engine må kun kaldes af TAF-netto-orkestreringen; øvrige lag bruger smalle SFGG-moduler eller resultattypen.',
   allow: ['src/domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts'],
-  antiRot: true,
   forbidden: (ref) => ref.moduleSpecifier.endsWith('/sfggEngine') || ref.moduleSpecifier === './sfggEngine',
   message: (ref) => `Bred SFGG-engine-import (${ref.moduleSpecifier}) uden for TAF-netto-orkestreringen.`,
   violatingFixtures: [{
@@ -1180,7 +1155,6 @@ const sfggAnsaettelsesforholdImportBoundary = forbidImports({
   id: 'domain/sfgg-ansaettelsesforhold-import-boundary',
   description: 'Pr.-ansættelsesforhold-beregningen er intern for den tynde SFGG-engine.',
   allow: ['src/domain/erstatningsopgoerelse/engines/sfggEngine.ts'],
-  antiRot: true,
   forbidden: (ref) =>
     ref.moduleSpecifier.endsWith('/sfggAnsaettelsesforhold')
     || ref.moduleSpecifier === './sfggAnsaettelsesforhold',
@@ -1202,7 +1176,6 @@ const sfggSegmenteringImportBoundary = forbidImports({
     'src/domain/erstatningsopgoerelse/engines/sfggAnsaettelsesforhold.ts',
     'src/domain/erstatningsopgoerelse/engines/sfggEngine.ts',
   ],
-  antiRot: true,
   forbidden: (ref) =>
     ref.moduleSpecifier.endsWith('/sfggSegmentering') || ref.moduleSpecifier === './sfggSegmentering',
   message: (ref) => `Direkte import af intern SFGG-segmentmatematik (${ref.moduleSpecifier}).`,
@@ -1223,7 +1196,6 @@ const sfggWarningsImportBoundary = forbidImports({
     'src/domain/eoRowEvaluation/eoRowSygeferiegodtgoerelseRows.ts',
     'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
   ],
-  antiRot: true,
   forbidden: (ref) => ref.moduleSpecifier.endsWith('/sfggWarnings') || ref.moduleSpecifier === './sfggWarnings',
   message: (ref) => `SFGG-warning-import (${ref.moduleSpecifier}) uden for de autoritative forbrugere.`,
   violatingFixtures: [{
@@ -1295,25 +1267,28 @@ const documentGeneratorCursorElementAccess = forbidElementAccess({
   cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'const value = data["value"];' }],
 });
 
-// --- WI-003: greenfield-kommitterende felt-familier skal bære undo/redo-restore-target-attributterne ----------
+// --- WI-003: kommitterende felt-familier skal bære undo/redo-restore-target-attributterne ----------
 //
-// En greenfield-feltfamilie, der renderer sit EGET fokuserbare element — enten via en surface-hook
+// En feltfamilie, der renderer sit EGET fokuserbare element — enten via en surface-hook
 // (`useFormFieldSurface`/`useGridCellSurface`) eller ved at rendere en fokuserbar `Styled*`-kontrol
 // (toggle/checkbox/radio/dropdown) — SKAL føre restore-target-attributterne igennem, så undo/redo kan re-fokusere
 // PRÆCIS den editorlokation, ændringen kom fra (§3.7). De tynde preset-skaller (Integer/Percent/Amount/…), der blot
-// videresender `field`/`location` til en anden `Greenfield*`-komponent, har intet eget fokuserbart element og er
+// videresender `field`/`location` til en anden feltkomponent, har intet eget fokuserbart element og er
 // derfor rene UDEN attributterne — reglen flager dem ikke, fordi de hverken bruger en surface-hook eller en Styled*-kontrol.
-const GREENFIELD_FIELDS_DIR = 'src/inputCore/react/fields';
+//
+// Scopet er HELE feltmappen (ikke et navnepræfiks): et nyt felt i mappen er dækket automatisk, og reglen kan
+// ikke stille blive inert af en omdøbning.
+const FIELDS_DIR = 'src/inputCore/react/fields';
 const RESTORE_ATTR_TOKEN = /\b(?:useRestoreTargetAttributes|restoreTargetAttributes)\b/;
 // De fokuserbare primitiver, en feltfamilie renderer direkte, når den ejer sit eget input-element.
 const FOCUSABLE_SURFACE_SIGNAL = /\b(?:useFormFieldSurface|useGridCellSurface|StyledToggleSwitch|StyledCheckbox|StyledRadioButton|StyledDropdown)\b/;
 
-const greenfieldRestoreTargetAttributes = defineRule({
-  id: 'form/greenfield-restore-target-attributes',
+const restoreTargetAttributesRule = defineRule({
+  id: 'form/restore-target-attributes',
   description:
-    'Greenfield-feltfamilier, der ejer et fokuserbart element (surface-hook eller Styled*-kontrol), skal føre restore-target-attributterne igennem, så undo/redo kan re-fokusere den rette editorlokation (§3.7).',
+    'Feltfamilier, der ejer et fokuserbart element (surface-hook eller Styled*-kontrol), skal føre restore-target-attributterne igennem, så undo/redo kan re-fokusere den rette editorlokation (§3.7).',
   appliesTo: (relativePath) =>
-    relativePath.startsWith(`${GREENFIELD_FIELDS_DIR}/Greenfield`) && relativePath.endsWith('.tsx'),
+    relativePath.startsWith(`${FIELDS_DIR}/`) && relativePath.endsWith('.tsx'),
   find: (entry) => {
     // Rent tekst-værn: selve tilstedeværelsen af attributterne er kontrakten (jf. guard-selvtest-princippet).
     if (!FOCUSABLE_SURFACE_SIGNAL.test(entry.text)) return [];
@@ -1327,24 +1302,24 @@ const greenfieldRestoreTargetAttributes = defineRule({
   },
   violatingFixtures: [
     {
-      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldX.tsx`,
+      relativePath: `${FIELDS_DIR}/XField.tsx`,
       code: 'const C = () => { const s = useFormFieldSurface(field, location); return <input {...s.htmlInputAttributes} />; };',
     },
     {
-      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldY.tsx`,
+      relativePath: `${FIELDS_DIR}/YField.tsx`,
       code: 'const C = () => <StyledToggleSwitch checked={false} onCommit={c} />;',
     },
   ],
   cleanFixtures: [
     // Ejer et fokuserbart element OG fører attributterne igennem.
     {
-      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldX.tsx`,
+      relativePath: `${FIELDS_DIR}/XField.tsx`,
       code: 'const C = () => { const rta = useRestoreTargetAttributes(field.address, location); return <StyledCheckbox restoreTargetAttributes={rta} />; };',
     },
     // Tynd preset-skal: videresender kun til en anden Greenfield-komponent → intet eget fokuserbart element.
     {
-      relativePath: `${GREENFIELD_FIELDS_DIR}/GreenfieldZ.tsx`,
-      code: 'const C = () => <GreenfieldNumericTextField field={field} location={location} />;',
+      relativePath: `${FIELDS_DIR}/ZField.tsx`,
+      code: 'const C = () => <NumericTextField field={field} location={location} />;',
     },
   ],
 });
@@ -1353,9 +1328,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
   sessionStorageManifestKey,
-  useFormPersistenceImport,
-  formPersistenceContextImport,
-  formPersistenceStoreImport,
+  deletedLegacyInputArchitectureImport,
   failOpenDisplayLookupImport,
   aslAarsloensmaksimumRawSubscript,
   inspektionLayerImport,
@@ -1379,5 +1352,5 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   documentGeneratorWriterImport,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,
-  greenfieldRestoreTargetAttributes,
+  restoreTargetAttributesRule,
 ];

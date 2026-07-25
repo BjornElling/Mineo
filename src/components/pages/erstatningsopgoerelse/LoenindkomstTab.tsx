@@ -5,7 +5,7 @@ import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import ContentBox from '../../layout/ContentBox';
 import { type ErstatningsopgoerelseValues, type StamdataValues } from '../../../schemas/formSchemas';
-import { useGreenfieldLoenindkomstViewModel } from './loenindkomst/useGreenfieldLoenindkomstViewModel';
+import { useLoenindkomstViewModel } from './loenindkomst/useLoenindkomstViewModel';
 import { LoenindkomstVmProvider, type LoenindkomstVm } from './loenindkomst/loenindkomstContext';
 import AnsaettelsesforholdCard from './loenindkomst/AnsaettelsesforholdCard';
 import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
@@ -27,7 +27,7 @@ const LoenindkomstTab = React.memo(({
 }: Props) => {
   // View-model-laget ejer al afledt visningstilstand, lokal UI-state og handlers (jf. A1).
   // Siden er nu en tynd forbruger: den læser kun den flade model og beskriver layout.
-  const vm = useGreenfieldLoenindkomstViewModel({
+  const vm = useLoenindkomstViewModel({
     eoValues,
     stamdataValues,
   });

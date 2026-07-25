@@ -1,10 +1,10 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import GreenfieldTextField from '../../../../../inputCore/react/fields/GreenfieldTextField';
-import GreenfieldMappedToggleField from '../../../../../inputCore/react/fields/GreenfieldMappedToggleField';
-import GreenfieldDateField from '../../../../../inputCore/react/fields/GreenfieldDateField';
-import GreenfieldChoiceField from '../../../../../inputCore/react/fields/GreenfieldChoiceField';
-import { GreenfieldChoiceDivider } from '../../../../../inputCore/react/fields/GreenfieldChoiceField';
+import TextField from '../../../../../inputCore/react/fields/TextField';
+import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
+import DateField from '../../../../../inputCore/react/fields/DateField';
+import ChoiceField from '../../../../../inputCore/react/fields/ChoiceField';
+import { ChoiceDivider } from '../../../../../inputCore/react/fields/ChoiceField';
 import InsertTodayDateButton from '../../../../inputs/InsertTodayDateButton';
 import { afsluttesMedEnum } from '../../../../../schemas/formSchemas';
 import {
@@ -45,7 +45,7 @@ export default function EoSagsinfoSection() {
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">Nummer</Typography>
-              <GreenfieldTextField
+              <TextField
                 field={eoNummerField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.eoNummer', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="eoNummer"
@@ -53,7 +53,7 @@ export default function EoSagsinfoSection() {
                 sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
               />
               <Typography className="row--text">+ evt. ledsagetekst</Typography>
-              <GreenfieldTextField
+              <TextField
                 field={eoLedsagetekstField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.eoLedsagetekst', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="eoLedsagetekst"
@@ -66,7 +66,7 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Revideret opgørelse</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldMappedToggleField
+            <MappedToggleField
               field={eoRevideretOpgoerelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.revideretOpgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
@@ -80,13 +80,13 @@ export default function EoSagsinfoSection() {
           <Typography className="row--text">Vedrører perioden</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <GreenfieldDateField
+              <DateField
                 field={eoVedroererPeriodeFraField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.vedroererPeriodeFra', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="vedroererPeriodeFra"
               />
               <Typography className="row--text">til og med</Typography>
-              <GreenfieldDateField
+              <DateField
                 field={eoVedroererPeriodeTilField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.vedroererPeriodeTil', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="vedroererPeriodeTil"
@@ -99,7 +99,7 @@ export default function EoSagsinfoSection() {
           <Typography className="row--text">Opgørelse lavet den</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <GreenfieldDateField
+              <DateField
                 field={eoOpgørelseLavetDenField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.opgørelseLavetDen', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="opgørelseLavetDen"
@@ -119,7 +119,7 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Indsæt udkast-stempel</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldMappedToggleField
+            <MappedToggleField
               field={eoIndsaetUdkastStempelField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.indsaetUdkastStempel', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
@@ -134,7 +134,7 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Helbredsforhold</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField
+            <ChoiceField
               field={eoSvieSmerteHelbredsstatusField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.svieSmerteHelbredsstatus', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="svieSmerteHelbredsstatus"
@@ -143,14 +143,14 @@ export default function EoSagsinfoSection() {
               <MenuItem value="Sygemeldt">Sygemeldt</MenuItem>
               <MenuItem value="Delvist Sygemeldt">Delvist Sygemeldt</MenuItem>
               <MenuItem value="Raskmeldt">Raskmeldt</MenuItem>
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Arbejdssituation</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField
+            <ChoiceField
               field={eoTafArbejdsstatusField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.tafArbejdsstatus', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="tafArbejdsstatus"
@@ -159,7 +159,7 @@ export default function EoSagsinfoSection() {
               <MenuItem value="Uarbejdsdygtig">Uarbejdsdygtig</MenuItem>
               <MenuItem value="Delvist raskmeldt">Delvist raskmeldt</MenuItem>
               <MenuItem value="Fuldt arbejdsdygtig">Fuldt arbejdsdygtig</MenuItem>
-              <GreenfieldChoiceDivider />
+              <ChoiceDivider />
               <MenuItem value="Efterløn">Efterløn</MenuItem>
               <MenuItem value="Fleksjob">Fleksjob</MenuItem>
               <MenuItem value="Folkepension">Folkepension</MenuItem>
@@ -168,7 +168,7 @@ export default function EoSagsinfoSection() {
               <MenuItem value="Revalidering">Revalidering</MenuItem>
               <MenuItem value="Seniorpension">Seniorpension</MenuItem>
               <MenuItem value="Uddannelse">Uddannelse</MenuItem>
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
 
@@ -177,7 +177,7 @@ export default function EoSagsinfoSection() {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Erstatningsopgørelse afsluttes med</Typography>
           <Box className="row--label-right-hover__content">
-            <GreenfieldChoiceField
+            <ChoiceField
               field={eoAfsluttesMedField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.erstatningsopgoerelseAfsluttesMed', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="erstatningsopgoerelseAfsluttesMed"
@@ -189,7 +189,7 @@ export default function EoSagsinfoSection() {
                   {option}
                 </MenuItem>
               ))}
-            </GreenfieldChoiceField>
+            </ChoiceField>
           </Box>
         </Box>
       </ContentBox>

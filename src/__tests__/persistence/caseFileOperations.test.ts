@@ -154,4 +154,52 @@ describe('caseFileOperations', () => {
       expect(ops.hasAnyData()).toBe(true);
     });
   });
+
+  // Critical-action-kontrakten §5: en async-grænse mellem evaluering og skrivning (fx directory-/fil-pickeren)
+  // kræver, at HELE kildetokenet genlæses og sammenlignes umiddelbart før den irreversible skrivning.
+  describe('isSaveSourceStillCurrent', () => {
+    it('er sand, når kilden ikke har ændret sig siden evalueringen', () => {
+      const store = __createSlimInputTestStore();
+      settle(store, settleField(aargangField.bind(), '2020'));
+      const ops = createCaseFileOperations(buildRuntime(store));
+
+      const outcome = ops.evaluateSave();
+      expect(outcome.status).toBe('ready');
+      if (outcome.status !== 'ready') return;
+
+      expect(ops.isSaveSourceStillCurrent(outcome.token)).toBe(true);
+    });
+
+    it('er FALSK, når inputrevisionen ændres efter evalueringen (ville ellers gemme en ældre sag)', () => {
+      const store = __createSlimInputTestStore();
+      settle(store, settleField(aargangField.bind(), '2020'));
+      const ops = createCaseFileOperations(buildRuntime(store));
+
+      const outcome = ops.evaluateSave();
+      expect(outcome.status).toBe('ready');
+      if (outcome.status !== 'ready') return;
+
+      // Brugeren redigerer, mens fil-pickeren er åben.
+      settle(store, settleField(aargangField.bind(), '2021'));
+
+      expect(ops.isSaveSourceStillCurrent(outcome.token)).toBe(false);
+    });
+
+    it('er FALSK, når settingsrevisionen ændres efter evalueringen', () => {
+      const store = __createSlimInputTestStore();
+      settle(store, settleField(aargangField.bind(), '2020'));
+      const ops = createCaseFileOperations(buildRuntime(store));
+
+      const outcome = ops.evaluateSave();
+      expect(outcome.status).toBe('ready');
+      if (outcome.status !== 'ready') return;
+
+      // En dokumentrelevant indstilling ændres, mens fil-pickeren er åben. Begge revisioner indgår i tokenet,
+      // fordi begge kan ændre det, der ville blive skrevet.
+      store.getState().bumpSettingsRevision();
+
+      expect(readSourceToken(store)).not.toEqual(outcome.token);
+      expect(ops.isSaveSourceStillCurrent(outcome.token)).toBe(false);
+    });
+  });
 });

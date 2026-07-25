@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Greenfield Satser-slice (§2.4 + Fase 3): Satser-sidens `aargang` er nu et `GreenfieldYearField` over den ene
+// Greenfield Satser-slice (§2.4 + Fase 3): Satser-sidens `aargang` er nu et `YearField` over den ene
 // input-runtime. Denne integrationstest kører gennem den RIGTIGE migrerede side + den ægte produktions-runtime
 // (`ProductionInputRuntimeProvider` mod `slimInputStore`/`criticalActionCoordinator`) — den beviser den
 // virkelige sti felt → settle → reader-projektion → download-gate (§1.5/§1.6/§3.9), uden legacy

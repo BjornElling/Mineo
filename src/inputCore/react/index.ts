@@ -19,5 +19,5 @@ export * from './useCellEditor';
 export * from './useGridCellSurface';
 export * from './useInputEvaluation';
 export * from './useCaseOperations';
-export * from './useGreenfieldUndoRedoShortcuts';
-export * from './greenfieldSaveBlockedFocus';
+export * from './useUndoRedoShortcuts';
+export * from './saveBlockedFocus';

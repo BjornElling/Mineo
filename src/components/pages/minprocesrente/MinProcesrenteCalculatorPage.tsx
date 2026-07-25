@@ -8,7 +8,7 @@ import type { RenteOversigtRow } from '../../../document/generators/renteberegni
 import RenteberegningTab, { type RenteDocumentSharedSnapshot } from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
-import { useGreenfieldUndoRedoShortcuts } from '../../../inputCore/react/useGreenfieldUndoRedoShortcuts';
+import { useUndoRedoShortcuts } from '../../../inputCore/react/useUndoRedoShortcuts';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
 
@@ -48,7 +48,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
 
   // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene greenfield write-grænse.
-  useGreenfieldUndoRedoShortcuts();
+  useUndoRedoShortcuts();
 
   const handleDownloadRentePdf = React.useCallback(
     async (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => {

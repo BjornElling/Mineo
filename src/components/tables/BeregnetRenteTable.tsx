@@ -28,11 +28,11 @@ import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 import {
-  GreenfieldGridAmountCell,
-  GreenfieldGridDateCell,
-} from '../../inputCore/react/fields/greenfieldGridCells';
-import GreenfieldGridTextCell from '../../inputCore/react/fields/GreenfieldGridTextCell';
-import GreenfieldGridChoiceCell from '../../inputCore/react/fields/GreenfieldGridChoiceCell';
+  GridAmountCell,
+  GridDateCell,
+} from '../../inputCore/react/fields/gridCells';
+import GridTextCell from '../../inputCore/react/fields/GridTextCell';
+import GridChoiceCell from '../../inputCore/react/fields/GridChoiceCell';
 import { filterIntegerKeyDown } from '../inputs/inputKeyFilters';
 import {
   rentekravRowsCollectionRef,
@@ -48,7 +48,7 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 // celleredigering går nu udelukkende gennem greenfield-inputCore, som StandardLoenTable:
 //  - `useCollectionRows(rentekravRowsCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
 //    `useSliceRowDrafts`, draftkopi, fingerprint eller persistence-effect.
-//  - hver redigerbar celle er en `GreenfieldGrid*Cell`/`GreenfieldGridChoiceCell` over `useCellEditor`, bro-
+//  - hver redigerbar celle er en `Grid*Cell`/`GridChoiceCell` over `useCellEditor`, bro-
 //    forbundet til grid-core-navigationen. En trailing PLACEHOLDER-række promoverer atomisk ved første ikke-tomme
 //    settle (§1.11).
 //  - de committede rækker + rente-resultater kommer fra den reader-afledte projektion (forælderen ejer den, så
@@ -119,7 +119,7 @@ const BeregnetRenteRow = React.memo(
     return (
       <TableRow data-mineo-row-id={rowId}>
         <TableCell sx={isMobile ? undefined : { textAlign: 'center' }}>
-          <GreenfieldGridAmountCell
+          <GridAmountCell
             gridCell={gc(COL.belob)}
             cell={buildCellSpec<AmountValue | undefined>(renderRow, rentekravBelobField, COL.belob)}
             placeholder="0,00"
@@ -127,7 +127,7 @@ const BeregnetRenteRow = React.memo(
         </TableCell>
 
         <TableCell>
-          <GreenfieldGridDateCell
+          <GridDateCell
             gridCell={gc(COL.renterFra)}
             cell={buildCellSpec<ISODateString | undefined>(renderRow, rentekravRenterFraField, COL.renterFra)}
           />
@@ -138,7 +138,7 @@ const BeregnetRenteRow = React.memo(
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
               <Typography className="row--text">+</Typography>
               <Box sx={{ width: 50 }}>
-                <GreenfieldGridTextCell<number | undefined>
+                <GridTextCell<number | undefined>
                   gridCell={gc(COL.tillaegstid)}
                   cell={buildCellSpec<number | undefined>(renderRow, rentekravTillaegstidField, COL.tillaegstid)}
                   keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: true })}
@@ -153,7 +153,7 @@ const BeregnetRenteRow = React.memo(
 
         {!isMobile && (
           <TableCell>
-            <GreenfieldGridChoiceCell<TillaegstidEnhed, RentekravRow>
+            <GridChoiceCell<TillaegstidEnhed, RentekravRow>
               gridCell={gc(COL.enhed)}
               cell={buildCellSpec<TillaegstidEnhed | undefined>(
                 renderRow,
@@ -167,7 +167,7 @@ const BeregnetRenteRow = React.memo(
               {ENHED_OPTIONS.map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
               ))}
-            </GreenfieldGridChoiceCell>
+            </GridChoiceCell>
           </TableCell>
         )}
 

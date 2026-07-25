@@ -2,10 +2,9 @@ import {
   PERSISTED_SECTION_KEYS,
   type PersistedSectionsSnapshot,
 } from '../config/persistenceRegistry';
-import type { EvaluationSourceToken } from '../inputCore/evaluationSource';
+import { sourceTokensEqual, type EvaluationSourceToken } from '../inputCore/evaluationSource';
 import type { InputCatalog } from '../inputCore/fieldCatalog';
 import type { SettledInput, SettledInputCandidate } from '../inputCore/settledInput';
-import { replaceCase } from '../inputCore/inputReducer';
 import { countFilledFields } from '../utils/dataCollection';
 import { projectEoSave, type EoSaveProjection } from './eoSaveProjection';
 
@@ -67,6 +66,14 @@ export type CaseFileOperations = Readonly<{
    * adresser. Selve fil-skrivningen og settle-før-save ligger i use-casen (contract §2/§6).
    */
   evaluateSave: () => EoSaveOutcome;
+  /**
+   * Er `token` fortsat den aktuelle kilde? Skal kaldes UMIDDELBART før den irreversible fil-skrivning, hvis
+   * evalueringen er adskilt fra skrivningen af en async-grænse (fx en directory-/fil-picker) — critical-action-
+   * kontrakten §5: hele tokenet genlæses og sammenlignes, og handlingen stoppes fail-closed ved enhver ændring.
+   *
+   * Både input- OG settingsrevision indgår, fordi begge kan ændre det, der ville blive skrevet.
+   */
+  isSaveSourceStillCurrent: (token: EvaluationSourceToken) => boolean;
   /** Anvender et indlæst, pre-valideret `.eo`-snapshot atomisk gennem replacement-grænsen. */
   applyLoadedSnapshot: (snapshot: PersistedSectionsSnapshot) => void;
   /** Om sagen indeholder brugerdata (til overwrite-gaten ved load), læst fra afsluttet input uden raw-bypass. */
@@ -83,6 +90,9 @@ export const createCaseFileOperations = (runtime: CaseRuntimeAccess): CaseFileOp
     return Object.freeze({ status: 'ready', snapshot: projection.snapshot, token });
   },
 
+  isSaveSourceStillCurrent: (token): boolean =>
+    sourceTokensEqual(token, runtime.captureSaveSource().token),
+
   applyLoadedSnapshot: (snapshot): void => {
     runtime.applyReplaceCase(buildLoadReplaceCaseCandidate(snapshot));
   },
@@ -98,7 +108,3 @@ export const createCaseFileOperations = (runtime: CaseRuntimeAccess): CaseFileOp
  */
 export const settledInputHasAnyData = (input: SettledInput): boolean =>
   countFilledFields(input.sections) > 0 || Object.keys(input.rejectedInputs).length > 0;
-
-/** Hjælper til use-casen: `replaceCase`-command fra et allerede validerbart kandidat. */
-export const loadReplaceCaseCommand = (snapshot: PersistedSectionsSnapshot) =>
-  replaceCase(buildLoadReplaceCaseCandidate(snapshot));

@@ -156,14 +156,14 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts',
       'src/__tests__/domain/forsoergertab/forsoergertabReaderProjection.test.ts',
-      'src/__tests__/components/pages/Forsoergertab.greenfield.integration.test.tsx',
+      'src/__tests__/components/pages/Forsoergertab.integration.test.tsx',
     ],
   },
   {
     contractPath: 'src/contracts/aarsloen-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/aarsloen/aarsloenCalculations.test.ts',
-      'src/__tests__/domain/aarsloen/aarsloenProjection.greenfield.test.ts',
+      'src/__tests__/domain/aarsloen/aarsloenProjection.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
       'src/__tests__/hooks/useAarsloenDocumentGates.test.tsx',
     ],
@@ -174,21 +174,21 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/domain/renteberegning/renteberegningEngine.test.ts',
       'src/__tests__/domain/renteberegning/procesrenteCalculator.test.ts',
       'src/__tests__/domain/renteberegning/renteberegningReaderProjection.test.ts',
-      'src/__tests__/components/pages/Renteberegning.greenfield.integration.test.tsx',
+      'src/__tests__/components/pages/Renteberegning.integration.test.tsx',
     ],
   },
   {
     contractPath: 'src/contracts/varigemen-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/varigemen/varigeMenEngine.test.ts',
-      'src/__tests__/components/pages/varigemen/MenberegningTab.greenfield.integration.test.tsx',
+      'src/__tests__/components/pages/varigemen/MenberegningTab.integration.test.tsx',
     ],
   },
   {
     contractPath: 'src/contracts/satser-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/calculations/satserCalculations.test.ts',
-      'src/__tests__/domain/satser/satserProjection.greenfield.test.ts',
+      'src/__tests__/domain/satser/satserProjection.test.ts',
       'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
     ],
   },
@@ -199,7 +199,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/utils/amountInputUtils.test.ts',
       'src/__tests__/schemas/amountExpressionSchema.test.ts',
-      'src/__tests__/components/pages/Renteberegning.greenfield.integration.test.tsx',
+      'src/__tests__/components/pages/Renteberegning.integration.test.tsx',
     ],
   },
   {
@@ -207,11 +207,11 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       // Greenfield-cutover: den legacy runner/`useUndoRedo` er slettet. Undo/redo-commanden dækkes af
       // `dispatchInput` + history-kernen; det stille no-op ved åben editor af coordinatoren; shellens genvej
-      // + lokationsbaseret fokusrestore af `MainLayout.undoRedoEditorGuard` og `greenfieldHistoryRestore`.
+      // + lokationsbaseret fokusrestore af `MainLayout.undoRedoEditorGuard` og `historyRestoreTarget`.
       'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
       'src/__tests__/inputCore/inputHistory.test.ts',
       'src/__tests__/inputCore/runtime/criticalActionCoordinator.test.ts',
-      'src/__tests__/inputCore/react/greenfieldHistoryRestore.test.tsx',
+      'src/__tests__/inputCore/react/historyRestoreTarget.test.tsx',
       'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
     ],
   },
@@ -241,7 +241,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/mineo-field-pattern.md',
     requiredTestPaths: [
-      'src/__tests__/inputCore/react/greenfieldFieldShells.test.tsx',
+      'src/__tests__/inputCore/react/fieldShells.test.tsx',
       'src/__tests__/inputCore/react/useFormFieldSurface.test.tsx',
     ],
   },

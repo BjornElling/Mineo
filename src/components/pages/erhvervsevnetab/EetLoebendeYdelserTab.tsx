@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import GreenfieldToggleField from '../../../inputCore/react/fields/GreenfieldToggleField';
+import ToggleField from '../../../inputCore/react/fields/ToggleField';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { downloadLoebendeYdelserDokument } from '../../../document/service/documentService';
@@ -125,7 +125,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, downloadGate 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Medtag udvidet specifikation i {documentFormatLabel}</Typography>
               <Box className="row--label-right-hover__content">
-                <GreenfieldToggleField
+                <ToggleField
                   field={extendedSpecificationRef}
                   location={EXTENDED_SPECIFICATION_LOCATION}
                   name="visUdvidetSpecifikation"

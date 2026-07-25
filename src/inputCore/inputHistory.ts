@@ -7,7 +7,11 @@ import type { SettledInput } from './settledInput';
 export const MAX_INPUT_HISTORY_STEPS = 50;
 
 export type HistoryOrigin = Readonly<{
-  field: FieldAddress;
+  /**
+   * Feltadressen, ændringen kom fra. `undefined` for en STRUKTUREL rækkehandling (insert/delete/reorder), som
+   * ikke har ét enkelt felt — der navigeres da til lokationen uden at fokusere et bestemt felt (§3.7).
+   */
+  field?: FieldAddress;
   editorLocationId: string;
   /**
    * Route + fane for editorlokationen, ændringen kom fra (§3.7). Eksplicit typed navigation-metadata, så undo/redo-
