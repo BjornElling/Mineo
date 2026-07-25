@@ -55,10 +55,24 @@ export type DocumentBrevhovedFlags = Readonly<Record<DocumentBrevhovedType, bool
  * og hvilket output-format der er valgt. UI-laget leverer sin AppSettings direkte
  * (struktur-supersæt), så ingen eksplicit mapping er nødvendig på kaldestedet — men
  * dokument-laget kender kun denne smalle kontrakt.
+ *
+ * Ud over brevhoved og format erklærer kontrakten de to beregningstekniske regel-toggles, som
+ * EO-dokumenternes download-gate faktisk læser (`buildEoIndkomstRows`,
+ * `src/domain/eoRowEvaluation/eoRowIndkomstRows.ts:124-125`). De hører her, fordi de er
+ * DOKUMENTGATE-input: de afgør validerings-severity for overenskomst-/reguleringsdækning og kan
+ * derfor flytte en EO-download fra tilladt til blokeret. Begge er samtidig med i
+ * `evaluationSettingsFingerprint` (`productionInputRuntime.tsx`), så en ændring bumper
+ * settingsrevisionen og gør et optaget `EvaluationSourceToken` stale — ellers kunne en gate,
+ * godkendt under den gamle regel, overleve et regelskift.
+ *
+ * Bemærk at det fortsat er VÆRDIERNE og ikke UI-typen, dokument-laget kender: afhængighedspilen
+ * peger UI → dokument, og `appSettingsSchema` opfylder denne kontrakt strukturelt.
  */
 export type DocumentSettings = Readonly<{
   brevhovedIndstillinger: DocumentBrevhovedFlags;
   documentDownloadFormat: DocumentDownloadFormat;
+  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: boolean;
+  allowReguleringMedUdloebMedMaaneder: number;
 }>;
 
 /**

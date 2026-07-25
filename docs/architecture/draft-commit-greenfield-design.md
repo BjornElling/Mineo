@@ -1446,7 +1446,19 @@ navne. "Greenfield" står nu kun i prosa, hvor det er den korrekte historiske re
 
 ### Fase 5 — Alle dokumentoutputs
 
-**Status:** Ikke påbegyndt.
+**Status:** Påbegyndt 2026-07-25 (WI-008), ca. halvvejs. Kernen og React-grænsen står; 10 af 21
+dokumentdefinitioner er skrevet. **Ingen callsite er skiftet endnu** — produktionen kører fortsat på
+de gamle `download*Dokument`-funktioner, så træet har bevidst to parallelle veje indtil pass 7.
+Detaljeret status, næste skridt og kendte fælder: `work-items/WI-008-fase5-dokumentoutputs.md`.
+
+Den strukturelle rod, fasen retter: download-livscyklussen fandtes ikke som ét objekt. Den var
+spredt over React-handleren (commit-barriere, kildeoptagelse, token-lighed, gate),
+`documentService.ts`' per-output-funktion (lazy-load, friskheds-recheck, formatvalg, generatorkald,
+fejlrouting) og et domæne-gate-modul — atten gange. Derfor manglede fem outputs mindst ét trin, og
+regulering/KRL/KL-lønaftaler havde end ikke en commit-barriere. Efter fasen er livscyklussen ét
+objekt (`DocumentDefinition` + `prepareDocument`/`runPreparedDocument`), og `runPreparedDocument`
+tager kun en `PreparedDocument`, som kun preflighten kan konstruere — at omgå gaten er dermed
+urepræsenterbart frem for blot frarådet.
 
 **Afhængighed:** Fase 3–4.
 
@@ -1471,6 +1483,20 @@ For hvert output:
 8. Placér PDF/Word-formatvalg efter gaten.
 9. Fjern lokale booleans, click-gates og direkte generator-/servicekald.
 10. Markér først outputtet migreret, når matrix-testen er grøn.
+
+#### Godkendte adfærdsændringer (brugergodkendt 2026-07-25)
+
+Fasen strammer gaten for seks outputs, der i dag mangler trin. Alle tre punkter er forelagt og
+godkendt; ingen af dem gør en tidligere blokeret download mulig.
+
+1. **Regulering, KRL og KL-lønaftaler** får commit-barriere (settle før download) og ÉN fælles
+   `canDownload`-regel på tværs af Oplysninger- og Lønindkomst-fanen. I dag dannes dokumentet på den
+   forrige værdi, hvis brugeren står i et felt med ugyldig indtastning, og de to faner bruger to
+   ikke-identiske formler.
+2. **Satser** afviser downloaden ved revisionsdrift under forberedelsen frem for at danne
+   dokumentet for det forrige år.
+3. **Standalone MinProcesrente** får samme settle-før-download- og friskhedsadfærd som hovedappen
+   (kontraktens §A2a kræver det udtrykkeligt).
 
 #### Udtømmende matrix pr. output
 

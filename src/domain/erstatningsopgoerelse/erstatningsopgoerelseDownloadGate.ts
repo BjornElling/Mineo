@@ -1,9 +1,9 @@
-import type { AppSettings } from '../../settings/appSettingsSchema';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 import { collectAllEoRows } from '../eoRowEvaluation/eoRowAggregator';
 import { resolveEoIssueSummaryText } from '../eoRowEvaluation/eoRowIssueCatalog';
 import { safeCompute } from '../../utils/safeComputation';
 import { isErr } from '../../types/result';
+import type { DocumentSettings } from '../../document/layout/documentBrevhoved';
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
 import type { EoSnapshot } from './snapshot/eoSnapshot';
 import { getAuthoritativeBlockingInvariants } from './snapshot/eoSnapshotInvariants';
@@ -60,7 +60,7 @@ type EoRowBlockingState = Readonly<{ blockingRowMessage: string | null; hasBlock
 
 const resolveEoRowBlockingState = (
   projection: ErstatningsopgoerelseReaderProjection,
-  settings: AppSettings
+  settings: DocumentSettings
 ): EoRowBlockingState => {
   // BEVIDST: ingen `isActive`-guard som view-modellen (der springer collectAllEoRows over på en inaktiv fane
   // for at spare render-arbejde). Gaten er en ren funktion af inputtet og må ikke afhænge af component mount/fane
@@ -119,7 +119,7 @@ const resolveEoRowBlockingState = (
  */
 export const evaluateErstatningsopgoerelseDownloadGates = (
   projection: ErstatningsopgoerelseReaderProjection,
-  settings: AppSettings = DEFAULT_APP_SETTINGS
+  settings: DocumentSettings = DEFAULT_APP_SETTINGS
 ): ErstatningsopgoerelseDownloadGates => {
   const snapshot: EoSnapshot = projection.snapshot;
   const authoritativeBlockingInvariants = getAuthoritativeBlockingInvariants(snapshot.invariants);

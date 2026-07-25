@@ -1,5 +1,5 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import type { AppSettings } from '../../settings/appSettingsSchema';
+import type { DocumentSettings } from '../../document/layout/documentBrevhoved';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { EoFieldIssuesBySource } from '../erstatningsopgoerelse/eoInputIssues';
@@ -28,7 +28,17 @@ export type EoRowEvaluationContext = {
   eoValues: ErstatningsopgoerelseValues;
   eoErrors: ErstatningsopgoerelseFieldErrorsBySource;
   loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
-  appSettings: AppSettings;
+  /**
+   * Row-buildernes faktiske settings-afhængighed er de TO regel-toggles i `DocumentSettings`
+   * (`allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og
+   * `allowReguleringMedUdloebMedMaaneder`, læst i `eoRowIndkomstRows.ts`). Kontrakten er derfor
+   * bevidst smallere end `AppSettings`: den gør download-gatens settings-dependency synlig og
+   * gør det umuligt for en builder at komme til at afhænge af en UI-indstilling, der ikke er med
+   * i `evaluationSettingsFingerprint` — og som derfor ikke ville gøre et optaget
+   * `EvaluationSourceToken` stale. `isLoenindkomstAnsaettelsesforholdEffectivelyEmpty` bruger
+   * fortsat hele `AppSettings`, men den er DEV-inspektionens, ikke gatens.
+   */
+  appSettings: DocumentSettings;
   canonicalOutput?: EoCanonicalOutput;
   pdfModel?: EoModel;
 };

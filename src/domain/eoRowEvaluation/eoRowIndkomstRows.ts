@@ -23,7 +23,8 @@ import {
 } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
-import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
+import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
+import type { DocumentSettings } from '../../document/layout/documentBrevhoved';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
 import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
@@ -117,7 +118,7 @@ export const buildEoIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
-  appSettings: AppSettings = DEFAULT_APP_SETTINGS,
+  appSettings: DocumentSettings = DEFAULT_APP_SETTINGS,
   skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom'
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
