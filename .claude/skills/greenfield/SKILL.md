@@ -15,6 +15,26 @@ AGENTS.md og de bindende kontrakter har forrang. Claude Code er eneste skriver i
 Codex bruges read-only som uafhængig kortlægger/arkitekt og reviewer. Codex-fund er hypoteser,
 som skal verificeres mod kode, kontrakter og tests — de implementeres ikke blindt.
 
+## 0. Beslutningsmyndighed
+
+**Codex sol/high afgør alle processuelle og designmæssige beslutninger.** Opstår der undervejs et
+valg om struktur, arkitektur, navngivning, opdeling, rækkefølge, scope-afgrænsning eller
+proces (fx "én WI eller to?", "skal disse to gates ensartes?", "hvilket af to mønstre vinder?"),
+forelægges det for Codex sol/high med de konkrete alternativer og evidensen for hver. Codex
+beslutter ud fra ét kriterium: **hvad giver det bedste og mest velstrukturerede slutprodukt.**
+Beslutningen registreres kort i work item'en. Claude implementerer den; er den demonstrerbart
+forkert mod kode/kontrakt, afvises den med evidens og spørgsmålet stilles igen med den evidens.
+
+**Brugeren involveres ikke i beslutningsprocesser undervejs** — ikke i tekniske, processuelle
+eller designmæssige valg. Den ENESTE undtagelse er ændringer i **synlig UI/UX eller
+beregningstal/-regler**; de forelægges efter §2 som konkrete eksempler på, hvordan en bruger vil
+opleve forskellen på de to muligheder (ikke som teknisk beskrivelse).
+
+**Rent kosmetiske ændringer retter Claude selv, uden at forelægge dem for Codex.** Kosmetisk =
+ingen adfærdsændring overhovedet: navnekonsistens, eksportnavne, kommentar-/dokumentationssprog,
+filplacering uden importsemantisk effekt, formatering, døde typer. Er der den mindste tvivl om,
+at ændringen kan flytte adfærd, tal eller UI, er den ikke kosmetisk og følger reglen ovenfor.
+
 ## Låst modelpolitik
 
 Modelpolitikken i AGENTS.md er en brugerbeslutning og kan ikke ændres af workflowet:
@@ -61,6 +81,8 @@ Omsæt konklusionerne kort i work item'en; kopiér ikke rå modeloutput ind.
 
 Hvis arbejdet kan ændre synlig UI/UX eller beregningstal/-regler, sæt status
 `afventer-godkendelse`, forelæg den konkrete brugeroplevelse og stop før implementering.
+Forelæg som konkrete eksempler på, hvad brugeren faktisk vil se ved hver mulighed — aldrig som
+teknisk beskrivelse. Alt ANDET afgøres uden brugeren (§0).
 Efter eksplicit godkendelse noteres beslutningen og status sættes `klar`. Rent teknisk arbejde
 markeres `godkendelse ikke påkrævet` og sættes direkte `klar`.
 
@@ -103,8 +125,10 @@ Hvis working tree indeholder andre ændringer, må et globalt `--uncommitted`-re
 ukritisk. Brug i stedet `codex exec ... -s read-only` med WI'ens præcise filer og afgrænsning,
 og bed Codex ignorere baseline-ændringer uden for WI'en.
 
-Registrér hvert fund som `bekræftet`, `afvist med evidens` eller `ny WI`. Ret alle bekræftede
-fund i scope og kør relevante checks igen. Kør et fokuseret re-review, hvis rettelsen ændrer
+Registrér hvert fund som `bekræftet`, `afvist med evidens` eller `ny WI`. Rent kosmetiske fund
+retter Claude selv uden at spørge (§0); rejser et fund et design- eller procesvalg, afgøres det
+af Codex sol/high (§0), ikke af brugeren. Ret alle bekræftede fund i scope og kør relevante
+checks igen. Kør et fokuseret re-review, hvis rettelsen ændrer
 produktionskode på grund af et korrektheds-/integritetsfund; rettelser i klasse H re-reviewes altid.
 Afslut først, når alle fund har en dokumenteret disposition, acceptance criteria er opfyldt,
 og relevante gates er grønne.

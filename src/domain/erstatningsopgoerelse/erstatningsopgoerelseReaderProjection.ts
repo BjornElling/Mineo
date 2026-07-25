@@ -620,6 +620,18 @@ const STAMDATA_ERROR_FIELDS: readonly ErrorFieldEntry[] = [
   errEntry('skadedato', stamdataSkadedatoField.bind()),
 ];
 
+/**
+ * De EO-nøgler, `eoErrors` faktisk kan indeholde — det udtømmende produktionskatalog.
+ *
+ * Eksporteret, så `eoDependencyGroups.test.ts` kan bevise, at HVER nøgle hører til mindst én
+ * afhængighedsgren (§1.10). Uden det ville en ny fejlnøgle lydløst falde uden for opdelingen og kun blive
+ * fanget af aggregatets fail-closed-backstop — altså overblokere i stedet for at gate sin egen gren.
+ * Det syntetiske `${afId}:loenindkomst`-aggregat er ikke med her; det har et dynamisk entity-prefix og
+ * dækkes af gruppernes `keyFragments`.
+ */
+export const EO_TOP_LEVEL_ERROR_KEYS: readonly string[] =
+  EO_TOP_LEVEL_ERROR_FIELDS.map((entry) => entry.key);
+
 export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver Beregning/Inspektion/Kontroltabel + download-gaten. */
   snapshot: EoSnapshot;

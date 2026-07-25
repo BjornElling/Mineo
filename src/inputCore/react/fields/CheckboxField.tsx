@@ -11,7 +11,7 @@ import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 // Modtager kun sin `field`/`location` + label; den viste checked-tilstand læses fra den afsluttede revision gennem
 // editor-controlleren. Erstatter legacy `StyledCheckbox` bundet til `usePersistedForm`-setValues.
 
-export type CheckboxProps = Readonly<{
+export type CheckboxFieldProps = Readonly<{
   field: FieldRef<boolean>;
   location: EditorLocation;
   label: React.ReactNode;
@@ -19,7 +19,7 @@ export type CheckboxProps = Readonly<{
   name?: string;
 }>;
 
-const Checkbox = ({ field, location, label, disabled, name }: CheckboxProps): React.ReactElement => {
+const CheckboxField = ({ field, location, label, disabled, name }: CheckboxFieldProps): React.ReactElement => {
   const controller = useFieldEditor(field, location);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const checked = controller.value ?? false;
@@ -44,6 +44,6 @@ const Checkbox = ({ field, location, label, disabled, name }: CheckboxProps): Re
   );
 };
 
-Checkbox.displayName = 'Checkbox';
+CheckboxField.displayName = 'CheckboxField';
 
-export default Checkbox;
+export default CheckboxField;

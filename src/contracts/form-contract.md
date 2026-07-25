@@ -92,8 +92,8 @@ Regler:
 3. Aggregate og revision ændres atomisk; en inputhandling må aldrig efterlade deltilstand.
 4. Revisionen stiger præcis én gang ved en reel transaktion og ikke ved en no-op.
 5. Revisionen persisteres ikke som brugerdata og gendannes ikke fra history.
-6. Eksisterende `invalidDrafts`, separate feltfejl-slices og sektionsvise skrive-API'er er migrationssubstrat, ikke
-   tilladte slut-API'er.
+6. `invalidDrafts`, separate feltfejl-slices og sektionsvise skrive-API'er findes ikke. Rejected råtekst bor i
+   aggregatets ene `rejectedInputs`-map, og der er ingen sektionsvis skrivevej uden om write-grænsen.
 7. Evalueringsfriskhed bindes til et `EvaluationSourceToken`, der omfatter **både** inputrevisionen og en monoton
    settingsrevision. Et issue-snapshot, en consumerprojektion eller et forberedt dokument er stale, hvis enten input
    eller de relevante AppSettings har ændret sig siden optagelsen. AppSettings må påvirke validering, beregning og
@@ -268,12 +268,16 @@ Særligt for dokument-download:
 4. Ved et nyt relevant fejl-issue bliver knappen visuelt og funktionelt disabled.
 5. Generator, lazy-load og fil-I/O må aldrig starte ved blokering.
 
-## 12. Migrationsregel
+## 12. Den slettede migrationsarkitektur
 
-`useDraftField`, `useTableInputCore`, `useRowDrafts`, `useSliceRowDrafts`, `FormPersistenceContext`, offentlige
-`invalidDrafts`-/`fieldErrors`-API'er og deres string-key-builders må eksistere midlertidigt under migrationen. De må
-ikke udvides, kopieres eller bruges som normativt eksempel. De slettes efter acceptkriterierne i greenfield-planen.
+Migrationslaget findes ikke længere. `useDraftField`, `useTableInputCore`, `useRowDrafts`, `useSliceRowDrafts`,
+`FormPersistenceContext`, `invalidDrafts`-/`fieldErrors`-API'erne, deres string-key-builders, `Styled*Field`-familien
+og Fase-3-gridbroen blev slettet 2026-07-25 sammen med resten af den parallelle inputklynge.
 
-Fase-3-gridbroen er den eneste tilladte tilføjelse til migrationslaget: den bærer en konkret rejected-clear fra
-celle-blur til den eksisterende effektbaserede sektionspersistence, så begge dele rammer samme transaktionscommand.
-Den skriver ingen state/storage selv, er uafhængig af timing og slettes sammen med grid-pipelinen i fase 4.
+Ingen af dem må genindføres — hverken som kopi, som "midlertidig" undtagelse eller under et nyt navn. AST-reglen
+`input/deleted-legacy-architecture-import` håndhæver forbuddet uden allowlist.
+
+Den ENE dokumenterede undtagelse er `components/inputs/transient/`: tre flader (løntrin-finder-overlay,
+sygedagpenge-hjælperrække, rapport-dialog) redigerer ikke sagsdata og ligger bevidst uden for den autoritative
+inputtilstand. De har hverken feltadresse, issue-snapshot, history eller persistens, men genbruger de samme
+parse-kerner, tegnfiltre og bounds-beskeder som de persisterede felter.

@@ -885,15 +885,19 @@ ved topologiændring følges `docs/architecture/contract-topology-procedure.md`.
 
 ### Fase 1 — Omskriv den rene inputkerne
 
-**Status:** Gennemført og reviewet 2026-07-16; save-/bounds-sondringen er genåbnet 2026-07-18 og udestår som
-afgrænset korrektion. Den rene, framework-frie inputkerne er genopbygget fra
+**Status:** Gennemført og reviewet 2026-07-16. Save-/bounds-sondringen blev genåbnet 2026-07-18 og er **lukket
+2026-07-25** (WI-004): en canonical `range`/`bounds`-værdi blokerer ikke `.eo`-save, men blokerer den beregning
+og det dokument, der læser feltet — `error-contract.md` §1.1's normative matrix er nu håndhævet i koden.
+Den rene, framework-frie inputkerne er genopbygget fra
 bunden i `src/inputCore/` (ingen React, Zustand, DOM eller storage): XOR-invariant (`SettledInput` + reducer der rydder
 canonical til tomværdien ved ugyldigt settle), reason-bærende codecs over de uændrede parse-kerner, statisk katalog uden
 seal/brand/WeakSet, issue-model (felt/consumer/warning) uden `blocksSave`, `ValidationReader`→issue-snapshot→
 `InputReader` (skjuler værdi bag rød feltfejl), tokenbundet issue-evaluering og en lille `ready | blocked`-
 projektionscollector. Reviewet tilføjede uge/år/brøk/string-backed-codecs, eksplicit semantisk tomhed, rejected-
-relevansinvarianten, codec-konsistens ved sessionvalidering, 50-trins history og fuld issuekode/severity. Kernen har nul
-produktionscallsites; produktdescriptors bygges direkte ved fase-2-cutoveren uden et parallelt fase-1-katalog.
+relevansinvarianten, codec-konsistens ved sessionvalidering, 50-trins history og fuld issuekode/severity.
+Produktdescriptors blev bygget direkte ved fase-2-cutoveren uden et parallelt fase-1-katalog; efter Fase 2–4 er
+kernen den ENESTE inputvej i produktion (formuleringen "nul produktionscallsites" beskrev kun tilstanden, mens
+Fase 1 stod alene).
 
 **Afhængighed:** Fase 0.
 
@@ -1121,6 +1125,13 @@ consumerslices er migreret til rene reader-projektioner:
   modtager kun reader-afledte issue-beskeder og ikke legacy reporter-typer.
 - **EO:** `buildErstatningsopgoerelseReaderProjection`, snapshot, kontrol og dokumentgate bruger alene
   reader-afledte EO-issues; den domænelokale issue-form har erstattet legacy-fejltyper på hele EO-vejen.
+  **Afhængighedsopdeling (WI-004, 2026-07-25):** en rød feltfejl blokerer kun den gren, der læser feltet.
+  `snapshot/eoDependencyGroups.ts` ejer grupperne (`svieSmerte`, `taf`, `forlig` — præcis de grene, `eoErrors`
+  faktisk kan rapportere), og snapshottet bærer dem som `blockedDependencies`. Et ugyldigt svie/smerte-satsår stopper derfor S/S-motoren
+  og TAF-periodiseringen hver for sig, i stedet for at nulstille alt. Det KRYDSGÅENDE aggregat
+  (`totals.samletTotalOre`, `canonicalOutput`, `pdfModel`) er bevidst alt-eller-intet: en sum af et ukendt led
+  er ukendt, så `data` forbliver `null`, mens `inspektionSnapshot` viser de grene, der kunne beregnes. Se
+  `eo-snapshot-contract.md` §3.3.
 - **Renteberegning:** `buildRenteberegningReaderProjection` bygger række- og aggregatprojektioner over readeren;
   `RenteberegningTab` og download-gaten forbruger den, og rækkeafhængighed følger af de læste refs (§1.10).
 - **Stamdata/fælles input:** `Stamdata.tsx` er fuldt greenfield-migreret og læser gennem readeren; den delte
@@ -1141,8 +1152,10 @@ consumerslices er migreret til rene reader-projektioner:
 feltfejl. Den tidligere slice-lokale genberegning i Forsørgertab og EET er fjernet (Codex-fund F2).
 
 **EO's issue-form bærer `reason`, ikke et gate-flag:** `EoInputIssue` bar tidligere en `blocksSave`-boolean,
-der duplikerede readerens årsag og kunne komme i modstrid med den. Konsekvensen udledes nu strukturelt af
-`reason` via `eoIssueBlocksDependents` (en canonical `bounds`-fejl er synlig men ikke-blokerende, §1.6).
+der duplikerede readerens årsag og kunne komme i modstrid med den. Konsekvensen udledes nu strukturelt via
+`eoIssueBlocksDependents`: ENHVER rød årsag blokerer de afhængige consumers — også `bounds`. En canonical
+`bounds`-værdi må GEMMES (`.eo`-save standser kun aktivt rejected råinput), men den må ikke fodre en motor;
+"gembar" er ikke det samme som "beregnbar" (`error-contract.md` §1.1's normative matrix, lukket i WI-004).
 Suffix-selectoren for det syntetiske `${afId}:loenindkomst`-aggregat findes ét sted
 (`selectBlockingEoEntityIdsBySuffix`); den tidligere kopi i `utils/fieldErrorSelectors` er slettet.
 

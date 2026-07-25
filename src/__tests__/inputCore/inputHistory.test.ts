@@ -4,6 +4,7 @@ import {
   undoInputHistory,
   redoInputHistory,
   type HistoryOrigin,
+  type CollectionHistoryOrigin,
 } from '../../inputCore/inputHistory';
 import { createEmptySettledInput, type SettledInput } from '../../inputCore';
 import type { FieldAddress } from '../../inputCore/fieldAddress';
@@ -55,5 +56,43 @@ describe('inputHistory — origin-bevaring (§3.7)', () => {
     const redo = redoInputHistory(undo.history, inputA);
     if (!redo.changed) throw new Error('redo skulle ændre');
     expect(redo.target.origin).toBeUndefined();
+  });
+});
+
+// WI-004 (R4): destinationen skal være påkrævet i KERNETYPEN, ikke kun i surface-hookens `CollectionRowOrigin`.
+// Ellers kan en direkte `dispatchInput`-kalder lave en rækkehandling uden et sted at navigere hen — og en
+// rækkehandling har ingen feltadresse at falde tilbage på. Testen er compile-time: `@ts-expect-error` FEJLER,
+// hvis typen igen bliver eftergivende, så en opblødning ikke kan slippe gennem en grøn suite.
+describe('CollectionHistoryOrigin — destinationen er påkrævet i kernetypen (§3.7)', () => {
+  it('accepterer et origin med fuld destination', () => {
+    const origin: CollectionHistoryOrigin = {
+      kind: 'collection',
+      collection: 'oevrigeKravPerioder',
+      editorLocationId: 'eo.oevrigeKrav:rows:oevrigeKravPerioder',
+      route: '/erstatningsopgoerelse',
+      tabKey: 'oplysninger',
+    };
+    expect(origin.route).toBe('/erstatningsopgoerelse');
+  });
+
+  it('afviser et origin uden route og uden tabKey (compile-time)', () => {
+    // @ts-expect-error — `route` mangler: rækkehandlingen ville få en origin uden destination.
+    const utenRoute: CollectionHistoryOrigin = {
+      kind: 'collection',
+      collection: 'oevrigeKravPerioder',
+      editorLocationId: 'eo.oevrigeKrav:rows:oevrigeKravPerioder',
+      tabKey: null,
+    };
+
+    // @ts-expect-error — `tabKey` mangler: udeladelse er ikke en lovlig måde at sige "ingen faner" på.
+    const utenTabKey: CollectionHistoryOrigin = {
+      kind: 'collection',
+      collection: 'oevrigeKravPerioder',
+      editorLocationId: 'eo.oevrigeKrav:rows:oevrigeKravPerioder',
+      route: '/erstatningsopgoerelse',
+    };
+
+    expect(utenRoute.collection).toBe('oevrigeKravPerioder');
+    expect(utenTabKey.collection).toBe('oevrigeKravPerioder');
   });
 });

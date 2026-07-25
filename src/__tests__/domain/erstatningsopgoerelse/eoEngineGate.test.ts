@@ -166,3 +166,109 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
     expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('reader_field:'))).toBe(false);
   });
 });
+
+// WI-004 (R1): EO's afhængighedsopdeling. §1.10 kræver flere små dependency-specifikke gates — ikke én global.
+// Modellen er A (Codex sol/high, 2026-07-25): de UAFHÆNGIGE grene overlever hinandens fejl, mens det
+// krydsgående aggregat (samlet total + canonicalOutput + pdfModel) blokeres, hvis bare ét led er blokeret —
+// en sum af et ukendt led ER ukendt.
+//
+// Testene her hævder BEGGE retninger pr. gren. En test der kun tjekker "blokeret gren er blokeret" ville også
+// bestå med en global alt-eller-intet-gate, altså præcis den overblokering brugerbeslutning 2 forbød.
+describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
+  let svieSmerteSpy: ReturnType<typeof vi.spyOn>;
+  let tafNettoSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    svieSmerteSpy = vi.spyOn(svieSmerteEngine, 'computeSvieSmerteEngine');
+    tafNettoSpy = vi.spyOn(tafNettoBeregning, 'computeTafNettoBeregning');
+  });
+
+  afterEach(() => {
+    svieSmerteSpy.mockRestore();
+    tafNettoSpy.mockRestore();
+  });
+
+  const compute = (eoErrors: EoInputIssues = {}) => computeEoSnapshot({
+    revision: 'r1',
+    stamdataValues: STAMDATA_INITIAL_VALUES,
+    eoValues: createComputableEoValues(),
+    eoErrors,
+  });
+
+  it('BASELINE: ingen gren er blokeret, når intet er rødt', () => {
+    const snapshot = compute();
+
+    expect(snapshot.blockedDependencies).toEqual({
+      svieSmerte: false,
+      taf: false,
+      forlig: false,
+    });
+  });
+
+  it('en rød S/S-afhængighed blokerer KUN S/S-grenen — TAF forbliver ubrudt', () => {
+    // Brugerbeslutning 2: et ugyldigt svie/smerte-felt må ikke fjerne den gyldige TAF-visning.
+    const snapshot = compute({
+      svieSmerteSatserAar: readerIssue('Satsåret er ugyldigt', 'format'),
+    });
+
+    expect(snapshot.blockedDependencies?.svieSmerte).toBe(true);
+    expect(snapshot.blockedDependencies?.taf).toBe(false);
+    expect(svieSmerteSpy).not.toHaveBeenCalled();
+  });
+
+  it('en rød TAF-afhængighed blokerer KUN TAF-grenen — S/S beregnes fortsat', () => {
+    const snapshot = compute({
+      tidligereModtagetTaf: readerIssue('Beløbet er ugyldigt', 'format'),
+    });
+
+    expect(snapshot.blockedDependencies?.taf).toBe(true);
+    expect(snapshot.blockedDependencies?.svieSmerte).toBe(false);
+    // Den modsatte retning: S/S-motoren kører, fordi dens egne felter er grønne.
+    expect(svieSmerteSpy).toHaveBeenCalled();
+  });
+
+  it('en rød forligs-afhængighed blokerer KUN forligsgrenen', () => {
+    const snapshot = compute({
+      forligAnsvarsgradProcent: readerIssue('Forligsprocenten er ugyldig', 'bounds'),
+    });
+
+    expect(snapshot.blockedDependencies?.forlig).toBe(true);
+    expect(snapshot.blockedDependencies?.svieSmerte).toBe(false);
+    expect(snapshot.blockedDependencies?.taf).toBe(false);
+  });
+
+
+  it('en rød TAF-afhængighed stopper også TAF-periodiseringen, ikke kun beløbsmotoren', () => {
+    // Ellers ville periodiseringen blive udledt af readerens MASKEREDE tomværdi og vise et forkert forløb.
+    // `uspecificeredeFerieFridage` justerer TAF-dagene og er dermed en ægte TAF-afhængighed.
+    const snapshot = compute({
+      uspecificeredeFerieFridage: readerIssue('Antallet er ugyldigt', 'format'),
+    });
+
+    expect(snapshot.blockedDependencies?.taf).toBe(true);
+    expect(tafNettoSpy).not.toHaveBeenCalled();
+  });
+
+  it('det syntetiske lønindkomst-aggregat blokerer TAF-grenen', () => {
+    // `<afId>:loenindkomst` rapporteres, når en ansættelsesforholds StandardLøn-/manuel-regulerings-celle er
+    // ugyldig. Nøglen bærer et dynamisk entity-prefix og fanges derfor af gruppens `keyFragments`.
+    const snapshot = compute({
+      [`${EMPLOYMENT_ID}:loenindkomst`]: readerIssue('Ugyldig manuel regulering', 'format'),
+    });
+
+    expect(snapshot.blockedDependencies?.taf).toBe(true);
+    expect(snapshot.blockedDependencies?.svieSmerte).toBe(false);
+  });
+
+  it('AGGREGATET blokeres samlet ved ÉN blokeret gren — en sum af et ukendt led er ukendt', () => {
+    // Model A's bevidste konsekvens: `data` (samlet total + canonicalOutput + pdfModel) er `null`, selv om
+    // kun S/S er blokeret. Download forbliver blokeret med synlig fejl (download-gate-invarianten).
+    const snapshot = compute({
+      svieSmerteSatserAar: readerIssue('Satsåret er ugyldigt', 'format'),
+    });
+
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.inspektionSnapshot).not.toBeNull();
+    expect(snapshot.status).toBe('error');
+  });
+});

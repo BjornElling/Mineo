@@ -30,8 +30,8 @@ export type { ToggleFieldProps } from './ToggleField';
 export { default as MappedToggleField } from './MappedToggleField';
 export { default as EntityChoiceField } from './EntityChoiceField';
 export type { MappedToggleFieldProps } from './MappedToggleField';
-export { default as Checkbox } from './CheckboxField';
-export type { CheckboxProps } from './CheckboxField';
+export { default as CheckboxField } from './CheckboxField';
+export type { CheckboxFieldProps } from './CheckboxField';
 
 // Grid-celle-skaller (§2.5): den kompakte pendant til form-skallerne, over `useGridCellSurface`.
 export { default as GridTextCell } from './GridTextCell';

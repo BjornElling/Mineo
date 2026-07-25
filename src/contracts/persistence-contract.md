@@ -6,8 +6,8 @@
 **Senest verificeret mod kode:** 2026-07-16
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
-Eksisterende per-sektion-storage og `invalidDrafts` migreres efter
-`docs/architecture/draft-commit-greenfield-design.md`; de er ikke slutarkitektur.
+Per-sektion-storage og `invalidDrafts` er slettet (2026-07-25): der er én current-session-envelope og ét
+`rejectedInputs`-map i det autoritative aggregat.
 
 ## 1. Scope og dataklasser
 

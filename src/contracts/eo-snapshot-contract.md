@@ -227,7 +227,39 @@ visualiserer netop TAF-per-år-dataene, så `eoSnapshotToTafKravGrafDocument` de
 med `taf_per_year_pdf`: kan TAF ikke fordeles på år, kan grafen heller ikke genereres. Et særskilt
 `taf_krav_graf_pdf`-target ville derfor kun duplikere den eksisterende per-år-gate.
 
-### 3.3 Engine-throws er forbudt som primær fejlmåde
+### 3.3 Afhængighedsopdeling: hvilken gren blokerer en rød feltfejl?
+
+En rød reader-feltfejl blokerer **kun den beregningsgren, der faktisk læser feltet** (§1.10 i
+`docs/architecture/draft-commit-greenfield-design.md`). Grupperne ejes ét sted:
+`snapshot/eoDependencyGroups.ts` (`resolveEoBlockedDependencies`), og snapshottet bærer resultatet som
+`blockedDependencies` med grenene `svieSmerte`, `taf` og `forlig`.
+
+Grenene svarer præcist til de nøgler, `eoErrors` faktisk kan indeholde (`EO_TOP_LEVEL_ERROR_KEYS` plus det
+syntetiske `${afId}:loenindkomst`-aggregat) — hverken flere eller færre. Der er derfor bevidst ingen
+`regulering`- eller `oevrigeKrav`-gren: reguleringsfejl rapporteres gennem lønindkomst-aggregatet (altså
+TAF), og øvrige krav-celler evalueres i `EO_ROW_BUILDERS` med deres egen download-gate. En gren, der aldrig
+kan udløses, ville foregøgle en præcision, der ikke findes. En completeness-test itererer det faktiske
+produktionskatalog og fejler, hvis en nøgle ikke hører til nogen gren.
+
+Reglen har to lige alvorlige fejlretninger:
+
+- **For smal gruppe → falske tal.** Readeren maskerer en rød værdi til `undefined`. Kaldes motoren alligevel,
+  regner den videre på et falsk input — fx en forligsprocent på 150 læst som "intet forlig" (100 %), eller
+  et "Beregnet svie/smerte" udregnet som om tidligere udbetalt var 0.
+- **For bred gruppe → overblokering.** Et ugyldigt svie/smerte-satsår må **ikke** fjerne den gyldige
+  TAF-visning eller reguleringsforløbet. Overblokering er ikke en "sikker" fejl.
+
+**Aggregatet er alt-eller-intet.** `totals.samletTotalOre`, `canonicalOutput` og `pdfModel` er krydsgående:
+de summerer eller sammenstiller flere grene. De bygges derfor kun, når INGEN gren er blokeret — en sum af et
+ukendt led er ukendt, og et dokument med et manglende afsnit er ikke autoritativt. `data` er `null` i den
+situation, mens `inspektionSnapshot` fortsat viser de grene, der kunne beregnes. Det er dér, den delvise
+visning lever; det autoritative output har ingen halv-tilstand.
+
+Fail-closed-backstoppet er `hasAnyBlockingEoIssue`: en rød feltnøgle, som ingen gruppe genkender, blokerer
+aggregatet, selv om den ikke kan henføres til en gren. En ukendt fejl må aldrig forsvinde lydløst ud af
+gatingen.
+
+### 3.4 Engine-throws er forbudt som primær fejlmåde
 
 Engine-throws på forventelige brugerinputfejl er huller i preflight-dækningen.
 

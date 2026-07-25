@@ -10,11 +10,23 @@ export const MAX_INPUT_HISTORY_STEPS = 50;
  * Route + fane for den lokation, ændringen kom fra (§3.7). Eksplicit typed navigation-metadata, så undo/redo-
  * restoren kan navigere til den rette side/fane UDEN at string-parse `editorLocationId` eller udlede route af
  * `field.section`. `undefined` route = en ikke-navigerbar lokation (fx standalone); `tabKey: null` = ingen faner.
+ *
+ * Kun FELT-origins må udelade destinationen: standalone MinProcesrente-gridet er en reelt ikke-navigerbar
+ * lokation, og restoren fokuserer der blot feltet uden at navigere. En STRUKTUREL rækkehandling har derimod
+ * intet felt at fokusere — uden destination ville dens undo gendanne data og efterlade brugeren på en
+ * vilkårlig side. Derfor kræver `CollectionHistoryOrigin` nedenfor destinationen (§3.7).
  */
 type OriginDestination = Readonly<{
   editorLocationId: string;
   route?: string;
   tabKey?: string | null;
+}>;
+
+/** Destination der ER påkrævet: `tabKey: null` udtrykker eksplicit "siden har ingen faner". */
+type RequiredOriginDestination = Readonly<{
+  editorLocationId: string;
+  route: string;
+  tabKey: string | null;
 }>;
 
 /**
@@ -32,7 +44,12 @@ export type FieldHistoryOrigin = OriginDestination & Readonly<{
   field: FieldAddress;
 }>;
 
-export type CollectionHistoryOrigin = OriginDestination & Readonly<{
+/**
+ * Rækkehandlingens origin. Destinationen er PÅKRÆVET i selve kernetypen — ikke kun i surface-hookens
+ * `CollectionRowOrigin` — så heller ikke en direkte `dispatchInput`-kalder kan konstruere en rækkehandling
+ * uden et sted at navigere hen. Uden feltadresse er route + fane det eneste, restoren har at gå efter.
+ */
+export type CollectionHistoryOrigin = RequiredOriginDestination & Readonly<{
   kind: 'collection';
   /** Collectionen, rækkehandlingen ramte (til diagnostik og entydig destination). */
   collection: string;

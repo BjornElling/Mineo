@@ -44,7 +44,8 @@ import {
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
-import { eoIssueBlocksDependents, type EoInputIssues, type EoStamdataInputIssues } from '../eoInputIssues';
+import { type EoInputIssues, type EoStamdataInputIssues } from '../eoInputIssues';
+import { resolveEoBlockedDependencies, type EoBlockedDependencies } from './eoDependencyGroups';
 
 export type EoSnapshotComputedData = Readonly<{
   engines: Readonly<{
@@ -82,6 +83,14 @@ export type EoSnapshot = Readonly<{
   status: 'ok' | 'warning' | 'error' | 'fail_closed';
   invariants: readonly EoInvariant[];
   data: EoSnapshotComputedData | null;
+  /**
+   * Hvilke af EO's uafhængige grene er blokeret af deres EGNE røde afhængigheder (§1.10)?
+   *
+   * Gør blokeringen dependency-specifik og aflæselig i stedet for at reducere alt til `data === null`:
+   * en consumer kan se, at fx S/S er blokeret, mens TAF stadig er gyldig. `undefined` på fail-closed-stierne,
+   * hvor input ikke engang kunne parses, og der derfor ikke findes grene at udtale sig om.
+   */
+  blockedDependencies?: EoBlockedDependencies;
   inspektionSnapshot: EOInspektionSnapshot | null;
   input: Readonly<{
     stamdata: StamdataValues | null;
@@ -149,36 +158,6 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
     sfggResult: args.sfggResult,
   });
 };
-
-/**
- * Svie/smerte-motorens EGNE feltafhængigheder — udledt af de felter, `computeSvieSmerteEngine` faktisk læser
- * (`engines/svieSmerteEngine.ts`). Listen er bevidst eksplicit: den er kontrakten for, hvad der gater S/S, og
- * må ikke udvides til "alle EO-felter" (det ville overblokere, §1.10).
- *
- * `svieSmertePerioder` er en collection; dens celle-issues nøgles pr. række, så prefix-match er nødvendigt.
- */
-const SVIE_SMERTE_DEPENDENCY_FIELDS: readonly string[] = [
-  'kravPaaSvieSmerteGodtgoerelse',
-  'svieSmerteAktuelPeriode',
-  'svieSmerteDelvisSygemeldingSats',
-  'svieSmerteSatserAar',
-  'svieSmerteTidligereTotal',
-  'tidligereSsMax',
-  'vedroererPeriodeFra',
-  'vedroererPeriodeTil',
-];
-
-const isSvieSmerteDependencyKey = (fieldKey: string): boolean =>
-  SVIE_SMERTE_DEPENDENCY_FIELDS.includes(fieldKey)
-  // Rækkeceller i svieSmertePerioder nøgles med rækkens id som prefix.
-  || fieldKey.includes('svieSmertePerioder');
-
-/** Har en af svie/smerte-motorens egne afhængigheder en blokerende rød reader-fejl? */
-const hasBlockingSvieSmerteDependency = (eoErrors: EoInputIssues): boolean =>
-  Object.entries(eoErrors).some(([fieldKey, bySource]) =>
-    bySource !== undefined
-    && isSvieSmerteDependencyKey(fieldKey)
-    && Object.values(bySource).some(eoIssueBlocksDependents));
 
 const isAngivetLoenHiddenStateInvalid = (
   values: ErstatningsopgoerelseValues
@@ -323,13 +302,14 @@ export const computeEoSnapshot = (args: Readonly<{
     // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
     // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
     // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
-    // ⚠️ F2 (R1): S/S-motoren må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
-    // værdi til `undefined`, så et ugatet kald her viste et "Beregnet svie/smerte"-beløb regnet som om fx
+    // ⚠️ F2 (R1): en motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
+    // værdi til `undefined`, så et ugatet kald her viste fx et "Beregnet svie/smerte"-beløb regnet som om
     // "tidligere udbetalt" var 0 — præcis det falske tal, brugerbeslutningen 2026-07-25 kræver erstattet af `-`.
     //
-    // Gaten er DEPENDENCY-SPECIFIK (§1.10): en rød TAF- eller løn-afhængighed rører ikke S/S-visningen, og en rød
-    // S/S-afhængighed rører ikke TAF-ranges nedenfor. Kun S/S' egne felter gater S/S.
-    const svieSmerteForInspektion = hasBlockingSvieSmerteDependency(eoErrors)
+    // Gaten er DEPENDENCY-SPECIFIK (§1.10, `eoDependencyGroups.ts`): en rød TAF-afhængighed rører ikke
+    // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
+    const blockedDependencies = resolveEoBlockedDependencies(eoErrors);
+    const svieSmerteForInspektion = blockedDependencies.svieSmerte
       ? undefined
       : computeSvieSmerteEngine({
         erstatningsopgoerelse: effectiveEoValues,
@@ -338,21 +318,31 @@ export const computeEoSnapshot = (args: Readonly<{
           skadestype: parsedStamdata.data.skadestype,
         },
       });
-    const tafRangesForInspektion = buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
+    // TAF-ranges er periodiseringen, ikke en beløbsberegning, men den læser TAF-grenens datofelter: en rød
+    // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (brugerbeslutning 2 kræver
+    // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl — ikke at en ugyldig vises).
+    const tafRangesForInspektion = blockedDependencies.taf
+      ? undefined
+      : buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
     const inspektionSnapshotForValidationError = buildInspektionSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,
       eoValues: effectiveEoValues,
       stamdataErrors,
       eoErrors,
-      tafRanges: tafRangesForInspektion,
+      ...(tafRangesForInspektion === undefined ? {} : { tafRanges: tafRangesForInspektion }),
       svieSmerteEngine: svieSmerteForInspektion,
     });
     return {
       revision: args.revision,
       status: 'error',
       invariants: validationInvariants,
+      // Det AUTORITATIVE aggregat (samlet total + canonicalOutput + pdfModel) forbliver `null`: en sum eller
+      // et fuldt dokument kan ikke være autoritativt, når bare ét led er blokeret (WI-004, valgt model A).
+      // De uafhængige grene, der STADIG kan beregnes, surfaces gennem `inspektionSnapshot` ovenfor — det er
+      // dér brugerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
       data: null,
+      blockedDependencies,
       inspektionSnapshot: inspektionSnapshotForValidationError,
       input: {
         stamdata: parsedStamdata.data,
@@ -494,6 +484,9 @@ export const computeEoSnapshot = (args: Readonly<{
       status,
       invariants,
       data,
+      // Ingen gren er blokeret her: vi nåede kun hertil, fordi ingen invariant blokerede den autoritative
+      // beregning. Feltet sættes eksplicit, så consumers ser samme form på begge veje.
+      blockedDependencies: resolveEoBlockedDependencies(eoErrors),
       inspektionSnapshot,
       input: {
         stamdata: parsedStamdata.data,

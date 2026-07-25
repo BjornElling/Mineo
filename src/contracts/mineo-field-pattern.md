@@ -192,7 +192,8 @@ Den normative reference er denne kontrakt sammen med `form-contract.md` og
 `docs/architecture/draft-commit-greenfield-design.md`.
 
 `useDraftField`, `useTableInputCore`, `useRowDrafts`, `useCellInvalidDraftChannel`, `onFieldError`-kanaler,
-fingerprints og `rowId:colIndex` er overgangsmekanismer. De må ikke kopieres eller udvides som nye referenceeksempler.
+fingerprints og `rowId:colIndex` som identitet er slettet (2026-07-25). Feltidentitet er den strukturelle
+`FieldRef`/feltadresse; genindfør ingen af de gamle mekanismer.
 
 ## 11. Tjekliste
 

@@ -79,8 +79,8 @@ schema-gyldigt canonical input ikke blokerer save. `missing` og warnings blokere
 beregningspolicy er dependency-specifik: et relevant `error` (feltfejl eller consumerfejl på et læst felt) blokerer den
 konkrete consumer; en warning blokerer aldrig.
 
-Eksisterende `fieldErrors`, `useFormFieldErrorReporter`, `onFieldError` og tabeltrackere er migrationskode. De må ikke
-bruges som ny sandhedskilde eller kopieres til nye områder.
+`fieldErrors`, `useFormFieldErrorReporter`, `onFieldError` og tabeltrackerne er slettet (2026-07-25). Der findes
+ingen anden sandhedskilde end den rene issueprojektion, og ingen af dem må genindføres.
 
 ## 3. Feltidentitet og beskeder
 
@@ -214,8 +214,8 @@ Systemlogs gemmer canonical instants som UTC ISO 8601 via `getTimestamp()`. Alt 
 udvikler, formateres i `Europe/Copenhagen` via de kanoniske dato-/tidshelpers. Dette omfatter fejlrapport, devtools-
 notice og rapport-/skærmprintfilnavne.
 
-## 11. Migrationsregel
+## 11. Den slettede reporter-/store-model
 
-Den nuværende reporter-/store-model må kun fungere som midlertidig adapter frem til den rene issueprojektion er
-migreret. Den må ikke føre til nye source-registre, cleanup-effects, syntetiske `invalid-draft`-entries eller
-mount-afhængige dokumentgates.
+Reporter-/store-modellen er væk. Issues afledes rent fra `InputReader`, feltdescriptors og domænevalidatorer;
+der findes ingen skrivbar feltfejl-bus, ingen source-registre, ingen cleanup-effects, ingen syntetiske
+`invalid-draft`-entries og ingen mount-afhængige dokumentgates. Genindfør dem ikke.

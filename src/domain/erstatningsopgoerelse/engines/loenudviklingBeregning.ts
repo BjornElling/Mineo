@@ -26,7 +26,7 @@ import type { FormKonsoliderContext, ReguleringResultat, ResolvedStrategi } from
 // input, der burde have blokeret beregningen. Under normal udførelse er samtlige
 // throw-stier dækket af validator-/preflight-checks i snapshot-orchestreringen.
 // Uventede throws fanges af computeEoSnapshot og resulterer i fail_closed med
-// failClosedReason: 'runtime_exception'. Se eo-snapshot-contract.md §3.3.
+// failClosedReason: 'runtime_exception'. Se eo-snapshot-contract.md §3.4.
 // =============================================================================
 
 export const resolveLoenudviklingRows = (

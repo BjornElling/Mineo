@@ -115,7 +115,7 @@ export const runProjection = <T>(
 
   // ⚠️ `body` udfører FØR statussen er afgjort nedenfor. Den må derfor bygge motorinput, men ALDRIG kalde
   // en beregningsmotor: et motorkald her ville køre, selv når projektionen ender `blocked`. Brug
-  // `calculateWhenReady` på det færdige resultat i stedet (§3.9/§5.4).
+  // `mapReadyProjection` på det færdige resultat i stedet (§3.9/§5.4).
   const value = body(collector);
   if (issues.length > 0) {
     return Object.freeze({
@@ -138,38 +138,25 @@ export const runProjection = <T>(
 };
 
 /**
- * Kalder `calculate` KUN, når projektionen er `ready` — ellers `null`.
+ * Kalder `calculate` KUN, når projektionen er `ready`, og bærer en `blocked` projektion uændret videre med
+ * sine issues, warnings og source token.
  *
  * Kontrakten er utvetydig: kun en `ready` projektion må fodre en beregningsmotor
  * (`form-contract.md` §2.3), og en projektion kalder ikke motoren, hvis et afhængigt issue gør input
  * uanvendeligt (`error-contract.md` §5). Denne helper udtrykker netop den overgang for de projektioner, der
- * returnerer et `ProjectionResult`.
+ * returnerer et `ProjectionResult` — og den bevarer projektionsformen, fordi consumers skal kende både
+ * resultatet OG blokeringen uden selv at samle et `ProjectionResult` (hvor et forkert `status`-felt let
+ * ville snige sig ind).
+ *
+ * Konsekvensen af `blocked` er, at motoren ikke kaldes — ikke at den kaldes med en tomværdi. En maskeret
+ * tomværdi ville lade motoren regne videre på et falsk input, og det er præcis det brud, denne primitiv
+ * findes for at gøre urepræsenterbart.
  *
  * ⚠️ Den er IKKE den eneste vej til et gatet motorkald i kodebasen, og påstår det ikke. Domæneslices, der
  * ikke bygger på `ProjectionResult` (Forsørgertab, EET og EO), gater i stedet pr. dependency-gruppe med
  * påkrævede gate-flag/blocking-issues — se `forsoergertabCalculation.ts`, `eetSnapshot.ts`
  * (`buildGatedProjection`) og `eoSnapshot.ts`. At tvinge dem gennem denne signatur ville kræve, at deres
  * panel-specifikke gates blev ensartet, og det er reelt forskellige concerns (AGENTS.md "Konvergens").
- *
- * Bevidst MINIMAL: den ensarter KUN "kald ikke motoren, når projektionen er blokeret". Den ensarter IKKE
- * hvilke felter en dependency-gruppe læser, betingede fallbacks, missing-/domæneissues, issue-id'er eller
- * præsentationsgates.
- *
- * Konsekvensen af `blocked` er `null` — ikke en tomværdi. En maskeret tomværdi ville lade motoren regne
- * videre på et falsk input, og det er præcis det brud, denne primitiv findes for at gøre urepræsenterbart.
- */
-export const calculateWhenReady = <T, R>(
-  projection: ProjectionResult<T>,
-  calculate: (value: T) => R
-): R | null => (projection.status === 'ready' ? calculate(projection.value) : null);
-
-/**
- * Som `calculateWhenReady`, men bevarer projektionsformen: en `ready` projektion af motorinput bliver en
- * `ready` projektion af RESULTATET, og en `blocked` projektion bæres uændret videre med sine issues,
- * warnings og source token.
- *
- * Det er den form, consumers vil have: de skal kende både resultatet OG blokeringen, uden at skulle samle et
- * `ProjectionResult` i hånden (hvor et forkert `status`-felt let ville snige sig ind).
  */
 export const mapReadyProjection = <T, R>(
   projection: ProjectionResult<T>,
