@@ -1,18 +1,14 @@
 import { PERSISTED_SECTION_KEYS } from '../../../config/persistenceRegistry';
-import { productionInputManifests } from '../../../input/catalog/productionInputCatalog';
 import {
-  collectionRefTemplateSchema,
-  fieldAddressTemplateSchema,
-  type FieldAddressTemplate,
-  type CollectionRefTemplate,
-} from '../../../input/fieldCatalog';
+  productionInputFields,
+  productionInputCollections,
+} from '../../../inputCore/catalog/productionCatalog';
 import {
   CONSUMER_CALCULATION_ENTRYPOINTS,
   CONSUMER_CASE_FILE_PATHS,
   CONSUMER_DOCUMENT_OUTPUTS,
 } from '../../../config/consumerInventory';
 import type { SectionKey } from '../../../inputCore/fieldAddress';
-import type { FieldControlKind } from '../../../input/fieldDefinition';
 import {
   deriveSectionDataFieldPaths,
   deriveSectionCollectionPaths,
@@ -42,57 +38,35 @@ const sortSet = (values: Iterable<string>): string[] => [...new Set(values)].sor
 const fullCollectionPath = (entry: (typeof INPUT_COLLECTION_LEDGER)[number]): string =>
   entry.path === '' ? entry.collection : `${entry.path}.${entry.collection}`;
 
-const templateParentPath = (
-  path: FieldAddressTemplate['path'] | CollectionRefTemplate['path']
-): string => path.map((segment) => segment.kind === 'property'
-  ? segment.name
-  : `${segment.collection}[]`).join('.');
+// Reconciliationen sker mod det LEVENDE inputCore-produktionskatalog — det katalog produktionen faktisk kører
+// på. (Tidligere blev der reconcileret mod de gamle `src/input`-manifester; de er slettet med legacy-klyngen,
+// og en ledger, der kun stemte med en død kilde, ville ikke bevise noget om produktionen.)
+type TemplatePath = readonly Readonly<
+  { kind: 'property'; name: string } | { kind: 'entity'; collection: string; entityId?: string }
+>[];
 
-const fieldTemplatePath = (template: FieldAddressTemplate): string => {
-  const parent = templateParentPath(template.path);
-  return parent === '' ? template.field : `${parent}.${template.field}`;
+const templateParentPath = (path: TemplatePath): string =>
+  path.map((segment) => (segment.kind === 'property' ? segment.name : `${segment.collection}[]`)).join('.');
+
+const joinTemplatePath = (path: TemplatePath, leaf: string): string => {
+  const parent = templateParentPath(path);
+  return parent === '' ? leaf : `${parent}.${leaf}`;
 };
 
-const collectionTemplatePath = (template: CollectionRefTemplate): string => {
-  const parent = templateParentPath(template.path);
-  return parent === '' ? template.collection : `${parent}.${template.collection}`;
-};
+const productionFieldTemplates = productionInputFields.map((descriptor) => descriptor.template);
 
-const productionFieldTemplates = productionInputManifests.flatMap((manifest) =>
-  manifest.fields.map((field) => fieldAddressTemplateSchema.parse(
-    typeof field === 'object' && field !== null && 'template' in field ? field.template : undefined
-  ))
-);
+const productionFieldControls = productionInputFields.map((descriptor) => ({
+  template: descriptor.template,
+  control: descriptor.controlKind,
+}));
 
-const readProductionFieldControl = (field: unknown): Readonly<{
-  template: FieldAddressTemplate;
-  control: FieldControlKind;
-}> => {
-  if (typeof field !== 'object' || field === null || !('template' in field) || !('definition' in field)) {
-    throw new Error('Produktionsmanifestet indeholder en ugyldig feltbinding');
-  }
-  const definition = field.definition;
-  if (typeof definition !== 'object' || definition === null || !('controlKind' in definition)) {
-    throw new Error('Produktionsfeltet mangler kontroltype');
-  }
-  const control = definition.controlKind;
-  if (control !== 'text' && control !== 'choice' && control !== 'toggle') {
-    throw new Error('Produktionsfeltet har en ukendt kontroltype');
-  }
-  return { template: fieldAddressTemplateSchema.parse(field.template), control };
-};
+const productionCollectionTemplates = productionInputCollections.map((descriptor) => descriptor.template);
 
-const productionFieldControls = productionInputManifests.flatMap((manifest) =>
-  manifest.fields.map(readProductionFieldControl)
-);
+const fieldTemplatePath = (template: (typeof productionFieldTemplates)[number]): string =>
+  joinTemplatePath(template.path as TemplatePath, template.field);
 
-const productionCollectionTemplates = productionInputManifests.flatMap((manifest) =>
-  manifest.collections.map((collection) => collectionRefTemplateSchema.parse(
-    typeof collection === 'object' && collection !== null && 'template' in collection
-      ? collection.template
-      : undefined
-  ))
-);
+const collectionTemplatePath = (template: (typeof productionCollectionTemplates)[number]): string =>
+  joinTemplatePath(template.path as TemplatePath, template.collection);
 
 describe('greenfield feltledger (§6.1)', () => {
   it('top-level codec-annotationer matcher nøjagtig de top-level datafelter i de levende schemas', () => {

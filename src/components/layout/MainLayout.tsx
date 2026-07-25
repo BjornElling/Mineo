@@ -17,7 +17,6 @@ import {
 import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
-import { clearLastUndoFocus } from '../../utils/undoFocusTracker';
 import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
 import { routeToPageId } from '../../config/pageNavigation';
 import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
@@ -79,10 +78,6 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     scheduleHistoryTargetRestore(origin);
   }, [location.pathname, navigate]);
   useUndoRedoShortcuts({ onRestore: handleUndoRedoRestore });
-
-  React.useEffect(() => {
-    clearLastUndoFocus();
-  }, [location.pathname]);
 
   const showOverlay = React.useCallback((overlayData: OverlayData) => {
     setOverlay(overlayData);

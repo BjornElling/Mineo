@@ -3,7 +3,6 @@ import { InputAdornment } from '@mui/material';
 import StyledTextFieldBase from '../StyledTextFieldBase';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { parseAmountInput, amountValueToDraftString } from '../../../utils/expressionAmount';
-import { filterAmountExpressionKeyDown } from '../inputKeyFilters';
 import { useTransientDraft } from './useTransientDraft';
 
 // Transient beløbsfelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor beløbet kun lever
@@ -70,10 +69,9 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
         onDraftChange={(next) => draftState.onDraftChange(next)}
         onFocus={draftState.onFocus}
         onBlur={draftState.onBlur}
-        onKeyDown={(e) => {
-          draftState.onKeyDown(e);
-          if (!e.defaultPrevented) filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals });
-        }}
+        // Bevidst UDEN tegnfilter: filteret læser DOM-værdien, som halter bag den kontrollerede draft.
+        // Korrektheden ligger ved commit gennem den DELTE `parseAmountInput` (samme besked som persisterede felter).
+        onKeyDown={draftState.onKeyDown}
         error={Boolean(errorMessage)}
         helperText={errorMessage ?? ''}
         endAdornment={<InputAdornment position="end">kr.</InputAdornment>}

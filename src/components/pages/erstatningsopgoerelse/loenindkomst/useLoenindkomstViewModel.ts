@@ -10,6 +10,8 @@ import {
   settleField,
 } from '../../../../inputCore/inputReducer';
 import type { CollectionRef } from '../../../../inputCore/fieldAddress';
+import { APP_ROUTES } from '../../../../config/pageNavigation';
+import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import {
   eoLoenindkomstAnsaettelsesforholdCollection,
   eoEmploymentFields,
@@ -39,7 +41,13 @@ export type LoenindkomstViewModelParams = Readonly<{
 export function useLoenindkomstViewModel({ eoValues, stamdataValues }: LoenindkomstViewModelParams) {
   const { settings } = useAppSettings();
   const runtime = useInputRuntime();
-  const rows = useCollectionRows<Employment>(employmentCollection);
+  // Ansættelsesforholdene bor på lønindkomst-fanen; destinationen følger rækkehandlingen, så en undo af
+  // tilføj/slet ansættelsesforhold navigerer tilbage hertil (§3.7).
+  const rows = useCollectionRows<Employment>(employmentCollection, {
+    locationId: 'erstatningsopgoerelse.loenindkomstAnsaettelsesforhold',
+    route: APP_ROUTES.erstatningsopgoerelse,
+    tabKey: EO_TAB_KEYS.LOENINDKOMST,
+  });
   const employments = eoValues.loenindkomstAnsaettelsesforhold;
   const derived = React.useMemo(() => deriveLoenindkomstVm({
     loenindkomstAnsaettelsesforhold: employments,

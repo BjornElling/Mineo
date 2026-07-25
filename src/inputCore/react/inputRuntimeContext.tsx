@@ -2,7 +2,8 @@ import * as React from 'react';
 import { useSyncExternalStore } from 'react';
 import type { InputCatalog } from '../fieldCatalog';
 import type { SettledInput } from '../settledInput';
-import { sourceTokensEqual, type InputRevision } from '../evaluationSource';
+import { sourceTokensEqual, type EvaluationSourceToken, type InputRevision } from '../evaluationSource';
+import { captureStableInput } from '../runtime/evaluationSourceBinding';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import type { InputEvaluation } from '../inputReader';
 import { dispatchInput, type DispatchInputResult } from '../runtime/dispatchInput';
@@ -34,12 +35,15 @@ export type SettledSnapshot = Readonly<{
 export type InputRuntimeBinding = Readonly<{
   catalog: InputCatalog;
   /**
-   * Den store, bindingen er bygget over. Eksponeret så system-porte (§3.10) kan optage et stabilt
-   * {input, token}-snapshot fra PRÆCIS den runtime, React-træet læser — i stedet for at importere
-   * produktions-singletonen direkte. Uden dette kunne en alternativ/test-binding vise én sag, mens en port
-   * læste og gemte en anden. Felt-/celle-adaptere bruger den ALDRIG; de går gennem `dispatch`/`getSettled`.
+   * READ-ONLY systemport til et stabilt `{input, token}`-snapshot fra PRÆCIS den runtime, React-træet læser.
+   *
+   * System-porte (§3.10) skal kunne optage kilden fra bindingen i stedet for at importere produktions-
+   * singletonen — ellers kunne en alternativ/testbinding vise én sag, mens en port læste og gemte en anden.
+   * Porten eksponerer BEVIDST ikke selve store'en: en rå `StoreApi` ville give `setState` og dermed en
+   * generel bypass af typed commands, transaktion/history og storage-grænsen. Kun læsning er mulig herfra;
+   * al mutation går gennem `dispatch`/`resetSection`/`replaceCase`.
    */
-  store: SlimInputStore;
+  captureStableSource: () => Readonly<{ input: SettledInput; token: EvaluationSourceToken }>;
   /** Læser det aktuelle afsluttede snapshot. Bruges af `useSyncExternalStore`-getSnapshot. */
   getSettled: () => SettledSnapshot;
   /** Abonnér på revisionsændringer (nyt afsluttet input). Returnerer unsubscribe. */
@@ -125,7 +129,7 @@ export const createInputRuntimeBinding = (
   };
   return Object.freeze({
     catalog,
-    store,
+    captureStableSource: () => captureStableInput(store),
     getSettled,
     subscribe: (listener) => store.subscribe(listener),
     // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme

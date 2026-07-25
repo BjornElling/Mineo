@@ -8,7 +8,6 @@ import {
   type CaseResetOperations,
 } from '../../persistence/caseResetOperations';
 import { clearCase, replaceCase } from '../inputReducer';
-import { captureStableInput } from '../runtime/evaluationSourceBinding';
 import { useInputRuntime } from './inputRuntimeContext';
 
 // Greenfield-React (§3.10): den tynde bro, der binder de framework-frie case-porte til produktions-runtime.
@@ -32,14 +31,11 @@ export const useCaseOperations = (): CaseOperations => {
   return React.useMemo(() => {
     const file = createCaseFileOperations({
       catalog: runtime.catalog,
-      // Læs gennem BINDINGENS store, ikke produktions-singletonen: porten skal se præcis den runtime,
-      // React-træet viser. Ellers kunne en alternativ/test-binding vise én sag, mens save læste en anden.
-      getSettledInput: () => runtime.store.getState().input,
-      captureSaveSource: () => {
-        // Frisk, stabilt {input, token}-snapshot til save-projektionen (§3.9 pkt. 2).
-        const { input, token } = captureStableInput(runtime.store);
-        return { input, token };
-      },
+      // Læs gennem BINDINGENS read-only kildeport, ikke produktions-singletonen: porten skal se præcis den
+      // runtime, React-træet viser. Ellers kunne en alternativ/testbinding vise én sag, mens save læste en anden.
+      getSettledInput: () => runtime.captureStableSource().input,
+      // Frisk, stabilt {input, token}-snapshot til save-projektionen (§3.9 pkt. 2).
+      captureSaveSource: () => runtime.captureStableSource(),
       applyReplaceCase: (candidate) => {
         runtime.replaceCase(replaceCase(candidate));
       },

@@ -266,6 +266,7 @@ describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
 
 describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/redo (§3.7, WI-003)', () => {
   const originFor = <T>(field: FieldRef<T>) => ({
+    kind: 'field' as const,
     field: field.address,
     editorLocationId: 'test:aargang',
     route: '/satser',
@@ -298,6 +299,8 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
   // fane skal med, så undo af en slet/indsæt/sortér navigerer til den tabel, ændringen kom fra.
   it('en rækkehandlings origin (uden feltadresse) surfacer route + fane ved undo', () => {
     const rowOrigin = {
+      kind: 'collection' as const,
+      collection: 'rentekravRows',
       editorLocationId: 'test.rentekrav:rows:rentekravRows',
       route: '/renteberegning',
       tabKey: null,
@@ -310,7 +313,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
 
     expect(undo.changed).toBe(true);
     expect(undo.restoredOrigin).toEqual(rowOrigin);
-    expect(undo.restoredOrigin?.field).toBeUndefined();
+    expect(undo.restoredOrigin?.kind).toBe('collection');
   });
 
   it('et frame uden origin surfacer ingen origin ved undo', () => {

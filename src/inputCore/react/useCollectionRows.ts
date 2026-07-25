@@ -4,7 +4,7 @@ import type { CollectionRef } from '../fieldAddress';
 import { insertRow, deleteRow, reorderRows } from '../inputReducer';
 import { useInputRuntime } from './inputRuntimeContext';
 import type { DispatchInputResult } from '../runtime/dispatchInput';
-import type { HistoryOrigin } from '../inputHistory';
+import type { CollectionHistoryOrigin } from '../inputHistory';
 
 // Greenfield-React (§2.5 trin 1 / §3.8): rækkeinfrastrukturen for en dynamisk collection. Den ejer KUN de
 // stabile entity-id'er, rækkefølgen og add/delete/reorder — læst DIREKTE fra den afsluttede revision gennem
@@ -24,13 +24,16 @@ export type CollectionRowOrigin = Readonly<{
 }>;
 
 /**
- * Origin for en STRUKTUREL rækkehandling. Den bærer ingen feltadresse (handlingen rører ikke ét felt), men
- * bærer route + fane, så en undo/redo af insert/delete/reorder navigerer til den tabel, ændringen kom fra.
+ * Origin for en STRUKTUREL rækkehandling. `kind: 'collection'` gør det type-synligt, at der ikke findes én
+ * feltadresse at fokusere; til gengæld er destinationen (route + fane) obligatorisk, så en undo/redo af
+ * insert/delete/reorder altid kan navigere til den tabel, ændringen kom fra.
  */
 const buildRowHistoryOrigin = (
   collection: CollectionRef,
   origin: CollectionRowOrigin
-): HistoryOrigin => Object.freeze({
+): CollectionHistoryOrigin => Object.freeze({
+  kind: 'collection' as const,
+  collection: collection.collection,
   editorLocationId: `${origin.locationId}:rows:${collection.collection}`,
   ...(origin.route === undefined ? {} : { route: origin.route }),
   ...(origin.tabKey === undefined ? {} : { tabKey: origin.tabKey }),
@@ -69,9 +72,12 @@ export type CollectionRowsController<TEntity> = CollectionRowCommands<TEntity> &
  * Re-renderer kun ved en revisionsændring (det afsluttede snapshots identitet er stabil pr. revision), og id-
  * listen er cachet pr. sektionsidentitet, så `useSyncExternalStore`-identitetstjekket ikke looper.
  */
-export const useCollectionRows = <TEntity>(collection: CollectionRef): CollectionRowsController<TEntity> => {
+export const useCollectionRows = <TEntity>(
+  collection: CollectionRef,
+  origin: CollectionRowOrigin
+): CollectionRowsController<TEntity> => {
   const { catalog, subscribe, getSettled } = useInputRuntime();
-  const commands = useCollectionRowCommands<TEntity>(collection);
+  const commands = useCollectionRowCommands<TEntity>(collection, origin);
 
   // Stabil nøgle for collectionen, så caches ikke krydser to forskellige collections i samme komponenttræ.
   const collectionKey = collectionCacheKey(collection);
@@ -110,16 +116,18 @@ export const useCollectionRows = <TEntity>(collection: CollectionRef): Collectio
  */
 export const useCollectionRowCommands = <TEntity>(
   collection: CollectionRef,
-  origin?: CollectionRowOrigin
+  origin: CollectionRowOrigin
 ): CollectionRowCommands<TEntity> => {
   const { dispatch } = useInputRuntime();
   const collectionKey = collectionCacheKey(collection);
-  const originKey = origin === undefined ? '' : `${origin.locationId}|${origin.route ?? ''}|${origin.tabKey ?? ''}`;
+  const originKey = `${origin.locationId}|${origin.route ?? ''}|${origin.tabKey ?? ''}`;
 
   // En rækkehandling har ingen enkelt feltadresse; origin bærer i stedet tabellens editorlokation, så
   // restoren kan navigere til den rette side/fane efter en undo/redo af insert/delete/reorder.
+  // Destinationen er OBLIGATORISK: en rækkehandling uden lokation ville gendanne data, men efterlade brugeren
+  // på en vilkårlig side (§3.7).
   const rowOrigin = React.useMemo(
-    () => (origin === undefined ? undefined : buildRowHistoryOrigin(collection, origin)),
+    () => buildRowHistoryOrigin(collection, origin),
     // `collection`/`origin` er værdimæssigt stabile pr. nøgle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [collectionKey, originKey]

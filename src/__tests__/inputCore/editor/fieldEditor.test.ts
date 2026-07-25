@@ -205,6 +205,11 @@ describe('felt-editor-engine — visning, issues og immediate commit', () => {
     dispatchInput(store, catalog, command, { origin });
     expect(enhed.descriptor.readCanonical(store.getState().input.sections, enhed.address)).toBe('uger');
     expect(origin.editorLocationId).toBe('form:test');
+    // Invariant: et FELT-commit bærer ALTID sin feltadresse. `HistoryOrigin.field` er valgfri udelukkende for
+    // strukturelle rækkehandlinger (insert/delete/reorder), som ikke har ét felt — aldrig for et feltcommit.
+    expect(origin.kind).toBe('field');
+    if (origin.kind !== 'field') throw new Error('feltcommit skal give en field-origin');
+    expect(origin.field).toEqual(enhed.address);
   });
 
   it('immediate clear på et lukket felt rydder til tomværdien (§1.3)', () => {

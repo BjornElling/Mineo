@@ -14,6 +14,7 @@ import type { FieldAddress } from '../../inputCore/fieldAddress';
 const address: FieldAddress = { section: 'satser', path: [], field: 'aargang' };
 
 const origin: HistoryOrigin = {
+  kind: 'field' as const,
   field: address,
   editorLocationId: 'satser:aargang',
   route: '/satser',

@@ -188,7 +188,11 @@ EetAslAfgoerelserRow.displayName = 'EetAslAfgoerelserRow';
 
 const EetAslAfgoerelserTable = React.memo(
   ({ committedRows, validationMessageByCell, saveOrderPath }: EetAslAfgoerelserTableProps) => {
-    const rows = useCollectionRows<AslAfgoerelseRow>(erhvervsevnetabAslAfgoerelserCollectionRef);
+    const rows = useCollectionRows<AslAfgoerelseRow>(erhvervsevnetabAslAfgoerelserCollectionRef, {
+    locationId: 'erhvervsevnetab.aslAfgoerelser',
+    route: APP_ROUTES.erhvervsevnetab,
+    tabKey: PAGE_DEFAULT_TAB.erhvervsevnetab,
+  });
 
     const sortColumns = React.useMemo(() => [
       { colId: 'afgoerelsesDato', getSortValue: (row: AslAfgoerelseRow) => row.afgoerelsesDato },

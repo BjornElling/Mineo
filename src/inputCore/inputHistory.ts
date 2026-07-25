@@ -6,21 +6,39 @@ import type { SettledInput } from './settledInput';
 
 export const MAX_INPUT_HISTORY_STEPS = 50;
 
-export type HistoryOrigin = Readonly<{
-  /**
-   * Feltadressen, ændringen kom fra. `undefined` for en STRUKTUREL rækkehandling (insert/delete/reorder), som
-   * ikke har ét enkelt felt — der navigeres da til lokationen uden at fokusere et bestemt felt (§3.7).
-   */
-  field?: FieldAddress;
+/**
+ * Route + fane for den lokation, ændringen kom fra (§3.7). Eksplicit typed navigation-metadata, så undo/redo-
+ * restoren kan navigere til den rette side/fane UDEN at string-parse `editorLocationId` eller udlede route af
+ * `field.section`. `undefined` route = en ikke-navigerbar lokation (fx standalone); `tabKey: null` = ingen faner.
+ */
+type OriginDestination = Readonly<{
   editorLocationId: string;
-  /**
-   * Route + fane for editorlokationen, ændringen kom fra (§3.7). Eksplicit typed navigation-metadata, så undo/redo-
-   * restoren kan navigere til den rette side/fane UDEN at string-parse `editorLocationId` eller udlede route af
-   * `field.section`. `undefined` route = en ikke-navigerbar lokation (fx standalone); `tabKey: null` = ingen faner.
-   */
   route?: string;
   tabKey?: string | null;
 }>;
+
+/**
+ * Hvor en ændring kom fra — en DISKRIMINERET union, så de to slags commits ikke kan forveksles:
+ *
+ * - `kind: 'field'` (felt-/celle-commit) SKAL bære feltadressen. Restoren fokuserer præcis den editorlokation.
+ * - `kind: 'collection'` (strukturel rækkehandling: insert/delete/reorder) har intet enkelt felt, men SKAL
+ *   bære collectionen, så destinationen er entydig. Restoren navigerer til lokationen uden at fokusere et felt.
+ *
+ * Tidligere var `field` blot valgfri; da kunne et feltcommit type-lovligt sendes uden adresse. Unionen gør den
+ * fejl urepræsenterbar.
+ */
+export type FieldHistoryOrigin = OriginDestination & Readonly<{
+  kind: 'field';
+  field: FieldAddress;
+}>;
+
+export type CollectionHistoryOrigin = OriginDestination & Readonly<{
+  kind: 'collection';
+  /** Collectionen, rækkehandlingen ramte (til diagnostik og entydig destination). */
+  collection: string;
+}>;
+
+export type HistoryOrigin = FieldHistoryOrigin | CollectionHistoryOrigin;
 
 export type InputHistoryFrame = Readonly<{
   input: SettledInput;

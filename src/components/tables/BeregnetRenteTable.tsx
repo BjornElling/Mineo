@@ -227,7 +227,11 @@ const BeregnetRenteTable = React.memo(
     documentDownloadFormat,
     documentBlocked = false,
   }: BeregnetRenteTableProps) => {
-    const rows = useCollectionRows<RentekravRow>(rentekravRowsCollectionRef);
+    const rows = useCollectionRows<RentekravRow>(rentekravRowsCollectionRef, {
+    locationId: 'renteberegning.rentekravRows',
+    route: APP_ROUTES.renteberegning,
+    tabKey: PAGE_DEFAULT_TAB.renteberegning,
+  });
 
 
     const sortColumns = React.useMemo(() => [

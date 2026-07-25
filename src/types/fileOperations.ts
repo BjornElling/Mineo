@@ -38,8 +38,9 @@ export type LoadPreflightWarning = Readonly<{
 /**
  * Resultat fra `saveToFile()`.
  *
- * Diskrimineret på `status`: et gem ender enten som `saved` (ét verificeret artefakt nåede en sink)
- * eller `cancelled` (brugeren lukkede file-pickeren). Alle egentlige fejl kastes som exceptions og
+ * Diskrimineret på `status`: et gem ender som `saved` (ét verificeret artefakt nåede en sink),
+ * `cancelled` (brugeren lukkede file-pickeren) eller `stale` (sagen blev ændret, mens pickeren var åben —
+ * fail-closed før nogen skrivning, critical-action-kontrakten §5). Alle egentlige fejl kastes som exceptions og
  * indgår derfor ikke i unionen — der findes ingen "success:false uden grund"-tilstand.
  */
 export type SaveFileResult =
@@ -57,7 +58,9 @@ export type SaveFileResult =
       /** Om artefaktet bestod verifikation (read-back for File System Access, in-memory før download). */
       verified?: boolean;
     }
-  | { status: 'cancelled' };
+  | { status: 'cancelled' }
+  /** Kilden var ikke længere frisk ved skrivetidspunktet; intet blev skrevet. */
+  | { status: 'stale' };
 
 /**
  * Fælles data for et gennemført load (uanset om det udløste en preflight-advarsel).

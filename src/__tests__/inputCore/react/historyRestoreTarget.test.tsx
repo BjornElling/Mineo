@@ -19,6 +19,7 @@ const address: FieldAddress = { section: 'faellesAarsloen', path: [], field: 'as
 const serialized = serializeFieldAddress(address);
 
 const originFor = (editorLocationId: string): HistoryOrigin => ({
+  kind: 'field' as const,
   field: address,
   editorLocationId,
   route: '/erhvervsevnetab',
@@ -60,15 +61,17 @@ describe('findRestoreTarget — feltadresse + editorlokation (§3.7)', () => {
 
   // En STRUKTUREL rækkehandling (insert/delete/reorder) har ingen feltadresse: der findes intet enkelt felt at
   // fokusere. Origin bærer stadig route + fane, så shellen kan navigere til den tabel, ændringen kom fra.
-  it('har intet fokusmål for en rækkehandlings-origin uden feltadresse', () => {
+  // Unionens `kind` gør forskellen type-synlig — en `collection`-origin KAN ikke bære en feltadresse.
+  it('har intet fokusmål for en rækkehandlings-origin (kind: collection)', () => {
     makeInput('eo.oevrigeKrav:rows:oevrigeKravPerioder');
     const rowOrigin: HistoryOrigin = {
+      kind: 'collection',
+      collection: 'oevrigeKravPerioder',
       editorLocationId: 'eo.oevrigeKrav:rows:oevrigeKravPerioder',
       route: '/erstatningsopgoerelse',
       tabKey: 'eo_oplysninger',
     };
 
-    expect(rowOrigin.field).toBeUndefined();
     expect(findRestoreTarget(rowOrigin)).toBeNull();
     // Navigationsmetadata er bevaret, så shellen fortsat kan sætte fane + route.
     expect(rowOrigin.route).toBe('/erstatningsopgoerelse');

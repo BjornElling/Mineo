@@ -52,6 +52,7 @@ const Harness = ({ onRestore }: { onRestore: (o: HistoryOrigin) => void }) => {
 };
 
 const origin = (): HistoryOrigin => ({
+  kind: 'field' as const,
   field: aargangField.bind().address,
   editorLocationId: 'satser:aargang',
   route: '/satser',

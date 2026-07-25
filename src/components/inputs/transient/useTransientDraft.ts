@@ -59,12 +59,19 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
     if (draft !== formatted) setDraft(formatted);
   }
 
+  // Den råtekst, der sidst blev forsøgt committet. Bruges til no-op-detektion, så en gentagen blur/Enter på en
+  // uændret draft ikke committer igen — uden at gøre den FØRSTE commit til en falsk no-op.
+  const draftAtLastCommitRef = React.useRef<string | null>(null);
+
   const latest = React.useRef({ draft, formatted, parse, onCommit, onReject });
   latest.current = { draft, formatted, parse, onCommit, onReject };
 
   const commitDraft = React.useCallback((raw: string) => {
     const { parse: doParse, onCommit: doCommit, onReject: doReject, formatted: current } = latest.current;
-    if (raw === current) return;
+    // Uændret draft = ingen commit. Sammenligningen sker mod den KANONISKE visning af den committede værdi,
+    // så en re-formatering (fx '15012026' → '15-01-2026') stadig regnes som en ændring og committes.
+    if (raw === current && raw === draftAtLastCommitRef.current) return;
+    draftAtLastCommitRef.current = raw;
     const result = doParse(raw);
     if (result.ok) {
       doCommit(result.value);

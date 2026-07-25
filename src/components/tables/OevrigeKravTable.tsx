@@ -95,7 +95,11 @@ const OevrigeKravTableRow = React.memo(({ renderRow, committed, onDeleteRow, bui
 OevrigeKravTableRow.displayName = 'OevrigeKravTableRow';
 
 const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKravTableProps) => {
-  const rows = useCollectionRows<OevrigeKravRow>(collectionRef);
+  const rows = useCollectionRows<OevrigeKravRow>(collectionRef, {
+    locationId: 'erstatningsopgoerelse.oevrigeKravPerioder',
+    route: APP_ROUTES.erstatningsopgoerelse,
+    tabKey: EO_TAB_KEYS.EO_OPLYSNINGER,
+  });
 
   const sortColumns = React.useMemo(() => [
     { colId: 'dato', getSortValue: (row: OevrigeKravRow) => row.dato },

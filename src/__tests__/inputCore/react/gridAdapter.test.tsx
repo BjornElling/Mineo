@@ -98,18 +98,21 @@ const rejectedRaw = <T,>(field: FieldRef<T>): string | undefined =>
 
 const belobRef = (rowId: string) => belobField.bind(rowId);
 
+// Rækkehandlingers destination er obligatorisk (§3.7); testene bruger én fælles lokation.
+const TEST_ROW_ORIGIN = { locationId: 'test.rentekrav', route: '/renteberegning', tabKey: null } as const;
+
 describe('useCollectionRows — §3.8 rækkeinfrastruktur', () => {
   it('lister aktuelle entity-id\'er fra den afsluttede revision', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')));
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')));
     const binding = makeBinding();
-    const { result } = renderHook(() => useCollectionRows(rentekravRowsRef()), { wrapper: wrapper(binding) });
+    const { result } = renderHook(() => useCollectionRows(rentekravRowsRef(), TEST_ROW_ORIGIN), { wrapper: wrapper(binding) });
     expect(result.current.rowIds).toEqual(['r1', 'r2']);
   });
 
   it('insert/remove/reorder går gennem den ene write-grænse', () => {
     const binding = makeBinding();
-    const { result } = renderHook(() => useCollectionRows(rentekravRowsRef()), { wrapper: wrapper(binding) });
+    const { result } = renderHook(() => useCollectionRows(rentekravRowsRef(), TEST_ROW_ORIGIN), { wrapper: wrapper(binding) });
 
     act(() => { result.current.insert(makeRow('a')); });
     act(() => { result.current.insert(makeRow('b')); });
@@ -128,7 +131,7 @@ describe('useCollectionRows — §3.8 rækkeinfrastruktur', () => {
     expect(rejectedRaw(belobRef('r1'))).toBe('abc');
 
     const binding = makeBinding();
-    const { result } = renderHook(() => useCollectionRows(rentekravRowsRef()), { wrapper: wrapper(binding) });
+    const { result } = renderHook(() => useCollectionRows(rentekravRowsRef(), TEST_ROW_ORIGIN), { wrapper: wrapper(binding) });
     act(() => { result.current.remove('r1'); });
 
     expect(result.current.rowIds).toEqual([]);
@@ -294,7 +297,7 @@ describe('grid-adapter — §7.2 statekæde: række med fejl → slet række →
 
     expect(rejectedRaw(belobRef('row-x'))).toBe('abc');
 
-    const { result: rows } = renderHook(() => useCollectionRows(rentekravRowsRef()), { wrapper: wrapper(binding) });
+    const { result: rows } = renderHook(() => useCollectionRows(rentekravRowsRef(), TEST_ROW_ORIGIN), { wrapper: wrapper(binding) });
     expect(rows.current.rowIds).toEqual(['row-x']);
 
     // Slet rækken.

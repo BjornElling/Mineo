@@ -259,23 +259,28 @@ export const useFileSaveLoad = ({
       const savedInputRevision = Number(saveOutcome.token.inputRevision);
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
 
-      // Critical-action-kontrakten §5: directory-/fil-pickeren er en async-grænse, så hele kildetokenet
-      // genlæses og sammenlignes UMIDDELBART før den irreversible skrivning. Har brugeren ændret input eller
-      // en dokumentrelevant indstilling imens, ville vi ellers skrive en ældre sag til fil. Fail-closed:
-      // handlingen stoppes, og brugeren bliver bedt om at gemme igen mod den aktuelle tilstand.
-      if (!ops.file.isSaveSourceStillCurrent(saveOutcome.token)) {
+      // Critical-action-kontrakten §5: friskheds-kontrollen skal ligge efter AL target-/picker-resolution og
+      // umiddelbart før den første skrivning. Fil-pickeren ligger inde i `saveToFile`, så kontrollen injiceres
+      // dér som callback — ikke her før kaldet, hvor den ville kunne omgås af netop pickeren.
+      const result: SaveFileResult = await saveToFile(
+        snapshot,
+        resolvedDirectory,
+        () => ops.file.isSaveSourceStillCurrent(saveOutcome.token)
+      );
+
+      if (result.status === 'cancelled') {
+        focusBeforeAction?.focus();
+        return;
+      }
+
+      if (result.status === 'stale') {
+        // Sagen blev ændret, mens gem-dialogen var åben. Intet er skrevet; brugeren gemmer igen mod den
+        // aktuelle tilstand (fail-closed frem for at skrive en ældre sag).
         focusBeforeAction?.focus();
         showOverlay({
           message: 'Gem blev afbrudt, fordi sagen blev ændret undervejs. Prøv at gemme igen.',
           type: 'warning',
         });
-        return;
-      }
-
-      const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);
-
-      if (result.status === 'cancelled') {
-        focusBeforeAction?.focus();
         return;
       }
 

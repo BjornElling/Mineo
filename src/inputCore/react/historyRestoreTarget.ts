@@ -62,7 +62,7 @@ const attrEquals = (attr: string, value: string): string => `[${attr}=${JSON.str
  * fokusere: shellen har allerede navigeret til origin-lokationens route/fane, og vi flytter ikke fokus derudover.
  */
 export const findRestoreTarget = (origin: HistoryOrigin): HTMLElement | null => {
-  if (origin.field === undefined) return null;
+  if (origin.kind !== 'field') return null;
   const selector = attrEquals(FIELD_ADDRESS_ATTR, serializeFieldAddress(origin.field))
     + attrEquals(EDITOR_LOCATION_ATTR, origin.editorLocationId);
   for (const element of document.querySelectorAll(selector)) {
@@ -77,6 +77,6 @@ export const findRestoreTarget = (origin: HistoryOrigin): HTMLElement | null => 
  * som shellen allerede har udført, er relevant) — løkken startes da ikke unødigt.
  */
 export const scheduleHistoryTargetRestore = (origin: HistoryOrigin): void => {
-  if (origin.field === undefined) return;
+  if (origin.kind !== 'field') return;
   runHistoryTargetRestoreLoop(() => findRestoreTarget(origin));
 };

@@ -58,6 +58,7 @@ import {
 } from '../../inputCore/react/productionInputRuntime';
 import { useCaseOperations, useCriticalInputActions } from '../../inputCore/react';
 import { slimInputStore } from '../../inputCore/runtime/slimInputStore';
+import { dispatchInput } from '../../inputCore/runtime/dispatchInput';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { activeEditorRegistry, type ActiveEditor } from '../../inputCore/runtime/activeEditorRegistry';
 import { reduceInputCommand, settleField } from '../../inputCore/inputReducer';
@@ -243,6 +244,36 @@ describe('useFileSaveLoad', () => {
       expect(handles.markSaved).toHaveBeenCalledWith(expectedRevision);
       expect(handles.showOverlay).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'success' })
+      );
+    });
+
+    // Critical-action-kontrakten §5: fil-pickeren ligger INDE i `saveToFile`, så friskheds-kontrollen injiceres
+    // som callback og evalueres først EFTER target-resolution. Denne test simulerer, at brugeren ændrer sagen,
+    // mens dialogen er åben: mocken kalder callbacken efter en mutation og skal da se den som stale.
+    it('afbryder gem fail-closed, når sagen ændres mens fil-pickeren er åben (ingen skrivning)', async () => {
+      const handles = renderHook({ hasData: true });
+      let freshnessVerdict: boolean | undefined;
+
+      saveToFileMock.mockImplementation(async (...args: unknown[]) => {
+        const isSourceStillCurrent = args[2] as (() => boolean) | undefined;
+        // Brugeren redigerer, mens pickeren står åben → ny inputrevision.
+        dispatchInput(
+          slimInputStore,
+          getProductionInputCatalog(),
+          settleField(satserAargangField.bind(), '2031')
+        );
+        freshnessVerdict = isSourceStillCurrent?.();
+        return freshnessVerdict === false ? { status: 'stale' } : { status: 'saved', filename: 'sag.eo' };
+      });
+
+      await act(async () => {
+        await handles.api?.handleGem();
+      });
+
+      expect(freshnessVerdict).toBe(false);
+      expect(handles.markSaved).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning', message: expect.stringContaining('ændret undervejs') })
       );
     });
   });

@@ -102,12 +102,16 @@ const throwIfVerificationFailed = (
  * 5. Persistér filnavn/handle til sessionStorage/IndexedDB (til hurtig overskrivning næste gang)
  *
  * @param resolvedDirectory - Optional resolved directory fra resolveDefaultDirectoryHandle
- * @returns {Promise<SaveFileResult>} `saved` (med filnavn/statistik) eller `cancelled`
+ * @param isSourceStillCurrent - Valgfri friskheds-kontrol, der kaldes UMIDDELBART efter gem-målet er resolvet
+ *   (fil-pickeren er en async-grænse, hvor brugeren kan ændre sagen) og FØR nogen skrivning. Returnerer den
+ *   `false`, afbrydes gemningen fail-closed som `stale` uden at røre disken — critical-action-kontrakten §5.
+ * @returns {Promise<SaveFileResult>} `saved` (med filnavn/statistik), `cancelled` eller `stale`
  * @throws {Error} Hvis gemning fejler (validering, integritet eller ubrugelig fil)
  */
 export const saveToFile = async (
   snapshot: SaveSnapshot,
-  resolvedDirectory?: ResolvedDirectory
+  resolvedDirectory?: ResolvedDirectory,
+  isSourceStillCurrent?: () => boolean
 ): Promise<SaveFileResult> => {
 
   try {
@@ -146,6 +150,14 @@ export const saveToFile = async (
     const target = await resolveSaveTarget(fileData, resolvedDirectory);
     if (target.kind === 'cancelled') {
       return { status: 'cancelled' };
+    }
+
+    // 6b. FRISKHEDSKONTROL (critical-action-kontrakten §5). Fil-pickeren ovenfor er en async-grænse: brugeren kan
+    //     have redigeret sagen eller ændret en dokumentrelevant indstilling, mens dialogen var åben. Kontrollen
+    //     ligger derfor HER — efter al target-/picker-resolution og umiddelbart før den første skrivning — ikke
+    //     før kaldet. Fail-closed: intet røres på disken, og kalderen beder brugeren gemme igen.
+    if (isSourceStillCurrent !== undefined && !isSourceStillCurrent()) {
+      return { status: 'stale' };
     }
 
     // 7. Skriv til målet og verificér ét artefakt før/efter sinken alt efter dens read-back-evne.

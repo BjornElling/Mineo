@@ -95,7 +95,13 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
-    const rows = useCollectionRows<StandardLoenTableRow>(collection);
+    // Tabellen bruges i flere kontekster (Årsløn + EO's nested løntabeller), så destinationen kommer fra
+    // kalderens `locationNav`; feltsættets id navngiver lokationen entydigt.
+    const rows = useCollectionRows<StandardLoenTableRow>(collection, {
+      locationId: `standardLoen:${collection.section}.${collection.collection}`,
+      ...(locationNav?.route === undefined ? {} : { route: locationNav.route }),
+      ...(locationNav?.tabKey === undefined ? {} : { tabKey: locationNav.tabKey }),
+    });
 
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLInputElement | null>>({});

@@ -68,6 +68,7 @@ export const activeFieldIssueFor = <T>(
 
 const originFor = <T>(location: EditorLocation, field: FieldRef<T>): HistoryOrigin =>
   Object.freeze({
+    kind: 'field' as const,
     field: field.address,
     editorLocationId: location.locationId,
     // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage til

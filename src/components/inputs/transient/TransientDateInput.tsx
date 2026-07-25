@@ -4,7 +4,6 @@ import StyledTextFieldBase from '../StyledTextFieldBase';
 import type { ISODateString } from '../../../types/branded';
 import { parseDateDraftForCommit } from '../../../utils/dateDraftCommit';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
-import { filterDateLikeKeyDown } from '../inputKeyFilters';
 import {
   resolveDateRangeErrorMessage,
   type DateRangeSpecialErrors,
@@ -93,10 +92,11 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
         onDraftChange={(next) => draftState.onDraftChange(next)}
         onFocus={draftState.onFocus}
         onBlur={draftState.onBlur}
-        onKeyDown={(e) => {
-          draftState.onKeyDown(e);
-          if (!e.defaultPrevented) filterDateLikeKeyDown(e);
-        }}
+        // Bevidst UDEN tegnfilter under indtastning: filtrene (`filterDateLikeKeyDown`) læser
+        // `e.currentTarget.value`, som halter bag den kontrollerede draft i et transient felt og derfor ville
+        // blokere indtastning efter de første cifre. Korrektheden ligger i stedet ved commit, hvor den DELTE
+        // `parseDateDraftForCommit` afviser en malformet dato med samme besked som de persisterede datofelter.
+        onKeyDown={draftState.onKeyDown}
         error={Boolean(errorMessage)}
         helperText={errorMessage ?? ''}
         htmlInputAttributes={{ inputMode: 'numeric', 'aria-label': rest['aria-label'] }}

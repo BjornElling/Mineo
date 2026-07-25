@@ -13,7 +13,6 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { dispatchInput } from '../../../inputCore/runtime/dispatchInput';
 import { settleField } from '../../../inputCore/inputReducer';
 import { satserAargangField } from '../../../inputCore/catalog/satserDescriptors';
-import { __resetUndoFocusTrackerForTests } from '../../../utils/undoFocusTracker';
 
 import MainLayout from '../../../components/layout/MainLayout';
 import { OpenEditor } from './editorTestUtils';
@@ -70,7 +69,6 @@ describe('MainLayout undo/redo editor guard', () => {
   });
 
   afterEach(() => {
-    __resetUndoFocusTrackerForTests();
     slimInputStore.getState().hydrate(emptyInput());
   });
 
