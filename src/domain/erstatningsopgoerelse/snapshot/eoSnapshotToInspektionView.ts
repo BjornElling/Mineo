@@ -72,7 +72,7 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
       eoValues: erstatningsopgoerelseValues,
       eoErrors: inspektionSnapshot.fieldErrors.erstatningsopgoerelse,
       loenindkomstManuelReguleringInputErrors: args.loenindkomstManuelReguleringInputErrors,
-      appSettings: args.appSettings,
+      rowPolicy: args.appSettings,
       canonicalOutput,
       pdfModel,
     };

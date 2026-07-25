@@ -13,11 +13,10 @@
  * `evaluateErhvervsevnetabDownloadGates`, så reaktiv gate og preflight er samme kode.
  */
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../schemas/formSchemas';
-import {
-  defineDocumentOutput,
-  type DocumentDefinition,
-  type DocumentProjectionResult,
-} from '../../document/definition/documentDefinition';
+import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
+import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import { toGateReasons } from '../../document/definition/documentOutcome';
+import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { EetDifferencekravComputation } from './eetDifferencekravCalculation';
@@ -39,11 +38,11 @@ type SharedEetSource = Readonly<{
   gates: ErhvervsevnetabDownloadGates;
 }>;
 
-const readSharedEetSource = (context: DocumentSourceContext): SharedEetSource =>
-  context.shared(readSharedEetSource, () => {
-    const projection = buildErhvervsevnetabReaderProjection(context.evaluation.reader);
-    return { projection, gates: evaluateErhvervsevnetabDownloadGates(projection) };
-  });
+/** Builderen er selv memo-nøglen, så de fire faner deler ét slot pr. kildekontekst. */
+const readSharedEetSource = (context: DocumentSourceContext<DocumentSourceSettings>): SharedEetSource => {
+  const projection = buildErhvervsevnetabReaderProjection(context.evaluation.reader);
+  return { projection, gates: evaluateErhvervsevnetabDownloadGates(projection) };
+};
 
 /**
  * Fælles dependency-/gate-evaluering for en EET-fane. `computation !== null` og
@@ -52,7 +51,7 @@ const readSharedEetSource = (context: DocumentSourceContext): SharedEetSource =>
  * Skulle gaten og snapshottet nogensinde divergere, fail-closer vi frem for at gætte.
  */
 const projectEetFane = <TComputation, TInput>(
-  context: DocumentSourceContext,
+  context: DocumentSourceContext<DocumentSourceSettings>,
   fane: EetDocumentFane,
   readComputation: (projection: ErhvervsevnetabReaderProjection) => TComputation | null,
   toInput: (
@@ -61,10 +60,16 @@ const projectEetFane = <TComputation, TInput>(
     stamdata: StamdataValues
   ) => TInput
 ): DocumentProjectionResult<TInput> => {
-  const { projection, gates } = readSharedEetSource(context);
+  const { projection, gates } = context.shared(readSharedEetSource);
   const gate = gates[fane];
   if (!gate.canDownload) {
-    return { status: 'blocked', reasons: gate.reasons };
+    return {
+      status: 'blocked',
+      reasons: toGateReasons(gate.reasons, {
+        code: `eet-${fane}:blocked`,
+        message: 'Dokumentet kan ikke hentes for den aktuelle sag',
+      }),
+    };
   }
 
   const computation = readComputation(projection);
@@ -89,11 +94,11 @@ export type LoebendeYdelserDocumentInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
-export const loebendeYdelserDocumentDefinition: DocumentDefinition<LoebendeYdelserDocumentInput> =
-  defineDocumentOutput({
+export const loebendeYdelserDocumentDefinition: MineoDocumentDefinition<LoebendeYdelserDocumentInput> =
+  defineMineoDocument({
     id: 'loebende-ydelser',
-    brevhovedType: 'erhvervsevnetab',
-    errorLabel: 'Kunne ikke generere løbende ydelser-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erhvervsevnetab' },
+    labels: { documentName: 'løbende ydelser' },
     project: (context) => projectEetFane(
       context,
       'loebendeYdelser',
@@ -127,11 +132,11 @@ export type KapitaliseringDocumentInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
-export const kapitaliseringDocumentDefinition: DocumentDefinition<KapitaliseringDocumentInput> =
-  defineDocumentOutput({
+export const kapitaliseringDocumentDefinition: MineoDocumentDefinition<KapitaliseringDocumentInput> =
+  defineMineoDocument({
     id: 'kapitalisering',
-    brevhovedType: 'erhvervsevnetab',
-    errorLabel: 'Kunne ikke generere kapitalisering-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erhvervsevnetab' },
+    labels: { documentName: 'kapitalisering' },
     project: (context) => projectEetFane(
       context,
       'kapitalisering',
@@ -164,11 +169,11 @@ export type EfterEalDocumentInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
-export const efterEalDocumentDefinition: DocumentDefinition<EfterEalDocumentInput> =
-  defineDocumentOutput({
+export const efterEalDocumentDefinition: MineoDocumentDefinition<EfterEalDocumentInput> =
+  defineMineoDocument({
     id: 'efter-eal',
-    brevhovedType: 'erhvervsevnetab',
-    errorLabel: 'Kunne ikke generere EET efter EAL-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erhvervsevnetab' },
+    labels: { documentName: 'EET efter EAL' },
     project: (context) => projectEetFane(
       context,
       'efterEal',
@@ -204,11 +209,11 @@ export type DifferencekravDocumentInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
-export const differencekravDocumentDefinition: DocumentDefinition<DifferencekravDocumentInput> =
-  defineDocumentOutput({
+export const differencekravDocumentDefinition: MineoDocumentDefinition<DifferencekravDocumentInput> =
+  defineMineoDocument({
     id: 'differencekrav',
-    brevhovedType: 'erhvervsevnetab',
-    errorLabel: 'Kunne ikke generere differencekrav-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erhvervsevnetab' },
+    labels: { documentName: 'differencekrav' },
     project: (context) => projectEetFane(
       context,
       'differencekrav',

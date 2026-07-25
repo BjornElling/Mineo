@@ -8,10 +8,8 @@
  * er disabled, når stamdata blokerer.
  */
 import type { StamdataValues } from '../../schemas/formSchemas';
-import {
-  defineDocumentOutput,
-  type DocumentDefinition,
-} from '../../document/definition/documentDefinition';
+import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import { toGateReasons } from '../../document/definition/documentOutcome';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import { evaluateForsoergertabDownloadGate } from './forsoergertabDownloadGate';
 import { buildForsoergertabReaderProjection } from './forsoergertabReaderProjection';
@@ -24,16 +22,22 @@ export type ForsoergertabDocumentInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
-export const forsoergertabDocumentDefinition: DocumentDefinition<ForsoergertabDocumentInput> =
-  defineDocumentOutput({
+export const forsoergertabDocumentDefinition: MineoDocumentDefinition<ForsoergertabDocumentInput> =
+  defineMineoDocument({
     id: 'forsoergertab',
-    brevhovedType: 'forsoergertab',
-    errorLabel: 'Kunne ikke generere forsørgertab-PDF',
+    brevhoved: { kind: 'settings-key', key: 'forsoergertab' },
+    labels: { documentName: 'forsørgertab' },
     project: (context) => {
       const projection = buildForsoergertabReaderProjection(context.evaluation.reader);
       const gate = evaluateForsoergertabDownloadGate(projection);
       if (!gate.canDownload) {
-        return { status: 'blocked', reasons: gate.reasons };
+        return {
+          status: 'blocked',
+          reasons: toGateReasons(gate.reasons, {
+            code: 'forsoergertab:blocked',
+            message: 'Dokumentet kan ikke hentes for den aktuelle sag',
+          }),
+        };
       }
 
       const stamdata = projectStamdataForDocument(context.evaluation.reader, FORSOERGERTAB_DOCUMENT_CONSUMER_ID);

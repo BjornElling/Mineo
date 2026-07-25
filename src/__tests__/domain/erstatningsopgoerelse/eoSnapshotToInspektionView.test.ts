@@ -149,7 +149,7 @@ describe('eoSnapshotToInspektionView', () => {
       stamdataErrors: inspektionSnapshot.fieldErrors.stamdata,
       eoErrors: inspektionSnapshot.fieldErrors.erstatningsopgoerelse,
       loenindkomstManuelReguleringInputErrors: {},
-      appSettings: DEFAULT_APP_SETTINGS,
+      rowPolicy: DEFAULT_APP_SETTINGS,
       canonicalOutput: { marker: 'canonical' },
     });
     expect(buildRegulationTimelineMock).toHaveBeenCalledWith({

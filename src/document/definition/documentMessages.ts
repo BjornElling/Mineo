@@ -1,0 +1,57 @@
+/**
+ * Brugerrettede beskeder for dokument-udfald (Fase 5, pass 0).
+ *
+ * Erstatter to legacy-mekanismer:
+ *
+ * 1. `errorLabel`-prosastrenge ("Kunne ikke generere satser-PDF") kombineret med en global
+ *    `/PDF/g`-substitution, der omskrev teksten til det aktive format. Substitutionen forudsatte, at
+ *    ordet "PDF" i enhver fejltekst UDELUKKENDE var en formatreference — en forudsætning intet
+ *    håndhævede. Nu erklærer outputtet sit NAVN, og beskeden formuleres her med formatet som
+ *    eksplicit parameter.
+ * 2. At en stale kilde under afviklingen fik den generiske generatorfejl-tekst, mens den samme
+ *    tilstand i preflighten fik en korrekt transient besked. Her afgør TILSTANDEN beskeden; fasen er
+ *    kun diagnostik.
+ */
+import { getDocumentFormatLabel } from '../documentFormat';
+import type { DocumentDownloadFormat } from '../documentFormat';
+import type { DocumentLabels } from './documentDefinition';
+import type { DocumentOutcome } from './documentOutcome';
+
+const STALE_SOURCE_MESSAGE = 'Downloaden blev afbrudt, fordi sagen blev ændret undervejs. Prøv igen.';
+const DEV_SERVER_MESSAGE = 'Udviklingsserveren svarer ikke længere. Genstart `npm run dev` og prøv dokument-download igen.';
+
+/**
+ * Den besked, brugeren skal se — eller `null`, når udfaldet ikke har nogen besked.
+ *
+ * `null` betyder bevidst "intet at vise":
+ *  - `downloaded`: der er ingen fejl.
+ *  - `settle-failed`: det blokerende felt bærer selv sin røde markering, og preflighten har
+ *    fokuseret det. En ekstra besked ville duplikere signalet.
+ */
+export const resolveDocumentOutcomeMessage = (
+  outcome: DocumentOutcome,
+  labels: DocumentLabels,
+  format: DocumentDownloadFormat
+): string | null => {
+  switch (outcome.status) {
+    case 'downloaded':
+      return null;
+    case 'rejected':
+      switch (outcome.rejection.kind) {
+        case 'gate-blocked':
+          return outcome.rejection.reasons[0].message;
+        case 'stale-source':
+          return STALE_SOURCE_MESSAGE;
+        case 'settle-failed':
+          return null;
+      }
+    // falls through er umuligt: begge grene ovenfor returnerer.
+    case 'failed':
+      switch (outcome.failure.kind) {
+        case 'dev-server-unavailable':
+          return DEV_SERVER_MESSAGE;
+        case 'runtime':
+          return `Kunne ikke generere ${labels.documentName} som ${getDocumentFormatLabel(format)}`;
+      }
+  }
+};

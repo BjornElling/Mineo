@@ -1,86 +1,68 @@
 /**
- * Det kanoniske outputkatalog (Fase 5; `document-output-contract.md` §A2a).
+ * Katalog-FABRIKKEN (Fase 5; `document-output-contract.md` §A2a).
  *
- * Kataloget er komplethedskilden for dokumentgaten: hvert katalogiseret output — også standalone
- * MinProcesrente — har præcis én typed definition, og et UI-entrypoint kan ikke starte
- * dokumentarbejde uden den. `documentCatalog.completeness.test.ts` beviser, at kataloget dækker
- * `CONSUMER_DOCUMENT_OUTPUTS` udtømmende, og matrix-testen kører de ni obligatoriske cases mod
- * hver enkelt post.
+ * Dette modul indeholder bevidst INGEN definitioner. Kataloget var oprindeligt en global `Map`, som
+ * statisk importerede alle domæners definitioner i kernelaget — og dermed hvert domænes projektioner
+ * og gates. Mineos sider er ellers route-lazy (`App.tsx`), så efter en cutover ville den første
+ * dokumentførende route have trukket samtlige domæners projektionskode ind, og standalone
+ * MinProcesrente ville have trukket hele hovedappens domænegraf. (Generatorerne var ikke problemet —
+ * de lazy-loades fortsat via `loadRenderer` — men projektionslaget mistede sin routeopdeling.)
  *
- * `TInput` bindes ved kilden: `closeDocumentDefinition` er det ene sted, en definitions
- * inputtype eksistentielt lukkes, så kataloget kan være en homogen liste uden at koblingen
- * mellem `project` og `render` går tabt. Der findes ingen `as`-cast og ingen `unknown`-mellemled.
+ * Derfor: kontrakter og fabrik bor her, mens KOMPOSITIONEN sker i app-/route-rødder. Hver app bygger
+ * sit eget runtime-katalog over sine egne outputs, og `documentOutputId.ts` er den fælles
+ * completeness-kilde, som en test måler de to kataloger imod.
+ *
+ * `TRequest`/`TInput` lukkes eksistentielt ved kilden: `closeDocumentDefinition` er det ene sted,
+ * typerne bindes, så et katalog kan være en homogen liste uden at koblingen mellem `project` og
+ * renderer går tabt. Der findes ingen `as`-cast og intet `unknown`-mellemled.
  */
-import type { CriticalActionCoordinator } from '../../inputCore/runtime/criticalActionCoordinator';
-import type { DocumentDefinition, DocumentOutputId, DocumentOutputMetadata } from './documentDefinition';
+import type { DocumentDefinition } from './documentDefinition';
+import type { DocumentExecutionEnvironment } from './documentExecutionEnvironment';
+import { executeDocumentDownload } from './documentLifecycle';
+import type { DocumentGateReasons, DocumentOutcome } from './documentOutcome';
+import type { DocumentOutputId } from './documentOutputId';
 import type { DocumentSourceContext } from './documentSourceContext';
-import { downloadDocument, type DocumentDownloadOutcome } from './downloadDocument';
-import type { DocumentEvaluationSource } from './prepareDocument';
-import { allowDocumentDownload, type DocumentDownloadGateResult } from '../layout/documentGateTypes';
-import {
-  erstatningsopgoerelseDocumentDefinition,
-  tafFordeltPaaAarDocumentDefinition,
-  tafKravGrafDocumentDefinition,
-  tafOpreguleretPaaAarDocumentDefinition,
-} from '../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
-import {
-  differencekravDocumentDefinition,
-  efterEalDocumentDefinition,
-  kapitaliseringDocumentDefinition,
-  loebendeYdelserDocumentDefinition,
-} from '../../domain/erhvervsevnetab/eetDocumentDefinitions';
-import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
-import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 
 /**
- * En katalogpost. `TInput` er lukket inde: de to eneste operationer udefra er "evaluér gaten" og
- * "download", og begge anvender definitionen på sig selv. Derfor kan en katalogpost hverken
- * lække et ugated input ud eller modtage et fremmed input ind.
+ * Den reaktive gates resultat. Bærer HELE årsagslisten (ikke kun den første), så en konsument kan
+ * vise mere end tooltippets primære grund, og bærer det token, gaten blev evalueret på, så en
+ * konsument kan se hvilken revision vurderingen hører til.
  */
-export type DocumentOutput = DocumentOutputMetadata & Readonly<{
+export type DocumentGateSnapshot =
+  | Readonly<{ canDownload: true }>
+  | Readonly<{ canDownload: false; reasons: DocumentGateReasons }>;
+
+/**
+ * En katalogpost med `TRequest`/`TInput` lukket inde. De to eneste operationer udefra er "evaluér
+ * gaten for denne request" og "download denne request", og begge anvender definitionen på sig selv.
+ * En katalogpost kan derfor hverken lække et ugated input ud eller modtage et fremmed input ind.
+ */
+export type DocumentOutput<TRequest, TSettings> = Readonly<{
+  id: DocumentOutputId;
   /**
-   * Den reaktive knap-gate. Kalder PRÆCIS samme `project` som click-preflighten, så de to ikke
-   * kan drifte (§10 acceptkriterie 27). Returnerer kontraktens `DocumentDownloadGateResult`,
-   * fordi knappen og dens tooltip forbruger den form.
+   * Den reaktive knap-gate. Kalder PRÆCIS samme `project` med samme `request` som
+   * click-preflighten, så de to ikke kan drifte (§10 acceptkriterie 27).
    */
-  evaluateGate: (context: DocumentSourceContext) => DocumentDownloadGateResult;
-  download: (deps: Readonly<{
-    criticalActions: CriticalActionCoordinator;
-    captureSource: DocumentEvaluationSource;
-  }>) => Promise<DocumentDownloadOutcome>;
+  evaluateGate: (context: DocumentSourceContext<TSettings>, request: TRequest) => DocumentGateSnapshot;
+  download: (request: TRequest) => Promise<DocumentOutcome>;
 }>;
 
-export const closeDocumentDefinition = <TInput>(definition: DocumentDefinition<TInput>): DocumentOutput =>
+/**
+ * Binder én definition til ét miljø. Kaldes kun af en apps katalog-komposition, så en katalogpost
+ * altid bærer det miljø, den hører til — en Mineo-definition kan ikke afvikles med standalones
+ * runtimepolitik eller omvendt.
+ */
+export const closeDocumentDefinition = <TRequest, TInput, TSettings, TBrevhovedKey extends string>(
+  definition: DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>,
+  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
+): DocumentOutput<TRequest, TSettings> =>
   Object.freeze({
     id: definition.id,
-    brevhovedType: definition.brevhovedType,
-    errorLabel: definition.errorLabel,
-    evaluateGate: (context) => {
-      const projected = definition.project(context);
+    evaluateGate: (context, request) => {
+      const projected = definition.project(context, request);
       return projected.status === 'ready'
-        ? allowDocumentDownload()
+        ? { canDownload: true }
         : { canDownload: false, reasons: projected.reasons };
     },
-    download: (deps) => downloadDocument(definition, deps),
+    download: (request) => executeDocumentDownload(definition, request, environment),
   });
-
-/**
- * Katalogets poster. Udfyldes pass for pass i WI-008; completeness-testen fejler, indtil alle
- * 18 katalog-id'er + de 3 standalone-id'er er repræsenteret.
- */
-const DOCUMENT_OUTPUT_LIST: readonly DocumentOutput[] = [
-  closeDocumentDefinition(erstatningsopgoerelseDocumentDefinition),
-  closeDocumentDefinition(tafFordeltPaaAarDocumentDefinition),
-  closeDocumentDefinition(tafOpreguleretPaaAarDocumentDefinition),
-  closeDocumentDefinition(tafKravGrafDocumentDefinition),
-  closeDocumentDefinition(loebendeYdelserDocumentDefinition),
-  closeDocumentDefinition(kapitaliseringDocumentDefinition),
-  closeDocumentDefinition(efterEalDocumentDefinition),
-  closeDocumentDefinition(differencekravDocumentDefinition),
-  closeDocumentDefinition(forsoergertabDocumentDefinition),
-  closeDocumentDefinition(varigeMenDocumentDefinition),
-];
-
-export const DOCUMENT_OUTPUTS: ReadonlyMap<DocumentOutputId, DocumentOutput> = new Map(
-  DOCUMENT_OUTPUT_LIST.map((output) => [output.id, output])
-);

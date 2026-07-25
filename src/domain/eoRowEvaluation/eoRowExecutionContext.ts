@@ -1,5 +1,5 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import type { DocumentSettings } from '../../document/layout/documentBrevhoved';
+import type { EoRowPolicy } from '../../document/definition/documentSourceSettings';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { EoFieldIssuesBySource } from '../erstatningsopgoerelse/eoInputIssues';
@@ -29,16 +29,22 @@ export type EoRowEvaluationContext = {
   eoErrors: ErstatningsopgoerelseFieldErrorsBySource;
   loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
   /**
-   * Row-buildernes faktiske settings-afhængighed er de TO regel-toggles i `DocumentSettings`
-   * (`allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og
-   * `allowReguleringMedUdloebMedMaaneder`, læst i `eoRowIndkomstRows.ts`). Kontrakten er derfor
-   * bevidst smallere end `AppSettings`: den gør download-gatens settings-dependency synlig og
-   * gør det umuligt for en builder at komme til at afhænge af en UI-indstilling, der ikke er med
-   * i `evaluationSettingsFingerprint` — og som derfor ikke ville gøre et optaget
-   * `EvaluationSourceToken` stale. `isLoenindkomstAnsaettelsesforholdEffectivelyEmpty` bruger
-   * fortsat hele `AppSettings`, men den er DEV-inspektionens, ikke gatens.
+   * Row-buildernes faktiske regel-afhængighed: de TO toggles
+   * `allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og
+   * `allowReguleringMedUdloebMedMaaneder` (læst i `eoRowIndkomstRows.ts`). De afgør
+   * validerings-severity for overenskomst-/reguleringsdækning og kan derfor flytte en EO-download
+   * fra tilladt til blokeret.
+   *
+   * Typen er `EoRowPolicy` og ikke `AppSettings` eller `DocumentSettings`: rækkeevaluering er
+   * BEREGNINGSLOGIK og skal hverken kende UI-indstillinger eller dokument-layoutlaget. (Feltet hed
+   * tidligere `appSettings` med typen `DocumentSettings`, hvilket trak dokument-layoutlaget ind i
+   * beregningen og samtidig gav builderne adgang til format- og brevhovedfelter, der er
+   * fuldstændig irrelevante for, om en række er gyldig.)
+   *
+   * `isLoenindkomstAnsaettelsesforholdEffectivelyEmpty` bruger fortsat hele `AppSettings`, men den
+   * er DEV-inspektionens prædikat, ikke gatens.
    */
-  appSettings: DocumentSettings;
+  rowPolicy: EoRowPolicy;
   canonicalOutput?: EoCanonicalOutput;
   pdfModel?: EoModel;
 };

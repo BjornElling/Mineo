@@ -3,22 +3,19 @@
  * dynamic-import-fejl og routing af uventede fejl til den centrale systemfejl-overflade
  * (`document-output-contract.md` §A5).
  *
- * Udskilt fra `documentService.ts` i Fase 5, fordi den er MEKANIK og ikke domænepolitik: den
- * samme håndtering skal gælde alle 21 outputs, og efter Fase 5 er der kun én afvikler
- * (`runPreparedDocument`) der bruger den. Indholdet er flyttet uændret; ingen adfærdsændring.
+ * Udskilt fra `documentService.ts` i Fase 5, fordi den er MEKANIK og ikke domænepolitik: den samme
+ * håndtering skal gælde alle 21 outputs.
+ *
+ * Modulet er hovedappens implementering af to porte på `DocumentExecutionEnvironment`
+ * (`checkDevServerAvailability` og `reportFailure`) — ikke et lag, livscyklussen kalder direkte.
+ * Standalone MinProcesrente leverer sine egne porte og importerer bevidst IKKE dette modul, fordi
+ * `reportSystemIssue` er hovedapp-infrastruktur, som isolations-værnet holder ude af standalone.
+ *
+ * Brugerbeskeder hører IKKE her. De formuleres i `documentMessages.ts` ud fra udfaldets TILSTAND;
+ * dette modul afgør kun, hvad der rapporteres til systemfejl-overfladen.
  */
-import { logWarning } from '../../utils/logger';
-import { asError } from '../../utils/typeGuards';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
-import { getDocumentFormatLabel } from '../documentFormat';
-import { stamdataSchema, type StamdataValues } from '../../schemas/formSchemas';
-import type { DocumentSettings } from '../layout/documentBrevhoved';
-
-export type DocumentDownloadResult = Readonly<{ success: true } | { success: false; error: string }>;
-
-export const DOCUMENT_DOWNLOAD_SUCCESS: DocumentDownloadResult = { success: true };
-
-type PdfDownloadFailureKind = 'pdf_generation_failed' | 'dev_server_unavailable';
+import type { DocumentDiagnostics, DocumentFailure } from '../definition/documentOutcome';
 
 const DEV_SERVER_UNAVAILABLE_ERROR = 'Udviklingsserveren svarer ikke længere. Genstart `npm run dev` og prøv dokument-download igen.';
 const DEV_SERVER_PING_TIMEOUT_MS = 1_000;
@@ -102,35 +99,35 @@ const isDevServerReachable = async (): Promise<boolean> => {
   return false;
 };
 
-const createDevServerUnavailableFailure = (
-  context: string,
-  diagnostics?: Record<string, unknown>,
-): DocumentDownloadResult => {
+const noteDevServerUnavailable = (
+  diagnostics: DocumentDiagnostics,
+  extra: Record<string, unknown>,
+): void => {
   const now = Date.now();
   const shouldReport =
     lastKnownDevServerUnavailableAt === null
     || (now - lastKnownDevServerUnavailableAt) >= DEV_SERVER_DOWN_CACHE_TTL_MS;
   lastKnownDevServerUnavailableAt = now;
 
-  if (shouldReport) {
-    reportSystemIssue({
-      code: 'document:dev_server_unavailable',
-      area: 'document',
-      context,
-      userMessage: DEV_SERVER_UNAVAILABLE_ERROR,
-      developerMessage: 'Vite dev-server ping failed before PDF module load.',
-      diagnostics: {
-        mode: import.meta.env.MODE,
-        origin: typeof window !== 'undefined' ? window.location.origin : null,
-        pingPath: DEV_SERVER_PING_PATH,
-        pingTimeoutMs: DEV_SERVER_PING_TIMEOUT_MS,
-        pingAttempts: DEV_SERVER_PING_MAX_ATTEMPTS,
-        ...diagnostics,
-      },
-    });
-  }
+  if (!shouldReport) return;
 
-  return { success: false, error: DEV_SERVER_UNAVAILABLE_ERROR };
+  reportSystemIssue({
+    code: 'document:dev_server_unavailable',
+    area: 'document',
+    context: `document.${diagnostics.outputId}`,
+    userMessage: DEV_SERVER_UNAVAILABLE_ERROR,
+    developerMessage: 'Vite dev-server ping failed before document module load.',
+    diagnostics: {
+      mode: import.meta.env.MODE,
+      origin: typeof window !== 'undefined' ? window.location.origin : null,
+      outputId: diagnostics.outputId,
+      phase: diagnostics.phase,
+      pingPath: DEV_SERVER_PING_PATH,
+      pingTimeoutMs: DEV_SERVER_PING_TIMEOUT_MS,
+      pingAttempts: DEV_SERVER_PING_MAX_ATTEMPTS,
+      ...extra,
+    },
+  });
 };
 
 const hasRecentDevServerUnavailableSignal = (): boolean => {
@@ -141,97 +138,59 @@ const hasRecentDevServerUnavailableSignal = (): boolean => {
   return Date.now() - lastKnownDevServerUnavailableAt < DEV_SERVER_DOWN_CACHE_TTL_MS;
 };
 
-export const resetPdfServiceDevServerStateForTests = (): void => {
+export const resetDocumentDevServerStateForTests = (): void => {
   lastKnownDevServerUnavailableAt = null;
 };
 
-export const ensureDevServerAvailableForPdfDownload = async (context: string): Promise<DocumentDownloadResult | null> => {
-  if (!import.meta.env.DEV) {
-    return null;
-  }
-
-  if (!hasRecentDevServerUnavailableSignal()) {
-    return null;
-  }
+/**
+ * `checkDevServerAvailability`-porten for hovedappens miljø. Returnerer en `DocumentFailure`, hvis
+ * afviklingen skal stoppe før modul-load, ellers `null`.
+ */
+export const ensureDevServerAvailableForDocumentDownload = async (
+  diagnostics: DocumentDiagnostics
+): Promise<DocumentFailure | null> => {
+  if (!import.meta.env.DEV) return null;
+  if (!hasRecentDevServerUnavailableSignal()) return null;
 
   if (await isDevServerReachable()) {
-    resetPdfServiceDevServerStateForTests();
+    resetDocumentDevServerStateForTests();
     return null;
   }
 
-  return createDevServerUnavailableFailure(context, {
-    check: 'cached_preflight_recheck',
-  });
+  noteDevServerUnavailable(diagnostics, { check: 'cached_preflight_recheck' });
+  return { kind: 'dev-server-unavailable', phase: diagnostics.phase };
 };
 
-const resolvePdfDownloadFailureKind = async (error: Error): Promise<PdfDownloadFailureKind> => {
-  if (!import.meta.env.DEV) {
-    return 'pdf_generation_failed';
-  }
+/**
+ * `reportFailure`-porten for hovedappens miljø. Kun UVENTEDE runtimefejl rapporteres som systemfejl;
+ * forventelige afvisninger (gate, stale, settle) og dev-server-nedetid når aldrig hertil (§A5).
+ *
+ * DEV-heuristikken for dynamic-import-fejl bevares, men den kan ikke længere ændre det udfald,
+ * brugeren ser — den beriger kun diagnostikken. Tidligere kunne den omklassificere en runtimefejl til
+ * "dev-server nede" EFTER at fejlteksten var valgt, hvilket gav to forskellige beskeder for samme
+ * tilstand afhængigt af timing.
+ */
+export const reportDocumentRuntimeFailure = (
+  failure: DocumentFailure,
+  diagnostics: DocumentDiagnostics
+): void => {
+  if (failure.kind !== 'runtime') return;
 
-  if (!isLikelyDynamicImportFetchError(error)) {
-    return 'pdf_generation_failed';
-  }
-
-  return (await isDevServerReachable()) ? 'pdf_generation_failed' : 'dev_server_unavailable';
-};
-
-export const createPdfDownloadFailure = async (
-  userError: string,
-  context: string,
-  error: unknown
-): Promise<DocumentDownloadResult> => {
-  const normalizedError = asError(error);
-  const failureKind = await resolvePdfDownloadFailureKind(normalizedError);
-  if (failureKind === 'dev_server_unavailable') {
-    return createDevServerUnavailableFailure(context, {
+  if (import.meta.env.DEV && isLikelyDynamicImportFetchError(failure.cause)) {
+    noteDevServerUnavailable(diagnostics, {
       check: 'post_failure',
-      originalErrorMessage: normalizedError.message,
+      originalErrorMessage: failure.cause.message,
     });
+    return;
   }
 
   reportSystemIssue({
     code: 'document:download_failure',
     area: 'document',
-    context,
-    userMessage: userError,
-    developerMessage: normalizedError.message,
-    error: normalizedError,
+    context: `document.${diagnostics.outputId}`,
+    userMessage: 'Dokumentet kunne ikke genereres',
+    developerMessage: failure.cause.message,
+    error: failure.cause,
+    diagnostics: { outputId: diagnostics.outputId, phase: diagnostics.phase },
   });
-  return { success: false, error: userError };
-};
-
-// Tilpasser en PDF-formuleret fejltekst til det aktive download-format (jf.
-// document-format-contract.md §5: brugervendt signal skal nævne det aktive format).
-// Forudsætning: alle fejltekster der sendes hertil bruger "PDF" UDELUKKENDE som
-// format-reference (fx "…-PDF"). Erstatningen er global og case-sensitiv; den må
-// derfor ikke bruges på tekster hvor "PDF" optræder i en betydning der ikke skal
-// følge formatet. formatLabel er altid 'PDF' (identitets-erstatning) eller 'Word'
-// (intet "PDF"-substring), så erstatningen er idempotent og kan ikke selv-matche.
-export const buildDocumentFailureMessage = (settings: DocumentSettings, pdfMessage: string): string => {
-  const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
-  return pdfMessage.replace(/PDF/g, formatLabel);
-};
-
-/**
- * Parser kun dokumentets valgfrie stamdata-context; funktionen er ikke en downloadgate.
- * Domænedokumenter afgør selv, om datoorden er dokumentrelevant, før servicen kaldes.
- * Derfor bevares schema-gyldige canonical datoer her, også når deres indbyrdes orden
- * er et afledt issue; ellers ville fx et satsdokument miste hele brevhovedets stamdata.
- */
-export const resolvePdfStamdata = (persistedStamdata: unknown): StamdataValues | null => {
-  if (persistedStamdata == null) {
-    return null;
-  }
-
-  const parsed = stamdataSchema.safeParse(persistedStamdata);
-  if (!parsed.success) {
-    logWarning('Stamdata kunne ikke valideres til PDF-generering', {
-      context: 'pdfService.resolvePdfStamdata',
-      data: { issueCount: parsed.error.issues.length },
-    });
-    return null;
-  }
-
-  return parsed.data;
 };

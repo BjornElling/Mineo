@@ -24,7 +24,7 @@ import {
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import type { DocumentSettings } from '../../document/layout/documentBrevhoved';
+import type { EoRowPolicy } from '../../document/definition/documentSourceSettings';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
 import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
@@ -118,12 +118,12 @@ export const buildEoIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
-  appSettings: DocumentSettings = DEFAULT_APP_SETTINGS,
+  rowPolicy: EoRowPolicy = DEFAULT_APP_SETTINGS,
   skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom'
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
-  const allowIncompleteOverenskomst = appSettings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
-  const overenskomstUdloebMaanederGraense = appSettings.allowReguleringMedUdloebMedMaaneder;
+  const allowIncompleteOverenskomst = rowPolicy.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
+  const overenskomstUdloebMaanederGraense = rowPolicy.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
   const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
 

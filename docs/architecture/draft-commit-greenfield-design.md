@@ -1446,19 +1446,38 @@ navne. "Greenfield" står nu kun i prosa, hvor det er den korrekte historiske re
 
 ### Fase 5 — Alle dokumentoutputs
 
-**Status:** Påbegyndt 2026-07-25 (WI-008), ca. halvvejs. Kernen og React-grænsen står; 10 af 21
-dokumentdefinitioner er skrevet. **Ingen callsite er skiftet endnu** — produktionen kører fortsat på
-de gamle `download*Dokument`-funktioner, så træet har bevidst to parallelle veje indtil pass 7.
-Detaljeret status, næste skridt og kendte fælder: `work-items/WI-008-fase5-dokumentoutputs.md`.
+**Status:** Påbegyndt 2026-07-25, kerne OMSKREVET 2026-07-26 efter eksternt review (WI-008).
+**16 af 21 dokumentdefinitioner står, og kernen er færdig.** **Ingen callsite er skiftet endnu** —
+produktionen kører fortsat på de gamle `download*Dokument`-funktioner, så træet har bevidst to
+parallelle veje indtil pass 7. Detaljeret status, næste skridt, designbeslutninger (B1–B5) og kendte
+fælder: `work-items/WI-008-fase5-dokumentoutputs.md`.
 
 Den strukturelle rod, fasen retter: download-livscyklussen fandtes ikke som ét objekt. Den var
 spredt over React-handleren (commit-barriere, kildeoptagelse, token-lighed, gate),
 `documentService.ts`' per-output-funktion (lazy-load, friskheds-recheck, formatvalg, generatorkald,
 fejlrouting) og et domæne-gate-modul — atten gange. Derfor manglede fem outputs mindst ét trin, og
-regulering/KRL/KL-lønaftaler havde end ikke en commit-barriere. Efter fasen er livscyklussen ét
-objekt (`DocumentDefinition` + `prepareDocument`/`runPreparedDocument`), og `runPreparedDocument`
-tager kun en `PreparedDocument`, som kun preflighten kan konstruere — at omgå gaten er dermed
-urepræsenterbart frem for blot frarådet.
+regulering/KRL/KL-lønaftaler havde end ikke en commit-barriere.
+
+Efter fasen er livscyklussen ét objekt: `DocumentDefinition<TRequest, TInput, TSettings,
+TBrevhovedKey>` ejer dependencies, gate og generatorkald pr. output, og `documentLifecycle.ts` ejer
+rækkefølgen.
+
+**Vigtig rettelse (2026-07-26).** Dette afsnit hævdede tidligere, at "at omgå gaten er
+urepræsenterbart", fordi afvikleren kun tog en `PreparedDocument`, som kun preflighten kunne
+konstruere. **Den påstand var faktuelt forkert** og blev modbevist med en compile-probe: typen var et
+almindeligt eksporteret struktur-`Readonly<{…}>`, så enhver callsite med et lovligt optaget token
+kunne håndbygge et og kalde afvikleren med et ugated input — uden `as`, `unknown` eller cast.
+Påstanden holder nu, men af en anden grund: `PreparedDocument` er nominal (privat `unique
+symbol`-brand) OG modulprivat, afvikleren er ikke eksporteret, og kun `executeDocumentDownload`
+(preflight + afvikling i ét) er offentlig. Lukningen er verificeret med `@ts-expect-error`-prober på
+begge navne.
+
+Den første kerne blev bygget som **fællesmængden af de 18 eksisterende servicefunktioner** frem for
+som en livscyklus designet fra bunden, og arvede derfor deres forudsætninger som om de var
+universelle. Otte strukturelle fund fulgte af det (aktiveringsidentitet, app-runtime hardkodet i
+kernen, globalt katalog i kernelaget, settings-workaround, gate-bypass, legacy fejlalgebra, manglende
+post-render-friskhedscheck, usikker memo). Kernen blev derfor omskrevet, MENS der endnu var nul
+callsites — se WI-008's B3 for afvejningen.
 
 **Afhængighed:** Fase 3–4.
 
@@ -1478,11 +1497,45 @@ For hvert output:
 3. Blokér på relevante field- og consumererrors; ignorér ikke-dependencies.
 4. Lad warnings passere.
 5. Settle åben editor før preflight.
-6. Kræv frisk `EvaluationSourceToken` efter lazy-load og umiddelbart før generatorstart.
-7. Send kun `PreparedDocument<T>` til generator/service.
+6. Kræv frisk `EvaluationSourceToken` ved HVER asynkron grænse — entry, efter dev-preflight, efter
+   generator-load, efter writer-load OG efter rendererens promise umiddelbart før fil-I/O.
+   Browser-downloaden er den irreversible handling (`critical-action-contract.md` §5). Det sidste
+   check manglede oprindeligt både her og i den gamle `runSelectedDocumentFormat`, så et dokument,
+   hvis input ændredes under selve renderingen, blev leveret forældet.
+7. Send kun det gatede, tokenbundne input til generatoren. Kernens `PreparedDocument` er modulprivat
+   og nominal; den kan ikke konstrueres uden for `documentLifecycle.ts`.
 8. Placér PDF/Word-formatvalg efter gaten.
 9. Fjern lokale booleans, click-gates og direkte generator-/servicekald.
 10. Markér først outputtet migreret, når matrix-testen er grøn.
+
+#### Kernens moduler (`src/document/definition/`)
+
+| Modul | Ansvar |
+|---|---|
+| `documentOutputId.ts` | ID-inventaret uden afhængigheder: `MINEO_DOCUMENT_OUTPUT_IDS` (18) + `STANDALONE_DOCUMENT_OUTPUT_IDS` (3). Completeness-kilden for begge apps' kataloger. |
+| `documentDefinition.ts` | `DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>`, `project(context, request)`, `loadRenderer`, `labels.documentName`. |
+| `documentLifecycle.ts` | `executeDocumentDownload` — det ENE entrypoint. Preflight (settle → capture → token-lighed → project) + afvikling i ét modul; nominal, modulprivat `PreparedDocument`; `requireCurrentSource()` i alle faser. |
+| `documentExecutionEnvironment.ts` | Injiceret app-runtime: source-port, `readCurrentSourceToken`, `criticalActions`, format/session-policy, brevhoved-policy, dev-server-port, failure-sink. Kernen kender ikke `AppSettings`. |
+| `documentOutcome.ts` | Én end-to-end union: `downloaded` / `rejected{gate-blocked,stale-source,settle-failed}` / `failed{dev-server-unavailable,runtime}`, hver med `phase` som DIAGNOSTIK. Non-empty `DocumentGateReasons` + `toGateReasons`. |
+| `documentSourceSettings.ts` | `DocumentRenderSettings` / `EoRowPolicy` / `DocumentSourceSettings` + `SOURCE_RELEVANT_SETTINGS_KEYS` med compile-time completeness. Fingerprintet udledes af listen. |
+| `documentSourceContext.ts` | `shared(builder)` — builderen er selv memo-nøglen, så nøgle og resultattype ikke kan skilles. |
+| `documentCatalog.ts` | Kun FABRIK (`closeDocumentDefinition`). Ingen definitioner: komposition sker i app-/route-rødder, så route-lazy chunkgrænser bevares. |
+| `documentMessages.ts` | Brugerbeskeder ud fra udfaldets TILSTAND (ikke fase). Ingen `/PDF/g`-substitution. |
+| `mineoDocumentDefinition.ts` | `MineoDocumentDefinition` + `defineMineoDocument` — binder hovedappens settings-/brevhoved-typer ét sted. |
+| `react/useDocumentDownload.ts` | Reaktiv gate + click-preflight fra SAMME definition. Miljøet injiceres, så standalone kan bruge samme hook. |
+
+Hovedappens composition root: `src/document/runtime/mineoDocumentEnvironment.ts`.
+
+#### Status pr. pass (2026-07-26)
+
+| Pass | Indhold | Status |
+|---|---|---|
+| 0 | Kerneomskrivning + tilpasning af de 10 første definitioner + `EoRowPolicy` | ✅ |
+| 3 | Gruppe A: 4× EO, 4× EET, forsørgertab, varige mén, rente-oversigt | ✅ |
+| 4 | satser, rente (`TRequest = {rowId}`), aarsloen, sh-dage | ✅ |
+| 5 | regulering, krl, kl-loenaftaler + `DocumentAction`-resolver (WI-008 B4) | ⬜ |
+| 6 | 3× standalone MinProcesrente via eget `DocumentExecutionEnvironment` | ⬜ |
+| 7 | Callsite-cutover, sletning af `download*Dokument`, AST-værn, matrix + completeness | ⬜ |
 
 #### Godkendte adfærdsændringer (brugergodkendt 2026-07-25)
 

@@ -1,83 +1,83 @@
 /**
- * React-grænsen til det kanoniske dokumentkatalog (Fase 5).
+ * React-grænsen til et dokumentkatalog (Fase 5).
  *
  * Hook'en er den ENESTE vej fra en side til et dokumentoutput, og den leverer begge sider af
  * kontraktens §A2 fra samme katalogpost:
  *
- *   - `canDownload`/`disabledReason` — den reaktive knap-gate, udledt af render-tidens
+ *   - `canDownload`/`blockedReasons` — den reaktive knap-gate, udledt af render-tidens
  *     `InputEvaluation`, så knappen er både visuelt og funktionelt disabled ved blokering.
- *   - `download()` — click-preflighten, som settler editoren og evaluerer et FRISKT snapshot.
+ *   - `download(request)` — click-preflighten, som settler editoren og evaluerer et FRISKT snapshot.
  *
- * Fordi begge kalder `output.evaluateGate`/`output.download` på den samme definition, kan de ikke
- * drifte fra hinanden (§10 acceptkriterie 27). Før Fase 5 var dette to selvstændige udtryk pr.
- * side — og for regulering/KRL/KL-lønaftaler endda to forskellige formler i to komponenter.
+ * Fordi begge kalder samme definition med samme `request`, kan de ikke drifte fra hinanden (§10
+ * acceptkriterie 27). Før Fase 5 var dette to selvstændige udtryk pr. side — og for
+ * regulering/KRL/KL-lønaftaler endda to forskellige formler i to komponenter.
+ *
+ * **Miljøet injiceres.** Hook'en hardkodede oprindeligt hovedappens kildeoptagelse og krævede
+ * `AppSettingsProvider`, hvilket gjorde den ubrugelig for standalone MinProcesrente (fast PDF, intet
+ * brevhoved, isoleret fejl-sink, ingen AppSettings). Nu kommer runtimepolitikken fra appens
+ * composition root, så samme hook-implementering betjener begge apps.
  */
 import React from 'react';
-import { useAppSettings } from '../../../contexts/useAppSettings';
-import {
-  useCriticalInputActions,
-  useInputEvaluation,
-} from '../../../inputCore/react/useInputEvaluation';
-import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
 import type { DocumentOutput } from '../documentCatalog';
+import type { DocumentGateReasons, DocumentOutcome } from '../documentOutcome';
 import { createDocumentSourceContext, type DocumentSourceContext } from '../documentSourceContext';
-import type { DocumentDownloadOutcome } from '../downloadDocument';
+import type { InputEvaluation } from '../../../inputCore/inputReader';
 
 /**
  * Render-tidens kildekontekst. ÉN pr. revision/settingsrevision, delt af alle outputs på siden, så
- * fire EO-knapper eller fire EET-faner betaler for deres fælles domæneprojektion én gang i stedet
- * for fire. Konteksten er immutable og bundet til ét `EvaluationSourceToken`.
+ * fire EO-knapper eller fire EET-faner betaler for deres fælles domæneprojektion én gang i stedet for
+ * fire. Konteksten er immutable og bundet til ét `EvaluationSourceToken`; dependency-listen er derfor
+ * tilstrækkelig som identitet.
  */
-export const useDocumentSourceContext = (): DocumentSourceContext => {
-  const evaluation = useInputEvaluation();
-  const { settings } = useAppSettings();
-  return React.useMemo(() => createDocumentSourceContext(evaluation, settings), [evaluation, settings]);
-};
+export const useDocumentSourceContext = <TSettings>(
+  evaluation: InputEvaluation,
+  settings: TSettings
+): DocumentSourceContext<TSettings> =>
+  React.useMemo(() => createDocumentSourceContext(evaluation, settings), [evaluation, settings]);
 
-export type DocumentDownloadHandle = Readonly<{
+export type DocumentDownloadHandle<TRequest> = Readonly<{
   canDownload: boolean;
-  /** Kort årsag til knappens tooltip, når `canDownload` er false. */
+  /** HELE årsagslisten ved blokering, så en konsument kan vise mere end den primære grund. */
+  blockedReasons: DocumentGateReasons | null;
+  /** Den primære grund til knappens tooltip. */
   disabledReason: string | undefined;
-  /**
-   * Brugerrettet fejl fra den seneste aktivering, eller `null`. Sættes både ved en afvist
-   * preflight (gate/stale) og ved en runtimefejl under en godkendt download; ryddes ved næste
-   * aktivering, så en gammel besked ikke overlever en efterfølgende succes.
-   */
-  errorMessage: string | null;
-  clearErrorMessage: () => void;
-  download: () => Promise<DocumentDownloadOutcome>;
+  /** Udfaldet af den seneste aktivering, eller `null` før første klik / efter rydning. */
+  lastOutcome: DocumentOutcome | null;
+  clearOutcome: () => void;
+  download: (request: TRequest) => Promise<DocumentOutcome>;
 }>;
 
-export const useDocumentDownload = (
-  output: DocumentOutput,
-  context: DocumentSourceContext
-): DocumentDownloadHandle => {
-  const criticalActions = useCriticalInputActions();
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+export const useDocumentDownload = <TRequest, TSettings>(
+  output: DocumentOutput<TRequest, TSettings>,
+  context: DocumentSourceContext<TSettings>,
+  /**
+   * Requesten, den reaktive gate skal vurderes for. For outputs uden aktiveringsidentitet er den
+   * `undefined as void`; for rækkebaserede outputs er det den række, knappen tegnes for.
+   */
+  gateRequest: TRequest
+): DocumentDownloadHandle<TRequest> => {
+  const [lastOutcome, setLastOutcome] = React.useState<DocumentOutcome | null>(null);
 
-  const gate = React.useMemo(() => output.evaluateGate(context), [output, context]);
+  const gate = React.useMemo(
+    () => output.evaluateGate(context, gateRequest),
+    [output, context, gateRequest]
+  );
 
-  const download = React.useCallback(async (): Promise<DocumentDownloadOutcome> => {
-    setErrorMessage(null);
-    const outcome = await output.download({
-      criticalActions,
-      captureSource: captureProductionEvaluationSource,
-    });
-    if (outcome.status === 'failed') {
-      setErrorMessage(outcome.error);
-    } else if (outcome.status === 'rejected') {
-      setErrorMessage(outcome.message);
-    }
+  const download = React.useCallback(async (request: TRequest): Promise<DocumentOutcome> => {
+    setLastOutcome(null);
+    const outcome = await output.download(request);
+    setLastOutcome(outcome);
     return outcome;
-  }, [output, criticalActions]);
+  }, [output]);
 
-  const clearErrorMessage = React.useCallback(() => setErrorMessage(null), []);
+  const clearOutcome = React.useCallback(() => setLastOutcome(null), []);
 
   return {
     canDownload: gate.canDownload,
-    disabledReason: gate.canDownload ? undefined : gate.reasons[0]?.message,
-    errorMessage,
-    clearErrorMessage,
+    blockedReasons: gate.canDownload ? null : gate.reasons,
+    disabledReason: gate.canDownload ? undefined : gate.reasons[0].message,
+    lastOutcome,
+    clearOutcome,
     download,
   };
 };

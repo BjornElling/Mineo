@@ -14,7 +14,7 @@
 import type { EoRowModel } from './eoRowTypes';
 import type { NavigationTarget } from './eoRowNavigationMap';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import type { DocumentSettings } from '../../document/layout/documentBrevhoved';
+import type { EoRowPolicy } from '../../document/definition/documentSourceSettings';
 import type {
   EoRowEvaluationContext,
   StamdataValues,
@@ -280,7 +280,7 @@ export const collectAllEoRows = (
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues,
   erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource,
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
-  appSettings: DocumentSettings = DEFAULT_APP_SETTINGS,
+  rowPolicy: EoRowPolicy = DEFAULT_APP_SETTINGS,
   canonicalOutputOverride?: EoCanonicalOutput,
   pdfModelOverride?: EoModel
 ): BeregningErrorSummary => {
@@ -291,7 +291,7 @@ export const collectAllEoRows = (
     eoValues: erstatningsopgoerelseValues,
     eoErrors: erstatningsopgoerelseErrors,
     loenindkomstManuelReguleringInputErrors,
-    appSettings,
+    rowPolicy,
     canonicalOutput: canonicalOutputOverride,
     pdfModel: pdfModelOverride,
   };

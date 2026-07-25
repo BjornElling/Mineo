@@ -19,7 +19,19 @@ import { assertPathExists } from './testUtils';
  */
 
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
-const SPECIAL_EO_IMPORT_HOOK_PATH = path.resolve(SRC_ROOT, 'hooks/useMidlertidigtEetInsertSource.ts');
+/**
+ * EO's specialimport blev i Fase 5 delt i to: React-adapteren (hook'en) og den rene builder i
+ * domænelaget, så ikke-React-konsumenter — fx EO's dokumentdefinition — kan bruge builderen uden at
+ * trække React ind.
+ *
+ * Værnet skal derfor dække BEGGE filer. Den samlede kilde tjekkes for de påkrævede reader-markører
+ * (så adapteren stadig går gennem `useInputEvaluation`, og builderen stadig gennem den offentlige
+ * reader-projektion), mens forbuddene mod rå store-adgang og sektionsskrivning gælder hver fil for sig.
+ */
+const SPECIAL_EO_IMPORT_PATHS = [
+  path.resolve(SRC_ROOT, 'hooks/useMidlertidigtEetInsertSource.ts'),
+  path.resolve(SRC_ROOT, 'domain/erhvervsevnetab/midlertidigtEetInsertSource.ts'),
+] as const;
 const STORAGE_KEYS = [...PERSISTED_SECTION_KEYS];
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -36,14 +48,23 @@ describe('domainBoundaryIsolation', () => {
   });
 
   it('holder EO-specialimporten på den offentlige reader uden raw store- eller write-adgang', () => {
-    assertPathExists(SPECIAL_EO_IMPORT_HOOK_PATH, 'EO specialimport-hook');
-    const source = fs.readFileSync(SPECIAL_EO_IMPORT_HOOK_PATH, 'utf8');
-    const writeSections = Array.from(source.matchAll(WRITE_ACCESS_PATTERN), (match) => match[1] as PersistedSectionKey);
+    for (const filePath of SPECIAL_EO_IMPORT_PATHS) {
+      assertPathExists(filePath, `EO specialimport (${path.basename(filePath)})`);
+    }
+    const sources = SPECIAL_EO_IMPORT_PATHS.map((filePath) => fs.readFileSync(filePath, 'utf8'));
+    const combined = sources.join('\n');
 
-    expect(source).toContain('useInputEvaluation');
-    expect(source).toContain('buildErhvervsevnetabReaderProjection');
-    expect(source).not.toContain('formPersistenceStore');
-    expect(source).not.toMatch(/\.sections\b/);
-    expect(writeSections).toEqual([]);
+    // Reader-stien skal findes ét af de to steder: hook'en holder `useInputEvaluation`, builderen
+    // holder projektionen. Begge markører skal fortsat være til stede i den samlede specialimport.
+    expect(combined).toContain('useInputEvaluation');
+    expect(combined).toContain('buildErhvervsevnetabReaderProjection');
+
+    // Forbuddene gælder pr. fil: ingen af dem må nå den rå store eller skrive en sektion.
+    for (const source of sources) {
+      const writeSections = Array.from(source.matchAll(WRITE_ACCESS_PATTERN), (match) => match[1] as PersistedSectionKey);
+      expect(source).not.toContain('formPersistenceStore');
+      expect(source).not.toMatch(/\.sections\b/);
+      expect(writeSections).toEqual([]);
+    }
   });
 });

@@ -85,7 +85,7 @@ export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
         ctx.eoValues,
         ctx.stamdataValues.skadedato,
         ctx.loenindkomstManuelReguleringInputErrors,
-        ctx.appSettings,
+        ctx.rowPolicy,
         ctx.stamdataValues.skadestype
       ),
   },

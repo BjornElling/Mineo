@@ -1,56 +1,66 @@
 /**
- * Kildekonteksten en dokumentdefinition projicerer fra, og den token-nøglede memo, der gør det
- * gratis for flere outputs at dele én dyr domæneprojektion (Fase 5).
+ * Kildekonteksten en dokumentdefinition projicerer fra, og den typebundne memo, der gør det gratis
+ * for flere outputs at dele én dyr domæneprojektion (Fase 5).
  *
  * **Hvorfor `InputEvaluation` og ikke bare `InputReader`:** `evaluation.reader` og
  * `evaluation.issues` er bundet til det SAMME `EvaluationSourceToken` af `createInputEvaluation`.
- * Flere domæneprojektioner har brug for begge — fx udleder EO's importkilde
- * (`buildMidlertidigtEetInsertSource`) sine kilde-issues af `evaluation.issues.all`. At sende kun
- * readeren ville tvinge hver definition til at genudlede issue-siden og dermed introducere netop
- * den drift, Fase 5 fjerner.
+ * Flere domæneprojektioner har brug for begge — fx udleder EO's importkilde sine kilde-issues af
+ * `evaluation.issues.all`. At sende kun readeren ville tvinge hver definition til at genudlede
+ * issue-siden og dermed introducere netop den drift, Fase 5 fjerner.
  *
- * **Hvorfor en memo:** fire EO-dokumenter deler én `buildErstatningsopgoerelseReaderProjection` +
- * én `evaluateErstatningsopgoerelseDownloadGates` (som kører `collectAllEoRows`); fire EET-faner
- * deler én `buildErhvervsevnetabReaderProjection`; to rente- og to årsløn-outputs deler ligeledes
- * hver sin. Uden memo ville den reaktive knap-gate køre den samme aggregering fire gange pr.
- * render. Nøglen er kildekonteksten SELV (objektidentitet) — ikke tokenet: to forskellige
- * kontekster med samme token er stadig to selvstændige, immutable snapshots, og render-siden
- * genbruger bevidst ét kontekstobjekt pr. revision. Cachen kan derfor aldrig udlevere et
- * resultat, der hører til et andet input eller andre settings.
+ * **Hvorfor en memo:** fire EO-dokumenter deler én reader-projektion + ét gate-sæt (som kører
+ * `collectAllEoRows`); fire EET-faner deler én projektion; to rente- og to årsløn-outputs ligeledes.
+ * Uden memo ville den reaktive knap-gate køre den samme aggregering fire gange pr. render.
+ *
+ * **Hvorfor nøglen er builderen selv (pass 0-rettelse):** memoen var oprindeligt
+ * `shared<T>(key: object, compute: () => T)`, hvor cachen gemte `unknown` og castede til kalderens
+ * frit valgte `T`. Samme nøgle kunne derfor lovligt genbruges med en anden forventet type og
+ * returnere den første værdi under forkert statisk type — et typehul, ikke bare en skønhedsfejl.
+ * Nu ER builder-funktionen både nøgle og beregning, så nøgle og resultattype ikke kan komme fra hinanden.
+ *
+ * Cachens levetid er kontekstobjektets: én pr. revision på render-siden, én pr. aktivering i
+ * preflighten. Nøglen er altså aldrig tokenet — to kontekster med samme token er stadig to
+ * selvstændige, immutable snapshots, og cachen kan derfor aldrig udlevere et resultat, der hører til
+ * et andet input eller andre settings.
  */
 import type { InputEvaluation } from '../../inputCore/inputReader';
-import type { DocumentSettings } from '../layout/documentBrevhoved';
-
-export type DocumentSourceContext = Readonly<{
-  evaluation: InputEvaluation;
-  settings: DocumentSettings;
-  /**
-   * Memoiserer delt domænearbejde for netop denne kontekst. `key` skal være en modul-lokal,
-   * stabil reference (typisk selve builder-funktionen), så to domæner ikke kan kollidere.
-   */
-  shared: <T>(key: object, compute: () => T) => T;
-}>;
 
 /**
- * Bygger en kildekontekst med sin egen, isolerede memo. Kaldes ét sted pr. render (den reaktive
- * gate) og ét sted pr. aktivering (click-preflighten), så delt arbejde deles inden for én
- * evaluering — men aldrig hen over to.
+ * En delt, memoiserbar domæneprojektion. Fordi builderen selv er nøglen, er `T` bundet til den ene
+ * funktion — der findes ingen vej til at læse samme slot som en anden type.
  */
-export const createDocumentSourceContext = (
+export type SharedProjectionBuilder<TSettings, T> = (context: DocumentSourceContext<TSettings>) => T;
+
+export type DocumentSourceContext<TSettings> = Readonly<{
+  evaluation: InputEvaluation;
+  settings: TSettings;
+  /**
+   * Kør `builder` én gang pr. kontekst og genbrug resultatet. `builder` skal være en modul-lokal,
+   * stabil reference (typisk en top-level `const`), ellers rammer to kald aldrig samme slot.
+   */
+  shared: <T>(builder: SharedProjectionBuilder<TSettings, T>) => T;
+}>;
+
+export const createDocumentSourceContext = <TSettings>(
   evaluation: InputEvaluation,
-  settings: DocumentSettings
-): DocumentSourceContext => {
-  const memo = new Map<object, unknown>();
-  return Object.freeze({
+  settings: TSettings
+): DocumentSourceContext<TSettings> => {
+  const memo = new Map<SharedProjectionBuilder<TSettings, unknown>, unknown>();
+
+  const context: DocumentSourceContext<TSettings> = Object.freeze({
     evaluation,
     settings,
-    shared: <T>(key: object, compute: () => T): T => {
-      if (memo.has(key)) {
-        return memo.get(key) as T;
+    shared: <T>(builder: SharedProjectionBuilder<TSettings, T>): T => {
+      const cached = memo.get(builder as SharedProjectionBuilder<TSettings, unknown>);
+      if (cached !== undefined || memo.has(builder as SharedProjectionBuilder<TSettings, unknown>)) {
+        // Nøglen ER builderen, så det cachede resultat kan kun stamme fra netop denne `T`.
+        return cached as T;
       }
-      const value = compute();
-      memo.set(key, value);
+      const value = builder(context);
+      memo.set(builder as SharedProjectionBuilder<TSettings, unknown>, value);
       return value;
     },
   });
+
+  return context;
 };

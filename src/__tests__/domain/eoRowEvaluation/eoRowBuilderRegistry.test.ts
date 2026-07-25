@@ -22,7 +22,7 @@ const ctx: EoRowEvaluationContext = {
   eoValues: createErstatningsopgoerelseInitialValues(),
   eoErrors: {},
   loenindkomstManuelReguleringInputErrors: {},
-  appSettings: DEFAULT_APP_SETTINGS,
+  rowPolicy: DEFAULT_APP_SETTINGS,
 };
 
 describe('executeEoRowBuilderEntries', () => {

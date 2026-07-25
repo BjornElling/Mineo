@@ -11,10 +11,8 @@
  */
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
-import {
-  defineDocumentOutput,
-  type DocumentDefinition,
-} from '../../document/definition/documentDefinition';
+import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import { toGateReasons } from '../../document/definition/documentOutcome';
 import { resolveStamdataDatoLabel } from '../policies/stamdataCalculations';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
@@ -32,16 +30,22 @@ export type VarigeMenDocumentInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
-export const varigeMenDocumentDefinition: DocumentDefinition<VarigeMenDocumentInput> =
-  defineDocumentOutput({
+export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocumentInput> =
+  defineMineoDocument({
     id: 'varigemen',
-    brevhovedType: 'varigeMen',
-    errorLabel: 'Kunne ikke generere ménberegning-PDF',
+    brevhoved: { kind: 'settings-key', key: 'varigeMen' },
+    labels: { documentName: 'ménberegning' },
     project: (context) => {
       const projection = buildVarigeMenReaderProjection(context.evaluation.reader);
       const gate = evaluateVarigeMenDownloadGate(projection);
       if (!gate.canDownload) {
-        return { status: 'blocked', reasons: gate.reasons };
+        return {
+          status: 'blocked',
+          reasons: toGateReasons(gate.reasons, {
+            code: 'varigemen:blocked',
+            message: 'Dokumentet kan ikke hentes for den aktuelle sag',
+          }),
+        };
       }
 
       // Gaten dækker allerede begge betingelser (`no-result` ved manglende resultat); gentagelsen

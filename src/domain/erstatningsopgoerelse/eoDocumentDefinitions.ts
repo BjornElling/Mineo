@@ -13,14 +13,13 @@
  * `collectAllEoRows`-aggregering kører én gang pr. kildekontekst — ikke fire.
  */
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import {
-  defineDocumentOutput,
-  type DocumentDefinition,
-  type DocumentProjectionResult,
-} from '../../document/definition/documentDefinition';
+import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
+import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
+import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
-import { buildMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
+import { buildMidlertidigtEetInsertSource } from '../erhvervsevnetab/midlertidigtEetInsertSource';
 import type { SelectedElements } from '../../document/generators/eo/types';
 import type { MidlertidigtEetAfgoerelseGroup } from './helpers/midlertidigtEetInsertRows';
 import {
@@ -72,16 +71,19 @@ type SharedEoSource = Readonly<{
   gates: ErstatningsopgoerelseDownloadGates;
 }>;
 
-const readSharedEoSource = (context: DocumentSourceContext): SharedEoSource =>
-  context.shared(readSharedEoSource, () => {
-    const projection = buildErstatningsopgoerelseReaderProjection(context.evaluation.reader, {
-      midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(context.evaluation),
-    });
-    return {
-      projection,
-      gates: evaluateErstatningsopgoerelseDownloadGates(projection, context.settings),
-    };
+/**
+ * Builderen er selv memo-nøglen, så alle fire definitioner rammer samme slot i samme kildekontekst,
+ * og nøgle/resultattype ikke kan komme fra hinanden.
+ */
+const readSharedEoSource = (context: DocumentSourceContext<DocumentSourceSettings>): SharedEoSource => {
+  const projection = buildErstatningsopgoerelseReaderProjection(context.evaluation.reader, {
+    midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(context.evaluation),
   });
+  return {
+    projection,
+    gates: evaluateErstatningsopgoerelseDownloadGates(projection, context.settings),
+  };
+};
 
 /**
  * Bilagsvalget, som det gælder for det FRISKE snapshot: sagens gemte valg, hvor hvert dynamisk
@@ -117,9 +119,10 @@ const resolveMidlertidigtEetGroups = (
  */
 const blockedFromGate = <T>(gate: DocumentDownloadGateResult): DocumentProjectionResult<T> => ({
   status: 'blocked',
-  reasons: gate.reasons.length > 0
-    ? gate.reasons
-    : [{ code: 'eo.blocked', message: 'Dokumentet kan ikke hentes for den aktuelle sag' }],
+  reasons: toGateReasons(gate.reasons, {
+    code: 'eo.blocked',
+    message: 'Dokumentet kan ikke hentes for den aktuelle sag',
+  }),
 });
 
 const blockedFromProjection = <T>(code: string, message: string): DocumentProjectionResult<T> => ({
@@ -133,14 +136,14 @@ const blockedFromProjection = <T>(code: string, message: string): DocumentProjec
  * havde tilsammen.
  */
 const projectEoDocument = <TDocument, TInput>(
-  context: DocumentSourceContext,
+  context: DocumentSourceContext<DocumentSourceSettings>,
   gateKey: EoDocumentKey,
   toDocument: (projection: ErstatningsopgoerelseReaderProjection) =>
     | Readonly<{ kind: 'ok'; document: TDocument }>
     | Readonly<{ kind: 'blocked'; message: string }>,
   toInput: (projection: ErstatningsopgoerelseReaderProjection, document: TDocument) => TInput
 ): DocumentProjectionResult<TInput> => {
-  const { projection, gates } = readSharedEoSource(context);
+  const { projection, gates } = context.shared(readSharedEoSource);
   const gate = gates[gateKey];
   if (!gate.canDownload) return blockedFromGate(gate);
 
@@ -164,11 +167,11 @@ export type ErstatningsopgoerelseDocumentInput = Readonly<{
   midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[];
 }>;
 
-export const erstatningsopgoerelseDocumentDefinition: DocumentDefinition<ErstatningsopgoerelseDocumentInput> =
-  defineDocumentOutput({
+export const erstatningsopgoerelseDocumentDefinition: MineoDocumentDefinition<ErstatningsopgoerelseDocumentInput> =
+  defineMineoDocument({
     id: 'erstatningsopgoerelse',
-    brevhovedType: 'erstatningsopgoerelse',
-    errorLabel: 'Kunne ikke generere erstatningsopgørelse-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erstatningsopgoerelse' },
+    labels: { documentName: 'erstatningsopgørelse' },
     project: (context) => projectEoDocument(
       context,
       'erstatningsopgoerelse',
@@ -210,11 +213,11 @@ export type TafFordeltPaaAarDocumentInput = Readonly<{
   visUdkastStempel: boolean;
 }>;
 
-export const tafFordeltPaaAarDocumentDefinition: DocumentDefinition<TafFordeltPaaAarDocumentInput> =
-  defineDocumentOutput({
+export const tafFordeltPaaAarDocumentDefinition: MineoDocumentDefinition<TafFordeltPaaAarDocumentInput> =
+  defineMineoDocument({
     id: 'taf-fordelt-paa-aar',
-    brevhovedType: 'erstatningsopgoerelse',
-    errorLabel: 'Kunne ikke generere TAF fordelt på år-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erstatningsopgoerelse' },
+    labels: { documentName: 'TAF fordelt på år' },
     project: (context) => projectEoDocument(
       context,
       'tafFordeltPaaAar',
@@ -248,11 +251,11 @@ export type TafOpreguleretPaaAarDocumentInput = Readonly<{
   midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[];
 }>;
 
-export const tafOpreguleretPaaAarDocumentDefinition: DocumentDefinition<TafOpreguleretPaaAarDocumentInput> =
-  defineDocumentOutput({
+export const tafOpreguleretPaaAarDocumentDefinition: MineoDocumentDefinition<TafOpreguleretPaaAarDocumentInput> =
+  defineMineoDocument({
     id: 'taf-opreguleret-paa-aar',
-    brevhovedType: 'erstatningsopgoerelse',
-    errorLabel: 'Kunne ikke generere TAF opreguleret til beregningsår-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erstatningsopgoerelse' },
+    labels: { documentName: 'TAF opreguleret til beregningsår' },
     project: (context) => projectEoDocument(
       context,
       'tafOpreguleret',
@@ -290,11 +293,11 @@ export type TafKravGrafDocumentInput = Readonly<{
   visUdkastStempel: boolean;
 }>;
 
-export const tafKravGrafDocumentDefinition: DocumentDefinition<TafKravGrafDocumentInput> =
-  defineDocumentOutput({
+export const tafKravGrafDocumentDefinition: MineoDocumentDefinition<TafKravGrafDocumentInput> =
+  defineMineoDocument({
     id: 'taf-krav-graf',
-    brevhovedType: 'erstatningsopgoerelse',
-    errorLabel: 'Kunne ikke generere Visuel graf over indtægtsniveau-PDF',
+    brevhoved: { kind: 'settings-key', key: 'erstatningsopgoerelse' },
+    labels: { documentName: 'visuel graf over indtægtsniveau' },
     project: (context) => projectEoDocument(
       context,
       'tafKravGraf',
