@@ -8,7 +8,7 @@ import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import MainLayout from '../../../components/layout/MainLayout';
 import { OpenEditor } from './editorTestUtils';
@@ -29,11 +29,11 @@ const emptyInput = () => catalog.validateSettledInput({
 describe('MainLayout navigation commit guard', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   afterEach(() => {
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   it('keeps navigation fail-closed when an editable field is still active during page change', async () => {

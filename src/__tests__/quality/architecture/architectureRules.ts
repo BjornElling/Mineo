@@ -1,7 +1,7 @@
-import { PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../../../config/persistenceRegistry';
+import type { PersistedSectionKey } from '../../../config/persistenceRegistry';
 import { isValidStorageKey } from '../../../config/storageManifest';
 import ts from 'typescript';
-import { collectCalls, resolveRelativeImport } from './astQueries';
+import { collectCalls, collectImports, collectTypeAssertions, resolveRelativeImport } from './astQueries';
 import type { SourceEntry } from './sourceGraph';
 import {
   defineRule,
@@ -39,6 +39,11 @@ const localStorageBoundary = forbidMemberAccess({
   id: 'storage/local-storage-boundary',
   description:
     'Direkte window.localStorage-adgang er kun tilladt i den kanoniske safeLocalStorage-wrapper.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => /\blocalStorage\b/.test(entry.text),
+    rationale: 'mindst én fil rører localStorage — ellers har grænsen ingen trafik at regulere',
+  },
   allow: ['src/utils/safeLocalStorage.ts'],
   forbidden: (ref) => isDirectLocalStorageAccess(ref.chainText, ref.rootName),
   message: (ref) => `Rå localStorage-adgang (${ref.chainText}) — brug safeLocalStorage-wrapperen.`,
@@ -57,6 +62,11 @@ const sessionStorageBoundary = forbidMemberAccess({
   id: 'storage/session-storage-boundary',
   description:
     'Direkte sessionStorage-adgang er kun tilladt i persistence-infrastrukturen og den kanoniske helper.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => /\bsessionStorage\b/.test(entry.text),
+    rationale: 'mindst én fil rører sessionStorage — ellers har grænsen ingen trafik at regulere',
+  },
   // Kun den kanoniske helper tilbage: de øvrige poster var stale efter greenfield-cutoveren (filerne er
   // slettet, eller de rører ikke længere sessionStorage direkte). Anti-rot-testen håndhæver, at hver post
   // stadig udløser reglen, så listen ikke stille kan vokse til død konfiguration.
@@ -97,6 +107,16 @@ const sessionStorageManifestKey = forbidCalls({
   id: 'storage/session-storage-manifest-key',
   description:
     'sessionStorage-skrivning må kun ske til en manifest-registreret literal storage-key — både rå og via safeSessionStorage-helperne.',
+  // Sekundært værn (primærværnet er `ManifestStorageKey`-typen), men ikke en fraværsregel: den
+  // kontrollerer ægte skrive-callsites, og forsvinder de, er reglen uden mål.
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      collectCalls(entry).some(
+        (ref) => SESSION_STORAGE_WRITE_HELPERS.has(ref.calleeName) || ref.calleeText.endsWith('sessionStorage.setItem')
+      ),
+    rationale: 'mindst ét sessionStorage-skrive-callsite (rå eller via helper) findes',
+  },
   forbidden: (ref) =>
     ((ref.calleeName === 'setItem' &&
       (ref.calleeText === 'sessionStorage.setItem' ||
@@ -145,6 +165,63 @@ const DELETED_LEGACY_INPUT_MODULES =
   /(?:stores\/(?:formPersistenceStore|formPersistenceReadModel|inputRuntimeStore|undoRedoStore)|contexts\/(?:FormPersistenceContext(?:\.shared|\.internal)?|useFormPersistence)|hooks\/(?:useFormPersistence|useFormPersistenceSelectors|useFormFieldErrors|usePersistedForm|useDraftField|useStyledFieldAdapter|useTwoStageInputActivation|useUndoRedo(?:Shortcuts)?)|hooks\/fieldState\/|hooks\/tableInput|input\/(?:inputTransactionRunner|legacyInputCompatibility|legacyGridTransactionBridge)|criticalActions\/|rowDrafts\/|types\/fieldErrors|utils\/(?:invalidDraftsStorage|saveBlockedFocus|historyTargetRestore)|components\/inputs\/table\/Table|components\/inputs\/Styled(?:Text|Amount|Date|Integer|Percent|Fraction|Week|Year)Field$)/;
 
 /**
+ * De konkrete modul-STIER regexen ovenfor forbyder — eksplicit opregnet, fordi et regex ikke kan
+ * opremse sig selv.
+ *
+ * Fase 6: en fraværsregel kan ikke bevise sin egen liveness ved at ramme noget (nul hits ER målet).
+ * I stedet beviser `deletedLegacyAbsence.test.ts`, at hver af disse stier faktisk ER fraværende i
+ * kilde-grafen. Uden det kunne reglen stille skifte fra "forbyder noget, der findes" til "forbyder
+ * en stavefejl" — og fremstå som dækning, mens den rigtige fil lever videre ved siden af.
+ * `LEGACY_MODULE_PATH_SELFTEST` nedenfor pinner, at listen og regexen beskriver samme mængde.
+ */
+const DELETED_LEGACY_INPUT_MODULE_PATHS: readonly string[] = [
+  'src/stores/formPersistenceStore',
+  'src/stores/formPersistenceReadModel',
+  'src/stores/inputRuntimeStore',
+  'src/stores/undoRedoStore',
+  'src/contexts/FormPersistenceContext',
+  'src/contexts/useFormPersistence',
+  'src/hooks/useFormPersistence',
+  'src/hooks/useFormPersistenceSelectors',
+  'src/hooks/useFormFieldErrors',
+  'src/hooks/usePersistedForm',
+  'src/hooks/useDraftField',
+  'src/hooks/useStyledFieldAdapter',
+  'src/hooks/useTwoStageInputActivation',
+  'src/hooks/useUndoRedo',
+  'src/hooks/useUndoRedoShortcuts',
+  'src/hooks/fieldState/',
+  'src/hooks/tableInput',
+  'src/input/inputTransactionRunner',
+  'src/input/legacyInputCompatibility',
+  'src/input/legacyGridTransactionBridge',
+  'src/criticalActions/',
+  'src/rowDrafts/',
+  'src/types/fieldErrors',
+  'src/utils/invalidDraftsStorage',
+  'src/utils/saveBlockedFocus',
+  'src/utils/historyTargetRestore',
+  'src/components/inputs/table/Table',
+  'src/components/inputs/StyledTextField',
+  'src/components/inputs/StyledAmountField',
+  'src/components/inputs/StyledDateField',
+  'src/components/inputs/StyledIntegerField',
+  'src/components/inputs/StyledPercentField',
+  'src/components/inputs/StyledFractionField',
+  'src/components/inputs/StyledWeekField',
+  'src/components/inputs/StyledYearField',
+];
+
+/**
+ * Selvtest-data: hver sti ovenfor SKAL matche regexen. Fanger den ene måde listen og regexen kan
+ * drifte fra hinanden på — at nogen tilføjer et forbud ét sted og glemmer det andet.
+ */
+export const LEGACY_MODULE_PATH_SELFTEST = {
+  paths: DELETED_LEGACY_INPUT_MODULE_PATHS,
+  pattern: DELETED_LEGACY_INPUT_MODULES,
+} as const;
+
+/**
  * Den slettede legacy-inputarkitektur må ikke genopstå.
  *
  * Efter greenfield-cutoveren findes der ÉN autoritativ inputtilstand (§3.1), ÉN editor (§3.5) og ÉN
@@ -159,6 +236,14 @@ const deletedLegacyInputArchitectureImport = forbidImports({
     'Den slettede legacy-inputarkitektur (formPersistence*, inputRuntimeStore, FormPersistenceContext, '
     + 'inputTransactionRunner, criticalActions/, rowDrafts/, tableInput/, useDraftField, Styled*Field-vejen) '
     + 'må ikke importeres eller genindføres.',
+  liveTarget: {
+    kind: 'absence',
+    forbids: DELETED_LEGACY_INPUT_MODULE_PATHS,
+    rationale:
+      'nul hits ER målet: modulerne er slettet. `deletedLegacyAbsence.test.ts` beviser omvendt, at '
+      + 'hvert forbudt modulnavn faktisk er fraværende i grafen — reglen må ikke stille skifte til at '
+      + 'forbyde noget, der aldrig fandtes, fordi mønsteret er stavet forkert.',
+  },
   allow: [],
   forbidden: (ref) => DELETED_LEGACY_INPUT_MODULES.test(ref.moduleSpecifier),
   message: (ref) =>
@@ -191,6 +276,11 @@ const failOpenDisplayLookupImport = forbidImports({
   id: 'satser/fail-open-display-lookup-import',
   description:
     'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag — aldrig en beregningssti.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.text.includes('getSatserForYear'),
+    rationale: 'det fail-open opslag findes stadig og importeres af mindst én fil',
+  },
   allow: [
     // Den typed reader-projektion er display-/dokument-grænsen for Satser og kalder kun opslaget på ready-grenen.
     'src/domain/satser/satserProjection.ts',
@@ -216,6 +306,11 @@ const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
   id: 'satser/asl-aarsloensmaksimum-raw-subscript',
   description:
     'Rå aarsloenAslMax[år]-opslag skal gå gennem resolveAslAarsloensmaksimumForAar (gateway); kun datakilde + gateway må subscripte.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.text.includes('aarsloenAslMax'),
+    rationale: 'datatabellen `aarsloenAslMax` findes stadig og kan subscriptes',
+  },
   // Kun datakilden tilbage: gateway'en (`aslAarsloensmaksimum.ts`) subscripter ikke længere selv — den går
   // gennem `YearlyRate`-helperne — så dens allowlist-post var død konfiguration.
   allow: ['src/data/lovbestemteRates.ts'],
@@ -249,6 +344,11 @@ const inspektionLayerImport = forbidImports({
   id: 'layer/inspektion-import-boundary',
   description:
     'Kun de to sanktionerede snapshot-bro-filer må importere src/domain/eoInspektion; den autoritative motor + kontrol-kerne skal være inspektionsfri (B9).',
+  liveTarget: {
+    kind: 'scoped',
+    roots: [INSPEKTION_LAYER, 'src/domain'],
+    rationale: 'både inspektionslaget (det beskyttede mål) og domænelaget (scopet) skal findes',
+  },
   // Alle domæne-filer uden for selve inspektionslaget kontrolleres (dækker eoRowEvaluation, canonicalOutput, controlMismatch m.fl.).
   appliesTo: (relativePath) =>
     relativePath.startsWith('src/domain/') && !relativePath.startsWith(`${INSPEKTION_LAYER}/`),
@@ -277,27 +377,18 @@ const inspektionLayerImport = forbidImports({
 
 // --- EET-domæne: intet tværside-persisted-opslag ind i erhvervsevnetab -------
 
-const eetCrossDomainPersistedLookup = forbidCalls({
-  id: 'domain/eet-cross-domain-persisted-lookup',
-  description:
-    'Ingen persisted tværside-opslag (getPersistedData/usePersistedSection/commitSection) ind i erhvervsevnetab-sektionen.',
-  forbidden: (ref) =>
-    (ref.calleeName === 'getPersistedData' ||
-      ref.calleeName === 'usePersistedSection' ||
-      ref.calleeName === 'commitSection') &&
-    ref.firstArgStringLiteral === 'erhvervsevnetab',
-  message: (ref) => `Persisted tværside-opslag ${ref.calleeText}('erhvervsevnetab') — forbudt cross-domain kobling.`,
-  violatingFixtures: [
-    { relativePath: 'src/x.ts', code: "const d = getPersistedData('erhvervsevnetab');" },
-    { relativePath: 'src/x.ts', code: "const s = usePersistedSection('erhvervsevnetab');" },
-    { relativePath: 'src/x.ts', code: "commitSection('erhvervsevnetab', values);" },
-  ],
-  cleanFixtures: [
-    { relativePath: 'src/x.ts', code: "const d = getPersistedData('erstatningsopgoerelse');" },
-    { relativePath: 'src/x.ts', code: "const s = usePersistedForm('erhvervsevnetab');" },
-    { relativePath: 'src/x.ts', code: "const v = sections.erhvervsevnetab;" },
-  ],
-});
+// `domain/eet-cross-domain-persisted-lookup` er SLETTET i Fase 6.
+//
+// Reglen forbød `getPersistedData`/`usePersistedSection`/`commitSection` med `'erhvervsevnetab'` som
+// literal-argument. Dødt-værn-detektoren afslørede, at ingen af de tre callees findes i grafen længere:
+// `usePersistedSection` og `commitSection` har nul forekomster overhovedet, og `getPersistedData` lever
+// kun som devtools-monitoreringens callback (`useDevtoolsMonitoring.ts`), som ikke er en sektionsadgang.
+// Reglen var altså grøn af tomhed.
+//
+// Intentionen — EET må ikke kobles til af et fremmed domæne — er IKKE opgivet: den håndhæves nu af
+// `domain/page-section-access-boundary`, som efter Fase 6 måler den kobling, greenfield faktisk har
+// (hvilket descriptor-katalog en side importerer), mod den samme autorisationstabel. Det er en STÆRKERE
+// kontrol end den slettede, fordi den dækker alle sektioner og ikke kun literal-argumenter.
 
 // --- Pengeenhed: kun den kanoniske konstruktor må skabe MoneyOre -------------
 
@@ -305,6 +396,11 @@ const moneyOreTypeAssertion = forbidTypeAssertions({
   id: 'money/money-ore-type-assertion',
   description:
     'MoneyOre må ikke konstrueres med type-assertion; brug den validerede pengealgebra.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.text.includes('MoneyOre'),
+    rationale: 'MoneyOre-typen findes stadig og kan asserteres til',
+  },
   forbidden: (ref) => /(?:^|\.)MoneyOre$/.test(ref.typeText),
   message: (ref) =>
     `Type-assertion til ${ref.typeText} omgår MoneyOre-valideringen — brug domain/money.`,
@@ -322,32 +418,58 @@ const moneyOreTypeAssertion = forbidTypeAssertions({
 // --- Page-lag: persisteret sektionsadgang må kun ramme autoriserede domæner ---
 
 /**
- * De hooks/funktioner der giver en page-fil adgang til en persisteret sektion (læse
- * ELLER skrive). En sektions-key som string-literal-argument til ét af disse kald
- * betyder, at filen kobler til det domæne. Row-id/felt-navne er aldrig sektions-keys,
- * så et sektions-valued literal-argument er utvetydigt en sektionsadgang.
+ * Hvilket persisteret domæne hvert descriptor-katalog giver adgang til.
+ *
+ * **Fase 6 omskrev denne regel fra kald til imports.** Første udgave målte string-literal-argumenter
+ * til sektions-hooks (`usePersistedForm('aarsloen')` …). Dødt-værn-detektoren afslørede, at ALLE de
+ * hooks er væk efter greenfield-cutoveren: `usePersistedSection`/`commitSection` har nul forekomster,
+ * og de øvrige lever kun som historik-kommentarer i page-filerne. Reglen kontrollerede altså en
+ * adgangsform, produktionen ikke længere har — grøn af tomhed, mens den fremstod som §9/§10-dækning.
+ *
+ * Greenfield kobler en side til et domæne ét sted: ved at importere domænets FELTDESCRIPTORER fra
+ * `src/inputCore/catalog/`. Descriptoren bærer selv sin `section`, og uden en descriptor kan siden
+ * hverken læse eller skrive sektionen. Import af kataloget ER derfor koblingen — og i modsætning til
+ * literal-argumenter kan den ikke omgås ved at føre sektionsnavnet gennem en variabel.
+ *
+ * Autorisationstabellen (`PAGE_BOUNDARY_RULES`) er UÆNDRET: det er domain-boundary-contract §9/§10's
+ * beslutning om hvem der må røre hvad, og den er stadig gyldig. Kun målemetoden er skiftet til den,
+ * arkitekturen faktisk bruger.
  */
-const SECTION_ACCESS_HOOKS = new Set<string>([
-  'usePersistedForm',
-  'usePersistedSectionSelector',
-  'usePersistedSection',
-  'useFormFieldErrors',
-  'useFormFieldErrorReporter',
-  'useKeyedFieldErrorReporter',
-  'useDynamicFormFieldErrorReporter',
-  'useInvalidDraftForFieldSelector',
-  'useInvalidDraftsForSectionSelector',
-  'getPersistedSectionSnapshot',
-  'getPersistedData',
-  'getFieldErrorsBySourceSnapshot',
-  'getSectionRevisionSnapshot',
-  'getFieldErrorRevisionSnapshot',
-  'useSectionRevisionSelector',
-  'useFieldErrorRevisionSelector',
-  'commitSection',
+const DESCRIPTOR_CATALOG_SECTIONS: ReadonlyMap<string, PersistedSectionKey> = new Map([
+  ['aarsloenDescriptors', 'aarsloen'],
+  ['erhvervsevnetabDescriptors', 'erhvervsevnetab'],
+  ['erstatningsopgoerelseDescriptors', 'erstatningsopgoerelse'],
+  ['erstatningsopgoerelseLoenDescriptors', 'erstatningsopgoerelse'],
+  ['faellesAarsloenDescriptors', 'faellesAarsloen'],
+  ['forsoergertabDescriptors', 'forsoergertab'],
+  ['renteberegningDescriptors', 'renteberegning'],
+  ['satserDescriptors', 'satser'],
+  ['stamdataDescriptors', 'stamdata'],
+  ['varigeMenDescriptors', 'varigemen'],
 ]);
 
-const SECTION_KEY_SET = new Set<string>(PERSISTED_SECTION_KEYS);
+/**
+ * Descriptor-katalogets mappe. Eksporteret, så `deletedLegacyAbsence.test.ts` kan bevise, at
+ * `DESCRIPTOR_CATALOG_SECTIONS` dækker HVERT katalogmodul: et nyt domænekatalog, der ikke står i
+ * kortet, ville ellers være usynligt for page-grænsen — reglen ville se en uovervåget kobling som
+ * "ingen kobling" og være tavs, præcis den slags tomhed Fase 6 lukker.
+ */
+export const CATALOG_DIR = 'src/inputCore/catalog';
+
+/** De katalogmoduler der IKKE er et domæne (fælles infrastruktur) og derfor ingen sektion har. */
+export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = ['boundsValidators', 'productionCatalog'];
+
+/** Til completeness-testen: hvilke katalogmoduler kortet kender. */
+export const DESCRIPTOR_CATALOG_MODULE_NAMES: readonly string[] = [...DESCRIPTOR_CATALOG_SECTIONS.keys()];
+
+/** Descriptor-katalogets sektion, hvis importen peger på ét — ellers null. */
+const catalogSectionForImport = (moduleSpecifier: string): PersistedSectionKey | null => {
+  const normalized = moduleSpecifier.replaceAll('\\', '/');
+  const match = /(?:^|\/)inputCore\/catalog\/([A-Za-z]+)$/.exec(normalized);
+  if (match === null) return null;
+  return DESCRIPTOR_CATALOG_SECTIONS.get(match[1]) ?? null;
+};
+
 const PAGES_ROOT = 'src/components/pages';
 
 export type PageBoundaryRule = Readonly<{
@@ -412,19 +534,27 @@ const boundaryRuleForPath = (relativePath: string): PageBoundaryRule | undefined
 
 type SectionAccess = Readonly<{ section: PersistedSectionKey; position: Finding['position'] }>;
 
+/** En page-fils koblinger til persisterede domæner: hvilke descriptor-kataloger importerer den? */
 const collectSectionAccesses = (entry: SourceEntry): SectionAccess[] =>
-  collectCalls(entry)
-    .filter((ref) => SECTION_ACCESS_HOOKS.has(ref.calleeName))
-    .flatMap((ref) =>
-      ref.stringArgs
-        .filter((arg): arg is PersistedSectionKey => SECTION_KEY_SET.has(arg))
-        .map((section) => ({ section, position: ref.position }))
-    );
+  collectImports(entry).flatMap((ref) => {
+    const section = catalogSectionForImport(ref.moduleSpecifier);
+    // Også type-only imports tæller: en side, der kender domænets felttyper, er koblet til domænet,
+    // og en type-import er desuden ét tegn fra at blive en værdi-import.
+    return section === null ? [] : [{ section, position: ref.position }];
+  });
 
 const pageSectionAccessBoundary = defineRule({
   id: 'domain/page-section-access-boundary',
   description:
-    'Enhver page-fil der tilgår en persisteret sektion skal ligge under en PAGE_BOUNDARY_RULE-rod (coverage) og må kun ramme rodens autoriserede sektioner (domain-boundary-contract §9/§10).',
+    'Enhver page-fil der importerer et domænes feltdescriptorer skal ligge under en PAGE_BOUNDARY_RULE-rod (coverage) og må kun koble til rodens autoriserede sektioner (domain-boundary-contract §9/§10).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      entry.relativePath.startsWith(`${PAGES_ROOT}/`) && collectSectionAccesses(entry).length > 0,
+    rationale:
+      'mindst én page-fil importerer et descriptor-katalog — dvs. koblingen, reglen regulerer, findes '
+      + 'stadig i den form, greenfield bruger',
+  },
   appliesTo: (relativePath) => relativePath.startsWith(`${PAGES_ROOT}/`),
   find: (entry) => {
     const accesses = collectSectionAccesses(entry);
@@ -432,10 +562,10 @@ const pageSectionAccessBoundary = defineRule({
 
     const boundary = boundaryRuleForPath(entry.relativePath);
     if (!boundary) {
-      // Coverage-completeness: en page-fil med sektionsadgang uden en regel-rod er uovervåget.
+      // Coverage-completeness: en page-fil med domænekobling uden en regel-rod er uovervåget.
       return accesses.map((access) => ({
         position: access.position,
-        message: `Uovervåget page-fil med persisteret sektionsadgang (${access.section}) — tilføj en PAGE_BOUNDARY_RULE-rod.`,
+        message: `Uovervåget page-fil med domænekobling (${access.section}) — tilføj en PAGE_BOUNDARY_RULE-rod.`,
       }));
     }
 
@@ -443,153 +573,158 @@ const pageSectionAccessBoundary = defineRule({
       .filter((access) => !boundary.allowedSections.includes(access.section))
       .map((access) => ({
         position: access.position,
-        message: `${boundary.label}: adgang til ikke-autoriseret sektion '${access.section}'.`,
+        message: `${boundary.label}: kobling til ikke-autoriseret sektion '${access.section}' via descriptor-katalog.`,
       }));
   },
   violatingFixtures: [
     // Under en rod, men uautoriseret sektion.
-    { relativePath: 'src/components/pages/Aarsloen.tsx', code: "usePersistedForm('erhvervsevnetab');" },
-    { relativePath: 'src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx', code: "getPersistedData('renteberegning');" },
-    // Ingen rod (uovervåget) med sektionsadgang.
-    { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: "usePersistedSection('stamdata');" },
-  ],
-  cleanFixtures: [
-    { relativePath: 'src/components/pages/Aarsloen.tsx', code: "usePersistedForm('aarsloen');" },
-    { relativePath: 'src/components/pages/Erhvervsevnetab.tsx', code: "commitSection('erstatningsopgoerelse', values);" },
-    // Sektionsfri page-fil er uinteressant, selv uden rod.
-    { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: "const x = useMemo(() => 1, []);" },
-    // Ikke-sektions string-argument til et adgangs-hook flages ikke.
-    { relativePath: 'src/components/pages/Aarsloen.tsx', code: "useFormFieldErrorReporter('aarsloen', 'etFeltNavn');" },
-  ],
-});
-
-// --- Persisterede parse-felter skal rapportere deres afsluttede fejltilstand ---
-
-const PARSE_CAPABLE_STYLED_FIELDS = new Set([
-  'StyledAmountField',
-  'StyledDateField',
-  'StyledFractionField',
-  'StyledIntegerField',
-  'StyledPercentField',
-  'StyledWeekField',
-  'StyledYearField',
-]);
-
-const jsxAttribute = (
-  node: ts.JsxOpeningLikeElement,
-  name: string
-): ts.JsxAttribute | undefined =>
-  node.attributes.properties.find(
-    (property): property is ts.JsxAttribute =>
-      ts.isJsxAttribute(property)
-      && ts.isIdentifier(property.name)
-      && property.name.text === name
-  );
-
-const isExplicitUndefinedJsxAttribute = (attribute: ts.JsxAttribute | undefined): boolean =>
-  attribute?.initializer !== undefined
-  && ts.isJsxExpression(attribute.initializer)
-  && attribute.initializer.expression !== undefined
-  && ts.isIdentifier(attribute.initializer.expression)
-  && attribute.initializer.expression.text === 'undefined';
-
-const persistedStyledFieldErrorReporter = defineRule({
-  id: 'form/persisted-styled-field-error-reporter',
-  description:
-    'Parse-kompetente Styled-felter på produktionssider skal have onFieldError, medmindre feltet eksplicit er read-only via onCommit={undefined}.',
-  appliesTo: (relativePath) =>
-    relativePath.startsWith(`${PAGES_ROOT}/`)
-    && relativePath.endsWith('.tsx')
-    && !relativePath.endsWith('/StamdataTestTab.tsx'),
-  find: (entry) => {
-    const findings: Finding[] = [];
-    const visit = (node: ts.Node): void => {
-      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-        const componentName = node.tagName.getText(entry.ast);
-        if (PARSE_CAPABLE_STYLED_FIELDS.has(componentName)) {
-          const onCommit = jsxAttribute(node, 'onCommit');
-          const onFieldError = jsxAttribute(node, 'onFieldError');
-          if (!isExplicitUndefinedJsxAttribute(onCommit) && onFieldError === undefined) {
-            const position = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
-            findings.push({
-              position: { line: position.line + 1, column: position.character + 1 },
-              message: `${componentName} mangler onFieldError og kan derfor fejle åbent efter blur.`,
-            });
-          }
-        }
-      }
-      ts.forEachChild(node, visit);
-    };
-    visit(entry.ast);
-    return findings;
-  },
-  violatingFixtures: [{
-    relativePath: 'src/components/pages/X.tsx',
-    code: '<StyledDateField name="dato" onCommit={handleCommit} />;',
-  }],
-  cleanFixtures: [
     {
-      relativePath: 'src/components/pages/X.tsx',
-      code: '<StyledDateField name="dato" onCommit={handleCommit} onFieldError={reportError} />;',
+      relativePath: 'src/components/pages/Aarsloen.tsx',
+      code: "import { x } from '../../inputCore/catalog/erhvervsevnetabDescriptors';",
     },
     {
-      relativePath: 'src/components/pages/X.tsx',
-      code: '<StyledYearField name="aar" onCommit={undefined} />;',
+      relativePath: 'src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx',
+      code: "import { x } from '../../../inputCore/catalog/renteberegningDescriptors';",
     },
+    // Ingen rod (uovervåget) med domænekobling.
     {
-      relativePath: 'src/components/pages/StamdataTestTab.tsx',
-      code: '<StyledAmountField name="test" onCommit={handleCommit} />;',
+      relativePath: 'src/components/pages/NyUovervaagetSide.tsx',
+      code: "import { x } from '../../inputCore/catalog/stamdataDescriptors';",
+    },
+    // Type-only kobling til et uautoriseret domæne tæller også.
+    {
+      relativePath: 'src/components/pages/Satser.tsx',
+      code: "import type { X } from '../../inputCore/catalog/varigeMenDescriptors';",
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/pages/Aarsloen.tsx',
+      code: "import { aarsloenFeriePctField } from '../../inputCore/catalog/aarsloenDescriptors';",
+    },
+    // Autoriseret cross-domain-læsning (EO ↔ EET, delt forligsgrad).
+    {
+      relativePath: 'src/components/pages/Erhvervsevnetab.tsx',
+      code: "import { x } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';",
+    },
+    // Descriptorfri page-fil er uinteressant, selv uden rod.
+    { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: 'const x = useMemo(() => 1, []);' },
+    // Ikke-katalog-import fra inputCore er ikke en domænekobling.
+    {
+      relativePath: 'src/components/pages/NyUovervaagetSide.tsx',
+      code: "import { useFieldEditor } from '../../inputCore/react/useFieldEditor';",
+    },
+    // Fælles infrastruktur i kataloget (bounds-validatorer) er ikke et domæne.
+    {
+      relativePath: 'src/components/pages/NyUovervaagetSide.tsx',
+      code: "import { dateBounds } from '../../inputCore/catalog/boundsValidators';",
     },
   ],
 });
 
-// --- PDF-download-filer må ikke læse committed EO/stamdata-state ---------------
+// `form/persisted-styled-field-error-reporter` er SLETTET i Fase 6.
+//
+// Reglen krævede en `onFieldError`-prop på parse-kompetente `Styled*Field`-komponenter på
+// produktionssider. Trin 13 slettede hele den feltvej, og dødt-værn-detektoren afslørede, at reglen
+// derfor ikke havde ét eneste mål tilbage: `grep '<Styled[A-Za-z]*Field'` under `src/components/pages/`
+// giver nul træffere.
+//
+// Invarianten — "et persisteret parse-felt må ikke fejle åbent" — er ikke opgivet; den er blevet
+// STRUKTUREL og kan derfor ikke længere brydes af en udeladt prop:
+//
+//   - Greenfield-feltvejen (`src/inputCore/react/fields/`) tager `field: FieldRef<T>` og
+//     `location: EditorLocation` som PÅKRÆVEDE props. Uden dem kompilerer feltet ikke.
+//   - Fejlvisningen afledes af `useFormFieldSurface`/`useGridCellSurface` fra det tokenbundne
+//     issue-snapshot (§1.8) — ikke af en valgfri callback. Der er intet `onFieldError` at udelade;
+//     et felt kan ikke opt-out af sin egen fejltilstand.
+//
+// Fase 6's krav "persisted controls kræver konkrete refs" er dermed opfyldt af TYPEN frem for af en
+// regel — samme rangorden som `ManifestStorageKey` etablerede
+// ([[project_typed_write_boundary_over_ast_guard]]). En pro forma-regel oven på en compiler-håndhævet
+// invariant ville være regel-antal uden dækning, og ville selv være det næste døde værn.
 
-const isDownloadTriggerCall = (calleeName: string): boolean =>
-  /^download[A-Za-z]+(?:Pdf|Dokument)$/.test(calleeName);
+// --- Dokument-downloads må ikke læse committed state undervejs -----------------
 
-const EO_PDF_DOWNLOAD_FUNCTIONS = new Set<string>([
-  'downloadErstatningsopgoerelseDokument',
-  'downloadTafFordeltPaaAarDokument',
-  'downloadTafOpreguleretPaaAarDokument',
-  'downloadTafKravGrafDokument',
+/**
+ * Fase 6 omskrev denne regel fra `download*Dokument` til livscyklussens faktiske entrypoints.
+ *
+ * Reglens INTENTION — "render-from-argument": en fil, der udløser en dokument-download, må ikke læse
+ * autoritativ tilstand undervejs, men skal danne dokumentet ud fra det ÉNE snapshot, gaten godkendte
+ * — er uændret gyldig. Målet skiftede blot navn: Fase 5 slettede alle 18 `download*Dokument`, så
+ * reglens forudsætning kunne ikke længere opfyldes af nogen fil, og dødt-værn-detektoren rapporterede
+ * den som inert. Første version af denne kommentar er dermed også dokumentationen for, hvorfor
+ * reglen ikke bare blev slettet: den havde et levende mål, den bare ikke pegede på længere.
+ *
+ * De nuværende trigger-punkter er katalogets React-flade (`useMineoDocument*`) og handlings-hooket
+ * `useReguleringDocumentAction`. Den forbudte læsning er tilsvarende skiftet fra de afskaffede
+ * `usePersistedSection`/`getPersistedData` til den ene escape hatch, der faktisk findes i greenfield:
+ * `slimInputStore.getState()` — en ugated, ikke-tokenbundet læsning af den autoritative store.
+ */
+const DOCUMENT_TRIGGER_CALLEES = new Set<string>([
+  'useMineoDocumentOutput',
+  'useMineoDocumentActionOutput',
+  'useMineoDocumentOutputWithContext',
+  'useMineoDocumentCatalogEntry',
+  'useReguleringDocumentAction',
+  'executeDocumentDownload',
+  'triggerDocumentDownload',
 ]);
 
+/**
+ * De afskaffede persisterede sektionsopslag. Beholdt i forbuddet, selv om de ikke findes i grafen
+ * længere: skulle nogen genindføre et af dem, ville en download-triggende fil være det værste sted at
+ * gøre det. Reglens LIVENESS hviler ikke på dem — den hviler på trigger-siden (`liveTarget` nedenfor).
+ */
 const PERSISTED_READ_CALLEES = new Set<string>(['usePersistedSection', 'getPersistedData']);
 
+/** Ugated læsning af autoritativ tilstand uden om det tokenbundne snapshot. */
+const isRawAuthoritativeRead = (calleeText: string): boolean =>
+  /(?:^|\.)slimInputStore\.getState$/.test(calleeText)
+  || PERSISTED_READ_CALLEES.has(calleeText);
+
 const pdfDownloadCommittedState = defineRule({
-  id: 'pdf/download-committed-state',
+  id: 'document/download-committed-state',
   description:
-    'En fil der udløser en PDF/dokument-download må ikke samtidig læse committed EO-state; EO-PDF-downloads må heller ikke læse committed stamdata (build-once/render-from-argument-invarianten).',
+    'En fil, der udløser en dokument-download, må ikke samtidig læse autoritativ inputtilstand ugated '
+    + '(slimInputStore.getState()) — dokumentet skal dannes fra det snapshot, gaten godkendte '
+    + '(build-once/render-from-argument-invarianten).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      collectCalls(entry).some((ref) => DOCUMENT_TRIGGER_CALLEES.has(ref.calleeName)),
+    rationale:
+      'mindst én fil udløser en dokument-download gennem livscyklussens entrypoints — reglens '
+      + 'forudsætning findes altså stadig',
+  },
   find: (entry) => {
     const calls = collectCalls(entry);
-    const hasDownloadTrigger = calls.some((ref) => isDownloadTriggerCall(ref.calleeName));
-    const hasEoPdfDownload = calls.some((ref) => EO_PDF_DOWNLOAD_FUNCTIONS.has(ref.calleeName));
-    if (!hasDownloadTrigger && !hasEoPdfDownload) return [];
+    const hasDownloadTrigger = calls.some((ref) => DOCUMENT_TRIGGER_CALLEES.has(ref.calleeName));
+    if (!hasDownloadTrigger) return [];
 
-    const findings: Finding[] = [];
-    for (const ref of calls) {
-      if (!PERSISTED_READ_CALLEES.has(ref.calleeName)) continue;
-      const section = ref.firstArgStringLiteral;
-      if (section === 'erstatningsopgoerelse' && (hasDownloadTrigger || hasEoPdfDownload)) {
-        findings.push({ position: ref.position, message: `Committed EO-read (${ref.calleeText}('erstatningsopgoerelse')) i download-triggende fil.` });
-      } else if (section === 'stamdata' && hasEoPdfDownload) {
-        findings.push({ position: ref.position, message: `Committed stamdata-read (${ref.calleeText}('stamdata')) i EO-PDF-download-fil.` });
-      }
-    }
-    return findings;
+    return calls
+      .filter((ref) => isRawAuthoritativeRead(ref.calleeText))
+      .map((ref) => ({
+        position: ref.position,
+        message:
+          `Ugated læsning af autoritativ tilstand (${ref.calleeText}) i en fil, der udløser en `
+          + 'dokument-download — dokumentet skal dannes fra det gatede snapshot, ikke fra live state.',
+      }));
   },
   violatingFixtures: [
-    { relativePath: 'src/x.ts', code: "downloadSatserDokument(); usePersistedSection('erstatningsopgoerelse');" },
-    { relativePath: 'src/x.ts', code: "downloadErstatningsopgoerelseDokument(); getPersistedData('stamdata');" },
+    { relativePath: 'src/x.ts', code: 'useMineoDocumentOutput(entry); slimInputStore.getState();' },
+    {
+      relativePath: 'src/x.ts',
+      code: 'const a = useReguleringDocumentAction(r); const s = slimInputStore.getState().input;',
+    },
+    { relativePath: 'src/x.ts', code: "useMineoDocumentActionOutput(e); getPersistedData('stamdata');" },
   ],
   cleanFixtures: [
-    // Download uden committed EO/stamdata-read.
-    { relativePath: 'src/x.ts', code: "downloadSatserDokument(); usePersistedSection('renteberegning');" },
-    // Stamdata-read med en ikke-EO download er tilladt.
-    { relativePath: 'src/x.ts', code: "downloadSatserDokument(); getPersistedData('stamdata');" },
-    // EO-read uden nogen download-trigger.
-    { relativePath: 'src/x.ts', code: "usePersistedSection('erstatningsopgoerelse');" },
+    // Download uden ugated læsning — den normale, korrekte form.
+    { relativePath: 'src/x.ts', code: 'const out = useMineoDocumentOutput(entry); const v = out.snapshot;' },
+    // Ugated læsning uden nogen download-trigger er en anden regels ansvar.
+    { relativePath: 'src/x.ts', code: 'const s = slimInputStore.getState();' },
+    // Et andet stores getState er ikke den autoritative inputtilstand.
+    { relativePath: 'src/x.ts', code: 'useMineoDocumentOutput(entry); uiStore.getState();' },
   ],
 });
 
@@ -631,6 +766,11 @@ const minprocesrenteStandaloneImport = forbidImports({
   id: 'layer/minprocesrente-standalone-import-boundary',
   description:
     'Den isolerede MinProcesrente-standalone må ikke importere Mineos auth-/route-/PWA-/settings-/diagnose-flows (den deler kun renteberegning-sektionen).',
+  liveTarget: {
+    kind: 'scoped',
+    roots: STANDALONE_SCOPE_PREFIXES,
+    rationale: 'standalone-appen findes stadig som et selvstændigt scope, der skal holdes isoleret',
+  },
   appliesTo: isStandaloneScope,
   forbidden: (ref) =>
     isMineoAppRootImport(ref.moduleSpecifier) ||
@@ -694,7 +834,7 @@ const referencesTrackedCommittedSource = (
       ts.isPropertyAccessExpression(current) &&
       ts.isIdentifier(current.expression) &&
       trackedFormVars.has(current.expression.text) &&
-      current.name.text === 'values'
+      current.name.text === COMMITTED_MEMBER
     ) {
       found = true;
       return;
@@ -705,11 +845,33 @@ const referencesTrackedCommittedSource = (
   return found;
 };
 
-const COMMITTED_MIRROR_MARKERS = ['usePersistedSectionSelector', 'getPersistedSectionSnapshot', 'usePersistedForm'];
+/**
+ * Fase 6 retargetede denne regel til greenfields faktiske læse-grænse.
+ *
+ * Mekanikken — spor en variabel fra den committede kilde, og flag den, hvis den flyder ind i en
+ * `useState`-initializer eller en setter i en `useEffect` — er uændret og fanger stadig præcis det,
+ * den skal. Men KILDERNE var `usePersistedSectionSelector`/`getPersistedSectionSnapshot`/
+ * `usePersistedForm`, som alle tre er afskaffet: dødt-værn-detektoren viste nul kald i grafen, så
+ * reglen returnerede tomt på første linje for hver eneste fil.
+ *
+ * Greenfields ene læse-grænse er `useInputEvaluation()` (§3.4), hvis `reader` fodrer de rene
+ * reader-projektioner. Spejles dét i lokal React-state, genopstår præcis den divergens mellem
+ * committed sandhed og lokal kopi, reglen blev skrevet for at forhindre.
+ */
+const COMMITTED_MIRROR_MARKERS = ['useInputEvaluation'];
+/** Evalueringens committede medlem: `const { reader } = useInputEvaluation()`. */
+const COMMITTED_MEMBER = 'reader';
+/** Projektions-byggere: `buildXReaderProjection(evaluation.reader)` er også en committed kilde. */
+const READER_PROJECTION_BUILDER = /^build[A-Za-z]*(?:Reader)?Projection$/;
+
+/** Nævner filen overhovedet en committed kilde — evalueringen eller en reader-projektion? */
+const mentionsCommittedSource = (text: string): boolean =>
+  COMMITTED_MIRROR_MARKERS.some((marker) => text.includes(marker))
+  || /\bbuild[A-Za-z]*(?:Reader)?Projection\s*\(/.test(text);
 
 const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
   if (!entry.text.includes('useState')) return [];
-  if (!COMMITTED_MIRROR_MARKERS.some((marker) => entry.text.includes(marker))) return [];
+  if (!mentionsCommittedSource(entry.text)) return [];
 
   const sourceFile = entry.ast;
   const trackedSectionVars = new Set<string>();
@@ -719,23 +881,24 @@ const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
 
   const collect = (node: ts.Node): void => {
     if (ts.isVariableDeclaration(node) && node.initializer) {
+      // `const p = buildXReaderProjection(reader)` — projektionen ER den committede afledning.
       if (
         ts.isCallExpression(node.initializer) &&
-        (isNamedCall(node.initializer, 'usePersistedSectionSelector') ||
-          isNamedCall(node.initializer, 'getPersistedSectionSnapshot'))
+        ts.isIdentifier(node.initializer.expression) &&
+        READER_PROJECTION_BUILDER.test(node.initializer.expression.text)
       ) {
         for (const identifier of collectBindingIdentifiers(node.name)) {
           trackedSectionVars.add(identifier);
         }
       }
 
-      if (ts.isCallExpression(node.initializer) && isNamedCall(node.initializer, 'usePersistedForm')) {
+      if (ts.isCallExpression(node.initializer) && isNamedCall(node.initializer, 'useInputEvaluation')) {
         if (ts.isIdentifier(node.name)) trackedFormVars.add(node.name.text);
         if (ts.isObjectBindingPattern(node.name)) {
           for (const element of node.name.elements) {
             if (element.dotDotDotToken) continue;
             const propertyName = element.propertyName ?? element.name;
-            if (ts.isIdentifier(propertyName) && propertyName.text === 'values') {
+            if (ts.isIdentifier(propertyName) && propertyName.text === COMMITTED_MEMBER) {
               trackedValuesVars.add(element.name.getText(sourceFile));
             }
           }
@@ -750,7 +913,7 @@ const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
         for (const element of node.name.elements) {
           if (element.dotDotDotToken) continue;
           const propertyName = element.propertyName ?? element.name;
-          if (ts.isIdentifier(propertyName) && propertyName.text === 'values') {
+          if (ts.isIdentifier(propertyName) && propertyName.text === COMMITTED_MEMBER) {
             trackedValuesVars.add(element.name.getText(sourceFile));
           }
         }
@@ -761,7 +924,7 @@ const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
         ts.isPropertyAccessExpression(node.initializer) &&
         ts.isIdentifier(node.initializer.expression) &&
         trackedFormVars.has(node.initializer.expression.text) &&
-        node.initializer.name.text === 'values'
+        node.initializer.name.text === COMMITTED_MEMBER
       ) {
         trackedValuesVars.add(node.name.text);
       }
@@ -836,28 +999,59 @@ const persistenceCommittedMirror = defineRule({
   id: 'persistence/committed-section-mirror',
   description:
     'Ingen lokal React-state (useState-initializer eller useEffect-setter) må spejle en committed persisteret sektion i pages/hooks — committed state er den ene kilde.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      (entry.relativePath.startsWith('src/components/pages/') || entry.relativePath.startsWith('src/hooks/'))
+      && mentionsCommittedSource(entry.text),
+    rationale:
+      'mindst én page/hook læser committed state gennem greenfields læse-grænse — kilden, der kan '
+      + 'spejles, findes altså stadig',
+  },
   appliesTo: (relativePath) =>
     relativePath.startsWith('src/components/pages/') || relativePath.startsWith('src/hooks/'),
   find: findCommittedMirrorViolations,
   violatingFixtures: [
     {
       relativePath: 'src/hooks/useX.ts',
-      code: "const s = usePersistedSectionSelector('stamdata'); const [local, setLocal] = useState(s);",
+      code: 'const p = buildStamdataReaderProjection(r); const [local, setLocal] = useState(p);',
     },
     {
       relativePath: 'src/components/pages/X.tsx',
-      code: "const { values } = usePersistedForm('stamdata'); const [l, setL] = useState(0); useEffect(() => { setL(values); }, [values]);",
+      code: 'const { reader } = useInputEvaluation(); const [l, setL] = useState(0); useEffect(() => { setL(reader); }, [reader]);',
+    },
+    {
+      relativePath: 'src/components/pages/Y.tsx',
+      code: 'const e = useInputEvaluation(); const [l, setL] = useState(e.reader);',
     },
   ],
   cleanFixtures: [
-    { relativePath: 'src/components/pages/X.tsx', code: "const s = usePersistedSectionSelector('stamdata'); const derived = useMemo(() => s.x, [s]);" },
-    { relativePath: 'src/hooks/useX.ts', code: "const [l, setL] = useState(0); useEffect(() => { setL(1); }, []);" },
+    // Afledning via useMemo er den ØNSKEDE form — ingen spejling.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const p = buildStamdataReaderProjection(r); const derived = useMemo(() => p.x, [p]);',
+    },
+    { relativePath: 'src/hooks/useX.ts', code: 'const [l, setL] = useState(0); useEffect(() => { setL(1); }, []);' },
+    // Lokal UI-state, der ikke rører den committede kilde.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const e = useInputEvaluation(); const [open, setOpen] = useState(false);',
+    },
   ],
 });
 
 // --- Form-kontrakt: ingen microtask-/Promise-tick i commit-sensitiv kode -------
 
-const COMMIT_SENSITIVE_PREFIXES = ['src/components/', 'src/hooks/', 'src/utils/', 'src/rowDrafts/', 'src/criticalActions/'];
+// `src/rowDrafts/` og `src/criticalActions/` er FJERNET fra listen i Fase 6: begge mapper blev slettet
+// i greenfield-cutoveren, så de var død konfiguration, der stille ville udvide grænsen igen, hvis en fil
+// med samme sti nogensinde opstod. Greenfields egen barriere ligger i `src/inputCore/runtime/`, som er
+// tilføjet i stedet — den er commit-sensitiv i præcis den forstand, reglen handler om.
+const COMMIT_SENSITIVE_PREFIXES = [
+  'src/components/',
+  'src/hooks/',
+  'src/utils/',
+  'src/inputCore/',
+];
 const isCommitSensitive = (relativePath: string): boolean =>
   COMMIT_SENSITIVE_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
 
@@ -865,6 +1059,11 @@ const queueMicrotaskBoundary = forbidCalls({
   id: 'form/no-queue-microtask-in-commit-sensitive',
   description:
     'queueMicrotask er forbudt i commit-sensitiv kode (kan splitte en atomisk commit over to microtasks); kun auditerede infrastruktur-undtagelser.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: COMMIT_SENSITIVE_PREFIXES,
+    rationale: 'de commit-sensitive lag findes stadig og kan indføre en microtask-split',
+  },
   appliesTo: isCommitSensitive,
   allow: ['src/components/tables/gridCore/tableKeyboardNavigation.ts'],
   forbidden: (ref) => ref.calleeName === 'queueMicrotask' && ref.calleeText === 'queueMicrotask',
@@ -891,6 +1090,11 @@ const promiseTickBoundary = forbidCalls({
   id: 'form/no-promise-tick-in-commit-sensitive',
   description:
     'Promise-tick (await Promise.resolve() / Promise.resolve().then()) er forbudt i commit-sensitiv kode.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: COMMIT_SENSITIVE_PREFIXES,
+    rationale: 'de commit-sensitive lag findes stadig og kan indføre en Promise-tick',
+  },
   appliesTo: isCommitSensitive,
   allow: [],
   forbidden: (ref) => ref.calleeText === 'Promise.resolve' && isMicrotaskTick(ref.node),
@@ -918,13 +1122,24 @@ const promiseTickBoundary = forbidCalls({
  * mønster inde i selve barrieren. `document.activeElement` (fokus-mål-capture, ikke deltager-
  * opdagelse) er en property-access og rammes derfor ikke.
  */
+// Fase 6: scopet var `src/criticalActions/` — en mappe, greenfield-cutoveren slettede. Dødt-værn-
+// detektorens scan-rod-kontrol fangede det: reglen scannede en tom rod og var inert, selv om dens
+// fixtures (som lå på syntetiske `src/criticalActions/`-stier) blev ved med at bestå. Barrieren bor nu
+// i `criticalActionCoordinator.ts` under greenfield-runtimen, og kontrakt §2's løfte gælder den.
+const CRITICAL_ACTION_MODULE = 'src/inputCore/runtime/criticalActionCoordinator.ts';
+
 const isCriticalActionModule = (relativePath: string): boolean =>
-  relativePath.startsWith('src/criticalActions/');
+  relativePath === CRITICAL_ACTION_MODULE;
 
 const criticalActionNoDomScanOrFrameWait = forbidCalls({
   id: 'criticalAction/no-dom-scan-or-frame-wait',
   description:
     'critical-action-barrieren må ikke DOM-scanne (querySelector*/getElementsBy*) eller vente på frames/timeouts (requestAnimationFrame/setTimeout/setInterval) — den afventer kun eksplicitte deltager-promises (kontrakt §2).',
+  liveTarget: {
+    kind: 'scoped',
+    roots: [CRITICAL_ACTION_MODULE],
+    rationale: 'critical-action-barrieren findes stadig som modul og kan regressere til timing-venten',
+  },
   appliesTo: isCriticalActionModule,
   forbidden: (ref) =>
     ref.calleeName === 'requestAnimationFrame' ||
@@ -938,13 +1153,13 @@ const criticalActionNoDomScanOrFrameWait = forbidCalls({
   message: (ref) =>
     `${ref.calleeText} i critical-action-barrieren — DOM-scanning/frame-venten er forbudt (kontrakt §2); afvent eksplicitte deltager-promises.`,
   violatingFixtures: [
-    { relativePath: 'src/criticalActions/x.ts', code: 'requestAnimationFrame(() => flush());' },
-    { relativePath: 'src/criticalActions/x.ts', code: 'setTimeout(commit, 0);' },
-    { relativePath: 'src/criticalActions/x.ts', code: 'const el = document.querySelector("[data-editor]");' },
+    { relativePath: CRITICAL_ACTION_MODULE, code: 'requestAnimationFrame(() => flush());' },
+    { relativePath: CRITICAL_ACTION_MODULE, code: 'setTimeout(commit, 0);' },
+    { relativePath: CRITICAL_ACTION_MODULE, code: 'const el = document.querySelector("[data-editor]");' },
   ],
   cleanFixtures: [
-    { relativePath: 'src/criticalActions/x.ts', code: 'await participant.commit();' },
-    { relativePath: 'src/criticalActions/x.ts', code: 'const el = document.activeElement;' },
+    { relativePath: CRITICAL_ACTION_MODULE, code: 'await participant.commit();' },
+    { relativePath: CRITICAL_ACTION_MODULE, code: 'const el = document.activeElement;' },
     // Uden for barrieren er frame-planlægning fortsat tilladt (fx kosmetisk fokus).
     { relativePath: 'src/components/x.tsx', code: 'requestAnimationFrame(() => focus());' },
   ],
@@ -1059,6 +1274,11 @@ const eoFieldVisibilitySingleSource = defineRule({
   id: 'domain/eo-field-visibility-single-source',
   description:
     'Governed EO-input-felter (synlighed ejet af eoInputRelevance-prædikater) må ikke bruges i inline render-gates i eoOplysninger-sektionerne — ellers kan UI-synlighed og beregnings-neutralisering divergere.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: [EO_OPLYSNINGER_SECTIONS_DIR],
+    rationale: 'EO-oplysningssektionerne findes stadig og kan indføre en inline synligheds-gate',
+  },
   appliesTo: (relativePath) => relativePath.startsWith(`${EO_OPLYSNINGER_SECTIONS_DIR}/`),
   find: findEoFieldVisibilityGates,
   violatingFixtures: [
@@ -1091,6 +1311,13 @@ const reguleringCanonicalForloebBoundary = forbidImports({
   id: 'domain/regulering-canonical-forloeb-boundary',
   description:
     'Reguleringspræsentation og -kontrol må ikke genindlæse statistik-, KRL-, KL- eller manuel-procentsatsserier; de skal læse motorens kanoniske forløb.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      entry.relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts'
+      || entry.relativePath === 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+    rationale: 'begge de regulerede præsentations-/kontrolmoduler findes stadig',
+  },
   appliesTo: (relativePath) =>
     relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts'
     || relativePath === 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
@@ -1144,6 +1371,11 @@ const eetDifferencekravCompositionBoundary = forbidImports({
   id: 'domain/eet-differencekrav-composition-boundary',
   description:
     'Differencekrav-aggregatoren må ikke starte EET-søsterberegninger; den eksplicitte beregningsgraf ejer kompositionen.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === 'src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts',
+    rationale: 'differencekrav-aggregatoren findes stadig som selvstændigt modul',
+  },
   appliesTo: (relativePath) =>
     relativePath === 'src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts',
   forbidden: (ref) => ref.namedBindings.some((binding) =>
@@ -1167,6 +1399,11 @@ const sfggEngineImportBoundary = forbidImports({
   id: 'domain/sfgg-engine-import-boundary',
   description:
     'Den samlede SFGG-engine må kun kaldes af TAF-netto-orkestreringen; øvrige lag bruger smalle SFGG-moduler eller resultattypen.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath.endsWith('/sfggEngine.ts'),
+    rationale: 'den samlede SFGG-engine findes stadig som modul, der kan importeres uden om grænsen',
+  },
   allow: ['src/domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts'],
   forbidden: (ref) => ref.moduleSpecifier.endsWith('/sfggEngine') || ref.moduleSpecifier === './sfggEngine',
   message: (ref) => `Bred SFGG-engine-import (${ref.moduleSpecifier}) uden for TAF-netto-orkestreringen.`,
@@ -1183,6 +1420,11 @@ const sfggEngineImportBoundary = forbidImports({
 const sfggAnsaettelsesforholdImportBoundary = forbidImports({
   id: 'domain/sfgg-ansaettelsesforhold-import-boundary',
   description: 'Pr.-ansættelsesforhold-beregningen er intern for den tynde SFGG-engine.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath.endsWith('/sfggAnsaettelsesforhold.ts'),
+    rationale: 'pr.-ansættelsesforhold-beregningen findes stadig som modul, der kan importeres uden om grænsen',
+  },
   allow: ['src/domain/erstatningsopgoerelse/engines/sfggEngine.ts'],
   forbidden: (ref) =>
     ref.moduleSpecifier.endsWith('/sfggAnsaettelsesforhold')
@@ -1201,6 +1443,11 @@ const sfggAnsaettelsesforholdImportBoundary = forbidImports({
 const sfggSegmenteringImportBoundary = forbidImports({
   id: 'domain/sfgg-segmentering-import-boundary',
   description: 'SFGG-segmentmatematik må kun bruges af engine-lagets to orkestratorer.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath.endsWith('/sfggSegmentering.ts'),
+    rationale: 'SFGG-segmentmatematikken findes stadig som modul, der kan importeres uden om grænsen',
+  },
   allow: [
     'src/domain/erstatningsopgoerelse/engines/sfggAnsaettelsesforhold.ts',
     'src/domain/erstatningsopgoerelse/engines/sfggEngine.ts',
@@ -1221,6 +1468,11 @@ const sfggSegmenteringImportBoundary = forbidImports({
 const sfggWarningsImportBoundary = forbidImports({
   id: 'domain/sfgg-warnings-import-boundary',
   description: 'SFGG-seksmånedersadvarslen forbruges kun af snapshot og den fælles row-builder.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath.endsWith('/sfggWarnings.ts'),
+    rationale: 'SFGG-seksmånedersadvarslen findes stadig som modul, der kan importeres uden om grænsen',
+  },
   allow: [
     'src/domain/eoRowEvaluation/eoRowSygeferiegodtgoerelseRows.ts',
     'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
@@ -1285,6 +1537,11 @@ const documentLifecycleBypass = forbidImports({
   id: 'document/lifecycle-single-entrypoint',
   description:
     'Kun kataloget må importere kernens livscyklus, og kun livscyklussen må importere fil-I/O.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => DOCUMENT_LIFECYCLE_AUTHORITIES.includes(entry.relativePath),
+    rationale: 'livscyklus-kernen og kataloget findes stadig som de moduler, alle downloads skal igennem',
+  },
   allow: DOCUMENT_LIFECYCLE_AUTHORITIES,
   forbidden: (ref) => {
     const moduleSpecifier = ref.moduleSpecifier.replaceAll('\\', '/');
@@ -1314,6 +1571,11 @@ const documentLifecycleBypass = forbidImports({
 const documentGeneratorImportBoundary = forbidImports({
   id: 'document/generator-import-boundary',
   description: 'Kun dokumentdefinitioner må importere dokumentgeneratorer.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/document/generators'],
+    rationale: 'der findes stadig dokumentgeneratorer, som kan importeres uden om en definition',
+  },
   allow: DOCUMENT_GENERATOR_AUTHORITIES,
   forbidden: (ref) => !ref.typeOnly && ref.moduleSpecifier.replaceAll('\\', '/').includes('document/generators/'),
   message: (ref) => `Uautoriseret generatorimport (${ref.moduleSpecifier}) — generatoren skal ligge bag definitionens loadRenderer.`,
@@ -1330,6 +1592,11 @@ const documentGeneratorImportBoundary = forbidImports({
 const documentGeneratorWriterImport = forbidImports({
   id: 'document/generator-writer-import-boundary',
   description: 'Dokumentgeneratorer må kun bygge DocumentModel og må ikke importere writer-targets, kanaler eller den imperative modelrenderer.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/document/generators'],
+    rationale: 'generatorlaget findes stadig og kan gribe ned i writer/kanal/renderer',
+  },
   appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
   forbidden: (ref) => {
     const moduleSpecifier = ref.moduleSpecifier.replaceAll('\\', '/');
@@ -1369,6 +1636,11 @@ const DOCUMENT_GENERATOR_CURSOR_MEMBERS = new Set(['getDoc', 'getY', 'setY', 'ad
 const documentGeneratorCursorAccess = forbidMemberAccess({
   id: 'document/generator-cursor-access-boundary',
   description: 'Dokumentgeneratorer må ikke observere kanal, cursor eller dokumentmål.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/document/generators'],
+    rationale: 'generatorlaget findes stadig og kan tilgå cursoren imperativt',
+  },
   appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
   forbidden: (ref) => DOCUMENT_GENERATOR_CURSOR_MEMBERS.has(ref.chainText.split('.').at(-1) ?? ''),
   message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) — brug en deklarativ DocumentBlock.`,
@@ -1379,6 +1651,11 @@ const documentGeneratorCursorAccess = forbidMemberAccess({
 const documentGeneratorCursorElementAccess = forbidElementAccess({
   id: 'document/generator-cursor-element-access-boundary',
   description: 'Bracket-notation må ikke omgå dokumentgeneratorernes cursorgrænse.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/document/generators'],
+    rationale: 'generatorlaget findes stadig og kan omgå cursorgrænsen med bracket-notation',
+  },
   appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
   forbidden: (ref) => Array.from(DOCUMENT_GENERATOR_CURSOR_MEMBERS).some((member) => ref.chainText.endsWith(`["${member}"]`) || ref.chainText.endsWith(`['${member}']`)),
   message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) — brug en deklarativ DocumentBlock.`,
@@ -1406,6 +1683,15 @@ const restoreTargetAttributesRule = defineRule({
   id: 'form/restore-target-attributes',
   description:
     'Feltfamilier, der ejer et fokuserbart element (surface-hook eller Styled*-kontrol), skal føre restore-target-attributterne igennem, så undo/redo kan re-fokusere den rette editorlokation (§3.7).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      entry.relativePath.startsWith(FIELDS_DIR + '/')
+      && entry.relativePath.endsWith('.tsx')
+      && FOCUSABLE_SURFACE_SIGNAL.test(entry.text),
+    rationale:
+      'mindst én feltfamilie ejer stadig et fokuserbart element og skal derfor bære restore-target-attributterne',
+  },
   appliesTo: (relativePath) =>
     relativePath.startsWith(`${FIELDS_DIR}/`) && relativePath.endsWith('.tsx'),
   find: (entry) => {
@@ -1461,6 +1747,13 @@ const rowCommandDestinationRule = defineRule({
   description:
     'useCollectionRows/useCollectionRowCommands skal kaldes med et origin, der bærer en route, så undo/redo af '
     + 'en rækkehandling kan navigere til den tabel, ændringen kom fra (§3.7).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      collectCalls(entry).some((ref) => ROW_COMMAND_HOOKS.has(ref.calleeName))
+      && !entry.relativePath.endsWith('useCollectionRows.ts'),
+    rationale: 'mindst ét rækkehandlings-callsite findes uden for hookens egen definition',
+  },
   appliesTo: (relativePath) =>
     relativePath.startsWith('src/components/') || relativePath.startsWith('src/inputCore/react/'),
   find: (entry) => {
@@ -1527,6 +1820,283 @@ const rowCommandDestinationRule = defineRule({
   ],
 });
 
+// --- Skrivegrænsen: kun runneren skriver input (§3.6) -------------------------
+
+/**
+ * PRIMÆRVÆRNET er TYPEN, ikke denne regel.
+ *
+ * `applyCommit`/`hydrate` kræver en `InputWriteAuthority` — et `unique symbol`-brandet vidne, som kun
+ * `claimInputWriteAuthority()` i `slimInputStore.ts` kan udstede. Et nyt modul, der importerer storen
+ * og forsøger at skrive, får en compilerfejl. Typen dækker også den sag, en AST-regel principielt ikke
+ * kan se: en store, der er ført videre gennem en variabel eller en generisk hjælper.
+ *
+ * Reglen lukker de to huller, typen efterlader — og `description` siger hvorfor typen ikke rakte alene
+ * (jf. acceptkriteriet i WI-012):
+ *
+ *   1. **Type-assertion.** `{} as InputWriteAuthority` forfalsker vidnet uden en type-fejl. Det er
+ *      brandede typers kendte loft, og en assertion er præcis den slags lokale, bevidste handling en
+ *      AST-regel ser godt.
+ *   2. **Producentlisten.** `claimInputWriteAuthority` er nødt til at være eksporteret, fordi de to
+ *      autoritative skriveveje ligger i søskendemoduler. Uden en regel kunne en tredje kalder tilføjes
+ *      lydløst — og skrivegrænsen ville flytte sig uden at nogen traf beslutningen.
+ *
+ * Allowlisten er tom med vilje: en undtagelse ville være en anden samtidig sandhed om, hvem der ejer
+ * input — samme begrundelse som `input/deleted-legacy-architecture-import`.
+ */
+/** Modulet der UDSTEDER vidnet. Kun her giver en assertion mening — den ER konstruktionen af brandet. */
+const WRITE_AUTHORITY_ISSUER = 'src/inputCore/runtime/slimInputStore.ts';
+
+/** Modulerne der må KALDE udstederen, dvs. de autoritative skriveveje (§3.6). */
+const INPUT_WRITE_AUTHORITIES: readonly string[] = [
+  'src/inputCore/runtime/dispatchInput.ts',
+  'src/inputCore/runtime/initializeInputRuntime.ts',
+  WRITE_AUTHORITY_ISSUER,
+];
+
+const inputWriteBoundary = defineRule({
+  id: 'input/write-boundary',
+  description:
+    'Kun runneren skriver input (§3.6). Grænsen bæres af typen `InputWriteAuthority`; denne regel lukker '
+    + 'de to huller typen ikke kan: en type-assertion, der forfalsker vidnet, og en uautoriseret kalder '
+    + 'af `claimInputWriteAuthority`, der ville flytte skrivegrænsen uden en beslutning.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => INPUT_WRITE_AUTHORITIES.includes(entry.relativePath),
+    rationale:
+      'skrivegrænsens moduler (store + de to autoritative skriveveje) findes stadig — forsvinder de, '
+      + 'er grænsen flyttet og reglen skal skrives om',
+  },
+  allow: [],
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const authorized = INPUT_WRITE_AUTHORITIES.includes(entry.relativePath);
+
+    // Udstederen SKAL assertere for at kunne konstruere brandet — det er selve vidnets fødsel, og den
+    // hører netop hjemme ét sted. Alle andre assertions til typen er en forfalskning.
+    for (const ref of entry.relativePath === WRITE_AUTHORITY_ISSUER ? [] : collectTypeAssertions(entry)) {
+      if (/(?:^|\.)InputWriteAuthority$/.test(ref.typeText)) {
+        findings.push({
+          position: ref.position,
+          message:
+            'Type-assertion til InputWriteAuthority forfalsker skrive-vidnet — skriv gennem '
+            + 'dispatchInput/initializeInputRuntime i stedet for at omgå §3.6.',
+        });
+      }
+    }
+
+    if (!authorized) {
+      for (const ref of collectCalls(entry)) {
+        // Også testvidnet: kilde-grafen er ren produktion, så et kald HER ville være en skrivevej,
+        // der har sneget sig ind under et testnavn.
+        if (ref.calleeName === 'claimInputWriteAuthority' || ref.calleeName === '__testInputWriteAuthority') {
+          findings.push({
+            position: ref.position,
+            message:
+              'Uautoriseret udstedelse af skrive-vidnet (claimInputWriteAuthority) — kun runneren og '
+              + 'hydreringen må skrive input (§3.6).',
+          });
+        }
+      }
+    }
+
+    return findings;
+  },
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: 'const a = {} as InputWriteAuthority;' },
+    { relativePath: 'src/x.ts', code: 'store.getState().hydrate(input, value as unknown as InputWriteAuthority);' },
+    { relativePath: 'src/components/x.tsx', code: 'store.getState().applyCommit(c, claimInputWriteAuthority());' },
+    // Også inde i inputCore — men uden for de tre autoriserede moduler.
+    { relativePath: 'src/inputCore/react/x.ts', code: 'const a = claimInputWriteAuthority();' },
+    // Testvidnet må ikke bruges som bagdør i produktionskoden.
+    { relativePath: 'src/components/x.tsx', code: 'store.getState().hydrate(i, __testInputWriteAuthority());' },
+  ],
+  cleanFixtures: [
+    // De autoritative skriveveje må naturligvis udstede vidnet.
+    {
+      relativePath: 'src/inputCore/runtime/dispatchInput.ts',
+      code: 'store.getState().applyCommit(commit, claimInputWriteAuthority());',
+    },
+    {
+      relativePath: 'src/inputCore/runtime/initializeInputRuntime.ts',
+      code: 'store.getState().hydrate(input, claimInputWriteAuthority());',
+    },
+    // Læsning er fri.
+    { relativePath: 'src/components/x.tsx', code: 'const state = slimInputStore.getState();' },
+    // En anden type-assertion er ikke reglens ærinde.
+    { relativePath: 'src/x.ts', code: 'const n = value as number;' },
+  ],
+});
+
+// --- Transiente controls må ikke kunne skrive sagsinput ------------------------
+
+/**
+ * `src/components/inputs/transient/` er den ENESTE bevidste ikke-sagsdata-flade: tre overlay-/dialog-
+ * felter, hvis værdier aldrig persisteres ([[project_transient_input_family]]). Det var indtil nu kun
+ * en aftale — intet hindrede en af dem i at importere skrivevejen og dermed genskabe præcis den
+ * parallelle inputvej, greenfield-cutoveren slettede ("genindfør ALDRIG en Styled*Field-familie").
+ *
+ * Reglen forbyder dem enhver sagsinput-skrivevej: dispatch, storen, feltredigeringen og
+ * descriptor-katalogerne (uden en descriptor findes der ingen feltadresse at skrive til).
+ */
+const TRANSIENT_DIR = 'src/components/inputs/transient';
+
+const transientCannotWriteCaseData = forbidImports({
+  id: 'input/transient-cannot-write-case-data',
+  description:
+    'Transiente (ikke-sagsdata) input-controls må ikke importere en sagsinput-skrivevej — hverken '
+    + 'dispatch, den autoritative store, felteditoren eller et descriptor-katalog.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: [TRANSIENT_DIR],
+    rationale:
+      'den transiente feltfamilie findes stadig som selvstændig flade og kan koble sig på sagsinput',
+  },
+  appliesTo: (relativePath) => relativePath.startsWith(`${TRANSIENT_DIR}/`),
+  allow: [],
+  forbidden: (ref) => {
+    const moduleSpecifier = ref.moduleSpecifier.replaceAll('\\', '/');
+    return (
+      /(?:^|\/)inputCore\/catalog\//.test(moduleSpecifier)
+      || /(?:^|\/)(?:dispatchInput|slimInputStore|initializeInputRuntime)$/.test(moduleSpecifier)
+      || /(?:^|\/)inputCore\/runtime(?:\/index)?$/.test(moduleSpecifier)
+      || /(?:^|\/)(?:useFieldEditor|useFormFieldSurface|useGridCellSurface|useCollectionRows)$/.test(moduleSpecifier)
+      || ref.namedBindings.some((binding) =>
+        binding === 'dispatchInput'
+        || binding === 'slimInputStore'
+        || binding === 'useFieldEditor'
+        || binding === 'useFormFieldSurface'
+        || binding === 'useInputEvaluation'
+      )
+    );
+  },
+  message: (ref) =>
+    `Transient control importerer en sagsinput-skrivevej (${ref.moduleSpecifier}) — transiente felter `
+    + 'er pr. definition ikke sagsdata og må ikke kunne persistere.',
+  violatingFixtures: [
+    {
+      relativePath: `${TRANSIENT_DIR}/TransientX.tsx`,
+      code: "import { dispatchInput } from '../../../inputCore/runtime/dispatchInput';",
+    },
+    {
+      relativePath: `${TRANSIENT_DIR}/TransientX.tsx`,
+      code: "import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';",
+    },
+    {
+      relativePath: `${TRANSIENT_DIR}/TransientX.tsx`,
+      code: "import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';",
+    },
+    {
+      relativePath: `${TRANSIENT_DIR}/TransientX.tsx`,
+      code: "import { stamdataSkadedatoField } from '../../../inputCore/catalog/stamdataDescriptors';",
+    },
+  ],
+  cleanFixtures: [
+    // Den transiente families egen draft-hook + de bevarede UI-primitiver er hele dens tilladte verden.
+    { relativePath: `${TRANSIENT_DIR}/TransientX.tsx`, code: "import { useTransientDraft } from './useTransientDraft';" },
+    { relativePath: `${TRANSIENT_DIR}/TransientX.tsx`, code: "import StyledTextFieldBase from '../StyledTextFieldBase';" },
+    { relativePath: `${TRANSIENT_DIR}/TransientX.tsx`, code: "import { parseAmountInput } from '../../../utils/expressionAmount';" },
+    // Uden for den transiente mappe gælder forbuddet ikke.
+    { relativePath: 'src/components/x.tsx', code: "import { useFieldEditor } from '../inputCore/react/useFieldEditor';" },
+  ],
+});
+
+// --- Forbudt-identifier-gate: de reelt døde legacy-navne ----------------------
+
+/**
+ * Fase 6's forbudt-symbol-gate, med planens liste KORRIGERET mod den faktiske kildetilstand.
+ *
+ * Gaten måler **identifiers fra AST'en**, ikke tekst. Det er afgørende, fordi de fleste af navnene
+ * stadig optræder i produktionen — som KOMMENTARER, der forklarer hvorfor en mekanisme ikke findes
+ * længere. Den historik er bevidst dokumentation og skal blive ([[project_dansk_prosa_guard_markers]]);
+ * en grep-baseret gate ville tvinge en oprydning af netop den prosa, der gør sletningerne forståelige.
+ *
+ * **To navne fra planens liste er UDELADT, fordi de er levende greenfield-vokabular:**
+ *
+ *   - `fieldErrors` bruges i ~12 produktionsmoduler (snapshots, reader-projektioner, download-gates)
+ *     som det nuværende feltnavn i snapshot-/projektionskontrakterne.
+ *   - `blocksSave` er EO's levende navn i `eoInputIssues.ts`.
+ *
+ * At forbyde dem ville tvinge en kosmetisk omdøbning igennem uden gevinst — stik imod
+ * [[feedback_prefer_structural_unification]]. Planens §Fase 6 er opdateret med samme begrundelse, så
+ * plan og værn ikke driver fra hinanden (exitkriterie 4).
+ *
+ * `usePersistedForm` og `useSliceRowDrafts` blev afklaret i WI-012's pass 1: begge har NUL identifiers
+ * i produktionen (og `usePersistedForm` har ingen definition overhovedet), så de hører hjemme på listen.
+ */
+const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
+  'executeLegacyInputTransaction',
+  'useDraftLifecycle',
+  'legacyGridTransactionBridge',
+  'useDraftField',
+  'useTableInputCore',
+  'useRowDrafts',
+  'useSliceRowDrafts',
+  'invalidDrafts',
+  'FormPersistenceContext',
+  'usePersistedForm',
+];
+
+const FORBIDDEN_IDENTIFIER_SET = new Set(FORBIDDEN_LEGACY_IDENTIFIERS);
+
+const forbiddenLegacyIdentifier = defineRule({
+  id: 'legacy/forbidden-identifier',
+  description:
+    'De slettede legacy-mekanismers navne må ikke genopstå som identifiers i produktionskoden. Gaten '
+    + 'måler AST-identifiers, ikke tekst, så historik-kommentarer om de samme mekanismer bevares.',
+  liveTarget: {
+    kind: 'absence',
+    forbids: FORBIDDEN_LEGACY_IDENTIFIERS,
+    rationale:
+      'nul hits ER målet: hvert navn er bevisligt dødt som identifier. `deletedLegacyAbsence.test.ts` '
+      + 'holder listen ærlig ved at kræve, at navnene faktisk er fraværende — ellers kunne gaten '
+      + 'stille blive en liste over stavefejl.',
+  },
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const sourceFile = entry.ast;
+
+    const visit = (node: ts.Node): void => {
+      // KUN identifiers. Kommentarer er ikke en del af AST'ens node-træ og kan derfor pr. konstruktion
+      // ikke flages — det er selve grunden til at gaten er AST-baseret og ikke tekstbaseret.
+      if (ts.isIdentifier(node) && FORBIDDEN_IDENTIFIER_SET.has(node.text)) {
+        const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+        findings.push({
+          position: { line: line + 1, column: character + 1 },
+          message:
+            `Genindført legacy-symbol '${node.text}' — mekanismen er slettet i greenfield-cutoveren. `
+            + 'Brug inputCore: reader/projektion til læsning, dispatch/useFieldEditor til skrivning.',
+        });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+    return findings;
+  },
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: 'const s = usePersistedForm("aarsloen");' },
+    { relativePath: 'src/x.ts', code: 'import { useDraftField } from "./somewhere";' },
+    { relativePath: 'src/x.ts', code: 'const d = state.invalidDrafts;' },
+    { relativePath: 'src/x.tsx', code: 'const rows = useSliceRowDrafts(x);' },
+    { relativePath: 'src/x.ts', code: 'type T = { ctx: FormPersistenceContext };' },
+  ],
+  cleanFixtures: [
+    // DEN VIGTIGSTE fixture: historik-prosa med præcis de forbudte ord må IKKE flages. Den er beviset
+    // for, at gaten ikke kolliderer med den bevidste dokumentation af hvad der blev slettet.
+    {
+      relativePath: 'src/x.ts',
+      code: '// Nøglen `mineo_invalidDrafts` findes ikke: invalidDrafts-kanalen er slettet (trin 13).',
+    },
+    {
+      relativePath: 'src/x.ts',
+      code: '/** Erstatter `usePersistedForm`/`useDraftField`-vejen med den ene write-grænse. */\nexport const x = 1;',
+    },
+    // Strengliterale (fx i et manifest eller en fejlbesked) er heller ikke identifiers.
+    { relativePath: 'src/x.ts', code: 'const names = ["useRowDrafts", "invalidDrafts"];' },
+    // Levende greenfield-vokabular må ikke rammes.
+    { relativePath: 'src/x.ts', code: 'const { fieldErrors } = snapshot; const b = issue.blocksSave;' },
+  ],
+});
+
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
@@ -1535,10 +2105,8 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   failOpenDisplayLookupImport,
   aslAarsloensmaksimumRawSubscript,
   inspektionLayerImport,
-  eetCrossDomainPersistedLookup,
   moneyOreTypeAssertion,
   pageSectionAccessBoundary,
-  persistedStyledFieldErrorReporter,
   pdfDownloadCommittedState,
   minprocesrenteStandaloneImport,
   persistenceCommittedMirror,
@@ -1559,4 +2127,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   documentGeneratorCursorElementAccess,
   restoreTargetAttributesRule,
   rowCommandDestinationRule,
+  inputWriteBoundary,
+  transientCannotWriteCaseData,
+  forbiddenLegacyIdentifier,
 ];

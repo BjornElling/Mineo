@@ -10,7 +10,7 @@ import {
   bootstrapProductionInputRuntime,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { dispatchInput } from '../../../inputCore/runtime/dispatchInput';
 import { replaceCase, settleField } from '../../../inputCore/inputReducer';
@@ -159,11 +159,11 @@ describe('MainLayout (unsaved beforeunload)', () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     pendingPwaRequest = null;
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   afterEach(() => {
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   it('prevents beforeunload after committed input change', async () => {
@@ -198,7 +198,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
       catalog.validateSettledInput({
         sections: { ...emptyInput().sections, satser: { aargang: 2020 } },
         rejectedInputs: {},
-      })
+      }), __testInputWriteAuthority()
     );
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');

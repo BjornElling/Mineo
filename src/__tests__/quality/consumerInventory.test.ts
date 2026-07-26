@@ -28,7 +28,22 @@ const assertConsumedSymbol = (entry: ConsumedInventoryEntry): void => {
   }
 };
 
-describe('greenfield fase-0-inventar', () => {
+describe('konsument- og schema-registre', () => {
+  /**
+   * Schema-drift-detektor (omklassificeret i Fase 6).
+   *
+   * Snapshottet hed før `greenfield-phase-0-persisted-input-inventory.json` og lå i
+   * `docs/architecture/`, hvor det lignede et migrationsartefakt fra fase 0 — og planens Fase 6 trin 2
+   * bad derfor om at FJERNE det, "når slutkatalogerne selv giver udtømmende coverage".
+   *
+   * Præmissen er vendt om: filen er ikke et frosset inventar. Den GENERERES ved hver kørsel af
+   * `collectSectionSchemaPaths` over de levende Zod-schemas, så den er en detektor, ikke en liste.
+   * Tilføjer eller fjerner nogen et persisteret felt uden at ville det, ændrer snapshottet sig, og
+   * testen fejler. At slette den ville altså fjerne LEVENDE dækning i legacy-oprydningens navn.
+   *
+   * Den er derfor flyttet til `__snapshots__/` og omdøbt efter sin FUNKTION frem for sin oprindelse.
+   * Indholdet er byte-identisk med den flyttede fil — flytningen skjuler ingen drift.
+   */
   it('fastholder alle persisted felt- og collection-stier maskinelt fra Zod-schemas', async () => {
     const inventory = Object.fromEntries(PERSISTED_SECTION_KEYS.map((section) => [
       section,
@@ -36,7 +51,7 @@ describe('greenfield fase-0-inventar', () => {
     ]));
 
     await expect(`${JSON.stringify(inventory, null, 2)}\n`).toMatchFileSnapshot(
-      '../../../docs/architecture/greenfield-phase-0-persisted-input-inventory.json'
+      './__snapshots__/persistedInputSchemaPaths.json'
     );
   });
 

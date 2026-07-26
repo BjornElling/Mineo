@@ -6,6 +6,7 @@ import {
   CriticalActionCoordinator,
   dispatchInput,
   type SlimInputStore,
+  __testInputWriteAuthority,
 } from '../../inputCore/runtime';
 import { createCaseResetOperations } from '../../persistence/caseResetOperations';
 import { aargangField, createTestCatalog } from '../inputCore/testCatalog';
@@ -53,7 +54,7 @@ describe('caseResetOperations.clearAll', () => {
   it('rydder en writesBlocked current-session (§1.12 recovery)', async () => {
     const store = __createSlimInputTestStore();
     // Simulér en bevaret korrupt session: writes blokeret, men clearCase skal stadig kunne rydde.
-    store.getState().hydrate(store.getState().input, { writesBlocked: true });
+    store.getState().hydrate(store.getState().input, __testInputWriteAuthority(), { writesBlocked: true });
     const ops = buildOps(store, new ActiveEditorRegistry());
 
     const result = await ops.clearAll();

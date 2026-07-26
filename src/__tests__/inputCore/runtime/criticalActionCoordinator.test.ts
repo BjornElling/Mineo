@@ -6,6 +6,7 @@ import {
   type ActiveEditor,
   type CriticalAction,
   type SlimInputStore,
+  __testInputWriteAuthority,
 } from '../../../inputCore/runtime';
 
 // Fase 2.2 (§1.4/§2.2, critical-action-contract §3/§5/§7): den greenfield-coordinator afsluttes gennem den
@@ -80,7 +81,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     registry.register(editor);
 
     await expect(coordinator.applyReplacement(() => {
-      store.getState().hydrate(store.getState().input);
+      store.getState().hydrate(store.getState().input, __testInputWriteAuthority());
       return 'erstattet';
     })).resolves.toBe('erstattet');
     expect(discard).toHaveBeenCalledOnce();
@@ -114,7 +115,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     registry.register(editor);
 
     await expect(coordinator.applyDestructive(() => {
-      store.getState().hydrate(store.getState().input);
+      store.getState().hydrate(store.getState().input, __testInputWriteAuthority());
       return 'slettet';
     })).resolves.toBe('slettet');
     expect(settleCount()).toBe(0);

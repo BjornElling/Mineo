@@ -24,7 +24,7 @@ import {
 import type { InputRevision } from '../evaluationSource';
 import type { SettledInput } from '../settledInput';
 import { parseCurrentEnvelope, serializeCurrentEnvelope } from './currentSessionEnvelope';
-import type { SlimInputStore, SlimInputStoreState } from './slimInputStore';
+import { claimInputWriteAuthority, type SlimInputStore, type SlimInputStoreState } from './slimInputStore';
 
 // Greenfield-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer — felt, række, system og
 // history — går gennem `dispatchInput`. Den bygger kandidaten med den rene reducer/history, serialiserer den ene
@@ -184,12 +184,15 @@ const commitCandidate = (
     if (readSessionStorageValue(key) !== serialized) {
       throw new Error('Inputenvelopen kunne ikke genlæses byte-for-byte efter skrivning.');
     }
-    store.getState().applyCommit({
-      input: persisted,
-      history: nextHistory,
-      committedAt,
-      authoritativeReplacement: force,
-    });
+    store.getState().applyCommit(
+      {
+        input: persisted,
+        history: nextHistory,
+        committedAt,
+        authoritativeReplacement: force,
+      },
+      claimInputWriteAuthority()
+    );
   } catch (error) {
     const rollbackErrors: Error[] = [];
     let storageRollbackVerified = false;

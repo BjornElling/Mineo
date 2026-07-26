@@ -12,7 +12,7 @@ import {
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
-import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -28,7 +28,7 @@ const hydrate = (eo: ErstatningsopgoerelseValues): void => {
     },
     rejectedInputs: {},
   });
-  slimInputStore.getState().hydrate(input);
+  slimInputStore.getState().hydrate(input, __testInputWriteAuthority());
 };
 
 const renderInRuntime = (child: React.ReactNode) => render(

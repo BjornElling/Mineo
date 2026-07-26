@@ -8,7 +8,7 @@ import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvide
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../settings/appSettingsStorage';
 import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
-import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../../inputCore/runtime/slimInputStore';
 import { settleField } from '../../../../inputCore/inputReducer';
 import { stamdataSkadelidteField } from '../../../../inputCore/catalog/stamdataDescriptors';
 
@@ -69,7 +69,7 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
         varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
       },
       rejectedInputs: {},
-    }));
+    }), __testInputWriteAuthority());
     const binding = createProductionInputRuntimeBinding();
 
     render(

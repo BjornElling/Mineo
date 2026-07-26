@@ -8,7 +8,7 @@ import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { dispatchInput } from '../../../inputCore/runtime/dispatchInput';
 import { settleField } from '../../../inputCore/inputReducer';
@@ -46,7 +46,7 @@ const renderLayout = (children: React.ReactNode) =>
 
 /** Bygger en history-frame (satsår 2020), så et efterfølgende undo har noget at gendanne. */
 const seedUndoableHistory = () => {
-  slimInputStore.getState().hydrate(emptyInput());
+  slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   dispatchInput(slimInputStore, catalog, settleField(satserAargangField.bind(), '2020'));
 };
 
@@ -65,11 +65,11 @@ const dispatchShortcut = (init: KeyboardEventInit) => {
 describe('MainLayout undo/redo editor guard', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   afterEach(() => {
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   it('ignores undo shortcuts silently while an editor is open', async () => {

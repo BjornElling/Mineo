@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import Erhvervsevnetab from '../../../components/pages/Erhvervsevnetab';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
-import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
   ProductionInputRuntimeProvider,
@@ -65,7 +65,7 @@ const hydrate = (
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab,
     },
     rejectedInputs: {},
-  }));
+  }), __testInputWriteAuthority());
 };
 
 const renderPage = () => render(

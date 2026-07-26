@@ -40,9 +40,45 @@ export type RuleFixture = Readonly<{
   code: string;
 }>;
 
+/**
+ * Bevis for at reglen stadig har et MÅL i den levende kilde-graf.
+ *
+ * Fixtures beviser, at reglens walker VIRKER. De beviser ikke, at der er noget at gå efter:
+ * slettes reglens mål, matcher fixtures stadig, mens grafen ikke længere indeholder noget,
+ * reglen kan udtale sig om. Reglen bliver da grøn af TOMHED — samme fejlklasse som WI-007's
+ * inerte AST-værn og WI-008's rene type-brand.
+ *
+ * Klassifikationen er EKSPLICIT pr. regel, ikke inferet: reglerne deler sig i to arter, hvor
+ * "nul hits" betyder modsatte ting, og en fælles "≥1 hit"-kontrol ville ramme den ene forkert.
+ */
+export type LiveTarget =
+  /**
+   * FORUDSÆTNINGSREGEL: reglen kigger kun på filer, der gør noget bestemt (udløser en download,
+   * renderer et felt, tilgår en sektion). Findes den slags fil ikke længere, er reglen inert.
+   * `probe` svarer på "har grafen stadig en fil, jeg ville KONTROLLERE?" — uafhængigt af, om
+   * filen overtræder. Nul probe-hits = dødt værn.
+   */
+  | Readonly<{ kind: 'precondition'; probe: (entry: SourceEntry) => boolean; rationale: string }>
+  /**
+   * FRAVÆRSREGEL: nul hits ER den ønskede tilstand (forbudte imports, døde symboler). Her kan
+   * "reglen rammer noget" ikke bruges som liveness-bevis. I stedet skal reglen navngive, hvad
+   * den forbyder, så `deletedLegacyAbsence.test.ts` kan bevise, at hvert navn faktisk er
+   * fraværende — og reglen ikke stille skifter til at forbyde noget, der aldrig fandtes,
+   * fordi navnet er stavet forkert.
+   */
+  | Readonly<{ kind: 'absence'; forbids: readonly string[]; rationale: string }>
+  /**
+   * SCOPEBUNDET regel: reglens eksistensberettigelse ER dens scope-rod. Findes roden, har
+   * reglen et mål; forsvinder roden, er reglen død. Kontrolleres af scan-rod-kontrollen,
+   * som samtidig fanger mappeflytninger, der ellers tavst indsnævrer et scope.
+   */
+  | Readonly<{ kind: 'scoped'; roots: readonly string[]; rationale: string }>;
+
 export type ArchitectureRule = Readonly<{
   id: string;
   description: string;
+  /** Bevis for at reglen stadig har noget at holde øje med. Håndhæves af dødt-værn-detektoren. */
+  liveTarget: LiveTarget;
   /** Producerer alle overtrædelser over hele kilde-grafen. */
   evaluate: (entries: readonly SourceEntry[]) => readonly Violation[];
   /** Rå fund i én fil UDEN at anvende allow/scope — bruges af anti-rot-selvtesten. */
@@ -69,6 +105,7 @@ export const formatViolations = (violations: readonly Violation[]): string =>
 type RuleConfig = Readonly<{
   id: string;
   description: string;
+  liveTarget: LiveTarget;
   /** Begrænser hvilke filer reglen kontrollerer (default: alle). */
   appliesTo?: (relativePath: string) => boolean;
   /** Repo-relative stier der er eksplicit undtaget (auditerede undtagelser). */
@@ -87,6 +124,7 @@ export const defineRule = (config: RuleConfig): ArchitectureRule => {
   return {
     id: config.id,
     description: config.description,
+    liveTarget: config.liveTarget,
     allow: allowList,
     findInFile: config.find,
     violatingFixtures: config.violatingFixtures,
@@ -117,6 +155,7 @@ export const defineRule = (config: RuleConfig): ArchitectureRule => {
 type ImportRuleConfig = Readonly<{
   id: string;
   description: string;
+  liveTarget: LiveTarget;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
   /**
@@ -135,6 +174,7 @@ export const forbidImports = (config: ImportRuleConfig): ArchitectureRule =>
   defineRule({
     id: config.id,
     description: config.description,
+    liveTarget: config.liveTarget,
     appliesTo: config.appliesTo,
     allow: config.allow,
     find: (entry) =>
@@ -148,6 +188,7 @@ export const forbidImports = (config: ImportRuleConfig): ArchitectureRule =>
 type MemberAccessRuleConfig = Readonly<{
   id: string;
   description: string;
+  liveTarget: LiveTarget;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
   forbidden: (ref: MemberAccessRef) => boolean;
@@ -161,6 +202,7 @@ export const forbidMemberAccess = (config: MemberAccessRuleConfig): Architecture
   defineRule({
     id: config.id,
     description: config.description,
+    liveTarget: config.liveTarget,
     appliesTo: config.appliesTo,
     allow: config.allow,
     find: (entry) =>
@@ -174,6 +216,7 @@ export const forbidMemberAccess = (config: MemberAccessRuleConfig): Architecture
 type CallRuleConfig = Readonly<{
   id: string;
   description: string;
+  liveTarget: LiveTarget;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
   forbidden: (ref: CallRef) => boolean;
@@ -187,6 +230,7 @@ export const forbidCalls = (config: CallRuleConfig): ArchitectureRule =>
   defineRule({
     id: config.id,
     description: config.description,
+    liveTarget: config.liveTarget,
     appliesTo: config.appliesTo,
     allow: config.allow,
     find: (entry) =>
@@ -200,6 +244,7 @@ export const forbidCalls = (config: CallRuleConfig): ArchitectureRule =>
 type ElementAccessRuleConfig = Readonly<{
   id: string;
   description: string;
+  liveTarget: LiveTarget;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
   forbidden: (ref: ElementAccessRef) => boolean;
@@ -213,6 +258,7 @@ export const forbidElementAccess = (config: ElementAccessRuleConfig): Architectu
   defineRule({
     id: config.id,
     description: config.description,
+    liveTarget: config.liveTarget,
     appliesTo: config.appliesTo,
     allow: config.allow,
     find: (entry) =>
@@ -226,6 +272,7 @@ export const forbidElementAccess = (config: ElementAccessRuleConfig): Architectu
 type TypeAssertionRuleConfig = Readonly<{
   id: string;
   description: string;
+  liveTarget: LiveTarget;
   appliesTo?: (relativePath: string) => boolean;
   allow?: readonly string[];
   forbidden: (ref: TypeAssertionRef) => boolean;
@@ -239,6 +286,7 @@ export const forbidTypeAssertions = (config: TypeAssertionRuleConfig): Architect
   defineRule({
     id: config.id,
     description: config.description,
+    liveTarget: config.liveTarget,
     appliesTo: config.appliesTo,
     allow: config.allow,
     find: (entry) =>

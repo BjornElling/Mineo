@@ -5,6 +5,8 @@
 export * from './currentSessionEnvelope';
 export {
   __createSlimInputTestStore,
+  __testInputWriteAuthority,
+  type InputWriteAuthority,
   type SlimInputCommit,
   type SlimInputMeta,
   type SlimInputStore,

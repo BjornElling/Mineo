@@ -57,7 +57,7 @@ import {
   createProductionInputRuntimeBinding,
 } from '../../inputCore/react/productionInputRuntime';
 import { useCaseOperations, useCriticalInputActions } from '../../inputCore/react';
-import { slimInputStore } from '../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../inputCore/runtime/slimInputStore';
 import { dispatchInput } from '../../inputCore/runtime/dispatchInput';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { activeEditorRegistry, type ActiveEditor } from '../../inputCore/runtime/activeEditorRegistry';
@@ -121,7 +121,7 @@ const renderHook = (
     : overrides.hasData
       ? inputWithData()
       : emptyInput();
-  slimInputStore.getState().hydrate(initialInput);
+  slimInputStore.getState().hydrate(initialInput, __testInputWriteAuthority());
 
   if (overrides.openEditorFailsSettle) {
     registerEditorThatFailsSettle();
@@ -189,7 +189,7 @@ describe('useFileSaveLoad', () => {
     vi.clearAllMocks();
     unregisterEditor?.();
     unregisterEditor = null;
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   describe('handleGem', () => {

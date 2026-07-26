@@ -11,7 +11,7 @@ import { toISODateString } from '../../../../types/branded';
 
 import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
-import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../../inputCore/runtime/slimInputStore';
 
 describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
   const ASYNC_TEST_TIMEOUT_MS = 30_000;
@@ -34,7 +34,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
         },
       },
       rejectedInputs: {},
-    }));
+    }), __testInputWriteAuthority());
     sessionStorage.setItem(createActiveTabStorageKey('erstatningsopgoerelse'), 'beregning');
 
     render(

@@ -67,6 +67,63 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   // Anti-rot gælder ALLE regler med en allowlist — uden `antiRot`-opt-in. En allowlist-post, hvis fil er
   // slettet eller ikke længere udløser reglen, er død konfiguration, der stille udvider grænsen næste gang
   // en fil med samme sti opstår. `antiRot: false` findes bevidst ikke: en undtagelse skal kunne bevises.
+  // ---------------------------------------------------------------------------
+  // Dødt-værn-detektor (Fase 6): har hver regel stadig noget at holde øje med?
+  // ---------------------------------------------------------------------------
+  //
+  // Selvtesten ovenfor beviser, at reglens WALKER virker (fixtures flages). Den beviser IKKE, at
+  // reglens mål stadig findes i produktionen. Slettes målet, matcher fixtures fortsat, mens grafen
+  // ikke længere indeholder noget, reglen kan udtale sig om — reglen bliver grøn af TOMHED og
+  // fremstår som dækning, den ikke leverer. Det er samme fejlklasse som WI-007's inerte AST-værn
+  // og WI-008's rene type-brand, og Fase 6 gør princippet maskinelt frem for en vane pr. regel.
+  //
+  // Da denne detektor blev indført, rapporterede den tre døde værn i manifestet:
+  // `pdf/download-committed-state` (Fase 5 slettede alle 18 `download*Dokument`),
+  // `form/persisted-styled-field-error-reporter` (trin 13 slettede hele `Styled*Field`-vejen) og
+  // `criticalAction/no-dom-scan-or-frame-wait` (scopet `src/criticalActions/` findes ikke).
+  // Det var detektorens egen mutationstest: en observeret fejl, ikke en fixture.
+  it('dødt værn: hver forudsætningsregel har stadig en fil, den ville kontrollere', { timeout: 120000 }, () => {
+    const entries = getSourceGraph();
+    const dead: string[] = [];
+
+    for (const rule of ARCHITECTURE_RULES) {
+      if (rule.liveTarget.kind !== 'precondition') continue;
+      const { probe, rationale } = rule.liveTarget;
+      if (!entries.some((entry) => probe(entry))) {
+        dead.push(
+          `${rule.id}: INERT — ingen fil i grafen opfylder reglens forudsætning (${rationale}). `
+          + 'Omskriv reglen mod det nuværende mål, eller slet den. En regel, hvis eneste bevis er '
+          + 'dens egne fixtures, er falsk tryghed.'
+        );
+      }
+    }
+
+    expect(dead).toEqual([]);
+  });
+
+  // Scan-rødder: en regels scope-præfiks skal svare til en mappe, der faktisk findes. Et forældet
+  // præfiks er død konfiguration, som stille udvider grænsen igen, hvis en fil med samme sti
+  // nogensinde opstår — og som samtidig skjuler, at en mappeflytning har indsnævret et scope.
+  it('dødt værn: hver scan-rod svarer til en levende mappe i grafen', { timeout: 120000 }, () => {
+    const entries = getSourceGraph();
+    const stale: string[] = [];
+
+    for (const rule of ARCHITECTURE_RULES) {
+      if (rule.liveTarget.kind !== 'scoped') continue;
+      for (const root of rule.liveTarget.roots) {
+        const prefix = root.endsWith('/') ? root : `${root}/`;
+        const covers = entries.some(
+          (entry) => entry.relativePath === root || entry.relativePath.startsWith(prefix)
+        );
+        if (!covers) {
+          stale.push(`${rule.id}: scan-roden findes ikke i grafen: ${root}`);
+        }
+      }
+    }
+
+    expect(stale).toEqual([]);
+  });
+
   it('anti-rot: hver allowlist-post udløser stadig sin regel', () => {
     const entries = getSourceGraph();
     const byPath = new Map(entries.map((entry) => [entry.relativePath, entry]));

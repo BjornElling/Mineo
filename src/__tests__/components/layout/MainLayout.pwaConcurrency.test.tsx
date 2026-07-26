@@ -9,7 +9,7 @@ import {
   bootstrapProductionInputRuntime,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import type { LoadFileResult } from '../../../types/fileOperations';
 
@@ -78,11 +78,11 @@ describe('MainLayout (PWA concurrency)', () => {
     window.sessionStorage.clear();
     vi.clearAllMocks();
     vi.useRealTimers();
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   afterEach(() => {
-    slimInputStore.getState().hydrate(emptyInput());
+    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
   });
 
   it('køer seneste PWA-fil under preflight og kræver bekræftelse før indlæsning', async () => {
