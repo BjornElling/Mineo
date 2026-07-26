@@ -97,7 +97,7 @@ export type EoBilagAvailabilityState = Readonly<{
 export type EoBilagAvailabilityMap = Readonly<Record<EoBilagDynamicSelectionKey, EoBilagAvailabilityState>>;
 
 const EO_BILAG_PERIOD_FILTER_REASON =
-  'Bilag er sat til Perioden, men der findes ingen TAF-perioder at filtrere efter.';
+  'Der er ikke angivet nogen TAF-perioder i EO-perioden.';
 
 const EO_BILAG_INGEN_TAF_KRAV_REASON =
   'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden. Skift bilag til "Alle" for at medtage oplysningerne.';

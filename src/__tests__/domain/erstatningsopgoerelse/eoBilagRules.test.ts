@@ -361,7 +361,7 @@ describe('getEoBilagAvailability', () => {
     expect(result.loenindkomst.enabled).toBe(false);
     expect(result.offentligeYdelser.enabled).toBe(false);
     expect(result.regulering.enabled).toBe(false);
-    expect(result.loenindkomst.disabledReason).toBe('Bilag er sat til Perioden, men der findes ingen TAF-perioder at filtrere efter.');
+    expect(result.loenindkomst.disabledReason).toBe('Der er ikke angivet nogen TAF-perioder i EO-perioden.');
   });
 
   it('deaktiverer regulering ved angivet løn når EO-lønudvikling ikke er valgt', () => {
