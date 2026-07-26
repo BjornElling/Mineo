@@ -1,5 +1,5 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import type { EoRowPolicy } from '../../document/definition/documentSourceSettings';
+import type { EoRowPolicy } from '../../settings/sourceSettings';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { EoFieldIssuesBySource } from '../erstatningsopgoerelse/eoInputIssues';

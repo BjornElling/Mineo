@@ -25,16 +25,17 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { eoAngivetLoenFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
 import { createDocumentSourceContext } from '../../../document/definition/documentSourceContext';
-import type { DocumentSourceSettings } from '../../../document/definition/documentSourceSettings';
+import type { SourceSettings } from '../../../settings/sourceSettings';
 import {
   klLoenaftalerDocumentDefinition,
+  reguleringDocumentAction,
   reguleringDocumentDefinition,
   resolveReguleringDocumentOutputId,
 } from '../../../domain/erstatningsopgoerelse/reguleringDocumentDefinitions';
 
 const catalog = getProductionInputCatalog();
 
-const SETTINGS: DocumentSourceSettings = {
+const SETTINGS: SourceSettings = {
   documentDownloadFormat: 'pdf',
   brevhovedIndstillinger: {
     satser: false, renteberegning: false, regulering: false, varigeMen: false,
@@ -105,6 +106,11 @@ describe('reguleringssats-gaten — offentlig-løn-tjekket er bundet til grundla
     // KL-lønaftaler bruger hverken løntrin eller gruppe; en blokering ville være på et felt, det
     // valgte dokument slet ikke læser.
     expect(result.status).toBe('ready');
+
+    // Samme resolve bruges af livscyklussen efter settle; React har ingen separat outputvælger.
+    const action = reguleringDocumentAction.resolve(context, CASE_REQUEST);
+    expect(action.status).toBe('ready');
+    if (action.status === 'ready') expect(action.document.id).toBe('kl-loenaftaler');
   });
 
   it('Statistik blokeres heller ikke af det bevarede offentlige overenskomst-valg', () => {

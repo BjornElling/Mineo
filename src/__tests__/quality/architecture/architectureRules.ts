@@ -1260,14 +1260,8 @@ const sfggWarningsImportBoundary = forbidImports({
  * moduler, der HAR autoriteten, eksplicit i `allow`. Det gør listen til en beslutning man kan læse,
  * frem for en konsekvens af hvor filerne tilfældigvis ligger.
  *
- * `documentLoader` er også forbudt: den eksporterer samtlige generator-entrypoints, så en import af
- * den er en generator-import ad omvejen.
  */
-const DOCUMENT_LIFECYCLE_AUTHORITIES: readonly string[] = [
-  // Livscyklussen selv — den ENESTE der må starte fil-I/O.
-  'src/document/definition/documentLifecycle.ts',
-  // Katalogfabrikken binder definition til miljø og kalder afviklingen.
-  'src/document/definition/documentCatalog.ts',
+const DOCUMENT_GENERATOR_AUTHORITIES: readonly string[] = [
   // Definitionerne lazy-loader deres egen generator i `loadRenderer`.
   'src/domain/satser/satserDocumentDefinition.ts',
   'src/domain/renteberegning/renteberegningDocumentDefinitions.ts',
@@ -1279,45 +1273,56 @@ const DOCUMENT_LIFECYCLE_AUTHORITIES: readonly string[] = [
   'src/domain/aarsloen/aarsloenDocumentDefinitions.ts',
   'src/apps/minprocesrente/document/standaloneRenteDocumentDefinitions.ts',
 ];
-// Bemærk: `documentLoader.ts` står bevidst IKKE på listen. Dens generator-referencer er
-// `typeof import(...)` i typeposition, som reglen med rette ikke rammer — en tom undtagelse ville
-// blive fanget af anti-rot-checket og er derfor udeladt frem for tilføjet "for en sikkerheds skyld".
+
+const DOCUMENT_LIFECYCLE_AUTHORITIES: readonly string[] = [
+  // Livscyklussen er den ENESTE der må starte fil-I/O.
+  'src/document/definition/documentLifecycle.ts',
+  // Katalogfabrikken binder den lukkede action til miljøet og kalder livscyklussen.
+  'src/document/definition/documentCatalog.ts',
+];
 
 const documentLifecycleBypass = forbidImports({
   id: 'document/lifecycle-single-entrypoint',
   description:
-    'Kun de erklærede autoriteter må importere en dokumentgenerator, documentLoader, kernens livscyklus eller fil-I/O. Alle andre aktiverer et output gennem dets definition.',
+    'Kun kataloget må importere kernens livscyklus, og kun livscyklussen må importere fil-I/O.',
   allow: DOCUMENT_LIFECYCLE_AUTHORITIES,
   forbidden: (ref) => {
     const moduleSpecifier = ref.moduleSpecifier.replaceAll('\\', '/');
-    const importsGenerator = moduleSpecifier.includes('document/generators/');
-    // Matcher også en SØSKENDE-import (`./documentLifecycle`, `./documentLoader`). Første udgave
+    // Matcher også en SØSKENDE-import (`./documentLifecycle`). Første udgave
     // krævede mappenavnet i specifieren og lod derfor et modul i samme mappe importere kernen frit.
-    const importsLoader = /(?:^|\/)documentLoader$/.test(moduleSpecifier);
     const importsLifecycle = /(?:^|\/)documentLifecycle$/.test(moduleSpecifier);
     const importsFileIo =
       ref.namedBindings.includes('triggerDocumentDownload')
       || (/(?:^|\/)document\/downloadArtifact$/.test(moduleSpecifier) && !ref.typeOnly && ref.namedBindings.length === 0);
-    // Typeimports er harmløse: en side må gerne kende en generators rækketype til visning.
-    return (!ref.typeOnly && (importsGenerator || importsLoader)) || importsLifecycle || importsFileIo;
+    return importsLifecycle || importsFileIo;
   },
   message: (ref) =>
-    `Uautoriseret omgåelse af dokument-livscyklussen (${ref.moduleSpecifier}) — aktivér outputtet gennem dets definition, eller tilføj modulet til DOCUMENT_LIFECYCLE_AUTHORITIES med en begrundelse.`,
+    `Uautoriseret omgåelse af dokument-livscyklussen (${ref.moduleSpecifier}) — aktivér outputtet gennem kataloget.`,
   violatingFixtures: [
-    { relativePath: 'src/components/pages/X.tsx', code: "import { generateRenteDocument } from '../../document/generators/renteberegning/renteDocument';" },
-    { relativePath: 'src/components/pages/X.tsx', code: "const g = await import('../../document/generators/satser/satserDocument');" },
     { relativePath: 'src/components/pages/X.tsx', code: "import { triggerDocumentDownload } from '../../document/downloadArtifact';" },
     { relativePath: 'src/components/pages/X.tsx', code: "import { executeDocumentDownload } from '../../document/definition/documentLifecycle';" },
     // Uden for components-laget gælder forbuddet nu OGSÅ — det var hullet i første udgave.
     { relativePath: 'src/domain/x/react/useXAction.ts', code: "import { executeDocumentDownload } from '../../../document/definition/documentLifecycle';" },
-    { relativePath: 'src/hooks/useX.ts', code: "import { loadSatserDocumentModule } from '../document/service/documentLoader';" },
   ],
   cleanFixtures: [
     { relativePath: 'src/components/pages/X.tsx', code: "import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefinition';" },
     { relativePath: 'src/components/pages/X.tsx', code: "import { useMineoDocumentOutput } from '../../document/runtime/react/useMineoDocumentOutput';" },
-    // Typeimport af en generators rækketype er tilladt: det er ren visningskontrakt, ikke afvikling.
+  ],
+});
+
+/** Generatorer er kun tilgængelige gennem en definitions lazy `loadRenderer`. */
+const documentGeneratorImportBoundary = forbidImports({
+  id: 'document/generator-import-boundary',
+  description: 'Kun dokumentdefinitioner må importere dokumentgeneratorer.',
+  allow: DOCUMENT_GENERATOR_AUTHORITIES,
+  forbidden: (ref) => !ref.typeOnly && ref.moduleSpecifier.replaceAll('\\', '/').includes('document/generators/'),
+  message: (ref) => `Uautoriseret generatorimport (${ref.moduleSpecifier}) — generatoren skal ligge bag definitionens loadRenderer.`,
+  violatingFixtures: [
+    { relativePath: 'src/components/pages/X.tsx', code: "import { generateRenteDocument } from '../../document/generators/renteberegning/renteDocument';" },
+    { relativePath: 'src/document/definition/x.ts', code: "const g = await import('../../document/generators/satser/satserDocument');" },
+  ],
+  cleanFixtures: [
     { relativePath: 'src/components/pages/X.tsx', code: "import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';" },
-    // En erklæret autoritet må importere generatoren i sin loadRenderer.
     { relativePath: 'src/domain/satser/satserDocumentDefinition.ts', code: "const g = await import('../../document/generators/satser/satserDocument');" },
   ],
 });
@@ -1548,6 +1553,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   sfggSegmenteringImportBoundary,
   sfggWarningsImportBoundary,
   documentLifecycleBypass,
+  documentGeneratorImportBoundary,
   documentGeneratorWriterImport,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,

@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react';
 import type { InputCatalog } from '../fieldCatalog';
 import type { SettledInput } from '../settledInput';
 import { sourceTokensEqual, type EvaluationSourceToken, type InputRevision } from '../evaluationSource';
-import { captureStableInput } from '../runtime/evaluationSourceBinding';
+import { captureStableInput, readSourceToken } from '../runtime/evaluationSourceBinding';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import type { InputEvaluation } from '../inputReader';
 import {
@@ -66,6 +66,13 @@ export type InputRuntimeBinding = Readonly<{
    * al mutation går gennem `dispatch`/`resetSection`/`replaceCase`.
    */
   captureStableSource: () => Readonly<{ input: SettledInput; token: EvaluationSourceToken }>;
+  /**
+   * Dokumenter og øvrige kritiske readers optager evalueringen fra den SAMME binding som React-træet.
+   * De får aldrig lov til at falde tilbage til produktions-singletonen, som kan repræsentere en anden sag.
+   */
+  captureEvaluationSource: () => InputEvaluation;
+  /** Den autoritative aktuelle token for netop denne binding. */
+  readCurrentSourceToken: () => EvaluationSourceToken;
   /** Læser det aktuelle afsluttede snapshot. Bruges af `useSyncExternalStore`-getSnapshot. */
   getSettled: () => SettledSnapshot;
   /** Abonnér på revisionsændringer (nyt afsluttet input). Returnerer unsubscribe. */
@@ -155,9 +162,20 @@ export const createInputRuntimeBinding = (
     }
     return cachedIssues;
   };
+  const captureEvaluationSource = (): InputEvaluation => {
+    // `getEvaluation` kan selv være cachet. Tokenet skal derfor bekræfte, at evalueringen stadig
+    // hører til den runtime-tilstand, der er aktuel efter læsningen.
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const evaluation = getEvaluation();
+      if (sourceTokensEqual(evaluation.issues.sourceToken, readSourceToken(store))) return evaluation;
+    }
+    throw new Error('InputRuntime: kunne ikke optage en stabil evaluering til kritisk handling');
+  };
   return Object.freeze({
     catalog,
     captureStableSource: () => captureStableInput(store),
+    captureEvaluationSource,
+    readCurrentSourceToken: () => readSourceToken(store),
     getSettled,
     subscribe: (listener) => store.subscribe(listener),
     // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme

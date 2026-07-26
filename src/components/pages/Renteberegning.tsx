@@ -12,7 +12,7 @@ import {
   renteOversigtDocumentDefinition,
 } from '../../domain/renteberegning/renteberegningDocumentDefinitions';
 import {
-  useMineoDocumentOutput,
+  useMineoDocumentOutputWithContext,
   useMineoDocumentSourceContext,
 } from '../../document/runtime/react/useMineoDocumentOutput';
 
@@ -40,8 +40,8 @@ const Renteberegning = React.memo(() => {
 
   // ÉN kildekontekst for begge outputs; de deler renteprojektionen gennem `context.shared`.
   const documentContext = useMineoDocumentSourceContext();
-  const renteDownload = useMineoDocumentOutput(renteDocumentDefinition, RENTE_GATE_PROBE, documentContext);
-  const renteOversigtDownload = useMineoDocumentOutput(renteOversigtDocumentDefinition, undefined, documentContext);
+  const renteDownload = useMineoDocumentOutputWithContext(renteDocumentDefinition, RENTE_GATE_PROBE, documentContext);
+  const renteOversigtDownload = useMineoDocumentOutputWithContext(renteOversigtDocumentDefinition, undefined, documentContext);
 
   const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'renteberegning',

@@ -16,7 +16,7 @@ import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../schema
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { toGateReasons } from '../../document/definition/documentOutcome';
-import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { EetDifferencekravComputation } from './eetDifferencekravCalculation';
@@ -39,7 +39,7 @@ type SharedEetSource = Readonly<{
 }>;
 
 /** Builderen er selv memo-nøglen, så de fire faner deler ét slot pr. kildekontekst. */
-const readSharedEetSource = (context: DocumentSourceContext<DocumentSourceSettings>): SharedEetSource => {
+const readSharedEetSource = (context: DocumentSourceContext<SourceSettings>): SharedEetSource => {
   const projection = buildErhvervsevnetabReaderProjection(context.evaluation.reader);
   return { projection, gates: evaluateErhvervsevnetabDownloadGates(projection) };
 };
@@ -51,7 +51,7 @@ const readSharedEetSource = (context: DocumentSourceContext<DocumentSourceSettin
  * Skulle gaten og snapshottet nogensinde divergere, fail-closer vi frem for at gætte.
  */
 const projectEetFane = <TComputation, TInput>(
-  context: DocumentSourceContext<DocumentSourceSettings>,
+  context: DocumentSourceContext<SourceSettings>,
   fane: EetDocumentFane,
   readComputation: (projection: ErhvervsevnetabReaderProjection) => TComputation | null,
   toInput: (

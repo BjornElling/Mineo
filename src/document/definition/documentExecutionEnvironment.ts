@@ -46,7 +46,7 @@ export type DocumentBrevhovedPolicy<TBrevhovedKey extends string> =
  * Appens runtime-politik.
  *
  * `readCurrentSourceToken` er trust-kritisk: den er den AUTORITATIVE friskhedskilde. Før pass 0
- * stolede afvikleren på en `isSourceCurrent`-closure, der blev leveret sammen med det godkendte
+ * stolede afvikleren på en friskheds-closure, der blev leveret sammen med det godkendte
  * input — altså kunne den, der leverede inputtet, også levere sin egen definition af "frisk". Nu
  * læser afvikleren tokenet fra miljøet og sammenligner selv.
  */

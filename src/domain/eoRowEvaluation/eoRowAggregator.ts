@@ -14,7 +14,7 @@
 import type { EoRowModel } from './eoRowTypes';
 import type { NavigationTarget } from './eoRowNavigationMap';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import type { EoRowPolicy } from '../../document/definition/documentSourceSettings';
+import type { EoRowPolicy } from '../../settings/sourceSettings';
 import type {
   EoRowEvaluationContext,
   StamdataValues,

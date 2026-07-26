@@ -10,13 +10,12 @@
  * intet brevhoved og en isoleret lokal sink (jf. isolations-værnet), uden at kernen skal kende
  * forskellen.
  */
-import { captureProductionEvaluationSource, readCurrentEvaluationSourceToken } from '../../inputCore/react/productionInputRuntime';
-import type { CriticalActionCoordinator } from '../../inputCore/runtime/criticalActionCoordinator';
+import type { InputRuntimeBinding } from '../../inputCore/react/inputRuntimeContext';
 import { createDocumentGenerationSession, type DocumentGenerationSession } from '../documentGenerationSession';
 import type { DocumentDownloadFormat } from '../documentFormat';
 import type { DocumentBrevhovedType } from '../layout/documentBrevhoved';
 import type { DocumentExecutionEnvironment } from '../definition/documentExecutionEnvironment';
-import { projectDocumentSourceSettings, type DocumentSourceSettings } from '../definition/documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 import type { DocumentDiagnostics, DocumentFailure } from '../definition/documentOutcome';
 import {
   ensureDevServerAvailableForDocumentDownload,
@@ -36,21 +35,21 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
  * Bygger hovedappens miljø. `criticalActions` kommer fra input-runtimens binding og injiceres af
  * kalderen, så miljøet ikke selv skal kende React-konteksten.
  *
- * `TSettings` er `DocumentSourceSettings` og ikke `AppSettings`. Det er ikke en forenkling, men den
+ * `TSettings` er `SourceSettings` og ikke `AppSettings`. Det er ikke en forenkling, men den
  * eneste korrekte binding: `DocumentSourceContext` er KONTRAvariant i `TSettings` (den optræder som
  * parameter i `evaluateGate`), så et miljø, der lovede hele `AppSettings`, ville kræve, at hver
  * konsument også havde hele `AppSettings` — og definitionerne lover kun at læse det source-relevante
- * snapshot. `projectDocumentSourceSettings` skærer capturens `AppSettings` ned til netop det.
+ * snapshot. `projectSourceSettings` skærer capturens `AppSettings` ned til netop det.
  */
 export const createMineoDocumentEnvironment = (
-  criticalActions: CriticalActionCoordinator
-): DocumentExecutionEnvironment<DocumentSourceSettings, DocumentBrevhovedType> => Object.freeze({
+  runtime: Pick<InputRuntimeBinding, 'captureEvaluationSource' | 'readCurrentSourceToken' | 'criticalActions'>,
+  settings: SourceSettings
+): DocumentExecutionEnvironment<SourceSettings, DocumentBrevhovedType> => Object.freeze({
   captureSource: () => {
-    const source = captureProductionEvaluationSource();
-    return { evaluation: source.evaluation, settings: projectDocumentSourceSettings(source.settings) };
+    return { evaluation: runtime.captureEvaluationSource(), settings };
   },
-  readCurrentSourceToken: readCurrentEvaluationSourceToken,
-  criticalActions,
+  readCurrentSourceToken: runtime.readCurrentSourceToken,
+  criticalActions: runtime.criticalActions,
   resolveFormat: (settings) => settings.documentDownloadFormat,
   createSession,
   resolveVisBrevhoved: (settings, policy) =>

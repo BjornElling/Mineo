@@ -3,7 +3,7 @@ import { collectAllEoRows } from '../eoRowEvaluation/eoRowAggregator';
 import { resolveEoIssueSummaryText } from '../eoRowEvaluation/eoRowIssueCatalog';
 import { safeCompute } from '../../utils/safeComputation';
 import { isErr } from '../../types/result';
-import type { EoRowPolicy } from '../../document/definition/documentSourceSettings';
+import type { EoRowPolicy } from '../../settings/sourceSettings';
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
 import type { EoSnapshot } from './snapshot/eoSnapshot';
 import { getAuthoritativeBlockingInvariants } from './snapshot/eoSnapshotInvariants';

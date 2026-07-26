@@ -26,8 +26,6 @@ describe('production runtime — settingssnapshot', () => {
     expect(after.settings).toBe(next);
     expect(after.evaluation.issues.sourceToken.settingsRevision).toBe(slimInputStore.getState().settingsRevision);
     expect(after.evaluation.issues.sourceToken.settingsRevision).not.toBe(before.evaluation.issues.sourceToken.settingsRevision);
-    expect(before.isSourceCurrent()).toBe(false);
-    expect(after.isSourceCurrent()).toBe(true);
 
     const revisionBeforeUiOnlyChange = slimInputStore.getState().settingsRevision;
     const uiOnly: AppSettings = { ...next, themeMode: 'dark' };

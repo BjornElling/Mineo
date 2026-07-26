@@ -27,6 +27,7 @@ import { createEvaluationSourceToken, createInputRevision, createSettingsRevisio
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import type { InputEvaluation } from '../../inputCore/inputReader';
 import { defineDocumentOutput, type DocumentDefinition } from '../../document/definition/documentDefinition';
+import { documentActionFromDefinition } from '../../document/definition/documentAction';
 import type { DocumentExecutionEnvironment } from '../../document/definition/documentExecutionEnvironment';
 import { executeDocumentDownload } from '../../document/definition/documentLifecycle';
 import type { DocumentFailure } from '../../document/definition/documentOutcome';
@@ -60,12 +61,16 @@ const createHarness = (options: Readonly<{
   capturedRevision?: number;
   preparation?: Preparation;
   projectResult?: 'ready' | 'blocked';
+  prepareThrows?: boolean;
+  captureThrows?: boolean;
   renderThrows?: boolean;
 }> = {}) => {
   const {
     capturedRevision = 1,
     preparation = { status: 'committed', token: tokenAt(1) } as Preparation,
     projectResult = 'ready',
+    prepareThrows = false,
+    captureThrows = false,
     renderThrows = false,
   } = options;
 
@@ -90,6 +95,7 @@ const createHarness = (options: Readonly<{
   const criticalActions = {
     prepare: async () => {
       calls.prepare += 1;
+      if (prepareThrows) throw new Error('settlefejl');
       if (preparation.status === 'blocked' && preparation.target) {
         // Wrap så vi kan tælle fokuseringen uden at ændre kernens kald.
         return { status: 'blocked', target: { focus: () => { calls.focus += 1; } } };
@@ -99,7 +105,10 @@ const createHarness = (options: Readonly<{
   } as unknown as CriticalActionCoordinator;
 
   const environment: DocumentExecutionEnvironment<void, never> = Object.freeze({
-    captureSource: () => ({ evaluation: evaluationAt(tokenAt(capturedRevision)), settings: undefined }),
+    captureSource: () => {
+      if (captureThrows) throw new Error('capturefejl');
+      return { evaluation: evaluationAt(tokenAt(capturedRevision)), settings: undefined };
+    },
     readCurrentSourceToken,
     criticalActions,
     resolveFormat: () => 'pdf' as const,
@@ -139,7 +148,7 @@ const createHarness = (options: Readonly<{
 };
 
 const run = async (harness: ReturnType<typeof createHarness>) =>
-  executeDocumentDownload(harness.definition, undefined, harness.environment);
+  executeDocumentDownload(documentActionFromDefinition(harness.definition), undefined, harness.environment);
 
 describe('dokument-livscyklus — matrix (definitionsuafhængige cases)', () => {
   beforeEach(() => triggerMock.mockClear());
@@ -169,6 +178,28 @@ describe('dokument-livscyklus — matrix (definitionsuafhængige cases)', () => 
     expect(harness.calls.loadRenderer).toBe(0);
     expect(harness.calls.createSession).toBe(0);
     expect(triggerMock).not.toHaveBeenCalled();
+  });
+
+  it('rapporterer en kastet settle-fejl én gang med settle-fasen', async () => {
+    const harness = createHarness({ prepareThrows: true });
+
+    await expect(run(harness)).resolves.toMatchObject({
+      status: 'failed', failure: { kind: 'runtime', phase: 'settle' },
+    });
+    expect(harness.calls.reportFailure).toHaveLength(1);
+    expect(harness.calls.reportFailure[0]?.phase).toBe('settle');
+    expect(harness.calls.loadRenderer).toBe(0);
+  });
+
+  it('rapporterer en kastet capture-fejl én gang med capture-fasen', async () => {
+    const harness = createHarness({ captureThrows: true });
+
+    await expect(run(harness)).resolves.toMatchObject({
+      status: 'failed', failure: { kind: 'runtime', phase: 'capture' },
+    });
+    expect(harness.calls.reportFailure).toHaveLength(1);
+    expect(harness.calls.reportFailure[0]?.phase).toBe('capture');
+    expect(harness.calls.loadRenderer).toBe(0);
   });
 
   it('case: revisionen flytter MELLEM settle og kildeoptagelse → afvist i capture-fasen', async () => {

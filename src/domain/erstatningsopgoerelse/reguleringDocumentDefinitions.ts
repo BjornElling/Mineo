@@ -32,9 +32,11 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../dat
 import { toLoentrin } from '../../data/offentligLoenTypes';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
+import { defineDocumentAction, resolveDocumentDefinition } from '../../document/definition/documentAction';
+import type { DocumentBrevhovedType } from '../../document/layout/documentBrevhoved';
 import type { DocumentGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import {
   eoAngivetLoenFields,
@@ -231,7 +233,7 @@ type SharedReguleringSource = Readonly<{
 
 /** Builderen er selv memo-nøglen, så de tre outputs deler ét slot pr. kildekontekst. */
 const readSharedReguleringSource = (
-  context: DocumentSourceContext<DocumentSourceSettings>
+  context: DocumentSourceContext<SourceSettings>
 ): SharedReguleringSource => ({
   reader: context.evaluation.reader,
   stamdata: projectStamdataForDocument(context.evaluation.reader, REGULERING_DOCUMENT_CONSUMER_ID),
@@ -290,7 +292,7 @@ const blocked = <TInput>(reasons: DocumentGateReasons): DocumentProjectionResult
  * tilstand og er derfor nu en `blocked`-årsag fra gaten.
  */
 const projectReguleringCommon = <TInput>(
-  context: DocumentSourceContext<DocumentSourceSettings>,
+  context: DocumentSourceContext<SourceSettings>,
   request: ReguleringDocumentRequest
 ):
   | Readonly<{ kind: 'blocked'; result: DocumentProjectionResult<TInput> }>
@@ -506,7 +508,7 @@ export const klLoenaftalerDocumentDefinition: MineoDocumentDefinition<Regulering
 export type ReguleringDocumentOutputId = 'regulering' | 'krl' | 'kl-loenaftaler';
 
 export const resolveReguleringDocumentOutputId = (
-  context: DocumentSourceContext<DocumentSourceSettings>,
+  context: DocumentSourceContext<SourceSettings>,
   request: ReguleringDocumentRequest
 ): ReguleringDocumentOutputId | null => {
   const source = readRequestedSource(context.shared(readSharedReguleringSource), request);
@@ -523,3 +525,33 @@ export const resolveReguleringDocumentOutputId = (
       return null;
   }
 };
+
+/**
+ * Den ene dynamiske dokumenthandling: det committed grundlag vælger outputtet EFTER lifecycleens
+ * settle og friske capture. React må derfor aldrig selv køre en ekstra preflight.
+ */
+export const reguleringDocumentAction = defineDocumentAction<
+  ReguleringDocumentRequest,
+  SourceSettings,
+  DocumentBrevhovedType
+>({
+  id: 'regulering',
+  labels: { documentName: 'reguleringssatser' },
+  resolve: (context, request) => {
+    switch (resolveReguleringDocumentOutputId(context, request)) {
+      case 'regulering':
+        return resolveDocumentDefinition(reguleringDocumentDefinition, context, request);
+      case 'krl':
+        return resolveDocumentDefinition(krlDocumentDefinition, context, request);
+      case 'kl-loenaftaler':
+        return resolveDocumentDefinition(klLoenaftalerDocumentDefinition, context, request);
+      case null:
+        return { status: 'blocked', reasons: [REGULERING_NO_OUTPUT_REASON] };
+    }
+  },
+});
+
+export const REGULERING_NO_OUTPUT_REASON = {
+  code: 'regulering:no-output',
+  message: 'Der er ikke valgt et grundlag med tilgængelige reguleringssatser',
+} as const;

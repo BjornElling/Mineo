@@ -19,7 +19,7 @@ import type { DocumentProjectionResult } from '../../document/definition/documen
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';
 import { renteberegningBeregningsdatoField, renteberegningKommentarerField } from '../../inputCore/catalog/renteberegningDescriptors';
 import type { StamdataValues } from '../../schemas/formSchemas';
@@ -50,7 +50,7 @@ type SharedRenteSource = Readonly<{
 
 /** Builderen er selv memo-nøglen, så begge outputs deler ét slot pr. kildekontekst. */
 const readSharedRenteSource = (
-  context: DocumentSourceContext<DocumentSourceSettings>
+  context: DocumentSourceContext<SourceSettings>
 ): SharedRenteSource => {
   const { reader } = context.evaluation;
   const beregningsdato = reader.read(beregningsdatoRef);

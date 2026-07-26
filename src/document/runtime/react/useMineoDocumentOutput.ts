@@ -24,10 +24,12 @@
 import React from 'react';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { useInputEvaluation } from '../../../inputCore/react';
-import { closeDocumentDefinition, type DocumentOutput } from '../../definition/documentCatalog';
+import { closeDocumentAction, closeDocumentDefinition, type DocumentOutput } from '../../definition/documentCatalog';
+import type { DocumentAction } from '../../definition/documentAction';
 import type { DocumentSourceContext } from '../../definition/documentSourceContext';
-import { projectDocumentSourceSettings, type DocumentSourceSettings } from '../../definition/documentSourceSettings';
+import { projectSourceSettings, type SourceSettings } from '../../../settings/sourceSettings';
 import type { MineoDocumentDefinition } from '../../definition/mineoDocumentDefinition';
+import type { DocumentBrevhovedType } from '../../layout/documentBrevhoved';
 import {
   useDocumentDownload,
   useDocumentSourceContext,
@@ -40,20 +42,20 @@ import { useMineoDocumentEnvironment } from './useMineoDocumentEnvironment';
  * flere outputs) og videregiv resultatet til `useMineoDocumentOutput`, når flere outputs deler en dyr
  * projektion — fx EO's fire dokumenter eller EET's fire faner.
  */
-export const useMineoDocumentSourceContext = (): DocumentSourceContext<DocumentSourceSettings> => {
+export const useMineoDocumentSourceContext = (): DocumentSourceContext<SourceSettings> => {
   const evaluation = useInputEvaluation();
   const { settings } = useAppSettings();
   // Samme indsnævring som miljøets `captureSource`, så render-tidens gate og click-preflighten ser
   // PRÆCIS samme settings-form. Memoiseret, fordi projektionen ellers ville give en ny reference ved
   // hver render og dermed slå kildekontekstens delte projektions-memo ihjel.
-  const sourceSettings = React.useMemo(() => projectDocumentSourceSettings(settings), [settings]);
+  const sourceSettings = React.useMemo(() => projectSourceSettings(settings), [settings]);
   return useDocumentSourceContext(evaluation, sourceSettings);
 };
 
 /** Binder én definition til hovedappens miljø. Memoiseret på definition + miljø. */
 export const useMineoDocumentCatalogEntry = <TInput, TRequest>(
   definition: MineoDocumentDefinition<TInput, TRequest>
-): DocumentOutput<TRequest, DocumentSourceSettings> => {
+): DocumentOutput<TRequest, SourceSettings> => {
   const environment = useMineoDocumentEnvironment();
   return React.useMemo(() => closeDocumentDefinition(definition, environment), [definition, environment]);
 };
@@ -68,15 +70,34 @@ export const useMineoDocumentCatalogEntry = <TInput, TRequest>(
  * `context` kan udelades, når siden kun har ét output; så bygger hooken sin egen. Deler flere outputs
  * en dyr projektion, SKAL den samme kontekst sendes ind til dem alle — ellers får hver sit memo-slot.
  */
-export const useMineoDocumentOutput = <TInput, TRequest>(
+export const useMineoDocumentOutputWithContext = <TInput, TRequest>(
   definition: MineoDocumentDefinition<TInput, TRequest>,
   // `NoInfer` er ikke kosmetik: uden den ville et kald med `undefined` inferere `TRequest = undefined`
   // frem for at bruge definitionens `void`, og handlen ville da ikke kunne tildeles en
   // `DocumentDownloadHandle<void>`-prop. Requesten er definitionens type — ikke argumentets.
   gateRequest: NoInfer<TRequest>,
-  context?: DocumentSourceContext<DocumentSourceSettings>
+  context: DocumentSourceContext<SourceSettings>
 ): DocumentDownloadHandle<TRequest> => {
   const output = useMineoDocumentCatalogEntry(definition);
-  const ownContext = useMineoDocumentSourceContext();
-  return useDocumentDownload(output, context ?? ownContext, gateRequest);
+  return useDocumentDownload(output, context, gateRequest);
+};
+
+/** Ét selvstændigt dokumentoutput uden en side-delt kildekontekst. */
+export const useMineoDocumentOutput = <TInput, TRequest>(
+  definition: MineoDocumentDefinition<TInput, TRequest>,
+  gateRequest: NoInfer<TRequest>
+): DocumentDownloadHandle<TRequest> => {
+  const context = useMineoDocumentSourceContext();
+  return useMineoDocumentOutputWithContext(definition, gateRequest, context);
+};
+
+/** Binder en dynamisk handling til samme miljø og kontekst som statiske outputs. */
+export const useMineoDocumentActionOutput = <TRequest>(
+  action: DocumentAction<TRequest, SourceSettings, DocumentBrevhovedType>,
+  gateRequest: NoInfer<TRequest>,
+  context: DocumentSourceContext<SourceSettings>
+): DocumentDownloadHandle<TRequest> => {
+  const environment = useMineoDocumentEnvironment();
+  const output = React.useMemo(() => closeDocumentAction(action, environment), [action, environment]);
+  return useDocumentDownload(output, context, gateRequest);
 };

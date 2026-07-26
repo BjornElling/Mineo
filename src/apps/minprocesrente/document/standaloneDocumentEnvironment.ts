@@ -20,11 +20,7 @@ import { createDocumentGenerationSession, type DocumentGenerationSession } from 
 import type { DocumentDownloadFormat } from '../../../document/documentFormat';
 import type { DocumentExecutionEnvironment } from '../../../document/definition/documentExecutionEnvironment';
 import type { DocumentDiagnostics, DocumentFailure } from '../../../document/definition/documentOutcome';
-import {
-  captureProductionEvaluationSource,
-  readCurrentEvaluationSourceToken,
-} from '../../../inputCore/react/productionInputRuntime';
-import type { CriticalActionCoordinator } from '../../../inputCore/runtime/criticalActionCoordinator';
+import type { InputRuntimeBinding } from '../../../inputCore/react/inputRuntimeContext';
 
 /**
  * Standalone understøtter kun PDF. Word ville kræve docx-writeren i standalone-bundlet, og
@@ -53,14 +49,14 @@ const reportStandaloneFailure = (failure: DocumentFailure, diagnostics: Document
 
 /** Standalones miljø. `TSettings = void`: appen har ingen indstillinger, der kan påvirke et dokument. */
 export const createStandaloneDocumentEnvironment = (
-  criticalActions: CriticalActionCoordinator
+  runtime: Pick<InputRuntimeBinding, 'captureEvaluationSource' | 'readCurrentSourceToken' | 'criticalActions'>
 ): DocumentExecutionEnvironment<void, never> => Object.freeze({
   captureSource: () => ({
-    evaluation: captureProductionEvaluationSource().evaluation,
+    evaluation: runtime.captureEvaluationSource(),
     settings: undefined,
   }),
-  readCurrentSourceToken: readCurrentEvaluationSourceToken,
-  criticalActions,
+  readCurrentSourceToken: runtime.readCurrentSourceToken,
+  criticalActions: runtime.criticalActions,
   resolveFormat: () => 'pdf',
   createSession: createStandalonePdfSession,
   // Ingen brevhoved-nøgler findes i standalone; policyen kan derfor kun være `{ kind: 'none' }`.

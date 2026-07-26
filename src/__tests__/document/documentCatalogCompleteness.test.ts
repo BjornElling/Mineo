@@ -18,6 +18,7 @@ import {
   standaloneRenteOversigtDocumentDefinition,
 } from '../../apps/minprocesrente/document/standaloneRenteDocumentDefinitions';
 import type { DocumentDefinition } from '../../document/definition/documentDefinition';
+import { documentActionFromDefinition } from '../../document/definition/documentAction';
 import {
   MINEO_DOCUMENT_OUTPUT_IDS,
   STANDALONE_DOCUMENT_OUTPUT_IDS,
@@ -156,6 +157,14 @@ describe('dokumentkatalog — completeness (§A2a)', () => {
       // `loadRenderer` er en funktion, ikke en færdig renderer. Det er dét, der holder de tunge
       // generator-chunks ude af sidens initiale bundle.
       expect(typeof definition.loadRenderer, `${definition.id}`).toBe('function');
+    }
+  });
+
+  it('alle 21 statiske outputs kan kun aktiveres gennem en lukket DocumentAction', () => {
+    for (const definition of ALL_DEFINITIONS) {
+      const action = documentActionFromDefinition(definition);
+      expect(action.id, `${definition.id}: action-id`).toBe(definition.id);
+      expect(action.labels, `${definition.id}: action-labels`).toBe(definition.labels);
     }
   });
 });

@@ -17,7 +17,7 @@ import {
   type InputRuntimeBinding,
 } from './inputRuntimeContext';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
-import { SOURCE_RELEVANT_SETTINGS_KEYS } from '../../document/definition/documentSourceSettings';
+import { SOURCE_SETTINGS_KEYS } from '../../settings/sourceSettings';
 
 // Greenfield-produktions-wiring (§3.10, Fase 2.4/3-cutover): den ene binding, produktions-app'en monterer. Den
 // hydrerer runtime FØR render (`initializeInputRuntime`) mod applikations-singletonerne og distribuerer den
@@ -35,8 +35,8 @@ import { SOURCE_RELEVANT_SETTINGS_KEYS } from '../../document/definition/documen
 let publishedSettings: AppSettings = DEFAULT_APP_SETTINGS;
 
 /**
- * Fingerprintet udledes af `SOURCE_RELEVANT_SETTINGS_KEYS` frem for at gentage nøglerne her.
- * Nøglelisten er erklæret sammen med `DocumentSourceSettings` og completeness-checket ved
+ * Fingerprintet udledes af `SOURCE_SETTINGS_KEYS` frem for at gentage nøglerne her.
+ * Nøglelisten er erklæret i settings-laget og completeness-checket ved
  * compile-tid, så en ny source-relevant indstilling ikke kan tilføjes til typen uden også at komme
  * med i fingerprintet. Tidligere var de to lister uafhængige, og en manglende nøgle ville betyde, at
  * et regelskift IKKE gjorde et optaget token stale — altså at en download godkendt under den gamle
@@ -46,7 +46,7 @@ let publishedSettings: AppSettings = DEFAULT_APP_SETTINGS;
  */
 const evaluationSettingsFingerprint = (settings: AppSettings): string => JSON.stringify(
   Object.fromEntries(
-    [...SOURCE_RELEVANT_SETTINGS_KEYS]
+    [...SOURCE_SETTINGS_KEYS]
       .sort()
       .map((key) => [key, settings[key]])
   )
@@ -91,28 +91,12 @@ export const createProductionInputRuntimeBinding = (): InputRuntimeBinding => {
 export const getProductionInputEvaluation = (): InputEvaluation => readProductionEvaluation();
 
 /**
- * Den AUTORITATIVE, aktuelle kilderevision.
- *
- * Bruges af dokument-livscyklussen til at verificere friskhed ved hver asynkron grænse. Tidligere fik
- * afvikleren en `isSourceCurrent`-closure udleveret sammen med det godkendte input — altså kunne den,
- * der leverede inputtet, også definere hvad "frisk" betød. Ved at læse revisionen direkte fra
- * runtime-storen her er friskheden ikke længere noget kalderen kan levere.
- */
-export const readCurrentEvaluationSourceToken = (): EvaluationSourceToken => {
-  const state = slimInputStore.getState();
-  return { inputRevision: state.revision, settingsRevision: state.settingsRevision };
-};
-
-/**
- * Optager et FRISKT, stabilt kildesnapshot til en kritisk handling (§3.4/§3.9): efter en settle bygger en
- * download-preflight sin projektion herfra og får samtidig en `isSourceCurrent`-closure, der fail-closer, hvis
- * input- eller settingsrevisionen flytter under en efterfølgende async-grænse (lazy-load, generatorstart).
- * Adskilt fra render-cachen (`getProductionInputEvaluation`), fordi en kritisk handling altid skal genlæse.
+ * Optager et produktionssnapshot til test og bootstrapdiagnostik. Kritiske consumers bruger den
+ * monterede `InputRuntimeBinding` i stedet, så de aldrig kan læse en anden runtime end React-træet.
  */
 export const captureProductionEvaluationSource = (): Readonly<{
   evaluation: InputEvaluation;
   settings: AppSettings;
-  isSourceCurrent: () => boolean;
 }> => {
   const { token, input } = captureStableInput(slimInputStore);
   const settings = publishedSettings;
@@ -125,13 +109,6 @@ export const captureProductionEvaluationSource = (): Readonly<{
   return Object.freeze({
     evaluation,
     settings,
-    isSourceCurrent: () => {
-      const state = slimInputStore.getState();
-      return sourceTokensEqual(token, {
-        inputRevision: state.revision,
-        settingsRevision: state.settingsRevision,
-      });
-    },
   });
 };
 

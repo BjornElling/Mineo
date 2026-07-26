@@ -8,13 +8,13 @@
  *
  * Derfor dette alias: ÉT sted binder hovedappens definitioner deres settings- og brevhoved-kontrakt.
  *
- * Bemærk at `TSettings` er `DocumentSourceSettings` og ikke `AppSettings`: definitionerne læser kun
+ * Bemærk at `TSettings` er `SourceSettings` og ikke `AppSettings`: definitionerne læser kun
  * de source-relevante værdier (format, brevhoved-flags, EO-regelpolitik), og afhængighedspilen peger
  * fortsat UI → dokument. `AppSettings` opfylder kontrakten strukturelt.
  */
 import type { DocumentDefinition } from './documentDefinition';
 import type { DocumentBrevhovedType } from '../layout/documentBrevhoved';
-import type { DocumentSourceSettings } from './documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 
 /**
  * En definition i hovedappen. `TRequest` er `void` for de outputs, der kun findes i én instans;
@@ -24,7 +24,7 @@ import type { DocumentSourceSettings } from './documentSourceSettings';
 export type MineoDocumentDefinition<TInput, TRequest = void> = DocumentDefinition<
   TRequest,
   TInput,
-  DocumentSourceSettings,
+  SourceSettings,
   DocumentBrevhovedType
 >;
 

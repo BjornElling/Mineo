@@ -17,12 +17,17 @@
  * renderer går tabt. Der findes ingen `as`-cast og intet `unknown`-mellemled.
  */
 import type { DocumentDefinition } from './documentDefinition';
+import { documentActionFromDefinition, type DocumentAction } from './documentAction';
 import type { DocumentExecutionEnvironment } from './documentExecutionEnvironment';
 import { executeDocumentDownload } from './documentLifecycle';
 import { resolveDocumentOutcomeMessage } from './documentMessages';
 import type { DocumentGateReasons, DocumentOutcome } from './documentOutcome';
 import type { DocumentOutputId } from './documentOutputId';
 import type { DocumentSourceContext } from './documentSourceContext';
+import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
+
+/** Kun katalogfabrikken kan udstede en output-handle. */
+const documentOutputBrand = Symbol('DocumentOutput');
 
 /**
  * Den reaktive gates resultat. Bærer HELE årsagslisten (ikke kun den første), så en konsument kan
@@ -30,8 +35,8 @@ import type { DocumentSourceContext } from './documentSourceContext';
  * konsument kan se hvilken revision vurderingen hører til.
  */
 export type DocumentGateSnapshot =
-  | Readonly<{ canDownload: true }>
-  | Readonly<{ canDownload: false; reasons: DocumentGateReasons }>;
+  | Readonly<{ canDownload: true; sourceToken: EvaluationSourceToken }>
+  | Readonly<{ canDownload: false; sourceToken: EvaluationSourceToken; reasons: DocumentGateReasons }>;
 
 /**
  * En katalogpost med `TRequest`/`TInput` lukket inde. De to eneste operationer udefra er "evaluér
@@ -39,6 +44,7 @@ export type DocumentGateSnapshot =
  * En katalogpost kan derfor hverken lække et ugated input ud eller modtage et fremmed input ind.
  */
 export type DocumentOutput<TRequest, TSettings> = Readonly<{
+  readonly [documentOutputBrand]: true;
   id: DocumentOutputId;
   /**
    * Den reaktive knap-gate. Kalder PRÆCIS samme `project` med samme `request` som
@@ -70,18 +76,26 @@ export const closeDocumentDefinition = <TRequest, TInput, TSettings, TBrevhovedK
   definition: DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>,
   environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
 ): DocumentOutput<TRequest, TSettings> =>
+  closeDocumentAction(documentActionFromDefinition(definition), environment);
+
+/** Binder også en dynamisk, men stadig nominalt lukket, dokumentaktion til ét app-miljø. */
+export const closeDocumentAction = <TRequest, TSettings, TBrevhovedKey extends string>(
+  action: DocumentAction<TRequest, TSettings, TBrevhovedKey>,
+  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
+): DocumentOutput<TRequest, TSettings> =>
   Object.freeze({
-    id: definition.id,
+    [documentOutputBrand]: true as const,
+    id: action.id,
     evaluateGate: (context, request) => {
-      const projected = definition.project(context, request);
+      const projected = action.resolve(context, request);
       return projected.status === 'ready'
-        ? { canDownload: true }
-        : { canDownload: false, reasons: projected.reasons };
+        ? { canDownload: true, sourceToken: context.evaluation.issues.sourceToken }
+        : { canDownload: false, sourceToken: context.evaluation.issues.sourceToken, reasons: projected.reasons };
     },
-    download: (request) => executeDocumentDownload(definition, request, environment),
+    download: (request) => executeDocumentDownload(action, request, environment),
     resolveOutcomeMessage: (outcome, settings) => resolveDocumentOutcomeMessage(
       outcome,
-      definition.labels,
+      action.labels,
       environment.resolveFormat(settings),
       environment.showRuntimeFailureLocally
     ),

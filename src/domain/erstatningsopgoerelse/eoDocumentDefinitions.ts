@@ -17,7 +17,7 @@ import type { DocumentProjectionResult } from '../../document/definition/documen
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
 import { buildMidlertidigtEetInsertSource } from '../erhvervsevnetab/midlertidigtEetInsertSource';
 import type { SelectedElements } from '../../document/generators/eo/types';
@@ -75,7 +75,7 @@ type SharedEoSource = Readonly<{
  * Builderen er selv memo-nøglen, så alle fire definitioner rammer samme slot i samme kildekontekst,
  * og nøgle/resultattype ikke kan komme fra hinanden.
  */
-const readSharedEoSource = (context: DocumentSourceContext<DocumentSourceSettings>): SharedEoSource => {
+const readSharedEoSource = (context: DocumentSourceContext<SourceSettings>): SharedEoSource => {
   const projection = buildErstatningsopgoerelseReaderProjection(context.evaluation.reader, {
     midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(context.evaluation),
   });
@@ -136,7 +136,7 @@ const blockedFromProjection = <T>(code: string, message: string): DocumentProjec
  * havde tilsammen.
  */
 const projectEoDocument = <TDocument, TInput>(
-  context: DocumentSourceContext<DocumentSourceSettings>,
+  context: DocumentSourceContext<SourceSettings>,
   gateKey: EoDocumentKey,
   toDocument: (projection: ErstatningsopgoerelseReaderProjection) =>
     | Readonly<{ kind: 'ok'; document: TDocument }>

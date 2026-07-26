@@ -14,7 +14,7 @@
  *   2. Afvikleren eksporteres ikke. Kun `executeDocumentDownload` — preflight+afvikling i ét — er
  *      offentlig, så der findes ingen indgang til afviklingen ved siden af gaten.
  *   3. Friskheden verificeres mod miljøets AUTORITATIVE `readCurrentSourceToken`, ikke mod en
- *      `isSourceCurrent`-closure leveret sammen med inputtet.
+ *      en friskheds-closure leveret sammen med inputtet.
  *
  * Rækkefølgen i preflighten er trust-kritisk og var før Fase 5 kopieret ind i hver callsite — med det
  * resultat, at fem outputs manglede mindst ét trin:
@@ -33,7 +33,7 @@
 import { sourceTokensEqual, type EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { asError } from '../../utils/typeGuards';
 import { triggerDocumentDownload } from '../downloadArtifact';
-import type { DocumentDefinition } from './documentDefinition';
+import type { DocumentAction, ResolvedDocumentAction } from './documentAction';
 import type { DocumentExecutionEnvironment } from './documentExecutionEnvironment';
 import {
   documentDownloaded,
@@ -60,9 +60,9 @@ const preparedBrand = Symbol('PreparedDocument');
  * Et godkendt dokument. Nominal via `preparedBrand` og modulprivat: typen eksporteres ikke, og
  * brandet kan ikke produceres uden for dette modul. Et ugated input kan derfor ikke nå afvikleren.
  */
-type PreparedDocument<TInput, TSettings> = Readonly<{
+type PreparedDocument<TSettings, TBrevhovedKey extends string> = Readonly<{
   [preparedBrand]: true;
-  input: TInput;
+  document: ResolvedDocumentAction<TSettings, TBrevhovedKey>;
   settings: TSettings;
   sourceToken: EvaluationSourceToken;
 }>;
@@ -89,35 +89,48 @@ const requireCurrentSource = <TSettings, TBrevhovedKey extends string>(
  * `project` efter settle, så et klik på række 3 altid vurderes mod række 3's aktuelle tilstand — ikke
  * mod den tilstand, rækken havde da knappen blev tegnet.
  */
-export const executeDocumentDownload = async <TRequest, TInput, TSettings, TBrevhovedKey extends string>(
-  definition: DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>,
+export const executeDocumentDownload = async <TRequest, TSettings, TBrevhovedKey extends string>(
+  action: DocumentAction<TRequest, TSettings, TBrevhovedKey>,
   request: TRequest,
   environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
 ): Promise<DocumentOutcome> => {
-  const diagnosticsFor = (phase: DocumentLifecyclePhase): DocumentDiagnostics => ({
-    outputId: definition.id,
+  const phase = { current: 'settle' as DocumentLifecyclePhase };
+  const diagnosticsFor = (outputId: DocumentDiagnostics['outputId'], phase: DocumentLifecyclePhase): DocumentDiagnostics => ({
+    outputId,
     phase,
   });
+  const finish = (outcome: DocumentOutcome, outputId = action.id): DocumentOutcome => {
+    if (outcome.status === 'failed' && outcome.failure.kind === 'runtime') {
+      environment.reportFailure(outcome.failure, diagnosticsFor(outputId, outcome.failure.phase));
+    }
+    return outcome;
+  };
 
-  const prepared = await prepareDocument(definition, request, environment);
-  if (prepared.outcome !== null) return prepared.outcome;
+  try {
+    const prepared = await prepareDocument(action, request, environment, phase);
+    if (prepared.outcome !== null) return finish(prepared.outcome);
 
-  return await runPreparedDocument(definition, prepared.prepared, environment, diagnosticsFor);
+    return finish(await runPreparedDocument(prepared.prepared, environment, phase), prepared.prepared.document.id);
+  } catch (error) {
+    return finish(documentFailed({ kind: 'runtime', phase: phase.current, cause: asError(error) }));
+  }
 };
 
 /** Trin 1-4. Returnerer enten en afvisning eller det ene godkendte, brandede dokument. */
-const prepareDocument = async <TRequest, TInput, TSettings, TBrevhovedKey extends string>(
-  definition: DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>,
+const prepareDocument = async <TRequest, TSettings, TBrevhovedKey extends string>(
+  action: DocumentAction<TRequest, TSettings, TBrevhovedKey>,
   request: TRequest,
-  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
+  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>,
+  phase: { current: DocumentLifecyclePhase }
 ): Promise<
   | Readonly<{ outcome: DocumentOutcome; prepared: null }>
-  | Readonly<{ outcome: null; prepared: PreparedDocument<TInput, TSettings> }>
+  | Readonly<{ outcome: null; prepared: PreparedDocument<TSettings, TBrevhovedKey> }>
 > => {
   const reject = (outcome: DocumentOutcome) => ({ outcome, prepared: null }) as const;
 
   // 1. Commit-barriere. Et fejlende settle er fail-closed: vi kan da ikke garantere, at editoren blev
   //    finaliseret, og feltet bærer selv den røde markering.
+  phase.current = 'settle';
   const preparation = await environment.criticalActions.prepare('download');
   if (preparation.status === 'blocked') {
     preparation.target?.focus();
@@ -129,11 +142,12 @@ const prepareDocument = async <TRequest, TInput, TSettings, TBrevhovedKey extend
     return reject(documentFailed({
       kind: 'runtime',
       phase: 'settle',
-      cause: new Error(`Download-barrieren returnerede 'noop' for ${definition.id}; download settler altid (§1.4).`),
+      cause: new Error(`Download-barrieren returnerede 'noop' for ${action.id}; download settler altid (§1.4).`),
     }));
   }
 
   // 2. Frisk, stabilt kildesnapshot EFTER settle.
+  phase.current = 'capture';
   const source = environment.captureSource();
   const sourceToken = source.evaluation.issues.sourceToken;
 
@@ -145,7 +159,8 @@ const prepareDocument = async <TRequest, TInput, TSettings, TBrevhovedKey extend
 
   // 4. Definitionens dependencies, projektion og invariants — samme funktion og samme request som
   //    den reaktive knap-gate, men på det friske snapshot.
-  const projected = definition.project(createDocumentSourceContext(source.evaluation, source.settings), request);
+  phase.current = 'gate';
+  const projected = action.resolve(createDocumentSourceContext(source.evaluation, source.settings), request);
   if (projected.status === 'blocked') {
     return reject(documentRejected({ kind: 'gate-blocked', phase: 'gate', reasons: projected.reasons }));
   }
@@ -154,7 +169,7 @@ const prepareDocument = async <TRequest, TInput, TSettings, TBrevhovedKey extend
     outcome: null,
     prepared: Object.freeze({
       [preparedBrand]: true as const,
-      input: projected.input,
+      document: projected.document,
       settings: source.settings,
       sourceToken,
     }),
@@ -168,60 +183,60 @@ const prepareDocument = async <TRequest, TInput, TSettings, TBrevhovedKey extend
  *
  * Formatvalget sker bevidst EFTER gaten (planens arbejdstrin 8).
  */
-const runPreparedDocument = async <TRequest, TInput, TSettings, TBrevhovedKey extends string>(
-  definition: DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>,
-  prepared: PreparedDocument<TInput, TSettings>,
+const runPreparedDocument = async <TSettings, TBrevhovedKey extends string>(
+  prepared: PreparedDocument<TSettings, TBrevhovedKey>,
   environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>,
-  diagnosticsFor: (phase: DocumentLifecyclePhase) => DocumentDiagnostics
+  phase: { current: DocumentLifecyclePhase }
 ): Promise<DocumentOutcome> => {
-  const { input, settings, sourceToken } = prepared;
+  const { document, settings, sourceToken } = prepared;
   const stale = (phase: DocumentLifecyclePhase) => requireCurrentSource(environment, sourceToken, phase);
-
-  const fail = (failure: Parameters<typeof documentFailed>[0]): DocumentOutcome => {
-    if (failure.kind === 'runtime') {
-      environment.reportFailure(failure, diagnosticsFor(failure.phase));
-    }
-    return documentFailed(failure);
-  };
 
   try {
     // Entry-check. Ligger UDEN FOR dev-server-grenen nedenfor med vilje: gaten kørte i en
     // forudgående async-funktion, så der ER gået mikrotasks siden godkendelsen. Lå checket kun inde i
     // `if (checkDevServerAvailability)`, ville et miljø uden dev-server-port — fx standalone — slet
     // ikke blive verificeret mellem gate og modul-load.
+    phase.current = 'gate';
     const atEntry = stale('gate');
     if (atEntry) return atEntry;
 
     // DEV-server-preflight (kun hvis miljøet har en dev-server).
     if (environment.checkDevServerAvailability) {
-      const devFailure = await environment.checkDevServerAvailability(diagnosticsFor('dev-preflight'));
-      if (devFailure) return fail(devFailure);
+      phase.current = 'dev-preflight';
+      const devFailure = await environment.checkDevServerAvailability({ outputId: document.id, phase: phase.current });
+      if (devFailure) return documentFailed(devFailure);
       const afterDevPreflight = stale('dev-preflight');
       if (afterDevPreflight) return afterDevPreflight;
     }
 
     // FØRSTE asynkrone grænse: generator-modulet.
-    const render = await definition.loadRenderer();
+    phase.current = 'renderer-load';
+    const render = await document.loadRenderer();
     const afterRendererLoad = stale('renderer-load');
     if (afterRendererLoad) return afterRendererLoad;
 
     // ANDEN asynkrone grænse: writer-modulet for det valgte format.
+    phase.current = 'writer-load';
     const session = await environment.createSession(environment.resolveFormat(settings));
     const afterWriterLoad = stale('writer-load');
     if (afterWriterLoad) return afterWriterLoad;
 
     // TREDJE asynkrone grænse: selve renderingen. Generatoren awaiter kanal-renderingen, så input
     // kan ændre sig undervejs; uden checket nedenfor ville et forældet artifact blive leveret.
-    const artifact = await render(session, input, {
-      visBrevhoved: environment.resolveVisBrevhoved(settings, definition.brevhoved),
-    });
+    phase.current = 'render';
+    const artifact = await render(
+      session,
+      settings,
+      environment.resolveVisBrevhoved(settings, document.brevhoved)
+    );
     const afterRender = stale('render');
     if (afterRender) return afterRender;
 
     // Irreversibel handling. Sker først når alt ovenstående er verificeret frisk.
+    phase.current = 'deliver';
     triggerDocumentDownload(artifact);
     return documentDownloaded;
   } catch (error) {
-    return fail({ kind: 'runtime', phase: 'render', cause: asError(error) });
+    return documentFailed({ kind: 'runtime', phase: phase.current, cause: asError(error) });
   }
 };

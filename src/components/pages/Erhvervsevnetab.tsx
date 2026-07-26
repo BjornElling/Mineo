@@ -14,7 +14,7 @@ import {
   loebendeYdelserDocumentDefinition,
 } from '../../domain/erhvervsevnetab/eetDocumentDefinitions';
 import {
-  useMineoDocumentOutput,
+  useMineoDocumentOutputWithContext,
   useMineoDocumentSourceContext,
 } from '../../document/runtime/react/useMineoDocumentOutput';
 import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
@@ -40,10 +40,10 @@ const Erhvervsevnetab = React.memo(() => {
   // gate-sættet gennem `context.shared`, så de fire knapper tilsammen kun betaler for én evaluering
   // pr. revision — ikke fire.
   const documentContext = useMineoDocumentSourceContext();
-  const loebendeYdelserDownload = useMineoDocumentOutput(loebendeYdelserDocumentDefinition, undefined, documentContext);
-  const kapitaliseringDownload = useMineoDocumentOutput(kapitaliseringDocumentDefinition, undefined, documentContext);
-  const efterEalDownload = useMineoDocumentOutput(efterEalDocumentDefinition, undefined, documentContext);
-  const differencekravDownload = useMineoDocumentOutput(differencekravDocumentDefinition, undefined, documentContext);
+  const loebendeYdelserDownload = useMineoDocumentOutputWithContext(loebendeYdelserDocumentDefinition, undefined, documentContext);
+  const kapitaliseringDownload = useMineoDocumentOutputWithContext(kapitaliseringDocumentDefinition, undefined, documentContext);
+  const efterEalDownload = useMineoDocumentOutputWithContext(efterEalDocumentDefinition, undefined, documentContext);
+  const differencekravDownload = useMineoDocumentOutputWithContext(differencekravDocumentDefinition, undefined, documentContext);
   const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'erhvervsevnetab',
     allowedTabs: [

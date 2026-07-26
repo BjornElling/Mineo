@@ -20,7 +20,7 @@ import {
 } from '../../domain/aarsloen/aarsloenDocumentDefinitions';
 import { visibleDocumentFailureMessage } from '../../document/definition/react/useDocumentDownload';
 import {
-  useMineoDocumentOutput,
+  useMineoDocumentOutputWithContext,
   useMineoDocumentSourceContext,
 } from '../../document/runtime/react/useMineoDocumentOutput';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
@@ -149,8 +149,8 @@ const Aarsloen = React.memo(() => {
   // capture, token-lighed, gate — ejes af definitionerne; her er kun blokerings-FEEDBACKEN tilbage
   // (shake + flash af den fejlende celle), som er ren præsentation og forskellig pr. side.
   const documentContext = useMineoDocumentSourceContext();
-  const aarsloenDownload = useMineoDocumentOutput(aarsloenDocumentDefinition, undefined, documentContext);
-  const shDageDownload = useMineoDocumentOutput(shDageDocumentDefinition, undefined, documentContext);
+  const aarsloenDownload = useMineoDocumentOutputWithContext(aarsloenDocumentDefinition, undefined, documentContext);
+  const shDageDownload = useMineoDocumentOutputWithContext(shDageDocumentDefinition, undefined, documentContext);
 
   const [downloadShake, setDownloadShake] = React.useState(false);
   const downloadShakeTimeoutRef = React.useRef<number | null>(null);

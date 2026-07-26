@@ -11,7 +11,7 @@
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { AarsloenBeregningResult } from '../../types/calculation';
 import type { PeriodeResult } from '../../utils/periodeBeregning';
@@ -22,7 +22,7 @@ import { evaluateAarsloenDownloadGate, evaluateShDageDownloadGate } from './aars
 
 /** Builderen er selv memo-nøglen, så begge outputs deler ét slot pr. kildekontekst. */
 const readSharedAarsloenSource = (
-  context: DocumentSourceContext<DocumentSourceSettings>
+  context: DocumentSourceContext<SourceSettings>
 ): AarsloenReaderProjection => buildAarsloenReaderProjection(context.evaluation.reader);
 
 /**

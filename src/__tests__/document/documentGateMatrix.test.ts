@@ -39,7 +39,7 @@ import { varigeMenBeregningsdatoField, varigeMenMengradField } from '../../input
 import { renteberegningBeregningsdatoField } from '../../inputCore/catalog/renteberegningDescriptors';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { DocumentDefinition } from '../../document/definition/documentDefinition';
-import type { DocumentSourceSettings } from '../../document/definition/documentSourceSettings';
+import type { SourceSettings } from '../../settings/sourceSettings';
 import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefinition';
 import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
@@ -47,7 +47,7 @@ import { renteOversigtDocumentDefinition } from '../../domain/renteberegning/ren
 
 const catalog = getProductionInputCatalog();
 
-const SETTINGS: DocumentSourceSettings = {
+const SETTINGS: SourceSettings = {
   documentDownloadFormat: 'pdf',
   // Ingen cast: nøglesættet skal komme fra typen, så en ny brevhoved-flade fejler her frem for at
   // blive skjult bag et `as`.
@@ -79,7 +79,7 @@ const settle = <T>(field: FieldRef<T>, raw: string): AnyInputCommand => settleFi
 
 /** Evaluerer en definitions gate mod et konkret afsluttet input. */
 const gateOf = <TInput>(
-  definition: DocumentDefinition<void, TInput, DocumentSourceSettings, string>,
+  definition: DocumentDefinition<void, TInput, SourceSettings, string>,
   input: SettledInput
 ) => {
   const evaluation = createInputEvaluation({

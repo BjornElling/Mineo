@@ -8,11 +8,11 @@
  * **Hvad Fase 5 retter her.** Standalone havde INGEN commit-barriere og ingen gate: `handleDownload*`
  * i `MinProcesrenteCalculatorPage` kaldte `standaloneRentePdfService.ts` direkte med rækkedata, som
  * `RenteberegningTab` allerede havde beregnet, og servicelaget nøjedes med en
- * `isSourceCurrent`-closure. Nu går alle tre gennem den samme livscyklus som hovedappens 18, med den
+ * friskheds-closure. Nu går alle tre gennem den samme livscyklus som hovedappens 18, med den
  * ENE forskel, at miljøet er standalones (fast PDF, intet brevhoved, lokal fejl-sink).
  *
  * **Hvorfor projektionen genlæses her og ikke genbruges fra hovedappens definitioner.** Mineos
- * `renteberegningDocumentDefinitions.ts` kræver `DocumentSourceSettings` og en `stamdata`-dependency,
+ * `renteberegningDocumentDefinitions.ts` kræver `SourceSettings` og en `stamdata`-dependency,
  * som standalone hverken har eller må importere. Domænelogikken deles hvor det tæller — samme
  * `buildRenteberegningReaderProjection`, samme `evaluateOversigtDownloadGate`, samme generatorer — men
  * settings-bindingen kan ikke deles, og skal ikke være det.

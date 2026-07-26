@@ -1514,12 +1514,13 @@ For hvert output:
 |---|---|
 | `documentOutputId.ts` | ID-inventaret uden afhængigheder: `MINEO_DOCUMENT_OUTPUT_IDS` (18) + `STANDALONE_DOCUMENT_OUTPUT_IDS` (3). Completeness-kilden for begge apps' kataloger. |
 | `documentDefinition.ts` | `DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>`, `project(context, request)`, `loadRenderer`, `labels.documentName`. |
-| `documentLifecycle.ts` | `executeDocumentDownload` — det ENE entrypoint. Preflight (settle → capture → token-lighed → project) + afvikling i ét modul; nominal, modulprivat `PreparedDocument`; `requireCurrentSource()` i alle faser. |
+| `documentAction.ts` | Nominal `DocumentAction`: vælger ét konkret output efter settle og capture. Dækker dynamiske outputs uden React-lokal preflight. |
+| `documentLifecycle.ts` | `executeDocumentDownload` — det ENE entrypoint. Preflight (settle → capture → token-lighed → resolve) + afvikling i ét modul; nominal, modulprivat `PreparedDocument`; `requireCurrentSource()` i alle faser. Runtime-fejl rapporteres én gang med faktisk fase og output-id. |
 | `documentExecutionEnvironment.ts` | Injiceret app-runtime: source-port, `readCurrentSourceToken`, `criticalActions`, format/session-policy, brevhoved-policy, dev-server-port, failure-sink. Kernen kender ikke `AppSettings`. |
 | `documentOutcome.ts` | Én end-to-end union: `downloaded` / `rejected{gate-blocked,stale-source,settle-failed}` / `failed{dev-server-unavailable,runtime}`, hver med `phase` som DIAGNOSTIK. Non-empty `DocumentGateReasons` + `toGateReasons`. |
-| `documentSourceSettings.ts` | `DocumentRenderSettings` / `EoRowPolicy` / `DocumentSourceSettings` + `SOURCE_RELEVANT_SETTINGS_KEYS` med compile-time completeness. Fingerprintet udledes af listen. |
+| `src/settings/sourceSettings.ts` | `DocumentRenderSettings` / `EoRowPolicy` / `SourceSettings` + `SOURCE_SETTINGS_KEYS` med compile-time completeness. Fingerprintet udledes af listen; settings er en applikationsautoritet, ikke en dokumentdefinition. |
 | `documentSourceContext.ts` | `shared(builder)` — builderen er selv memo-nøglen, så nøgle og resultattype ikke kan skilles. |
-| `documentCatalog.ts` | Kun FABRIK (`closeDocumentDefinition`). Ingen definitioner: komposition sker i app-/route-rødder, så route-lazy chunkgrænser bevares. |
+| `documentCatalog.ts` | Kun fabrikker (`closeDocumentDefinition` / `closeDocumentAction`) og nominal `DocumentOutput`. Ingen definitioner: komposition sker i app-/route-rødder, så route-lazy chunkgrænser bevares. |
 | `documentMessages.ts` | Brugerbeskeder ud fra udfaldets TILSTAND (ikke fase). Ingen `/PDF/g`-substitution. |
 | `mineoDocumentDefinition.ts` | `MineoDocumentDefinition` + `defineMineoDocument` — binder hovedappens settings-/brevhoved-typer ét sted. |
 | `react/useDocumentDownload.ts` | Reaktiv gate + click-preflight fra SAMME definition. Miljøet injiceres, så standalone kan bruge samme hook. |
@@ -1533,9 +1534,9 @@ Hovedappens composition root: `src/document/runtime/mineoDocumentEnvironment.ts`
 | 0 | Kerneomskrivning + tilpasning af de 10 første definitioner + `EoRowPolicy` | ✅ |
 | 3 | Gruppe A: 4× EO, 4× EET, forsørgertab, varige mén, rente-oversigt | ✅ |
 | 4 | satser, rente (`TRequest = {rowId}`), aarsloen, sh-dage | ✅ |
-| 5 | regulering, krl, kl-loenaftaler + `DocumentAction`-resolver (WI-008 B4) | ⬜ |
-| 6 | 3× standalone MinProcesrente via eget `DocumentExecutionEnvironment` | ⬜ |
-| 7 | Callsite-cutover, sletning af `download*Dokument`, AST-værn, matrix + completeness | ⬜ |
+| 5 | regulering, krl, kl-loenaftaler + `DocumentAction`-resolver (WI-008 B4) | ✅ |
+| 6 | 3× standalone MinProcesrente via eget `DocumentExecutionEnvironment` | ✅ |
+| 7 | Callsite-cutover, sletning af `download*Dokument`, AST-værn, matrix + completeness | ✅ |
 
 #### Godkendte adfærdsændringer (brugergodkendt 2026-07-25)
 

@@ -177,8 +177,9 @@ genvej.
      kender ingen apps settings.
    - `src/document/runtime/` — hovedappens composition root (`DocumentExecutionEnvironment` + React-grænsen).
      Standalone MinProcesrente komponerer sit eget i `src/apps/minprocesrente/document/`.
-   - `src/document/service/` — mekanisk lazy-loader (`documentLoader.ts`) og runtime-fejlporte
-     (`documentRuntimeFailure.ts`). Laget ejer IKKE afviklingen; den ligger i `definition/documentLifecycle.ts`.
+   - `src/document/service/` — runtime-fejlporte (`documentRuntimeFailure.ts`). Lazy-loading ejes af den
+     enkelte definitions `loadRenderer`, så der findes ingen parallel loader-registrering. Laget ejer IKKE
+     afviklingen; den ligger i `definition/documentLifecycle.ts`.
    - Dokumentdefinitioner placeres ved deres domæne-/generatorgrænse og er eneste ejer af inputdependencies, gate og
      den godkendte inputmodel; de må ikke reduceres til utypede callbacks i service-laget. Kataloget komponeres pr.
      app/route — aldrig som en global `Map` i kernelaget, da det ville kollapse rutens chunkgrænser.

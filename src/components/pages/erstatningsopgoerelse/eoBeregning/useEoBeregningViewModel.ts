@@ -19,7 +19,7 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
 import { visibleDocumentFailureMessage } from '../../../../document/definition/react/useDocumentDownload';
 import {
-  useMineoDocumentOutput,
+  useMineoDocumentOutputWithContext,
   useMineoDocumentSourceContext,
 } from '../../../../document/runtime/react/useMineoDocumentOutput';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
@@ -329,10 +329,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
    * input, ikke sidens.
    */
   const documentContext = useMineoDocumentSourceContext();
-  const eoDownload = useMineoDocumentOutput(erstatningsopgoerelseDocumentDefinition, undefined, documentContext);
-  const tafFordeltDownload = useMineoDocumentOutput(tafFordeltPaaAarDocumentDefinition, undefined, documentContext);
-  const tafOpreguleretDownload = useMineoDocumentOutput(tafOpreguleretPaaAarDocumentDefinition, undefined, documentContext);
-  const tafKravGrafDownload = useMineoDocumentOutput(tafKravGrafDocumentDefinition, undefined, documentContext);
+  const eoDownload = useMineoDocumentOutputWithContext(erstatningsopgoerelseDocumentDefinition, undefined, documentContext);
+  const tafFordeltDownload = useMineoDocumentOutputWithContext(tafFordeltPaaAarDocumentDefinition, undefined, documentContext);
+  const tafOpreguleretDownload = useMineoDocumentOutputWithContext(tafOpreguleretPaaAarDocumentDefinition, undefined, documentContext);
+  const tafKravGrafDownload = useMineoDocumentOutputWithContext(tafKravGrafDocumentDefinition, undefined, documentContext);
 
   // Knaptilstand og tooltip kommer fra PRÆCIS den definition, klikket aktiverer (§10 acceptkriterie 27).
   const eoPdfDisabledReason = eoDownload.disabledReason ?? null;
