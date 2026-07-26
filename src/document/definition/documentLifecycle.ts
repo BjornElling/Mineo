@@ -45,7 +45,16 @@ import {
 } from './documentOutcome';
 import { createDocumentSourceContext } from './documentSourceContext';
 
-declare const preparedBrand: unique symbol;
+/**
+ * Brandet er en RIGTIG modul-lokal `symbol`, ikke en `declare const`.
+ *
+ * Den oprindelige form var `declare const preparedBrand: unique symbol` — en ren typeerklæring, som
+ * ikke emitterer noget. Den fik typesiden til at se korrekt nominal ud, men enhver kørsel af
+ * `prepareDocument` kastede `ReferenceError: preparedBrand is not defined`, fordi objektliteralen
+ * refererede et symbol, der ikke fandtes ved runtime. Fejlen kunne ikke ses af typecheckeren og blev
+ * først synlig, da det første callsite faktisk aktiverede en download.
+ */
+const preparedBrand = Symbol('PreparedDocument');
 
 /**
  * Et godkendt dokument. Nominal via `preparedBrand` og modulprivat: typen eksporteres ikke, og

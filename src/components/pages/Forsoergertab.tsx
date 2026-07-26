@@ -12,13 +12,13 @@ import { type Koen } from '../../schemas/formSchemas';
 import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../utils/formatUtils';
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
-import { downloadForsoergertabDokument } from '../../document/service/documentService';
 import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetAldersreduktionFormel';
 import StandardLooseTable from '../tables/StandardLooseTable';
 import { toKroner } from '../../domain/money/money';
 import { buildForsoergertabReaderProjection } from '../../domain/forsoergertab/forsoergertabReaderProjection';
-import { evaluateForsoergertabDownloadGate } from '../../domain/forsoergertab/forsoergertabDownloadGate';
-import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
+import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
+import { visibleDocumentFailureMessage } from '../../document/definition/react/useDocumentDownload';
+import { useMineoDocumentOutput } from '../../document/runtime/react/useMineoDocumentOutput';
 import {
   forsoergertabBeregningsdatoField,
   forsoergertabEfterladteFodselsdatoField,
@@ -31,10 +31,8 @@ import {
   faellesAarsloenEalAarsloenField,
 } from '../../inputCore/catalog/faellesAarsloenDescriptors';
 import { stamdataSkadelidteFodselsdatoField } from '../../inputCore/catalog/stamdataDescriptors';
-import { useInputEvaluation, useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
+import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
-import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
-import { sourceTokensEqual } from '../../inputCore/evaluationSource';
 
 // Greenfield-migreret Forsørgertab (§2.4 formularrækkefølge trin 6 / Fase 3 Forsørgertab-slice). Hele siden kører
 // nu på greenfield-inputCore: de fem forsoergertab-felter + de delte ASL/EAL-årsløn skriver/læser gennem den
@@ -65,30 +63,25 @@ const TILKENDT_LOCATION = { locationId: 'forsoergertab:tilkendtForPeriodeAar', r
 const ASL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:aslAarsloen', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
 const EAL_AARSLOEN_LOCATION = { locationId: 'forsoergertab:ealAarsloen', route: APP_ROUTES.forsoergertab, tabKey: null } as const;
 
-const FORSOERGERTAB_DOCUMENT_CONSUMER_ID = 'document.forsoergertab';
-
 const Forsoergertab = React.memo(() => {
   const navigate = useNavigate();
   const evaluation = useInputEvaluation();
-  const criticalActions = useCriticalInputActions();
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
-  const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
-
-  // Den ENE reader-afledte projektion (§3.4/§5.4/§1.10): beregningsvisning og download-gate deler præcis samme
-  // sandhed. Snapshottet ejer den dependency-specifikke panel-/gate-logik (§1.10) — det gates derfor ikke bag en
-  // global blocked-tilstand: en fejl på fx virkningsdato blokerer ASL + download, men bevarer EAL-panelet (som legacy).
+  // Den ENE reader-afledte projektion (§3.4/§5.4/§1.10): beregningsvisningen og definitionens
+  // download-gate deler præcis samme sandhed. Snapshottet ejer den dependency-specifikke
+  // panel-/gate-logik (§1.10) — det gates derfor ikke bag en global blocked-tilstand: en fejl på fx
+  // virkningsdato blokerer ASL + download, men bevarer EAL-panelet (som legacy).
   const projection = React.useMemo(
     () => buildForsoergertabReaderProjection(evaluation.reader),
     [evaluation]
   );
   const snapshot = projection.snapshot;
-  const downloadGate = React.useMemo(
-    () => evaluateForsoergertabDownloadGate(projection),
-    [projection]
-  );
+
+  // Hele download-livscyklussen ejes af definitionen (§A2); siden aktiverer den blot.
+  const download = useMineoDocumentOutput(forsoergertabDocumentDefinition, undefined);
 
   // Skadelidtes fødselsdato læses gennem readeren; en aktiv rød feltfejl skjuler værdien (`error`).
   const skadelidteFodselsdatoRead = evaluation.reader.read(skadelidteFodselsdatoRef);
@@ -106,36 +99,6 @@ const Forsoergertab = React.memo(() => {
   const canShowAsl = snapshot.canShowAsl;
   const canShowResult = snapshot.canShowResult;
   const koenFieldHasError = snapshot.fieldUi.koen.hasError;
-
-  const handlePdfDownload = React.useCallback(async () => {
-    // §1.4/§3.9: settle en evt. åben editor, læs derefter et frisk kildesnapshot, og genkør projektionen/gaten
-    // mod det. Handlingen afbrydes, hvis input/settings flyttede under settle (stale token).
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const source = captureProductionEvaluationSource();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
-
-    const freshProjection = buildForsoergertabReaderProjection(source.evaluation.reader);
-    const freshGate = evaluateForsoergertabDownloadGate(freshProjection);
-    if (!freshGate.canDownload) {
-      setPdfErrorMessage(freshGate.reasons[0]?.message ?? null);
-      return;
-    }
-
-    const freshStamdata = projectStamdataForDocument(source.evaluation.reader, FORSOERGERTAB_DOCUMENT_CONSUMER_ID);
-    if (freshStamdata.status !== 'ready') return;
-
-    const result = await downloadForsoergertabDokument({
-      pdfParams: freshProjection.snapshot.pdfProjection,
-      settings: source.settings,
-      persistedStamdata: freshStamdata.value,
-      isSourceCurrent: source.isSourceCurrent,
-    });
-    setPdfErrorMessage(result.success ? null : result.error);
-  }, [criticalActions]);
 
   return (
     <Box>
@@ -165,26 +128,31 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download specifikation</Typography>
           <Box className="row--label-right-hover__content" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!downloadGate.canDownload && (
-              <Tooltip title={downloadGate.reasons[0]?.message ?? ''} arrow>
+            {download.disabledReason !== undefined && (
+              <Tooltip title={download.disabledReason} arrow>
                 <Typography className="row--text" color="text.disabled">
-                  {downloadGate.reasons[0]?.message ?? ''}
+                  {download.disabledReason}
                 </Typography>
               </Tooltip>
             )}
             <DocumentDownloadButton
-              onClick={() => void handlePdfDownload()}
-              disabled={!downloadGate.canDownload}
-              disabledReason={downloadGate.reasons[0]?.message ?? undefined}
+              onClick={() => void download.download(undefined)}
+              disabled={!download.canDownload}
+              disabledReason={download.disabledReason}
               dataTestId="forsoergertab-download"
             />
           </Box>
         </Box>
 
-        {pdfErrorMessage && (
+        {/*
+          Gate-årsagen står allerede ved siden af knappen ovenfor, så fejlboksen viser den ikke igen
+          (`visibleDocumentFailureMessage`). Tilbage er stale-afbrud og DEV-serverfejl; uventede
+          runtimefejl routes centralt (§A5) og har ingen lokal tekst i hovedappen.
+        */}
+        {visibleDocumentFailureMessage(download) && (
           <Box className="row--label-right-hover">
             <Typography className="row--text" sx={{ color: 'error.main' }}>
-              {pdfErrorMessage}
+              {visibleDocumentFailureMessage(download)}
             </Typography>
             <Box />
           </Box>

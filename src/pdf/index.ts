@@ -3,4 +3,3 @@
 export * as infrastructure from './infrastructure';
 export { createPdfChannelWriter } from './infrastructure/pdfWriter';
 export * from './pdfRenderHelpers';
-export { downloadStandaloneRentePdf, downloadStandaloneRenteOversigtPdf, downloadAllStandaloneRentePdf } from './infrastructure/standaloneRentePdfService';

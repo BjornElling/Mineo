@@ -12,11 +12,16 @@ import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { isoToDanish } from '../../../../types/branded';
 import { toReadableSummaryMessage } from '../../../../domain/erstatningsopgoerelse/helpers/readableSummaryMessage';
 import {
-  downloadErstatningsopgoerelseDokument,
-  downloadTafFordeltPaaAarDokument,
-  downloadTafKravGrafDokument,
-  downloadTafOpreguleretPaaAarDokument,
-} from '../../../../document/service/documentService';
+  erstatningsopgoerelseDocumentDefinition,
+  tafFordeltPaaAarDocumentDefinition,
+  tafKravGrafDocumentDefinition,
+  tafOpreguleretPaaAarDocumentDefinition,
+} from '../../../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
+import { visibleDocumentFailureMessage } from '../../../../document/definition/react/useDocumentDownload';
+import {
+  useMineoDocumentOutput,
+  useMineoDocumentSourceContext,
+} from '../../../../document/runtime/react/useMineoDocumentOutput';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToBeregningView } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
 import { eoSnapshotToEoDocument } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
@@ -27,24 +32,13 @@ import type { EoInvariant } from '../../../../domain/erstatningsopgoerelse/snaps
 import { reportSystemIssue } from '../../../../utils/systemIssueReporter';
 import { safeCompute } from '../../../../utils/safeComputation';
 import { isErr } from '../../../../types/result';
-import {
-  EO_BILAG_DYNAMIC_SELECTION_KEYS,
-  getEoBilagAvailability,
-} from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
-import { type DocumentDownloadGateResult } from '../../../../document/layout/documentGateTypes';
+import { getEoBilagAvailability } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import type { EoIssueFocusTarget } from '../../../../domain/eoRowEvaluation/eoRowTypes';
 import {
   resolveMidlertidigtEetIssueNavigation,
   type EetIssueNavigationTarget,
 } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 import type { ErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
-import type { ErstatningsopgoerelseDownloadGates } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
-import { evaluateErstatningsopgoerelseDownloadGates } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
-import { buildErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
-import { useInputRuntime } from '../../../../inputCore/react/inputRuntimeContext';
-import { captureProductionEvaluationSource } from '../../../../inputCore/react/productionInputRuntime';
-import { sourceTokensEqual } from '../../../../inputCore/evaluationSource';
-import { buildMidlertidigtEetInsertSource } from '../../../../hooks/useMidlertidigtEetInsertSource';
 import { selectBlockingEoEntityIdsBySuffix } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
 
 export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'inspektion' | 'kontroltabel';
@@ -54,7 +48,6 @@ export interface EOberegningTabProps {
   setActiveTab: (tab: TabKey) => void;
   isActive: boolean;
   projection: ErstatningsopgoerelseReaderProjection;
-  downloadGates: ErstatningsopgoerelseDownloadGates;
 }
 
 export type SystemIssueRow = Readonly<{
@@ -194,12 +187,11 @@ const buildInvariantDiagnostics = (
  * uændret ud af `EOberegningTab`.
  */
 export function useEoBeregningViewModel(props: EOberegningTabProps) {
-  const { activeTab, setActiveTab, isActive, projection, downloadGates } = props;
+  const { activeTab, setActiveTab, isActive, projection } = props;
   const { snapshot: eoSnapshot, stamdataValues, eoValues, stamdataErrors, eoErrors } = projection;
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
-  const runtime = useInputRuntime();
   const manuelReguleringInputErrors = React.useMemo(
     () => selectBlockingEoEntityIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX),
     [eoErrors]
@@ -329,25 +321,29 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
   const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || eoRowAggregationErrorMessage !== null;
 
-  // Render og knaptilstand bruger samme reader-afledte gate som resten af EO-siden.
-  const eoPdfGate = downloadGates.erstatningsopgoerelse;
-  const tafPdfGate = downloadGates.tafFordeltPaaAar;
-  const tafOpreguleretPdfGate = downloadGates.tafOpreguleret;
-  const tafKravGrafPdfGate = downloadGates.tafKravGraf;
+  /**
+   * De fire EO-dokumentoutputs (Fase 5). Hele preflighten — settle, frisk capture, token-lighed,
+   * projektion, gate — ligger nu i definitionerne, som deler ÉN kildekontekst: `collectAllEoRows` og
+   * gate-sættet køres derfor én gang pr. revision, ikke fire. Bilagsudvælgelsen og den valgfri
+   * `midlertidigtEetGroups` er flyttet ind i definitionerne, hvor de hører til: de er dokumentets
+   * input, ikke sidens.
+   */
+  const documentContext = useMineoDocumentSourceContext();
+  const eoDownload = useMineoDocumentOutput(erstatningsopgoerelseDocumentDefinition, undefined, documentContext);
+  const tafFordeltDownload = useMineoDocumentOutput(tafFordeltPaaAarDocumentDefinition, undefined, documentContext);
+  const tafOpreguleretDownload = useMineoDocumentOutput(tafOpreguleretPaaAarDocumentDefinition, undefined, documentContext);
+  const tafKravGrafDownload = useMineoDocumentOutput(tafKravGrafDocumentDefinition, undefined, documentContext);
 
-  // disabledReason til tooltips udledes nu af gaten (ikke-null præcis når gaten blokerer) — samme
-  // værdi som tidligere, men én kilde.
-  const gateDisabledReason = (gate: DocumentDownloadGateResult): string | null =>
-    gate.canDownload ? null : (gate.reasons[0]?.message ?? null);
-  const eoPdfDisabledReason = gateDisabledReason(eoPdfGate);
-  const tafPdfDisabledReason = gateDisabledReason(tafPdfGate);
-  const tafOpreguleretPdfDisabledReason = gateDisabledReason(tafOpreguleretPdfGate);
-  const tafKravGrafPdfDisabledReason = gateDisabledReason(tafKravGrafPdfGate);
+  // Knaptilstand og tooltip kommer fra PRÆCIS den definition, klikket aktiverer (§10 acceptkriterie 27).
+  const eoPdfDisabledReason = eoDownload.disabledReason ?? null;
+  const tafPdfDisabledReason = tafFordeltDownload.disabledReason ?? null;
+  const tafOpreguleretPdfDisabledReason = tafOpreguleretDownload.disabledReason ?? null;
+  const tafKravGrafPdfDisabledReason = tafKravGrafDownload.disabledReason ?? null;
 
-  const canDownloadSnapshotEoPdf = eoPdfGate.canDownload;
-  const canDownloadSnapshotTafPdf = tafPdfGate.canDownload;
-  const canDownloadSnapshotTafOpreguleretPdf = tafOpreguleretPdfGate.canDownload;
-  const canDownloadSnapshotTafKravGrafPdf = tafKravGrafPdfGate.canDownload;
+  const canDownloadSnapshotEoPdf = eoDownload.canDownload;
+  const canDownloadSnapshotTafPdf = tafFordeltDownload.canDownload;
+  const canDownloadSnapshotTafOpreguleretPdf = tafOpreguleretDownload.canDownload;
+  const canDownloadSnapshotTafKravGrafPdf = tafKravGrafDownload.canDownload;
 
   const reportableSystemInvariants = React.useMemo(() => {
     return [
@@ -363,7 +359,17 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   }, [authoritativeBlockingInvariants, eoPdfBlockingInvariants, tafPdfProjection, tafOpreguleretPdfProjection, tafKravGrafPdfProjection]);
 
   const reportedSystemInvariantKeysRef = React.useRef<Set<string>>(new Set());
-  const [pdfDownloadErrorMessage, setPdfDownloadErrorMessage] = React.useState<string | null>(null);
+  /**
+   * Den fælles fejlboks for de fire outputs. Gate-blokeringer vises IKKE her — knappens tooltip
+   * bærer allerede årsagen, og en blokeret download nulstillede også beskeden før Fase 5. Hvert
+   * output bidrager kun med sin egen ikke-gate-besked, så en gammel besked ikke overlever et nyt
+   * klik på et andet output.
+   */
+  const pdfDownloadErrorMessage =
+    visibleDocumentFailureMessage(eoDownload)
+    ?? visibleDocumentFailureMessage(tafFordeltDownload)
+    ?? visibleDocumentFailureMessage(tafOpreguleretDownload)
+    ?? visibleDocumentFailureMessage(tafKravGrafDownload);
 
   React.useEffect(() => {
     const revision = eoSnapshot?.revision ?? 'no-snapshot';
@@ -572,18 +578,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     };
   }, [activeTab, pendingNavigation]);
 
-  const baseSelectedElements = React.useMemo(() => (
-    eoValues.eoBilagSelection ?? {
-      opgoerelse: true as const,
-      loenindkomst: true,
-      offentligeYdelser: true,
-      midlertidigEet: true,
-      shDage: false,
-      regulering: true,
-      okSatser: true,
-      sygeferiegodtgoerelse: true,
-    }
-  ), [eoValues.eoBilagSelection]);
   const bilagAvailability = React.useMemo(
     () => getEoBilagAvailability({
       eoValues,
@@ -658,120 +652,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const eoLedsagetekstPart = eoLedsagetekst ? ` (${eoLedsagetekst})` : '';
   const erstatningsopgoerelseTitel = `${revideretPrefix}${erstatningsord}${eoNummerPart}${eoLedsagetekstPart}`.trim();
 
-  const prepareFreshDownload = React.useCallback(async () => {
-    const preparation = await runtime.criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return null;
-    }
-    const source = captureProductionEvaluationSource();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return null;
-    const freshProjection = buildErstatningsopgoerelseReaderProjection(source.evaluation.reader, {
-      midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(source.evaluation),
-    });
-    return {
-      projection: freshProjection,
-      gates: evaluateErstatningsopgoerelseDownloadGates(freshProjection, source.settings),
-      settings: source.settings,
-    };
-  }, [runtime.criticalActions]);
-
-  const resolveFreshBilag = React.useCallback((freshProjection: ErstatningsopgoerelseReaderProjection) => {
-    const freshValues = freshProjection.eoValues;
-    const freshSnapshot = freshProjection.snapshot;
-    const availability = getEoBilagAvailability({
-      eoValues: freshValues,
-      skadedatoISO: freshProjection.stamdataValues.skadedato,
-      loenudvikling: freshSnapshot.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling,
-      offentligeYdelserUdvikling: freshSnapshot.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling,
-    });
-    const selection = {
-      ...(freshValues.eoBilagSelection ?? baseSelectedElements),
-    };
-    for (const key of EO_BILAG_DYNAMIC_SELECTION_KEYS) {
-      if (!availability[key].enabled) selection[key] = false;
-    }
-    return selection;
-  }, [baseSelectedElements]);
-
-  const handleDownloadPdf = React.useCallback(async () => {
-    const fresh = await prepareFreshDownload();
-    if (fresh === null || !fresh.gates.erstatningsopgoerelse.canDownload) {
-      setPdfDownloadErrorMessage(null);
-      return;
-    }
-    const freshProjection = fresh.projection;
-    const freshSnapshot = freshProjection.snapshot;
-
-    const result = await downloadErstatningsopgoerelseDokument({
-      stamdataValues: freshProjection.stamdataValues,
-      eoValues: freshProjection.eoValues,
-      selectedElements: resolveFreshBilag(freshProjection),
-      settings: fresh.settings,
-      snapshot: freshSnapshot,
-      midlertidigtEetGroups: freshProjection.eoValues.midlertidigtEetFraEetSiden === 'Ja'
-        ? (freshSnapshot.data?.midlertidigtEetGroups ?? [])
-        : [],
-      gate: fresh.gates.erstatningsopgoerelse,
-    });
-    setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [prepareFreshDownload, resolveFreshBilag]);
-
-  const handleDownloadTafFordeltPdf = React.useCallback(async () => {
-    const fresh = await prepareFreshDownload();
-    if (fresh === null || !fresh.gates.tafFordeltPaaAar.canDownload) {
-      setPdfDownloadErrorMessage(null);
-      return;
-    }
-
-    const result = await downloadTafFordeltPaaAarDokument({
-      stamdataValues: fresh.projection.stamdataValues,
-      eoValues: fresh.projection.eoValues,
-      settings: fresh.settings,
-      snapshot: fresh.projection.snapshot,
-      gate: fresh.gates.tafFordeltPaaAar,
-    });
-    setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [prepareFreshDownload]);
-
-  const handleDownloadTafOpreguleretPdf = React.useCallback(async () => {
-    const fresh = await prepareFreshDownload();
-    if (fresh === null || !fresh.gates.tafOpreguleret.canDownload) {
-      setPdfDownloadErrorMessage(null);
-      return;
-    }
-    const freshProjection = fresh.projection;
-    const freshSnapshot = freshProjection.snapshot;
-
-    const result = await downloadTafOpreguleretPaaAarDokument({
-      stamdataValues: freshProjection.stamdataValues,
-      eoValues: freshProjection.eoValues,
-      selectedElements: resolveFreshBilag(freshProjection),
-      settings: fresh.settings,
-      snapshot: freshSnapshot,
-      midlertidigtEetGroups: freshProjection.eoValues.midlertidigtEetFraEetSiden === 'Ja'
-        ? (freshSnapshot.data?.midlertidigtEetGroups ?? [])
-        : [],
-      gate: fresh.gates.tafOpreguleret,
-    });
-    setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [prepareFreshDownload, resolveFreshBilag]);
-
-  const handleDownloadTafKravGrafPdf = React.useCallback(async () => {
-    const fresh = await prepareFreshDownload();
-    if (fresh === null || !fresh.gates.tafKravGraf.canDownload) {
-      setPdfDownloadErrorMessage(null);
-      return;
-    }
-
-    const result = await downloadTafKravGrafDokument({
-      eoValues: fresh.projection.eoValues,
-      settings: fresh.settings,
-      snapshot: fresh.projection.snapshot,
-      gate: fresh.gates.tafKravGraf,
-    });
-    setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [prepareFreshDownload]);
+  const handleDownloadPdf = React.useCallback(async () => { await eoDownload.download(undefined); }, [eoDownload]);
+  const handleDownloadTafFordeltPdf = React.useCallback(async () => { await tafFordeltDownload.download(undefined); }, [tafFordeltDownload]);
+  const handleDownloadTafOpreguleretPdf = React.useCallback(async () => { await tafOpreguleretDownload.download(undefined); }, [tafOpreguleretDownload]);
+  const handleDownloadTafKravGrafPdf = React.useCallback(async () => { await tafKravGrafDownload.download(undefined); }, [tafKravGrafDownload]);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
     const issueSummaryText = row.summaryText ?? resolveEoIssueSummaryText(row);

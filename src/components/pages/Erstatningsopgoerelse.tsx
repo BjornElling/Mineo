@@ -15,7 +15,6 @@ import EOKontrolTabel from './erstatningsopgoerelse/EOKontrolTabel';
 import { useInputEvaluation } from '../../inputCore/react';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 import { buildErstatningsopgoerelseReaderProjection } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
-import { evaluateErstatningsopgoerelseDownloadGates } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
 import { selectBlockingEoEntityIdsBySuffix } from '../../domain/erstatningsopgoerelse/eoInputIssues';
 
 const TAB_KEYS = EO_TAB_KEYS;
@@ -64,10 +63,6 @@ const Erstatningsopgoerelse = React.memo(() => {
   const projection = React.useMemo(
     () => buildErstatningsopgoerelseReaderProjection(evaluation.reader, { midlertidigtEetInsertSource }),
     [evaluation, midlertidigtEetInsertSource]
-  );
-  const downloadGates = React.useMemo(
-    () => evaluateErstatningsopgoerelseDownloadGates(projection, settings),
-    [projection, settings]
   );
   const { eoValues, stamdataValues, snapshot: eoSnapshot } = projection;
   const manuelReguleringInputErrors = React.useMemo(
@@ -180,7 +175,6 @@ const Erstatningsopgoerelse = React.memo(() => {
               setActiveTab={setActiveTab}
               isActive={activeTab === TAB_KEYS.BEREGNING}
               projection={projection}
-              downloadGates={downloadGates}
             />
           </Box>
         )}

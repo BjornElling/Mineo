@@ -11,12 +11,18 @@ import StandardLoenTable from '../tables/StandardLoenTable';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { aarsloenStandardLoenFieldSet } from '../tables/standardLoenTableFieldSet';
 import ContentBox from '../layout/ContentBox';
-import { useInputEvaluation, useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
+import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
-import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
-import { useAarsloenDocumentGates, type AarsloenDocumentSnapshot } from '../../hooks/useAarsloenDocumentGates';
-import { useAppSettings } from '../../contexts/useAppSettings';
+import {
+  aarsloenDocumentDefinition,
+  shDageDocumentDefinition,
+} from '../../domain/aarsloen/aarsloenDocumentDefinitions';
+import { visibleDocumentFailureMessage } from '../../document/definition/react/useDocumentDownload';
+import {
+  useMineoDocumentOutput,
+  useMineoDocumentSourceContext,
+} from '../../document/runtime/react/useMineoDocumentOutput';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../utils/periodeBeregning';
 import {
@@ -45,7 +51,6 @@ import {
 import type { StandardLoenTableHandle } from '../../types/handles';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import type { LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas/enumSchemas';
-import { sourceTokensEqual, type EvaluationSourceToken } from '../../inputCore/evaluationSource';
 
 // Greenfield-migreret, Pass 2 (§2.4 formularrækkefølge trin 3 + §2.5 / Fase 3 Årsløn-slice). HELE siden kører nu
 // på greenfield-inputCore: Satser-blokken (Pass 1), løntabellen (StandardLoenTable over grid-adapteren) OG
@@ -79,41 +84,13 @@ const LOENPERIODE_OPTIONS: readonly { value: Loenperiode; label: string }[] = [
   { value: LOENPERIODE.DAG, label: 'Dato' },
 ];
 
-const captureFreshAarsloenDocumentSnapshot = (
-  expectedToken: EvaluationSourceToken
-): AarsloenDocumentSnapshot | null => {
-  const source = captureProductionEvaluationSource();
-  if (!sourceTokensEqual(expectedToken, source.evaluation.issues.sourceToken)) return null;
-
-  const projection = buildAarsloenReaderProjection(source.evaluation.reader);
-  // Blokeret projektion har INTET resultat (§3.9). Dokumentet kan da ikke bygges; gaten viser fejlen.
-  const calculation = projection.calculation;
-  if (calculation === null) return null;
-
-  return {
-    values: projection.values,
-    omregningAktiveret: projection.omregningGate.effectiveEnabled,
-    periodeData: calculation.periodeData,
-    shDageAntal: calculation.shDageAntal,
-    beregnetAarsloen: calculation.beregnetAarsloen,
-    beregningsData: calculation.beregningsData,
-    harFatalBeregningsFejl: calculation.harFatalBeregningsFejl,
-    tableErrors: projection.tableValidation.errors,
-    stamdataProjection: projection.documentStamdata,
-    settings: source.settings,
-    isSourceCurrent: source.isSourceCurrent,
-  };
-};
-
 /**
  * Årsløn-side
  *
  * Beregner årsløn baseret på satser og indtægtsoplysninger
  */
 const Aarsloen = React.memo(() => {
-  const { settings } = useAppSettings();
   const evaluation = useInputEvaluation();
-  const criticalActions = useCriticalInputActions();
 
   const readerProjection = React.useMemo(
     () => buildAarsloenReaderProjection(evaluation.reader),
@@ -166,59 +143,46 @@ const Aarsloen = React.memo(() => {
   const fejlmeddelelser = calculation?.fejlmeddelelser ?? [];
   const beregningsFejl = calculation?.beregningsFejl ?? [];
 
-  // Stamdata til dokument-download hentes gennem readeren (§3.4/§5.4), ikke via en rå sektionsselector.
-  const stamdataProjection = readerProjection.documentStamdata;
 
-  // PDF gates og download handlers
-  const {
-    canDownloadDocument,
-    documentDisabledReason,
-    canDownloadSHDageDocument,
-    shDageDisabledReason,
-    handleAarsloenDocumentDownload,
-    handleSHDageDocumentDownload,
-    downloadShake,
-    downloadErrorMessage,
-  } = useAarsloenDocumentGates({
-    values,
-    omregningAktiveret,
-    periodeData,
-    shDageAntal,
-    beregnetAarsloen,
-    beregningsData,
-    harFatalBeregningsFejl,
-    tableErrors: tableValidation.errors,
-    tabelRef,
-    stamdataProjection,
-    settings,
-    // Render-snapshottet bruges kun til knaptilstand. Selve downloadhandlingen leverer altid et frisk snapshot.
-    isSourceCurrent: () => false,
-  });
+  // Dokument-download (Fase 5). Begge outputs deler ÉN kildekontekst, så årsløns-projektionen kun
+  // bygges én gang pr. revision, uanset at siden tegner to knapper. Hele preflighten — settle, frisk
+  // capture, token-lighed, gate — ejes af definitionerne; her er kun blokerings-FEEDBACKEN tilbage
+  // (shake + flash af den fejlende celle), som er ren præsentation og forskellig pr. side.
+  const documentContext = useMineoDocumentSourceContext();
+  const aarsloenDownload = useMineoDocumentOutput(aarsloenDocumentDefinition, undefined, documentContext);
+  const shDageDownload = useMineoDocumentOutput(shDageDocumentDefinition, undefined, documentContext);
 
-  // §1.4/§3.9: en download settler først en evt. åben celle-/felt-editor og evaluerer derefter et frisk
-  // kildesnapshot, før gaten genkøres. Gaten/handleren selv ejer beregningen; her sikrer vi kun, at en netop
-  // indtastet celle er committet, før downloaden læser.
+  const [downloadShake, setDownloadShake] = React.useState(false);
+  const downloadShakeTimeoutRef = React.useRef<number | null>(null);
+  React.useEffect(() => () => {
+    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
+  }, []);
+  const triggerDownloadShake = React.useCallback(() => {
+    setDownloadShake(true);
+    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
+    downloadShakeTimeoutRef.current = window.setTimeout(() => {
+      setDownloadShake(false);
+      downloadShakeTimeoutRef.current = null;
+    }, 500);
+  }, []);
+
   const runAarsloenDownload = React.useCallback(async () => {
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
+    const outcome = await aarsloenDownload.download(undefined);
+    if (outcome.status === 'rejected' && outcome.rejection.kind === 'gate-blocked') {
+      triggerDownloadShake();
+      const firstError = tableValidation.errors[0];
+      if (firstError?.kind === 'cell') tabelRef.current?.flashError(firstError);
     }
-    const latest = captureFreshAarsloenDocumentSnapshot(preparation.token);
-    if (latest === null) return;
-    await handleAarsloenDocumentDownload(latest);
-  }, [criticalActions, handleAarsloenDocumentDownload]);
+  }, [aarsloenDownload, tableValidation.errors, triggerDownloadShake]);
 
   const runShDageDownload = React.useCallback(async () => {
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const latest = captureFreshAarsloenDocumentSnapshot(preparation.token);
-    if (latest === null) return;
-    await handleSHDageDocumentDownload(latest);
-  }, [criticalActions, handleSHDageDocumentDownload]);
+    await shDageDownload.download(undefined);
+  }, [shDageDownload]);
+
+  // De to outputs deler fejlboksen, som de gjorde før Fase 5. Gate-blokeringer vises ikke her —
+  // knappernes tooltip bærer årsagen, og en blokeret årsløn-download besvares med shake + celle-flash.
+  const downloadErrorMessage =
+    visibleDocumentFailureMessage(aarsloenDownload) ?? visibleDocumentFailureMessage(shDageDownload);
 
   // Afledt boolean til betinget rendering
   const canShowOmregning = omregningAktiveret && periodeData !== null;
@@ -235,8 +199,8 @@ const Aarsloen = React.memo(() => {
     <DocumentDownloadButton
       onClick={() => void runAarsloenDownload()}
       shake={downloadShake}
-      disabled={!canDownloadDocument}
-      disabledReason={documentDisabledReason ?? undefined}
+      disabled={!aarsloenDownload.canDownload}
+      disabledReason={aarsloenDownload.disabledReason}
     />
   );
 
@@ -439,8 +403,8 @@ const Aarsloen = React.memo(() => {
                   <Typography className="row--text">{shDageAntal ?? 0}</Typography>
                   <DocumentDownloadButton
                     onClick={() => void runShDageDownload()}
-                    disabled={!canDownloadSHDageDocument}
-                    disabledReason={shDageDisabledReason ?? undefined}
+                    disabled={!shDageDownload.canDownload}
+                    disabledReason={shDageDownload.disabledReason}
                   />
                 </Box>
               </Box>

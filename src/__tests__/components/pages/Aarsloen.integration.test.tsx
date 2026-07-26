@@ -20,14 +20,14 @@ import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import { toISODateString } from '../../../types/branded';
 
-const { mockDownloadAarsloenDokument, mockDownloadSHDageDokument } = vi.hoisted(() => ({
-  mockDownloadAarsloenDokument: vi.fn(async () => ({ success: true as const })),
-  mockDownloadSHDageDokument: vi.fn(async () => ({ success: true as const })),
-}));
-vi.mock('../../../document/service/documentService', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../../../document/service/documentService')>(),
-  downloadAarsloenDokument: mockDownloadAarsloenDokument,
-  downloadSHDageDokument: mockDownloadSHDageDokument,
+/**
+ * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte.
+ */
+const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
+vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../document/downloadArtifact')>(),
+  triggerDocumentDownload: mockTriggerDocumentDownload,
 }));
 
 const catalog = getProductionInputCatalog();
@@ -69,8 +69,7 @@ const getDataRowCells = (rowIndex: number): HTMLElement[] => {
 describe('Årsløn (greenfield) — migreret side + løntabel over grid-adapteren', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    mockDownloadAarsloenDokument.mockClear();
-    mockDownloadSHDageDokument.mockClear();
+    mockTriggerDocumentDownload.mockClear();
   });
 
   it('renderer på en FRESH sag (aarsloen-sektion = null) uden at kaste; required-valg får deres canonical default', () => {
@@ -217,6 +216,6 @@ describe('Årsløn (greenfield) — migreret side + løntabel over grid-adaptere
     const downloadButton = screen.getByRole('button', { name: /Fødselsdato|Skadedato/ });
     expect(downloadButton).toBeDisabled();
     await user.click(downloadButton);
-    expect(mockDownloadAarsloenDokument).not.toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 });

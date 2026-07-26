@@ -8,6 +8,7 @@ import {
   type InventoryEntry,
 } from '../../config/consumerInventory';
 import { PERSISTED_SECTION_KEYS } from '../../config/persistenceRegistry';
+import { MINEO_DOCUMENT_OUTPUT_IDS } from '../../document/definition/documentOutputId';
 import { collectSectionSchemaPaths } from '../../inputCore/ledger/schemaFieldPaths';
 
 const readInventoryModule = (entry: InventoryEntry): string =>
@@ -46,13 +47,24 @@ describe('greenfield fase-0-inventar', () => {
     ]) assertConsumedSymbol(entry);
   });
 
-  it('dækker samtlige dokumentservice-entrypoints udtømmende', () => {
+  /**
+   * Completeness for dokumentoutputs (Fase 5).
+   *
+   * Målestokken var før "alle `download*Dokument`-exports i `documentService.ts`" — en regex over ÉT
+   * modul. Det modul findes ikke længere: hvert output ejes af en definition ved sin egen
+   * domænegrænse, spredt over otte moduler. Den kanoniske kilde er derfor
+   * `MINEO_DOCUMENT_OUTPUT_IDS`, som er uafhængig af hvor definitionerne bor, og som også
+   * runtime-katalogerne måles imod.
+   */
+  it('dækker præcis hovedappens 18 dokumentoutputs, og hver post peger på sin definition', () => {
     for (const entry of CONSUMER_DOCUMENT_OUTPUTS) assertExportedSymbol(entry);
-    const source = readInventoryModule(CONSUMER_DOCUMENT_OUTPUTS[0]);
-    const actual = [...source.matchAll(/export const (download[A-ZÆØÅ][A-Za-zÆØÅæøå]*Dokument)\s*=/g)]
-      .map((match) => match[1])
-      .sort();
-    const inventoried = CONSUMER_DOCUMENT_OUTPUTS.map((entry) => entry.symbol).sort();
-    expect(inventoried).toEqual(actual);
+
+    const inventoried = CONSUMER_DOCUMENT_OUTPUTS.map((entry) => entry.id).sort();
+    expect(inventoried).toEqual([...MINEO_DOCUMENT_OUTPUT_IDS].sort());
+
+    // Ét id = ét output: ingen duplikerede id'er, og ingen duplikeret definition-symbol.
+    expect(new Set(inventoried).size).toBe(inventoried.length);
+    const symbols = CONSUMER_DOCUMENT_OUTPUTS.map((entry) => `${entry.module}#${entry.symbol}`);
+    expect(new Set(symbols).size).toBe(symbols.length);
   });
 });

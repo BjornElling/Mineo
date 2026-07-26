@@ -195,7 +195,6 @@ const failOpenDisplayLookupImport = forbidImports({
     // Den typed reader-projektion er display-/dokument-grænsen for Satser og kalder kun opslaget på ready-grenen.
     'src/domain/satser/satserProjection.ts',
     'src/document/generators/satser/satserDocument.ts',
-    'src/document/service/documentService.ts',
   ],
   forbidden: (ref) =>
     ref.moduleSpecifier.includes('lovbestemteRates') && ref.namedBindings.includes('getSatserForYear'),
@@ -597,7 +596,7 @@ const pdfDownloadCommittedState = defineRule({
 // --- MinProcesrente-standalone: ingen import af Mineos tværgående flows --------
 
 const STANDALONE_SCOPE_PREFIXES = ['src/apps/minprocesrente/', 'src/components/pages/minprocesrente/'];
-const STANDALONE_SCOPE_FILES = new Set<string>(['src/pdf/infrastructure/standaloneRentePdfService.ts']);
+const STANDALONE_SCOPE_FILES = new Set<string>();
 
 const isStandaloneScope = (relativePath: string): boolean =>
   STANDALONE_SCOPE_FILES.has(relativePath) ||
@@ -642,7 +641,7 @@ const minprocesrenteStandaloneImport = forbidImports({
     { relativePath: 'src/apps/minprocesrente/x.ts', code: "import { AuthGate } from '../../components/AuthGate';" },
     { relativePath: 'src/apps/minprocesrente/x.ts', code: "import App from '../../App';" },
     { relativePath: 'src/apps/minprocesrente/x.ts', code: "import { useAppSettings } from '../../contexts/AppSettingsContext';" },
-    { relativePath: 'src/pdf/infrastructure/standaloneRentePdfService.ts', code: "import { reportSystemIssue } from '../../utils/systemIssueReporter';" },
+    { relativePath: 'src/apps/minprocesrente/document/x.ts', code: "import { reportSystemIssue } from '../../../utils/systemIssueReporter';" },
   ],
   cleanFixtures: [
     { relativePath: 'src/apps/minprocesrente/x.ts', code: "import { computeRente } from '../../domain/renteberegning/renteEngine';" },
@@ -1238,6 +1237,91 @@ const sfggWarningsImportBoundary = forbidImports({
   }],
 });
 
+/**
+ * Fase 5's strukturelle håndhævelse: dokument-livscyklussen er den ENE vej til et dokument.
+ *
+ * Før Fase 5 lå livscyklussen spredt over tre lag pr. output, og hvert af de 18 outputs havde sin
+ * egen kopi af spredningen — hvorfor fem af dem manglede mindst ét trin (commit-barriere, frisk
+ * kildeoptagelse, token-lighed, friskheds-recheck). Nu ejer definitionen rækkefølgen, men det
+ * holder kun, hvis ingen kan gå udenom. Derfor:
+ *
+ *   - En UI-fil må ikke importere en dokumentgenerator direkte. Generatoren nås kun gennem
+ *     definitionens `loadRenderer`, som kernen først kalder EFTER gaten har sagt ready. Importerede
+ *     en side generatoren selv, ville den kunne danne et dokument uden gate.
+ *   - En UI-fil må ikke importere `triggerDocumentDownload`. Det er livscyklussens IRREVERSIBLE
+ *     handling, og den skal ske efter det sidste friskheds-recheck — ikke fra en callsite.
+ *   - En UI-fil må ikke importere kernens interne livscyklus-modul. `executeDocumentDownload` er
+ *     ganske vist det eneste eksporterede navn dér, men en direkte import ville omgå katalogets
+ *     binding af definition til miljø.
+ *
+ * **Reglen er AUTORITETSbaseret, ikke sti-baseret.** Første udgave gjaldt kun `src/components/` og
+ * kunne derfor omgås ved at lægge callsite-logik et andet sted — fx i `domain/**\/react/`, hvor
+ * `useReguleringDocumentAction` bor. Nu gælder forbuddet HELE repoet, og i stedet erklæres de få
+ * moduler, der HAR autoriteten, eksplicit i `allow`. Det gør listen til en beslutning man kan læse,
+ * frem for en konsekvens af hvor filerne tilfældigvis ligger.
+ *
+ * `documentLoader` er også forbudt: den eksporterer samtlige generator-entrypoints, så en import af
+ * den er en generator-import ad omvejen.
+ */
+const DOCUMENT_LIFECYCLE_AUTHORITIES: readonly string[] = [
+  // Livscyklussen selv — den ENESTE der må starte fil-I/O.
+  'src/document/definition/documentLifecycle.ts',
+  // Katalogfabrikken binder definition til miljø og kalder afviklingen.
+  'src/document/definition/documentCatalog.ts',
+  // Definitionerne lazy-loader deres egen generator i `loadRenderer`.
+  'src/domain/satser/satserDocumentDefinition.ts',
+  'src/domain/renteberegning/renteberegningDocumentDefinitions.ts',
+  'src/domain/erstatningsopgoerelse/eoDocumentDefinitions.ts',
+  'src/domain/erstatningsopgoerelse/reguleringDocumentDefinitions.ts',
+  'src/domain/erhvervsevnetab/eetDocumentDefinitions.ts',
+  'src/domain/forsoergertab/forsoergertabDocumentDefinition.ts',
+  'src/domain/varigemen/varigeMenDocumentDefinition.ts',
+  'src/domain/aarsloen/aarsloenDocumentDefinitions.ts',
+  'src/apps/minprocesrente/document/standaloneRenteDocumentDefinitions.ts',
+];
+// Bemærk: `documentLoader.ts` står bevidst IKKE på listen. Dens generator-referencer er
+// `typeof import(...)` i typeposition, som reglen med rette ikke rammer — en tom undtagelse ville
+// blive fanget af anti-rot-checket og er derfor udeladt frem for tilføjet "for en sikkerheds skyld".
+
+const documentLifecycleBypass = forbidImports({
+  id: 'document/lifecycle-single-entrypoint',
+  description:
+    'Kun de erklærede autoriteter må importere en dokumentgenerator, documentLoader, kernens livscyklus eller fil-I/O. Alle andre aktiverer et output gennem dets definition.',
+  allow: DOCUMENT_LIFECYCLE_AUTHORITIES,
+  forbidden: (ref) => {
+    const moduleSpecifier = ref.moduleSpecifier.replaceAll('\\', '/');
+    const importsGenerator = moduleSpecifier.includes('document/generators/');
+    // Matcher også en SØSKENDE-import (`./documentLifecycle`, `./documentLoader`). Første udgave
+    // krævede mappenavnet i specifieren og lod derfor et modul i samme mappe importere kernen frit.
+    const importsLoader = /(?:^|\/)documentLoader$/.test(moduleSpecifier);
+    const importsLifecycle = /(?:^|\/)documentLifecycle$/.test(moduleSpecifier);
+    const importsFileIo =
+      ref.namedBindings.includes('triggerDocumentDownload')
+      || (/(?:^|\/)document\/downloadArtifact$/.test(moduleSpecifier) && !ref.typeOnly && ref.namedBindings.length === 0);
+    // Typeimports er harmløse: en side må gerne kende en generators rækketype til visning.
+    return (!ref.typeOnly && (importsGenerator || importsLoader)) || importsLifecycle || importsFileIo;
+  },
+  message: (ref) =>
+    `Uautoriseret omgåelse af dokument-livscyklussen (${ref.moduleSpecifier}) — aktivér outputtet gennem dets definition, eller tilføj modulet til DOCUMENT_LIFECYCLE_AUTHORITIES med en begrundelse.`,
+  violatingFixtures: [
+    { relativePath: 'src/components/pages/X.tsx', code: "import { generateRenteDocument } from '../../document/generators/renteberegning/renteDocument';" },
+    { relativePath: 'src/components/pages/X.tsx', code: "const g = await import('../../document/generators/satser/satserDocument');" },
+    { relativePath: 'src/components/pages/X.tsx', code: "import { triggerDocumentDownload } from '../../document/downloadArtifact';" },
+    { relativePath: 'src/components/pages/X.tsx', code: "import { executeDocumentDownload } from '../../document/definition/documentLifecycle';" },
+    // Uden for components-laget gælder forbuddet nu OGSÅ — det var hullet i første udgave.
+    { relativePath: 'src/domain/x/react/useXAction.ts', code: "import { executeDocumentDownload } from '../../../document/definition/documentLifecycle';" },
+    { relativePath: 'src/hooks/useX.ts', code: "import { loadSatserDocumentModule } from '../document/service/documentLoader';" },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/components/pages/X.tsx', code: "import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefinition';" },
+    { relativePath: 'src/components/pages/X.tsx', code: "import { useMineoDocumentOutput } from '../../document/runtime/react/useMineoDocumentOutput';" },
+    // Typeimport af en generators rækketype er tilladt: det er ren visningskontrakt, ikke afvikling.
+    { relativePath: 'src/components/pages/X.tsx', code: "import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';" },
+    // En erklæret autoritet må importere generatoren i sin loadRenderer.
+    { relativePath: 'src/domain/satser/satserDocumentDefinition.ts', code: "const g = await import('../../document/generators/satser/satserDocument');" },
+  ],
+});
+
 const documentGeneratorWriterImport = forbidImports({
   id: 'document/generator-writer-import-boundary',
   description: 'Dokumentgeneratorer må kun bygge DocumentModel og må ikke importere writer-targets, kanaler eller den imperative modelrenderer.',
@@ -1463,6 +1547,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   sfggAnsaettelsesforholdImportBoundary,
   sfggSegmenteringImportBoundary,
   sfggWarningsImportBoundary,
+  documentLifecycleBypass,
   documentGeneratorWriterImport,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,

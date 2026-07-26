@@ -94,23 +94,35 @@ export const CONSUMER_CASE_FILE_PATHS = [
   },
 ] as const satisfies readonly ConsumedInventoryEntry[];
 
+/**
+ * De 18 dokumentoutputs i hovedappen, med deres ejende DEFINITION (Fase 5).
+ *
+ * Før Fase 5 pegede hver post på en `download*Dokument`-funktion i `documentService.ts`. Det modul
+ * findes ikke længere: dokument-livscyklussen er ét objekt pr. output, og definitionen bor ved sin
+ * domænegrænse (`document-output-contract.md` §A1.2/§A7.1). Symbolet her er derfor definitionen —
+ * det ene sted, hvor outputtets dependencies, gate og generatorkald er samlet.
+ *
+ * Standalone MinProcesrentes tre outputs står bevidst IKKE her: dette inventar dækker hovedappen.
+ * Det fælles ID-inventar for BEGGE apps er `src/document/definition/documentOutputId.ts`, og
+ * completeness-testen måler kataloget mod begge.
+ */
 export const CONSUMER_DOCUMENT_OUTPUTS = [
-  { id: 'satser', module: 'src/document/service/documentService.ts', symbol: 'downloadSatserDokument' },
-  { id: 'rente', module: 'src/document/service/documentService.ts', symbol: 'downloadRenteDokument' },
-  { id: 'rente-oversigt', module: 'src/document/service/documentService.ts', symbol: 'downloadRenteOversigtDokument' },
-  { id: 'regulering', module: 'src/document/service/documentService.ts', symbol: 'downloadReguleringDokument' },
-  { id: 'krl', module: 'src/document/service/documentService.ts', symbol: 'downloadKrlDokument' },
-  { id: 'kl-loenaftaler', module: 'src/document/service/documentService.ts', symbol: 'downloadKlLoenaftalerDokument' },
-  { id: 'erstatningsopgoerelse', module: 'src/document/service/documentService.ts', symbol: 'downloadErstatningsopgoerelseDokument' },
-  { id: 'taf-fordelt-paa-aar', module: 'src/document/service/documentService.ts', symbol: 'downloadTafFordeltPaaAarDokument' },
-  { id: 'taf-opreguleret-paa-aar', module: 'src/document/service/documentService.ts', symbol: 'downloadTafOpreguleretPaaAarDokument' },
-  { id: 'taf-krav-graf', module: 'src/document/service/documentService.ts', symbol: 'downloadTafKravGrafDokument' },
-  { id: 'varigemen', module: 'src/document/service/documentService.ts', symbol: 'downloadVarigeMenDokument' },
-  { id: 'aarsloen', module: 'src/document/service/documentService.ts', symbol: 'downloadAarsloenDokument' },
-  { id: 'sh-dage', module: 'src/document/service/documentService.ts', symbol: 'downloadSHDageDokument' },
-  { id: 'kapitalisering', module: 'src/document/service/documentService.ts', symbol: 'downloadKapitaliseringDokument' },
-  { id: 'efter-eal', module: 'src/document/service/documentService.ts', symbol: 'downloadEfterEalDokument' },
-  { id: 'differencekrav', module: 'src/document/service/documentService.ts', symbol: 'downloadDifferencekravDokument' },
-  { id: 'loebende-ydelser', module: 'src/document/service/documentService.ts', symbol: 'downloadLoebendeYdelserDokument' },
-  { id: 'forsoergertab', module: 'src/document/service/documentService.ts', symbol: 'downloadForsoergertabDokument' },
+  { id: 'satser', module: 'src/domain/satser/satserDocumentDefinition.ts', symbol: 'satserDocumentDefinition' },
+  { id: 'rente', module: 'src/domain/renteberegning/renteberegningDocumentDefinitions.ts', symbol: 'renteDocumentDefinition' },
+  { id: 'rente-oversigt', module: 'src/domain/renteberegning/renteberegningDocumentDefinitions.ts', symbol: 'renteOversigtDocumentDefinition' },
+  { id: 'regulering', module: 'src/domain/erstatningsopgoerelse/reguleringDocumentDefinitions.ts', symbol: 'reguleringDocumentDefinition' },
+  { id: 'krl', module: 'src/domain/erstatningsopgoerelse/reguleringDocumentDefinitions.ts', symbol: 'krlDocumentDefinition' },
+  { id: 'kl-loenaftaler', module: 'src/domain/erstatningsopgoerelse/reguleringDocumentDefinitions.ts', symbol: 'klLoenaftalerDocumentDefinition' },
+  { id: 'erstatningsopgoerelse', module: 'src/domain/erstatningsopgoerelse/eoDocumentDefinitions.ts', symbol: 'erstatningsopgoerelseDocumentDefinition' },
+  { id: 'taf-fordelt-paa-aar', module: 'src/domain/erstatningsopgoerelse/eoDocumentDefinitions.ts', symbol: 'tafFordeltPaaAarDocumentDefinition' },
+  { id: 'taf-opreguleret-paa-aar', module: 'src/domain/erstatningsopgoerelse/eoDocumentDefinitions.ts', symbol: 'tafOpreguleretPaaAarDocumentDefinition' },
+  { id: 'taf-krav-graf', module: 'src/domain/erstatningsopgoerelse/eoDocumentDefinitions.ts', symbol: 'tafKravGrafDocumentDefinition' },
+  { id: 'varigemen', module: 'src/domain/varigemen/varigeMenDocumentDefinition.ts', symbol: 'varigeMenDocumentDefinition' },
+  { id: 'aarsloen', module: 'src/domain/aarsloen/aarsloenDocumentDefinitions.ts', symbol: 'aarsloenDocumentDefinition' },
+  { id: 'sh-dage', module: 'src/domain/aarsloen/aarsloenDocumentDefinitions.ts', symbol: 'shDageDocumentDefinition' },
+  { id: 'kapitalisering', module: 'src/domain/erhvervsevnetab/eetDocumentDefinitions.ts', symbol: 'kapitaliseringDocumentDefinition' },
+  { id: 'efter-eal', module: 'src/domain/erhvervsevnetab/eetDocumentDefinitions.ts', symbol: 'efterEalDocumentDefinition' },
+  { id: 'differencekrav', module: 'src/domain/erhvervsevnetab/eetDocumentDefinitions.ts', symbol: 'differencekravDocumentDefinition' },
+  { id: 'loebende-ydelser', module: 'src/domain/erhvervsevnetab/eetDocumentDefinitions.ts', symbol: 'loebendeYdelserDocumentDefinition' },
+  { id: 'forsoergertab', module: 'src/domain/forsoergertab/forsoergertabDocumentDefinition.ts', symbol: 'forsoergertabDocumentDefinition' },
 ] as const satisfies readonly InventoryEntry[];

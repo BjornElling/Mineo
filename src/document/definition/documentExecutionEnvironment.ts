@@ -73,4 +73,17 @@ export type DocumentExecutionEnvironment<TSettings, TBrevhovedKey extends string
    * dev-server-nedetid rapporteres bevidst IKKE som systemfejl (§A5).
    */
   reportFailure: (failure: DocumentFailure, diagnostics: DocumentDiagnostics) => void;
+  /**
+   * Om en UVENTET runtimefejl også skal have en lokal besked i siden.
+   *
+   * Dette er APP-POLITIK, ikke en egenskab ved fejlen, og hører derfor i miljøet frem for i
+   * beskedlaget. §A5 kræver, at en systemteknisk fejl routes til den centrale fejlrapportering;
+   * viser siden SAMTIDIG sin egen tekst, er den rapporteret to steder, og brugeren møder en
+   * teknisk fejl inline i sideflowet. Hovedappen sætter derfor `false`.
+   *
+   * Standalone MinProcesrente sætter `true`: den har ingen central fejloverflade (den må ikke
+   * importere `reportSystemIssue`), så uden en lokal besked ville en runtimefejl være helt tavs
+   * for brugeren.
+   */
+  showRuntimeFailureLocally: boolean;
 }>;

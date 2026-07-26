@@ -19,13 +19,17 @@ import {
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
 
-const mockDownloadSatserDokument = vi.hoisted(() =>
-  vi.fn(async (_params: { year: number }) => ({ success: true as const }))
-);
+/**
+ * Fase 5: testen måler nu på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem
+ * for på et servicekald. Det er en strammere assertion: den beviser, at hele kæden — barriere,
+ * frisk capture, token-lighed, gate, lazy-load, friskheds-recheck, rendering — faktisk kørte til
+ * ende, ikke bare at en funktion blev kaldt.
+ */
+const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../document/service/documentService', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../../../document/service/documentService')>(),
-  downloadSatserDokument: mockDownloadSatserDokument,
+vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../document/downloadArtifact')>(),
+  triggerDocumentDownload: mockTriggerDocumentDownload,
 }));
 
 const catalog = getProductionInputCatalog();
@@ -66,7 +70,7 @@ const getDownloadButton = () => screen.getByRole('button');
 describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    mockDownloadSatserDokument.mockClear();
+    mockTriggerDocumentDownload.mockClear();
   });
 
   it('download er aktiv for en gyldig committed årgang', () => {
@@ -117,7 +121,7 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     await user.click(getDownloadButton());
 
     expect(getDownloadButton()).toBeDisabled();
-    expect(mockDownloadSatserDokument).not.toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 
   it('at rette den ugyldige årgang tilbage til en gyldig værdi åbner download igen', async () => {
@@ -141,13 +145,16 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     expect(screen.getByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).toBeInTheDocument();
   });
 
-  it('download af en gyldig årgang når dokumentservicen', async () => {
+  it('download af en gyldig årgang gennemfører hele livscyklussen og leverer et dokument', async () => {
     const user = userEvent.setup();
     renderSatser(satserAngivAarYearBounds.maxYear);
 
     await user.click(getDownloadButton());
 
-    expect(mockDownloadSatserDokument).toHaveBeenCalledTimes(1);
-    expect(mockDownloadSatserDokument.mock.calls[0]?.[0]?.year).toBe(satserAngivAarYearBounds.maxYear);
+    // Hele kæden kørte: barriere → frisk capture → token-lighed → gate → generator-load →
+    // writer-load → rendering → friskheds-recheck → fil-I/O.
+    await vi.waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
+    const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
+    expect(artifact.filename).toContain(String(satserAngivAarYearBounds.maxYear));
   });
 });

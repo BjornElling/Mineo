@@ -22,13 +22,16 @@ import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamd
 import type { FaellesAarsloenValues, ForsoergertabValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
-const mockDownloadForsoergertabDokument = vi.hoisted(() =>
-  vi.fn(async () => ({ success: true as const }))
-);
+/**
+ * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden (barriere, frisk
+ * capture, token-lighed, gate, lazy-load, friskheds-recheck, rendering) faktisk kørte.
+ */
+const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../document/service/documentService', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../../../document/service/documentService')>(),
-  downloadForsoergertabDokument: mockDownloadForsoergertabDokument,
+vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../document/downloadArtifact')>(),
+  triggerDocumentDownload: mockTriggerDocumentDownload,
 }));
 
 const catalog = getProductionInputCatalog();
@@ -87,10 +90,10 @@ const renderPage = () => render(
 describe('Forsoergertab greenfield — reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    mockDownloadForsoergertabDokument.mockClear();
+    mockTriggerDocumentDownload.mockClear();
   });
 
-  it('et fuldt gyldigt input aktiverer download og når dokumentservicen med frisk stamdata', async () => {
+  it('et fuldt gyldigt input aktiverer download og leverer et dokument med frisk stamdata', async () => {
     const user = userEvent.setup();
     hydrate(validForsoergertab, validFaellesAarsloen, validStamdata);
     renderPage();
@@ -99,13 +102,11 @@ describe('Forsoergertab greenfield — reader-projektion + download-gate', () =>
     await waitFor(() => expect(downloadButton).toBeEnabled());
 
     await user.click(downloadButton);
-    await waitFor(() => expect(mockDownloadForsoergertabDokument).toHaveBeenCalledTimes(1));
-    expect(mockDownloadForsoergertabDokument).toHaveBeenCalledWith(
-      expect.objectContaining({
-        persistedStamdata: expect.objectContaining({ journalnr: 'J-2026-002' }),
-        isSourceCurrent: expect.any(Function),
-      })
-    );
+    await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
+    // Journalnummeret kommer fra stamdata og indgår i filnavnet — beviser at den friske
+    // stamdata-dependency nåede hele vejen ind i det leverede dokument.
+    const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
+    expect(artifact.filename).toContain('J-2026-002');
   });
 
   it('en canonical tilkendt-periode uden for 1..10 committes, viser rød feltfejl og blokerer download (§1.6)', async () => {
@@ -127,7 +128,7 @@ describe('Forsoergertab greenfield — reader-projektion + download-gate', () =>
     const downloadButton = screen.getByTestId('forsoergertab-download');
     await waitFor(() => expect(downloadButton).toBeDisabled());
     await user.click(downloadButton);
-    expect(mockDownloadForsoergertabDokument).not.toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 
   it('en byttet datoorden i stamdata blokerer download (rød feltfejl på datoerne)', async () => {

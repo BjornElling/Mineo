@@ -1,14 +1,13 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
-import { downloadSatserDokument } from '../../document/service/documentService';
 import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import YearField from '../../inputCore/react/fields/YearField';
-import { useCriticalInputActions, useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
-import { captureProductionEvaluationSource } from '../../inputCore/react/productionInputRuntime';
+import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { projectSatser } from '../../domain/satser/satserProjection';
-import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
+import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefinition';
+import { useMineoDocumentOutput } from '../../document/runtime/react/useMineoDocumentOutput';
 import ContentBox from '../layout/ContentBox';
 import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import { formatAsAmount, formatKr, formatPercent } from '../../utils/formatUtils';
@@ -125,48 +124,16 @@ const aargangLocation = { locationId: 'satser:aargang', route: APP_ROUTES.satser
  */
 const Satser = React.memo(() => {
   const evaluation = useInputEvaluation();
-  const criticalActions = useCriticalInputActions();
 
-  // Vist = beregnet (§3.9): både sidevisning og downloadgate udledes af SAMME reader-projektion. Et out-of-bounds
-  // eller tomt år giver `blocked` → satser skjules og download blokeres; kun et gyldigt år giver `ready`.
+  // Vist = beregnet (§3.9): sidevisningen udledes af SAMME reader-projektion, som definitionens gate
+  // bruger. Et out-of-bounds eller tomt år giver `blocked` → satser skjules og download blokeres.
   const projection = React.useMemo(() => projectSatser(evaluation.reader), [evaluation]);
-  const stamdataProjection = React.useMemo(
-    () => projectStamdataForDocument(evaluation.reader, 'document.satser'),
-    [evaluation]
-  );
   const effectiveYear = projection.status === 'ready' ? projection.value.year : undefined;
   const satser = projection.status === 'ready' ? projection.value.satser : null;
-  const canDownload = projection.status === 'ready' && stamdataProjection.status === 'ready';
-  const disabledReason = projection.status === 'blocked'
-    ? projection.issues[0]?.message
-    : stamdataProjection.status === 'blocked'
-      ? stamdataProjection.issues[0]?.message
-      : undefined;
 
-  // Håndter download af PDF
-  const handleDownloadPdf = React.useCallback(async () => {
-    // §1.4: download settler først den åbne editor og evaluerer derefter et frisk kildesnapshot.
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status !== 'blocked') return;
-      preparation.target?.focus();
-      return;
-    }
-
-    // Frisk, stabilt kildesnapshot efter settle (§3.9): projektion + freshness-closure bygges HER, ikke fra render.
-    const source = captureProductionEvaluationSource();
-    const latest = projectSatser(source.evaluation.reader);
-    const latestStamdata = projectStamdataForDocument(source.evaluation.reader, 'document.satser');
-    if (latest.status !== 'ready' || latestStamdata.status !== 'ready') return;
-
-    await downloadSatserDokument({
-      year: latest.value.year,
-      satser: latest.value.satser,
-      isSourceCurrent: source.isSourceCurrent,
-      settings: source.settings,
-      persistedStamdata: latestStamdata.value,
-    });
-  }, [criticalActions]);
+  // Download-livscyklussen — barriere, frisk capture, token-lighed, gate, lazy-load, friskheds-recheck
+  // og fejlrouting — ejes af definitionen (§A2). Siden konfigurerer den ikke; den aktiverer den.
+  const download = useMineoDocumentOutput(satserDocumentDefinition, undefined);
 
   const renderReferenceValue = React.useCallback((links: readonly RetsinfoLink[]) => {
     if (links.length === 0) return '';
@@ -217,9 +184,9 @@ const Satser = React.memo(() => {
           <Typography className="row--text">Download specifikation:</Typography>
           <Box className="row--label-right-hover__content">
             <DocumentDownloadButton
-              onClick={() => void handleDownloadPdf()}
-              disabled={!canDownload}
-              disabledReason={disabledReason}
+              onClick={() => void download.download(undefined)}
+              disabled={!download.canDownload}
+              disabledReason={download.disabledReason}
             />
           </Box>
         </Box>

@@ -6,11 +6,10 @@ import type { RateEntry } from '../../../data/interestRates';
 import DateField from '../../../inputCore/react/fields/DateField';
 import MultilineTextField from '../../../inputCore/react/fields/MultilineTextField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
-import BeregnetRenteTable, { type RentekravPdfContextMap, type RentePdfContext } from '../../tables/BeregnetRenteTable';
+import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
-import type { ISODateString } from '../../../types/branded';
 import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
-import { evaluateDownloadAllGate, evaluateOversigtDownloadGate } from '../../../domain/renteberegning/renteberegningDownloadGate';
+import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import {
   buildRenteberegningReaderProjection,
   readRentekravCommittedRows,
@@ -18,23 +17,16 @@ import {
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
 import DownloadIconButton from '../../inputs/DownloadIconButton';
-import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
-import { blockDocumentDownload } from '../../../document/layout/documentGateTypes';
 import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
-import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
 import { useInputRuntime } from '../../../inputCore/react/inputRuntimeContext';
 import { resetSection } from '../../../inputCore/inputReducer';
-import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
 import {
   renteberegningBeregningsdatoField,
   renteberegningKommentarerField,
 } from '../../../inputCore/catalog/renteberegningDescriptors';
-import { projectStamdataForDocument } from '../../../domain/stamdata/stamdataDocumentProjection';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
-import type { ProjectionResult } from '../../../inputCore/projection';
-import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 
 // Greenfield-migreret RenteberegningTab (§2.4 trin 4 / §2.5 / Fase 3 Renteberegning-slice). Hele fanen kører nu på
 // greenfield-inputCore: beregningsdato + kommentarer skriver/læser gennem den offentlige `InputReader` + den ene
@@ -61,51 +53,45 @@ const kommentarerRef = renteberegningKommentarerField.bind();
 const BEREGNINGSDATO_LOCATION = { locationId: 'renteberegning:beregningsdato', route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning } as const;
 const KOMMENTARER_LOCATION = { locationId: 'renteberegning:kommentarer', route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning } as const;
 
+/**
+ * Fanen deles af Mineo og standalone MinProcesrente, som har hvert sit
+ * `DocumentExecutionEnvironment` (format, brevhoved, failure-sink). Derfor modtager den FÆRDIGE
+ * dokumenthandles som props frem for at komponere dem selv: den ejende side kender sin app, fanen
+ * gør ikke.
+ *
+ * Før Fase 5 modtog fanen i stedet tre `onDownload*`-callbacks og skrev SELV hele preflighten
+ * (settle → capture → token-lighed → gate) — fire gange, én pr. handler plus de reaktive gates.
+ * Alt det ligger nu i definitionerne.
+ */
 export interface RenteberegningTabProps {
-  onDownloadSpecifikation: (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => Promise<void>;
+  /**
+   * Rækkespecifikationen. BÅDE aktiveringen og rækkeknappens reaktive gate går gennem dette handle
+   * med rækkens EGEN id (`gateFor({ rowId })` / `download({ rowId })`), så §A2's krav om samme
+   * definition og samme request holder pr. række.
+   */
+  renteDownload: DocumentDownloadHandle<Readonly<{ rowId: string }>>;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
   ContentBoxComponent: ContentBoxComponent;
   isMobile?: boolean;
-  pdfErrorMessage: string | null;
-  onDownloadAllSpecifikationer?: (
-    contexts: RentekravPdfContextMap,
-    shared: RenteDocumentSharedSnapshot
-  ) => Promise<void>;
-  downloadAllErrorMessage?: string | null;
-  onDownloadOversigt?: (
-    rows: readonly RenteOversigtRow[],
-    beregningsdato: ISODateString,
-    latestReferenceRateDate: ISODateString | null,
-    shared: RenteDocumentSharedSnapshot,
-  ) => Promise<void>;
-  oversigtErrorMessage?: string | null;
+  /** Alle specifikationer i ét dokument. Kun standalone (mobil) har dette output. */
+  renteAlleDownload?: DocumentDownloadHandle<void>;
+  /** Oversigtstabellen. */
+  renteOversigtDownload?: DocumentDownloadHandle<void>;
   showOversigtBox?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
-  /** Mineo-variantens fælles dokumentdependency; standalone MinProcesrente har ingen stamdata. */
-  stamdataProjection?: ProjectionResult<StamdataValues>;
 }
 
-export type RenteDocumentSharedSnapshot = Readonly<{
-  stamdataProjection: ProjectionResult<StamdataValues> | null;
-  kommentarer: string | undefined;
-  isSourceCurrent: () => boolean;
-}>;
-
 const RenteberegningTab = React.memo(({
-  onDownloadSpecifikation,
+  renteDownload,
   referenceRates,
   surchargeRates,
   ContentBoxComponent,
   isMobile = false,
-  pdfErrorMessage,
-  onDownloadAllSpecifikationer,
-  downloadAllErrorMessage = null,
-  onDownloadOversigt,
-  oversigtErrorMessage = null,
+  renteAlleDownload,
+  renteOversigtDownload,
   showOversigtBox = false,
   documentDownloadFormat,
-  stamdataProjection,
 }: RenteberegningTabProps) => {
   const runtime = useInputRuntime();
   const evaluation = useInputEvaluation();
@@ -132,149 +118,39 @@ const RenteberegningTab = React.memo(({
   const kommentarerRead = evaluation.reader.read(kommentarerRef);
   const kommentarer = kommentarerRead.status === 'usable' ? kommentarerRead.value : undefined;
 
-  const aggregateData = projection.aggregateProjection.status === 'ready'
-    ? projection.aggregateProjection.value
-    : null;
-  const hasValidPdfContexts = (aggregateData?.pdfContexts.size ?? 0) > 0;
-  const anyRowHasError = aggregateData?.anyRowHasError ?? false;
-
-  // En frisk projektion til en download (§3.9): efter settle genlæses et frisk kildesnapshot; er tokenet stale
-  // (input/settings flyttede), returneres null og downloaden afbrydes.
-  const captureFreshProjection = React.useCallback(() => {
-    const source = captureProductionEvaluationSource();
-    const fresh = buildRenteberegningReaderProjection({
-      reader: source.evaluation.reader,
-      referenceRates,
-      surchargeRates,
-    });
-    const freshBeregningsdatoRead = source.evaluation.reader.read(beregningsdatoRef);
-    const freshBeregningsdato = freshBeregningsdatoRead.status === 'usable' ? freshBeregningsdatoRead.value : undefined;
-    const freshKommentarerRead = source.evaluation.reader.read(kommentarerRef);
-    const freshStamdataProjection = stamdataProjection === undefined
-      ? null
-      : projectStamdataForDocument(source.evaluation.reader, 'document.rente');
-    const shared: RenteDocumentSharedSnapshot = {
-      stamdataProjection: freshStamdataProjection,
-      kommentarer: freshKommentarerRead.status === 'usable' ? freshKommentarerRead.value : undefined,
-      isSourceCurrent: source.isSourceCurrent,
-    };
-    return { source, fresh, freshBeregningsdato, shared };
-  }, [referenceRates, stamdataProjection, surchargeRates]);
-
+  // Preflighten (settle → frisk capture → token-lighed → gate) ejes af definitionerne. Det eneste,
+  // der er tilbage her, er "vis en spinner mens det samlede dokument bygges" — ren præsentation.
   const handleDownloadRow = React.useCallback(async (rowId: string) => {
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const { source, fresh, shared } = captureFreshProjection();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
-    if (shared.stamdataProjection?.status === 'blocked') return;
-    const rowProjection = fresh.rowProjections.get(rowId);
-    if (rowProjection?.status !== 'ready' || rowProjection.value.pdfContext === null) return;
-    await onDownloadSpecifikation(rowProjection.value.pdfContext, shared);
-  }, [captureFreshProjection, criticalActions, onDownloadSpecifikation]);
+    await renteDownload.download({ rowId });
+  }, [renteDownload]);
+
+  /** Rækkens gate fra definitionen selv — samme `project`, samme kontekst, samme request som klikket. */
+  const resolveRowDownloadGate = React.useCallback((rowId: string) => {
+    const gate = renteDownload.gateFor({ rowId });
+    return gate.canDownload
+      ? { canDownload: true as const }
+      : { canDownload: false as const, disabledReason: gate.reasons[0].message };
+  }, [renteDownload]);
 
   const handleDownloadAll = React.useCallback(async () => {
-    if (!onDownloadAllSpecifikationer) return;
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const { source, fresh, shared } = captureFreshProjection();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
-    if (fresh.aggregateProjection.status !== 'ready') return;
-    const latest = fresh.aggregateProjection;
-    const gate = evaluateDownloadAllGate({
-      hasValidPdfContexts: latest.value.pdfContexts.size > 0,
-      anyRowHasError: latest.value.anyRowHasError,
-      beregningsdatoHasError: false,
-    });
-    if (!gate.canDownload) return;
-
+    if (!renteAlleDownload) return;
     setDownloadAllIsLoading(true);
     try {
-      await onDownloadAllSpecifikationer(latest.value.pdfContexts, shared);
+      await renteAlleDownload.download(undefined);
     } finally {
       setDownloadAllIsLoading(false);
     }
-  }, [captureFreshProjection, criticalActions, onDownloadAllSpecifikationer]);
+  }, [renteAlleDownload]);
 
   const handleDownloadOversigt = React.useCallback(async () => {
-    if (!onDownloadOversigt) return;
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const { source, fresh, freshBeregningsdato, shared } = captureFreshProjection();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
-    if (shared.stamdataProjection?.status === 'blocked') return;
-    if (freshBeregningsdato === undefined) return;
-    if (fresh.aggregateProjection.status !== 'ready') return;
-    const latest = fresh.aggregateProjection;
-    const gate = evaluateOversigtDownloadGate({
-      beregningsdato: freshBeregningsdato,
-      hasValidPdfContexts: latest.value.pdfContexts.size > 0,
-      anyRowHasError: latest.value.anyRowHasError,
-      beregningsdatoHasError: false,
-    });
-    if (!gate.canDownload) return;
+    await renteOversigtDownload?.download(undefined);
+  }, [renteOversigtDownload]);
 
-    let latestReferenceRateDate: ISODateString | null = null;
-    const rows: RenteOversigtRow[] = Array.from(latest.value.pdfContexts.values()).map((ctx) => ({
-      beloeb: ctx.beloeb,
-      renterFra: ctx.actualInterestDate,
-      beregnetRente: ctx.calculatedInterest,
-    }));
-    for (const ctx of latest.value.pdfContexts.values()) {
-      if (ctx.latestReferenceRateDate === null) continue;
-      if (latestReferenceRateDate === null || ctx.latestReferenceRateDate > latestReferenceRateDate) {
-        latestReferenceRateDate = ctx.latestReferenceRateDate;
-      }
-    }
-    if (rows.length === 0) return;
-    await onDownloadOversigt(rows, freshBeregningsdato, latestReferenceRateDate, shared);
-  }, [captureFreshProjection, criticalActions, onDownloadOversigt]);
+  const downloadAllDisabled = renteAlleDownload === undefined || !renteAlleDownload.canDownload || downloadAllIsLoading;
+  const oversigtDownloadDisabled = renteOversigtDownload === undefined || !renteOversigtDownload.canDownload;
 
-  // Download-gates (§A2): committed-afledte via den reader-projektion, som cellerne allerede afspejler.
-  const downloadAllGate = React.useMemo(() => {
-    if (stamdataProjection?.status === 'blocked') {
-      return blockDocumentDownload({
-        code: 'renteberegning:stamdata-blocked',
-        message: stamdataProjection.issues[0]?.message ?? 'Stamdata indeholder fejl',
-      });
-    }
-    if (projection.aggregateProjection.status === 'blocked') {
-      return blockDocumentDownload({
-        code: 'renteberegning:field-error',
-        message: projection.aggregateProjection.issues[0]?.message ?? 'Fejl i indtastning',
-      });
-    }
-    return evaluateDownloadAllGate({ hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
-  }, [anyRowHasError, hasValidPdfContexts, projection.aggregateProjection, stamdataProjection]);
-  const downloadAllDisabled = !downloadAllGate.canDownload || downloadAllIsLoading;
-
-  const oversigtDownloadGate = React.useMemo(() => {
-    if (stamdataProjection?.status === 'blocked') {
-      return blockDocumentDownload({
-        code: 'renteberegning:stamdata-blocked',
-        message: stamdataProjection.issues[0]?.message ?? 'Stamdata indeholder fejl',
-      });
-    }
-    if (projection.aggregateProjection.status === 'blocked') {
-      return blockDocumentDownload({
-        code: 'renteberegning:field-error',
-        message: projection.aggregateProjection.issues[0]?.message ?? 'Fejl i indtastning',
-      });
-    }
-    return evaluateOversigtDownloadGate({ beregningsdato, hasValidPdfContexts, anyRowHasError, beregningsdatoHasError: false });
-  }, [anyRowHasError, beregningsdato, hasValidPdfContexts, projection.aggregateProjection, stamdataProjection]);
-  const oversigtDownloadDisabled = !oversigtDownloadGate.canDownload;
-
-  const showDownloadAllBox = isMobile && onDownloadAllSpecifikationer !== undefined;
-  const renderOversigtRow = showOversigtBox && onDownloadOversigt !== undefined && !isMobile;
+  const showDownloadAllBox = isMobile && renteAlleDownload !== undefined;
+  const renderOversigtRow = showOversigtBox && renteOversigtDownload !== undefined && !isMobile;
   const renderClearAllRow = !isMobile;
 
   // Slet-knappen deaktiveres når der intet er at slette (afgøres KUN fra afsluttet/committed state).
@@ -336,10 +212,10 @@ const RenteberegningTab = React.memo(({
 
       <ContentBoxComponent className="content-box">
         <Typography className="section-header">Beregnet rente</Typography>
-        {pdfErrorMessage && (
+        {renteDownload.errorMessage && (
           <Box className="row--label-right-hover">
             <Typography className="row--text" sx={{ color: 'error.main' }}>
-              {pdfErrorMessage}
+              {renteDownload.errorMessage}
             </Typography>
             <Box className="row--label-right-hover__content" />
           </Box>
@@ -352,15 +228,18 @@ const RenteberegningTab = React.memo(({
             saveOrderPath="renteberegning.rentekravRows"
             isMobile={isMobile}
             documentDownloadFormat={documentDownloadFormat}
-            documentBlocked={stamdataProjection?.status === 'blocked'}
+            // Rækkeknappernes gate spørger SAMME definition, som klikket aktiverer, med rækkens
+            // EGEN id (§A2). Tabellen udleder den ikke selv af projektionen; gjorde den det, ville
+            // reaktiv gate og click-preflight være to udtryk for samme regel.
+            resolveDownloadGate={resolveRowDownloadGate}
           />
         </Box>
         {renderOversigtRow && (
           <>
-            {oversigtErrorMessage && (
+            {renteOversigtDownload?.errorMessage && (
               <Box className="row--label-right-hover">
                 <Typography className="row--text" sx={{ color: 'error.main' }}>
-                  {oversigtErrorMessage}
+                  {renteOversigtDownload.errorMessage}
                 </Typography>
                 <Box className="row--label-right-hover__content" />
               </Box>
@@ -412,7 +291,7 @@ const RenteberegningTab = React.memo(({
       {showDownloadAllBox && (
         <SpecifikationDownloadBox
           onDownloadAll={handleDownloadAll}
-          errorMessage={downloadAllErrorMessage}
+          errorMessage={renteAlleDownload?.errorMessage ?? null}
           isLoading={downloadAllIsLoading}
           disabled={downloadAllDisabled}
           ContentBoxComponent={ContentBoxComponent}

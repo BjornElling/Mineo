@@ -5,7 +5,7 @@
 // migrerede side + den ægte produktions-runtime og beviser den virkelige sti felt → settle → reader-projektion
 // → download-gate (§1.5/§1.6/§3.9): en afsluttet ugyldig beregningsdato blokerer downloads, og en gyldig
 // committed række når dokumentservicen.
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Renteberegning from '../../../components/pages/Renteberegning';
@@ -21,17 +21,16 @@ import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import { toISODateString } from '../../../types/branded';
 
-const mockDownloadRenteDokument = vi.hoisted(() =>
-  vi.fn(async () => ({ success: true as const }))
-);
-const mockDownloadRenteOversigtDokument = vi.hoisted(() =>
-  vi.fn(async () => ({ success: true as const }))
-);
+/**
+ * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte. Begge
+ * rente-outputs går gennem samme handling, så tælleren dækker dem tilsammen.
+ */
+const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../document/service/documentService', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../../../document/service/documentService')>(),
-  downloadRenteDokument: mockDownloadRenteDokument,
-  downloadRenteOversigtDokument: mockDownloadRenteOversigtDokument,
+vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../document/downloadArtifact')>(),
+  triggerDocumentDownload: mockTriggerDocumentDownload,
 }));
 
 vi.mock('../../../hooks/usePersistedActiveTab', () => ({
@@ -83,8 +82,7 @@ const renderRenteberegning = () => render(
 describe('Renteberegning greenfield — download-gate mod afsluttet input', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    mockDownloadRenteDokument.mockClear();
-    mockDownloadRenteOversigtDokument.mockClear();
+    mockTriggerDocumentDownload.mockClear();
   });
 
   it('en gyldig committed række + beregningsdato giver en aktiv oversigts-download der når servicen', async () => {
@@ -96,7 +94,7 @@ describe('Renteberegning greenfield — download-gate mod afsluttet input', () =
     expect(oversigtButton).toBeEnabled();
 
     await user.click(oversigtButton);
-    expect(mockDownloadRenteOversigtDokument).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
   });
 
   it('en afsluttet ugyldig beregningsdato blokerer downloads (§1.5/§1.6)', async () => {
@@ -120,7 +118,7 @@ describe('Renteberegning greenfield — download-gate mod afsluttet input', () =
 
     // Gaten blokerer nu (den globale beregningsdato er rejected) → oversigts-download er deaktiveret og servicen nås ikke.
     expect(screen.getByRole('button', { name: 'Download samlet oversigt' })).toBeDisabled();
-    expect(mockDownloadRenteOversigtDokument).not.toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 
   it('canonical datoordensfejl i stamdata blokerer både række- og oversigtsdownload', async () => {
@@ -138,7 +136,6 @@ describe('Renteberegning greenfield — download-gate mod afsluttet input', () =
 
     await user.click(rowButton);
     await user.click(oversigtButton);
-    expect(mockDownloadRenteDokument).not.toHaveBeenCalled();
-    expect(mockDownloadRenteOversigtDokument).not.toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 });

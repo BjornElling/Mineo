@@ -109,7 +109,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/settings/appSettingsSchema.test.ts',
       'src/__tests__/document/documentFileName.test.ts',
       'src/__tests__/docx/docxWriter.test.ts',
-      'src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts',
+      // Fase 5: formatvalget sker i miljøet EFTER gaten, og outputnavne må ikke bære et
+      // formatsuffiks (den gamle `/PDF/g`-substitution er væk). Begge dele måles her.
+      'src/__tests__/document/documentCatalogCompleteness.test.ts',
     ],
   },
   {
@@ -117,7 +119,14 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       // Download-committed-state-grænsen håndhæves nu af det AST-baserede harness.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
-      'src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts',
+      // Fase 5: ét kanonisk katalog med præcis én definition pr. output (§A2a).
+      'src/__tests__/document/documentCatalogCompleteness.test.ts',
+      // Den udtømmende matrix, delt i livscyklus-cases (definitionsuafhængige) og gate-cases
+      // (per-definition, med `invalid` og `bounds` som SEPARATE klasser jf. §A2a).
+      'src/__tests__/document/documentLifecycleMatrix.test.ts',
+      'src/__tests__/document/documentGateMatrix.test.ts',
+      // Hele livscyklussen end-to-end gennem den rigtige side og den ægte runtime.
+      'src/__tests__/components/pages/Satser.downloadGate.integration.test.tsx',
       'src/__tests__/quality/pdfPseudoTableGuard.test.ts',
       'src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts',
       'src/__tests__/utils/pdf/pdfWriter.test.ts',
@@ -165,7 +174,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/domain/aarsloen/aarsloenCalculations.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenProjection.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
-      'src/__tests__/hooks/useAarsloenDocumentGates.test.tsx',
+      // Fase 5: årsløns- og SH-dage-gaten flyttede fra `useAarsloenDocumentGates` til domænelaget.
+      'src/__tests__/domain/aarsloen/aarsloenDownloadGate.test.ts',
     ],
   },
   {

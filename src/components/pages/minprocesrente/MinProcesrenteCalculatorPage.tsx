@@ -1,25 +1,35 @@
 import React from 'react';
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
-import type { ISODateString } from '../../../types/branded';
-import { isoToDanish } from '../../../types/branded';
-import type { RentePdfContext, RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
-import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
-import RenteberegningTab, { type RenteDocumentSharedSnapshot } from '../renteberegning/RenteberegningTab';
+import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
+import {
+  standaloneRenteAlleDocumentDefinition,
+  standaloneRenteDocumentDefinition,
+  standaloneRenteOversigtDocumentDefinition,
+} from '../../../apps/minprocesrente/document/standaloneRenteDocumentDefinitions';
+import {
+  useStandaloneDocumentOutput,
+  useStandaloneDocumentSourceContext,
+} from '../../../apps/minprocesrente/document/useStandaloneDocumentOutput';
 import { useUndoRedoShortcuts } from '../../../inputCore/react/useUndoRedoShortcuts';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
 
 const MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX = 599;
 
-// PDF-tjenesten trækker jsPDF + dokument-generatorerne ind (~110 KiB). Den er kun
-// nødvendig når brugeren downloader, så den lazy-loades her frem for at ligge i sidens
-// initiale bundle. Det er den eneste runtime-sti der bringer jsPDF ind i standalone-buildet,
-// så en dynamisk import fjerner den fra first load (Lighthouse: "Reducer ubrugt JavaScript").
-const loadStandaloneRentePdfService = () =>
-  import('../../../pdf/infrastructure/standaloneRentePdfService');
+/**
+ * Rækkeknappernes reaktive gate kommer fra tabellens projektion, ikke fra handlens `canDownload`:
+ * ét handle kan ikke repræsentere N rækkers gate. `download(request)` kaldes med den klikkede
+ * rækkes id, og gate-requesten peger derfor på en tom rækkeid, hvis gateværdi ikke bruges.
+ */
+const STANDALONE_RENTE_GATE_REQUEST = { rowId: '' } as const;
+
+// jsPDF + generatorerne (~110 KiB) er fortsat UDEN FOR standalones first load: definitionernes
+// `loadRenderer` bruger dynamisk `import()`, og selve definitionsmodulet trækker kun
+// projektion/gate/descriptorer ind. Lighthouse-hensynet fra den tidligere manuelle
+// service-lazy-load er dermed bevaret uden en side-lokal loader.
 
 const MinProcesrenteTitle = React.memo(() => (
   <Typography className="page-title" component="h1">
@@ -43,80 +53,31 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   const [isPhoneLikeDevice] = React.useState(isStandalonePhoneLikeDevice);
   const isMobile = isViewportMobile || isPhoneLikeDevice;
   const mobileContentFontSize = '12px';
-  const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
-  const [downloadAllErrorMessage, setDownloadAllErrorMessage] = React.useState<string | null>(null);
-  const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
-
   // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene greenfield write-grænse.
   useUndoRedoShortcuts();
 
-  const handleDownloadRentePdf = React.useCallback(
-    async (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => {
-      const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
-      const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
-      if (!actualInterestDateDanish || !beregningsdatoDanish) {
-        setPdfErrorMessage('Kunne ikke generere rente-PDF.');
-        return;
-      }
-
-      const { downloadStandaloneRentePdf } = await loadStandaloneRentePdfService();
-      const result = await downloadStandaloneRentePdf({
-        beloeb: pdfContext.beloeb,
-        actualInterestDate: actualInterestDateDanish,
-        beregningsdato: beregningsdatoDanish,
-        periods: pdfContext.periods,
-        latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
-        isSourceCurrent: shared.isSourceCurrent,
-        kommentarer: shared.kommentarer,
-      });
-      setPdfErrorMessage(result.success ? null : result.error);
-    },
-    []
+  // Dokument-download (Fase 5): de tre standalone-outputs komponeres her mod standalones eget
+  // miljø (fast PDF, intet brevhoved, lokal fejl-sink) og videregives som færdige handles til den
+  // delte fane. Før Fase 5 kaldte siden `standaloneRentePdfService` direkte, uden commit-barriere
+  // og uden gate.
+  const documentContext = useStandaloneDocumentSourceContext();
+  // Rækkeknappernes reaktive gate kommer fra tabellens projektion, ikke fra dette handle; jf. noten
+  // i Mineos `Renteberegning.tsx`.
+  const renteDownload = useStandaloneDocumentOutput(
+    standaloneRenteDocumentDefinition,
+    STANDALONE_RENTE_GATE_REQUEST,
+    documentContext
   );
-
-  const handleDownloadAllSpecifikationer = React.useCallback(async (
-    contexts: RentekravPdfContextMap,
-    shared: RenteDocumentSharedSnapshot
-  ) => {
-    setDownloadAllErrorMessage(null);
-    const rows = Array.from(contexts.values()).flatMap((ctx) => {
-      const actualInterestDateDanish = isoToDanish(ctx.actualInterestDate);
-      const beregningsdatoDanish = isoToDanish(ctx.beregningsdato);
-      if (!actualInterestDateDanish || !beregningsdatoDanish) return [];
-      return [{
-        beloeb: ctx.beloeb,
-        actualInterestDate: actualInterestDateDanish,
-        beregningsdato: beregningsdatoDanish,
-        periods: ctx.periods,
-        latestReferenceRateDate: isoToDanish(ctx.latestReferenceRateDate ?? undefined) ?? null,
-      }];
-    });
-
-    const { downloadAllStandaloneRentePdf } = await loadStandaloneRentePdfService();
-    const result = await downloadAllStandaloneRentePdf({
-      rows,
-      isSourceCurrent: shared.isSourceCurrent,
-      kommentarer: shared.kommentarer,
-    });
-    setDownloadAllErrorMessage(result.success ? null : result.error);
-  }, []);
-
-  const handleDownloadOversigt = React.useCallback(async (
-    rows: readonly RenteOversigtRow[],
-    beregningsdato: ISODateString,
-    latestReferenceRateDate: ISODateString | null,
-    shared: RenteDocumentSharedSnapshot,
-  ) => {
-    const { downloadStandaloneRenteOversigtPdf } = await loadStandaloneRentePdfService();
-    const result = await downloadStandaloneRenteOversigtPdf({
-      beregningsdato,
-      rows,
-      latestReferenceRateDate,
-      isSourceCurrent: shared.isSourceCurrent,
-      kommentarer: shared.kommentarer,
-    });
-    setOversigtErrorMessage(result.success ? null : result.error);
-  }, []);
+  const renteAlleDownload = useStandaloneDocumentOutput(
+    standaloneRenteAlleDocumentDefinition,
+    undefined,
+    documentContext
+  );
+  const renteOversigtDownload = useStandaloneDocumentOutput(
+    standaloneRenteOversigtDocumentDefinition,
+    undefined,
+    documentContext
+  );
 
   return (
     <Box
@@ -235,16 +196,13 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     >
       <MinProcesrenteTitle />
       <RenteberegningTab
-        onDownloadSpecifikation={handleDownloadRentePdf}
-        pdfErrorMessage={pdfErrorMessage}
+        renteDownload={renteDownload}
         referenceRates={referenceRates}
         surchargeRates={surchargeRates}
         ContentBoxComponent={ContentBoxFrame}
         isMobile={isMobile}
-        onDownloadAllSpecifikationer={handleDownloadAllSpecifikationer}
-        downloadAllErrorMessage={downloadAllErrorMessage}
-        onDownloadOversigt={handleDownloadOversigt}
-        oversigtErrorMessage={oversigtErrorMessage}
+        renteAlleDownload={renteAlleDownload}
+        renteOversigtDownload={renteOversigtDownload}
         showOversigtBox
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />

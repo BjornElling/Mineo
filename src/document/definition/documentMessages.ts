@@ -27,11 +27,19 @@ const DEV_SERVER_MESSAGE = 'Udviklingsserveren svarer ikke længere. Genstart `n
  *  - `downloaded`: der er ingen fejl.
  *  - `settle-failed`: det blokerende felt bærer selv sin røde markering, og preflighten har
  *    fokuseret det. En ekstra besked ville duplikere signalet.
+ *  - `runtime` i en app, der router systemfejl centralt (§A5) — se `showRuntimeFailureLocally`.
  */
 export const resolveDocumentOutcomeMessage = (
   outcome: DocumentOutcome,
   labels: DocumentLabels,
-  format: DocumentDownloadFormat
+  format: DocumentDownloadFormat,
+  /**
+   * Appens politik for uventede runtimefejl. `false` (hovedappen) betyder, at fejlen ALENE routes
+   * til den centrale fejlrapportering; en lokal tekst ville rapportere den to steder og møde
+   * brugeren med en teknisk fejl inline i sideflowet, hvad §A5 forbyder. `true` (standalone) er for
+   * apps uden en central fejloverflade, hvor beskeden ellers ville forsvinde helt.
+   */
+  showRuntimeFailureLocally: boolean
 ): string | null => {
   switch (outcome.status) {
     case 'downloaded':
@@ -49,9 +57,12 @@ export const resolveDocumentOutcomeMessage = (
     case 'failed':
       switch (outcome.failure.kind) {
         case 'dev-server-unavailable':
+          // Ikke en programfejl, men et DEV-miljøproblem brugeren selv kan rette — vises altid.
           return DEV_SERVER_MESSAGE;
         case 'runtime':
-          return `Kunne ikke generere ${labels.documentName} som ${getDocumentFormatLabel(format)}`;
+          return showRuntimeFailureLocally
+            ? `Kunne ikke generere ${labels.documentName} som ${getDocumentFormatLabel(format)}`
+            : null;
       }
   }
 };

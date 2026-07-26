@@ -4,7 +4,6 @@ import ContentBox from '../../layout/ContentBox';
 import ToggleField from '../../../inputCore/react/fields/ToggleField';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { downloadLoebendeYdelserDokument } from '../../../document/service/documentService';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import {
@@ -30,18 +29,14 @@ import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
-import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
-import { evaluateEetFaneDownloadGate } from '../../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
-import type { DocumentDownloadGateResult } from '../../../document/layout/documentGateTypes';
+import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import { erhvervsevnetabBilagVisUdvidetSpecifikationField } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
-import { useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
-import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
-import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;
   projection: ErhvervsevnetabReaderProjection;
-  downloadGate: DocumentDownloadGateResult;
+  /** Dokumentoutputtet, komponeret af siden. Fanen aktiverer det; den konfigurerer det ikke. */
+  download: DocumentDownloadHandle<void>;
 }>;
 
 const extendedSpecificationRef = erhvervsevnetabBilagVisUdvidetSpecifikationField.bind();
@@ -71,37 +66,14 @@ const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
 ];
 
 
-const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, downloadGate }: Props) => {
+const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: Props) => {
   const { settings } = useAppSettings();
-  const criticalActions = useCriticalInputActions();
   const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   const snapshot = projection.snapshot.loebendeYdelser;
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
-
-  const handlePdfDownload = React.useCallback(async () => {
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const source = captureProductionEvaluationSource();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
-    const freshProjection = buildErhvervsevnetabReaderProjection(source.evaluation.reader);
-    const freshSnapshot = freshProjection.snapshot.loebendeYdelser;
-    const freshGate = evaluateEetFaneDownloadGate('loebendeYdelser', freshSnapshot);
-    const freshStamdata = freshProjection.documentStamdata;
-    if (!freshGate.canDownload || freshSnapshot.computation === null || freshStamdata.status !== 'ready') return;
-    await downloadLoebendeYdelserDokument({
-      computation: freshSnapshot.computation,
-      visUdvidetSpecifikation: freshProjection.values.eetDifferencekravBilagSelection.visUdvidetSpecifikation,
-      settings: source.settings,
-      persistedStamdata: freshStamdata.value,
-      isSourceCurrent: source.isSourceCurrent,
-    });
-  }, [criticalActions]);
 
   return (
     <Box>
@@ -137,9 +109,9 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, downloadGate 
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
                 <DocumentDownloadButton
-                  onClick={handlePdfDownload}
-                  disabled={!downloadGate.canDownload}
-                  disabledReason={downloadGate.reasons[0]?.message}
+                  onClick={() => void download.download(undefined)}
+                  disabled={!download.canDownload}
+                  disabledReason={download.disabledReason}
                 />
               </Box>
             </Box>

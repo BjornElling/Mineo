@@ -103,8 +103,15 @@ fælles preflight, så lokale gates ikke kan genindføre forskellen mellem forma
 - Hvis en aktivering når preflight efter et ugyldigt settle, stoppes den, feltet fokuseres uden scroll, og den eksisterende
   danske advarsel vises. Dette er et sidste sikkerhedsværn.
 
-`documentService.ts` er den mekaniske servicegrænse for lazy-load, rendering, download og runtimefejl. Den ejer ikke
-domænepolitik eller gate.
+`src/document/definition/documentLifecycle.ts` er den ENE afvikling af download-livscyklussen: commit-barriere,
+frisk kildeoptagelse, token-lighed, gate, lazy-load, friskheds-recheck ved hver asynkron grænse, formatvalg,
+generatorkald, fil-I/O og fejlrouting. `executeDocumentDownload` er dens eneste eksporterede indgang; afvikleren og
+dens godkendte input (`PreparedDocument`) er modulprivate og nominale, så et ugated input ikke kan nå afviklingen.
+Livscyklussen ejer rækkefølgen, ikke domænepolitik eller gate — dem ejer definitionen.
+
+App-specifik runtimepolitik (kildeport, formatvalg, brevhoved-opslag, session, failure-sink) injiceres som et
+`DocumentExecutionEnvironment`, komponeret i hver apps composition root. Kernen kender hverken `AppSettings`,
+Word-formatet eller `reportSystemIssue`.
 
 ## A3. Toggle-guards for betingede felter
 
@@ -165,11 +172,18 @@ genvej.
    - `src/document/writer/` — intern render-target-grænse; må ikke importeres af generatorer.
    - `src/document/layout/` — kanalneutral tabelmodel (`tableSpec.ts`), tekst-/format-utils, fælles layoutværdier, helpers, brevhoved-mapping, gate-typer og dokument-options. Mappen må ikke indeholde en Word↔PDF-bro eller importere en konkret tabelkanal.
    - `src/document/generators/` — én generator (+ evt. `sections/`) pr. domæne (`*Document.ts`).
-   - `src/document/service/` — service-boundary/download-afvikling (`documentService.ts`) og lazy-loader (`documentLoader.ts`).
-   - Dokumentdefinitioner placeres ved deres domæne-/generatorgrænse og er eneste ejer af inputdependencies, preflight
-     og `PreparedDocument<T>`; de må ikke reduceres til utypede callbacks i service-laget.
+   - `src/document/definition/` — dokument-livscyklussens kerne: `DocumentDefinition`-kontrakten, katalogfabrikken,
+     resultat-algebraen, beskedlaget og den ene afvikling (`documentLifecycle.ts`). Indeholder INGEN definitioner og
+     kender ingen apps settings.
+   - `src/document/runtime/` — hovedappens composition root (`DocumentExecutionEnvironment` + React-grænsen).
+     Standalone MinProcesrente komponerer sit eget i `src/apps/minprocesrente/document/`.
+   - `src/document/service/` — mekanisk lazy-loader (`documentLoader.ts`) og runtime-fejlporte
+     (`documentRuntimeFailure.ts`). Laget ejer IKKE afviklingen; den ligger i `definition/documentLifecycle.ts`.
+   - Dokumentdefinitioner placeres ved deres domæne-/generatorgrænse og er eneste ejer af inputdependencies, gate og
+     den godkendte inputmodel; de må ikke reduceres til utypede callbacks i service-laget. Kataloget komponeres pr.
+     app/route — aldrig som en global `Map` i kernelaget, da det ville kollapse rutens chunkgrænser.
 2. De **to kanaler** er rene infrastruktur-implementeringer af `DocumentWriter` og ligger uden for kernen:
-   - **PDF-kanalen** i `src/pdf/` (jsPDF): adapter, writer-fabrik, brevhoved-renderer, den direkte `TableSpec`-renderer (`pdfTableRenderer.ts` + `pdfDocumentTableRenderer.ts`), render-helpers og standalone-rente-service.
+   - **PDF-kanalen** i `src/pdf/` (jsPDF): adapter, writer-fabrik, brevhoved-renderer, den direkte `TableSpec`-renderer (`pdfTableRenderer.ts` + `pdfDocumentTableRenderer.ts`) og render-helpers. Kanalen indeholder ingen download-service: også standalone MinProcesrentes tre outputs går gennem den fælles livscyklus.
    - **Word-kanalen** i `src/docx/` (writer + understøttende infrastruktur). Begge kanaler indeholder ingen domænegeneratorer: PDF og Word genbruger den samme `DocumentModel`, som generatorerne bygger gennem `DocumentComposer` (jf. afsnit B).
 3. Der findes **ikke** længere et selvstændigt EO-PDF-lag under `src/domain/erstatningsopgoerelse/pdf/`. Det tidligere lag var ikke reel renderingskode (ingen jsPDF), men EO-præsentations- og regulerings-logik, der byggede tabel-*data*. Den er konsolideret ind i domænelaget (review-planens punkt 10.5):
    - Regulerings-/lønudviklings-tabeldata: `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`.
@@ -218,8 +232,10 @@ renderer afspiller modellen mod én af to interne kanal-targets:
 
 `defineDocument(...)` bygger hele modellen før sessionen opretter kanal-targetet. Reglerne
 gælder derfor begge kanaler, og en kompositionsfejl kan ikke efterlade et delvist renderet
-dokument. Generator-entrypointet returnerer et `DocumentArtifact`; kun service-laget starter
-browser-downloaden.
+dokument. Generator-entrypointet returnerer et `DocumentArtifact`; kun livscyklussen
+(`definition/documentLifecycle.ts`) starter browser-downloaden, og først efter det sidste
+friskheds-recheck. Et UI-lag må hverken importere en generator, livscyklussen eller
+`triggerDocumentDownload` — håndhævet af AST-reglen `document/lifecycle-single-entrypoint`.
 
 Alle generator-entrypoints defineres med `defineDocument(...)` i
 `src/document/generators/documentGeneratorSetup.ts`. Factoryen ejer den faste lifecycle:

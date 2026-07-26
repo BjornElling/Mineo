@@ -289,22 +289,45 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
         },
       };
     },
+    /**
+     * **Datoformat er en ÆGTE grænse her, ikke en detalje.** `generateRenteDocument` tager
+     * `dd-mm-åååå` og parser med `parseDanishDate`; sender man den canonical ISO-form, kaster den
+     * "Ugyldige datoer for renteberegning". Callsiten konverterede før Fase 5 alle TRE datoer med
+     * `isoToDanish`, og den konvertering skal med her — ellers fejler hver eneste enkeltrente-download.
+     *
+     * Den rigtige langsigtede rettelse er at gøre generatorens kontrakt til `ISODateString` (canonical
+     * ind, formatering i generatoren). Det ligger uden for Fase 5, som eksplicit bevarer
+     * generatorsignaturerne uændrede — se WI-011.
+     */
     loadRenderer: async () => {
-      const { generateRenteDocument } = await import(
-        '../../document/generators/renteberegning/renteDocument'
-      );
+      const [{ generateRenteDocument }, { isoToDanish }] = await Promise.all([
+        import('../../document/generators/renteberegning/renteDocument'),
+        import('../../types/branded'),
+      ]);
       return (session, input, ctx) => generateRenteDocument(
         session,
         input.beloeb,
-        input.actualInterestDate,
-        input.beregningsdato,
+        toDanishOrThrow(isoToDanish(input.actualInterestDate), 'renterFra'),
+        toDanishOrThrow(isoToDanish(input.beregningsdato), 'beregningsdato'),
         input.periods,
         {
           visBrevhoved: ctx.visBrevhoved,
           stamdata: input.stamdata,
           kommentarer: input.kommentarer,
-          latestReferenceRateDate: input.latestReferenceRateDate,
+          latestReferenceRateDate: isoToDanish(input.latestReferenceRateDate ?? undefined) ?? null,
         }
       );
     },
   });
+
+/**
+ * En canonical ISO-dato, der ikke kan omsættes til dansk format, er et invariantbrud — projektionen
+ * har netop godkendt den. Fail-closed med en navngiven årsag frem for at sende `undefined` videre og
+ * få generatorens generiske "Ugyldige datoer".
+ */
+const toDanishOrThrow = (value: string | undefined, felt: string): string => {
+  if (value === undefined) {
+    throw new Error(`Kunne ikke omsætte ${felt} til dansk datoformat i rentespecifikationen.`);
+  }
+  return value;
+};

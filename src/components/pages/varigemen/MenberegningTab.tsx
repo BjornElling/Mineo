@@ -15,11 +15,11 @@ import { formatAsAmount } from '../../../utils/formatUtils';
 import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
-import { downloadVarigeMenDokument } from '../../../document/service/documentService';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
-import { evaluateVarigeMenDownloadGate } from '../../../domain/varigemen/varigeMenDownloadGate';
+import { varigeMenDocumentDefinition } from '../../../domain/varigemen/varigeMenDocumentDefinition';
+import { visibleDocumentFailureMessage } from '../../../document/definition/react/useDocumentDownload';
+import { useMineoDocumentOutput } from '../../../document/runtime/react/useMineoDocumentOutput';
 import { buildVarigeMenReaderProjection } from '../../../domain/varigemen/varigeMenReaderProjection';
-import { projectStamdataForDocument } from '../../../domain/stamdata/stamdataDocumentProjection';
 import {
   varigeMenBeregningsdatoField,
   varigeMenMengradField,
@@ -29,10 +29,8 @@ import {
   stamdataSkadelidteFodselsdatoField,
   stamdataSkadestypeField,
 } from '../../../inputCore/catalog/stamdataDescriptors';
-import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
+import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
-import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
-import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
 
 // Greenfield-migreret MenberegningTab (§2.4 formularrækkefølge trin 5 / Fase 3 Varige mén-slice). Hele fanen kører
 // nu på greenfield-inputCore: méngrad + beregningsdato skriver/læser gennem den offentlige `InputReader` + den ene
@@ -54,10 +52,9 @@ const BEREGNINGSDATO_LOCATION = { locationId: 'varigemen:beregningsdato', route:
 const MenberegningTab = React.memo(() => {
   const navigate = useNavigate();
   const evaluation = useInputEvaluation();
-  const criticalActions = useCriticalInputActions();
+  const download = useMineoDocumentOutput(varigeMenDocumentDefinition, undefined);
 
   const [downloadShake, setDownloadShake] = React.useState(false);
-  const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
   const downloadShakeTimeoutRef = React.useRef<number | null>(null);
   React.useEffect(() => () => {
     if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
@@ -87,11 +84,6 @@ const MenberegningTab = React.memo(() => {
   );
   const projectionData = projection.status === 'ready' ? projection.value : null;
   const beregningsResultat = projectionData?.beregningsResultat ?? null;
-
-  const downloadGate = React.useMemo(
-    () => evaluateVarigeMenDownloadGate(projection),
-    [projection]
-  );
 
   // Display-tilstande læses direkte gennem readeren: en rød feltfejl skjuler værdien (`error`), et tomt felt
   // giver en tom `usable`-værdi. Datoordenen (skadedato ≥ fødselsdato) er allerede en greenfield feltvalidator,
@@ -149,43 +141,21 @@ const MenberegningTab = React.memo(() => {
     }
   }, [beregningsResultat, beregningsdatoError, fodselsdato, fodselsdatoError, navigate, skadedato, skadedatoError]);
 
+  /**
+   * Aktivering. Hele preflighten (settle, frisk capture, token-lighed, gate) ligger i definitionen;
+   * det eneste sidespecifikke er blokerings-FEEDBACKEN — shake + fokus på det første blokerende
+   * felt — som er ren præsentation og bevidst ikke en del af definitionen (den er forskellig pr. side).
+   */
   const handlePdfDownload = React.useCallback(async () => {
-    // §1.4/§3.9: settle en evt. åben editor, læs derefter et frisk kildesnapshot, og genkør projektionen/gaten
-    // mod det. Handlingen afbrydes, hvis input/settings flyttede under settle (stale token).
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const source = captureProductionEvaluationSource();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
-
-    const freshProjection = buildVarigeMenReaderProjection(source.evaluation.reader);
-    const freshGate = evaluateVarigeMenDownloadGate(freshProjection);
-    const beregningsResultat = freshProjection.status === 'ready' ? freshProjection.value.beregningsResultat : null;
-    if (!freshGate.canDownload || freshProjection.status !== 'ready' || beregningsResultat === null) {
-      setPdfErrorMessage(null);
+    const outcome = await download.download(undefined);
+    if (outcome.status === 'rejected' && outcome.rejection.kind === 'gate-blocked') {
       triggerDownloadShake();
       focusFirstBlockingField();
-      return;
     }
-    const data = freshProjection.value;
+  }, [download, focusFirstBlockingField, triggerDownloadShake]);
 
-    const freshStamdata = projectStamdataForDocument(source.evaluation.reader, 'document.varigemen');
-    if (freshStamdata.status !== 'ready') return;
-
-    const result = await downloadVarigeMenDokument({
-      fodselsdato: coerceToISODateString(data.fodselsdato),
-      skadedato: coerceToISODateString(data.skadedato),
-      mengrad: data.mengrad,
-      beregningsdato: coerceToISODateString(data.beregningsdato),
-      beregningsResultat,
-      settings: source.settings,
-      persistedStamdata: freshStamdata.value,
-      isSourceCurrent: source.isSourceCurrent,
-    });
-    setPdfErrorMessage(result.success ? null : result.error);
-  }, [criticalActions, focusFirstBlockingField, triggerDownloadShake]);
+  // Gate-årsagen står allerede ved siden af knappen, og en blokering besvares her med shake + fokus.
+  const pdfErrorMessage = visibleDocumentFailureMessage(download);
 
   const formatSkadedato = (iso: string | undefined): string => {
     if (!iso) return 'Mangler (angiv i Stamdata)';
@@ -370,19 +340,19 @@ const MenberegningTab = React.memo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Beregnet méngodtgørelse</Typography>
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
-          {!downloadGate.canDownload ? (
+          {!download.canDownload ? (
             // Download-ikonet vises altid sammen med sin tekstlinje — her nedtonet/inaktivt, fordi beregningen
             // (og dermed download) er blokeret. Fejl-/mangel-teksten står i værdikolonnen, ikonet til højre.
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Tooltip title={downloadGate.reasons[0]?.message ?? ''} arrow>
+              <Tooltip title={download.disabledReason ?? ''} arrow>
                 <Typography className="row--text" color="text.disabled">
-                  {downloadGate.reasons[0]?.message ?? ''}
+                  {download.disabledReason ?? ''}
                 </Typography>
               </Tooltip>
               <DocumentDownloadButton
                 onClick={() => void handlePdfDownload()}
                 disabled
-                disabledReason={downloadGate.reasons[0]?.message ?? undefined}
+                disabledReason={download.disabledReason}
                 dataTestId="varigemen-download"
               />
             </Box>

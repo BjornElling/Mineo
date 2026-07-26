@@ -7,22 +7,17 @@ import {
   buildKapitaliseringAfgoerelseRows,
   type KapitaliseringRow,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
-import { downloadKapitaliseringDokument } from '../../../document/service/documentService';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
-import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
-import { evaluateEetFaneDownloadGate } from '../../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
-import type { DocumentDownloadGateResult } from '../../../document/layout/documentGateTypes';
-import { useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
-import { captureProductionEvaluationSource } from '../../../inputCore/react/productionInputRuntime';
-import { sourceTokensEqual } from '../../../inputCore/evaluationSource';
+import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;
   projection: ErhvervsevnetabReaderProjection;
-  downloadGate: DocumentDownloadGateResult;
+  /** Dokumentoutputtet, komponeret af siden. Fanen aktiverer det; den konfigurerer det ikke. */
+  download: DocumentDownloadHandle<void>;
 }>;
 
 
@@ -76,36 +71,13 @@ const renderKapitaliseringRows = (rows: readonly KapitaliseringRow[]): React.Rea
   });
 };
 
-const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, downloadGate }: Props) => {
-  const criticalActions = useCriticalInputActions();
+const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, download }: Props) => {
   const values = projection.values;
   const snapshot = projection.snapshot.kapitalisering;
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
-
-  const handlePdfDownload = React.useCallback(async () => {
-    const preparation = await criticalActions.prepare('download');
-    if (preparation.status !== 'committed') {
-      if (preparation.status === 'blocked') preparation.target?.focus();
-      return;
-    }
-    const source = captureProductionEvaluationSource();
-    if (!sourceTokensEqual(preparation.token, source.evaluation.issues.sourceToken)) return;
-    const freshProjection = buildErhvervsevnetabReaderProjection(source.evaluation.reader);
-    const freshSnapshot = freshProjection.snapshot.kapitalisering;
-    const freshGate = evaluateEetFaneDownloadGate('kapitalisering', freshSnapshot);
-    const freshStamdata = freshProjection.documentStamdata;
-    if (!freshGate.canDownload || freshSnapshot.computation === null || freshStamdata.status !== 'ready') return;
-    await downloadKapitaliseringDokument({
-      computation: freshSnapshot.computation,
-      koen: freshProjection.values.koen ?? undefined,
-      settings: source.settings,
-      persistedStamdata: freshStamdata.value,
-      isSourceCurrent: source.isSourceCurrent,
-    });
-  }, [criticalActions]);
 
   return (
     <Box>
@@ -122,9 +94,9 @@ const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, downloadGate }
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
               <DocumentDownloadButton
-                onClick={handlePdfDownload}
-                disabled={!downloadGate.canDownload}
-                disabledReason={downloadGate.reasons[0]?.message}
+                onClick={() => void download.download(undefined)}
+                disabled={!download.canDownload}
+                disabledReason={download.disabledReason}
               />
             </Box>
           </Box>

@@ -12,11 +12,11 @@
  */
 import { captureProductionEvaluationSource, readCurrentEvaluationSourceToken } from '../../inputCore/react/productionInputRuntime';
 import type { CriticalActionCoordinator } from '../../inputCore/runtime/criticalActionCoordinator';
-import type { AppSettings } from '../../settings/appSettingsSchema';
 import { createDocumentGenerationSession, type DocumentGenerationSession } from '../documentGenerationSession';
 import type { DocumentDownloadFormat } from '../documentFormat';
 import type { DocumentBrevhovedType } from '../layout/documentBrevhoved';
 import type { DocumentExecutionEnvironment } from '../definition/documentExecutionEnvironment';
+import { projectDocumentSourceSettings, type DocumentSourceSettings } from '../definition/documentSourceSettings';
 import type { DocumentDiagnostics, DocumentFailure } from '../definition/documentOutcome';
 import {
   ensureDevServerAvailableForDocumentDownload,
@@ -35,13 +35,19 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
 /**
  * Bygger hovedappens miljø. `criticalActions` kommer fra input-runtimens binding og injiceres af
  * kalderen, så miljøet ikke selv skal kende React-konteksten.
+ *
+ * `TSettings` er `DocumentSourceSettings` og ikke `AppSettings`. Det er ikke en forenkling, men den
+ * eneste korrekte binding: `DocumentSourceContext` er KONTRAvariant i `TSettings` (den optræder som
+ * parameter i `evaluateGate`), så et miljø, der lovede hele `AppSettings`, ville kræve, at hver
+ * konsument også havde hele `AppSettings` — og definitionerne lover kun at læse det source-relevante
+ * snapshot. `projectDocumentSourceSettings` skærer capturens `AppSettings` ned til netop det.
  */
 export const createMineoDocumentEnvironment = (
   criticalActions: CriticalActionCoordinator
-): DocumentExecutionEnvironment<AppSettings, DocumentBrevhovedType> => Object.freeze({
+): DocumentExecutionEnvironment<DocumentSourceSettings, DocumentBrevhovedType> => Object.freeze({
   captureSource: () => {
     const source = captureProductionEvaluationSource();
-    return { evaluation: source.evaluation, settings: source.settings };
+    return { evaluation: source.evaluation, settings: projectDocumentSourceSettings(source.settings) };
   },
   readCurrentSourceToken: readCurrentEvaluationSourceToken,
   criticalActions,
@@ -52,4 +58,7 @@ export const createMineoDocumentEnvironment = (
   checkDevServerAvailability: (diagnostics: DocumentDiagnostics): Promise<DocumentFailure | null> =>
     ensureDevServerAvailableForDocumentDownload(diagnostics),
   reportFailure: reportDocumentRuntimeFailure,
+  // §A5: en systemteknisk fejl routes ALENE til den centrale fejlrapportering. En lokal tekst
+  // ville rapportere den samme fejl to steder og møde brugeren med den inline i sideflowet.
+  showRuntimeFailureLocally: false,
 });

@@ -22,13 +22,15 @@ import type { StamdataValues } from '../../../../schemas/formSchemas/sections/st
 import type { VarigeMenValues } from '../../../../schemas/formSchemas';
 import { toISODateString } from '../../../../types/branded';
 
-const mockDownloadVarigeMenDokument = vi.hoisted(() =>
-  vi.fn(async () => ({ success: true as const }))
-);
+/**
+ * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte.
+ */
+const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../../document/service/documentService', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../../../../document/service/documentService')>(),
-  downloadVarigeMenDokument: mockDownloadVarigeMenDokument,
+vi.mock('../../../../document/downloadArtifact', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../../document/downloadArtifact')>(),
+  triggerDocumentDownload: mockTriggerDocumentDownload,
 }));
 
 const catalog = getProductionInputCatalog();
@@ -72,7 +74,7 @@ const renderTab = () => render(
 describe('MenberegningTab greenfield — reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    mockDownloadVarigeMenDokument.mockClear();
+    mockTriggerDocumentDownload.mockClear();
   });
 
   it('et fuldt gyldigt input aktiverer download og når dokumentservicen med frisk stamdata', async () => {
@@ -84,13 +86,11 @@ describe('MenberegningTab greenfield — reader-projektion + download-gate', () 
     expect(downloadButton).toBeEnabled();
 
     await user.click(downloadButton);
-    expect(mockDownloadVarigeMenDokument).toHaveBeenCalledTimes(1);
-    expect(mockDownloadVarigeMenDokument).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mengrad: 10,
-        persistedStamdata: expect.objectContaining({ journalnr: 'J-2026-001' }),
-      })
-    );
+    await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
+    // Journalnummeret kommer fra stamdata og indgår i filnavnet — beviser at den friske
+    // stamdata-dependency nåede hele vejen ind i det leverede dokument.
+    const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
+    expect(artifact.filename).toContain('J-2026-001');
   });
 
   it('en canonical méngrad uden for 1..120 committes, viser rød feltfejl og blokerer download (§1.6)', async () => {
@@ -112,7 +112,7 @@ describe('MenberegningTab greenfield — reader-projektion + download-gate', () 
     expect(slimInputStore.getState().input.sections.varigemen).toMatchObject({ mengrad: 121 });
 
     await user.click(screen.getByTestId('varigemen-download'));
-    expect(mockDownloadVarigeMenDokument).not.toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 
   it('en byttet datoorden i stamdata blokerer download (rød feltfejl på datoerne)', async () => {
@@ -136,6 +136,6 @@ describe('MenberegningTab greenfield — reader-projektion + download-gate', () 
 
     expect(screen.getByTestId('varigemen-download')).toBeDisabled();
     await user.click(screen.getByTestId('varigemen-download'));
-    expect(mockDownloadVarigeMenDokument).not.toHaveBeenCalled();
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 });

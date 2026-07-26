@@ -37,7 +37,6 @@ import {
   resolveAnvendtReguleringsdatoReferenceText,
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
-import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import {
   getOverenskomstMetaById,
   getOverenskomstSfggPolicy,
@@ -54,6 +53,7 @@ import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopg
 import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sfggKilde';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
+import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 
@@ -107,17 +107,23 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     setDeleteTargetId,
     getAnvendtReguleringsdatoForAnsaettelsesforhold,
     getLoenudviklingBaseDate,
-    isOffentligLoenSelectionReady,
     resolveOverenskomstLabel,
     getFilteredOverenskomsterForAnsaettelsesforhold,
     showSygeferiegodtgoerelseSection: showSygeferiegodtgoerelseSectionFor,
     getSfggRowForAf,
     handleMoveUp,
     handleMoveDown,
-    handleDownloadReguleringPdf,
-    handleDownloadKRLPdf,
-    handleDownloadKlLoenaftalerPdf,
   } = useLoenindkomstVm();
+
+  /**
+   * Reguleringssats-downloaden for NETOP dette ansættelsesforhold (Fase 5). Requesten er ren
+   * identitet (`af.id`); alle værdier — grundlag, overenskomst, satsvalg, interval — genlæses friskt
+   * i definitionen efter commit-barrieren. Før Fase 5 læste kortet dem ved klik og sendte dem med,
+   * så en åben, ikke-settlet editor gav et dokument på de gamle tal.
+   */
+  const reguleringDocument = useReguleringDocumentAction(
+    React.useMemo(() => ({ scope: 'employment' as const, employmentId: af.id }), [af.id])
+  );
   const { openLoentrinFinder } = loentrinFinder;
 
   const field = <T,>(descriptor: { bind: (...ids: readonly string[]) => T }): T => descriptor.bind(af.id);
@@ -187,8 +193,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     return undefined;
   })();
   const reguleringsDatoInterval = formatReguleringsDatoInterval(reguleringsDatoIntervalData);
-  const hasReguleringsDatoInterval =
-    Boolean(reguleringsDatoIntervalData?.fraDato) && Boolean(reguleringsDatoIntervalData?.tilDato);
 
   const baseHeaderText = `Ansættelsesforhold ${displayNumber}`;
 
@@ -851,53 +855,21 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
-              {(() => {
-                const offentligReady = isOffentligLoenSelectionReady(af);
-                const canDownload =
-                  hasReguleringsDatoInterval &&
-                  (loenudviklingBasis !== 'Overenskomst' || !erOffentligOverenskomst || offentligReady);
-                return (
-                  <>
-                    <Typography className="row--text" sx={{ textAlign: 'right' }}>
-                      {reguleringsDatoInterval}
-                    </Typography>
-                    <Box>
-                      <DocumentDownloadButton
-                        disabled={!canDownload}
-                        onClick={() => {
-                          if (!reguleringsDatoIntervalData) return;
-                          if (loenudviklingBasis === 'KRL satstabel') {
-                            void handleDownloadKRLPdf();
-                            return;
-                          }
-                          if (loenudviklingBasis === 'KL-lønaftaler') {
-                            void handleDownloadKlLoenaftalerPdf();
-                            return;
-                          }
-                          if (
-                            loenudviklingBasis !== 'Overenskomst' &&
-                            loenudviklingBasis !== 'Statistik'
-                          ) {
-                            return;
-                          }
-                          void handleDownloadReguleringPdf({
-                            overenskomstLabel: resolveOverenskomstLabel(af.overenskomstId),
-                            loenudviklingBasis,
-                            overenskomstId: af.overenskomstId,
-                            statistikModelLabel: af.loenudviklingStatistikModel,
-                            interval: reguleringsDatoIntervalData,
-                            applyAlmindeligLoenPaaShDageRegel: af.loenPaaHelligdage === 'Almindelig løn',
-                            offentligLoenType: af.offentligLoenType,
-                            offentligLoenTrin: af.offentligLoenTrin,
-                            offentligLoenGruppe: af.offentligLoenGruppe,
-                            offentligLoenEkstraGrundloen: amountValueToNumber(af.offentligLoenEkstraGrundloen),
-                          });
-                        }}
-                      />
-                    </Box>
-                  </>
-                );
-              })()}
+              {/*
+                Knaptilstand OG outputvalg kommer fra `reguleringDocument`. Den side-lokale
+                `canDownload`-IIFE (som var skrevet med en ANDEN formel end sagsniveauets) og
+                `loenudviklingBasis`-switchen ved klik er erstattet af den fælles resolver.
+              */}
+              <Typography className="row--text" sx={{ textAlign: 'right' }}>
+                {reguleringsDatoInterval}
+              </Typography>
+              <Box>
+                <DocumentDownloadButton
+                  disabled={!reguleringDocument.canDownload}
+                  disabledReason={reguleringDocument.disabledReason}
+                  onClick={() => { void reguleringDocument.download(); }}
+                />
+              </Box>
             </Box>
           </Box>
         </Box>

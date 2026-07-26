@@ -75,7 +75,12 @@ export type BeregnetRenteTableProps = Readonly<{
   saveOrderPath?: TableSaveOrderPath;
   isMobile?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
-  documentBlocked?: boolean;
+  /**
+   * Rækkens download-gate, spurgt hos SAMME definition som klikket aktiverer (§A2: samme definition
+   * OG samme request). Tabellen udleder ikke selv knaptilstanden — gjorde den det, ville den reaktive
+   * gate og click-preflighten være to udtryk for samme regel og kunne drifte.
+   */
+  resolveDownloadGate: (rowId: string) => Readonly<{ canDownload: boolean; disabledReason?: string }>;
 }>;
 
 type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
@@ -88,7 +93,7 @@ type BeregnetRenteRowProps = Readonly<{
   projection: ProjectionResult<RentekravRowResult> | undefined;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
-  documentBlocked: boolean;
+  resolveDownloadGate: (rowId: string) => Readonly<{ canDownload: boolean; disabledReason?: string }>;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, RentekravRow>;
 }>;
 
@@ -101,7 +106,7 @@ const BeregnetRenteRow = React.memo(
     projection,
     isMobile,
     documentDownloadFormat,
-    documentBlocked,
+    resolveDownloadGate,
     buildCellSpec,
   }: BeregnetRenteRowProps) => {
     const rowId = renderRow.rowId;
@@ -112,7 +117,10 @@ const BeregnetRenteRow = React.memo(
       : { actualInterestDate: null, calculatedInterest: null, pdfContext: null };
 
     const actualInterestDateDanish = isoToDanish(actualInterestDate ?? undefined) ?? null;
+    // Ikonet vises kun for en række, der HAR et resultat (som før); om det er aktivt, afgør
+    // definitionens gate for netop denne række.
     const showDownloadButton = pdfContext !== null;
+    const rowGate = resolveDownloadGate(rowId);
 
     const gc = (colIndex: number) => ({ rowId, colIndex });
 
@@ -195,8 +203,10 @@ const BeregnetRenteRow = React.memo(
               {showDownloadButton ? (
                 <DownloadIconButton
                   onClick={() => { void onDownloadSpecifikation(rowId); }}
-                  disabled={documentBlocked}
-                  tooltip={documentBlocked ? DOWNLOAD_DISABLED_TOOLTIP : `Download som ${formatLabel}`}
+                  disabled={!rowGate.canDownload}
+                  tooltip={rowGate.canDownload
+                    ? `Download som ${formatLabel}`
+                    : rowGate.disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP}
                   ariaLabel={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
                 />
               ) : (
@@ -225,7 +235,7 @@ const BeregnetRenteTable = React.memo(
     saveOrderPath,
     isMobile = false,
     documentDownloadFormat,
-    documentBlocked = false,
+    resolveDownloadGate,
   }: BeregnetRenteTableProps) => {
     const rows = useCollectionRows<RentekravRow>(rentekravRowsCollectionRef, {
     locationId: 'renteberegning.rentekravRows',
@@ -398,7 +408,7 @@ const BeregnetRenteTable = React.memo(
                 projection={rowProjections.get(renderRow.rowId)}
                 isMobile={isMobile}
                 documentDownloadFormat={documentDownloadFormat}
-                documentBlocked={documentBlocked}
+                resolveDownloadGate={resolveDownloadGate}
                 buildCellSpec={buildCellSpec}
               />
             );

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
-import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { useEoLoentrinFinder } from './useEoLoentrinFinder';
 import { calculateKalenderdageInclusive } from '../../../../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { calculateFerieHverdageMinusSHDage } from '../../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
@@ -17,9 +16,13 @@ import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg, getOverenskomsterByOrg,
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
-import { downloadKlLoenaftalerDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
+import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
 
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
+
+/** Sagsniveauets aktiveringsidentitet. Modul-konstant, så resolverens memo ikke invalideres pr. render. */
+const CASE_REGULERING_REQUEST = { scope: 'case' } as const;
+
 const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: ErstatningsopgoerelseValues['vedroererPeriodeTil'], prefix: string): string => {
   if (tilDato === undefined) return defaultLabel;
   const parsedDate = isoDateToDate(tilDato);
@@ -31,7 +34,6 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: Erstatningsop
 
 /** Reader-afledt præsentationsmodel for EO-oplysninger; modellen ejer ingen persisted writekanal. */
 export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, stamdataValues: StamdataValues) {
-  const { settings } = useAppSettings();
   const skadedatoISO = stamdataValues.skadedato;
   const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
   const loentrinFinder = useEoLoentrinFinder(eoLoenudvikling.overenskomstId, eoLoenudvikling.offentligLoenType);
@@ -68,7 +70,10 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     if (loenudviklingBasis === 'KL-lønaftaler') return getReguleringsDatoIntervalForKlLoenaftaler();
     return undefined;
   }, [eoLoenudvikling, loenudviklingBasis]);
-  const documentContext = React.useMemo(() => ({ settings, persistedStamdata: stamdataValues }), [settings, stamdataValues]);
+  // Reguleringssats-downloaden på SAGSNIVEAU (Fase 5). Resolveren ejer både knaptilstanden og
+  // valget mellem regulering/KRL/KL-lønaftaler, og den vælger først EFTER commit-barrieren — så et
+  // grundlagsskifte i en åben editor ikke kan levere det forrige grundlags dokument.
+  const reguleringDocument = useReguleringDocumentAction(CASE_REGULERING_REQUEST);
   const opgoerelseLavetDenInputRef = React.useRef<HTMLInputElement>(null);
 
   return {
@@ -94,8 +99,6 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     loenudviklingBaseDateReferenceText: resolveAnvendtReguleringsdatoReferenceText({ anvendtReguleringsdato: loenudviklingBaseDateISO, skadedato: skadedatoISO, skadestype: stamdataValues.skadestype, beregnesUdFra: values.beregnesUdFra, beregningsperiodeTil: values.tafBeregningsperiodeTil, saerligFraDatoRegulering: undefined, angivetLoenMetodeOpreguleresFraDato: aktivAngivetLoenOpreguleresFraDato }),
     shouldShowReguleringsDatoInterval, reguleringsDatoIntervalData,
     reguleringsDatoIntervalDisplay: reguleringsDatoIntervalData ? `${reguleringsDatoIntervalData.fraDato} - ${reguleringsDatoIntervalData.tilDato}` : '',
-    handleDownloadReguleringPdf: async (input: ReguleringDocumentInput) => downloadReguleringDokument({ input, ...documentContext }),
-    handleDownloadKRLPdf: async () => downloadKrlDokument(documentContext),
-    handleDownloadKlLoenaftalerPdf: async () => downloadKlLoenaftalerDokument(documentContext),
+    reguleringDocument,
   };
 }

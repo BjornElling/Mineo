@@ -3,22 +3,23 @@ import { Box, Typography } from '@mui/material';
 import PageTabs from '../layout/PageTabs';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
-import type { ISODateString } from '../../types/branded';
-import { isoToDanish } from '../../types/branded';
-import type { RentePdfContext } from '../tables/BeregnetRenteTable';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { downloadRenteDokument, downloadRenteOversigtDokument } from '../../document/service/documentService';
-import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';
 import ContentBox from '../layout/ContentBox';
-import RenteberegningTab, { type RenteDocumentSharedSnapshot } from './renteberegning/RenteberegningTab';
+import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
-import { getDocumentFormatLabel } from '../../document/documentFormat';
-import { projectStamdataForDocument } from '../../domain/stamdata/stamdataDocumentProjection';
-import { useInputEvaluation } from '../../inputCore/react';
+import {
+  renteDocumentDefinition,
+  renteOversigtDocumentDefinition,
+} from '../../domain/renteberegning/renteberegningDocumentDefinitions';
+import {
+  useMineoDocumentOutput,
+  useMineoDocumentSourceContext,
+} from '../../document/runtime/react/useMineoDocumentOutput';
 
-// Greenfield-migreret (§2.4 trin 4 / Fase 3 Renteberegning-slice). Siden læser stamdata + kommentarer gennem den
-// offentlige `InputReader`; download-handlerne henter et FRISK kildesnapshot, så en netop indtastet kommentar/stamdata
-// er med i dokumentet (§3.9). Ingen `usePersistedForm`-legacy-sink.
+// Greenfield-migreret (§2.4 trin 4 / Fase 3 Renteberegning-slice, dokumentgrænsen lukket i Fase 5).
+// Siden læser stamdata + kommentarer gennem den offentlige `InputReader`, og dokument-download går
+// gennem de to typede definitioner: siden komponerer dem mod hovedappens miljø og videregiver de
+// færdige handles til den delte fane, som også standalone MinProcesrente bruger.
 
 type TabKey = 'rates' | 'calculation';
 
@@ -27,69 +28,26 @@ const TAB_KEYS = {
   CALCULATION: 'calculation',
 } as const;
 
+/**
+ * Rækkeknapperne spørger definitionen pr. række gennem `gateFor({ rowId })`; dette handles EGEN
+ * `canDownload` bruges derfor ikke, og `gateRequest` er blot en gyldig, eksisterende form. Der er
+ * ikke længere en dummy-rækkeid i omløb.
+ */
+const RENTE_GATE_PROBE: Readonly<{ rowId: string }> = { rowId: '' };
+
 const Renteberegning = React.memo(() => {
   const { settings } = useAppSettings();
-  const evaluation = useInputEvaluation();
-  const stamdataProjection = React.useMemo(
-    () => projectStamdataForDocument(evaluation.reader, 'document.rente'),
-    [evaluation]
-  );
-  const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
+
+  // ÉN kildekontekst for begge outputs; de deler renteprojektionen gennem `context.shared`.
+  const documentContext = useMineoDocumentSourceContext();
+  const renteDownload = useMineoDocumentOutput(renteDocumentDefinition, RENTE_GATE_PROBE, documentContext);
+  const renteOversigtDownload = useMineoDocumentOutput(renteOversigtDocumentDefinition, undefined, documentContext);
+
   const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'renteberegning',
     allowedTabs: [TAB_KEYS.RATES, TAB_KEYS.CALCULATION],
     defaultTab: TAB_KEYS.CALCULATION,
   });
-
-  const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
-  const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
-
-  const handleDownloadRentePdf = React.useCallback(
-    async (pdfContext: RentePdfContext, shared: RenteDocumentSharedSnapshot) => {
-      const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
-      const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
-      if (!actualInterestDateDanish || !beregningsdatoDanish) {
-        setPdfErrorMessage(`Kunne ikke generere rente som ${documentFormatLabel}.`);
-        return;
-      }
-      if (shared.stamdataProjection?.status !== 'ready') return;
-      const result = await downloadRenteDokument({
-        beloeb: pdfContext.beloeb,
-        actualInterestDate: actualInterestDateDanish,
-        beregningsdato: beregningsdatoDanish,
-        periods: pdfContext.periods,
-        latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
-        isSourceCurrent: shared.isSourceCurrent,
-        kommentarer: shared.kommentarer,
-        settings,
-        persistedStamdata: shared.stamdataProjection.value,
-      });
-      setPdfErrorMessage(result.success ? null : result.error);
-    },
-    [documentFormatLabel, settings]
-  );
-
-  const handleDownloadOversigt = React.useCallback(
-    async (
-      rows: readonly RenteOversigtRow[],
-      beregningsdato: ISODateString,
-      latestReferenceRateDate: ISODateString | null,
-      shared: RenteDocumentSharedSnapshot,
-    ) => {
-      if (shared.stamdataProjection?.status !== 'ready') return;
-      const result = await downloadRenteOversigtDokument({
-        beregningsdato,
-        rows,
-        latestReferenceRateDate,
-        isSourceCurrent: shared.isSourceCurrent,
-        kommentarer: shared.kommentarer,
-        settings,
-        persistedStamdata: shared.stamdataProjection.value,
-      });
-      setOversigtErrorMessage(result.success ? null : result.error);
-    },
-    [settings]
-  );
 
   return (
     <Box>
@@ -108,16 +66,13 @@ const Renteberegning = React.memo(() => {
         <RentesatserTab />
       ) : (
         <RenteberegningTab
-          onDownloadSpecifikation={handleDownloadRentePdf}
-          pdfErrorMessage={pdfErrorMessage}
+          renteDownload={renteDownload}
           referenceRates={referenceRates}
           surchargeRates={surchargeRates}
           ContentBoxComponent={ContentBox}
-          onDownloadOversigt={handleDownloadOversigt}
-          oversigtErrorMessage={oversigtErrorMessage}
+          renteOversigtDownload={renteOversigtDownload}
           showOversigtBox
           documentDownloadFormat={settings.documentDownloadFormat}
-          stamdataProjection={stamdataProjection}
         />
       )}
     </Box>

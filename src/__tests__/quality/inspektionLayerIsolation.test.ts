@@ -25,6 +25,11 @@ const BEREGNING_VM_PATH = path.resolve(
   SRC_ROOT,
   'components/pages/erstatningsopgoerelse/eoBeregning/useEoBeregningViewModel.ts'
 );
+/** Fase 5: dokument-gatens nye ejer — definitionen ved EO's domænegrænse. */
+const EO_DOCUMENT_DEFINITIONS_PATH = path.resolve(
+  DOMAIN_ROOT,
+  'erstatningsopgoerelse/eoDocumentDefinitions.ts'
+);
 
 const IMPORT_SPECIFIER = /(?:from|import)\s+['"]([^'"]+)['"]/g;
 const INSPEKTION_SPECIFIER_SEGMENT = 'domain/eoInspektion';
@@ -54,7 +59,26 @@ describe('inspektionLayerIsolation — wiring', () => {
     expect(source).not.toContain("collectSammentaellingControlMismatchMessages } from '../../eoInspektion");
   });
 
+  /**
+   * Efter Fase 5 ejer DEFINITIONEN download-gaten, ikke view-modellen: preflighten (projektion,
+   * gate, midlertidigt-EET-kilden) er flyttet fra `useEoBeregningViewModel` til
+   * `eoDocumentDefinitions.ts`. Guarden er derfor flyttet med til det nye ejerskab — den måler
+   * fortsat præcis det samme: at gaten konsumerer den autoritative motor og er inspektionsfri.
+   */
   it('C: download-gaten konsumerer den AUTORITATIVE motor — ikke inspektions-/kontrollaget', () => {
+    const source = fs.readFileSync(EO_DOCUMENT_DEFINITIONS_PATH, 'utf8');
+
+    expect(findInspektionImports(source, path.dirname(EO_DOCUMENT_DEFINITIONS_PATH))).toEqual([]);
+    expect(source).toContain('evaluateErstatningsopgoerelseDownloadGates');
+    expect(source).toContain('buildMidlertidigtEetInsertSource(context.evaluation)');
+  });
+
+  /**
+   * View-modellen må efter Fase 5 hverken bygge EO-projektionen eller evaluere gaten selv — så var
+   * den to sandheder igen. Den konsumerer stadig den autoritative rækkemotor til issue-listerne,
+   * og den skal fortsat være inspektionsfri.
+   */
+  it('C2: view-modellen har afgivet gate-ejerskabet, men bruger fortsat den autoritative rækkemotor', () => {
     const source = fs.readFileSync(BEREGNING_VM_PATH, 'utf8');
 
     expect(source).toContain(
@@ -62,8 +86,7 @@ describe('inspektionLayerIsolation — wiring', () => {
     );
     expect(findInspektionImports(source, path.dirname(BEREGNING_VM_PATH))).toEqual([]);
     expect(source).toContain('hasBlockingEoRowErrors');
-    expect(source).toContain('evaluateErstatningsopgoerelseDownloadGates');
-    expect(source).toContain('fresh.gates.erstatningsopgoerelse.canDownload');
-    expect(source).toContain('buildMidlertidigtEetInsertSource(source.evaluation)');
+    expect(source).not.toContain('evaluateErstatningsopgoerelseDownloadGates');
+    expect(source).not.toContain('buildErstatningsopgoerelseReaderProjection');
   });
 });

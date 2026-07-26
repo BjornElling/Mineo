@@ -30,7 +30,6 @@ import { deriveLoenindkomstVm } from '../../../../domain/erstatningsopgoerelse/v
 import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg } from '../../../../data/overenskomstRates';
 import { scrollTargetIntoView } from '../../../../utils/scrollTargetIntoView';
 import { useLoentrinFinder } from './useLoentrinFinder';
-import { downloadKlLoenaftalerDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 const MAX_ANSAETTELSESFORHOLD = 10;
@@ -161,16 +160,9 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     return () => window.cancelAnimationFrame(handle);
   }, [employments, scrollTargetId]);
 
-  const documentContext = React.useMemo(() => ({ settings, persistedStamdata: stamdataValues }), [settings, stamdataValues]);
-  const handleDownloadReguleringPdf = React.useCallback(async (input: ReguleringDocumentInput) => {
-    await downloadReguleringDokument({ input, ...documentContext });
-  }, [documentContext]);
-  const handleDownloadKRLPdf = React.useCallback(async () => {
-    await downloadKrlDokument(documentContext);
-  }, [documentContext]);
-  const handleDownloadKlLoenaftalerPdf = React.useCallback(async () => {
-    await downloadKlLoenaftalerDokument(documentContext);
-  }, [documentContext]);
+  // Reguleringssats-downloaden ligger IKKE her: den er pr. ansættelsesforhold, og dens
+  // aktiveringsidentitet er `af.id`. `AnsaettelsesforholdCard` komponerer derfor sin egen
+  // `useReguleringDocumentAction` pr. kort.
 
   return {
     ...derived,
@@ -193,8 +185,5 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     handleDeleteConfirm,
     handleMoveUp: (id: string) => move(id, -1),
     handleMoveDown: (id: string) => move(id, 1),
-    handleDownloadReguleringPdf,
-    handleDownloadKRLPdf,
-    handleDownloadKlLoenaftalerPdf,
   };
 }

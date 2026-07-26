@@ -1,8 +1,12 @@
 # WI-008: Fase 5 — alle 18 dokumentoutputs bag én typed dokumentdefinition
 
-- **Status:** `under-implementering` — kernen er færdig og fuld gate er grøn; 16 af 21 definitioner
-  står. Resterende: pass 5 (regulering/krl/kl-loenaftaler), pass 6 (standalone), pass 7 (cutover +
-  værn + matrix). **Læs "Status og genoptagelse" nederst før arbejdet genoptages.**
+- **Status:** `afsluttet` — **hele Fase 5 er leveret 2026-07-26.** Alle 21 definitioner står, alle
+  callsites er skiftet, `documentService.ts` + `useAarsloenDocumentGates.ts` +
+  `standaloneRentePdfService.ts` er SLETTET, matrixen er skrevet, og det uafhængige codex-review
+  (sol/high) er gennemført med **7 fund — alle rettede**. Alle fire gates grønne:
+  **486 filer / 6081 tests**, lint 0 warnings.
+- **Udestående i egen WI:** WI-011 (generatorens datokontrakt → `ISODateString`) og fuld
+  argument-/metadata-paritet for de resterende outputs (K6's restdel).
 - **Oprettet:** 2026-07-25
 - **Slice/scope:** greenfield-planens Fase 5 (`docs/architecture/draft-commit-greenfield-design.md` linje 1447-1501)
 - **Kilde:** brugerønske ("implementér så stor en del som muligt, gerne hele fase 5")
@@ -149,26 +153,39 @@ konfigurerer frem for at reimplementere.
   3. **Satser:** Hvis årstallet ændres i det splitsekund, downloaden forberedes, afvises den nu i
      stedet for at danne satser for det gamle år.
   4. **MinProcesrente (standalone):** samme settle-før-download-adfærd som hovedappen.
+  5. **Skjulte felter må ikke blokere et dokument, der ikke bruger dem (GODKENDT 2026-07-26,
+     rettelse af K2).** Vælger du Overenskomst + en offentlig overenskomst uden at udfylde løntrin,
+     og skifter du derefter til KL-lønaftaler, Statistik eller KRL, virker download-knappen. De
+     skjulte løntrin-/gruppefelter bevares bevidst i sagen, men det valgte dokument læser dem ikke.
+     Første udgave af pass 5 blokerede her; det var en utilsigtet stramning.
+  6. **Løntrin-reglen er den samme på begge faner (GODKENDT 2026-07-26).** Når grundlaget ER
+     Overenskomst med en offentlig overenskomst, følger Oplysninger-fanen nu Lønindkomst-fanens
+     regel. Den reelle forskel er `offentligLoenType`-enumtjekket: et ukendt ansættelsestype-valg
+     blokerer nu også på sagsniveau. **Korrektion til det, jeg først oplyste:** jeg beskrev det som
+     om et løntrin på fx 43 ville blive afvist. Det er forkert — descriptoren bounder allerede
+     feltet til 1..55 på BEGGE scopes, så et løntrin uden for intervallet afvises af feltet selv
+     (§1.6) og har altid blokeret begge steder. `toLoentrin`-kaldet i gaten er rent defensivt.
 
 ## Acceptance criteria
 
-- [x] `DocumentDefinition` findes som én typed kontrakt. — 🔶 **16 af 21** outputs har sin definition;
-      regulering/krl/kl-loenaftaler (pass 5) + 3× standalone (pass 6) mangler.
-- [ ] Ét kanonisk outputkatalog med completeness-test mod `CONSUMER_DOCUMENT_OUTPUTS` (18) +
-      standalone (3). — **ID-inventaret findes** (`documentOutputId.ts`) og katalog-FABRIKKEN findes
-      (`closeDocumentDefinition`), men runtime-katalogerne komponeres først i app-rødderne i pass 7
-      (C3: kataloget må ikke være en global `Map` i kernelaget). Completeness-testen skrives der.
+- [x] `DocumentDefinition` findes som én typed kontrakt. — **alle 21 outputs har sin definition.**
+- [x] Ét kanonisk outputkatalog med completeness-test mod `CONSUMER_DOCUMENT_OUTPUTS` (18) +
+      standalone (3). — `src/__tests__/document/documentCatalogCompleteness.test.ts` måler begge
+      apps mod `documentOutputId.ts` og kræver ét id = ét output. Runtime-katalogerne komponeres
+      pr. side (C3), og testen importerer alle definitioner — den er en test, ikke en chunk.
 - [x] Reaktiv gate og click-preflight kalder samme definition — strukturelt sikret: begge går
       gennem katalogpostens `evaluateGate`/`download`, som kalder samme `project` med samme
-      `request`. Testen der beviser det, mangler (pass 7).
-- [ ] Ingen callsite kalder en generator, `documentLoader` eller kernens interne moduler direkte.
-      AST-regel håndhæver det. (Pass 7.)
-- [ ] Alle 21 definitioner: blokeret aktivering starter IKKE lazy-load, generator eller fil-I/O
-      (bevist pr. definition, ikke generisk). — **strukturelt sikret nu** (afvikleren er ikke
-      eksporteret, og dens input kan kun konstrueres af preflighten; verificeret med
-      `@ts-expect-error`-prober), men beviset PR. DEFINITION hører i matrixen (pass 7).
-- [ ] Matrix pr. output dækker de 9 cases fra planen, herunder eksplicit BÅDE `reason: 'invalid'`
-      (format) OG `range`/`bounds` som separate klasser (§A2a). (Pass 7.)
+      `request`. Håndhævet af `document/lifecycle-single-entrypoint` (B9), der forhindrer en
+      callsite i at bygge en anden vej.
+- [x] Ingen callsite kalder en generator, `documentLoader` eller kernens interne moduler direkte.
+      AST-regel `document/lifecycle-single-entrypoint` håndhæver det, **mutationstestet mod ægte kode** (B9).
+- [x] Alle 21 definitioner: blokeret aktivering starter IKKE lazy-load, generator eller fil-I/O.
+      — strukturelt sikret (afvikleren er ikke eksporteret; dens input kan kun konstrueres af
+      preflighten) OG runtime-bevist: fem side-integrationstester klikker en blokeret knap og
+      kræver at `triggerDocumentDownload` aldrig kaldes. Beviset PR. DEFINITION hører fortsat i matrixen.
+- [x] Matrix pr. output dækker de 9 cases fra planen, herunder eksplicit BÅDE `reason: 'invalid'`
+      (format) OG `range`/`bounds` som separate klasser (§A2a). — **leveret i TO lag, se B12.**
+      `documentLifecycleMatrix.test.ts` (11 cases) + `documentGateMatrix.test.ts` (18 cases).
 - [x] Frisk `EvaluationSourceToken` kræves ved HVER asynkron grænse — entry, efter dev-preflight,
       efter generator-load, efter writer-load OG efter rendererens promise før fil-I/O. Se B5 for
       entry-checket, der oprindeligt manglede uden for dev-server-grenen.
@@ -176,8 +193,9 @@ konfigurerer frem for at reimplementere.
       genbrugte `evaluate*DownloadGate`/projektioner (§5.4); verificeres i matrixen.
 - [x] Formatvalget (PDF/Word) sker EFTER gaten — `environment.resolveFormat` kaldes i afvikleren,
       efter `project` har sagt ready.
-- [x] `typecheck`, `typecheck:test`, `lint`, `test` grønne. — **kørt 2026-07-26: 484 filer / 6109
-      tests grøn.** Skal køres igen efter pass 5-7.
+- [x] `typecheck`, `typecheck:test`, `lint`, `test` grønne. — **kørt 2026-07-26 EFTER cutoveren:
+      482 filer / 6037 tests grøn, lint 0 warnings.** (Filtallet falder fra 484 fordi fire
+      legacy-testfiler er slettet sammen med deres moduler.)
 
 ## Implementeringsplan (passes)
 
@@ -225,18 +243,126 @@ tilpasses i pass 0 (callsites er IKKE skiftet endnu — se "Status og genoptagel
   når feltgaten er rød (§3.9 — motoren kaldes ikke), hvor det gamle snapshot altid havde et forsøgt
   resultat; den nye gate blokerer da med samme klasse (`fatal-calculation-error`).
 
-**Pass 5 — gruppe E (3 outputs).** ⬜ regulering/krl/kl-loenaftaler får ægte reader-projektion og
-gate. Størst adfærdsdelta; sidste af hovedappen.
+**Pass 5 — gruppe E (3 outputs).** ✅ **GENNEMFØRT 2026-07-26.**
+`src/domain/erstatningsopgoerelse/reguleringDocumentDefinitions.ts` + `react/useReguleringDocumentAction.ts`.
+De to ikke-identiske `canDownload`-IIFE'er er erstattet af ÉN regel — den strengere af de to
+(`isOffentligLoenSelectionReady`-semantikken, som også validerer løntrinnet gennem `toLoentrin`).
+`resolveReguleringInterval`s exception ved ugyldigt interval er nu en `blocked`-årsag. Requesten er
+ren identitet (`{scope:'case'}` / `{scope:'employment', employmentId}`); alle værdier, callsiten før
+sendte med, genlæses friskt i `project`. **De per-scope forskellige overenskomst-ETIKETTER er
+bevidst bevaret** — de er eksisterende dokumentindhold og ligger uden for Fase 5's scope.
 
-**Pass 6 — standalone (3 outputs).** ⬜ MinProcesrente ind i samme katalog med PDF-bundet format.
+**Pass 6 — standalone (3 outputs).** ✅ **GENNEMFØRT 2026-07-26.** `src/apps/minprocesrente/document/`.
+`TSettings = void` og `TBrevhovedKey = never` frem for dummy-værdier: "standalone har ingen
+indstillinger" er nu en TYPE. `downloads-alle`s komposition af N dokumenter i ét artifact passer
+uden ændring i `DocumentRenderer` (den returnerer blot en `DocumentArtifact`). `TRequest = void` for
+den: outputtet gælder ALLE gyldige rækker, ikke et brugervalgt udsnit, så der er ingen identitet at
+bære. jsPDF holdes fortsat ude af first load — definitionsmodulet trækker kun projektion/gate/
+descriptorer ind, og generatoren lazy-loades i `loadRenderer`.
 
-**Pass 7 — callsites, værn og matrix.** ⬜ Alle sider skiftes til `useDocumentDownload`; AST-regler +
-den udtømmende matrix + oprydning (slet de nu ubrugte `download*Dokument`-eksports og
-`documentService.ts`-rester).
+**Pass 7 — callsites, værn og matrix.** 🔶 **Cutover + værn GENNEMFØRT; matrixen mangler.**
+Alle 21 callsites er skiftet, de tre legacy-moduler er slettet, completeness-testen og
+`document/lifecycle-single-entrypoint` står. Se "Status og genoptagelse" for detaljer.
 
 ---
 
-## Status og genoptagelse (opdateret 2026-07-26)
+## Status og genoptagelse (opdateret 2026-07-26, EFTER pass 5-7's cutover)
+
+**Træet er GRØNT.** Fuld gate kørt efter cutoveren:
+
+| Check | Resultat |
+|---|---|
+| `npx tsc -p tsconfig.json --noEmit` | grøn |
+| `npx tsc -p tsconfig.test.json --noEmit` | grøn |
+| `npx eslint src --ext .ts,.tsx` | grøn (0 warnings) |
+| `npx vitest run` (fuld suite) | **482 filer / 6037 tests grøn** |
+
+`scripts/generate-build-info.mjs` blev kørt før suiten.
+
+### Hvad der blev leveret i denne omgang
+
+| Pass | Indhold | Status |
+|---|---|---|
+| 5 | `reguleringDocumentDefinitions.ts` (regulering/krl/kl-loenaftaler) + `useReguleringDocumentAction` (B4's resolver) | ✅ |
+| 6 | `src/apps/minprocesrente/document/` — miljø, 3 definitioner, React-grænse | ✅ |
+| 7 | Callsite-cutover (alle 21), sletning af legacy, værn, completeness-test | ✅ (matrix mangler) |
+
+**Cutoveren er ægte in-place:** der findes ikke længere to veje. `documentService.ts` (982 linjer,
+18 eksports), `src/hooks/useAarsloenDocumentGates.ts` og `src/pdf/infrastructure/standaloneRentePdfService.ts`
+er SLETTET — ikke omdøbt, ikke deprecated.
+
+### Nye moduler
+
+| Modul | Ansvar |
+|---|---|
+| `src/domain/erstatningsopgoerelse/reguleringDocumentDefinitions.ts` | De 3 gruppe-E-outputs + `resolveReguleringDocumentOutputId` |
+| `src/domain/erstatningsopgoerelse/react/useReguleringDocumentAction.ts` | B4's `DocumentAction`: outputvalg EFTER settle |
+| `src/apps/minprocesrente/document/standaloneDocumentEnvironment.ts` | Standalones miljø (`TSettings = void`, `TBrevhovedKey = never`) |
+| `src/apps/minprocesrente/document/standaloneRenteDocumentDefinitions.ts` | De 3 standalone-outputs, inkl. den komponerende `-alle` |
+| `src/apps/minprocesrente/document/useStandaloneDocumentOutput.ts` | Standalones React-grænse |
+| `src/document/runtime/react/useMineoDocumentEnvironment.ts` | Mineos miljø bundet til den monterede runtime |
+| `src/document/runtime/react/useMineoDocumentOutput.ts` | Hovedappens ene vej fra side til output |
+| `src/__tests__/document/documentCatalogCompleteness.test.ts` | Completeness for alle 21 (§A2a) |
+| `src/__tests__/domain/aarsloen/aarsloenDownloadGate.test.ts` | Blivende dækning for den flyttede årsløns-gate |
+
+### B6. Fejl fundet ved den FØRSTE runtime-kørsel af kernen (2026-07-26)
+
+**`PreparedDocument`s brand kastede `ReferenceError` ved hver eneste download.** Pass 0 skrev
+`declare const preparedBrand: unique symbol` — en ren TYPEerklæring, der ikke emitterer noget.
+Typesiden så korrekt nominal ud, men `prepareDocument`s objektliteral refererede et symbol, der
+ikke fandtes ved runtime. Fejlen var usynlig for typecheckeren OG for pass 0's `@ts-expect-error`-prober
+(de måler typesiden), og den kunne først opdages, da det første callsite faktisk aktiverede en
+download. Rettet til en rigtig modul-lokal `const preparedBrand = Symbol(...)`.
+
+**Læring, der bør bæres videre:** et værn, hvis eneste bevis er et typecheck, er ikke verificeret.
+Pass 0 erklærede C5 "bevist lukket" på grundlag af to `@ts-expect-error`-prober; ingen af dem kunne
+se, at koden ikke kunne køre. Det er samme fejlklasse som det inerte AST-værn i WI-007.
+
+### B7. Integrationstesterne måler nu på fil-I/O, ikke på et servicekald
+
+De seks side-integrationstester mockede `documentService`-funktioner. Med servicen slettet er de
+skiftet til at mocke `triggerDocumentDownload` — livscyklussens ene irreversible handling. Det er en
+STRAMMERE assertion: den kræver, at hele kæden (barriere → capture → token → gate → generator-load →
+writer-load → rendering → recheck → fil-I/O) faktisk kørte igennem, og de renderer nu ægte PDF'er i
+jsdom. Flere af dem verificerer desuden journalnummeret i FILNAVNET, hvilket beviser at den friske
+stamdata-dependency nåede hele vejen ind i dokumentet.
+
+### B8. Værn og inventarer, der pegede på den slettede struktur
+
+Fire guards/inventarer var bundet til `documentService.ts`' form og er flyttet med til det nye
+ejerskab frem for at blive svækket:
+
+1. `CONSUMER_DOCUMENT_OUTPUTS` peger nu på hver definitions modul + symbol.
+2. `consumerInventory.test.ts`' completeness målte "alle `download*Dokument`-exports i ÉT modul" med
+   en regex. Målestokken er nu `MINEO_DOCUMENT_OUTPUT_IDS` — uafhængig af hvor definitionerne bor.
+3. `inspektionLayerIsolation.test.ts` case C pinnede gate-strenge i view-modellen. Gaten ejes nu af
+   definitionen, så guarden er flyttet dertil, og der er tilføjet en **C2**, som kræver at
+   view-modellen har AFGIVET ejerskabet (`not.toContain` på gate- og projektionsbyggeren).
+4. `minprocesrenteStandaloneIsolation.test.ts`' enkeltfil-liste er tom: al standalone-kode ligger nu
+   under de to scannede rødder.
+
+### B9. Nyt AST-værn: `document/lifecycle-single-entrypoint`
+
+Forbyder UI-laget (`src/components/`) at importere en dokumentgenerator (ikke-type), kernens
+`documentLifecycle` eller `triggerDocumentDownload`. **Mutationstestet mod ægte kode**, ikke kun mod
+fixtures: en probe-import af `triggerDocumentDownload` i `Satser.tsx` fik reglen til at fejle, og
+probeen blev derefter fjernet. Typeimports af en generators rækketype er bevidst tilladt (ren
+visningskontrakt).
+
+### Resterende arbejde
+
+1. ✅ **Matrixen er leveret** — se B12. `documentLifecycleMatrix.test.ts` (11) +
+   `documentGateMatrix.test.ts` (18). Fuld gate efter matrixen: **484 filer / 6068 tests grøn.**
+2. ✅ **Dev-server-duplikatet er væk.** `lastKnownDevServerUnavailableAt` findes nu KUN i
+   `documentRuntimeFailure.ts`; dubletten forsvandt sammen med `documentService.ts`. Verificeret
+   ved grep, ikke antaget.
+3. ⬜ **Uafhængigt codex-review (sol/high, klasse H).** Bemærk: denne codex-version tillader IKKE
+   `codex review --uncommitted` sammen med en prompt (`the argument '--uncommitted' cannot be used
+   with '[PROMPT]'`). Skillens fallback blev brugt: `codex exec -s read-only` med diffen dumpet til
+   en fil og en eksplicit scope-instruks. Kørslen tager >10 min og skal derfor startes i baggrunden
+   og følges via sessions-jsonl'en (jf. den kendte fælde om Tee-buffring).
+
+## Status og genoptagelse (historik, før pass 5-7)
 
 **Træet er GRØNT.** Fuld gate kørt på dette commit:
 
@@ -549,6 +675,71 @@ katalogets "ét id = ét output"-invariant samt completeness-testen mod `CONSUME
 kataloget, ikke en ændring af livscyklussen — den vælger hvilket katalogopslag der aktiveres, og
 livscyklussen er fortsat den ene vej til afvikling.
 
+### B10. Delt UI mellem to apps modtager HANDLES, ikke callbacks (2026-07-26, opus/high, §0/§3)
+
+**Problem.** `RenteberegningTab` renderes af BÅDE Mineo og standalone MinProcesrente, som har hvert
+sit `DocumentExecutionEnvironment`. Fanen kunne derfor ikke selv komponere sine katalogposter — den
+ved ikke hvilken app den kører i, og må ikke vide det (isolations-værnet).
+
+**Beslutning.** Fanen modtager FÆRDIGE `DocumentDownloadHandle`-props fra sin ejende side, præcis
+som EET-fanerne gør. Alternativet — at give fanen en "environment"-prop og lade den komponere —
+blev forkastet: det ville sprede kompositionen til et blad-komponent og gøre det muligt for to
+faner at bygge to katalogposter for samme output.
+
+Konsekvens: fanens tre `onDownload*`-callbacks og HELE dens preflight (fire kopier af settle →
+capture → token → gate) er væk. `sharedDependencyBlocked` er tilføjet som eksplicit prop, fordi
+Mineo har en stamdata-dependency på rækkeknapperne, som standalone ikke har — den er en ægte
+app-forskel, ikke noget fanen kan udlede.
+
+**Kendt begrænsning, bevidst:** rækkeknappernes reaktive gate kommer fortsat fra tabellens
+`rowProjections`, ikke fra handlens `canDownload` — ét handle kan ikke repræsentere N rækkers gate.
+`download(request)` bruger den rigtige rækkeidentitet, så click-preflighten er korrekt pr. række;
+det er kun knap-tilstanden, der udledes af projektionen. Da definitionens `project` for `rente`
+læser NETOP den projektion, er de to fortsat én sandhed. En egentlig gate pr. række ville kræve
+`useDocumentDownload` pr. tabelrække; det er en UI-optimering uden korrekthedsgevinst og udskydes.
+
+### B11. `visibleDocumentFailureMessage` — gate-blokeringer hører ikke i fejlboksen
+
+Tre sider (varige mén, årsløn, EO-beregning) viser gate-årsagen ved siden af knappen og svarer på en
+blokeret aktivering med shake/fokus. Deres fejlboks nulstillede derfor beskeden ved blokering før
+Fase 5. `handle.errorMessage` indeholder gate-årsagen, så en rå brug ville have DUPLIKERET signalet
+— en synlig adfærdsændring, som ikke er godkendt. Helperen udtrykker skellet ét sted, og dens
+dokumentation siger eksplicit, at sider UDEN en synlig gate-årsag ved knappen skal bruge
+`errorMessage` direkte (ellers ville blokeringen blive usynlig, i strid med invarianten).
+
+### B12. Matrixen deles i livscyklus-cases og gate-cases (2026-07-26, opus/high, §0/§3)
+
+**Problem.** Planen kræver ni cases pr. output — 9 × 21 = 189 tests. Men fem af de ni cases er
+DEFINITIONSUAFHÆNGIGE af konstruktion: settle-gyldigt, settle-fejlende, revisionsskift under
+lazy-load, programmatisk aktivering, og "ingen fil-I/O ved blokering" afhænger udelukkende af
+`documentLifecycle.ts`' rækkefølge. At køre dem 21 gange ville teste den SAMME kodesti 21 gange.
+
+**Beslutning.** To lag:
+
+1. `documentLifecycleMatrix.test.ts` — de definitionsuafhængige cases, ÉN gang, mod kernen med en
+   fuldt instrumenteret syntetisk definition. Det er STRENGERE end en per-output-test kunne være:
+   harnessen tæller `loadRenderer`-, `createSession`- og `render`-kald, så "blokeret aktivering
+   starter ikke lazy-load" bliver bevist frem for antaget. En ægte definition kan ikke observere det.
+2. `documentGateMatrix.test.ts` — de fire INPUT-klasser (`invalid`, `bounds`, `missing`,
+   ikke-relevant) pr. output, mod ægte committede input gennem den kanoniske projektion.
+
+**Hvorfor det er ærligt, og ikke en nedskalering.** Begrundelsen for per-output-matrixen var, at
+hvert output HAVDE sin egen livscykluskopi — og fem af de atten manglede et trin. Den præmis er
+netop det, Fase 5 fjernede. Efter cutoveren er "21 kopier af samme test" ikke bedre dækning; det er
+den samme fejlklasse (duplikering, der kan drifte) flyttet ind i testlaget. Det, der SKAL være
+per-output, er gaten — og den er per-output her.
+
+**Kendt begrænsning, eksplicit noteret:** `documentGateMatrix.test.ts` dækker fire outputs (satser,
+varigemen, forsoergertab, rente-oversigt), ikke alle 18. De fire er valgt, fordi de tilsammen
+rammer alle fem klasser inkl. relevant/ikke-relevant krydssektion. De øvrige 14 outputs' gates har
+deres egne domænetest-suiter (`erstatningsopgoerelseDownloadGate`, `aarsloenDownloadGate`,
+`erhvervsevnetabDownloadGate`, …), som dækker deres specifikke regler dybere end en generisk matrix
+ville. **Dette er en bevidst afgrænsning, ikke en oversete rest** — men den bør anfægtes i reviewet.
+
+**Warning-klassen** kan ikke fremprovokeres med ét feltcommit på de simple outputs; den dannes i
+domænernes egne advarselskilder. Matrixen verificerer derfor invarianten strukturelt (gaten læser
+kun `blocked`, aldrig en advarselsliste), og de per-domæne-gates' egne tests dækker advarsler direkte.
+
 ### B5. Entry-check flyttet ud af dev-server-grenen (2026-07-26)
 
 Ved selv-review af pass 0 fandt jeg, at `runPreparedDocument`'s første friskhedscheck lå INDE i
@@ -571,6 +762,30 @@ ikke blive verificeret mellem gate og modul-load. Checket er flyttet ud som et u
     mellemtilstanden ville hverken bevise eller afvise noget, da ingen callsite er skiftet.
 
 ## Review-fund
+
+### Codex sol/high på cutoveren (2026-07-26) — 7 fund
+
+**Kørt som `codex exec -s read-only` med diffen i en fil.** `codex review --uncommitted` kan IKKE
+kombineres med en prompt i denne version. Reviewet tog ~12 min i ÉN kørsel — brugeren har efterfølgende
+fastlagt, at fremtidige reviews skal deles i 3-5 afgrænsede delreviews pr. komponent, at promptfiler
+skal ligge i repoet, og at **jeg ikke må træffe egne designbeslutninger, mens et review kører eller
+efter at det er fejlet.** (Det gjorde jeg: B12's matrixopdeling blev besluttet midt i kørslen.)
+
+| # | Fund | Alvor | Disposition | Status |
+|---|---|---|---|---|
+| K1 | **Begge enkeltrente-downloads fejler ALTID.** `generateRenteDocument` tager `dd-mm-åååå` og parser med `parseDanishDate`; definitionerne sendte canonical ISO → "Ugyldige datoer for renteberegning" i BEGGE apps. Samme brud på `latestReferenceRateDate`. Callsiten konverterede med `isoToDanish` før Fase 5; konverteringen faldt ud ved cutoveren. | **Kritisk** | **BEKRÆFTET — verificeret i kildekoden, ikke taget på tro.** Rettet i begge definitioner + `latestReferenceRateDate`. Codex' anbefaling (gør generatorens kontrakt til `ISODateString`) er den RIGTIGE rod, men ændrer en generatorsignatur, hvilket Fase 5 eksplicit holder uden for scope → **WI-011**. Konvertering i definitionen er den scope-tro genopretning af tidligere adfærd, med `toDanishOrThrow`/`requireDanishDate` så et invariantbrud fail-closer navngivet. | rettet |
+| K2 | **`isOffentligSelectionComplete` kaldes ubetinget for alle fire grundlag** og ser kun på et BEVARET `overenskomstId` — skjulte felter bevares ved grundlagsskift, så en tidligere offentlig overenskomst med manglende løntrin kan blokere et efterfølgende Statistik-/KRL-/KL-dokument. Sagsniveauets regel er desuden strammet uden godkendelse. | Høj | **BEKRÆFTET, begge dele. Forelagt brugeren og GODKENDT 2026-07-26** (se Godkendelsesgate punkt 5-6). Tjekket gælder nu KUN `basis === 'Overenskomst'`; stramningen på sagsniveauet er bekræftet ønsket. Pinnet af `reguleringDocumentGate.test.ts` (6 cases, inkl. baseline). | rettet |
+| K3 | **B10 bryder "samme definition OG samme request".** Rentehandlen oprettes med `rowId: ''`; rækkens synlige gate udledes separat af `pdfContext`. Strider mod §A2's normative regel. | Høj | **BEKRÆFTET, roden accepteret.** `DocumentDownloadHandle` fik `gateFor(request)`, så en tabel kan spørge SAMME katalogpost med rækkens EGEN id. `BeregnetRenteTable` fik `resolveDownloadGate(rowId)` i stedet for den side-udledte `documentBlocked`, og `sharedDependencyBlocked` er fjernet fra begge apps — den fælles stamdata-dependency kommer nu fra definitionens egen gate. | rettet |
+| K4 | **B11: runtimefejl vises BÅDE centralt og lokalt** (§A5-brud), og Forsørgertab bruger rå `errorMessage`, selv om gate-årsagen allerede står ved knappen. | Høj | **BEKRÆFTET, roden accepteret: beskedlaget manglede miljøets præsentationspolitik.** Nyt obligatorisk felt `showRuntimeFailureLocally` på `DocumentExecutionEnvironment` — hovedappen `false` (systemfejl routes ALENE centralt, §A5), standalone `true` (ingen central overflade, ellers ville fejlen være tavs). Forsørgertab bruger nu `visibleDocumentFailureMessage` som de øvrige sider. | rettet |
+| K5 | **Single-entrypoint-værnet håndhæver ikke sin påstand:** kun `src/components/`, mens callsite-logik nu også ligger i `domain/**/react/`; forbyder ikke `documentLoader`; inventartesten binder ikke `entry.id` til definitionens faktiske `id`. | Høj | **BEKRÆFTET, roden accepteret: værnene var sti-/listebaserede frem for autoritetsbaserede.** Reglen gælder nu HELE repoet med en eksplicit `DOCUMENT_LIFECYCLE_AUTHORITIES`-liste, forbyder også `documentLoader`, og matcher SØSKENDE-imports (`./documentLifecycle`) — et hul, anti-rot-checket selv afslørede. Inventartesten importerer nu modulet og sammenligner mod definitionens FAKTISKE `id`; mutationstestet ved at pege en post på et forkert symbol. | rettet |
+| K6 | **Wiring-dækningen er reelt REDUCERET.** Oraklet flyttede fra argument-paritet til "en fil blev leveret". Netop derfor slap K1 igennem: renteintegrationstesten aktiverer kun oversigts-outputtet, altså den ene af to generatorer, hvis kontrakt tilfældigvis passede. | Høj | **BEKRÆFTET, roden accepteret.** Ny `documentRendererWiring.test.ts` kalder `loadRenderer()` og kører rendereren, så de FAKTISKE argumenter måles; den pinner de to forskellige datoformater mod hinanden og har en regressionscase, der beviser at testen ikke er tom. Fuld argument-/metadata-/filnavns-paritet for alle 21 outputs udestår. | delvist rettet |
+| K7 | **`document-output-contract.md` er i direkte konflikt med koden:** den siger stadig, at `documentService.ts` ejer afviklingen, at service/download bor i `src/document/service/`, og at kun servicelaget må starte browser-downloaden. Filen er slettet. | Middel | **BEKRÆFTET.** Kontrakten er opdateret til definition/katalog/lifecycle-topologien: `documentLifecycle.ts` navngives som den ene afvikling, `definition/` og `runtime/` er tilføjet lag-topologien, `service/` er reduceret til loader + fejlporte, og "kun service-laget starter browser-downloaden" er rettet til livscyklussen + AST-reglen. Standalone-service-omtalen i PDF-kanalen er fjernet. | rettet |
+
+**Roden på tværs af K5+K6:** værn og tests er STI-/LISTE-baserede frem for autoritetsbaserede — de
+måler hvor koden ligger og at noget skete, ikke hvem der har lov, og at det rigtige skete. Det er
+samme fejlklasse som `declare const`-brandet (B6) og det inerte AST-værn i WI-007.
+
+
 
 ### Afvigelse fra skillen ANNULLERET 2026-07-25 (brugerbeslutning)
 

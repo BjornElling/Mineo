@@ -7,7 +7,16 @@ import {
   type ErhvervsevnetabTabKey,
 } from '../../domain/erhvervsevnetab/eetIssueNavigation';
 import { buildErhvervsevnetabReaderProjection } from '../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
-import { evaluateErhvervsevnetabDownloadGates } from '../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
+import {
+  differencekravDocumentDefinition,
+  efterEalDocumentDefinition,
+  kapitaliseringDocumentDefinition,
+  loebendeYdelserDocumentDefinition,
+} from '../../domain/erhvervsevnetab/eetDocumentDefinitions';
+import {
+  useMineoDocumentOutput,
+  useMineoDocumentSourceContext,
+} from '../../document/runtime/react/useMineoDocumentOutput';
 import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
 import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
@@ -27,10 +36,14 @@ const Erhvervsevnetab = React.memo(() => {
     () => buildErhvervsevnetabReaderProjection(evaluation.reader),
     [evaluation]
   );
-  const downloadGates = React.useMemo(
-    () => evaluateErhvervsevnetabDownloadGates(projection),
-    [projection]
-  );
+  // ÉN kildekontekst for alle fire dokumentoutputs. Definitionerne deler EET-projektionen og
+  // gate-sættet gennem `context.shared`, så de fire knapper tilsammen kun betaler for én evaluering
+  // pr. revision — ikke fire.
+  const documentContext = useMineoDocumentSourceContext();
+  const loebendeYdelserDownload = useMineoDocumentOutput(loebendeYdelserDocumentDefinition, undefined, documentContext);
+  const kapitaliseringDownload = useMineoDocumentOutput(kapitaliseringDocumentDefinition, undefined, documentContext);
+  const efterEalDownload = useMineoDocumentOutput(efterEalDocumentDefinition, undefined, documentContext);
+  const differencekravDownload = useMineoDocumentOutput(differencekravDocumentDefinition, undefined, documentContext);
   const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
     pageId: 'erhvervsevnetab',
     allowedTabs: [
@@ -65,28 +78,28 @@ const Erhvervsevnetab = React.memo(() => {
         <EetLoebendeYdelserTab
           onGoToEetOplysninger={goToOplysninger}
           projection={projection}
-          downloadGate={downloadGates.loebendeYdelser}
+          download={loebendeYdelserDownload}
         />
       )}
       {activeTab === TAB_KEYS.KAPITALISERING && (
         <EetKapitaliseringTab
           onGoToEetOplysninger={goToOplysninger}
           projection={projection}
-          downloadGate={downloadGates.kapitalisering}
+          download={kapitaliseringDownload}
         />
       )}
       {activeTab === TAB_KEYS.EET_EAL && (
         <EetEfterEalTab
           onGoToEetOplysninger={goToOplysninger}
           projection={projection}
-          downloadGate={downloadGates.efterEal}
+          download={efterEalDownload}
         />
       )}
       {activeTab === TAB_KEYS.DIFFERENCEKRAV && (
         <EetDifferencekravTab
           onGoToEetOplysninger={goToOplysninger}
           projection={projection}
-          downloadGate={downloadGates.differencekrav}
+          download={differencekravDownload}
         />
       )}
     </Box>

@@ -19,6 +19,7 @@
 import type { DocumentDefinition } from './documentDefinition';
 import type { DocumentExecutionEnvironment } from './documentExecutionEnvironment';
 import { executeDocumentDownload } from './documentLifecycle';
+import { resolveDocumentOutcomeMessage } from './documentMessages';
 import type { DocumentGateReasons, DocumentOutcome } from './documentOutcome';
 import type { DocumentOutputId } from './documentOutputId';
 import type { DocumentSourceContext } from './documentSourceContext';
@@ -45,6 +46,19 @@ export type DocumentOutput<TRequest, TSettings> = Readonly<{
    */
   evaluateGate: (context: DocumentSourceContext<TSettings>, request: TRequest) => DocumentGateSnapshot;
   download: (request: TRequest) => Promise<DocumentOutcome>;
+  /**
+   * Den brugerrettede besked for et udfald, eller `null` når der intet er at vise.
+   *
+   * Ligger på katalogposten frem for hos konsumenten, fordi beskeden kræver BÅDE definitionens
+   * `labels` og miljøets formatpolitik — to ting, en side hverken bør kende eller kunne komme til at
+   * kombinere forkert. Før Fase 5 skrev hver side sin egen "Kunne ikke generere …"-tekst, og
+   * servicelaget omskrev den bagefter med en global `/PDF/g`-substitution.
+   *
+   * `settings` er kaldertidens settings (render-tidens kontekst). Formatet i beskeden er altså det,
+   * brugeren ville få NU — hvilket er det rigtige, fordi beskeden vises efter aktiveringen og
+   * beskriver, hvad der ville ske ved et nyt forsøg.
+   */
+  resolveOutcomeMessage: (outcome: DocumentOutcome, settings: TSettings) => string | null;
 }>;
 
 /**
@@ -65,4 +79,10 @@ export const closeDocumentDefinition = <TRequest, TInput, TSettings, TBrevhovedK
         : { canDownload: false, reasons: projected.reasons };
     },
     download: (request) => executeDocumentDownload(definition, request, environment),
+    resolveOutcomeMessage: (outcome, settings) => resolveDocumentOutcomeMessage(
+      outcome,
+      definition.labels,
+      environment.resolveFormat(settings),
+      environment.showRuntimeFailureLocally
+    ),
   });

@@ -40,7 +40,6 @@ import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erst
 import { getOverenskomstMetaById } from '../../../../../data/overenskomstRates';
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../../data/statistiskeRates';
 import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/formSchemas';
-import { amountValueToNumber } from '../../../../../utils/expressionAmount';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
@@ -77,11 +76,8 @@ export default function IndtaegtFoerSkadenSection() {
     loenudviklingBaseDateErrorMessage,
     loenudviklingBaseDateReferenceText,
     shouldShowReguleringsDatoInterval,
-    reguleringsDatoIntervalData,
     reguleringsDatoIntervalDisplay,
-    handleDownloadKRLPdf,
-    handleDownloadKlLoenaftalerPdf,
-    handleDownloadReguleringPdf,
+    reguleringDocument,
     showEoAnciennitetstillaegSection,
     eoAnciennitetSatsPerTekst,
     loentrinFinder,
@@ -623,62 +619,22 @@ export default function IndtaegtFoerSkadenSection() {
                     <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
                     <Box className="row--label-right-hover__content">
                       <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
-                        {(() => {
-                          const hasReguleringsDatoInterval =
-                            Boolean(reguleringsDatoIntervalData?.fraDato) && Boolean(reguleringsDatoIntervalData?.tilDato);
-                          const offentligReady =
-                            !erOffentligOverenskomst
-                            || (
-                              typeof eoLoenudvikling.offentligLoenTrin === 'number'
-                              && typeof eoLoenudvikling.offentligLoenGruppe === 'number'
-                            );
-                          const canDownload =
-                            hasReguleringsDatoInterval &&
-                            (loenudviklingBasis !== 'Overenskomst' || offentligReady);
-                          return (
-                            <>
-                              <Typography className="row--text" sx={{ textAlign: 'right' }}>
-                                {reguleringsDatoIntervalDisplay || '-'}
-                              </Typography>
-                              <Box>
-                                <DocumentDownloadButton
-                                  disabled={!canDownload}
-                                  onClick={() => {
-                                    if (!reguleringsDatoIntervalData) return;
-                                    if (loenudviklingBasis === 'KRL satstabel') {
-                                      void handleDownloadKRLPdf();
-                                      return;
-                                    }
-                                    if (loenudviklingBasis === 'KL-lønaftaler') {
-                                      void handleDownloadKlLoenaftalerPdf();
-                                      return;
-                                    }
-                                    if (loenudviklingBasis !== 'Overenskomst' && loenudviklingBasis !== 'Statistik') {
-                                      return;
-                                    }
-                                    void handleDownloadReguleringPdf({
-                                      overenskomstLabel: (() => {
-                                        const id = eoLoenudvikling.overenskomstId;
-                                        if (!id) return '-';
-                                        const meta = getOverenskomstMetaById(id);
-                                        return meta?.navn ?? id;
-                                      })(),
-                                      loenudviklingBasis,
-                                      overenskomstId: eoLoenudvikling.overenskomstId,
-                                      statistikModelLabel: eoLoenudvikling.loenudviklingStatistikModel,
-                                      interval: reguleringsDatoIntervalData,
-                                      applyAlmindeligLoenPaaShDageRegel: eoLoenudvikling.loenPaaHelligdage === 'Almindelig løn',
-                                      offentligLoenType: eoLoenudvikling.offentligLoenType,
-                                      offentligLoenTrin: eoLoenudvikling.offentligLoenTrin,
-                                      offentligLoenGruppe: eoLoenudvikling.offentligLoenGruppe,
-                                      offentligLoenEkstraGrundloen: amountValueToNumber(eoLoenudvikling.offentligLoenEkstraGrundloen),
-                                    });
-                                  }}
-                                />
-                              </Box>
-                            </>
-                          );
-                        })()}
+                        {/*
+                          Knaptilstand OG outputvalg kommer fra `reguleringDocument` (Fase 5). Den
+                          side-lokale `canDownload`-IIFE og den `loenudviklingBasis`-switch, der før
+                          valgte mellem tre servicekald ved KLIK — altså før commit-barrieren — er
+                          erstattet af resolveren, som vælger efter settle på et frisk snapshot.
+                        */}
+                        <Typography className="row--text" sx={{ textAlign: 'right' }}>
+                          {reguleringsDatoIntervalDisplay || '-'}
+                        </Typography>
+                        <Box>
+                          <DocumentDownloadButton
+                            disabled={!reguleringDocument.canDownload}
+                            disabledReason={reguleringDocument.disabledReason}
+                            onClick={() => { void reguleringDocument.download(); }}
+                          />
+                        </Box>
                       </Box>
                     </Box>
                   </Box>
