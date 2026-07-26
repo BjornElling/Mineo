@@ -286,6 +286,41 @@ export const collectTypeAssertions = (entry: SourceEntry): readonly TypeAssertio
   return refs;
 };
 
+export type IdentifierRef = Readonly<{
+  text: string;
+  node: ts.Identifier;
+  position: CodePosition;
+}>;
+
+/**
+ * Alle identifiers i filen — den kanoniske kilde til "bruges dette navn?".
+ *
+ * Bevidst AST-baseret: kommentarer er ikke noder, så en historik-kommentar om en slettet mekanisme
+ * kan pr. konstruktion ikke flages ([[project_dansk_prosa_guard_markers]]). Strengliteraler er heller
+ * ikke identifiers, så et manifest der NÆVNER navnene som data, rammes ikke.
+ */
+export const collectIdentifiers = (entry: SourceEntry): readonly IdentifierRef[] => {
+  const { ast } = entry;
+  const refs: IdentifierRef[] = [];
+
+  walk(ast, (node) => {
+    if (!ts.isIdentifier(node)) return;
+    refs.push({ text: node.text, node, position: positionOf(ast, node) });
+  });
+
+  return refs;
+};
+
+/**
+ * Bruges navnet som identifier i filen?
+ *
+ * Delt af forbudt-identifier-gatens `find` OG dens fraværsbevis, så de to ikke kan drifte: en gate,
+ * der måler navnet på én måde og beviser fraværet på en anden, kan være grøn i begge ender og alligevel
+ * forkert i midten.
+ */
+export const hasIdentifier = (entry: SourceEntry, name: string): boolean =>
+  collectIdentifiers(entry).some((ref) => ref.text === name);
+
 /**
  * Opløser en relativ import-specifier til en repo-relativ posix-sti (uden extension),
  * fx (`src/domain/x/y.ts`, `../../eoInspektion/z`) → `src/domain/eoInspektion/z`.

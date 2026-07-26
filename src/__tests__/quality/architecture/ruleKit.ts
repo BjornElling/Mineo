@@ -56,21 +56,59 @@ export type LiveTarget =
    * FORUDSÆTNINGSREGEL: reglen kigger kun på filer, der gør noget bestemt (udløser en download,
    * renderer et felt, tilgår en sektion). Findes den slags fil ikke længere, er reglen inert.
    * `probe` svarer på "har grafen stadig en fil, jeg ville KONTROLLERE?" — uafhængigt af, om
-   * filen overtræder. Nul probe-hits = dødt værn.
+   * filen overtræder.
+   *
+   * `minimumMatches` og `requiredPaths` lukker de to huller en ren "≥1 hit"-kontrol havde:
+   * - Et SAMMENSAT mål (fx "alle fire reader-projektioner") var opfyldt, så snart ÉN fil matchede.
+   *   Sletning af de tre andre var derfor usynlig. `requiredPaths` navngiver de filer, målet
+   *   forudsætter, og hver enkelt skal både findes OG matche proben.
+   * - En regel, hvis mål naturligt findes mange steder, kunne skrumpe til én tilfældig rest uden
+   *   at nogen bemærkede det. `minimumMatches` sætter gulvet eksplicit.
    */
-  | Readonly<{ kind: 'precondition'; probe: (entry: SourceEntry) => boolean; rationale: string }>
+  | Readonly<{
+    kind: 'precondition';
+    probe: (entry: SourceEntry) => boolean;
+    rationale: string;
+    /** Mindste antal filer proben skal ramme (default 1). */
+    minimumMatches?: number;
+    /** Filer målet forudsætter. Hver skal findes i grafen OG opfylde proben. */
+    requiredPaths?: readonly string[];
+  }>
   /**
    * FRAVÆRSREGEL: nul hits ER den ønskede tilstand (forbudte imports, døde symboler). Her kan
-   * "reglen rammer noget" ikke bruges som liveness-bevis. I stedet skal reglen navngive, hvad
-   * den forbyder, så `deletedLegacyAbsence.test.ts` kan bevise, at hvert navn faktisk er
-   * fraværende — og reglen ikke stille skifter til at forbyde noget, der aldrig fandtes,
-   * fordi navnet er stavet forkert.
+   * "reglen rammer noget" ikke bruges som liveness-bevis.
+   *
+   * `forbids` navngiver hvad reglen forbyder, og `verifyAbsent` er kontrollen, harnesset kører for
+   * HVERT navn. Kontrollen er nu generisk og obligatorisk: tidligere lå den i en separat testfil,
+   * der kun kendte nogle af arterne, så et forkert stavet navn ("useRowDraftz") kunne "bevises
+   * fraværende" lige så nemt som det rigtige. Nu skal reglen selv kunne svare på, hvordan et navn
+   * eftervises — og et navn, der ikke KAN findes i nogen form, er en fejl i reglen, ikke et bevis.
    */
-  | Readonly<{ kind: 'absence'; forbids: readonly string[]; rationale: string }>
+  | Readonly<{
+    kind: 'absence';
+    forbids: readonly string[];
+    rationale: string;
+    /**
+     * Findes navnet stadig i grafen i den form, reglen forbyder? Skal returnere `false` for hvert
+     * navn i `forbids` — ellers ER der en overtrædelse, som `evaluate` burde have fanget.
+     *
+     * Harnesset kører desuden en MODSAT kontrol: navnet skal kunne findes i en syntetisk fil, der
+     * bruger det. Ellers er prædikatet (eller stavemåden) forkert, og fraværet er vakuøst.
+     */
+    verifyAbsent: (name: string, entries: readonly SourceEntry[]) => boolean;
+    /**
+     * Syntetisk kildekode, der BRUGER navnet, så harnesset kan bevise at `verifyAbsent` faktisk
+     * kan svare nej. `name` interpoleres ind.
+     */
+    absenceProbeCode: (name: string) => string;
+  }>
   /**
    * SCOPEBUNDET regel: reglens eksistensberettigelse ER dens scope-rod. Findes roden, har
    * reglen et mål; forsvinder roden, er reglen død. Kontrolleres af scan-rod-kontrollen,
    * som samtidig fanger mappeflytninger, der ellers tavst indsnævrer et scope.
+   *
+   * ALLE rødder skal findes — ikke bare én. En regel med to rødder, hvor den ene er slettet,
+   * scanner halvt så meget som konfigurationen påstår.
    */
   | Readonly<{ kind: 'scoped'; roots: readonly string[]; rationale: string }>;
 
@@ -110,9 +148,15 @@ type RuleConfig = Readonly<{
   appliesTo?: (relativePath: string) => boolean;
   /** Repo-relative stier der er eksplicit undtaget (auditerede undtagelser). */
   allow?: readonly string[];
-  /** Håndhæv at hver allow-post stadig udløser reglen (default: false). */
-  /** Finder overtrædelser i én fil. */
-  find: (entry: SourceEntry) => readonly Finding[];
+  /**
+   * Finder overtrædelser i én fil.
+   *
+   * `graph` er HELE kilde-grafen, når reglen evalueres over produktionen, og kun fixture-filen selv
+   * under fixture-selvtesten. En regel, hvis grænse afhænger af importGRAFEN (transitiv kobling,
+   * facade-stier), bruger den; en rent lokal regel ignorerer den. Uden den kunne en grænse omgås ved
+   * at flytte koblingen ét modul væk — reglen ville se en ren fil og være tavs.
+   */
+  find: (entry: SourceEntry, graph: readonly SourceEntry[]) => readonly Finding[];
   violatingFixtures: readonly RuleFixture[];
   cleanFixtures: readonly RuleFixture[];
 }>;
@@ -126,7 +170,9 @@ export const defineRule = (config: RuleConfig): ArchitectureRule => {
     description: config.description,
     liveTarget: config.liveTarget,
     allow: allowList,
-    findInFile: config.find,
+    // Anti-rot ser kun filen selv: en allow-post skal kunne begrundes lokalt, uden at hele grafen
+    // afgør om undtagelsen stadig gælder.
+    findInFile: (entry) => config.find(entry, [entry]),
     violatingFixtures: config.violatingFixtures,
     cleanFixtures: config.cleanFixtures,
     evaluate: (entries) => {
@@ -134,7 +180,7 @@ export const defineRule = (config: RuleConfig): ArchitectureRule => {
       for (const entry of entries) {
         if (config.appliesTo && !config.appliesTo(entry.relativePath)) continue;
         if (allow.has(entry.relativePath)) continue;
-        for (const finding of config.find(entry)) {
+        for (const finding of config.find(entry, entries)) {
           violations.push({
             ruleId: config.id,
             relativePath: entry.relativePath,

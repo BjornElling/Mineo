@@ -164,4 +164,62 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
       'Exitkriterie 1: ingen permanent compatibility-facade, fallback eller dual-read under src/.'
     ).toEqual([]);
   });
+
+  /**
+   * NAVNEUAFHÆNGIG facade-detektion (Fase 6, genåbnet).
+   *
+   * Kontrollen ovenfor leder efter `@deprecated` og efter `Legacy`/`Compat` i EKSPORTNAVNE. Den kunne
+   * derfor ikke se de facader, der faktisk fandtes: tre filer, som selv erklærede deres formål i en
+   * kommentar ("Compat wrapper", "så eksisterende imports er uændrede", "for bagudkompatibilitet"),
+   * men eksporterede neutralt navngivne symboler videre fra det kanoniske modul.
+   *
+   * Denne kontrol måler STRUKTUREN i stedet for navnet: en fil, hvis hele offentlige flade er
+   * `export … from '<andet modul>'`, tilføjer ingen betydning — den holder kun en gammel importsti
+   * i live. Det er præcis definitionen på en compatibility-facade.
+   *
+   * BEVIDST undtaget er ægte pakke-/barrel-grænser: `index.ts` og de navngivne `*Descriptors`-/
+   * katalog-barrels er MENINGSFULDE offentlige flader, hvor viderelevering ER opgaven. En barrel er
+   * kendetegnet ved at samle FLERE moduler; en facade viderefører ét.
+   */
+  it('ingen produktionsfil er en ren re-export-facade (struktur, ikke navn)', () => {
+    const entries = getSourceGraph();
+    const facades: string[] = [];
+
+    for (const entry of entries) {
+      if (entry.relativePath.startsWith('src/__tests__/')) continue;
+      // Barrels: en fil, hvis opgave ER at samle en offentlig flade.
+      if (/(?:^|\/)index\.tsx?$/.test(entry.relativePath)) continue;
+
+      const sourceFile = entry.ast;
+      let reExportModules = 0;
+      let ownDeclarations = 0;
+
+      for (const statement of sourceFile.statements) {
+        if (ts.isExportDeclaration(statement) && statement.moduleSpecifier !== undefined) {
+          reExportModules += 1;
+          continue;
+        }
+        // Imports og type-aliaser alene gør ikke en fil meningsfuld; alt andet på topniveau gør.
+        if (ts.isImportDeclaration(statement)) continue;
+        const isExported = ts.canHaveModifiers(statement)
+          && ts.getModifiers(statement)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) === true;
+        if (isExported || ts.isVariableStatement(statement) || ts.isFunctionDeclaration(statement)) {
+          ownDeclarations += 1;
+        }
+      }
+
+      // En facade: viderefører præcis ÉN kilde og har intet eget indhold. Videreførsel af flere
+      // moduler er en barrel (en samlet flade), og eget indhold gør filen til et rigtigt modul.
+      if (reExportModules === 1 && ownDeclarations === 0) {
+        facades.push(entry.relativePath);
+      }
+    }
+
+    expect(
+      facades,
+      'Exitkriterie 1: en fil, hvis hele flade er ét `export … from`, holder kun en gammel importsti '
+        + 'i live. Opdatér consumers til det kanoniske modul og slet filen. (En ægte offentlig '
+        + 'pakkegrænse samler flere moduler og hedder `index.ts`.)'
+    ).toEqual([]);
+  });
 });

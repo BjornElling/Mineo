@@ -22,7 +22,8 @@ typed dokumentdefinition
 disabled    PreparedDocument<T> + revision
 knap           │
                ▼
-        documentService
+  documentLifecycle
+ (ét entrypoint)
                │
                ▼
         defineDocument(...)
@@ -77,12 +78,15 @@ feltet og den eksisterende danske advarsel vises kun som sidste sikkerhedsværn.
 Efter async lazy-load og umiddelbart før generatoren kontrollerer servicen revisionen igen. En stale preparation
 afvises eller genpreflights.
 
-## Domæne- og servicelag
+## Domæne- og livscykluslag
 
 Domænelaget leverer ready input-/snapshotprojektioner. Det genberegner ikke i dokumentlaget.
 
-`documentService` ejer kun serialisering af flowet, lazy-load, render/download og runtimefejl. Det ejer ikke callbacks
-med skjult domænepolicy, dependencies eller gates.
+**Der findes ikke længere et servicelag.** Fase 5 slettede `documentService.ts` og lagde dets ansvar i
+`documentLifecycle.ts` — det ENE entrypoint, som `document/lifecycle-single-entrypoint` håndhæver.
+Livscyklussen ejer kun serialisering af flowet, lazy-load, render/download og runtimefejl. Den ejer ikke
+callbacks med skjult domænepolicy, dependencies eller gates; formatvalget kommer fra dokumentmiljøets
+`resolveFormat` (`document-format-contract.md` §3).
 
 Generatorerne under `src/document/generators/` ejer dokumentets semantiske struktur og danske tekst. De modtager
 godkendt input og defineres med `defineDocument(...)`.

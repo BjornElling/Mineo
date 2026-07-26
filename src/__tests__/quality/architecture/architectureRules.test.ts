@@ -88,17 +88,63 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
 
     for (const rule of ARCHITECTURE_RULES) {
       if (rule.liveTarget.kind !== 'precondition') continue;
-      const { probe, rationale } = rule.liveTarget;
-      if (!entries.some((entry) => probe(entry))) {
+      const { probe, rationale, minimumMatches = 1, requiredPaths = [] } = rule.liveTarget;
+      const matches = entries.filter((entry) => probe(entry));
+      if (matches.length < minimumMatches) {
         dead.push(
-          `${rule.id}: INERT — ingen fil i grafen opfylder reglens forudsætning (${rationale}). `
-          + 'Omskriv reglen mod det nuværende mål, eller slet den. En regel, hvis eneste bevis er '
-          + 'dens egne fixtures, er falsk tryghed.'
+          `${rule.id}: INERT — kun ${matches.length} af mindst ${minimumMatches} filer i grafen opfylder `
+          + `reglens forudsætning (${rationale}). Omskriv reglen mod det nuværende mål, eller slet den. `
+          + 'En regel, hvis eneste bevis er dens egne fixtures, er falsk tryghed.'
         );
+      }
+      // Sammensatte mål: HVER forudsat fil skal findes og matche. Ellers er reglen halvt død, mens
+      // "≥1 hit" fortsat er opfyldt af de overlevende filer.
+      const matched = new Set(matches.map((entry) => entry.relativePath));
+      for (const requiredPath of requiredPaths) {
+        if (!matched.has(requiredPath)) {
+          const exists = entries.some((entry) => entry.relativePath === requiredPath);
+          dead.push(
+            `${rule.id}: målet forudsætter ${requiredPath}, men filen `
+            + `${exists ? 'opfylder ikke længere proben' : 'findes ikke i grafen'} (${rationale}).`
+          );
+        }
       }
     }
 
     expect(dead).toEqual([]);
+  });
+
+  // Fraværsregler: kontrollen er nu GENERISK og obligatorisk, og den kører i BEGGE retninger.
+  //
+  // Retning 1 (fravær): hvert forbudt navn skal være fraværende i grafen.
+  // Retning 2 (prædikatet virker): navnet skal kunne FINDES i en syntetisk fil, der bruger det.
+  //   Uden den retning kunne en stavefejl — `useRowDraftz` i stedet for `useRowDrafts` — "bevises
+  //   fraværende" lige så let som det rigtige navn, og reglen ville være vakuøst grøn.
+  it('dødt værn: hvert forbudt navn er beviseligt fraværende — og prædikatet kan finde det', { timeout: 120000 }, () => {
+    const entries = getSourceGraph();
+    const problems: string[] = [];
+
+    for (const rule of ARCHITECTURE_RULES) {
+      if (rule.liveTarget.kind !== 'absence') continue;
+      const { forbids, rationale, verifyAbsent, absenceProbeCode } = rule.liveTarget;
+      expect(forbids.length, `${rule.id}: fraværsregel uden forbudte navne`).toBeGreaterThan(0);
+
+      for (const name of forbids) {
+        if (!verifyAbsent(name, entries)) {
+          problems.push(`${rule.id}: "${name}" findes stadig i grafen (${rationale}).`);
+        }
+        // Modsat retning: prædikatet SKAL kunne se navnet, når det faktisk bruges.
+        const probeEntry = makeSyntheticEntry('src/__absence_probe__.ts', absenceProbeCode(name));
+        if (verifyAbsent(name, [probeEntry])) {
+          problems.push(
+            `${rule.id}: "${name}" kan ikke FINDES af reglens eget prædikat, selv i en fil der bruger det. `
+            + 'Fraværet er derfor vakuøst — navnet er sandsynligvis stavet forkert eller hører til en anden art.'
+          );
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
   });
 
   // Scan-rødder: en regels scope-præfiks skal svare til en mappe, der faktisk findes. Et forældet

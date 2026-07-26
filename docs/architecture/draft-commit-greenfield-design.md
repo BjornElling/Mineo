@@ -1582,7 +1582,14 @@ For blokerede cases beviser testen, at der ikke sker lazy-load, generatorimport 
 
 ### Fase 6 — Bekræft legacyfjernelse og håndhæv grænserne
 
-**Status:** Gennemført 2026-07-26 (WI-012).
+**Status:** Gennemført 2026-07-26 (WI-012), **genåbnet og lukket igen 2026-07-26** efter eksternt review.
+
+Den første lukning opfyldte ikke exitkriteriet om reelt lukkede grænser: brede capabilities var fortsat
+offentlige (Zustands `setState`, én flad runtime-binding), mens syntaktiske værn forsøgte at holde dem
+sikre — og EO bar stadig en parallel legacy-fejlalgebra. Afsnittene nedenfor beskriver den endelige
+tilstand; hvert sted hvor genåbningen ændrede en tidligere konklusion, står den oprindelige begrundelse
+og hvorfor den var forkert. Det er bevidst: fejlmønstret (klassificér efter tekstsøgning, bevogt en åben
+capability frem for at fjerne den) er selve grunden til at fasen skulle åbnes igen.
 
 **Afhængighed:** Fase 1–5.
 
@@ -1625,28 +1632,44 @@ FEJLE på de kendte forfald, før de blev rettet.
 
 ##### Korrigeret forbudt-symbol-liste
 
-Planens oprindelige liste kan ikke bruges som skrevet. **`fieldErrors` og `blocksSave` er UDGÅET**,
-fordi de er levende greenfield-vokabular: `fieldErrors` bruges i ~12 produktionsmoduler (snapshots,
-reader-projektioner, download-gates) som feltnavn i snapshot-/projektionskontrakterne, og `blocksSave`
-er EO's levende navn i `eoInputIssues.ts`. At forbyde dem ville tvinge en kosmetisk omdøbning igennem
-uden gevinst.
+Planens oprindelige liste kan ikke bruges som skrevet, men den FØRSTE korrektion var selv delvist forkert
+og er rettet ved fasens genåbning.
+
+**`blocksSave` er tilbage på listen.** Første runde udelod navnet med begrundelsen "levende navn i
+`eoInputIssues.ts`". Det var faktuelt forkert: navnet fandtes kun i kommentarer, som netop forklarede at
+booleanen ER slettet, og `error-contract.md` §1.1 forbyder normativt et sådant flag. Fejlen kom af at
+klassificere legacy efter tekstsøgning frem for efter den normative model — en tekstsøgning kan ikke skelne
+"navnet bruges" fra "navnet omtales".
+
+**`fieldErrors` er fortsat udeladt, og her holder begrundelsen:** det er et levende feltnavn i
+snapshot-/projektionskontrakterne (`eoErrors`/`stamdataErrors`-familien, download-gates). At forbyde det
+ville tvinge en kosmetisk omdøbning igennem uden gevinst.
 
 Gaten (`legacy/forbidden-identifier`) måler **AST-identifiers, ikke tekst**. Det er nødvendigt: de
 fleste navne optræder stadig i produktionen som KOMMENTARER, der forklarer hvorfor en mekanisme ikke
 findes længere. Den historik er bevidst dokumentation og bevares.
 
 ```text
-executeLegacyInputTransaction
-useDraftLifecycle
-legacyGridTransactionBridge
-useDraftField
-useTableInputCore
-useRowDrafts
-useSliceRowDrafts
-invalidDrafts
-FormPersistenceContext
-usePersistedForm
+executeLegacyInputTransaction   useDraftLifecycle        legacyGridTransactionBridge
+useDraftField                   useTableInputCore        useRowDrafts
+useSliceRowDrafts               invalidDrafts            FormPersistenceContext
+usePersistedForm                blocksSave               EoInputIssueSource
+EoFieldIssuesBySource           collectPresentFieldErrors
+InputWriteAuthority             claimInputWriteAuthority
 ```
+
+##### EO's parallelle fejlalgebra er fjernet (genåbning)
+
+`error-contract.md` §11 forbyder source-registre og syntetiske `invalid-draft`-entries. EO havde dem
+alligevel: en `source`-union (`'input' | 'schema' | 'rule' | 'invalid-draft'`), et source-keyed map pr. felt,
+en 4-vejs prioritetsliste og en `reasonToSource`, der eksplicit rekonstruerede en "legacy field-error
+source" fra readerens årsag. Første runde læste dette som legacy-NAVNE og lod det stå.
+
+Det var mere end navne: `InputReader.read` giver præcis ÉT issue pr. felt, så registrets fire kilder var en
+tom dimension, downstream-rækkemodellen alligevel skulle folde ud igen. Modellen er nu ét issue pr.
+feltnøgle, og de steder, hvor en RÆKKE kombinerer flere felter, siger kaldet hvilke
+(`presentIssuesForRow(a, b)`) frem for at skjule det i et registeropslag. Alle 2.016 EO-domænetests består
+uændret: kun formen ændrede sig, ikke en visning, et tal eller et gate-udfald.
 
 ##### Trin 2: inventaret er omklassificeret, ikke fjernet
 
@@ -1656,23 +1679,90 @@ GENERERES ved hver testkørsel fra de levende Zod-schemas (`toMatchFileSnapshot`
 Filen er i stedet flyttet til `src/__tests__/quality/__snapshots__/persistedInputSchemaPaths.json`
 (byte-identisk) og omdøbt efter sin funktion.
 
-##### Write-boundary: type først
+##### Write-boundary: fjern capabilityen, bevogt den ikke
 
-"Kun runneren skriver input" er lukket som TYPE: `applyCommit`/`hydrate` kræver et
-`InputWriteAuthority`-vidne med et `unique symbol`-brand, som kun `slimInputStore` kan udstede.
-`input/write-boundary`-reglen er sekundær og lukker de to huller typen ikke kan: en type-assertion,
-der forfalsker vidnet, og en uautoriseret kalder af udstederen.
+Første runde lukkede "kun runneren skriver input" med et brandet vidne (`InputWriteAuthority`) oven på en
+fortsat OFFENTLIG Zustand-`StoreApi`. **Det var den forkerte rækkefølge, og fasen blev genåbnet på det.**
+`setState` blev ved med at findes på den offentlige singleton, så enhver produktionsfil kunne skrive input
+uden schema-validering, storage, history eller revision; AST-værnet, der skulle holde den lukket, kunne
+omgås af et alias, en aliaseret type-assertion eller et direkte `store.setState(...)`.
+
+Rettelsen er strukturel: `SlimInputStore` er nu en HANDLE med navngivne, validerede transaktioner
+(`applyCommit`, `hydrate`, `restore`, `bumpSettingsRevision`), og Zustands `StoreApi` forlader aldrig
+`slimInputStore.ts`. Der findes ikke længere et `setState` at kalde, et vidne at forfalske eller en
+udsteder at aliasere — muligheden er fjernet frem for bevogtet. Læren er generel og gælder næste gang et
+brandet vidne foreslås: **kan capabilityen fjernes, så fjern den; et vidne oven på en åben capability er
+en aftale, ikke en grænse.**
+
+`input/write-boundary` er tilbage til det sekundære: den forbyder en nyimporteret rå Zustand-store til
+input og produktionsbrug af den isolerede testfabrik.
+
+##### Capability-opdeling: læs, redigér, system
+
+Fasen blev også genåbnet, fordi `useInputRuntime()` gav ENHVER consumer hele fladen: råt `SettledInput`,
+dispatch, sektionsreset, hel-sags-replacement, history, registry og kritiske handlinger. Den normative
+opdeling fandtes som kommentarer og typer på det samme objekt — ikke som adskilte capabilities.
+
+Bindingen er nu en komposition af tre porte, som hver hentes med sin egen hook:
+
+- **`InputReadPort`** (`useInputReadPort`) — tokenbundet reader, issue-snapshot, afsluttet revision.
+- **`InputEditPort`** (`useInputEditPort`) — felt-/rækkecommands + editorregistret. Kan ikke nulstille en
+  sektion eller erstatte sagen.
+- **`InputSystemPort`** (`useInputSystemPort`) — sektionsreset, replacement, history, kritiske handlinger.
+  Forbeholdt composition roots; producentlisten holdes lukket af `input/system-port-composition-root`.
+
+Dokumentlaget får sin egen navngivne `DocumentInputAccess` (kildeoptagelse + barriere) frem for et `Pick<>`
+af hele bindingen, og shellens devtools-diagnostik læser gennem en navngiven
+`inputDiagnosticsProjection` i stedet for at gribe ned i rå `sections` — det sidste rå sektionsopslag uden
+for inputkernen. `domain/raw-section-access-boundary` håndhæver at det bliver det sidste.
 
 "Persisted controls kræver konkrete refs" krævede tilsvarende ingen regel: `field`/`location` er
 påkrævede props, og fejlvisningen kommer fra det tokenbundne snapshot — der er ingen valgfri callback
 at udelade.
 
+##### Detektoren var selv for svag (genåbning)
+
+`liveTarget` var et fremskridt, men dens kontrol kunne bestå vakuøst. Tre huller er lukket:
+
+- **Sammensatte mål.** "≥1 fil matcher" var opfyldt, så snart ÉN af flere forudsatte filer var tilbage.
+  `requiredPaths` navngiver nu hver fil målet forudsætter, og `minimumMatches` sætter gulvet eksplicit.
+- **Fraværsregler blev ikke verificeret generisk.** Kontrollen lå i en sidestillet testfil, der kun kendte
+  nogle af arterne, så en stavefejl (`useRowDraftz`) kunne "bevises fraværende" lige så let som det rigtige
+  navn. Nu bærer hver fraværsregel selv sit `verifyAbsent`, harnesset kører det for hvert navn, **og** det
+  kører kontrollen i modsat retning mod en syntetisk fil, der bruger navnet — et prædikat, der ikke kan
+  finde navnet, er en fejl i reglen.
+- **Scan-rødder.** Alle rødder skal findes, ikke bare én.
+
+##### Grænser skal følge importgrafen
+
+`domain/page-section-access-boundary` målte kun DIREKTE descriptor-imports i page-filen. Det var reel
+blindhed over for den arkitektur, planen selv foreskriver: siden importerer en domæneprojektion, som
+importerer katalogerne. `Erhvervsevnetab.tsx` → `erhvervsevnetabReaderProjection.ts` → fire sektioners
+kataloger var derfor usynlig, mens reglen fremstod som dækning. Reglen følger nu den transitive lukning
+gennem domæne-/inputlaget og viser KÆDEN i diagnostikken. Tilsvarende måler facade-kontrollen nu
+STRUKTUR (en fil hvis hele flade er ét `export … from`) frem for navnet — de fire facader, der bestod
+navnekontrollen, er slettet.
+
+##### Manifestet er opdelt
+
+`architectureRules.ts` var vokset til 2.133 linjer, hvor storage-, input-, domæne-, UI- og dokumentregler
+delte fil uden sammenhæng. Reglerne bor nu i `rules/` opdelt efter koncern (storage, domain, document,
+form, inputBoundary); `architectureRules.ts` er registryet. Ingen regel ændrede adfærd ved flytningen.
+
 #### Exitkriterier
 
-- Ingen permanent compatibility-facade, fallback, dual-read eller dual-write.
+- Ingen permanent compatibility-facade, fallback, dual-read eller dual-write. **Kontrolleres nu
+  strukturelt** (en fil hvis hele flade er ét `export … from`), ikke kun på navn.
 - Ingen produktionsforekomst af de forbudte symboler.
-- Slutregistrene, ikke migrationsinventarer, driver completeness-tests.
+- Slutregistrene, ikke migrationsinventarer, driver completeness-tests. **`verify:ledgers` verificerer
+  desuden, at kørslen faktisk dækkede sine testfiler** — scriptet pegede på en omdøbt fil og rapporterede
+  grønt efter kun én af to filer.
 - Kontrakter, kode, tests og guards beskriver samme model.
+- **Grænser er lukkede capabilities, ikke bevogtede.** Hvor en grænse kan udtrykkes ved at fjerne
+  muligheden (indkapslet store, adskilte porte), gøres det; et AST-værn dækker kun den rest, strukturen
+  ikke kan udtale sig om.
+- **Grænser, der kan omgås ét modul væk, måles på importgrafen** — ikke på den importerende fils direkte
+  imports.
 
 ### Fase 7 — Samlet accept
 

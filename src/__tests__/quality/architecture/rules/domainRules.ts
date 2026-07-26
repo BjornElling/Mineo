@@ -1,0 +1,476 @@
+/**
+ * Domæne- og laggrænser.
+ *
+ * Hvem må koble til hvilket domæne. Page-grænsen følger IMPORTGRAFEN (ikke kun direkte imports),
+ * så en kobling gennem en projektion eller facade ikke kan gøre reglen tavs.
+ *
+ * Del af det opdelte arkitekturmanifest (Fase 6, genåbnet): manifestet var 2.133 linjer og blandede
+ * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
+ * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
+ */
+import { type PersistedSectionKey } from '../../../../config/persistenceRegistry';
+import { collectImports, resolveRelativeImport } from '../astQueries';
+import { type SourceEntry } from '../sourceGraph';
+import {
+  defineRule,
+  forbidElementAccess,
+  forbidImports,
+  forbidTypeAssertions,
+  type Finding,
+} from '../ruleKit';
+
+// --- Fail-open display-opslag må ikke koble til beregning ---------------------
+
+export const failOpenDisplayLookupImport = forbidImports({
+  id: 'satser/fail-open-display-lookup-import',
+  description:
+    'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag — aldrig en beregningssti.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.text.includes('getSatserForYear'),
+    rationale: 'det fail-open opslag findes stadig og importeres af mindst én fil',
+  },
+  allow: [
+    // Den typed reader-projektion er display-/dokument-grænsen for Satser og kalder kun opslaget på ready-grenen.
+    'src/domain/satser/satserProjection.ts',
+    'src/document/generators/satser/satserDocument.ts',
+  ],
+  forbidden: (ref) =>
+    ref.moduleSpecifier.includes('lovbestemteRates') && ref.namedBindings.includes('getSatserForYear'),
+  message: (ref) => `Import af fail-open getSatserForYear (${ref.moduleSpecifier}) uden for display/dokument.`,
+  violatingFixtures: [
+    { relativePath: 'src/foo.ts', code: "import { getSatserForYear } from '../../data/lovbestemteRates';" },
+    { relativePath: 'src/foo.ts', code: "import { getSatserForYear as x } from '../data/lovbestemteRates';" },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/foo.ts', code: "import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';" },
+    { relativePath: 'src/foo.ts', code: "import { getSatserForYear } from './someOtherModule';" },
+    { relativePath: 'src/foo.ts', code: "import { andetSymbol } from '../../data/lovbestemteRates';" },
+  ],
+});
+
+// --- ASL-årslønsmaksimum: rå subscript-opslag skal gå gennem gateway'en ------
+
+export const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
+  id: 'satser/asl-aarsloensmaksimum-raw-subscript',
+  description:
+    'Rå aarsloenAslMax[år]-opslag skal gå gennem resolveAslAarsloensmaksimumForAar (gateway); kun datakilde + gateway må subscripte.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.text.includes('aarsloenAslMax'),
+    rationale: 'datatabellen `aarsloenAslMax` findes stadig og kan subscriptes',
+  },
+  // Kun datakilden tilbage: gateway'en (`aslAarsloensmaksimum.ts`) subscripter ikke længere selv — den går
+  // gennem `YearlyRate`-helperne — så dens allowlist-post var død konfiguration.
+  allow: ['src/data/lovbestemteRates.ts'],
+  forbidden: (ref) => ref.objectName === 'aarsloenAslMax',
+  message: (ref) => `Rå ASL-maks-opslag (${ref.chainText}) — brug resolveAslAarsloensmaksimumForAar().`,
+  violatingFixtures: [
+    { relativePath: 'src/foo.ts', code: 'const v = aarsloenAslMax[year];' },
+    { relativePath: 'src/foo.ts', code: 'const v = aarsloenAslMax[skadesaar];' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/foo.ts', code: 'const idx = aarsloenAslMax;' },
+    { relativePath: 'src/foo.ts', code: 'getYearBoundsForYearlyRate(aarsloenAslMax);' },
+    { relativePath: 'src/foo.ts', code: 'resolveAslAarsloensmaksimumForAar(year);' },
+  ],
+});
+
+// --- Lag-grænse: domæne må ikke importere inspektions-/kontrollaget ----------
+
+const INSPEKTION_LAYER = 'src/domain/eoInspektion';
+
+const importPointsIntoInspektion = (moduleSpecifier: string, fromRelativePath: string): boolean => {
+  if (moduleSpecifier.startsWith('.')) {
+    const resolved = resolveRelativeImport(fromRelativePath, moduleSpecifier);
+    return resolved !== null && (resolved === INSPEKTION_LAYER || resolved.startsWith(`${INSPEKTION_LAYER}/`));
+  }
+  // Ikke-relative (alias/absolut/bart modul): match på segmentet, så en fremtidig path-alias også fanges.
+  return moduleSpecifier.includes('domain/eoInspektion');
+};
+
+export const inspektionLayerImport = forbidImports({
+  id: 'layer/inspektion-import-boundary',
+  description:
+    'Kun de to sanktionerede snapshot-bro-filer må importere src/domain/eoInspektion; den autoritative motor + kontrol-kerne skal være inspektionsfri (B9).',
+  liveTarget: {
+    kind: 'scoped',
+    roots: [INSPEKTION_LAYER, 'src/domain'],
+    rationale: 'både inspektionslaget (det beskyttede mål) og domænelaget (scopet) skal findes',
+  },
+  // Alle domæne-filer uden for selve inspektionslaget kontrolleres (dækker eoRowEvaluation, canonicalOutput, controlMismatch m.fl.).
+  appliesTo: (relativePath) =>
+    relativePath.startsWith('src/domain/') && !relativePath.startsWith(`${INSPEKTION_LAYER}/`),
+  allow: [
+    'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
+    'src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts',
+  ],
+  forbidden: (ref, fromRelativePath) => importPointsIntoInspektion(ref.moduleSpecifier, fromRelativePath),
+  message: (ref) => `Import af inspektions-/kontrollaget (${ref.moduleSpecifier}) uden for de sanktionerede broer.`,
+  violatingFixtures: [
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/foo.ts',
+      code: "import { buildEOInspektionSnapshot } from '../../eoInspektion/eoInspektionSnapshot';",
+    },
+    { relativePath: 'src/domain/x/y.ts', code: "import { x } from '@/domain/eoInspektion/eoInspektionSnapshot';" },
+    { relativePath: 'src/domain/x/y.ts', code: "import { x } from 'src/domain/eoInspektion/eoInspektionSnapshot';" },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/foo.ts',
+      code: "import { collectAllEoRows } from '../../eoRowEvaluation/eoRowAggregator';",
+    },
+    { relativePath: 'src/domain/x/y.ts', code: "import { z } from '@mui/material';" },
+  ],
+});
+
+// --- EET-domæne: intet tværside-persisted-opslag ind i erhvervsevnetab -------
+
+// `domain/eet-cross-domain-persisted-lookup` er SLETTET i Fase 6.
+//
+// Reglen forbød `getPersistedData`/`usePersistedSection`/`commitSection` med `'erhvervsevnetab'` som
+// literal-argument. Dødt-værn-detektoren afslørede, at ingen af de tre callees findes i grafen længere:
+// `usePersistedSection` og `commitSection` har nul forekomster overhovedet, og `getPersistedData` lever
+// kun som devtools-monitoreringens callback (`useDevtoolsMonitoring.ts`), som ikke er en sektionsadgang.
+// Reglen var altså grøn af tomhed.
+//
+// Intentionen — EET må ikke kobles til af et fremmed domæne — er IKKE opgivet: den håndhæves nu af
+// `domain/page-section-access-boundary`, som efter Fase 6 måler den kobling, greenfield faktisk har
+// (hvilket descriptor-katalog en side importerer), mod den samme autorisationstabel. Det er en STÆRKERE
+// kontrol end den slettede, fordi den dækker alle sektioner og ikke kun literal-argumenter.
+
+// --- Pengeenhed: kun den kanoniske konstruktor må skabe MoneyOre -------------
+
+export const moneyOreTypeAssertion = forbidTypeAssertions({
+  id: 'money/money-ore-type-assertion',
+  description:
+    'MoneyOre må ikke konstrueres med type-assertion; brug den validerede pengealgebra.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.text.includes('MoneyOre'),
+    rationale: 'MoneyOre-typen findes stadig og kan asserteres til',
+  },
+  forbidden: (ref) => /(?:^|\.)MoneyOre$/.test(ref.typeText),
+  message: (ref) =>
+    `Type-assertion til ${ref.typeText} omgår MoneyOre-valideringen — brug domain/money.`,
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: 'const x = 100 as MoneyOre;' },
+    { relativePath: 'src/x.ts', code: 'const x = <MoneyOre>100;' },
+    { relativePath: 'src/x.ts', code: 'const x = value as unknown as MoneyOre;' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/x.ts', code: 'const x = moneyOre(100);' },
+    { relativePath: 'src/x.ts', code: 'const x = value as number;' },
+  ],
+});
+
+// --- Page-lag: persisteret sektionsadgang må kun ramme autoriserede domæner ---
+
+/**
+ * Hvilket persisteret domæne hvert descriptor-katalog giver adgang til.
+ *
+ * **Fase 6 omskrev denne regel fra kald til imports.** Første udgave målte string-literal-argumenter
+ * til sektions-hooks (`usePersistedForm('aarsloen')` …). Dødt-værn-detektoren afslørede, at ALLE de
+ * hooks er væk efter greenfield-cutoveren: `usePersistedSection`/`commitSection` har nul forekomster,
+ * og de øvrige lever kun som historik-kommentarer i page-filerne. Reglen kontrollerede altså en
+ * adgangsform, produktionen ikke længere har — grøn af tomhed, mens den fremstod som §9/§10-dækning.
+ *
+ * Greenfield kobler en side til et domæne ét sted: ved at importere domænets FELTDESCRIPTORER fra
+ * `src/inputCore/catalog/`. Descriptoren bærer selv sin `section`, og uden en descriptor kan siden
+ * hverken læse eller skrive sektionen. Import af kataloget ER derfor koblingen — og i modsætning til
+ * literal-argumenter kan den ikke omgås ved at føre sektionsnavnet gennem en variabel.
+ *
+ * Autorisationstabellen (`PAGE_BOUNDARY_RULES`) er UÆNDRET: det er domain-boundary-contract §9/§10's
+ * beslutning om hvem der må røre hvad, og den er stadig gyldig. Kun målemetoden er skiftet til den,
+ * arkitekturen faktisk bruger.
+ */
+const DESCRIPTOR_CATALOG_SECTIONS: ReadonlyMap<string, PersistedSectionKey> = new Map([
+  ['aarsloenDescriptors', 'aarsloen'],
+  ['erhvervsevnetabDescriptors', 'erhvervsevnetab'],
+  ['erstatningsopgoerelseDescriptors', 'erstatningsopgoerelse'],
+  ['erstatningsopgoerelseLoenDescriptors', 'erstatningsopgoerelse'],
+  ['faellesAarsloenDescriptors', 'faellesAarsloen'],
+  ['forsoergertabDescriptors', 'forsoergertab'],
+  ['renteberegningDescriptors', 'renteberegning'],
+  ['satserDescriptors', 'satser'],
+  ['stamdataDescriptors', 'stamdata'],
+  ['varigeMenDescriptors', 'varigemen'],
+]);
+
+/**
+ * Descriptor-katalogets mappe. Eksporteret, så `deletedLegacyAbsence.test.ts` kan bevise, at
+ * `DESCRIPTOR_CATALOG_SECTIONS` dækker HVERT katalogmodul: et nyt domænekatalog, der ikke står i
+ * kortet, ville ellers være usynligt for page-grænsen — reglen ville se en uovervåget kobling som
+ * "ingen kobling" og være tavs, præcis den slags tomhed Fase 6 lukker.
+ */
+export const CATALOG_DIR = 'src/inputCore/catalog';
+
+/** De katalogmoduler der IKKE er et domæne (fælles infrastruktur) og derfor ingen sektion har. */
+export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = ['boundsValidators', 'productionCatalog'];
+
+/** Til completeness-testen: hvilke katalogmoduler kortet kender. */
+export const DESCRIPTOR_CATALOG_MODULE_NAMES: readonly string[] = [...DESCRIPTOR_CATALOG_SECTIONS.keys()];
+
+/** Descriptor-katalogets sektion, hvis importen peger på ét — ellers null. */
+const catalogSectionForImport = (moduleSpecifier: string): PersistedSectionKey | null => {
+  const normalized = moduleSpecifier.replaceAll('\\', '/');
+  const match = /(?:^|\/)inputCore\/catalog\/([A-Za-z]+)$/.exec(normalized);
+  if (match === null) return null;
+  return DESCRIPTOR_CATALOG_SECTIONS.get(match[1]) ?? null;
+};
+
+const PAGES_ROOT = 'src/components/pages';
+
+export type PageBoundaryRule = Readonly<{
+  label: string;
+  /** Repo-relativ rod (fil eller mappe) med `src/`-præfiks, matcher `SourceEntry.relativePath`. */
+  root: string;
+  allowedSections: readonly PersistedSectionKey[];
+}>;
+
+/**
+ * Domain-boundary-contract §9/§10: hvilke persisterede sektioner hver page-rod må
+ * tilgå. Erstatningsopgørelse/Erhvervsevnetab har autoriserede cross-domain-læsninger
+ * (delt forligsgrad + midlertidigt EET) — resten er strengt eget domæne + stamdata.
+ */
+export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
+  { label: 'Årslønsberegning', root: 'src/components/pages/Aarsloen.tsx', allowedSections: ['aarsloen', 'stamdata'] },
+  {
+    label: 'Erhvervsevnetab',
+    root: 'src/components/pages/Erhvervsevnetab.tsx',
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
+  },
+  {
+    label: 'Erhvervsevnetab tabs',
+    root: 'src/components/pages/erhvervsevnetab',
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
+  },
+  {
+    label: 'Erstatningsopgørelse',
+    root: 'src/components/pages/Erstatningsopgoerelse.tsx',
+    allowedSections: ['erstatningsopgoerelse', 'stamdata', 'erhvervsevnetab', 'faellesAarsloen'],
+  },
+  {
+    label: 'Erstatningsopgørelse tabs',
+    root: 'src/components/pages/erstatningsopgoerelse',
+    // `erhvervsevnetab`/`faellesAarsloen` er med, fordi Beregning-fanen bærer "midlertidigt EET fra
+    // EET-siden": dokumentdefinitionerne læser EET's reader-projektion for at injicere de virtuelle
+    // rækker (`domain-boundary-contract.md` §9). Koblingen er TRANSITIV og var derfor usynlig, indtil
+    // reglen begyndte at følge importgrafen — den er den samme autorisation, `Erstatningsopgoerelse.tsx`
+    // allerede havde, og listerne er nu ens for side og faner.
+    allowedSections: ['erstatningsopgoerelse', 'stamdata', 'erhvervsevnetab', 'faellesAarsloen'],
+  },
+  { label: 'Forsørgertab', root: 'src/components/pages/Forsoergertab.tsx', allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'] },
+  { label: 'Renteberegning', root: 'src/components/pages/Renteberegning.tsx', allowedSections: ['renteberegning', 'stamdata'] },
+  {
+    // Delte renteberegning-faner (bruges af både hovedapp og standalone minProcesrente). RenteberegningTab
+    // binder beregningsdato til invalidDrafts og læser sektionens afsluttede ugyldige inputs (greenfield
+    // draft/commit-design, Fase 7), så filen tilgår `renteberegning`-sektionen.
+    label: 'Renteberegning-faner',
+    root: 'src/components/pages/renteberegning',
+    allowedSections: ['renteberegning'],
+  },
+  { label: 'Satser', root: 'src/components/pages/Satser.tsx', allowedSections: ['satser', 'stamdata'] },
+  { label: 'Stamdata', root: 'src/components/pages/Stamdata.tsx', allowedSections: ['stamdata'] },
+  { label: 'Varige mén', root: 'src/components/pages/VarigeMen.tsx', allowedSections: ['stamdata', 'varigemen'] },
+  { label: 'Varige mén tabs', root: 'src/components/pages/varigemen', allowedSections: ['stamdata', 'varigemen'] },
+  {
+    label: 'MinProcesrente (standalone)',
+    root: 'src/components/pages/minprocesrente',
+    allowedSections: ['renteberegning'],
+  },
+];
+
+const boundaryRuleForPath = (relativePath: string): PageBoundaryRule | undefined =>
+  PAGE_BOUNDARY_RULES.find(
+    (rule) => relativePath === rule.root || relativePath.startsWith(`${rule.root}/`)
+  );
+
+type SectionAccess = Readonly<{
+  section: PersistedSectionKey;
+  position: Finding['position'];
+  /** Kæden fra page-filen til descriptor-kataloget. Ét led = direkte import. */
+  via: readonly string[];
+}>;
+
+/**
+ * TRANSITIV domænekobling (Fase 6, genåbnet).
+ *
+ * Reglen målte tidligere kun DIREKTE descriptor-imports i page-filen. Det var en reel blindhed: den
+ * greenfield-arkitektur, planen selv foreskriver, lader siden importere en domæne-PROJEKTION, som
+ * importerer descriptor-katalogerne. `Erhvervsevnetab.tsx` → `erhvervsevnetabReaderProjection.ts` →
+ * fire sektioners kataloger var derfor helt usynlig for grænsen, mens reglen fremstod som dækning.
+ *
+ * Nu følger målingen importgrafen. En kobling gennem en projektion er stadig en kobling — det er
+ * netop hvad §9/§10's autorisationstabel handler om — men diagnostikken viser KÆDEN, så et fund kan
+ * læses: "siden kobler til `satser` gennem `xReaderProjection`".
+ *
+ * Grænsen er bevidst sat ved page-filens transitive lukning frem for ved dens direkte imports, fordi
+ * en facade eller et alias ellers kan flytte koblingen ét modul væk og gøre reglen tavs.
+ */
+const MAX_COUPLING_DEPTH = 6;
+
+const collectSectionAccessesDeep = (
+  entry: SourceEntry,
+  byPath: ReadonlyMap<string, SourceEntry>
+): readonly SectionAccess[] => {
+  const accesses: SectionAccess[] = [];
+  const seen = new Set<string>([entry.relativePath]);
+
+  type Frame = Readonly<{ entry: SourceEntry; chain: readonly string[] }>;
+  const queue: Frame[] = [{ entry, chain: [] }];
+
+  while (queue.length > 0) {
+    const frame = queue.shift();
+    if (frame === undefined) break;
+    for (const ref of collectImports(frame.entry)) {
+      // Også type-only imports tæller: en side, der kender domænets felttyper, er koblet til domænet,
+      // og en type-import er desuden ét tegn fra at blive en værdi-import.
+      const section = catalogSectionForImport(ref.moduleSpecifier);
+      if (section !== null) {
+        // Positionen er ALTID i page-filen selv (det første led), så fundet peger på den import,
+        // udvikleren kan gøre noget ved — ikke på en linje dybt inde i domænet.
+        accesses.push({ section, position: ref.position, via: frame.chain });
+        continue;
+      }
+      if (frame.chain.length >= MAX_COUPLING_DEPTH) continue;
+      const resolved = resolveRelativeImport(frame.entry.relativePath, ref.moduleSpecifier);
+      if (resolved === null) continue;
+      // Kun koblinger GENNEM domæne-/inputlaget følges. Følger vi hele grafen, ender enhver side i
+      // alt — grænsen ville måle "importerer noget" frem for "kobler til et domæne".
+      if (!/^src\/(?:domain|inputCore|document|persistence)\//.test(resolved)) continue;
+      for (const candidate of [`${resolved}.ts`, `${resolved}.tsx`, `${resolved}/index.ts`]) {
+        const next = byPath.get(candidate);
+        if (next === undefined || seen.has(next.relativePath)) continue;
+        seen.add(next.relativePath);
+        queue.push({ entry: next, chain: [...frame.chain, next.relativePath] });
+      }
+    }
+  }
+
+  return accesses;
+};
+
+/**
+ * Den DIREKTE kobling. Bevares til `findInFile` (anti-rot) og til `probe`, hvor grafen ikke er
+ * tilgængelig: begge skal kunne besvares ud fra én fil.
+ */
+const collectSectionAccesses = (entry: SourceEntry): SectionAccess[] =>
+  collectImports(entry).flatMap((ref) => {
+    const section = catalogSectionForImport(ref.moduleSpecifier);
+    return section === null ? [] : [{ section, position: ref.position, via: [] }];
+  });
+
+export const pageSectionAccessBoundary = defineRule({
+  id: 'domain/page-section-access-boundary',
+  description:
+    'Enhver page-fil der importerer et domænes feltdescriptorer skal ligge under en PAGE_BOUNDARY_RULE-rod (coverage) og må kun koble til rodens autoriserede sektioner (domain-boundary-contract §9/§10).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      entry.relativePath.startsWith(`${PAGES_ROOT}/`) && collectSectionAccesses(entry).length > 0,
+    rationale:
+      'mindst én page-fil importerer et descriptor-katalog — dvs. koblingen, reglen regulerer, findes '
+      + 'stadig i den form, greenfield bruger',
+  },
+  appliesTo: (relativePath) => relativePath.startsWith(`${PAGES_ROOT}/`),
+  find: (entry, graph) => {
+    const byPath = new Map(graph.map((item) => [item.relativePath, item]));
+    const accesses = collectSectionAccessesDeep(entry, byPath);
+    if (accesses.length === 0) return [];
+
+    const describeChain = (via: readonly string[]): string =>
+      via.length === 0 ? 'descriptor-katalog' : `${via.join(' → ')} → descriptor-katalog`;
+
+    const boundary = boundaryRuleForPath(entry.relativePath);
+    if (!boundary) {
+      // Coverage-completeness: en page-fil med domænekobling uden en regel-rod er uovervåget.
+      return accesses.map((access) => ({
+        position: access.position,
+        message: `Uovervåget page-fil med domænekobling (${access.section}) — tilføj en PAGE_BOUNDARY_RULE-rod.`,
+      }));
+    }
+
+    // Dedupliker pr. sektion: en side kan nå samme sektion gennem flere kæder, og ét fund pr. sektion
+    // er den handlingsbare enhed (autorisationstabellen er sektions-, ikke sti-baseret).
+    const reported = new Set<PersistedSectionKey>();
+    return accesses
+      .filter((access) => !boundary.allowedSections.includes(access.section))
+      .filter((access) => {
+        if (reported.has(access.section)) return false;
+        reported.add(access.section);
+        return true;
+      })
+      .map((access) => ({
+        position: access.position,
+        message:
+          `${boundary.label}: kobling til ikke-autoriseret sektion '${access.section}' via `
+          + `${describeChain(access.via)}.`,
+      }));
+  },
+  violatingFixtures: [
+    // Under en rod, men uautoriseret sektion.
+    {
+      relativePath: 'src/components/pages/Aarsloen.tsx',
+      code: "import { x } from '../../inputCore/catalog/erhvervsevnetabDescriptors';",
+    },
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx',
+      code: "import { x } from '../../../inputCore/catalog/renteberegningDescriptors';",
+    },
+    // Ingen rod (uovervåget) med domænekobling.
+    {
+      relativePath: 'src/components/pages/NyUovervaagetSide.tsx',
+      code: "import { x } from '../../inputCore/catalog/stamdataDescriptors';",
+    },
+    // Type-only kobling til et uautoriseret domæne tæller også.
+    {
+      relativePath: 'src/components/pages/Satser.tsx',
+      code: "import type { X } from '../../inputCore/catalog/varigeMenDescriptors';",
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/pages/Aarsloen.tsx',
+      code: "import { aarsloenFeriePctField } from '../../inputCore/catalog/aarsloenDescriptors';",
+    },
+    // Autoriseret cross-domain-læsning (EO ↔ EET, delt forligsgrad).
+    {
+      relativePath: 'src/components/pages/Erhvervsevnetab.tsx',
+      code: "import { x } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';",
+    },
+    // Descriptorfri page-fil er uinteressant, selv uden rod.
+    { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: 'const x = useMemo(() => 1, []);' },
+    // Ikke-katalog-import fra inputCore er ikke en domænekobling.
+    {
+      relativePath: 'src/components/pages/NyUovervaagetSide.tsx',
+      code: "import { useFieldEditor } from '../../inputCore/react/useFieldEditor';",
+    },
+    // Fælles infrastruktur i kataloget (bounds-validatorer) er ikke et domæne.
+    {
+      relativePath: 'src/components/pages/NyUovervaagetSide.tsx',
+      code: "import { dateBounds } from '../../inputCore/catalog/boundsValidators';",
+    },
+  ],
+});
+
+// `form/persisted-styled-field-error-reporter` er SLETTET i Fase 6.
+//
+// Reglen krævede en `onFieldError`-prop på parse-kompetente `Styled*Field`-komponenter på
+// produktionssider. Trin 13 slettede hele den feltvej, og dødt-værn-detektoren afslørede, at reglen
+// derfor ikke havde ét eneste mål tilbage: `grep '<Styled[A-Za-z]*Field'` under `src/components/pages/`
+// giver nul træffere.
+//
+// Invarianten — "et persisteret parse-felt må ikke fejle åbent" — er ikke opgivet; den er blevet
+// STRUKTUREL og kan derfor ikke længere brydes af en udeladt prop:
+//
+//   - Greenfield-feltvejen (`src/inputCore/react/fields/`) tager `field: FieldRef<T>` og
+//     `location: EditorLocation` som PÅKRÆVEDE props. Uden dem kompilerer feltet ikke.
+//   - Fejlvisningen afledes af `useFormFieldSurface`/`useGridCellSurface` fra det tokenbundne
+//     issue-snapshot (§1.8) — ikke af en valgfri callback. Der er intet `onFieldError` at udelade;
+//     et felt kan ikke opt-out af sin egen fejltilstand.
+//
+// Fase 6's krav "persisted controls kræver konkrete refs" er dermed opfyldt af TYPEN frem for af en
+// regel — samme rangorden som `ManifestStorageKey` etablerede
+// ([[project_typed_write_boundary_over_ast_guard]]). En pro forma-regel oven på en compiler-håndhævet
+// invariant ville være regel-antal uden dækning, og ville selv være det næste døde værn.

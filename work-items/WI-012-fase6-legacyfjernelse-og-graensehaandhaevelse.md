@@ -1,6 +1,8 @@
 # WI-012: Fase 6 — bekræft legacyfjernelse og håndhæv grænserne
 
-- **Status:** `gennemført` 2026-07-26. Alle gates grønne (487 filer / 6097 tests).
+- **Status:** `gennemført` 2026-07-26 — **GENÅBNET og lukket igen 2026-07-26** efter eksternt review.
+  Se §11 for genåbningens fund og udfald; §10 beskriver den FØRSTE lukning, hvis konklusioner §11 delvist
+  omgør. Læs §11 først.
 - **Oprettet:** 2026-07-26
 - **Slice/scope:** greenfield-planens Fase 6
   (`docs/architecture/draft-commit-greenfield-design.md` linje 1583-1628)
@@ -595,3 +597,71 @@ violation ikke kan gemme sig bag ét transient input. Modstykket håndhæves af 
 ### Næste skridt
 
 Fase 7 (samlet accept). Slutreview af denne fase mangler: codex `sol/medium` scopet til diffen.
+
+---
+
+## 11. Genåbning 2026-07-26 (eksternt review)
+
+Reviewet konkluderede, at fasen ikke opfyldte exitkriteriet om reelt lukkede grænser. Diagnosen var
+strukturel og korrekt: **brede capabilities var fortsat offentlige, mens syntaktiske værn forsøgte at
+holde dem sikre.** Alle fund er behandlet; ingen blev afvist.
+
+### Rodårsagen, som binder fundene sammen
+
+Fasens første runde behandlede to slags problemer med samme forkerte greb:
+
+1. **En åben capability blev bevogtet frem for fjernet.** `InputWriteAuthority` var et brandet vidne oven
+   på en fortsat offentlig `StoreApi`. Vidnet var uforfalskeligt *som type*, men `setState` blev ved med at
+   findes — og et AST-værn oven på en åben capability kan altid omgås (alias, aliaseret assertion, direkte
+   kald). Samme mønster gjaldt `useInputRuntime()`: den normative opdeling læs/redigér/system fandtes som
+   KOMMENTARER på ét fladt objekt.
+2. **Legacy blev klassificeret efter tekstsøgning frem for efter den normative model.** Derfor blev
+   `blocksSave` udeladt fra forbudslisten ("levende navn") på et faktuelt forkert grundlag, og EO's
+   source-register blev læst som "legacy navne" frem for som en fejlalgebra, kontrakten forbyder.
+
+Den generelle lære er skrevet ind i planen: *kan capabilityen fjernes, så fjern den; et vidne oven på en
+åben capability er en aftale, ikke en grænse.* Og: *klassificér mod den normative model, ikke mod grep.*
+
+### Fund og udfald
+
+| Fund (review) | Udfald |
+|---|---|
+| **Høj** — skrivegrænsen kan omgås (`StoreApi`/`setState` offentlig; AST-reglen omgås af alias/assertion) | `SlimInputStore` er nu en HANDLE med navngivne transaktioner (`applyCommit`/`hydrate`/`restore`/`bumpSettingsRevision`). Zustands `StoreApi` forlader aldrig `slimInputStore.ts`. `InputWriteAuthority`, udstederen og testvidnet er SLETTET — der er intet vidne at forfalske. Tests bruger `__createSlimInputTestStore` (isoleret runtime). |
+| **Høj** — read/edit/system er én samlet capability; råt sektionsopslag i `MainLayout` | Bindingen er nu `{ read, edit, system }` med `useInputReadPort`/`useInputEditPort`/`useInputSystemPort`. Dokumentlaget får en navngiven `DocumentInputAccess`. Shellens diagnostik læser gennem `inputDiagnosticsProjection`. Nye regler: `domain/raw-section-access-boundary`, `input/system-port-composition-root`. |
+| **Høj** — EO har fortsat en parallel legacy-fejlmodel | `EoInputIssueSource`, source-mappet, prioritetslisten, `reasonToSource` og `'invalid-draft'` er slettet. Modellen er ét issue pr. feltnøgle; rækker der kombinerer felter siger det eksplicit (`presentIssuesForRow`). Testene er PORTET, ikke slettet — de fastholdt en ægte invariant i en legacy form. **2.016 EO-domænetests består uændret.** |
+| **Høj** — `blocksSave` fjernet fra forbudslisten på forkert grundlag | Tilbage på listen, sammen med `EoInputIssueSource`, `EoFieldIssuesBySource`, `collectPresentFieldErrors`, `InputWriteAuthority`, `claimInputWriteAuthority`. `fieldErrors` er fortsat udeladt — her holdt begrundelsen. |
+| **Høj** — page-grænsen måler ikke den faktiske afhængighed | `domain/page-section-access-boundary` følger nu den transitive importgraf gennem domæne-/inputlaget og viser KÆDEN i diagnostikken. Den fandt straks en ægte, hidtil usynlig kobling (EO-fanerne → EET's reader-projektion via midlertidigt-EET), som nu er autoriseret eksplicit. |
+| **Middel** — reelle compat-facader består navnekontrollen | Ny STRUKTUREL kontrol: en fil hvis hele flade er ét `export … from`. De tre navngivne facader er slettet, og kontrollen fandt en FJERDE (`eoRowContextBuilders.ts`), reviewet ikke havde. Også `eoRowCommon`s re-eksport af tekst-helpers er væk. |
+| **Middel** — dødt-værn-detektoren kan selv bestå vakuøst | `requiredPaths` + `minimumMatches` på forudsætningsregler (sammensatte mål); generisk, obligatorisk `verifyAbsent` på fraværsregler, kørt i BEGGE retninger (navnet skal også kunne FINDES i en fil der bruger det, ellers er fraværet vakuøst); alle scan-rødder skal findes. Manifestet er opdelt i `rules/` efter koncern. |
+| **Middel** — `verify:ledgers` består fejlagtigt (1 fil / 13 tests) | Stien rettet (`greenfieldPhase0Inventory` → `consumerInventory`), og scriptet verificerer nu, at kørslen faktisk dækkede hver navngiven testfil OG et minimumsantal tests. Kører nu 2 filer / 16 tests. |
+| **Middel** — normative kontrakter ikke i sync | `document-output-contract.md`, `document-format-contract.md`, `app-settings.md`, `domain-boundary-contract.md`, `error-contract.md` og `document-output-architecture.md` rettet. Formatrouting ejes af miljøets `resolveFormat`; servicelaget er slettet; `AppSettings`-gælden er indfriet; EET's forlig-læsning ER migreret. |
+
+### Tilfældighedsfund rettet undervejs
+
+- **`eoRowContextBuilders.ts`** — en fjerde compat-facade, fundet af den nye strukturelle kontrol.
+- **`useFieldEditor.test.tsx`** — testens `dispatch`-override lå som et top-level felt på bindingen og blev
+  aldrig læst (spread-typer laver ikke excess-property-check). Testen kunne derfor ikke fejle af den grund,
+  den hed. Rettet til at override på `edit`-porten; testen fejlede korrekt før rettelsen.
+- **`getFieldErrorsBySource`** i devtools-fladen bar legacy-vokabular for det, der nu er strukturelle
+  `FieldIssue`s → `getSectionFieldIssues`.
+- **`rowIssuesHaveError`** — en hjælper jeg tilføjede og ikke brugte. Slettet frem for efterladt som død API.
+
+### Berørte filer (ud over §10's)
+
+- `slimInputStore.ts`, `dispatchInput.ts`, `initializeInputRuntime.ts`, `runtime/index.ts` — indkapslet store.
+- `inputRuntimeContext.tsx`, `react/index.ts`, `inputDiagnosticsProjection.ts` (ny) — capability-opdelingen.
+- `useFieldEditor.ts`, `useCollectionRows.ts`, `useInputEvaluation.ts`, `useCaseOperations.ts`,
+  `useUndoRedoShortcuts.ts`, `MainLayout.tsx`, `RenteberegningTab.tsx`, `OffentligeYdelserTab.tsx`,
+  `useLoenindkomstViewModel.ts`, `useMineoDocumentEnvironment.ts`, `useStandaloneDocumentOutput.ts`,
+  `mineoDocumentEnvironment.ts`, `standaloneDocumentEnvironment.ts` — portede consumers.
+- `eoInputIssues.ts`, `eoRowCommon.ts`, `erstatningsopgoerelseReaderProjection.ts`,
+  `eoSnapshotInvariants.ts`, `eoRow*Rows.ts`, `eoRowExecutionContext.ts`, `eoRowShared.ts`,
+  `eoRowStamdataModel.ts` — EO's issue-model.
+- `astQueries.ts` (`collectIdentifiers`/`hasIdentifier`), `ruleKit.ts` (`LiveTarget`, graf i `find`),
+  `architectureRules.test.ts` (to skærpede detektor-cases), `architectureRules.ts` → registry +
+  `rules/{storage,domain,document,form,inputBoundary}Rules.ts`, `deletedLegacyAbsence.test.ts`.
+- `scripts/architecture/verify-input-ledgers.mjs`.
+- Kontrakter: `document-output-contract.md`, `document-format-contract.md`, `app-settings.md`,
+  `domain-boundary-contract.md`, `error-contract.md`; `docs/architecture/document-output-architecture.md`,
+  `draft-commit-greenfield-design.md`.
+- Slettet: `indkomstRowValidationReexport.ts`, `eoRowContextBuilders.ts`.
