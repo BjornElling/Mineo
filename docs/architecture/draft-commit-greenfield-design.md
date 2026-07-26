@@ -1582,7 +1582,7 @@ For blokerede cases beviser testen, at der ikke sker lazy-load, generatorimport 
 
 ### Fase 6 — Bekræft legacyfjernelse og håndhæv grænserne
 
-**Status:** Ikke påbegyndt.
+**Status:** Gennemført 2026-07-26 (WI-012).
 
 **Afhængighed:** Fase 1–5.
 
@@ -1590,7 +1590,8 @@ For blokerede cases beviser testen, at der ikke sker lazy-load, generatorimport 
 
 1. Verificér, at alle slettelister i fase 1–5 er gennemført. Slet kun rester, som bevidst blev beholdt til aktiv
    sammenligning eller ansvarsoverførsel.
-2. Fjern fase-0-migrationsinventaret, når slutkatalogerne selv giver udtømmende coverage.
+2. ~~Fjern fase-0-migrationsinventaret, når slutkatalogerne selv giver udtømmende coverage.~~
+   **Omklassificeret, ikke fjernet** (se nedenfor).
 3. Port eller slet implementeringsspecifikke tests for afløste mekanismer.
 4. Tilføj AST-baserede regler i det eksisterende architecture-harness uden ny dependency.
 
@@ -1603,22 +1604,68 @@ Reglerne beviser:
 - transient UI-controls ikke kan skrive sagsinput,
 - legacy-symboler ikke genindføres.
 
-Forbudt-symbol-gaten dækker mindst:
+##### Leveret: dødt-værn-detektoren (fasens kerne, ikke i den oprindelige plan)
+
+Kortlægningen før implementeringen viste, at fasens vigtigste arbejde ikke stod i planen. Harnessets
+selvtest beviser, at hver regel flager sine egne fixtures — men ikke at reglens MÅL stadig findes i
+produktionen. En regel, hvis mål er slettet, bliver derfor grøn af tomhed. Fem regler var i den tilstand:
+
+| Regel | Hvorfor inert | Udfald |
+|---|---|---|
+| `pdf/download-committed-state` | Fase 5 slettede alle 18 `download*Dokument` | Omskrevet → `document/download-committed-state` mod livscyklussens entrypoints |
+| `form/persisted-styled-field-error-reporter` | Trin 13 slettede hele `Styled*Field`-vejen | Slettet: invarianten er nu STRUKTUREL (påkrævede `field`/`location`-props) |
+| `criticalAction/no-dom-scan-or-frame-wait` | Scopet `src/criticalActions/` findes ikke | Retargetet til `criticalActionCoordinator.ts` |
+| `domain/page-section-access-boundary` | Alle sektions-hooks er afskaffet; nul kald i grafen | Omskrevet til at måle **descriptor-katalog-imports** — greenfields faktiske domænekobling |
+| `persistence/committed-section-mirror` | Alle tre kilde-markører døde | Retargetet til `useInputEvaluation`/reader-projektioner |
+| `domain/eet-cross-domain-persisted-lookup` | Alle tre callees væk | Slettet: dækkes nu bredere af page-grænsen |
+
+`ArchitectureRule` bærer derfor nu en eksplicit `liveTarget`-klassifikation (`precondition` /
+`absence` / `scoped`), som harnesset håndhæver. Detektoren er mutationstestet: den blev observeret
+FEJLE på de kendte forfald, før de blev rettet.
+
+##### Korrigeret forbudt-symbol-liste
+
+Planens oprindelige liste kan ikke bruges som skrevet. **`fieldErrors` og `blocksSave` er UDGÅET**,
+fordi de er levende greenfield-vokabular: `fieldErrors` bruges i ~12 produktionsmoduler (snapshots,
+reader-projektioner, download-gates) som feltnavn i snapshot-/projektionskontrakterne, og `blocksSave`
+er EO's levende navn i `eoInputIssues.ts`. At forbyde dem ville tvinge en kosmetisk omdøbning igennem
+uden gevinst.
+
+Gaten (`legacy/forbidden-identifier`) måler **AST-identifiers, ikke tekst**. Det er nødvendigt: de
+fleste navne optræder stadig i produktionen som KOMMENTARER, der forklarer hvorfor en mekanisme ikke
+findes længere. Den historik er bevidst dokumentation og bevares.
 
 ```text
-invalidDrafts
-fieldErrors
 executeLegacyInputTransaction
-useDraftField
 useDraftLifecycle
+legacyGridTransactionBridge
+useDraftField
 useTableInputCore
 useRowDrafts
 useSliceRowDrafts
-usePersistedForm
+invalidDrafts
 FormPersistenceContext
-legacyGridTransactionBridge
-blocksSave
+usePersistedForm
 ```
+
+##### Trin 2: inventaret er omklassificeret, ikke fjernet
+
+`greenfield-phase-0-persisted-input-inventory.json` var ikke et frosset migrationsinventar. Det
+GENERERES ved hver testkørsel fra de levende Zod-schemas (`toMatchFileSnapshot`), så det er en
+**schema-drift-detektor**. At slette det ville fjerne levende dækning i legacy-oprydningens navn.
+Filen er i stedet flyttet til `src/__tests__/quality/__snapshots__/persistedInputSchemaPaths.json`
+(byte-identisk) og omdøbt efter sin funktion.
+
+##### Write-boundary: type først
+
+"Kun runneren skriver input" er lukket som TYPE: `applyCommit`/`hydrate` kræver et
+`InputWriteAuthority`-vidne med et `unique symbol`-brand, som kun `slimInputStore` kan udstede.
+`input/write-boundary`-reglen er sekundær og lukker de to huller typen ikke kan: en type-assertion,
+der forfalsker vidnet, og en uautoriseret kalder af udstederen.
+
+"Persisted controls kræver konkrete refs" krævede tilsvarende ingen regel: `field`/`location` er
+påkrævede props, og fejlvisningen kommer fra det tokenbundne snapshot — der er ingen valgfri callback
+at udelade.
 
 #### Exitkriterier
 

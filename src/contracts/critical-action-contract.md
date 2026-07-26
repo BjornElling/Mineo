@@ -89,8 +89,13 @@ input- eller settingsrevisionen ændret, evalueres preflight på ny, eller handl
 - Inputtransaktionsrunneren ejer settle og storagekvittering.
 - Dokumentdefinitionen ejer gate/preflight; dokumentservicen er mekanisk afvikling.
 
-Nuværende `useStyledFieldAdapter`, `useGridCoreController` og `useGridRowPersistenceCore` er migrationsintegrationer,
-ikke normative API-navne.
+Deltager-registreringen sker ét sted: `useFieldEditor`, som både form-fladen (`useFormFieldSurface`) og
+grid-fladen (`useGridCellSurface`) bygger på. Navnet er en implementering, ikke et normativt API-navn —
+kontrakten binder deltager-ROLLEN, ikke hooket.
+
+*(Historik: før greenfield-cutoveren hed de `useStyledFieldAdapter`, `useGridCoreController` og
+`useGridRowPersistenceCore`. Alle tre er slettet; de nævnes her, så en læser af ældre commits kan finde
+efterfølgeren.)*
 
 ## 7. Reset, `Slet alt` og load — ingen settle
 

@@ -41,7 +41,7 @@ const result = spawnSync(process.execPath, [
 if (result.error !== undefined) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 
-process.stdout.write('\nGreenfield fase-0-inventar — verificeret mod levende kilder\n');
+process.stdout.write('\nInputregistre — verificeret mod levende kilder\n');
 process.stdout.write(`  Datafelter:       ${fieldCount}\n`);
 process.stdout.write(`  Collections:      ${collectionCount}\n`);
 process.stdout.write(`  Beregninger:      ${calculationCount}\n`);
