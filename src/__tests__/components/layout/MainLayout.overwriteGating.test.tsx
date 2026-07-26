@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -51,11 +52,7 @@ vi.mock('../../../utils/pwaLaunchQueue', () => ({
 
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
-import {
-  clickMainLayoutAction,
-  dispatchPwaFileOpen,
-  flushMainLayoutAsyncAction,
-} from './mainLayoutActionTestUtils';
+import { clickMainLayoutAction, dispatchPwaFileOpen, flushMainLayoutAsyncAction } from './mainLayoutActionTestUtils';
 
 // Greenfield-shell (WI-002 Fase 4): "der findes allerede data" læses fra runtime (`ops.file.hasAnyData()`),
 // ikke fra legacy per-sektions-sessionStorage. Vi hydrerer derfor den ægte runtime med data i stedet for at
@@ -85,7 +82,7 @@ const stampStamdata = (skadelidte: string) => ({
 const stampSatser = (aargang: number) => ({ aargang });
 
 const hydrateWithData = (skadelidte: string, aargang: number): void => {
-  slimInputStore.hydrate(
+  __hydrateSlimInputStoreForTest(slimInputStore,
     catalog.validateSettledInput({
       sections: { ...emptyInput().sections, stamdata: stampStamdata(skadelidte), satser: stampSatser(aargang) },
       rejectedInputs: {},
@@ -125,11 +122,11 @@ describe('MainLayout (overwrite gating)', () => {
     pendingPwaRequest = null;
     vi.clearAllMocks();
     sessionStorage.clear();
-    slimInputStore.hydrate(emptyInput());
+    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {
-    slimInputStore.hydrate(emptyInput());
+    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   it('navigates to Stamdata after a successful manual load without overwrite dialog', async () => {

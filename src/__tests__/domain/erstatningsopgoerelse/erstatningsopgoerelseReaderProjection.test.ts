@@ -5,7 +5,10 @@ import {
   readStamdataValues,
 } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { eoIssueBlocksDependents } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
+import {
+  selectBlockingLoenindkomstEntityIds,
+  topLevelFieldIssue,
+} from '../../../domain/erstatningsopgoerelse/eoInputIssues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -21,6 +24,7 @@ import {
 import { toISODateString } from '../../../types/branded';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../../schemas/formSchemas';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 
 // Greenfield Erstatningsopgørelse reader-projektion (§3.4/§5.4/§1.10, Fase 2.4 trin 8): beviser at projektionen
 // (a) rekonstruerer det fulde EO-/stamdata-værdiobjekt byte-identisk fra readeren (inkl. det nested løntræ), (b)
@@ -131,8 +135,8 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
       revision: 'golden',
       stamdataValues: readStamdataValues(reader),
       eoValues: readErstatningsopgoerelseValues(reader),
-      stamdataErrors: {},
-      eoErrors: {},
+      stamdataErrors: EMPTY_FIELD_ISSUE_SET,
+      eoErrors: EMPTY_FIELD_ISSUE_SET,
     });
 
     // Byte-identitet på ALLE beregnede/serialiserbare værdier (status, invariants, data/totaler/pdfModel, input).
@@ -143,8 +147,8 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(projection.snapshot.status).toBe(expected.status);
     expect(projection.snapshot.data).toEqual(expected.data);
     expect(projection.sourceToken).toBe(reader.sourceToken);
-    expect(projection.eoErrors).toEqual({});
-    expect(projection.stamdataErrors).toEqual({});
+    expect(projection.eoErrors.all).toEqual([]);
+    expect(projection.stamdataErrors.all).toEqual([]);
   });
 
   it('fører en canonical bounds-feltfejl (forlig procent > 100) ind i eoErrors som source input og skjuler værdien', () => {
@@ -154,12 +158,17 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
 
     // Satser-doktrin: readeren skjuler den out-of-bounds værdi → rekonstruktionen falder tilbage til tomværdien.
     expect(projection.eoValues.forligAnsvarsgradProcent).toBeUndefined();
-    expect(projection.eoErrors.forligAnsvarsgradProcent?.severity).toBe('error');
-    expect(projection.eoErrors.forligAnsvarsgradProcent?.reason).toBe('bounds');
+    const issue = topLevelFieldIssue(
+      projection.eoErrors,
+      'erstatningsopgoerelse',
+      'forligAnsvarsgradProcent'
+    );
+    expect(issue?.severity).toBe('error');
+    expect(issue?.reason).toBe('bounds');
     // `error-contract.md` §1.1: bounds blokerer IKKE `.eo`-save, men blokerer JA de AFHÆNGIGE consumers.
     // Netop dette felt er beviset for, hvorfor: en maskeret forligsprocent på 150 ville ellers blive regnet
     // som "intet forlig" (= 100 %) og vise et falsk beløb bag den røde markering.
-    expect(eoIssueBlocksDependents(projection.eoErrors.forligAnsvarsgradProcent)).toBe(true);
+    expect(issue).toBeDefined();
   });
 
   it('fører et ugyldigt (out-of-bounds) løntabel-cellefelt ind som `${afId}:loenindkomst`-aggregat', () => {
@@ -176,7 +185,7 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
     // offentligLoenTrin er en employment-SKALAR (ikke en tabelcelle) → den tæller IKKE i loenindkomst-celleaggregatet.
     // Denne test dokumenterer bevidst afgrænsningen: kun StandardLoen-/manuel-regulerings-CELLER driver aggregatet.
-    expect(projection.eoErrors['af-1:loenindkomst']).toBeUndefined();
+    expect(selectBlockingLoenindkomstEntityIds(projection.eoErrors)['af-1']).toBeUndefined();
   });
 
   it('fører en ugyldig StandardLoen-tabelcelle ind som `${afId}:loenindkomst`-aggregat (blokerer afhængige)', () => {
@@ -197,9 +206,13 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     };
     const reader = buildReader(withCellError, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
-    expect(eoIssueBlocksDependents(projection.eoErrors['af-1:loenindkomst'])).toBe(true);
-    expect(projection.eoErrors['af-1:loenindkomst']?.reason).toBe('aggregate');
-    expect(projection.eoErrors['af-1:loenindkomst']?.message).toBe('Ugyldig manuel regulering');
+    expect(selectBlockingLoenindkomstEntityIds(projection.eoErrors)['af-1']).toBe(true);
+    const nestedIssue = projection.eoErrors.all.find((candidate) =>
+      candidate.field.address.path.some((segment) =>
+        segment.kind === 'entity' && segment.entityId === 'af-1'
+      )
+    );
+    expect(nestedIssue?.reason).toBe('bounds');
   });
 
   it('er tolerant over for en null EO-sektion (tom sag)', () => {

@@ -1,6 +1,6 @@
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import { computeEetSnapshotForTest as computeEetSnapshot } from '../../utils/eetSnapshotTestSupport';
 import * as loebendeYdelser from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import * as kapitalisering from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import * as ealCalculation from '../../../domain/erhvervsevnetab/eetEalCalculation';

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -6,8 +7,13 @@ import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoe
 import { createActiveTabStorageKey } from '../../../../config/storageManifest';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvider';
-import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
+import {
+  createErstatningsopgoerelseInitialValues,
+} from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  ProductionInputRuntimeProvider,
+  createProductionInputRuntimeBinding,
+} from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
 import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 
@@ -25,7 +31,7 @@ describe('EOOplysningerTab sektioner', () => {
 
   it('renderer alle uafhængigt synlige sektioner på oplysninger-fanen', async () => {
     const catalog = getProductionInputCatalog();
-    slimInputStore.hydrate(catalog.validateSettledInput({
+    __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null,

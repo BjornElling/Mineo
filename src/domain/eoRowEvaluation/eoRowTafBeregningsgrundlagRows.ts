@@ -17,6 +17,7 @@ import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { formatRowCount, formatRowMonths, calculateElapsedWholeMonths } from './eoRowShared';
+import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 
 export const buildEoTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
@@ -32,7 +33,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     label: 'Beregnes ud fra',
     ...resolveEoRowDisplay({
       value: values.beregnesUdFra,
-      issue: errors.beregnesUdFra,
+      issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'beregnesUdFra'),
       emptyState: 'error',
     }),
   });
@@ -52,8 +53,8 @@ export const buildEoTafBeregningsgrundlagRows = (
   const periodeFra = values.tafBeregningsperiodeFra;
   const periodeTil = values.tafBeregningsperiodeTil;
 
-  const periodeFraErrors = presentIssuesForRow(errors.tafBeregningsperiodeFra);
-  const periodeTilErrors = presentIssuesForRow(errors.tafBeregningsperiodeTil);
+  const periodeFraErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'tafBeregningsperiodeFra'));
+  const periodeTilErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'tafBeregningsperiodeTil'));
   const hasPeriodeErrors = periodeFraErrors.length > 0 || periodeTilErrors.length > 0;
   const hasPeriodeErrorSeverity = periodeFraErrors.concat(periodeTilErrors).some((e) => e.severity === 'error');
 
@@ -537,8 +538,8 @@ export const buildEoTafBeregningsgrundlagRows = (
       value: getAngivetLoenBaseretPaa(values),
       issue:
         beregnesUdFra === 'Angivet månedsløn'
-          ? errors.angivetMaanedsloenBaseretPaa
-          : errors.angivetDagsloenBaseretPaa,
+          ? topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'angivetMaanedsloenBaseretPaa')
+          : topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'angivetDagsloenBaseretPaa'),
       emptyState: 'warning',
     });
 

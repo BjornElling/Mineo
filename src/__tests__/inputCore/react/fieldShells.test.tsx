@@ -1,17 +1,9 @@
 // @vitest-environment jsdom
+import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import {
-  __createSlimInputTestStore,
-  dispatchInput,
-  ActiveEditorRegistry,
-  type SlimInputStore,
-} from '../../../inputCore/runtime';
-import {
-  createInputRuntimeBinding,
-  InputRuntimeProvider,
-  type InputRuntimeBinding,
-} from '../../../inputCore/react';
+import { dispatchInput, ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/runtime';
+import { createInputRuntimeBinding, InputRuntimeProvider, type InputRuntimeBinding } from '../../../inputCore/react';
 import {
   IntegerField,
   PercentField,
@@ -29,7 +21,15 @@ import {
   type FieldRef,
 } from '../../../inputCore';
 import { insertRow } from '../../../inputCore/inputReducer';
-import { createTestCatalog, aargangField, kommentarerField, enhedField, belobField, makeRow, testRowOrigin } from '../testCatalog';
+import {
+  createTestCatalog,
+  aargangField,
+  kommentarerField,
+  enhedField,
+  belobField,
+  makeRow,
+  testRowOrigin,
+} from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';

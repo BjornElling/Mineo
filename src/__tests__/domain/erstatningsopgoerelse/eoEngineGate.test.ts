@@ -4,8 +4,7 @@ import * as svieSmerteEngine from '../../../domain/erstatningsopgoerelse/engines
 import * as tafNettoBeregning from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { EoInputIssues } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
-import type { FieldIssue } from '../../../inputCore/inputIssue';
+import { EMPTY_FIELD_ISSUE_SET, type FieldIssue, type FieldIssueSet } from '../../../inputCore/inputIssue';
 import type { FieldAddress } from '../../../inputCore/fieldAddress';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
@@ -103,7 +102,7 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
     tafNettoSpy.mockRestore();
   });
 
-  const compute = (eoFieldIssues: readonly FieldIssue[] = [], eoErrors: EoInputIssues = {}) => computeEoSnapshot({
+  const compute = (eoFieldIssues: readonly FieldIssue[] = [], eoErrors: FieldIssueSet = EMPTY_FIELD_ISSUE_SET) => computeEoSnapshot({
     revision: 'r1',
     stamdataValues: STAMDATA_INITIAL_VALUES,
     eoValues: createComputableEoValues(),
@@ -191,22 +190,6 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
     expect(snapshot.status).toBe('error');
   });
 
-  it('en STAMDATA-warning bliver ikke en blokerende invariant', () => {
-    // `error-contract.md` §1.1: en warning blokerer aldrig — hverken save, beregning eller dokument.
-    // Stamdata går fortsat gennem `buildReaderFieldIssueInvariants`, som filtrerer på severity; EO-sektionens
-    // strukturelle issues er pr. type altid `severity: 'error'` (§1.6), så der findes ingen warning-vej dér.
-    const snapshot = computeEoSnapshot({
-      revision: 'r1',
-      stamdataValues: STAMDATA_INITIAL_VALUES,
-      eoValues: createComputableEoValues(),
-      stamdataErrors: {
-        skadelidte: { message: 'En advarsel', severity: 'warning', reason: 'rule' },
-      },
-    });
-
-    expect(snapshot.data).not.toBeNull();
-    expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('reader_field:'))).toBe(false);
-  });
 });
 
 // WI-004 (R1 + runde 4's S1/S2): EO's afhængighedsopdeling. §1.10 kræver flere små dependency-specifikke

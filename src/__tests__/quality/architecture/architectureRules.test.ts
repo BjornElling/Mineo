@@ -1,6 +1,7 @@
 import { ARCHITECTURE_RULES } from './architectureRules';
 import { formatViolations } from './ruleKit';
 import { getSourceGraph, makeSyntheticEntry } from './sourceGraph';
+import { pageSectionAccessBoundary } from './rules/domainRules';
 
 /**
  * Kør-motor + selvtest for det AST-baserede arkitektur-harness (greenfield #48).
@@ -37,6 +38,32 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
       violations,
       violations.length > 0 ? `\n${formatViolations(violations)}` : undefined
     ).toEqual([]);
+  });
+
+  it('page-grænsen følger en reel transitiv importgraf', () => {
+    const page = makeSyntheticEntry(
+      'src/components/pages/Aarsloen.tsx',
+      "import { project } from '../../domain/example/projection'; project();"
+    );
+    const projection = makeSyntheticEntry(
+      'src/domain/example/projection.ts',
+      "import { satserField } from '../../inputCore/catalog/satserDescriptors'; export const project = () => satserField;"
+    );
+
+    expect(pageSectionAccessBoundary.evaluate([page, projection])).not.toEqual([]);
+  });
+
+  it('page-grænsen stopper ved en godkendt cross-domain-port', () => {
+    const page = makeSyntheticEntry(
+      'src/components/pages/Erhvervsevnetab.tsx',
+      "import { forligInputFields } from '../../domain/erstatningsopgoerelse/forligInputPort'; void forligInputFields;"
+    );
+    const port = makeSyntheticEntry(
+      'src/domain/erstatningsopgoerelse/forligInputPort.ts',
+      "import { eoForligDatoField } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors'; export const forligInputFields = eoForligDatoField;"
+    );
+
+    expect(pageSectionAccessBoundary.evaluate([page, port])).toEqual([]);
   });
 
   describe.each(ARCHITECTURE_RULES.map((rule) => [rule.id, rule] as const))(

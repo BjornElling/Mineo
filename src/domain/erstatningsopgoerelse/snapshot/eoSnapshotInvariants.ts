@@ -4,7 +4,6 @@ import type { MoneyOre } from '../../money/money';
 import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
-import { eoIssueBlocksDependents, type EoInputIssues } from '../eoInputIssues';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
 
 export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
@@ -65,34 +64,10 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
  * `blocksOutputs` pr. output. Reader-fejl føres derfor ind ad samme vej som validator-invarianterne i
  * stedet for gennem en ny parallel sidekanal.
  *
- * `eoIssueBlocksDependents` afgør, hvad der blokerer — inklusive `bounds`, jf. `error-contract.md` §1.1's
- * normative matrix: en bounds-værdi må GEMMES, men må ikke fodre en motor.
- *
- * ⚠️ For EO-sektionen er `buildStructuralFieldIssueInvariants` den fuldstændige vej: `eoErrors` er en
- * PRÆSENTATIONS-projektion med kun 11 top-level feltnavne og kan derfor ikke se en rød rækkecelle
- * (WI-004 runde 4, fund S3). Denne funktion bruges fortsat til STAMDATA, hvis fejl-map ér det fulde sæt.
+ * Alle strukturelle feltissues blokerer deres afhængige consumer — inklusive `bounds`, jf.
+ * `error-contract.md` §1.1's normative matrix: en bounds-værdi må GEMMES, men må ikke fodre en motor.
+ * Samme kanoniske `FieldIssueSet` bærer både EO- og stamdataissues, inklusive nested rækkeceller.
  */
-export const buildReaderFieldIssueInvariants = (
-  issues: EoInputIssues,
-  source: 'eo' | 'stamdata'
-): readonly EoInvariant[] => {
-  const invariants: EoInvariant[] = [];
-  for (const [fieldKey, issue] of Object.entries(issues)) {
-    if (!eoIssueBlocksDependents(issue)) continue;
-    invariants.push({
-      id: `reader_field:${source}.${fieldKey}`,
-      passed: false,
-      severity: 'error',
-      source: 'validation',
-      message: issue.message,
-      evidence: [`${source}.${fieldKey}`],
-      blocksAuthoritativeComputation: true,
-      blocksOutputs: VALIDATION_BLOCKED_OUTPUTS,
-    });
-  }
-  return invariants;
-};
-
 /**
  * De STRUKTURELLE røde feltissues som blokerende invarianter (WI-004 runde 4, fund S3).
  *

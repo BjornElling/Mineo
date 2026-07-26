@@ -19,6 +19,7 @@
  * dato-tokens til ⟨dato⟩ før sammenligning.
  */
 import { collectAllEoRows } from '../../domain/eoRowEvaluation/eoRowAggregator';
+import { EMPTY_FIELD_ISSUE_SET } from '../../inputCore/inputIssue';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -113,9 +114,9 @@ const probe = (eoValues: EoValues) => {
   const projectionKind = eoSnapshotToEoDocument(snapshot).kind;
   const rowEvaluation = collectAllEoRows(
     STAMDATA,
-    {},
+    EMPTY_FIELD_ISSUE_SET,
     withSfgg,
-    {},
+    EMPTY_FIELD_ISSUE_SET,
     {},
     undefined,
     snapshot.data?.canonicalOutput,

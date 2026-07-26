@@ -1,8 +1,11 @@
 import * as React from 'react';
-import { useSyncExternalStore } from 'react';
 import type { CollectionRef } from '../fieldAddress';
 import { insertRow, deleteRow, reorderRows } from '../inputReducer';
-import { useInputEditPort, useInputReadPort } from './inputRuntimeContext';
+import {
+  useInputEditPort,
+  useInternalInputCatalog,
+  useInternalSettledSnapshot,
+} from './inputRuntimeContext';
 import type { DispatchInputResult } from '../runtime/dispatchInput';
 import type { CollectionHistoryOrigin } from '../inputHistory';
 
@@ -87,7 +90,8 @@ export const useCollectionRows = <TEntity>(
   collection: CollectionRef,
   origin: CollectionRowOrigin
 ): CollectionRowsController<TEntity> => {
-  const { catalog, subscribe, getSettled } = useInputReadPort();
+  const catalog = useInternalInputCatalog();
+  const { input } = useInternalSettledSnapshot();
   const commands = useCollectionRowCommands<TEntity>(collection, origin);
 
   // Stabil nøgle for collectionen, så caches ikke krydser to forskellige collections i samme komponenttræ.
@@ -95,7 +99,6 @@ export const useCollectionRows = <TEntity>(
 
   const rowIdsRef = React.useRef<{ key: string; sections: unknown; ids: readonly string[] } | null>(null);
   const getRowIds = React.useCallback((): readonly string[] => {
-    const { input } = getSettled();
     const cached = rowIdsRef.current;
     // Genbrug den frosne id-liste, hvis hverken collection eller det afsluttede sections-objekt har ændret sig.
     if (cached !== null && cached.key === collectionKey && cached.sections === input.sections) {
@@ -104,11 +107,9 @@ export const useCollectionRows = <TEntity>(
     const ids = catalog.listEntityIds(input.sections, collection);
     rowIdsRef.current = { key: collectionKey, sections: input.sections, ids };
     return ids;
-    // `collection` er værdimæssigt stabil pr. `collectionKey`; nøglen driver cachen.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalog, getSettled, collectionKey]);
+  }, [catalog, input, collection, collectionKey]);
 
-  const rowIds = useSyncExternalStore(subscribe, getRowIds, getRowIds);
+  const rowIds = getRowIds();
 
   return React.useMemo(
     () => Object.freeze({ rowIds, ...commands }),

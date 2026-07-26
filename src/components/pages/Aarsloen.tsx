@@ -9,7 +9,7 @@ import IntegerField from '../../inputCore/react/fields/IntegerField';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StandardLoenTable from '../tables/StandardLoenTable';
 import { APP_ROUTES } from '../../config/pageNavigation';
-import { aarsloenStandardLoenFieldSet } from '../tables/standardLoenTableFieldSet';
+import { aarsloenStandardLoenFieldSet } from '../../domain/aarsloen/aarsloenStandardLoenFieldSet';
 import ContentBox from '../layout/ContentBox';
 import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../inputCore/react/useFieldEditor';

@@ -13,6 +13,7 @@ import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
 } from '../../../inputCore/catalog/stamdataDescriptors';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 
 const renderPage = () => {
   sessionStorage.clear();
@@ -53,7 +54,7 @@ describe('Stamdata — canonical datoordensfejl', () => {
     await user.tab();
 
     await waitFor(() => {
-      const sections = binding.read.getSettled().input.sections;
+      const sections = slimInputStore.getState().input.sections;
       expect(stamdataSkadelidteFodselsdatoField.readCanonical(
         sections,
         stamdataSkadelidteFodselsdatoField.bind().address

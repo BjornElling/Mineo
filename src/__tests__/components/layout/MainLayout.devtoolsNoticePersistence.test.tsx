@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -94,7 +95,7 @@ describe('MainLayout (devtools notice persistence)', () => {
     sessionStorage.clear();
     vi.clearAllMocks();
     devtoolsMocks.getDevtoolsIssueSnapshot.mockReturnValue(buildSnapshot([]));
-    slimInputStore.hydrate(emptyInput());
+    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {

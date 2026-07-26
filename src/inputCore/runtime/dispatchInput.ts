@@ -24,7 +24,78 @@ import {
 import type { InputRevision } from '../evaluationSource';
 import type { SettledInput } from '../settledInput';
 import { parseCurrentEnvelope, serializeCurrentEnvelope } from './currentSessionEnvelope';
-import type { SlimInputStore, SlimInputStoreState } from './slimInputStore';
+import type {
+  SlimInputCommit,
+  SlimInputStore,
+  SlimInputStoreState,
+} from './slimInputStore';
+
+type SlimInputStoreInternals = Readonly<{
+  applyCommit: (commit: SlimInputCommit) => void;
+  hydrate: (input: SettledInput, options?: Readonly<{ writesBlocked?: boolean }>) => void;
+  restore: (snapshot: SlimInputStoreState) => void;
+  bumpSettingsRevision: () => void;
+}>;
+
+const INTERNALS_BY_STORE = new WeakMap<SlimInputStore, SlimInputStoreInternals>();
+
+/**
+ * Registrerer den private mutationsport ved konstruktion af en store.
+ *
+ * Porten kan ikke hentes igen af consumers; kun dette modul bruger den til den validerede runner,
+ * engangshydration og settingsrevision. Dermed er den observerbare `SlimInputStore` rent læsende.
+ */
+export const registerSlimInputStoreInternals = (
+  store: SlimInputStore,
+  internals: SlimInputStoreInternals
+): void => {
+  if (INTERNALS_BY_STORE.has(store)) {
+    throw new Error('Inputruntime: intern mutationsport er allerede registreret.');
+  }
+  INTERNALS_BY_STORE.set(store, internals);
+};
+
+const requireStoreInternals = (store: SlimInputStore): SlimInputStoreInternals => {
+  const internals = INTERNALS_BY_STORE.get(store);
+  if (internals === undefined) {
+    throw new Error('Inputruntime: ukendt store uden registreret mutationsport.');
+  }
+  return internals;
+};
+
+/**
+ * Engangshydration før første render. En allerede hydreret runtime kan ikke overskrives gennem denne port.
+ */
+export const hydrateInputStoreOnce = (
+  store: SlimInputStore,
+  catalog: InputCatalog,
+  input: SettledInput,
+  options?: Readonly<{ writesBlocked?: boolean }>
+): void => {
+  if (store.getState().meta.hydrated) {
+    throw new Error('Inputruntime: en hydreret runtime må ikke hydreres igen.');
+  }
+  requireStoreInternals(store).hydrate(catalog.validateSettledInput(input), options);
+};
+
+/** Flytter kun settingsrevisionen; sagsinput kan ikke muteres gennem denne port. */
+export const bumpInputSettingsRevision = (store: SlimInputStore): void => {
+  requireStoreInternals(store).bumpSettingsRevision();
+};
+
+/**
+ * Test-support til isoleret arrangement af runtime-state.
+ *
+ * Produktionskoden må ikke importere denne capability; arkitekturværnet håndhæver importgrænsen. Den findes,
+ * fordi integrationstests skal kunne etablere en førtilstand uden at skrive browserens sessionStorage.
+ */
+export const __hydrateInputStoreForTest = (
+  store: SlimInputStore,
+  input: SettledInput,
+  options?: Readonly<{ writesBlocked?: boolean }>
+): void => {
+  requireStoreInternals(store).hydrate(input, options);
+};
 
 // Greenfield-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer — felt, række, system og
 // history — går gennem `dispatchInput`. Den bygger kandidaten med den rene reducer/history, serialiserer den ene
@@ -184,7 +255,7 @@ const commitCandidate = (
     if (readSessionStorageValue(key) !== serialized) {
       throw new Error('Inputenvelopen kunne ikke genlæses byte-for-byte efter skrivning.');
     }
-    store.applyCommit({
+    requireStoreInternals(store).applyCommit({
       input: persisted,
       history: nextHistory,
       committedAt,
@@ -215,7 +286,7 @@ const commitCandidate = (
         // applyCommit kan have gennemført sit set, før en subscriber kastede. Gendan hele før-snapshot'et, så
         // storage og runtime aldrig efterlades ude af sync. Kan storage-rollback ikke bevises, blokeres alle
         // efterfølgende writes fail-closed, indtil brugeren vælger den autoritative "Slet alt"-handling.
-        store.restore(restoredStoreState);
+        requireStoreInternals(store).restore(restoredStoreState);
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError)));
       }

@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
+import {
+  __createSlimInputTestStore,
+  __bumpSlimInputSettingsRevisionForTest,
+} from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import {
-  __createSlimInputTestStore,
   dispatchInput,
   ActiveEditorRegistry,
   CriticalActionCoordinator,
@@ -201,7 +204,7 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
       kind: 'field', code: 'settings.bounds', severity: 'error', field: toAnyFieldRef(field),
       reason: 'bounds', message: 'settings ændrede grænsen',
     })];
-    act(() => store.bumpSettingsRevision());
+    act(() => __bumpSlimInputSettingsRevisionForTest(store));
 
     expect(result.current.issue?.code).toBe('settings.bounds');
   });

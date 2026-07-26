@@ -1,10 +1,20 @@
-import { buildEoForligRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
+import { buildEoForligRows } from '../../../domain/eoRowEvaluation/eoRowOverviewRows';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
+import {
+  eoForligAnsvarsgradBroekField,
+  eoForligAnsvarsgradProcentField,
+  eoForligDatoField,
+} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import {
+  buildTestFieldIssueSet,
+  buildTestFieldIssueSetFrom,
+} from '../../utils/fieldIssueTestSupport';
 
 describe('buildEoForligRows visibility', () => {
   it('viser kun den samlede forligsrække med bindestreg når ingen værdi er udfyldt', () => {
-    const rows = buildEoForligRows(createErstatningsopgoerelseInitialValues(), {});
+    const rows = buildEoForligRows(createErstatningsopgoerelseInitialValues(), EMPTY_FIELD_ISSUE_SET);
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -20,7 +30,7 @@ describe('buildEoForligRows visibility', () => {
     values.forligAnsvarsgradProcent = 50;
     values.forligDato = toISODateString('2024-01-31');
 
-    const rows = buildEoForligRows(values, {});
+    const rows = buildEoForligRows(values, EMPTY_FIELD_ISSUE_SET);
 
     expect(rows.map((row) => row.id)).toEqual([
       'forlig.ansvarsgrad',
@@ -48,7 +58,7 @@ describe('buildEoForligRows visibility', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligAnsvarsgradBroek = '1/3';
 
-    const rows = buildEoForligRows(values, {});
+    const rows = buildEoForligRows(values, EMPTY_FIELD_ISSUE_SET);
 
     expect(rows.map((row) => row.id)).toEqual([
       'forlig.ansvarsgrad',
@@ -66,18 +76,16 @@ describe('buildEoForligRows visibility', () => {
     values.forligAnsvarsgradBroek = '1/3';
     values.forligDato = toISODateString('2024-01-31');
 
-    const rows = buildEoForligRows(values, {
-      forligAnsvarsgradProcent: { reason: 'rule',
-          severity: 'error',
-          message: 'Angiv enten procent eller brøk – ikke begge',
-        
+    const rows = buildEoForligRows(values, buildTestFieldIssueSetFrom([
+      {
+        field: eoForligAnsvarsgradProcentField.bind(),
+        message: 'Angiv enten procent eller brøk – ikke begge',
       },
-      forligAnsvarsgradBroek: { reason: 'rule',
-          severity: 'error',
-          message: 'Angiv enten procent eller brøk – ikke begge',
-        
+      {
+        field: eoForligAnsvarsgradBroekField.bind(),
+        message: 'Angiv enten procent eller brøk – ikke begge',
       },
-    });
+    ]));
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
@@ -101,13 +109,10 @@ describe('buildEoForligRows visibility', () => {
     // EOberegning-boksen (med link) og gater download — også selvom ingen værdi er committet.
     const values = createErstatningsopgoerelseInitialValues();
 
-    const rows = buildEoForligRows(values, {
-      forligAnsvarsgradProcent: { reason: 'rule',
-          severity: 'error',
-          message: 'Ugyldig værdi: "0"',
-        
-      },
-    });
+    const rows = buildEoForligRows(
+      values,
+      buildTestFieldIssueSet(eoForligAnsvarsgradProcentField.bind(), 'Ugyldig værdi: "0"')
+    );
 
     expect(rows[0]).toMatchObject({
       id: 'forlig.ansvarsgrad',
@@ -121,13 +126,13 @@ describe('buildEoForligRows visibility', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligDato = toISODateString('2024-01-31');
 
-    const rows = buildEoForligRows(values, {
-      forligDato: { reason: 'rule',
-          severity: 'error',
-          message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
-        
-      },
-    });
+    const rows = buildEoForligRows(
+      values,
+      buildTestFieldIssueSet(
+        eoForligDatoField.bind(),
+        'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk'
+      )
+    );
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({

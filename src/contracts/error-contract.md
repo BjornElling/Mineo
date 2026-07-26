@@ -220,14 +220,10 @@ Reporter-/store-modellen er væk. Issues afledes rent fra `InputReader`, feltdes
 der findes ingen skrivbar feltfejl-bus, ingen source-registre, ingen cleanup-effects, ingen syntetiske
 `invalid-draft`-entries og ingen mount-afhængige dokumentgates. Genindfør dem ikke.
 
-**EO's afledte issue-model følger nu dette (rettet i Fase 6's genåbning).** `EoInputIssue` er ÉT issue pr.
-feltnøgle: readerens `reason` bæres uændret videre, og blokerings-konsekvensen udledes strukturelt af severity
-(`eoIssueBlocksDependents`). Indtil Fase 6 bar modellen stadig den gamle algebra — en `source`-union med
-`'invalid-draft'`, et source-keyed map pr. felt og en prioriteret liste til at vælge mellem samtidige kilder —
-selvom `InputReader.read` kun kan give ét issue pr. felt. Dimensionen var altså tom, men downstream-rækkemodellen
-skulle alligevel folde den ud. Følgende navne er derfor forbudt som identifiers (`legacy/forbidden-identifier`):
-`EoInputIssueSource`, `EoFieldIssuesBySource`, `collectPresentFieldErrors`, `blocksSave`.
+**EO følger samme model uden en domænelokal issuealgebra.** Readerprojektionen filtrerer det kanoniske
+`FieldIssueSet` på sektion, og række-, snapshot- og downloadlaget modtager de samme strukturelle
+`FieldIssue`-adresser. Top-level felter slås op ved deres faktiske adresse; nested løncelleissues beholder
+deres entity-sti. Der konstrueres ingen feltnøgle-map eller syntetisk `${id}:loenindkomst`-issue.
 
-Den autoritative dependency-gating læser fortsat de STRUKTURELLE `FieldIssue`-adresser fra readerens
-issue-snapshot, ikke feltnøgle-mappet: mappet er en præsentationsprojektion over top-level felter og kan ikke se
-en rød rækkecelle.
+Følgende slettede navne er derfor forbudt som identifiers (`legacy/forbidden-identifier`):
+`EoInputIssueSource`, `EoFieldIssuesBySource`, `collectPresentFieldErrors`, `blocksSave`.

@@ -1,14 +1,11 @@
 // @vitest-environment jsdom
+import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import { buildProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { stamdataSkadedatoField } from '../../../inputCore/catalog/stamdataDescriptors';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { createEvaluationSourceToken } from '../../../inputCore/evaluationSource';
 import { projectStamdataForDocument } from '../../../domain/stamdata/stamdataDocumentProjection';
-import {
-  __createSlimInputTestStore,
-  dispatchInput,
-  initializeInputRuntime,
-} from '../../../inputCore/runtime';
+import { dispatchInput, initializeInputRuntime } from '../../../inputCore/runtime';
 import { settleField } from '../../../inputCore/inputReducer';
 
 describe('projectStamdataForDocument', () => {

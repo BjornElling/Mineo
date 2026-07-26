@@ -1,4 +1,5 @@
-import { buildEoTaftRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
+import { buildEoTaftRows } from '../../../domain/eoRowEvaluation/eoRowTaftRows';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 
@@ -21,7 +22,7 @@ describe('buildEoTaftRows field error priority', () => {
 
     const rows = buildEoTaftRows(
       values,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       {
         skadedatoISO: iso('2023-06-01'),
         skadelidteFodselsdato: undefined,

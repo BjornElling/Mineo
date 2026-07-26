@@ -17,6 +17,7 @@ import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
+import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
@@ -51,7 +52,7 @@ export const buildEoSvieSmerteRows = (
   rows.push({
     id: 'sviesmerte.tidligereSsMax',
     label: 'Tidligere beregnet S/S til max.',
-    ...resolveEoRowDisplay({ value: values.tidligereSsMax, issue: errors.tidligereSsMax, emptyState: 'error' }),
+    ...resolveEoRowDisplay({ value: values.tidligereSsMax, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'tidligereSsMax'), emptyState: 'error' }),
   });
 
   // 2) Periode rows fra tabellen - kun hvis synlig
@@ -180,7 +181,7 @@ export const buildEoSvieSmerteRows = (
   const satserAarValue = values.svieSmerteSatserAar !== undefined ? String(values.svieSmerteSatserAar) : undefined;
   const satserAarResolved = resolveEoRowDisplay({
     value: satserAarValue,
-    issue: errors.svieSmerteSatserAar,
+    issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteSatserAar'),
     emptyState: 'ok',
   });
   const satserAarMangler = harPerioder && !isNonEmptyString(satserAarValue);
@@ -229,7 +230,7 @@ export const buildEoSvieSmerteRows = (
 
   // 3b) Svie/smerte sats ved delvis sygemelding
   const delvisSygemeldingSatsValue = values.svieSmerteDelvisSygemeldingSats;
-  const delvisSygemeldingSatsErrors = presentIssuesForRow(errors.svieSmerteDelvisSygemeldingSats);
+  const delvisSygemeldingSatsErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteDelvisSygemeldingSats'));
   const harDelvisSygemeldingSatsFejl = delvisSygemeldingSatsErrors.length > 0;
   const delvisSygemeldingSatsMangler = !delvisSygemeldingSatsValue || delvisSygemeldingSatsValue.trim() === '';
 
@@ -311,7 +312,7 @@ export const buildEoSvieSmerteRows = (
     const tidligereTotalAmount = amountValueToNumber(values.svieSmerteTidligereTotal);
     const tidligereTotalResolved = resolveEoRowDisplay({
       value: formatCurrency(tidligereTotalAmount),
-      issue: errors.svieSmerteTidligereTotal,
+      issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteTidligereTotal'),
       emptyState: 'ok',
     });
     // Feltet er skjult, når svie/smerte ikke beregnes eller tidligere allerede er beregnet til
@@ -341,7 +342,7 @@ export const buildEoSvieSmerteRows = (
   rows.push({
     id: 'sviesmerte.aktuelPeriode',
     label: 'Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode',
-    ...resolveEoRowDisplay({ value: aktuelPeriodeValue, issue: errors.svieSmerteAktuelPeriode, emptyState: 'ok' }),
+    ...resolveEoRowDisplay({ value: aktuelPeriodeValue, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteAktuelPeriode'), emptyState: 'ok' }),
   });
 
   // 6) Beregnet periode (sammenflettede perioder afgrænset af vedroererPeriode og menAfgoerelseDato)

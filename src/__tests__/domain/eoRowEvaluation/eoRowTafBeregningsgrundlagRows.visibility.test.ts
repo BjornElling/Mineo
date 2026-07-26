@@ -1,5 +1,6 @@
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { buildEoTafBeregningsgrundlagRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { buildEoTafBeregningsgrundlagRows } from '../../../domain/eoRowEvaluation/eoRowTafBeregningsgrundlagRows';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -21,7 +22,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       beregnesUdFra: 'Angivet månedsløn',
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const ids = new Set(rows.map((row) => row.id));
 
     expect(ids.has('taf.beregningsgrundlag.beregningsperiode')).toBe(false);
@@ -39,7 +40,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       beregnesUdFra: 'Beregningsperiode',
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const ids = new Set(rows.map((row) => row.id));
 
     expect(ids.has('taf.beregningsgrundlag.arbejdsdage')).toBe(false);
@@ -74,7 +75,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       ],
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const ids = new Set(rows.map((row) => row.id));
 
     expect(ids.has('taf.beregningsgrundlag.maaneder')).toBe(false);
@@ -95,7 +96,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       offentligeYdelserRows: [],
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const indkomstRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.indkomst');
 
     expect(indkomstRow).toBeDefined();
@@ -133,7 +134,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       offentligeYdelserRows: [],
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const indkomstRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.indkomst');
     expect(indkomstRow).toBeUndefined();
   });
@@ -148,7 +149,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       oevrigeFravaersdageBeskrivelse: '',
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const ids = new Set(rows.map((row) => row.id));
 
     expect(ids.has('taf.beregningsgrundlag.oevrigeFravaersdage')).toBe(false);
@@ -163,7 +164,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       oevrigtFravaerUdenLoen: 'Nej',
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const maanederRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.maaneder');
 
     expect(maanederRow?.label).toBe('Beregningsperiode: 12 måneder (0 fraværsdage uden løn) =');
@@ -179,7 +180,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       oevrigeFravaersdage: 1,
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const maanederRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.maaneder');
 
     expect(maanederRow?.label).toBe('Beregningsperiode: 12 - 0,048 måneder (1 fraværsdage uden løn x 4,8 % måned) =');
@@ -196,7 +197,7 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
       oevrigeFravaersdageBeskrivelse: 'orlov',
     });
 
-    const rows = buildEoTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
     const maanederRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.maaneder');
 
     expect(maanederRow?.label).not.toContain('orlov');

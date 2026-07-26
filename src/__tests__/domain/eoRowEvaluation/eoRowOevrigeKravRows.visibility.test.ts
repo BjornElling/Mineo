@@ -1,6 +1,7 @@
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEoOevrigeKravRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { buildEoOevrigeKravRows } from '../../../domain/eoRowEvaluation/eoRowOevrigeKravRows';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
@@ -10,7 +11,7 @@ describe('buildEoOevrigeKravRows visibility', () => {
   it('viser "Ingen" til venstre når der hverken er øvrige krav eller særlige intro-linjer', () => {
     const values = createErstatningsopgoerelseInitialValues();
 
-    const rows = buildEoOevrigeKravRows(values, {});
+    const rows = buildEoOevrigeKravRows(values, EMPTY_FIELD_ISSUE_SET);
 
     expect(rows).toEqual([
       {
@@ -41,7 +42,7 @@ describe('buildEoOevrigeKravRows visibility', () => {
     values.midlertidigEETVirkningsdato = iso('2024-02-01');
     values.verserendeKlageEet = 'Ja';
 
-    const rows = buildEoOevrigeKravRows(values, {});
+    const rows = buildEoOevrigeKravRows(values, EMPTY_FIELD_ISSUE_SET);
 
     expect(rows.map((row) => row.label)).toEqual([
       'Skadelidte har modtaget kontanthjælp i erstatningsperioden. Kræves ydelsen tilbagebetalt som følge af erstatningsudbetaling, vil kravet blive forhøjet.',
@@ -56,7 +57,7 @@ describe('buildEoOevrigeKravRows visibility', () => {
     values.endeligtEETAfgorelse = 'Ja';
     values.endeligEETAfgoerelseDato = iso('2024-03-01');
 
-    const rows = buildEoOevrigeKravRows(values, {});
+    const rows = buildEoOevrigeKravRows(values, EMPTY_FIELD_ISSUE_SET);
 
     expect(rows.map((row) => row.label)).toEqual([
       'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.',

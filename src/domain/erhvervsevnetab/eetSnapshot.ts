@@ -51,12 +51,19 @@ export type EetForligInput = Readonly<{
   hasRejectedInput: boolean;
 }>;
 
+export const EMPTY_EET_FORLIG_INPUT: EetForligInput = Object.freeze({
+  values: Object.freeze({
+    forligAnsvarsgradProcent: undefined,
+    forligAnsvarsgradBroek: '',
+  }),
+  hasRejectedInput: false,
+});
+
 export type EetSnapshotInput = Readonly<{
   values: ErhvervsevnetabComposedValues;
   stamdata: StamdataValues | null;
   fieldErrors: EetInputIssues;
-  // Udeladt = intet forlig (bagudkompatibelt for eksisterende kald/tests).
-  forlig?: EetForligInput;
+  forlig: EetForligInput;
 }>;
 
 type EetTabProjection<TComputation> = Readonly<{

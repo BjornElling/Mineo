@@ -19,7 +19,7 @@ import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { SourceSettings } from '../../settings/sourceSettings';
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
-import { buildMidlertidigtEetInsertSource } from '../erhvervsevnetab/midlertidigtEetInsertSource';
+import { buildMidlertidigtEetInsertSource } from '../erhvervsevnetab/eetImportPort';
 import type { SelectedElements } from '../../document/generators/eo/types';
 import type { MidlertidigtEetAfgoerelseGroup } from './helpers/midlertidigtEetInsertRows';
 import {

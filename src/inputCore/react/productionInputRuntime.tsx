@@ -10,6 +10,7 @@ import {
   initializeInputRuntime,
   type InputRuntimeStartup,
 } from '../runtime/initializeInputRuntime';
+import { bumpInputSettingsRevision } from '../runtime/dispatchInput';
 import { seedSatserNewCase } from '../../domain/satser/satserNewCaseSeed';
 import {
   createInputRuntimeBinding,
@@ -136,6 +137,10 @@ let bootstrappedProductionRuntime: Readonly<{
   startup: InputRuntimeStartup;
 }> | null = null;
 
+/** Læser entrypointets allerede afgjorte startup-status uden at starte eller hydrere runtime. */
+export const getProductionInputRuntimeStartup = (): InputRuntimeStartup | null =>
+  bootstrappedProductionRuntime?.startup ?? null;
+
 /**
  * Publicerer settingssnapshot og revision i samme layoutfase, så kritiske handlinger aldrig kombinerer et nyt
  * inputtoken med et settingsobjekt fra en ældre React-commit. Første mount flytter kun revisionen, hvis de
@@ -150,7 +155,7 @@ export const useSettingsRevisionBridge = (settings: AppSettings): void => {
     publishedSettings = settings;
     if (!changed) return;
     cachedEvaluation = null;
-    slimInputStore.bumpSettingsRevision();
+    bumpInputSettingsRevision(slimInputStore);
   }, [settings]);
 };
 

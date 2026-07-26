@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -29,11 +30,11 @@ const emptyInput = () => catalog.validateSettledInput({
 describe('MainLayout navigation commit guard', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    slimInputStore.hydrate(emptyInput());
+    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {
-    slimInputStore.hydrate(emptyInput());
+    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   it('keeps navigation fail-closed when an editable field is still active during page change', async () => {

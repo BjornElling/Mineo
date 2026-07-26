@@ -6,6 +6,7 @@ import {
   LEGACY_MODULE_PATH_SELFTEST,
   NON_DOMAIN_CATALOG_MODULES,
 } from './architectureRules';
+import { FORBIDDEN_LEGACY_IDENTIFIERS } from './rules/inputBoundaryRules';
 import { getSourceGraph } from './sourceGraph';
 
 /**
@@ -23,6 +24,26 @@ import { getSourceGraph } from './sourceGraph';
  */
 
 describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', () => {
+  it('forbudt-symbol-listen matcher Fase 6-listen uden staveglidning', () => {
+    expect(FORBIDDEN_LEGACY_IDENTIFIERS).toEqual([
+      'executeLegacyInputTransaction',
+      'useDraftLifecycle',
+      'legacyGridTransactionBridge',
+      'useDraftField',
+      'useTableInputCore',
+      'useRowDrafts',
+      'useSliceRowDrafts',
+      'invalidDrafts',
+      'FormPersistenceContext',
+      'usePersistedForm',
+      'blocksSave',
+      'EoInputIssueSource',
+      'EoFieldIssuesBySource',
+      'collectPresentFieldErrors',
+      'InputWriteAuthority',
+      'claimInputWriteAuthority',
+    ]);
+  });
   it('hver forbudt modulsti i manifestet matcher sit eget regex (liste og mønster er ikke driftet)', () => {
     const unmatched = LEGACY_MODULE_PATH_SELFTEST.paths.filter(
       (path) => !LEGACY_MODULE_PATH_SELFTEST.pattern.test(path)
@@ -173,22 +194,22 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
    * kommentar ("Compat wrapper", "så eksisterende imports er uændrede", "for bagudkompatibilitet"),
    * men eksporterede neutralt navngivne symboler videre fra det kanoniske modul.
    *
-   * Denne kontrol måler STRUKTUREN i stedet for navnet: en fil, hvis hele offentlige flade er
-   * `export … from '<andet modul>'`, tilføjer ingen betydning — den holder kun en gammel importsti
-   * i live. Det er præcis definitionen på en compatibility-facade.
+   * Denne kontrol måler STRUKTUREN i stedet for navnet: en ikke-barrel-fil, hvis hele offentlige flade
+   * består af `export … from`, tilføjer ingen betydning — den holder kun gamle importstier i live.
    *
    * BEVIDST undtaget er ægte pakke-/barrel-grænser: `index.ts` og de navngivne `*Descriptors`-/
-   * katalog-barrels er MENINGSFULDE offentlige flader, hvor viderelevering ER opgaven. En barrel er
-   * kendetegnet ved at samle FLERE moduler; en facade viderefører ét.
+   * katalog-barrels er MENINGSFULDE offentlige flader, hvor viderelevering ER opgaven.
    */
   it('ingen produktionsfil er en ren re-export-facade (struktur, ikke navn)', () => {
     const entries = getSourceGraph();
     const facades: string[] = [];
+    const publicBarrels = new Set(['src/schemas/formSchemas.ts']);
 
     for (const entry of entries) {
       if (entry.relativePath.startsWith('src/__tests__/')) continue;
       // Barrels: en fil, hvis opgave ER at samle en offentlig flade.
       if (/(?:^|\/)index\.tsx?$/.test(entry.relativePath)) continue;
+      if (publicBarrels.has(entry.relativePath)) continue;
 
       const sourceFile = entry.ast;
       let reExportModules = 0;
@@ -208,16 +229,14 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
         }
       }
 
-      // En facade: viderefører præcis ÉN kilde og har intet eget indhold. Videreførsel af flere
-      // moduler er en barrel (en samlet flade), og eget indhold gør filen til et rigtigt modul.
-      if (reExportModules === 1 && ownDeclarations === 0) {
+      if (reExportModules > 0 && ownDeclarations === 0) {
         facades.push(entry.relativePath);
       }
     }
 
     expect(
       facades,
-      'Exitkriterie 1: en fil, hvis hele flade er ét `export … from`, holder kun en gammel importsti '
+      'Exitkriterie 1: en ikke-barrel-fil, hvis hele flade består af `export … from`, holder kun gamle importstier '
         + 'i live. Opdatér consumers til det kanoniske modul og slet filen. (En ægte offentlig '
         + 'pakkegrænse samler flere moduler og hedder `index.ts`.)'
     ).toEqual([]);

@@ -20,7 +20,7 @@ import DownloadIconButton from '../../inputs/DownloadIconButton';
 import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
 import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
-import { useInputSystemPort } from '../../../inputCore/react/inputRuntimeContext';
+import { useSectionReset } from '../../../inputCore/react/inputRuntimeContext';
 import { resetSection } from '../../../inputCore/inputReducer';
 import {
   renteberegningBeregningsdatoField,
@@ -93,7 +93,7 @@ const RenteberegningTab = React.memo(({
   showOversigtBox = false,
   documentDownloadFormat,
 }: RenteberegningTabProps) => {
-  const system = useInputSystemPort();
+  const dispatchSectionReset = useSectionReset();
   const evaluation = useInputEvaluation();
   const criticalActions = useCriticalInputActions();
   const [downloadAllIsLoading, setDownloadAllIsLoading] = React.useState(false);
@@ -165,8 +165,8 @@ const RenteberegningTab = React.memo(({
     // Draften forbliver urørt, mens dialogen er åben. Først efter bekræftelse gennemføres reset atomisk; ved
     // storagefejl forbliver både den afsluttede tilstand og editoren uændret.
     await criticalActions.applyDestructive(() =>
-      system.resetSection(resetSection('renteberegning', { rentekravRows: [] })));
-  }, [criticalActions, system]);
+      dispatchSectionReset(resetSection('renteberegning', { rentekravRows: [] })));
+  }, [criticalActions, dispatchSectionReset]);
 
   return (
     <Box>

@@ -1,3 +1,4 @@
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
@@ -9,10 +10,8 @@ import {
   buildSvieSmerteContext,
   buildTaftContext,
 } from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
-import {
-  buildEoSvieSmerteRows,
-  buildEoTaftRows,
-} from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowSvieSmerteRows';
+import { buildEoTaftRows } from '../../../domain/eoRowEvaluation/eoRowTaftRows';
 import { toISODateString } from '../../../types/branded';
 import { formatCurrency } from '../../../utils/formatUtils';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
@@ -54,7 +53,7 @@ describe('eoRow canonical parity', () => {
 
     const rows = buildEoSvieSmerteRows(
       eoValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       buildSvieSmerteContext(stamdataValues, eoValues),
       canonical
     );
@@ -97,7 +96,7 @@ describe('eoRow canonical parity', () => {
 
     const rows = buildEoTaftRows(
       eoValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       buildTaftContext(stamdataValues, eoValues),
       canonical
     );
@@ -133,7 +132,7 @@ describe('eoRow canonical parity', () => {
 
     const rows = buildEoSvieSmerteRows(
       eoValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       buildSvieSmerteContext(stamdataValues, eoValues),
       undefined
     );

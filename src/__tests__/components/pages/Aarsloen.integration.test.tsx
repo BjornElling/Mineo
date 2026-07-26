@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
 // Greenfield Årsløn-slice (§2.4 trin 3 / §2.5, Pass 2). Integrationstest gennem den RIGTIGE migrerede side + den
 // ægte produktions-runtime (`ProductionInputRuntimeProvider` mod `slimInputStore`). Beviser den virkelige sti:
@@ -45,7 +46,7 @@ const hydrateAarsloen = (
     },
     rejectedInputs: {},
   });
-  slimInputStore.hydrate(input);
+  __hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderAarsloen = () => render(

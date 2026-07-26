@@ -15,6 +15,7 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { formatRowCount, formatRowMonths } from './eoRowShared';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
+import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 
 const resolveFolkepensionsdato = (
   fodselsdato: ISODateString | undefined,
@@ -355,7 +356,7 @@ export const buildEoTaftRows = (
   rows.push({
     id: 'taf.tidligereModtagetTaf',
     label: 'Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode',
-    ...resolveEoRowDisplay({ value: tidligereModtagetTafDisplay, issue: errors.tidligereModtagetTaf, emptyState: 'ok' }),
+    ...resolveEoRowDisplay({ value: tidligereModtagetTafDisplay, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'tidligereModtagetTaf'), emptyState: 'ok' }),
   });
 
   return rows;

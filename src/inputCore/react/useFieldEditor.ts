@@ -23,7 +23,11 @@ import {
   type EditorDispatch,
 } from '../editor/fieldEditorEngine';
 import type { EditorSettleIntent } from '../editor/fieldEditorState';
-import { useInputEditPort, useInputReadPort, useSettledSnapshot } from './inputRuntimeContext';
+import {
+  useInputEditPort,
+  useInputReadPort,
+  useInternalSettledSnapshot,
+} from './inputRuntimeContext';
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 import { fieldAddressesEqual } from '../fieldAddress';
 
@@ -93,7 +97,7 @@ export const useFieldEditor = <T>(
 ): FieldEditorController<T> => {
   const read = useInputReadPort();
   const edit = useInputEditPort();
-  const snapshot = useSettledSnapshot();
+  const snapshot = useInternalSettledSnapshot();
   // Feltissues kan flytte sig ved en settingsrevision uden en inputrevision. Et særskilt abonnement på det
   // tokenbundne issue-snapshot sikrer derfor, at den røde feltvisning ikke bliver stale, blot fordi det
   // afsluttede input er uændret.

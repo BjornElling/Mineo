@@ -3,18 +3,19 @@
 // udpegede erstatning for `inputRuntimeStore` + `inputTransactionRunner`; cutoveren peger produktionen hertil.
 
 export * from './currentSessionEnvelope';
-// Storen selv eksporteres BEVIDST ikke herfra som en mutabel capability: `SlimInputStore` er en handle med
-// navngivne, validerede transaktioner (ingen `setState`), og produktionens singleton nås kun gennem
-// `productionInputRuntime`s binding. Testfabrikken bygger en ISOLERET runtime frem for at give skriveadgang
-// til produktionens.
 export {
-  __createSlimInputTestStore,
-  type SlimInputCommit,
   type SlimInputMeta,
   type SlimInputStore,
   type SlimInputStoreState,
 } from './slimInputStore';
-export * from './dispatchInput';
+export {
+  dispatchInput,
+  type DispatchInputOptions,
+  type DispatchInputResult,
+  type RuntimeInputCommand,
+  type StructuralDispatchInputOptions,
+  type StructuralInputCommand,
+} from './dispatchInput';
 export * from './initializeInputRuntime';
 export * from './evaluationSourceBinding';
 export * from './activeEditorRegistry';

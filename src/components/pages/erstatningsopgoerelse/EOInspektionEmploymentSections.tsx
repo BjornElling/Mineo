@@ -5,7 +5,7 @@ import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import type { RegulationInspektionSection } from '../../../domain/eoInspektion/eoInspektionRegulationViewModel';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoRowShared';
 import { getRegulationTableColumns } from './regulationTableColumns';
 import { renderRegulationTableCellContent } from './regulationTableCellContent';
 import {

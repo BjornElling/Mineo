@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
 //
 // Greenfield Varige mén-slice (§2.4 formularrækkefølge trin 5 / Fase 3): hele fanen kører nu på den ENE greenfield
 // input-runtime (ingen legacy FormPersistence/invalidDrafts/props). Denne integrationstest kører gennem den
@@ -47,7 +48,7 @@ const hydrate = (
     },
     rejectedInputs: {},
   });
-  slimInputStore.hydrate(input);
+  __hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const validStamdata: StamdataValues = {

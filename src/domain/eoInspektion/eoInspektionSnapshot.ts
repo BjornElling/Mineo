@@ -11,12 +11,12 @@ import {
   flattenSammentaellingDisplayTables,
   buildSvieSmerteContext,
   buildTaftContext,
-  type SammentaellingDisplayRow,
   type SammentaellingDisplayTables,
   type SammentaellingModel,
 } from './eoInspektionSammentaelling';
+import type { SammentaellingDisplayRow } from '../erstatningsopgoerelse/control/eoControlMismatch';
 import type { EOInspektionModel } from './eoInspektionKontrolModel';
-import type { EoInputIssues, EoStamdataInputIssues } from '../erstatningsopgoerelse/eoInputIssues';
+import type { FieldIssueSet } from '../../inputCore/inputIssue';
 
 /**
  * EOInspektionSnapshot er et konsistens-kritisk, entry-bundet snapshot.
@@ -35,8 +35,8 @@ export type EOInspektionSnapshot = Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   fieldErrors: Readonly<{
-    stamdata: EoStamdataInputIssues;
-    erstatningsopgoerelse: EoInputIssues;
+    stamdata: FieldIssueSet;
+    erstatningsopgoerelse: FieldIssueSet;
   }>;
 }>;
 
@@ -57,8 +57,8 @@ export const buildEOInspektionSnapshot = (args: {
   revision: string;
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
-  stamdataErrors: EoStamdataInputIssues;
-  eoErrors: EoInputIssues;
+  stamdataErrors: FieldIssueSet;
+  eoErrors: FieldIssueSet;
   /** Clampede TAF-ranges fra engines. Når disse er leveret afspejler kontroltabellen
    *  præcis de perioder der indgik i beregningen — ikke de rå committede datoer. */
   tafRanges?: readonly IsoRange[];

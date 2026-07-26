@@ -8,13 +8,11 @@ export {
   useDocumentInputAccess,
   useInputEditPort,
   useInputReadPort,
-  useInputSystemPort,
   useSettledSnapshot,
   type DocumentInputAccess,
   type InputEditPort,
   type InputReadPort,
   type InputRuntimeBinding,
-  type InputSystemPort,
   type InputRuntimeProviderProps,
   type SettledSnapshot,
 } from './inputRuntimeContext';

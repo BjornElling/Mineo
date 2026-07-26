@@ -4,7 +4,7 @@ import ContentBox from '../../layout/ContentBox';
 import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoRowShared';
 import { INSPEKTION_ROW_LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoInspektionRowRendering';
 
 type GroupedRowsSection = Readonly<{

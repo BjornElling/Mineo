@@ -4,9 +4,12 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
-import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowSvieSmerteRows';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
+import { eoSvieSmerteTidligereTotalField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { buildTestFieldIssueSet } from '../../utils/fieldIssueTestSupport';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -20,7 +23,7 @@ const context = {
 
 const getTidligereTotalRow = (
   patch: Partial<ErstatningsopgoerelseValues> = {},
-  errors: Parameters<typeof buildEoSvieSmerteRows>[1] = {}
+  errors: Parameters<typeof buildEoSvieSmerteRows>[1] = EMPTY_FIELD_ISSUE_SET
 ) => {
   const values = {
     ...createErstatningsopgoerelseInitialValues(),
@@ -72,9 +75,11 @@ describe('buildEoSvieSmerteRows — tidligere svie-/smertebeløb', () => {
   it('lader en egentlig feltfejl have forrang for advarslen', () => {
     const row = getTidligereTotalRow(
       { svieSmerteTidligereTotal: undefined },
-      {
-        svieSmerteTidligereTotal: { message: 'Beløbet er ugyldigt', severity: 'error', reason: 'format' },
-      }
+      buildTestFieldIssueSet(
+        eoSvieSmerteTidligereTotalField.bind(),
+        'Beløbet er ugyldigt',
+        'format'
+      )
     );
 
     expect(row).toMatchObject({
@@ -96,7 +101,12 @@ describe('collectAllEoRows — tidligere svie-/smertebeløb', () => {
       svieSmerteTidligereTotal: undefined,
     };
 
-    const { warnings } = collectAllEoRows(STAMDATA_INITIAL_VALUES, {}, values, {});
+    const { warnings } = collectAllEoRows(
+      STAMDATA_INITIAL_VALUES,
+      EMPTY_FIELD_ISSUE_SET,
+      values,
+      EMPTY_FIELD_ISSUE_SET
+    );
     const warning = warnings.find((row) => row.id === 'sviesmerte.tidligereTotal');
 
     expect(warning).toMatchObject({

@@ -4,6 +4,7 @@ import type { InputCatalog } from '../fieldCatalog';
 import { createEmptySettledInput } from '../settledInput';
 import { parseCurrentEnvelope } from './currentSessionEnvelope';
 import type { SlimInputStore } from './slimInputStore';
+import { hydrateInputStoreOnce } from './dispatchInput';
 
 // Greenfield-runtime (§3.10): hydrér ÉN gang før React-render fra den ene current-only envelope. Ingen
 // legacy-session-læsning, adresseoversættelse, dual-read eller kompatibilitetsdialog. Begge app-entrypoints
@@ -55,7 +56,7 @@ export const initializeInputRuntime = (
   try {
     raw = readSessionStorageValue(getCurrentInputEnvelopeStorageKey());
   } catch {
-    store.hydrate(createEmptySettledInput(), { writesBlocked: true });
+    hydrateInputStoreOnce(store, catalog, createEmptySettledInput(), { writesBlocked: true });
     return Object.freeze({ notice: UNAVAILABLE_NOTICE });
   }
 
@@ -64,17 +65,17 @@ export const initializeInputRuntime = (
     // den hydrerede baseline (§1.12: eksplicit engangs-seed af en tom ny sag, aldrig en stille overskrivning).
     const empty = createEmptySettledInput();
     const seeded = options.seedNewCase === undefined ? empty : catalog.validateSettledInput(options.seedNewCase(empty));
-    store.hydrate(seeded);
+    hydrateInputStoreOnce(store, catalog, seeded);
     return Object.freeze({ notice: null });
   }
 
   try {
     const input = catalog.validateSettledInput(parseCurrentEnvelope(raw));
-    store.hydrate(input);
+    hydrateInputStoreOnce(store, catalog, input);
     return Object.freeze({ notice: null });
   } catch {
     // Korruption i current-format: bevar rå envelope, blokér writes, vis systemfejl.
-    store.hydrate(createEmptySettledInput(), { writesBlocked: true });
+    hydrateInputStoreOnce(store, catalog, createEmptySettledInput(), { writesBlocked: true });
     return Object.freeze({ notice: CORRUPTION_NOTICE });
   }
 };

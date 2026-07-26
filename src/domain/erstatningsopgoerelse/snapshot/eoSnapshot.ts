@@ -34,7 +34,6 @@ import {
   buildTafPerYearAfrundingInvariant,
   buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
   buildTafPerYearUnavailableInvariant,
-  buildReaderFieldIssueInvariants,
   buildStructuralFieldIssueInvariants,
   buildValidationInvariants,
   hasAnyErrorInvariant,
@@ -45,7 +44,7 @@ import {
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
-import { type EoInputIssues, type EoStamdataInputIssues } from '../eoInputIssues';
+import { EMPTY_FIELD_ISSUE_SET, type FieldIssueSet } from '../../../inputCore/inputIssue';
 import { resolveEoBlockedDependencies, type EoBlockedDependencies } from './eoDependencyGroups';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
 
@@ -135,8 +134,8 @@ export type EoSnapshot = Readonly<{
   failClosedReason?: 'schema_guard' | 'invariant_guard' | 'runtime_exception';
 }>;
 
-const EMPTY_STAMDATA_ERRORS: EoStamdataInputIssues = {};
-const EMPTY_EO_ERRORS: EoInputIssues = {};
+const EMPTY_STAMDATA_ERRORS = EMPTY_FIELD_ISSUE_SET;
+const EMPTY_EO_ERRORS = EMPTY_FIELD_ISSUE_SET;
 const EMPTY_FIELD_ISSUES: readonly FieldIssue[] = Object.freeze([]);
 
 export type EoSnapshotWithData = Readonly<Omit<EoSnapshot, 'data' | 'input'>> & Readonly<{
@@ -176,8 +175,8 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
   revision: string;
   stamdata: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
-  stamdataErrors: EoStamdataInputIssues;
-  eoErrors: EoInputIssues;
+  stamdataErrors: FieldIssueSet;
+  eoErrors: FieldIssueSet;
   tafRanges?: readonly IsoRange[];
   svieSmerteEngine?: SvieSmerteEngineOutput;
   canonicalOutput?: EoCanonicalOutput;
@@ -241,8 +240,8 @@ export const computeEoSnapshot = (args: Readonly<{
   stamdataValues: unknown;
   eoValues: unknown;
   dagsDatoISO?: ISODateString;
-  stamdataErrors?: EoStamdataInputIssues;
-  eoErrors?: EoInputIssues;
+  stamdataErrors?: FieldIssueSet;
+  eoErrors?: FieldIssueSet;
   /**
    * De STRUKTURELLE røde feltissues fra readerens issue-snapshot — autoriteten for dependency-gatingen
    * (§1.10, WI-004 runde 4). Bevidst IKKE udledt af `eoErrors`: det map indeholder kun 11 top-level
@@ -377,7 +376,7 @@ export const computeEoSnapshot = (args: Readonly<{
     // kun 11 top-level feltnavne, så en rød RÆKKECELLE ville hverken blokere beregningen eller sin egen gren.
     ...buildStructuralFieldIssueInvariants(eoFieldIssues),
     // Stamdatas fejl-map ÉR det fulde sæt for sin sektion og har ingen egen beregningsgren.
-    ...buildReaderFieldIssueInvariants(stamdataErrors, 'stamdata'),
+    ...buildStructuralFieldIssueInvariants(stamdataFieldIssues),
   ];
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
     // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.

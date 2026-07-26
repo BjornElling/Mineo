@@ -2,18 +2,18 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { EoRowPolicy } from '../../settings/sourceSettings';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { EoInputIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import type { FieldIssueSet } from '../../inputCore/inputIssue';
 
 /**
  * Type aliases for læsbarhed
  */
 export type StamdataValues = PersistedSectionMap['stamdata'];
 export type StamdataFieldName = Extract<keyof StamdataValues, string>;
-export type StamdataFieldIssues = Partial<Record<StamdataFieldName, EoInputIssue>>;
+export type StamdataFieldIssues = FieldIssueSet;
 
 export type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 export type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
-export type ErstatningsopgoerelseFieldIssues = Partial<Record<ErstatningsopgoerelseFieldName, EoInputIssue>>;
+export type ErstatningsopgoerelseFieldIssues = FieldIssueSet;
 export type LoenindkomstManuelReguleringInputErrors = Readonly<Record<string, true>>;
 
 /**

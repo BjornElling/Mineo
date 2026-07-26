@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import {
   createClosedEditor,
   openEditor,
@@ -16,7 +17,6 @@ import {
   type EditorLocation,
 } from '../../../inputCore/editor';
 import {
-  __createSlimInputTestStore,
   dispatchInput,
   initializeInputRuntime,
   captureStableInputEvaluation,

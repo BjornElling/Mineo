@@ -23,7 +23,7 @@ import { routeToPageId } from '../../config/pageNavigation';
 import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
-  bootstrapProductionInputRuntime,
+  getProductionInputRuntimeStartup,
   useCaseOperations,
   useCriticalInputActions,
   useInputDiagnostics,
@@ -101,7 +101,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     dismissDevtools,
     getExtraSections: buildDevtoolsReportExtras,
   } = useDevtoolsMonitoring({
-    getPersistedData: getPersistedSectionForDevtools,
+    readPersistedSection: getPersistedSectionForDevtools,
     getSectionFieldIssues: getFieldIssuesForDevtools,
     location,
   });
@@ -183,10 +183,10 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   });
 
   // Startup-notice (§1.12): korruption/utilgængeligt lager fra den ene runtime-bootstrap vises i shellens
-  // notice-overflade. `bootstrapProductionInputRuntime` er idempotent (module-singleton), så dette er præcis
-  // den startup, som blev afgjort før render i `main.tsx`.
+  // notice-overflade. Shellens læsning må ikke selv starte eller rehydrere runtime.
   React.useEffect(() => {
-    const { startup } = bootstrapProductionInputRuntime();
+    const startup = getProductionInputRuntimeStartup();
+    if (startup === null) return;
     if (startup.notice === null) return;
     setOverlay({ message: startup.notice.message, type: startup.notice.type });
   }, []);

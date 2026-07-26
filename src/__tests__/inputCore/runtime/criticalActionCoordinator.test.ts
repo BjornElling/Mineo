@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
+import { __createSlimInputTestStore, __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import {
-  __createSlimInputTestStore,
   ActiveEditorRegistry,
   CriticalActionCoordinator,
   type ActiveEditor,
@@ -80,7 +80,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     registry.register(editor);
 
     await expect(coordinator.applyReplacement(() => {
-      store.hydrate(store.getState().input);
+      __hydrateSlimInputStoreForTest(store, store.getState().input);
       return 'erstattet';
     })).resolves.toBe('erstattet');
     expect(discard).toHaveBeenCalledOnce();
@@ -114,7 +114,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     registry.register(editor);
 
     await expect(coordinator.applyDestructive(() => {
-      store.hydrate(store.getState().input);
+      __hydrateSlimInputStoreForTest(store, store.getState().input);
       return 'slettet';
     })).resolves.toBe('slettet');
     expect(settleCount()).toBe(0);

@@ -1184,13 +1184,12 @@ consumerslices er migreret til rene reader-projektioner:
 `faellesAarsloenAslAarsloenField`s descriptor-validator og kommer ind ad samme vej som enhver anden rød
 feltfejl. Den tidligere slice-lokale genberegning i Forsørgertab og EET er fjernet (Codex-fund F2).
 
-**EO's issue-form bærer `reason`, ikke et gate-flag:** `EoInputIssue` bar tidligere en `blocksSave`-boolean,
-der duplikerede readerens årsag og kunne komme i modstrid med den. Konsekvensen udledes nu strukturelt via
-`eoIssueBlocksDependents`: ENHVER rød årsag blokerer de afhængige consumers — også `bounds`. En canonical
-`bounds`-værdi må GEMMES (`.eo`-save standser kun aktivt rejected råinput), men den må ikke fodre en motor;
-"gembar" er ikke det samme som "beregnbar" (`error-contract.md` §1.1's normative matrix, lukket i WI-004).
-Suffix-selectoren for det syntetiske `${afId}:loenindkomst`-aggregat findes ét sted
-(`selectBlockingEoEntityIdsBySuffix`); den tidligere kopi i `utils/fieldErrorSelectors` er slettet.
+**EO bruger den kanoniske issue-form:** det samme strukturelle `FieldIssueSet` går fra readeren til
+række-, snapshot- og downloadlaget. ENHVER rød årsag blokerer de afhængige consumers — også `bounds`.
+En canonical `bounds`-værdi må GEMMES (`.eo`-save standser kun aktivt rejected råinput), men den må ikke
+fodre en motor; "gembar" er ikke det samme som "beregnbar" (`error-contract.md` §1.1's normative matrix,
+lukket i WI-004). Nested lønissues identificeres ved deres faktiske entity-adresse; der bygges ikke et
+syntetisk aggregat.
 
 Alle otte slicenes beregningstal er bevaret af de eksisterende golden-/paritetstests (§5.4). De afløste
 component-reporter-hooks `useAslAarsloenRuleReporter`, `useForligAnsvarsgradValidation` og `useTableCellErrorTracker`
@@ -1665,11 +1664,11 @@ alligevel: en `source`-union (`'input' | 'schema' | 'rule' | 'invalid-draft'`), 
 en 4-vejs prioritetsliste og en `reasonToSource`, der eksplicit rekonstruerede en "legacy field-error
 source" fra readerens årsag. Første runde læste dette som legacy-NAVNE og lod det stå.
 
-Det var mere end navne: `InputReader.read` giver præcis ÉT issue pr. felt, så registrets fire kilder var en
-tom dimension, downstream-rækkemodellen alligevel skulle folde ud igen. Modellen er nu ét issue pr.
-feltnøgle, og de steder, hvor en RÆKKE kombinerer flere felter, siger kaldet hvilke
-(`presentIssuesForRow(a, b)`) frem for at skjule det i et registeropslag. Alle 2.016 EO-domænetests består
-uændret: kun formen ændrede sig, ikke en visning, et tal eller et gate-udfald.
+Det var mere end navne: `InputReader.read` giver præcis ét issue pr. felt, så registrets fire kilder var en
+tom dimension, downstream-rækkemodellen alligevel skulle folde ud igen. EO bruger nu inputkernens
+`FieldIssueSet` direkte. Top-level issues slås op på deres strukturelle adresse, og nested løncelleissues
+beholder deres faktiske entity-sti; der findes hverken feltnøgle-map, domænelokal issue-type eller et
+syntetisk `${id}:loenindkomst`-issue.
 
 ##### Trin 2: inventaret er omklassificeret, ikke fjernet
 
@@ -1687,29 +1686,33 @@ fortsat OFFENTLIG Zustand-`StoreApi`. **Det var den forkerte rækkefølge, og fa
 uden schema-validering, storage, history eller revision; AST-værnet, der skulle holde den lukket, kunne
 omgås af et alias, en aliaseret type-assertion eller et direkte `store.setState(...)`.
 
-Rettelsen er strukturel: `SlimInputStore` er nu en HANDLE med navngivne, validerede transaktioner
-(`applyCommit`, `hydrate`, `restore`, `bumpSettingsRevision`), og Zustands `StoreApi` forlader aldrig
-`slimInputStore.ts`. Der findes ikke længere et `setState` at kalde, et vidne at forfalske eller en
-udsteder at aliasere — muligheden er fjernet frem for bevogtet. Læren er generel og gælder næste gang et
+Rettelsen er strukturel: den offentlige `SlimInputStore` er rent læsbar (`getState`/`subscribe`).
+Mutatorerne registreres i runnerens private `WeakMap`; hydration og settings-revision har hver én
+navngiven ejer, og test-support eksporteres kun fra det konkrete storemodul til testgrafen. Zustands
+`StoreApi` forlader aldrig `slimInputStore.ts`. Der findes ikke længere en offentlig mutator, et
+`setState` at kalde, et vidne at forfalske eller en udsteder at aliasere. Læren gælder næste gang et
 brandet vidne foreslås: **kan capabilityen fjernes, så fjern den; et vidne oven på en åben capability er
 en aftale, ikke en grænse.**
 
 `input/write-boundary` er tilbage til det sekundære: den forbyder en nyimporteret rå Zustand-store til
 input og produktionsbrug af den isolerede testfabrik.
 
-##### Capability-opdeling: læs, redigér, system
+##### Capability-opdeling: offentlig læs/redigér, interne systemporte
 
 Fasen blev også genåbnet, fordi `useInputRuntime()` gav ENHVER consumer hele fladen: råt `SettledInput`,
 dispatch, sektionsreset, hel-sags-replacement, history, registry og kritiske handlinger. Den normative
 opdeling fandtes som kommentarer og typer på det samme objekt — ikke som adskilte capabilities.
 
-Bindingen er nu en komposition af tre porte, som hver hentes med sin egen hook:
+Den offentlige binding er nu en komposition af to porte:
 
-- **`InputReadPort`** (`useInputReadPort`) — tokenbundet reader, issue-snapshot, afsluttet revision.
+- **`InputReadPort`** (`useInputReadPort`) — tokenbundet reader, issue-snapshot og opaque
+  revisionsmetadata; den eksponerer hverken råt `SettledInput` eller kataloget.
 - **`InputEditPort`** (`useInputEditPort`) — felt-/rækkecommands + editorregistret. Kan ikke nulstille en
   sektion eller erstatte sagen.
-- **`InputSystemPort`** (`useInputSystemPort`) — sektionsreset, replacement, history, kritiske handlinger.
-  Forbeholdt composition roots; producentlisten holdes lukket af `input/system-port-composition-root`.
+
+Rå snapshot-, katalog- og systemoperationer ligger i bindingens private runtime-state og nås kun gennem
+snævre, navngivne hooks med én konkret ejer. `input/internal-runtime-capability-boundary` håndhæver
+importerne alias-sikkert; der findes ingen offentlig systemport.
 
 Dokumentlaget får sin egen navngivne `DocumentInputAccess` (kildeoptagelse + barriere) frem for et `Pick<>`
 af hele bindingen, og shellens devtools-diagnostik læser gennem en navngiven

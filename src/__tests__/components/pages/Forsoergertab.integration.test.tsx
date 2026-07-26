@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
 // Greenfield Forsørgertab-slice (§2.4 formularrækkefølge trin 6 / Fase 3): hele siden kører nu på den ENE
 // greenfield input-runtime (ingen legacy FormPersistence/invalidDrafts/props). Denne integrationstest kører gennem
@@ -51,7 +52,7 @@ const hydrate = (
     },
     rejectedInputs: {},
   });
-  slimInputStore.hydrate(input);
+  __hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const validForsoergertab: ForsoergertabValues = {

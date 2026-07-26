@@ -4,7 +4,7 @@ import { coerceToISODateString, dateToISO, parseISODate } from '../../types/bran
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { getInclusivePeriodEndByMonths } from '../../utils/dateUtils';
 import type { EoRowStatus } from './eoRowTypes';
-import type { EoInputIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import type { FieldIssueSet } from '../../inputCore/inputIssue';
 
 /**
  * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
@@ -123,7 +123,7 @@ export const isSfggComputedTotalRowId = (id: string): boolean => id.startsWith(S
 
 export type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 export type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
-export type ErstatningsopgoerelseFieldIssues = Partial<Record<ErstatningsopgoerelseFieldName, EoInputIssue>>;
+export type ErstatningsopgoerelseFieldIssues = FieldIssueSet;
 export type StamdataValues = PersistedSectionMap['stamdata'];
 
 export const formatRowCount = (value: number): string => formatAsAmountTrimmed(value, 0);

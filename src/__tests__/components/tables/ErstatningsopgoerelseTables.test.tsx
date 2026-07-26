@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import type React from 'react';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -13,7 +14,9 @@ import {
 } from '../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
@@ -28,7 +31,7 @@ const hydrate = (eo: ErstatningsopgoerelseValues): void => {
     },
     rejectedInputs: {},
   });
-  slimInputStore.hydrate(input);
+  __hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderInRuntime = (child: React.ReactNode) => render(

@@ -6,16 +6,20 @@ import {
   buildEoErstatningsopgoerelseRows,
   buildEoForligRows,
   buildEoAesRows,
+} from './eoRowOverviewRows';
+import {
   buildEoIndkomstRows,
   buildEoOffentligeYdelserRows,
-  buildEoSygeferiegodtgoerelseRows,
-  buildEoSvieSmerteRows,
-  buildEoTafBeregningsgrundlagRows,
-  buildEoTaftRows,
+} from './eoRowIndkomstRows';
+import { buildEoSygeferiegodtgoerelseRows } from './eoRowSygeferiegodtgoerelseRows';
+import { buildEoSvieSmerteRows } from './eoRowSvieSmerteRows';
+import { buildEoTafBeregningsgrundlagRows } from './eoRowTafBeregningsgrundlagRows';
+import { buildEoTaftRows } from './eoRowTaftRows';
+import {
   buildEoOevrigeKravRows,
   buildEoSaerligeKommentarerRows,
   buildEoBilagsnumreRows,
-} from './eoRowErstatningsopgoerelseModel';
+} from './eoRowOevrigeKravRows';
 import {
   buildSvieSmerteContext,
   buildTaftContext,

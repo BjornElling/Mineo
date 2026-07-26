@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -6,7 +7,10 @@ import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoe
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvider';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../settings/appSettingsStorage';
-import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
+import {
+  ProductionInputRuntimeProvider,
+  createProductionInputRuntimeBinding,
+} from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
 import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 import { settleField } from '../../../../inputCore/inputReducer';
@@ -63,7 +67,7 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
 
   it('genbygger snapshot ved hver afsluttet revision uafhængigt af den aktive fane', async () => {
     const catalog = getProductionInputCatalog();
-    slimInputStore.hydrate(catalog.validateSettledInput({
+    __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,

@@ -9,7 +9,6 @@
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
 import {
-  collectCalls,
   collectElementAccess,
   collectIdentifiers,
   collectImports,
@@ -27,10 +26,9 @@ import { defineRule, forbidImports, type Finding } from '../ruleKit';
  * tilgængelig, og et AST-værn skulle holde den lukket. Værnet kunne omgås af et alias, en aliaseret
  * type-assertion eller et direkte `store.setState(...)` — præcis de tre huller, reviewet påviste.
  *
- * Rettelsen er at fjerne muligheden i stedet for at bevogte den: `SlimInputStore` er nu en HANDLE med
- * navngivne, validerede transaktioner (`applyCommit`/`hydrate`/`restore`/`bumpSettingsRevision`), og
- * Zustands `StoreApi` forlader aldrig `slimInputStore.ts`. Der findes ikke længere et `setState` at
- * kalde, et vidne at forfalske eller en udsteder at aliasere.
+ * Rettelsen er at fjerne muligheden i stedet for at bevogte den: `SlimInputStore` er rent læsbar,
+ * mens runneren alene har de registrerede mutatorer. Zustands `StoreApi` forlader aldrig
+ * `slimInputStore.ts`.
  *
  * Reglen dækker de to rester, strukturen ikke selv kan udtale sig om:
  *
@@ -53,18 +51,16 @@ const ZUSTAND_STORE_OWNERS: readonly string[] = [
 export const inputWriteBoundary = defineRule({
   id: 'input/write-boundary',
   description:
-    'Kun runneren skriver input (§3.6). Grænsen er STRUKTUREL: `SlimInputStore` er en handle med '
-    + 'navngivne transaktioner, og Zustands `StoreApi` (og dermed `setState`) forlader aldrig '
+    'Kun runneren skriver input (§3.6). Grænsen er STRUKTUREL: `SlimInputStore` er rent læsbar, '
+    + 'og Zustands `StoreApi` (og dermed `setState`) forlader aldrig '
     + '`slimInputStore.ts`. Reglen dækker resterne: en nyimporteret rå Zustand-store til input, og '
     + 'produktionsbrug af den isolerede testfabrik.',
   liveTarget: {
     kind: 'precondition',
-    // Proben rammer store-ejeren og enhver fil, der kalder en af handlens SKRIVE-transaktioner.
-    // `hydrate` er med, fordi hydreringsvejen er en autoritativ skriver på lige fod med commit-vejen.
     probe: (entry) => entry.relativePath === INPUT_STORE_OWNER
-      || /\.(?:applyCommit|hydrate|restore)\(/.test(entry.text),
+      || /\b(?:registerSlimInputStoreInternals|hydrateInputStoreOnce|dispatchInput)\b/.test(entry.text),
     rationale:
-      'skrivegrænsens moduler (store-ejeren + de autoritative skriveveje der kalder `applyCommit`) '
+      'skrivegrænsens moduler (store-ejeren + de autoritative interne skriveveje) '
       + 'findes stadig — forsvinder de, er grænsen flyttet og reglen skal skrives om',
     // Sammensat mål: BÅDE ejeren og de to autoritative skriveveje skal findes. Slettes én af dem,
     // er reglen halvt død, selvom "≥1 fil matcher" fortsat holder.
@@ -91,16 +87,40 @@ export const inputWriteBoundary = defineRule({
       }
     }
 
-    // Testfabrikken bygger en ISOLERET runtime. I produktionsgrafen ville et kald betyde, at to
-    // runtimes kunne repræsentere hver sin sag samtidig.
-    for (const ref of collectCalls(entry)) {
-      if (ref.calleeName === '__createSlimInputTestStore') {
-        findings.push({
-          position: ref.position,
-          message:
-            'Produktionskode må ikke bygge en isoleret test-runtime (`__createSlimInputTestStore`) — '
-            + 'brug den monterede binding, så al kode ser den samme sag (§3.10).',
-        });
+    for (const ref of collectImports(entry)) {
+      const specifier = ref.moduleSpecifier.replaceAll('\\', '/');
+      if (/(?:^|\/)slimInputStore$/.test(specifier)) {
+        for (const binding of ref.namedBindings) {
+          if (
+            binding.startsWith('__')
+            || (binding === 'slimInputStore'
+              && entry.relativePath !== 'src/inputCore/react/productionInputRuntime.tsx')
+          ) {
+            findings.push({
+              position: ref.position,
+              message: `Store-capabilityen \`${binding}\` må ikke importeres her.`,
+            });
+          }
+        }
+      }
+      if (/(?:^|\/)dispatchInput$/.test(specifier)) {
+        const owners: Readonly<Record<string, readonly string[]>> = {
+          registerSlimInputStoreInternals: [INPUT_STORE_OWNER],
+          hydrateInputStoreOnce: ['src/inputCore/runtime/initializeInputRuntime.ts'],
+          bumpInputSettingsRevision: [
+            INPUT_STORE_OWNER,
+            'src/inputCore/react/productionInputRuntime.tsx',
+          ],
+        };
+        for (const binding of ref.namedBindings) {
+          const allowedOwners = owners[binding];
+          if (allowedOwners !== undefined && !allowedOwners.includes(entry.relativePath)) {
+            findings.push({
+              position: ref.position,
+              message: `Intern store-operation \`${binding}\` må kun importeres af ${allowedOwners.join(', ')}.`,
+            });
+          }
+        }
       }
     }
 
@@ -111,7 +131,14 @@ export const inputWriteBoundary = defineRule({
     { relativePath: 'src/components/x.tsx', code: "import { create } from 'zustand';" },
     // Også inde i inputCore — men uden for det ene modul der ejer storen.
     { relativePath: 'src/inputCore/react/x.ts', code: "import { createStore } from 'zustand/vanilla';" },
-    { relativePath: 'src/components/x.tsx', code: 'const s = __createSlimInputTestStore();' },
+    {
+      relativePath: 'src/components/x.tsx',
+      code: "import { __createSlimInputTestStore as create } from '../inputCore/runtime/slimInputStore';",
+    },
+    {
+      relativePath: 'src/components/x.tsx',
+      code: "import { hydrateInputStoreOnce as hydrate } from '../inputCore/runtime/dispatchInput';",
+    },
   ],
   cleanFixtures: [
     // Ejeren må naturligvis importere Zustand.
@@ -119,14 +146,13 @@ export const inputWriteBoundary = defineRule({
       relativePath: 'src/inputCore/runtime/slimInputStore.ts',
       code: "import { createStore } from 'zustand/vanilla';",
     },
-    // De autoritative skriveveje bruger handlens navngivne transaktioner.
     {
       relativePath: 'src/inputCore/runtime/dispatchInput.ts',
-      code: 'store.applyCommit(commit);',
+      code: 'internals.applyCommit(commit);',
     },
     {
       relativePath: 'src/inputCore/runtime/initializeInputRuntime.ts',
-      code: 'store.hydrate(input);',
+      code: "import { hydrateInputStoreOnce as hydrate } from './dispatchInput'; hydrate(store, input, catalog);",
     },
     // Læsning er fri.
     { relativePath: 'src/components/x.tsx', code: 'const state = slimInputStore.getState();' },
@@ -211,65 +237,66 @@ export const rawSectionAccessBoundary = defineRule({
   ],
 });
 
-// --- Systemporten: kun composition roots må mutere hele sagen ------------------
+// --- Interne runtime-capabilities: kun navngivne ejere -------------------------
 
 /**
- * `useInputSystemPort` bærer sektionsreset, hel-sags-replacement, history og de kritiske handlinger.
- * De operationer kan ikke udtrykkes som en feltredigering, og en celle må aldrig kunne formulere dem.
+ * Sektionsreset, hel-sags-replacement, history og kritiske handlinger kan ikke udtrykkes som en
+ * feltredigering, og en celle må aldrig kunne formulere dem.
  *
  * Grænsen er primært STRUKTUREL: porten er skilt ud fra `InputEditPort`, så en editor-flade slet ikke
  * har `replaceCase` i hånden. Reglen holder PRODUCENTLISTEN lukket — hvem der overhovedet henter
  * systemporten — for ellers kunne en ny celleflade tilføje kaldet lydløst, og adskillelsen ville være
  * tilbage til en aftale.
  */
-const SYSTEM_PORT_COMPOSITION_ROOTS: readonly string[] = [
-  // Case-/persistence-porten: load, save, reset, `Slet alt`.
-  'src/inputCore/react/useCaseOperations.ts',
-  // Læse-/evalueringsbroen henter kun den kritiske handlingsbarriere videre til shellen.
-  'src/inputCore/react/useInputEvaluation.ts',
-  // Shellens globale undo/redo-genveje.
-  'src/inputCore/react/useUndoRedoShortcuts.ts',
-  // En sidesektions eksplicitte "Slet alle indtastninger" (renteberegning).
-  'src/components/pages/renteberegning/RenteberegningTab.tsx',
-];
+const INTERNAL_HOOK_OWNERS: Readonly<Record<string, readonly string[]>> = {
+  useCaseRuntimeAccess: ['src/inputCore/react/useCaseOperations.ts'],
+  useInputHistoryAccess: ['src/inputCore/react/useUndoRedoShortcuts.ts'],
+  useCriticalActionCoordinator: ['src/inputCore/react/useInputEvaluation.ts'],
+  useSectionReset: ['src/components/pages/renteberegning/RenteberegningTab.tsx'],
+  useInternalSettledSnapshot: [
+    'src/inputCore/react/useFieldEditor.ts',
+    'src/inputCore/react/useCollectionRows.ts',
+    'src/inputCore/react/inputDiagnosticsProjection.ts',
+  ],
+  useInternalInputCatalog: ['src/inputCore/react/useCollectionRows.ts'],
+};
 
-export const systemPortCompositionRoot = defineRule({
-  id: 'input/system-port-composition-root',
+export const internalRuntimeCapabilityBoundary = defineRule({
+  id: 'input/internal-runtime-capability-boundary',
   description:
-    'Systemporten (sektionsreset, hel-sags-replacement, history, kritiske handlinger) hentes kun af '
-    + 'composition roots. En felt-/celleflade bruger `useInputEditPort` og kan derfor pr. konstruktion '
-    + 'ikke udstede en hel-sagsmutation (§3.6).',
+    'Interne runtime-capabilities importeres kun af deres navngivne ejer.',
   liveTarget: {
     kind: 'precondition',
-    probe: (entry) => hasIdentifier(entry, 'useInputSystemPort'),
-    rationale:
-      'systemporten findes stadig og hentes af mindst én composition root — forsvinder den, er '
-      + 'capability-opdelingen ændret og reglen skal skrives om',
+    probe: (entry) => Object.keys(INTERNAL_HOOK_OWNERS).some((name) => hasIdentifier(entry, name)),
+    rationale: 'de snævre interne hooks findes og bruges af deres composition roots',
     requiredPaths: [
       'src/inputCore/react/inputRuntimeContext.tsx',
-      ...SYSTEM_PORT_COMPOSITION_ROOTS,
+      ...new Set(Object.values(INTERNAL_HOOK_OWNERS).flat()),
     ],
   },
   allow: [],
   find: (entry) => {
-    // Definitionsstedet er ikke en kalder.
     if (entry.relativePath === 'src/inputCore/react/inputRuntimeContext.tsx') return [];
-    if (SYSTEM_PORT_COMPOSITION_ROOTS.includes(entry.relativePath)) return [];
-    return collectCalls(entry)
-      .filter((ref) => ref.calleeName === 'useInputSystemPort')
-      .map((ref) => ({
+    return collectImports(entry).flatMap((ref) => ref.namedBindings.flatMap((binding) => {
+      const owners = INTERNAL_HOOK_OWNERS[binding];
+      if (owners === undefined || owners.includes(entry.relativePath)) return [];
+      return [{
         position: ref.position,
-        message:
-          'Systemporten hentes uden for en composition root — en felt-/celleflade må ikke kunne '
-          + 'nulstille en sektion eller erstatte hele sagen. Brug `useInputEditPort` (§3.6).',
-      }));
+        message: `Intern runtime-capability ${binding} importeres uden for sin navngivne ejer.`,
+      }];
+    }));
   },
   violatingFixtures: [
-    { relativePath: 'src/components/inputs/X.tsx', code: 'const s = useInputSystemPort();' },
-    { relativePath: 'src/components/pages/erstatningsopgoerelse/Y.tsx', code: 'const { replaceCase } = useInputSystemPort();' },
+    {
+      relativePath: 'src/components/inputs/X.tsx',
+      code: "import { useSectionReset as reset } from '../../inputCore/react/inputRuntimeContext'; reset();",
+    },
   ],
   cleanFixtures: [
-    { relativePath: 'src/inputCore/react/useCaseOperations.ts', code: 'const system = useInputSystemPort();' },
+    {
+      relativePath: 'src/inputCore/react/useCaseOperations.ts',
+      code: "import { useCaseRuntimeAccess as access } from './inputRuntimeContext'; access();",
+    },
     { relativePath: 'src/components/inputs/X.tsx', code: 'const edit = useInputEditPort();' },
     { relativePath: 'src/components/inputs/X.tsx', code: 'const read = useInputReadPort();' },
   ],
@@ -377,7 +404,7 @@ export const transientCannotWriteCaseData = forbidImports({
  * `EoInputIssueSource`/`EoFieldIssuesBySource` er tilføjet efter Fase 6's genåbning: EO's parallelle
  * source-register er slettet, og `error-contract.md` §11 forbyder det eksplicit.
  */
-const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
+export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
   'executeLegacyInputTransaction',
   'useDraftLifecycle',
   'legacyGridTransactionBridge',

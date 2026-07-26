@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -78,11 +79,11 @@ describe('MainLayout (PWA concurrency)', () => {
     window.sessionStorage.clear();
     vi.clearAllMocks();
     vi.useRealTimers();
-    slimInputStore.hydrate(emptyInput());
+    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {
-    slimInputStore.hydrate(emptyInput());
+    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   it('køer seneste PWA-fil under preflight og kræver bekræftelse før indlæsning', async () => {

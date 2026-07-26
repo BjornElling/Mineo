@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -6,10 +7,15 @@ import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoe
 import { createActiveTabStorageKey } from '../../../../config/storageManifest';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvider';
-import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createErstatningsopgoerelseInitialValues,
+} from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../../types/branded';
 
-import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
+import {
+  ProductionInputRuntimeProvider,
+  createProductionInputRuntimeBinding,
+} from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
 import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 
@@ -22,7 +28,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
 
   it('viser sats-aar advarslen i Beregning-fanen på den rigtige side', async () => {
     const catalog = getProductionInputCatalog();
-    slimInputStore.hydrate(catalog.validateSettledInput({
+    __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null, erhvervsevnetab: null,

@@ -8,6 +8,11 @@ import {
   type InputRevision,
   type SettingsRevision,
 } from '../evaluationSource';
+import {
+  __hydrateInputStoreForTest,
+  bumpInputSettingsRevision,
+  registerSlimInputStoreInternals,
+} from './dispatchInput';
 
 // Greenfield-runtime (§3.7/§4.2): den ENE autoritative store rummer KUN afsluttet input, den monotone revision,
 // history, settingsrevisionen og nødvendig hydration-/systemstatus. Ingen afledte `sections`/`invalidDrafts`-views,
@@ -68,24 +73,6 @@ export type SlimInputStoreState = Readonly<{
 export type SlimInputStore = Readonly<{
   getState: () => SlimInputStoreState;
   subscribe: (listener: () => void) => () => void;
-
-  /** Anvender en valideret commit; skaber altid præcis én ny monoton revision. Kaldes kun af `dispatchInput`. */
-  applyCommit: (commit: SlimInputCommit) => void;
-  /** Hydrerer afsluttet input før render; rydder history og skaber en ny monoton revision (§3.7). */
-  hydrate: (input: SettledInput, options?: Readonly<{ writesBlocked?: boolean }>) => void;
-  /**
-   * Gendanner et tidligere observeret state-snapshot ATOMISK efter en fejlet transaktion (§3.6 rollback).
-   *
-   * Bevidst adskilt fra `applyCommit`: den fremskriver ikke revisionen, fordi den ruller en påbegyndt
-   * transaktion tilbage frem for at gennemføre en ny. Argumentet kan kun være et helt snapshot, hentet fra
-   * `getState()` — der er ingen vej til et delvist eller opdigtet write.
-   */
-  restore: (snapshot: SlimInputStoreState) => void;
-  /**
-   * Én monoton settingsrevision, så `EvaluationSourceToken` altid kan verificeres samlet (§3.4/§2.1.9).
-   * Rører ikke sagsinput, kun den revision, der gør evalueringen stale.
-   */
-  bumpSettingsRevision: () => void;
 }>;
 
 const createSlimInputStore = (): SlimInputStore => {
@@ -98,11 +85,12 @@ const createSlimInputStore = (): SlimInputStore => {
     meta: { hydrated: false, persistedDataVersion: PERSISTED_DATA_VERSION },
   }));
 
-  return Object.freeze({
+  const handle: SlimInputStore = Object.freeze({
     getState: () => store.getState(),
     subscribe: (listener: () => void) => store.subscribe(listener),
-
-    applyCommit: (commit) => store.setState((state) => ({
+  });
+  registerSlimInputStoreInternals(handle, Object.freeze({
+    applyCommit: (commit: SlimInputCommit) => store.setState((state) => ({
       input: commit.input,
       revision: createInputRevision(state.revision + 1),
       history: commit.history,
@@ -116,7 +104,7 @@ const createSlimInputStore = (): SlimInputStore => {
       },
     })),
 
-    hydrate: (input, options) => store.setState((state) => ({
+    hydrate: (input: SettledInput, options?: Readonly<{ writesBlocked?: boolean }>) => store.setState((state) => ({
       input,
       revision: createInputRevision(state.revision + 1),
       history: createInputHistory(),
@@ -128,12 +116,13 @@ const createSlimInputStore = (): SlimInputStore => {
       },
     })),
 
-    restore: (snapshot) => store.setState(snapshot, true),
+    restore: (snapshot: SlimInputStoreState) => store.setState(snapshot, true),
 
     bumpSettingsRevision: () => store.setState((state) => ({
       settingsRevision: createSettingsRevision(state.settingsRevision + 1),
     })),
-  });
+  }));
+  return handle;
 };
 
 /** Applikations-singleton. Begge app-entrypoints hydrerer den samme runtime før render (§3.10). */
@@ -150,3 +139,9 @@ export const slimInputStore = createSlimInputStore();
  * gør det på sin egen isolerede runtime frem for at forfalske en autoritet på produktionens.
  */
 export const __createSlimInputTestStore = createSlimInputStore;
+
+/** Test-support; må kun bruges under `src/__tests__/`. */
+export const __hydrateSlimInputStoreForTest = __hydrateInputStoreForTest;
+
+/** Test-support; må kun bruges under `src/__tests__/`. */
+export const __bumpSlimInputSettingsRevisionForTest = bumpInputSettingsRevision;

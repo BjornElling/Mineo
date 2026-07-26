@@ -4,33 +4,10 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import type { InputReader } from '../../inputCore/inputReader';
-import {
-  aarsloenTableCol0DagField,
-  aarsloenTableCol0MaanedField,
-  aarsloenTableCol0UgeField,
-  aarsloenTableCol1DagField,
-  aarsloenTableCol1MaanedField,
-  aarsloenTableCol1UgeField,
-  aarsloenTableCol2Field,
-  aarsloenTableCol3Field,
-  aarsloenTableCol4Field,
-  aarsloenTableCol5Field,
-  aarsloenTableFpFvShSoBeloebField,
-  aarsloenTablePensionBeloebField,
-} from '../../inputCore/catalog/aarsloenDescriptors';
-import {
-  aarsloenTableDataCollectionRef,
-  readAarsloenTableRows,
-  resolveStandardLoenTableValidation,
-} from '../../domain/aarsloen/aarsloenProjection';
 import type { StandardLoenTableValidationResult } from '../../domain/aarsloen/standardLoenTableValidation';
-import { createEmptyStandardLoenRow } from '../../domain/aarsloen/standardLoenRowInitialValues';
 
-// Greenfield-parametrisering af den delte StandardLoenTable (§2.5): tabellen deles mellem Årsløn (top-level
-// `aarsloen.tableData`) og senere EO's loenindkomst (nested `ansaettelsesforhold[i].indtaegtsoplysningerTableData`).
-// Et `StandardLoenTableFieldSet` beskriver hvilken collection + hvilke celle-descriptors en konkret brug binder,
-// så komponenten selv forbliver sideagnostisk. Kun Årsløn-feltsættet findes i denne tranche; EO's nested feltsæt
-// bygges, når EO-slicen migreres (§2.4 trin 8) — indtil da er EO's loenindkomst en bevidst brudt mellemtilstand.
+// Parametrisering af den delte StandardLoenTable: hvert domæne ejer sit konkrete feltsæt, mens denne
+// sideagnostiske kontrakt kun beskriver den fælles tabeloverflade.
 
 /** Descriptorerne for løntabellens redigerbare celler i en konkret collection-kontekst. */
 export type StandardLoenTableFieldSet = Readonly<{
@@ -54,26 +31,6 @@ export type StandardLoenTableFieldSet = Readonly<{
   /** Reader-afledt valideringssummary + errors for feltsættets collection. */
   resolveValidation: (reader: InputReader, loenperiode: Loenperiode, tillaegAngivesSom: TillaegAngivesSom) => StandardLoenTableValidationResult;
 }>;
-
-/** Årsløns top-level løntabel-feltsæt (`aarsloen.tableData`). */
-export const aarsloenStandardLoenFieldSet: StandardLoenTableFieldSet = {
-  collection: aarsloenTableDataCollectionRef,
-  col0_maaned: aarsloenTableCol0MaanedField,
-  col1_maaned: aarsloenTableCol1MaanedField,
-  col0_uge: aarsloenTableCol0UgeField,
-  col1_uge: aarsloenTableCol1UgeField,
-  col0_dag: aarsloenTableCol0DagField,
-  col1_dag: aarsloenTableCol1DagField,
-  col2: aarsloenTableCol2Field,
-  col3: aarsloenTableCol3Field,
-  col4: aarsloenTableCol4Field,
-  col5: aarsloenTableCol5Field,
-  fpFvShSoBeloeb: aarsloenTableFpFvShSoBeloebField,
-  pensionBeloeb: aarsloenTablePensionBeloebField,
-  createRow: createEmptyStandardLoenRow,
-  readRows: readAarsloenTableRows,
-  resolveValidation: resolveStandardLoenTableValidation,
-};
 
 /** Rekonstruér de committede rækker for et feltsæt. */
 export const readStandardLoenTableRows = (fieldSet: StandardLoenTableFieldSet, reader: InputReader): StandardLoenTableRow[] =>

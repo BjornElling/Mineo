@@ -49,10 +49,11 @@ type OriginArgs<TKind extends string> = TKind extends StructuralCommandKind
 
 /** Det aktuelle afsluttede input bundet til sin revision. Adapteren afleder lukket visning HERFRA (§3.5). */
 export type SettledSnapshot = Readonly<{
-  input: SettledInput;
   revision: InputRevision;
   replacementGeneration: number;
 }>;
+
+type InternalSettledSnapshot = SettledSnapshot & Readonly<{ input: SettledInput }>;
 
 /**
  * **READ** — alt hvad en visning, en projektion eller et dokument må gøre med sagsinput (§3.5/§3.10).
@@ -63,17 +64,6 @@ export type SettledSnapshot = Readonly<{
  * blot skulle vise en værdi, også fik hel-sags-replacement og history i hånden.
  */
 export type InputReadPort = Readonly<{
-  catalog: InputCatalog;
-  /**
-   * READ-ONLY systemport til et stabilt `{input, token}`-snapshot fra PRÆCIS den runtime, React-træet læser.
-   *
-   * System-porte (§3.10) skal kunne optage kilden fra bindingen i stedet for at importere produktions-
-   * singletonen — ellers kunne en alternativ/testbinding vise én sag, mens en port læste og gemte en anden.
-   * Porten eksponerer BEVIDST ikke selve store'en: en rå `StoreApi` ville give `setState` og dermed en
-   * generel bypass af typed commands, transaktion/history og storage-grænsen. Kun læsning er mulig herfra;
-   * al mutation går gennem `dispatch`/`resetSection`/`replaceCase`.
-   */
-  captureStableSource: () => Readonly<{ input: SettledInput; token: EvaluationSourceToken }>;
   /**
    * Dokumenter og øvrige kritiske readers optager evalueringen fra den SAMME binding som React-træet.
    * De får aldrig lov til at falde tilbage til produktions-singletonen, som kan repræsentere en anden sag.
@@ -81,8 +71,8 @@ export type InputReadPort = Readonly<{
   captureEvaluationSource: () => InputEvaluation;
   /** Den autoritative aktuelle token for netop denne binding. */
   readCurrentSourceToken: () => EvaluationSourceToken;
-  /** Læser det aktuelle afsluttede snapshot. Bruges af `useSyncExternalStore`-getSnapshot. */
-  getSettled: () => SettledSnapshot;
+  /** Læser kun revisionsmetadata; det rå aggregate forlader ikke inputinfrastrukturen. */
+  getRevisionSnapshot: () => SettledSnapshot;
   /** Abonnér på revisionsændringer (nyt afsluttet input). Returnerer unsubscribe. */
   subscribe: (listener: () => void) => () => void;
   /** Det aktuelle tokenbundne feltissue-snapshot (§1.8). */
@@ -121,7 +111,7 @@ export type InputEditPort = Readonly<{
  * undo/redo-genveje og en sidesektions eksplicitte "Slet alle indtastninger". Den er skilt ud, fordi dens
  * operationer ikke kan udtrykkes som en feltredigering og aldrig må kunne nås fra en celle.
  */
-export type InputSystemPort = Readonly<{
+type InputSystemPort = Readonly<{
   /**
    * System-reset af én sektion (§3.6). Adskilt fra `dispatch`, så en form-/grid-CELLE ikke kan udstede en
    * hel-sektionsmutation, men en sidesektions "Slet alle indtastninger" (fx renteberegning) kan. Route reset,
@@ -150,10 +140,17 @@ export type InputSystemPort = Readonly<{
 export type InputRuntimeBinding = Readonly<{
   read: InputReadPort;
   edit: InputEditPort;
+}>;
+
+type InputRuntimeInternals = Readonly<{
+  catalog: InputCatalog;
+  getSettled: () => InternalSettledSnapshot;
+  captureStableSource: () => Readonly<{ input: SettledInput; token: EvaluationSourceToken }>;
   system: InputSystemPort;
 }>;
 
 const InputRuntimeContext = React.createContext<InputRuntimeBinding | null>(null);
+const INTERNALS_BY_READ_PORT = new WeakMap<InputReadPort, InputRuntimeInternals>();
 
 const useBinding = (): InputRuntimeBinding => {
   const binding = React.useContext(InputRuntimeContext);
@@ -161,6 +158,15 @@ const useBinding = (): InputRuntimeBinding => {
     throw new Error('useInputRuntime: skal bruges inden for en <InputRuntimeProvider>.');
   }
   return binding;
+};
+
+const useInternals = (): InputRuntimeInternals => {
+  const binding = useBinding();
+  const internals = INTERNALS_BY_READ_PORT.get(binding.read);
+  if (internals === undefined) {
+    throw new Error('InputRuntime: binding mangler intern runtime-capability.');
+  }
+  return internals;
 };
 
 /**
@@ -185,7 +191,8 @@ export const useInputReadPort = (): InputReadPort => useBinding().read;
  * referencen, så en ny wrapper pr. render ville invalidere hele gate-memoiseringen nedstrøms.
  */
 export const useDocumentInputAccess = (): DocumentInputAccess => {
-  const { read, system } = useBinding();
+  const read = useInputReadPort();
+  const { system } = useInternals();
   return React.useMemo(
     () => Object.freeze({
       captureEvaluationSource: read.captureEvaluationSource,
@@ -199,19 +206,47 @@ export const useDocumentInputAccess = (): DocumentInputAccess => {
 /** Redigerings-capabilityen: felt-/rækkecommands + editorregistret. */
 export const useInputEditPort = (): InputEditPort => useBinding().edit;
 
-/**
- * System-capabilityen: sektionsreset, hel-sags-replacement, history og kritiske handlinger.
- *
- * Forbeholdt composition roots (case-/persistence-porten, shellen, en sidesektions "Slet alle
- * indtastninger"). `input/system-port-composition-root` håndhæver, at en felt-/celleflade ikke kalder den.
- */
-export const useInputSystemPort = (): InputSystemPort => useBinding().system;
-
 /** Abonnér på det aktuelle afsluttede snapshot. Re-renderer kun, når revisionen faktisk ændres. */
 export const useSettledSnapshot = (): SettledSnapshot => {
-  const { getSettled, subscribe } = useInputReadPort();
+  const { getRevisionSnapshot, subscribe } = useInputReadPort();
+  return useSyncExternalStore(subscribe, getRevisionSnapshot, getRevisionSnapshot);
+};
+
+/** Kun inputadaptere: råt afsluttet input til feltvisning og collection-identitet. Eksporteres ikke fra barrelen. */
+export const useInternalSettledSnapshot = (): InternalSettledSnapshot => {
+  const { getSettled } = useInternals();
+  const { subscribe } = useInputReadPort();
   return useSyncExternalStore(subscribe, getSettled, getSettled);
 };
+
+/** Kun inputadaptere: det katalog der matcher den monterede runtime. */
+export const useInternalInputCatalog = (): InputCatalog => useInternals().catalog;
+
+/** Snæver systemcapability til case save/load/reset. Eksporteres ikke fra den offentlige barrel. */
+export const useCaseRuntimeAccess = (): Readonly<{
+  catalog: InputCatalog;
+  captureStableSource: InputRuntimeInternals['captureStableSource'];
+  replaceCase: InputSystemPort['replaceCase'];
+  criticalActions: CriticalActionCoordinator;
+}> => {
+  const { catalog, captureStableSource, system } = useInternals();
+  return React.useMemo(() => Object.freeze({
+    catalog,
+    captureStableSource,
+    replaceCase: system.replaceCase,
+    criticalActions: system.criticalActions,
+  }), [catalog, captureStableSource, system]);
+};
+
+/** Snæver historycapability til shellens globale genveje. */
+export const useInputHistoryAccess = (): InputSystemPort['history'] => useInternals().system.history;
+
+/** Snæver kritisk handlingsbarriere til evaluering og dokumentflow. */
+export const useCriticalActionCoordinator = (): CriticalActionCoordinator =>
+  useInternals().system.criticalActions;
+
+/** Snæver sektionsreset-capability til en sides eksplicitte ryd-handling. */
+export const useSectionReset = (): InputSystemPort['resetSection'] => useInternals().system.resetSection;
 
 /**
  * Bygger en binding oven på den levende slim-store (§3.10). `getSettled` er memoiseret pr. revision, så
@@ -225,9 +260,10 @@ export const createInputRuntimeBinding = (
   getEvaluation: () => InputEvaluation,
   getIssues: () => FieldIssueSnapshot = () => getEvaluation().issues
 ): InputRuntimeBinding => {
-  let cached: SettledSnapshot | null = null;
+  let cached: InternalSettledSnapshot | null = null;
+  let cachedRevision: SettledSnapshot | null = null;
   let cachedIssues: FieldIssueSnapshot | null = null;
-  const getSettled = (): SettledSnapshot => {
+  const getSettled = (): InternalSettledSnapshot => {
     const state = store.getState();
     if (cached === null || cached.revision !== state.revision) {
       cached = Object.freeze({
@@ -237,6 +273,20 @@ export const createInputRuntimeBinding = (
       });
     }
     return cached;
+  };
+  const getRevisionSnapshot = (): SettledSnapshot => {
+    const next = getSettled();
+    if (
+      cachedRevision === null
+      || cachedRevision.revision !== next.revision
+      || cachedRevision.replacementGeneration !== next.replacementGeneration
+    ) {
+      cachedRevision = Object.freeze({
+        revision: next.revision,
+        replacementGeneration: next.replacementGeneration,
+      });
+    }
+    return cachedRevision;
   };
   const getStableIssues = (): FieldIssueSnapshot => {
     const next = getIssues();
@@ -254,13 +304,20 @@ export const createInputRuntimeBinding = (
     }
     throw new Error('InputRuntime: kunne ikke optage en stabil evaluering til kritisk handling');
   };
-  return Object.freeze({
+  const system: InputSystemPort = Object.freeze({
+    resetSection: (command: ResetSectionCommand) => dispatchInput(store, catalog, command),
+    replaceCase: (command: ReplaceCaseCommand | ClearCaseCommand) => dispatchInput(store, catalog, command),
+    history: Object.freeze({
+      undo: () => dispatchInput(store, catalog, { kind: 'undo' }),
+      redo: () => dispatchInput(store, catalog, { kind: 'redo' }),
+    }),
+    criticalActions: new CriticalActionCoordinator(store, registry),
+  });
+  const binding: InputRuntimeBinding = Object.freeze({
     read: Object.freeze({
-      catalog,
-      captureStableSource: () => captureStableInput(store),
       captureEvaluationSource,
       readCurrentSourceToken: () => readSourceToken(store),
-      getSettled,
+      getRevisionSnapshot,
       subscribe: (listener: () => void) => store.subscribe(listener),
       // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme
       // rene issueprojektion, så en leverandør, der bygger et nyt wrapperobjekt pr. kald, normaliseres her.
@@ -275,16 +332,14 @@ export const createInputRuntimeBinding = (
       ) as InputEditPort['dispatch'],
       registry,
     }),
-    system: Object.freeze({
-      resetSection: (command: ResetSectionCommand) => dispatchInput(store, catalog, command),
-      replaceCase: (command: ReplaceCaseCommand | ClearCaseCommand) => dispatchInput(store, catalog, command),
-      history: Object.freeze({
-        undo: () => dispatchInput(store, catalog, { kind: 'undo' }),
-        redo: () => dispatchInput(store, catalog, { kind: 'redo' }),
-      }),
-      criticalActions: new CriticalActionCoordinator(store, registry),
-    }),
   });
+  INTERNALS_BY_READ_PORT.set(binding.read, Object.freeze({
+    catalog,
+    getSettled,
+    captureStableSource: () => captureStableInput(store),
+    system,
+  }));
+  return binding;
 };
 
 export type InputRuntimeProviderProps = Readonly<{

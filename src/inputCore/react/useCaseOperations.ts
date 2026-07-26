@@ -8,7 +8,7 @@ import {
   type CaseResetOperations,
 } from '../../persistence/caseResetOperations';
 import { clearCase, replaceCase } from '../inputReducer';
-import { useInputReadPort, useInputSystemPort } from './inputRuntimeContext';
+import { useCaseRuntimeAccess } from './inputRuntimeContext';
 
 // Greenfield-React (§3.10): den tynde bro, der binder de framework-frie case-porte til produktions-runtime.
 // Shell-use-casen (`useFileSaveLoad`) forbruger portene HERFRA i stedet for den legacy `FormPersistenceContext`.
@@ -26,27 +26,26 @@ export type CaseOperations = Readonly<{
  * binding, så portene er referentielt stabile mellem renders (de rører kun de levende singletons ved kald).
  */
 export const useCaseOperations = (): CaseOperations => {
-  const read = useInputReadPort();
-  const system = useInputSystemPort();
+  const runtime = useCaseRuntimeAccess();
 
   return React.useMemo(() => {
     const file = createCaseFileOperations({
-      catalog: read.catalog,
+      catalog: runtime.catalog,
       // Læs gennem BINDINGENS read-only kildeport, ikke produktions-singletonen: porten skal se præcis den
       // runtime, React-træet viser. Ellers kunne en alternativ/testbinding vise én sag, mens save læste en anden.
-      getSettledInput: () => read.captureStableSource().input,
+      getSettledInput: () => runtime.captureStableSource().input,
       // Frisk, stabilt {input, token}-snapshot til save-projektionen (§3.9 pkt. 2).
-      captureSaveSource: () => read.captureStableSource(),
+      captureSaveSource: () => runtime.captureStableSource(),
       applyReplaceCase: (candidate) => {
-        system.replaceCase(replaceCase(candidate));
+        runtime.replaceCase(replaceCase(candidate));
       },
     });
 
     const reset = createCaseResetOperations({
-      coordinator: system.criticalActions,
-      dispatchClearCase: () => system.replaceCase(clearCase()),
+      coordinator: runtime.criticalActions,
+      dispatchClearCase: () => runtime.replaceCase(clearCase()),
     });
 
     return Object.freeze({ file, reset });
-  }, [read, system]);
+  }, [runtime]);
 };

@@ -42,7 +42,8 @@ data/gate/komposition og writer-API'et, begge kanaler deler.
 4. Filnavnsreglen er fælles for begge formater; kun endelsen adskiller sig.
 5. `defineDocument(...)` resolver den endelige filendelse fra den eksplicitte session og
    returnerer et `DocumentArtifact` (`blob` + filnavn). Writeren returnerer kun bytes via
-   `build()` og må ikke selv starte download. Service-laget ejer den eneste download-side-effect.
+   `build()` og må ikke selv starte download. `documentLifecycle.ts` ejer den eneste download-side-effect
+   gennem `triggerDocumentDownload`.
 
 ## 5. Brugervendt signal
 

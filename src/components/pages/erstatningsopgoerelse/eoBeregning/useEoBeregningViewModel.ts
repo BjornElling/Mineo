@@ -39,7 +39,7 @@ import {
   type EetIssueNavigationTarget,
 } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 import type { ErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
-import { selectBlockingEoEntityIdsBySuffix } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
+import { selectBlockingLoenindkomstEntityIds } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
 
 export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'inspektion' | 'kontroltabel';
 
@@ -72,7 +72,6 @@ type EoRowsMemoResult = Readonly<{
   eoRowAggregationErrorMessage: string | null;
 }>;
 
-const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
   'control:sammentaelling_mismatch',
@@ -193,7 +192,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const navigate = useNavigate();
   const { settings } = useAppSettings();
   const manuelReguleringInputErrors = React.useMemo(
-    () => selectBlockingEoEntityIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX),
+    () => selectBlockingLoenindkomstEntityIds(eoErrors),
     [eoErrors]
   );
 

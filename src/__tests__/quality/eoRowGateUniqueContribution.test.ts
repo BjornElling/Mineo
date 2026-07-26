@@ -23,6 +23,7 @@
  * et autoritativt, kontrol-frit domænelag (`src/domain/eoRowEvaluation/`) og driver gaten direkte.
  */
 import { collectAllEoRows } from '../../domain/eoRowEvaluation/eoRowAggregator';
+import { EMPTY_FIELD_ISSUE_SET } from '../../inputCore/inputIssue';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
@@ -86,9 +87,9 @@ const eoRowErrorIds = (eoValues: PersistedSectionMap['erstatningsopgoerelse']): 
   });
   return collectAllEoRows(
     STAMDATA,
-    {},
+    EMPTY_FIELD_ISSUE_SET,
     eoValues,
-    {},
+    EMPTY_FIELD_ISSUE_SET,
     {},
     undefined,
     snapshot.data?.canonicalOutput,

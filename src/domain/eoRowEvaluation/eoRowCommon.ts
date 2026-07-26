@@ -1,4 +1,4 @@
-import type { EoInputIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { EoRowStatus } from './eoRowTypes';
 import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 
@@ -10,7 +10,7 @@ import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRang
 // direkte fra `validation/eoDateRangeMessages`, så der kun findes én vej til hver funktion.
 
 /** Har feltet et issue med en visbar besked? Ét issue pr. felt, så der er intet at vælge imellem. */
-const presentIssue = (issue: EoInputIssue | undefined): EoInputIssue | null =>
+const presentIssue = (issue: FieldIssue | undefined): FieldIssue | null =>
   issue !== undefined && issue.message.trim() !== '' ? issue : null;
 
 /**
@@ -22,13 +22,13 @@ const presentIssue = (issue: EoInputIssue | undefined): EoInputIssue | null =>
  * rækken faktisk kombinerer, og kaldet siger hvilke.
  */
 export const presentIssuesForRow = (
-  ...issues: readonly (EoInputIssue | undefined)[]
-): readonly EoInputIssue[] => issues
+  ...issues: readonly (FieldIssue | undefined)[]
+): readonly FieldIssue[] => issues
   .map(presentIssue)
-  .filter((issue): issue is EoInputIssue => issue !== null);
+  .filter((issue): issue is FieldIssue => issue !== null);
 
 export const summarizeFieldErrorsForEoRow = (
-  issue: EoInputIssue | undefined
+  issue: FieldIssue | undefined
 ): { displayValue: string; status: EoRowStatus } | null => {
   const present = presentIssue(issue);
   if (present === null) return null;
@@ -40,7 +40,7 @@ export const summarizeFieldErrorsForEoRow = (
 
 export const resolveEoRowDisplay = (args: {
   value: string | undefined;
-  issue: EoInputIssue | undefined;
+  issue: FieldIssue | undefined;
   emptyState: EoRowStatus;
 }): { displayValue: string; status: EoRowStatus } => {
   const errorSummary = summarizeFieldErrorsForEoRow(args.issue);

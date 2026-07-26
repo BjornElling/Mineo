@@ -26,8 +26,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    Efter device-gaten og før app-roden returneres fra `renderApp`, initialiseres variantens ene aktive inputruntime
    præcis én gang. Mineo bruger greenfield-`initializeInputRuntime`; en entry/provider-remount må aldrig rehydrere.
    Under den ikke-deploybare cutover må en variant aldrig montere både `FormPersistenceProvider` og greenfield-
-   runtime. Standalone beholder derfor sin legacy-runtime alene, indtil Renteberegning-slicen kan skifte entry,
-   surface og consumers atomisk. Standalone-entryens namespace-side-effect skal være etableret før enhver
+   runtime. Standalone-entryen binder tilsvarende sin egen greenfield-runtime atomisk med surface og consumers.
+   Standalone-entryens namespace-side-effect skal være etableret før enhver
    runtimeinitialisering. Unsupported-device hard-stop må ikke initialisere sagsstate.
 
 2. **Device-gaten ejes af app-shellen.** `isUnsupportedDevice` og `UNSUPPORTED_MAX_SCREEN_WIDTH_PX` lever kun i `bootstrapClientApp.tsx`. Rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer (`isTouchLikeDevice`, fysisk skærmbredde/kortside, viewport-kortside, `isTouchLikeDeviceWithShortestSideAtMost`) lever i `src/utils/clientDevice.ts`, så samme aflæsninger kan genbruges uden at duplikere device-logik i sidekomponenter. Ved uunderstøttet enhed renderes `UnsupportedDevicePage` som hård stop, og App-roden monteres ikke. Gaten er **fail-closed**: kan den fysiske skærmbredde ikke aflæses på en touch-lignende enhed, behandles enheden som uunderstøttet. En app-variant kan eksplicit fravælge gaten via `enforceUnsupportedDeviceGate: false` (kun standalone-beregneren, der bevidst skal virke på mobil).

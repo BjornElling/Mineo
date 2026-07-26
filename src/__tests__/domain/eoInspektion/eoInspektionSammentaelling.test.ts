@@ -2,10 +2,12 @@
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   buildSammentaellingDisplayTables,
-  getSammentaellingControlStatus,
-  type SammentaellingControl,
   type SammentaellingModel,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import {
+  getSammentaellingControlStatus,
+  type SammentaellingControl,
+} from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
 
 const baseControl: SammentaellingControl = {
   beregnetDisplay: '-',

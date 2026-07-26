@@ -1,12 +1,8 @@
 // @vitest-environment jsdom
+import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
-import {
-  __createSlimInputTestStore,
-  dispatchInput,
-  ActiveEditorRegistry,
-  type SlimInputStore,
-} from '../../../inputCore/runtime';
+import { dispatchInput, ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/runtime';
 import {
   createInputRuntimeBinding,
   InputRuntimeProvider,
@@ -307,12 +303,12 @@ describe('grid-adapter — §7.2 statekæde: række med fejl → slet række →
     expect(store.getState().input.rejectedInputs).toEqual({});
 
     // Undo → rækken OG dens rejected råtekst er tilbage som én tilstand.
-    act(() => { binding.system.history.undo(); });
+    act(() => { dispatchInput(store, catalog, { kind: 'undo' }); });
     expect(rows.current.rowIds).toEqual(['row-x']);
     expect(rejectedRaw(belobRef('row-x'))).toBe('abc');
 
     // Redo → rækken fjernes igen.
-    act(() => { binding.system.history.redo(); });
+    act(() => { dispatchInput(store, catalog, { kind: 'redo' }); });
     expect(rows.current.rowIds).toEqual([]);
     expect(store.getState().input.rejectedInputs).toEqual({});
   });

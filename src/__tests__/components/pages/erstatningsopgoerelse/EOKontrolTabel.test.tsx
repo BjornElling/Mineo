@@ -11,6 +11,7 @@ import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpe
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../../types/branded';
+import { EMPTY_FIELD_ISSUE_SET } from '../../../../inputCore/inputIssue';
 
 const makeModel = (patch: Partial<EOInspektionModel>): EOInspektionModel => {
   const base: EOInspektionModel = {
@@ -85,8 +86,8 @@ const makeSnapshot = (model: EOInspektionModel, revision = 'rev-1'): EOInspektio
     stamdataValues: STAMDATA_INITIAL_VALUES,
     eoValues: createErstatningsopgoerelseInitialValues(),
     fieldErrors: {
-      stamdata: {},
-      erstatningsopgoerelse: {},
+      stamdata: EMPTY_FIELD_ISSUE_SET,
+      erstatningsopgoerelse: EMPTY_FIELD_ISSUE_SET,
     },
   };
 };

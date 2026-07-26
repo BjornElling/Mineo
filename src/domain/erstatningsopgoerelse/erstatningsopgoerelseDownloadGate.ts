@@ -16,7 +16,7 @@ import {
   type EoDownloadProjectionStatus,
 } from './snapshot/eoDocumentDownloadGate';
 import type { ErstatningsopgoerelseReaderProjection } from './erstatningsopgoerelseReaderProjection';
-import { selectBlockingEoEntityIdsBySuffix } from './eoInputIssues';
+import { selectBlockingLoenindkomstEntityIds } from './eoInputIssues';
 
 // Greenfield EO download-gate (§3.4/§3.9/§5.4, Fase 2.4 trin 8). En ren, React-fri gate der afledes af den ENE
 // reader-projektion (`buildErstatningsopgoerelseReaderProjection`) i stedet for `useEoBeregningViewModel`'s live
@@ -45,7 +45,6 @@ const FALLBACK_MESSAGE: Record<EoDocumentKey, string> = {
   tafKravGraf: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag',
 };
 
-const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 /** Én dokument-projektions gate-relevante status (kun `kind` + `message` aflæses af gaten). */
 const toProjectionStatus = (
@@ -74,7 +73,7 @@ const resolveEoRowBlockingState = (
       .map((invariant) => invariant.message)
     : [];
 
-  const manuelReguleringInputErrors = selectBlockingEoEntityIdsBySuffix(eoErrors, EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
+  const manuelReguleringInputErrors = selectBlockingLoenindkomstEntityIds(eoErrors);
 
   const rowsResult = safeCompute(
     () => collectAllEoRows(

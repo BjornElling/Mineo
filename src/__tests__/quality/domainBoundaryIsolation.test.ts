@@ -30,7 +30,7 @@ const SRC_ROOT = path.resolve(process.cwd(), 'src');
  */
 const SPECIAL_EO_IMPORT_PATHS = [
   path.resolve(SRC_ROOT, 'hooks/useMidlertidigtEetInsertSource.ts'),
-  path.resolve(SRC_ROOT, 'domain/erhvervsevnetab/midlertidigtEetInsertSource.ts'),
+  path.resolve(SRC_ROOT, 'domain/erhvervsevnetab/eetImportPort.ts'),
 ] as const;
 const STORAGE_KEYS = [...PERSISTED_SECTION_KEYS];
 

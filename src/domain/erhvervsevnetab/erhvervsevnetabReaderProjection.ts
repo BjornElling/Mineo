@@ -37,11 +37,7 @@ import {
   faellesAarsloenAslAarsloenField,
   faellesAarsloenEalAarsloenField,
 } from '../../inputCore/catalog/faellesAarsloenDescriptors';
-import {
-  eoForligAnsvarsgradBroekField,
-  eoForligAnsvarsgradProcentField,
-  eoForligDatoField,
-} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { forligInputFields } from '../erstatningsopgoerelse/forligInputPort';
 import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
@@ -99,9 +95,9 @@ const ealAarsloenRef: FieldRef<AmountValue | undefined> = faellesAarsloenEalAars
 const skadedatoRef: FieldRef<ISODateString | undefined> = stamdataSkadedatoField.bind();
 const skadelidteFodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSkadelidteFodselsdatoField.bind();
 
-const forligProcentRef: FieldRef<number | undefined> = eoForligAnsvarsgradProcentField.bind();
-const forligBroekRef: FieldRef<string | undefined> = eoForligAnsvarsgradBroekField.bind();
-const forligDatoRef: FieldRef<ISODateString | undefined> = eoForligDatoField.bind();
+const forligProcentRef: FieldRef<number | undefined> = forligInputFields.procent.bind();
+const forligBroekRef: FieldRef<string | undefined> = forligInputFields.broek.bind();
+const forligDatoRef: FieldRef<ISODateString | undefined> = forligInputFields.dato.bind();
 
 export type ErhvervsevnetabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver sidevisningen for alle fem tabs + download-gates. */

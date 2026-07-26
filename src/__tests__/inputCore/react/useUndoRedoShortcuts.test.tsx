@@ -1,12 +1,8 @@
 // @vitest-environment jsdom
+import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
 import { render, act, waitFor } from '@testing-library/react';
-import {
-  __createSlimInputTestStore,
-  dispatchInput,
-  ActiveEditorRegistry,
-  type SlimInputStore,
-} from '../../../inputCore/runtime';
+import { dispatchInput, ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/runtime';
 import {
   createInputRuntimeBinding,
   InputRuntimeProvider,

@@ -20,7 +20,7 @@ import type {
   SammentaellingControl,
   SammentaellingDisplayRow,
 } from '../erstatningsopgoerelse/control/eoControlMismatch';
-import type { EoInputIssues } from '../erstatningsopgoerelse/eoInputIssues';
+import type { FieldIssueSet } from '../../inputCore/inputIssue';
 
 export type SvieSmerteContext = Readonly<{
   skadedatoISO: ISODateString | undefined;
@@ -37,20 +37,6 @@ export type TaftContext = Readonly<{
   verserendeKlageEet: boolean;
 }>;
 
-// Kontrol-/audit-kontrakten (sammenlignings-status + besked-format + række-typer) ejes nu af
-// produktionslaget i `domain/erstatningsopgoerelse/control/eoControlMismatch.ts`, så
-// snapshot-invarianten `control:sammentaelling_mismatch` ikke importerer sin gate-logik fra kontrollaget.
-// Kontrollaget *bygger* rækkerne nedenfor og re-eksporterer kontrakten for bagudkompatible importører.
-export {
-  getSammentaellingControlStatus,
-  collectSammentaellingControlMismatchMessages,
-} from '../erstatningsopgoerelse/control/eoControlMismatch';
-export type {
-  SammentaellingControl,
-  SammentaellingControlStatus,
-  SammentaellingDisplayRow,
-} from '../erstatningsopgoerelse/control/eoControlMismatch';
-
 export type SammentaellingModel = Readonly<{
   beregningsenhed: TafBeregningsenhed;
   beregningsperiode: SammentaellingControl;
@@ -62,7 +48,7 @@ export type SammentaellingModel = Readonly<{
   tafIndtaegter: readonly SammentaellingDisplayRow[];
 }>;
 
-type ErstatningsopgoerelseFieldErrors = EoInputIssues;
+type ErstatningsopgoerelseFieldErrors = FieldIssueSet;
 
 export const buildSvieSmerteContext = (
   stamdataValues: StamdataValues,

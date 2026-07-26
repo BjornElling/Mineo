@@ -201,14 +201,11 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 3. Undtagelsen er bevidst bidirektionel (til forskel fra §9, der er read-only): forligsgraden
    redigeres ligeværdigt fra begge faner. Settings-afledte initialværdier på `Erhvervsevnetab`-siden
    skal matche EO-sidens egne, så en command herfra ikke materialiserer afvigende EO-defaults.
-4. Undtagelsen giver **ikke** adgang til øvrige EO-felter eller EO-beregnet output. Råt aggregate-/sektionsopslag af
-   `erstatningsopgoerelse` fra `Erhvervsevnetab`-laget er forbudt; kun den navngivne, typed forligsprojektion gennem
-   `InputReader` er tilladt. Dette er **opfyldt**: `erhvervsevnetabReaderProjection.ts` læser de tre forligs-felter
-   gennem navngivne `FieldRef`s (`eoForligAnsvarsgradProcentField` m.fl.), og der findes ingen
-   `getPersistedData`/`usePersistedSection`-kald tilbage. Grænsen håndhæves maskinelt af
-   `domain/raw-section-access-boundary` (rå `sections[...]` uden for `src/inputCore/`) og af
-   `domain/page-section-access-boundary`, som følger IMPORTGRAFEN, så en kobling gennem en projektion
-   også tælles.
+4. Undtagelsen giver **ikke** adgang til øvrige EO-felter eller EO-beregnet output. Al læsning og alle refs
+   krydser den navngivne port `domain/erstatningsopgoerelse/forligInputPort.ts`; EET må ikke importere EO's
+   descriptor-katalog direkte. `domain/cross-domain-descriptor-port` håndhæver porten alias-sikkert, mens
+   `domain/page-section-access-boundary` stopper ved den godkendte port og følger alle øvrige relative
+   importkanter transitivt.
 
 ---
 

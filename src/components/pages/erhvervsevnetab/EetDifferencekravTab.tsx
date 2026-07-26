@@ -46,11 +46,7 @@ import {
   erhvervsevnetabEndeligEetTilbagevirkendeField,
   erhvervsevnetabIndregnMerErstatningField,
 } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
-import {
-  eoForligAnsvarsgradBroekField,
-  eoForligAnsvarsgradProcentField,
-  eoForligDatoField,
-} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { forligInputFields } from '../../../domain/erstatningsopgoerelse/forligInputPort';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;
@@ -68,9 +64,9 @@ const refs = {
   visUdvidetSpecifikationLoebendeYdelserBilag: erhvervsevnetabBilagVisUdvidetSpecLoebendeField.bind(),
   tilbagevirkende: erhvervsevnetabEndeligEetTilbagevirkendeField.bind(),
   merErstatning: erhvervsevnetabIndregnMerErstatningField.bind(),
-  forligProcent: eoForligAnsvarsgradProcentField.bind(),
-  forligBroek: eoForligAnsvarsgradBroekField.bind(),
-  forligDato: eoForligDatoField.bind(),
+  forligProcent: forligInputFields.procent.bind(),
+  forligBroek: forligInputFields.broek.bind(),
+  forligDato: forligInputFields.dato.bind(),
 } as const;
 
 // route + tabKey er eksplicit navigation-metadata (§3.7); alle felter bor på differencekrav-fanen.

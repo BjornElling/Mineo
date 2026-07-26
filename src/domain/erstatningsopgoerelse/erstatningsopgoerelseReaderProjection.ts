@@ -1,15 +1,9 @@
 import type { InputReader } from '../../inputCore/inputReader';
-import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import type { FieldRef } from '../../inputCore/fieldDescriptor';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
-import type { AmountValue } from '../../schemas/amountExpressionSchema';
-import type { ISODateString } from '../../types/branded';
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
 import type { ProjectionResult } from '../../inputCore/projection';
-import type {
-  EoInputIssue,
-  EoInputIssues,
-  EoStamdataInputIssues,
-} from './eoInputIssues';
+import { buildFieldIssueSet, type FieldIssueSet } from '../../inputCore/inputIssue';
 import type {
   ErstatningsopgoerelseValues,
   EOAngivetLoenLoenudvikling,
@@ -168,11 +162,9 @@ import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
 //    readeren skjuler en rød feltfejl (rejected format/range) ELLER en null-sektion giver `undefined` for et felt,
 //    hvis tomværdi ikke er `undefined` (fx required-choice 'maaned'). Det er præcis, hvad legacy læste (den tomme/
 //    maskerede canonical værdi). `computeEoSnapshot` køres UÆNDRET på det (§5.4 hårdt stop mod talændring).
-//  - FEJL-MAPS: for inspektion-echoet + den nedstrøms download-gate (collectAllEoRows) bygges `eoErrors`/
-//    `stamdataErrors` fra de RØDE reader-feltfejl som ÉT issue pr. feltnøgle — readerens `reason` bæres uændret
-//    videre, plus det syntetiske `${afId}:loenindkomst`-aggregat (reason `aggregate`), der rapporteres når en
-//    ansættelsesforholds StandardLoen-/manuel-regulerings-celle er ugyldig. Blokeringen udledes STRUKTURELT af
-//    severity (`eoIssueBlocksDependents`); der findes hverken en source-klassifikation eller et flag at drifte fra.
+//  - FELTISSUES: inspektions- og downloadlaget modtager de samme kanoniske `FieldIssueSet`s, filtreret på
+//    EO- og stamdatasektion. Readerens reason og faktiske strukturelle adresse bæres uændret videre; der findes
+//    hverken en feltnøgle-map, et syntetisk rækkeaggregat, en source-klassifikation eller et gate-flag.
 
 const S = 'erstatningsopgoerelse' as const;
 
@@ -517,117 +509,6 @@ export const readStamdataValues = (reader: InputReader): StamdataValues => ({
 });
 
 // ── Fejl-map-rekonstruktion ─────────────────────────────────────────────────────────
-/**
- * En rød reader-feltfejl omsat til én EO-inputissue. Readerens `reason` bæres UÆNDRET videre, så
- * blokerings-konsekvensen kan udledes strukturelt af `eoIssueBlocksDependents` — ikke af et flag her.
- *
- * Der er ingen oversættelse til en `source` længere: readerens årsag ER kategorien. Den tidligere
- * `reasonToSource` rekonstruerede en legacy-kilde (bl.a. `format → 'invalid-draft'`) for at fylde et
- * source-register, `error-contract.md` §11 udtrykkeligt forbyder.
- */
-const toInputIssue = (message: string, reason: string): EoInputIssue => ({
-  message,
-  severity: 'error',
-  reason: toIssueReason(reason),
-});
-
-/** Readerens årsagsstreng normaliseret til EO's årsagsunion. Ukendt årsag behandles konservativt som `rule`. */
-const toIssueReason = (reason: string): EoInputIssue['reason'] =>
-  reason === 'format' || reason === 'bounds' || reason === 'rule' || reason === 'schema' ? reason : 'rule';
-
-/**
- * Bygger et section-field-error-map (keyed by top-level feltnavn) fra de RØDE reader-feltfejl på de opgivne felter.
- * Kun til inspektion-echoet + den nedstrøms download-gate (`collectAllEoRows`) — `computeEoSnapshot` bruger ikke
- * mappet til sin egen blokering (den kommer fra værdierne via `erstatningsopgoerelseValidator`).
- */
-/** En rå read-adgang der udslettes til `unknown`, så heterogene refs kan holdes i én liste (variance-sikkert). */
-type ErrorFieldEntry = Readonly<{ key: string; readIssue: (reader: InputReader) => Readonly<{ message: string; reason: string }> | undefined }>;
-
-const errEntry = <T>(key: string, field: FieldRef<T>): ErrorFieldEntry => ({
-  key,
-  readIssue: (reader) => {
-    const result = reader.read(field);
-    return result.status === 'error' ? { message: result.issue.message, reason: result.issue.reason } : undefined;
-  },
-});
-
-const collectSectionFieldErrors = (
-  reader: InputReader,
-  entries: readonly ErrorFieldEntry[]
-): EoInputIssues => {
-  const map: EoInputIssues = {};
-  for (const { key, readIssue } of entries) {
-    const issue = readIssue(reader);
-    if (issue === undefined) continue;
-    map[key] = toInputIssue(issue.message, issue.reason);
-  }
-  return map;
-};
-
-/** Sand, hvis en ansættelsesforholds StandardLoen- eller manuel-regulerings-celle har en aktiv rød reader-feltfejl. */
-const employmentHasLoenindkomstCellError = (reader: InputReader, employment: LoenindkomstAnsaettelsesforhold): boolean => {
-  const employmentId = employment.id;
-  // Heterogene celle-descriptors udslettes til `FieldDescriptor<unknown>`, så en enkelt løkke kan læse alle celletyper
-  // (variance: `FieldRef<T>` er invariant, så union-refs kan ikke unificeres uden erasure).
-  const cellHasError = (cell: FieldDescriptor<unknown>, ...ids: readonly string[]): boolean =>
-    reader.read(cell.bind(...ids)).status === 'error';
-  const asUnknown = (cell: FieldDescriptor<unknown> | FieldDescriptor<string | undefined> | FieldDescriptor<number | undefined> | FieldDescriptor<AmountValue | undefined> | FieldDescriptor<ISODateString | undefined>): FieldDescriptor<unknown> =>
-    cell as FieldDescriptor<unknown>;
-  for (const row of employment.indtaegtsoplysningerTableData) {
-    for (const cell of Object.values(eoStandardRowFields)) {
-      if (cellHasError(asUnknown(cell), employmentId, row.id)) return true;
-    }
-  }
-  const manual = eoEmploymentManual;
-  for (const row of employment.loenudviklingManuelTableData) {
-    for (const cell of Object.values(manual.manualFields)) {
-      if (cellHasError(asUnknown(cell), employmentId, row.id)) return true;
-    }
-  }
-  for (const row of employment.loenudviklingManuelProcentsatsTableData) {
-    for (const cell of Object.values(manual.manualPercentFields)) {
-      if (cellHasError(asUnknown(cell), employmentId, row.id)) return true;
-    }
-  }
-  return false;
-};
-
-const EO_TOP_LEVEL_ERROR_FIELDS: readonly ErrorFieldEntry[] = [
-  errEntry('forligAnsvarsgradProcent', eoForligAnsvarsgradProcentField.bind()),
-  errEntry('forligAnsvarsgradBroek', eoForligAnsvarsgradBroekField.bind()),
-  errEntry('forligDato', eoForligDatoField.bind()),
-  errEntry('svieSmerteSatserAar', eoSvieSmerteSatserAarField.bind()),
-  errEntry('svieSmerteTidligereTotal', eoSvieSmerteTidligereTotalField.bind()),
-  errEntry('svieSmerteAktuelPeriode', eoSvieSmerteAktuelPeriodeField.bind()),
-  errEntry('tidligereModtagetTaf', eoTidligereModtagetTafField.bind()),
-  errEntry('uspecificeredeFerieFridage', eoUspecificeredeFerieFridageField.bind()),
-  errEntry('oevrigeFravaersdage', eoOevrigeFravaersdageField.bind()),
-  errEntry('maanedsloenenUdgoer', eoMaanedsloenenUdgoerField.bind()),
-  errEntry('dagsloenenUdgoer', eoDagsloenenUdgoerField.bind()),
-];
-
-const STAMDATA_ERROR_FIELDS: readonly ErrorFieldEntry[] = [
-  errEntry('journalnr', stamdataJournalnrField.bind()),
-  errEntry('advokat', stamdataAdvokatField.bind()),
-  errEntry('sagsbehandler', stamdataSagsbehandlerField.bind()),
-  errEntry('skadelidte', stamdataSkadelidteField.bind()),
-  errEntry('skadelidteFodselsdato', stamdataSkadelidteFodselsdatoField.bind()),
-  errEntry('skadestype', stamdataSkadestypeField.bind()),
-  errEntry('skadedato', stamdataSkadedatoField.bind()),
-];
-
-/**
- * De EO-nøgler, `eoErrors` faktisk kan indeholde — det udtømmende produktionskatalog.
- *
- * Eksporteret, så `eoDependencyGroups.test.ts` kan bevise, at HVER nøgle hører til mindst én
- * afhængighedsgren (§1.10). Uden det ville en ny fejlnøgle lydløst falde uden for opdelingen og kun blive
- * fanget af aggregatets fail-closed-backstop — altså overblokere i stedet for at gate sin egen gren.
- * Det syntetiske `${afId}:loenindkomst`-aggregat er ikke med her; det har et dynamisk entity-prefix og
- * dækkes af gruppernes `keyFragments`.
- */
-export const EO_TOP_LEVEL_ERROR_KEYS: readonly string[] =
-  EO_TOP_LEVEL_ERROR_FIELDS.map((entry) => entry.key);
-
 export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver Beregning/Inspektion/Kontroltabel + download-gaten. */
   snapshot: EoSnapshot;
@@ -636,8 +517,8 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /** De reader-rekonstruerede stamdata-værdier. */
   stamdataValues: StamdataValues;
   /** Section-field-error-maps (top-level feltnavn + `${afId}:loenindkomst`-aggregat) til inspektion-echo + gate. */
-  eoErrors: EoInputIssues;
-  stamdataErrors: EoStamdataInputIssues;
+  eoErrors: FieldIssueSet;
+  stamdataErrors: FieldIssueSet;
   /** Fælles dokumentmetadata-projektion; samme resultat indgår i reaktiv gate og click-preflight. */
   documentStamdata: ProjectionResult<StamdataValues>;
   /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
@@ -656,23 +537,6 @@ export const buildErstatningsopgoerelseReaderProjection = (
   const eoValues = readErstatningsopgoerelseValues(reader);
   const stamdataValues = readStamdataValues(reader);
 
-  const eoErrors: EoInputIssues = {
-    ...collectSectionFieldErrors(reader, EO_TOP_LEVEL_ERROR_FIELDS),
-  };
-  // Det syntetiske `${afId}:loenindkomst`-aggregat: rapporteres når en ansættelsesforholds StandardLoen-/
-  // manuel-regulerings-celle er ugyldig. Årsagen er `aggregate` (ikke `bounds`), så den blokerer de afhængige
-  // consumers gennem `eoIssueBlocksDependents` — uanset hvilken celle-årsag der udløste den.
-  for (const employment of eoValues.loenindkomstAnsaettelsesforhold) {
-    if (employmentHasLoenindkomstCellError(reader, employment)) {
-      eoErrors[`${employment.id}:loenindkomst`] = {
-        message: 'Ugyldig manuel regulering',
-        severity: 'error',
-        reason: 'aggregate',
-      };
-    }
-  }
-  const stamdataErrors = collectSectionFieldErrors(reader, STAMDATA_ERROR_FIELDS);
-
   // Transient midlertidigt-EET-injection: kun når togglen er 'Ja' (uændret fra legacy-siden).
   const midlertidigtEetImportContext =
     eoValues.midlertidigtEetFraEetSiden === 'Ja' && options?.midlertidigtEetInsertSource
@@ -689,6 +553,8 @@ export const buildErstatningsopgoerelseReaderProjection = (
   // Stamdata-issues indgår også: `skadedato` er en klipningsgrænse for BÅDE TAF-periodiseringen og
   // svie/smerte-perioderne, så en rød skadedato må ikke give en uklampet gren (runde 4, re-review T2).
   const stamdataFieldIssues = reader.fieldIssues.all.filter((issue) => issue.field.address.section === 'stamdata');
+  const eoErrors = buildFieldIssueSet(eoFieldIssues);
+  const stamdataErrors = buildFieldIssueSet(stamdataFieldIssues);
 
   const snapshot = computeEoSnapshot({
     revision: options?.revision ?? `input-${String(reader.sourceToken.inputRevision)}-settings-${String(reader.sourceToken.settingsRevision)}`,

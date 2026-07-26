@@ -1,3 +1,4 @@
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 /// <reference types="vitest/globals" />
 
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -6,7 +7,7 @@ import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowSvieSmerteRows';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -76,7 +77,7 @@ const getBeregnetBeloeb = (values: ErstatningsopgoerelseValues): string => {
     vedroererPeriodeTil: values.vedroererPeriodeTil ?? maxDate,
   };
 
-  const rows = buildEoSvieSmerteRows(completeValues, {}, context, buildCanonicalForValues(completeValues));
+  const rows = buildEoSvieSmerteRows(completeValues, EMPTY_FIELD_ISSUE_SET, context, buildCanonicalForValues(completeValues));
   const beregnetRow = rows.find((r) => r.id === 'sviesmerte.beregnetBeloeb');
   return beregnetRow?.displayValue ?? '-';
 };
@@ -92,7 +93,7 @@ const getAntalDage = (values: ErstatningsopgoerelseValues): string => {
     verserendeKlageMen: false,
   };
 
-  const rows = buildEoSvieSmerteRows(values, {}, context);
+  const rows = buildEoSvieSmerteRows(values, EMPTY_FIELD_ISSUE_SET, context);
   const antalDageRow = rows.find((r) => r.id === 'sviesmerte.antalDage');
   return antalDageRow?.displayValue ?? '-';
 };
@@ -121,7 +122,7 @@ const getSvieSmerteOphoerRow = (values: ErstatningsopgoerelseValues) => {
     verserendeKlageMen: completeValues.verserendeKlageMen === 'Ja',
   };
   const canonicalOutput = buildCanonicalForValues(completeValues);
-  const rows = buildEoSvieSmerteRows(completeValues, {}, context, canonicalOutput);
+  const rows = buildEoSvieSmerteRows(completeValues, EMPTY_FIELD_ISSUE_SET, context, canonicalOutput);
   return rows.find((row) => row.id === 'sviesmerte.ophoerSkyldes');
 };
 
@@ -132,7 +133,7 @@ const getSvieSmerteSatserAarRow = (values: ErstatningsopgoerelseValues) => {
     menAfgoerelseDatoForTabel: undefined,
     verserendeKlageMen: false,
   };
-  const rows = buildEoSvieSmerteRows(values, {}, context);
+  const rows = buildEoSvieSmerteRows(values, EMPTY_FIELD_ISSUE_SET, context);
   return rows.find((row) => row.id === 'sviesmerte.satserAar');
 };
 
@@ -401,7 +402,7 @@ describe('Svie/smerte beregning', () => {
         verserendeKlageMen: false,
       };
 
-      const rows = buildEoSvieSmerteRows(values, {}, context);
+      const rows = buildEoSvieSmerteRows(values, EMPTY_FIELD_ISSUE_SET, context);
       const beregnetPeriode = rows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
       const overlapPeriode = rows.find((row) => row.id === 'sviesmerte.periode.1');
       expect(beregnetPeriode?.status).toBe('error');

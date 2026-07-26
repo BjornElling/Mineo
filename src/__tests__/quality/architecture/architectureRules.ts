@@ -7,6 +7,7 @@ import {
 } from './rules/storageRules';
 import {
   aslAarsloensmaksimumRawSubscript,
+  crossDomainDescriptorPort,
   failOpenDisplayLookupImport,
   inspektionLayerImport,
   moneyOreTypeAssertion,
@@ -40,7 +41,7 @@ import {
   forbiddenLegacyIdentifier,
   inputWriteBoundary,
   rawSectionAccessBoundary,
-  systemPortCompositionRoot,
+  internalRuntimeCapabilityBoundary,
   transientCannotWriteCaseData,
 } from './rules/inputBoundaryRules';
 
@@ -73,6 +74,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   inspektionLayerImport,
   moneyOreTypeAssertion,
   pageSectionAccessBoundary,
+  crossDomainDescriptorPort,
   // Dokument og standalone
   pdfDownloadCommittedState,
   minprocesrenteStandaloneImport,
@@ -98,7 +100,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
   rawSectionAccessBoundary,
-  systemPortCompositionRoot,
+  internalRuntimeCapabilityBoundary,
   transientCannotWriteCaseData,
   forbiddenLegacyIdentifier,
 ];

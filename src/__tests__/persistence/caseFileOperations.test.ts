@@ -1,15 +1,10 @@
 // @vitest-environment jsdom
 import {
-  insertRow,
-  serializeFieldAddress,
-  settleField,
-} from '../../inputCore';
-import {
   __createSlimInputTestStore,
-  dispatchInput,
-  type RuntimeInputCommand,
-  type SlimInputStore,
-} from '../../inputCore/runtime';
+  __bumpSlimInputSettingsRevisionForTest,
+} from '../../inputCore/runtime/slimInputStore';
+import { insertRow, serializeFieldAddress, settleField } from '../../inputCore';
+import { dispatchInput, type RuntimeInputCommand, type SlimInputStore } from '../../inputCore/runtime';
 import { captureStableInput, readSourceToken } from '../../inputCore/runtime/evaluationSourceBinding';
 import {
   buildLoadReplaceCaseCandidate,
@@ -208,7 +203,7 @@ describe('caseFileOperations', () => {
 
       // En dokumentrelevant indstilling ændres, mens fil-pickeren er åben. Begge revisioner indgår i tokenet,
       // fordi begge kan ændre det, der ville blive skrevet.
-      store.bumpSettingsRevision();
+      __bumpSlimInputSettingsRevisionForTest(store);
 
       expect(readSourceToken(store)).not.toEqual(outcome.token);
       expect(ops.isSaveSourceStillCurrent(outcome.token)).toBe(false);

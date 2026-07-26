@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import OevrigeKravTable from '../../../components/tables/OevrigeKravTable';
@@ -18,7 +19,9 @@ import {
   createSettingsRevision,
 } from '../../../inputCore/evaluationSource';
 import { eoOevrigeKravDatoField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, OevrigeKravRow, StamdataValues } from '../../../schemas/formSchemas';
 
@@ -47,7 +50,7 @@ const hydrate = (rows: OevrigeKravRow[]): void => {
     },
     rejectedInputs: {},
   });
-  slimInputStore.hydrate(input);
+  __hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderTable = (committedRows: OevrigeKravRow[]) => render(

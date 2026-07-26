@@ -118,6 +118,8 @@ export const buildFieldIssueSet = (issues: readonly FieldIssue[]): FieldIssueSet
   });
 };
 
+export const EMPTY_FIELD_ISSUE_SET: FieldIssueSet = buildFieldIssueSet([]);
+
 export const bindFieldIssueSnapshot = (
   issues: FieldIssueSet,
   sourceToken: EvaluationSourceToken

@@ -1,7 +1,10 @@
 import * as React from 'react';
 import type { PersistedSectionKey } from '../../config/persistenceRegistry';
 import type { FieldIssue } from '../inputIssue';
-import { useInputReadPort } from './inputRuntimeContext';
+import {
+  useInputReadPort,
+  useInternalSettledSnapshot,
+} from './inputRuntimeContext';
 
 // Greenfield-diagnostik (Fase 6, genåbnet): devtools-/bugrapport-fladen har et LEGITIMT behov for at se den
 // rå persisterede sektionsform — det er hele pointen med en fejlrapport. Men behovet er en NAVNGIVET
@@ -37,14 +40,15 @@ export type InputDiagnosticsProjection = Readonly<{
  */
 export const useInputDiagnostics = (): InputDiagnosticsProjection => {
   const read = useInputReadPort();
+  const { input } = useInternalSettledSnapshot();
   // Memoiseret pr. binding: consumeren pakker opslagene i egne `useCallback`s, og en ny projektion pr. render
   // ville gøre dem ustabile og genregistrere devtools-abonnementet ved hver render.
   return React.useMemo(
     () => Object.freeze({
-      readSection: (pageKey: PersistedSectionKey): unknown => read.getSettled().input.sections[pageKey] ?? null,
+      readSection: (pageKey: PersistedSectionKey): unknown => input.sections[pageKey] ?? null,
       readSectionIssues: (pageKey: PersistedSectionKey): readonly FieldIssue[] =>
         read.getEvaluation().issues.all.filter((issue) => issue.field.address.section === pageKey),
     }),
-    [read]
+    [input, read]
   );
 };

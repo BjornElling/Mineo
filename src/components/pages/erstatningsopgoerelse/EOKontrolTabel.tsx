@@ -4,7 +4,11 @@ import { Check, ErrorOutlined as ErrorOutline } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import ContentBox from '../../layout/ContentBox';
-import { getSammentaellingControlStatus, type SammentaellingControl, type SammentaellingDisplayRow } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import {
+  getSammentaellingControlStatus,
+  type SammentaellingControl,
+  type SammentaellingDisplayRow,
+} from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
 import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/eoInspektion/csvUtils';
 import { formatCurrency } from '../../../utils/formatUtils';
 import type { ISODateString } from '../../../types/branded';

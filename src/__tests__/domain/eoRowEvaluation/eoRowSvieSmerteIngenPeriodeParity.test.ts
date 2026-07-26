@@ -1,10 +1,11 @@
 /// <reference types="vitest/globals" />
 
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowSvieSmerteRows';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -15,7 +16,7 @@ const context = {
   verserendeKlageMen: false,
 } as const;
 
-const noErrors = {} as Parameters<typeof buildEoSvieSmerteRows>[1];
+const noErrors = EMPTY_FIELD_ISSUE_SET;
 
 // Parallelt til `taf.ingenTafIEoPerioden`: når der slet ikke er angivet svie/smerte-perioder i
 // EO-perioden (og svie/smerte kræves), vises en særskilt advarsel, der undertrykker den sekundære
@@ -96,9 +97,9 @@ describe('collectAllEoRows — suppression af sekundær svie/smerte-advarsel', (
 
     const { warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       eoValues,
-      {}
+      EMPTY_FIELD_ISSUE_SET
     );
 
     const warningIds = warnings.map((row) => row.id);

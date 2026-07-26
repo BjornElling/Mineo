@@ -1,4 +1,4 @@
-import { buildMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
+import { buildMidlertidigtEetInsertSource } from '../../domain/erhvervsevnetab/eetImportPort';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../inputCore/inputReader';

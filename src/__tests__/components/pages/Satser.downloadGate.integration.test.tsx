@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
 // Greenfield Satser-slice (§2.4 + Fase 3): Satser-sidens `aargang` er nu et `YearField` over den ene
 // input-runtime. Denne integrationstest kører gennem den RIGTIGE migrerede side + den ægte produktions-runtime
@@ -44,7 +45,7 @@ const hydrateCommittedAargang = (aargang: number): void => {
     },
     rejectedInputs: {},
   });
-  slimInputStore.hydrate(input);
+  __hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderSatser = (committedAargang: number) => {

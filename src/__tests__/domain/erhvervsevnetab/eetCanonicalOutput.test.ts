@@ -1,7 +1,7 @@
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { eetCanonicalOutputSchema } from '../../../domain/erhvervsevnetab/eetCanonicalOutput';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import { computeEetSnapshotForTest as computeEetSnapshot } from '../../utils/eetSnapshotTestSupport';
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 

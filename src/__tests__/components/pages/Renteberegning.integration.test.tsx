@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
 // Greenfield Renteberegning-slice (§2.4 trin 4 / §2.5 / Fase 3): hele siden kører nu på den ENE greenfield
 // input-runtime (ingen legacy FormPersistence/invalidDrafts). Denne integrationstest kører gennem den RIGTIGE
@@ -56,7 +57,7 @@ const hydrate = (
     },
     rejectedInputs: {},
   });
-  slimInputStore.hydrate(input);
+  __hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const validRow = (id: string): RentekravRow => ({

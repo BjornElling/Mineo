@@ -1,24 +1,10 @@
 // @vitest-environment jsdom
+import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import {
-  __createSlimInputTestStore,
-  dispatchInput,
-  ActiveEditorRegistry,
-  type SlimInputStore,
-} from '../../../inputCore/runtime';
-import {
-  createInputRuntimeBinding,
-  InputRuntimeProvider,
-  type InputRuntimeBinding,
-} from '../../../inputCore/react';
-import {
-  IntegerField,
-  ChoiceField,
-  RadioField,
-  GridAmountCell,
-  GridChoiceCell,
-} from '../../../inputCore/react/fields';
+import { dispatchInput, ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/runtime';
+import { createInputRuntimeBinding, InputRuntimeProvider, type InputRuntimeBinding } from '../../../inputCore/react';
+import { IntegerField, ChoiceField, RadioField, GridAmountCell, GridChoiceCell } from '../../../inputCore/react/fields';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import {
   createEvaluationSourceToken,

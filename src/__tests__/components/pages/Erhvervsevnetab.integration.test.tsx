@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -59,7 +60,7 @@ const hydrate = (
   faellesAarsloen: FaellesAarsloenValues | null = null,
   stamdata: StamdataValues | null = null,
 ): void => {
-  slimInputStore.hydrate(catalog.validateSettledInput({
+  __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
     sections: {
       stamdata, satser: null, aarsloen: null, faellesAarsloen, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab,

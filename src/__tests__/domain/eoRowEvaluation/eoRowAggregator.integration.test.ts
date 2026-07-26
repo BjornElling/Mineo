@@ -1,3 +1,4 @@
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import {
@@ -16,9 +17,9 @@ describe('collectAllEoRows integration', () => {
 
     const result = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       eoValues,
-      {}
+      EMPTY_FIELD_ISSUE_SET
     );
 
     const row = result.warnings.find((entry) => entry.id === 'sviesmerte.satserAar');
@@ -46,9 +47,9 @@ describe('collectAllEoRows integration', () => {
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([]);
     const result = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       eoValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       {},
       undefined,
       snapshot.data?.canonicalOutput
@@ -115,9 +116,9 @@ describe('collectAllEoRows integration', () => {
 
     const withPdfModel = collectAllEoRows(
       stamdataValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       eoValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       {},
       undefined,
       snapshot.data?.canonicalOutput,
@@ -132,9 +133,9 @@ describe('collectAllEoRows integration', () => {
     // Non-vacuous: uden pdfModel er fejlen fraværende (det var den fail-open-tilstand G1 rettede).
     const withoutPdfModel = collectAllEoRows(
       stamdataValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       eoValues,
-      {},
+      EMPTY_FIELD_ISSUE_SET,
       {},
       undefined,
       snapshot.data?.canonicalOutput

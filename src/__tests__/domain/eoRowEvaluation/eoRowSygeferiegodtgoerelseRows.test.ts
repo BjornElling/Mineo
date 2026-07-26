@@ -1,5 +1,5 @@
 import { moneyOre } from '../../../domain/money/money';
-import { buildEoSygeferiegodtgoerelseRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
+import { buildEoSygeferiegodtgoerelseRows } from '../../../domain/eoRowEvaluation/eoRowSygeferiegodtgoerelseRows';
 import * as loenudviklingBeregningModule from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import * as systemIssueReporterModule from '../../../utils/systemIssueReporter';

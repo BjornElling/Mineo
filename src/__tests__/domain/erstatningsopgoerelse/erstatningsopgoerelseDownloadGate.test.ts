@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { evaluateErstatningsopgoerelseDownloadGates } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
 import { buildErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
-import { eoIssueBlocksDependents } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
+import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -133,7 +133,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     const reader = buildReader(withCellError, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
     // Aggregatet er til stede i eoErrors (bevist i reader-projektions-testen); gaten blokerer på det via collectAllEoRows.
-    expect(eoIssueBlocksDependents(projection.eoErrors['af-1:loenindkomst'])).toBe(true);
+    expect(selectBlockingLoenindkomstEntityIds(projection.eoErrors)['af-1']).toBe(true);
     const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_APP_SETTINGS);
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
   });

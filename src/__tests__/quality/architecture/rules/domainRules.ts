@@ -220,6 +220,10 @@ const catalogSectionForImport = (moduleSpecifier: string): PersistedSectionKey |
 };
 
 const PAGES_ROOT = 'src/components/pages';
+const CROSS_DOMAIN_PORT_BOUNDARIES = new Set([
+  'src/domain/erstatningsopgoerelse/forligInputPort',
+  'src/domain/erhvervsevnetab/eetImportPort',
+]);
 
 export type PageBoundaryRule = Readonly<{
   label: string;
@@ -238,17 +242,17 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
   {
     label: 'Erhvervsevnetab',
     root: 'src/components/pages/Erhvervsevnetab.tsx',
-    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata'],
   },
   {
     label: 'Erhvervsevnetab tabs',
     root: 'src/components/pages/erhvervsevnetab',
-    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata'],
   },
   {
     label: 'Erstatningsopgørelse',
     root: 'src/components/pages/Erstatningsopgoerelse.tsx',
-    allowedSections: ['erstatningsopgoerelse', 'stamdata', 'erhvervsevnetab', 'faellesAarsloen'],
+    allowedSections: ['erstatningsopgoerelse', 'stamdata'],
   },
   {
     label: 'Erstatningsopgørelse tabs',
@@ -258,14 +262,14 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     // rækker (`domain-boundary-contract.md` §9). Koblingen er TRANSITIV og var derfor usynlig, indtil
     // reglen begyndte at følge importgrafen — den er den samme autorisation, `Erstatningsopgoerelse.tsx`
     // allerede havde, og listerne er nu ens for side og faner.
-    allowedSections: ['erstatningsopgoerelse', 'stamdata', 'erhvervsevnetab', 'faellesAarsloen'],
+    allowedSections: ['erstatningsopgoerelse', 'stamdata'],
   },
   { label: 'Forsørgertab', root: 'src/components/pages/Forsoergertab.tsx', allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'] },
   { label: 'Renteberegning', root: 'src/components/pages/Renteberegning.tsx', allowedSections: ['renteberegning', 'stamdata'] },
   {
     // Delte renteberegning-faner (bruges af både hovedapp og standalone minProcesrente). RenteberegningTab
-    // binder beregningsdato til invalidDrafts og læser sektionens afsluttede ugyldige inputs (greenfield
-    // draft/commit-design, Fase 7), så filen tilgår `renteberegning`-sektionen.
+    // binder beregningsdato til den afsluttede inputrevision, så filen tilgår
+    // `renteberegning`-sektionen.
     label: 'Renteberegning-faner',
     root: 'src/components/pages/renteberegning',
     allowedSections: ['renteberegning'],
@@ -308,8 +312,6 @@ type SectionAccess = Readonly<{
  * Grænsen er bevidst sat ved page-filens transitive lukning frem for ved dens direkte imports, fordi
  * en facade eller et alias ellers kan flytte koblingen ét modul væk og gøre reglen tavs.
  */
-const MAX_COUPLING_DEPTH = 6;
-
 const collectSectionAccessesDeep = (
   entry: SourceEntry,
   byPath: ReadonlyMap<string, SourceEntry>
@@ -317,7 +319,11 @@ const collectSectionAccessesDeep = (
   const accesses: SectionAccess[] = [];
   const seen = new Set<string>([entry.relativePath]);
 
-  type Frame = Readonly<{ entry: SourceEntry; chain: readonly string[] }>;
+  type Frame = Readonly<{
+    entry: SourceEntry;
+    chain: readonly string[];
+    rootPosition?: Finding['position'];
+  }>;
   const queue: Frame[] = [{ entry, chain: [] }];
 
   while (queue.length > 0) {
@@ -330,20 +336,27 @@ const collectSectionAccessesDeep = (
       if (section !== null) {
         // Positionen er ALTID i page-filen selv (det første led), så fundet peger på den import,
         // udvikleren kan gøre noget ved — ikke på en linje dybt inde i domænet.
-        accesses.push({ section, position: ref.position, via: frame.chain });
+        accesses.push({
+          section,
+          position: frame.rootPosition ?? ref.position,
+          via: frame.chain,
+        });
         continue;
       }
-      if (frame.chain.length >= MAX_COUPLING_DEPTH) continue;
       const resolved = resolveRelativeImport(frame.entry.relativePath, ref.moduleSpecifier);
       if (resolved === null) continue;
-      // Kun koblinger GENNEM domæne-/inputlaget følges. Følger vi hele grafen, ender enhver side i
-      // alt — grænsen ville måle "importerer noget" frem for "kobler til et domæne".
-      if (!/^src\/(?:domain|inputCore|document|persistence)\//.test(resolved)) continue;
+      // En navngiven cross-domain-port er selve capability-grænsen. Consumers må kende portens output,
+      // men ikke dens interne descriptor-afhængigheder; portmodulet kontrolleres særskilt nedenfor.
+      if (CROSS_DOMAIN_PORT_BOUNDARIES.has(resolved)) continue;
       for (const candidate of [`${resolved}.ts`, `${resolved}.tsx`, `${resolved}/index.ts`]) {
         const next = byPath.get(candidate);
         if (next === undefined || seen.has(next.relativePath)) continue;
         seen.add(next.relativePath);
-        queue.push({ entry: next, chain: [...frame.chain, next.relativePath] });
+        queue.push({
+          entry: next,
+          chain: [...frame.chain, next.relativePath],
+          rootPosition: frame.rootPosition ?? ref.position,
+        });
       }
     }
   }
@@ -437,7 +450,7 @@ export const pageSectionAccessBoundary = defineRule({
     // Autoriseret cross-domain-læsning (EO ↔ EET, delt forligsgrad).
     {
       relativePath: 'src/components/pages/Erhvervsevnetab.tsx',
-      code: "import { x } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';",
+      code: "import { forligInputFields } from '../../domain/erstatningsopgoerelse/forligInputPort';",
     },
     // Descriptorfri page-fil er uinteressant, selv uden rod.
     { relativePath: 'src/components/pages/NyUovervaagetSide.tsx', code: 'const x = useMemo(() => 1, []);' },
@@ -450,6 +463,50 @@ export const pageSectionAccessBoundary = defineRule({
     {
       relativePath: 'src/components/pages/NyUovervaagetSide.tsx',
       code: "import { dateBounds } from '../../inputCore/catalog/boundsValidators';",
+    },
+  ],
+});
+
+export const crossDomainDescriptorPort = forbidImports({
+  id: 'domain/cross-domain-descriptor-port',
+  description:
+    'EO og EET må kun nå hinandens persisted felter gennem de to navngivne porte; direkte import af det '
+    + 'fremmede descriptorkatalog er forbudt.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => CROSS_DOMAIN_PORT_BOUNDARIES.has(entry.relativePath.replace(/\.ts$/, '')),
+    rationale: 'begge navngivne cross-domain-porte findes som de eneste capabilities',
+    requiredPaths: [
+      'src/domain/erstatningsopgoerelse/forligInputPort.ts',
+      'src/domain/erhvervsevnetab/eetImportPort.ts',
+    ],
+  },
+  appliesTo: (path) =>
+    /^(?:src\/domain|src\/components\/pages)\/(?:erhvervsevnetab|erstatningsopgoerelse)/.test(path),
+  allow: [],
+  forbidden: (ref, fromPath) => {
+    const specifier = ref.moduleSpecifier.replaceAll('\\', '/');
+    const fromEet = /\/erhvervsevnetab(?:\/|[A-Z])/.test(fromPath);
+    const fromEo = /\/erstatningsopgoerelse(?:\/|[A-Z])/.test(fromPath);
+    return (fromEet && /inputCore\/catalog\/erstatningsopgoerelse(?:Loen)?Descriptors$/.test(specifier))
+      || (fromEo && /inputCore\/catalog\/erhvervsevnetabDescriptors$/.test(specifier));
+  },
+  message: (ref) =>
+    `Direkte cross-domain descriptorimport (${ref.moduleSpecifier}) — brug forligInputPort/eetImportPort.`,
+  violatingFixtures: [
+    {
+      relativePath: 'src/domain/erhvervsevnetab/x.ts',
+      code: "import { x } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';",
+    },
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/X.tsx',
+      code: "import { x } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';",
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/domain/erhvervsevnetab/x.ts',
+      code: "import { forligInputFields } from '../erstatningsopgoerelse/forligInputPort';",
     },
   ],
 });
