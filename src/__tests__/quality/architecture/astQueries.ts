@@ -322,6 +322,81 @@ export const hasIdentifier = (entry: SourceEntry, name: string): boolean =>
   collectIdentifiers(entry).some((ref) => ref.text === name);
 
 /**
+ * Filens lokale type-aliaser som `alias → rod-typenavn`.
+ *
+ * Uden dette kan enhver navnebaseret typeregel omgås med én linje: `type S = SourceSettings;` og
+ * derefter `x as S`. Kæder følges (`type A = B; type B = C`), og opslaget er derfor transitivt.
+ * Kvalificerede navne reduceres til sidste led (`Settings.SourceSettings` → `SourceSettings`), så en
+ * namespace-import ikke skjuler målet.
+ */
+export const collectLocalTypeAliases = (entry: SourceEntry): ReadonlyMap<string, string> => {
+  const { ast } = entry;
+  const direct = new Map<string, string>();
+
+  walk(ast, (node) => {
+    if (!ts.isTypeAliasDeclaration(node)) return;
+    const target = node.type;
+    if (!ts.isTypeReferenceNode(target)) return;
+    const typeName = target.typeName;
+    const rootName = ts.isQualifiedName(typeName) ? typeName.right.text : typeName.text;
+    direct.set(node.name.text, rootName);
+  });
+
+  // Fold kæder, så et opslag altid giver ROD-navnet. Bevidst med et besøgt-sæt: en cyklisk
+  // aliaskæde ville ellers løkke uendeligt i selve værnet.
+  const resolved = new Map<string, string>();
+  for (const alias of direct.keys()) {
+    const seen = new Set<string>([alias]);
+    let current = direct.get(alias) as string;
+    while (direct.has(current) && !seen.has(current)) {
+      seen.add(current);
+      current = direct.get(current) as string;
+    }
+    resolved.set(alias, current);
+  }
+  return resolved;
+};
+
+export type TypeArgumentRef = Readonly<{
+  /** Det skrevne typenavn i et EKSPLICIT type-argument på et kald. */
+  typeText: string;
+  /**
+   * Den kaldte udtrykstekst (fx `forge` eller `defineDocumentAction`). Consumers har brug for den
+   * for at kunne skelne en coercion-hjælper fra en fabrik, der blot parametriseres med typen.
+   */
+  calleeText: string;
+  node: ts.TypeNode;
+  position: CodePosition;
+}>;
+
+/**
+ * Eksplicitte type-argumenter på KALD (`forge<EoRowPolicy>(x)`), ikke i type-positioner.
+ *
+ * Skelnen er vigtig: `DocumentSourceContext<SourceSettings>` er en legitim type-annotation, mens
+ * `forge<SourceSettings>(x)` beder en hjælper om at PRODUCERE værdien — i konsekvens det samme som en
+ * assertion, blot flyttet en funktion væk. Derfor opsamles kun kaldenes type-argumenter.
+ */
+export const collectCallTypeArguments = (entry: SourceEntry): readonly TypeArgumentRef[] => {
+  const { ast } = entry;
+  const refs: TypeArgumentRef[] = [];
+
+  walk(ast, (node) => {
+    if (!ts.isCallExpression(node) && !ts.isNewExpression(node)) return;
+    const calleeText = node.expression.getText(ast);
+    for (const typeArgument of node.typeArguments ?? []) {
+      refs.push({
+        typeText: typeArgument.getText(ast),
+        calleeText,
+        node: typeArgument,
+        position: positionOf(ast, typeArgument),
+      });
+    }
+  });
+
+  return refs;
+};
+
+/**
  * Opløser en relativ import-specifier til en repo-relativ posix-sti (uden extension),
  * fx (`src/domain/x/y.ts`, `../../eoInspektion/z`) → `src/domain/eoInspektion/z`.
  * Returnerer `null` for ikke-relative (bare/alias) specifiers — de matches på segment i stedet.

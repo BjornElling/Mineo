@@ -38,7 +38,7 @@ vi.mock('../../../domain/eoInspektion/eoInspektionRegulationViewModel', () => ({
 import { eoSnapshotToInspektionView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import type { EOInspektionSnapshot } from '../../../domain/eoInspektion/eoInspektionSnapshot';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import { DEFAULT_EO_ROW_POLICY } from '../../../settings/sourceSettings';
 import { toISODateString } from '../../../types/branded';
 
 describe('eoSnapshotToInspektionView', () => {
@@ -122,7 +122,7 @@ describe('eoSnapshotToInspektionView', () => {
           erstatningsopgoerelse: { stale: true },
         },
       } as unknown as EoSnapshot,
-      appSettings: DEFAULT_APP_SETTINGS,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
       loenindkomstManuelReguleringInputErrors: {},
     });
 
@@ -149,7 +149,7 @@ describe('eoSnapshotToInspektionView', () => {
       stamdataErrors: inspektionSnapshot.fieldErrors.stamdata,
       eoErrors: inspektionSnapshot.fieldErrors.erstatningsopgoerelse,
       loenindkomstManuelReguleringInputErrors: {},
-      rowPolicy: DEFAULT_APP_SETTINGS,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
       canonicalOutput: { marker: 'canonical' },
     });
     expect(buildRegulationTimelineMock).toHaveBeenCalledWith({
@@ -178,7 +178,7 @@ describe('eoSnapshotToInspektionView', () => {
           erstatningsopgoerelse: null,
         },
       } as unknown as EoSnapshot,
-      appSettings: DEFAULT_APP_SETTINGS,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
       loenindkomstManuelReguleringInputErrors: {},
     });
 
@@ -251,7 +251,7 @@ describe('eoSnapshotToInspektionView', () => {
           },
         },
       } as never,
-      appSettings: DEFAULT_APP_SETTINGS,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
       loenindkomstManuelReguleringInputErrors: {},
     });
 

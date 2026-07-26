@@ -18,7 +18,11 @@ import {
   type InputRuntimeBinding,
 } from './inputRuntimeContext';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
-import { SOURCE_SETTINGS_KEYS } from '../../settings/sourceSettings';
+import {
+  SOURCE_SETTINGS_KEYS,
+  projectSourceSettings,
+  type SourceSettings,
+} from '../../settings/sourceSettings';
 
 // Greenfield-produktions-wiring (§3.10, Fase 2.4/3-cutover): den ene binding, produktions-app'en monterer. Den
 // hydrerer runtime FØR render (`initializeInputRuntime`) mod applikations-singletonerne og distribuerer den
@@ -33,19 +37,34 @@ import { SOURCE_SETTINGS_KEYS } from '../../settings/sourceSettings';
 // committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Snapshottet caches pr.
 // `EvaluationSourceToken`, så `getIssues` er billig at kalde under render (én gang pr. revision/settingsrevision).
 
-let publishedSettings: AppSettings = DEFAULT_APP_SETTINGS;
+/**
+ * Den publicerede værdi er det PROJEKTEREDE snapshot, ikke hele `AppSettings`.
+ *
+ * Det er WI-009's kerne: evaluering, fingerprint og dokumentcapture skal drives af præcis den samme
+ * værdi, ellers kan de drive fra hinanden. Tidligere var dette hele `AppSettings`, og fordi
+ * `SourceSettings` var en ren strukturel type, kunne enhver evalueringsafhængig kodesti læse en
+ * nøgle UDEN FOR sættet. En sådan læsning ville indføre en source-afhængighed, som IKKE bumper
+ * settingsrevisionen — så en download, der blev godkendt under den gamle regel, kunne overleve et
+ * regelskift. Fejlklassen var tavs.
+ *
+ * Nu er typen nominel og `projectSourceSettings` dens eneste konstruktør, så evalueringen ikke KAN
+ * få den brede type at læse fra.
+ */
+let publishedSettings: SourceSettings = projectSourceSettings(DEFAULT_APP_SETTINGS);
 
 /**
  * Fingerprintet udledes af `SOURCE_SETTINGS_KEYS` frem for at gentage nøglerne her.
  * Nøglelisten er erklæret i settings-laget og completeness-checket ved
  * compile-tid, så en ny source-relevant indstilling ikke kan tilføjes til typen uden også at komme
- * med i fingerprintet. Tidligere var de to lister uafhængige, og en manglende nøgle ville betyde, at
- * et regelskift IKKE gjorde et optaget token stale — altså at en download godkendt under den gamle
- * regel kunne overleve skiftet.
+ * med i fingerprintet.
+ *
+ * Fingerprintet tages af det projekterede snapshot og ikke af `AppSettings`. Havde det læst den
+ * brede værdi, kunne listen og det, evalueringen faktisk ser, stadig divergere; nu er de to
+ * garanteret samme objekt.
  *
  * Nøglerne sorteres, så fingerprintet er uafhængigt af listens rækkefølge.
  */
-const evaluationSettingsFingerprint = (settings: AppSettings): string => JSON.stringify(
+const evaluationSettingsFingerprint = (settings: SourceSettings): string => JSON.stringify(
   Object.fromEntries(
     [...SOURCE_SETTINGS_KEYS]
       .sort()
@@ -55,7 +74,7 @@ const evaluationSettingsFingerprint = (settings: AppSettings): string => JSON.st
 
 /** Sammen med settingsrevisionen giver snapshotreferencen den samlede input-/settings-friskhed. */
 const buildProductionEvaluation = (): InputEvaluation =>
-  captureStableInputEvaluation(slimInputStore, getProductionInputCatalog(), publishedSettings);
+  captureStableInputEvaluation(slimInputStore, getProductionInputCatalog());
 
 // Cache pr. token: `getIssues`/`getEvaluation` kaldes under render (bl.a. af `useFieldEditor`), så en fuld
 // issue-udledning må ikke køre på hver render. Den genberegnes kun, når input- eller settingsrevisionen flytter.
@@ -97,15 +116,17 @@ export const getProductionInputEvaluation = (): InputEvaluation => readProductio
  */
 export const captureProductionEvaluationSource = (): Readonly<{
   evaluation: InputEvaluation;
-  settings: AppSettings;
+  settings: SourceSettings;
 }> => {
   const { token, input } = captureStableInput(slimInputStore);
+  // Snapshottet LÆSES her og returneres sammen med evalueringen, så en consumer får input, issues og
+  // settings fra samme layoutfase. Det gives ikke ind i `createInputEvaluation`: evalueringen læser
+  // ikke settings, og tokenets settingsrevision er det, der binder de to sammen.
   const settings = publishedSettings;
   const evaluation = createInputEvaluation({
     input,
     catalog: getProductionInputCatalog(),
     sourceToken: token,
-    settings,
   });
   return Object.freeze({
     evaluation,
@@ -149,10 +170,13 @@ export const getProductionInputRuntimeStartup = (): InputRuntimeStartup | null =
 export const useSettingsRevisionBridge = (settings: AppSettings): void => {
   const previousFingerprintRef = React.useRef(evaluationSettingsFingerprint(publishedSettings));
   React.useLayoutEffect(() => {
-    const committedFingerprint = evaluationSettingsFingerprint(settings);
+    // Broen er det ENESTE sted, hvor den brede `AppSettings` skæres ned til source-snapshottet.
+    // Alt nedstrøms — evaluering, fingerprint, dokumentcapture — ser kun resultatet.
+    const sourceSettings = projectSourceSettings(settings);
+    const committedFingerprint = evaluationSettingsFingerprint(sourceSettings);
     const changed = previousFingerprintRef.current !== committedFingerprint;
     previousFingerprintRef.current = committedFingerprint;
-    publishedSettings = settings;
+    publishedSettings = sourceSettings;
     if (!changed) return;
     cachedEvaluation = null;
     bumpInputSettingsRevision(slimInputStore);

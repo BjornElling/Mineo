@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Alert, AlertTitle, Box } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import { useAppSettings } from '../../../contexts/useAppSettings';
+import { projectEoRowPolicy, projectSourceSettings } from '../../../settings/sourceSettings';
 import { buildEOInspektionPageViewModel } from '../../../domain/eoInspektion/eoInspektionPageViewModel';
 import { eoSnapshotToInspektionView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
@@ -18,11 +19,19 @@ type EOInspektionProps = Readonly<{
 const EOInspektion = ({ eoSnapshot = null, manuelReguleringInputErrors }: EOInspektionProps) => {
   const { settings } = useAppSettings();
 
+  // Rækkeevalueringen får KUN politikken (de to regulerings-toggles), aldrig hele `AppSettings`.
+  // `buildEOInspektionPageViewModel` nedenfor beholder den brede type: dens tomheds-prædikat er
+  // DEV-inspektionens eget og indgår ikke i nogen download-gate.
+  const rowPolicy = React.useMemo(
+    () => projectEoRowPolicy(projectSourceSettings(settings)),
+    [settings]
+  );
+
   const view = React.useMemo(() => eoSnapshotToInspektionView({
     snapshot: eoSnapshot,
-    appSettings: settings,
+    rowPolicy,
     loenindkomstManuelReguleringInputErrors: manuelReguleringInputErrors,
-  }), [eoSnapshot, manuelReguleringInputErrors, settings]);
+  }), [eoSnapshot, manuelReguleringInputErrors, rowPolicy]);
 
   if (view.kind === 'blocked') {
     return (

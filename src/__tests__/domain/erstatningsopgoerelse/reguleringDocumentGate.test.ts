@@ -25,7 +25,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { eoAngivetLoenFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
 import { createDocumentSourceContext } from '../../../document/definition/documentSourceContext';
-import type { SourceSettings } from '../../../settings/sourceSettings';
+import { __createTestSourceSettings, type SourceSettings } from '../../../settings/sourceSettings';
 import {
   klLoenaftalerDocumentDefinition,
   reguleringDocumentAction,
@@ -35,7 +35,8 @@ import {
 
 const catalog = getProductionInputCatalog();
 
-const SETTINGS: SourceSettings = {
+// Bygges gennem projektoren; `SourceSettings` er nominel (WI-009). Se `documentGateMatrix.test.ts`.
+const SETTINGS: SourceSettings = __createTestSourceSettings({
   documentDownloadFormat: 'pdf',
   brevhovedIndstillinger: {
     satser: false, renteberegning: false, regulering: false, varigeMen: false,
@@ -44,7 +45,7 @@ const SETTINGS: SourceSettings = {
   },
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
-};
+});
 
 const CASE_REQUEST = { scope: 'case' } as const;
 
@@ -70,7 +71,6 @@ const contextOf = (input: SettledInput) => {
     input,
     catalog,
     sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
-    settings: SETTINGS,
   });
   return createDocumentSourceContext(evaluation, SETTINGS);
 };

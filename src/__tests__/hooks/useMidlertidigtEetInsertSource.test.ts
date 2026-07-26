@@ -7,7 +7,6 @@ import {
   createInputRevision,
   createSettingsRevision,
 } from '../../inputCore/evaluationSource';
-import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 import { toISODateString } from '../../types/branded';
 import type {
   ErhvervsevnetabValues,
@@ -59,7 +58,6 @@ const buildEvaluation = (options?: Readonly<{
     input,
     catalog,
     sourceToken: createEvaluationSourceToken(createInputRevision(7), createSettingsRevision(3)),
-    settings: DEFAULT_APP_SETTINGS,
   });
 };
 

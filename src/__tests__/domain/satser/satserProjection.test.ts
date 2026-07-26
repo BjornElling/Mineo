@@ -35,7 +35,7 @@ const settle = (input: SettledInput, raw: string): SettledInput => {
 };
 
 const project = (input: SettledInput) =>
-  projectSatser(createInputEvaluation({ input, catalog, sourceToken: token, settings: {} }).reader);
+  projectSatser(createInputEvaluation({ input, catalog, sourceToken: token }).reader);
 
 describe('projectSatser (greenfield reader-projektion)', () => {
   it('tomt satsår → blocked (missing consumerfejl, §1.7)', () => {

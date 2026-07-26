@@ -49,12 +49,15 @@ export type DocumentBrevhovedType = (typeof DOCUMENT_BREVHOVED_TYPES)[number];
 export type DocumentBrevhovedFlags = Readonly<Record<DocumentBrevhovedType, boolean>>;
 
 /**
- * Smal options-DTO som dokument-service-laget forbruger i stedet for hele AppSettings.
+ * Smal options-DTO som dokumentlaget forbruger i stedet for hele AppSettings.
  *
  * Dokument-laget har præcis to behov fra settings: hvilke typer der viser brevhoved,
- * og hvilket output-format der er valgt. UI-laget leverer sin AppSettings direkte
- * (struktur-supersæt), så ingen eksplicit mapping er nødvendig på kaldestedet — men
- * dokument-laget kender kun denne smalle kontrakt.
+ * og hvilket output-format der er valgt. Dokument-laget kender kun denne smalle kontrakt.
+ *
+ * UI-laget leverede tidligere sin `AppSettings` direkte som struktur-supersæt. Det gør det ikke
+ * længere: `SourceSettings` er nominel (WI-009), så indsnævringen sker eksplicit gennem
+ * `projectSourceSettings`. En struktur-supersæt-levering var netop den tavse vej, ad hvilken en
+ * indstilling uden for `SOURCE_SETTINGS_KEYS` kunne nå dokumentcapturen.
  *
  * Ud over brevhoved og format erklærer kontrakten de to beregningstekniske regel-toggles, som
  * EO-dokumenternes download-gate faktisk læser (`buildEoIndkomstRows`,

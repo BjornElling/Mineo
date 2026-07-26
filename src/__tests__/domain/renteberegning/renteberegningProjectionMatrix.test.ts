@@ -12,7 +12,6 @@ import {
   rentekravTillaegstidField,
   renteberegningBeregningsdatoField,
 } from '../../../inputCore/catalog/renteberegningDescriptors';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import {
   createEvaluationSourceToken,
   createInputRevision,
@@ -58,7 +57,7 @@ const buildReader = (
     ),
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
-  return createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+  return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
 const build = (

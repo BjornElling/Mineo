@@ -11,7 +11,6 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import {
   createEvaluationSourceToken,
   createInputRevision,
@@ -50,7 +49,7 @@ const buildReader = (eo: ErstatningsopgoerelseValues) => {
     rejectedInputs: {},
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
-  return createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+  return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
 describe('eoStandardLoenFieldSet', () => {

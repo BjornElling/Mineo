@@ -162,25 +162,32 @@ export type InputEvaluation = Readonly<{
 /**
  * Kobler input, issue-snapshot og token i én factory. Consumers kan derfor ikke ved en fejl sætte et gammelt
  * issue-snapshot sammen med et nyt input/token og eksponere en bounds-fejlende canonical værdi.
+ *
+ * **Tager ikke `settings`.** Factoryen havde tidligere en generisk `settings: TSettings` plus en
+ * valgfri `deriveSettingsFieldIssues`-hook. Ingen produktionskaldssted leverede nogensinde hooken —
+ * dens eneste eksercerer var en test af mekanismen selv — så `settings` blev udelukkende dybfrosset
+ * og kastet væk. Den frie typeparameter var samtidig den sidste vej, ad hvilken hele `AppSettings`
+ * kunne nå evalueringen, og dermed WI-009's åbne hul: en fremtidig settings-læsning her ville kunne
+ * ændre et issue uden at indgå i `SOURCE_SETTINGS_KEYS` og altså uden at gøre et optaget
+ * `EvaluationSourceToken` stale.
+ *
+ * Capabilityen er derfor FJERNET frem for bevogtet — samme afgørelse som Fase 6's skrivegrænse.
+ *
+ * **Hvis der senere OPSTÅR behov for en settingsafhængig feltissue:** den kan ikke blot lægges i en
+ * eksisterende validator. Descriptor-validatorer modtager i dag ikke `SourceSettings`, og
+ * consumer-issues bliver ikke til kernens feltissues (og dermed ikke til et rødt standardfelt). En
+ * sådan regel kræver altså en NY, eksplicit auditeret grænse, hvor kilden er det projekterede
+ * snapshot og nøglen indgår i `SOURCE_SETTINGS_KEYS` — ikke en genindførelse af en fri
+ * typeparameter her. Ingen aktuel regel har behovet.
  */
-export const createInputEvaluation = <TSettings>(options: Readonly<{
+export const createInputEvaluation = (options: Readonly<{
   input: SettledInput;
   catalog: InputCatalog;
   sourceToken: EvaluationSourceToken;
-  settings: TSettings;
-  deriveSettingsFieldIssues?: (
-    reader: ValidationReader,
-    settings: TSettings
-  ) => readonly FieldIssue[];
 }>): InputEvaluation => {
   const validation = createValidationReader(options.input, options.catalog);
-  const settings = cloneAndDeepFreeze(options.settings) as TSettings;
-  const settingsIssues = options.deriveSettingsFieldIssues?.(validation, settings) ?? [];
   const issues = bindFieldIssueSnapshot(
-    buildFieldIssueSet([
-      ...deriveFieldIssueSet(validation, options.catalog).all,
-      ...settingsIssues,
-    ]),
+    buildFieldIssueSet([...deriveFieldIssueSet(validation, options.catalog).all]),
     options.sourceToken
   );
   return Object.freeze({

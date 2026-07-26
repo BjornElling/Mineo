@@ -6,7 +6,6 @@ import type { RentekravRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { createEvaluationSourceToken, createInputRevision, createSettingsRevision } from '../../../inputCore/evaluationSource';
 
 // Greenfield Renteberegning reader-projektion (§3.4/§5.4): beviser at projektionen (a) kører den EKSISTERENDE
@@ -39,7 +38,7 @@ const buildReaderForRows = (rows: readonly RentekravRow[], beregningsdato: strin
     rejectedInputs: {},
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
-  return createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+  return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
 describe('buildRenteberegningReaderProjection', () => {

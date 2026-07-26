@@ -3,7 +3,6 @@ import { buildForsoergertabReaderProjection } from '../../../domain/forsoergerta
 import { computeForsoergertabSnapshot } from '../../../domain/forsoergertab/forsoergertabSnapshot';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { createEvaluationSourceToken, createInputRevision, createSettingsRevision } from '../../../inputCore/evaluationSource';
 import { toISODateString } from '../../../types/branded';
 import type {
@@ -56,7 +55,7 @@ const buildReader = (
     rejectedInputs: {},
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
-  return createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+  return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
 describe('buildForsoergertabReaderProjection', () => {

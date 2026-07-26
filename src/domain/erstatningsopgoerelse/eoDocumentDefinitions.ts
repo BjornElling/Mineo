@@ -17,7 +17,7 @@ import type { DocumentProjectionResult } from '../../document/definition/documen
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import type { SourceSettings } from '../../settings/sourceSettings';
+import { projectEoRowPolicy, type SourceSettings } from '../../settings/sourceSettings';
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
 import { buildMidlertidigtEetInsertSource } from '../erhvervsevnetab/eetImportPort';
 import type { SelectedElements } from '../../document/generators/eo/types';
@@ -81,7 +81,10 @@ const readSharedEoSource = (context: DocumentSourceContext<SourceSettings>): Sha
   });
   return {
     projection,
-    gates: evaluateErstatningsopgoerelseDownloadGates(projection, context.settings),
+    gates: evaluateErstatningsopgoerelseDownloadGates(
+      projection,
+      projectEoRowPolicy(context.settings)
+    ),
   };
 };
 

@@ -9,6 +9,7 @@ import { scrollToSection } from '../../../../utils/scrollToSection';
 import { scrollToEoRow } from '../../../../utils/scrollToEoRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
+import { projectEoRowPolicy, projectSourceSettings } from '../../../../settings/sourceSettings';
 import { isoToDanish } from '../../../../types/branded';
 import { toReadableSummaryMessage } from '../../../../domain/erstatningsopgoerelse/helpers/readableSummaryMessage';
 import {
@@ -191,6 +192,14 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
+  // Rækkeevalueringen gater EO-downloaden, så den må kun se de nøgler, der indgår i
+  // settingsrevisionen. Projektionen er den ENESTE vej til `EoRowPolicy`; en bred `AppSettings` kan
+  // ikke længere sendes ind, hvilket er hele pointen i WI-009: en nøgle uden for sættet kunne ellers
+  // ændre gatens udfald uden at gøre et optaget `EvaluationSourceToken` stale.
+  const rowPolicy = React.useMemo(
+    () => projectEoRowPolicy(projectSourceSettings(settings)),
+    [settings]
+  );
   const manuelReguleringInputErrors = React.useMemo(
     () => selectBlockingLoenindkomstEntityIds(eoErrors),
     [eoErrors]
@@ -221,7 +230,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         eoValues,
         eoErrors,
         manuelReguleringInputErrors,
-        settings,
+        rowPolicy,
         beregningView?.canonicalOutput,
         // pdfModel SKAL med, så download-gaten ser de samme resultat-afhængige SFGG-fejlrækker
         // som DEV-kontrolfanerne (jf. collectAllEoRows-doc). Uden den var gaten fail-open for dem.
@@ -240,7 +249,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
 
     return { ...result.value, eoRowAggregationErrorMessage: null };
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView, eoSnapshot?.data?.pdfModel]);
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, rowPolicy, beregningView, eoSnapshot?.data?.pdfModel]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoDocument(eoSnapshot) : null),
     [eoSnapshot]

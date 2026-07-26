@@ -13,8 +13,7 @@
 
 import type { EoRowModel } from './eoRowTypes';
 import type { NavigationTarget } from './eoRowNavigationMap';
-import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import type { EoRowPolicy } from '../../settings/sourceSettings';
+import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSettings';
 import type {
   EoRowEvaluationContext,
   StamdataValues,
@@ -280,7 +279,7 @@ export const collectAllEoRows = (
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues,
   erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldIssues,
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
-  rowPolicy: EoRowPolicy = DEFAULT_APP_SETTINGS,
+  rowPolicy: EoRowPolicy = DEFAULT_EO_ROW_POLICY,
   canonicalOutputOverride?: EoCanonicalOutput,
   pdfModelOverride?: EoModel
 ): BeregningErrorSummary => {

@@ -63,7 +63,6 @@ const makeBinding = (): InputRuntimeBinding =>
       input: state.input,
       catalog,
       sourceToken: createEvaluationSourceToken(state.revision, state.settingsRevision),
-      settings: {},
     });
   });
 

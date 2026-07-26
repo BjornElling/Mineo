@@ -4,7 +4,6 @@ import { computeVarigeMenEngine } from '../../../domain/varigemen/varigeMenEngin
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { createEvaluationSourceToken, createInputRevision, createSettingsRevision } from '../../../inputCore/evaluationSource';
 import { toISODateString } from '../../../types/branded';
 import type { StamdataValues, VarigeMenValues } from '../../../schemas/formSchemas';
@@ -42,7 +41,7 @@ const buildReader = (varigemen: VarigeMenValues, stamdata: StamdataValues | null
     rejectedInputs: {},
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
-  return createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+  return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
 describe('buildVarigeMenReaderProjection', () => {

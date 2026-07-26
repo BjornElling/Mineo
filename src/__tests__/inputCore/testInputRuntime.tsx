@@ -29,7 +29,6 @@ export const createTestInputRuntime = (): TestInputRuntime => {
       input: state.input,
       catalog,
       sourceToken: createEvaluationSourceToken(state.revision, state.settingsRevision),
-      settings: {},
     });
   });
   return { store, catalog, registry, binding };

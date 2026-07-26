@@ -70,7 +70,7 @@ const dispatchSettle = <T>(state: ReturnType<typeof settleEditor<T>>): void => {
   dispatchInput(store, catalog, translated.command, { origin: translated.origin });
 };
 
-const evaluate = () => captureStableInputEvaluation(store, catalog, {});
+const evaluate = () => captureStableInputEvaluation(store, catalog);
 
 describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
   it('åben draft ændrer intet afsluttet input eller revision (§1.2)', () => {

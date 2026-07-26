@@ -42,6 +42,7 @@ import {
   inputWriteBoundary,
   rawSectionAccessBoundary,
   internalRuntimeCapabilityBoundary,
+  sourceSettingsProjectionBoundary,
   transientCannotWriteCaseData,
 } from './rules/inputBoundaryRules';
 
@@ -101,6 +102,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   inputWriteBoundary,
   rawSectionAccessBoundary,
   internalRuntimeCapabilityBoundary,
+  sourceSettingsProjectionBoundary,
   transientCannotWriteCaseData,
   forbiddenLegacyIdentifier,
 ];

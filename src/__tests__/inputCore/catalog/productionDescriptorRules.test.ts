@@ -49,7 +49,7 @@ const token = createEvaluationSourceToken(createInputRevision(1), createSettings
 const empty = (): SettledInput => catalog.validateSettledInput(createEmptySettledInput());
 const dispatch = <TField, TEntity>(input: SettledInput, command: InputMutationCommand<TField, TEntity>): SettledInput =>
   reduceInputCommand(input, command, catalog).input;
-const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog, sourceToken: token, settings: {} });
+const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog, sourceToken: token });
 
 const tableRef = createCollectionRef({ section: 'aarsloen', path: [], collection: 'tableData' });
 

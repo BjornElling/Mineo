@@ -5,8 +5,6 @@ import {
   type EvaluationSourceToken,
 } from '../evaluationSource';
 import { createInputEvaluation, type InputEvaluation } from '../inputReader';
-import type { FieldIssue } from '../inputIssue';
-import type { ValidationReader } from '../inputReader';
 import type { SettledInput } from '../settledInput';
 import type { SlimInputStore } from './slimInputStore';
 
@@ -32,21 +30,17 @@ export const captureStableInput = (
 
 /**
  * Optager et stabilt kildesnapshot og bygger den tokenbundne `InputEvaluation` (issues + offentlig reader).
- * `settings` og `deriveSettingsFieldIssues` leveres af consumeren; settingsrevisionen i tokenet skal bumpes,
- * når `settings` ændres, så friskheden dækker begge kilder (§3.4). AppSettings-abonnementet wires ved cutoveren.
+ *
+ * Tokenet bærer BÅDE input- og settingsrevisionen, så friskheden dækker begge kilder (§3.4).
+ * Settingsrevisionen bumpes af `useSettingsRevisionBridge`, når det projekterede
+ * `SourceSettings`-snapshot ændrer fingerprint. Selve settingsværdien gives ikke ind her: evalueringen
+ * læser ikke settings (se `createInputEvaluation`), og en fri typeparameter ville netop genåbne
+ * WI-009's hul.
  */
-export const captureStableInputEvaluation = <TSettings>(
+export const captureStableInputEvaluation = (
   store: SlimInputStore,
-  catalog: InputCatalog,
-  settings: TSettings,
-  deriveSettingsFieldIssues?: (reader: ValidationReader, settings: TSettings) => readonly FieldIssue[]
+  catalog: InputCatalog
 ): InputEvaluation => {
   const { token, input } = captureStableInput(store);
-  return createInputEvaluation({
-    input,
-    catalog,
-    sourceToken: token,
-    settings,
-    ...(deriveSettingsFieldIssues === undefined ? {} : { deriveSettingsFieldIssues }),
-  });
+  return createInputEvaluation({ input, catalog, sourceToken: token });
 };

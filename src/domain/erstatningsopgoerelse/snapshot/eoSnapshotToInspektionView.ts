@@ -1,4 +1,4 @@
-import type { AppSettings } from '../../../settings/appSettingsSchema';
+import type { EoRowPolicy } from '../../../settings/sourceSettings';
 import {
   EO_ROW_BUILDERS,
   executeEoRowBuilderEntriesBySection,
@@ -36,7 +36,7 @@ export type { EoInspektionViewReady };
 
 export const eoSnapshotToInspektionView = (args: Readonly<{
   snapshot?: EoSnapshot | null;
-  appSettings: AppSettings;
+  rowPolicy: EoRowPolicy;
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>>;
 }>): EoInspektionView => {
   const snapshot = args.snapshot ?? null;
@@ -72,7 +72,7 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
       eoValues: erstatningsopgoerelseValues,
       eoErrors: inspektionSnapshot.fieldErrors.erstatningsopgoerelse,
       loenindkomstManuelReguleringInputErrors: args.loenindkomstManuelReguleringInputErrors,
-      rowPolicy: args.appSettings,
+      rowPolicy: args.rowPolicy,
       canonicalOutput,
       pdfModel,
     };

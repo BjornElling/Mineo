@@ -79,7 +79,7 @@ const insert = (row: StandardLoenTableRow): AnyInputCommand => insertRow(tableDa
 
 const project = (input: SettledInput) =>
   buildAarsloenReaderProjection(
-    createInputEvaluation({ input, catalog, sourceToken: token, settings: {} }).reader
+    createInputEvaluation({ input, catalog, sourceToken: token }).reader
   );
 
 const withValidStamdata = (input: SettledInput): SettledInput => {

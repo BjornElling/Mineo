@@ -664,7 +664,7 @@ describe('EvaluationSourceToken-binding (§3.4)', () => {
 
   it('captureStableInputEvaluation skjuler en værdi bag en aktiv feltfejl', () => {
     dispatchInput(store, catalog, settleField(aargangField.bind(), 'abc'));
-    const evaluation = captureStableInputEvaluation(store, catalog, {});
+    const evaluation = captureStableInputEvaluation(store, catalog);
     expect(evaluation.reader.read(aargangField.bind()).status).toBe('error');
     expect(evaluation.reader.sourceToken.inputRevision).toBe(store.getState().revision);
   });

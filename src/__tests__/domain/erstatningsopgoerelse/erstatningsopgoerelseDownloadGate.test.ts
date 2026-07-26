@@ -8,7 +8,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import { DEFAULT_EO_ROW_POLICY } from '../../../settings/sourceSettings';
 import {
   createEvaluationSourceToken,
   createInputRevision,
@@ -92,14 +92,14 @@ const buildReader = (eo: ErstatningsopgoerelseValues | null, stamdata: StamdataV
     rejectedInputs: {},
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
-  return createInputEvaluation({ input, catalog, sourceToken, settings: DEFAULT_APP_SETTINGS }).reader;
+  return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
 describe('evaluateErstatningsopgoerelseDownloadGates', () => {
   it('tillader EO-dokumentet (ingen blokerende rækker) men per-dokument-blokerer de TAF-dokumenter uden TAF (§1.10)', () => {
     const reader = buildReader(buildEoDownloadableEo(), validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
-    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_APP_SETTINGS);
+    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY);
 
     expect(gates.erstatningsopgoerelse.canDownload).toBe(true);
     expect(gates.erstatningsopgoerelse.reasons).toEqual([]);
@@ -113,7 +113,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     const eo = { ...buildEoWithEmployment(), tafBeregningsperiodeFra: undefined };
     const reader = buildReader(eo, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
-    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_APP_SETTINGS);
+    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY);
 
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.tafFordeltPaaAar.canDownload).toBe(false);
@@ -134,7 +134,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
     // Aggregatet er til stede i eoErrors (bevist i reader-projektions-testen); gaten blokerer på det via collectAllEoRows.
     expect(selectBlockingLoenindkomstEntityIds(projection.eoErrors)['af-1']).toBe(true);
-    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_APP_SETTINGS);
+    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY);
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
   });
 
@@ -145,7 +145,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
       skadedato: toISODateString('2022-03-01'),
     });
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
-    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_APP_SETTINGS);
+    const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY);
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.tafKravGraf.canDownload).toBe(false);
   });

@@ -10,7 +10,13 @@
  *
  * Bemærk at `TSettings` er `SourceSettings` og ikke `AppSettings`: definitionerne læser kun
  * de source-relevante værdier (format, brevhoved-flags, EO-regelpolitik), og afhængighedspilen peger
- * fortsat UI → dokument. `AppSettings` opfylder kontrakten strukturelt.
+ * fortsat UI → dokument.
+ *
+ * `AppSettings` opfylder IKKE længere kontrakten strukturelt (WI-009): `SourceSettings` er nominel, og
+ * `projectSourceSettings` er dens eneste konstruktør. UI-laget skal derfor projicere eksplicit —
+ * hovedappen gør det i `useMineoDocumentEnvironment`. Det er tilsigtet: så kan en dokumentdefinition
+ * ikke læse en indstilling uden for `SOURCE_SETTINGS_KEYS` og dermed indføre en source-afhængighed,
+ * der ikke gør et optaget `EvaluationSourceToken` stale.
  */
 import type { DocumentDefinition } from './documentDefinition';
 import type { DocumentBrevhovedType } from '../layout/documentBrevhoved';

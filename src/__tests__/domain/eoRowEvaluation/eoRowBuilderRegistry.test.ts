@@ -7,7 +7,7 @@ import {
 } from '../../../domain/eoRowEvaluation/eoRowBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import { DEFAULT_EO_ROW_POLICY } from '../../../settings/sourceSettings';
 import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 
 const makeRow = (id: string, status: EoRowModel['status']): EoRowModel => ({
@@ -23,7 +23,7 @@ const ctx: EoRowEvaluationContext = {
   eoValues: createErstatningsopgoerelseInitialValues(),
   eoErrors: EMPTY_FIELD_ISSUE_SET,
   loenindkomstManuelReguleringInputErrors: {},
-  rowPolicy: DEFAULT_APP_SETTINGS,
+  rowPolicy: DEFAULT_EO_ROW_POLICY,
 };
 
 describe('executeEoRowBuilderEntries', () => {

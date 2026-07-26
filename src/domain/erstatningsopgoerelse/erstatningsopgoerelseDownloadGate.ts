@@ -1,4 +1,4 @@
-import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
+import { DEFAULT_EO_ROW_POLICY } from '../../settings/sourceSettings';
 import { collectAllEoRows } from '../eoRowEvaluation/eoRowAggregator';
 import { resolveEoIssueSummaryText } from '../eoRowEvaluation/eoRowIssueCatalog';
 import { safeCompute } from '../../utils/safeComputation';
@@ -118,7 +118,7 @@ const resolveEoRowBlockingState = (
  */
 export const evaluateErstatningsopgoerelseDownloadGates = (
   projection: ErstatningsopgoerelseReaderProjection,
-  settings: EoRowPolicy = DEFAULT_APP_SETTINGS
+  settings: EoRowPolicy = DEFAULT_EO_ROW_POLICY
 ): ErstatningsopgoerelseDownloadGates => {
   const snapshot: EoSnapshot = projection.snapshot;
   const authoritativeBlockingInvariants = getAuthoritativeBlockingInvariants(snapshot.invariants);

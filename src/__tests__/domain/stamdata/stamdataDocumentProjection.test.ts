@@ -19,7 +19,6 @@ describe('projectStamdataForDocument', () => {
       input: state.input,
       catalog,
       sourceToken: createEvaluationSourceToken(state.revision, state.settingsRevision),
-      settings: {},
     });
 
     const result = projectStamdataForDocument(evaluation.reader, 'document.test');
@@ -38,7 +37,6 @@ describe('projectStamdataForDocument', () => {
       input: state.input,
       catalog,
       sourceToken: createEvaluationSourceToken(state.revision, state.settingsRevision),
-      settings: {},
     });
 
     const result = projectStamdataForDocument(evaluation.reader, 'document.test');

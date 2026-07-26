@@ -9,9 +9,12 @@
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
 import {
+  collectCallTypeArguments,
   collectElementAccess,
   collectIdentifiers,
   collectImports,
+  collectLocalTypeAliases,
+  collectTypeAssertions,
   hasIdentifier,
 } from '../astQueries';
 import { defineRule, forbidImports, type Finding } from '../ruleKit';
@@ -478,5 +481,201 @@ export const forbiddenLegacyIdentifier = defineRule({
     { relativePath: 'src/x.ts', code: 'const { fieldErrors } = snapshot;' },
     // En KOMMENTAR om den slettede boolean skal fortsat bevares.
     { relativePath: 'src/x.ts', code: '// INGEN blocksSave-booleans: konsekvensen udledes strukturelt.\nexport const x = 1;' },
+  ],
+});
+
+// --- Source-settings-snapshottet: kun projektoren konstruerer det (WI-009) ----
+
+/** Modulet der ejer de to nominelle settings-snapshots og deres projektorer. */
+const SOURCE_SETTINGS_OWNER = 'src/settings/sourceSettings.ts';
+
+/** De brandede settings-typer, kun projektorerne må stemple. */
+const BRANDED_SETTINGS_TYPE_NAMES = ['SourceSettings', 'EoRowPolicy'] as const;
+const BRANDED_SETTINGS_TYPES: ReadonlySet<string> = new Set(BRANDED_SETTINGS_TYPE_NAMES);
+
+/** Typernes eneste konstruktører. Deres fravær betyder, at grænsen er flyttet. */
+const PROJECTOR_NAMES = ['projectSourceSettings', 'projectEoRowPolicy'] as const;
+
+/**
+ * Fabrikker der PARAMETRISERES med settings-typen frem for at producere en værdi af den.
+ * `defineDocumentAction<Request, SourceSettings, Brevhoved>` erklærer en definitions settings-form;
+ * den fremstiller intet snapshot og er derfor ikke en omgåelse af projektoren.
+ */
+const DEFINITION_FACTORY_PATTERN = /^define[A-Z]/;
+
+/**
+ * PRIMÆRVÆRNET er STRUKTUREN, ikke denne regel.
+ *
+ * `SourceSettings` og `EoRowPolicy` er nominelle (unique-symbol-brands), og `projectSourceSettings`/
+ * `projectEoRowPolicy` er deres eneste konstruktører. Derfor kan hele `AppSettings` ikke længere
+ * flyde ind i evaluering, rækkepolitik eller dokumentcapture — hvilket var WI-009's hul: en læsning
+ * af en nøgle UDEN FOR `SOURCE_SETTINGS_KEYS` ville indføre en source-afhængighed, der ikke gør et
+ * optaget `EvaluationSourceToken` stale, så en download godkendt under den gamle regel kunne
+ * overleve et regelskift.
+ *
+ * Reglen dækker brandede typers KENDTE loft, som strukturen ikke selv kan lukke: en
+ * type-assertion (`{} as SourceSettings`, `settings as EoRowPolicy`) fremstiller mærket uden at gå
+ * gennem projektoren. Det er samme afvejning og samme restansvar som `input/write-boundary`s
+ * assertion-hul.
+ *
+ * **Ingen ejer-undtagelse.** Reglen gælder ALLE filer, også `sourceSettings.ts` selv. Det er muligt,
+ * fordi mærkerne er ægte runtime-symboler: projektorerne SÆTTER egenskaben og behøver derfor intet
+ * cast. En bred `appliesTo`-undtagelse for ejerfilen ville have gjort netop det sted, hvor mærket
+ * fremstilles, usynligt for værnet — og dermed friholdt en ny usikker eksport dér.
+ *
+ * **Reglen ser ikke kun det skrevne typenavn.** Tre omveje lukkes ud over den direkte assertion:
+ *   1. **Lokale type-aliaser** (`type S = SourceSettings; x as S`). Aliaser opsamles pr. fil, så
+ *      assertionens target opløses til rodnavnet. Fanget uanset kædelængde.
+ *   2. **Kvalificerede navne** (`Settings.SourceSettings`) — sidste led sammenlignes også.
+ *   3. **Generisk coercion** (`forge<EoRowPolicy>(x)` hvor hjælperen internt caster til sin egen
+ *      typeparameter). Kaldet bærer den brandede type som eksplicit type-argument, og det er ikke
+ *      til at skelne fra en assertion i konsekvens, så et type-argument til et KALD flages.
+ *      Type-argumenter i rene TYPE-positioner (fx `DocumentSourceContext<SourceSettings>`) er
+ *      uberørte; det er den sædvanlige, legitime brug.
+ *
+ * Restrisiko, der IKKE kan lukkes syntaktisk: en hjælper, der får den brandede type inferet frem for
+ * eksplicit. Den kræver en typechecker-baseret analyse; grænsens primære bevis er derfor fortsat
+ * strukturen (mærket + den cast-frie projektor), ikke denne regel.
+ */
+export const sourceSettingsProjectionBoundary = defineRule({
+  id: 'input/source-settings-projection-boundary',
+  description:
+    'Source-settings-snapshottet og EO-rækkepolitikken konstrueres KUN af deres projektorer i '
+    + `${SOURCE_SETTINGS_OWNER} (WI-009). Grænsen er STRUKTUREL: begge typer er nominelle, så hele `
+    + '`AppSettings` ikke kan flyde ind i evaluering, rækkepolitik eller dokumentcapture. Reglen '
+    + 'dækker resten — en type-assertion, der stempler mærket uden om projektoren.',
+  liveTarget: {
+    kind: 'precondition',
+    // Proben måler IDENTIFIERS, ikke filtekst. En tekstprobe (og en ren sti-match på ejerfilen) ville
+    // bestå, selv om typen og projektoren var slettet og kun historik-kommentaren stod tilbage —
+    // altså præcis den tomhed, `liveTarget` findes for at udelukke.
+    probe: (entry) => BRANDED_SETTINGS_TYPE_NAMES.some((name) => hasIdentifier(entry, name))
+      || PROJECTOR_NAMES.some((name) => hasIdentifier(entry, name)),
+    rationale:
+      'de nominelle settings-snapshots og deres projektorer findes stadig som IDENTIFIERS, og der '
+      + 'findes consumers, der kunne forsøge at fremstille dem uden om projektoren — forsvinder '
+      + 'typerne, er grænsen flyttet og reglen skal skrives om',
+    // Sammensat mål: BÅDE ejeren og de tre consumer-lag (evaluering, rækkeevaluering, dokumentcapture)
+    // skal findes. Slettes ét af dem, er reglen halvt død, selvom "≥1 fil matcher" fortsat holder.
+    // Hver sti skal desuden selv opfylde proben, altså faktisk NÆVNE et af navnene som identifier.
+    requiredPaths: [
+      SOURCE_SETTINGS_OWNER,
+      'src/inputCore/react/productionInputRuntime.tsx',
+      'src/domain/eoRowEvaluation/eoRowExecutionContext.ts',
+      'src/document/runtime/react/useMineoDocumentEnvironment.ts',
+    ],
+  },
+  allow: [],
+  // Måler AST-noder, ikke tekst: en tekstsøgning ville både ramme kommentarer, der NÆVNER mønsteret
+  // (den bevidste historik-prosa), og give en forkert position.
+  find: (entry) => {
+    const aliases = collectLocalTypeAliases(entry);
+    // Opløser et skrevet target til sit rodnavn: aliaskæde først, derefter sidste led af et
+    // kvalificeret navn. `as unknown as X` fanges i forvejen, fordi den ydre assertion bærer X.
+    const resolveTarget = (typeText: string): string => {
+      const written = typeText.trim();
+      const unqualified = written.slice(written.lastIndexOf('.') + 1);
+      return aliases.get(unqualified) ?? unqualified;
+    };
+    const findings: Finding[] = [];
+
+    for (const ref of collectTypeAssertions(entry)) {
+      const target = resolveTarget(ref.typeText);
+      if (!BRANDED_SETTINGS_TYPES.has(target)) continue;
+      findings.push({
+        position: ref.position,
+        message:
+          `Type-assertion til '${target}' uden om projektoren — mærket skal komme fra `
+          + '`projectSourceSettings`/`projectEoRowPolicy`, ellers er indsnævringen til '
+          + '`SOURCE_SETTINGS_KEYS` ikke sket, og en nøgle uden for sættet kan ændre en gate uden at '
+          + 'gøre et optaget `EvaluationSourceToken` stale (WI-009).',
+      });
+    }
+
+    // Et eksplicit type-argument på et kald flages KUN, når kaldet ser ud som en coercion — altså en
+    // hjælper, der PRODUCERER en værdi af den brandede type. Det er nødvendigt at skelne: de
+    // legitime `define*`-fabrikker parametriserer en DEFINITION med settings-typen (fx
+    // `defineDocumentAction<Request, SourceSettings, Brevhoved>`), hvilket er hele deres formål og
+    // ikke fremstiller nogen værdi. Første udgave af reglen manglede den sondring og flagede
+    // `reguleringDocumentAction` — et ægte falsk positiv, fanget ved at køre værnet mod produktionen.
+    //
+    // Sondringen er navnebaseret og derfor ikke vandtæt; det er bevidst. Grænsens primære bevis er
+    // strukturen (mærket + den cast-frie projektor). En hjælper, der hverken heder `define*` og
+    // alligevel kun beskriver en type, vil give et falsk positiv, som skal afgøres eksplicit her —
+    // hvilket er den rigtige retning for et sekundært værn.
+    for (const ref of collectCallTypeArguments(entry)) {
+      const target = resolveTarget(ref.typeText);
+      if (!BRANDED_SETTINGS_TYPES.has(target)) continue;
+      if (DEFINITION_FACTORY_PATTERN.test(ref.calleeText)) continue;
+      findings.push({
+        position: ref.position,
+        message:
+          `'${target}' gives som eksplicit type-argument til \`${ref.calleeText}\` — en generisk `
+          + 'hjælper, der producerer den brandede type, er en assertion flyttet én funktion væk. Byg '
+          + 'værdien med `projectSourceSettings`/`projectEoRowPolicy` (WI-009).',
+      });
+    }
+
+    // Testfabrikkerne (`__createTestSourceSettings`/`__createTestEoRowPolicy`) bygger vel gennem
+    // projektoren, men fra en VILKÅRLIG delvis override og uden om revisionsbroen. I produktionskode
+    // ville de derfor være en anden samtidig sandhed om, hvilke settings der gælder. Samme
+    // `__`-konvention og samme dom som `__createSlimInputTestStore` i `input/write-boundary`.
+    for (const ref of collectImports(entry)) {
+      const specifier = ref.moduleSpecifier.replaceAll('\\', '/');
+      if (!/(?:^|\/)sourceSettings$/.test(specifier)) continue;
+      for (const binding of ref.namedBindings) {
+        if (!binding.startsWith('__')) continue;
+        findings.push({
+          position: ref.position,
+          message:
+            `Test-fabrikken \`${binding}\` må ikke bruges i produktionskode — den bygger et snapshot `
+            + 'fra en vilkårlig override og uden om settings-revisionsbroen. Produktionen skal '
+            + 'projicere det committede `AppSettings` (WI-009).',
+        });
+      }
+    }
+
+    return findings;
+  },
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: 'const s = {} as SourceSettings;' },
+    { relativePath: 'src/x.ts', code: 'const p = settings as EoRowPolicy;' },
+    { relativePath: 'src/x.ts', code: 'const s = appSettings as unknown as SourceSettings;' },
+    // Omvej 1: lokalt type-alias. Uden aliasopløsningen var dette en gratis omgåelse.
+    { relativePath: 'src/x.ts', code: 'type S = SourceSettings;\nconst s = appSettings as unknown as S;' },
+    // Aliaskæde — opslaget er transitivt.
+    { relativePath: 'src/x.ts', code: 'type A = EoRowPolicy;\ntype B = A;\nconst p = x as B;' },
+    // Omvej 2: kvalificeret navn via namespace-import.
+    { relativePath: 'src/x.ts', code: 'const s = x as Settings.SourceSettings;' },
+    // Omvej 3: generisk coercion — hjælperen caster internt til sin egen typeparameter.
+    { relativePath: 'src/x.ts', code: 'const p = forge<EoRowPolicy>(appSettings);' },
+    // Gammel vinkel-syntaks er også en assertion.
+    { relativePath: 'src/x.ts', code: 'const s = <SourceSettings><unknown>appSettings;' },
+    // Produktionsbrug af testfabrikkerne — også under et alias.
+    { relativePath: 'src/x.ts', code: "import { __createTestSourceSettings } from '../settings/sourceSettings';" },
+    { relativePath: 'src/components/x.tsx', code: "import { __createTestEoRowPolicy as mk } from '../../settings/sourceSettings';" },
+  ],
+  cleanFixtures: [
+    // Den legitime vej: gennem projektoren.
+    { relativePath: 'src/x.ts', code: "import { projectSourceSettings } from '../settings/sourceSettings';\nconst s = projectSourceSettings(settings);" },
+    { relativePath: 'src/x.ts', code: 'const p = projectEoRowPolicy(sourceSettings);' },
+    // At NÆVNE typen i en annotation er ikke en konstruktion.
+    { relativePath: 'src/x.ts', code: 'const s: SourceSettings = projectSourceSettings(settings);' },
+    { relativePath: 'src/x.ts', code: 'export const f = (policy: EoRowPolicy): void => { void policy; };' },
+    // VIGTIG negativ fixture: et type-argument i en TYPE-position er den sædvanlige, legitime brug og
+    // må ikke rammes — kun type-argumenter på KALD flages.
+    { relativePath: 'src/x.ts', code: 'type Ctx = DocumentSourceContext<SourceSettings>;' },
+    { relativePath: 'src/x.ts', code: 'export const g = (c: DocumentSourceContext<SourceSettings>): void => { void c; };' },
+    // En assertion til en ANDEN type er ikke reglens anliggende — heller ikke via alias.
+    { relativePath: 'src/x.ts', code: 'const s = value as AppSettings;' },
+    { relativePath: 'src/x.ts', code: 'type T = AppSettings;\nconst s = value as T;' },
+    // Historik-prosa med præcis mønsteret må ikke flages (kommentarer er ikke AST-noder).
+    { relativePath: 'src/x.ts', code: '// Tidligere stod her `{} as SourceSettings`; brug projektoren.\nexport const x = 1;' },
+    // De NORMALE eksporter fra samme modul er naturligvis fri.
+    { relativePath: 'src/x.ts', code: "import { projectEoRowPolicy, DEFAULT_EO_ROW_POLICY } from '../settings/sourceSettings';" },
+    // `define*`-fabrikker parametriseres MED settings-typen og producerer ingen værdi af den. Uden
+    // denne undtagelse flagede reglen `reguleringDocumentAction` — et ægte falsk positiv.
+    { relativePath: 'src/x.ts', code: 'export const a = defineDocumentAction<Req, SourceSettings, Brevhoved>({ id: "x" });' },
+    { relativePath: 'src/x.ts', code: 'export const d = defineMineoDocument<void, In, SourceSettings, Key>({ id: "y" });' },
   ],
 });

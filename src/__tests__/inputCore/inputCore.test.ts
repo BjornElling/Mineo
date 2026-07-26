@@ -71,7 +71,7 @@ const apply = <TField, TEntity>(state: State, command: InputMutationCommand<TFie
 };
 
 const reader = (input: SettledInput) => {
-  return createInputEvaluation({ input, catalog, sourceToken: token, settings: {} }).reader;
+  return createInputEvaluation({ input, catalog, sourceToken: token }).reader;
 };
 
 const rejectedAt = <T>(input: SettledInput, field: FieldRef<T>) =>
@@ -433,17 +433,12 @@ describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§7
 });
 
 describe('Kildesnapshot og history-grænser (§3.4, §3.7)', () => {
-  it('binder input/issues/settings til samme token og isolerer settings fra mutation', () => {
-    const settings = { nested: { enabled: true } };
-    let receivedFrozen = false;
-    const evaluation = createInputEvaluation({
-      input: empty(), catalog, sourceToken: token, settings,
-      deriveSettingsFieldIssues: (_validation, snapshot) => {
-        receivedFrozen = Object.isFrozen(snapshot) && Object.isFrozen(snapshot.nested);
-        return [];
-      },
-    });
-    expect(receivedFrozen).toBe(true);
+  // Settings-halvdelen af denne test er fjernet med `deriveSettingsFieldIssues` (WI-009): kernen
+  // læser ikke længere settings, så der er intet settingssnapshot at fryse her. Bindingen mellem
+  // input, issues og token er derimod fortsat en levende invariant og pinnes videre.
+  // (Frysningen af det brede settingsobjekt var mekanismens egen test, ikke en produktinvariant.)
+  it('binder input og issues til samme token', () => {
+    const evaluation = createInputEvaluation({ input: empty(), catalog, sourceToken: token });
     expect(evaluation.issues.sourceToken).toBe(token);
     expect(evaluation.reader.sourceToken).toBe(token);
   });

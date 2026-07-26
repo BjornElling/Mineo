@@ -5,7 +5,10 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import {
+  DEFAULT_EO_ROW_POLICY,
+  __createTestEoRowPolicy,
+} from '../../../settings/sourceSettings';
 
 const iso = (value: string) => toISODateString(value);
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -116,8 +119,8 @@ describe('buildEoIndkomstRows regulering details', () => {
     af.offentligLoenTrin = 31;
     af.offentligLoenGruppe = 2;
 
-    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
-    const rows = buildEoIndkomstRows(values, iso('2009-01-01'), {}, appSettings);
+    const rowPolicy = __createTestEoRowPolicy({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true });
+    const rows = buildEoIndkomstRows(values, iso('2009-01-01'), {}, rowPolicy);
     const prefix = `loenindkomst.${af.id}.regulering`;
     const startRow = rows.find((row) => row.id === `${prefix}.startvaerdi`);
 
@@ -212,8 +215,8 @@ describe('buildEoIndkomstRows regulering details', () => {
     af.offentligLoenTrin = 31;
     af.offentligLoenGruppe = 2;
 
-    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
-    const rows = buildEoIndkomstRows(values, iso('2009-01-01'), {}, appSettings);
+    const rowPolicy = __createTestEoRowPolicy({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true });
+    const rows = buildEoIndkomstRows(values, iso('2009-01-01'), {}, rowPolicy);
     const prefix = `loenindkomst.${af.id}.regulering`;
     const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
 
@@ -255,8 +258,8 @@ describe('buildEoIndkomstRows regulering details', () => {
     af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
     af.loenudviklingKRLSatstabel = 'KTO (kommuner)';
 
-    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
-    const rows = buildEoIndkomstRows(values, iso('2020-01-01'), {}, appSettings);
+    const rowPolicy = __createTestEoRowPolicy({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true });
+    const rows = buildEoIndkomstRows(values, iso('2020-01-01'), {}, rowPolicy);
     const prefix = `loenindkomst.${af.id}.regulering`;
     const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
 
@@ -277,8 +280,8 @@ describe('buildEoIndkomstRows regulering details', () => {
     af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
     af.loenudviklingKRLSatstabel = 'KTO (regioner)';
 
-    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
-    const rows = buildEoIndkomstRows(values, iso('2010-01-01'), {}, appSettings);
+    const rowPolicy = __createTestEoRowPolicy({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true });
+    const rows = buildEoIndkomstRows(values, iso('2010-01-01'), {}, rowPolicy);
     const prefix = `loenindkomst.${af.id}.regulering`;
     const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
 
@@ -368,11 +371,10 @@ describe('buildEoIndkomstRows escape-hatch — flipper kun severity, ikke værdi
     const values = buildOverenskomstHulValues();
     const prefix = `loenindkomst.${values.loenindkomstAnsaettelsesforhold[0].id}.regulering`;
 
-    const rowsError = buildEoIndkomstRows(values, iso('2009-01-01'), {}, DEFAULT_APP_SETTINGS);
-    const rowsWarn = buildEoIndkomstRows(values, iso('2009-01-01'), {}, {
-      ...DEFAULT_APP_SETTINGS,
+    const rowsError = buildEoIndkomstRows(values, iso('2009-01-01'), {}, DEFAULT_EO_ROW_POLICY);
+    const rowsWarn = buildEoIndkomstRows(values, iso('2009-01-01'), {}, __createTestEoRowPolicy({
       allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true,
-    });
+    }));
     const startError = rowsError.find((row) => row.id === `${prefix}.startvaerdi`);
     const startWarn = rowsWarn.find((row) => row.id === `${prefix}.startvaerdi`);
 

@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-26
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -29,6 +29,11 @@ Konsekvens:
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
 - **EO-data er altid fuldt udfyldt** (ingen implicitte defaults ved load/merge).
 - **Dokumentlaget læser aldrig AppSettingsContext/localStorage direkte**, og det kender ikke `AppSettings`-typen. Afhængighedspilen peger UI → dokument: `src/document/layout/documentBrevhoved.ts` erklærer den smalle options-DTO (brevhoved-flag pr. dokumenttype, valgt format og de to beregningstekniske regel-toggles, dokumentgaten faktisk læser), og `appSettingsSchema` opfylder den STRUKTURELT — `DocumentBrevhovedType` er dokumentlagets eget udtømmende sæt, som `appSettingsSchema.ts` typecheckes imod, ikke omvendt. Hovedappens binding sker i `src/document/runtime/mineoDocumentEnvironment.ts` gennem `projectSourceSettings`, som skærer `AppSettings` ned til `SourceSettings`.
+- **`SourceSettings` og `EoRowPolicy` er NOMINELLE, og deres projektorer er de eneste konstruktører** (WI-009). Alt, der kan ændre en inputevaluering, en rækkegate eller et dokumentoutput, skal komme fra `projectSourceSettings(appSettings)` — og rækkepolitikken fra `projectEoRowPolicy(sourceSettings)`, så den er en dokumenteret DELMÆNGDE af det, der driver settingsrevisionen. Konsekvenser:
+  - Evaluering, revisions-fingerprint og dokumentcapture læser garanteret samme værdi og kan ikke drive fra hinanden.
+  - En indstilling uden for `SOURCE_SETTINGS_KEYS` kan ikke længere nå evalueringen. Det er ikke kosmetik: en sådan læsning ville indføre en source-afhængighed, der IKKE gør et optaget `EvaluationSourceToken` stale, så en download godkendt under den gamle regel kunne overleve et regelskift — tavst.
+  - `createInputEvaluation` tager derfor **ingen** `settings`-parameter. En settingsafhængig feltissue hører i en descriptor-/consumer-validator, hvis kilde er det projekterede snapshot, ikke i en fri typeparameter på inputkernen.
+  - Kode, der legitimt har brug for hele `AppSettings` (ny-sags-seeds som `createDefaultLoenindkomstAnsaettelsesforhold`, DEV-inspektionens tomheds-prædikat), ligger uden for evalueringens sti og beholder den brede type.
   - *Historik:* denne post beskrev indtil Fase 6 en dybere kobling (`DocumentBrevhovedType = keyof AppSettings[...]` og download-wrappers i et `documentService.ts`) som erkendt teknisk gæld. Gælden er indfriet: DTO'en findes, og servicelaget blev slettet i Fase 5.
 - **Beregnings-/regel-toggles** må som hovedregel ikke ændre beregning, validering, gating eller audit for en eksisterende sag som skjult device-lokal tilstand. Slutretningen er schema-valideret sagsdata eller eksplicit brugerobserverbar runtime-beslutning.
   - **Dokumenteret undtagelse (brugergodkendt 2026-06-19):** De to "Beregningsteknisk"-valg på Indstillinger-siden — `allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og `allowReguleringMedUdloebMedMaaneder` — er bevidst device-lokale. De ændrer ikke de producerede tal, men kun validerings-*severity* for overenskomst-/reguleringsdækning (en manglende/udløbet dækning vises som `warning` i stedet for `error`, og en udløbsperiode under grænsen accepteres). Konsekvens: samme `.eo`-sag kan validere forskelligt på to maskiner. Dette er accepteret, fordi valgene udtrykker den enkelte sagsbehandlers faste arbejdsmetode (ikke et sags-faktum), og fordi de ikke ændrer beregningsresultatet. **Re-evaluering:** flyt til schema-valideret sagsdata (`.eo`) hvis (a) der opstår behov for at to brugere skal se ens validering på samme sag, eller (b) et af valgene nogensinde kommer til at ændre de producerede tal frem for kun severity. Eneste produktions-callsite: `buildEoIndkomstRows` i `src/domain/eoRowEvaluation/eoRowIndkomstRows.ts`.

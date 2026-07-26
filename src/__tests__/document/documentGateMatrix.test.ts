@@ -39,7 +39,7 @@ import { varigeMenBeregningsdatoField, varigeMenMengradField } from '../../input
 import { renteberegningBeregningsdatoField } from '../../inputCore/catalog/renteberegningDescriptors';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { DocumentDefinition } from '../../document/definition/documentDefinition';
-import type { SourceSettings } from '../../settings/sourceSettings';
+import { __createTestSourceSettings, type SourceSettings } from '../../settings/sourceSettings';
 import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefinition';
 import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
@@ -47,10 +47,12 @@ import { renteOversigtDocumentDefinition } from '../../domain/renteberegning/ren
 
 const catalog = getProductionInputCatalog();
 
-const SETTINGS: SourceSettings = {
+// Bygges gennem projektoren, ikke som objektliteral: `SourceSettings` er nominel, så et snapshot
+// kan ikke længere fremstilles uden om `projectSourceSettings` (WI-009). Nøglesættet kommer fortsat
+// fra typen — override er `Partial<SourceSettingsPayload>` — så en ny brevhoved-flade fejler her
+// frem for at blive skjult bag et `as`.
+const SETTINGS: SourceSettings = __createTestSourceSettings({
   documentDownloadFormat: 'pdf',
-  // Ingen cast: nøglesættet skal komme fra typen, så en ny brevhoved-flade fejler her frem for at
-  // blive skjult bag et `as`.
   brevhovedIndstillinger: {
     satser: false, renteberegning: false, regulering: false, varigeMen: false,
     aarsloensberegning: false, shDage: false, forsoergertab: false,
@@ -58,7 +60,7 @@ const SETTINGS: SourceSettings = {
   },
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
-};
+});
 
 const empty = (): SettledInput => catalog.validateSettledInput({
   sections: {
@@ -86,7 +88,6 @@ const gateOf = <TInput>(
     input,
     catalog,
     sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
-    settings: SETTINGS,
   });
   return definition.project(createDocumentSourceContext(evaluation, SETTINGS), undefined);
 };
