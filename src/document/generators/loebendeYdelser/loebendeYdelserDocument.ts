@@ -16,7 +16,6 @@ import type {
   EetLoebendeAfgoerelseComputation,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
-  formatPct,
   formatSkadedatoCompact,
   resolveLoebendeAfgoerelseRestVisning,
   toAfgoerelseTypeLabel,
@@ -32,7 +31,7 @@ import {
   ASL_MAX_AARSLOEN_2024,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../../data/lovbestemteRates';
-import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatJaNej, formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 
 const formatEetLabel = (eetPct: number, priorKapPct: number): string =>

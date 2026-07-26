@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import Erhvervsevnetab from '../../../components/pages/Erhvervsevnetab';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
   ProductionInputRuntimeProvider,
@@ -59,13 +59,13 @@ const hydrate = (
   faellesAarsloen: FaellesAarsloenValues | null = null,
   stamdata: StamdataValues | null = null,
 ): void => {
-  slimInputStore.getState().hydrate(catalog.validateSettledInput({
+  slimInputStore.hydrate(catalog.validateSettledInput({
     sections: {
       stamdata, satser: null, aarsloen: null, faellesAarsloen, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab,
     },
     rejectedInputs: {},
-  }), __testInputWriteAuthority());
+  }));
 };
 
 const renderPage = () => render(

@@ -12,7 +12,7 @@ import { MemoryRouter } from 'react-router-dom';
 import Forsoergertab from '../../../components/pages/Forsoergertab';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
   ProductionInputRuntimeProvider,
@@ -51,7 +51,7 @@ const hydrate = (
     },
     rejectedInputs: {},
   });
-  slimInputStore.getState().hydrate(input, __testInputWriteAuthority());
+  slimInputStore.hydrate(input);
 };
 
 const validForsoergertab: ForsoergertabValues = {

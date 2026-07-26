@@ -8,7 +8,7 @@ import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
@@ -47,7 +47,7 @@ const hydrate = (rows: OevrigeKravRow[]): void => {
     },
     rejectedInputs: {},
   });
-  slimInputStore.getState().hydrate(input, __testInputWriteAuthority());
+  slimInputStore.hydrate(input);
 };
 
 const renderTable = (committedRows: OevrigeKravRow[]) => render(

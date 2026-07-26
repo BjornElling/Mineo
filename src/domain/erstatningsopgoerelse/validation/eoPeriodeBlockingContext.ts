@@ -9,7 +9,7 @@ import { resolveMidlertidigEetDatoHvisAktiv } from './tafPeriodConstraints';
  * række-evaluerings-motor (`domain/eoRowEvaluation/`, jf. B9) og dens periode-evaluatorer deler
  * samme afledning — ÉN sandhedskilde.
  *
- * Genbruges af motor-helperen `eoRowContextBuilders.ts`, der re-eksporterer herfra.
+ * Genbruges direkte af den autoritative række-evaluerings-motors periode-buildere.
  */
 
 type StamdataValues = PersistedSectionMap['stamdata'];

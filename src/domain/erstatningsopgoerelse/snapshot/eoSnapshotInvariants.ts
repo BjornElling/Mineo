@@ -77,21 +77,18 @@ export const buildReaderFieldIssueInvariants = (
   source: 'eo' | 'stamdata'
 ): readonly EoInvariant[] => {
   const invariants: EoInvariant[] = [];
-  for (const [fieldKey, bySource] of Object.entries(issues)) {
-    if (bySource === undefined) continue;
-    for (const issue of Object.values(bySource)) {
-      if (!eoIssueBlocksDependents(issue)) continue;
-      invariants.push({
-        id: `reader_field:${source}.${fieldKey}`,
-        passed: false,
-        severity: 'error',
-        source: 'validation',
-        message: issue.message,
-        evidence: [`${source}.${fieldKey}`],
-        blocksAuthoritativeComputation: true,
-        blocksOutputs: VALIDATION_BLOCKED_OUTPUTS,
-      });
-    }
+  for (const [fieldKey, issue] of Object.entries(issues)) {
+    if (!eoIssueBlocksDependents(issue)) continue;
+    invariants.push({
+      id: `reader_field:${source}.${fieldKey}`,
+      passed: false,
+      severity: 'error',
+      source: 'validation',
+      message: issue.message,
+      evidence: [`${source}.${fieldKey}`],
+      blocksAuthoritativeComputation: true,
+      blocksOutputs: VALIDATION_BLOCKED_OUTPUTS,
+    });
   }
   return invariants;
 };

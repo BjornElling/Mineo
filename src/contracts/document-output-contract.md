@@ -540,7 +540,7 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 - PDF-tabelrenderer: `src/pdf/infrastructure/pdfTableRenderer.ts` og `pdfDocumentTableRenderer.ts`.
 - Word-tabelrenderer: `createDocxTable` i `src/docx/infrastructure/docxWriter.ts`.
 - Word-vandmærke: `src/docx/infrastructure/docxWatermark.ts`.
-- Service boundary / download: `src/document/service/documentService.ts`.
+- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Servicelaget er slettet i Fase 5 — der findes ingen `documentService.ts`.
 - Layout-konstanter: `src/document/layout/pdfConfig.ts`.
 
 ## 3. Testkobling

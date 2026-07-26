@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useSyncExternalStore } from 'react';
 import type { CollectionRef } from '../fieldAddress';
 import { insertRow, deleteRow, reorderRows } from '../inputReducer';
-import { useInputRuntime } from './inputRuntimeContext';
+import { useInputEditPort, useInputReadPort } from './inputRuntimeContext';
 import type { DispatchInputResult } from '../runtime/dispatchInput';
 import type { CollectionHistoryOrigin } from '../inputHistory';
 
@@ -87,7 +87,7 @@ export const useCollectionRows = <TEntity>(
   collection: CollectionRef,
   origin: CollectionRowOrigin
 ): CollectionRowsController<TEntity> => {
-  const { catalog, subscribe, getSettled } = useInputRuntime();
+  const { catalog, subscribe, getSettled } = useInputReadPort();
   const commands = useCollectionRowCommands<TEntity>(collection, origin);
 
   // Stabil nøgle for collectionen, så caches ikke krydser to forskellige collections i samme komponenttræ.
@@ -129,7 +129,7 @@ export const useCollectionRowCommands = <TEntity>(
   collection: CollectionRef,
   origin: CollectionRowOrigin
 ): CollectionRowCommands<TEntity> => {
-  const { dispatch } = useInputRuntime();
+  const { dispatch } = useInputEditPort();
   const collectionKey = collectionCacheKey(collection);
   const originKey = `${origin.locationId}|${origin.route}|${origin.tabKey ?? ''}`;
 

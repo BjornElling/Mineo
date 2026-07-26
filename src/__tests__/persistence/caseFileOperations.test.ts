@@ -208,7 +208,7 @@ describe('caseFileOperations', () => {
 
       // En dokumentrelevant indstilling ændres, mens fil-pickeren er åben. Begge revisioner indgår i tokenet,
       // fordi begge kan ændre det, der ville blive skrevet.
-      store.getState().bumpSettingsRevision();
+      store.bumpSettingsRevision();
 
       expect(readSourceToken(store)).not.toEqual(outcome.token);
       expect(ops.isSaveSourceStillCurrent(outcome.token)).toBe(false);

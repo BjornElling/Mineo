@@ -67,21 +67,15 @@ describe('buildEoForligRows visibility', () => {
     values.forligDato = toISODateString('2024-01-31');
 
     const rows = buildEoForligRows(values, {
-      forligAnsvarsgradProcent: {
-        rule: {
-          source: 'rule',
-          reason: 'rule',
+      forligAnsvarsgradProcent: { reason: 'rule',
           severity: 'error',
           message: 'Angiv enten procent eller brøk – ikke begge',
-        },
+        
       },
-      forligAnsvarsgradBroek: {
-        rule: {
-          source: 'rule',
-          reason: 'rule',
+      forligAnsvarsgradBroek: { reason: 'rule',
           severity: 'error',
           message: 'Angiv enten procent eller brøk – ikke begge',
-        },
+        
       },
     });
 
@@ -101,20 +95,17 @@ describe('buildEoForligRows visibility', () => {
     });
   });
 
-  it('viser blokerende fejl-række når procent-feltet har en ikke-committbar invalid draft', () => {
-    // Central rettelse: en invalid draft (rød ring) eksponeres som en blokerende feltfejl med
-    // source 'invalid-draft'. buildEoForligRows skal derfor lave en error-række, så den vises i
+  it('viser blokerende fejl-række når procent-feltet har en rød, ikke-committbar værdi', () => {
+    // Invarianten: et rødt felt (rød ring) eksponeres som en blokerende feltissue.
+    // buildEoForligRows skal derfor lave en error-række, så den vises i
     // EOberegning-boksen (med link) og gater download — også selvom ingen værdi er committet.
     const values = createErstatningsopgoerelseInitialValues();
 
     const rows = buildEoForligRows(values, {
-      forligAnsvarsgradProcent: {
-        'invalid-draft': {
-          source: 'invalid-draft',
-          reason: 'rule',
+      forligAnsvarsgradProcent: { reason: 'rule',
           severity: 'error',
           message: 'Ugyldig værdi: "0"',
-        },
+        
       },
     });
 
@@ -131,13 +122,10 @@ describe('buildEoForligRows visibility', () => {
     values.forligDato = toISODateString('2024-01-31');
 
     const rows = buildEoForligRows(values, {
-      forligDato: {
-        rule: {
-          source: 'rule',
-          reason: 'rule',
+      forligDato: { reason: 'rule',
           severity: 'error',
           message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
-        },
+        
       },
     });
 

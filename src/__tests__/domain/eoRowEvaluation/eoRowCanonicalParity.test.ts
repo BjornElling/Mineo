@@ -5,7 +5,10 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/eoRowEvaluation/eoRowContextBuilders';
+import {
+  buildSvieSmerteContext,
+  buildTaftContext,
+} from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import {
   buildEoSvieSmerteRows,
   buildEoTaftRows,

@@ -11,7 +11,7 @@ import { toISODateString } from '../../../../types/branded';
 
 import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
-import { slimInputStore, __testInputWriteAuthority } from '../../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 
 describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
   const ASYNC_TEST_TIMEOUT_MS = 30_000;
@@ -22,7 +22,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
 
   it('viser sats-aar advarslen i Beregning-fanen på den rigtige side', async () => {
     const catalog = getProductionInputCatalog();
-    slimInputStore.getState().hydrate(catalog.validateSettledInput({
+    slimInputStore.hydrate(catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null, erhvervsevnetab: null,
@@ -34,7 +34,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
         },
       },
       rejectedInputs: {},
-    }), __testInputWriteAuthority());
+    }));
     sessionStorage.setItem(createActiveTabStorageKey('erstatningsopgoerelse'), 'beregning');
 
     render(

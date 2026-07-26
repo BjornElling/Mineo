@@ -8,13 +8,13 @@ import {
   type CaseResetOperations,
 } from '../../persistence/caseResetOperations';
 import { clearCase, replaceCase } from '../inputReducer';
-import { useInputRuntime } from './inputRuntimeContext';
+import { useInputReadPort, useInputSystemPort } from './inputRuntimeContext';
 
 // Greenfield-React (§3.10): den tynde bro, der binder de framework-frie case-porte til produktions-runtime.
 // Shell-use-casen (`useFileSaveLoad`) forbruger portene HERFRA i stedet for den legacy `FormPersistenceContext`.
 // Broen eksponerer hverken rå sektioner eller skrivbare hel-sektionshooks — kun de to porte, hvis grænseflader
 // selv er rene (`CaseRuntimeAccess`/`CaseResetRuntimeAccess`). `replaceCase`/`clearCase` udstedes gennem
-// bindingens system-command-port (`runtime.replaceCase`), aldrig gennem surface-`dispatch`.
+// bindingens system-command-port (`system.replaceCase`), aldrig gennem surface-`dispatch`.
 
 export type CaseOperations = Readonly<{
   file: CaseFileOperations;
@@ -26,26 +26,27 @@ export type CaseOperations = Readonly<{
  * binding, så portene er referentielt stabile mellem renders (de rører kun de levende singletons ved kald).
  */
 export const useCaseOperations = (): CaseOperations => {
-  const runtime = useInputRuntime();
+  const read = useInputReadPort();
+  const system = useInputSystemPort();
 
   return React.useMemo(() => {
     const file = createCaseFileOperations({
-      catalog: runtime.catalog,
+      catalog: read.catalog,
       // Læs gennem BINDINGENS read-only kildeport, ikke produktions-singletonen: porten skal se præcis den
       // runtime, React-træet viser. Ellers kunne en alternativ/testbinding vise én sag, mens save læste en anden.
-      getSettledInput: () => runtime.captureStableSource().input,
+      getSettledInput: () => read.captureStableSource().input,
       // Frisk, stabilt {input, token}-snapshot til save-projektionen (§3.9 pkt. 2).
-      captureSaveSource: () => runtime.captureStableSource(),
+      captureSaveSource: () => read.captureStableSource(),
       applyReplaceCase: (candidate) => {
-        runtime.replaceCase(replaceCase(candidate));
+        system.replaceCase(replaceCase(candidate));
       },
     });
 
     const reset = createCaseResetOperations({
-      coordinator: runtime.criticalActions,
-      dispatchClearCase: () => runtime.replaceCase(clearCase()),
+      coordinator: system.criticalActions,
+      dispatchClearCase: () => system.replaceCase(clearCase()),
     });
 
     return Object.freeze({ file, reset });
-  }, [runtime]);
+  }, [read, system]);
 };

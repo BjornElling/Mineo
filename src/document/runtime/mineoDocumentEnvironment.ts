@@ -10,7 +10,7 @@
  * intet brevhoved og en isoleret lokal sink (jf. isolations-værnet), uden at kernen skal kende
  * forskellen.
  */
-import type { InputRuntimeBinding } from '../../inputCore/react/inputRuntimeContext';
+import type { DocumentInputAccess } from '../../inputCore/react/inputRuntimeContext';
 import { createDocumentGenerationSession, type DocumentGenerationSession } from '../documentGenerationSession';
 import type { DocumentDownloadFormat } from '../documentFormat';
 import type { DocumentBrevhovedType } from '../layout/documentBrevhoved';
@@ -42,7 +42,7 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
  * snapshot. `projectSourceSettings` skærer capturens `AppSettings` ned til netop det.
  */
 export const createMineoDocumentEnvironment = (
-  runtime: Pick<InputRuntimeBinding, 'captureEvaluationSource' | 'readCurrentSourceToken' | 'criticalActions'>,
+  runtime: DocumentInputAccess,
   settings: SourceSettings
 ): DocumentExecutionEnvironment<SourceSettings, DocumentBrevhovedType> => Object.freeze({
   captureSource: () => {

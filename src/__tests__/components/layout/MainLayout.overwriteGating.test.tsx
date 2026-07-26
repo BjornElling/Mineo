@@ -10,7 +10,7 @@ import {
   bootstrapProductionInputRuntime,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { parseCurrentEnvelope } from '../../../inputCore/runtime/currentSessionEnvelope';
 import type { SettledInput } from '../../../inputCore/settledInput';
@@ -85,11 +85,11 @@ const stampStamdata = (skadelidte: string) => ({
 const stampSatser = (aargang: number) => ({ aargang });
 
 const hydrateWithData = (skadelidte: string, aargang: number): void => {
-  slimInputStore.getState().hydrate(
+  slimInputStore.hydrate(
     catalog.validateSettledInput({
       sections: { ...emptyInput().sections, stamdata: stampStamdata(skadelidte), satser: stampSatser(aargang) },
       rejectedInputs: {},
-    }), __testInputWriteAuthority()
+    })
   );
 };
 
@@ -125,11 +125,11 @@ describe('MainLayout (overwrite gating)', () => {
     pendingPwaRequest = null;
     vi.clearAllMocks();
     sessionStorage.clear();
-    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
+    slimInputStore.hydrate(emptyInput());
   });
 
   afterEach(() => {
-    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
+    slimInputStore.hydrate(emptyInput());
   });
 
   it('navigates to Stamdata after a successful manual load without overwrite dialog', async () => {

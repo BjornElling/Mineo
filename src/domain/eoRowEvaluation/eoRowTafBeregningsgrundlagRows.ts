@@ -3,7 +3,8 @@ import { isoToDanish, dateToISO, isISODateString, parseISODate } from '../../typ
 import { formatCurrency } from '../../utils/formatUtils';
 import { addDays } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { collectPresentFieldErrors, isNonEmptyString, resolveEoRowDisplay } from './eoRowCommon';
+import { presentIssuesForRow, resolveEoRowDisplay } from './eoRowCommon';
+import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
 import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -14,12 +15,12 @@ import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { formatRowCount, formatRowMonths, calculateElapsedWholeMonths } from './eoRowShared';
 
 export const buildEoTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
-  errors: ErstatningsopgoerelseFieldErrorsBySource,
+  errors: ErstatningsopgoerelseFieldIssues,
   stamdataValues: PersistedSectionMap['stamdata']
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
@@ -31,7 +32,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     label: 'Beregnes ud fra',
     ...resolveEoRowDisplay({
       value: values.beregnesUdFra,
-      errors: errors.beregnesUdFra,
+      issue: errors.beregnesUdFra,
       emptyState: 'error',
     }),
   });
@@ -51,8 +52,8 @@ export const buildEoTafBeregningsgrundlagRows = (
   const periodeFra = values.tafBeregningsperiodeFra;
   const periodeTil = values.tafBeregningsperiodeTil;
 
-  const periodeFraErrors = collectPresentFieldErrors(errors.tafBeregningsperiodeFra);
-  const periodeTilErrors = collectPresentFieldErrors(errors.tafBeregningsperiodeTil);
+  const periodeFraErrors = presentIssuesForRow(errors.tafBeregningsperiodeFra);
+  const periodeTilErrors = presentIssuesForRow(errors.tafBeregningsperiodeTil);
   const hasPeriodeErrors = periodeFraErrors.length > 0 || periodeTilErrors.length > 0;
   const hasPeriodeErrorSeverity = periodeFraErrors.concat(periodeTilErrors).some((e) => e.severity === 'error');
 
@@ -534,7 +535,7 @@ export const buildEoTafBeregningsgrundlagRows = (
   if (beregnesUdFra === 'Angivet månedsløn' || beregnesUdFra === 'Angivet dagsløn') {
     const loenBaseretPaaDisplay = resolveEoRowDisplay({
       value: getAngivetLoenBaseretPaa(values),
-      errors:
+      issue:
         beregnesUdFra === 'Angivet månedsløn'
           ? errors.angivetMaanedsloenBaseretPaa
           : errors.angivetDagsloenBaseretPaa,

@@ -201,7 +201,7 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
       kind: 'field', code: 'settings.bounds', severity: 'error', field: toAnyFieldRef(field),
       reason: 'bounds', message: 'settings ændrede grænsen',
     })];
-    act(() => store.getState().bumpSettingsRevision());
+    act(() => store.bumpSettingsRevision());
 
     expect(result.current.issue?.code).toBe('settings.bounds');
   });
@@ -260,9 +260,12 @@ describe('useFieldEditor — registrering + kritisk handling', () => {
     const base = makeBinding();
     const binding: InputRuntimeBinding = Object.freeze({
       ...base,
-      dispatch: () => {
-        throw new Error('storagefejl');
-      },
+      edit: Object.freeze({
+        ...base.edit,
+        dispatch: () => {
+          throw new Error('storagefejl');
+        },
+      }),
     });
     const { result } = renderHook(
       () => useFieldEditor(field, { locationId: 'loc-fejl' }),

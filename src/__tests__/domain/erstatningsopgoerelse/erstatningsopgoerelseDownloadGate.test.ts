@@ -133,7 +133,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     const reader = buildReader(withCellError, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
     // Aggregatet er til stede i eoErrors (bevist i reader-projektions-testen); gaten blokerer på det via collectAllEoRows.
-    expect(eoIssueBlocksDependents(projection.eoErrors['af-1:loenindkomst']?.input)).toBe(true);
+    expect(eoIssueBlocksDependents(projection.eoErrors['af-1:loenindkomst'])).toBe(true);
     const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_APP_SETTINGS);
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
   });

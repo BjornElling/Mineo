@@ -12,7 +12,7 @@ import {
   getProductionInputEvaluation,
 } from '../../../inputCore/react/productionInputRuntime';
 import { useSettledSnapshot } from '../../../inputCore/react';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { dispatchInput } from '../../../inputCore/runtime/dispatchInput';
 import { settleField } from '../../../inputCore/inputReducer';
@@ -87,11 +87,11 @@ describe('MainLayout (preflight apply)', () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.clearAllMocks();
-    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
+    slimInputStore.hydrate(emptyInput());
   });
 
   afterEach(() => {
-    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
+    slimInputStore.hydrate(emptyInput());
   });
 
   it('applies only schema-valid sections on "Indlæs trods fejl" and clears runtime field issues', async () => {

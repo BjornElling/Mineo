@@ -2,18 +2,18 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { EoRowPolicy } from '../../settings/sourceSettings';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { EoFieldIssuesBySource } from '../erstatningsopgoerelse/eoInputIssues';
+import type { EoInputIssue } from '../erstatningsopgoerelse/eoInputIssues';
 
 /**
  * Type aliases for læsbarhed
  */
 export type StamdataValues = PersistedSectionMap['stamdata'];
 export type StamdataFieldName = Extract<keyof StamdataValues, string>;
-export type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, EoFieldIssuesBySource>>;
+export type StamdataFieldIssues = Partial<Record<StamdataFieldName, EoInputIssue>>;
 
 export type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 export type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
-export type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, EoFieldIssuesBySource>>;
+export type ErstatningsopgoerelseFieldIssues = Partial<Record<ErstatningsopgoerelseFieldName, EoInputIssue>>;
 export type LoenindkomstManuelReguleringInputErrors = Readonly<Record<string, true>>;
 
 /**
@@ -24,9 +24,9 @@ export type LoenindkomstManuelReguleringInputErrors = Readonly<Record<string, tr
  */
 export type EoRowEvaluationContext = {
   stamdataValues: StamdataValues;
-  stamdataErrors: StamdataFieldErrorsBySource;
+  stamdataErrors: StamdataFieldIssues;
   eoValues: ErstatningsopgoerelseValues;
-  eoErrors: ErstatningsopgoerelseFieldErrorsBySource;
+  eoErrors: ErstatningsopgoerelseFieldIssues;
   loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
   /**
    * Row-buildernes faktiske regel-afhængighed: de TO toggles

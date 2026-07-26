@@ -13,6 +13,12 @@ import {
 // history, settingsrevisionen og nødvendig hydration-/systemstatus. Ingen afledte `sections`/`invalidDrafts`-views,
 // `fieldErrors`, revisionsmaps, epochs, counters eller legacy-testfacader — hele det gamle `inputRuntimeStore`-
 // tilstandsrum udgår. Afledte issues, gates og åbne drafts hører ikke til her (§3.1).
+//
+// **Skrivegrænsen er STRUKTUREL, ikke bevogtet (Fase 6, genåbnet).** Zustands `StoreApi` forlader aldrig dette
+// modul: `setState`/`replace` findes ikke på den eksporterede type. Et nyt modul, der importerer storen, kan
+// derfor slet ikke formulere et uvalideret write — hverken direkte, gennem et alias eller gennem en
+// type-assertion. Det er den forskel [[project_typed_write_boundary_over_ast_guard]] efterspørger: grænsen er
+// fjernet som mulighed frem for at blive holdt lukket af et AST-værn oven på en åben capability.
 
 export type SlimInputMeta = Readonly<{
   hydrated: boolean;
@@ -30,37 +36,14 @@ export type SlimInputCommit = Readonly<{
   authoritativeReplacement: boolean;
 }>;
 
-declare const writeAuthorityBrand: unique symbol;
-
 /**
- * Skrivegrænsen som TYPE (§3.6, Fase 6): kun runneren må skrive input.
+ * Den observerbare runtimetilstand. Ren DATA — mutatorerne bor på handlen, ikke i state.
  *
- * Mutatorerne kræver denne witness, og den kan kun opnås gennem {@link claimInputWriteAuthority},
- * som ligger i dette modul og kaldes af præcis de to autoritative skriveveje —
- * `dispatchInput` (feltcommits) og `initializeInputRuntime` (hydration). Et nyt modul, der
- * importerer storen og forsøger `applyCommit({...})`, får en COMPILERFEJL frem for at slippe
- * igennem review.
- *
- * Valgt frem for en AST-regel efter [[project_typed_write_boundary_over_ast_guard]]: kan grænsen
- * udtrykkes som en type, så gør det. Typen dækker desuden det, en AST-regel principielt ikke kan se
- * — en muteret store, der er ført videre gennem en variabel eller en generisk hjælper.
- *
- * Vidnet er bevidst UFORFALSKELIGT udefra: `unique symbol`-brandet kan ikke skrives af en anden fil,
- * så hverken en objektliteral eller en type-assertion fra et fremmed modul kan producere det.
+ * Tidligere lå `applyCommit`/`hydrate` som felter i selve state-objektet. Det var det, der tvang `StoreApi`
+ * ud i det offentlige: en kalder skulle have `getState()` for at nå en mutator, og fik dermed `setState` med.
+ * Ved at flytte mutatorerne til handlen bliver læsning og skrivning to forskellige capabilities.
  */
-export type InputWriteAuthority = Readonly<{ readonly [writeAuthorityBrand]: true }>;
-
-/**
- * Udsteder skrive-vidnet. ENESTE producent — og derfor det ene sted, hvor grænsen kan flyttes.
- *
- * Den er eksporteret, fordi de to autoritative skriveveje ligger i søskendemoduler, men enhver ny
- * kalder er en BEVIDST udvidelse af skrivegrænsen: den står i importgrafen og fanges af
- * `input/write-boundary`-reglen, som holder producentlisten lukket.
- */
-export const claimInputWriteAuthority = (): InputWriteAuthority =>
-  Object.freeze({}) as InputWriteAuthority;
-
-export type SlimInputStoreState = {
+export type SlimInputStoreState = Readonly<{
   input: SettledInput;
   revision: InputRevision;
   history: InputHistory;
@@ -68,77 +51,102 @@ export type SlimInputStoreState = {
   /** Ændres kun ved hel-sags-replacement/hydration, ikke ved almindelige feltcommits. */
   replacementGeneration: number;
   meta: SlimInputMeta;
+}>;
+
+/**
+ * Handlen til den autoritative runtime.
+ *
+ * Den eksponerer PRÆCIS de operationer, runtime har brug for — og ingen generel mutation. `applyCommit`,
+ * `hydrate` og `restore` er de tre skriveveje, og de er navngivne, validerede transaktioner. Der findes
+ * ingen `setState`: det er derfor ikke længere muligt at skrive input uden at gå gennem `dispatchInput`s
+ * serialisering, storage-verifikation, history og revisionsfremskrivning.
+ *
+ * Handlen er `internal` i den forstand, at kun `src/inputCore/runtime/` og bindingslaget modtager den;
+ * consumers får de smalle porte fra `inputRuntimeContext`. Men den er ufarlig at lække sammenlignet med en
+ * `StoreApi`, fordi hvert medlem er en autoritativ operation frem for et vilkårligt write.
+ */
+export type SlimInputStore = Readonly<{
+  getState: () => SlimInputStoreState;
+  subscribe: (listener: () => void) => () => void;
 
   /** Anvender en valideret commit; skaber altid præcis én ny monoton revision. Kaldes kun af `dispatchInput`. */
-  applyCommit: (commit: SlimInputCommit, authority: InputWriteAuthority) => void;
+  applyCommit: (commit: SlimInputCommit) => void;
   /** Hydrerer afsluttet input før render; rydder history og skaber en ny monoton revision (§3.7). */
-  hydrate: (
-    input: SettledInput,
-    authority: InputWriteAuthority,
-    options?: Readonly<{ writesBlocked?: boolean }>
-  ) => void;
+  hydrate: (input: SettledInput, options?: Readonly<{ writesBlocked?: boolean }>) => void;
+  /**
+   * Gendanner et tidligere observeret state-snapshot ATOMISK efter en fejlet transaktion (§3.6 rollback).
+   *
+   * Bevidst adskilt fra `applyCommit`: den fremskriver ikke revisionen, fordi den ruller en påbegyndt
+   * transaktion tilbage frem for at gennemføre en ny. Argumentet kan kun være et helt snapshot, hentet fra
+   * `getState()` — der er ingen vej til et delvist eller opdigtet write.
+   */
+  restore: (snapshot: SlimInputStoreState) => void;
   /**
    * Én monoton settingsrevision, så `EvaluationSourceToken` altid kan verificeres samlet (§3.4/§2.1.9).
-   * Kræver IKKE vidnet: den rører ikke sagsinput, kun den revision, der gør evalueringen stale.
+   * Rører ikke sagsinput, kun den revision, der gør evalueringen stale.
    */
   bumpSettingsRevision: () => void;
-};
+}>;
 
-export type SlimInputStore = StoreApi<SlimInputStoreState>;
-
-const createSlimInputStore = (): SlimInputStore => createStore<SlimInputStoreState>((set) => ({
-  input: createEmptySettledInput(),
-  revision: createInputRevision(0),
-  history: createInputHistory(),
-  settingsRevision: createSettingsRevision(0),
-  replacementGeneration: 0,
-  meta: { hydrated: false, persistedDataVersion: PERSISTED_DATA_VERSION },
-
-  applyCommit: (commit, _authority) => set((state) => ({
-    input: commit.input,
-    revision: createInputRevision(state.revision + 1),
-    history: commit.history,
-    replacementGeneration: commit.authoritativeReplacement
-      ? state.replacementGeneration + 1
-      : state.replacementGeneration,
-    meta: {
-      hydrated: true,
-      persistedDataVersion: PERSISTED_DATA_VERSION,
-      lastCommittedAt: commit.committedAt,
-    },
-  })),
-
-  hydrate: (input, _authority, options) => set((state) => ({
-    input,
-    revision: createInputRevision(state.revision + 1),
+const createSlimInputStore = (): SlimInputStore => {
+  const store: StoreApi<SlimInputStoreState> = createStore<SlimInputStoreState>(() => ({
+    input: createEmptySettledInput(),
+    revision: createInputRevision(0),
     history: createInputHistory(),
-    replacementGeneration: state.replacementGeneration + 1,
-    meta: {
-      hydrated: true,
-      persistedDataVersion: PERSISTED_DATA_VERSION,
-      ...(options?.writesBlocked === true ? { inputWritesBlocked: true } : {}),
-    },
-  })),
+    settingsRevision: createSettingsRevision(0),
+    replacementGeneration: 0,
+    meta: { hydrated: false, persistedDataVersion: PERSISTED_DATA_VERSION },
+  }));
 
-  bumpSettingsRevision: () => set((state) => ({
-    settingsRevision: createSettingsRevision(state.settingsRevision + 1),
-  })),
-}));
+  return Object.freeze({
+    getState: () => store.getState(),
+    subscribe: (listener: () => void) => store.subscribe(listener),
+
+    applyCommit: (commit) => store.setState((state) => ({
+      input: commit.input,
+      revision: createInputRevision(state.revision + 1),
+      history: commit.history,
+      replacementGeneration: commit.authoritativeReplacement
+        ? state.replacementGeneration + 1
+        : state.replacementGeneration,
+      meta: {
+        hydrated: true,
+        persistedDataVersion: PERSISTED_DATA_VERSION,
+        lastCommittedAt: commit.committedAt,
+      },
+    })),
+
+    hydrate: (input, options) => store.setState((state) => ({
+      input,
+      revision: createInputRevision(state.revision + 1),
+      history: createInputHistory(),
+      replacementGeneration: state.replacementGeneration + 1,
+      meta: {
+        hydrated: true,
+        persistedDataVersion: PERSISTED_DATA_VERSION,
+        ...(options?.writesBlocked === true ? { inputWritesBlocked: true } : {}),
+      },
+    })),
+
+    restore: (snapshot) => store.setState(snapshot, true),
+
+    bumpSettingsRevision: () => store.setState((state) => ({
+      settingsRevision: createSettingsRevision(state.settingsRevision + 1),
+    })),
+  });
+};
 
 /** Applikations-singleton. Begge app-entrypoints hydrerer den samme runtime før render (§3.10). */
 export const slimInputStore = createSlimInputStore();
 
-/** Isoleret test-fabrik (ikke en mutations-facade); produktionscallsites bruger `slimInputStore`. */
-export const __createSlimInputTestStore = createSlimInputStore;
-
 /**
- * Skrive-vidne til TESTOPSÆTNING.
+ * Isoleret runtime-fabrik til TESTOPSÆTNING.
  *
- * En test, der arrangerer en tilstand, er en legitim skriver — men den går uden om runneren, og det
- * skal kunne SES. Derfor sit eget navn frem for et `claimInputWriteAuthority()` spredt ud i suiten:
- * en søgning på dette symbol viser præcis, hvilke tests der hydrerer direkte.
+ * En test, der arrangerer en tilstand, er en legitim skriver, men den går uden om runneren, og det skal kunne
+ * SES. Fabrikken bærer derfor sit eget `__`-præfiksede navn, så en søgning viser præcis hvilke tests der
+ * bygger en isoleret runtime. `input/write-boundary` forbyder produktionskode at kalde den.
  *
- * Navnet er `__`-præfikset som testfabrikken ovenfor, og `input/write-boundary` forbyder
- * produktionskode at kalde det.
+ * Der er ikke længere et separat "test-skrivevidne": handlen ER capabilityen, og en test, der vil hydrere,
+ * gør det på sin egen isolerede runtime frem for at forfalske en autoritet på produktionens.
  */
-export const __testInputWriteAuthority = claimInputWriteAuthority;
+export const __createSlimInputTestStore = createSlimInputStore;

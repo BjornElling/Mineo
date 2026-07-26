@@ -200,7 +200,7 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
       stamdataValues: STAMDATA_INITIAL_VALUES,
       eoValues: createComputableEoValues(),
       stamdataErrors: {
-        skadelidte: { input: { message: 'En advarsel', severity: 'warning', source: 'input', reason: 'rule' } },
+        skadelidte: { message: 'En advarsel', severity: 'warning', reason: 'rule' },
       },
     });
 

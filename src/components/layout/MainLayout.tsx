@@ -24,11 +24,10 @@ import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyResto
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
   bootstrapProductionInputRuntime,
-  getProductionInputEvaluation,
   useCaseOperations,
   useCriticalInputActions,
+  useInputDiagnostics,
   useUndoRedoShortcuts,
-  useInputRuntime,
   useSettledSnapshot,
 } from '../../inputCore/react';
 
@@ -49,7 +48,7 @@ const isOverlayType = (value: unknown): value is OverlayData['type'] => {
 };
 
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
-  const runtime = useInputRuntime();
+  const diagnostics = useInputDiagnostics();
   const criticalActions = useCriticalInputActions();
   const ops = useCaseOperations();
   const navigate = useNavigate();
@@ -84,19 +83,16 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     setOverlay(overlayData);
   }, []);
 
-  // Devtools-/bugrapport-diagnostik læser greenfield-runtime i stedet for legacy-persistence: persisterede
-  // sektioner fra det afsluttede snapshot og feltissues fra det tokenbundne issue-snapshot (§3.4). Ren
-  // read-only diagnostik — aldrig en skrivevej.
+  // Devtools-/bugrapport-diagnostik læser gennem den NAVNGIVNE diagnostikprojektion (§3.4). Shellen griber
+  // ikke selv ned i rå `sections`: opslaget ejes af `inputDiagnosticsProjection`, som er bundet til præcis den
+  // runtime, React-træet viser. Ren read-only — der er ingen skrivevej herfra.
   const getPersistedSectionForDevtools = React.useCallback(
-    (pageKey: PersistedSectionKey): unknown => runtime.getSettled().input.sections[pageKey] ?? null,
-    [runtime],
+    (pageKey: PersistedSectionKey): unknown => diagnostics.readSection(pageKey),
+    [diagnostics],
   );
   const getFieldIssuesForDevtools = React.useCallback(
-    (pageKey: PersistedSectionKey): unknown =>
-      getProductionInputEvaluation().issues.all.filter(
-        (issue) => issue.field.address.section === pageKey,
-      ),
-    [],
+    (pageKey: PersistedSectionKey): unknown => diagnostics.readSectionIssues(pageKey),
+    [diagnostics],
   );
 
   const {
@@ -106,7 +102,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     getExtraSections: buildDevtoolsReportExtras,
   } = useDevtoolsMonitoring({
     getPersistedData: getPersistedSectionForDevtools,
-    getFieldErrorsBySource: getFieldIssuesForDevtools,
+    getSectionFieldIssues: getFieldIssuesForDevtools,
     location,
   });
 

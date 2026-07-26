@@ -11,7 +11,7 @@
  * fordi standalone hverken har eller må importere `AppSettings`.
  */
 import React from 'react';
-import { useInputRuntime } from '../../../inputCore/react';
+import { useDocumentInputAccess } from '../../../inputCore/react';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import type { DocumentBrevhovedType } from '../../layout/documentBrevhoved';
 import type { DocumentExecutionEnvironment } from '../../definition/documentExecutionEnvironment';
@@ -19,7 +19,7 @@ import { projectSourceSettings, type SourceSettings } from '../../../settings/so
 import { createMineoDocumentEnvironment } from '../mineoDocumentEnvironment';
 
 export const useMineoDocumentEnvironment = (): DocumentExecutionEnvironment<SourceSettings, DocumentBrevhovedType> => {
-  const runtime = useInputRuntime();
+  const runtime = useDocumentInputAccess();
   const { settings } = useAppSettings();
   const sourceSettings = React.useMemo(() => projectSourceSettings(settings), [settings]);
   return React.useMemo(() => createMineoDocumentEnvironment(runtime, sourceSettings), [runtime, sourceSettings]);

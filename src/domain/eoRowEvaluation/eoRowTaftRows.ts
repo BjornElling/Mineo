@@ -12,7 +12,7 @@ import { evaluateTafPerioder } from '../erstatningsopgoerelse/validation/tafPeri
 import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferieperiodeValidation';
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { formatRowCount, formatRowMonths } from './eoRowShared';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 
@@ -27,7 +27,7 @@ const resolveFolkepensionsdato = (
 
 export const buildEoTaftRows = (
   values: ErstatningsopgoerelseValues,
-  errors: ErstatningsopgoerelseFieldErrorsBySource,
+  errors: ErstatningsopgoerelseFieldIssues,
   context: Readonly<{
     skadedatoISO: ISODateString | undefined;
     skadelidteFodselsdato: ISODateString | undefined;
@@ -355,7 +355,7 @@ export const buildEoTaftRows = (
   rows.push({
     id: 'taf.tidligereModtagetTaf',
     label: 'Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode',
-    ...resolveEoRowDisplay({ value: tidligereModtagetTafDisplay, errors: errors.tidligereModtagetTaf, emptyState: 'ok' }),
+    ...resolveEoRowDisplay({ value: tidligereModtagetTafDisplay, issue: errors.tidligereModtagetTaf, emptyState: 'ok' }),
   });
 
   return rows;

@@ -18,9 +18,9 @@ import type { EoRowPolicy } from '../../settings/sourceSettings';
 import type {
   EoRowEvaluationContext,
   StamdataValues,
-  StamdataFieldErrorsBySource,
+  StamdataFieldIssues,
   ErstatningsopgoerelseValues,
-  ErstatningsopgoerelseFieldErrorsBySource,
+  ErstatningsopgoerelseFieldIssues,
 } from './eoRowExecutionContext';
 import { getNavigationTargetFromRowId } from './eoRowNavigationMap';
 import { executeAllEoRowBuilders } from './eoRowBuilderRegistry';
@@ -276,9 +276,9 @@ const isRowRelevantForEoValues = (
  */
 export const collectAllEoRows = (
   stamdataValues: StamdataValues,
-  stamdataErrors: StamdataFieldErrorsBySource,
+  stamdataErrors: StamdataFieldIssues,
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues,
-  erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource,
+  erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldIssues,
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
   rowPolicy: EoRowPolicy = DEFAULT_APP_SETTINGS,
   canonicalOutputOverride?: EoCanonicalOutput,

@@ -31,7 +31,7 @@ data/gate/komposition og writer-API'et, begge kanaler deler.
 2. Formatvalget sker først efter, at download-gaten har godkendt dokumentet.
 3. Word må aldrig bruge egne beregninger, Word-formler eller feltkoder til tal.
 4. Runtime-fejl under dokumentgenerering routes via `error-contract.md` som systemfejl med området `document`.
-5. Format-routingen ejes af `runSelectedDocumentFormat(...)` (`src/document/service/documentService.ts`). Den opretter en immutable `DocumentGenerationSession` med det valgte format og den tilsvarende interne kanalfabrik (`createPdfChannelWriter` eller `createDocxWriter`). Generatorerne bygger kun en kanalneutral `DocumentModel`; sessionen renderer modellen, dokument-kernen importerer aldrig en kanal statisk, og generatorer må aldrig forgrene på formatet selv.
+5. Format-routingen ejes af **dokumentmiljøet**, ikke af et servicelag: `resolveFormat` på `DocumentExecutionEnvironment` (`src/document/definition/documentExecutionEnvironment.ts`) oversætter settings-snapshottet til formatet, og `environment.createSession(format)` opretter en immutable `DocumentGenerationSession` med den tilsvarende interne kanalfabrik (`createPdfChannelWriter` eller `createDocxWriter`). Hovedappens binding ligger i `src/document/runtime/mineoDocumentEnvironment.ts`; livscyklussen kalder den ét sted (`documentLifecycle.ts`). Generatorerne bygger kun en kanalneutral `DocumentModel`; sessionen renderer modellen, dokument-kernen importerer aldrig en kanal statisk, og generatorer må aldrig forgrene på formatet selv.
 6. Sessionsdata må ikke ligge i modul-global state. To samtidige genereringer skal kunne afvikles uafhængigt, også hen over `await`.
 
 ## 4. Output

@@ -8,7 +8,7 @@ import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvide
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../settings/appSettingsStorage';
 import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
-import { slimInputStore, __testInputWriteAuthority } from '../../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 import { settleField } from '../../../../inputCore/inputReducer';
 import { stamdataSkadelidteField } from '../../../../inputCore/catalog/stamdataDescriptors';
 
@@ -63,13 +63,13 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
 
   it('genbygger snapshot ved hver afsluttet revision uafhængigt af den aktive fane', async () => {
     const catalog = getProductionInputCatalog();
-    slimInputStore.getState().hydrate(catalog.validateSettledInput({
+    slimInputStore.hydrate(catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
       },
       rejectedInputs: {},
-    }), __testInputWriteAuthority());
+    }));
     const binding = createProductionInputRuntimeBinding();
 
     render(
@@ -87,7 +87,7 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
     await waitFor(() => expect(computeEoSnapshotMock).toHaveBeenCalledTimes(1));
 
     act(() => {
-      binding.dispatch(settleField(stamdataSkadelidteField.bind(), 'Før tab-entry'));
+      binding.edit.dispatch(settleField(stamdataSkadelidteField.bind(), 'Før tab-entry'));
     });
     await waitFor(() => expect(computeEoSnapshotMock).toHaveBeenCalledTimes(2));
 
@@ -95,7 +95,7 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
     expect(computeEoSnapshotMock).toHaveBeenCalledTimes(2);
 
     act(() => {
-      binding.dispatch(settleField(stamdataSkadelidteField.bind(), 'Mens Beregning er aktiv'));
+      binding.edit.dispatch(settleField(stamdataSkadelidteField.bind(), 'Mens Beregning er aktiv'));
     });
     await waitFor(() => {
       expect(computeEoSnapshotMock).toHaveBeenCalledTimes(3);
@@ -105,7 +105,7 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
     expect(computeEoSnapshotMock).toHaveBeenCalledTimes(3);
 
     act(() => {
-      binding.dispatch(settleField(stamdataSkadelidteField.bind(), 'Mens Kontroltabel er aktiv'));
+      binding.edit.dispatch(settleField(stamdataSkadelidteField.bind(), 'Mens Kontroltabel er aktiv'));
     });
     await waitFor(() => {
       expect(computeEoSnapshotMock).toHaveBeenCalledTimes(4);

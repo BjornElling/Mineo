@@ -11,7 +11,6 @@ import {
   ASL_MAX_AARSLOEN_2024,
 } from '../../../data/lovbestemteRates';
 import {
-  formatPct,
   formatSkadedatoCompact,
   resolveLoebendeAfgoerelseRestVisning,
   toAfgoerelseTypeLabel,
@@ -22,7 +21,7 @@ import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatJaNej, formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
 import { toKroner } from '../../../domain/money/money';

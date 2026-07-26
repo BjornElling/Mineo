@@ -150,7 +150,7 @@ export const useSettingsRevisionBridge = (settings: AppSettings): void => {
     publishedSettings = settings;
     if (!changed) return;
     cachedEvaluation = null;
-    slimInputStore.getState().bumpSettingsRevision();
+    slimInputStore.bumpSettingsRevision();
   }, [settings]);
 };
 

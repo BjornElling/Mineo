@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { InputEvaluation } from '../inputReader';
-import { useInputRuntime } from './inputRuntimeContext';
+import { useInputReadPort, useInputSystemPort } from './inputRuntimeContext';
 import type { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator';
 
 // Greenfield-React (§3.4/Fase 3): den ENE læse-grænse, en side/consumer bruger til at køre en ren projektion
@@ -12,10 +12,10 @@ import type { CriticalActionCoordinator } from '../runtime/criticalActionCoordin
 // returnerer en stabil reference mellem ændringer (ellers ville `useSyncExternalStore`-identitetstjekket loope).
 
 export const useInputEvaluation = (): InputEvaluation => {
-  const runtime = useInputRuntime();
-  return useSyncExternalStore(runtime.subscribe, runtime.getEvaluation, runtime.getEvaluation);
+  const read = useInputReadPort();
+  return useSyncExternalStore(read.subscribe, read.getEvaluation, read.getEvaluation);
 };
 
 /** Den kritiske handlingsbarriere fra præcis samme runtimebinding som readeren og editorerne. */
 export const useCriticalInputActions = (): CriticalActionCoordinator =>
-  useInputRuntime().criticalActions;
+  useInputSystemPort().criticalActions;

@@ -1,16 +1,17 @@
 import { isoToDanish } from '../../types/branded';
 import { formatPercent } from '../../utils/formatUtils';
-import { collectPresentFieldErrors, isNonEmptyString, resolveEoRowDisplay } from './eoRowCommon';
+import { presentIssuesForRow, resolveEoRowDisplay } from './eoRowCommon';
+import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 
 const formatPercentUpToTwoDecimals = (value: number): string => formatPercent(value);
 
 export const buildEoErstatningsopgoerelseRows = (
   values: ErstatningsopgoerelseValues,
-  errors: ErstatningsopgoerelseFieldErrorsBySource
+  errors: ErstatningsopgoerelseFieldIssues
 ): EoRowModel[] => {
   // Vedrører periode - begge felter skal være udfyldt
   const hasPeriodeFra = isNonEmptyString(values.vedroererPeriodeFra);
@@ -25,8 +26,8 @@ export const buildEoErstatningsopgoerelseRows = (
     ? `${danishPeriodeFra} - ${danishPeriodeTil}`
     : '-';
 
-  const periodeFraErrors = collectPresentFieldErrors(errors.vedroererPeriodeFra);
-  const periodeTilErrors = collectPresentFieldErrors(errors.vedroererPeriodeTil);
+  const periodeFraErrors = presentIssuesForRow(errors.vedroererPeriodeFra);
+  const periodeTilErrors = presentIssuesForRow(errors.vedroererPeriodeTil);
   const hasPeriodeErrors = periodeFraErrors.length > 0 || periodeTilErrors.length > 0;
 
   const periodeStatus: EoRowStatus =
@@ -57,7 +58,7 @@ export const buildEoErstatningsopgoerelseRows = (
     {
       id: 'erstatningsopgoerelse.eoNummer',
       label: 'Erstatningsopgørelse, nummer',
-      ...resolveEoRowDisplay({ value: values.eoNummer, errors: errors.eoNummer, emptyState: 'warning' }),
+      ...resolveEoRowDisplay({ value: values.eoNummer, issue: errors.eoNummer, emptyState: 'warning' }),
     },
     {
       id: 'erstatningsopgoerelse.foersteErstatningsopgoerelse',
@@ -68,14 +69,14 @@ export const buildEoErstatningsopgoerelseRows = (
     {
       id: 'erstatningsopgoerelse.eoLedsagetekst',
       label: 'Erstatningsopgørelse, evt. tillægstekst',
-      ...resolveEoRowDisplay({ value: values.eoLedsagetekst, errors: errors.eoLedsagetekst, emptyState: 'ok' }),
+      ...resolveEoRowDisplay({ value: values.eoLedsagetekst, issue: errors.eoLedsagetekst, emptyState: 'ok' }),
     },
     {
       id: 'erstatningsopgoerelse.revideretOpgoerelse',
       label: 'Revideret opgørelse',
       ...resolveEoRowDisplay({
         value: values.revideretOpgoerelse,
-        errors: errors.revideretOpgoerelse,
+        issue: errors.revideretOpgoerelse,
         emptyState: 'error',
       }),
     },
@@ -88,36 +89,36 @@ export const buildEoErstatningsopgoerelseRows = (
     {
       id: 'erstatningsopgoerelse.opgørelseLavetDen',
       label: 'Opgørelse lavet den',
-      ...resolveEoRowDisplay({ value: danishOpgoerelseDato, errors: errors.opgørelseLavetDen, emptyState: 'warning' }),
+      ...resolveEoRowDisplay({ value: danishOpgoerelseDato, issue: errors.opgørelseLavetDen, emptyState: 'warning' }),
     },
     {
       id: 'erstatningsopgoerelse.helbredsstatus',
       label: 'Helbredsforhold',
       ...resolveEoRowDisplay({
         value: values.svieSmerteHelbredsstatus,
-        errors: errors.svieSmerteHelbredsstatus,
+        issue: errors.svieSmerteHelbredsstatus,
         emptyState: 'error',
       }),
     },
     {
       id: 'erstatningsopgoerelse.arbejdsstatus',
       label: 'Arbejdssituation',
-      ...resolveEoRowDisplay({ value: values.tafArbejdsstatus, errors: errors.tafArbejdsstatus, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: values.tafArbejdsstatus, issue: errors.tafArbejdsstatus, emptyState: 'error' }),
     },
   ];
 };
 
 export const buildEoForligRows = (
   values: ErstatningsopgoerelseValues,
-  errors: ErstatningsopgoerelseFieldErrorsBySource
+  errors: ErstatningsopgoerelseFieldIssues
 ): EoRowModel[] => {
   const procentValue = values.forligAnsvarsgradProcent;
   const broekValue = values.forligAnsvarsgradBroek;
   const harProcent = typeof procentValue === 'number';
   const harBroek = isNonEmptyString(broekValue);
-  const procentErrors = collectPresentFieldErrors(errors.forligAnsvarsgradProcent);
-  const broekErrors = collectPresentFieldErrors(errors.forligAnsvarsgradBroek);
-  const forligDatoErrors = collectPresentFieldErrors(errors.forligDato);
+  const procentErrors = presentIssuesForRow(errors.forligAnsvarsgradProcent);
+  const broekErrors = presentIssuesForRow(errors.forligAnsvarsgradBroek);
+  const forligDatoErrors = presentIssuesForRow(errors.forligDato);
   const samledeForligErrors = procentErrors.concat(broekErrors);
   const harPraecisEnUdfyldt = harProcent !== harBroek;
   const harBeggeUdfyldt = harProcent && harBroek;
@@ -146,14 +147,14 @@ export const buildEoForligRows = (
     : {
       id: 'forlig.ansvarsgrad',
       label: 'Forlig om ansvarsgrad',
-      ...resolveEoRowDisplay({ value: samletForligDisplay, errors: undefined, emptyState: 'ok' }),
+      ...resolveEoRowDisplay({ value: samletForligDisplay, issue: undefined, emptyState: 'ok' }),
     };
   const forligDatoRow: EoRowModel = {
     id: 'forlig.dato',
     label: 'Evt. dato for forlig',
     ...resolveEoRowDisplay({
       value: danishForligDato,
-      errors: errors.forligDato,
+      issue: errors.forligDato,
       emptyState: 'ok',
     }),
   };
@@ -188,7 +189,7 @@ export const buildEoForligRows = (
 
 export const buildEoAesRows = (
   values: ErstatningsopgoerelseValues,
-  errors: ErstatningsopgoerelseFieldErrorsBySource
+  errors: ErstatningsopgoerelseFieldIssues
 ): EoRowModel[] => {
   // Tjek hvilke felter der er synlige baseret på toggle-værdier
   const varigeMenErSynlig = values.varigeMenAfgorelse === 'Ja';
@@ -222,7 +223,7 @@ export const buildEoAesRows = (
   // Varige mén afgørelsesdato - vis fejl hvis toggle er Ja men dato mangler
   const menAfgoerelseDatoResolved = resolveEoRowDisplay({
     value: danishMenAfgoerelseDato,
-    errors: errors.menAfgoerelseDato,
+    issue: errors.menAfgoerelseDato,
     emptyState: 'ok',
   });
   const menAfgoerelseDatoDisplay = menAfgoerelseDatoMangler ? 'Fejl (Afgørelsesdato mangler)' : menAfgoerelseDatoResolved.displayValue;
@@ -231,7 +232,7 @@ export const buildEoAesRows = (
   // Midlertidig EET afgørelsesdato - vis fejl hvis toggle er Ja men dato mangler
   const midlertidigEETAfgoerelseDatoResolved = resolveEoRowDisplay({
     value: danishMidlertidigEETAfgoerelseDato,
-    errors: errors.midlertidigEETAfgoerelseDato,
+    issue: errors.midlertidigEETAfgoerelseDato,
     emptyState: 'ok',
   });
   const midlertidigEETAfgoerelseDatoDisplay = midlertidigEETAfgoerelseDatoMangler
@@ -244,7 +245,7 @@ export const buildEoAesRows = (
   // Endelig EET afgørelsesdato - vis fejl hvis toggle er Ja men dato mangler
   const endeligEETAfgoerelseDatoResolved = resolveEoRowDisplay({
     value: danishEndeligEETAfgoerelseDato,
-    errors: errors.endeligEETAfgoerelseDato,
+    issue: errors.endeligEETAfgoerelseDato,
     emptyState: 'ok',
   });
   const endeligEETAfgoerelseDatoDisplay = endeligEETAfgoerelseDatoMangler
@@ -253,8 +254,8 @@ export const buildEoAesRows = (
   const endeligEETAfgoerelseDatoStatus: EoRowStatus = endeligEETAfgoerelseDatoMangler ? 'error' : endeligEETAfgoerelseDatoResolved.status;
 
   // Beregnet startdato for midlertidigt EET - kun hvis felterne er synlige
-  const midlertidigEETAfgoerelseDatoErrors = collectPresentFieldErrors(errors.midlertidigEETAfgoerelseDato);
-  const midlertidigEETVirkningsdatoErrors = collectPresentFieldErrors(errors.midlertidigEETVirkningsdato);
+  const midlertidigEETAfgoerelseDatoErrors = presentIssuesForRow(errors.midlertidigEETAfgoerelseDato);
+  const midlertidigEETVirkningsdatoErrors = presentIssuesForRow(errors.midlertidigEETVirkningsdato);
   const harMidlertidigVirkningsdatoFejl = midlertidigEetErSynlig && midlertidigEETVirkningsdatoErrors.length > 0;
   const harMidlertidigAfgoerelsesdatoFejl =
     midlertidigEetErSynlig && (midlertidigEETAfgoerelseDatoErrors.length > 0 || midlertidigEETAfgoerelseDatoMangler);
@@ -295,8 +296,8 @@ export const buildEoAesRows = (
   })();
 
   // Beregnet startdato for endeligt EET - kun hvis felterne er synlige
-  const endeligEETVirkningsdatoErrors = collectPresentFieldErrors(errors.endeligEETVirkningsdato);
-  const endeligEETAfgoerelseDatoErrors = collectPresentFieldErrors(errors.endeligEETAfgoerelseDato);
+  const endeligEETVirkningsdatoErrors = presentIssuesForRow(errors.endeligEETVirkningsdato);
+  const endeligEETAfgoerelseDatoErrors = presentIssuesForRow(errors.endeligEETAfgoerelseDato);
   const harEndeligVirkningsdatoFejl = endeligEetErSynlig && endeligEETVirkningsdatoErrors.length > 0;
   const harEndeligAfgoerelsesdatoFejl =
     endeligEetErSynlig && (endeligEETAfgoerelseDatoErrors.length > 0 || endeligEETAfgoerelseDatoMangler);
@@ -340,7 +341,7 @@ export const buildEoAesRows = (
     {
       id: 'aes.varigeMenAfgorelse',
       label: 'Afgørelse om varige mén 5+ %',
-      ...resolveEoRowDisplay({ value: values.varigeMenAfgorelse, errors: errors.varigeMenAfgorelse, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: values.varigeMenAfgorelse, issue: errors.varigeMenAfgorelse, emptyState: 'error' }),
       group: 'aes.varigeMen',
     },
     {
@@ -355,7 +356,7 @@ export const buildEoAesRows = (
       label: 'Midlertidigt EET-afgørelse 15+ %',
       ...resolveEoRowDisplay({
         value: values.midlertidigtEETAfgorelse,
-        errors: errors.midlertidigtEETAfgorelse,
+        issue: errors.midlertidigtEETAfgorelse,
         emptyState: 'error',
       }),
       group: 'aes.midlertidigtEet',
@@ -372,7 +373,7 @@ export const buildEoAesRows = (
       label: 'Virkningsdato for midlertidig EET-afgørelse',
       ...resolveEoRowDisplay({
         value: danishMidlertidigEETVirkningsdato,
-        errors: errors.midlertidigEETVirkningsdato,
+        issue: errors.midlertidigEETVirkningsdato,
         emptyState: 'ok',
       }),
       group: 'aes.midlertidigtEet',
@@ -392,7 +393,7 @@ export const buildEoAesRows = (
     {
       id: 'aes.endeligtEETAfgorelse',
       label: 'Endelig EET-afgørelse 15+ %',
-      ...resolveEoRowDisplay({ value: values.endeligtEETAfgorelse, errors: errors.endeligtEETAfgorelse, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: values.endeligtEETAfgorelse, issue: errors.endeligtEETAfgorelse, emptyState: 'error' }),
       group: 'aes.endeligtEet',
     },
     {
@@ -405,7 +406,7 @@ export const buildEoAesRows = (
     {
       id: 'aes.endeligEETVirkningsdato',
       label: 'Virkningsdato for endelig EET-afgørelse',
-      ...resolveEoRowDisplay({ value: danishEndeligEETVirkningsdato, errors: errors.endeligEETVirkningsdato, emptyState: 'ok' }),
+      ...resolveEoRowDisplay({ value: danishEndeligEETVirkningsdato, issue: errors.endeligEETVirkningsdato, emptyState: 'ok' }),
       group: 'aes.endeligtEet',
     },
     {
@@ -423,13 +424,13 @@ export const buildEoAesRows = (
     {
       id: 'aes.verserendeKlageEet',
       label: 'Verserende klage over EET',
-      ...resolveEoRowDisplay({ value: values.verserendeKlageEet, errors: errors.verserendeKlageEet, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: values.verserendeKlageEet, issue: errors.verserendeKlageEet, emptyState: 'error' }),
       group: 'aes.oevrigt',
     },
     {
       id: 'aes.differencekravDato',
       label: 'Dato for differencekrav',
-      ...resolveEoRowDisplay({ value: danishDifferencekravDato, errors: errors.differencekravDato, emptyState: 'ok' }),
+      ...resolveEoRowDisplay({ value: danishDifferencekravDato, issue: errors.differencekravDato, emptyState: 'ok' }),
       group: 'aes.differencekrav',
     },
   ];

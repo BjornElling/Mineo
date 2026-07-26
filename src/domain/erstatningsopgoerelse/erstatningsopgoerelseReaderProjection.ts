@@ -7,7 +7,6 @@ import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAd
 import type { ProjectionResult } from '../../inputCore/projection';
 import type {
   EoInputIssue,
-  EoInputIssueSource,
   EoInputIssues,
   EoStamdataInputIssues,
 } from './eoInputIssues';
@@ -170,11 +169,10 @@ import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
 //    hvis tomværdi ikke er `undefined` (fx required-choice 'maaned'). Det er præcis, hvad legacy læste (den tomme/
 //    maskerede canonical værdi). `computeEoSnapshot` køres UÆNDRET på det (§5.4 hårdt stop mod talændring).
 //  - FEJL-MAPS: for inspektion-echoet + den nedstrøms download-gate (collectAllEoRows) bygges `eoErrors`/
-//    `stamdataErrors` fra de RØDE reader-feltfejl, keyed by top-level feltnavn (reason→source: format→'invalid-draft',
-//    bounds→'input'+blocksSave:false, rule→'rule'), plus det syntetiske `${afId}:loenindkomst`-aggregat, som legacy's
-//    loenindkomst-view-model rapporterede, når en ansættelsesforholds StandardLoen-/manuel-regulerings-celle var ugyldig.
-//    Kildeklassifikationen er observationelt neutral for row-buildere (source-agnostiske); kun `:loenindkomst`-
-//    aggregatets `blocksSave`-flag afgør, om det tæller i suffix-gaten — derfor er det altid `input`+blocksSave:true.
+//    `stamdataErrors` fra de RØDE reader-feltfejl som ÉT issue pr. feltnøgle — readerens `reason` bæres uændret
+//    videre, plus det syntetiske `${afId}:loenindkomst`-aggregat (reason `aggregate`), der rapporteres når en
+//    ansættelsesforholds StandardLoen-/manuel-regulerings-celle er ugyldig. Blokeringen udledes STRUKTURELT af
+//    severity (`eoIssueBlocksDependents`); der findes hverken en source-klassifikation eller et flag at drifte fra.
 
 const S = 'erstatningsopgoerelse' as const;
 
@@ -519,18 +517,17 @@ export const readStamdataValues = (reader: InputReader): StamdataValues => ({
 });
 
 // ── Fejl-map-rekonstruktion ─────────────────────────────────────────────────────────
-/** Reader-reason → legacy field-error source (jf. field-error-channel-analysen). */
-const reasonToSource = (reason: string): EoInputIssueSource =>
-  reason === 'format' ? 'invalid-draft' : reason === 'rule' ? 'rule' : reason === 'schema' ? 'schema' : 'input';
-
 /**
  * En rød reader-feltfejl omsat til én EO-inputissue. Readerens `reason` bæres UÆNDRET videre, så
  * blokerings-konsekvensen kan udledes strukturelt af `eoIssueBlocksDependents` — ikke af et flag her.
+ *
+ * Der er ingen oversættelse til en `source` længere: readerens årsag ER kategorien. Den tidligere
+ * `reasonToSource` rekonstruerede en legacy-kilde (bl.a. `format → 'invalid-draft'`) for at fylde et
+ * source-register, `error-contract.md` §11 udtrykkeligt forbyder.
  */
 const toInputIssue = (message: string, reason: string): EoInputIssue => ({
   message,
   severity: 'error',
-  source: reasonToSource(reason),
   reason: toIssueReason(reason),
 });
 
@@ -562,8 +559,7 @@ const collectSectionFieldErrors = (
   for (const { key, readIssue } of entries) {
     const issue = readIssue(reader);
     if (issue === undefined) continue;
-    const error = toInputIssue(issue.message, issue.reason);
-    map[key] = { ...(map[key] ?? {}), [error.source]: error };
+    map[key] = toInputIssue(issue.message, issue.reason);
   }
   return map;
 };
@@ -669,7 +665,9 @@ export const buildErstatningsopgoerelseReaderProjection = (
   for (const employment of eoValues.loenindkomstAnsaettelsesforhold) {
     if (employmentHasLoenindkomstCellError(reader, employment)) {
       eoErrors[`${employment.id}:loenindkomst`] = {
-        input: { message: 'Ugyldig manuel regulering', severity: 'error', source: 'input', reason: 'aggregate' },
+        message: 'Ugyldig manuel regulering',
+        severity: 'error',
+        reason: 'aggregate',
       };
     }
   }

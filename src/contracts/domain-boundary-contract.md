@@ -203,7 +203,12 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    skal matche EO-sidens egne, så en command herfra ikke materialiserer afvigende EO-defaults.
 4. Undtagelsen giver **ikke** adgang til øvrige EO-felter eller EO-beregnet output. Råt aggregate-/sektionsopslag af
    `erstatningsopgoerelse` fra `Erhvervsevnetab`-laget er forbudt; kun den navngivne, typed forligsprojektion gennem
-   `InputReader` er tilladt. Nuværende `getPersistedData`/`usePersistedSection`-kald er migrationskode.
+   `InputReader` er tilladt. Dette er **opfyldt**: `erhvervsevnetabReaderProjection.ts` læser de tre forligs-felter
+   gennem navngivne `FieldRef`s (`eoForligAnsvarsgradProcentField` m.fl.), og der findes ingen
+   `getPersistedData`/`usePersistedSection`-kald tilbage. Grænsen håndhæves maskinelt af
+   `domain/raw-section-access-boundary` (rå `sections[...]` uden for `src/inputCore/`) og af
+   `domain/page-section-access-boundary`, som følger IMPORTGRAFEN, så en kobling gennem en projektion
+   også tælles.
 
 ---
 

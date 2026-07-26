@@ -20,7 +20,7 @@ import { createDocumentGenerationSession, type DocumentGenerationSession } from 
 import type { DocumentDownloadFormat } from '../../../document/documentFormat';
 import type { DocumentExecutionEnvironment } from '../../../document/definition/documentExecutionEnvironment';
 import type { DocumentDiagnostics, DocumentFailure } from '../../../document/definition/documentOutcome';
-import type { InputRuntimeBinding } from '../../../inputCore/react/inputRuntimeContext';
+import type { DocumentInputAccess } from '../../../inputCore/react/inputRuntimeContext';
 
 /**
  * Standalone understøtter kun PDF. Word ville kræve docx-writeren i standalone-bundlet, og
@@ -49,7 +49,7 @@ const reportStandaloneFailure = (failure: DocumentFailure, diagnostics: Document
 
 /** Standalones miljø. `TSettings = void`: appen har ingen indstillinger, der kan påvirke et dokument. */
 export const createStandaloneDocumentEnvironment = (
-  runtime: Pick<InputRuntimeBinding, 'captureEvaluationSource' | 'readCurrentSourceToken' | 'criticalActions'>
+  runtime: DocumentInputAccess
 ): DocumentExecutionEnvironment<void, never> => Object.freeze({
   captureSource: () => ({
     evaluation: runtime.captureEvaluationSource(),

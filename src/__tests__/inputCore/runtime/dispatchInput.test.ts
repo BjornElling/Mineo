@@ -646,7 +646,7 @@ describe('EvaluationSourceToken-binding (§3.4)', () => {
     const t1 = readSourceToken(store);
     expect(t1.inputRevision).not.toBe(t0.inputRevision);
 
-    store.getState().bumpSettingsRevision();
+    store.bumpSettingsRevision();
     const t2 = readSourceToken(store);
     expect(t2.settingsRevision).not.toBe(t1.settingsRevision);
     expect(t2.inputRevision).toBe(t1.inputRevision); // uændret input

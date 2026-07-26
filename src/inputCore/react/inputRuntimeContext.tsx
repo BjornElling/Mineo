@@ -54,7 +54,15 @@ export type SettledSnapshot = Readonly<{
   replacementGeneration: number;
 }>;
 
-export type InputRuntimeBinding = Readonly<{
+/**
+ * **READ** — alt hvad en visning, en projektion eller et dokument må gøre med sagsinput (§3.5/§3.10).
+ *
+ * Porten er bevidst rent læsende OG tokenbundet: der er ingen vej fra en read-consumer til en mutation, og
+ * ingen vej til rå `sections` uden om `InputReader`. Adskillelsen er strukturel frem for kommenteret —
+ * tidligere lå læsning, redigering og systemoperationer som felter på ét objekt, så enhver consumer, der
+ * blot skulle vise en værdi, også fik hel-sags-replacement og history i hånden.
+ */
+export type InputReadPort = Readonly<{
   catalog: InputCatalog;
   /**
    * READ-ONLY systemport til et stabilt `{input, token}`-snapshot fra PRÆCIS den runtime, React-træet læser.
@@ -81,6 +89,16 @@ export type InputRuntimeBinding = Readonly<{
   getIssues: () => FieldIssueSnapshot;
   /** Offentlig, tokenbundet reader til projektioner; rå sections forlader aldrig runtimebindingen. */
   getEvaluation: () => InputEvaluation;
+}>;
+
+/**
+ * **EDIT** — feltniveau-redigering (§3.6). Den capability, en felt-/celleadapter har brug for, og intet mere.
+ *
+ * En editor-flade kan udstede felt- og rækkecommands og registrere sig som aktiv editor. Den kan IKKE
+ * nulstille en sektion, erstatte hele sagen eller udføre undo/redo — de operationer hører til systemporten,
+ * så en celle aldrig kan formulere en hel-sagsmutation.
+ */
+export type InputEditPort = Readonly<{
   /**
    * Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands.
    *
@@ -92,6 +110,18 @@ export type InputRuntimeBinding = Readonly<{
     command: InputSurfaceCommand<TField, TEntity> & { kind: TKind },
     ...origin: OriginArgs<TKind>
   ) => DispatchInputResult;
+  registry: ActiveEditorRegistry;
+}>;
+
+/**
+ * **SYSTEM** — operationer på HELE sagen (§3.6/§3.10): sektionsreset, replacement, history og kritiske
+ * handlinger.
+ *
+ * Porten er forbeholdt composition roots: case-/persistence-porten (`useCaseOperations`), shellens
+ * undo/redo-genveje og en sidesektions eksplicitte "Slet alle indtastninger". Den er skilt ud, fordi dens
+ * operationer ikke kan udtrykkes som en feltredigering og aldrig må kunne nås fra en celle.
+ */
+export type InputSystemPort = Readonly<{
   /**
    * System-reset af én sektion (§3.6). Adskilt fra `dispatch`, så en form-/grid-CELLE ikke kan udstede en
    * hel-sektionsmutation, men en sidesektions "Slet alle indtastninger" (fx renteberegning) kan. Route reset,
@@ -110,13 +140,22 @@ export type InputRuntimeBinding = Readonly<{
     undo: () => DispatchInputResult;
     redo: () => DispatchInputResult;
   }>;
-  registry: ActiveEditorRegistry;
   criticalActions: CriticalActionCoordinator;
+}>;
+
+/**
+ * Den samlede runtime, providerne distribuerer. Den er en KOMPOSITION af de tre capabilities, ikke ét fladt
+ * objekt: en consumer beder om `read`, `edit` eller `system` og får præcis den ene.
+ */
+export type InputRuntimeBinding = Readonly<{
+  read: InputReadPort;
+  edit: InputEditPort;
+  system: InputSystemPort;
 }>;
 
 const InputRuntimeContext = React.createContext<InputRuntimeBinding | null>(null);
 
-export const useInputRuntime = (): InputRuntimeBinding => {
+const useBinding = (): InputRuntimeBinding => {
   const binding = React.useContext(InputRuntimeContext);
   if (binding === null) {
     throw new Error('useInputRuntime: skal bruges inden for en <InputRuntimeProvider>.');
@@ -124,9 +163,53 @@ export const useInputRuntime = (): InputRuntimeBinding => {
   return binding;
 };
 
+/**
+ * Dokumentlagets capability (§5.4): et frisk tokenbundet kildesnapshot + den kritiske handlingsbarriere.
+ *
+ * Bevidst en NAVNGIVEN, eksplicit port frem for et `Pick<>` af hele bindingen. Dokumentmiljøet skal kunne
+ * optage kilden og settle en åben editor før download — men det må hverken dispatche, nulstille en sektion
+ * eller erstatte sagen. En `Pick` over ét fladt objekt beskrev det samme, men uden at nogen grænse forhindrede
+ * den næste udvidelse i at tage mere med.
+ */
+export type DocumentInputAccess = Readonly<{
+  captureEvaluationSource: InputReadPort['captureEvaluationSource'];
+  readCurrentSourceToken: InputReadPort['readCurrentSourceToken'];
+  criticalActions: CriticalActionCoordinator;
+}>;
+
+/** Læse-capabilityen: aktuel afsluttet revision, tokenbundet reader og issue-snapshot. */
+export const useInputReadPort = (): InputReadPort => useBinding().read;
+
+/**
+ * Dokumentlagets capability, memoiseret pr. binding. Dokumentmiljøet og katalogposterne afhænger af
+ * referencen, så en ny wrapper pr. render ville invalidere hele gate-memoiseringen nedstrøms.
+ */
+export const useDocumentInputAccess = (): DocumentInputAccess => {
+  const { read, system } = useBinding();
+  return React.useMemo(
+    () => Object.freeze({
+      captureEvaluationSource: read.captureEvaluationSource,
+      readCurrentSourceToken: read.readCurrentSourceToken,
+      criticalActions: system.criticalActions,
+    }),
+    [read, system]
+  );
+};
+
+/** Redigerings-capabilityen: felt-/rækkecommands + editorregistret. */
+export const useInputEditPort = (): InputEditPort => useBinding().edit;
+
+/**
+ * System-capabilityen: sektionsreset, hel-sags-replacement, history og kritiske handlinger.
+ *
+ * Forbeholdt composition roots (case-/persistence-porten, shellen, en sidesektions "Slet alle
+ * indtastninger"). `input/system-port-composition-root` håndhæver, at en felt-/celleflade ikke kalder den.
+ */
+export const useInputSystemPort = (): InputSystemPort => useBinding().system;
+
 /** Abonnér på det aktuelle afsluttede snapshot. Re-renderer kun, når revisionen faktisk ændres. */
 export const useSettledSnapshot = (): SettledSnapshot => {
-  const { getSettled, subscribe } = useInputRuntime();
+  const { getSettled, subscribe } = useInputReadPort();
   return useSyncExternalStore(subscribe, getSettled, getSettled);
 };
 
@@ -172,29 +255,35 @@ export const createInputRuntimeBinding = (
     throw new Error('InputRuntime: kunne ikke optage en stabil evaluering til kritisk handling');
   };
   return Object.freeze({
-    catalog,
-    captureStableSource: () => captureStableInput(store),
-    captureEvaluationSource,
-    readCurrentSourceToken: () => readSourceToken(store),
-    getSettled,
-    subscribe: (listener) => store.subscribe(listener),
-    // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme
-    // rene issueprojektion, så en leverandør, der bygger et nyt wrapperobjekt pr. kald, normaliseres her.
-    getIssues: getStableIssues,
-    getEvaluation,
-    // Implementeringen tager den brede form; det er SIGNATUREN i `InputRuntimeBinding` der håndhæver den
-    // betingede origin-tuple over for kalderne, og `dispatchInput`s eget runtime-værn der fanger et cast.
-    dispatch: ((command: InputSurfaceCommand, origin?: HistoryOrigin) =>
-      dispatchInput(store, catalog, command, origin === undefined ? {} : { origin })
-    ) as InputRuntimeBinding['dispatch'],
-    resetSection: (command) => dispatchInput(store, catalog, command),
-    replaceCase: (command) => dispatchInput(store, catalog, command),
-    history: Object.freeze({
-      undo: () => dispatchInput(store, catalog, { kind: 'undo' }),
-      redo: () => dispatchInput(store, catalog, { kind: 'redo' }),
+    read: Object.freeze({
+      catalog,
+      captureStableSource: () => captureStableInput(store),
+      captureEvaluationSource,
+      readCurrentSourceToken: () => readSourceToken(store),
+      getSettled,
+      subscribe: (listener: () => void) => store.subscribe(listener),
+      // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme
+      // rene issueprojektion, så en leverandør, der bygger et nyt wrapperobjekt pr. kald, normaliseres her.
+      getIssues: getStableIssues,
+      getEvaluation,
     }),
-    registry,
-    criticalActions: new CriticalActionCoordinator(store, registry),
+    edit: Object.freeze({
+      // Implementeringen tager den brede form; det er SIGNATUREN i `InputEditPort` der håndhæver den
+      // betingede origin-tuple over for kalderne, og `dispatchInput`s eget runtime-værn der fanger et cast.
+      dispatch: ((command: InputSurfaceCommand, origin?: HistoryOrigin) =>
+        dispatchInput(store, catalog, command, origin === undefined ? {} : { origin })
+      ) as InputEditPort['dispatch'],
+      registry,
+    }),
+    system: Object.freeze({
+      resetSection: (command: ResetSectionCommand) => dispatchInput(store, catalog, command),
+      replaceCase: (command: ReplaceCaseCommand | ClearCaseCommand) => dispatchInput(store, catalog, command),
+      history: Object.freeze({
+        undo: () => dispatchInput(store, catalog, { kind: 'undo' }),
+        redo: () => dispatchInput(store, catalog, { kind: 'redo' }),
+      }),
+      criticalActions: new CriticalActionCoordinator(store, registry),
+    }),
   });
 };
 

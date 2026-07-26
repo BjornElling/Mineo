@@ -16,7 +16,10 @@ import {
   buildEoSaerligeKommentarerRows,
   buildEoBilagsnumreRows,
 } from './eoRowErstatningsopgoerelseModel';
-import { buildSvieSmerteContext, buildTaftContext } from './eoRowContextBuilders';
+import {
+  buildSvieSmerteContext,
+  buildTaftContext,
+} from '../erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 
 /**
  * Builder-entry type (meget simpelt)

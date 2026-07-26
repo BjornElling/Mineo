@@ -984,7 +984,3 @@ export const formatSkadedatoCompact = (iso: ISODateString): string => {
   const m = Number.parseInt(month, 10);
   return `${d}/${m}-${year}`;
 };
-
-// formatPct ejes nu af eetFormatUtils (ÉN sandhedskilde, delt UI↔dokument). Re-eksporteres her
-// for bagudkompatibilitet med eksisterende importsteder.
-export { formatPct } from './eetFormatUtils';

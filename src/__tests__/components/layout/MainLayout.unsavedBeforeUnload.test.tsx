@@ -10,7 +10,7 @@ import {
   bootstrapProductionInputRuntime,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { dispatchInput } from '../../../inputCore/runtime/dispatchInput';
 import { replaceCase, settleField } from '../../../inputCore/inputReducer';
@@ -159,11 +159,11 @@ describe('MainLayout (unsaved beforeunload)', () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     pendingPwaRequest = null;
-    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
+    slimInputStore.hydrate(emptyInput());
   });
 
   afterEach(() => {
-    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
+    slimInputStore.hydrate(emptyInput());
   });
 
   it('prevents beforeunload after committed input change', async () => {
@@ -194,11 +194,11 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
   it('keeps beforeunload disabled after session hydration without a new commit', async () => {
     // Hydration sætter baseline uden at hæve revisionen ud over den → ingen unsaved-guard.
-    slimInputStore.getState().hydrate(
+    slimInputStore.hydrate(
       catalog.validateSettledInput({
         sections: { ...emptyInput().sections, satser: { aargang: 2020 } },
         rejectedInputs: {},
-      }), __testInputWriteAuthority()
+      })
     );
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');

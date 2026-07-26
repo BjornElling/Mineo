@@ -154,12 +154,12 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
 
     // Satser-doktrin: readeren skjuler den out-of-bounds værdi → rekonstruktionen falder tilbage til tomværdien.
     expect(projection.eoValues.forligAnsvarsgradProcent).toBeUndefined();
-    expect(projection.eoErrors.forligAnsvarsgradProcent?.input?.severity).toBe('error');
-    expect(projection.eoErrors.forligAnsvarsgradProcent?.input?.reason).toBe('bounds');
+    expect(projection.eoErrors.forligAnsvarsgradProcent?.severity).toBe('error');
+    expect(projection.eoErrors.forligAnsvarsgradProcent?.reason).toBe('bounds');
     // `error-contract.md` §1.1: bounds blokerer IKKE `.eo`-save, men blokerer JA de AFHÆNGIGE consumers.
     // Netop dette felt er beviset for, hvorfor: en maskeret forligsprocent på 150 ville ellers blive regnet
     // som "intet forlig" (= 100 %) og vise et falsk beløb bag den røde markering.
-    expect(eoIssueBlocksDependents(projection.eoErrors.forligAnsvarsgradProcent?.input)).toBe(true);
+    expect(eoIssueBlocksDependents(projection.eoErrors.forligAnsvarsgradProcent)).toBe(true);
   });
 
   it('fører et ugyldigt (out-of-bounds) løntabel-cellefelt ind som `${afId}:loenindkomst`-aggregat', () => {
@@ -179,7 +179,7 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(projection.eoErrors['af-1:loenindkomst']).toBeUndefined();
   });
 
-  it('fører en ugyldig StandardLoen-tabelcelle ind som `${afId}:loenindkomst`-aggregat (blocksSave:true)', () => {
+  it('fører en ugyldig StandardLoen-tabelcelle ind som `${afId}:loenindkomst`-aggregat (blokerer afhængige)', () => {
     // col0_maaned='13' er uden for 1..12 → rød reader-feltfejl på en StandardLoen-CELLE → aggregat-fejl.
     const eo = buildValidEo();
     const first = eo.loenindkomstAnsaettelsesforhold[0];
@@ -197,9 +197,9 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     };
     const reader = buildReader(withCellError, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
-    expect(eoIssueBlocksDependents(projection.eoErrors['af-1:loenindkomst']?.input)).toBe(true);
-    expect(projection.eoErrors['af-1:loenindkomst']?.input?.reason).toBe('aggregate');
-    expect(projection.eoErrors['af-1:loenindkomst']?.input?.message).toBe('Ugyldig manuel regulering');
+    expect(eoIssueBlocksDependents(projection.eoErrors['af-1:loenindkomst'])).toBe(true);
+    expect(projection.eoErrors['af-1:loenindkomst']?.reason).toBe('aggregate');
+    expect(projection.eoErrors['af-1:loenindkomst']?.message).toBe('Ugyldig manuel regulering');
   });
 
   it('er tolerant over for en null EO-sektion (tom sag)', () => {

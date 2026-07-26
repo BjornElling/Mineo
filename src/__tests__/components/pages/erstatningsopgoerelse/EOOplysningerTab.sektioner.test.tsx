@@ -9,7 +9,7 @@ import { RoutePathnameProvider } from '../../../../contexts/RoutePathnameProvide
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { ProductionInputRuntimeProvider, createProductionInputRuntimeBinding } from '../../../../inputCore/react/productionInputRuntime';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
-import { slimInputStore, __testInputWriteAuthority } from '../../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 
 /**
  * Regressions-net for A1's sektion-dekomponering af EO-oplysninger-fanen: når den store inline-JSX
@@ -25,14 +25,14 @@ describe('EOOplysningerTab sektioner', () => {
 
   it('renderer alle uafhængigt synlige sektioner på oplysninger-fanen', async () => {
     const catalog = getProductionInputCatalog();
-    slimInputStore.getState().hydrate(catalog.validateSettledInput({
+    slimInputStore.hydrate(catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null,
         erstatningsopgoerelse: createErstatningsopgoerelseInitialValues(), erhvervsevnetab: null,
       },
       rejectedInputs: {},
-    }), __testInputWriteAuthority());
+    }));
     sessionStorage.setItem(createActiveTabStorageKey('erstatningsopgoerelse'), 'eo_oplysninger');
 
     render(

@@ -1,8 +1,9 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { isoToDanish } from '../../types/branded';
-import { collectPresentFieldErrors, isNonEmptyString, resolveEoRowDisplay } from './eoRowCommon';
+import { presentIssuesForRow, resolveEoRowDisplay } from './eoRowCommon';
+import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
-import type { EoFieldIssuesBySource } from '../erstatningsopgoerelse/eoInputIssues';
+import type { EoInputIssue } from '../erstatningsopgoerelse/eoInputIssues';
 
 /**
  * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
@@ -18,16 +19,16 @@ export type EoRowId =
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type StamdataFieldName = Extract<keyof StamdataValues, string>;
-type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, EoFieldIssuesBySource>>;
+type StamdataFieldIssues = Partial<Record<StamdataFieldName, EoInputIssue>>;
 
-export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFieldErrorsBySource): EoRowModel[] => {
+export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFieldIssues): EoRowModel[] => {
   const advokat = isNonEmptyString(values.advokat) ? values.advokat.trim() : undefined;
   const sagsbehandler = isNonEmptyString(values.sagsbehandler) ? values.sagsbehandler.trim() : undefined;
   const advokatSagsbehandler =
     advokat && sagsbehandler ? `${advokat} / ${sagsbehandler}` : (advokat ?? sagsbehandler);
 
-  const advokatErrors = collectPresentFieldErrors(errors.advokat);
-  const sagsbehandlerErrors = collectPresentFieldErrors(errors.sagsbehandler);
+  const advokatErrors = presentIssuesForRow(errors.advokat);
+  const sagsbehandlerErrors = presentIssuesForRow(errors.sagsbehandler);
   const hasAdvokatSagsbehandlerErrors = advokatErrors.length > 0 || sagsbehandlerErrors.length > 0;
 
   const advokatSagsbehandlerDisplay = (() => {
@@ -56,7 +57,7 @@ export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFiel
     {
       id: 'stamdata.journalnr',
       label: 'Journalnr.',
-      ...resolveEoRowDisplay({ value: values.journalnr, errors: errors.journalnr, emptyState: 'ok' }),
+      ...resolveEoRowDisplay({ value: values.journalnr, issue: errors.journalnr, emptyState: 'ok' }),
     },
     {
       id: 'stamdata.advokatSagsbehandler',
@@ -68,17 +69,17 @@ export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFiel
     {
       id: 'stamdata.skadelidte',
       label: 'Skadelidtes navn',
-      ...resolveEoRowDisplay({ value: values.skadelidte, errors: errors.skadelidte, emptyState: 'warning' }),
+      ...resolveEoRowDisplay({ value: values.skadelidte, issue: errors.skadelidte, emptyState: 'warning' }),
     },
     {
       id: 'stamdata.skadestype',
       label: 'Skadestype',
-      ...resolveEoRowDisplay({ value: values.skadestype, errors: errors.skadestype, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: values.skadestype, issue: errors.skadestype, emptyState: 'error' }),
     },
     {
       id: 'stamdata.skadedato',
       label: skadedatoLabel,
-      ...resolveEoRowDisplay({ value: danishSkadedato, errors: errors.skadedato, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: danishSkadedato, issue: errors.skadedato, emptyState: 'error' }),
     },
   ];
 };

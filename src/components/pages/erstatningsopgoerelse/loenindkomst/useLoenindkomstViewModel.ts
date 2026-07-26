@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
-import { useInputRuntime } from '../../../../inputCore/react/inputRuntimeContext';
+import { useInputEditPort } from '../../../../inputCore/react/inputRuntimeContext';
 import {
   buildRowHistoryOrigin,
   useCollectionRows,
@@ -55,7 +55,7 @@ export type LoenindkomstViewModelParams = Readonly<{
 /** Greenfield EO-lønindkomst: reader-afledt visning og kun typed række-/feltcommands som write-grænse. */
 export function useLoenindkomstViewModel({ eoValues, stamdataValues }: LoenindkomstViewModelParams) {
   const { settings } = useAppSettings();
-  const runtime = useInputRuntime();
+  const edit = useInputEditPort();
   // Ansættelsesforholdene bor på lønindkomst-fanen; destinationen følger rækkehandlingen, så en undo af
   // tilføj/slet ansættelsesforhold navigerer tilbage hertil (§3.7).
   const rows = useCollectionRows<Employment>(employmentCollection, EMPLOYMENT_ROW_ORIGIN);
@@ -111,8 +111,8 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
         }
       }
     }
-    if (steps.length > 0) runtime.dispatch(inputTransaction(steps));
-  }, [derived, employments, runtime]);
+    if (steps.length > 0) edit.dispatch(inputTransaction(steps));
+  }, [derived, employments, edit]);
 
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -135,13 +135,13 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     }
     // Transaktionen sletter i TO collections, men destinationen er den brugerudløste primære: tabellen over
     // ansættelsesforhold. SFGG-rækken er en afledt konsekvens, ikke stedet brugeren handlede (§3.7).
-    runtime.dispatch(
+    edit.dispatch(
       structuralInputTransaction(steps),
       buildRowHistoryOrigin(employmentCollection, EMPLOYMENT_ROW_ORIGIN)
     );
     setDeleteDialogOpen(false);
     setDeleteTargetId(null);
-  }, [deleteTargetId, eoValues.sfggAnsaettelsesforhold, runtime]);
+  }, [deleteTargetId, eoValues.sfggAnsaettelsesforhold, edit]);
   const move = React.useCallback((employmentId: string, offset: -1 | 1) => {
     const index = rows.rowIds.indexOf(employmentId);
     const target = index + offset;

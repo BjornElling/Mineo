@@ -20,7 +20,7 @@ import type {
   MerErstatningPensionsalderComputation,
   MerErstatningPensionsalderEvent,
 } from '../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
-import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import {
   buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,

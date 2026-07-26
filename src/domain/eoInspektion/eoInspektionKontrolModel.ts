@@ -9,7 +9,10 @@ import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoInspektio
 import { buildLoenindkomstColumns, buildTafDayStatusValues } from './eoInspektionLoenColumns';
 import { kontrolTabelColumnId, type KontrolTabelWageColumnKey } from './eoInspektionLoenTypes';
 import { isoDateToDate } from '../dates/isoDate';
-import { getStandardLoenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './indkomstRowValidationReexport';
+import {
+  getOffentligeYdelserErrorRowIdSet,
+  getStandardLoenErrorRowIdSet,
+} from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { buildTafRanges, parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/engines/periodiseringsMotor';

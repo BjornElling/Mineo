@@ -1,20 +1,20 @@
 import { isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { isNonEmptyString } from './eoRowCommon';
+import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 
 /**
  * Bygger EO-rækker for Øvrige erstatningskrav.
  */
 export const buildEoOevrigeKravRows = (
   values: ErstatningsopgoerelseValues,
-  _errors: ErstatningsopgoerelseFieldErrorsBySource,
+  _errors: ErstatningsopgoerelseFieldIssues,
   canonicalOutput?: EoCanonicalOutput
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
@@ -126,7 +126,7 @@ export const buildEoOevrigeKravRows = (
  */
 export const buildEoSaerligeKommentarerRows = (
   values: ErstatningsopgoerelseValues,
-  _errors: ErstatningsopgoerelseFieldErrorsBySource
+  _errors: ErstatningsopgoerelseFieldIssues
 ): EoRowModel[] => {
   const kommentarer = values.saerligeKommentarer;
   const harKommentarer = isNonEmptyString(kommentarer);

@@ -53,7 +53,7 @@ describe('Stamdata — canonical datoordensfejl', () => {
     await user.tab();
 
     await waitFor(() => {
-      const sections = binding.getSettled().input.sections;
+      const sections = binding.read.getSettled().input.sections;
       expect(stamdataSkadelidteFodselsdatoField.readCanonical(
         sections,
         stamdataSkadelidteFodselsdatoField.bind().address
@@ -68,7 +68,7 @@ describe('Stamdata — canonical datoordensfejl', () => {
       expect(fodselsdato).toHaveAttribute('aria-invalid', 'true');
       expect(skadedato).toHaveAttribute('aria-invalid', 'true');
     });
-    expect(binding.getIssues().all.map((issue) => issue.message)).toEqual(expect.arrayContaining([
+    expect(binding.read.getIssues().all.map((issue) => issue.message)).toEqual(expect.arrayContaining([
       'Skadedato kan ikke være før fødselsdatoen (01-01-2010)',
       'Fødselsdato kan ikke være efter skadedatoen (31-12-2009)',
     ]));

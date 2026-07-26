@@ -5,9 +5,16 @@
 export {
   createInputRuntimeBinding,
   InputRuntimeProvider,
-  useInputRuntime,
+  useDocumentInputAccess,
+  useInputEditPort,
+  useInputReadPort,
+  useInputSystemPort,
   useSettledSnapshot,
+  type DocumentInputAccess,
+  type InputEditPort,
+  type InputReadPort,
   type InputRuntimeBinding,
+  type InputSystemPort,
   type InputRuntimeProviderProps,
   type SettledSnapshot,
 } from './inputRuntimeContext';
@@ -19,5 +26,6 @@ export * from './useCellEditor';
 export * from './useGridCellSurface';
 export * from './useInputEvaluation';
 export * from './useCaseOperations';
+export * from './inputDiagnosticsProjection';
 export * from './useUndoRedoShortcuts';
 export * from './saveBlockedFocus';

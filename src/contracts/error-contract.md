@@ -219,3 +219,15 @@ notice og rapport-/skærmprintfilnavne.
 Reporter-/store-modellen er væk. Issues afledes rent fra `InputReader`, feltdescriptors og domænevalidatorer;
 der findes ingen skrivbar feltfejl-bus, ingen source-registre, ingen cleanup-effects, ingen syntetiske
 `invalid-draft`-entries og ingen mount-afhængige dokumentgates. Genindfør dem ikke.
+
+**EO's afledte issue-model følger nu dette (rettet i Fase 6's genåbning).** `EoInputIssue` er ÉT issue pr.
+feltnøgle: readerens `reason` bæres uændret videre, og blokerings-konsekvensen udledes strukturelt af severity
+(`eoIssueBlocksDependents`). Indtil Fase 6 bar modellen stadig den gamle algebra — en `source`-union med
+`'invalid-draft'`, et source-keyed map pr. felt og en prioriteret liste til at vælge mellem samtidige kilder —
+selvom `InputReader.read` kun kan give ét issue pr. felt. Dimensionen var altså tom, men downstream-rækkemodellen
+skulle alligevel folde den ud. Følgende navne er derfor forbudt som identifiers (`legacy/forbidden-identifier`):
+`EoInputIssueSource`, `EoFieldIssuesBySource`, `collectPresentFieldErrors`, `blocksSave`.
+
+Den autoritative dependency-gating læser fortsat de STRUKTURELLE `FieldIssue`-adresser fra readerens
+issue-snapshot, ikke feltnøgle-mappet: mappet er en præsentationsprojektion over top-level felter og kan ikke se
+en rød rækkecelle.

@@ -16,7 +16,7 @@ import {
   useDocumentSourceContext,
   type DocumentDownloadHandle,
 } from '../../../document/definition/react/useDocumentDownload';
-import { useInputEvaluation, useInputRuntime } from '../../../inputCore/react';
+import { useDocumentInputAccess, useInputEvaluation } from '../../../inputCore/react';
 import { createStandaloneDocumentEnvironment } from './standaloneDocumentEnvironment';
 
 /** Render-tidens delte kildekontekst. `settings` er `undefined`: standalone har ingen indstillinger. */
@@ -32,7 +32,7 @@ export const useStandaloneDocumentOutput = <TInput, TRequest>(
   gateRequest: NoInfer<TRequest>,
   context: DocumentSourceContext<void>
 ): DocumentDownloadHandle<TRequest> => {
-  const runtime = useInputRuntime();
+  const runtime = useDocumentInputAccess();
   const environment = React.useMemo(
     () => createStandaloneDocumentEnvironment(runtime),
     [runtime]

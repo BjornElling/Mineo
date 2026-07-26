@@ -24,7 +24,7 @@ import {
 import type { InputRevision } from '../evaluationSource';
 import type { SettledInput } from '../settledInput';
 import { parseCurrentEnvelope, serializeCurrentEnvelope } from './currentSessionEnvelope';
-import { claimInputWriteAuthority, type SlimInputStore, type SlimInputStoreState } from './slimInputStore';
+import type { SlimInputStore, SlimInputStoreState } from './slimInputStore';
 
 // Greenfield-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer — felt, række, system og
 // history — går gennem `dispatchInput`. Den bygger kandidaten med den rene reducer/history, serialiserer den ene
@@ -184,15 +184,12 @@ const commitCandidate = (
     if (readSessionStorageValue(key) !== serialized) {
       throw new Error('Inputenvelopen kunne ikke genlæses byte-for-byte efter skrivning.');
     }
-    store.getState().applyCommit(
-      {
-        input: persisted,
-        history: nextHistory,
-        committedAt,
-        authoritativeReplacement: force,
-      },
-      claimInputWriteAuthority()
-    );
+    store.applyCommit({
+      input: persisted,
+      history: nextHistory,
+      committedAt,
+      authoritativeReplacement: force,
+    });
   } catch (error) {
     const rollbackErrors: Error[] = [];
     let storageRollbackVerified = false;
@@ -218,7 +215,7 @@ const commitCandidate = (
         // applyCommit kan have gennemført sit set, før en subscriber kastede. Gendan hele før-snapshot'et, så
         // storage og runtime aldrig efterlades ude af sync. Kan storage-rollback ikke bevises, blokeres alle
         // efterfølgende writes fail-closed, indtil brugeren vælger den autoritative "Slet alt"-handling.
-        store.setState(restoredStoreState, true);
+        store.restore(restoredStoreState);
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError)));
       }

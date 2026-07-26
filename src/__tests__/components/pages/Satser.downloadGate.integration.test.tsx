@@ -12,7 +12,7 @@ import Satser from '../../../components/pages/Satser';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { satserAngivAarYearBounds } from '../../../data/lovbestemteRates';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
   ProductionInputRuntimeProvider,
@@ -44,7 +44,7 @@ const hydrateCommittedAargang = (aargang: number): void => {
     },
     rejectedInputs: {},
   });
-  slimInputStore.getState().hydrate(input, __testInputWriteAuthority());
+  slimInputStore.hydrate(input);
 };
 
 const renderSatser = (committedAargang: number) => {

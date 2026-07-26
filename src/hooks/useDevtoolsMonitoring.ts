@@ -33,7 +33,7 @@ const parseNonNegativeInteger = (value: string | null): number | null => {
 
 type UseDevtoolsMonitoringArgs = {
   getPersistedData: <K extends PersistedSectionKey>(pageKey: K) => unknown;
-  getFieldErrorsBySource: <K extends PersistedSectionKey>(pageKey: K) => unknown;
+  getSectionFieldIssues: <K extends PersistedSectionKey>(pageKey: K) => unknown;
   location: Location;
 };
 
@@ -46,7 +46,7 @@ type UseDevtoolsMonitoringResult = {
 
 export const useDevtoolsMonitoring = ({
   getPersistedData,
-  getFieldErrorsBySource,
+  getSectionFieldIssues,
   location,
 }: UseDevtoolsMonitoringArgs): UseDevtoolsMonitoringResult => {
   const [devtoolsSnapshot, setDevtoolsSnapshot] = React.useState<DevtoolsIssueSnapshot | null>(null);
@@ -156,7 +156,7 @@ export const useDevtoolsMonitoring = ({
 
     const fieldErrorsSnapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
       const pageKey = key as PersistedSectionKey;
-      acc[pageKey] = getFieldErrorsBySource(pageKey);
+      acc[pageKey] = getSectionFieldIssues(pageKey);
       return acc;
     }, {} as Record<PersistedSectionKey, unknown>);
 
@@ -176,7 +176,7 @@ export const useDevtoolsMonitoring = ({
       { title: 'Persisted brugerinput (schema-valideret)', data: persistedSnapshot },
       { title: 'Field errors (by source)', data: fieldErrorsSnapshot },
     ];
-  }, [getFieldErrorsBySource, getPersistedData, location.hash, location.pathname, location.search]);
+  }, [getSectionFieldIssues, getPersistedData, location.hash, location.pathname, location.search]);
 
   return {
     devtoolsSnapshot,

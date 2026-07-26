@@ -9,7 +9,7 @@ import {
   bootstrapProductionInputRuntime,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react/productionInputRuntime';
-import { slimInputStore, __testInputWriteAuthority } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import type { DevtoolsIssue, DevtoolsIssueSnapshot } from '../../../utils/devtoolsMonitor';
 
@@ -94,7 +94,7 @@ describe('MainLayout (devtools notice persistence)', () => {
     sessionStorage.clear();
     vi.clearAllMocks();
     devtoolsMocks.getDevtoolsIssueSnapshot.mockReturnValue(buildSnapshot([]));
-    slimInputStore.getState().hydrate(emptyInput(), __testInputWriteAuthority());
+    slimInputStore.hydrate(emptyInput());
   });
 
   afterEach(() => {

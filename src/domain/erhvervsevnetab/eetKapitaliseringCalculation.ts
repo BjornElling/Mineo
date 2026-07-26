@@ -617,4 +617,4 @@ export const computeEetKapitaliseringCalculation = (
   };
 };
 
-export { formatPct as formatKapitaliseringsPct } from './eetLoebendeYdelserCalculation';
+export { formatPct as formatKapitaliseringsPct } from './eetFormatUtils';

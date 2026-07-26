@@ -23,7 +23,7 @@ import {
   type EditorDispatch,
 } from '../editor/fieldEditorEngine';
 import type { EditorSettleIntent } from '../editor/fieldEditorState';
-import { useInputRuntime, useSettledSnapshot } from './inputRuntimeContext';
+import { useInputEditPort, useInputReadPort, useSettledSnapshot } from './inputRuntimeContext';
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 import { fieldAddressesEqual } from '../fieldAddress';
 
@@ -91,12 +91,13 @@ export const useFieldEditor = <T>(
   settleOverride?: SettleCommandOverride<T>,
   immediateCommitOverride?: ImmediateCommitOverride<T>
 ): FieldEditorController<T> => {
-  const runtime = useInputRuntime();
+  const read = useInputReadPort();
+  const edit = useInputEditPort();
   const snapshot = useSettledSnapshot();
   // Feltissues kan flytte sig ved en settingsrevision uden en inputrevision. Et særskilt abonnement på det
   // tokenbundne issue-snapshot sikrer derfor, at den røde feltvisning ikke bliver stale, blot fordi det
   // afsluttede input er uændret.
-  const issueSnapshot = useSyncExternalStore(runtime.subscribe, runtime.getIssues, runtime.getIssues);
+  const issueSnapshot = useSyncExternalStore(read.subscribe, read.getIssues, read.getIssues);
 
   const [state, setState] = React.useState<FieldEditorState<T>>(() => createClosedEditor(field, location));
   const sameEditorIdentity = state.field.descriptor.id === field.descriptor.id
@@ -153,11 +154,11 @@ export const useFieldEditor = <T>(
     const dispatch = override !== undefined ? override(intent) : settleIntentToCommand(intent);
     // Bevar editor og draft fuldt aktive, hvis den atomiske runtime-transaktion fejler. Ellers kunne registryet
     // tro, at feltet var lukket, mens brugeren stadig så den fejlende draft, og næste kritiske handling passere.
-    if (dispatch !== null) runtime.dispatch(dispatch.command, dispatch.origin);
+    if (dispatch !== null) edit.dispatch(dispatch.command, dispatch.origin);
     latest.current = { ...latest.current, state: next };
     closeActiveRegistration();
     setState(next);
-  }, [closeActiveRegistration, runtime]);
+  }, [closeActiveRegistration, edit]);
 
   const cancel = React.useCallback(() => {
     // Opdatér den imperative ref synkront. Escape kan efterfølges af blur i samme browser-task, før React har
@@ -181,7 +182,7 @@ export const useFieldEditor = <T>(
 
       // Registreringen er en synkron del af editoråbningen. En programmatisk save/navigation i samme task må
       // ikke kunne passere i vinduet før en React-effect.
-      const unregister = runtime.registry.register({
+      const unregister = edit.registry.register({
         id: location.locationId,
         isEditing: () => isEditorOpen(latest.current.state),
         settle,
@@ -192,7 +193,7 @@ export const useFieldEditor = <T>(
       latest.current = { ...latest.current, state: next };
       setState(next);
     },
-    [cancel, location.locationId, runtime.registry, settle]
+    [cancel, location.locationId, edit.registry, settle]
   );
 
   const changeDraftCallback = React.useCallback((draft: string) => {
@@ -203,8 +204,8 @@ export const useFieldEditor = <T>(
 
   const clearImmediate = React.useCallback(() => {
     const dispatch = immediateClearCommand(field, latest.current.view, location);
-    if (dispatch !== null) runtime.dispatch(dispatch.command, dispatch.origin);
-  }, [field, location, runtime]);
+    if (dispatch !== null) edit.dispatch(dispatch.command, dispatch.origin);
+  }, [field, location, edit]);
 
   const commitImmediate = React.useCallback(
     (value: T) => {
@@ -215,7 +216,7 @@ export const useFieldEditor = <T>(
       // `settleFieldInNewRow`. Returnerer override'et `null`, sker der intet dispatch (intet at oprette).
       const override = latest.current.immediateCommitOverride;
       const dispatch = override !== undefined ? override(value) : immediateCommitCommand(field, value, location);
-      if (dispatch !== null) runtime.dispatch(dispatch.command, dispatch.origin);
+      if (dispatch !== null) edit.dispatch(dispatch.command, dispatch.origin);
       if (isEditorOpen(current)) {
         const closed = cancelEditor(current);
         latest.current = { ...latest.current, state: closed };
@@ -223,7 +224,7 @@ export const useFieldEditor = <T>(
         setState(closed);
       }
     },
-    [closeActiveRegistration, field, location, runtime]
+    [closeActiveRegistration, field, location, edit]
   );
 
   const open_ = isEditorOpen(boundState);

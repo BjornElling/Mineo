@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useInputRuntime } from './inputRuntimeContext';
+import { useInputSystemPort } from './inputRuntimeContext';
 import { useCriticalInputActions } from './useInputEvaluation';
 import type { HistoryOrigin } from '../inputHistory';
 
@@ -21,7 +21,7 @@ export type UseUndoRedoShortcutsOptions = Readonly<{
 export const useUndoRedoShortcuts = (
   options: UseUndoRedoShortcutsOptions = {}
 ): void => {
-  const runtime = useInputRuntime();
+  const system = useInputSystemPort();
   const criticalActions = useCriticalInputActions();
 
   // Hold den seneste onRestore i en ref, så keydown-effekten ikke skal genbindes (og vinduets listener
@@ -42,7 +42,7 @@ export const useUndoRedoShortcuts = (
       void criticalActions.prepare(action).then((preparation) => {
         // Åben editor er et stille no-op (§1.4): coordinatoren returnerer `noop`, og history røres ikke.
         if (preparation.status !== 'committed') return;
-        const result = isUndo ? runtime.history.undo() : runtime.history.redo();
+        const result = isUndo ? system.history.undo() : system.history.redo();
         // Kun sat efter en gennemført restore med en origin (§3.7) → naviger/fokusér. Tom/fejlende restore: intet.
         if (result.restoredOrigin !== undefined) {
           onRestoreRef.current?.(result.restoredOrigin);
@@ -54,5 +54,5 @@ export const useUndoRedoShortcuts = (
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [criticalActions, runtime.history]);
+  }, [criticalActions, system.history]);
 };
