@@ -32,6 +32,7 @@ import {
   useCollectionCellSpecBuilder,
   type CollectionRenderRow as RenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
+import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   GridAmountCell,
@@ -229,37 +230,16 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
     // Greenfield persisterer ikke tomme rækker. Den viste tabel = de committede rækker + en trailing placeholder-
-    // række til næste indtastning + evt. flere placeholders op til MIN_VISIBLE_ROWS. Hver placeholder-rækkes
-    // celler oprettes atomisk ved første ikke-tomme settle. Placeholder-id'erne er stabile pr. slot (useRef), så
-    // en åben celleeditor ikke skifter identitet under redigering; efter en promotion (rækken dukker op i
-    // committede rækker) nulstilles slottens id, så den næste tomme placeholder får et nyt stabilt id.
-    const placeholderIdsRef = React.useRef<string[]>([]);
+    // række til næste indtastning + evt. flere placeholders op til MIN_VISIBLE_ROWS.
+    //
+    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14): id'et er stabilt pr. slot, så en
+    // åben celleeditor ikke skifter identitet under redigering, OG et promoveret id bevares, så det kan
+    // genindtræde efter et undo — ellers mister fokusrestoren sit mål (UT-F03). Tabellen havde tidligere sin
+    // egen kopi af proceduren.
     const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
-    // Antal placeholder-slots: altid mindst én trailing tom, og nok til at nå MIN_VISIBLE_ROWS.
     const placeholderCount = Math.max(1, MIN_VISIBLE_ROWS - committedRows.length);
-    // Genbrug stabile placeholder-id'er; ryd et id, hvis det er blevet promoveret (findes nu committed).
-    const placeholderIds = React.useMemo(() => {
-      const next: string[] = [];
-      let cursor = 0;
-      for (let i = 0; i < placeholderCount; i += 1) {
-        // Find næste ubrugte (endnu ikke committede) placeholder-id, ellers generér et nyt.
-        let id = placeholderIdsRef.current[cursor];
-        while (id !== undefined && committedIdSet.has(id)) {
-          cursor += 1;
-          id = placeholderIdsRef.current[cursor];
-        }
-        if (id === undefined) {
-          id = createRowId('row');
-          placeholderIdsRef.current[cursor] = id;
-        }
-        next.push(id);
-        cursor += 1;
-      }
-      // Trim overskydende gemte id'er (undgå ubegrænset vækst).
-      placeholderIdsRef.current = placeholderIdsRef.current.slice(0, cursor);
-      return next;
-      // committedIdSet driver re-evalueringen (efter en promotion); placeholderCount er afledt af committedRows.
-    }, [committedIdSet, placeholderCount]);
+    const createPlaceholderRowId = React.useCallback(() => createRowId('row'), []);
+    const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createPlaceholderRowId);
 
     const renderRows: readonly RenderRow[] = React.useMemo(() => [
       ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),

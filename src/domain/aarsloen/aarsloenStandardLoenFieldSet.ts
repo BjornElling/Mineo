@@ -12,13 +12,19 @@ import {
   aarsloenTableFpFvShSoBeloebField,
   aarsloenTablePensionBeloebField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
+import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
 import type { StandardLoenTableFieldSet } from '../../components/tables/standardLoenTableFieldSet';
-import {
-  aarsloenTableDataCollectionRef,
-  readAarsloenTableRows,
-  resolveStandardLoenTableValidation,
-} from './aarsloenProjection';
 import { createEmptyStandardLoenRow } from './standardLoenRowInitialValues';
+
+// Løntabellens collection-ref bor HER hos feltsættet og ikke i projektionen. Ellers ville projektionen —
+// som nu selv aftager feltsættets fælles rekonstruktion (GM-F15) — og feltsættet importere hinanden.
+
+/** Årslønnens løntabel: en TOP-LEVEL collection (ingen ejer-entity i stien). */
+export const aarsloenTableDataCollectionRef: CollectionRef = createCollectionRef({
+  section: 'aarsloen',
+  path: [],
+  collection: 'tableData',
+});
 
 export const aarsloenStandardLoenFieldSet: StandardLoenTableFieldSet = {
   collection: aarsloenTableDataCollectionRef,
@@ -35,6 +41,4 @@ export const aarsloenStandardLoenFieldSet: StandardLoenTableFieldSet = {
   fpFvShSoBeloeb: aarsloenTableFpFvShSoBeloebField,
   pensionBeloeb: aarsloenTablePensionBeloebField,
   createRow: createEmptyStandardLoenRow,
-  readRows: readAarsloenTableRows,
-  resolveValidation: resolveStandardLoenTableValidation,
 };

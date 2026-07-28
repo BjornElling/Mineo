@@ -23,6 +23,7 @@ import {
   useCollectionCellSpecBuilder,
   type CollectionRenderRow as RenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
+import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 import {
   GridDateCell,
   GridPercentCell,
@@ -239,32 +240,16 @@ const EetAslAfgoerelserTable = React.memo(
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
     // Greenfield persisterer ikke tomme rækker. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
     // det bevares som `max(1, 2 − antal committede)` placeholder-rækker (altid ≥1 trailing indtastnings-række).
-    // Placeholder-id'erne er stabile pr. slot (useRef), så en åben celleeditor ikke skifter identitet.
-    const placeholderIdsRef = React.useRef<string[]>([]);
+    //
+    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14) — tabellen havde tidligere sin egen
+    // kopi. Ud over at fjerne duplikationen bevarer den delte pulje et promoveret id, så det kan genindtræde
+    // efter et undo; ellers mister fokusrestoren sit mål (UT-F03).
     const committedIdSet = React.useMemo(
       () => new Set(sortedCommittedRows.map((row) => row.id)),
       [sortedCommittedRows]
     );
     const placeholderCount = Math.max(1, EET_ASL_MIN_VISIBLE_ROWS - sortedCommittedRows.length);
-    const placeholderIds = React.useMemo(() => {
-      const next: string[] = [];
-      let cursor = 0;
-      for (let i = 0; i < placeholderCount; i += 1) {
-        let id = placeholderIdsRef.current[cursor];
-        while (id !== undefined && committedIdSet.has(id)) {
-          cursor += 1;
-          id = placeholderIdsRef.current[cursor];
-        }
-        if (id === undefined) {
-          id = createAslAfgoerelseRowId();
-          placeholderIdsRef.current[cursor] = id;
-        }
-        next.push(id);
-        cursor += 1;
-      }
-      placeholderIdsRef.current = placeholderIdsRef.current.slice(0, cursor);
-      return next;
-    }, [committedIdSet, placeholderCount]);
+    const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createAslAfgoerelseRowId);
 
     const renderRows: readonly RenderRow[] = React.useMemo(() => [
       ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),

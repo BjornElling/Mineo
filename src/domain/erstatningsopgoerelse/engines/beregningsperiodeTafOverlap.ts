@@ -1,15 +1,14 @@
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
-
-export type ClosedDateRange = Readonly<{
-  fra: ISODateString;
-  til: ISODateString;
-}>;
-
-export type OptionalClosedDateRange = Readonly<{
-  fra: ISODateString | undefined;
-  til: ISODateString | undefined;
-}>;
+// Intervalalgebraen er IKKE EO-specifik og bor derfor ét kanonisk sted (`utils/closedDateRange`, GM-F15).
+// Modulet her ejer kun den EO-specifikke overlapsREGEL og dens brugerbesked. Der re-eksporteres bevidst
+// INTET: to importstier til samme primitiv ville være netop den parallelitet, fundet handler om.
+import {
+  isValidClosedDateRange,
+  rangesOverlap,
+  type ClosedDateRange,
+  type OptionalClosedDateRange,
+} from '../../../utils/closedDateRange';
 
 export type PeriodRow = Readonly<{
   id: string;
@@ -21,11 +20,6 @@ const formatISOForMessage = (iso: ISODateString): string => isoToDanish(iso) ?? 
 
 const formatRange = (range: ClosedDateRange): string =>
   `${formatISOForMessage(range.fra)} - ${formatISOForMessage(range.til)}`;
-
-export const isValidClosedDateRange = (range: OptionalClosedDateRange): range is ClosedDateRange =>
-  range.fra !== undefined && range.til !== undefined && range.fra <= range.til;
-
-export const rangesOverlap = (a: ClosedDateRange, b: ClosedDateRange): boolean => a.fra <= b.til && b.fra <= a.til;
 
 export const buildBeregningsperiodeTafOverlapErrorMessage = (args: {
   beregningsperiode: ClosedDateRange;

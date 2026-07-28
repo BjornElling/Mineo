@@ -9,7 +9,7 @@ import type { FieldDescriptor } from '../../../inputCore/fieldDescriptor';
 import { aarsloenTableCol0MaanedField } from '../../../inputCore/catalog/aarsloenDescriptors';
 import { eoStandardRowFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { eoStandardLoenCollectionRef } from '../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
-import { aarsloenTableDataCollectionRef } from '../../../domain/aarsloen/aarsloenProjection';
+import { aarsloenTableDataCollectionRef } from '../../../domain/aarsloen/aarsloenStandardLoenFieldSet';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
 // Den fælles cellebindingskontrakt (§3.2, §1.11). Kernekravet: en celles dataidentitet er descriptoren bundet til

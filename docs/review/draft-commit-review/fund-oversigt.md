@@ -11,10 +11,10 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
 | R0–R8 (fasefund) | 36 | 28 | 8 | 0 |
-| GM (konvergensreview) | 15 | 7 | 7 (1 delvist) | 0 |
-| UT (brugertest) | 6 | 3 | 2 | 1 |
-| INC (tilfældighedsfund) | 5 | 0 | 5 | 0 |
-| **I alt** | **62** | **38** | **22 (+1 delvist)** | **1** |
+| GM (konvergensreview) | 15 | 5 | 10 | 0 |
+| UT (brugertest) | 6 | 2 | 3 | 1 |
+| INC (tilfældighedsfund) | 7 | 0 | 7 | 0 |
+| **I alt** | **64** | **35** | **28** | **1** |
 
 ## Bindende regel for tilfældighedsfund
 
@@ -49,7 +49,7 @@ en etape rettes og verificeres sammen.
 | **3** | R6-F01, GM-F11, R6-F02 | Trust-kritisk dokumentvej: et frisk token bindes til render-fangede settings (kan producere output fra en forældet kilde), og otte flader skjuler udfaldsbeskeden. Alle i dokumenthandle-laget. R6-F02 er GM-F11 fra reviewets egen vinkel og blev derfor rettet her frem for i sin oprindelige placering. Rettet 2026-07-28. |
 | **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02, GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Lukket 2026-07-28 i to pas — se etapenoterne nedenfor. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. Lukket 2026-07-28 — se etapenoten nedenfor. |
-| **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. |
+| **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. Lukket 2026-07-28 — se etapenoten nedenfor. |
 | **7** | UT-F02, UT-F06, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. |
 | **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. |
 | **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. |
@@ -121,13 +121,13 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 | GM-F11 | Dokumentfejl vises på nogle sider, men forsvinder på andre | Væsentlig | Dokumentførende side-callsites | 3 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f11--dokumentfejl-vises-på-nogle-sider-men-forsvinder-på-andre) |
 | GM-F12 | Slet alt og load afslutter hel-sags-replacement forskelligt | Mindre til væsentlig | `useFileSaveLoad.ts` | 8 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f12--slet-alt-og-load-afslutter-hel-sags-replacement-forskelligt) |
 | GM-F13 | Manuel load og PWA-load kopierer samme shellflow | Mindre | `useFileSaveLoad.ts`, `fileLoad.ts` | 8 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f13--manuel-load-og-pwa-load-kopierer-samme-shellflow) |
-| GM-F14 | Placeholder- og cellebindingsalgoritmen findes i fem udgaver | Væsentlig | Fem tabelimplementeringer | 6 | Delvist rettet | [GM](grill-me-konvergensreview.md#gm-f14--placeholder--og-cellebindingsalgoritmen-findes-i-fem-udgaver) |
-| GM-F15 | Løntabel-reads og intervaloverlap har parallelle primitiver | Mindre | Årsløn/EO-adaptere og intervalhelpers | 6 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f15--løntabel-reads-og-intervaloverlap-har-parallelle-primitiver) |
+| GM-F14 | Placeholder- og cellebindingsalgoritmen findes i fem udgaver | Væsentlig | Fem tabelimplementeringer | 6 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f14--placeholder--og-cellebindingsalgoritmen-findes-i-fem-udgaver) |
+| GM-F15 | Løntabel-reads og intervaloverlap har parallelle primitiver | Mindre | `closedDateRange.ts`, `standardLoenTableFieldSet.ts` | 6 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f15--løntabel-reads-og-intervaloverlap-har-parallelle-primitiver) |
 
-**GM-F14 — delvist rettet 2026-07-28:** cellebindings-halvdelen er samlet i
-`src/inputCore/react/cellSpecBuilder.ts` som led i UT-F04, og alle fem tabeller bruger den nu. Placeholder-
-identitetens livscyklus (stabile id'er, kollision efter promotion, `minimumVisibleRows`) findes fortsat i fem
-udgaver og hører til etape 6 sammen med UT-F03.
+**GM-F14 — lukket i to trin.** Cellebindings-halvdelen blev samlet i
+`src/inputCore/react/cellSpecBuilder.ts` som led i UT-F04 (etape 1). Placeholder-identitetens livscyklus blev
+samlet i `src/inputCore/react/placeholderSlots.ts` i etape 6 sammen med UT-F03 — samme mekanisme, og to af de
+fem udgaver var ikke blot duplikerede, men bar UT-F03's defekt.
 
 ## Brugertestfund (UT)
 
@@ -138,7 +138,7 @@ Indmeldt af brugeren ved brugertest parallelt med reviewet. Beskrivelse, reprodu
 |---|---|---|---|---:|---|---|
 | UT-F01 | Dags-dato-knappen springes over ved Tab | — | `InsertTodayDateButton.tsx:30-36` | — | Afvist med evidens | [UT](../draft-commit-brugertestfund.md#ut-f01--dags-dato-knappen-springes-over-ved-tab) |
 | UT-F02 | Enter på dropdown i tabel udløser grid-navigation | Væsentlig | `tableKeyboardNavigation.ts:311-380`, `GridChoiceCell.tsx` | 7 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f02--enter-på-dropdown-i-tabel-udløser-grid-navigation) |
-| UT-F03 | Undo af en rækkes første commit mister cellefokus | Væsentlig | `useCollectionTable.ts:50-55`, `historyRestoreTarget.ts:64-70` | 6 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f03--undo-af-en-rækkes-første-commit-mister-cellefokus) |
+| UT-F03 | Undo af en rækkes første commit mister cellefokus | Væsentlig | `placeholderSlots.ts` (afløser fem udgaver) | 6 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f03--undo-af-en-rækkes-første-commit-mister-cellefokus) |
 | UT-F04 | Tilføjelse af ansættelsesforhold crasher den nested løntabel | Kritisk | `useCellEditor.ts`, fem tabelflader | 1 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f04--tilføjelse-af-ansættelsesforhold-crasher-den-nested-løntabel) |
 | UT-F05 | Dags-dato-knappen sender en ulovlig immediate-kommando | Væsentlig | `useFieldEditor.commitImmediate`, fem side-callsites | 2 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f05--dags-dato-knappen-sender-en-ulovlig-immediate-kommando) |
 | UT-F06 | Års-placeholder viser en valideringsgrænse | Mindre | `StandardLoenTable.tsx` | 7 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f06--års-placeholder-viser-en-valideringsgrænse) |
@@ -202,6 +202,8 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F03 | Mit eget nye AST-værn var tekstbaseret og kunne bæres af en kommentar | Væsentlig | R6-F02 | **Rettet 2026-07-28** |
 | INC-F04 | EO's `documentStamdata` var tildelt, men aldrig læst | Væsentlig | R3-F02 | **Rettet 2026-07-28** |
 | INC-F05 | Effect-write-værnet var grønt af tomhed på alle fire mønstre OG sin allowlist | Væsentlig | GM-F02 | **Rettet 2026-07-28** |
+| INC-F06 | `OevrigeKravTable` bar en femte kopi af den DEFEKTE enkelt-id-placeholdermodel | Væsentlig | UT-F03 | **Rettet 2026-07-28** |
+| INC-F07 | Row-id-værnet bevogtede en slettet arkitektur og modsagde sin egen første assertion | Væsentlig | GM-F14 | **Rettet 2026-07-28** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -400,3 +402,64 @@ blokeringskilde; typegrænsen er det, der lukker fundet. Det står i testens ege
 senere læses som stærkere evidens end den er.
 
 Fire gates + `verify:ledgers` + fuld suite grøn: 499 filer / 6275 tests.
+
+**INC-F06.** UT-F03's analyse navngav `OevrigeKravTable` som "en syvende berørt tabel" med "en lokal kopi af
+den samme enkelt-id-model", men klassificerede den under de tabeller, hvis adfærd "ikke er påvist ramt".
+Efterprøvningen viste, at den var ramt på samme måde som `useCollectionTable`: `placeholderIdRef` er ét enkelt
+id, som overskrives i det øjeblik id'et dukker op blandt de committede rækker — altså præcis ved
+promoveringen, hvis undo skal kunne fokusere cellen.
+
+Sondringen i analysen var mellem tabeller med en PULJE (de tre større, korrekte) og tabeller med ét id.
+`OevrigeKravTable` hørte til den anden gruppe, ikke den første. Fundet er registreret frem for blot rettet,
+fordi det ændrer hvor mange flader defekten havde: syv, ikke seks.
+
+**INC-F07.** `gridRowIdContractGuard` var det ENESTE værn om grid-tabellernes row-id-fundament. Det bevogtede
+to historiske fejlklasser gennem `normalizeGridRows` og `reconcileGridRowIdentityForRestore` — men begge
+funktioner havde nul produktionscallsites og blev holdt i live af tre testfiler.
+
+Værnet modsagde sig selv: dens FØRSTE assertion hed "ingen produktionstabel bruger længere den legacy
+`normalizeGridRows`-ejede værdikopi" og hævdede `gridTableFiles` var tom — hvorefter de to følgende assertions
+itererede over netop den tomme liste og derfor ikke kunne fejle. Determinismekravet, det håndhævede
+(`createEmptyRowId`), var desuden ikke en universel regel men en konsekvens af, at id'et blev dannet inde i en
+StrictMode-dobbelt-invokeret `setState`-updater — en mekanisme, greenfield ikke har.
+
+Værnet er omskrevet til at måle den LEVENDE model: at legacy-navnene ikke er genindført (fraværsværn, som
+bevidst udelader sig selv), at ingen tabel har sin egen placeholder-pulje, at mindst fire tabeller faktisk
+BRUGER den delte (positiv kontrol mod tomhed), plus en runtime-bekræftelse af unikhed + genindtræden. Fundet
+er registreret frem for blot rettet, fordi det er en tredje variant af R0-F02's fejlklasse: her var det
+hverken proben eller allowlisten men VÆRNETS MÅL, der var slettet — og værnet sagde det selv i sin første
+assertion uden at nogen læste det som et signal.
+
+**UT-F03 + GM-F14 + GM-F15 — rettet 2026-07-28 (etape 6).** Tabel- og placeholderkernen.
+
+*Én bevarende placeholder-identitet (UT-F03/GM-F14).* Rodårsagen var ikke, at fokusrestoren glemte at kalde
+`focus()` — den fik et mål, tabellen havde gjort umuligt at finde. `useCollectionTable` huskede kun det
+SENESTE placeholder-id, så efter en promotion fandtes den identitet, history-originen peger på, ikke længere i
+DOM. `usePlaceholderSlotIds` er nu den ene livscyklus: et slots id er stabilt, indtil slottet forsvinder, og
+et promoveret id BEVARES, så det genindtræder, hvis rækken fjernes igen.
+
+Alle fem implementeringer er migreret, og `minimumVisibleRows` bærer den eneste saglige forskel — antallet af
+synlige tomme rækker begrunder ikke en kopi af identitetsalgoritmen. Puljen er generaliseret fra de tre større
+tabellers EKSISTERENDE, korrekte adfærd frem for at være en tredje model, præcis som analysen krævede.
+
+Den døde alias-arkitektur fulgte med: `reconcileGridRowIdentityForRestore`, `normalizeGridRows` og
+`createEmptyRowId` er slettet sammen med deres tests (se INC-F07).
+
+*To kanoniske primitiver (GM-F15).* `utils/closedDateRange.ts` ejer det lukkede datointerval og dets
+overlapsprædikat, som lå i fire udgaver. `standardLoenTableFieldSet.ts` ejer løntabellens rekonstruktion og
+cellefejl-indsamling, som lå i to. Sidstnævnte blev mulig, fordi ejer-id'erne står i collectionens sti: den
+nyudskilte `bindCollectionCell` er nu ÉT udtryk, som både celleditoren og reader-adapteren bruger — cellen
+læses på præcis den adresse, den redigeres på.
+
+Ingen talpåvirkning: begge er beregningskædens indgang, og hele EO-domænesuiten plus den fulde suite er grøn
+uden et enkelt regenereret golden-snapshot.
+
+**Dækning og mutationsbevis:** `placeholderSlots.test.ts` (8 tests, livscyklussen som ren funktion),
+`placeholderPromotionUndoFocus.integration.test.tsx` (4 tests gennem den ÆGTE `useCollectionTable`, de ægte
+celler og den ægte runtime — den kæde ingen eksisterende test krydsede), det omskrevne
+`gridRowIdContractGuard`, og `closedDateRange.test.ts` (11 tests, flyttet med primitivet). Mutationsbevis:
+gendannes den gamle "kast det promoverede id væk"-model, fejler 7 af 12 tests — alle fire integrationstests
+plus de tre livscyklus-tests, der hævder genindtræden; en genindført lokal `placeholderIdRef` gør
+struktur-guarden rød med fil:linje.
+
+Fire gates + `verify:ledgers` + fuld suite grøn: 500 filer / 6258 tests.

@@ -7,6 +7,7 @@ import {
   useCollectionCellSpecBuilder,
   type CollectionRenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
+import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 
 export type RenderRow = CollectionRenderRow;
 
@@ -23,12 +24,20 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   createEmptyRow,
   locationPrefix,
   locationNav,
+  minimumVisibleRows = 1,
 }: Readonly<{
   collection: CollectionRef;
   committedRows: readonly TRow[];
   createRowId: () => string;
   createEmptyRow: (id: string) => TRow;
   locationPrefix: string;
+  /**
+   * Mindste antal rækker, tabellen viser i alt (committede + tomme). Default 1 = altid præcis én trailing tom
+   * række. Et højere tal er en ren VISNINGSregel og påvirker aldrig, hvad der persisteres — tomme rækker
+   * gemmes ikke. Parameteren findes, fordi antalsreglen er den eneste saglige forskel mellem tabellerne; den
+   * begrunder ikke en egen kopi af identitets- og bindingsalgoritmen (GM-F14).
+   */
+  minimumVisibleRows?: number;
   /**
    * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
    * bor på. Kalderen leverer den, fordi tabellen ikke kan udlede route af `locationPrefix`.
@@ -49,20 +58,17 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
     tabKey: locationNav.tabKey,
   });
   const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
-  const placeholderIdRef = React.useRef<string | undefined>(undefined);
-  const placeholderId = React.useMemo(() => {
-    let id = placeholderIdRef.current;
-    if (id === undefined || committedIdSet.has(id)) {
-      id = createRowId();
-      placeholderIdRef.current = id;
-    }
-    return id;
-  }, [committedIdSet, createRowId]);
+  // Altid mindst én trailing tom række, og nok til at nå `minimumVisibleRows`.
+  const placeholderCount = Math.max(1, minimumVisibleRows - committedRows.length);
+  // Den ENE placeholder-identitets-livscyklus (§1.11/§3.7): puljen BEVARER et promoveret id, så det kan
+  // genindtræde, hvis rækken forsvinder ved et undo — ellers findes der intet element, fokusrestoren kan
+  // matche på, og fokus forlader lydløst tabellen (UT-F03).
+  const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createRowId);
 
   const renderRows = React.useMemo<readonly RenderRow[]>(() => [
     ...committedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-    { rowId: placeholderId, kind: 'placeholder' as const },
-  ], [committedRows, placeholderId]);
+    ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
+  ], [committedRows, placeholderIds]);
   const committedById = React.useMemo(
     () => new Map(committedRows.map((row) => [row.id, row])),
     [committedRows]

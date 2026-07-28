@@ -24,6 +24,7 @@ import {
   useCollectionCellSpecBuilder,
   type CollectionRenderRow as RenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
+import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 import {
   GridAmountCell,
   GridDateCell,
@@ -124,21 +125,16 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
   });
 
   // ── Trailing placeholder-række (§1.11) ──────────────────────────────────────
-  const placeholderIdRef = React.useRef<string | undefined>(undefined);
+  // Den DELTE identitets-livscyklus (GM-F14). Tabellen havde en lokal kopi af den ENKELT-id-model, der
+  // overskrev sit eneste huskede placeholder-id ved en promotion — samme defekt som `useCollectionTable`s,
+  // altså en femte berørt tabel (UT-F03). Puljen bevarer id'et, så det kan genindtræde efter et undo.
   const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
-  const placeholderId = React.useMemo(() => {
-    let id = placeholderIdRef.current;
-    if (id === undefined || committedIdSet.has(id)) {
-      id = createOevrigeKravRowId();
-      placeholderIdRef.current = id;
-    }
-    return id;
-  }, [committedIdSet]);
+  const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createOevrigeKravRowId);
 
   const renderRows: readonly RenderRow[] = React.useMemo(() => [
     ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-    { rowId: placeholderId, kind: 'placeholder' as const },
-  ], [sortedCommittedRows, placeholderId]);
+    ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
+  ], [sortedCommittedRows, placeholderIds]);
 
   const committedById = React.useMemo(
     () => new Map(sortedCommittedRows.map((row) => [row.id, row])),

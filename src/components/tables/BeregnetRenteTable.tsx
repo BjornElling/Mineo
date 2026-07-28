@@ -31,6 +31,7 @@ import {
   useCollectionCellSpecBuilder,
   type CollectionRenderRow as RenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
+import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   GridAmountCell,
@@ -266,32 +267,13 @@ const BeregnetRenteTable = React.memo(
     });
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
-    // Greenfield persisterer ikke tomme rækker. Den viste tabel = de committede rækker + en trailing placeholder.
-    // Placeholder-id'et er stabilt pr. slot (useRef), så en åben celleeditor ikke skifter identitet under redigering.
-    const placeholderIdsRef = React.useRef<string[]>([]);
+    // Greenfield persisterer ikke tomme rækker. Legacy viste altid præcis én trailing tom række
+    // (ensureRowsWithTrailingEmpty); den trailing placeholder er nu den ene indtastningsklare række.
+    //
+    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14) — tabellen havde tidligere sin egen
+    // kopi. Puljen bevarer et promoveret id, så det kan genindtræde efter et undo (UT-F03).
     const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
-    // Legacy viste altid præcis én trailing tom række (ensureRowsWithTrailingEmpty). Greenfield persisterer ikke
-    // tomme rækker, så den trailing placeholder er den ene indtastningsklare række.
-    const placeholderCount = 1;
-    const placeholderIds = React.useMemo(() => {
-      const next: string[] = [];
-      let cursor = 0;
-      for (let i = 0; i < placeholderCount; i += 1) {
-        let id = placeholderIdsRef.current[cursor];
-        while (id !== undefined && committedIdSet.has(id)) {
-          cursor += 1;
-          id = placeholderIdsRef.current[cursor];
-        }
-        if (id === undefined) {
-          id = createRentekravRowId();
-          placeholderIdsRef.current[cursor] = id;
-        }
-        next.push(id);
-        cursor += 1;
-      }
-      placeholderIdsRef.current = placeholderIdsRef.current.slice(0, cursor);
-      return next;
-    }, [committedIdSet, placeholderCount]);
+    const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createRentekravRowId);
 
     const renderRows: readonly RenderRow[] = React.useMemo(() => [
       ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),

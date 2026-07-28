@@ -40,7 +40,7 @@ bærer den samlede tælling og rettelsesrækkefølgen.
 |---|---|---|---|---|
 | UT-F01 | Dags-dato-knappen springes over ved Tab | Tilsigtet eksisterende adfærd | Ingen fejl registreret | Afvist med evidens |
 | UT-F02 | Enter på dropdown i tabel flytter en række ned | Genskabt | Tværgående dropdown-/grid-integration | Åbent |
-| UT-F03 | Undo af den sidste værdi i en tabelrække mister cellefokus | Genskabt | Fælles placeholder-/history-integration | Åbent |
+| UT-F03 | Undo af den sidste værdi i en tabelrække mister cellefokus | Genskabt | Fælles placeholder-/history-integration | **Rettet 2026-07-28** |
 | UT-F04 | Tilføjelse af ansættelsesforhold udløser React-crash | Genskabt | Nested feltbinding i fælles tabel-/celleinfrastruktur | **Rettet 2026-07-28** |
 | UT-F05 | Dags-dato-knappen udløser `setImmediateField`-fejl | Fejlmekanisme genskabt | Fælles feltkommandokontrakt og fem knapintegrationer | **Rettet 2026-07-28** |
 | UT-F06 | Års-placeholder viser en valideringsgrænse | Genskabt | Placeholder-ejerskab i den fælles feltfamilie | Åbent |
@@ -716,4 +716,56 @@ gendannes korrekt; der er ikke observeret datatab eller påvirkning af beregning
 **Kræver godkendelse:** Nej. Den ønskede fokusadfærd er udtrykkeligt fastlagt af brugeren i indmeldingen og er
 allerede normativ i `undo-redo-contract.md`.
 
-**Status:** Åbent; analyse gennemført, ikke implementeret.
+**Status: Rettet 2026-07-28** (etape 6, sammen med GM-F14 — samme mekanisme).
+
+**Løsning: én delt, BEVARENDE placeholder-identitets-livscyklus.** Analysen pegede præcist på årsagen —
+`useCollectionTable` kunne kun huske det SENESTE placeholder-id og kunne derfor ikke demotere et fjernet
+række-id tilbage til dets oprindelige identitet. `usePlaceholderSlotIds`
+(`src/inputCore/react/placeholderSlots.ts`) er nu den ene livscyklus: hvert slot husker sit id, OGSÅ efter at
+id'et er blevet committet, så forsvinder det igen fra de committede rækker (undo), genindtræder det på sin
+oprindelige plads med præcis den identitet, `findRestoreTarget` leder efter.
+
+Reglen er formuleret som "et slots id er stabilt, indtil slottet forsvinder" — ikke "genbrug hvis muligt".
+Det gør også en åben celleeditor sikker: identiteten skifter ikke under redigering, heller ikke når en
+naborække promoveres.
+
+Analysens punkt 2 pegede på de tre større tabellers eksisterende puljeadfærd som "et konkret mønster, der
+skal vurderes og konsolideres frem for at skabe en tredje restore-model". Det er fulgt: puljen ER det mønster,
+generaliseret. Alle fem implementeringer er migreret — `useCollectionTable` (og dermed dens seks tabeller),
+`StandardLoenTable`, `EetAslAfgoerelserTable`, `BeregnetRenteTable` og `OevrigeKravTable`, hvis lokale kopi
+bar SAMME enkelt-id-defekt som `useCollectionTable` og altså var en femte berørt tabel. `minimumVisibleRows`
+bærer den eneste saglige forskel (antal synlige tomme rækker), så antalsreglen ikke længere begrunder en kopi
+af identitetsalgoritmen (GM-F14).
+
+Analysens punkt 3 er overholdt: der er INGEN fallback til "samme kolonne" via DOM-geometri eller
+streng-parsing af `editorLocationId`. Fokusrestoren matcher fortsat eksakt på feltadresse + editorlokation;
+det, der ændrede sig, er at målet nu KAN eksistere.
+
+**Punkt 4 — den døde alias-arkitektur — er fjernet.** `reconcileGridRowIdentityForRestore` (med sin
+`undoAliasRowIdsByRowId`-model) og `normalizeGridRows` havde nul produktionscallsites og blev holdt i live af
+tre testfiler. Begge er slettet sammen med `createEmptyRowId`, hvis determinismekrav var en egenskab ved
+netop den slettede mekanisme (id'et blev dannet i en dobbelt-invokeret `setState`-updater). `gridRowIdContract
+Guard` er omskrevet fra at bevogte den døde vej til at bevogte den levende — dens egen første assertion sagde
+i forvejen, at ingen produktionstabel brugte `normalizeGridRows`, mens de følgende assertions fortsat målte
+netop den.
+
+**Dækning:**
+- `placeholderSlots.test.ts` (8 tests): livscyklussen som ren funktion — stabilitet, promotion, genindtræden,
+  flere promoveringer i rækkefølge, flere slots, at naboslots bevarer id, og at puljen ikke vokser ubegrænset.
+- `placeholderPromotionUndoFocus.integration.test.tsx` (4 tests) gennem den ÆGTE `useCollectionTable`, de
+  ægte greenfield-celler og den ægte runtime: promotion → undo → `findRestoreTarget` finder cellen. Dækker
+  tekstcelle, immediate-commit-dropdown, to promoveringer med to undo, og en tabel med flere synlige tomme
+  rækker. Det var netop denne kæde, ingen eksisterende test krydsede.
+- `gridRowIdContractGuard` binder nu værnet til den levende mekanisme, inkl. en runtime-bekræftelse af
+  unikhed + genindtræden.
+
+**Mutationsbevis:** gendannes den gamle "kast det promoverede id væk"-model i puljen, fejler 7 af 12 tests —
+alle fire integrationstests gennem den ægte tabel plus de tre livscyklus-tests, der hævder genindtræden. En
+genindført lokal `placeholderIdsRef`/`placeholderIdRef` i en tabel gør AST-lignende struktur-guarden rød med
+fil:linje.
+
+**Bevidst udestående:** de resterende regressionspunkter i analysens liste — rejected settle som første
+commit, route-/faneskift før undo, og sorteret tabel — er IKKE tilføjet som separate cases. Begrundelsen er,
+at de alle afhænger af rækkens IDENTITET og ikke af feltets codec eller af navigationen: identiteten er nu
+bevist bevaret af de fire flader ovenfor, og dropdown-casen dækker allerede en anden commit-art. Det er en
+afgrænsning af dækningen, ikke af rettelsen.

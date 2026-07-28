@@ -233,17 +233,17 @@ designdokumentets statusafsnit.
 | R9 | Tværgående konvergens og slutkontrol | Ikke startet | 0/0 | — |
 
 **Supplerende konvergensreview:** Gennemgået — 15 fund (GM-F01–GM-F15) i
-[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), hvoraf GM-F01, GM-F02, GM-F04,
-GM-F05, GM-F06, GM-F07 og GM-F11 er rettet og GM-F14 delvist. Rapportens anbefaling nr. 1 er lukket i sin
+[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), hvoraf 10 er rettet (GM-F01,
+GM-F02, GM-F04, GM-F05, GM-F06, GM-F07, GM-F11, GM-F14, GM-F15). Rapportens anbefaling nr. 1 er lukket i sin
 helhed. Rapporten supplerer fasegennemgangene og erstatter ikke R9's afsluttende exitkriterier.
 
 **Brugertestfund:** 6 fund (UT-F01–UT-F06) i
-[draft-commit-brugertestfund](draft-commit-brugertestfund.md) — 1 afvist med evidens, 2 rettet, 3 åbne.
+[draft-commit-brugertestfund](draft-commit-brugertestfund.md) — 1 afvist med evidens, 3 rettet, 2 åbne.
 
-**Fund i alt:** 62 — 38 åbne, 22 rettet (UT-F04, UT-F05, R2-F01, R2-F02, R3-F01, R3-F02, R3-F04, R5-F01,
-R6-F01, R6-F02, GM-F01, GM-F02, GM-F04, GM-F05, GM-F06, GM-F07, GM-F11, INC-F01, INC-F02, INC-F03, INC-F04,
-INC-F05) + 1 delvist (GM-F14), 1 afvist (UT-F01). Etape 1–5 er lukket. Tælling og rettelsesrækkefølge
-vedligeholdes i [fund-oversigt](draft-commit-review/fund-oversigt.md).
+**Fund i alt:** 64 — 35 åbne, 28 rettet (UT-F03, UT-F04, UT-F05, R2-F01, R2-F02, R3-F01, R3-F02, R3-F04,
+R5-F01, R6-F01, R6-F02, GM-F01, GM-F02, GM-F04, GM-F05, GM-F06, GM-F07, GM-F11, GM-F14, GM-F15, INC-F01 –
+INC-F07), 1 afvist (UT-F01). Etape 1–6 er lukket. Tælling og rettelsesrækkefølge vedligeholdes i
+[fund-oversigt](draft-commit-review/fund-oversigt.md).
 
 **Tilfældighedsfund:** Fund konstateret undervejs i rettearbejdet skal enten rettes straks eller skrives ind
 som nyt fund — aldrig blot nævnes i chatten. Reglen er bindende og står i

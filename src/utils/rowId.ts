@@ -5,21 +5,15 @@ export type RowId = string;
 export type WithId = { id: RowId };
 
 /**
- * Deterministisk id til en TOM grid-række på en given position.
+ * Et nyt, unikt række-id.
  *
- * Bruges af `normalizeGridRows`' `createEmptyRow(seed)` i stedet for et tilfældigt `createRowId`.
- * Determinismen er kritisk: normalisering kører inde i React `setState`-updaters, som StrictMode
- * dobbelt-invokerer — et tilfældigt id ville divergere mellem de to kørsler og bryde id-følsomme
- * persist-fingerprints (datatab). Se determinisme-kontrakten i `gridModel.normalizeGridRows`.
- *
- * `__empty__`-segmentet adskiller transiente tomme-række-id'er fra persisterede UUID-id'er
- * (`<prefix>_<uuid>`), så de aldrig kolliderer. Id'erne er transiente og kan re-stabiliseres af
- * grid-resync for tomme rækker ved næste prop-resync.
+ * Bemærk at der IKKE længere findes en separat "deterministisk tom-række-id"-fabrik. Den fandtes, fordi
+ * tomme rækker blev skabt inde i en React `setState`-updater, som StrictMode dobbelt-invokerer: et RNG-id
+ * ville da divergere mellem de to kørsler og bryde id-følsomme persist-fingerprints. Greenfield persisterer
+ * ikke tomme rækker, og placeholder-id'et dannes af `usePlaceholderSlotIds` i en memo bag en ref, hvor
+ * fabrikken kun kaldes når et slot mangler et id, og resultatet gemmes. Determinismekravet gjaldt
+ * mekanismen, ikke id'erne.
  */
-export const createEmptyRowId = (prefix: string, index: number): string => {
-  return `${prefix}_empty_${index}`;
-};
-
 export const createRowId = (prefix: string): string => {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return `${prefix}_${globalThis.crypto.randomUUID()}`;

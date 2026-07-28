@@ -5,6 +5,7 @@ import { isISODateString } from '../../../types/branded';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
 import { mergeIsoDateRanges } from './isoRangeAlgebra';
+import { rangesOverlap } from '../../../utils/closedDateRange';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, type TafConstraintBounds } from '../validation/tafPeriodConstraints';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 
@@ -23,11 +24,6 @@ export type MergedTafGroup = Readonly<{
   til: TafPeriodeRow['til'];
   loseFeriedage: number;
 }>;
-
-const rangesOverlap = (
-  left: Readonly<{ fra: ISODateString; til: ISODateString }>,
-  right: Readonly<{ fra: ISODateString; til: ISODateString }>
-): boolean => left.fra <= right.til && left.til >= right.fra;
 
 export const buildMergedTafGroups = (
   rows: ReadonlyArray<TafPeriodeRow>,
@@ -99,7 +95,7 @@ export const buildMergedTafGroups = (
 
   const ranges = mergeIsoDateRanges(validRows.map((row) => ({ fra: row.fra, til: row.til })), { mergeAdjacent: true });
   const merged: MergedTafGroup[] = ranges.map((range) => {
-    const sourceRows = validRows.filter((row) => row.fra <= range.til && row.til >= range.fra);
+    const sourceRows = validRows.filter((row) => rangesOverlap(row, range));
     const firstSource = sourceRows[0];
     const loseFeriedage = sourceRows.reduce((sum, row) => sum + row.loseFeriedage, 0);
     return {

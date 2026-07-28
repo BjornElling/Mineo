@@ -42,6 +42,20 @@ export const collectionOwnerEntityIds = (collection: CollectionRef): readonly st
   collection.path.flatMap((segment) => segment.kind === 'entity' ? [segment.entityId] : []);
 
 /**
+ * Den ENE bindingsregel for en celle i en collection: ejerstien fra collectionen, derefter rækkens id.
+ *
+ * Udtrykket er eksporteret, fordi der er TO legitime aftagere: celle-spec-byggeren nedenfor (redigering) og
+ * den fælles løntabel-reader-adapter (rekonstruktion + cellefejl). Begge skal binde IDENTISK — kunne de
+ * divergere, ville en celle blive redigeret på én adresse og læst på en anden, og fejlen ville vise sig som
+ * en lydløst tom celle (jf. INC-F01). Derfor er reglen ét udtryk og ikke en gentaget `bind(...)`-linje.
+ */
+export const bindCollectionCell = <T>(
+  collection: CollectionRef,
+  descriptor: FieldDescriptor<T>,
+  rowId: string
+): FieldRef<T> => descriptor.bind(...collectionOwnerEntityIds(collection), rowId);
+
+/**
  * Kanonisk, kollisionsfrit lokations-præfiks for en collection-instans (§3.7).
  *
  * Ejer-id'erne SKAL med: EO renderer én løntabel pr. ansættelsesforhold, altså flere instanser af samme
@@ -64,8 +78,7 @@ export const buildCollectionCellSpec = <T, TEntity>(
   descriptor: FieldDescriptor<T>,
   colIndex: number
 ): CellSpec<T, TEntity> => {
-  const ownerEntityIds = collectionOwnerEntityIds(binding.collection);
-  const field: FieldRef<T> = descriptor.bind(...ownerEntityIds, renderRow.rowId);
+  const field: FieldRef<T> = bindCollectionCell(binding.collection, descriptor, renderRow.rowId);
   const location = {
     locationId: `${binding.locationPrefix}:${renderRow.rowId}:${String(colIndex)}`,
     route: binding.locationNav.route,

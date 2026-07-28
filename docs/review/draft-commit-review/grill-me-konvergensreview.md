@@ -549,6 +549,25 @@ brug for samme kerne, blot med en sorteret committed liste.
 **Anbefalet retning:** Udvid den eksisterende collection-table-kerne med `minimumVisibleRows` eller et
 eksplicit placeholderantal, og lad sortering ske før kaldet.
 
+**Status: rettet 2026-07-28** (etape 6). Anbefalingen er fulgt, og den fandt sit fulde omfang undervejs.
+
+*Cellebindingen* blev samlet i `cellSpecBuilder.ts` allerede i etape 1 (UT-F04). Tilbage stod
+placeholder-identitetens livscyklus — og den var ikke bare duplikeret, den var DEFEKT i to af udgaverne:
+`useCollectionTable` og `OevrigeKravTable` kunne kun huske det seneste placeholder-id, hvilket er UT-F03's
+kerneårsag. De tre større tabellers pulje var derimod korrekt.
+
+`usePlaceholderSlotIds` er nu den ene livscyklus, generaliseret fra netop den korrekte puljeadfærd, og
+`minimumVisibleRows` bærer den eneste saglige forskel. Alle fem implementeringer er migreret; sortering sker
+før kaldet, som anbefalet.
+
+*Den døde alias-arkitektur fulgte med.* `reconcileGridRowIdentityForRestore` og `normalizeGridRows` havde nul
+produktionscallsites og blev holdt i live af tre testfiler; begge er slettet sammen med `createEmptyRowId`,
+hvis determinismekrav var en egenskab ved netop den slettede mekanisme. `gridRowIdContractGuard` er omskrevet
+fra at bevogte den døde vej til at bevogte den levende.
+
+**Dækning + mutationsbevis** står i UT-F03, som er samme rettelse fra brugerens vinkel: 8 livscyklus-tests +
+4 integrationstests gennem den ægte tabel; den gamle "kast id'et væk"-model gør 7 af 12 røde.
+
 ### GM-F15 — Løntabel-reads og intervaloverlap har parallelle primitiver
 
 **Alvor:** Mindre strukturelt; høj konsekvens ved senere drift  
@@ -571,6 +590,34 @@ To gentagne primitive concerns blev fundet:
 
 **Anbefalet retning:** Gør både løntabeladapteren og lukket-interval-overlap til små canonical primitiver.
 Callsites skal fortsat være eksplicitte om, hvorvidt rangegyldighed allerede er bevist.
+
+**Status: rettet 2026-07-28** (etape 6). Begge er nu små kanoniske primitiver.
+
+*Lukket-interval-overlap:* `src/utils/closedDateRange.ts` ejer `ClosedDateRange`, `isValidClosedDateRange` og
+`rangesOverlap`. Primitivet lå i FIRE udgaver — én eksporteret fra EO's overlapsmodul, to lokale kopier
+(TAF-motoren, dagsæt-modulet) og én inlinet ulighed på et callsite. Alle fire var enige, men en enkelt
+fremtidig rettelse ét sted ville have gjort dem uenige uden at noget blev rødt. Modulet ligger i `utils/` og
+ikke i et domæne, fordi intervalalgebra ikke er EO-specifik, og der re-eksporteres bevidst INTET fra det gamle
+sted: to importstier til samme primitiv ville være netop den parallelitet, fundet handler om.
+
+Anbefalingens sidste sætning er overholdt: `rangesOverlap` gætter ikke på gyldighed. Callsitet beviser den
+først — med `isValidClosedDateRange`s type-guard, hvor typen ikke allerede gør det. Gættede prædikatet, ville
+et ugyldigt interval lydløst kunne blive "intet overlap" i stedet for at blive afvist, hvor det opstod.
+
+*Løntabeladapteren:* `readRows` og `resolveValidation` var per-domæne-implementeringer på
+`StandardLoenTableFieldSet` — to næsten ordrette kopier, hvis eneste forskel var det ekstra ejer-id i `bind`.
+Begge er nu GENERISKE funktioner over feltsættet, og feltsættet bærer kun descriptorer + collection. Ejer-
+id'erne udledes af `collection.path` gennem den nyudskilte `bindCollectionCell` — SAMME udtryk, celleditoren
+bruger. At de deler udtryk er load-bearing: cellen skal læses på præcis den adresse, den redigeres på, ellers
+ville brugeren skrive i en celle, hvis værdi rekonstruktionen aldrig fandt (jf. INC-F01).
+
+Fjernelsen var komplet nok til at lint fandt 16 døde imports i `aarsloenProjection` og 9 i
+`eoStandardLoenFieldSet`. Løntabellens collection-ref er flyttet til feltsættet for at bryde den cirkel, der
+ellers ville opstå, når projektionen selv aftager den fælles afledning.
+
+**Talpåvirkning: ingen.** Både TAF-overlappet og løntabelrekonstruktionen er beregningskædens indgang, så
+uændrede tal er kravet (§5.4). Hele EO-domænesuiten (198 filer / 2842 tests) og den fulde suite er grøn uden
+et enkelt regenereret golden-snapshot.
 
 ## Kendte fund fra hovedreviewet, som denne rapport ikke duplikerer
 

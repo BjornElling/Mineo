@@ -7,6 +7,7 @@ import { buildSHDageSetForDatoSet, buildSHDageSetForIsoRange } from '../../dates
 import { toNonNegativeInt } from '../../../utils/numberParsing';
 import { getValidTafRange } from '../validation/tafPeriodConstraints';
 import { mergeIsoDateRanges } from './isoRangeAlgebra';
+import { rangesOverlap } from '../../../utils/closedDateRange';
 
 export type TafFerieFravaerSummary = Readonly<{
   ferieperioder: readonly IsoRange[];
@@ -220,9 +221,6 @@ const intersectIsoRange = (left: IsoRange, right: IsoRange): IsoRange | null => 
   const til = left.til < right.til ? left.til : right.til;
   return fra <= til ? { fra, til } : null;
 };
-
-const rangesOverlap = (left: IsoRange, right: IsoRange): boolean =>
-  left.fra <= right.til && left.til >= right.fra;
 
 const sumLoseFeriedageForSourceRows = (
   rows: ReadonlyArray<TafPeriodeRow>,

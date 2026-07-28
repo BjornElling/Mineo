@@ -9,7 +9,7 @@ import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { optaelArbejdsdage } from './periodiseringsMotor';
-import { rangesOverlap } from './beregningsperiodeTafOverlap';
+import { rangesOverlap } from '../../../utils/closedDateRange';
 import {
   buildSingleDateRange,
   clipRangesToInclusiveUpperBound,

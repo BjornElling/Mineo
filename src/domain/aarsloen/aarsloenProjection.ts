@@ -1,5 +1,4 @@
 import type { AarsloenValues, Loenperiode, StandardLoenTableRow, TillaegAngivesSom } from '../../schemas/formSchemas';
-import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
 import {
   aarsloenAntalFeriedageField,
   aarsloenFeriePctField,
@@ -12,21 +11,9 @@ import {
   aarsloenRetTilSjetteFerieugeField,
   aarsloenShSoPctField,
   aarsloenStoreBededagPctField,
-  aarsloenTableCol0DagField,
-  aarsloenTableCol0MaanedField,
-  aarsloenTableCol0UgeField,
-  aarsloenTableCol1DagField,
-  aarsloenTableCol1MaanedField,
-  aarsloenTableCol1UgeField,
-  aarsloenTableCol2Field,
-  aarsloenTableCol3Field,
-  aarsloenTableCol4Field,
-  aarsloenTableCol5Field,
-  aarsloenTableFpFvShSoBeloebField,
-  aarsloenTablePensionBeloebField,
   aarsloenTillaegAngivesSomField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
-import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import type { FieldRef } from '../../inputCore/fieldDescriptor';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
@@ -35,7 +22,12 @@ import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjecti
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeAarsloenBeregning, type AarsloenBeregningState } from '../../hooks/useAarsloenBeregning';
 import { resolveAarsloenOmregningGate, type AarsloenOmregningGate } from './aarsloenValidationPolicies';
-import { getStandardLoenTableValidation, type StandardLoenTableValidationResult } from './standardLoenTableValidation';
+import { type StandardLoenTableValidationResult } from './standardLoenTableValidation';
+import {
+  readStandardLoenTableRows,
+  resolveStandardLoenTableValidationFromReader,
+} from '../../components/tables/standardLoenTableFieldSet';
+import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
 
 // Greenfield Årsløn-projektion (§3.4/§5.4, Fase 3 Årsløn-slice, Pass 1). En ALMINDELIG ren funktion over den
 // offentlige `InputReader`, der genopbygger et komplet, schema-formet `AarsloenValues`-objekt fra readeren, så de
@@ -68,13 +60,6 @@ const scalarRefs = {
   antalFeriedage: aarsloenAntalFeriedageField.bind(),
 } as const;
 
-// tableData er en top-level collection (ingen entity-parent i stien).
-const tableDataCollection: CollectionRef = createCollectionRef({
-  section: 'aarsloen',
-  path: [],
-  collection: 'tableData',
-});
-
 /**
  * Ikke-blokerende read: canonical værdi eller feltets tomværdi. Falder tilbage til `emptyValue` både når værdien
  * er skjult bag en rød feltfejl OG når en null-sektion giver `undefined` for et felt, hvis tomværdi ikke er
@@ -86,43 +71,16 @@ const readOrEmpty = <T>(reader: InputReader, field: FieldRef<T>, emptyValue: T):
   return result.value === undefined && emptyValue !== undefined ? emptyValue : result.value;
 };
 
-/** Genopbygger én tabelrække eksplicit, så schemaændringer giver typefejl i stedet for usikre casts. */
-const rebuildRow = (reader: InputReader, rowId: string): StandardLoenTableRow => ({
-  id: rowId,
-  col0_maaned: readOrEmpty(reader, aarsloenTableCol0MaanedField.bind(rowId), aarsloenTableCol0MaanedField.emptyValue),
-  col1_maaned: readOrEmpty(reader, aarsloenTableCol1MaanedField.bind(rowId), aarsloenTableCol1MaanedField.emptyValue),
-  col0_uge: readOrEmpty(reader, aarsloenTableCol0UgeField.bind(rowId), aarsloenTableCol0UgeField.emptyValue),
-  col1_uge: readOrEmpty(reader, aarsloenTableCol1UgeField.bind(rowId), aarsloenTableCol1UgeField.emptyValue),
-  col0_dag: readOrEmpty(reader, aarsloenTableCol0DagField.bind(rowId), aarsloenTableCol0DagField.emptyValue),
-  col1_dag: readOrEmpty(reader, aarsloenTableCol1DagField.bind(rowId), aarsloenTableCol1DagField.emptyValue),
-  col2: readOrEmpty(reader, aarsloenTableCol2Field.bind(rowId), aarsloenTableCol2Field.emptyValue),
-  col3: readOrEmpty(reader, aarsloenTableCol3Field.bind(rowId), aarsloenTableCol3Field.emptyValue),
-  col4: readOrEmpty(reader, aarsloenTableCol4Field.bind(rowId), aarsloenTableCol4Field.emptyValue),
-  col5: readOrEmpty(reader, aarsloenTableCol5Field.bind(rowId), aarsloenTableCol5Field.emptyValue),
-  fpFvShSoBeloeb: readOrEmpty(
-    reader,
-    aarsloenTableFpFvShSoBeloebField.bind(rowId),
-    aarsloenTableFpFvShSoBeloebField.emptyValue
-  ),
-  pensionBeloeb: readOrEmpty(
-    reader,
-    aarsloenTablePensionBeloebField.bind(rowId),
-    aarsloenTablePensionBeloebField.emptyValue
-  ),
-});
-
-/** Den kanoniske CollectionRef for løntabellen (top-level collection, ingen entity-parent). */
-export const aarsloenTableDataCollectionRef: CollectionRef = tableDataCollection;
-
 /**
- * Rekonstruerer løntabellens rækker (ikke-blokerende) direkte fra readeren, i den afsluttede rækkefølge. Bruges
- * af den greenfield StandardLoenTable til sortering, afledte kolonner og tomheds-vurdering — celleredigeringen
- * går derimod DIREKTE på cellens `FieldRef` via grid-adapteren (§1.10 pr-række-isolation).
+ * Rekonstruerer løntabellens rækker (ikke-blokerende) i den afsluttede rækkefølge. Bruges af den greenfield
+ * StandardLoenTable til sortering, afledte kolonner og tomheds-vurdering — celleredigeringen går derimod
+ * DIREKTE på cellens `FieldRef` via grid-adapteren (§1.10 pr-række-isolation).
+ *
+ * Rekonstruktionen er den FÆLLES over feltsættet (GM-F15): modulet havde tidligere sin egen kopi, ordret
+ * identisk med EO's bortset fra ejer-id'et i `bind`.
  */
-export const readAarsloenTableRows = (reader: InputReader): StandardLoenTableRow[] => {
-  const rowIds = reader.listEntities(tableDataCollection).map((entity) => entity.entityId);
-  return rowIds.map((rowId) => rebuildRow(reader, rowId));
-};
+export const readAarsloenTableRows = (reader: InputReader): StandardLoenTableRow[] =>
+  readStandardLoenTableRows(aarsloenStandardLoenFieldSet, reader);
 
 /**
  * Rekonstruerer det komplette `AarsloenValues` fra readeren (ikke-blokerende). Erstatter `usePersistedForm`s
@@ -190,73 +148,18 @@ export const resolveAarsloenFieldErrorGate = (
 // ── Reader-afledt tabelvalidering (§2.5/§3.4) ──────────────────────────────────
 // Legacy StandardLoenTable samlede tre celle-fejl-kilder i `cellErrorsByCellKey` og fodrede dem til den rene
 // `getStandardLoenTableValidation`: (1) input-fejl via imperativt `onErrorChange`, (2) periode-rækkefølge-fejl,
-// (3) eksterne fejl. Greenfield fjerner det imperative handle: både codec-fejl, datogrænser og periodeorden ER
-// nu røde feltissues i readerens tokenbundne snapshot. Denne funktion er derfor den ENE kilde til tabellens summary — omregning-
-// gaten og dokumentgaten afledes af den, så der ikke længere er et imperativt `getValidationSummary`/`getErrors`.
-
-// Kolonneindeks pr. rækkecelle-descriptor (matcher legacy `resolveColIdxFromKey`): periodekolonner 0/1 er de
-// synlige for den aktuelle lønperiode; beløb 2–5; tillægsbeløb 6/7 (kun redigerbare i Beløb-tilstand).
-const recordCellError = <T>(
-  reader: InputReader,
-  rowId: string,
-  colIndex: number,
-  descriptor: FieldDescriptor<T>,
-  target: Record<string, true>
-): void => {
-  if (reader.read(descriptor.bind(rowId)).status === 'error') target[`${rowId}:${colIndex}`] = true;
-};
 
 /**
- * Samler cellernes RØDE feltissues (rejected format/range) fra readeren til det numeriske `${rowId}:${colIndex}`-
- * cellenøgle-map, som `getStandardLoenTableValidation` forstår. Kun de kolonner, der er relevante for den aktuelle
- * lønperiode/tillægstilstand, læses (§1.9: en skjult/irrelevant celle overblokerer ikke).
- */
-const collectReaderCellErrorsByCellKey = (
-  reader: InputReader,
-  rowIds: readonly string[],
-  loenperiode: Loenperiode,
-  tillaegAngivesSom: TillaegAngivesSom
-): Record<string, true> => {
-  const cellErrors: Record<string, true> = {};
-  for (const rowId of rowIds) {
-    if (loenperiode === 'maaned') {
-      recordCellError(reader, rowId, 0, aarsloenTableCol0MaanedField, cellErrors);
-      recordCellError(reader, rowId, 1, aarsloenTableCol1MaanedField, cellErrors);
-    } else if (loenperiode === 'uge') {
-      recordCellError(reader, rowId, 0, aarsloenTableCol0UgeField, cellErrors);
-      recordCellError(reader, rowId, 1, aarsloenTableCol1UgeField, cellErrors);
-    } else {
-      recordCellError(reader, rowId, 0, aarsloenTableCol0DagField, cellErrors);
-      recordCellError(reader, rowId, 1, aarsloenTableCol1DagField, cellErrors);
-    }
-    recordCellError(reader, rowId, 2, aarsloenTableCol2Field, cellErrors);
-    recordCellError(reader, rowId, 3, aarsloenTableCol3Field, cellErrors);
-    recordCellError(reader, rowId, 4, aarsloenTableCol4Field, cellErrors);
-    recordCellError(reader, rowId, 5, aarsloenTableCol5Field, cellErrors);
-    if (tillaegAngivesSom === 'beloeb') {
-      recordCellError(reader, rowId, 6, aarsloenTableFpFvShSoBeloebField, cellErrors);
-      recordCellError(reader, rowId, 7, aarsloenTablePensionBeloebField, cellErrors);
-    }
-  }
-  return cellErrors;
-};
-
-/**
- * Den ENE kilde til løntabellens valideringssummary i greenfield. Rekonstruerer rækkerne, samler celle-røde-fejl
- * fra readeren (inklusive descriptorernes periode-rækkefølge-fejl) og kører den rene tabelsummary. Resultatet
- * er 1:1 med legacy's summary (samme funktion, samme cellenøgle-kontrakt) — kun fejl-kilden er nu readeren.
+ * Den ENE kilde til løntabellens valideringssummary. Cellernes røde issues indsamles af den FÆLLES afledning
+ * over feltsættet (GM-F15) og køres gennem den rene tabelsummary — så tabellen, omregning-gaten og
+ * dokumentgaten ikke kan se forskellige cellefejl.
  */
 export const resolveStandardLoenTableValidation = (
   reader: InputReader,
   loenperiode: Loenperiode,
   tillaegAngivesSom: TillaegAngivesSom
-): StandardLoenTableValidationResult => {
-  const rowIds = reader.listEntities(tableDataCollection).map((entity) => entity.entityId);
-  const rows = rowIds.map((rowId) => rebuildRow(reader, rowId));
-
-  const cellErrorsByCellKey = collectReaderCellErrorsByCellKey(reader, rowIds, loenperiode, tillaegAngivesSom);
-  return getStandardLoenTableValidation({ rows, loenperiode, cellErrorsByCellKey, tillaegAngivesSom });
-};
+): StandardLoenTableValidationResult =>
+  resolveStandardLoenTableValidationFromReader(aarsloenStandardLoenFieldSet, reader, loenperiode, tillaegAngivesSom);
 
 /**
  * Årslønnens komplette, tokenbundne consumer-projektion. Den samler præcis de reader-afledninger, som side,

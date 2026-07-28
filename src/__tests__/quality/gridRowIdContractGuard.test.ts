@@ -1,158 +1,141 @@
 // Værn mod regression i grid-tabellernes row-id-fundament.
 //
-// Tabellerne er beregningskædens indgang. To alvorlige row-id-fejl er observeret historisk:
-//   1. RNG (createRowId/crypto/Math.random/Date.now) brugt til at danne en TOM rækkes id inde i en
-//      setState-updater. StrictMode dobbelt-invokerer updateren → de to kørsler giver divergerende
-//      id'er → id-følsomt persist-fingerprint divergerer → ryddet celle gemmes aldrig (datatab).
-//      (project_table_row_id_persist_desync — fikset med deterministisk createEmptyRowId.)
-//   2. resync-reconcile flyttede/aliaserede et id ind så det duplikerede et senere incoming-id →
-//      to rækker med samme id → React duplicate-key + datakorruption.
-//      (project_reconcile_rowid_dup — fikset med uniqueness-guard i selve funktionen.)
+// HISTORIK — de to fejlklasser, værnet oprindeligt dækkede, og hvorfor kravet har ÆNDRET SIG:
+//   1. RNG brugt til at danne en TOM rækkes id inde i en `setState`-updater. StrictMode dobbelt-invokerer
+//      updateren → divergerende id'er → id-følsomt persist-fingerprint divergerede → en ryddet celle blev
+//      aldrig gemt (datatab). (`project_table_row_id_persist_desync`.)
+//   2. En resync-reconcile flyttede/aliaserede et id, så det duplikerede et senere incoming-id → to rækker
+//      med samme id → React duplicate-key + datakorruption. (`project_reconcile_rowid_dup`.)
 //
-// Denne guard håndhæver de STRUKTURELLE forudsætninger for at begge fixes forbliver virksomme,
-// så en NY grid-tabel (eller en refaktor af en eksisterende) ikke kan genindføre fejlklasserne
-// ubemærket:
-//   A. Enhver tabel der bruger normalizeGridRows SKAL danne sine tomme rækker via createEmptyRowId
-//      (deterministisk), og må ikke bruge en RNG-id-kilde i sin createEmptyRow.
-//   B. Uniqueness-guarden i reconcileGridRowIdentityForRestore skal være intakt (verificeret adfærdsmæssigt
-//      i gridModelNormalize.test.ts / gridModelReconcile.test.ts — her kun en eksistens-vagt på
-//      kildemønstret, så en refaktor der fjerner guarden bliver bemærket).
+// BEGGE fejlklasser var egenskaber ved en arkitektur, der ikke længere findes: tomme rækker blev
+// persisteret, `normalizeGridRows` skabte dem inde i en `setState`-updater, og
+// `reconcileGridRowIdentityForRestore` graftede id'er mellem incoming og current. Alle tre er slettet.
+//
+// Determinismekravet var derfor IKKE en universel regel, men en konsekvens af, at id'et blev dannet i en
+// dobbelt-invokeret updater. Greenfield danner placeholder-id'et i en `useMemo` bag en ref (den delte
+// `usePlaceholderSlotIds`), og et RNG-id er der korrekt: fabrikken kaldes kun, når et slot mangler et id,
+// og resultatet gemmes. At kræve `createEmptyRowId` her ville være at håndhæve en regel for en mekanisme,
+// der er væk — og guardens egen første assertion sagde i forvejen, at ingen produktionstabel brugte
+// `normalizeGridRows`, mens de følgende assertions fortsat bevogtede netop den døde vej.
+//
+// Værnet dækker nu de invarianter, den LEVENDE model faktisk hviler på:
+//   A. Den slettede legacy-model er ikke genindført (fravær, jf. review-planens grundregel 6).
+//   B. Ingen tabel har sin egen placeholder-identitets-pulje: livscyklussen er ÉN delt mekanisme. En lokal
+//      kopi var netop det, der lod en promotion overskrive det id, et undo skal fokusere (UT-F03/GM-F14).
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  normalizeGridRows,
-  reconcileGridRowIdentityForRestore,
-} from '../../components/tables/gridCore/gridModel';
-import { createEmptyRowId } from '../../utils/rowId';
+import { createPlaceholderSlotState, resolvePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 
-const TABLES_DIR = join(process.cwd(), 'src', 'components', 'tables');
+const SRC_DIR = join(process.cwd(), 'src');
+const TABLES_DIR = join(SRC_DIR, 'components', 'tables');
+const SELF = 'src/__tests__/quality/gridRowIdContractGuard.test.ts';
 
-// RNG-id-kilder der ALDRIG må danne en tom rækkes id (bryder determinisme-kontrakten).
-const RNG_ID_SOURCES = [/createRowId\s*\(/, /crypto\./, /Math\.random\s*\(/, /Date\.now\s*\(/];
+/** Navne fra den slettede legacy-model. Genopstår de, er den gamle fejlklasse tilbage. */
+const DELETED_LEGACY_ROW_MODEL = [
+  'normalizeGridRows',
+  'reconcileGridRowIdentityForRestore',
+  'undoAliasRowIdsByRowId',
+] as const;
 
-const collectTsx = (dir: string): string[] => {
+/**
+ * Mønstre for en LOKAL placeholder-identitets-pulje. En tabel må gerne have refs til andet, men den må
+ * ikke selv holde placeholder-id'er: så findes livscyklussen i to udgaver, og kun den ene bliver rettet.
+ */
+const LOCAL_PLACEHOLDER_POOL = [
+  /placeholderIdsRef\s*=/,
+  /placeholderIdRef\s*=/,
+] as const;
+
+const collectTs = (dir: string): string[] => {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      out.push(...collectTsx(full));
-    } else if (entry.endsWith('.tsx')) {
-      out.push(full);
-    }
+    if (statSync(full).isDirectory()) out.push(...collectTs(full));
+    else if (/\.tsx?$/.test(entry)) out.push(full);
   }
   return out;
 };
 
-// Udtræk kroppen af en `createEmptyRow`-callback (op til balanceret slut-brace). Returnerer
-// alle fundne kroppe i filen (typisk én pr. grid-tabel).
-const extractCreateEmptyRowBodies = (source: string): string[] => {
-  const bodies: string[] = [];
-  const re = /createEmptyRow\s*[:=]\s*[^=]*?=>\s*[({]/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(source)) !== null) {
-    // Start ved den åbnende brace/paren efter pilen.
-    let i = match.index + match[0].length - 1;
-    const open = source[i];
-    const close = open === '{' ? '}' : ')';
-    let depth = 0;
-    const start = i;
-    for (; i < source.length; i += 1) {
-      const ch = source[i];
-      if (ch === open) depth += 1;
-      else if (ch === close) {
-        depth -= 1;
-        if (depth === 0) break;
-      }
-    }
-    bodies.push(source.slice(start, i + 1));
-  }
-  return bodies;
-};
+const toRel = (file: string): string => file.replace(process.cwd(), '').replace(/\\/g, '/').replace(/^\//, '');
 
 describe('grid row-id-kontrakt (struktur-guard)', () => {
-  const tableFiles = collectTsx(TABLES_DIR);
-  const gridTableFiles = tableFiles.filter((f) => /\bnormalizeGridRows\s*\(/.test(readFileSync(f, 'utf8')));
+  const tableFiles = collectTs(TABLES_DIR);
 
-  it('ingen produktionstabel bruger længere den legacy normalizeGridRows-ejede værdikopi', () => {
-    expect(gridTableFiles).toEqual([]);
+  it('værnets mål findes: der ER tabelfiler at måle', () => {
+    // Uden dette kunne assertions nedenfor blive grønne af tomhed, hvis mappen blev flyttet.
+    expect(tableFiles.length).toBeGreaterThan(5);
   });
 
-  it('hver grid-tabel danner tomme rækker via createEmptyRowId (deterministisk)', () => {
+  it('den slettede legacy-rækkemodel er ikke genindført', () => {
     const offenders: string[] = [];
-    for (const file of gridTableFiles) {
+    for (const file of collectTs(SRC_DIR)) {
+      // Værnet NÆVNER selv de slettede navne; det er dens formål som fraværsværn, så den udelader sig selv.
+      if (toRel(file) === SELF) continue;
       const source = readFileSync(file, 'utf8');
-      const rel = file.replace(process.cwd(), '').replace(/\\/g, '/');
-      const bodies = extractCreateEmptyRowBodies(source);
-      if (bodies.length === 0) {
-        offenders.push(`${rel}: ingen createEmptyRow-callback fundet (kan ikke verificere id-kilden)`);
-        continue;
-      }
-      for (const body of bodies) {
-        if (!/createEmptyRowId\s*\(/.test(body)) {
-          offenders.push(`${rel}: createEmptyRow uden createEmptyRowId:\n  ${body.replace(/\s+/g, ' ').slice(0, 160)}`);
-        }
-        for (const rng of RNG_ID_SOURCES) {
-          if (rng.test(body)) {
-            offenders.push(`${rel}: createEmptyRow bruger RNG-id-kilde (${rng.source}) — bryder determinisme:\n  ${body.replace(/\s+/g, ' ').slice(0, 160)}`);
-          }
-        }
+      for (const name of DELETED_LEGACY_ROW_MODEL) {
+        if (source.includes(name)) offenders.push(`${toRel(file)}: ${name}`);
       }
     }
-    expect(offenders, `Grid-tabeller med ikke-deterministisk tom-række-id:\n${offenders.join('\n')}`).toEqual([]);
+    expect(offenders, `Slettet legacy-rækkemodel genindført:\n${offenders.join('\n')}`).toEqual([]);
   });
 
-  it('reconcileGridRowIdentityForRestore har stadig sin uniqueness-guard (kildemønster)', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'src', 'components', 'tables', 'gridCore', 'gridModel.ts'),
-      'utf8'
-    );
-    // Guarden består i at springe en graft over når mål-id'et enten tilhører en anden
-    // incoming-række (ville stjæle dens identitet) eller allerede er brugt som graft-mål.
-    expect(/incomingIds\.has\(/.test(source)).toBe(true);
-    expect(/usedTransferredIds\.has\(/.test(source)).toBe(true);
+  it('ingen tabel har sin egen placeholder-identitets-pulje', () => {
+    const offenders: string[] = [];
+    for (const file of tableFiles) {
+      const source = readFileSync(file, 'utf8');
+      for (const pattern of LOCAL_PLACEHOLDER_POOL) {
+        if (pattern.test(source)) offenders.push(`${toRel(file)}: ${pattern.source}`);
+      }
+    }
+    expect(
+      offenders,
+      'En lokal placeholder-pulje er en anden udgave af identitets-livscyklussen; brug '
+      + `\`usePlaceholderSlotIds\` (UT-F03/GM-F14):\n${offenders.join('\n')}`
+    ).toEqual([]);
   });
 
-  // Selv-test: bevis at mønstrene faktisk fanger overtrædelser OG accepterer ren kode (vacuous-pass-værn).
-  describe('mønstrene er ikke inerte (selv-test mod syntetiske overtrædelser)', () => {
-    it('createEmptyRowId-kravet fanger en RNG-baseret tom-række', () => {
-      const violation = 'const createEmptyRow = (seed) => ({ ...init, id: createRowId("row") });';
-      const bodies = extractCreateEmptyRowBodies(violation);
-      expect(bodies.length).toBe(1);
-      expect(/createEmptyRowId\s*\(/.test(bodies[0])).toBe(false);
-      expect(RNG_ID_SOURCES.some((p) => p.test(bodies[0]))).toBe(true);
+  it('de tabeller, der viser placeholder-rækker, bruger den DELTE livscyklus', () => {
+    // Positiv kontrol: at ingen har en lokal pulje er ikke nok — nogen skal faktisk bruge den delte, ellers
+    // ville værnet være grønt, fordi mekanismen slet ikke var i brug.
+    const users = tableFiles.filter((f) => /usePlaceholderSlotIds\s*\(/.test(readFileSync(f, 'utf8')));
+    expect(users.length).toBeGreaterThanOrEqual(4);
+  });
+
+  describe('selv-test: mønstrene kan faktisk fejle', () => {
+    it('fanger en lokal placeholder-pulje', () => {
+      const violating = 'const placeholderIdsRef = React.useRef<string[]>([]);';
+      expect(LOCAL_PLACEHOLDER_POOL.some((p) => p.test(violating))).toBe(true);
     });
 
-    it('createEmptyRowId-kravet accepterer en deterministisk tom-række', () => {
-      const ok = 'const createEmptyRow = (seed: number) => ({ ...init, id: createEmptyRowId("row", seed) });';
-      const bodies = extractCreateEmptyRowBodies(ok);
-      expect(bodies.length).toBe(1);
-      expect(/createEmptyRowId\s*\(/.test(bodies[0])).toBe(true);
-      expect(RNG_ID_SOURCES.some((p) => p.test(bodies[0]))).toBe(false);
+    it('fanger også enkelt-id-varianten (den defekte model i UT-F03)', () => {
+      const violating = 'const placeholderIdRef = React.useRef<string | undefined>(undefined);';
+      expect(LOCAL_PLACEHOLDER_POOL.some((p) => p.test(violating))).toBe(true);
     });
 
-    it('extractCreateEmptyRowBodies klarer både paren- og brace-kroppe', () => {
-      const arrowParen = 'createEmptyRow: (seed) => ({ id: createEmptyRowId("x", seed) })';
-      const arrowBrace = 'createEmptyRow = (seed) => { return { id: createEmptyRowId("y", seed) }; }';
-      expect(extractCreateEmptyRowBodies(arrowParen).length).toBe(1);
-      expect(extractCreateEmptyRowBodies(arrowBrace).length).toBe(1);
-      expect(extractCreateEmptyRowBodies(arrowBrace)[0]).toContain('createEmptyRowId("y", seed)');
+    it('accepterer den delte livscyklus', () => {
+      const clean = 'const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createRowId);';
+      expect(LOCAL_PLACEHOLDER_POOL.some((p) => p.test(clean))).toBe(false);
     });
   });
 
-  // Bind guarden til den faktiske runtime-adfærd, så den ikke kun er et tekstmønster:
-  // de importerede funktioner skal stadig opretholde unikhed.
-  it('runtime-bekræftelse: normalize + reconcile bevarer unikhed på det historiske fejl-scenarie', () => {
-    type Row = { id: string; v?: string };
-    const getRowId = (r: Row) => r.id;
-    const isRowEmpty = (r: Row) => r.v === undefined;
-    const withRowId = (r: Row, id: string): Row => ({ ...r, id });
-    const createEmptyRow = (seed: number): Row => ({ id: createEmptyRowId('row', seed) });
+  // Bind værnet til den faktiske runtime-adfærd, så det ikke kun er et tekstmønster.
+  it('runtime-bekræftelse: puljen holder id\'erne unikke OG genindtrædende', () => {
+    // Den historiske fejlklasse 2 var to rækker med samme id. Puljen kan ikke producere det: hvert slot har
+    // sit eget id, og et committet id springes over frem for at blive genbrugt som en anden rækkes.
+    const state = createPlaceholderSlotState();
+    let n = 0;
+    const createRowId = () => { n += 1; return `row-${n}`; };
 
-    const current: Row[] = [{ id: 'a', v: 'x' }, { id: 'row_empty_3' }];
-    const inserted: Row[] = [...current.slice(0, 1), { id: 'ny', v: 'y' }, current[1]];
-    const normalized = normalizeGridRows({ rows: inserted, minRows: 2, getRowId, isRowEmpty, createEmptyRow });
-    const reconciled = reconcileGridRowIdentityForRestore({ incoming: normalized, current, getRowId, isRowEmpty, withRowId });
-    const idList = reconciled.rows.map(getRowId);
-    expect(new Set(idList).size).toBe(idList.length);
+    const first = resolvePlaceholderSlotIds(state, new Set<string>(), 3, createRowId);
+    expect(new Set(first).size).toBe(3);
+
+    // Promotér den midterste; de øvrige beholder deres id, og der opstår ingen dublet.
+    const afterPromotion = resolvePlaceholderSlotIds(state, new Set([first[1]!]), 3, createRowId);
+    expect(new Set(afterPromotion).size).toBe(3);
+    expect(afterPromotion).not.toContain(first[1]);
+
+    // Undo: det promoverede id genindtræder — invarianten, fokusrestoren hviler på (UT-F03).
+    const afterUndo = resolvePlaceholderSlotIds(state, new Set<string>(), 3, createRowId);
+    expect(afterUndo).toContain(first[1]);
   });
 });

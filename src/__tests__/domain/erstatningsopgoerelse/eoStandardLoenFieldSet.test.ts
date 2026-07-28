@@ -2,9 +2,11 @@
 import {
   createEoStandardLoenFieldSet,
   eoStandardLoenCollectionRef,
-  readEoStandardLoenTableRows,
-  resolveEoStandardLoenTableValidation,
 } from '../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
+import {
+  readStandardLoenTableRows,
+  resolveStandardLoenTableValidationFromReader,
+} from '../../../components/tables/standardLoenTableFieldSet';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -66,10 +68,9 @@ describe('eoStandardLoenFieldSet', () => {
       { ...emptyRow('r2'), col0_maaned: '2', col1_maaned: '2022', col2: asAmount(41000) },
     ];
     const reader = buildReader(buildEoWithLoenRows(rows));
-    const rebuilt = readEoStandardLoenTableRows(reader, 'af-1');
+    // Rekonstruktionen er den FÆLLES (GM-F15): ejer-id'et kommer fra feltsættets collection-sti.
+    const rebuilt = readStandardLoenTableRows(createEoStandardLoenFieldSet('af-1'), reader);
     expect(rebuilt).toEqual(rows);
-    // Feltsættets readRows er den samme rekonstruktion.
-    expect(createEoStandardLoenFieldSet('af-1').readRows(reader)).toEqual(rows);
   });
 
   it('skjuler en ugyldig celle-værdi (måned uden for 1..12) til tomværdien og markerer cellefejlen i valideringen', () => {
@@ -77,11 +78,11 @@ describe('eoStandardLoenFieldSet', () => {
     const reader = buildReader(buildEoWithLoenRows(rows));
 
     // Satser-doktrin: den out-of-bounds månedsværdi skjules → tomværdien '' i rekonstruktionen.
-    const rebuilt = readEoStandardLoenTableRows(reader, 'af-1');
+    const rebuilt = readStandardLoenTableRows(createEoStandardLoenFieldSet('af-1'), reader);
     expect(rebuilt[0].col0_maaned).toBe('');
 
     // Valideringen ser cellefejlen (samme cellenøgle-kontrakt som Årsløn: `${rowId}:${colIndex}`).
-    const validation = resolveEoStandardLoenTableValidation(reader, 'af-1', 'maaned', 'procent');
+    const validation = resolveStandardLoenTableValidationFromReader(createEoStandardLoenFieldSet('af-1'), reader, 'maaned', 'procent');
     expect(validation.errors.length).toBeGreaterThan(0);
   });
 
@@ -95,7 +96,7 @@ describe('eoStandardLoenFieldSet', () => {
       ],
     };
     const reader = buildReader(eo);
-    expect(resolveEoStandardLoenTableValidation(reader, 'af-1', 'maaned', 'procent').errors).toEqual([]);
-    expect(resolveEoStandardLoenTableValidation(reader, 'af-2', 'maaned', 'procent').errors.length).toBeGreaterThan(0);
+    expect(resolveStandardLoenTableValidationFromReader(createEoStandardLoenFieldSet('af-1'), reader, 'maaned', 'procent').errors).toEqual([]);
+    expect(resolveStandardLoenTableValidationFromReader(createEoStandardLoenFieldSet('af-2'), reader, 'maaned', 'procent').errors.length).toBeGreaterThan(0);
   });
 });
