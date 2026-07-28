@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { UI_STORAGE_KEYS, getCurrentInputEnvelopeStorageKey } from '../../config/storageManifest';
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { AUTH_STORAGE_KEY, AUTH_STORAGE_VALUE, SHARED_PASSWORD_HASHES } from '../../auth/authConfig';
@@ -38,5 +39,23 @@ describe('auth-gate contract isolation', () => {
       expect(entry.description.trim()).not.toBe('');
       expect(entry.hash).toMatch(/^[a-f0-9]{64}$/);
     }
+  });
+
+  it('holder browser-testpasswordet i AGENTS.md synkroniseret med auth-hashen', () => {
+    const agentInstructions = fs.readFileSync(path.resolve(process.cwd(), 'AGENTS.md'), 'utf8');
+    const passwordMatch = agentInstructions.match(/testpassword `([^`]+)`/);
+    expect(passwordMatch).not.toBeNull();
+    if (!passwordMatch) {
+      throw new Error('AGENTS.md mangler det dedikerede browser-testpassword.');
+    }
+
+    const expectedHash = createHash('sha256')
+      .update(passwordMatch[1].toLocaleLowerCase('da-DK'))
+      .digest('hex');
+    const configuredEntry = SHARED_PASSWORD_HASHES.find(
+      (entry) => entry.description === 'Dedikeret password til Codex-browser-tests',
+    );
+
+    expect(configuredEntry?.hash).toBe(expectedHash);
   });
 });

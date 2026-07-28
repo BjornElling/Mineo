@@ -1,7 +1,7 @@
 # Auth-gate arkitektur (informativ uddybning)
 
 **Status:** Informativ
-**Sidst opdateret:** 2026-06-02
+**Sidst opdateret:** 2026-07-28
 **Scope:** Login-gate i klienten (`src/auth/*`, inkl. `src/auth/LoginPage.tsx`)
 
 > De **bindende** regler for auth-gaten ejes af `src/contracts/auth-gate-contract.md`. Dette dokument er forklarende (trusselsmodel, afgrænsninger, migrations-triggere) og må ikke modsige kontrakten.
@@ -33,6 +33,10 @@ Konsekvens:
 - mekanismen må ikke beskrives eller behandles som egentlig sikkerhed
 
 Den svage styrke er et bevidst designvalg: gaten er tilstrækkelig til formålet og matcher appens klient-side-only arkitektur.
+
+Browser-agenten har et dedikeret testpassword, hvis klartekst står i `AGENTS.md`, mens klientkoden kun
+indeholder den tilsvarende hash. Det gør nye browser-tests uafhængige af tidligere login-status og
+lader dem verificere den almindelige loginoplevelse.
 
 ## Trigger for migration til reel auth
 

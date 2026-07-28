@@ -29,8 +29,14 @@ const defineSharedPasswordHashes = (
  *   et egentligt sikkerheds-/infrastrukturlag uden for klienten.
  * - Adgangskoder er case-neutrale; hashes nedenfor er SHA-256 af lowercased plaintext.
  * - Hver hash skal have en beskrivende tekst, så aktive adgangskoder kan auditeres uden plaintext.
+ * - Browser-agentens dedikerede testpassword er dokumenteret i AGENTS.md, så nye testsessioner
+ *   kan logge ind gennem den almindelige UI uden at manipulere browser-storage.
  */
 export const SHARED_PASSWORD_HASHES = defineSharedPasswordHashes([
+  {
+    description: 'Dedikeret password til Codex-browser-tests',
+    hash: 'bbe8fbe32d0ec6b9b96c6e0caf3133cace2342358409fc12f9cd40f348310eb1',
+  },
   {
     description: 'Generelt password til test-personer i forbundene 2026',
     hash: '324ae39817dc46525ab92dde7a1263e27b218aa14a9eb64cde10948c0a71869e',

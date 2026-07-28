@@ -42,6 +42,11 @@ To udviklere: dig (agenten) og brugeren. Ingen andre.
 ## Kommunikation
 Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved væsentlige ændringer eller milepæle. Ingen forklaring ud over det strengt nødvendige.
 
+## Browser-testadgang
+- Ved browser-tests af Mineo bruges det dedikerede testpassword `Mineo-Codex-Test-2026`.
+- Passwordet er bevidst delt i klartekst her, fordi auth-gaten kun er en svag UX-barriere. Det må ikke genbruges til andre systemer eller af rigtige brugere.
+- Log ind gennem den synlige loginformular. Omgå ikke gaten ved at manipulere browser-storage.
+
 ## Git-rettigheder
 Du må læse frit fra git (log, diff, blame, show m.m.) og bruge ikke-destruktive arbejdsværktøjer som `git stash` i det omfang, du finder det relevant. Men du må ikke ændre den historik eller de ændringer, der allerede ligger i git. Konkret:
 - **Commit kun på eksplicit besked.** Du committer kun, når brugeren udtrykkeligt beder om det. Når du gør, committer du **alle** uncommittede ændringer i working tree — intet efterlades ucommittet. Du committer som udgangspunkt altid til main, medmindre brugeren specifikt beder om at der oprettes en branch.
