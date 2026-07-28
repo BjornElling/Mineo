@@ -93,9 +93,8 @@ export const EET_IMPORT_DEPENDENCY_FIELD_IDS: readonly string[] =
 const hasBlockingDependencyIssueInSection = (
   evaluation: InputEvaluation,
   section: 'stamdata' | 'erhvervsevnetab' | 'faellesAarsloen'
-): boolean => evaluation.issues.all.some((issue) =>
-  issue.field.address.section === section
-  && IMPORT_DEPENDENCY_FIELD_IDS.has(issue.field.descriptor.id));
+): boolean => evaluation.reader.readSectionFieldIssues(section)
+  .some((issue) => IMPORT_DEPENDENCY_FIELD_IDS.has(issue.field.descriptor.id));
 
 /** Bygger den eneste EO-læsning af EET-input fra et tokenbundet reader-snapshot. */
 export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): EetImportSource => {
@@ -116,7 +115,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
       message: 'Årslønnen er ikke gyldigt udfyldt.',
     });
   }
-  const hasStamdataDateOrderIssue = evaluation.issues.all.some(
+  const hasStamdataDateOrderIssue = evaluation.reader.readSectionFieldIssues('stamdata').some(
     (issue) => issue.code === 'stamdata.skadedato.bounds'
       && issue.message.toLocaleLowerCase('da').includes('fødselsdato')
   );

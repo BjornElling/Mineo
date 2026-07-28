@@ -1,3 +1,4 @@
+import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { cloneAndDeepFreeze } from '../utils/deepFreeze';
 import {
   serializeFieldAddress,
@@ -127,11 +128,26 @@ export type ReadFieldResult<T> =
   | Readonly<{ status: 'usable'; value: T }>
   | Readonly<{ status: 'error'; issue: FieldIssue }>;
 
+/**
+ * Den offentlige reader (design §3.4 pkt. 3).
+ *
+ * ⚠️ Der er BEVIDST ingen `fieldIssues: FieldIssueSnapshot` her (R3-F04). Et frit issue-snapshot på den
+ * offentlige reader er den brede capability, der gjorde BÅDE R3-F01 og R3-F02 mulige: en consumer kunne
+ * filtrere `issues.all` på sektionsnavn og blokere på felter, den aldrig læser — og præcis dependency blev
+ * dermed en konvention frem for en grænse. `read(field)` er den normale vej: den skjuler værdien bag en rød
+ * feltfejl og returnerer issuet for netop det felt, consumeren faktisk læser.
+ *
+ * Har en consumer et sagligt behov for de STRUKTURELLE issues i en sektion — fordi rækkeceller maskeres til
+ * tomværdi og derfor ikke kan ses gennem `read` alene — skal den bede om dem eksplicit gennem
+ * `readSectionFieldIssues(section)`. Kaldet navngiver sektionen i kildekoden, så et review kan se
+ * afhængigheden, og consumeren skal STADIG selv klassificere, hvilke af issuene den faktisk afhænger af
+ * (jf. `eoDependencyGroups.isEoRelevantStamdataIssue` og `eetImportPort`s dependency-liste).
+ */
 export type InputReader = Readonly<{
   sourceToken: EvaluationSourceToken;
-  fieldIssues: FieldIssueSnapshot;
   read: <T>(field: FieldRef<T>) => ReadFieldResult<T>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
+  readSectionFieldIssues: (section: PersistedSectionKey) => readonly FieldIssue[];
 }>;
 
 const createInputReader = (options: Readonly<{
@@ -143,7 +159,9 @@ const createInputReader = (options: Readonly<{
 
   return Object.freeze({
     sourceToken: options.issues.sourceToken,
-    fieldIssues: options.issues,
+    readSectionFieldIssues: (section) => Object.freeze(
+      options.issues.all.filter((issue) => issue.field.address.section === section)
+    ),
     read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
       const value = validation.readCanonical(field); // verificerer også kendt + eksisterende entity
       const issue = activeFieldIssue(options.issues, serializeFieldAddress(field.address));

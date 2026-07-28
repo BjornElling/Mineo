@@ -235,7 +235,8 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
     const reader = createInputEvaluation({ input, catalog, sourceToken }).reader;
     const projection = buildErhvervsevnetabReaderProjection(reader);
-    expect(reader.fieldIssues.all.filter((issue) => issue.code === 'eo.forlig.beggeUdfyldt')).toHaveLength(2);
+    expect(reader.readSectionFieldIssues('erstatningsopgoerelse')
+      .filter((issue) => issue.code === 'eo.forlig.beggeUdfyldt')).toHaveLength(2);
     expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
     expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(true);
   });

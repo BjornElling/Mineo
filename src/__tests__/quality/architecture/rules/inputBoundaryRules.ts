@@ -16,6 +16,7 @@ import {
   collectIdentifiers,
   collectImports,
   collectLocalTypeAliases,
+  collectMemberAccess,
   collectTypeAssertions,
   hasIdentifier,
 } from '../astQueries';
@@ -870,6 +871,133 @@ export const programmaticFieldCommitUsesSettle = defineRule({
     {
       relativePath: 'src/components/pages/X.tsx',
       code: '// Tidligere stod her `onCommit={(t) => c.commitImmediate(t)}`.\nexport const x = 1;',
+    },
+  ],
+});
+
+// --- Issue-capabilityen: consumers blokerer på konkrete reads (§1.10, §3.4) ----
+
+/**
+ * Den brede issue-capability var rodårsagen bag BEGGE de observerede overblokeringer (R3-F04).
+ *
+ * Den offentlige `InputReader` bar tidligere `fieldIssues: FieldIssueSnapshot`. Enhver consumer kunne
+ * derfor filtrere `issues.all` på sektionsnavn og blokere på felter, den aldrig læser — og gjorde det:
+ * EO globaliserede ethvert stamdataissue (R3-F02), og EET-importen blokerede på hele tre sektioner
+ * (R3-F01). Præcis dependency var en konvention, ikke en grænse.
+ *
+ * Grænsen er primært STRUKTUREL: `fieldIssues` er FJERNET fra den offentlige reader, så det brede
+ * snapshot slet ikke er i hånden — et genindført sektionsfilter er nu en typefejl. Reglen lukker resten:
+ * `issues.all` må ikke nås uden for inputkernen og de navngivne ejere. Den findes, fordi
+ * `InputEvaluation.issues` fortsat bærer snapshottet (dokumentlivscyklussen skal have tokenet), og
+ * `.all` derfra ville genåbne hullet UDEN en typefejl.
+ *
+ * Consumeren skal i stedet kalde `reader.readSectionFieldIssues(section)` — som navngiver sektionen i
+ * kildekoden — og derefter selv klassificere sine faktiske afhængigheder.
+ */
+const ISSUE_SNAPSHOT_OWNERS = 'src/inputCore/';
+
+/**
+ * De navngivne ejere uden for inputkernen, der legitimt aftager et helt issue-sæt.
+ *
+ * `eoInputIssues.ts` er EO's PRÆSENTATIONS-katalog: det modtager et allerede sektionsafgrænset
+ * `FieldIssueSet` som parameter og bygger rækkevisninger af det. Det læser ikke selv et bredt snapshot
+ * fra readeren, og dets output gater ingen beregning.
+ */
+const ISSUE_SET_CONSUMERS: readonly string[] = [
+  'src/domain/erstatningsopgoerelse/eoInputIssues.ts',
+];
+
+export const issueSnapshotCapabilityBoundary = defineRule({
+  id: 'input/issue-snapshot-capability-boundary',
+  description:
+    'Det brede feltissue-snapshot (`issues.all`) læses kun i inputkernen. Consumers uden for kernen '
+    + 'blokerer på konkrete reads — `reader.read(field)` eller det navngivne '
+    + '`reader.readSectionFieldIssues(section)` — så en gate ikke kan blokere bredere end sine '
+    + 'faktiske dependencies (§1.10, §3.4, R3-F04).',
+  liveTarget: {
+    kind: 'precondition',
+    // Reglen hviler på TRE forudsætninger, og hver af dem skal kunne konstateres i kildegrafen. Proben
+    // genkender derfor hver fil på SIT eget mærke — ellers ville `requiredPaths` (som kræver, at hver
+    // forudsat fil selv matcher proben) være selvmodsigende, og reglen kunne stå halvt død.
+    probe: (entry) => {
+      // 1) Den brede capability findes stadig. Forsvinder `all`, er der intet at regulere.
+      if (entry.relativePath === 'src/inputCore/inputIssue.ts') {
+        return /\ball:\s*readonly FieldIssue\[\]/.test(entry.text);
+      }
+      // 2) Den navngivne, smalle erstatning findes. Uden den ville reglen forbyde den brede vej uden at
+      //    efterlade en lovlig vej — og den næste consumer ville omgå grænsen i stedet.
+      if (entry.relativePath === 'src/inputCore/inputReader.ts') {
+        return /readSectionFieldIssues/.test(entry.text);
+      }
+      // 3) Præsentationsundtagelsen aftager stadig et helt sæt. Gør den ikke det, skal undtagelsen væk.
+      if (ISSUE_SET_CONSUMERS.includes(entry.relativePath)) return /issues\.all\b/.test(entry.text);
+      return false;
+    },
+    rationale:
+      'reglen forudsætter BÅDE det brede `all` på `FieldIssueSet`, den smalle '
+      + '`readSectionFieldIssues`-erstatning OG at præsentationsundtagelsen stadig aftager et helt sæt '
+      + '— falder en af dem væk, skal reglen omskrives eller slettes',
+    minimumMatches: 3,
+    requiredPaths: [
+      'src/inputCore/inputIssue.ts',
+      'src/inputCore/inputReader.ts',
+      ...ISSUE_SET_CONSUMERS,
+    ],
+  },
+  allow: [],
+  find: (entry) => {
+    if (entry.relativePath.startsWith(ISSUE_SNAPSHOT_OWNERS)) return [];
+    if (ISSUE_SET_CONSUMERS.includes(entry.relativePath)) return [];
+    const findings: Finding[] = [];
+    for (const ref of collectMemberAccess(entry)) {
+      // Vi måler AST-medlemskæden, ikke tekst: en kommentar om `issues.all` er ikke en adgang, og
+      // `result.all` på noget andet end et issue-sæt rammes ikke (kæden skal ende på `.issues.all`).
+      if (!/(?:^|\.)issues\.all$/.test(ref.chainText)) continue;
+      findings.push({
+        position: ref.position,
+        message:
+          'Bred issue-adgang uden for inputCore — blokér på konkrete reads via `reader.read(field)`, '
+          + 'eller bed eksplicit om sektionen med `reader.readSectionFieldIssues(section)` (§1.10).',
+      });
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    // Det præcise mønster bag R3-F01: en sektionsvis blokering.
+    {
+      relativePath: 'src/domain/x/xImportPort.ts',
+      code: 'const bad = evaluation.issues.all.some((i) => i.field.address.section === "stamdata");',
+    },
+    // …og bag R3-F02: en global fail-closed på hele snapshottet.
+    {
+      relativePath: 'src/domain/y/ySnapshot.ts',
+      code: 'const blocked = ev.issues.all.length > 0;',
+    },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej: ét konkret felt.
+    { relativePath: 'src/domain/x/y.ts', code: 'const r = reader.read(field);' },
+    // Den navngivne sektionsport er lovlig — den står i kildekoden og kan reviewes.
+    {
+      relativePath: 'src/domain/x/y.ts',
+      code: 'const issues = reader.readSectionFieldIssues("stamdata");',
+    },
+    // Inputkernen ejer selv den brede form.
+    {
+      relativePath: 'src/inputCore/inputReader.ts',
+      code: 'const all = options.issues.all.filter((i) => i.field.address.section === section);',
+    },
+    // Præsentationskataloget aftager et allerede afgrænset sæt som parameter.
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/eoInputIssues.ts',
+      code: 'export const f = (issues) => issues.all.find((i) => i.code === "x");',
+    },
+    // `.all` på noget andet end et issue-sæt er ikke reglens ærinde.
+    { relativePath: 'src/domain/x/y.ts', code: 'const n = results.all.length;' },
+    // Historik-prosa i en kommentar er ingen AST-node (jf. INC-F03).
+    {
+      relativePath: 'src/domain/x/y.ts',
+      code: '// Tidligere: `evaluation.issues.all.some(...)` — erstattet af konkrete reads.\nexport const x = 1;',
     },
   ],
 });
