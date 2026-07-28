@@ -269,6 +269,22 @@ et tal for en delvist anvendt række.
 **Anbefalet retning:** Lad sideberegning og dokumentdefinition afhænge af den samme
 tabelprojektion. Beslutning 2 har godkendt, at det samlede tal skjules ved en delvist fejlende række.
 
+**Status: rettet 2026-07-28** (etape 5, sammen med R5-F01 — samme fund fra to vinkler).
+`buildAarsloenReaderProjection` gater nu `calculation` på den SAMME tabelklassifikation, dokumentgaten
+allerede brugte: har en medregnet række en `invalid` celle, findes der intet resultat — hverken på siden
+eller i preflighten. Rækkeisolationen (§1.10) er uændret; den beskytter naborækkerne, men gør ikke summen
+autoritativ, når én af de summerede rækker har en ukendt værdi.
+
+Afgrænsningen er bevidst: kun `invalid` gater, IKKE `partial_period`. En ufuldstændig periode er en helt
+almindelig mellemtilstand, mens brugeren skriver rækken færdig, og at skjule totalen der ville være en langt
+bredere adfærdsændring end den godkendte. Dokumentgaten blokerer fortsat bredere (på hele
+`tableValidation.errors`) — det er den eksisterende, uændrede regel for hvornår et DOKUMENT må produceres.
+
+**Dækning:** tre nye tests i `aarsloenProjection.test.ts` — fundets egen probe (to rækker, kun den anden
+ugyldig), et anker der viser at gyldige rækker fortsat beregner, og `partial_period`-afgrænsningen.
+Mutationsbevis: fjernes celle-gaten, fejler netop probe-testen med `beregnetAarsloen: 1120` — deltotalen fra
+række 1 alene, altså præcis det tal fundet beskrev.
+
 ### GM-F05 — Forsørgertab har en afkoblet parallel fieldUi-model
 
 **Alvor:** Væsentlig  
@@ -284,6 +300,31 @@ forbindes ikke til den viste EAL-årsløn eller en contentbox.
 
 **Anbefalet retning:** Fjern den parallelle felttilstandsmodel. Bevar oplysningen som fælles warning, hvis
 beslutning 3 bekræfter, at den fortsat er ønsket.
+
+**Status: rettet 2026-07-28** (etape 5).
+
+*Den parallelle model er væk.* Snapshottet eksponerede ti `FieldUiState`s med `hasError` + `helperText`. Kun
+`koen.hasError` blev læst — og kun til synlighed, ikke til en fejlvisning — mens INGEN `helperText` nåede
+nogen komponent: felterne viser deres egne reader-issues (§1.8). Beskederne blev altså formateret ved hver
+beregning og kastet væk, samtidig med at de lignede en aktiv præsentationskanal ved siden af issue-modellen.
+
+Den offentlige flade er nu `koenFieldHasError: boolean` (kønsfeltets synlighed — en reel regel: køn kræves
+før 1.3.2015, og når kravet er udløst SKAL feltet kunne ses, ellers kan brugeren ikke rette manglen) plus
+`ealAarsloenNotice`. Den interne afledning, der driver de dependency-specifikke gates, er bevaret, men som
+rene booleans; `helperText`-formateringen og `resolveHelperText` er slettet, ikke omdøbt.
+
+*Oplysningen når nu brugeren (beslutning 3).* ASL-maksimum-beskeden fandtes som
+`fieldUi.ealAarsloen.helperText`, men blev aldrig vist. Den vises nu under EAL-årslønsfeltet med appens
+etablerede advarsels-idiom (`WarningAmber` + `--color-status-warning`) — uden rød feltmarkering og uden
+blokering. Det er en bevidst afvejning, der stod i koden i forvejen: den faktiske EAL-årsløn KAN legitimt
+være præcis ASL-maksimum, og en blokering ville da forhindre en korrekt beregning.
+
+**Dækning:** to nye integrationstests gennem den ÆGTE side (`Forsoergertab.integration.test.tsx`) — beskeden
+er synlig ved ASL-maksimum og download er fortsat aktiv, plus et anker der viser at beskeden IKKE står der
+ved en almindelig årsløn. En snapshot-unittest kunne ikke bruges som bevis her: den kan ikke skelne "udledt"
+fra "vist", og det var netop forskellen fundet handlede om. De to eksisterende snapshot-tests, der hævdede
+`fieldUi.ealAarsloen.hasError`, er omskrevet til at hævde `ealAarsloenNotice` og har fået titler, der
+beskriver oplysningen frem for en feltfejl.
 
 ### GM-F06 — Persisted felter accepterer en separat rå fejltekst
 
@@ -357,6 +398,28 @@ De nuværende guards dækker de fire aktuelle dependencies, så ingen aktuel fej
 dog sikkerheden afhængig af, at ethvert fremtidigt read også tilføjes til den lokale guard.
 
 **Anbefalet retning:** Byg typed motorinput først, og kald motoren gennem den fælles `ready`-overgang.
+
+**Status: rettet 2026-07-28** (etape 5). Anbefalingen er fulgt ordret: `buildVarigeMenReaderProjection` bygger
+nu en NAVNGIVEN `VarigeMenEngineInput` i `runProjection`-kroppen og kalder motoren gennem
+`mapReadyProjection` — samme to-trins-overgang som Renteberegning, og den, `projection.ts`' egen advarsel
+allerede foreskrev.
+
+**Det afgørende er, at garantien nu er en TYPEGRÆNSE og ikke en husket guard.** Fundet pegede præcist på
+risikoen: sikkerheden hvilede på, at ethvert fremtidigt read også blev tilføjet til den lokale
+undefined-guard. Rodårsagen var, at `collector.require` returnerede `ProjectionReadResult<T>` med `T` stadig
+inklusive `undefined` — så `usable` bar en umulig `undefined` i typen, og hvert kaldssted måtte gentage
+guarden manuelt. `require` returnerer nu `ProjectionReadResult<NonNullable<T>>`, hvilket er korrekt netop
+fordi `require` allerede har afvist tomhed som en `missing`-consumerfejl.
+
+Verificeret ved probe: udelades ét read af guarden, findes `.value` ikke på unionen, og koden kompilerer ikke
+(TS2339). Det er en compilerfejl, ikke noget en test skal jage.
+
+**Ærlig afgrænsning af dækningen.** Den nye test måler, at motoren ikke KALDES ved en blokeret projektion (med
+et anker der viser at spionen ser kaldet i ready-grenen). Men den skelner ikke den gamle fra den nye
+implementering: med de fire aktuelle dependencies kommer enhver blokering fra en `unavailable`-læsning, som
+den gamle guard også standsede på — præcis som fundet selv konstaterede ("ingen aktuel fejl blev fundet").
+Testen pinner invarianten mod en FREMTIDIG blokeringskilde; typegrænsen er det, der lukker fundet. Det står
+eksplicit i testens egen dokumentation, så den ikke senere læses som stærkere evidens, end den er.
 
 ### GM-F08 — En død React-vej til Årslønsberegningen holdes levende af tests
 

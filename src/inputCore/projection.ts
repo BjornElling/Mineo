@@ -31,7 +31,16 @@ export type ProjectionReadResult<T> =
 
 /** Alle læsninger registreres; kroppen kan derfor ikke ignorere en feltfejl og stadig få `ready`. */
 export type ProjectionCollector = Readonly<{
-  require: <T>(field: FieldRef<T>) => ProjectionReadResult<T>;
+  /**
+   * Læser et PÅKRÆVET felt. `usable` udelukker `undefined` i TYPEN, fordi `require` allerede har afvist
+   * tomhed som en `missing`-consumerfejl — ellers skulle hver kaldssted gentage en undefined-guard, som
+   * kroppen kunne glemme at udvide, når et nyt read tilføjes (GM-F07).
+   *
+   * Indsnævringen er kun sand for felter, hvis tomværdi ER `undefined`. Et felt med en ikke-undefined
+   * tomværdi (fx en required-choice, hvis `isEmpty` altid er falsk) kan aldrig blive `unavailable` af
+   * tomhedsgrunde, så `NonNullable` fjerner der intet, der kunne forekomme.
+   */
+  require: <T>(field: FieldRef<T>) => ProjectionReadResult<NonNullable<T>>;
   optional: <T>(field: FieldRef<T>) => ProjectionReadResult<T | undefined>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
   warn: <V>(
@@ -76,7 +85,7 @@ export const runProjection = <T>(
   };
 
   const collector: ProjectionCollector = Object.freeze({
-    require: <V>(field: FieldRef<V>): ProjectionReadResult<V> => {
+    require: <V>(field: FieldRef<V>): ProjectionReadResult<NonNullable<V>> => {
       const result = reader.read(field);
       if (result.status === 'error') {
         addIssue(result.issue);
@@ -87,7 +96,11 @@ export const runProjection = <T>(
         addIssue(issue);
         return Object.freeze({ status: 'unavailable', issue });
       }
-      return Object.freeze({ status: 'usable', value: result.value });
+      // Assertionen er begrundet af den umiddelbart foregående guard: descriptorens `isEmpty` har netop
+      // afvist tomheden, og et felt, hvis tomværdi er `undefined`, er derfor ikke-undefined her. En
+      // `isEmpty`-prædikat-signatur kunne udtrykke det i typen, men den ville skulle holdes af hver
+      // descriptor og ville flytte forpligtelsen ud til ~239 definitioner frem for at holde den på ét sted.
+      return Object.freeze({ status: 'usable', value: result.value as NonNullable<V> });
     },
     optional: <V>(field: FieldRef<V>): ProjectionReadResult<V | undefined> => {
       const result = reader.read(field);

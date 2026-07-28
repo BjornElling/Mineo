@@ -22,6 +22,7 @@ import {
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import type { FaellesAarsloenValues, ForsoergertabValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 
 /**
  * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -146,5 +147,35 @@ describe('Forsoergertab greenfield — reader-projektion + download-gate', () =>
 
     const downloadButton = screen.getByTestId('forsoergertab-download');
     await waitFor(() => expect(downloadButton).toBeDisabled());
+  });
+
+  /**
+   * Beslutning 3 (GM-F05): oplysningen om ASL-maksimum skal NÅ brugeren.
+   *
+   * Beskeden blev udledt i snapshottet før rettelsen, men ingen komponent læste den — derfor er det netop
+   * en test gennem den ægte side, der er beviset. En snapshot-unittest kunne ikke skelne "udledt" fra "vist".
+   */
+  const ASL_MAX_NOTICE = 'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.';
+
+  it('viser ASL-maksimum-oplysningen på siden uden at blokere download (beslutning 3)', async () => {
+    hydrate(
+      validForsoergertab,
+      { aslAarsloen: asAmount(aarsloenAslMax[2020]!), ealAarsloen: undefined },
+      validStamdata
+    );
+    renderPage();
+
+    expect(await screen.findByText(ASL_MAX_NOTICE)).toBeInTheDocument();
+    // Ikke-blokerende: den faktiske årsløn KAN legitimt være præcis maksimum.
+    const downloadButton = screen.getByTestId('forsoergertab-download');
+    await waitFor(() => expect(downloadButton).toBeEnabled());
+  });
+
+  it('viser INGEN ASL-maksimum-oplysning, når årslønnen ligger under maksimum', () => {
+    // Ankeret: uden det ville testen ovenfor kunne bestå på en besked, siden altid viser.
+    hydrate(validForsoergertab, validFaellesAarsloen, validStamdata);
+    renderPage();
+
+    expect(screen.queryByText(ASL_MAX_NOTICE)).not.toBeInTheDocument();
   });
 });

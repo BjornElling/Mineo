@@ -1,6 +1,6 @@
 import type { InputReader } from '../../inputCore/inputReader';
 import type { FieldRef } from '../../inputCore/fieldDescriptor';
-import { runProjection, type ProjectionResult } from '../../inputCore/projection';
+import { mapReadyProjection, runProjection, type ProjectionResult } from '../../inputCore/projection';
 import type { ISODateString } from '../../types/branded';
 import { varigeMenPrGrad } from '../../data/lovbestemteRates';
 import {
@@ -36,11 +36,19 @@ const beregningsdatoRef: FieldRef<ISODateString | undefined> = varigeMenBeregnin
 const skadedatoRef: FieldRef<ISODateString | undefined> = stamdataSkadedatoField.bind();
 const fodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSkadelidteFodselsdatoField.bind();
 
-export type VarigeMenProjectionData = Readonly<{
+/**
+ * Motorens typede input. At det er en NAVNGIVEN type frem for fire lokale variabler er hele pointen: den
+ * gør `ready`-overgangen til en typegrænse. Kan et fremtidigt read ikke leveres, findes typen ikke, og
+ * motorkaldet kompilerer ikke — modsat en lokal `if`-guard, som skal huskes udvidet (GM-F07).
+ */
+type VarigeMenEngineInput = Readonly<{
   mengrad: number;
   beregningsdato: ISODateString;
   fodselsdato: ISODateString;
   skadedato: ISODateString;
+}>;
+
+export type VarigeMenProjectionData = VarigeMenEngineInput & Readonly<{
   /** Den autoritative beregning; `null` når et gyldigt input alligevel ikke kan give et resultat. */
   beregningsResultat: VarigeMenBeregningResult | null;
 }>;
@@ -55,38 +63,46 @@ const VARIGE_MEN_DOCUMENT_CONSUMER_ID = 'document.varigemen';
  * kun `ready` fører méngrad + datoer til den autoritative engine.
  */
 export const buildVarigeMenReaderProjection = (reader: InputReader): VarigeMenReaderProjection =>
-  runProjection(reader, VARIGE_MEN_DOCUMENT_CONSUMER_ID, (collector): VarigeMenProjectionData | undefined => {
-    // require registrerer en rød feltfejl som blocker OG et tomt felt som `missing`. En `unavailable`-læsning
-    // efterlader projektionen blokeret uanset hvad kroppen returnerer (den returnerede værdi bruges så aldrig).
-    const mengradRead = collector.require(mengradRef);
-    const beregningsdatoRead = collector.require(beregningsdatoRef);
-    const fodselsdatoRead = collector.require(fodselsdatoRef);
-    const skadedatoRead = collector.require(skadedatoRef);
+  // Trin 1: `runProjection` læser motorinput og afgør ready|blocked. Trin 2: `mapReadyProjection` kalder
+  // motoren KUN i ready-grenen. Motoren ligger BEVIDST uden for kroppen: kroppen udføres, FØR statussen er
+  // afgjort, så et motorkald derinde ville køre også når projektionen ender blokeret (§3.9). Tidligere lå
+  // kaldet inde i kroppen bag fire manuelle undefined-guards; de dækkede de fire aktuelle dependencies, men
+  // sikkerheden hvilede på, at et fremtidigt read også blev tilføjet til guarden (GM-F07).
+  mapReadyProjection(
+    runProjection(reader, VARIGE_MEN_DOCUMENT_CONSUMER_ID, (collector): VarigeMenEngineInput | undefined => {
+      // require registrerer en rød feltfejl som blocker OG et tomt felt som `missing`. En `unavailable`-læsning
+      // efterlader projektionen blokeret uanset hvad kroppen returnerer (den returnerede værdi bruges så aldrig).
+      const mengrad = collector.require(mengradRef);
+      const beregningsdato = collector.require(beregningsdatoRef);
+      const fodselsdato = collector.require(fodselsdatoRef);
+      const skadedato = collector.require(skadedatoRef);
 
-    const mengrad = mengradRead.status === 'usable' ? mengradRead.value : undefined;
-    const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
-    const fodselsdato = fodselsdatoRead.status === 'usable' ? fodselsdatoRead.value : undefined;
-    const skadedato = skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined;
+      if (
+        mengrad.status !== 'usable'
+        || beregningsdato.status !== 'usable'
+        || fodselsdato.status !== 'usable'
+        || skadedato.status !== 'usable'
+      ) {
+        // Blokeret; `require` har allerede registreret den røde fejl eller det manglende felt.
+        return undefined;
+      }
 
-    if (
-      mengrad === undefined
-      || beregningsdato === undefined
-      || fodselsdato === undefined
-      || skadedato === undefined
-    ) {
-      // Blokeret (rød fejl eller missing er registreret af `require`). `require` garanterer allerede ikke-tomhed
-      // ved `usable`; denne guard narrower blot typen for de fire krævede felter.
-      return undefined;
-    }
-
-    // Engine kører UÆNDRET (§5.4). Den returnerer null for domæneugyldigt input (fx méngrad uden for 1..120 —
-    // her allerede fanget som rød bounds-fejl, eller manglende sats for beregningsåret).
-    const { result } = computeVarigeMenEngine({
-      varigemen: { mengrad, beregningsdato },
-      skadestidspunkt: skadedato,
-      rates: varigeMenPrGrad,
-      fodselsdato,
-    });
-
-    return { mengrad, beregningsdato, fodselsdato, skadedato, beregningsResultat: result };
-  });
+      return {
+        mengrad: mengrad.value,
+        beregningsdato: beregningsdato.value,
+        fodselsdato: fodselsdato.value,
+        skadedato: skadedato.value,
+      };
+    }),
+    // Engine kører UÆNDRET (§5.4). Den returnerer null for domæneugyldigt input (fx manglende sats for
+    // beregningsåret); méngrad uden for 1..120 er allerede fanget som rød bounds-fejl i trin 1.
+    (input): VarigeMenProjectionData => ({
+      ...input,
+      beregningsResultat: computeVarigeMenEngine({
+        varigemen: { mengrad: input.mengrad, beregningsdato: input.beregningsdato },
+        skadestidspunkt: input.skadedato,
+        rates: varigeMenPrGrad,
+        fodselsdato: input.fodselsdato,
+      }).result,
+    })
+  );

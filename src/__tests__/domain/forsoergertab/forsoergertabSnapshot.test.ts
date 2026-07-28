@@ -52,8 +52,6 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    expect(snapshot.fieldUi.skadedato.hasError).toBe(true);
-    expect(snapshot.fieldUi.skadelidteFodselsdato.hasError).toBe(true);
     expect(snapshot.canShowEal).toBe(false);
     expect(snapshot.canShowAsl).toBe(false);
     expect(snapshot.pdfGate.canDownload).toBe(false);
@@ -95,8 +93,6 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    expect(snapshot.fieldUi.beregningsdato.hasError).toBe(true);
-    expect(snapshot.fieldUi.beregningsdatoForEal.hasError).toBe(false);
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowAsl).toBe(false);
     expect(snapshot.canShowResult).toBe(false);
@@ -125,8 +121,7 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    expect(snapshot.fieldUi.ealAarsloen.hasError).toBe(true);
-    expect(snapshot.fieldUi.ealAarsloen.helperText).toBe('Feltfejl fra UI');
+    // Selve den røde markering vises af feltet fra readerens issue-snapshot; snapshottet ejer konsekvensen.
     expect(snapshot.canShowEal).toBe(false);
     expect(snapshot.pdfGate.canDownload).toBe(false);
     expect(snapshot.pdfProjection.ealComputation).toBeNull();
@@ -151,13 +146,12 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    expect(snapshot.fieldUi.aslAarsloen.hasError).toBe(true);
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowAsl).toBe(false);
     expect(snapshot.pdfGate.canDownload).toBe(false);
   });
 
-  it('markerer EAL-årsløn som fejl men bevarer beregning og download når tom EAL genbruger ASL-maksimum', () => {
+  it('oplyser om ASL-maksimum uden at blokere, når tom EAL genbruger ASL-maksimum', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues(),
       faellesAarsloen: createFaellesAarsloen({
@@ -172,8 +166,9 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    expect(snapshot.fieldUi.ealAarsloen.hasError).toBe(true);
-    expect(snapshot.fieldUi.ealAarsloen.helperText).toBe(
+    // Beslutning 3 (GM-F05): oplysningen NÅR brugeren som en ikke-blokerende besked. Den var før udledt som
+    // `fieldUi.ealAarsloen.helperText`, men intet læste den, så beskeden blev aldrig vist.
+    expect(snapshot.ealAarsloenNotice).toBe(
       'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
     );
     expect(snapshot.canShowEal).toBe(true);
@@ -183,7 +178,7 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.pdfProjection.result).not.toBeNull();
   });
 
-  it('markerer EAL-årsløn som fejl men bevarer beregning og download når EAL-årsløn er ASL-maksimum', () => {
+  it('oplyser om ASL-maksimum uden at blokere, når EAL-årsløn ER ASL-maksimum', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues(),
       faellesAarsloen: createFaellesAarsloen({
@@ -198,8 +193,9 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    expect(snapshot.fieldUi.ealAarsloen.hasError).toBe(true);
-    expect(snapshot.fieldUi.ealAarsloen.helperText).toBe(
+    // Beslutning 3 (GM-F05): oplysningen NÅR brugeren som en ikke-blokerende besked. Den var før udledt som
+    // `fieldUi.ealAarsloen.helperText`, men intet læste den, så beskeden blev aldrig vist.
+    expect(snapshot.ealAarsloenNotice).toBe(
       'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
     );
     expect(snapshot.canShowEal).toBe(true);

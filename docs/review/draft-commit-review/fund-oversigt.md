@@ -10,11 +10,11 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 29 | 7 | 0 |
-| GM (konvergensreview) | 15 | 10 | 4 (1 delvist) | 0 |
+| R0–R8 (fasefund) | 36 | 28 | 8 | 0 |
+| GM (konvergensreview) | 15 | 7 | 7 (1 delvist) | 0 |
 | UT (brugertest) | 6 | 3 | 2 | 1 |
 | INC (tilfældighedsfund) | 5 | 0 | 5 | 0 |
-| **I alt** | **62** | **42** | **18 (+1 delvist)** | **1** |
+| **I alt** | **62** | **38** | **22 (+1 delvist)** | **1** |
 
 ## Bindende regel for tilfældighedsfund
 
@@ -48,7 +48,7 @@ en etape rettes og verificeres sammen.
 | **2** | UT-F05, R2-F01 | Samme årsag som etape 1's fejlklasse: en fælles kommandokontrakt brydes af fem callsites og kaster en uncaught systemfejl. Samme fund fra to vinkler. Rettet 2026-07-28. |
 | **3** | R6-F01, GM-F11, R6-F02 | Trust-kritisk dokumentvej: et frisk token bindes til render-fangede settings (kan producere output fra en forældet kilde), og otte flader skjuler udfaldsbeskeden. Alle i dokumenthandle-laget. R6-F02 er GM-F11 fra reviewets egen vinkel og blev derfor rettet her frem for i sin oprindelige placering. Rettet 2026-07-28. |
 | **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02, GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Lukket 2026-07-28 i to pas — se etapenoterne nedenfor. |
-| **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. |
+| **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. Lukket 2026-07-28 — se etapenoten nedenfor. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. |
 | **7** | UT-F02, UT-F06, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. |
 | **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. |
@@ -83,7 +83,7 @@ etape kommer.
 | R3-F04 | Den offentlige reader eksponerer hele issue-snapshottet | Væsentlig | `inputReader.ts:130-135` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f04--den-offentlige-reader-eksponerer-hele-issue-snapshottet) |
 | R4-F01 | Load kan kassere en ny draft efter replacement | Væsentlig | `useFileSaveLoad.ts:198-206` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f01--load-kan-kassere-en-ny-draft-efter-replacement) |
 | R4-F02 | Slet alt accepterer ufuldstændig oprydning som succes | Væsentlig | `useFileSaveLoad.ts:473-505` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f02--slet-alt-accepterer-ufuldstændig-oprydning-som-succes) |
-| R5-F01 | Årsløn viser en deltotal fra en fejlende række | Væsentlig | `aarsloenProjection.ts:83-298` | 5 | Åbent (godkendt) | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f01--årsløn-viser-en-deltotal-fra-en-fejlende-række) |
+| R5-F01 | Årsløn viser en deltotal fra en fejlende række | Væsentlig | `aarsloenProjection.ts:83-298` | 5 | **Rettet 2026-07-28** | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f01--årsløn-viser-en-deltotal-fra-en-fejlende-række) |
 | R5-F02 | Raw-section-værnet overser property- og spread-adgang | Væsentlig | `inputBoundaryRules.ts:177-236` | 9 | Åbent | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f02--raw-section-værnet-overser-property--og-spread-adgang) |
 | R6-F01 | Frisk token bindes til render-fangede settings | Kritisk | `mineoDocumentEnvironment.ts:44-50` | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f01--frisk-token-bindes-til-render-fangede-settings) |
 | R6-F02 | Otte outputs kasserer beskeden efter afbrudt download | Væsentlig | Otte dokument-callsites | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download) |
@@ -111,10 +111,10 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 | GM-F01 | Parallel satsvalidering har konkret regeldrift | Væsentlig | `loenindkomstSatsAssessment.ts` (afløser to moduler) | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f01--parallel-satsvalidering-har-konkret-regeldrift) |
 | GM-F02 | Automatiske satser skrives som en ekstra brugerhandling | Væsentlig | `loenindkomstSatsDerivedWrite.ts`, `fieldCatalog.ts` | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f02--automatiske-satser-skrives-som-en-ekstra-brugerhandling) |
 | GM-F03 | To specialtoggles omgår fælles fokusgenopretning | Væsentlig | `Aarsloen.tsx`, `OffentligeYdelserTab.tsx` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f03--to-specialtoggles-omgår-fælles-fokusgenopretning) |
-| GM-F04 | Årsløn beregner delresultat, mens dokumentet blokerer | Væsentlig | `aarsloenProjection.ts`, `Aarsloen.tsx` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f04--årsløn-beregner-delresultat-mens-dokumentet-blokerer) |
-| GM-F05 | Forsørgertab har en afkoblet parallel fieldUi-model | Væsentlig | `forsoergertabSnapshot.ts`, `Forsoergertab.tsx` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f05--forsørgertab-har-en-afkoblet-parallel-fieldui-model) |
+| GM-F04 | Årsløn beregner delresultat, mens dokumentet blokerer | Væsentlig | `aarsloenProjection.ts` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f04--årsløn-beregner-delresultat-mens-dokumentet-blokerer) |
+| GM-F05 | Forsørgertab har en afkoblet parallel fieldUi-model | Væsentlig | `forsoergertabSnapshot.ts`, `Forsoergertab.tsx` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f05--forsørgertab-har-en-afkoblet-parallel-fieldui-model) |
 | GM-F06 | Persisted felter accepterer en separat rå fejltekst | Væsentlig | Fælles feltkomponenter og EO/EET-callsites | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f06--persisted-felter-accepterer-en-separat-rå-fejltekst) |
-| GM-F07 | Varige mén kalder motoren inde i projektionsindsamlingen | Væsentlig | `varigeMenReaderProjection.ts` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f07--varige-mén-kalder-motoren-inde-i-projektionsindsamlingen) |
+| GM-F07 | Varige mén kalder motoren inde i projektionsindsamlingen | Væsentlig | `varigeMenReaderProjection.ts`, `projection.ts` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f07--varige-mén-kalder-motoren-inde-i-projektionsindsamlingen) |
 | GM-F08 | En død React-vej til Årslønsberegningen holdes levende af tests | Mindre | `useAarsloenBeregning.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f08--en-død-react-vej-til-årslønsberegningen-holdes-levende-af-tests) |
 | GM-F09 | Død sektionsvis persistence findes ved siden af aggregate-envelope | Væsentlig | `buildPersistedSection.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f09--død-sektionsvis-persistence-findes-ved-siden-af-aggregate-envelope) |
 | GM-F10 | EO-fejllinks bruger en separat heuristisk feltidentitet | Væsentlig | `eoRowIssueCatalog.ts`, `scrollToEoRow.ts` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f10--eo-fejllinks-bruger-en-separat-heuristisk-feltidentitet) |
@@ -353,3 +353,50 @@ grønne; sættes relevansen tilbage til den gamle feltvejs regel, fejler 14 test
 former; genindføres en dispatch-effect, bliver AST-reglen rød med fil:linje:kolonne.
 
 Fire gates + `verify:ledgers` + fuld suite grøn: 499 filer / 6269 tests.
+
+**GM-F04 + R5-F01 + GM-F05 + GM-F07 — rettet 2026-07-28 (etape 5).** Beregningsflow og projektioner; bærer
+beslutning 2 og 3.
+
+*Aggregatet følger sine dependencies (GM-F04 = R5-F01, samme fund fra to vinkler, beslutning 2).*
+Årslønsprojektionen erstattede en rød tabelcelle med sin tomværdi og kaldte motoren alligevel — kun
+dokumentgaten læste tabelklassifikationen. Siden viste derfor en DELTOTAL som "Beregnet årsløn", altså et tal,
+der stille udelod den fejlende række. `calculation` gates nu på samme klassifikation som dokumentgaten.
+
+Afgrænsningen er bevidst: kun `invalid` gater, ikke `partial_period`. En ufuldstændig periode er en almindelig
+mellemtilstand under indtastning, og at skjule totalen der ville være bredere end det godkendte. Anbefalingens
+større omlægning til typede rækkeprojektioner over `ProjectionResult` er ikke gennemført — en global
+`ready | blocked` over projektionens fire flader ville genindføre netop den overblokering, §1.10 forbyder.
+Begrundelsen står i R5-F01.
+
+*Den parallelle felttilstandsmodel er væk (GM-F05, beslutning 3).* Forsørgertabssnapshottet bar ti
+`FieldUiState`s med `hasError` + `helperText`. Kun `koen.hasError` blev læst — og kun til SYNLIGHED — mens
+ingen `helperText` nåede nogen komponent: felterne viser deres egne reader-issues (§1.8). Beskederne blev
+formateret ved hver beregning og kastet væk, samtidig med at de lignede en aktiv præsentationskanal ved siden
+af issue-modellen. Fladen er nu `koenFieldHasError` + `ealAarsloenNotice`; den interne gate-afledning er
+bevaret som rene booleans, og `resolveHelperText` er slettet.
+
+ASL-maksimum-oplysningen NÅR nu brugeren: den vises under EAL-årslønsfeltet med appens etablerede
+advarsels-idiom, uden rød markering og uden blokering. Afvejningen stod i koden i forvejen — den faktiske
+EAL-årsløn KAN legitimt være præcis maksimum, og en blokering ville da forhindre en korrekt beregning.
+Beviset er to integrationstests gennem den ÆGTE side; en snapshot-unittest kunne ikke bruges, fordi den ikke
+kan skelne "udledt" fra "vist", og det var netop forskellen.
+
+*Motoren kaldes gennem den fælles ready-overgang (GM-F07).* Varige mén kaldte motoren inde i
+`runProjection`-kroppen bag fire manuelle undefined-guards — altså før statussen var afgjort, i strid med
+`projection.ts`' egen advarsel. Nu bygges en navngiven `VarigeMenEngineInput`, og `mapReadyProjection` kalder
+motoren, som Renteberegning.
+
+**Rodårsagen lå i primitivet, ikke i slicen.** `collector.require` returnerede `ProjectionReadResult<T>` med
+`T` stadig inklusive `undefined`, så `usable` bar en umulig `undefined` i typen, og hvert kaldssted måtte
+gentage guarden manuelt — præcis den "skal huskes udvidet"-risiko, fundet beskrev. `require` returnerer nu
+`NonNullable<T>`, hvilket er korrekt netop fordi `require` allerede har afvist tomhed som `missing`. Garantien
+er dermed en TYPEGRÆNSE: udelades et read af guarden, findes `.value` ikke på unionen (verificeret probe:
+TS2339).
+
+**Ærlig afgrænsning:** den nye "kalder aldrig motoren ved blocked"-test skelner IKKE den gamle fra den nye
+implementering. Med de fire aktuelle dependencies kommer enhver blokering fra en `unavailable`-læsning, som
+den gamle guard også standsede på — som fundet selv konstaterede. Testen pinner invarianten mod en fremtidig
+blokeringskilde; typegrænsen er det, der lukker fundet. Det står i testens egen dokumentation, så den ikke
+senere læses som stærkere evidens end den er.
+
+Fire gates + `verify:ledgers` + fuld suite grøn: 499 filer / 6275 tests.

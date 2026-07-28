@@ -269,8 +269,10 @@ export type AarsloenReaderProjection = Readonly<{
   /**
    * Beregningen — `null` når projektionen er blokeret (§3.9: motoren kaldes KUN i `ready`-grenen).
    *
-   * En rød feltfejl på et beregningskritisk input (satsprocent/antalFeriedage) skjuler værdien i readeren;
-   * et resultat beregnet på den skjulte tomværdi ville være misvisende. Derfor findes der intet resultat,
+   * En rød feltfejl skjuler værdien i readeren, og et resultat beregnet på den skjulte tomværdi ville være
+   * misvisende. Det gælder BÅDE de beregningskritiske skalarer (satsprocent/antalFeriedage) OG en ugyldig
+   * celle i en medregnet tabelrække: rækkeisolationen (§1.10) beskytter naborækkerne, men den gør ikke
+   * summen autoritativ, når én af de summerede rækker har en ukendt værdi. Derfor findes der intet resultat,
    * mens gaten er rød — hverken på siden eller i dokumentpreflighten.
    */
   calculation: AarsloenBeregningState | null;
@@ -293,7 +295,22 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
   const fieldIssues = resolveAarsloenFieldErrorGate(reader, values, {
     omregningAktiveret: omregningGate.effectiveEnabled,
   });
-  const calculation = fieldIssues.length > 0
+  // Aggregatet afhænger af ALLE medregnede rækker, også de celler §1.10 isolerer.
+  //
+  // Rækkeisolationen er stadig rigtig: en fejl i række 2 må ikke ødelægge række 2's naboer, og cellen skal
+  // kunne rettes uden at resten forsvinder. Men isolationen gør ikke SUMMEN af række 1 og række 2
+  // autoritativ, når række 2's værdi er ukendt. Readeren skjuler den røde celle bag sin tomværdi, så et
+  // beregnet tal ville stille udelade den — en deltotal fremstillet som "Beregnet årsløn" (R5-F01/GM-F04).
+  //
+  // Kun `invalid` gater, ikke `partial_period`. Sondringen er bevidst: en ufuldstændig periode er en helt
+  // almindelig mellemtilstand, mens brugeren skriver rækken færdig, og at skjule totalen der ville være en
+  // langt bredere adfærdsændring end den godkendte. En `invalid`-celle er derimod en aktiv rød fejl, hvis
+  // værdi er ukendt. Dokumentgaten blokerer bredere (på hele `tableValidation.errors`) — det er den
+  // eksisterende, uændrede regel for hvornår et DOKUMENT må produceres.
+  const hasInvalidCell = tableValidation.errors.some(
+    (error) => error.kind === 'cell' && error.issue === 'invalid'
+  );
+  const calculation = fieldIssues.length > 0 || hasInvalidCell
     ? null
     : computeAarsloenBeregning({ values, omregningAktiveret: omregningGate.effectiveEnabled });
 

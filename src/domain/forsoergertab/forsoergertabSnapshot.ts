@@ -84,12 +84,7 @@ const usesAslAarsloenFallback = (ealAarsloen: FaellesAarsloenValues['ealAarsloen
   return !(typeof value === 'number' && Number.isFinite(value) && value > 0);
 };
 
-type FieldUiState = Readonly<{
-  hasError: boolean;
-  helperText: string;
-}>;
-
-const EAL_AARSLOEN_ASL_MAX_ERROR_MESSAGE =
+const EAL_AARSLOEN_ASL_MAX_NOTICE =
   'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.';
 
 const EAL_AARSLOEN_ASL_MAX_ISSUE_IDS = ['warn-eal-aarsloen-is-max', 'warn-asl-aarsloen-is-max'] as const;
@@ -149,18 +144,25 @@ export type ForsoergertabSnapshot = Readonly<{
     beregningsdatoMin: ISODateString;
     virkningsdatoMax: ISODateString;
   }>;
-  fieldUi: Readonly<{
-    beregningsdato: FieldUiState;
-    beregningsdatoForEal: FieldUiState;
-    efterladteFodselsdato: FieldUiState;
-    virkningsdato: FieldUiState;
-    koen: FieldUiState;
-    tilkendtForPeriodeAar: FieldUiState;
-    aslAarsloen: FieldUiState;
-    ealAarsloen: FieldUiState;
-    skadedato: FieldUiState;
-    skadelidteFodselsdato: FieldUiState;
-  }>;
+  /**
+   * Kønsfeltets synlighed. Køn kræves kun ved beregning før 1.3.2015, men når kravet er udløst og feltet er
+   * tomt, SKAL feltet også kunne ses — ellers kunne brugeren ikke rette den mangel, der blokerer.
+   *
+   * Dette er den ENESTE felttilstand, snapshottet eksponerer. Tidligere bar det ti `FieldUiState`s med
+   * `hasError` + `helperText` ved siden af den fælles issue-model; kun kønsfeltet blev læst, og ingen
+   * `helperText` nåede nogen komponent — felterne viser deres egne reader-issues (§1.8). De ni øvrige er
+   * derfor en INTERN afledning nu, brugt til gates, ikke en offentlig parallel felt-model (GM-F05).
+   */
+  koenFieldHasError: boolean;
+  /**
+   * Ikke-blokerende oplysning om, at den faktiske EAL-årsløn bør indtastes, når årslønnen efter ASL svarer
+   * til maksimum (beslutning 3). `undefined` når den ikke er relevant.
+   *
+   * Oplysningen fandtes før som `fieldUi.ealAarsloen.helperText`, men INTET læste den, så beskeden nåede
+   * aldrig brugeren. Den er bevidst en ren oplysning: der findes den sjældne legitime situation, hvor den
+   * faktiske EAL-årsløn ER præcis ASL-maksimum, og en blokering ville da forhindre en korrekt beregning.
+   */
+  ealAarsloenNotice: string | undefined;
   canShowEal: boolean;
   canShowAsl: boolean;
   canShowResult: boolean;
@@ -181,13 +183,6 @@ const hasIssue = (
   ids: readonly string[]
 ): boolean => {
   return issues.some((issue) => ids.includes(issue.id));
-};
-
-const resolveHelperText = (
-  fieldError: FieldErrorMessage,
-  helperIssue: string | undefined
-): string => {
-  return fieldError?.message ?? helperIssue ?? '';
 };
 
 const createDownloadBlockingReason = (code: string, message: string): DocumentDownloadGateReason => ({
@@ -247,7 +242,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   const hasEalAarsloenAslMaxIssue = hasIssue(calculation.issues, EAL_AARSLOEN_ASL_MAX_ISSUE_IDS);
   const ealAarsloenBlockingIssue = getIssueMessage(calculation.issues, ['eal-aarsloen-zero']);
   const ealAarsloenHelperIssue =
-    ealAarsloenBlockingIssue ?? (hasEalAarsloenAslMaxIssue ? EAL_AARSLOEN_ASL_MAX_ERROR_MESSAGE : undefined);
+    ealAarsloenBlockingIssue ?? (hasEalAarsloenAslMaxIssue ? EAL_AARSLOEN_ASL_MAX_NOTICE : undefined);
 
   const helperIssues = {
     efterladteFodselsdato: getIssueMessage(calculation.issues, ['forsoergertab-alder-unresolved', 'forsoergertab-alder-missing']),
@@ -279,47 +274,33 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     skadelidteFodselsdato: stamdataDateOrderMessage,
   };
 
+  /**
+   * Hvilke felter har en blokerende fejl? Rene BOOLEANS, ikke felttilstande.
+   *
+   * De samme afledninger bar tidligere også en `helperText` pr. felt, som ingen komponent læste — felterne
+   * viser deres egne reader-issues (§1.8). Beskederne blev altså formateret ved hver beregning og kastet
+   * væk, mens de samtidig lignede en aktiv præsentationskanal ved siden af den fælles issue-model (GM-F05).
+   *
+   * Den enkelte feltbesked er ikke tabt: `helperIssues` ovenfor er stadig kilden til `blocked`-siden af de
+   * dependency-specifikke gates nedenfor, og ASL-maksimum-oplysningen — den ene besked, der ikke havde nogen
+   * anden vej til brugeren — eksponeres nu som `ealAarsloenNotice`.
+   */
+  const hasError = (
+    fieldError: FieldErrorMessage,
+    helperIssue: string | undefined
+  ): boolean => Boolean(fieldError?.message || helperIssue);
+
   const fieldUi = {
-    beregningsdato: {
-      hasError: Boolean(fieldErrors.forsoergertab.beregningsdato?.message || helperIssues.beregningsdato),
-      helperText: resolveHelperText(fieldErrors.forsoergertab.beregningsdato, helperIssues.beregningsdato),
-    },
-    beregningsdatoForEal: {
-      hasError: Boolean(fieldErrors.forsoergertab.beregningsdato?.message || helperIssues.beregningsdatoForEal),
-      helperText: resolveHelperText(fieldErrors.forsoergertab.beregningsdato, helperIssues.beregningsdatoForEal),
-    },
-    efterladteFodselsdato: {
-      hasError: Boolean(fieldErrors.forsoergertab.efterladteFodselsdato?.message || helperIssues.efterladteFodselsdato),
-      helperText: resolveHelperText(fieldErrors.forsoergertab.efterladteFodselsdato, helperIssues.efterladteFodselsdato),
-    },
-    virkningsdato: {
-      hasError: Boolean(fieldErrors.forsoergertab.virkningsdato?.message || helperIssues.virkningsdato),
-      helperText: resolveHelperText(fieldErrors.forsoergertab.virkningsdato, helperIssues.virkningsdato),
-    },
-    koen: {
-      hasError: Boolean(fieldErrors.forsoergertab.koen?.message || helperIssues.koen),
-      helperText: resolveHelperText(fieldErrors.forsoergertab.koen, helperIssues.koen),
-    },
-    tilkendtForPeriodeAar: {
-      hasError: Boolean(fieldErrors.forsoergertab.tilkendtForPeriodeAar?.message || helperIssues.tilkendtForPeriodeAar),
-      helperText: resolveHelperText(fieldErrors.forsoergertab.tilkendtForPeriodeAar, helperIssues.tilkendtForPeriodeAar),
-    },
-    aslAarsloen: {
-      hasError: Boolean(fieldErrors.faellesAarsloen.aslAarsloen?.message || helperIssues.aslAarsloen),
-      helperText: resolveHelperText(fieldErrors.faellesAarsloen.aslAarsloen, helperIssues.aslAarsloen),
-    },
-    ealAarsloen: {
-      hasError: Boolean(fieldErrors.faellesAarsloen.ealAarsloen?.message || helperIssues.ealAarsloen),
-      helperText: resolveHelperText(fieldErrors.faellesAarsloen.ealAarsloen, helperIssues.ealAarsloen),
-    },
-    skadedato: {
-      hasError: Boolean(fieldErrors.stamdata.skadedato?.message || helperIssues.skadedato),
-      helperText: resolveHelperText(fieldErrors.stamdata.skadedato, helperIssues.skadedato),
-    },
-    skadelidteFodselsdato: {
-      hasError: Boolean(fieldErrors.stamdata.skadelidteFodselsdato?.message || helperIssues.skadelidteFodselsdato),
-      helperText: resolveHelperText(fieldErrors.stamdata.skadelidteFodselsdato, helperIssues.skadelidteFodselsdato),
-    },
+    beregningsdato: { hasError: hasError(fieldErrors.forsoergertab.beregningsdato, helperIssues.beregningsdato) },
+    beregningsdatoForEal: { hasError: hasError(fieldErrors.forsoergertab.beregningsdato, helperIssues.beregningsdatoForEal) },
+    efterladteFodselsdato: { hasError: hasError(fieldErrors.forsoergertab.efterladteFodselsdato, helperIssues.efterladteFodselsdato) },
+    virkningsdato: { hasError: hasError(fieldErrors.forsoergertab.virkningsdato, helperIssues.virkningsdato) },
+    koen: { hasError: hasError(fieldErrors.forsoergertab.koen, helperIssues.koen) },
+    tilkendtForPeriodeAar: { hasError: hasError(fieldErrors.forsoergertab.tilkendtForPeriodeAar, helperIssues.tilkendtForPeriodeAar) },
+    aslAarsloen: { hasError: hasError(fieldErrors.faellesAarsloen.aslAarsloen, helperIssues.aslAarsloen) },
+    ealAarsloen: { hasError: hasError(fieldErrors.faellesAarsloen.ealAarsloen, helperIssues.ealAarsloen) },
+    skadedato: { hasError: hasError(fieldErrors.stamdata.skadedato, helperIssues.skadedato) },
+    skadelidteFodselsdato: { hasError: hasError(fieldErrors.stamdata.skadelidteFodselsdato, helperIssues.skadelidteFodselsdato) },
   } as const;
 
   const hasBlockingEalAarsloenError =
@@ -394,7 +375,11 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       beregningsdatoMin,
       virkningsdatoMax,
     },
-    fieldUi,
+    koenFieldHasError: fieldUi.koen.hasError,
+    // Kun ASL-maks-oplysningen; en egentlig blokerende EAL-fejl vises af feltet selv som et rødt issue.
+    ealAarsloenNotice: hasEalAarsloenAslMaxIssue && ealAarsloenBlockingIssue === undefined
+      ? EAL_AARSLOEN_ASL_MAX_NOTICE
+      : undefined,
     canShowEal,
     canShowAsl,
     canShowResult,

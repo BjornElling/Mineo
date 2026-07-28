@@ -53,7 +53,27 @@ og sidevisning skal aftage samme resultat i stedet for hver sin gate. Eksisteren
 forblive byte-/værdiidentiske.  
 **Kræver godkendelse:** Godkendt 2026-07-28. Brugeren har godkendt, at det samlede årslønsresultat
 skjules/blokeres, indtil den røde celle er rettet; gyldige enkeltoplysninger bevares.  
-**Status:** Godkendt til implementering
+**Status:** **Rettet 2026-07-28** (etape 5, sammen med GM-F04 — samme fund fra to vinkler)
+
+**Løsning:** `buildAarsloenReaderProjection` gater nu `calculation` på den tabelklassifikation, dokumentgaten
+allerede brugte. Har en medregnet række en `invalid` celle, er `calculation === null`, og siden viser `—` som
+den allerede gjorde ved en rød skalarfejl — samme kodesti, ingen ny visningsgren. Sideberegning og
+dokumentdefinition kan dermed ikke længere give hver sit svar på, om input er anvendeligt.
+
+Anbefalingens bredere retning — at flytte hele Årsløn til typede rækkeprojektioner over en `ProjectionResult`
+— er IKKE gennemført, og det er en bevidst afgrænsning: `AarsloenReaderProjection` er en samlet
+consumer-projektion med fire flader (values, tableValidation, omregningGate, calculation), som siden,
+tabellen og dokumentgaten deler. En omlægning til `ready | blocked` ville tvinge alle fire gennem én global
+status og dermed genindføre netop den overblokering, §1.10 forbyder (samme afvejning som Forsørgertab/EET/EO,
+jf. `mapReadyProjection`s egen note). Den konkrete defekt — at aggregatet ikke fulgte sine dependencies — er
+lukket uden den omlægning.
+
+**Afgrænsning:** kun `invalid` gater, ikke `partial_period`. En ufuldstændig periode er en almindelig
+mellemtilstand under indtastning; at skjule totalen der ville være bredere end det godkendte.
+
+**Dækning:** tre nye tests i `aarsloenProjection.test.ts` (fundets egen probe, et beregnende anker, og
+`partial_period`-afgrænsningen). Mutationsbevis: fjernes celle-gaten, fejler probe-testen med
+`beregnetAarsloen: 1120` — deltotalen fra række 1 alene, altså præcis det tal, evidensen ovenfor beskrev.
 
 ### R5-F02 — Raw-section-værnet overser property- og spread-adgang
 

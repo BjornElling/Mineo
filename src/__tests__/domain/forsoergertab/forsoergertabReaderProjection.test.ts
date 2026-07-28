@@ -5,6 +5,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { createEvaluationSourceToken, createInputRevision, createSettingsRevision } from '../../../inputCore/evaluationSource';
 import { toISODateString } from '../../../types/branded';
+import { faellesAarsloenAslAarsloenField } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
 import type {
   FaellesAarsloenValues,
   ForsoergertabValues,
@@ -82,7 +83,6 @@ describe('buildForsoergertabReaderProjection', () => {
       validStamdata
     );
     const projection = buildForsoergertabReaderProjection(reader);
-    expect(projection.snapshot.fieldUi.tilkendtForPeriodeAar.hasError).toBe(true);
     expect(projection.snapshot.pdfGate.canDownload).toBe(false);
   });
 
@@ -95,7 +95,6 @@ describe('buildForsoergertabReaderProjection', () => {
       validStamdata
     );
     const projection = buildForsoergertabReaderProjection(reader);
-    expect(projection.snapshot.fieldUi.virkningsdato.hasError).toBe(true);
     expect(projection.snapshot.canShowEal).toBe(true);
     expect(projection.snapshot.canShowAsl).toBe(false);
     expect(projection.snapshot.pdfGate.canDownload).toBe(false);
@@ -138,8 +137,12 @@ describe('buildForsoergertabReaderProjection', () => {
     );
     const projection = buildForsoergertabReaderProjection(reader);
 
-    expect(projection.snapshot.fieldUi.aslAarsloen.hasError).toBe(true);
-    expect(projection.snapshot.fieldUi.aslAarsloen.helperText).toContain('1.000');
+    // Fejlen har ÉN repræsentation: readerens eget issue på feltet. Det er også det, feltkomponenten viser.
+    const read = reader.read(faellesAarsloenAslAarsloenField.bind());
+    expect(read.status).toBe('error');
+    if (read.status !== 'error') throw new Error('forventede en rød feltfejl');
+    expect(read.issue.message).toContain('1.000');
+    // Og konsekvensen: ASL-panelet er blokeret, fordi ASL-motoren afhænger af netop dette felt (§1.10).
     expect(projection.snapshot.canShowAsl).toBe(false);
   });
 });

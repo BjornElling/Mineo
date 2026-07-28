@@ -95,4 +95,39 @@ describe('buildVarigeMenReaderProjection', () => {
     expect(projection.issues.some((issue) => issue.kind === 'consumer' && issue.reason === 'missing')).toBe(true);
     expect(projection.issues.some((issue) => issue.kind === 'field')).toBe(false);
   });
+
+  /**
+   * GM-F07: motoren må ALDRIG kaldes i en blokeret projektion (§3.9).
+   *
+   * ÆRLIG AFGRÆNSNING af hvad denne test beviser. Med de fire aktuelle dependencies kommer ENHVER blokering
+   * fra en `unavailable`-læsning, som den gamle form også standsede på — den gamle og den nye form er derfor
+   * runtime-ækvivalente i dag, præcis som fundet selv konstaterede. Denne test er altså ikke det, der
+   * skelner dem; den pinner invarianten mod en FREMTIDIG blokeringskilde (fx `collector.warn`-baseret eller
+   * en kryds-felt-regel), hvor et kald inde i kroppen ville køre trods `blocked`.
+   *
+   * Den egentlige garanti er en TYPEGRÆNSE, ikke denne test: motorinputtet er en navngiven type, som kun
+   * kan konstrueres, når hvert read er `usable`. Udelades et read af guarden, findes `.value` ikke på
+   * `ProjectionReadResult`-unionen, og koden kompilerer ikke (verificeret ved probe: TS2339). En manuel
+   * guard, der skal huskes udvidet, er erstattet af en, compileren håndhæver.
+   */
+  it('kalder ALDRIG motoren, når projektionen er blokeret (§3.9)', async () => {
+    const engineModule = await import('../../../domain/varigemen/varigeMenEngine');
+    const spy = vi.spyOn(engineModule, 'computeVarigeMenEngine');
+    try {
+      // Blokeret af en canonical bounds-fejl.
+      buildVarigeMenReaderProjection(buildReader({ ...validVarigeMen, mengrad: 121 }, validStamdata));
+      // Blokeret af et manglende påkrævet felt.
+      buildVarigeMenReaderProjection(buildReader({ ...validVarigeMen, mengrad: undefined }, validStamdata));
+      // Blokeret af en manglende tværsektionel dependency.
+      buildVarigeMenReaderProjection(buildReader(validVarigeMen, null));
+      expect(spy).not.toHaveBeenCalled();
+
+      // Ankeret: samme spion SER motoren, når projektionen er ready — ellers kunne testen være tom, fordi
+      // spionen slet ikke var koblet til den kaldte reference.
+      buildVarigeMenReaderProjection(buildReader(validVarigeMen, validStamdata));
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });

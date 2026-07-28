@@ -6,6 +6,7 @@ import ChoiceField from '../../inputCore/react/fields/ChoiceField';
 import IntegerField from '../../inputCore/react/fields/IntegerField';
 import AmountField from '../../inputCore/react/fields/AmountField';
 import InsertTodayDateButton from '../inputs/InsertTodayDateButton';
+import WarningAmber from '@mui/icons-material/WarningAmber';
 import ContentBox from '../layout/ContentBox';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { type Koen } from '../../schemas/formSchemas';
@@ -98,7 +99,8 @@ const Forsoergertab = React.memo(() => {
   const canShowEal = snapshot.canShowEal;
   const canShowAsl = snapshot.canShowAsl;
   const canShowResult = snapshot.canShowResult;
-  const koenFieldHasError = snapshot.fieldUi.koen.hasError;
+  const koenFieldHasError = snapshot.koenFieldHasError;
+  const ealAarsloenNotice = snapshot.ealAarsloenNotice;
 
   return (
     <Box>
@@ -273,6 +275,19 @@ const Forsoergertab = React.memo(() => {
             />
           </Box>
         </Box>
+
+        {/*
+          Beslutning 3 (GM-F05): oplysningen om, at den faktiske årsløn bør indtastes, når ASL-årslønnen er
+          maksimum. Bevidst en ren oplysning UDEN rød feltmarkering og UDEN blokering — den faktiske årsløn
+          KAN legitimt være præcis maksimum, og en blokering ville da forhindre en korrekt beregning.
+          Beskeden blev tidligere udledt, men aldrig vist noget sted.
+        */}
+        {ealAarsloenNotice !== undefined && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+            <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />
+            <Typography className="row--text">{ealAarsloenNotice}</Typography>
+          </Box>
+        )}
       </ContentBox>
 
       {canShowResult && result && (
