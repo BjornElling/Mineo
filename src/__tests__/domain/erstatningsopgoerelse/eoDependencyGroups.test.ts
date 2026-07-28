@@ -1,7 +1,9 @@
 import {
+  isEoRelevantStamdataIssue,
   resolveEoBlockedDependencies,
   EO_CLASSIFIED_COLLECTIONS,
   EO_CLASSIFIED_FIELD_IDS,
+  EO_RELEVANT_STAMDATA_IDS,
 } from '../../../domain/erstatningsopgoerelse/snapshot/eoDependencyGroups';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
 import type { FieldAddress } from '../../../inputCore/fieldAddress';
@@ -197,6 +199,20 @@ describe('resolveEoBlockedDependencies', () => {
       expect(blocked.aggregate).toBe(true);
     });
 
+    it('skadestype blokerer periodegrenene — den afgør, om erhvervssygdomsgrænsen er aktiv', () => {
+      // Samme klipningsvej som skadedatoen: `buildTaftContext` udleder `erErhvervssygdom` af skadestypen, og
+      // grænsen forsvinder LYDLØST, hvis en rød skadestype maskeres til tom.
+      const blocked = resolveEoBlockedDependencies(
+        [],
+        [issueAt({ section: 'stamdata', path: [], field: 'skadestype' }, 'stamdata.skadestype')]
+      );
+
+      expect(blocked.taf).toBe(true);
+      expect(blocked.svieSmerte).toBe(true);
+      expect(blocked.aggregate).toBe(true);
+      expect(blocked.forlig).toBe(false);
+    });
+
     it('EO-perioden er en DELT afhængighed — den blokerer begge grene, ikke kun én', () => {
       // Begge motorer klipper mod den. At lade den blokere kun én gren ville efterlade den anden med et
       // maskeret input; det er ikke overblokering, men en reelt delt afhængighed.
@@ -228,6 +244,37 @@ describe('resolveEoBlockedDependencies', () => {
     expect(blocked.svieSmerte).toBe(true);
     expect(blocked.taf).toBe(true);
     expect(blocked.forlig).toBe(false);
+  });
+
+  // R3-F02: klassifikationen af stamdatafelter som EO-afhængigheder. Filteret anvendes i `eoSnapshot.ts`, så
+  // gate og invarianter ser ét og samme sæt; her testes selve reglen isoleret.
+  describe('EO-relevansen af et stamdataissue', () => {
+    const stamdataIssue = (field: string, descriptorId: string): FieldIssue =>
+      issueAt({ section: 'stamdata', path: [], field }, descriptorId);
+
+    it.each([
+      ['skadedato', 'stamdata.skadedato'],
+      ['skadestype', 'stamdata.skadestype'],
+      ['journalnr', 'stamdata.journalnr'],
+      ['skadelidte', 'stamdata.skadelidte'],
+      ['advokat', 'stamdata.advokat'],
+      ['sagsbehandler', 'stamdata.sagsbehandler'],
+    ])('%s er EO-relevant', (field, descriptorId) => {
+      expect(isEoRelevantStamdataIssue(stamdataIssue(field, descriptorId))).toBe(true);
+    });
+
+    it('skadelidtes fødselsdato er IKKE en EO-afhængighed', () => {
+      // Kernen i R3-F02. EO's eneste læsning er folkepensionsadvarslen (`eoRowTaftRows.ts` →
+      // `status: 'warning'`); ingen motor og intet dokumentindhold læser feltet. En bounds-fejl her må derfor
+      // ikke fjerne det autoritative `data` — overblokering er lige så forkert som falske tal (§1.10).
+      const fodselsdato = stamdataIssue('skadelidteFodselsdato', 'stamdata.skadelidteFodselsdato');
+
+      expect(isEoRelevantStamdataIssue(fodselsdato)).toBe(false);
+      // Og den rammer ingen gren, når den — som i produktionen — er filtreret bort før resolveren.
+      const blocked = resolveEoBlockedDependencies([], []);
+      for (const gren of BRANCHES) expect(blocked[gren]).toBe(false);
+      expect(blocked.aggregate).toBe(false);
+    });
   });
 
   it('lader en ukendt feltnøgle stå uden for grenene, men blokerer aggregatet fail-closed', () => {
@@ -265,6 +312,29 @@ describe('afhængighedsopdelingen er skrevet mod det faktiske produktionskatalog
 
   it.each(EO_CLASSIFIED_FIELD_IDS)('det klassificerede felt-id %s findes i produktionen', (fieldId) => {
     expect(productionFieldIds.has(fieldId)).toBe(true);
+  });
+
+  // R3-F02: samme completeness-krav for stamdata-klassifikationen. Uden den ville et omdøbt stamdatafelt
+  // lydløst falde ud af EO's afhængigheder — og dermed holde op med at blokere et output, det fodrer.
+  it.each(EO_RELEVANT_STAMDATA_IDS)('det EO-relevante stamdatafelt %s findes i produktionen', (fieldId) => {
+    expect(productionFieldIds.has(fieldId)).toBe(true);
+  });
+
+  it('hvert stamdatafelt er EKSPLICIT klassificeret som EO-relevant eller ikke', () => {
+    // Værnet mod den lydløse tilføjelse: opstår et nyt stamdatafelt, skal nogen afgøre, om EO læser det.
+    // Uden denne test ville et nyt felt som standard være "ikke-relevant" og altså aldrig blokere EO.
+    const stamdataFieldIds = productionInputFields
+      .filter((field) => field.template.section === 'stamdata')
+      .map((field) => field.id);
+
+    expect(stamdataFieldIds.length).toBeGreaterThan(0);
+    expect([...stamdataFieldIds].sort()).toEqual([
+      ...EO_RELEVANT_STAMDATA_IDS,
+      // BEVIDST ikke EO-relevant: EO's eneste læsning er folkepensionsADVARSLEN i `eoRowTaftRows.ts`
+      // (`status: 'warning'`). Ingen EO-motor og intet EO-dokumentindhold læser feltet, så en bounds-fejl
+      // her må ikke fjerne totaler eller blokere de fire EO-dokumenter (R3-F02).
+      'stamdata.skadelidteFodselsdato',
+    ].sort());
   });
 
   // Hver klassificeret collection: ALLE dens faktiske child-felter skal ramme en gren. Det er dette led,

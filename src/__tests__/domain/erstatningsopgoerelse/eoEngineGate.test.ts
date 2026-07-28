@@ -375,3 +375,65 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
     expect(snapshot.status).toBe('error');
   });
 });
+
+// R3-F02: stamdata-afhængigheder er klassificeret, ikke globale.
+//
+// Stamdata er en FREMMED sektion for EO, men EO læser den på tværs af sektionsgrænsen. Tidligere gjorde
+// ETHVERT rødt stamdataissue hele EO's autoritative output ikke-autoritativt. Det var en overblokering:
+// et bounds-fejlende felt, EO's motorer og dokumentindhold aldrig læser, fjernede totaler, canonical output
+// og alle fire EO-dokumenter. §1.10: overblokering er lige så forkert som falske tal.
+//
+// Testene hævder BEGGE retninger, så en for smal klassifikation er lige så rød som en for bred.
+describe('EO: stamdata blokerer efter faktisk afhængighed, ikke efter sektion (R3-F02)', () => {
+  const stamdataIssue = (field: string, descriptorId: string, reason: FieldIssue['reason'] = 'bounds'): FieldIssue =>
+    fieldIssue({ section: 'stamdata', path: [], field }, descriptorId, reason);
+
+  const compute = (stamdataFieldIssues: readonly FieldIssue[]) => computeEoSnapshot({
+    revision: 'r1',
+    stamdataValues: STAMDATA_INITIAL_VALUES,
+    eoValues: createComputableEoValues(),
+    stamdataFieldIssues,
+  });
+
+  it('en rød FØDSELSDATO blokerer intet — EO læser den kun til en advarsel', () => {
+    // Kernen i fundet. Den eneste EO-læsning er folkepensionsadvarslen (`eoRowTaftRows.ts`, `status:
+    // 'warning'`). Brugeren skal derfor fortsat se sine totaler og kunne hente dokumenterne.
+    const snapshot = compute([stamdataIssue('skadelidteFodselsdato', 'stamdata.skadelidteFodselsdato')]);
+
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.blockedDependencies).toEqual({
+      svieSmerte: false,
+      forlig: false,
+      taf: false,
+      oevrigeKrav: false,
+      aggregate: false,
+    });
+    // Og den må ikke efterlade en blokerende invariant, som gaten kunne bruge i stedet.
+    expect(snapshot.invariants.some((invariant) =>
+      invariant.id === 'reader_field:stamdata.skadelidteFodselsdato')).toBe(false);
+  });
+
+  it('en rød SKADEDATO blokerer fortsat begge periodegrene — grænsen forsvinder ellers lydløst', () => {
+    // Modretningen: klassifikationen må ikke være blevet en generel afvisning af stamdata. Skadedatoen
+    // klipper BÅDE TAF-periodiseringen og svie/smerte-perioderne.
+    const snapshot = compute([stamdataIssue('skadedato', 'stamdata.skadedato')]);
+
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.blockedDependencies?.taf).toBe(true);
+    expect(snapshot.blockedDependencies?.svieSmerte).toBe(true);
+    expect(snapshot.invariants.some((invariant) =>
+      invariant.id === 'reader_field:stamdata.skadedato')).toBe(true);
+  });
+
+  it('et rødt BREVHOVED-felt blokerer aggregatet — dokumentet må ikke udgives med tom linje', () => {
+    // Journalnr bærer ingen validator og kan kun blive rødt ved format-afvist råtekst, men bliver det det,
+    // er det EO-dokumentets egen identifikation der mangler.
+    const snapshot = compute([stamdataIssue('journalnr', 'stamdata.journalnr', 'format')]);
+
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.blockedDependencies?.aggregate).toBe(true);
+    // …men ingen af motorgrenene: brevhovedet fodrer ingen beregning.
+    expect(snapshot.blockedDependencies?.taf).toBe(false);
+    expect(snapshot.blockedDependencies?.svieSmerte).toBe(false);
+  });
+});

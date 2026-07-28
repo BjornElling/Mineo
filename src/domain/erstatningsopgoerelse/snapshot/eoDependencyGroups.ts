@@ -165,6 +165,43 @@ export const EO_CLASSIFIED_FIELD_IDS: readonly string[] = Object.freeze([...new 
   ...TAF_GROUP.fieldIds,
 ])]);
 
+/**
+ * STAMDATA-felterne, EO's beregning og dokumentindhold faktisk læser (R3-F02).
+ *
+ * Stamdata har ingen egen beregningsgren, men EO læser sektionen på tværs af sektionsgrænsen. Tidligere blev
+ * ETHVERT rødt stamdataissue gjort autoritativt blokerende. Det var en overblokering: en `bounds`-fejl på
+ * skadelidtes fødselsdato fjernede hele det autoritative `data`-objekt — totaler, canonical output og alle fire
+ * EO-dokumenter — selv om EO's eneste læsning af feltet er en IKKE-blokerende folkepensionsadvarsel
+ * (`eoRowTaftRows.ts:87` → `status: 'warning'`). Overblokering er lige så forkert som falske tal (§1.10).
+ *
+ * ⚠️ Listen er de felter, EO's motorer OG dokumentindhold læser — ikke "alle stamdatafelter":
+ * - `skadedato`: klipningsgrænse for BÅDE TAF-periodiseringen og svie/smerte-perioderne
+ *   (`tafPeriodConstraints.ts`), og dermed en reel talafhængighed på tværs af sektioner.
+ * - `skadestype`: afgør erhvervssygdom, som styrer samme periodegrænser (`buildTaftContext`).
+ * - `journalnr`/`skadelidte`/`advokat`/`sagsbehandler`: brevhoved og bilagsidentifikation i EO-dokumenterne.
+ *   De bærer ingen validator og kan derfor kun blive røde ved `format`-afvist råtekst — men bliver de det,
+ *   må dokumentet ikke udgives med en tom brevhovedlinje.
+ *
+ * BEVIDST UDE: `skadelidteFodselsdato`. EO's eneste læsning er advarslen ovenfor. Læser en fremtidig
+ * EO-beregning feltet, skal det tilføjes her — `eoDependencyGroups.test.ts` hævder, at hvert id findes i
+ * produktionskataloget, så en omdøbning ikke lydløst gør klassifikationen til død kode.
+ */
+const EO_RELEVANT_STAMDATA_FIELD_IDS: readonly string[] = Object.freeze([
+  'stamdata.skadedato',
+  'stamdata.skadestype',
+  'stamdata.journalnr',
+  'stamdata.skadelidte',
+  'stamdata.advokat',
+  'stamdata.sagsbehandler',
+]);
+
+/** Er dette stamdataissue på et felt, EO faktisk læser? Kun de felter må blokere EO's autoritative output. */
+export const isEoRelevantStamdataIssue = (issue: FieldIssue): boolean =>
+  EO_RELEVANT_STAMDATA_FIELD_IDS.includes(issue.field.descriptor.id);
+
+/** Stamdata-id'erne, dette modul klassificerer. Completeness-testen itererer produktionskataloget mod den. */
+export const EO_RELEVANT_STAMDATA_IDS: readonly string[] = EO_RELEVANT_STAMDATA_FIELD_IDS;
+
 /** Collection-navnene på issue-adressens sti. Tom for et top-level-felt. */
 const addressCollections = (issue: FieldIssue): readonly string[] =>
   issue.field.address.path.flatMap((segment) => segment.kind === 'entity' ? [segment.collection] : []);
@@ -216,17 +253,26 @@ export const resolveEoBlockedDependencies = (
   // grænsen gælder kun skader FØR 2011-06-16). Maskeres en rød skadedato til `undefined`, forsvinder grænsen
   // LYDLØST, og periodiseringen bliver uklampet. Skadedatoen klipper også S/S-perioderne gennem samme
   // bounds-resolver. En gate udledt af EO-issues ALENE kunne ikke se det.
-  const skadedatoBlocked = stamdataIssues.some((issue) => issue.field.descriptor.id === 'stamdata.skadedato');
+  // Periodegrænserne læses på tværs af sektioner: `skadedato` OG `skadestype` (erhvervssygdom) afgør, hvilke
+  // grænser der er aktive. Maskeres en af dem til `undefined`/tom, forsvinder grænsen LYDLØST, og
+  // periodiseringen bliver uklampet.
+  const periodeGraenseBlocked = stamdataIssues.some((issue) =>
+    issue.field.descriptor.id === 'stamdata.skadedato' || issue.field.descriptor.id === 'stamdata.skadestype');
   return Object.freeze({
-    svieSmerte: skadedatoBlocked
+    svieSmerte: periodeGraenseBlocked
       || issues.some((issue) => issueMatchesGroup(issue, SVIE_SMERTE_GROUP, SVIE_SMERTE_GROUP.collections)),
     forlig: issues.some((issue) => issueMatchesGroup(issue, FORLIG_GROUP, FORLIG_GROUP.collections)),
-    taf: skadedatoBlocked || issues.some((issue) => issueMatchesGroup(issue, TAF_GROUP, TAF_COLLECTIONS)),
+    taf: periodeGraenseBlocked || issues.some((issue) => issueMatchesGroup(issue, TAF_GROUP, TAF_COLLECTIONS)),
     oevrigeKrav: issues.some((issue) =>
       addressCollections(issue).some((collection) => OEVRIGE_KRAV_COLLECTIONS.includes(collection))),
-    // Fail-closed: ENHVER rød feltfejl gør aggregatet (samlet total, canonicalOutput, pdfModel)
-    // ikke-autoritativt — også en, ingen gren genkender. Stamdata-fejl tælles med: de blokerer i forvejen
-    // den autoritative beregning gennem stamdata-invarianterne.
+    // Fail-closed for EO's EGNE felter: enhver rød EO-feltfejl gør aggregatet (samlet total, canonicalOutput,
+    // pdfModel) ikke-autoritativt — også en, ingen gren genkender. En ny EO-feltfejl må ikke lydløst falde
+    // ud af gatingen, blot fordi den endnu ikke er klassificeret i en gren.
+    //
+    // For STAMDATA gælder derimod klassifikationen: sektionen er EO's, men felterne er det ikke, og
+    // fail-closed må ikke betyde "alt i en fremmed sektion blokerer alt her". `stamdataIssues` er derfor
+    // ALLEREDE filtreret af `isEoRelevantStamdataIssue` i `eoSnapshot.ts` — ét sted, så gate og invarianter
+    // ikke kan divergere (R3-F02).
     aggregate: issues.length > 0 || stamdataIssues.length > 0,
   });
 };

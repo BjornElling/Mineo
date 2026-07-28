@@ -45,7 +45,11 @@ import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
 import { EMPTY_FIELD_ISSUE_SET, type FieldIssueSet } from '../../../inputCore/inputIssue';
-import { resolveEoBlockedDependencies, type EoBlockedDependencies } from './eoDependencyGroups';
+import {
+  isEoRelevantStamdataIssue,
+  resolveEoBlockedDependencies,
+  type EoBlockedDependencies,
+} from './eoDependencyGroups';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
 
 export type EoSnapshotComputedData = Readonly<{
@@ -272,7 +276,12 @@ export const computeEoSnapshot = (args: Readonly<{
   const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
   const eoErrors = args.eoErrors ?? EMPTY_EO_ERRORS;
   const eoFieldIssues = args.eoFieldIssues ?? EMPTY_FIELD_ISSUES;
-  const stamdataFieldIssues = args.stamdataFieldIssues ?? EMPTY_FIELD_ISSUES;
+  // Kun de stamdatafelter, EO's motorer og dokumentindhold FAKTISK læser, er EO-afhængigheder (R3-F02).
+  // Filteret sidder her — ét sted — så invarianterne og `resolveEoBlockedDependencies` nedenfor ikke kan
+  // divergere: en rød fødselsdato må hverken blokere det autoritative output eller nogen af de to motorgrene,
+  // fordi EO's eneste læsning af feltet er en ikke-blokerende folkepensionsadvarsel.
+  const stamdataFieldIssues = (args.stamdataFieldIssues ?? EMPTY_FIELD_ISSUES)
+    .filter(isEoRelevantStamdataIssue);
   const parsedStamdata = stamdataSchema.safeParse(args.stamdataValues);
   const parsedEo = erstatningsopgoerelseSchema.safeParse(args.eoValues);
 

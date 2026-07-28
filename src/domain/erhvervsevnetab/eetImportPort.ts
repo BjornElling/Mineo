@@ -36,24 +36,80 @@ export type EetImportSource = Readonly<{
   issues?: readonly EetIssue[];
 }>;
 
-const hasFieldIssueInSection = (
+/**
+ * De felter, importberegningen FAKTISK læser (R3-F02/R3-F01).
+ *
+ * Gaten var tidligere sektionsvis: ethvert rødt issue i `erhvervsevnetab`, `faellesAarsloen` eller `stamdata`
+ * blokerede importen. Det var en overblokering — og overblokering er lige så forkert som falske tal (§1.10):
+ * en bounds-fejl på fx `erhvervsevnetab.ealEetPct`, som `computeEetLoebendeYdelserForEoImport` aldrig læser,
+ * fjernede hele den midlertidige EET-import og dens grupper fra Erstatningsopgørelsen.
+ *
+ * Listen er udledt af importens transitive call-graph (`eetLoebendeYdelserCalculation.ts`
+ * → `computeEetLoebendeYdelserForContext` + `eetAslAfgoerelser.ts`):
+ *
+ * - `erhvervsevnetab.beregningsdato`: EET-beregningsdatoen (falder tilbage til TAF-slutdatoen, men læses).
+ * - `erhvervsevnetab.aslAfgoerelser.*`: hele afgørelsesrækken — datoer, procenter, type og
+ *   `fsTilbageholdtEet` — er periodiseringens og beløbenes grundlag.
+ * - `faellesAarsloen.aslAarsloen`: `grundloen` ganges ind i HVERT periodebeløb, og feltet giver selv
+ *   `aarsloen-missing`/`aarsloen-zero`. En maskeret værdi ville give et falsk beløb.
+ * - `stamdata.skadedato` + `stamdata.skadelidteFodselsdato`: skadesår, 2011-/2024-grænserne og
+ *   folkepensionsafgrænsningen af den løbende ydelse.
+ *
+ * BEVIDST UDE — læst, men uden talvirkning eller slet ikke læst:
+ * - `faellesAarsloen.ealAarsloen`: læses KUN til advarslen `warn-asl-aarsloen-is-max` (severity `warning`,
+ *   filtreres bort af importens fejl-filter). En rød EAL-årsløn må derfor ikke blokere importen.
+ * - `erhvervsevnetab.ealEetPct`, `koen`, `bilag*`-toggles og de to differencekrav-toggles: ikke læst på
+ *   denne vej (de hører til EET-siden selv / EET-efter-EAL).
+ * - Stamdatas brevhovedfelter: importen sender dem som `''` og læser dem ikke.
+ *
+ * ⚠️ Udvid KUN, når importens beregning faktisk begynder at læse feltet. `eetImportPort.dependencies.test.ts`
+ * hævder, at hvert id findes i produktionskataloget, så en omdøbning ikke lydløst gør gaten til død kode.
+ */
+const IMPORT_DEPENDENCY_FIELD_IDS: ReadonlySet<string> = new Set([
+  'erhvervsevnetab.beregningsdato',
+  'erhvervsevnetab.aslAfgoerelser.afgoerelsesDato',
+  'erhvervsevnetab.aslAfgoerelser.virkningsDato',
+  'erhvervsevnetab.aslAfgoerelser.eetPct',
+  'erhvervsevnetab.aslAfgoerelser.kapDato',
+  'erhvervsevnetab.aslAfgoerelser.kapPct',
+  'erhvervsevnetab.aslAfgoerelser.tidlKapDato',
+  'erhvervsevnetab.aslAfgoerelser.afgoerelseType',
+  'erhvervsevnetab.aslAfgoerelser.fsTilbageholdtEet',
+  'faellesAarsloen.aslAarsloen',
+  'stamdata.skadedato',
+  'stamdata.skadelidteFodselsdato',
+]);
+
+/** Importens dependency-id'er. Completeness-testen itererer produktionskataloget mod den. */
+export const EET_IMPORT_DEPENDENCY_FIELD_IDS: readonly string[] =
+  Object.freeze([...IMPORT_DEPENDENCY_FIELD_IDS]);
+
+/**
+ * Har et felt, importen faktisk læser, en aktiv rød feltfejl i den angivne sektion?
+ *
+ * Sektionen bevares som argument, fordi de tre kilder giver hver sin brugerbesked ("Afgørelsen …",
+ * "Årslønnen …", "Stamdata …") — men afgørelsen træffes nu på det konkrete felt, ikke på sektionen.
+ */
+const hasBlockingDependencyIssueInSection = (
   evaluation: InputEvaluation,
   section: 'stamdata' | 'erhvervsevnetab' | 'faellesAarsloen'
-): boolean => evaluation.issues.all.some((issue) => issue.field.address.section === section);
+): boolean => evaluation.issues.all.some((issue) =>
+  issue.field.address.section === section
+  && IMPORT_DEPENDENCY_FIELD_IDS.has(issue.field.descriptor.id));
 
 /** Bygger den eneste EO-læsning af EET-input fra et tokenbundet reader-snapshot. */
 export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): EetImportSource => {
   const projection = buildErhvervsevnetabReaderProjection(evaluation.reader);
   const sourceIssues: EetIssue[] = [];
 
-  if (hasFieldIssueInSection(evaluation, 'erhvervsevnetab')) {
+  if (hasBlockingDependencyIssueInSection(evaluation, 'erhvervsevnetab')) {
     sourceIssues.push({
       id: 'midlertidigt-eet-source-schema-invalid',
       severity: 'error',
       message: 'Afgørelsen er ikke gyldigt udfyldt.',
     });
   }
-  if (hasFieldIssueInSection(evaluation, 'faellesAarsloen')) {
+  if (hasBlockingDependencyIssueInSection(evaluation, 'faellesAarsloen')) {
     sourceIssues.push({
       id: 'midlertidigt-eet-faelles-aarsloen-schema-invalid',
       severity: 'error',
@@ -70,7 +126,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
       severity: 'error',
       message: STAMDATA_DATE_ORDER_ERROR_MESSAGE,
     });
-  } else if (hasFieldIssueInSection(evaluation, 'stamdata')) {
+  } else if (hasBlockingDependencyIssueInSection(evaluation, 'stamdata')) {
     sourceIssues.push({
       id: 'midlertidigt-eet-stamdata-schema-invalid',
       severity: 'error',
