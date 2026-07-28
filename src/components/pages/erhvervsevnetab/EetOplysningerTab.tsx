@@ -119,7 +119,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
         <Typography className="row--subheading" sx={{ mt: 2 }}>Afgørelser</Typography>
         <EetAslAfgoerelserTable
           committedRows={projection.aslAfgoerelserCommittedRows}
-          validationMessageByCell={projection.aslAfgoerelserValidationMessageByCell}
+          ruleIssues={projection.aslAfgoerelserRuleIssues}
           saveOrderPath="erhvervsevnetab.aslAfgoerelser"
         />
       </ContentBox>

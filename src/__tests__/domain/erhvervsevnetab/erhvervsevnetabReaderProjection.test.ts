@@ -5,6 +5,34 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
+import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
+import {
+  buildCollectionCellSpec,
+  collectionLocationPrefix,
+} from '../../../inputCore/react/cellSpecBuilder';
+import {
+  aslAfgoerelseAfgoerelseTypeField,
+  aslAfgoerelseAfgoerelsesDatoField,
+  aslAfgoerelseEetPctField,
+  aslAfgoerelseKapDatoField,
+  aslAfgoerelseKapPctField,
+  aslAfgoerelseTidlKapDatoField,
+  aslAfgoerelseVirkningsDatoField,
+  erhvervsevnetabAslAfgoerelserCollectionRef,
+} from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
+import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { APP_ROUTES } from '../../../config/pageNavigation';
+
+/** De celler, kryds-række-reglerne kan placere et issue på — samme sæt som tabellen renderer. */
+const ASL_RULE_CELL_DESCRIPTORS = [
+  aslAfgoerelseAfgoerelsesDatoField,
+  aslAfgoerelseVirkningsDatoField,
+  aslAfgoerelseEetPctField,
+  aslAfgoerelseAfgoerelseTypeField,
+  aslAfgoerelseKapDatoField,
+  aslAfgoerelseKapPctField,
+  aslAfgoerelseTidlKapDatoField,
+] as const;
 import {
   createEvaluationSourceToken,
   createInputRevision,
@@ -195,8 +223,46 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     const projection = buildErhvervsevnetabReaderProjection(reader);
     expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
     expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
-    expect(projection.aslAfgoerelserValidationMessageByCell.size).toBeGreaterThan(0);
-    expect([...projection.aslAfgoerelserValidationMessageByCell.keys()].every((key) => key.startsWith('eet_asl_endelig|'))).toBe(true);
+    // GM-F06: kryds-række-reglerne er STRUKTURELLE feltissues med rigtige feltadresser — ikke en parallel
+    // `${rowId}|${field}`-strengnøgle. Adressen er den, cellen og fokusnavigationen selv slår op på.
+    const ruleIssues = projection.aslAfgoerelserRuleIssues.all;
+    expect(ruleIssues.length).toBeGreaterThan(0);
+    for (const issue of ruleIssues) {
+      expect(issue.kind).toBe('field');
+      expect(issue.reason).toBe('rule');
+      expect(issue.field.address.section).toBe('erhvervsevnetab');
+      // Adressen peger på RÆKKEN i collectionen — ikke på et top-level felt.
+      expect(issue.field.address.path).toEqual([
+        { kind: 'entity', collection: 'aslAfgoerelser', entityId: 'eet_asl_endelig' },
+      ]);
+      // Og issuet kan slås op på præcis den adresse, cellen bygger.
+      expect(projection.aslAfgoerelserRuleIssues.get(serializeFieldAddress(issue.field.address)))
+        .toBeDefined();
+    }
+
+    // AFGØRENDE for at brugeren faktisk SER fejlen: tabellen slår issuet op på den adresse,
+    // `buildCollectionCellSpec` binder — ikke på projektionens egen binding. Divergerede de to, ville
+    // markeringen forsvinde lydløst. Her hævdes, at de er identiske for netop denne collection.
+    const descriptorById = new Map(
+      ASL_RULE_CELL_DESCRIPTORS.map((descriptor) => [descriptor.id, descriptor])
+    );
+    for (const issue of ruleIssues) {
+      const descriptor = descriptorById.get(issue.field.descriptor.id);
+      expect(descriptor, `ukendt descriptor-id ${issue.field.descriptor.id}`).toBeDefined();
+      const cellSpec = buildCollectionCellSpec(
+        {
+          collection: erhvervsevnetabAslAfgoerelserCollectionRef,
+          locationPrefix: collectionLocationPrefix(erhvervsevnetabAslAfgoerelserCollectionRef),
+          locationNav: { route: APP_ROUTES.erhvervsevnetab, tabKey: 'oplysninger' },
+          createEmptyRow: (rowId: string) => ({ ...emptyAslAfgoerelseRowFields, id: rowId }),
+        },
+        { kind: 'existing', rowId: 'eet_asl_endelig' },
+        descriptor!,
+        0
+      );
+      expect(serializeFieldAddress(cellSpec.field.address))
+        .toBe(serializeFieldAddress(issue.field.address));
+    }
   });
 
   it('fører en canonical beregningsdato-bounds-feltfejl (før skadedato) ind som field-beregningsdato på de afhængige faner (§1.6/§1.10)', () => {

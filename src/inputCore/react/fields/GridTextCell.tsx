@@ -8,6 +8,7 @@ import { useGridCoreApi } from '../../../components/tables/useGridCore';
 import { assignRef } from '../../../utils/refUtils';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import type { CellSpec } from '../useCellEditor';
+import type { FieldIssue } from '../../inputIssue';
 import { useGridCellSurface, type GridCellKeyFilter } from '../useGridCellSurface';
 
 // Greenfield grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
@@ -22,12 +23,14 @@ export type GridTextCellProps<T, TEntity = unknown> = Readonly<{
   /** Familiespecifikt tegnfilter i åben editor (fx `filterIntegerKeyDown`). */
   keyFilter?: GridCellKeyFilter;
   /**
-   * En ekstern rød fejl på cellen, som IKKE stammer fra descriptorens egen feltvalidator — fx en kryds-række-
-   * domæneregel (dublet-datoer, identiske afgørelser), der afhænger af hele collectionen. Descriptorens eget
-   * issue (format/bounds/rule) har forrang (§1.8: den mest direkte fejl vises), så denne bruges kun, når cellen
-   * ikke allerede har et descriptor-issue.
+   * Et COLLECTION-afledt feltissue på cellen: en kryds-række-domæneregel (dublet-datoer, identiske
+   * afgørelser), som en descriptor-validator ikke kan udtrykke, fordi den kun ser sin egen celles værdi.
+   *
+   * Det er et rigtigt `FieldIssue` med feltadresse — ikke en fri fejltekst (GM-F06) — så rød markering,
+   * tooltip, fokusnavigation og consumerblokering læser én og samme repræsentation. Descriptorens eget
+   * issue (format/bounds/rule) har forrang (§1.8: den mest direkte fejl vises).
    */
-  externalErrorMessage?: string;
+  collectionRuleIssue?: FieldIssue;
   placeholder?: string;
   textAlign?: 'center' | 'right' | 'left';
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
@@ -48,7 +51,7 @@ const GridTextCellInner = <T, TEntity>(
     gridCell,
     cell,
     keyFilter,
-    externalErrorMessage,
+    collectionRuleIssue,
     placeholder,
     textAlign = 'center',
     inputMode = 'text',
@@ -71,7 +74,7 @@ const GridTextCellInner = <T, TEntity>(
 
   // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun, når cellen ikke selv har et
   // format-/bounds-/rule-issue (§1.8: højst én aktiv rød fejl + én tooltip; den mest direkte vælges).
-  const resolvedErrorMessage = surface.issue?.message ?? externalErrorMessage;
+  const resolvedErrorMessage = surface.issue?.message ?? collectionRuleIssue?.message;
   const showError = resolvedErrorMessage !== undefined;
   const errorMessage = resolvedErrorMessage ?? '';
 

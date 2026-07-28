@@ -42,7 +42,17 @@ import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
 } from '../../inputCore/catalog/stamdataDescriptors';
-import { collectEetAslAfgoerelseValidationIssues } from './eetAslAfgoerelser';
+import {
+  collectEetAslAfgoerelseValidationIssues,
+  type EetAslAfgoerelseValidationField,
+  type EetAslAfgoerelseValidationIssue,
+} from './eetAslAfgoerelser';
+import {
+  buildFieldIssueSet,
+  type FieldIssue,
+  type FieldIssueSet,
+} from '../../inputCore/inputIssue';
+import { toAnyFieldRef } from '../../inputCore/fieldDescriptor';
 import { computeEetSnapshot, type EetSnapshot } from './eetSnapshot';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import type { ProjectionResult } from '../../inputCore/projection';
@@ -99,18 +109,63 @@ const forligProcentRef: FieldRef<number | undefined> = forligInputFields.procent
 const forligBroekRef: FieldRef<string | undefined> = forligInputFields.broek.bind();
 const forligDatoRef: FieldRef<ISODateString | undefined> = forligInputFields.dato.bind();
 
+/**
+ * Descriptoren pr. kryds-række-valideringsfelt. Bindingen sker på rækkens id, så issuet får den SAMME
+ * feltadresse, cellen selv bruger — det er den adresse, fokusnavigationen og feltvisningen slår op på.
+ */
+const ASL_RULE_FIELD_DESCRIPTORS = {
+  afgoerelsesDato: aslAfgoerelseAfgoerelsesDatoField,
+  virkningsDato: aslAfgoerelseVirkningsDatoField,
+  eetPct: aslAfgoerelseEetPctField,
+  afgoerelseType: aslAfgoerelseAfgoerelseTypeField,
+  kapDato: aslAfgoerelseKapDatoField,
+  kapPct: aslAfgoerelseKapPctField,
+  tidlKapDato: aslAfgoerelseTidlKapDatoField,
+} as const satisfies Record<EetAslAfgoerelseValidationField, { bind: (rowId: string) => unknown }>;
+
+/**
+ * Oversætter collection-reglernes udfald til kanoniske `FieldIssue`s (GM-F06).
+ *
+ * Reglerne KAN ikke bo i descriptor-validatorerne: de er kryds-række-regler (dublet-afgørelser,
+ * virkningsdato mod tidligere kapitaliseringsdato, EET % mod summen af forudgående kap. %), og en
+ * descriptor-validator ser kun sin egen celles værdi. Afledningen sker derfor samlet her — men RESULTATET
+ * er strukturelt og bærer samme adresse, prioritet og konsekvensvej som ethvert andet rødt felt, i stedet
+ * for en fri fejltekst uden feltidentitet.
+ *
+ * `reason: 'rule'` er den korrekte klassifikation efter §1.6: en feltplaceret domæneregel. Højst ét aktivt
+ * issue pr. adresse (§1.8) sikres af `buildFieldIssueSet`, som beholder det højest prioriterede — samme
+ * afgrænsning som den tidligere "første besked pr. celle".
+ */
+const buildAslAfgoerelseRuleFieldIssues = (
+  issues: readonly EetAslAfgoerelseValidationIssue[]
+): readonly FieldIssue[] => issues.map((issue) => {
+  const field = toAnyFieldRef(ASL_RULE_FIELD_DESCRIPTORS[issue.field].bind(issue.rowId) as FieldRef<unknown>);
+  return Object.freeze({
+    kind: 'field' as const,
+    code: `erhvervsevnetab.aslAfgoerelser.${issue.field}.collectionRule`,
+    severity: 'error' as const,
+    field,
+    reason: 'rule' as const,
+    message: issue.message,
+  });
+});
+
 export type ErhvervsevnetabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver sidevisningen for alle fem tabs + download-gates. */
   snapshot: EetSnapshot;
   /** De committede ASL-afgørelsesrækker i afsluttet rækkefølge (reader-læst) — til tabellens sort. */
   aslAfgoerelserCommittedRows: readonly AslAfgoerelseRow[];
   /**
-   * ASL-afgørelsernes KRYDS-RÆKKE-domænefejl pr. celle (`${rowId}|${field}` → besked). Descriptorernes egne
-   * format-/bounds-/rule-issues vises af cellen selv; dette er kun de collection-afhængige regler (dublet-datoer,
-   * identiske afgørelser, virkningsdato efter tidl.kap. m.fl.), som tabellen viser inline via `externalErrorMessage`.
-   * Snapshottets `field-asl-afgoerelser` aftager fortsat KUN den første af disse (uændret afgrænsning).
+   * ASL-afgørelsernes KRYDS-RÆKKE-domæneregler som STRUKTURELLE feltissues (GM-F06). Descriptorernes egne
+   * format-/bounds-/rule-issues kommer gennem readerens eget issue-snapshot; disse er de collection-afhængige
+   * regler (dublet-datoer, identiske afgørelser, virkningsdato efter tidl.kap. m.fl.), som en
+   * descriptor-validator ikke kan se, fordi den kun kender sin egen celle.
+   *
+   * Sættet bærer rigtige feltadresser, så rød markering, tooltip, fokusnavigation og consumerblokering læser
+   * ÉN repræsentation. Snapshottets `field-asl-afgoerelser` aftager fortsat kun den første (uændret
+   * afgrænsning).
    */
-  aslAfgoerelserValidationMessageByCell: ReadonlyMap<string, string>;
+  aslAfgoerelserRuleIssues: FieldIssueSet;
   /** Reader-sikre afsluttede værdier til fanernes rene visning; felter med rødt issue er allerede skjult. */
   values: ErhvervsevnetabComposedValues;
   /** Reader-sikker skadedato til synlighedsregler og dokumentvisning. */
@@ -226,13 +281,11 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     coerceToISODateString(skadelidteFodselsdato.value)
   );
   const aslAfgoerelserRuleMessage = aslAfgoerelserRuleIssues[0]?.message;
-  const aslAfgoerelserValidationMessageByCell = new Map<string, string>();
-  for (const issue of aslAfgoerelserRuleIssues) {
-    const key = `${issue.rowId}|${issue.field}`;
-    if (!aslAfgoerelserValidationMessageByCell.has(key)) {
-      aslAfgoerelserValidationMessageByCell.set(key, issue.message);
-    }
-  }
+  // GM-F06: kryds-række-reglerne bliver STRUKTURELLE feltissues med rigtige feltadresser i stedet for en
+  // parallel `${rowId}|${field}`-strengnøgle. Rød markering, tooltip, fokusnavigation og consumerblokering
+  // læser derfor samme repræsentation som alle andre røde felter (§1.8) — og cellen behøver ingen fri
+  // fejltekst-prop ved siden af sit eget issue.
+  const aslAfgoerelserRuleFieldIssues = buildAslAfgoerelseRuleFieldIssues(aslAfgoerelserRuleIssues);
 
   const composedValues: ErhvervsevnetabComposedValues = {
     beregningsdato: beregningsdato.value,
@@ -299,7 +352,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
   return {
     snapshot,
     aslAfgoerelserCommittedRows: aslAfgoerelser,
-    aslAfgoerelserValidationMessageByCell,
+    aslAfgoerelserRuleIssues: buildFieldIssueSet(aslAfgoerelserRuleFieldIssues),
     values: composedValues,
     skadedato: skadedato.value,
     forligValues: {

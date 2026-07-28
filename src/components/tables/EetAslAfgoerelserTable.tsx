@@ -16,6 +16,8 @@ import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
 import {
   collectionLocationPrefix,
   useCollectionCellSpecBuilder,
@@ -45,8 +47,8 @@ import type { ISODateString } from '../../types/branded';
 //    `useGridRowPersistenceCore`, `internalTableData`, `invalidDrafts`, fingerprint eller persistence-effect.
 //  - hver redigerbar celle er en `Grid*Cell` over `useCellEditor`, bro-forbundet til grid-core-
 //    navigationen. Descriptorernes codecs + bounds-validatorer ejer parse/format/paste + celle-bounds (§1.6);
-//    kryds-række-domænefejlene (dublet-datoer, identiske afgørelser, virkningsdato efter tidl.kap.) kommer fra
-//    forælderens reader-afledte `validationMessageByCell` og vises inline via cellens `externalErrorMessage`.
+//    kryds-række-domænereglerne (dublet-datoer, identiske afgørelser, virkningsdato efter tidl.kap.) kommer fra
+//    forælderens reader-afledte `ruleIssues` som STRUKTURELLE feltissues og slås op på cellens egen feltadresse.
 //  - de committede rækker (til sort + kryds-validering) er reader-afledte af forælderen, så tabellen og
 //    projektionen deler præcis samme sandhed. Der er ingen konkurrerende celle-værdikopi (§3.8).
 //  - trailing PLACEHOLDER-rækker (§1.11): greenfield persisterer ikke tomme rækker, så den viste tabel = de
@@ -76,14 +78,15 @@ const COL = {
   fsTilbageholdtEet: 7,
 } as const;
 
-/** Per-celle kryds-række-domænefejl, nøglet `${rowId}|${field}` (afledt af forælderens reader-projektion). */
-export type EetAslValidationMessageByCell = ReadonlyMap<string, string>;
-
 export type EetAslAfgoerelserTableProps = Readonly<{
   /** De committede rækker (reader-afledt af forælderen), i afsluttet rækkefølge — til sort + kryds-validering. */
   committedRows: readonly AslAfgoerelseRow[];
-  /** Kryds-række-domænefejl pr. celle (`${rowId}|${field}` → besked), reader-afledt af forælderen. */
-  validationMessageByCell: EetAslValidationMessageByCell;
+  /**
+   * Kryds-række-domænereglerne som STRUKTURELLE feltissues (GM-F06), reader-afledt af forælderen. Cellen slår
+   * sit eget issue op på sin FELTADRESSE — ikke på en parallel `${rowId}|${field}`-strengnøgle — så rød
+   * markering, tooltip og fokusnavigation deler repræsentation med alle andre røde felter.
+   */
+  ruleIssues: FieldIssueSet;
   saveOrderPath?: TableSaveOrderPath;
 }>;
 
@@ -94,53 +97,65 @@ const createEmptyAslRow = (rowId: string): AslAfgoerelseRow => ({ ...emptyAslAfg
 type EetAslAfgoerelserRowProps = Readonly<{
   renderRow: RenderRow;
   onDeleteRow: (rowId: string) => void;
-  validationMessageByCell: EetAslValidationMessageByCell;
+  ruleIssues: FieldIssueSet;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, AslAfgoerelseRow>;
 }>;
 
 const EetAslAfgoerelserRow = React.memo(
-  ({ renderRow, onDeleteRow, validationMessageByCell, buildCellSpec }: EetAslAfgoerelserRowProps) => {
+  ({ renderRow, onDeleteRow, ruleIssues, buildCellSpec }: EetAslAfgoerelserRowProps) => {
     const rowId = renderRow.rowId;
     const gc = (colIndex: number) => ({ rowId, colIndex });
-    const cellError = (field: keyof AslAfgoerelseRow): string | undefined =>
-      validationMessageByCell.get(`${rowId}|${field}`);
 
-    const externalProp = (field: keyof AslAfgoerelseRow) => {
-      const message = cellError(field);
-      return message === undefined ? {} : { externalErrorMessage: message };
+    // Opslaget sker på den FÆRDIGT BUNDNE cellereference, editoren selv driver (`CellSpec.field`) — ikke på en
+    // ny lokal binding og ikke på en parallel `${rowId}|${field}`-strengnøgle (GM-F06). Dermed findes der kun
+    // ÉN bindingsvej: kunne de to divergere, ville fejlen forsvinde lydløst fra cellen (jf. INC-F01, hvor
+    // netop en lokal binding gav forkerte ejer-id'er i nestede collections).
+    const ruleIssueFor = <T,>(cell: CellSpec<T, AslAfgoerelseRow>) => {
+      const issue = activeFieldIssue(ruleIssues, serializeFieldAddress(cell.field.address));
+      return issue === undefined ? {} : { collectionRuleIssue: issue };
     };
+
+    // Hver cellespec bygges ÉN gang og bruges både af cellen og af issue-opslaget, så de ikke kan bindes
+    // forskelligt.
+    const afgoerelsesDatoCell = buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseAfgoerelsesDatoField, COL.afgoerelsesDato);
+    const virkningsDatoCell = buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseVirkningsDatoField, COL.virkningsDato);
+    const eetPctCell = buildCellSpec<number | undefined>(renderRow, aslAfgoerelseEetPctField, COL.eetPct);
+    const afgoerelseTypeCell = buildCellSpec<AfgoerelseType | undefined>(renderRow, aslAfgoerelseAfgoerelseTypeField, COL.afgoerelseType);
+    const kapDatoCell = buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseKapDatoField, COL.kapDato);
+    const kapPctCell = buildCellSpec<number | undefined>(renderRow, aslAfgoerelseKapPctField, COL.kapPct);
+    const tidlKapDatoCell = buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseTidlKapDatoField, COL.tidlKapDato);
 
     return (
       <TableRow data-mineo-row-id={rowId}>
         <TableCell>
           <GridDateCell
             gridCell={gc(COL.afgoerelsesDato)}
-            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseAfgoerelsesDatoField, COL.afgoerelsesDato)}
-            {...externalProp('afgoerelsesDato')}
+            cell={afgoerelsesDatoCell}
+            {...ruleIssueFor(afgoerelsesDatoCell)}
           />
         </TableCell>
         <TableCell>
           <GridDateCell
             gridCell={gc(COL.virkningsDato)}
-            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseVirkningsDatoField, COL.virkningsDato)}
-            {...externalProp('virkningsDato')}
+            cell={virkningsDatoCell}
+            {...ruleIssueFor(virkningsDatoCell)}
           />
         </TableCell>
         <TableCell>
           <GridPercentCell
             gridCell={gc(COL.eetPct)}
-            cell={buildCellSpec<number | undefined>(renderRow, aslAfgoerelseEetPctField, COL.eetPct)}
-            {...externalProp('eetPct')}
+            cell={eetPctCell}
+            {...ruleIssueFor(eetPctCell)}
           />
         </TableCell>
         <TableCell>
           <GridChoiceCell<AfgoerelseType, AslAfgoerelseRow>
             gridCell={gc(COL.afgoerelseType)}
-            cell={buildCellSpec<AfgoerelseType | undefined>(renderRow, aslAfgoerelseAfgoerelseTypeField, COL.afgoerelseType)}
+            cell={afgoerelseTypeCell}
             allowEmpty
             placeholder="Vælg..."
             ariaLabel="Afgørelsestype"
-            {...externalProp('afgoerelseType')}
+            {...ruleIssueFor(afgoerelseTypeCell)}
           >
             {AFGOERELSES_TYPE_OPTIONS.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
@@ -150,22 +165,22 @@ const EetAslAfgoerelserRow = React.memo(
         <TableCell>
           <GridDateCell
             gridCell={gc(COL.kapDato)}
-            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseKapDatoField, COL.kapDato)}
-            {...externalProp('kapDato')}
+            cell={kapDatoCell}
+            {...ruleIssueFor(kapDatoCell)}
           />
         </TableCell>
         <TableCell>
           <GridPercentCell
             gridCell={gc(COL.kapPct)}
-            cell={buildCellSpec<number | undefined>(renderRow, aslAfgoerelseKapPctField, COL.kapPct)}
-            {...externalProp('kapPct')}
+            cell={kapPctCell}
+            {...ruleIssueFor(kapPctCell)}
           />
         </TableCell>
         <TableCell>
           <GridDateCell
             gridCell={gc(COL.tidlKapDato)}
-            cell={buildCellSpec<ISODateString | undefined>(renderRow, aslAfgoerelseTidlKapDatoField, COL.tidlKapDato)}
-            {...externalProp('tidlKapDato')}
+            cell={tidlKapDatoCell}
+            {...ruleIssueFor(tidlKapDatoCell)}
           />
         </TableCell>
         <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
@@ -191,7 +206,7 @@ const EetAslAfgoerelserRow = React.memo(
 EetAslAfgoerelserRow.displayName = 'EetAslAfgoerelserRow';
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ committedRows, validationMessageByCell, saveOrderPath }: EetAslAfgoerelserTableProps) => {
+  ({ committedRows, ruleIssues, saveOrderPath }: EetAslAfgoerelserTableProps) => {
     const rows = useCollectionRows<AslAfgoerelseRow>(erhvervsevnetabAslAfgoerelserCollectionRef, {
     locationId: 'erhvervsevnetab.aslAfgoerelser',
     route: APP_ROUTES.erhvervsevnetab,
@@ -322,7 +337,7 @@ const EetAslAfgoerelserTable = React.memo(
               key={renderRow.rowId}
               renderRow={renderRow}
               onDeleteRow={rows.remove}
-              validationMessageByCell={validationMessageByCell}
+              ruleIssues={ruleIssues}
               buildCellSpec={buildCellSpec}
             />
           ))}

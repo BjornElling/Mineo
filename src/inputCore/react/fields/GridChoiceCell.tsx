@@ -7,6 +7,7 @@ import type { GridCellCoord, GridCellEditorHandle } from '../../../components/ta
 import { gridCellKey } from '../../../components/tables/gridCore/gridCoreUtils';
 import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './gridCellStyles';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
+import type { FieldIssue } from '../../inputIssue';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 
 // Greenfield grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
@@ -37,8 +38,11 @@ export type GridChoiceCellProps<
    */
   allowEmpty?: boolean;
   placeholder?: string;
-  /** Ekstern kryds-række-domænefejl (fx identiske afgørelser); descriptorens eget issue har forrang. */
-  externalErrorMessage?: string;
+  /**
+   * Collection-afledt feltissue (fx identiske afgørelser) med rigtig feltadresse — ikke en fri fejltekst
+   * (GM-F06). Descriptorens eget issue har forrang (§1.8).
+   */
+  collectionRuleIssue?: FieldIssue;
   sx?: SxProps<Theme>;
 }>;
 
@@ -47,7 +51,7 @@ const GridChoiceCellInner = <
   TEntity,
   TCanonical extends TValue | undefined,
 >(
-  { gridCell, cell, children, ariaLabel, allowEmpty = true, placeholder, externalErrorMessage, sx }: GridChoiceCellProps<TValue, TEntity, TCanonical>
+  { gridCell, cell, children, ariaLabel, allowEmpty = true, placeholder, collectionRuleIssue, sx }: GridChoiceCellProps<TValue, TEntity, TCanonical>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
   const controller = useCellEditor<TCanonical, TEntity>(cell);
@@ -58,7 +62,7 @@ const GridChoiceCellInner = <
   const restoreTargetAttributes = useRestoreTargetAttributes(cell.field.address, cell.location);
 
   // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun ellers (§1.8).
-  const resolvedErrorMessage = controller.issue?.message ?? externalErrorMessage;
+  const resolvedErrorMessage = controller.issue?.message ?? collectionRuleIssue?.message;
   const hasError = resolvedErrorMessage !== undefined;
   const errorMessage = resolvedErrorMessage ?? '';
 
