@@ -104,6 +104,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/components/layout/Container.checklistGaps.test.tsx',
       'src/__tests__/components/tables/tableKeyboardNavigation.arrowWrap.test.tsx',
       'src/__tests__/components/tables/tableKeyboardNavigation.lockedSkip.test.tsx',
+      // UT-F02: kontraktkrydset "LUKKET popup-kontrol + tabellens capture-handler + Enter", kørt mod
+      // BEGGE surfaces (form + celle), så popup-semantikken ikke kan divergere mellem dem igen.
+      'src/__tests__/components/tables/popupWidgetKeyboardContract.integration.test.tsx',
     ],
   },
   {

@@ -4,6 +4,7 @@ import { mergeSx } from '../../utils/mergeSx';
 import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import ScrollToTopButton from '../ui/ScrollToTopButton';
 import { CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR, hasTableBoundaryExit } from '../tables/gridCore/tableFocusHelpers';
+import { getPopupWidgetHost, isPopupWidget, isPopupWidgetExpanded } from '../inputs/popupWidgetSemantics';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 
 /**
@@ -105,53 +106,11 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
   const focusableCacheRef = React.useRef<FocusableElement[]>([]);
   const cacheValidRef = React.useRef(false);
 
-  const getWidgetHost = React.useCallback((el: HTMLElement | null): HTMLElement | null => {
-    if (!el) return null;
-    return el.closest('[role="combobox"],[aria-haspopup],[aria-controls]') as HTMLElement | null;
-  }, []);
-
   const getRowContainer = React.useCallback((el: HTMLElement): HTMLElement | null => {
     const container = el.closest(CONTAINER_ROW_SELECTOR);
     if (!(container instanceof HTMLElement)) return null;
     if (!containerRef.current?.contains(container)) return null;
     return container;
-  }, []);
-
-  const getNearestExpanded = React.useCallback((el: HTMLElement | null): boolean => {
-    if (!el) return false;
-    const expandedHost = el.closest('[aria-expanded]') as HTMLElement | null;
-    if (expandedHost?.getAttribute('aria-expanded') === 'true') return true;
-
-    const widgetHost = getWidgetHost(el);
-    if (widgetHost?.getAttribute('aria-expanded') === 'true') return true;
-
-    const controlsId = widgetHost?.getAttribute('aria-controls');
-    if (!controlsId) return false;
-    const controlled = document.getElementById(controlsId);
-    if (!(controlled instanceof HTMLElement)) return false;
-    if (controlled.hasAttribute('hidden')) return false;
-    if (controlled.getAttribute('aria-hidden') === 'true') return false;
-
-    // Nogle widgets holder expanded-tilstand på en søsker/wrapper, men eksponerer `aria-controls` til popup-elementet.
-    // Brug det kontrollerede elements synlighed som et konservativt "er åben"-signal.
-    const rects = controlled.getClientRects();
-    if (rects.length === 0) return false;
-    const style = window.getComputedStyle(controlled);
-    if (style.display === 'none' || style.visibility === 'hidden') return false;
-    return true;
-  }, [getWidgetHost]);
-
-  const isPopupWidget = React.useCallback((host: HTMLElement | null, isExpanded: boolean): boolean => {
-    if (!host) return false;
-    const role = host.getAttribute('role');
-    const hasPopup = host.getAttribute('aria-haspopup') !== null;
-    const hasControls = host.getAttribute('aria-controls') !== null;
-
-    // `aria-controls` alene er for bredt; behandl det kun som et widget-signal når det kombineres med anden widget-semantik.
-    if (role === 'combobox') return true;
-    if (hasPopup) return true;
-    if (hasControls && isExpanded) return true;
-    return false;
   }, []);
 
   /**
@@ -293,23 +252,21 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
     const activeElement = document.activeElement;
+    // Hvilket af de traverserbare felter er det aktive elements fokus-stop? Slås op med PRÆCIS samme
+    // selector, som `getFocusableElements` indsamler med — ellers kunne de to divergere, og `indexOf`
+    // nedenfor ville ikke finde elementet i sin egen liste. Selectoren er én kilde
+    // (`CONTAINER_FOCUSABLE_SELECTOR`); en inlinet variant her var tidligere en næsten-kopi uden dens
+    // `:not([disabled])`-filtre.
     const activeFocusable: FocusableElement | null = (() => {
       if (!(activeElement instanceof HTMLElement)) return null;
-      const closest = activeElement.closest('input,select,textarea,button[data-mineo-focusable-button="true"],[role="combobox"],[aria-haspopup],[aria-controls]');
-      if (!closest) return null;
-      if (closest instanceof HTMLInputElement) return closest;
-      if (closest instanceof HTMLSelectElement) return closest;
-      if (closest instanceof HTMLTextAreaElement) return closest;
-      if (closest instanceof HTMLButtonElement && closest.matches('button[data-mineo-focusable-button="true"]')) return closest;
-      if (closest instanceof HTMLElement && closest.getAttribute('role') === 'combobox') return closest;
-      if (closest instanceof HTMLElement && (closest.hasAttribute('aria-haspopup') || closest.hasAttribute('aria-controls'))) return closest;
-      return null;
+      const closest = activeElement.closest(CONTAINER_FOCUSABLE_SELECTOR);
+      return closest instanceof HTMLElement ? closest : null;
     })();
 
     // Widget-detektion til key-interception skal tage højde for wrappers, ikke kun rå inputs.
     const activeElementAsHtml = activeElement instanceof HTMLElement ? activeElement : null;
-    const activeWidgetHost = getWidgetHost(activeElementAsHtml);
-    const activeWidgetIsExpanded = getNearestExpanded(activeElementAsHtml);
+    const activeWidgetHost = getPopupWidgetHost(activeElementAsHtml);
+    const activeWidgetIsExpanded = isPopupWidgetExpanded(activeElementAsHtml);
     const activeWidgetHasPopup = isPopupWidget(activeWidgetHost, activeWidgetIsExpanded);
 
     let currentIndex = activeFocusable ? focusableElements.indexOf(activeFocusable) : -1;
@@ -585,7 +542,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     }
     e.preventDefault();
     moveFocus(e.shiftKey ? -1 : 1);
-  }, [getFocusableElements, getNearestExpanded, getRowContainer, getWidgetHost, invalidateCache, isElementVisible, isInTableNavigation, isPopupWidget]);
+  }, [getFocusableElements, getRowContainer, invalidateCache, isElementVisible, isInTableNavigation]);
 
   return (
     <ScrollContainerProvider containerRef={containerRef}>

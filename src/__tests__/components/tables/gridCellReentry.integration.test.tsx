@@ -318,9 +318,10 @@ describe('grid dropdown-celle', () => {
     expect(combobox).not.toBeNull();
     expect(screen.queryByRole('listbox')).toBeNull();
 
-    // Åbn menuen via combobox'ens egen klik-kontrakt (`StyledDropdown.tsx:580` — onClick={handleOpen}).
-    // Navigationen lader dropdown-celler beholde deres egen tastaturkontrakt
-    // (`tableKeyboardNavigation.ts:311-329`), så cellen åbnes ikke gennem grid-core's edit-lifecycle.
+    // Åbn menuen via combobox'ens egen klik-kontrakt (`StyledDropdown` — onClick={handleOpen}).
+    // Navigationen lader popup-celler beholde deres egen tastatur-/pointer-kontrakt (klassificeret af
+    // `popupWidgetSemantics`), så cellen åbnes ikke gennem grid-core's edit-lifecycle. Selve
+    // tastaturkontrakten er dækket af `popupWidgetKeyboardContract.integration.test.tsx`.
     await act(async () => {
       fireEvent.click(combobox);
       await Promise.resolve();

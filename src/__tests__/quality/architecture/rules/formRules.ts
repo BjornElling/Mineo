@@ -1049,3 +1049,134 @@ export const rowCommandDestinationRule = defineRule({
     },
   ],
 });
+
+// --- Popup-semantik klassificeres ét sted (UT-F02) ----------------------------
+
+/**
+ * Navigationsfladerne (`Container` og grid-navigationen) må IKKE hver især afgøre "er dette en popup-
+ * kontrol, og er den åben?". De skal spørge `popupWidgetSemantics`.
+ *
+ * Baggrund: grid'et havde sin egen klassifikation, som genkendte celle-dropdowns på en PRIVAT
+ * markør-attribut (`data-mineo-table-dropdown`) fra en slettet komponent. Ingen produktionskontrol satte
+ * attributten, så alle fem celle-dropdowns fik Enter kapret af grid-navigationen frem for at åbne deres
+ * menu. Samtidig fandtes ARIA-opslaget i to næsten identiske kopier.
+ *
+ * Reglen har to ben, fordi kun ét af dem alene kunne bæres:
+ * 1. FRAVÆR: en privat popup-markør-attribut må ikke genindføres nogen steder i interaktionsfladerne.
+ * 2. LOKAL KOPI: en navigationsflade må ikke selv slå ARIA-popup-semantikken op (`role="combobox"` /
+ *    `aria-haspopup` i en selector). Den slags kopi var netop den drift, fundet beskrev — og den ville
+ *    ikke blive fanget af ben 1, fordi den ikke bruger nogen markør.
+ *
+ * `liveTarget` er en precondition med `requiredPaths`: BEGGE konsumenter skal stadig importere modulet.
+ * Slettes den ene, eller holder den op med at bruge den delte klassifikation, er reglen ikke længere et
+ * værn om en levende grænse, og harnesset siger det.
+ */
+const POPUP_SEMANTICS_MODULE = 'src/components/inputs/popupWidgetSemantics.ts';
+const POPUP_SEMANTICS_CONSUMERS = [
+  'src/components/layout/Container.tsx',
+  'src/components/tables/gridCore/tableKeyboardNavigation.ts',
+] as const;
+const POPUP_SEMANTICS_IMPORT = /from\s+['"][^'"]*popupWidgetSemantics['"]/;
+/** Privat markør-attribut som popup-KLASSIFIKATION — den fejlform, fundet handlede om. */
+const PRIVATE_POPUP_MARKER = /data-mineo-[a-z-]*dropdown/;
+/**
+ * Rå ARIA-popup-opslag i en selector: en lokal kopi af den delte klassifikation.
+ *
+ * Mønstret måler attribut-selectoren SELV (`[role="combobox"` / `[aria-haspopup`) frem for at forsøge at
+ * afgrænse den omgivende streng: en CSS-selector indeholder typisk dobbelt-anførselstegn inde i en
+ * enkeltciteret streng, så en "ingen anførselstegn indeni"-afgrænsning ville netop misse den normale form.
+ */
+const LOCAL_ARIA_POPUP_LOOKUP = /\[\s*(?:role\s*=\s*\\?["']combobox|aria-haspopup)/;
+
+export const popupSemanticsSingleSourceRule = defineRule({
+  id: 'input/popup-semantics-single-source',
+  description:
+    'Navigationsflader skal klassificere popup-kontroller gennem popupWidgetSemantics — ikke med en privat '
+    + 'markør-attribut eller en lokal kopi af ARIA-opslaget (UT-F02).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      POPUP_SEMANTICS_CONSUMERS.includes(entry.relativePath as (typeof POPUP_SEMANTICS_CONSUMERS)[number])
+      && POPUP_SEMANTICS_IMPORT.test(entry.text),
+    rationale:
+      'begge navigationsflader (Container + grid-navigationen) skal stadig aftage den delte popup-klassifikation; '
+      + 'holder den ene op, er grænsen ikke længere levende',
+    minimumMatches: POPUP_SEMANTICS_CONSUMERS.length,
+    requiredPaths: POPUP_SEMANTICS_CONSUMERS,
+  },
+  // Interaktionsfladerne: tabellens gridCore, sidens Container og de fælles input-primitiver.
+  appliesTo: (relativePath) =>
+    (relativePath.startsWith('src/components/tables/')
+      || relativePath.startsWith('src/components/layout/')
+      || relativePath.startsWith('src/components/inputs/')
+      || relativePath.startsWith('src/inputCore/react/'))
+    // Modulet selv ER klassifikationen og skal naturligvis indeholde ARIA-opslaget.
+    && relativePath !== POPUP_SEMANTICS_MODULE,
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const lines = entry.text.split('\n');
+    lines.forEach((line, index) => {
+      // Kommentarer er ikke kode (jf. INC-F03): en linje, der kun forklarer den gamle fejlform, er ikke
+      // en overtrædelse. Vi måler derfor kun linjer med faktisk kode uden for en kommentar.
+      const withoutComment = line.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '');
+      if (withoutComment.trim() === '') return;
+      const position = { line: index + 1, column: 1 };
+      if (PRIVATE_POPUP_MARKER.test(withoutComment)) {
+        findings.push({
+          position,
+          message:
+            'Popup-kontroller klassificeres med en privat markør-attribut. Det var netop den fejlform, der gjorde '
+            + 'grid\'ets dropdown-fritagelse inert (UT-F02) — brug popupWidgetSemantics i stedet.',
+        });
+      }
+      if (LOCAL_ARIA_POPUP_LOOKUP.test(withoutComment)) {
+        findings.push({
+          position,
+          message:
+            'Lokalt ARIA-popup-opslag (role="combobox"/aria-haspopup) i en selector. Klassifikationen ejes af '
+            + 'popupWidgetSemantics — en kopi her kan drifte fra den anden flade uden en typefejl.',
+        });
+      }
+    });
+    return findings;
+  },
+  allow: [
+    // Fokuserbarheds-selectorerne: de opregner ALLE fokuserbare elementarter (input/select/textarea/button/
+    // combobox/haspopup) til Tab-traversering. Det er en anden concern end popup-KLASSIFIKATION — de svarer
+    // "kan dette fokuseres?", ikke "er dette en popup, og er den åben?". Holdt bevidst ét sted her.
+    'src/components/tables/gridCore/tableFocusHelpers.ts',
+    // Bemærk: `StyledDropdown` behøver INGEN undtagelse. Den SÆTTER sin ARIA-semantik som JSX-props
+    // (`'aria-haspopup': 'listbox'`), og reglen måler attribut-SELECTORER — altså opslag i fremmed DOM.
+    // Producenten af semantikken og forbrugeren af klassifikationen er dermed strukturelt adskilt.
+    // Cellens dropdown-handle henter sit eget input-element via `input[role="combobox"]` — et opslag i
+    // KOMPONENTENS EGET subtree, ikke en klassifikation af en fremmed kontrol.
+    'src/inputCore/react/fields/GridChoiceCell.tsx',
+  ],
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/tables/gridCore/nyNav.ts',
+      code: "const isDropdown = target.closest('[data-mineo-table-dropdown=\"true\"]') !== null;",
+    },
+    {
+      relativePath: 'src/components/layout/NyContainer.tsx',
+      code: 'const host = el.closest(\'[role="combobox"],[aria-haspopup]\');',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/tables/gridCore/nyNav.ts',
+      code: "import { isInClosedPopupWidget } from '../../inputs/popupWidgetSemantics';\nconst isPopup = isInClosedPopupWidget(target);",
+    },
+    // En KOMMENTAR, der forklarer den gamle fejlform, må ikke gøre reglen rød (og må omvendt heller ikke
+    // kunne bære den — derfor måles kun kode).
+    {
+      relativePath: 'src/components/tables/gridCore/nyNav2.ts',
+      code: "// Tidligere klassificerede vi på data-mineo-table-dropdown; det er nu popupWidgetSemantics.\nconst x = 1;",
+    },
+    // Row-delete-markøren er ikke en popup-klassifikation.
+    {
+      relativePath: 'src/components/tables/gridCore/nyNav3.ts',
+      code: "if (target.closest('[data-mineo-row-delete=\"true\"]')) return;",
+    },
+  ],
+});

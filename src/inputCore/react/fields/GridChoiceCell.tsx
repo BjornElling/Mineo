@@ -10,14 +10,17 @@ import { useCellEditor, type CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 
-// Greenfield grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
-// `ChoiceField` (form-dropdown) og erstatter legacy `TableDropdown` for celle-valg (fx rentekrav-enhed).
+// Grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
+// `ChoiceField` (form-dropdown) og den ene celle-valg-kontrol (fx rentekrav-enhed).
 // Menuvalget committer STRAKS gennem `useCellEditor().commitImmediate` — der er aldrig en åben draft at settle, så
 // grid-core-navigationens `commitCurrent` er altid en no-op-success. Den viste værdi + røde issue læses fra den
 // afsluttede revision gennem controlleren; der er ingen konkurrerende celle-værdikopi (§3.8).
 //
-// Visuelt bruger den `StyledDropdown` i "loose"-tabellernes outlined stil (samme som `TableDropdown`s loose-gren),
-// så udseendet er 1:1 med legacy i de MUI-baserede løse tabeller.
+// Visuelt bruger den `StyledDropdown` i de MUI-baserede løse tabellers outlined stil.
+//
+// Tastaturkontrakten er IKKE en egenskab ved denne komponent: både Container og grid-navigationen
+// klassificerer den som popup-kontrol ud fra `StyledDropdown`s ARIA-semantik gennem
+// `popupWidgetSemantics`, så Enter åbner menuen frem for at flytte cellefokus (UT-F02).
 
 const TABLE_DROPDOWN_TEXT_PADDING_LEFT = '14px';
 

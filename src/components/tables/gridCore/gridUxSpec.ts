@@ -59,14 +59,16 @@ export const GRID_UX_SPEC = {
     expandedWidgetBypass: true,
 
     /**
-     * Dropdown-celler (TableDropdown-kontrakt):
-     * - Tab kan fokusere dropdownen
+     * Popup-celler (fx `GridChoiceCell`):
+     * - Tab kan fokusere kontrollen
      * - Enter åbner menuen (må IKKE udløse grid Enter-navigation)
      * - Valg committer øjeblikkeligt
      * - Delete/Backspace rydder (kun når allowEmpty=true og menuen er lukket)
+     * - Printbare taster åbner INGEN tekst-editor (kontrollen har ingen fritekst)
      *
-     * Denne kontrakt afhænger af wrapper-attributten:
-     * `data-mineo-table-dropdown="true"`
+     * Kontrakten klassificerer kontrollen på dens ARIA-semantik gennem `popupWidgetSemantics`
+     * (`role="combobox"` / `aria-haspopup`) — ikke på et komponentnavn eller en privat
+     * markør-attribut. Samme klassifikation bruges af Container og af grid'ets pointer-veje.
      */
     dropdownContract: true,
   },

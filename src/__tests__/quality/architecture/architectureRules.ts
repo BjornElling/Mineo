@@ -28,6 +28,7 @@ import {
   eetDifferencekravCompositionBoundary,
   eoFieldVisibilitySingleSource,
   persistenceCommittedMirror,
+  popupSemanticsSingleSourceRule,
   promiseTickBoundary,
   queueMicrotaskBoundary,
   reguleringCanonicalForloebBoundary,
@@ -104,6 +105,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   documentGeneratorCursorElementAccess,
   restoreTargetAttributesRule,
   rowCommandDestinationRule,
+  popupSemanticsSingleSourceRule,
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
   cellBindingSingleSource,

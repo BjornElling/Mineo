@@ -8,6 +8,7 @@ import {
   markTableBoundaryExit,
   TABLE_FOCUSABLE_SELECTOR,
 } from './tableFocusHelpers';
+import { isInClosedPopupWidget, isPopupWidgetExpanded } from '../../inputs/popupWidgetSemantics';
 import type { GridCellCoord } from './gridCoreTypes';
 import {
   buildGrid,
@@ -53,51 +54,20 @@ const isComposing = (e: React.KeyboardEvent): boolean => {
   return native.isComposing === true;
 };
 
-const getWidgetHost = (el: HTMLElement | null): HTMLElement | null => {
-  if (!el) return null;
-  return el.closest('[role="combobox"],[aria-haspopup],[aria-controls]') as HTMLElement | null;
-};
+// Popup-semantik (åben/lukket dropdown m.v.) ejes af `popupWidgetSemantics` — ét sted for både
+// Container og grid-navigationen. Grid'et har derfor INGEN egen dropdown-klassifikation længere.
 
-const getNearestExpanded = (el: HTMLElement | null): boolean => {
-  if (!el) return false;
-  const expandedHost = el.closest('[aria-expanded]') as HTMLElement | null;
-  if (expandedHost?.getAttribute('aria-expanded') === 'true') return true;
-
-  const widgetHost = getWidgetHost(el);
-  if (widgetHost?.getAttribute('aria-expanded') === 'true') return true;
-
-  const controlsId = widgetHost?.getAttribute('aria-controls');
-  if (!controlsId) return false;
-  const controlled = document.getElementById(controlsId);
-  if (!(controlled instanceof HTMLElement)) return false;
-  if (controlled.hasAttribute('hidden')) return false;
-  if (controlled.getAttribute('aria-hidden') === 'true') return false;
-
-  const rects = controlled.getClientRects();
-  if (rects.length === 0) return false;
-  const style = window.getComputedStyle(controlled);
-  if (style.display === 'none' || style.visibility === 'hidden') return false;
-  return true;
-};
-
-const isTableDropdownExpanded = (target: HTMLElement | null): boolean => {
-  if (!target) return false;
-  const dropdownHost = target.closest('[data-mineo-table-dropdown="true"]') as HTMLElement | null;
-  if (!dropdownHost) return false;
-
-  const trigger = dropdownHost.querySelector('[role="combobox"],[aria-haspopup],[aria-controls]') as HTMLElement | null;
-  if (!trigger) return false;
-  if (trigger.getAttribute('aria-expanded') === 'true') return true;
-
-  const controlsId = trigger.getAttribute('aria-controls');
-  if (!controlsId) return false;
-  const controlled = document.getElementById(controlsId);
-  if (!(controlled instanceof HTMLElement)) return false;
-  if (controlled.hasAttribute('hidden')) return false;
-  if (controlled.getAttribute('aria-hidden') === 'true') return false;
-  const style = window.getComputedStyle(controlled);
-  if (style.display === 'none' || style.visibility === 'hidden') return false;
-  return true;
+/**
+ * Elementer, hvis pointer-interaktion IKKE er grid'ets: en popup-kontrol åbner/lukker selv sin menu, og
+ * slet-række-knappen ligger uden for celle-navigationen. Grid'et må derfor ikke føre to-trins-
+ * redigeringsbogføring (arm/openEditing) for dem — det ville åbne en "editor" for en kontrol, der ikke
+ * har nogen. Samme klassifikation som Enter-grenen, så en dropdown ikke behandles forskelligt
+ * afhængigt af eventtype (UT-F02, punkt 5).
+ */
+const ownsItsOwnPointerInteraction = (target: HTMLElement): boolean => {
+  if (isInClosedPopupWidget(target)) return true;
+  if (isPopupWidgetExpanded(target)) return true;
+  return target.closest('[data-mineo-row-delete="true"]') !== null;
 };
 
 const shouldIgnoreKey = (e: React.KeyboardEvent): boolean => {
@@ -298,9 +268,8 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   const activePos = getActiveLocator(table, target, grid);
   if (!activePos) return;
 
-  const widgetIsExpanded = getNearestExpanded(target) || isTableDropdownExpanded(target);
   // Når en popup-widget er expanded/åben, så bland dig ikke i dens interne keyboard-håndtering.
-  if (widgetIsExpanded) return;
+  if (isPopupWidgetExpanded(target)) return;
 
   const core = getGridCoreForTable(table);
   const activeCell = toCellCoord(activePos);
@@ -308,8 +277,11 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   const isLocked = activeEditableCell?.getIsLocked() === true;
   const isEditing = core && activeCell ? isSameCell(core.getEditingCell(), activeCell) : false;
 
-  const isTableDropdownTarget = target.closest('[data-mineo-table-dropdown="true"]') !== null;
-  if (isTableDropdownTarget && key === 'Enter') return;
+  // En LUKKET popup-kontrol i en celle ejer selv sin aktiveringstast: Enter skal åbne menuen, ikke
+  // flytte cellefokus. Klassifikationen er kontrollens ARIA-semantik (§keyboard-navigation.md) —
+  // ikke et komponentnavn eller en privat markør-attribut.
+  const isClosedPopupTarget = isInClosedPopupWidget(target);
+  if (isClosedPopupTarget && key === 'Enter') return;
 
   if (isEscapeKey && isEditing && activeEditableCell) {
     e.preventDefault();
@@ -323,8 +295,9 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     return;
   }
 
-  // TableDropdown: behold dens eksisterende keyboard-kontrakt (Enter åbner, Delete rydder når tilladt).
-  if (isTableDropdownTarget) {
+  // Popup-celle: kun navigations- og delete-taster ejes af grid'et (Delete rydder når `allowEmpty`).
+  // Printbare taster åbner IKKE en tekst-editor på en dropdown — kontrollen har ingen fritekst.
+  if (isClosedPopupTarget) {
     if (!isNavigationKey && !isDeleteKey) return;
   }
 
@@ -449,8 +422,7 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   const target = e.target instanceof HTMLElement ? e.target : null;
   if (!target) return;
   if (!table.contains(target)) return;
-  if (target.closest('[data-mineo-table-dropdown="true"]')) return;
-  if (target.closest('[data-mineo-row-delete="true"]')) return;
+  if (ownsItsOwnPointerInteraction(target)) return;
 
   const grid = buildGrid(table);
   if (grid.order.length === 0) return;
@@ -494,8 +466,7 @@ export const handleTableClickCapture = (e: React.MouseEvent<HTMLTableElement>) =
   const target = e.target instanceof HTMLElement ? e.target : null;
   if (!target) return;
   if (!table.contains(target)) return;
-  if (target.closest('[data-mineo-table-dropdown="true"]')) return;
-  if (target.closest('[data-mineo-row-delete="true"]')) return;
+  if (ownsItsOwnPointerInteraction(target)) return;
 
   const core = getGridCoreForTable(table);
   if (!core) return;
@@ -553,8 +524,7 @@ export const handleTableDoubleClickCapture = (e: React.MouseEvent<HTMLTableEleme
   const target = e.target instanceof HTMLElement ? e.target : null;
   if (!target) return;
   if (!table.contains(target)) return;
-  if (target.closest('[data-mineo-table-dropdown="true"]')) return;
-  if (target.closest('[data-mineo-row-delete="true"]')) return;
+  if (ownsItsOwnPointerInteraction(target)) return;
 
   const core = getGridCoreForTable(table);
   if (!core) return;

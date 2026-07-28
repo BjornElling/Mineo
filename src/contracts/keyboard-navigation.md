@@ -150,7 +150,20 @@ Normativt krav:
 
 - Popup-widgets skal kunne overtage deres egen keyboard-navigation, når deres popup er åben.
 - Container må i denne tilstand ikke overtage `Tab`, `Enter` eller piletaster, hvis det ville bryde widgetens egen interaktion.
-- Det er tilladt at bruge ARIA-semantik eller en anden tilsvarende, auditérbar mekanisme til at detektere dette.
+- En **LUKKET** popup-widget ejer selv sin aktiveringstast (`Enter`): den skal åbne menuen. Hverken Container
+  eller en tabels grid-navigation må bruge `Enter` til at flytte fokus, når målet er en lukket popup-kontrol.
+- Klassifikationen "er dette en popup-kontrol, og er den åben?" har **ÉT sted**:
+  `src/components/inputs/popupWidgetSemantics.ts`, som måler kontrollens ARIA-semantik (`role="combobox"`,
+  `aria-haspopup`, `aria-expanded`, og `aria-controls` kun sammen med åben tilstand). Alle
+  navigationsflader — Container OG grid-navigationen — aftager den.
+- En navigationsflade må **IKKE** klassificere popup-kontroller på et komponentnavn, en privat
+  markør-attribut eller sin egen kopi af ARIA-opslaget. En sådan klassifikation kan blive inert, når
+  kontrollen udskiftes, uden at nogen type eller test fejler — det skete konkret (UT-F02: markøren
+  `data-mineo-table-dropdown` fra en slettet komponent blev aldrig sat af nogen kontrol, så alle fem
+  celle-dropdowns fik `Enter` kapret). Håndhævet af AST-reglen `input/popup-semantics-single-source`.
+- Klassifikationen skal være **den samme på tværs af eventtyper**. En popup-kontrol må ikke behandles som
+  popup i keydown-vejen og som en almindelig celle i pointer-/klik-/dobbeltklik-vejen; grid'et fører derfor
+  heller ingen to-trins-redigeringsbogføring for den.
 
 ---
 

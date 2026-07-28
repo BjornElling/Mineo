@@ -1,13 +1,14 @@
 import type React from 'react';
 
 /**
- * Delt interaktions-kerne for de to dropdown-implementeringer (`StyledDropdown` og `TableDropdown`).
+ * Interaktions-primitiver for dropdownens tastatur-adfærd: typeahead-matchningsalgoritmen
+ * (første-bogstav, dansk locale, cirkulær wrap) og de to tastatur-prædikater.
  *
- * Kun den adfærd der var *verbatim identisk* mellem de to er løftet hertil: typeahead-matchnings-
- * algoritmen (første-bogstav, dansk locale, cirkulær wrap) og de to tastatur-prædikater. Den
- * divergerende adfærd — open/close-livscyklus, fokus-genskabelse, portal/positionering, celle-editor-
- * integration — bliver bevidst i hver komponent (jf. keyboard-navigation-kontrakten). Funktionerne her
- * er rene/stateless, så de ikke kan ændre fokus- eller commit-flowet.
+ * `StyledDropdown` er efter greenfield-cutoveren den ene dropdown-implementering — både form-
+ * varianten (`ChoiceField`) og celle-varianten (`GridChoiceCell`) renderer den. Modulet blev udskilt,
+ * da der var to implementeringer, og er bevaret som rene/stateless funktioner, så typeahead-reglen kan
+ * testes uden at mounte kontrollen. Popup-KLASSIFIKATIONEN (er dette en popup, er den åben?) ligger i
+ * `popupWidgetSemantics`, som Container og grid-navigationen deler.
  */
 
 /**
@@ -15,8 +16,7 @@ import type React from 'react';
  * `currentIndex`. `labels` er en parallel-array hvor ikke-matchbare pladser (dividers, disabled,
  * tomme) gives som tom streng — de springes over. Returnerer -1 hvis intet matcher.
  *
- * Identisk algoritme som tidligere fandtes inline i begge dropdowns (StyledDropdown.findNextMatchIndex
- * + TableDropdown's wrapper-typeahead).
+ * Algoritmen er `StyledDropdown`s ene typeahead-regel, udtrykt som en ren funktion.
  */
 export const findTypeaheadMatchIndex = (
   labels: readonly string[],
