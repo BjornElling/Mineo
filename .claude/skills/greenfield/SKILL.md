@@ -39,9 +39,11 @@ overhovedet: navnekonsistens, eksportnavne, kommentar-/dokumentationssprog, filp
 importsemantisk effekt, formatering, døde typer. Er der den mindste tvivl om, at ændringen kan
 flytte adfærd, tal eller UI, er den ikke kosmetisk.
 
-## Låst modelpolitik
+## Låst modelpolitik og arbejdsdeling
 
-Modelpolitikken er en brugerbeslutning og kan ikke ændres af workflowet:
+Modelpolitikken og arbejdsdelingen er brugerbeslutninger og kan ikke ændres, optimeres væk eller
+fraviges af workflowet eller en agent uden en ny, udtrykkelig brugerbeslutning. De gælder denne
+arbejdsgang — uden for den er der ingen fast arbejdsdeling mellem Claude Code og Codex.
 
 | Rolle | Model | Effort |
 |---|---|---|
@@ -50,8 +52,13 @@ Modelpolitikken er en brugerbeslutning og kan ikke ændres af workflowet:
 | Uafhængigt slutreview — standard | Codex sol | medium |
 | Uafhængigt slutreview — klasse H, eller scope der har været forgæves forsøgt løst før | Codex sol | high |
 
-- Claude Code bruger kun Opus. Sonnet må aldrig bruges.
-- Codex bruger kun Sol. Terra og Luna bruges ikke i denne arbejdsgang.
+- **Arbejdsdelingen:** Claude Code står for al planlægning, kortlægning og alle design- og
+  procesbeslutninger (Opus/high) samt implementeringen (Opus/medium). Codex bruges read-only som
+  uafhængig reviewer — sol/medium som standard, sol/high ved trust-kritisk arbejde eller scope der
+  har været forsøgt løst forgæves før.
+- Claude Code bruger kun Opus i Mineo. Sonnet må aldrig bruges.
+- Codex bruger kun Sol i denne arbejdsgang. Luna må aldrig bruges. Terra bruges ikke her; bruges
+  Terra uden for arbejdsgangen, er reasoning-effort altid `high` — aldrig `low` eller `medium`.
 - Codex kortlægger ikke og beslutter ikke. Dens ene opgave er at anfægte det færdige arbejde.
 
 ## 1. Preflight og work item

@@ -9,20 +9,6 @@ Mineo er en trust-kritisk, 100 % client-side erstatningsberegner for danske arbe
 
 **Stack:** TypeScript (strict) · React 19 · Vite 7 · MUI 7 · Zustand 5 · Zod 4 · jsPDF.
 
-## Låst modelpolitik for Claude Code/Codex-arbejdsdeling
-
-Disse beslutninger er truffet af brugeren og må ikke ændres, optimeres væk eller fraviges af en agent uden en ny,
-udtrykkelig brugerbeslutning:
-
-- Claude Code bruger **kun Opus** i Mineo. Sonnet må aldrig bruges.
-- Codex bruger **kun Sol eller Terra**. Luna må aldrig bruges.
-- Når Terra bruges, er reasoning-effort **altid `high`**. Terra må aldrig køres med `low` eller `medium`.
-- **Arbejdsdelingen:** Claude Code står for al planlægning, kortlægning og alle design- og
-  procesbeslutninger (Opus/high) samt implementeringen (Opus/medium). Codex bruges read-only som
-  uafhængig reviewer — sol/medium som standard, sol/high ved trust-kritisk arbejde eller scope der
-  har været forsøgt løst forgæves før. Greenfield-arbejdsgangen bruger derfor ikke Terra;
-  Terra-reglen ovenfor gælder fortsat, hvis Terra bruges uden for den.
-
 ## Roller
 To udviklere: dig (agenten) og brugeren. Ingen andre.
 
