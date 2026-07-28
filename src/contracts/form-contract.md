@@ -233,6 +233,25 @@ selv om det har et rødt range-/bounds-/rule-issue.
 Dokument-output følger samme uniforme regel for egne dependencies: ethvert dokumentrelevant issue med fejlseverity
 blokerer dokumentet, herunder range/bounds. Se `document-output-contract.md`.
 
+### 8.1 Placeholderen beskriver kun værdiens form
+
+En placeholder er **formvejledning og intet andet**. Den viser den forventede værdis FORM — `mm`, `åååå`,
+`uu/åååå`, `dd-mm-åååå`, `0,00` — og må ALDRIG bære
+
+- en min-/maxgrænse eller anden valideringsbegrænsning,
+- en manglende-værdi- eller statusbesked, eller
+- noget, der ændrer sig med tilstand eller kalender.
+
+Grænser hører i feltets issue og tooltip (§8 ovenfor), manglende værdi i issue-/feedbackmekanikken. To
+konkurrerende beskrivelser af samme felt er netop det, der lod en årstalsafhængig tekst (`åååå (≤2026)`) leve i
+visningslaget uden at nogen kontrakt fejlede, og lod en `Indtastning mangler`-besked overtage formvejledningens
+kanal (UT-F06).
+
+Den rene form ejes af den semantiske **feltfamilie** (`src/utils/fieldFormatPlaceholders.ts` samt
+`DEFAULT_AMOUNT_PLACEHOLDER`/`DEFAULT_PERCENT_PLACEHOLDER`), ikke af den tabel eller side, feltet står på. En
+callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION — fx
+månedens `mm` i en periodekolonne — aldrig for at vise bounds, validering eller status.
+
 ## 9. Dynamiske tabeller
 
 Rækkeinfrastrukturen ejer kun stabil rækkeidentitet, rækkefølge, add/delete/reorder og eventuelle tomme UI-rækkers

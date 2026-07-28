@@ -9,6 +9,9 @@ import {
   type DateRangeSpecialErrors,
 } from '../../../utils/dateRangeErrorMessages';
 import { useTransientDraft } from './useTransientDraft';
+// Transient input er IKKE sagsdata, men datoens FORM er den samme for brugeren — så formvejledningen
+// læses fra den ene kilde frem for at være en fjerde kopi af strengen (UT-F06).
+import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
 // Transient datofelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor datoen kun lever i
 // komponentens egen state — fx løntrin-finderens opslagsdato. Deler dato-parse-kernen
@@ -90,7 +93,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
         inputRef={inputRef}
         width={width}
         sx={sx}
-        placeholder={placeholder ?? 'dd-mm-åååå'}
+        placeholder={placeholder ?? DATE_FORMAT_PLACEHOLDER}
         draft={draftState.draft}
         onDraftChange={(next) => draftState.onDraftChange(next)}
         onFocus={draftState.onFocus}

@@ -4,6 +4,7 @@ import { filterWeekKeyDown } from '../../../components/inputs/inputKeyFilters';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
+import { WEEK_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
 // Greenfield uge-felt (§2.4/§3.5): familie-skal over `NumericTextField` med ugefamiliens tegnfilter
 // (`WW-YYYY`). Parse/format/paste og uge-/år-commit-intervallet ejes af descriptorens uge-codec; komponenten
@@ -26,7 +27,7 @@ export type WeekFieldProps = Readonly<{
 }>;
 
 const WeekField = React.forwardRef<HTMLDivElement, WeekFieldProps>(
-  ({ field, location, name, width = 110, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => (
+  ({ field, location, name, width = 110, placeholder = WEEK_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx }, ref) => (
     <NumericTextField<string | undefined>
       ref={ref}
       field={field}

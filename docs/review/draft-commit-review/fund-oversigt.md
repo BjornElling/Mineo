@@ -12,9 +12,9 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 |---|---:|---:|---:|---:|
 | R0–R8 (fasefund) | 36 | 28 | 8 | 0 |
 | GM (konvergensreview) | 15 | 5 | 10 | 0 |
-| UT (brugertest) | 6 | 2 | 3 | 1 |
-| INC (tilfældighedsfund) | 7 | 0 | 7 | 0 |
-| **I alt** | **64** | **35** | **28** | **1** |
+| UT (brugertest) | 6 | 0 | 5 | 1 |
+| INC (tilfældighedsfund) | 10 | 0 | 10 | 0 |
+| **I alt** | **67** | **33** | **33** | **1** |
 
 ## Bindende regel for tilfældighedsfund
 
@@ -50,7 +50,7 @@ en etape rettes og verificeres sammen.
 | **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02, GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Lukket 2026-07-28 i to pas — se etapenoterne nedenfor. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. Lukket 2026-07-28 — se etapenoten nedenfor. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. Lukket 2026-07-28 — se etapenoten nedenfor. |
-| **7** | UT-F02, UT-F06, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. |
+| **7** | UT-F02, UT-F06, R3-F03, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, min-max-tooltips mangler årsagsinput, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. Første pas (UT-F02 + UT-F06) lukket 2026-07-28; de fem øvrige rettes i andet pas — fire af dem deler ÉN mekanisme (hvem der ejer et fokusmål), og R3-F03 hører til samme flade, feltets synlige besked. |
 | **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. |
 | **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. |
 | **10** | R8-F01, R8-F03, R8-F02, R8-F04, R8-F05, R8-F06, R2-F03, R6-F04, R0-F03 | Testdækning og acceptmatrix: §10's kriterier og de obligatoriske statekæder får et levende register. Sidst, fordi dækningen skal måles mod den FÆRDIGE arkitektur, ikke mod en mellemtilstand. |
@@ -137,11 +137,11 @@ Indmeldt af brugeren ved brugertest parallelt med reviewet. Beskrivelse, reprodu
 | Id | Kort titel | Alvor | Lokation | Etape | Status | Rapport |
 |---|---|---|---|---:|---|---|
 | UT-F01 | Dags-dato-knappen springes over ved Tab | — | `InsertTodayDateButton.tsx:30-36` | — | Afvist med evidens | [UT](../draft-commit-brugertestfund.md#ut-f01--dags-dato-knappen-springes-over-ved-tab) |
-| UT-F02 | Enter på dropdown i tabel udløser grid-navigation | Væsentlig | `tableKeyboardNavigation.ts:311-380`, `GridChoiceCell.tsx` | 7 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f02--enter-på-dropdown-i-tabel-udløser-grid-navigation) |
+| UT-F02 | Enter på dropdown i tabel udløser grid-navigation | Væsentlig | `popupWidgetSemantics.ts` (afløser tre klassifikationer) | 7 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f02--enter-på-dropdown-i-tabel-udløser-grid-navigation) |
 | UT-F03 | Undo af en rækkes første commit mister cellefokus | Væsentlig | `placeholderSlots.ts` (afløser fem udgaver) | 6 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f03--undo-af-en-rækkes-første-commit-mister-cellefokus) |
 | UT-F04 | Tilføjelse af ansættelsesforhold crasher den nested løntabel | Kritisk | `useCellEditor.ts`, fem tabelflader | 1 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f04--tilføjelse-af-ansættelsesforhold-crasher-den-nested-løntabel) |
 | UT-F05 | Dags-dato-knappen sender en ulovlig immediate-kommando | Væsentlig | `useFieldEditor.commitImmediate`, fem side-callsites | 2 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f05--dags-dato-knappen-sender-en-ulovlig-immediate-kommando) |
-| UT-F06 | Års-placeholder viser en valideringsgrænse | Mindre | `StandardLoenTable.tsx` | 7 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f06--års-placeholder-viser-en-valideringsgrænse) |
+| UT-F06 | Års-placeholder viser en valideringsgrænse | Mindre | `fieldFormatPlaceholders.ts`, `StandardLoenTable.tsx` | 7 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f06--års-placeholder-viser-en-valideringsgrænse) |
 
 **UT-F04 — rettet 2026-07-28.** Løst ved roden, ikke lokalt: cellens dataidentitet konstrueres nu ét sted
 (`src/inputCore/react/cellSpecBuilder.ts`), som udleder ejer-id'erne af `collection.path` — samme sti som
@@ -204,6 +204,9 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F05 | Effect-write-værnet var grønt af tomhed på alle fire mønstre OG sin allowlist | Væsentlig | GM-F02 | **Rettet 2026-07-28** |
 | INC-F06 | `OevrigeKravTable` bar en femte kopi af den DEFEKTE enkelt-id-placeholdermodel | Væsentlig | UT-F03 | **Rettet 2026-07-28** |
 | INC-F07 | Row-id-værnet bevogtede en slettet arkitektur og modsagde sin egen første assertion | Væsentlig | GM-F14 | **Rettet 2026-07-28** |
+| INC-F08 | 33 `placeholder`-felter i `dateRanges` blev læst af ingen kode — kun af to `toBeTruthy()`-tests | Mindre | UT-F06 | **Rettet 2026-07-28** |
+| INC-F09 | `OffentligeYdelserTableHandle` havde hverken implementer eller consumer | Mindre | UT-F06 | **Rettet 2026-07-28** |
+| INC-F10 | Containers fokus-stop-opslag var en næsten-kopi af den fælles selector uden dens filtre | Væsentlig | UT-F02 | **Rettet 2026-07-28** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -463,3 +466,56 @@ plus de tre livscyklus-tests, der hævder genindtræden; en genindført lokal `p
 struktur-guarden rød med fil:linje.
 
 Fire gates + `verify:ledgers` + fuld suite grøn: 500 filer / 6258 tests.
+
+**INC-F08.** `dateRanges.ts` bar 33 `placeholder: 'dd-mm-åååå'`-felter, erklæret som `readonly placeholder: string`
+på alle fem interval-typer. INGEN produktionskode læste dem — feltets formvejledning kommer fra dato-feltfamilien.
+De to eneste læsere var `dateRanges.test.ts`' `it('skadedato har placeholder')` og
+`it('beregningsdato har placeholder')`, som blot hævdede `toBeTruthy()`.
+
+Fundet er registreret frem for blot slettet, fordi det er endnu en variant af R0-F02's fejlklasse — og en, der
+aktivt gjorde UT-F06 sværere at forstå: et interval, der bærer BÅDE grænserne og placeholderen, ser ud som netop
+det sted, hvor `åååå (≤2026)` hørte hjemme. En læser kunne rimeligt have konkluderet, at koblingen mellem grænse
+og formvejledning var tilsigtet arkitektur. Felterne er slettet sammen med de fem typeerklæringer og de to tests;
+begrundelsen står på stedet i både konfigurationen og testfilen.
+
+**INC-F09.** `OffentligeYdelserTableHandle` erklærede `getValidationSummary` + `showMissingEntryError`, men havde
+NUL implementere og NUL consumere — hverken en `useImperativeHandle`, en `ref` eller et kald. Tabellen eksponerer
+intet imperativt handle, og valideringen læses reader-afledt gennem `offentligeYdelserTableValidation`.
+Interfacet blev fundet, da UT-F06's punkt 4 krævede en gennemgang af alle `showMissingEntryError`-flader: det
+lignede en anden tabel med samme placeholder-hijack, men var en tom kontrakt. De to typer, det brugte, er
+fortsat i brug af netop den validering og er bevaret. Interfacet er slettet, og begrundelsen står på stedet.
+
+**INC-F10.** `Container` udledte det aktive elements FOKUS-STOP med et inlinet `closest(...)`-udtryk, som
+opregnede elementarterne igen — men uden `CONTAINER_FOCUSABLE_SELECTOR`'s `:not([disabled])`-,
+`:not([tabindex="-1"])`- og `:not([type="hidden"])`-filtre — efterfulgt af en seksleddet type-narrowing-kaskade.
+Listen af fokuserbare elementer, som `indexOf` derefter søgte i, blev bygget af den DELTE selector.
+
+Divergensen er load-bearing: et disabled combobox-element kunne blive `activeFocusable`, men findes aldrig i
+`focusableElements`, så `indexOf` returnerer -1 og traverseringen falder tilbage til sin "ingen aktuel
+position"-gren. Fundet blev afsløret af UT-F02's nye AST-regel, som flagede det inlinede ARIA-opslag; det er
+altså et konkret eksempel på et værn, der fandt mere end det, det blev skrevet til. Opslaget bruger nu PRÆCIS
+samme selector som indsamlingen, og narrowing-kaskaden faldt væk med den.
+
+**UT-F02 + UT-F06 — rettet 2026-07-28 (etape 7, første pas).** De to fund i etapen, der ikke hænger sammen med
+fokusnavigationens ejerskab, er lukket. De resterende fire (R7-F02, GM-F03, R7-F03, GM-F10) deler ÉN mekanisme —
+hvem der ejer et fokusmål — og rettes samlet i etapens andet pas.
+
+Begge fund var *større* end deres analyse beskrev, og i samme retning: en semantik, der skulle høre ét sted, var
+kopieret ud i visnings-/navigationslaget, hvor den kunne blive inert uden at nogen type eller test fejlede.
+
+- **UT-F02:** markøren `data-mineo-table-dropdown` blev ikke sat af NOGEN kode. Alle seks kontroller på den —
+  Enter-fritagelsen, den expanded-variant der kun nåedes gennem den, og pointer-/klik-/dobbeltklik-guards — var
+  døde. Popup-klassifikationen er nu ÉT sted (`popupWidgetSemantics.ts`), aftaget af både Container og
+  grid-navigationen, og måler udelukkende ARIA.
+- **UT-F06:** den rene formvejledning havde intet ejer-sted, så to feltfamilier havde INGEN default, og tabellen
+  udfyldte formen selv — én af dem med en kalenderafhængig valideringsgrænse. Formen ejes nu af feltfamilien
+  (`utils/fieldFormatPlaceholders.ts`), og reglen står normativt i `form-contract.md` §8.1.
+
+Tre tilfældighedsfund fulgte med (INC-F08–F10). INC-F10 er værd at fremhæve: det blev fundet af den AST-regel,
+UT-F02 selv indførte, i den ANDEN fil reglen dækker — et værn, der fangede mere end sin egen anledning.
+
+**Brugergodkendelser 2026-07-28:** «Indtastning mangler» erstattes af tabellens eksisterende røde flash (samme
+idiom som en fejlmarkering, ingen ny visuel mekanik), og de to tomme års-formularfelter (EO-oplysningers
+svie/smerte-satsår og Satsers årgang) viser nu `åååå` som de tilsvarende tabelceller.
+
+Fire gates + `verify:ledgers` + fuld suite grøn: 502 filer / 6276 tests.

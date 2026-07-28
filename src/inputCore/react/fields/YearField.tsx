@@ -4,6 +4,7 @@ import { filterYearKeyDown } from '../../../components/inputs/inputKeyFilters';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
+import { YEAR_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
 // Greenfield år-felt (§2.4/§3.5): den tynde familie-skal over `NumericTextField` med årsfamiliens
 // tegnfilter. Parse/format/paste ejes af descriptorens år-codec; komponenten modtager derfor KUN sin
@@ -28,7 +29,7 @@ export type YearFieldProps = Readonly<{
 }>;
 
 const YearField = React.forwardRef<HTMLDivElement, YearFieldProps>(
-  ({ field, location, name, width = 80, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => (
+  ({ field, location, name, width = 80, placeholder = YEAR_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx }, ref) => (
     <NumericTextField
       ref={ref}
       field={field}

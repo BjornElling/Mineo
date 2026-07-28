@@ -59,9 +59,10 @@ describe('dateRanges_stamdata', () => {
     expect(dateRanges_stamdata.skadedato.max).toBe(TODAY);
   });
 
-  it('skadedato har placeholder', () => {
-    expect(dateRanges_stamdata.skadedato.placeholder).toBeTruthy();
-  });
+  // Bemærk: der er ingen placeholder-assertion længere. Intervallerne bar tidligere et
+  // `placeholder`-felt, som INGEN kode læste; denne test og dens søster i varige mén var det eneste,
+  // der holdt det i live. Formvejledningen ejes nu af dato-feltfamilien (UT-F06/INC-F08), og
+  // `fieldFormatPlaceholders.test.ts` måler den dér.
 });
 
 // ─── dateRanges_erstatningsopgoerelse ────────────────────────────────────────
@@ -158,9 +159,6 @@ describe('dateRanges_varigemen', () => {
     );
   });
 
-  it('beregningsdato har placeholder', () => {
-    expect(dateRanges_varigemen.beregningsdato.placeholder).toBeTruthy();
-  });
 });
 
 // ─── computeSkadedatoMinRule ─────────────────────────────────────────────────

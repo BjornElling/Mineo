@@ -12,6 +12,7 @@ import {
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
 import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
+import { DATE_FORMAT_PLACEHOLDER, WEEK_FORMAT_PLACEHOLDER, YEAR_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import type { CellSpec } from '../useCellEditor';
 import GridTextCell from './GridTextCell';
@@ -124,39 +125,39 @@ export const GridIntegerCell = <T extends string | number | undefined>(
   );
 };
 
-/** År-celle (col1_maaned). */
+/** År-celle (col1_maaned): formen `åååå` ejes af feltfamilien, ikke af tabellen (UT-F06). */
 export const GridYearCell = (
-  { gridCell, cell, placeholder, inputRef }: BaseCellProps<string | undefined>
+  { gridCell, cell, placeholder = YEAR_FORMAT_PLACEHOLDER, inputRef }: BaseCellProps<string | undefined>
 ): React.ReactElement => (
   <GridTextCell<string | undefined>
     gridCell={gridCell}
     cell={cell}
     keyFilter={filterYearKeyDown}
-    {...(placeholder === undefined ? {} : { placeholder })}
+    placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
     {...(inputRef === undefined ? {} : { inputRef })}
   />
 );
 
-/** Uge-celle (col0_uge/col1_uge): `WW-YYYY`. */
+/** Uge-celle (col0_uge/col1_uge): formen `uu/åååå`. */
 export const GridWeekCell = (
-  { gridCell, cell, placeholder, inputRef }: BaseCellProps<string | undefined>
+  { gridCell, cell, placeholder = WEEK_FORMAT_PLACEHOLDER, inputRef }: BaseCellProps<string | undefined>
 ): React.ReactElement => (
   <GridTextCell<string | undefined>
     gridCell={gridCell}
     cell={cell}
     keyFilter={filterWeekKeyDown}
-    {...(placeholder === undefined ? {} : { placeholder })}
+    placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
     {...(inputRef === undefined ? {} : { inputRef })}
   />
 );
 
-/** Dato-celle (col0_dag/col1_dag): `dd-mm-åååå`. */
+/** Dato-celle (col0_dag/col1_dag): formen `dd-mm-åååå`. */
 export const GridDateCell = (
-  { gridCell, cell, placeholder = 'dd-mm-åååå', externalErrorMessage, inputRef }: BaseCellProps<ISODateString | undefined>
+  { gridCell, cell, placeholder = DATE_FORMAT_PLACEHOLDER, externalErrorMessage, inputRef }: BaseCellProps<ISODateString | undefined>
 ): React.ReactElement => (
   <GridTextCell<ISODateString | undefined>
     gridCell={gridCell}

@@ -8,6 +8,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
+import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
 // Greenfield dato-felt (§2.4/§3.5): tynd skal over `useFormFieldSurface`. Format/parse/paste-normalisering
 // ejes af descriptorens dato-codec; kronologiske min/max-bounds er FELTVALIDATORER på den canonical værdi
@@ -32,7 +33,7 @@ export type DateFieldProps = Readonly<{
 }>;
 
 const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
-  ({ field, location, name, width = 130, placeholder = 'dd-mm-åååå', disabled, singleStageClick = false, inputRef, sx }, ref) => {
+  ({ field, location, name, width = 130, placeholder = DATE_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx }, ref) => {
     const surface = useFormFieldSurface(field, location, {
       disabled,
       singleStageClick,

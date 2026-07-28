@@ -220,3 +220,108 @@ describe('Årsløn (greenfield) — migreret side + løntabel over grid-adaptere
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 });
+
+// UT-F06: en placeholder beskriver UDELUKKENDE værdiens form. Årsløns månedstabel viste
+// `åååå (≤2026)` — en valideringsgrænse i formvejledningens kanal, som desuden ændrede sig med
+// kalenderåret. Formen ejes nu af feltfamilien (`utils/fieldFormatPlaceholders.ts`), og tabellen
+// override'er kun, hvor domænets FORMAT reelt er en anden (månedens `mm`).
+//
+// Testen kører gennem den ÆGTE side og den ægte runtime, fordi det netop var visningslaget, der koblede
+// grænsen på: en unittest af feltfamilien ville have været grøn hele tiden.
+describe('Årsløn — placeholders viser kun værdiens FORM (UT-F06)', () => {
+  // Missing-markeringen scroller cellen ind (`scrollTargetIntoView`); jsdom implementerer slet ikke
+  // `scrollIntoView` (den kan derfor ikke spy'es — den skal defineres). Vi stubber den, fordi det er
+  // scroll-BIVIRKNINGEN vi ikke måler her; markeringen (selve rettelsen) læses fra cellens style nedenfor.
+  const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+  beforeAll(() => {
+    HTMLElement.prototype.scrollIntoView = function scrollIntoViewStub() { /* jsdom har ingen layout */ };
+  });
+  afterAll(() => {
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  /** Placeholderen på periodekolonnernes input i første datarække. */
+  const periodPlaceholders = (): readonly [string, string] => {
+    const cells = getDataRowCells(0);
+    const from = within(cells[0]).getByRole('textbox') as HTMLInputElement;
+    const to = within(cells[1]).getByRole('textbox') as HTMLInputElement;
+    return [from.placeholder, to.placeholder];
+  };
+
+  it('månedstabellen viser `mm` og `åååå` — uden årstal eller grænsesymboler', () => {
+    hydrateAarsloen({ loenperiode: 'maaned', tableData: [] });
+    renderAarsloen();
+
+    expect(periodPlaceholders()).toEqual(['mm', 'åååå']);
+  });
+
+  it('ugetabellen viser den rene uge-/år-form, som migreringen havde fjernet', () => {
+    // Ugecellerne mistede `uu/åååå` ved greenfield-cutoveren: `GridWeekCell` fik ingen semantisk default,
+    // og tabellen udfyldte kun måned og år lokalt. Formen kommer nu fra familien.
+    hydrateAarsloen({ loenperiode: 'uge', tableData: [] });
+    renderAarsloen();
+
+    expect(periodPlaceholders()).toEqual(['uu/åååå', 'uu/åååå']);
+  });
+
+  it('dagstabellen viser `dd-mm-åååå`', () => {
+    hydrateAarsloen({ loenperiode: 'dag', tableData: [] });
+    renderAarsloen();
+
+    expect(periodPlaceholders()).toEqual(['dd-mm-åååå', 'dd-mm-åååå']);
+  });
+
+  it('beløbskolonnerne viser den centrale rene beløbsform sammen med kr.-adornmentet', () => {
+    hydrateAarsloen({ loenperiode: 'maaned', tableData: [] });
+    renderAarsloen();
+
+    const amountInput = within(getDataRowCells(0)[2]).getByRole('textbox') as HTMLInputElement;
+    expect(amountInput.placeholder).toBe('0,00');
+    // Enheden er et adornment, ikke en del af placeholderteksten (ét enheds-sted).
+    expect(amountInput.placeholder).not.toContain('kr');
+    expect(getDataRowCells(0)[2]?.textContent).toContain('kr.');
+  });
+
+  it('«Indtastning mangler» overtager IKKE placeholderen; cellen markeres i stedet visuelt', async () => {
+    // UT-F06 punkt 4 (brugergodkendt 2026-07-28): manglende-værdi-feedbacken bruger samme visuelle idiom
+    // som en fejlflash — cellen scrolles ind og blinker rødt — i stedet for at erstatte formvejledningen.
+    // Kæden er den ÆGTE: omregnings-toggle uden gyldig periode → tabellens imperative handle → markering.
+    const user = userEvent.setup();
+    hydrateAarsloen({ loenperiode: 'maaned', omregningTilFuldtAar: false, tableData: [] });
+    renderAarsloen();
+
+    const monthCell = getDataRowCells(0)[0];
+    const monthInput = within(monthCell).getByRole('textbox') as HTMLInputElement;
+    expect(monthInput.placeholder).toBe('mm');
+
+    // StyledToggleSwitch eksponerer role="checkbox"; første = omregning-toggle.
+    await user.click(screen.getAllByRole('checkbox')[0]);
+
+    await waitFor(() => {
+      // Markeringen er den delte errorFlash-animation på cellen — ikke en ny placeholdertekst.
+      expect(monthCell.style.animation).toContain('errorFlash');
+    });
+    expect((within(monthCell).getByRole('textbox') as HTMLInputElement).placeholder).toBe('mm');
+    expect(screen.queryByPlaceholderText('Indtastning mangler')).toBeNull();
+  });
+
+  it('INGEN placeholder i tabellen bærer et grænsesymbol eller et årstal', () => {
+    // Bredere end de tre konkrete former ovenfor: et NYT grænsebærende placeholder-udtryk et vilkårligt
+    // sted i tabellen gør denne rød, uden at nogen skal huske at tilføje en case.
+    hydrateAarsloen({ loenperiode: 'maaned', tableData: [] });
+    renderAarsloen();
+
+    const placeholders = Array.from(document.querySelectorAll('input'))
+      .map((input) => input.placeholder)
+      .filter((text) => text !== '');
+    expect(placeholders.length).toBeGreaterThan(0);
+    for (const text of placeholders) {
+      expect(text).not.toMatch(/[≤≥<>]/);
+      expect(text).not.toMatch(/\d{4}/);
+    }
+  });
+});

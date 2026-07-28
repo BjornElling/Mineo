@@ -1,6 +1,8 @@
 import * as React from 'react';
 
-import { CURRENT_YEAR } from '../../config/dateRanges';
+// Kun månedens FORM (`mm`) hentes her; de øvrige periodecellers form ejes af deres egen feltfamilie, og
+// årscellens tidligere `åååå (≤CURRENT_YEAR)` er væk — grænsen hører i feltets issue/tooltip (UT-F06).
+import { MONTH_FORMAT_PLACEHOLDER } from '../../utils/fieldFormatPlaceholders';
 import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { formatKr } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -272,20 +274,21 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       return Number.parseInt(colKey.slice(3), 10);
     }, []);
 
-    const getCellStyle = React.useCallback((rowId: string, colIdx: number, baseStyle: React.CSSProperties = {}): React.CSSProperties => ({
-      ...baseStyle,
-      animation: flashCell?.rowId === rowId && flashCell?.colIdx === colIdx ? 'errorFlash 0.5s ease-in-out 3' : 'none',
-    }), [flashCell]);
+    // "Indtastning mangler" bruger SAMME visuelle idiom som en fejlflash frem for at overtage
+    // placeholderens semantiske ansvar (UT-F06, brugergodkendt 2026-07-28): cellen scrolles ind og blinker
+    // rødt, mens placeholderen fortsat kun viser værdiens FORM (`mm`/`åååå`/`uu/åååå`/`dd-mm-åååå`).
+    // Markeringen er ikke en feltfejl (§1.7) — den gør ikke feltet rødt og blokerer intet; den lokaliserer
+    // blot cellen, og `missingCell`-effecten ovenfor rydder den, så snart værdien er indtastet.
+    const getCellStyle = React.useCallback((rowId: string, colIdx: number, baseStyle: React.CSSProperties = {}): React.CSSProperties => {
+      const isFlashing = flashCell?.rowId === rowId && flashCell?.colIdx === colIdx;
+      const isMissing = missingCell?.rowId === rowId && resolveColIdxFromKey(missingCell.colKey) === colIdx;
+      return {
+        ...baseStyle,
+        animation: isFlashing || isMissing ? 'errorFlash 0.5s ease-in-out 3' : 'none',
+      };
+    }, [flashCell, missingCell, resolveColIdxFromKey]);
 
-    // Missing-hint peger på en tom celle uden at gøre den rød (§1.7): en visuel "Indtastning mangler"-markør.
-    const getMissingHint = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey): string | undefined => {
-      if (!missingCell) return undefined;
-      if (missingCell.rowId !== rowId || missingCell.colKey !== colKey) return undefined;
-      if (!isVisibleColKey(colKey)) return undefined;
-      return 'Indtastning mangler';
-    }, [isVisibleColKey, missingCell]);
-
-    // Ryd missing-hint, når den pegede celle ikke længere er tom eller ikke længere er synlig.
+    // Ryd missing-markeringen, når den pegede celle ikke længere er tom eller ikke længere er synlig.
     React.useEffect(() => {
       if (!missingCell) return;
       if (!isVisibleColKey(missingCell.colKey)) { setMissingCell(null); return; }
@@ -401,27 +404,27 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
             return (
               <tr key={rowId} data-mineo-row-id={rowId} style={getStandardGridBodyRowStyle(rowIndex)}>
-                {/* Periode fra */}
+                {/* Periode fra. `mm` på månedscellen er en ægte FORMAT-override: kolonnen viser måneden
+                    alene, og heltalsfamilien kender ikke den form. Uge-, dato- og årscellerne arver
+                    deres families rene form og får derfor INGEN placeholder-prop her (UT-F06). */}
                 <td style={getCellStyle(rowId, COL.period0, { ...getStandardGridCellStyle({ align: 'center' }) })}>
                   {loenperiode === 'maaned' ? (
                     <GridIntegerCell
                       gridCell={gc(COL.period0)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_maaned, COL.period0)}
-                      placeholder={getMissingHint(rowId, 'col0_maaned') ?? 'mm'}
+                      placeholder={MONTH_FORMAT_PLACEHOLDER}
                       inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   ) : loenperiode === 'uge' ? (
                     <GridWeekCell
                       gridCell={gc(COL.period0)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_uge, COL.period0)}
-                      {...(getMissingHint(rowId, 'col0_uge') ? { placeholder: getMissingHint(rowId, 'col0_uge') } : {})}
                       inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   ) : (
                     <GridDateCell
                       gridCell={gc(COL.period0)}
                       cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col0_dag, COL.period0)}
-                      {...(getMissingHint(rowId, 'col0_dag') ? { placeholder: getMissingHint(rowId, 'col0_dag') } : {})}
                       inputRef={registerCellRef(rowId, COL.period0)}
                     />
                   )}
@@ -433,21 +436,18 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     <GridYearCell
                       gridCell={gc(COL.period1)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_maaned, COL.period1)}
-                      {...(getMissingHint(rowId, 'col1_maaned') ? { placeholder: getMissingHint(rowId, 'col1_maaned') } : { placeholder: `åååå (≤${CURRENT_YEAR})` })}
                       inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   ) : loenperiode === 'uge' ? (
                     <GridWeekCell
                       gridCell={gc(COL.period1)}
                       cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_uge, COL.period1)}
-                      {...(getMissingHint(rowId, 'col1_uge') ? { placeholder: getMissingHint(rowId, 'col1_uge') } : {})}
                       inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   ) : (
                     <GridDateCell
                       gridCell={gc(COL.period1)}
                       cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col1_dag, COL.period1)}
-                      {...(getMissingHint(rowId, 'col1_dag') ? { placeholder: getMissingHint(rowId, 'col1_dag') } : {})}
                       inputRef={registerCellRef(rowId, COL.period1)}
                     />
                   )}

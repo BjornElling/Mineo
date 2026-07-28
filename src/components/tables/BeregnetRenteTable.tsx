@@ -135,7 +135,6 @@ const BeregnetRenteRow = React.memo(
           <GridAmountCell
             gridCell={gc(COL.belob)}
             cell={buildCellSpec<AmountValue | undefined>(renderRow, rentekravBelobField, COL.belob)}
-            placeholder="0,00"
           />
         </TableCell>
 

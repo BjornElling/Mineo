@@ -39,11 +39,11 @@ bærer den samlede tælling og rettelsesrækkefølgen.
 | Id | Symptom | Resultat | Strukturel rækkevidde | Status |
 |---|---|---|---|---|
 | UT-F01 | Dags-dato-knappen springes over ved Tab | Tilsigtet eksisterende adfærd | Ingen fejl registreret | Afvist med evidens |
-| UT-F02 | Enter på dropdown i tabel flytter en række ned | Genskabt | Tværgående dropdown-/grid-integration | Åbent |
+| UT-F02 | Enter på dropdown i tabel flytter en række ned | Genskabt | Tværgående dropdown-/grid-integration | **Rettet 2026-07-28** |
 | UT-F03 | Undo af den sidste værdi i en tabelrække mister cellefokus | Genskabt | Fælles placeholder-/history-integration | **Rettet 2026-07-28** |
 | UT-F04 | Tilføjelse af ansættelsesforhold udløser React-crash | Genskabt | Nested feltbinding i fælles tabel-/celleinfrastruktur | **Rettet 2026-07-28** |
 | UT-F05 | Dags-dato-knappen udløser `setImmediateField`-fejl | Fejlmekanisme genskabt | Fælles feltkommandokontrakt og fem knapintegrationer | **Rettet 2026-07-28** |
-| UT-F06 | Års-placeholder viser en valideringsgrænse | Genskabt | Placeholder-ejerskab i den fælles feltfamilie | Åbent |
+| UT-F06 | Års-placeholder viser en valideringsgrænse | Genskabt | Placeholder-ejerskab i den fælles feltfamilie | **Rettet 2026-07-28** |
 
 ## Afklaret uden fund
 
@@ -66,7 +66,11 @@ ikke registreret som en programfejl.
 **Konklusion:** I overensstemmelse med brugerens instruktion bortfalder symptomet. Det tæller ikke som et åbent
 fund og medfører ingen anbefalet ændring.
 
-## Åbne fund
+## Indmeldte fund
+
+Alle fem indmeldte fund er lukket pr. 2026-07-28 (UT-F02 og UT-F06 i etape 7); UT-F01 blev afvist med evidens
+ovenfor. Hver enkelt bevarer sin fulde analyse, fordi analysen er evidensen for løsningens form — ikke kun for
+at fejlen fandtes.
 
 ### UT-F02 — Enter på dropdown i tabel udløser grid-navigation
 
@@ -165,7 +169,58 @@ påvirket.
 **Kræver godkendelse:** Nej. Den ønskede brugeroplevelse er udtrykkeligt fastlagt af brugeren i indmeldingen og
 er allerede normativ i `keyboard-navigation.md`.
 
-**Status:** Åbent; analyse gennemført, ikke implementeret.
+**Status: Rettet 2026-07-28** (etape 7).
+
+**Løsning: én fælles, ARIA-baseret popup-klassifikation.** Analysens punkt 1 og 2 er fulgt til punkt og prikke,
+og efterprøvningen viste, at problemet var STØRRE end fundet beskrev.
+
+**Markøren var ikke blot udeladt af `GridChoiceCell` — den blev ikke sat af NOGEN kode.** En repo-bred søgning
+på `data-mineo-table-dropdown` fandt kun de SEKS steder, der LÆSTE den (Enter-fritagelsen, expanded-varianten
+og pointer-/klik-/dobbeltklik-guards), og NUL steder der satte den. Attributten hørte til den slettede
+`TableDropdown`; efter cutoveren var hver enkelt af de seks kontroller dermed inert. Det ændrer fundets
+karakter: det er ikke "GridChoiceCell glemte en attribut", men "en privat markør fra en slettet komponent
+efterlod grid'ets hele dropdown-kontrakt uden mål". `isTableDropdownExpanded` — en tredje kopi af
+ARIA-opslaget, som KUN nåedes gennem markøren — var død i samme forstand.
+
+**`popupWidgetSemantics.ts`** (`src/components/inputs/`) er nu den ene klassifikation af "er dette en
+popup-kontrol, og er den åben?". Den måler udelukkende ARIA (`role="combobox"` / `aria-haspopup`, og
+`aria-controls` kun sammen med åben tilstand — `aria-controls` alene er for bredt). Både `Container` og
+grid-navigationen aftager den; de havde hver sin næsten-identiske kopi af `getWidgetHost` +
+`getNearestExpanded`, som nu er væk. En ny popup-kontrol med korrekt ARIA klassificeres derfor rigtigt af
+begge flader uden at skulle registreres nogen steder (analysens punkt 1–3).
+
+**Punkt 5 — de øvrige eventtyper — er gennemført samlet, og hypotesen var reel.** Pointer-, klik- og
+dobbeltklik-guards var inerte af samme grund, så grid'et førte to-trins-redigeringsbogføring for
+dropdown-celler: `armClickEditableCell`/`openEditing` for en kontrol, hvis `prepareEditFromKey` er `false` og
+hvis `commitCurrent` er en no-op — altså en "editor", der ikke findes. De tre callsites deler nu ét navngivet
+prædikat (`ownsItsOwnPointerInteraction`), så en dropdown ikke kan klassificeres forskelligt afhængigt af
+eventtype.
+
+**Punkt 4 — sluttilstandssproget — er ryddet:** `gridUxSpec.dropdownContract` beskriver nu popup-celler og
+deres ARIA-klassifikation frem for `TableDropdown` og markør-attributten; `dropdownInteractionCore`'s
+"to implementeringer"-præmis er rettet til den ene, der findes; `GridChoiceCell`'s "erstatter legacy"-noter er
+væk. `keyboard-navigation.md` §"Popup-widget detection" er strammet: den tillod tidligere "ARIA-semantik
+**eller en anden tilsvarende, auditérbar mekanisme**" — præcis det hul, den private markør kom ind ad. Den
+kræver nu ét sted, forbyder komponentnavn/markør/lokal kopi, og kræver samme klassifikation på tværs af
+eventtyper.
+
+**Dækning:** `popupWidgetKeyboardContract.integration.test.tsx` (7 tests) kører ÉN tabeldrevet popup-kontrakt
+mod BEGGE surfaces gennem den ægte side-runtime, de ægte celler og den ægte capture-handler — analysens sidste
+regressionspunkt. To rækker, så en kapret Enter faktisk KAN flytte fokus og altså er observerbar. Dækker
+Enter, Shift+Enter, Enter på ÅBEN dropdown (vælg uden grid-navigation), typeahead, pointer-vejen og Delete.
+AST-reglen `input/popup-semantics-single-source` håndhæver grænsen med to ben: ingen privat markør, og ingen
+lokal kopi af ARIA-opslaget i en navigationsflade — det andet ben er nødvendigt, fordi en kopi ikke bruger
+nogen markør og derfor ville slippe forbi det første.
+
+**Mutationsbevis:** genindføres markør-klassifikationen i keydown-vejen, fejler 3 tests med brugerens præcise
+symptom (ingen `listbox`, `aria-expanded="false"`); fjernes popup-grenen fra pointer-vejen, fejler netop
+pointer-testen og ingen andre; begge guard-ben er mutationstestet hver for sig og bliver røde med fil:linje.
+
+**Ærlig afgrænsning:** typeahead-benet skelner IKKE den nye klassifikation fra den gamle — dropdownens
+`prepareEditFromKey` er også `false`, så grid'ets printbare gren ville frigive tasten alligevel. Popup-grenen
+er defense-in-depth dér. Det står i testens egen dokumentation, så den ikke senere læses som stærkere evidens
+end den er. Delete er bevidst FORTSAT grid-ejet (`gridUxSpec`-kontrakten giver grid'et ryd-tasten); det ben
+pinner afgrænsningen af, hvad frigivelsen omfatter.
 
 ### UT-F04 — Tilføjelse af ansættelsesforhold crasher den nested løntabel
 
@@ -581,7 +636,47 @@ placeholder-semantik. Input, beregninger og persistence er ikke påvirket.
 synlig erstatning for teksten `Indtastning mangler` skal dog forelægges, hvis eksisterende fokus/flash-feedback
 ikke kan bevare samme konkrete brugeroplevelse.
 
-**Status:** Åbent; analyse gennemført, ikke implementeret.
+**Status: Rettet 2026-07-28** (etape 7).
+
+**Løsning: den rene form ejes af feltfamilien.** `src/utils/fieldFormatPlaceholders.ts` er nu den ene kilde til
+`åååå` / `uu/åååå` / `dd-mm-åååå` / `mm` / `dd`, ved siden af de eksisterende
+`DEFAULT_AMOUNT_PLACEHOLDER`/`DEFAULT_PERCENT_PLACEHOLDER`. `GridYearCell`, `GridWeekCell`, `GridDateCell`,
+`YearField`, `WeekField` og `DateField` bærer den som DEFAULT (analysens punkt 1), så en tabel ikke længere kan
+— eller behøver — udfylde formen selv.
+
+**Punkt 2 og 3 er gennemført:** `StandardLoenTable` override'er nu KUN månedscellens `mm`, som er en ægte
+formatrepræsentation (heltalsfamilien kender ikke måned-formen). Årscellens `åååå (≤${CURRENT_YEAR})` er væk,
+og `CURRENT_YEAR`-importen med den; grænsen står i feltets issue/tooltip, hvor den hørte hele tiden. Uge- og
+datocellernes rene former, som migreringen havde fjernet, kommer nu fra familien uden en prop på callsitet.
+`BeregnetRenteTable`s redundante `placeholder="0,00"` (= beløbsfamiliens default) er også væk.
+
+**Punkt 4 — `Indtastning mangler` ud af placeholder-kanalen — brugergodkendt 2026-07-28.** Markeringen bruger nu
+tabellens EKSISTERENDE visuelle idiom: `getCellStyle` giver den pegede celle samme `errorFlash`-animation som
+`flashError`, oven i den scroll-into-view der allerede var der. Ingen ny visuel mekanik, og placeholderen viser
+fortsat kun formen. Markeringen er stadig ikke en feltfejl (§1.7) — den gør ikke feltet rødt og blokerer intet,
+og `missingCell`-effecten rydder den, så snart værdien er indtastet.
+
+**Punkt 5 — reglen er fastlagt normativt** i `form-contract.md` §8.1: en placeholder er formvejledning og intet
+andet; grænser hører i issue/tooltip; formen ejes af feltfamilien, og en callsite må kun override for en reelt
+anden FORMATREPRÆSENTATION. Placeret som underafsnit til §8 (Format, bounds og save-gate), hvor bounds-reglen
+i forvejen står — så de to beskrivelser af samme felt står side om side og ikke igen kan drifte fra hinanden.
+
+**Repo-bred efterprøvning bekræftede fundets afgrænsning og udvidede den lidt:** ingen andre grænsebærende
+placeholders findes. `dateRanges.ts` bar dog 33 `placeholder: 'dd-mm-åååå'`-felter, som INGEN kode læste
+(INC-F08) — de er slettet sammen med de fem typefelter, der erklærede dem.
+
+**Dækning:** fem nye tests i `Aarsloen.integration.test.tsx` gennem den ÆGTE side og den ægte runtime, fordi
+det netop var VISNINGSLAGET der koblede grænsen på — en unittest af feltfamilien ville have været grøn hele
+tiden. Måned/år, uge og dag hver for sig, beløbsformen + kr.-adornmentet, samt et bredt værn: INGEN placeholder
+i tabellen må bære et grænsesymbol (`≤≥<>`) eller et fircifret årstal, så et nyt grænsebærende udtryk et
+vilkårligt sted gør testen rød uden at nogen skal huske en case. Dertil `«Indtastning mangler» overtager IKKE
+placeholderen`, som driver den ægte kæde omregnings-toggle → tabellens handle → markering, og
+`fieldFormatPlaceholders.test.ts` (5 tests), der pinner konstanterne mod grænsesymbol, årstal, enhed og
+statusbesked.
+
+**Mutationsbevis:** genindføres `placeholder={\`åååå (≤${...}\`}` på årscellen, fejler 2 tests med brugerens
+præcise streng (`Expected "åååå" / Received "åååå (≤2026)"`) — både den konkrete og det brede værn. Fjernes
+`isMissing` fra `getCellStyle`, fejler netop markerings-testen og ingen andre.
 
 ### UT-F03 — Undo af en rækkes første commit mister cellefokus
 
