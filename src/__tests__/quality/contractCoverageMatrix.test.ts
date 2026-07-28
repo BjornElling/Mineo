@@ -23,7 +23,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/form-contract.md',
     requiredTestPaths: [
-      'src/__tests__/quality/formContractIsolation.test.ts',
+      // Effect-write-grænsen håndhæves nu af AST-reglen `input/derived-writes-materialize-in-reduction`
+      // i arkitektur-harnesset. Det tidligere tekstbaserede værn her var grønt af tomhed: alle fire
+      // mønstre var legacy-funktionsnavne, der ikke længere fandtes i kildegrafen (INC-F05).
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
       // Greenfield-cutover: `useDraftField`/`Table*Input`/`useRowDrafts`-implementeringstestene er slettet
       // sammen med den legacy feltvej. Feltkontrakten dækkes nu af editor-/surface-kontrakttestene.
       'src/__tests__/inputCore/editor/fieldEditor.test.ts',

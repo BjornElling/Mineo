@@ -221,28 +221,15 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
               "id": "erstatningsopgoerelse.arbejdsstatus",
               "message": "-",
             },
-            {
-              "id": "loenindkomst.af-1.satserSkadestidspunkt",
-              "message": "Forkert værdi indtastet i Store Bededagstillæg",
-            },
           ],
           "projectionKind": "ok",
         },
         "taf:gyldig": {
-          "eoRowErrors": [
-            {
-              "id": "loenindkomst.af-1.satserSkadestidspunkt",
-              "message": "Forkert værdi indtastet i Store Bededagstillæg",
-            },
-          ],
+          "eoRowErrors": [],
           "projectionKind": "ok",
         },
         "taf:periodeEfterDifferencekrav": {
           "eoRowErrors": [
-            {
-              "id": "loenindkomst.af-1.satserSkadestidspunkt",
-              "message": "Forkert værdi indtastet i Store Bededagstillæg",
-            },
             {
               "id": "taf.periode.taf-1",
               "message": "Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (⟨dato⟩); Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (⟨dato⟩)",
@@ -252,10 +239,6 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
         },
         "taf:periodeFraFoerSkadedato": {
           "eoRowErrors": [
-            {
-              "id": "loenindkomst.af-1.satserSkadestidspunkt",
-              "message": "Forkert værdi indtastet i Store Bededagstillæg",
-            },
             {
               "id": "taf.periode.taf-1",
               "message": "Dato skal være mellem ⟨dato⟩ og ⟨dato⟩",
@@ -288,15 +271,21 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
     expect(eoRowErrors).toEqual([]);
   });
 
-  it('empirisk fund: selv en nominelt gyldig TAF-basissag (projektion=ok) bærer en EO-række-gate', () => {
-    // Efter over-block-fixet (§2D) blokerer helbredsforhold ikke længere en TAF-only-sag
-    // (svie/smerte='Nej'). Tilbage står den værdi-afledte satser-fejl på et default-AF:
-    //  - loenindkomst.<af>.satserSkadestidspunkt: Store Bededagstillæg mangler på et default-AF.
+  it('en nominelt gyldig TAF-basissag bærer INGEN EO-række-gate', () => {
+    // Denne sag bar tidligere en satser-fejl: Store Bededagstillægget stod på et default-AF's nulværdi,
+    // mens den anvendte reguleringsdato lå efter lovens ikrafttræden, og satsvurderingen kaldte det en
+    // afvigelse. Fejlen var reel for netop DENNE fixture, som konstruerer værdierne direkte — men den kunne
+    // ikke opstå i produktionen: satsen er et AFLEDT felt (`loenindkomstSatsDerivedWrite`), som reduceren
+    // materialiserer i hver command, også ved `replaceCase` fra en indlæst `.eo`.
+    //
+    // Afvigelsesreglen for de låste satser er derfor fjernet frem for bevaret: den kunne kun rammes af en
+    // tilstand, ingen vej ind i systemet kan producere, og et værn, hvis eneste udløser er en umulig
+    // tilstand, beskytter intet (GM-F01). Beviset for, at alle veje er dækket, står i
+    // `loenindkomstSatsDerivedWrite.test.ts` → "kan ikke efterlade en afvigelse" og "reparerer en indlæst
+    // sag".
     const c = CASES.find((entry) => entry.name === 'taf:gyldig')!;
     const { projectionKind, eoRowErrors } = probe(c.build());
     expect(projectionKind).toBe('ok');
-    expect(eoRowErrors.map((e) => e.id)).toEqual([
-      'loenindkomst.af-1.satserSkadestidspunkt',
-    ]);
+    expect(eoRowErrors).toEqual([]);
   });
 });

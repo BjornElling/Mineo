@@ -35,7 +35,7 @@ import {
 } from '../domain/erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveAnvendtReguleringsdatoReferenceText } from '../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
-import { isFeriePctRequiredForBlocking } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatserGate';
+import { isFeriePctRelevant } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import {
   getFirstIndtastedeTafFraDato,
@@ -986,7 +986,7 @@ function validateLoenudviklingsKravForAktivKilde(
       }
       // Ét sandt sted for feriegodtgørelses-kravet: samme prædikat driver den synlige
       // `satserSkadestidspunkt`-fejlrække, så en blokeret download altid har en besked i boksen.
-      if (isFeriePctRequiredForBlocking(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
+      if (isFeriePctRelevant(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }
       if (!af.loenPaaHelligdage) {
@@ -1016,7 +1016,7 @@ function validateLoenudviklingsKravForAktivKilde(
     // 'Manuelt angivet' er tilgængelig i begge tillægs-tilstande. Grundløn/dato-krav gælder ens;
     // i Beløb-tilstand kommer basis-satserne fra første tabelrække, ikke fra det skjulte feriePct-felt.
     if (grundlag === 'Manuelt angivet') {
-      if (isFeriePctRequiredForBlocking(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
+      if (isFeriePctRelevant(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }
 

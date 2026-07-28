@@ -233,17 +233,17 @@ designdokumentets statusafsnit.
 | R9 | Tværgående konvergens og slutkontrol | Ikke startet | 0/0 | — |
 
 **Supplerende konvergensreview:** Gennemgået — 15 fund (GM-F01–GM-F15) i
-[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), hvoraf GM-F11 er rettet og
-GM-F06 + GM-F14 delvist. Rapporten supplerer fasegennemgangene og erstatter ikke R9's afsluttende
-exitkriterier.
+[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), hvoraf GM-F01, GM-F02, GM-F06 og
+GM-F11 er rettet og GM-F14 delvist. Rapportens anbefaling nr. 1 er lukket i sin helhed. Rapporten supplerer
+fasegennemgangene og erstatter ikke R9's afsluttende exitkriterier.
 
 **Brugertestfund:** 6 fund (UT-F01–UT-F06) i
 [draft-commit-brugertestfund](draft-commit-brugertestfund.md) — 1 afvist med evidens, 2 rettet, 3 åbne.
 
-**Fund i alt:** 61 — 45 åbne, 14 rettet (UT-F04, UT-F05, R2-F01, R2-F02, R3-F01, R3-F02, R3-F04, R6-F01,
-R6-F02, GM-F11, INC-F01, INC-F02, INC-F03, INC-F04) + 2 delvist (GM-F06, GM-F14), 1 afvist (UT-F01).
-Etape 1–3 er lukket; etape 4 er delvist lukket (GM-F01 + GM-F02 udestår som et selvstændigt pas). Tælling og
-rettelsesrækkefølge vedligeholdes i [fund-oversigt](draft-commit-review/fund-oversigt.md).
+**Fund i alt:** 62 — 42 åbne, 18 rettet (UT-F04, UT-F05, R2-F01, R2-F02, R3-F01, R3-F02, R3-F04, R6-F01,
+R6-F02, GM-F01, GM-F02, GM-F06, GM-F11, INC-F01, INC-F02, INC-F03, INC-F04, INC-F05) + 1 delvist (GM-F14),
+1 afvist (UT-F01). Etape 1–4 er lukket. Tælling og rettelsesrækkefølge vedligeholdes i
+[fund-oversigt](draft-commit-review/fund-oversigt.md).
 
 **Tilfældighedsfund:** Fund konstateret undervejs i rettearbejdet skal enten rettes straks eller skrives ind
 som nyt fund — aldrig blot nævnes i chatten. Reglen er bindende og står i
@@ -251,8 +251,9 @@ som nyt fund — aldrig blot nævnes i chatten. Reglen er bindende og står i
 
 **Åbne godkendelsespunkter:** 0 — anbefalingerne i
 [grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md) samt R5-F01 og R7-F03 er
-godkendt til implementering. Brugte godkendelser: R6-F02 (etape 3) samt R3-F01 og R3-F02 (etape 4) — alle tre
-rettet 2026-07-28. Beslutning 1 er godkendt men endnu ikke brugt: den bæres af GM-F01. Se
+godkendt til implementering. Brugte godkendelser: R6-F02 (etape 3), R3-F01 + R3-F02 (etape 4, første pas) og
+**beslutning 1** (etape 4, andet pas — GM-F01's relevansmatrix) — alle rettet 2026-07-28. Beslutning 2, 3 og 4
+er godkendt men endnu ikke brugt: de bæres af etape 5 (beslutning 2 + 3) og etape 8 (beslutning 4). Se
 `docs/review/draft-commit-review/fund-oversigt.md`
 
 **Åbne hypoteser:** 4 — se fase-rapporterne (R3-H01 blev bekræftet og lukket 2026-07-28 i etape 4: der fandtes

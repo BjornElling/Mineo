@@ -9,9 +9,7 @@ import {
 } from '../../../../inputCore/react/useCollectionRows';
 import {
   deleteRow,
-  inputTransaction,
   inputTransactionStep,
-  settleField,
   structuralInputTransaction,
 } from '../../../../inputCore/inputReducer';
 import type { CollectionRef } from '../../../../inputCore/fieldAddress';
@@ -20,12 +18,12 @@ import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import {
   eoLoenindkomstAnsaettelsesforholdCollection,
   eoEmploymentFields,
-  eoEmploymentManual,
 } from '../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { eoSfggAnsaettelsesforholdCollection } from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { applyAutoSatsFields, syncManualBaseRowSatser } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
-import { validateAllSatserForAnsaettelsesforhold, type SatsErrorState } from '../../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsValidation';
+import { assessLoenindkomstSatser } from '../../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
+import { buildFieldIssueSet, type FieldIssue, type FieldIssueSet } from '../../../../inputCore/inputIssue';
+import { toAnyFieldRef } from '../../../../inputCore/fieldDescriptor';
 import { deriveLoenindkomstVm } from '../../../../domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations';
 import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg } from '../../../../data/overenskomstRates';
 import { scrollTargetIntoView } from '../../../../utils/scrollTargetIntoView';
@@ -72,47 +70,33 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     skadestype: stamdataValues.skadestype,
   }), [employments, eoValues, stamdataValues.skadedato, stamdataValues.skadestype]);
 
-  const satsErrors = React.useMemo<Record<string, SatsErrorState>>(() => Object.fromEntries(
-    employments.flatMap((employment) => {
-      const errors = validateAllSatserForAnsaettelsesforhold(employment, {
-        anvendtReguleringsdato: derived.getAnvendtReguleringsdatoForAnsaettelsesforhold(employment),
-        beregnesUdFra: eoValues.beregnesUdFra,
-      });
-      return Object.keys(errors).length === 0 ? [] : [[employment.id, errors] as const];
-    })
-  ), [derived, employments, eoValues.beregnesUdFra]);
+  /**
+   * Satsvurderingens fund som STRUKTURELLE feltissues (GM-F01, GM-F06).
+   *
+   * Reglen er en kryds-felt-regel — feriegodtgørelsens relevans afhænger af reguleringsformen og af, om der
+   * er indtastet lønoplysninger — og kan derfor ikke bo i descriptorens egen validator, som kun ser sin egen
+   * celles værdi. RESULTATET er til gengæld kanoniske `FieldIssue`s med rigtige feltadresser, så rød
+   * markering, tooltip, fokusnavigation og consumerblokering læser ÉN repræsentation i stedet for en fri
+   * fejltekst uden feltidentitet. `reason: 'rule'` er §1.6-klassifikationen for en feltplaceret domæneregel.
+   */
+  const satsIssues = React.useMemo<FieldIssueSet>(() => buildFieldIssueSet(
+    employments.flatMap((employment) => assessLoenindkomstSatser(employment, {
+      beregnesUdFra: eoValues.beregnesUdFra,
+    }).map((finding): FieldIssue => Object.freeze({
+      kind: 'field' as const,
+      code: `erstatningsopgoerelse.loenindkomstSatser.${finding.field}.${finding.kind}`,
+      severity: 'error' as const,
+      field: toAnyFieldRef(eoEmploymentFields[finding.field].bind(employment.id)),
+      reason: 'rule' as const,
+      message: finding.message,
+    })))
+  ), [employments, eoValues.beregnesUdFra]);
 
-  // Bevar den eksisterende auto-satsadfærd, men skriv alle berørte felter som én typed transaktion. Dermed kan
-  // ingen mellemtilstand observeres, og hel-sektionssynkroniseringen er fjernet.
-  React.useEffect(() => {
-    const steps = [];
-    for (const current of employments) {
-      const next = syncManualBaseRowSatser(
-        applyAutoSatsFields(current, derived.getAnvendtReguleringsdatoForAnsaettelsesforhold(current))
-      );
-      for (const key of ['fritvalgPct', 'shSoPct', 'storeBededagPct', 'pensionPct'] as const) {
-        if (Object.is(current[key], next[key])) continue;
-        const descriptor = eoEmploymentFields[key];
-        steps.push(inputTransactionStep(settleField(
-          descriptor.bind(current.id),
-          descriptor.codec.formatForEdit(next[key])
-        )));
-      }
-      const currentBase = current.loenudviklingManuelTableData[0];
-      const nextBase = next.loenudviklingManuelTableData[0];
-      if (currentBase !== undefined && nextBase !== undefined && currentBase.id === nextBase.id) {
-        for (const key of ['feriepenge', 'shSoSats', 'fritvalg', 'agPension'] as const) {
-          if (Object.is(currentBase[key], nextBase[key])) continue;
-          const descriptor = eoEmploymentManual.manualFields[key];
-          steps.push(inputTransactionStep(settleField(
-            descriptor.bind(current.id, currentBase.id),
-            descriptor.codec.formatForEdit(nextBase[key])
-          )));
-        }
-      }
-    }
-    if (steps.length > 0) edit.dispatch(inputTransaction(steps));
-  }, [derived, employments, edit]);
+  // De overenskomst-/lovbundne satser skrives IKKE herfra. De er erklæret som en afledt skrivning på
+  // produktkataloget (`loenindkomstSatsDerivedWrite`) og materialiseres inde i samme reducerede kandidat som
+  // det styrende valg — samme revision, samme history-trin. En effect her ville gøre konsekvensen til en
+  // selvstændig autoritativ handling, brugeren skulle fortryde for sig, og som effecten straks kunne skrive
+  // tilbage igen, fordi det styrende valg stadig var aktivt (GM-F02).
 
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -168,7 +152,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     ...derived,
     skadedato: stamdataValues.skadedato,
     skadestype: stamdataValues.skadestype,
-    satsErrors,
+    satsIssues,
     loentrinFinder,
     alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(),
     alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(),

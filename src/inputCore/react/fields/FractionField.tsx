@@ -19,13 +19,12 @@ export type FractionFieldProps = Readonly<{
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
-  externalError?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
 
 const FractionField = React.forwardRef<HTMLDivElement, FractionFieldProps>(
-  ({ field, location, name, width = 120, placeholder, disabled, externalError, inputRef, sx }, ref) => {
+  ({ field, location, name, width = 120, placeholder, disabled, inputRef, sx }, ref) => {
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>
         filterFractionKeyDown(e, { maxDigits: DEFAULT_FRACTION_MAX_DIGITS, allowNegative: false }),
@@ -42,7 +41,6 @@ const FractionField = React.forwardRef<HTMLDivElement, FractionFieldProps>(
         width={width}
         {...(placeholder === undefined ? {} : { placeholder })}
         {...(disabled === undefined ? {} : { disabled })}
-        {...(externalError === undefined ? {} : { externalError })}
         textAlign="center"
         inputMode="numeric"
         {...(inputRef === undefined ? {} : { inputRef })}

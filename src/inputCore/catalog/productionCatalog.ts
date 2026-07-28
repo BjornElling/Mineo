@@ -9,6 +9,7 @@ import { renteberegningCollections, renteberegningFields } from './renteberegnin
 import { satserCollections, satserFields } from './satserDescriptors';
 import { stamdataCollections, stamdataFields } from './stamdataDescriptors';
 import { varigeMenCollections, varigeMenFields } from './varigeMenDescriptors';
+import { loenindkomstSatsDerivedWrite } from '../../domain/erstatningsopgoerelse/control/loenindkomstSatsDerivedWrite';
 
 // Greenfield produkt-descriptor-katalog (§3.2, Fase 2.1). Det ene statiske katalog over alle persisterede
 // brugerfelter — fusion af de tidligere ti binding-manifester til inputCore-descriptors. Hvert descriptor
@@ -43,9 +44,19 @@ export const productionInputCollections = Object.freeze([
   ...erstatningsopgoerelseLoenCollections,
 ]);
 
+/**
+ * Alle erklærede afledte skrivninger (§3.6). Et afledt felt er ikke brugerinput men en konsekvens af det, og
+ * det materialiseres derfor inde i samme reducerede kandidat som årsagen — ikke af en effect efter render,
+ * som ville gøre konsekvensen til en selvstændig autoritativ handling med sit eget undo-trin (GM-F02).
+ */
+export const productionDerivedWrites = Object.freeze([
+  loenindkomstSatsDerivedWrite,
+]);
+
 export const buildProductionInputCatalog = (): InputCatalog => createInputCatalog({
   fields: productionInputFields,
   collections: productionInputCollections,
+  derivedWrites: productionDerivedWrites,
 });
 
 let productionCatalog: InputCatalog | null = null;

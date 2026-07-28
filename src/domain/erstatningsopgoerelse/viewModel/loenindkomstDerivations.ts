@@ -38,7 +38,7 @@ import { resolveSkadeEllerAnmeldelsesdatoReference } from '../helpers/eoDateRefe
  * React-render (jf. arkitektur-kandidat A1 — view-model-lagets primære gevinst: afledning testbar
  * uden render). `useLoenindkomstViewModel` ejer kun React-state/effekter/handlers og kalder denne
  * funktion inde i en `useMemo`. Modstykket til den allerede udskilte rene sats-validering i
- * `validation/loenindkomstSatsValidation.ts`.
+ * `validation/loenindkomstSatsAssessment.ts`.
  *
  * Adfærdsbevarende: hver afledning er flyttet uændret ud af hooken/kortet — samme tal, samme
  * synlighed, samme fejl-ordlyd.

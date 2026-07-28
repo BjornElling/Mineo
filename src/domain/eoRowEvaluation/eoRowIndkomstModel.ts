@@ -1,6 +1,5 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
-import type { ISODateString } from '../../types/branded';
-import { resolveSatserErrorField, isFeriePctRequiredForBlocking } from '../erstatningsopgoerelse/validation/loenindkomstSatserGate';
+import { resolveSatserErrorField } from '../erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
 import {
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,
@@ -21,8 +20,6 @@ import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse
 import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 import { resolveStandardLoenColumnLabel } from '../aarsloen/standardLoenTableColumns';
 import { resolveOffentligeYdelserColumnLabel } from '../erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
-import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -182,27 +179,24 @@ const collectOffentligeYdelserCellErrorsByRow = (
   return result;
 };
 
+/**
+ * Skadedatoen er IKKE længere en parameter: de datoafhængige satsafvigelser hørte til de LÅSTE satser, som
+ * nu er afledte felter, reduceren materialiserer (GM-F01/GM-F02). En bevaret, ulæst parameter ville erklære
+ * en afhængighed, funktionen ikke har, og skjule for næste læser, hvad rækkerne faktisk afhænger af.
+ */
 export const buildIndkomstSectionStatuses = (
-  values: ErstatningsopgoerelseValues,
-  skadedato: ISODateString | undefined
+  values: ErstatningsopgoerelseValues
 ): ReadonlyArray<IndkomstSectionStatus> => {
   const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold ?? [];
-  const angivetLoenMetodeOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(values);
 
   return ansaettelsesforhold.map((af, index) => {
     const baseHeaderText = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
     const arbejdsstedNavn = af.navnPaaArbejdssted?.trim() ?? '';
     const headerText = arbejdsstedNavn !== '' ? `${baseHeaderText} (${arbejdsstedNavn})` : baseHeaderText;
 
-    const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
-      beregnesUdFra: values.beregnesUdFra,
-      angivetLoenMetodeOpreguleresFraDato,
-      saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-      beregningsperiodeTil: values.tafBeregningsperiodeTil,
-      skadedato,
-    });
-    const feriePctRequired = isFeriePctRequiredForBlocking(af, values.beregnesUdFra);
-    const satserError = resolveSatserErrorField(af, anvendtReguleringsdato, feriePctRequired);
+    // Satsvurderingen behøver ikke længere den anvendte reguleringsdato: de datoafhængige afvigelser hørte
+    // til de LÅSTE satser, som nu er afledte felter, reduceren materialiserer (GM-F01/GM-F02).
+    const satserError = resolveSatserErrorField(af, values.beregnesUdFra);
     const satserStatus: EoRowStatus = satserError ? 'error' : 'ok';
     const satserMessage = satserError ? satserError.message : 'Ok';
 

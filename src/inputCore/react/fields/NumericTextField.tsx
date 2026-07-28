@@ -3,6 +3,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
+import type { FieldIssue } from '../../inputIssue';
 import { useFormFieldSurface } from '../useFormFieldSurface';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
@@ -44,11 +45,14 @@ export type NumericTextFieldProps<T> = Readonly<{
   /** `inputMode` til det virtuelle tastatur (default `numeric`; beløb/procent bruger `decimal`). */
   inputMode?: 'numeric' | 'decimal';
   /**
-   * En ekstern rød fejl, som IKKE stammer fra descriptorens egen feltvalidator — fx en tværfelt-domæneregel
-   * (forlig "begge udfyldt"), der afhænger af et andet felt. Descriptorens eget issue har forrang (§1.8), så
-   * denne bruges kun, når feltet ikke selv har et format-/bounds-/rule-issue.
+   * Et KRYDS-FELT-domæneregel-issue, som descriptorens egen validator ikke kan udlede, fordi den kun ser sin
+   * egen celles værdi (fx feriegodtgørelsens relevans, der afhænger af den valgte reguleringsform).
+   *
+   * Bevidst et strukturelt `FieldIssue` og ikke en fri fejltekst: markering, tooltip, fokusnavigation og
+   * consumerblokering skal læse ÉN repræsentation af samme fejl (GM-F06). Descriptorens eget issue har
+   * forrang (§1.8), så dette vises kun, når feltet ikke selv har et format-/bounds-/rule-issue.
    */
-  externalError?: string;
+  crossFieldIssue?: FieldIssue;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -68,7 +72,7 @@ const NumericTextFieldInner = <T,>(
     tabularNums,
     endAdornment,
     inputMode = 'numeric',
-    externalError,
+    crossFieldIssue,
     inputRef,
     sx,
   }: NumericTextFieldProps<T>,
@@ -93,7 +97,7 @@ const NumericTextFieldInner = <T,>(
   );
 
   // Descriptorens eget issue har forrang; en ekstern tværfelt-fejl vises kun ellers (§1.8).
-  const resolvedError = surface.issue?.message ?? externalError;
+  const resolvedError = surface.issue?.message ?? crossFieldIssue?.message;
   const hasError = resolvedError !== undefined;
   const resolvedEndAdornment = typeof endAdornment === 'function'
     ? (endAdornment as (info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode)(

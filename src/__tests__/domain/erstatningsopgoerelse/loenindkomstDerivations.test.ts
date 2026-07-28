@@ -10,7 +10,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
 // Isolations-tests for det rene Loenindkomst-afledningslag (uden React-render) — jf. arkitektur-kandidat A1.
-// Modstykket til loenindkomstSatsValidation.test.ts.
+// Modstykket til loenindkomstSatsAssessment.test.ts.
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 

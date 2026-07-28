@@ -401,7 +401,20 @@ export const reduceInputCommand = <TField, TEntity>(
   command: InputMutationCommand<TField, TEntity>,
   catalog: InputCatalog
 ): InputReducerResult => {
-  const candidate = catalog.validateSettledInput(buildCandidate(input, command, catalog));
+  // Trin 1: byg og validér brugerens egen ændring. Reglerne for afledte felter skal se en VALIDERET
+  // envelope — ellers ville de læse utypede rå værdier og kunne udlede en konsekvens af noget, kataloget
+  // ville have afvist.
+  const committed = catalog.validateSettledInput(buildCandidate(input, command, catalog));
+
+  // Trin 2: materialisér de afledte felter i SAMME kandidat og validér resultatet igen. Årsag og konsekvens
+  // hører dermed til samme revision og samme history-trin, og ingen afledt værdi kan blive en selvstændig
+  // autoritativ handling, brugeren skal fortryde for sig (§3.6, GM-F02). Den anden validering er ikke
+  // dobbeltarbejde: den er grænsen, der forhindrer en afledt regel i at smugle en ugyldig envelope ind.
+  const derived = catalog.materializeDerivedWrites(committed.sections);
+  const candidate: SettledInput = derived === committed.sections
+    ? committed
+    : catalog.validateSettledInput({ sections: derived, rejectedInputs: committed.rejectedInputs });
+
   if (deepEqual(input, candidate)) return Object.freeze({ changed: false, input });
   return Object.freeze({ changed: true, input: candidate });
 };

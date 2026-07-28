@@ -34,7 +34,7 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses(values, undefined);
+    const result = buildIndkomstSectionStatuses(values);
 
     expect(result[0]?.tableStatus).toBe('warning');
     expect(result[0]?.tableMessage).toBe('Lønperiode er udfyldt uden beløb i lønfelterne');
@@ -51,7 +51,7 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses(values, undefined);
+    const result = buildIndkomstSectionStatuses(values);
 
     expect(result[0]?.tableStatus).toBe('ok');
     expect(result[0]?.tableMessage).toBe('Ok');
@@ -67,7 +67,7 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses(values, undefined);
+    const result = buildIndkomstSectionStatuses(values);
 
     expect(result[0]?.tableStatus).toBe('error');
     expect(result[0]?.tableMessage).toBe('År er ikke angivet');
@@ -83,7 +83,7 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses(values, undefined);
+    const result = buildIndkomstSectionStatuses(values);
 
     expect(result[0]?.tableStatus).toBe('error');
     expect(result[0]?.tableMessage).toBe('Ugyldig værdi i Måned');
@@ -103,7 +103,7 @@ describe('buildIndkomstSectionStatuses', () => {
     ];
     values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
 
-    const result = buildIndkomstSectionStatuses(values, undefined);
+    const result = buildIndkomstSectionStatuses(values);
 
     // Situationen er ikke en fejl: lønnen medregnes via fald-tilbage-fordeling, download må ikke spærres.
     expect(result[0]?.tableStatus).toBe('warning');
@@ -126,7 +126,7 @@ describe('buildIndkomstSectionStatuses', () => {
     ];
     values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
 
-    const result = buildIndkomstSectionStatuses(values, undefined);
+    const result = buildIndkomstSectionStatuses(values);
 
     expect(result[0]?.tableStatus).toBe('error');
   });

@@ -16,6 +16,7 @@ import {
   catalogFields,
   catalogCollections,
   type CollectionDescriptor,
+  type DerivedInputWrite,
   type FieldAddress,
   type FieldDescriptor,
   type PersistedInputSections,
@@ -173,9 +174,12 @@ export const enhedField: FieldDescriptor<TillaegstidEnhed> = defineField({
   writeCanonical: (sections, address, value) => updateRow(sections, findRowId(address), (row) => ({ ...row, enhed: value })),
 });
 
-export const createTestCatalog = () => createInputCatalog({
+export const createTestCatalog = (
+  derivedWrites?: readonly DerivedInputWrite[]
+) => createInputCatalog({
   fields: catalogFields(aargangField, beregningsdatoField, kommentarerField, belobField, tillaegstidField, enhedField),
   collections: catalogCollections(rentekravRowsCollection),
+  ...(derivedWrites === undefined ? {} : { derivedWrites }),
 });
 
 export const makeRow = (id: string, overrides: Partial<RentekravRow> = {}): RentekravRow => ({

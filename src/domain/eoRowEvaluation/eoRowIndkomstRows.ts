@@ -126,7 +126,7 @@ export const buildEoIndkomstRows = (
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
   const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
 
-  const sections = buildIndkomstSectionStatuses(values, skadedato);
+  const sections = buildIndkomstSectionStatuses(values);
   sections.forEach((section) => {
     const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((item) => item.id === section.id);
     const sidsteArbejdsdag =

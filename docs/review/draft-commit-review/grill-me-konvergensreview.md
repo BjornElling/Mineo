@@ -148,6 +148,36 @@ lønoplysninger uanset valgt lønudviklingsgrundlag. Outputvejen kræver den kun
 **Anbefalet retning:** Én ren satsvurdering skal producere både feltplacering, brugerbesked og
 consumerkonsekvens. Den godkendte relevansmatrix i beslutning 1 er produktreglen.
 
+**Status: rettet 2026-07-28.** `loenindkomstSatsAssessment.ts` er nu den ENE satsvurdering; både
+feltmarkeringen og gaten aftager den, og begge de to gamle moduler
+(`loenindkomstSatsValidation.ts`, `loenindkomstSatserGate.ts`) er slettet, ikke omdøbt.
+
+*Relevansreglen:* `isFeriePctRelevant` implementerer beslutning 1's matrix — satsen er kun påkrævet ved
+*Overenskomst* og *Manuelt angivet*. Prædikatet er delt ORDRET af feltmarkeringen, række-evalueringen og
+`erstatningsopgoerelseValidator`, så en blokering aldrig kan mangle sin synlige besked.
+
+*Afvigelsesreglerne forsvandt frem for at blive fordoblet.* Kortlægningen viste, at de datoafhængige
+afvigelser (fritvalg, SH/SO, Store Bededag, pension) alle måler LÅSTE felter — og de felter er nu afledte
+(GM-F02): reduceren materialiserer dem til overenskomstens/lovens sats i HVER command, også ved `replaceCase`
+fra en indlæst `.eo`. Efter commit KAN de derfor ikke afvige; et forsøg på at skrive noget andet er en no-op.
+At bevare afvigelsesreglen ville have været et værn, hvis eneste udløser er en tilstand, ingen vej ind i
+systemet kan producere. Beviset står i `loenindkomstSatsDerivedWrite.test.ts` → "kan ikke efterlade en
+afvigelse" + "reparerer en indlæst sag".
+
+Kortlægningen korrigerede undervejs en detalje i fundets egen evidens: `resolveSatserErrorField` tog en
+`anvendtReguleringsdato`, som nu er unødvendig hele vejen op — også `buildIndkomstSectionStatuses`' ulæste
+`skadedato`-parameter er fjernet, frem for at stå som en erklæret afhængighed, funktionen ikke har.
+
+*Repræsentationen (GM-F06's EO-halvdel):* satsfundene er nu strukturelle `FieldIssue`s med rigtige
+feltadresser, slået op på den SAMME bundne reference feltet selv bruger. `NumericTextField.externalError` er
+derfor afskaffet som kanal og erstattet af `crossFieldIssue?: FieldIssue`; `FractionField`s udgave havde
+ingen callsites og er slettet.
+
+**Dækning:** `loenindkomstSatsAssessment.test.ts` (26 tests) måler relevansmatrixen eksplicit for ALLE syv
+reguleringsformer, den tomme form, Beløb-tilstand, manglende lønoplysninger og skift begge veje — plus at
+markering og blokering altid følges. Mutationsbevis: sættes relevansen tilbage til den gamle feltvejs regel
+(`grundlag !== undefined`), fejler 14 tests, netop på de fem ikke-krævende former.
+
 ### GM-F02 — Automatiske satser skrives som en ekstra brugerhandling
 
 **Alvor:** Væsentlig  
@@ -171,6 +201,35 @@ Hele den oplevede handling skal kunne fortrydes én gang; satserne må ikke blot
 
 **Anbefalet retning:** Materialisér de automatiske følgeændringer i samme autoritative handling som det
 styrende valg, og gør værnet strukturelt i stedet for navnebaseret.
+
+**Status: rettet 2026-07-28.** Løst ved at give inputkernen en ny, erklæret mekanisme frem for at flytte
+effecten et andet sted hen.
+
+*Mekanismen:* `DerivedInputWrite` er en regel på kataloget — id, den ENE sektion den må skrive i, og en ren
+`materialize`. `reduceInputCommand` kalder `catalog.materializeDerivedWrites` for HVER command, mellem
+brugerens egen validerede ændring og den endelige validering. Årsag og konsekvens hører derfor til samme
+kandidat, samme revision og samme history-trin. Fordi reglen kører på hver command og ikke kun på det
+styrende felt, konvergerer også en indlæst tilstand, der er ude af trit.
+
+To invarianter håndhæves ved commit frem for at stå som konvention: en regel, der ændrer en anden sektion end
+sin erklærede, afvises; og en regel, der ikke er idempotent, afvises. Den anden er ikke defensiv pynt — en
+svingende regel ville skrive noget nyt ved næste command uden nogen brugerhandling, altså præcis det
+uforudsigelige skriv mekanismen findes for at afskaffe.
+
+*Anvendelsen:* `loenindkomstSatsDerivedWrite` erklærer EO's satser. Effecten i
+`useLoenindkomstViewModel` er slettet; der står nu en note om, hvor reglen bor, og hvorfor den ikke må
+flyttes tilbage. De synlige værdier og tidspunktet er uændrede — kun ejerskabet af skrivningen er flyttet.
+
+*Værnet:* det navnebaserede forbud var ikke bare svagt, det var grønt af tomhed — se INC-F05. Erstatningen er
+AST-reglen `input/derived-writes-materialize-in-reduction`, som måler den aktuelle skrivevej: et
+`dispatch`/`dispatchInput`-kald inde i et `useEffect`/`useLayoutEffect`-vindue i komponent-/hooklaget.
+
+**Dækning:** `derivedInputWrites.test.ts` (7 tests, mekanismen gennem en isoleret testkatalog: alle
+command-arter, sektionsgrænsen, idempotensen, dublet-id, og at et katalog uden regler lader tilstanden være)
++ `loenindkomstSatsDerivedWrite.test.ts` (7 tests mod det ÆGTE produktionskatalog). Mutationsbevis: gøres
+materialiseringen til en identitet, fejler 8 af de 13 mekanismetests — mens netop de to, der hævder FRAVÆR af
+afledning, forbliver grønne. AST-reglen er mutationstestet ved at genindføre en dispatch-effect: den bliver
+rød med fil:linje:kolonne.
 
 ### GM-F03 — To specialtoggles omgår fælles fokusgenopretning
 
@@ -250,7 +309,7 @@ repræsentationer.
 **Anbefalet retning:** Collection-/tværfeltregler må fortsat afledes samlet, men resultatet skal være
 strukturelle feltissues med samme adresse, prioritet og konsekvensvej som alle andre røde fejl.
 
-**Status: delvist rettet 2026-07-28 (etape 4) — EET-halvdelen lukket.**
+**Status: rettet 2026-07-28 — begge halvdele lukket (EET i etape 4, EO sammen med GM-F01).**
 
 EET's kryds-række-fejl var båret af en parallel `Map<'${rowId}|${field}', string>` og vist gennem
 `externalErrorMessage` på cellen. Reglerne KAN ikke flyttes til descriptor-validatorerne — de er
@@ -268,10 +327,20 @@ forkerte ejer-id'er i nestede collections). Dækningen hævder eksplicit, at tab
 identisk med projektionens for hvert produceret issue, og mutationsbeviset er, at en binding til et andet
 række-id gør netop den sammenligning rød.
 
-**Udestående: EO-satshalvdelen.** `NumericTextField.externalError` bruges fortsat af EO's satsfejl
-(`AnsaettelsesforholdCard.tsx:514-580`). Den halvdel konverteres sammen med GM-F01, ikke isoleret: GM-F01
-bærer beslutning 1's relevansmatrix, altså en ændring af REGLEN selv. At konvertere repræsentationen først
-ville betyde at flytte den nuværende — kendt forkerte — regel over i den nye form og derefter ændre den igen.
+**EO-satshalvdelen, lukket sammen med GM-F01.** Rækkefølgen var bevidst: GM-F01 bærer beslutning 1's
+relevansmatrix, altså en ændring af REGLEN selv, og at konvertere repræsentationen først ville betyde at
+flytte den kendt forkerte regel over i den nye form og derefter ændre den igen.
+
+Satsfundene er nu strukturelle `FieldIssue`s med `reason: 'rule'`, slået op på den samme bundne reference
+feltet selv bruger — én bindingsvej, som i EET-halvdelen. Sidekanalen er derfor ikke blot ubrugt, men
+AFSKAFFET: `NumericTextField.externalError` er erstattet af `crossFieldIssue?: FieldIssue`, og
+`FractionField`s udgave af propen havde ingen callsites overhovedet og er slettet. Der findes efter dette
+INGEN fri fejltekst-prop tilbage på nogen felt- eller cellekomponent.
+
+Undervejs faldt fire af de fem satsvisninger helt væk: `fritvalgPct`, `shSoPct`, `storeBededagPct` og
+`pensionPct` fik alle en fejltekst-prop, men efter GM-F02 kan de felter ikke afvige, og
+`storeBededagPct`-propen blev i øvrigt aldrig sat af nogen kode (`SatsErrorState` satte den ikke). Den var
+altså en død visningsflade, som lignede en aktiv fejlkanal.
 
 ### GM-F07 — Varige mén kalder motoren inde i projektionsindsamlingen
 
@@ -461,8 +530,16 @@ er gennemført. R3-F04 fjernede den brede issue-capability fra readerens type, o
 overblokeringer, den havde muliggjort. R3-H01 er samtidig bekræftet og lukket: der fandtes præcis fem brede
 filtre, fire af dem blokerende, og alle fire er rettet.
 
-Første halvdel — *én strukturel repræsentation* — er delvist gennemført: EET's kryds-række-fejl er konverteret
-(GM-F06), mens EO's satsfejl afventer GM-F01, fordi selve reglen skal ændres i samme greb.
+**Status 2026-07-28 (etape 4, andet pas):** første halvdel — *én strukturel repræsentation* — er nu også
+gennemført. GM-F01 samlede EO's to satsregelsæt til én vurdering efter beslutning 1's relevansmatrix, GM-F02
+gjorde de låste satser til afledte felter, reduceren materialiserer, og GM-F06's EO-halvdel konverterede
+satsfejlene til strukturelle feltissues. Dermed findes der ingen fri fejltekst-prop tilbage på nogen felt-
+eller cellekomponent, og anbefaling nr. 1 er lukket i sin helhed.
+
+Bemærk sammenhængen mellem de to fund: GM-F02's afledte skrivning gjorde GM-F01's afvigelsesregler
+STRUKTURELT unødvendige frem for blot ensartede. Havde fundene været rettet hver for sig, ville
+afvigelsesreglen være blevet omhyggeligt fordoblet ind i den nye vurdering — og derefter stået som en gren,
+ingen tilstand kan nå.
 
 ## Efterprøvede, begrundede forskelle
 

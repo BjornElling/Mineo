@@ -11,10 +11,10 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
 | R0–R8 (fasefund) | 36 | 29 | 7 | 0 |
-| GM (konvergensreview) | 15 | 13 | 1 (2 delvist) | 0 |
+| GM (konvergensreview) | 15 | 10 | 4 (1 delvist) | 0 |
 | UT (brugertest) | 6 | 3 | 2 | 1 |
-| INC (tilfældighedsfund) | 4 | 0 | 4 | 0 |
-| **I alt** | **61** | **45** | **14 (+2 delvist)** | **1** |
+| INC (tilfældighedsfund) | 5 | 0 | 5 | 0 |
+| **I alt** | **62** | **42** | **18 (+1 delvist)** | **1** |
 
 ## Bindende regel for tilfældighedsfund
 
@@ -47,7 +47,7 @@ en etape rettes og verificeres sammen.
 | **1** | UT-F04 | Blokerer en central EO-funktion med et render-crash. Rettet 2026-07-28. |
 | **2** | UT-F05, R2-F01 | Samme årsag som etape 1's fejlklasse: en fælles kommandokontrakt brydes af fem callsites og kaster en uncaught systemfejl. Samme fund fra to vinkler. Rettet 2026-07-28. |
 | **3** | R6-F01, GM-F11, R6-F02 | Trust-kritisk dokumentvej: et frisk token bindes til render-fangede settings (kan producere output fra en forældet kilde), og otte flader skjuler udfaldsbeskeden. Alle i dokumenthandle-laget. R6-F02 er GM-F11 fra reviewets egen vinkel og blev derfor rettet her frem for i sin oprindelige placering. Rettet 2026-07-28. |
-| **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02 · **udestår:** GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Delvist lukket 2026-07-28 — se etapenoten nedenfor. |
+| **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02, GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Lukket 2026-07-28 i to pas — se etapenoterne nedenfor. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. |
 | **7** | UT-F02, UT-F06, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. |
@@ -108,12 +108,12 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 
 | Id | Kort titel | Alvor | Lokation | Etape | Status | Rapport |
 |---|---|---|---|---:|---|---|
-| GM-F01 | Parallel satsvalidering har konkret regeldrift | Væsentlig | `loenindkomstSatsValidation.ts`, `loenindkomstSatserGate.ts` | 4 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f01--parallel-satsvalidering-har-konkret-regeldrift) |
-| GM-F02 | Automatiske satser skrives som en ekstra brugerhandling | Væsentlig | `useLoenindkomstViewModel.ts` | 4 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f02--automatiske-satser-skrives-som-en-ekstra-brugerhandling) |
+| GM-F01 | Parallel satsvalidering har konkret regeldrift | Væsentlig | `loenindkomstSatsAssessment.ts` (afløser to moduler) | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f01--parallel-satsvalidering-har-konkret-regeldrift) |
+| GM-F02 | Automatiske satser skrives som en ekstra brugerhandling | Væsentlig | `loenindkomstSatsDerivedWrite.ts`, `fieldCatalog.ts` | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f02--automatiske-satser-skrives-som-en-ekstra-brugerhandling) |
 | GM-F03 | To specialtoggles omgår fælles fokusgenopretning | Væsentlig | `Aarsloen.tsx`, `OffentligeYdelserTab.tsx` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f03--to-specialtoggles-omgår-fælles-fokusgenopretning) |
 | GM-F04 | Årsløn beregner delresultat, mens dokumentet blokerer | Væsentlig | `aarsloenProjection.ts`, `Aarsloen.tsx` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f04--årsløn-beregner-delresultat-mens-dokumentet-blokerer) |
 | GM-F05 | Forsørgertab har en afkoblet parallel fieldUi-model | Væsentlig | `forsoergertabSnapshot.ts`, `Forsoergertab.tsx` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f05--forsørgertab-har-en-afkoblet-parallel-fieldui-model) |
-| GM-F06 | Persisted felter accepterer en separat rå fejltekst | Væsentlig | Fælles feltkomponenter og EO/EET-callsites | 4 | Delvist rettet (EET lukket; EO-satser følger GM-F01) | [GM](grill-me-konvergensreview.md#gm-f06--persisted-felter-accepterer-en-separat-rå-fejltekst) |
+| GM-F06 | Persisted felter accepterer en separat rå fejltekst | Væsentlig | Fælles feltkomponenter og EO/EET-callsites | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f06--persisted-felter-accepterer-en-separat-rå-fejltekst) |
 | GM-F07 | Varige mén kalder motoren inde i projektionsindsamlingen | Væsentlig | `varigeMenReaderProjection.ts` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f07--varige-mén-kalder-motoren-inde-i-projektionsindsamlingen) |
 | GM-F08 | En død React-vej til Årslønsberegningen holdes levende af tests | Mindre | `useAarsloenBeregning.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f08--en-død-react-vej-til-årslønsberegningen-holdes-levende-af-tests) |
 | GM-F09 | Død sektionsvis persistence findes ved siden af aggregate-envelope | Væsentlig | `buildPersistedSection.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f09--død-sektionsvis-persistence-findes-ved-siden-af-aggregate-envelope) |
@@ -201,6 +201,7 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F02 | `INSERT_TODAY_DATE_EVENT` var en død sidekanal uden lytter | Mindre | UT-F05 | **Rettet 2026-07-28** |
 | INC-F03 | Mit eget nye AST-værn var tekstbaseret og kunne bæres af en kommentar | Væsentlig | R6-F02 | **Rettet 2026-07-28** |
 | INC-F04 | EO's `documentStamdata` var tildelt, men aldrig læst | Væsentlig | R3-F02 | **Rettet 2026-07-28** |
+| INC-F05 | Effect-write-værnet var grønt af tomhed på alle fire mønstre OG sin allowlist | Væsentlig | GM-F02 | **Rettet 2026-07-28** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -241,10 +242,35 @@ brevhovedfelterne klassificeret som EO-relevante i R3-F02's løsning. Feltet er 
 begrundelsen står på stedet. At fjernelsen var komplet er bevist af lint: begge de tidligere imports blev
 ubrugte, altså havde feltet ingen anden læser.
 
-**R3-F04 + R3-F02 + R3-F01 + GM-F06 + R2-F02 — rettet 2026-07-28 (etape 4, delvist).**
+**INC-F05.** `formContractIsolation.test.ts` forbød persisted writes fra React-effects og var det ENESTE værn
+om netop den grænse. GM-F02 nævnte, at det ikke så den aktuelle `edit.dispatch(...)`-vej. Efterprøvningen viste
+noget værre: værnet kunne slet ikke fejle.
+
+Dets `EFFECT_WRITE_PATTERNS` var fire funktionsnavne — `setValues(`, `setFormValues(`, `replaceFormValues(`,
+`onAnsaettelsesforholdChange(` — og en søgning på hver af dem over alle fire commit-sensitive roots
+(`src/components`, `src/hooks`, `src/utils`, `src/inputCore`) gav NUL træf. Alle fire var navne fra den
+legacy-inputklynge, der blev slettet i greenfield-cutoveren. Testens egen løkke starter med
+`if (!EFFECT_WRITE_PATTERNS.some(...)) continue;`, så den sprang hver enkelt fil over og nåede aldrig sin
+AST-analyse.
+
+Værnet havde desuden et andet, uafhængigt hul i samme retning: dets `ALLOWED_EFFECT_WRITES` fritog
+`useLoenindkomstViewModel.ts`, hvis effecten bar markøren `'Decision note: dette er en bevidst
+kontrakt-undtagelse.'` — en streng, der ikke fandtes nogen steden i filen. Kravet skulle have gjort undtagelsen
+rød; i stedet blev den aldrig prøvet, fordi den ydre pattern-gate stoppede først. To lag af samme fejlklasse
+oven på hinanden.
+
+Fundet er registreret frem for blot rettet, fordi det er en anden variant af R0-F02 end den, dét fund
+beskriver: her er det ikke prøven, der er tekstbaseret, men VÆRNETS MÅL, der er forsvundet — og allowlisten
+pegede på en markør, der heller ikke fandtes. Filen er slettet frem for lappet, og grænsen håndhæves nu af
+AST-reglen `input/derived-writes-materialize-in-reduction`, som måler den aktuelle skrivevej og er
+mutationstestet mod netop den effect, det gamle værn var skrevet for at fange. `contractCoverageMatrix`'
+`form-contract.md`-post peger nu på arkitektur-harnesset i stedet, med begrundelsen på stedet.
+
+**R3-F04 + R3-F02 + R3-F01 + GM-F06 + R2-F02 — rettet 2026-07-28 (etape 4, første pas).**
 
 Etapen er konvergensreviewets anbefaling nr. 1. Dens anden halvdel — *consumerblokering skal følge konkrete
-reads* — er gennemført; første halvdel — *én strukturel repræsentation* — er delvist gennemført.
+reads* — blev gennemført i dette pas; første halvdel — *én strukturel repræsentation* — blev fuldført i
+etapens andet pas (GM-F01 + GM-F02, noten nedenfor).
 
 *Rodårsagen (R3-F04):* den offentlige `InputReader` bar `fieldIssues: FieldIssueSnapshot`, en capability
 design §3.4 ikke giver den. Det var det, der gjorde BEGGE overblokeringer nedenfor udtrykkelige: enhver
@@ -266,19 +292,64 @@ Kortlægningen korrigerede undervejs to detaljer i fundenes egen evidens, uden a
 EO-læsning af fødselsdatoen end den, R3-F02 nævnte — men også den ender i en `warning`. Begge korrektioner
 står i fundene.
 
-*Repræsentationen (GM-F06, delvist):* EET's kryds-række-fejl er nu strukturelle `FieldIssue`s med rigtige
-feltadresser i stedet for en parallel `${rowId}|${field}`-strengnøgle plus en fri fejltekst-prop. EO's
-satsfejl bruger fortsat `NumericTextField.externalError`; den halvdel konverteres sammen med GM-F01, fordi
-GM-F01 bærer beslutning 1's relevansmatrix — altså en ændring af REGLEN selv. At konvertere repræsentationen
-først ville betyde at flytte den kendt forkerte regel over i den nye form og derefter ændre den igen.
+*Repræsentationen (GM-F06, EET-halvdelen):* EET's kryds-række-fejl er nu strukturelle `FieldIssue`s med
+rigtige feltadresser i stedet for en parallel `${rowId}|${field}`-strengnøgle plus en fri fejltekst-prop.
+EO-halvdelen blev bevidst udskudt til etapens andet pas: GM-F01 bærer beslutning 1's relevansmatrix — altså en
+ændring af REGLEN selv — og at konvertere repræsentationen først ville betyde at flytte den kendt forkerte
+regel over i den nye form og derefter ændre den igen.
 
 *Kontrakten (R2-F02):* `form-contract.md` §7.5 sagde, at canonical skjulte værdier aldrig ryddes implicit,
 mens reduceren rydder feltet, når et styrende valg gør det irrelevant OG det havde en aktiv rød feltfejl.
 Runtime blev efterprøvet først; det var kontraktteksten, der var stale. Kun teksten er ændret.
 
-**Udestår i etape 4:** GM-F01 (én satsvurdering efter beslutning 1's relevansmatrix) og GM-F02 (automatiske
-satser i samme transaktion som det styrende valg). De hører sammen som én ændring af EO Lønindkomsts
-satsklynge og bærer den eneste egentlige produktregel-ændring i etapen, hvorfor de tages som et selvstændigt
-pas frem for at blive halvt gennemført her. GM-F06's EO-halvdel følger med dem.
+Fire gates + fuld suite grøn efter passets fem lukkede fund: 498 filer / 6243 tests.
 
-Fire gates + fuld suite grøn efter etapens fem lukkede fund: 498 filer / 6243 tests.
+**GM-F01 + GM-F02 + GM-F06's EO-halvdel — rettet 2026-07-28 (etape 4, andet pas).** Etapen — og
+konvergensreviewets anbefaling nr. 1 — er dermed lukket i sin helhed.
+
+*Den afledte skrivning (GM-F02):* de overenskomst-/lovbundne satser blev beregnet efter render og skrevet af
+en `useEffect` som en NY autoritativ handling; brugerens ene oplevede handling krævede derfor to undo-trin, og
+et undo kunne straks blive skrevet tilbage af den samme effect. Løsningen er ikke at flytte effecten, men at
+give inputkernen den mekanisme, den manglede: `DerivedInputWrite` er en regel på kataloget, som
+`reduceInputCommand` materialiserer for HVER command, mellem brugerens validerede ændring og den endelige
+validering. To invarianter håndhæves ved commit frem for som konvention — reglen må kun skrive i sin egen
+erklærede sektion, og den skal være idempotent. Den anden er load-bearing: en svingende regel ville skrive
+noget nyt ved næste command uden nogen brugerhandling.
+
+*Én satsvurdering (GM-F01):* `loenindkomstSatsAssessment.ts` afløser BEGGE de gamle moduler
+(`loenindkomstSatsValidation.ts` + `loenindkomstSatserGate.ts`, slettet, ikke omdøbt) og aftages nu af både
+feltmarkeringen og gaten. `isFeriePctRelevant` er beslutning 1's matrix, delt ordret af markeringen,
+række-evalueringen og `erstatningsopgoerelseValidator`.
+
+**Det centrale strukturelle udfald:** de datoafhængige *afvigelses*-regler blev ikke ensartet — de forsvandt.
+Alle fire måler LÅSTE felter, og efter GM-F02 materialiserer reduceren de felter til overenskomstens/lovens
+sats i hver command, også ved `replaceCase` fra en indlæst `.eo`. Efter commit KAN de ikke afvige; et forsøg
+er en no-op. En bevaret afvigelsesregel ville have været en gren, ingen tilstand kan nå — og et værn, hvis
+eneste udløser er en umulig tilstand, beskytter intet. Havde de to fund været rettet hver for sig, ville
+reglen omhyggeligt være blevet fordoblet ind i den nye vurdering først.
+
+Det gjorde en golden-master-påstand forældet: `eoBlockingGateCatalog`-testen dokumenterede som "empirisk fund",
+at en nominelt gyldig TAF-basissag bar en Store Bededag-afvigelse. Fejlen var reel for netop den fixture, som
+konstruerer værdierne direkte uden om reduceren — men uopnåelig i produktionen. Testen hævder nu det modsatte,
+med begrundelsen og henvisningen til beviset på stedet.
+
+*Repræsentationen (GM-F06, EO-halvdelen):* satsfundene er strukturelle `FieldIssue`s med `reason: 'rule'`,
+slået op på den SAMME bundne reference feltet selv bruger. `NumericTextField.externalError` er afskaffet som
+kanal (→ `crossFieldIssue?: FieldIssue`), og `FractionField`s udgave havde ingen callsites og er slettet.
+Der findes efter dette INGEN fri fejltekst-prop tilbage på nogen felt- eller cellekomponent. Fire af de fem
+satsvisninger faldt helt væk — og `storeBededagPct`-propen blev i øvrigt aldrig sat af nogen kode.
+
+Kortlægningen fjernede desuden to falske afhængighedserklæringer, som rettelsen afslørede:
+`resolveSatserErrorField`s `anvendtReguleringsdato` og `buildIndkomstSectionStatuses`' `skadedato` — begge
+ulæste efter afvigelsesreglernes bortfald. En bevaret, ulæst parameter ville skjule for næste læser, hvad
+rækkerne faktisk afhænger af.
+
+**Dækning og mutationsbevis:** `derivedInputWrites.test.ts` (7 tests, mekanismen), 
+`loenindkomstSatsDerivedWrite.test.ts` (7 tests mod det ÆGTE produktionskatalog, inkl. no-op ved forsøgt
+afvigelse og reparation af en indlæst sag) og `loenindkomstSatsAssessment.test.ts` (26 tests over alle syv
+reguleringsformer, tom form, Beløb-tilstand og skift begge veje). Tre uafhængige mutationer: gøres
+materialiseringen til en identitet, fejler 8 af 13 mekanismetests mens netop de to fravær-hævdende forbliver
+grønne; sættes relevansen tilbage til den gamle feltvejs regel, fejler 14 tests på præcis de fem ikke-krævende
+former; genindføres en dispatch-effect, bliver AST-reglen rød med fil:linje:kolonne.
+
+Fire gates + `verify:ledgers` + fuld suite grøn: 499 filer / 6269 tests.

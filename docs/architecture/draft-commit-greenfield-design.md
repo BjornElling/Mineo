@@ -571,11 +571,31 @@ For hver command:
 1. Læs ét før-snapshot.
 2. Byg kandidat med en ren reducer.
 3. Validér canonical sektioner, feltadresser, entities og XOR-invarianten.
-4. Afvis semantisk no-op.
-5. Serialisér den ene aktuelle session-envelope.
-6. Skriv og verificér én `sessionStorage`-værdi.
-7. Opdatér input, revision og history i ét Zustand-write.
-8. Rul storage og runtime tilbage til før-snapshottet ved uventet fejl.
+4. Materialisér katalogets afledte skrivninger i kandidaten og validér den igen.
+5. Afvis semantisk no-op.
+6. Serialisér den ene aktuelle session-envelope.
+7. Skriv og verificér én `sessionStorage`-værdi.
+8. Opdatér input, revision og history i ét Zustand-write.
+9. Rul storage og runtime tilbage til før-snapshottet ved uventet fejl.
+
+**Afledte felter.** Et felt, hvis kanoniske værdi er en funktion af andre afsluttede felter, er ikke brugerinput
+men en konsekvens af det. Sådanne felter erklæres som `DerivedInputWrite` på kataloget — id, den ene sektion
+reglen må skrive i, og en ren, idempotent `materialize` — og materialiseres i trin 4, altså inde i samme
+kandidat som årsagen. Årsag og konsekvens hører dermed til samme revision og samme history-trin.
+
+En React-effect må aldrig skrive en afledt værdi. Den ville gøre konsekvensen til en selvstændig autoritativ
+handling med sit eget undo-trin, og et undo kunne straks blive skrevet tilbage af den samme effect, fordi det
+styrende valg stadig var aktivt. Grænsen håndhæves af AST-reglen
+`input/derived-writes-materialize-in-reduction`.
+
+Kataloget afviser ved commit en regel, der skriver uden for sin erklærede sektion, og en regel, der ikke er
+idempotent. Idempotenskravet er load-bearing: en svingende regel ville skrive noget nyt ved næste command uden
+nogen brugerhandling.
+
+Fordi reglerne kører på hver command — også `replaceCase` fra en indlæst `.eo` — kan et afledt felt ikke stå
+ude af trit med sin kilde i nogen tilstand, en consumer kan observere. Det er en STRUKTUREL garanti, ikke en
+konvention, og en separat "afviger værdien?"-validering af et afledt felt er derfor en gren, ingen tilstand kan
+nå.
 
 Et eksplicit styrende valg bruger en fast før/efter-procedure i samme transaktion:
 

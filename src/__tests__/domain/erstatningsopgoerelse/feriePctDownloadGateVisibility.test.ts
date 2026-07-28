@@ -4,7 +4,7 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { isFeriePctRequiredForBlocking } from '../../../domain/erstatningsopgoerelse/validation/loenindkomstSatserGate';
+import { isFeriePctRelevant } from '../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
@@ -18,7 +18,7 @@ import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
  * række-motor (`collectAllEoRows` via `buildIndkomstSectionStatuses`) reproducerede den ikke, så boksen
  * forblev tom.
  *
- * Kernen i rettelsen er ÉT sandt sted for "hvornår kræves feriegodtgørelse" (`isFeriePctRequiredForBlocking`),
+ * Kernen i rettelsen er ÉT sandt sted for "hvornår kræves feriegodtgørelse" (`isFeriePctRelevant`),
  * der driver BEGGE sider. Denne test beviser at de to sider ALTID er enige: validatorens blokering ⟺
  * en synlig `satserSkadestidspunkt`-fejlrække. Hvis de nogensinde drifter igen, bliver testen rød.
  */
@@ -66,7 +66,7 @@ const feriePctBlocksInValidator = (values: ErstatningsopgoerelseValues): boolean
 
 /** Viser række-motoren en tilsvarende synlig satser-fejl om feriegodtgørelse? */
 const feriePctShownInRow = (values: ErstatningsopgoerelseValues): boolean =>
-  buildIndkomstSectionStatuses(values, undefined).some(
+  buildIndkomstSectionStatuses(values).some(
     (section) => section.satserStatus === 'error' && section.satserMessage.includes('Feriegodtgørelse')
   );
 
@@ -76,7 +76,7 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
 
     expect(feriePctBlocksInValidator(values)).toBe(true);
 
-    const section = buildIndkomstSectionStatuses(values, undefined)[0];
+    const section = buildIndkomstSectionStatuses(values)[0];
     expect(section?.satserStatus).toBe('error');
     // "er ikke udfyldt" — IKKE "Forkert værdi indtastet" (intet er indtastet).
     expect(section?.satserMessage).toBe('Feriegodtgørelse/-tillæg er ikke udfyldt');
@@ -102,7 +102,7 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
     const values = buildScenario({ grundlag: 'Overenskomst', tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB });
     expect(feriePctBlocksInValidator(values)).toBe(false);
     expect(feriePctShownInRow(values)).toBe(false);
-    expect(isFeriePctRequiredForBlocking(values.loenindkomstAnsaettelsesforhold[0], values.beregnesUdFra)).toBe(false);
+    expect(isFeriePctRelevant(values.loenindkomstAnsaettelsesforhold[0], values.beregnesUdFra)).toBe(false);
   });
 
   it('kræver ikke feriegodtgørelse uden indtastede lønoplysninger', () => {

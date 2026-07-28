@@ -23,7 +23,8 @@ import {
   eoEmploymentFilterFields,
   eoEmploymentManual,
 } from '../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
-import type { CollectionRef } from '../../../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef } from '../../../../inputCore/fieldAddress';
+import type { FieldRef } from '../../../../inputCore/fieldDescriptor';
 import { createEoStandardLoenFieldSet } from '../../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
 import FloatingActionButton from '../../../ui/FloatingActionButton';
 import ContentBox from '../../../layout/ContentBox';
@@ -92,7 +93,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     onNavigateToTabtArbejdsfortjeneste,
     skadedato,
     skadestype,
-    satsErrors,
+    satsIssues,
     manualBaseRowErrorsByAfId,
     loentrinFinder,
     alleLoenmodtagerOrg,
@@ -135,6 +136,15 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     tabKey: EO_TAB_KEYS.LOENINDKOMST,
   });
   const standardLoenFieldSet = React.useMemo(() => createEoStandardLoenFieldSet(af.id), [af.id]);
+
+  /**
+   * Slår satsvurderingens kryds-felt-issue op på den SAMME bundne reference, feltet selv bruger. Ét
+   * bindingssted: divergerede opslags-adressen fra feltets egen, ville markeringen forsvinde lydløst fra
+   * feltet (jf. INC-F01, hvor netop en lokal binding gav forkerte ejer-id'er).
+   */
+  const satsIssueFor = (descriptor: { bind: (...ids: readonly string[]) => FieldRef<number | undefined> }) =>
+    satsIssues.get(serializeFieldAddress(field(descriptor).address));
+  const feriePctIssue = satsIssueFor(eoEmploymentFields.feriePct);
 
   const showOverenskomst = af.harOverenskomst;
   const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
@@ -511,7 +521,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   location={location('feriePct')}
                   name={`${af.id}:feriePct`}
                   placeholder="0"
-                  externalError={satsErrors[af.id]?.feriePct}
+                  {...(feriePctIssue === undefined ? {} : { crossFieldIssue: feriePctIssue })}
                   sx={{ width: '100px' }}
                 />
               </Box>
@@ -523,7 +533,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:fritvalgPct`}
                   placeholder="0"
                   disabled={fritvalgLocked}
-                  externalError={satsErrors[af.id]?.fritvalgPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -537,7 +546,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:shSoPct`}
                   placeholder="0"
                   disabled={shSoLocked}
-                  externalError={satsErrors[af.id]?.shSoPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -563,7 +571,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:storeBededagPct`}
                   placeholder="0"
                   disabled
-                  externalError={satsErrors[af.id]?.storeBededagPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -577,7 +584,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:pensionPct`}
                   placeholder="0"
                   disabled={pensionLocked}
-                  externalError={satsErrors[af.id]?.pensionPct}
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>

@@ -1001,3 +1001,124 @@ export const issueSnapshotCapabilityBoundary = defineRule({
     },
   ],
 });
+
+// --- Afledte felter skrives i reduktionen, ikke fra en effect (§3.6) -----------
+
+/**
+ * Et AFLEDT felt er en konsekvens af brugerens valg, ikke en selvstændig handling (GM-F02).
+ *
+ * EO's overenskomstbundne satser blev tidligere beregnet efter render og skrevet af en `useEffect` som en
+ * NY autoritativ handling. Det gav to history-trin for én oplevet brugerhandling, og et undo af satsen
+ * kunne straks blive skrevet tilbage af den samme effect, fordi det styrende valg stadig var aktivt.
+ * Rettelsen er en `DerivedInputWrite` på produktkataloget, som reduceren materialiserer inde i SAMME
+ * kandidat som årsagen.
+ *
+ * Dette værn erstatter et tekstbaseret forbud, der var GRØNT AF TOMHED: dets fire mønstre
+ * (`setValues(`, `setFormValues(`, `replaceFormValues(`, `onAnsaettelsesforholdChange(`) var alle
+ * legacy-funktionsnavne, som ikke længere fandtes nogen steder i kildegrafen, og dets allowlist-markør
+ * fandtes heller ikke i den fil, den fritog. Reglen kunne derfor ikke fejle — heller ikke på den effect,
+ * den var skrevet for at bevogte (INC-F05).
+ *
+ * Reglen måler nu den AKTUELLE skrivevej: et `edit.dispatch(...)`/`dispatchInput(...)`-kald inde i et
+ * `useEffect`-vindue. Det er den ene vej, en effect faktisk KAN skrive sagsinput ad, efter at hele den
+ * parallelle legacy-inputklynge er slettet.
+ */
+const DISPATCH_CALLEES: readonly string[] = ['dispatch', 'dispatchInput'];
+
+/** Moduler der legitimt dispatcher fra en effect: shell-bootstrap og hel-sags-replacement, ikke feltafledning. */
+const EFFECT_DISPATCH_OWNERS: readonly string[] = [
+  // Preflight/PWA-load afslutter en HEL-SAGS-erstatning, som brugeren selv startede uden for React —
+  // den er ikke en feltafledning og har ingen anden mulig placering end en effect.
+  'src/hooks/useFileSaveLoad.ts',
+];
+
+const isInsideUseEffect = (node: ts.Node): boolean => {
+  for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
+    if (!ts.isCallExpression(current)) continue;
+    const { expression } = current;
+    const name = ts.isIdentifier(expression)
+      ? expression.text
+      : ts.isPropertyAccessExpression(expression) ? expression.name.text : '';
+    if (name === 'useEffect' || name === 'useLayoutEffect') return true;
+  }
+  return false;
+};
+
+export const derivedWritesNotFromEffects = defineRule({
+  id: 'input/derived-writes-materialize-in-reduction',
+  description:
+    'Et afledt felt skrives af en `DerivedInputWrite` inde i reduktionen, ikke af en React-effect (§3.6). '
+    + 'En effect-skrivning bliver en selvstændig autoritativ handling med sit eget history-trin, som en '
+    + 'undo ikke kan lukke, fordi det styrende valg stadig er aktivt.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === 'src/inputCore/fieldCatalog.ts'
+      ? /materializeDerivedWrites/.test(entry.text)
+      : /useEffect/.test(entry.text),
+    rationale:
+      'mekanismen `materializeDerivedWrites` findes stadig i kataloget, og der findes fortsat effects i '
+      + 'komponentlaget — forsvinder mekanismen, er reglens alternativ væk, og reglen skal skrives om',
+    requiredPaths: ['src/inputCore/fieldCatalog.ts'],
+    minimumMatches: 2,
+  },
+  appliesTo: (relativePath) => (
+    relativePath.startsWith('src/components/') || relativePath.startsWith('src/hooks/')
+  ) && !EFFECT_DISPATCH_OWNERS.includes(relativePath),
+  allow: [],
+  find: (entry) => {
+    const findings: Finding[] = [];
+    for (const call of collectCalls(entry)) {
+      if (!DISPATCH_CALLEES.includes(call.calleeName)) continue;
+      if (!isInsideUseEffect(call.node)) continue;
+      findings.push({
+        position: call.position,
+        message:
+          `\`${call.calleeText}(...)\` skriver sagsinput fra en React-effect. Er værdien AFLEDT af andre `
+          + 'felter, skal den erklæres som en `DerivedInputWrite` på kataloget og materialiseres i samme '
+          + 'reduktion som årsagen (§3.6) — ellers får brugerens ene handling to history-trin.',
+      });
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    // Den konkrete fejl: satserne skrevet efter render.
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/loenindkomst/useX.ts',
+      code: 'const f = () => { React.useEffect(() => { edit.dispatch(inputTransaction(steps)); }, [x]); };',
+    },
+    // Uden React-præfiks — samme fejl.
+    {
+      relativePath: 'src/hooks/useY.ts',
+      code: 'const f = () => { useEffect(() => { if (n) edit.dispatch(cmd); }, [n]); };',
+    },
+    // Et layout-effect er samme problem: skrivningen er stadig en selvstændig handling.
+    {
+      relativePath: 'src/components/pages/Z.tsx',
+      code: 'const f = () => { React.useLayoutEffect(() => { dispatchInput(store, catalog, cmd); }, []); };',
+    },
+  ],
+  cleanFixtures: [
+    // En dispatch fra en brugerudløst handler er hele pointen — den må ikke rammes.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const f = () => { const h = () => { edit.dispatch(cmd); }; return h; };',
+    },
+    // En effect uden en input-dispatch (fx scroll) er ikke reglens ærinde.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const f = () => { React.useEffect(() => { scrollTargetIntoView(el); }, [el]); };',
+    },
+    // En anden slags dispatch i en effect (fx en ren UI-reducer) er ikke en sagsinput-skrivning …
+    // men reglen kan ikke se forskel på navnet alene, så den fanger den bevidst: alternativet ville være
+    // en type-baseret sondring, som ikke findes i AST'et. Derfor dækker cleanFixture kun det ANDET navn.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const f = () => { React.useEffect(() => { setLocalState(1); }, []); };',
+    },
+    // Historik-prosa i en kommentar er ingen AST-node (jf. INC-F03).
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: '// Tidligere: `useEffect(() => edit.dispatch(t))` — nu en DerivedInputWrite.\nexport const x = 1;',
+    },
+  ],
+});
