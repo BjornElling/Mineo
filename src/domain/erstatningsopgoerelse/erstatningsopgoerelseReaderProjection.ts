@@ -2,7 +2,6 @@ import type { InputReader } from '../../inputCore/inputReader';
 import type { FieldRef } from '../../inputCore/fieldDescriptor';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
-import type { ProjectionResult } from '../../inputCore/projection';
 import { buildFieldIssueSet, type FieldIssueSet } from '../../inputCore/inputIssue';
 import type {
   ErstatningsopgoerelseValues,
@@ -144,7 +143,6 @@ import {
   stamdataSkadelidteFodselsdatoField,
   stamdataSkadestypeField,
 } from '../../inputCore/catalog/stamdataDescriptors';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import { computeEoSnapshot, type EoSnapshot } from './snapshot/eoSnapshot';
 import { buildTafRanges } from './helpers/indtaegtPerioder';
 import { buildMidlertidigtEetImportContext } from './helpers/midlertidigtEetTransientInjection';
@@ -519,8 +517,12 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /** Section-field-error-maps (top-level feltnavn + `${afId}:loenindkomst`-aggregat) til inspektion-echo + gate. */
   eoErrors: FieldIssueSet;
   stamdataErrors: FieldIssueSet;
-  /** Fælles dokumentmetadata-projektion; samme resultat indgår i reaktiv gate og click-preflight. */
-  documentStamdata: ProjectionResult<StamdataValues>;
+  // INC-F04: her lå `documentStamdata: ProjectionResult<StamdataValues>`. Feltet blev TILDELT ved hver
+  // projektion, men aldrig læst af nogen EO-gate, -definition eller -komponent (Årsløn og EET læser deres
+  // egne). Det lignede en dependency-erklæring uden at være det: en fremtidig læser ville have troet, at
+  // EO-dokumenternes stamdataafhængighed var udtrykt her. EO's dokumenter læser i stedet
+  // `stamdataValues` (ikke-blokerende reader-read), og blokeringen sker gennem snapshottets strukturelle
+  // stamdata-invarianter, som R3-F02 nu afgrænser til de felter, EO faktisk læser — inklusive brevhovedet.
   /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
@@ -574,7 +576,6 @@ export const buildErstatningsopgoerelseReaderProjection = (
     stamdataValues,
     eoErrors,
     stamdataErrors,
-    documentStamdata: projectStamdataForDocument(reader, 'document.erstatningsopgoerelse'),
     sourceToken: reader.sourceToken,
   };
 };

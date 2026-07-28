@@ -6,6 +6,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
+import type { FieldDescriptor } from '../../../inputCore/fieldDescriptor';
 import {
   buildCollectionCellSpec,
   collectionLocationPrefix,
@@ -243,8 +244,11 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     // AFGØRENDE for at brugeren faktisk SER fejlen: tabellen slår issuet op på den adresse,
     // `buildCollectionCellSpec` binder — ikke på projektionens egen binding. Divergerede de to, ville
     // markeringen forsvinde lydløst. Her hævdes, at de er identiske for netop denne collection.
-    const descriptorById = new Map(
-      ASL_RULE_CELL_DESCRIPTORS.map((descriptor) => [descriptor.id, descriptor])
+    // Descriptorerne har forskellige værdityper (dato/procent/valg); adressen afhænger ikke af `T`, så de
+    // behandles her som `FieldDescriptor<unknown>` udelukkende for at kunne slås op i én tabel.
+    const descriptorById = new Map<string, FieldDescriptor<unknown>>(
+      ASL_RULE_CELL_DESCRIPTORS.map((descriptor) =>
+        [descriptor.id, descriptor as unknown as FieldDescriptor<unknown>])
     );
     for (const issue of ruleIssues) {
       const descriptor = descriptorById.get(issue.field.descriptor.id);

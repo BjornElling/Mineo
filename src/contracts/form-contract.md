@@ -204,8 +204,13 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    settings-ændring.
 3. Synlighed og beregningsrelevans udledes af samme domæneprædikat.
 4. Skjult canonical input bevares gennem F5 og `.eo`, medmindre brugeren eksplicit sletter det.
-5. Når et styrende valg efter den gældende produktregel gør rejected input irrelevant, skal rydningen udtrykkes som én
-   typed domænecommand i samme transaktion som valget. Canonical skjulte værdier må ikke ryddes implicit.
+5. Når et styrende valg gør et felt med en **aktiv rød feltfejl** irrelevant, ryddes feltet i samme transaktion som
+   valget — én typed domænecommand, ét history-trin. Reglen er dependency-specifik og gælder uanset, om fejlen er
+   rejected råtekst eller en canonical bounds-/rule-fejl: begge ville ellers efterlade en usynlig rød fejl, som
+   blokerede `.eo`-save eller en afhængig beregning uden et synligt felt at rette den i.
+6. Et skjult canonical felt UDEN aktiv rød feltfejl bevares altid. Bliver det relevant igen, vises den samme værdi.
+   Rydningen i punkt 5 er derfor afgrænset til netop overgangen `relevant → irrelevant` for et felt, der havde en
+   rød fejl i før-snapshottet — ikke til skjulte værdier i almindelighed.
 
 ## 8. Format, bounds og save-gate
 
