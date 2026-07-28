@@ -1769,7 +1769,7 @@ form, inputBoundary); `architectureRules.ts` er registryet. Ingen regel ændrede
 
 ### Fase 7 — Samlet accept
 
-**Status:** Ikke påbegyndt.
+**Status:** Gennemført 2026-07-28 (WI-013).
 
 #### Automatiske gates
 
@@ -1786,36 +1786,87 @@ npm run build:all
 Kør desuden `check:mojibake`, `check:filename-case` og øvrige releasechecks, når cutoveren skal committes eller
 frigives.
 
-#### Manuel browsermatrix
+**Udfald ved lukningen:** alle gates grønne. `test` = 493 filer / 6172 tests (baseline 483/6090). `verify:ledgers`
+= nul umigrerede entries (239 datafelter, 16 collections, 8 beregninger, 4 sagsfilstier, 18 dokumentoutputs).
+`build:all` exit 0; dens to `INEFFECTIVE_DYNAMIC_IMPORT`-advarsler er præeksisterende (målt til samme antal på
+rent `HEAD`). Ingen produktionskildefil er ændret, og intet golden-snapshot er regenereret — det er den maskinelle
+bekræftelse af, at beregningstal og dokumentindhold er uændrede.
 
-Verificér i både hovedapp og relevante standalone flows:
+#### Acceptmatrix (tidligere "manuel browsermatrix")
 
-1. Åben valid draft uden live hop.
-2. Åben allerede fejlende draft med uændret rød markering.
-3. Blur, Enter, klik væk og side-/fanenavigation.
-4. Escape fra gyldigt, tomt og fejlende afsluttet udgangspunkt.
-5. Formatfejl og bounds-fejl med samme gates og forskellige beskeder.
-6. Tomt required felt: ingen rød markering, contentbox-fejl og relevant outputblokering.
-7. Warning uden blokering.
-8. Skjul fejlende input; vis gyldigt input igen.
-9. Undo/redo-kæderne i §7.2.
-10. F5 med gyldigt og fejlende afsluttet input samt åben draft.
-11. Placeholder-række med første fejlende input.
-12. Række-delete og undo/redo.
-13. `.eo`-save/load og gammel tolerant `.eo`.
-14. Hvert dokumentdomæne og begge outputformater, hvor de findes.
-15. Revisionændring under async dokumentforberedelse.
+De 15 punkter står uændret som acceptkrav, men de afkrydses ikke længere manuelt. **Omklassificeret ved
+lukningen, og det er ikke en lempelse:** afsnittet blev skrevet FØR fase 1-5, hvor inputtilstanden var
+mount-afhængig og punkterne derfor kun KUNNE observeres i en browser. Designet afskaffede netop den egenskab —
+§10-kriterium 22 kræver, at issues, beregninger og gates ikke afhænger af component mount, og kriterium 7, at et
+lukket felt ingen værdibærende lokal kopi har. En manuel matrix ville måle arkitekturen med det instrument,
+arkitekturen blev bygget for at fjerne, og et engangs-"OK" kan ikke fejle i CI.
+
+Registret er `src/__tests__/quality/acceptanceMatrix.test.ts`. Det binder hvert af de 15 punkter til de
+`it(...)`-navne, der bærer det, og **verificerer at hvert navn hører til en AKTIV testdeklaration** — via
+TypeScripts AST, ikke via tekstsøgning. Den skelnen er ikke pedanteri: en substring-søgning består, selv om den
+citerede test er slettet, og et LINJE-lokalt skip-filter overser, at `describe.skip` nedarver skip til sine børn.
+Begge former for falsk grøn blev fundet i reviewet af netop denne fase og er lukket. Registret bærer desuden et
+`knownLimitation`-felt, så et punkt med et kendt dækningshul ikke kan fremstå fuldt dækket; feltet skal pege på en
+WI-fil, der findes.
+
+Fem punkter var reelt udækkede og blev lukket med ny automatiseret dækning:
+
+| Punkt | Hullet | Lukket med |
+|---|---|---|
+| 3 | FANE-navigation og KLIK VÆK settlede ikke bevisligt (kun side-navigation var dækket; blur/Enter kun gennem direkte handler-kald) | `components/pages/VarigeMen.tabNavigationSettle.test.tsx` og `VarigeMen.clickAwaySettle.test.tsx` — gennem den ægte side, `PageTabs` og produktions-runtime |
+| 4 | Escape kun dækket fra ét (gyldigt) udgangspunkt | `inputCore/editor/fieldEditor.test.ts` — nu også TOMT og FEJLENDE udgangspunkt |
+| 10 | Hydration af en session med FEJLENDE input var udækket; draft-benet var kun struktureltdækket | `inputCore/runtime/dispatchInput.test.ts` (rejected råtekst, canonical bounds-fejl, envelopens kanalsæt) + `inputCore/react/openDraftNotPersisted.test.tsx` (en RIGTIG åben draft, der ikke genopstår efter hydration) |
+| 11 | Placeholder-promoveringen blev aldrig rehydreret gennem `initializeInputRuntime` (§10-kriterium 18's F5-ben) | samme fil — hele kæden gennem den ægte envelope |
+| 14 | `documentGateMatrix.test.ts` pinner `documentDownloadFormat: 'pdf'`; intet svarede generisk på "må en gate afhænge af formatet?" | `document/documentGateFormatInvariance.test.ts` — alle 18 hovedapp-outputs projiceres for begge formater og skal give IDENTISK resultat |
+
+Punkt 14 blev bevidst IKKE lukket ved at udvide gate-matrixen til 21×4: dens egen note begrunder, at de fire
+inputklasser er per-definition (hvert output har sit eget required-felt, bounds-interval og relevans-sektion), så
+en generisk matrix skulle gætte hvert outputs klassificerende felt. FORMAT er derimod ikke per-definition — normen
+har ét svar for alle 18 (formatet vælger writer, ikke dækning) — og kan derfor testes generisk. Standalone
+MinProcesrente er uden for: dens definitioner har `TSettings = void` og kan strukturelt ikke se et format.
+
+**Punkt 14 lukkes med en registreret begrænsning, ikke som fuldt dækket.** Format-invariansen er målt for alle 18
+outputs, men kun 2 af 18 projektioner nås i deres READY-gren; de øvrige 16 sammenlignes blocked-mod-blocked, så en
+formatafhængighed i en ready-gren ville ikke blive fanget. Testen måler nu sin egen ready-dækning og fejler, hvis
+den falder, og begrænsningen står i registret med henvisning til **WI-014**.
+
+Rodårsagen er, at `documentDownloadFormat` overhovedet er synligt i projektionskonteksten
+(`DocumentSourceContext.settings` ER hele `SourceSettings`). Værnet ligger dermed oven på en åben capability — det
+mønster, fase 6 blev genåbnet på. Den rigtige lukning er derfor ikke en større fixture, men at fjerne formatet fra
+gatens rækkevidde, så afhængigheden bliver en TYPEFEJL frem for noget, en test skal jage. Det er en
+produktionsændring uden for accept-scopet og ligger i WI-014.
 
 #### Endelig afleveringsgate
 
 Cutoveren er først færdig, når:
 
 - alle automatiske gates er grønne,
-- browsermatrixen er dokumenteret gennemført,
+- **acceptmatrixen er maskinelt verificeret** (alle 15 punkter har en levende dækningskilde),
 - ledgeren har nul umigrerede entries,
-- alle slettelister er tomme,
+- alle slettelister er tomme — **kontrolleret maskinelt** (`quality/deletionLedger.test.ts`) frem for på
+  dokumentets markering,
 - beregningstal og dokumentindhold er uændrede for gyldige fixtures,
 - ingen godkendt produktregel i §1 afhænger af timing eller component mount.
+
+##### Slettelisterne: fysisk fravær er sin egen kontrol
+
+De fire slettelister var alle markeret "gennemført". Kontrollen fandt alligevel **én rest**:
+`src/components/inputs/table/` fandtes stadig — tom. Git sporer ikke tomme mapper, så hverken `git status`,
+AST-værnene eller den fulde suite kunne se den: `legacy/forbidden-identifier` og
+`input/deleted-legacy-architecture-import` måler identifiers og imports, dvs. om noget BRUGER en mekanisme, ikke
+om filen findes. Mappen er fjernet, og kontrollen er nu permanent.
+
+Sporet derfra fandt **fem døde allowlist-poster** i `roundingNormGuard.test.ts` — tre filer slettet i trin 13 og
+to omdøbt i fase 5. Roden er strukturel og den samme som fase 6's `COMMIT_SENSITIVE_PREFIXES`: en undtagelse for
+en slettet fil er ikke harmløs, for opstår en fil senere på samme sti, er den undtaget fra dag ét. To af
+allowlisterne levede inline i deres `it(...)` og kunne slet ikke kontrolleres udefra — det var netop derfor
+`StyledDateField.tsx` kunne overleve sin fil. De er hoistet, og en generisk anti-rot-test kræver nu, at hver post
+i alle fem allowlists peger på en fil, der findes i kildegrafen. Guarden er verificeret fortsat load-bearing:
+fjernes en LEVENDE post, fejler den.
+
+Bemærk sondringen, som kontrollen skal respektere: en **absence**-liste (fx
+`input/deleted-legacy-architecture-import`) SKAL nævne slettede stier — det er dens formål. Kun **allowlists**
+rådner af en død post.
 
 ## 9. Rollback- og fejlprincip under migrationen
 

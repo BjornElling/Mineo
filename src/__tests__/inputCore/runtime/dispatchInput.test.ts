@@ -627,6 +627,100 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
     expect(dispatchInput(store, catalog, settleField(aargangField.bind(), '2020')).changed).toBe(true);
   });
 
+  // Fase 7 acceptmatrix punkt 10 og 11 (WI-013). Hydration af en GYLDIG session var dækket; en session med
+  // FEJLENDE input var ikke. Det er ikke symmetrisk pynt: §10-kriterium 18 ("første fejlende settle i
+  // placeholder-række overlever F5") og §1.6's sondring mellem rejected råtekst og canonical bounds-fejl er
+  // begge kun opfyldt, hvis fejltilstanden faktisk genopstår gennem `initializeInputRuntime`. Testene nedenfor
+  // kører den ægte serialiserings-/parse-vej, ikke en direkte store-hydration.
+
+  it('genindlæser en session med REJECTED råtekst, så feltfejlen genopstår (punkt 10)', () => {
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
+    dispatchInput(store, catalog, settleField(aargangField.bind(), 'abc'), { now: 2 });
+    const persisted = store.getState().input;
+    // §10-kriterium 2/3: det ugyldige settle fjernede canonical; kun råteksten er tilbage.
+    expect(rejectedAt(persisted, aargangField.bind())?.raw).toBe('abc');
+
+    const fresh = __createSlimInputTestStore();
+    const startup = initializeInputRuntime(fresh, catalog);
+
+    // Fejlende input er en NORMAL session, ikke korruption: ingen systemfejl, writes tilladt.
+    expect(startup.notice).toBeNull();
+    expect(fresh.getState().meta.inputWritesBlocked).toBeUndefined();
+    expect(fresh.getState().input).toEqual(persisted);
+
+    // Fejlen er intakt efter reload — den blev ikke tavst renset til et tomt felt.
+    expect(rejectedAt(fresh.getState().input, aargangField.bind())?.raw).toBe('abc');
+    expect(captureStableInputEvaluation(fresh, catalog).reader
+      .read(aargangField.bind()).status).toBe('error');
+  });
+
+  it('genindlæser en session med en canonical BOUNDS-fejl med værdien bevaret (punkt 10, §1.6)', () => {
+    // Bounds adskiller sig fra format: værdien ACCEPTERES canonical og skal derfor overleve som værdi,
+    // mens readeren fortsat rapporterer fejl. En hydration, der kun kendte rejected-vejen, ville tabe den.
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '1800'), { now: 1 });
+    const persisted = store.getState().input;
+    expect(rejectedAt(persisted, aargangField.bind())).toBeUndefined();
+
+    const fresh = __createSlimInputTestStore();
+    expect(initializeInputRuntime(fresh, catalog).notice).toBeNull();
+    expect(fresh.getState().input).toEqual(persisted);
+    expect(canonical(fresh.getState().input, aargangField.bind())).toBe(1800);
+    expect(captureStableInputEvaluation(fresh, catalog).reader
+      .read(aargangField.bind()).status).toBe('error');
+  });
+
+  it('envelopen har kun de to afsluttede kanaler — der findes ingen draft-kanal at persistere i (punkt 10)', () => {
+    // Den STRUKTURELLE halvdel af punkt 10's draft-ben: envelopen kan kun bære `sections` +
+    // `rejectedInputs`, så der findes ikke et sted, en åben draft KUNNE gemmes.
+    //
+    // NB efter eksternt review (WI-013 R4): denne test hed tidligere "en åben draft overlever IKKE
+    // reload", men den åbnede aldrig en editor — navnet påstod mere end assertionen bar. Den ADFÆRDSMÆSSIGE
+    // halvdel (en rigtig åben draft, der ikke genopstår efter reload) ligger nu i
+    // `react/useFieldEditor.openDraftNotPersisted.test.tsx`, hvor en editor faktisk kan åbnes.
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
+    const stored = readStoredInput();
+    expect(stored).toEqual(store.getState().input);
+    expect(Object.keys(stored!).sort()).toEqual(Object.keys(createEmptySettledInput()).sort());
+  });
+
+  it('en placeholder-promoveret række med fejlende felt overlever reload (punkt 11, §1.11/§10-kriterium 18)', () => {
+    // Kæden i sin helhed: første fejlende settle i en endnu ikke oprettet række → atomisk rækkeoprettelse →
+    // serialisering → `initializeInputRuntime`. Den var tidligere kun asserteret som ét snapshot i storen;
+    // F5-benet gennem den ægte envelope var udækket.
+    const rowId = 'placeholder-raekke-1';
+    dispatchInput(
+      store,
+      catalog,
+      settleFieldInNewRow(rentekravRowsRef(), makeRow(rowId), belobField.bind(rowId), 'ikke-et-beløb'),
+      {
+        now: 1,
+        // Promoveringen udgår fra CELLE-editoren, ikke fra en rækkehandling: origin er derfor en feltadresse
+        // (§3.7), præcis som `useCellEditor`s settle-override leverer den.
+        origin: {
+          kind: 'field',
+          field: belobField.bind(rowId).address,
+          editorLocationId: 'standalone.rentekrav:cell:belob',
+        },
+      }
+    );
+
+    const persisted = store.getState().input;
+    expect(rejectedAt(persisted, belobField.bind(rowId))?.raw).toBe('ikke-et-beløb');
+
+    const fresh = __createSlimInputTestStore();
+    const startup = initializeInputRuntime(fresh, catalog);
+
+    expect(startup.notice).toBeNull();
+    expect(fresh.getState().input).toEqual(persisted);
+
+    // Rækken findes stadig EFTER reload, og dens første fejlende input er intakt.
+    expect(fresh.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id))
+      .toContain(rowId);
+    expect(rejectedAt(fresh.getState().input, belobField.bind(rowId))?.raw).toBe('ikke-et-beløb');
+    expect(captureStableInputEvaluation(fresh, catalog).reader
+      .read(belobField.bind(rowId)).status).toBe('error');
+  });
+
   it('fail-closer en envelope med anden persisted dataversion og bevarer de rå bytes', () => {
     const raw = JSON.stringify({
       ...JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())),

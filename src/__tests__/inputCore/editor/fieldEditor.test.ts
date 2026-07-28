@@ -142,6 +142,62 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     expect(store.getState().revision).toBe(revisionEfter);
   });
 
+  // Fase 7 acceptmatrix punkt 4 (WI-013): Escape skal dække alle TRE udgangspunkter. Kun det gyldige var
+  // dækket. De to andre er ikke symmetrisk pynt — de rammer hver sin invariant, som en Escape-fejl kan bryde
+  // usynligt: fra TOMT må Escape ikke fabrikere et felt (§1.7 "tomhed giver aldrig rød feltfejl"), og fra
+  // FEJLENDE må den ikke tavst rydde den afviste råtekst, brugeren skal vende tilbage til (§1.3 sidste led).
+
+  it('Escape fra et TOMT udgangspunkt efterlader feltet tomt uden revision eller fejl (§1.3/§1.7)', () => {
+    const revisionFoer = store.getState().revision;
+    expect(formatSettledFieldText(aargangRef, viewOf(aargangRef))).toBe('');
+
+    let editor = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision);
+    editor = changeDraft(editor, '2010'); // ville ellers committe en værdi
+    editor = cancelEditor(editor); // Escape
+    expect(isEditorOpen(editor)).toBe(false);
+
+    // Et efterfølgende blur må ikke settle den annullerede draft.
+    const settled = settleEditor(editor);
+    expect(settled.intent.kind).toBe('none');
+    dispatchSettle(settled);
+
+    // Ingen revision, ingen canonical værdi, ingen rejected råtekst — og ingen rød fejl på et tomt felt.
+    expect(store.getState().revision).toBe(revisionFoer);
+    expect(aargangRef.descriptor.readCanonical(store.getState().input.sections, aargangRef.address)).toBeUndefined();
+    expect(store.getState().input.rejectedInputs[serializeFieldAddress(aargangRef.address)]).toBeUndefined();
+    expect(evaluate().reader.read(aargangRef).status).not.toBe('error');
+  });
+
+  it('Escape fra et FEJLENDE afsluttet udgangspunkt bevarer den afviste råtekst uændret (§1.3)', () => {
+    // Udgangspunkt: et afsluttet, FEJLENDE input (uparselig råtekst → rejected, canonical fjernet).
+    dispatchSettle(settleEditor(changeDraft(
+      openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision),
+      'ikke-et-årstal'
+    )));
+    const revisionEfter = store.getState().revision;
+    const rejectedFoer = store.getState().input.rejectedInputs[serializeFieldAddress(aargangRef.address)];
+    expect(rejectedFoer?.raw).toBe('ikke-et-årstal');
+    expect(evaluate().reader.read(aargangRef).status).toBe('error');
+
+    // Editoren åbnes på den fejlende tekst (§1.3: rå tekst genåbnes ORDRET), ændres og annulleres.
+    let editor = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision);
+    expect(editor.open?.draft).toBe('ikke-et-årstal');
+    editor = changeDraft(editor, '2010'); // en RETTELSE, der ville have fjernet fejlen
+    editor = cancelEditor(editor); // Escape → rettelsen kasseres
+    expect(isEditorOpen(editor)).toBe(false);
+
+    const settled = settleEditor(editor);
+    expect(settled.intent.kind).toBe('none');
+    dispatchSettle(settled);
+
+    // Den fejlende tilstand står uændret — Escape rettede ikke, men ryddede heller ikke.
+    expect(store.getState().revision).toBe(revisionEfter);
+    expect(store.getState().input.rejectedInputs[serializeFieldAddress(aargangRef.address)]).toEqual(rejectedFoer);
+    expect(evaluate().reader.read(aargangRef).status).toBe('error');
+    // Og feltet genåbner fortsat på den samme rå tekst, brugeren forlod.
+    expect(formatSettledFieldText(aargangRef, viewOf(aargangRef))).toBe('ikke-et-årstal');
+  });
+
   it('Escape lukker uden command, og et efterfølgende blur settler ikke (§1.3)', () => {
     dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '2010')));
     const revisionEfter = store.getState().revision;

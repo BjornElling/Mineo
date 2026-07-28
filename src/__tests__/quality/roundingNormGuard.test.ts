@@ -89,8 +89,8 @@ const MATH_ROUND_ALLOWLIST = new Set([
   'domain/dates/shDageBeregning.ts',
   // UI-virtualisering: scroll offset i pixels — aldrig vist til bruger som beløb
   'components/tables/VirtualizedDisplayTable.tsx',
-  // UI-inputbredde: antal cifre til at dimensionere et tekstfelt
-  'components/inputs/StyledPercentField.tsx',
+  // NB: `components/inputs/StyledPercentField.tsx` (UI-inputbredde) stod her, indtil trin 13 slettede
+  // hele `Styled*Field`-familien. Fjernet i Fase 7 (WI-013) via anti-rot-testen nedenfor.
   // Binær søgning i lønopslag-tabel (indeksaritmetik)
   'data/offentligLoenLookup.ts',
   // Bug-rapport: binær søgning til tekstafkortning (ikke finansielt)
@@ -132,13 +132,13 @@ const TO_FIXED_ALLOWLIST = new Set([
   'utils/rounding.ts',
   // Fingerprint: deterministisk canonical streng til ændringsdetektion (ikke display)
   'utils/parserSpecs.ts',
-  'components/inputs/table/TableAmountInput.tsx',
   // Filstørrelse: bytes→MB i fejlbeskeder til brugeren (ikke finansielt beløb)
   'utils/fileLoad.ts',
   // PDF canvas: cache-nøgle baseret på dimensioner (ikke finansielt)
   'pdf/infrastructure/pdfWriter.ts',
-  // UI procentinput: genskaber nøjagtigt brugerens commit-format i tabellen
-  'components/inputs/table/TablePercentInput.tsx',
+  // NB: `components/inputs/table/TableAmountInput.tsx` og `TablePercentInput.tsx` stod her, indtil
+  // greenfield-trin 13 slettede hele `components/inputs/table/`. Posterne blev fjernet i Fase 7
+  // (WI-013), da anti-rot-testen nedenfor afslørede dem som døde undtagelser.
 ]);
 
 /**
@@ -164,6 +164,87 @@ const TO_LOCALE_STRING_ALLOWLIST = new Set([
   // DevTools-fejlmeddelelse: viser dato (ikke beløb) til udvikler
   'components/errors/DevtoolsIssueNotice.tsx',
 ]);
+
+/**
+ * Filer der lovligt bruger `new Date(value)` uden `Date.UTC`/`getTime()`.
+ *
+ * Hoistet fra en inline `new Set([...])` i Fase 7 (WI-013): en allowlist, der kun findes inde i sin
+ * `it(...)`, kan ikke anti-rot-kontrolleres. Det er ikke kosmetik — det var netop sådan
+ * `StyledDateField.tsx` kunne blive stående som undtagelse længe efter, at trin 13 havde slettet filen.
+ */
+const NEW_DATE_ALLOWLIST = new Set([
+  // createDate er den kanoniske constructor — bruger Date.UTC internt
+  'types/branded.ts',
+  'utils/dateUtils.ts',      // bruger createDate og new Date(date.getTime())
+  'utils/isoDateHelpers.ts', // new Date(start.getTime()) — kopi, ikke parsing
+  // Renteberegning — bruger Date.UTC til månedsafgrænsning
+  'domain/renteberegning/procesrenteCalculator.ts',
+  // Måned-slutdag-beregning via Date.UTC(y, m, 0) — kanonisk trick
+  'config/dateRanges.ts',
+  'domain/forsoergertab/forsoergertabAslYdelser.ts',
+  'domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts',
+  'domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts',
+  'domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts',
+  'domain/erstatningsopgoerelse/engines/tafDaySets.ts',
+  'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
+  'domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts',
+  'domain/eoInspektion/eoInspektionRegulationCore.ts',
+  'domain/dates/shDageBeregning.ts',
+  // Logging/rapport — timestamp, ikke dato-aritmetik
+  'utils/devtoolsMonitor.ts',
+  'utils/bugReport.ts',
+  'utils/logger.ts',
+  'utils/logStorage.ts',
+  'utils/fileSave.ts',
+  // `.eo`-codec: exportDate = new Date().toISOString() er et export-timestamp, ikke dato-aritmetik
+  // (flyttet hertil fra fileSave.ts sammen med container-byggeriet).
+  'utils/eoFileCodec.ts',
+  'domain/eoInspektion/eoInspektionSnapshot.ts',
+  // EO-oplysninger view-model: formatLabelDayAfterIsoDate bruger new Date(dateObj) —
+  // kopi af UTC Date fra isoDateToDate(), ikke string-parsing.
+  'components/pages/erstatningsopgoerelse/eoOplysninger/useEoOplysningerViewModel.ts',
+  // Rente-validering
+  'domain/renteberegning/rentekravValidation.ts',
+  // Periode-iteration: new Date(dateObj) — kopi af UTC Date-objekt, ikke string-parsing
+  'utils/periodeBeregning.ts',
+  'domain/erstatningsopgoerelse/engines/arbejdsdageMaaneder.ts',
+  // Devtools-fejlnotice: ny Date fra ISO timestamp til lokal display (ikke domæne-dato)
+  'components/errors/DevtoolsIssueNotice.tsx',
+  // NB: tre poster er fjernet i Fase 7 (WI-013), fordi anti-rot-testen viste dem døde:
+  //   - `components/inputs/StyledDateField.tsx` — trin 13 slettede `Styled*Field`-familien.
+  //   - `document/generators/renteberegning/rentePdf.ts` → omdøbt til `renteDocument.ts` i Fase 5
+  //   - `document/generators/aarsloen/shDagePdf.ts`      → omdøbt til `shDageDocument.ts` i Fase 5
+  // De to omdøbte efterfølgere bruger slet ikke `new Date(` og skal derfor IKKE undtages.
+]);
+
+/** Filer der lovligt bruger `.toISOString().slice()`. Hoistet sammen med `NEW_DATE_ALLOWLIST`. */
+const TO_ISO_STRING_SLICE_ALLOWLIST = new Set([
+  // utcDayMath.ts — bruger ikke toISOString
+  'utils/utcDayMath.ts',
+  // Logging/rapport: timestamp-formatering (UTC er korrekt her)
+  'utils/logger.ts',
+  'utils/logStorage.ts',
+  'utils/devtoolsMonitor.ts',
+  'utils/bugReport.ts',
+  'utils/fileSave.ts',
+  'domain/eoInspektion/eoInspektionSnapshot.ts',
+]);
+
+/**
+ * Anti-rot: hver allowlist-post skal pege på en fil, der FAKTISK findes i produktions-kildegrafen.
+ *
+ * Uden denne kontrol kan en undtagelse overleve sin fil i det uendelige — og hvis en ny fil senere
+ * opstår på samme sti, er den undtaget fra dag ét uden at nogen har besluttet det. Fase 6 fandt samme
+ * fejlklasse i `COMMIT_SENSITIVE_PREFIXES` (to scan-rødder, der ikke fandtes); her lukkes den for
+ * afrundingsnormens allowlists.
+ */
+const ALL_ALLOWLISTS: readonly (readonly [string, Set<string>])[] = [
+  ['MATH_ROUND_ALLOWLIST', MATH_ROUND_ALLOWLIST],
+  ['TO_FIXED_ALLOWLIST', TO_FIXED_ALLOWLIST],
+  ['TO_LOCALE_STRING_ALLOWLIST', TO_LOCALE_STRING_ALLOWLIST],
+  ['NEW_DATE_ALLOWLIST', NEW_DATE_ALLOWLIST],
+  ['TO_ISO_STRING_SLICE_ALLOWLIST', TO_ISO_STRING_SLICE_ALLOWLIST],
+];
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -255,48 +336,7 @@ describe('Afrundingsnorm-guard', () => {
     // Forbudt: new Date(isoStringValue) direkte — timezone-afhængig
     const violations = scanLines(
       allFiles,
-      new Set([
-        // createDate er den kanoniske constructor — bruger Date.UTC internt
-        'types/branded.ts',
-        'utils/dateUtils.ts',      // bruger createDate og new Date(date.getTime())
-        'utils/isoDateHelpers.ts', // new Date(start.getTime()) — kopi, ikke parsing
-        // Renteberegning — bruger Date.UTC til månedsafgrænsning
-        'domain/renteberegning/procesrenteCalculator.ts',
-        'document/generators/renteberegning/rentePdf.ts',
-        // Måned-slutdag-beregning via Date.UTC(y, m, 0) — kanonisk trick
-        'config/dateRanges.ts',
-        'components/inputs/StyledDateField.tsx',
-        'domain/forsoergertab/forsoergertabAslYdelser.ts',
-        'domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts',
-        'domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts',
-        'domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts',
-        'domain/erstatningsopgoerelse/engines/tafDaySets.ts',
-        'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
-        'domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts',
-        'domain/eoInspektion/eoInspektionRegulationCore.ts',
-        'domain/dates/shDageBeregning.ts',
-        'document/generators/aarsloen/shDagePdf.ts',
-        // Logging/rapport — timestamp, ikke dato-aritmetik
-        'utils/devtoolsMonitor.ts',
-        'utils/bugReport.ts',
-        'utils/logger.ts',
-        'utils/logStorage.ts',
-        'utils/fileSave.ts',
-        // `.eo`-codec: exportDate = new Date().toISOString() er et export-timestamp, ikke dato-aritmetik
-        // (flyttet hertil fra fileSave.ts sammen med container-byggeriet).
-        'utils/eoFileCodec.ts',
-        'domain/eoInspektion/eoInspektionSnapshot.ts',
-        // EO-oplysninger view-model: formatLabelDayAfterIsoDate bruger new Date(dateObj) —
-        // kopi af UTC Date fra isoDateToDate(), ikke string-parsing.
-        'components/pages/erstatningsopgoerelse/eoOplysninger/useEoOplysningerViewModel.ts',
-        // Rente-validering
-        'domain/renteberegning/rentekravValidation.ts',
-        // Periode-iteration: new Date(dateObj) — kopi af UTC Date-objekt, ikke string-parsing
-        'utils/periodeBeregning.ts',
-        'domain/erstatningsopgoerelse/engines/arbejdsdageMaaneder.ts',
-        // Devtools-fejlnotice: ny Date fra ISO timestamp til lokal display (ikke domæne-dato)
-        'components/errors/DevtoolsIssueNotice.tsx',
-      ]),
+      NEW_DATE_ALLOWLIST,
       // Matcher new Date( ... ) hvor indholdet IKKE starter med Date.UTC eller getTime
       // Vi bruger en simpel heuristik: new Date( efterfulgt af streng-literal eller variabel-navn
       /new\s+Date\s*\(\s*(?!Date\.UTC|[a-zA-Z_$][a-zA-Z0-9_$]*\s*\.\s*getTime)/,
@@ -320,17 +360,7 @@ describe('Afrundingsnorm-guard', () => {
     // Kanonisk alternativ: dateToISO() fra types/branded.ts
     const violations = scanLines(
       allFiles,
-      new Set([
-        // utcDayMath.ts — bruger ikke toISOString
-        'utils/utcDayMath.ts',
-        // Logging/rapport: timestamp-formatering (UTC er korrekt her)
-        'utils/logger.ts',
-        'utils/logStorage.ts',
-        'utils/devtoolsMonitor.ts',
-        'utils/bugReport.ts',
-        'utils/fileSave.ts',
-        'domain/eoInspektion/eoInspektionSnapshot.ts',
-      ]),
+      TO_ISO_STRING_SLICE_ALLOWLIST,
       /\.toISOString\s*\(\s*\)\s*\.\s*(slice|substring)\s*\(/,
     );
     if (violations.length > 0) {
@@ -411,5 +441,30 @@ describe('Afrundingsnorm-guard', () => {
         violations.join('\n'),
       );
     }
+  });
+
+  // ── 10. Anti-rot på allowlisterne (Fase 7, WI-013) ────────────────────────
+
+  it('ingen allowlist-post peger på en fil, der ikke findes', () => {
+    const known = new Set(allFiles.map((file) => file.relativePath.replace(/^src\//, '')));
+    const stale: string[] = [];
+    for (const [name, allowlist] of ALL_ALLOWLISTS) {
+      for (const entry of allowlist) {
+        if (!known.has(entry)) stale.push(`${name}: ${entry}`);
+      }
+    }
+    expect(
+      stale,
+      'Døde allowlist-poster. En undtagelse for en slettet fil er ikke harmløs: opstår en ny fil '
+      + 'senere på samme sti, er den undtaget fra dag ét, uden at nogen har besluttet det.'
+    ).toEqual([]);
+  });
+
+  it('anti-rot-kontrollen kan faktisk fejle (ikke vakuøs)', () => {
+    // Modsat retning, jf. fase 6's `verifyAbsent`-lære: et prædikat, der ikke kan se en død post,
+    // ville rapportere grønt for enhver allowlist.
+    const known = new Set(allFiles.map((file) => file.relativePath.replace(/^src\//, '')));
+    expect(known.has('utils/formatUtils.ts')).toBe(true);
+    expect(known.has('utils/denne-fil-findes-ikke.ts')).toBe(false);
   });
 });

@@ -112,6 +112,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       // Fase 5: formatvalget sker i miljøet EFTER gaten, og outputnavne må ikke bære et
       // formatsuffiks (den gamle `/PDF/g`-substitution er væk). Begge dele måles her.
       'src/__tests__/document/documentCatalogCompleteness.test.ts',
+      // Fase 7: formatet vælger writer, ikke DÆKNING — verificeret generisk over alle 18
+      // hovedapp-outputs, så ingen gate kan blive formatafhængig.
+      'src/__tests__/document/documentGateFormatInvariance.test.ts',
     ],
   },
   {
