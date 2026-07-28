@@ -3,7 +3,7 @@ import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { RentekravRow } from '../../schemas/formSchemas/sections/renteberegningSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
-import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { resolveDateRangeErrorMessage, derivedDateBounds, STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { minISO } from '../../utils/isoDateHelpers';
 import {
   createAmountFieldCodec,
@@ -31,7 +31,7 @@ const beregningsdatoBoundsValidator: FieldValidator<ISODateString | undefined> =
   return {
     reason: 'bounds',
     code: 'renteberegning.beregningsdato.bounds',
-    message: resolveDateRangeErrorMessage({ iso: value, minDate: min, maxDate: max }),
+    message: resolveDateRangeErrorMessage({ iso: value, minDate: min, maxDate: max, bounds: STATIC_DATE_BOUNDS }),
     detail: { minDate: min, maxDate: max },
   };
 };
@@ -46,7 +46,12 @@ const renterFraBoundsValidator: FieldValidator<ISODateString | undefined> = (val
   return {
     reason: 'bounds',
     code: 'renteberegning.rentekravRows.renterFra.bounds',
-    message: resolveDateRangeErrorMessage({ iso: value, minDate, maxDate }),
+    message: resolveDateRangeErrorMessage({
+      iso: value,
+      minDate,
+      maxDate,
+      bounds: derivedDateBounds('Beregningsdato'),
+    }),
     detail: { minDate, maxDate },
   };
 };

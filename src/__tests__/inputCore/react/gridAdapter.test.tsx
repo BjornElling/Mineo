@@ -32,8 +32,7 @@ import {
   enhedField,
   rentekravRowsRef,
   makeRow,
-  testRowOrigin,
-} from '../testCatalog';
+  testRowOrigin, testLocation } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
 // Fase 2.5 trin 1 (§2.5/§3.8, §7.1): grid-adapteren (rækkeinfrastruktur + celleeditor) mod syntetiske issue-
@@ -144,7 +143,7 @@ describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formul
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     const binding = makeBinding();
     const { result } = renderCell<import('../../../schemas/amountExpressionSchema').AmountValue | undefined>(
-      { kind: 'existing', field: belobRef('r1'), location: { locationId: 'r1:belob' } },
+      { kind: 'existing', field: belobRef('r1'), location: testLocation('r1:belob') },
       binding
     );
     act(() => result.current.open());
@@ -159,7 +158,7 @@ describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formul
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { belob: undefined })), { origin: testRowOrigin() });
     const binding = makeBinding();
     const { result } = renderCell(
-      { kind: 'existing', field: belobRef('r1'), location: { locationId: 'r1:belob' } },
+      { kind: 'existing', field: belobRef('r1'), location: testLocation('r1:belob') },
       binding
     );
     act(() => result.current.open());
@@ -178,7 +177,7 @@ describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formul
     })];
     const binding = makeBinding();
     const { result } = renderCell(
-      { kind: 'existing', field: belobRef('r1'), location: { locationId: 'r1:belob' } },
+      { kind: 'existing', field: belobRef('r1'), location: testLocation('r1:belob') },
       binding
     );
     expect(result.current.issue?.code).toBe('r1.belob.bounds');
@@ -194,7 +193,7 @@ describe('useCellEditor — placeholder-promotion (§1.11)', () => {
     field: belobField.bind('new-1'),
     collection: rentekravRowsRef(),
     entity: makeRow('new-1'),
-    location: { locationId: 'placeholder:belob' },
+    location: testLocation('placeholder:belob'),
   });
 
   it('første ikke-tomme settle promoverer rækken atomisk (opret + skriv i én transaktion)', () => {
@@ -259,7 +258,7 @@ describe('useCellEditor — placeholder-promotion (§1.11)', () => {
       field: enhedField.bind('new-enhed'),
       collection: rentekravRowsRef(),
       entity: makeRow('new-enhed'),
-      location: { locationId: 'placeholder:enhed' },
+      location: testLocation('placeholder:enhed'),
     };
     const { result } = renderHook(() => useCellEditor<TillaegstidEnhed>(enhedPlaceholder), { wrapper: wrapper(binding) });
 
@@ -282,7 +281,7 @@ describe('grid-adapter — §7.2 statekæde: række med fejl → slet række →
       field: belobField.bind('row-x'),
       collection: rentekravRowsRef(),
       entity: makeRow('row-x'),
-      location: { locationId: 'placeholder:belob' },
+      location: testLocation('placeholder:belob'),
     }, binding);
     act(() => cell.current.open());
     act(() => cell.current.changeDraft('abc'));
@@ -316,7 +315,7 @@ describe('grid-adapter — irrelevant-felt-oprydning ved styrende valg (§1.9/§
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });
     const binding = makeBinding();
     const { result } = renderCell(
-      { kind: 'existing', field: tillaegstidField.bind('r1'), location: { locationId: 'r1:tillaegstid' } },
+      { kind: 'existing', field: tillaegstidField.bind('r1'), location: testLocation('r1:tillaegstid') },
       binding
     );
     act(() => result.current.open());

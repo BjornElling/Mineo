@@ -29,7 +29,7 @@ const originFor = (editorLocationId: string): HistoryOrigin => ({
 // Byg et input-element, der bærer restore-target-attributterne for en given editorlokation.
 const makeInput = (editorLocationId: string): HTMLInputElement => {
   const input = document.createElement('input');
-  const attrs = buildRestoreTargetAttributes(serialized, editorLocationId);
+  const attrs = buildRestoreTargetAttributes(serialized, editorLocationId, '/erhvervsevnetab', 'eet-oplysninger');
   input.setAttribute(FIELD_ADDRESS_ATTR, attrs[FIELD_ADDRESS_ATTR]);
   input.setAttribute(EDITOR_LOCATION_ATTR, attrs[EDITOR_LOCATION_ATTR]);
   document.body.appendChild(input);

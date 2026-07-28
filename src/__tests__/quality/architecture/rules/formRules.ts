@@ -1180,3 +1180,377 @@ export const popupSemanticsSingleSourceRule = defineRule({
     },
   ],
 });
+
+// --- Fokusmålets ejerskab: lokationen, ikke feltadressen (etape 7, andet pas) --
+
+/**
+ * Fokusnavigationens grænser, som R7-F02 og R7-F03 afdækkede. De tre regler nedenfor lukker hvert sit
+ * hul i SAMME mekanisme — hvem der ejer et fokusmål — og de er skrevet, fordi ingen af hullerne kunne
+ * fanges af en type:
+ *
+ * 1. `input/persisted-controls-use-field-family` — R7-F02's egentlige fund. Det EKSISTERENDE værn
+ *    (`form/restore-target-attributes`) gælder kun `src/inputCore/react/fields/**` og var derfor grønt,
+ *    mens to LEVENDE produktions-callsites omgik feltfamilien. Rapportens tilfældighedsfund krævede
+ *    udtrykkeligt, at værnets troværdighed blev genåbnet her.
+ * 2. `input/focus-destination-owned-by-location` — R7-F03's fund. Typen sikrer, at en lokation HAR en
+ *    destination, men ikke at ingen UDLEDER en destination af dataadressen i stedet.
+ * 3. `input/restore-attributes-carry-destination` — den nye DOM-kontrakt. En surface, der glemmer at
+ *    sætte route/fane-attributterne, gør fokusnavigationen inert, uden at nogen type eller test fejler.
+ */
+
+/** De rå, fokuserbare input-primitiver. En persisteret control må aldrig binde en af dem selv. */
+const RAW_INTERACTIVE_CONTROLS: readonly string[] = [
+  'StyledToggleSwitch',
+  'StyledCheckbox',
+  'StyledRadioButton',
+  'StyledDropdown',
+];
+
+/**
+ * Feltfamiliens adaptere — ét pr. rå primitiv, plus de tre dropdown-varianter. Reglens live-target kræver dem
+ * ALLE: forsvinder én, findes den grænse, reglen henviser callsites til, ikke længere for netop dens
+ * control-art, og reglen skal skrives om frem for at stå grøn (jf. ruleKit's `requiredPaths`-begrundelse om det
+ * SAMMENSATTE mål, der var opfyldt så snart ÉN fil matchede).
+ */
+const FIELD_FAMILY_ADAPTERS: readonly string[] = [
+  'src/inputCore/react/fields/ToggleField.tsx',
+  'src/inputCore/react/fields/MappedToggleField.tsx',
+  'src/inputCore/react/fields/CheckboxField.tsx',
+  'src/inputCore/react/fields/RadioField.tsx',
+  'src/inputCore/react/fields/ChoiceField.tsx',
+  'src/inputCore/react/fields/EntityChoiceField.tsx',
+  'src/inputCore/react/fields/GridChoiceCell.tsx',
+];
+
+/**
+ * De flader, der LOVLIGT renderer en rå control, fordi deres værdier ikke er sagsdata og derfor ikke har
+ * en feltadresse at fokusere (§3.2). Listen er EKSPLICIT og kort med vilje: hver post er en flade uden
+ * persisteret sagsinput, ikke en undtagelse for en control, der var svær at migrere.
+ */
+const NON_CASE_DATA_CONTROL_SURFACES: readonly string[] = [
+  // App-indstillinger: bor i settings-storen, ikke i sagsenvelopen.
+  'src/components/pages/Indstillinger.tsx',
+  // Mineo-forsiden: en visningspræference uden sagsdata.
+  'src/components/pages/Mineo.tsx',
+  // Løntrin-finder-overlayet: transient søgeflade (dropdown UDEN name, jf. dens egen markør-kommentar).
+  'src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx',
+];
+
+/** Renderes et af de rå primitiver som et JSX-tag (altså i KODE, ikke i en kommentar)? */
+const collectRawControlTags = (entry: SourceEntry): readonly Finding[] => {
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
+      && ts.isIdentifier(node.tagName)
+      && RAW_INTERACTIVE_CONTROLS.includes(node.tagName.text)) {
+      const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+      findings.push({
+        position: { line: line + 1, column: character + 1 },
+        message:
+          `<${node.tagName.text}> renderes direkte uden for feltfamilien. En persisteret control skal gå `
+          + 'gennem sin typede adapter (ToggleField/MappedToggleField/CheckboxField/RadioField/ChoiceField), '
+          + 'som binder FieldRef, commitvej OG undo/redo-fokusmetadata sammen (R7-F02). Har fladen et '
+          + 'særligt afslutningsbehov — en gate eller en atomisk flerfelts-transaktion — brug adapterens '
+          + '`commit`-override (ToggleCommitDecision) frem for at forbinde editoren manuelt. Er værdien '
+          + 'IKKE sagsdata, tilføj fladen til NON_CASE_DATA_CONTROL_SURFACES med en begrundelse.',
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+export const persistedControlsUseFieldFamilyRule = defineRule({
+  id: 'input/persisted-controls-use-field-family',
+  description:
+    'Rå interaktive input-primitiver (StyledToggleSwitch/Checkbox/RadioButton/Dropdown) må kun renderes af '
+    + 'feltfamilien selv eller af de eksplicit navngivne ikke-sagsdata-flader. Ellers falder FieldRef- og '
+    + 'fokuskontrakten væk uden at nogen type fejler (R7-F02/GM-F03).',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er feltfamiliens adaptere: findes de ikke længere, er der intet at henvise callsites til, og
+    // reglen skal skrives om frem for at stå grøn. Vi kræver dem ALLE fem — et sammensat mål er ikke
+    // opfyldt, fordi én overlevede (jf. ruleKit's `requiredPaths`-begrundelse).
+    probe: (entry) => FIELD_FAMILY_ADAPTERS.includes(entry.relativePath as (typeof FIELD_FAMILY_ADAPTERS)[number])
+      && collectRawControlTags(entry).length > 0,
+    rationale:
+      'feltfamiliens fem adaptere renderer stadig hver sit rå primitiv; forsvinder de, findes den grænse '
+      + 'reglen henviser til ikke længere',
+    minimumMatches: FIELD_FAMILY_ADAPTERS.length,
+    requiredPaths: FIELD_FAMILY_ADAPTERS,
+  },
+  // HELE komponent-laget, ikke kun feltmappen. Det var netop det smalle scope, der gjorde det gamle værn
+  // blindt over for to levende produktions-callsites.
+  appliesTo: (relativePath) =>
+    (relativePath.startsWith('src/components/') || relativePath.startsWith('src/inputCore/react/'))
+    && relativePath.endsWith('.tsx')
+    // Feltfamilien og primitiverne selv ER grænsen og skal naturligvis rendere dem.
+    && !relativePath.startsWith('src/inputCore/react/fields/')
+    && !relativePath.startsWith('src/components/inputs/'),
+  find: (entry) => collectRawControlTags(entry),
+  allow: NON_CASE_DATA_CONTROL_SURFACES,
+  violatingFixtures: [
+    // R7-F02's præcise fejlform: Årsløns gatede toggle.
+    {
+      relativePath: 'src/components/pages/Aarsloen.tsx',
+      code: 'const C = () => <StyledToggleSwitch name="omregningTilFuldtAar" checked={c} onCommit={h} />;',
+    },
+    // EO's atomiske transaktions-toggle, den anden af de to.
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/OffentligeYdelserTab.tsx',
+      code: 'const C = () => <StyledToggleSwitch name="midlertidigtEetFraEetSiden" onCommit={h} />;',
+    },
+    // Et rå dropdown i en tabel ville have samme virkning.
+    {
+      relativePath: 'src/components/tables/NyTabel.tsx',
+      code: 'const C = () => <StyledDropdown name="enhed" value={v} onChange={h} />;',
+    },
+  ],
+  cleanFixtures: [
+    // Den typede adapter med gate-override — den godkendte løsning.
+    {
+      relativePath: 'src/components/pages/Aarsloen.tsx',
+      code: 'const C = () => <ToggleField field={ref} location={loc} commit={decide} />;',
+    },
+    // MappedToggleField for et Ja/Nej-enumfelt.
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/OffentligeYdelserTab.tsx',
+      code: 'const C = () => <MappedToggleField field={ref} location={loc} checkedValue="Ja" uncheckedValue="Nej" />;',
+    },
+    // En KOMMENTAR om den gamle fejlform må ikke bære reglen (INC-F03's lærepunkt).
+    {
+      relativePath: 'src/components/pages/NySide.tsx',
+      code: '// Tidligere brugte vi StyledToggleSwitch direkte her; nu ToggleField.\nconst C = () => <ToggleField field={r} location={l} />;',
+    },
+    // En TYPE-import af handlen er ikke en rendering (Årsløn beholder netop den for sin shake-ref).
+    {
+      relativePath: 'src/components/pages/Aarsloen.tsx',
+      code: "import type { StyledToggleSwitchHandle } from '../../types/handles';\nconst r = React.useRef<StyledToggleSwitchHandle | null>(null);",
+    },
+  ],
+});
+
+/** Modulet, der ejer fokusdestinationens opslag. Alle andre skal gå gennem det. */
+const EDITOR_LOCATION_DESTINATION_MODULE = 'src/inputCore/react/editorLocationDestination.ts';
+
+/**
+ * Fokusnavigationens flader. Kun disse kan meningsfuldt udlede en destination, så det er her, en genindført
+ * global afbildning ville dukke op.
+ */
+const FOCUS_NAVIGATION_SURFACES: readonly string[] = [
+  'src/inputCore/react/saveBlockedFocus.ts',
+  'src/inputCore/react/historyRestoreTarget.ts',
+  'src/inputCore/react/historyTargetRestoreLoop.ts',
+  EDITOR_LOCATION_DESTINATION_MODULE,
+];
+
+/**
+ * De navne, en destinations-udledning fra DATAADRESSEN ville bruge. `PAGE_DEFAULT_TAB` og de to fane-nøglekort
+ * er ikke forbudte i sig selv — de er legitime for en side, der viser sine egne faner — men i en FOKUS-flade er
+ * de netop den globale afbildning, R7-F03 lukkede: fanen kan kun kendes af den editor, feltet redigeres i.
+ */
+const ADDRESS_DERIVED_DESTINATION_NAMES: readonly string[] = [
+  'PAGE_DEFAULT_TAB',
+  'EO_TAB_KEYS',
+  'ERHVERVSEVNETAB_TAB_KEYS',
+];
+
+/** Bruges et af navnene som en rigtig AST-identifier (altså i kode, ikke i en kommentar)? */
+const collectAddressDerivedDestinationUses = (entry: SourceEntry): readonly Finding[] => {
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isIdentifier(node) && ADDRESS_DERIVED_DESTINATION_NAMES.includes(node.text)) {
+      const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+      findings.push({
+        position: { line: line + 1, column: character + 1 },
+        message:
+          `Fokus-fladen bruger ${node.text} til at udlede en destination af feltets dataadresse. Det var `
+          + 'præcis den model, R7-F03 lukkede: dataidentiteten kan ikke afgøre, HVOR et felt redigeres — et '
+          + 'felt kan have flere editorer (faellesAarsloen, forligsfelterne), og afbildningen måtte da '
+          + 'kompensere med særregler for brugerens aktuelle route. Spørg i stedet den mountede editor via '
+          + '`lookupEditorLocation`; destinationen står på lokationen (§3.2).',
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+export const focusDestinationOwnedByLocationRule = defineRule({
+  id: 'input/focus-destination-owned-by-location',
+  description:
+    'En fokus-flade må ikke udlede route/fane af feltets dataadresse gennem et globalt fane-kort. '
+    + 'Destinationen ejes af editorlokationen og læses gennem editorLocationDestination (R7-F03).',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er de to fokus-flader, der faktisk NAVIGERER, plus det ejende modul. Holder save-fokus op med at
+    // findes, er der ingen flade tilbage, hvor den forbudte udledning kunne opstå.
+    probe: (entry) => entry.relativePath === EDITOR_LOCATION_DESTINATION_MODULE
+      || entry.relativePath === 'src/inputCore/react/saveBlockedFocus.ts',
+    rationale:
+      'både det destinations-ejende modul og save-blokeringens fokus-flade findes stadig; forsvinder de, er '
+      + 'mekanismen flyttet og reglen skal skrives om',
+    minimumMatches: 2,
+    requiredPaths: [EDITOR_LOCATION_DESTINATION_MODULE, 'src/inputCore/react/saveBlockedFocus.ts'],
+  },
+  appliesTo: (relativePath) =>
+    FOCUS_NAVIGATION_SURFACES.includes(relativePath as (typeof FOCUS_NAVIGATION_SURFACES)[number]),
+  find: (entry) => collectAddressDerivedDestinationUses(entry),
+  allow: [],
+  violatingFixtures: [
+    // R7-F03's præcise fejlform: sektionens standardfane som fallback i fokus-fladen.
+    {
+      relativePath: 'src/inputCore/react/saveBlockedFocus.ts',
+      code: 'const tab = PAGE_DEFAULT_TAB[address.section];',
+    },
+    // Et genindført EO-fanekort ville have samme virkning.
+    {
+      relativePath: 'src/inputCore/react/editorLocationDestination.ts',
+      code: "const tab = address.path.length === 0 ? EO_TAB_KEYS.BEREGNING : EO_TAB_KEYS.LOENINDKOMST;",
+    },
+  ],
+  cleanFixtures: [
+    // Den godkendte model: spørg den mountede editor.
+    {
+      relativePath: 'src/inputCore/react/saveBlockedFocus.ts',
+      code: "import { lookupEditorLocation } from './editorLocationDestination';\nconst lookup = lookupEditorLocation(serialized);",
+    },
+    // Sektionens ROUTE er et faktum (sektionen ejer en side) og er ikke en fane-udledning.
+    {
+      relativePath: 'src/inputCore/react/saveBlockedFocus.ts',
+      code: "import { getRouteForPageKey } from '../../config/pageNavigation';\nconst route = getRouteForPageKey(address.section);",
+    },
+    // En kommentar, der forklarer den afløste model, må ikke bære reglen (INC-F03).
+    {
+      relativePath: 'src/inputCore/react/saveBlockedFocus.ts',
+      code: '// Den afløste model slog fanen op i PAGE_DEFAULT_TAB og EO_TAB_KEYS; nu ejer lokationen den.\nconst x = 1;',
+    },
+    // Uden for fokus-fladerne er fane-kortene helt legitime.
+    {
+      relativePath: 'src/components/pages/Erstatningsopgoerelse.tsx',
+      code: 'const initial = PAGE_DEFAULT_TAB.erstatningsopgoerelse;',
+    },
+  ],
+});
+
+/**
+ * Modulet, der BYGGER restore-target-attributterne. Kun det måles: `useFormFieldSurface`/`useGridCellSurface`
+ * kalder builderen og spreder dens færdige objekt, så de kan ikke tabe en enkelt attribut. Fuldstændigheden
+ * ejes af producenten, og reglen peger derfor ét sted.
+ */
+const RESTORE_ATTRIBUTE_BUILDER_MODULE = 'src/inputCore/react/historyRestoreTarget.ts';
+
+/** De fire attribut-konstanter, en fokuserbar greenfield-editor SKAL bære. */
+const REQUIRED_RESTORE_ATTRS: readonly string[] = [
+  'FIELD_ADDRESS_ATTR',
+  'EDITOR_LOCATION_ATTR',
+  'EDITOR_ROUTE_ATTR',
+  'EDITOR_TAB_ATTR',
+];
+
+/**
+ * Bygger `buildRestoreTargetAttributes` fortsat ALLE fire attributter?
+ *
+ * Kontrakten kan ikke bæres af typen: `RestoreTargetAttributes` er et objekt af strenge, så en udgave, der
+ * droppede de to destinationsattributter fra det PRODUCEREDE objekt, ville typechecke lige så godt, mens
+ * fokusnavigationen blev inert.
+ *
+ * ⚠️ Målingen sker udelukkende inde i BUILDERENS returnerede objekt-literal — ikke over hele filen. Den første
+ * udgave af denne regel talte enhver computed property i filen, og `RestoreTargetAttributes`-TYPENS fire
+ * computed keys opfyldte den derfor på egen hånd: en mutation, der fjernede
+ * `[EDITOR_ROUTE_ATTR]`/`[EDITOR_TAB_ATTR]` fra builderens objekt, forblev GRØN. Netop den fejlform er
+ * review-planens grundregel 5 og INC-F03 igen — et grønt værn er ikke evidens for noget, før mutationen er
+ * prøvet mod den LEVENDE kilde og ikke kun mod fixtures.
+ */
+const RESTORE_ATTR_BUILDER = 'buildRestoreTargetAttributes';
+
+const missingRestoreAttributes = (entry: SourceEntry): readonly string[] => {
+  const used = new Set<string>();
+  let builderFound = false;
+
+  /** Opsaml computed keys i ét objekt-literal (inkl. et `Object.freeze({...})`-wrap). */
+  const collectKeysIn = (node: ts.Node): void => {
+    const visit = (current: ts.Node): void => {
+      if (ts.isComputedPropertyName(current) && ts.isIdentifier(current.expression)) {
+        used.add(current.expression.text);
+      }
+      ts.forEachChild(current, visit);
+    };
+    visit(node);
+  };
+
+  const visit = (node: ts.Node): void => {
+    // `export const buildRestoreTargetAttributes = (...) => Object.freeze({ ... })`
+    if (ts.isVariableDeclaration(node)
+      && ts.isIdentifier(node.name)
+      && node.name.text === RESTORE_ATTR_BUILDER
+      && node.initializer !== undefined) {
+      builderFound = true;
+      collectKeysIn(node.initializer);
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+
+  // Findes builderen ikke længere under sit navn, er mønsteret flyttet. Det er IKKE grønt: rapportér alle fire,
+  // så reglen tvinges opdateret frem for at gå stille i opløsning.
+  if (!builderFound) return REQUIRED_RESTORE_ATTRS;
+  return REQUIRED_RESTORE_ATTRS.filter((attr) => !used.has(attr));
+};
+
+export const restoreAttributesCarryDestinationRule = defineRule({
+  id: 'input/restore-attributes-carry-destination',
+  description:
+    'Restore-target-attributterne skal bære BÅDE identiteten (feltadresse + lokations-id) OG destinationen '
+    + '(route + fane). Uden destinationen kan save-blokeringens fokus ikke finde feltets fane, og '
+    + 'fokusnavigationen bliver inert uden at nogen type fejler (R7-F03).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === RESTORE_ATTRIBUTE_BUILDER_MODULE
+      && missingRestoreAttributes(entry).length === 0,
+    rationale:
+      'attribut-builderen findes stadig og sætter alle fire attributter; flyttes bygningen et andet sted hen, '
+      + 'skal reglens mål følge med frem for at stå grøn',
+  },
+  // Kun BUILDEREN måles. Forbrugerne (feltfamilierne) spreder et færdigt objekt og kan ikke tabe en enkelt
+  // attribut; det er producenten, der ejer fuldstændigheden.
+  appliesTo: (relativePath) => relativePath === RESTORE_ATTRIBUTE_BUILDER_MODULE,
+  find: (entry) => {
+    const missing = missingRestoreAttributes(entry);
+    if (missing.length === 0) return [];
+    return [{
+      position: { line: 1, column: 1 },
+      message:
+        `Restore-target-attributterne mangler ${missing.join(', ')}. Et fokuserbart felt skal bære sin `
+        + 'editorlokations EGEN route og fane, så save-blokeringens fokus kan sende brugeren til den rigtige '
+        + 'fane uden et globalt adresse→fane-kort (§3.2/R7-F03).',
+    }];
+  },
+  violatingFixtures: [
+    // Den præcise regression: de to nye destinationsattributter droppes, identiteten beholdes.
+    {
+      relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
+      code: 'export const buildRestoreTargetAttributes = (a: string, b: string) => Object.freeze({ [FIELD_ADDRESS_ATTR]: a, [EDITOR_LOCATION_ATTR]: b });',
+    },
+    // Kun fanen droppet — et felt på en ikke-standard fane bliver da uopnåeligt.
+    {
+      relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
+      code: 'export const buildRestoreTargetAttributes = (a: string, b: string, r: string) => Object.freeze({ [FIELD_ADDRESS_ATTR]: a, [EDITOR_LOCATION_ATTR]: b, [EDITOR_ROUTE_ATTR]: r });',
+    },
+    // Builderen omdøbt væk: mønsteret er flyttet, og reglen må ikke gå stille i opløsning. Rapporteres som
+    // alle fire manglende, selv om attributterne findes andetsteds i filen.
+    {
+      relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
+      code: 'export const makeAttrs = (a: string) => Object.freeze({ [FIELD_ADDRESS_ATTR]: a, [EDITOR_LOCATION_ATTR]: a, [EDITOR_ROUTE_ATTR]: a, [EDITOR_TAB_ATTR]: a });',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
+      code: 'export const buildRestoreTargetAttributes = (a: string, b: string, r: string, t: string | null) => Object.freeze({ [FIELD_ADDRESS_ATTR]: a, [EDITOR_LOCATION_ATTR]: b, [EDITOR_ROUTE_ATTR]: r, [EDITOR_TAB_ATTR]: t ?? "" });',
+    },
+  ],
+});

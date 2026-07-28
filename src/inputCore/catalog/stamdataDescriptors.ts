@@ -2,7 +2,7 @@ import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../config/dateRanges';
 import { maxISO, minISO } from '../../utils/isoDateHelpers';
-import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import {
   createChoiceFieldCodec,
   createDateFieldCodec,
@@ -69,7 +69,7 @@ export const stamdataSkadelidteFodselsdatoField = dateField('skadelidteFodselsda
         special: skadedato === undefined
           ? undefined
           : { maxBoundKind: 'skadedato', maxBoundReferenceISO: skadedato },
-        noValidRangeInputs: 'Fødselsdato og Skadedato',
+        bounds: derivedDateBounds('Fødselsdato og Skadedato'),
       }),
       detail: { minDate, maxDate },
     };
@@ -107,7 +107,7 @@ export const stamdataSkadedatoField = dateField('skadedato', 'Skadedato', [
         special: foedselsdato === undefined
           ? undefined
           : { minBoundKind: 'fodselsdato', minBoundReferenceISO: foedselsdato },
-        noValidRangeInputs: 'Fødselsdato og Skadedato',
+        bounds: derivedDateBounds('Fødselsdato og Skadedato'),
       }),
       detail: { minDate, maxDate },
     };

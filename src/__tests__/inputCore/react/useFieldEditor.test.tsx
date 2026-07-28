@@ -31,7 +31,7 @@ import {
   type FieldIssue,
   type FieldIssueSnapshot,
 } from '../../../inputCore';
-import { createTestCatalog, aargangField } from '../testCatalog';
+import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 
 // Fase 2.3 (§2.3/§3.5, §7.1): den fælles felt-editor mod syntetiske immutable issue-snapshots (§2.3-verifikation).
 // Adapteren parser/persisterer/holder ingen fejlstate — den driver kun state-machinen + engine + runner.
@@ -84,7 +84,7 @@ const wrapper = (binding: InputRuntimeBinding) => {
 
 const renderEditor = <T,>(field: FieldRef<T>, locationId = 'loc-1') => {
   const binding = makeBinding();
-  return { binding, ...renderHook(() => useFieldEditor(field, { locationId }), { wrapper: wrapper(binding) }) };
+  return { binding, ...renderHook(() => useFieldEditor(field, testLocation(locationId)), { wrapper: wrapper(binding) }) };
 };
 
 const canonical = <T,>(field: FieldRef<T>): T =>
@@ -330,11 +330,11 @@ describe('useFieldEditor — registrering + kritisk handling', () => {
   it('binder en genbrugt lukket hook-instans til den nye editorlokation', () => {
     const binding = makeBinding();
     const { result, rerender } = renderHook(
-      ({ locationId }) => useFieldEditor(field, { locationId }),
-      { initialProps: { locationId: 'loc-1' }, wrapper: wrapper(binding) }
+      ({ locationId }) => useFieldEditor(field, testLocation(locationId)),
+      { initialProps: testLocation('loc-1'), wrapper: wrapper(binding) }
     );
 
-    rerender({ locationId: 'loc-2' });
+    rerender(testLocation('loc-2'));
     act(() => result.current.open());
 
     expect(registry.getEditing()?.id).toBe('loc-2');
@@ -352,7 +352,7 @@ describe('useFieldEditor — registrering + kritisk handling', () => {
       }),
     });
     const { result } = renderHook(
-      () => useFieldEditor(field, { locationId: 'loc-fejl' }),
+      () => useFieldEditor(field, testLocation('loc-fejl')),
       { wrapper: wrapper(binding) }
     );
     act(() => result.current.open());

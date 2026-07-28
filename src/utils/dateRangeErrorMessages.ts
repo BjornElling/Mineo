@@ -39,21 +39,50 @@ export type DateRangeSpecialErrors = {
 
 const formatISOForTooltip = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
+/**
+ * Hvor intervallets grænser kommer fra — og dermed om et UMULIGT interval (min > max) kan opstå (R3-F03).
+ *
+ * `'static'`: begge grænser er konstanter fra `dateRanges`-konfigurationen. `min > max` er da urepræsenterbart,
+ * og der findes intet årsagsinput at nævne, fordi brugeren ikke har frembragt grænserne.
+ *
+ * `'derived'`: mindst én grænse er udledt af ANDRE felters værdier. Her KAN intervallet blive umuligt, og
+ * beskeden skal navngive de inputs, brugeren skal rette — ellers får de at vide, at ingen dato er gyldig, uden
+ * at vide hvorfor. Derfor er `causeInputs` PÅKRÆVET i netop denne arm: kravet er en TYPE, ikke en konvention,
+ * så et nyt dynamisk datofelt ikke kan glemme årsagen og lydløst vise den halve besked.
+ */
+export type DateRangeBoundsOrigin =
+  | Readonly<{ kind: 'static' }>
+  | Readonly<{ kind: 'derived'; causeInputs: string }>;
+
+/** Statiske grænser: ét delt objekt, så det almindelige tilfælde ikke allokerer pr. validering. */
+export const STATIC_DATE_BOUNDS: DateRangeBoundsOrigin = Object.freeze({ kind: 'static' });
+
+/** Udledte grænser fra navngivne inputs. Navnene vises ordret til brugeren. */
+export const derivedDateBounds = (causeInputs: string): DateRangeBoundsOrigin =>
+  Object.freeze({ kind: 'derived', causeInputs });
+
 export const resolveDateRangeErrorMessage = (args: {
   iso: ISODateString;
   minDate: ISODateString | undefined;
   maxDate: ISODateString | undefined;
   special?: DateRangeSpecialErrors;
-  /** Brugervendte inputnavne, som har frembragt et umuligt dynamisk interval. */
-  noValidRangeInputs?: string;
+  /**
+   * Grænsernes oprindelse. PÅKRÆVET: den afløste `noValidRangeInputs?: string` gjorde årsagen valgfri, og de
+   * fleste descriptors udelod den derfor — brugeren fik at vide, at ingen dato var gyldig, men ikke hvilke
+   * inputs der skulle rettes (R3-F03).
+   */
+  bounds: DateRangeBoundsOrigin;
 }): string => {
-  const { iso, minDate, maxDate, special, noValidRangeInputs } = args;
+  const { iso, minDate, maxDate, special, bounds } = args;
 
   // Umuligt interval (tidligst tilladte efter senest tilladte) har forrang over alle
   // andre beskeder: når ingen dato er mulig, er den vigtigste oplysning netop dét,
   // med begge grænser (jf. AGENTS.md §Validering og fejl-UI).
   if (minDate && maxDate && minDate > maxDate) {
-    const inputCause = noValidRangeInputs === undefined ? '' : ` Grænserne kommer fra ${noValidRangeInputs}.`;
+    // Kun udledte grænser kan nå hertil i praksis; statiske intervaller er gyldige pr. konstruktion. Er en
+    // statisk konfiguration alligevel selvmodsigende, er det en KONFIGURATIONSfejl uden brugerinput at rette,
+    // og beskeden nævner derfor ingen årsag frem for at pege på et vilkårligt felt.
+    const inputCause = bounds.kind === 'derived' ? ` Grænserne kommer fra ${bounds.causeInputs}.` : '';
     return `Der findes ingen gyldig dato her: tidligst tilladte (${formatISOForTooltip(minDate)}) ligger efter senest tilladte (${formatISOForTooltip(maxDate)}).${inputCause}`;
   }
 

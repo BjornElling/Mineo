@@ -69,15 +69,20 @@ export const activeFieldIssueFor = <T>(
 // Felteditorens origin er ALTID en feltorigin — også for de to promoveringsveje (`settleFieldInNewRow` og
 // `insertRow` fra et immediate-commit-valg). En promovering er kontraktligt et FELT-settle (§3.8), og undo
 // skal derfor fokusere den celle, brugeren skrev i — ikke blot navigere til tabellen (WI-004 runde 4, S4).
-const originFor = <T>(location: EditorLocation, field: FieldRef<T>): FieldHistoryOrigin => {
-  const anchor = { kind: 'field' as const, field: field.address, editorLocationId: location.locationId };
+export const buildFieldHistoryOrigin = <T>(
+  location: EditorLocation,
+  field: FieldRef<T>
+): FieldHistoryOrigin => Object.freeze({
+  kind: 'field' as const,
+  field: field.address,
+  editorLocationId: location.locationId,
   // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage
-  // til den rette side/fane. Destinationen er ALT-eller-INTET: en `tabKey` uden `route` ville være lydløst
-  // inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen. `route === undefined` er
-  // en reelt ikke-navigerbar lokation (standalone), og da bæres fanen heller ikke med.
-  if (location.route === undefined) return Object.freeze(anchor);
-  return Object.freeze({ ...anchor, route: location.route, tabKey: location.tabKey ?? null });
-};
+  // til den rette side/fane. Begge er PÅKRÆVEDE på `EditorLocation` (R7-F03), så destinationen er altid
+  // komplet — den tidligere `route === undefined`-gren dækkede en tilstand, typen ikke længere tillader.
+  route: location.route,
+  tabKey: location.tabKey,
+});
+
 
 /**
  * Oversætter et settle-intent til den command + origin, runtime-bindingen dispatcher. `none` (cancel/no-op)
@@ -88,7 +93,7 @@ const originFor = <T>(location: EditorLocation, field: FieldRef<T>): FieldHistor
  */
 export const settleIntentToCommand = <T>(intent: EditorSettleIntent<T>): EditorDispatch<T> | null => {
   if (intent.kind === 'none') return null;
-  const origin = originFor(intent.location, intent.field);
+  const origin = buildFieldHistoryOrigin(intent.location, intent.field);
   const command: EditorFieldCommand<T> = intent.raw.trim() === ''
     ? clearField(intent.field)
     : settleField(intent.field, intent.raw);
@@ -114,7 +119,7 @@ export const promoteRowSettleIntentToCommand = <TEntity, TField>(
   if (intent.raw.trim() === '') return null;
   return Object.freeze({
     command: settleFieldInNewRow(collection, entity, intent.field, intent.raw, index),
-    origin: originFor(intent.location, intent.field),
+    origin: buildFieldHistoryOrigin(intent.location, intent.field),
   });
 };
 
@@ -127,7 +132,7 @@ export const immediateCommitCommand = <T>(
   value: T,
   location: EditorLocation
 ): EditorDispatch<T> =>
-  Object.freeze({ command: setImmediateField(field, value), origin: originFor(location, field) });
+  Object.freeze({ command: setImmediateField(field, value), origin: buildFieldHistoryOrigin(location, field) });
 
 /**
  * Placeholder-promotion for et IMMEDIATE-COMMIT-valg (§1.11): et dropdown-/toggle-valg i en endnu ikke oprettet
@@ -146,7 +151,7 @@ export const promoteRowImmediateCommitToCommand = <TEntity, TField>(
 ): EditorDispatch<TField> =>
   Object.freeze({
     command: settleFieldInNewRow(collection, entity, field, field.descriptor.codec.format(value), index),
-    origin: originFor(location, field),
+    origin: buildFieldHistoryOrigin(location, field),
   });
 
 /**
@@ -162,5 +167,5 @@ export const immediateClearCommand = <T>(
 ): EditorDispatch<T> | null => {
   const hasSomethingToClear = view.kind === 'rejected' || !field.descriptor.isEmpty(view.value);
   if (!hasSomethingToClear) return null;
-  return Object.freeze({ command: clearField(field), origin: originFor(location, field) });
+  return Object.freeze({ command: clearField(field), origin: buildFieldHistoryOrigin(location, field) });
 };

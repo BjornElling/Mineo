@@ -22,7 +22,7 @@ import {
   type FieldIssue,
   type FieldIssueSnapshot,
 } from '../../../inputCore';
-import { createTestCatalog, aargangField } from '../testCatalog';
+import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 
 // Fase 2.4 (§2.4/§3.5, §7.1): UI-mekanik-laget mod syntetiske issue-snapshots. Surface-hooken oversætter kun
 // DOM-events → editor-controller; den parser/persisterer/holder ingen fejlstate.
@@ -77,7 +77,7 @@ const renderSurface = <T,>(field: FieldRef<T>, locationId = 'loc-1') => {
   const binding = makeBinding();
   return {
     binding,
-    ...renderHook(() => useFormFieldSurface(field, { locationId }), { wrapper: wrapper(binding) }),
+    ...renderHook(() => useFormFieldSurface(field, testLocation(locationId)), { wrapper: wrapper(binding) }),
   };
 };
 

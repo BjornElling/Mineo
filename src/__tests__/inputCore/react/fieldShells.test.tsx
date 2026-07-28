@@ -28,8 +28,7 @@ import {
   enhedField,
   belobField,
   makeRow,
-  testRowOrigin,
-} from '../testCatalog';
+  testRowOrigin, testLocation } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
@@ -79,19 +78,19 @@ const canonical = <T,>(field: FieldRef<T>): T =>
 describe('Greenfield numeriske presets', () => {
   it('IntegerField viser committed heltalsværdi', () => {
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'));
-    renderField(<IntegerField field={aargangField.bind()} location={{ locationId: 'int-1' }} name="aargang" />);
+    renderField(<IntegerField field={aargangField.bind()} location={testLocation('int-1')} name="aargang" />);
     expect(screen.getByRole('textbox')).toHaveValue('2020');
   });
 
   it('PercentField viser "%"-adornment', () => {
     // aargang er et number|undefined-felt; procent-skallen accepterer samme værditype (adornment-smoke).
-    renderField(<PercentField field={aargangField.bind()} location={{ locationId: 'pct-1' }} name="pct" />);
+    renderField(<PercentField field={aargangField.bind()} location={testLocation('pct-1')} name="pct" />);
     expect(screen.getByText('%')).toBeInTheDocument();
   });
 
   it('AmountField viser "kr."-adornment', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
-    renderField(<AmountField field={belobField.bind('r1')} location={{ locationId: 'amt-1' }} name="belob" />);
+    renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-1')} name="belob" />);
     expect(screen.getByText('kr.')).toBeInTheDocument();
   });
 });
@@ -101,7 +100,7 @@ describe('Greenfield flerlinjet tekstfelt', () => {
     renderField(
       <MultilineTextField
         field={kommentarerField.bind()}
-        location={{ locationId: 'kommentarer-1' }}
+        location={testLocation('kommentarer-1')}
         name="kommentarer"
         singleStageClick
       />
@@ -126,7 +125,7 @@ describe('Greenfield immediate-commit control (radio)', () => {
     renderField(
       <RadioField<TillaegstidEnhed>
         field={enhedField.bind('r1')}
-        location={{ locationId: 'radio-1' }}
+        location={testLocation('radio-1')}
         options={[
           { value: 'dage', label: 'Dage' },
           { value: 'uger', label: 'Uger' },
@@ -169,7 +168,7 @@ describe('Greenfield grid-felt', () => {
         }}>
           <GridAmountCell
             gridCell={gridCell}
-            cell={{ kind: 'existing', field: belobField.bind('r1'), location: { locationId: 'r1:belob' } }}
+            cell={{ kind: 'existing', field: belobField.bind('r1'), location: testLocation('r1:belob') }}
           />
         </GridCoreProvider>
       </InputRuntimeProvider>

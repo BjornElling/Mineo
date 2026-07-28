@@ -28,6 +28,11 @@ import {
   rentekravTillaegstidField,
 } from '../../../inputCore/catalog/renteberegningDescriptors';
 import {
+  eoForligDatoField,
+  eoOevrigeKravDatoField,
+} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import {
+  erhvervsevnetabBeregningsdatoField,
   aslAfgoerelseAfgoerelsesDatoField,
   aslAfgoerelseEetPctField,
   erhvervsevnetabAslAfgoerelserCollectionRef,
@@ -148,5 +153,56 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     expect(evaluation.reader.read(aslAfgoerelseAfgoerelsesDatoField.bind('r1')).status).toBe('error');
     expect(evaluation.reader.read(aslAfgoerelseEetPctField.bind('r1')).status).toBe('error');
     expect(evaluation.reader.read(erhvervsevnetabEalEetPctField.bind()).status).toBe('error');
+  });
+});
+
+// R3-F03: årsagsinputtene i det UMULIGE datointerval, målt gennem det ÆGTE produktionskatalog.
+//
+// Fundets reproduktion: sæt `stamdata.skadedato` til 2099-01-01. Skadedatoen bliver da EO-datofelternes nedre
+// grænse og ligger efter deres konfigurerede øvre grænse, så intet er gyldigt. Beskeden viste før rettelsen de
+// faktiske grænser, men ikke hvilke inputs der frembragte dem — brugeren fik at vide, at ingen dato var mulig,
+// uden at vide hvad de skulle rette.
+//
+// Testen måler `issue.message` frem for blot `status`, fordi det er BESKEDEN, fundet handler om. En status-only
+// assertion havde været grøn hele vejen igennem.
+describe('produktdescriptors — umuligt datointerval navngiver sine årsagsinputs (R3-F03)', () => {
+  const withSkadedatoAfterCoverage = (): SettledInput =>
+    dispatch(empty(), resetSection('stamdata', { skadedato: toISODateString('2099-01-01') }));
+
+  it('forligsdatoen nævner Skadedato og Skadestype', () => {
+    let input = withSkadedatoAfterCoverage();
+    input = dispatch(input, settleField(eoForligDatoField.bind(), '15-06-2024'));
+
+    const read = evaluate(input).reader.read(eoForligDatoField.bind());
+    expect(read.status).toBe('error');
+    if (read.status !== 'error') return;
+    expect(read.issue.message).toContain('ingen gyldig dato');
+    expect(read.issue.message).toContain('Grænserne kommer fra Skadedato og Skadestype.');
+  });
+
+  it('øvrige krav-datoen nævner de samme årsagsinputs', () => {
+    const oevrigeKravRef = createCollectionRef({
+      section: 'erstatningsopgoerelse', path: [], collection: 'oevrigeKravPerioder',
+    });
+    let input = withSkadedatoAfterCoverage();
+    input = dispatch(input, insertRow(oevrigeKravRef, { id: 'ok-1' }));
+    input = dispatch(input, settleField(eoOevrigeKravDatoField.bind('ok-1'), '15-06-2024'));
+
+    const read = evaluate(input).reader.read(eoOevrigeKravDatoField.bind('ok-1'));
+    expect(read.status).toBe('error');
+    if (read.status !== 'error') return;
+    expect(read.issue.message).toContain('Grænserne kommer fra Skadedato og Skadestype.');
+  });
+
+  it('EETs beregningsdato nævner Skadedato — en flade, der FØR rettelsen udelod årsagen helt', () => {
+    // De to EO-felter ovenfor og denne var alle tavse om årsagen; EET-rækkernes kapitaliseringsdatoer var de
+    // ENESTE, der navngav den. Netop asymmetrien var beviset for, at et valgfrit felt bliver udeladt.
+    let input = withSkadedatoAfterCoverage();
+    input = dispatch(input, settleField(erhvervsevnetabBeregningsdatoField.bind(), '15-06-2024'));
+
+    const read = evaluate(input).reader.read(erhvervsevnetabBeregningsdatoField.bind());
+    expect(read.status).toBe('error');
+    if (read.status !== 'error') return;
+    expect(read.issue.message).toContain('Grænserne kommer fra Skadedato.');
   });
 });

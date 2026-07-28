@@ -4,17 +4,20 @@ Samlet register over alle fund i draft/commit-reviewet: fasefundene (R0–R8), d
 konvergensreview (GM-F01–GM-F15) og brugertestfundene (UT-F01–UT-F06). Én linje pr. fund, ingen prosa —
 beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
-**Sidst opdateret:** 2026-07-28
+**Sidst opdateret:** 2026-07-29
 
 ## Status
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 28 | 8 | 0 |
-| GM (konvergensreview) | 15 | 5 | 10 | 0 |
+| R0–R8 (fasefund) | 36 | 25 | 11 | 0 |
+| GM (konvergensreview) | 15 | 4 | 11 | 0 |
 | UT (brugertest) | 6 | 0 | 5 | 1 |
-| INC (tilfældighedsfund) | 10 | 0 | 10 | 0 |
-| **I alt** | **67** | **33** | **33** | **1** |
+| INC (tilfældighedsfund) | 14 | 1 | 13 | 0 |
+| **I alt** | **71** | **30** | **40** | **1** |
+
+Etape 7 er lukket **på nær GM-F10**, som holdes åben sammen med INC-F14 (se noterne nedenfor): kortlægningen
+viste, at fundet er større end sin rapport, og at dens `fieldPath`-cellemål slet ikke er i brug i dag.
 
 ## Bindende regel for tilfældighedsfund
 
@@ -50,7 +53,7 @@ en etape rettes og verificeres sammen.
 | **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02, GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Lukket 2026-07-28 i to pas — se etapenoterne nedenfor. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. Lukket 2026-07-28 — se etapenoten nedenfor. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. Lukket 2026-07-28 — se etapenoten nedenfor. |
-| **7** | UT-F02, UT-F06, R3-F03, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, min-max-tooltips mangler årsagsinput, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. Første pas (UT-F02 + UT-F06) lukket 2026-07-28; de fem øvrige rettes i andet pas — fire af dem deler ÉN mekanisme (hvem der ejer et fokusmål), og R3-F03 hører til samme flade, feltets synlige besked. |
+| **7** | UT-F02, UT-F06, R3-F03, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, min-max-tooltips mangler årsagsinput, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. Første pas (UT-F02 + UT-F06) lukket 2026-07-28; andet pas (R7-F03, R7-F02, GM-F03, R3-F03) lukket og verificeret 2026-07-29. **GM-F10 er den ENESTE udestående** — kortlægningen viste, at fundet er større end sin rapport, og at dens cellemål er ude af brug (INC-F14). Den flyttes til en egen behandling. Se `work-items/WI-015-etape7-fokusmaal-ejerskab.md`. |
 | **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. |
 | **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. |
 | **10** | R8-F01, R8-F03, R8-F02, R8-F04, R8-F05, R8-F06, R2-F03, R6-F04, R0-F03 | Testdækning og acceptmatrix: §10's kriterier og de obligatoriske statekæder får et levende register. Sidst, fordi dækningen skal måles mod den FÆRDIGE arkitektur, ikke mod en mellemtilstand. |
@@ -79,7 +82,7 @@ etape kommer.
 | R2-F03 | Obligatoriske statekæder er ufuldstændigt dækket | Væsentlig | `draft-commit-greenfield-design.md:812-823` | 10 | Åbent | [R2](R2-inputkerne-og-felteditor.md#r2-f03--obligatoriske-statekæder-er-ufuldstændigt-dækket) |
 | R3-F01 | Midlertidig EET-import overblokeres sektionsvist | Væsentlig | `eetImportPort.ts:39-54` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f01--midlertidig-eet-import-overblokeres-sektionsvist) |
 | R3-F02 | EO globaliserer feltissues uden faktisk dependency | Væsentlig | `eoDependencyGroups.ts:227-230` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f02--eo-globaliserer-feltissues-uden-faktisk-dependency) |
-| R3-F03 | Min-max-tooltips mangler inputnavne | Væsentlig | `dateRangeErrorMessages.ts:49-55` | 7 | Åbent | [R3](R3-issues-og-gates.md#r3-f03--min-max-tooltips-mangler-inputnavne) |
+| R3-F03 | Min-max-tooltips mangler inputnavne | Væsentlig | `dateRangeErrorMessages.ts` (`DateRangeBoundsOrigin`) | 7 | **Rettet 2026-07-29** | [R3](R3-issues-og-gates.md#r3-f03--min-max-tooltips-mangler-inputnavne) |
 | R3-F04 | Den offentlige reader eksponerer hele issue-snapshottet | Væsentlig | `inputReader.ts:130-135` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f04--den-offentlige-reader-eksponerer-hele-issue-snapshottet) |
 | R4-F01 | Load kan kassere en ny draft efter replacement | Væsentlig | `useFileSaveLoad.ts:198-206` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f01--load-kan-kassere-en-ny-draft-efter-replacement) |
 | R4-F02 | Slet alt accepterer ufuldstændig oprydning som succes | Væsentlig | `useFileSaveLoad.ts:473-505` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f02--slet-alt-accepterer-ufuldstændig-oprydning-som-succes) |
@@ -90,8 +93,8 @@ etape kommer.
 | R6-F03 | Dokumentformat er fortsat en lovlig gate-dependency | Væsentlig | `sourceSettings.ts:8-85` | 11 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f03--dokumentformat-er-fortsat-en-lovlig-gate-dependency) |
 | R6-F04 | Gatekontrakten er kun målt på fire af atten definitioner | Væsentlig | `document-output-contract.md:71-87` | 10 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f04--gatekontrakten-er-kun-målt-på-fire-af-atten-definitioner) |
 | R7-F01 | Det obligatoriske page-viewmodel-lag findes ikke | Væsentlig | Alle otte persisterede fagsider | 12 | Åbent | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f01--det-obligatoriske-page-viewmodel-lag-findes-ikke) |
-| R7-F02 | To toggles omgår feltfamilien og mister fokusmetadata | Væsentlig | `Aarsloen.tsx`, `OffentligeYdelserTab.tsx` | 7 | Åbent | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f02--to-persisterede-toggles-omgår-feltfamilien-og-mister-fokusmetadata) |
-| R7-F03 | Global feltadresse bestemmer fokusdestinationen | Væsentlig | `fieldAddressDestination.ts:6-213` | 7 | Åbent (godkendt) | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f03--global-feltadresse-bestemmer-fokusdestinationen) |
+| R7-F02 | To toggles omgår feltfamilien og mister fokusmetadata | Væsentlig | `ToggleField.tsx`, `MappedToggleField.tsx` (`commit`-override) | 7 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f02--to-persisterede-toggles-omgår-feltfamilien-og-mister-fokusmetadata) |
+| R7-F03 | Global feltadresse bestemmer fokusdestinationen | Væsentlig | `editorLocationDestination.ts` (afløser `fieldAddressDestination.ts`, slettet) | 7 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f03--global-feltadresse-bestemmer-fokusdestinationen) |
 | R8-F01 | §10's 30 acceptkriterier har intet levende register | Kritisk | `acceptanceMatrix.test.ts:40-498` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f01--10s-30-acceptkriterier-har-intet-levende-register) |
 | R8-F02 | Fælles form/grid-feltkontrakt køres ikke pr. codecfamilie | Væsentlig | Tre input-surface-tests | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f02--fælles-formgrid-feltkontrakt-køres-ikke-pr-codecfamilie) |
 | R8-F03 | Obligatoriske statekæder og ni aspekter er ikke dækket | Kritisk | `inputCore.test.ts:391-430` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f03--de-obligatoriske-statekæder-og-deres-ni-aspekter-er-ikke-dækket) |
@@ -110,7 +113,7 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 |---|---|---|---|---:|---|---|
 | GM-F01 | Parallel satsvalidering har konkret regeldrift | Væsentlig | `loenindkomstSatsAssessment.ts` (afløser to moduler) | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f01--parallel-satsvalidering-har-konkret-regeldrift) |
 | GM-F02 | Automatiske satser skrives som en ekstra brugerhandling | Væsentlig | `loenindkomstSatsDerivedWrite.ts`, `fieldCatalog.ts` | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f02--automatiske-satser-skrives-som-en-ekstra-brugerhandling) |
-| GM-F03 | To specialtoggles omgår fælles fokusgenopretning | Væsentlig | `Aarsloen.tsx`, `OffentligeYdelserTab.tsx` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f03--to-specialtoggles-omgår-fælles-fokusgenopretning) |
+| GM-F03 | To specialtoggles omgår fælles fokusgenopretning | Væsentlig | Rettet med R7-F02 (samme ændring) | 7 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f03--to-specialtoggles-omgår-fælles-fokusgenopretning) |
 | GM-F04 | Årsløn beregner delresultat, mens dokumentet blokerer | Væsentlig | `aarsloenProjection.ts` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f04--årsløn-beregner-delresultat-mens-dokumentet-blokerer) |
 | GM-F05 | Forsørgertab har en afkoblet parallel fieldUi-model | Væsentlig | `forsoergertabSnapshot.ts`, `Forsoergertab.tsx` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f05--forsørgertab-har-en-afkoblet-parallel-fieldui-model) |
 | GM-F06 | Persisted felter accepterer en separat rå fejltekst | Væsentlig | Fælles feltkomponenter og EO/EET-callsites | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f06--persisted-felter-accepterer-en-separat-rå-fejltekst) |
@@ -207,6 +210,10 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F08 | 33 `placeholder`-felter i `dateRanges` blev læst af ingen kode — kun af to `toBeTruthy()`-tests | Mindre | UT-F06 | **Rettet 2026-07-28** |
 | INC-F09 | `OffentligeYdelserTableHandle` havde hverken implementer eller consumer | Mindre | UT-F06 | **Rettet 2026-07-28** |
 | INC-F10 | Containers fokus-stop-opslag var en næsten-kopi af den fælles selector uden dens filtre | Væsentlig | UT-F02 | **Rettet 2026-07-28** |
+| INC-F11 | Mit eget nye attribut-værn var inert: TYPENS computed keys opfyldte det, mens builderen havde tabt dem | Væsentlig | R7-F03's værn | **Rettet 2026-07-29** |
+| INC-F12 | EO-togglens simple ændring dispatchede helt UDEN history-origin | Væsentlig | R7-F02's integrationstest | **Rettet 2026-07-29** |
+| INC-F13 | `NON_NAVIGABLE_ROUTE` var et sentinel for en tilstand ingen kode er i | Mindre | R7-F03 | **Rettet 2026-07-29** |
+| INC-F14 | Alle kataloget's `fieldPath`-cellemål i EO-fejllinks er uopnåelige OG utestede | Væsentlig | GM-F10's kortlægning | Åbent (bæres af GM-F10) |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -519,3 +526,138 @@ idiom som en fejlmarkering, ingen ny visuel mekanik), og de to tomme års-formul
 svie/smerte-satsår og Satsers årgang) viser nu `åååå` som de tilsvarende tabelceller.
 
 Fire gates + `verify:ledgers` + fuld suite grøn: 502 filer / 6276 tests.
+
+**R7-F03 + R7-F02 + GM-F03 + R3-F03 — rettet og verificeret 2026-07-29 (etape 7, andet pas).** Arbejdet blev
+påbegyndt 2026-07-28, afbrudt af kvotenedlukning ved et rent stop-sted, og afsluttet 2026-07-29.
+Verifikation: `typecheck`, `typecheck:test`, `lint`, `check:mojibake`, `check:filename-case` og
+`verify:ledgers` grønne; fuld suite **502 filer / 6288 tests grøn**. Kun GM-F10 udestår i etapen.
+
+**Nedlukningens åbne spørgsmål er besvaret — og svaret var rødt.** Den fulde suite, som ikke kunne køres ved
+95 % kvote, fandt 4 røde tests i én fil. Årsagen var MIN egen testfixture, ikke produktionen: `testLocation`
+gav placeholder-celler en tom "ikke navigerbar" route, men en placeholder promoverer sin række med
+`settleFieldInNewRow` — en STRUKTUREL command, hvis origin kræver en rigtig route (§3.7). Runtime-guarden
+havde ret. Se INC-F13.
+
+*Destinationen ejes af lokationen (R7-F03).* `fieldAddressDestination.ts` er slettet (ikke omdøbt) sammen med
+sin completeness-test; den havde præcis ÉN produktionskonsument. `EditorLocation.route`/`.tabKey` er nu
+compiler-påkrævede, og **produktionen typecheckede uændret ved skiftet** — alle 82 lokationsdeklarationer
+erklærede dem allerede, så det valgfrie felt var et hul med nul legitime brugere. Editoren bærer sin egen
+destination i DOM, og `lookupEditorLocation` skelner MOUNTET fra SYNLIG: EO's faner forbliver mountet efter
+første besøg (skjult med `display: none`), så en skjult editor kan oplyse sin egen fane. De to
+kontekst-særregler, den gamle model havde brug for (`faellesAarsloen` og de tre forligsfelter), findes ikke
+længere — den synlige editor vinder, og det er hele forklaringen.
+
+*De to toggles (R7-F02/GM-F03).* Ikke en tredje togglekomponent, men ÉN ny override på de to eksisterende
+adaptere: `ToggleCommitDecision = 'commit' | 'reject' | 'handled'`. Tre-vejs-udfaldet var nødvendigt, fordi
+en boolsk override kun kunne dække det ene callsite: Årsløns gate skal kunne AFVISE men vil have adapteren
+til at skrive, mens EO's toggle selv afslutter som én atomisk transaktion over flere felter og rækker.
+`useOmregningToggle` skriver ikke længere selv — gaten er en afslutningspolitik, ikke en grund til at
+forbinde et rå `StyledToggleSwitch`.
+
+**Værnene (2026-07-29).** Tre nye AST-regler, hver mod sit eget hul, ALLE mutationstestet mod den LEVENDE
+kilde og ikke kun mod fixtures:
+
+- `input/persisted-controls-use-field-family` — lukker det hul, fundet faktisk beskrev.
+  `form/restore-target-attributes` dækkede kun `src/inputCore/react/fields/**`, og netop derfor var R7-F02's to
+  produktions-callsites grønne. Den nye regel dækker HELE komponent-laget og tillader kun de tre eksplicit
+  navngivne ikke-sagsdata-flader (Indstillinger, Mineo, løntrin-overlayet). Efter R7-F02's rettelse er det
+  bevisligt de eneste tre tilbage. Mutation: genindføres Årsløns rå toggle, bliver reglen rød på
+  `Aarsloen.tsx:312:13`.
+- `input/focus-destination-owned-by-location` — typen sikrer, at en lokation HAR en destination, men ikke at
+  ingen UDLEDER én af dataadressen. Mutation: genindføres `PAGE_DEFAULT_TAB` i save-fokus-fladen, bliver reglen
+  rød på tre positioner inkl. importen.
+- `input/restore-attributes-carry-destination` — de nye DOM-attributter. Første udgave var **inert** (INC-F11);
+  den nuværende måler kun inde i builderens eget objekt-literal. Mutation: fjernes route/fane fra objektet,
+  bliver reglen rød med `mangler EDITOR_ROUTE_ATTR, EDITOR_TAB_ATTR`.
+
+Dertil integrationstesten `persistedToggleUndoFocus.integration.test.tsx` (3 tests gennem de ÆGTE sider og den
+ægte runtime), som er den evidens, R7-F02 manglede: `useOmregningToggle.test.tsx` er mock-baseret og kan pr.
+konstruktion ikke se, om kontrollen bærer sin identitet i DOM. Den nye test fandt desuden INC-F12.
+
+**R3-F03 — rettet 2026-07-29 (samme etape, samme flade: feltets synlige besked).** Fundet var ikke, at
+helperen manglede evnen til at navngive årsagen — den havde allerede `noValidRangeInputs`. Fejlen var, at
+feltet var **VALGFRIT**, så de fleste descriptors udelod det: kun to af fjorten callsites satte det.
+
+Kravet er derfor flyttet til TYPEN. `noValidRangeInputs?: string` er afløst af en påkrævet, DISKRIMINERET
+`bounds: DateRangeBoundsOrigin`, hvor `derived` tvinger et årsagsnavn frem og `static` udtrykker, at
+intervallet ikke KAN blive umuligt. Klassifikationen er ikke kosmetisk: den skelner de callsites, hvor begge
+grænser er konstanter fra `dateRanges` (min > max er urepræsenterbart), fra dem, hvor en grænse udledes af et
+andet felts værdi (min > max er reachable, og brugeren skal vide hvilke felter). Compileren enumererede alle
+fjorten callsites, og hver blev klassificeret ved at læse dens faktiske grænseudledning.
+
+Otte flader navngiver nu en årsag, de før var tavse om — blandt dem EO's forligsdato og øvrige-krav-dato
+(fundets egen reproduktion med `skadedato = 2099-01-01`), EETs beregningsdato, Forsørgertabs beregnings- og
+virkningsdato og to af EET-rækkernes fire datoroller. Sidstnævnte er værd at bemærke: dét callsite satte
+årsagen for to roller og `undefined` for de to andre — den præcise form for asymmetri, et valgfrit felt
+inviterer til.
+
+Dækning: 3 nye tests på helperen (udledt/statisk/kun-i-den-umulige-gren) plus 3 nye
+descriptor-integrationstests gennem det ÆGTE produktionskatalog, som måler `issue.message` frem for blot
+`status` — en status-only assertion havde været grøn hele vejen igennem. Mutationsbevist: sættes EETs
+beregningsdato tilbage til `static`, fejler netop dens test med fundets oprindelige, halve besked.
+
+**INC-F11.** Det NYE værn `input/restore-attributes-carry-destination`, som jeg skrev for at sikre, at
+fokusnavigationens fire DOM-attributter altid bygges, var i sin første udgave **inert**. Reglen talte enhver
+computed property i filen — og `RestoreTargetAttributes`-TYPENS fire computed keys
+(`[EDITOR_ROUTE_ATTR]: string` m.fl.) opfyldte den derfor på egen hånd. Mutationen — fjern
+`[EDITOR_ROUTE_ATTR]`/`[EDITOR_TAB_ATTR]` fra builderens returnerede objekt, så fokusnavigationen bliver
+inert — lod reglen forblive GRØN.
+
+Fixtures fangede det ikke, fordi de ikke indeholdt en typedeklaration; kun mutationen mod den LEVENDE kilde
+afslørede det. Reglen måler nu udelukkende inde i `buildRestoreTargetAttributes`' eget objekt-literal og
+rapporterer desuden alle fire som manglende, hvis builderen ikke længere findes under sit navn (så en
+omdøbning ikke får reglen til at gå stille i opløsning). To fixtures pinner begge huller.
+
+Fundet er registreret frem for blot rettet, fordi det er DEN SAMME fejl som INC-F03 — begået igen, af mig, i
+samme etape, efter at lærepunktet var skrevet ned. Det skærper reglen: **mutationstest et nyt værn mod den
+levende kilde, ikke kun mod dens fixtures.** Et fixture-sæt beviser, at walkeren virker; kun mutationen
+beviser, at den måler det rigtige.
+
+**INC-F12.** EO-togglens `commitMidlertidigtEetToggle` har to grene: slår den rækker fra, bygger den en
+`structuralInputTransaction` med en rækkeorigin — men den RENE felttransaktion kaldte
+`edit.dispatch(inputTransaction(fieldSteps))` **uden andet argument**, altså uden nogen history-origin. Et
+undo kunne derfor hverken navigere til fanen eller refokusere togglen.
+
+GM-F03 nævnte det ("EO's toggle mangler origin ved den simple ændring"), men R7-F02's rettelse — at føre
+`FieldRef` og restore-attributter gennem feltfamilien — lukkede det ikke: identiteten stod nu i DOM, mens
+history-framen fortsat var uden origin. Det var den NYE integrationstest, der fandt det, ved at hævde
+`origin?.kind === 'field'` frem for blot at måle den skrevne værdi. Rettet med
+`buildFieldHistoryOrigin(MIDLERTIDIGT_EET_LOCATION, midlertidigtEetFieldRef)`; samme funktion, feltadapterens
+egen `commitImmediate`-vej bruger, så de to veje ikke kan divergere. Mutationsbevist: fjernes origin igen,
+fejler netop den test med `expected undefined to be 'field'`.
+
+Fundet er registreret frem for blot rettet, fordi det viser en **grænse for DOM-baseret evidens**: et felt kan
+bære sin identitet korrekt i DOM og stadig være uopnåeligt for undo/redo, fordi history-framen mangler. De to
+halvdele skal begge hævdes.
+
+**INC-F13.** Jeg indførte `NON_NAVIGABLE_ROUTE = ''` som "den eksplicitte værdi for en bevidst
+ikke-navigerbar editorlokation (standalone/devtools)" — og en tilsvarende `nonNavigableTestLocation`-fixture.
+Efterprøvningen viste, at **ingen produktionslokation er ikke-navigerbar**: alle 82 deklarationer har en
+rigtig route, og fixturen fik nul consumers. Konstanten beskrev altså en tilstand, ingen kode er i.
+
+Værre: den blanket ikke-navigerbare testfixture gjorde fire placeholder-tests røde, fordi
+`settleFieldInNewRow` er en STRUKTUREL command, hvis origin kræver en rigtig route (§3.7,
+`assertStructuralOrigin`). Runtime havde ret; mit fixture havde opfundet en svagere variant af produktionen.
+Begge er slettet, og `testLocation` efterligner nu produktionen. Den defensive guard mod en tom
+route-attribut i `lookupEditorLocation` er BEVARET, men dokumenteret som det den er — defensiv DOM-læsning af
+et fremmed element, ikke et "ikke navigerbar"-begreb.
+
+Fundet er registreret frem for blot slettet, fordi det er samme fejlklasse som R0-F02 set fra
+produktionssiden: **et sentinel for en umulig tilstand er en gren, intet kan nå** — og fordi det viser, at en
+testfixture skal efterligne produktionens krav frem for at opfinde en løsere udgave af dem.
+
+**INC-F14 (åbent, bæres af GM-F10).** `eoRowIssueCatalog`'s `kind: 'fieldPath'`-cellemål er uopnåelige, og
+ingen test dækker dem. To uafhængige beviser: (1) `CELL_TABLE_IDS`/`buildCellFocusFieldPath` har INGEN anden
+konsument end kataloget selv, og `data-mineo-field-path` sættes udelukkende som et bart `name`
+(`StyledTextFieldBase.tsx:219`, `StyledTextAreaBase.tsx:221`) — ingen callsite overskriver det med en
+`tableId:rowScope:rowId:colIndex`-streng; (2) grid-cellerne renderer `InputBase` direkte og sætter derfor
+slet ikke attributten. Opslaget falder altid igennem til rækkeankeret (`data-mineo-row-id`).
+
+Hele `focusByRowPattern`s kolonnevalg er dermed uden virkning — inklusive `inferDateColumn`, som gætter
+kolonne ud fra dansk fejltekst, og `focusFieldHint`, som fire row-buildere sætter. De ca. 37
+`exactFieldTargets` (bare feltnavne) resolver derimod fint. Ingen af de to testfiler
+(`eoRowIssueCatalog.test.ts`, `scrollToEoRow.test.ts`) nævner `focusTarget` overhovedet.
+
+Det ændrer GM-F10's blast radius i BEGGE retninger: der er ingen kolonnepræcision at regressere (adfærden
+findes ikke i dag), men til gengæld tre parallelle attribut-fallbacks, fire row-buildere og et helt
+konfigurationsmodul at rydde op i. Fundet holdes åbent og lukkes sammen med GM-F10.

@@ -6,6 +6,7 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
+import type { ToggleCommitOverride } from './ToggleField';
 
 /**
  * Greenfield-toggle for persisted enumfelter, hvor den synlige switch mapper mellem to canonical værdier
@@ -22,6 +23,11 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
   name?: string;
   id?: string;
   ariaLabel?: string;
+  /**
+   * Callsite-ejet afslutning (§1.11) — se {@link ToggleCommitOverride}. Kaldes med den MAPPEDE canonical værdi,
+   * ikke med boolean, så callsitet arbejder i feltets eget domæne. Udelades for en almindelig ét-felts-toggle.
+   */
+  commit?: ToggleCommitOverride<NoInfer<TValue>>;
 }>;
 
 const MappedToggleFieldInner = <TValue,>(
@@ -36,6 +42,7 @@ const MappedToggleFieldInner = <TValue,>(
     name,
     id,
     ariaLabel,
+    commit,
   }: MappedToggleFieldProps<TValue>,
   ref: React.ForwardedRef<StyledToggleSwitchHandle>
 ): React.ReactElement => {
@@ -45,10 +52,13 @@ const MappedToggleFieldInner = <TValue,>(
 
   const handleCommit = React.useCallback(
     (event: CommitEvent<boolean>): boolean => {
-      controller.commitImmediate(event.target.value ? checkedValue : uncheckedValue);
+      const next = event.target.value ? checkedValue : uncheckedValue;
+      const decision = commit === undefined ? 'commit' : commit(next);
+      if (decision === 'reject') return false;
+      if (decision === 'commit') controller.commitImmediate(next);
       return true;
     },
-    [checkedValue, controller, uncheckedValue]
+    [checkedValue, commit, controller, uncheckedValue]
   );
 
   return (

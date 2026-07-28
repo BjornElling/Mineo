@@ -253,6 +253,13 @@ den toggle, brugeren aktiverede.
 **Anbefalet retning:** Bevar de nødvendige flerfelts-/bekræftelsestransaktioner, men lad dem bruge samme
 togglelokation og restore-kontrakt som øvrige persisted controls.
 
+**Rettet 2026-07-29 (etape 7, andet pas) — samme ændring som R7-F02; se DEN for løsningen.** Den
+anbefalede retning er fulgt ordret: transaktionerne er bevaret, men leveres nu som `commit`-override på
+`ToggleField`/`MappedToggleField`, så begge toggles bærer samme togglelokation og restore-kontrakt som øvrige
+persisterede controls. Verificeret: fire gates + `verify:ledgers` + fuld suite (502 filer / 6288 tests) grøn. Fundets punkt om at EO's toggle «mangler origin ved den simple
+ændring» er dækket: adapterens `commitImmediate`-vej bærer felt-origin, og den strukturelle gren bevarer sin
+rækkeorigin uændret.
+
 ### GM-F04 — Årsløn beregner delresultat, mens dokumentet blokerer
 
 **Alvor:** Væsentlig  

@@ -9,22 +9,29 @@ import type { RejectedInput } from '../settledInput';
 // State-machinen udsteder INTENTS (settle/no-op), som runtime-bindingen oversætter til én `settleField`-
 // command mod `dispatchInput`. Selve I/O, revision og history ejes af runneren (§3.6), aldrig af editoren.
 
-/** Editorlokationens overflademetadata (§3.2/§3.5). Fokusmål er IKKE en del af datafeltets identitet. */
+/**
+ * Editorlokationens overflademetadata (§3.2/§3.5). Fokusmål er IKKE en del af datafeltets identitet.
+ *
+ * Lokationen EJER sin destination. `route` + `tabKey` er PÅKRÆVEDE, fordi de er det eneste sted, der ved hvor
+ * feltet redigeres: samme datafelt kan have flere editorer (`faellesAarsloen` uden egen route, forligsfelterne
+ * på to sider), og både undo/redo-restoren (§3.7) og save-blokeringens fokus (§1.4) navigerer efter dem. Var de
+ * valgfri, ville en glemt destination gøre lokationen uopnåelig UDEN at nogen type eller test fejlede — og et
+ * globalt feltadresse→fane-kort måtte kompensere, netop den parallelle model R7-F03 lukkede.
+ *
+ * `tabKey: null` udtrykker eksplicit "siden har ingen faner". Der findes bevidst INGEN "ikke navigerbar"-værdi:
+ * hver eneste produktionslokation har en rigtig route, og et sentinel for en tilstand, ingen kode er i, ville
+ * blot være en gren, intet kan nå.
+ */
 export type EditorLocation = Readonly<{
   /** Stabilt id for den konkrete editorlokation; bliver til `HistoryOrigin.editorLocationId` ved settle. */
   locationId: string;
   /**
-   * Den route, editorlokationen hører til (fx `/forsoergertab`). Bruges af undo/redo-restoren til at navigere
-   * tilbage til den side, ændringen kom fra (§3.7). EKSPLICIT typed metadata — undo/redo må ALDRIG string-parse
-   * `locationId` eller udlede route af `field.section` (delte felter som `faellesAarsloen` har ingen egen route og
-   * bor på flere sider). Udelades kun af rene ikke-navigerbare lokationer (fx standalone/devtools).
+   * Den route, editorlokationen hører til (fx `/forsoergertab`). Undo/redo må ALDRIG string-parse `locationId`
+   * eller udlede route af `field.section`.
    */
-  route?: string;
-  /**
-   * Den fane inden for `route`, editorlokationen hører til (fx `'loenindkomst'`), eller `null` for en side uden
-   * faner. Bruges af undo/redo-restoren til at genskabe den aktive fane, før feltet fokuseres.
-   */
-  tabKey?: string | null;
+  route: string;
+  /** Fanen inden for `route` (fx `'loenindkomst'`), eller `null` for en side uden faner. */
+  tabKey: string | null;
 }>;
 
 /**

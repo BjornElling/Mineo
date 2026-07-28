@@ -6,13 +6,11 @@ import RadioField from '../../inputCore/react/fields/RadioField';
 import ChoiceField from '../../inputCore/react/fields/ChoiceField';
 import ToggleField from '../../inputCore/react/fields/ToggleField';
 import IntegerField from '../../inputCore/react/fields/IntegerField';
-import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StandardLoenTable from '../tables/StandardLoenTable';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { aarsloenStandardLoenFieldSet } from '../../domain/aarsloen/aarsloenStandardLoenFieldSet';
 import ContentBox from '../layout/ContentBox';
 import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
-import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import {
   aarsloenDocumentDefinition,
@@ -48,7 +46,7 @@ import {
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
 } from '../../domain/policies/aarsloenPolicy';
-import type { StandardLoenTableHandle } from '../../types/handles';
+import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import type { LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas/enumSchemas';
 
@@ -110,21 +108,17 @@ const Aarsloen = React.memo(() => {
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
 
   // Omregning-toggle: den persisterede canonical værdi + den centrale gate. Toggle-visning og skjult indhold
-  // reagerer på samme committed forudsætninger (gate). Selve committen går gennem den ene write-grænse
-  // (`omregningController.commitImmediate`), men GATES her, så en ugyldig aktivering ikke skriver.
-  const omregningController = useFieldEditor(omregningTilFuldtAarRef, loc('omregningTilFuldtAar'));
-  const toggleRef = React.useRef<{ shake: () => void } | null>(null);
+  // reagerer på samme committed forudsætninger (gate). Togglen er et ALMINDELIGT persisteret felt gennem
+  // `ToggleField` (§3.2/§3.7) — gaten leveres som dens `commit`-override, så en ugyldig aktivering afvises uden
+  // at feltbindingen eller undo/redo-fokusmetadataen falder væk (R7-F02).
+  const toggleRef = React.useRef<StyledToggleSwitchHandle | null>(null);
 
   const { omregningGate } = readerProjection;
 
-  const { checked: omregningChecked, effectiveEnabled: omregningAktiveret, handleToggle: handleOmregningToggle } = useOmregningToggle({
+  const { checked: omregningChecked, effectiveEnabled: omregningAktiveret, decideToggle: decideOmregningToggle } = useOmregningToggle({
     gate: omregningGate,
     tabelRef,
     toggleRef,
-    onEnabledChange: (enabled) => {
-      omregningController.commitImmediate(enabled);
-      return true;
-    },
   });
 
   // Greenfield fatal-gate (§1.6/§3.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
@@ -315,11 +309,13 @@ const Aarsloen = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Omregning til fuldt år:</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
+            <ToggleField
+              field={omregningTilFuldtAarRef}
+              location={loc('omregningTilFuldtAar')}
               name="omregningTilFuldtAar"
               ref={toggleRef}
-              checked={omregningChecked}
-              onCommit={handleOmregningToggle}
+              checkedOverride={omregningChecked}
+              commit={decideOmregningToggle}
             />
           </Box>
         </Box>

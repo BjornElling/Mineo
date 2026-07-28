@@ -39,12 +39,11 @@ import {
   enhedField,
   makeRow,
   rentekravRowsRef,
-  testRowOrigin,
-} from '../testCatalog';
+  testRowOrigin, testLocation } from '../testCatalog';
 
 const key = getCurrentInputEnvelopeStorageKey();
 void key;
-const LOC: EditorLocation = { locationId: 'form:test' };
+const LOC: EditorLocation = testLocation('form:test');
 
 // Statiske felter bindes én gang til en konkret FieldRef; editoren opererer altid på refs, aldrig descriptors.
 const aargangRef = aargangField.bind();
@@ -333,7 +332,7 @@ describe('felt-editor i dynamisk række — placeholder-first-invalid overlever 
   it('første fejlende settle i en ny række promoverer rækken og bevarer den rå tekst', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('row-a')), { origin: testRowOrigin() });
     const belob = belobField.bind('row-a');
-    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(belob, { locationId: 'grid:belob:row-a' }), deriveSettledFieldView(store.getState().input, belob), store.getState().replacementGeneration), 'ikke-et-beløb')));
+    dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(belob, testLocation('grid:belob:row-a')), deriveSettledFieldView(store.getState().input, belob), store.getState().replacementGeneration), 'ikke-et-beløb')));
 
     const view = deriveSettledFieldView(store.getState().input, belob);
     expect(view.kind).toBe('rejected');

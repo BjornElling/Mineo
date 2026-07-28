@@ -108,9 +108,12 @@ export const useFormFieldSurface = <T>(
 
   // Undo/redo-fokusrestore-mål (§3.7): serialiseret feltadresse + editorlokation. Memoiseret pr. felt/lokation,
   // så attribut-objektet er referentielt stabilt mellem renders.
+  // Memoiseret på lokationens PRIMITIVE felter: kaldssteder konstruerer typisk en frisk `loc(...)` pr. render.
   const restoreTargetAttributes = React.useMemo(
-    () => buildRestoreTargetAttributes(serializeFieldAddress(field.address), location.locationId),
-    [field, location.locationId]
+    () => buildRestoreTargetAttributes(
+      serializeFieldAddress(field.address), location.locationId, location.route, location.tabKey
+    ),
+    [field, location.locationId, location.route, location.tabKey]
   );
 
   // To-trins-aktivering: mousedown noterer om elementet allerede var fokuseret; klik på et allerede-fokuseret

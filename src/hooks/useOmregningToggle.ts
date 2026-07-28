@@ -1,19 +1,27 @@
 import React from 'react';
 import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../types/handles';
-import type { CommitEvent, CommitHandler } from '../types/fieldEvents';
 import type { AarsloenOmregningGate } from '../domain/aarsloen/aarsloenValidationPolicies';
+import type { ToggleCommitDecision, ToggleCommitOverride } from '../inputCore/react/fields/ToggleField';
 
 interface UseOmregningToggleProps {
   gate: AarsloenOmregningGate;
   tabelRef: React.RefObject<StandardLoenTableHandle | null>;
   toggleRef: React.RefObject<StyledToggleSwitchHandle | null>;
-  onEnabledChange: (enabled: boolean) => boolean;
 }
 
 interface UseOmregningToggleReturn {
   checked: boolean;
   effectiveEnabled: boolean;
-  handleToggle: CommitHandler<boolean>;
+  /**
+   * Gatens afgørelse som feltadapterens {@link ToggleCommitOverride} (§1.11): `'reject'` ved en ugyldig
+   * aktivering, hvorved adapteren IKKE skriver og togglen bliver stående, ellers `'commit'`, hvorved adapteren
+   * skriver gennem sin normale write-grænse. Bivirkningerne — shake og fejlcelle-guidning — hører til
+   * afvisningen og sker derfor her.
+   *
+   * Hooken skriver ikke selv. Det er hele pointen i R7-F02: gaten er en afslutningsPOLITIK, ikke en grund til at
+   * forbinde et rå `StyledToggleSwitch` manuelt og derved miste `FieldRef`-bindingen og undo/redo-fokusmetadataen.
+   */
+  decideToggle: ToggleCommitOverride<boolean>;
 }
 
 /**
@@ -28,15 +36,9 @@ export const useOmregningToggle = ({
   gate,
   tabelRef,
   toggleRef,
-  onEnabledChange,
 }: UseOmregningToggleProps): UseOmregningToggleReturn => {
-  /**
-   * Håndter brugerens toggle-interaktion
-   */
-  const handleToggle = React.useCallback(
-    (event: CommitEvent<boolean>) => {
-      const newValue = event.target.value;
-
+  const decideToggle = React.useCallback(
+    (newValue: boolean): ToggleCommitDecision => {
       if (newValue && !gate.canEnable) {
         // Altid ryst toggle ved ugyldig aktivering
         toggleRef.current?.shake();
@@ -61,23 +63,18 @@ export const useOmregningToggle = ({
         }
 
         // Ingen state-ændring
-        return false;
+        return 'reject';
       }
 
-      // Gyldig ændring → opdater persisted state
-      return onEnabledChange(newValue);
+      // Gyldig ændring → feltadapteren skriver gennem sin normale write-grænse.
+      return 'commit';
     },
-    [
-      gate,
-      tabelRef,
-      toggleRef,
-      onEnabledChange,
-    ]
+    [gate, tabelRef, toggleRef]
   );
 
   return {
     checked: gate.checked,
     effectiveEnabled: gate.effectiveEnabled,
-    handleToggle,
+    decideToggle,
   };
 };

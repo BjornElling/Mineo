@@ -96,7 +96,12 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   // Undo/redo-fokusrestore-mål (§3.7): serialiseret celle-feltadresse + editorlokation. Genberegnes kun når
   // celle-spec'et skifter identitet (ny række/kolonne), så attribut-objektet er stabilt mellem renders.
   const restoreTargetAttributes = React.useMemo(
-    () => buildRestoreTargetAttributes(serializeFieldAddress(cellFieldOf(cell).address), cell.location.locationId),
+    () => buildRestoreTargetAttributes(
+      serializeFieldAddress(cellFieldOf(cell).address),
+      cell.location.locationId,
+      cell.location.route,
+      cell.location.tabKey
+    ),
     [cell]
   );
 

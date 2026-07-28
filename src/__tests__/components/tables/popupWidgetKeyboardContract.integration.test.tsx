@@ -14,8 +14,7 @@ import {
   enhedField,
   rentekravRowsRef,
   makeRow,
-  testRowOrigin,
-} from '../../inputCore/testCatalog';
+  testRowOrigin, testLocation } from '../../inputCore/testCatalog';
 import { useGridCoreController } from '../../../components/tables/useGridCoreController';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import {
@@ -95,13 +94,13 @@ const GridHarness: React.FC = () => {
               <td>
                 <GridAmountCell
                   gridCell={{ rowId, colIndex: 0 }}
-                  cell={{ kind: 'existing', field: belobField.bind(rowId), location: { locationId: `${rowId}:belob` } }}
+                  cell={{ kind: 'existing', field: belobField.bind(rowId), location: testLocation(`${rowId}:belob`) }}
                 />
               </td>
               <td>
                 <GridChoiceCell<TillaegstidEnhed, unknown, TillaegstidEnhed>
                   gridCell={choiceCell(rowId)}
-                  cell={{ kind: 'existing', field: enhedField.bind(rowId), location: { locationId: `${rowId}:enhed` } }}
+                  cell={{ kind: 'existing', field: enhedField.bind(rowId), location: testLocation(`${rowId}:enhed`) }}
                   allowEmpty={false}
                   ariaLabel={`Enhed ${rowId}`}
                 >
@@ -277,7 +276,7 @@ describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => 
       <InputRuntimeProvider binding={makeBinding()}>
         <ChoiceField
           field={enhedField.bind('r1')}
-          location={{ locationId: 'form:enhed' }}
+          location={testLocation('form:enhed')}
           name="enhed"
           allowEmpty={false}
         >

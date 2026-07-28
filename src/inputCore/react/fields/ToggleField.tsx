@@ -12,6 +12,23 @@ import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 // læses fra den afsluttede revision gennem editor-controlleren. Handle-ref (`shake()`) forwardes uændret, så en
 // gate-afvisning (fx omregning) fortsat kan animere kontrollen.
 
+/**
+ * En callsite-ejet afslutning af togglen (§1.11). Kaldes med den ønskede næste værdi og afgør, hvad der sker:
+ *
+ * - `'commit'` — adapteren skriver værdien gennem sin normale `commitImmediate`. En gate bruger dette for den
+ *   tilladte ændring; skrivevejen forbliver dermed adapterens.
+ * - `'reject'` — ingen skrivning; kontrollen bliver stående (gate-afvisning).
+ * - `'handled'` — callsitet har selv afsluttet ændringen, typisk som én atomisk transaktion, der også rører
+ *   andre felter eller rækker. Adapteren skriver da ikke oveni.
+ *
+ * Findes for de persisterede toggles, hvis afslutning IKKE er én ren feltskrivning. Før R7-F02 måtte netop de
+ * callsites bruge det rå `StyledToggleSwitch` direkte og forbinde editoren manuelt — hvorved BÅDE den konkrete
+ * `FieldRef` og undo/redo-fokusmetadataen faldt væk. Overriden flytter kun AFSLUTNINGEN; identitet, visning og
+ * restore-attributter forbliver adapterens ansvar.
+ */
+export type ToggleCommitDecision = 'commit' | 'reject' | 'handled';
+export type ToggleCommitOverride<TValue> = (next: TValue) => ToggleCommitDecision;
+
 export type ToggleFieldProps = Readonly<{
   field: FieldRef<boolean>;
   location: EditorLocation;
@@ -22,22 +39,32 @@ export type ToggleFieldProps = Readonly<{
   name?: string;
   id?: string;
   ariaLabel?: string;
+  /** Callsite-ejet afslutning (gate/atomisk transaktion). Udelades for en almindelig ét-felts-toggle. */
+  commit?: ToggleCommitOverride<boolean>;
+  /**
+   * Den viste checked-tilstand, når den IKKE blot er feltets afsluttede værdi — fx en gate, der beregner den
+   * synlige tilstand ud af det persisterede ønske plus dets forudsætninger. Udelades normalt.
+   */
+  checkedOverride?: boolean;
 }>;
 
 const ToggleField = React.forwardRef<StyledToggleSwitchHandle, ToggleFieldProps>(
-  ({ field, location, label, labelPlacement, disabled, name, id, ariaLabel }, ref) => {
+  ({ field, location, label, labelPlacement, disabled, name, id, ariaLabel, commit, checkedOverride }, ref) => {
     const controller = useFieldEditor(field, location);
     const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
     // En boolsk descriptor har altid en defineret canonical værdi (emptyValue false/true); controller.value er
     // derfor defineret for et toggle-felt. Fald tilbage til false for at opfylde den controlled kontrakt.
-    const checked = controller.value ?? false;
+    const checked = checkedOverride ?? controller.value ?? false;
 
     const handleCommit = React.useCallback(
       (e: CommitEvent<boolean>): boolean => {
-        controller.commitImmediate(e.target.value);
+        const next = e.target.value;
+        const decision = commit === undefined ? 'commit' : commit(next);
+        if (decision === 'reject') return false;
+        if (decision === 'commit') controller.commitImmediate(next);
         return true;
       },
-      [controller]
+      [commit, controller]
     );
 
     return (

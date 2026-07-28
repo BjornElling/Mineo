@@ -7,7 +7,10 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 import TransientDateInput from '../../inputs/transient/TransientDateInput';
-import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
+import MappedToggleField from '../../../inputCore/react/fields/MappedToggleField';
+import type { ToggleCommitDecision } from '../../../inputCore/react/fields/ToggleField';
+import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
+import { buildFieldHistoryOrigin } from '../../../inputCore/editor/fieldEditorEngine';
 import MultilineTextField from '../../../inputCore/react/fields/MultilineTextField';
 import InlineActionButton from '../../inputs/InlineActionButton';
 import {
@@ -15,6 +18,7 @@ import {
   SygedagpengeCoverageError,
 } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
 import { dateRanges_offentligeYdelser } from '../../../config/dateRanges';
+import { derivedDateBounds } from '../../../utils/dateRangeErrorMessages';
 import { isISODateString, type ISODateString } from '../../../types/branded';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
@@ -57,8 +61,14 @@ const OFFENTLIGE_YDELSER_ROW_ORIGIN: CollectionRowOrigin = {
   route: APP_ROUTES.erstatningsopgoerelse,
   tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER,
 };
-import type { CommitEvent } from '../../../types/fieldEvents';
-import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
+
+/** Midlertidigt-EET-togglens felt-ref + editorlokation (§3.2); feltet bor på Offentlige ydelser-fanen. */
+const midlertidigtEetFieldRef = eoMidlertidigtEetFraEetSidenField.bind();
+const MIDLERTIDIGT_EET_LOCATION: EditorLocation = {
+  locationId: 'erstatningsopgoerelse.midlertidigtEetFraEetSiden',
+  route: APP_ROUTES.erstatningsopgoerelse,
+  tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER,
+};
 
 const offentligeYdelserHelpersSessionSchema = z.object({
   sygedagpengeFraDato: z.preprocess(
@@ -83,11 +93,6 @@ type Props = Readonly<{
 const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   const edit = useInputEditPort();
   const rows = values.offentligeYdelserRows;
-  const midlertidigtEetEditor = useFieldEditor(
-    eoMidlertidigtEetFraEetSidenField.bind(),
-    // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Offentlige ydelser-fanen.
-    { locationId: 'erstatningsopgoerelse.midlertidigtEetFraEetSiden', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER }
-  );
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
@@ -275,7 +280,13 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
           buildRowHistoryOrigin(OFFENTLIGE_YDELSER_COLLECTION, OFFENTLIGE_YDELSER_ROW_ORIGIN)
         );
       } else {
-        edit.dispatch(inputTransaction(fieldSteps));
+        // GM-F03: den simple ændring manglede en origin helt, så et undo kunne ikke navigere eller refokusere
+        // togglen. Den er et FELT-commit — transaktionen rører kun felter — og bærer derfor togglens egen
+        // feltorigin, præcis som feltadapterens normale `commitImmediate`-vej gør (§3.7).
+        edit.dispatch(
+          inputTransaction(fieldSteps),
+          buildFieldHistoryOrigin(MIDLERTIDIGT_EET_LOCATION, midlertidigtEetFieldRef)
+        );
       }
       setMidlertidigtEetToggleError(null);
       return true;
@@ -294,18 +305,27 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     }
   }, [rows, edit]);
 
-  const handleMidlertidigtEetToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
-    const nextChecked = event.target.value;
-    if (nextChecked === isMidlertidigtEetFraEetSiden) return true;
+  /**
+   * Togglens afslutning som feltadapterens {@link ToggleCommitOverride} (§1.11, R7-F02).
+   *
+   * Udfaldet er ALTID `'handled'` eller `'reject'`, aldrig `'commit'`: hver gren rører mere end det ene felt —
+   * bilag-checkboxen følger altid med, og en tilslåning kan desuden slette manuelle rækker. Adapteren må derfor
+   * ikke skrive oveni; den ejer identiteten, visningen og undo/redo-fokusmålet, mens transaktionen er vores.
+   */
+  const decideMidlertidigtEetToggle = React.useCallback((next: 'Ja' | 'Nej'): ToggleCommitDecision => {
+    const nextChecked = next === 'Ja';
+    // Uændret valg: intet at skrive, men heller ingen afvisning at vise.
+    if (nextChecked === isMidlertidigtEetFraEetSiden) return 'handled';
     if (!nextChecked) {
-      return commitMidlertidigtEetToggle(false);
+      return commitMidlertidigtEetToggle(false) ? 'handled' : 'reject';
     }
     const hasExistingMidlertidigtEetRows = rows.some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
     if (!hasExistingMidlertidigtEetRows) {
-      return commitMidlertidigtEetToggle(true);
+      return commitMidlertidigtEetToggle(true) ? 'handled' : 'reject';
     }
+    // Bekræftelsen skal først indhentes; dialogens Ja-knap afslutter transaktionen.
     setMidlertidigtEetConfirmDialogOpen(true);
-    return true;
+    return 'handled';
   }, [commitMidlertidigtEetToggle, isMidlertidigtEetFraEetSiden, rows]);
 
   const handleMidlertidigtEetConfirm = React.useCallback(() => {
@@ -350,6 +370,8 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
               minDate={dateRanges_offentligeYdelser.fraDato.min}
               maxDate={sygedagpengeTilDato ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
               specialRangeErrors={{ fraTilRole: 'fra' }}
+              // Max kommer fra til-datoen; parret kan derfor gøre intervallet umuligt (R3-F03).
+              bounds={derivedDateBounds('Fra-dato og til-dato i sygedagpenge-indsættelsen')}
             />
             <Typography className="row--text">-</Typography>
             <TransientDateInput
@@ -364,6 +386,8 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
               minDate={sygedagpengeFraDato ?? dateRanges_offentligeYdelser.tilDato.fallbackMin}
               maxDate={dateRanges_offentligeYdelser.tilDato.max}
               specialRangeErrors={{ fraTilRole: 'til' }}
+              // Min kommer fra fra-datoen; samme udledning fra den anden side.
+              bounds={derivedDateBounds('Fra-dato og til-dato i sygedagpenge-indsættelsen')}
             />
             <InlineActionButton onClick={handleSygedagpengeInsert} disabled={!canInsertSygedagpenge}>
               Indsæt
@@ -382,11 +406,14 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Midlertidigt EET indsættes fra Erhvervsevnetab-siden</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
+            <MappedToggleField
+              field={midlertidigtEetFieldRef}
+              location={MIDLERTIDIGT_EET_LOCATION}
+              checkedValue="Ja"
+              uncheckedValue="Nej"
               name="midlertidigtEetFraEetSiden"
-              checked={midlertidigtEetEditor.value === 'Ja'}
-              onCommit={handleMidlertidigtEetToggleCommit}
               ariaLabel="Midlertidigt EET indsættes fra Erhvervsevnetab-siden"
+              commit={decideMidlertidigtEetToggle}
             />
           </Box>
         </Box>

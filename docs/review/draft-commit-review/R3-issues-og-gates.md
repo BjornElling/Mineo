@@ -122,7 +122,28 @@ grænser 01-01-2099/28-07-2026, men hverken “Skadedato” eller det andet års
 **Anbefaling:** Gør årsagsinputs obligatoriske i den typed `min > max`-gren.  
 **Forslag til løsning:** Modellér range-årsagen strukturelt og opdatér alle descriptors samlet.  
 **Kræver godkendelse:** Nej — det genskaber den bindende tooltip-adfærd.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29** (etape 7, andet pas)
+
+**Løsningen.** Anbefalingen var at gøre årsagsinputs obligatoriske i den typede `min > max`-gren; det er
+gennemført som en DISKRIMINERET union frem for blot et påkrævet felt. `noValidRangeInputs?: string` er afløst
+af `bounds: DateRangeBoundsOrigin` = `{ kind: 'static' } | { kind: 'derived'; causeInputs: string }`.
+
+Sondringen er den saglige kerne: er begge grænser konstanter fra `dateRanges`, er et umuligt interval
+urepræsenterbart, og der findes intet brugerinput at nævne. Udledes en grænse af et ANDET felt, er intervallet
+reachable, og `causeInputs` er da PÅKRÆVET af typen. Et nyt dynamisk datofelt kan derfor ikke længere glemme
+årsagen uden en compilerfejl — og det var netop VALGFRIHEDEN, ikke manglende evne, der var fejlen: helperen
+kunne allerede tilføje årsagen, men kun 2 af 14 callsites gjorde det.
+
+Compileren enumererede alle callsites; hver er klassificeret efter sin faktiske grænseudledning. Otte flader
+navngiver nu en årsag, de før var tavse om — herunder fundets egen reproduktion (forligsdato og øvrige
+krav-dato ved `skadedato = 2099-01-01`), EETs beregningsdato og Forsørgertabs beregnings-/virkningsdato.
+EET-rækkernes datovalidator er værd at fremhæve: den satte årsagen for to af sine fire datoroller og
+`undefined` for de to andre — præcis den asymmetri, et valgfrit felt inviterer til.
+
+Dækning: 3 nye helper-tests (udledt / statisk / kun-i-den-umulige-gren) plus 3 descriptor-tests gennem det
+ÆGTE produktionskatalog, som måler `issue.message` frem for blot `status` — en status-only assertion havde
+været grøn hele vejen igennem. Mutationsbevist mod den levende kilde: sættes EETs beregningsdato tilbage til
+`static`, fejler netop dens test med fundets oprindelige, halve besked.
 
 ### R3-F04 — Den offentlige reader eksponerer hele issue-snapshottet
 

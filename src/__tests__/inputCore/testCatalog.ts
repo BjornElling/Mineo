@@ -4,6 +4,7 @@ import type { RenteberegningValues, RentekravRow } from '../../schemas/formSchem
 import type { SatserValues } from '../../schemas/formSchemas/sections/satserSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { CollectionHistoryOrigin } from '../../inputCore/inputHistory';
+import type { EditorLocation } from '../../inputCore/editor/fieldEditorState';
 import {
   createInputCatalog,
   defineField,
@@ -205,6 +206,23 @@ export const testRowOrigin = (collection = 'rentekravRows'): CollectionHistoryOr
   kind: 'collection' as const,
   collection,
   editorLocationId: `test:rows:${collection}`,
+  route: '/renteberegning',
+  tabKey: null,
+});
+
+/**
+ * Editorlokation til test-fixtures (§3.2). `route` + `tabKey` er PÅKRÆVEDE på `EditorLocation`, fordi lokationen
+ * ejer sin egen fokusdestination. ÉT delt fixture, så et opblødt krav ikke kan gemme sig i en test, der opfandt
+ * sin egen halve lokation.
+ *
+ * Lokationen er NAVIGERBAR som produktionens, og det er ikke en bekvemmelighed: en placeholder-celle promoverer
+ * sin række med `settleFieldInNewRow` — en STRUKTUREL command, hvis origin kræver en rigtig route (§3.7,
+ * `assertStructuralOrigin`). Et første forsøg gav fixturet en tom "ikke navigerbar" route; det gjorde fire
+ * placeholder-tests røde, og runtime havde ret. Fixturet efterligner derfor produktionen frem for at opfinde en
+ * svagere variant — præcis grunden til at der kun findes ÉT.
+ */
+export const testLocation = (locationId: string): EditorLocation => Object.freeze({
+  locationId,
   route: '/renteberegning',
   tabKey: null,
 });

@@ -10,6 +10,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
 import {
   resolveDateRangeErrorMessage,
+  derivedDateBounds,
   type DateRangeSpecialErrors,
 } from '../../utils/dateRangeErrorMessages';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
@@ -78,6 +79,8 @@ export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateS
           minDate,
           maxDate,
           special: { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' },
+          // Min ER skadedatoen (uden clamp), så en skadedato efter datadækningen gør intervallet umuligt.
+          bounds: derivedDateBounds('Skadedato'),
         }),
         detail: { minDate, maxDate },
       };
@@ -280,9 +283,12 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         minDate,
         maxDate,
         special,
-        noValidRangeInputs: role === 'kapDato' || role === 'tidlKapDato'
-          ? 'Afgørelsesdato og skadedato'
-          : undefined,
+        // ALLE fire roller udleder min af Skadedato, og de to kapitaliseringsroller desuden af rækkens
+        // Afgørelsesdato. Før R3-F03 var årsagen kun sat for de to sidste — de øvrige gav derfor "ingen dato
+        // er gyldig" uden at nævne, at det var Skadedato, brugeren skulle rette.
+        bounds: derivedDateBounds(
+          role === 'kapDato' || role === 'tidlKapDato' ? 'Afgørelsesdato og Skadedato' : 'Skadedato'
+        ),
       }),
       detail: { minDate, ...(maxDate === undefined ? {} : { maxDate }) },
     };

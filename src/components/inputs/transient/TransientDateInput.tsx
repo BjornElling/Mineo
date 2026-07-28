@@ -6,6 +6,8 @@ import { parseDateDraftForCommit } from '../../../utils/dateDraftCommit';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
 import {
   resolveDateRangeErrorMessage,
+  STATIC_DATE_BOUNDS,
+  type DateRangeBoundsOrigin,
   type DateRangeSpecialErrors,
 } from '../../../utils/dateRangeErrorMessages';
 import { useTransientDraft } from './useTransientDraft';
@@ -31,6 +33,12 @@ export type TransientDateInputProps = Readonly<{
   /** Kronologiske grænser. Overtrædelse afvises ved commit med den delte bounds-besked. */
   minDate?: ISODateString;
   maxDate?: ISODateString;
+  /**
+   * Grænsernes oprindelse (R3-F03). Udledes en grænse af et ANDET felt — fx det andet felt i et fra/til-par —
+   * skal kalderen navngive årsagsinputtene med `derivedDateBounds(...)`, så en umulig kombination fortæller
+   * brugeren HVAD der skal rettes. Udelades kun når begge grænser er konstanter (eller helt fraværende).
+   */
+  bounds?: DateRangeBoundsOrigin;
   /** Domænespecifikke bounds-beskeder (fx fra/til-rollen i et datopar). */
   specialRangeErrors?: DateRangeSpecialErrors;
   width?: number | string;
@@ -49,6 +57,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
       onReject,
       minDate,
       maxDate,
+      bounds = STATIC_DATE_BOUNDS,
       specialRangeErrors,
       width,
       placeholder,
@@ -72,6 +81,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
             minDate,
             maxDate,
             special: specialRangeErrors,
+            bounds,
           });
           // ⚠️ `resolveDateRangeErrorMessage` signalerer "ingen fejl" med en TOM STRENG, ikke med `undefined`.
           // En `!== undefined`-test her afviste derfor ENHVER gyldig dato — med en tom fejlbesked, så feltet

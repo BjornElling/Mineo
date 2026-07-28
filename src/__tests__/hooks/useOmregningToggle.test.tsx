@@ -3,7 +3,7 @@
 import React from 'react';
 import { act, render } from '@testing-library/react';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
-import type { CommitEvent } from '../../types/fieldEvents';
+import type { ToggleCommitDecision } from '../../inputCore/react/fields/ToggleField';
 import {
   EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
   type AarsloenOmregningGate,
@@ -13,13 +13,13 @@ import type {
 } from '../../types/table';
 import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
 
-let lastHandleToggle: ((e: CommitEvent<boolean>) => boolean) | null = null;
+let lastDecide: ((next: boolean) => ToggleCommitDecision) | null = null;
+let lastDecision: ToggleCommitDecision | null = null;
 let lastChecked = false;
 let lastEffectiveEnabled = false;
 
 type Props = {
   gate?: AarsloenOmregningGate;
-  onEnabledChange: (enabled: boolean) => boolean;
   tableRefMock: StandardLoenTableHandle;
   toggleRefMock: StyledToggleSwitchHandle;
 };
@@ -33,16 +33,15 @@ const Harness = ({
     hasBlockingTableIssue: false,
     validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
   },
-  onEnabledChange,
   tableRefMock,
   toggleRefMock,
 }: Props) => {
   const tabelRef = React.useRef(tableRefMock);
   const toggleRef = React.useRef(toggleRefMock);
 
-  const { checked, effectiveEnabled, handleToggle } = useOmregningToggle({ gate, tabelRef, toggleRef, onEnabledChange });
+  const { checked, effectiveEnabled, decideToggle } = useOmregningToggle({ gate, tabelRef, toggleRef });
 
-  lastHandleToggle = handleToggle;
+  lastDecide = decideToggle;
   lastChecked = checked;
   lastEffectiveEnabled = effectiveEnabled;
   return null;
@@ -50,13 +49,13 @@ const Harness = ({
 
 describe('useOmregningToggle', () => {
   afterEach(() => {
-    lastHandleToggle = null;
+    lastDecide = null;
+    lastDecision = null;
     lastChecked = false;
     lastEffectiveEnabled = false;
   });
 
   it('blocks enable and shows missing-entry error', async () => {
-    const onEnabledChange = vi.fn();
     const shake = vi.fn();
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
@@ -78,7 +77,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: true,
           validationSummary: summary,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={{
           showMissingEntryError,
           flashError,
@@ -89,17 +87,16 @@ describe('useOmregningToggle', () => {
     );
 
     await act(async () => {
-      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+      lastDecision = lastDecide?.(true) ?? null;
     });
 
     expect(shake).toHaveBeenCalled();
     expect(showMissingEntryError).toHaveBeenCalled();
     expect(flashError).not.toHaveBeenCalled();
-    expect(onEnabledChange).not.toHaveBeenCalled();
+    expect(lastDecision).toBe('reject');
   });
 
   it('flashes cell on input error', async () => {
-    const onEnabledChange = vi.fn();
     const shake = vi.fn();
     const flashError = vi.fn();
 
@@ -120,7 +117,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: true,
           validationSummary: summary,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={{
           showMissingEntryError: vi.fn(),
           flashError,
@@ -131,7 +127,7 @@ describe('useOmregningToggle', () => {
     );
 
     await act(async () => {
-      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+      lastDecision = lastDecide?.(true) ?? null;
     });
 
     expect(flashError).toHaveBeenCalledWith({
@@ -140,11 +136,10 @@ describe('useOmregningToggle', () => {
       rowId: 'r2',
       colKey: 'col1_maaned',
     });
-    expect(onEnabledChange).not.toHaveBeenCalled();
+    expect(lastDecision).toBe('reject');
   });
 
   it('enables when tabelHarFejl=false og hasValidPeriod=true', async () => {
-    const onEnabledChange = vi.fn();
 
     render(
         <Harness
@@ -156,7 +151,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: false,
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={{
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
@@ -167,17 +161,16 @@ describe('useOmregningToggle', () => {
     );
 
     await act(async () => {
-      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+      lastDecision = lastDecide?.(true) ?? null;
     });
 
-    expect(onEnabledChange).toHaveBeenCalledWith(true);
+    expect(lastDecision).toBe('commit');
   });
 
   it('kalder ikke shake/showMissingEntryError/flashError ved gyldig enable', async () => {
     const shake = vi.fn();
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
-    const onEnabledChange = vi.fn();
 
     render(
         <Harness
@@ -189,7 +182,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: false,
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={{
           showMissingEntryError,
           flashError,
@@ -200,7 +192,7 @@ describe('useOmregningToggle', () => {
     );
 
     await act(async () => {
-      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+      lastDecision = lastDecide?.(true) ?? null;
     });
 
     expect(shake).not.toHaveBeenCalled();
@@ -210,7 +202,6 @@ describe('useOmregningToggle', () => {
 
   it('blokerer enable og ryster når perioden er utilstrækkelig uden feltfejl', async () => {
     const shake = vi.fn();
-    const onEnabledChange = vi.fn();
 
     render(
         <Harness
@@ -222,7 +213,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: true,
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={{
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
@@ -233,11 +223,11 @@ describe('useOmregningToggle', () => {
     );
 
     await act(async () => {
-      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+      lastDecision = lastDecide?.(true) ?? null;
     });
 
     expect(shake).toHaveBeenCalled();
-    expect(onEnabledChange).not.toHaveBeenCalled();
+    expect(lastDecision).toBe('reject');
   });
 
   it('blokerer enable og peger på periodecelle når getValidationSummary ikke har firstErrorCell', async () => {
@@ -245,7 +235,6 @@ describe('useOmregningToggle', () => {
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
     const showNeedsPeriodHint = vi.fn();
-    const onEnabledChange = vi.fn();
 
     render(
         <Harness
@@ -257,7 +246,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: true,
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={{
           showMissingEntryError,
           flashError,
@@ -268,7 +256,7 @@ describe('useOmregningToggle', () => {
     );
 
     await act(async () => {
-      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+      lastDecision = lastDecide?.(true) ?? null;
     });
 
     // Ryster + peger på første periodecelle (ingen konkret fejlcelle); ingen direkte celle-fejl.
@@ -276,11 +264,10 @@ describe('useOmregningToggle', () => {
     expect(showNeedsPeriodHint).toHaveBeenCalled();
     expect(showMissingEntryError).not.toHaveBeenCalled();
     expect(flashError).not.toHaveBeenCalled();
-    expect(onEnabledChange).not.toHaveBeenCalled();
+    expect(lastDecision).toBe('reject');
   });
 
   it('disable-toggle kalder onEnabledChange(false)', async () => {
-    const onEnabledChange = vi.fn();
 
     render(
         <Harness
@@ -292,7 +279,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: false,
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={{
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
@@ -303,14 +289,13 @@ describe('useOmregningToggle', () => {
     );
 
     await act(async () => {
-      lastHandleToggle?.({ target: { value: false } } as CommitEvent<boolean>);
+      lastDecision = lastDecide?.(false) ?? null;
     });
 
-    expect(onEnabledChange).toHaveBeenCalledWith(false);
+    expect(lastDecision).toBe('commit');
   });
 
   it('viser checked=false og effectiveEnabled=false når gate blokerer pga. utilstrækkelig periode', async () => {
-    const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
       showMissingEntryError: vi.fn(),
@@ -330,7 +315,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: false,
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={tableRefMock}
         toggleRefMock={toggleRefMock}
       />
@@ -347,7 +331,6 @@ describe('useOmregningToggle', () => {
             hasBlockingTableIssue: true,
             validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
           }}
-          onEnabledChange={onEnabledChange}
           tableRefMock={tableRefMock}
           toggleRefMock={toggleRefMock}
         />
@@ -356,11 +339,11 @@ describe('useOmregningToggle', () => {
 
     expect(lastChecked).toBe(false);
     expect(lastEffectiveEnabled).toBe(false);
-    expect(onEnabledChange).not.toHaveBeenCalled();
+    // Ingen toggle-interaktion i denne test: gaten skifter kun den VISTE tilstand.
+    expect(lastDecision).toBeNull();
   });
 
   it('viser checked=false og effectiveEnabled=false når gate blokerer pga. tabel-fejl', async () => {
-    const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
       showMissingEntryError: vi.fn(),
@@ -380,7 +363,6 @@ describe('useOmregningToggle', () => {
           hasBlockingTableIssue: false,
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={tableRefMock}
         toggleRefMock={toggleRefMock}
       />
@@ -401,7 +383,6 @@ describe('useOmregningToggle', () => {
               hasWarnings: false,
             },
           }}
-          onEnabledChange={onEnabledChange}
           tableRefMock={tableRefMock}
           toggleRefMock={toggleRefMock}
         />
@@ -410,11 +391,11 @@ describe('useOmregningToggle', () => {
 
     expect(lastChecked).toBe(false);
     expect(lastEffectiveEnabled).toBe(false);
-    expect(onEnabledChange).not.toHaveBeenCalled();
+    // Ingen toggle-interaktion i denne test: gaten skifter kun den VISTE tilstand.
+    expect(lastDecision).toBeNull();
   });
 
   it('kan automatisk vende tilbage til checked=true når gate igen tillader omregning', async () => {
-    const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
       showMissingEntryError: vi.fn(),
@@ -438,7 +419,6 @@ describe('useOmregningToggle', () => {
             hasWarnings: false,
           },
         }}
-        onEnabledChange={onEnabledChange}
         tableRefMock={tableRefMock}
         toggleRefMock={toggleRefMock}
       />
@@ -458,7 +438,6 @@ describe('useOmregningToggle', () => {
             hasBlockingTableIssue: false,
             validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
           }}
-          onEnabledChange={onEnabledChange}
           tableRefMock={tableRefMock}
           toggleRefMock={toggleRefMock}
         />
@@ -467,6 +446,7 @@ describe('useOmregningToggle', () => {
 
     expect(lastChecked).toBe(true);
     expect(lastEffectiveEnabled).toBe(true);
-    expect(onEnabledChange).not.toHaveBeenCalled();
+    // Ingen toggle-interaktion i denne test: gaten skifter kun den VISTE tilstand.
+    expect(lastDecision).toBeNull();
   });
 });

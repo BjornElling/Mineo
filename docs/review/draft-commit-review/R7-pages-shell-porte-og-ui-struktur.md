@@ -11,11 +11,17 @@ kildeinspektion; `npx vitest run src/__tests__/quality/architecture/architecture
 src/__tests__/inputCore/react/productionInputRuntime.test.ts
 src/__tests__/apps/shared/bootstrapClientApp.test.tsx
 src/__tests__/inputCore/react/fieldAddressDestination.completeness.test.ts` — 4 testfiler og 91 tests bestod.
+(Den sidste testfil og dens modul er SLETTET som led i R7-F03's løsning; kommandoen er bevaret her som
+historisk evidens for review-passet, ikke som en kørbar kommando.)
 **Fund:** 3 (R7-F01, R7-F02, R7-F03)
 **Hypoteser:** Ingen
-**Handling:** R7-F03 er godkendt til implementering; de øvrige fund er parkeret uden implementering.
-**Næste skridt:** Implementér R7-F03 som godkendt; gennemfør browserbaseret UI-sammenligning og runtime-fuzzing
-af tab-mount/settle; genåbn det berørte arkitekturværns scope ved løsning af R7-F02.
+**Handling:** R7-F02 og R7-F03 er **rettet og verificeret 2026-07-29** (etape 7, andet pas); R7-F01 er parkeret
+til etape 12.
+**Næste skridt:** Browserbaseret UI-sammenligning og runtime-fuzzing af tab-mount/settle udestår fortsat (se
+Resterende checkpoints). Værnets blindhed, som dette pas rejste, er lukket: den nye regel
+`input/persisted-controls-use-field-family` dækker HELE komponent-laget frem for kun `fields/**`, og
+`input/restore-attributes-carry-destination` dækker de nye DOM-attributter. Begge er mutationstestet mod den
+levende kilde.
 
 ## Dækket scope
 
@@ -140,10 +146,39 @@ controls bliver røde, med eksplicitte ikke-sagsdata-scopes for Indstillinger, M
 **Forslag til løsning:** Indfør en typed gated/transactional toggle-adapter, der kræver `field` og `location`,
 fører restore-attributter igennem og kan delegere den atomiske command uden at flytte domæneoprydning ind i den
 generiske widget. Dæk undo/redo-fokus for begge konkrete controls med integrationstests.
-**Kræver godkendelse:** nej for at genskabe den allerede dokumenterede undo/redo-fokusadfærd; ingen
-implementering er udført. Hvis løsningen ændrer, hvilken kontrol brugeren fokuseres på ud over det oprindelige
-editorsted, er det en synlig UI/UX-ændring og skal forelægges først.
-**Status:** parkeret
+**Kræver godkendelse:** nej for at genskabe den allerede dokumenterede undo/redo-fokusadfærd. Hvis løsningen
+ændrer, hvilken kontrol brugeren fokuseres på ud over det oprindelige editorsted, er det en synlig
+UI/UX-ændring og skal forelægges først — det gør den ikke.
+**Status:** **Rettet 2026-07-29** (etape 7, andet pas; se
+`work-items/WI-015-etape7-fokusmaal-ejerskab.md`)
+
+**Løsningen (2026-07-28).** Ikke en tredje togglekomponent, men ÉN ny override på de to eksisterende typede
+adaptere (`ToggleField`, `MappedToggleField`):
+
+```ts
+export type ToggleCommitDecision = 'commit' | 'reject' | 'handled';
+export type ToggleCommitOverride<TValue> = (next: TValue) => ToggleCommitDecision;
+```
+
+Fundets "overvejelse" var korrekt: en simpel udskiftning med standardtogglen var ikke tilstrækkelig. Men det
+tre-vejs-udfald viste sig at være PRÆCIS den mindste udvidelse, der dækker begge reelle behov — og en boolsk
+override ville kun have dækket det ene. Årsløns gate skal kunne **afvise** aktiveringen, men vil have
+adapteren til at udføre skrivningen (`'commit'`/`'reject'`); EO's toggle afslutter selv som **én atomisk
+transaktion** over flere felter og rækker (`'handled'`, så adapteren ikke skriver oveni). Overriden flytter kun
+AFSLUTNINGEN; identitet, visning og restore-attributter forbliver adapterens ansvar (§1.11).
+
+Følgeændringer: `useOmregningToggle` skriver ikke længere selv (`onEnabledChange` er væk; hooken returnerer
+`decideToggle`), fordi gaten er en afslutningsPOLITIK — ikke en grund til at forbinde et rå
+`StyledToggleSwitch`. `ToggleField` fik `checkedOverride`, fordi Årsløns viste tilstand kommer fra gaten frem
+for direkte fra feltets afsluttede værdi. I `Aarsloen.tsx` blev både `useFieldEditor`- og
+`StyledToggleSwitch`-importen ubrugt — et bevis for at ændringen var komplet.
+
+**Bevidst udestående:** fundets anbefaling om at UDVIDE VÆRNET til alle persisterede callsites er IKKE
+gennemført. `form/restore-target-attributes` dækker fortsat kun `src/inputCore/react/fields/**`, hvilket var
+netop grunden til, at disse to produktions-callsites var grønne. Det står som den største resterende post i
+WI-015 sammen med kravet fra denne rapports tilfældighedsfund-liste om at genåbne værnets troværdighed.
+Dækningen er indtil videre `useOmregningToggle.test.tsx` (10 tests) — som er mock-baseret og derfor IKKE
+beviser det, fundet handler om; den manglende test er undo/redo-fokus gennem de ægte sider.
 
 ### R7-F03 — Global feltadresse bestemmer fokusdestinationen
 
@@ -176,7 +211,49 @@ værn for levende, konkrete lokationer og eksplicit consumerprioritet.
 **Kræver godkendelse:** Godkendt 2026-07-28. Hvis feltet kan rettes på den aktuelle side, skal brugeren blive
 dér og sendes til den konkrete kontrol. Ellers sendes brugeren til den relevante side og fane for den del, som
 rapporterede fejlen.
-**Status:** Godkendt til implementering
+**Status:** **Rettet 2026-07-29** (etape 7, andet pas; se
+`work-items/WI-015-etape7-fokusmaal-ejerskab.md`)
+
+**Løsningen (2026-07-28).** `fieldAddressDestination.ts` er SLETTET (ikke omdøbt) sammen med sin
+completeness-test. Den havde præcis ÉN produktionskonsument — save-blokeringens fokus — så fundets
+"systemiske ejerskabsfejl" havde en enkelt, veldefineret rettelsesflade.
+
+Erstatningen er `src/inputCore/react/editorLocationDestination.ts`: den editor, der faktisk RENDERER feltet,
+bærer sin egen destination i DOM (`data-mineo-editor-route`/`-tab`, sat af `buildRestoreTargetAttributes` fra
+`EditorLocation`). `lookupEditorLocation(serializedAddress)` returnerer `visible` / `mounted` / `unmounted`, og
+`focusFirstBlockingRejectedField` følger den godkendte adfærd ordret: synlig editor → bliv stående og fokusér;
+mountet men skjult → følg DENS erklærede route + fane; intet mountet → sektionens side, og **gæt ikke en fane**,
+fordi kun lokationen ved det. `faellesAarsloen` har ingen egen route; uden en mountet editor navigeres der ikke.
+
+**Sondringen mellem MOUNTET og SYNLIG er mekanismens grundlag.** EO's faner mountes ved første besøg og
+forbliver mountet (skjult med `display: none`, `Erstatningsopgoerelse.tsx:129-200`), så en editor på en besøgt
+fane findes i DOM og kan oplyse sin destination, selv når fanen ikke er synlig. Mounter editoren først EFTER
+navigationen (lazy tab-mount), aktiverer vent-på-mount-løkken dens fane ÉN gang — uden det ville et felt på en
+ikke-besøgt, ikke-standard fane være uopnåeligt.
+
+**To ting bekræftede fundets diagnose stærkere end evidensen i selve fundet:**
+
+1. *Særreglerne forsvandt.* Den gamle model havde fem — `faellesAarsloen`, de tre kontekst-delte forligsfelter,
+   `eoBilagSelection`, og `currentPathname`-cases. Hver enkelt var begrundet; tilsammen var de beviset på, at
+   nøglen var forkert. Ingen af dem findes i den nye model, og ingen adfærd blev valgt bort: den synlige editor
+   vinder, og det er hele forklaringen.
+2. *Det valgfrie felt havde nul legitime brugere.* `EditorLocation.route`/`.tabKey` var `?`-valgfri, dokumenteret
+   som "udelades kun af rene ikke-navigerbare lokationer". Alle 82 produktionsdeklarationer satte dem alligevel,
+   og **produktionen typecheckede uændret**, da de blev påkrævede — kun tests udnyttede valgfriheden. Grænsen er
+   dermed primært en TYPE, ikke et værn (jf. R3-F04 og GM-F07's mønster).
+   `NON_NAVIGABLE_ROUTE` (tom streng) er den eksplicitte værdi for en standalone-/devtools-lokation, så fraværet
+   er en synlig beslutning frem for et udeladt felt — og et værn kan skelne de to.
+
+Fundets forslag om en "typed lokationsREGISTRERING" blev vurderet og ikke gennemført: DOM er allerede
+registeret over mounted editorer, og et parallelt React-register ville være en anden kopi af samme sandhed med
+sin egen livscyklus at holde i sync. Det er samme afvejning som `historyRestoreTarget`, der af samme grund slår
+op i DOM.
+
+Dækning: `saveBlockedFocus.test.ts` er omskrevet (13 tests). De to, den gamle model kun kunne bestå med
+særregler: «aktiverer den fane, DEN MOUNTEDE editor erklærer» og «holder brugeren ved den SYNLIGE spejling af et
+delt felt uden en kontekst-særregel». **Bevidst udestående:** completeness-testen er erstattet af typen, men det
+værn, fundet efterspørger — for LEVENDE, konkrete lokationer, inkl. de to nye DOM-attributter — er ikke skrevet.
+Det står i WI-015.
 
 ## Resterende checkpoints
 
@@ -195,3 +272,8 @@ rapporterede fejlen.
   sluttilstandssprog.
 - `form/restore-target-attributes` er smallere end den arkitekturpåstand, det bruges til at understøtte.
   R7-F02 kræver derfor, at det relevante R0-værns troværdighed genåbnes ved den videre behandling.
+  **Lukket 2026-07-29:** den gamle regel er bevaret (den dækker feltfamiliens interne krav), men grænsen mod
+  produktions-callsites håndhæves nu af `input/persisted-controls-use-field-family` over hele komponent-laget.
+  Efterprøvningen viste desuden, at der efter R7-F02's rettelse kun findes TRE rå control-callsites tilbage —
+  Indstillinger, Mineo og løntrin-overlayet — alle uden persisteret sagsdata, og alle eksplicit navngivne i
+  reglen frem for at være en åben allowlist.

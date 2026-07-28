@@ -7,7 +7,7 @@ import type {
 import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aarsloenSchemas';
 import type { ISODateString } from '../../types/branded';
 import { CURRENT_YEAR, dateRanges_aarsloen, MIN_YEAR } from '../../config/dateRanges';
-import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import { parseWeekString } from '../../utils/dateUtils';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 import { maxISO, minISO } from '../../utils/isoDateHelpers';
@@ -213,7 +213,7 @@ const dateBoundsValidator = (
       minDate,
       maxDate,
       special: { fraTilRole: role },
-      noValidRangeInputs: 'Dato fra og Dato til i samme række',
+      bounds: derivedDateBounds('Dato fra og Dato til i samme række'),
     }),
     detail: { minDate, maxDate },
   };

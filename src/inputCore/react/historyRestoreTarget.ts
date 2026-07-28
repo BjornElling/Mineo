@@ -18,23 +18,46 @@ import { isRestoreTargetVisible, runHistoryTargetRestoreLoop } from './historyTa
 export const FIELD_ADDRESS_ATTR = 'data-mineo-field-address';
 /** DOM-attribut for greenfield-editorlokationens stabile id. Diskriminerer flere editorlokationer for samme felt. */
 export const EDITOR_LOCATION_ATTR = 'data-mineo-editor-location-id';
+/** DOM-attribut for editorlokationens EGEN route (§3.2). Sættes altid; `route` er påkrævet på lokationen. */
+export const EDITOR_ROUTE_ATTR = 'data-mineo-editor-route';
+/** DOM-attribut for editorlokationens EGEN fane. Tom streng når siden ikke har faner, eller lokationen ikke er navigerbar. */
+export const EDITOR_TAB_ATTR = 'data-mineo-editor-tab';
 
 /**
- * De to DOM-attributter, et greenfield-fokuserbart element skal bære, for at undo/redo-restoren kan finde det:
- * serialiseret feltadresse + editorlokations-id. Bygges af form-/grid-surfacen og spredes på det redigerbare
- * `<input>`. Samlet ÉT sted, så surface og restore-opslag ikke kan drifte fra hinanden.
+ * De DOM-attributter, et greenfield-fokuserbart element skal bære, for at fokusnavigationen kan finde det:
+ * serialiseret feltadresse + editorlokations-id + lokationens EGEN destination (route + fane). Bygges af
+ * form-/grid-surfacen og spredes på det redigerbare `<input>`. Samlet ÉT sted, så surface og opslag ikke kan
+ * drifte fra hinanden.
+ *
+ * Destinationen står HER — på den konkrete editor — og ikke i et globalt feltadresse→fane-kort (§3.2). Feltets
+ * dataadresse er dataidentitet og DOM-matchnøgle; hvor feltet REDIGERES, ved kun editorlokationen. Et felt kan
+ * redigeres på flere sider (fx `faellesAarsloen`, forligsfelterne), og en global afbildning måtte da kompensere
+ * med særregler for brugerens aktuelle route — netop den parallelle model, R7-F03 lukkede.
  */
 export type RestoreTargetAttributes = Readonly<{
   [FIELD_ADDRESS_ATTR]: string;
   [EDITOR_LOCATION_ATTR]: string;
+  [EDITOR_ROUTE_ATTR]: string;
+  [EDITOR_TAB_ATTR]: string;
 }>;
 
+/**
+ * Bygger attributterne af feltadressen og lokationens PRIMITIVE felter. Primitiver frem for `EditorLocation`-
+ * objektet, fordi hvert kaldssted memoiserer på netop dem: kaldssiderne konstruerer typisk en frisk `loc(...)`
+ * pr. render, og en objekt-dep ville gøre memoiseringen virkningsløs.
+ */
 export const buildRestoreTargetAttributes = (
   serializedFieldAddress: string,
-  editorLocationId: string
+  editorLocationId: string,
+  route: string,
+  tabKey: string | null
 ): RestoreTargetAttributes => Object.freeze({
   [FIELD_ADDRESS_ATTR]: serializedFieldAddress,
   [EDITOR_LOCATION_ATTR]: editorLocationId,
+  // Attributterne sættes ALTID, fordi typen kræver værdierne. `tabKey: null` (side uden faner) bliver en tom
+  // fane-attribut — ikke en udeladt attribut, for da kunne fraværet ikke skelnes fra "surfacen glemte den".
+  [EDITOR_ROUTE_ATTR]: route,
+  [EDITOR_TAB_ATTR]: tabKey ?? '',
 });
 
 /**
@@ -45,11 +68,13 @@ export const buildRestoreTargetAttributes = (
 export const useRestoreTargetAttributes = (
   fieldAddress: FieldAddress,
   location: EditorLocation
-): RestoreTargetAttributes =>
-  React.useMemo(
-    () => buildRestoreTargetAttributes(serializeFieldAddress(fieldAddress), location.locationId),
-    [fieldAddress, location.locationId]
+): RestoreTargetAttributes => {
+  const { locationId, route, tabKey } = location;
+  return React.useMemo(
+    () => buildRestoreTargetAttributes(serializeFieldAddress(fieldAddress), locationId, route, tabKey),
+    [fieldAddress, locationId, route, tabKey]
   );
+};
 
 const attrEquals = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 

@@ -62,7 +62,7 @@ import {
   yearBoundsValidator,
 } from './boundsValidators';
 import { stamdataSkadedatoField, stamdataSkadestypeField } from './stamdataDescriptors';
-import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { evaluateForligsgrad } from '../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
@@ -272,6 +272,10 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
             minBoundKind: minRule.minBoundKind,
             minBoundReferenceISO: minRule.minBoundReferenceISO,
           },
+          // R3-F03's egen reproduktion: en Skadedato efter konfigurationens max gør intervallet umuligt.
+          // Årsagen er Skadedato — og Skadestype, som afgør om erhvervssygdomsreglen (anmeldedato minus
+          // 5 år) eller skadesdagen sætter min.
+          bounds: derivedDateBounds('Skadedato og Skadestype'),
         }),
         detail: { minDate: minRule.minDate, maxDate },
       };
@@ -499,6 +503,8 @@ export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> 
           minBoundKind: minRule.minBoundKind,
           minBoundReferenceISO: minRule.minBoundReferenceISO,
         },
+        // Samme udledning som forligsdatoen: min kommer fra Skadedato + Skadestype (R3-F03).
+        bounds: derivedDateBounds('Skadedato og Skadestype'),
       }),
       detail: { minDate: minRule.minDate, maxDate },
     };

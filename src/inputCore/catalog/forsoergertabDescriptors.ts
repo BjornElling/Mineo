@@ -2,7 +2,7 @@ import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_forsoergertab } from '../../config/dateRanges';
 import { maxISO, minISO } from '../../utils/isoDateHelpers';
-import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { resolveDateRangeErrorMessage, derivedDateBounds, STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import {
   createChoiceFieldCodec,
   createDateFieldCodec,
@@ -60,7 +60,8 @@ export const forsoergertabEfterladteFodselsdatoField = dateField('efterladteFods
     return {
       reason: 'bounds',
       code: 'forsoergertab.efterladteFodselsdato.bounds',
-      message: resolveDateRangeErrorMessage({ iso: value, minDate, maxDate }),
+      // Begge grænser er konstanter fra konfigurationen; intervallet kan ikke blive umuligt.
+      message: resolveDateRangeErrorMessage({ iso: value, minDate, maxDate, bounds: STATIC_DATE_BOUNDS }),
       detail: { minDate, maxDate },
     };
   },
@@ -85,6 +86,8 @@ export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Ber
         minDate,
         maxDate,
         special: { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' },
+        // Min udledes af Skadedato og Startdato for ASL-ydelse; en for sen af dem gør intervallet umuligt.
+        bounds: derivedDateBounds('Skadedato og Startdato for ASL-ydelse'),
       }),
       detail: { minDate, maxDate },
     };
@@ -110,6 +113,8 @@ export const forsoergertabVirkningsdatoField = dateField('virkningsdato', 'Start
         minDate,
         maxDate,
         special: { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' },
+        // Min fra Skadedato, max fra Beregningsdato: en Beregningsdato før Skadedato gør intervallet umuligt.
+        bounds: derivedDateBounds('Skadedato og Beregningsdato'),
       }),
       detail: { minDate, maxDate },
     };

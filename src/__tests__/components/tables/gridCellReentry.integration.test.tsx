@@ -14,8 +14,7 @@ import {
   enhedField,
   rentekravRowsRef,
   makeRow,
-  testRowOrigin,
-} from '../../inputCore/testCatalog';
+  testRowOrigin, testLocation } from '../../inputCore/testCatalog';
 import { useGridCoreController } from '../../../components/tables/useGridCoreController';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import {
@@ -92,13 +91,13 @@ const GridHarness: React.FC = () => {
             <td>
               <GridAmountCell
                 gridCell={AMOUNT_CELL}
-                cell={{ kind: 'existing', field: belobField.bind('r1'), location: { locationId: 'r1:belob' } }}
+                cell={{ kind: 'existing', field: belobField.bind('r1'), location: testLocation('r1:belob') }}
               />
             </td>
             <td>
               <GridChoiceCell<TillaegstidEnhed, unknown, TillaegstidEnhed>
                 gridCell={CHOICE_CELL}
-                cell={{ kind: 'existing', field: enhedField.bind('r1'), location: { locationId: 'r1:enhed' } }}
+                cell={{ kind: 'existing', field: enhedField.bind('r1'), location: testLocation('r1:enhed') }}
                 allowEmpty={false}
                 ariaLabel="Enhed"
               >

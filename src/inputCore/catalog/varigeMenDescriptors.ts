@@ -1,6 +1,6 @@
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_varigemen } from '../../config/dateRanges';
-import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages';
+import { resolveDateRangeErrorMessage, STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { createDateFieldCodec, createIntegerFieldCodec } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
@@ -18,7 +18,7 @@ const beregningsdatoBoundsValidator: FieldValidator<ISODateString | undefined> =
   return {
     reason: 'bounds',
     code: 'varigemen.beregningsdato.bounds',
-    message: resolveDateRangeErrorMessage({ iso: value, minDate: min, maxDate: max }),
+    message: resolveDateRangeErrorMessage({ iso: value, minDate: min, maxDate: max, bounds: STATIC_DATE_BOUNDS }),
     detail: { minDate: min, maxDate: max },
   };
 };

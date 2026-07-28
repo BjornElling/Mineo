@@ -13,7 +13,7 @@ import {
   type InputCatalog,
 } from '../../../inputCore';
 import { insertRow } from '../../../inputCore/inputReducer';
-import { createTestCatalog, aargangField, enhedField, belobField, makeRow, testRowOrigin } from '../testCatalog';
+import { createTestCatalog, aargangField, enhedField, belobField, makeRow, testRowOrigin, testLocation } from '../testCatalog';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import StyledCheckbox from '../../../components/inputs/StyledCheckbox';
 import { buildRestoreTargetAttributes } from '../../../inputCore/react/historyRestoreTarget';
@@ -64,7 +64,7 @@ const expectRestoreAttrs = (element: Element, serializedAddress: string, locatio
 
 describe('Greenfield restore-target-attributter på det fokuserbare element (§3.7)', () => {
   it('form-tekstfelt (IntegerField)', () => {
-    renderField(<IntegerField field={aargangField.bind()} location={{ locationId: 'loc-int' }} name="aargang" />);
+    renderField(<IntegerField field={aargangField.bind()} location={testLocation('loc-int')} name="aargang" />);
     expectRestoreAttrs(screen.getByRole('textbox'), serializeFieldAddress(aargangField.bind().address), 'loc-int');
   });
 
@@ -73,7 +73,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
     renderField(
       <ChoiceField
         field={enhedField.bind('r1')}
-        location={{ locationId: 'loc-choice' }}
+        location={testLocation('loc-choice')}
         allowEmpty={false}
         name="enhed"
       >
@@ -91,7 +91,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
     renderField(
       <RadioField<TillaegstidEnhed>
         field={enhedField.bind('r1')}
-        location={{ locationId: 'loc-radio' }}
+        location={testLocation('loc-radio')}
         options={[{ value: 'dage', label: 'Dage' }, { value: 'uger', label: 'Uger' }]}
         name="enhed"
       />
@@ -121,7 +121,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
         }}>
           <GridAmountCell
             gridCell={gridCell}
-            cell={{ kind: 'existing', field: belobField.bind('r1'), location: { locationId: 'loc-gridcell' } }}
+            cell={{ kind: 'existing', field: belobField.bind('r1'), location: testLocation('loc-gridcell') }}
           />
         </GridCoreProvider>
       </InputRuntimeProvider>
@@ -150,7 +150,7 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
         }}>
           <GridChoiceCell<TillaegstidEnhed, unknown, TillaegstidEnhed>
             gridCell={gridCell}
-            cell={{ kind: 'existing', field: enhedField.bind('r1'), location: { locationId: 'loc-gridchoice' } }}
+            cell={{ kind: 'existing', field: enhedField.bind('r1'), location: testLocation('loc-gridchoice') }}
             allowEmpty={false}
             ariaLabel="Enhed"
           >
@@ -168,13 +168,13 @@ describe('Greenfield restore-target-attributter på det fokuserbare element (§3
   // Toggle + checkbox: verificér på komponentniveau, at prop'en spredes på det fokuserbare input-slot. (De
   // greenfield-wrappere, der leverer prop'en, dækkes strukturelt af arkitektur-guarden.)
   it('toggle (StyledToggleSwitch) spreder restoreTargetAttributes på input-slottet', () => {
-    const attrs = buildRestoreTargetAttributes('serialized-addr', 'loc-toggle');
+    const attrs = buildRestoreTargetAttributes('serialized-addr', 'loc-toggle', '/aarsloen', null);
     render(<StyledToggleSwitch checked={false} onCommit={() => true} ariaLabel="tog" restoreTargetAttributes={attrs} />);
     expectRestoreAttrs(screen.getByRole('checkbox'), 'serialized-addr', 'loc-toggle');
   });
 
   it('checkbox (StyledCheckbox) spreder restoreTargetAttributes på input-slottet', () => {
-    const attrs = buildRestoreTargetAttributes('serialized-addr', 'loc-checkbox');
+    const attrs = buildRestoreTargetAttributes('serialized-addr', 'loc-checkbox', '/aarsloen', null);
     render(<StyledCheckbox checked={false} onCommit={() => true} label="cb" restoreTargetAttributes={attrs} />);
     expectRestoreAttrs(screen.getByRole('checkbox'), 'serialized-addr', 'loc-checkbox');
   });

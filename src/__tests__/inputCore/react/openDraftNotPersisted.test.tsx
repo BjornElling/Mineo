@@ -39,7 +39,7 @@ import {
   type InputCatalog,
   type FieldRef,
 } from '../../../inputCore';
-import { createTestCatalog, aargangField } from '../testCatalog';
+import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 
 let catalog: InputCatalog;
 let store: SlimInputStore;
@@ -81,7 +81,7 @@ const renderEditor = <T,>(field: FieldRef<T>) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) =>
     <InputRuntimeProvider binding={binding}>{children}</InputRuntimeProvider>;
   Wrapper.displayName = 'TestInputRuntimeWrapper';
-  return renderHook(() => useFieldEditor(field, { locationId: 'loc-1' }), { wrapper: Wrapper });
+  return renderHook(() => useFieldEditor(field, testLocation('loc-1')), { wrapper: Wrapper });
 };
 
 const field = aargangField.bind();
