@@ -10,11 +10,11 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 36 | 0 | 0 |
+| R0–R8 (fasefund) | 36 | 35 | 1 | 0 |
 | GM (konvergensreview) | 15 | 14 | 0 (1 delvist) | 0 |
-| UT (brugertest) | 6 | 4 | 1 | 1 |
-| INC (tilfældighedsfund) | 1 | 0 | 1 | 0 |
-| **I alt** | **58** | **54** | **2 (+1 delvist)** | **1** |
+| UT (brugertest) | 6 | 3 | 2 | 1 |
+| INC (tilfældighedsfund) | 2 | 0 | 2 | 0 |
+| **I alt** | **59** | **52** | **5 (+1 delvist)** | **1** |
 
 ## Bindende regel for tilfældighedsfund
 
@@ -45,7 +45,7 @@ en etape rettes og verificeres sammen.
 | Etape | Fund | Hvorfor her |
 |---|---|---|
 | **1** | UT-F04 | Blokerer en central EO-funktion med et render-crash. Rettet 2026-07-28. |
-| **2** | UT-F05, R2-F01 | Samme årsag som etape 1's fejlklasse: en fælles kommandokontrakt brydes af fem callsites og kaster en uncaught systemfejl. Samme fund fra to vinkler. |
+| **2** | UT-F05, R2-F01 | Samme årsag som etape 1's fejlklasse: en fælles kommandokontrakt brydes af fem callsites og kaster en uncaught systemfejl. Samme fund fra to vinkler. Rettet 2026-07-28. |
 | **3** | R6-F01, GM-F11 | Trust-kritisk dokumentvej: et frisk token bindes til render-fangede settings (kan producere output fra en forældet kilde), og fem sider skjuler udfaldsbeskeden. Begge i dokumenthandle-laget. |
 | **4** | GM-F01, GM-F02, GM-F06, R3-F02, R3-F04 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Bærer beslutning 1. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. |
@@ -74,7 +74,7 @@ etape kommer.
 | R1-F05 | Kode og testnavne beskriver stadig en migration | Væsentlig | `src/` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f05--kode-og-testnavne-beskriver-stadig-en-migration) |
 | R1-F06 | Levende ledgers beskrives som midlertidige | Væsentlig | `consumerInventory.ts`, `ledgerTypes.ts` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f06--levende-ledgers-beskrives-som-midlertidige) |
 | R1-F07 | Error-kontrakten prioriterer en slettet source-dimension | Mindre | `error-contract.md:114,220` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f07--error-kontrakten-prioriterer-en-slettet-source-dimension) |
-| R2-F01 | Indsæt dags dato fejler på fem sider | Væsentlig | Fem side-callsites | 2 | Åbent | [R2](R2-inputkerne-og-felteditor.md#r2-f01--indsæt-dags-dato-fejler-på-fem-sider) |
+| R2-F01 | Indsæt dags dato fejler på fem sider | Væsentlig | Fem side-callsites | 2 | **Rettet 2026-07-28** | [R2](R2-inputkerne-og-felteditor.md#r2-f01--indsæt-dags-dato-fejler-på-fem-sider) |
 | R2-F02 | Kontrakt og kode er uenige om skjulte canonical fejl | Væsentlig | `form-contract.md:207-208` | 4 | Åbent | [R2](R2-inputkerne-og-felteditor.md#r2-f02--kontrakt-og-kode-er-uenige-om-skjulte-canonical-fejl) |
 | R2-F03 | Obligatoriske statekæder er ufuldstændigt dækket | Væsentlig | `draft-commit-greenfield-design.md:812-823` | 10 | Åbent | [R2](R2-inputkerne-og-felteditor.md#r2-f03--obligatoriske-statekæder-er-ufuldstændigt-dækket) |
 | R3-F01 | Midlertidig EET-import overblokeres sektionsvist | Væsentlig | `eetImportPort.ts:39-54` | 4 | Åbent | [R3](R3-issues-og-gates.md#r3-f01--midlertidig-eet-import-overblokeres-sektionsvist) |
@@ -140,7 +140,7 @@ Indmeldt af brugeren ved brugertest parallelt med reviewet. Beskrivelse, reprodu
 | UT-F02 | Enter på dropdown i tabel udløser grid-navigation | Væsentlig | `tableKeyboardNavigation.ts:311-380`, `GridChoiceCell.tsx` | 7 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f02--enter-på-dropdown-i-tabel-udløser-grid-navigation) |
 | UT-F03 | Undo af en rækkes første commit mister cellefokus | Væsentlig | `useCollectionTable.ts:50-55`, `historyRestoreTarget.ts:64-70` | 6 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f03--undo-af-en-rækkes-første-commit-mister-cellefokus) |
 | UT-F04 | Tilføjelse af ansættelsesforhold crasher den nested løntabel | Kritisk | `useCellEditor.ts`, fem tabelflader | 1 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f04--tilføjelse-af-ansættelsesforhold-crasher-den-nested-løntabel) |
-| UT-F05 | Dags-dato-knappen sender en ulovlig immediate-kommando | Væsentlig | `useFieldEditor.commitImmediate`, fem side-callsites | 2 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f05--dags-dato-knappen-sender-en-ulovlig-immediate-kommando) |
+| UT-F05 | Dags-dato-knappen sender en ulovlig immediate-kommando | Væsentlig | `useFieldEditor.commitImmediate`, fem side-callsites | 2 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f05--dags-dato-knappen-sender-en-ulovlig-immediate-kommando) |
 | UT-F06 | Års-placeholder viser en valideringsgrænse | Mindre | `StandardLoenTable.tsx` | 7 | Åbent | [UT](../draft-commit-brugertestfund.md#ut-f06--års-placeholder-viser-en-valideringsgrænse) |
 
 **UT-F04 — rettet 2026-07-28.** Løst ved roden, ikke lokalt: cellens dataidentitet konstrueres nu ét sted
@@ -156,14 +156,41 @@ entity-id giver brugerens præcise fejltekst (`FieldDescriptor(col0_maaned): for
 og gør 6 + 2 tests røde; en genindført lokal `bind()` i en tabelflade gør AST-reglen rød med fil:linje.
 Fuld suite efter rettelsen: 495 filer / 6188 tests grøn.
 
+**UT-F05 + R2-F01 — rettet 2026-07-28 (etape 2).** Samme fund fra to vinkler, rettet i én ændring.
+`FieldEditorController.settleValue(value)` er nu den ENE programmatiske afslutningskommando: værdien
+formateres af feltets eget codec og går gennem editorens normale settle-vej — samme parse, samme XOR (§1.5),
+samme ét-history-trin med felt-origin (§3.7) — i stedet for `setImmediateField`, som reduceren kun tillader
+for choice/toggle. `useFieldEditor` har nu ÉN settle-udgang, som både den tastede og den programmatiske
+indgang går igennem, så §3.5-friskhed og placeholder-override ikke kan divergere. Alle fem callsites migreret
+samlet; reducerens fail-fast-guard bevaret uændret.
+
+Dækning: `insertTodayDateButton.contract.integration.test.tsx` (10 tests — ÉN tabeldrevet kontrakt over alle
+fem flader gennem de ægte sider og den ægte runtime), 7 nye `useFieldEditor`-tests og AST-reglen
+`input/programmatic-commit-uses-settle`. Alle tre mutationstestet: sættes ét callsite tilbage, fejler netop
+den fladens 2 tests med brugerens præcise fejltekst
+(`InputReducer: setImmediateField er kun tilladt for choice/toggle`) mens de fire øvrige flader forbliver
+grønne, og AST-reglen bliver rød med fil:linje:kolonne. Den typemæssige begrænsning af `commitImmediate`
+blev vurderet og bevidst ikke gennemført — begrundelsen står i UT-F05-rapporten. Fuld suite: 496 filer /
+6207 tests grøn.
+
 ## Tilfældighedsfund konstateret under rettearbejdet
 
 | Id | Kort titel | Alvor | Fundet under | Status |
 |---|---|---|---|---|
 | INC-F01 | Nested løntabeller delte editorlokation på tværs af ansættelsesforhold | Væsentlig | UT-F04 | **Rettet 2026-07-28** |
+| INC-F02 | `INSERT_TODAY_DATE_EVENT` var en død sidekanal uden lytter | Mindre | UT-F05 | **Rettet 2026-07-28** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
 undo/redo kunne fokusere den forkerte tabels celle (§3.7 kræver en entydig destination). Rettet med
 `collectionLocationPrefix`, som tilføjer ejer-id'erne; dækket af
 `cellSpecBuilder.test.ts` → "nested instanser under forskellige ejere får forskellige editorlokationer".
+
+**INC-F02.** `insertTodayDate` dispatchede et `CustomEvent('mineo:insert-today-date')` på datofeltets
+DOM-element ved hvert klik. En repo-bred søgning viste, at INGEN lytter på eventet: den sidste forbruger var
+det slettede legacy-date-input, som brugte det til at synkronisere sin interne draft. Efter greenfield-
+cutoveren er feltvisningen afledt direkte af den afsluttede revision (§3.5), så sidekanalen havde intet
+formål — men den er præcis "den fjerde kanal" fra review-planens standardangreb, og en fremtidig lytter kunne
+have gjort den til en reel skjult vej fra en åben draft til noget afsluttet. Slettet sammen med rettelsen af
+UT-F05, da den lå i samme fil og samme mekanisme. `insertTodayDate.test.ts` refererede ikke til eventet og er
+uændret grøn.

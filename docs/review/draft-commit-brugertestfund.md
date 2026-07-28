@@ -42,7 +42,7 @@ bærer den samlede tælling og rettelsesrækkefølgen.
 | UT-F02 | Enter på dropdown i tabel flytter en række ned | Genskabt | Tværgående dropdown-/grid-integration | Åbent |
 | UT-F03 | Undo af den sidste værdi i en tabelrække mister cellefokus | Genskabt | Fælles placeholder-/history-integration | Åbent |
 | UT-F04 | Tilføjelse af ansættelsesforhold udløser React-crash | Genskabt | Nested feltbinding i fælles tabel-/celleinfrastruktur | **Rettet 2026-07-28** |
-| UT-F05 | Dags-dato-knappen udløser `setImmediateField`-fejl | Fejlmekanisme genskabt | Fælles feltkommandokontrakt og fem knapintegrationer | Åbent |
+| UT-F05 | Dags-dato-knappen udløser `setImmediateField`-fejl | Fejlmekanisme genskabt | Fælles feltkommandokontrakt og fem knapintegrationer | **Rettet 2026-07-28** |
 | UT-F06 | Års-placeholder viser en valideringsgrænse | Genskabt | Placeholder-ejerskab i den fælles feltfamilie | Åbent |
 
 ## Afklaret uden fund
@@ -436,8 +436,55 @@ datatab eller forkerte beregningstal.
 knapklik på en allerede åben draft kræver en ny synlig konflikt-/erstatningsadfærd, skal den konkrete
 brugeroplevelse dog forelægges.
 
-**Status:** Åbent; årsag og berørte callsites bekræftet, ikke implementeret. Den konkrete brugerhandling bag
-loggen kl. 12:55 kan ikke fastslås ud fra fejlrapporten alene.
+**Status:** **Rettet 2026-07-28.** Løst efter den anbefalede strukturelle retning (punkt 1, 2 og 4), ikke lokalt.
+
+**Gennemført løsning:**
+
+1. Der findes nu ÉN eksplicit controllerkommando til at afslutte et felt med en programmatisk leveret værdi:
+   `FieldEditorController.settleValue(value)`. Den formaterer værdien med feltets eget codec og sender den
+   gennem den NORMALE settle-vej — samme parse, samme XOR-invariant (§1.5), samme ét-history-trin med
+   felt-origin (§3.7) og samme placeholder-promotion som en tastet værdi. `setImmediateField` bruges ikke.
+2. State-machinen fik den tilsvarende rene transition `settleEditorWithText` (`fieldEditorState.ts`). Den
+   leverede tekst ERSTATTER en eventuel åben draft: knappen er en eksplicit afslutningshandling, så den
+   halvskrevne draft er netop det, brugeren beder om at få overskrevet.
+3. `useFieldEditor` har nu ÉN settle-udgang (`dispatchSettleIntent`), som både `settle()` og `settleValue()`
+   går igennem. Override, dispatch-rækkefølge og lukning kan derfor ikke divergere mellem de to indgange.
+   §3.5-friskhedsguarden gælder begge veje: en ÅBEN editor på en erstattet revision settler ikke.
+4. Alle fem callsites er migreret samlet: Forsørgertab, Varigt mén, Renteberegning, Erhvervsevnetab og
+   Erstatningsopgørelsens »Opgørelse lavet den«.
+5. Reducerens fail-fast-guard er BEVARET uændret — den er ikke lempet til at acceptere tekstfelter.
+
+**Regressionsdækning (mutationstestet, ikke kun grøn):**
+
+- `src/__tests__/components/pages/insertTodayDateButton.contract.integration.test.tsx` — 10 tests: ÉN
+  tabeldrevet kontrakt over alle fem flader (2 tests pr. flade), kørt gennem de ægte sider og den ægte
+  produktions-runtime. Hver flade måles på det autoritative afsluttede input, læst gennem feltets egen
+  descriptor, og på at klikket giver ét undo-trin med en felt-origin. Testen lytter samtidig på `window`'s
+  `error`, så en uncaught dispatch-fejl fejler testen på brugerens præcise symptom.
+- `src/__tests__/inputCore/react/useFieldEditor.test.tsx` — 7 nye tests: programmatisk settle af et
+  TEKSTFELT, kontrasten at `commitImmediate` på samme felt afvises af reduceren, ét history-trin med
+  felt-origin, codec-vejen, draft-erstatning, §3.5-friskhed og settle på et lukket felt.
+- AST-reglen `input/programmatic-commit-uses-settle` i `rules/inputBoundaryRules.ts`: et `commitImmediate`
+  inde i en handlingsknaps `onCommit` er forbudt. Reglen er bevidst scopet til attributtens subtree, så
+  Årslønssidens LOVLIGE toggle-immediate-commit ikke rammes.
+
+Mutationsbevis: sættes ét callsite tilbage til `commitImmediate(today)`, fejler netop den fladens 2
+integrationstests med brugerens præcise fejltekst
+`InputReducer: setImmediateField er kun tilladt for choice/toggle`, mens de øvrige fire flader forbliver
+grønne — og AST-reglen bliver rød med fil:linje:kolonne. Fuld suite efter rettelsen: 496 filer / 6207 tests
+grøn; `typecheck`, `typecheck:test` og `lint` grønne.
+
+**Vurderet og bevidst ikke gjort:** løsningsforslagets punkt 2 nævner som alternativ at begrænse
+`commitImmediate` TYPEMÆSSIGT. Det ville kræve, at `controlKind` føres ind i `FieldDescriptor`/`FieldRef`s
+TYPE og dermed røre 236 referencer. Prisen svarer ikke til gevinsten, når reduceren allerede fejler fail-fast
+på præcis den overtrædelse, og den ene påviste fejlform nu er dækket af både en fælles kommando og et
+AST-værn. Vurderingen er noteret her frem for kun i en commitbesked.
+
+Den konkrete brugerhandling bag loggen kl. 12:55 kan fortsat ikke fastslås ud fra fejlrapporten alene; det
+ændrer ikke, at produktionsvejen til kommandoen er lukket.
+
+**Afledt tilfældighedsfund:** INC-F02 (`INSERT_TODAY_DATE_EVENT` var en død sidekanal uden lytter) blev
+konstateret under rettelsen og rettet samtidig — se `docs/review/draft-commit-review/fund-oversigt.md`.
 
 ### UT-F06 — Års-placeholder viser en valideringsgrænse
 

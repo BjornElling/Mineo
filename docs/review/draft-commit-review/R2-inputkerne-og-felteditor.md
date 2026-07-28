@@ -8,10 +8,10 @@ placeholder-rækker, relevansrydning og centrale R2-tests
 styrende valg; placeholder-promotion; bred editor-capability  
 **Evidens:** AST-kaldskort for dispatch/editor/settle/codec; 10 målrettede testfiler/247 tests grønne;
 direkte reducerreproduktion af R2-F01  
-**Fund:** 3 (R2-F01, R2-F02, R2-F03)  
+**Fund:** 3 (R2-F01, R2-F02, R2-F03) — R2-F01 rettet 2026-07-28  
 **Hypoteser:** Ingen  
-**Handling:** Parkeret; ingen filer ændret  
-**Næste skridt:** ret datoknap-commanden, afgør kontraktdriften og etabler de manglende statekæder
+**Handling:** R2-F01 rettet (etape 2); R2-F02 og R2-F03 parkeret til deres etaper (4 og 10)  
+**Næste skridt:** afgør kontraktdriften (R2-F02, etape 4) og etabler de manglende statekæder (R2-F03, etape 10)
 
 ### R2-F01 — Indsæt dags dato fejler på fem sider
 
@@ -31,7 +31,12 @@ returnerede `InputReducer: setImmediateField er kun tilladt for choice/toggle`.
 **Forslag til løsning:** Tilføj en typed settle-handling til handlingsknapper og en fælles kontrakttest for
 alle fem callsites.  
 **Kræver godkendelse:** Nej — det genskaber knappens dokumenterede hensigt.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-28** (etape 2, sammen med UT-F05 — samme fund fra to vinkler).
+`FieldEditorController.settleValue()` er den ene programmatiske afslutningskommando; den går gennem
+editorens normale settle-vej med feltets eget codec. Alle fem callsites migreret samlet; reducerens
+fail-fast-guard bevaret. Dækning: fælles tabeldrevet kontrakttest over alle fem flader + 7 controllertests +
+AST-reglen `input/programmatic-commit-uses-settle`. Fuld løsningsbeskrivelse og mutationsbevis står under
+UT-F05 i [draft-commit-brugertestfund](../draft-commit-brugertestfund.md#ut-f05--dags-dato-knappen-sender-en-ulovlig-immediate-kommando).
 
 ### R2-F02 — Kontrakt og kode er uenige om skjulte canonical fejl
 

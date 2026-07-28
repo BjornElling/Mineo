@@ -7,6 +7,7 @@ import {
   openEditor,
   changeDraft,
   settleEditor,
+  settleEditorWithText,
   cancelEditor,
   isEditorOpen,
   isSettleStale,
@@ -63,6 +64,15 @@ export type FieldEditorController<T> = FieldEditorView<T> & Readonly<{
   clearImmediate: () => void;
   /** Dropdown/toggle/radio: commit værdien straks uden cancel-fase (§1.3/§3.6). */
   commitImmediate: (value: T) => void;
+  /**
+   * Afslut feltet med en PROGRAMMATISK leveret canonical værdi (§1.3) — handlingsknapper som »Indsæt dags dato«.
+   *
+   * Værdien formateres af feltets codec og sendes gennem den NORMALE settle-vej, præcis som havde brugeren
+   * tastet teksten og trykket Enter: samme parse, samme XOR-invariant, samme ét-history-trin, samme
+   * placeholder-promotion. Den må derfor IKKE forveksles med {@link commitImmediate}, som skriver canonical
+   * direkte og kun er lovlig for choice/toggle.
+   */
+  settleValue: (value: T) => void;
 }>;
 
 /**
@@ -133,11 +143,40 @@ export const useFieldEditor = <T>(
     unregisterRef.current = null;
   }, []);
 
+  /**
+   * Den ENE settle-udgang: oversæt intentet til en command, dispatch den, og luk editoren. Både den
+   * tast-/blur-drevne `settle()` og den programmatiske `settleValue()` går herigennem, så
+   * placeholder-override, dispatch-rækkefølge og lukning ikke kan divergere mellem de to indgange.
+   *
+   * Dispatch sker SYNKRONT her (ikke inde i setState-updateren), så en kritisk handling, der afventer
+   * `settle()`, med sikkerhed ser transaktionen landet, før den læser et frisk token (contract §5). React
+   * kører ikke garanteret en setState-updater før `setState` returnerer uden for et event, så
+   * side-effekten (dispatch) må ikke ligge i updateren.
+   */
+  const dispatchSettleIntent = React.useCallback(
+    (next: FieldEditorState<T>, intent: EditorSettleIntent<T>) => {
+      // Placeholder-promotion re-router settle til `settleFieldInNewRow` (§1.11); ellers den normale settle-command.
+      const override = latest.current.settleOverride;
+      const dispatch = override !== undefined ? override(intent) : settleIntentToCommand(intent);
+      // Bevar editor og draft fuldt aktive, hvis den atomiske runtime-transaktion fejler. Ellers kunne registryet
+      // tro, at feltet var lukket, mens brugeren stadig så den fejlende draft, og næste kritiske handling passere.
+      if (dispatch !== null) edit.dispatch(dispatch.command, dispatch.origin);
+      latest.current = { ...latest.current, state: next };
+      closeActiveRegistration();
+      setState(next);
+    },
+    [closeActiveRegistration, edit]
+  );
+
+  /** Luk editoren uden command — brugt når et settle ville landet efter en autoritativ replacement (§3.5). */
+  const closeWithoutCommand = React.useCallback((current: FieldEditorState<T>) => {
+    const closed = cancelEditor(current);
+    latest.current = { ...latest.current, state: closed };
+    closeActiveRegistration();
+    setState(closed);
+  }, [closeActiveRegistration]);
+
   const settle = React.useCallback(() => {
-    // Dispatch sker SYNKRONT her (ikke inde i setState-updateren), så en kritisk handling, der afventer
-    // `settle()`, med sikkerhed ser transaktionen landet, før den læser et frisk token (contract §5). React
-    // kører ikke garanteret en setState-updater før `setState` returnerer uden for et event, så
-    // side-effekten (dispatch) må ikke ligge i updateren.
     const current = latest.current.state;
     // Et lukket felt settler aldrig (blur efter Escape/settle må ikke committe igen, §1.3). To synkrone
     // settle-kald (fx blur + coordinatorens settle) må heller ikke dispatche to gange: `latest.current.state`
@@ -146,23 +185,12 @@ export const useFieldEditor = <T>(
     // §3.5: en autoritativ replacement (load/reset) på en nyere revision må ikke settle draften ind i den
     // erstattede tilstand. Luk da uden command.
     if (isSettleStale(current, latest.current.snapshot.replacementGeneration)) {
-      const closed = cancelEditor(current);
-      latest.current = { ...latest.current, state: closed };
-      closeActiveRegistration();
-      setState(closed);
+      closeWithoutCommand(current);
       return;
     }
     const { next, intent } = settleEditor(current);
-    // Placeholder-promotion re-router settle til `settleFieldInNewRow` (§1.11); ellers den normale settle-command.
-    const override = latest.current.settleOverride;
-    const dispatch = override !== undefined ? override(intent) : settleIntentToCommand(intent);
-    // Bevar editor og draft fuldt aktive, hvis den atomiske runtime-transaktion fejler. Ellers kunne registryet
-    // tro, at feltet var lukket, mens brugeren stadig så den fejlende draft, og næste kritiske handling passere.
-    if (dispatch !== null) edit.dispatch(dispatch.command, dispatch.origin);
-    latest.current = { ...latest.current, state: next };
-    closeActiveRegistration();
-    setState(next);
-  }, [closeActiveRegistration, edit]);
+    dispatchSettleIntent(next, intent);
+  }, [closeWithoutCommand, dispatchSettleIntent]);
 
   const cancel = React.useCallback(() => {
     // Opdatér den imperative ref synkront. Escape kan efterfølges af blur i samme browser-task, før React har
@@ -231,6 +259,24 @@ export const useFieldEditor = <T>(
     [closeActiveRegistration, field, location, edit]
   );
 
+  const settleValue = React.useCallback(
+    (value: T) => {
+      const current = latest.current.state;
+      // §3.5: en ÅBEN editor på en erstattet revision må ikke settle ind i den erstattede tilstand — hverken
+      // sin egen draft eller en programmatisk værdi. En LUKKET editor er aldrig stale, og knappen skal virke
+      // på et felt, brugeren ikke har åbnet.
+      if (current.open !== null && isSettleStale(current, latest.current.snapshot.replacementGeneration)) {
+        closeWithoutCommand(current);
+        return;
+      }
+      // Værdien går ind som RÅTEKST gennem feltets codec — ikke som canonical write. Så gælder præcis samme
+      // parse, samme rejected-XOR og samme validering som for en tastet værdi (§1.5/§7.1).
+      const { next, intent } = settleEditorWithText(current, field.descriptor.codec.formatForEdit(value));
+      dispatchSettleIntent(next, intent);
+    },
+    [closeWithoutCommand, dispatchSettleIntent, field]
+  );
+
   const open_ = isEditorOpen(boundState);
   React.useEffect(() => closeActiveRegistration, [closeActiveRegistration]);
 
@@ -247,5 +293,6 @@ export const useFieldEditor = <T>(
     cancel,
     clearImmediate,
     commitImmediate,
+    settleValue,
   };
 };

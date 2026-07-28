@@ -43,6 +43,7 @@ import {
   inputWriteBoundary,
   rawSectionAccessBoundary,
   internalRuntimeCapabilityBoundary,
+  programmaticFieldCommitUsesSettle,
   sourceSettingsProjectionBoundary,
   transientCannotWriteCaseData,
 } from './rules/inputBoundaryRules';
@@ -102,6 +103,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
   cellBindingSingleSource,
+  programmaticFieldCommitUsesSettle,
   rawSectionAccessBoundary,
   internalRuntimeCapabilityBoundary,
   sourceSettingsProjectionBoundary,

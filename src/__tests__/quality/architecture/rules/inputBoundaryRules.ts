@@ -8,6 +8,7 @@
  * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
+import ts from 'typescript';
 import {
   collectCallTypeArguments,
   collectCalls,
@@ -757,5 +758,118 @@ export const cellBindingSingleSource = defineRule({
     { relativePath: `${TABLE_SURFACE_DIR}/X.tsx`, code: 'const rows = fieldSet.readRows(reader);' },
     // Historik-prosa i en kommentar er ikke en AST-node.
     { relativePath: `${TABLE_SURFACE_DIR}/X.tsx`, code: '// Tidligere stod her `descriptor.bind(rowId)`.\nexport const x = 1;' },
+  ],
+});
+
+// --- Programmatisk felt-commit: handlingsknapper settler, de committer ikke immediate (§1.3) ----
+
+/** Komponenten, hvis `onCommit` leverer en programmatisk dato til et TEKSTFELT. */
+const TODAY_DATE_BUTTON = 'src/components/inputs/InsertTodayDateButton.tsx';
+
+/**
+ * Ligger noden inde i en `onCommit={...}`-JSX-attributs udtryk? Går op gennem forældrekæden frem for at
+ * matche tekst, så scopet er attributtens faktiske subtree — et lovligt `commitImmediate` i en anden
+ * handler i samme fil rammes derfor ikke.
+ */
+const isInsideOnCommitAttribute = (node: ts.Node): boolean => {
+  for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
+    if (!ts.isJsxAttribute(current)) continue;
+    const name = ts.isIdentifier(current.name) ? current.name.text : current.name.getText();
+    if (name === 'onCommit') return true;
+  }
+  return false;
+};
+
+/**
+ * `commitImmediate` bygger `setImmediateField`, som reduceren KUN tillader for choice/toggle. Et datofelt er
+ * et text-control, så et `commitImmediate(today)` kaster en uncaught systemfejl i brugerens ansigt — præcis
+ * UT-F05/R2-F01, hvor den samme forkerte kommando var kopieret til alle fem dags-dato-knapper.
+ *
+ * Den rigtige vej er `settleValue`, som sender værdien gennem feltets codec og den normale settle-motor.
+ *
+ * Reglen kan IKKE formuleres som "sider må ikke kalde commitImmediate": Årslønssidens omregnings-toggle er et
+ * lovligt choice/toggle-immediate-commit, og et blankt forbud ville forbyde en korrekt brug. Den kan heller
+ * ikke formuleres som en typegrænse uden at føre `controlKind` ind i `FieldRef<T>`s type og dermed røre 236
+ * referencer — en pris, der ikke svarer til gevinsten, når reduceren allerede fejler fail-fast.
+ *
+ * Reglen rammer derfor præcis den påviste fejlform: en `commitImmediate` INDE I den callback, der modtager en
+ * programmatisk dato. Ligger kaldet dér, er argumentet en dato, feltet er et text-control, og fejlen er sikker.
+ */
+export const programmaticFieldCommitUsesSettle = defineRule({
+  id: 'input/programmatic-commit-uses-settle',
+  description:
+    'En handlingsknaps `onCommit` må ikke kalde `commitImmediate` (§1.3). `commitImmediate` bygger '
+    + '`setImmediateField`, der kun er lovlig for choice/toggle; en programmatisk leveret tekst-/datoværdi '
+    + 'skal gennem `settleValue`, så den parses af feltets codec som en tastet værdi.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === TODAY_DATE_BUTTON
+      || /\bonCommit=\{/.test(entry.text),
+    rationale:
+      'knappen med den programmatiske `onCommit` findes stadig, og mindst én side bruger den — forsvinder '
+      + 'knappen, er den programmatiske commit-vej væk, og reglen skal skrives om',
+    requiredPaths: [TODAY_DATE_BUTTON],
+    minimumMatches: 2,
+  },
+  appliesTo: (relativePath) => relativePath.startsWith('src/components/')
+    || relativePath.startsWith('src/inputCore/react/'),
+  allow: [],
+  find: (entry) => {
+    const findings: Finding[] = [];
+    // Find hver `onCommit={...}`-JSX-attribut og se, om dens udtryk indeholder et `commitImmediate`-kald.
+    // Scopet er attributtens SUBTREE, så et lovligt `commitImmediate` andetsteds i filen (fx en
+    // toggle-handler) ikke rammes.
+    for (const call of collectCalls(entry)) {
+      if (call.calleeName !== 'commitImmediate') continue;
+      if (!isInsideOnCommitAttribute(call.node)) continue;
+      findings.push({
+        position: call.position,
+        message:
+          `\`${call.calleeText}(...)\` ligger i en handlingsknaps \`onCommit\`. Den command er kun lovlig `
+          + 'for choice/toggle og kaster på et text-control. Brug `settleValue(...)`, så værdien går gennem '
+          + 'feltets codec og den normale settle-vej (§1.3).',
+      });
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    // Den konkrete fejl, på alle fem flader.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => <InsertTodayDateButton onCommit={(today) => { ctrl.commitImmediate(today); }} />;',
+    },
+    // Uden krøller om kroppen — samme fejl.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => <InsertTodayDateButton onCommit={(t) => editor.commitImmediate(t)} />;',
+    },
+    // Også når kaldet ligger dybere i callbacken.
+    {
+      relativePath: 'src/components/pages/Y.tsx',
+      code: 'const C = () => <B onCommit={(d) => { if (d) { a.b.commitImmediate(d); } }} />;',
+    },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => <InsertTodayDateButton onCommit={(today) => { ctrl.settleValue(today); }} />;',
+    },
+    // Et LOVLIGT immediate-commit uden for en `onCommit` (choice/toggle) må ikke rammes — ellers ville
+    // reglen forbyde Årslønssidens omregnings-toggle, som er korrekt.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => { const h = (enabled) => { ctrl.commitImmediate(enabled); }; return <Toggle onChange={h} />; };',
+    },
+    // Feltfamiliens egne choice/toggle-controls committer immediate — deres onChange er ikke en onCommit.
+    {
+      relativePath: 'src/inputCore/react/fields/ChoiceField.tsx',
+      code: 'const h = (next) => { controller.commitImmediate(next); };',
+    },
+    // Historik-prosa i en kommentar er ikke en AST-node.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: '// Tidligere stod her `onCommit={(t) => c.commitImmediate(t)}`.\nexport const x = 1;',
+    },
   ],
 });

@@ -6,8 +6,6 @@ type InsertTodayDateParams = Readonly<{
   focusRef?: { current: HTMLInputElement | null };
 }>;
 
-export const INSERT_TODAY_DATE_EVENT = 'mineo:insert-today-date';
-
 const deferToNextFrame = (callback: () => void): void => {
   if (typeof requestAnimationFrame === 'function') {
     requestAnimationFrame(() => callback());
@@ -19,18 +17,14 @@ const deferToNextFrame = (callback: () => void): void => {
 /**
  * Committerer dags dato til et date-felt og sætter evt. fokus efter næste frame.
  *
- * Fokus udsættes med vilje for at undgå at intern draft-state i date-input
- * blokerer synkronisering af den netop committede værdi.
+ * Committet går gennem feltets normale settle-vej (`FieldEditorController.settleValue`), så den
+ * programmatiske dato parses og valideres præcis som en tastet dato (§1.3/§1.5).
+ *
+ * Fokus udsættes til næste frame, så feltet først fokuseres, når den nye afsluttede revision er rendret.
  */
 export const insertTodayDate = ({ onCommit, focusRef }: InsertTodayDateParams): void => {
   const today = getTodayLocalISO();
   onCommit(today);
-
-  if (typeof focusRef?.current?.dispatchEvent === 'function') {
-    focusRef.current.dispatchEvent(
-      new CustomEvent<ISODateString>(INSERT_TODAY_DATE_EVENT, { detail: today })
-    );
-  }
 
   if (!focusRef) return;
   deferToNextFrame(() => {

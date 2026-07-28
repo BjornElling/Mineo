@@ -95,7 +95,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                beregningsdatoController.commitImmediate(today);
+                beregningsdatoController.settleValue(today);
               }}
               focusRef={beregningsdatoInputRef}
             />

@@ -107,7 +107,7 @@ export default function EoSagsinfoSection() {
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
-                  opgoerelseLavetDenEditor.commitImmediate(today);
+                  opgoerelseLavetDenEditor.settleValue(today);
                   return true;
                 }}
                 focusRef={opgoerelseLavetDenInputRef}

@@ -233,6 +233,88 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
   });
 });
 
+// UT-F05/R2-F01: en handlingsknap ved siden af et TEKSTFELT (»Indsæt dags dato«) skal afslutte feltet gennem
+// den normale settle-vej. `commitImmediate` er forbeholdt choice/toggle, og reduceren kaster på et tekstfelt —
+// derfor er `settleValue` den ene lovlige programmatiske afslutning for et text-control.
+describe('useFieldEditor — programmatisk settle af en leveret værdi (§1.3)', () => {
+  it('settleValue på et tekstfelt committer canonical og kaster ikke', () => {
+    const { result } = renderEditor(field);
+    act(() => result.current.settleValue(2024));
+
+    expect(canonical(field)).toBe(2024);
+    expect(rejectedRaw(field)).toBeUndefined();
+    expect(result.current.displayText).toBe('2024');
+  });
+
+  it('commitImmediate på samme tekstfelt afvises af reduceren — settleValue er den lovlige vej', () => {
+    const { result } = renderEditor(field);
+    expect(() => act(() => result.current.commitImmediate(2024)))
+      .toThrow('setImmediateField er kun tilladt for choice/toggle');
+    expect(canonical(field)).toBeUndefined();
+  });
+
+  it('settleValue giver ÉT history-trin med feltets egen origin', () => {
+    const { result } = renderEditor(field);
+    const revBefore = store.getState().revision;
+    act(() => result.current.settleValue(2024));
+
+    const state = store.getState();
+    expect(state.revision).toBe(revBefore + 1);
+    const origin = state.history.past.at(-1)?.origin;
+    expect(origin?.kind).toBe('field');
+    expect(origin).toMatchObject({ editorLocationId: 'loc-1' });
+  });
+
+  it('værdien går gennem feltets codec — samme parse som en tastet værdi', () => {
+    const { result } = renderEditor(field);
+    // Aargang-codecet resolver via `formatForEdit` → `parseForSettle`; en værdi uden for codecets
+    // format ville derfor blive rejected råtekst præcis som en tastet værdi (§1.5), ikke skrevet canonical.
+    act(() => result.current.settleValue(1999));
+    expect(canonical(field)).toBe(1999);
+
+    // Kontrast: tomværdien går gennem clear-grenen og efterlader intet rejected input.
+    act(() => result.current.settleValue(undefined as unknown as number));
+    expect(canonical(field)).toBeUndefined();
+    expect(rejectedRaw(field)).toBeUndefined();
+  });
+
+  it('en åben draft ERSTATTES af den leverede værdi, og editoren lukkes', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderEditor(field);
+    act(() => result.current.open());
+    act(() => result.current.changeDraft('2099')); // halvskrevet draft
+
+    act(() => result.current.settleValue(2024));
+
+    expect(result.current.isOpen).toBe(false);
+    expect(canonical(field)).toBe(2024); // knappens værdi vinder, ikke draften
+    expect(registry.getEditing()).toBeNull();
+  });
+
+  it('settleValue på en ÅBEN editor efter en autoritativ replacement settler ikke (§3.5)', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderEditor(field);
+    act(() => result.current.open());
+    act(() => result.current.changeDraft('2099'));
+
+    const empty = createEmptySettledInput();
+    const loaded = { sections: { ...empty.sections, satser: { aargang: 1950 } }, rejectedInputs: {} };
+    act(() => { dispatchInput(store, catalog, { kind: 'replaceCase', input: loaded }); });
+
+    act(() => result.current.settleValue(2024)); // stale → luk uden command
+    expect(canonical(field)).toBe(1950);
+  });
+
+  it('settleValue virker på et LUKKET felt, brugeren ikke har åbnet', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderEditor(field);
+    expect(result.current.isOpen).toBe(false);
+
+    act(() => result.current.settleValue(2024));
+    expect(canonical(field)).toBe(2024);
+  });
+});
+
 describe('useFieldEditor — registrering + kritisk handling', () => {
   it('registrerer editoren, mens den er åben, og afmelder ved luk', () => {
     const { result } = renderEditor(field);

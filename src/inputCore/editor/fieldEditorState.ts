@@ -127,6 +127,26 @@ export const settleEditor = <T>(
 };
 
 /**
+ * Afslutter editoren med en PROGRAMMATISK LEVERET værdi (§1.3): en handlingsknap ved siden af feltet — fx
+ * »Indsæt dags dato« — udtrykker den samme afslutning som Enter, blot med en tekst, brugeren ikke har tastet.
+ *
+ * Den leverede tekst ERSTATTER en eventuel åben draft. Knappen er en eksplicit afslutningshandling, så den
+ * halvskrevne draft er netop det, brugeren beder om at få overskrevet; at settle draften i stedet ville
+ * ignorere handlingen. Editoren lukkes uanset om den var åben, og intentet er identisk med et tastet settle —
+ * så råteksten går gennem feltets codec, XOR-invarianten og history på præcis samme vej (§1.5/§3.6).
+ *
+ * Bemærk, at der IKKE er en immediate-vej her: værdien skal parses af codecet, ikke skrives direkte som
+ * canonical. `setImmediateField` er forbeholdt choice/toggle, hvor der aldrig findes en råtekst at parse.
+ */
+export const settleEditorWithText = <T>(
+  state: FieldEditorState<T>,
+  raw: string
+): Readonly<{ next: FieldEditorState<T>; intent: EditorSettleIntent<T> }> => Object.freeze({
+  next: createClosedEditor(state.field, state.location),
+  intent: Object.freeze({ kind: 'settle', field: state.field, raw, location: state.location }),
+});
+
+/**
  * Escape/cancel (§1.3): lukker editoren UDEN command, så den uændrede afsluttede tilstand vises igen. Et
  * efterfølgende blur må ikke settle — det garanteres af, at editoren nu er lukket (settle på lukket = `none`).
  */
