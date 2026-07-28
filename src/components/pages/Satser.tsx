@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
+import DocumentOutcomeMessage from '../inputs/DocumentOutcomeMessage';
 import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import YearField from '../../inputCore/react/fields/YearField';
 import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
@@ -190,6 +191,12 @@ const Satser = React.memo(() => {
             />
           </Box>
         </Box>
+
+        {/*
+          Gate-årsagen findes her KUN i knappens tooltip, så beskeden læses direkte fra `errorMessage`
+          (ikke gennem `visibleDocumentFailureMessage`) — ellers ville en gate-blokering være usynlig.
+        */}
+        <DocumentOutcomeMessage message={download.errorMessage} />
       </ContentBox>
 
       {/* Rate-sektioner vises kun for et gyldigt valgt år. Ellers nedtones området

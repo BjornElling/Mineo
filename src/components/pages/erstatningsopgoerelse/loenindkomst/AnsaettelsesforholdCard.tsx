@@ -5,6 +5,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import DocumentDownloadButton from '../../../inputs/DocumentDownloadButton';
+import DocumentOutcomeMessage from '../../../inputs/DocumentOutcomeMessage';
 import TextField from '../../../../inputCore/react/fields/TextField';
 import DateField from '../../../../inputCore/react/fields/DateField';
 import ChoiceField, { ChoiceDivider } from '../../../../inputCore/react/fields/ChoiceField';
@@ -849,6 +850,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       ) : null}
 
       {shouldShowReguleringsDatoInterval ? (
+        <>
         <Box className="row--label-right-hover">
           <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
           <Box className="row--label-right-hover__content">
@@ -871,6 +873,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             </Box>
           </Box>
         </Box>
+        {/*
+          Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå — ellers ville en
+          blokeret aktivering være helt usynlig for brugeren (R6-F02/GM-F11).
+        */}
+        <DocumentOutcomeMessage message={reguleringDocument.errorMessage} />
+        </>
       ) : null}
         </>
       ) : null}

@@ -12,13 +12,12 @@ fil-I/O ved blokering, parallel generator-/downloadvej samt grøn dækning af to
 **Evidens:** AST-audit af 792 produktionsfiler; to virtuelle strict-TypeScript-compile-prober; én
 runtime-probe af settings-/tokenbindingen; målrettet Vitest-kørsel af fem filer med 158/158 grønne
 tests. De konkrete kommandoer og udfald står nedenfor.  
-**Fund:** 4 (R6-F01, R6-F02, R6-F03, R6-F04)  
+**Fund:** 4 (R6-F01, R6-F02, R6-F03, R6-F04) — R6-F01 og R6-F02 rettet 2026-07-28 (etape 3)  
 **Hypoteser:** Ingen  
-**Handling:** R6-F02 er godkendt til implementering; de øvrige fund er parkeret til rettelse; ingen
-produktionsfiler er ændret i reviewpasset.  
-**Næste skridt:** Ret de fire fund, tilføj katalogkomplette ready-/invalid-/bounds-fixtures og
-verificér den faktiske synlige outcome-feedback gennem alle berørte contentboxes. Derefter gentages
-R6-kontrollerne og status kan vurderes til `Gennemgået`.
+**Handling:** R6-F01 og R6-F02 er rettet; R6-F03 (etape 11) og R6-F04 (etape 10) er parkeret til deres
+etaper.  
+**Næste skridt:** Ret R6-F03 og R6-F04, og tilføj katalogkomplette ready-/invalid-/bounds-fixtures.
+Derefter gentages R6-kontrollerne og status kan vurderes til `Gennemgået`.
 
 ## Scope og kontrolresultat
 
@@ -138,7 +137,25 @@ som returnerer både evaluering og `SourceSettings`; bind miljøet til denne fun
 test, hvor kun settingsrevisionen flytter under preparation.  
 **Kræver godkendelse:** Nej — rettelsen genskaber den dokumenterede aktuelle indstilling og ændrer
 ingen tilsigtet UI-, beregnings- eller dokumentregel.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-28** (etape 3).
+
+**Gennemført løsning.** Rettelsen er en SIGNATURÆNDRING, ikke et ekstra tokencheck — tokenet var
+allerede aktuelt, så et check mere kunne ikke fange fejlen:
+
+1. `createMineoDocumentEnvironment` tager nu `readSourceSettings: () => SourceSettings` i stedet for en
+   færdig `SourceSettings`-værdi. Der findes dermed ikke længere en værdi at holde fast på: begge halvdele
+   af kildesnapshottet læses ved HVERT `captureSource()`.
+2. `readPublishedSourceSettings()` er eksporteret fra `productionInputRuntime.tsx` og returnerer
+   `publishedSettings` — den værdi, `useSettingsRevisionBridge` sætter i SAMME `useLayoutEffect`, som
+   hæver settingsrevisionen. En læsning på capture-tidspunktet er derfor atomisk med tokenet.
+3. `useMineoDocumentEnvironment` læser ikke længere `useAppSettings`. Bivirkning: miljøet afhænger nu kun
+   af runtime-bindingen, så et settingsskift ikke længere invaliderer hele gate-memoiseringen nedstrøms.
+
+**Dækning (mutationstestet):** `src/__tests__/document/runtime/mineoDocumentEnvironment.test.ts` — 5 tests.
+Filen fandtes ikke før; den kritiske sti var helt udækket. Testene ændrer settings MELLEM miljøets
+konstruktion og capturen og måler hvilken VÆRDI capturen leverer for format, brevhoved og EO-regeltogglen,
+samt at evaluering og settings læses i samme kald. Mutationsbevis: genindføres den render-fangede closure,
+fejler ALLE 5 tests med et forældet `'pdf'` mod det aktuelle `'word'` — altså på selve mekanismen.
 
 ### R6-F02 — Otte outputs kasserer brugerbeskeden efter en afbrudt download
 
@@ -179,7 +196,42 @@ callsite ikke kan aktivere download uden også at vise brugerrettelige afvisning
 begge contentboxes. Tilføj UI-tests, der injicerer `stale-source` og beviser synlig dansk tekst.  
 **Kræver godkendelse:** Godkendt 2026-07-28. Brugeren har godkendt, at den eksisterende danske
 fejlbesked vises i dokumentets contentbox i de otte berørte flows, uden anden ændring af downloadflowet.  
-**Status:** Godkendt til implementering
+**Status:** **Rettet 2026-07-28** (etape 3, sammen med GM-F11 — samme fund fra to vinkler).
+
+**Gennemført løsning.** Kortlægningen viste, at problemet var STØRRE end otte glemte visninger: de flader,
+der huskede beskeden, havde fem forskellige udgaver af samme fejlrække, og reguleringshooket udledte en
+besked, ingen af dets to callsites læste. Rettelsen er derfor både en visning og en grænse:
+
+1. `src/components/inputs/DocumentOutcomeMessage.tsx` er den ene kanoniske udfaldsrække. Den tager en
+   FÆRDIG besked og vælger ikke selv politik, så valget mellem `visibleDocumentFailureMessage(handle)` og
+   `handle.errorMessage` fortsat ligger hos fladen — hvor det hører, fordi det afhænger af, om gate-årsagen
+   allerede står synligt ved knappen.
+2. Alle otte flader viser nu udfaldet: Satser, de fire EET-faner samt de to regulerings-callsites
+   (`AnsaettelsesforholdCard`, `IndtaegtFoerSkadenSection`).
+3. `useReguleringDocumentAction.errorMessage` er ændret fra `visibleDocumentFailureMessage(output)` til
+   `output.errorMessage` RÅT. Begge dens callsites har gate-årsagen KUN i knappens tooltip, så et
+   bortfiltreret gate-udfald ville netop give den usynlige blokering, filtreringen findes for at undgå.
+4. AST-reglen `document/activation-shows-outcome` lukker den grænse, fundet peger på: aktiverer en
+   sidefil et dokumenthandle, skal samme fil også rendere en udfaldsvisning. Filer, der kun VIDEREGIVER et
+   handle som prop (`Erhvervsevnetab.tsx`), aktiverer ikke selv og rammes ikke.
+
+**Dækning (mutationstestet):** `DocumentOutcomeMessage.test.tsx` — 5 tests, som henter de faktiske danske
+tekster fra produktionens beskedlag (`stale-source`, DEV-server) frem for at hardkode dem. Plus AST-reglen.
+Mutationsbevis: fjernes visningen fra Satser, bliver reglen rød med fil:linje:kolonne.
+
+**Fund i mit eget værn undervejs (INC-F03).** Reglens FØRSTE udgave brugte `entry.text.includes(...)`, og
+mutationen forblev derfor GRØN: den efterladte forklarende kommentar indeholdt ordet `errorMessage`, og en
+tekstsøgning kan ikke skelne kode fra kommentar (review-planens grundregel 5). Reglen er omskrevet til at
+måle rigtige AST-noder (JSX-tags og identifiers), og en violating fixture pinner netop det hul: en
+kommentar, der nævner visningen, bærer ikke reglen.
+
+**Bevidst ikke gjort:** de fem eksisterende udgaver af fejlrækken er IKKE ensrettet til komponenten.
+Forsørgertab/Varigt mén bruger en bar `<Box />` som filler, hvor komponenten bruger
+`row--label-right-hover__content` (`flex: 1; min-width: 220px`) — i en `space-between`-række giver det en
+synlig forskel i tekstens placering. Aarsloen og EOberegningTab har hver deres egen ramme (egen ContentBox
+med overskrift henholdsvis en delt "Fejl og advarsler"-boks med ikon i stedet for rød tekst). At ensrette
+dem er en synlig UI-ændring ud over den godkendte scope ("uden anden ændring af downloadflowet") og hører
+til en særskilt forelæggelse. Komponenten følger den udgave, der bruges flest steder (Renteberegning ×3).
 
 ### R6-F03 — Dokumentformat er fortsat en lovlig gate-dependency
 

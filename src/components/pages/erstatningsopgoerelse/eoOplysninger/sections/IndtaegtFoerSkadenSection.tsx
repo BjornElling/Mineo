@@ -1,6 +1,7 @@
 import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DocumentDownloadButton from '../../../../inputs/DocumentDownloadButton';
+import DocumentOutcomeMessage from '../../../../inputs/DocumentOutcomeMessage';
 import ContentBox from '../../../../layout/ContentBox';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
@@ -615,6 +616,7 @@ export default function IndtaegtFoerSkadenSection() {
                 ) : null}
 
                 {shouldShowReguleringsDatoInterval ? (
+                  <>
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
                     <Box className="row--label-right-hover__content">
@@ -638,6 +640,12 @@ export default function IndtaegtFoerSkadenSection() {
                       </Box>
                     </Box>
                   </Box>
+                  {/*
+                    Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå — ellers ville en
+                    blokeret aktivering være helt usynlig for brugeren (R6-F02/GM-F11).
+                  */}
+                  <DocumentOutcomeMessage message={reguleringDocument.errorMessage} />
+                  </>
                 ) : null}
               </>
             )}

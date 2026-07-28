@@ -15,7 +15,6 @@
  * click-preflighten kalder — og de to steder kan ikke længere drifte.
  */
 import type { DocumentOutcome } from '../../../document/definition/documentOutcome';
-import { visibleDocumentFailureMessage } from '../../../document/definition/react/useDocumentDownload';
 import {
   useMineoDocumentActionOutput,
   useMineoDocumentSourceContext,
@@ -30,6 +29,16 @@ import {
 export type ReguleringDocumentAction = Readonly<{
   canDownload: boolean;
   disabledReason: string | undefined;
+  /**
+   * Den brugerrettede besked for det seneste udfald (R6-F02/GM-F11). Begge callsites RENDERER den nu
+   * gennem `DocumentOutcomeMessage`; tidligere blev den udledt her og ignoreret af dem begge, så et
+   * stale-afbrud eller en død DEV-server var lydløs på både Lønindkomst-kortet og Oplysninger-fanen.
+   *
+   * Beskeden er `output.errorMessage` RÅT og ikke filtreret gennem `visibleDocumentFailureMessage`:
+   * ingen af de to callsites viser gate-årsagen som synlig tekst ved knappen — den findes kun i
+   * knappens tooltip — så et bortfiltreret gate-udfald ville netop give den usynlige blokering,
+   * filtreringen ellers findes for at undgå at duplikere.
+   */
   errorMessage: string | null;
   download: () => Promise<DocumentOutcome>;
 }>;
@@ -43,7 +52,7 @@ export const useReguleringDocumentAction = (
   return {
     canDownload: output.canDownload,
     disabledReason: output.disabledReason ?? REGULERING_NO_OUTPUT_REASON.message,
-    errorMessage: visibleDocumentFailureMessage(output),
+    errorMessage: output.errorMessage,
     download: () => output.download(request),
   };
 };

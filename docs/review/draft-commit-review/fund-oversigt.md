@@ -10,11 +10,11 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 35 | 1 | 0 |
-| GM (konvergensreview) | 15 | 14 | 0 (1 delvist) | 0 |
+| R0–R8 (fasefund) | 36 | 33 | 3 | 0 |
+| GM (konvergensreview) | 15 | 13 | 1 (1 delvist) | 0 |
 | UT (brugertest) | 6 | 3 | 2 | 1 |
-| INC (tilfældighedsfund) | 2 | 0 | 2 | 0 |
-| **I alt** | **59** | **52** | **5 (+1 delvist)** | **1** |
+| INC (tilfældighedsfund) | 3 | 0 | 3 | 0 |
+| **I alt** | **60** | **49** | **9 (+1 delvist)** | **1** |
 
 ## Bindende regel for tilfældighedsfund
 
@@ -46,7 +46,7 @@ en etape rettes og verificeres sammen.
 |---|---|---|
 | **1** | UT-F04 | Blokerer en central EO-funktion med et render-crash. Rettet 2026-07-28. |
 | **2** | UT-F05, R2-F01 | Samme årsag som etape 1's fejlklasse: en fælles kommandokontrakt brydes af fem callsites og kaster en uncaught systemfejl. Samme fund fra to vinkler. Rettet 2026-07-28. |
-| **3** | R6-F01, GM-F11 | Trust-kritisk dokumentvej: et frisk token bindes til render-fangede settings (kan producere output fra en forældet kilde), og fem sider skjuler udfaldsbeskeden. Begge i dokumenthandle-laget. |
+| **3** | R6-F01, GM-F11, R6-F02 | Trust-kritisk dokumentvej: et frisk token bindes til render-fangede settings (kan producere output fra en forældet kilde), og otte flader skjuler udfaldsbeskeden. Alle i dokumenthandle-laget. R6-F02 er GM-F11 fra reviewets egen vinkel og blev derfor rettet her frem for i sin oprindelige placering. Rettet 2026-07-28. |
 | **4** | GM-F01, GM-F02, GM-F06, R3-F02, R3-F04 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Bærer beslutning 1. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. |
@@ -85,8 +85,8 @@ etape kommer.
 | R4-F02 | Slet alt accepterer ufuldstændig oprydning som succes | Væsentlig | `useFileSaveLoad.ts:473-505` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f02--slet-alt-accepterer-ufuldstændig-oprydning-som-succes) |
 | R5-F01 | Årsløn viser en deltotal fra en fejlende række | Væsentlig | `aarsloenProjection.ts:83-298` | 5 | Åbent (godkendt) | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f01--årsløn-viser-en-deltotal-fra-en-fejlende-række) |
 | R5-F02 | Raw-section-værnet overser property- og spread-adgang | Væsentlig | `inputBoundaryRules.ts:177-236` | 9 | Åbent | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f02--raw-section-værnet-overser-property--og-spread-adgang) |
-| R6-F01 | Frisk token bindes til render-fangede settings | Kritisk | `mineoDocumentEnvironment.ts:44-50` | 3 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f01--frisk-token-bindes-til-render-fangede-settings) |
-| R6-F02 | Otte outputs kasserer beskeden efter afbrudt download | Væsentlig | Otte dokument-callsites | 3 | Åbent (godkendt) | [R6](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download) |
+| R6-F01 | Frisk token bindes til render-fangede settings | Kritisk | `mineoDocumentEnvironment.ts:44-50` | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f01--frisk-token-bindes-til-render-fangede-settings) |
+| R6-F02 | Otte outputs kasserer beskeden efter afbrudt download | Væsentlig | Otte dokument-callsites | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download) |
 | R6-F03 | Dokumentformat er fortsat en lovlig gate-dependency | Væsentlig | `sourceSettings.ts:8-85` | 11 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f03--dokumentformat-er-fortsat-en-lovlig-gate-dependency) |
 | R6-F04 | Gatekontrakten er kun målt på fire af atten definitioner | Væsentlig | `document-output-contract.md:71-87` | 10 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f04--gatekontrakten-er-kun-målt-på-fire-af-atten-definitioner) |
 | R7-F01 | Det obligatoriske page-viewmodel-lag findes ikke | Væsentlig | Alle otte persisterede fagsider | 12 | Åbent | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f01--det-obligatoriske-page-viewmodel-lag-findes-ikke) |
@@ -118,7 +118,7 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 | GM-F08 | En død React-vej til Årslønsberegningen holdes levende af tests | Mindre | `useAarsloenBeregning.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f08--en-død-react-vej-til-årslønsberegningen-holdes-levende-af-tests) |
 | GM-F09 | Død sektionsvis persistence findes ved siden af aggregate-envelope | Væsentlig | `buildPersistedSection.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f09--død-sektionsvis-persistence-findes-ved-siden-af-aggregate-envelope) |
 | GM-F10 | EO-fejllinks bruger en separat heuristisk feltidentitet | Væsentlig | `eoRowIssueCatalog.ts`, `scrollToEoRow.ts` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f10--eo-fejllinks-bruger-en-separat-heuristisk-feltidentitet) |
-| GM-F11 | Dokumentfejl vises på nogle sider, men forsvinder på andre | Væsentlig | Dokumentførende side-callsites | 3 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f11--dokumentfejl-vises-på-nogle-sider-men-forsvinder-på-andre) |
+| GM-F11 | Dokumentfejl vises på nogle sider, men forsvinder på andre | Væsentlig | Dokumentførende side-callsites | 3 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f11--dokumentfejl-vises-på-nogle-sider-men-forsvinder-på-andre) |
 | GM-F12 | Slet alt og load afslutter hel-sags-replacement forskelligt | Mindre til væsentlig | `useFileSaveLoad.ts` | 8 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f12--slet-alt-og-load-afslutter-hel-sags-replacement-forskelligt) |
 | GM-F13 | Manuel load og PWA-load kopierer samme shellflow | Mindre | `useFileSaveLoad.ts`, `fileLoad.ts` | 8 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f13--manuel-load-og-pwa-load-kopierer-samme-shellflow) |
 | GM-F14 | Placeholder- og cellebindingsalgoritmen findes i fem udgaver | Væsentlig | Fem tabelimplementeringer | 6 | Delvist rettet | [GM](grill-me-konvergensreview.md#gm-f14--placeholder--og-cellebindingsalgoritmen-findes-i-fem-udgaver) |
@@ -173,18 +173,49 @@ grønne, og AST-reglen bliver rød med fil:linje:kolonne. Den typemæssige begr�
 blev vurderet og bevidst ikke gennemført — begrundelsen står i UT-F05-rapporten. Fuld suite: 496 filer /
 6207 tests grøn.
 
+**R6-F01 + R6-F02 + GM-F11 — rettet 2026-07-28 (etape 3).** Begge halvdele af dokumentvejen.
+
+*Kildebindingen (R6-F01, kritisk):* `createMineoDocumentEnvironment` tager nu en LÆSEFUNKTION
+(`() => SourceSettings`) i stedet for en færdig værdi, så der ikke længere findes et settingsobjekt at holde
+fast på fra render. `readPublishedSourceSettings()` returnerer den værdi, `useSettingsRevisionBridge` sætter
+i samme layout-fase som settingsrevisionen hæves — læsningen er derfor atomisk med tokenet. Rettelsen er en
+signaturændring og ikke et ekstra tokencheck: tokenet var allerede aktuelt, så et check mere kunne ikke
+fange fejlen. Dækning: 5 nye tests i en fil, der ikke fandtes før (stien var helt udækket); mutationsbeviset
+er, at alle 5 fejler med et forældet `'pdf'` mod det aktuelle `'word'`, når closuren genindføres.
+
+*Udfaldsvisningen (R6-F02/GM-F11):* kortlægningen viste et større problem end otte glemte visninger — de
+flader, der huskede beskeden, havde FEM forskellige udgaver af samme fejlrække, og reguleringshooket udledte
+en besked, ingen af dets to callsites læste. `DocumentOutcomeMessage` er nu det ene sted, rækken bygges;
+alle otte flader viser udfaldet; reguleringshooket leverer beskeden rå, fordi dens callsites kun har
+gate-årsagen i knappens tooltip. AST-reglen `document/activation-shows-outcome` håndhæver grænsen.
+Bevidst udeladt: ensretning af de fem eksisterende rækkeudgaver er en synlig UI-ændring ud over det
+godkendte scope — begrundelsen står i R6-F02.
+
+Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:test` og `lint` grønne.
+
 ## Tilfældighedsfund konstateret under rettearbejdet
 
 | Id | Kort titel | Alvor | Fundet under | Status |
 |---|---|---|---|---|
 | INC-F01 | Nested løntabeller delte editorlokation på tværs af ansættelsesforhold | Væsentlig | UT-F04 | **Rettet 2026-07-28** |
 | INC-F02 | `INSERT_TODAY_DATE_EVENT` var en død sidekanal uden lytter | Mindre | UT-F05 | **Rettet 2026-07-28** |
+| INC-F03 | Mit eget nye AST-værn var tekstbaseret og kunne bæres af en kommentar | Væsentlig | R6-F02 | **Rettet 2026-07-28** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
 undo/redo kunne fokusere den forkerte tabels celle (§3.7 kræver en entydig destination). Rettet med
 `collectionLocationPrefix`, som tilføjer ejer-id'erne; dækket af
 `cellSpecBuilder.test.ts` → "nested instanser under forskellige ejere får forskellige editorlokationer".
+
+**INC-F03.** Den FØRSTE udgave af AST-reglen `document/activation-shows-outcome` afgjorde, om en fil viste
+et dokumentudfald, med `entry.text.includes('errorMessage' | …)`. Mutationstesten afslørede fejlen: fjernes
+visningen fra `Satser.tsx`, men efterlades dens forklarende kommentar — som indeholder ordet `errorMessage` —
+forblev reglen GRØN. En tekstsøgning kan ikke skelne kode fra kommentar; det er præcis review-planens
+grundregel 5 ("strukturelle spørgsmål kræver et AST") og memoryen
+`project_dansk_prosa_guard_markers`/`project_structural_questions_need_ast`. Reglen måler nu rigtige
+AST-noder (JSX-tags og identifiers), og en violating fixture pinner hullet, så det ikke kan genopstå.
+Fundet er registreret frem for blot rettet, fordi det er et selvstændigt bevis på, at et NYT værn skal
+mutationstestes lige så hårdt som den kode, det bevogter — et grønt værn er ikke evidens for noget.
 
 **INC-F02.** `insertTodayDate` dispatchede et `CustomEvent('mineo:insert-today-date')` på datofeltets
 DOM-element ved hvert klik. En repo-bred søgning viste, at INGEN lytter på eventet: den sidste forbruger var

@@ -8,7 +8,9 @@
  * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
+import ts from 'typescript';
 import { collectCalls } from '../astQueries';
+import type { SourceEntry } from '../sourceGraph';
 import { defineRule, forbidImports } from '../ruleKit';
 
 // --- Dokument-downloads må ikke læse committed state undervejs -----------------
@@ -93,6 +95,146 @@ export const pdfDownloadCommittedState = defineRule({
     { relativePath: 'src/x.ts', code: 'const s = slimInputStore.getState();' },
     // Et andet stores getState er ikke den autoritative inputtilstand.
     { relativePath: 'src/x.ts', code: 'useMineoDocumentOutput(entry); uiStore.getState();' },
+  ],
+});
+
+// --- Ingen lydløs download: en aktivering skal ledsages af en udfaldsvisning ---
+
+/**
+ * En flade, der AKTIVERER en download, skal også kunne VISE dens udfald (R6-F02/GM-F11).
+ *
+ * `DocumentDownloadHandle` leverede korrekt en dansk besked for de udfald, brugeren selv kan handle på —
+ * et stale-afbrud, fordi sagen ændrede sig undervejs, eller en død DEV-server — men intet håndhævede, at
+ * callsiten renderede den. Otte flader gjorde det ikke: brugeren klikkede på en aktiv knap, fik ingen fil
+ * og ingen forklaring. Reguleringshooket udledte endda beskeden, som BEGGE dens callsites ignorerede.
+ *
+ * Gate-tooltipen dækker ikke hullet: den forklarer den reaktive disabled-tilstand, ikke et afbrud EFTER et
+ * klik, og de forventelige udfald routes bevidst ikke til den centrale systemfejlflade (§A5).
+ *
+ * Reglen er en LOKAL strukturel kontrol pr. fil: aktiverer filen en download (`.download(...)` på et
+ * handle), skal den samme fil også nævne en udfaldsvisning. Filer, der kun VIDEREGIVER et handle som
+ * prop (fx `Erhvervsevnetab.tsx`, der komponerer fire handles til sine faner), aktiverer ikke selv og
+ * rammes derfor ikke — fanen, der klikker, er den, der skal vise.
+ */
+/**
+ * Navnene, der udgør en udfaldsvisning. Kontrollen sker på AST'et (identifiers, JSX-tags og
+ * property-adgange) og IKKE på filens tekst: en kommentar, der blot NÆVNER `errorMessage`, må ikke kunne
+ * bære reglen. Netop det hul havde den første udgave af denne regel — en mutation, der fjernede visningen
+ * men efterlod dens forklarende kommentar, forblev grøn.
+ */
+const DOCUMENT_OUTCOME_VIEWS: readonly string[] = [
+  'DocumentOutcomeMessage',
+  'visibleDocumentFailureMessage',
+  'errorMessage',
+];
+
+/** Findes en udfaldsvisning som en rigtig AST-node (ikke i en kommentar)? */
+const rendersDocumentOutcome = (entry: SourceEntry): boolean => {
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    // `<DocumentOutcomeMessage … />` som JSX-tag.
+    if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
+      && ts.isIdentifier(node.tagName)
+      && DOCUMENT_OUTCOME_VIEWS.includes(node.tagName.text)) {
+      found = true;
+      return;
+    }
+    // `visibleDocumentFailureMessage(...)` / `handle.errorMessage` som identifier eller property.
+    if (ts.isIdentifier(node) && DOCUMENT_OUTCOME_VIEWS.includes(node.text)) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return found;
+};
+
+/** Modulet der ejer den kanoniske udfaldsvisning. */
+const DOCUMENT_OUTCOME_VIEW_OWNER = 'src/components/inputs/DocumentOutcomeMessage.tsx';
+
+export const documentActivationShowsOutcome = defineRule({
+  id: 'document/activation-shows-outcome',
+  description:
+    'En flade, der aktiverer en dokument-download, skal også vise dens udfald (R6-F02/GM-F11). Ellers kan '
+    + 'et stale-afbrud eller en utilgængelig DEV-server give brugeren en aktiv knap, ingen fil og ingen '
+    + 'forklaring. Brug `DocumentOutcomeMessage` med `visibleDocumentFailureMessage(handle)` — eller '
+    + '`handle.errorMessage`, hvis gate-årsagen ikke står synligt ved knappen.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === DOCUMENT_OUTCOME_VIEW_OWNER
+      || collectCalls(entry).some((ref) => ref.calleeName === 'download'),
+    rationale:
+      'den kanoniske udfaldsvisning OG mindst én flade, der aktiverer en download, findes stadig — '
+      + 'forsvinder visningen, er mønsteret flyttet og reglen skal skrives om',
+    requiredPaths: [
+      DOCUMENT_OUTCOME_VIEW_OWNER,
+      'src/components/pages/Satser.tsx',
+      'src/components/pages/erhvervsevnetab/EetEfterEalTab.tsx',
+    ],
+  },
+  appliesTo: (relativePath) => relativePath.startsWith('src/components/pages/'),
+  allow: [],
+  find: (entry) => {
+    const calls = collectCalls(entry);
+    // `x.download(...)` — aktiveringen af et dokumenthandle. Et bart `download(...)` tælles ikke: det
+    // er typisk en lokal helper, og filen med selve handlet er den, reglen skal måle.
+    const activations = calls.filter((ref) => ref.calleeName === 'download' && ref.calleeText.includes('.'));
+    if (activations.length === 0) return [];
+    if (rendersDocumentOutcome(entry)) return [];
+
+    const first = activations[0];
+    return [{
+      position: first.position,
+      message:
+        `\`${first.calleeText}(...)\` aktiverer en dokument-download, men filen viser intet udfald. `
+        + 'Tilføj `<DocumentOutcomeMessage message={…} />`, så et stale-afbrud eller en DEV-serverfejl '
+        + 'ikke er lydløs for brugeren (R6-F02/GM-F11).',
+    }];
+  },
+  violatingFixtures: [
+    // Den konkrete fejl: aktivering uden nogen visning.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => <Button onClick={() => void download.download(undefined)} />;',
+    },
+    {
+      relativePath: 'src/components/pages/Y.tsx',
+      code: 'const C = () => <B onClick={() => { void reguleringDocument.download(); }} />;',
+    },
+    // VIGTIG fixture: en KOMMENTAR, der blot nævner visningen, må ikke bære reglen. Præcis dette hul
+    // havde reglens første udgave (den læste `entry.text`), og en mutation, der fjernede visningen men
+    // efterlod dens forklarende kommentar, forblev grøn.
+    {
+      relativePath: 'src/components/pages/Z.tsx',
+      code: '// Beskeden læses direkte fra `errorMessage` via `visibleDocumentFailureMessage`.\n'
+        + 'const C = () => <Button onClick={() => void download.download(undefined)} />;',
+    },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej: aktivering + kanonisk visning.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => <><Button onClick={() => void d.download(undefined)} />'
+        + '<DocumentOutcomeMessage message={visibleDocumentFailureMessage(d)} /></>;',
+    },
+    // Rå `errorMessage`-visning er den korrekte form, når gate-årsagen kun står i knappens tooltip.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => <><Button onClick={() => void d.download(undefined)} />'
+        + '<DocumentOutcomeMessage message={d.errorMessage} /></>;',
+    },
+    // En fil, der kun VIDEREGIVER handles som prop, aktiverer ikke selv.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => <Tab download={download} />;',
+    },
+    // Et bart `download(...)`-kald er ikke en handle-aktivering.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const C = () => { const download = () => {}; return <Button onClick={() => download()} />; };',
+    },
   ],
 });
 

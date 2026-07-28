@@ -21,6 +21,7 @@ import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
+import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
 import { formatJaNej, formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
@@ -28,7 +29,7 @@ import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
-import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
+import { visibleDocumentFailureMessage, type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import { erhvervsevnetabBilagVisUdvidetSpecifikationField } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 
 type Props = Readonly<{
@@ -114,6 +115,12 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                 />
               </Box>
             </Box>
+
+            {/*
+              Gate-blokeringer står allerede i `EetIssuesBox` ovenfor (og skjuler denne boks helt), så de
+              vises ikke igen her. Tilbage er stale-afbrud og DEV-serverfejl, som ellers var lydløse.
+            */}
+            <DocumentOutcomeMessage message={visibleDocumentFailureMessage(download)} />
           </ContentBox>
 
           {afgoerelser.map((afgoerelse) => {

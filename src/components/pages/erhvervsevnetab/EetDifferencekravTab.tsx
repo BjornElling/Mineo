@@ -30,12 +30,13 @@ import {
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
+import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
 import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
-import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
+import { visibleDocumentFailureMessage, type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import {
   erhvervsevnetabBilagEetEfterEalField,
   erhvervsevnetabBilagKapitaliseringField,
@@ -425,6 +426,12 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
               />
             </Box>
           </Box>
+
+          {/*
+            Gate-blokeringer står allerede i `EetIssuesBox` ovenfor (og skjuler denne boks helt), så de
+            vises ikke igen her. Tilbage er stale-afbrud og DEV-serverfejl, som ellers var lydløse.
+          */}
+          <DocumentOutcomeMessage message={visibleDocumentFailureMessage(download)} />
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">Bilag, der indsættes</Typography>

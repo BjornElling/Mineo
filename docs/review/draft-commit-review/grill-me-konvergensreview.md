@@ -336,6 +336,13 @@ med EO eller Årsløn i samme situation.
 **Anbefalet retning:** Alle dokumentførende sider skal vise udfaldet fra den fælles dokumenthandle gennem
 samme præsentationsmønster.
 
+**Status: Rettet 2026-07-28** (etape 3, sammen med R6-F02 — samme fund fra to vinkler). Den kanoniske
+`DocumentOutcomeMessage` er nu det ene sted, udfaldsrækken bygges, og alle otte flader viser beskeden.
+AST-reglen `document/activation-shows-outcome` håndhæver grænsen: aktiverer en sidefil et dokumenthandle,
+skal samme fil også rendere udfaldet. Fuld løsningsbeskrivelse, mutationsbevis og den bevidst udeladte
+ensretning af de fem eksisterende rækkeudgaver står under R6-F02 i
+[R6-dokumentoutput-og-generatorer](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download).
+
 ### GM-F12 — “Slet alt” og load afslutter hel-sags-replacement forskelligt
 
 **Alvor:** Mindre til væsentlig, afhængigt af den ønskede oplevelse  

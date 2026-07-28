@@ -111,6 +111,20 @@ export const createProductionInputRuntimeBinding = (): InputRuntimeBinding => {
 export const getProductionInputEvaluation = (): InputEvaluation => readProductionEvaluation();
 
 /**
+ * Læser det AKTUELT publicerede source-settings-snapshot (R6-F01).
+ *
+ * Kritisk: dette er en FUNKTION, ikke en værdi. `publishedSettings` sættes i samme layout-fase som
+ * settingsrevisionen hæves (`useSettingsRevisionBridge`), så en læsning på capture-tidspunktet er atomisk
+ * med det token, capturen bærer. Fanges settings derimod ved React-render og gemmes i en closure, kan et
+ * NYERE settingsrevision-token blive parret med et ÆLDRE settingsobjekt — og så består alle senere
+ * friskhedschecks, mens dokumentet renderes efter en forældet regel, et forældet format eller et forældet
+ * brevhoved. Netop den kombination er usynlig for et tokencheck, fordi tokenet er aktuelt.
+ *
+ * Dokumentmiljøet skal derfor binde sig til DENNE funktion frem for til et render-fanget objekt.
+ */
+export const readPublishedSourceSettings = (): SourceSettings => publishedSettings;
+
+/**
  * Optager et produktionssnapshot til test og bootstrapdiagnostik. Kritiske consumers bruger den
  * monterede `InputRuntimeBinding` i stedet, så de aldrig kan læse en anden runtime end React-træet.
  */

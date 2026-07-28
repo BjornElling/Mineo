@@ -14,6 +14,7 @@ import {
   pageSectionAccessBoundary,
 } from './rules/domainRules';
 import {
+  documentActivationShowsOutcome,
   minprocesrenteStandaloneImport,
   pdfDownloadCommittedState,
 } from './rules/documentRules';
@@ -80,6 +81,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   crossDomainDescriptorPort,
   // Dokument og standalone
   pdfDownloadCommittedState,
+  documentActivationShowsOutcome,
   minprocesrenteStandaloneImport,
   // Form, felt og critical action
   persistenceCommittedMirror,

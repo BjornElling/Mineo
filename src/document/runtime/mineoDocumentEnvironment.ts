@@ -40,13 +40,23 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
  * parameter i `evaluateGate`), så et miljø, der lovede hele `AppSettings`, ville kræve, at hver
  * konsument også havde hele `AppSettings` — og definitionerne lover kun at læse det source-relevante
  * snapshot. `projectSourceSettings` skærer capturens `AppSettings` ned til netop det.
+ *
+ * **`readSourceSettings` er en FUNKTION, ikke en værdi (R6-F01).** Begge halvdele af kildesnapshottet skal
+ * optages på SAMME tidspunkt. Tog miljøet imod et færdigt `SourceSettings`-objekt, ville det uundgåeligt
+ * være fanget ved React-render, mens `captureEvaluationSource()` læser friskt efter settle — og et nyere
+ * settingsrevision-token kunne dermed parres med et ældre format-, brevhoved- eller EO-regelobjekt.
+ * Tokenet ville se aktuelt ud, så intet friskhedscheck kunne fange det. Signaturen udelukker fejlen: der
+ * findes ikke længere en værdi at holde fast på.
  */
 export const createMineoDocumentEnvironment = (
   runtime: DocumentInputAccess,
-  settings: SourceSettings
+  readSourceSettings: () => SourceSettings
 ): DocumentExecutionEnvironment<SourceSettings, DocumentBrevhovedType> => Object.freeze({
   captureSource: () => {
-    return { evaluation: runtime.captureEvaluationSource(), settings };
+    // Rækkefølgen er bevidst: evalueringen optages først (den validerer selv sit token mod runtime), og
+    // settings læses umiddelbart efter fra den værdi, der publiceres i samme layout-fase som revisionen.
+    const evaluation = runtime.captureEvaluationSource();
+    return { evaluation, settings: readSourceSettings() };
   },
   readCurrentSourceToken: runtime.readCurrentSourceToken,
   criticalActions: runtime.criticalActions,
