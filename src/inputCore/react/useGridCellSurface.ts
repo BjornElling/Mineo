@@ -247,6 +247,8 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   };
 };
 
-/** Den bundne `FieldRef` for et celle-spec: eksisterende cellereference eller placeholder-descriptorens binding. */
-const cellFieldOf = <T, TEntity>(cell: CellSpec<T, TEntity>): FieldRef<T> =>
-  cell.kind === 'existing' ? cell.field : cell.descriptor.bind(cell.entityId);
+/**
+ * Den bundne `FieldRef` for et celle-spec. BEGGE cellearter bærer den færdigt bundne reference (§3.2), så der
+ * findes ikke længere en surface-lokal bindingsregel, der kunne drifte fra tabellens egen.
+ */
+const cellFieldOf = <T, TEntity>(cell: CellSpec<T, TEntity>): FieldRef<T> => cell.field;

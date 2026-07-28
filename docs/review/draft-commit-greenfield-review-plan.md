@@ -159,7 +159,8 @@ som status.
 | `docs/review/draft-commit-greenfield-review-plan.md` | Denne plan: metode, faser, status, tælling af fund og henvisninger. |
 | `docs/review/draft-commit-review/R<n>-<slug>.md` | Én rapport pr. fase. Alle fasens fund, evidens, angreb og konklusioner. |
 | `docs/review/draft-commit-review/grill-me-konvergensreview.md` | Supplerende tværgående konvergensreview med 15 yderligere fund (GM-F01–GM-F15), som skal behandles sammen med fasefundene. |
-| `docs/review/draft-commit-review/fund-oversigt.md` | Samlet, kort registerlinje pr. fund på tværs af faser. Én linje, ingen prosa. |
+| `docs/review/draft-commit-review/fund-oversigt.md` | Samlet, kort registerlinje pr. fund på tværs af faser, konvergensreview og brugertest. Bærer desuden den bindende rettelsesrækkefølge og reglen for tilfældighedsfund. |
+| `docs/review/draft-commit-brugertestfund.md` | Brugerens brugertestfund (UT-F01–UT-F06) med reproduktion, kerneårsag og løsningsretning. |
 | `work-items/WI-<nnn>-<slug>.md` | Fund der er for store til at rette i reviewets løb, efter `work-items/_TEMPLATE.md`. |
 
 Fase-rapporterne oprettes efterhånden som faserne startes — ikke på forhånd.
@@ -208,7 +209,8 @@ undersøgt.
 
 **Overordnet status:** I gang
 
-**Aktuel fase:** R0–R8 delvist gennemgået; R9 er næste fase
+**Aktuel fase:** R0–R8 delvist gennemgået. Rettearbejdet er begyndt og følger den bindende
+rettelsesrækkefølge i [fund-oversigt](draft-commit-review/fund-oversigt.md); R9 køres til sidst.
 
 **Sidst opdateret:** 2026-07-28
 
@@ -230,9 +232,19 @@ designdokumentets statusafsnit.
 | R8 | Testkvalitet, kvalitetsværn og acceptmatrix | Delvist gennemgået | 8/8 | [R8-testkvalitet-vaern-og-acceptmatrix](draft-commit-review/R8-testkvalitet-vaern-og-acceptmatrix.md) |
 | R9 | Tværgående konvergens og slutkontrol | Ikke startet | 0/0 | — |
 
-**Supplerende konvergensreview:** Gennemgået — 15 yderligere åbne fund (GM-F01–GM-F15) i
+**Supplerende konvergensreview:** Gennemgået — 15 fund (GM-F01–GM-F15) i
 [grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md). Rapporten supplerer
 fasegennemgangene og erstatter ikke R9's afsluttende exitkriterier.
+
+**Brugertestfund:** 6 fund (UT-F01–UT-F06) i
+[draft-commit-brugertestfund](draft-commit-brugertestfund.md) — 1 afvist med evidens, 1 rettet, 4 åbne.
+
+**Fund i alt:** 58 — 54 åbne, 2 rettet (UT-F04, INC-F01) + 1 delvist (GM-F14), 1 afvist (UT-F01). Tælling og
+rettelsesrækkefølge vedligeholdes i [fund-oversigt](draft-commit-review/fund-oversigt.md).
+
+**Tilfældighedsfund:** Fund konstateret undervejs i rettearbejdet skal enten rettes straks eller skrives ind
+som nyt fund — aldrig blot nævnes i chatten. Reglen er bindende og står i
+[fund-oversigt](draft-commit-review/fund-oversigt.md).
 
 **Åbne godkendelsespunkter:** 0 — anbefalingerne i
 [grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md) samt R5-F01, R6-F02 og R7-F03

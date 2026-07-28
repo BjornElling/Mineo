@@ -791,7 +791,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     ...eoEmploymentManual.manualCollection.template,
                     path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
                   } as CollectionRef}
-                  fieldOwnerIds={[af.id]}
                   committedRows={af.loenudviklingManuelTableData}
                   locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelTableData`}
                   baseDateDisplay={loenudviklingBaseDate.display}
@@ -834,7 +833,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                     ...eoEmploymentManual.manualPercentCollection.template,
                     path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
                   } as CollectionRef}
-                  fieldOwnerIds={[af.id]}
                   committedRows={af.loenudviklingManuelProcentsatsTableData}
                   locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
                   baseDateDisplay={loenudviklingBaseDate.display}

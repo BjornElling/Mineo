@@ -27,7 +27,12 @@ import { readStandardLoenTableRows } from './standardLoenTableFieldSet';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import { useInputEvaluation, useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
-import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import {
+  collectionLocationPrefix,
+  useCollectionCellSpecBuilder,
+  type CollectionRenderRow as RenderRow,
+} from '../../inputCore/react/cellSpecBuilder';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   GridAmountCell,
   GridDateCell,
@@ -45,17 +50,19 @@ import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
-// Greenfield-migreret StandardLoenTable (§2.4 trin 3 / §2.5, Pass 2). Rækkeinfrastruktur, celleværdier og
-// celleredigering går nu udelukkende gennem greenfield-inputCore:
-//  - `useCollectionRows(aarsloenTableDataCollectionRef)` ejer rækkernes id'er + insert/delete/reorder (§3.8) —
-//    ingen `useGridRowPersistenceCore`, `internalTableData`, fingerprint eller persistence-effect.
-//  - hver celle er en `Grid*Cell` over `useCellEditor` (draft/commit) bro-forbundet til grid-core-
-//    navigationen (§2.5). En EKSISTERENDE-række-celle binder `descriptor.bind(rowId)`; en trailing PLACEHOLDER-
-//    række promoverer atomisk ved første ikke-tomme settle (§1.11).
-//  - de committede rækker læses read-only via `readAarsloenTableRows(reader)` — KUN til sortering, afledte
-//    kolonner (col6/7/8) og tomheds-vurdering. Der findes ingen konkurrerende celle-værdikopi (§3.8).
-//  - valideringssummaryen er REN og reader-afledt (`resolveStandardLoenTableValidation`) — ikke et imperativt
-//    celle-fejl-handle. Det imperative handle beholder KUN visuel feedback (flash/scroll/missing-hint, §2.5).
+// Den delte StandardLoenTable. Tabellen renderes i to kontekster: Årsløn (top-level `aarsloen.tableData`) og EO's
+// løntabel NESTED under hvert ansættelsesforhold. `fieldSet` parametriserer collection + celle-descriptorer, så
+// komponenten selv er sideagnostisk.
+//  - `useCollectionRows(fieldSet.collection)` ejer rækkernes id'er + insert/delete/reorder (§3.8). En celles værdi
+//    bor kun i inputaggregaten; der findes ingen konkurrerende celle-værdikopi.
+//  - hver celle er en `Grid*Cell` over `useCellEditor` (draft/commit) bro-forbundet til grid-core-navigationen.
+//    Celle-specs bygges af den FÆLLES `buildCollectionCellSpec`: begge cellearter bærer en fuldt bundet `FieldRef`,
+//    hvor ejer-id'erne udledes af collectionens sti (§3.2). En trailing PLACEHOLDER-række promoverer atomisk ved
+//    første ikke-tomme settle (§1.11).
+//  - de committede rækker læses read-only via `fieldSet.readRows(reader)` — KUN til sortering, afledte kolonner
+//    (col6/7/8) og tomheds-vurdering.
+//  - valideringssummaryen er REN og reader-afledt (`fieldSet.resolveValidation`) — ikke et imperativt celle-fejl-
+//    handle. Det imperative handle bærer KUN visuel feedback (flash/scroll/missing-hint).
 
 export type StandardLoenTableProps = {
   /** Feltsættet, der binder tabellen til en konkret collection + celle-descriptors (§2.5-parametrisering). */
@@ -254,7 +261,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       // committedIdSet driver re-evalueringen (efter en promotion); placeholderCount er afledt af committedRows.
     }, [committedIdSet, placeholderCount]);
 
-    type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
     const renderRows: readonly RenderRow[] = React.useMemo(() => [
       ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
       ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
@@ -342,33 +348,23 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);
 
-    // ── Celle-spec-byggere ─────────────────────────────────────────────────────
-    // En eksisterende-række-celle binder cellens descriptor til rækkens id. En placeholder-celle bærer
-    // descriptor + collection + tom-række-entity + stabilt id, så første ikke-tomme settle promoverer rækken.
-    const buildCellSpec = React.useCallback(<T,>(
+    // ── Celle-spec-bygger ──────────────────────────────────────────────────────
+    // Den FÆLLES cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, hvor ejer-id'erne udledes
+    // af collectionens egen sti. Tabellen deles mellem Årsløn (top-level `aarsloen.tableData`) og EO's løntabel
+    // NESTED under et ansættelsesforhold — og netop derfor må den ikke selv antage ét entity-led.
+    const buildCellSpec: <T>(
       renderRow: RenderRow,
       descriptor: FieldDescriptor<T>,
       colIdx: number
-    ): CellSpec<T, StandardLoenTableRow> => {
-      // route/tabKey er eksplicit navigation-metadata (§3.7) leveret af kalderen (Årsløn vs. EO-lønindkomst).
-      const location = {
-        locationId: `${collection.section}.${collection.collection}:${renderRow.rowId}:${colIdx}`,
-        route: locationNav.route,
-        tabKey: locationNav.tabKey,
-      };
-      if (renderRow.kind === 'existing') {
-        const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
-        return { kind: 'existing', field, location };
-      }
-      return {
-        kind: 'placeholder',
-        descriptor,
-        collection,
-        entity: fieldSet.createRow(renderRow.rowId),
-        entityId: renderRow.rowId,
-        location,
-      };
-    }, [collection, fieldSet, locationNav]);
+    ) => CellSpec<T, StandardLoenTableRow> = useCollectionCellSpecBuilder<StandardLoenTableRow>({
+      collection,
+      createEmptyRow: fieldSet.createRow,
+      // Præfikset skal skelne to instanser af SAMME collection-type: EO renderer én løntabel pr. ansættelses-
+      // forhold, så ejer-id'erne skal med — ellers ville to kort dele editorlokation, og en undo kunne fokusere
+      // den forkerte tabels celle (§3.7).
+      locationPrefix: collectionLocationPrefix(collection),
+      locationNav,
+    });
 
     return (
       <StandardGridTable

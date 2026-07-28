@@ -29,6 +29,11 @@ Dette dokument registrerer analyser og løsningsretninger. Programadfærd ændre
 registreringen. Synlige UI/UX-ændringer og ændringer af beregningslogik følger fortsat godkendelsesgrænserne i
 `AGENTS.md`.
 
+**Tilfældighedsfund.** Konstateres et fund undervejs i undersøgelsen eller rettelsen af et symptom, som ikke
+allerede er registreret, skal det enten rettes straks eller skrives ind som nyt fund — aldrig blot nævnes i en
+chatbesked. Reglen er bindende og beskrevet i `docs/review/draft-commit-review/fund-oversigt.md`, som også
+bærer den samlede tælling og rettelsesrækkefølgen.
+
 ## Oversigt
 
 | Id | Symptom | Resultat | Strukturel rækkevidde | Status |
@@ -36,7 +41,7 @@ registreringen. Synlige UI/UX-ændringer og ændringer af beregningslogik følge
 | UT-F01 | Dags-dato-knappen springes over ved Tab | Tilsigtet eksisterende adfærd | Ingen fejl registreret | Afvist med evidens |
 | UT-F02 | Enter på dropdown i tabel flytter en række ned | Genskabt | Tværgående dropdown-/grid-integration | Åbent |
 | UT-F03 | Undo af den sidste værdi i en tabelrække mister cellefokus | Genskabt | Fælles placeholder-/history-integration | Åbent |
-| UT-F04 | Tilføjelse af ansættelsesforhold udløser React-crash | Genskabt | Nested feltbinding i fælles tabel-/celleinfrastruktur | Åbent |
+| UT-F04 | Tilføjelse af ansættelsesforhold udløser React-crash | Genskabt | Nested feltbinding i fælles tabel-/celleinfrastruktur | **Rettet 2026-07-28** |
 | UT-F05 | Dags-dato-knappen udløser `setImmediateField`-fejl | Fejlmekanisme genskabt | Fælles feltkommandokontrakt og fem knapintegrationer | Åbent |
 | UT-F06 | Års-placeholder viser en valideringsgrænse | Genskabt | Placeholder-ejerskab i den fælles feltfamilie | Åbent |
 
@@ -299,7 +304,52 @@ trust-kritisk regressionsrisiko.
 **Kræver godkendelse:** Nej. Rettelsen skal genskabe den allerede implementerede og tilsigtede funktion uden at
 ændre brugerflow eller beregningsregler.
 
-**Status:** Åbent; analyse gennemført, ikke implementeret.
+**Status:** **Rettet 2026-07-28.** Løst efter den anbefalede strukturelle retning, ikke lokalt.
+
+**Gennemført løsning:**
+
+1. Cellens dataidentitet konstrueres nu ÉT sted: `src/inputCore/react/cellSpecBuilder.ts`. Ejer-id'erne
+   udledes af `collection.path` — den samme sti, `insertEntity` og readeren bruger — så en tabel ikke kan
+   glemme ejeren. `collectionOwnerEntityIds` er den ene kilde.
+2. `PlaceholderCell` bærer nu `field: FieldRef<T>` frem for `descriptor` + `entityId`, og `useCellEditor`
+   binder ikke længere selv. Hooken driver kun det allerede identificerede felt og tilføjer placeholderens
+   atomiske rækkeoprettelse. Den gamle fejlform er dermed udelukket af TYPEN, ikke jaget af en test.
+3. Alle fem tabelflader (`useCollectionTable`, `StandardLoenTable`, `BeregnetRenteTable`,
+   `EetAslAfgoerelserTable`, `OevrigeKravTable`) samt form-fladen `EntityChoiceField` bruger den fælles bygger.
+   Typeændringen afslørede to yderligere kopier af den forkerte bindingsregel — `useGridCellSurface.cellFieldOf`
+   og `GridChoiceCell`s restore-mål — begge fjernet.
+4. Den redundante `fieldOwnerIds`-prop er slettet fra `useCollectionTable`, de to nested
+   `Loenudvikling*`-tabeller og deres callsites: den var en parallel kopi af en kendsgerning, collectionen
+   allerede bar, og netop den duplikation lod `StandardLoenTable` tage fejl.
+5. De misvisende kommentarer i `eoStandardLoenFieldSet.ts` og `StandardLoenTable.tsx` — som hævdede, at
+   feltsættet bandt descriptorerne til ansættelsesforholdet — er omskrevet til at beskrive den faktisk
+   håndhævede grænse.
+
+**Regressionsdækning (mutationstestet, ikke kun grøn):**
+
+- `src/__tests__/inputCore/react/cellSpecBuilder.test.ts` — 11 tests: ejer-udledning top-level/nested/flere
+  led, identisk adresse for eksisterende og placeholder på samme række-id, hele kolonnesættet i den nested
+  collection, og kollisionsfri editorlokation pr. ejer.
+- `src/__tests__/components/pages/erstatningsopgoerelse/Loenindkomst.nestedLoentabel.integration.test.tsx` —
+  2 tests: hele kortet renderes uden error boundary både med TOM løntabel (brugerens handling) og med
+  committede lønrækker (den indlæste `.eo`-risiko).
+- AST-reglen `input/cell-binding-single-source` i `rules/inputBoundaryRules.ts`: en tabelflade må ikke selv
+  kalde `descriptor.bind(...)`. Typen dækker ikke den rest — en tabel kunne binde korrekt formet men
+  ejer-løst — så reglen holder fladerne på den fælles vej.
+
+Mutationsbevis: sættes bindingen tilbage til ét entity-id, fejler 6 af de 11 kontrakttests og BEGGE
+integrationstests med brugerens præcise fejltekst
+`FieldDescriptor(col0_maaned): forventede 2 entity-id'er, modtog 1`. Genindføres en lokal `bind()` i en
+tabelflade, bliver AST-reglen rød med fil:linje. Fuld suite efter rettelsen: 495 filer / 6188 tests grøn;
+`typecheck` og `typecheck:test` grønne.
+
+**Afledt tilfældighedsfund:** INC-F01 (nested løntabeller delte editorlokation på tværs af
+ansættelsesforhold) blev konstateret under rettelsen og rettet samtidig — se
+`docs/review/draft-commit-review/fund-oversigt.md`.
+
+**Rest til etape 6:** placeholder-identitetens livscyklus (stabile id'er, kollision efter promotion,
+`minimumVisibleRows`) findes fortsat i fem udgaver. Kun cellebindings-halvdelen af GM-F14 er lukket her;
+resten hører sammen med UT-F03.
 
 ### UT-F05 — Dags-dato-knappen sender en ulovlig immediate-kommando
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { CollectionRef } from '../fieldAddress';
-import type { FieldDescriptor, FieldRef } from '../fieldDescriptor';
+import type { FieldRef } from '../fieldDescriptor';
 import type { EditorLocation } from '../editor/fieldEditorState';
 import { promoteRowSettleIntentToCommand, promoteRowImmediateCommitToCommand } from '../editor/fieldEditorEngine';
 import {
@@ -25,18 +25,25 @@ export type ExistingRowCell<T> = Readonly<{
 }>;
 
 /**
- * En placeholder-celle (§1.11): rækken findes IKKE endnu. `descriptor` + `entity` beskriver den nye række, og
- * `collection` er dens collection. Det første ikke-tomme settle i en placeholder-celle oprettes rækken atomisk;
- * et tomt settle er no-op og opretter ingen række.
+ * En placeholder-celle (§1.11): rækken findes IKKE endnu. `field` er den FÆRDIGT bundne cellereference for den
+ * kommende række, og `collection` + `entity` beskriver rækken, som `settleFieldInNewRow` skal indsætte. Det
+ * første ikke-tomme settle i en placeholder-celle opretter rækken atomisk; et tomt settle er no-op og opretter
+ * ingen række.
+ *
+ * `field` er bundet af KALDEREN — ikke af denne hook. Kun den collection-/tabelgrænse, cellen bor i, kender hele
+ * ejerstien: en nested collection (fx EO's løntabel under ét ansættelsesforhold) kræver BÅDE ejerens og rækkens
+ * entity-id. Ville hooken selv binde ud fra ét `entityId`, ville en placeholder i en nested collection
+ * uundgåeligt få en adresse med for få entity-led (§3.2), og `settleFieldInNewRow`-reducerens
+ * "feltet tilhører ikke den nye række"-guard ville — i bedste fald — fange det først under brugerhandlingen.
+ * Derfor er `FieldRef` den ene cellegrænse for BEGGE cellearter.
  */
 export type PlaceholderCell<T, TEntity> = Readonly<{
   kind: 'placeholder';
-  descriptor: FieldDescriptor<T>;
+  /** Den fuldt bundne cellereference for den kommende række (hele ejerstien + placeholder-rækkens entity-id). */
+  field: FieldRef<T>;
   collection: CollectionRef;
   /** Den fuldt formede tom-række-entity (fra row-factory), som `settleFieldInNewRow` indsætter. */
   entity: TEntity;
-  /** Placeholder-rækkens stabile entity-id — den bundne cellereference peger på præcis denne kommende række. */
-  entityId: string;
   /** Indsættelsesindeks for den nye række (default: sidst). */
   index?: number;
   location: EditorLocation;
@@ -46,22 +53,19 @@ export type CellSpec<T, TEntity = unknown> = ExistingRowCell<T> | PlaceholderCel
 
 /**
  * Den fælles grid-celleeditor. Returnerer den samme controller som et formularfelt (§7.1 — identisk kontrakt),
- * så form- og grid-surfacen kan dele UI-mekanikken i `useFormFieldSurface`. For en placeholder-celle er den
- * bundne `field` cellereferencen for den kommende række (bundet til placeholder-entityens id), så lukket visning,
- * draft-seed og issue-opslag fungerer, allerede før rækken er committet.
+ * så form- og grid-surfacen kan dele UI-mekanikken i `useFormFieldSurface`.
+ *
+ * BEGGE cellearter bærer `field`: den fuldt bundne cellereference. For en placeholder er det referencen for den
+ * KOMMENDE række, så lukket visning, draft-seed og issue-opslag fungerer, allerede før rækken er committet.
+ * Hooken driver dermed kun det allerede identificerede felt og tilføjer placeholderens atomiske rækkeoprettelse
+ * — den konstruerer ingen dataidentitet selv.
  */
 export const useCellEditor = <T, TEntity = unknown>(
   cell: CellSpec<T, TEntity>,
   focusTarget?: EditorFocusTarget
 ): FieldEditorController<T> => {
-  const field = React.useMemo<FieldRef<T>>(() => {
-    if (cell.kind === 'existing') return cell.field;
-    if (cell.entityId.trim() === '') {
-      throw new Error('useCellEditor: placeholder-celle skal bære et stabilt, ikke-tomt entity-id');
-    }
-    return cell.descriptor.bind(cell.entityId);
-    // Genberegn kun når celle-spec'et skifter identitet.
-  }, [cell]);
+  // Dataidentiteten er ALLEREDE afgjort af kalderen for begge cellearter — hooken konstruerer den ikke.
+  const field: FieldRef<T> = cell.field;
 
   const settleOverride = React.useMemo<SettleCommandOverride<T> | undefined>(() => {
     if (cell.kind === 'existing') return undefined;

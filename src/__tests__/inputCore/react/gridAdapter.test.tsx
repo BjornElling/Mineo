@@ -191,10 +191,9 @@ describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formul
 describe('useCellEditor — placeholder-promotion (§1.11)', () => {
   const placeholderCell = (): CellSpec<import('../../../schemas/amountExpressionSchema').AmountValue | undefined, unknown> => ({
     kind: 'placeholder',
-    descriptor: belobField,
+    field: belobField.bind('new-1'),
     collection: rentekravRowsRef(),
     entity: makeRow('new-1'),
-    entityId: 'new-1',
     location: { locationId: 'placeholder:belob' },
   });
 
@@ -257,10 +256,9 @@ describe('useCellEditor — placeholder-promotion (§1.11)', () => {
     const revBefore = store.getState().revision;
     const enhedPlaceholder: CellSpec<TillaegstidEnhed, unknown> = {
       kind: 'placeholder',
-      descriptor: enhedField,
+      field: enhedField.bind('new-enhed'),
       collection: rentekravRowsRef(),
       entity: makeRow('new-enhed'),
-      entityId: 'new-enhed',
       location: { locationId: 'placeholder:enhed' },
     };
     const { result } = renderHook(() => useCellEditor<TillaegstidEnhed>(enhedPlaceholder), { wrapper: wrapper(binding) });
@@ -281,10 +279,9 @@ describe('grid-adapter — §7.2 statekæde: række med fejl → slet række →
     // Promovér en placeholder til en fejlende række.
     const { result: cell } = renderCell({
       kind: 'placeholder',
-      descriptor: belobField,
+      field: belobField.bind('row-x'),
       collection: rentekravRowsRef(),
       entity: makeRow('row-x'),
-      entityId: 'row-x',
       location: { locationId: 'placeholder:belob' },
     }, binding);
     act(() => cell.current.open());

@@ -5,6 +5,7 @@ import type { CollectionRef } from '../../fieldAddress';
 import type { FieldDescriptor } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
+import { collectionOwnerEntityIds } from '../cellSpecBuilder';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 
 /**
@@ -26,19 +27,22 @@ export type EntityChoiceFieldProps<TValue extends StyledDropdownValue, TEntity> 
 }>;
 
 export default function EntityChoiceField<TValue extends StyledDropdownValue, TEntity>({ descriptor, collection, entity, entityId, entityExists, location, children, placeholder, width, name, sx }: EntityChoiceFieldProps<TValue, TEntity>) {
+  // Én cellebinding for begge arter (§3.2): feltet bindes HÉR med hele ejerstien fra collectionen efterfulgt af
+  // entityens id, så en eksisterende og en endnu ikke oprettet entity aldrig kan få forskellig adressestruktur.
+  const field = React.useMemo(
+    () => descriptor.bind(...collectionOwnerEntityIds(collection), entityId),
+    [collection, descriptor, entityId]
+  );
   const cell = React.useMemo<CellSpec<TValue | undefined, TEntity>>(
     () => entityExists
-      ? { kind: 'existing', field: descriptor.bind(entityId), location }
-      : { kind: 'placeholder', descriptor, collection, entity, entityId, location },
-    [collection, descriptor, entity, entityExists, entityId, location]
+      ? { kind: 'existing', field, location }
+      : { kind: 'placeholder', field, collection, entity, location },
+    [collection, entity, entityExists, field, location]
   );
   const controller = useCellEditor(cell);
-  // Restore-mål via feltadresse + editorlokation (§3.7): den bundne cellefeltadresse er den samme, useCellEditor
-  // binder internt (`descriptor.bind(entityId)`), så fokus efter undo/redo lander på DENNE editorlokation.
-  const restoreTargetAttributes = useRestoreTargetAttributes(
-    React.useMemo(() => descriptor.bind(entityId).address, [descriptor, entityId]),
-    location
-  );
+  // Restore-mål via feltadresse + editorlokation (§3.7): samme bundne cellefeltadresse som editoren driver, så
+  // fokus efter undo/redo lander på DENNE editorlokation.
+  const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   return <StyledDropdown<TValue>
     name={name}
     value={controller.value}

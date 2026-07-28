@@ -24,7 +24,6 @@ const isRowEmpty = (row: LoenudviklingManuelProcentsatsRow) => row.dato === unde
 export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   bindings: ManualBindings;
   collection: CollectionRef;
-  fieldOwnerIds?: readonly string[];
   committedRows: readonly LoenudviklingManuelProcentsatsRow[];
   baseDateDisplay: string;
   baseDateISO?: string;
@@ -40,9 +39,9 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>;
 
-export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, fieldOwnerIds, committedRows, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
+export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, committedRows, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
   const baseRowId = committedRows[0]?.id;
-  const table = useCollectionTable({ collection, committedRows, createRowId: generateLoenudviklingRowId, createEmptyRow, locationPrefix, locationNav, fieldOwnerIds });
+  const table = useCollectionTable({ collection, committedRows, createRowId: generateLoenudviklingRowId, createEmptyRow, locationPrefix, locationNav });
   const entries = React.useMemo(() => buildManuelProcentsatsEntries({ anvendtReguleringsdato: isISODateString(baseDateISO) ? baseDateISO : undefined, rows: committedRows }), [baseDateISO, committedRows]);
   const entryById = React.useMemo(() => new Map(entries.map((entry) => [entry.rowId, entry])), [entries]);
   const columns = React.useMemo(() => [

@@ -18,7 +18,12 @@ import {
 } from '../../domain/erstatningsopgoerelse/tables/oevrigeKravTableModel';
 import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
-import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
+import {
+  collectionLocationPrefix,
+  useCollectionCellSpecBuilder,
+  type CollectionRenderRow as RenderRow,
+} from '../../inputCore/react/cellSpecBuilder';
 import {
   GridAmountCell,
   GridDateCell,
@@ -52,7 +57,6 @@ export type OevrigeKravTableProps = Readonly<{
   saveOrderPath?: TableSaveOrderPath;
 }>;
 
-type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
 type OevrigeKravRowProps = Readonly<{
   renderRow: RenderRow;
@@ -144,26 +148,18 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
   const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
   useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
 
-  const buildCellSpec = React.useCallback(<T,>(
+  // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
+  // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
+  const buildCellSpec: <T>(
     renderRow: RenderRow,
     descriptor: FieldDescriptor<T>,
     colIdx: number
-  ): CellSpec<T, OevrigeKravRow> => {
-    // route + tabKey er eksplicit navigation-metadata (§3.7); øvrige krav bor på EO-oplysninger-fanen.
-    const location = { locationId: `erstatningsopgoerelse.oevrigeKravPerioder:${renderRow.rowId}:${colIdx}`, route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER };
-    if (renderRow.kind === 'existing') {
-      const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
-      return { kind: 'existing', field, location };
-    }
-    return {
-      kind: 'placeholder',
-      descriptor,
-      collection: collectionRef,
-      entity: createEmptyOevrigeKravCommittedRow(renderRow.rowId),
-      entityId: renderRow.rowId,
-      location,
-    };
-  }, []);
+  ) => CellSpec<T, OevrigeKravRow> = useCollectionCellSpecBuilder<OevrigeKravRow>({
+    collection: collectionRef,
+    createEmptyRow: createEmptyOevrigeKravCommittedRow,
+    locationPrefix: collectionLocationPrefix(collectionRef),
+    locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
+  });
 
   return (
     <StandardLooseTable

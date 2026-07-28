@@ -9,12 +9,14 @@ import { getStandardLoenTableValidation, type StandardLoenTableValidationResult 
 import { createEmptyStandardLoenRow } from '../aarsloen/standardLoenRowInitialValues';
 import type { StandardLoenTableFieldSet } from '../../components/tables/standardLoenTableFieldSet';
 
-// Greenfield EO-parametrisering af den delte StandardLoenTable (§2.4 trin 8 / §2.5 trin 8). Løntabellen deles mellem
-// Årsløn (top-level `aarsloen.tableData`) og EO's loenindkomst, hvor den ligger NESTED under hver ansættelsesforholds-
-// række (`loenindkomstAnsaettelsesforhold[i].indtaegtsoplysningerTableData`). Et `StandardLoenTableFieldSet` binder
-// den konkrete (nested) collection + celle-descriptorerne til ét ansættelsesforhold-id, så den fælles komponent selv
-// forbliver sideagnostisk. Celle-descriptorerne (`eoStandardRowFields`) er allerede greenfield; her bindes de blot til
-// employment-id'et, så cellenavigation/-redigering går direkte på `field.bind(employmentId, rowId)` (§1.10 pr-række).
+// EO-parametrisering af den delte StandardLoenTable. Løntabellen deles mellem Årsløn (top-level
+// `aarsloen.tableData`) og EO's loenindkomst, hvor den ligger NESTED under hver ansættelsesforholds-række
+// (`loenindkomstAnsaettelsesforhold[i].indtaegtsoplysningerTableData`).
+//
+// Feltsættet leverer den konkrete NESTED `collection` — som selv bærer ansættelsesforholdets entity-id — plus de
+// rå celle-descriptorer. Descriptorerne er BEVIDST ubundne her: bindingen sker ét sted, i den fælles
+// `buildCollectionCellSpec`, som udleder ejer-id'erne af `collection.path` (§3.2). Derfor kan et feltsæt ikke
+// glemme ejeren, og en celles adresse er altid `field.bind(employmentId, rowId)` (§1.10 pr. række).
 
 const S = 'erstatningsopgoerelse' as const;
 const EMPLOYMENTS = 'loenindkomstAnsaettelsesforhold';
@@ -122,9 +124,9 @@ export const resolveEoStandardLoenTableValidation = (
 };
 
 /**
- * Bygger StandardLoenTable-feltsættet for ét konkret ansættelsesforhold (§2.4 trin 8). Bruges af
- * `AnsaettelsesforholdCard` ved tab-cutoveren; strukturelt identisk med `aarsloenStandardLoenFieldSet`, men den
- * nested collection + celle-refs er bundet til employment-id'et.
+ * Bygger StandardLoenTable-feltsættet for ét konkret ansættelsesforhold. Bruges af `AnsaettelsesforholdCard`;
+ * strukturelt identisk med `aarsloenStandardLoenFieldSet` bortset fra ÉN ting: `collection` er den nested ref med
+ * ansættelsesforholdets entity-id. Cellernes ejer-id'er kommer derfra — ikke fra en separat parameter.
  */
 export const createEoStandardLoenFieldSet = (employmentId: string): StandardLoenTableFieldSet => ({
   collection: eoStandardLoenCollectionRef(employmentId),

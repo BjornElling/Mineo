@@ -38,6 +38,7 @@ import {
   sfggWarningsImportBoundary,
 } from './rules/formRules';
 import {
+  cellBindingSingleSource,
   forbiddenLegacyIdentifier,
   inputWriteBoundary,
   rawSectionAccessBoundary,
@@ -100,6 +101,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   rowCommandDestinationRule,
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
+  cellBindingSingleSource,
   rawSectionAccessBoundary,
   internalRuntimeCapabilityBoundary,
   sourceSettingsProjectionBoundary,

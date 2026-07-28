@@ -1,15 +1,20 @@
 import * as React from 'react';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
-import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import { useCollectionRowCommands } from '../../inputCore/react/useCollectionRows';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
+import {
+  useCollectionCellSpecBuilder,
+  type CollectionRenderRow,
+} from '../../inputCore/react/cellSpecBuilder';
 
-export type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
-const NO_FIELD_OWNER_IDS: readonly string[] = Object.freeze([]);
+export type RenderRow = CollectionRenderRow;
 
 /**
- * Fælles række-/placeholderbinding for greenfield-tabeller. Hooken holder kun UI-identiteten for den tomme
- * placeholder; alle eksisterende række-id'er og celleværdier kommer fra inputaggregatet.
+ * Fælles række-/placeholderbinding for dynamiske tabeller. Hooken holder kun UI-identiteten for den tomme
+ * placeholder; alle eksisterende række-id'er og celleværdier kommer fra inputaggregatet. Cellernes dataidentitet
+ * bygges af den fælles `buildCollectionCellSpec` (§3.2), som selv udleder ejer-id'erne af collectionens sti — så
+ * en nested tabel ikke kan binde med for få entity-led.
  */
 export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   collection,
@@ -18,7 +23,6 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   createEmptyRow,
   locationPrefix,
   locationNav,
-  fieldOwnerIds = NO_FIELD_OWNER_IDS,
 }: Readonly<{
   collection: CollectionRef;
   committedRows: readonly TRow[];
@@ -34,8 +38,6 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    * (§3.7). `tabKey: null` udtrykker eksplicit "siden har ingen faner"; udeladelse er ikke længere lovlig.
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
-  /** Eventuelle ejer-id'er før række-id'et, fx ansættelsesforholdets id i nested EO-tabeller. */
-  fieldOwnerIds?: readonly string[];
 }>) => {
   // KUN rækkekommandoerne: rækkerne kommer fra slice-projektionens `committedRows` (den kanoniske read-grænse),
   // så tabellen må ikke også abonnere på collectionens aggregat-id-liste — det ville være to reaktive
@@ -66,30 +68,17 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
     [committedRows]
   );
 
-  const buildCellSpec = React.useCallback(<T,>(
+  // Én cellebindingsmodel for alle tabeller (§3.2): ejer-id'erne udledes af collectionens sti, ikke af en prop.
+  const buildCellSpec: <T>(
     renderRow: RenderRow,
     descriptor: FieldDescriptor<T>,
     colIndex: number
-  ): CellSpec<T, TRow> => {
-    // route/tabKey er eksplicit navigation-metadata (§3.7) leveret af kalderen.
-    const location = {
-      locationId: `${locationPrefix}:${renderRow.rowId}:${String(colIndex)}`,
-      route: locationNav.route,
-      tabKey: locationNav.tabKey,
-    };
-    if (renderRow.kind === 'existing') {
-      const field: FieldRef<T> = descriptor.bind(...fieldOwnerIds, renderRow.rowId);
-      return { kind: 'existing', field, location };
-    }
-    return {
-      kind: 'placeholder',
-      descriptor,
-      collection,
-      entity: createEmptyRow(renderRow.rowId),
-      entityId: renderRow.rowId,
-      location,
-    };
-  }, [collection, createEmptyRow, fieldOwnerIds, locationPrefix, locationNav]);
+  ) => CellSpec<T, TRow> = useCollectionCellSpecBuilder<TRow>({
+    collection,
+    createEmptyRow,
+    locationPrefix,
+    locationNav,
+  });
 
   return React.useMemo(() => ({
     renderRows,

@@ -53,16 +53,9 @@ const GridChoiceCellInner = <
   const controller = useCellEditor<TCanonical, TEntity>(cell);
   const dropdownRootRef = React.useRef<HTMLDivElement>(null);
 
-  // Restore-mål via feltadresse + editorlokation (§3.7): den bundne cellefeltadresse afledes præcis som
-  // `useCellEditor` binder den (eksisterende → `cell.field`; placeholder → `descriptor.bind(entityId)`), så
-  // fokus efter undo/redo lander på DENNE grid-celles editorlokation, ikke via `name`.
-  const restoreTargetAttributes = useRestoreTargetAttributes(
-    React.useMemo(
-      () => (cell.kind === 'existing' ? cell.field.address : cell.descriptor.bind(cell.entityId).address),
-      [cell]
-    ),
-    cell.location
-  );
+  // Restore-mål via feltadresse + editorlokation (§3.7): begge cellearter bærer den samme færdigt bundne
+  // cellereference, som editoren driver, så fokus efter undo/redo lander på DENNE grid-celles editorlokation.
+  const restoreTargetAttributes = useRestoreTargetAttributes(cell.field.address, cell.location);
 
   // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun ellers (§1.8).
   const resolvedErrorMessage = controller.issue?.message ?? externalErrorMessage;

@@ -10,6 +10,7 @@
  */
 import {
   collectCallTypeArguments,
+  collectCalls,
   collectElementAccess,
   collectIdentifiers,
   collectImports,
@@ -677,5 +678,84 @@ export const sourceSettingsProjectionBoundary = defineRule({
     // denne undtagelse flagede reglen `reguleringDocumentAction` — et ægte falsk positiv.
     { relativePath: 'src/x.ts', code: 'export const a = defineDocumentAction<Req, SourceSettings, Brevhoved>({ id: "x" });' },
     { relativePath: 'src/x.ts', code: 'export const d = defineMineoDocument<void, In, SourceSettings, Key>({ id: "y" });' },
+  ],
+});
+
+// --- Cellebinding: én bindingsmodel for grid-/tabelceller (§3.2, §1.11) -------
+
+/** Modulet der ejer cellebindingen. Kun her konstrueres en celles dataidentitet. */
+const CELL_BINDING_OWNER = 'src/inputCore/react/cellSpecBuilder.ts';
+
+/** Tabelfladerne, hvis celler skal bindes gennem den fælles bygger. */
+const TABLE_SURFACE_DIR = 'src/components/tables';
+
+/**
+ * PRIMÆRVÆRNET er TYPEN: `PlaceholderCell.field` er en `FieldRef`, så en celle KAN ikke længere bære
+ * et ubundet descriptor + ét række-id. Reglen dækker den rest, typen ikke kan udtale sig om.
+ *
+ * En tabel kan fortsat kalde `descriptor.bind(rowId)` SELV og lægge resultatet i celle-spec'et. Typen
+ * er tilfreds — `bind` returnerer en gyldig `FieldRef` — men ejer-id'erne mangler, og adresseariteten
+ * kaster først under render i en NESTED collection. Præcis den fejl ramte EO's løntabel under et
+ * ansættelsesforhold: fem tabeller havde hver sin kopi af bindingsreglen, og kun de top-level
+ * varianter var dækket af integrationstests, så et manglende ejer-id var usynligt.
+ *
+ * Den fælles `buildCollectionCellSpec` udleder ejer-id'erne af `collection.path` — den SAMME sti,
+ * `insertEntity` og readeren bruger — så ejeren ikke kan glemmes. Reglen holder tabelfladerne på den vej.
+ */
+export const cellBindingSingleSource = defineRule({
+  id: 'input/cell-binding-single-source',
+  description:
+    'Tabelflader må ikke selv binde en celles dataidentitet med `descriptor.bind(...)`. Cellebindingen '
+    + 'ejes af `buildCollectionCellSpec`/`useCollectionCellSpecBuilder`, som udleder ejer-id\'erne af '
+    + 'collectionens sti (§3.2) — ellers kan en nested tabel binde med for få entity-led og kaste under render.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === CELL_BINDING_OWNER
+      || (entry.relativePath.startsWith(`${TABLE_SURFACE_DIR}/`) && /\bbuildCellSpec\b/.test(entry.text)),
+    rationale:
+      'bindingsejeren OG mindst én tabelflade, der bygger celle-specs, findes stadig — forsvinder '
+      + 'ejeren, er bindingen flyttet og reglen skal skrives om',
+    requiredPaths: [
+      CELL_BINDING_OWNER,
+      'src/components/tables/useCollectionTable.ts',
+      'src/components/tables/StandardLoenTable.tsx',
+    ],
+  },
+  appliesTo: (relativePath) => relativePath.startsWith(`${TABLE_SURFACE_DIR}/`),
+  allow: [],
+  find: (entry) => {
+    const findings: Finding[] = [];
+    for (const call of collectCalls(entry)) {
+      // `x.bind(...)` hvor kæden nævner en descriptor/feltkilde. `Function.prototype.bind` bruges ikke
+      // i tabelfladerne, og et falsk positiv ville uanset skulle gå gennem den fælles bygger.
+      if (call.calleeName !== 'bind') continue;
+      findings.push({
+        position: call.position,
+        message:
+          `\`${call.calleeText}(...)\` binder en celles dataidentitet lokalt. Brug `
+          + '`useCollectionCellSpecBuilder`/`buildCollectionCellSpec`, som udleder ejer-id\'erne af '
+          + 'collectionens sti — en lokal binding kan glemme ejeren i en nested collection (§3.2).',
+      });
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    // Den konkrete fejl: kun rækkens id, uden ejerens.
+    { relativePath: `${TABLE_SURFACE_DIR}/X.tsx`, code: 'const f = descriptor.bind(renderRow.rowId);' },
+    // Også med ejer-id: bindingen skal stadig gå gennem den fælles bygger, ellers findes reglen to steder.
+    { relativePath: `${TABLE_SURFACE_DIR}/X.tsx`, code: 'const f = fieldSet.col2.bind(afId, rowId);' },
+    { relativePath: `${TABLE_SURFACE_DIR}/Y.tsx`, code: 'const spec = { kind: "existing", field: d.bind(id), location };' },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej.
+    {
+      relativePath: `${TABLE_SURFACE_DIR}/X.tsx`,
+      code: 'const buildCellSpec = useCollectionCellSpecBuilder({ collection, createEmptyRow, locationPrefix, locationNav });',
+    },
+    { relativePath: `${TABLE_SURFACE_DIR}/X.tsx`, code: 'const spec = buildCellSpec(renderRow, fieldSet.col2, 2);' },
+    // Læsning gennem readeren er ikke en cellebinding.
+    { relativePath: `${TABLE_SURFACE_DIR}/X.tsx`, code: 'const rows = fieldSet.readRows(reader);' },
+    // Historik-prosa i en kommentar er ikke en AST-node.
+    { relativePath: `${TABLE_SURFACE_DIR}/X.tsx`, code: '// Tidligere stod her `descriptor.bind(rowId)`.\nexport const x = 1;' },
   ],
 });

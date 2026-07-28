@@ -36,7 +36,6 @@ const createEmptyRow = (id: string): LoenudviklingManuelRow => ({ ...initialLoen
 export type LoenudviklingManuelTableProps = Readonly<{
   bindings: ManualBindings;
   collection: CollectionRef;
-  fieldOwnerIds?: readonly string[];
   committedRows: readonly LoenudviklingManuelRow[];
   baseDateDisplay: string;
   baseDateISO?: string;
@@ -57,7 +56,6 @@ export type LoenudviklingManuelTableProps = Readonly<{
 export default function LoenudviklingManuelTable({
   bindings,
   collection,
-  fieldOwnerIds,
   committedRows,
   baseDateDisplay,
   baseDateISO,
@@ -77,7 +75,6 @@ export default function LoenudviklingManuelTable({
     createEmptyRow,
     locationPrefix,
     locationNav,
-    fieldOwnerIds,
   });
   const columns = React.useMemo(() => [
     { colId: 'dato', getSortValue: (row: LoenudviklingManuelRow) => row.id === baseRowId ? baseDateISO : row.dato },

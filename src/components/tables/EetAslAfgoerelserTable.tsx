@@ -15,7 +15,12 @@ import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
-import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
+import {
+  collectionLocationPrefix,
+  useCollectionCellSpecBuilder,
+  type CollectionRenderRow as RenderRow,
+} from '../../inputCore/react/cellSpecBuilder';
 import {
   GridDateCell,
   GridPercentCell,
@@ -82,7 +87,6 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   saveOrderPath?: TableSaveOrderPath;
 }>;
 
-type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
 /** En tom ASL-række-entity til placeholder-promotion (row-factory; id er placeholderens stabile slot-id). */
 const createEmptyAslRow = (rowId: string): AslAfgoerelseRow => ({ ...emptyAslAfgoerelseRowFields, id: rowId });
@@ -255,28 +259,18 @@ const EetAslAfgoerelserTable = React.memo(
     const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
     useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
 
-    // Celle-spec-bygger: eksisterende-række-celle binder descriptor.bind(rowId); placeholder bærer descriptor +
-    // collection + tom-række-entity + stabilt id, så første ikke-tomme settle promoverer rækken (§1.11).
-    const buildCellSpec = React.useCallback(<T,>(
+    // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
+    // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
+    const buildCellSpec: <T>(
       renderRow: RenderRow,
       descriptor: FieldDescriptor<T>,
       colIdx: number
-    ): CellSpec<T, AslAfgoerelseRow> => {
-      // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor kun på Erhvervsevnetabs oplysninger-fane.
-      const location = { locationId: `erhvervsevnetab.aslAfgoerelser:${renderRow.rowId}:${colIdx}`, route: APP_ROUTES.erhvervsevnetab, tabKey: PAGE_DEFAULT_TAB.erhvervsevnetab };
-      if (renderRow.kind === 'existing') {
-        const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
-        return { kind: 'existing', field, location };
-      }
-      return {
-        kind: 'placeholder',
-        descriptor,
-        collection: erhvervsevnetabAslAfgoerelserCollectionRef,
-        entity: createEmptyAslRow(renderRow.rowId),
-        entityId: renderRow.rowId,
-        location,
-      };
-    }, []);
+    ) => CellSpec<T, AslAfgoerelseRow> = useCollectionCellSpecBuilder<AslAfgoerelseRow>({
+      collection: erhvervsevnetabAslAfgoerelserCollectionRef,
+      createEmptyRow: createEmptyAslRow,
+      locationPrefix: collectionLocationPrefix(erhvervsevnetabAslAfgoerelserCollectionRef),
+      locationNav: { route: APP_ROUTES.erhvervsevnetab, tabKey: PAGE_DEFAULT_TAB.erhvervsevnetab },
+    });
 
     return (
       <StandardLooseTable

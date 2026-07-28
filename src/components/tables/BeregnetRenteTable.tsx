@@ -26,7 +26,12 @@ import {
 } from '../../document/documentFormat';
 import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
-import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import {
+  collectionLocationPrefix,
+  useCollectionCellSpecBuilder,
+  type CollectionRenderRow as RenderRow,
+} from '../../inputCore/react/cellSpecBuilder';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   GridAmountCell,
   GridDateCell,
@@ -83,7 +88,6 @@ export type BeregnetRenteTableProps = Readonly<{
   resolveDownloadGate: (rowId: string) => Readonly<{ canDownload: boolean; disabledReason?: string }>;
 }>;
 
-type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
 type BeregnetRenteRowProps = Readonly<{
   renderRow: RenderRow;
@@ -297,28 +301,18 @@ const BeregnetRenteTable = React.memo(
     const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
     useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
 
-    // Celle-spec-bygger: eksisterende-række-celle binder descriptor.bind(rowId); placeholder bærer descriptor +
-    // collection + tom-række-entity + stabilt id, så første ikke-tomme settle promoverer rækken (§1.11).
-    const buildCellSpec = React.useCallback(<T,>(
+    // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
+    // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
+    const buildCellSpec: <T>(
       renderRow: RenderRow,
       descriptor: FieldDescriptor<T>,
       colIdx: number
-    ): CellSpec<T, RentekravRow> => {
-      // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor kun på renteberegningens calculation-fane.
-      const location = { locationId: `renteberegning.rentekravRows:${renderRow.rowId}:${colIdx}`, route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning };
-      if (renderRow.kind === 'existing') {
-        const field: FieldRef<T> = descriptor.bind(renderRow.rowId);
-        return { kind: 'existing', field, location };
-      }
-      return {
-        kind: 'placeholder',
-        descriptor,
-        collection: rentekravRowsCollectionRef,
-        entity: createEmptyRentekravCommittedRow(renderRow.rowId),
-        entityId: renderRow.rowId,
-        location,
-      };
-    }, []);
+    ) => CellSpec<T, RentekravRow> = useCollectionCellSpecBuilder<RentekravRow>({
+      collection: rentekravRowsCollectionRef,
+      createEmptyRow: createEmptyRentekravCommittedRow,
+      locationPrefix: collectionLocationPrefix(rentekravRowsCollectionRef),
+      locationNav: { route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning },
+    });
 
     return (
       <StandardLooseTable
